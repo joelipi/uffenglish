@@ -264,8 +264,9 @@
 
         <!-- Left Column: Media -->
         <div id="media-container-container1" class="col-12 col-lg-7 mb-1">
-          <div id="playback-video-mobile-container" style="display:flex; justify-content:center; align-items:center; width:100%;">
+          <div id="playback-video-mobile-container" class="playback-video-container">
             <video id="playback-video-mobile" style="max-width:100%; max-height:200px; display:none;" playsinline controls preload="auto"></video>
+            <button id="playback-mute-toggle-mobile" class="playback-mute-toggle d-none"><i class="bi bi-volume-up-fill"></i></button>
           </div>
           <div id="speech-text-here" class="card border-dark p-0"></div>
 
@@ -306,8 +307,10 @@
 
         <!-- Right Column: Questions + Course Progress -->
         <div id="questions-container-container" class="col-12 col-lg-5 mb-2">
-          <div id="playback-video-desktop-container"></div>
-          <video id="playback-video-desktop" style="max-width:80%; max-height:400px; display:none;" playsinline controls preload="auto"></video>
+          <div id="playback-video-desktop-container" class="playback-video-container">
+            <video id="playback-video-desktop" style="max-width:80%; max-height:400px; display:none;" playsinline controls preload="auto"></video>
+            <button id="playback-mute-toggle-desktop" class="playback-mute-toggle d-none"><i class="bi bi-volume-up-fill"></i></button>
+          </div>
           <video id="originalVideo" src="" class="d-none"></video>
           <video id="resultVideo"></video>
           <a id="downloadLink" class="d-none">Download</a>

@@ -32,6 +32,7 @@ export const State = {
     wordsRevealed: 0,
     videoPlays: 0,
     videoClicks: 0,
+    isPlaybackMuted: false,
 
     // Active Media Player Reference
     player: null,
@@ -72,5 +73,6 @@ export const State = {
         this.wordsRevealed = 0;
         this.videoPlays = 0;
         this.videoClicks = 0;
+        this.isPlaybackMuted = false;
     }
 };

@@ -17,7 +17,7 @@ export const DOM = {
     // NEW: Added the streak span from app.php
     streakCountSpan: document.getElementById("streakCountSpan"), 
     arrowContainer: document.getElementById("arrow-container"),
-    playbackVideo: document.getElementById(window.innerWidth > 1100 ? 'playback-video-desktop' : 'playback-video-mobile')
+    playbackVideo: document.getElementById(window.innerWidth > 1000 ? 'playback-video-desktop' : 'playback-video-mobile')
 };
 
 // 2. UI Helper Functions

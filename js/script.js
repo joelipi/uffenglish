@@ -469,15 +469,7 @@ function handlecueUI(qIndex, questionData, button, cue, explanation, translation
   if (questionData.inputType === "speech" && questionData.videoUrl) State.repeatPointsHistory.push(State.currentPoints);
   if (questionData.inputType === "ai" && questionData.videoUrl) State.rolePlayPointsHistory.push(State.currentPoints);
 
-  if ((questionData.inputType === "ai") && isLastAiQuestionInLesson(State.lesson, qIndex)) {
-      DOM.scoresAndHearts.classList.add('d-none');
-      const fluencyData = { 
-          listening: calculateRepeatAverage(State.repeatPointsHistory), 
-          speaking: calculateRolePlayAverage(State.rolePlayPointsHistory), 
-          total: calculateAverage(State.repeatPointsHistory, State.rolePlayPointsHistory) 
-      };
-      loadNextQuestion(questionData, fluencyData);
-  }
+  // Unified: last AI question advances via Continue button like all others.
 
   if (DOM.speechText) {
       let userResponseHTML = userResponse ? `<div class='userResponse chat-bubble-sent chat-msg'>${userResponse}</div>` : "";
@@ -522,9 +514,9 @@ function handlecueUI(qIndex, questionData, button, cue, explanation, translation
       }
   }
 
-  if (!isLastAiQuestionInLesson(State.lesson, qIndex)) Media.playSound('correct-sound');
+  Media.playSound('correct-sound');
 
-  if (!isLastAiQuestionInLesson(State.lesson, qIndex) && (questionData.inputType === "lessonIntro" || questionData.inputType === "speech" || questionData.inputType === "ai")) {
+  if (questionData.inputType === "lessonIntro" || questionData.inputType === "speech" || questionData.inputType === "ai") {
     DOM.playbackVideo.style.display = 'block';
   }
 
@@ -535,7 +527,7 @@ function handlecueUI(qIndex, questionData, button, cue, explanation, translation
 function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanation, normalizeduserResponse, normalizedcue, question) {
   State.incorrectAttempts++;
 
-  if (!isLastAiQuestionInLesson(State.lesson, qIndex) && (questionData.inputType === "lessonIntro" || questionData.inputType === "speech" || questionData.inputType === "ai")) {
+  if (questionData.inputType === "lessonIntro" || questionData.inputType === "speech" || questionData.inputType === "ai") {
     DOM.playbackVideo.style.display = 'block';
   }
 

@@ -2,6 +2,7 @@
 import Strings from '../data/strings.js';
 import { getDeepgramToken } from './api.js';
 import { saveSpeechRecording } from './storage.js';
+import { State } from './state.js';
 
 
 // --- NEW: Import Whisper Logic ---
@@ -304,6 +305,30 @@ async function setupPlaybackVideo(blob, autoplay = false) {
       console.log('[Playback] Set playbackVideo.src to blob URL');
     }
 
+    const muteToggleId = isDesktop ? 'playback-mute-toggle-desktop' : 'playback-mute-toggle-mobile';
+    const muteToggle = document.getElementById(muteToggleId);
+
+    if (muteToggle) {
+      muteToggle.classList.remove('d-none');
+      
+      // Update icon based on current state
+      const icon = muteToggle.querySelector('i');
+      if (icon) {
+        icon.className = State.isPlaybackMuted ? 'bi bi-volume-mute-fill' : 'bi bi-volume-up-fill';
+      }
+
+      // Add click listener
+      muteToggle.onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        State.isPlaybackMuted = !State.isPlaybackMuted;
+        playbackVideo.muted = State.isPlaybackMuted;
+        if (icon) {
+          icon.className = State.isPlaybackMuted ? 'bi bi-volume-mute-fill' : 'bi bi-volume-up-fill';
+        }
+      };
+    }
+
     playbackVideo.onerror = (e) => {
       console.error('[Playback] playbackVideo onerror fired:', e, '| error code:', playbackVideo.error?.code, '| error message:', playbackVideo.error?.message);
       try {
@@ -320,6 +345,7 @@ async function setupPlaybackVideo(blob, autoplay = false) {
     playbackVideo.loop = true;
     playbackVideo.autoplay = false;
     playbackVideo.preload = 'auto';
+    playbackVideo.muted = State.isPlaybackMuted; // Apply current state
 
     if (!isIOS) {
       const handleVideoInteraction = function(e) {
@@ -392,14 +418,19 @@ export function clearPlaybackVideo() {
 
   console.log('[Playback] clearPlaybackVideo — mobile found:', !!mobileVideo, '| desktop found:', !!desktopVideo);
 
-  [mobileVideo, desktopVideo].forEach(video => {
-    if (video) {
-      if (video.src && video.src.startsWith('blob:')) URL.revokeObjectURL(video.src);
-      video.src = ''; video.style.display = 'none';
-      video.onerror = null; video.onloadeddata = null; video.onloadedmetadata = null;
-    }
-  });
-}
+    [mobileVideo, desktopVideo].forEach(video => {
+      if (video) {
+        if (video.src && video.src.startsWith('blob:')) URL.revokeObjectURL(video.src);
+        video.src = ''; video.style.display = 'none';
+        video.onerror = null; video.onloadeddata = null; video.onloadedmetadata = null;
+      }
+    });
+
+    const mobileToggle = document.getElementById('playback-mute-toggle-mobile');
+    const desktopToggle = document.getElementById('playback-mute-toggle-desktop');
+    if (mobileToggle) mobileToggle.classList.add('d-none');
+    if (desktopToggle) desktopToggle.classList.add('d-none');
+  }
 
 // --- NEW: Whisper Local Transcription Setup ---
 
