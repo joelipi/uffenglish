@@ -538,13 +538,26 @@
   window.wp = window.wp || {};
   // Alias wp.element to React + ReactDOM so WordPress React bundles work
   window.wp.element = window.wp.element || Object.assign({}, window.React, window.ReactDOM);
+  
+  // Ensure render is explicitly available
+  if (!window.wp.element.render && window.ReactDOM) {
+    window.wp.element.render = window.ReactDOM.render || function(element, container) {
+      if (window.ReactDOM.createRoot) {
+        if (!container._reactRoot) {
+          container._reactRoot = window.ReactDOM.createRoot(container);
+        }
+        container._reactRoot.render(element);
+      }
+    };
+  }
+  
   // Basic mock for WordPress i18n just in case
   window.wp.i18n = window.wp.i18n || { __: function(t){return t;}, _x: function(t){return t;} };
   // Basic mock for wp.hooks just in case
   window.wp.hooks = window.wp.hooks || { applyFilters: function(n, v){return v;}, addAction: function(){}, doAction: function(){}, addFilter: function(){} };
 </script>
 <!-- Meow AI Engine JS -->
-<script src="https://ultrafastfluency.com/wp-content/plugins/ai-engine/app/chatbot.js"></script>
+<script src="assets/js/chatbot.js" id="mwai_chatbot-js"></script>
 
 <!-- AI Chatbot Paywall (block non-paid users) -->
 <script>

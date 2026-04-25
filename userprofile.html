@@ -83,16 +83,25 @@
 <!-- / SuperPWA.com -->
 <meta name='robots' content='max-image-preview:large' />
 <script type="module">
-        import { preloadWhisperEngine } from "./js/modules/whisper/app-vad-asr.js";
-        preloadWhisperEngine();
-
         import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0";
+        
         env.allowLocalModels = false;
         env.useBrowserCache = true;
         env.backends.onnx.wasm.numThreads = 1;
 
-        pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2", { device: "wasm" });
-        pipeline("text2text-generation", "Xenova/t5-base-grammar-correction", { device: "wasm" });
+        // Delay loading to prevent memory/CPU spikes during initial page load
+        window.addEventListener('load', () => {
+            setTimeout(async () => {
+                try {
+                    // Load sequentially
+                    await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2", { device: "wasm" });
+                    await pipeline("text2text-generation", "Xenova/t5-base-grammar-correction", { device: "wasm" });
+                    console.log("Preloaded models sequentially.");
+                } catch (error) {
+                    console.error("Error preloading models:", error);
+                }
+            }, 3000); // 3 second delay after page load
+        });
     </script><link rel='stylesheet' id='mwai_chatbot_theme_timeless-css' href='assets/css/timeless.css' media='all' />
 <link rel='stylesheet' id='bootstrap-css-css' href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css?ver=5.3.0' media='all' />
 <link rel='stylesheet' id='bootstrap-icons-css' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css?ver=1.11.0' media='all' />
@@ -100,7 +109,15 @@
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script>
 window.wp = window.wp || {};
-window.wp.element = window.React;
+window.wp.element = window.wp.element || Object.assign({}, window.React, window.ReactDOM);
+if (!window.wp.element.render && window.ReactDOM) {
+  window.wp.element.render = window.ReactDOM.render || function(element, container) {
+    if (window.ReactDOM.createRoot) {
+      if (!container._reactRoot) container._reactRoot = window.ReactDOM.createRoot(container);
+      container._reactRoot.render(element);
+    }
+  };
+}
 window.wp.hooks = { applyFilters: function(a,b){return b;}, doAction: function(){} };
 window.wp.i18n = { __: function(s){return s;} };
 window.wp.apiFetch = function() { return Promise.resolve({}); };
