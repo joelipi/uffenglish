@@ -1,4 +1,4 @@
-// idiomChecker.js
+﻿// idiomChecker.js
 
 // --- Number-To-Words Utility (Scoped locally to avoid polluting global namespace) ---
 const numberToWords = (function() {
@@ -89,7 +89,7 @@ class IdiomChecker {
         // Create the promise and assign it to the lock
         this.initPromise = (async () => {
             try {
-                const response = await fetch('/wp-content/themes/twentytwentyfive-child/js/data/idioms.json');
+                const response = await fetch('js/data/idioms.json');
                 const data = await response.json();
                 
                 let skippedWords = 0;
@@ -134,7 +134,7 @@ class IdiomChecker {
                 console.log(`IdiomChecker: The longest idiom has ${this.maxWords} words. This sets the maximum search window.`);
 
             } catch (error) {
-                console.error("Failed to load /wp-content/themes/twentytwentyfive-child/js/data/idioms.json:", error);
+                console.error("Failed to load js/data/idioms.json:", error);
             }
         })();
 

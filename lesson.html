@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-
+  <link rel="stylesheet" href="style.css">
   <!-- Fonts -->
   <!-- UPDATE THESE URLS TO NEW RELATIVE URLS. THE FONTS ARE IN ASSETS/FONTS-->
   <style>
@@ -18,14 +18,14 @@
       font-style: normal;
       font-weight: 200 800;
       font-display: fallback;
-      src: url('https://ultrafastfluency.com/wp-content/themes/twentytwentyfive/assets/fonts/manrope/Manrope-VariableFont_wght.woff2') format('woff2');
+      src: url('assets/fonts/manrope/Manrope-VariableFont_wght.woff2') format('woff2');
     }
     @font-face {
       font-family: "Fira Code";
       font-style: normal;
       font-weight: 300 700;
       font-display: fallback;
-      src: url('https://ultrafastfluency.com/wp-content/themes/twentytwentyfive/assets/fonts/fira-code/FiraCode-VariableFont_wght.woff2') format('woff2');
+      src: url('assets/fonts/fira-code/FiraCode-VariableFont_wght.woff2') format('woff2');
     }
   </style>
 
@@ -45,7 +45,7 @@
     .appLoadingImage {
       width: 80vw; height: 80vh;
       max-width: 800px; max-height: 800px;
-      background: url('../img/u-f-f.png') no-repeat center center;
+      background: url('assets/img/u-f-f.png') no-repeat center center;
       background-size: contain;
       animation: scaleIn 1.5s ease-out forwards, scaleOut 1.5s 1.5s ease-in forwards;
     }
@@ -246,9 +246,9 @@
 
   <!-- Favicons -->
   <!-- DOWNLOAD THESE IMAGES AND UPDATE URLS TO RELATIVE ONES-->
-  <link rel="icon" href="https://ultrafastfluency.com/wp-content/uploads/2025/07/cropped-WhatsApp-Image-2025-07-17-at-4.19.46-PM-32x32.jpeg" sizes="32x32">
-  <link rel="icon" href="https://ultrafastfluency.com/wp-content/uploads/2025/07/cropped-WhatsApp-Image-2025-07-17-at-4.19.46-PM-192x192.jpeg" sizes="192x192">
-  <link rel="apple-touch-icon" href="https://ultrafastfluency.com/wp-content/uploads/2025/07/cropped-WhatsApp-Image-2025-07-17-at-4.19.46-PM-180x180.jpeg">
+  <link rel="icon" href="assets/img/favicons/favicon-32x32.jpeg" sizes="32x32">
+  <link rel="icon" href="assets/img/favicons/favicon-192x192.jpeg" sizes="192x192">
+  <link rel="apple-touch-icon" href="assets/img/favicons/apple-touch-icon.jpeg">
 </head>
 
 <body>
@@ -287,9 +287,9 @@
         }
 
         const imageUrls = [
-          '../img/header.png',
-          '../img/teacherprofile.png',
-          '../img/party-brain.webp'
+          'assets/img/header.png',
+          'assets/img/teacherprofile.png',
+          'assets/img/party-brain.webp'
         ];
 
         const imagePromises = imageUrls.map(url => new Promise(resolve => {
@@ -340,7 +340,7 @@
       <div id="lessonIntroHeader">
         <div id="wideHeader" class="d-flex justify-content-between align-items-center" style="margin-top: 10px;">
           <img
-            src="../img/header.png"
+            src="assets/img/header.png"
             id="uffposter" alt=""
             style="width: 320px; height: 60px;">
           <div class="flex-grow-1 mx-1"></div>
@@ -457,7 +457,7 @@
           <video id="resultVideo"></video>
           <a id="downloadLink" class="d-none">Download</a>
           <canvas id="videoCanvas" class="d-none"></canvas>
-          <img id="overlayImage" src="../img/header.png" class="d-none">
+          <img id="overlayImage" src="assets/img/header.png" class="d-none">
 
           <div id="answerDiv" class="card-wrapper d-none">
             <div class="card info-card">
@@ -472,7 +472,7 @@
           <div id="courseProgress" class="d-none card border-dark mb-3 p-0" style="margin-top: 10px; margin-bottom: 70px;">
             <div class="card-header text-white p-0" style="background: linear-gradient(135deg, #1a3a5a 0%, #0d4b8c 100%);" id="correct">
               <div class="d-flex align-items-center p-3">
-                <img src="../img/teacherprofile.png" alt="" class="rounded-circle me-3" style="width:75px; height:75px; object-fit:cover;">
+                <img src="assets/img/teacherprofile.png" alt="" class="rounded-circle me-3" style="width:75px; height:75px; object-fit:cover;">
                 <div>Prof. Joe Walsh<div class="mt-1"><small>English Fluency Coach, UFF</small></div></div>
               </div>
             </div>
@@ -480,7 +480,7 @@
             <div class="card-body messenger-body text-dark">
               <div id="success-media" class="d-none">
                 <div class="text-center mb-3">
-                  <img src="../img/party-brain.webp" width="250px" alt="">
+                  <img src="assets/img/party-brain.webp" width="250px" alt="">
                 </div>
               </div>
               <p class="chat-bubble">💯 Lesson complete! ¡Lección completada!</p>
@@ -657,7 +657,7 @@
   <!-- Meow AI Chatbot (injected by WordPress REST API) -->
   <!-- TODO: Replace data-params below with values from your live WordPress instance -->
   <div class="mwai-chatbot-container"
-    data-params='{"aiName":"Prof. Fluintel, UFF AI","userName":"User: ","guestName":"Guest:","aiAvatar":1,"userAvatar":1,"guestAvatar":1,"aiAvatarUrl":"http://localhost:10017/aiavatar.png","guestAvatarUrl":"chat-nyao-1.svg","textSend":"Send","textClear":"Clear","imageUpload":false,"fileUpload":false,"multiUpload":false,"maxUploads":1,"fileUploads":0,"mode":"chat","textInputPlaceholder":"Type your message...","textInputMaxLength":512,"textCompliance":"","startSentence":"Hi! Hola! Haz me tus preguntas sobre el ingl\u00e9s. No olvides pegar cualquier texto relevante, pues, no veo lo que est\u00e1 en la app. No puedo ofrecer soporte t\u00e9cnico, tampoco s\u00e9 sobre las funciones de esta app.","localMemory":true,"themeId":"timeless","window":true,"icon":"http://localhost:10017/aiavatarnobg.png?0","iconText":"","iconTextDelay":1,"iconAlt":"AI Engine Chatbot","iconPosition":"bottom-right","centerOpen":false,"width":"","openDelay":"","iconBubble":false,"windowAnimation":"zoom","fullscreen":true,"copyButton":true,"headerSubtitle":"","containerType":"standard","headerType":"standard","messagesType":"standard","inputType":"standard","footerType":"standard"}'
+    data-params='{"aiName":"Prof. Fluintel, UFF AI","userName":"User: ","guestName":"Guest:","aiAvatar":1,"userAvatar":1,"guestAvatar":1,"aiAvatarUrl":"assets/img/ai-avatar.png","guestAvatarUrl":"chat-nyao-1.svg","textSend":"Send","textClear":"Clear","imageUpload":false,"fileUpload":false,"multiUpload":false,"maxUploads":1,"fileUploads":0,"mode":"chat","textInputPlaceholder":"Type your message...","textInputMaxLength":512,"textCompliance":"","startSentence":"Hi! Hola! Haz me tus preguntas sobre el ingl\u00e9s. No olvides pegar cualquier texto relevante, pues, no veo lo que est\u00e1 en la app. No puedo ofrecer soporte t\u00e9cnico, tampoco s\u00e9 sobre las funciones de esta app.","localMemory":true,"themeId":"timeless","window":true,"icon":"assets/img/ai-avatar.png","iconText":"","iconTextDelay":1,"iconAlt":"AI Engine Chatbot","iconPosition":"bottom-right","centerOpen":false,"width":"","openDelay":"","iconBubble":false,"windowAnimation":"zoom","fullscreen":true,"copyButton":true,"headerSubtitle":"","containerType":"standard","headerType":"standard","messagesType":"standard","inputType":"standard","footerType":"standard"}'
     data-system='{"botId":"default","customId":null,"userData":null,"sessionId":"N/A","restNonce":null,"contextId":426,"pluginUrl":"https://ultrafastfluency.com/wp-content/plugins/ai-engine","restUrl":"/wp-json","stream":true,"debugMode":true,"eventLogs":true,"speech_recognition":false,"speech_synthesis":false,"typewriter":false,"crossSite":false,"actions":[],"blocks":[],"shortcuts":[]}'
     data-theme='{"type":"internal","name":"Timeless","themeId":"timeless","settings":{"backgroundAiColor":"#ffffff","backgroundUserColor":"#000000","backgroundPrimaryColor":"#ffffff","backgroundAiSecondaryColor":"#000","width":"80vh","maxHeight":"90vh","borderRadius":"2px","backgroundHeaderColor":"#1a3a5a","fontSize":"16px","fontColor":"#000000","headerButtonsColor":"#ffffff ","iconTextBackgroundColor":"#343541","iconTextColor":"#343541"},"style":"","cssUrl":"https://ultrafastfluency.com/wp-content/plugins/ai-engine/themes/timeless.css"}'>
   </div>
@@ -676,6 +676,18 @@
 
 <!-- Meow AI Engine CSS -->
 <link rel="stylesheet" href="https://ultrafastfluency.com/wp-content/plugins/ai-engine/themes/timeless.css">
+<!-- React Dependencies for MWAI -->
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script>
+  window.wp = window.wp || {};
+  // Alias wp.element to React + ReactDOM so WordPress React bundles work
+  window.wp.element = window.wp.element || Object.assign({}, window.React, window.ReactDOM);
+  // Basic mock for WordPress i18n just in case
+  window.wp.i18n = window.wp.i18n || { __: function(t){return t;}, _x: function(t){return t;} };
+  // Basic mock for wp.hooks just in case
+  window.wp.hooks = window.wp.hooks || { applyFilters: function(n, v){return v;}, addAction: function(){}, doAction: function(){}, addFilter: function(){} };
+</script>
 <!-- Meow AI Engine JS -->
 <script src="https://ultrafastfluency.com/wp-content/plugins/ai-engine/app/chatbot.js"></script>
 
@@ -708,20 +720,21 @@
 
 <!--END DO NOT UPDATE-->
 
-<script src="../js/users-data.js"></script>
+<script src="js/users-data.js"></script>
 
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
 
 <!-- Main App Script -->
-<script type="module" src="../js/script.js"></script>
+<script type="module" src="js/script.js"></script>
 
-<!-- Cloudflare Insights -->
+<!-- Cloudflare Insights 
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516"
   integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg=="
   data-cf-beacon='{"version":"2024.11.0","token":"0c9bb1041b3848e3ade515e72f042cb4","r":1}'
   crossorigin="anonymous"></script>
+-->
 
 </body>
 </html>

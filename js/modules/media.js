@@ -1,12 +1,12 @@
-// --- modules/media.js ---
+﻿// --- modules/media.js ---
 import { State } from './state.js';
 
-const audioPlayer = new Audio('/wp-content/themes/twentytwentyfive-child/sounds/enableaudio.mp3');
+const audioPlayer = new Audio('assets/sounds/enableaudio.mp3');
 
 const AUDIO_URLS = {
-    'correct-sound': '/wp-content/themes/twentytwentyfive-child/sounds/correct.mp3',
-    'incorrect-sound': '/wp-content/themes/twentytwentyfive-child/sounds/incorrect.mp3',
-    'lesson-complete-sound': '/wp-content/themes/twentytwentyfive-child/sounds/complete.mp3'
+    'correct-sound': 'assets/sounds/correct.mp3',
+    'incorrect-sound': 'assets/sounds/incorrect.mp3',
+    'lesson-complete-sound': 'assets/sounds/complete.mp3'
 };
 
 export const Media = {
@@ -65,3 +65,4 @@ export const Media = {
         preloadOnly(url) { this.init(url); }
     }
 };
+

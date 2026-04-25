@@ -3,7 +3,7 @@ console.log("🚀🚀🚀 SCRIPT VERSION: 424pm added idiomChecker 🚀🚀🚀"
 import { clearSpeechRecordingsForLesson, updateSpeechRecording } from './modules/storage.js?0';
 
 // Initialize the background NLP Worker via blob URL to bypass service worker caching
-const workerResponse = await fetch('/wp-content/themes/twentytwentyfive-child/js/nlp-worker.js?11');
+const workerResponse = await fetch('js/nlp-worker.js?11');
 const workerBlob = await workerResponse.blob();
 const workerObjectUrl = URL.createObjectURL(workerBlob);
 const aiWorker = new Worker(workerObjectUrl, { type: 'module' });
@@ -1088,12 +1088,12 @@ async function initializeLesson() {
 async function getCurrentLessonId() {
   if (!State.configData || typeof State.configData !== 'object') throw new Error('Invalid or missing course configuration.');
   const urlParams = new URLSearchParams(window.location.search);
-  const urlLessonId = urlParams.get('lessonId');
+  const urlLessonId = urlParams.get('lessonid');
 
   if (urlLessonId) {
     State.lessonId = urlLessonId;
     const url = new URL(window.location.href);
-    url.searchParams.delete('lessonId'); url.searchParams.delete('course');
+    url.searchParams.delete('lessonid'); url.searchParams.delete('course');
     window.history.replaceState({}, document.title, url.toString());
   }
 
@@ -1132,9 +1132,7 @@ async function getCurrentLessonId() {
 }
 
 async function getCurrentcourseId() {
-  const fullPath = window.location.pathname + window.location.search;
-  const courseMatch = fullPath.match(/\/courseid-([^\/?&]+)/);
-  State.courseId = courseMatch ? courseMatch[1] : new URLSearchParams(window.location.search).get('courseid');
+  State.courseId = new URLSearchParams(window.location.search).get('courseid');
 
   if (!State.courseId) {
     if (State.userData && typeof State.userData === 'object') {
@@ -1190,7 +1188,7 @@ async function initializeApp() {
         if (!isLoggedIn) {
             console.warn('User not authenticated. Redirecting to login page.');
             const redirectUrl = encodeURIComponent(window.location.href);
-            window.location.href = `/wp-content/themes/twentytwentyfive-child/login.html?redirect=${redirectUrl}`;
+            window.location.href = `login.html?redirect=${redirectUrl}`;
             return; // Stop execution
         }
 
@@ -1205,7 +1203,7 @@ async function initializeApp() {
         State.courseId = await getCurrentcourseId(); 
         State.englishLevel = ['A0','A1','A2','B1','B2','C1','C2'].find(level => State.courseId.toUpperCase().includes(level)) || 'A0';
 
-        const response = await fetch(`/wp-content/themes/twentytwentyfive-child/js/config/${State.courseId}.json?cb=${Date.now()}`);
+        const response = await fetch(`js/config/${State.courseId}.json?cb=${Date.now()}`);
         State.configData = await response.json();
 
         const lang = State.userData?.native_language;
