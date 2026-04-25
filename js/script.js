@@ -118,7 +118,7 @@ import {
     safeRenderChatInterface 
 } from './modules/ui.js';
 
-import { idiomChecker } from './modules/idiomChecker2.js';
+import { idiomChecker } from './modules/idiomChecker.js';
 
 const hearts = [DOM.heart1, DOM.heart2, DOM.heart3];
 

@@ -1,4 +1,4 @@
-import { idiomChecker } from './idiomChecker2.js';
+import { idiomChecker } from './idiomChecker.js';
 
 export async function analyzeSpeech(text, netDuration, pauseCount, currentCourseLevel) {
     let wpm = null;
