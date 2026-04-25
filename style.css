@@ -915,3 +915,139 @@ p {
 .diff-ins { background: #EAF3DE; color: #3B6D11; border-radius: 3px; 
             padding: 1px 3px; font-weight: 500; }
 .diff-del-bubble { color: var(--bs-body-color); opacity: 0.6; font-size: 0.95em; }
+
+
+/* --- Extracted from lesson.html --- */
+
+    @font-face {
+      font-family: Manrope;
+      font-style: normal;
+      font-weight: 200 800;
+      font-display: fallback;
+      src: url('assets/fonts/manrope/Manrope-VariableFont_wght.woff2') format('woff2');
+    }
+    @font-face {
+      font-family: "Fira Code";
+      font-style: normal;
+      font-weight: 300 700;
+      font-display: fallback;
+      src: url('assets/fonts/fira-code/FiraCode-VariableFont_wght.woff2') format('woff2');
+    }
+  
+
+    .hamburger-btn {
+      background: rgba(255,255,255,0.9);
+      border: 2px solid transparent;
+      border-radius: 8px;
+      padding: 3px 12px;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .hamburger-btn:hover {
+      background: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .hamburger-icon {
+      width: 24px; height: 18px;
+      position: relative;
+    }
+    .hamburger-icon span {
+      display: block;
+      position: absolute;
+      height: 3px; width: 100%;
+      background: #3a8fd5;
+      border-radius: 2px;
+      opacity: 1; left: 0;
+      transition: 0.25s ease-in-out;
+    }
+    .hamburger-icon span:nth-child(1) { top: 0px; }
+    .hamburger-icon span:nth-child(2) { top: 7px; }
+    .hamburger-icon span:nth-child(3) { top: 14px; }
+
+    .overlay-menu {
+      position: fixed;
+      top: 0; right: -100%;
+      width: 300px; height: 100vh;
+      background: rgba(58,143,213,0.98);
+      backdrop-filter: blur(10px);
+      z-index: 9999;
+      transition: right 0.3s ease;
+      padding: 80px 30px 30px;
+    }
+    .overlay-menu.active { right: 0; }
+    .overlay-menu ul { list-style: none; padding: 0; margin: 0; }
+    .overlay-menu ul li { margin-bottom: 20px; }
+    .overlay-menu ul li a {
+      color: white; text-decoration: none;
+      font-size: 18px; font-weight: 600;
+      transition: all 0.3s;
+      display: block; padding: 10px 0;
+    }
+    .overlay-menu ul li a:hover { color: #00f2fe; padding-left: 10px; }
+    .overlay-close {
+      position: absolute; top: 20px; right: 20px;
+      background: none; border: none;
+      color: white; font-size: 30px; cursor: pointer;
+    }
+  
+
+    #arrow-container {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 9998;
+      display: flex; justify-content: center;
+    }
+    .arrow {
+      position: absolute;
+      bottom: 25vh;
+      width: 12px; height: 15vh;
+      background-color: white;
+      border-radius: 6px;
+      box-shadow: 0 0 20px 8px rgba(255,255,255,0.8), 0 0 40px 16px rgba(255,255,255,0.4);
+      animation: pulse 2s infinite;
+    }
+    .arrow::after {
+      content: '';
+      position: absolute;
+      bottom: -20px; left: 50%;
+      transform: translateX(-50%);
+      border-left: 20px solid transparent;
+      border-right: 20px solid transparent;
+      border-top: 30px solid white;
+      filter: drop-shadow(0 0 8px rgba(255,255,255,0.8));
+    }
+    @keyframes pulse {
+      0%   { opacity: 0.9; }
+      50%  { opacity: 0.7; }
+      100% { opacity: 0.9; }
+    }
+    @media (max-width: 768px) { .arrow { width: 20px; } }
+  
+
+    .user-day-0 .day-0-content,
+    .user-day-1 .day-1-content,
+    .user-day-2 .day-2-content,
+    .user-day-3 .day-3-content,
+    .user-day-4 .day-4-content,
+    .user-day-5 .day-5-content,
+    .user-day-6 .day-6-content,
+    .user-day-7 .day-7-content { display: none !important; }
+
+    .user-day-1 .day-0-content,
+    .user-day-2 .day-0-content, .user-day-2 .day-1-content,
+    .user-day-3 .day-0-content, .user-day-3 .day-1-content, .user-day-3 .day-2-content,
+    .user-day-4 .day-0-content, .user-day-4 .day-1-content, .user-day-4 .day-2-content, .user-day-4 .day-3-content,
+    .user-day-5 .day-0-content, .user-day-5 .day-1-content, .user-day-5 .day-2-content, .user-day-5 .day-3-content, .user-day-5 .day-4-content,
+    .user-day-6 .day-0-content, .user-day-6 .day-1-content, .user-day-6 .day-2-content, .user-day-6 .day-3-content, .user-day-6 .day-4-content, .user-day-6 .day-5-content,
+    .user-day-7 .day-0-content, .user-day-7 .day-1-content, .user-day-7 .day-2-content, .user-day-7 .day-3-content, .user-day-7 .day-4-content, .user-day-7 .day-5-content, .user-day-7 .day-6-content,
+    .user-day-8 .day-0-content, .user-day-8 .day-1-content, .user-day-8 .day-2-content, .user-day-8 .day-3-content, .user-day-8 .day-4-content, .user-day-8 .day-5-content, .user-day-8 .day-6-content, .user-day-8 .day-7-content
+    { display: block !important; }
+  
+
+    .grecaptcha-badge { visibility: hidden !important; }
+    #speech-text-here:empty { border: none !important; display: none; }
+    .big-buttons { flex-wrap: wrap; gap: 12px; margin-top: 15px; justify-content: center; }
+    #aiApologyModal { z-index: 999999 !important; }
+  
