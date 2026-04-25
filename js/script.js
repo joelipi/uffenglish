@@ -119,6 +119,7 @@ import {
 } from './modules/ui.js';
 
 import { idiomChecker } from './modules/idiomChecker.js';
+import { calculateSyntacticComplexity } from './modules/complexity.js';
 
 const hearts = [DOM.heart1, DOM.heart2, DOM.heart3];
 
@@ -359,7 +360,16 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
                         <div style="margin-top:6px">${corrHTML}</div>
                     </div>`;
             } else {
-                grammarExplanationHTML = `<div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>${Strings.get('grammar_perfect', State.userData?.native_language)}</div>`;
+                const syntComplexity = calculateSyntacticComplexity(userResponse);
+                grammarExplanationHTML = `
+                    <div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>
+                        ${Strings.get('grammar_perfect', State.userData?.native_language)}
+                        <hr style="margin: 8px 0; opacity: 0.1;">
+                        <div style="font-size: 0.85em;">
+                            <strong>Syntactical Complexity:</strong> ${syntComplexity.score}%
+                            <br><small style="opacity: 0.7;">(${syntComplexity.breakdown})</small>
+                        </div>
+                    </div>`;
             }
 
             // 3. TIER 2: Semantic Intent Match
