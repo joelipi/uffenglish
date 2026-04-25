@@ -764,18 +764,18 @@ p {
 /* To make the whole thing fit on desktop */
 @media (min-width: 992px) { /* Targets desktop screens */
   .fixed-bottom {
-    min-height: 55px !important; /* Reduce from 140px */
+    min-height: 75px !important; /* Increased from 55px to prevent overlap */
   }
   
   #micStatusText {
     margin-top: 0px !important; /* Reduce top margin */
-    margin-bottom: 5px !important; /* Reduce bottom margin */
+    margin-bottom: 15px !important; /* Increased from 5px to prevent overlap */
     /*min-height: 20px !important; /* Reduce from 40px */
   }
 
   #bottomButtonBar {
-    height: 40px !important; /* Reduce from 80px */
-    min-height: 40px !important;
+    height: 55px !important; /* Increased from 40px to give absolute children room */
+    min-height: 55px !important;
   }
 
     /* Center button container */

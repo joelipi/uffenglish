@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title> 1777081103</title>
+
+<!--app loading image-->
+  <style>
+  /* The opening loading image to hide any FOUC */
+        #appLoadingImageDiv {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #3a8fd5 0%, #00c0d8 100%) !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999999;
+        }
+        
+        .appLoadingImage {
+            /* 
+            Using max-width and max-height for responsiveness
+            The 80vw means 80% of viewport width, but no more than 400px
+            The 80vh means 80% of viewport height, but no more than 400px
+            This ensures the appLoadingImage looks good on all screen sizes
+            */
+            width: 80vw;
+            height: 80vh;
+            max-width: 800px;
+            max-height: 800px;
+            background: url('assets/img/u-f-f.png') no-repeat center center;
+            background-size: contain;
+            animation: scaleIn 1.5s ease-out forwards, scaleOut 1.5s 1.5s ease-in forwards;
+        }
+        
+        @keyframes scaleIn {
+            0% {
+                transform: scale(0.7);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes scaleOut {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1.3);
+                opacity: 0;
+            }
+        }
+    </style>
+    <!--End app loading image-->
+
+
+  <!-- Eruda for debugging COMMENT OUT IN PRODUCTION (optional) -->
+  <script src="https://cdn.jsdelivr.net/npm/eruda@3.4.1/eruda.min.js"></script>
+  <script>
+    eruda.init(); // Initialize Eruda
+  </script>
+
+  <!-- Manifest added by SuperPWA - Progressive Web Apps Plugin For WordPress -->
+<link rel="manifest" href="/superpwa-manifest.json">
+<link rel="prefetch" href="/superpwa-manifest.json">
+<meta name="theme-color" content="#0075ea">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-touch-fullscreen" content="yes">
+<meta name="apple-mobile-web-app-title" content="UFF Ultra Fast Fluency in English">
+<meta name="application-name" content="UFF Ultra Fast Fluency in English">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon"  href="assets/img/favicons/favicon-192x192.jpeg">
+<link rel="apple-touch-icon" sizes="192x192" href="assets/img/favicons/favicon-192x192.jpeg">
+<!-- / SuperPWA.com -->
+<meta name='robots' content='max-image-preview:large' />
+<script type="module">
+        import { preloadWhisperEngine } from "js/modules/whisper/app-vad-asr.js";
+        preloadWhisperEngine();
+
+        import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0";
+        env.allowLocalModels = false;
+        env.useBrowserCache = true;
+        env.backends.onnx.wasm.numThreads = 1;
+
+        pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2", { device: "wasm" });
+        pipeline("text2text-generation", "Xenova/t5-base-grammar-correction", { device: "wasm" });
+    </script><link rel='stylesheet' id='mwai_chatbot_theme_timeless-css' href='assets/css/timeless.css' media='all' />
+<link rel='stylesheet' id='bootstrap-css-css' href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css?ver=5.3.0' media='all' />
+<link rel='stylesheet' id='bootstrap-icons-css' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css?ver=1.11.0' media='all' />
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="assets/js/chatbot.js" id="mwai_chatbot-js"></script>
+<!-- HFCM by 99 Robots - Snippet # 2:  -->
+<!--PWA and Notifications Prompts-->
+<!-- CSS to prevent flash - handles immediate PWA detection -->
+<style>
+/* Hide install prompt immediately if in PWA mode */
+@media (display-mode: standalone), 
+       (display-mode: fullscreen), 
+       (display-mode: minimal-ui) {
+    #installPrompt { 
+        display: none !important; 
+    }
+}
+
+/* iOS Safari PWA detection via CSS (limited but helps) */
+@media (display-mode: standalone) {
+    #installPrompt { 
+        display: none !important; 
+    }
+}
+
+/* Hide elements by default until JavaScript determines what to show */
+.js-loading #installPrompt,
+.js-loading #notificationsPrompt {
+    display: none;
+}
+</style>
+
+<!-- Immediate PWA detection script -->
+<script>
+// Add loading class immediately to prevent flash
+document.documentElement.classList.add('js-loading');
+
+// Immediate PWA detection for cases CSS can't handle
+const isPWA = () => {
+    return (window.matchMedia('(display-mode: standalone)').matches) ||
+           window.navigator.standalone ||
+           (window.matchMedia('(display-mode: fullscreen)').matches) ||
+           (window.matchMedia('(display-mode: minimal-ui)').matches);
+};
+
+// Add PWA class immediately if detected
+if (isPWA()) {
+    document.documentElement.classList.add('is-pwa');
+}
+</script>
+
+<!-- Main functionality script -->
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    // Remove loading class once DOM is ready
+    document.documentElement.classList.remove('js-loading');
+    
+    const installPrompt = document.getElementById("installPrompt");
+    const installPromptButton = document.getElementById("installPromptButton");
+    const notificationsPrompt = document.getElementById("notificationsPrompt");
+    const notificationsPromptButton = document.getElementById("notificationsPromptButton");
+    
+    // Re-use the PWA detection function
+    const isPWA = () => {
+        return (window.matchMedia('(display-mode: standalone)').matches) ||
+               window.navigator.standalone ||
+               (window.matchMedia('(display-mode: fullscreen)').matches) ||
+               (window.matchMedia('(display-mode: minimal-ui)').matches);
+    };
+    
+    // Check notification permission status
+    const hasNotificationPermission = () => {
+        return "Notification" in window && Notification.permission === "granted";
+    };
+    
+    // Hide element safely
+    const hideElement = (element) => {
+        if (element) element.style.display = 'none';
+    };
+    
+    // Show element safely
+    const showElement = (element, displayType = 'block') => {
+        if (element) element.style.display = displayType;
+    };
+    
+    // Check if app is installed as PWA
+    if (isPWA()) {
+        console.log('App is installed as PWA');
+        
+        // Ensure install prompt stays hidden (CSS should handle this, but double-check)
+        hideElement(installPrompt);
+        
+        // Handle notifications prompt based on permission status
+        if (hasNotificationPermission()) {
+            console.log('PWA installed and notifications enabled - hiding both prompts');
+            hideElement(notificationsPrompt);
+        } else {
+            // Show notifications prompt only when in PWA and notifications not enabled
+            console.log('PWA installed but notifications not enabled - showing notifications prompt');
+            if ("Notification" in window) {
+                const permission = Notification.permission;
+                if (permission === "denied" || permission === "default") {
+                    showElement(notificationsPrompt, 'flex');
+                }
+            }
+        }
+    } else {
+        console.log('App is not installed');
+        
+        // Show install prompt for non-PWA (override CSS hiding if needed)
+        showElement(installPrompt);
+        
+        // Hide notifications prompt when install prompt is visible
+        hideElement(notificationsPrompt);
+        
+        // Install button click handler
+        if (installPromptButton) {
+            installPromptButton.addEventListener('click', function() {
+                try {
+                    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+                    
+                    if (/android/i.test(userAgent) || /windows/i.test(userAgent)) {
+                        window.location.href = '/install';
+                    } else {
+                        window.location.href = '/add';
+                    }
+                } catch (error) {
+                    console.error("Error handling install button click:", error);
+                    // Fallback to generic install page
+                    window.location.href = '/install';
+                }
+            });
+        }
+    }
+    
+    // Enhanced notifications button click handler with better error handling
+    if (notificationsPromptButton && "Notification" in window) {
+        const requestPermission = async () => {
+            try {
+                // Check if we can request permission
+                if (!("Notification" in window)) {
+                    console.warn("Notifications API is not supported on this device.");
+                    alert("Notifications are not supported on this device.");
+                    return;
+                }
+                
+                // Check current permission status
+                let permission = Notification.permission;
+                
+                // If permission is default, request it
+                if (permission === "default") {
+                    console.log("Requesting notification permission...");
+                    permission = await Notification.requestPermission();
+                }
+                
+                // Handle the result
+                switch (permission) {
+                    case "granted":
+                        console.log("Notification permission granted");
+                        alert("Notifications enabled!");
+                        hideElement(notificationsPrompt);
+                        break;
+                        
+                    case "denied":
+                        console.log("Notification permission denied");
+                        alert("Notifications were blocked. To enable notifications, please go to your browser settings and allow notifications for this site, then refresh the page.");
+                        break;
+                        
+                    case "default":
+                        console.log("Notification permission dismissed");
+                        alert("Notification permission was not granted. You can enable notifications later in your browser settings.");
+                        break;
+                        
+                    default:
+                        console.warn("Unexpected notification permission state:", permission);
+                        alert("Unable to determine notification permission status. Please check your browser settings.");
+                }
+                
+            } catch (error) {
+                console.error("Error requesting notification permission:", error);
+                
+                // Provide specific error messages based on error type
+                if (error.name === 'NotAllowedError') {
+                    alert("Notifications were blocked by the browser. Please enable notifications in your browser settings.");
+                } else if (error.name === 'AbortError') {
+                    alert("Notification permission request was cancelled.");
+                } else {
+                    alert("An error occurred while requesting notification permission. Please try again or check your browser settings.");
+                }
+            }
+        };
+        
+        notificationsPromptButton.addEventListener("click", requestPermission);
+    } else if (!("Notification" in window)) {
+        console.warn("Notifications API is not supported on this device.");
+        // Hide the notifications prompt if API is not supported
+        hideElement(notificationsPrompt);
+    }
+});
+</script>
+<!--PWA and Notifications Prompts-->
+<!-- /end HFCM by 99 Robots -->
+		<script type="text/javascript">
+			(function(c, l, a, r, i, t, y) {
+				c[a] = c[a] || function() {
+					(c[a].q = c[a].q || []).push(arguments)
+				};
+				t = l.createElement(r);
+				t.async = 1;
+				t.src = "https://www.clarity.ms/tag/" + i + "?ref=wordpress";
+				y = l.getElementsByTagName(r)[0];
+				y.parentNode.insertBefore(t, y);
+			})(window, document, "clarity", "script", "qq9dqk1hjl");
+		</script>
+	<meta name="onesignal-plugin" content="wordpress-3.8.0">
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+          window.OneSignalDeferred = window.OneSignalDeferred || [];
+          OneSignalDeferred.push(async function(OneSignal) {
+            await OneSignal.init({
+              appId: "064c0eb9-49d5-446f-b281-3eb3de310fdd",
+              serviceWorkerOverrideForTypical: true,
+              path: "https://ultrafastfluency.com/wp-content/plugins/onesignal-free-web-push-notifications/sdk_files/",
+              serviceWorkerParam: { scope: "/wp-content/plugins/onesignal-free-web-push-notifications/sdk_files/push/onesignal/" },
+              serviceWorkerPath: "OneSignalSDKWorker.js",
+            });
+          });
+
+          // Unregister the legacy OneSignal service worker to prevent scope conflicts
+          if (navigator.serviceWorker) {
+            navigator.serviceWorker.getRegistrations().then((registrations) => {
+              // Iterate through all registered service workers
+              registrations.forEach((registration) => {
+                // Check the script URL to identify the specific service worker
+                if (registration.active && registration.active.scriptURL.includes('OneSignalSDKWorker.js.php')) {
+                  // Unregister the service worker
+                  registration.unregister().then((success) => {
+                    if (success) {
+                      console.log('OneSignalSW: Successfully unregistered:', registration.active.scriptURL);
+                    } else {
+                      console.log('OneSignalSW: Failed to unregister:', registration.active.scriptURL);
+                    }
+                  });
+                }
+              });
+            }).catch((error) => {
+              console.error('Error fetching service worker registrations:', error);
+            });
+        }
+        </script>
+<link rel="icon" href="assets/img/favicons/favicon-32x32.jpeg" sizes="32x32" />
+<link rel="icon" href="assets/img/favicons/favicon-192x192.jpeg" sizes="192x192" />
+<meta name="msapplication-TileImage" content="assets/img/favicons/favicon-192x192.jpeg" />
+ <!-- This injects all enqueued styles and scripts -->
+  
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
+  />
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="home wp-singular page-template page-template-home page-template-home-php page page-id-104 logged-in wp-embed-responsive wp-theme-twentytwentyfive wp-child-theme-twentytwentyfive-child">
+<!--installPrompt Message-->
+<center>
+<div id="installPrompt" style="justify-content: center; align-items: flex-start; padding: 20px; pointer-events: none;">
+  <div style="background: white; padding: 30px; border-radius: 10px; max-width: 500px; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin: 20px; width: 90%; pointer-events: auto;">
+    <div style="width: 100%; height: 20px; background-color: #e0e0e0; border-radius: 10px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1); margin-bottom: 30px;">
+      <div style="width: 60%; height: 100%; background-color: green; transition: width 0.3s ease;"></div>
+    </div>
+    <h3 style="font-size: 1.2rem; color: #555; margin-bottom: 10px;">Próximo Paso</h3>
+    <h2 style="font-size: 1.8rem; color: #333; margin-bottom: 20px;">Agregarnos a tu dispositivo</h2>
+    <ul style="font-size: 1rem; color: #666; margin-bottom: 10px; text-align: left !important;">
+        <li>No tienes que visitar una tienda de apps, simplemente agrega el ícono a tu pantalla de inicio y lista de apps para tenerla a mano.</li>
+        <li>Según tu dispositivo, esto se llama "Agregar a Inicio" (iphone, ipad) o Instalar (Android, computadora, Windows).</li>
+        <li>¡Puedes agregarnos a todos tus dispositivos y mantener progreso!</li></ul>
+    <p style="font-size: 1rem; color: #666; margin-bottom: 20px;">Toma menos de 5 segundos.</p>
+    
+<button id="installPromptButton" style="width: 100%; padding: 12px; background-color: #0d6efd; color: white; border: none; border-radius: 5px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: background-color 0.2s;">Continuar</button>
+  </div>
+</div>
+<!--End Install Prompt-->
+
+<div id="notificationsPrompt" style="display: none; justify-content: center; align-items: flex-start; padding: 20px; pointer-events: none;">
+  <div style="background: white; padding: 30px; border-radius: 10px; max-width: 500px; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin: 20px; width: 90%; pointer-events: auto;">
+    <div style="width: 100%; height: 20px; background-color: #e0e0e0; border-radius: 10px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1); margin-bottom: 30px;">
+      <div style="width: 80%; height: 100%; background-color: green; transition: width 0.3s ease;"></div>
+    </div>
+    <h3 style="font-size: 1.2rem; color: #555; margin-bottom: 10px;">Último paso</h3>
+    <h2 style="font-size: 1.8rem; color: #333; margin-bottom: 20px;">Aceptar notificaciones esenciales</h2>
+    <p style="font-size: 1rem; color: #666; margin-bottom: 10px;">Es necesario para recibir lecciones</p>
+    <p style="font-size: 1rem; color: #666; margin-bottom: 20px;">Promedio de menos de una notificación por día</p>
+    
+    <button id="notificationsPromptButton" style="width: 100%; padding: 12px; background-color: #0d6efd; color: white; border: none; border-radius: 5px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: background-color 0.2s;">Dar permiso para notificaciones esenciales</button>
+  </div>
+</div>
+</center>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Create profile button with SOLID WHITE FILLED icon
+    const profileBtn = document.createElement('button');
+    profileBtn.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 16 16">
+            <!-- Solid filled person icon -->
+            <path fill="white" d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM12.735 14c.618 0 1.093-.561.872-1.139a6.002 6.002 0 0 0-11.215 0c-.22.578.254 1.139.872 1.139h9.47z"/>
+        </svg>
+    `;
+    
+    // Button styling
+    profileBtn.style.background = 'transparent';
+    profileBtn.style.border = 'none';
+    profileBtn.style.padding = '12px'; // Better touch target
+    profileBtn.onclick = () => window.location.href = "/edit-profile/";
+
+    // Insert into left bar
+    const leftBar = document.getElementById('bottomButtonBarLeft');
+    if (leftBar) leftBar.appendChild(profileBtn);
+
+    /* Your existing continue button code below */
+    const continueButton = document.getElementById('continueButton') || (() => {
+        const btn = document.createElement('button');
+        btn.id = 'continueButton';
+        btn.className = 'btn btn-primary text-white w-100';
+        btn.innerHTML = '<img decoding="async" src="assets/img/continue.svg" alt="Continue" width="40px">';
+        btn.onclick = function() {
+            window.location.href = "/courseid-gtests-a2";
+        };
+        const centerBar = document.getElementById('bottomButtonBarCenter');
+        if (centerBar) centerBar.appendChild(btn);
+        return btn;
+    })();
+});
+</script>
+
+<!-- BIG HEADER IMAGE - Shows only on screens ≤ 1100px (mobile) -->
+<div class="container-fluid px-0 mb-5 d-block d-lg-none" id="bigHeader">
+  <img 
+    src="assets/img/u-f-f.png"
+    class="img-fluid w-100" 
+    alt="" 
+    style="height: auto; max-width: 100% !important; width: 100% !important;"
+  >
+</div>
+
+<!-- WIDE HEADER IMAGE - Shows only on screens > 1100px (desktop) -->
+<div class="container-fluid px-0 mb-3 d-none d-lg-block" id="wideHeader">
+  <img 
+    src="assets/img/header.png"
+    class="img-fluid w-100" 
+    id="uffposter"
+    alt="" 
+    style="height: auto; max-width: 100% !important; width: 100% !important;"
+  >
+</div>
+
+<div id="app">
+  <div class="container">
+
+<!--Lesson Header--
+<div id="lesson-header" style="margin-top: -5px;">
+  <!-- First Line --
+  <div class="d-flex justify-content-between align-items-center" style="padding-top: 0; margin-top: 10px; margin-bottom: 10px;">
+    <!-- Left X --
+      <span class="d-flex align-items-center text-decoration-none" style="font-size: x-large;">
+        <img src='assets/img/teacherprofile.png' alt='' class='rounded-circle me-3' style='width:100px;height:100px;object-fit:cover'> <strong>UFF: Ultra Fast Fluency in English</strong>
+      </span>
+    
+    <!-- Progress Bar --
+    <div class="flex-grow-1 mx-1">
+      <div class="progress" style="height: 20px; margin-right: 20px;">  
+        <div id="progress-bar" class="progress-bar" role="progressbar" style="width: 10%;"></div>
+      </div>
+    </div>
+    
+    <!-- Right X 
+    <div class="d-flex align-items-center" style="height: 20px;">
+      <a href="#" class="d-flex align-items-center text-decoration-none">
+        <i class="bi bi-x-lg" style="font-size: 20px;"></i>
+      </a>
+    </div>
+    <!--End Right X-->
+  </div>
+  <!--End First Line-->
+
+</div>
+<!--End Lesson Header-->
+
+
+    <div class="container" id="container">
+      <div class="row">
+
+        <!-- Questions Section (Right Column) -->
+  <div id="questions-container-container" class="col-12">
+    
+
+
+<h2 class="wp-block-heading alignwide" id="we-re-a-studio-in-berlin-with-an-international-practice-in-architecture-urban-planning-and-interior-design-we-believe-in-sharing-knowledge-and-promoting-dialogue-to-increase-the-creative-potential-of-collaboration" style="font-size:clamp(27.894px, 1.743rem + ((1vw - 3.2px) * 1.971), 48px);line-height:1.1"></h2>
+
+
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    document.getElementById("micStatusText").innerHTML = "START";
+    document.getElementById("supportButton").classList.remove("d-none");
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Don't redirect if we're already on the login page
+    if (window.location.pathname === '/membership-login/') {
+        return;
+    }
+console.log('running homepage redirect script');
+    // First check localStorage for cached login status to avoid unnecessary AJAX calls
+    const cachedLogin = localStorage.getItem('wpLoggedIn');
+    if (cachedLogin === 'true') {
+        return;
+    }
+
+    fetch('/wp-admin/admin-ajax.php', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'action=is_user_logged_in'
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('AJAX request failed');
+        return response.text();
+    })
+    .then(response => {
+        const isLoggedIn = response.trim() !== '0';
+        
+        // Cache the result to minimize future AJAX calls
+        localStorage.setItem('wpLoggedIn', isLoggedIn.toString());
+        
+        if (!isLoggedIn) {
+            // Use replace() instead of href to prevent back button issues
+            window.location.replace('/membership-login/');
+        }
+    })
+    .catch(error => {
+        console.error('Login check failed:', error);
+        // If we're unsure, don't redirect to avoid locking out valid users
+    });
+});
+</script>
+
+    <div id="answerDiv" class="card-wrapper d-none" style="display: block">
+
+
+      <div class="card info-card">
+        <div class="card-header bg-dark text-white" id="correctAnswer"></div>       
+        <div class="card-body">
+    <p class="info-content" id="translation"></p>          
+    <p class="info-content" id="explanation"></p>
+        </div>
+      </div>
+    </div>
+
+<!--Courses--
+<div id="coursesIntro" class="card border-dark mb-3 p-0" style="margin-top: 10px; margin-bottom: 70px;">
+<div class='card-header bg-dark text-white p-0' id='correct'><div class='d-flex align-items-center p-3'><img src='assets/img/teacherprofile.png' alt='' class='rounded-circle me-3' style='width:100px;height:100px;object-fit:cover'><span class='fs-5'>Welcome!</span></div></div><div class='card-body text-dark'><h3 class='card-title'>
+Aquí una demo y tutorial de cómo usarlo.
+</h3></div>
+</div>
+
+<div id="courses1" class="card border-dark mb-3 p-0" style="margin-top: 10px; margin-bottom: 70px;">
+<div class='card-header bg-dark text-white p-0' id='correct'><div class='d-flex align-items-center p-3'><span class='fs-5'>Las Bases del Inglés</span></div></div><div class='card-body text-dark'><h3 class='card-title'>
+Todo el inglés más importante y fundamental, la base para todo, y también muy útil en sí mismo.
+</h3></div>
+</div>
+<div id="courses1" class="card border-dark p-0" style="margin-top: 10px; margin-bottom: 170px;">
+<div class='card-header bg-dark text-white p-0' id='correct'><div class='d-flex align-items-center p-3'><img src='assets/img/teacherprofile.png' alt='' class='rounded-circle me-3' style='width:100px;height:100px;object-fit:cover'><span class='fs-5'>El Inglés Coloquial</span></div></div><div class='card-body text-dark'><h3 class='card-title'>
+Cómo hablamos en el día a día más allá de lo más esenical, incluyendo frases comunes que normalmente no se enseñan en las clases de inglés.
+</h3></div>
+</div>
+<!--End Courses-->
+
+</div>
+</div>
+    </div>
+
+  </div>
+</div>
+
+<!--Toast is not being used now but may be used in the future.-->
+<div class="toast-container start-50 translate-middle-x p-3">
+  <div id="myToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="false">
+    <div class="toast-header">
+      <strong class="me-auto">Hey!</strong>
+      <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+    <div class="toast-body" id="toastMessage" style="font-size:25px;">
+      <!-- Message will go here -->
+    </div>
+  </div>
+</div>
+<!--End Toast-->
+
+  </div> <!-- Close #app -->
+
+  <style type="text/css"> 
+         /* Hide reCAPTCHA V3 badge */
+        .grecaptcha-badge {
+        
+            visibility: hidden !important;
+        
+        }
+    </style><div class='mwai-chatbot-container' data-params='{&quot;aiName&quot;:&quot;Prof. Fluintel, UFF AI&quot;,&quot;userName&quot;:&quot;User: &quot;,&quot;guestName&quot;:&quot;Guest:&quot;,&quot;aiAvatar&quot;:true,&quot;userAvatar&quot;:true,&quot;guestAvatar&quot;:true,&quot;aiAvatarUrl&quot;:&quot;https:\/\/ultrafastfluency.com\/aiavatar.png&quot;,&quot;guestAvatarUrl&quot;:&quot;assets/img/ai-avatar.png&quot;,&quot;textSend&quot;:&quot;Send&quot;,&quot;textClear&quot;:&quot;Clear&quot;,&quot;imageUpload&quot;:false,&quot;fileUpload&quot;:false,&quot;multiUpload&quot;:false,&quot;maxUploads&quot;:1,&quot;fileUploads&quot;:0,&quot;mode&quot;:&quot;chat&quot;,&quot;textInputPlaceholder&quot;:&quot;Type your message...&quot;,&quot;textInputMaxLength&quot;:512,&quot;textCompliance&quot;:&quot;&quot;,&quot;startSentence&quot;:&quot;Hi! Hola! Haz me tus preguntas sobre el ingl\u00e9s. No olvides pegar cualquier texto relevante, pues, no veo lo que est\u00e1 en la app. No puedo ofrecer soporte t\u00e9cnico, tampoco s\u00e9 sobre las funciones de esta app.&quot;,&quot;localMemory&quot;:true,&quot;themeId&quot;:&quot;timeless&quot;,&quot;window&quot;:true,&quot;icon&quot;:&quot;https:\/\/ultrafastfluency.com\/aiavatarnobg.png?0&quot;,&quot;iconText&quot;:&quot;&quot;,&quot;iconTextDelay&quot;:1,&quot;iconAlt&quot;:&quot;AI Engine Chatbot&quot;,&quot;iconPosition&quot;:&quot;bottom-right&quot;,&quot;centerOpen&quot;:false,&quot;width&quot;:&quot;&quot;,&quot;openDelay&quot;:&quot;&quot;,&quot;iconBubble&quot;:false,&quot;windowAnimation&quot;:&quot;zoom&quot;,&quot;fullscreen&quot;:true,&quot;copyButton&quot;:true,&quot;headerSubtitle&quot;:&quot;&quot;,&quot;containerType&quot;:&quot;standard&quot;,&quot;headerType&quot;:&quot;standard&quot;,&quot;messagesType&quot;:&quot;standard&quot;,&quot;inputType&quot;:&quot;standard&quot;,&quot;footerType&quot;:&quot;standard&quot;}' data-system='{&quot;botId&quot;:&quot;default&quot;,&quot;customId&quot;:null,&quot;userData&quot;:{&quot;ID&quot;:45,&quot;name&quot;:&quot;test&quot;,&quot;email&quot;:&quot;testt@example.com&quot;,&quot;avatar&quot;:&quot;https:\/\/secure.gravatar.com\/avatar\/abc02beb233c67fbbff982999809fb9cb5a1575f374ad368ea38cb1fa753cf3f?s=96&amp;d=mm&amp;r=g&quot;,&quot;type&quot;:&quot;logged-in&quot;,&quot;FIRST_NAME&quot;:&quot;Testname&quot;,&quot;LAST_NAME&quot;:&quot;Testlast&quot;,&quot;USER_LOGIN&quot;:&quot;test&quot;,&quot;DISPLAY_NAME&quot;:&quot;test&quot;,&quot;AVATAR_URL&quot;:&quot;https:\/\/secure.gravatar.com\/avatar\/abc02beb233c67fbbff982999809fb9cb5a1575f374ad368ea38cb1fa753cf3f?s=96&amp;d=mm&amp;r=g&quot;},&quot;sessionId&quot;:&quot;N\/A&quot;,&quot;restNonce&quot;:&quot;ed2d2be5a9&quot;,&quot;contextId&quot;:104,&quot;pluginUrl&quot;:&quot;https:\/\/ultrafastfluency.com\/wp-content\/plugins\/ai-engine&quot;,&quot;restUrl&quot;:&quot;https:\/\/ultrafastfluency.com\/wp-json&quot;,&quot;stream&quot;:true,&quot;debugMode&quot;:true,&quot;eventLogs&quot;:true,&quot;speech_recognition&quot;:false,&quot;speech_synthesis&quot;:false,&quot;typewriter&quot;:false,&quot;crossSite&quot;:false,&quot;actions&quot;:[],&quot;blocks&quot;:[],&quot;shortcuts&quot;:[]}' data-theme='{&quot;type&quot;:&quot;internal&quot;,&quot;name&quot;:&quot;Timeless&quot;,&quot;themeId&quot;:&quot;timeless&quot;,&quot;settings&quot;:{&quot;backgroundAiColor&quot;:&quot;#ffffff&quot;,&quot;backgroundUserColor&quot;:&quot;#000000&quot;,&quot;backgroundPrimaryColor&quot;:&quot;#ffffff&quot;,&quot;backgroundAiSecondaryColor&quot;:&quot;#000&quot;,&quot;width&quot;:&quot;80vh&quot;,&quot;maxHeight&quot;:&quot;90vh&quot;,&quot;borderRadius&quot;:&quot;2px&quot;,&quot;backgroundHeaderColor&quot;:&quot;#1a3a5a&quot;,&quot;fontSize&quot;:&quot;16px&quot;,&quot;fontColor&quot;:&quot;#000000&quot;,&quot;headerButtonsColor&quot;:&quot;#ffffff &quot;,&quot;iconTextBackgroundColor&quot;:&quot;#343541&quot;,&quot;iconTextColor&quot;:&quot;#343541&quot;},&quot;style&quot;:&quot;&quot;,&quot;cssUrl&quot;:&quot;https:\/\/ultrafastfluency.com\/wp-content\/plugins\/ai-engine\/themes\/timeless.css&quot;}'></div>
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js?ver=2.11.6" id="popper-js-js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js?ver=5.3.0" id="bootstrap-js-js"></script>
+<script src="https://ultrafastfluency.com/wp-content/themes/twentytwentyfive-child/js/users-data.js?ver=1776612503" id="twentytwentyfive-child-users-data-js"></script>
+<!-- Ybug code start (https://ybug.io) -->
+<script type='text/javascript'>
+(function() {
+    window.ybug_settings = {"id":"z69gx22kp6h243vpdpjb"};
+    var ybug = document.createElement('script'); ybug.type = 'text/javascript'; ybug.async = true;
+    ybug.src = 'https://widget.ybug.io/button/'+window.ybug_settings.id+'.js';
+    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ybug, s);
+})();
+</script>
+<!-- Ybug code end --> <!-- This injects all enqueued scripts -->
+
+<footer style="margin-top: 100px;">
+
+<div id="controls" class="fixed-bottom bg-dark p-1" style="min-height: 140px;">
+    <div id="micStatusText" class="d-flex justify-content-center align-items-center"></div>
+    <div id="bottomButtonBar" class="d-flex justify-content-center gap-2 align-items-center" style="height: 80px; min-height:80px;">
+        <!--"Profile," "Hint" and "Repeat" buttons will go here-->
+        <div id="bottomButtonBarLeft" class="me-auto ms-3"></div>
+        <!--Mic button and Continue button will go here-->
+        <div id="bottomButtonBarCenter" class="position-absolute start-50 translate-middle-x"></div>  
+        <!--Support/chat button will go here, and AI button will be imposed over it-->
+        <button id="supportButton" class="d-none btn bg-transparent text-white border-0 ms-auto me-3" data-bs-toggle="modal" data-bs-target="#chatModal"><i class="bi bi-chat-fill"></i></button>
+    </div>
+
+    <div id="bottomButtonBarSuccess" class="d-flex justify-content-center gap-2 align-items-center d-none" style="height: 80px; min-height:80px;">
+        <div id="bottomButtonBarLeft" class="me-auto ms-3"></div>
+        <!--Process button will go here-->
+        <div id="bottomButtonBarCenterSuccess" class="position-absolute start-50 translate-middle-x">
+            
+        <button id="processBtn" class="btn btn-primary">
+            <strong class="bi bi-award-fill text-white"></strong>
+        </button>
+
+        </div>  
+    </div>
+
+</div>
+
+<!-- Chat Modal for Whatsapp Support Button-->
+<div class="modal fade" id="chatModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="exampleModalLabel"></h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+
+
+<button class="btn btn-success" onclick="window.location.href='https://api.whatsapp.com/send/?phone=16179030597&text=app_support'">
+    <i class="bi bi-whatsapp"></i> Soporte Técnico por Whatsapp
+</button>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!--END MODAL-->
+
+  <!--Mwai shortcode--
+  <div class='mwai-chatbot-container' data-params='{&quot;aiName&quot;:&quot;Prof. Fluintel, UFF AI&quot;,&quot;userName&quot;:&quot;User: &quot;,&quot;guestName&quot;:&quot;Guest:&quot;,&quot;aiAvatar&quot;:true,&quot;userAvatar&quot;:true,&quot;guestAvatar&quot;:true,&quot;aiAvatarUrl&quot;:&quot;https:\/\/ultrafastfluency.com\/aiavatar.png&quot;,&quot;guestAvatarUrl&quot;:&quot;assets/img/ai-avatar.png&quot;,&quot;textSend&quot;:&quot;Send&quot;,&quot;textClear&quot;:&quot;Clear&quot;,&quot;imageUpload&quot;:false,&quot;fileUpload&quot;:false,&quot;multiUpload&quot;:false,&quot;maxUploads&quot;:1,&quot;fileUploads&quot;:0,&quot;mode&quot;:&quot;chat&quot;,&quot;textInputPlaceholder&quot;:&quot;Type your message...&quot;,&quot;textInputMaxLength&quot;:512,&quot;textCompliance&quot;:&quot;&quot;,&quot;startSentence&quot;:&quot;Hi! Hola! Haz me tus preguntas sobre el ingl\u00e9s. No olvides pegar cualquier texto relevante, pues, no veo lo que est\u00e1 en la app. No puedo ofrecer soporte t\u00e9cnico, tampoco s\u00e9 sobre las funciones de esta app.&quot;,&quot;localMemory&quot;:true,&quot;themeId&quot;:&quot;timeless&quot;,&quot;window&quot;:true,&quot;icon&quot;:&quot;https:\/\/a.cogdex.com\/ai-avatar.png?0&quot;,&quot;iconText&quot;:&quot;&quot;,&quot;iconTextDelay&quot;:1,&quot;iconAlt&quot;:&quot;AI Engine Chatbot&quot;,&quot;iconPosition&quot;:&quot;bottom-right&quot;,&quot;centerOpen&quot;:false,&quot;width&quot;:&quot;&quot;,&quot;openDelay&quot;:&quot;&quot;,&quot;iconBubble&quot;:false,&quot;windowAnimation&quot;:&quot;zoom&quot;,&quot;fullscreen&quot;:true,&quot;copyButton&quot;:true,&quot;headerSubtitle&quot;:&quot;&quot;,&quot;containerType&quot;:&quot;standard&quot;,&quot;headerType&quot;:&quot;standard&quot;,&quot;messagesType&quot;:&quot;standard&quot;,&quot;inputType&quot;:&quot;standard&quot;,&quot;footerType&quot;:&quot;standard&quot;}' data-system='{&quot;botId&quot;:&quot;default&quot;,&quot;customId&quot;:null,&quot;userData&quot;:{&quot;ID&quot;:45,&quot;name&quot;:&quot;test&quot;,&quot;email&quot;:&quot;testt@example.com&quot;,&quot;avatar&quot;:&quot;https:\/\/secure.gravatar.com\/avatar\/abc02beb233c67fbbff982999809fb9cb5a1575f374ad368ea38cb1fa753cf3f?s=96&amp;d=mm&amp;r=g&quot;,&quot;type&quot;:&quot;logged-in&quot;,&quot;FIRST_NAME&quot;:&quot;Testname&quot;,&quot;LAST_NAME&quot;:&quot;Testlast&quot;,&quot;USER_LOGIN&quot;:&quot;test&quot;,&quot;DISPLAY_NAME&quot;:&quot;test&quot;,&quot;AVATAR_URL&quot;:&quot;https:\/\/secure.gravatar.com\/avatar\/abc02beb233c67fbbff982999809fb9cb5a1575f374ad368ea38cb1fa753cf3f?s=96&amp;d=mm&amp;r=g&quot;},&quot;sessionId&quot;:&quot;N\/A&quot;,&quot;restNonce&quot;:&quot;ed2d2be5a9&quot;,&quot;contextId&quot;:104,&quot;pluginUrl&quot;:&quot;https:\/\/ultrafastfluency.com\/wp-content\/plugins\/ai-engine&quot;,&quot;restUrl&quot;:&quot;https:\/\/ultrafastfluency.com\/wp-json&quot;,&quot;stream&quot;:true,&quot;debugMode&quot;:true,&quot;eventLogs&quot;:true,&quot;speech_recognition&quot;:false,&quot;speech_synthesis&quot;:false,&quot;typewriter&quot;:false,&quot;crossSite&quot;:false,&quot;actions&quot;:[],&quot;blocks&quot;:[],&quot;shortcuts&quot;:[]}' data-theme='{&quot;type&quot;:&quot;internal&quot;,&quot;name&quot;:&quot;Timeless&quot;,&quot;themeId&quot;:&quot;timeless&quot;,&quot;settings&quot;:{&quot;backgroundAiColor&quot;:&quot;#ffffff&quot;,&quot;backgroundUserColor&quot;:&quot;#000000&quot;,&quot;backgroundPrimaryColor&quot;:&quot;#ffffff&quot;,&quot;backgroundAiSecondaryColor&quot;:&quot;#000&quot;,&quot;width&quot;:&quot;80vh&quot;,&quot;maxHeight&quot;:&quot;90vh&quot;,&quot;borderRadius&quot;:&quot;2px&quot;,&quot;backgroundHeaderColor&quot;:&quot;#1a3a5a&quot;,&quot;fontSize&quot;:&quot;16px&quot;,&quot;fontColor&quot;:&quot;#000000&quot;,&quot;headerButtonsColor&quot;:&quot;#ffffff &quot;,&quot;iconTextBackgroundColor&quot;:&quot;#343541&quot;,&quot;iconTextColor&quot;:&quot;#343541&quot;},&quot;style&quot;:&quot;&quot;,&quot;cssUrl&quot;:&quot;https:\/\/ultrafastfluency.com\/wp-content\/plugins\/ai-engine\/themes\/timeless.css&quot;}'></div>-->
+
+<!--Modal to show non-paid users instead of the AI-->
+<div class="modal fade" id="aiApologyModal" tabindex="-1" aria-labelledby="aiApologyModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h1 class="modal-title fs-5" id="aiApologyModalLabel"></h1>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <h3 style="color:black;">Solo se pueden chatear con el tutor de inglés IA, Fluintel, los estudiantes pagados.</h3>
+        <h4 style="color:black;">Lo siento, es necesario porque el costo de la integración del chat con la inteligencia artificial es alto.</h4> 
+<button class="btn btn-success" onclick="window.location.href='https://api.whatsapp.com/send/?phone=16179030597&text=app_support'">
+    <i class="bi bi-whatsapp"></i> Soporte Técnico por Whatsapp
+</button>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!--END AI APOLOGY MODAL-->
+
+<!--BLOCK AI FLUINTEL CHATBOT TO NON-PAID USERS-->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    });
+</script>
+
+</footer>
+  <!--WELCOME SINCE DAYS JOINED SCRIPT-->
+<script>
+// Functions for a "welcome" sequence of posts
+// Function to add user day class to body and show/hide content
+function setupUserDayRestrictions() {
+    if (typeof wp_user_data !== 'undefined' && wp_user_data.days_since_registration !== undefined) {
+        const days = wp_user_data.days_since_registration;
+        
+        // Add class to body for CSS targeting (keep this for other styling if needed)
+        document.body.classList.add(`user-day-${days}`);
+        
+        // Hide all day content first
+        document.querySelectorAll('[class*="day-"][class*="-content"]').forEach(el => el.style.display = 'none');
+        
+        // Show content for current day and all previous days
+        for (let i = 0; i <= days; i++) {
+            document.querySelectorAll(`.day-${i}-content`).forEach(el => el.style.display = 'block');
+        }
+        
+        //console.log(`User is on day ${days} since registration`);
+        
+        // Additional JavaScript logic if needed
+        handleDaySpecificLogic(days);
+    } else {
+        // For logged-out users, add a default class and hide all day content
+        document.body.classList.add('user-day-guest');
+        document.querySelectorAll('[class*="day-"][class*="-content"]').forEach(el => el.style.display = 'none');
+    }
+}
+
+// Function for day-specific JavaScript logic
+function handleDaySpecificLogic(days) {
+    // Example: Hide specific elements based on day
+    const elementsToHide = [];
+    
+    switch(days) {
+        case 0: // First day
+            elementsToHide.push('.premium-feature', '.advanced-content');
+            break;
+        case 1: // Second day
+            elementsToHide.push('.premium-feature');
+            break;
+        case 2: // Third day
+            elementsToHide.push('.complex-feature');
+            break;
+        // Add more cases as needed
+    }
+    
+    // Hide elements
+    elementsToHide.forEach(selector => {
+        document.querySelectorAll(selector).forEach(element => {
+            element.style.display = 'none';
+        });
+    });
+}
+
+// Run on page load
+document.addEventListener('DOMContentLoaded', function() {
+    setupUserDayRestrictions();
+});
+</script>
+<!--END WELCOME-->
+
+<!--Deepgram SDK for speech recognition-->
+    <script src="https://cdn.jsdelivr.net/npm/@deepgram/sdk@v4.9.0"></script>
+
+<!-- Cloudflare insights disabled for local -->
+</body>
+</html>
