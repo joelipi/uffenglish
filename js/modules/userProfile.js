@@ -1,6 +1,6 @@
 // modules/userProfile.js
 // IMPORTANT! THIS SCRIPT USES VERSION 24 OF APPWRITE, WHICH HAS MANY BREAKING CHANGES FROM EARLIER VERSIONS. DO NOT USE THE SYNTAX OR METHODS OF EARLIER VERSIONS WITHOUT CHECKING THEY ARE STILL VALID IN VERSION 24.
-import { tablesDB, APPWRITE_CONFIG, getCurrentUser } from './appwrite.js?3'; 
+import { tablesDB, APPWRITE_CONFIG, getCurrentUser } from './appwrite.js'; 
 
 /**
  * Syncs metadata to Appwrite. 

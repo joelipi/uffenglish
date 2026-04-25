@@ -1,4 +1,4 @@
-import normalize from './normalize.js?3';
+import normalize from './normalize.js';
 import calculateSimilarity from './calculatesimilarity.js';
 import swearjar from './swearjar.js';
 import { evaluateWithAI } from './api.js';

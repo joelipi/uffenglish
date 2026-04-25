@@ -9,11 +9,7 @@
       "mission": {"en": "order a drink", "es": "pedir una bebida", "pt": "pedir uma bebida"},
       "questions": [
         {
-          "cue": "Hi, what would you like to drink?",
-          "translation": {
-            "es": "Hola, ¿qué quisieras para tomar?",
-            "pt": "Ola, o qué voce quer de beber?"
-          },
+          "cue": {"en": "Hi, what would you like to drink?", "es": "Hola, ¿qué quisieras para tomar?","pt": "Ola, o qué voce quer de beber?"},
           "inputType": "ai",
           "videoUrl": "gtests-1-1",
           "targetIntents": [

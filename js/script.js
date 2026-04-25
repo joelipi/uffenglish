@@ -1,9 +1,8 @@
-console.log("🚀🚀🚀 SCRIPT VERSION: 424pm added idiomChecker 🚀🚀🚀");
 
-import { clearSpeechRecordingsForLesson, updateSpeechRecording } from './modules/storage.js?0';
+import { clearSpeechRecordingsForLesson, updateSpeechRecording } from './modules/storage.js';
 
 // Initialize the background NLP Worker via blob URL to bypass service worker caching
-const workerResponse = await fetch('js/nlp-worker.js?11');
+const workerResponse = await fetch('js/nlp-worker.js');
 const workerBlob = await workerResponse.blob();
 const workerObjectUrl = URL.createObjectURL(workerBlob);
 const aiWorker = new Worker(workerObjectUrl, { type: 'module' });
@@ -58,9 +57,9 @@ import { simpleVideoPlayer } from './simpleVideo.js';
 import { introBackgroundVideo } from './introBackgroundVideo.js'; 
 import { SuccessLessonHandler } from './successLesson.js'; 
 import { pointLoss } from './pointLossAnimation.js'; 
-import { initVideoProcessor } from './video-processing-module.js?1'; 
+import { initVideoProcessor } from './video-processing-module.js'; 
 
-import { calculateCurrentStreak } from './modules/userProfile.js?0';
+import { calculateCurrentStreak } from './modules/userProfile.js';
 import { updateActivityDisplay } from './modules/ui.js';
 
 // --- Data & Configuration ---
@@ -80,8 +79,8 @@ function getLocalizedTranslation(translationData, lang) {
 
 // --- Decoupled Business Logic (Modules Directory) ---
 import { calculateRepeatAverage, calculateRolePlayAverage, calculateAverage } from './modules/scoring.js';
-import { isUserLoggedIn, getUserProfile } from './modules/api.js?0';
-import { saveCourseToUserProfile, saveLessonProgress, syncOfflineScores } from './modules/userProfile.js?0';
+import { isUserLoggedIn, getUserProfile } from './modules/api.js';
+import { saveCourseToUserProfile, saveLessonProgress, syncOfflineScores } from './modules/userProfile.js';
 
 import {
     isIOS,
@@ -95,7 +94,7 @@ import {
     toggleSpeechRecognition,
     isListening,
     initLocalVoiceAI
-} from './modules/speech.js?8';
+} from './modules/speech.js';
 
 import {
     getCurrentQuestionIndex,
@@ -106,8 +105,8 @@ import {
 import getRandomPraise from './modules/praise.js'; 
 
 // --- Extracted Modules ---
-import { State } from './modules/state.js?0';
-import { analyzeSpeech } from './modules/analytics.js?3';
+import { State } from './modules/state.js';
+import { analyzeSpeech } from './modules/analytics.js';
 import { Media } from './modules/media.js';
 import { 
     DOM, 
@@ -119,7 +118,7 @@ import {
     safeRenderChatInterface 
 } from './modules/ui.js';
 
-import { idiomChecker } from './modules/idiomChecker2.js?2';
+import { idiomChecker } from './modules/idiomChecker2.js';
 
 const hearts = [DOM.heart1, DOM.heart2, DOM.heart3];
 
@@ -1203,7 +1202,7 @@ async function initializeApp() {
         State.courseId = await getCurrentcourseId(); 
         State.englishLevel = ['A0','A1','A2','B1','B2','C1','C2'].find(level => State.courseId.toUpperCase().includes(level)) || 'A0';
 
-        const response = await fetch(`js/config/${State.courseId}.json?cb=${Date.now()}`);
+        const response = await fetch(`js/config/${State.courseId}.json`);
         State.configData = await response.json();
 
         const lang = State.userData?.native_language;
@@ -1217,8 +1216,16 @@ async function initializeApp() {
 
         if (State.configData && State.configData.lessons) {
             State.configData.lessons.forEach(lesson => {
+                // Normalize title to string if it's a localized object
+                if (lesson.title && typeof lesson.title === 'object') {
+                    lesson.title = lesson.title.en || String(lesson.title);
+                }
                 if (lesson.questions) {
                     lesson.questions.forEach(question => {
+                        // Normalize cue to string if it's a localized object
+                        if (question.cue && typeof question.cue === 'object') {
+                            question.cue = question.cue.en || String(question.cue);
+                        }
                         if (!question.question && defaultQuestions[question.inputType]) {
                             question.question = defaultQuestions[question.inputType];
                         }

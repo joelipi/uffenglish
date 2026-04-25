@@ -3,10 +3,9 @@ import Strings from '../data/strings.js';
 import { getDeepgramToken } from './api.js';
 import { saveSpeechRecording } from './storage.js';
 
-console.log("SPEECH.JS 1052pm VERSION");
 
 // --- NEW: Import Whisper Logic ---
-import { transcribeAudioBuffer, preloadWhisperEngine, isEngineReady } from './whisper/app-vad-asr.js?0';
+import { transcribeAudioBuffer, preloadWhisperEngine, isEngineReady } from './whisper/app-vad-asr.js';
 
 // --- Constants ---
 export const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);

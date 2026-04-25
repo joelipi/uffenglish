@@ -1,5 +1,4 @@
 // nlp-worker.js
-console.log("👷👷👷👷 nlp SCRIPT VERSION: 714pm GECToR BASE 2020 - OPTIMIZED 🚀🚀🚀");
 
 import { pipeline, cos_sim, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0';
 import Tokenizer from 'https://cdn.skypack.dev/wink-tokenizer';

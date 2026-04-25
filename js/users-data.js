@@ -3,7 +3,6 @@
 function setupUserDayRestrictions() {
     if (typeof wp_user_data !== 'undefined' && wp_user_data.days_since_registration !== undefined) {
         const days = wp_user_data.days_since_registration;
-console.log('User data script loaded - version: 2.0 (no indicator)');
         
         // Add class to body for CSS targeting
         document.body.classList.add(`user-day-${days}`);
