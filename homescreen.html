@@ -96,8 +96,8 @@
                 try {
                     // Load sequentially
                     await preloadWhisperEngine();
-                    await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2", { device: "wasm" });
-                    await pipeline("text2text-generation", "Xenova/t5-base-grammar-correction", { device: "wasm" });
+                    await pipeline("zero-shot-classification", "Xenova/distilbert-base-uncased-mnli", { device: "wasm" });
+                    await pipeline("token-classification", "Meyssa/gector-base-2020", { device: "wasm" });
                     console.log("Preloaded models sequentially.");
                 } catch (error) {
                     console.error("Error preloading models:", error);
