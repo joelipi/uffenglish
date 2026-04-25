@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script type="module">
+    import { idiomChecker } from './modules/idiomChecker2.js';
+    import { analyzeSpeech } from './modules/analytics.js';
+
+    await idiomChecker.init();
+    console.log('idiomChecker ready:', idiomChecker.isReady);
+
+    const result = analyzeSpeech(
+        "I bit the bullet and gave him a piece of my mind",
+        5,        // netDuration in seconds
+        2,        // pauseCount
+        'B1',     // level
+        idiomChecker
+    );
+
+    console.log('analyzeSpeech result:', result);
+</script>
+</body>
+</html>

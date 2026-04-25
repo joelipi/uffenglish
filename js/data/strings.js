@@ -1,0 +1,381 @@
+// strings.js - Centralized UI strings for the UFF application
+
+const strings = {
+
+    'stats_header': {
+        en: "SPEECH ANALYTICS",
+        es: "ANÁLISIS DE VOZ"
+    },
+    'stats_wpm': {
+        en: "Words per minute",
+        es: "Palabras por minuto"
+    },
+    'stats_pauses': {
+        en: "Pauses",
+        es: "Pausas"
+    },
+    'stats_complexity': {
+        en: "Complexity Score",
+        es: "Puntuación de complejidad"
+    },
+    'feedback_slow': {
+        en: "You spoke somewhat slowly. Try to speak a bit faster next time.",
+        es: "Hablaste algo lento. Intenta hablar un poco más rápido la próxima vez."
+    },
+    'feedback_good': {
+        en: "Good pace!",
+        es: "¡Buen ritmo!"
+    },
+    'feedback_fast': {
+        en: "You spoke very fast!",
+        es: "¡Hablaste muy rápido!"
+    },
+    'feedback_brief_penalty': {
+        en: "Try giving a longer response next time to score higher.",
+        es: "Intenta dar una respuesta más larga la próxima vez para obtener una mejor puntuación."
+    },
+    'try_again_speech': {
+        en: "TRY AGAIN. Speech not detected.",
+        es: "VUELVE A INTENTAR. Voz no detectada.",
+        fr: "ESSAYEZ À NOUVEAU. Parole non détectée."
+    },
+    'already_used': {
+        en: "You already gave that response. In order to evaluate and develop your fluency, we don't allow you to re-use responses during a lesson or test.",
+        es: "Ya diste esa respuesta. Para desarrollar y evaluar tu fluidez, no permitimos que vuelvas a utilizar respuestas durante una lección o test.",
+        fr: "Vous avez déjà donné cette réponse. Afin d'évaluer et de développer votre fluidité, nous n'autorisons pas la réutilisation des réponses pendant une leçon ou un test."
+    },
+    'no_repetition': {
+        en: "In order to build and evaluate your fluency, we do not accept a response that is a simple repetition of the video, even if it would be a good reply.",
+        es: "Con el fin de evaluar y desarrollar tu fluidez, no aceptamos una respuesta si es una simple repetición del video, aún si sería una buena respuesta.",
+        fr: "Afin de construire et d'évaluer votre fluidité, nous n'acceptons pas une réponse qui est une simple répétition de la vidéo, même si ce serait une bonne réponse."
+    },
+    'min_words_3': {
+        en: "Your response must be at least three words long.",
+        es: "Tu respuesta debe tener al menos tres palabras.",
+        fr: "Votre réponse doit contenir au moins trois mots."
+    },
+    'min_words_4': {
+        en: "Your response must be at least four words long.",
+        es: "Tu respuesta debe tener al menos cuatro palabras.",
+        fr: "Votre réponse doit contenir au moins quatre mots."
+    },
+    'min_words_5': {
+        en: "Your response must be at least five words long.",
+        es: "Tu respuesta debe tener al menos cinco palabras.",
+        fr: "Votre réponse doit contenir au moins cinq mots."
+    },
+    'min_words_6': {
+        en: "Your response must be at least six words long.",
+        es: "Tu respuesta debe tener al menos seis palabras.",
+        fr: "Votre réponse doit contenir au moins six mots."
+    },
+    'censored': {
+        en: "Your response was rejected because it contains censored words. Remember: if someone uses harsh language, effective communicators de-escalate rather than respond in kind.",
+        es: "Tu respuesta fue rechazada porque contiene palabras censuradas. Recuerda: si alguien usa lenguaje fuerte, los comunicadores efectivos desescalan en lugar de responder de la misma manera.",
+        fr: "Votre réponse a été rejetée car elle contient des mots censurés. Rappelez-vous : si quelqu'un utilise un langage dur, les communicateurs efficaces désamorcent plutôt que de répondre de la même manière."
+    },
+    'inappropriate': {
+        en: "Your response was rejected because inappropriate language was detected. Remember: if someone uses harsh language, effective communicators de-escalate rather than respond in kind.",
+        es: "Tu respuesta fue rechazada porque se detectó lenguaje inapropiado. Recuerda: si alguien usa lenguaje fuerte, los comunicadores efectivos desescalan en lugar de responder de la misma manera.",
+        fr: "Votre réponse a été rejetée car un langage inapproprié a été détecté. Rappelez-vous : si quelqu'un utilise un langage dur, les communicateurs efficaces désamorcent plutôt que de répondre de la même manière."
+    },
+    'lang_error_maybe': {
+        en: "❌❌Language error. Maybe you meant: ",
+        es: "❌❌Error de lenguaje. Tal vez hayas querido decir: ",
+        fr: "❌❌Erreur de langue. Peut-être vouliez-vous dire : "
+    },
+    'lang_error_detected': {
+        en: "❌❌Language error detected.",
+        es: "❌❌Error de lenguaje detectado.",
+        fr: "❌❌Erreur de langue détectée."
+    },
+    'offensive_soften': {
+        en: "😨😨That might be offensive or hurt someone's feelings. Read your response carefully and think how you can soften it.",
+        es: "😨😨Eso podría ofender o herir sensibilidades. Lee tu respuesta cuidadosamente y piensa cómo puedes suavizarla.",
+        fr: "😨😨Cela pourrait être offensant ou blesser les sentiments de quelqu'un. Lisez attentivement votre réponse et réfléchissez à la manière dont vous pourriez l'adoucir."
+    },
+    'offensive_insensitive': {
+        en: "😨😨Possibly offensive or insensitive.",
+        es: "😨😨Posiblemente ofensivo o insensitivo.",
+        fr: "😨😨Peut-être offensant ou insensible."
+    },
+    'no_sense': {
+        en: "😕😵🤔 That doesn't make sense.",
+        es: "😕😵🤔 Eso no tiene sentido.",
+        fr: "😕😵🤔 Cela n'a pas de sens."
+    },
+    'not_logical': {
+        en: "😕😵🤔 Not a logical response. Maybe you did not understand what was said?",
+        es: "😕😵🤔 No es una respuesta lógica. ¿Posiblemente no has entendido lo que se dijo?",
+        fr: "😕😵🤔 Pas une réponse logique. Peut-être n'avez-vous pas compris ce qui a été dit ?"
+    },
+    'not_deep': {
+        en: "🤷‍🤷🏿‍🤷‍ Not responsive enough, even if not necessarily incorrect.",
+        es: "🤷‍🤷🏿‍🤷‍ No aporta suficiente, aunque no sea necesariamente incorrecta.",
+        fr: "🤷‍🤷🏿‍🤷‍ Pas assez contributif, même si ce n'est pas forcément incorrect."
+    },
+    'too_formal_less': {
+        en: "🤵🏿🤵🏻🤵 Too formal. Less formal version:",
+        es: "🤵🏿🤵🏻🤵 Muy formal. Versión menos formal:",
+        fr: "🤵🏿🤵🏻🤵 Trop formel. Version moins formelle :"
+    },
+    'too_formal_context': {
+        en: "🤵🏿🤵🏻🤵 Your response is too formal for this context.",
+        es: "🤵🏿🤵🏻🤵 Tu respuesta es demasiado formal para este contexto.",
+        fr: "🤵🏿🤵🏻🤵 Votre réponse est trop formelle pour ce contexte."
+    },
+    'tech_error_retry': {
+        en: "❗ Technical error. Try again.",
+        es: "❗ Error técnico. Vuelve a intentar.",
+        fr: "❗ Erreur technique. Réessayez."
+    },
+    'tech_error_generic': {
+        en: "❗ There was a technical error. Try again.",
+        es: "❗ Hubo un error técnico. Vuelve a intentar.",
+        fr: "❗ Il y a eu une erreur technique. Réessayez."
+    },
+    'unable_eval': {
+        en: "Unable to evaluate your response due to a technical error. Please try again.",
+        es: "No se pudo evaluar tu respuesta debido a un error técnico. Por favor, inténtalo de nuevo.",
+        fr: "Impossible d'évaluer votre réponse en raison d'une erreur technique. Veuillez réessayer."
+    },
+    'video_said': {
+        en: "The video said:",
+        es: "El video dijo:",
+        fr: "La vidéo a dit :"
+    },
+    'try_again_1': {
+        en: "💔 Let's try again.",
+        es: "💔 Intentemos de nuevo.",
+        fr: "💔 Réessayons."
+    },
+    'try_again_2': {
+        en: "💔💔 One try left!",
+        es: "¡Queda un intento!",
+        fr: "Il reste un essai !"
+    },
+    'failed_continue': {
+        en: "💔💔💔Let's continue. Better luck next time.",
+        es: "💔💔💔 Vamos a continuar. Mejor suerte la próxima vez.",
+        fr: "💔💔💔 Continuons. Plus de chance la prochaine fois."
+    },
+    'failed_continue_3_tries': {
+        en: "💔💔💔 3 failed attempts to respond. Let's continue.",
+        es: "💔💔💔 3 intentos fallidos en responder. Vamos a continuar.",
+        fr: "💔💔💔 3 tentatives de réponse échouées. Continuons."
+    },
+    'lesson_load_error': {
+        en: "The lesson failed to load. Check your internet connection.",
+        es: "La lección no se cargó. Verifique su conexión al internet.",
+        fr: "La leçon n'a pas pu être chargée. Vérifiez votre connexion internet."
+    },
+    'load_error': {
+        en: "Failed to load. Check your internet connection.",
+        es: "No se cargó. Verifique su conexión al internet.",
+        fr: "Échec du chargement. Vérifiez votre connexion internet."
+    },
+    'imagine': {
+        en: "Imagine the following: ",
+        es: "Imagina lo siguiente: ",
+        fr: "Imaginez ce qui suit : "
+    },
+    'listen_repeat': {
+        en: "Listen and repeat it as quickly as you can...",
+        es: "Escucha y repítelo tan rápido que puedas--",
+        fr: "Écoutez et répétez-le aussi vite que vous le pouvez..."
+    },
+    
+    // --- NEW LOCALIZATION STRINGS ADDED ---
+
+    'status_wait': {
+        en: "WAIT.",
+        es: "ESPERA.",
+        fr: "ATTENDEZ."
+    },
+    'status_speak': {
+        en: "SPEAK.",
+        es: "HABLA.",
+        fr: "PARLEZ."
+    },
+    'status_connecting': {
+        en: "WAIT! Connecting...",
+        es: "¡ESPEREMOS! Conectando...",
+        fr: "ATTENDEZ ! Connexion..."
+    },
+    'alert_lesson_reset': {
+        en: "The lesson will reset if you leave.",
+        es: "La lección se reseteará si te vas.",
+        fr: "La leçon sera réinitialisée si vous partez."
+    },
+    'alert_media_error': {
+        en: "Error. Check mic & cam settings & internet.",
+        es: "Error. Revisa ajustes de micrófono y cámara, e internet.",
+        fr: "Erreur. Vérifiez les paramètres du micro, de la caméra et d'internet."
+    },
+    'error_media_details': {
+        en: "ERROR. Check mic & cam settings & internet.",
+        es: "ERROR. Revisa ajustes de micrófono y cámara, e internet.",
+        fr: "ERREUR. Vérifiez les paramètres du micro, de la caméra et d'internet."
+    },
+    'alert_speech_connect_error': {
+        en: "Failed to connect to speech service. Please refresh and try again.",
+        es: "Fallo al conectar con el servicio de voz. Por favor, actualiza y vuelve a intentar.",
+        fr: "Échec de la connexion au service vocal. Veuillez rafraîchir et réessayer."
+    },
+    'alert_speech_setup_error': {
+        en: "Error setting up speech recognition. Please check microphone permissions and try again.",
+        es: "Error al configurar el reconocimiento de voz. Por favor, revisa los permisos del micrófono y vuelve a intentar.",
+        fr: "Erreur de configuration de la reconnaissance vocale. Veuillez vérifier les autorisations du microphone et réessayer."
+    },
+    'error_mic_permissions': {
+        en: "Turn on mic and mic permissions.",
+        es: "Activar micrófono y sus permisos.",
+        fr: "Activez le micro et ses autorisations."
+    },
+    'error_internet': {
+        en: "Check internet connection.",
+        es: "Verifica conexión a internet.",
+        fr: "Vérifiez la connexion internet."
+    },
+    'error_speech_generic': {
+        en: "TRY AGAIN. Speech recognition error.",
+        es: "VUELVE A INTENTAR. Error de reconocimiento de voz.",
+        fr: "RÉESSAYEZ. Erreur de reconnaissance vocale."
+    },
+    'example_correct_answer': {
+        en: "Example correct answer:",
+        es: "Respuesta correcta de ejemplo:",
+        fr: "Exemple de réponse correcte :"
+    },
+    'heads_up_try_again': {
+        en: "You will try again next.",
+        es: "A continuación, volverás a intentar.",
+        fr: "Vous allez réessayer ensuite."
+    },
+    'heads_up_repeat_video': {
+        en: "Next, you will repeat what the video said.",
+        es: "A continuación, volverás a repetir lo que el video dijo.",
+        fr: "Ensuite, vous répéterez ce que la vidéo a dit."
+    },
+    'btn_not_sure': {
+        en: "I'm not sure",
+        es: "No estoy seguro/a",
+        fr: "Je ne suis pas sûr(e)"
+    },
+    'placeholder_type_answer': {
+        en: "Type your answer here...",
+        es: "Escribe tu respuesta aquí...",
+        fr: "Tapez votre réponse ici..."
+    },
+    'btn_submit': {
+        en: "Submit",
+        es: "Enviar",
+        fr: "Soumettre"
+    },
+    'msg_lesson_complete_all': {
+        en: "<h3>Congratulations!</h3><p>You've completed all the lessons.</p>",
+        es: "<h3>¡Felicidades!</h3><p>Has completado todas las lecciones.</p>",
+        fr: "<h3>Félicitations !</h3><p>Vous avez terminé toutes les leçons.</p>"
+    },
+    'btn_continue': {
+        en: "Continue",
+        es: "Continuar",
+        fr: "Continuer"
+    },
+    'possible_response': {
+        en: "Possible Response:",
+        es: "Respuesta posible:",
+        fr: "Réponse possible :"
+    },
+    'default_q_speech': {
+        en: "Repeat exactly what you hear.",
+        es: "Repite exactamente lo que escuchas.",
+        fr: "Répétez exactement ce que vous entendez."
+    },
+    'default_q_ai': {
+        en: "Respond as well as you can.",
+        es: "Responde lo mejor que puedas.",
+        fr: "Répondez du mieux que vous pouvez."
+    },
+    'default_q_present': {
+        en: "Continue.",
+        es: "Continuar.",
+        fr: "Continuez."
+    },
+    'default_q_lesson_intro': {
+        en: "Turn on the cam.",
+        es: "Enciende la cámara.",
+        fr: "Allumez la caméra."
+    },
+    'lesson_label': {
+        en: "Lesson:",
+        es: "Lección:",
+        fr: "Leçon :"
+    },
+    'ai_acceptable': {
+        en: "🎯 Acceptable. Try to use more advanced language.",
+        es: "🎯 Aceptable. Intenta usar un lenguaje más avanzado.",
+        fr: "🎯 Acceptable. Essayez d'utiliser un langage plus avancé."
+    },
+    'ai_language_level': {
+        en: "Language level:",
+        es: "Nivel de idioma:",
+        fr: "Niveau de langue :"
+    },
+    'ai_fluency_reduced': {
+        en: "Fluency score reduced by",
+        es: "Puntuación de fluidez reducida en",
+        fr: "Score de fluidité réduit de"
+    },
+    'ai_percentage_points': {
+        en: "percentage points",
+        es: "puntos porcentuales",
+        fr: "points de pourcentage"
+    },
+    'failed_continue_correct': {
+        en: "💔💔💔 Let's continue. Better luck next time.<br><br>I said:",
+        es: "💔💔💔 Vamos a continuar. Mejor suerte la próxima vez.<br><br>Yo dije:",
+        fr: "💔💔💔 Continuons. Plus de chance la prochaine fois.<br><br>J'ai dit :"
+    },
+    'grammar_perfect': {
+        en: "✅ No language errors detected."
+    },
+    'intent_perfect': {
+        en: "✅ Meaning understood successfully."
+    },
+    'intent_good_grammar_bad': {
+        en: "✅ Your intent was clear! Try practicing the corrected version above next time."
+    },
+    'intent_bad_grammar_perfect': {
+        en: "❌ That doesn't seem to be the right response for this situation."
+    },
+    'intent_bad_grammar_bad': {
+        en: "❌ Even with corrected grammar, this didn't match the expected meaning. Let's try again!"
+    },
+    'intent_specific_fail': {
+        en: "❌ It seems like you're {bad_intent}, but this indicates you didn't understand what was said."
+    }
+};
+
+/**
+ * Gets a UI string, optionally with a translation appended.
+ * @param {string} key - The string key.
+ * @param {string} lang - The user's native language code (e.g., 'es').
+ * @returns {string} - The formatted string.
+ */
+export function get(key, lang = 'en') {
+    const entry = strings[key];
+    if (!entry) return key;
+
+    const englishText = entry.en || '';
+
+    // If no language is provided, or it's English, or we don't have that translation, return only English
+    if (!lang || lang === 'en' || !entry[lang]) {
+        return englishText;
+    }
+
+    // Return English + Translated version in a span
+    return `${englishText}<br><span lang='${lang}'><i>${entry[lang]}</i></span>`;
+}
+
+export default { get };
