@@ -283,29 +283,25 @@ export class InteractiveVideoPlayer {
     const minSubtitleHeight = Math.max(60, videoHeight * 0.25);
 
     if (this.blurOverlay) {
-      this.blurOverlay.style.position = 'absolute';
-      this.blurOverlay.style.bottom = '0';
-      this.blurOverlay.style.left = '0';
-      this.blurOverlay.style.right = '0';
-      this.blurOverlay.style.height = `${minSubtitleHeight}px`;
-      this.blurOverlay.style.zIndex = '1';
-
-      if (CSS.supports('backdrop-filter', 'blur(10px)')) {
-        this.blurOverlay.style.backdropFilter = 'blur(10px)';
-        this.blurOverlay.style.backgroundColor = 'rgba(0,0,0,0)';
-      } else {
-        this.blurOverlay.style.backgroundColor = 'rgba(0,0,0,0)';
-      }
+      this.blurOverlay.style.display = 'none';
     }
 
     this.subtitleDisplay.style.position = 'absolute';
     this.subtitleDisplay.style.bottom = '0';
     this.subtitleDisplay.style.left = '0';
     this.subtitleDisplay.style.right = '0';
-    this.subtitleDisplay.style.height = `${minSubtitleHeight}px`;
-    this.subtitleDisplay.style.padding = '12px';
-    this.subtitleDisplay.style.fontSize = isDesktop ? '1.5rem' : '1.8rem';
-    this.subtitleDisplay.style.backgroundColor = 'black';
+    this.subtitleDisplay.style.minHeight = `${minSubtitleHeight}px`;
+    this.subtitleDisplay.style.height = 'auto';
+    this.subtitleDisplay.style.padding = '12px 24px';
+    this.subtitleDisplay.style.fontSize = isDesktop ? 'clamp(1rem, 4vw, 1.5rem)' : 'clamp(1.2rem, 5vw, 1.8rem)';
+    
+    if (CSS.supports('backdrop-filter', 'blur(10px)')) {
+      this.subtitleDisplay.style.backdropFilter = 'blur(10px)';
+      this.subtitleDisplay.style.backgroundColor = 'rgba(0,0,0,0.6)';
+    } else {
+      this.subtitleDisplay.style.backgroundColor = 'rgba(0,0,0,0.85)';
+    }
+    
     this.subtitleDisplay.style.color = 'white';
     this.subtitleDisplay.style.textAlign = 'center';
     this.subtitleDisplay.style.boxSizing = 'border-box';
@@ -315,10 +311,6 @@ export class InteractiveVideoPlayer {
     this.subtitleDisplay.style.justifyContent = 'center';
     this.subtitleDisplay.style.flexWrap = 'wrap';
     this.subtitleDisplay.style.lineHeight = '1.3';
-
-    if (window.innerWidth <= 768) {
-      this.subtitleDisplay.style.fontSize = '2rem';
-    }
 
     if (this.isIOS && this.loadingSpinner) {
       this.loadingSpinner.style.position = 'absolute';
@@ -338,14 +330,14 @@ export class InteractiveVideoPlayer {
       return;
     }
 
-    const revealCount = this.tokens.length > 10 ? 2 : 1;
+    const revealCount = Math.floor(this.tokens.length / 8) + 1;
     const currentIndices = this.shuffledIndices.slice(
       this.currentRevealStart,
       this.currentRevealStart + revealCount
     );
 
     this.subtitleDisplay.textContent = this.tokens
-      .map((token, index) => currentIndices.includes(index) ? token : '_'.repeat(token.length))
+      .map((token, index) => currentIndices.includes(index) ? token : token.replace(/[\p{L}\p{N}]/gu, '_'))
       .join(' ');
   }
 
@@ -368,7 +360,7 @@ export class InteractiveVideoPlayer {
       return;
     }
 
-    const revealCount = this.tokens.length > 10 ? 2 : 1;
+    const revealCount = Math.floor(this.tokens.length / 8) + 1;
     this.currentRevealStart += revealCount;
 
     if (this.currentRevealStart >= this.shuffledIndices.length) {
@@ -426,7 +418,7 @@ export class InteractiveVideoPlayer {
 
       @media (max-width: 768px) {
         .ivp-subtitles {
-          font-size: 1.6rem !important;
+          font-size: clamp(1.2rem, 5vw, 1.8rem) !important;
         }
       }
 

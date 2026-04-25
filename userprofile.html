@@ -32,7 +32,7 @@
             height: 80vh;
             max-width: 800px;
             max-height: 800px;
-            background: url('https://ultrafastfluency.com/wp-content/themes/twentytwentyfive-child/img/u-f-f.png') no-repeat center center;
+            background: url('assets/img/u-f-f.png') no-repeat center center;
             background-size: contain;
             animation: scaleIn 1.5s ease-out forwards, scaleOut 1.5s 1.5s ease-in forwards;
         }
@@ -69,8 +69,8 @@
   </script>
 
   <!-- Manifest added by SuperPWA - Progressive Web Apps Plugin For WordPress -->
-<link rel="manifest" href="/superpwa-manifest.json">
-<link rel="prefetch" href="/superpwa-manifest.json">
+<!-- <link rel="manifest" href="/superpwa-manifest.json"> -->
+<!-- <link rel="prefetch" href="/superpwa-manifest.json"> -->
 <meta name="theme-color" content="#0075ea">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-touch-fullscreen" content="yes">
@@ -78,12 +78,12 @@
 <meta name="application-name" content="UFF Ultra Fast Fluency in English">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="apple-touch-icon"  href="https://ultrafastfluency.com/staging/staging/wp-content/uploads/2025/07/icon192.png">
-<link rel="apple-touch-icon" sizes="192x192" href="https://ultrafastfluency.com/staging/staging/wp-content/uploads/2025/07/icon192.png">
+<link rel="apple-touch-icon"  href="assets/img/favicons/favicon-192x192.jpeg">
+<link rel="apple-touch-icon" sizes="192x192" href="assets/img/favicons/favicon-192x192.jpeg">
 <!-- / SuperPWA.com -->
 <meta name='robots' content='max-image-preview:large' />
 <script type="module">
-        import { preloadWhisperEngine } from "/wp-content/themes/twentytwentyfive-child/js/modules/whisper/app-vad-asr.js";
+        import { preloadWhisperEngine } from "./js/modules/whisper/app-vad-asr.js";
         preloadWhisperEngine();
 
         import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0";
@@ -93,65 +93,20 @@
 
         pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2", { device: "wasm" });
         pipeline("text2text-generation", "Xenova/t5-base-grammar-correction", { device: "wasm" });
-    </script><link rel='dns-prefetch' href='//js.stripe.com' />
-<link rel='dns-prefetch' href='//cdn.jsdelivr.net' />
-<link rel="alternate" type="application/rss+xml" title="UFF English &raquo; Feed" href="https://ultrafastfluency.com/feed/" />
-<link rel="alternate" type="application/rss+xml" title="UFF English &raquo; Comments Feed" href="https://ultrafastfluency.com/comments/feed/" />
-<link rel="alternate" title="oEmbed (JSON)" type="application/json+oembed" href="https://ultrafastfluency.com/wp-json/oembed/1.0/embed?url=https%3A%2F%2Fultrafastfluency.com%2Fedit-profile%2F" />
-<link rel="alternate" title="oEmbed (XML)" type="text/xml+oembed" href="https://ultrafastfluency.com/wp-json/oembed/1.0/embed?url=https%3A%2F%2Fultrafastfluency.com%2Fedit-profile%2F&#038;format=xml" />
-<style id='wp-img-auto-sizes-contain-inline-css'>
-img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
-/*# sourceURL=wp-img-auto-sizes-contain-inline-css */
-</style>
-<style id='wp-emoji-styles-inline-css'>
-
-	img.wp-smiley, img.emoji {
-		display: inline !important;
-		border: none !important;
-		box-shadow: none !important;
-		height: 1em !important;
-		width: 1em !important;
-		margin: 0 0.07em !important;
-		vertical-align: -0.1em !important;
-		background: none !important;
-		padding: 0 !important;
-	}
-/*# sourceURL=wp-emoji-styles-inline-css */
-</style>
-<style id='wp-block-library-inline-css'>
-:root{--wp-block-synced-color:#7a00df;--wp-block-synced-color--rgb:122,0,223;--wp-bound-block-color:var(--wp-block-synced-color);--wp-editor-canvas-background:#ddd;--wp-admin-theme-color:#007cba;--wp-admin-theme-color--rgb:0,124,186;--wp-admin-theme-color-darker-10:#006ba1;--wp-admin-theme-color-darker-10--rgb:0,107,160.5;--wp-admin-theme-color-darker-20:#005a87;--wp-admin-theme-color-darker-20--rgb:0,90,135;--wp-admin-border-width-focus:2px}@media (min-resolution:192dpi){:root{--wp-admin-border-width-focus:1.5px}}.wp-element-button{cursor:pointer}:root .has-very-light-gray-background-color{background-color:#eee}:root .has-very-dark-gray-background-color{background-color:#313131}:root .has-very-light-gray-color{color:#eee}:root .has-very-dark-gray-color{color:#313131}:root .has-vivid-green-cyan-to-vivid-cyan-blue-gradient-background{background:linear-gradient(135deg,#00d084,#0693e3)}:root .has-purple-crush-gradient-background{background:linear-gradient(135deg,#34e2e4,#4721fb 50%,#ab1dfe)}:root .has-hazy-dawn-gradient-background{background:linear-gradient(135deg,#faaca8,#dad0ec)}:root .has-subdued-olive-gradient-background{background:linear-gradient(135deg,#fafae1,#67a671)}:root .has-atomic-cream-gradient-background{background:linear-gradient(135deg,#fdd79a,#004a59)}:root .has-nightshade-gradient-background{background:linear-gradient(135deg,#330968,#31cdcf)}:root .has-midnight-gradient-background{background:linear-gradient(135deg,#020381,#2874fc)}:root{--wp--preset--font-size--normal:16px;--wp--preset--font-size--huge:42px}.has-regular-font-size{font-size:1em}.has-larger-font-size{font-size:2.625em}.has-normal-font-size{font-size:var(--wp--preset--font-size--normal)}.has-huge-font-size{font-size:var(--wp--preset--font-size--huge)}.has-text-align-center{text-align:center}.has-text-align-left{text-align:left}.has-text-align-right{text-align:right}.has-fit-text{white-space:nowrap!important}#end-resizable-editor-section{display:none}.aligncenter{clear:both}.items-justified-left{justify-content:flex-start}.items-justified-center{justify-content:center}.items-justified-right{justify-content:flex-end}.items-justified-space-between{justify-content:space-between}.screen-reader-text{border:0;clip-path:inset(50%);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px;word-wrap:normal!important}.screen-reader-text:focus{background-color:#ddd;clip-path:none;color:#444;display:block;font-size:1em;height:auto;left:5px;line-height:normal;padding:15px 23px 14px;text-decoration:none;top:5px;width:auto;z-index:100000}html :where(.has-border-color){border-style:solid}html :where([style*=border-top-color]){border-top-style:solid}html :where([style*=border-right-color]){border-right-style:solid}html :where([style*=border-bottom-color]){border-bottom-style:solid}html :where([style*=border-left-color]){border-left-style:solid}html :where([style*=border-width]){border-style:solid}html :where([style*=border-top-width]){border-top-style:solid}html :where([style*=border-right-width]){border-right-style:solid}html :where([style*=border-bottom-width]){border-bottom-style:solid}html :where([style*=border-left-width]){border-left-style:solid}html :where(img[class*=wp-image-]){height:auto;max-width:100%}:where(figure){margin:0 0 1em}html :where(.is-position-sticky){--wp-admin--admin-bar--position-offset:var(--wp-admin--admin-bar--height,0px)}@media screen and (max-width:600px){html :where(.is-position-sticky){--wp-admin--admin-bar--position-offset:0px}}
-/*# sourceURL=/wp-includes/css/dist/block-library/common.min.css */
-</style>
-<style id='global-styles-inline-css'>
-:root{--wp--preset--aspect-ratio--square: 1;--wp--preset--aspect-ratio--4-3: 4/3;--wp--preset--aspect-ratio--3-4: 3/4;--wp--preset--aspect-ratio--3-2: 3/2;--wp--preset--aspect-ratio--2-3: 2/3;--wp--preset--aspect-ratio--16-9: 16/9;--wp--preset--aspect-ratio--9-16: 9/16;--wp--preset--color--black: #000000;--wp--preset--color--cyan-bluish-gray: #abb8c3;--wp--preset--color--white: #ffffff;--wp--preset--color--pale-pink: #f78da7;--wp--preset--color--vivid-red: #cf2e2e;--wp--preset--color--luminous-vivid-orange: #ff6900;--wp--preset--color--luminous-vivid-amber: #fcb900;--wp--preset--color--light-green-cyan: #7bdcb5;--wp--preset--color--vivid-green-cyan: #00d084;--wp--preset--color--pale-cyan-blue: #8ed1fc;--wp--preset--color--vivid-cyan-blue: #0693e3;--wp--preset--color--vivid-purple: #9b51e0;--wp--preset--color--base: #FFFFFF;--wp--preset--color--contrast: #111111;--wp--preset--color--accent-1: #FFEE58;--wp--preset--color--accent-2: #F6CFF4;--wp--preset--color--accent-3: #503AA8;--wp--preset--color--accent-4: #686868;--wp--preset--color--accent-5: #FBFAF3;--wp--preset--color--accent-6: color-mix(in srgb, currentColor 20%, transparent);--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple: linear-gradient(135deg,rgb(6,147,227) 0%,rgb(155,81,224) 100%);--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan: linear-gradient(135deg,rgb(122,220,180) 0%,rgb(0,208,130) 100%);--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange: linear-gradient(135deg,rgb(252,185,0) 0%,rgb(255,105,0) 100%);--wp--preset--gradient--luminous-vivid-orange-to-vivid-red: linear-gradient(135deg,rgb(255,105,0) 0%,rgb(207,46,46) 100%);--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray: linear-gradient(135deg,rgb(238,238,238) 0%,rgb(169,184,195) 100%);--wp--preset--gradient--cool-to-warm-spectrum: linear-gradient(135deg,rgb(74,234,220) 0%,rgb(151,120,209) 20%,rgb(207,42,186) 40%,rgb(238,44,130) 60%,rgb(251,105,98) 80%,rgb(254,248,76) 100%);--wp--preset--gradient--blush-light-purple: linear-gradient(135deg,rgb(255,206,236) 0%,rgb(152,150,240) 100%);--wp--preset--gradient--blush-bordeaux: linear-gradient(135deg,rgb(254,205,165) 0%,rgb(254,45,45) 50%,rgb(107,0,62) 100%);--wp--preset--gradient--luminous-dusk: linear-gradient(135deg,rgb(255,203,112) 0%,rgb(199,81,192) 50%,rgb(65,88,208) 100%);--wp--preset--gradient--pale-ocean: linear-gradient(135deg,rgb(255,245,203) 0%,rgb(182,227,212) 50%,rgb(51,167,181) 100%);--wp--preset--gradient--electric-grass: linear-gradient(135deg,rgb(202,248,128) 0%,rgb(113,206,126) 100%);--wp--preset--gradient--midnight: linear-gradient(135deg,rgb(2,3,129) 0%,rgb(40,116,252) 100%);--wp--preset--font-size--small: 0.875rem;--wp--preset--font-size--medium: clamp(1rem, 1rem + ((1vw - 0.2rem) * 0.196), 1.125rem);--wp--preset--font-size--large: clamp(1.125rem, 1.125rem + ((1vw - 0.2rem) * 0.392), 1.375rem);--wp--preset--font-size--x-large: clamp(1.75rem, 1.75rem + ((1vw - 0.2rem) * 0.392), 2rem);--wp--preset--font-size--xx-large: clamp(2.15rem, 2.15rem + ((1vw - 0.2rem) * 1.333), 3rem);--wp--preset--font-family--manrope: Manrope, sans-serif;--wp--preset--font-family--fira-code: "Fira Code", monospace;--wp--preset--spacing--20: 10px;--wp--preset--spacing--30: 20px;--wp--preset--spacing--40: 30px;--wp--preset--spacing--50: clamp(30px, 5vw, 50px);--wp--preset--spacing--60: clamp(30px, 7vw, 70px);--wp--preset--spacing--70: clamp(50px, 7vw, 90px);--wp--preset--spacing--80: clamp(70px, 10vw, 140px);--wp--preset--shadow--natural: 6px 6px 9px rgba(0, 0, 0, 0.2);--wp--preset--shadow--deep: 12px 12px 50px rgba(0, 0, 0, 0.4);--wp--preset--shadow--sharp: 6px 6px 0px rgba(0, 0, 0, 0.2);--wp--preset--shadow--outlined: 6px 6px 0px -3px rgb(255, 255, 255), 6px 6px rgb(0, 0, 0);--wp--preset--shadow--crisp: 6px 6px 0px rgb(0, 0, 0);}:root { --wp--style--global--content-size: 645px;--wp--style--global--wide-size: 1340px; }:where(body) { margin: 0; }.wp-site-blocks { padding-top: var(--wp--style--root--padding-top); padding-bottom: var(--wp--style--root--padding-bottom); }.has-global-padding { padding-right: var(--wp--style--root--padding-right); padding-left: var(--wp--style--root--padding-left); }.has-global-padding > .alignfull { margin-right: calc(var(--wp--style--root--padding-right) * -1); margin-left: calc(var(--wp--style--root--padding-left) * -1); }.has-global-padding :where(:not(.alignfull.is-layout-flow) > .has-global-padding:not(.wp-block-block, .alignfull)) { padding-right: 0; padding-left: 0; }.has-global-padding :where(:not(.alignfull.is-layout-flow) > .has-global-padding:not(.wp-block-block, .alignfull)) > .alignfull { margin-left: 0; margin-right: 0; }.wp-site-blocks > .alignleft { float: left; margin-right: 2em; }.wp-site-blocks > .alignright { float: right; margin-left: 2em; }.wp-site-blocks > .aligncenter { justify-content: center; margin-left: auto; margin-right: auto; }:where(.wp-site-blocks) > * { margin-block-start: 1.2rem; margin-block-end: 0; }:where(.wp-site-blocks) > :first-child { margin-block-start: 0; }:where(.wp-site-blocks) > :last-child { margin-block-end: 0; }:root { --wp--style--block-gap: 1.2rem; }:root :where(.is-layout-flow) > :first-child{margin-block-start: 0;}:root :where(.is-layout-flow) > :last-child{margin-block-end: 0;}:root :where(.is-layout-flow) > *{margin-block-start: 1.2rem;margin-block-end: 0;}:root :where(.is-layout-constrained) > :first-child{margin-block-start: 0;}:root :where(.is-layout-constrained) > :last-child{margin-block-end: 0;}:root :where(.is-layout-constrained) > *{margin-block-start: 1.2rem;margin-block-end: 0;}:root :where(.is-layout-flex){gap: 1.2rem;}:root :where(.is-layout-grid){gap: 1.2rem;}.is-layout-flow > .alignleft{float: left;margin-inline-start: 0;margin-inline-end: 2em;}.is-layout-flow > .alignright{float: right;margin-inline-start: 2em;margin-inline-end: 0;}.is-layout-flow > .aligncenter{margin-left: auto !important;margin-right: auto !important;}.is-layout-constrained > .alignleft{float: left;margin-inline-start: 0;margin-inline-end: 2em;}.is-layout-constrained > .alignright{float: right;margin-inline-start: 2em;margin-inline-end: 0;}.is-layout-constrained > .aligncenter{margin-left: auto !important;margin-right: auto !important;}.is-layout-constrained > :where(:not(.alignleft):not(.alignright):not(.alignfull)){max-width: var(--wp--style--global--content-size);margin-left: auto !important;margin-right: auto !important;}.is-layout-constrained > .alignwide{max-width: var(--wp--style--global--wide-size);}body .is-layout-flex{display: flex;}.is-layout-flex{flex-wrap: wrap;align-items: center;}.is-layout-flex > :is(*, div){margin: 0;}body .is-layout-grid{display: grid;}.is-layout-grid > :is(*, div){margin: 0;}body{background-color: var(--wp--preset--color--base);color: var(--wp--preset--color--contrast);font-family: var(--wp--preset--font-family--manrope);font-size: var(--wp--preset--font-size--large);font-weight: 300;letter-spacing: -0.1px;line-height: 1.4;--wp--style--root--padding-top: 0px;--wp--style--root--padding-right: var(--wp--preset--spacing--50);--wp--style--root--padding-bottom: 0px;--wp--style--root--padding-left: var(--wp--preset--spacing--50);}a:where(:not(.wp-element-button)){color: currentColor;text-decoration: underline;}:root :where(a:where(:not(.wp-element-button)):hover){text-decoration: none;}h1, h2, h3, h4, h5, h6{font-weight: 400;letter-spacing: -0.1px;line-height: 1.125;}h1{font-size: var(--wp--preset--font-size--xx-large);}h2{font-size: var(--wp--preset--font-size--x-large);}h3{font-size: var(--wp--preset--font-size--large);}h4{font-size: var(--wp--preset--font-size--medium);}h5{font-size: var(--wp--preset--font-size--small);letter-spacing: 0.5px;}h6{font-size: var(--wp--preset--font-size--small);font-weight: 700;letter-spacing: 1.4px;text-transform: uppercase;}:root :where(.wp-element-button, .wp-block-button__link){background-color: var(--wp--preset--color--contrast);border-width: 0;color: var(--wp--preset--color--base);font-family: inherit;font-size: var(--wp--preset--font-size--medium);font-style: inherit;font-weight: inherit;letter-spacing: inherit;line-height: inherit;padding-top: 1rem;padding-right: 2.25rem;padding-bottom: 1rem;padding-left: 2.25rem;text-decoration: none;text-transform: inherit;}:root :where(.wp-element-button:hover, .wp-block-button__link:hover){background-color: color-mix(in srgb, var(--wp--preset--color--contrast) 85%, transparent);border-color: transparent;color: var(--wp--preset--color--base);}:root :where(.wp-element-button:focus, .wp-block-button__link:focus){outline-color: var(--wp--preset--color--accent-4);outline-offset: 2px;}:root :where(.wp-element-caption, .wp-block-audio figcaption, .wp-block-embed figcaption, .wp-block-gallery figcaption, .wp-block-image figcaption, .wp-block-table figcaption, .wp-block-video figcaption){font-size: var(--wp--preset--font-size--small);line-height: 1.4;}.has-black-color{color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-color{color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-color{color: var(--wp--preset--color--white) !important;}.has-pale-pink-color{color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-color{color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-color{color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-color{color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-color{color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-color{color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-color{color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-color{color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-color{color: var(--wp--preset--color--vivid-purple) !important;}.has-base-color{color: var(--wp--preset--color--base) !important;}.has-contrast-color{color: var(--wp--preset--color--contrast) !important;}.has-accent-1-color{color: var(--wp--preset--color--accent-1) !important;}.has-accent-2-color{color: var(--wp--preset--color--accent-2) !important;}.has-accent-3-color{color: var(--wp--preset--color--accent-3) !important;}.has-accent-4-color{color: var(--wp--preset--color--accent-4) !important;}.has-accent-5-color{color: var(--wp--preset--color--accent-5) !important;}.has-accent-6-color{color: var(--wp--preset--color--accent-6) !important;}.has-black-background-color{background-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-background-color{background-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-background-color{background-color: var(--wp--preset--color--white) !important;}.has-pale-pink-background-color{background-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-background-color{background-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-background-color{background-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-background-color{background-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-background-color{background-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-background-color{background-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-background-color{background-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-background-color{background-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-background-color{background-color: var(--wp--preset--color--vivid-purple) !important;}.has-base-background-color{background-color: var(--wp--preset--color--base) !important;}.has-contrast-background-color{background-color: var(--wp--preset--color--contrast) !important;}.has-accent-1-background-color{background-color: var(--wp--preset--color--accent-1) !important;}.has-accent-2-background-color{background-color: var(--wp--preset--color--accent-2) !important;}.has-accent-3-background-color{background-color: var(--wp--preset--color--accent-3) !important;}.has-accent-4-background-color{background-color: var(--wp--preset--color--accent-4) !important;}.has-accent-5-background-color{background-color: var(--wp--preset--color--accent-5) !important;}.has-accent-6-background-color{background-color: var(--wp--preset--color--accent-6) !important;}.has-black-border-color{border-color: var(--wp--preset--color--black) !important;}.has-cyan-bluish-gray-border-color{border-color: var(--wp--preset--color--cyan-bluish-gray) !important;}.has-white-border-color{border-color: var(--wp--preset--color--white) !important;}.has-pale-pink-border-color{border-color: var(--wp--preset--color--pale-pink) !important;}.has-vivid-red-border-color{border-color: var(--wp--preset--color--vivid-red) !important;}.has-luminous-vivid-orange-border-color{border-color: var(--wp--preset--color--luminous-vivid-orange) !important;}.has-luminous-vivid-amber-border-color{border-color: var(--wp--preset--color--luminous-vivid-amber) !important;}.has-light-green-cyan-border-color{border-color: var(--wp--preset--color--light-green-cyan) !important;}.has-vivid-green-cyan-border-color{border-color: var(--wp--preset--color--vivid-green-cyan) !important;}.has-pale-cyan-blue-border-color{border-color: var(--wp--preset--color--pale-cyan-blue) !important;}.has-vivid-cyan-blue-border-color{border-color: var(--wp--preset--color--vivid-cyan-blue) !important;}.has-vivid-purple-border-color{border-color: var(--wp--preset--color--vivid-purple) !important;}.has-base-border-color{border-color: var(--wp--preset--color--base) !important;}.has-contrast-border-color{border-color: var(--wp--preset--color--contrast) !important;}.has-accent-1-border-color{border-color: var(--wp--preset--color--accent-1) !important;}.has-accent-2-border-color{border-color: var(--wp--preset--color--accent-2) !important;}.has-accent-3-border-color{border-color: var(--wp--preset--color--accent-3) !important;}.has-accent-4-border-color{border-color: var(--wp--preset--color--accent-4) !important;}.has-accent-5-border-color{border-color: var(--wp--preset--color--accent-5) !important;}.has-accent-6-border-color{border-color: var(--wp--preset--color--accent-6) !important;}.has-vivid-cyan-blue-to-vivid-purple-gradient-background{background: var(--wp--preset--gradient--vivid-cyan-blue-to-vivid-purple) !important;}.has-light-green-cyan-to-vivid-green-cyan-gradient-background{background: var(--wp--preset--gradient--light-green-cyan-to-vivid-green-cyan) !important;}.has-luminous-vivid-amber-to-luminous-vivid-orange-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-amber-to-luminous-vivid-orange) !important;}.has-luminous-vivid-orange-to-vivid-red-gradient-background{background: var(--wp--preset--gradient--luminous-vivid-orange-to-vivid-red) !important;}.has-very-light-gray-to-cyan-bluish-gray-gradient-background{background: var(--wp--preset--gradient--very-light-gray-to-cyan-bluish-gray) !important;}.has-cool-to-warm-spectrum-gradient-background{background: var(--wp--preset--gradient--cool-to-warm-spectrum) !important;}.has-blush-light-purple-gradient-background{background: var(--wp--preset--gradient--blush-light-purple) !important;}.has-blush-bordeaux-gradient-background{background: var(--wp--preset--gradient--blush-bordeaux) !important;}.has-luminous-dusk-gradient-background{background: var(--wp--preset--gradient--luminous-dusk) !important;}.has-pale-ocean-gradient-background{background: var(--wp--preset--gradient--pale-ocean) !important;}.has-electric-grass-gradient-background{background: var(--wp--preset--gradient--electric-grass) !important;}.has-midnight-gradient-background{background: var(--wp--preset--gradient--midnight) !important;}.has-small-font-size{font-size: var(--wp--preset--font-size--small) !important;}.has-medium-font-size{font-size: var(--wp--preset--font-size--medium) !important;}.has-large-font-size{font-size: var(--wp--preset--font-size--large) !important;}.has-x-large-font-size{font-size: var(--wp--preset--font-size--x-large) !important;}.has-xx-large-font-size{font-size: var(--wp--preset--font-size--xx-large) !important;}.has-manrope-font-family{font-family: var(--wp--preset--font-family--manrope) !important;}.has-fira-code-font-family{font-family: var(--wp--preset--font-family--fira-code) !important;}
-.page-id-104 #lesson-header {
-    display: none;
-}
-/*# sourceURL=global-styles-inline-css */
-</style>
-<link rel='stylesheet' id='crp-public-css' href='https://ultrafastfluency.com/wp-content/plugins/custom-related-posts/dist/public.css?ver=1.8.1' media='all' />
-<link rel='stylesheet' id='gamipress-css-css' href='https://ultrafastfluency.com/wp-content/plugins/gamipress/assets/css/gamipress.min.css?ver=7.8.2' media='all' />
-<link rel='stylesheet' id='swpm.common-css' href='https://ultrafastfluency.com/wp-content/plugins/simple-membership/css/swpm.common.css?ver=4.7.2' media='all' />
-<link rel='stylesheet' id='wpecpp-css' href='https://ultrafastfluency.com/wp-content/plugins/wp-ecommerce-paypal/assets/css/wpecpp.css?ver=2.0.4' media='all' />
-<link rel='stylesheet' id='mwai_chatbot_theme_timeless-css' href='https://ultrafastfluency.com/wp-content/plugins/ai-engine/themes/timeless.css?ver=1774911973' media='all' />
+    </script><link rel='stylesheet' id='mwai_chatbot_theme_timeless-css' href='assets/css/timeless.css' media='all' />
 <link rel='stylesheet' id='bootstrap-css-css' href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css?ver=5.3.0' media='all' />
 <link rel='stylesheet' id='bootstrap-icons-css' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css?ver=1.11.0' media='all' />
-<link rel='stylesheet' id='twentytwentyfive-child-style-css' href='https://ultrafastfluency.com/wp-content/themes/twentytwentyfive-child/style.css?ver=1776612503' media='all' />
-<link rel='stylesheet' id='twentytwentyfive-style-css' href='https://ultrafastfluency.com/wp-content/themes/twentytwentyfive/style.css?ver=6.9.4' media='all' />
-<link rel='stylesheet' id='wppb_stylesheet-css' href='https://ultrafastfluency.com/wp-content/plugins/profile-builder/assets/css/style-front-end.css?ver=3.15.6' media='all' />
-<link rel='stylesheet' id='wppb_block_themes_front_end_stylesheet-css' href='https://ultrafastfluency.com/wp-content/plugins/profile-builder/assets/css/style-block-themes-front-end.css?ver=3.15.6' media='all' />
-<script src="https://ultrafastfluency.com/wp-includes/js/jquery/jquery.min.js?ver=3.7.1" id="jquery-core-js"></script>
-<script src="https://ultrafastfluency.com/wp-includes/js/jquery/jquery-migrate.min.js?ver=3.4.1" id="jquery-migrate-js"></script>
-<script src="https://ultrafastfluency.com/wp-includes/js/dist/vendor/react.min.js?ver=18.3.1.1" id="react-js"></script>
-<script src="https://ultrafastfluency.com/wp-includes/js/dist/vendor/react-dom.min.js?ver=18.3.1.1" id="react-dom-js"></script>
-<script src="https://ultrafastfluency.com/wp-includes/js/dist/escape-html.min.js?ver=6561a406d2d232a6fbd2" id="wp-escape-html-js"></script>
-<script src="https://ultrafastfluency.com/wp-includes/js/dist/element.min.js?ver=6a582b0c827fa25df3dd" id="wp-element-js"></script>
-<script src="https://ultrafastfluency.com/wp-content/plugins/ai-engine/app/chatbot.js?ver=1774911973" id="mwai_chatbot-js"></script>
-<link rel="https://api.w.org/" href="https://ultrafastfluency.com/wp-json/" /><link rel="alternate" title="JSON" type="application/json" href="https://ultrafastfluency.com/wp-json/wp/v2/pages/24" /><link rel="EditURI" type="application/rsd+xml" title="RSD" href="https://ultrafastfluency.com/xmlrpc.php?rsd" />
-<meta name="generator" content="WordPress 6.9.4" />
-<link rel="canonical" href="https://ultrafastfluency.com/edit-profile/" />
-<link rel='shortlink' href='https://ultrafastfluency.com/?p=24' />
-		<script type="text/javascript">
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script>
+window.wp = window.wp || {};
+window.wp.element = window.React;
+window.wp.hooks = { applyFilters: function(a,b){return b;}, doAction: function(){} };
+window.wp.i18n = { __: function(s){return s;} };
+window.wp.apiFetch = function() { return Promise.resolve({}); };
+</script>
+<script src="assets/js/chatbot.js" id="mwai_chatbot-js"></script>
+<script type="text/javascript">
 			(function(c, l, a, r, i, t, y) {
 				c[a] = c[a] || function() {
 					(c[a].q = c[a].q || []).push(arguments)
@@ -199,13 +154,9 @@ img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
             });
         }
         </script>
-<style type="text/css">.crp-list-title {text-align: center; margin: auto; font-size:xl;}</style><style class='wp-fonts-local'>
-@font-face{font-family:Manrope;font-style:normal;font-weight:200 800;font-display:fallback;src:url('https://ultrafastfluency.com/wp-content/themes/twentytwentyfive/assets/fonts/manrope/Manrope-VariableFont_wght.woff2') format('woff2');}
-@font-face{font-family:"Fira Code";font-style:normal;font-weight:300 700;font-display:fallback;src:url('https://ultrafastfluency.com/wp-content/themes/twentytwentyfive/assets/fonts/fira-code/FiraCode-VariableFont_wght.woff2') format('woff2');}
-</style>
-<link rel="icon" href="https://ultrafastfluency.com/wp-content/uploads/2025/07/cropped-WhatsApp-Image-2025-07-17-at-4.19.46-PM-32x32.jpeg" sizes="32x32" />
-<link rel="icon" href="https://ultrafastfluency.com/wp-content/uploads/2025/07/cropped-WhatsApp-Image-2025-07-17-at-4.19.46-PM-192x192.jpeg" sizes="192x192" />
-<meta name="msapplication-TileImage" content="https://ultrafastfluency.com/wp-content/uploads/2025/07/cropped-WhatsApp-Image-2025-07-17-at-4.19.46-PM-270x270.jpeg" />
+<link rel="icon" href="assets/img/favicons/favicon-32x32.jpeg" sizes="32x32" />
+<link rel="icon" href="assets/img/favicons/favicon-192x192.jpeg" sizes="192x192" />
+<meta name="msapplication-TileImage" content="assets/img/favicons/favicon-192x192.jpeg" />
  <!-- This injects all enqueued styles and scripts -->
   
   <link
@@ -213,70 +164,9 @@ img:is([sizes=auto i],[sizes^="auto," i]){contain-intrinsic-size:3000px 1500px}
     href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
   />
 
-<style>
-  /* Hide elements for new users based on days */
-.user-day-0 .day-0-content,
-.user-day-1 .day-1-content,
-.user-day-2 .day-2-content,
-.user-day-3 .day-3-content,
-.user-day-4 .day-4-content,
-.user-day-5 .day-5-content,
-.user-day-6 .day-6-content,
-.user-day-7 .day-7-content {
-    display: none !important;
-}
-
-/* Show elements only after specific days */
-.user-day-1 .day-0-content,
-.user-day-2 .day-0-content,
-.user-day-2 .day-1-content,
-.user-day-3 .day-0-content,
-.user-day-3 .day-1-content,
-.user-day-3 .day-2-content,
-.user-day-4 .day-0-content,
-.user-day-4 .day-1-content,
-.user-day-4 .day-2-content,
-.user-day-4 .day-3-content,
-.user-day-5 .day-0-content,
-.user-day-5 .day-1-content,
-.user-day-5 .day-2-content,
-.user-day-5 .day-3-content,
-.user-day-5 .day-4-content,
-.user-day-6 .day-0-content,
-.user-day-6 .day-1-content,
-.user-day-6 .day-2-content,
-.user-day-6 .day-3-content,
-.user-day-6 .day-4-content,
-.user-day-6 .day-5-content,
-.user-day-7 .day-0-content,
-.user-day-7 .day-1-content,
-.user-day-7 .day-2-content,
-.user-day-7 .day-3-content,
-.user-day-7 .day-4-content,
-.user-day-7 .day-5-content,
-.user-day-7 .day-6-content,
-.user-day-8 .day-0-content,
-.user-day-8 .day-1-content,
-.user-day-8 .day-2-content,
-.user-day-8 .day-3-content,
-.user-day-8 .day-4-content,
-.user-day-8 .day-5-content,
-.user-day-8 .day-6-content,
-.user-day-8 .day-7-content {
-    display: block !important;
-}
-
-</style>
-
+  <link rel="stylesheet" href="style.css">
 </head>
 <body class="wp-singular page-template page-template-home page-template-home-php page page-id-24 logged-in wp-embed-responsive wp-theme-twentytwentyfive wp-child-theme-twentytwentyfive-child">
-<style>
-.mwai-chatbot-container {display:none;}
-.pcp-section-title {margin-bottom: 0px !important;}
-#lesson-header {display: none;}
-</style>
-
-
 <!--installPrompt Message-->
 <center>
 <div id="installPrompt" style="justify-content: center; align-items: flex-start; padding: 20px; pointer-events: none;">
@@ -337,7 +227,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const btn = document.createElement('button');
         btn.id = 'continueButton';
         btn.className = 'btn btn-primary text-white w-100';
-        btn.innerHTML = '<img decoding="async" src="https://ultrafastfluency.com/wp-content/themes/twentytwentyfive-child/img/continue.svg" alt="Continue" width="40px">';
+        btn.innerHTML = '<img decoding="async" src="assets/img/continue.svg" alt="Continue" width="40px">';
         btn.onclick = function() {
             window.location.href = "/courseid-gtests-a2";
         };
@@ -351,7 +241,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- BIG HEADER IMAGE - Shows only on screens ≤ 1100px (mobile) -->
 <div class="container-fluid px-0 mb-5 d-block d-lg-none" id="bigHeader">
   <img 
-    src="https://ultrafastfluency.com/wp-content/themes/twentytwentyfive-child/img/u-f-f.png"
+    src="assets/img/u-f-f.png"
     class="img-fluid w-100" 
     alt="" 
     style="height: auto; max-width: 100% !important; width: 100% !important;"
@@ -361,7 +251,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- WIDE HEADER IMAGE - Shows only on screens > 1100px (desktop) -->
 <div class="container-fluid px-0 mb-3 d-none d-lg-block" id="wideHeader">
   <img 
-    src="https://ultrafastfluency.com/wp-content/themes/twentytwentyfive-child/img/header.png"
+    src="assets/img/header.png"
     class="img-fluid w-100" 
     id="uffposter"
     alt="" 
@@ -378,7 +268,7 @@ document.addEventListener('DOMContentLoaded', function() {
   <div class="d-flex justify-content-between align-items-center" style="padding-top: 0; margin-top: 10px; margin-bottom: 10px;">
     <!-- Left X --
       <span class="d-flex align-items-center text-decoration-none" style="font-size: x-large;">
-        <img src='https://ultrafastfluency.com/wp-content/themes/twentytwentyfive-child/img/cropped-teacher.png' alt='' class='rounded-circle me-3' style='width:100px;height:100px;object-fit:cover'> <strong>UFF: Ultra Fast Fluency in English</strong>
+        <img src='assets/img/teacherprofile.png' alt='' class='rounded-circle me-3' style='width:100px;height:100px;object-fit:cover'> <strong>UFF: Ultra Fast Fluency in English</strong>
       </span>
     
     <!-- Progress Bar --
@@ -412,7 +302,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <form enctype="multipart/form-data" method="post" id="wppb-edit-user" class="wppb-user-forms wppb-edit-user wppb-user-role-contributor" action="https://ultrafastfluency.com/edit-profile/">
 			<ul><li class="wppb-form-field wppb-default-username" id="wppb-form-element-2">
 			<label for="username">Username<span class="wppb-required" title="This field is required">*</span></label>
-			<input class="text-input default_field_username " name="username" maxlength="70" type="text" id="username" value="test"  disabled="disabled"  required /></li><li class="wppb-form-field wppb-default-first-name" id="wppb-form-element-3">
+			<input class="text-input default_field_username " name="username" maxlength="70" type="text" id="username" value="test"  disabled="disabled" autocomplete="username" required /></li><li class="wppb-form-field wppb-default-first-name" id="wppb-form-element-3">
 			<label for="first_name">First Name</label>
 			<input class="text-input default_field_firstname " name="first_name" maxlength="70" type="text" id="first_name" value="Testname"  /></li><li class="wppb-form-field wppb-default-last-name" id="wppb-form-element-4">
 			<label for="last_name">Last Name</label>
@@ -460,6 +350,9 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
+    // Local dev: assume logged in
+    localStorage.setItem('wpLoggedIn', 'true');
+    return;
     fetch('/wp-admin/admin-ajax.php', {
         method: 'POST',
         credentials: 'same-origin',
@@ -508,7 +401,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!--Courses--
 <div id="coursesIntro" class="card border-dark mb-3 p-0" style="margin-top: 10px; margin-bottom: 70px;">
-<div class='card-header bg-dark text-white p-0' id='correct'><div class='d-flex align-items-center p-3'><img src='https://ultrafastfluency.com/wp-content/themes/twentytwentyfive-child/img/cropped-teacher.png' alt='' class='rounded-circle me-3' style='width:100px;height:100px;object-fit:cover'><span class='fs-5'>Welcome!</span></div></div><div class='card-body text-dark'><h3 class='card-title'>
+<div class='card-header bg-dark text-white p-0' id='correct'><div class='d-flex align-items-center p-3'><img src='assets/img/teacherprofile.png' alt='' class='rounded-circle me-3' style='width:100px;height:100px;object-fit:cover'><span class='fs-5'>Welcome!</span></div></div><div class='card-body text-dark'><h3 class='card-title'>
 Aquí una demo y tutorial de cómo usarlo.
 </h3></div>
 </div>
@@ -519,21 +412,14 @@ Todo el inglés más importante y fundamental, la base para todo, y también muy
 </h3></div>
 </div>
 <div id="courses1" class="card border-dark p-0" style="margin-top: 10px; margin-bottom: 170px;">
-<div class='card-header bg-dark text-white p-0' id='correct'><div class='d-flex align-items-center p-3'><img src='https://ultrafastfluency.com/wp-content/themes/twentytwentyfive-child/img/cropped-teacher.png' alt='' class='rounded-circle me-3' style='width:100px;height:100px;object-fit:cover'><span class='fs-5'>El Inglés Coloquial</span></div></div><div class='card-body text-dark'><h3 class='card-title'>
+<div class='card-header bg-dark text-white p-0' id='correct'><div class='d-flex align-items-center p-3'><img src='assets/img/teacherprofile.png' alt='' class='rounded-circle me-3' style='width:100px;height:100px;object-fit:cover'><span class='fs-5'>El Inglés Coloquial</span></div></div><div class='card-body text-dark'><h3 class='card-title'>
 Cómo hablamos en el día a día más allá de lo más esenical, incluyendo frases comunes que normalmente no se enseñan en las clases de inglés.
 </h3></div>
 </div>
 <!--End Courses-->
 
 </div>
-<style>
-#speech-text-here:empty {
-    border: none !important; /* Remove border when empty */
-    display: none; /* Or hide the entire element when empty */
-}
-</style>
-
-      </div>
+</div>
     </div>
 
   </div>
@@ -562,105 +448,11 @@ Cómo hablamos en el día a día más allá de lo más esenical, incluyendo fras
             visibility: hidden !important;
         
         }
-    </style><div class='mwai-chatbot-container' data-params='{&quot;aiName&quot;:&quot;Prof. Fluintel, UFF AI&quot;,&quot;userName&quot;:&quot;User: &quot;,&quot;guestName&quot;:&quot;Guest:&quot;,&quot;aiAvatar&quot;:true,&quot;userAvatar&quot;:true,&quot;guestAvatar&quot;:true,&quot;aiAvatarUrl&quot;:&quot;https:\/\/ultrafastfluency.com\/aiavatar.png&quot;,&quot;guestAvatarUrl&quot;:&quot;chat-nyao-1.svg&quot;,&quot;textSend&quot;:&quot;Send&quot;,&quot;textClear&quot;:&quot;Clear&quot;,&quot;imageUpload&quot;:false,&quot;fileUpload&quot;:false,&quot;multiUpload&quot;:false,&quot;maxUploads&quot;:1,&quot;fileUploads&quot;:0,&quot;mode&quot;:&quot;chat&quot;,&quot;textInputPlaceholder&quot;:&quot;Type your message...&quot;,&quot;textInputMaxLength&quot;:512,&quot;textCompliance&quot;:&quot;&quot;,&quot;startSentence&quot;:&quot;Hi! Hola! Haz me tus preguntas sobre el ingl\u00e9s. No olvides pegar cualquier texto relevante, pues, no veo lo que est\u00e1 en la app. No puedo ofrecer soporte t\u00e9cnico, tampoco s\u00e9 sobre las funciones de esta app.&quot;,&quot;localMemory&quot;:true,&quot;themeId&quot;:&quot;timeless&quot;,&quot;window&quot;:true,&quot;icon&quot;:&quot;https:\/\/ultrafastfluency.com\/aiavatarnobg.png?0&quot;,&quot;iconText&quot;:&quot;&quot;,&quot;iconTextDelay&quot;:1,&quot;iconAlt&quot;:&quot;AI Engine Chatbot&quot;,&quot;iconPosition&quot;:&quot;bottom-right&quot;,&quot;centerOpen&quot;:false,&quot;width&quot;:&quot;&quot;,&quot;openDelay&quot;:&quot;&quot;,&quot;iconBubble&quot;:false,&quot;windowAnimation&quot;:&quot;zoom&quot;,&quot;fullscreen&quot;:true,&quot;copyButton&quot;:true,&quot;headerSubtitle&quot;:&quot;&quot;,&quot;containerType&quot;:&quot;standard&quot;,&quot;headerType&quot;:&quot;standard&quot;,&quot;messagesType&quot;:&quot;standard&quot;,&quot;inputType&quot;:&quot;standard&quot;,&quot;footerType&quot;:&quot;standard&quot;}' data-system='{&quot;botId&quot;:&quot;default&quot;,&quot;customId&quot;:null,&quot;userData&quot;:{&quot;ID&quot;:45,&quot;name&quot;:&quot;test&quot;,&quot;email&quot;:&quot;testt@example.com&quot;,&quot;avatar&quot;:&quot;https:\/\/secure.gravatar.com\/avatar\/abc02beb233c67fbbff982999809fb9cb5a1575f374ad368ea38cb1fa753cf3f?s=96&amp;d=mm&amp;r=g&quot;,&quot;type&quot;:&quot;logged-in&quot;,&quot;FIRST_NAME&quot;:&quot;Testname&quot;,&quot;LAST_NAME&quot;:&quot;Testlast&quot;,&quot;USER_LOGIN&quot;:&quot;test&quot;,&quot;DISPLAY_NAME&quot;:&quot;test&quot;,&quot;AVATAR_URL&quot;:&quot;https:\/\/secure.gravatar.com\/avatar\/abc02beb233c67fbbff982999809fb9cb5a1575f374ad368ea38cb1fa753cf3f?s=96&amp;d=mm&amp;r=g&quot;},&quot;sessionId&quot;:&quot;N\/A&quot;,&quot;restNonce&quot;:&quot;ed2d2be5a9&quot;,&quot;contextId&quot;:24,&quot;pluginUrl&quot;:&quot;https:\/\/ultrafastfluency.com\/wp-content\/plugins\/ai-engine&quot;,&quot;restUrl&quot;:&quot;https:\/\/ultrafastfluency.com\/wp-json&quot;,&quot;stream&quot;:true,&quot;debugMode&quot;:true,&quot;eventLogs&quot;:true,&quot;speech_recognition&quot;:false,&quot;speech_synthesis&quot;:false,&quot;typewriter&quot;:false,&quot;crossSite&quot;:false,&quot;actions&quot;:[],&quot;blocks&quot;:[],&quot;shortcuts&quot;:[]}' data-theme='{&quot;type&quot;:&quot;internal&quot;,&quot;name&quot;:&quot;Timeless&quot;,&quot;themeId&quot;:&quot;timeless&quot;,&quot;settings&quot;:{&quot;backgroundAiColor&quot;:&quot;#ffffff&quot;,&quot;backgroundUserColor&quot;:&quot;#000000&quot;,&quot;backgroundPrimaryColor&quot;:&quot;#ffffff&quot;,&quot;backgroundAiSecondaryColor&quot;:&quot;#000&quot;,&quot;width&quot;:&quot;80vh&quot;,&quot;maxHeight&quot;:&quot;90vh&quot;,&quot;borderRadius&quot;:&quot;2px&quot;,&quot;backgroundHeaderColor&quot;:&quot;#1a3a5a&quot;,&quot;fontSize&quot;:&quot;16px&quot;,&quot;fontColor&quot;:&quot;#000000&quot;,&quot;headerButtonsColor&quot;:&quot;#ffffff &quot;,&quot;iconTextBackgroundColor&quot;:&quot;#343541&quot;,&quot;iconTextColor&quot;:&quot;#343541&quot;},&quot;style&quot;:&quot;&quot;,&quot;cssUrl&quot;:&quot;https:\/\/ultrafastfluency.com\/wp-content\/plugins\/ai-engine\/themes\/timeless.css&quot;}'></div><style id='wp-block-paragraph-inline-css'>
-.is-small-text{font-size:.875em}.is-regular-text{font-size:1em}.is-large-text{font-size:2.25em}.is-larger-text{font-size:3em}.has-drop-cap:not(:focus):first-letter{float:left;font-size:8.4em;font-style:normal;font-weight:100;line-height:.68;margin:.05em .1em 0 0;text-transform:uppercase}body.rtl .has-drop-cap:not(:focus):first-letter{float:none;margin-left:.1em}p.has-drop-cap.has-background{overflow:hidden}:root :where(p.has-background){padding:1.25em 2.375em}:where(p.has-text-color:not(.has-link-color)) a{color:inherit}p.has-text-align-left[style*="writing-mode:vertical-lr"],p.has-text-align-right[style*="writing-mode:vertical-rl"]{rotate:180deg}
-/*# sourceURL=https://ultrafastfluency.com/wp-includes/blocks/paragraph/style.min.css */
-</style>
-<script src="https://ultrafastfluency.com/wp-content/plugins/api-key-manager/cryptojs-aes.min.js?ver=1912315522" id="cryptojs-aes-min-js"></script>
-<script src="https://ultrafastfluency.com/wp-content/plugins/api-key-manager/cryptojs-aes-format.js?ver=1592150768" id="cryptojs-aes-format-js"></script>
-<script id="my-script-js-extra">
-var MyAjax = {"ajaxurl":"https://ultrafastfluency.com/wp-admin/admin-ajax.php","jsondata":"{\"ct\":\"m7F9faLT4LbAHF1zOxmWVsuIN6sOGQpX\\/cxtZnLc3DrFVylTy8aFGQq4waUWpq7HfSBc3rIY+d1twNAHOyQJjg==\",\"iv\":\"f6fdbc8bfb6da4356a2703efac7f5ac7\",\"s\":\"9e13efa245470bb5\"}"};
-//# sourceURL=my-script-js-extra
-</script>
-<script src="https://ultrafastfluency.com/wp-content/plugins/api-key-manager/script.js?ver=1001765810" id="my-script-js"></script>
-<script id="gamipress-js-js-extra">
-var gamipress = {"ajaxurl":"/wp-admin/admin-ajax.php","nonce":"cb5c232c6c","achievement_fields":["id","title","title_size","link","thumbnail","thumbnail_size","points_awarded","points_awarded_thumbnail","excerpt","times_earned","global_times_earned","steps","toggle","heading","heading_size","unlock_button","earners","earners_limit","layout","align"]};
-//# sourceURL=gamipress-js-js-extra
-</script>
-<script src="https://ultrafastfluency.com/wp-content/plugins/gamipress/assets/js/gamipress.min.js?ver=7.8.2" id="gamipress-js-js"></script>
-<script id="superpwa-register-sw-js-extra">
-var superpwa_sw = {"url":"/superpwa-sw.js?2.2.42","disable_addtohome":"0","enableOnDesktop":"","offline_form_addon_active":"","ajax_url":"https://ultrafastfluency.com/wp-admin/admin-ajax.php","offline_message":"1","offline_message_txt":"Sin conexi\u00f3n al internet.","online_message_txt":"You're back online . \u003Ca href=\"javascript:location.reload()\"\u003Erefresh\u003C/a\u003E","manifest_name":"superpwa-manifest.json","script_debug":""};
-//# sourceURL=superpwa-register-sw-js-extra
-</script>
-<script src="https://ultrafastfluency.com/wp-content/plugins/super-progressive-web-apps/public/js/register-sw.js?ver=2.2.43" id="superpwa-register-sw-js"></script>
-<script src="https://js.stripe.com/v3/" id="stripe-js-js"></script>
-<script id="wpecpp-js-extra">
-var wpecpp = {"ajaxUrl":"https://ultrafastfluency.com/wp-admin/admin-ajax.php","nonce":"629be0f5a8","opens":"2","cancel":"","return":""};
-//# sourceURL=wpecpp-js-extra
-</script>
-<script src="https://ultrafastfluency.com/wp-content/plugins/wp-ecommerce-paypal/assets/js/wpecpp.js?ver=2.0.4" id="wpecpp-js"></script>
+    </style><div class='mwai-chatbot-container' data-params='{&quot;aiName&quot;:&quot;Prof. Fluintel, UFF AI&quot;,&quot;userName&quot;:&quot;User: &quot;,&quot;guestName&quot;:&quot;Guest:&quot;,&quot;aiAvatar&quot;:true,&quot;userAvatar&quot;:true,&quot;guestAvatar&quot;:true,&quot;aiAvatarUrl&quot;:&quot;https:\/\/ultrafastfluency.com\/aiavatar.png&quot;,&quot;guestAvatarUrl&quot;:&quot;assets/img/ai-avatar.png&quot;,&quot;textSend&quot;:&quot;Send&quot;,&quot;textClear&quot;:&quot;Clear&quot;,&quot;imageUpload&quot;:false,&quot;fileUpload&quot;:false,&quot;multiUpload&quot;:false,&quot;maxUploads&quot;:1,&quot;fileUploads&quot;:0,&quot;mode&quot;:&quot;chat&quot;,&quot;textInputPlaceholder&quot;:&quot;Type your message...&quot;,&quot;textInputMaxLength&quot;:512,&quot;textCompliance&quot;:&quot;&quot;,&quot;startSentence&quot;:&quot;Hi! Hola! Haz me tus preguntas sobre el ingl\u00e9s. No olvides pegar cualquier texto relevante, pues, no veo lo que est\u00e1 en la app. No puedo ofrecer soporte t\u00e9cnico, tampoco s\u00e9 sobre las funciones de esta app.&quot;,&quot;localMemory&quot;:true,&quot;themeId&quot;:&quot;timeless&quot;,&quot;window&quot;:true,&quot;icon&quot;:&quot;https:\/\/ultrafastfluency.com\/aiavatarnobg.png?0&quot;,&quot;iconText&quot;:&quot;&quot;,&quot;iconTextDelay&quot;:1,&quot;iconAlt&quot;:&quot;AI Engine Chatbot&quot;,&quot;iconPosition&quot;:&quot;bottom-right&quot;,&quot;centerOpen&quot;:false,&quot;width&quot;:&quot;&quot;,&quot;openDelay&quot;:&quot;&quot;,&quot;iconBubble&quot;:false,&quot;windowAnimation&quot;:&quot;zoom&quot;,&quot;fullscreen&quot;:true,&quot;copyButton&quot;:true,&quot;headerSubtitle&quot;:&quot;&quot;,&quot;containerType&quot;:&quot;standard&quot;,&quot;headerType&quot;:&quot;standard&quot;,&quot;messagesType&quot;:&quot;standard&quot;,&quot;inputType&quot;:&quot;standard&quot;,&quot;footerType&quot;:&quot;standard&quot;}' data-system='{&quot;botId&quot;:&quot;default&quot;,&quot;customId&quot;:null,&quot;userData&quot;:{&quot;ID&quot;:45,&quot;name&quot;:&quot;test&quot;,&quot;email&quot;:&quot;testt@example.com&quot;,&quot;avatar&quot;:&quot;https:\/\/secure.gravatar.com\/avatar\/abc02beb233c67fbbff982999809fb9cb5a1575f374ad368ea38cb1fa753cf3f?s=96&amp;d=mm&amp;r=g&quot;,&quot;type&quot;:&quot;logged-in&quot;,&quot;FIRST_NAME&quot;:&quot;Testname&quot;,&quot;LAST_NAME&quot;:&quot;Testlast&quot;,&quot;USER_LOGIN&quot;:&quot;test&quot;,&quot;DISPLAY_NAME&quot;:&quot;test&quot;,&quot;AVATAR_URL&quot;:&quot;https:\/\/secure.gravatar.com\/avatar\/abc02beb233c67fbbff982999809fb9cb5a1575f374ad368ea38cb1fa753cf3f?s=96&amp;d=mm&amp;r=g&quot;},&quot;sessionId&quot;:&quot;N\/A&quot;,&quot;restNonce&quot;:&quot;ed2d2be5a9&quot;,&quot;contextId&quot;:24,&quot;pluginUrl&quot;:&quot;https:\/\/ultrafastfluency.com\/wp-content\/plugins\/ai-engine&quot;,&quot;restUrl&quot;:&quot;https:\/\/ultrafastfluency.com\/wp-json&quot;,&quot;stream&quot;:true,&quot;debugMode&quot;:true,&quot;eventLogs&quot;:true,&quot;speech_recognition&quot;:false,&quot;speech_synthesis&quot;:false,&quot;typewriter&quot;:false,&quot;crossSite&quot;:false,&quot;actions&quot;:[],&quot;blocks&quot;:[],&quot;shortcuts&quot;:[]}' data-theme='{&quot;type&quot;:&quot;internal&quot;,&quot;name&quot;:&quot;Timeless&quot;,&quot;themeId&quot;:&quot;timeless&quot;,&quot;settings&quot;:{&quot;backgroundAiColor&quot;:&quot;#ffffff&quot;,&quot;backgroundUserColor&quot;:&quot;#000000&quot;,&quot;backgroundPrimaryColor&quot;:&quot;#ffffff&quot;,&quot;backgroundAiSecondaryColor&quot;:&quot;#000&quot;,&quot;width&quot;:&quot;80vh&quot;,&quot;maxHeight&quot;:&quot;90vh&quot;,&quot;borderRadius&quot;:&quot;2px&quot;,&quot;backgroundHeaderColor&quot;:&quot;#1a3a5a&quot;,&quot;fontSize&quot;:&quot;16px&quot;,&quot;fontColor&quot;:&quot;#000000&quot;,&quot;headerButtonsColor&quot;:&quot;#ffffff &quot;,&quot;iconTextBackgroundColor&quot;:&quot;#343541&quot;,&quot;iconTextColor&quot;:&quot;#343541&quot;},&quot;style&quot;:&quot;&quot;,&quot;cssUrl&quot;:&quot;https:\/\/ultrafastfluency.com\/wp-content\/plugins\/ai-engine\/themes\/timeless.css&quot;}'></div>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js?ver=2.11.6" id="popper-js-js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js?ver=5.3.0" id="bootstrap-js-js"></script>
-<script id="twentytwentyfive-child-users-data-js-extra">
-var wp_user_data = {"id":"45","join_date":"2025-09-05 21:24:27","display_name":"test","english_level":"a1","current_course":"gtests-a2","days_since_registration":"231","is_new_user":""};
-//# sourceURL=twentytwentyfive-child-users-data-js-extra
-</script>
 <script src="https://ultrafastfluency.com/wp-content/themes/twentytwentyfive-child/js/users-data.js?ver=1776612503" id="twentytwentyfive-child-users-data-js"></script>
-<script src="https://ultrafastfluency.com/wp-includes/js/dist/hooks.min.js?ver=dd5603f07f9220ed27f1" id="wp-hooks-js"></script>
-<script src="https://ultrafastfluency.com/wp-includes/js/dist/i18n.min.js?ver=c26c3dc7bed366793375" id="wp-i18n-js"></script>
-<script id="wp-i18n-js-after">
-wp.i18n.setLocaleData( { 'text direction\u0004ltr': [ 'ltr' ] } );
-//# sourceURL=wp-i18n-js-after
-</script>
-<script src="https://ultrafastfluency.com/wp-includes/js/dist/url.min.js?ver=9e178c9516d1222dc834" id="wp-url-js"></script>
-<script src="https://ultrafastfluency.com/wp-includes/js/dist/api-fetch.min.js?ver=3a4d9af2b423048b0dee" id="wp-api-fetch-js"></script>
-<script id="wp-api-fetch-js-after">
-wp.apiFetch.use( wp.apiFetch.createRootURLMiddleware( "https://ultrafastfluency.com/wp-json/" ) );
-wp.apiFetch.nonceMiddleware = wp.apiFetch.createNonceMiddleware( "ed2d2be5a9" );
-wp.apiFetch.use( wp.apiFetch.nonceMiddleware );
-wp.apiFetch.use( wp.apiFetch.mediaUploadMiddleware );
-wp.apiFetch.nonceEndpoint = "https://ultrafastfluency.com/wp-admin/admin-ajax.php?action=rest-nonce";
-//# sourceURL=wp-api-fetch-js-after
-</script>
-<script id="wp-emoji-settings" type="application/json">
-{"baseUrl":"https://s.w.org/images/core/emoji/17.0.2/72x72/","ext":".png","svgUrl":"https://s.w.org/images/core/emoji/17.0.2/svg/","svgExt":".svg","source":{"concatemoji":"https://ultrafastfluency.com/wp-includes/js/wp-emoji-release.min.js?ver=6.9.4"}}
-</script>
-<script type="module">
-/*! This file is auto-generated */
-const a=JSON.parse(document.getElementById("wp-emoji-settings").textContent),o=(window._wpemojiSettings=a,"wpEmojiSettingsSupports"),s=["flag","emoji"];function i(e){try{var t={supportTests:e,timestamp:(new Date).valueOf()};sessionStorage.setItem(o,JSON.stringify(t))}catch(e){}}function c(e,t,n){e.clearRect(0,0,e.canvas.width,e.canvas.height),e.fillText(t,0,0);t=new Uint32Array(e.getImageData(0,0,e.canvas.width,e.canvas.height).data);e.clearRect(0,0,e.canvas.width,e.canvas.height),e.fillText(n,0,0);const a=new Uint32Array(e.getImageData(0,0,e.canvas.width,e.canvas.height).data);return t.every((e,t)=>e===a[t])}function p(e,t){e.clearRect(0,0,e.canvas.width,e.canvas.height),e.fillText(t,0,0);var n=e.getImageData(16,16,1,1);for(let e=0;e<n.data.length;e++)if(0!==n.data[e])return!1;return!0}function u(e,t,n,a){switch(t){case"flag":return n(e,"\ud83c\udff3\ufe0f\u200d\u26a7\ufe0f","\ud83c\udff3\ufe0f\u200b\u26a7\ufe0f")?!1:!n(e,"\ud83c\udde8\ud83c\uddf6","\ud83c\udde8\u200b\ud83c\uddf6")&&!n(e,"\ud83c\udff4\udb40\udc67\udb40\udc62\udb40\udc65\udb40\udc6e\udb40\udc67\udb40\udc7f","\ud83c\udff4\u200b\udb40\udc67\u200b\udb40\udc62\u200b\udb40\udc65\u200b\udb40\udc6e\u200b\udb40\udc67\u200b\udb40\udc7f");case"emoji":return!a(e,"\ud83e\u1fac8")}return!1}function f(e,t,n,a){let r;const o=(r="undefined"!=typeof WorkerGlobalScope&&self instanceof WorkerGlobalScope?new OffscreenCanvas(300,150):document.createElement("canvas")).getContext("2d",{willReadFrequently:!0}),s=(o.textBaseline="top",o.font="600 32px Arial",{});return e.forEach(e=>{s[e]=t(o,e,n,a)}),s}function r(e){var t=document.createElement("script");t.src=e,t.defer=!0,document.head.appendChild(t)}a.supports={everything:!0,everythingExceptFlag:!0},new Promise(t=>{let n=function(){try{var e=JSON.parse(sessionStorage.getItem(o));if("object"==typeof e&&"number"==typeof e.timestamp&&(new Date).valueOf()<e.timestamp+604800&&"object"==typeof e.supportTests)return e.supportTests}catch(e){}return null}();if(!n){if("undefined"!=typeof Worker&&"undefined"!=typeof OffscreenCanvas&&"undefined"!=typeof URL&&URL.createObjectURL&&"undefined"!=typeof Blob)try{var e="postMessage("+f.toString()+"("+[JSON.stringify(s),u.toString(),c.toString(),p.toString()].join(",")+"));",a=new Blob([e],{type:"text/javascript"});const r=new Worker(URL.createObjectURL(a),{name:"wpTestEmojiSupports"});return void(r.onmessage=e=>{i(n=e.data),r.terminate(),t(n)})}catch(e){}i(n=f(s,u,c,p))}t(n)}).then(e=>{for(const n in e)a.supports[n]=e[n],a.supports.everything=a.supports.everything&&a.supports[n],"flag"!==n&&(a.supports.everythingExceptFlag=a.supports.everythingExceptFlag&&a.supports[n]);var t;a.supports.everythingExceptFlag=a.supports.everythingExceptFlag&&!a.supports.flag,a.supports.everything||((t=a.source||{}).concatemoji?r(t.concatemoji):t.wpemoji&&t.twemoji&&(r(t.twemoji),r(t.wpemoji)))});
-//# sourceURL=https://ultrafastfluency.com/wp-includes/js/wp-emoji-loader.min.js
-</script>
-		<script type="text/javascript">
-			jQuery(document).on( "wppbAddRequiredAttributeEvent", wppbAddRequired );
-			function wppbAddRequired(event) {
-				var element = wppbEventTargetRequiredElement( event.target );
-				if( jQuery( element ).attr( "wppb_cf_temprequired" ) ){
-					jQuery( element  ).removeAttr( "wppb_cf_temprequired" );
-					jQuery( element  ).attr( "required", "required" );
-				}
-			}
-
-			jQuery(document).on( "wppbRemoveRequiredAttributeEvent", wppbRemoveRequired );
-			function wppbRemoveRequired(event) {
-				var element = wppbEventTargetRequiredElement( event.target );
-				if ( jQuery( element ).attr( "required" ) ) {
-					jQuery( element ).removeAttr( "required" );
-					jQuery( element ).attr( "wppb_cf_temprequired", "wppb_cf_temprequired" );
-				}
-			}
-
-			jQuery(document).on( "wppbToggleRequiredAttributeEvent", wppbToggleRequired );
-			function wppbToggleRequired(event) {
-				if ( jQuery( event.target ).attr( "required" ) ) {
-					jQuery( event.target ).removeAttr( "required" );
-					jQuery( event.target ).attr( "wppb_cf_temprequired", "wppb_cf_temprequired" );
-				}else if( jQuery( event.target ).attr( "wppb_cf_temprequired" ) ){
-					jQuery( event.target ).removeAttr( "wppb_cf_temprequired" );
-					jQuery( event.target ).attr( "required", "required" );
-				}
-			}
-
-			function wppbEventTargetRequiredElement( htmlElement ){
-				if ( htmlElement.nodeName == "OPTION" ){
-					// <option> is the target element, so we need to get the parent <select>, in order to apply the required attribute
-					return htmlElement.parentElement;
-				}else{
-					return htmlElement;
-				}
-			}
-
-		</script>
-		<!-- Ybug code start (https://ybug.io) -->
+<!-- Ybug code start (https://ybug.io) -->
 <script type='text/javascript'>
 (function() {
     window.ybug_settings = {"id":"z69gx22kp6h243vpdpjb"};
@@ -669,58 +461,7 @@ const a=JSON.parse(document.getElementById("wp-emoji-settings").textContent),o=(
     var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ybug, s);
 })();
 </script>
-<!-- Ybug code end --><script src="https://ultrafastfluency.com/wp-content/plugins/profile-builder/assets/js/script-front-end.js?ver=3.15.6" id="wppb_front_end_script-js"></script>
- <!-- This injects all enqueued scripts -->
-
-<style>
-/* Styles for the arrow pointing to the Continue button */
-        #arrow-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 9998; /* High z-index to be on top */
-            display: flex;
-            justify-content: center;
-        }
-        
-        .arrow {
-            position: absolute;
-            bottom: 25vh; /* Height of the fixed footer */
-            width: 12px;
-            height: 15vh; /* 15% of screen height */
-            background-color: white;
-            border-radius: 6px;
-            box-shadow: 
-                0 0 20px 8px rgba(255, 255, 255, 0.8),
-                0 0 40px 16px rgba(255, 255, 255, 0.4);
-            animation: pulse 2s infinite;
-        }
-        
-        .arrow::after {
-            content: '';
-            position: absolute;
-            bottom: -20px;
-            left: 50%;
-            transform: translateX(-50%);
-            border-left: 20px solid transparent;
-            border-right: 20px solid transparent;
-            border-top: 30px solid white;
-            filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8));
-        }
-                @keyframes pulse {
-            0% { opacity: 0.9; }
-            50% { opacity: 0.7; }
-            100% { opacity: 0.9; }
-        }
-        
-        @media (max-width: 768px) {
-            .arrow { width: 20px; }
-        }
-</style>
-
+<!-- Ybug code end --><!-- This injects all enqueued scripts -->
 
 <footer style="margin-top: 100px;">
 
@@ -774,7 +515,7 @@ const a=JSON.parse(document.getElementById("wp-emoji-settings").textContent),o=(
 <!--END MODAL-->
 
   <!--Mwai shortcode--
-  <div class='mwai-chatbot-container' data-params='{&quot;aiName&quot;:&quot;Prof. Fluintel, UFF AI&quot;,&quot;userName&quot;:&quot;User: &quot;,&quot;guestName&quot;:&quot;Guest:&quot;,&quot;aiAvatar&quot;:true,&quot;userAvatar&quot;:true,&quot;guestAvatar&quot;:true,&quot;aiAvatarUrl&quot;:&quot;https:\/\/ultrafastfluency.com\/aiavatar.png&quot;,&quot;guestAvatarUrl&quot;:&quot;chat-nyao-1.svg&quot;,&quot;textSend&quot;:&quot;Send&quot;,&quot;textClear&quot;:&quot;Clear&quot;,&quot;imageUpload&quot;:false,&quot;fileUpload&quot;:false,&quot;multiUpload&quot;:false,&quot;maxUploads&quot;:1,&quot;fileUploads&quot;:0,&quot;mode&quot;:&quot;chat&quot;,&quot;textInputPlaceholder&quot;:&quot;Type your message...&quot;,&quot;textInputMaxLength&quot;:512,&quot;textCompliance&quot;:&quot;&quot;,&quot;startSentence&quot;:&quot;Hi! Hola! Haz me tus preguntas sobre el ingl\u00e9s. No olvides pegar cualquier texto relevante, pues, no veo lo que est\u00e1 en la app. No puedo ofrecer soporte t\u00e9cnico, tampoco s\u00e9 sobre las funciones de esta app.&quot;,&quot;localMemory&quot;:true,&quot;themeId&quot;:&quot;timeless&quot;,&quot;window&quot;:true,&quot;icon&quot;:&quot;https:\/\/a.cogdex.com\/ai-avatar.png?0&quot;,&quot;iconText&quot;:&quot;&quot;,&quot;iconTextDelay&quot;:1,&quot;iconAlt&quot;:&quot;AI Engine Chatbot&quot;,&quot;iconPosition&quot;:&quot;bottom-right&quot;,&quot;centerOpen&quot;:false,&quot;width&quot;:&quot;&quot;,&quot;openDelay&quot;:&quot;&quot;,&quot;iconBubble&quot;:false,&quot;windowAnimation&quot;:&quot;zoom&quot;,&quot;fullscreen&quot;:true,&quot;copyButton&quot;:true,&quot;headerSubtitle&quot;:&quot;&quot;,&quot;containerType&quot;:&quot;standard&quot;,&quot;headerType&quot;:&quot;standard&quot;,&quot;messagesType&quot;:&quot;standard&quot;,&quot;inputType&quot;:&quot;standard&quot;,&quot;footerType&quot;:&quot;standard&quot;}' data-system='{&quot;botId&quot;:&quot;default&quot;,&quot;customId&quot;:null,&quot;userData&quot;:{&quot;ID&quot;:45,&quot;name&quot;:&quot;test&quot;,&quot;email&quot;:&quot;testt@example.com&quot;,&quot;avatar&quot;:&quot;https:\/\/secure.gravatar.com\/avatar\/abc02beb233c67fbbff982999809fb9cb5a1575f374ad368ea38cb1fa753cf3f?s=96&amp;d=mm&amp;r=g&quot;,&quot;type&quot;:&quot;logged-in&quot;,&quot;FIRST_NAME&quot;:&quot;Testname&quot;,&quot;LAST_NAME&quot;:&quot;Testlast&quot;,&quot;USER_LOGIN&quot;:&quot;test&quot;,&quot;DISPLAY_NAME&quot;:&quot;test&quot;,&quot;AVATAR_URL&quot;:&quot;https:\/\/secure.gravatar.com\/avatar\/abc02beb233c67fbbff982999809fb9cb5a1575f374ad368ea38cb1fa753cf3f?s=96&amp;d=mm&amp;r=g&quot;},&quot;sessionId&quot;:&quot;N\/A&quot;,&quot;restNonce&quot;:&quot;ed2d2be5a9&quot;,&quot;contextId&quot;:24,&quot;pluginUrl&quot;:&quot;https:\/\/ultrafastfluency.com\/wp-content\/plugins\/ai-engine&quot;,&quot;restUrl&quot;:&quot;https:\/\/ultrafastfluency.com\/wp-json&quot;,&quot;stream&quot;:true,&quot;debugMode&quot;:true,&quot;eventLogs&quot;:true,&quot;speech_recognition&quot;:false,&quot;speech_synthesis&quot;:false,&quot;typewriter&quot;:false,&quot;crossSite&quot;:false,&quot;actions&quot;:[],&quot;blocks&quot;:[],&quot;shortcuts&quot;:[]}' data-theme='{&quot;type&quot;:&quot;internal&quot;,&quot;name&quot;:&quot;Timeless&quot;,&quot;themeId&quot;:&quot;timeless&quot;,&quot;settings&quot;:{&quot;backgroundAiColor&quot;:&quot;#ffffff&quot;,&quot;backgroundUserColor&quot;:&quot;#000000&quot;,&quot;backgroundPrimaryColor&quot;:&quot;#ffffff&quot;,&quot;backgroundAiSecondaryColor&quot;:&quot;#000&quot;,&quot;width&quot;:&quot;80vh&quot;,&quot;maxHeight&quot;:&quot;90vh&quot;,&quot;borderRadius&quot;:&quot;2px&quot;,&quot;backgroundHeaderColor&quot;:&quot;#1a3a5a&quot;,&quot;fontSize&quot;:&quot;16px&quot;,&quot;fontColor&quot;:&quot;#000000&quot;,&quot;headerButtonsColor&quot;:&quot;#ffffff &quot;,&quot;iconTextBackgroundColor&quot;:&quot;#343541&quot;,&quot;iconTextColor&quot;:&quot;#343541&quot;},&quot;style&quot;:&quot;&quot;,&quot;cssUrl&quot;:&quot;https:\/\/ultrafastfluency.com\/wp-content\/plugins\/ai-engine\/themes\/timeless.css&quot;}'></div>-->
+  <div class='mwai-chatbot-container' data-params='{&quot;aiName&quot;:&quot;Prof. Fluintel, UFF AI&quot;,&quot;userName&quot;:&quot;User: &quot;,&quot;guestName&quot;:&quot;Guest:&quot;,&quot;aiAvatar&quot;:true,&quot;userAvatar&quot;:true,&quot;guestAvatar&quot;:true,&quot;aiAvatarUrl&quot;:&quot;https:\/\/ultrafastfluency.com\/aiavatar.png&quot;,&quot;guestAvatarUrl&quot;:&quot;assets/img/ai-avatar.png&quot;,&quot;textSend&quot;:&quot;Send&quot;,&quot;textClear&quot;:&quot;Clear&quot;,&quot;imageUpload&quot;:false,&quot;fileUpload&quot;:false,&quot;multiUpload&quot;:false,&quot;maxUploads&quot;:1,&quot;fileUploads&quot;:0,&quot;mode&quot;:&quot;chat&quot;,&quot;textInputPlaceholder&quot;:&quot;Type your message...&quot;,&quot;textInputMaxLength&quot;:512,&quot;textCompliance&quot;:&quot;&quot;,&quot;startSentence&quot;:&quot;Hi! Hola! Haz me tus preguntas sobre el ingl\u00e9s. No olvides pegar cualquier texto relevante, pues, no veo lo que est\u00e1 en la app. No puedo ofrecer soporte t\u00e9cnico, tampoco s\u00e9 sobre las funciones de esta app.&quot;,&quot;localMemory&quot;:true,&quot;themeId&quot;:&quot;timeless&quot;,&quot;window&quot;:true,&quot;icon&quot;:&quot;https:\/\/a.cogdex.com\/ai-avatar.png?0&quot;,&quot;iconText&quot;:&quot;&quot;,&quot;iconTextDelay&quot;:1,&quot;iconAlt&quot;:&quot;AI Engine Chatbot&quot;,&quot;iconPosition&quot;:&quot;bottom-right&quot;,&quot;centerOpen&quot;:false,&quot;width&quot;:&quot;&quot;,&quot;openDelay&quot;:&quot;&quot;,&quot;iconBubble&quot;:false,&quot;windowAnimation&quot;:&quot;zoom&quot;,&quot;fullscreen&quot;:true,&quot;copyButton&quot;:true,&quot;headerSubtitle&quot;:&quot;&quot;,&quot;containerType&quot;:&quot;standard&quot;,&quot;headerType&quot;:&quot;standard&quot;,&quot;messagesType&quot;:&quot;standard&quot;,&quot;inputType&quot;:&quot;standard&quot;,&quot;footerType&quot;:&quot;standard&quot;}' data-system='{&quot;botId&quot;:&quot;default&quot;,&quot;customId&quot;:null,&quot;userData&quot;:{&quot;ID&quot;:45,&quot;name&quot;:&quot;test&quot;,&quot;email&quot;:&quot;testt@example.com&quot;,&quot;avatar&quot;:&quot;https:\/\/secure.gravatar.com\/avatar\/abc02beb233c67fbbff982999809fb9cb5a1575f374ad368ea38cb1fa753cf3f?s=96&amp;d=mm&amp;r=g&quot;,&quot;type&quot;:&quot;logged-in&quot;,&quot;FIRST_NAME&quot;:&quot;Testname&quot;,&quot;LAST_NAME&quot;:&quot;Testlast&quot;,&quot;USER_LOGIN&quot;:&quot;test&quot;,&quot;DISPLAY_NAME&quot;:&quot;test&quot;,&quot;AVATAR_URL&quot;:&quot;https:\/\/secure.gravatar.com\/avatar\/abc02beb233c67fbbff982999809fb9cb5a1575f374ad368ea38cb1fa753cf3f?s=96&amp;d=mm&amp;r=g&quot;},&quot;sessionId&quot;:&quot;N\/A&quot;,&quot;restNonce&quot;:&quot;ed2d2be5a9&quot;,&quot;contextId&quot;:24,&quot;pluginUrl&quot;:&quot;https:\/\/ultrafastfluency.com\/wp-content\/plugins\/ai-engine&quot;,&quot;restUrl&quot;:&quot;https:\/\/ultrafastfluency.com\/wp-json&quot;,&quot;stream&quot;:true,&quot;debugMode&quot;:true,&quot;eventLogs&quot;:true,&quot;speech_recognition&quot;:false,&quot;speech_synthesis&quot;:false,&quot;typewriter&quot;:false,&quot;crossSite&quot;:false,&quot;actions&quot;:[],&quot;blocks&quot;:[],&quot;shortcuts&quot;:[]}' data-theme='{&quot;type&quot;:&quot;internal&quot;,&quot;name&quot;:&quot;Timeless&quot;,&quot;themeId&quot;:&quot;timeless&quot;,&quot;settings&quot;:{&quot;backgroundAiColor&quot;:&quot;#ffffff&quot;,&quot;backgroundUserColor&quot;:&quot;#000000&quot;,&quot;backgroundPrimaryColor&quot;:&quot;#ffffff&quot;,&quot;backgroundAiSecondaryColor&quot;:&quot;#000&quot;,&quot;width&quot;:&quot;80vh&quot;,&quot;maxHeight&quot;:&quot;90vh&quot;,&quot;borderRadius&quot;:&quot;2px&quot;,&quot;backgroundHeaderColor&quot;:&quot;#1a3a5a&quot;,&quot;fontSize&quot;:&quot;16px&quot;,&quot;fontColor&quot;:&quot;#000000&quot;,&quot;headerButtonsColor&quot;:&quot;#ffffff &quot;,&quot;iconTextBackgroundColor&quot;:&quot;#343541&quot;,&quot;iconTextColor&quot;:&quot;#343541&quot;},&quot;style&quot;:&quot;&quot;,&quot;cssUrl&quot;:&quot;https:\/\/ultrafastfluency.com\/wp-content\/plugins\/ai-engine\/themes\/timeless.css&quot;}'></div>-->
 
 <!--Modal to show non-paid users instead of the AI-->
 <div class="modal fade" id="aiApologyModal" tabindex="-1" aria-labelledby="aiApologyModalLabel" aria-hidden="true">
@@ -800,17 +541,6 @@ const a=JSON.parse(document.getElementById("wp-emoji-settings").textContent),o=(
 <!--END AI APOLOGY MODAL-->
 
 <!--BLOCK AI FLUINTEL CHATBOT TO NON-PAID USERS-->
-<style>
-/* FORCE modal to top of everything */
-#aiApologyModal {
-    z-index: 999999 !important; /* Override plugin modals */
-}
-/* Optional: Hide plugin's backdrop 
-.mwai-modal-backdrop {
-    display: none !important;
-}*/
-</style>
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     });
@@ -883,6 +613,6 @@ document.addEventListener('DOMContentLoaded', function() {
 <!--Deepgram SDK for speech recognition-->
     <script src="https://cdn.jsdelivr.net/npm/@deepgram/sdk@v4.9.0"></script>
 
-<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"0c9bb1041b3848e3ade515e72f042cb4","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+<!-- Cloudflare insights disabled for local -->
 </body>
 </html>

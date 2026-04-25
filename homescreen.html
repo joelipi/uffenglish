@@ -69,8 +69,8 @@
   </script>
 
   <!-- Manifest added by SuperPWA - Progressive Web Apps Plugin For WordPress -->
-<link rel="manifest" href="/superpwa-manifest.json">
-<link rel="prefetch" href="/superpwa-manifest.json">
+<!-- <link rel="manifest" href="/superpwa-manifest.json"> -->
+<!-- <link rel="prefetch" href="/superpwa-manifest.json"> -->
 <meta name="theme-color" content="#0075ea">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-touch-fullscreen" content="yes">
@@ -83,7 +83,7 @@
 <!-- / SuperPWA.com -->
 <meta name='robots' content='max-image-preview:large' />
 <script type="module">
-        import { preloadWhisperEngine } from "js/modules/whisper/app-vad-asr.js";
+        import { preloadWhisperEngine } from "./js/modules/whisper/app-vad-asr.js";
         preloadWhisperEngine();
 
         import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0";
@@ -98,6 +98,13 @@
 <link rel='stylesheet' id='bootstrap-icons-css' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css?ver=1.11.0' media='all' />
 <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script>
+window.wp = window.wp || {};
+window.wp.element = window.React;
+window.wp.hooks = { applyFilters: function(a,b){return b;}, doAction: function(){} };
+window.wp.i18n = { __: function(s){return s;} };
+window.wp.apiFetch = function() { return Promise.resolve({}); };
+</script>
 <script src="assets/js/chatbot.js" id="mwai_chatbot-js"></script>
 <!-- HFCM by 99 Robots - Snippet # 2:  -->
 <!--PWA and Notifications Prompts-->
@@ -513,6 +520,9 @@ console.log('running homepage redirect script');
         return;
     }
 
+    // Local dev: assume logged in
+    localStorage.setItem('wpLoggedIn', 'true');
+    return;
     fetch('/wp-admin/admin-ajax.php', {
         method: 'POST',
         credentials: 'same-origin',
