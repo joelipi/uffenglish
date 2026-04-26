@@ -1,4 +1,4 @@
-﻿// --- modules/media.js ---
+// --- modules/media.js ---
 import { State } from './state.js';
 
 const audioPlayer = new Audio('assets/sounds/enableaudio.mp3');
@@ -31,6 +31,10 @@ export const Media = {
         if (window.currentSimpleVideoPlayer) {
             window.currentSimpleVideoPlayer.destroy ? window.currentSimpleVideoPlayer.destroy() : (window.currentSimpleVideoPlayer.video.pause(), window.currentSimpleVideoPlayer.video.src = '', window.currentSimpleVideoPlayer.video.load());
             window.currentSimpleVideoPlayer = null;
+        }
+        if (window.currentIntroVideoPlayer) {
+            window.currentIntroVideoPlayer.destroy ? window.currentIntroVideoPlayer.destroy() : null;
+            window.currentIntroVideoPlayer = null;
         }
         document.querySelectorAll('video').forEach(media => { 
             media.pause(); 

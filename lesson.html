@@ -268,7 +268,28 @@
             <video id="playback-video-mobile" style="max-width:100%; max-height:200px; display:none;" playsinline controls preload="auto"></video>
             <button id="playback-mute-toggle-mobile" class="playback-mute-toggle d-none"><i class="bi bi-volume-up-fill"></i></button>
           </div>
-          <div id="speech-text-here" class="card border-dark p-0"></div>
+          <div id="speech-text-here" class="card border-dark p-0 d-none">
+            <div class="card-header text-white p-0" style="background: linear-gradient(135deg, #1a3a5a 0%, #0d4b8c 100%);">
+              <div class="d-flex align-items-center p-3">
+                
+                <video id="chat-avatar-ai" autoplay loop muted playsinline class="rounded-circle me-3 d-none" style="width:75px;height:75px;object-fit:cover;">
+                  <source src="assets/img/avatar-ai.mp4" type="video/mp4">
+                </video>
+                <div id="chat-name-ai" class="d-none">
+                  Prof FluIntel <div class="mt-1"><small>UFF Artificial Intelligence</small></div>
+                </div>
+
+                <img id="chat-avatar-human" src="assets/img/teacherprofile.png" alt="" class="rounded-circle me-3 d-none" style="width:75px;height:75px;object-fit:cover;">
+                <div id="chat-name-human" class="d-none">
+                  Prof. Joe Walsh<div class="mt-1"><small>English Fluency Coach, UFF</small></div>
+                </div>
+
+              </div>
+            </div>
+
+            <div id="chat-messenger-body" class="card-body messenger-body text-dark" style="overflow-y: auto; height: 300px; scroll-behavior: smooth; scrollbar-width: auto; scrollbar-color: #000000 #f0f0f0;">
+              </div>
+          </div>
 
           <div id="media-container-container">
             <div id="media-container">
@@ -278,6 +299,25 @@
                     <video class="ivp-video" playsinline crossorigin="anonymous" width="300" height="375"></video>
                     <div class="ivp-blur-overlay"></div>
                     <div class="ivp-subtitles"></div>
+                  </div>
+                </div>
+              </div>
+              <div id="intro-call-widget" class="intro-video-wrapper d-none">
+                <div class="intro-video-container ringing-animation">
+                  <video class="intro-video" playsinline preload="auto" crossorigin="anonymous" muted></video>
+                  <div class="intro-blur-overlay"></div>
+                  <div class="intro-notification-content">
+                    <div class="intro-notification-top">
+                      <div class="intro-call-title">
+                        <i class="bi bi-camera-video-fill text-white"></i>
+                        <span id="intro-title">INCOMING VIDEO</span>
+                      </div>
+                      <div class="intro-call-subtitle"><span lang="es"><i id="intro-subtitle">VIDEO ENTRANTE</i></span></div>
+                    </div>
+                    <div class="intro-notification-bottom">
+                      <div class="intro-caller-name" id="intro-name">Joe Walsh</div>
+                      <div class="intro-caller-title" id="intro-role">English Coach, UFF</div>
+                    </div>
                   </div>
                 </div>
               </div>

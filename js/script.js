@@ -114,7 +114,7 @@ import {
     updateCurrentScoreDisplay, 
     updateDayCountDisplay, 
     disableAllButtons, 
-    renderChatInterface, 
+    clearChatInterface, 
     safeRenderChatInterface 
 } from './modules/ui.js';
 
@@ -307,15 +307,13 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
             <div class='chat-bubble chat-msg' id='ai-loading-status'>
                 <strong><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Analyzing your response...</strong>
             </div>`;
-        DOM.speechText.innerHTML = renderChatInterface(true, bodyContent);
-        DOM.speechText.classList.remove('d-none');
+        safeRenderChatInterface(true, bodyContent);
     } else if (questionData.inputType === "speech" && userResponse && DOM.speechText && immediateStatsHtml) {
         // Just show stats for non-AI speech inputs
         const bodyContent = `
             <div class='userResponse chat-bubble-sent chat-msg'>${userResponse}</div>
             ${immediateStatsHtml}`;
-        DOM.speechText.innerHTML = renderChatInterface(true, bodyContent);
-        DOM.speechText.classList.remove('d-none');
+        safeRenderChatInterface(true, bodyContent);
     }
 
     const qIndex = getCurrentQuestionIndex(questionData, State.configData, State.currentLessonIndex);
@@ -582,7 +580,7 @@ function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanat
       const teacherText = State.incorrectAttempts === 1 ? Strings.get('try_again_1', State.userData?.native_language) : State.incorrectAttempts === 2 ? Strings.get('try_again_2', State.userData?.native_language) : `${Strings.get('failed_continue', State.userData?.native_language)}<br><br>Correct:<br>"${cue}"`;
       const headsUpHTML = questionData.headsUp ? (State.incorrectAttempts <= 2 ? `<p class="headsUp">${Strings.get('heads_up_repeat_video', State.userData?.native_language)}</p>` : `<p class="headsUp">${questionData.headsUp}</p>`) : '';
       
-      const bodyContent = `<p class='chat-bubble-sent chat-msg'> ${userResponse} </p><div class='chat-bubble chat-msg' style='margin-top: 12px;'><strong> ${teacherText} </strong><br><br>${correctUl}${incorrectUl}</div><div class='chat-bubble chat-msg' style='margin-top: 12px;'>${headsUpHTML}</div>`;
+      const bodyContent = `<div class='chat-bubble chat-msg' style='margin-top: 12px;'><strong> ${teacherText} </strong><br><br>${correctUl}${incorrectUl}</div><div class='chat-bubble chat-msg' style='margin-top: 12px;'>${headsUpHTML}</div>`;
       safeRenderChatInterface(false, bodyContent);
   }
 
@@ -714,14 +712,13 @@ function loadQuestion(question, lesson, fluencyData) {
   const closeButton = document.querySelector('#myToast .btn-close');
   if (closeButton) closeButton.click();
 
-  const speechTextHere = document.getElementById('speech-text-here');
-  speechTextHere.innerHTML = "";
+  clearChatInterface();
   document.getElementById("success-media").classList.add("d-none");
   document.getElementById("courseProgress").classList.add("d-none");
   const container = document.getElementById('questions-container');
 
   // Clear previous images/youtube but PRESERVE the ivp-container so we don't destroy hardcoded elements
-  const preserved = DOM.mediaContainer.querySelectorAll('#ivp-container, #simple-ivp-container');
+  const preserved = DOM.mediaContainer.querySelectorAll('#ivp-container, #simple-ivp-container, #intro-call-widget');
   DOM.mediaContainer.innerHTML = '';
   preserved.forEach(el => DOM.mediaContainer.appendChild(el));
 
@@ -801,7 +798,17 @@ if (question.introBackgroundVideoUrl) {
     const currentVideoUrl = (window.preloadedMedia && window.preloadedMedia[question.introBackgroundVideoUrl]) 
         ? window.preloadedMedia[question.introBackgroundVideoUrl] 
         : `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${question.introBackgroundVideoUrl}.mp4?alt=media`;
-    State.player = new introBackgroundVideo({ videoUrl: currentVideoUrl, containerSelector: '#media-container' });
+    
+    const lang = State.userData?.native_language;
+    State.player = new introBackgroundVideo({
+        videoUrl: currentVideoUrl,
+        title: Strings.get('incoming_video', lang) || 'INCOMING VIDEO',
+        subtitle: Strings.get('video_incoming', lang) || 'VIDEO ENTRANTE',
+        name: 'Joe Walsh',
+        role: Strings.get('english_coach', lang) || 'English Coach, UFF',
+        alertText: Strings.get('press_webcam', lang) || 'Press the webcam button below. Oprime el botón de cámara abajo.'
+    });
+    window.currentIntroVideoPlayer = State.player;
   }
 
   DOM.micStatusText.innerHTML = "<div class='text-center'>" + question.question + "</div>";
