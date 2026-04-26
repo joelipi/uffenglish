@@ -263,7 +263,7 @@
       <div class="row">
 
         <!-- Left Column: Media -->
-        <div id="media-container-container1" class="col-12 col-lg-7 mb-1">
+        <div id="media-container-container1" class="col-12 col-xl-7 mb-1">
           <div id="playback-video-mobile-container" class="playback-video-container">
             <video id="playback-video-mobile" style="max-width:100%; max-height:200px; display:none;" playsinline controls preload="auto"></video>
             <button id="playback-mute-toggle-mobile" class="playback-mute-toggle d-none"><i class="bi bi-volume-up-fill"></i></button>
@@ -271,16 +271,11 @@
           <div id="speech-text-here" class="card border-dark p-0"></div>
 
           <div id="media-container-container">
-            <div id="media-container" style="min-height: 380px;">
-              <div class="d-flex justify-content-center mb-5">
-                <div class="spinner-border text-white" style="width: 3rem; height: 3rem;" role="status">
-                  <span class="visually-hidden">Loading...</span>
-                </div>
-              </div>
-              <div id="ivp-container" style="min-height: 200px; position: relative;">
-                <div class="ivp-main-wrapper" id="ivp-main-wrapper">
+            <div id="media-container">
+              <div id="ivp-container">
+                <div class="ivp-main-wrapper loading" id="ivp-main-wrapper">
                   <div class="ivp-video-wrapper">
-                    <video class="ivp-video"></video>
+                    <video class="ivp-video" playsinline crossorigin="anonymous" width="300" height="375"></video>
                     <div class="ivp-blur-overlay"></div>
                     <div class="ivp-subtitles"></div>
                   </div>
@@ -306,7 +301,7 @@
         </div>
 
         <!-- Right Column: Questions + Course Progress -->
-        <div id="questions-container-container" class="col-12 col-lg-5 mb-2">
+        <div id="questions-container-container" class="col-12 col-xl-5 mb-2">
           <div id="playback-video-desktop-container" class="playback-video-container">
             <video id="playback-video-desktop" style="max-width:80%; max-height:400px; display:none;" playsinline controls preload="auto"></video>
             <button id="playback-mute-toggle-desktop" class="playback-mute-toggle d-none"><i class="bi bi-volume-up-fill"></i></button>

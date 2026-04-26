@@ -661,7 +661,8 @@ function showFeedbackAndProceed(questionData, isCorrect) {
 
 // ➡➡➡➡➡➡➡➡⛰🗻 ADVANCE VIEWS CORE HOLY OF HOLIES ➡➡➡➡➡➡➡➡⛰🗻
 
-function beforeUnloadHandler(e) { e.preventDefault(); e.returnValue = ''; return ''; }
+// Temporarily commented out alert
+function beforeUnloadHandler(e) { /* e.preventDefault(); e.returnValue = ''; return ''; */ }
 
 function loadQuestion(question, lesson, fluencyData) {
   window.__currentQuestionIndex = getCurrentQuestionIndex(question, State.configData, State.currentLessonIndex);
@@ -719,10 +720,23 @@ function loadQuestion(question, lesson, fluencyData) {
   document.getElementById("courseProgress").classList.add("d-none");
   const container = document.getElementById('questions-container');
 
-  DOM.mediaContainer.innerHTML = `  
-    ${question.image ? `<div class="text-center mb-3"><img src="${question.image}" class="img-fluid rounded" alt="Question illustration" style="max-height: 300px;"></div>` : ''}
-    ${question.youtube ? `<div class="text-center mb-3"><iframe width="315" height="560" src="https://www.youtube.com/embed/${question.youtube}?autoplay=1&rel=0&modestbranding=1&controls=0&disablekb=1&fs=0&playsinline=1&short=1&playback_rate=0.8" title="Intro" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope" referrerpolicy="strict-origin-when-cross-origin"></iframe></div>` : ''}
-  `;
+  // Clear previous images/youtube but PRESERVE the ivp-container so we don't destroy hardcoded elements
+  const preserved = DOM.mediaContainer.querySelectorAll('#ivp-container, #simple-ivp-container');
+  DOM.mediaContainer.innerHTML = '';
+  preserved.forEach(el => DOM.mediaContainer.appendChild(el));
+
+  if (question.image) {
+      const div = document.createElement('div');
+      div.className = 'text-center mb-3';
+      div.innerHTML = `<img src="${question.image}" class="img-fluid rounded" alt="Question illustration" style="max-height: 300px;">`;
+      DOM.mediaContainer.prepend(div);
+  }
+  if (question.youtube) {
+      const div = document.createElement('div');
+      div.className = 'text-center mb-3';
+      div.innerHTML = `<iframe width="315" height="560" src="https://www.youtube.com/embed/${question.youtube}?autoplay=1&rel=0&modestbranding=1&controls=0&disablekb=1&fs=0&playsinline=1&short=1&playback_rate=0.8" title="Intro" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope" referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+      DOM.mediaContainer.prepend(div);
+  }
 
 if (question.videoUrl) {
     const currentVideoUrl = (window.preloadedMedia && window.preloadedMedia[question.videoUrl]) 
@@ -730,7 +744,7 @@ if (question.videoUrl) {
         : `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${question.videoUrl}.mp4?alt=media`;
     State.player = new InteractiveVideoPlayer({
       videoUrl: currentVideoUrl, cue: question.cue, containerSelector: '#media-container',
-      videoStyles: { maxWidth: '100%', borderRadius: '12px' },
+      videoStyles: { maxWidth: '100%' },
       subtitleStyles: { fontSize: '24px', backgroundColor: 'rgba(0, 0, 0, 0.8)' }
     });
     window.currentVideoPlayer = State.player;
@@ -769,7 +783,7 @@ if (question.simpleVideoUrl) {
         : `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${question.simpleVideoUrl}.mp4?alt=media`;
     State.player = new simpleVideoPlayer({
       videoUrl: currentVideoUrl, subtitles: question.subtitles, containerSelector: '#media-container',
-      videoStyles: { maxWidth: '100%', borderRadius: '12px' },
+      videoStyles: { maxWidth: '100%' },
       subtitleStyles: { fontSize: '24px', backgroundColor: 'rgba(0, 0, 0, 0.8)' }
     });
     window.currentSimpleVideoPlayer = State.player;

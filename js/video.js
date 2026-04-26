@@ -50,28 +50,43 @@ export class InteractiveVideoPlayer {
 
   initContainer() {
     this.container = document.querySelector(this.config.containerSelector);
-    this.mainWrapper = document.createElement('div');
-    this.mainWrapper.className = 'ivp-main-wrapper';
-
-    // FOUC fix: hide with visibility so layout is preserved but nothing is painted
-    this.mainWrapper.style.visibility = 'hidden';
+    
+    // 1. Look for existing HTML wrapper instead of creating a new one
+    this.mainWrapper = this.container.querySelector('.ivp-main-wrapper') || document.createElement('div');
+    
+    // Only append if it's a newly created element
+    if (!this.mainWrapper.parentElement) {
+      this.mainWrapper.className = 'ivp-main-wrapper loading';
+      this.container.appendChild(this.mainWrapper);
+    }
 
     this.container.style.margin = '0';
     this.container.style.padding = '0';
     this.container.style.overflowX = 'hidden';
-
-    this.container.appendChild(this.mainWrapper);
   }
 
   initVideo() {
-    this.videoWrapper = document.createElement('div');
-    this.videoWrapper.className = 'ivp-video-wrapper';
+    // 2. Look for existing video wrapper and video elements
+    this.videoWrapper = this.mainWrapper.querySelector('.ivp-video-wrapper') || document.createElement('div');
+    if (!this.videoWrapper.parentElement) {
+      this.videoWrapper.className = 'ivp-video-wrapper';
+      this.mainWrapper.appendChild(this.videoWrapper);
+    }
 
-    this.video = document.createElement('video');
-    this.video.className = 'ivp-video';
+    this.video = this.videoWrapper.querySelector('.ivp-video') || document.createElement('video');
+    if (!this.video.parentElement) {
+      this.video.className = 'ivp-video';
+      this.videoWrapper.appendChild(this.video);
+    }
+
     this.video.setAttribute('playsinline', '');
     this.video.setAttribute('preload', this.isIOS ? 'metadata' : 'auto');
     this.video.setAttribute('crossorigin', 'anonymous');
+    
+    // Apply custom styles from config
+    if (this.config.videoStyles) {
+      Object.assign(this.video.style, this.config.videoStyles);
+    }
 
     // iOS loading spinner
     if (this.isIOS) {
@@ -161,8 +176,8 @@ export class InteractiveVideoPlayer {
       }, 2000);
     }
 
-    this.videoWrapper.appendChild(this.video);
-    this.mainWrapper.appendChild(this.videoWrapper);
+    // this.videoWrapper.appendChild(this.video); // Already handled above
+    // this.mainWrapper.appendChild(this.videoWrapper); // Already handled above
   }
 
   // FOUC fix: single reveal method used everywhere, with double-rAF to ensure paint
@@ -170,8 +185,14 @@ export class InteractiveVideoPlayer {
     if (this.isVideoLoaded) return;
     this.isVideoLoaded = true;
     clearTimeout(this._fouc_fallback);
+    
+    // Final style pass before revealing
+    this.applyVideoStyles();
+
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
+        // Remove the loading class to reveal the player seamlessly
+        this.mainWrapper.classList.remove('loading');
         this.mainWrapper.style.visibility = 'visible';
       });
     });
@@ -190,14 +211,20 @@ export class InteractiveVideoPlayer {
   }
 
   initSubtitles() {
-    this.blurOverlay = document.createElement('div');
-    this.blurOverlay.className = 'ivp-blur-overlay';
-    this.videoWrapper.appendChild(this.blurOverlay);
+    // 3. Look for existing subtitle overlays
+    this.blurOverlay = this.videoWrapper.querySelector('.ivp-blur-overlay') || document.createElement('div');
+    if(!this.blurOverlay.parentElement) {
+       this.blurOverlay.className = 'ivp-blur-overlay';
+       this.videoWrapper.appendChild(this.blurOverlay);
+    }
 
-    this.subtitleDisplay = document.createElement('div');
-    this.subtitleDisplay.className = 'ivp-subtitles';
+    this.subtitleDisplay = this.videoWrapper.querySelector('.ivp-subtitles') || document.createElement('div');
+    if(!this.subtitleDisplay.parentElement) {
+      this.subtitleDisplay.className = 'ivp-subtitles';
+      this.videoWrapper.appendChild(this.subtitleDisplay);
+    }
+    
     Object.assign(this.subtitleDisplay.style, this.config.subtitleStyles);
-    this.videoWrapper.appendChild(this.subtitleDisplay);
 
     this.tokens = this.config.cue.split(/\s+/);
     this.originalIndices = Array.from({ length: this.tokens.length }, (_, i) => i);
@@ -234,51 +261,24 @@ export class InteractiveVideoPlayer {
   }
 
   applyVideoStyles() {
-    this.mainWrapper.style.cssText = '';
-    this.videoWrapper.style.cssText = '';
-    this.video.style.cssText = '';
-    this.subtitleDisplay.style.cssText = '';
-    if (this.blurOverlay) this.blurOverlay.style.cssText = '';
-    if (this.loadingSpinner) this.loadingSpinner.style.cssText = '';
-
-    // FOUC fix: re-apply hidden state after cssText reset if not yet revealed
-    if (!this.isVideoLoaded) {
-      this.mainWrapper.style.visibility = 'hidden';
-    }
-
-    this.mainWrapper.style.display = 'flex';
-    this.mainWrapper.style.flexDirection = 'column';
-    this.mainWrapper.style.alignItems = 'center';
-    this.mainWrapper.style.justifyContent = 'center';
-    this.mainWrapper.style.width = '100%';
-    this.mainWrapper.style.margin = '0 auto';
+    // Instead of resetting everything, we only apply dynamic or critical layout styles.
+    // Base layout (flex, width, margin) is now handled in style.css.
 
     const isDesktop = window.innerWidth > 800;
-    let videoWidth, videoHeight;
+    
+    // FOUC fix: re-apply hidden state if not yet revealed
+    if (!this.isVideoLoaded) {
+      this.mainWrapper.style.visibility = 'hidden';
+      this.mainWrapper.classList.add('loading');
+    }
 
+    let videoHeight;
     if (isDesktop) {
-      videoWidth = 300;
       videoHeight = 375;
     } else {
       const maxMobileWidth = Math.min(window.innerWidth * 0.95, 500);
-      videoWidth = maxMobileWidth;
       videoHeight = maxMobileWidth * (5 / 4);
     }
-
-    this.videoWrapper.style.width = `${videoWidth}px`;
-    this.videoWrapper.style.height = `${videoHeight}px`;
-    this.videoWrapper.style.position = 'relative';
-    this.videoWrapper.style.overflow = 'hidden';
-    this.videoWrapper.style.backgroundColor = '#000';
-
-    this.video.style.position = 'absolute';
-    this.video.style.top = '0';
-    this.video.style.left = '0';
-    this.video.style.width = '100%';
-    this.video.style.height = '100%';
-    this.video.style.objectFit = 'cover';
-
-    if (this.isIOS) this.video.style.webkitPlaysinline = 'true';
 
     const minSubtitleHeight = Math.max(60, videoHeight * 0.25);
 
@@ -286,13 +286,8 @@ export class InteractiveVideoPlayer {
       this.blurOverlay.style.display = 'none';
     }
 
-    this.subtitleDisplay.style.position = 'absolute';
-    this.subtitleDisplay.style.bottom = '0';
-    this.subtitleDisplay.style.left = '0';
-    this.subtitleDisplay.style.right = '0';
+    // Dynamic subtitle styling
     this.subtitleDisplay.style.minHeight = `${minSubtitleHeight}px`;
-    this.subtitleDisplay.style.height = 'auto';
-    this.subtitleDisplay.style.padding = '12px 24px';
     this.subtitleDisplay.style.fontSize = isDesktop ? 'clamp(1rem, 4vw, 1.5rem)' : 'clamp(1.2rem, 5vw, 1.8rem)';
     
     if (CSS.supports('backdrop-filter', 'blur(10px)')) {
@@ -301,26 +296,18 @@ export class InteractiveVideoPlayer {
     } else {
       this.subtitleDisplay.style.backgroundColor = 'rgba(0,0,0,0.85)';
     }
-    
-    this.subtitleDisplay.style.color = 'white';
-    this.subtitleDisplay.style.textAlign = 'center';
-    this.subtitleDisplay.style.boxSizing = 'border-box';
-    this.subtitleDisplay.style.zIndex = '2';
-    this.subtitleDisplay.style.display = 'flex';
-    this.subtitleDisplay.style.alignItems = 'center';
-    this.subtitleDisplay.style.justifyContent = 'center';
-    this.subtitleDisplay.style.flexWrap = 'wrap';
-    this.subtitleDisplay.style.lineHeight = '1.3';
 
     if (this.isIOS && this.loadingSpinner) {
-      this.loadingSpinner.style.position = 'absolute';
-      this.loadingSpinner.style.top = '50%';
-      this.loadingSpinner.style.left = '50%';
-      this.loadingSpinner.style.transform = 'translate(-50%, -50%)';
-      this.loadingSpinner.style.zIndex = '10';
-      this.loadingSpinner.style.display = 'flex';
-      this.loadingSpinner.style.alignItems = 'center';
-      this.loadingSpinner.style.justifyContent = 'center';
+      Object.assign(this.loadingSpinner.style, {
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        zIndex: '10',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+      });
     }
   }
 
@@ -388,49 +375,7 @@ export class InteractiveVideoPlayer {
   }
 
   injectStyles() {
-    const style = document.createElement('style');
-    style.textContent = `
-      .d-none { display: none !important; }
-
-      html, body {
-        margin: 0;
-        padding: 0;
-        overflow-x: hidden;
-      }
-
-      .ivp-main-wrapper {
-        display: flex;
-        flex-direction: column;
-      }
-
-      .ivp-video-wrapper {
-        position: relative;
-      }
-
-      .ivp-blur-overlay {}
-      .ivp-subtitles {}
-
-      @media (min-width: 768px) {
-        .ivp-main-wrapper {
-          max-width: 300px;
-        }
-      }
-
-      @media (max-width: 768px) {
-        .ivp-subtitles {
-          font-size: clamp(1.2rem, 5vw, 1.8rem) !important;
-        }
-      }
-
-      video::-webkit-media-controls {
-        display: none !important;
-      }
-
-      video {
-        -webkit-playsinline: true;
-      }
-    `;
-    document.head.appendChild(style);
+    // Styles moved to style.css for better performance and stability
   }
 
   play() {

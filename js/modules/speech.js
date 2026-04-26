@@ -71,7 +71,7 @@ export function createWebcamPreview() {
   webcamPreview.muted = true;
   webcamPreview.playsinline = true;
 
-  const isDesktop = window.innerWidth >= 1000;
+  const isDesktop = window.innerWidth >= 1200;
 
   if (isDesktop) {
     const questionsContainer = document.getElementById('questions-container-container');
