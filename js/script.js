@@ -664,8 +664,8 @@ function beforeUnloadHandler(e) { /* e.preventDefault(); e.returnValue = ''; ret
 
 function loadQuestion(question, lesson, fluencyData) {
   window.__currentQuestionIndex = getCurrentQuestionIndex(question, State.configData, State.currentLessonIndex);
+  clearChatInterface(); // Clear FIRST so the card collapses before we scroll
   window.scrollTo({ top: 0, behavior: 'smooth' });
-  DOM.speechText.classList.remove('d-none');
   document.getElementById('resultVideo')?.remove();
   document.getElementById('displayCanvas')?.remove();
   DOM.arrowContainer.classList.toggle('d-none', question.inputType !== 'lessonIntro');
@@ -712,7 +712,6 @@ function loadQuestion(question, lesson, fluencyData) {
   const closeButton = document.querySelector('#myToast .btn-close');
   if (closeButton) closeButton.click();
 
-  clearChatInterface();
   document.getElementById("success-media").classList.add("d-none");
   document.getElementById("courseProgress").classList.add("d-none");
   const container = document.getElementById('questions-container');
@@ -721,6 +720,15 @@ function loadQuestion(question, lesson, fluencyData) {
   const preserved = DOM.mediaContainer.querySelectorAll('#ivp-container, #simple-ivp-container, #intro-call-widget');
   DOM.mediaContainer.innerHTML = '';
   preserved.forEach(el => DOM.mediaContainer.appendChild(el));
+
+  // CSS :empty doesn't fire when whitespace text-nodes are present.
+  // Collapse #ivp-container explicitly whenever the IVP player has left it empty
+  // (Q2+ onward the player injects .ivp-main-wrapper directly into #media-container).
+  const ivpShell = document.getElementById('ivp-container');
+  if (ivpShell && ivpShell.children.length === 0) {
+    ivpShell.style.minHeight = '0';
+    ivpShell.style.display  = 'none';
+  }
 
   if (question.image) {
       const div = document.createElement('div');

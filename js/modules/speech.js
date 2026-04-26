@@ -71,6 +71,10 @@ export function createWebcamPreview() {
   webcamPreview.muted = true;
   webcamPreview.playsinline = true;
 
+  // Set opacity:0 BEFORE insertion so CSS never has a chance to render
+  // the black background / green border during the animation-delay window.
+  webcamPreview.style.opacity = '0';
+
   const isDesktop = window.innerWidth >= 1200;
 
   if (isDesktop) {
@@ -95,7 +99,22 @@ export function ensureWebcamPreview() {
   if (!webcamPreview || !webcamPreview.isConnected) webcamPreview = createWebcamPreview();
 
   webcamPreview.srcObject = speechCamStream;
-  if (webcamPreview.classList.contains('d-none')) webcamPreview.classList.remove('d-none');
+
+  if (webcamPreview.classList.contains('d-none')) {
+    // Reset to invisible before un-hiding so the element doesn't pop in at
+    // full opacity (the CSS animation's `forwards` fill kept it at opacity:1).
+    webcamPreview.style.transition = '';
+    webcamPreview.style.opacity   = '0';
+    webcamPreview.style.transform = 'scaleX(-1) translateY(10px)';
+    webcamPreview.classList.remove('d-none');
+
+    // Mirror the CSS animation delay + duration so Q2+ matches Q1 behaviour.
+    setTimeout(() => {
+      webcamPreview.style.transition = 'opacity 0.4s ease-out, transform 0.4s ease-out';
+      webcamPreview.style.opacity   = '1';
+      webcamPreview.style.transform = 'scaleX(-1) translateY(0)';
+    }, 500);
+  }
 
   setTimeout(() => {
     if (isWebcamPreviewVisible() && (webcamPreview.readyState < 2 || webcamPreview.paused)) {

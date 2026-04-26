@@ -40,11 +40,23 @@
 
 /* Desktop Placement */
 @media (min-width: 1200px) {
+    #questions-container-container {
+        position: relative;
+    }
     #webcam-preview {
-        width: 20vw;
-        max-width: 200px;
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 160px;
         height: auto;
         z-index: 10000;
+    }
+}
+
+/* Hide desktop playback video on mobile — prevents a black rectangle appearing */
+@media (max-width: 1199px) {
+    #playback-video-desktop-container {
+        display: none !important;
     }
 }
 
@@ -1095,6 +1107,8 @@ p {
 
     .grecaptcha-badge { visibility: hidden !important; }
     #speech-text-here:empty { border: none !important; display: none; }
+    /* Collapse card margins when the chat widget is hidden so the IVP doesn't get pushed down */
+    #speech-text-here.d-none { margin-bottom: 0 !important; padding: 0 !important; border: none !important; }
     .big-buttons { flex-wrap: wrap; gap: 12px; margin-top: 15px; justify-content: center; }
     #aiApologyModal { z-index: 999999 !important; }
 
@@ -1155,6 +1169,13 @@ p {
 #media-container {
   min-height: 200px;
   position: relative;
+}
+
+/* Collapse the IVP container shell when the player injects .ivp-main-wrapper
+   directly into #media-container (Q2 onward) — prevents a 200px dead-space gap */
+#ivp-container:empty {
+  min-height: 0 !important;
+  display: none;
 }
 
 @media (min-width: 1200px) {
