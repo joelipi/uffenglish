@@ -1182,13 +1182,23 @@ async function getCurrentcourseId() {
 function loadLessonContent(lesson) {
   clearSpeechRecordingsForLesson(lesson.lessonId).catch(e => console.error(e));
   if(State.player) State.player.destroy();
-  document.querySelector('.ivp-main-wrapper').classList.remove('d-none');
+  
+  // Ensure the video wrapper is visible
+  const ivpWrapper = document.querySelector('.ivp-main-wrapper');
+  if (ivpWrapper) ivpWrapper.classList.remove('d-none');
   
   State.resetForNewLesson();
   
   updateCurrentScoreDisplay(State.currentPoints);
   updateActivityDisplay(State.dayCount, State.currentStreak);
-  hearts.forEach(heart => { if(heart) { heart.classList.remove("falling-image"); heart.classList.remove("d-none"); } });
+  
+  // Reset hearts UI
+  hearts.forEach(heart => { 
+    if(heart) { 
+      heart.classList.remove("falling-image"); 
+      heart.classList.remove("d-none"); 
+    } 
+  });
 
   document.querySelector('footer').classList.remove("d-none");
   document.getElementById('bottomButtonBar').classList.remove('d-none');
@@ -1197,12 +1207,37 @@ function loadLessonContent(lesson) {
   DOM.mediaContainer.classList.remove('d-none');
 
   updateProgressBar(); 
+  
   const lessonHeader = document.getElementById('lesson-header');
-  lessonHeader.style.display = 'block'; lessonHeader.classList.remove('lesson-header');
-  void lessonHeader.offsetWidth; lessonHeader.classList.add('lesson-header');
+  if (lessonHeader) {
+    lessonHeader.style.display = 'block'; 
+    lessonHeader.classList.remove('lesson-header');
+    void lessonHeader.offsetWidth; // Trigger reflow for animation
+    lessonHeader.classList.add('lesson-header');
+  }
 
+// --- TITLE LOGIC ---
   const titles = document.getElementsByClassName('lesson-title');
-  for (let i = 0; i < titles.length; i++) titles[i].textContent = lesson.title;
+  
+  // 1. Get Course Name and Level from State
+  const course = State.configData?.courseName || "";
+  const level = State.englishLevel ? ` (${State.englishLevel})` : ""; // Adds space and parens
+  
+  // 2. Check if unit exists
+  const unit = (lesson.unit && String(lesson.unit).trim() !== "") ? `${lesson.unit}: ` : "";
+  
+  // 3. Handle Lesson Title
+  const titleText = (typeof lesson.title === 'object') ? (lesson.title.en || "") : (lesson.title || "");
+
+  // 4. Assemble: Course (Level): Unit: Title
+  // The colon only appears if we have a course name to attach it to.
+  const fullTitle = `${course}${level}${course ? ': ' : ''}${unit}${titleText}`;
+
+  for (let i = 0; i < titles.length; i++) {
+    if (titles[i]) {
+      titles[i].textContent = fullTitle;
+    }
+  }
 
   loadQuestion(lesson.questions[State.currentQuestionIndex], lesson);
 }
@@ -1231,10 +1266,14 @@ async function initializeApp() {
         syncOfflineScores(State.userData);
 
         State.courseId = await getCurrentcourseId(); 
-        State.englishLevel = ['A0','A1','A2','B1','B2','C1','C2'].find(level => State.courseId.toUpperCase().includes(level)) || 'A0';
-
+        
+        // --- FETCH CONFIG AND SET LANGUAGE LEVEL ---
         const response = await fetch(`js/config/${State.courseId}.json`);
         State.configData = await response.json();
+
+        // Pull level directly from the JSON field (e.g., "B1")
+        State.englishLevel = State.configData.languageLevel || 'A0';
+        console.log(`Course Level initialized to: ${State.englishLevel}`);
 
         const lang = State.userData?.native_language;
         const defaultQuestions = {
@@ -1251,6 +1290,11 @@ async function initializeApp() {
                 if (lesson.title && typeof lesson.title === 'object') {
                     lesson.title = lesson.title.en || String(lesson.title);
                 }
+                // Optional: Also normalize mission if you want to use it later
+                if (lesson.mission && typeof lesson.mission === 'object') {
+                    lesson.mission = lesson.mission.en || String(lesson.mission);
+                }
+                
                 if (lesson.questions) {
                     lesson.questions.forEach(question => {
                         // Normalize cue to string if it's a localized object
@@ -1266,25 +1310,33 @@ async function initializeApp() {
         }
 
         State.successHandler = new SuccessLessonHandler({
-            configData: State.configData, loadLessonContent, calculateAverage, playSound: Media.playSound, loadNextLesson,
+            configData: State.configData, 
+            loadLessonContent, 
+            calculateAverage, 
+            playSound: Media.playSound, 
+            loadNextLesson,
             updateState: (newState) => {
               Object.assign(State, newState);
             },
             uiElements: {
-              scoresAndHearts: DOM.scoresAndHearts, progressbar: DOM.progressbar, progressBarFill: DOM.progressBarFill, speechTextHere: DOM.speechText,
-              bottomButtonBarCenter: document.getElementById('bottomButtonBarCenter'), bottomButtonBarLeft: document.getElementById('bottomButtonBarLeft'), hearts
+              scoresAndHearts: DOM.scoresAndHearts, 
+              progressbar: DOM.progressbar, 
+              progressBarFill: DOM.progressBarFill, 
+              speechTextHere: DOM.speechText,
+              bottomButtonBarCenter: document.getElementById('bottomButtonBarCenter'), 
+              bottomButtonBarLeft: document.getElementById('bottomButtonBarLeft'), 
+              hearts
             }
         });
 
-        // 🛑 CRITICAL FIX 1: Render the UI and Video FIRST
+        // 🛑 CRITICAL TO PREVENT RAM OVERLOAD: Render the UI and Video FIRST
         await initializeLesson();
 
-                // 🛑 CRITICAL FIX 2: Boot Whisper. Once it's in RAM, boot GECToR sequentially.
+        // 🛑 CRITICAL TO PREVENT RAM OVERLOAD: Boot Whisper and NLP background models IN SEQUENCE
         (async () => {
             try {
                 let voiceInitFn = initLocalVoiceAI;
                 
-                // If static import failed, try dynamic import with absolute path
                 if (typeof voiceInitFn !== 'function') {
                     console.warn('initLocalVoiceAI not available statically, attempting dynamic import...');
                     const scriptDir = new URL('.', import.meta.url).href;
@@ -1296,13 +1348,10 @@ async function initializeApp() {
                 if (typeof voiceInitFn === 'function') {
                     await Promise.resolve(voiceInitFn());
                     console.log('🎙️ Whisper initialization complete.');
-                } else {
-                    console.warn('initLocalVoiceAI is not a function – skipping voice AI preload.');
                 }
             } catch (err) {
                 console.error('Voice AI initialization error:', err);
             } finally {
-                // Always proceed with NLP background load
                 loadLocalModelsInBackground();
             }
         })();

@@ -1,11 +1,12 @@
 {
   "courseId": "gt2",
+  "languageLevel": "B1",
   "courseName": "Ordering a Drink",
   "lessons": [
     {
       "lessonId": "a",
-      "title":  {"en": "Ordering a Drink 1", "es": "Pedir una Bebida 1", "pt": "Pedir uma Bebida 1"},
-      "unit": "Ordering a Drink",
+      "title":  {"en": "Soda 1", "es": "Gaseosa 1", "pt": "Gaseosa 1"},
+      "unit": "Unit 1",
       "mission": {"en": "order a drink", "es": "pedir una bebida", "pt": "pedir uma bebida"},
       "questions": [
         {
