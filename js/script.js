@@ -894,7 +894,7 @@ if (question.introBackgroundVideoUrl) {
             </p>
           </div>`;
         const bodyContent = `<p class='lesson-name chat-bubble chat-msg'><strong>Lesson: ${lesson.title}</strong></p>${explanationHTML}`;
-        DOM.speechText.innerHTML = renderChatInterface(false, bodyContent);
+        safeRenderChatInterface(false, bodyContent);
       }
       showFeedbackAndProceed(question, true);
 
@@ -911,7 +911,7 @@ if (question.introBackgroundVideoUrl) {
           explanationHTML = `<div class='chat-bubble chat-msg'><p class='explanation'>${question.explanation}${expTrans && lang && lang !== 'en' ? `<br><br><span lang='${lang}'><i>${expTrans}</i></span>` : ""}</p></div>`;
         }
         const bodyContent = `<p class='lesson-name chat-bubble chat-msg'><strong>${Strings.get('lesson_label', State.userData?.native_language)} ${lesson.title}</strong></p>${explanationHTML}`;
-        DOM.speechText.innerHTML = renderChatInterface(false, bodyContent);
+        safeRenderChatInterface(false, bodyContent);
       }
       showFeedbackAndProceed(question, true);
 
