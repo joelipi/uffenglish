@@ -115,7 +115,38 @@ import {
     updateDayCountDisplay, 
     disableAllButtons, 
     clearChatInterface, 
-    safeRenderChatInterface 
+    safeRenderChatInterface,
+    showHintsAndScroll,
+    hideHints,
+    clearMicStatusAndHideMedia,
+    setMicStatusText,
+    updateSpeakingScoreDisplay,
+    showPlaybackVideo,
+    markButtonAsCorrect,
+    markButtonAsIncorrect,
+    animateHeartLoss,
+    resetHeartsUI,
+    showContinueButton,
+    hideContinueButton,
+    renderFallbackContinueButton,
+    resetUIForNewQuestion,
+    toggleScoresAndHearts,
+    removeRepeatButton,
+    prepareMediaUI,
+    clearMediaContainerAndPreservePlayers,
+    renderImageInMediaContainer,
+    renderYoutubeInMediaContainer,
+    resetAnswersContainer,
+    renderSpeechInputUI,
+    renderTextInputUI,
+    updateProgressAndCloseButton,
+    setProgressBarWidth,
+    hideAnswerDiv,
+    bindProcessButton,
+    renderMultiChoiceUI,
+    showMessageInQuestionsContainer,
+    showErrorMessageInQuestionsContainer,
+    setupLessonUI
 } from './modules/ui.js';
 
 import { idiomChecker } from './modules/idiomChecker.js';
@@ -132,8 +163,8 @@ window.addEventListener('transcriptRejected', () => {
     State.speakingScore = Math.max(0, State.speakingScore - 20);
     
     // Update the UI
+    updateSpeakingScoreDisplay(State.speakingScore);
     if (DOM.phrasesScore) {
-        DOM.phrasesScore.textContent = `${State.speakingScore}`;
         flashElement(DOM.phrasesScore);
         // Show point loss animation explicitly on the score span
         pointLoss.show(DOM.phrasesScore, 20); 
@@ -243,9 +274,7 @@ window.testIntent = evaluateIntentLocally;
 
 
 function handleHint(qIndex) {
-    const hints = document.getElementById("hints");
-    hints.classList.remove("d-none", "invisible");
-    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    showHintsAndScroll();
 }
 
 async function handleAnswer(userResponse, cue, questionData, button, explanation, translation, stats = { pauseCount: null, netDuration: null }) {
@@ -270,8 +299,7 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
 
     Media.pauseVideoIfPlaying();
     
-    DOM.micStatusText.innerHTML = "";
-    DOM.mediaContainer.classList.add('d-none');
+    clearMicStatusAndHideMedia();
 
     let speechAnalytics = null;
     let immediateStatsHtml = "";
@@ -485,8 +513,8 @@ function handlecueUI(qIndex, questionData, button, cue, explanation, translation
       let headsUpHTML = questionData.headsUp ? `<div class='chat-bubble chat-msg' style='margin-top: 12px;'><p class='headsUp'>${questionData.headsUp}</p></div>` : "";
 
       if (questionData.inputType === "ai") {
+          updateSpeakingScoreDisplay(State.speakingScore); // NEW SPEAKING SCORE DISPLAY
           flashElement(DOM.phrasesScore); 
-          DOM.phrasesScore.textContent = `${State.speakingScore}`; // NEW SPEAKING SCORE DISPLAY
           
           const lang = State.userData?.native_language;
           const feedbackText = englishLevelDeduction > 0
@@ -499,8 +527,8 @@ function handlecueUI(qIndex, questionData, button, cue, explanation, translation
       }
       else {
           if (questionData.inputType === "speech") { 
+              updateSpeakingScoreDisplay(State.speakingScore); // NEW SPEAKING SCORE DISPLAY
               flashElement(DOM.phrasesScore); 
-              DOM.phrasesScore.textContent = `${State.speakingScore}`; // NEW SPEAKING SCORE DISPLAY
           }
           const lang = State.userData?.native_language;
           const localizedTrans = getLocalizedTranslation(translation, lang);
@@ -515,18 +543,17 @@ function handlecueUI(qIndex, questionData, button, cue, explanation, translation
   Media.playSound('correct-sound');
 
   if (questionData.inputType === "lessonIntro" || questionData.inputType === "speech" || questionData.inputType === "ai") {
-    DOM.playbackVideo.style.display = 'block';
+    showPlaybackVideo();
   }
 
-  button.classList.add('btn-success', 'correct-answer');
-  button.addEventListener('animationend', () => button.classList.remove('correct-answer'));
+  markButtonAsCorrect(button);
 }
 
 function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanation, normalizeduserResponse, normalizedcue, question) {
   State.incorrectAttempts++;
 
   if (questionData.inputType === "lessonIntro" || questionData.inputType === "speech" || questionData.inputType === "ai") {
-    DOM.playbackVideo.style.display = 'block';
+    showPlaybackVideo();
   }
 
   if ((questionData.inputType === "speech" || questionData.inputType === "ai") && questionData.videoUrl) {
@@ -536,7 +563,7 @@ function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanat
       if (State.incorrectAttempts > 2) {
         State.currentPoints = 0; 
         updateCurrentScoreDisplay(State.currentPoints);
-        DOM.phrasesScore.textContent = `${State.speakingScore}`; // NEW SPEAKING SCORE DISPLAY
+        updateSpeakingScoreDisplay(State.speakingScore); // NEW SPEAKING SCORE DISPLAY
         State.rolePlayPointsHistory.push(State.currentPoints);
       }
   }
@@ -584,50 +611,25 @@ function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanat
       safeRenderChatInterface(false, bodyContent);
   }
 
-  if(State.incorrectAttempts==1) DOM.heart1.classList.add("falling-image");
-  else if(State.incorrectAttempts==2) DOM.heart2.classList.add("falling-image");
-  else if(State.incorrectAttempts==3) DOM.heart3.classList.add("falling-image");
+  animateHeartLoss(State.incorrectAttempts);
   
   Media.playSound('incorrect-sound');
 
-  button.classList.remove('btn-outline-primary');
-  button.classList.add('btn-secondary', 'disabled', 'incorrect-answer');
-
   const answersContainer = button.parentElement;
   if (questionData.inputType !== "text") {
-    const cueButton = Array.from(answersContainer.querySelectorAll('button')).find(btn => btn.textContent.trim().toLowerCase() === cue.trim().toLowerCase());
-    if (cueButton) cueButton.classList.add('correct-answer-highlight');
+      markButtonAsIncorrect(button, answersContainer, cue);
+  } else {
+      markButtonAsIncorrect(button, null, null);
   }
-
-  button.addEventListener('animationend', () => button.classList.remove('incorrect-answer'));
 }
 
 function showFeedbackAndProceed(questionData, isCorrect) {
   if ((questionData.inputType === "speech" || questionData.inputType === "ai") && questionData.videoUrl) State.questionCount++;
 
   try {
-    const hintButton = document.getElementById('hintButton');
-    if (hintButton) hintButton.classList.add('invisible');
-    const hintsElement = document.getElementById('hints');
-    if (hintsElement) hintsElement.classList.add('d-none');
+    hideHints();
 
-    const continueButton = document.getElementById('continueButton') || (() => {
-      const btn = document.createElement('button');
-      btn.id = 'continueButton'; btn.className = 'btn btn-primary text-white w-100';
-      btn.innerHTML = questionData.inputType === "lessonIntro" ? '<i class="bi bi-camera-video-fill text-white" style="font-size: 40px; font-weight: 900;"></i>' : '<i class="bi bi-chevron-right text-white" style="font-size: 40px; font-weight: 900;"></i>';        
-      document.getElementById('bottomButtonBarCenter').appendChild(btn);
-      return btn;
-    })();
-
-    if (isCorrect || State.incorrectAttempts > 2) {
-      const nextQuestion = getNextQuestion(questionData);
-      if (nextQuestion && nextQuestion.videoUrl) {
-        const videoUrl = `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${nextQuestion.videoUrl}.mp4?alt=media`;
-        Media.preloader.preloadOnly(videoUrl);
-      }
-    }
-
-    continueButton.onclick = () => {
+    const continueButton = showContinueButton(questionData.inputType === "lessonIntro", () => {
       if (questionData.inputType === "lessonIntro") {    
           const initializeMedia = async () => {
               await Media.enableAudioSystem();
@@ -636,7 +638,7 @@ function showFeedbackAndProceed(questionData, isCorrect) {
           initializeMedia();
       }
       
-      continueButton.style.display = 'none';
+      hideContinueButton();
       if (questionData.inputType === "lessonIntro") {    
         setTimeout(() => loadNextQuestion(questionData), 2000);
       } else {
@@ -647,13 +649,21 @@ function showFeedbackAndProceed(questionData, isCorrect) {
             loadQuestion(State.configData.lessons[State.currentLessonIndex].questions[qIndex], State.configData.lessons[State.currentLessonIndex]);
         }
       }
-    };
-    continueButton.style.display = 'inline-block';
+    });
+
+    if (isCorrect || State.incorrectAttempts > 2) {
+      const nextQuestion = getNextQuestion(questionData);
+      if (nextQuestion && nextQuestion.videoUrl) {
+        const videoUrl = `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${nextQuestion.videoUrl}.mp4?alt=media`;
+        Media.preloader.preloadOnly(videoUrl);
+      }
+    }
+
   } catch (error) {
-    const btn = document.createElement('button');
-    btn.textContent = Strings.get('btn_continue', State.userData?.native_language) || 'Continue';
-    btn.onclick = () => isCorrect || State.incorrectAttempts > 2 ? loadNextQuestion(questionData) : loadQuestion(questionData, State.configData.lessons[State.currentLessonIndex]);
-    document.body.appendChild(btn);
+    renderFallbackContinueButton(Strings.get('btn_continue', State.userData?.native_language) || 'Continue', () => {
+        if (isCorrect || State.incorrectAttempts > 2) loadNextQuestion(questionData);
+        else loadQuestion(questionData, State.configData.lessons[State.currentLessonIndex]);
+    });
   }
 }
 
@@ -666,18 +676,13 @@ function loadQuestion(question, lesson, fluencyData) {
   window.__currentQuestionIndex = getCurrentQuestionIndex(question, State.configData, State.currentLessonIndex);
   clearChatInterface(); // Clear FIRST so the card collapses before we scroll
   window.scrollTo({ top: 0, behavior: 'smooth' });
-  document.getElementById('resultVideo')?.remove();
-  document.getElementById('displayCanvas')?.remove();
-  DOM.arrowContainer.classList.toggle('d-none', question.inputType !== 'lessonIntro');
 
-  document.getElementById('lessonIntroHeader').classList.toggle('d-none', question.inputType !== 'lessonIntro' || State.userData);
-  DOM.closeAndProgress.classList.toggle('d-none', question.inputType == 'lessonIntro' && !State.userData);
+  resetUIForNewQuestion(question.inputType === 'lessonIntro', !!State.userData);
 
   Media.cleanupPreviousPlayers();
   clearPlaybackVideo();
 
-  if ((question.inputType === 'speech' || question.inputType === 'ai') && question.videoUrl) DOM.scoresAndHearts.classList.remove('d-none');
-  else DOM.scoresAndHearts.classList.add('d-none');
+  toggleScoresAndHearts((question.inputType === 'speech' || question.inputType === 'ai') && question.videoUrl);
 
   if (question.inputType === 'speech' || question.inputType === 'ai') {
       ensureWebcamPreview();
@@ -698,49 +703,24 @@ function loadQuestion(question, lesson, fluencyData) {
   }
 
   if (question.inputType != 'lessonComplete' && question.inputType != 'unitComplete') {
-      let repeatButton = document.getElementById('repeatButton');
-      if (repeatButton) repeatButton.remove(); 
+      removeRepeatButton();
   }
 
   if (question.inputType === 'speech' || question.inputType === 'ai') {
     ensureWebcamPreview();
     State.speakingScore = 100; // Reset speaking score for this question
-    DOM.phrasesScore.textContent = `${State.speakingScore}`;
+    updateSpeakingScoreDisplay(State.speakingScore);
   }
 
-  DOM.mediaContainer.classList.remove('d-none');
-  const closeButton = document.querySelector('#myToast .btn-close');
-  if (closeButton) closeButton.click();
+  prepareMediaUI();
 
-  document.getElementById("success-media").classList.add("d-none");
-  document.getElementById("courseProgress").classList.add("d-none");
-  const container = document.getElementById('questions-container');
-
-  // Clear previous images/youtube but PRESERVE the ivp-container so we don't destroy hardcoded elements
-  const preserved = DOM.mediaContainer.querySelectorAll('#ivp-container, #simple-ivp-container, #intro-call-widget');
-  DOM.mediaContainer.innerHTML = '';
-  preserved.forEach(el => DOM.mediaContainer.appendChild(el));
-
-  // CSS :empty doesn't fire when whitespace text-nodes are present.
-  // Collapse #ivp-container explicitly whenever the IVP player has left it empty
-  // (Q2+ onward the player injects .ivp-main-wrapper directly into #media-container).
-  const ivpShell = document.getElementById('ivp-container');
-  if (ivpShell && ivpShell.children.length === 0) {
-    ivpShell.style.minHeight = '0';
-    ivpShell.style.display  = 'none';
-  }
+  clearMediaContainerAndPreservePlayers();
 
   if (question.image) {
-      const div = document.createElement('div');
-      div.className = 'text-center mb-3';
-      div.innerHTML = `<img src="${question.image}" class="img-fluid rounded" alt="Question illustration" style="max-height: 300px;">`;
-      DOM.mediaContainer.prepend(div);
+      renderImageInMediaContainer(question.image);
   }
   if (question.youtube) {
-      const div = document.createElement('div');
-      div.className = 'text-center mb-3';
-      div.innerHTML = `<iframe width="315" height="560" src="https://www.youtube.com/embed/${question.youtube}?autoplay=1&rel=0&modestbranding=1&controls=0&disablekb=1&fs=0&playsinline=1&short=1&playback_rate=0.8" title="Intro" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope" referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
-      DOM.mediaContainer.prepend(div);
+      renderYoutubeInMediaContainer(question.youtube);
   }
 
 if (question.videoUrl) {
@@ -819,17 +799,13 @@ if (question.introBackgroundVideoUrl) {
     window.currentIntroVideoPlayer = State.player;
   }
 
-  DOM.micStatusText.innerHTML = "<div class='text-center'>" + question.question + "</div>";
-  container.innerHTML = `<div id="answers-container" class="d-grid gap-2 d-none"></div></div>`;
-  const answersContainer = document.getElementById('answers-container');
+  setMicStatusText("<div class='text-center'>" + question.question + "</div>");
+  resetAnswersContainer(`<div id="answers-container" class="d-grid gap-2 d-none"></div>`);
 
   if (question.inputType === "speech" || question.inputType === "ai") {
-      document.getElementById("answerDiv").classList.add("d-none");
-      const hints = document.getElementById("hints"); hints.classList.add("d-none");
-      document.getElementById("answers-container").classList.remove("d-none");
-      const allHidden = false; let revealedFirst = false;
-      const hintUncommonWords = document.getElementById("hintUncommonWords");
+      hideHints();
 
+      const allHidden = false; let revealedFirst = false;
       const escapeHtml = (text) => {
         const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
         return text.replace(/[&<>"']/g, (m) => map[m]);
@@ -847,8 +823,6 @@ if (question.introBackgroundVideoUrl) {
         })}`;
       }
 
-      hintUncommonWords.innerHTML = answerHTML;
-
       const handleRevealClick = function() {
           if (!this.dataset.revealed) {
               this.textContent = this.dataset.word; 
@@ -858,80 +832,53 @@ if (question.introBackgroundVideoUrl) {
           }
       };
 
-      document.querySelectorAll('.pulse-dot').forEach(span => span.addEventListener('click', handleRevealClick));
-
-      const hintButton = document.createElement('button');
-      hintButton.className = 'btn bg-transparent text-white border-0'; hintButton.id = 'hintButton';
-      hintButton.innerHTML = '<i class="bi bi-life-preserver fs-1"></i>';
       const qIndex = getCurrentQuestionIndex(question, State.configData, State.currentLessonIndex);
 
-      hintButton.onclick = () => { handleHint(qIndex); hintButton.style.visibility = 'hidden'; };
-
-      const bottomButtonBarLeft = document.getElementById("bottomButtonBarLeft");
-      bottomButtonBarLeft.innerHTML = ''; bottomButtonBarLeft.appendChild(hintButton);
-
-      const speechInput = document.createElement('div');
-      speechInput.className = 'speech-input';
-      const buttonContainer = document.createElement('div');
-      buttonContainer.className = 'button-container'; buttonContainer.id = 'buttonContainer';
-
-      const speechButton = document.createElement('button');
-      speechButton.className = 'btn btn-primary'; speechButton.id = 'speechButton';
-      speechButton.innerHTML = '<i class="bi bi-mic-fill"></i>';
-
-      speechButton.onclick = async () => {
-    try {
-        await toggleSpeechRecognition({
-            button: speechButton,
-            question,
-            micStatusText: DOM.micStatusText,
-            userData: State.userData,
-            configData: State.configData,
-            currentLessonIndex: State.currentLessonIndex,
-            currentQuestionIndex: qIndex,
-            handleAnswer,
-            player: State.player
-        });
-    } catch (error) {
-        console.error("Speech toggle failed", error);
-    }
-};
-
-      const bottomButtonBarCenter = document.getElementById("bottomButtonBarCenter"); 
-      bottomButtonBarCenter.innerHTML = ''; bottomButtonBarCenter.appendChild(buttonContainer); buttonContainer.appendChild(speechButton);
-
-      const speechText = document.createElement('p');
-      const bottomButtonBar = document.getElementById("bottomButtonBarCenter");
-      bottomButtonBar.appendChild(buttonContainer); speechInput.appendChild(speechText); answersContainer.appendChild(speechInput);
+      renderSpeechInputUI(
+          answerHTML,
+          () => handleHint(qIndex),
+          handleRevealClick,
+          async () => {
+              const speechButton = document.getElementById('speechButton');
+              try {
+                  await toggleSpeechRecognition({
+                      button: speechButton,
+                      question,
+                      micStatusText: DOM.micStatusText,
+                      userData: State.userData,
+                      configData: State.configData,
+                      currentLessonIndex: State.currentLessonIndex,
+                      currentQuestionIndex: qIndex,
+                      handleAnswer,
+                      player: State.player
+                  });
+              } catch (error) {
+                  console.error("Speech toggle failed", error);
+              }
+          }
+      );
 
   } else if (question.inputType === 'text') {
-      DOM.closeAndProgress.classList.remove('d-none'); DOM.scoresAndHearts.classList.remove('d-none');
-      document.getElementById("answerDiv").classList.add("d-none");
-
-      const inputField = document.createElement('input');
-      inputField.type = 'text'; inputField.className = 'form-control mb-3';
-      inputField.placeholder = Strings.get('placeholder_type_answer', State.userData?.native_language) || 'Type your answer here...';
-
-      const submitButton = document.createElement('button');
-      submitButton.className = 'btn btn-primary'; submitButton.textContent = Strings.get('btn_submit', State.userData?.native_language) || 'Submit';
-      submitButton.onclick = () => handleAnswer(inputField.value.trim(), question.cue, question, submitButton, question.explanation, question.translation, { pauseCount: null, netDuration: null });
-
-      answersContainer.appendChild(inputField); answersContainer.appendChild(submitButton);
+      renderTextInputUI(
+          Strings.get('placeholder_type_answer', State.userData?.native_language) || 'Type your answer here...',
+          Strings.get('btn_submit', State.userData?.native_language) || 'Submit',
+          (val, btn) => handleAnswer(val, question.cue, question, btn, question.explanation, question.translation, { pauseCount: null, netDuration: null })
+      );
 
   } else if (question.inputType === 'lessoncomplete') {
-    DOM.closeAndProgress.classList.remove('d-none'); DOM.scoresAndHearts.classList.add('d-none');
-    DOM.progressBarFill.style.width = "95%"; showFeedbackAndProceed(question, true);
-    document.getElementById("answerDiv").classList.add("d-none");
+    updateProgressAndCloseButton(true); toggleScoresAndHearts(false);
+    setProgressBarWidth("95%"); showFeedbackAndProceed(question, true);
+    hideAnswerDiv();
 
   } else if (question.inputType === 'unitcomplete') {
     question.lessonId = State.configData.lessons[State.currentLessonIndex].lessonId + 's';
     State.successHandler.handleSuccessLesson(question);
 
   } else if (question.inputType === 'lessonIntro') {
-      DOM.scoresAndHearts.classList.add('d-none'); 
+      toggleScoresAndHearts(false);
       State.repeatPointsHistory = []; 
       State.rolePlayPointsHistory = [];
-      document.getElementById("answerDiv").classList.add("d-none");
+      hideAnswerDiv();
   
       if (!question.simpleVideoUrl && question.explanation) {
         const lang = State.userData?.native_language; const localizedTrans = getLocalizedTranslation(question.translation, lang); const hasTranslation = !!localizedTrans;
@@ -952,7 +899,7 @@ if (question.introBackgroundVideoUrl) {
       showFeedbackAndProceed(question, true);
 
   } else if (question.inputType === 'present') {
-      DOM.closeAndProgress.classList.add('d-none'); DOM.scoresAndHearts.classList.add('d-none'); document.getElementById("answerDiv").classList.add("d-none");
+      updateProgressAndCloseButton(false); toggleScoresAndHearts(false); hideAnswerDiv();
 
       let headsUpHTML = question.headsUp ? `<div class='chat-bubble chat-msg'><p class='headsUp'>${question.headsUp}</p></div>` : "";
 
@@ -970,7 +917,7 @@ if (question.introBackgroundVideoUrl) {
 
   } else if (question.inputType === 'success') {
       window.removeEventListener('beforeunload', beforeUnloadHandler);
-      document.getElementById('processBtn').addEventListener('click', () => State.player.destroy());
+      bindProcessButton(() => State.player.destroy());
 
       question.lessonId = State.configData.lessons[State.currentLessonIndex].lessonId;
       
@@ -1000,23 +947,15 @@ if (question.introBackgroundVideoUrl) {
       try { hideWebcamPreview(); } catch (error) {}
 
   } else if (question.inputType === "multi") {
-      DOM.closeAndProgress.classList.remove('d-none'); DOM.scoresAndHearts.classList.remove('d-none');
-
-      const notSureButton = document.createElement('button');
-      notSureButton.className = 'btn btn-outline-secondary';
-      notSureButton.textContent = Strings.get('btn_not_sure', State.userData?.native_language) || "I'm not sure";
-      notSureButton.onclick = () => handleAnswer("I'm not sure", question.cue, question, notSureButton, question.explanation, undefined, { pauseCount: null, netDuration: null });
-      answersContainer.appendChild(notSureButton);
-
       const answers = [question.cue, ...question.incues];
       question.alpha ? sortAnswersAlphabetically(answers) : shuffleArray(answers); 
 
-      answers.forEach((answer) => {
-        const button = document.createElement('button');
-        button.className = 'btn btn-outline-primary'; button.textContent = answer;
-        button.onclick = () => handleAnswer(answer, question.cue, question, button, question.explanation, question.translation, { pauseCount: null, netDuration: null });
-        answersContainer.appendChild(button);
-      });
+      renderMultiChoiceUI(
+          Strings.get('btn_not_sure', State.userData?.native_language) || "I'm not sure",
+          (val, btn) => handleAnswer(val, question.cue, question, btn, question.explanation, undefined, { pauseCount: null, netDuration: null }),
+          answers,
+          (answer, button) => handleAnswer(answer, question.cue, question, button, question.explanation, question.translation, { pauseCount: null, netDuration: null })
+      );
   }
 }
 
@@ -1035,17 +974,17 @@ function updateProgressBar() {
   const totalQuestions = currentLesson.questions.length;
   let currentQuestions = State.questionsAnswered++;
   const finalProgress = Math.min(Math.max((currentQuestions / totalQuestions) * 100, 10), 90);
-  DOM.progressBarFill.style.width = `${finalProgress}%`;
+  setProgressBarWidth(`${finalProgress}%`);
 }
 
 function loadNextQuestion(currentQuestion, fluencyData) {
     updateProgressBar();
-    DOM.scoresAndHearts.classList.add('d-none'); 
+    toggleScoresAndHearts(false);
     
     State.resetForNextQuestion();
     updateCurrentScoreDisplay(State.currentPoints);
 
-    hearts.forEach(heart => { if(heart){heart.classList.remove("falling-image"); heart.classList.remove("d-none");} });
+    resetHeartsUI();
 
   if (!State.configData || !State.configData.lessons || State.configData.lessons.length === 0) return;
   const currentLesson = State.configData.lessons[State.currentLessonIndex];
@@ -1060,7 +999,7 @@ function loadNextQuestion(currentQuestion, fluencyData) {
 }
 
 function showCompletionMessage() {
-  document.getElementById('questions-container').innerHTML = `<div class="text-center">${Strings.get('msg_lesson_complete_all', State.userData?.native_language)}</div>`;
+  showMessageInQuestionsContainer(Strings.get('msg_lesson_complete_all', State.userData?.native_language));
 }
 
 async function loadNextLesson() {
@@ -1083,7 +1022,7 @@ async function loadNextLesson() {
         State.currentLessonIndex = nextLessonIndex;
         localStorage.setItem(`${State.courseId}_currentLessonId`, nextLessonId);
         localStorage.setItem(`${State.courseId}_currentLessonTimestamp`, new Date().toISOString());
-        DOM.progressBarFill.style.width = "100%";
+        setProgressBarWidth("100%");
         State.questionsAnswered = 0; 
         State.currentQuestionIndex = 0;
         loadLessonContent(State.configData.lessons[nextLessonIndex]);
@@ -1111,7 +1050,7 @@ async function initializeLesson() {
     
     loadLessonContent(State.lesson);
   } catch (error) {
-    document.getElementById('questions-container').innerHTML = `<div class="alert alert-danger">${Strings.get('lesson_load_error', State.userData?.native_language)}</div>`;
+    showErrorMessageInQuestionsContainer(Strings.get('lesson_load_error', State.userData?.native_language));
   }
 }
 
@@ -1183,61 +1122,23 @@ function loadLessonContent(lesson) {
   clearSpeechRecordingsForLesson(lesson.lessonId).catch(e => console.error(e));
   if(State.player) State.player.destroy();
   
-  // Ensure the video wrapper is visible
-  const ivpWrapper = document.querySelector('.ivp-main-wrapper');
-  if (ivpWrapper) ivpWrapper.classList.remove('d-none');
-  
   State.resetForNewLesson();
   
   updateCurrentScoreDisplay(State.currentPoints);
   updateActivityDisplay(State.dayCount, State.currentStreak);
   
-  // Reset hearts UI
-  hearts.forEach(heart => { 
-    if(heart) { 
-      heart.classList.remove("falling-image"); 
-      heart.classList.remove("d-none"); 
-    } 
-  });
-
-  document.querySelector('footer').classList.remove("d-none");
-  document.getElementById('bottomButtonBar').classList.remove('d-none');
-  document.getElementById('bottomButtonBarSuccess').classList.add('d-none');
-  document.body.classList.remove('bg-dark');
-  DOM.mediaContainer.classList.remove('d-none');
+  resetHeartsUI();
 
   updateProgressBar(); 
-  
-  const lessonHeader = document.getElementById('lesson-header');
-  if (lessonHeader) {
-    lessonHeader.style.display = 'block'; 
-    lessonHeader.classList.remove('lesson-header');
-    void lessonHeader.offsetWidth; // Trigger reflow for animation
-    lessonHeader.classList.add('lesson-header');
-  }
 
-// --- TITLE LOGIC ---
-  const titles = document.getElementsByClassName('lesson-title');
-  
-  // 1. Get Course Name and Level from State
+  // --- TITLE LOGIC ---
   const course = State.configData?.courseName || "";
-  const level = State.englishLevel ? ` (${State.englishLevel})` : ""; // Adds space and parens
-  
-  // 2. Check if unit exists
+  const level = State.englishLevel ? ` (${State.englishLevel})` : "";
   const unit = (lesson.unit && String(lesson.unit).trim() !== "") ? `${lesson.unit}: ` : "";
-  
-  // 3. Handle Lesson Title
   const titleText = (typeof lesson.title === 'object') ? (lesson.title.en || "") : (lesson.title || "");
-
-  // 4. Assemble: Course (Level): Unit: Title
-  // The colon only appears if we have a course name to attach it to.
   const fullTitle = `${course}${level}${course ? ': ' : ''}${unit}${titleText}`;
 
-  for (let i = 0; i < titles.length; i++) {
-    if (titles[i]) {
-      titles[i].textContent = fullTitle;
-    }
-  }
+  setupLessonUI(fullTitle);
 
   loadQuestion(lesson.questions[State.currentQuestionIndex], lesson);
 }
