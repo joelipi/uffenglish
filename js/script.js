@@ -120,6 +120,7 @@ import {
 
 import { idiomChecker } from './modules/idiomChecker.js';
 import { calculateSyntacticComplexity } from './modules/complexity.js';
+import { canRunGector } from './modules/deviceCapabilities.js';
 
 const hearts = [DOM.heart1, DOM.heart2, DOM.heart3];
 
@@ -1383,7 +1384,7 @@ async function requestPersistentStorage() {
 async function loadLocalModelsInBackground() {
     try {
         console.log("⏳ Telling background worker to boot models...");
-        await askWorker('LOAD_MODELS', {}, 3 * 60 * 1000); // 3 min timeout
+        await askWorker('LOAD_MODELS', { skipGector: !canRunGector() }, 3 * 60 * 1000); // 3 min timeout
         nlpModelsReady = true;
         console.log("✅ Worker reports all models are loaded and ready in the background!");
     } catch (err) {

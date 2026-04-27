@@ -53,32 +53,36 @@ self.addEventListener('message', async (event) => {
                 }
             });
 
-            console.log(`👷‍♂️ Worker: Beginning GECToR RoBERTa Download (${GECTOR_MODEL})...`);
-            localGrammarEditor = await pipeline('token-classification', GECTOR_MODEL, { 
-                device: 'wasm', 
-                dtype: 'q8',
-                session_options: {
-                    executionMode: 'sequential', 
-                    intraOpNumThreads: 1,
-                    interOpNumThreads: 1
-                },
-                progress_callback: (x) => {
-                    if (x.status === 'progress') console.log(`📥 GECToR: ${Math.round((x.loaded / x.total) * 100)}%`);
+            if (!payload.skipGector) {
+                console.log(`👷‍♂️ Worker: Beginning GECToR RoBERTa Download (${GECTOR_MODEL})...`);
+                localGrammarEditor = await pipeline('token-classification', GECTOR_MODEL, {
+                    device: 'wasm',
+                    dtype: 'q8',
+                    session_options: {
+                        executionMode: 'sequential',
+                        intraOpNumThreads: 1,
+                        interOpNumThreads: 1
+                    },
+                    progress_callback: (x) => {
+                        if (x.status === 'progress') console.log(`📥 GECToR: ${Math.round((x.loaded / x.total) * 100)}%`);
+                    }
+                });
+
+                console.log("👷‍♂️ Worker: Fetching GECToR Vocabularies...");
+                const [idResponse, verbResponse] = await Promise.all([
+                    fetch(`https://huggingface.co/${GECTOR_MODEL}/resolve/main/id2label.json`),
+                    fetch(VERB_VOCAB_URL)
+                ]);
+
+                if (!idResponse.ok || !verbResponse.ok) {
+                    throw new Error(`Failed to fetch vocabs. ID: ${idResponse.status}, Verb: ${verbResponse.status}`);
                 }
-            });
 
-            console.log("👷‍♂️ Worker: Fetching GECToR Vocabularies...");
-            const [idResponse, verbResponse] = await Promise.all([
-                fetch(`https://huggingface.co/${GECTOR_MODEL}/resolve/main/id2label.json`),
-                fetch(VERB_VOCAB_URL) 
-            ]);
-            
-            if (!idResponse.ok || !verbResponse.ok) {
-                throw new Error(`Failed to fetch vocabs. ID: ${idResponse.status}, Verb: ${verbResponse.status}`);
+                id2label = await idResponse.json();
+                verbFormVocab = parseVerbFormVocab(await verbResponse.text());
+            } else {
+                console.log("👷‍♂️ Worker: Skipping GECToR models due to low power device.");
             }
-
-            id2label = await idResponse.json();
-            verbFormVocab = parseVerbFormVocab(await verbResponse.text());
             
             console.log("👷‍♂️ Worker: ALL MODELS AND VOCABS LOADED.");
             self.postMessage({ id, status: 'success', data: 'MODELS_READY' });
