@@ -1410,6 +1410,29 @@ video {
   animation: ring-shake 0.8s infinite ease-in-out, ring-pulse 1.5s infinite ease-in-out;
 }
 
+.pulse-accept {
+  animation: accept-pulse 2s infinite;
+}
+
+@keyframes accept-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.7); }
+  70% { box-shadow: 0 0 0 15px rgba(25, 135, 84, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0); }
+}
+
+.intro-action-buttons button {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+}
+
+.intro-action-buttons button:hover {
+  transform: scale(1.1);
+}
+
 @media (max-width: 768px) {
   .intro-call-title {
     font-size: 1.1rem;

@@ -65,12 +65,35 @@ export class introBackgroundVideo {
   }
 
   initClick() {
+    // Keep backwards compatibility by still adding the listener to the widget if the buttons are missed
     this.widget.addEventListener('click', this.onClick);
+
+    const btnAccept = this.widget.querySelector('.intro-btn-accept');
+    const btnDecline = this.widget.querySelector('.intro-btn-decline');
+
+    if (btnAccept) {
+      btnAccept.addEventListener('click', (e) => {
+        e.stopPropagation(); // prevent bubbling to widget click
+        this.handleClick(); // Simulate accepting the call
+      });
+    }
+
+    if (btnDecline) {
+      btnDecline.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.handleClick(); // Same behavior for now
+      });
+    }
   }
 
   handleClick() {
     const btn = document.getElementById('continueButton') || document.getElementById('speechButton');
     if (btn) {
+      // Rather than just bouncing, if it's the green accept we could just click it.
+      // But bouncing the continue button is the standard flow, let's keep it consistent
+      // but also directly click it to save the user a tap
+      btn.click();
+
       btn.classList.remove('btn-bounce');
       void btn.offsetWidth; // trigger reflow
       btn.classList.add('btn-bounce');
