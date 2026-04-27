@@ -1188,6 +1188,10 @@ function loadLessonContent(lesson) {
   if (ivpWrapper) ivpWrapper.classList.remove('d-none');
   
   State.resetForNewLesson();
+  State.mission = lesson.mission || "";
+  State.setting = lesson.setting || "";
+  State.userRole = lesson.userRole || "";
+  State.videoRole = lesson.videoRole || "";
   
   updateCurrentScoreDisplay(State.currentPoints);
   updateActivityDisplay(State.dayCount, State.currentStreak);

@@ -16,6 +16,10 @@ export const State = {
     // Lesson Data
     lessonId: null,
     lesson: null,
+    mission: null,
+    setting: null,
+    userRole: null,
+    videoRole: null,
     currentLessonIndex: 0,
     currentQuestionIndex: 0,
     successHandler: null,
@@ -55,6 +59,10 @@ export const State = {
 
     // Helpers to quickly reset state
     resetForNewLesson() {
+        this.mission = null;
+        this.setting = null;
+        this.userRole = null;
+        this.videoRole = null;
         this.currentPoints = 100;
         this.currentQuestionIndex = 0;
         this.incorrectAttempts = 0;
