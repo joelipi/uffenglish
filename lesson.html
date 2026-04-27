@@ -508,9 +508,9 @@
       case 1: elementsToHide.push('.premium-feature'); break;
       case 2: elementsToHide.push('.complex-feature'); break;
     }
-    elementsToHide.forEach(selector => {
-      document.querySelectorAll(selector).forEach(el => el.style.display = 'none');
-    });
+    if (elementsToHide.length > 0) {
+      document.querySelectorAll(elementsToHide.join(',')).forEach(el => el.style.display = 'none');
+    }
   }
 
   document.addEventListener('DOMContentLoaded', setupUserDayRestrictions);
