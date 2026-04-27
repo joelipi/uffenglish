@@ -36,11 +36,11 @@ function handleDaySpecificLogic(days) {
     }
     
     // Hide elements
-    elementsToHide.forEach(selector => {
-        document.querySelectorAll(selector).forEach(element => {
+    if (elementsToHide.length > 0) {
+        document.querySelectorAll(elementsToHide.join(',')).forEach(element => {
             element.style.display = 'none';
         });
-    });
+    }
 }
 
 // Run on page load
