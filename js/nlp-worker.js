@@ -42,8 +42,11 @@ self.addEventListener('message', async (event) => {
     try {
         if (action === 'LOAD_MODELS') {
             console.log("👷‍♂️ Worker: Beginning Zero-Shot Classifier Download...");
+            // Far less than ideal model:
             //zeroShotClassifier = await pipeline('zero-shot-classification', 'Xenova/mobilebert-uncased-mnli', {
-                zeroShotClassifier = await pipeline('zero-shot-classification', 'Xenova/distilbert-base-uncased-mnli', {
+            // This model was not so glorious in testing but quite a ram user (estimated 350 MB) so putting aside for now:
+            //zeroShotClassifier = await pipeline('zero-shot-classification', 'Xenova/nli-deberta-v3-small', {
+            zeroShotClassifier = await pipeline('zero-shot-classification', 'Xenova/nli-deberta-v3-xsmall', {
                 device: 'wasm',
                 dtype: 'q8',
                 session_options: {
@@ -129,8 +132,9 @@ self.addEventListener('message', async (event) => {
             const candidateLabels = [...safeTargetIntents, ...safeBadIntents];
 
             console.log("👷‍♂️ Worker: Running Multi-Label Zero-Shot Classification...");
-            // FIX 1: Added multi_label: true
-            const result = await zeroShotClassifier(userInput, candidateLabels, { multi_label: true });
+            // Remove multi_label so the scores are forced to sum to 100%. In tests, the best way to get an answer.
+            // const result = await zeroShotClassifier(userInput, candidateLabels, { multi_label: true });
+            const result = await zeroShotClassifier(userInput, candidateLabels);
 
             const winningLabel = result.labels[0];
             const winningScore = result.scores[0];

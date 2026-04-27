@@ -10,18 +10,21 @@
       "mission": {"en": "order a drink", "es": "pedir una bebida", "pt": "pedir uma bebida"},
       "questions": [
         {
-          "cue": {"en": "Hi, what would you like to drink and could I get you anything else, your hyperexcellency? We have a wide assortment of teas.", "es": "Hola, ¿qué quisieras para tomar?","pt": "Ola, o qué voce quer de beber?"},
+          "cue": {"en": "Hi, what would you like to drink?", "es": "Hola, ¿qué quisieras para tomar?","pt": "Ola, o qué voce quer de beber?"},
           "inputType": "ai",
           "videoUrl": "gtests-1-1",
           "targetIntents": [
-            "I would like to order a specific beverage.",
-            "Can I see a menu or a list of drinks?",
-            "I'm not sure yet, what do you have?",
-            "Just a water for me, please."
+            "ordering a specific drink",
+            "asking for a drink menu",
+            "asking what drinks are available",
+            "ordering water"
           ],
           "badIntents": [
-            "I am asking about the price",
-            "I want to speak to the manager"
+            "talking about drinks",
+            "refusing a drink",
+            "asking about the price",
+            "asking for a manager",
+            "talking about something completely unrelated to drinks"
           ]
         },
         {
@@ -33,14 +36,14 @@
           "inputType": "ai",
           "videoUrl": "gtests-1-2",
           "targetIntents": [
-            "That is okay, I will choose something else.",
-            "What else do you recommend instead?",
-            "In that case, I don't want anything.",
-            "I'll have a different drink then."
+            "accepting the situation and choosing a different item",
+            "asking for a recommendation or alternative",
+            "canceling the order and getting nothing",
+            "ordering a different drink"
           ],
           "badIntents": [
-            "I am asking about the price.",
-            "I want to speak to the manager"
+            "asking about the price or cost",
+            "asking to speak to the manager"
           ]
         },
         {
