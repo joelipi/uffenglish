@@ -5,12 +5,24 @@
   "lessons": [
     {
       "lessonId": "a",
-      "title":  {"en": "Soda 1", "es": "Gaseosa 1", "pt": "Gaseosa 1"},
+      "title": {
+        "en": "Soda 1",
+        "es": "Gaseosa 1",
+        "pt": "Gaseosa 1"
+      },
       "unit": "Unit 1",
-      "mission": {"en": "order a drink", "es": "pedir una bebida", "pt": "pedir uma bebida"},
+      "mission": {
+        "en": "order a drink",
+        "es": "pedir una bebida",
+        "pt": "pedir uma bebida"
+      },
       "questions": [
         {
-          "cue": {"en": "Hi, what would you like to drink and could I get you anything else, your hyperexcellency? We have a wide assortment of teas.", "es": "Hola, ¿qué quisieras para tomar?","pt": "Ola, o qué voce quer de beber?"},
+          "cue": {
+            "en": "Hi, what would you like to drink and could I get you anything else, your hyperexcellency? We have a wide assortment of teas.",
+            "es": "Hola, ¿qué quisieras para tomar?",
+            "pt": "Ola, o qué voce quer de beber?"
+          },
           "inputType": "ai",
           "videoUrl": "gtests-1-1",
           "targetIntents": [
@@ -65,7 +77,10 @@
           "inputType": "success"
         }
       ],
-      "nextLessonId": "2-2s"
+      "nextLessonId": "2-2s",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "x",
@@ -91,7 +106,11 @@
           "inputType": "success"
         }
       ],
-      "nextLessonId": "new"
+      "nextLessonId": "new",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "0",
@@ -188,7 +207,11 @@
           "inputType": "success"
         }
       ],
-      "nextLessonId": "2-2s"
+      "nextLessonId": "2-2s",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "x",
@@ -214,7 +237,11 @@
           "inputType": "success"
         }
       ],
-      "nextLessonId": "new"
+      "nextLessonId": "new",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "new",
@@ -324,7 +351,11 @@
           "inputType": "success"
         }
       ],
-      "nextLessonId": "2-2s"
+      "nextLessonId": "2-2s",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "x",
@@ -344,7 +375,11 @@
           "inputType": "success"
         }
       ],
-      "nextLessonId": "2-2s"
+      "nextLessonId": "2-2s",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "0",
@@ -401,7 +436,11 @@
           "inputType": "success"
         }
       ],
-      "nextLessonId": "2-2s"
+      "nextLessonId": "2-2s",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "1",
@@ -514,7 +553,11 @@
           "inputType": "success"
         }
       ],
-      "nextLessonId": "2-2s"
+      "nextLessonId": "2-2s",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "2-0",
@@ -538,7 +581,11 @@
       ],
       "nextLessonId": "2-1",
       "percentComplete": 0,
-      "phrasesCount": "0"
+      "phrasesCount": "0",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "test",
@@ -563,7 +610,11 @@
       ],
       "nextLessonId": "2-0",
       "percentComplete": 20,
-      "phrasesCount": "4"
+      "phrasesCount": "4",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "t",
@@ -610,7 +661,11 @@
       ],
       "nextLessonId": "2-2s",
       "percentComplete": 20,
-      "phrasesCount": "4"
+      "phrasesCount": "4",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "2-0",
@@ -634,7 +689,11 @@
       ],
       "nextLessonId": "2-1",
       "percentComplete": 0,
-      "phrasesCount": "0"
+      "phrasesCount": "0",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "2-1",
@@ -720,7 +779,11 @@
       ],
       "nextLessonId": "2-1s",
       "percentComplete": 0,
-      "phrasesCount": "0"
+      "phrasesCount": "0",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "2-1s",
@@ -740,7 +803,11 @@
       ],
       "nextLessonId": "2-2",
       "percentComplete": 20,
-      "phrasesCount": "4"
+      "phrasesCount": "4",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "2-2",
@@ -784,7 +851,11 @@
       ],
       "nextLessonId": "2-2s",
       "percentComplete": 20,
-      "phrasesCount": "4"
+      "phrasesCount": "4",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "2-2s",
@@ -804,7 +875,11 @@
       ],
       "nextLessonId": "2-3",
       "percentComplete": 40,
-      "phrasesCount": "8"
+      "phrasesCount": "8",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "2-3",
@@ -895,7 +970,11 @@
       ],
       "nextLessonId": "2-3s",
       "percentComplete": 40,
-      "phrasesCount": "8"
+      "phrasesCount": "8",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "2-3s",
@@ -915,7 +994,11 @@
       ],
       "nextLessonId": "2-4",
       "percentComplete": 60,
-      "phrasesCount": "12"
+      "phrasesCount": "12",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "2-4",
@@ -1006,7 +1089,11 @@
       ],
       "nextLessonId": "2-4s",
       "percentComplete": 60,
-      "phrasesCount": "12"
+      "phrasesCount": "12",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "2-4s",
@@ -1026,7 +1113,11 @@
       ],
       "nextLessonId": "2-5",
       "percentComplete": 80,
-      "phrasesCount": "16"
+      "phrasesCount": "16",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "2-5",
@@ -1117,7 +1208,11 @@
       ],
       "nextLessonId": "2-5s",
       "percentComplete": 80,
-      "phrasesCount": "16"
+      "phrasesCount": "16",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "2-5s",
@@ -1137,7 +1232,11 @@
       ],
       "nextLessonId": "2-6",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "2-6",
@@ -1192,7 +1291,11 @@
       ],
       "nextLessonId": "2-6s",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "2-6s",
@@ -1209,7 +1312,11 @@
       ],
       "nextLessonId": "3-0",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "3-0",
@@ -1233,7 +1340,11 @@
       ],
       "nextLessonId": "3-1",
       "percentComplete": 0,
-      "phrasesCount": "0"
+      "phrasesCount": "0",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "3-1",
@@ -1324,7 +1435,11 @@
       ],
       "nextLessonId": "3-1s",
       "percentComplete": 0,
-      "phrasesCount": "0"
+      "phrasesCount": "0",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "3-1s",
@@ -1344,7 +1459,11 @@
       ],
       "nextLessonId": "3-2",
       "percentComplete": 20,
-      "phrasesCount": "4"
+      "phrasesCount": "4",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "3-2",
@@ -1435,7 +1554,11 @@
       ],
       "nextLessonId": "3-2s",
       "percentComplete": 20,
-      "phrasesCount": "4"
+      "phrasesCount": "4",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "3-2s",
@@ -1455,7 +1578,11 @@
       ],
       "nextLessonId": "3-3",
       "percentComplete": 40,
-      "phrasesCount": "8"
+      "phrasesCount": "8",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "3-3",
@@ -1546,7 +1673,11 @@
       ],
       "nextLessonId": "3-3s",
       "percentComplete": 40,
-      "phrasesCount": "8"
+      "phrasesCount": "8",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "3-3s",
@@ -1566,7 +1697,11 @@
       ],
       "nextLessonId": "3-4",
       "percentComplete": 60,
-      "phrasesCount": "12"
+      "phrasesCount": "12",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "3-4",
@@ -1657,7 +1792,11 @@
       ],
       "nextLessonId": "3-4s",
       "percentComplete": 60,
-      "phrasesCount": "12"
+      "phrasesCount": "12",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "3-4s",
@@ -1677,7 +1816,11 @@
       ],
       "nextLessonId": "3-5",
       "percentComplete": 80,
-      "phrasesCount": "16"
+      "phrasesCount": "16",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "3-5",
@@ -1768,7 +1911,11 @@
       ],
       "nextLessonId": "3-5s",
       "percentComplete": 80,
-      "phrasesCount": "16"
+      "phrasesCount": "16",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "3-5s",
@@ -1788,7 +1935,11 @@
       ],
       "nextLessonId": "3-6",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "3-6",
@@ -1843,7 +1994,11 @@
       ],
       "nextLessonId": "3-6s",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "3-6s",
@@ -1860,7 +2015,11 @@
       ],
       "nextLessonId": "4-0",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "4-0",
@@ -1884,7 +2043,11 @@
       ],
       "nextLessonId": "4-1",
       "percentComplete": 0,
-      "phrasesCount": "0"
+      "phrasesCount": "0",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "4-1",
@@ -1975,7 +2138,11 @@
       ],
       "nextLessonId": "4-1s",
       "percentComplete": 0,
-      "phrasesCount": "0"
+      "phrasesCount": "0",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "4-1s",
@@ -1995,7 +2162,11 @@
       ],
       "nextLessonId": "4-2",
       "percentComplete": 20,
-      "phrasesCount": "4"
+      "phrasesCount": "4",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "4-2",
@@ -2086,7 +2257,11 @@
       ],
       "nextLessonId": "4-2s",
       "percentComplete": 20,
-      "phrasesCount": "4"
+      "phrasesCount": "4",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "4-2s",
@@ -2106,7 +2281,11 @@
       ],
       "nextLessonId": "4-3",
       "percentComplete": 40,
-      "phrasesCount": "8"
+      "phrasesCount": "8",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "4-3",
@@ -2197,7 +2376,11 @@
       ],
       "nextLessonId": "4-3s",
       "percentComplete": 40,
-      "phrasesCount": "8"
+      "phrasesCount": "8",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "4-3s",
@@ -2217,7 +2400,11 @@
       ],
       "nextLessonId": "4-4",
       "percentComplete": 60,
-      "phrasesCount": "12"
+      "phrasesCount": "12",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "4-4",
@@ -2308,7 +2495,11 @@
       ],
       "nextLessonId": "4-4s",
       "percentComplete": 60,
-      "phrasesCount": "12"
+      "phrasesCount": "12",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "4-4s",
@@ -2328,7 +2519,11 @@
       ],
       "nextLessonId": "4-5",
       "percentComplete": 80,
-      "phrasesCount": "16"
+      "phrasesCount": "16",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "4-5",
@@ -2419,7 +2614,11 @@
       ],
       "nextLessonId": "4-5s",
       "percentComplete": 80,
-      "phrasesCount": "16"
+      "phrasesCount": "16",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "4-5s",
@@ -2439,7 +2638,11 @@
       ],
       "nextLessonId": "4-6",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "4-6",
@@ -2494,7 +2697,11 @@
       ],
       "nextLessonId": "4-6s",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "4-6s",
@@ -2511,7 +2718,11 @@
       ],
       "nextLessonId": "5-0",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "5-0",
@@ -2535,7 +2746,11 @@
       ],
       "nextLessonId": "5-1",
       "percentComplete": 0,
-      "phrasesCount": "0"
+      "phrasesCount": "0",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "5-1",
@@ -2626,7 +2841,11 @@
       ],
       "nextLessonId": "5-1s",
       "percentComplete": 0,
-      "phrasesCount": "0"
+      "phrasesCount": "0",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "5-1s",
@@ -2646,7 +2865,11 @@
       ],
       "nextLessonId": "5-2",
       "percentComplete": 20,
-      "phrasesCount": "4"
+      "phrasesCount": "4",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "5-2",
@@ -2737,7 +2960,11 @@
       ],
       "nextLessonId": "5-2s",
       "percentComplete": 20,
-      "phrasesCount": "4"
+      "phrasesCount": "4",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "5-2s",
@@ -2757,7 +2984,11 @@
       ],
       "nextLessonId": "5-3",
       "percentComplete": 40,
-      "phrasesCount": "8"
+      "phrasesCount": "8",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "5-3",
@@ -2848,7 +3079,11 @@
       ],
       "nextLessonId": "5-3s",
       "percentComplete": 40,
-      "phrasesCount": "8"
+      "phrasesCount": "8",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "5-3s",
@@ -2868,7 +3103,11 @@
       ],
       "nextLessonId": "5-4",
       "percentComplete": 60,
-      "phrasesCount": "12"
+      "phrasesCount": "12",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "5-4",
@@ -2959,7 +3198,11 @@
       ],
       "nextLessonId": "5-4s",
       "percentComplete": 60,
-      "phrasesCount": "12"
+      "phrasesCount": "12",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "5-4s",
@@ -2979,7 +3222,11 @@
       ],
       "nextLessonId": "5-5",
       "percentComplete": 80,
-      "phrasesCount": "16"
+      "phrasesCount": "16",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "5-5",
@@ -3070,7 +3317,11 @@
       ],
       "nextLessonId": "5-5s",
       "percentComplete": 80,
-      "phrasesCount": "16"
+      "phrasesCount": "16",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "5-5s",
@@ -3090,7 +3341,11 @@
       ],
       "nextLessonId": "5-6",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "5-6",
@@ -3145,7 +3400,11 @@
       ],
       "nextLessonId": "5-6s",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "5-6s",
@@ -3162,7 +3421,11 @@
       ],
       "nextLessonId": "6-0",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "6-0",
@@ -3186,7 +3449,11 @@
       ],
       "nextLessonId": "6-1",
       "percentComplete": 0,
-      "phrasesCount": "0"
+      "phrasesCount": "0",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "6-1",
@@ -3277,7 +3544,11 @@
       ],
       "nextLessonId": "6-1s",
       "percentComplete": 0,
-      "phrasesCount": "0"
+      "phrasesCount": "0",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "6-1s",
@@ -3297,7 +3568,11 @@
       ],
       "nextLessonId": "6-2",
       "percentComplete": 20,
-      "phrasesCount": "4"
+      "phrasesCount": "4",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "6-2",
@@ -3388,7 +3663,11 @@
       ],
       "nextLessonId": "6-2s",
       "percentComplete": 20,
-      "phrasesCount": "4"
+      "phrasesCount": "4",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "6-2s",
@@ -3408,7 +3687,11 @@
       ],
       "nextLessonId": "6-3",
       "percentComplete": 40,
-      "phrasesCount": "8"
+      "phrasesCount": "8",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "6-3",
@@ -3499,7 +3782,11 @@
       ],
       "nextLessonId": "6-3s",
       "percentComplete": 40,
-      "phrasesCount": "8"
+      "phrasesCount": "8",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "6-3s",
@@ -3519,7 +3806,11 @@
       ],
       "nextLessonId": "6-4",
       "percentComplete": 60,
-      "phrasesCount": "12"
+      "phrasesCount": "12",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "6-4",
@@ -3610,7 +3901,11 @@
       ],
       "nextLessonId": "6-4s",
       "percentComplete": 60,
-      "phrasesCount": "12"
+      "phrasesCount": "12",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "6-4s",
@@ -3630,7 +3925,11 @@
       ],
       "nextLessonId": "6-5",
       "percentComplete": 80,
-      "phrasesCount": "16"
+      "phrasesCount": "16",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "6-5",
@@ -3721,7 +4020,11 @@
       ],
       "nextLessonId": "6-5s",
       "percentComplete": 80,
-      "phrasesCount": "16"
+      "phrasesCount": "16",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "6-5s",
@@ -3741,7 +4044,11 @@
       ],
       "nextLessonId": "6-6",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "6-6",
@@ -3796,7 +4103,11 @@
       ],
       "nextLessonId": "6-6s",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "6-6s",
@@ -3813,7 +4124,11 @@
       ],
       "nextLessonId": "7-0",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "7-0",
@@ -3837,7 +4152,11 @@
       ],
       "nextLessonId": "7-1",
       "percentComplete": 0,
-      "phrasesCount": "0"
+      "phrasesCount": "0",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "7-1",
@@ -3928,7 +4247,11 @@
       ],
       "nextLessonId": "7-1s",
       "percentComplete": 0,
-      "phrasesCount": "0"
+      "phrasesCount": "0",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "7-1s",
@@ -3948,7 +4271,11 @@
       ],
       "nextLessonId": "7-2",
       "percentComplete": 20,
-      "phrasesCount": "4"
+      "phrasesCount": "4",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "7-2",
@@ -4039,7 +4366,11 @@
       ],
       "nextLessonId": "7-2s",
       "percentComplete": 20,
-      "phrasesCount": "4"
+      "phrasesCount": "4",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "7-2s",
@@ -4059,7 +4390,11 @@
       ],
       "nextLessonId": "7-3",
       "percentComplete": 40,
-      "phrasesCount": "8"
+      "phrasesCount": "8",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "7-3",
@@ -4150,7 +4485,11 @@
       ],
       "nextLessonId": "7-3s",
       "percentComplete": 40,
-      "phrasesCount": "8"
+      "phrasesCount": "8",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "7-3s",
@@ -4170,7 +4509,11 @@
       ],
       "nextLessonId": "7-4",
       "percentComplete": 60,
-      "phrasesCount": "12"
+      "phrasesCount": "12",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "7-4",
@@ -4261,7 +4604,11 @@
       ],
       "nextLessonId": "7-4s",
       "percentComplete": 60,
-      "phrasesCount": "12"
+      "phrasesCount": "12",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "7-4s",
@@ -4281,7 +4628,11 @@
       ],
       "nextLessonId": "7-5",
       "percentComplete": 80,
-      "phrasesCount": "16"
+      "phrasesCount": "16",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "7-5",
@@ -4372,7 +4723,11 @@
       ],
       "nextLessonId": "7-5s",
       "percentComplete": 80,
-      "phrasesCount": "16"
+      "phrasesCount": "16",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "7-5s",
@@ -4392,7 +4747,11 @@
       ],
       "nextLessonId": "7-6",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "7-6",
@@ -4447,7 +4806,11 @@
       ],
       "nextLessonId": "7-6s",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "7-6s",
@@ -4464,7 +4827,11 @@
       ],
       "nextLessonId": "8-0",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "8-0",
@@ -4488,7 +4855,11 @@
       ],
       "nextLessonId": "8-1",
       "percentComplete": 0,
-      "phrasesCount": "0"
+      "phrasesCount": "0",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "8-1",
@@ -4579,7 +4950,11 @@
       ],
       "nextLessonId": "8-1s",
       "percentComplete": 0,
-      "phrasesCount": "0"
+      "phrasesCount": "0",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "8-1s",
@@ -4599,7 +4974,11 @@
       ],
       "nextLessonId": "8-2",
       "percentComplete": 20,
-      "phrasesCount": "4"
+      "phrasesCount": "4",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "8-2",
@@ -4690,7 +5069,11 @@
       ],
       "nextLessonId": "8-2s",
       "percentComplete": 20,
-      "phrasesCount": "4"
+      "phrasesCount": "4",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "8-2s",
@@ -4710,7 +5093,11 @@
       ],
       "nextLessonId": "8-3",
       "percentComplete": 40,
-      "phrasesCount": "8"
+      "phrasesCount": "8",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "8-3",
@@ -4801,7 +5188,11 @@
       ],
       "nextLessonId": "8-3s",
       "percentComplete": 40,
-      "phrasesCount": "8"
+      "phrasesCount": "8",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "8-3s",
@@ -4821,7 +5212,11 @@
       ],
       "nextLessonId": "8-4",
       "percentComplete": 60,
-      "phrasesCount": "12"
+      "phrasesCount": "12",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "8-4",
@@ -4912,7 +5307,11 @@
       ],
       "nextLessonId": "8-4s",
       "percentComplete": 60,
-      "phrasesCount": "12"
+      "phrasesCount": "12",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "8-4s",
@@ -4932,7 +5331,11 @@
       ],
       "nextLessonId": "8-5",
       "percentComplete": 80,
-      "phrasesCount": "16"
+      "phrasesCount": "16",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "8-5",
@@ -5023,7 +5426,11 @@
       ],
       "nextLessonId": "8-5s",
       "percentComplete": 80,
-      "phrasesCount": "16"
+      "phrasesCount": "16",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "8-5s",
@@ -5043,7 +5450,11 @@
       ],
       "nextLessonId": "8-6",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "8-6",
@@ -5098,7 +5509,11 @@
       ],
       "nextLessonId": "8-6s",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "8-6s",
@@ -5115,7 +5530,11 @@
       ],
       "nextLessonId": "9-0",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "9-0",
@@ -5139,7 +5558,11 @@
       ],
       "nextLessonId": "9-1",
       "percentComplete": 0,
-      "phrasesCount": "0"
+      "phrasesCount": "0",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "9-1",
@@ -5230,7 +5653,11 @@
       ],
       "nextLessonId": "9-1s",
       "percentComplete": 0,
-      "phrasesCount": "0"
+      "phrasesCount": "0",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "9-1s",
@@ -5250,7 +5677,11 @@
       ],
       "nextLessonId": "9-2",
       "percentComplete": 20,
-      "phrasesCount": "4"
+      "phrasesCount": "4",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "9-2",
@@ -5341,7 +5772,11 @@
       ],
       "nextLessonId": "9-2s",
       "percentComplete": 20,
-      "phrasesCount": "4"
+      "phrasesCount": "4",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "9-2s",
@@ -5361,7 +5796,11 @@
       ],
       "nextLessonId": "9-3",
       "percentComplete": 40,
-      "phrasesCount": "8"
+      "phrasesCount": "8",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "9-3",
@@ -5452,7 +5891,11 @@
       ],
       "nextLessonId": "9-3s",
       "percentComplete": 40,
-      "phrasesCount": "8"
+      "phrasesCount": "8",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "9-3s",
@@ -5472,7 +5915,11 @@
       ],
       "nextLessonId": "9-4",
       "percentComplete": 60,
-      "phrasesCount": "12"
+      "phrasesCount": "12",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "9-4",
@@ -5563,7 +6010,11 @@
       ],
       "nextLessonId": "9-4s",
       "percentComplete": 60,
-      "phrasesCount": "12"
+      "phrasesCount": "12",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "9-4s",
@@ -5583,7 +6034,11 @@
       ],
       "nextLessonId": "9-5",
       "percentComplete": 80,
-      "phrasesCount": "16"
+      "phrasesCount": "16",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "9-5",
@@ -5674,7 +6129,11 @@
       ],
       "nextLessonId": "9-5s",
       "percentComplete": 80,
-      "phrasesCount": "16"
+      "phrasesCount": "16",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "9-5s",
@@ -5694,7 +6153,11 @@
       ],
       "nextLessonId": "9-6",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "9-6",
@@ -5749,7 +6212,11 @@
       ],
       "nextLessonId": "9-6s",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "9-6s",
@@ -5766,7 +6233,11 @@
       ],
       "nextLessonId": "10-0",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "10-0",
@@ -5790,7 +6261,11 @@
       ],
       "nextLessonId": "10-1",
       "percentComplete": 0,
-      "phrasesCount": "0"
+      "phrasesCount": "0",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "10-1",
@@ -5881,7 +6356,11 @@
       ],
       "nextLessonId": "10-1s",
       "percentComplete": 0,
-      "phrasesCount": "0"
+      "phrasesCount": "0",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "10-1s",
@@ -5901,7 +6380,11 @@
       ],
       "nextLessonId": "10-2",
       "percentComplete": 20,
-      "phrasesCount": "4"
+      "phrasesCount": "4",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "10-2",
@@ -5992,7 +6475,11 @@
       ],
       "nextLessonId": "10-2s",
       "percentComplete": 20,
-      "phrasesCount": "4"
+      "phrasesCount": "4",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "10-2s",
@@ -6012,7 +6499,11 @@
       ],
       "nextLessonId": "10-3",
       "percentComplete": 40,
-      "phrasesCount": "8"
+      "phrasesCount": "8",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "10-3",
@@ -6103,7 +6594,11 @@
       ],
       "nextLessonId": "10-3s",
       "percentComplete": 40,
-      "phrasesCount": "8"
+      "phrasesCount": "8",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "10-3s",
@@ -6123,7 +6618,11 @@
       ],
       "nextLessonId": "10-4",
       "percentComplete": 60,
-      "phrasesCount": "12"
+      "phrasesCount": "12",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "10-4",
@@ -6214,7 +6713,11 @@
       ],
       "nextLessonId": "10-4s",
       "percentComplete": 60,
-      "phrasesCount": "12"
+      "phrasesCount": "12",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "10-4s",
@@ -6234,7 +6737,11 @@
       ],
       "nextLessonId": "10-5",
       "percentComplete": 80,
-      "phrasesCount": "16"
+      "phrasesCount": "16",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "10-5",
@@ -6325,7 +6832,11 @@
       ],
       "nextLessonId": "10-5s",
       "percentComplete": 80,
-      "phrasesCount": "16"
+      "phrasesCount": "16",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "10-5s",
@@ -6345,7 +6856,11 @@
       ],
       "nextLessonId": "10-6",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "10-6",
@@ -6400,7 +6915,11 @@
       ],
       "nextLessonId": "10-6s",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "10-6s",
@@ -6417,7 +6936,11 @@
       ],
       "nextLessonId": "11-0",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "11-0",
@@ -6441,7 +6964,11 @@
       ],
       "nextLessonId": "11-1",
       "percentComplete": 0,
-      "phrasesCount": "0"
+      "phrasesCount": "0",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "11-1",
@@ -6532,7 +7059,11 @@
       ],
       "nextLessonId": "11-1s",
       "percentComplete": 0,
-      "phrasesCount": "0"
+      "phrasesCount": "0",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "11-1s",
@@ -6552,7 +7083,11 @@
       ],
       "nextLessonId": "11-2",
       "percentComplete": 20,
-      "phrasesCount": "4"
+      "phrasesCount": "4",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "11-2",
@@ -6643,7 +7178,11 @@
       ],
       "nextLessonId": "11-2s",
       "percentComplete": 20,
-      "phrasesCount": "4"
+      "phrasesCount": "4",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "11-2s",
@@ -6663,7 +7202,11 @@
       ],
       "nextLessonId": "11-3",
       "percentComplete": 40,
-      "phrasesCount": "8"
+      "phrasesCount": "8",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "11-3",
@@ -6754,7 +7297,11 @@
       ],
       "nextLessonId": "11-3s",
       "percentComplete": 40,
-      "phrasesCount": "8"
+      "phrasesCount": "8",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "11-3s",
@@ -6774,7 +7321,11 @@
       ],
       "nextLessonId": "11-4",
       "percentComplete": 60,
-      "phrasesCount": "12"
+      "phrasesCount": "12",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "11-4",
@@ -6865,7 +7416,11 @@
       ],
       "nextLessonId": "11-4s",
       "percentComplete": 60,
-      "phrasesCount": "12"
+      "phrasesCount": "12",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "11-4s",
@@ -6885,7 +7440,11 @@
       ],
       "nextLessonId": "11-5",
       "percentComplete": 80,
-      "phrasesCount": "16"
+      "phrasesCount": "16",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "11-5",
@@ -6976,7 +7535,11 @@
       ],
       "nextLessonId": "11-5s",
       "percentComplete": 80,
-      "phrasesCount": "16"
+      "phrasesCount": "16",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "11-5s",
@@ -6996,7 +7559,11 @@
       ],
       "nextLessonId": "11-6",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "11-6",
@@ -7051,7 +7618,11 @@
       ],
       "nextLessonId": "11-6s",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     },
     {
       "lessonId": "11-6s",
@@ -7068,7 +7639,11 @@
       ],
       "nextLessonId": "",
       "percentComplete": 100,
-      "phrasesCount": "20"
+      "phrasesCount": "20",
+      "mission": "",
+      "setting": "",
+      "userRole": "",
+      "videoRole": ""
     }
   ]
 }
