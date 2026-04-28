@@ -788,7 +788,9 @@ export async function toggleSpeechRecognition(params) {
   const { button, question, micStatusText, userData, configData, currentLessonIndex, currentQuestionIndex, handleAnswer, player } = params;
   const wasManuallyStopped = isListening;
   console.log('[Toggle] toggleSpeechRecognition called — isListening:', isListening, '| question.inputType:', question?.inputType, '| question.videoUrl:', question?.videoUrl);
-  pauseVideoIfPlaying();
+
+  // Pass the player object down to our updated function
+  pauseVideoIfPlaying(player);
 
   const urlParams = new URLSearchParams(window.location.search);
   const forceDeepgram = urlParams.get('deepgram') === 'true';
@@ -1015,10 +1017,23 @@ export async function toggleSpeechRecognition(params) {
   }
 }
 
-function pauseVideoIfPlaying() {
-  const videoElement = document.querySelector('video.ivp-video');
-  if (!videoElement) return;
-  if (!videoElement.paused) videoElement.pause();
+function pauseVideoIfPlaying(playerInstance) {
+  // 1. Instance approach: keeps player UI/internal state in sync
+  if (playerInstance) {
+    if (typeof playerInstance.pause === 'function') {
+      playerInstance.pause();
+    } else if (playerInstance.video && !playerInstance.video.paused) {
+      playerInstance.video.pause();
+    }
+  }
+
+  // 2. DOM Fallback: Catch ALL .ivp-video elements, not just the first one
+  const videoElements = document.querySelectorAll('video.ivp-video');
+  videoElements.forEach(video => {
+    if (!video.paused) {
+      video.pause();
+    }
+  });
 }
 
 export function initLocalVoiceAI() {
