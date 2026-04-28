@@ -1,4 +1,5 @@
 // --- modules/ui.js ---
+import { isCameraOff, toggleCamera } from './speech.js';
 
 // 1. Centralize DOM Elements
 export const DOM = {
@@ -188,24 +189,100 @@ export function resetHeartsUI() {
     });
 }
 
-export function showContinueButton(isLessonIntro, onClickCallback) {
+export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyClickCallback) {
     let continueButton = document.getElementById('continueButton');
+    let audioOnlyButton = document.getElementById('audioOnlyButton');
+    let btnGroup = document.getElementById('introButtonGroup');
+    const centerBar = document.getElementById('bottomButtonBarCenter');
+
+    if (isLessonIntro) {
+        if (!btnGroup && centerBar) {
+            btnGroup = document.createElement('div');
+            btnGroup.className = 'd-flex gap-2 w-100';
+            btnGroup.id = 'introButtonGroup';
+            centerBar.appendChild(btnGroup);
+
+            // Move existing continueButton into the group if it exists
+            if (continueButton && continueButton.parentNode === centerBar) {
+                btnGroup.appendChild(continueButton);
+            }
+        }
+    }
+
     if (!continueButton) {
         continueButton = document.createElement('button');
         continueButton.id = 'continueButton';
         continueButton.className = 'btn btn-primary text-white w-100';
-        const centerBar = document.getElementById('bottomButtonBarCenter');
-        if (centerBar) centerBar.appendChild(continueButton);
+        if (isLessonIntro && btnGroup) {
+            btnGroup.appendChild(continueButton);
+        } else if (centerBar) {
+            centerBar.appendChild(continueButton);
+        }
+    } else if (isLessonIntro && btnGroup && continueButton.parentNode !== btnGroup) {
+        // Ensure it is in the group
+        btnGroup.appendChild(continueButton);
+    } else if (!isLessonIntro && centerBar && continueButton.parentNode === btnGroup) {
+        // Move it back out of the group
+        centerBar.appendChild(continueButton);
+        // And hide the group
+        btnGroup.style.display = 'none';
     }
-    continueButton.innerHTML = isLessonIntro ? '<i class="bi bi-camera-video-fill text-white" style="font-size: 40px; font-weight: 900;"></i>' : '<i class="bi bi-chevron-right text-white" style="font-size: 40px; font-weight: 900;"></i>';
-    continueButton.onclick = onClickCallback;
-    continueButton.style.display = 'inline-block';
+
+    if (!audioOnlyButton && isLessonIntro && btnGroup) {
+        audioOnlyButton = document.createElement('button');
+        audioOnlyButton.id = 'audioOnlyButton';
+        audioOnlyButton.className = 'btn btn-secondary text-white w-100';
+        audioOnlyButton.innerHTML = '<i class="bi bi-mic-fill text-white" style="font-size: 40px; font-weight: 900;"></i>';
+        btnGroup.appendChild(audioOnlyButton);
+    }
+
+    if (audioOnlyButton) {
+        audioOnlyButton.style.display = isLessonIntro ? 'inline-block' : 'none';
+        if (isLessonIntro) {
+            audioOnlyButton.onclick = () => {
+                if (!isCameraOff) {
+                    toggleCamera();
+                }
+                if (onAudioOnlyClickCallback) {
+                    onAudioOnlyClickCallback();
+                } else {
+                    onClickCallback();
+                }
+            };
+        }
+    }
+
+    if (btnGroup) {
+        btnGroup.style.display = isLessonIntro ? 'flex' : 'none';
+    }
+
+    if (continueButton) {
+        continueButton.innerHTML = isLessonIntro ? '<i class="bi bi-camera-video-fill text-white" style="font-size: 40px; font-weight: 900;"></i>' : '<i class="bi bi-chevron-right text-white" style="font-size: 40px; font-weight: 900;"></i>';
+        continueButton.onclick = () => {
+            if (isLessonIntro && isCameraOff) {
+                toggleCamera();
+            }
+            onClickCallback();
+        };
+        continueButton.style.display = 'inline-block';
+
+        // Adjust button widths if both are showing
+        if (isLessonIntro && audioOnlyButton) {
+            continueButton.classList.replace('w-100', 'w-50');
+            audioOnlyButton.classList.replace('w-100', 'w-50');
+        } else {
+            continueButton.classList.replace('w-50', 'w-100');
+        }
+    }
+
     return continueButton;
 }
 
 export function hideContinueButton() {
     const continueButton = document.getElementById('continueButton');
     if (continueButton) continueButton.style.display = 'none';
+    const audioOnlyButton = document.getElementById('audioOnlyButton');
+    if (audioOnlyButton) audioOnlyButton.style.display = 'none';
 }
 
 export function renderFallbackContinueButton(text, onClickCallback) {
