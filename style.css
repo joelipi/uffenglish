@@ -1,6 +1,5 @@
 /*
- Theme Name: Twenty Twenty-Five Child
- Template: twentytwentyfive
+ style.css
 */
 
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
@@ -1297,41 +1296,74 @@ video {
 }
 
 .intro-video-container {
-  width: min(90vw, 300px);
-  aspect-ratio: 3 / 4; /* width * 4/3 */
+  width: min(90vw, 360px);
+  aspect-ratio: 3 / 4; 
   position: relative;
   overflow: hidden;
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  transform: scale(0.95);
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/*black overlay so the text is visible */
+.intro-video-container::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);   /* 0.5 = 50% black – adjust as needed */
+  z-index: 1;                       /* sits above the video, below the text */
+  pointer-events: none;             /* allows clicking through to video/buttons if needed */
+}
+
+/* Force the video to the front and strip away the default black background */
+.intro-video {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  background: transparent !important; 
+  z-index: 0 !important;
 }
 
 @media (min-width: 801px) {
   .intro-video-container {
-    width: 300px;
-    height: 400px; /* 300 * 4/3 */
-    aspect-ratio: auto;
+    width: auto;
+    height: 480px; 
+    max-height: calc(100vh - 280px);
+    aspect-ratio: 3 / 4;
   }
 }
 
-.intro-video {
+.pulse-ring-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pulse-ring {
   position: absolute;
-  top: 0;
-  left: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  border-radius: 12px;
+  box-shadow: 0 0 0 0 rgba(0, 242, 254, 0.6);
+  animation: pulse-ring-anim 2s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+  z-index: -1;
+}
+
+@keyframes pulse-ring-anim {
+  0% { box-shadow: 0 0 0 0 rgba(0, 242, 254, 0.6); }
+  70% { box-shadow: 0 0 0 35px rgba(0, 242, 254, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 242, 254, 0); }
 }
 
 .intro-blur-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.4);
-  z-index: 1;
+  display: none !important;
 }
 
 .intro-notification-content {
@@ -1383,13 +1415,14 @@ video {
 }
 
 .intro-caller-name {
-  font-size: 1.4rem;
-  font-weight: 700;
-  margin-bottom: 5px;
+  font-size: 2.2rem; /* Increased size */
+  font-weight: 800;
+  text-shadow: 0 2px 6px rgba(0,0,0,0.5);
+  margin-bottom: 2px;
 }
 
 .intro-caller-title {
-  font-size: 1rem;
+  font-size: 1.3rem;
   opacity: 0.8;
 }
 
@@ -1413,10 +1446,6 @@ video {
 @media (max-width: 768px) {
   .intro-call-title {
     font-size: 1.1rem;
-  }
-  
-  .intro-caller-name {
-    font-size: 1.3rem;
   }
 }
 

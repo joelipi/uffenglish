@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Incoming Call Mockup | UFF English</title>
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="style.css">
+
+  <style>
+    /* 1. Hide Classroom Elements while ringing */
+    #closeAndProgress, #scoresAndHearts {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* 2. Full-Screen Immersion (Leaves the 140px footer untouched) */
+    .intro-fullscreen-takeover {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: calc(100vh - 140px); /* Protects your footer */
+      background: rgba(10, 25, 47, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      z-index: 1020; /* Bootstrap fixed-bottom is 1030, so this stays underneath */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* 3. Typography Updates */
+    .intro-call-title-soft {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 1.2rem;
+      font-weight: 500;
+      color: #ffffff;
+      margin-bottom: 30px;
+      letter-spacing: 0.5px;
+    }
+
+    .intro-caller-name-large {
+      font-size: 2.2rem;
+      font-weight: 800;
+      text-shadow: 0 2px 6px rgba(0,0,0,0.5);
+      margin-bottom: 2px;
+    }
+    
+    .intro-caller-title-soft {
+      font-size: 1.1rem;
+      color: #4facfe;
+      font-weight: 600;
+    }
+
+    /* 4. Pulse Effect */
+    .pulse-ring-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .pulse-ring {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 12px;
+      box-shadow: 0 0 0 0 rgba(0, 242, 254, 0.6);
+      animation: pulse-ring-anim 2s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+      z-index: -1;
+    }
+
+    @keyframes pulse-ring-anim {
+      0% { box-shadow: 0 0 0 0 rgba(0, 242, 254, 0.6); }
+      70% { box-shadow: 0 0 0 35px rgba(0, 242, 254, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(0, 242, 254, 0); }
+    }
+
+    /* Mock video background for the static preview */
+    .mock-video-bg {
+      background: url('assets/img/teacherprofile.png') center/cover no-repeat;
+      background-color: #1a3a5a;
+    }
+  </style>
+</head>
+
+<body>
+<div id="app">
+  <div class="container">
+    <div id="lesson-header" style="margin-top: -5px;">
+      
+      <div id="lessonIntroHeader">
+        <div id="wideHeader" class="d-flex justify-content-between align-items-center" style="margin-top: 10px;">
+          <img src="assets/img/header.png" id="uffposter" alt="" style="width: 320px; height: 60px;">
+          <div class="flex-grow-1 mx-1"></div>
+          <div class="d-flex align-items-center" style="height: 20px;">
+            <button class="hamburger-btn">
+              <div class="hamburger-icon"><span></span><span></span><span></span></div>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="closeAndProgress" class="d-flex justify-content-between align-items-center" style="margin-top: -10px; margin-bottom: -15px;">
+        <a href="#" class="d-flex align-items-center text-decoration-none"><i class="bi bi-x-lg text-white"></i></a>
+        <div class="flex-grow-1 mx-1">
+          <div class="progress" style="height: 20px; margin-right: 20px;">
+            <div class="progress-bar" style="width: 10%;"></div>
+          </div>
+        </div>
+      </div>
+      
+      <div id="scoresAndHearts" class="d-flex justify-content-between align-items-center ps-2" style="margin-top: -10px; margin-bottom: 10px;">
+        <div class="scoreHeader score text-center" style="width: 110px;">
+          <div><span style="color: white; font-size: 14px;">LISTENING</span><br><span class="scoreNumber">100</span>%</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="intro-call-widget" class="intro-fullscreen-takeover">
+      
+      <div class="intro-call-title-soft">
+        <i class="bi bi-telephone-inbound-fill me-2 text-info"></i> Ringing...
+      </div>
+
+      <div class="pulse-ring-wrapper">
+        <div class="pulse-ring"></div>
+        <div class="intro-video-container ringing-animation mock-video-bg">
+          <video class="intro-video" playsinline preload="auto" crossorigin="anonymous" muted></video>
+          <div class="intro-blur-overlay" style="background: linear-gradient(to bottom, rgba(0,0,0,0) 50%, rgba(0,0,0,0.8) 100%);"></div>
+          
+          <div class="intro-notification-content" style="justify-content: flex-end;">
+            <div class="intro-notification-bottom w-100 pb-3">
+              <div class="intro-caller-name-large text-white" id="intro-name">Joe Walsh</div>
+              <div class="intro-caller-title-soft" id="intro-role">English Coach, UFF</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    </div>
+</div>
+
+<footer style="margin-top: 100px;">
+  <div id="controls" class="fixed-bottom bg-dark p-1" style="min-height: 140px;">
+    <div id="micStatusText" class="d-flex justify-content-center align-items-center text-white mt-2">
+      Tap to answer
+    </div>
+    <div id="bottomButtonBar" class="d-flex justify-content-center gap-2 align-items-center" style="height: 80px; min-height: 80px;">
+      <div id="bottomButtonBarLeft" class="me-auto ms-3"></div>
+      
+      <div id="bottomButtonBarCenter" class="position-absolute start-50 translate-middle-x">
+        <button id="speechButton" class="btn text-white px-4 py-2" style="border-radius: 12px; font-weight: bold;">
+          <i class="bi bi-camera-video-fill me-2"></i> Turn on the cam
+        </button>
+      </div>
+
+      <button id="supportButton" class="btn bg-transparent text-white border-0 ms-auto me-3">
+        <i class="bi bi-chat-fill"></i>
+      </button>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
