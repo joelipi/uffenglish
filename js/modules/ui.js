@@ -256,15 +256,32 @@ export function prepareMediaUI() {
 
 export function clearMediaContainerAndPreservePlayers() {
     if (!DOM.mediaContainer) return;
+    
+    // 1. Identify containers we want to keep
     const preserved = DOM.mediaContainer.querySelectorAll('#ivp-container, #simple-ivp-container, #intro-call-widget');
+    
+    // 2. Wipe the parent container
     DOM.mediaContainer.innerHTML = '';
-    preserved.forEach(el => DOM.mediaContainer.appendChild(el));
-
-    const ivpShell = document.getElementById('ivp-container');
-    if (ivpShell && ivpShell.children.length === 0) {
-        ivpShell.style.minHeight = '0';
-        ivpShell.style.display = 'none';
-    }
+    
+    // 3. Re-append preserved shells and RESET any leftover inline style overrides or hidden classes.
+    // This allows the CSS :empty pseudo-class in style.css to manage visibility
+    // dynamically (hiding them when empty, showing them when they have children).
+    preserved.forEach(el => {
+        el.style.display = '';
+        el.style.minHeight = '';
+        
+        // Neutral state: Shells are available (unhidden), but the Call Widget is hidden by default
+        if (el.id === 'intro-call-widget') {
+            el.classList.add('d-none');
+        } else {
+            el.classList.remove('d-none');
+            // Always clear innerHTML of video shells during reset. This ensures they 
+            // are truly empty so CSS :empty can collapse them (0px height).
+            el.innerHTML = '';
+        }
+        
+        DOM.mediaContainer.appendChild(el);
+    });
 }
 
 export function renderImageInMediaContainer(imageUrl) {

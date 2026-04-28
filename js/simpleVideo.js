@@ -196,8 +196,13 @@ export class simpleVideoPlayer {
     this.videoWrapper.appendChild(this.subtitleScrollContainer);
 
     this.subtitleDisplay.textContent = this.config.subtitles;
+    
+    // Apply config styles if provided
+    if (this.config.subtitleStyles) {
+      Object.assign(this.subtitleDisplay.style, this.config.subtitleStyles);
+    }
 
-    setTimeout(() => this.updateSubtitleScroll(true), 50);
+    setTimeout(() => this.updateSubtitleScroll(true), 200);
   }
 
   initPlayOverlay() {
@@ -382,7 +387,7 @@ export class simpleVideoPlayer {
 
     if (this.isIOS) this.video.style.webkitPlaysinline = 'true';
 
-    const minSubtitleHeight = Math.max(60, videoHeight * 0.30);
+    const minSubtitleHeight = Math.max(60, videoHeight * 0.25);
 
     this.blurOverlay.style.position = 'absolute';
     this.blurOverlay.style.bottom = '0';
@@ -409,8 +414,8 @@ export class simpleVideoPlayer {
 
     this.subtitleDisplay.style.position = 'relative';
     this.subtitleDisplay.style.width = '100%';
-    this.subtitleDisplay.style.padding = '10px 30px';
-    this.subtitleDisplay.style.fontSize = '1rem';
+    this.subtitleDisplay.style.padding = '10px 20px';
+    this.subtitleDisplay.style.fontSize = isDesktop ? '1rem' : '1.2rem';
     this.subtitleDisplay.style.color = 'white';
     this.subtitleDisplay.style.textAlign = 'center';
     this.subtitleDisplay.style.boxSizing = 'border-box';
@@ -419,8 +424,15 @@ export class simpleVideoPlayer {
     this.subtitleDisplay.style.willChange = 'transform';
     this.subtitleDisplay.style.backgroundColor = 'transparent';
 
+    // Apply config styles again to ensure they override defaults
+    if (this.config.subtitleStyles) {
+      Object.assign(this.subtitleDisplay.style, this.config.subtitleStyles);
+    }
+
     if (window.innerWidth <= 768) {
-      this.subtitleDisplay.style.fontSize = '1rem';
+      if (!this.config.subtitleStyles?.fontSize) {
+        this.subtitleDisplay.style.fontSize = '1.1rem';
+      }
     }
 
     this.playOverlay.style.position = 'absolute';

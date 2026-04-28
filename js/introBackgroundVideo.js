@@ -22,9 +22,11 @@ export class introBackgroundVideo {
     this.initVideo();
     this.initClick();
 
-    // Hide standard video container to prevent stacking
-    const ivp = document.getElementById('ivp-container');
-    if (ivp) ivp.classList.add('d-none');
+    // Hide standard video containers to prevent stacking
+    ['#ivp-container', '#simple-ivp-container'].forEach(selector => {
+      const el = document.querySelector(selector);
+      if (el) el.classList.add('d-none');
+    });
   }
 
   initText() {

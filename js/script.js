@@ -728,7 +728,7 @@ if (question.videoUrl) {
         ? window.preloadedMedia[question.videoUrl] 
         : `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${question.videoUrl}.mp4?alt=media`;
     State.player = new InteractiveVideoPlayer({
-      videoUrl: currentVideoUrl, cue: question.cue, containerSelector: '#media-container',
+      videoUrl: currentVideoUrl, cue: question.cue, containerSelector: '#ivp-container',
       videoStyles: { maxWidth: '100%' },
       subtitleStyles: { fontSize: '24px', backgroundColor: 'rgba(0, 0, 0, 0.8)' }
     });
@@ -767,7 +767,7 @@ if (question.simpleVideoUrl) {
         ? window.preloadedMedia[question.simpleVideoUrl] 
         : `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${question.simpleVideoUrl}.mp4?alt=media`;
     State.player = new simpleVideoPlayer({
-      videoUrl: currentVideoUrl, subtitles: question.subtitles, containerSelector: '#media-container',
+      videoUrl: currentVideoUrl, subtitles: question.subtitles, containerSelector: '#simple-ivp-container',
       videoStyles: { maxWidth: '100%' },
       subtitleStyles: { fontSize: '24px', backgroundColor: 'rgba(0, 0, 0, 0.8)' }
     });
