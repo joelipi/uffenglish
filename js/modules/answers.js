@@ -66,37 +66,12 @@ export async function runPreflightChecks({
             return { passed: false, result };
         }
 
-        const wordCount = userResponse.trim().split(/\s+/).length;
-        let minWordsRequired = 3;
-        let warningMessage = Strings.get('min_words_3', userData?.native_language);
-
-        if (english_level === 'A2') { minWordsRequired = 4; warningMessage = Strings.get('min_words_4', userData?.native_language); }
-        else if (english_level === 'B1') { minWordsRequired = 5; warningMessage = Strings.get('min_words_5', userData?.native_language); }
-        else if (english_level === 'B2' || english_level === 'C1' || english_level === 'C2') { minWordsRequired = 6; warningMessage = Strings.get('min_words_6', userData?.native_language); }
-
-        if (wordCount < minWordsRequired) {
-            result.explanation = warningMessage;
-            return { passed: false, result };
-        }
-
         if (questionData.possibleAnswer) {
             const matchesLessonAnswers = await checkAnswerMatchParallel(normalizeduserResponse, lesson);
             if (matchesLessonAnswers) {
                 result.isCorrect = true;
                 return { passed: false, result }; // It is correct, bypass AI
             }
-        }
-
-        const hasAsterisks = /\*{2,}/.test(userResponse);
-        if (hasAsterisks) {
-            result.explanation = Strings.get('censored', userData?.native_language);
-            return { passed: false, result };
-        }
-
-        const isProfane = swearjar.profane(userResponse);
-        if (isProfane) {
-            result.explanation = Strings.get('inappropriate', userData?.native_language);
-            return { passed: false, result };
         }
     }
 

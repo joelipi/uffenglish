@@ -151,6 +151,7 @@ import {
 
 import { idiomChecker } from './modules/idiomChecker.js';
 import { calculateSyntacticComplexity } from './modules/complexity.js';
+import swearjar from './modules/swearjar.js';
 
 const hearts = [DOM.heart1, DOM.heart2, DOM.heart3];
 
@@ -275,6 +276,45 @@ window.testIntent = evaluateIntentLocally;
 
 function handleHint(qIndex) {
     showHintsAndScroll();
+}
+
+async function submitAnswerPrecheck(val, cue, questionData, btn, explanation, translation, stats = { pauseCount: null, netDuration: null }) {
+    if (questionData.inputType === "ai") {
+        const wordCount = val.trim().split(/\s+/).length;
+        let minWordsRequired = 3;
+        let warningMessage = Strings.get('min_words_3', State.userData?.native_language);
+
+        if (State.englishLevel === 'A2') { minWordsRequired = 4; warningMessage = Strings.get('min_words_4', State.userData?.native_language); }
+        else if (State.englishLevel === 'B1') { minWordsRequired = 5; warningMessage = Strings.get('min_words_5', State.userData?.native_language); }
+        else if (State.englishLevel === 'B2' || State.englishLevel === 'C1' || State.englishLevel === 'C2') { minWordsRequired = 6; warningMessage = Strings.get('min_words_6', State.userData?.native_language); }
+
+        const hasAsterisks = /\*{2,}/.test(val);
+        const isProfane = swearjar.profane(val);
+
+        if (wordCount < minWordsRequired || hasAsterisks || isProfane) {
+            if (hasAsterisks) {
+                warningMessage = Strings.get('censored', State.userData?.native_language);
+            } else if (isProfane) {
+                warningMessage = Strings.get('inappropriate', State.userData?.native_language);
+            }
+
+            State.currentPoints = Math.max(0, State.currentPoints - 10);
+            updateCurrentScoreDisplay(State.currentPoints);
+            if (DOM.phrasesScore) {
+                flashElement(DOM.phrasesScore);
+                pointLoss.show(DOM.phrasesScore, 10);
+            }
+
+            if (DOM.micStatusText) {
+                DOM.micStatusText.innerHTML = `<div class='text-center text-danger'>${warningMessage}</div>`;
+            }
+
+            if (btn) btn.disabled = false;
+
+            return;
+        }
+    }
+    await handleAnswer(val, cue, questionData, btn, explanation, translation, stats);
 }
 
 async function handleAnswer(userResponse, cue, questionData, button, explanation, translation, stats = { pauseCount: null, netDuration: null }) {
@@ -849,7 +889,7 @@ if (question.introBackgroundVideoUrl) {
                       configData: State.configData,
                       currentLessonIndex: State.currentLessonIndex,
                       currentQuestionIndex: qIndex,
-                      handleAnswer,
+                      handleAnswer: submitAnswerPrecheck,
                       player: State.player
                   });
               } catch (error) {
@@ -862,7 +902,7 @@ if (question.introBackgroundVideoUrl) {
       renderTextInputUI(
           Strings.get('placeholder_type_answer', State.userData?.native_language) || 'Type your answer here...',
           Strings.get('btn_submit', State.userData?.native_language) || 'Submit',
-          (val, btn) => handleAnswer(val, question.cue, question, btn, question.explanation, question.translation, { pauseCount: null, netDuration: null })
+          (val, btn) => submitAnswerPrecheck(val, question.cue, question, btn, question.explanation, question.translation, { pauseCount: null, netDuration: null })
       );
 
   } else if (question.inputType === 'lessoncomplete') {
@@ -952,9 +992,9 @@ if (question.introBackgroundVideoUrl) {
 
       renderMultiChoiceUI(
           Strings.get('btn_not_sure', State.userData?.native_language) || "I'm not sure",
-          (val, btn) => handleAnswer(val, question.cue, question, btn, question.explanation, undefined, { pauseCount: null, netDuration: null }),
+          (val, btn) => submitAnswerPrecheck(val, question.cue, question, btn, question.explanation, undefined, { pauseCount: null, netDuration: null }),
           answers,
-          (answer, button) => handleAnswer(answer, question.cue, question, button, question.explanation, question.translation, { pauseCount: null, netDuration: null })
+          (answer, button) => submitAnswerPrecheck(answer, question.cue, question, button, question.explanation, question.translation, { pauseCount: null, netDuration: null })
       );
   }
 }
