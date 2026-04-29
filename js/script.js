@@ -173,6 +173,14 @@ window.addEventListener('transcriptRejected', () => {
     }
 });
 
+window.addEventListener('preflightRejected', () => {
+    updateCurrentScoreDisplay(State.currentPoints);
+    if (DOM.phrasesScore) {
+        flashElement(DOM.phrasesScore);
+        pointLoss.show(DOM.phrasesScore, 10);
+    }
+});
+
 // 🤖🤖🤖🤖🤖🤖🤖🤖 LOCAL NLP HELPERS 🤖🤖🤖🤖🤖🤖🤖🤖
 
 async function checkGrammarLocally(userInput) {
@@ -301,14 +309,11 @@ async function submitAnswerPrecheck(val, cue, questionData, btn, explanation, tr
             else if (State.englishLevel === 'B1') { minWordsRequired = 5; }
             else if (State.englishLevel === 'B2' || State.englishLevel === 'C1' || State.englishLevel === 'C2') { minWordsRequired = 6; }
 
-            const hasAsterisks = /\*{2,}/.test(val);
             const isProfane = swearjar.profane(val);
 
-            if (wordCount < minWordsRequired || hasAsterisks || isProfane) {
+            if (wordCount < minWordsRequired || isProfane) {
                 isInvalid = true;
-                if (hasAsterisks) {
-                    warningMessage = Strings.get('censored', State.userData?.native_language);
-                } else if (isProfane) {
+                if (isProfane) {
                     warningMessage = Strings.get('inappropriate', State.userData?.native_language);
                 } else {
                     warningMessage = Strings.get(`min_words_${minWordsRequired}`, State.userData?.native_language) || Strings.get('min_words_3', State.userData?.native_language);
@@ -456,7 +461,7 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
                     intentExplanationHTML = `<div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>${Strings.get('intent_perfect', State.userData?.native_language)}</div>`;
                 }
                 else if (!isGrammarPerfect && intentResult.category === 'target') {
-                    isFinalCorrect = true;
+                    isFinalCorrect = false;
                     intentExplanationHTML = `<div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>${Strings.get('intent_good_grammar_bad', State.userData?.native_language)}</div>`;
                 }
                 else if (intentResult.category === 'bad') {
@@ -504,6 +509,17 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
                     };
                 }
             }
+        }
+
+        if (!result && questionData.inputType === "speech") {
+            result = await processAnswerLogic({
+                userResponse, cue, questionData,
+                lesson: State.lesson,
+                english_level: State.englishLevel,
+                userData: State.userData,
+                cuesGiven: State.cuesGiven,
+                apiRoot: State.apiRoot
+            });
         }
 
         if (!result) {

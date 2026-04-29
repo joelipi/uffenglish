@@ -67,18 +67,16 @@ export async function processAnswerLogic({
         return result;
     }
     else if (questionData.inputType === "speech") {
-        let result = { isCorrect: false, explanation: questionData.explanation };
         const normalizeduserResponse = await normalize(userResponse.trim().toLowerCase());
         const normalizedcue = await normalize(cue.trim().toLowerCase());
         const similarity = calculateSimilarity(normalizeduserResponse, normalizedcue);
         const threshold = 95;
-        if (similarity >= threshold) {
-            result.isCorrect = true;
-            result.explanation = questionData.explanation;
-        } else {
-            result.isCorrect = false;
-            result.explanation = questionData.explanation;
-        }
+        let result = {
+            isCorrect: similarity >= threshold,
+            explanation: questionData.explanation,
+            normalizeduserResponse,
+            normalizedcue
+        };
         return result;
     } else {
         let result = { isCorrect: false, explanation: questionData.explanation };

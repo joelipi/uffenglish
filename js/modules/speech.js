@@ -3,6 +3,9 @@ import Strings from '../data/strings.js';
 import { getDeepgramToken } from './api.js';
 import { saveSpeechRecording } from './storage.js';
 import { State } from './state.js';
+import normalize from './normalize.js';
+import calculateSimilarity from './calculatesimilarity.js';
+import swearjar from './swearjar.js';
 
 
 // --- NEW: Import Whisper Logic ---
@@ -915,8 +918,54 @@ export async function toggleSpeechRecognition(params) {
                     let processedTranscript = finalTranscript.replace(/\s+(I|a|an|the|and|or)$/i, '');
                     console.log('[Toggle] Processed transcript:', processedTranscript);
 
-                    // --- NEW REVIEW STEP ---
+                    // --- PREFLIGHT CHECK (before showing review UI) ---
                     const transcriptToReview = processedTranscript || finalTranscript;
+
+                    {
+                        const lang = State.userData?.native_language;
+                        const wordCount = transcriptToReview.trim().split(/\s+/).length;
+                        let minWordsRequired = 3;
+                        if (State.englishLevel === 'A2') minWordsRequired = 4;
+                        else if (State.englishLevel === 'B1') minWordsRequired = 5;
+                        else if (State.englishLevel === 'B2' || State.englishLevel === 'C1' || State.englishLevel === 'C2') minWordsRequired = 6;
+
+                        const rejectPreflight = (message) => {
+                            clearPlaybackVideo();
+                            removeWebcamPreview();
+                            window.dispatchEvent(new CustomEvent('preflightRejected'));
+                            if (micStatusText) micStatusText.innerHTML = `<div class='text-center text-danger'>${message}</div>`;
+                            setTimeout(() => { isListening = false; toggleSpeechRecognition(params); }, 2500);
+                        };
+
+                        const isProfane = swearjar.profane(transcriptToReview);
+                        if (isProfane) {
+                            rejectPreflight(Strings.get('inappropriate', lang));
+                            return;
+                        }
+
+                        if (question.inputType === "ai") {
+                            if (wordCount < minWordsRequired) {
+                                rejectPreflight(Strings.get(`min_words_${minWordsRequired}`, lang) || Strings.get('min_words_3', lang));
+                                return;
+                            }
+
+                            const normalizeduserResponse = await normalize(transcriptToReview.trim().toLowerCase());
+                            const normalizedcue = await normalize(question.cue.trim().toLowerCase());
+
+                            if (State.cuesGiven && State.cuesGiven.includes(normalizeduserResponse)) {
+                                rejectPreflight(Strings.get('already_used', lang));
+                                return;
+                            }
+
+                            const preflightSimilarity = calculateSimilarity(normalizeduserResponse, normalizedcue);
+                            if (preflightSimilarity >= 85) {
+                                rejectPreflight(Strings.get('no_repetition', lang));
+                                return;
+                            }
+                        }
+                    }
+
+                    // --- REVIEW STEP ---
                     let timeLeft = 7;
                     let reviewActive = true;
 
@@ -946,7 +995,7 @@ export async function toggleSpeechRecognition(params) {
                         reviewActive = false;
                         clearInterval(timerInterval);
                         if (micStatusText) micStatusText.innerHTML = "";
-                        handleAnswer(transcriptToReview, question.cue, question, button, question.explanation, question.translation, stats);
+                        params.handleAnswer(transcriptToReview, question.cue, question, button, question.explanation, question.translation, stats);
                     };
 
                     const rejectTranscript = () => {

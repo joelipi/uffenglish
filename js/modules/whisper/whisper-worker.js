@@ -1,71 +1,119 @@
-// whisper-worker.js v501pm
+// whisper-worker.js v5 - Aggressive Parallelization
 const WHISPER_BASE_PATH = 'https://r2.ultrafastfluency.com/whisper/';
+const MODEL_CACHE_NAME = 'uff-whisper-cache-v3'; 
 
 let vad = null;
 let recognizer = null;
 let isReady = false;
 
-// Emscripten requires Module to exist in the worker scope
 self.Module = {
     locateFile: function(path) {
         return WHISPER_BASE_PATH + path;
     },
-    setStatus: function(status) {
-        //if (status) console.log("Whisper Worker:", status);
-    },
-    onRuntimeInitialized: function() {
-        console.log('Whisper Worker: Memory Initialized');
-        
-        vad = createVad(self.Module);
-        
-        let config = {
-            modelConfig: {
-                debug: 1,
-                tokens: './tokens.txt',
-                whisper: {
-                    encoder: './whisper-encoder.onnx',
-                    decoder: './whisper-decoder.onnx',
-                }
-            },
-        };
-        recognizer = new OfflineRecognizer(config, self.Module);
-        isReady = true;
-        
-        // Tell the main page we are done loading!
-        self.postMessage({ type: 'ready' });
-    }
+    setStatus: function(status) { }
 };
 
-// Import the Emscripten engine directly into the worker
-importScripts(
-    WHISPER_BASE_PATH + 'sherpa-onnx-vad.js',
-    WHISPER_BASE_PATH + 'sherpa-onnx-asr.js',
-    WHISPER_BASE_PATH + 'sherpa-onnx-wasm-main-vad-asr.js'
-);
+async function loadAndCacheFile(filename, isWasm) {
+    const url = WHISPER_BASE_PATH + filename;
+    const cache = await caches.open(MODEL_CACHE_NAME);
+    let response = await cache.match(url);
 
-// Listen for audio data sent from the main UI
+    if (response) {
+        console.log(`[whisper] ⚡ CACHE HIT: ${filename}`);
+    } else {
+        console.log(`[whisper] ☁️ CACHE MISS: Downloading ${filename}...`);
+        response = await fetch(url, { mode: 'cors' });
+        if (!response.ok) throw new Error(`HTTP Error ${response.status} for ${filename}`);
+
+        const buffer = await response.arrayBuffer();
+        console.log(`[whisper] 💾 SAVING: Caching ${filename}`);
+        await cache.put(url, new Response(buffer.slice(0), { headers: response.headers }));
+        response = new Response(buffer, { headers: response.headers });
+    }
+
+    return isWasm ? response : await response.arrayBuffer();
+}
+
+async function bootWhisperEngine() {
+    try {
+        console.log('[whisper] Initiating pre-fetch...');
+        const [wasmResponse, dataBuffer] = await Promise.all([
+            loadAndCacheFile('sherpa-onnx-wasm-main-vad-asr.wasm', true),
+            loadAndCacheFile('sherpa-onnx-wasm-main-vad-asr.data', false)
+        ]);
+
+        self.Module.getPreloadedPackage = function() { return dataBuffer; };
+
+        self.Module.instantiateWasm = function(imports, successCallback) {
+            // Using instantiateStreaming is critical for SIMD/Multi-thread compiled WASM
+            WebAssembly.instantiateStreaming(wasmResponse, imports)
+                .then(output => successCallback(output.instance, output.module))
+                .catch(e => console.error('[whisper] WASM Compile Error:', e));
+            return {};
+        };
+
+        self.Module.onRuntimeInitialized = function() {
+            console.time('[whisper] total init');
+
+            let config = {
+                modelConfig: {
+                    debug: 0,
+                    num_threads: navigator.hardwareConcurrency || 4, // 🚀 CORE OPTIMIZATION: Uses all available CPU threads
+                    provider: "cpu", // Ensures it uses the optimized CPU provider
+                    tokens: './tokens.txt',
+                    whisper: {
+                        encoder: './whisper-encoder.onnx',
+                        decoder: './whisper-decoder.onnx',
+                    }
+                },
+                decoderConfig: {
+                    method: "greedy_search",
+                    num_active_paths: 1
+                }
+            };
+            
+            recognizer = new OfflineRecognizer(config, self.Module);
+            isReady = true;
+            
+            console.timeEnd('[whisper] total init');
+            self.postMessage({ type: 'ready' });
+            vad = createVad(self.Module);
+        };
+
+        importScripts(
+            WHISPER_BASE_PATH + 'sherpa-onnx-vad.js',
+            WHISPER_BASE_PATH + 'sherpa-onnx-asr.js',
+            WHISPER_BASE_PATH + 'sherpa-onnx-wasm-main-vad-asr.js'
+        );
+
+    } catch (error) {
+        console.error('[whisper] Fatal Boot Error:', error);
+    }
+}
+
+bootWhisperEngine();
+
 self.onmessage = function(e) {
     if (e.data.type === 'transcribe' && isReady) {
         try {
             const float32Array = e.data.audio;
             const stream = recognizer.createStream();
             stream.acceptWaveform(16000, float32Array);
-            recognizer.decode(stream);
             
-            // NEW: Extract the entire result object, not just the text
+            console.time('[whisper] decode speed');
+            recognizer.decode(stream);
+            console.timeEnd('[whisper] decode speed');
+
             const fullResult = recognizer.getResult(stream);
             stream.free();
-            
-            // Send all available metrics back to the main UI
+
             self.postMessage({ 
                 type: 'result', 
                 text: fullResult.text,
-                avg_logprob: fullResult.avg_logprob,
-                tokens: fullResult.tokens,
-                timestamps: fullResult.timestamps
+                avg_logprob: fullResult.avg_logprob
             });
         } catch (error) {
-            console.error("Worker transcription error:", error);
+            console.error('[whisper] transcription error:', error);
             self.postMessage({ type: 'result', text: null });
         }
     }

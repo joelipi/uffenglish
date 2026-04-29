@@ -1,17 +1,16 @@
-// app-vad-asr.js v 457 pm
+// app-vad-asr.js v2
 export let isEngineReady = false;
 let whisperWorker = null;
 let activeTranscriptionResolve = null;
 
 export function preloadWhisperEngine() {
-    // Return a promise that resolves when the worker sends 'ready'
     return new Promise((resolve, reject) => {
         if (whisperWorker) {
-            // Already loading or loaded – check current state
+            // Worker already exists — check if it's already ready
             if (isEngineReady) {
                 resolve();
             } else {
-                // Wait for the existing worker to become ready
+                // Worker is loading — poll until ready
                 const interval = setInterval(() => {
                     if (isEngineReady) {
                         clearInterval(interval);
@@ -22,24 +21,23 @@ export function preloadWhisperEngine() {
             return;
         }
 
-        console.log("Starting Whisper Web Worker...");
-        
+        console.log('[whisper] spawning worker at', performance.now().toFixed(0), 'ms');
+
         whisperWorker = new Worker(new URL('./whisper-worker.js?0', import.meta.url));
 
         whisperWorker.onmessage = function(e) {
             if (e.data.type === 'ready') {
                 isEngineReady = true;
                 window.whisperEngineReady = true;
-                console.log("Main Thread: Whisper is locked and loaded in the background.");
-                
+                console.log('[whisper] engine ready at', performance.now().toFixed(0), 'ms');
+
                 const preloader = document.getElementById('appLoadingImageDiv');
                 if (preloader) preloader.style.display = 'none';
-                
-                resolve(); // 👈 Signal that Whisper is fully ready
+
+                resolve();
             } 
             else if (e.data.type === 'result') {
                 if (activeTranscriptionResolve) {
-                    // UPDATED: Pass the entire object so speech.js can access avg_logprob
                     activeTranscriptionResolve(e.data);
                     activeTranscriptionResolve = null;
                 }
@@ -47,7 +45,7 @@ export function preloadWhisperEngine() {
         };
 
         whisperWorker.onerror = (err) => {
-            console.error("Whisper worker error:", err);
+            console.error('[whisper] worker error:', err);
             reject(err);
         };
     });
@@ -56,15 +54,14 @@ export function preloadWhisperEngine() {
 export function transcribeAudioBuffer(float32Array) {
     return new Promise((resolve) => {
         if (!isEngineReady || !whisperWorker) {
-            console.error("Engine not ready.");
+            console.error('[whisper] engine not ready.');
             resolve(null);
             return;
         }
 
         activeTranscriptionResolve = resolve;
-        
-        // Send the raw audio to the background worker to compute
-        // Use Transferable Objects to move memory without copying it which can cause memory crashes
+
+        // Transfer the buffer (zero-copy) instead of cloning it
         whisperWorker.postMessage({ 
             type: 'transcribe', 
             audio: float32Array 
@@ -72,6 +69,12 @@ export function transcribeAudioBuffer(float32Array) {
     });
 }
 
-// Stubs to prevent errors with your existing code
+// Kick off worker loading immediately when this module is imported —
+// don't wait for a user action. This is the single biggest latency win
+// if you were previously calling preloadWhisperEngine() on a button click
+// or after some other async gate.
+preloadWhisperEngine();
+
+// Stubs to prevent errors with existing code
 export async function startWhisperEngine(options) { return false; }
 export function stopWhisperEngine() { }
