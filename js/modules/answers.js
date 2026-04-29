@@ -17,13 +17,6 @@ export function getCurrentQuestionIndex(questionData, configData, currentLessonI
   );
 }
 
-export async function checkAnswerMatchParallel(normalizeduserResponse, currentLesson) {
-    const questionsToCheck = currentLesson.questions.slice(2, 5);
-    const cues = questionsToCheck.map(q => q.cue).filter(answer => answer);
-    const normalizedcues = await Promise.all(cues.map(answer => normalize(answer)));
-    return normalizedcues.includes(normalizeduserResponse);
-}
-
 export function isLastAiQuestionInLesson(lesson, currentIndex) {
     const aiQuestions = lesson.questions.filter(q => q.inputType === "ai");
     if (aiQuestions.length === 0) return false;
@@ -66,13 +59,6 @@ export async function runPreflightChecks({
             return { passed: false, result };
         }
 
-        if (questionData.possibleAnswer) {
-            const matchesLessonAnswers = await checkAnswerMatchParallel(normalizeduserResponse, lesson);
-            if (matchesLessonAnswers) {
-                result.isCorrect = true;
-                return { passed: false, result }; // It is correct, bypass AI
-            }
-        }
     }
 
     return { passed: true, normalizeduserResponse, normalizedcue, baseResult: result };
