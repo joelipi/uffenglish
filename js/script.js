@@ -174,6 +174,7 @@ window.addEventListener('transcriptRejected', () => {
 });
 
 window.addEventListener('preflightRejected', () => {
+    State.currentPoints = Math.max(0, State.currentPoints - 10);
     updateCurrentScoreDisplay(State.currentPoints);
     if (DOM.phrasesScore) {
         flashElement(DOM.phrasesScore);
