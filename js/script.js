@@ -99,8 +99,7 @@ import {
 import {
     getCurrentQuestionIndex,
     isLastAiQuestionInLesson,
-    processAnswerLogic,
-    runPreflightChecks
+    processAnswerLogic
 } from './modules/answers.js';
 import getRandomPraise from './modules/praise.js'; 
 
@@ -152,6 +151,8 @@ import {
 import { idiomChecker } from './modules/idiomChecker.js';
 import { calculateSyntacticComplexity } from './modules/complexity.js';
 import swearjar from './modules/swearjar.js';
+import normalize from './modules/normalize.js';
+import calculateSimilarity from './modules/calculatesimilarity.js';
 
 const hearts = [DOM.heart1, DOM.heart2, DOM.heart3];
 
@@ -282,22 +283,40 @@ async function submitAnswerPrecheck(val, cue, questionData, btn, explanation, tr
     if (questionData.inputType === "ai") {
         const wordCount = val.trim().split(/\s+/).length;
         let minWordsRequired = 3;
-        let warningMessage = Strings.get('min_words_3', State.userData?.native_language);
+        let warningMessage = null;
+        let isInvalid = false;
 
-        if (State.englishLevel === 'A2') { minWordsRequired = 4; warningMessage = Strings.get('min_words_4', State.userData?.native_language); }
-        else if (State.englishLevel === 'B1') { minWordsRequired = 5; warningMessage = Strings.get('min_words_5', State.userData?.native_language); }
-        else if (State.englishLevel === 'B2' || State.englishLevel === 'C1' || State.englishLevel === 'C2') { minWordsRequired = 6; warningMessage = Strings.get('min_words_6', State.userData?.native_language); }
+        const normalizeduserResponse = await normalize(val.trim().toLowerCase());
+        const normalizedcue = await normalize(cue.trim().toLowerCase());
+        const similarity = calculateSimilarity(normalizeduserResponse, normalizedcue);
 
-        const hasAsterisks = /\*{2,}/.test(val);
-        const isProfane = swearjar.profane(val);
+        if (State.cuesGiven && State.cuesGiven.includes(normalizeduserResponse)) {
+            warningMessage = Strings.get('already_used', State.userData?.native_language);
+            isInvalid = true;
+        } else if (similarity >= 85) {
+            warningMessage = Strings.get('no_repetition', State.userData?.native_language);
+            isInvalid = true;
+        } else {
+            if (State.englishLevel === 'A2') { minWordsRequired = 4; }
+            else if (State.englishLevel === 'B1') { minWordsRequired = 5; }
+            else if (State.englishLevel === 'B2' || State.englishLevel === 'C1' || State.englishLevel === 'C2') { minWordsRequired = 6; }
 
-        if (wordCount < minWordsRequired || hasAsterisks || isProfane) {
-            if (hasAsterisks) {
-                warningMessage = Strings.get('censored', State.userData?.native_language);
-            } else if (isProfane) {
-                warningMessage = Strings.get('inappropriate', State.userData?.native_language);
+            const hasAsterisks = /\*{2,}/.test(val);
+            const isProfane = swearjar.profane(val);
+
+            if (wordCount < minWordsRequired || hasAsterisks || isProfane) {
+                isInvalid = true;
+                if (hasAsterisks) {
+                    warningMessage = Strings.get('censored', State.userData?.native_language);
+                } else if (isProfane) {
+                    warningMessage = Strings.get('inappropriate', State.userData?.native_language);
+                } else {
+                    warningMessage = Strings.get(`min_words_${minWordsRequired}`, State.userData?.native_language) || Strings.get('min_words_3', State.userData?.native_language);
+                }
             }
+        }
 
+        if (isInvalid) {
             State.currentPoints = Math.max(0, State.currentPoints - 10);
             updateCurrentScoreDisplay(State.currentPoints);
             if (DOM.phrasesScore) {
@@ -390,19 +409,6 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
 
     try {
         let result = null;
-
-        // 🛑 TIER 0: PREFLIGHT BUSINESS LOGIC
-        if (questionData.inputType === "ai") {
-            const preflight = await runPreflightChecks({
-                userResponse, cue, questionData, lesson: State.lesson,
-                englishLevel: State.englishLevel, userData: State.userData, cuesGiven: State.cuesGiven
-            });
-
-            if (!preflight.passed) {
-                console.warn("⚠️ Answer blocked by preflight safety checks.");
-                result = preflight.result; 
-            }
-        }
 
         // --- TIERED EVALUATION LOGIC ---
         if (!result && questionData.inputType === "ai" && questionData.targetIntents) {

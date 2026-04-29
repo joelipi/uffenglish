@@ -24,61 +24,26 @@ export function isLastAiQuestionInLesson(lesson, currentIndex) {
     return currentIndex === lastAiIndex;
 }
 
-// 🛑 THE NEW EXTRACTED TIER 0 LOGIC
-export async function runPreflightChecks({
-    userResponse, cue, questionData, lesson, english_level, userData, cuesGiven
-}) {
-    let result = {
-        isCorrect: false,
-        explanation: "",
-        translation: questionData.translation,
-        userResponse: userResponse,
-        normalizeduserResponse: "",
-        normalizedcue: "",
-        cefrLevel: "",
-        cefrLevelDeduction: 0,
-        errorType: ""
-    };
-
-    const normalizeduserResponse = await normalize(userResponse.trim().toLowerCase());
-    const normalizedcue = await normalize(cue.trim().toLowerCase());
-
-    result.normalizeduserResponse = normalizeduserResponse;
-    result.normalizedcue = normalizedcue;
-
-    if (questionData.inputType === "ai") {
-        if (cuesGiven.includes(normalizeduserResponse)) {
-            result.explanation = Strings.get('already_used', userData?.native_language);
-            return { passed: false, result };
-        }
-
-        const similarity = calculateSimilarity(normalizeduserResponse, normalizedcue);
-        const threshold = 85;
-        if (similarity >= threshold) {
-            result.explanation = Strings.get('no_repetition', userData?.native_language);
-            return { passed: false, result };
-        }
-
-    }
-
-    return { passed: true, normalizeduserResponse, normalizedcue, baseResult: result };
-}
-
 export async function processAnswerLogic({
     userResponse, cue, questionData, lesson, english_level, userData, cuesGiven, apiRoot
 }) {
     if (questionData.inputType === "ai") {
-        // Run preflight here too, just in case this is called directly
-        const preflight = await runPreflightChecks({
-            userResponse, cue, questionData, lesson, english_level, userData, cuesGiven
-        });
+        const normalizeduserResponse = await normalize(userResponse.trim().toLowerCase());
+        const normalizedcue = await normalize(cue.trim().toLowerCase());
 
-        if (!preflight.passed) {
-            return preflight.result;
-        }
+        let result = {
+            isCorrect: false,
+            explanation: "",
+            translation: questionData.translation,
+            userResponse: userResponse,
+            normalizeduserResponse: normalizeduserResponse,
+            normalizedcue: normalizedcue,
+            cefrLevel: "",
+            cefrLevelDeduction: 0,
+            errorType: ""
+        };
 
-        let result = preflight.baseResult;
-        const aiResult = await evaluateWithAI(userResponse, preflight.normalizeduserResponse, questionData, english_level, apiRoot);
+        const aiResult = await evaluateWithAI(userResponse, normalizeduserResponse, questionData, english_level, apiRoot);
         
         result.isCorrect = aiResult.isCorrect;
         if (result.isCorrect) {
