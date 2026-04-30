@@ -184,6 +184,11 @@ window.addEventListener('preflightRejected', () => {
 
 // 🤖🤖🤖🤖🤖🤖🤖🤖 LOCAL NLP HELPERS 🤖🤖🤖🤖🤖🤖🤖🤖
 
+// =================================================================================================
+// IMPORTANT: DO NOT DELETE. THIS CODE WILL BE REINSTATED SHORTLY. 
+// IT IS TEMPORARILY DISABLED TO SAVE SYSTEM RESOURCES DURING INTENSE DEVELOPMENT.
+// =================================================================================================
+/*
 async function checkGrammarLocally(userInput) {
     console.groupCollapsed(`📝 [Grammar Check] Analyzing: "${userInput}"`);
 
@@ -234,10 +239,13 @@ async function checkGrammarLocally(userInput) {
         return null;
     }
 }
+*/
 
 // REMOVE IN PRODUCTION. Add this line right after the checkGrammarLocally function closes
-window.testGrammar = checkGrammarLocally;
+// window.testGrammar = checkGrammarLocally;
 
+// IMPORTANT: DO NOT DELETE. Reinstating soon.
+/*
 async function evaluateIntentLocally(userInput, targetIntents, badIntents = []) {
     if (!nlpModelsReady || !targetIntents || targetIntents.length === 0) return null;
 
@@ -277,9 +285,10 @@ async function evaluateIntentLocally(userInput, targetIntents, badIntents = []) 
         return null;
     }
 }
+*/
 
 // REMOVE IN PRODUCTION. To be able to test it in browser console
-window.testIntent = evaluateIntentLocally;
+// window.testIntent = evaluateIntentLocally;
 
 // 🎓🎓🎓🎓🎓🎓🎓🎓 CORE ANSWER HANDLING 🎓🎓🎓🎓🎓🎓🎓🎓
 
@@ -385,28 +394,19 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
         }
 
         if (statsParts.length > 0) {
-            immediateStatsHtml = `
-            <div class='chat-bubble chat-msg' style='margin-bottom: 12px; display: block; border-left: 4px solid #17a2b8;'>
-                <div style='font-size: 0.85em; text-transform: uppercase; color: #17a2b8; margin-bottom: 5px;'><strong>${Strings.get('stats_header', State.userData?.native_language)}</strong></div>
-                ${statsParts.join('<br>')}
-            </div>`;
+            immediateStatsHtml = createStatsBubbleHTML(
+                Strings.get('stats_header', State.userData?.native_language),
+                statsParts
+            );
         }
     }
 
     if (questionData.inputType === "ai" && userResponse && DOM.speechText) {
-        const bodyContent = `
-            <div class='userResponse chat-bubble-sent chat-msg'>${userResponse}</div>
-            ${immediateStatsHtml}
-            <div class='chat-bubble chat-msg' id='ai-loading-status'>
-                <strong><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Analyzing your response...</strong>
-            </div>`;
-        safeRenderChatInterface(true, bodyContent);
+        renderUserResponse(userResponse, immediateStatsHtml);
+        renderAIAnalysisLoading();
     } else if (questionData.inputType === "speech" && userResponse && DOM.speechText && immediateStatsHtml) {
         // Just show stats for non-AI speech inputs
-        const bodyContent = `
-            <div class='userResponse chat-bubble-sent chat-msg'>${userResponse}</div>
-            ${immediateStatsHtml}`;
-        safeRenderChatInterface(true, bodyContent);
+        renderUserResponse(userResponse, immediateStatsHtml);
     }
 
     const qIndex = getCurrentQuestionIndex(questionData, State.configData, State.currentLessonIndex);
@@ -417,6 +417,9 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
         let result = null;
 
         // --- TIERED EVALUATION LOGIC ---
+        // --- TIERED EVALUATION LOGIC (TEMPORARILY DISABLED) ---
+        // IMPORTANT: DO NOT DELETE. WILL BE REINSTATED SHORTLY.
+        /*
         if (!result && questionData.inputType === "ai" && questionData.targetIntents) {
             
             // 1. The FEEDBACK_TEXT parameter (Forced visual separation)
@@ -511,8 +514,9 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
                 }
             }
         }
+        */
 
-        if (!result && questionData.inputType === "speech") {
+        if (!result && (questionData.inputType === "speech" || questionData.inputType === "ai")) {
             result = await processAnswerLogic({
                 userResponse, cue, questionData,
                 lesson: State.lesson,
@@ -525,8 +529,7 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
 
         if (!result) {
             console.warn("⚠️ No result from local NLP — no Gemini fallback active. Treating as passed.");
-            const defaultExplanationBubble = explanation ? `<div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>${explanation}</div>` : null;
-            result = { isCorrect: true, normalizeduserResponse: userResponse, normalizedcue: cue, explanation: defaultExplanationBubble };
+            result = { isCorrect: true, normalizeduserResponse: userResponse, normalizedcue: cue, explanation: explanation };
         }
         // --- END TIERED EVALUATION ---
 
@@ -561,45 +564,35 @@ function handlecueUI(qIndex, questionData, button, cue, explanation, translation
   // Unified: last AI question advances via Continue button like all others.
 
   if (DOM.speechText) {
-      let userResponseHTML = userResponse ? `<div class='userResponse chat-bubble-sent chat-msg'>${userResponse}</div>` : "";
-      
-      // Smart wrap - Do not double-wrap if it's already a chat bubble stack!
-      let explanationHTML = "";
-      if (explanation) {
-          if (explanation.includes("class='chat-bubble")) {
-              explanationHTML = explanation; 
-          } else {
-              explanationHTML = `<div class='chat-bubble chat-msg' style='margin-top: 12px;'><p class='explanation'>${explanation}</p></div>`;
-          }
-      }
-      
-      let headsUpHTML = questionData.headsUp ? `<div class='chat-bubble chat-msg' style='margin-top: 12px;'><p class='headsUp'>${questionData.headsUp}</p></div>` : "";
-
-      if (questionData.inputType === "ai") {
-          updateSpeakingScoreDisplay(State.speakingScore); // NEW SPEAKING SCORE DISPLAY
-          flashElement(DOM.phrasesScore); 
-          
-          const lang = State.userData?.native_language;
-          const feedbackText = englishLevelDeduction > 0
+      const lang = State.userData?.native_language;
+      const feedbackText = (questionData.inputType === "ai" && englishLevelDeduction > 0)
           ? `${Strings.get('ai_acceptable', lang)}<br>${Strings.get('ai_language_level', lang)} ${englishLevel}<br>${Strings.get('ai_fluency_reduced', lang)} <span style='color:red'>${englishLevelDeduction} ${Strings.get('ai_percentage_points', lang)}</span>.`
-          : getRandomPraise();
-          
-          // 🛠️ FIX: Reordered so explanationHTML comes BEFORE the feedbackText
-          const bodyContent = `${userResponseHTML}${explanationHTML}<div class='chat-bubble chat-msg' style='margin-top: 12px;'><strong>${feedbackText}</strong></div>${headsUpHTML}`;
-          safeRenderChatInterface(true, bodyContent);
-      }
-      else {
-          if (questionData.inputType === "speech") { 
-              updateSpeakingScoreDisplay(State.speakingScore); // NEW SPEAKING SCORE DISPLAY
-              flashElement(DOM.phrasesScore); 
-          }
-          const lang = State.userData?.native_language;
+          : (questionData.inputType === "ai" ? getRandomPraise() : "");
+
+      // For correct answers, we might want to show the correct cue if it was a speech/choice question
+      if (questionData.inputType !== "ai") {
           const localizedTrans = getLocalizedTranslation(translation, lang);
           const translationStr = localizedTrans && lang && lang !== 'en' ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>` : "";
+          const correctBubble = `<div class='correct-answer-display chat-bubble-sent chat-msg'>${cue}${translationStr}</div>`;
+          const praiseBubble = `<div class='chat-bubble chat-msg' style='margin-top: 12px;'><strong>${getRandomPraise()}</strong></div>`;
           
-          // 🛠️ FIX: Reordered so explanationHTML comes BEFORE the praise
-          const bodyContent = `<div class='correct-answer-display chat-bubble-sent chat-msg'>${cue}${translationStr}</div>${explanationHTML}<div class='chat-bubble chat-msg' style='margin-top: 12px;'><strong>${getRandomPraise()}</strong></div>${headsUpHTML}`;
-          safeRenderChatInterface(false, bodyContent);
+          renderAIFeedback([
+              correctBubble,
+              explanation,
+              praiseBubble,
+              questionData.headsUp
+          ]);
+      } else {
+          renderAIFeedback([
+              explanation,
+              feedbackText ? `<strong>${feedbackText}</strong>` : "",
+              questionData.headsUp
+          ]);
+      }
+
+      if (questionData.inputType === "ai" || questionData.inputType === "speech") {
+          updateSpeakingScoreDisplay(State.speakingScore);
+          flashElement(DOM.phrasesScore); 
       }
   }
 
@@ -637,23 +630,27 @@ function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanat
           State.rolePlayPointsHistory.push(State.currentPoints); 
           updateCurrentScoreDisplay(State.currentPoints); 
       }
-      const teacherText = State.incorrectAttempts === 1 ? Strings.get('try_again_1', State.userData?.native_language) : State.incorrectAttempts === 2 ? Strings.get('try_again_2', State.userData?.native_language) : `${Strings.get('failed_continue_correct', State.userData?.native_language)}<br>"${cue}"`;
-      const headsUpHTML = questionData.headsUp ? (State.incorrectAttempts <= 2 ? `<div class='chat-bubble chat-msg' style='margin-top: 12px;'><p class="headsUp">${Strings.get('heads_up_try_again', State.userData?.native_language)}</p></div>` : `<div class='chat-bubble chat-msg' style='margin-top: 12px;'><p class="headsUp">${questionData.headsUp}</p></div>`) : '';
-      const possibleAnswerHTML = questionData.possibleAnswer && State.incorrectAttempts > 2 ? `<div class='chat-bubble chat-msg' style='margin-top: 12px;'><p>${Strings.get('example_correct_answer', State.userData?.native_language)}<br>${questionData.possibleAnswer}</p></div>` : '';
+      const teacherText = State.incorrectAttempts === 1 
+          ? Strings.get('try_again_1', State.userData?.native_language) 
+          : State.incorrectAttempts === 2 
+              ? Strings.get('try_again_2', State.userData?.native_language) 
+              : `${Strings.get('failed_continue_correct', State.userData?.native_language)}<br>"${cue}"`;
       
-      // Smart wrap
-      let explanationHTML = "";
-      if (explanation) {
-          if (explanation.includes("class='chat-bubble")) {
-              explanationHTML = explanation; 
-          } else {
-              explanationHTML = `<div class='chat-bubble chat-msg' style='margin-top: 12px;'><p class='explanation'>${explanation}</p></div>`;
-          }
-      }
+      const headsUpStr = questionData.headsUp 
+          ? (State.incorrectAttempts <= 2 ? Strings.get('heads_up_try_again', State.userData?.native_language) : questionData.headsUp) 
+          : '';
+      
+      const possibleAnswerStr = questionData.possibleAnswer && State.incorrectAttempts > 2 
+          ? `${Strings.get('example_correct_answer', State.userData?.native_language)}<br>${questionData.possibleAnswer}` 
+          : '';
 
-      // 🛠️ FIX: Reordered so explanationHTML comes BEFORE the teacherText bubble
-      const bodyContent = `<div class='chat-bubble-sent chat-msg'>${userResponse}</div>${explanationHTML}<div class='chat-bubble chat-msg' style='margin-top: 12px;'><strong> ${teacherText} </strong></div>${possibleAnswerHTML}${headsUpHTML}`;
-      safeRenderChatInterface(true, bodyContent);
+      renderUserResponse(userResponse);
+      renderAIFeedback([
+          explanation,
+          `<strong>${teacherText}</strong>`,
+          possibleAnswerStr,
+          headsUpStr
+      ]);
   }
 
   if (questionData.inputType === "speech" && userResponse && DOM.speechText) {
@@ -667,11 +664,20 @@ function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanat
       const correctUl = `<ul class='card-text correctWords list-inline' id='correctWords'>${Array.from(correct).map(w => `<li class='list-inline-item'>${w}</li>`).join('')}</ul>`;
       const incorrectUl = `<ul class='card-text incorrectWords list-inline' id='incorrectWords'>${Array.from(incorrect).map(w => `<li class='list-inline-item'>${w}</li>`).join('')}</ul>`;   
 
-      const teacherText = State.incorrectAttempts === 1 ? Strings.get('try_again_1', State.userData?.native_language) : State.incorrectAttempts === 2 ? Strings.get('try_again_2', State.userData?.native_language) : `${Strings.get('failed_continue', State.userData?.native_language)}<br><br>Correct:<br>"${cue}"`;
-      const headsUpHTML = questionData.headsUp ? (State.incorrectAttempts <= 2 ? `<p class="headsUp">${Strings.get('heads_up_repeat_video', State.userData?.native_language)}</p>` : `<p class="headsUp">${questionData.headsUp}</p>`) : '';
+      const teacherText = State.incorrectAttempts === 1 
+          ? Strings.get('try_again_1', State.userData?.native_language) 
+          : State.incorrectAttempts === 2 
+              ? Strings.get('try_again_2', State.userData?.native_language) 
+              : `${Strings.get('failed_continue', State.userData?.native_language)}<br><br>Correct:<br>"${cue}"`;
       
-      const bodyContent = `<div class='chat-bubble chat-msg' style='margin-top: 12px;'><strong> ${teacherText} </strong><br><br>${correctUl}${incorrectUl}</div><div class='chat-bubble chat-msg' style='margin-top: 12px;'>${headsUpHTML}</div>`;
-      safeRenderChatInterface(false, bodyContent);
+      const headsUpStr = questionData.headsUp 
+          ? (State.incorrectAttempts <= 2 ? Strings.get('heads_up_repeat_video', State.userData?.native_language) : questionData.headsUp) 
+          : '';
+      
+      renderAIFeedback([
+          `<strong>${teacherText}</strong><br><br>${correctUl}${incorrectUl}`,
+          headsUpStr
+      ]);
   }
 
   animateHeartLoss(State.incorrectAttempts);
@@ -1350,10 +1356,10 @@ async function requestPersistentStorage() {
 
 async function loadLocalModelsInBackground() {
     try {
-        console.log("⏳ Telling background worker to boot models...");
+        console.log("⏳ Telling background worker to skip model boot...");
         await askWorker('LOAD_MODELS', {}, 3 * 60 * 1000); // 3 min timeout
         nlpModelsReady = true;
-        console.log("✅ Worker reports all models are loaded and ready in the background!");
+        console.log("✅ Worker reports local NLP models are disabled. Using Server API flow.");
     } catch (err) {
         // Even if we timed out, the worker may still finish loading.
         // Poll until it responds or we give up after 5 more minutes.
@@ -1378,7 +1384,7 @@ async function loadLocalModelsInBackground() {
     // 👉 SEQUENTIAL LOAD: Boot the idiom checker ONLY after the NLP worker is finished
     if (nlpModelsReady) {
         try {
-            console.log("📚 NLP Models ready in RAM. Now fetching and building idiom dictionary...");
+            console.log("📚 Local NLP bypassed. Now fetching and building idiom dictionary...");
             await idiomChecker.init();
             console.log("✅ Idiom checker ready!");
         } catch (err) {
@@ -1387,31 +1393,7 @@ async function loadLocalModelsInBackground() {
     }
 }
 
-function buildGrammarDiff(original, corrected) {
-    const tokenize = str => str.trim().match(/[\w']+|[^\w\s']+|\s+/g) || [];
-    const tokA = tokenize(original), tokB = tokenize(corrected);
-    const m = tokA.length, n = tokB.length;
-    const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
-    for (let i = 1; i <= m; i++)
-        for (let j = 1; j <= n; j++)
-            dp[i][j] = tokA[i-1].toLowerCase() === tokB[j-1].toLowerCase() ? dp[i-1][j-1] + 1 : Math.max(dp[i-1][j], dp[i][j-1]);
 
-    const ops = []; let i = m, j = n;
-    while (i > 0 || j > 0) {
-        if (i > 0 && j > 0 && tokA[i-1].toLowerCase() === tokB[j-1].toLowerCase()) { ops.unshift({ type: 'eq', val: tokB[j-1] }); i--; j--; }
-        else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) { ops.unshift({ type: 'ins', val: tokB[j-1] }); j--; }
-        else { ops.unshift({ type: 'del', val: tokA[i-1] }); i--; }
-    }
-
-    let userHTML = '', corrHTML = '';
-    ops.forEach(({ type, val }) => {
-        const v = val.replace(/</g, '&lt;');
-        if (type === 'eq')  { userHTML += v; corrHTML += v; }
-        if (type === 'del') { userHTML += `<span class="diff-del">${v}</span>`; }
-        if (type === 'ins') { corrHTML += `<span class="diff-ins">${v}</span>`; }
-    });
-    return { userHTML, corrHTML };
-}
 
 // Check if the page is already loaded before adding the listener.
 // This prevents the "silent hang" race condition.

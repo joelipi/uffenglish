@@ -54,11 +54,18 @@ export async function processAnswerLogic({
             let aiExplanation = "";
             switch(aiResult.errorType) {
                 case 'ungrammatical': aiExplanation = aiResult.correction ? `${Strings.get('lang_error_maybe', userData?.native_language)}<br>"${aiResult.correction}"` : Strings.get('lang_error_detected', userData?.native_language); break;
-                case 'insensitive': aiExplanation = aiResult.explanation ? `${Strings.get('offensive_soften', userData?.native_language)}<br><span lang='${userData?.native_language || 'es'}'><i>${aiResult.explanation}</i></span>` : Strings.get('offensive_insensitive', userData?.native_language); break;
+                case 'insensitive': 
+                case 'rude':
+                    aiExplanation = aiResult.explanation ? `${Strings.get('offensive_soften', userData?.native_language)}<br><span lang='${userData?.native_language || 'es'}'><i>${aiResult.explanation}</i></span>` : Strings.get('offensive_insensitive', userData?.native_language); break;
                 case 'nonsensical': aiExplanation = Strings.get('no_sense', userData?.native_language); break;
-                case 'nonsequitur': aiExplanation = Strings.get('not_logical', userData?.native_language); break;
+                case 'nonsequitur': 
+                case 'pragmatic failure':
+                    aiExplanation = Strings.get('not_logical', userData?.native_language); break;
                 case 'nonresponsive': aiExplanation = Strings.get('not_deep', userData?.native_language); break;
-                case 'overly formal': aiExplanation = aiResult.correction ? `${Strings.get('too_formal_less', userData?.native_language)}<br>"${aiResult.correction}"` : Strings.get('too_formal_context', userData?.native_language); break;
+                case 'overly formal': 
+                case 'too formal':
+                    aiExplanation = aiResult.correction ? `${Strings.get('too_formal_less', userData?.native_language)}<br>"${aiResult.correction}"` : Strings.get('too_formal_context', userData?.native_language); break;
+                case 'too informal': aiExplanation = Strings.get('too_informal', userData?.native_language) || "That's a bit too informal for this situation."; break;
                 case 'parse_error': aiExplanation = Strings.get('tech_error_retry', userData?.native_language); break;
                 default: aiExplanation = Strings.get('tech_error_generic', userData?.native_language); break;
             }
