@@ -83,7 +83,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         const urlParams = new URLSearchParams(window.location.search);
-        const redirectUrl = urlParams.get('redirect') || '/home'; // Default to /home
+        const redirectUrl = urlParams.get('redirect') || 'lesson.html'; // Default to lesson.html
 
         // Set up links with redirect parameter
         const redirectQuery = urlParams.get('redirect') ? `?redirect=${encodeURIComponent(urlParams.get('redirect'))}` : '';

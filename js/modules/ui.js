@@ -1,4 +1,4 @@
-// --- modules/ui.js ---
+import { State } from './state.js';
 
 // 1. Centralize DOM Elements
 export const DOM = {
@@ -22,8 +22,16 @@ export const DOM = {
     // NEW: Added the streak span from app.php
     streakCountSpan: document.getElementById("streakCountSpan"), 
     arrowContainer: document.getElementById("arrow-container"),
-    playbackVideo: document.getElementById(window.innerWidth >= 1200 ? 'playback-video-desktop' : 'playback-video-mobile')
+    playbackVideoMobile: document.getElementById('playback-video-mobile'),
+    playbackVideoDesktop: document.getElementById('playback-video-desktop'),
+    playbackMuteToggleMobile: document.getElementById('playback-mute-toggle-mobile'),
+    playbackMuteToggleDesktop: document.getElementById('playback-mute-toggle-desktop'),
+    questionsContainerContainer: document.getElementById('questions-container-container'),
+    questionsContainer: document.getElementById('questions-container')
 };
+
+let webcamPreview = null;
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
 // 2. Helper to switch between AI and Human headers
 function setChatHeader(isAI) {
@@ -246,13 +254,270 @@ export function setMicStatusText(text) {
     if (DOM.micStatusText) DOM.micStatusText.innerHTML = text;
 }
 
+export function renderWhisperReviewUI(transcript, timeLeft, onAccept, onReject) {
+    if (!DOM.micStatusText) return;
+
+    DOM.micStatusText.innerHTML = `
+        <div class='text-center mt-3 p-3 bg-dark rounded border border-secondary shadow-sm'>
+            <div style='font-size: 1.1rem; color: #fff; margin-bottom: 15px;'>
+                <small class="text-muted d-block mb-1">Whisper heard:</small>
+                <strong>"${transcript}"</strong>
+            </div>
+            <div class="d-flex justify-content-center gap-3">
+                <button id="rejectBtn" class="btn btn-outline-danger px-4">
+                    <i class="bi bi-arrow-repeat"></i> Re-record
+                </button>
+                <button id="acceptBtn" class="btn btn-success px-4">
+                    <i class="bi bi-check-circle"></i> Accept (<span id="reviewTimer">${timeLeft}</span>s)
+                </button>
+            </div>
+            <div class="progress mt-3" style="height: 5px; background-color: #333;">
+                <div id="reviewProgressBar" class="progress-bar bg-success" role="progressbar" style="width: 100%; transition: width 7s linear;"></div>
+            </div>
+        </div>`;
+
+    // Bind listeners
+    setTimeout(() => {
+        document.getElementById('acceptBtn')?.addEventListener('click', onAccept);
+        document.getElementById('rejectBtn')?.addEventListener('click', onReject);
+        
+        // Trigger animation
+        const bar = document.getElementById('reviewProgressBar');
+        if (bar) {
+            requestAnimationFrame(() => {
+                bar.style.width = '0%';
+            });
+        }
+    }, 50);
+}
+
+export function updateWhisperTimer(timeLeft) {
+    const timerSpan = document.getElementById('reviewTimer');
+    if (timerSpan) timerSpan.innerText = timeLeft;
+}
+
+export function pauseVideoIfPlaying(playerInstance) {
+    // 1. Instance approach: keeps player UI/internal state in sync
+    if (playerInstance) {
+        if (typeof playerInstance.pause === 'function') {
+            playerInstance.pause();
+        } else if (playerInstance.video && !playerInstance.video.paused) {
+            playerInstance.video.pause();
+        }
+    }
+
+    // 2. DOM Fallback: Catch ALL .ivp-video elements
+    const videoElements = document.querySelectorAll('video.ivp-video');
+    videoElements.forEach(video => {
+        if (!video.paused) {
+            video.pause();
+        }
+    });
+}
+
 export function updateSpeakingScoreDisplay(score) {
     if (DOM.phrasesScore) DOM.phrasesScore.textContent = `${score}`;
 }
 
-export function showPlaybackVideo() {
-    if (DOM.playbackVideo) DOM.playbackVideo.style.display = 'block';
+export function clearPlaybackVideo() {
+    [DOM.playbackVideoMobile, DOM.playbackVideoDesktop].forEach(video => {
+        if (video) {
+            if (video.src && video.src.startsWith('blob:')) URL.revokeObjectURL(video.src);
+            video.src = ''; 
+            video.style.display = 'none';
+            video.onerror = null; 
+            video.onloadeddata = null; 
+            video.onloadedmetadata = null;
+        }
+    });
+
+    if (DOM.playbackMuteToggleMobile) DOM.playbackMuteToggleMobile.classList.add('d-none');
+    if (DOM.playbackMuteToggleDesktop) DOM.playbackMuteToggleDesktop.classList.add('d-none');
 }
+
+export function prepareMediaUI() {
+    if (DOM.mediaContainer) DOM.mediaContainer.classList.remove('d-none');
+}
+
+export function showPlaybackVideo() {
+    const playbackVideo = window.innerWidth >= 1200 ? DOM.playbackVideoDesktop : DOM.playbackVideoMobile;
+    if (playbackVideo) playbackVideo.style.display = 'block';
+}
+
+export function isWebcamPreviewVisible() {
+    return webcamPreview && webcamPreview.isConnected && !webcamPreview.classList.contains('d-none');
+}
+
+export function createWebcamPreview() {
+    if (webcamPreview) webcamPreview.remove();
+
+    webcamPreview = document.createElement('video');
+    webcamPreview.id = 'webcam-preview';
+    webcamPreview.autoplay = true;
+    webcamPreview.muted = true;
+    webcamPreview.playsinline = true;
+
+    // Set opacity:0 BEFORE insertion
+    webcamPreview.style.opacity = '0';
+
+    const isDesktop = window.innerWidth >= 1200;
+
+    if (isDesktop) {
+        if (DOM.questionsContainerContainer) DOM.questionsContainerContainer.appendChild(webcamPreview);
+    } else {
+        if (DOM.mediaContainer) {
+            DOM.mediaContainer.appendChild(webcamPreview);
+        } else {
+            webcamPreview.style.position = 'fixed';
+            webcamPreview.style.bottom = '10px';
+            webcamPreview.style.right = '10px';
+            document.body.appendChild(webcamPreview);
+        }
+    }
+    return webcamPreview;
+}
+
+export function ensureWebcamPreview(stream) {
+    if (!stream) return null;
+    if (!webcamPreview || !webcamPreview.isConnected) webcamPreview = createWebcamPreview();
+
+    webcamPreview.srcObject = stream;
+
+    if (webcamPreview.classList.contains('d-none')) {
+        webcamPreview.style.transition = '';
+        webcamPreview.style.opacity = '0';
+        webcamPreview.style.transform = 'scaleX(-1) translateY(10px)';
+        webcamPreview.classList.remove('d-none');
+
+        setTimeout(() => {
+            webcamPreview.style.transition = 'opacity 0.4s ease-out, transform 0.4s ease-out';
+            webcamPreview.style.opacity = '1';
+            webcamPreview.style.transform = 'scaleX(-1) translateY(0)';
+        }, 500);
+    }
+
+    setTimeout(() => {
+        if (isWebcamPreviewVisible() && (webcamPreview.readyState < 2 || webcamPreview.paused)) {
+            webcamPreview.play().catch(e => console.log('Play failed:', e));
+        }
+    }, 100);
+
+    return webcamPreview;
+}
+
+export function hideWebcamPreview() {
+    if (webcamPreview && webcamPreview.isConnected) webcamPreview.classList.add('d-none');
+}
+
+export function removeWebcamPreview() {
+    if (webcamPreview) {
+        webcamPreview.remove();
+        webcamPreview = null;
+    }
+}
+
+export async function setupPlaybackVideo(blob, autoplay = false, speechCamChunks = []) {
+    const isDesktop = window.innerWidth > 1000;
+    const playbackVideo = isDesktop ? DOM.playbackVideoDesktop : DOM.playbackVideoMobile;
+
+    if (!playbackVideo) {
+        console.error('[Playback] playbackVideo element not found');
+        return;
+    }
+
+    try {
+        if (playbackVideo.src && playbackVideo.src.startsWith('blob:')) {
+            URL.revokeObjectURL(playbackVideo.src);
+        }
+
+        if (isIOS) {
+            await setupIOSBlobPlayback(playbackVideo, blob);
+        } else {
+            playbackVideo.src = URL.createObjectURL(blob);
+        }
+
+        const muteToggle = isDesktop ? DOM.playbackMuteToggleDesktop : DOM.playbackMuteToggleMobile;
+
+        if (muteToggle) {
+            muteToggle.classList.remove('d-none');
+            const icon = muteToggle.querySelector('i');
+            
+            if (icon) {
+                icon.className = State.isPlaybackMuted ? 'bi bi-volume-mute-fill' : 'bi bi-volume-up-fill';
+            }
+
+            muteToggle.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                State.isPlaybackMuted = !State.isPlaybackMuted;
+                playbackVideo.muted = State.isPlaybackMuted;
+                if (icon) {
+                    icon.className = State.isPlaybackMuted ? 'bi bi-volume-mute-fill' : 'bi bi-volume-up-fill';
+                }
+            };
+        }
+
+        playbackVideo.onerror = (e) => {
+            console.error('[Playback] playbackVideo error:', e);
+            try {
+                const fallbackBlob = new Blob(speechCamChunks, { type: 'video/mp4' });
+                playbackVideo.src = URL.createObjectURL(fallbackBlob);
+            } catch (fallbackError) {
+                console.error('[Playback] Fallback failed:', fallbackError);
+            }
+        };
+
+        playbackVideo.controls = true;
+        playbackVideo.loop = true;
+        playbackVideo.autoplay = false;
+        playbackVideo.preload = 'auto';
+        playbackVideo.muted = State.isPlaybackMuted || false;
+
+        if (!isIOS) {
+            const handleVideoInteraction = function(e) {
+                e.preventDefault(); e.stopPropagation();
+                requestAnimationFrame(() => {
+                    if (this.paused && this.readyState >= 2) {
+                        this.play().catch(e => { this.currentTime = 0; setTimeout(() => this.play().catch(console.error), 100); });
+                    } else if (!this.paused) this.pause();
+                });
+            };
+            playbackVideo.addEventListener('touchstart', handleVideoInteraction, { passive: false });
+            playbackVideo.addEventListener('click', handleVideoInteraction);
+            playbackVideo.style.cursor = 'pointer';
+        }
+
+        playbackVideo.onloadedmetadata = () => {
+            playbackVideo.style.display = 'block';
+            if (autoplay) {
+                playbackVideo.play().catch(e => console.warn('[Playback] autoplay failed:', e));
+            }
+        };
+
+    } catch (urlError) {
+        console.error('[Playback] setupPlaybackVideo threw:', urlError);
+    }
+}
+
+async function setupIOSBlobPlayback(videoElement, blob) {
+    return new Promise((resolve) => {
+        videoElement.controls = true; videoElement.loop = true;
+        const url = URL.createObjectURL(blob);
+        videoElement.onerror = () => {
+            try {
+                const alternativeBlob = new Blob([blob], { type: 'video/mp4' });
+                videoElement.src = URL.createObjectURL(alternativeBlob);
+                resolve();
+            } catch (fallbackError) {
+                resolve();
+            }
+        };
+        videoElement.src = url;
+        videoElement.onloadeddata = () => resolve();
+        setTimeout(() => resolve(), 2000);
+    });
+}
+
 
 export function markButtonAsCorrect(button) {
     if (!button) return;
@@ -349,10 +614,6 @@ export function toggleScoresAndHearts(show) {
 export function removeRepeatButton() {
     let repeatButton = document.getElementById('repeatButton');
     if (repeatButton) repeatButton.remove();
-}
-
-export function prepareMediaUI() {
-    if (DOM.mediaContainer) DOM.mediaContainer.classList.remove('d-none');
 }
 
 export function clearMediaContainerAndPreservePlayers() {

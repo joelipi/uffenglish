@@ -24,8 +24,13 @@
     * Console warnings.
 * **Verify Expected Logs:** Check for expected console logs (both debug and success logs). If a process runs but fails to output a log that is expected to fire, you must treat this as a bug and review the code.
 
+Do not go to homescreen.html or landing.html they aren't hooked into the app logic yet.
+
+Here is the local address of the course I am using for testing http://127.0.0.1:5500/lesson.html?courseid=gt2 Remember that lessons cannot be initialized without that url parameter unless they are already stored in memory.
+
 ## 5. App-Specific Testing Workarounds
 * **Speech-to-Text / Microphone Bypass:** Because you cannot natively utilize a microphone for the speech-to-text features, you must use the built-in testing functions. As appropriate, bypass the microphone entirely or directly invoke the `handleAnswer` function (or other required functions) to simulate user audio input.
-* **Authentication / Login Testing:** To test general public functionality, click "no" on the login modal to bypass it. If testing requires authentication, use the following test account credentials to log into the web app during your automated testing:
-    * **Username:** jules
+* **Authentication / Login Testing:** 
+User credentials for the web app during your automated testing:
+    * **Email:** jules@example.com
     * **Password:** testtest

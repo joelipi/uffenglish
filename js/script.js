@@ -85,12 +85,8 @@ import { saveCourseToUserProfile, saveLessonProgress, syncOfflineScores } from '
 import {
     isIOS,
     warmUpSpeechCamStream,
-    ensureWebcamPreview,
-    hideWebcamPreview,
-    removeWebcamPreview,
     startSpeechCamRecording,
     stopSpeechCamRecording,
-    clearPlaybackVideo,
     toggleSpeechRecognition,
     isListening,
     initLocalVoiceAI
@@ -127,6 +123,11 @@ import {
     clearMicStatusAndHideMedia,
     setMicStatusText,
     updateSpeakingScoreDisplay,
+    ensureWebcamPreview,
+    hideWebcamPreview,
+    removeWebcamPreview,
+    clearPlaybackVideo,
+    prepareMediaUI,
     showPlaybackVideo,
     markButtonAsCorrect,
     markButtonAsIncorrect,
@@ -138,7 +139,6 @@ import {
     resetUIForNewQuestion,
     toggleScoresAndHearts,
     removeRepeatButton,
-    prepareMediaUI,
     clearMediaContainerAndPreservePlayers,
     renderImageInMediaContainer,
     renderYoutubeInMediaContainer,
@@ -801,7 +801,7 @@ function loadQuestion(question, lesson, fluencyData) {
     toggleScoresAndHearts((question.inputType === 'speech' || question.inputType === 'ai') && question.videoUrl);
 
     if (question.inputType === 'speech' || question.inputType === 'ai') {
-        ensureWebcamPreview();
+        warmUpSpeechCamStream();
         if (isIOS) {
             const closePageLink = document.getElementById('closePage');
             if (closePageLink) {
@@ -823,7 +823,7 @@ function loadQuestion(question, lesson, fluencyData) {
     }
 
     if (question.inputType === 'speech' || question.inputType === 'ai') {
-        ensureWebcamPreview();
+        warmUpSpeechCamStream();
         State.speakingScore = 100; // Reset speaking score for this question
         updateSpeakingScoreDisplay(State.speakingScore);
     }
@@ -1170,6 +1170,9 @@ async function initializeLesson() {
 
         loadLessonContent(State.lesson);
     } catch (error) {
+        console.error("initializeLesson error:", error);
+        const preloader = document.getElementById('appLoadingImageDiv');
+        if (preloader) preloader.style.display = 'none';
         showErrorMessageInQuestionsContainer(Strings.get('lesson_load_error', State.userData?.native_language));
     }
 }
@@ -1383,6 +1386,8 @@ async function initializeApp() {
 
     } catch (error) {
         console.error("Initialization error:", error);
+        const preloader = document.getElementById('appLoadingImageDiv');
+        if (preloader) preloader.style.display = 'none';
     }
 }
 
