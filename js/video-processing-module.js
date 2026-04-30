@@ -76,15 +76,13 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
 
     const displayContext = displayCanvas.getContext('2d', { 
         alpha: false, 
-        willReadFrequently: false,
-        desynchronized: true 
+        willReadFrequently: false
     });
     
     const overlayImage = document.getElementById('overlayImage');
     const canvasContext = videoCanvas.getContext('2d', { 
         alpha: false, 
-        willReadFrequently: false,
-        desynchronized: true 
+        willReadFrequently: false
     });
     
     // Cache iOS detection result
