@@ -8,10 +8,10 @@ import { tablesDB, APPWRITE_CONFIG, getCurrentUser } from './appwrite.js';
  */
 export async function syncUserMetaData(metaToUpdate, providedUserData) {
     let userData = providedUserData;
-    if (!userData || !userData.$id) {
+    if (!userData || !userData.$id || userData.$id === 'guest') {
         userData = await getCurrentUser();
         if (!userData || !userData.$id) {
-            console.error("🚨 syncUserMetaData: No user session found.");
+            console.warn("syncUserMetaData: Guest user, skipping sync.");
             return;
         }
     }
@@ -42,6 +42,10 @@ export async function syncUserMetaData(metaToUpdate, providedUserData) {
  * Handles initial course setup
  */
 export async function saveCourseToUserProfile(courseId, userData) {
+    if (!userData || userData.$id === 'guest') {
+        console.warn('saveCourseToUserProfile: Guest user, skipping save.');
+        return true;
+    }
     try {
         let progressMap = {};
         if (userData?.course_progress) {
@@ -141,7 +145,7 @@ export function calculateCurrentStreak(completedDatesArray) {
  * Restored from your original file: Handles offline score syncing
  */
 export async function syncOfflineScores(userData) {
-    if (!userData || typeof userData !== 'object') return;
+    if (!userData || typeof userData !== 'object' || userData.$id === 'guest') return;
     try {
         const localScoresStr = localStorage.getItem('lesson_scores');
         const remoteScoresStr = userData.lesson_scores || '{}';

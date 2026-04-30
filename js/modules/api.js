@@ -19,7 +19,18 @@ export async function isUserLoggedIn() {
 export async function getUserProfile() {
   try {
     const user = await getCurrentUser();
-    if (!user) throw new Error('Not logged in');
+    if (!user) {
+        return {
+            $id: 'guest',
+            email: 'guest@example.com',
+            display_name: 'Guest User',
+            join_date: new Date().toISOString(),
+            auth_method: 'guest',
+            english_level: 'A0',
+            native_language: 'EN',
+            completed_dates: []
+        };
+    }
 
     // Fetch extended profile data from the new TablesDB
     try {
