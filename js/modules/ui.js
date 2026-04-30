@@ -22,7 +22,7 @@ export const DOM = {
     // NEW: Added the streak span from app.php
     streakCountSpan: document.getElementById("streakCountSpan"), 
     arrowContainer: document.getElementById("arrow-container"),
-    playbackVideo: document.getElementById(window.innerWidth > 1000 ? 'playback-video-desktop' : 'playback-video-mobile')
+    playbackVideo: document.getElementById(window.innerWidth >= 1200 ? 'playback-video-desktop' : 'playback-video-mobile')
 };
 
 // 2. Helper to switch between AI and Human headers
@@ -258,7 +258,7 @@ export function clearMediaContainerAndPreservePlayers() {
     if (!DOM.mediaContainer) return;
     
     // 1. Identify containers we want to keep
-    const preserved = DOM.mediaContainer.querySelectorAll('#ivp-container, #simple-ivp-container, #intro-call-widget');
+    const preserved = DOM.mediaContainer.querySelectorAll('#ivp-container, #simple-ivp-container, #intro-call-widget, #webcam-preview');
     
     // 2. Wipe the parent container
     DOM.mediaContainer.innerHTML = '';
@@ -273,6 +273,9 @@ export function clearMediaContainerAndPreservePlayers() {
         // Neutral state: Shells are available (unhidden), but the Call Widget is hidden by default
         if (el.id === 'intro-call-widget') {
             el.classList.add('d-none');
+        } else if (el.id === 'webcam-preview') {
+            // Keep the webcam's current visibility state as managed by speech.js
+            // and do NOT clear its innerHTML (video element)
         } else {
             el.classList.remove('d-none');
             // Always clear innerHTML of video shells during reset. This ensures they 

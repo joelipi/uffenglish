@@ -286,15 +286,11 @@ export class InteractiveVideoPlayer {
       this.blurOverlay.style.display = 'none';
     }
 
-    // Dynamic subtitle styling
-    this.subtitleDisplay.style.minHeight = `${minSubtitleHeight}px`;
-    this.subtitleDisplay.style.fontSize = isDesktop ? 'clamp(1rem, 4vw, 1.5rem)' : 'clamp(1.2rem, 5vw, 1.8rem)';
+    // Dynamic subtitle styling - mostly handled by style.css now.
+    // We only keep critical runtime overrides if needed, but here we can offload to CSS.
     
-    if (CSS.supports('backdrop-filter', 'blur(10px)')) {
-      this.subtitleDisplay.style.backdropFilter = 'blur(10px)';
-      this.subtitleDisplay.style.backgroundColor = 'rgba(0,0,0,0.6)';
-    } else {
-      this.subtitleDisplay.style.backgroundColor = 'rgba(0,0,0,0.85)';
+    if (this.blurOverlay) {
+      this.blurOverlay.style.display = 'none';
     }
 
     if (this.isIOS && this.loadingSpinner) {

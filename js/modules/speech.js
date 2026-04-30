@@ -84,7 +84,7 @@ export function createWebcamPreview() {
     const questionsContainer = document.getElementById('questions-container-container');
     if (questionsContainer) questionsContainer.appendChild(webcamPreview);
   } else {
-    const overlay = document.querySelector('div#media-container-container');
+    const overlay = document.querySelector('div#media-container');
     if (overlay) {
       overlay.appendChild(webcamPreview);
     } else {
@@ -394,9 +394,9 @@ async function setupPlaybackVideo(blob, autoplay = false) {
     });
   }
 };
-
-    playbackVideo.oncanplay = () => console.log('[Playback] oncanplay fired — readyState:', playbackVideo.readyState);
-    playbackVideo.onloadeddata = () => console.log('[Playback] onloadeddata fired — readyState:', playbackVideo.readyState);
+    // These log statements were the bane of my existence but I may need them someday.
+    //playbackVideo.oncanplay = () => console.log('[Playback] oncanplay fired — readyState:', playbackVideo.readyState);
+    //playbackVideo.onloadeddata = () => console.log('[Playback] onloadeddata fired — readyState:', playbackVideo.readyState);
 
   } catch (urlError) {
     console.error('[Playback] setupPlaybackVideo threw:', urlError);
