@@ -2,7 +2,7 @@ import normalize from './normalize.js';
 import calculateSimilarity from './calculatesimilarity.js';
 import swearjar from './swearjar.js';
 import { checkGrammarWithAI, evaluateIntentWithAI } from './api.js';
-import { createGrammarDiffHTML } from './ui.js';
+import { createGrammarDiffHTML, createPragmaticsBubbleHTML, createHeaderHTML } from './ui.js';
 import Strings from '../data/strings.js';
 
 export function getCurrentQuestionIndex(questionData, configData, currentLessonIndex) {
@@ -68,7 +68,7 @@ export async function processAnswerLogic({
             // 1. Grammar Feedback (Always shown if grammar is bad)
             if (!isGrammarCorrect) {
                 if (result.correction) {
-                    feedbackChunks.push(createGrammarDiffHTML(userResponse, result.correction));
+                    feedbackChunks.push(createGrammarDiffHTML(userResponse, result.correction, Strings.get('stats_grammar_header', userData?.native_language)));
                 } else {
                     feedbackChunks.push(Strings.get('lang_error_detected', userData?.native_language));
                 }
@@ -103,7 +103,7 @@ export async function processAnswerLogic({
                     case 'parse_error': intentExplanation = Strings.get('tech_error_retry', userData?.native_language); break;
                     default: intentExplanation = Strings.get('tech_error_generic', userData?.native_language); break;
                 }
-                feedbackChunks.push(intentExplanation);
+                feedbackChunks.push(createPragmaticsBubbleHTML(createHeaderHTML(Strings.get('stats_pragmatics_header', userData?.native_language)), intentExplanation));
             }
 
             result.explanations = feedbackChunks.filter(Boolean);

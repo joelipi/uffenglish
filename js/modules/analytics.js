@@ -24,7 +24,9 @@ export async function analyzeSpeech(text, netDuration, pauseCount, currentCourse
         baseScore = Math.max(0, baseScore); // Prevent negative baseline
 
         if (!idiomChecker.isReady) await idiomChecker.init();
-        const idiomCount = idiomChecker.count(text);
+        const idiomResult = idiomChecker.count(text);
+        const idiomCount = typeof idiomResult === 'object' ? idiomResult.count : idiomResult;
+        const foundIdioms = typeof idiomResult === 'object' ? idiomResult.foundIdioms : [];
 
         if (idiomCount === 1) {
             baseScore += 15;
@@ -40,6 +42,7 @@ export async function analyzeSpeech(text, netDuration, pauseCount, currentCourse
         wpm,
         pauseCount,
         complexityScore,
-        complexityScoreBreakdown
+        complexityScoreBreakdown,
+        foundIdioms: typeof foundIdioms !== 'undefined' ? foundIdioms : []
     };
 }
