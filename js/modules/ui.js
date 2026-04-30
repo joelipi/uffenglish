@@ -135,22 +135,36 @@ export function renderAIAnalysisLoading(text = "Analyzing your response...") {
 /**
  * 🎨 UI BUILDER: Renders a standardized stats bubble
  */
+
+export function createHeaderHTML(text) {
+    if (!text) return "";
+    return `<div style='font-size: 0.85em; text-transform: uppercase; color: #17a2b8; margin-bottom: 5px;'><strong>${text}</strong></div>`;
+}
+
+export function createPragmaticsBubbleHTML(headingHTML, contentHTML) {
+    return `<div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>
+        ${headingHTML ? headingHTML : ''}
+        ${contentHTML}
+    </div>`;
+}
+
 export function createStatsBubbleHTML(header, statsParts) {
-    if (!statsParts || statsParts.length === 0) return "";
+    const listHtml = statsParts && statsParts.length > 0 ? `<ul>${statsParts.map(part => `<li>${part}</li>`).join('')}</ul>` : '';
     return `
         <div class='chat-bubble chat-msg' style='margin-bottom: 12px; display: block; border-left: 4px solid #17a2b8;'>
-            <div style='font-size: 0.85em; text-transform: uppercase; color: #17a2b8; margin-bottom: 5px;'><strong>${header}</strong></div>
-            ${statsParts.join('<br>')}
+            ${createHeaderHTML(header)}
+            ${listHtml}
         </div>`;
 }
 
 /**
  * 🎨 UI BUILDER: Renders a grammar correction bubble with a diff
  */
-export function createGrammarDiffHTML(original, correction) {
+export function createGrammarDiffHTML(original, correction, headingText = "") {
     const { userHTML, corrHTML } = buildGrammarDiff(original, correction);
     return `
         <div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>
+            ${createHeaderHTML(headingText)}
             <div class="diff-del-bubble">${userHTML}</div>
             <div style="margin-top:6px">${corrHTML}</div>
         </div>`;

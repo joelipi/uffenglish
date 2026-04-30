@@ -2,9 +2,45 @@
 
 const strings = {
 
-    'stats_header': {
+        'stats_header': {
         en: "SPEECH ANALYTICS",
         es: "ANÁLISIS DE VOZ"
+    },
+    'stats_speech_flow_header': {
+        en: "SPEECH FLOW: 70%",
+        es: "FLUIDEZ DE VOZ: 70%"
+    },
+    'stats_vocabulary_header': {
+        en: "VOCABULARY: 80%",
+        es: "VOCABULARIO: 80%"
+    },
+    'stats_grammar_header': {
+        en: "GRAMMAR: 50%",
+        es: "GRAMÁTICA: 50%"
+    },
+    'stats_pragmatics_header': {
+        en: "PRAGMATICS: 50%",
+        es: "PRAGMÁTICA: 50%"
+    },
+    'stats_listening_header': {
+        en: "LISTENING SCORE: {score}%",
+        es: "PUNTUACIÓN DE ESCUCHA: {score}%"
+    },
+    'stats_speaking_header': {
+        en: "SPEAKING SCORE: {score}%",
+        es: "PUNTUACIÓN DE HABLA: {score}%"
+    },
+    'stats_hesitation': {
+        en: "Hesitation at start",
+        es: "Duda al inicio"
+    },
+    'stats_pauses_speaking': {
+        en: "Pauses during speaking",
+        es: "Pausas al hablar"
+    },
+    'stats_idioms': {
+        en: "Number of idioms",
+        es: "Número de modismos"
     },
     'stats_wpm': {
         en: "Words per minute",

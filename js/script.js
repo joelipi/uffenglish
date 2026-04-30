@@ -118,6 +118,8 @@ import {
     renderAIAnalysisLoading,
     createStatsBubbleHTML,
     createGrammarDiffHTML,
+    createHeaderHTML,
+    createPragmaticsBubbleHTML,
     renderAIFeedback,
     safeRenderChatInterface,
     showHintsAndScroll,
@@ -381,29 +383,44 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
     clearMicStatusAndHideMedia();
 
     let speechAnalytics = null;
-    let immediateStatsHtml = "";
+    let immediateStatsHtmlArr = [];
 
     if (questionData.inputType === "speech" || questionData.inputType === "ai") {
         speechAnalytics = await analyzeSpeech(userResponse, stats.netDuration, stats.pauseCount, State.courseId ? State.courseId.substring(0,2).toUpperCase() : 'A1');
 
-        // Build immediate stats bubble
-        let statsParts = [];
-        if (speechAnalytics.wpm !== null) {
-            statsParts.push(`<strong>${Strings.get('stats_wpm', State.userData?.native_language)}:</strong> ${speechAnalytics.wpm}`);
-        }
-        if (speechAnalytics.pauseCount !== null) {
-            statsParts.push(`<strong>${Strings.get('stats_pauses', State.userData?.native_language)}:</strong> ${speechAnalytics.pauseCount}`);
-        }
+        const listeningScore = State.currentPoints || 0;
+        const speakingScore = State.speakingScore || 0;
+
+        immediateStatsHtmlArr.push(createStatsBubbleHTML(
+            Strings.get('stats_listening_header', State.userData?.native_language).replace('{score}', listeningScore), []
+        ));
+
+        immediateStatsHtmlArr.push(createStatsBubbleHTML(
+            Strings.get('stats_speaking_header', State.userData?.native_language).replace('{score}', speakingScore), []
+        ));
+
+        let flowParts = [
+            `<strong>${Strings.get('stats_hesitation', State.userData?.native_language)}:</strong> 0`,
+            `<strong>${Strings.get('stats_pauses_speaking', State.userData?.native_language)}:</strong> ${speechAnalytics.pauseCount || 0}`,
+            `<strong>${Strings.get('stats_wpm', State.userData?.native_language)}:</strong> ${speechAnalytics.wpm || 0}`
+        ];
+
+        immediateStatsHtmlArr.push(createStatsBubbleHTML(
+            Strings.get('stats_speech_flow_header', State.userData?.native_language), flowParts
+        ));
+
+        let vocabParts = [];
         if (speechAnalytics.complexityScore !== null) {
-            statsParts.push(`<strong>${Strings.get('stats_complexity', State.userData?.native_language)}:</strong> ${speechAnalytics.complexityScore} <br><small>(${speechAnalytics.complexityScoreBreakdown})</small>`);
+            vocabParts.push(`<strong>${Strings.get('stats_complexity', State.userData?.native_language)}:</strong> ${speechAnalytics.complexityScore} <br><small>(${speechAnalytics.complexityScoreBreakdown})</small>`);
+        }
+        if (speechAnalytics.foundIdioms && speechAnalytics.foundIdioms.length > 0) {
+            const idiomsList = speechAnalytics.foundIdioms.map(idiom => `<li>${idiom}</li>`).join('');
+            vocabParts.push(`<strong>${Strings.get('stats_idioms', State.userData?.native_language)}:</strong> ${speechAnalytics.foundIdioms.length}<ul style="margin-bottom:0;">${idiomsList}</ul>`);
         }
 
-        if (statsParts.length > 0) {
-            immediateStatsHtml = createStatsBubbleHTML(
-                Strings.get('stats_header', State.userData?.native_language),
-                statsParts
-            );
-        }
+        immediateStatsHtmlArr.push(createStatsBubbleHTML(
+            Strings.get('stats_vocabulary_header', State.userData?.native_language), vocabParts
+        ));
     }
 
     if (questionData.inputType === "ai" && userResponse && DOM.speechText) {
@@ -417,7 +434,7 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
         renderUserResponse(userResponse, ""); 
 
         // 3. Then render stats and loading
-        if (immediateStatsHtml) renderAIFeedback([immediateStatsHtml]);
+        if (immediateStatsHtmlArr.length > 0) renderAIFeedback(immediateStatsHtmlArr);
         renderAIAnalysisLoading();
     } else if (questionData.inputType === "speech" && userResponse && DOM.speechText) {
         // 1. Render a "fake" user response bubble using the CUE (target sentence)
@@ -428,7 +445,7 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
         renderUserResponse(`<strong>${cue}${translationStr}</strong>`, ""); 
 
         // 2. Then render stats
-        if (immediateStatsHtml) renderAIFeedback([immediateStatsHtml]);
+        if (immediateStatsHtmlArr.length > 0) renderAIFeedback(immediateStatsHtmlArr);
     }
 
     const qIndex = getCurrentQuestionIndex(questionData, State.configData, State.currentLessonIndex);
@@ -466,6 +483,7 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
                 const syntComplexity = calculateSyntacticComplexity(userResponse);
                 grammarExplanationHTML = `
                     <div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>
+                        ${createHeaderHTML(Strings.get('stats_grammar_header', State.userData?.native_language))}
                         ${Strings.get('grammar_perfect', State.userData?.native_language)}
                         <hr style="margin: 8px 0; opacity: 0.1;">
                         <div style="font-size: 0.85em;">
@@ -484,26 +502,26 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
 
                 if (isGrammarPerfect && intentResult.category === 'target') {
                     isFinalCorrect = true;
-                    intentExplanationHTML = `<div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>${Strings.get('intent_perfect', State.userData?.native_language)}</div>`;
+                    intentExplanationHTML = createPragmaticsBubbleHTML(createHeaderHTML(Strings.get('stats_pragmatics_header', State.userData?.native_language)), Strings.get('intent_perfect', State.userData?.native_language));
                 }
                 else if (!isGrammarPerfect && intentResult.category === 'target') {
                     isFinalCorrect = false;
-                    intentExplanationHTML = `<div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>${Strings.get('intent_good_grammar_bad', State.userData?.native_language)}</div>`;
+                    intentExplanationHTML = createPragmaticsBubbleHTML(createHeaderHTML(Strings.get('stats_pragmatics_header', State.userData?.native_language)), Strings.get('intent_good_grammar_bad', State.userData?.native_language));
                 }
                 else if (intentResult.category === 'bad') {
                     isFinalCorrect = false;
                     let badIntentStr = Strings.get('intent_specific_fail', State.userData?.native_language);
                     const localizedBadIntent = Strings.get(intentResult.winningLabel, State.userData?.native_language) || intentResult.winningLabel;
                     badIntentStr = badIntentStr.replace('{bad_intent}', localizedBadIntent);
-                    intentExplanationHTML = `<div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>${badIntentStr}</div>`;
+                    intentExplanationHTML = createPragmaticsBubbleHTML(createHeaderHTML(Strings.get('stats_pragmatics_header', State.userData?.native_language)), badIntentStr);
                 }
                 else if (isGrammarPerfect && intentResult.category === 'distractor') {
                     isFinalCorrect = false;
-                    intentExplanationHTML = `<div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>${Strings.get('intent_bad_grammar_perfect', State.userData?.native_language)}</div>`;
+                    intentExplanationHTML = createPragmaticsBubbleHTML(createHeaderHTML(Strings.get('stats_pragmatics_header', State.userData?.native_language)), Strings.get('intent_bad_grammar_perfect', State.userData?.native_language));
                 }
                 else if (!isGrammarPerfect && intentResult.category === 'distractor') {
                     isFinalCorrect = false;
-                    intentExplanationHTML = `<div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>${Strings.get('intent_bad_grammar_bad', State.userData?.native_language)}</div>`;
+                    intentExplanationHTML = createPragmaticsBubbleHTML(createHeaderHTML(Strings.get('stats_pragmatics_header', State.userData?.native_language)), Strings.get('intent_bad_grammar_bad', State.userData?.native_language));
                 }
 
                 // 🏗️ Build the final stacked output using an array to guarantee order
