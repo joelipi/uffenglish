@@ -1,7 +1,8 @@
 import normalize from './normalize.js';
 import calculateSimilarity from './calculatesimilarity.js';
 import swearjar from './swearjar.js';
-import { evaluateWithAI } from './api.js';
+import { checkGrammarWithAI, evaluateIntentWithAI } from './api.js';
+import { createGrammarDiffHTML } from './ui.js';
 import Strings from '../data/strings.js';
 
 export function getCurrentQuestionIndex(questionData, configData, currentLessonIndex) {
@@ -43,33 +44,69 @@ export async function processAnswerLogic({
             errorType: ""
         };
 
-        const aiResult = await evaluateWithAI(userResponse, normalizeduserResponse, questionData, english_level, apiRoot);
+        // 1. Grammar Pass (Local fallback or AI)
+        const grammarResult = await checkGrammarWithAI(userResponse);
         
-        result.isCorrect = aiResult.isCorrect;
+        // 2. Intent Pass (AI)
+        const intentResult = await evaluateIntentWithAI(grammarResult.correctedText, questionData);
+        
+        // --- BUSINESS LOGIC: Determine final state from raw results ---
+        const isGrammarCorrect = grammarResult.isGrammarCorrect;
+        const isIntentCorrect = intentResult.isIntentCorrect;
+        
+        result.isCorrect = isGrammarCorrect && isIntentCorrect;
+        result.correction = grammarResult.correctedText;
+
         if (result.isCorrect) {
-            result.cefrLevel = aiResult.cefrLevel;
-            result.cefrLevelDeduction = aiResult.cefrLevelDeduction;
+            result.cefrLevel = 'B1';
+            result.cefrLevelDeduction = 0;
+            result.errorType = 'correct';
         } else {
-            result.errorType = aiResult.errorType;
-            let aiExplanation = "";
-            switch(aiResult.errorType) {
-                case 'ungrammatical': aiExplanation = aiResult.correction ? `${Strings.get('lang_error_maybe', userData?.native_language)}<br>"${aiResult.correction}"` : Strings.get('lang_error_detected', userData?.native_language); break;
-                case 'insensitive': 
-                case 'rude':
-                    aiExplanation = aiResult.explanation ? `${Strings.get('offensive_soften', userData?.native_language)}<br><span lang='${userData?.native_language || 'es'}'><i>${aiResult.explanation}</i></span>` : Strings.get('offensive_insensitive', userData?.native_language); break;
-                case 'nonsensical': aiExplanation = Strings.get('no_sense', userData?.native_language); break;
-                case 'nonsequitur': 
-                case 'pragmatic failure':
-                    aiExplanation = Strings.get('not_logical', userData?.native_language); break;
-                case 'nonresponsive': aiExplanation = Strings.get('not_deep', userData?.native_language); break;
-                case 'overly formal': 
-                case 'too formal':
-                    aiExplanation = aiResult.correction ? `${Strings.get('too_formal_less', userData?.native_language)}<br>"${aiResult.correction}"` : Strings.get('too_formal_context', userData?.native_language); break;
-                case 'too informal': aiExplanation = Strings.get('too_informal', userData?.native_language) || "That's a bit too informal for this situation."; break;
-                case 'parse_error': aiExplanation = Strings.get('tech_error_retry', userData?.native_language); break;
-                default: aiExplanation = Strings.get('tech_error_generic', userData?.native_language); break;
+            // --- ADDITIVE FEEDBACK LOGIC ---
+            let feedbackChunks = [];
+
+            // 1. Grammar Feedback (Always shown if grammar is bad)
+            if (!isGrammarCorrect) {
+                if (result.correction) {
+                    feedbackChunks.push(createGrammarDiffHTML(userResponse, result.correction));
+                } else {
+                    feedbackChunks.push(Strings.get('lang_error_detected', userData?.native_language));
+                }
             }
-            result.explanation = aiExplanation;
+
+            // 2. Intent Feedback
+            if (isIntentCorrect) {
+                // If grammar was bad but intent was good, show the specific encouragement
+                if (!isGrammarCorrect) {
+                    feedbackChunks.push(Strings.get('intent_good_grammar_bad', userData?.native_language));
+                }
+                result.errorType = 'grammar_bad_intent_good';
+            } else {
+                // Intent is bad. Determine the specific intent message
+                const label = intentResult.intentLabel || 'parse_error';
+                result.errorType = isGrammarCorrect ? label : 'grammar_and_intent_bad';
+                
+                let intentExplanation = "";
+                switch(label) {
+                    case 'insensitive': 
+                    case 'rude':
+                        intentExplanation = intentResult.rawIntentText ? `${Strings.get('offensive_soften', userData?.native_language)}<br><span lang='${userData?.native_language || 'es'}'><i>${intentResult.rawIntentText}</i></span>` : Strings.get('offensive_insensitive', userData?.native_language); break;
+                    case 'nonsensical': intentExplanation = Strings.get('no_sense', userData?.native_language); break;
+                    case 'nonsequitur': 
+                    case 'pragmatic failure':
+                        intentExplanation = Strings.get('not_logical', userData?.native_language); break;
+                    case 'nonresponsive': intentExplanation = Strings.get('not_deep', userData?.native_language); break;
+                    case 'overly formal': 
+                    case 'too formal':
+                        intentExplanation = Strings.get('too_formal_context', userData?.native_language); break;
+                    case 'too informal': intentExplanation = Strings.get('too_informal', userData?.native_language) || "That's a bit too informal for this situation."; break;
+                    case 'parse_error': intentExplanation = Strings.get('tech_error_retry', userData?.native_language); break;
+                    default: intentExplanation = Strings.get('tech_error_generic', userData?.native_language); break;
+                }
+                feedbackChunks.push(intentExplanation);
+            }
+
+            result.explanations = feedbackChunks.filter(Boolean);
         }
         return result;
     }

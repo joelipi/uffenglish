@@ -98,20 +98,107 @@ export function safeRenderChatInterface(isAI, bodyContent) {
     const loadingStatus = DOM.chatBody.querySelector('#ai-loading-status');
     if (loadingStatus) {
         loadingStatus.remove();
-        // Remove the previous user bubble if we are replacing a loading state
-        const userBubbles = DOM.chatBody.querySelectorAll('.chat-bubble-sent');
-        if (userBubbles.length > 0) {
-            userBubbles[userBubbles.length - 1].remove();
-        }
     }
 
     // Append the new bubbles
-    DOM.chatBody.insertAdjacentHTML('beforeend', bodyContent);
+    if (bodyContent) {
+        DOM.chatBody.insertAdjacentHTML('beforeend', bodyContent);
+    }
     
     // Auto-scroll to bottom
     setTimeout(() => {
         DOM.chatBody.scrollTop = DOM.chatBody.scrollHeight;
     }, 10);
+}
+
+/**
+ * 🎨 UI BUILDER: Renders the user's spoken or typed response
+ */
+export function renderUserResponse(text, statsHtml = "") {
+    const html = `
+        <div class='userResponse chat-bubble-sent chat-msg'>${text}</div>
+        ${statsHtml}`;
+    safeRenderChatInterface(false, html);
+}
+
+/**
+ * 🎨 UI BUILDER: Renders a loading indicator while AI is thinking
+ */
+export function renderAIAnalysisLoading(text = "Analyzing your response...") {
+    const html = `
+        <div class='chat-bubble chat-msg' id='ai-loading-status'>
+            <strong><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ${text}</strong>
+        </div>`;
+    safeRenderChatInterface(true, html);
+}
+
+/**
+ * 🎨 UI BUILDER: Renders a standardized stats bubble
+ */
+export function createStatsBubbleHTML(header, statsParts) {
+    if (!statsParts || statsParts.length === 0) return "";
+    return `
+        <div class='chat-bubble chat-msg' style='margin-bottom: 12px; display: block; border-left: 4px solid #17a2b8;'>
+            <div style='font-size: 0.85em; text-transform: uppercase; color: #17a2b8; margin-bottom: 5px;'><strong>${header}</strong></div>
+            ${statsParts.join('<br>')}
+        </div>`;
+}
+
+/**
+ * 🎨 UI BUILDER: Renders a grammar correction bubble with a diff
+ */
+export function createGrammarDiffHTML(original, correction) {
+    const { userHTML, corrHTML } = buildGrammarDiff(original, correction);
+    return `
+        <div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>
+            <div class="diff-del-bubble">${userHTML}</div>
+            <div style="margin-top:6px">${corrHTML}</div>
+        </div>`;
+}
+
+/**
+ * 🎨 UI BUILDER: Renders a general AI feedback bubble (explanation, heads-up, etc.)
+ */
+export function renderAIFeedback(contentChunks = []) {
+    // Filter out empty strings and wrap each chunk in a bubble if not already wrapped
+    const html = contentChunks
+        .filter(Boolean)
+        .map(chunk => {
+            if (chunk.includes("chat-bubble")) return chunk;
+            return `<div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>${chunk}</div>`;
+        })
+        .join("");
+    
+    safeRenderChatInterface(true, html);
+}
+
+/**
+ * 🎨 UI BUILDER: Internal helper to generate diff HTML
+ */
+function buildGrammarDiff(original, corrected) {
+    const tokenize = str => str.trim().match(/[\w']+|[^\w\s']+|\s+/g) || [];
+    const tokA = tokenize(original), tokB = tokenize(corrected);
+    const m = tokA.length, n = tokB.length;
+    const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+    for (let i = 1; i <= m; i++)
+        for (let j = 1; j <= n; j++)
+            dp[i][j] = tokA[i-1].toLowerCase() === tokB[j-1].toLowerCase() ? dp[i-1][j-1] + 1 : Math.max(dp[i-1][j], dp[i][j-1]);
+
+    const ops = []; let i = m, j = n;
+    while (i > 0 || j > 0) {
+        if (i > 0 && j > 0 && tokA[i-1].toLowerCase() === tokB[j-1].toLowerCase()) { ops.unshift({ type: 'eq', val: tokB[j-1] }); i--; j--; }
+        else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) { ops.unshift({ type: 'ins', val: tokB[j-1] }); j--; }
+        else { ops.unshift({ type: 'del', val: tokA[i-1] }); i--; }
+    }
+
+    let userHTML = '', corrHTML = '';
+    ops.forEach(({ type, val }) => {
+        const v = val.replace(/</g, '&lt;');
+        if (type === 'eq')  { userHTML += v; corrHTML += v; }
+        if (type === 'del') { userHTML += `<span class="diff-del">${v}</span>`; }
+        if (type === 'ins') { corrHTML += `<span class="diff-ins">${v}</span>`; }
+    });
+    return { userHTML, corrHTML };
 }
 
 // 4. NEW: A clean way to wipe the chat between questions

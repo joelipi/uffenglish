@@ -114,6 +114,11 @@ import {
     updateDayCountDisplay, 
     disableAllButtons, 
     clearChatInterface, 
+    renderUserResponse,
+    renderAIAnalysisLoading,
+    createStatsBubbleHTML,
+    createGrammarDiffHTML,
+    renderAIFeedback,
     safeRenderChatInterface,
     showHintsAndScroll,
     hideHints,
@@ -402,11 +407,28 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
     }
 
     if (questionData.inputType === "ai" && userResponse && DOM.speechText) {
-        renderUserResponse(userResponse, immediateStatsHtml);
+        // 1. Render the AI's prompt (cue) first
+        const lang = State.userData?.native_language;
+        const localizedTrans = getLocalizedTranslation(questionData.translation, lang);
+        const translationStr = (localizedTrans && lang && lang !== 'en') ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>` : "";
+        renderAIFeedback([`<strong>${cue}${translationStr}</strong>`]);
+
+        // 2. Then render the user response (Strictly alone)
+        renderUserResponse(userResponse, ""); 
+
+        // 3. Then render stats and loading
+        if (immediateStatsHtml) renderAIFeedback([immediateStatsHtml]);
         renderAIAnalysisLoading();
-    } else if (questionData.inputType === "speech" && userResponse && DOM.speechText && immediateStatsHtml) {
-        // Just show stats for non-AI speech inputs
-        renderUserResponse(userResponse, immediateStatsHtml);
+    } else if (questionData.inputType === "speech" && userResponse && DOM.speechText) {
+        // 1. Render a "fake" user response bubble using the CUE (target sentence)
+        const lang = State.userData?.native_language;
+        const localizedTrans = getLocalizedTranslation(questionData.translation, lang);
+        const translationStr = (localizedTrans && lang && lang !== 'en') ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>` : "";
+        
+        renderUserResponse(`<strong>${cue}${translationStr}</strong>`, ""); 
+
+        // 2. Then render stats
+        if (immediateStatsHtml) renderAIFeedback([immediateStatsHtml]);
     }
 
     const qIndex = getCurrentQuestionIndex(questionData, State.configData, State.currentLessonIndex);
@@ -543,9 +565,9 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
                     updateCurrentScoreDisplay(State.currentPoints);
                 }
             }
-            handlecueUI(qIndex, questionData, button, cue, result.explanation || explanation, translation, userResponse, result.englishLevel, result.englishLevelDeduction);
+            handlecueUI(qIndex, questionData, button, cue, result.explanations || explanation, translation, userResponse, result.englishLevel, result.englishLevelDeduction);
         } else {
-            handleIncueUI(qIndex, questionData, button, cue, userResponse, result.explanation || explanation, result.normalizeduserResponse, result.normalizedcue, questionData.question);
+            handleIncueUI(qIndex, questionData, button, cue, userResponse, result.explanations || explanation, result.normalizeduserResponse, result.normalizedcue, questionData.question);
         }
 
         showFeedbackAndProceed(questionData, isCorrect, State.currentLessonIndex, qIndex);
@@ -569,25 +591,26 @@ function handlecueUI(qIndex, questionData, button, cue, explanation, translation
           ? `${Strings.get('ai_acceptable', lang)}<br>${Strings.get('ai_language_level', lang)} ${englishLevel}<br>${Strings.get('ai_fluency_reduced', lang)} <span style='color:red'>${englishLevelDeduction} ${Strings.get('ai_percentage_points', lang)}</span>.`
           : (questionData.inputType === "ai" ? getRandomPraise() : "");
 
-      // For correct answers, we might want to show the correct cue if it was a speech/choice question
-      if (questionData.inputType !== "ai") {
+      if (questionData.inputType !== "ai" && questionData.inputType !== "speech") {
           const localizedTrans = getLocalizedTranslation(translation, lang);
           const translationStr = localizedTrans && lang && lang !== 'en' ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>` : "";
           const correctBubble = `<div class='correct-answer-display chat-bubble-sent chat-msg'>${cue}${translationStr}</div>`;
           const praiseBubble = `<div class='chat-bubble chat-msg' style='margin-top: 12px;'><strong>${getRandomPraise()}</strong></div>`;
           
-          renderAIFeedback([
-              correctBubble,
-              explanation,
-              praiseBubble,
-              questionData.headsUp
-          ]);
+          const chunks = [correctBubble];
+          if (Array.isArray(explanation)) chunks.push(...explanation);
+          else if (explanation) chunks.push(explanation);
+          chunks.push(praiseBubble, questionData.headsUp);
+
+          renderAIFeedback(chunks);
       } else {
-          renderAIFeedback([
-              explanation,
-              feedbackText ? `<strong>${feedbackText}</strong>` : "",
-              questionData.headsUp
-          ]);
+          // AI and Speech are already partially rendered in handleAnswer
+          const chunks = [];
+          if (Array.isArray(explanation)) chunks.push(...explanation);
+          else if (explanation) chunks.push(explanation);
+          chunks.push(feedbackText ? `<strong>${feedbackText}</strong>` : "", questionData.headsUp);
+
+          renderAIFeedback(chunks);
       }
 
       if (questionData.inputType === "ai" || questionData.inputType === "speech") {
@@ -644,13 +667,12 @@ function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanat
           ? `${Strings.get('example_correct_answer', State.userData?.native_language)}<br>${questionData.possibleAnswer}` 
           : '';
 
-      renderUserResponse(userResponse);
-      renderAIFeedback([
-          explanation,
-          `<strong>${teacherText}</strong>`,
-          possibleAnswerStr,
-          headsUpStr
-      ]);
+      const chunks = [];
+      if (Array.isArray(explanation)) chunks.push(...explanation);
+      else if (explanation) chunks.push(explanation);
+      chunks.push(`<strong>${teacherText}</strong>`, possibleAnswerStr, headsUpStr);
+
+      renderAIFeedback(chunks);
   }
 
   if (questionData.inputType === "speech" && userResponse && DOM.speechText) {
@@ -674,10 +696,12 @@ function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanat
           ? (State.incorrectAttempts <= 2 ? Strings.get('heads_up_repeat_video', State.userData?.native_language) : questionData.headsUp) 
           : '';
       
-      renderAIFeedback([
-          `<strong>${teacherText}</strong><br><br>${correctUl}${incorrectUl}`,
-          headsUpStr
-      ]);
+      const chunks = [`<strong>${teacherText}</strong><br><br>${correctUl}${incorrectUl}`];
+      if (Array.isArray(explanation)) chunks.push(...explanation);
+      else if (explanation) chunks.push(explanation);
+      chunks.push(headsUpStr);
+
+      renderAIFeedback(chunks);
   }
 
   animateHeartLoss(State.incorrectAttempts);
@@ -953,17 +977,18 @@ if (question.introBackgroundVideoUrl) {
         const lang = State.userData?.native_language; const localizedTrans = getLocalizedTranslation(question.translation, lang); const hasTranslation = !!localizedTrans;
         const imagineStr = Strings.get('imagine', lang); const listenRepeatStr = Strings.get('listen_repeat', lang);
 
-        const explanationHTML = `
-          <div class='chat-bubble chat-msg'>
+        const explanationStr = `
             <p class='explanation'>
               <strong>${imagineStr.split('<br>')[0]}</strong> ${question.explanation}
               <br><br>
               ➡${listenRepeatStr.split('<br>')[0]}
               ${hasTranslation && lang !== 'en' ? `<br><br><span lang='${lang}'><i><strong>🎯${imagineStr.includes('<br>') ? imagineStr.split('<i>')[1].split('<i>')[0] : imagineStr}</strong>${localizedTrans}<br><br>${listenRepeatStr.includes('<br>') ? listenRepeatStr.split('<i>')[1].split('<i>')[0] : listenRepeatStr}</i></span>` : ''}
-            </p>
-          </div>`;
-        const bodyContent = `<p class='lesson-name chat-bubble chat-msg'><strong>Lesson: ${lesson.title}</strong></p>${explanationHTML}`;
-        safeRenderChatInterface(false, bodyContent);
+            </p>`;
+            
+        renderAIFeedback([
+            `<p class='lesson-name'><strong>Lesson: ${lesson.title}</strong></p>`,
+            explanationStr
+        ]);
       }
       showFeedbackAndProceed(question, true);
 
@@ -973,14 +998,17 @@ if (question.introBackgroundVideoUrl) {
       let headsUpHTML = question.headsUp ? `<div class='chat-bubble chat-msg'><p class='headsUp'>${question.headsUp}</p></div>` : "";
 
       if (!question.simpleVideoUrl) {
-        let explanationHTML = "";
+        let explanationStr = "";
         if (question.explanation) {
           const lang = State.userData?.native_language;
           const expTrans = getLocalizedTranslation(question.translation, lang);
-          explanationHTML = `<div class='chat-bubble chat-msg'><p class='explanation'>${question.explanation}${expTrans && lang && lang !== 'en' ? `<br><br><span lang='${lang}'><i>${expTrans}</i></span>` : ""}</p></div>`;
+          explanationStr = `<p class='explanation'>${question.explanation}${expTrans && lang && lang !== 'en' ? `<br><br><span lang='${lang}'><i>${expTrans}</i></span>` : ""}</p>`;
         }
-        const bodyContent = `<p class='lesson-name chat-bubble chat-msg'><strong>${Strings.get('lesson_label', State.userData?.native_language)} ${lesson.title}</strong></p>${explanationHTML}`;
-        safeRenderChatInterface(false, bodyContent);
+        
+        renderAIFeedback([
+            `<p class='lesson-name'><strong>${Strings.get('lesson_label', State.userData?.native_language)} ${lesson.title}</strong></p>`,
+            explanationStr
+        ]);
       }
       showFeedbackAndProceed(question, true);
 

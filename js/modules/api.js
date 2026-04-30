@@ -1,5 +1,5 @@
-// modules/api.js
 import { getCurrentUser, tablesDB, APPWRITE_CONFIG } from './appwrite.js';
+import normalize from './normalize.js';
 
 let userAuthCache = null;
 let cacheTimestamp = null;
@@ -64,81 +64,67 @@ export async function getDeepgramToken() {
   }
 }
 
-export async function evaluateWithAI(selectedAnswer, normalizedSelectedAnswer, questionData, userCefrLevel, uffApiDataRoot) {
-  // Define the new proxy endpoint
+export async function checkGrammarWithAI(selectedAnswer) {
   const aiEndpoint = 'https://nvidia-proxy.joel-1cb.workers.dev';
-
   try {
-    console.log("🤖 AI Evaluation: Starting Pass 1 (Grammar Check)...");
-    
-    // Pass 1: Grammar Check
+    console.log("🤖 AI Evaluation: Starting Grammar Check...");
     const grammarPrompt = `Return ONLY the corrected sentence OR "CORRECT": ${selectedAnswer}`;
     
-    const grammarResponse = await fetch(aiEndpoint, {
+    const response = await fetch(aiEndpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-        // Cloudflare handles the Authorization header securely
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         messages: [{ role: "user", content: grammarPrompt }],
-        temperature: 0.1 // Keeping temperature low for strict grammar correction
+        temperature: 0.1
       })
     });
     
-    if (!grammarResponse.ok) {
-        let errorDetails = '';
-        try { errorDetails = await grammarResponse.text(); } catch (e) { errorDetails = 'Could not parse error response.'; }
-        console.error(`🚨 Grammar AI API Failed! HTTP Status: ${grammarResponse.status}`);
-        console.error(`🚨 Server Error Details:\n`, errorDetails);
-        throw new Error(`Grammar API error ${grammarResponse.status}: ${errorDetails}`);
-    }
-    const grammarData = await grammarResponse.json();
-    
-    // Parse the nested OpenAI-style response format
-    const correctedText = (grammarData.choices?.[0]?.message?.content || '').trim();
+    if (!response.ok) throw new Error(`Grammar API error ${response.status}`);
+    const data = await response.json();
+    const correctedText = (data.choices?.[0]?.message?.content || '').trim();
     
     console.log("📝 Grammar Check Result:", correctedText);
     
-    const isGrammarCorrect = correctedText.toUpperCase() === 'CORRECT' || correctedText.toLowerCase() === selectedAnswer.toLowerCase();
-    const answerForIntentPass = isGrammarCorrect ? selectedAnswer : correctedText;
+    const normOriginal = await normalize(selectedAnswer);
+    const normCorrected = await normalize(correctedText);
+    const isGrammarCorrect = normCorrected === 'correct' || normOriginal === normCorrected;
 
-    console.log("🤖 AI Evaluation: Starting Pass 2 (Intent Check)...");
+    return {
+      isGrammarCorrect,
+      correctedText: isGrammarCorrect ? selectedAnswer : correctedText
+    };
+  } catch (error) {
+    console.error('Grammar AI Error:', error);
+    throw error;
+  }
+}
 
-    // Pass 2: Intent Evaluation
+export async function evaluateIntentWithAI(answerForIntentPass, questionData) {
+  const aiEndpoint = 'https://nvidia-proxy.joel-1cb.workers.dev';
+  try {
+    console.log("🤖 AI Evaluation: Starting Intent Check...");
     const intentPrompt = `B's goal: ${questionData.mission || 'Respond appropriately'}.
 "A: ${questionData.cue}
 B: ${answerForIntentPass}"
 Evaluate B's response. Return ONLY an array with 1 or more applicable labels: [pragmatic failure, too formal, too informal, rude, correct].`;
 
-    console.log("🤖🤖prompt to AI: ", intentPrompt);
+    console.log("🤖🤖 prompt to AI: ", intentPrompt);
 
-    const intentResponse = await fetch(aiEndpoint, {
+    const response = await fetch(aiEndpoint, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         messages: [{ role: "user", content: intentPrompt }],
-        temperature: 0.1 // Keeping temperature low for classification
+        temperature: 0.1
       })
     });
 
-    if (!intentResponse.ok) {
-        let errorDetails = '';
-        try { errorDetails = await intentResponse.text(); } catch (e) { errorDetails = 'Could not parse error response.'; }
-        console.error(`🚨 Intent AI API Failed! HTTP Status: ${intentResponse.status}`);
-        console.error(`🚨 Server Error Details:\n`, errorDetails);
-        throw new Error(`Intent API error ${intentResponse.status}: ${errorDetails}`);
-    }
-    const intentData = await intentResponse.json();
-    
-    // Parse the nested OpenAI-style response format
-    const rawIntentText = intentData.choices?.[0]?.message?.content || '';
+    if (!response.ok) throw new Error(`Intent API error ${response.status}`);
+    const data = await response.json();
+    const rawIntentText = data.choices?.[0]?.message?.content || '';
     
     console.log("🎯 Intent Evaluation Raw Result:", rawIntentText);
     
-    // Parse the array response with robust extraction
     let evaluationResult;
     try {
       let cleanedText = rawIntentText.trim();
@@ -146,10 +132,7 @@ Evaluate B's response. Return ONLY an array with 1 or more applicable labels: [p
       if (firstBracket > 0) cleanedText = cleanedText.substring(firstBracket);
       const lastBracket = cleanedText.lastIndexOf(']');
       if (lastBracket !== -1 && lastBracket < cleanedText.length - 1) cleanedText = cleanedText.substring(0, lastBracket + 1);
-      
       cleanedText = cleanedText.replace(/[""]/g, '"').replace(/'/g, '"');
-      
-      // Robust labels matching
       const labels = ['pragmatic failure', 'too formal', 'too informal', 'rude', 'correct'];
       for (const label of labels) {
         cleanedText = cleanedText.replace(new RegExp(`\\[\\s*${label}\\s*,`, 'gi'), `["${label}",`);
@@ -157,10 +140,8 @@ Evaluate B's response. Return ONLY an array with 1 or more applicable labels: [p
         cleanedText = cleanedText.replace(new RegExp(`,\\s*${label}\\s*,`, 'gi'), `,"${label}",`);
         cleanedText = cleanedText.replace(new RegExp(`,\\s*${label}\\s*\\]`, 'gi'), `,"${label}"]`);
       }
-
       evaluationResult = JSON.parse(cleanedText);
     } catch (e) {
-      console.warn("Parsing failed, using fallback extraction");
       const textUpper = rawIntentText.toUpperCase();
       if (textUpper.includes('PRAGMATIC FAILURE')) evaluationResult = ['pragmatic failure'];
       else if (textUpper.includes('TOO FORMAL')) evaluationResult = ['too formal'];
@@ -171,20 +152,33 @@ Evaluate B's response. Return ONLY an array with 1 or more applicable labels: [p
     }
 
     const intentLabel = Array.isArray(evaluationResult) ? evaluationResult[0] : 'parse_error';
-    const isIntentCorrect = intentLabel === 'correct';
-    
-    // Final Combined Result
     return {
-      isCorrect: isGrammarCorrect && isIntentCorrect,
-      errorType: !isGrammarCorrect ? 'ungrammatical' : (isIntentCorrect ? 'correct' : intentLabel),
-      cefrLevel: isGrammarCorrect && isIntentCorrect ? 'B1' : '', // Fallback level
-      cefrLevelDeduction: 0,
-      correction: !isGrammarCorrect ? correctedText : '',
-      explanation: !isIntentCorrect ? `Intent evaluation: ${intentLabel}` : ''
+      isIntentCorrect: intentLabel === 'correct',
+      intentLabel,
+      rawIntentText
     };
-
   } catch (error) {
-    console.error('AI Evaluation Error:', error);
+    console.error('Intent AI Error:', error);
+    throw error;
+  }
+}
+
+export async function evaluateWithAI(selectedAnswer, normalizedSelectedAnswer, questionData, userCefrLevel, uffApiDataRoot) {
+  try {
+    const grammarResult = await checkGrammarWithAI(selectedAnswer);
+    const intentResult = await evaluateIntentWithAI(grammarResult.correctedText, questionData);
+
+    return {
+      isGrammarCorrect: grammarResult.isGrammarCorrect,
+      correctedText: grammarResult.correctedText,
+      isIntentCorrect: intentResult.isIntentCorrect,
+      intentLabel: intentResult.intentLabel,
+      rawIntentText: intentResult.rawIntentText,
+      cefrLevel: 'B1',
+      cefrLevelDeduction: 0
+    };
+  } catch (error) {
+    console.error('Combined AI Evaluation Error:', error);
     return {
       isCorrect: false,
       errorType: 'api_error',
