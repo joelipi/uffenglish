@@ -1,7 +1,6 @@
 export class simpleVideoPlayer {
   constructor(config) {
-    // FOUC fix: inject styles before any DOM work so .d-none rule exists immediately
-    this.injectStyles();
+    // Styles are now consolidated in style.css
 
     const defaults = {
       videoUrl: '',
@@ -340,141 +339,7 @@ export class simpleVideoPlayer {
   }
 
   applyVideoStyles() {
-    this.mainWrapper.style.cssText = '';
-    this.videoWrapper.style.cssText = '';
-    this.video.style.cssText = '';
-    this.subtitleScrollContainer.style.cssText = '';
-    this.subtitleDisplay.style.cssText = '';
-    if (this.blurOverlay) this.blurOverlay.style.cssText = '';
-    if (this.playOverlay) this.playOverlay.style.cssText = '';
-
-    // FOUC fix: if not yet revealed, keep hidden after cssText reset
-    if (!this.isVideoLoaded) {
-      this.mainWrapper.style.visibility = 'hidden';
-    }
-
-    this.mainWrapper.style.display = 'flex';
-    this.mainWrapper.style.flexDirection = 'column';
-    this.mainWrapper.style.alignItems = 'center';
-    this.mainWrapper.style.justifyContent = 'center';
-    this.mainWrapper.style.width = '100%';
-    this.mainWrapper.style.margin = '0 auto';
-
-    const isDesktop = window.innerWidth > 800;
-    let videoWidth, videoHeight;
-
-    if (isDesktop) {
-      videoWidth = 300;
-      videoHeight = 375;
-    } else {
-      const maxMobileWidth = Math.min(window.innerWidth * 0.99, 500);
-      videoWidth = maxMobileWidth;
-      videoHeight = maxMobileWidth * (5 / 4);
-    }
-
-    this.videoWrapper.style.width = `${videoWidth}px`;
-    this.videoWrapper.style.height = `${videoHeight}px`;
-    this.videoWrapper.style.position = 'relative';
-    this.videoWrapper.style.overflow = 'hidden';
-    this.videoWrapper.style.backgroundColor = '#000';
-
-    this.video.style.position = 'absolute';
-    this.video.style.top = '0';
-    this.video.style.left = '0';
-    this.video.style.width = '100%';
-    this.video.style.height = '100%';
-    this.video.style.objectFit = 'cover';
-
-    if (this.isIOS) this.video.style.webkitPlaysinline = 'true';
-
-    const minSubtitleHeight = Math.max(60, videoHeight * 0.25);
-
-    this.blurOverlay.style.position = 'absolute';
-    this.blurOverlay.style.bottom = '0';
-    this.blurOverlay.style.left = '0';
-    this.blurOverlay.style.right = '0';
-    this.blurOverlay.style.height = `${minSubtitleHeight}px`;
-    this.blurOverlay.style.zIndex = '1';
-    this.blurOverlay.style.pointerEvents = 'none';
-
-    if (CSS.supports('backdrop-filter', 'blur(10px)')) {
-      this.blurOverlay.style.backdropFilter = 'blur(10px)';
-      this.blurOverlay.style.backgroundColor = 'rgba(0,0,0,0.15)';
-    } else {
-      this.blurOverlay.style.backgroundColor = 'rgba(0,0,0,0.7)';
-    }
-
-    this.subtitleScrollContainer.style.position = 'absolute';
-    this.subtitleScrollContainer.style.bottom = '0';
-    this.subtitleScrollContainer.style.left = '0';
-    this.subtitleScrollContainer.style.right = '0';
-    this.subtitleScrollContainer.style.height = `${minSubtitleHeight}px`;
-    this.subtitleScrollContainer.style.overflow = 'hidden';
-    this.subtitleScrollContainer.style.zIndex = '2';
-
-    this.subtitleDisplay.style.position = 'relative';
-    this.subtitleDisplay.style.width = '100%';
-    this.subtitleDisplay.style.padding = '10px 20px';
-    this.subtitleDisplay.style.fontSize = isDesktop ? '1rem' : '1.2rem';
-    this.subtitleDisplay.style.color = 'white';
-    this.subtitleDisplay.style.textAlign = 'center';
-    this.subtitleDisplay.style.boxSizing = 'border-box';
-    this.subtitleDisplay.style.lineHeight = '1.3';
-    this.subtitleDisplay.style.transition = 'transform 0.1s linear';
-    this.subtitleDisplay.style.willChange = 'transform';
-    this.subtitleDisplay.style.backgroundColor = 'transparent';
-
-    // Apply config styles again to ensure they override defaults
-    if (this.config.subtitleStyles) {
-      Object.assign(this.subtitleDisplay.style, this.config.subtitleStyles);
-    }
-
-    if (window.innerWidth <= 768) {
-      if (!this.config.subtitleStyles?.fontSize) {
-        this.subtitleDisplay.style.fontSize = '1.1rem';
-      }
-    }
-
-    this.playOverlay.style.position = 'absolute';
-    this.playOverlay.style.top = '0';
-    this.playOverlay.style.left = '0';
-    this.playOverlay.style.width = '100%';
-    this.playOverlay.style.height = '100%';
-    this.playOverlay.style.display = 'flex';
-    this.playOverlay.style.alignItems = 'center';
-    this.playOverlay.style.justifyContent = 'center';
-    this.playOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.4)';
-    this.playOverlay.style.zIndex = '10';
-    this.playOverlay.style.cursor = 'pointer';
-    this.playOverlay.style.transition = 'opacity 0.3s ease';
-
-    const iconContainer = this.playOverlay.querySelector('.ivp-play-icon-container');
-    if (iconContainer) {
-      iconContainer.style.display = 'flex';
-      iconContainer.style.alignItems = 'center';
-      iconContainer.style.justifyContent = 'center';
-      iconContainer.style.width = '120px';
-      iconContainer.style.height = '120px';
-      iconContainer.style.transition = 'transform 0.2s ease';
-    }
-
-    const svgIcon = this.playOverlay.querySelector('svg');
-    if (svgIcon) {
-      svgIcon.style.width = '100px';
-      svgIcon.style.height = '100px';
-      svgIcon.style.color = 'white';
-      svgIcon.style.filter = 'drop-shadow(0 0 8px rgba(0, 0, 0, 0.7))';
-    }
-
-    if (!('ontouchstart' in window)) {
-      this.playOverlay.addEventListener('mouseenter', () => {
-        if (iconContainer) iconContainer.style.transform = 'scale(1.1)';
-      });
-      this.playOverlay.addEventListener('mouseleave', () => {
-        if (iconContainer) iconContainer.style.transform = 'scale(1)';
-      });
-    }
-
+    // Dynamic calculations for scrolling
     this.updateSubtitleScroll(true);
     this.updatePlayOverlay();
   }
@@ -491,59 +356,7 @@ export class simpleVideoPlayer {
   }
 
   injectStyles() {
-    const style = document.createElement('style');
-    style.textContent = `
-      .d-none { display: none !important; }
-
-      html, body {
-        margin: 0;
-        padding: 0;
-        overflow-x: hidden;
-      }
-
-      .ivp-main-wrapper {
-        display: flex;
-        flex-direction: column;
-      }
-
-      .ivp-video-wrapper {
-        position: relative;
-      }
-
-      .ivp-blur-overlay {}
-      .ivp-subtitle-scroll-container {}
-      .ivp-subtitles {}
-      .ivp-play-overlay {}
-
-      @media (min-width: 768px) {
-        .ivp-main-wrapper {
-          max-width: 300px;
-        }
-      }
-
-      @media (max-width: 768px) {
-        .ivp-subtitles {
-          font-size: 1.6rem !important;
-        }
-        .ivp-play-icon-container {
-          width: 110px !important;
-          height: 110px !important;
-        }
-        .ivp-play-overlay svg {
-          width: 110px !important;
-          height: 110px !important;
-        }
-      }
-
-      video::-webkit-media-controls {
-        display: none !important;
-      }
-
-      video {
-        -webkit-playsinline: true;
-      }
-    `;
-    document.head.appendChild(style);
+    // Styles moved to style.css for better performance and stability
   }
 
   play() {

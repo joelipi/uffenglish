@@ -37,6 +37,9 @@ export const Media = {
             window.currentIntroVideoPlayer = null;
         }
         document.querySelectorAll('video').forEach(media => { 
+            // Do not clear the webcam preview or AI avatar video
+            if (media.id === 'webcam-preview' || media.id === 'chat-avatar-ai') return;
+
             media.pause(); 
             media.currentTime = 0; 
             if (media.src) { media.src = ''; media.load(); } 

@@ -1,7 +1,8 @@
 import normalize from './normalize.js';
 import calculateSimilarity from './calculatesimilarity.js';
 import swearjar from './swearjar.js';
-import { evaluateWithAI } from './api.js';
+import { checkGrammarWithAI, evaluateIntentWithAI } from './api.js';
+import { createGrammarDiffHTML, createPragmaticsBubbleHTML, createHeaderHTML } from './ui.js';
 import Strings from '../data/strings.js';
 
 export function getCurrentQuestionIndex(questionData, configData, currentLessonIndex) {
@@ -17,13 +18,6 @@ export function getCurrentQuestionIndex(questionData, configData, currentLessonI
   );
 }
 
-export async function checkAnswerMatchParallel(normalizeduserResponse, currentLesson) {
-    const questionsToCheck = currentLesson.questions.slice(2, 5);
-    const cues = questionsToCheck.map(q => q.cue).filter(answer => answer);
-    const normalizedcues = await Promise.all(cues.map(answer => normalize(answer)));
-    return normalizedcues.includes(normalizeduserResponse);
-}
-
 export function isLastAiQuestionInLesson(lesson, currentIndex) {
     const aiQuestions = lesson.questions.filter(q => q.inputType === "ai");
     if (aiQuestions.length === 0) return false;
@@ -31,128 +25,102 @@ export function isLastAiQuestionInLesson(lesson, currentIndex) {
     return currentIndex === lastAiIndex;
 }
 
-// 🛑 THE NEW EXTRACTED TIER 0 LOGIC
-export async function runPreflightChecks({
-    userResponse, cue, questionData, lesson, english_level, userData, cuesGiven
-}) {
-    let result = {
-        isCorrect: false,
-        explanation: "",
-        translation: questionData.translation,
-        userResponse: userResponse,
-        normalizeduserResponse: "",
-        normalizedcue: "",
-        cefrLevel: "",
-        cefrLevelDeduction: 0,
-        errorType: ""
-    };
-
-    const normalizeduserResponse = await normalize(userResponse.trim().toLowerCase());
-    const normalizedcue = await normalize(cue.trim().toLowerCase());
-
-    result.normalizeduserResponse = normalizeduserResponse;
-    result.normalizedcue = normalizedcue;
-
-    if (questionData.inputType === "ai") {
-        if (cuesGiven.includes(normalizeduserResponse)) {
-            result.explanation = Strings.get('already_used', userData?.native_language);
-            return { passed: false, result };
-        }
-
-        const similarity = calculateSimilarity(normalizeduserResponse, normalizedcue);
-        const threshold = 85;
-        if (similarity >= threshold) {
-            result.explanation = Strings.get('no_repetition', userData?.native_language);
-            return { passed: false, result };
-        }
-
-        const wordCount = userResponse.trim().split(/\s+/).length;
-        let minWordsRequired = 3;
-        let warningMessage = Strings.get('min_words_3', userData?.native_language);
-
-        if (english_level === 'A2') { minWordsRequired = 4; warningMessage = Strings.get('min_words_4', userData?.native_language); }
-        else if (english_level === 'B1') { minWordsRequired = 5; warningMessage = Strings.get('min_words_5', userData?.native_language); }
-        else if (english_level === 'B2' || english_level === 'C1' || english_level === 'C2') { minWordsRequired = 6; warningMessage = Strings.get('min_words_6', userData?.native_language); }
-
-        if (wordCount < minWordsRequired) {
-            result.explanation = warningMessage;
-            return { passed: false, result };
-        }
-
-        if (questionData.possibleAnswer) {
-            const matchesLessonAnswers = await checkAnswerMatchParallel(normalizeduserResponse, lesson);
-            if (matchesLessonAnswers) {
-                result.isCorrect = true;
-                return { passed: false, result }; // It is correct, bypass AI
-            }
-        }
-
-        const hasAsterisks = /\*{2,}/.test(userResponse);
-        if (hasAsterisks) {
-            result.explanation = Strings.get('censored', userData?.native_language);
-            return { passed: false, result };
-        }
-
-        const isProfane = swearjar.profane(userResponse);
-        if (isProfane) {
-            result.explanation = Strings.get('inappropriate', userData?.native_language);
-            return { passed: false, result };
-        }
-    }
-
-    return { passed: true, normalizeduserResponse, normalizedcue, baseResult: result };
-}
-
 export async function processAnswerLogic({
     userResponse, cue, questionData, lesson, english_level, userData, cuesGiven, apiRoot
 }) {
     if (questionData.inputType === "ai") {
-        // Run preflight here too, just in case this is called directly
-        const preflight = await runPreflightChecks({
-            userResponse, cue, questionData, lesson, english_level, userData, cuesGiven
-        });
+        const normalizeduserResponse = await normalize(userResponse.trim().toLowerCase());
+        const normalizedcue = await normalize(cue.trim().toLowerCase());
 
-        if (!preflight.passed) {
-            return preflight.result;
-        }
+        let result = {
+            isCorrect: false,
+            explanation: "",
+            translation: questionData.translation,
+            userResponse: userResponse,
+            normalizeduserResponse: normalizeduserResponse,
+            normalizedcue: normalizedcue,
+            cefrLevel: "",
+            cefrLevelDeduction: 0,
+            errorType: ""
+        };
 
-        let result = preflight.baseResult;
-        const aiResult = await evaluateWithAI(userResponse, preflight.normalizeduserResponse, questionData, english_level, apiRoot);
+        // 1. Grammar Pass (Local fallback or AI)
+        const grammarResult = await checkGrammarWithAI(userResponse);
         
-        result.isCorrect = aiResult.isCorrect;
+        // 2. Intent Pass (AI)
+        const intentResult = await evaluateIntentWithAI(grammarResult.correctedText, questionData);
+        
+        // --- BUSINESS LOGIC: Determine final state from raw results ---
+        const isGrammarCorrect = grammarResult.isGrammarCorrect;
+        const isIntentCorrect = intentResult.isIntentCorrect;
+        
+        result.isCorrect = isGrammarCorrect && isIntentCorrect;
+        result.correction = grammarResult.correctedText;
+
         if (result.isCorrect) {
-            result.cefrLevel = aiResult.cefrLevel;
-            result.cefrLevelDeduction = aiResult.cefrLevelDeduction;
+            result.cefrLevel = 'B1';
+            result.cefrLevelDeduction = 0;
+            result.errorType = 'correct';
         } else {
-            result.errorType = aiResult.errorType;
-            let aiExplanation = "";
-            switch(aiResult.errorType) {
-                case 'ungrammatical': aiExplanation = aiResult.correction ? `${Strings.get('lang_error_maybe', userData?.native_language)}<br>"${aiResult.correction}"` : Strings.get('lang_error_detected', userData?.native_language); break;
-                case 'insensitive': aiExplanation = aiResult.explanation ? `${Strings.get('offensive_soften', userData?.native_language)}<br><span lang='${userData?.native_language || 'es'}'><i>${aiResult.explanation}</i></span>` : Strings.get('offensive_insensitive', userData?.native_language); break;
-                case 'nonsensical': aiExplanation = Strings.get('no_sense', userData?.native_language); break;
-                case 'nonsequitur': aiExplanation = Strings.get('not_logical', userData?.native_language); break;
-                case 'nonresponsive': aiExplanation = Strings.get('not_deep', userData?.native_language); break;
-                case 'overly formal': aiExplanation = aiResult.correction ? `${Strings.get('too_formal_less', userData?.native_language)}<br>"${aiResult.correction}"` : Strings.get('too_formal_context', userData?.native_language); break;
-                case 'parse_error': aiExplanation = Strings.get('tech_error_retry', userData?.native_language); break;
-                default: aiExplanation = Strings.get('tech_error_generic', userData?.native_language); break;
+            // --- ADDITIVE FEEDBACK LOGIC ---
+            let feedbackChunks = [];
+
+            // 1. Grammar Feedback (Always shown if grammar is bad)
+            if (!isGrammarCorrect) {
+                if (result.correction) {
+                    feedbackChunks.push(createGrammarDiffHTML(userResponse, result.correction, Strings.get('stats_grammar_header', userData?.native_language)));
+                } else {
+                    feedbackChunks.push(Strings.get('lang_error_detected', userData?.native_language));
+                }
             }
-            result.explanation = aiExplanation;
+
+            // 2. Intent Feedback
+            if (isIntentCorrect) {
+                // If grammar was bad but intent was good, show the specific encouragement
+                if (!isGrammarCorrect) {
+                    feedbackChunks.push(Strings.get('intent_good_grammar_bad', userData?.native_language));
+                }
+                result.errorType = 'grammar_bad_intent_good';
+            } else {
+                // Intent is bad. Determine the specific intent message
+                const label = intentResult.intentLabel || 'parse_error';
+                result.errorType = isGrammarCorrect ? label : 'grammar_and_intent_bad';
+                
+                let intentExplanation = "";
+                switch(label) {
+                    case 'insensitive': 
+                    case 'rude':
+                        intentExplanation = intentResult.rawIntentText ? `${Strings.get('offensive_soften', userData?.native_language)}<br><span lang='${userData?.native_language || 'es'}'><i>${intentResult.rawIntentText}</i></span>` : Strings.get('offensive_insensitive', userData?.native_language); break;
+                    case 'nonsensical': intentExplanation = Strings.get('no_sense', userData?.native_language); break;
+                    case 'nonsequitur': 
+                    case 'pragmatic failure':
+                        intentExplanation = Strings.get('not_logical', userData?.native_language); break;
+                    case 'nonresponsive': intentExplanation = Strings.get('not_deep', userData?.native_language); break;
+                    case 'overly formal': 
+                    case 'too formal':
+                        intentExplanation = Strings.get('too_formal_context', userData?.native_language); break;
+                    case 'too informal': intentExplanation = Strings.get('too_informal', userData?.native_language) || "That's a bit too informal for this situation."; break;
+                    case 'parse_error': intentExplanation = Strings.get('tech_error_retry', userData?.native_language); break;
+                    default: intentExplanation = Strings.get('tech_error_generic', userData?.native_language); break;
+                }
+                feedbackChunks.push(createPragmaticsBubbleHTML(createHeaderHTML(Strings.get('stats_pragmatics_header', userData?.native_language)), intentExplanation));
+            }
+
+            result.explanations = feedbackChunks.filter(Boolean);
         }
         return result;
     }
     else if (questionData.inputType === "speech") {
-        let result = { isCorrect: false, explanation: questionData.explanation };
         const normalizeduserResponse = await normalize(userResponse.trim().toLowerCase());
         const normalizedcue = await normalize(cue.trim().toLowerCase());
         const similarity = calculateSimilarity(normalizeduserResponse, normalizedcue);
         const threshold = 95;
-        if (similarity >= threshold) {
-            result.isCorrect = true;
-            result.explanation = questionData.explanation;
-        } else {
-            result.isCorrect = false;
-            result.explanation = questionData.explanation;
-        }
+        let result = {
+            isCorrect: similarity >= threshold,
+            explanation: questionData.explanation,
+            normalizeduserResponse,
+            normalizedcue
+        };
         return result;
     } else {
         let result = { isCorrect: false, explanation: questionData.explanation };

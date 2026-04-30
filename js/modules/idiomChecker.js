@@ -205,7 +205,7 @@ class IdiomChecker {
         }
         console.log(`----------------------------------------`);
         
-        return idiomCount;
+        return { count: idiomCount, foundIdioms: foundIdioms };
     }
 }
 

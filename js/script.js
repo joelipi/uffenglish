@@ -52,12 +52,12 @@ function askWorker(action, payload = {}, timeoutMs = 60000) {
 window.askWorker = askWorker;
 
 // --- UI & Media Components (Root Directory) ---
-import { InteractiveVideoPlayer } from './video.js'; 
-import { simpleVideoPlayer } from './simpleVideo.js'; 
-import { introBackgroundVideo } from './introBackgroundVideo.js'; 
-import { SuccessLessonHandler } from './successLesson.js'; 
-import { pointLoss } from './pointLossAnimation.js'; 
-import { initVideoProcessor } from './video-processing-module.js'; 
+import { InteractiveVideoPlayer } from './video.js';
+import { simpleVideoPlayer } from './simpleVideo.js';
+import { introBackgroundVideo } from './introBackgroundVideo.js';
+import { SuccessLessonHandler } from './successLesson.js';
+import { pointLoss } from './pointLossAnimation.js';
+import { initVideoProcessor } from './video-processing-module.js';
 
 import { calculateCurrentStreak } from './modules/userProfile.js';
 import { updateActivityDisplay } from './modules/ui.js';
@@ -85,12 +85,8 @@ import { saveCourseToUserProfile, saveLessonProgress, syncOfflineScores } from '
 import {
     isIOS,
     warmUpSpeechCamStream,
-    ensureWebcamPreview,
-    hideWebcamPreview,
-    removeWebcamPreview,
     startSpeechCamRecording,
     stopSpeechCamRecording,
-    clearPlaybackVideo,
     toggleSpeechRecognition,
     isListening,
     initLocalVoiceAI
@@ -99,28 +95,39 @@ import {
 import {
     getCurrentQuestionIndex,
     isLastAiQuestionInLesson,
-    processAnswerLogic,
-    runPreflightChecks
+    processAnswerLogic
 } from './modules/answers.js';
-import getRandomPraise from './modules/praise.js'; 
+import getRandomPraise from './modules/praise.js';
 
 // --- Extracted Modules ---
 import { State } from './modules/state.js';
 import { analyzeSpeech } from './modules/analytics.js';
 import { Media } from './modules/media.js';
-import { 
-    DOM, 
-    flashElement, 
-    updateCurrentScoreDisplay, 
-    updateDayCountDisplay, 
-    disableAllButtons, 
-    clearChatInterface, 
+import {
+    DOM,
+    flashElement,
+    updateCurrentScoreDisplay,
+    updateDayCountDisplay,
+    disableAllButtons,
+    clearChatInterface,
+    renderUserResponse,
+    renderAIAnalysisLoading,
+    createStatsBubbleHTML,
+    createGrammarDiffHTML,
+    createHeaderHTML,
+    createPragmaticsBubbleHTML,
+    renderAIFeedback,
     safeRenderChatInterface,
     showHintsAndScroll,
     hideHints,
     clearMicStatusAndHideMedia,
     setMicStatusText,
     updateSpeakingScoreDisplay,
+    ensureWebcamPreview,
+    hideWebcamPreview,
+    removeWebcamPreview,
+    clearPlaybackVideo,
+    prepareMediaUI,
     showPlaybackVideo,
     markButtonAsCorrect,
     markButtonAsIncorrect,
@@ -132,7 +139,6 @@ import {
     resetUIForNewQuestion,
     toggleScoresAndHearts,
     removeRepeatButton,
-    prepareMediaUI,
     clearMediaContainerAndPreservePlayers,
     renderImageInMediaContainer,
     renderYoutubeInMediaContainer,
@@ -151,6 +157,9 @@ import {
 
 import { idiomChecker } from './modules/idiomChecker.js';
 import { calculateSyntacticComplexity } from './modules/complexity.js';
+import swearjar from './modules/swearjar.js';
+import normalize from './modules/normalize.js';
+import calculateSimilarity from './modules/calculatesimilarity.js';
 
 const hearts = [DOM.heart1, DOM.heart2, DOM.heart3];
 
@@ -158,21 +167,35 @@ const hearts = [DOM.heart1, DOM.heart2, DOM.heart3];
 window.addEventListener('transcriptRejected', () => {
     // Initialize if not present
     if (typeof State.speakingScore === 'undefined') State.speakingScore = 100;
-    
+
     // Deduct 20 points, floor at 0
     State.speakingScore = Math.max(0, State.speakingScore - 20);
-    
+
     // Update the UI
     updateSpeakingScoreDisplay(State.speakingScore);
     if (DOM.phrasesScore) {
         flashElement(DOM.phrasesScore);
         // Show point loss animation explicitly on the score span
-        pointLoss.show(DOM.phrasesScore, 20); 
+        pointLoss.show(DOM.phrasesScore, 20);
+    }
+});
+
+window.addEventListener('preflightRejected', () => {
+    State.currentPoints = Math.max(0, State.currentPoints - 10);
+    updateCurrentScoreDisplay(State.currentPoints);
+    if (DOM.phrasesScore) {
+        flashElement(DOM.phrasesScore);
+        pointLoss.show(DOM.phrasesScore, 10);
     }
 });
 
 // 🤖🤖🤖🤖🤖🤖🤖🤖 LOCAL NLP HELPERS 🤖🤖🤖🤖🤖🤖🤖🤖
 
+// =================================================================================================
+// IMPORTANT: DO NOT DELETE. THIS CODE WILL BE REINSTATED SHORTLY. 
+// IT IS TEMPORARILY DISABLED TO SAVE SYSTEM RESOURCES DURING INTENSE DEVELOPMENT.
+// =================================================================================================
+/*
 async function checkGrammarLocally(userInput) {
     console.groupCollapsed(`📝 [Grammar Check] Analyzing: "${userInput}"`);
 
@@ -223,10 +246,13 @@ async function checkGrammarLocally(userInput) {
         return null;
     }
 }
+*/
 
 // REMOVE IN PRODUCTION. Add this line right after the checkGrammarLocally function closes
-window.testGrammar = checkGrammarLocally;
+// window.testGrammar = checkGrammarLocally;
 
+// IMPORTANT: DO NOT DELETE. Reinstating soon.
+/*
 async function evaluateIntentLocally(userInput, targetIntents, badIntents = []) {
     if (!nlpModelsReady || !targetIntents || targetIntents.length === 0) return null;
 
@@ -266,9 +292,10 @@ async function evaluateIntentLocally(userInput, targetIntents, badIntents = []) 
         return null;
     }
 }
+*/
 
 // REMOVE IN PRODUCTION. To be able to test it in browser console
-window.testIntent = evaluateIntentLocally;
+// window.testIntent = evaluateIntentLocally;
 
 // 🎓🎓🎓🎓🎓🎓🎓🎓 CORE ANSWER HANDLING 🎓🎓🎓🎓🎓🎓🎓🎓
 
@@ -277,13 +304,67 @@ function handleHint(qIndex) {
     showHintsAndScroll();
 }
 
+async function submitAnswerPrecheck(val, cue, questionData, btn, explanation, translation, stats = { pauseCount: null, netDuration: null }) {
+    if (questionData.inputType === "ai") {
+        const wordCount = val.trim().split(/\s+/).length;
+        let minWordsRequired = 3;
+        let warningMessage = null;
+        let isInvalid = false;
+
+        const normalizeduserResponse = await normalize(val.trim().toLowerCase());
+        const normalizedcue = await normalize(cue.trim().toLowerCase());
+        const similarity = calculateSimilarity(normalizeduserResponse, normalizedcue);
+
+        if (State.cuesGiven && State.cuesGiven.includes(normalizeduserResponse)) {
+            warningMessage = Strings.get('already_used', State.userData?.native_language);
+            isInvalid = true;
+        } else if (similarity >= 85) {
+            warningMessage = Strings.get('no_repetition', State.userData?.native_language);
+            isInvalid = true;
+        } else {
+            if (State.englishLevel === 'A2') { minWordsRequired = 4; }
+            else if (State.englishLevel === 'B1') { minWordsRequired = 5; }
+            else if (State.englishLevel === 'B2' || State.englishLevel === 'C1' || State.englishLevel === 'C2') { minWordsRequired = 6; }
+
+            const isProfane = swearjar.profane(val);
+
+            if (wordCount < minWordsRequired || isProfane) {
+                isInvalid = true;
+                if (isProfane) {
+                    warningMessage = Strings.get('inappropriate', State.userData?.native_language);
+                } else {
+                    warningMessage = Strings.get(`min_words_${minWordsRequired}`, State.userData?.native_language) || Strings.get('min_words_3', State.userData?.native_language);
+                }
+            }
+        }
+
+        if (isInvalid) {
+            State.currentPoints = Math.max(0, State.currentPoints - 10);
+            updateCurrentScoreDisplay(State.currentPoints);
+            if (DOM.phrasesScore) {
+                flashElement(DOM.phrasesScore);
+                pointLoss.show(DOM.phrasesScore, 10);
+            }
+
+            if (DOM.micStatusText) {
+                DOM.micStatusText.innerHTML = `<div class='text-center text-danger'>${warningMessage}</div>`;
+            }
+
+            if (btn) btn.disabled = false;
+
+            return;
+        }
+    }
+    await handleAnswer(val, cue, questionData, btn, explanation, translation, stats);
+}
+
 async function handleAnswer(userResponse, cue, questionData, button, explanation, translation, stats = { pauseCount: null, netDuration: null }) {
     try {
         const currentLessonId = (State && State.configData && State.configData.lessons && State.configData.lessons[State.currentLessonIndex]) ? State.configData.lessons[State.currentLessonIndex].lessonId : 'unknown_lesson';
         const qIndex = getCurrentQuestionIndex(questionData, State.configData, State.currentLessonIndex);
-                let analyticsToSave = {};
+        let analyticsToSave = {};
         if (stats && stats.netDuration !== null) {
-            analyticsToSave = await analyzeSpeech(userResponse, stats.netDuration, stats.pauseCount, State.courseId ? State.courseId.substring(0,2).toUpperCase() : 'A1');
+            analyticsToSave = await analyzeSpeech(userResponse, stats.netDuration, stats.pauseCount, State.courseId ? State.courseId.substring(0, 2).toUpperCase() : 'A1', questionData.inputType);
         }
         await updateSpeechRecording(currentLessonId, qIndex, {
             userResponse,
@@ -293,55 +374,83 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
             complexityScore: analyticsToSave.complexityScore
         });
         console.log("Successfully updated speech recording with answers");
-    } catch(e) {
+    } catch (e) {
         console.error("Error updating speech recording with answers", e);
     }
 
     Media.pauseVideoIfPlaying();
-    
+
     clearMicStatusAndHideMedia();
 
     let speechAnalytics = null;
-    let immediateStatsHtml = "";
+    let immediateStatsHtmlArr = [];
 
     if (questionData.inputType === "speech" || questionData.inputType === "ai") {
-        speechAnalytics = await analyzeSpeech(userResponse, stats.netDuration, stats.pauseCount, State.courseId ? State.courseId.substring(0,2).toUpperCase() : 'A1');
+        speechAnalytics = await analyzeSpeech(userResponse, stats.netDuration, stats.pauseCount, State.courseId ? State.courseId.substring(0, 2).toUpperCase() : 'A1', questionData.inputType);
 
-        // Build immediate stats bubble
-        let statsParts = [];
-        if (speechAnalytics.wpm !== null) {
-            statsParts.push(`<strong>${Strings.get('stats_wpm', State.userData?.native_language)}:</strong> ${speechAnalytics.wpm}`);
-        }
-        if (speechAnalytics.pauseCount !== null) {
-            statsParts.push(`<strong>${Strings.get('stats_pauses', State.userData?.native_language)}:</strong> ${speechAnalytics.pauseCount}`);
-        }
-        if (speechAnalytics.complexityScore !== null) {
-            statsParts.push(`<strong>${Strings.get('stats_complexity', State.userData?.native_language)}:</strong> ${speechAnalytics.complexityScore} <br><small>(${speechAnalytics.complexityScoreBreakdown})</small>`);
-        }
+        const listeningScore = State.currentPoints || 0;
+        const speakingScore = State.speakingScore || 0;
 
-        if (statsParts.length > 0) {
-            immediateStatsHtml = `
-            <div class='chat-bubble chat-msg' style='margin-bottom: 12px; display: block; border-left: 4px solid #17a2b8;'>
-                <div style='font-size: 0.85em; text-transform: uppercase; color: #17a2b8; margin-bottom: 5px;'><strong>${Strings.get('stats_header', State.userData?.native_language)}</strong></div>
-                ${statsParts.join('<br>')}
-            </div>`;
+        immediateStatsHtmlArr.push(createStatsBubbleHTML(
+            Strings.get('stats_listening_header', State.userData?.native_language).replace('{score}', listeningScore), []
+        ));
+
+        immediateStatsHtmlArr.push(createStatsBubbleHTML(
+            Strings.get('stats_speaking_header', State.userData?.native_language).replace('{score}', speakingScore), []
+        ));
+
+        let flowParts = [
+            `<strong>${Strings.get('stats_hesitation', State.userData?.native_language)}:</strong> 0`,
+            `<strong>${Strings.get('stats_pauses_speaking', State.userData?.native_language)}:</strong> ${speechAnalytics.pauseCount || 0}`,
+            `<strong>${Strings.get('stats_wpm', State.userData?.native_language)}:</strong> ${speechAnalytics.wpm || 0}`
+        ];
+
+        immediateStatsHtmlArr.push(createStatsBubbleHTML(
+            Strings.get('stats_speech_flow_header', State.userData?.native_language), flowParts
+        ));
+
+        // Only show Vocabulary for AI questions
+        if (questionData.inputType === "ai") {
+            let vocabParts = [];
+            if (speechAnalytics.complexityScore !== null) {
+                vocabParts.push(`<strong>${Strings.get('stats_complexity', State.userData?.native_language)}:</strong> ${speechAnalytics.complexityScore} <br><small>(${speechAnalytics.complexityScoreBreakdown})</small>`);
+            }
+            if (speechAnalytics.foundIdioms && speechAnalytics.foundIdioms.length > 0) {
+                const idiomsList = speechAnalytics.foundIdioms.map(idiom => `<li>${idiom}</li>`).join('');
+                vocabParts.push(`<strong>${Strings.get('stats_idioms', State.userData?.native_language)}:</strong> ${speechAnalytics.foundIdioms.length}<ul style="margin-bottom:0;">${idiomsList}</ul>`);
+            }
+
+            if (vocabParts.length > 0) {
+                immediateStatsHtmlArr.push(createStatsBubbleHTML(
+                    Strings.get('stats_vocabulary_header', State.userData?.native_language), vocabParts
+                ));
+            }
         }
     }
 
     if (questionData.inputType === "ai" && userResponse && DOM.speechText) {
-        const bodyContent = `
-            <div class='userResponse chat-bubble-sent chat-msg'>${userResponse}</div>
-            ${immediateStatsHtml}
-            <div class='chat-bubble chat-msg' id='ai-loading-status'>
-                <strong><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Analyzing your response...</strong>
-            </div>`;
-        safeRenderChatInterface(true, bodyContent);
-    } else if (questionData.inputType === "speech" && userResponse && DOM.speechText && immediateStatsHtml) {
-        // Just show stats for non-AI speech inputs
-        const bodyContent = `
-            <div class='userResponse chat-bubble-sent chat-msg'>${userResponse}</div>
-            ${immediateStatsHtml}`;
-        safeRenderChatInterface(true, bodyContent);
+        // 1. Render the AI's prompt (cue) first
+        const lang = State.userData?.native_language;
+        const localizedTrans = getLocalizedTranslation(questionData.translation, lang);
+        const translationStr = (localizedTrans && lang && lang !== 'en') ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>` : "";
+        renderAIFeedback([`<strong>${cue}${translationStr}</strong>`]);
+
+        // 2. Then render the user response (Strictly alone)
+        renderUserResponse(userResponse, "");
+
+        // 3. Then render stats and loading
+        if (immediateStatsHtmlArr.length > 0) renderAIFeedback(immediateStatsHtmlArr);
+        renderAIAnalysisLoading();
+    } else if (questionData.inputType === "speech" && userResponse && DOM.speechText) {
+        // 1. Render a "fake" user response bubble using the CUE (target sentence)
+        const lang = State.userData?.native_language;
+        const localizedTrans = getLocalizedTranslation(questionData.translation, lang);
+        const translationStr = (localizedTrans && lang && lang !== 'en') ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>` : "";
+
+        renderUserResponse(`<strong>${cue}${translationStr}</strong>`, "");
+
+        // 2. Then render stats
+        if (immediateStatsHtmlArr.length > 0) renderAIFeedback(immediateStatsHtmlArr);
     }
 
     const qIndex = getCurrentQuestionIndex(questionData, State.configData, State.currentLessonIndex);
@@ -351,20 +460,10 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
     try {
         let result = null;
 
-        // 🛑 TIER 0: PREFLIGHT BUSINESS LOGIC
-        if (questionData.inputType === "ai") {
-            const preflight = await runPreflightChecks({
-                userResponse, cue, questionData, lesson: State.lesson,
-                englishLevel: State.englishLevel, userData: State.userData, cuesGiven: State.cuesGiven
-            });
-
-            if (!preflight.passed) {
-                console.warn("⚠️ Answer blocked by preflight safety checks.");
-                result = preflight.result; 
-            }
-        }
-
         // --- TIERED EVALUATION LOGIC ---
+        // --- TIERED EVALUATION LOGIC (TEMPORARILY DISABLED) ---
+        // IMPORTANT: DO NOT DELETE. WILL BE REINSTATED SHORTLY.
+        /*
         if (!result && questionData.inputType === "ai" && questionData.targetIntents) {
             
             // 1. The FEEDBACK_TEXT parameter (Forced visual separation)
@@ -389,6 +488,7 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
                 const syntComplexity = calculateSyntacticComplexity(userResponse);
                 grammarExplanationHTML = `
                     <div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>
+                        ${createHeaderHTML(Strings.get('stats_grammar_header', State.userData?.native_language))}
                         ${Strings.get('grammar_perfect', State.userData?.native_language)}
                         <hr style="margin: 8px 0; opacity: 0.1;">
                         <div style="font-size: 0.85em;">
@@ -407,26 +507,26 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
 
                 if (isGrammarPerfect && intentResult.category === 'target') {
                     isFinalCorrect = true;
-                    intentExplanationHTML = `<div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>${Strings.get('intent_perfect', State.userData?.native_language)}</div>`;
+                    intentExplanationHTML = createPragmaticsBubbleHTML(createHeaderHTML(Strings.get('stats_pragmatics_header', State.userData?.native_language)), Strings.get('intent_perfect', State.userData?.native_language));
                 }
                 else if (!isGrammarPerfect && intentResult.category === 'target') {
-                    isFinalCorrect = true;
-                    intentExplanationHTML = `<div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>${Strings.get('intent_good_grammar_bad', State.userData?.native_language)}</div>`;
+                    isFinalCorrect = false;
+                    intentExplanationHTML = createPragmaticsBubbleHTML(createHeaderHTML(Strings.get('stats_pragmatics_header', State.userData?.native_language)), Strings.get('intent_good_grammar_bad', State.userData?.native_language));
                 }
                 else if (intentResult.category === 'bad') {
                     isFinalCorrect = false;
                     let badIntentStr = Strings.get('intent_specific_fail', State.userData?.native_language);
                     const localizedBadIntent = Strings.get(intentResult.winningLabel, State.userData?.native_language) || intentResult.winningLabel;
                     badIntentStr = badIntentStr.replace('{bad_intent}', localizedBadIntent);
-                    intentExplanationHTML = `<div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>${badIntentStr}</div>`;
+                    intentExplanationHTML = createPragmaticsBubbleHTML(createHeaderHTML(Strings.get('stats_pragmatics_header', State.userData?.native_language)), badIntentStr);
                 }
                 else if (isGrammarPerfect && intentResult.category === 'distractor') {
                     isFinalCorrect = false;
-                    intentExplanationHTML = `<div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>${Strings.get('intent_bad_grammar_perfect', State.userData?.native_language)}</div>`;
+                    intentExplanationHTML = createPragmaticsBubbleHTML(createHeaderHTML(Strings.get('stats_pragmatics_header', State.userData?.native_language)), Strings.get('intent_bad_grammar_perfect', State.userData?.native_language));
                 }
                 else if (!isGrammarPerfect && intentResult.category === 'distractor') {
                     isFinalCorrect = false;
-                    intentExplanationHTML = `<div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>${Strings.get('intent_bad_grammar_bad', State.userData?.native_language)}</div>`;
+                    intentExplanationHTML = createPragmaticsBubbleHTML(createHeaderHTML(Strings.get('stats_pragmatics_header', State.userData?.native_language)), Strings.get('intent_bad_grammar_bad', State.userData?.native_language));
                 }
 
                 // 🏗️ Build the final stacked output using an array to guarantee order
@@ -459,11 +559,22 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
                 }
             }
         }
+        */
+
+        if (!result && (questionData.inputType === "speech" || questionData.inputType === "ai")) {
+            result = await processAnswerLogic({
+                userResponse, cue, questionData,
+                lesson: State.lesson,
+                english_level: State.englishLevel,
+                userData: State.userData,
+                cuesGiven: State.cuesGiven,
+                apiRoot: State.apiRoot
+            });
+        }
 
         if (!result) {
             console.warn("⚠️ No result from local NLP — no Gemini fallback active. Treating as passed.");
-            const defaultExplanationBubble = explanation ? `<div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>${explanation}</div>` : null;
-            result = { isCorrect: true, normalizeduserResponse: userResponse, normalizedcue: cue, explanation: defaultExplanationBubble };
+            result = { isCorrect: true, normalizeduserResponse: userResponse, normalizedcue: cue, explanation: explanation };
         }
         // --- END TIERED EVALUATION ---
 
@@ -477,9 +588,9 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
                     updateCurrentScoreDisplay(State.currentPoints);
                 }
             }
-            handlecueUI(qIndex, questionData, button, cue, result.explanation || explanation, translation, userResponse, result.englishLevel, result.englishLevelDeduction);
+            handlecueUI(qIndex, questionData, button, cue, result.explanations || explanation, translation, userResponse, result.englishLevel, result.englishLevelDeduction);
         } else {
-            handleIncueUI(qIndex, questionData, button, cue, userResponse, result.explanation || explanation, result.normalizeduserResponse, result.normalizedcue, questionData.question);
+            handleIncueUI(qIndex, questionData, button, cue, userResponse, result.explanations || explanation, result.normalizeduserResponse, result.normalizedcue, questionData.question);
         }
 
         showFeedbackAndProceed(questionData, isCorrect, State.currentLessonIndex, qIndex);
@@ -492,179 +603,184 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
 
 function handlecueUI(qIndex, questionData, button, cue, explanation, translation, userResponse, englishLevel, englishLevelDeduction) {
 
-  if (questionData.inputType === "speech" && questionData.videoUrl) State.repeatPointsHistory.push(State.currentPoints);
-  if (questionData.inputType === "ai" && questionData.videoUrl) State.rolePlayPointsHistory.push(State.currentPoints);
+    if (questionData.inputType === "speech" && questionData.videoUrl) State.repeatPointsHistory.push(State.currentPoints);
+    if (questionData.inputType === "ai" && questionData.videoUrl) State.rolePlayPointsHistory.push(State.currentPoints);
 
-  // Unified: last AI question advances via Continue button like all others.
+    // Unified: last AI question advances via Continue button like all others.
 
-  if (DOM.speechText) {
-      let userResponseHTML = userResponse ? `<div class='userResponse chat-bubble-sent chat-msg'>${userResponse}</div>` : "";
-      
-      // Smart wrap - Do not double-wrap if it's already a chat bubble stack!
-      let explanationHTML = "";
-      if (explanation) {
-          if (explanation.includes("class='chat-bubble")) {
-              explanationHTML = explanation; 
-          } else {
-              explanationHTML = `<div class='chat-bubble chat-msg' style='margin-top: 12px;'><p class='explanation'>${explanation}</p></div>`;
-          }
-      }
-      
-      let headsUpHTML = questionData.headsUp ? `<div class='chat-bubble chat-msg' style='margin-top: 12px;'><p class='headsUp'>${questionData.headsUp}</p></div>` : "";
+    if (DOM.speechText) {
+        const lang = State.userData?.native_language;
+        const feedbackText = (questionData.inputType === "ai" && englishLevelDeduction > 0)
+            ? `${Strings.get('ai_acceptable', lang)}<br>${Strings.get('ai_language_level', lang)} ${englishLevel}<br>${Strings.get('ai_fluency_reduced', lang)} <span style='color:red'>${englishLevelDeduction} ${Strings.get('ai_percentage_points', lang)}</span>.`
+            : (questionData.inputType === "ai" ? getRandomPraise() : "");
 
-      if (questionData.inputType === "ai") {
-          updateSpeakingScoreDisplay(State.speakingScore); // NEW SPEAKING SCORE DISPLAY
-          flashElement(DOM.phrasesScore); 
-          
-          const lang = State.userData?.native_language;
-          const feedbackText = englishLevelDeduction > 0
-          ? `${Strings.get('ai_acceptable', lang)}<br>${Strings.get('ai_language_level', lang)} ${englishLevel}<br>${Strings.get('ai_fluency_reduced', lang)} <span style='color:red'>${englishLevelDeduction} ${Strings.get('ai_percentage_points', lang)}</span>.`
-          : getRandomPraise();
-          
-          // 🛠️ FIX: Reordered so explanationHTML comes BEFORE the feedbackText
-          const bodyContent = `${userResponseHTML}${explanationHTML}<div class='chat-bubble chat-msg' style='margin-top: 12px;'><strong>${feedbackText}</strong></div>${headsUpHTML}`;
-          safeRenderChatInterface(true, bodyContent);
-      }
-      else {
-          if (questionData.inputType === "speech") { 
-              updateSpeakingScoreDisplay(State.speakingScore); // NEW SPEAKING SCORE DISPLAY
-              flashElement(DOM.phrasesScore); 
-          }
-          const lang = State.userData?.native_language;
-          const localizedTrans = getLocalizedTranslation(translation, lang);
-          const translationStr = localizedTrans && lang && lang !== 'en' ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>` : "";
-          
-          // 🛠️ FIX: Reordered so explanationHTML comes BEFORE the praise
-          const bodyContent = `<div class='correct-answer-display chat-bubble-sent chat-msg'>${cue}${translationStr}</div>${explanationHTML}<div class='chat-bubble chat-msg' style='margin-top: 12px;'><strong>${getRandomPraise()}</strong></div>${headsUpHTML}`;
-          safeRenderChatInterface(false, bodyContent);
-      }
-  }
+        if (questionData.inputType !== "ai" && questionData.inputType !== "speech") {
+            const localizedTrans = getLocalizedTranslation(translation, lang);
+            const translationStr = localizedTrans && lang && lang !== 'en' ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>` : "";
+            const correctBubble = `<div class='correct-answer-display chat-bubble-sent chat-msg'>${cue}${translationStr}</div>`;
+            const praiseBubble = `<div class='chat-bubble chat-msg' style='margin-top: 12px;'><strong>${getRandomPraise()}</strong></div>`;
 
-  Media.playSound('correct-sound');
+            const chunks = [correctBubble];
+            if (Array.isArray(explanation)) chunks.push(...explanation);
+            else if (explanation) chunks.push(explanation);
+            chunks.push(praiseBubble, questionData.headsUp);
 
-  if (questionData.inputType === "lessonIntro" || questionData.inputType === "speech" || questionData.inputType === "ai") {
-    showPlaybackVideo();
-  }
+            renderAIFeedback(chunks);
+        } else {
+            // AI and Speech are already partially rendered in handleAnswer
+            const chunks = [];
+            if (Array.isArray(explanation)) chunks.push(...explanation);
+            else if (explanation) chunks.push(explanation);
+            chunks.push(feedbackText ? `<strong>${feedbackText}</strong>` : "", questionData.headsUp);
 
-  markButtonAsCorrect(button);
+            renderAIFeedback(chunks);
+        }
+
+        if (questionData.inputType === "ai" || questionData.inputType === "speech") {
+            updateSpeakingScoreDisplay(State.speakingScore);
+            flashElement(DOM.phrasesScore);
+        }
+    }
+
+    Media.playSound('correct-sound');
+
+    if (questionData.inputType === "lessonIntro" || questionData.inputType === "speech" || questionData.inputType === "ai") {
+        showPlaybackVideo();
+    }
+
+    markButtonAsCorrect(button);
 }
 
 function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanation, normalizeduserResponse, normalizedcue, question) {
-  State.incorrectAttempts++;
+    State.incorrectAttempts++;
 
-  if (questionData.inputType === "lessonIntro" || questionData.inputType === "speech" || questionData.inputType === "ai") {
-    showPlaybackVideo();
-  }
+    if (questionData.inputType === "lessonIntro" || questionData.inputType === "speech" || questionData.inputType === "ai") {
+        showPlaybackVideo();
+    }
 
-  if ((questionData.inputType === "speech" || questionData.inputType === "ai") && questionData.videoUrl) {
-      State.currentPoints = Math.max(0, State.currentPoints - 25);
-      pointLoss.show(DOM.micStatusText, 25); // Current points acts as Listening Score penalty
-      updateCurrentScoreDisplay(State.currentPoints);
-      if (State.incorrectAttempts > 2) {
-        State.currentPoints = 0; 
+    if ((questionData.inputType === "speech" || questionData.inputType === "ai") && questionData.videoUrl) {
+        State.currentPoints = Math.max(0, State.currentPoints - 25);
+        pointLoss.show(DOM.micStatusText, 25); // Current points acts as Listening Score penalty
         updateCurrentScoreDisplay(State.currentPoints);
-        updateSpeakingScoreDisplay(State.speakingScore); // NEW SPEAKING SCORE DISPLAY
-        State.rolePlayPointsHistory.push(State.currentPoints);
-      }
-  }
+        if (State.incorrectAttempts > 2) {
+            State.currentPoints = 0;
+            updateCurrentScoreDisplay(State.currentPoints);
+            updateSpeakingScoreDisplay(State.speakingScore); // NEW SPEAKING SCORE DISPLAY
+            State.rolePlayPointsHistory.push(State.currentPoints);
+        }
+    }
 
-  if (questionData.inputType === "ai" && userResponse) {
-      if (State.incorrectAttempts > 2) { 
-          State.currentPoints = 0; 
-          State.rolePlayPointsHistory.push(State.currentPoints); 
-          updateCurrentScoreDisplay(State.currentPoints); 
-      }
-      const teacherText = State.incorrectAttempts === 1 ? Strings.get('try_again_1', State.userData?.native_language) : State.incorrectAttempts === 2 ? Strings.get('try_again_2', State.userData?.native_language) : `${Strings.get('failed_continue_correct', State.userData?.native_language)}<br>"${cue}"`;
-      const headsUpHTML = questionData.headsUp ? (State.incorrectAttempts <= 2 ? `<div class='chat-bubble chat-msg' style='margin-top: 12px;'><p class="headsUp">${Strings.get('heads_up_try_again', State.userData?.native_language)}</p></div>` : `<div class='chat-bubble chat-msg' style='margin-top: 12px;'><p class="headsUp">${questionData.headsUp}</p></div>`) : '';
-      const possibleAnswerHTML = questionData.possibleAnswer && State.incorrectAttempts > 2 ? `<div class='chat-bubble chat-msg' style='margin-top: 12px;'><p>${Strings.get('example_correct_answer', State.userData?.native_language)}<br>${questionData.possibleAnswer}</p></div>` : '';
-      
-      // Smart wrap
-      let explanationHTML = "";
-      if (explanation) {
-          if (explanation.includes("class='chat-bubble")) {
-              explanationHTML = explanation; 
-          } else {
-              explanationHTML = `<div class='chat-bubble chat-msg' style='margin-top: 12px;'><p class='explanation'>${explanation}</p></div>`;
-          }
-      }
+    if (questionData.inputType === "ai" && userResponse) {
+        if (State.incorrectAttempts > 2) {
+            State.currentPoints = 0;
+            State.rolePlayPointsHistory.push(State.currentPoints);
+            updateCurrentScoreDisplay(State.currentPoints);
+        }
+        const teacherText = State.incorrectAttempts === 1
+            ? Strings.get('try_again_1', State.userData?.native_language)
+            : State.incorrectAttempts === 2
+                ? Strings.get('try_again_2', State.userData?.native_language)
+                : `${Strings.get('failed_continue_correct', State.userData?.native_language)}<br>"${cue}"`;
 
-      // 🛠️ FIX: Reordered so explanationHTML comes BEFORE the teacherText bubble
-      const bodyContent = `<div class='chat-bubble-sent chat-msg'>${userResponse}</div>${explanationHTML}<div class='chat-bubble chat-msg' style='margin-top: 12px;'><strong> ${teacherText} </strong></div>${possibleAnswerHTML}${headsUpHTML}`;
-      safeRenderChatInterface(true, bodyContent);
-  }
+        const headsUpStr = questionData.headsUp
+            ? (State.incorrectAttempts <= 2 ? Strings.get('heads_up_try_again', State.userData?.native_language) : questionData.headsUp)
+            : '';
 
-  if (questionData.inputType === "speech" && userResponse && DOM.speechText) {
-      const selectedWords = [...new Set(normalizeduserResponse.split(/\s+/))]; 
-      const correctWords = [...new Set(normalizedcue.split(/\s+/))]; 
-      const correctWordSet = new Set(correctWords.map(w => w.toLowerCase()));
-      const correct = new Set(); const incorrect = new Set();
+        const possibleAnswerStr = questionData.possibleAnswer && State.incorrectAttempts > 2
+            ? `${Strings.get('example_correct_answer', State.userData?.native_language)}<br>${questionData.possibleAnswer}`
+            : '';
 
-      selectedWords.forEach(w => correctWordSet.has(w.toLowerCase()) ? correct.add(w) : incorrect.add(w));
+        const chunks = [];
+        if (Array.isArray(explanation)) chunks.push(...explanation);
+        else if (explanation) chunks.push(explanation);
+        chunks.push(`<strong>${teacherText}</strong>`, possibleAnswerStr, headsUpStr);
 
-      const correctUl = `<ul class='card-text correctWords list-inline' id='correctWords'>${Array.from(correct).map(w => `<li class='list-inline-item'>${w}</li>`).join('')}</ul>`;
-      const incorrectUl = `<ul class='card-text incorrectWords list-inline' id='incorrectWords'>${Array.from(incorrect).map(w => `<li class='list-inline-item'>${w}</li>`).join('')}</ul>`;   
+        renderAIFeedback(chunks);
+    }
 
-      const teacherText = State.incorrectAttempts === 1 ? Strings.get('try_again_1', State.userData?.native_language) : State.incorrectAttempts === 2 ? Strings.get('try_again_2', State.userData?.native_language) : `${Strings.get('failed_continue', State.userData?.native_language)}<br><br>Correct:<br>"${cue}"`;
-      const headsUpHTML = questionData.headsUp ? (State.incorrectAttempts <= 2 ? `<p class="headsUp">${Strings.get('heads_up_repeat_video', State.userData?.native_language)}</p>` : `<p class="headsUp">${questionData.headsUp}</p>`) : '';
-      
-      const bodyContent = `<div class='chat-bubble chat-msg' style='margin-top: 12px;'><strong> ${teacherText} </strong><br><br>${correctUl}${incorrectUl}</div><div class='chat-bubble chat-msg' style='margin-top: 12px;'>${headsUpHTML}</div>`;
-      safeRenderChatInterface(false, bodyContent);
-  }
+    if (questionData.inputType === "speech" && userResponse && DOM.speechText) {
+        const selectedWords = [...new Set(normalizeduserResponse.split(/\s+/))];
+        const correctWords = [...new Set(normalizedcue.split(/\s+/))];
+        const correctWordSet = new Set(correctWords.map(w => w.toLowerCase()));
+        const correct = new Set(); const incorrect = new Set();
 
-  animateHeartLoss(State.incorrectAttempts);
-  
-  Media.playSound('incorrect-sound');
+        selectedWords.forEach(w => correctWordSet.has(w.toLowerCase()) ? correct.add(w) : incorrect.add(w));
 
-  const answersContainer = button.parentElement;
-  if (questionData.inputType !== "text") {
-      markButtonAsIncorrect(button, answersContainer, cue);
-  } else {
-      markButtonAsIncorrect(button, null, null);
-  }
+        const correctUl = `<ul class='card-text correctWords list-inline' id='correctWords'>${Array.from(correct).map(w => `<li class='list-inline-item'>${w}</li>`).join('')}</ul>`;
+        const incorrectUl = `<ul class='card-text incorrectWords list-inline' id='incorrectWords'>${Array.from(incorrect).map(w => `<li class='list-inline-item'>${w}</li>`).join('')}</ul>`;
+
+        const teacherText = State.incorrectAttempts === 1
+            ? Strings.get('try_again_1', State.userData?.native_language)
+            : State.incorrectAttempts === 2
+                ? Strings.get('try_again_2', State.userData?.native_language)
+                : `${Strings.get('failed_continue', State.userData?.native_language)}<br><br>Correct:<br>"${cue}"`;
+
+        const headsUpStr = questionData.headsUp
+            ? (State.incorrectAttempts <= 2 ? Strings.get('heads_up_repeat_video', State.userData?.native_language) : questionData.headsUp)
+            : '';
+
+        const chunks = [`<strong>${teacherText}</strong><br><br>${correctUl}${incorrectUl}`];
+        if (Array.isArray(explanation)) chunks.push(...explanation);
+        else if (explanation) chunks.push(explanation);
+        chunks.push(headsUpStr);
+
+        renderAIFeedback(chunks);
+    }
+
+    animateHeartLoss(State.incorrectAttempts);
+
+    Media.playSound('incorrect-sound');
+
+    const answersContainer = button.parentElement;
+    if (questionData.inputType !== "text") {
+        markButtonAsIncorrect(button, answersContainer, cue);
+    } else {
+        markButtonAsIncorrect(button, null, null);
+    }
 }
 
 function showFeedbackAndProceed(questionData, isCorrect) {
-  if ((questionData.inputType === "speech" || questionData.inputType === "ai") && questionData.videoUrl) State.questionCount++;
+    if ((questionData.inputType === "speech" || questionData.inputType === "ai") && questionData.videoUrl) State.questionCount++;
 
-  try {
-    hideHints();
+    try {
+        hideHints();
 
-    const continueButton = showContinueButton(questionData.inputType === "lessonIntro", () => {
-      if (questionData.inputType === "lessonIntro") {    
-          const initializeMedia = async () => {
-              await Media.enableAudioSystem();
-              await warmUpSpeechCamStream();
-          };
-          initializeMedia();
-      }
-      
-      hideContinueButton();
-      if (questionData.inputType === "lessonIntro") {    
-        setTimeout(() => loadNextQuestion(questionData), 2000);
-      } else {
-        if (isCorrect || State.incorrectAttempts > 2) loadNextQuestion(questionData);
-        else {
-            const qIndex = getCurrentQuestionIndex(questionData, State.configData, State.currentLessonIndex);
-            window.__currentQuestionIndex = qIndex;
-            loadQuestion(State.configData.lessons[State.currentLessonIndex].questions[qIndex], State.configData.lessons[State.currentLessonIndex]);
+        const continueButton = showContinueButton(questionData.inputType === "lessonIntro", () => {
+            if (questionData.inputType === "lessonIntro") {
+                const initializeMedia = async () => {
+                    await Media.enableAudioSystem();
+                    await warmUpSpeechCamStream();
+                };
+                initializeMedia();
+            }
+
+            hideContinueButton();
+            if (questionData.inputType === "lessonIntro") {
+                setTimeout(() => loadNextQuestion(questionData), 2000);
+            } else {
+                if (isCorrect || State.incorrectAttempts > 2) loadNextQuestion(questionData);
+                else {
+                    const qIndex = getCurrentQuestionIndex(questionData, State.configData, State.currentLessonIndex);
+                    window.__currentQuestionIndex = qIndex;
+                    loadQuestion(State.configData.lessons[State.currentLessonIndex].questions[qIndex], State.configData.lessons[State.currentLessonIndex]);
+                }
+            }
+        });
+
+        if (isCorrect || State.incorrectAttempts > 2) {
+            const nextQuestion = getNextQuestion(questionData);
+            if (nextQuestion && nextQuestion.videoUrl) {
+                const videoUrl = `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${nextQuestion.videoUrl}.mp4?alt=media`;
+                Media.preloader.preloadOnly(videoUrl);
+            }
         }
-      }
-    });
 
-    if (isCorrect || State.incorrectAttempts > 2) {
-      const nextQuestion = getNextQuestion(questionData);
-      if (nextQuestion && nextQuestion.videoUrl) {
-        const videoUrl = `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${nextQuestion.videoUrl}.mp4?alt=media`;
-        Media.preloader.preloadOnly(videoUrl);
-      }
+    } catch (error) {
+        renderFallbackContinueButton(Strings.get('btn_continue', State.userData?.native_language) || 'Continue', () => {
+            if (isCorrect || State.incorrectAttempts > 2) loadNextQuestion(questionData);
+            else loadQuestion(questionData, State.configData.lessons[State.currentLessonIndex]);
+        });
     }
-
-  } catch (error) {
-    renderFallbackContinueButton(Strings.get('btn_continue', State.userData?.native_language) || 'Continue', () => {
-        if (isCorrect || State.incorrectAttempts > 2) loadNextQuestion(questionData);
-        else loadQuestion(questionData, State.configData.lessons[State.currentLessonIndex]);
-    });
-  }
 }
 
 // ➡➡➡➡➡➡➡➡⛰🗻 ADVANCE VIEWS CORE HOLY OF HOLIES ➡➡➡➡➡➡➡➡⛰🗻
@@ -673,478 +789,485 @@ function showFeedbackAndProceed(questionData, isCorrect) {
 function beforeUnloadHandler(e) { /* e.preventDefault(); e.returnValue = ''; return ''; */ }
 
 function loadQuestion(question, lesson, fluencyData) {
-  window.__currentQuestionIndex = getCurrentQuestionIndex(question, State.configData, State.currentLessonIndex);
-  clearChatInterface(); // Clear FIRST so the card collapses before we scroll
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.__currentQuestionIndex = getCurrentQuestionIndex(question, State.configData, State.currentLessonIndex);
+    clearChatInterface(); // Clear FIRST so the card collapses before we scroll
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 
-  resetUIForNewQuestion(question.inputType === 'lessonIntro', !!State.userData);
+    resetUIForNewQuestion(question.inputType === 'lessonIntro', !!State.userData);
 
-  Media.cleanupPreviousPlayers();
-  clearPlaybackVideo();
+    Media.cleanupPreviousPlayers();
+    clearPlaybackVideo();
 
-  toggleScoresAndHearts((question.inputType === 'speech' || question.inputType === 'ai') && question.videoUrl);
+    toggleScoresAndHearts((question.inputType === 'speech' || question.inputType === 'ai') && question.videoUrl);
 
-  if (question.inputType === 'speech' || question.inputType === 'ai') {
-      ensureWebcamPreview();
-      if (isIOS) {
-          const closePageLink = document.getElementById('closePage');
-          if (closePageLink) {
-              closePageLink.removeEventListener('click', handleClosePageClick);
-              function handleClosePageClick(e) { if (!confirm(Strings.get('alert_lesson_reset', State.userData?.native_language))) e.preventDefault(); }
-              closePageLink.addEventListener('click', handleClosePageClick);
-          }
-      } else {
-          window.removeEventListener('beforeunload', beforeUnloadHandler);
-          window.addEventListener('beforeunload', beforeUnloadHandler);
-      }
-  } else {
-      hideWebcamPreview();
-      window.removeEventListener('beforeunload', beforeUnloadHandler);
-  }
+    if (question.inputType === 'speech' || question.inputType === 'ai') {
+        warmUpSpeechCamStream();
+        if (isIOS) {
+            const closePageLink = document.getElementById('closePage');
+            if (closePageLink) {
+                closePageLink.removeEventListener('click', handleClosePageClick);
+                function handleClosePageClick(e) { if (!confirm(Strings.get('alert_lesson_reset', State.userData?.native_language))) e.preventDefault(); }
+                closePageLink.addEventListener('click', handleClosePageClick);
+            }
+        } else {
+            window.removeEventListener('beforeunload', beforeUnloadHandler);
+            window.addEventListener('beforeunload', beforeUnloadHandler);
+        }
+    } else {
+        hideWebcamPreview();
+        window.removeEventListener('beforeunload', beforeUnloadHandler);
+    }
 
-  if (question.inputType != 'lessonComplete' && question.inputType != 'unitComplete') {
-      removeRepeatButton();
-  }
+    if (question.inputType != 'lessonComplete' && question.inputType != 'unitComplete') {
+        removeRepeatButton();
+    }
 
-  if (question.inputType === 'speech' || question.inputType === 'ai') {
-    ensureWebcamPreview();
-    State.speakingScore = 100; // Reset speaking score for this question
-    updateSpeakingScoreDisplay(State.speakingScore);
-  }
+    if (question.inputType === 'speech' || question.inputType === 'ai') {
+        warmUpSpeechCamStream();
+        State.speakingScore = 100; // Reset speaking score for this question
+        updateSpeakingScoreDisplay(State.speakingScore);
+    }
 
-  prepareMediaUI();
+    prepareMediaUI();
 
-  clearMediaContainerAndPreservePlayers();
+    clearMediaContainerAndPreservePlayers();
 
-  if (question.image) {
-      renderImageInMediaContainer(question.image);
-  }
-  if (question.youtube) {
-      renderYoutubeInMediaContainer(question.youtube);
-  }
+    if (question.image) {
+        renderImageInMediaContainer(question.image);
+    }
+    if (question.youtube) {
+        renderYoutubeInMediaContainer(question.youtube);
+    }
 
-if (question.videoUrl) {
-    const currentVideoUrl = (window.preloadedMedia && window.preloadedMedia[question.videoUrl]) 
-        ? window.preloadedMedia[question.videoUrl] 
-        : `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${question.videoUrl}.mp4?alt=media`;
-    State.player = new InteractiveVideoPlayer({
-      videoUrl: currentVideoUrl, cue: question.cue, containerSelector: '#ivp-container',
-      videoStyles: { maxWidth: '100%' },
-      subtitleStyles: { fontSize: '24px', backgroundColor: 'rgba(0, 0, 0, 0.8)' }
-    });
-    window.currentVideoPlayer = State.player;
+    if (question.videoUrl) {
+        const currentVideoUrl = (window.preloadedMedia && window.preloadedMedia[question.videoUrl])
+            ? window.preloadedMedia[question.videoUrl]
+            : `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${question.videoUrl}.mp4?alt=media`;
+        State.player = new InteractiveVideoPlayer({
+            videoUrl: currentVideoUrl, cue: question.cue, containerSelector: '#ivp-container',
+            videoStyles: { maxWidth: '100%' },
+            subtitleStyles: { fontSize: '24px', backgroundColor: 'rgba(0, 0, 0, 0.8)' }
+        });
+        window.currentVideoPlayer = State.player;
 
-    setTimeout(() => {
-      try {
-        const videoEl = State.player.video; videoEl.muted = false; videoEl.setAttribute('playsinline', '');
-        const playPromise = State.player.play(); 
-        if (playPromise !== undefined) playPromise.catch(error => {});
-      } catch (e) {}
-    }, 200); 
+        setTimeout(() => {
+            try {
+                const videoEl = State.player.video; videoEl.muted = false; videoEl.setAttribute('playsinline', '');
+                const playPromise = State.player.play();
+                if (playPromise !== undefined) playPromise.catch(error => { });
+            } catch (e) { }
+        }, 200);
 
-    State.player.video.addEventListener('playing', () => State.player.video.controls = false);
-    State.player.video.addEventListener('play', () => {
-      State.videoPlays++;
-      if (State.videoPlays > 2 && (question.inputType === "speech" || question.inputType === "ai")) {
-          State.currentPoints = Math.max(0, State.currentPoints - 10);        
-          pointLoss.show(State.player.video, 10);
-          updateCurrentScoreDisplay(State.currentPoints);
-      }
-    });
+        State.player.video.addEventListener('playing', () => State.player.video.controls = false);
+        State.player.video.addEventListener('play', () => {
+            State.videoPlays++;
+            if (State.videoPlays > 2 && (question.inputType === "speech" || question.inputType === "ai")) {
+                State.currentPoints = Math.max(0, State.currentPoints - 10);
+                pointLoss.show(State.player.video, 10);
+                updateCurrentScoreDisplay(State.currentPoints);
+            }
+        });
 
-    State.player.video.addEventListener('click', () => {
-      State.videoClicks++;
-      if (State.videoClicks % 2 === 1 && (question.inputType === "speech" || question.inputType === "ai")) {
-        State.currentPoints = Math.max(0, State.currentPoints - 15);
-        pointLoss.show(State.player.video, 15);
-        updateCurrentScoreDisplay(State.currentPoints);
-      }
-    });
-  }
+        State.player.video.addEventListener('click', () => {
+            State.videoClicks++;
+            if (State.videoClicks % 2 === 1 && (question.inputType === "speech" || question.inputType === "ai")) {
+                State.currentPoints = Math.max(0, State.currentPoints - 15);
+                pointLoss.show(State.player.video, 15);
+                updateCurrentScoreDisplay(State.currentPoints);
+            }
+        });
+    }
 
-if (question.simpleVideoUrl) {
-    const currentVideoUrl = (window.preloadedMedia && window.preloadedMedia[question.simpleVideoUrl]) 
-        ? window.preloadedMedia[question.simpleVideoUrl] 
-        : `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${question.simpleVideoUrl}.mp4?alt=media`;
-    State.player = new simpleVideoPlayer({
-      videoUrl: currentVideoUrl, subtitles: question.subtitles, containerSelector: '#simple-ivp-container',
-      videoStyles: { maxWidth: '100%' },
-      subtitleStyles: { fontSize: '24px', backgroundColor: 'rgba(0, 0, 0, 0.8)' }
-    });
-    window.currentSimpleVideoPlayer = State.player;
+    if (question.simpleVideoUrl) {
+        const currentVideoUrl = (window.preloadedMedia && window.preloadedMedia[question.simpleVideoUrl])
+            ? window.preloadedMedia[question.simpleVideoUrl]
+            : `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${question.simpleVideoUrl}.mp4?alt=media`;
+        State.player = new simpleVideoPlayer({
+            videoUrl: currentVideoUrl, subtitles: question.subtitles, containerSelector: '#simple-ivp-container',
+            videoStyles: { maxWidth: '100%' },
+            subtitleStyles: { fontSize: '24px', backgroundColor: 'rgba(0, 0, 0, 0.8)' }
+        });
+        window.currentSimpleVideoPlayer = State.player;
 
-    setTimeout(() => {
-      try {
-        const videoEl = State.player.video; videoEl.muted = false;
-        const playPromise = State.player.play(); 
-        if (playPromise !== undefined) playPromise.catch(error => {});
-      } catch (e) {}
-    }, 200); 
-  }
+        setTimeout(() => {
+            try {
+                const videoEl = State.player.video; videoEl.muted = false;
+                const playPromise = State.player.play();
+                if (playPromise !== undefined) playPromise.catch(error => { });
+            } catch (e) { }
+        }, 200);
+    }
 
-if (question.introBackgroundVideoUrl) {
-    const currentVideoUrl = (window.preloadedMedia && window.preloadedMedia[question.introBackgroundVideoUrl]) 
-        ? window.preloadedMedia[question.introBackgroundVideoUrl] 
-        : `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${question.introBackgroundVideoUrl}.mp4?alt=media`;
-    
-    const lang = State.userData?.native_language;
-    State.player = new introBackgroundVideo({
-        videoUrl: currentVideoUrl,
-        title: Strings.get('incoming_video', lang) || 'INCOMING VIDEO',
-        subtitle: Strings.get('video_incoming', lang) || 'VIDEO ENTRANTE',
-        name: 'Joe Walsh',
-        role: Strings.get('english_coach', lang) || 'English Coach, UFF',
-        alertText: Strings.get('press_webcam', lang) || 'Press the webcam button below. Oprime el botón de cámara abajo.'
-    });
-    window.currentIntroVideoPlayer = State.player;
-  }
+    if (question.introBackgroundVideoUrl) {
+        const currentVideoUrl = (window.preloadedMedia && window.preloadedMedia[question.introBackgroundVideoUrl])
+            ? window.preloadedMedia[question.introBackgroundVideoUrl]
+            : `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${question.introBackgroundVideoUrl}.mp4?alt=media`;
 
-  setMicStatusText("<div class='text-center'>" + question.question + "</div>");
-  resetAnswersContainer(`<div id="answers-container" class="d-grid gap-2 d-none"></div>`);
+        const lang = State.userData?.native_language;
+        State.player = new introBackgroundVideo({
+            videoUrl: currentVideoUrl,
+            title: Strings.get('incoming_video', lang) || 'INCOMING VIDEO',
+            subtitle: Strings.get('video_incoming', lang) || 'VIDEO ENTRANTE',
+            name: 'Joe Walsh',
+            role: Strings.get('english_coach', lang) || 'English Coach, UFF',
+            alertText: Strings.get('press_webcam', lang) || 'Press the webcam button below. Oprime el botón de cámara abajo.'
+        });
+        window.currentIntroVideoPlayer = State.player;
+    }
 
-  if (question.inputType === "speech" || question.inputType === "ai") {
-      hideHints();
+    setMicStatusText("<div class='text-center'>" + question.question + "</div>");
+    resetAnswersContainer(`<div id="answers-container" class="d-grid gap-2 d-none"></div>`);
 
-      const allHidden = false; let revealedFirst = false;
-      const escapeHtml = (text) => {
-        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-        return text.replace(/[&<>"']/g, (m) => map[m]);
-      };
+    if (question.inputType === "speech" || question.inputType === "ai") {
+        hideHints();
 
-      let answerHTML = `${question.cue.replace(/\b[\w']+\b/g, word => {
-        if (allHidden && !revealedFirst) { revealedFirst = true; return escapeHtml(word); }
-        return `<span class="pulse-dot" data-word="${escapeHtml(word)}"><i class="bi bi-app"></i></span>`;
-      })}`;
+        const allHidden = false; let revealedFirst = false;
+        const escapeHtml = (text) => {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+            return text.replace(/[&<>"']/g, (m) => map[m]);
+        };
 
-      if (question.possibleAnswer) {
-        answerHTML += `<br><strong>${Strings.get('possible_response', State.userData?.native_language)}</strong><br>${question.possibleAnswer.replace(/\b[\w']+\b/g, word => {
-          if (allHidden && !revealedFirst) { revealedFirst = true; return escapeHtml(word); }
-          return `<span class="pulse-dot" data-word="${escapeHtml(word)}"><i class="bi bi-app"></i></span>`;
+        let answerHTML = `${question.cue.replace(/\b[\w']+\b/g, word => {
+            if (allHidden && !revealedFirst) { revealedFirst = true; return escapeHtml(word); }
+            return `<span class="pulse-dot" data-word="${escapeHtml(word)}"><i class="bi bi-app"></i></span>`;
         })}`;
-      }
 
-      const handleRevealClick = function() {
-          if (!this.dataset.revealed) {
-              this.textContent = this.dataset.word; 
-              State.currentPoints = Math.max(0, State.currentPoints - 15);
-              pointLoss.show(this, 15); updateCurrentScoreDisplay(State.currentPoints);
-              this.dataset.revealed = "true"; this.removeEventListener('click', handleRevealClick);
-          }
-      };
+        if (question.possibleAnswer) {
+            answerHTML += `<br><strong>${Strings.get('possible_response', State.userData?.native_language)}</strong><br>${question.possibleAnswer.replace(/\b[\w']+\b/g, word => {
+                if (allHidden && !revealedFirst) { revealedFirst = true; return escapeHtml(word); }
+                return `<span class="pulse-dot" data-word="${escapeHtml(word)}"><i class="bi bi-app"></i></span>`;
+            })}`;
+        }
 
-      const qIndex = getCurrentQuestionIndex(question, State.configData, State.currentLessonIndex);
+        const handleRevealClick = function () {
+            if (!this.dataset.revealed) {
+                this.textContent = this.dataset.word;
+                State.currentPoints = Math.max(0, State.currentPoints - 15);
+                pointLoss.show(this, 15); updateCurrentScoreDisplay(State.currentPoints);
+                this.dataset.revealed = "true"; this.removeEventListener('click', handleRevealClick);
+            }
+        };
 
-      renderSpeechInputUI(
-          answerHTML,
-          () => handleHint(qIndex),
-          handleRevealClick,
-          async () => {
-              const speechButton = document.getElementById('speechButton');
-              try {
-                  await toggleSpeechRecognition({
-                      button: speechButton,
-                      question,
-                      micStatusText: DOM.micStatusText,
-                      userData: State.userData,
-                      configData: State.configData,
-                      currentLessonIndex: State.currentLessonIndex,
-                      currentQuestionIndex: qIndex,
-                      handleAnswer,
-                      player: State.player
-                  });
-              } catch (error) {
-                  console.error("Speech toggle failed", error);
-              }
-          }
-      );
+        const qIndex = getCurrentQuestionIndex(question, State.configData, State.currentLessonIndex);
 
-  } else if (question.inputType === 'text') {
-      renderTextInputUI(
-          Strings.get('placeholder_type_answer', State.userData?.native_language) || 'Type your answer here...',
-          Strings.get('btn_submit', State.userData?.native_language) || 'Submit',
-          (val, btn) => handleAnswer(val, question.cue, question, btn, question.explanation, question.translation, { pauseCount: null, netDuration: null })
-      );
+        renderSpeechInputUI(
+            answerHTML,
+            () => handleHint(qIndex),
+            handleRevealClick,
+            async () => {
+                const speechButton = document.getElementById('speechButton');
+                try {
+                    await toggleSpeechRecognition({
+                        button: speechButton,
+                        question,
+                        micStatusText: DOM.micStatusText,
+                        userData: State.userData,
+                        configData: State.configData,
+                        currentLessonIndex: State.currentLessonIndex,
+                        currentQuestionIndex: qIndex,
+                        handleAnswer: submitAnswerPrecheck,
+                        player: State.player
+                    });
+                } catch (error) {
+                    console.error("Speech toggle failed", error);
+                }
+            }
+        );
 
-  } else if (question.inputType === 'lessoncomplete') {
-    updateProgressAndCloseButton(true); toggleScoresAndHearts(false);
-    setProgressBarWidth("95%"); showFeedbackAndProceed(question, true);
-    hideAnswerDiv();
+    } else if (question.inputType === 'text') {
+        renderTextInputUI(
+            Strings.get('placeholder_type_answer', State.userData?.native_language) || 'Type your answer here...',
+            Strings.get('btn_submit', State.userData?.native_language) || 'Submit',
+            (val, btn) => submitAnswerPrecheck(val, question.cue, question, btn, question.explanation, question.translation, { pauseCount: null, netDuration: null })
+        );
 
-  } else if (question.inputType === 'unitcomplete') {
-    question.lessonId = State.configData.lessons[State.currentLessonIndex].lessonId + 's';
-    State.successHandler.handleSuccessLesson(question);
+    } else if (question.inputType === 'lessoncomplete') {
+        updateProgressAndCloseButton(true); toggleScoresAndHearts(false);
+        setProgressBarWidth("95%"); showFeedbackAndProceed(question, true);
+        hideAnswerDiv();
 
-  } else if (question.inputType === 'lessonIntro') {
-      toggleScoresAndHearts(false);
-      State.repeatPointsHistory = []; 
-      State.rolePlayPointsHistory = [];
-      hideAnswerDiv();
-  
-      if (!question.simpleVideoUrl && question.explanation) {
-        const lang = State.userData?.native_language; const localizedTrans = getLocalizedTranslation(question.translation, lang); const hasTranslation = !!localizedTrans;
-        const imagineStr = Strings.get('imagine', lang); const listenRepeatStr = Strings.get('listen_repeat', lang);
+    } else if (question.inputType === 'unitcomplete') {
+        question.lessonId = State.configData.lessons[State.currentLessonIndex].lessonId + 's';
+        State.successHandler.handleSuccessLesson(question);
 
-        const explanationHTML = `
-          <div class='chat-bubble chat-msg'>
+    } else if (question.inputType === 'lessonIntro') {
+        toggleScoresAndHearts(false);
+        State.repeatPointsHistory = [];
+        State.rolePlayPointsHistory = [];
+        hideAnswerDiv();
+
+        if (!question.simpleVideoUrl && question.explanation) {
+            const lang = State.userData?.native_language; const localizedTrans = getLocalizedTranslation(question.translation, lang); const hasTranslation = !!localizedTrans;
+            const imagineStr = Strings.get('imagine', lang); const listenRepeatStr = Strings.get('listen_repeat', lang);
+
+            const explanationStr = `
             <p class='explanation'>
               <strong>${imagineStr.split('<br>')[0]}</strong> ${question.explanation}
               <br><br>
               ➡${listenRepeatStr.split('<br>')[0]}
               ${hasTranslation && lang !== 'en' ? `<br><br><span lang='${lang}'><i><strong>🎯${imagineStr.includes('<br>') ? imagineStr.split('<i>')[1].split('<i>')[0] : imagineStr}</strong>${localizedTrans}<br><br>${listenRepeatStr.includes('<br>') ? listenRepeatStr.split('<i>')[1].split('<i>')[0] : listenRepeatStr}</i></span>` : ''}
-            </p>
-          </div>`;
-        const bodyContent = `<p class='lesson-name chat-bubble chat-msg'><strong>Lesson: ${lesson.title}</strong></p>${explanationHTML}`;
-        safeRenderChatInterface(false, bodyContent);
-      }
-      showFeedbackAndProceed(question, true);
+            </p>`;
 
-  } else if (question.inputType === 'present') {
-      updateProgressAndCloseButton(false); toggleScoresAndHearts(false); hideAnswerDiv();
-
-      let headsUpHTML = question.headsUp ? `<div class='chat-bubble chat-msg'><p class='headsUp'>${question.headsUp}</p></div>` : "";
-
-      if (!question.simpleVideoUrl) {
-        let explanationHTML = "";
-        if (question.explanation) {
-          const lang = State.userData?.native_language;
-          const expTrans = getLocalizedTranslation(question.translation, lang);
-          explanationHTML = `<div class='chat-bubble chat-msg'><p class='explanation'>${question.explanation}${expTrans && lang && lang !== 'en' ? `<br><br><span lang='${lang}'><i>${expTrans}</i></span>` : ""}</p></div>`;
+            renderAIFeedback([
+                `<p class='lesson-name'><strong>Lesson: ${lesson.title}</strong></p>`,
+                explanationStr
+            ]);
         }
-        const bodyContent = `<p class='lesson-name chat-bubble chat-msg'><strong>${Strings.get('lesson_label', State.userData?.native_language)} ${lesson.title}</strong></p>${explanationHTML}`;
-        safeRenderChatInterface(false, bodyContent);
-      }
-      showFeedbackAndProceed(question, true);
+        showFeedbackAndProceed(question, true);
 
-  } else if (question.inputType === 'success') {
-      window.removeEventListener('beforeunload', beforeUnloadHandler);
-      bindProcessButton(() => State.player.destroy());
+    } else if (question.inputType === 'present') {
+        updateProgressAndCloseButton(false); toggleScoresAndHearts(false); hideAnswerDiv();
 
-      question.lessonId = State.configData.lessons[State.currentLessonIndex].lessonId;
-      
-      // Explicitly hand the config to the window object before calling the processor 👇
-      window.__currentConfigData = State.configData;
-      
-      initVideoProcessor(question.cue, fluencyData, question.lessonId);
-      State.successHandler.handleSuccessLesson(question);
-      
-      const currentLesson = State.configData.lessons[State.currentLessonIndex];
-      const nextLessonId = currentLesson.nextLessonId;
+        let headsUpHTML = question.headsUp ? `<div class='chat-bubble chat-msg'><p class='headsUp'>${question.headsUp}</p></div>` : "";
 
-      if (nextLessonId) {
-        saveLessonProgress(State.courseId, nextLessonId, State.userData, {
-          updateUserMeta: true,
-          incrementCount: true 
-        }).then(progressResult => {
-            // Update State with the new calculated numbers
-            State.dayCount = progressResult.newDayCount;
-            State.currentStreak = progressResult.newStreak;
-            
-            // Update the UI spans in the header
-            updateActivityDisplay(State.dayCount, State.currentStreak);
-        });
-      };
+        if (!question.simpleVideoUrl) {
+            let explanationStr = "";
+            if (question.explanation) {
+                const lang = State.userData?.native_language;
+                const expTrans = getLocalizedTranslation(question.translation, lang);
+                explanationStr = `<p class='explanation'>${question.explanation}${expTrans && lang && lang !== 'en' ? `<br><br><span lang='${lang}'><i>${expTrans}</i></span>` : ""}</p>`;
+            }
 
-      try { hideWebcamPreview(); } catch (error) {}
+            renderAIFeedback([
+                `<p class='lesson-name'><strong>${Strings.get('lesson_label', State.userData?.native_language)} ${lesson.title}</strong></p>`,
+                explanationStr
+            ]);
+        }
+        showFeedbackAndProceed(question, true);
 
-  } else if (question.inputType === "multi") {
-      const answers = [question.cue, ...question.incues];
-      question.alpha ? sortAnswersAlphabetically(answers) : shuffleArray(answers); 
+    } else if (question.inputType === 'success') {
+        window.removeEventListener('beforeunload', beforeUnloadHandler);
+        bindProcessButton(() => State.player.destroy());
 
-      renderMultiChoiceUI(
-          Strings.get('btn_not_sure', State.userData?.native_language) || "I'm not sure",
-          (val, btn) => handleAnswer(val, question.cue, question, btn, question.explanation, undefined, { pauseCount: null, netDuration: null }),
-          answers,
-          (answer, button) => handleAnswer(answer, question.cue, question, button, question.explanation, question.translation, { pauseCount: null, netDuration: null })
-      );
-  }
+        question.lessonId = State.configData.lessons[State.currentLessonIndex].lessonId;
+
+        // Explicitly hand the config to the window object before calling the processor 👇
+        window.__currentConfigData = State.configData;
+
+        initVideoProcessor(question.cue, fluencyData, question.lessonId);
+        State.successHandler.handleSuccessLesson(question);
+
+        const currentLesson = State.configData.lessons[State.currentLessonIndex];
+        const nextLessonId = currentLesson.nextLessonId;
+
+        if (nextLessonId) {
+            saveLessonProgress(State.courseId, nextLessonId, State.userData, {
+                updateUserMeta: true,
+                incrementCount: true
+            }).then(progressResult => {
+                // Update State with the new calculated numbers
+                State.dayCount = progressResult.newDayCount;
+                State.currentStreak = progressResult.newStreak;
+
+                // Update the UI spans in the header
+                updateActivityDisplay(State.dayCount, State.currentStreak);
+            });
+        };
+
+        try { hideWebcamPreview(); } catch (error) { }
+
+    } else if (question.inputType === "multi") {
+        const answers = [question.cue, ...question.incues];
+        question.alpha ? sortAnswersAlphabetically(answers) : shuffleArray(answers);
+
+        renderMultiChoiceUI(
+            Strings.get('btn_not_sure', State.userData?.native_language) || "I'm not sure",
+            (val, btn) => submitAnswerPrecheck(val, question.cue, question, btn, question.explanation, undefined, { pauseCount: null, netDuration: null }),
+            answers,
+            (answer, button) => submitAnswerPrecheck(answer, question.cue, question, button, question.explanation, question.translation, { pauseCount: null, netDuration: null })
+        );
+    }
 }
 
 function getNextQuestion(currentQuestion) {
-  if (!State.configData || !State.configData.lessons || State.currentLessonIndex >= State.configData.lessons.length) return null;
-  const currentLesson = State.configData.lessons[State.currentLessonIndex];
-  const currentIndex = currentLesson.questions.findIndex(q => q.question === currentQuestion.question && q.cue === currentQuestion.cue);
-  if (currentIndex === -1) return currentLesson.questions[0];
-  if (currentIndex >= currentLesson.questions.length - 1) return null;
-  return currentLesson.questions[currentIndex + 1];
+    if (!State.configData || !State.configData.lessons || State.currentLessonIndex >= State.configData.lessons.length) return null;
+    const currentLesson = State.configData.lessons[State.currentLessonIndex];
+    const currentIndex = currentLesson.questions.findIndex(q => q.question === currentQuestion.question && q.cue === currentQuestion.cue);
+    if (currentIndex === -1) return currentLesson.questions[0];
+    if (currentIndex >= currentLesson.questions.length - 1) return null;
+    return currentLesson.questions[currentIndex + 1];
 }
 
 function updateProgressBar() {
-  if (!State.configData || !State.configData.lessons || State.configData.lessons.length === 0) return;
-  const currentLesson = State.configData.lessons[State.currentLessonIndex];
-  const totalQuestions = currentLesson.questions.length;
-  let currentQuestions = State.questionsAnswered++;
-  const finalProgress = Math.min(Math.max((currentQuestions / totalQuestions) * 100, 10), 90);
-  setProgressBarWidth(`${finalProgress}%`);
+    if (!State.configData || !State.configData.lessons || State.configData.lessons.length === 0) return;
+    const currentLesson = State.configData.lessons[State.currentLessonIndex];
+    const totalQuestions = currentLesson.questions.length;
+    let currentQuestions = State.questionsAnswered++;
+    const finalProgress = Math.min(Math.max((currentQuestions / totalQuestions) * 100, 10), 90);
+    setProgressBarWidth(`${finalProgress}%`);
 }
 
 function loadNextQuestion(currentQuestion, fluencyData) {
     updateProgressBar();
     toggleScoresAndHearts(false);
-    
+
     State.resetForNextQuestion();
     updateCurrentScoreDisplay(State.currentPoints);
 
     resetHeartsUI();
 
-  if (!State.configData || !State.configData.lessons || State.configData.lessons.length === 0) return;
-  const currentLesson = State.configData.lessons[State.currentLessonIndex];
-  State.currentQuestionIndex++;
+    if (!State.configData || !State.configData.lessons || State.configData.lessons.length === 0) return;
+    const currentLesson = State.configData.lessons[State.currentLessonIndex];
+    State.currentQuestionIndex++;
 
-  if (State.currentQuestionIndex < currentLesson.questions.length) {
-    loadQuestion(currentLesson.questions[State.currentQuestionIndex], currentLesson, fluencyData);
-  } else {
-    if (currentLesson.nextLessonId) loadNextLesson();
-    else showCompletionMessage();
-  }
+    if (State.currentQuestionIndex < currentLesson.questions.length) {
+        loadQuestion(currentLesson.questions[State.currentQuestionIndex], currentLesson, fluencyData);
+    } else {
+        if (currentLesson.nextLessonId) loadNextLesson();
+        else showCompletionMessage();
+    }
 }
 
 function showCompletionMessage() {
-  showMessageInQuestionsContainer(Strings.get('msg_lesson_complete_all', State.userData?.native_language));
+    showMessageInQuestionsContainer(Strings.get('msg_lesson_complete_all', State.userData?.native_language));
 }
 
 async function loadNextLesson() {
-  if (!State.configData || !State.configData.lessons || State.configData.lessons.length === 0) return;
-  const currentLesson = State.configData.lessons[State.currentLessonIndex];
-  const nextLessonId = currentLesson.nextLessonId;
+    if (!State.configData || !State.configData.lessons || State.configData.lessons.length === 0) return;
+    const currentLesson = State.configData.lessons[State.currentLessonIndex];
+    const nextLessonId = currentLesson.nextLessonId;
 
-  if (nextLessonId) {
-    saveLessonProgress(State.courseId, nextLessonId, State.userData).then(progressResult => {
-        if (progressResult.dayCountIncremented) {
-            State.dayCount = progressResult.newDayCount;
-            updateDayCountDisplay(State.dayCount);
-        }
-    });
+    if (nextLessonId) {
+        saveLessonProgress(State.courseId, nextLessonId, State.userData).then(progressResult => {
+            if (progressResult.dayCountIncremented) {
+                State.dayCount = progressResult.newDayCount;
+                updateDayCountDisplay(State.dayCount);
+            }
+        });
 
-    setTimeout(async () => {
-      const nextLessonIndex = State.configData.lessons.findIndex(l => l.lessonId === nextLessonId);
+        setTimeout(async () => {
+            const nextLessonIndex = State.configData.lessons.findIndex(l => l.lessonId === nextLessonId);
 
-      if (nextLessonIndex !== -1) {
-        State.currentLessonIndex = nextLessonIndex;
-        localStorage.setItem(`${State.courseId}_currentLessonId`, nextLessonId);
-        localStorage.setItem(`${State.courseId}_currentLessonTimestamp`, new Date().toISOString());
-        setProgressBarWidth("100%");
-        State.questionsAnswered = 0; 
-        State.currentQuestionIndex = 0;
-        loadLessonContent(State.configData.lessons[nextLessonIndex]);
-      } else showCompletionMessage();
-    }, 1200);
-  } else {
-    Media.playSound('lesson-complete-sound'); showCompletionMessage();
-  }
+            if (nextLessonIndex !== -1) {
+                State.currentLessonIndex = nextLessonIndex;
+                localStorage.setItem(`${State.courseId}_currentLessonId`, nextLessonId);
+                localStorage.setItem(`${State.courseId}_currentLessonTimestamp`, new Date().toISOString());
+                setProgressBarWidth("100%");
+                State.questionsAnswered = 0;
+                State.currentQuestionIndex = 0;
+                loadLessonContent(State.configData.lessons[nextLessonIndex]);
+            } else showCompletionMessage();
+        }, 1200);
+    } else {
+        Media.playSound('lesson-complete-sound'); showCompletionMessage();
+    }
 }
 
 // 🏫🏫🏫🏫🏫🏫🏫🏫 INITIALIZATION/LESSON SETUP 🏫🏫🏫🏫🏫🏫🏫🏫
 
 async function initializeLesson() {
-  try {
-    State.lessonId = await getCurrentLessonId(); 
-    if (!State.configData || !State.configData.lessons) return;
-    State.lesson = State.configData.lessons.find(lesson => lesson.lessonId === State.lessonId);
-    if (!State.lesson) return;
-    State.currentLessonIndex = State.configData.lessons.findIndex(l => l.lessonId === State.lessonId);
+    try {
+        State.lessonId = await getCurrentLessonId();
+        if (!State.configData || !State.configData.lessons) return;
+        State.lesson = State.configData.lessons.find(lesson => lesson.lessonId === State.lessonId);
+        if (!State.lesson) return;
+        State.currentLessonIndex = State.configData.lessons.findIndex(l => l.lessonId === State.lessonId);
 
-    if (window.preloadLessonAssets) {
-        const constructFirebaseUrl = (slug) => `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${slug}.mp4?alt=media`;
-        await window.preloadLessonAssets(State.lesson, constructFirebaseUrl);
+        if (window.preloadLessonAssets) {
+            const constructFirebaseUrl = (slug) => `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${slug}.mp4?alt=media`;
+            await window.preloadLessonAssets(State.lesson, constructFirebaseUrl);
+        }
+
+        loadLessonContent(State.lesson);
+    } catch (error) {
+        console.error("initializeLesson error:", error);
+        const preloader = document.getElementById('appLoadingImageDiv');
+        if (preloader) preloader.style.display = 'none';
+        showErrorMessageInQuestionsContainer(Strings.get('lesson_load_error', State.userData?.native_language));
     }
-    
-    loadLessonContent(State.lesson);
-  } catch (error) {
-    showErrorMessageInQuestionsContainer(Strings.get('lesson_load_error', State.userData?.native_language));
-  }
 }
 
 async function getCurrentLessonId() {
-  if (!State.configData || typeof State.configData !== 'object') throw new Error('Invalid or missing course configuration.');
-  const urlParams = new URLSearchParams(window.location.search);
-  const urlLessonId = urlParams.get('lessonid');
+    if (!State.configData || typeof State.configData !== 'object') throw new Error('Invalid or missing course configuration.');
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlLessonId = urlParams.get('lessonid');
 
-  if (urlLessonId) {
-    State.lessonId = urlLessonId;
-    const url = new URL(window.location.href);
-    url.searchParams.delete('lessonid'); url.searchParams.delete('course');
-    window.history.replaceState({}, document.title, url.toString());
-  }
+    if (urlLessonId) {
+        State.lessonId = urlLessonId;
+        const url = new URL(window.location.href);
+        url.searchParams.delete('lessonid'); url.searchParams.delete('course');
+        window.history.replaceState({}, document.title, url.toString());
+    }
 
-  if (!State.courseId) State.courseId = await getCurrentcourseId();
+    if (!State.courseId) State.courseId = await getCurrentcourseId();
 
-  if (!State.lessonId) {
-      let wpLessonId = null; let wpTimestamp = null;
-      if (State.userData) {
-          wpLessonId = State.userData[`${State.courseId}_current_lesson`] ?? null;
-          const ts = State.userData[`${State.courseId}_lesson_timestamp`];
-          wpTimestamp = ts && !isNaN(new Date(ts).getTime()) ? new Date(ts) : null;
-      }
-      
-      const lsId = localStorage.getItem(`${State.courseId}_currentLessonId`);
-      const lsTsStr = localStorage.getItem(`${State.courseId}_currentLessonTimestamp`);
-      const lsTs = lsTsStr && !isNaN(new Date(lsTsStr).getTime()) ? new Date(lsTsStr) : null;
-      
-      const sources = [];
-      if (wpLessonId && wpTimestamp) sources.push({ lessonId: wpLessonId, timestamp: wpTimestamp });
-      if (lsId && lsTs) sources.push({ lessonId: lsId, timestamp: lsTs });
-      
-      if (sources.length === 1) State.lessonId = sources[0].lessonId;
-      else if (sources.length > 1) {
-          sources.sort((a, b) => b.timestamp - a.timestamp);
-          State.lessonId = sources[0].lessonId;
-      }
-  }
+    if (!State.lessonId) {
+        let wpLessonId = null; let wpTimestamp = null;
+        if (State.userData) {
+            wpLessonId = State.userData[`${State.courseId}_current_lesson`] ?? null;
+            const ts = State.userData[`${State.courseId}_lesson_timestamp`];
+            wpTimestamp = ts && !isNaN(new Date(ts).getTime()) ? new Date(ts) : null;
+        }
 
-  if (!State.lessonId) {
-    if (State.configData && State.configData.lessons && State.configData.lessons.length > 0 && State.configData.lessons[0].lessonId) State.lessonId = State.configData.lessons[0].lessonId;
-    else throw new Error('getCurrentLessonId No lessons found in the course configuration.');
-  }
+        const lsId = localStorage.getItem(`${State.courseId}_currentLessonId`);
+        const lsTsStr = localStorage.getItem(`${State.courseId}_currentLessonTimestamp`);
+        const lsTs = lsTsStr && !isNaN(new Date(lsTsStr).getTime()) ? new Date(lsTsStr) : null;
 
-  saveLessonProgress(State.courseId, State.lessonId, State.userData, { updateUserMeta: false, incrementCount: false });
-  return State.lessonId;
+        const sources = [];
+        if (wpLessonId && wpTimestamp) sources.push({ lessonId: wpLessonId, timestamp: wpTimestamp });
+        if (lsId && lsTs) sources.push({ lessonId: lsId, timestamp: lsTs });
+
+        if (sources.length === 1) State.lessonId = sources[0].lessonId;
+        else if (sources.length > 1) {
+            sources.sort((a, b) => b.timestamp - a.timestamp);
+            State.lessonId = sources[0].lessonId;
+        }
+    }
+
+    if (!State.lessonId) {
+        if (State.configData && State.configData.lessons && State.configData.lessons.length > 0 && State.configData.lessons[0].lessonId) State.lessonId = State.configData.lessons[0].lessonId;
+        else throw new Error('getCurrentLessonId No lessons found in the course configuration.');
+    }
+
+    saveLessonProgress(State.courseId, State.lessonId, State.userData, { updateUserMeta: false, incrementCount: false });
+    return State.lessonId;
 }
 
 async function getCurrentcourseId() {
-  State.courseId = new URLSearchParams(window.location.search).get('courseid');
+    State.courseId = new URLSearchParams(window.location.search).get('courseid');
 
-  if (!State.courseId) {
-    if (State.userData && typeof State.userData === 'object') {
-      try {
-        const userProfile = await wp.apiFetch({ path: '/custom/v1/user-profile' });
-        State.courseId = userProfile.current_course || null;
-      } catch (error) { State.courseId = localStorage.getItem('currentCourse'); }
-    } else State.courseId = localStorage.getItem('currentCourse');
-  }
+    if (!State.courseId) {
+        if (State.userData && typeof State.userData === 'object') {
+            try {
+                const userProfile = await wp.apiFetch({ path: '/custom/v1/user-profile' });
+                State.courseId = userProfile.current_course || null;
+            } catch (error) { State.courseId = localStorage.getItem('currentCourse'); }
+        } else State.courseId = localStorage.getItem('currentCourse');
+    }
 
-  if (!State.courseId) State.courseId = 'pronunciation';
-  localStorage.setItem('currentCourse', State.courseId);
-  if (State.userData && typeof State.userData === 'object') await saveCourseToUserProfile(State.courseId, State.userData);
-  return State.courseId;
+    if (!State.courseId) State.courseId = 'pronunciation';
+    localStorage.setItem('currentCourse', State.courseId);
+    if (State.userData && typeof State.userData === 'object') await saveCourseToUserProfile(State.courseId, State.userData);
+    return State.courseId;
 }
 
 function loadLessonContent(lesson) {
-  clearSpeechRecordingsForLesson(lesson.lessonId).catch(e => console.error(e));
-  if(State.player) State.player.destroy();
-  
-  State.resetForNewLesson();
-  State.mission = lesson.mission || "";
-  State.setting = lesson.setting || "";
-  State.userRole = lesson.userRole || "";
-  State.videoRole = lesson.videoRole || "";
-  
-  updateCurrentScoreDisplay(State.currentPoints);
-  updateActivityDisplay(State.dayCount, State.currentStreak);
-  
-  resetHeartsUI();
+    clearSpeechRecordingsForLesson(lesson.lessonId).catch(e => console.error(e));
+    if (State.player) State.player.destroy();
 
-  updateProgressBar(); 
+    State.resetForNewLesson();
+    State.mission = lesson.mission || "";
+    State.setting = lesson.setting || "";
+    State.userRole = lesson.userRole || "";
+    State.videoRole = lesson.videoRole || "";
 
-  // --- TITLE LOGIC ---
-  const course = State.configData?.courseName || "";
-  const level = State.englishLevel ? ` (${State.englishLevel})` : "";
-  const unit = (lesson.unit && String(lesson.unit).trim() !== "") ? `${lesson.unit}: ` : "";
-  const titleText = (typeof lesson.title === 'object') ? (lesson.title.en || "") : (lesson.title || "");
-  const fullTitle = `${course}${level}${course ? ': ' : ''}${unit}${titleText}`;
+    updateCurrentScoreDisplay(State.currentPoints);
+    updateActivityDisplay(State.dayCount, State.currentStreak);
 
-  setupLessonUI(fullTitle);
+    resetHeartsUI();
 
-  loadQuestion(lesson.questions[State.currentQuestionIndex], lesson);
+    updateProgressBar();
+
+    // --- TITLE LOGIC ---
+    const course = State.configData?.courseName || "";
+    const level = State.englishLevel ? ` (${State.englishLevel})` : "";
+    const unit = (lesson.unit && String(lesson.unit).trim() !== "") ? `${lesson.unit}: ` : "";
+    const titleText = (typeof lesson.title === 'object') ? (lesson.title.en || "") : (lesson.title || "");
+    const fullTitle = `${course}${level}${course ? ': ' : ''}${unit}${titleText}`;
+
+    setupLessonUI(fullTitle);
+
+    loadQuestion(lesson.questions[State.currentQuestionIndex], lesson);
 }
 
 // 🚀🚀🚀🚀🚀🚀🚀🚀 INITIALIZE APP 🚀🚀🚀🚀🚀🚀🚀🚀
@@ -1154,15 +1277,40 @@ async function initializeApp() {
         requestPersistentStorage();
         const isLoggedIn = await isUserLoggedIn();
 
-        // Client-Side Protection: Redirect to login if not authenticated
-        if (!isLoggedIn) {
-            console.warn('User not authenticated. Redirecting to login page.');
-            const redirectUrl = encodeURIComponent(window.location.href);
-            window.location.href = `login.html?redirect=${redirectUrl}`;
-            return; // Stop execution
-        }
-
         State.userData = await getUserProfile();
+
+        if (!isLoggedIn) {
+            console.warn('User not authenticated. Proceeding as guest.');
+            const modalHtml = `
+            <div class="modal fade" id="guestLoginModal" tabindex="-1" aria-labelledby="guestLoginModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content bg-dark text-white">
+                        <div class="modal-header border-secondary">
+                            <h5 class="modal-title" id="guestLoginModalLabel">Welcome!</h5>
+                        </div>
+                        <div class="modal-body">
+                            <p>You are currently not logged in. Log in or sign up to save your progress and access all features. Or, continue as a guest to try out the app.</p>
+                            <div class="d-grid gap-2 mt-4">
+                                <a href="login.html" class="btn btn-primary">Log In</a>
+                                <a href="signup.html" class="btn btn-secondary">Sign Up</a>
+                                <button type="button" class="btn btn-outline-light mt-2" data-bs-dismiss="modal">Continue as Guest</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            // Wait a brief moment to ensure DOM is updated before initializing modal
+            setTimeout(() => {
+                if (typeof bootstrap !== 'undefined') {
+                    const guestModal = new bootstrap.Modal(document.getElementById('guestLoginModal'));
+                    guestModal.show();
+                } else {
+                    console.error('Bootstrap is not loaded, unable to show guest login modal.');
+                }
+            }, 100);
+        }
         State.initializeUserMetrics(State.userData, calculateCurrentStreak);
 
         updateActivityDisplay(State.dayCount, State.currentStreak);
@@ -1170,8 +1318,8 @@ async function initializeApp() {
         // Immediately trigger offline score sync if needed
         syncOfflineScores(State.userData);
 
-        State.courseId = await getCurrentcourseId(); 
-        
+        State.courseId = await getCurrentcourseId();
+
         // --- FETCH CONFIG AND SET LANGUAGE LEVEL ---
         const response = await fetch(`js/config/${State.courseId}.json`);
         State.configData = await response.json();
@@ -1182,10 +1330,10 @@ async function initializeApp() {
 
         const lang = State.userData?.native_language;
         const defaultQuestions = {
-            'speech':      Strings.get('default_q_speech', lang),
-            'ai':          Strings.get('default_q_ai', lang),
-            'present':     Strings.get('default_q_present', lang),
-            'success':     Strings.get('default_q_present', lang),
+            'speech': Strings.get('default_q_speech', lang),
+            'ai': Strings.get('default_q_ai', lang),
+            'present': Strings.get('default_q_present', lang),
+            'success': Strings.get('default_q_present', lang),
             'lessonIntro': Strings.get('default_q_lesson_intro', lang)
         };
 
@@ -1199,7 +1347,7 @@ async function initializeApp() {
                 if (lesson.mission && typeof lesson.mission === 'object') {
                     lesson.mission = lesson.mission.en || String(lesson.mission);
                 }
-                
+
                 if (lesson.questions) {
                     lesson.questions.forEach(question => {
                         // Normalize cue to string if it's a localized object
@@ -1215,22 +1363,22 @@ async function initializeApp() {
         }
 
         State.successHandler = new SuccessLessonHandler({
-            configData: State.configData, 
-            loadLessonContent, 
-            calculateAverage, 
-            playSound: Media.playSound, 
+            configData: State.configData,
+            loadLessonContent,
+            calculateAverage,
+            playSound: Media.playSound,
             loadNextLesson,
             updateState: (newState) => {
-              Object.assign(State, newState);
+                Object.assign(State, newState);
             },
             uiElements: {
-              scoresAndHearts: DOM.scoresAndHearts, 
-              progressbar: DOM.progressbar, 
-              progressBarFill: DOM.progressBarFill, 
-              speechTextHere: DOM.speechText,
-              bottomButtonBarCenter: document.getElementById('bottomButtonBarCenter'), 
-              bottomButtonBarLeft: document.getElementById('bottomButtonBarLeft'), 
-              hearts
+                scoresAndHearts: DOM.scoresAndHearts,
+                progressbar: DOM.progressbar,
+                progressBarFill: DOM.progressBarFill,
+                speechTextHere: DOM.speechText,
+                bottomButtonBarCenter: document.getElementById('bottomButtonBarCenter'),
+                bottomButtonBarLeft: document.getElementById('bottomButtonBarLeft'),
+                hearts
             }
         });
 
@@ -1241,7 +1389,7 @@ async function initializeApp() {
         (async () => {
             try {
                 let voiceInitFn = initLocalVoiceAI;
-                
+
                 if (typeof voiceInitFn !== 'function') {
                     console.warn('initLocalVoiceAI not available statically, attempting dynamic import...');
                     const scriptDir = new URL('.', import.meta.url).href;
@@ -1249,7 +1397,7 @@ async function initializeApp() {
                     const speechModule = await import(speechModuleUrl);
                     voiceInitFn = speechModule.initLocalVoiceAI;
                 }
-                
+
                 if (typeof voiceInitFn === 'function') {
                     await Promise.resolve(voiceInitFn());
                     console.log('🎙️ Whisper initialization complete.');
@@ -1263,6 +1411,8 @@ async function initializeApp() {
 
     } catch (error) {
         console.error("Initialization error:", error);
+        const preloader = document.getElementById('appLoadingImageDiv');
+        if (preloader) preloader.style.display = 'none';
     }
 }
 
@@ -1271,7 +1421,7 @@ async function requestPersistentStorage() {
     if (navigator.storage && navigator.storage.persist) {
         // Check if we already have persistent storage
         let isPersisted = await navigator.storage.persisted();
-        
+
         if (!isPersisted) {
             // Request persistent storage
             isPersisted = await navigator.storage.persist();
@@ -1287,10 +1437,10 @@ async function requestPersistentStorage() {
 
 async function loadLocalModelsInBackground() {
     try {
-        console.log("⏳ Telling background worker to boot models...");
+        console.log("⏳ Telling background worker to skip model boot...");
         await askWorker('LOAD_MODELS', {}, 3 * 60 * 1000); // 3 min timeout
         nlpModelsReady = true;
-        console.log("✅ Worker reports all models are loaded and ready in the background!");
+        console.log("✅ Worker reports local NLP models are disabled. Using Server API flow.");
     } catch (err) {
         // Even if we timed out, the worker may still finish loading.
         // Poll until it responds or we give up after 5 more minutes.
@@ -1315,7 +1465,7 @@ async function loadLocalModelsInBackground() {
     // 👉 SEQUENTIAL LOAD: Boot the idiom checker ONLY after the NLP worker is finished
     if (nlpModelsReady) {
         try {
-            console.log("📚 NLP Models ready in RAM. Now fetching and building idiom dictionary...");
+            console.log("📚 Local NLP bypassed. Now fetching and building idiom dictionary...");
             await idiomChecker.init();
             console.log("✅ Idiom checker ready!");
         } catch (err) {
@@ -1324,31 +1474,7 @@ async function loadLocalModelsInBackground() {
     }
 }
 
-function buildGrammarDiff(original, corrected) {
-    const tokenize = str => str.trim().match(/[\w']+|[^\w\s']+|\s+/g) || [];
-    const tokA = tokenize(original), tokB = tokenize(corrected);
-    const m = tokA.length, n = tokB.length;
-    const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
-    for (let i = 1; i <= m; i++)
-        for (let j = 1; j <= n; j++)
-            dp[i][j] = tokA[i-1].toLowerCase() === tokB[j-1].toLowerCase() ? dp[i-1][j-1] + 1 : Math.max(dp[i-1][j], dp[i][j-1]);
 
-    const ops = []; let i = m, j = n;
-    while (i > 0 || j > 0) {
-        if (i > 0 && j > 0 && tokA[i-1].toLowerCase() === tokB[j-1].toLowerCase()) { ops.unshift({ type: 'eq', val: tokB[j-1] }); i--; j--; }
-        else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) { ops.unshift({ type: 'ins', val: tokB[j-1] }); j--; }
-        else { ops.unshift({ type: 'del', val: tokA[i-1] }); i--; }
-    }
-
-    let userHTML = '', corrHTML = '';
-    ops.forEach(({ type, val }) => {
-        const v = val.replace(/</g, '&lt;');
-        if (type === 'eq')  { userHTML += v; corrHTML += v; }
-        if (type === 'del') { userHTML += `<span class="diff-del">${v}</span>`; }
-        if (type === 'ins') { corrHTML += `<span class="diff-ins">${v}</span>`; }
-    });
-    return { userHTML, corrHTML };
-}
 
 // Check if the page is already loaded before adding the listener.
 // This prevents the "silent hang" race condition.

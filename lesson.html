@@ -10,75 +10,6 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <link rel="stylesheet" href="style.css">
-  <!-- App Loading Screen -->
-  <style>
-    #appLoadingImageDiv {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: linear-gradient(135deg, #3a8fd5 0%, #00c0d8 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 999999;
-    }
-
-    .appLoadingImage {
-      width: 80vw; height: 80vh;
-      max-width: 800px; max-height: 800px;
-      background: url('assets/img/u-f-f.png') no-repeat center center;
-      background-size: contain;
-      animation: scaleIn 1.5s ease-out forwards, scaleOut 1.5s 1.5s ease-in forwards;
-    }
-
-    @keyframes scaleIn {
-      0%   { transform: scale(0.7); opacity: 0; }
-      100% { transform: scale(1);   opacity: 1; }
-    }
-
-    @keyframes scaleOut {
-      0%   { transform: scale(1);   opacity: 1; }
-      100% { transform: scale(1.3); opacity: 0; }
-    }
-
-    #ui-progress-container {
-      position: absolute;
-      top: 40%; left: 50%;
-      transform: translateX(-50%);
-      width: 60%; max-width: 300px;
-      height: 6px;
-      background: rgba(255,255,255,0.2);
-      border-radius: 10px;
-      overflow: hidden;
-      z-index: 1000000;
-      opacity: 0;
-      animation: showAfterLogo 0.5s 2.8s forwards;
-    }
-
-    @keyframes showAfterLogo { to { opacity: 1; } }
-
-    #ui-progress-bar {
-      width: 0%; height: 100%;
-      background: #ffffff;
-      border-radius: 10px;
-      transition: width 0.1s linear;
-    }
-
-    #ui-loading-text {
-      position: absolute;
-      top: 44%; left: 50%;
-      transform: translateX(-50%);
-      color: white;
-      font-family: 'Orbitron', Arial, sans-serif;
-      font-size: 14px;
-      opacity: 0;
-      transition: opacity 0.5s ease;
-      text-align: center;
-      width: 100%;
-      z-index: 1000000;
-    }
-  </style>
-
   <!-- Microsoft Clarity -->
   <script>
     (function(c,l,a,r,i,t,y){
@@ -189,17 +120,14 @@
 <div id="app">
   <div class="container">
 
-    <div id="lesson-header" style="margin-top: -5px;">
+    <div id="lesson-header">
 
       <!-- Wide Header: Logo + Hamburger -->
       <div id="lessonIntroHeader">
-        <div id="wideHeader" class="d-flex justify-content-between align-items-center" style="margin-top: 10px;">
-          <img
-            src="assets/img/header.png"
-            id="uffposter" alt=""
-            style="width: 320px; height: 60px;">
+        <div id="wideHeader" class="d-flex justify-content-between align-items-center">
+          <img src="assets/img/header.png" id="uffposter" alt="">
           <div class="flex-grow-1 mx-1"></div>
-          <div class="d-flex align-items-center" style="height: 20px;">
+          <div class="d-flex align-items-center hamburger-container">
             <button class="hamburger-btn" onclick="toggleMenu();">
               <div class="hamburger-icon">
                 <span></span><span></span><span></span>
@@ -207,50 +135,50 @@
             </button>
           </div>
         </div>
-        <div class="lesson-title" style="font-family: Orbitron; color: yellow; font-weight: bold; text-align: center; margin-top: 0; font-size: large;"></div>
+        <div class="lesson-title lesson-title-header"></div>
       </div>
 
       <!-- Progress Bar Header (shown during lesson) -->
-      <div id="closeAndProgress" class="d-flex justify-content-between align-items-center d-none" style="margin-top: -10px; margin-bottom: -15px;">
-        <a href="/home" id="closePage" class="d-flex align-items-center text-decoration-none">
-          <i class="bi bi-x-lg" style="font-size: 20px; margin-right: 20px; color: white;"></i>
+      <div id="closeAndProgress" class="d-flex justify-content-between align-items-center d-none">
+        <a href="lesson.html" id="closePage" class="d-flex align-items-center text-decoration-none">
+          <i class="bi bi-x-lg"></i>
         </a>
         <div class="flex-grow-1 mx-1">
-          <div id="progress" class="progress" style="height: 20px; margin-right: 20px;">
-            <div id="progress-bar" class="progress-bar" role="progressbar" style="width: 10%;"></div>
+          <div id="progress" class="progress">
+            <div id="progress-bar" class="progress-bar" role="progressbar"></div>
           </div>
         </div>
-        <div class="d-flex align-items-center text-white gap-3" style="height: 20px; font-family: Orbitron; font-size: 14px;">
+        <div class="d-flex align-items-center text-white gap-3 stats-container">
           <div title="Total Days Learned">
-            <i class="bi bi-trophy-fill" style="color: #ffc107;"></i>
+            <i class="bi bi-trophy-fill"></i>
             <span id="dayCountSpan">0</span>
           </div>
           <div title="Current Daily Streak">
-            <i class="bi bi-fire" style="color: #ff6b6b;"></i>
+            <i class="bi bi-fire"></i>
             <span id="streakCountSpan">0</span>
           </div>
         </div>
       </div>
 
       <!-- Scores and Hearts (shown during lesson) -->
-      <div id="scoresAndHearts" class="d-none d-flex justify-content-between align-items-center ps-2" style="margin-top: -10px; margin-bottom: 10px;">
-        <div id="currentScoreContainer" class="scoreHeader score text-center" style="width: 110px;">
+      <div id="scoresAndHearts" class="d-none d-flex justify-content-between align-items-center ps-2">
+        <div id="currentScoreContainer" class="scoreHeader score text-center">
           <div>
-            <span style="color: white; font-size: 14px;">LISTENING</span><br>
+            <span class="score-label">LISTENING</span><br>
             <span id="currentScore" class="scoreNumber">100</span>%
           </div>
         </div>
         <div class="flex-grow-1 mx-1">
-          <div class="lesson-title" style="font-family: Orbitron; color: yellow; font-weight: bold; text-align: center;">Daily Challenge</div>
-          <div id="heartsContainer" class="text-center" style="margin-bottom: 7px;">
+          <div class="lesson-title lesson-title-main">Daily Challenge</div>
+          <div id="heartsContainer" class="text-center">
             <span id="heart1"><i class="bi bi-heart-fill text-white"></i></span>
             <span id="heart3"><i class="bi bi-heart-fill text-white"></i></span>
             <span id="heart2"><i class="bi bi-heart-fill text-white"></i></span>
           </div>
         </div>
-        <div id="phrasesScoreContainer" class="scoreHeader score text-center" style="width: 110px;">
+        <div id="phrasesScoreContainer" class="scoreHeader score text-center">
           <div>
-            <span style="color: white; font-size: 14px;" id="phrasesScoreLabel">SPEAKING</span><br>
+            <span class="score-label" id="phrasesScoreLabel">SPEAKING</span><br>
             <span id="phrasesScore" class="scoreNumber">__</span>%
           </div>
         </div>
@@ -265,21 +193,21 @@
         <!-- Left Column: Media -->
         <div id="media-container-container1" class="col-12 col-xl-7 mb-1">
           <div id="playback-video-mobile-container" class="playback-video-container">
-            <video id="playback-video-mobile" style="max-width:100%; max-height:200px; display:none;" playsinline controls preload="auto"></video>
+            <video id="playback-video-mobile" playsinline controls preload="auto"></video>
             <button id="playback-mute-toggle-mobile" class="playback-mute-toggle d-none"><i class="bi bi-volume-up-fill"></i></button>
           </div>
           <div id="speech-text-here" class="card border-dark p-0 d-none">
-            <div class="card-header text-white p-0" style="background: linear-gradient(135deg, #1a3a5a 0%, #0d4b8c 100%);">
+            <div class="card-header text-white p-0 card-header-custom">
               <div class="d-flex align-items-center p-3">
                 
-                <video id="chat-avatar-ai" autoplay loop muted playsinline class="rounded-circle me-3 d-none" style="width:75px;height:75px;object-fit:cover;">
+                <video id="chat-avatar-ai" autoplay loop muted playsinline class="rounded-circle me-3 d-none chat-avatar">
                   <source src="assets/img/avatar-ai.mp4" type="video/mp4">
                 </video>
                 <div id="chat-name-ai" class="d-none">
                   Prof FluIntel <div class="mt-1"><small>UFF Artificial Intelligence</small></div>
                 </div>
 
-                <img id="chat-avatar-human" src="assets/img/teacherprofile.png" alt="" class="rounded-circle me-3 d-none" style="width:75px;height:75px;object-fit:cover;">
+                <img id="chat-avatar-human" src="assets/img/teacherprofile.png" alt="" class="rounded-circle me-3 d-none chat-avatar">
                 <div id="chat-name-human" class="d-none">
                   Prof. Joe Walsh<div class="mt-1"><small>English Fluency Coach, UFF</small></div>
                 </div>
@@ -287,7 +215,7 @@
               </div>
             </div>
 
-            <div id="chat-messenger-body" class="card-body messenger-body text-dark" style="overflow-y: auto; height: 300px; scroll-behavior: smooth; scrollbar-width: auto; scrollbar-color: #000000 #f0f0f0;">
+            <div id="chat-messenger-body" class="card-body messenger-body text-dark">
               </div>
           </div>
 
@@ -296,7 +224,7 @@
               <div id="ivp-container">
                 <div class="ivp-main-wrapper loading" id="ivp-main-wrapper">
                   <div class="ivp-video-wrapper">
-                    <video class="ivp-video" playsinline crossorigin="anonymous" width="300" height="375"></video>
+                    <video class="ivp-video" playsinline crossorigin="anonymous"></video>
                     <div class="ivp-blur-overlay"></div>
                     <div class="ivp-subtitles"></div>
                   </div>
@@ -347,7 +275,7 @@
         <!-- Right Column: Questions + Course Progress -->
         <div id="questions-container-container" class="col-12 col-xl-5 mb-2">
           <div id="playback-video-desktop-container" class="playback-video-container">
-            <video id="playback-video-desktop" style="max-width:80%; max-height:400px; display:none;" playsinline controls preload="auto"></video>
+            <video id="playback-video-desktop" playsinline controls preload="auto"></video>
             <button id="playback-mute-toggle-desktop" class="playback-mute-toggle d-none"><i class="bi bi-volume-up-fill"></i></button>
           </div>
           <video id="originalVideo" src="" class="d-none"></video>
@@ -366,10 +294,10 @@
             </div>
           </div>
 
-          <div id="courseProgress" class="d-none card border-dark mb-3 p-0" style="margin-top: 10px; margin-bottom: 70px;">
-            <div class="card-header text-white p-0" style="background: linear-gradient(135deg, #1a3a5a 0%, #0d4b8c 100%);" id="correct">
+          <div id="courseProgress" class="d-none card border-dark mb-3 p-0">
+            <div class="card-header text-white p-0 card-header-custom" id="correct">
               <div class="d-flex align-items-center p-3">
-                <img src="assets/img/teacherprofile.png" alt="" class="rounded-circle me-3" style="width:75px; height:75px; object-fit:cover;">
+                <img src="assets/img/teacherprofile.png" alt="" class="rounded-circle me-3 chat-avatar">
                 <div>Prof. Joe Walsh<div class="mt-1"><small>English Fluency Coach, UFF</small></div></div>
               </div>
             </div>
@@ -387,7 +315,7 @@
             </div>
           </div>
 
-          <div id="hints" class="d-none card" style="margin-bottom: 30px; padding: 30px;">
+          <div id="hints" class="d-none card">
             <p class="info-content" id="hintUncommonWords"></p>
           </div>
 
@@ -406,17 +334,17 @@
 </div>
 
 <!-- Fixed Footer Controls -->
-<footer style="margin-top: 100px;">
-  <div id="controls" class="fixed-bottom bg-dark p-1" style="min-height: 140px;">
+<footer>
+  <div id="controls" class="fixed-bottom bg-dark p-1">
     <div id="micStatusText" class="d-flex justify-content-center align-items-center"></div>
-    <div id="bottomButtonBar" class="d-flex justify-content-center gap-2 align-items-center" style="height: 80px; min-height: 80px;">
+    <div id="bottomButtonBar" class="d-flex justify-content-center gap-2 align-items-center">
       <div id="bottomButtonBarLeft" class="me-auto ms-3"></div>
       <div id="bottomButtonBarCenter" class="position-absolute start-50 translate-middle-x"></div>
       <button id="supportButton" class="d-none btn bg-transparent text-white border-0 ms-auto me-3" data-bs-toggle="modal" data-bs-target="#chatModal">
         <i class="bi bi-chat-fill"></i>
       </button>
     </div>
-    <div id="bottomButtonBarSuccess" class="d-flex justify-content-center gap-2 align-items-center d-none" style="height: 80px; min-height: 80px;">
+    <div id="bottomButtonBarSuccess" class="d-flex justify-content-center gap-2 align-items-center d-none">
       <div id="bottomButtonBarLeft" class="me-auto ms-3"></div>
       <div id="bottomButtonBarCenterSuccess" class="position-absolute start-50 translate-middle-x">
         <button id="processBtn" class="btn btn-primary">
@@ -453,8 +381,8 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <h3 style="color:black;">Solo se pueden chatear con el tutor de inglés IA, Fluintel, los estudiantes pagados.</h3>
-          <h4 style="color:black;">Lo siento, es necesario porque el costo de la integración del chat con la inteligencia artificial es alto.</h4>
+          <h3>Solo se pueden chatear con el tutor de inglés IA, Fluintel, los estudiantes pagados.</h3>
+          <h4>Lo siento, es necesario porque el costo de la integración del chat con la inteligencia artificial es alto.</h4>
           <button class="btn btn-success" onclick="window.location.href='https://api.whatsapp.com/send/?phone=16179030597&text=app_support'">
             <i class="bi bi-whatsapp"></i> Soporte Técnico por Whatsapp
           </button>
@@ -622,9 +550,7 @@
       document.addEventListener(event, killChat, { capture: true });
     });
 
-    const style = document.createElement('style');
-    style.textContent = `.mwai-body * { pointer-events: none !important; opacity: 0.5 !important; filter: grayscale(100%) !important; }`;
-    document.head.appendChild(style);
+    // No dynamic style injection needed here as it is now in style.css
   });
 </script>
 

@@ -3,6 +3,10 @@ import Strings from '../data/strings.js';
 import { getDeepgramToken } from './api.js';
 import { saveSpeechRecording } from './storage.js';
 import { State } from './state.js';
+import normalize from './normalize.js';
+import calculateSimilarity from './calculatesimilarity.js';
+import swearjar from './swearjar.js';
+import * as ui from './ui.js';
 
 
 // --- NEW: Import Whisper Logic ---
@@ -24,7 +28,6 @@ let speechCamStream = null;
 let speechCamRecorder = null;
 let speechCamChunks = [];
 let lastSpeechRecordingId = null;
-let webcamPreview = null;
 
 let recognition = null;
 export let isListening = false;
@@ -58,83 +61,6 @@ function getMediaConstraints() {
 
 // --- Webcam Functions ---
 
-export function isWebcamPreviewVisible() {
-  return webcamPreview && webcamPreview.isConnected && !webcamPreview.classList.contains('d-none');
-}
-
-export function createWebcamPreview() {
-  if (webcamPreview) webcamPreview.remove();
-
-  webcamPreview = document.createElement('video');
-  webcamPreview.id = 'webcam-preview';
-  webcamPreview.autoplay = true;
-  webcamPreview.muted = true;
-  webcamPreview.playsinline = true;
-
-  // Set opacity:0 BEFORE insertion so CSS never has a chance to render
-  // the black background / green border during the animation-delay window.
-  webcamPreview.style.opacity = '0';
-
-  const isDesktop = window.innerWidth >= 1200;
-
-  if (isDesktop) {
-    const questionsContainer = document.getElementById('questions-container-container');
-    if (questionsContainer) questionsContainer.appendChild(webcamPreview);
-  } else {
-    const overlay = document.querySelector('div#media-container-container');
-    if (overlay) {
-      overlay.appendChild(webcamPreview);
-    } else {
-      webcamPreview.style.position = 'fixed';
-      webcamPreview.style.bottom = '10px';
-      webcamPreview.style.right = '10px';
-      document.body.appendChild(webcamPreview);
-    }
-  }
-  return webcamPreview;
-}
-
-export function ensureWebcamPreview() {
-  if (!speechCamStream) return null;
-  if (!webcamPreview || !webcamPreview.isConnected) webcamPreview = createWebcamPreview();
-
-  webcamPreview.srcObject = speechCamStream;
-
-  if (webcamPreview.classList.contains('d-none')) {
-    // Reset to invisible before un-hiding so the element doesn't pop in at
-    // full opacity (the CSS animation's `forwards` fill kept it at opacity:1).
-    webcamPreview.style.transition = '';
-    webcamPreview.style.opacity   = '0';
-    webcamPreview.style.transform = 'scaleX(-1) translateY(10px)';
-    webcamPreview.classList.remove('d-none');
-
-    // Mirror the CSS animation delay + duration so Q2+ matches Q1 behaviour.
-    setTimeout(() => {
-      webcamPreview.style.transition = 'opacity 0.4s ease-out, transform 0.4s ease-out';
-      webcamPreview.style.opacity   = '1';
-      webcamPreview.style.transform = 'scaleX(-1) translateY(0)';
-    }, 500);
-  }
-
-  setTimeout(() => {
-    if (isWebcamPreviewVisible() && (webcamPreview.readyState < 2 || webcamPreview.paused)) {
-      webcamPreview.play().catch(e => console.log('Play failed:', e));
-    }
-  }, 100);
-
-  return webcamPreview;
-}
-
-export function hideWebcamPreview() {
-  if (webcamPreview && webcamPreview.isConnected) webcamPreview.classList.add('d-none');
-}
-
-export function removeWebcamPreview() {
-  if (webcamPreview) {
-    webcamPreview.remove();
-    webcamPreview = null;
-  }
-}
 
 export function safelyStopStream() {
   if (speechCamStream) {
@@ -146,9 +72,9 @@ export function safelyStopStream() {
 export async function warmUpSpeechCamStream() {
   try {
     if (!speechCamStream) speechCamStream = await navigator.mediaDevices.getUserMedia(getMediaConstraints());
-    ensureWebcamPreview();
+    ui.ensureWebcamPreview(speechCamStream);
   } catch (err) {
-    removeWebcamPreview();
+    ui.removeWebcamPreview();
     safelyStopStream();
   }
 }
@@ -165,7 +91,7 @@ export async function startSpeechCamRecording(micStatusText, userData) {
     }
     // ------------------------------------------------------------------------
 
-    ensureWebcamPreview();
+    ui.ensureWebcamPreview(speechCamStream);
 
     let options = {};
     if (isIOS) {
@@ -197,10 +123,10 @@ export async function startSpeechCamRecording(micStatusText, userData) {
   } catch (err) {
     console.error('[Recording] startSpeechCamRecording FAILED:', err);
     alert(Strings.get('alert_media_error', userData?.native_language));
-    if (micStatusText) {
-        micStatusText.innerHTML = `<i class='bi bi-exclamation-diamond'></i> ${Strings.get('error_media_details', userData?.native_language)}`;
-    }
-    removeWebcamPreview();
+    
+    ui.setMicStatusText(`<i class='bi bi-exclamation-diamond'></i> ${Strings.get('error_media_details', userData?.native_language)}`);
+    
+    ui.removeWebcamPreview();
     safelyStopStream();
   }
 }
@@ -267,8 +193,8 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
           } catch (error) {
             console.error('[Recording] Error in onstop handler:', error);
           } finally {
-            if (!keepStreamAlive) { removeWebcamPreview(); safelyStopStream(); }
-            else hideWebcamPreview();
+            if (!keepStreamAlive) { ui.removeWebcamPreview(); safelyStopStream(); }
+            else ui.hideWebcamPreview();
             speechCamRecorder = null; speechCamChunks = [];
             console.log('[Recording] Cleanup done, resolving blob:', blobToReturn?.size ?? 'null');
             resolve(blobToReturn);
@@ -280,13 +206,13 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
       });
     } else {
       console.warn('[Recording] stopSpeechCamRecording: recorder is null or already inactive, state:', speechCamRecorder?.state);
-      if (!keepStreamAlive) { removeWebcamPreview(); safelyStopStream(); }
-      else hideWebcamPreview();
+      if (!keepStreamAlive) { ui.removeWebcamPreview(); safelyStopStream(); }
+      else ui.hideWebcamPreview();
       return Promise.resolve(null);
     }
   } catch (err) {
     console.error('[Recording] stopSpeechCamRecording threw:', err);
-    removeWebcamPreview(); safelyStopStream();
+    ui.removeWebcamPreview(); safelyStopStream();
     return Promise.resolve(null);
   } finally {
     speechCamRecorder = null; speechCamChunks = [];
@@ -294,162 +220,8 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
 }
 
 async function setupPlaybackVideo(blob, autoplay = false) {
-  const isDesktop = window.innerWidth > 1000;
-  const videoId = isDesktop ? 'playback-video-desktop' : 'playback-video-mobile';
-  const playbackVideo = document.getElementById(videoId);
-
-  console.log('[Playback] setupPlaybackVideo — videoId:', videoId, '| element found:', !!playbackVideo, '| blob.size:', blob.size, '| blob.type:', blob.type, '| autoplay:', autoplay, '| isIOS:', isIOS);
-
-  if (!playbackVideo) {
-    console.error('[Playback] FATAL: playbackVideo element not found in DOM for id:', videoId);
-    return;
-  }
-
-  console.log('[Playback] playbackVideo current src:', playbackVideo.src, '| readyState:', playbackVideo.readyState, '| display:', playbackVideo.style.display);
-
-  try {
-    if (playbackVideo.src && playbackVideo.src.startsWith('blob:')) {
-      console.log('[Playback] Revoking previous blob URL:', playbackVideo.src);
-      URL.revokeObjectURL(playbackVideo.src);
-    }
-
-    if (isIOS) {
-      console.log('[Playback] iOS path — calling setupIOSBlobPlayback');
-      await setupIOSBlobPlayback(playbackVideo, blob);
-      console.log('[Playback] setupIOSBlobPlayback resolved');
-    } else {
-      const url = URL.createObjectURL(blob);
-      console.log('[Playback] Created blob URL:', url);
-      playbackVideo.src = url;
-      console.log('[Playback] Set playbackVideo.src to blob URL');
-    }
-
-    const muteToggleId = isDesktop ? 'playback-mute-toggle-desktop' : 'playback-mute-toggle-mobile';
-    const muteToggle = document.getElementById(muteToggleId);
-
-    if (muteToggle) {
-      muteToggle.classList.remove('d-none');
-      
-      // Update icon based on current state
-      const icon = muteToggle.querySelector('i');
-      if (icon) {
-        icon.className = State.isPlaybackMuted ? 'bi bi-volume-mute-fill' : 'bi bi-volume-up-fill';
-      }
-
-      // Add click listener
-      muteToggle.onclick = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        State.isPlaybackMuted = !State.isPlaybackMuted;
-        playbackVideo.muted = State.isPlaybackMuted;
-        if (icon) {
-          icon.className = State.isPlaybackMuted ? 'bi bi-volume-mute-fill' : 'bi bi-volume-up-fill';
-        }
-      };
-    }
-
-    playbackVideo.onerror = (e) => {
-      console.error('[Playback] playbackVideo onerror fired:', e, '| error code:', playbackVideo.error?.code, '| error message:', playbackVideo.error?.message);
-      try {
-        console.warn('[Playback] Attempting fallback with video/mp4 blob');
-        const fallbackBlob = new Blob(speechCamChunks, { type: 'video/mp4' });
-        console.log('[Playback] Fallback blob size:', fallbackBlob.size);
-        playbackVideo.src = URL.createObjectURL(fallbackBlob);
-      } catch (fallbackError) {
-        console.error('[Playback] Fallback also failed:', fallbackError);
-      }
-    };
-
-    playbackVideo.controls = true;
-    playbackVideo.loop = true;
-    playbackVideo.autoplay = false;
-    playbackVideo.preload = 'auto';
-    playbackVideo.muted = State.isPlaybackMuted; // Apply current state
-
-    if (!isIOS) {
-      const handleVideoInteraction = function(e) {
-        e.preventDefault(); e.stopPropagation();
-        requestAnimationFrame(() => {
-          if (this.paused && this.readyState >= 2) {
-            this.play().catch(e => { this.currentTime = 0; setTimeout(() => this.play().catch(console.error), 100); });
-          } else if (!this.paused) this.pause();
-        });
-      };
-      playbackVideo.addEventListener('touchstart', handleVideoInteraction, { passive: false });
-      playbackVideo.addEventListener('click', handleVideoInteraction);
-      playbackVideo.style.cursor = 'pointer';
-    }
-
-    playbackVideo.onloadedmetadata = () => {
-  console.log('[Playback] onloadedmetadata fired');
-
-  playbackVideo.style.display = 'block';
-
-  if (autoplay) {
-    playbackVideo.play().catch(e => {
-      console.warn('[Playback] autoplay failed:', e);
-    });
-  }
-};
-
-    playbackVideo.oncanplay = () => console.log('[Playback] oncanplay fired — readyState:', playbackVideo.readyState);
-    playbackVideo.onloadeddata = () => console.log('[Playback] onloadeddata fired — readyState:', playbackVideo.readyState);
-
-  } catch (urlError) {
-    console.error('[Playback] setupPlaybackVideo threw:', urlError);
-  }
+  await ui.setupPlaybackVideo(blob, autoplay, speechCamChunks);
 }
-
-async function setupIOSBlobPlayback(videoElement, blob) {
-  return new Promise((resolve) => {
-    videoElement.controls = true; videoElement.loop = true;
-    const url = URL.createObjectURL(blob);
-    console.log('[Playback][iOS] Created blob URL:', url);
-
-    videoElement.onerror = () => {
-      console.error('[Playback][iOS] onerror on videoElement — trying mp4 fallback');
-      try {
-        const alternativeBlob = new Blob([blob], { type: 'video/mp4' });
-        videoElement.src = URL.createObjectURL(alternativeBlob);
-        resolve();
-      } catch (fallbackError) {
-        console.error('[Playback][iOS] Fallback also failed:', fallbackError);
-        resolve();
-      }
-    };
-
-    videoElement.src = url;
-    console.log('[Playback][iOS] Set src, waiting for onloadeddata');
-    videoElement.onloadeddata = () => {
-      console.log('[Playback][iOS] onloadeddata fired');
-      resolve();
-    };
-    setTimeout(() => {
-      console.warn('[Playback][iOS] 2000ms timeout reached, resolving anyway');
-      resolve();
-    }, 2000);
-  });
-}
-
-export function clearPlaybackVideo() {
-  const mobileVideo = document.getElementById('playback-video-mobile');
-  const desktopVideo = document.getElementById('playback-video-desktop');
-
-  console.log('[Playback] clearPlaybackVideo — mobile found:', !!mobileVideo, '| desktop found:', !!desktopVideo);
-
-    [mobileVideo, desktopVideo].forEach(video => {
-      if (video) {
-        if (video.src && video.src.startsWith('blob:')) URL.revokeObjectURL(video.src);
-        video.src = ''; video.style.display = 'none';
-        video.onerror = null; video.onloadeddata = null; video.onloadedmetadata = null;
-      }
-    });
-
-    const mobileToggle = document.getElementById('playback-mute-toggle-mobile');
-    const desktopToggle = document.getElementById('playback-mute-toggle-desktop');
-    if (mobileToggle) mobileToggle.classList.add('d-none');
-    if (desktopToggle) desktopToggle.classList.add('d-none');
-  }
 
 // --- NEW: Whisper Local Transcription Setup ---
 
@@ -459,13 +231,11 @@ export async function setupWhisperTranscription(params) {
 
     if (!isEngineReady) {
         console.warn('[Whisper] Engine not ready yet');
-        if (micStatusText) {
-            micStatusText.innerHTML = `<div class='text-center text-warning'>
+        ui.setMicStatusText(`<div class='text-center text-warning'>
                 <i class='bi bi-hourglass-split' style='font-size: 2rem;'></i><br>
                 <strong>Loading AI Model...</strong><br>
                 <small>Please wait a few seconds and try again.</small>
-            </div>`;
-        }
+            </div>`);
         button.style.display = "block";
         button.innerHTML = '<i class="bi bi-mic-fill"></i>';
         return false;
@@ -532,8 +302,7 @@ export async function setupDeepgramTranscription({
           if (fullTranscript.trim()) {
             console.log('[Deepgram] Silence timeout — transcript:', fullTranscript.trim());
             stopDeepgramTranscription();
-            let speechButton = document.getElementById('speechButton');
-            if (speechButton) { speechButton.style.display = "none"; speechButton.innerHTML = '<i class="bi bi-mic-fill"></i>'; speechButton.classList.remove('btn-danger'); }
+            ui.hideContinueButton(); // Or whatever button state is needed
 
             stopSpeechCamRecording({
               download: false, persist: true, keepStreamAlive: true, playback: true, autoplay: true,
@@ -577,8 +346,6 @@ export async function setupDeepgramTranscription({
         const finalTranscript = fullTranscript.trim();
         setTimeout(() => {
           stopDeepgramTranscription();
-          let speechButton = document.getElementById('speechButton');
-          if (speechButton) { speechButton.style.display = "none"; speechButton.innerHTML = '<i class="bi bi-mic-fill"></i>'; speechButton.classList.remove('btn-danger'); }
 
           let answerHandled = false;
           const submitTranscript = (transcriptToSubmit) => {
@@ -638,10 +405,8 @@ export function stopListeningEarly(micStatusText, userData, player) {
   console.warn('[Speech] stopListeningEarly called');
   stopDeepgramTranscription();
   if(player){player.play();}
-  document.getElementById('media-container')?.classList.remove('d-none');
-  if (micStatusText) {
-    micStatusText.innerHTML = `<div class='text-center' style='color: red; font-size: large;'><i class='bi bi-exclamation-triangle-fill'></i> ${Strings.get('try_again_speech', userData?.native_language)}</div>`;
-  }
+  ui.prepareMediaUI();
+  ui.setMicStatusText(`<div class='text-center' style='color: red; font-size: large;'><i class='bi bi-exclamation-triangle-fill'></i> ${Strings.get('try_again_speech', userData?.native_language)}</div>`);
 }
 
 // --- UPDATED: Stop function now halts whichever engine is running ---
@@ -652,12 +417,6 @@ export function stopDeepgramTranscription() {
   if (isWhisperActive) {
       stopWhisperEngine();
       isWhisperActive = false;
-  }
-
-  let speechButton = document.getElementById('speechButton');
-  if (speechButton) {
-    speechButton.innerHTML = '<i class="bi bi-mic-fill"></i>';
-    speechButton.classList.remove('btn-danger');
   }
 }
 
@@ -678,21 +437,11 @@ export function fallbackToWebSpeech({ question, userData, configData, currentLes
     console.log('[WebSpeech] recognition.onstart');
     clearTimeout(recognitionTimeout);
     isListening = true;
-    let speechButton = document.getElementById('speechButton');
-    if (speechButton) {
-      speechButton.innerHTML = '<i class="bi bi-mic-mute-fill"></i>';
-      speechButton.classList.add('btn-danger');
-    }
   };
 
   recognition.onend = () => {
     console.log('[WebSpeech] recognition.onend — calling stopSpeechCamRecording');
     isListening = false;
-    let speechButton = document.getElementById('speechButton');
-    if (speechButton) {
-      speechButton.innerHTML = '<i class="bi bi-mic-fill"></i>';
-      speechButton.classList.remove('btn-danger');
-    }
 
     stopSpeechCamRecording({
       download: false, persist: true, keepStreamAlive: true, playback: true, autoplay: true,
@@ -709,21 +458,14 @@ export function fallbackToWebSpeech({ question, userData, configData, currentLes
   recognition.onerror = (event) => {
     console.error('[WebSpeech] recognition.onerror:', event.error);
     isListening = false;
-    let speechButton = document.getElementById('speechButton');
-    if (speechButton) {
-      speechButton.innerHTML = '<i class="bi bi-mic-fill"></i>';
-      speechButton.classList.remove('btn-danger');
-    }
 
-    if (micStatusText) {
-      if (event.error === 'NotAllowedError') {
-        micStatusText.innerHTML = `<div class='text-center'>${Strings.get('error_mic_permissions', userData?.native_language)}</div>`;
-      } else if (event.error === 'network') {
-        micStatusText.innerHTML = `<div class='text-center'>${Strings.get('error_internet', userData?.native_language)}</div>`;
-      } else {
-        micStatusText.innerHTML = Strings.get('error_speech_generic', userData?.native_language);
-      }
+    let errorMessage = Strings.get('error_speech_generic', userData?.native_language);
+    if (event.error === 'NotAllowedError') {
+      errorMessage = `<div class='text-center'>${Strings.get('error_mic_permissions', userData?.native_language)}</div>`;
+    } else if (event.error === 'network') {
+      errorMessage = `<div class='text-center'>${Strings.get('error_internet', userData?.native_language)}</div>`;
     }
+    ui.setMicStatusText(errorMessage);
   };
 
   recognition.onresult = ((currentQuestion) => (event) => {
@@ -750,13 +492,9 @@ export function fallbackToWebSpeech({ question, userData, configData, currentLes
       handleAnswer(finalTranscript, currentQuestion.cue, currentQuestion, document.getElementById('speechButton'), currentQuestion.explanation, currentQuestion.translation, { pauseCount: null, netDuration: finalTranscript ? Math.max(1, finalTranscript.split(' ').length * 0.4) : null });
     } else {
       console.warn('[WebSpeech] onresult — empty transcript');
-      if (micStatusText) {
-          micStatusText.innerHTML = `<div class='text-center'>${Strings.get('try_again_speech', userData?.native_language)}</div>`;
-      }
+      ui.setMicStatusText(`<div class='text-center'>${Strings.get('try_again_speech', userData?.native_language)}</div>`);
     }
 
-    let speechButton = document.getElementById('speechButton');
-    if (speechButton) speechButton.style.display = "none";
   })(question);
 
   startRecognitionWithTimeout(micStatusText, userData);
@@ -766,10 +504,7 @@ export function startRecognitionWithTimeout(micStatusText, userData) {
   const isAndroid = /Android/.test(navigator.userAgent);
   console.log('[WebSpeech] startRecognitionWithTimeout — isAndroid:', isAndroid);
   recognition.start();
-
-  if (micStatusText) {
-    micStatusText.innerHTML = `<i class='bi bi-mic-fill'></i> ${Strings.get('status_speak', userData?.native_language)}`;
-  }
+  ui.setMicStatusText(`<i class='bi bi-mic-fill'></i> ${Strings.get('status_speak', userData?.native_language)}`);
 
   recognitionTimeout = setTimeout(() => {
     if (!isListening) {
@@ -777,7 +512,7 @@ export function startRecognitionWithTimeout(micStatusText, userData) {
       recognition.stop();
       setTimeout(() => {
         recognition.start();
-        if (micStatusText) micStatusText.innerHTML = `<i class='bi bi-mic-fill'></i> ${Strings.get('status_speak', userData?.native_language)}`;
+        ui.setMicStatusText(`<i class='bi bi-mic-fill'></i> ${Strings.get('status_speak', userData?.native_language)}`);
       }, isAndroid ? 1000 : 500);
     }
   }, isAndroid ? 8000 : 5000);
@@ -788,18 +523,15 @@ export async function toggleSpeechRecognition(params) {
   const { button, question, micStatusText, userData, configData, currentLessonIndex, currentQuestionIndex, handleAnswer, player } = params;
   const wasManuallyStopped = isListening;
   console.log('[Toggle] toggleSpeechRecognition called — isListening:', isListening, '| question.inputType:', question?.inputType, '| question.videoUrl:', question?.videoUrl);
-
-  // Pass the player object down to our updated function
-  pauseVideoIfPlaying(player);
+ 
+  ui.pauseVideoIfPlaying(player);
 
   const urlParams = new URLSearchParams(window.location.search);
   const forceDeepgram = urlParams.get('deepgram') === 'true';
   console.log('[Toggle] forceDeepgram:', forceDeepgram);
 
   if (!isListening) {
-      if (micStatusText) {
-        micStatusText.innerHTML = `<div class="text-center"><div class="mb-0" style="color: green; font-size: 30px;"><i class="bi bi-mic" style="color: green; font-size: 100px !important;"></i><br>${Strings.get('status_speak', userData?.native_language)}</div></div>`;
-      }
+      ui.setMicStatusText(`<div class="text-center"><div class="mb-0" style="color: green; font-size: 30px;"><i class="bi bi-mic" style="color: green; font-size: 100px !important;"></i><br>${Strings.get('status_speak', userData?.native_language)}</div></div>`);
 
     try {
       // Check if the recorder needs to be initialized, regardless of whether 
@@ -832,27 +564,24 @@ export async function toggleSpeechRecognition(params) {
 
     if (transcriptionSuccess) {
       isListening = true;
-      let speechButton = document.getElementById('speechButton');
-      if (speechButton) {
-        speechButton.style.display = "block";
-        speechButton.innerHTML = '<i class="bi bi-mic-mute-fill"></i>';
-        speechButton.classList.add('btn-danger');
-      }
+      // Note: We still use button.innerHTML here because 'button' is passed in as a reference, 
+      // but we could move this to ui.setSpeechButtonState(button, state)
+      button.style.display = "block";
+      button.innerHTML = '<i class="bi bi-mic-mute-fill"></i>';
+      button.classList.add('btn-danger');
     } else {
-      if (micStatusText && forceDeepgram) micStatusText.innerHTML = `<div class='text-center'>${Strings.get('status_connecting', userData?.native_language)}</div>`;
+      if (forceDeepgram) ui.setMicStatusText(`<div class='text-center'>${Strings.get('status_connecting', userData?.native_language)}</div>`);
       if (forceDeepgram) fallbackToWebSpeech(params);
     }
   } else {
     // --- THE USER CLICKED STOP ---
     console.log('[Toggle] User clicked STOP');
     isListening = false;
-
+ 
     button.style.display = "none";
-    document.getElementById('media-container')?.classList.add('d-none');
-
-    if (micStatusText) {
-        micStatusText.innerHTML = `<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Analyzing Speech...</div>`;
-    }
+    ui.clearMicStatusAndHideMedia();
+ 
+    ui.setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Analyzing Speech...</div>`);
 
     if (forceDeepgram) {
         console.log('[Toggle] Stopping Deepgram transcription');
@@ -901,10 +630,7 @@ export async function toggleSpeechRecognition(params) {
                     if (logprob < MIN_LOGPROB_THRESHOLD) {
                         console.warn(`[Toggle] 🛑 Gibberish detected! avg_logprob (${logprob}) is below threshold (${MIN_LOGPROB_THRESHOLD})`);
                         
-                        // Inform the user the audio was unintelligible
-                        if (micStatusText) {
-                            micStatusText.innerHTML = `<div class='text-center mt-3' style='color: #ff9800; font-size: large;'><i class='bi bi-ear-x'></i> Audio unclear. Please try speaking clearly.</div>`;
-                        }
+                        ui.setMicStatusText(`<div class='text-center mt-3' style='color: #ff9800; font-size: large;'><i class='bi bi-ear-x'></i> Audio unclear. Please try speaking clearly.</div>`);
                         
                         // Halt the pipeline (pass null so stopListeningEarly doesn't overwrite our custom UI message)
                         stopListeningEarly(null, userData, player);
@@ -915,84 +641,90 @@ export async function toggleSpeechRecognition(params) {
                     let processedTranscript = finalTranscript.replace(/\s+(I|a|an|the|and|or)$/i, '');
                     console.log('[Toggle] Processed transcript:', processedTranscript);
 
-                    // --- NEW REVIEW STEP ---
+                    // --- PREFLIGHT CHECK (before showing review UI) ---
                     const transcriptToReview = processedTranscript || finalTranscript;
-                    let timeLeft = 7;
-                    let reviewActive = true;
 
-                    if (micStatusText) {
-                        micStatusText.innerHTML = `
-                            <div class='text-center mt-3 p-3 bg-dark rounded border border-secondary shadow-sm'>
-                                <div style='font-size: 1.1rem; color: #fff; margin-bottom: 15px;'>
-                                    <small class="text-muted d-block mb-1">Whisper heard:</small>
-                                    <strong>"${transcriptToReview}"</strong>
-                                </div>
-                                <div class="d-flex justify-content-center gap-3">
-                                    <button id="rejectBtn" class="btn btn-outline-danger px-4">
-                                        <i class="bi bi-arrow-repeat"></i> Re-record
-                                    </button>
-                                    <button id="acceptBtn" class="btn btn-success px-4">
-                                        <i class="bi bi-check-circle"></i> Accept (<span id="reviewTimer">${timeLeft}</span>s)
-                                    </button>
-                                </div>
-                                <div class="progress mt-3" style="height: 5px; background-color: #333;">
-                                    <div id="reviewProgressBar" class="progress-bar bg-success" role="progressbar" style="width: 100%; transition: width 7s linear;"></div>
-                                </div>
-                            </div>`;
+                    {
+                        const lang = State.userData?.native_language;
+                        const wordCount = transcriptToReview.trim().split(/\s+/).length;
+                        let minWordsRequired = 3;
+                        if (State.englishLevel === 'A2') minWordsRequired = 4;
+                        else if (State.englishLevel === 'B1') minWordsRequired = 5;
+                        else if (State.englishLevel === 'B2' || State.englishLevel === 'C1' || State.englishLevel === 'C2') minWordsRequired = 6;
+
+                        const rejectPreflight = (message) => {
+                            ui.clearPlaybackVideo();
+                            ui.removeWebcamPreview();
+                            window.dispatchEvent(new CustomEvent('preflightRejected'));
+                            ui.setMicStatusText(`<div class='text-center text-danger'>${message}</div>`);
+                            setTimeout(() => { isListening = false; toggleSpeechRecognition(params); }, 2500);
+                        };
+
+                        const isProfane = swearjar.profane(transcriptToReview);
+                        if (isProfane) {
+                            rejectPreflight(Strings.get('inappropriate', lang));
+                            return;
+                        }
+
+                        if (question.inputType === "ai") {
+                            if (wordCount < minWordsRequired) {
+                                rejectPreflight(Strings.get(`min_words_${minWordsRequired}`, lang) || Strings.get('min_words_3', lang));
+                                return;
+                            }
+
+                            const normalizeduserResponse = await normalize(transcriptToReview.trim().toLowerCase());
+                            const normalizedcue = await normalize(question.cue.trim().toLowerCase());
+
+                            if (State.cuesGiven && State.cuesGiven.includes(normalizeduserResponse)) {
+                                rejectPreflight(Strings.get('already_used', lang));
+                                return;
+                            }
+
+                            const preflightSimilarity = calculateSimilarity(normalizeduserResponse, normalizedcue);
+                            if (preflightSimilarity >= 85) {
+                                rejectPreflight(Strings.get('no_repetition', lang));
+                                return;
+                            }
+                        }
                     }
 
+                    // --- REVIEW STEP ---
+                    let timeLeft = 7;
+                    let reviewActive = true;
+ 
                     const acceptTranscript = () => {
                         if (!reviewActive) return;
                         reviewActive = false;
                         clearInterval(timerInterval);
-                        if (micStatusText) micStatusText.innerHTML = "";
-                        handleAnswer(transcriptToReview, question.cue, question, button, question.explanation, question.translation, stats);
+                        ui.setMicStatusText("");
+                        params.handleAnswer(transcriptToReview, question.cue, question, button, question.explanation, question.translation, stats);
                     };
-
+ 
                     const rejectTranscript = () => {
                         if (!reviewActive) return;
                         reviewActive = false;
                         clearInterval(timerInterval);
                         
-                        // FIX: Clean up the lingering DOM video elements
-                        clearPlaybackVideo(); 
-                        removeWebcamPreview(); 
-
-                        // Fire an event to script.js to deduct 20 points from the speaking score
+                        ui.clearPlaybackVideo(); 
+                        ui.removeWebcamPreview(); 
+ 
                         window.dispatchEvent(new CustomEvent('transcriptRejected'));
+                        ui.setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Restarting Mic...</div>`);
                         
-                        if (micStatusText) {
-                            micStatusText.innerHTML = `<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Restarting Mic...</div>`;
-                        }
-                        
-                        // Automatically restart the mic recording state
                         setTimeout(() => {
                             isListening = false;
                             toggleSpeechRecognition(params);
                         }, 600);
                     };
+ 
+                    ui.renderWhisperReviewUI(transcriptToReview, timeLeft, acceptTranscript, rejectTranscript);
 
-                    // Add button listeners and trigger the CSS animation
-                    setTimeout(() => {
-                        document.getElementById('acceptBtn')?.addEventListener('click', acceptTranscript);
-                        document.getElementById('rejectBtn')?.addEventListener('click', rejectTranscript);
-                        
-                        // Trigger the 3-second CSS shrink animation
-                        const bar = document.getElementById('reviewProgressBar');
-                        if (bar) {
-                            // Small delay ensures the browser registers the initial 100% width before shrinking
-                            requestAnimationFrame(() => {
-                                bar.style.width = '0%';
-                            });
-                        }
-                    }, 50);
 
                     // Start the countdown timer for the text interval
                     const timerInterval = setInterval(() => {
                         if (!reviewActive) return clearInterval(timerInterval);
                         timeLeft--;
-                        const timerSpan = document.getElementById('reviewTimer');
-                        if (timerSpan) timerSpan.innerText = timeLeft;
+                        ui.updateWhisperTimer(timeLeft);
                         
                         // Auto-accept when timer hits 0
                         if (timeLeft <= 0) {
@@ -1017,24 +749,6 @@ export async function toggleSpeechRecognition(params) {
   }
 }
 
-function pauseVideoIfPlaying(playerInstance) {
-  // 1. Instance approach: keeps player UI/internal state in sync
-  if (playerInstance) {
-    if (typeof playerInstance.pause === 'function') {
-      playerInstance.pause();
-    } else if (playerInstance.video && !playerInstance.video.paused) {
-      playerInstance.video.pause();
-    }
-  }
-
-  // 2. DOM Fallback: Catch ALL .ivp-video elements, not just the first one
-  const videoElements = document.querySelectorAll('video.ivp-video');
-  videoElements.forEach(video => {
-    if (!video.paused) {
-      video.pause();
-    }
-  });
-}
 
 export function initLocalVoiceAI() {
     const forceDeepgram = new URLSearchParams(window.location.search).get('deepgram') === 'true';
