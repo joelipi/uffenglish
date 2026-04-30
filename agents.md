@@ -2,7 +2,7 @@
 
 ## 1. Code Architecture & Organization
 * **Strict Separation of Concerns:** Maintain a highly modular codebase. Do not place logic in a module where it does not conceptually belong.
-* **Resource & Cost Optimization:** Minimize read/write operations to the Appwrite database. To save costs and lay the groundwork for a future offline mode, prioritize running operations within browser memory using the local client-side models (Whisper Tiny and GECToR RoBERTa Large 5k via Transformers.js) instead of making external API calls to server-side LLMs. Balance this local-first approach with the need to avoid overloading the user's device resources (CPU/memory).
+* **Resource & Cost Optimization:** Minimize read/write operations to the Appwrite database. To save costs and lay the groundwork for a future offline mode, prioritize running operations within browser memory using the local client-side models instead of making external API calls to server-side LLMs. Balance this local-first approach with the need to avoid overloading the user's device resources (CPU/memory).
 * **CSS Consolidation:** Consolidate all styling into the `styles.css` file. Avoid inline styles or creating fragmented CSS files unless strictly required by a specific framework component.
 * **Leverage Bootstrap:** Use built-in Bootstrap classes and UI elements whenever possible rather than writing custom CSS, to keep the codebase lean and prevent bulking up the code.
 * **Appwrite & Dependencies:** Always perform a web search to check the current version and documentation for Appwrite before writing or modifying related code. Appwrite has had major updates with breaking changes, and your baseline LLM knowledge is likely out of date.
@@ -25,7 +25,7 @@
 * **Verify Expected Logs:** Check for expected console logs (both debug and success logs). If a process runs but fails to output a log that is expected to fire, you must treat this as a bug and review the code.
 
 ## 5. App-Specific Testing Workarounds
-* **Speech-to-Text / Microphone Bypass:** Because you cannot natively utilize a microphone for the speech-to-text features, you must use the built-in testing functions. As appropriate, bypass the microphone entirely or directly invoke the `handle_answer` function (or other required functions) to simulate user audio input.
-* **Authentication / Login Testing:** To test general public functionality, click "no" on the login modal to bypass it. If testing authenticated areas, use the following test account credentials to log into the web app during your automated testing:
+* **Speech-to-Text / Microphone Bypass:** Because you cannot natively utilize a microphone for the speech-to-text features, you must use the built-in testing functions. As appropriate, bypass the microphone entirely or directly invoke the `handleAnswer` function (or other required functions) to simulate user audio input.
+* **Authentication / Login Testing:** To test general public functionality, click "no" on the login modal to bypass it. If testing requires authentication, use the following test account credentials to log into the web app during your automated testing:
     * **Username:** jules
     * **Password:** testtest
