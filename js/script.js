@@ -485,7 +485,10 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
             }
 
             // Restore the question text in the mic status area
-            setMicStatusText("<div class='text-center'>" + (questionData.question || "") + "</div>");
+            const micStatusDiv = document.createElement('div');
+            micStatusDiv.className = 'text-center';
+            micStatusDiv.textContent = questionData.question || "";
+            setMicStatusText(micStatusDiv);
 
             // Re-enable and show the speech button so user can try again immediately
             if (button) {
@@ -549,9 +552,27 @@ function handlecueUI(qIndex, questionData, button, cue, explanation, translation
 
         if (questionData.inputType !== "ai" && questionData.inputType !== "speech") {
             const localizedTrans = getLocalizedTranslation(translation, lang);
-            const translationStr = localizedTrans && lang && lang !== 'en' ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>` : "";
-            const correctBubble = `<div class='correct-answer-display chat-bubble-sent chat-msg'>${cue}${translationStr}</div>`;
-            const praiseBubble = `<div class='chat-bubble chat-msg' style='margin-top: 12px;'><strong>${getRandomPraise()}</strong></div>`;
+
+            const correctBubble = document.createElement('div');
+            correctBubble.classList.add('correct-answer-display', 'chat-bubble-sent', 'chat-msg');
+            correctBubble.textContent = cue;
+
+            if (localizedTrans && lang && lang !== 'en') {
+                correctBubble.appendChild(document.createElement('br'));
+                const transSpan = document.createElement('span');
+                transSpan.lang = lang;
+                const transI = document.createElement('i');
+                transI.textContent = localizedTrans;
+                transSpan.appendChild(transI);
+                correctBubble.appendChild(transSpan);
+            }
+
+            const praiseBubble = document.createElement('div');
+            praiseBubble.classList.add('chat-bubble', 'chat-msg');
+            praiseBubble.style.marginTop = '12px';
+            const praiseStrong = document.createElement('strong');
+            praiseStrong.textContent = getRandomPraise();
+            praiseBubble.appendChild(praiseStrong);
 
             const chunks = [correctBubble];
             if (Array.isArray(explanation)) chunks.push(...explanation);
@@ -615,24 +636,40 @@ function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanat
             State.rolePlayPointsHistory.push(State.currentPoints);
             updateCurrentScoreDisplay(State.currentPoints);
         }
-        const teacherText = State.incorrectAttempts === 1
+
+        const teacherTextStr = State.incorrectAttempts === 1
             ? Strings.get('try_again_1', State.userData?.native_language)
             : State.incorrectAttempts === 2
                 ? Strings.get('try_again_2', State.userData?.native_language)
                 : `${Strings.get('failed_continue_correct', State.userData?.native_language)}<br>"${cue}"`;
 
-        const headsUpStr = questionData.headsUp
-            ? (State.incorrectAttempts <= 2 ? Strings.get('heads_up_try_again', State.userData?.native_language) : questionData.headsUp)
-            : '';
+        const teacherDiv = document.createElement('div');
+        const teacherStrong = document.createElement('strong');
+        teacherStrong.innerHTML = teacherTextStr;
+        teacherDiv.appendChild(teacherStrong);
 
-        const possibleAnswerStr = questionData.possibleAnswer && State.incorrectAttempts > 2
-            ? `${Strings.get('example_correct_answer', State.userData?.native_language)}<br>${questionData.possibleAnswer}`
-            : '';
+        let headsUpNode = '';
+        if (questionData.headsUp) {
+            const headsUpText = State.incorrectAttempts <= 2 ? Strings.get('heads_up_try_again', State.userData?.native_language) : questionData.headsUp;
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = headsUpText;
+            headsUpNode = tempDiv;
+        }
+
+        let possibleAnswerNode = '';
+        if (questionData.possibleAnswer && State.incorrectAttempts > 2) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = `${Strings.get('example_correct_answer', State.userData?.native_language)}<br>${questionData.possibleAnswer}`;
+            possibleAnswerNode = tempDiv;
+        }
 
         const chunks = [];
         if (Array.isArray(explanation)) chunks.push(...explanation);
         else if (explanation) chunks.push(explanation);
-        chunks.push(`<strong>${teacherText}</strong>`, possibleAnswerStr, headsUpStr);
+
+        chunks.push(teacherDiv);
+        if (possibleAnswerNode) chunks.push(possibleAnswerNode);
+        if (headsUpNode) chunks.push(headsUpNode);
 
         renderAIFeedback(chunks);
     }
@@ -854,7 +891,11 @@ function loadQuestion(question, lesson, fluencyData) {
         window.currentIntroVideoPlayer = State.player;
     }
 
-    setMicStatusText("<div class='text-center'>" + question.question + "</div>");
+    const questionDiv = document.createElement('div');
+    questionDiv.className = 'text-center';
+    questionDiv.textContent = question.question;
+    setMicStatusText(questionDiv);
+
     resetAnswersContainer(`<div id="answers-container" class="d-grid gap-2 d-none"></div>`);
 
     if (question.inputType === "speech" || question.inputType === "ai") {
@@ -866,21 +907,42 @@ function loadQuestion(question, lesson, fluencyData) {
             return text.replace(/[&<>"']/g, (m) => map[m]);
         };
 
-        let answerHTML = "";
+        const answerFragment = document.createDocumentFragment();
         if (question.inputType === "speech") {
             // No pulse-dot hints for speech input questions
-            answerHTML = "";
         } else {
-            answerHTML = `${question.cue.replace(/\b[\w']+\b/g, word => {
-                if (allHidden && !revealedFirst) { revealedFirst = true; return escapeHtml(word); }
-                return `<span class="pulse-dot" data-word="${escapeHtml(word)}"><i class="bi bi-app"></i></span>`;
-            })}`;
+            const processTextToPulseDots = (text) => {
+                const parts = text.split(/(\b[\w']+\b)/g);
+                parts.forEach(part => {
+                    if (!part) return;
+                    if (/\b[\w']+\b/.test(part)) {
+                        if (allHidden && !revealedFirst) {
+                            revealedFirst = true;
+                            answerFragment.appendChild(document.createTextNode(part)); // Use part directly, createTextNode handles escaping
+                        } else {
+                            const span = document.createElement('span');
+                            span.className = 'pulse-dot';
+                            span.dataset.word = part; // Use part directly, dataset handles escaping safely
+                            const icon = document.createElement('i');
+                            icon.className = 'bi bi-app';
+                            span.appendChild(icon);
+                            answerFragment.appendChild(span);
+                        }
+                    } else {
+                        answerFragment.appendChild(document.createTextNode(part));
+                    }
+                });
+            };
+
+            processTextToPulseDots(question.cue);
 
             if (question.possibleAnswer) {
-                answerHTML += `<br><strong>${Strings.get('possible_response', State.userData?.native_language)}</strong><br>${question.possibleAnswer.replace(/\b[\w']+\b/g, word => {
-                    if (allHidden && !revealedFirst) { revealedFirst = true; return escapeHtml(word); }
-                    return `<span class="pulse-dot" data-word="${escapeHtml(word)}"><i class="bi bi-app"></i></span>`;
-                })}`;
+                answerFragment.appendChild(document.createElement('br'));
+                const strong = document.createElement('strong');
+                strong.textContent = Strings.get('possible_response', State.userData?.native_language);
+                answerFragment.appendChild(strong);
+                answerFragment.appendChild(document.createElement('br'));
+                processTextToPulseDots(question.possibleAnswer);
             }
         }
 
@@ -896,7 +958,7 @@ function loadQuestion(question, lesson, fluencyData) {
         const qIndex = getCurrentQuestionIndex(question, State.configData, State.currentLessonIndex);
 
         renderSpeechInputUI(
-            answerHTML,
+            answerFragment,
             question.inputType === "speech" ? null : () => handleHint(qIndex),
             handleRevealClick,
             async () => {
