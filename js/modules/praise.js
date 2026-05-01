@@ -5,7 +5,7 @@ import { renderImageInMediaContainer } from './ui.js';
 // Array of praise phrases with Spanish translations
 const praiseData = {
     general: [
-        { type: 'text', content: "Excellent! <span lang='es'><i>¡Excelente!</i></span>" },
+/*        { type: 'text', content: "Excellent! <span lang='es'><i>¡Excelente!</i></span>" },
         { type: 'text', content: "Awesome! <span lang='es'><i>¡Increíble!</i></span>" },
         { type: 'text', content: "Great! <span lang='es'><i>¡Genial!</i></span>" },
         { type: 'text', content: "Amazing! <span lang='es'><i>¡Asombroso!</i></span>" },
@@ -26,7 +26,7 @@ const praiseData = {
         { type: 'text', content: "Spectacular! <span lang='es'><i>¡Espectacular!</i></span>" },
         { type: 'text', content: "Magnificent! <span lang='es'><i>¡Magnífico!</i></span>" },
         { type: 'text', content: "Phenomenal! <span lang='es'><i>¡Fenomenal!</i></span>" },
-        { type: 'text', content: "Incredible! <span lang='es'><i>¡Increíble!</i></span>" }
+    */    { type: 'text', content: "Incredible! <span lang='es'><i>¡Increíble!</i></span>" }
     ],
     images: [
         { type: 'image', content: "assets/img/exercise-brain.avif" },
@@ -35,9 +35,18 @@ const praiseData = {
 };
 
 export default function getRandomPraise(category = 'general') {
-    const praiseList = praiseData[category] || praiseData['general'];
+    // If general, pool both text and images to ensure variety
+    let praiseList;
+    if (category === 'general') {
+        praiseList = [...praiseData.general, ...praiseData.images];
+    } else {
+        praiseList = praiseData[category] || praiseData['general'];
+    }
+
     const randomIndex = Math.floor(Math.random() * praiseList.length);
     const selected = praiseList[randomIndex];
+
+    console.log(`[Praise] Selected type: ${selected.type}, content: ${selected.content}`);
 
     if (selected.type === 'image') {
         renderImageInMediaContainer(selected.content);

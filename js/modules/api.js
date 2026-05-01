@@ -3,7 +3,7 @@ import normalize from './normalize.js';
 
 let userAuthCache = null;
 let cacheTimestamp = null;
-const CACHE_DURATION = 30000000; 
+const CACHE_DURATION = 30000000;
 
 export async function isUserLoggedIn() {
   if (userAuthCache !== null && cacheTimestamp && (Date.now() - cacheTimestamp) < CACHE_DURATION) return userAuthCache;
@@ -20,44 +20,44 @@ export async function getUserProfile() {
   try {
     const user = await getCurrentUser();
     if (!user) {
-        return {
-            $id: 'guest',
-            email: 'guest@example.com',
-            display_name: 'Guest User',
-            join_date: new Date().toISOString(),
-            auth_method: 'guest',
-            english_level: 'A0',
-            native_language: 'EN',
-            completed_dates: []
-        };
+      return {
+        $id: 'guest',
+        email: 'guest@example.com',
+        display_name: 'Guest User',
+        join_date: new Date().toISOString(),
+        auth_method: 'guest',
+        english_level: 'A0',
+        native_language: 'EN',
+        completed_dates: []
+      };
     }
 
     // Fetch extended profile data from the new TablesDB
     try {
-        const profileDoc = await tablesDB.getRow({
-            databaseId: APPWRITE_CONFIG.DATABASE_ID,
-            tableId: APPWRITE_CONFIG.USER_PROFILES_TABLE_ID,
-            rowId: user.$id // Assuming the row ID matches the user ID
-        });
+      const profileDoc = await tablesDB.getRow({
+        databaseId: APPWRITE_CONFIG.DATABASE_ID,
+        tableId: APPWRITE_CONFIG.USER_PROFILES_TABLE_ID,
+        rowId: user.$id // Assuming the row ID matches the user ID
+      });
 
-        // Merge core user account data with extended profile data
-        return {
-            $id: user.$id,        // was: id
-            email: user.email,
-            display_name: user.name,
-            join_date: user.$createdAt,
-            auth_method: 'appwrite',
-            ...profileDoc
-        };
+      // Merge core user account data with extended profile data
+      return {
+        $id: user.$id,        // was: id
+        email: user.email,
+        display_name: user.name,
+        join_date: user.$createdAt,
+        auth_method: 'appwrite',
+        ...profileDoc
+      };
     } catch (dbError) {
-        console.warn('Profile row not found, returning core user data', dbError);
-        return {
-            $id: user.$id,        // was: id
-            email: user.email,
-            display_name: user.name,
-            join_date: user.$createdAt,
-            auth_method: 'appwrite'
-        };
+      console.warn('Profile row not found, returning core user data', dbError);
+      return {
+        $id: user.$id,        // was: id
+        email: user.email,
+        display_name: user.name,
+        join_date: user.$createdAt,
+        auth_method: 'appwrite'
+      };
     }
   } catch (error) { throw error; }
 }
@@ -79,23 +79,23 @@ export async function checkGrammarWithAI(selectedAnswer) {
   const aiEndpoint = 'https://nvidia-proxy.joel-1cb.workers.dev';
   try {
     console.log("🤖 AI Evaluation: Starting Grammar Check...");
-    const grammarPrompt = `Return ONLY the corrected sentence OR "CORRECT": ${selectedAnswer}`;
-    
+    const grammarPrompt = `Return ONLY "CORRECT" or the grammar-corrected sentence: ${selectedAnswer}`;
+
     const response = await fetch(aiEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         messages: [{ role: "user", content: grammarPrompt }],
         temperature: 0.1
       })
     });
-    
+
     if (!response.ok) throw new Error(`Grammar API error ${response.status}`);
     const data = await response.json();
     const correctedText = (data.choices?.[0]?.message?.content || '').trim();
-    
+
     console.log("📝 Grammar Check Result:", correctedText);
-    
+
     const normOriginal = await normalize(selectedAnswer);
     const normCorrected = await normalize(correctedText);
     const isGrammarCorrect = normCorrected === 'correct' || normOriginal === normCorrected;
@@ -124,7 +124,7 @@ Evaluate B's response. Return ONLY an array with 1 or more applicable labels: [p
     const response = await fetch(aiEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         messages: [{ role: "user", content: intentPrompt }],
         temperature: 0.1
       })
@@ -133,9 +133,9 @@ Evaluate B's response. Return ONLY an array with 1 or more applicable labels: [p
     if (!response.ok) throw new Error(`Intent API error ${response.status}`);
     const data = await response.json();
     const rawIntentText = data.choices?.[0]?.message?.content || '';
-    
+
     console.log("🎯 Intent Evaluation Raw Result:", rawIntentText);
-    
+
     let evaluationResult;
     try {
       let cleanedText = rawIntentText.trim();
