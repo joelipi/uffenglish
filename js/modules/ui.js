@@ -251,14 +251,14 @@ export function generateHangmanHint(userResponse, cue) {
         } else if (type === 'ins') {
             // Missed word from cue -> underscore placeholder
             if (/\w/.test(v)) {
-                resultHTML += ' <span class="hangman-placeholder" style="color: #666; font-weight: bold; border-bottom: 2px solid #666; margin: 0 2px; padding: 0 4px;">___</span> ';
+                resultHTML += ' <span class="hangman-placeholder">&nbsp;&nbsp;&nbsp;</span> ';
             } else {
                 resultHTML += v;
             }
         } else if (type === 'del') {
             // Incorrect word from user -> red text
             if (/\w/.test(v)) {
-                resultHTML += `<span class="hangman-incorrect" style="color: #ff4d4d; text-decoration: line-through; margin: 0 2px;">${v}</span>`;
+                resultHTML += `<span class="hangman-incorrect">${v}</span>`;
             }
         }
     });
@@ -366,8 +366,10 @@ export function updateSpeakingScoreDisplay(score) {
 export function clearPlaybackVideo() {
     [DOM.playbackVideoMobile, DOM.playbackVideoDesktop].forEach(video => {
         if (video) {
+            video.pause();
             if (video.src && video.src.startsWith('blob:')) URL.revokeObjectURL(video.src);
             video.src = '';
+            video.load();
             video.style.display = 'none';
             video.onerror = null;
             video.onloadeddata = null;
@@ -647,8 +649,8 @@ export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyCl
     if (!audioOnlyButton && isLessonIntro && btnGroup) {
         audioOnlyButton = document.createElement('button');
         audioOnlyButton.id = 'audioOnlyButton';
-        audioOnlyButton.className = 'btn btn-secondary text-white w-100';
-        audioOnlyButton.innerHTML = '<i class="bi bi-mic-fill text-white" style="font-size: 40px; font-weight: 900;"></i>';
+        audioOnlyButton.className = 'btn btn-primary text-white w-100';
+        audioOnlyButton.innerHTML = '<i class="bi bi-telephone-fill text-white" style="font-size: 40px; font-weight: 900;"></i>';
         btnGroup.appendChild(audioOnlyButton);
     }
 
@@ -815,16 +817,20 @@ export function renderSpeechInputUI(hintHTML, handleHintCallback, handleRevealCl
 
     const bottomButtonBarLeft = document.getElementById("bottomButtonBarLeft");
     if (bottomButtonBarLeft) {
-        const hintButton = document.createElement('button');
-        hintButton.className = 'btn bg-transparent text-white border-0';
-        hintButton.id = 'hintButton';
-        hintButton.innerHTML = '<i class="bi bi-life-preserver fs-1"></i>';
-        hintButton.onclick = () => {
-            handleHintCallback();
-            hintButton.style.visibility = 'hidden';
-        };
-        bottomButtonBarLeft.innerHTML = '';
-        bottomButtonBarLeft.appendChild(hintButton);
+        if (handleHintCallback) {
+            const hintButton = document.createElement('button');
+            hintButton.className = 'btn bg-transparent text-white border-0';
+            hintButton.id = 'hintButton';
+            hintButton.innerHTML = '<i class="bi bi-life-preserver fs-1"></i>';
+            hintButton.onclick = () => {
+                handleHintCallback();
+                hintButton.style.visibility = 'hidden';
+            };
+            bottomButtonBarLeft.innerHTML = '';
+            bottomButtonBarLeft.appendChild(hintButton);
+        } else {
+            bottomButtonBarLeft.innerHTML = '';
+        }
     }
 
     const answersContainer = document.getElementById('answers-container');

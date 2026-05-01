@@ -83,6 +83,7 @@
   transition: width 0.1s linear;
 }
 
+
 #ui-loading-text {
   position: absolute;
   top: 44%;
@@ -779,6 +780,21 @@ p {
   color: white !important;
   border: none !important;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Hangman Hint Styles */
+.hangman-placeholder {
+  color: #666;
+  font-weight: bold;
+  border-bottom: 2px solid #666;
+  margin: 0 2px;
+  padding: 0 4px;
+}
+
+.hangman-incorrect {
+  color: #ff4d4d;
+  text-decoration: line-through;
+  margin: 0 2px;
 }
 
 /* Minimal White Progress Bar */

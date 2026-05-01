@@ -152,7 +152,8 @@ import {
     renderMultiChoiceUI,
     showMessageInQuestionsContainer,
     showErrorMessageInQuestionsContainer,
-    setupLessonUI
+    setupLessonUI,
+    generateHangmanHint
 } from './modules/ui.js';
 
 import { idiomChecker } from './modules/idiomChecker.js';
@@ -379,8 +380,10 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
     }
 
     Media.pauseVideoIfPlaying();
+    clearPlaybackVideo(); // NEW: Stop and hide any existing recording playback
 
     clearMicStatusAndHideMedia();
+    hideHints();
 
     let speechAnalytics = null;
     let immediateStatsHtmlArr = [];
@@ -428,138 +431,12 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
         }
     }
 
-    if (questionData.inputType === "ai" && userResponse && DOM.speechText) {
-        // 1. Render the AI's prompt (cue) first
-        const lang = State.userData?.native_language;
-        const localizedTrans = getLocalizedTranslation(questionData.translation, lang);
-        const translationStr = (localizedTrans && lang && lang !== 'en') ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>` : "";
-        renderAIFeedback([`<strong>${cue}${translationStr}</strong>`]);
-
-        // 2. Then render the user response (Strictly alone)
-        renderUserResponse(userResponse, "");
-
-        // 3. Then render stats and loading
-        if (immediateStatsHtmlArr.length > 0) renderAIFeedback(immediateStatsHtmlArr);
-        renderAIAnalysisLoading();
-    } else if (questionData.inputType === "speech" && userResponse && DOM.speechText) {
-        // 1. Render a "fake" user response bubble using the CUE (target sentence)
-        const lang = State.userData?.native_language;
-        const localizedTrans = getLocalizedTranslation(questionData.translation, lang);
-        const translationStr = (localizedTrans && lang && lang !== 'en') ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>` : "";
-
-        renderUserResponse(`<strong>${cue}${translationStr}</strong>`, "");
-
-        // 2. Then render stats
-        if (immediateStatsHtmlArr.length > 0) renderAIFeedback(immediateStatsHtmlArr);
-    }
-
     const qIndex = getCurrentQuestionIndex(questionData, State.configData, State.currentLessonIndex);
     window.__currentQuestionIndex = qIndex;
     disableAllButtons(button.parentElement);
 
     try {
         let result = null;
-
-        // --- TIERED EVALUATION LOGIC ---
-        // --- TIERED EVALUATION LOGIC (TEMPORARILY DISABLED) ---
-        // IMPORTANT: DO NOT DELETE. WILL BE REINSTATED SHORTLY.
-        /*
-        if (!result && questionData.inputType === "ai" && questionData.targetIntents) {
-            
-            // 1. The FEEDBACK_TEXT parameter (Forced visual separation)
-            const originalExplanationBubble = explanation ? `<div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>${explanation}</div>` : "";
-
-            // 2. TIER 1: Grammar Check
-            const grammarResult = await checkGrammarLocally(userResponse);
-            let grammarExplanationHTML = null;
-            let cleanedSentence = userResponse;
-            let isGrammarPerfect = true;
-
-            if (grammarResult && !grammarResult.isValid) {
-                isGrammarPerfect = false;
-                cleanedSentence = grammarResult.correction;
-                const { userHTML, corrHTML } = buildGrammarDiff(userResponse, grammarResult.correction);
-                grammarExplanationHTML = `
-                    <div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>
-                        <div class="diff-del-bubble">${userHTML}</div>
-                        <div style="margin-top:6px">${corrHTML}</div>
-                    </div>`;
-            } else {
-                const syntComplexity = calculateSyntacticComplexity(userResponse);
-                grammarExplanationHTML = `
-                    <div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>
-                        ${createHeaderHTML(Strings.get('stats_grammar_header', State.userData?.native_language))}
-                        ${Strings.get('grammar_perfect', State.userData?.native_language)}
-                        <hr style="margin: 8px 0; opacity: 0.1;">
-                        <div style="font-size: 0.85em;">
-                            <strong>Syntactical Complexity:</strong> ${syntComplexity.score}%
-                            <br><small style="opacity: 0.7;">(${syntComplexity.breakdown})</small>
-                        </div>
-                    </div>`;
-            }
-
-            // 3. TIER 2: Semantic Intent Match
-            const intentResult = await evaluateIntentLocally(cleanedSentence, questionData.targetIntents, questionData.badIntents);
-
-            if (intentResult) {
-                let intentExplanationHTML = "";
-                let isFinalCorrect = false;
-
-                if (isGrammarPerfect && intentResult.category === 'target') {
-                    isFinalCorrect = true;
-                    intentExplanationHTML = createPragmaticsBubbleHTML(createHeaderHTML(Strings.get('stats_pragmatics_header', State.userData?.native_language)), Strings.get('intent_perfect', State.userData?.native_language));
-                }
-                else if (!isGrammarPerfect && intentResult.category === 'target') {
-                    isFinalCorrect = false;
-                    intentExplanationHTML = createPragmaticsBubbleHTML(createHeaderHTML(Strings.get('stats_pragmatics_header', State.userData?.native_language)), Strings.get('intent_good_grammar_bad', State.userData?.native_language));
-                }
-                else if (intentResult.category === 'bad') {
-                    isFinalCorrect = false;
-                    let badIntentStr = Strings.get('intent_specific_fail', State.userData?.native_language);
-                    const localizedBadIntent = Strings.get(intentResult.winningLabel, State.userData?.native_language) || intentResult.winningLabel;
-                    badIntentStr = badIntentStr.replace('{bad_intent}', localizedBadIntent);
-                    intentExplanationHTML = createPragmaticsBubbleHTML(createHeaderHTML(Strings.get('stats_pragmatics_header', State.userData?.native_language)), badIntentStr);
-                }
-                else if (isGrammarPerfect && intentResult.category === 'distractor') {
-                    isFinalCorrect = false;
-                    intentExplanationHTML = createPragmaticsBubbleHTML(createHeaderHTML(Strings.get('stats_pragmatics_header', State.userData?.native_language)), Strings.get('intent_bad_grammar_perfect', State.userData?.native_language));
-                }
-                else if (!isGrammarPerfect && intentResult.category === 'distractor') {
-                    isFinalCorrect = false;
-                    intentExplanationHTML = createPragmaticsBubbleHTML(createHeaderHTML(Strings.get('stats_pragmatics_header', State.userData?.native_language)), Strings.get('intent_bad_grammar_bad', State.userData?.native_language));
-                }
-
-                // 🏗️ Build the final stacked output using an array to guarantee order
-                const combinedExplanation = [
-                    grammarExplanationHTML,        // 1st
-                    intentExplanationHTML,         // 2nd
-                    originalExplanationBubble      // 3rd (Feedback Text)
-                ].filter(Boolean).join("");
-
-                result = {
-                    isCorrect: isFinalCorrect,
-                    normalizeduserResponse: userResponse,
-                    normalizedcue: intentResult.normalizedcue,
-                    explanation: combinedExplanation,
-                    englishLevelDeduction: intentResult.englishLevelDeduction || 0
-                };
-            } else {
-                if (!isGrammarPerfect) {
-                    const fallbackExplanation = [
-                        grammarExplanationHTML,       // 1st
-                        originalExplanationBubble     // 2nd (Feedback Text)
-                    ].filter(Boolean).join("");
-
-                    result = {
-                        isCorrect: false,
-                        normalizeduserResponse: userResponse,
-                        normalizedcue: grammarResult.correction,
-                        explanation: fallbackExplanation
-                    };
-                }
-            }
-        }
-        */
 
         if (!result && (questionData.inputType === "speech" || questionData.inputType === "ai")) {
             result = await processAnswerLogic({
@@ -576,9 +453,65 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
             console.warn("⚠️ No result from local NLP — no Gemini fallback active. Treating as passed.");
             result = { isCorrect: true, normalizeduserResponse: userResponse, normalizedcue: cue, explanation: explanation };
         }
-        // --- END TIERED EVALUATION ---
 
         const isCorrect = result.isCorrect;
+
+        // --- SILENT RETRY FLOW FOR SPEECH ---
+        if (!isCorrect && questionData.inputType === "speech" && State.incorrectAttempts <= 1) {
+            // Use silent mode for handleIncueUI
+            handleIncueUI(qIndex, questionData, button, cue, userResponse, result.explanations || explanation, result.normalizeduserResponse, result.normalizedcue, questionData.question, true);
+
+            // Speech Hangman Logic: Show hint and stay on question
+            const hangmanHTML = generateHangmanHint(userResponse, cue);
+            const hintUncommonWords = document.getElementById("hintUncommonWords");
+            if (hintUncommonWords) hintUncommonWords.innerHTML = hangmanHTML;
+            showHintsAndScroll();
+
+            // Restart video player if available
+            prepareMediaUI();
+            const player = State.player || window.currentVideoPlayer;
+            if (player) {
+                if (player.video) {
+                    player.video.currentTime = 0;
+                }
+                // Small delay to ensure DOM update (unhiding) is processed before play()
+                setTimeout(() => {
+                    if (player.play) {
+                        player.play().catch(e => console.warn("Video play failed:", e));
+                    } else if (player.video) {
+                        player.video.play().catch(e => console.warn("Video play failed:", e));
+                    }
+                }, 50);
+            }
+
+            // Restore the question text in the mic status area
+            setMicStatusText("<div class='text-center'>" + (questionData.question || "") + "</div>");
+
+            // Re-enable and show the speech button so user can try again immediately
+            if (button) {
+                button.disabled = false;
+                button.classList.remove('disabled');
+                button.style.display = "inline-block"; // Bootstrap buttons are usually inline-block
+                button.innerHTML = '<i class="bi bi-mic-fill"></i>'; // Reset to mic icon
+                button.classList.remove('btn-danger', 'btn-danger-recording'); // Remove recording state colors
+            }
+            
+            return; // EXIT EARLY: No chat bubbles, no proceed
+        }
+
+        // --- STANDARD UI RENDERING LOGIC (POST-EVALUATION) ---
+        if (questionData.inputType === "ai" && userResponse && DOM.speechText) {
+            const lang = State.userData?.native_language;
+            const localizedTrans = getLocalizedTranslation(questionData.translation, lang);
+            const translationStr = (localizedTrans && lang && lang !== 'en') ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>` : "";
+            renderAIFeedback([`<strong>${cue}${translationStr}</strong>`]);
+            renderUserResponse(userResponse, "");
+            if (immediateStatsHtmlArr.length > 0) renderAIFeedback(immediateStatsHtmlArr);
+            renderAIAnalysisLoading();
+        } else if (questionData.inputType === "speech" && userResponse && DOM.speechText) {
+            renderUserResponse(userResponse, "");
+            if (immediateStatsHtmlArr.length > 0) renderAIFeedback(immediateStatsHtmlArr);
+        }
 
         if (isCorrect) {
             if (questionData.inputType === "ai") {
@@ -589,11 +522,11 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
                 }
             }
             handlecueUI(qIndex, questionData, button, cue, result.explanations || explanation, translation, userResponse, result.englishLevel, result.englishLevelDeduction);
+            showFeedbackAndProceed(questionData, isCorrect, State.currentLessonIndex, qIndex);
         } else {
             handleIncueUI(qIndex, questionData, button, cue, userResponse, result.explanations || explanation, result.normalizeduserResponse, result.normalizedcue, questionData.question);
+            showFeedbackAndProceed(questionData, isCorrect, State.currentLessonIndex, qIndex);
         }
-
-        showFeedbackAndProceed(questionData, isCorrect, State.currentLessonIndex, qIndex);
     } catch (error) {
         console.error("Error handling answer:", error);
         handleIncueUI(qIndex, questionData, button, cue, userResponse, explanation, "", "", translation);
@@ -651,23 +584,29 @@ function handlecueUI(qIndex, questionData, button, cue, explanation, translation
     markButtonAsCorrect(button);
 }
 
-function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanation, normalizeduserResponse, normalizedcue, question) {
+function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanation, normalizeduserResponse, normalizedcue, question, silent = false) {
     State.incorrectAttempts++;
 
-    if (questionData.inputType === "lessonIntro" || questionData.inputType === "speech" || questionData.inputType === "ai") {
+    if (!silent && (questionData.inputType === "lessonIntro" || questionData.inputType === "speech" || questionData.inputType === "ai")) {
         showPlaybackVideo();
     }
 
     if ((questionData.inputType === "speech" || questionData.inputType === "ai") && questionData.videoUrl) {
         State.currentPoints = Math.max(0, State.currentPoints - 25);
-        pointLoss.show(DOM.micStatusText, 25); // Current points acts as Listening Score penalty
+        pointLoss.show(DOM.micStatusText, 25);
         updateCurrentScoreDisplay(State.currentPoints);
         if (State.incorrectAttempts > 2) {
             State.currentPoints = 0;
             updateCurrentScoreDisplay(State.currentPoints);
-            updateSpeakingScoreDisplay(State.speakingScore); // NEW SPEAKING SCORE DISPLAY
+            updateSpeakingScoreDisplay(State.speakingScore);
             State.rolePlayPointsHistory.push(State.currentPoints);
         }
+    }
+
+    if (silent) {
+        animateHeartLoss(State.incorrectAttempts);
+        Media.playSound('incorrect-sound');
+        return;
     }
 
     if (questionData.inputType === "ai" && userResponse) {
@@ -927,16 +866,22 @@ function loadQuestion(question, lesson, fluencyData) {
             return text.replace(/[&<>"']/g, (m) => map[m]);
         };
 
-        let answerHTML = `${question.cue.replace(/\b[\w']+\b/g, word => {
-            if (allHidden && !revealedFirst) { revealedFirst = true; return escapeHtml(word); }
-            return `<span class="pulse-dot" data-word="${escapeHtml(word)}"><i class="bi bi-app"></i></span>`;
-        })}`;
-
-        if (question.possibleAnswer) {
-            answerHTML += `<br><strong>${Strings.get('possible_response', State.userData?.native_language)}</strong><br>${question.possibleAnswer.replace(/\b[\w']+\b/g, word => {
+        let answerHTML = "";
+        if (question.inputType === "speech") {
+            // No pulse-dot hints for speech input questions
+            answerHTML = "";
+        } else {
+            answerHTML = `${question.cue.replace(/\b[\w']+\b/g, word => {
                 if (allHidden && !revealedFirst) { revealedFirst = true; return escapeHtml(word); }
                 return `<span class="pulse-dot" data-word="${escapeHtml(word)}"><i class="bi bi-app"></i></span>`;
             })}`;
+
+            if (question.possibleAnswer) {
+                answerHTML += `<br><strong>${Strings.get('possible_response', State.userData?.native_language)}</strong><br>${question.possibleAnswer.replace(/\b[\w']+\b/g, word => {
+                    if (allHidden && !revealedFirst) { revealedFirst = true; return escapeHtml(word); }
+                    return `<span class="pulse-dot" data-word="${escapeHtml(word)}"><i class="bi bi-app"></i></span>`;
+                })}`;
+            }
         }
 
         const handleRevealClick = function () {
@@ -952,7 +897,7 @@ function loadQuestion(question, lesson, fluencyData) {
 
         renderSpeechInputUI(
             answerHTML,
-            () => handleHint(qIndex),
+            question.inputType === "speech" ? null : () => handleHint(qIndex),
             handleRevealClick,
             async () => {
                 const speechButton = document.getElementById('speechButton');
