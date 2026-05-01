@@ -779,10 +779,25 @@ export function clearMediaContainerAndPreservePlayers() {
 }
 
 export function renderImageInMediaContainer(imageUrl) {
-    if (!DOM.mediaContainer) return;
+    console.log(`[UI] renderImageInMediaContainer called for: ${imageUrl}`);
+    if (!DOM.mediaContainer) {
+        console.error('[UI] mediaContainer DOM element not found!');
+        return;
+    }
+    
+    // Ensure visibility
+    DOM.mediaContainer.classList.remove('d-none');
+    DOM.mediaContainer.style.display = 'block'; 
+
+    // Remove any previous praise images to avoid stacking
+    const existingPraise = DOM.mediaContainer.querySelectorAll('.praise-image-wrapper');
+    existingPraise.forEach(el => el.remove());
+
     const div = document.createElement('div');
-    div.className = 'text-center mb-3';
-    div.innerHTML = `<img src="${imageUrl}" class="img-fluid rounded" alt="Question illustration" style="max-height: 300px;">`;
+    div.className = 'text-center mb-3 praise-image-wrapper';
+    div.innerHTML = `<img src="${imageUrl}" class="img-fluid rounded" alt="Praise" style="max-height: 250px; border: 3px solid #00f2fe; box-shadow: 0 0 15px rgba(0,242,254,0.5);">`;
+    
+    console.log('[UI] Prepending image to mediaContainer');
     DOM.mediaContainer.prepend(div);
 }
 

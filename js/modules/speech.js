@@ -212,7 +212,7 @@ export async function startSpeechCamRecording(micStatusText, userData) {
       else console.warn('[Recording] ondataavailable: empty or missing data chunk');
     };
 
-    speechCamRecorder.onstart = () => console.log('[Recording] MediaRecorder onstart fired, state:', speechCamRecorder.state);
+    speechCamRecorder.onstart = (e) => console.log('[Recording] MediaRecorder onstart fired, state:', e.target.state);
     speechCamRecorder.onerror = (e) => console.error('[Recording] MediaRecorder onerror:', e.error);
 
     speechCamRecorder.start();

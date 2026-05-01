@@ -26,11 +26,12 @@ const praiseData = {
         { type: 'text', content: "Spectacular! <span lang='es'><i>¡Espectacular!</i></span>" },
         { type: 'text', content: "Magnificent! <span lang='es'><i>¡Magnífico!</i></span>" },
         { type: 'text', content: "Phenomenal! <span lang='es'><i>¡Fenomenal!</i></span>" },
-    */    { type: 'text', content: "Incredible! <span lang='es'><i>¡Increíble!</i></span>" }
+ */       { type: 'text', content: "Incredible! <span lang='es'><i>¡Increíble!</i></span>" }
     ],
     images: [
-        { type: 'image', content: "assets/img/exercise-brain.avif" },
-        { type: 'image', content: "assets/img/party-brain.webp" }
+        { type: 'image', content: "assets/img/verygood01.png" },
+        { type: 'image', content: "assets/img/verygood02.png" },
+        { type: 'image', content: "assets/img/verygood03.png" }
     ]
 };
 
@@ -49,8 +50,8 @@ export default function getRandomPraise(category = 'general') {
     console.log(`[Praise] Selected type: ${selected.type}, content: ${selected.content}`);
 
     if (selected.type === 'image') {
-        renderImageInMediaContainer(selected.content);
-        return "👍👍";
+        console.log(`[Praise] Rendering image in chat: ${selected.content}`);
+        return `<img src="${selected.content}" class="img-fluid rounded" alt="Praise" style="max-height: 200px; display: block; margin: 0 auto;">`;
     }
 
     return "👍👍 " + selected.content;
