@@ -425,9 +425,13 @@ export function createWebcamPreview() {
 
 export function ensureWebcamPreview(stream) {
     if (!stream) return null;
-    if (!webcamPreview || !webcamPreview.isConnected) webcamPreview = createWebcamPreview();
+    if (!webcamPreview || !document.getElementById('webcam-preview')) {
+        webcamPreview = createWebcamPreview();
+    }
 
-    webcamPreview.srcObject = stream;
+    if (webcamPreview.srcObject !== stream) {
+        webcamPreview.srcObject = stream;
+    }
 
     if (webcamPreview.classList.contains('d-none')) {
         webcamPreview.style.transition = '';
@@ -464,8 +468,10 @@ export function hideWebcamPreview() {
 
 export function removeWebcamPreview() {
     if (webcamPreview) {
-        webcamPreview.remove();
-        webcamPreview = null;
+        webcamPreview.pause();
+        webcamPreview.srcObject = null;
+        webcamPreview.classList.add('d-none');
+        // Do NOT remove from DOM and do NOT set to null
     }
 }
 
