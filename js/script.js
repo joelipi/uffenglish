@@ -380,7 +380,6 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
     }
 
     Media.pauseVideoIfPlaying();
-    clearPlaybackVideo(); // NEW: Stop and hide any existing recording playback
 
     clearMicStatusAndHideMedia();
     hideHints();
@@ -495,7 +494,7 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
                 button.innerHTML = '<i class="bi bi-mic-fill"></i>'; // Reset to mic icon
                 button.classList.remove('btn-danger', 'btn-danger-recording'); // Remove recording state colors
             }
-            
+
             return; // EXIT EARLY: No chat bubbles, no proceed
         }
 
