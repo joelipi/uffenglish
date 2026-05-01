@@ -111,7 +111,11 @@ export function safeRenderChatInterface(isAI, bodyContent) {
 
     // Append the new bubbles
     if (bodyContent) {
-        DOM.chatBody.insertAdjacentHTML('beforeend', bodyContent);
+        if (typeof bodyContent === 'string') {
+            DOM.chatBody.insertAdjacentHTML('beforeend', bodyContent);
+        } else if (bodyContent instanceof Node) {
+            DOM.chatBody.appendChild(bodyContent);
+        }
     }
 
     // Auto-scroll to bottom
@@ -184,15 +188,44 @@ export function createGrammarDiffHTML(original, correction, headingText = "") {
  */
 export function renderAIFeedback(contentChunks = []) {
     // Filter out empty strings and wrap each chunk in a bubble if not already wrapped
-    const html = contentChunks
+    const fragment = document.createDocumentFragment();
+    contentChunks
         .filter(Boolean)
-        .map(chunk => {
-            if (chunk.includes("chat-bubble")) return chunk;
-            return `<div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>${chunk}</div>`;
-        })
-        .join("");
+        .forEach(chunk => {
+            if (typeof chunk === 'string') {
+                if (chunk.includes("chat-bubble")) {
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = chunk;
+                    while (tempDiv.firstChild) {
+                        fragment.appendChild(tempDiv.firstChild);
+                    }
+                } else {
+                    const bubble = document.createElement('div');
+                    bubble.className = 'chat-bubble chat-msg';
+                    bubble.style.marginTop = '12px';
+                    bubble.style.display = 'block';
+                    bubble.innerHTML = chunk;
+                    fragment.appendChild(bubble);
+                }
+            } else if (chunk instanceof Node) {
+                // If it's already a node, ensure it has chat-bubble styling if appropriate, or just append it
+                if (chunk.nodeType === Node.ELEMENT_NODE && !chunk.classList.contains('chat-msg')) {
+                    // It's just a raw element, maybe we wrap it or trust the caller to have styled it.
+                    // The caller might be providing a fully constructed bubble.
+                    // If it doesn't have chat-bubble, we'll wrap it to maintain style.
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'chat-bubble chat-msg';
+                    wrapper.style.marginTop = '12px';
+                    wrapper.style.display = 'block';
+                    wrapper.appendChild(chunk);
+                    fragment.appendChild(wrapper);
+                } else {
+                    fragment.appendChild(chunk);
+                }
+            }
+        });
 
-    safeRenderChatInterface(true, html);
+    safeRenderChatInterface(true, fragment);
 }
 
 /**
@@ -294,8 +327,15 @@ export function clearMicStatusAndHideMedia() {
     if (DOM.mediaContainer) DOM.mediaContainer.classList.add('d-none');
 }
 
-export function setMicStatusText(text) {
-    if (DOM.micStatusText) DOM.micStatusText.innerHTML = text;
+export function setMicStatusText(content) {
+    if (DOM.micStatusText) {
+        DOM.micStatusText.innerHTML = '';
+        if (typeof content === 'string') {
+            DOM.micStatusText.innerHTML = content;
+        } else if (content instanceof Node) {
+            DOM.micStatusText.appendChild(content);
+        }
+    }
 }
 
 export function renderWhisperReviewUI(transcript, timeLeft, onAccept, onReject) {
@@ -826,10 +866,15 @@ export function resetAnswersContainer(html) {
     if (answersContainer) answersContainer.classList.remove("d-none");
 }
 
-export function renderSpeechInputUI(hintHTML, handleHintCallback, handleRevealClickCallback, toggleSpeechCallback) {
+export function renderSpeechInputUI(answerContent, handleHintCallback, handleRevealClickCallback, toggleSpeechCallback) {
     const hintUncommonWords = document.getElementById("hintUncommonWords");
     if (hintUncommonWords) {
-        hintUncommonWords.innerHTML = hintHTML;
+        hintUncommonWords.innerHTML = '';
+        if (typeof answerContent === 'string') {
+            hintUncommonWords.innerHTML = answerContent;
+        } else if (answerContent instanceof Node) {
+            hintUncommonWords.appendChild(answerContent);
+        }
         document.querySelectorAll('.pulse-dot').forEach(span => {
             // Need a wrapper to handle the callback and clean up event listener, but handleRevealClickCallback inside script.js does it already
             span.addEventListener('click', handleRevealClickCallback);
