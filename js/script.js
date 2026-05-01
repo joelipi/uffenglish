@@ -2,13 +2,15 @@
 import { clearSpeechRecordingsForLesson, updateSpeechRecording } from './modules/storage.js';
 
 // Initialize the background NLP Worker via blob URL to bypass service worker caching
+/*
 const workerResponse = await fetch('js/nlp-worker.js');
 const workerBlob = await workerResponse.blob();
 const workerObjectUrl = URL.createObjectURL(workerBlob);
 const aiWorker = new Worker(workerObjectUrl, { type: 'module' });
 let messageIdCounter = 0;
+*/
 let nlpModelsReady = false;
-
+/*
 // Crash/parse errors on the worker surface here instead of dying silently
 aiWorker.onerror = (e) => {
     console.error("❌ NLP Worker crashed or failed to load:", {
@@ -50,6 +52,7 @@ function askWorker(action, payload = {}, timeoutMs = 60000) {
 
 // REMOVE IN PRODUCTION
 window.askWorker = askWorker;
+*/
 
 // --- UI & Media Components (Root Directory) ---
 import { InteractiveVideoPlayer } from './video.js';
@@ -1381,6 +1384,7 @@ async function requestPersistentStorage() {
 }
 
 async function loadLocalModelsInBackground() {
+    /* --- NLP WORKER TEMPORARILY DISABLED ---
     try {
         console.log("⏳ Telling background worker to skip model boot...");
         await askWorker('LOAD_MODELS', {}, 3 * 60 * 1000); // 3 min timeout
@@ -1406,6 +1410,10 @@ async function loadLocalModelsInBackground() {
             console.error("❌ Worker never became ready. Falling back to Server API permanently.");
         }
     }
+    */
+
+    // Hardcode to true to allow idiomChecker to boot while NLP worker is disabled
+    nlpModelsReady = true;
 
     // 👉 SEQUENTIAL LOAD: Boot the idiom checker ONLY after the NLP worker is finished
     if (nlpModelsReady) {
