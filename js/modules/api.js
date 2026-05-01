@@ -75,11 +75,11 @@ export async function getDeepgramToken() {
   }
 }
 
-export async function checkGrammarWithAI(selectedAnswer) {
+export async function checkGrammarWithAI(selectedAnswer, questionData) {
   const aiEndpoint = 'https://nvidia-proxy.joel-1cb.workers.dev';
   try {
     console.log("🤖 AI Evaluation: Starting Grammar Check...");
-    const grammarPrompt = `Return ONLY "CORRECT" or the grammar-corrected sentence: ${selectedAnswer}`;
+    const grammarPrompt = `Find all the grammatical error(s) in this dialog, including if B does not agree with A in tense, number or gender. Return ONLY the grammar-corrected text of B's reply. If no errors, respond "CORRECT":  A: ${questionData.cue} B: ${selectedAnswer}`;
 
     const response = await fetch(aiEndpoint, {
       method: 'POST',
@@ -110,11 +110,14 @@ export async function checkGrammarWithAI(selectedAnswer) {
   }
 }
 
-export async function evaluateIntentWithAI(answerForIntentPass, questionData) {
+export async function evaluateIntentWithAI(answerForIntentPass, questionData, lessonData) {
   const aiEndpoint = 'https://nvidia-proxy.joel-1cb.workers.dev';
   try {
     console.log("🤖 AI Evaluation: Starting Intent Check...");
     const intentPrompt = `B's goal: ${questionData.mission || 'Respond appropriately'}.
+Setting: ${lessonData.setting?.en || ''}.
+A's role: ${lessonData.roleA?.en || ''}.
+B's role: ${lessonData.roleB?.en || ''}.
 "A: ${questionData.cue}
 B: ${answerForIntentPass}"
 Evaluate B's response. Return ONLY an array with 1 or more applicable labels: [pragmatic failure, too formal, too informal, rude, correct].`;

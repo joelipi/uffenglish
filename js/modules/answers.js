@@ -45,10 +45,10 @@ export async function processAnswerLogic({
         };
 
         // 1. Grammar Pass (Local fallback or AI)
-        const grammarResult = await checkGrammarWithAI(userResponse);
+        const grammarResult = await checkGrammarWithAI(userResponse, questionData);
         
         // 2. Intent Pass (AI)
-        const intentResult = await evaluateIntentWithAI(grammarResult.correctedText, questionData);
+        const intentResult = await evaluateIntentWithAI(grammarResult.correctedText, questionData, lesson);
         
         // --- BUSINESS LOGIC: Determine final state from raw results ---
         const isGrammarCorrect = grammarResult.isGrammarCorrect;

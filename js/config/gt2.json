@@ -16,6 +16,21 @@
         "es": "pedir una bebida",
         "pt": "pedir uma bebida"
       },
+      "setting": {
+        "en": "Fast food place",
+        "es": "lugar de comida rápida",
+        "pt": "lugar de fast food"
+      },
+      "roleA": {
+        "en": "Fast food worker",
+        "es": "Trabajador de comida rápida",
+        "pt": "Trabalhador de fast food"
+      },
+      "roleB": {
+        "en": "customer",
+        "es": "cliente",
+        "pt": "cliente"
+      },
       "questions": [
         {
           "cue": {
