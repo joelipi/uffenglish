@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en-US">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lesson | UFF English</title>
-<!--This is the main "single page app" of the app on which the user spends 95% of their time.-->
+  <!--This is the main "single page app" of the app on which the user spends 95% of their time.-->
   <!-- CDN Dependencies -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css">
@@ -12,17 +13,17 @@
   <link rel="stylesheet" href="style.css">
   <!-- Microsoft Clarity -->
   <script>
-    (function(c,l,a,r,i,t,y){
-      c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-      t=l.createElement(r); t.async=1; t.src="https://www.clarity.ms/tag/"+i+"?ref=wordpress";
-      y=l.getElementsByTagName(r)[0]; y.parentNode.insertBefore(t,y);
-    })(window,document,"clarity","script","qq9dqk1hjl");
+    (function (c, l, a, r, i, t, y) {
+      c[a] = c[a] || function () { (c[a].q = c[a].q || []).push(arguments) };
+      t = l.createElement(r); t.async = 1; t.src = "https://www.clarity.ms/tag/" + i + "?ref=wordpress";
+      y = l.getElementsByTagName(r)[0]; y.parentNode.insertBefore(t, y);
+    })(window, document, "clarity", "script", "qq9dqk1hjl");
   </script>
 
   <!-- Ybug feedback widget -->
   <script>
-    (function() {
-      window.ybug_settings = {"id": "z69gx22kp6h243vpdpjb"};
+    (function () {
+      window.ybug_settings = { "id": "z69gx22kp6h243vpdpjb" };
       var ybug = document.createElement('script');
       ybug.type = 'text/javascript'; ybug.async = true;
       ybug.src = 'https://widget.ybug.io/button/' + window.ybug_settings.id + '.js';
@@ -39,423 +40,438 @@
 
 <body>
 
-<!-- App Loading Screen -->
-<div id="appLoadingImageDiv">
-  <div class="appLoadingImage"></div>
-  <div id="ui-progress-container">
-    <div id="ui-progress-bar"></div>
+  <!-- App Loading Screen -->
+  <div id="appLoadingImageDiv">
+    <div class="appLoadingImage"></div>
+    <div id="ui-progress-container">
+      <div id="ui-progress-bar"></div>
+    </div>
+    <p id="ui-loading-text">Loading...</p>
   </div>
-  <p id="ui-loading-text">Loading...</p>
-</div>
 
-<!-- Preloader Logic -->
-<script>
-(function() {
-  window.preloadedMedia = {};
+  <!-- Preloader Logic -->
+  <script>
+    (function () {
+      window.preloadedMedia = {};
 
-  window.preloadLessonAssets = function(lessonData, buildVideoUrlFn) {
-    return new Promise(async (resolveApp) => {
-      let progress = 0;
-      const preloader = document.getElementById('appLoadingImageDiv');
-      const progressBar = document.getElementById('ui-progress-bar');
-      const loadingText = document.getElementById('ui-loading-text');
+      window.preloadLessonAssets = function (lessonData, buildVideoUrlFn) {
+        return new Promise(async (resolveApp) => {
+          let progress = 0;
+          const preloader = document.getElementById('appLoadingImageDiv');
+          const progressBar = document.getElementById('ui-progress-bar');
+          const loadingText = document.getElementById('ui-loading-text');
 
-      const progressInterval = setInterval(() => {
-        progress += (95 - progress) * 0.05;
-        if (progressBar) progressBar.style.width = progress + '%';
-      }, 100);
+          const progressInterval = setInterval(() => {
+            progress += (95 - progress) * 0.05;
+            if (progressBar) progressBar.style.width = progress + '%';
+          }, 100);
 
-      try {
-        if (lessonData?.questions && lessonData.questions[0]) {
-          const firstQ = lessonData.questions[0];
-          const slugToWarm = firstQ.videoUrl || firstQ.simpleVideoUrl || firstQ.introBackgroundVideoUrl;
-          if (slugToWarm) fetch(buildVideoUrlFn(slugToWarm)).catch(() => {});
-        }
+          try {
+            if (lessonData?.questions && lessonData.questions[0]) {
+              const firstQ = lessonData.questions[0];
+              const slugToWarm = firstQ.videoUrl || firstQ.simpleVideoUrl || firstQ.introBackgroundVideoUrl;
+              if (slugToWarm) fetch(buildVideoUrlFn(slugToWarm)).catch(() => { });
+            }
 
-        const imageUrls = [
-          'assets/img/header.png',
-          'assets/img/teacherprofile.png',
-          'assets/img/party-brain.webp'
-        ];
+            const imageUrls = [
+              'assets/img/header.png',
+              'assets/img/teacherprofile.png',
+              'assets/img/party-brain.webp'
+            ];
 
-        const imagePromises = imageUrls.map(url => new Promise(resolve => {
-          const img = new Image();
-          img.onload = resolve; img.onerror = resolve;
-          img.src = url;
-        }));
+            const imagePromises = imageUrls.map(url => new Promise(resolve => {
+              const img = new Image();
+              img.onload = resolve; img.onerror = resolve;
+              img.src = url;
+            }));
 
-        await Promise.race([Promise.all(imagePromises), new Promise(resolve => setTimeout(resolve, 1500))]);
+            await Promise.race([Promise.all(imagePromises), new Promise(resolve => setTimeout(resolve, 1500))]);
 
-        clearInterval(progressInterval);
-        if (progressBar) progressBar.style.width = '100%';
-        if (loadingText) loadingText.innerText = 'Ready!';
+            clearInterval(progressInterval);
+            if (progressBar) progressBar.style.width = '100%';
+            if (loadingText) loadingText.innerText = 'Ready!';
 
-        setTimeout(() => {
-          if (preloader) preloader.style.display = 'none';
-          resolveApp();
-        }, 250);
+            setTimeout(() => {
+              if (preloader) preloader.style.display = 'none';
+              resolveApp();
+            }, 250);
 
-      } catch (error) {
-        console.error("Failsafe unlocked preloader:", error);
-        clearInterval(progressInterval);
-        if (preloader) preloader.style.display = 'none';
-        resolveApp();
-      }
-    });
-  };
-})();
-</script>
+          } catch (error) {
+            console.error("Failsafe unlocked preloader:", error);
+            clearInterval(progressInterval);
+            if (preloader) preloader.style.display = 'none';
+            resolveApp();
+          }
+        });
+      };
+    })();
+  </script>
 
-<!-- Overlay Nav Menu -->
-<div class="overlay-menu" id="overlayMenu">
-  <button class="overlay-close" onclick="toggleMenu()">&times;</button>
-  <ul>
-    <li><a href="#about" onclick="toggleMenu()">About</a></li>
-    <li><a href="#" onclick="toggleMenu()" data-bs-toggle="modal" data-bs-target="#returnPolicyModal">Return Policy</a></li>
-    <li><a href="#signup" onclick="toggleMenu()">Sign Up</a></li>
-  </ul>
-</div>
+  <!-- Overlay Nav Menu -->
+  <div class="overlay-menu" id="overlayMenu">
+    <button class="overlay-close" onclick="toggleMenu()">&times;</button>
+    <ul>
+      <li><a href="#about" onclick="toggleMenu()">About</a></li>
+      <li><a href="#" onclick="toggleMenu()" data-bs-toggle="modal" data-bs-target="#returnPolicyModal">Return
+          Policy</a></li>
+      <li><a href="#signup" onclick="toggleMenu()">Sign Up</a></li>
+    </ul>
+  </div>
 
-<!-- Main App -->
-<div id="app">
-  <div class="container">
+  <!-- Main App -->
+  <div id="app">
+    <div class="container">
 
-    <div id="lesson-header">
+      <div id="lesson-header">
 
-      <!-- Wide Header: Logo + Hamburger -->
-      <div id="lessonIntroHeader">
-        <div id="wideHeader" class="d-flex justify-content-between align-items-center">
-          <img src="assets/img/header.png" id="uffposter" alt="">
-          <div class="flex-grow-1 mx-1"></div>
-          <div class="d-flex align-items-center hamburger-container">
-            <button class="hamburger-btn" onclick="toggleMenu();">
-              <div class="hamburger-icon">
-                <span></span><span></span><span></span>
+        <!-- Wide Header: Logo + Hamburger -->
+        <div id="lessonIntroHeader">
+          <div id="wideHeader" class="d-flex justify-content-between align-items-center">
+            <img src="assets/img/header.png" id="uffposter" alt="">
+            <div class="flex-grow-1 mx-1"></div>
+            <div class="d-flex align-items-center hamburger-container">
+              <button class="hamburger-btn" onclick="toggleMenu();">
+                <div class="hamburger-icon">
+                  <span></span><span></span><span></span>
+                </div>
+              </button>
+            </div>
+          </div>
+          <div class="lesson-title lesson-title-header"></div>
+        </div>
+
+        <!-- Progress Bar Header (shown during lesson) -->
+        <div id="closeAndProgress" class="d-flex justify-content-between align-items-center d-none">
+          <a href="lesson.html" id="closePage" class="d-flex align-items-center text-decoration-none">
+            <i class="bi bi-x-lg"></i>
+          </a>
+          <div class="flex-grow-1 mx-1">
+            <div id="progress" class="progress">
+              <div id="progress-bar" class="progress-bar" role="progressbar"></div>
+            </div>
+          </div>
+          <div class="d-flex align-items-center text-white gap-3 stats-container">
+            <div title="Total Days Learned">
+              <i class="bi bi-trophy-fill"></i>
+              <span id="dayCountSpan">0</span>
+            </div>
+            <div title="Current Daily Streak">
+              <i class="bi bi-fire"></i>
+              <span id="streakCountSpan">0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scores and Hearts (shown during lesson) -->
+        <div id="scoresAndHearts" class="d-none d-flex justify-content-between align-items-center ps-2">
+          <div id="currentScoreContainer" class="scoreHeader score text-center">
+            <div>
+              <span class="score-label">LISTENING</span><br>
+              <span id="currentScore" class="scoreNumber">100</span>%
+            </div>
+          </div>
+          <div class="flex-grow-1 mx-1">
+            <div class="lesson-title lesson-title-main">Daily Challenge</div>
+            <div id="heartsContainer" class="text-center">
+              <span id="heart1"><i class="bi bi-heart-fill text-white"></i></span>
+              <span id="heart3"><i class="bi bi-heart-fill text-white"></i></span>
+              <span id="heart2"><i class="bi bi-heart-fill text-white"></i></span>
+            </div>
+          </div>
+          <div id="phrasesScoreContainer" class="scoreHeader score text-center">
+            <div>
+              <span class="score-label" id="phrasesScoreLabel">SPEAKING</span><br>
+              <span id="phrasesScore" class="scoreNumber">__</span>%
+            </div>
+          </div>
+        </div>
+
+      </div><!-- end #lesson-header -->
+
+      <!-- Main Content Row -->
+      <div class="container" id="container">
+        <div class="row">
+
+          <!-- Left Column: Media -->
+          <div id="media-container-container1" class="col-12 col-xl-7 mb-1">
+            <div id="playback-video-mobile-container" class="playback-video-container">
+              <video id="playback-video-mobile" playsinline controls preload="auto"></video>
+              <button id="playback-mute-toggle-mobile" class="playback-mute-toggle d-none"><i
+                  class="bi bi-volume-up-fill"></i></button>
+            </div>
+            <div id="speech-text-here" class="card border-dark p-0 d-none">
+              <div class="card-header text-white p-0 card-header-custom">
+                <div class="d-flex align-items-center p-3">
+
+                  <video id="chat-avatar-ai" autoplay loop muted playsinline
+                    class="rounded-circle me-3 d-none chat-avatar">
+                    <source src="assets/img/avatar-ai.mp4" type="video/mp4">
+                  </video>
+                  <div id="chat-name-ai" class="d-none">
+                    Prof FluIntel <div class="mt-1"><small>UFF Artificial Intelligence</small></div>
+                  </div>
+
+                  <img id="chat-avatar-human" src="assets/img/teacherprofile.png" alt=""
+                    class="rounded-circle me-3 d-none chat-avatar">
+                  <div id="chat-name-human" class="d-none">
+                    Prof. Joe Walsh<div class="mt-1"><small>English Fluency Coach, UFF</small></div>
+                  </div>
+
+                </div>
               </div>
-            </button>
-          </div>
-        </div>
-        <div class="lesson-title lesson-title-header"></div>
-      </div>
 
-      <!-- Progress Bar Header (shown during lesson) -->
-      <div id="closeAndProgress" class="d-flex justify-content-between align-items-center d-none">
-        <a href="lesson.html" id="closePage" class="d-flex align-items-center text-decoration-none">
-          <i class="bi bi-x-lg"></i>
-        </a>
-        <div class="flex-grow-1 mx-1">
-          <div id="progress" class="progress">
-            <div id="progress-bar" class="progress-bar" role="progressbar"></div>
-          </div>
-        </div>
-        <div class="d-flex align-items-center text-white gap-3 stats-container">
-          <div title="Total Days Learned">
-            <i class="bi bi-trophy-fill"></i>
-            <span id="dayCountSpan">0</span>
-          </div>
-          <div title="Current Daily Streak">
-            <i class="bi bi-fire"></i>
-            <span id="streakCountSpan">0</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Scores and Hearts (shown during lesson) -->
-      <div id="scoresAndHearts" class="d-none d-flex justify-content-between align-items-center ps-2">
-        <div id="currentScoreContainer" class="scoreHeader score text-center">
-          <div>
-            <span class="score-label">LISTENING</span><br>
-            <span id="currentScore" class="scoreNumber">100</span>%
-          </div>
-        </div>
-        <div class="flex-grow-1 mx-1">
-          <div class="lesson-title lesson-title-main">Daily Challenge</div>
-          <div id="heartsContainer" class="text-center">
-            <span id="heart1"><i class="bi bi-heart-fill text-white"></i></span>
-            <span id="heart3"><i class="bi bi-heart-fill text-white"></i></span>
-            <span id="heart2"><i class="bi bi-heart-fill text-white"></i></span>
-          </div>
-        </div>
-        <div id="phrasesScoreContainer" class="scoreHeader score text-center">
-          <div>
-            <span class="score-label" id="phrasesScoreLabel">SPEAKING</span><br>
-            <span id="phrasesScore" class="scoreNumber">__</span>%
-          </div>
-        </div>
-      </div>
-
-    </div><!-- end #lesson-header -->
-
-    <!-- Main Content Row -->
-    <div class="container" id="container">
-      <div class="row">
-
-        <!-- Left Column: Media -->
-        <div id="media-container-container1" class="col-12 col-xl-7 mb-1">
-          <div id="playback-video-mobile-container" class="playback-video-container">
-            <video id="playback-video-mobile" playsinline controls preload="auto"></video>
-            <button id="playback-mute-toggle-mobile" class="playback-mute-toggle d-none"><i class="bi bi-volume-up-fill"></i></button>
-          </div>
-          <div id="speech-text-here" class="card border-dark p-0 d-none">
-            <div class="card-header text-white p-0 card-header-custom">
-              <div class="d-flex align-items-center p-3">
-                
-                <video id="chat-avatar-ai" autoplay loop muted playsinline class="rounded-circle me-3 d-none chat-avatar">
-                  <source src="assets/img/avatar-ai.mp4" type="video/mp4">
-                </video>
-                <div id="chat-name-ai" class="d-none">
-                  Prof FluIntel <div class="mt-1"><small>UFF Artificial Intelligence</small></div>
-                </div>
-
-                <img id="chat-avatar-human" src="assets/img/teacherprofile.png" alt="" class="rounded-circle me-3 d-none chat-avatar">
-                <div id="chat-name-human" class="d-none">
-                  Prof. Joe Walsh<div class="mt-1"><small>English Fluency Coach, UFF</small></div>
-                </div>
-
+              <div id="chat-messenger-body" class="card-body messenger-body text-dark">
               </div>
             </div>
 
-            <div id="chat-messenger-body" class="card-body messenger-body text-dark">
-              </div>
-          </div>
-
-          <div id="media-container-container">
-            <div id="media-container">
-              <div id="ivp-container">
-                <div class="ivp-main-wrapper loading" id="ivp-main-wrapper">
-                  <div class="ivp-video-wrapper">
-                    <video class="ivp-video" playsinline crossorigin="anonymous"></video>
-                    <div class="ivp-blur-overlay"></div>
-                    <div class="ivp-subtitles"></div>
+            <div id="media-container-container">
+              <div id="media-container">
+                <div id="ivp-container">
+                  <div class="ivp-main-wrapper loading" id="ivp-main-wrapper">
+                    <div class="ivp-video-wrapper">
+                      <video class="ivp-video" playsinline crossorigin="anonymous"></video>
+                      <div class="ivp-blur-overlay"></div>
+                      <div class="ivp-subtitles"></div>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div id="simple-ivp-container"></div>
-              <div id="intro-call-widget" class="intro-video-wrapper d-none">
-                
-                <div class="pulse-ring-wrapper">
-                  <div class="pulse-ring"></div>
-                  
-                  <div class="intro-video-container ringing-animation">
-                    <video class="intro-video" playsinline preload="auto" crossorigin="anonymous" muted></video>
-                    <div class="intro-notification-content">
-                      <div class="intro-notification-top">
-                        <div class="intro-call-title">
-                          <i class="bi bi-camera-video-fill text-info"></i>
-                          <span id="intro-title">Ringing...</span>
+                <div id="simple-ivp-container"></div>
+                <div id="intro-call-widget" class="intro-video-wrapper d-none">
+
+                  <div class="pulse-ring-wrapper">
+                    <div class="pulse-ring"></div>
+
+                    <div class="intro-video-container ringing-animation">
+                      <video class="intro-video" playsinline preload="auto" crossorigin="anonymous" muted></video>
+                      <div class="intro-notification-content">
+                        <div class="intro-notification-top">
+                          <div class="intro-call-title">
+                            <i class="bi bi-camera-video-fill text-info"></i>
+                            <span id="intro-title">Ringing...</span>
+                          </div>
+                          <div class="intro-call-subtitle"><span lang="es"><i id="intro-subtitle"></i></span></div>
                         </div>
-                        <div class="intro-call-subtitle"><span lang="es"><i id="intro-subtitle"></i></span></div>
-                      </div>
-                      <div class="intro-notification-bottom">
-                        <div class="intro-caller-name" id="intro-name">Joe Walsh</div>
-                        <div class="intro-caller-title" id="intro-role">English Coach, UFF</div>
+                        <div class="intro-notification-bottom">
+                          <div class="intro-caller-name" id="intro-name">Joe Walsh</div>
+                          <div class="intro-caller-title" id="intro-role">English Coach, UFF</div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div> </div>
-            </div>
-
-            <!-- Post-lesson Success Buttons -->
-            <div id="big-buttons" class="d-flex justify-content-center mt-0 mb-5 big-buttons d-none">
-              <h3>Agrega tu video a redes con #uffenglish y ver cómo otros estudiantes han respondido a este video</h3>
-              <button id="shareMp4Btn" class="d-none">Agrega a redes</button>
-              <h3>Repetir esta lección a ver si puedes mejorar tu Fluency Score</h3>
-              <button id="repeatBtnSuccess" class="repeat-btn">Repeat</button>
-              <h3>¡Comparte esta lección con un amigo y compara Fluency Scores!</h3>
-              <button id="shareFriend">Comparte</button>
-              <br>
-              <h2>Has ganado 1 frase <br><b class="bi bi-gem"></b></h2>
-              <h3>¡No pierdas tu progreso!</h3>
-              <p class="text-white">Guarda Tu Progreso, Ser Notificado de Lecciones Gratuitas Nuevas, Recordar las frases dominadas con repasos puntuales, y Agrega la App a Tu Pantalla de Inicio</p>
-              <button id="logIn" onclick="window.location.href='/membership-join/membership-registration/'">Comenzar aquí</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right Column: Questions + Course Progress -->
-        <div id="questions-container-container" class="col-12 col-xl-5 mb-2">
-          <div id="playback-video-desktop-container" class="playback-video-container">
-            <video id="playback-video-desktop" playsinline controls preload="auto"></video>
-            <button id="playback-mute-toggle-desktop" class="playback-mute-toggle d-none"><i class="bi bi-volume-up-fill"></i></button>
-          </div>
-          <video id="originalVideo" src="" class="d-none"></video>
-          <video id="resultVideo"></video>
-          <a id="downloadLink" class="d-none">Download</a>
-          <canvas id="videoCanvas" class="d-none"></canvas>
-          <img id="overlayImage" src="assets/img/header.png" class="d-none">
-
-          <div id="answerDiv" class="card-wrapper d-none">
-            <div class="card info-card">
-              <div class="card-header bg-dark text-white" id="cue"></div>
-              <div class="card-body">
-                <p class="info-content" id="translation"></p>
-                <p class="info-content" id="explanation"></p>
-              </div>
-            </div>
-          </div>
-
-          <div id="courseProgress" class="d-none card border-dark mb-3 p-0">
-            <div class="card-header text-white p-0 card-header-custom" id="correct">
-              <div class="d-flex align-items-center p-3">
-                <img src="assets/img/teacherprofile.png" alt="" class="rounded-circle me-3 chat-avatar">
-                <div>Prof. Joe Walsh<div class="mt-1"><small>English Fluency Coach, UFF</small></div></div>
-              </div>
-            </div>
-            <div id="fail-media" class="d-none"></div>
-            <div class="card-body messenger-body text-dark">
-              <div id="success-media" class="d-none">
-                <div class="text-center mb-3">
-                  <img src="assets/img/party-brain.webp" width="250px" alt="">
                 </div>
               </div>
-              <p class="chat-bubble">💯 Lesson complete! ¡Lección completada!</p>
-              <div class="chat-bubble">
-                <p class="nextHeadsup">Puedes repetir <i class="bi bi-arrow-counterclockwise"></i> esta lección o continuar <i class="bi bi-chevron-right"></i> a la próxima pulsando uno de los botones abajo.</p>
+
+              <!-- Post-lesson Success Buttons -->
+              <div id="big-buttons" class="d-flex justify-content-center mt-0 mb-5 big-buttons d-none">
+                <h3>Agrega tu video a redes con #uffenglish y ver cómo otros estudiantes han respondido a este video
+                </h3>
+                <button id="shareMp4Btn" class="d-none">Agrega a redes</button>
+                <h3>Repetir esta lección a ver si puedes mejorar tu Fluency Score</h3>
+                <button id="repeatBtnSuccess" class="repeat-btn">Repeat</button>
+                <h3>¡Comparte esta lección con un amigo y compara Fluency Scores!</h3>
+                <button id="shareFriend">Comparte</button>
+                <br>
+                <h2>Has ganado 1 frase <br><b class="bi bi-gem"></b></h2>
+                <h3>¡No pierdas tu progreso!</h3>
+                <p class="text-white">Guarda Tu Progreso, Ser Notificado de Lecciones Gratuitas Nuevas, Recordar las
+                  frases dominadas con repasos puntuales, y Agrega la App a Tu Pantalla de Inicio</p>
+                <button id="logIn" onclick="window.location.href='/membership-join/membership-registration/'">Comenzar
+                  aquí</button>
               </div>
             </div>
           </div>
 
-          <div id="hints" class="d-none card">
-            <p class="info-content" id="hintUncommonWords"></p>
+          <!-- Right Column: Questions + Course Progress -->
+          <div id="questions-container-container" class="col-12 col-xl-5 mb-2">
+            <div id="playback-video-desktop-container" class="playback-video-container">
+              <video id="playback-video-desktop" playsinline controls preload="auto"></video>
+              <button id="playback-mute-toggle-desktop" class="playback-mute-toggle d-none"><i
+                  class="bi bi-volume-up-fill"></i></button>
+            </div>
+            <video id="originalVideo" src="" class="d-none"></video>
+            <video id="resultVideo"></video>
+            <a id="downloadLink" class="d-none">Download</a>
+            <canvas id="videoCanvas" class="d-none"></canvas>
+            <img id="overlayImage" src="assets/img/header.png" class="d-none">
+
+            <div id="answerDiv" class="card-wrapper d-none">
+              <div class="card info-card">
+                <div class="card-header bg-dark text-white" id="cue"></div>
+                <div class="card-body">
+                  <p class="info-content" id="translation"></p>
+                  <p class="info-content" id="explanation"></p>
+                </div>
+              </div>
+            </div>
+
+            <div id="courseProgress" class="d-none card border-dark mb-3 p-0">
+              <div class="card-header text-white p-0 card-header-custom" id="correct">
+                <div class="d-flex align-items-center p-3">
+                  <img src="assets/img/teacherprofile.png" alt="" class="rounded-circle me-3 chat-avatar">
+                  <div>Prof. Joe Walsh<div class="mt-1"><small>English Fluency Coach, UFF</small></div>
+                  </div>
+                </div>
+              </div>
+              <div id="fail-media" class="d-none"></div>
+              <div class="card-body messenger-body text-dark">
+                <div id="success-media" class="d-none">
+                  <div class="text-center mb-3">
+                    <img src="assets/img/party-brain.webp" width="250px" alt="">
+                  </div>
+                </div>
+                <p class="chat-bubble">💯 Lesson complete! ¡Lección completada!</p>
+                <div class="chat-bubble">
+                  <p class="nextHeadsup">Puedes repetir <i class="bi bi-arrow-counterclockwise"></i> esta lección o
+                    continuar <i class="bi bi-chevron-right"></i> a la próxima pulsando uno de los botones abajo.</p>
+                </div>
+              </div>
+            </div>
+
+            <div id="hints" class="d-none card">
+              <p class="info-content" id="hintUncommonWords"></p>
+            </div>
+
+            <div id="questions-container"></div>
           </div>
 
-          <div id="questions-container"></div>
         </div>
-
       </div>
-    </div>
 
+    </div>
+  </div><!-- end #app -->
+
+  <!-- Arrow Indicator -->
+  <div id="arrow-container" class="d-none">
+    <div class="arrow"></div>
   </div>
-</div><!-- end #app -->
 
-<!-- Arrow Indicator -->
-<div id="arrow-container" class="d-none">
-  <div class="arrow"></div>
-</div>
-
-<!-- Fixed Footer Controls -->
-<footer>
-  <div id="controls" class="fixed-bottom bg-dark p-1">
-    <div id="micStatusText" class="d-flex justify-content-center align-items-center"></div>
-    <div id="bottomButtonBar" class="d-flex justify-content-center gap-2 align-items-center">
-      <div id="bottomButtonBarLeft" class="me-auto ms-3"></div>
-      <div id="bottomButtonBarCenter" class="position-absolute start-50 translate-middle-x"></div>
-      <button id="supportButton" class="d-none btn bg-transparent text-white border-0 ms-auto me-3" data-bs-toggle="modal" data-bs-target="#chatModal">
-        <i class="bi bi-chat-fill"></i>
-      </button>
-    </div>
-    <div id="bottomButtonBarSuccess" class="d-flex justify-content-center gap-2 align-items-center d-none">
-      <div id="bottomButtonBarLeft" class="me-auto ms-3"></div>
-      <div id="bottomButtonBarCenterSuccess" class="position-absolute start-50 translate-middle-x">
-        <button id="processBtn" class="btn btn-primary">
-          <strong class="bi bi-award-fill text-white"></strong>
+  <!-- Fixed Footer Controls -->
+  <footer>
+    <div id="controls" class="fixed-bottom bg-dark p-1">
+      <div id="micStatusText" class="d-flex justify-content-center align-items-center"></div>
+      <div id="bottomButtonBar" class="d-flex justify-content-center gap-2 align-items-center">
+        <div id="bottomButtonBarLeft" class="me-auto ms-3"></div>
+        <div id="bottomButtonBarCenter" class="position-absolute start-50 translate-middle-x"></div>
+        <button id="supportButton" class="d-none btn bg-transparent text-white border-0 ms-auto me-3"
+          data-bs-toggle="modal" data-bs-target="#chatModal">
+          <i class="bi bi-chat-fill"></i>
         </button>
       </div>
-    </div>
-  </div>
-
-  <!-- WhatsApp Support Modal -->
-  <div class="modal fade" id="chatModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <button class="btn btn-success" onclick="window.location.href='https://api.whatsapp.com/send/?phone=16179030597&text=app_support'">
-            <i class="bi bi-whatsapp"></i> Soporte Técnico por Whatsapp
+      <div id="bottomButtonBarSuccess" class="d-flex justify-content-center gap-2 align-items-center d-none">
+        <div id="bottomButtonBarLeft" class="me-auto ms-3"></div>
+        <div id="bottomButtonBarCenterSuccess" class="position-absolute start-50 translate-middle-x">
+          <button id="processBtn" class="btn btn-primary">
+            <strong class="bi bi-award-fill text-white"></strong>
           </button>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- AI Paywall Modal -->
-  <div class="modal fade" id="aiApologyModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <h3>Solo se pueden chatear con el tutor de inglés IA, Fluintel, los estudiantes pagados.</h3>
-          <h4>Lo siento, es necesario porque el costo de la integración del chat con la inteligencia artificial es alto.</h4>
-          <button class="btn btn-success" onclick="window.location.href='https://api.whatsapp.com/send/?phone=16179030597&text=app_support'">
-            <i class="bi bi-whatsapp"></i> Soporte Técnico por Whatsapp
-          </button>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+    <!-- WhatsApp Support Modal -->
+    <div class="modal fade" id="chatModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <button class="btn btn-success"
+              onclick="window.location.href='https://api.whatsapp.com/send/?phone=16179030597&text=app_support'">
+              <i class="bi bi-whatsapp"></i> Soporte Técnico por Whatsapp
+            </button>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
+
+    <!-- AI Paywall Modal -->
+    <div class="modal fade" id="aiApologyModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <h3>Solo se pueden chatear con el tutor de inglés IA, Fluintel, los estudiantes pagados.</h3>
+            <h4>Lo siento, es necesario porque el costo de la integración del chat con la inteligencia artificial es
+              alto.</h4>
+            <button class="btn btn-success"
+              onclick="window.location.href='https://api.whatsapp.com/send/?phone=16179030597&text=app_support'">
+              <i class="bi bi-whatsapp"></i> Soporte Técnico por Whatsapp
+            </button>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
 
 
-</footer>
+  </footer>
 
-<!-- Hamburger Toggle Script -->
-<script>
-  function toggleMenu() {
-    const menu = document.getElementById('overlayMenu');
-    menu.classList.toggle('active');
-    document.body.style.overflow = menu.classList.contains('active') ? 'hidden' : '';
-  }
-
-  document.addEventListener('click', function(event) {
-    const menu = document.getElementById('overlayMenu');
-    const hamburger = document.querySelector('.hamburger-btn');
-    if (menu.classList.contains('active') && !menu.contains(event.target) && !hamburger.contains(event.target)) {
-      menu.classList.remove('active');
-      document.body.style.overflow = '';
+  <!-- Hamburger Toggle Script -->
+  <script>
+    function toggleMenu() {
+      const menu = document.getElementById('overlayMenu');
+      menu.classList.toggle('active');
+      document.body.style.overflow = menu.classList.contains('active') ? 'hidden' : '';
     }
-  });
-</script>
 
-<!-- User Day Restriction Logic -->
-<script>
-  function setupUserDayRestrictions() {
-    if (typeof wp_user_data !== 'undefined' && wp_user_data.days_since_registration !== undefined) {
-      const days = wp_user_data.days_since_registration;
-      document.body.classList.add(`user-day-${days}`);
-      document.querySelectorAll('[class*="day-"][class*="-content"]').forEach(el => el.style.display = 'none');
-      for (let i = 0; i <= days; i++) {
-        document.querySelectorAll(`.day-${i}-content`).forEach(el => el.style.display = 'block');
+    document.addEventListener('click', function (event) {
+      const menu = document.getElementById('overlayMenu');
+      const hamburger = document.querySelector('.hamburger-btn');
+      if (menu.classList.contains('active') && !menu.contains(event.target) && !hamburger.contains(event.target)) {
+        menu.classList.remove('active');
+        document.body.style.overflow = '';
       }
-      handleDaySpecificLogic(days);
-    } else {
-      document.body.classList.add('user-day-guest');
-      document.querySelectorAll('[class*="day-"][class*="-content"]').forEach(el => el.style.display = 'none');
+    });
+  </script>
+
+  <!-- User Day Restriction Logic -->
+  <script>
+    function setupUserDayRestrictions() {
+      if (typeof wp_user_data !== 'undefined' && wp_user_data.days_since_registration !== undefined) {
+        const days = wp_user_data.days_since_registration;
+        document.body.classList.add(`user-day-${days}`);
+        document.querySelectorAll('[class*="day-"][class*="-content"]').forEach(el => el.style.display = 'none');
+        for (let i = 0; i <= days; i++) {
+          document.querySelectorAll(`.day-${i}-content`).forEach(el => el.style.display = 'block');
+        }
+        handleDaySpecificLogic(days);
+      } else {
+        document.body.classList.add('user-day-guest');
+        document.querySelectorAll('[class*="day-"][class*="-content"]').forEach(el => el.style.display = 'none');
+      }
     }
-  }
 
-  function handleDaySpecificLogic(days) {
-    const elementsToHide = [];
-    switch(days) {
-      case 0: elementsToHide.push('.premium-feature', '.advanced-content'); break;
-      case 1: elementsToHide.push('.premium-feature'); break;
-      case 2: elementsToHide.push('.complex-feature'); break;
+    function handleDaySpecificLogic(days) {
+      const elementsToHide = [];
+      switch (days) {
+        case 0: elementsToHide.push('.premium-feature', '.advanced-content'); break;
+        case 1: elementsToHide.push('.premium-feature'); break;
+        case 2: elementsToHide.push('.complex-feature'); break;
+      }
+      if (elementsToHide.length > 0) {
+        document.querySelectorAll(elementsToHide.join(',')).forEach(el => el.style.display = 'none');
+      }
     }
-    if (elementsToHide.length > 0) {
-      document.querySelectorAll(elementsToHide.join(',')).forEach(el => el.style.display = 'none');
-    }
-  }
 
-  document.addEventListener('DOMContentLoaded', setupUserDayRestrictions);
-</script>
+    document.addEventListener('DOMContentLoaded', setupUserDayRestrictions);
+  </script>
 
-<!-- App Dependencies (from WordPress) -->
-<!-- DO NOT UPDATE THIS CODE OR THESE WORDPRESS URLS. I AM KEEPINIG WORDPRESS AS A KIND OF BACKEND FOR SOME THINGS SUCH AS THIS; IT IS STILL HOSTED ON THE DOMAIN ROOT EVEN THOUGH THE USER NEVER SEES IT.-->
+  <!-- App Dependencies (from WordPress) -->
+  <!-- DO NOT UPDATE THIS CODE OR THESE WORDPRESS URLS. I AM KEEPINIG WORDPRESS AS A KIND OF BACKEND FOR SOME THINGS SUCH AS THIS; IT IS STILL HOSTED ON THE DOMAIN ROOT EVEN THOUGH THE USER NEVER SEES IT.-->
 
-    <!-- OneSignal -->
+  <!-- OneSignal -->
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script>
     window.OneSignalDeferred = window.OneSignalDeferred || [];
-    OneSignalDeferred.push(async function(OneSignal) {
+    OneSignalDeferred.push(async function (OneSignal) {
       await OneSignal.init({
         appId: "064c0eb9-49d5-446f-b281-3eb3de310fdd",
         serviceWorkerOverrideForTypical: true,
@@ -481,91 +497,92 @@
 
   <!-- Meow AI Chatbot (injected by WordPress REST API) -->
   <!-- TODO: Replace data-params below with values from your live WordPress instance -->
+  <!-- // NOT SURE WHAT THE NEW CHATBOT WILL HAVE OR IF IT WILL JUST BE A SUPPORT WIDGET OR WHAT, BUT THE WORDPRES PLUGIN IS FUNDAMENTALLY NOT SCALABLE BECAUSE WORDPRESS
   <div class="mwai-chatbot-container"
     data-params='{"aiName":"Prof. Fluintel, UFF AI","userName":"User: ","guestName":"Guest:","aiAvatar":1,"userAvatar":1,"guestAvatar":1,"aiAvatarUrl":"assets/img/ai-avatar.png","guestAvatarUrl":"chat-nyao-1.svg","textSend":"Send","textClear":"Clear","imageUpload":false,"fileUpload":false,"multiUpload":false,"maxUploads":1,"fileUploads":0,"mode":"chat","textInputPlaceholder":"Type your message...","textInputMaxLength":512,"textCompliance":"","startSentence":"Hi! Hola! Haz me tus preguntas sobre el ingl\u00e9s. No olvides pegar cualquier texto relevante, pues, no veo lo que est\u00e1 en la app. No puedo ofrecer soporte t\u00e9cnico, tampoco s\u00e9 sobre las funciones de esta app.","localMemory":true,"themeId":"timeless","window":true,"icon":"assets/img/ai-avatar.png","iconText":"","iconTextDelay":1,"iconAlt":"AI Engine Chatbot","iconPosition":"bottom-right","centerOpen":false,"width":"","openDelay":"","iconBubble":false,"windowAnimation":"zoom","fullscreen":true,"copyButton":true,"headerSubtitle":"","containerType":"standard","headerType":"standard","messagesType":"standard","inputType":"standard","footerType":"standard"}'
     data-system='{"botId":"default","customId":null,"userData":null,"sessionId":"N/A","restNonce":null,"contextId":426,"pluginUrl":"https://ultrafastfluency.com/wp-content/plugins/ai-engine","restUrl":"/wp-json","stream":true,"debugMode":true,"eventLogs":true,"speech_recognition":false,"speech_synthesis":false,"typewriter":false,"crossSite":false,"actions":[],"blocks":[],"shortcuts":[]}'
     data-theme='{"type":"internal","name":"Timeless","themeId":"timeless","settings":{"backgroundAiColor":"#ffffff","backgroundUserColor":"#000000","backgroundPrimaryColor":"#ffffff","backgroundAiSecondaryColor":"#000","width":"80vh","maxHeight":"90vh","borderRadius":"2px","backgroundHeaderColor":"#1a3a5a","fontSize":"16px","fontColor":"#000000","headerButtonsColor":"#ffffff ","iconTextBackgroundColor":"#343541","iconTextColor":"#343541"},"style":"","cssUrl":"https://ultrafastfluency.com/wp-content/plugins/ai-engine/themes/timeless.css"}'>
-  </div>
+  </div>-->
 
-<script src="https://ultrafastfluency.com/wp-content/plugins/api-key-manager/cryptojs-aes.min.js"></script>
-<script src="https://ultrafastfluency.com/wp-content/plugins/api-key-manager/cryptojs-aes-format.js"></script>
-<script>
-  var MyAjax = {"ajaxurl":"/wp-admin/admin-ajax.php","jsondata":"{\"ct\":\"OcWrpvJ\\/zAfSiXkmeT\\/uqTUqM7ukiHAvLoUIagJpp4dhr7Pb\\/dLwgCsABrGX495nJ15fisZk7E8IVE+1hwrYVQ==\",\"iv\":\"87ad3e409a30d43265b3ae164d81e503\",\"s\":\"7fd345b1bc88d6f2\"}"};
-</script>
-<script src="https://ultrafastfluency.com/wp-content/plugins/api-key-manager/script.js"></script>
+  <script src="https://ultrafastfluency.com/wp-content/plugins/api-key-manager/cryptojs-aes.min.js"></script>
+  <script src="https://ultrafastfluency.com/wp-content/plugins/api-key-manager/cryptojs-aes-format.js"></script>
+  <script>
+    var MyAjax = { "ajaxurl": "/wp-admin/admin-ajax.php", "jsondata": "{\"ct\":\"OcWrpvJ\\/zAfSiXkmeT\\/uqTUqM7ukiHAvLoUIagJpp4dhr7Pb\\/dLwgCsABrGX495nJ15fisZk7E8IVE+1hwrYVQ==\",\"iv\":\"87ad3e409a30d43265b3ae164d81e503\",\"s\":\"7fd345b1bc88d6f2\"}" };
+  </script>
+  <script src="https://ultrafastfluency.com/wp-content/plugins/api-key-manager/script.js"></script>
 
-<script>
-  var wp_user_data = [];
-  var uffApiData = {"root":"/wp-json/","nonce":"29755b427c"};
-</script>
+  <script>
+    var wp_user_data = [];
+    var uffApiData = { "root": "/wp-json/", "nonce": "29755b427c" };
+  </script>
 
-<!-- Meow AI Engine CSS -->
-<link rel="stylesheet" href="https://ultrafastfluency.com/wp-content/plugins/ai-engine/themes/timeless.css">
-<!-- React Dependencies for MWAI -->
-<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-<script>
-  window.wp = window.wp || {};
-  // Alias wp.element to React + ReactDOM so WordPress React bundles work
-  window.wp.element = window.wp.element || Object.assign({}, window.React, window.ReactDOM);
-  
-  // Ensure render is explicitly available
-  if (!window.wp.element.render && window.ReactDOM) {
-    window.wp.element.render = window.ReactDOM.render || function(element, container) {
-      if (window.ReactDOM.createRoot) {
-        if (!container._reactRoot) {
-          container._reactRoot = window.ReactDOM.createRoot(container);
+  <!-- Meow AI Engine CSS -->
+  <link rel="stylesheet" href="https://ultrafastfluency.com/wp-content/plugins/ai-engine/themes/timeless.css">
+  <!-- React Dependencies for MWAI -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script>
+    window.wp = window.wp || {};
+    // Alias wp.element to React + ReactDOM so WordPress React bundles work
+    window.wp.element = window.wp.element || Object.assign({}, window.React, window.ReactDOM);
+
+    // Ensure render is explicitly available
+    if (!window.wp.element.render && window.ReactDOM) {
+      window.wp.element.render = window.ReactDOM.render || function (element, container) {
+        if (window.ReactDOM.createRoot) {
+          if (!container._reactRoot) {
+            container._reactRoot = window.ReactDOM.createRoot(container);
+          }
+          container._reactRoot.render(element);
         }
-        container._reactRoot.render(element);
-      }
-    };
-  }
-  
-  // Basic mock for WordPress i18n just in case
-  window.wp.i18n = window.wp.i18n || { __: function(t){return t;}, _x: function(t){return t;} };
-  // Basic mock for wp.hooks just in case
-  window.wp.hooks = window.wp.hooks || { applyFilters: function(n, v){return v;}, addAction: function(){}, doAction: function(){}, addFilter: function(){} };
-</script>
-<!-- Meow AI Engine JS -->
-<script src="assets/js/chatbot.js" id="mwai_chatbot-js"></script>
-
-<!-- AI Chatbot Paywall (block non-paid users) -->
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    if (window.mwaiChat) {
-      window.mwaiChat.destroy?.();
-      delete window.mwaiChat;
+      };
     }
 
-    const killChat = function(e) {
-      if (e.target.closest('.mwai-body')) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        new bootstrap.Modal(document.getElementById('aiApologyModal')).show();
-        return false;
+    // Basic mock for WordPress i18n just in case
+    window.wp.i18n = window.wp.i18n || { __: function (t) { return t; }, _x: function (t) { return t; } };
+    // Basic mock for wp.hooks just in case
+    window.wp.hooks = window.wp.hooks || { applyFilters: function (n, v) { return v; }, addAction: function () { }, doAction: function () { }, addFilter: function () { } };
+  </script>
+  <!-- Meow AI Engine JS -->
+  <script src="assets/js/chatbot.js" id="mwai_chatbot-js"></script>
+
+  <!-- AI Chatbot Paywall (block non-paid users) -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      if (window.mwaiChat) {
+        window.mwaiChat.destroy?.();
+        delete window.mwaiChat;
       }
-    };
 
-    ['click', 'submit', 'touchstart', 'keydown', 'focusin'].forEach(event => {
-      document.addEventListener(event, killChat, { capture: true });
+      const killChat = function (e) {
+        if (e.target.closest('.mwai-body')) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          new bootstrap.Modal(document.getElementById('aiApologyModal')).show();
+          return false;
+        }
+      };
+
+      ['click', 'submit', 'touchstart', 'keydown', 'focusin'].forEach(event => {
+        document.addEventListener(event, killChat, { capture: true });
+      });
+
+      // No dynamic style injection needed here as it is now in style.css
     });
+  </script>
 
-    // No dynamic style injection needed here as it is now in style.css
-  });
-</script>
+  <!--END DO NOT UPDATE-->
 
-<!--END DO NOT UPDATE-->
+  <script src="js/users-data.js"></script>
 
-<script src="js/users-data.js"></script>
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
 
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
+  <!-- Main App Script -->
+  <script type="module" src="js/script.js"></script>
 
-<!-- Main App Script -->
-<script type="module" src="js/script.js"></script>
-
-<!-- Cloudflare Insights 
+  <!-- Cloudflare Insights 
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516"
   integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg=="
   data-cf-beacon='{"version":"2024.11.0","token":"0c9bb1041b3848e3ade515e72f042cb4","r":1}'
@@ -573,4 +590,5 @@
 -->
 
 </body>
+
 </html>

@@ -40,6 +40,7 @@ export const State = {
 
     // Active Media Player Reference
     player: null,
+    isCameraOff: false,
 
     /**
      * Initializes the state with values calculated from Appwrite userData

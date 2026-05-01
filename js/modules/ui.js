@@ -1,5 +1,4 @@
 // --- modules/ui.js ---
-import { isCameraOff, toggleCamera } from './speech.js';
 import { State } from './state.js';
 
 // 1. Centralize DOM Elements
@@ -22,7 +21,7 @@ export const DOM = {
     micStatusText: document.getElementById("micStatusText"),
     dayCountSpan: document.getElementById("dayCountSpan"),
     // NEW: Added the streak span from app.php
-    streakCountSpan: document.getElementById("streakCountSpan"), 
+    streakCountSpan: document.getElementById("streakCountSpan"),
     arrowContainer: document.getElementById("arrow-container"),
     playbackVideoMobile: document.getElementById('playback-video-mobile'),
     playbackVideoDesktop: document.getElementById('playback-video-desktop'),
@@ -48,7 +47,7 @@ export function flashElement(element) {
     if (!element) return;
     element.classList.remove('score-update');
     // Force a reflow to restart the animation
-    void element.offsetWidth; 
+    void element.offsetWidth;
     element.classList.add('score-update');
     setTimeout(() => element.classList.remove('score-update'), 300);
 }
@@ -72,7 +71,7 @@ export function updateActivityDisplay(totalDays, currentStreak) {
         // Optional: flash only if value changes
         flashElement(DOM.dayCountSpan);
     }
-    
+
     if (DOM.streakCountSpan) {
         DOM.streakCountSpan.textContent = currentStreak;
         // Visual feedback for the streak is highly encouraging for users
@@ -89,13 +88,13 @@ export function updateDayCountDisplay(dayCount) {
 }
 
 export function disableAllButtons(container) {
-    if (!container) return;  
+    if (!container) return;
     const buttons = container.querySelectorAll('button');
-    buttons.forEach(btn => { 
-        if (btn) { 
-            btn.disabled = true; 
-            btn.classList.add('disabled'); 
-        } 
+    buttons.forEach(btn => {
+        if (btn) {
+            btn.disabled = true;
+            btn.classList.add('disabled');
+        }
     });
 }
 
@@ -103,7 +102,7 @@ export function disableAllButtons(container) {
 export function safeRenderChatInterface(isAI, bodyContent) {
     DOM.speechText.classList.remove('d-none'); // Unhide the whole widget
     setChatHeader(isAI); // Swap the avatar/name
-    
+
     // Remove the loading spinner if it exists
     const loadingStatus = DOM.chatBody.querySelector('#ai-loading-status');
     if (loadingStatus) {
@@ -114,7 +113,7 @@ export function safeRenderChatInterface(isAI, bodyContent) {
     if (bodyContent) {
         DOM.chatBody.insertAdjacentHTML('beforeend', bodyContent);
     }
-    
+
     // Auto-scroll to bottom
     setTimeout(() => {
         DOM.chatBody.scrollTop = DOM.chatBody.scrollHeight;
@@ -192,7 +191,7 @@ export function renderAIFeedback(contentChunks = []) {
             return `<div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>${chunk}</div>`;
         })
         .join("");
-    
+
     safeRenderChatInterface(true, html);
 }
 
@@ -206,23 +205,66 @@ function buildGrammarDiff(original, corrected) {
     const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
     for (let i = 1; i <= m; i++)
         for (let j = 1; j <= n; j++)
-            dp[i][j] = tokA[i-1].toLowerCase() === tokB[j-1].toLowerCase() ? dp[i-1][j-1] + 1 : Math.max(dp[i-1][j], dp[i][j-1]);
+            dp[i][j] = tokA[i - 1].toLowerCase() === tokB[j - 1].toLowerCase() ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
 
     const ops = []; let i = m, j = n;
     while (i > 0 || j > 0) {
-        if (i > 0 && j > 0 && tokA[i-1].toLowerCase() === tokB[j-1].toLowerCase()) { ops.unshift({ type: 'eq', val: tokB[j-1] }); i--; j--; }
-        else if (j > 0 && (i === 0 || dp[i][j-1] >= dp[i-1][j])) { ops.unshift({ type: 'ins', val: tokB[j-1] }); j--; }
-        else { ops.unshift({ type: 'del', val: tokA[i-1] }); i--; }
+        if (i > 0 && j > 0 && tokA[i - 1].toLowerCase() === tokB[j - 1].toLowerCase()) { ops.unshift({ type: 'eq', val: tokB[j - 1] }); i--; j--; }
+        else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) { ops.unshift({ type: 'ins', val: tokB[j - 1] }); j--; }
+        else { ops.unshift({ type: 'del', val: tokA[i - 1] }); i--; }
     }
 
     let userHTML = '', corrHTML = '';
     ops.forEach(({ type, val }) => {
         const v = val.replace(/</g, '&lt;');
-        if (type === 'eq')  { userHTML += v; corrHTML += v; }
+        if (type === 'eq') { userHTML += v; corrHTML += v; }
         if (type === 'del') { userHTML += `<span class="diff-del">${v}</span>`; }
         if (type === 'ins') { corrHTML += `<span class="diff-ins">${v}</span>`; }
     });
     return { userHTML, corrHTML };
+}
+
+/**
+ * 🎨 UI BUILDER: Generates a 'hangman' version of the cue based on user response
+ */
+export function generateHangmanHint(userResponse, cue) {
+    const tokenize = str => str.trim().match(/[\w']+|[^\w\s']+|\s+/g) || [];
+    const tokA = tokenize(userResponse || ""), tokB = tokenize(cue || "");
+    const m = tokA.length, n = tokB.length;
+    const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+    for (let i = 1; i <= m; i++)
+        for (let j = 1; j <= n; j++)
+            dp[i][j] = tokA[i - 1].toLowerCase() === tokB[j - 1].toLowerCase() ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
+
+    const ops = []; let i = m, j = n;
+    while (i > 0 || j > 0) {
+        if (i > 0 && j > 0 && tokA[i - 1].toLowerCase() === tokB[j - 1].toLowerCase()) { ops.unshift({ type: 'eq', val: tokB[j - 1] }); i--; j--; }
+        else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) { ops.unshift({ type: 'ins', val: tokB[j - 1] }); j--; }
+        else { ops.unshift({ type: 'del', val: tokA[i - 1] }); i--; }
+    }
+
+    let resultHTML = '';
+    ops.forEach(({ type, val }) => {
+        const v = val.replace(/</g, '&lt;');
+        if (type === 'eq') {
+            resultHTML += v;
+        } else if (type === 'ins') {
+            // Missed word from cue -> underscore placeholder
+            if (/\w/.test(v)) {
+                resultHTML += ' <span class="hangman-placeholder" style="color: #666; font-weight: bold; border-bottom: 2px solid #666; margin: 0 2px; padding: 0 4px;">___</span> ';
+            } else {
+                resultHTML += v;
+            }
+        } else if (type === 'del') {
+            // Incorrect word from user -> red text
+            if (/\w/.test(v)) {
+                resultHTML += `<span class="hangman-incorrect" style="color: #ff4d4d; text-decoration: line-through; margin: 0 2px;">${v}</span>`;
+            }
+        }
+    });
+
+    // Clean up double spaces
+    return resultHTML.replace(/\s+/g, ' ').trim();
 }
 
 // 4. NEW: A clean way to wipe the chat between questions
@@ -282,7 +324,7 @@ export function renderWhisperReviewUI(transcript, timeLeft, onAccept, onReject) 
     setTimeout(() => {
         document.getElementById('acceptBtn')?.addEventListener('click', onAccept);
         document.getElementById('rejectBtn')?.addEventListener('click', onReject);
-        
+
         // Trigger animation
         const bar = document.getElementById('reviewProgressBar');
         if (bar) {
@@ -325,10 +367,10 @@ export function clearPlaybackVideo() {
     [DOM.playbackVideoMobile, DOM.playbackVideoDesktop].forEach(video => {
         if (video) {
             if (video.src && video.src.startsWith('blob:')) URL.revokeObjectURL(video.src);
-            video.src = ''; 
+            video.src = '';
             video.style.display = 'none';
-            video.onerror = null; 
-            video.onloadeddata = null; 
+            video.onerror = null;
+            video.onloadeddata = null;
             video.onloadedmetadata = null;
         }
     });
@@ -407,6 +449,13 @@ export function ensureWebcamPreview(stream) {
     return webcamPreview;
 }
 
+export function toggleCamera() {
+    State.isCameraOff = !State.isCameraOff;
+    console.log(`[UI] Camera toggled. isCameraOff: ${State.isCameraOff}`);
+    // The placeholder/webcam switch will be handled by speech.js re-warming the stream
+}
+
+
 export function hideWebcamPreview() {
     if (webcamPreview && webcamPreview.isConnected) webcamPreview.classList.add('d-none');
 }
@@ -443,7 +492,7 @@ export async function setupPlaybackVideo(blob, autoplay = false, speechCamChunks
         if (muteToggle) {
             muteToggle.classList.remove('d-none');
             const icon = muteToggle.querySelector('i');
-            
+
             if (icon) {
                 icon.className = State.isPlaybackMuted ? 'bi bi-volume-mute-fill' : 'bi bi-volume-up-fill';
             }
@@ -476,7 +525,7 @@ export async function setupPlaybackVideo(blob, autoplay = false, speechCamChunks
         playbackVideo.muted = State.isPlaybackMuted || false;
 
         if (!isIOS) {
-            const handleVideoInteraction = function(e) {
+            const handleVideoInteraction = function (e) {
                 e.preventDefault(); e.stopPropagation();
                 requestAnimationFrame(() => {
                     if (this.paused && this.readyState >= 2) {
@@ -607,7 +656,7 @@ export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyCl
         audioOnlyButton.style.display = isLessonIntro ? 'inline-block' : 'none';
         if (isLessonIntro) {
             audioOnlyButton.onclick = () => {
-                if (!isCameraOff) {
+                if (!State.isCameraOff) {
                     toggleCamera();
                 }
                 if (onAudioOnlyClickCallback) {
@@ -626,7 +675,7 @@ export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyCl
     if (continueButton) {
         continueButton.innerHTML = isLessonIntro ? '<i class="bi bi-camera-video-fill text-white" style="font-size: 40px; font-weight: 900;"></i>' : '<i class="bi bi-chevron-right text-white" style="font-size: 40px; font-weight: 900;"></i>';
         continueButton.onclick = () => {
-            if (isLessonIntro && isCameraOff) {
+            if (isLessonIntro && State.isCameraOff) {
                 toggleCamera();
             }
             onClickCallback();
@@ -696,20 +745,20 @@ export function removeRepeatButton() {
 
 export function clearMediaContainerAndPreservePlayers() {
     if (!DOM.mediaContainer) return;
-    
+
     // 1. Identify containers we want to keep
     const preserved = DOM.mediaContainer.querySelectorAll('#ivp-container, #simple-ivp-container, #intro-call-widget, #webcam-preview');
-    
+
     // 2. Wipe the parent container
     DOM.mediaContainer.innerHTML = '';
-    
+
     // 3. Re-append preserved shells and RESET any leftover inline style overrides or hidden classes.
     // This allows the CSS :empty pseudo-class in style.css to manage visibility
     // dynamically (hiding them when empty, showing them when they have children).
     preserved.forEach(el => {
         el.style.display = '';
         el.style.minHeight = '';
-        
+
         // Neutral state: Shells are available (unhidden), but the Call Widget is hidden by default
         if (el.id === 'intro-call-widget') {
             el.classList.add('d-none');
@@ -722,7 +771,7 @@ export function clearMediaContainerAndPreservePlayers() {
             // are truly empty so CSS :empty can collapse them (0px height).
             el.innerHTML = '';
         }
-        
+
         DOM.mediaContainer.appendChild(el);
     });
 }

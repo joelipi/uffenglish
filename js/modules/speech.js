@@ -28,6 +28,7 @@ let speechCamStream = null;
 let speechCamRecorder = null;
 let speechCamChunks = [];
 let lastSpeechRecordingId = null;
+let isPlaceholderStream = false;
 
 let recognition = null;
 export let isListening = false;
@@ -67,13 +68,113 @@ export function safelyStopStream() {
     speechCamStream.getTracks().forEach(t => t.stop());
     speechCamStream = null;
   }
+  isPlaceholderStream = false;
+}
+
+async function createPlaceholderStream() {
+    console.log('[Recording] Creating placeholder stream');
+    const audioStream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+            channelCount: 1,
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            sampleRate: { ideal: 16000 }
+        }
+    });
+
+    const canvas = document.createElement('canvas');
+    
+    // Exact same dimensions as ideal constraints
+    if (isWindows) {
+        canvas.width = 480;
+        canvas.height = 854; // 9:16
+    } else {
+        canvas.width = 854;
+        canvas.height = 480; // 16:9
+    }
+    
+    const ctx = canvas.getContext('2d');
+
+    function draw() {
+        // Neutral dark gray background
+        ctx.fillStyle = '#1e1e1e';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const baseSize = Math.min(canvas.width, canvas.height);
+        
+        // Draw Silhouette Avatar Icon
+        ctx.fillStyle = '#444444';
+        
+        // Head
+        const headRadius = baseSize * 0.15;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY - headRadius * 0.4, headRadius, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Shoulders/Torso
+        const torsoWidth = baseSize * 0.5;
+        const torsoHeight = baseSize * 0.3;
+        ctx.beginPath();
+        // Drawing an arc for the shoulders
+        ctx.ellipse(centerX, centerY + headRadius * 1.5, torsoWidth / 2, torsoHeight, 0, Math.PI, 0);
+        ctx.fill();
+
+        // Subtle "Webcam Off" text
+        ctx.fillStyle = '#666666';
+        ctx.font = `bold ${Math.round(baseSize * 0.05)}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.fillText('WEBCAM OFF', centerX, canvas.height - (baseSize * 0.1));
+    }
+
+    draw();
+
+    const canvasStream = canvas.captureStream(5);
+    const mixedStream = new MediaStream([
+        ...canvasStream.getVideoTracks(),
+        ...audioStream.getAudioTracks()
+    ]);
+
+    const interval = setInterval(() => {
+        if (speechCamStream && isPlaceholderStream) {
+            draw();
+        } else {
+            clearInterval(interval);
+        }
+    }, 1000);
+
+    return mixedStream;
+}
+
+async function ensureSpeechCamStream() {
+    const wantsPlaceholder = !!State.isCameraOff;
+    
+    if (speechCamStream) {
+        if (isPlaceholderStream === wantsPlaceholder) {
+            return speechCamStream;
+        }
+        console.log('[Recording] Camera preference changed, switching stream type');
+        safelyStopStream();
+    }
+    
+    if (wantsPlaceholder) {
+        speechCamStream = await createPlaceholderStream();
+        isPlaceholderStream = true;
+    } else {
+        speechCamStream = await navigator.mediaDevices.getUserMedia(getMediaConstraints());
+        isPlaceholderStream = false;
+    }
+    return speechCamStream;
 }
 
 export async function warmUpSpeechCamStream() {
   try {
-    if (!speechCamStream) speechCamStream = await navigator.mediaDevices.getUserMedia(getMediaConstraints());
+    await ensureSpeechCamStream();
     ui.ensureWebcamPreview(speechCamStream);
   } catch (err) {
+    console.error('[Recording] warmUpSpeechCamStream failed:', err);
     ui.removeWebcamPreview();
     safelyStopStream();
   }
@@ -83,12 +184,8 @@ export async function startSpeechCamRecording(micStatusText, userData) {
   console.log('[Recording] startSpeechCamRecording called');
   try {
     // --- MEMORY LEAK FIX: Only request a new stream if one doesn't exist ---
-    if (!speechCamStream) {
-      speechCamStream = await navigator.mediaDevices.getUserMedia(getMediaConstraints());
-      console.log('[Recording] getUserMedia succeeded, tracks:', speechCamStream.getTracks().map(t => `${t.kind}:${t.label}:${t.readyState}`));
-    } else {
-      console.log('[Recording] Reusing existing warmed-up speechCamStream');
-    }
+    await ensureSpeechCamStream();
+    console.log('[Recording] ensureSpeechCamStream succeeded, tracks:', speechCamStream.getTracks().map(t => `${t.kind}:${t.label}:${t.readyState}`));
     // ------------------------------------------------------------------------
 
     ui.ensureWebcamPreview(speechCamStream);
