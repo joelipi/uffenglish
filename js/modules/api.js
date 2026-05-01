@@ -120,7 +120,7 @@ A's role: ${lessonData.roleA?.en || ''}.
 B's role: ${lessonData.roleB?.en || ''}.
 "A: ${questionData.cue}
 B: ${answerForIntentPass}"
-Evaluate B's response. Return ONLY an array with 1 or more applicable labels: [pragmatic failure, too formal, too informal, rude, correct].`;
+Evaluate B's response. Return ONLY an array with 1 or more applicable labels: [pragmatic failure, too formal, too informal, rude, correct but unidiomatic, correct].`;
 
     console.log("🤖🤖 prompt to AI: ", intentPrompt);
 
