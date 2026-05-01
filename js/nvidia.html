@@ -37,7 +37,7 @@
         }
 
         #systemPrompt {
-            height: 80px;
+            height: 120px;
         }
 
         #customInput {
@@ -52,11 +52,29 @@
             border-radius: 8px;
             cursor: pointer;
             font-weight: bold;
+            font-size: 1.1rem;
         }
 
         button:disabled {
             background: #2d3748;
             cursor: not-allowed;
+        }
+
+        .counter-box {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: #1a202c;
+            border-radius: 8px;
+            text-align: center;
+            border: 2px solid #2d3748;
+            transition: color 0.3s, border-color 0.3s;
+        }
+
+        .counter-box.danger {
+            color: #fc8181;
+            border-color: #fc8181;
         }
 
         .status-bar {
@@ -102,6 +120,12 @@
             color: #68d391;
         }
 
+        .sys-prompt-cell {
+            font-size: 0.85em;
+            color: #a0aec0;
+            max-width: 250px;
+        }
+
         /* Diff Styles */
         .diff-ins {
             background-color: rgba(72, 187, 120, 0.2);
@@ -122,14 +146,17 @@
 </head>
 
 <body>
-
     <h2>🧪 Gemma 3 build.nvidia Benchmark</h2>
-    <p>Paste your sentences below. The system will process them sequentially using your Cloudflare Worker proxy.</p>
+    <p>Test multiple system prompts against multiple sentences. The system will test every combination.</p>
+
+    <div class="counter-box" id="callCounter">
+        Total Scheduled API Calls: 0
+    </div>
 
     <div class="input-group">
-        <label for="systemPrompt">System Prompt (Instructions)</label>
-        <textarea
-            id="systemPrompt">You are a strict grammar correction tool. Return ONLY the corrected version of the sentence provided. Do not include any explanations, greetings, quotes, or markdown formatting. If it is already correct, return it exactly as is.</textarea>
+        <label for="systemPrompt">System Prompts (One per line)</label>
+        <textarea id="systemPrompt"
+            placeholder="You are a strict grammar correction tool...&#10;You are a casual editor, fix only major typos..."></textarea>
     </div>
 
     <div class="input-group">
@@ -147,7 +174,8 @@
     <table id="resultsTable" style="display: none;">
         <thead>
             <tr>
-                <th>Input</th>
+                <th>System Prompt</th>
+                <th>Input Sentence</th>
                 <th>Output (Diff)</th>
                 <th>Time (ms)</th>
             </tr>
@@ -164,11 +192,32 @@
         const runBtn = document.getElementById('runBtn');
         const systemPromptInput = document.getElementById('systemPrompt');
         const customInput = document.getElementById('customInput');
+        const callCounter = document.getElementById('callCounter');
         const statusBar = document.getElementById('statusBar');
         const progressText = document.getElementById('progressText');
         const metricsText = document.getElementById('metricsText');
         const resultsTable = document.getElementById('resultsTable');
         const resultsBody = document.getElementById('resultsBody');
+
+        // ===== CALL COUNTER LOGIC =====
+        function updateCounter() {
+            const sysLines = systemPromptInput.value.split('\n').filter(s => s.trim().length > 0);
+            const inputLines = customInput.value.split('\n').filter(s => s.trim().length > 0);
+            const totalCalls = sysLines.length * inputLines.length;
+
+            callCounter.textContent = `Total Scheduled API Calls: ${totalCalls}`;
+
+            if (totalCalls > 40) {
+                callCounter.classList.add('danger');
+            } else {
+                callCounter.classList.remove('danger');
+            }
+        }
+
+        systemPromptInput.addEventListener('input', updateCounter);
+        customInput.addEventListener('input', updateCounter);
+        // Initialize counter on load
+        updateCounter();
 
         // ===== DIFF GENERATOR =====
         function getDiff(oldStr, newStr) {
@@ -238,14 +287,15 @@
 
         // ===== RUN SEQUENTIAL TESTS =====
         async function runSequentialTests() {
-            const rawText = customInput.value;
-            const sysPrompt = systemPromptInput.value;
-            const testSet = rawText.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+            const sysPrompts = systemPromptInput.value.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+            const testSet = customInput.value.split('\n').map(s => s.trim()).filter(s => s.length > 0);
 
-            if (testSet.length === 0) {
-                alert("Please enter at least one valid sentence.");
+            if (sysPrompts.length === 0 || testSet.length === 0) {
+                alert("Please enter at least one valid system prompt and test sentence.");
                 return;
             }
+
+            const totalCalls = sysPrompts.length * testSet.length;
 
             runBtn.disabled = true;
             resultsBody.innerHTML = '';
@@ -254,46 +304,53 @@
 
             let changesMade = 0;
             let totalTime = 0;
+            let currentCall = 0;
 
-            for (let i = 0; i < testSet.length; i++) {
-                const input = testSet[i];
-                progressText.textContent = `Processing: ${i + 1} / ${testSet.length}`;
+            for (let s = 0; s < sysPrompts.length; s++) {
+                const currentSysPrompt = sysPrompts[s];
 
-                const start = performance.now();
-                let finalOutput = "";
-                let isError = false;
+                for (let i = 0; i < testSet.length; i++) {
+                    currentCall++;
+                    const input = testSet[i];
+                    progressText.textContent = `Processing: ${currentCall} / ${totalCalls}`;
 
-                try {
-                    finalOutput = await callNvidia(sysPrompt, input);
-                } catch (e) {
-                    console.error(e);
-                    finalOutput = `[ERROR: ${e.message}]`;
-                    isError = true;
+                    const start = performance.now();
+                    let finalOutput = "";
+                    let isError = false;
+
+                    try {
+                        finalOutput = await callNvidia(currentSysPrompt, input);
+                    } catch (e) {
+                        console.error(e);
+                        finalOutput = `[ERROR: ${e.message}]`;
+                        isError = true;
+                    }
+
+                    const end = performance.now();
+                    const timeTaken = end - start;
+                    totalTime += timeTaken;
+
+                    const changed = !isError && (input.toLowerCase() !== finalOutput.toLowerCase());
+                    if (changed) changesMade++;
+
+                    appendRow(currentSysPrompt, input, finalOutput, timeTaken, changed, isError);
+                    metricsText.textContent = `Changed: ${changesMade} | Avg Time: ${(totalTime / currentCall).toFixed(1)}ms`;
                 }
-
-                const end = performance.now();
-                const timeTaken = end - start;
-                totalTime += timeTaken;
-
-                const changed = !isError && (input.toLowerCase() !== finalOutput.toLowerCase());
-                if (changed) changesMade++;
-
-                appendRow(input, finalOutput, timeTaken, changed, isError);
-                metricsText.textContent = `Changed: ${changesMade} | Avg Time: ${(totalTime / (i + 1)).toFixed(1)}ms`;
             }
 
             runBtn.disabled = false;
         }
 
-        function appendRow(input, output, time, changed, isError) {
+        function appendRow(sysPrompt, input, output, time, changed, isError) {
             const tr = document.createElement('tr');
             let displayOutput = isError ? `<span class="error">${output}</span>` : (changed ? getDiff(input, output) : output);
 
-            tr.innerHTML = `        
-        <td>${input}</td>        
-        <td>${displayOutput}</td>        
-        <td>${time.toFixed(1)}</td>    
-    `;
+            tr.innerHTML = `
+                <td class="sys-prompt-cell">${sysPrompt}</td>
+                <td>${input}</td>
+                <td>${displayOutput}</td>
+                <td>${time.toFixed(1)}</td>
+            `;
             resultsBody.appendChild(tr);
         }
 
