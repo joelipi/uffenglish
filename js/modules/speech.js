@@ -24,6 +24,10 @@ const urlParams = new URLSearchParams(window.location.search);
 const forceDeepgram = urlParams.get('deepgram') === 'true';
 
 // --- State ---
+let localRawAudioChunks = [];
+let localAudioContext = null;
+let localAudioProcessor = null;
+
 let speechCamStream = null;
 let speechCamRecorder = null;
 let speechCamChunks = [];
@@ -323,6 +327,47 @@ async function setupPlaybackVideo(blob, autoplay = false) {
 }
 
 // --- NEW: Whisper Local Transcription Setup ---
+
+export function startLocalAudioTap(stream) {
+    console.log('[Audio Tap] Starting real-time 16kHz audio tap');
+    localRawAudioChunks = [];
+
+    // Whisper requires exactly 16000Hz
+    localAudioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+    const source = localAudioContext.createMediaStreamSource(stream);
+    localAudioProcessor = localAudioContext.createScriptProcessor(4096, 1, 1);
+
+    localAudioProcessor.onaudioprocess = (event) => {
+        // Copy the Float32 data so it isn't garbage collected
+        const inputData = event.inputBuffer.getChannelData(0);
+        localRawAudioChunks.push(new Float32Array(inputData));
+    };
+
+    source.connect(localAudioProcessor);
+    localAudioProcessor.connect(localAudioContext.destination);
+}
+
+export function stopLocalAudioTap() {
+    console.log('[Audio Tap] Stopping tap and flattening chunks');
+    if (localAudioProcessor) {
+        localAudioProcessor.disconnect();
+        localAudioContext.close();
+        localAudioProcessor = null;
+        localAudioContext = null;
+    }
+
+    // Flatten the chunks into a single Float32Array for Whisper
+    const totalLength = localRawAudioChunks.reduce((acc, chunk) => acc + chunk.length, 0);
+    const flattenedAudio = new Float32Array(totalLength);
+    let offset = 0;
+    for (const chunk of localRawAudioChunks) {
+        flattenedAudio.set(chunk, offset);
+        offset += chunk.length;
+    }
+
+    localRawAudioChunks = []; // Free memory
+    return flattenedAudio;
+}
 
 export async function setupWhisperTranscription(params) {
     const { button, micStatusText } = params;
@@ -653,6 +698,11 @@ export async function toggleSpeechRecognition(params) {
         console.log('[Toggle] Using local Whisper WebAssembly');
         transcriptionSuccess = await setupWhisperTranscription(params);
 
+        // ADD THIS: Start tapping the stream for Whisper
+        if (transcriptionSuccess && speechCamStream) {
+            startLocalAudioTap(speechCamStream);
+        }
+
         if (!transcriptionSuccess && isEngineReady) {
             console.warn('[Toggle] Whisper failed to initialize. Falling back to Deepgram.');
             transcriptionSuccess = await setupDeepgramTranscription(params);
@@ -709,8 +759,17 @@ export async function toggleSpeechRecognition(params) {
             }
 
             try {
-                console.log('[Toggle] Extracting audio from blob, size:', videoBlob.size);
-                const extractionResult = await extractAudioFromBlob(videoBlob);
+                console.log('[Toggle] Retrieving flattened audio from real-time tap');
+                const rawAudioData = stopLocalAudioTap();
+
+                // Pass directly to the trimming function
+                const extractionResult = trimSilenceWithPadding(rawAudioData, {
+                  threshold: 0.02,
+                  preRoll: 0.3,
+                  postRoll: 0.3,
+                  sampleRate: 16000
+                });
+
                 const audioData = extractionResult.trimmed;
                 const stats = { pauseCount: extractionResult.pauseCount, netDuration: extractionResult.netDuration };
                 // ... previous extraction code ...
@@ -860,36 +919,6 @@ export function initLocalVoiceAI() {
         // Even when skipping, return a resolved promise to maintain the same interface
         console.log('[Whisper] Deepgram override – skipping Whisper preload.');
         return Promise.resolve();
-    }
-}
-
-async function extractAudioFromBlob(blob) {
-    console.log('[Audio] extractAudioFromBlob — blob.size:', blob.size, 'blob.type:', blob.type);
-
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-    const arrayBuffer = await blob.arrayBuffer();
-
-    try {
-        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-        const raw = audioBuffer.getChannelData(0);
-
-        // --- NEW: trim silence ---
-        const trimResult = trimSilenceWithPadding(raw, {
-          threshold: 0.02,
-          preRoll: 0.3,
-          postRoll: 0.3,
-          sampleRate: audioBuffer.sampleRate
-        });
-
-        await audioCtx.close();
-
-        console.log('[Audio] Trimmed samples:', trimResult.trimmed.length);
-        return trimResult;
-
-    } catch (e) {
-        console.error('[Audio] decodeAudioData FAILED:', e);
-        if (audioCtx.state !== 'closed') await audioCtx.close();
-        throw e;
     }
 }
 
