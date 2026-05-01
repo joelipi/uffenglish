@@ -1,65 +1,83 @@
 import { getCurrentUser, tablesDB, APPWRITE_CONFIG } from './appwrite.js';
 import normalize from './normalize.js';
+import { QueryClient } from 'https://esm.sh/@tanstack/query-core@5';
 
-let userAuthCache = null;
-let cacheTimestamp = null;
-const CACHE_DURATION = 30000000;
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // Data is fresh for 5 minutes (no background refetch)
+      gcTime: 1000 * 60 * 60 * 24, // Keep in cache for 24 hours
+      retry: 2, // Retry failed requests twice
+      refetchOnWindowFocus: false, // Prevent unnecessary DB reads when switching tabs
+    },
+  },
+});
 
 export async function isUserLoggedIn() {
-  if (userAuthCache !== null && cacheTimestamp && (Date.now() - cacheTimestamp) < CACHE_DURATION) return userAuthCache;
-  try {
-    const user = await getCurrentUser();
-    const isLoggedIn = user !== null;
-    userAuthCache = isLoggedIn;
-    cacheTimestamp = Date.now();
-    return isLoggedIn;
-  } catch (error) { return false; }
+  return queryClient.fetchQuery({
+    queryKey: ['auth', 'status'],
+    queryFn: async () => {
+      try {
+        const user = await getCurrentUser();
+        return user !== null;
+      } catch (error) {
+        return false;
+      }
+    },
+  });
 }
 
 export async function getUserProfile() {
-  try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return {
-        $id: 'guest',
-        email: 'guest@example.com',
-        display_name: 'Guest User',
-        join_date: new Date().toISOString(),
-        auth_method: 'guest',
-        english_level: 'A0',
-        native_language: 'EN',
-        completed_dates: []
-      };
-    }
+  return queryClient.fetchQuery({
+    queryKey: ['user', 'profile'],
+    queryFn: async () => {
+      try {
+        const user = await getCurrentUser();
+        if (!user) {
+          return {
+            $id: 'guest',
+            email: 'guest@example.com',
+            display_name: 'Guest User',
+            join_date: new Date().toISOString(),
+            auth_method: 'guest',
+            english_level: 'A0',
+            native_language: 'EN',
+            completed_dates: []
+          };
+        }
 
-    // Fetch extended profile data from the new TablesDB
-    try {
-      const profileDoc = await tablesDB.getRow({
-        databaseId: APPWRITE_CONFIG.DATABASE_ID,
-        tableId: APPWRITE_CONFIG.USER_PROFILES_TABLE_ID,
-        rowId: user.$id // Assuming the row ID matches the user ID
-      });
+        // Fetch extended profile data from the new TablesDB
+        try {
+          const profileDoc = await tablesDB.getRow({
+            databaseId: APPWRITE_CONFIG.DATABASE_ID,
+            tableId: APPWRITE_CONFIG.USER_PROFILES_TABLE_ID,
+            rowId: user.$id // Assuming the row ID matches the user ID
+          });
 
-      // Merge core user account data with extended profile data
-      return {
-        $id: user.$id,        // was: id
-        email: user.email,
-        display_name: user.name,
-        join_date: user.$createdAt,
-        auth_method: 'appwrite',
-        ...profileDoc
-      };
-    } catch (dbError) {
-      console.warn('Profile row not found, returning core user data', dbError);
-      return {
-        $id: user.$id,        // was: id
-        email: user.email,
-        display_name: user.name,
-        join_date: user.$createdAt,
-        auth_method: 'appwrite'
-      };
+          // Merge core user account data with extended profile data
+          return {
+            $id: user.$id,        // was: id
+            email: user.email,
+            display_name: user.name,
+            join_date: user.$createdAt,
+            auth_method: 'appwrite',
+            ...profileDoc
+          };
+        } catch (dbError) {
+          console.warn('Profile row not found, returning core user data', dbError);
+          return {
+            $id: user.$id,        // was: id
+            email: user.email,
+            display_name: user.name,
+            join_date: user.$createdAt,
+            auth_method: 'appwrite'
+          };
+        }
+      } catch (error) {
+        throw error;
+      }
     }
-  } catch (error) { throw error; }
+  });
 }
 
 export async function getDeepgramToken() {
@@ -202,4 +220,8 @@ export async function evaluateWithAI(selectedAnswer, normalizedSelectedAnswer, q
       explanation: ''
     };
   }
+}
+export function invalidateUserAndAuthCache() {
+  queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
+  queryClient.invalidateQueries({ queryKey: ['auth', 'status'] });
 }
