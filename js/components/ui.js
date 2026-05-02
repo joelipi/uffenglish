@@ -338,6 +338,41 @@ export function setMicStatusText(content) {
     }
 }
 
+/**
+ * Inserts the guest login modal into the document body and shows it via Bootstrap.
+ * Called when the user is not authenticated.
+ */
+export function showGuestLoginModal() {
+    const modalHtml = `
+    <div class="modal fade" id="guestLoginModal" tabindex="-1" aria-labelledby="guestLoginModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-white">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title" id="guestLoginModalLabel">Welcome!</h5>
+                </div>
+                <div class="modal-body">
+                    <p>You are currently not logged in. Log in or sign up to save your progress and access all features. Or, continue as a guest to try out the app.</p>
+                    <div class="d-grid gap-2 mt-4">
+                        <a href="login.html" class="btn btn-primary">Log In</a>
+                        <a href="signup.html" class="btn btn-secondary">Sign Up</a>
+                        <button type="button" class="btn btn-outline-light mt-2" data-bs-dismiss="modal">Continue as Guest</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>`;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    setTimeout(() => {
+        if (typeof bootstrap !== 'undefined') {
+            const guestModal = new bootstrap.Modal(document.getElementById('guestLoginModal'));
+            guestModal.show();
+        } else {
+            console.error('Bootstrap is not loaded, unable to show guest login modal.');
+        }
+    }, 100);
+}
+
 export function renderWhisperReviewUI(transcript, timeLeft, onAccept, onReject) {
     if (!DOM.micStatusText) return;
 
