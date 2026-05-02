@@ -383,6 +383,18 @@ document.addEventListener("DOMContentLoaded", function () {
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="home wp-singular page-template page-template-home page-template-home-php page page-id-104 logged-in wp-embed-responsive wp-theme-twentytwentyfive wp-child-theme-twentytwentyfive-child">
+
+<!-- Overlay Nav Menu -->
+<div class="overlay-menu" id="overlayMenu">
+  <button class="overlay-close" onclick="toggleMenu()">&times;</button>
+  <ul>
+    <li><a href="#about" onclick="toggleMenu()">About</a></li>
+    <li><a href="#" onclick="toggleMenu()" data-bs-toggle="modal" data-bs-target="#returnPolicyModal">Return
+        Policy</a></li>
+    <li><a href="#signup" onclick="toggleMenu()">Sign Up</a></li>
+  </ul>
+</div>
+
 <!--installPrompt Message-->
 <center>
 <div id="installPrompt" style="justify-content: center; align-items: flex-start; padding: 20px; pointer-events: none;">
@@ -456,23 +468,43 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- BIG HEADER IMAGE - Shows only on screens ≤ 1100px (mobile) -->
 <div class="container-fluid px-0 mb-5 d-block d-lg-none" id="bigHeader">
-  <img 
-    src="assets/img/u-f-f.png"
-    class="img-fluid w-100" 
-    alt="" 
-    style="height: auto; max-width: 100% !important; width: 100% !important;"
-  >
+  <div class="d-flex justify-content-between align-items-center w-100 px-3">
+    <img
+      src="assets/img/u-f-f.png"
+      class="img-fluid"
+      alt=""
+      style="height: auto; max-width: 80% !important;"
+    >
+    <div class="flex-grow-1 mx-1"></div>
+    <div class="d-flex align-items-center hamburger-container">
+      <button class="hamburger-btn" onclick="toggleMenu();">
+        <div class="hamburger-icon">
+          <span></span><span></span><span></span>
+        </div>
+      </button>
+    </div>
+  </div>
 </div>
 
 <!-- WIDE HEADER IMAGE - Shows only on screens > 1100px (desktop) -->
 <div class="container-fluid px-0 mb-3 d-none d-lg-block" id="wideHeader">
-  <img 
-    src="assets/img/header.png"
-    class="img-fluid w-100" 
-    id="uffposter"
-    alt="" 
-    style="height: auto; max-width: 100% !important; width: 100% !important;"
-  >
+  <div class="d-flex justify-content-between align-items-center w-100 px-3">
+    <img
+      src="assets/img/header.png"
+      class="img-fluid"
+      id="uffposter"
+      alt=""
+      style="height: auto; max-width: 80% !important;"
+    >
+    <div class="flex-grow-1 mx-1"></div>
+    <div class="d-flex align-items-center hamburger-container">
+      <button class="hamburger-btn" onclick="toggleMenu();">
+        <div class="hamburger-icon">
+          <span></span><span></span><span></span>
+        </div>
+      </button>
+    </div>
+  </div>
 </div>
 
 <div id="app">
@@ -822,6 +854,34 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <!--END WELCOME-->
+
+<!-- Hamburger Toggle Script -->
+<script>
+    function toggleMenu() {
+      const menu = document.getElementById('overlayMenu');
+      menu.classList.toggle('active');
+      document.body.style.overflow = menu.classList.contains('active') ? 'hidden' : '';
+    }
+
+    document.addEventListener('click', function (event) {
+      const menu = document.getElementById('overlayMenu');
+      const hamburger = document.querySelector('.hamburger-btn');
+      // If menu is active, and click is outside menu and outside all hamburger buttons
+      if (menu && menu.classList.contains('active') && !menu.contains(event.target)) {
+        let clickedHamburger = false;
+        if (hamburger && hamburger.contains(event.target)) clickedHamburger = true;
+        // Check all hamburgers just in case
+        document.querySelectorAll('.hamburger-btn').forEach(btn => {
+           if (btn.contains(event.target)) clickedHamburger = true;
+        });
+
+        if (!clickedHamburger) {
+          menu.classList.remove('active');
+          document.body.style.overflow = '';
+        }
+      }
+    });
+</script>
 
 <!--Deepgram SDK for speech recognition-->
     <script src="https://cdn.jsdelivr.net/npm/@deepgram/sdk@v4.9.0"></script>
