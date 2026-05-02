@@ -142,7 +142,7 @@
 
         <!-- Progress Bar Header (shown during lesson) -->
         <div id="closeAndProgress" class="d-flex justify-content-between align-items-center d-none">
-          <a href="lesson.html" id="closePage" class="d-flex align-items-center text-decoration-none">
+          <a href="homescreen.html" id="closePage" class="d-flex align-items-center text-decoration-none">
             <i class="bi bi-x-lg"></i>
           </a>
           <div class="flex-grow-1 mx-1">
@@ -495,7 +495,8 @@
   </script>
 
 
-  <!-- Meow AI Chatbot (injected by WordPress REST API) -->
+  <!-- Meow AI Chatbot (injected by WordPress REST API) --
+   I will probably replace this whole thing with a much better chatbot, but here is the code for now in case I can't.Commenting out to simplify development. -->
   <!-- TODO: Replace data-params below with values from your live WordPress instance -->
   <!-- // NOT SURE WHAT THE NEW CHATBOT WILL HAVE OR IF IT WILL JUST BE A SUPPORT WIDGET OR WHAT, BUT THE WORDPRES PLUGIN IS FUNDAMENTALLY NOT SCALABLE BECAUSE WORDPRESS
   <div class="mwai-chatbot-container"
@@ -504,21 +505,9 @@
     data-theme='{"type":"internal","name":"Timeless","themeId":"timeless","settings":{"backgroundAiColor":"#ffffff","backgroundUserColor":"#000000","backgroundPrimaryColor":"#ffffff","backgroundAiSecondaryColor":"#000","width":"80vh","maxHeight":"90vh","borderRadius":"2px","backgroundHeaderColor":"#1a3a5a","fontSize":"16px","fontColor":"#000000","headerButtonsColor":"#ffffff ","iconTextBackgroundColor":"#343541","iconTextColor":"#343541"},"style":"","cssUrl":"https://ultrafastfluency.com/wp-content/plugins/ai-engine/themes/timeless.css"}'>
   </div>-->
 
-  <script src="https://ultrafastfluency.com/wp-content/plugins/api-key-manager/cryptojs-aes.min.js"></script>
-  <script src="https://ultrafastfluency.com/wp-content/plugins/api-key-manager/cryptojs-aes-format.js"></script>
-  <script>
-    var MyAjax = { "ajaxurl": "/wp-admin/admin-ajax.php", "jsondata": "{\"ct\":\"OcWrpvJ\\/zAfSiXkmeT\\/uqTUqM7ukiHAvLoUIagJpp4dhr7Pb\\/dLwgCsABrGX495nJ15fisZk7E8IVE+1hwrYVQ==\",\"iv\":\"87ad3e409a30d43265b3ae164d81e503\",\"s\":\"7fd345b1bc88d6f2\"}" };
-  </script>
-  <script src="https://ultrafastfluency.com/wp-content/plugins/api-key-manager/script.js"></script>
-
-  <script>
-    var wp_user_data = [];
-    var uffApiData = { "root": "/wp-json/", "nonce": "29755b427c" };
-  </script>
-
-  <!-- Meow AI Engine CSS -->
-  <link rel="stylesheet" href="https://ultrafastfluency.com/wp-content/plugins/ai-engine/themes/timeless.css">
-  <!-- React Dependencies for MWAI -->
+  <!-- Meow AI Engine CSS --
+  <link rel="stylesheet" href="https://ultrafastfluency.com/wp-content/plugins/ai-engine/themes/timeless.css">-->
+  <!-- React Dependencies for MWAI --
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script>
@@ -543,10 +532,11 @@
     // Basic mock for wp.hooks just in case
     window.wp.hooks = window.wp.hooks || { applyFilters: function (n, v) { return v; }, addAction: function () { }, doAction: function () { }, addFilter: function () { } };
   </script>
-  <!-- Meow AI Engine JS -->
+-->
+  <!-- Meow AI Engine JS --
   <script src="assets/js/chatbot.js" id="mwai_chatbot-js"></script>
-
-  <!-- AI Chatbot Paywall (block non-paid users) -->
+-->
+  <!-- AI Chatbot Paywall (block non-paid users) --
   <script>
     document.addEventListener('DOMContentLoaded', function () {
       if (window.mwaiChat) {
@@ -570,6 +560,7 @@
       // No dynamic style injection needed here as it is now in style.css
     });
   </script>
+  -->
 
   <!--END DO NOT UPDATE-->
 
