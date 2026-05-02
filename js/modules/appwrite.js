@@ -26,3 +26,13 @@ export async function getCurrentUser() {
         return null;
     }
 }
+
+export async function logout() {
+    try {
+        await account.deleteSession('current');
+        return true;
+    } catch (error) {
+        console.error('Logout error:', error);
+        return false;
+    }
+}

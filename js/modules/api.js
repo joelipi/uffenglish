@@ -1,6 +1,7 @@
-import { getCurrentUser, tablesDB, APPWRITE_CONFIG } from './appwrite.js';
+import { getCurrentUser, logout, tablesDB, APPWRITE_CONFIG } from './appwrite.js';
 import normalize from './normalize.js';
 import { QueryClient } from 'https://esm.sh/@tanstack/query-core@5';
+
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -225,3 +226,10 @@ export function invalidateUserAndAuthCache() {
   queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
   queryClient.invalidateQueries({ queryKey: ['auth', 'status'] });
 }
+
+export async function signOut() {
+  const result = await logout();
+  invalidateUserAndAuthCache();
+  return result;
+}
+

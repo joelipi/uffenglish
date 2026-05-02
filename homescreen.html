@@ -392,6 +392,7 @@ document.addEventListener("DOMContentLoaded", function () {
     <li><a href="#" onclick="toggleMenu()" data-bs-toggle="modal" data-bs-target="#returnPolicyModal">Return
         Policy</a></li>
     <li><a href="#signup" onclick="toggleMenu()">Sign Up</a></li>
+    <li id="auth-menu-item"><a href="#" id="auth-link" onclick="toggleMenu()">Sign In</a></li>
   </ul>
 </div>
 
@@ -880,6 +881,48 @@ document.addEventListener('DOMContentLoaded', function() {
           document.body.style.overflow = '';
         }
       }
+    });
+</script>
+
+<!-- Auth Menu Script -->
+<script type="module">
+    import { isUserLoggedIn, signOut } from './js/modules/api.js';
+
+    async function handleAuthClick(e) {
+        e.preventDefault();
+        const isLoggedIn = await isUserLoggedIn();
+        if (isLoggedIn) {
+            if (confirm('Are you sure you want to sign out?')) {
+                await signOut();
+                window.location.href = 'homescreen.html';
+            }
+        } else {
+            window.location.href = 'login.html?redirect=homescreen.html';
+        }
+    }
+
+    function setupAuthMenu(isLoggedIn) {
+        const authLink = document.getElementById('auth-link');
+        if (!authLink) return;
+
+        if (isLoggedIn) {
+            authLink.textContent = 'Sign Out';
+        } else {
+            authLink.textContent = 'Sign In';
+        }
+
+        authLink.removeEventListener('click', handleAuthClick);
+        authLink.addEventListener('click', handleAuthClick);
+    }
+
+    // Initialize auth menu
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            const isLoggedIn = await isUserLoggedIn();
+            setupAuthMenu(isLoggedIn);
+        } catch (error) {
+            console.error('Error initializing auth menu:', error);
+        }
     });
 </script>
 

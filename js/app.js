@@ -82,7 +82,7 @@ function getLocalizedTranslation(translationData, lang) {
 
 // --- Decoupled Business Logic (Modules Directory) ---
 import { calculateRepeatAverage, calculateRolePlayAverage, calculateAverage } from './modules/scoring.js';
-import { isUserLoggedIn, getUserProfile } from './modules/api.js';
+import { isUserLoggedIn, getUserProfile, signOut } from './modules/api.js';
 import { saveCourseToUserProfile, saveLessonProgress, syncOfflineScores } from './modules/user-profile.js';
 
 import {
@@ -1279,12 +1279,41 @@ function loadLessonContent(lesson) {
     loadQuestion(lesson.questions[State.currentQuestionIndex], lesson);
 }
 
+async function handleAuthClick(e) {
+    e.preventDefault();
+    const isLoggedIn = await isUserLoggedIn();
+    if (isLoggedIn) {
+        if (confirm('Are you sure you want to sign out?')) {
+            await signOut();
+            window.location.href = 'homescreen.html';
+        }
+    } else {
+        const currentUrl = window.location.pathname + window.location.search;
+        window.location.href = `login.html?redirect=${encodeURIComponent(currentUrl)}`;
+    }
+}
+
+function setupAuthMenu(isLoggedIn) {
+    const authLink = document.getElementById('auth-link');
+    if (!authLink) return;
+
+    if (isLoggedIn) {
+        authLink.textContent = 'Sign Out';
+    } else {
+        authLink.textContent = 'Sign In';
+    }
+
+    authLink.removeEventListener('click', handleAuthClick);
+    authLink.addEventListener('click', handleAuthClick);
+}
+
 // 🚀🚀🚀🚀🚀🚀🚀🚀 INITIALIZE APP 🚀🚀🚀🚀🚀🚀🚀🚀
 
 async function initializeApp() {
     try {
         requestPersistentStorage();
         const isLoggedIn = await isUserLoggedIn();
+        setupAuthMenu(isLoggedIn);
 
         State.userData = await getUserProfile();
 
