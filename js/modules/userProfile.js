@@ -1,6 +1,7 @@
 // modules/userProfile.js
-// IMPORTANT! THIS SCRIPT USES VERSION 24 OF APPWRITE, WHICH HAS MANY BREAKING CHANGES FROM EARLIER VERSIONS. DO NOT USE THE SYNTAX OR METHODS OF EARLIER VERSIONS WITHOUT CHECKING THEY ARE STILL VALID IN VERSION 24.
-import { tablesDB, APPWRITE_CONFIG, getCurrentUser } from './appwrite.js'; 
+// IMPORTANT! THIS SCRIPT USES VERSION 24 OF THE APPWRITE SDK, WHICH HAS MANY BREAKING CHANGES FROM EARLIER VERSIONS. DO NOT USE THE SYNTAX OR METHODS OF EARLIER VERSIONS WITHOUT CHECKING THEY ARE STILL VALID IN VERSION 24.
+import { tablesDB, APPWRITE_CONFIG, getCurrentUser } from './appwrite.js';
+import { invalidateUserAndAuthCache } from './api.js'; // 🚀 TanStack invalidation helper
 
 /**
  * Syncs metadata to Appwrite. 
@@ -33,6 +34,10 @@ export async function syncUserMetaData(metaToUpdate, providedUserData) {
             ]
         });
         console.log("🚀 syncUserMetaData: Profile successfully upserted!");
+
+        // 🚀 Trigger cache bust globally after any successful profile write
+        invalidateUserAndAuthCache();
+
     } catch (error) {
         console.error("🚨 Error syncing user meta data:", error);
     }
@@ -49,7 +54,7 @@ export async function saveCourseToUserProfile(courseId, userData) {
     try {
         let progressMap = {};
         if (userData?.course_progress) {
-            try { progressMap = JSON.parse(userData.course_progress); } catch(e) {}
+            try { progressMap = JSON.parse(userData.course_progress); } catch (e) { }
         }
 
         if (!progressMap[courseId]) {
@@ -84,7 +89,7 @@ export async function saveLessonProgress(courseId, lessonId, userData, options =
         if (safeOptions.scores && Array.isArray(safeOptions.scores)) {
             const baselineStr = userData?.lesson_scores || localStorage.getItem('lesson_scores') || '{}';
             let localScoresMap = {};
-            try { localScoresMap = JSON.parse(baselineStr); } catch(e) {}
+            try { localScoresMap = JSON.parse(baselineStr); } catch (e) { }
 
             localScoresMap[`${courseId}_${lessonId}`] = safeOptions.scores;
             const scoresStringified = JSON.stringify(localScoresMap);
@@ -99,7 +104,7 @@ export async function saveLessonProgress(courseId, lessonId, userData, options =
             const metaToUpdate = { last_lesson_timestamp: timestamp };
             let progressMap = {};
             if (userData.course_progress) {
-                try { progressMap = JSON.parse(userData.course_progress); } catch (e) {}
+                try { progressMap = JSON.parse(userData.course_progress); } catch (e) { }
             }
             progressMap[courseId] = { current_lesson: lessonId, lesson_timestamp: timestamp };
             metaToUpdate.course_progress = JSON.stringify(progressMap);
@@ -162,7 +167,7 @@ export async function syncOfflineScores(userData) {
         try { localScoresMap = JSON.parse(localScoresStr); } catch (e) { return; }
 
         let remoteScoresMap = {};
-        try { remoteScoresMap = JSON.parse(remoteScoresStr); } catch (e) {}
+        try { remoteScoresMap = JSON.parse(remoteScoresStr); } catch (e) { }
 
         let needsSync = false;
         for (const key of Object.keys(localScoresMap)) {
