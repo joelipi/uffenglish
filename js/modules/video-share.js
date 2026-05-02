@@ -1,4 +1,4 @@
-import Strings from './data/strings.js';
+import Strings from '../data/strings.js';
 const CLOUDINARY_CLOUD_NAME = 'dnolem9if';
 const CLOUDINARY_UPLOAD_PRESET = 'default';
 

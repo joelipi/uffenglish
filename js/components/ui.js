@@ -1,5 +1,5 @@
 // --- modules/ui.js ---
-import { State } from './state.js';
+import { State } from '../modules/state.js';
 
 // 1. Centralize DOM Elements
 export const DOM = {

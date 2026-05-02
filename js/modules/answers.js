@@ -1,8 +1,8 @@
 import normalize from './normalize.js';
-import calculateSimilarity from './calculatesimilarity.js';
+import calculateSimilarity from './calculate-similarity.js';
 import swearjar from './swearjar.js';
 import { checkGrammarWithAI, evaluateIntentWithAI } from './api.js';
-import { createGrammarDiffHTML, createPragmaticsBubbleHTML, createHeaderHTML } from './ui.js';
+import { createGrammarDiffHTML, createPragmaticsBubbleHTML, createHeaderHTML } from '../components/ui.js';
 import Strings from '../data/strings.js';
 
 export function getCurrentQuestionIndex(questionData, configData, currentLessonIndex) {

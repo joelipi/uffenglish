@@ -1,6 +1,6 @@
 // praise.js
 // Function to get random praise for the end-of-question messages
-import { renderImageInMediaContainer } from './ui.js';
+import { renderImageInMediaContainer } from '../components/ui.js';
 
 // Array of praise phrases with Spanish translations
 const praiseData = {

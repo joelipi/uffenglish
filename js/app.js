@@ -55,15 +55,15 @@ window.askWorker = askWorker;
 */
 
 // --- UI & Media Components (Root Directory) ---
-import { InteractiveVideoPlayer } from './video.js';
-import { simpleVideoPlayer } from './simpleVideo.js';
-import { introBackgroundVideo } from './introBackgroundVideo.js';
-import { SuccessLessonHandler } from './successLesson.js';
-import { pointLoss } from './pointLossAnimation.js';
-import { initVideoProcessor } from './video-processing-module.js';
+import { InteractiveVideoPlayer } from './components/interactive-video-player.js';
+import { simpleVideoPlayer } from './components/simple-video-player.js';
+import { introBackgroundVideo } from './components/intro-background-video.js';
+import { SuccessLessonHandler } from './components/success-lesson.js';
+import { pointLoss } from './components/point-loss-animation.js';
+import { initVideoProcessor } from './modules/video-processor.js';
 
-import { calculateCurrentStreak } from './modules/userProfile.js';
-import { updateActivityDisplay } from './modules/ui.js';
+import { calculateCurrentStreak } from './modules/user-profile.js';
+import { updateActivityDisplay } from './components/ui.js';
 
 // --- Data & Configuration ---
 import Strings from './data/strings.js';
@@ -83,7 +83,7 @@ function getLocalizedTranslation(translationData, lang) {
 // --- Decoupled Business Logic (Modules Directory) ---
 import { calculateRepeatAverage, calculateRolePlayAverage, calculateAverage } from './modules/scoring.js';
 import { isUserLoggedIn, getUserProfile } from './modules/api.js';
-import { saveCourseToUserProfile, saveLessonProgress, syncOfflineScores } from './modules/userProfile.js';
+import { saveCourseToUserProfile, saveLessonProgress, syncOfflineScores } from './modules/user-profile.js';
 
 import {
     isIOS,
@@ -157,13 +157,13 @@ import {
     showErrorMessageInQuestionsContainer,
     setupLessonUI,
     generateHangmanHint
-} from './modules/ui.js';
+} from './components/ui.js';
 
-import { idiomChecker } from './modules/idiomChecker.js';
+import { idiomChecker } from './modules/idiom-checker.js';
 import { calculateSyntacticComplexity } from './modules/complexity.js';
 import swearjar from './modules/swearjar.js';
 import normalize from './modules/normalize.js';
-import calculateSimilarity from './modules/calculatesimilarity.js';
+import calculateSimilarity from './modules/calculate-similarity.js';
 
 const hearts = [DOM.heart1, DOM.heart2, DOM.heart3];
 
