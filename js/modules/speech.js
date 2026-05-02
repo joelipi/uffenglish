@@ -4,9 +4,9 @@ import { getDeepgramToken } from './api.js';
 import { saveSpeechRecording } from './storage.js';
 import { State } from './state.js';
 import normalize from './normalize.js';
-import calculateSimilarity from './calculatesimilarity.js';
+import calculateSimilarity from './calculate-similarity.js';
 import swearjar from './swearjar.js';
-import * as ui from './ui.js';
+import * as ui from '../components/ui.js';
 
 
 // --- NEW: Import Whisper Logic ---

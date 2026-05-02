@@ -1,7 +1,7 @@
 // video-processing-module.js
 
-import { shareVideo } from './videoShare.js';
-import { getAllSpeechRecordingsForLesson } from './modules/storage.js';
+import { shareVideo } from './video-share.js';
+import { getAllSpeechRecordingsForLesson } from './storage.js';
 
 export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonId = null) {
     window.__currentProcessingLessonId = lessonId;

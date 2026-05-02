@@ -2,8 +2,8 @@
 <html>
 <body>
 <script type="module">
-    import { idiomChecker } from './modules/idiomChecker.js';
-    import { analyzeSpeech } from './modules/analytics.js';
+    import { idiomChecker } from './idiom-checker.js';
+    import { analyzeSpeech } from './analytics.js';
 
     await idiomChecker.init();
     console.log('idiomChecker ready:', idiomChecker.isReady);
