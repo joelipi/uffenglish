@@ -127,3 +127,53 @@ export async function processAnswerLogic({
         return result;
     }
 }
+
+/**
+ * Pre-submission validation for user answers.
+ * Checks for duplicate responses, cue repetition, minimum word count by level, and profanity.
+ * Only applies to inputType "ai" — all other types pass through immediately.
+ * @param {string} val - The raw user input
+ * @param {string} cue - The target cue phrase
+ * @param {Object} questionData - The current question object
+ * @param {string} englishLevel - e.g. 'A2', 'B1', 'B2'
+ * @param {Object} userData - The user profile object
+ * @param {string[]} cuesGiven - Array of already-used normalized responses
+ * @returns {Promise<{ isValid: boolean, warningMessage?: string }>}
+ */
+export async function validateAnswerPrecheck(val, cue, questionData, englishLevel, userData, cuesGiven) {
+    if (questionData.inputType !== "ai") return { isValid: true };
+
+    const wordCount = val.trim().split(/\s+/).length;
+    let minWordsRequired = 3;
+    let warningMessage = null;
+    let isInvalid = false;
+
+    const normalizeduserResponse = await normalize(val.trim().toLowerCase());
+    const normalizedcue = await normalize(cue.trim().toLowerCase());
+    const similarity = calculateSimilarity(normalizeduserResponse, normalizedcue);
+
+    if (cuesGiven && cuesGiven.includes(normalizeduserResponse)) {
+        warningMessage = Strings.get('already_used', userData?.native_language);
+        isInvalid = true;
+    } else if (similarity >= 85) {
+        warningMessage = Strings.get('no_repetition', userData?.native_language);
+        isInvalid = true;
+    } else {
+        if (englishLevel === 'A2') { minWordsRequired = 4; }
+        else if (englishLevel === 'B1') { minWordsRequired = 5; }
+        else if (englishLevel === 'B2' || englishLevel === 'C1' || englishLevel === 'C2') { minWordsRequired = 6; }
+
+        const isProfane = swearjar.profane(val);
+
+        if (wordCount < minWordsRequired || isProfane) {
+            isInvalid = true;
+            if (isProfane) {
+                warningMessage = Strings.get('inappropriate', userData?.native_language);
+            } else {
+                warningMessage = Strings.get(`min_words_${minWordsRequired}`, userData?.native_language) || Strings.get('min_words_3', userData?.native_language);
+            }
+        }
+    }
+
+    return isInvalid ? { isValid: false, warningMessage } : { isValid: true };
+}

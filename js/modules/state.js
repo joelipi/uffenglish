@@ -26,6 +26,7 @@ export const State = {
 
     // Scoring & Metrics
     currentPoints: 100,
+    speakingScore: 100,
     incorrectAttempts: 0,
     cuesGiven: [],
     repeatPointsHistory: [],
@@ -65,6 +66,7 @@ export const State = {
         this.userRole = null;
         this.videoRole = null;
         this.currentPoints = 100;
+        this.speakingScore = 100;
         this.currentQuestionIndex = 0;
         this.incorrectAttempts = 0;
         this.cuesGiven = [];
@@ -78,6 +80,7 @@ export const State = {
 
     resetForNextQuestion() {
         this.currentPoints = 100;
+        this.speakingScore = 100;
         this.incorrectAttempts = 0;
         this.wordsRevealed = 0;
         this.videoPlays = 0;

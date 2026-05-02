@@ -2,62 +2,11 @@
 import { clearSpeechRecordingsForLesson, updateSpeechRecording } from './modules/storage.js';
 
 // Initialize the background NLP Worker via blob URL to bypass service worker caching
-/*
-const workerResponse = await fetch('js/nlp-worker.js');
-const workerBlob = await workerResponse.blob();
-const workerObjectUrl = URL.createObjectURL(workerBlob);
-const aiWorker = new Worker(workerObjectUrl, { type: 'module' });
-let messageIdCounter = 0;
-*/
+
 let nlpModelsReady = false;
-/*
-// Crash/parse errors on the worker surface here instead of dying silently
-aiWorker.onerror = (e) => {
-    console.error("❌ NLP Worker crashed or failed to load:", {
-        message: e.message,
-        filename: e.filename,
-        lineno: e.lineno,
-        colno: e.colno,
-        error: e.error
-    });
-};
 
-aiWorker.addEventListener('messageerror', (e) => {
-    console.error("❌ Worker message error:", e);
-});
-
-// Helper function to send messages to the worker and wait for the response
-function askWorker(action, payload = {}, timeoutMs = 60000) {
-    return new Promise((resolve, reject) => {
-        const id = ++messageIdCounter;
-
-        const timer = setTimeout(() => {
-            aiWorker.removeEventListener('message', handleMessage);
-            reject(new Error(`NLP Worker timeout waiting for action: ${action}`));
-        }, timeoutMs);
-
-        const handleMessage = (event) => {
-            if (event.data.id === id) {
-                clearTimeout(timer);
-                aiWorker.removeEventListener('message', handleMessage);
-                if (event.data.status === 'error') reject(new Error(event.data.error));
-                else resolve(event.data.data);
-            }
-        };
-
-        aiWorker.addEventListener('message', handleMessage);
-        aiWorker.postMessage({ id, action, payload });
-    });
-}
-
-// REMOVE IN PRODUCTION
-window.askWorker = askWorker;
-*/
 
 // --- UI & Media Components (Root Directory) ---
-import { InteractiveVideoPlayer } from './components/interactive-video-player.js';
-import { simpleVideoPlayer } from './components/simple-video-player.js';
-import { introBackgroundVideo } from './components/intro-background-video.js';
 import { SuccessLessonHandler } from './components/success-lesson.js';
 import { pointLoss } from './components/point-loss-animation.js';
 import { initVideoProcessor } from './modules/video-processor.js';
@@ -98,11 +47,15 @@ import {
 import {
     getCurrentQuestionIndex,
     isLastAiQuestionInLesson,
-    processAnswerLogic
+    processAnswerLogic,
+    validateAnswerPrecheck
 } from './modules/answers.js';
 import getRandomPraise from './modules/praise.js';
 
 // --- Extracted Modules ---
+import { getCurrentLessonId, getCurrentcourseId } from './modules/lesson-router.js';
+import { normalizeConfig } from './modules/config-normalizer.js';
+import { loadVideoForQuestion } from './modules/video-loader.js';
 import { State } from './modules/state.js';
 import { analyzeSpeech } from './modules/analytics.js';
 import { Media } from './modules/media.js';
@@ -156,22 +109,17 @@ import {
     showMessageInQuestionsContainer,
     showErrorMessageInQuestionsContainer,
     setupLessonUI,
-    generateHangmanHint
+    generateHangmanHint,
+    showGuestLoginModal
 } from './components/ui.js';
 
 import { idiomChecker } from './modules/idiom-checker.js';
 import { calculateSyntacticComplexity } from './modules/complexity.js';
-import swearjar from './modules/swearjar.js';
-import normalize from './modules/normalize.js';
-import calculateSimilarity from './modules/calculate-similarity.js';
 
 const hearts = [DOM.heart1, DOM.heart2, DOM.heart3];
 
 // Speaking Score Logic ---
 window.addEventListener('transcriptRejected', () => {
-    // Initialize if not present
-    if (typeof State.speakingScore === 'undefined') State.speakingScore = 100;
-
     // Deduct 20 points, floor at 0
     State.speakingScore = Math.max(0, State.speakingScore - 20);
 
@@ -193,113 +141,7 @@ window.addEventListener('preflightRejected', () => {
     }
 });
 
-// 🤖🤖🤖🤖🤖🤖🤖🤖 LOCAL NLP HELPERS 🤖🤖🤖🤖🤖🤖🤖🤖
 
-// =================================================================================================
-// IMPORTANT: DO NOT DELETE. THIS CODE WILL BE REINSTATED SHORTLY. 
-// IT IS TEMPORARILY DISABLED TO SAVE SYSTEM RESOURCES DURING INTENSE DEVELOPMENT.
-// =================================================================================================
-/*
-async function checkGrammarLocally(userInput) {
-    console.groupCollapsed(`📝 [Grammar Check] Analyzing: "${userInput}"`);
-
-    if (!nlpModelsReady) {
-        console.warn("⚠️ Aborted: Local NLP models are not fully loaded yet.");
-        console.groupEnd();
-        return null;
-    }
-
-    if (!userInput) {
-        console.log("ℹ️ Aborted: Empty input.");
-        console.groupEnd();
-        return null;
-    }
-
-    try {
-        const result = await askWorker('CHECK_GRAMMAR', { userInput });
-        console.log("🔍 Raw worker result:", JSON.stringify(result));
-
-        if (result.escalated) {
-            console.log("ℹ️ Escalated: Trivial correction (punctuation/case only). Skipping to Tier 2.");
-            console.groupEnd();
-            return null;
-        }
-
-        if (result.isValid) {
-            console.log("✅ Passed: Model made zero changes or input too short.");
-            console.groupEnd();
-            return { isValid: true, correction: null };
-        }
-
-        // Valid correction found
-        console.log(`✨ Valid Correction Triggered! Building diff UI...`);
-        const { userHTML, corrHTML } = buildGrammarDiff(result.cleanedInput, result.correction);
-        console.groupEnd();
-
-        return {
-            isValid: false,
-            correction: result.correction,
-            explanation: `
-                <div class="diff-del-bubble">${userHTML}</div>
-                <div style="margin-top:6px">${corrHTML}</div>`
-        };
-
-    } catch (error) {
-        console.error("❌ Fatal Error in Local Grammar Check:", error);
-        console.groupEnd();
-        return null;
-    }
-}
-*/
-
-// REMOVE IN PRODUCTION. Add this line right after the checkGrammarLocally function closes
-// window.testGrammar = checkGrammarLocally;
-
-// IMPORTANT: DO NOT DELETE. Reinstating soon.
-/*
-async function evaluateIntentLocally(userInput, targetIntents, badIntents = []) {
-    if (!nlpModelsReady || !targetIntents || targetIntents.length === 0) return null;
-
-    try {
-        console.log("⏳ Running zero-shot classification check...");
-
-        const result = await askWorker('EVALUATE_INTENT', { userInput, targetIntents, badIntents });
-
-        if (result.isCorrect) {
-            console.log(`🎯 Local Target Match! Label: "${result.winningLabel}" (Score: ${result.winningScore.toFixed(2)})`);
-            return {
-                isCorrect: true,
-                category: result.category,
-                winningLabel: result.winningLabel,
-                normalizeduserResponse: userInput,
-                englishLevel: State.englishLevel,
-                englishLevelDeduction: 0,
-                explanation: null,
-                normalizedcue: result.winningLabel
-            };
-        }
-
-        console.log(`❌ Local Target Check Failed. Label: "${result.winningLabel}" (Category: ${result.category}, Score: ${result.winningScore.toFixed(2)})`);
-        return {
-            isCorrect: false,
-            category: result.category,
-            winningLabel: result.winningLabel,
-            normalizeduserResponse: userInput,
-            normalizedcue: result.winningLabel,
-            englishLevel: State.englishLevel,
-            englishLevelDeduction: 0,
-            explanation: null
-        };
-
-    } catch (error) {
-        console.error("Local intent evaluation error:", error);
-        return null;
-    }
-}
-*/
-
-// REMOVE IN PRODUCTION. To be able to test it in browser console
-// window.testIntent = evaluateIntentLocally;
 
 // 🎓🎓🎓🎓🎓🎓🎓🎓 CORE ANSWER HANDLING 🎓🎓🎓🎓🎓🎓🎓🎓
 
@@ -309,56 +151,24 @@ function handleHint(qIndex) {
 }
 
 async function submitAnswerPrecheck(val, cue, questionData, btn, explanation, translation, stats = { pauseCount: null, netDuration: null }) {
-    if (questionData.inputType === "ai") {
-        const wordCount = val.trim().split(/\s+/).length;
-        let minWordsRequired = 3;
-        let warningMessage = null;
-        let isInvalid = false;
+    const { isValid, warningMessage } = await validateAnswerPrecheck(
+        val, cue, questionData, State.englishLevel, State.userData, State.cuesGiven
+    );
 
-        const normalizeduserResponse = await normalize(val.trim().toLowerCase());
-        const normalizedcue = await normalize(cue.trim().toLowerCase());
-        const similarity = calculateSimilarity(normalizeduserResponse, normalizedcue);
-
-        if (State.cuesGiven && State.cuesGiven.includes(normalizeduserResponse)) {
-            warningMessage = Strings.get('already_used', State.userData?.native_language);
-            isInvalid = true;
-        } else if (similarity >= 85) {
-            warningMessage = Strings.get('no_repetition', State.userData?.native_language);
-            isInvalid = true;
-        } else {
-            if (State.englishLevel === 'A2') { minWordsRequired = 4; }
-            else if (State.englishLevel === 'B1') { minWordsRequired = 5; }
-            else if (State.englishLevel === 'B2' || State.englishLevel === 'C1' || State.englishLevel === 'C2') { minWordsRequired = 6; }
-
-            const isProfane = swearjar.profane(val);
-
-            if (wordCount < minWordsRequired || isProfane) {
-                isInvalid = true;
-                if (isProfane) {
-                    warningMessage = Strings.get('inappropriate', State.userData?.native_language);
-                } else {
-                    warningMessage = Strings.get(`min_words_${minWordsRequired}`, State.userData?.native_language) || Strings.get('min_words_3', State.userData?.native_language);
-                }
-            }
+    if (!isValid) {
+        State.currentPoints = Math.max(0, State.currentPoints - 10);
+        updateCurrentScoreDisplay(State.currentPoints);
+        if (DOM.phrasesScore) {
+            flashElement(DOM.phrasesScore);
+            pointLoss.show(DOM.phrasesScore, 10);
         }
-
-        if (isInvalid) {
-            State.currentPoints = Math.max(0, State.currentPoints - 10);
-            updateCurrentScoreDisplay(State.currentPoints);
-            if (DOM.phrasesScore) {
-                flashElement(DOM.phrasesScore);
-                pointLoss.show(DOM.phrasesScore, 10);
-            }
-
-            if (DOM.micStatusText) {
-                DOM.micStatusText.innerHTML = `<div class='text-center text-danger'>${warningMessage}</div>`;
-            }
-
-            if (btn) btn.disabled = false;
-
-            return;
+        if (DOM.micStatusText) {
+            DOM.micStatusText.innerHTML = `<div class='text-center text-danger'>${warningMessage}</div>`;
         }
+        if (btn) btn.disabled = false;
+        return;
     }
+
     await handleAnswer(val, cue, questionData, btn, explanation, translation, stats);
 }
 
@@ -817,81 +627,7 @@ function loadQuestion(question, lesson, fluencyData) {
         renderYoutubeInMediaContainer(question.youtube);
     }
 
-    if (question.videoUrl) {
-        const currentVideoUrl = (window.preloadedMedia && window.preloadedMedia[question.videoUrl])
-            ? window.preloadedMedia[question.videoUrl]
-            : `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${question.videoUrl}.mp4?alt=media`;
-        State.player = new InteractiveVideoPlayer({
-            videoUrl: currentVideoUrl, cue: question.cue, containerSelector: '#ivp-container',
-            videoStyles: { maxWidth: '100%' },
-            subtitleStyles: { fontSize: '24px', backgroundColor: 'rgba(0, 0, 0, 0.8)' }
-        });
-        window.currentVideoPlayer = State.player;
-
-        setTimeout(() => {
-            try {
-                const videoEl = State.player.video; videoEl.muted = false; videoEl.setAttribute('playsinline', '');
-                const playPromise = State.player.play();
-                if (playPromise !== undefined) playPromise.catch(error => { });
-            } catch (e) { }
-        }, 200);
-
-        State.player.video.addEventListener('playing', () => State.player.video.controls = false);
-        State.player.video.addEventListener('play', () => {
-            State.videoPlays++;
-            if (State.videoPlays > 2 && (question.inputType === "speech" || question.inputType === "ai")) {
-                State.currentPoints = Math.max(0, State.currentPoints - 10);
-                pointLoss.show(State.player.video, 10);
-                updateCurrentScoreDisplay(State.currentPoints);
-            }
-        });
-
-        State.player.video.addEventListener('click', () => {
-            State.videoClicks++;
-            if (State.videoClicks % 2 === 1 && (question.inputType === "speech" || question.inputType === "ai")) {
-                State.currentPoints = Math.max(0, State.currentPoints - 15);
-                pointLoss.show(State.player.video, 15);
-                updateCurrentScoreDisplay(State.currentPoints);
-            }
-        });
-    }
-
-    if (question.simpleVideoUrl) {
-        const currentVideoUrl = (window.preloadedMedia && window.preloadedMedia[question.simpleVideoUrl])
-            ? window.preloadedMedia[question.simpleVideoUrl]
-            : `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${question.simpleVideoUrl}.mp4?alt=media`;
-        State.player = new simpleVideoPlayer({
-            videoUrl: currentVideoUrl, subtitles: question.subtitles, containerSelector: '#simple-ivp-container',
-            videoStyles: { maxWidth: '100%' },
-            subtitleStyles: { fontSize: '24px', backgroundColor: 'rgba(0, 0, 0, 0.8)' }
-        });
-        window.currentSimpleVideoPlayer = State.player;
-
-        setTimeout(() => {
-            try {
-                const videoEl = State.player.video; videoEl.muted = false;
-                const playPromise = State.player.play();
-                if (playPromise !== undefined) playPromise.catch(error => { });
-            } catch (e) { }
-        }, 200);
-    }
-
-    if (question.introBackgroundVideoUrl) {
-        const currentVideoUrl = (window.preloadedMedia && window.preloadedMedia[question.introBackgroundVideoUrl])
-            ? window.preloadedMedia[question.introBackgroundVideoUrl]
-            : `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${question.introBackgroundVideoUrl}.mp4?alt=media`;
-
-        const lang = State.userData?.native_language;
-        State.player = new introBackgroundVideo({
-            videoUrl: currentVideoUrl,
-            title: Strings.get('incoming_video', lang) || 'INCOMING VIDEO',
-            subtitle: Strings.get('video_incoming', lang) || 'VIDEO ENTRANTE',
-            name: 'Joe Walsh',
-            role: Strings.get('english_coach', lang) || 'English Coach, UFF',
-            alertText: Strings.get('press_webcam', lang) || 'Press the webcam button below. Oprime el botón de cámara abajo.'
-        });
-        window.currentIntroVideoPlayer = State.player;
-    }
+    loadVideoForQuestion(question, State, State.userData?.native_language);
 
     const questionDiv = document.createElement('div');
     questionDiv.className = 'text-center';
@@ -1186,69 +922,6 @@ async function initializeLesson() {
     }
 }
 
-async function getCurrentLessonId() {
-    if (!State.configData || typeof State.configData !== 'object') throw new Error('Invalid or missing course configuration.');
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlLessonId = urlParams.get('lessonid');
-
-    if (urlLessonId) {
-        State.lessonId = urlLessonId;
-        const url = new URL(window.location.href);
-        url.searchParams.delete('lessonid'); url.searchParams.delete('course');
-        window.history.replaceState({}, document.title, url.toString());
-    }
-
-    if (!State.courseId) State.courseId = await getCurrentcourseId();
-
-    if (!State.lessonId) {
-        let wpLessonId = null; let wpTimestamp = null;
-        if (State.userData) {
-            wpLessonId = State.userData[`${State.courseId}_current_lesson`] ?? null;
-            const ts = State.userData[`${State.courseId}_lesson_timestamp`];
-            wpTimestamp = ts && !isNaN(new Date(ts).getTime()) ? new Date(ts) : null;
-        }
-
-        const lsId = localStorage.getItem(`${State.courseId}_currentLessonId`);
-        const lsTsStr = localStorage.getItem(`${State.courseId}_currentLessonTimestamp`);
-        const lsTs = lsTsStr && !isNaN(new Date(lsTsStr).getTime()) ? new Date(lsTsStr) : null;
-
-        const sources = [];
-        if (wpLessonId && wpTimestamp) sources.push({ lessonId: wpLessonId, timestamp: wpTimestamp });
-        if (lsId && lsTs) sources.push({ lessonId: lsId, timestamp: lsTs });
-
-        if (sources.length === 1) State.lessonId = sources[0].lessonId;
-        else if (sources.length > 1) {
-            sources.sort((a, b) => b.timestamp - a.timestamp);
-            State.lessonId = sources[0].lessonId;
-        }
-    }
-
-    if (!State.lessonId) {
-        if (State.configData && State.configData.lessons && State.configData.lessons.length > 0 && State.configData.lessons[0].lessonId) State.lessonId = State.configData.lessons[0].lessonId;
-        else throw new Error('getCurrentLessonId No lessons found in the course configuration.');
-    }
-
-    saveLessonProgress(State.courseId, State.lessonId, State.userData, { updateUserMeta: false, incrementCount: false });
-    return State.lessonId;
-}
-
-async function getCurrentcourseId() {
-    State.courseId = new URLSearchParams(window.location.search).get('courseid');
-
-    if (!State.courseId) {
-        if (State.userData && typeof State.userData === 'object') {
-            try {
-                const userProfile = await wp.apiFetch({ path: '/custom/v1/user-profile' });
-                State.courseId = userProfile.current_course || null;
-            } catch (error) { State.courseId = localStorage.getItem('currentCourse'); }
-        } else State.courseId = localStorage.getItem('currentCourse');
-    }
-
-    if (!State.courseId) State.courseId = 'pronunciation';
-    localStorage.setItem('currentCourse', State.courseId);
-    if (State.userData && typeof State.userData === 'object') await saveCourseToUserProfile(State.courseId, State.userData);
-    return State.courseId;
-}
 
 function loadLessonContent(lesson) {
     clearSpeechRecordingsForLesson(lesson.lessonId).catch(e => console.error(e));
@@ -1290,35 +963,7 @@ async function initializeApp() {
 
         if (!isLoggedIn) {
             console.warn('User not authenticated. Proceeding as guest.');
-            const modalHtml = `
-            <div class="modal fade" id="guestLoginModal" tabindex="-1" aria-labelledby="guestLoginModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content bg-dark text-white">
-                        <div class="modal-header border-secondary">
-                            <h5 class="modal-title" id="guestLoginModalLabel">Welcome!</h5>
-                        </div>
-                        <div class="modal-body">
-                            <p>You are currently not logged in. Log in or sign up to save your progress and access all features. Or, continue as a guest to try out the app.</p>
-                            <div class="d-grid gap-2 mt-4">
-                                <a href="login.html" class="btn btn-primary">Log In</a>
-                                <a href="signup.html" class="btn btn-secondary">Sign Up</a>
-                                <button type="button" class="btn btn-outline-light mt-2" data-bs-dismiss="modal">Continue as Guest</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>`;
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-            // Wait a brief moment to ensure DOM is updated before initializing modal
-            setTimeout(() => {
-                if (typeof bootstrap !== 'undefined') {
-                    const guestModal = new bootstrap.Modal(document.getElementById('guestLoginModal'));
-                    guestModal.show();
-                } else {
-                    console.error('Bootstrap is not loaded, unable to show guest login modal.');
-                }
-            }, 100);
+            showGuestLoginModal();
         }
         State.initializeUserMetrics(State.userData, calculateCurrentStreak);
 
@@ -1337,39 +982,7 @@ async function initializeApp() {
         State.englishLevel = State.configData.languageLevel || 'A0';
         console.log(`Course Level initialized to: ${State.englishLevel}`);
 
-        const lang = State.userData?.native_language;
-        const defaultQuestions = {
-            'speech': Strings.get('default_q_speech', lang),
-            'ai': Strings.get('default_q_ai', lang),
-            'present': Strings.get('default_q_present', lang),
-            'success': Strings.get('default_q_present', lang),
-            'lessonIntro': Strings.get('default_q_lesson_intro', lang)
-        };
-
-        if (State.configData && State.configData.lessons) {
-            State.configData.lessons.forEach(lesson => {
-                // Normalize title to string if it's a localized object
-                if (lesson.title && typeof lesson.title === 'object') {
-                    lesson.title = lesson.title.en || String(lesson.title);
-                }
-                // Optional: Also normalize mission if you want to use it later
-                if (lesson.mission && typeof lesson.mission === 'object') {
-                    lesson.mission = lesson.mission.en || String(lesson.mission);
-                }
-
-                if (lesson.questions) {
-                    lesson.questions.forEach(question => {
-                        // Normalize cue to string if it's a localized object
-                        if (question.cue && typeof question.cue === 'object') {
-                            question.cue = question.cue.en || String(question.cue);
-                        }
-                        if (!question.question && defaultQuestions[question.inputType]) {
-                            question.question = defaultQuestions[question.inputType];
-                        }
-                    });
-                }
-            });
-        }
+        normalizeConfig(State.configData, State.userData?.native_language);
 
         State.successHandler = new SuccessLessonHandler({
             configData: State.configData,
@@ -1445,33 +1058,6 @@ async function requestPersistentStorage() {
 }
 
 async function loadLocalModelsInBackground() {
-    /* --- NLP WORKER TEMPORARILY DISABLED ---
-    try {
-        console.log("⏳ Telling background worker to skip model boot...");
-        await askWorker('LOAD_MODELS', {}, 3 * 60 * 1000); // 3 min timeout
-        nlpModelsReady = true;
-        console.log("✅ Worker reports local NLP models are disabled. Using Server API flow.");
-    } catch (err) {
-        // Even if we timed out, the worker may still finish loading.
-        // Poll until it responds or we give up after 5 more minutes.
-        console.warn("⚠️ Model load timed out — polling for late readiness...", err);
-        const giveUpAt = Date.now() + 5 * 60 * 1000;
-        while (Date.now() < giveUpAt) {
-            await new Promise(resolve => setTimeout(resolve, 5000));
-            try {
-                await askWorker('CHECK_GRAMMAR', { userInput: 'test ping' }, 10000);
-                nlpModelsReady = true;
-                console.log("✅ Worker became ready after delayed load!");
-                break;
-            } catch {
-                console.log("⏳ Worker not ready yet, still waiting...");
-            }
-        }
-        if (!nlpModelsReady) {
-            console.error("❌ Worker never became ready. Falling back to Server API permanently.");
-        }
-    }
-    */
 
     // Hardcode to true to allow idiomChecker to boot while NLP worker is disabled
     nlpModelsReady = true;
