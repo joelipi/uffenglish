@@ -140,36 +140,15 @@
   }
 }
 
-/* Desktop Placement */
-@media (min-width: 1200px) {
-  #questions-container-container {
-    position: relative;
-  }
 
-  #webcam-preview {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 160px;
-    height: auto;
-    z-index: 10000;
-  }
-}
 
-/* Hide desktop playback video on mobile — prevents a black rectangle appearing */
-@media (max-width: 1199px) {
-  #playback-video-desktop-container {
-    display: none !important;
-  }
-}
+
 
 #media-container {
   position: relative;
 }
 
-/* Mobile Placement */
-@media (max-width: 1199px) {
-  #webcam-preview {
+#webcam-preview {
     position: absolute;
     right: 10px;
     top: 20px !important;
@@ -178,10 +157,9 @@
     height: 160px;
     z-index: 999;
   }
-}
 
 /* Fix for short landscape tablets where bottom 50% overshoots */
-@media (max-width: 1199px) and (max-height: 750px) {
+@media (max-height: 750px) {
   #webcam-preview {
     bottom: auto;
     top: 130px;
@@ -1582,15 +1560,6 @@ ul.incorrectWords {
   margin: 0 auto;
 }
 
-/* Desktop dimensions (Two-column layout) */
-@media (min-width: 1200px) {
-  .ivp-video-wrapper {
-    width: 300px;
-    height: 375px;
-    aspect-ratio: auto;
-    border-radius: 0 !important;
-  }
-}
 
 /* Smooth reveal transition */
 .ivp-main-wrapper {
@@ -1639,23 +1608,6 @@ ul.incorrectWords {
   display: none;
 }
 
-@media (min-width: 1200px) {
-  .ivp-main-wrapper {
-    max-width: 300px;
-  }
-
-  #ivp-container {
-    min-height: 380px;
-    /* Match media-container */
-    width: 300px;
-  }
-
-  #media-container {
-    min-height: 380px;
-    margin-bottom: 40px;
-    /* Extra buffer from controls */
-  }
-}
 
 video::-webkit-media-controls {
   display: none !important;
@@ -1738,7 +1690,7 @@ video {
 }
 
 /* Reduce player size on short viewports to prevent overlap with fixed footer */
-@media (min-width: 992px) and (max-height: 750px) {
+@media (min-width: 1400px) and (max-height: 750px) {
   .ivp-video-wrapper {
     height: 320px !important;
     width: 256px !important;
@@ -1756,7 +1708,7 @@ video {
   }
 }
 
-@media (min-width: 992px) and (max-height: 650px) {
+@media (min-width: 1400px) and (max-height: 650px) {
   .ivp-video-wrapper {
     height: 280px !important;
     width: 224px !important;
@@ -2081,17 +2033,13 @@ video {
   margin-bottom: 7px;
 }
 
-#playback-video-mobile {
+#playback-video {
   max-width: 100%;
   max-height: 200px;
   display: none;
 }
 
-#playback-video-desktop {
-  max-width: 80%;
-  max-height: 400px;
-  display: none;
-}
+
 
 .card-header-custom {
   background: linear-gradient(135deg, #1a3a5a 0%, #0d4b8c 100%) !important;
@@ -2140,18 +2088,7 @@ footer {
   color: black !important;
 }
 
-/* Ensure common video attributes are mirrored in CSS */
-.ivp-video {
-  width: 300px;
-  height: 375px;
-}
 
-@media (max-width: 1199px) {
-  .ivp-video {
-    width: 100%;
-    height: auto;
-  }
-}
 
 /* simpleVideo.js specific styles */
 .ivp-subtitle-scroll-container {
