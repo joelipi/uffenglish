@@ -22,10 +22,8 @@ export const DOM = {
     dayCountSpan: document.getElementById("dayCountSpan"),
     streakCountSpan: document.getElementById("streakCountSpan"),
     arrowContainer: document.getElementById("arrow-container"),
-    playbackVideoMobile: document.getElementById('playback-video-mobile'),
-    playbackVideoDesktop: document.getElementById('playback-video-desktop'),
-    playbackMuteToggleMobile: document.getElementById('playback-mute-toggle-mobile'),
-    playbackMuteToggleDesktop: document.getElementById('playback-mute-toggle-desktop'),
+    playbackVideo: document.getElementById('playback-video'),
+    playbackMuteToggle: document.getElementById('playback-mute-toggle'),
     questionsContainerContainer: document.getElementById('questions-container-container'),
     questionsContainer: document.getElementById('questions-container')
 };
@@ -439,21 +437,19 @@ export function updateSpeakingScoreDisplay(score) {
 
 export function clearPlaybackVideo() {
     console.log("clearPlaybackVideo called");
-    [DOM.playbackVideoMobile, DOM.playbackVideoDesktop].forEach(video => {
-        if (video) {
-            video.pause();
-            if (video.src && video.src.startsWith('blob:')) URL.revokeObjectURL(video.src);
-            video.src = '';
-            video.load();
-            video.style.display = 'none';
-            video.onerror = null;
-            video.onloadeddata = null;
-            video.onloadedmetadata = null;
-        }
-    });
+    const video = DOM.playbackVideo;
+    if (video) {
+        video.pause();
+        if (video.src && video.src.startsWith('blob:')) URL.revokeObjectURL(video.src);
+        video.src = '';
+        video.load();
+        video.style.display = 'none';
+        video.onerror = null;
+        video.onloadeddata = null;
+        video.onloadedmetadata = null;
+    }
 
-    if (DOM.playbackMuteToggleMobile) DOM.playbackMuteToggleMobile.classList.add('d-none');
-    if (DOM.playbackMuteToggleDesktop) DOM.playbackMuteToggleDesktop.classList.add('d-none');
+    if (DOM.playbackMuteToggle) DOM.playbackMuteToggle.classList.add('d-none');
 }
 
 export function prepareMediaUI() {
@@ -462,8 +458,7 @@ export function prepareMediaUI() {
 
 export function showPlaybackVideo() {
     console.log("showPlaybackVideo");
-    const playbackVideo = window.innerWidth >= 1200 ? DOM.playbackVideoDesktop : DOM.playbackVideoMobile;
-    if (playbackVideo) playbackVideo.style.display = 'block';
+    if (DOM.playbackVideo) DOM.playbackVideo.style.display = 'block';
 }
 
 export function isWebcamPreviewVisible() {
@@ -482,19 +477,13 @@ export function createWebcamPreview() {
     // Set opacity:0 BEFORE insertion
     webcamPreview.style.opacity = '0';
 
-    const isDesktop = window.innerWidth >= 1200;
-
-    if (isDesktop) {
-        if (DOM.questionsContainerContainer) DOM.questionsContainerContainer.appendChild(webcamPreview);
+    if (DOM.mediaContainer) {
+        DOM.mediaContainer.appendChild(webcamPreview);
     } else {
-        if (DOM.mediaContainer) {
-            DOM.mediaContainer.appendChild(webcamPreview);
-        } else {
-            webcamPreview.style.position = 'fixed';
-            webcamPreview.style.bottom = '10px';
-            webcamPreview.style.right = '10px';
-            document.body.appendChild(webcamPreview);
-        }
+        webcamPreview.style.position = 'fixed';
+        webcamPreview.style.bottom = '10px';
+        webcamPreview.style.right = '10px';
+        document.body.appendChild(webcamPreview);
     }
     return webcamPreview;
 }
@@ -552,9 +541,7 @@ export function removeWebcamPreview() {
 }
 
 export async function setupPlaybackVideo(blob, autoplay = false, speechCamChunks = []) {
-    const isDesktop = window.innerWidth > 1000;
-    const playbackVideo = isDesktop ? DOM.playbackVideoDesktop : DOM.playbackVideoMobile;
-
+    const playbackVideo = DOM.playbackVideo;
     if (!playbackVideo) {
         console.error('[Playback] playbackVideo element not found');
         return;
@@ -570,8 +557,7 @@ export async function setupPlaybackVideo(blob, autoplay = false, speechCamChunks
         } else {
             playbackVideo.src = URL.createObjectURL(blob);
         }
-
-        const muteToggle = isDesktop ? DOM.playbackMuteToggleDesktop : DOM.playbackMuteToggleMobile;
+    const muteToggle = DOM.playbackMuteToggle;
 
         if (muteToggle) {
             muteToggle.classList.remove('d-none');
