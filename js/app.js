@@ -612,7 +612,6 @@ function loadQuestion(question, lesson, fluencyData) {
 
     if (question.inputType === 'speech' || question.inputType === 'ai') {
         warmUpSpeechCamStream();
-        State.speakingScore = 100; // Reset speaking score for this question
         updateSpeakingScoreDisplay(State.speakingScore);
     }
 
@@ -1102,8 +1101,6 @@ async function loadLocalModelsInBackground() {
         }
     }
 }
-
-
 
 // Check if the page is already loaded before adding the listener.
 // This prevents the "silent hang" race condition.
