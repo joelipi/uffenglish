@@ -264,14 +264,21 @@ export class InteractiveVideoPlayer {
     // Instead of resetting everything, we only apply dynamic or critical layout styles.
     // Base layout (flex, width, margin) is now handled in style.css.
 
+    const isDesktop = window.innerWidth > 800;
+    
     // FOUC fix: re-apply hidden state if not yet revealed
     if (!this.isVideoLoaded) {
       this.mainWrapper.style.visibility = 'hidden';
       this.mainWrapper.classList.add('loading');
     }
 
-    const maxWidth = Math.min(window.innerWidth * 0.95, 600);
-    const videoHeight = maxWidth * (5 / 4);
+    let videoHeight;
+    if (isDesktop) {
+      videoHeight = 375;
+    } else {
+      const maxMobileWidth = Math.min(window.innerWidth * 0.95, 500);
+      videoHeight = maxMobileWidth * (5 / 4);
+    }
 
     const minSubtitleHeight = Math.max(60, videoHeight * 0.25);
 

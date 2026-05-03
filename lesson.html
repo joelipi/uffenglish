@@ -184,10 +184,10 @@
       </div><div class="container" id="container">
         <div class="row">
 
-          <div id="media-container-container1" class="col-12 mb-1">
-            <div id="playback-video-container" class="playback-video-container">
-              <video id="playback-video" playsinline controls preload="auto"></video>
-              <button id="playback-mute-toggle" class="playback-mute-toggle d-none"><i
+          <div id="media-container-container1" class="col-12 col-xl-7 mb-1">
+            <div id="playback-video-mobile-container" class="playback-video-container">
+              <video id="playback-video-mobile" playsinline controls preload="auto"></video>
+              <button id="playback-mute-toggle-mobile" class="playback-mute-toggle d-none"><i
                   class="bi bi-volume-up-fill"></i></button>
             </div>
             <div id="speech-text-here" class="card border-dark p-0 d-none">
@@ -271,7 +271,12 @@
             </div>
           </div>
 
-          <div id="questions-container-container" class="col-12 mb-2">
+          <div id="questions-container-container" class="col-12 col-xl-5 mb-2">
+            <div id="playback-video-desktop-container" class="playback-video-container">
+              <video id="playback-video-desktop" playsinline controls preload="auto"></video>
+              <button id="playback-mute-toggle-desktop" class="playback-mute-toggle d-none"><i
+                  class="bi bi-volume-up-fill"></i></button>
+            </div>
             <video id="originalVideo" src="" class="d-none"></video>
             <video id="resultVideo"></video>
             <a id="downloadLink" class="d-none">Download</a>
