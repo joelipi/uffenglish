@@ -310,7 +310,7 @@ export function showHintsAndScroll() {
     const hints = document.getElementById("hints");
     if (hints) {
         hints.classList.remove("d-none", "invisible");
-        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        //window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }
 }
 
@@ -731,7 +731,7 @@ export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyCl
     if (!audioOnlyButton && isLessonIntro && btnGroup) {
         audioOnlyButton = document.createElement('button');
         audioOnlyButton.id = 'audioOnlyButton';
-        audioOnlyButton.className = 'btn btn-primary text-white w-100';
+        audioOnlyButton.className = 'btn bg-transparent border-0 text-white w-100';
         audioOnlyButton.innerHTML = '<i class="bi bi-telephone-fill text-white" style="font-size: 40px; font-weight: 900;"></i>';
         btnGroup.appendChild(audioOnlyButton);
     }
