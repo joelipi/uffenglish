@@ -18,6 +18,8 @@ export const State = {
     lesson: null,
     mission: null,
     setting: null,
+    roleA: null,
+    roleB: null,
     userRole: null,
     videoRole: null,
     currentLessonIndex: 0,
@@ -63,6 +65,8 @@ export const State = {
     resetForNewLesson() {
         this.mission = null;
         this.setting = null;
+        this.roleA = null;
+        this.roleB = null;
         this.userRole = null;
         this.videoRole = null;
         this.currentPoints = 100;

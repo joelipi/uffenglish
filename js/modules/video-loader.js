@@ -5,6 +5,7 @@ import { introBackgroundVideo } from '../components/intro-background-video.js';
 import { pointLoss } from '../components/point-loss-animation.js';
 import { updateCurrentScoreDisplay } from '../components/ui.js';
 import Strings from '../data/strings.js';
+import { getLocalizedTranslation } from './utils.js';
 
 const FIREBASE_BASE = 'https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F';
 
@@ -28,7 +29,7 @@ export function loadVideoForQuestion(question, state, lang) {
         const currentVideoUrl = resolveVideoUrl(question.videoUrl);
         state.player = new InteractiveVideoPlayer({
             videoUrl: currentVideoUrl,
-            cue: question.cue,
+            cue: getLocalizedTranslation(question.cue, lang),
             containerSelector: '#ivp-container',
             videoStyles: { maxWidth: '100%' },
             subtitleStyles: { fontSize: '24px', backgroundColor: 'rgba(0, 0, 0, 0.8)' }
@@ -70,7 +71,7 @@ export function loadVideoForQuestion(question, state, lang) {
         const currentVideoUrl = resolveVideoUrl(question.simpleVideoUrl);
         state.player = new simpleVideoPlayer({
             videoUrl: currentVideoUrl,
-            subtitles: question.subtitles,
+            subtitles: getLocalizedTranslation(question.subtitles, lang),
             containerSelector: '#simple-ivp-container',
             videoStyles: { maxWidth: '100%' },
             subtitleStyles: { fontSize: '24px', backgroundColor: 'rgba(0, 0, 0, 0.8)' }

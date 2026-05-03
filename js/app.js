@@ -17,17 +17,7 @@ import { updateActivityDisplay } from './components/ui.js';
 // --- Data & Configuration ---
 import Strings from './data/strings.js';
 
-/**
- * Gets the localized string from a translation object or string.
- * @param {string|object} translationData - The translation string or object (e.g. { es: "Hola" }).
- * @param {string} lang - The user's native language code (e.g., 'es').
- * @returns {string} - The extracted string.
- */
-function getLocalizedTranslation(translationData, lang) {
-    if (!translationData) return '';
-    if (typeof translationData === 'string') return translationData;
-    return translationData[lang] || '';
-}
+
 
 // --- Decoupled Business Logic (Modules Directory) ---
 import { calculateRepeatAverage, calculateRolePlayAverage, calculateAverage } from './modules/scoring.js';
@@ -57,6 +47,7 @@ import { getCurrentLessonId, getCurrentcourseId } from './modules/lesson-router.
 import { normalizeConfig } from './modules/config-normalizer.js';
 import { loadVideoForQuestion } from './modules/video-loader.js';
 import { State } from './modules/state.js';
+import { getLocalizedTranslation } from './modules/utils.js';
 import { analyzeSpeech } from './modules/analytics.js';
 import { Media } from './modules/media.js';
 import {
@@ -930,6 +921,8 @@ function loadLessonContent(lesson) {
     State.resetForNewLesson();
     State.mission = lesson.mission || "";
     State.setting = lesson.setting || "";
+    State.roleA = lesson.roleA || "";
+    State.roleB = lesson.roleB || "";
     State.userRole = lesson.userRole || "";
     State.videoRole = lesson.videoRole || "";
 
