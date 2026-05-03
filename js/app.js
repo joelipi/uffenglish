@@ -273,6 +273,7 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
             // Use silent mode for handleIncueUI
             handleIncueUI(qIndex, questionData, button, cue, userResponse, result.explanations || explanation, result.normalizeduserResponse, result.normalizedcue, questionData.question, true);
 
+            clearPlaybackVideo();
             // Speech Hangman Logic: Show hint and stay on question
             const hangmanHTML = generateHangmanHint(userResponse, cue);
             const hintUncommonWords = document.getElementById("hintUncommonWords");

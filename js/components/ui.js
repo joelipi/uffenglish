@@ -20,7 +20,6 @@ export const DOM = {
     closeAndProgress: document.getElementById('closeAndProgress'),
     micStatusText: document.getElementById("micStatusText"),
     dayCountSpan: document.getElementById("dayCountSpan"),
-    // NEW: Added the streak span from app.php
     streakCountSpan: document.getElementById("streakCountSpan"),
     arrowContainer: document.getElementById("arrow-container"),
     playbackVideoMobile: document.getElementById('playback-video-mobile'),
@@ -439,6 +438,7 @@ export function updateSpeakingScoreDisplay(score) {
 }
 
 export function clearPlaybackVideo() {
+    console.log("clearPlaybackVideo called");
     [DOM.playbackVideoMobile, DOM.playbackVideoDesktop].forEach(video => {
         if (video) {
             video.pause();
@@ -461,6 +461,7 @@ export function prepareMediaUI() {
 }
 
 export function showPlaybackVideo() {
+    console.log("showPlaybackVideo");
     const playbackVideo = window.innerWidth >= 1200 ? DOM.playbackVideoDesktop : DOM.playbackVideoMobile;
     if (playbackVideo) playbackVideo.style.display = 'block';
 }
@@ -865,10 +866,10 @@ export function renderImageInMediaContainer(imageUrl) {
         console.error('[UI] mediaContainer DOM element not found!');
         return;
     }
-    
+
     // Ensure visibility
     DOM.mediaContainer.classList.remove('d-none');
-    DOM.mediaContainer.style.display = 'block'; 
+    DOM.mediaContainer.style.display = 'block';
 
     // Remove any previous praise images to avoid stacking
     const existingPraise = DOM.mediaContainer.querySelectorAll('.praise-image-wrapper');
@@ -877,7 +878,7 @@ export function renderImageInMediaContainer(imageUrl) {
     const div = document.createElement('div');
     div.className = 'text-center mb-3 praise-image-wrapper';
     div.innerHTML = `<img src="${imageUrl}" class="img-fluid rounded" alt="Praise" style="max-height: 250px; border: 3px solid #00f2fe; box-shadow: 0 0 15px rgba(0,242,254,0.5);">`;
-    
+
     console.log('[UI] Prepending image to mediaContainer');
     DOM.mediaContainer.prepend(div);
 }
