@@ -467,7 +467,6 @@ export function showPlaybackVideo() {
 }
 
 export function isWebcamPreviewVisible() {
-    console.log("isWebcamPreviewVisible");
     return webcamPreview && webcamPreview.isConnected && !webcamPreview.classList.contains('d-none');
 }
 
@@ -479,35 +478,30 @@ export function createWebcamPreview() {
     webcamPreview.autoplay = true;
     webcamPreview.muted = true;
     webcamPreview.playsinline = true;
+
+    // Set opacity:0 BEFORE insertion
     webcamPreview.style.opacity = '0';
 
-    // FIX: Dynamically grab the container to avoid null errors, and ALWAYS inject it over the main video
-    const mainMediaContainer = document.getElementById('media-container');
+    const isDesktop = window.innerWidth >= 1200;
 
-    if (mainMediaContainer) {
-        mainMediaContainer.appendChild(webcamPreview);
+    if (isDesktop) {
+        if (DOM.questionsContainerContainer) DOM.questionsContainerContainer.appendChild(webcamPreview);
     } else {
-        // Absolute worst-case fallback
-        webcamPreview.style.position = 'fixed';
-        webcamPreview.style.bottom = '10px';
-        webcamPreview.style.right = '10px';
-        document.body.appendChild(webcamPreview);
+        if (DOM.mediaContainer) {
+            DOM.mediaContainer.appendChild(webcamPreview);
+        } else {
+            webcamPreview.style.position = 'fixed';
+            webcamPreview.style.bottom = '10px';
+            webcamPreview.style.right = '10px';
+            document.body.appendChild(webcamPreview);
+        }
     }
-
     return webcamPreview;
 }
 
 export function ensureWebcamPreview(stream) {
-    console.log("ensureWebcamPreview");
     if (!stream) return null;
-
-    // 1. FIX: Grab the existing element from your HTML first!
-    if (!webcamPreview) {
-        webcamPreview = document.getElementById('webcam-preview');
-    }
-
-    // 2. Only create a new one if it truly doesn't exist in the DOM
-    if (!webcamPreview) {
+    if (!webcamPreview || !document.getElementById('webcam-preview')) {
         webcamPreview = createWebcamPreview();
     }
 
@@ -515,7 +509,6 @@ export function ensureWebcamPreview(stream) {
         webcamPreview.srcObject = stream;
     }
 
-    // The existing unhide logic will now correctly target the right element
     if (webcamPreview.classList.contains('d-none')) {
         webcamPreview.style.transition = '';
         webcamPreview.style.opacity = '0';
@@ -546,7 +539,6 @@ export function toggleCamera() {
 
 
 export function hideWebcamPreview() {
-    console.log("hideWebcamPreview");
     if (webcamPreview && webcamPreview.isConnected) webcamPreview.classList.add('d-none');
 }
 
@@ -706,7 +698,7 @@ export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyCl
     if (isLessonIntro) {
         if (!btnGroup && centerBar) {
             btnGroup = document.createElement('div');
-            btnGroup.className = 'd-flex gap-3 justify-content-center align-items-center w-100';
+            btnGroup.className = 'd-flex gap-2 w-100';
             btnGroup.id = 'introButtonGroup';
             centerBar.appendChild(btnGroup);
 
@@ -720,7 +712,7 @@ export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyCl
     if (!continueButton) {
         continueButton = document.createElement('button');
         continueButton.id = 'continueButton';
-        continueButton.className = 'btn btn-primary text-white';
+        continueButton.className = 'btn btn-primary text-white w-100';
         if (isLessonIntro && btnGroup) {
             btnGroup.appendChild(continueButton);
         } else if (centerBar) {
@@ -739,7 +731,7 @@ export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyCl
     if (!audioOnlyButton && isLessonIntro && btnGroup) {
         audioOnlyButton = document.createElement('button');
         audioOnlyButton.id = 'audioOnlyButton';
-        audioOnlyButton.className = 'btn btn-outline-light';
+        audioOnlyButton.className = 'btn btn-primary text-white w-100';
         audioOnlyButton.innerHTML = '<i class="bi bi-telephone-fill text-white" style="font-size: 40px; font-weight: 900;"></i>';
         btnGroup.appendChild(audioOnlyButton);
     }
@@ -776,12 +768,10 @@ export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyCl
 
         // Adjust button widths if both are showing
         if (isLessonIntro && audioOnlyButton) {
-            continueButton.style.width = '120px';
-            audioOnlyButton.style.width = '80px';
-            continueButton.classList.remove('w-100');
-            audioOnlyButton.classList.remove('w-100');
-        } else if (continueButton) {
-            continueButton.style.width = '100%';
+            continueButton.classList.replace('w-100', 'w-50');
+            audioOnlyButton.classList.replace('w-100', 'w-50');
+        } else {
+            continueButton.classList.replace('w-50', 'w-100');
         }
     }
 

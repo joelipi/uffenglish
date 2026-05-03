@@ -141,63 +141,56 @@
 }
 
 /* Desktop Placement */
-/* Desktop placement overrides removed to force universal single-column mobile view */
-/* FIX: Removed position: relative so the webcam isn't dragged to the bottom of the page */
-#questions-container-container {
-  position: static !important;
+@media (min-width: 1200px) {
+  #questions-container-container {
+    position: relative;
+  }
+
+  #webcam-preview {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 160px;
+    height: auto;
+    z-index: 10000;
+  }
 }
 
-/* Unconditionally hide the old desktop playback video so it stops taking up space */
-#playback-video-desktop-container {
-  display: none !important;
+/* Hide desktop playback video on mobile — prevents a black rectangle appearing */
+@media (max-width: 1199px) {
+  #playback-video-desktop-container {
+    display: none !important;
+  }
 }
 
-/* Ensure the main media container acts as the anchor point */
 #media-container {
   position: relative;
 }
 
-/* Base Webcam Styles */
-#webcam-preview {
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  background: #000;
-  border: 2px solid #4CAF50;
-  object-fit: cover;
-
-  /* Placement: anchored inside #media-container */
-  position: absolute;
-  right: 10px;
-  top: 20px;
-  bottom: auto;
-  height: 160px;
-  width: auto;
-  z-index: 10000;
-
-  /* Mirror effect - JS will append scaleX(-1) via transform, so don't fight it here */
-  /* Opacity is controlled entirely by JS ensureWebcamPreview / hideWebcamPreview */
-  /* NO opacity or animation here - avoids conflict with JS-driven fade-in */
-  transition: opacity 0.4s ease-out, transform 0.4s ease-out;
-}
-
-/* On wider screens, pin to right edge of the centered 600px video box */
-@media (min-width: 640px) {
+/* Mobile Placement */
+@media (max-width: 1199px) {
   #webcam-preview {
-    right: auto;
-    left: 50%;
-    /* Push to right edge of 600px box, pull back by own width + 10px margin, keep mirror */
-    transform: translateX(calc(300px - 100% - 10px)) scaleX(-1);
+    position: absolute;
+    right: 10px;
+    top: 20px !important;
+    bottom: auto !important;
+    transform: none !important;
+    height: 160px;
+    z-index: 999;
   }
 }
 
-/* Fix for short landscape tablets */
+/* Fix for short landscape tablets where bottom 50% overshoots */
 @media (max-width: 1199px) and (max-height: 750px) {
   #webcam-preview {
     bottom: auto;
     top: 130px;
+    /* Safely below the lesson header when absolute to body */
     height: 150px;
   }
 }
+
+
 
 .playback-video-container {
   position: relative;
@@ -579,6 +572,7 @@ body .wp-block-post-content {
 
 #speechButton,
 #continueButton,
+#audioOnlyButton,
 #repeatButton,
 #processBtn,
 .big-buttons button {
@@ -589,6 +583,7 @@ body .wp-block-post-content {
 #hintButton::before,
 #speechButton::before,
 #continueButton::before,
+#audioOnlyButton::before,
 #repeatButton::before,
 #processBtn::before,
 .big-buttons button::before {
@@ -605,6 +600,7 @@ body .wp-block-post-content {
 #hintButton:hover::before,
 #speechButton:hover::before,
 #continueButton:hover::before,
+#audioOnlyButton:hover::before,
 #repeatButton:hover::before,
 #processBtn:hover::before,
 .big-buttons button:hover::before {
@@ -614,6 +610,7 @@ body .wp-block-post-content {
 #hintButton:hover,
 #speechButton:hover,
 #continueButton:hover,
+#audioOnlyButton:hover,
 #repeatButton:hover,
 #processBtn:hover,
 .big-buttons button:hover {
@@ -1583,13 +1580,18 @@ ul.incorrectWords {
   /* Mobile/Tablet dimensions: max width 600px, 4:5 aspect ratio */
   max-width: 600px;
   aspect-ratio: 4 / 5;
-  max-height: calc(100vh - 200px);
-  /* Assuring the element remains visible no matter viewport height */
   margin: 0 auto;
 }
 
 /* Desktop dimensions (Two-column layout) */
-/* @media (min-width: 1200px) removed for single column layout */
+@media (min-width: 1200px) {
+  .ivp-video-wrapper {
+    width: 300px;
+    height: 375px;
+    aspect-ratio: auto;
+    border-radius: 0 !important;
+  }
+}
 
 /* Smooth reveal transition */
 .ivp-main-wrapper {
@@ -1636,6 +1638,24 @@ ul.incorrectWords {
 #simple-ivp-container:empty {
   min-height: 0 !important;
   display: none;
+}
+
+@media (min-width: 1200px) {
+  .ivp-main-wrapper {
+    max-width: 300px;
+  }
+
+  #ivp-container {
+    min-height: 380px;
+    /* Match media-container */
+    width: 300px;
+  }
+
+  #media-container {
+    min-height: 380px;
+    margin-bottom: 40px;
+    /* Extra buffer from controls */
+  }
 }
 
 video::-webkit-media-controls {
@@ -2062,10 +2082,15 @@ video {
   margin-bottom: 7px;
 }
 
-#playback-video-mobile,
-#playback-video-desktop {
+#playback-video-mobile {
   max-width: 100%;
   max-height: 200px;
+  display: none;
+}
+
+#playback-video-desktop {
+  max-width: 80%;
+  max-height: 400px;
   display: none;
 }
 
@@ -2118,11 +2143,16 @@ footer {
 
 /* Ensure common video attributes are mirrored in CSS */
 .ivp-video {
-  width: 100%;
-  height: auto;
+  width: 300px;
+  height: 375px;
 }
 
-/* @media (max-width: 1199px) block removed as mobile styles are now universal */
+@media (max-width: 1199px) {
+  .ivp-video {
+    width: 100%;
+    height: auto;
+  }
+}
 
 /* simpleVideo.js specific styles */
 .ivp-subtitle-scroll-container {
