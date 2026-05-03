@@ -46,6 +46,7 @@ import getRandomPraise from './modules/praise.js';
 import { getCurrentLessonId, getCurrentcourseId } from './modules/lesson-router.js';
 import { normalizeConfig } from './modules/config-normalizer.js';
 import { loadVideoForQuestion } from './modules/video-loader.js';
+import { appStore } from './modules/store.js';
 import { State } from './modules/state.js';
 import { getLocalizedTranslation } from './modules/utils.js';
 import { analyzeSpeech } from './modules/analytics.js';
@@ -53,8 +54,6 @@ import { Media } from './modules/media.js';
 import {
     DOM,
     flashElement,
-    updateCurrentScoreDisplay,
-    updateDayCountDisplay,
     disableAllButtons,
     clearChatInterface,
     renderUserResponse,
@@ -101,7 +100,8 @@ import {
     showErrorMessageInQuestionsContainer,
     setupLessonUI,
     generateHangmanHint,
-    showGuestLoginModal
+    showGuestLoginModal,
+    initUISubscriptions
 } from './components/ui.js';
 
 import { idiomChecker } from './modules/idiom-checker.js';
@@ -112,22 +112,18 @@ const hearts = [DOM.heart1, DOM.heart2, DOM.heart3];
 // Speaking Score Logic ---
 window.addEventListener('transcriptRejected', () => {
     // Deduct 20 points, floor at 0
-    State.speakingScore = Math.max(0, State.speakingScore - 20);
+    appStore.getState().deductSpeakingScore(20);
 
-    // Update the UI
-    updateSpeakingScoreDisplay(State.speakingScore);
+    // Show point loss animation explicitly on the score span (subscription handles the text update)
     if (DOM.phrasesScore) {
-        flashElement(DOM.phrasesScore);
-        // Show point loss animation explicitly on the score span
         pointLoss.show(DOM.phrasesScore, 20);
     }
 });
 
 window.addEventListener('preflightRejected', () => {
-    State.currentPoints = Math.max(0, State.currentPoints - 10);
-    updateCurrentScoreDisplay(State.currentPoints);
+    appStore.getState().deductPoints(10);
+    // Show point loss animation (subscription handles the text update)
     if (DOM.phrasesScore) {
-        flashElement(DOM.phrasesScore);
         pointLoss.show(DOM.phrasesScore, 10);
     }
 });
@@ -147,10 +143,9 @@ async function submitAnswerPrecheck(val, cue, questionData, btn, explanation, tr
     );
 
     if (!isValid) {
-        State.currentPoints = Math.max(0, State.currentPoints - 10);
-        updateCurrentScoreDisplay(State.currentPoints);
+        appStore.getState().deductPoints(10);
+        // Show point loss animation (subscription handles the text update)
         if (DOM.phrasesScore) {
-            flashElement(DOM.phrasesScore);
             pointLoss.show(DOM.phrasesScore, 10);
         }
         if (DOM.micStatusText) {
@@ -194,8 +189,8 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
     if (questionData.inputType === "speech" || questionData.inputType === "ai") {
         speechAnalytics = await analyzeSpeech(userResponse, stats.netDuration, stats.pauseCount, State.courseId ? State.courseId.substring(0, 2).toUpperCase() : 'A1', questionData.inputType);
 
-        const listeningScore = State.currentPoints || 0;
-        const speakingScore = State.speakingScore || 0;
+        const listeningScore = appStore.getState().currentPoints || 0;
+        const speakingScore = appStore.getState().speakingScore || 0;
 
         immediateStatsHtmlArr.push(createStatsBubbleHTML(
             Strings.get('stats_listening_header', State.userData?.native_language).replace('{score}', listeningScore), []
@@ -260,7 +255,7 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
         const isCorrect = result.isCorrect;
 
         // --- SILENT RETRY FLOW FOR SPEECH ---
-        if (!isCorrect && questionData.inputType === "speech" && State.incorrectAttempts <= 1) {
+        if (!isCorrect && questionData.inputType === "speech" && appStore.getState().incorrectAttempts <= 1) {
             // Use silent mode for handleIncueUI
             handleIncueUI(qIndex, questionData, button, cue, userResponse, result.explanations || explanation, result.normalizeduserResponse, result.normalizedcue, questionData.question, true);
 
@@ -324,8 +319,8 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
             if (questionData.inputType === "ai") {
                 State.cuesGiven.push(result.normalizeduserResponse);
                 if (result.englishLevelDeduction > 0) {
-                    State.currentPoints = Math.max(0, State.currentPoints - result.englishLevelDeduction);
-                    updateCurrentScoreDisplay(State.currentPoints);
+                    appStore.getState().deductPoints(result.englishLevelDeduction);
+                    // Note: pointLoss animation is intentionally omitted here per existing behavior
                 }
             }
             handlecueUI(qIndex, questionData, button, cue, result.explanations || explanation, translation, userResponse, result.englishLevel, result.englishLevelDeduction);
@@ -343,8 +338,8 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
 
 function handlecueUI(qIndex, questionData, button, cue, explanation, translation, userResponse, englishLevel, englishLevelDeduction) {
 
-    if (questionData.inputType === "speech" && questionData.videoUrl) State.repeatPointsHistory.push(State.currentPoints);
-    if (questionData.inputType === "ai" && questionData.videoUrl) State.rolePlayPointsHistory.push(State.currentPoints);
+    if (questionData.inputType === "speech" && questionData.videoUrl) State.repeatPointsHistory.push(appStore.getState().currentPoints);
+    if (questionData.inputType === "ai" && questionData.videoUrl) State.rolePlayPointsHistory.push(appStore.getState().currentPoints);
 
     // Unified: last AI question advances via Continue button like all others.
 
@@ -395,7 +390,7 @@ function handlecueUI(qIndex, questionData, button, cue, explanation, translation
         }
 
         if (questionData.inputType === "ai" || questionData.inputType === "speech") {
-            updateSpeakingScoreDisplay(State.speakingScore);
+            updateSpeakingScoreDisplay(appStore.getState().speakingScore);
             flashElement(DOM.phrasesScore);
         }
     }
@@ -410,40 +405,39 @@ function handlecueUI(qIndex, questionData, button, cue, explanation, translation
 }
 
 function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanation, normalizeduserResponse, normalizedcue, question, silent = false) {
-    State.incorrectAttempts++;
+    appStore.getState().incrementIncorrectAttempts();
 
     if (!silent && (questionData.inputType === "lessonIntro" || questionData.inputType === "speech" || questionData.inputType === "ai")) {
         showPlaybackVideo();
     }
 
     if ((questionData.inputType === "speech" || questionData.inputType === "ai") && questionData.videoUrl) {
-        State.currentPoints = Math.max(0, State.currentPoints - 25);
+        appStore.getState().deductPoints(25);
         pointLoss.show(DOM.micStatusText, 25);
-        updateCurrentScoreDisplay(State.currentPoints);
-        if (State.incorrectAttempts > 2) {
-            State.currentPoints = 0;
-            updateCurrentScoreDisplay(State.currentPoints);
-            updateSpeakingScoreDisplay(State.speakingScore);
-            State.rolePlayPointsHistory.push(State.currentPoints);
+        // Subscription handles the score display update
+        if (appStore.getState().incorrectAttempts > 2) {
+            appStore.getState().setPoints(0);
+            updateSpeakingScoreDisplay(appStore.getState().speakingScore);
+            State.rolePlayPointsHistory.push(appStore.getState().currentPoints);
         }
     }
 
     if (silent) {
-        animateHeartLoss(State.incorrectAttempts);
+        animateHeartLoss(appStore.getState().incorrectAttempts);
         Media.playSound('incorrect-sound');
         return;
     }
 
     if (questionData.inputType === "ai" && userResponse) {
-        if (State.incorrectAttempts > 2) {
-            State.currentPoints = 0;
-            State.rolePlayPointsHistory.push(State.currentPoints);
-            updateCurrentScoreDisplay(State.currentPoints);
+        if (appStore.getState().incorrectAttempts > 2) {
+            appStore.getState().setPoints(0);
+            State.rolePlayPointsHistory.push(appStore.getState().currentPoints);
+            // Subscription handles the score display update
         }
 
-        const teacherTextStr = State.incorrectAttempts === 1
+        const teacherTextStr = appStore.getState().incorrectAttempts === 1
             ? Strings.get('try_again_1', State.userData?.native_language)
-            : State.incorrectAttempts === 2
+            : appStore.getState().incorrectAttempts === 2
                 ? Strings.get('try_again_2', State.userData?.native_language)
                 : `${Strings.get('failed_continue_correct', State.userData?.native_language)}<br>"${cue}"`;
 
@@ -454,14 +448,14 @@ function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanat
 
         let headsUpNode = '';
         if (questionData.headsUp) {
-            const headsUpText = State.incorrectAttempts <= 2 ? Strings.get('heads_up_try_again', State.userData?.native_language) : questionData.headsUp;
+            const headsUpText = appStore.getState().incorrectAttempts <= 2 ? Strings.get('heads_up_try_again', State.userData?.native_language) : questionData.headsUp;
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = headsUpText;
             headsUpNode = tempDiv;
         }
 
         let possibleAnswerNode = '';
-        if (questionData.possibleAnswer && State.incorrectAttempts > 2) {
+        if (questionData.possibleAnswer && appStore.getState().incorrectAttempts > 2) {
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = `${Strings.get('example_correct_answer', State.userData?.native_language)}<br>${questionData.possibleAnswer}`;
             possibleAnswerNode = tempDiv;
@@ -489,14 +483,14 @@ function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanat
         const correctUl = `<ul class='card-text correctWords list-inline' id='correctWords'>${Array.from(correct).map(w => `<li class='list-inline-item'>${w}</li>`).join('')}</ul>`;
         const incorrectUl = `<ul class='card-text incorrectWords list-inline' id='incorrectWords'>${Array.from(incorrect).map(w => `<li class='list-inline-item'>${w}</li>`).join('')}</ul>`;
 
-        const teacherText = State.incorrectAttempts === 1
+        const teacherText = appStore.getState().incorrectAttempts === 1
             ? Strings.get('try_again_1', State.userData?.native_language)
-            : State.incorrectAttempts === 2
+            : appStore.getState().incorrectAttempts === 2
                 ? Strings.get('try_again_2', State.userData?.native_language)
                 : `${Strings.get('failed_continue', State.userData?.native_language)}<br><br>Correct:<br>"${cue}"`;
 
         const headsUpStr = questionData.headsUp
-            ? (State.incorrectAttempts <= 2 ? Strings.get('heads_up_repeat_video', State.userData?.native_language) : questionData.headsUp)
+            ? (appStore.getState().incorrectAttempts <= 2 ? Strings.get('heads_up_repeat_video', State.userData?.native_language) : questionData.headsUp)
             : '';
 
         const chunks = [`<strong>${teacherText}</strong><br><br>${correctUl}${incorrectUl}`];
@@ -507,7 +501,7 @@ function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanat
         renderAIFeedback(chunks);
     }
 
-    animateHeartLoss(State.incorrectAttempts);
+    animateHeartLoss(appStore.getState().incorrectAttempts);
 
     Media.playSound('incorrect-sound');
 
@@ -538,7 +532,7 @@ function showFeedbackAndProceed(questionData, isCorrect) {
             if (questionData.inputType === "lessonIntro") {
                 setTimeout(() => loadNextQuestion(questionData), 2000);
             } else {
-                if (isCorrect || State.incorrectAttempts > 2) loadNextQuestion(questionData);
+                if (isCorrect || appStore.getState().incorrectAttempts > 2) loadNextQuestion(questionData);
                 else {
                     const qIndex = getCurrentQuestionIndex(questionData, State.configData, State.currentLessonIndex);
                     window.__currentQuestionIndex = qIndex;
@@ -547,7 +541,7 @@ function showFeedbackAndProceed(questionData, isCorrect) {
             }
         });
 
-        if (isCorrect || State.incorrectAttempts > 2) {
+        if (isCorrect || appStore.getState().incorrectAttempts > 2) {
             const nextQuestion = getNextQuestion(questionData);
             if (nextQuestion && nextQuestion.videoUrl) {
                 const videoUrl = `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${nextQuestion.videoUrl}.mp4?alt=media`;
@@ -557,7 +551,7 @@ function showFeedbackAndProceed(questionData, isCorrect) {
 
     } catch (error) {
         renderFallbackContinueButton(Strings.get('btn_continue', State.userData?.native_language) || 'Continue', () => {
-            if (isCorrect || State.incorrectAttempts > 2) loadNextQuestion(questionData);
+            if (isCorrect || appStore.getState().incorrectAttempts > 2) loadNextQuestion(questionData);
             else loadQuestion(questionData, State.configData.lessons[State.currentLessonIndex]);
         });
     }
@@ -604,7 +598,7 @@ function loadQuestion(question, lesson, fluencyData) {
 
     if (question.inputType === 'speech' || question.inputType === 'ai') {
         warmUpSpeechCamStream();
-        updateSpeakingScoreDisplay(State.speakingScore);
+        updateSpeakingScoreDisplay(appStore.getState().speakingScore);
     }
 
     prepareMediaUI();
@@ -678,8 +672,9 @@ function loadQuestion(question, lesson, fluencyData) {
         const handleRevealClick = function () {
             if (!this.dataset.revealed) {
                 this.textContent = this.dataset.word;
-                State.currentPoints = Math.max(0, State.currentPoints - 15);
-                pointLoss.show(this, 15); updateCurrentScoreDisplay(State.currentPoints);
+                appStore.getState().deductPoints(15);
+                pointLoss.show(this, 15);
+                // Subscription handles the score display update
                 this.dataset.revealed = "true"; this.removeEventListener('click', handleRevealClick);
             }
         };
@@ -791,12 +786,8 @@ function loadQuestion(question, lesson, fluencyData) {
                 updateUserMeta: true,
                 incrementCount: true
             }).then(progressResult => {
-                // Update State with the new calculated numbers
-                State.dayCount = progressResult.newDayCount;
-                State.currentStreak = progressResult.newStreak;
-
-                // Update the UI spans in the header
-                updateActivityDisplay(State.dayCount, State.currentStreak);
+                // Update the store with the new calculated numbers; subscription handles the UI
+                appStore.getState().setActivityMetrics(progressResult.newDayCount, progressResult.newStreak);
             });
         };
 
@@ -838,7 +829,8 @@ function loadNextQuestion(currentQuestion, fluencyData) {
     toggleScoresAndHearts(false);
 
     State.resetForNextQuestion();
-    updateCurrentScoreDisplay(State.currentPoints);
+    // No manual updateCurrentScoreDisplay call needed: resetForNextQuestion() updates the store,
+    // and the subscription will automatically sync the UI.
 
     resetHeartsUI();
 
@@ -866,8 +858,8 @@ async function loadNextLesson() {
     if (nextLessonId) {
         saveLessonProgress(State.courseId, nextLessonId, State.userData).then(progressResult => {
             if (progressResult.dayCountIncremented) {
-                State.dayCount = progressResult.newDayCount;
-                updateDayCountDisplay(State.dayCount);
+                // Update the store; subscription handles the display
+                appStore.getState().setActivityMetrics(progressResult.newDayCount, appStore.getState().currentStreak);
             }
         });
 
@@ -926,8 +918,11 @@ function loadLessonContent(lesson) {
     State.userRole = lesson.userRole || "";
     State.videoRole = lesson.videoRole || "";
 
-    updateCurrentScoreDisplay(State.currentPoints);
-    updateActivityDisplay(State.dayCount, State.currentStreak);
+    // No manual updateCurrentScoreDisplay call needed: the store subscription handles it.
+    // updateActivityDisplay is still called here because dayCount/currentStreak haven't changed yet
+    // (they will be set by saveLessonProgress callbacks later); this ensures the header shows
+    // the correct values immediately on lesson load.
+    updateActivityDisplay(appStore.getState().dayCount, appStore.getState().currentStreak);
 
     resetHeartsUI();
 
@@ -976,6 +971,10 @@ function setupAuthMenu(isLoggedIn) {
 // 🚀🚀🚀🚀🚀🚀🚀🚀 INITIALIZE APP 🚀🚀🚀🚀🚀🚀🚀🚀
 
 async function initializeApp() {
+    // Initialize reactive UI subscriptions first so the UI responds to store changes
+    // from the moment any state is set during initialization.
+    initUISubscriptions();
+
     try {
         requestPersistentStorage();
         const isLoggedIn = await isUserLoggedIn();
@@ -988,8 +987,6 @@ async function initializeApp() {
             showGuestLoginModal();
         }
         State.initializeUserMetrics(State.userData, calculateCurrentStreak);
-
-        updateActivityDisplay(State.dayCount, State.currentStreak);
 
         // Immediately trigger offline score sync if needed
         syncOfflineScores(State.userData);
@@ -1013,7 +1010,25 @@ async function initializeApp() {
             playSound: Media.playSound,
             loadNextLesson,
             updateState: (newState) => {
-                Object.assign(State, newState);
+                // Route reactive metrics to the Zustand store; all other keys go to State as before
+                const reactiveKeys = ['currentPoints', 'speakingScore', 'incorrectAttempts', 'dayCount', 'currentStreak'];
+                const storeUpdates = {};
+                const stateUpdates = {};
+
+                Object.entries(newState).forEach(([key, value]) => {
+                    if (reactiveKeys.includes(key)) {
+                        storeUpdates[key] = value;
+                    } else {
+                        stateUpdates[key] = value;
+                    }
+                });
+
+                if (Object.keys(storeUpdates).length > 0) {
+                    appStore.setState(storeUpdates);
+                }
+                if (Object.keys(stateUpdates).length > 0) {
+                    Object.assign(State, stateUpdates);
+                }
             },
             uiElements: {
                 scoresAndHearts: DOM.scoresAndHearts,
