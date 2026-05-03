@@ -3,9 +3,8 @@ import Strings from '../data/strings.js';
 import { getDeepgramToken } from './api.js';
 import { saveSpeechRecording } from './storage.js';
 import { State } from './state.js';
-import normalize from './normalize.js';
-import calculateSimilarity from './calculate-similarity.js';
 import swearjar from './swearjar.js';
+import { validateAnswerPrecheck } from './answers.js';
 import * as ui from '../components/ui.js';
 
 
@@ -48,20 +47,20 @@ let silenceTimer = null;
 // --- Utility Functions ---
 
 function getMediaConstraints() {
-    return {
-      video: {
-        aspectRatio: { ideal: 16/9 },
-        facingMode: "user",
-        ...(isWindows && { aspectRatio: { ideal: 9/16 } })
-      },
-      audio: {
-        channelCount: 1,
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true,
-        sampleRate: { ideal: 16000 }
-      }
-    };
+  return {
+    video: {
+      aspectRatio: { ideal: 16 / 9 },
+      facingMode: "user",
+      ...(isWindows && { aspectRatio: { ideal: 9 / 16 } })
+    },
+    audio: {
+      channelCount: 1,
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+      sampleRate: { ideal: 16000 }
+    }
+  };
 }
 
 // --- Webcam Functions ---
@@ -76,101 +75,101 @@ export function safelyStopStream() {
 }
 
 async function createPlaceholderStream() {
-    console.log('[Recording] Creating placeholder stream');
-    const audioStream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-            channelCount: 1,
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-            sampleRate: { ideal: 16000 }
-        }
-    });
+  console.log('[Recording] Creating placeholder stream');
+  const audioStream = await navigator.mediaDevices.getUserMedia({
+    audio: {
+      channelCount: 1,
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+      sampleRate: { ideal: 16000 }
+    }
+  });
 
-    const canvas = document.createElement('canvas');
-    
-    // Exact same dimensions as ideal constraints
-    if (isWindows) {
-        canvas.width = 480;
-        canvas.height = 854; // 9:16
+  const canvas = document.createElement('canvas');
+
+  // Exact same dimensions as ideal constraints
+  if (isWindows) {
+    canvas.width = 480;
+    canvas.height = 854; // 9:16
+  } else {
+    canvas.width = 854;
+    canvas.height = 480; // 16:9
+  }
+
+  const ctx = canvas.getContext('2d');
+
+  function draw() {
+    // Neutral dark gray background
+    ctx.fillStyle = '#1e1e1e';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const baseSize = Math.min(canvas.width, canvas.height);
+
+    // Draw Silhouette Avatar Icon
+    ctx.fillStyle = '#444444';
+
+    // Head
+    const headRadius = baseSize * 0.15;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY - headRadius * 0.4, headRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Shoulders/Torso
+    const torsoWidth = baseSize * 0.5;
+    const torsoHeight = baseSize * 0.3;
+    ctx.beginPath();
+    // Drawing an arc for the shoulders
+    ctx.ellipse(centerX, centerY + headRadius * 1.5, torsoWidth / 2, torsoHeight, 0, Math.PI, 0);
+    ctx.fill();
+
+    // Subtle "Webcam Off" text
+    ctx.fillStyle = '#666666';
+    ctx.font = `bold ${Math.round(baseSize * 0.05)}px Arial`;
+    ctx.textAlign = 'center';
+    ctx.fillText('WEBCAM OFF', centerX, canvas.height - (baseSize * 0.1));
+  }
+
+  draw();
+
+  const canvasStream = canvas.captureStream(5);
+  const mixedStream = new MediaStream([
+    ...canvasStream.getVideoTracks(),
+    ...audioStream.getAudioTracks()
+  ]);
+
+  const interval = setInterval(() => {
+    if (speechCamStream && isPlaceholderStream) {
+      draw();
     } else {
-        canvas.width = 854;
-        canvas.height = 480; // 16:9
+      clearInterval(interval);
     }
-    
-    const ctx = canvas.getContext('2d');
+  }, 1000);
 
-    function draw() {
-        // Neutral dark gray background
-        ctx.fillStyle = '#1e1e1e';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        const centerX = canvas.width / 2;
-        const centerY = canvas.height / 2;
-        const baseSize = Math.min(canvas.width, canvas.height);
-        
-        // Draw Silhouette Avatar Icon
-        ctx.fillStyle = '#444444';
-        
-        // Head
-        const headRadius = baseSize * 0.15;
-        ctx.beginPath();
-        ctx.arc(centerX, centerY - headRadius * 0.4, headRadius, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Shoulders/Torso
-        const torsoWidth = baseSize * 0.5;
-        const torsoHeight = baseSize * 0.3;
-        ctx.beginPath();
-        // Drawing an arc for the shoulders
-        ctx.ellipse(centerX, centerY + headRadius * 1.5, torsoWidth / 2, torsoHeight, 0, Math.PI, 0);
-        ctx.fill();
-
-        // Subtle "Webcam Off" text
-        ctx.fillStyle = '#666666';
-        ctx.font = `bold ${Math.round(baseSize * 0.05)}px Arial`;
-        ctx.textAlign = 'center';
-        ctx.fillText('WEBCAM OFF', centerX, canvas.height - (baseSize * 0.1));
-    }
-
-    draw();
-
-    const canvasStream = canvas.captureStream(5);
-    const mixedStream = new MediaStream([
-        ...canvasStream.getVideoTracks(),
-        ...audioStream.getAudioTracks()
-    ]);
-
-    const interval = setInterval(() => {
-        if (speechCamStream && isPlaceholderStream) {
-            draw();
-        } else {
-            clearInterval(interval);
-        }
-    }, 1000);
-
-    return mixedStream;
+  return mixedStream;
 }
 
 async function ensureSpeechCamStream() {
-    const wantsPlaceholder = !!State.isCameraOff;
-    
-    if (speechCamStream) {
-        if (isPlaceholderStream === wantsPlaceholder) {
-            return speechCamStream;
-        }
-        console.log('[Recording] Camera preference changed, switching stream type');
-        safelyStopStream();
+  const wantsPlaceholder = !!State.isCameraOff;
+
+  if (speechCamStream) {
+    if (isPlaceholderStream === wantsPlaceholder) {
+      return speechCamStream;
     }
-    
-    if (wantsPlaceholder) {
-        speechCamStream = await createPlaceholderStream();
-        isPlaceholderStream = true;
-    } else {
-        speechCamStream = await navigator.mediaDevices.getUserMedia(getMediaConstraints());
-        isPlaceholderStream = false;
-    }
-    return speechCamStream;
+    console.log('[Recording] Camera preference changed, switching stream type');
+    safelyStopStream();
+  }
+
+  if (wantsPlaceholder) {
+    speechCamStream = await createPlaceholderStream();
+    isPlaceholderStream = true;
+  } else {
+    speechCamStream = await navigator.mediaDevices.getUserMedia(getMediaConstraints());
+    isPlaceholderStream = false;
+  }
+  return speechCamStream;
 }
 
 export async function warmUpSpeechCamStream() {
@@ -226,9 +225,9 @@ export async function startSpeechCamRecording(micStatusText, userData) {
   } catch (err) {
     console.error('[Recording] startSpeechCamRecording FAILED:', err);
     alert(Strings.get('alert_media_error', userData?.native_language));
-    
+
     ui.setMicStatusText(`<i class='bi bi-exclamation-diamond'></i> ${Strings.get('error_media_details', userData?.native_language)}`);
-    
+
     ui.removeWebcamPreview();
     safelyStopStream();
   }
@@ -329,64 +328,64 @@ async function setupPlaybackVideo(blob, autoplay = false) {
 // --- NEW: Whisper Local Transcription Setup ---
 
 export function startLocalAudioTap(stream) {
-    console.log('[Audio Tap] Starting real-time 16kHz audio tap');
-    localRawAudioChunks = [];
+  console.log('[Audio Tap] Starting real-time 16kHz audio tap');
+  localRawAudioChunks = [];
 
-    // Whisper requires exactly 16000Hz
-    localAudioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-    const source = localAudioContext.createMediaStreamSource(stream);
-    localAudioProcessor = localAudioContext.createScriptProcessor(4096, 1, 1);
+  // Whisper requires exactly 16000Hz
+  localAudioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+  const source = localAudioContext.createMediaStreamSource(stream);
+  localAudioProcessor = localAudioContext.createScriptProcessor(4096, 1, 1);
 
-    localAudioProcessor.onaudioprocess = (event) => {
-        // Copy the Float32 data so it isn't garbage collected
-        const inputData = event.inputBuffer.getChannelData(0);
-        localRawAudioChunks.push(new Float32Array(inputData));
-    };
+  localAudioProcessor.onaudioprocess = (event) => {
+    // Copy the Float32 data so it isn't garbage collected
+    const inputData = event.inputBuffer.getChannelData(0);
+    localRawAudioChunks.push(new Float32Array(inputData));
+  };
 
-    source.connect(localAudioProcessor);
-    localAudioProcessor.connect(localAudioContext.destination);
+  source.connect(localAudioProcessor);
+  localAudioProcessor.connect(localAudioContext.destination);
 }
 
 export function stopLocalAudioTap() {
-    console.log('[Audio Tap] Stopping tap and flattening chunks');
-    if (localAudioProcessor) {
-        localAudioProcessor.disconnect();
-        localAudioContext.close();
-        localAudioProcessor = null;
-        localAudioContext = null;
-    }
+  console.log('[Audio Tap] Stopping tap and flattening chunks');
+  if (localAudioProcessor) {
+    localAudioProcessor.disconnect();
+    localAudioContext.close();
+    localAudioProcessor = null;
+    localAudioContext = null;
+  }
 
-    // Flatten the chunks into a single Float32Array for Whisper
-    const totalLength = localRawAudioChunks.reduce((acc, chunk) => acc + chunk.length, 0);
-    const flattenedAudio = new Float32Array(totalLength);
-    let offset = 0;
-    for (const chunk of localRawAudioChunks) {
-        flattenedAudio.set(chunk, offset);
-        offset += chunk.length;
-    }
+  // Flatten the chunks into a single Float32Array for Whisper
+  const totalLength = localRawAudioChunks.reduce((acc, chunk) => acc + chunk.length, 0);
+  const flattenedAudio = new Float32Array(totalLength);
+  let offset = 0;
+  for (const chunk of localRawAudioChunks) {
+    flattenedAudio.set(chunk, offset);
+    offset += chunk.length;
+  }
 
-    localRawAudioChunks = []; // Free memory
-    return flattenedAudio;
+  localRawAudioChunks = []; // Free memory
+  return flattenedAudio;
 }
 
 export async function setupWhisperTranscription(params) {
-    const { button, micStatusText } = params;
-    console.log('[Whisper] setupWhisperTranscription called, isEngineReady:', isEngineReady);
+  const { button, micStatusText } = params;
+  console.log('[Whisper] setupWhisperTranscription called, isEngineReady:', isEngineReady);
 
-    if (!isEngineReady) {
-        console.warn('[Whisper] Engine not ready yet');
-        ui.setMicStatusText(`<div class='text-center text-warning'>
+  if (!isEngineReady) {
+    console.warn('[Whisper] Engine not ready yet');
+    ui.setMicStatusText(`<div class='text-center text-warning'>
                 <i class='bi bi-hourglass-split' style='font-size: 2rem;'></i><br>
                 <strong>Loading AI Model...</strong><br>
                 <small>Please wait a few seconds and try again.</small>
             </div>`);
-        button.style.display = "block";
-        button.innerHTML = '<i class="bi bi-mic-fill"></i>';
-        return false;
-    }
+    button.style.display = "block";
+    button.innerHTML = '<i class="bi bi-mic-fill"></i>';
+    return false;
+  }
 
-    console.log('[Whisper] Engine ready, proceeding');
-    return true;
+  console.log('[Whisper] Engine ready, proceeding');
+  return true;
 }
 
 
@@ -402,7 +401,7 @@ function convertFloat32ToInt16(float32Array) {
 }
 
 export async function setupDeepgramTranscription({
-    question, button, userData, configData, currentLessonIndex, currentQuestionIndex, handleAnswer, micStatusText, player
+  question, button, userData, configData, currentLessonIndex, currentQuestionIndex, handleAnswer, micStatusText, player
 }) {
   console.log('[Deepgram] setupDeepgramTranscription called');
   try {
@@ -493,11 +492,11 @@ export async function setupDeepgramTranscription({
 
           let answerHandled = false;
           const submitTranscript = (transcriptToSubmit) => {
-              if (!answerHandled && transcriptToSubmit) {
-                  answerHandled = true;
-                  console.log('[Deepgram] submitTranscript called with:', transcriptToSubmit);
-                  handleAnswer(transcriptToSubmit, question.cue, question, speechButton, question.explanation, question.translation, { pauseCount: null, netDuration: transcriptToSubmit ? Math.max(1, transcriptToSubmit.split(' ').length * 0.4) : null });
-              }
+            if (!answerHandled && transcriptToSubmit) {
+              answerHandled = true;
+              console.log('[Deepgram] submitTranscript called with:', transcriptToSubmit);
+              handleAnswer(transcriptToSubmit, question.cue, question, speechButton, question.explanation, question.translation, { pauseCount: null, netDuration: transcriptToSubmit ? Math.max(1, transcriptToSubmit.split(' ').length * 0.4) : null });
+            }
           };
 
           stopSpeechCamRecording({
@@ -537,7 +536,7 @@ export async function setupDeepgramTranscription({
 }
 
 export function cleanupDeepgram() {
-  if (deepgramSocket) { try { deepgramSocket.finish(); } catch (e) {} deepgramSocket = null; }
+  if (deepgramSocket) { try { deepgramSocket.finish(); } catch (e) { } deepgramSocket = null; }
   if (silenceTimer) { clearInterval(silenceTimer); silenceTimer = null; }
   if (audioProcessor) { audioProcessor.disconnect(); audioProcessor = null; }
   if (audioContext) { audioContext.close(); audioContext = null; }
@@ -548,7 +547,7 @@ export function cleanupDeepgram() {
 export function stopListeningEarly(micStatusText, userData, player) {
   console.warn('[Speech] stopListeningEarly called');
   stopDeepgramTranscription();
-  if(player){player.play();}
+  if (player) { player.play(); }
   ui.prepareMediaUI();
   ui.setMicStatusText(`<div class='text-center' style='color: red; font-size: large;'><i class='bi bi-exclamation-triangle-fill'></i> ${Strings.get('try_again_speech', userData?.native_language)}</div>`);
 }
@@ -559,8 +558,8 @@ export function stopDeepgramTranscription() {
   cleanupDeepgram();
 
   if (isWhisperActive) {
-      stopWhisperEngine();
-      isWhisperActive = false;
+    stopWhisperEngine();
+    isWhisperActive = false;
   }
 }
 
@@ -667,7 +666,7 @@ export async function toggleSpeechRecognition(params) {
   const { button, question, micStatusText, userData, configData, currentLessonIndex, currentQuestionIndex, handleAnswer, player } = params;
   const wasManuallyStopped = isListening;
   console.log('[Toggle] toggleSpeechRecognition called — isListening:', isListening, '| question.inputType:', question?.inputType, '| question.videoUrl:', question?.videoUrl);
- 
+
   ui.pauseVideoIfPlaying(player);
 
   const urlParams = new URLSearchParams(window.location.search);
@@ -675,7 +674,7 @@ export async function toggleSpeechRecognition(params) {
   console.log('[Toggle] forceDeepgram:', forceDeepgram);
 
   if (!isListening) {
-      ui.setMicStatusText(`<div class="text-center"><div class="mb-0" style="color: green; font-size: 30px;"><i class="bi bi-mic" style="color: green; font-size: 100px !important;"></i><br>${Strings.get('status_speak', userData?.native_language)}</div></div>`);
+    ui.setMicStatusText(`<div class="text-center"><div class="mb-0" style="color: green; font-size: 30px;"><i class="bi bi-mic" style="color: green; font-size: 100px !important;"></i><br>${Strings.get('status_speak', userData?.native_language)}</div></div>`);
 
     try {
       // Check if the recorder needs to be initialized, regardless of whether 
@@ -692,21 +691,21 @@ export async function toggleSpeechRecognition(params) {
     let transcriptionSuccess = false;
 
     if (forceDeepgram) {
-        console.log('[Toggle] URL parameter override: Using Deepgram');
-        transcriptionSuccess = await setupDeepgramTranscription(params);
+      console.log('[Toggle] URL parameter override: Using Deepgram');
+      transcriptionSuccess = await setupDeepgramTranscription(params);
     } else {
-        console.log('[Toggle] Using local Whisper WebAssembly');
-        transcriptionSuccess = await setupWhisperTranscription(params);
+      console.log('[Toggle] Using local Whisper WebAssembly');
+      transcriptionSuccess = await setupWhisperTranscription(params);
 
-        // ADD THIS: Start tapping the stream for Whisper
-        if (transcriptionSuccess && speechCamStream) {
-            startLocalAudioTap(speechCamStream);
-        }
+      // ADD THIS: Start tapping the stream for Whisper
+      if (transcriptionSuccess && speechCamStream) {
+        startLocalAudioTap(speechCamStream);
+      }
 
-        if (!transcriptionSuccess && isEngineReady) {
-            console.warn('[Toggle] Whisper failed to initialize. Falling back to Deepgram.');
-            transcriptionSuccess = await setupDeepgramTranscription(params);
-        }
+      if (!transcriptionSuccess && isEngineReady) {
+        console.warn('[Toggle] Whisper failed to initialize. Falling back to Deepgram.');
+        transcriptionSuccess = await setupDeepgramTranscription(params);
+      }
     }
 
     console.log('[Toggle] transcriptionSuccess:', transcriptionSuccess);
@@ -726,180 +725,157 @@ export async function toggleSpeechRecognition(params) {
     // --- THE USER CLICKED STOP ---
     console.log('[Toggle] User clicked STOP');
     isListening = false;
- 
+
     button.style.display = "none";
     ui.clearMicStatusAndHideMedia();
- 
+
     ui.setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Analyzing Speech...</div>`);
 
     if (forceDeepgram) {
-        console.log('[Toggle] Stopping Deepgram transcription');
-        stopDeepgramTranscription();
+      console.log('[Toggle] Stopping Deepgram transcription');
+      stopDeepgramTranscription();
     } else {
-        // --- THE OFFLINE WORKFLOW ---
-        console.log('[Toggle] Whisper path — calling stopSpeechCamRecording');
-        console.log('[Toggle] speechCamRecorder state at stop:', speechCamRecorder?.state);
-        console.log('[Toggle] speechCamChunks at stop:', speechCamChunks.length);
+      // --- THE OFFLINE WORKFLOW ---
+      console.log('[Toggle] Whisper path — calling stopSpeechCamRecording');
+      console.log('[Toggle] speechCamRecorder state at stop:', speechCamRecorder?.state);
+      console.log('[Toggle] speechCamChunks at stop:', speechCamChunks.length);
 
-        stopSpeechCamRecording({
-            download: false, persist: true, keepStreamAlive: true, playback: true, autoplay: true,
-            meta: {
-              lessonId: (configData?.lessons?.[currentLessonIndex]?.lessonId) || null,
-              questionIndex: typeof currentQuestionIndex !== 'undefined' ? currentQuestionIndex : null,
-              inputType: question?.inputType || null, title: question?.question || null,
+      stopSpeechCamRecording({
+        download: false, persist: true, keepStreamAlive: true, playback: true, autoplay: true,
+        meta: {
+          lessonId: (configData?.lessons?.[currentLessonIndex]?.lessonId) || null,
+          questionIndex: typeof currentQuestionIndex !== 'undefined' ? currentQuestionIndex : null,
+          inputType: question?.inputType || null, title: question?.question || null,
+        }
+      }).then(async (videoBlob) => {
+        console.log('[Toggle] stopSpeechCamRecording resolved — videoBlob:', videoBlob?.size ?? 'null');
+        await new Promise(r => setTimeout(r, 250));
+
+        if (!videoBlob) {
+          console.warn('[Toggle] No videoBlob returned — calling stopListeningEarly');
+          stopListeningEarly(micStatusText, userData, player);
+          return;
+        }
+
+        try {
+          console.log('[Toggle] Retrieving flattened audio from real-time tap');
+          const rawAudioData = stopLocalAudioTap();
+
+          // Pass directly to the trimming function
+          const extractionResult = trimSilenceWithPadding(rawAudioData, {
+            threshold: 0.02,
+            preRoll: 0.3,
+            postRoll: 0.3,
+            sampleRate: 16000
+          });
+
+          const audioData = extractionResult.trimmed;
+          const stats = { pauseCount: extractionResult.pauseCount, netDuration: extractionResult.netDuration };
+          // ... previous extraction code ...
+          console.log('[Toggle] Audio extracted, samples:', audioData.length);
+
+          // UPDATED: Expecting an object with metadata from Whisper now
+          const whisperResult = await transcribeAudioBuffer(audioData);
+          console.log('[Toggle] Whisper raw result:', whisperResult);
+
+          // Extract text and logprob fallback
+          const finalTranscript = typeof whisperResult === 'string' ? whisperResult : whisperResult.text;
+          const logprob = whisperResult.avg_logprob !== undefined ? whisperResult.avg_logprob : 0;
+
+          if (finalTranscript) {
+            // NEW: The Gibberish Gate
+            if (logprob < MIN_LOGPROB_THRESHOLD) {
+              console.warn(`[Toggle] 🛑 Gibberish detected! avg_logprob (${logprob}) is below threshold (${MIN_LOGPROB_THRESHOLD})`);
+
+              ui.setMicStatusText(`<div class='text-center mt-3' style='color: #ff9800; font-size: large;'><i class='bi bi-ear-x'></i> Audio unclear. Please try speaking clearly.</div>`);
+
+              // Halt the pipeline (pass null so stopListeningEarly doesn't overwrite our custom UI message)
+              stopListeningEarly(null, userData, player);
+              return;
             }
-        }).then(async (videoBlob) => {
-            console.log('[Toggle] stopSpeechCamRecording resolved — videoBlob:', videoBlob?.size ?? 'null');
-            await new Promise(r => setTimeout(r, 250));
 
-            if (!videoBlob) {
-                console.warn('[Toggle] No videoBlob returned — calling stopListeningEarly');
-                stopListeningEarly(micStatusText, userData, player);
-                return;
+            // Proceed to normal NLP checking if it passes the gate
+            let processedTranscript = finalTranscript.replace(/\s+(I|a|an|the|and|or)$/i, '');
+            console.log('[Toggle] Processed transcript:', processedTranscript);
+
+            // --- PREFLIGHT CHECK (before showing review UI) ---
+            const transcriptToReview = processedTranscript || finalTranscript;
+
+            const rejectPreflight = (message) => {
+              ui.clearPlaybackVideo();
+              ui.removeWebcamPreview();
+              window.dispatchEvent(new CustomEvent('preflightRejected'));
+              ui.setMicStatusText(`<div class='text-center text-danger'>${message}</div>`);
+              setTimeout(() => { isListening = false; toggleSpeechRecognition(params); }, 2500);
+            };
+
+            const { isValid, warningMessage } = await validateAnswerPrecheck(
+              transcriptToReview,
+              question.cue,
+              question,
+              State.englishLevel,
+              State.userData,
+              State.cuesGiven
+            );
+            if (!isValid) {
+              rejectPreflight(warningMessage);
+              return;
             }
 
-            try {
-                console.log('[Toggle] Retrieving flattened audio from real-time tap');
-                const rawAudioData = stopLocalAudioTap();
+            // --- REVIEW STEP ---
+            let timeLeft = 7;
+            let reviewActive = true;
 
-                // Pass directly to the trimming function
-                const extractionResult = trimSilenceWithPadding(rawAudioData, {
-                  threshold: 0.02,
-                  preRoll: 0.3,
-                  postRoll: 0.3,
-                  sampleRate: 16000
-                });
+            const acceptTranscript = () => {
+              if (!reviewActive) return;
+              reviewActive = false;
+              clearInterval(timerInterval);
+              ui.setMicStatusText("");
+              params.handleAnswer(transcriptToReview, question.cue, question, button, question.explanation, question.translation, stats);
+            };
 
-                const audioData = extractionResult.trimmed;
-                const stats = { pauseCount: extractionResult.pauseCount, netDuration: extractionResult.netDuration };
-                // ... previous extraction code ...
-                console.log('[Toggle] Audio extracted, samples:', audioData.length);
+            const rejectTranscript = () => {
+              if (!reviewActive) return;
+              reviewActive = false;
+              clearInterval(timerInterval);
 
-                // UPDATED: Expecting an object with metadata from Whisper now
-                const whisperResult = await transcribeAudioBuffer(audioData);
-                console.log('[Toggle] Whisper raw result:', whisperResult);
+              ui.clearPlaybackVideo();
+              ui.removeWebcamPreview();
 
-                // Extract text and logprob fallback
-                const finalTranscript = typeof whisperResult === 'string' ? whisperResult : whisperResult.text;
-                const logprob = whisperResult.avg_logprob !== undefined ? whisperResult.avg_logprob : 0; 
+              window.dispatchEvent(new CustomEvent('transcriptRejected'));
+              ui.setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Restarting Mic...</div>`);
 
-                if (finalTranscript) {
-                    // NEW: The Gibberish Gate
-                    if (logprob < MIN_LOGPROB_THRESHOLD) {
-                        console.warn(`[Toggle] 🛑 Gibberish detected! avg_logprob (${logprob}) is below threshold (${MIN_LOGPROB_THRESHOLD})`);
-                        
-                        ui.setMicStatusText(`<div class='text-center mt-3' style='color: #ff9800; font-size: large;'><i class='bi bi-ear-x'></i> Audio unclear. Please try speaking clearly.</div>`);
-                        
-                        // Halt the pipeline (pass null so stopListeningEarly doesn't overwrite our custom UI message)
-                        stopListeningEarly(null, userData, player);
-                        return;
-                    }
+              setTimeout(() => {
+                isListening = false;
+                toggleSpeechRecognition(params);
+              }, 600);
+            };
 
-                    // Proceed to normal NLP checking if it passes the gate
-                    let processedTranscript = finalTranscript.replace(/\s+(I|a|an|the|and|or)$/i, '');
-                    console.log('[Toggle] Processed transcript:', processedTranscript);
-
-                    // --- PREFLIGHT CHECK (before showing review UI) ---
-                    const transcriptToReview = processedTranscript || finalTranscript;
-
-                    {
-                        const lang = State.userData?.native_language;
-                        const wordCount = transcriptToReview.trim().split(/\s+/).length;
-                        let minWordsRequired = 3;
-                        if (State.englishLevel === 'A2') minWordsRequired = 4;
-                        else if (State.englishLevel === 'B1') minWordsRequired = 5;
-                        else if (State.englishLevel === 'B2' || State.englishLevel === 'C1' || State.englishLevel === 'C2') minWordsRequired = 6;
-
-                        const rejectPreflight = (message) => {
-                            ui.clearPlaybackVideo();
-                            ui.removeWebcamPreview();
-                            window.dispatchEvent(new CustomEvent('preflightRejected'));
-                            ui.setMicStatusText(`<div class='text-center text-danger'>${message}</div>`);
-                            setTimeout(() => { isListening = false; toggleSpeechRecognition(params); }, 2500);
-                        };
-
-                        const isProfane = swearjar.profane(transcriptToReview);
-                        if (isProfane) {
-                            rejectPreflight(Strings.get('inappropriate', lang));
-                            return;
-                        }
-
-                        if (question.inputType === "ai") {
-                            if (wordCount < minWordsRequired) {
-                                rejectPreflight(Strings.get(`min_words_${minWordsRequired}`, lang) || Strings.get('min_words_3', lang));
-                                return;
-                            }
-
-                            const normalizeduserResponse = await normalize(transcriptToReview.trim().toLowerCase());
-                            const normalizedcue = await normalize(question.cue.trim().toLowerCase());
-
-                            if (State.cuesGiven && State.cuesGiven.includes(normalizeduserResponse)) {
-                                rejectPreflight(Strings.get('already_used', lang));
-                                return;
-                            }
-
-                            const preflightSimilarity = calculateSimilarity(normalizeduserResponse, normalizedcue);
-                            if (preflightSimilarity >= 85) {
-                                rejectPreflight(Strings.get('no_repetition', lang));
-                                return;
-                            }
-                        }
-                    }
-
-                    // --- REVIEW STEP ---
-                    let timeLeft = 7;
-                    let reviewActive = true;
- 
-                    const acceptTranscript = () => {
-                        if (!reviewActive) return;
-                        reviewActive = false;
-                        clearInterval(timerInterval);
-                        ui.setMicStatusText("");
-                        params.handleAnswer(transcriptToReview, question.cue, question, button, question.explanation, question.translation, stats);
-                    };
- 
-                    const rejectTranscript = () => {
-                        if (!reviewActive) return;
-                        reviewActive = false;
-                        clearInterval(timerInterval);
-                        
-                        ui.clearPlaybackVideo(); 
-                        ui.removeWebcamPreview(); 
- 
-                        window.dispatchEvent(new CustomEvent('transcriptRejected'));
-                        ui.setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Restarting Mic...</div>`);
-                        
-                        setTimeout(() => {
-                            isListening = false;
-                            toggleSpeechRecognition(params);
-                        }, 600);
-                    };
- 
-                    ui.renderWhisperReviewUI(transcriptToReview, timeLeft, acceptTranscript, rejectTranscript);
+            ui.renderWhisperReviewUI(transcriptToReview, timeLeft, acceptTranscript, rejectTranscript);
 
 
-                    // Start the countdown timer for the text interval
-                    const timerInterval = setInterval(() => {
-                        if (!reviewActive) return clearInterval(timerInterval);
-                        timeLeft--;
-                        ui.updateWhisperTimer(timeLeft);
-                        
-                        // Auto-accept when timer hits 0
-                        if (timeLeft <= 0) {
-                            acceptTranscript();
-                        }
-                    }, 1000);
+            // Start the countdown timer for the text interval
+            const timerInterval = setInterval(() => {
+              if (!reviewActive) return clearInterval(timerInterval);
+              timeLeft--;
+              ui.updateWhisperTimer(timeLeft);
 
-                } else {
-                    console.warn('[Toggle] Empty transcript from Whisper — calling stopListeningEarly');
+              // Auto-accept when timer hits 0
+              if (timeLeft <= 0) {
+                acceptTranscript();
+              }
+            }, 1000);
 
-                    stopListeningEarly(micStatusText, userData, player);
-                }
-            } catch (error) {
-                console.error('[Toggle] Audio extraction/transcription failed:', error);
-                stopListeningEarly(micStatusText, userData, player);
-            }
-        });
+          } else {
+            console.warn('[Toggle] Empty transcript from Whisper — calling stopListeningEarly');
+
+            stopListeningEarly(micStatusText, userData, player);
+          }
+        } catch (error) {
+          console.error('[Toggle] Audio extraction/transcription failed:', error);
+          stopListeningEarly(micStatusText, userData, player);
+        }
+      });
     }
 
     button.innerHTML = '<i class="bi bi-mic-fill"></i>';
@@ -909,83 +885,83 @@ export async function toggleSpeechRecognition(params) {
 
 
 export function initLocalVoiceAI() {
-    const forceDeepgram = new URLSearchParams(window.location.search).get('deepgram') === 'true';
-    console.log('[Whisper] initLocalVoiceAI — forceDeepgram:', forceDeepgram);
-    
-    if (!forceDeepgram) {
-        // Return the promise from preloadWhisperEngine so the caller can await it
-        return preloadWhisperEngine();
-    } else {
-        // Even when skipping, return a resolved promise to maintain the same interface
-        console.log('[Whisper] Deepgram override – skipping Whisper preload.');
-        return Promise.resolve();
-    }
+  const forceDeepgram = new URLSearchParams(window.location.search).get('deepgram') === 'true';
+  console.log('[Whisper] initLocalVoiceAI — forceDeepgram:', forceDeepgram);
+
+  if (!forceDeepgram) {
+    // Return the promise from preloadWhisperEngine so the caller can await it
+    return preloadWhisperEngine();
+  } else {
+    // Even when skipping, return a resolved promise to maintain the same interface
+    console.log('[Whisper] Deepgram override – skipping Whisper preload.');
+    return Promise.resolve();
+  }
 }
 
 function trimSilenceWithPadding(data, {
-    threshold = 0.01,
-    preRoll = 0.2,
-    postRoll = 0.2,
-    sampleRate = 16000
+  threshold = 0.01,
+  preRoll = 0.2,
+  postRoll = 0.2,
+  sampleRate = 16000
 } = {}) {
-    let start = 0;
-    let end = data.length - 1;
+  let start = 0;
+  let end = data.length - 1;
 
-    // Find first speech
-    while (start < data.length && Math.abs(data[start]) < threshold) {
-        start++;
-    }
+  // Find first speech
+  while (start < data.length && Math.abs(data[start]) < threshold) {
+    start++;
+  }
 
-    // Find last speech
-    while (end > start && Math.abs(data[end]) < threshold) {
-        end--;
-    }
+  // Find last speech
+  while (end > start && Math.abs(data[end]) < threshold) {
+    end--;
+  }
 
-    if (start >= end) {
-        console.warn('[Trim] No speech detected, returning original');
-        return { trimmed: data, pauseCount: 0, netDuration: data.length / sampleRate };
-    }
+  if (start >= end) {
+    console.warn('[Trim] No speech detected, returning original');
+    return { trimmed: data, pauseCount: 0, netDuration: data.length / sampleRate };
+  }
 
-    // Phase 1: Count pauses within the bounded speech segment
-    let pauseCount = 0;
-    let inPause = false;
-    let pauseLength = 0;
-    const pauseThresholdFrames = sampleRate; // e.g., 1 second of silence
+  // Phase 1: Count pauses within the bounded speech segment
+  let pauseCount = 0;
+  let inPause = false;
+  let pauseLength = 0;
+  const pauseThresholdFrames = sampleRate; // e.g., 1 second of silence
 
-    for (let i = start; i <= end; i++) {
-        if (Math.abs(data[i]) < threshold) {
-            if (!inPause) {
-                inPause = true;
-                pauseLength = 1;
-            } else {
-                pauseLength++;
-            }
-        } else {
-            if (inPause) {
-                if (pauseLength >= pauseThresholdFrames) {
-                    pauseCount++;
-                }
-                inPause = false;
-                pauseLength = 0;
-            }
+  for (let i = start; i <= end; i++) {
+    if (Math.abs(data[i]) < threshold) {
+      if (!inPause) {
+        inPause = true;
+        pauseLength = 1;
+      } else {
+        pauseLength++;
+      }
+    } else {
+      if (inPause) {
+        if (pauseLength >= pauseThresholdFrames) {
+          pauseCount++;
         }
+        inPause = false;
+        pauseLength = 0;
+      }
     }
-    // Check if it ends with a long pause
-    if (inPause && pauseLength >= pauseThresholdFrames) {
-        pauseCount++;
-    }
+  }
+  // Check if it ends with a long pause
+  if (inPause && pauseLength >= pauseThresholdFrames) {
+    pauseCount++;
+  }
 
-    // Apply padding
-    const preSamples = Math.floor(preRoll * sampleRate);
-    const postSamples = Math.floor(postRoll * sampleRate);
+  // Apply padding
+  const preSamples = Math.floor(preRoll * sampleRate);
+  const postSamples = Math.floor(postRoll * sampleRate);
 
-    start = Math.max(0, start - preSamples);
-    end = Math.min(data.length - 1, end + postSamples);
+  start = Math.max(0, start - preSamples);
+  end = Math.min(data.length - 1, end + postSamples);
 
-    console.log(`[Trim] start=${start}, end=${end}, total=${data.length}`);
+  console.log(`[Trim] start=${start}, end=${end}, total=${data.length}`);
 
-    const trimmed = data.slice(start, end + 1);
-    const netDuration = trimmed.length / sampleRate;
+  const trimmed = data.slice(start, end + 1);
+  const netDuration = trimmed.length / sampleRate;
 
-    return { trimmed, pauseCount, netDuration };
+  return { trimmed, pauseCount, netDuration };
 }
