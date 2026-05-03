@@ -33,6 +33,27 @@
       },
       "questions": [
         {
+          "cue": "",
+          "inputType": "lessonIntro",
+          "introBackgroundVideoUrl": "gtests-1-0"
+        },
+        {
+          "question": "Watch video then say: I LOVE ENGLISH!",
+          "cue": {
+            "en": "I love English!",
+            "es": "¡Amo el inglés!",
+            "pt": "Amo o inglês!"
+          },
+          "inputType": "speech",
+          "simpleVideoUrl": "gtests-1-0",
+          "subtitles": {
+            "en": "Let's do a role play ordering a drink. You'll be the customer. I'll see you the drink. First, let's warm up our microphones and our mouths. Say: I LOVE ENGLISH!",
+            "es": "Vamos a hacer un role play de pedir una bebida. Tú serás el cliente y yo te venderé la bebida. Primero vamos a calentar nuestros micrófonos y nuestras bocas. Di: I LOVE ENGLISH!",
+            "pt": "Vamos fazer um role play pidiendoo uma bebida..."
+          },
+          "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
+        },
+        {
           "cue": {
             "en": "Hi, what would you like to drink?",
             "es": "Hola, ¿qué quisieras para tomar?",
