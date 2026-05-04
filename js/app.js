@@ -20,7 +20,7 @@ import Strings from './data/strings.js';
 
 // --- Decoupled Business Logic (Modules Directory) ---
 import { calculateRepeatAverage, calculateRolePlayAverage, calculateAverage } from './modules/scoring.js';
-import { isUserLoggedIn, getUserProfile, signOut } from './modules/api.js';
+import { isUserLoggedIn, getUserProfile, signOut, queryClient } from './modules/api.js';
 import { saveCourseToUserProfile, saveLessonProgress, syncOfflineScores } from './modules/user-profile.js';
 
 import {
@@ -139,7 +139,7 @@ function handleHint(qIndex) {
     showHintsAndScroll();
 }
 
-async function submitAnswerPrecheck(val, cue, questionData, btn, explanation, translation, stats = { pauseCount: null, netDuration: null }, userData, configData) {
+export async function submitAnswerPrecheck(val, cue, questionData, btn, explanation, translation, stats = { pauseCount: null, netDuration: null }, userData = State.userData, configData = State.configData) {
     const englishLevel = configData?.languageLevel || 'A0';
     const { isValid, warningMessage } = await validateAnswerPrecheck(
         val, cue, questionData, englishLevel, userData, State.cuesGiven
@@ -163,7 +163,7 @@ async function submitAnswerPrecheck(val, cue, questionData, btn, explanation, tr
     await handleAnswer(val, cue, questionData, btn, explanation, translation, stats, userData, configData);
 }
 
-async function handleAnswer(userResponse, cue, questionData, button, explanation, translation, stats = { pauseCount: null, netDuration: null }, userData, configData) {
+export async function handleAnswer(userResponse, cue, questionData, button, explanation, translation, stats = { pauseCount: null, netDuration: null }, userData = State.userData, configData = State.configData) {
     try {
         const currentLessonId = (configData && configData.lessons && configData.lessons[State.currentLessonIndex]) ? configData.lessons[State.currentLessonIndex].lessonId : 'unknown_lesson';
         const qIndex = getCurrentQuestionIndex(questionData, configData, State.currentLessonIndex);
@@ -244,7 +244,11 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
         let result = null;
 
         const englishLevel = configData?.languageLevel || 'A0';
-        const lesson = configData.lessons[State.currentLessonIndex];
+        const lesson = (configData && configData.lessons) ? configData.lessons[State.currentLessonIndex] : null;
+        
+        if (!lesson) {
+             throw new Error("configData or lessons missing in handleAnswer");
+        }
 
         if (!result && (questionData.inputType === "speech" || questionData.inputType === "ai")) {
             result = await processAnswerLogic({
@@ -886,7 +890,7 @@ async function loadNextLesson() {
 
 // 🏫🏫🏫🏫🏫🏫🏫🏫 INITIALIZATION/LESSON SETUP 🏫🏫🏫🏫🏫🏫🏫🏫
 
-async function initializeLesson(courseId, configData, userData) {
+async function initializeLesson(courseId = State.courseId, configData = State.configData, userData = State.userData) {
     try {
         const lessonId = await getCurrentLessonId(configData, userData, courseId);
         if (!configData || !configData.lessons) return;
@@ -996,7 +1000,7 @@ async function initializeApp() {
         // Immediately trigger offline score sync if needed
         syncOfflineScores(State.userData);
 
-        State.courseId = await getCurrentcourseId();
+        State.courseId = await getCurrentcourseId(State.userData);
 
         // --- FETCH CONFIG AND SET LANGUAGE LEVEL ---
         const response = await fetch(`js/config/${State.courseId}.json`);

@@ -456,7 +456,7 @@ export async function setupDeepgramTranscription({
               }
             }).then(() => {
               console.log('[Deepgram] stopSpeechCamRecording resolved (silence path), calling handleAnswer');
-              handleAnswer(fullTranscript.trim(), question.cue, question, document.getElementById('speechButton'), question.explanation, question.translation, { pauseCount: null, netDuration: fullTranscript.trim() ? Math.max(1, fullTranscript.split(' ').length * 0.4) : null });
+              handleAnswer(fullTranscript.trim(), question.cue, question, document.getElementById('speechButton'), question.explanation, question.translation, { pauseCount: null, netDuration: fullTranscript.trim() ? Math.max(1, fullTranscript.split(' ').length * 0.4) : null }, userData, configData);
             });
           } else {
             console.warn('[Deepgram] Silence timeout but no transcript — stopping early');
@@ -495,7 +495,7 @@ export async function setupDeepgramTranscription({
             if (!answerHandled && transcriptToSubmit) {
               answerHandled = true;
               console.log('[Deepgram] submitTranscript called with:', transcriptToSubmit);
-              handleAnswer(transcriptToSubmit, question.cue, question, speechButton, question.explanation, question.translation, { pauseCount: null, netDuration: transcriptToSubmit ? Math.max(1, transcriptToSubmit.split(' ').length * 0.4) : null });
+              handleAnswer(transcriptToSubmit, question.cue, question, speechButton, question.explanation, question.translation, { pauseCount: null, netDuration: transcriptToSubmit ? Math.max(1, transcriptToSubmit.split(' ').length * 0.4) : null }, userData, configData);
             }
           };
 
@@ -632,7 +632,7 @@ export function fallbackToWebSpeech({ question, userData, configData, currentLes
     console.log('[WebSpeech] onresult — finalTranscript:', finalTranscript);
 
     if (finalTranscript) {
-      handleAnswer(finalTranscript, currentQuestion.cue, currentQuestion, document.getElementById('speechButton'), currentQuestion.explanation, currentQuestion.translation, { pauseCount: null, netDuration: finalTranscript ? Math.max(1, finalTranscript.split(' ').length * 0.4) : null });
+      handleAnswer(finalTranscript, currentQuestion.cue, currentQuestion, document.getElementById('speechButton'), currentQuestion.explanation, currentQuestion.translation, { pauseCount: null, netDuration: finalTranscript ? Math.max(1, finalTranscript.split(' ').length * 0.4) : null }, userData, configData);
     } else {
       console.warn('[WebSpeech] onresult — empty transcript');
       ui.setMicStatusText(`<div class='text-center'>${Strings.get('try_again_speech', userData?.native_language)}</div>`);
@@ -832,7 +832,7 @@ export async function toggleSpeechRecognition(params) {
               reviewActive = false;
               clearInterval(timerInterval);
               ui.setMicStatusText("");
-              params.handleAnswer(transcriptToReview, question.cue, question, button, question.explanation, question.translation, stats);
+              params.handleAnswer(transcriptToReview, question.cue, question, button, question.explanation, question.translation, stats, userData, configData);
             };
 
             const rejectTranscript = () => {
