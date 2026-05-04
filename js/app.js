@@ -29,7 +29,7 @@ import {
     toggleSpeechRecognition,
     isListening,
     initLocalVoiceAI
-} from './modules/speech.js';
+} from './modules/speech-web.js';
 
 import {
     getCurrentQuestionIndex,
@@ -48,7 +48,7 @@ import { appStore } from './modules/store.js';
 import { State } from './modules/state.js';
 import { getLocalizedTranslation } from './modules/utils.js';
 import { analyzeSpeech } from './modules/analytics.js';
-import { Media } from './modules/media.js';
+import { Media } from './modules/media-web.js';
 import {
     DOM,
     flashElement,
@@ -1116,7 +1116,7 @@ async function initializeApp() {
                 if (typeof voiceInitFn !== 'function') {
                     console.warn('initLocalVoiceAI not available statically, attempting dynamic import...');
                     const scriptDir = new URL('.', import.meta.url).href;
-                    const speechModuleUrl = new URL('modules/speech.js?8', scriptDir).href;
+                    const speechModuleUrl = new URL('modules/speech-web.js?8', scriptDir).href;
                     const speechModule = await import(speechModuleUrl);
                     voiceInitFn = speechModule.initLocalVoiceAI;
                 }

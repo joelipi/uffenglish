@@ -625,7 +625,7 @@ export function ensureWebcamPreview(stream) {
 export function toggleCamera() {
     State.isCameraOff = !State.isCameraOff;
     console.log(`[UI] Camera toggled. isCameraOff: ${State.isCameraOff}`);
-    // The placeholder/webcam switch will be handled by speech.js re-warming the stream
+    // The placeholder/webcam switch will be handled by speech-web.js re-warming the stream
 }
 
 
@@ -940,7 +940,7 @@ export function clearMediaContainerAndPreservePlayers() {
         if (el.id === 'intro-call-widget') {
             el.classList.add('d-none');
         } else if (el.id === 'webcam-preview') {
-            // Keep the webcam's current visibility state as managed by speech.js
+            // Keep the webcam's current visibility state as managed by speech-web.js
             // and do NOT clear its innerHTML (video element)
         } else {
             el.classList.remove('d-none');

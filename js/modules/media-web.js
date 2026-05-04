@@ -1,4 +1,4 @@
-// --- modules/media.js ---
+// --- modules/media-web.js ---
 import { State } from './state.js';
 
 const audioPlayer = new Audio('assets/sounds/enableaudio.mp3');
@@ -15,7 +15,7 @@ export const Media = {
         if (!State.isAudioEnabled) return;
         audioPlayer.src = AUDIO_URLS[soundId];
         audioPlayer.currentTime = 0;
-        audioPlayer.play().catch(error => {});
+        audioPlayer.play().catch(error => { });
     },
 
     pauseVideoIfPlaying() {
@@ -36,13 +36,13 @@ export const Media = {
             window.currentIntroVideoPlayer.destroy ? window.currentIntroVideoPlayer.destroy() : null;
             window.currentIntroVideoPlayer = null;
         }
-        document.querySelectorAll('video').forEach(media => { 
+        document.querySelectorAll('video').forEach(media => {
             // Do not clear the webcam preview or AI avatar video
             if (media.id === 'webcam-preview' || media.id === 'chat-avatar-ai') return;
 
-            media.pause(); 
-            media.currentTime = 0; 
-            if (media.src) { media.src = ''; media.load(); } 
+            media.pause();
+            media.currentTime = 0;
+            if (media.src) { media.src = ''; media.load(); }
         });
     },
 
@@ -59,9 +59,9 @@ export const Media = {
         video: null,
         init(url) {
             this.video = document.createElement('video');
-            this.video.src = url; 
-            this.video.muted = false; 
-            this.video.setAttribute('playsinline', ''); 
+            this.video.src = url;
+            this.video.muted = false;
+            this.video.setAttribute('playsinline', '');
             this.video.style.display = 'none';
             document.body.appendChild(this.video);
         },
