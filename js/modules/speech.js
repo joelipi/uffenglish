@@ -809,12 +809,13 @@ export async function toggleSpeechRecognition(params) {
               setTimeout(() => { isListening = false; toggleSpeechRecognition(params); }, 2500);
             };
 
+            const englishLevel = configData?.languageLevel || 'A0';
             const { isValid, warningMessage } = await validateAnswerPrecheck(
               transcriptToReview,
               question.cue,
               question,
-              State.englishLevel,
-              State.userData,
+              englishLevel,
+              userData,
               State.cuesGiven
             );
             if (!isValid) {

@@ -1,9 +1,10 @@
 // successLesson.js
 import confetti from 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.module.mjs';
 
+import { queryClient } from '../modules/api.js';
+
 export class SuccessLessonHandler {
   constructor({
-    configData,
     loadLessonContent,
     calculateAverage,
     playSound,
@@ -12,7 +13,6 @@ export class SuccessLessonHandler {
     uiElements
   }) {
     // Core dependencies
-    this.configData = configData;
     this.loadLessonContent = loadLessonContent;
     this.calculateAverage = calculateAverage;
     this.playSound = playSound;
@@ -107,7 +107,7 @@ export class SuccessLessonHandler {
 
     // Create interactive elements
     this.createContinueButton();
-    this.createRepeatButton(question);
+    this.createRepeatButton(question).catch(console.error);
 
     // Play celebration effects - pass lessonAverage to conditionally play confetti
     this.playEffects(lessonAverage);
@@ -137,7 +137,7 @@ export class SuccessLessonHandler {
     };
   }
 
-  createRepeatButton(question) {
+  async createRepeatButton(question) {
     const { bottomButtonBarLeft } = this.uiElements;
     if (!bottomButtonBarLeft) return;
 
@@ -156,7 +156,15 @@ export class SuccessLessonHandler {
       console.log("baseLessonId: ", baseLessonId);
 /* This is not necessary if the "success" question/view is in the same lesson
     // Find the base lesson in configData
-    const precedingLesson = this.configData.lessons.find(
+    // We fetch configData dynamically
+    const courseId = new URLSearchParams(window.location.search).get('courseid') || localStorage.getItem('currentCourse') || 'pronunciation';
+    let configData = queryClient.getQueryData(['course', 'config', courseId]);
+    if (!configData) {
+        // Use the queryFn logic from api.js if not in cache
+        const response = await fetch(`js/config/${courseId}.json`);
+        configData = await response.json();
+    }
+    const precedingLesson = configData.lessons.find(
       l => l.lessonId === baseLessonId
     );
 

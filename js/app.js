@@ -139,9 +139,10 @@ function handleHint(qIndex) {
     showHintsAndScroll();
 }
 
-async function submitAnswerPrecheck(val, cue, questionData, btn, explanation, translation, stats = { pauseCount: null, netDuration: null }) {
+async function submitAnswerPrecheck(val, cue, questionData, btn, explanation, translation, stats = { pauseCount: null, netDuration: null }, userData, configData) {
+    const englishLevel = configData?.languageLevel || 'A0';
     const { isValid, warningMessage } = await validateAnswerPrecheck(
-        val, cue, questionData, State.englishLevel, State.userData, State.cuesGiven
+        val, cue, questionData, englishLevel, userData, State.cuesGiven
     );
 
     if (!isValid) {
@@ -159,16 +160,17 @@ async function submitAnswerPrecheck(val, cue, questionData, btn, explanation, tr
         return;
     }
 
-    await handleAnswer(val, cue, questionData, btn, explanation, translation, stats);
+    await handleAnswer(val, cue, questionData, btn, explanation, translation, stats, userData, configData);
 }
 
-async function handleAnswer(userResponse, cue, questionData, button, explanation, translation, stats = { pauseCount: null, netDuration: null }) {
+async function handleAnswer(userResponse, cue, questionData, button, explanation, translation, stats = { pauseCount: null, netDuration: null }, userData, configData) {
     try {
-        const currentLessonId = (State && State.configData && State.configData.lessons && State.configData.lessons[State.currentLessonIndex]) ? State.configData.lessons[State.currentLessonIndex].lessonId : 'unknown_lesson';
-        const qIndex = getCurrentQuestionIndex(questionData, State.configData, State.currentLessonIndex);
+        const currentLessonId = (configData && configData.lessons && configData.lessons[State.currentLessonIndex]) ? configData.lessons[State.currentLessonIndex].lessonId : 'unknown_lesson';
+        const qIndex = getCurrentQuestionIndex(questionData, configData, State.currentLessonIndex);
         let analyticsToSave = {};
+        const courseId = new URLSearchParams(window.location.search).get('courseid') || localStorage.getItem('currentCourse') || 'pronunciation';
         if (stats && stats.netDuration !== null) {
-            analyticsToSave = await analyzeSpeech(userResponse, stats.netDuration, stats.pauseCount, State.courseId ? State.courseId.substring(0, 2).toUpperCase() : 'A1', questionData.inputType);
+            analyticsToSave = await analyzeSpeech(userResponse, stats.netDuration, stats.pauseCount, courseId ? courseId.substring(0, 2).toUpperCase() : 'A1', questionData.inputType);
         }
         await updateSpeechRecording(currentLessonId, qIndex, {
             userResponse,
@@ -190,62 +192,66 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
     let speechAnalytics = null;
     let immediateStatsHtmlArr = [];
 
+    const courseId = new URLSearchParams(window.location.search).get('courseid') || localStorage.getItem('currentCourse') || 'pronunciation';
     if (questionData.inputType === "speech" || questionData.inputType === "ai") {
-        speechAnalytics = await analyzeSpeech(userResponse, stats.netDuration, stats.pauseCount, State.courseId ? State.courseId.substring(0, 2).toUpperCase() : 'A1', questionData.inputType);
+        speechAnalytics = await analyzeSpeech(userResponse, stats.netDuration, stats.pauseCount, courseId ? courseId.substring(0, 2).toUpperCase() : 'A1', questionData.inputType);
 
         const listeningScore = appStore.getState().listeningScore || 0;
         const speakingScore = appStore.getState().speakingScore || 0;
 
         immediateStatsHtmlArr.push(createStatsBubbleHTML(
-            Strings.get('stats_listening_header', State.userData?.native_language).replace('{score}', listeningScore), []
+            Strings.get('stats_listening_header', userData?.native_language).replace('{score}', listeningScore), []
         ));
 
         immediateStatsHtmlArr.push(createStatsBubbleHTML(
-            Strings.get('stats_speaking_header', State.userData?.native_language).replace('{score}', speakingScore), []
+            Strings.get('stats_speaking_header', userData?.native_language).replace('{score}', speakingScore), []
         ));
 
         let flowParts = [
-            `<strong>${Strings.get('stats_hesitation', State.userData?.native_language)}:</strong> 0`,
-            `<strong>${Strings.get('stats_pauses_speaking', State.userData?.native_language)}:</strong> ${speechAnalytics.pauseCount || 0}`,
-            `<strong>${Strings.get('stats_wpm', State.userData?.native_language)}:</strong> ${speechAnalytics.wpm || 0}`
+            `<strong>${Strings.get('stats_hesitation', userData?.native_language)}:</strong> 0`,
+            `<strong>${Strings.get('stats_pauses_speaking', userData?.native_language)}:</strong> ${speechAnalytics.pauseCount || 0}`,
+            `<strong>${Strings.get('stats_wpm', userData?.native_language)}:</strong> ${speechAnalytics.wpm || 0}`
         ];
 
         immediateStatsHtmlArr.push(createStatsBubbleHTML(
-            Strings.get('stats_speech_flow_header', State.userData?.native_language), flowParts
+            Strings.get('stats_speech_flow_header', userData?.native_language), flowParts
         ));
 
         // Only show Vocabulary for AI questions
         if (questionData.inputType === "ai") {
             let vocabParts = [];
             if (speechAnalytics.complexityScore !== null) {
-                vocabParts.push(`<strong>${Strings.get('stats_complexity', State.userData?.native_language)}:</strong> ${speechAnalytics.complexityScore} <br><small>(${speechAnalytics.complexityScoreBreakdown})</small>`);
+                vocabParts.push(`<strong>${Strings.get('stats_complexity', userData?.native_language)}:</strong> ${speechAnalytics.complexityScore} <br><small>(${speechAnalytics.complexityScoreBreakdown})</small>`);
             }
             if (speechAnalytics.foundIdioms && speechAnalytics.foundIdioms.length > 0) {
                 const idiomsList = speechAnalytics.foundIdioms.map(idiom => `<li>${idiom}</li>`).join('');
-                vocabParts.push(`<strong>${Strings.get('stats_idioms', State.userData?.native_language)}:</strong> ${speechAnalytics.foundIdioms.length}<ul style="margin-bottom:0;">${idiomsList}</ul>`);
+                vocabParts.push(`<strong>${Strings.get('stats_idioms', userData?.native_language)}:</strong> ${speechAnalytics.foundIdioms.length}<ul style="margin-bottom:0;">${idiomsList}</ul>`);
             }
 
             if (vocabParts.length > 0) {
                 immediateStatsHtmlArr.push(createStatsBubbleHTML(
-                    Strings.get('stats_vocabulary_header', State.userData?.native_language), vocabParts
+                    Strings.get('stats_vocabulary_header', userData?.native_language), vocabParts
                 ));
             }
         }
     }
 
-    const qIndex = getCurrentQuestionIndex(questionData, State.configData, State.currentLessonIndex);
+    const qIndex = getCurrentQuestionIndex(questionData, configData, State.currentLessonIndex);
     window.__currentQuestionIndex = qIndex;
     disableAllButtons(button.parentElement);
 
     try {
         let result = null;
 
+        const englishLevel = configData?.languageLevel || 'A0';
+        const lesson = configData.lessons[State.currentLessonIndex];
+
         if (!result && (questionData.inputType === "speech" || questionData.inputType === "ai")) {
             result = await processAnswerLogic({
                 userResponse, cue, questionData,
-                lesson: State.lesson,
-                english_level: State.englishLevel,
-                userData: State.userData,
+                lesson: lesson,
+                english_level: englishLevel,
+                userData: userData,
                 cuesGiven: State.cuesGiven,
                 apiRoot: State.apiRoot
             });
@@ -261,7 +267,7 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
         // --- SILENT RETRY FLOW FOR SPEECH ---
         if (!isCorrect && questionData.inputType === "speech" && appStore.getState().incorrectAttempts <= 1) {
             // Use silent mode for handleIncueUI
-            handleIncueUI(qIndex, questionData, button, cue, userResponse, result.explanations || explanation, result.normalizeduserResponse, result.normalizedcue, questionData.question, true);
+            handleIncueUI(qIndex, questionData, button, cue, userResponse, result.explanations || explanation, result.normalizeduserResponse, result.normalizedcue, questionData.question, true, userData, configData);
 
             clearPlaybackVideo();
             // Speech Hangman Logic: Show hint and stay on question
@@ -307,7 +313,7 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
 
         // --- STANDARD UI RENDERING LOGIC (POST-EVALUATION) ---
         if (questionData.inputType === "ai" && userResponse && DOM.speechText) {
-            const lang = State.userData?.native_language;
+            const lang = userData?.native_language;
             const localizedTrans = getLocalizedTranslation(questionData.translation, lang);
             const translationStr = (localizedTrans && lang && lang !== 'en') ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>` : "";
             renderAIFeedback([`<strong>${cue}${translationStr}</strong>`]);
@@ -327,20 +333,20 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
                     // Note: pointLoss animation is intentionally omitted here per existing behavior 
                 }
             }
-            handlecueUI(qIndex, questionData, button, cue, result.explanations || explanation, translation, userResponse, result.englishLevel, result.englishLevelDeduction);
-            showFeedbackAndProceed(questionData, isCorrect, State.currentLessonIndex, qIndex);
+            handlecueUI(qIndex, questionData, button, cue, result.explanations || explanation, translation, userResponse, result.englishLevel, result.englishLevelDeduction, userData, configData);
+            showFeedbackAndProceed(questionData, isCorrect, userData, configData);
         } else {
-            handleIncueUI(qIndex, questionData, button, cue, userResponse, result.explanations || explanation, result.normalizeduserResponse, result.normalizedcue, questionData.question);
-            showFeedbackAndProceed(questionData, isCorrect, State.currentLessonIndex, qIndex);
+            handleIncueUI(qIndex, questionData, button, cue, userResponse, result.explanations || explanation, result.normalizeduserResponse, result.normalizedcue, questionData.question, false, userData, configData);
+            showFeedbackAndProceed(questionData, isCorrect, userData, configData);
         }
     } catch (error) {
         console.error("Error handling answer:", error);
-        handleIncueUI(qIndex, questionData, button, cue, userResponse, explanation, "", "", translation);
-        showFeedbackAndProceed(questionData, false, State.currentLessonIndex, qIndex);
+        handleIncueUI(qIndex, questionData, button, cue, userResponse, explanation, "", "", translation, false, userData, configData);
+        showFeedbackAndProceed(questionData, false, userData, configData);
     }
 }
 
-function handlecueUI(qIndex, questionData, button, cue, explanation, translation, userResponse, englishLevel, englishLevelDeduction) {
+function handlecueUI(qIndex, questionData, button, cue, explanation, translation, userResponse, englishLevel, englishLevelDeduction, userData, configData) {
 
     if (questionData.inputType === "speech" && questionData.videoUrl) State.repeatPointsHistory.push(appStore.getState().listeningScore);
     if (questionData.inputType === "ai" && questionData.videoUrl) State.rolePlayPointsHistory.push(appStore.getState().listeningScore);
@@ -348,7 +354,7 @@ function handlecueUI(qIndex, questionData, button, cue, explanation, translation
     // Unified: last AI question advances via Continue button like all others.
 
     if (DOM.speechText) {
-        const lang = State.userData?.native_language;
+        const lang = userData?.native_language;
         const feedbackText = (questionData.inputType === "ai" && englishLevelDeduction > 0)
             ? `${Strings.get('ai_acceptable', lang)}<br>${Strings.get('ai_language_level', lang)} ${englishLevel}<br>${Strings.get('ai_fluency_reduced', lang)} <span style='color:red'>${englishLevelDeduction} ${Strings.get('ai_percentage_points', lang)}</span>.`
             : (questionData.inputType === "ai" ? getRandomPraise() : "");
@@ -403,7 +409,7 @@ function handlecueUI(qIndex, questionData, button, cue, explanation, translation
     markButtonAsCorrect(button);
 }
 
-function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanation, normalizeduserResponse, normalizedcue, question, silent = false) {
+function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanation, normalizeduserResponse, normalizedcue, question, silent = false, userData, configData) {
     appStore.getState().incrementIncorrectAttempts();
 
     if (!silent && (questionData.inputType === "lessonIntro" || questionData.inputType === "speech" || questionData.inputType === "ai")) {
@@ -434,10 +440,10 @@ function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanat
         }
 
         const teacherTextStr = appStore.getState().incorrectAttempts === 1
-            ? Strings.get('try_again_1', State.userData?.native_language)
+            ? Strings.get('try_again_1', userData?.native_language)
             : appStore.getState().incorrectAttempts === 2
-                ? Strings.get('try_again_2', State.userData?.native_language)
-                : `${Strings.get('failed_continue_correct', State.userData?.native_language)}<br>"${cue}"`;
+                ? Strings.get('try_again_2', userData?.native_language)
+                : `${Strings.get('failed_continue_correct', userData?.native_language)}<br>"${cue}"`;
 
         const teacherDiv = document.createElement('div');
         const teacherStrong = document.createElement('strong');
@@ -446,7 +452,7 @@ function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanat
 
         let headsUpNode = '';
         if (questionData.headsUp) {
-            const headsUpText = appStore.getState().incorrectAttempts <= 2 ? Strings.get('heads_up_try_again', State.userData?.native_language) : questionData.headsUp;
+            const headsUpText = appStore.getState().incorrectAttempts <= 2 ? Strings.get('heads_up_try_again', userData?.native_language) : questionData.headsUp;
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = headsUpText;
             headsUpNode = tempDiv;
@@ -880,30 +886,30 @@ async function loadNextLesson() {
 
 // 🏫🏫🏫🏫🏫🏫🏫🏫 INITIALIZATION/LESSON SETUP 🏫🏫🏫🏫🏫🏫🏫🏫
 
-async function initializeLesson() {
+async function initializeLesson(courseId, configData, userData) {
     try {
-        State.lessonId = await getCurrentLessonId();
-        if (!State.configData || !State.configData.lessons) return;
-        State.lesson = State.configData.lessons.find(lesson => lesson.lessonId === State.lessonId);
-        if (!State.lesson) return;
-        State.currentLessonIndex = State.configData.lessons.findIndex(l => l.lessonId === State.lessonId);
+        const lessonId = await getCurrentLessonId(configData, userData, courseId);
+        if (!configData || !configData.lessons) return;
+        const lesson = configData.lessons.find(l => l.lessonId === lessonId);
+        if (!lesson) return;
+        State.currentLessonIndex = configData.lessons.findIndex(l => l.lessonId === lessonId);
 
         if (window.preloadLessonAssets) {
             const constructFirebaseUrl = (slug) => `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${slug}.mp4?alt=media`;
-            await window.preloadLessonAssets(State.lesson, constructFirebaseUrl);
+            await window.preloadLessonAssets(lesson, constructFirebaseUrl);
         }
 
-        loadLessonContent(State.lesson);
+        loadLessonContent(lesson, configData);
     } catch (error) {
         console.error("initializeLesson error:", error);
         const preloader = document.getElementById('appLoadingImageDiv');
         if (preloader) preloader.style.display = 'none';
-        showErrorMessageInQuestionsContainer(Strings.get('lesson_load_error', State.userData?.native_language));
+        showErrorMessageInQuestionsContainer(Strings.get('lesson_load_error', userData?.native_language));
     }
 }
 
 
-function loadLessonContent(lesson) {
+function loadLessonContent(lesson, configData) {
     clearSpeechRecordingsForLesson(lesson.lessonId).catch(e => console.error(e));
     if (State.player) State.player.destroy();
 
@@ -923,18 +929,20 @@ function loadLessonContent(lesson) {
 
     resetHeartsUI();
 
-    updateProgressBar();
+    updateProgressBar(lesson);
 
     // --- TITLE LOGIC ---
-    const course = State.configData?.courseName || "";
-    const level = State.englishLevel ? ` (${State.englishLevel})` : "";
+    const course = configData?.courseName || "";
+    const englishLevel = configData?.languageLevel || 'A0';
+    const level = englishLevel ? ` (${englishLevel})` : "";
     const unit = (lesson.unit && String(lesson.unit).trim() !== "") ? `${lesson.unit}: ` : "";
     const titleText = (typeof lesson.title === 'object') ? (lesson.title.en || "") : (lesson.title || "");
     const fullTitle = `${course}${level}${course ? ': ' : ''}${unit}${titleText}`;
 
     setupLessonUI(fullTitle);
 
-    loadQuestion(lesson.questions[State.currentQuestionIndex], lesson);
+    const userData = queryClient.getQueryData(['user', 'profile']);
+    loadQuestion(lesson.questions[State.currentQuestionIndex], lesson, null, userData, configData);
 }
 
 async function handleAuthClick(e) {

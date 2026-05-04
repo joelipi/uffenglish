@@ -4,18 +4,12 @@ import { appStore } from './store.js';
 
 export const State = {
     // Application & User Data
-    courseId: null,
-    configData: null,
-    userData: null,
-    englishLevel: 'A0', // FIXED: Standardized to camelCase
     
     // Logic-driven values
     
     isAudioEnabled: false,
 
     // Lesson Data
-    lessonId: null,
-    lesson: null,
     mission: null,
     setting: null,
     roleA: null,
