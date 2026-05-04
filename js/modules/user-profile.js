@@ -80,7 +80,7 @@ export async function saveLessonProgress(courseId, lessonId, userData, options =
     const safeOptions = options || {};
     const updateUserMetaFlag = safeOptions.updateUserMeta !== false;
 
-    let resultState = { savedToLocal: false, streakUpdated: false };
+    let resultState = { savedToLocal: false, streakUpdated: false, dayCountIncremented: false, newDayCount: 0, newStreak: 0 };
 
     try {
         localStorage.setItem(`${courseId}_currentLessonId`, lessonId);
@@ -111,8 +111,16 @@ export async function saveLessonProgress(courseId, lessonId, userData, options =
 
             let dateLedger = Array.isArray(userData.completed_dates) ? userData.completed_dates : [];
             if (!dateLedger.includes(localToday)) {
-                metaToUpdate.completed_dates = [...dateLedger, localToday];
+                const newDateLedger = [...dateLedger, localToday];
+                metaToUpdate.completed_dates = newDateLedger;
                 resultState.streakUpdated = true;
+                resultState.dayCountIncremented = true;
+                resultState.newDayCount = newDateLedger.length;
+                resultState.newStreak = calculateCurrentStreak(newDateLedger);
+            } else {
+                // Day already counted — return current values without incrementing
+                resultState.newDayCount = dateLedger.length;
+                resultState.newStreak = calculateCurrentStreak(dateLedger);
             }
 
             if (userData.lesson_scores) metaToUpdate.lesson_scores = userData.lesson_scores;

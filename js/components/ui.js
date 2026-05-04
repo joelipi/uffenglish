@@ -23,10 +23,8 @@ export const DOM = {
     dayCountSpan: document.getElementById("dayCountSpan"),
     streakCountSpan: document.getElementById("streakCountSpan"),
     arrowContainer: document.getElementById("arrow-container"),
-    playbackVideoMobile: document.getElementById('playback-video-mobile'),
-    playbackVideoDesktop: document.getElementById('playback-video-desktop'),
-    playbackMuteToggleMobile: document.getElementById('playback-mute-toggle-mobile'),
-    playbackMuteToggleDesktop: document.getElementById('playback-mute-toggle-desktop'),
+    playbackVideo: document.getElementById('playback-video'),
+    playbackMuteToggle: document.getElementById('playback-mute-toggle'),
     questionsContainerContainer: document.getElementById('questions-container-container'),
     questionsContainer: document.getElementById('questions-container')
 };
@@ -52,11 +50,14 @@ export function flashElement(element) {
     setTimeout(() => element.classList.remove('score-update'), 300);
 }
 
-export function updateCurrentScoreDisplay(currentPoints) {
+export function updateCurrentScoreDisplay(listeningScore) {
+    // Fallback: If legacy code calls this without args, fetch from store
+    const points = listeningScore !== undefined ? listeningScore : appStore.getState().listeningScore;
+
     const element = document.getElementById('currentScore');
     if (element) {
         flashElement(element);
-        element.textContent = currentPoints;
+        element.textContent = points;
     }
 }
 
@@ -81,9 +82,12 @@ export function updateActivityDisplay(totalDays, currentStreak) {
 
 // Keep the old function for backward compatibility with other parts of your app
 export function updateDayCountDisplay(dayCount) {
+    // Fallback: If legacy code calls this without args, fetch from store
+    const safeDayCount = dayCount !== undefined ? dayCount : appStore.getState().dayCount;
+
     if (DOM.dayCountSpan) {
         flashElement(DOM.dayCountSpan);
-        DOM.dayCountSpan.textContent = dayCount;
+        DOM.dayCountSpan.textContent = safeDayCount;
     }
 }
 
@@ -346,48 +350,36 @@ export function setMicStatusText(content) {
 export function initUISubscriptions() {
     const store = appStore;
 
-    // --- currentPoints → #currentScore display ---
-    const syncCurrentScore = (currentPoints) => {
+    // --- Version-Agnostic Trackers ---
+    // Track previous state locally to avoid "prevState is undefined" errors in newer Zustand versions
+    let prevPoints = store.getState().listeningScore;
+    let prevSpeaking = store.getState().speakingScore;
+    let prevAttempts = store.getState().incorrectAttempts;
+    let prevDayCount = store.getState().dayCount;
+    let prevStreak = store.getState().currentStreak;
+
+    // --- listeningScore → #currentScore display ---
+    const syncCurrentScore = (listeningScore) => {
         const element = document.getElementById('currentScore');
         if (element) {
             flashElement(element);
-            element.textContent = currentPoints;
+            element.textContent = listeningScore;
         }
     };
     // Fire immediately for initial render
-    syncCurrentScore(store.getState().currentPoints);
-    // Subscribe for future changes
-    store.subscribe(
-        (state) => state.currentPoints,
-        (currentPoints) => syncCurrentScore(currentPoints)
-    );
+    syncCurrentScore(prevPoints);
 
     // --- speakingScore → #phrasesScore display ---
     const syncSpeakingScore = (speakingScore) => {
-        if (DOM.phrasesScore) DOM.phrasesScore.textContent = `${speakingScore}`;
-    };
-    syncSpeakingScore(store.getState().speakingScore);
-    store.subscribe(
-        (state) => state.speakingScore,
-        (speakingScore) => syncSpeakingScore(speakingScore)
-    );
-
-    // --- incorrectAttempts → heart animations ---
-    // Note: incorrectAttempts starts at 0 and the heart animation only triggers
-    // on increment (not on reset), so we subscribe but do NOT fire immediately.
-    store.subscribe(
-        (state) => state.incorrectAttempts,
-        (incorrectAttempts, previousState) => {
-            // Only animate on increment, not on reset to 0
-            if (incorrectAttempts > previousState.incorrectAttempts) {
-                if (incorrectAttempts == 1 && DOM.heart1) DOM.heart1.classList.add("falling-image");
-                else if (incorrectAttempts == 2 && DOM.heart2) DOM.heart2.classList.add("falling-image");
-                else if (incorrectAttempts == 3 && DOM.heart3) DOM.heart3.classList.add("falling-image");
-            }
+        if (DOM.phrasesScore) {
+            flashElement(DOM.phrasesScore);
+            DOM.phrasesScore.textContent = `${speakingScore}`;
         }
-    );
+    };
+    // Fire immediately for initial render
+    syncSpeakingScore(prevSpeaking);
 
-    // --- dayCount + currentStreak → header stats display ---
+    // --- Activity Stats ---
     const syncActivityDisplay = (dayCount, currentStreak) => {
         if (DOM.dayCountSpan) {
             DOM.dayCountSpan.textContent = dayCount;
@@ -399,13 +391,39 @@ export function initUISubscriptions() {
         }
     };
     // Fire immediately for initial render
-    const { dayCount, currentStreak } = store.getState();
-    syncActivityDisplay(dayCount, currentStreak);
-    // Subscribe to either value changing
-    store.subscribe(
-        (state) => [state.dayCount, state.currentStreak],
-        ([dayCount, currentStreak]) => syncActivityDisplay(dayCount, currentStreak)
-    );
+    syncActivityDisplay(prevDayCount, prevStreak);
+
+    // --- Single Master Subscriber ---
+    store.subscribe((state) => {
+        // listeningScore check
+        if (state.listeningScore !== prevPoints) {
+            syncCurrentScore(state.listeningScore);
+            prevPoints = state.listeningScore;
+        }
+
+        // speakingScore check
+        if (state.speakingScore !== prevSpeaking) {
+            syncSpeakingScore(state.speakingScore);
+            prevSpeaking = state.speakingScore;
+        }
+
+        // incorrectAttempts check
+        if (state.incorrectAttempts > prevAttempts) {
+            if (state.incorrectAttempts == 1 && DOM.heart1) DOM.heart1.classList.add("falling-image");
+            else if (state.incorrectAttempts == 2 && DOM.heart2) DOM.heart2.classList.add("falling-image");
+            else if (state.incorrectAttempts == 3 && DOM.heart3) DOM.heart3.classList.add("falling-image");
+            prevAttempts = state.incorrectAttempts;
+        } else if (state.incorrectAttempts === 0) {
+            prevAttempts = 0; // Reset tracking on new questions/lessons
+        }
+
+        // Activity Metrics check
+        if (state.dayCount !== prevDayCount || state.currentStreak !== prevStreak) {
+            syncActivityDisplay(state.dayCount, state.currentStreak);
+            prevDayCount = state.dayCount;
+            prevStreak = state.currentStreak;
+        }
+    });
 }
 
 /**
@@ -505,26 +523,27 @@ export function pauseVideoIfPlaying(playerInstance) {
 }
 
 export function updateSpeakingScoreDisplay(score) {
-    if (DOM.phrasesScore) DOM.phrasesScore.textContent = `${score}`;
+    // Fallback: If legacy code calls this without args, fetch from store
+    const safeScore = score !== undefined ? score : appStore.getState().speakingScore;
+
+    if (DOM.phrasesScore) DOM.phrasesScore.textContent = `${safeScore}`;
 }
 
 export function clearPlaybackVideo() {
     console.log("clearPlaybackVideo called");
-    [DOM.playbackVideoMobile, DOM.playbackVideoDesktop].forEach(video => {
-        if (video) {
-            video.pause();
-            if (video.src && video.src.startsWith('blob:')) URL.revokeObjectURL(video.src);
-            video.src = '';
-            video.load();
-            video.style.display = 'none';
-            video.onerror = null;
-            video.onloadeddata = null;
-            video.onloadedmetadata = null;
-        }
-    });
+    const video = DOM.playbackVideo;
+    if (video) {
+        video.pause();
+        if (video.src && video.src.startsWith('blob:')) URL.revokeObjectURL(video.src);
+        video.src = '';
+        video.load();
+        video.style.display = 'none';
+        video.onerror = null;
+        video.onloadeddata = null;
+        video.onloadedmetadata = null;
+    }
 
-    if (DOM.playbackMuteToggleMobile) DOM.playbackMuteToggleMobile.classList.add('d-none');
-    if (DOM.playbackMuteToggleDesktop) DOM.playbackMuteToggleDesktop.classList.add('d-none');
+    if (DOM.playbackMuteToggle) DOM.playbackMuteToggle.classList.add('d-none');
 }
 
 export function prepareMediaUI() {
@@ -533,8 +552,7 @@ export function prepareMediaUI() {
 
 export function showPlaybackVideo() {
     console.log("showPlaybackVideo");
-    const playbackVideo = window.innerWidth >= 1200 ? DOM.playbackVideoDesktop : DOM.playbackVideoMobile;
-    if (playbackVideo) playbackVideo.style.display = 'block';
+    if (DOM.playbackVideo) DOM.playbackVideo.style.display = 'block';
 }
 
 export function isWebcamPreviewVisible() {
@@ -553,19 +571,13 @@ export function createWebcamPreview() {
     // Set opacity:0 BEFORE insertion
     webcamPreview.style.opacity = '0';
 
-    const isDesktop = window.innerWidth >= 1200;
-
-    if (isDesktop) {
-        if (DOM.questionsContainerContainer) DOM.questionsContainerContainer.appendChild(webcamPreview);
+    if (DOM.mediaContainer) {
+        DOM.mediaContainer.appendChild(webcamPreview);
     } else {
-        if (DOM.mediaContainer) {
-            DOM.mediaContainer.appendChild(webcamPreview);
-        } else {
-            webcamPreview.style.position = 'fixed';
-            webcamPreview.style.bottom = '10px';
-            webcamPreview.style.right = '10px';
-            document.body.appendChild(webcamPreview);
-        }
+        webcamPreview.style.position = 'fixed';
+        webcamPreview.style.bottom = '10px';
+        webcamPreview.style.right = '10px';
+        document.body.appendChild(webcamPreview);
     }
     return webcamPreview;
 }
@@ -623,8 +635,7 @@ export function removeWebcamPreview() {
 }
 
 export async function setupPlaybackVideo(blob, autoplay = false, speechCamChunks = []) {
-    const isDesktop = window.innerWidth > 1000;
-    const playbackVideo = isDesktop ? DOM.playbackVideoDesktop : DOM.playbackVideoMobile;
+    const playbackVideo = DOM.playbackVideo;
 
     if (!playbackVideo) {
         console.error('[Playback] playbackVideo element not found');
@@ -642,7 +653,7 @@ export async function setupPlaybackVideo(blob, autoplay = false, speechCamChunks
             playbackVideo.src = URL.createObjectURL(blob);
         }
 
-        const muteToggle = isDesktop ? DOM.playbackMuteToggleDesktop : DOM.playbackMuteToggleMobile;
+        const muteToggle = DOM.playbackMuteToggle;
 
         if (muteToggle) {
             muteToggle.classList.remove('d-none');

@@ -7,7 +7,7 @@ import { createStore } from 'https://esm.sh/zustand/vanilla';
 
 export const appStore = createStore((set, get) => ({
     // --- Reactive UI Metrics ---
-    currentPoints: 100,
+    listeningScore: 100,
     speakingScore: 100,
     incorrectAttempts: 0,
     dayCount: 0,
@@ -15,40 +15,49 @@ export const appStore = createStore((set, get) => ({
 
     // --- Actions ---
 
-    // Deduct from currentPoints, floored at 0
-    deductPoints: (amount) => set((state) => ({
-        currentPoints: Math.max(0, state.currentPoints - amount)
-    })),
+    // Deduct from listeningScore, floored at 0
+    deductListeningScore: (amount) => set((state) => {
+        const safeAmount = Number(amount) || 0; // Fallback to 0 if undefined/NaN
+        return { listeningScore: Math.max(0, state.listeningScore - safeAmount) };
+    }),
 
-    // Set currentPoints to an explicit value (used when zeroing out on hard fail)
-    setPoints: (value) => set({ currentPoints: Math.max(0, value) }),
+    // Set listeningScore to an explicit value
+    setListeningScore: (value) => set({
+        listeningScore: Math.max(0, Number(value) || 0)
+    }),
 
     // Deduct from speakingScore, floored at 0
-    deductSpeakingScore: (amount) => set((state) => ({
-        speakingScore: Math.max(0, state.speakingScore - amount)
-    })),
+    deductSpeakingScore: (amount) => set((state) => {
+        const safeAmount = Number(amount) || 0;
+        return { speakingScore: Math.max(0, state.speakingScore - safeAmount) };
+    }),
 
     // Set speakingScore to an explicit value
-    setSpeakingScore: (value) => set({ speakingScore: Math.max(0, value) }),
+    setSpeakingScore: (value) => set({
+        speakingScore: Math.max(0, Number(value) || 0)
+    }),
 
     // Increment incorrectAttempts by 1
     incrementIncorrectAttempts: () => set((state) => ({
         incorrectAttempts: state.incorrectAttempts + 1
     })),
 
-    // Update dayCount and currentStreak together (always updated as a pair)
-    setActivityMetrics: (dayCount, currentStreak) => set({ dayCount, currentStreak }),
+    // Update dayCount and currentStreak together
+    setActivityMetrics: (dayCount, currentStreak) => set({
+        dayCount: Number(dayCount) || 0,
+        currentStreak: Number(currentStreak) || 0
+    }),
 
     // Reset all per-question metrics (called between questions)
     resetForNextQuestion: () => set({
-        currentPoints: 100,
+        listeningScore: 100,
         speakingScore: 100,
         incorrectAttempts: 0
     }),
 
     // Reset all per-lesson metrics (called at lesson start)
     resetForNewLesson: () => set({
-        currentPoints: 100,
+        listeningScore: 100,
         speakingScore: 100,
         incorrectAttempts: 0
     })

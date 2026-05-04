@@ -3,7 +3,7 @@ import { InteractiveVideoPlayer } from '../components/interactive-video-player.j
 import { simpleVideoPlayer } from '../components/simple-video-player.js';
 import { introBackgroundVideo } from '../components/intro-background-video.js';
 import { pointLoss } from '../components/point-loss-animation.js';
-import { updateCurrentScoreDisplay } from '../components/ui.js';
+import { appStore } from './store.js';
 import Strings from '../data/strings.js';
 import { getLocalizedTranslation } from './utils.js';
 
@@ -42,27 +42,39 @@ export function loadVideoForQuestion(question, state, lang) {
                 videoEl.muted = false;
                 videoEl.setAttribute('playsinline', '');
                 const playPromise = state.player.play();
-                if (playPromise !== undefined) playPromise.catch(() => {});
-            } catch (e) {}
+                if (playPromise !== undefined) playPromise.catch(() => { });
+            } catch (e) { }
         }, 200);
 
         state.player.video.addEventListener('playing', () => state.player.video.controls = false);
 
+        // Flag to prevent double-penalty when a click triggers a play event.
+        // When the user clicks the video, the browser fires both 'click' and 'play'.
+        // The click listener sets this flag so the play listener knows to skip its penalty.
+        let clickTriggeredPlay = false;
+
         state.player.video.addEventListener('play', () => {
+            if (clickTriggeredPlay) {
+                // This play was caused by a click — click listener already handled the penalty
+                clickTriggeredPlay = false;
+                return;
+            }
             state.videoPlays++;
             if (state.videoPlays > 2 && (question.inputType === "speech" || question.inputType === "ai")) {
-                state.currentPoints = Math.max(0, state.currentPoints - 10);
+                appStore.getState().deductListeningScore(10);
                 pointLoss.show(state.player.video, 10);
-                updateCurrentScoreDisplay(state.currentPoints);
+                // Subscription handles the score display update
             }
         });
 
         state.player.video.addEventListener('click', () => {
             state.videoClicks++;
             if (state.videoClicks % 2 === 1 && (question.inputType === "speech" || question.inputType === "ai")) {
-                state.currentPoints = Math.max(0, state.currentPoints - 15);
+                // Set flag before the play event fires so the play listener skips its penalty
+                clickTriggeredPlay = true;
+                appStore.getState().deductListeningScore(15);
                 pointLoss.show(state.player.video, 15);
-                updateCurrentScoreDisplay(state.currentPoints);
+                // Subscription handles the score display update
             }
         });
     }
@@ -83,8 +95,8 @@ export function loadVideoForQuestion(question, state, lang) {
                 const videoEl = state.player.video;
                 videoEl.muted = false;
                 const playPromise = state.player.play();
-                if (playPromise !== undefined) playPromise.catch(() => {});
-            } catch (e) {}
+                if (playPromise !== undefined) playPromise.catch(() => { });
+            } catch (e) { }
         }, 200);
     }
 

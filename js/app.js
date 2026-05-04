@@ -1,4 +1,3 @@
-
 import { clearSpeechRecordingsForLesson, updateSpeechRecording } from './modules/storage.js';
 
 // Initialize the background NLP Worker via blob URL to bypass service worker caching
@@ -47,6 +46,7 @@ import { getCurrentLessonId, getCurrentcourseId } from './modules/lesson-router.
 import { normalizeConfig } from './modules/config-normalizer.js';
 import { loadVideoForQuestion } from './modules/video-loader.js';
 import { appStore } from './modules/store.js';
+//window.appStore = appStore; // <-- ADD THIS TEMPORARY LINE FOR TESTING
 import { State } from './modules/state.js';
 import { getLocalizedTranslation } from './modules/utils.js';
 import { analyzeSpeech } from './modules/analytics.js';
@@ -121,7 +121,9 @@ window.addEventListener('transcriptRejected', () => {
 });
 
 window.addEventListener('preflightRejected', () => {
-    appStore.getState().deductPoints(10);
+    // ✅ FIX: Use the correct Zustand action for the Speaking Score
+    appStore.getState().deductSpeakingScore(10);
+
     // Show point loss animation (subscription handles the text update)
     if (DOM.phrasesScore) {
         pointLoss.show(DOM.phrasesScore, 10);
@@ -143,7 +145,9 @@ async function submitAnswerPrecheck(val, cue, questionData, btn, explanation, tr
     );
 
     if (!isValid) {
-        appStore.getState().deductPoints(10);
+        // ✅ FIX: Now correctly deducts from the Speaking Score instead of the Listening Score
+        appStore.getState().deductSpeakingScore(10);
+
         // Show point loss animation (subscription handles the text update)
         if (DOM.phrasesScore) {
             pointLoss.show(DOM.phrasesScore, 10);
@@ -189,7 +193,7 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
     if (questionData.inputType === "speech" || questionData.inputType === "ai") {
         speechAnalytics = await analyzeSpeech(userResponse, stats.netDuration, stats.pauseCount, State.courseId ? State.courseId.substring(0, 2).toUpperCase() : 'A1', questionData.inputType);
 
-        const listeningScore = appStore.getState().currentPoints || 0;
+        const listeningScore = appStore.getState().listeningScore || 0;
         const speakingScore = appStore.getState().speakingScore || 0;
 
         immediateStatsHtmlArr.push(createStatsBubbleHTML(
@@ -319,8 +323,8 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
             if (questionData.inputType === "ai") {
                 State.cuesGiven.push(result.normalizeduserResponse);
                 if (result.englishLevelDeduction > 0) {
-                    appStore.getState().deductPoints(result.englishLevelDeduction);
-                    // Note: pointLoss animation is intentionally omitted here per existing behavior
+                    appStore.getState().deductListeningScore(result.englishLevelDeduction);
+                    // Note: pointLoss animation is intentionally omitted here per existing behavior 
                 }
             }
             handlecueUI(qIndex, questionData, button, cue, result.explanations || explanation, translation, userResponse, result.englishLevel, result.englishLevelDeduction);
@@ -338,8 +342,8 @@ async function handleAnswer(userResponse, cue, questionData, button, explanation
 
 function handlecueUI(qIndex, questionData, button, cue, explanation, translation, userResponse, englishLevel, englishLevelDeduction) {
 
-    if (questionData.inputType === "speech" && questionData.videoUrl) State.repeatPointsHistory.push(appStore.getState().currentPoints);
-    if (questionData.inputType === "ai" && questionData.videoUrl) State.rolePlayPointsHistory.push(appStore.getState().currentPoints);
+    if (questionData.inputType === "speech" && questionData.videoUrl) State.repeatPointsHistory.push(appStore.getState().listeningScore);
+    if (questionData.inputType === "ai" && questionData.videoUrl) State.rolePlayPointsHistory.push(appStore.getState().listeningScore);
 
     // Unified: last AI question advances via Continue button like all others.
 
@@ -388,11 +392,6 @@ function handlecueUI(qIndex, questionData, button, cue, explanation, translation
 
             renderAIFeedback(chunks);
         }
-
-        if (questionData.inputType === "ai" || questionData.inputType === "speech") {
-            updateSpeakingScoreDisplay(appStore.getState().speakingScore);
-            flashElement(DOM.phrasesScore);
-        }
     }
 
     Media.playSound('correct-sound');
@@ -412,13 +411,12 @@ function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanat
     }
 
     if ((questionData.inputType === "speech" || questionData.inputType === "ai") && questionData.videoUrl) {
-        appStore.getState().deductPoints(25);
+        appStore.getState().deductListeningScore(25);
         pointLoss.show(DOM.micStatusText, 25);
-        // Subscription handles the score display update
+        // Subscription handles the score display update 
         if (appStore.getState().incorrectAttempts > 2) {
-            appStore.getState().setPoints(0);
-            updateSpeakingScoreDisplay(appStore.getState().speakingScore);
-            State.rolePlayPointsHistory.push(appStore.getState().currentPoints);
+            appStore.getState().setListeningScore(0);
+            State.rolePlayPointsHistory.push(appStore.getState().listeningScore);
         }
     }
 
@@ -430,9 +428,9 @@ function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanat
 
     if (questionData.inputType === "ai" && userResponse) {
         if (appStore.getState().incorrectAttempts > 2) {
-            appStore.getState().setPoints(0);
-            State.rolePlayPointsHistory.push(appStore.getState().currentPoints);
-            // Subscription handles the score display update
+            appStore.getState().setListeningScore(0);
+            State.rolePlayPointsHistory.push(appStore.getState().listeningScore);
+            // Subscription handles the score display update 
         }
 
         const teacherTextStr = appStore.getState().incorrectAttempts === 1
@@ -598,7 +596,6 @@ function loadQuestion(question, lesson, fluencyData) {
 
     if (question.inputType === 'speech' || question.inputType === 'ai') {
         warmUpSpeechCamStream();
-        updateSpeakingScoreDisplay(appStore.getState().speakingScore);
     }
 
     prepareMediaUI();
@@ -672,9 +669,9 @@ function loadQuestion(question, lesson, fluencyData) {
         const handleRevealClick = function () {
             if (!this.dataset.revealed) {
                 this.textContent = this.dataset.word;
-                appStore.getState().deductPoints(15);
+                appStore.getState().deductListeningScore(15);
                 pointLoss.show(this, 15);
-                // Subscription handles the score display update
+                // Subscription handles the score display update 
                 this.dataset.revealed = "true"; this.removeEventListener('click', handleRevealClick);
             }
         };
@@ -971,8 +968,8 @@ function setupAuthMenu(isLoggedIn) {
 // 🚀🚀🚀🚀🚀🚀🚀🚀 INITIALIZE APP 🚀🚀🚀🚀🚀🚀🚀🚀
 
 async function initializeApp() {
-    // Initialize reactive UI subscriptions first so the UI responds to store changes
-    // from the moment any state is set during initialization.
+    // Initialize reactive UI subscriptions first so the UI responds to store changes 
+    // from the moment any state is set during initialization. 
     initUISubscriptions();
 
     try {
@@ -1010,8 +1007,8 @@ async function initializeApp() {
             playSound: Media.playSound,
             loadNextLesson,
             updateState: (newState) => {
-                // Route reactive metrics to the Zustand store; all other keys go to State as before
-                const reactiveKeys = ['currentPoints', 'speakingScore', 'incorrectAttempts', 'dayCount', 'currentStreak'];
+                // Route reactive metrics to the Zustand store; all other keys go to State as before 
+                const reactiveKeys = ['listeningScore', 'speakingScore', 'incorrectAttempts', 'dayCount', 'currentStreak'];
                 const storeUpdates = {};
                 const stateUpdates = {};
 
