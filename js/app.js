@@ -1,4 +1,4 @@
-import { clearSpeechRecordingsForLesson, updateSpeechRecording } from './modules/storage.js';
+import { clearSpeechRecordingsForLesson, updateSpeechRecording } from './modules/storage-web.js';
 
 // Initialize the background NLP Worker via blob URL to bypass service worker caching
 

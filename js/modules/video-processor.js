@@ -1,7 +1,7 @@
 // video-processing-module.js
 
 import { shareVideo } from './video-share.js';
-import { getAllSpeechRecordingsForLesson } from './storage.js';
+import { getAllSpeechRecordingsForLesson } from './storage-web.js';
 
 export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonId = null) {
     window.__currentProcessingLessonId = lessonId;
@@ -11,8 +11,8 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
     document.getElementById('bottomButtonBarSuccess').classList.remove('d-none');
     document.getElementById("micStatusText").innerHTML = "<div class='text-center'>Get Complete Fluency Score and Shareable Video.<br><span lang='es'><i>Recibir Calificación de Fluidez Completa y Video Compartible.</i></span></div>";
 
-    const finalFluencyData = { listening: fluencyData.listening || "NA", speaking: fluencyData.speaking || "NA", total: fluencyData.total || "NA"};
-        console.log("finalFluencyData: ", finalFluencyData);
+    const finalFluencyData = { listening: fluencyData.listening || "NA", speaking: fluencyData.speaking || "NA", total: fluencyData.total || "NA" };
+    console.log("finalFluencyData: ", finalFluencyData);
     const originalVideo = document.getElementById('originalVideo');
     const processBtn = document.getElementById('processBtn');
 
@@ -22,7 +22,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
         resultVideo = document.createElement('video');
         resultVideo.id = 'resultVideo';
         resultVideo.classList.add('d-none');
-        
+
         // Add it to an appropriate container
         const container = document.getElementById('media-container') || document.body;
         container.appendChild(resultVideo);
@@ -32,7 +32,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
     const processBtnContainer = document.getElementById('bottomButtonBarSuccess');
     const bigButtons = document.getElementById('big-buttons');
     const videoCanvas = document.getElementById('videoCanvas');
-    
+
     console.log("Elements found:", {
         originalVideo: !!originalVideo,
         processBtn: !!processBtn,
@@ -40,7 +40,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
         bigButtons: !!bigButtons,
         videoCanvas: !!videoCanvas
     });
-    
+
     // Create display canvas for preview
     const displayCanvas = document.createElement('canvas');
     displayCanvas.id = 'displayCanvas';
@@ -56,7 +56,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
 
     // Determine where to place the canvas based on screen width
     const isDesktop = window.innerWidth > 1000;
-    const targetContainer = isDesktop 
+    const targetContainer = isDesktop
         ? document.getElementById('playback-video-mobile-container')
         : document.getElementById('playback-video-mobile-container');
 
@@ -74,34 +74,34 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
         }
     }
 
-    const displayContext = displayCanvas.getContext('2d', { 
-        alpha: false, 
+    const displayContext = displayCanvas.getContext('2d', {
+        alpha: false,
         willReadFrequently: false
     });
-    
+
     const overlayImage = document.getElementById('overlayImage');
-    const canvasContext = videoCanvas.getContext('2d', { 
-        alpha: false, 
+    const canvasContext = videoCanvas.getContext('2d', {
+        alpha: false,
         willReadFrequently: false
     });
-    
+
     // Cache iOS detection result
     const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    
+
     let overlayReady = false;
     let fontReady = false;
-    
+
     if (overlayImage && overlayImage.complete && overlayImage.naturalWidth > 0) {
         overlayReady = true;
         console.log("Overlay image already loaded");
     }
-    
+
     if (overlayImage) {
         overlayImage.addEventListener('load', () => {
             overlayReady = true;
             console.log("Overlay image loaded successfully");
         }, { once: true });
-        
+
         overlayImage.addEventListener('error', () => {
             overlayReady = false;
             console.error("Overlay image failed to load");
@@ -119,21 +119,21 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
     let animationId = null;
     let lastFrameCanvas = null;
     let lastFrameCtx = null;
-    
+
     // Function to update display canvas size based on video aspect ratio
     function updateDisplayCanvasSize() {
         if (!originalVideo.videoWidth || !originalVideo.videoHeight) {
             console.log("Video dimensions not available yet");
             return;
         }
-        
+
         const container = displayCanvas.parentElement;
         const containerWidth = container ? container.offsetWidth : window.innerWidth;
-        
+
         const aspectRatio = originalVideo.videoWidth / originalVideo.videoHeight;
         const isPortrait = originalVideo.videoHeight > originalVideo.videoWidth;
         const isMobile = window.innerWidth <= 1000;
-        
+
         let maxDisplayWidth;
         if (isMobile && isPortrait) {
             maxDisplayWidth = Math.min(300, containerWidth * 0.80);
@@ -142,21 +142,21 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
         } else {
             maxDisplayWidth = Math.min(400, containerWidth * 0.90);
         }
-        
+
         const displayHeight = Math.round(maxDisplayWidth / aspectRatio);
-        
+
         displayCanvas.width = maxDisplayWidth;
         displayCanvas.height = displayHeight;
         displayCanvas.style.width = maxDisplayWidth + 'px';
         displayCanvas.style.height = displayHeight + 'px';
         displayCanvas.style.maxWidth = '100%';
         displayCanvas.style.boxSizing = 'border-box';
-        
-        console.log("Display canvas size updated:", {width: maxDisplayWidth, height: displayHeight});
+
+        console.log("Display canvas size updated:", { width: maxDisplayWidth, height: displayHeight });
     }
 
     // Call this when video metadata is loaded
-    originalVideo.addEventListener('loadedmetadata', function() {
+    originalVideo.addEventListener('loadedmetadata', function () {
         console.log("Video metadata loaded:", {
             videoWidth: originalVideo.videoWidth,
             videoHeight: originalVideo.videoHeight,
@@ -164,14 +164,14 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
             readyState: originalVideo.readyState,
             networkState: originalVideo.networkState
         });
-        
+
         videoCanvas.width = originalVideo.videoWidth;
         videoCanvas.height = originalVideo.videoHeight;
         updateDisplayCanvasSize();
     }, { once: true });
 
     // Add error event listener for detailed error information
-    originalVideo.addEventListener('error', function() {
+    originalVideo.addEventListener('error', function () {
         console.error("Video error event fired:", {
             error: originalVideo.error,
             readyState: originalVideo.readyState,
@@ -179,7 +179,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
             src: originalVideo.src
         });
     }, { once: true });
-    
+
     // Update display canvas size on window resize
     let resizeTimeout;
     window.addEventListener('resize', () => {
@@ -190,12 +190,12 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
             }
         }, 250);
     });
-    
+
     // Optimize IndexedDB with connection pooling
     let dbConnection = null;
     async function getLatestVideoFromIndexedDB() {
         console.log("Attempting to get video from IndexedDB");
-        
+
         try {
             const currentLessonId = window.__currentProcessingLessonId || 'unknown_lesson';
             const recordings = await getAllSpeechRecordingsForLesson(currentLessonId);
@@ -216,7 +216,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
             throw new Error('Failed to retrieve video');
         }
     }
-    
+
     // Cache text metrics for performance
     const textMetricsCache = new Map();
     function getCachedTextMetrics(context, text, font) {
@@ -224,7 +224,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
         if (textMetricsCache.has(key)) {
             return textMetricsCache.get(key);
         }
-        
+
         context.font = font;
         const metrics = context.measureText(text);
         textMetricsCache.set(key, metrics);
@@ -236,12 +236,12 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
         let line = '';
         let testLine = '';
         let lineCount = 0;
-        
-        for(let n = 0; n < words.length; n++) {
+
+        for (let n = 0; n < words.length; n++) {
             testLine = line + words[n] + ' ';
             const metrics = context.measureText(testLine);
             const testWidth = metrics.width;
-            
+
             if (testWidth > maxWidth && n > 0) {
                 context.fillText(line, x, y);
                 line = words[n] + ' ';
@@ -251,7 +251,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                 line = testLine;
             }
         }
-        
+
         context.fillText(line, x, y);
         return lineCount + 1;
     }
@@ -263,7 +263,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
         if (cachedGradients.has(key)) {
             return cachedGradients.get(key);
         }
-        
+
         let gradient;
         if (type === 'main') {
             gradient = context.createLinearGradient(0, 0, width, height);
@@ -274,7 +274,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
             gradient.addColorStop(0, '#000000');
             gradient.addColorStop(1, '#000000');
         }
-        
+
         cachedGradients.set(key, gradient);
         return gradient;
     }
@@ -283,9 +283,9 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
     function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart, isDisplayCanvas = false, fluencyData = {}, isFirst = false, subtitleText = "") {
         const now = performance.now();
         const blinkOn = Math.floor(now / 500) % 2 === 0;
-        
+
         context.save();
-        
+
         // 1. Draw top overlay text only if it's the first segment or the tail segment
         if (isFirst || tailing) {
             const yFromBottom = canvasHeight * 0.20;
@@ -326,7 +326,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
             const baseFontSize = Math.max(18, Math.floor(baseSize * scale));
 
             const fontSizes = data.map(d => Math.floor(baseFontSize * d.mult));
-            
+
             const heights = data.map((d, i) => {
                 const fontKey = `700 ${fontSizes[i]}px "Orbitron", sans-serif`;
 
@@ -391,7 +391,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                 y += heights[i] + (i < data.length - 1 ? lineGap : 0);
             });
         }
-        
+
         // 2. Draw Subtitles at the bottom (burned in)
         if (subtitleText && subtitleText.trim() !== "") {
             // Draw subtitle at bottom
@@ -449,7 +449,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                 context.fillText(l, centerX, subtitleStartY + (i * lineHeight));
             });
         }
-        
+
         context.restore();
     }
 
@@ -460,7 +460,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
             thumbnailCanvas.width = videoCanvas.width;
             thumbnailCanvas.height = videoCanvas.height;
             const ctx = thumbnailCanvas.getContext('2d');
-            
+
             // Draw the LAST FRAME (with all overlays and final text)
             if (lastFrameCanvas) {
                 // Use the cached last frame from your tail effect
@@ -469,28 +469,28 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                 // Fallback: use current video frame
                 ctx.drawImage(originalVideo, 0, 0, thumbnailCanvas.width, thumbnailCanvas.height);
             }
-            
+
             // Draw ALL the same overlays and text as your final frame
             if (overlayReady && overlayImage.naturalWidth > 0) {
                 const xPos = (thumbnailCanvas.width - overlayImage.naturalWidth) / 2;
                 const yPos = 0;
                 ctx.drawImage(overlayImage, xPos, yPos);
             }
-            
+
             if (fontReady) {
                 // Draw the FINAL text state (tailing completed)
                 drawTextOverlay(ctx, thumbnailCanvas.width, thumbnailCanvas.height, true, 0, false, fluencyData, false, "");
             }
-            
+
             // Create high-quality JPEG
             thumbnailCanvas.toBlob(resolve, 'image/jpeg', 0.95);
         });
     }
-    
+
     // Define processVideoSequence to handle multiple recordings sequentially
     async function processVideoSequence(recordings, fluencyData = {}) {
         console.log("processVideoSequence called with", recordings.length, "recordings");
-        
+
         return new Promise(async (resolve, reject) => {
             try {
                 const processingVideo = originalVideo;
@@ -509,7 +509,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                 const srcH = processingVideo.videoHeight || 1920;
                 let targetW = srcW;
                 let targetH = srcH;
-                
+
                 const isPortrait = srcH > srcW;
 
                 if (isPortrait) {
@@ -528,10 +528,10 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
 
                 if (targetW % 2) targetW++;
                 if (targetH % 2) targetH++;
-                
+
                 videoCanvas.width = targetW;
                 videoCanvas.height = targetH;
-                
+
                 let audioStream;
                 if (isIOSDevice) {
                     try {
@@ -547,16 +547,16 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                                 if (audioSource && audioSource.context === audioCtx) source = audioSource;
                                 else throw sourceError;
                             }
-                            
+
                             const dest = audioCtx.createMediaStreamDestination();
                             source.connect(dest);
                             source.connect(audioCtx.destination);
                             audioStream = dest.stream;
-                            
+
                             audioContext = audioCtx;
                             audioSource = source;
                             audioDestination = dest;
-                            
+
                             if (audioCtx.state === 'suspended') await audioCtx.resume();
                         }
                     } catch (iosAudioError) {
@@ -574,7 +574,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
 
                 const combinedStream = new MediaStream();
                 videoStream.getVideoTracks().forEach(track => combinedStream.addTrack(track));
-                
+
                 if (audioStream) {
                     if (audioStream instanceof MediaStream) {
                         audioStream.getAudioTracks().forEach(track => combinedStream.addTrack(track));
@@ -595,7 +595,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                     'video/webm;codecs=vp8,opus',
                     'video/webm'
                 ];
-                
+
                 let selectedMimeType = null;
                 for (const mimeType of testMimeTypes) {
                     if (MediaRecorder.isTypeSupported(mimeType)) {
@@ -604,7 +604,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                         break;
                     }
                 }
-                
+
                 const recorderOptions = {};
                 if (selectedMimeType) recorderOptions.mimeType = selectedMimeType;
 
@@ -634,13 +634,13 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
 
                 const chunks = [];
                 let recordingStarted = false;
-                
+
                 recorder.ondataavailable = (event) => {
                     if (event.data.size > 0) chunks.push(event.data);
                 };
-                
+
                 recorder.onstart = () => { recordingStarted = true; };
-                
+
                 recorder.onstop = () => {
                     displayCanvas.classList.add('d-none');
                     videoCanvas.classList.add('d-none');
@@ -651,7 +651,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                     const processedBlob = new Blob(chunks, { type: recorder.mimeType });
                     resolve({ processedBlob, mimeType: recorder.mimeType });
                 };
-                
+
                 recorder.onerror = (event) => reject(new Error('Recording failed: ' + event.error));
 
                 try {
@@ -690,26 +690,26 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                     if (currentPhase === 'remote') {
                         let remoteVideoUrl = null;
                         const configData = window.__currentConfigData || (window.State && window.State.configData);
-                        
+
                         console.log(`[Phase: Remote] Looking for Lesson: ${rec.originalLessonId}, Question Index: ${rec.originalQuestionIndex}`);
-                    
+
                         console.log(`[Phase: Remote] Does configData exist?`, !!configData);
                         console.log(`[Phase: Remote] Did we find the Lesson in JSON?`, configData && configData.lessons ? configData.lessons.find(l => l.lessonId === rec.originalLessonId) : "No configData.lessons");
-                    
+
                         if (configData && configData.lessons) {
                             const lesson = configData.lessons.find(l => l.lessonId === rec.originalLessonId);
                             if (lesson && lesson.questions && lesson.questions[rec.originalQuestionIndex]) {
                                 const q = lesson.questions[rec.originalQuestionIndex];
                                 const vUrl = q.videoUrl || q.introBackgroundVideoUrl || null;
-                                
+
                                 console.log(`[Phase: Remote] Found Target URL in JSON: ${vUrl}`);
-                                
+
                                 if (vUrl) {
                                     // 1. Try the preloaded cache first
                                     if (window.preloadedMedia && window.preloadedMedia[vUrl]) {
                                         remoteVideoUrl = window.preloadedMedia[vUrl];
                                         console.log(`[Phase: Remote] Success: Using PRELOADED cache.`);
-                                    } 
+                                    }
                                     // 2. THE FIX: Fallback to the live Firebase URL if cache misses!
                                     else {
                                         remoteVideoUrl = `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${vUrl}.mp4?alt=media`;
@@ -718,7 +718,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                                 }
                             }
                         }
-                    
+
                         if (remoteVideoUrl) {
                             blobUrl = remoteVideoUrl;
                             console.log(`[Phase: Remote] Successfully attached URL:`, blobUrl);
@@ -766,12 +766,12 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                         currentPhase = 'webcam';
                     } else {
                         currentItemIndex++;
-                        
+
                         // Check if the next recording is a retry of the same question
                         if (currentItemIndex < recordings.length) {
                             const currentRec = recordings[currentItemIndex];
                             const prevRec = recordings[currentItemIndex - 1];
-                            
+
                             if (currentRec.originalQuestionIndex === prevRec.originalQuestionIndex) {
                                 // Same question! Skip the remote video and go straight to the next webcam attempt
                                 currentPhase = 'webcam';
@@ -822,7 +822,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                             let drawH = videoCanvas.height;
                             let offsetX = 0;
                             let offsetY = 0;
-                            
+
                             if (pRatio > vRatio) {
                                 // Video is wider than canvas (landscape on portrait canvas)
                                 drawH = videoCanvas.width / pRatio;
@@ -832,19 +832,19 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                                 drawW = videoCanvas.height * pRatio;
                                 offsetX = (videoCanvas.width - drawW) / 2;
                             }
-                            
+
                             // Fill background black for letterboxes
                             canvasContext.fillStyle = '#000';
                             canvasContext.fillRect(0, 0, videoCanvas.width, videoCanvas.height);
                             canvasContext.drawImage(processingVideo, offsetX, offsetY, drawW, drawH);
-                            
+
                             // Same for display canvas
                             const dRatio = displayCanvas.width / displayCanvas.height;
                             let dDrawW = displayCanvas.width;
                             let dDrawH = displayCanvas.height;
                             let dOffsetX = 0;
                             let dOffsetY = 0;
-                            
+
                             if (pRatio > dRatio) {
                                 dDrawH = displayCanvas.width / pRatio;
                                 dOffsetY = (displayCanvas.height - dDrawH) / 2;
@@ -852,7 +852,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                                 dDrawW = displayCanvas.height * pRatio;
                                 dOffsetX = (displayCanvas.width - dDrawW) / 2;
                             }
-                            
+
                             displayContext.fillStyle = '#000';
                             displayContext.fillRect(0, 0, displayCanvas.width, displayCanvas.height);
                             displayContext.drawImage(processingVideo, dOffsetX, dOffsetY, dDrawW, dDrawH);
@@ -883,12 +883,12 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                             const isFirst = currentItemIndex === 0 && !tailing;
                             const rec = recordings[Math.min(currentItemIndex, recordings.length - 1)];
                             let subtitleText = "";
-                            
+
                             // Only set subtitle text if we are NOT showing the final fluency score
                             if (rec && !tailing) {
                                 subtitleText = (currentPhase === 'webcam') ? rec.userResponse : rec.cue;
                             }
-                            
+
                             drawTextOverlay(canvasContext, videoCanvas.width, videoCanvas.height, tailing, tailStart, false, fluencyData, isFirst, subtitleText);
                             drawTextOverlay(displayContext, displayCanvas.width, displayCanvas.height, tailing, tailStart, true, fluencyData, isFirst, subtitleText);
                         }
@@ -925,26 +925,26 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
         try {
             videoBlob = await getLatestVideoFromIndexedDB();
             console.log("Video blob retrieved successfully, size:", videoBlob.size, "type:", videoBlob.type);
-            
+
             // iOS-specific video loading with enhanced error handling
             if (isIOSDevice) {
                 console.log("iOS device detected, using special handling");
-                
+
                 // Create a new video element for testing to avoid conflicts
                 const testVideo = document.createElement('video');
                 testVideo.style.display = 'none';
                 document.body.appendChild(testVideo);
-                
+
                 // Test the blob with a new video element first
                 const blobUrl = URL.createObjectURL(videoBlob);
                 testVideo.src = blobUrl;
                 testVideo.preload = 'auto';
-                
+
                 // Add detailed event listeners for debugging
                 testVideo.addEventListener('loadeddata', () => {
                     console.log("Test video loadeddata event fired");
                 });
-                
+
                 testVideo.addEventListener('canplay', () => {
                     console.log("Test video canplay event fired");
                     // If test video works, use the blob for the main video
@@ -954,47 +954,47 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                     document.body.removeChild(testVideo);
                     URL.revokeObjectURL(blobUrl);
                 });
-                
+
                 testVideo.addEventListener('error', (e) => {
                     console.error("Test video error event:", e, {
                         error: testVideo.error,
                         readyState: testVideo.readyState,
                         networkState: testVideo.networkState
                     });
-                    
+
                     // Fallback to creating an object URL with a different approach
                     try {
                         // Try creating a new blob with explicit type
                         const typedBlob = new Blob([videoBlob], { type: 'video/mp4' });
                         const fallbackUrl = URL.createObjectURL(typedBlob);
                         originalVideo.src = fallbackUrl;
-                        
+
                         originalVideo.addEventListener('canplay', () => {
                             console.log("Fallback video loaded successfully");
                             processBtn.disabled = false;
                             URL.revokeObjectURL(fallbackUrl);
                         }, { once: true });
-                        
+
                         originalVideo.addEventListener('error', () => {
                             console.error("Fallback also failed, using default video");
                             originalVideo.src = 'tall.webm';
                             processBtn.disabled = false;
                             URL.revokeObjectURL(fallbackUrl);
                         }, { once: true });
-                        
+
                     } catch (fallbackError) {
                         console.error("Fallback creation failed:", fallbackError);
                         originalVideo.src = 'tall.webm';
                         processBtn.disabled = false;
                     }
-                    
+
                     document.body.removeChild(testVideo);
                     URL.revokeObjectURL(blobUrl);
                 });
-                
+
                 // Try to load the test video
                 testVideo.load();
-                
+
             } else {
                 // Non-iOS handling
                 const blobUrl = URL.createObjectURL(videoBlob);
@@ -1002,21 +1002,21 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                 processBtn.disabled = false;
                 console.log("Video loaded successfully on non-iOS device");
             }
-            
+
         } catch (error) {
             console.error('Error loading video from IndexedDB:', error);
             alert('Failed to load video from storage: ' + error.message);
             processBtn.disabled = false;
-            
+
             if (isIOSDevice) {
                 console.log("Falling back to default video on iOS");
                 originalVideo.src = 'tall.webm';
-                
+
                 originalVideo.addEventListener('error', () => {
                     console.error("Error loading fallback video on iOS");
                     processBtn.disabled = false;
                 }, { once: true });
-                
+
                 originalVideo.addEventListener('canplay', () => {
                     console.log("Fallback video can play on iOS");
                     processBtn.disabled = false;
@@ -1032,7 +1032,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
         if (fontLoadingPromise) {
             return fontLoadingPromise;
         }
-        
+
         fontLoadingPromise = (async () => {
             try {
                 if (document.fonts && document.fonts.load) {
@@ -1057,10 +1057,10 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                 fontReady = true;
             }
         })();
-        
+
         return fontLoadingPromise;
     }
-    
+
     // Add detailed logging to processBtn event listener
     if (processBtn) {
         console.log("Adding event listener to process button");
@@ -1068,7 +1068,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
     } else {
         console.error("Process button not found!");
     }
-    
+
     async function processVideo() {
         console.log("processVideo called");
 
@@ -1109,12 +1109,12 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                     const timeout = setTimeout(() => {
                         reject(new Error('Video metadata loading timeout'));
                     }, 10000);
-                    
+
                     originalVideo.addEventListener('loadedmetadata', () => {
                         clearTimeout(timeout);
                         resolve();
                     }, { once: true });
-                    
+
                     originalVideo.addEventListener('error', () => {
                         clearTimeout(timeout);
                         reject(new Error('Video loading error'));
@@ -1129,7 +1129,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                 audioDestination = audioContext.createMediaStreamDestination();
                 console.log("Audio context created");
             }
-            
+
             if (!audioSource || audioSource.mediaElement !== originalVideo) {
                 console.log("Creating audio source");
                 if (audioSource) {
@@ -1140,13 +1140,13 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                 audioSource.connect(audioContext.destination);
                 console.log("Audio source created and connected");
             }
-            
+
             if (audioContext.state === 'suspended') {
                 console.log("Resuming audio context");
                 await audioContext.resume();
                 console.log("Audio context resumed");
             }
-            
+
             audioStream = audioDestination.stream;
             console.log("Audio stream obtained");
 
@@ -1154,14 +1154,14 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
 
             console.log("Starting video processing sequence");
             let { processedBlob, mimeType } = await processVideoSequence(window.__currentRecordings, fluencyData);
-            
+
             if (!processedBlob) {
                 throw new Error('Failed to process video');
             }
-            
+
             console.log("Video processing completed, blob size:", processedBlob.size);
             const url = URL.createObjectURL(processedBlob);
-            
+
             // CREATE THUMBNAIL FROM FINAL FRAME
             let thumbnailUrl = null;
             try {
@@ -1172,12 +1172,12 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                 console.error("Error creating thumbnail:", thumbnailError);
                 // Continue without thumbnail if creation fails
             }
-            
+
             // Calculate maxVideoWidth for result video styling
             const aspectRatio = originalVideo.videoWidth / originalVideo.videoHeight;
             const isPortrait = originalVideo.videoHeight > originalVideo.videoWidth;
             const isMobile = window.innerWidth <= 1000;
-            
+
             let maxVideoWidth;
             if (isMobile && isPortrait) {
                 maxVideoWidth = Math.min(150, window.innerWidth * 0.40);
@@ -1186,7 +1186,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
             } else {
                 maxVideoWidth = Math.min(100, window.innerWidth * 0.20);
             }
-            
+
             // Instead of creating a new element with a different ID, reuse the existing one
             resultVideo.src = url;
             resultVideo.controls = true;
@@ -1221,7 +1221,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
 
             // Add click-to-play functionality for non-iOS
             if (!isIOSDevice) {
-                resultVideo.addEventListener('click', function() {
+                resultVideo.addEventListener('click', function () {
                     this.paused ? this.play() : this.pause();
                 });
             }
@@ -1243,11 +1243,11 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
             if (shareBtn) {
                 shareBtn.classList.remove('d-none');
                 console.log("sharebutton d-none removed!");
-                shareBtn.addEventListener('click', async function() {
+                shareBtn.addEventListener('click', async function () {
                     try {
                         await shareVideo(
-                            window.__lastProcessedBlob, 
-                            window.__lastProcessedName, 
+                            window.__lastProcessedBlob,
+                            window.__lastProcessedName,
                             fileExtension
                         );
                     } catch (error) {
@@ -1258,7 +1258,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
 
             processBtn.disabled = false;
             console.log("Process completed successfully");
-            
+
         } catch (error) {
             console.error('Error processing video:', error);
             alert('Error processing video: ' + error.message);
@@ -1272,25 +1272,25 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
         if (animationId) {
             cancelAnimationFrame(animationId);
         }
-        
+
         if (audioContext && audioContext.state !== 'closed') {
             audioContext.close();
         }
-        
+
         if (dbConnection) {
             dbConnection.close();
         }
-        
+
         // Clear caches
         textMetricsCache.clear();
         cachedGradients.clear();
-        
+
         // Revoke any remaining blob URLs
         if (videoBlob && originalVideo.src.startsWith('blob:')) {
             URL.revokeObjectURL(originalVideo.src);
         }
     }
-    
+
     // Add cleanup on page unload
     window.addEventListener('beforeunload', cleanup);
 

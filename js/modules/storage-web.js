@@ -1,4 +1,4 @@
-// modules/storage.js
+// modules/storage-web.js
 
 import { State } from './state.js';
 
@@ -46,7 +46,7 @@ export async function saveSpeechRecording(blob, meta = {}) {
     const req = store.put(record);
     req.onsuccess = () => resolve(videoKey);
     req.onerror = () => reject(req.error);
-    tx.oncomplete = () => { try { db.close(); } catch (_) {} };
+    tx.oncomplete = () => { try { db.close(); } catch (_) { } };
   });
 }
 
@@ -70,7 +70,7 @@ export async function getAllSpeechRecordingsForLesson(lessonId) {
     };
 
     request.onerror = () => reject(request.error);
-    tx.oncomplete = () => { try { db.close(); } catch (_) {} };
+    tx.oncomplete = () => { try { db.close(); } catch (_) { } };
   });
 }
 
@@ -97,7 +97,7 @@ export async function clearSpeechRecordingsForLesson(lessonId) {
     };
 
     request.onerror = () => reject(request.error);
-    tx.oncomplete = () => { try { db.close(); } catch (_) {} };
+    tx.oncomplete = () => { try { db.close(); } catch (_) { } };
   });
 }
 
@@ -132,6 +132,6 @@ export async function updateSpeechRecording(lessonId, questionIndex, updates = {
     };
 
     request.onerror = () => reject(request.error);
-    tx.oncomplete = () => { try { db.close(); } catch (_) {} };
+    tx.oncomplete = () => { try { db.close(); } catch (_) { } };
   });
 }
