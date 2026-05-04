@@ -2081,16 +2081,27 @@ video {
   margin-bottom: 7px;
 }
 
-#playback-video-mobile {
-  max-width: 100%;
-  max-height: 200px;
+#playback-video {
   display: none;
+  border-radius: 8px;
+  /* 🚨 This overrides the 100% width and removes the black bars! */
+  width: auto !important;
+  height: auto;
 }
 
-#playback-video-desktop {
-  max-width: 80%;
-  max-height: 400px;
-  display: none;
+/* Mobile sizing */
+@media (max-width: 1199px) {
+  #playback-video {
+    /* Slightly taller on mobile so the portrait video is actually visible */
+    max-height: 300px;
+  }
+}
+
+/* Desktop sizing */
+@media (min-width: 1200px) {
+  #playback-video {
+    max-height: 400px;
+  }
 }
 
 .card-header-custom {
