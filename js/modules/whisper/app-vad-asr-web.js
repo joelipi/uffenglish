@@ -1,4 +1,4 @@
-// app-vad-asr.js v2
+// app-vad-asr-web.js v2
 export let isEngineReady = false;
 let whisperWorker = null;
 let activeTranscriptionResolve = null;
@@ -23,9 +23,9 @@ export function preloadWhisperEngine() {
 
         console.log('[whisper] spawning worker at', performance.now().toFixed(0), 'ms');
 
-        whisperWorker = new Worker(new URL('./whisper-worker.js?0', import.meta.url));
+        whisperWorker = new Worker(new URL('./whisper-worker-web.js?0', import.meta.url));
 
-        whisperWorker.onmessage = function(e) {
+        whisperWorker.onmessage = function (e) {
             if (e.data.type === 'ready') {
                 isEngineReady = true;
                 window.whisperEngineReady = true;
@@ -35,7 +35,7 @@ export function preloadWhisperEngine() {
                 if (preloader) preloader.style.display = 'none';
 
                 resolve();
-            } 
+            }
             else if (e.data.type === 'result') {
                 if (activeTranscriptionResolve) {
                     activeTranscriptionResolve(e.data);
@@ -62,9 +62,9 @@ export function transcribeAudioBuffer(float32Array) {
         activeTranscriptionResolve = resolve;
 
         // Transfer the buffer (zero-copy) instead of cloning it
-        whisperWorker.postMessage({ 
-            type: 'transcribe', 
-            audio: float32Array 
+        whisperWorker.postMessage({
+            type: 'transcribe',
+            audio: float32Array
         }, [float32Array.buffer]);
     });
 }

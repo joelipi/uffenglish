@@ -9,7 +9,7 @@ import * as ui from '../components/ui.js';
 
 
 // --- NEW: Import Whisper Logic ---
-import { transcribeAudioBuffer, preloadWhisperEngine, isEngineReady } from './whisper/app-vad-asr.js';
+import { transcribeAudioBuffer, preloadWhisperEngine, isEngineReady } from './whisper/app-vad-asr-web.js';
 
 // --- Constants ---
 export const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);

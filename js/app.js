@@ -8,7 +8,7 @@ let nlpModelsReady = false;
 // --- UI & Media Components (Root Directory) ---
 import { SuccessLessonHandler } from './components/success-lesson.js';
 import { pointLoss } from './components/point-loss-animation.js';
-import { initVideoProcessor } from './modules/video-processor.js';
+import { initVideoProcessor } from './modules/video-processor-web.js';
 
 import { calculateCurrentStreak } from './modules/user-profile.js';
 import { updateActivityDisplay } from './components/ui.js';
@@ -42,7 +42,7 @@ import getRandomPraise from './modules/praise.js';
 // --- Extracted Modules ---
 import { resolveCurrentLessonId, resolveCurrentCourseId } from './modules/lesson-router.js';
 import { normalizeConfig } from './modules/config-normalizer.js';
-import { loadVideoForQuestion } from './modules/video-loader.js';
+import { loadVideoForQuestion } from './modules/video-loader-web.js';
 import { appStore } from './modules/store.js';
 //window.appStore = appStore; // <-- ADD THIS TEMPORARY LINE FOR TESTING
 import { State } from './modules/state.js';

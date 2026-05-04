@@ -1,7 +1,7 @@
 // --- modules/FORFUTUREUSEnlp-coordinator.js ---
 
 /*
-const workerResponse = await fetch('js/nlp-worker.js');
+const workerResponse = await fetch('js/nlp-worker-web.js');
 const workerBlob = await workerResponse.blob();
 const workerObjectUrl = URL.createObjectURL(workerBlob);
 const aiWorker = new Worker(workerObjectUrl, { type: 'module' });

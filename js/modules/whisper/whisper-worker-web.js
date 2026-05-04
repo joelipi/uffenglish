@@ -1,16 +1,16 @@
-// whisper-worker.js v5 - Aggressive Parallelization
+// whisper-worker-web.js v5 - Aggressive Parallelization
 const WHISPER_BASE_PATH = 'https://r2.ultrafastfluency.com/whisper/';
-const MODEL_CACHE_NAME = 'uff-whisper-cache-v3'; 
+const MODEL_CACHE_NAME = 'uff-whisper-cache-v3';
 
 let vad = null;
 let recognizer = null;
 let isReady = false;
 
 self.Module = {
-    locateFile: function(path) {
+    locateFile: function (path) {
         return WHISPER_BASE_PATH + path;
     },
-    setStatus: function(status) { }
+    setStatus: function (status) { }
 };
 
 async function loadAndCacheFile(filename, isWasm) {
@@ -42,9 +42,9 @@ async function bootWhisperEngine() {
             loadAndCacheFile('sherpa-onnx-wasm-main-vad-asr.data', false)
         ]);
 
-        self.Module.getPreloadedPackage = function() { return dataBuffer; };
+        self.Module.getPreloadedPackage = function () { return dataBuffer; };
 
-        self.Module.instantiateWasm = function(imports, successCallback) {
+        self.Module.instantiateWasm = function (imports, successCallback) {
             // Using instantiateStreaming is critical for SIMD/Multi-thread compiled WASM
             WebAssembly.instantiateStreaming(wasmResponse, imports)
                 .then(output => successCallback(output.instance, output.module))
@@ -52,7 +52,7 @@ async function bootWhisperEngine() {
             return {};
         };
 
-        self.Module.onRuntimeInitialized = function() {
+        self.Module.onRuntimeInitialized = function () {
             console.time('[whisper] total init');
 
             let config = {
@@ -71,10 +71,10 @@ async function bootWhisperEngine() {
                     num_active_paths: 1
                 }
             };
-            
+
             recognizer = new OfflineRecognizer(config, self.Module);
             isReady = true;
-            
+
             console.timeEnd('[whisper] total init');
             self.postMessage({ type: 'ready' });
             vad = createVad(self.Module);
@@ -93,13 +93,13 @@ async function bootWhisperEngine() {
 
 bootWhisperEngine();
 
-self.onmessage = function(e) {
+self.onmessage = function (e) {
     if (e.data.type === 'transcribe' && isReady) {
         try {
             const float32Array = e.data.audio;
             const stream = recognizer.createStream();
             stream.acceptWaveform(16000, float32Array);
-            
+
             console.time('[whisper] decode speed');
             recognizer.decode(stream);
             console.timeEnd('[whisper] decode speed');
@@ -107,8 +107,8 @@ self.onmessage = function(e) {
             const fullResult = recognizer.getResult(stream);
             stream.free();
 
-            self.postMessage({ 
-                type: 'result', 
+            self.postMessage({
+                type: 'result',
                 text: fullResult.text,
                 avg_logprob: fullResult.avg_logprob
             });

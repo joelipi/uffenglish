@@ -1,10 +1,10 @@
-// nlp-worker.js
+// nlp-worker-web.js
 
 import { pipeline, cos_sim, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0';
 import Tokenizer from 'https://cdn.skypack.dev/wink-tokenizer';
 
-env.allowLocalModels = false; 
-env.useBrowserCache = true;   
+env.allowLocalModels = false;
+env.useBrowserCache = true;
 env.backends.onnx.wasm.numThreads = 1;
 env.backends.onnx.wasm.simd = false;
 env.backends.onnx.wasm.proxy = false;
@@ -19,10 +19,10 @@ let verbFormVocab = null;
 // GECToR Config & Constants
 const CONFIG = {
     maxLen: 100,
-    minLen: 1,        
-    minErrorProbability: 0.8, 
-    deleteConfidence: 0,    
-    iterations: 6, 
+    minLen: 1,
+    minErrorProbability: 0.8,
+    deleteConfidence: 0,
+    iterations: 6,
     minKeepConfidence: 0.8,  // Threshold for catching unintelligible STT output
     minFinalConfidence: 0.4   // Minimum edit confidence to treat correction as valid
 };
@@ -40,56 +40,56 @@ self.addEventListener('message', async (event) => {
 
     try {
         if (action === 'LOAD_MODELS') {
-// =================================================================================================
-// IMPORTANT: DO NOT DELETE. THIS CODE WILL BE REINSTATED SHORTLY. 
-// IT IS TEMPORARILY DISABLED TO SAVE SYSTEM RESOURCES DURING INTENSE DEVELOPMENT.
-// =================================================================================================
-//             console.log("👷‍♂️ Worker: Beginning Zero-Shot Classifier Download...");
-//             zeroShotClassifier = await pipeline('zero-shot-classification', 'Xenova/nli-deberta-v3-xsmall', {
-//                 device: 'wasm',
-//                 dtype: 'q8',
-//                 session_options: {
-//                     executionMode: 'sequential',
-//                     intraOpNumThreads: 1,
-//                     interOpNumThreads: 1
-//                 }
-//             });
+            // =================================================================================================
+            // IMPORTANT: DO NOT DELETE. THIS CODE WILL BE REINSTATED SHORTLY. 
+            // IT IS TEMPORARILY DISABLED TO SAVE SYSTEM RESOURCES DURING INTENSE DEVELOPMENT.
+            // =================================================================================================
+            //             console.log("👷‍♂️ Worker: Beginning Zero-Shot Classifier Download...");
+            //             zeroShotClassifier = await pipeline('zero-shot-classification', 'Xenova/nli-deberta-v3-xsmall', {
+            //                 device: 'wasm',
+            //                 dtype: 'q8',
+            //                 session_options: {
+            //                     executionMode: 'sequential',
+            //                     intraOpNumThreads: 1,
+            //                     interOpNumThreads: 1
+            //                 }
+            //             });
 
-//             console.log(`👷‍♂️ Worker: Beginning GECToR RoBERTa Download (${GECTOR_MODEL})...`);
-//             localGrammarEditor = await pipeline('token-classification', GECTOR_MODEL, { 
-//                 device: 'wasm', 
-//                 dtype: 'q8',
-//                 session_options: {
-//                     executionMode: 'sequential', 
-//                     intraOpNumThreads: 1,
-//                     interOpNumThreads: 1
-//                 },
-//                 progress_callback: (x) => {
-//                     if (x.status === 'progress') console.log(`📥 GECToR: ${Math.round((x.loaded / x.total) * 100)}%`);
-//                 }
-//             });
+            //             console.log(`👷‍♂️ Worker: Beginning GECToR RoBERTa Download (${GECTOR_MODEL})...`);
+            //             localGrammarEditor = await pipeline('token-classification', GECTOR_MODEL, { 
+            //                 device: 'wasm', 
+            //                 dtype: 'q8',
+            //                 session_options: {
+            //                     executionMode: 'sequential', 
+            //                     intraOpNumThreads: 1,
+            //                     interOpNumThreads: 1
+            //                 },
+            //                 progress_callback: (x) => {
+            //                     if (x.status === 'progress') console.log(`📥 GECToR: ${Math.round((x.loaded / x.total) * 100)}%`);
+            //                 }
+            //             });
 
-//             console.log("👷‍♂️ Worker: Fetching GECToR Vocabularies...");
-//             const [idResponse, verbResponse] = await Promise.all([
-//                 fetch(`https://huggingface.co/${GECTOR_MODEL}/resolve/main/id2label.json`),
-//                 fetch(VERB_VOCAB_URL) 
-//             ]);
-            
-//             if (!idResponse.ok || !verbResponse.ok) {
-//                 throw new Error(`Failed to fetch vocabs. ID: ${idResponse.status}, Verb: ${verbResponse.status}`);
-//             }
+            //             console.log("👷‍♂️ Worker: Fetching GECToR Vocabularies...");
+            //             const [idResponse, verbResponse] = await Promise.all([
+            //                 fetch(`https://huggingface.co/${GECTOR_MODEL}/resolve/main/id2label.json`),
+            //                 fetch(VERB_VOCAB_URL) 
+            //             ]);
 
-//             id2label = await idResponse.json();
-//             verbFormVocab = parseVerbFormVocab(await verbResponse.text());
-            
-//             console.log("👷‍♂️ Worker: ALL MODELS AND VOCABS LOADED.");
+            //             if (!idResponse.ok || !verbResponse.ok) {
+            //                 throw new Error(`Failed to fetch vocabs. ID: ${idResponse.status}, Verb: ${verbResponse.status}`);
+            //             }
+
+            //             id2label = await idResponse.json();
+            //             verbFormVocab = parseVerbFormVocab(await verbResponse.text());
+
+            //             console.log("👷‍♂️ Worker: ALL MODELS AND VOCABS LOADED.");
             console.log("👷‍♂️ Worker: Local models skipped (Disabled). Proceeding to ready state.");
             self.postMessage({ id, status: 'success', data: 'MODELS_READY' });
         }
 
         else if (action === 'CHECK_GRAMMAR') {
             if (!localGrammarEditor || !verbFormVocab) throw new Error("Models/Vocab not loaded");
-            
+
             const { userInput } = payload;
             const normalizedInput = userInput
                 .replace(/[\u2018\u2019\u02BC]/g, "'")   // curly apostrophes -> '
@@ -97,7 +97,7 @@ self.addEventListener('message', async (event) => {
                 .replace(/\s+([.,!?;:])/g, '$1')           // remove space before punctuation (e.g. "Dog :" -> "Dog:")
                 .replace(/:[A-Z](?=\s|$)/g, '');           // strip text emoticons e.g. :S :P :D (uppercase only, before space/end)
             const cleanedInput = normalizedInput.replace(/\b(um|umm|uh|uhm|ah)\b/gi, '').replace(/\s+/g, ' ').trim();
-            
+
             if (cleanedInput.split(/\s+/).length < 3) {
                 return self.postMessage({ id, status: 'success', data: { isValid: true, correction: null, cleanedInput } });
             }
@@ -106,15 +106,15 @@ self.addEventListener('message', async (event) => {
 
             // Word Salad Failsafe Catch
             if (isUnintelligible) {
-                return self.postMessage({ 
-                    id, 
-                    status: 'success', 
-                    data: { 
-                        isValid: false, 
-                        correction: "Sentence structure unintelligible.", 
-                        errorType: "word_salad", 
-                        cleanedInput 
-                    } 
+                return self.postMessage({
+                    id,
+                    status: 'success',
+                    data: {
+                        isValid: false,
+                        correction: "Sentence structure unintelligible.",
+                        errorType: "word_salad",
+                        cleanedInput
+                    }
                 });
             }
 
@@ -128,15 +128,15 @@ self.addEventListener('message', async (event) => {
             }
 
             // Successfully corrected, including confidence score for LLM routing
-            self.postMessage({ 
-                id, 
-                status: 'success', 
-                data: { 
-                    isValid: false, 
-                    correction: correctedText, 
+            self.postMessage({
+                id,
+                status: 'success',
+                data: {
+                    isValid: false,
+                    correction: correctedText,
                     cleanedInput,
                     confidenceScore: finalConfidence
-                } 
+                }
             });
         }
 
@@ -167,8 +167,8 @@ self.addEventListener('message', async (event) => {
             }));
             console.log("📊 Full Intent Breakdown:", allScores);
 
-            self.postMessage({ 
-                id, status: 'success', 
+            self.postMessage({
+                id, status: 'success',
                 data: {
                     winningLabel,
                     winningScore,
@@ -207,33 +207,33 @@ async function runGector(text, pipeline, maxIterations = CONFIG.iterations) {
         .replace(/[\u201C\u201D]/g, '"');         // curly double quotes -> "
     processingText = processingText.replace(/\b(did|do|does|was|were|is|are|have|has|had|wo|would|could|should|ca)(nt)\b/gi, (_, base, _nt) => `${base} n't`);
     let isUnintelligible = false;
-    let lowestEditConfidence = 1.0; 
-    
+    let lowestEditConfidence = 1.0;
+
     for (let iter = 0; iter < maxIterations; iter++) {
         const { text: newText, isSalad, editConfidence } = await processOnce(processingText, pipeline);
-        
+
         if (iter === 0 && isSalad) {
             isUnintelligible = true;
             break;
         }
-        
+
         // Track the lowest confidence score across iterations if an edit was made
         if (editConfidence < 1.0 && editConfidence < lowestEditConfidence) {
             lowestEditConfidence = editConfidence;
         }
-        
+
         if (newText === processingText) break;
         processingText = newText;
     }
     // Clean up the forced spaces in contractions before returning
     const finalCleanText = processingText.replace(/\s+(n't)\b/gi, "$1"); // input normalized to straight ' above
-    
-    return { 
-        correctedText: finalCleanText, 
-        isUnintelligible, 
-        finalConfidence: lowestEditConfidence 
+
+    return {
+        correctedText: finalCleanText,
+        isUnintelligible,
+        finalConfidence: lowestEditConfidence
     };
-    }
+}
 
 async function processOnce(text, pipeline) {
     const rawWords = tokenizer.tokenize(text.replace(/—/g, ` ${EMDASH_PLACEHOLDER} `)).filter(t => t.tag !== 'space').map(t => t.value);
@@ -251,7 +251,7 @@ async function processOnce(text, pipeline) {
     const { edits, isSalad, avgEditScore } = extractEdits(inputWords, wordPredictions);
     const resultWords = applyEdits(inputWords, edits);
     const finalWords = resultWords[0] === START_TOKEN ? resultWords.slice(1) : resultWords;
-    
+
     return {
         text: rejoinText(finalWords).replace(new RegExp(`\\s*${EMDASH_PLACEHOLDER}\\s*`, 'g'), ' — '),
         isSalad,
@@ -273,7 +273,7 @@ function alignPredictionsToWords(words, predictions) {
             const pred = filteredPreds[predIndex];
             let subword = pred.word || '';
             if (subword.startsWith('Ġ') || subword.startsWith(' ')) subword = subword.slice(1);
-            
+
             if (!firstPrediction) firstPrediction = pred;
             assembledWord += subword;
             predIndex++;
@@ -292,21 +292,21 @@ function extractEdits(words, wordPredictions) {
     const edits = [];
     let keepCount = 0;
     let keepScoreSum = 0;
-    
+
     let editCount = 0;
-    let editScoreSum = 0; 
+    let editScoreSum = 0;
 
     for (let i = 0; i < wordPredictions.length; i++) {
         const { entity: label, score: prob } = wordPredictions[i];
         const word = words[i];
-        
+
         if (label === '$KEEP' && word !== START_TOKEN) {
             keepCount++;
             keepScoreSum += prob;
         }
-        
+
         if (word === EMDASH_PLACEHOLDER || prob < CONFIG.minErrorProbability || label === '$KEEP' || label === PAD_TOKEN || label === UNK_TOKEN || label === 'O') continue;
-        
+
         // Track confidence of the proposed edits
         editCount++;
         editScoreSum += prob;
@@ -322,8 +322,8 @@ function extractEdits(words, wordPredictions) {
     }
 
     const avgKeepScore = keepCount > 0 ? (keepScoreSum / keepCount) : 1.0;
-    const avgEditScore = editCount > 0 ? (editScoreSum / editCount) : 1.0; 
-    
+    const avgEditScore = editCount > 0 ? (editScoreSum / editCount) : 1.0;
+
     console.log(`📊 NLP Debug -> Input: "${words.slice(1).join(' ')}" | Keep Conf: ${avgKeepScore.toFixed(4)} | Edit Conf: ${avgEditScore.toFixed(4)}`);
 
     const isSalad = avgKeepScore < CONFIG.minKeepConfidence;
@@ -334,11 +334,11 @@ function extractEdits(words, wordPredictions) {
 function applyEdits(sourceWords, edits) {
     const targetWords = [...sourceWords];
     let shiftIdx = 0;
-    
+
     for (const { start, end, label } of edits) {
         const targetPos = start + shiftIdx;
         if (targetPos < 0 || targetPos > targetWords.length) continue;
-        
+
         if (label.startsWith('$MERGE_')) {
             if (label === '$MERGE_SPACE') continue;
             if (targetPos + 1 < targetWords.length) {
@@ -384,15 +384,15 @@ function rejoinText(words) {
     let insideDoubleQuote = false;
 
     const getTokenType = (t) => {
-        if (/^[.,!?;:%\u2026]+$/.test(t))           return 'attach';    // attach to prev: . , ! ? ; : % …
-        if (/^[)\]}]+$/.test(t))                    return 'close';     // attach to prev: ) ] }
-        if (/^[([{]+$/.test(t))                      return 'open';      // attach to next: ( [ {
-        if (/^[$£€¥₹#@]+$/.test(t))  return 'prefix';    // attach to next: $ £ € ¥ ₹ # @
-        if (/^[*]+$/.test(t))                        return 'asterisk';  // attach both:    *
-        if (/^\/+$/.test(t))                        return 'slash';     // attach both:    /
-        if (/^[-\u2014\u2013]$/.test(t))           return 'dash';      // attach both:    - — –
-        if (/^["\u201C\u201D]$/.test(t))          return 'dquote';    // toggle:         "
-        if (/^['\u2019]$/.test(t))                  return 'apostrophe';// attach both:    '
+        if (/^[.,!?;:%\u2026]+$/.test(t)) return 'attach';    // attach to prev: . , ! ? ; : % …
+        if (/^[)\]}]+$/.test(t)) return 'close';     // attach to prev: ) ] }
+        if (/^[([{]+$/.test(t)) return 'open';      // attach to next: ( [ {
+        if (/^[$£€¥₹#@]+$/.test(t)) return 'prefix';    // attach to next: $ £ € ¥ ₹ # @
+        if (/^[*]+$/.test(t)) return 'asterisk';  // attach both:    *
+        if (/^\/+$/.test(t)) return 'slash';     // attach both:    /
+        if (/^[-\u2014\u2013]$/.test(t)) return 'dash';      // attach both:    - — –
+        if (/^["\u201C\u201D]$/.test(t)) return 'dquote';    // toggle:         "
+        if (/^['\u2019]$/.test(t)) return 'apostrophe';// attach both:    '
         return 'word';
     };
 

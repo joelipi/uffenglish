@@ -31,7 +31,7 @@ UFF is built as a highly responsive, static frontend application with a decouple
 
 ### AI & NLP Pipeline
 *   **Speech-to-Text:** Integrated with Deepgram and Whisper for highly accurate, fast transcription.
-*   **Background NLP Worker:** Heavy NLP tasks (like local Hugging Face model inferences and text normalization) are offloaded to a Web Worker (`js/nlp-worker.js`) so the main UI thread never freezes.
+*   **Background NLP Worker:** Heavy NLP tasks (like local Hugging Face model inferences and text normalization) are offloaded to a Web Worker (`js/nlp-worker-web.js`) so the main UI thread never freezes.
 *   **Grammar & Intent Checking:** External APIs and proxy workers (e.g., Cloudflare Workers interacting with AI models) are queried to evaluate semantic correctness (`js/modules/api.js`).
 
 ## Directory Structure
@@ -57,7 +57,7 @@ UFF is built as a highly responsive, static frontend application with a decouple
     │   ├── state.js        # Global application state object
     │   ├── ui.js           # Visual rendering and DOM manipulation
     │   └── ...
-    ├── nlp-worker.js       # Background thread for heavy language processing
+    ├── nlp-worker-web.js       # Background thread for heavy language processing
     └── script.js           # Main application bootstrapping
 ```
 
