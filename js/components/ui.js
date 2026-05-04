@@ -1,5 +1,6 @@
 // --- modules/ui.js ---
 import { State } from '../modules/state.js';
+import { appStore } from '../modules/store.js';
 
 // 1. Centralize DOM Elements
 export const DOM = {
@@ -333,6 +334,76 @@ export function setMicStatusText(content) {
             DOM.micStatusText.appendChild(content);
         }
     }
+}
+
+/**
+ * Initializes Zustand store subscriptions that keep persistent UI indicators
+ * in sync with reactive state. Call this once during app initialization.
+ * Each subscriber also fires immediately to render the initial state.
+ */
+export function initUISubscriptions() {
+    const store = appStore;
+
+    // --- currentPoints → #currentScore display ---
+    const syncCurrentScore = (currentPoints) => {
+        const element = document.getElementById('currentScore');
+        if (element) {
+            flashElement(element);
+            element.textContent = currentPoints;
+        }
+    };
+    // Fire immediately for initial render
+    syncCurrentScore(store.getState().currentPoints);
+    // Subscribe for future changes
+    store.subscribe(
+        (state) => state.currentPoints,
+        (currentPoints) => syncCurrentScore(currentPoints)
+    );
+
+    // --- speakingScore → #phrasesScore display ---
+    const syncSpeakingScore = (speakingScore) => {
+        if (DOM.phrasesScore) DOM.phrasesScore.textContent = `${speakingScore}`;
+    };
+    syncSpeakingScore(store.getState().speakingScore);
+    store.subscribe(
+        (state) => state.speakingScore,
+        (speakingScore) => syncSpeakingScore(speakingScore)
+    );
+
+    // --- incorrectAttempts → heart animations ---
+    // Note: incorrectAttempts starts at 0 and the heart animation only triggers
+    // on increment (not on reset), so we subscribe but do NOT fire immediately.
+    store.subscribe(
+        (state) => state.incorrectAttempts,
+        (incorrectAttempts, previousState) => {
+            // Only animate on increment, not on reset to 0
+            if (incorrectAttempts > previousState.incorrectAttempts) {
+                if (incorrectAttempts == 1 && DOM.heart1) DOM.heart1.classList.add("falling-image");
+                else if (incorrectAttempts == 2 && DOM.heart2) DOM.heart2.classList.add("falling-image");
+                else if (incorrectAttempts == 3 && DOM.heart3) DOM.heart3.classList.add("falling-image");
+            }
+        }
+    );
+
+    // --- dayCount + currentStreak → header stats display ---
+    const syncActivityDisplay = (dayCount, currentStreak) => {
+        if (DOM.dayCountSpan) {
+            DOM.dayCountSpan.textContent = dayCount;
+            flashElement(DOM.dayCountSpan);
+        }
+        if (DOM.streakCountSpan) {
+            DOM.streakCountSpan.textContent = currentStreak;
+            flashElement(DOM.streakCountSpan);
+        }
+    };
+    // Fire immediately for initial render
+    const { dayCount, currentStreak } = store.getState();
+    syncActivityDisplay(dayCount, currentStreak);
+    // Subscribe to either value changing
+    store.subscribe(
+        (state) => [state.dayCount, state.currentStreak],
+        ([dayCount, currentStreak]) => syncActivityDisplay(dayCount, currentStreak)
+    );
 }
 
 /**
