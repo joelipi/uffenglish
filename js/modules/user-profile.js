@@ -1,7 +1,8 @@
-// modules/userProfile.js
+// modules/user-profile.js
 // IMPORTANT! THIS SCRIPT USES VERSION 24 OF THE APPWRITE SDK, WHICH HAS MANY BREAKING CHANGES FROM EARLIER VERSIONS. DO NOT USE THE SYNTAX OR METHODS OF EARLIER VERSIONS WITHOUT CHECKING THEY ARE STILL VALID IN VERSION 24.
 import { tablesDB, APPWRITE_CONFIG, getCurrentUser } from './appwrite.js';
 import { invalidateUserAndAuthCache } from './api.js'; // 🚀 TanStack invalidation helper
+import { localStore } from './storage-adapter.js'; // <-- Adapter for React Native compatibility
 
 /**
  * Syncs metadata to Appwrite. 
@@ -73,6 +74,7 @@ export async function saveCourseToUserProfile(courseId, userData) {
 
 /**
  * Restored from your original file: Handles per-lesson progress
+ * Updated to use localStore adapter for React Native compatibility
  */
 export async function saveLessonProgress(courseId, lessonId, userData, options = {}) {
     const timestamp = new Date().toISOString();
@@ -83,21 +85,21 @@ export async function saveLessonProgress(courseId, lessonId, userData, options =
     let resultState = { savedToLocal: false, streakUpdated: false, dayCountIncremented: false, newDayCount: 0, newStreak: 0 };
 
     try {
-        localStorage.setItem(`${courseId}_currentLessonId`, lessonId);
-        localStorage.setItem(`${courseId}_currentLessonTimestamp`, timestamp);
+        localStore.setItem(`${courseId}_currentLessonId`, lessonId);
+        localStore.setItem(`${courseId}_currentLessonTimestamp`, timestamp);
 
         if (safeOptions.scores && Array.isArray(safeOptions.scores)) {
-            const baselineStr = userData?.lesson_scores || localStorage.getItem('lesson_scores') || '{}';
+            const baselineStr = userData?.lesson_scores || localStore.getItem('lesson_scores') || '{}';
             let localScoresMap = {};
             try { localScoresMap = JSON.parse(baselineStr); } catch (e) { }
 
             localScoresMap[`${courseId}_${lessonId}`] = safeOptions.scores;
             const scoresStringified = JSON.stringify(localScoresMap);
-            localStorage.setItem('lesson_scores', scoresStringified);
+            localStore.setItem('lesson_scores', scoresStringified);
             if (userData) userData.lesson_scores = scoresStringified;
         }
         resultState.savedToLocal = true;
-    } catch (e) { console.error('❌ LocalStorage Error:', e); }
+    } catch (e) { console.error('❌ LocalStore Error:', e); }
 
     if (updateUserMetaFlag && userData) {
         try {
@@ -156,16 +158,17 @@ export function calculateCurrentStreak(completedDatesArray) {
 
 /**
  * Restored from your original file: Handles offline score syncing
+ * Updated to use localStore adapter for React Native compatibility
  */
 export async function syncOfflineScores(userData) {
     if (!userData || typeof userData !== 'object' || userData.$id === 'guest') return;
     try {
-        const localScoresStr = localStorage.getItem('lesson_scores');
+        const localScoresStr = localStore.getItem('lesson_scores');
         const remoteScoresStr = userData.lesson_scores || '{}';
 
         if (!localScoresStr) {
             if (remoteScoresStr !== '{}') {
-                localStorage.setItem('lesson_scores', remoteScoresStr);
+                localStore.setItem('lesson_scores', remoteScoresStr);
                 console.log('🚀 syncOfflineScores: Seeded local storage with remote scores.');
             }
             return;
@@ -188,9 +191,9 @@ export async function syncOfflineScores(userData) {
         if (needsSync) {
             const mergedScoresStr = JSON.stringify(remoteScoresMap);
             await syncUserMetaData({ lesson_scores: mergedScoresStr }, userData);
-            localStorage.setItem('lesson_scores', mergedScoresStr);
+            localStore.setItem('lesson_scores', mergedScoresStr);
         } else if (remoteScoresStr !== localScoresStr) {
-            localStorage.setItem('lesson_scores', remoteScoresStr);
+            localStore.setItem('lesson_scores', remoteScoresStr);
         }
     } catch (error) { console.error('🚨 Error during offline score sync:', error); }
 }
