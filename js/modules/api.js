@@ -31,11 +31,13 @@ export async function isUserLoggedIn() {
 export async function getUserProfile() {
   return queryClient.fetchQuery({
     queryKey: ['user', 'profile'],
+    staleTime: Infinity,
+    gcTime: 30 * 24 * 60 * 60 * 1000,
     queryFn: async () => {
       try {
         const user = await getCurrentUser();
         if (!user) {
-          return {
+          const guestData = {
             $id: 'guest',
             email: 'guest@example.com',
             display_name: 'Guest User',
@@ -45,6 +47,8 @@ export async function getUserProfile() {
             native_language: 'EN',
             completed_dates: []
           };
+          console.log('[TanStack Query] Successfully fetched data for query: userProfileQuery', guestData);
+          return guestData;
         }
 
         // Fetch extended profile data from the new TablesDB
@@ -56,7 +60,7 @@ export async function getUserProfile() {
           });
 
           // Merge core user account data with extended profile data
-          return {
+          const mergedData = {
             $id: user.$id,        // was: id
             email: user.email,
             display_name: user.name,
@@ -64,15 +68,19 @@ export async function getUserProfile() {
             auth_method: 'appwrite',
             ...profileDoc
           };
+          console.log('[TanStack Query] Successfully fetched data for query: userProfileQuery', mergedData);
+          return mergedData;
         } catch (dbError) {
           console.warn('Profile row not found, returning core user data', dbError);
-          return {
+          const coreData = {
             $id: user.$id,        // was: id
             email: user.email,
             display_name: user.name,
             join_date: user.$createdAt,
             auth_method: 'appwrite'
           };
+          console.log('[TanStack Query] Successfully fetched data for query: userProfileQuery', coreData);
+          return coreData;
         }
       } catch (error) {
         throw error;
@@ -80,6 +88,41 @@ export async function getUserProfile() {
     }
   });
 }
+
+export const courseConfigQuery = (courseId) => ({
+    queryKey: ['course', 'config', courseId],
+    queryFn: async () => {
+        const response = await fetch(`js/config/${courseId}.json`);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch config for course ${courseId}`);
+        }
+        const data = await response.json();
+        console.log('[TanStack Query] Successfully fetched data for query: courseConfigQuery', data);
+        return data;
+    },
+    staleTime: Infinity,
+    gcTime: 30 * 24 * 60 * 60 * 1000
+});
+
+export const currentLessonQuery = (courseId, lessonId) => ({
+    queryKey: ['course', 'lesson', courseId, lessonId],
+    queryFn: async () => {
+        let configData = queryClient.getQueryData(['course', 'config', courseId]);
+
+        if (!configData) {
+            configData = await queryClient.fetchQuery(courseConfigQuery(courseId));
+        }
+
+        const lesson = configData.lessons.find(l => l.lessonId === lessonId);
+        if (!lesson) {
+            throw new Error(`Lesson ${lessonId} not found in course ${courseId}`);
+        }
+        console.log('[TanStack Query] Successfully fetched data for query: currentLessonQuery', lesson);
+        return lesson;
+    },
+    staleTime: Infinity,
+    gcTime: 30 * 24 * 60 * 60 * 1000
+});
 
 export async function getDeepgramToken() {
   try {
