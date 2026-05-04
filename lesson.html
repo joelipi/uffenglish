@@ -5,19 +5,23 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lesson | UFF English</title>
+
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
   <link rel="stylesheet" href="style.css">
+
+  <link rel="icon" href="assets/img/favicons/favicon-32x32.jpeg" sizes="32x32">
+  <link rel="icon" href="assets/img/favicons/favicon-192x192.jpeg" sizes="192x192">
+  <link rel="apple-touch-icon" href="assets/img/favicons/apple-touch-icon.jpeg">
+
   <script>
     (function (c, l, a, r, i, t, y) {
       c[a] = c[a] || function () { (c[a].q = c[a].q || []).push(arguments) };
       t = l.createElement(r); t.async = 1; t.src = "https://www.clarity.ms/tag/" + i + "?ref=wordpress";
       y = l.getElementsByTagName(r)[0]; y.parentNode.insertBefore(t, y);
     })(window, document, "clarity", "script", "qq9dqk1hjl");
-  </script>
 
-  <script>
     (function () {
       window.ybug_settings = { "id": "z69gx22kp6h243vpdpjb" };
       var ybug = document.createElement('script');
@@ -26,10 +30,6 @@
       document.getElementsByTagName('script')[0].parentNode.insertBefore(ybug, document.getElementsByTagName('script')[0]);
     })();
   </script>
-
-  <link rel="icon" href="assets/img/favicons/favicon-32x32.jpeg" sizes="32x32">
-  <link rel="icon" href="assets/img/favicons/favicon-192x192.jpeg" sizes="192x192">
-  <link rel="apple-touch-icon" href="assets/img/favicons/apple-touch-icon.jpeg">
 </head>
 
 <body>
@@ -114,7 +114,6 @@
     <div class="container">
 
       <div id="lesson-header">
-
         <div id="lessonIntroHeader">
           <div id="wideHeader" class="d-flex justify-content-between align-items-center">
             <img src="assets/img/header.png" id="uffposter" alt="">
@@ -180,20 +179,25 @@
             </div>
           </div>
         </div>
+      </div>
 
-      </div><div class="container" id="container">
+      <div class="container mt-2" id="container">
         <div class="row">
 
-          <div id="media-container-container1" class="col-12 col-xl-7 mb-1">
-            <div id="playback-video-mobile-container" class="playback-video-container">
-              <video id="playback-video-mobile" playsinline controls preload="auto"></video>
-              <button id="playback-mute-toggle-mobile" class="playback-mute-toggle d-none"><i
-                  class="bi bi-volume-up-fill"></i></button>
+          <div id="media-column" class="col-12 col-xl-7 mb-1">
+
+            <div id="playback-video-wrapper" class="playback-video-container position-relative mb-2">
+              <video id="playback-video" playsinline controls preload="auto"
+                style="display: none; width: 100%; border-radius: 8px;"></video>
+              <button id="playback-mute-toggle" class="playback-mute-toggle d-none position-absolute bottom-0 end-0 m-2"
+                style="z-index: 10;">
+                <i class="bi bi-volume-up-fill"></i>
+              </button>
             </div>
-            <div id="speech-text-here" class="card border-dark p-0 d-none">
+
+            <div id="speech-text-here" class="card border-dark p-0 d-none mb-2">
               <div class="card-header text-white p-0 card-header-custom">
                 <div class="d-flex align-items-center p-3">
-
                   <video id="chat-avatar-ai" autoplay loop muted playsinline
                     class="rounded-circle me-3 d-none chat-avatar">
                     <source src="assets/img/avatar-ai.mp4" type="video/mp4">
@@ -201,84 +205,73 @@
                   <div id="chat-name-ai" class="d-none">
                     Prof FluIntel <div class="mt-1"><small>UFF Artificial Intelligence</small></div>
                   </div>
-
                   <img id="chat-avatar-human" src="assets/img/teacherprofile.png" alt=""
                     class="rounded-circle me-3 d-none chat-avatar">
                   <div id="chat-name-human" class="d-none">
                     Prof. Joe Walsh<div class="mt-1"><small>English Fluency Coach, UFF</small></div>
                   </div>
-
                 </div>
               </div>
-
-              <div id="chat-messenger-body" class="card-body messenger-body text-dark">
-              </div>
+              <div id="chat-messenger-body" class="card-body messenger-body text-dark"></div>
             </div>
 
-            <div id="media-container-container">
-              <div id="media-container">
-                <div id="ivp-container">
-                  <div class="ivp-main-wrapper loading" id="ivp-main-wrapper">
-                    <div class="ivp-video-wrapper">
-                      <video class="ivp-video" playsinline crossorigin="anonymous"></video>
-                      <div class="ivp-blur-overlay"></div>
-                      <div class="ivp-subtitles"></div>
-                    </div>
+            <div id="media-container">
+              <div id="ivp-container">
+                <div class="ivp-main-wrapper loading" id="ivp-main-wrapper">
+                  <div class="ivp-video-wrapper">
+                    <video class="ivp-video" playsinline crossorigin="anonymous"></video>
+                    <div class="ivp-blur-overlay"></div>
+                    <div class="ivp-subtitles"></div>
                   </div>
                 </div>
-                <div id="simple-ivp-container"></div>
-                <div id="intro-call-widget" class="intro-video-wrapper d-none">
+              </div>
 
-                  <div class="pulse-ring-wrapper">
-                    <div class="pulse-ring"></div>
+              <div id="simple-ivp-container"></div>
 
-                    <div class="intro-video-container ringing-animation">
-                      <video class="intro-video" playsinline preload="auto" crossorigin="anonymous" muted></video>
-                      <div class="intro-notification-content">
-                        <div class="intro-notification-top">
-                          <div class="intro-call-title">
-                            <i class="bi bi-camera-video-fill text-info"></i>
-                            <span id="intro-title">Ringing...</span>
-                          </div>
-                          <div class="intro-call-subtitle"><span lang="es"><i id="intro-subtitle"></i></span></div>
+              <div id="intro-call-widget" class="intro-video-wrapper d-none">
+                <div class="pulse-ring-wrapper">
+                  <div class="pulse-ring"></div>
+                  <div class="intro-video-container ringing-animation">
+                    <video class="intro-video" playsinline preload="auto" crossorigin="anonymous" muted></video>
+                    <div class="intro-notification-content">
+                      <div class="intro-notification-top">
+                        <div class="intro-call-title">
+                          <i class="bi bi-camera-video-fill text-info"></i>
+                          <span id="intro-title">Ringing...</span>
                         </div>
-                        <div class="intro-notification-bottom">
-                          <div class="intro-caller-name" id="intro-name">Joe Walsh</div>
-                          <div class="intro-caller-title" id="intro-role">English Coach, UFF</div>
-                        </div>
+                        <div class="intro-call-subtitle"><span lang="es"><i id="intro-subtitle"></i></span></div>
+                      </div>
+                      <div class="intro-notification-bottom">
+                        <div class="intro-caller-name" id="intro-name">Joe Walsh</div>
+                        <div class="intro-caller-title" id="intro-role">English Coach, UFF</div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
+            </div>
 
-              <div id="big-buttons" class="d-flex justify-content-center mt-0 mb-5 big-buttons d-none">
-                <h3>Agrega tu video a redes con #uffenglish y ver cómo otros estudiantes han respondido a este video
-                </h3>
-                <button id="shareMp4Btn" class="d-none">Agrega a redes</button>
-                <h3>Repetir esta lección a ver si puedes mejorar tu Fluency Score</h3>
-                <button id="repeatBtnSuccess" class="repeat-btn">Repeat</button>
-                <h3>¡Comparte esta lección con un amigo y compara Fluency Scores!</h3>
-                <button id="shareFriend">Comparte</button>
-                <br>
-                <h2>Has ganado 1 frase <br><b class="bi bi-gem"></b></h2>
-                <h3>¡No pierdas tu progreso!</h3>
-                <p class="text-white">Guarda Tu Progreso, Ser Notificado de Lecciones Gratuitas Nuevas, Recordar las
-                  frases dominadas con repasos puntuales, y Agrega la App a Tu Pantalla de Inicio</p>
-                <button id="logIn" onclick="window.location.href='/membership-join/membership-registration/'">Comenzar
-                  aquí</button>
-              </div>
+            <div id="big-buttons" class="d-flex justify-content-center mt-0 mb-5 big-buttons d-none">
+              <h3>Agrega tu video a redes con #uffenglish y ver cómo otros estudiantes han respondido a este video</h3>
+              <button id="shareMp4Btn" class="d-none">Agrega a redes</button>
+              <h3>Repetir esta lección a ver si puedes mejorar tu Fluency Score</h3>
+              <button id="repeatBtnSuccess" class="repeat-btn">Repeat</button>
+              <h3>¡Comparte esta lección con un amigo y compara Fluency Scores!</h3>
+              <button id="shareFriend">Comparte</button>
+              <br>
+              <h2>Has ganado 1 frase <br><b class="bi bi-gem"></b></h2>
+              <h3>¡No pierdas tu progreso!</h3>
+              <p class="text-white">Guarda Tu Progreso, Ser Notificado de Lecciones Gratuitas Nuevas, Recordar las
+                frases dominadas con repasos puntuales, y Agrega la App a Tu Pantalla de Inicio</p>
+              <button id="logIn" onclick="window.location.href='/membership-join/membership-registration/'">Comenzar
+                aquí</button>
             </div>
           </div>
 
-          <div id="questions-container-container" class="col-12 col-xl-5 mb-2">
-            <div id="playback-video-desktop-container" class="playback-video-container">
-              <video id="playback-video-desktop" playsinline controls preload="auto"></video>
-              <button id="playback-mute-toggle-desktop" class="playback-mute-toggle d-none"><i
-                  class="bi bi-volume-up-fill"></i></button>
-            </div>
+          <div id="questions-column" class="col-12 col-xl-5 mb-2">
+
             <video id="originalVideo" src="" class="d-none"></video>
-            <video id="resultVideo"></video>
+            <video id="resultVideo" class="d-none"></video>
             <a id="downloadLink" class="d-none">Download</a>
             <canvas id="videoCanvas" class="d-none"></canvas>
             <img id="overlayImage" src="assets/img/header.png" class="d-none">
@@ -327,7 +320,9 @@
       </div>
 
     </div>
-  </div><div id="arrow-container" class="d-none">
+  </div>
+
+  <div id="arrow-container" class="d-none">
     <div class="arrow"></div>
   </div>
 
@@ -370,7 +365,6 @@
         </div>
       </div>
     </div>
-
   </footer>
 
   <script>
@@ -388,9 +382,7 @@
         document.body.style.overflow = '';
       }
     });
-  </script>
 
-  <script>
     function setupUserDayRestrictions() {
       if (typeof wp_user_data !== 'undefined' && wp_user_data.days_since_registration !== undefined) {
         const days = wp_user_data.days_since_registration;
@@ -449,7 +441,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
-
   <script type="module" src="js/app.js"></script>
 
 </body>

@@ -531,7 +531,10 @@ export function updateSpeakingScoreDisplay(score) {
 
 export function clearPlaybackVideo() {
     console.log("clearPlaybackVideo called");
-    const video = DOM.playbackVideo;
+
+    // 🔥 FIX: Fallback to dynamic lookup if static DOM cache is null
+    const video = document.getElementById('playback-video') || DOM.playbackVideo;
+
     if (video) {
         video.pause();
         if (video.src && video.src.startsWith('blob:')) URL.revokeObjectURL(video.src);
@@ -543,7 +546,9 @@ export function clearPlaybackVideo() {
         video.onloadedmetadata = null;
     }
 
-    if (DOM.playbackMuteToggle) DOM.playbackMuteToggle.classList.add('d-none');
+    // 🔥 FIX: Same for mute toggle
+    const muteToggle = document.getElementById('playback-mute-toggle') || DOM.playbackMuteToggle;
+    if (muteToggle) muteToggle.classList.add('d-none');
 }
 
 export function prepareMediaUI() {
@@ -552,7 +557,10 @@ export function prepareMediaUI() {
 
 export function showPlaybackVideo() {
     console.log("showPlaybackVideo");
-    if (DOM.playbackVideo) DOM.playbackVideo.style.display = 'block';
+
+    // 🔥 FIX: Dynamic fallback
+    const video = document.getElementById('playback-video') || DOM.playbackVideo;
+    if (video) video.style.display = 'block';
 }
 
 export function isWebcamPreviewVisible() {
@@ -635,10 +643,12 @@ export function removeWebcamPreview() {
 }
 
 export async function setupPlaybackVideo(blob, autoplay = false, speechCamChunks = []) {
-    const playbackVideo = DOM.playbackVideo;
+    // 🔥 FIX: Dynamic fallback
+    const playbackVideo = document.getElementById('playback-video') || DOM.playbackVideo;
 
     if (!playbackVideo) {
-        console.error('[Playback] playbackVideo element not found');
+        // If it STILL fails, it means the element was deleted from the HTML file!
+        console.error('[Playback] playbackVideo element not found. Make sure <video id="playback-video"> is in your HTML!');
         return;
     }
 
@@ -653,7 +663,8 @@ export async function setupPlaybackVideo(blob, autoplay = false, speechCamChunks
             playbackVideo.src = URL.createObjectURL(blob);
         }
 
-        const muteToggle = DOM.playbackMuteToggle;
+        // 🔥 FIX: Dynamic fallback for the mute toggle
+        const muteToggle = document.getElementById('playback-mute-toggle') || DOM.playbackMuteToggle;
 
         if (muteToggle) {
             muteToggle.classList.remove('d-none');
