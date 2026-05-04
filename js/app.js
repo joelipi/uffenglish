@@ -16,8 +16,6 @@ import { updateActivityDisplay } from './components/ui.js';
 // --- Data & Configuration ---
 import Strings from './data/strings.js';
 
-
-
 // --- Decoupled Business Logic (Modules Directory) ---
 import { calculateRepeatAverage, calculateRolePlayAverage, calculateAverage } from './modules/scoring.js';
 import { isUserLoggedIn, getUserProfile, signOut, queryClient } from './modules/api.js';
@@ -42,7 +40,7 @@ import {
 import getRandomPraise from './modules/praise.js';
 
 // --- Extracted Modules ---
-import { getCurrentLessonId, getCurrentcourseId } from './modules/lesson-router.js';
+import { resolveCurrentLessonId, resolveCurrentCourseId } from './modules/lesson-router.js';
 import { normalizeConfig } from './modules/config-normalizer.js';
 import { loadVideoForQuestion } from './modules/video-loader.js';
 import { appStore } from './modules/store.js';
@@ -245,9 +243,9 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
 
         const englishLevel = configData?.languageLevel || 'A0';
         const lesson = (configData && configData.lessons) ? configData.lessons[State.currentLessonIndex] : null;
-        
+
         if (!lesson) {
-             throw new Error("configData or lessons missing in handleAnswer");
+            throw new Error("configData or lessons missing in handleAnswer");
         }
 
         if (!result && (questionData.inputType === "speech" || questionData.inputType === "ai")) {
@@ -329,18 +327,43 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
             if (immediateStatsHtmlArr.length > 0) renderAIFeedback(immediateStatsHtmlArr);
         }
 
+        // --- WEB ADAPTER: Translate Pure Data to Web UI ---
+        let webFormattedExplanations = [];
+        if (result.explanations && Array.isArray(result.explanations)) {
+            webFormattedExplanations = result.explanations.map(chunk => {
+                // If it's already a string (fallback), keep it
+                if (typeof chunk === 'string') return chunk;
+
+                // Map the pure data object to the existing ui.js HTML generators
+                switch (chunk.type) {
+                    case 'grammar_diff':
+                        return createGrammarDiffHTML(chunk.original, chunk.corrected, chunk.header);
+                    case 'grammar_error':
+                    case 'intent_encouragement':
+                        return chunk.message;
+                    case 'pragmatics':
+                        return createPragmaticsBubbleHTML(createHeaderHTML(chunk.header), chunk.message);
+                    default:
+                        return '';
+                }
+            }).filter(Boolean);
+        } else {
+            webFormattedExplanations = explanation; // Fallback to question data explanation
+        }
+
         if (isCorrect) {
             if (questionData.inputType === "ai") {
                 State.cuesGiven.push(result.normalizeduserResponse);
                 if (result.englishLevelDeduction > 0) {
                     appStore.getState().deductListeningScore(result.englishLevelDeduction);
-                    // Note: pointLoss animation is intentionally omitted here per existing behavior 
                 }
             }
-            handlecueUI(qIndex, questionData, button, cue, result.explanations || explanation, translation, userResponse, result.englishLevel, result.englishLevelDeduction, userData, configData);
+            // Pass the webFormattedExplanations instead of result.explanations
+            handlecueUI(qIndex, questionData, button, cue, webFormattedExplanations, translation, userResponse, result.englishLevel, result.englishLevelDeduction, userData, configData);
             showFeedbackAndProceed(questionData, isCorrect, userData, configData);
         } else {
-            handleIncueUI(qIndex, questionData, button, cue, userResponse, result.explanations || explanation, result.normalizeduserResponse, result.normalizedcue, questionData.question, false, userData, configData);
+            // Pass the webFormattedExplanations instead of result.explanations
+            handleIncueUI(qIndex, questionData, button, cue, userResponse, webFormattedExplanations, result.normalizeduserResponse, result.normalizedcue, questionData.question, false, userData, configData);
             showFeedbackAndProceed(questionData, isCorrect, userData, configData);
         }
     } catch (error) {
@@ -892,7 +915,26 @@ async function loadNextLesson() {
 
 async function initializeLesson(courseId = State.courseId, configData = State.configData, userData = State.userData) {
     try {
-        const lessonId = await getCurrentLessonId(configData, userData, courseId);
+        // 1. Gather browser-specific context
+        const urlParams = new URLSearchParams(window.location.search);
+        const routerContext = {
+            urlLessonId: urlParams.get('lessonid'),
+            storedLessonId: localStorage.getItem(`${courseId}_currentLessonId`),
+            storedTimestamp: localStorage.getItem(`${courseId}_currentLessonTimestamp`)
+        };
+
+        // 2. Call the pure logic function
+        const lessonId = resolveCurrentLessonId(configData, userData, courseId, routerContext);
+
+        // 3. Execute Browser Side-Effects (Previously hidden inside lesson-router.js)
+        if (routerContext.urlLessonId) {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('lessonid');
+            url.searchParams.delete('course');
+            window.history.replaceState({}, document.title, url.toString());
+        }
+        await saveLessonProgress(courseId, lessonId, userData, { updateUserMeta: false, incrementCount: false });
+
         if (!configData || !configData.lessons) return;
         const lesson = configData.lessons.find(l => l.lessonId === lessonId);
         if (!lesson) return;
@@ -911,7 +953,6 @@ async function initializeLesson(courseId = State.courseId, configData = State.co
         showErrorMessageInQuestionsContainer(Strings.get('lesson_load_error', userData?.native_language));
     }
 }
-
 
 function loadLessonContent(lesson, configData) {
     clearSpeechRecordingsForLesson(lesson.lessonId).catch(e => console.error(e));
@@ -1000,7 +1041,21 @@ async function initializeApp() {
         // Immediately trigger offline score sync if needed
         syncOfflineScores(State.userData);
 
-        State.courseId = await getCurrentcourseId(State.userData);
+        // 1. Gather context
+        const courseContext = {
+            urlCourseId: new URLSearchParams(window.location.search).get('courseid'),
+            storedCourseId: localStorage.getItem('currentCourse'),
+            wpCourseId: State.userData?.current_course || null
+        };
+
+        // 2. Pure function evaluation
+        State.courseId = resolveCurrentCourseId(State.userData, courseContext);
+
+        // 3. Side effects
+        localStorage.setItem('currentCourse', State.courseId);
+        if (State.userData && typeof State.userData === 'object') {
+            await saveCourseToUserProfile(State.courseId, State.userData);
+        }
 
         // --- FETCH CONFIG AND SET LANGUAGE LEVEL ---
         const response = await fetch(`js/config/${State.courseId}.json`);

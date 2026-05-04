@@ -1,27 +1,23 @@
 // --- modules/lesson-router.js ---
-import { State } from './state.js';
-import { saveLessonProgress, saveCourseToUserProfile } from './user-profile.js';
+// Removed side-effect imports: saveLessonProgress, saveCourseToUserProfile 
 
 /**
- * Resolves the current lesson ID from (in priority order):
- *   1. URL param `lessonid`
- *   2. User profile and localStorage (most recent timestamp wins)
- *   3. First lesson in configData
- * Writes the result to State.lessonId and cleans URL params.
- * @returns {Promise<string>}
+ * Resolves the current lesson ID from pure data inputs (in priority order):
+ * 1. Explicitly passed urlLessonId
+ * 2. User profile and local storage parameters (most recent timestamp wins)
+ * 3. First lesson in configData
+ * @returns {string}
  */
-export async function getCurrentLessonId(configData, userData, courseId) {
+export function resolveCurrentLessonId(configData, userData, courseId, context = {}) {
     if (!configData || typeof configData !== 'object') throw new Error('Invalid or missing course configuration.');
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlLessonId = urlParams.get('lessonid');
+
+    // Inject the previously hardcoded browser dependencies
+    const { urlLessonId, storedLessonId, storedTimestamp } = context;
 
     let lessonId = null;
 
     if (urlLessonId) {
         lessonId = urlLessonId;
-        const url = new URL(window.location.href);
-        url.searchParams.delete('lessonid'); url.searchParams.delete('course');
-        window.history.replaceState({}, document.title, url.toString());
     }
 
     if (!lessonId) {
@@ -32,13 +28,11 @@ export async function getCurrentLessonId(configData, userData, courseId) {
             wpTimestamp = ts && !isNaN(new Date(ts).getTime()) ? new Date(ts) : null;
         }
 
-        const lsId = localStorage.getItem(`${courseId}_currentLessonId`);
-        const lsTsStr = localStorage.getItem(`${courseId}_currentLessonTimestamp`);
-        const lsTs = lsTsStr && !isNaN(new Date(lsTsStr).getTime()) ? new Date(lsTsStr) : null;
+        const lsTs = storedTimestamp && !isNaN(new Date(storedTimestamp).getTime()) ? new Date(storedTimestamp) : null;
 
         const sources = [];
         if (wpLessonId && wpTimestamp) sources.push({ lessonId: wpLessonId, timestamp: wpTimestamp });
-        if (lsId && lsTs) sources.push({ lessonId: lsId, timestamp: lsTs });
+        if (storedLessonId && lsTs) sources.push({ lessonId: storedLessonId, timestamp: lsTs });
 
         if (sources.length === 1) lessonId = sources[0].lessonId;
         else if (sources.length > 1) {
@@ -51,44 +45,40 @@ export async function getCurrentLessonId(configData, userData, courseId) {
         if (configData && configData.lessons && configData.lessons.length > 0 && configData.lessons[0].lessonId) {
             lessonId = configData.lessons[0].lessonId;
         } else {
-            throw new Error('getCurrentLessonId: No lessons found in the course configuration.');
+            throw new Error('resolveCurrentLessonId: No lessons found in the course configuration.');
         }
     }
 
-    saveLessonProgress(courseId, lessonId, userData, { updateUserMeta: false, incrementCount: false });
+    // Side effects (saving progress, updating URL) must now be handled by the caller.
     return lessonId;
 }
 
 /**
- * Resolves the current course ID from (in priority order):
- *   1. URL param `courseid`
- *   2. WordPress user profile via wp.apiFetch
- *   3. localStorage key `currentCourse`
- *   4. Default: 'pronunciation'
- * Writes the result to State.courseId, localStorage, and the user profile.
- * @returns {Promise<string>}
+ * Resolves the current course ID from pure data inputs (in priority order):
+ * 1. Explicitly passed urlCourseId
+ * 2. WordPress user profile param (wpCourseId)
+ * 3. Stored Course ID
+ * 4. Default: 'pronunciation'
+ * @returns {string}
  */
-export async function getCurrentcourseId(userData) {
-    let courseId = new URLSearchParams(window.location.search).get('courseid');
+export function resolveCurrentCourseId(userData, context = {}) {
+    // Inject the previously hardcoded browser dependencies
+    const { urlCourseId, wpCourseId, storedCourseId } = context;
+
+    let courseId = urlCourseId;
 
     if (!courseId) {
         if (userData && typeof userData === 'object') {
-            try {
-                const userProfile = globalThis.wp ? await globalThis.wp.apiFetch({ path: '/custom/v1/user-profile' }) : {};
-                courseId = userProfile.current_course || userData.current_course || null;
-            } catch (error) {
-                courseId = localStorage.getItem('currentCourse');
-            }
-        } else {
-            courseId = localStorage.getItem('currentCourse');
+            courseId = wpCourseId || userData.current_course || null;
         }
+
         if (!courseId) {
-            courseId = localStorage.getItem('currentCourse');
+            courseId = storedCourseId;
         }
     }
 
-    if (!courseId) courseId = 'pronunciation';
-    localStorage.setItem('currentCourse', courseId);
-    if (userData && typeof userData === 'object') await saveCourseToUserProfile(courseId, userData);
+    if (!courseId) courseId = 'tutorial';
+
+    // Side effects (saving to localstorage/userData) must now be handled by the caller.
     return courseId;
 }
