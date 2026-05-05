@@ -41,6 +41,19 @@ These files handle HTML5 video, Web Audio, and browser DOM APIs. They are strict
 - [ ] `js/modules/whisper/whisper-worker-web.js` *(Renamed)*
 - [ ] `js/nlp-worker-web.js` *(Renamed)*
 
+- [ ] `lessons.html` (The file where all the lessons take place.)
+- [ ] `homescreen.html` (The "welcome" or "main" screen where a user can choose a lesson and access menus.)
+
+- [ ] `landing.html` (This is not part of the app at all. It is a draft landing page or index.html page for the website to promote the app.)
+
+The following files were created for while testing. They will be replaced or restyled.
+
+- [ ] `login.html`
+- [ ] `signup.html`
+- [ ] `userprofile.html`
+- [ ] `recover-password.html`
+- [ ] `reset-password.html`
+
 ## 📁 Group D: Web-Only UI Components
 These are visual renderers using HTML/CSS. They will be entirely replaced by Native UI components in the mobile app, so they remain as-is for the web version.
 
