@@ -17,7 +17,7 @@ import { updateActivityDisplay } from './components/ui.js';
 import Strings from './data/strings.js';
 
 // --- Decoupled Business Logic (Modules Directory) ---
-import { calculateRepeatAverage, calculateRolePlayAverage, calculateAverage } from './modules/scoring.js';
+import { calculateRepeatAverage, calculateRolePlayAverage, calculateAverage, calculateFluencyScore } from './modules/scoring.js';
 import { isUserLoggedIn, getUserProfile, signOut, queryClient } from './modules/api.js';
 import { saveCourseToUserProfile, saveLessonProgress, syncOfflineScores } from './modules/user-profile.js';
 
@@ -191,47 +191,10 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
     let immediateStatsHtmlArr = [];
 
     const courseId = new URLSearchParams(window.location.search).get('courseid') || localStorage.getItem('currentCourse') || 'pronunciation';
+    let cleanWordCount = 0;
     if (questionData.inputType === "speech" || questionData.inputType === "ai") {
+        cleanWordCount = userResponse.replace(/[^\w\s]/g, '').trim().split(/\s+/).filter(Boolean).length;
         speechAnalytics = await analyzeSpeech(userResponse, stats.netDuration, stats.pauseCount, courseId ? courseId.substring(0, 2).toUpperCase() : 'A1', questionData.inputType);
-
-        const listeningScore = appStore.getState().listeningScore || 0;
-        const speakingScore = appStore.getState().speakingScore || 0;
-
-        immediateStatsHtmlArr.push(createStatsBubbleHTML(
-            Strings.get('stats_listening_header', userData?.native_language).replace('{score}', listeningScore), []
-        ));
-
-        immediateStatsHtmlArr.push(createStatsBubbleHTML(
-            Strings.get('stats_speaking_header', userData?.native_language).replace('{score}', speakingScore), []
-        ));
-
-        let flowParts = [
-            `<strong>${Strings.get('stats_hesitation', userData?.native_language)}:</strong> 0`,
-            `<strong>${Strings.get('stats_pauses_speaking', userData?.native_language)}:</strong> ${speechAnalytics.pauseCount || 0}`,
-            `<strong>${Strings.get('stats_wpm', userData?.native_language)}:</strong> ${speechAnalytics.wpm || 0}`
-        ];
-
-        immediateStatsHtmlArr.push(createStatsBubbleHTML(
-            Strings.get('stats_speech_flow_header', userData?.native_language), flowParts
-        ));
-
-        // Only show Vocabulary for AI questions
-        if (questionData.inputType === "ai") {
-            let vocabParts = [];
-            if (speechAnalytics.complexityScore !== null) {
-                vocabParts.push(`<strong>${Strings.get('stats_complexity', userData?.native_language)}:</strong> ${speechAnalytics.complexityScore} <br><small>(${speechAnalytics.complexityScoreBreakdown})</small>`);
-            }
-            if (speechAnalytics.foundIdioms && speechAnalytics.foundIdioms.length > 0) {
-                const idiomsList = speechAnalytics.foundIdioms.map(idiom => `<li>${idiom}</li>`).join('');
-                vocabParts.push(`<strong>${Strings.get('stats_idioms', userData?.native_language)}:</strong> ${speechAnalytics.foundIdioms.length}<ul style="margin-bottom:0;">${idiomsList}</ul>`);
-            }
-
-            if (vocabParts.length > 0) {
-                immediateStatsHtmlArr.push(createStatsBubbleHTML(
-                    Strings.get('stats_vocabulary_header', userData?.native_language), vocabParts
-                ));
-            }
-        }
     }
 
     const qIndex = getCurrentQuestionIndex(questionData, configData, State.currentLessonIndex);
@@ -261,10 +224,115 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
 
         if (!result) {
             console.warn("⚠️ No result from local NLP — no Gemini fallback active. Treating as passed.");
-            result = { isCorrect: true, normalizeduserResponse: userResponse, normalizedcue: cue, explanation: explanation };
+            result = { isCorrect: true, normalizeduserResponse: userResponse, normalizedcue: cue, explanation: explanation, intentLabels: [] };
         }
 
         const isCorrect = result.isCorrect;
+
+        if (questionData.inputType === "speech" || questionData.inputType === "ai") {
+            const listeningScore = appStore.getState().listeningScore || 0;
+            const speakingScore = appStore.getState().speakingScore || 0;
+            const attemptNumber = appStore.getState().incorrectAttempts + 1; // 1-based attempt index
+
+            let grammarErrors = 0;
+            if (result.explanations) {
+                 const diffObj = result.explanations.find(e => e.type === 'grammar_diff');
+                 if (diffObj) {
+                     // very simple heuristic: look for '<del>' or '<ins>' or class='del' etc to find errors.
+                     // The diffHTML is created in `buildGrammarDiff` inside `js/modules/complexity.js` which is not available here. Let's rely on basic diff counting logic from the strings.
+                     // A more accurate way: compare `userResponse` and `result.correction` word by word,
+                     // but the prompt simply asked "Deduct 25 percentage points from 100 for each grammar error found in the diff. Floor at 0. (An error is identified in the diff where uncorrected words surround it)."
+                     // To approximate, let's count words in `result.correction` that aren't in `userResponse` or vice-versa, or just use 1 if diff exists for now. Let's actually compare arrays.
+                     const origWords = diffObj.original.split(/\s+/);
+                     const corrWords = diffObj.corrected.split(/\s+/);
+                     grammarErrors = Math.max(1, Math.abs(origWords.length - corrWords.length) + origWords.filter(w => !corrWords.includes(w)).length);
+                 }
+            }
+
+            // Calculate granular scores
+            const scoreData = calculateFluencyScore({
+                pronunciationScore: speakingScore,
+                listeningScore: listeningScore,
+                wpm: speechAnalytics.wpm || 0,
+                pauseCount: speechAnalytics.pauseCount || 0,
+                wordCount: cleanWordCount,
+                idiomCount: speechAnalytics.foundIdioms ? speechAnalytics.foundIdioms.length : 0,
+                cefrLevel: englishLevel,
+                grammarErrors: grammarErrors,
+                complexityScore: speechAnalytics.complexityScore || 100,
+                labels: result.intentLabels || [],
+                attemptNumber: attemptNumber
+            });
+
+            appStore.getState().setFluencyMetrics({
+                fluencyScore: scoreData.fluencyScore,
+                flowScore: scoreData.subScores.flow,
+                vocabularyScore: scoreData.subScores.vocabulary,
+                grammarScore: scoreData.subScores.grammar,
+                formalityScore: scoreData.subScores.formality,
+                nativeLikeScore: scoreData.subScores.nativeLike,
+                understandingScore: scoreData.subScores.understanding
+            });
+
+            // 1. Pronunciation
+            immediateStatsHtmlArr.push(createStatsBubbleHTML(
+                `${Strings.get('stats_speaking_header', userData?.native_language).replace('{score}', scoreData.subScores.pronunciation)} - ${Strings.get('stats_attempts_required', userData?.native_language)} ${attemptNumber}`, []
+            ));
+
+            // 2. Listening
+            immediateStatsHtmlArr.push(createStatsBubbleHTML(
+                `${Strings.get('stats_listening_header', userData?.native_language).replace('{score}', scoreData.subScores.listening)} - ${Strings.get('stats_repetitions_required', userData?.native_language)} ${attemptNumber}`, []
+            ));
+
+            // 3. Flow
+            let flowParts = [
+                `<strong>${Strings.get('stats_pauses_speaking', userData?.native_language)}:</strong> ${speechAnalytics.pauseCount || 0}`,
+                `<strong>${Strings.get('stats_wpm', userData?.native_language)}:</strong> ${speechAnalytics.wpm || 0}`
+            ];
+            immediateStatsHtmlArr.push(createStatsBubbleHTML(
+                `${Strings.get('stats_speech_flow_header', userData?.native_language)} ${scoreData.subScores.flow}%`, flowParts
+            ));
+
+            // Only show Vocabulary, Grammar, Formality, Native-like, Understanding for AI questions
+            if (questionData.inputType === "ai") {
+                // 4. Vocabulary
+                let vocabParts = [];
+                if (speechAnalytics.complexityScore !== null) {
+                    vocabParts.push(`<strong>${Strings.get('stats_complexity', userData?.native_language)}:</strong> ${speechAnalytics.complexityScore}`);
+                }
+                if (speechAnalytics.foundIdioms && speechAnalytics.foundIdioms.length > 0) {
+                    vocabParts.push(`<strong>${Strings.get('stats_idioms', userData?.native_language)}:</strong> ${speechAnalytics.foundIdioms.length}`);
+                }
+                immediateStatsHtmlArr.push(createStatsBubbleHTML(
+                    `${Strings.get('stats_vocabulary_header', userData?.native_language)} ${scoreData.subScores.vocabulary}%`, vocabParts
+                ));
+
+                // 5. Grammar
+                immediateStatsHtmlArr.push(createStatsBubbleHTML(
+                    `${Strings.get('stats_grammar_header', userData?.native_language)} ${Math.round(scoreData.subScores.grammar)}%`, []
+                ));
+
+                // 6. Formality
+                immediateStatsHtmlArr.push(createStatsBubbleHTML(
+                    `${Strings.get('stats_formality_header', userData?.native_language)} ${scoreData.subScores.formality}%`, []
+                ));
+
+                // 7. Native-like
+                immediateStatsHtmlArr.push(createStatsBubbleHTML(
+                    `${Strings.get('stats_native_like_header', userData?.native_language)} ${scoreData.subScores.nativeLike}%`, []
+                ));
+
+                // 8. Understanding
+                immediateStatsHtmlArr.push(createStatsBubbleHTML(
+                    `${Strings.get('stats_pragmatics_header', userData?.native_language)} ${scoreData.subScores.understanding}%`, []
+                ));
+
+                // 9. Overall Fluency
+                immediateStatsHtmlArr.unshift(createStatsBubbleHTML(
+                    `<strong>${Strings.get('stats_fluency_score', userData?.native_language)} ${scoreData.fluencyScore}%</strong>`, []
+                ));
+            }
+        }
 
         // --- SILENT RETRY FLOW FOR SPEECH ---
         if (!isCorrect && questionData.inputType === "speech" && appStore.getState().incorrectAttempts <= 1) {
@@ -342,7 +410,7 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
                     case 'intent_encouragement':
                         return chunk.message;
                     case 'pragmatics':
-                        return createPragmaticsBubbleHTML(createHeaderHTML(chunk.header), chunk.message);
+                        return createPragmaticsBubbleHTML(createHeaderHTML(chunk.header), chunk.message, chunk.correction);
                     default:
                         return '';
                 }

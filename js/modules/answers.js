@@ -50,12 +50,43 @@ export async function processAnswerLogic({
         // 2. Intent Pass (AI)
         const intentResult = await evaluateIntentWithAI(grammarResult.correctedText, questionData, lesson);
 
-        // --- BUSINESS LOGIC: Determine final state from raw results ---
-        const isGrammarCorrect = grammarResult.isGrammarCorrect;
-        const isIntentCorrect = intentResult.isIntentCorrect;
+        // --- NEW BUSINESS LOGIC: Robust Array Parsing ---
+        let evaluationResult = [];
+        try {
+            let cleanedText = intentResult.rawIntentText.trim();
+            const firstBracket = cleanedText.indexOf('[');
+            if (firstBracket >= 0) cleanedText = cleanedText.substring(firstBracket);
+            const lastBracket = cleanedText.lastIndexOf(']');
+            if (lastBracket !== -1 && lastBracket < cleanedText.length - 1) cleanedText = cleanedText.substring(0, lastBracket + 1);
 
-        result.isCorrect = isGrammarCorrect && isIntentCorrect;
-        result.correction = grammarResult.correctedText;
+            // Try to parse it as JSON
+            evaluationResult = JSON.parse(cleanedText);
+            if (!Array.isArray(evaluationResult)) {
+                evaluationResult = [];
+            }
+        } catch (e) {
+            console.error("Failed to parse AI intent result", e);
+            evaluationResult = ["parse_error"];
+        }
+
+        let labels = [];
+        let correction = "";
+
+        if (evaluationResult.length > 0) {
+            correction = evaluationResult.pop(); // The final string is the correction
+            labels = evaluationResult.map(l => (typeof l === 'string' ? l.toLowerCase() : l));
+        }
+
+        // 2. The "Correct" Override
+        if (labels.length > 1 && labels.includes("correct")) {
+            labels = labels.filter(label => label !== "correct");
+        }
+
+        let isIntentCorrect = labels.length === 1 && labels.includes("correct");
+
+        result.intentLabels = labels;
+        result.isCorrect = isIntentCorrect;
+        result.correction = correction || grammarResult.correctedText;
 
         if (result.isCorrect) {
             result.cefrLevel = 'B1';
@@ -65,60 +96,60 @@ export async function processAnswerLogic({
             // --- ADDITIVE FEEDBACK LOGIC ---
             let feedbackChunks = [];
 
-            // 1. Grammar Feedback (Always shown if grammar is bad)
-            if (!isGrammarCorrect) {
-                if (result.correction) {
-                    feedbackChunks.push({
-                        type: 'grammar_diff',
-                        original: userResponse,
-                        corrected: result.correction,
-                        header: Strings.get('stats_grammar_header', userData?.native_language)
-                    });
-                } else {
-                    feedbackChunks.push({
-                        type: 'grammar_error',
-                        message: Strings.get('lang_error_detected', userData?.native_language)
-                    });
-                }
-            }
-
-            // 2. Intent Feedback
-            if (isIntentCorrect) {
-                // If grammar was bad but intent was good, show the specific encouragement
-                if (!isGrammarCorrect) {
-                    feedbackChunks.push({
-                        type: 'intent_encouragement',
-                        message: Strings.get('intent_good_grammar_bad', userData?.native_language)
-                    });
-                }
-                result.errorType = 'grammar_bad_intent_good';
-            } else {
-                // Intent is bad. Determine the specific intent message
-                const label = intentResult.intentLabel || 'parse_error';
-                result.errorType = isGrammarCorrect ? label : 'grammar_and_intent_bad';
-
-                let intentExplanation = "";
-                switch (label) {
-                    case 'insensitive':
-                    case 'rude':
-                        intentExplanation = intentResult.rawIntentText ? `${Strings.get('offensive_soften', userData?.native_language)}<br><span lang='${userData?.native_language || 'es'}'><i>${intentResult.rawIntentText}</i></span>` : Strings.get('offensive_insensitive', userData?.native_language); break;
-                    case 'nonsensical': intentExplanation = Strings.get('no_sense', userData?.native_language); break;
-                    case 'nonsequitur':
-                    case 'pragmatic failure':
-                        intentExplanation = Strings.get('not_logical', userData?.native_language); break;
-                    case 'nonresponsive': intentExplanation = Strings.get('not_deep', userData?.native_language); break;
-                    case 'overly formal':
-                    case 'too formal':
-                        intentExplanation = Strings.get('too_formal_context', userData?.native_language); break;
-                    case 'too informal': intentExplanation = Strings.get('too_informal', userData?.native_language) || "That's a bit too informal for this situation."; break;
-                    case 'parse_error': intentExplanation = Strings.get('tech_error_retry', userData?.native_language); break;
-                    default: intentExplanation = Strings.get('tech_error_generic', userData?.native_language); break;
-                }
+            if (labels.includes("ungrammatical")) {
+                isIntentCorrect = false;
+                result.isCorrect = false;
+                result.errorType = 'ungrammatical';
                 feedbackChunks.push({
-                    type: 'pragmatics',
-                    header: Strings.get('stats_pragmatics_header', userData?.native_language),
-                    message: intentExplanation
+                    type: 'grammar_diff',
+                    original: userResponse,
+                    corrected: result.correction,
+                    header: Strings.get('stats_grammar_header', userData?.native_language)
                 });
+            } else {
+                // Determine all specific pragmatic errors
+                let intentExplanations = [];
+                if (labels.includes("pragmatic failure")) {
+                    intentExplanations.push(Strings.get('feedback_pragmatic_failure', userData?.native_language));
+                }
+                if (labels.includes("rude")) {
+                    intentExplanations.push(Strings.get('feedback_rude', userData?.native_language));
+                }
+                if (labels.includes("too formal")) {
+                    intentExplanations.push(Strings.get('feedback_too_formal', userData?.native_language));
+                }
+                if (labels.includes("too informal")) {
+                    intentExplanations.push(Strings.get('feedback_too_informal', userData?.native_language));
+                }
+                if (labels.includes("unidiomatic")) {
+                    intentExplanations.push(Strings.get('feedback_unidiomatic', userData?.native_language));
+                }
+
+                if (intentExplanations.length > 0) {
+                    isIntentCorrect = false;
+                    result.isCorrect = false;
+                    result.errorType = labels[0] || 'intent_error';
+
+                    // Join multiple explanations with a newline or space
+                    const intentExplanation = intentExplanations.join("<br>");
+
+                    feedbackChunks.push({
+                        type: 'pragmatics',
+                        header: Strings.get('stats_pragmatics_header', userData?.native_language),
+                        message: intentExplanation,
+                        correction: result.correction
+                    });
+                } else if (labels.length > 0 && !labels.includes("ungrammatical") && !labels.includes("correct")) {
+                    isIntentCorrect = false;
+                    result.isCorrect = false;
+                    result.errorType = labels[0] || 'intent_error';
+                    feedbackChunks.push({
+                        type: 'pragmatics',
+                        header: Strings.get('stats_pragmatics_header', userData?.native_language),
+                        message: Strings.get('tech_error_generic', userData?.native_language),
+                        correction: result.correction
+                    });
+                }
             }
 
             result.explanations = feedbackChunks.filter(Boolean);

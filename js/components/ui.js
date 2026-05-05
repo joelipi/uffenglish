@@ -158,10 +158,11 @@ export function createHeaderHTML(text) {
     return `<div style='font-size: 0.85em; text-transform: uppercase; color: #17a2b8; margin-bottom: 5px;'><strong>${text}</strong></div>`;
 }
 
-export function createPragmaticsBubbleHTML(headingHTML, contentHTML) {
+export function createPragmaticsBubbleHTML(headingHTML, contentHTML, correctionHTML = "") {
     return `<div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>
         ${headingHTML ? headingHTML : ''}
         ${contentHTML}
+        ${correctionHTML ? `<div style="margin-top: 6px; font-weight: bold; color: #17a2b8;">${correctionHTML}</div>` : ''}
     </div>`;
 }
 
