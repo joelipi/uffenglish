@@ -176,13 +176,16 @@ export async function evaluateIntentWithAI(answerForIntentPass, questionData, le
   const aiEndpoint = 'https://nvidia-proxy.joel-1cb.workers.dev';
   try {
     console.log("🤖 AI Evaluation: Starting Intent Check...");
-    const intentPrompt = `B's goal: ${questionData.mission || 'Respond appropriately'}.
-Setting: ${lessonData.setting?.en || ''}.
-A's role: ${lessonData.roleA?.en || ''}.
-B's role: ${lessonData.roleB?.en || ''}.
-"A: ${questionData.cue}
-B: ${answerForIntentPass}"
-Evaluate B's response. Return ONLY an array with 1 or more applicable labels: [pragmatic failure, too formal, too informal, rude, correct but unidiomatic, correct].`;
+    const intentPrompt = `Setting: ${lessonData.setting?.en || ''}
+A: ${lessonData.roleA?.en || ''}
+B: ${lessonData.roleB?.en || ''}
+B's goal: ${questionData.mission || 'Respond appropriately'}
+A: ${questionData.cue}
+B: ${answerForIntentPass}
+
+Evaluate B's response. Return ONLY a JSON array. The array must contain any applicable labels from this list, followed by the corrected version of B's response as the final element in the array.
+Valid labels: ungrammatical, pragmatic failure, rude, too formal, too informal, unidiomatic, correct.
+Example format: ["too formal", "unidiomatic", "This is the corrected sentence."]`;
 
     console.log("🤖🤖 prompt to AI: ", intentPrompt);
 

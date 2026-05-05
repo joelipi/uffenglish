@@ -7,20 +7,28 @@ const strings = {
         es: "ANÁLISIS DE VOZ"
     },
     'stats_speech_flow_header': {
-        en: "SPEECH FLOW: 70%",
-        es: "FLUIDEZ DE VOZ: 70%"
+        en: "SPEECH FLOW:",
+        es: "FLUIDEZ DE VOZ:"
     },
     'stats_vocabulary_header': {
-        en: "VOCABULARY: 80%",
-        es: "VOCABULARIO: 80%"
+        en: "VOCABULARY:",
+        es: "VOCABULARIO:"
     },
     'stats_grammar_header': {
-        en: "GRAMMAR: 50%",
-        es: "GRAMÁTICA: 50%"
+        en: "GRAMMAR:",
+        es: "GRAMÁTICA:"
     },
     'stats_pragmatics_header': {
-        en: "PRAGMATICS: 50%",
-        es: "PRAGMÁTICA: 50%"
+        en: "UNDERSTANDING:",
+        es: "COMPRENSIÓN:"
+    },
+    'stats_formality_header': {
+        en: "FORMALITY:",
+        es: "FORMALIDAD:"
+    },
+    'stats_native_like_header': {
+        en: "NATIVE-LIKE:",
+        es: "NATURALIDAD:"
     },
     'stats_listening_header': {
         en: "LISTENING SCORE: {score}%",
@@ -222,6 +230,31 @@ const strings = {
     },
     
     // --- NEW LOCALIZATION STRINGS ADDED ---
+
+    'feedback_pragmatic_failure': {
+        en: "That doesn't quite make sense in this context."
+    },
+    'feedback_rude': {
+        en: "That comes across as a bit rude or insensitive."
+    },
+    'feedback_too_formal': {
+        en: "That is a bit too formal for this situation."
+    },
+    'feedback_too_informal': {
+        en: "That is too casual for this situation."
+    },
+    'feedback_unidiomatic': {
+        en: "That sounds a bit unnatural. Here is a more common way to say it."
+    },
+    'stats_repetitions_required': {
+        en: "Repetitions required:"
+    },
+    'stats_attempts_required': {
+        en: "Attempts required:"
+    },
+    'stats_fluency_score': {
+        en: "Overall Fluency Score:"
+    },
 
     'status_wait': {
         en: "WAIT.",

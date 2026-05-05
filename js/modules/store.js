@@ -12,8 +12,20 @@ export const appStore = createStore((set, get) => ({
     incorrectAttempts: 0,
     dayCount: 0,
     currentStreak: 0,
+    fluencyScore: 100,
+    flowScore: 100,
+    vocabularyScore: 100,
+    grammarScore: 100,
+    formalityScore: 100,
+    nativeLikeScore: 100,
+    understandingScore: 100,
 
     // --- Actions ---
+
+    // Update fluency metrics
+    setFluencyMetrics: (metrics) => set({
+        ...metrics
+    }),
 
     // Deduct from listeningScore, floored at 0
     deductListeningScore: (amount) => set((state) => {
