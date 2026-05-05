@@ -1,27 +1,8 @@
-export class InteractiveVideoPlayer {
-  constructor(config) {
-    // FOUC fix: inject styles before any DOM work
-    this.injectStyles();
+export class InteractiveVideoPlayerUI {
+  constructor(config, logic) {
+    this.config = config;
+    this.logic = logic;
 
-    const defaults = {
-      videoUrl: '',
-      cue: '',
-      containerSelector: 'body',
-      speeds: [0.75, 0.6, 1],
-      videoStyles: {},
-      subtitleStyles: {}
-    };
-
-    this.config = { ...defaults, ...config };
-    this.validateInput();
-
-    this.tokens = [];
-    this.originalIndices = [];
-    this.shuffledIndices = [];
-    this.currentRevealStart = 0;
-    this.currentSpeedIndex = 0;
-    this.isFirstPlay = true;
-    this.isSecondPlay = false;
     this.naturalWidth = 0;
     this.naturalHeight = 0;
     this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -40,21 +21,10 @@ export class InteractiveVideoPlayer {
     this.initEventListeners();
   }
 
-  validateInput() {
-    if (!this.config.videoUrl) throw new Error('videoUrl is required');
-    if (!this.config.cue) throw new Error('cue is required');
-    if (!document.querySelector(this.config.containerSelector)) {
-      throw new Error('Container element not found');
-    }
-  }
-
   initContainer() {
     this.container = document.querySelector(this.config.containerSelector);
     
-    // 1. Look for existing HTML wrapper instead of creating a new one
     this.mainWrapper = this.container.querySelector('.ivp-main-wrapper') || document.createElement('div');
-    
-    // Only append if it's a newly created element
     if (!this.mainWrapper.parentElement) {
       this.mainWrapper.className = 'ivp-main-wrapper loading';
       this.container.appendChild(this.mainWrapper);
@@ -66,7 +36,6 @@ export class InteractiveVideoPlayer {
   }
 
   initVideo() {
-    // 2. Look for existing video wrapper and video elements
     this.videoWrapper = this.mainWrapper.querySelector('.ivp-video-wrapper') || document.createElement('div');
     if (!this.videoWrapper.parentElement) {
       this.videoWrapper.className = 'ivp-video-wrapper';
@@ -83,12 +52,10 @@ export class InteractiveVideoPlayer {
     this.video.setAttribute('preload', this.isIOS ? 'metadata' : 'auto');
     this.video.setAttribute('crossorigin', 'anonymous');
     
-    // Apply custom styles from config
     if (this.config.videoStyles) {
       Object.assign(this.video.style, this.config.videoStyles);
     }
 
-    // iOS loading spinner
     if (this.isIOS) {
       this.loadingSpinner = document.createElement('div');
       this.loadingSpinner.className = 'ivp-loading-spinner';
@@ -102,11 +69,9 @@ export class InteractiveVideoPlayer {
 
     this.video.src = this.config.videoUrl;
 
-    // FOUC fix: use stored bound reference so removeEventListener actually works
     this.video.addEventListener('loadeddata', this._handleVideoLoaded);
     this.video.addEventListener('canplay', this._handleVideoLoaded);
 
-    // FOUC fix: safety fallback in case neither event fires
     this._fouc_fallback = setTimeout(() => {
       if (!this.isVideoLoaded) this.reveal();
     }, 3000);
@@ -175,23 +140,17 @@ export class InteractiveVideoPlayer {
         }
       }, 2000);
     }
-
-    // this.videoWrapper.appendChild(this.video); // Already handled above
-    // this.mainWrapper.appendChild(this.videoWrapper); // Already handled above
   }
 
-  // FOUC fix: single reveal method used everywhere, with double-rAF to ensure paint
   reveal() {
     if (this.isVideoLoaded) return;
     this.isVideoLoaded = true;
     clearTimeout(this._fouc_fallback);
     
-    // Final style pass before revealing
     this.applyVideoStyles();
 
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        // Remove the loading class to reveal the player seamlessly
         this.mainWrapper.classList.remove('loading');
         this.mainWrapper.style.visibility = 'visible';
       });
@@ -201,7 +160,6 @@ export class InteractiveVideoPlayer {
   handleVideoLoaded() {
     if (this.isVideoLoaded) return;
 
-    // Remove listeners using stored bound references (fixes broken removeEventListener)
     this.video.removeEventListener('loadeddata', this._handleVideoLoaded);
     this.video.removeEventListener('canplay', this._handleVideoLoaded);
 
@@ -211,7 +169,6 @@ export class InteractiveVideoPlayer {
   }
 
   initSubtitles() {
-    // 3. Look for existing subtitle overlays
     this.blurOverlay = this.videoWrapper.querySelector('.ivp-blur-overlay') || document.createElement('div');
     if(!this.blurOverlay.parentElement) {
        this.blurOverlay.className = 'ivp-blur-overlay';
@@ -226,19 +183,7 @@ export class InteractiveVideoPlayer {
     
     Object.assign(this.subtitleDisplay.style, this.config.subtitleStyles);
 
-    this.tokens = this.config.cue.split(/\s+/);
-    this.originalIndices = Array.from({ length: this.tokens.length }, (_, i) => i);
-    this.shuffledIndices = this.constructor.shuffle([...this.originalIndices]);
-
     this.subtitleDisplay.textContent = '';
-  }
-
-  static shuffle(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [array[i], array[j]] = [array[j], array[i]];
-    }
-    return array;
   }
 
   initEventListeners() {
@@ -261,34 +206,13 @@ export class InteractiveVideoPlayer {
   }
 
   applyVideoStyles() {
-    // Instead of resetting everything, we only apply dynamic or critical layout styles.
-    // Base layout (flex, width, margin) is now handled in style.css.
-
     const isDesktop = window.innerWidth > 800;
     
-    // FOUC fix: re-apply hidden state if not yet revealed
     if (!this.isVideoLoaded) {
       this.mainWrapper.style.visibility = 'hidden';
       this.mainWrapper.classList.add('loading');
     }
 
-    let videoHeight;
-    if (isDesktop) {
-      videoHeight = 375;
-    } else {
-      const maxMobileWidth = Math.min(window.innerWidth * 0.95, 500);
-      videoHeight = maxMobileWidth * (5 / 4);
-    }
-
-    const minSubtitleHeight = Math.max(60, videoHeight * 0.25);
-
-    if (this.blurOverlay) {
-      this.blurOverlay.style.display = 'none';
-    }
-
-    // Dynamic subtitle styling - mostly handled by style.css now.
-    // We only keep critical runtime overrides if needed, but here we can offload to CSS.
-    
     if (this.blurOverlay) {
       this.blurOverlay.style.display = 'none';
     }
@@ -308,59 +232,19 @@ export class InteractiveVideoPlayer {
   }
 
   updateSubtitles() {
-    if (this.isFirstPlay || this.isSecondPlay) {
-      this.subtitleDisplay.textContent = '';
-      return;
-    }
-
-    const revealCount = Math.floor(this.tokens.length / 8) + 1;
-    const currentIndices = this.shuffledIndices.slice(
-      this.currentRevealStart,
-      this.currentRevealStart + revealCount
-    );
-
-    this.subtitleDisplay.textContent = this.tokens
-      .map((token, index) => currentIndices.includes(index) ? token : token.replace(/[\p{L}\p{N}]/gu, '_'))
-      .join(' ');
+    this.subtitleDisplay.textContent = this.logic.getSubtitleText();
   }
 
   handleLoop() {
-    if (this.isFirstPlay) {
-      this.isFirstPlay = false;
-      this.isSecondPlay = true;
-      this.updateSubtitles();
-      this.video.play();
-      return;
-    }
-
-    if (this.isSecondPlay) {
-      this.isSecondPlay = false;
-      this.currentSpeedIndex = 0;
-      this.currentRevealStart = 0;
-      this.video.playbackRate = this.config.speeds[this.currentSpeedIndex];
-      this.updateSubtitles();
-      this.video.play();
-      return;
-    }
-
-    const revealCount = Math.floor(this.tokens.length / 8) + 1;
-    this.currentRevealStart += revealCount;
-
-    if (this.currentRevealStart >= this.shuffledIndices.length) {
-      this.shuffledIndices = this.constructor.shuffle([...this.originalIndices]);
-      this.currentRevealStart = 0;
-    }
-
-    this.currentSpeedIndex = (this.currentSpeedIndex + 1) % this.config.speeds.length;
-    this.video.playbackRate = this.config.speeds[this.currentSpeedIndex];
-
+    this.logic.advanceState();
+    this.video.playbackRate = this.logic.getDesiredPlaybackRate();
     this.updateSubtitles();
     this.video.play();
   }
 
   handleClick() {
     if (this.video.paused) {
-      if (this.isFirstPlay) this.subtitleDisplay.textContent = '';
+      if (this.logic.isFirstPlay) this.subtitleDisplay.textContent = '';
       const playPromise = this.video.play();
       if (playPromise !== undefined) {
         playPromise.catch(error => console.log('Play failed:', error));
@@ -368,10 +252,6 @@ export class InteractiveVideoPlayer {
     } else {
       this.video.pause();
     }
-  }
-
-  injectStyles() {
-    // Styles moved to style.css for better performance and stability
   }
 
   play() {
@@ -401,5 +281,127 @@ export class InteractiveVideoPlayer {
       this.video.removeEventListener('canplay', this._handleVideoLoaded);
     }
     window.removeEventListener('resize', this._applyVideoStyles);
+  }
+}
+
+export class InteractiveVideoPlayerLogic {
+  constructor(config) {
+    this.config = config;
+    this.tokens = [];
+    this.originalIndices = [];
+    this.shuffledIndices = [];
+    this.currentRevealStart = 0;
+    this.currentSpeedIndex = 0;
+    this.isFirstPlay = true;
+    this.isSecondPlay = false;
+
+    if (this.config.cue) {
+      this.initTokens(this.config.cue);
+    }
+  }
+
+  static shuffle(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+  }
+
+  initTokens(cue) {
+    this.tokens = cue.split(/\s+/);
+    this.originalIndices = Array.from({ length: this.tokens.length }, (_, i) => i);
+    this.shuffledIndices = InteractiveVideoPlayerLogic.shuffle([...this.originalIndices]);
+  }
+
+  getSubtitleText() {
+    if (this.isFirstPlay || this.isSecondPlay) {
+      return '';
+    }
+
+    const revealCount = Math.floor(this.tokens.length / 8) + 1;
+    const currentIndices = this.shuffledIndices.slice(
+      this.currentRevealStart,
+      this.currentRevealStart + revealCount
+    );
+
+    return this.tokens
+      .map((token, index) => currentIndices.includes(index) ? token : token.replace(/[\p{L}\p{N}]/gu, '_'))
+      .join(' ');
+  }
+
+  advanceState() {
+    if (this.isFirstPlay) {
+      this.isFirstPlay = false;
+      this.isSecondPlay = true;
+      return;
+    }
+
+    if (this.isSecondPlay) {
+      this.isSecondPlay = false;
+      this.currentSpeedIndex = 0;
+      this.currentRevealStart = 0;
+      return;
+    }
+
+    const revealCount = Math.floor(this.tokens.length / 8) + 1;
+    this.currentRevealStart += revealCount;
+
+    if (this.currentRevealStart >= this.shuffledIndices.length) {
+      this.shuffledIndices = InteractiveVideoPlayerLogic.shuffle([...this.originalIndices]);
+      this.currentRevealStart = 0;
+    }
+
+    this.currentSpeedIndex = (this.currentSpeedIndex + 1) % this.config.speeds.length;
+  }
+
+  getDesiredPlaybackRate() {
+    if (this.isFirstPlay || this.isSecondPlay) {
+      return 1.0;
+    }
+    return this.config.speeds[this.currentSpeedIndex];
+  }
+}
+
+export class InteractiveVideoPlayer {
+  constructor(config) {
+    const defaults = {
+      videoUrl: '',
+      cue: '',
+      containerSelector: 'body',
+      speeds: [0.75, 0.6, 1],
+      videoStyles: {},
+      subtitleStyles: {}
+    };
+
+    this.config = { ...defaults, ...config };
+    this.validateInput();
+
+    this.logic = new InteractiveVideoPlayerLogic(this.config);
+    this.ui = new InteractiveVideoPlayerUI(this.config, this.logic);
+  }
+
+  validateInput() {
+    if (!this.config.videoUrl) throw new Error('videoUrl is required');
+    if (!this.config.cue) throw new Error('cue is required');
+    if (!document.querySelector(this.config.containerSelector)) {
+      throw new Error('Container element not found');
+    }
+  }
+
+  get video() {
+    return this.ui.video;
+  }
+
+  play() {
+    return this.ui.play();
+  }
+
+  pause() {
+    this.ui.pause();
+  }
+
+  destroy() {
+    this.ui.destroy();
   }
 }
