@@ -2,36 +2,26 @@
 
 import { shareVideo } from './video-share-web.js';
 import { getAllSpeechRecordingsForLesson } from './storage-web.js';
+import * as UI from '../components/video-processor-ui.js';
 
 export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonId = null) {
     window.__currentProcessingLessonId = lessonId;
     if (typeof State !== 'undefined') window.__currentConfigData = State.configData;
     console.log("initVideoProcessor called");
-    document.getElementById('bottomButtonBar').classList.add('d-none');
-    document.getElementById('bottomButtonBarSuccess').classList.remove('d-none');
-    document.getElementById("micStatusText").innerHTML = "<div class='text-center'>Get Complete Fluency Score and Shareable Video.<br><span lang='es'><i>Recibir Calificación de Fluidez Completa y Video Compartible.</i></span></div>";
+
+    UI.setupInitialProcessingUI();
 
     const finalFluencyData = { listening: fluencyData.listening || "NA", speaking: fluencyData.speaking || "NA", total: fluencyData.total || "NA" };
     console.log("finalFluencyData: ", finalFluencyData);
-    const originalVideo = document.getElementById('originalVideo');
-    const processBtn = document.getElementById('processBtn');
+    const originalVideo = UI.DOM.originalVideo;
+    const processBtn = UI.DOM.processBtn;
 
     // Get or create the resultVideo element
-    let resultVideo = document.getElementById('resultVideo');
-    if (!resultVideo) {
-        resultVideo = document.createElement('video');
-        resultVideo.id = 'resultVideo';
-        resultVideo.classList.add('d-none');
+    let resultVideo = UI.getOrCreateResultVideo();
 
-        // Add it to an appropriate container
-        const container = document.getElementById('media-container') || document.body;
-        container.appendChild(resultVideo);
-        console.log("Created resultVideo element dynamically");
-    }
-
-    const processBtnContainer = document.getElementById('bottomButtonBarSuccess');
-    const bigButtons = document.getElementById('big-buttons');
-    const videoCanvas = document.getElementById('videoCanvas');
+    const processBtnContainer = UI.DOM.bottomButtonBarSuccess;
+    const bigButtons = UI.DOM.bigButtons;
+    const videoCanvas = UI.DOM.videoCanvas;
 
     console.log("Elements found:", {
         originalVideo: !!originalVideo,
@@ -42,44 +32,15 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
     });
 
     // Create display canvas for preview
-    const displayCanvas = document.createElement('canvas');
-    displayCanvas.id = 'displayCanvas';
-    displayCanvas.style.position = 'static';
-    displayCanvas.style.width = '100%';
-    displayCanvas.style.maxWidth = '400px';
-    displayCanvas.style.height = 'auto';
-    displayCanvas.style.margin = '10px auto';
-    displayCanvas.style.zIndex = 'auto';
-    displayCanvas.style.display = 'none';
-    displayCanvas.style.boxSizing = 'border-box';
-    displayCanvas.style.backgroundColor = '#000';
-
-    // Determine where to place the canvas based on screen width
     const isDesktop = window.innerWidth > 1000;
-    const targetContainer = isDesktop
-        ? document.getElementById('playback-video-mobile-container')
-        : document.getElementById('playback-video-mobile-container');
-
-    if (targetContainer) {
-        targetContainer.appendChild(displayCanvas);
-        console.log("Display canvas appended to target container");
-    } else {
-        const questionsContainer = document.getElementById('questions-container-container');
-        if (questionsContainer) {
-            questionsContainer.insertBefore(displayCanvas, questionsContainer.firstChild);
-            console.log("Display canvas appended to questions container");
-        } else {
-            console.warn('No suitable container found, appending to body as fallback');
-            document.body.appendChild(displayCanvas);
-        }
-    }
+    const displayCanvas = UI.createAndAppendDisplayCanvas(isDesktop);
 
     const displayContext = displayCanvas.getContext('2d', {
         alpha: false,
         willReadFrequently: false
     });
 
-    const overlayImage = document.getElementById('overlayImage');
+    const overlayImage = UI.DOM.overlayImage;
     const canvasContext = videoCanvas.getContext('2d', {
         alpha: false,
         willReadFrequently: false
@@ -931,9 +892,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                 console.log("iOS device detected, using special handling");
 
                 // Create a new video element for testing to avoid conflicts
-                const testVideo = document.createElement('video');
-                testVideo.style.display = 'none';
-                document.body.appendChild(testVideo);
+                const testVideo = UI.createTestVideo();
 
                 // Test the blob with a new video element first
                 const blobUrl = URL.createObjectURL(videoBlob);
@@ -950,8 +909,8 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                     // If test video works, use the blob for the main video
                     originalVideo.src = blobUrl;
                     originalVideo.load(); // Explicitly call load()
-                    processBtn.disabled = false;
-                    document.body.removeChild(testVideo);
+                    UI.updateProcessButtonState(false);
+                    UI.removeTestVideo(testVideo);
                     URL.revokeObjectURL(blobUrl);
                 });
 
@@ -971,24 +930,24 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
 
                         originalVideo.addEventListener('canplay', () => {
                             console.log("Fallback video loaded successfully");
-                            processBtn.disabled = false;
+                            UI.updateProcessButtonState(false);
                             URL.revokeObjectURL(fallbackUrl);
                         }, { once: true });
 
                         originalVideo.addEventListener('error', () => {
                             console.error("Fallback also failed, using default video");
                             originalVideo.src = 'tall.webm';
-                            processBtn.disabled = false;
+                            UI.updateProcessButtonState(false);
                             URL.revokeObjectURL(fallbackUrl);
                         }, { once: true });
 
                     } catch (fallbackError) {
                         console.error("Fallback creation failed:", fallbackError);
                         originalVideo.src = 'tall.webm';
-                        processBtn.disabled = false;
+                        UI.updateProcessButtonState(false);
                     }
 
-                    document.body.removeChild(testVideo);
+                    UI.removeTestVideo(testVideo);
                     URL.revokeObjectURL(blobUrl);
                 });
 
@@ -999,14 +958,14 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                 // Non-iOS handling
                 const blobUrl = URL.createObjectURL(videoBlob);
                 originalVideo.src = blobUrl;
-                processBtn.disabled = false;
+                UI.updateProcessButtonState(false);
                 console.log("Video loaded successfully on non-iOS device");
             }
 
         } catch (error) {
             console.error('Error loading video from IndexedDB:', error);
             alert('Failed to load video from storage: ' + error.message);
-            processBtn.disabled = false;
+            UI.updateProcessButtonState(false);
 
             if (isIOSDevice) {
                 console.log("Falling back to default video on iOS");
@@ -1014,12 +973,12 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
 
                 originalVideo.addEventListener('error', () => {
                     console.error("Error loading fallback video on iOS");
-                    processBtn.disabled = false;
+                    UI.updateProcessButtonState(false);
                 }, { once: true });
 
                 originalVideo.addEventListener('canplay', () => {
                     console.log("Fallback video can play on iOS");
-                    processBtn.disabled = false;
+                    UI.updateProcessButtonState(false);
                 }, { once: true });
             }
         }
@@ -1073,26 +1032,14 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
         console.log("processVideo called");
 
         // Clear only the playback videos to avoid interfering with originalVideo or others
-        const desktopVideo = document.getElementById('playback-video-desktop');
-        if (desktopVideo) {
-            desktopVideo.pause();
-            desktopVideo.src = '';
-        }
+        UI.pauseAndClearPlaybackVideos();
 
-        const mobileVideo = document.getElementById('playback-video-mobile');
-        if (mobileVideo) {
-            mobileVideo.pause();
-            mobileVideo.src = '';
-        }
-
-        const footer = document.querySelector('footer');
-        footer.classList.add("d-none");
+        UI.hideFooter();
         try {
-            processBtn.disabled = true;
-            processBtn.style.display = 'none';
+            UI.updateProcessButtonState(true);
             console.log("Process button disabled and display none");
 
-            displayCanvas.style.display = 'block';
+            UI.showDisplayCanvas(displayCanvas);
 
             const currentLessonId = window.__currentProcessingLessonId || 'unknown_lesson';
             const recordings = await getAllSpeechRecordingsForLesson(currentLessonId);
@@ -1187,61 +1134,24 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                 maxVideoWidth = Math.min(100, window.innerWidth * 0.20);
             }
 
-            // Instead of creating a new element with a different ID, reuse the existing one
-            resultVideo.src = url;
-            resultVideo.controls = true;
-            resultVideo.playsInline = true;
-            resultVideo.setAttribute('playsinline', '');
-            resultVideo.setAttribute('webkit-playsinline', '');
-            resultVideo.muted = false;
-            resultVideo.preload = 'auto';
-            resultVideo.crossOrigin = 'anonymous';
-
-            // Set thumbnail as poster if available
-            if (thumbnailUrl) {
-                resultVideo.poster = thumbnailUrl;
-            }
+            // Reuse the existing video element and set configuration
+            resultVideo = UI.configureResultVideo(url, thumbnailUrl, maxVideoWidth, isIOSDevice);
 
             // Remove the display canvas
-            displayCanvas.style.display = 'none';
-
-            // Show the result video
-            resultVideo.classList.remove('d-none');
-            resultVideo.style.display = 'block'; // Ensure it's visible
-
-            // Update the styling to match your requirements
-            resultVideo.style.position = 'static';
-            resultVideo.style.width = '100%';
-            resultVideo.style.maxWidth = maxVideoWidth + 'px';
-            resultVideo.style.height = 'auto';
-            resultVideo.style.margin = '10px auto';
-            resultVideo.style.boxSizing = 'border-box';
-            resultVideo.style.zIndex = 'auto';
-            resultVideo.style.backgroundColor = '#000';
-
-            // Add click-to-play functionality for non-iOS
-            if (!isIOSDevice) {
-                resultVideo.addEventListener('click', function () {
-                    this.paused ? this.play() : this.pause();
-                });
-            }
-
-            resultVideo.load();
+            UI.hideDisplayCanvas(displayCanvas);
 
             const suggestedName = `uffenglish.${fileExtension}`;
-            processBtnContainer.classList.add('d-none');
-            bigButtons.classList.remove('d-none');
-            document.body.style.background = "black";
-            document.documentElement.style.background = "black";
+
+            UI.renderFinalVideoUI();
 
             // MOVE THESE LINES TO BE SET BEFORE THE SHARE BUTTON LISTENER
             window.__lastProcessedBlob = processedBlob;
             window.__lastProcessedName = suggestedName;
 
             // Add the share button event listener
-            const shareBtn = document.getElementById('shareMp4Btn');
+            const shareBtn = UI.DOM.shareMp4Btn;
             if (shareBtn) {
-                shareBtn.classList.remove('d-none');
+                UI.showShareButton();
                 console.log("sharebutton d-none removed!");
                 shareBtn.addEventListener('click', async function () {
                     try {
@@ -1256,13 +1166,13 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                 });
             }
 
-            processBtn.disabled = false;
+            UI.updateProcessButtonState(false);
             console.log("Process completed successfully");
 
         } catch (error) {
             console.error('Error processing video:', error);
             alert('Error processing video: ' + error.message);
-            processBtn.disabled = false;
+            UI.updateProcessButtonState(false);
         }
     }
 
