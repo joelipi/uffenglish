@@ -1,7 +1,138 @@
+class SimpleVideoPlayerUI {
+  constructor(containerSelector) {
+    this.containerSelector = containerSelector;
+    this.elements = {};
+  }
+
+  validateContainer() {
+    if (!document.querySelector(this.containerSelector)) {
+      throw new Error('Container element not found');
+    }
+  }
+
+  createDOM(config) {
+    const container = document.querySelector(this.containerSelector);
+
+    const mainWrapper = document.createElement('div');
+    mainWrapper.className = 'ivp-main-wrapper';
+    mainWrapper.style.visibility = 'hidden';
+    container.style.margin = '0';
+    container.style.padding = '0';
+    container.style.overflowX = 'hidden';
+    container.appendChild(mainWrapper);
+
+    const videoWrapper = document.createElement('div');
+    videoWrapper.className = 'ivp-video-wrapper';
+
+    const video = document.createElement('video');
+    video.className = 'ivp-video';
+    video.setAttribute('playsinline', '');
+    video.setAttribute('disableRemotePlayback', '');
+    video.setAttribute('preload', 'metadata');
+    video.setAttribute('crossorigin', 'anonymous');
+    video.muted = true;
+    video.src = config.videoUrl;
+
+    videoWrapper.appendChild(video);
+    mainWrapper.appendChild(videoWrapper);
+
+    const blurOverlay = document.createElement('div');
+    blurOverlay.className = 'ivp-blur-overlay';
+    videoWrapper.appendChild(blurOverlay);
+
+    const subtitleScrollContainer = document.createElement('div');
+    subtitleScrollContainer.className = 'ivp-subtitle-scroll-container';
+
+    const subtitleDisplay = document.createElement('div');
+    subtitleDisplay.className = 'ivp-subtitles';
+
+    subtitleScrollContainer.appendChild(subtitleDisplay);
+    videoWrapper.appendChild(subtitleScrollContainer);
+
+    subtitleDisplay.textContent = config.subtitles;
+    if (config.subtitleStyles) {
+      Object.assign(subtitleDisplay.style, config.subtitleStyles);
+    }
+
+    const playOverlay = document.createElement('div');
+    playOverlay.className = 'ivp-play-overlay';
+    playOverlay.innerHTML = `
+      <div class="ivp-play-icon-container">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+      </div>
+    `;
+    videoWrapper.appendChild(playOverlay);
+
+    this.elements = {
+      container,
+      mainWrapper,
+      videoWrapper,
+      video,
+      blurOverlay,
+      subtitleScrollContainer,
+      subtitleDisplay,
+      playOverlay
+    };
+
+    return this.elements;
+  }
+
+  reveal() {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (this.elements.mainWrapper) {
+          this.elements.mainWrapper.style.visibility = 'visible';
+        }
+      });
+    });
+  }
+
+  setPoster(posterUrl) {
+    if (this.elements.video) {
+      this.elements.video.setAttribute('poster', posterUrl);
+    }
+  }
+
+  updatePlayOverlay(isPlaying) {
+    if (this.elements.playOverlay) {
+      this.elements.playOverlay.style.display = isPlaying ? 'none' : 'flex';
+    }
+  }
+
+  getSubtitleMetrics() {
+    if (!this.elements.subtitleScrollContainer || !this.elements.subtitleDisplay) {
+      return { containerHeight: 0, contentHeight: 0 };
+    }
+    return {
+      containerHeight: this.elements.subtitleScrollContainer.offsetHeight,
+      contentHeight: this.elements.subtitleDisplay.scrollHeight
+    };
+  }
+
+  updateSubtitleScroll(currentScroll, forceUpdate, interval) {
+    if (this.elements.subtitleDisplay) {
+      this.elements.subtitleDisplay.style.transform = `translateY(-${currentScroll}px)`;
+      this.elements.subtitleDisplay.style.transition = forceUpdate ? 'none' : `transform ${interval / 1000}s linear`;
+    }
+  }
+
+  resetSubtitleScroll() {
+    if (this.elements.subtitleDisplay) {
+      this.elements.subtitleDisplay.style.transform = 'translateY(0)';
+    }
+  }
+
+  destroy() {
+    if (this.elements.mainWrapper) {
+      this.elements.mainWrapper.remove();
+    }
+  }
+}
+
 export class simpleVideoPlayer {
   constructor(config) {
-    // Styles are now consolidated in style.css
-
     const defaults = {
       videoUrl: '',
       subtitles: '',
@@ -15,6 +146,9 @@ export class simpleVideoPlayer {
     this.config = { ...defaults, ...config };
     this.validateInput();
 
+    this.ui = new SimpleVideoPlayerUI(this.config.containerSelector);
+    this.ui.validateContainer();
+
     this.naturalWidth = 0;
     this.naturalHeight = 0;
     this.lastScrollUpdate = 0;
@@ -25,68 +159,40 @@ export class simpleVideoPlayer {
     this.isPlaying = false;
     this.isVideoLoaded = false;
 
-    // Store bound references so they can be properly removed later
+    // Build DOM
+    this.elements = this.ui.createDOM(this.config);
+    this.video = this.elements.video; // provide direct access for API compat
+    this.mainWrapper = this.elements.mainWrapper;
+
+    // Store bound references
     this._handleVideoLoaded = this.handleVideoLoaded.bind(this);
     this._applyVideoStyles = this.applyVideoStyles.bind(this);
     this._updateSubtitleScroll = this.updateSubtitleScroll.bind(this);
     this._handleClick = this.handleClick.bind(this);
 
-    this.initContainer();
-    this.initVideo();
-    this.initSubtitles();
-    this.initPlayOverlay();
+    this.initVideoLogic();
+    this.ui.updatePlayOverlay(this.isPlaying);
+    setTimeout(() => this.updateSubtitleScroll(true), 200);
     this.initEventListeners();
   }
 
   validateInput() {
     if (!this.config.videoUrl) throw new Error('videoUrl is required');
     if (!this.config.subtitles) throw new Error('subtitles is required');
-    if (!document.querySelector(this.config.containerSelector)) {
-      throw new Error('Container element not found');
-    }
   }
 
-  initContainer() {
-    this.container = document.querySelector(this.config.containerSelector);
-    this.mainWrapper = document.createElement('div');
-    this.mainWrapper.className = 'ivp-main-wrapper';
-
-    // FOUC fix: hide with visibility so layout is preserved but nothing is painted
-    this.mainWrapper.style.visibility = 'hidden';
-
-    this.container.style.margin = '0';
-    this.container.style.padding = '0';
-    this.container.style.overflowX = 'hidden';
-
-    this.container.appendChild(this.mainWrapper);
-  }
-
-  initVideo() {
-    this.videoWrapper = document.createElement('div');
-    this.videoWrapper.className = 'ivp-video-wrapper';
-
-    this.video = document.createElement('video');
-    this.video.className = 'ivp-video';
-    this.video.setAttribute('playsinline', '');
-    this.video.setAttribute('disableRemotePlayback', '');
-    this.video.setAttribute('preload', 'metadata');
-    this.video.setAttribute('crossorigin', 'anonymous');
-    this.video.muted = true;
-    this.video.src = this.config.videoUrl;
-
+  initVideoLogic() {
     if (this.isAndroid) this.disableMediaSession();
 
-    // FOUC fix: use stored bound reference so removeEventListener actually works
     this.video.addEventListener('loadeddata', this._handleVideoLoaded);
     this.video.addEventListener('canplay', this._handleVideoLoaded);
 
-    // FOUC fix: safety fallback in case neither loadeddata nor canplay fires
     this._fouc_fallback = setTimeout(() => {
       if (!this.isVideoLoaded) this.reveal();
     }, 3000);
 
     if (this.isIOS) {
-      this.video.setAttribute('poster', 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==');
+      this.ui.setPoster('data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==');
 
       const unmute = () => {
         this.video.muted = false;
@@ -102,7 +208,6 @@ export class simpleVideoPlayer {
       }, 100);
 
     } else {
-      // Non-iOS: generate poster from first frame
       const tempVideo = document.createElement('video');
       tempVideo.crossOrigin = 'anonymous';
       tempVideo.src = this.config.videoUrl;
@@ -122,9 +227,9 @@ export class simpleVideoPlayer {
 
         try {
           ctx.drawImage(tempVideo, 0, 0, canvas.width, canvas.height);
-          this.video.setAttribute('poster', canvas.toDataURL('image/jpeg', 0.8));
+          this.ui.setPoster(canvas.toDataURL('image/jpeg', 0.8));
         } catch (error) {
-          this.video.setAttribute('poster', 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==');
+          this.ui.setPoster('data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==');
         }
 
         cleanupTempVideo();
@@ -144,7 +249,6 @@ export class simpleVideoPlayer {
       document.body.appendChild(tempVideo);
       tempVideo.load();
 
-      // Fallback if tempVideo stalls
       setTimeout(() => {
         if (document.body.contains(tempVideo)) {
           cleanupTempVideo();
@@ -153,69 +257,20 @@ export class simpleVideoPlayer {
         }
       }, 2000);
     }
-
-    this.videoWrapper.appendChild(this.video);
-    this.mainWrapper.appendChild(this.videoWrapper);
   }
 
-  // FOUC fix: single reveal method used everywhere, with double-rAF to ensure paint
   reveal() {
     if (this.isVideoLoaded) return;
     this.isVideoLoaded = true;
     clearTimeout(this._fouc_fallback);
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        this.mainWrapper.style.visibility = 'visible';
-      });
-    });
+    this.ui.reveal();
   }
 
   handleVideoLoaded() {
     if (this.isVideoLoaded) return;
-
-    // Remove listeners using stored bound references (fixes the broken removeEventListener bug)
     this.video.removeEventListener('loadeddata', this._handleVideoLoaded);
     this.video.removeEventListener('canplay', this._handleVideoLoaded);
-
     this.reveal();
-  }
-
-  initSubtitles() {
-    this.blurOverlay = document.createElement('div');
-    this.blurOverlay.className = 'ivp-blur-overlay';
-    this.videoWrapper.appendChild(this.blurOverlay);
-
-    this.subtitleScrollContainer = document.createElement('div');
-    this.subtitleScrollContainer.className = 'ivp-subtitle-scroll-container';
-
-    this.subtitleDisplay = document.createElement('div');
-    this.subtitleDisplay.className = 'ivp-subtitles';
-
-    this.subtitleScrollContainer.appendChild(this.subtitleDisplay);
-    this.videoWrapper.appendChild(this.subtitleScrollContainer);
-
-    this.subtitleDisplay.textContent = this.config.subtitles;
-    
-    // Apply config styles if provided
-    if (this.config.subtitleStyles) {
-      Object.assign(this.subtitleDisplay.style, this.config.subtitleStyles);
-    }
-
-    setTimeout(() => this.updateSubtitleScroll(true), 200);
-  }
-
-  initPlayOverlay() {
-    this.playOverlay = document.createElement('div');
-    this.playOverlay.className = 'ivp-play-overlay';
-    this.playOverlay.innerHTML = `
-      <div class="ivp-play-icon-container">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white">
-          <path d="M8 5v14l11-7z"/>
-        </svg>
-      </div>
-    `;
-    this.videoWrapper.appendChild(this.playOverlay);
-    this.updatePlayOverlay();
   }
 
   disableMediaSession() {
@@ -280,12 +335,12 @@ export class simpleVideoPlayer {
 
     this.video.addEventListener('play', () => {
       this.isPlaying = true;
-      this.updatePlayOverlay();
+      this.ui.updatePlayOverlay(this.isPlaying);
     });
 
     this.video.addEventListener('pause', () => {
       this.isPlaying = false;
-      this.updatePlayOverlay();
+      this.ui.updatePlayOverlay(this.isPlaying);
     });
 
     if (this.isIOS) {
@@ -300,24 +355,17 @@ export class simpleVideoPlayer {
     }
   }
 
-  updatePlayOverlay() {
-    if (this.playOverlay) {
-      this.playOverlay.style.display = this.isPlaying ? 'none' : 'flex';
-    }
-  }
-
   updateSubtitleScroll(forceUpdate = false) {
-    if (!this.config.scrollSubtitles || !this.subtitleScrollContainer) return;
+    if (!this.config.scrollSubtitles) return;
 
     const now = Date.now();
     if (!forceUpdate && now - this.lastScrollUpdate < this.scrollUpdateInterval) return;
     this.lastScrollUpdate = now;
 
-    const containerHeight = this.subtitleScrollContainer.offsetHeight;
-    const contentHeight = this.subtitleDisplay.scrollHeight;
+    const { containerHeight, contentHeight } = this.ui.getSubtitleMetrics();
 
     if (contentHeight <= containerHeight) {
-      this.subtitleDisplay.style.transform = 'translateY(0)';
+      this.ui.resetSubtitleScroll();
       return;
     }
 
@@ -334,14 +382,12 @@ export class simpleVideoPlayer {
     const maxScroll = contentHeight - containerHeight;
     const currentScroll = scrollRatio * maxScroll;
 
-    this.subtitleDisplay.style.transform = `translateY(-${currentScroll}px)`;
-    this.subtitleDisplay.style.transition = forceUpdate ? 'none' : `transform ${this.scrollUpdateInterval / 1000}s linear`;
+    this.ui.updateSubtitleScroll(currentScroll, forceUpdate, this.scrollUpdateInterval);
   }
 
   applyVideoStyles() {
-    // Dynamic calculations for scrolling
     this.updateSubtitleScroll(true);
-    this.updatePlayOverlay();
+    this.ui.updatePlayOverlay(this.isPlaying);
   }
 
   handleClick() {
@@ -377,7 +423,6 @@ export class simpleVideoPlayer {
     clearTimeout(this._fouc_fallback);
     if (this.mainWrapper) {
       this.mainWrapper.removeEventListener('click', this._handleClick);
-      this.mainWrapper.remove();
     }
     window.removeEventListener('resize', this._applyVideoStyles);
     if (this.video) {
@@ -386,5 +431,6 @@ export class simpleVideoPlayer {
       this.video.removeEventListener('loadeddata', this._handleVideoLoaded);
       this.video.removeEventListener('canplay', this._handleVideoLoaded);
     }
+    this.ui.destroy();
   }
 }
