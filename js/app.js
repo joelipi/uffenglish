@@ -426,7 +426,14 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
                     appStore.getState().deductListeningScore(result.englishLevelDeduction);
                 }
             }
+
             // Pass the webFormattedExplanations instead of result.explanations
+            // If the user gets it correct on AI, webFormattedExplanations may be empty.
+            // We should ensure the new score bubbles that were added to immediateStatsHtmlArr are preserved.
+            // Actually, handlecueUI uses `explanation` directly.
+            // In handleAnswer we did: `renderAIFeedback(immediateStatsHtmlArr);`
+            // and we do NOT need to pass them to handlecueUI unless we want to replace `explanation`.
+
             handlecueUI(qIndex, questionData, button, cue, webFormattedExplanations, translation, userResponse, result.englishLevel, result.englishLevelDeduction, userData, configData);
             showFeedbackAndProceed(questionData, isCorrect, userData, configData);
         } else {
