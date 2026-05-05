@@ -1,21 +1,25 @@
 // --- modules/media-web.js ---
 import { State } from './state.js';
 
-const audioPlayer = new Audio('assets/sounds/enableaudio.mp3');
-
 const AUDIO_URLS = {
     'correct-sound': 'assets/sounds/correct.mp3',
     'incorrect-sound': 'assets/sounds/incorrect.mp3',
     'lesson-complete-sound': 'assets/sounds/complete.mp3'
 };
 
+const audioPlayers = {
+    'enable-audio': new Audio('assets/sounds/enableaudio.mp3')
+};
+for (const [id, url] of Object.entries(AUDIO_URLS)) {
+    audioPlayers[id] = new Audio(url);
+}
+
 export const Media = {
     playSound(soundId) {
-        if (!AUDIO_URLS[soundId]) return;
+        if (!audioPlayers[soundId]) return;
         if (!State.isAudioEnabled) return;
-        audioPlayer.src = AUDIO_URLS[soundId];
-        audioPlayer.currentTime = 0;
-        audioPlayer.play().catch(error => { });
+        audioPlayers[soundId].currentTime = 0;
+        audioPlayers[soundId].play().catch(error => { });
     },
 
     pauseVideoIfPlaying() {
@@ -48,7 +52,7 @@ export const Media = {
 
     async enableAudioSystem() {
         try {
-            await audioPlayer.play().catch(e => { if (e.name !== 'AbortError') throw e; });
+            await audioPlayers['enable-audio'].play().catch(e => { if (e.name !== 'AbortError') throw e; });
             State.isAudioEnabled = true;
         } catch (error) {
             console.error("Audio system enablement failed:", error);
