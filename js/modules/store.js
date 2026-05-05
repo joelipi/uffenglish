@@ -1,6 +1,6 @@
 // --- modules/store.js ---
 // Zustand vanilla store for reactive UI metrics.
-// This store holds ONLY the five values that drive persistent on-screen indicators.
+// This store holds the 12 values that drive persistent on-screen indicators.
 // All other application state (lesson data, config, player refs, flags) remains in state.js.
 
 import { createStore } from 'https://esm.sh/zustand/vanilla';
@@ -22,10 +22,16 @@ export const appStore = createStore((set, get) => ({
 
     // --- Actions ---
 
-    // Update fluency metrics
-    setFluencyMetrics: (metrics) => set({
-        ...metrics
-    }),
+    // Update fluency metrics securely by filtering only expected keys
+    setFluencyMetrics: (metrics) => set((state) => ({
+        fluencyScore: metrics.fluencyScore !== undefined ? metrics.fluencyScore : state.fluencyScore,
+        flowScore: metrics.flowScore !== undefined ? metrics.flowScore : state.flowScore,
+        vocabularyScore: metrics.vocabularyScore !== undefined ? metrics.vocabularyScore : state.vocabularyScore,
+        grammarScore: metrics.grammarScore !== undefined ? metrics.grammarScore : state.grammarScore,
+        formalityScore: metrics.formalityScore !== undefined ? metrics.formalityScore : state.formalityScore,
+        nativeLikeScore: metrics.nativeLikeScore !== undefined ? metrics.nativeLikeScore : state.nativeLikeScore,
+        understandingScore: metrics.understandingScore !== undefined ? metrics.understandingScore : state.understandingScore
+    })),
 
     // Deduct from listeningScore, floored at 0
     deductListeningScore: (amount) => set((state) => {
@@ -71,6 +77,13 @@ export const appStore = createStore((set, get) => ({
     resetForNewLesson: () => set({
         listeningScore: 100,
         speakingScore: 100,
-        incorrectAttempts: 0
+        incorrectAttempts: 0,
+        fluencyScore: 100,
+        flowScore: 100,
+        vocabularyScore: 100,
+        grammarScore: 100,
+        formalityScore: 100,
+        nativeLikeScore: 100,
+        understandingScore: 100
     })
 }));

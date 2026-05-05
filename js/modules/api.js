@@ -2,11 +2,10 @@ import { getCurrentUser, logout, tablesDB, APPWRITE_CONFIG } from './appwrite.js
 import normalize from './normalize.js';
 import { QueryClient } from 'https://esm.sh/@tanstack/query-core@5';
 
-
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // Data is fresh for 5 minutes (no background refetch)
+      staleTime: Infinity, // Data never goes stale, no automatic background refetching
       gcTime: 1000 * 60 * 60 * 24, // Keep in cache for 24 hours
       retry: 2, // Retry failed requests twice
       refetchOnWindowFocus: false, // Prevent unnecessary DB reads when switching tabs
@@ -90,38 +89,38 @@ export async function getUserProfile() {
 }
 
 export const courseConfigQuery = (courseId) => ({
-    queryKey: ['course', 'config', courseId],
-    queryFn: async () => {
-        const response = await fetch(`js/config/${courseId}.json`);
-        if (!response.ok) {
-            throw new Error(`Failed to fetch config for course ${courseId}`);
-        }
-        const data = await response.json();
-        console.log('[TanStack Query] Successfully fetched data for query: courseConfigQuery', data);
-        return data;
-    },
-    staleTime: Infinity,
-    gcTime: 30 * 24 * 60 * 60 * 1000
+  queryKey: ['course', 'config', courseId],
+  queryFn: async () => {
+    const response = await fetch(`js/config/${courseId}.json`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch config for course ${courseId}`);
+    }
+    const data = await response.json();
+    console.log('[TanStack Query] Successfully fetched data for query: courseConfigQuery', data);
+    return data;
+  },
+  staleTime: Infinity,
+  gcTime: 30 * 24 * 60 * 60 * 1000
 });
 
 export const currentLessonQuery = (courseId, lessonId) => ({
-    queryKey: ['course', 'lesson', courseId, lessonId],
-    queryFn: async () => {
-        let configData = queryClient.getQueryData(['course', 'config', courseId]);
+  queryKey: ['course', 'lesson', courseId, lessonId],
+  queryFn: async () => {
+    let configData = queryClient.getQueryData(['course', 'config', courseId]);
 
-        if (!configData) {
-            configData = await queryClient.fetchQuery(courseConfigQuery(courseId));
-        }
+    if (!configData) {
+      configData = await queryClient.fetchQuery(courseConfigQuery(courseId));
+    }
 
-        const lesson = configData.lessons.find(l => l.lessonId === lessonId);
-        if (!lesson) {
-            throw new Error(`Lesson ${lessonId} not found in course ${courseId}`);
-        }
-        console.log('[TanStack Query] Successfully fetched data for query: currentLessonQuery', lesson);
-        return lesson;
-    },
-    staleTime: Infinity,
-    gcTime: 30 * 24 * 60 * 60 * 1000
+    const lesson = configData.lessons.find(l => l.lessonId === lessonId);
+    if (!lesson) {
+      throw new Error(`Lesson ${lessonId} not found in course ${courseId}`);
+    }
+    console.log('[TanStack Query] Successfully fetched data for query: currentLessonQuery', lesson);
+    return lesson;
+  },
+  staleTime: Infinity,
+  gcTime: 30 * 24 * 60 * 60 * 1000
 });
 
 export async function getDeepgramToken() {
@@ -140,7 +139,7 @@ export async function getDeepgramToken() {
 export async function checkGrammarWithAI(selectedAnswer, questionData) {
   const aiEndpoint = 'https://nvidia-proxy.joel-1cb.workers.dev';
   try {
-    console.log("🤖 AI Evaluation: Starting Grammar Check...");
+    console.log("､AI Evaluation: Starting Grammar Check...");
     const grammarPrompt = `Find all the grammatical error(s) in this dialog, including if B does not agree with A in tense, number or gender. Return ONLY the grammar-corrected text of B's reply. If no errors, respond "CORRECT":  A: ${questionData.cue} B: ${selectedAnswer}`;
 
     const response = await fetch(aiEndpoint, {
@@ -156,8 +155,9 @@ export async function checkGrammarWithAI(selectedAnswer, questionData) {
     const data = await response.json();
     const correctedText = (data.choices?.[0]?.message?.content || '').trim();
 
-    console.log("📝 Grammar Check Result:", correctedText);
+    console.log("統 Grammar Check Result:", correctedText);
 
+    // normalize is correctly awaited based on normalize.js being an async function
     const normOriginal = await normalize(selectedAnswer);
     const normCorrected = await normalize(correctedText);
     const isGrammarCorrect = normCorrected === 'correct' || normOriginal === normCorrected;
@@ -175,19 +175,19 @@ export async function checkGrammarWithAI(selectedAnswer, questionData) {
 export async function evaluateIntentWithAI(answerForIntentPass, questionData, lessonData) {
   const aiEndpoint = 'https://nvidia-proxy.joel-1cb.workers.dev';
   try {
-    console.log("🤖 AI Evaluation: Starting Intent Check...");
-    const intentPrompt = `Setting: ${lessonData.setting?.en || ''}
-A: ${lessonData.roleA?.en || ''}
-B: ${lessonData.roleB?.en || ''}
-B's goal: ${questionData.mission || 'Respond appropriately'}
-A: ${questionData.cue}
-B: ${answerForIntentPass}
+    console.log("､AI Evaluation: Starting Intent Check...");
 
-Evaluate B's response. Return ONLY a JSON array. The array must contain any applicable labels from this list, followed by the corrected version of B's response as the final element in the array.
-Valid labels: ungrammatical, pragmatic failure, rude, too formal, too informal, unidiomatic, correct.
-Example format: ["too formal", "unidiomatic", "This is the corrected sentence."]`;
+    // Updated prompt based on user instructions
+    const intentPrompt = `Setting: ${lessonData.setting?.en || ''} 
+A: ${lessonData.roleA?.en || ''} 
+B: ${lessonData.roleB?.en || ''} 
+B's goal: ${questionData.mission || 'Respond appropriately'} 
+A: ${questionData.cue} 
+B: ${answerForIntentPass} 
+ 
+Evaluate B's response. Return ONLY an array with any applicable labels and any corrected version of B's response: [ungrammatical, pragmatic failure, too formal, too informal, rude, unidiomatic, correct].`;
 
-    console.log("🤖🤖 prompt to AI: ", intentPrompt);
+    console.log("､役洟prompt to AI: ", intentPrompt);
 
     const response = await fetch(aiEndpoint, {
       method: 'POST',
@@ -202,35 +202,20 @@ Example format: ["too formal", "unidiomatic", "This is the corrected sentence."]
     const data = await response.json();
     const rawIntentText = data.choices?.[0]?.message?.content || '';
 
-    console.log("🎯 Intent Evaluation Raw Result:", rawIntentText);
+    console.log("識 Intent Evaluation Raw Result:", rawIntentText);
 
-    let evaluationResult;
-    try {
-      let cleanedText = rawIntentText.trim();
-      const firstBracket = cleanedText.indexOf('[');
-      if (firstBracket > 0) cleanedText = cleanedText.substring(firstBracket);
-      const lastBracket = cleanedText.lastIndexOf(']');
-      if (lastBracket !== -1 && lastBracket < cleanedText.length - 1) cleanedText = cleanedText.substring(0, lastBracket + 1);
-      cleanedText = cleanedText.replace(/[""]/g, '"').replace(/'/g, '"');
-      const labels = ['pragmatic failure', 'too formal', 'too informal', 'rude', 'correct'];
-      for (const label of labels) {
-        cleanedText = cleanedText.replace(new RegExp(`\\[\\s*${label}\\s*,`, 'gi'), `["${label}",`);
-        cleanedText = cleanedText.replace(new RegExp(`\\[\\s*${label}\\s*\\]`, 'gi'), `["${label}"]`);
-        cleanedText = cleanedText.replace(new RegExp(`,\\s*${label}\\s*,`, 'gi'), `,"${label}",`);
-        cleanedText = cleanedText.replace(new RegExp(`,\\s*${label}\\s*\\]`, 'gi'), `,"${label}"]`);
+    // Robust parsing: bypass JSON.parse entirely to avoid AI formatting errors
+    const validLabels = ['UNGRAMMATICAL', 'PRAGMATIC FAILURE', 'TOO FORMAL', 'TOO INFORMAL', 'RUDE', 'UNIDIOMATIC', 'CORRECT'];
+    let intentLabel = 'parse_error';
+    const textUpper = rawIntentText.toUpperCase();
+
+    for (const label of validLabels) {
+      if (textUpper.includes(label)) {
+        intentLabel = label.toLowerCase();
+        break;
       }
-      evaluationResult = JSON.parse(cleanedText);
-    } catch (e) {
-      const textUpper = rawIntentText.toUpperCase();
-      if (textUpper.includes('PRAGMATIC FAILURE')) evaluationResult = ['pragmatic failure'];
-      else if (textUpper.includes('TOO FORMAL')) evaluationResult = ['too formal'];
-      else if (textUpper.includes('TOO INFORMAL')) evaluationResult = ['too informal'];
-      else if (textUpper.includes('RUDE')) evaluationResult = ['rude'];
-      else if (textUpper.includes('CORRECT')) evaluationResult = ['correct'];
-      else evaluationResult = ['parse_error'];
     }
 
-    const intentLabel = Array.isArray(evaluationResult) ? evaluationResult[0] : 'parse_error';
     return {
       isIntentCorrect: intentLabel === 'correct',
       intentLabel,
@@ -242,10 +227,14 @@ Example format: ["too formal", "unidiomatic", "This is the corrected sentence."]
   }
 }
 
-export async function evaluateWithAI(selectedAnswer, normalizedSelectedAnswer, questionData, userCefrLevel, uffApiDataRoot) {
+// Added lessonData to the parameters so it can be passed down correctly
+export async function evaluateWithAI(selectedAnswer, normalizedSelectedAnswer, questionData, lessonData, userCefrLevel, uffApiDataRoot) {
   try {
-    const grammarResult = await checkGrammarWithAI(selectedAnswer);
-    const intentResult = await evaluateIntentWithAI(grammarResult.correctedText, questionData);
+    // Passed questionData here to prevent undefined errors
+    const grammarResult = await checkGrammarWithAI(selectedAnswer, questionData);
+
+    // Passed lessonData here to prevent undefined errors
+    const intentResult = await evaluateIntentWithAI(grammarResult.correctedText, questionData, lessonData);
 
     return {
       isGrammarCorrect: grammarResult.isGrammarCorrect,
@@ -268,6 +257,7 @@ export async function evaluateWithAI(selectedAnswer, normalizedSelectedAnswer, q
     };
   }
 }
+
 export function invalidateUserAndAuthCache() {
   queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
   queryClient.invalidateQueries({ queryKey: ['auth', 'status'] });
@@ -278,4 +268,3 @@ export async function signOut() {
   invalidateUserAndAuthCache();
   return result;
 }
-

@@ -10,12 +10,19 @@ export function getCurrentQuestionIndex(questionData, configData, currentLessonI
     if (currentLessonIndex < 0 || currentLessonIndex >= configData.lessons.length) return -1;
 
     const currentLesson = configData.lessons[currentLessonIndex];
-    return currentLesson.questions.findIndex(q =>
-        q.question === questionData.question &&
-        q.explanation === questionData.explanation &&
-        q.cue === questionData.cue &&
-        JSON.stringify(q.incues) === JSON.stringify(questionData.incues)
-    );
+    return currentLesson.questions.findIndex(q => {
+        const sameQuestion = q.question === questionData.question &&
+            q.explanation === questionData.explanation &&
+            q.cue === questionData.cue;
+
+        // Safely compare incues arrays regardless of order
+        const qIncues = Array.isArray(q.incues) ? [...q.incues].sort() : [];
+        const dataIncues = Array.isArray(questionData.incues) ? [...questionData.incues].sort() : [];
+        const sameIncues = qIncues.length === dataIncues.length &&
+            qIncues.every((val, index) => val === dataIncues[index]);
+
+        return sameQuestion && sameIncues;
+    });
 }
 
 export function isLastAiQuestionInLesson(lesson, currentIndex) {
@@ -26,7 +33,7 @@ export function isLastAiQuestionInLesson(lesson, currentIndex) {
 }
 
 export async function processAnswerLogic({
-    userResponse, cue, questionData, lesson, english_level, userData, cuesGiven, apiRoot
+    userResponse, cue, questionData, lesson, englishLevel, userData, cuesGiven, apiRoot
 }) {
     if (questionData.inputType === "ai") {
         const normalizeduserResponse = await normalize(userResponse.trim().toLowerCase());
@@ -52,29 +59,79 @@ export async function processAnswerLogic({
 
         // --- NEW BUSINESS LOGIC: Robust Array Parsing ---
         let evaluationResult = [];
+        let cleanedText = intentResult.rawIntentText.trim();
+        let appendedCorrection = "";
+
         try {
-            let cleanedText = intentResult.rawIntentText.trim();
             const firstBracket = cleanedText.indexOf('[');
             if (firstBracket >= 0) cleanedText = cleanedText.substring(firstBracket);
             const lastBracket = cleanedText.lastIndexOf(']');
-            if (lastBracket !== -1 && lastBracket < cleanedText.length - 1) cleanedText = cleanedText.substring(0, lastBracket + 1);
+            if (lastBracket !== -1 && lastBracket < cleanedText.length - 1) {
+                appendedCorrection = cleanedText.substring(lastBracket + 1).trim();
+                cleanedText = cleanedText.substring(0, lastBracket + 1);
+            }
 
-            // Try to parse it as JSON
-            evaluationResult = JSON.parse(cleanedText);
+            try {
+                // 1. Try strict JSON parse first
+                evaluationResult = JSON.parse(cleanedText);
+            } catch (e) {
+                // 2. Pre-process for common AI formatting mistakes (missing quotes)
+                // Strip outer brackets, split by comma, trim and quote each part individually
+                let innerContent = cleanedText.replace(/^\[/, '').replace(/\]$/, '').trim();
+                let parts = innerContent.split(',').map(p => {
+                    let trimmed = p.trim().replace(/^"|"$/g, ''); // strip existing quotes if partial
+                    return `"${trimmed}"`;
+                });
+                let fixedText = `[${parts.join(',')}]`;
+                console.log('[Intent Parse] Fixed unquoted array:', fixedText);
+                evaluationResult = JSON.parse(fixedText);
+            }
+
             if (!Array.isArray(evaluationResult)) {
                 evaluationResult = [];
             }
         } catch (e) {
-            console.error("Failed to parse AI intent result", e);
-            evaluationResult = ["parse_error"];
+            console.warn("Failed to JSON parse AI intent result, falling back to manual split", e);
+
+            // 3. Ultimate fallback for severely malformed strings
+            let innerText = cleanedText.replace(/^\[/, '').replace(/\]$/, '').trim();
+
+            if (innerText.toLowerCase() === 'correct') {
+                evaluationResult = ["correct"];
+            } else {
+                const firstCommaIdx = innerText.indexOf(',');
+                if (firstCommaIdx !== -1) {
+                    evaluationResult = [
+                        innerText.substring(0, firstCommaIdx).trim().replace(/^"|"$/g, ''),
+                        innerText.substring(firstCommaIdx + 1).trim().replace(/^"|"$/g, '')
+                    ];
+                } else {
+                    evaluationResult = [innerText.replace(/^"|"$/g, '')];
+                }
+            }
         }
 
         let labels = [];
         let correction = "";
 
         if (evaluationResult.length > 0) {
-            correction = evaluationResult.pop(); // The final string is the correction
-            labels = evaluationResult.map(l => (typeof l === 'string' ? l.toLowerCase() : l));
+            if (evaluationResult.length === 1 && (evaluationResult[0].trim().toLowerCase() === "correct" || evaluationResult[0].trim().toLowerCase() === "parse_error")) {
+                labels = [evaluationResult[0].trim().toLowerCase()];
+                correction = grammarResult.correctedText;
+            } else {
+                const validLabelsSet = new Set(['ungrammatical', 'pragmatic failure', 'too formal', 'too informal', 'rude', 'unidiomatic', 'correct', 'parse_error']);
+                const lastEl = evaluationResult[evaluationResult.length - 1];
+                
+                if (typeof lastEl === 'string' && !validLabelsSet.has(lastEl.trim().toLowerCase())) {
+                    correction = evaluationResult.pop();
+                }
+                
+                if (appendedCorrection) {
+                     correction = appendedCorrection.replace(/^"|"$/g, '').trim();
+                }
+                
+                labels = evaluationResult.map(l => (typeof l === 'string' ? l.toLowerCase().trim() : l));
+            }
         }
 
         // 2. The "Correct" Override
@@ -82,10 +139,24 @@ export async function processAnswerLogic({
             labels = labels.filter(label => label !== "correct");
         }
 
+        console.log('[Intent Parse] Final labels:', JSON.stringify(labels), '| Correction:', correction, '| Appended:', appendedCorrection);
+
+        // --- TWO-TRACK EVALUATION ---
+        let isGrammarCorrect = true;
+        if (grammarResult.isCorrect === false || grammarResult.hasError === true) {
+            isGrammarCorrect = false;
+        } else if (grammarResult.correctedText) {
+            const cleanOriginal = userResponse.replace(/[^\w\s]/g, '').trim().toLowerCase();
+            const cleanCorrected = grammarResult.correctedText.replace(/[^\w\s]/g, '').trim().toLowerCase();
+            if (cleanOriginal !== cleanCorrected && cleanOriginal !== '') {
+                isGrammarCorrect = false;
+            }
+        }
+
         let isIntentCorrect = labels.length === 1 && labels.includes("correct");
 
         result.intentLabels = labels;
-        result.isCorrect = isIntentCorrect;
+        result.isCorrect = isGrammarCorrect && isIntentCorrect;
         result.correction = correction || grammarResult.correctedText;
 
         if (result.isCorrect) {
@@ -93,63 +164,43 @@ export async function processAnswerLogic({
             result.cefrLevelDeduction = 0;
             result.errorType = 'correct';
         } else {
-            // --- ADDITIVE FEEDBACK LOGIC ---
             let feedbackChunks = [];
+            result.errorType = null;
 
-            if (labels.includes("ungrammatical")) {
-                isIntentCorrect = false;
-                result.isCorrect = false;
+            // 1. SEPARATE BUBBLE: Grammar
+            if (!isGrammarCorrect || labels.includes("ungrammatical")) {
                 result.errorType = 'ungrammatical';
                 feedbackChunks.push({
                     type: 'grammar_diff',
                     original: userResponse,
-                    corrected: result.correction,
+                    corrected: grammarResult.correctedText,
                     header: Strings.get('stats_grammar_header', userData?.native_language)
                 });
-            } else {
-                // Determine all specific pragmatic errors
-                let intentExplanations = [];
-                if (labels.includes("pragmatic failure")) {
-                    intentExplanations.push(Strings.get('feedback_pragmatic_failure', userData?.native_language));
-                }
-                if (labels.includes("rude")) {
-                    intentExplanations.push(Strings.get('feedback_rude', userData?.native_language));
-                }
-                if (labels.includes("too formal")) {
-                    intentExplanations.push(Strings.get('feedback_too_formal', userData?.native_language));
-                }
-                if (labels.includes("too informal")) {
-                    intentExplanations.push(Strings.get('feedback_too_informal', userData?.native_language));
-                }
-                if (labels.includes("unidiomatic")) {
-                    intentExplanations.push(Strings.get('feedback_unidiomatic', userData?.native_language));
-                }
+            }
 
-                if (intentExplanations.length > 0) {
-                    isIntentCorrect = false;
-                    result.isCorrect = false;
-                    result.errorType = labels[0] || 'intent_error';
+            // 2. Set errorType for intent labels (feedback text is now in stats bubbles in app.js)
+            if (labels.includes("pragmatic failure")) {
+                if (!result.errorType) result.errorType = 'pragmatic_failure';
+            }
+            if (labels.includes("too formal") || labels.includes("too informal")) {
+                if (!result.errorType) result.errorType = 'formality_error';
+            }
+            if (labels.includes("unidiomatic")) {
+                if (!result.errorType) result.errorType = 'unidiomatic';
+            }
 
-                    // Join multiple explanations with a newline or space
-                    const intentExplanation = intentExplanations.join("<br>");
-
-                    feedbackChunks.push({
-                        type: 'pragmatics',
-                        header: Strings.get('stats_pragmatics_header', userData?.native_language),
-                        message: intentExplanation,
-                        correction: result.correction
-                    });
-                } else if (labels.length > 0 && !labels.includes("ungrammatical") && !labels.includes("correct")) {
-                    isIntentCorrect = false;
-                    result.isCorrect = false;
-                    result.errorType = labels[0] || 'intent_error';
-                    feedbackChunks.push({
-                        type: 'pragmatics',
-                        header: Strings.get('stats_pragmatics_header', userData?.native_language),
-                        message: Strings.get('tech_error_generic', userData?.native_language),
-                        correction: result.correction
-                    });
-                }
+            // 3. RECOMMENDED CORRECTED VERSION (single consolidated bubble)
+            const cleanOriginal = userResponse.replace(/[^\w\s]/g, '').trim().toLowerCase();
+            const cleanCorrected = result.correction.replace(/[^\w\s]/g, '').trim().toLowerCase();
+            const displayCorrection = (cleanOriginal === cleanCorrected) ? "" : result.correction;
+            
+            if (displayCorrection && labels.some(l => ["pragmatic failure", "too formal", "too informal", "unidiomatic", "rude"].includes(l))) {
+                feedbackChunks.push({
+                    type: 'pragmatics',
+                    header: Strings.get('recommended_correction', userData?.native_language) || "Recommended Corrected Version",
+                    message: "",
+                    correction: displayCorrection
+                });
             }
 
             result.explanations = feedbackChunks.filter(Boolean);
@@ -174,18 +225,6 @@ export async function processAnswerLogic({
     }
 }
 
-/**
- * Pre-submission validation for user answers.
- * Checks for duplicate responses, cue repetition, minimum word count by level, and profanity.
- * Only applies to inputType "ai" — all other types pass through immediately.
- * @param {string} val - The raw user input
- * @param {string} cue - The target cue phrase
- * @param {Object} questionData - The current question object
- * @param {string} englishLevel - e.g. 'A2', 'B1', 'B2'
- * @param {Object} userData - The user profile object
- * @param {string[]} cuesGiven - Array of already-used normalized responses
- * @returns {Promise<{ isValid: boolean, warningMessage?: string }>}
- */
 export async function validateAnswerPrecheck(val, cue, questionData, englishLevel, userData, cuesGiven) {
     if (questionData.inputType !== "ai") return { isValid: true };
 

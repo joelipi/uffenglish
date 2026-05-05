@@ -32,7 +32,7 @@ export function calculateFluencyScore({
     wordCount,
     idiomCount,
     cefrLevel,
-    grammarErrors,
+    grammarErrorScore,
     complexityScore,
     labels,
     attemptNumber
@@ -54,7 +54,7 @@ export function calculateFluencyScore({
     if (cefrLevel === 'B1') threshold = 1;
     else if (cefrLevel === 'B2') threshold = 2;
     else if (cefrLevel === 'C1' || cefrLevel === 'C2') threshold = 3;
-
+    
     // We could penalize vocab if wordCount is very low, but the prompt says:
     // "Base this on total word count (do not penalize for punctuating as sentences) and idiom count (set thresholds per CEFR level: B1, B2, C1+)."
     // Let's implement a basic threshold logic:
@@ -64,8 +64,14 @@ export function calculateFluencyScore({
     const vocabulary = vocabScore;
 
     // 5. Grammar (5%)
-    const diffScore = Math.max(0, 100 - (grammarErrors * 25));
-    const grammar = ((diffScore * 2) + (complexityScore ?? 100)) / 3;
+    const diffScore = grammarErrorScore !== undefined ? grammarErrorScore : 100;
+    let grammar;
+    
+    if (['A0', 'A1', 'A2'].includes(cefrLevel)) {
+        grammar = diffScore;
+    } else {
+        grammar = ((diffScore * 2) + (complexityScore ?? 100)) / 3;
+    }
 
     // 6. Formality (2.5%)
     const formality = (labels.includes("too formal") || labels.includes("too informal")) ? 0 : 100;
@@ -80,13 +86,13 @@ export function calculateFluencyScore({
 
     if (attemptNumber <= 1) {
         // First Attempt Math
-        finalScore = (pronunciation * 0.05) +
-                     (listening * 0.40) +
-                     (flow * 0.05) +
-                     (vocabulary * 0.05) +
-                     (grammar * 0.05) +
-                     (formality * 0.025) +
-                     (nativeLike * 0.025) +
+        finalScore = (pronunciation * 0.05) + 
+                     (listening * 0.40) + 
+                     (flow * 0.05) + 
+                     (vocabulary * 0.05) + 
+                     (grammar * 0.05) + 
+                     (formality * 0.025) + 
+                     (nativeLike * 0.025) + 
                      (understanding * 0.35);
     } else {
         // Subsequent Attempts Math

@@ -231,6 +231,10 @@ const strings = {
     
     // --- NEW LOCALIZATION STRINGS ADDED ---
 
+    'recommended_correction': {
+        en: "RECOMMENDED CORRECTED VERSION",
+        es: "VERSIÓN CORREGIDA RECOMENDADA"
+    },
     'feedback_pragmatic_failure': {
         en: "That doesn't quite make sense in this context."
     },

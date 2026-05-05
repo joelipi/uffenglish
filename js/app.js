@@ -4,7 +4,6 @@ import { clearSpeechRecordingsForLesson, updateSpeechRecording } from './modules
 
 let nlpModelsReady = false;
 
-
 // --- UI & Media Components (Root Directory) ---
 import { SuccessLessonHandler } from './components/success-lesson.js';
 import { pointLoss } from './components/point-loss-animation.js';
@@ -162,11 +161,12 @@ export async function submitAnswerPrecheck(val, cue, questionData, btn, explanat
 }
 
 export async function handleAnswer(userResponse, cue, questionData, button, explanation, translation, stats = { pauseCount: null, netDuration: null }, userData = State.userData, configData = State.configData) {
+    const courseId = new URLSearchParams(window.location.search).get('courseid') || localStorage.getItem('currentCourse') || 'pronunciation';
     try {
         const currentLessonId = (configData && configData.lessons && configData.lessons[State.currentLessonIndex]) ? configData.lessons[State.currentLessonIndex].lessonId : 'unknown_lesson';
         const qIndex = getCurrentQuestionIndex(questionData, configData, State.currentLessonIndex);
         let analyticsToSave = {};
-        const courseId = new URLSearchParams(window.location.search).get('courseid') || localStorage.getItem('currentCourse') || 'pronunciation';
+
         if (stats && stats.netDuration !== null) {
             analyticsToSave = await analyzeSpeech(userResponse, stats.netDuration, stats.pauseCount, courseId ? courseId.substring(0, 2).toUpperCase() : 'A1', questionData.inputType);
         }
@@ -190,10 +190,9 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
     let speechAnalytics = null;
     let immediateStatsHtmlArr = [];
 
-    const courseId = new URLSearchParams(window.location.search).get('courseid') || localStorage.getItem('currentCourse') || 'pronunciation';
     let cleanWordCount = 0;
     if (questionData.inputType === "speech" || questionData.inputType === "ai") {
-        cleanWordCount = userResponse.replace(/[^\w\s]/g, '').trim().split(/\s+/).filter(Boolean).length;
+        cleanWordCount = userResponse.replace(/[^\\w\\s]/g, '').trim().split(/\\s+/).filter(Boolean).length;
         speechAnalytics = await analyzeSpeech(userResponse, stats.netDuration, stats.pauseCount, courseId ? courseId.substring(0, 2).toUpperCase() : 'A1', questionData.inputType);
     }
 
@@ -234,19 +233,12 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
             const speakingScore = appStore.getState().speakingScore || 0;
             const attemptNumber = appStore.getState().incorrectAttempts + 1; // 1-based attempt index
 
-            let grammarErrors = 0;
+            let grammarErrorScore = 100;
             if (result.explanations) {
-                 const diffObj = result.explanations.find(e => e.type === 'grammar_diff');
-                 if (diffObj) {
-                     // very simple heuristic: look for '<del>' or '<ins>' or class='del' etc to find errors.
-                     // The diffHTML is created in `buildGrammarDiff` inside `js/modules/complexity.js` which is not available here. Let's rely on basic diff counting logic from the strings.
-                     // A more accurate way: compare `userResponse` and `result.correction` word by word,
-                     // but the prompt simply asked "Deduct 25 percentage points from 100 for each grammar error found in the diff. Floor at 0. (An error is identified in the diff where uncorrected words surround it)."
-                     // To approximate, let's count words in `result.correction` that aren't in `userResponse` or vice-versa, or just use 1 if diff exists for now. Let's actually compare arrays.
-                     const origWords = diffObj.original.split(/\s+/);
-                     const corrWords = diffObj.corrected.split(/\s+/);
-                     grammarErrors = Math.max(1, Math.abs(origWords.length - corrWords.length) + origWords.filter(w => !corrWords.includes(w)).length);
-                 }
+                const diffObj = result.explanations.find(e => e.type === 'grammar_diff');
+                if (diffObj) {
+                    grammarErrorScore = 0;
+                }
             }
 
             // Calculate granular scores
@@ -258,7 +250,7 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
                 wordCount: cleanWordCount,
                 idiomCount: speechAnalytics.foundIdioms ? speechAnalytics.foundIdioms.length : 0,
                 cefrLevel: englishLevel,
-                grammarErrors: grammarErrors,
+                grammarErrorScore: grammarErrorScore,
                 complexityScore: speechAnalytics.complexityScore || 100,
                 labels: result.intentLabels || [],
                 attemptNumber: attemptNumber
@@ -297,34 +289,74 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
             if (questionData.inputType === "ai") {
                 // 4. Vocabulary
                 let vocabParts = [];
-                if (speechAnalytics.complexityScore !== null) {
-                    vocabParts.push(`<strong>${Strings.get('stats_complexity', userData?.native_language)}:</strong> ${speechAnalytics.complexityScore}`);
-                }
-                if (speechAnalytics.foundIdioms && speechAnalytics.foundIdioms.length > 0) {
-                    vocabParts.push(`<strong>${Strings.get('stats_idioms', userData?.native_language)}:</strong> ${speechAnalytics.foundIdioms.length}`);
+                const idiomCount = speechAnalytics.foundIdioms ? speechAnalytics.foundIdioms.length : 0;
+                let idiomThreshold = 0;
+                if (englishLevel === 'B1') idiomThreshold = 1;
+                else if (englishLevel === 'B2') idiomThreshold = 2;
+                else if (englishLevel === 'C1' || englishLevel === 'C2') idiomThreshold = 3;
+
+                vocabParts.push(`<strong>Idiom threshold (${englishLevel}):</strong> ${idiomThreshold}`);
+                vocabParts.push(`<strong>${Strings.get('stats_idioms', userData?.native_language)}:</strong> ${idiomCount}`);
+                if (idiomCount > 0) {
+                    const idiomList = speechAnalytics.foundIdioms.map(i => `<em>${i}</em>`).join(', ');
+                    vocabParts.push(`<strong>Found:</strong> ${idiomList}`);
                 }
                 immediateStatsHtmlArr.push(createStatsBubbleHTML(
                     `${Strings.get('stats_vocabulary_header', userData?.native_language)} ${scoreData.subScores.vocabulary}%`, vocabParts
                 ));
 
                 // 5. Grammar
-                immediateStatsHtmlArr.push(createStatsBubbleHTML(
-                    `${Strings.get('stats_grammar_header', userData?.native_language)} ${Math.round(scoreData.subScores.grammar)}%`, []
-                ));
+                let grammarParts = [];
+                if (speechAnalytics.complexityScore !== null) {
+                    grammarParts.push(`<strong>${Strings.get('stats_complexity', userData?.native_language)}:</strong> ${speechAnalytics.complexityScore}`);
+                }
+
+                // Check if there's a grammar diff to merge into this bubble
+                const grammarDiffChunk = (result.explanations || []).find(e => e.type === 'grammar_diff');
+                let grammarDiffHtml = '';
+                if (grammarDiffChunk) {
+                    grammarDiffHtml = createGrammarDiffHTML(grammarDiffChunk.original, grammarDiffChunk.corrected, '').replace(/^<div class='chat-bubble chat-msg'[^>]*>/, '').replace(/<\/div>$/, '');
+                }
+
+                const grammarHeader = createHeaderHTML(`${Strings.get('stats_grammar_header', userData?.native_language)} ${Math.round(scoreData.subScores.grammar)}%`);
+                const grammarListHtml = grammarParts.length > 0 ? `<ul>${grammarParts.map(p => `<li>${p}</li>`).join('')}</ul>` : '';
+                immediateStatsHtmlArr.push(`
+                    <div class='chat-bubble chat-msg' style='margin-bottom: 12px; display: block; border-left: 4px solid #17a2b8;'>
+                        ${grammarHeader}
+                        ${grammarListHtml}
+                        ${grammarDiffHtml}
+                    </div>`);
 
                 // 6. Formality
+                let formalityParts = [];
+                if ((result.intentLabels || []).includes('too formal')) {
+                    formalityParts.push(Strings.get('feedback_too_formal', userData?.native_language));
+                } else if ((result.intentLabels || []).includes('too informal')) {
+                    formalityParts.push(Strings.get('feedback_too_informal', userData?.native_language));
+                }
                 immediateStatsHtmlArr.push(createStatsBubbleHTML(
-                    `${Strings.get('stats_formality_header', userData?.native_language)} ${scoreData.subScores.formality}%`, []
+                    `${Strings.get('stats_formality_header', userData?.native_language)} ${scoreData.subScores.formality}%`, formalityParts
                 ));
 
                 // 7. Native-like
+                let nativeLikeParts = [];
+                if ((result.intentLabels || []).includes('unidiomatic')) {
+                    nativeLikeParts.push(Strings.get('feedback_unidiomatic', userData?.native_language));
+                }
                 immediateStatsHtmlArr.push(createStatsBubbleHTML(
-                    `${Strings.get('stats_native_like_header', userData?.native_language)} ${scoreData.subScores.nativeLike}%`, []
+                    `${Strings.get('stats_native_like_header', userData?.native_language)} ${scoreData.subScores.nativeLike}%`, nativeLikeParts
                 ));
 
                 // 8. Understanding
+                let understandingParts = [];
+                if ((result.intentLabels || []).includes('pragmatic failure')) {
+                    understandingParts.push(Strings.get('feedback_pragmatic_failure', userData?.native_language));
+                }
+                if ((result.intentLabels || []).includes('rude')) {
+                    understandingParts.push(Strings.get('feedback_rude', userData?.native_language));
+                }
                 immediateStatsHtmlArr.push(createStatsBubbleHTML(
-                    `${Strings.get('stats_pragmatics_header', userData?.native_language)} ${scoreData.subScores.understanding}%`, []
+                    `${Strings.get('stats_pragmatics_header', userData?.native_language)} ${scoreData.subScores.understanding}%`, understandingParts
                 ));
 
                 // 9. Overall Fluency
@@ -398,7 +430,9 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
         // --- WEB ADAPTER: Translate Pure Data to Web UI ---
         let webFormattedExplanations = [];
         if (result.explanations && Array.isArray(result.explanations)) {
-            webFormattedExplanations = result.explanations.map(chunk => {
+            webFormattedExplanations = result.explanations
+                .filter(chunk => chunk.type !== 'grammar_diff') // Grammar diff is already merged into stats bubble
+                .map(chunk => {
                 // If it's already a string (fallback), keep it
                 if (typeof chunk === 'string') return chunk;
 
@@ -412,6 +446,7 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
                     case 'pragmatics':
                         return createPragmaticsBubbleHTML(createHeaderHTML(chunk.header), chunk.message, chunk.correction);
                     default:
+                        console.warn(`[UI Formatter] Unhandled chunk type encountered: ${chunk.type}`, chunk);
                         return '';
                 }
             }).filter(Boolean);
@@ -422,19 +457,19 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
         if (isCorrect) {
             if (questionData.inputType === "ai") {
                 State.cuesGiven.push(result.normalizeduserResponse);
-                if (result.englishLevelDeduction > 0) {
-                    appStore.getState().deductListeningScore(result.englishLevelDeduction);
+                if (result.cefrLevelDeduction > 0) {
+                    appStore.getState().deductListeningScore(result.cefrLevelDeduction);
                 }
             }
 
             // Pass the webFormattedExplanations instead of result.explanations
             // If the user gets it correct on AI, webFormattedExplanations may be empty.
             // We should ensure the new score bubbles that were added to immediateStatsHtmlArr are preserved.
-            // Actually, handlecueUI uses `explanation` directly.
+            // Actually, handlecueUI uses `explanation` directly. 
             // In handleAnswer we did: `renderAIFeedback(immediateStatsHtmlArr);`
             // and we do NOT need to pass them to handlecueUI unless we want to replace `explanation`.
 
-            handlecueUI(qIndex, questionData, button, cue, webFormattedExplanations, translation, userResponse, result.englishLevel, result.englishLevelDeduction, userData, configData);
+            handlecueUI(qIndex, questionData, button, cue, webFormattedExplanations, translation, userResponse, result.cefrLevel, result.cefrLevelDeduction, userData, configData);
             showFeedbackAndProceed(questionData, isCorrect, userData, configData);
         } else {
             // Pass the webFormattedExplanations instead of result.explanations
@@ -579,8 +614,8 @@ function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanat
     }
 
     if (questionData.inputType === "speech" && userResponse && DOM.speechText) {
-        const selectedWords = [...new Set(normalizeduserResponse.split(/\s+/))];
-        const correctWords = [...new Set(normalizedcue.split(/\s+/))];
+        const selectedWords = [...new Set(normalizeduserResponse.split(/\\s+/))];
+        const correctWords = [...new Set(normalizedcue.split(/\\s+/))];
         const correctWordSet = new Set(correctWords.map(w => w.toLowerCase()));
         const correct = new Set(); const incorrect = new Set();
 
@@ -665,7 +700,7 @@ function showFeedbackAndProceed(questionData, isCorrect) {
 
 // ➡➡➡➡➡➡➡➡⛰🗻 ADVANCE VIEWS CORE HOLY OF HOLIES ➡➡➡➡➡➡➡➡⛰🗻
 
-// Temporarily commented out alert
+// Commented out during development; will be added back in production to prevent accidental data loss.
 function beforeUnloadHandler(e) { /* e.preventDefault(); e.returnValue = ''; return ''; */ }
 
 function loadQuestion(question, lesson, fluencyData) {
@@ -740,10 +775,10 @@ function loadQuestion(question, lesson, fluencyData) {
             // No pulse-dot hints for speech input questions
         } else {
             const processTextToPulseDots = (text) => {
-                const parts = text.split(/(\b[\w']+\b)/g);
+                const parts = text.split(/(\\b[\\w']+\\b)/g);
                 parts.forEach(part => {
                     if (!part) return;
-                    if (/\b[\w']+\b/.test(part)) {
+                    if (/\\b[\\w']+\\b/.test(part)) {
                         if (allHidden && !revealedFirst) {
                             revealedFirst = true;
                             answerFragment.appendChild(document.createTextNode(part)); // Use part directly, createTextNode handles escaping
@@ -900,7 +935,7 @@ function loadQuestion(question, lesson, fluencyData) {
 
     } else if (question.inputType === "multi") {
         const answers = [question.cue, ...question.incues];
-        question.alpha ? sortAnswersAlphabetically(answers) : shuffleArray(answers);
+        // Sorting functionality removed per request
 
         renderMultiChoiceUI(
             Strings.get('btn_not_sure', State.userData?.native_language) || "I'm not sure",

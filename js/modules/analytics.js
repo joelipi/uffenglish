@@ -28,7 +28,7 @@ export async function analyzeSpeech(text, netDuration, pauseCount, currentCourse
         if (!idiomChecker.isReady) await idiomChecker.init();
         const idiomResult = idiomChecker.count(text);
         const idiomCount = typeof idiomResult === 'object' ? idiomResult.count : idiomResult;
-        const foundIdioms = typeof idiomResult === 'object' ? idiomResult.foundIdioms : [];
+        foundIdioms = typeof idiomResult === 'object' ? idiomResult.foundIdioms : [];
 
         if (idiomCount === 1) {
             baseScore += 15;

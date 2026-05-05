@@ -2,35 +2,49 @@
 import { State } from '../modules/state.js';
 import { appStore } from '../modules/store.js';
 
-// 1. Centralize DOM Elements
+// 1. Centralize DOM Elements (Updated with Getters for dynamic evaluation)
 export const DOM = {
-    phrasesScore: document.getElementById('phrasesScore'),
-    mediaContainer: document.getElementById('media-container'),
-    speechText: document.getElementById("speech-text-here"),
-    chatBody: document.getElementById("chat-messenger-body"),
-    avatarAi: document.getElementById("chat-avatar-ai"),
-    nameAi: document.getElementById("chat-name-ai"),
-    avatarHuman: document.getElementById("chat-avatar-human"),
-    nameHuman: document.getElementById("chat-name-human"),
-    heart3: document.getElementById("heart3"),
-    heart2: document.getElementById("heart2"),
-    heart1: document.getElementById("heart1"),
-    scoresAndHearts: document.getElementById("scoresAndHearts"),
-    progressbar: document.getElementById('progress'),
-    progressBarFill: document.getElementById("progress-bar"),
-    closeAndProgress: document.getElementById('closeAndProgress'),
-    micStatusText: document.getElementById("micStatusText"),
-    dayCountSpan: document.getElementById("dayCountSpan"),
-    streakCountSpan: document.getElementById("streakCountSpan"),
-    arrowContainer: document.getElementById("arrow-container"),
-    playbackVideo: document.getElementById('playback-video'),
-    playbackMuteToggle: document.getElementById('playback-mute-toggle'),
-    questionsContainerContainer: document.getElementById('questions-container-container'),
-    questionsContainer: document.getElementById('questions-container')
+    get phrasesScore() { return document.getElementById('phrasesScore'); },
+    get mediaContainer() { return document.getElementById('media-container'); },
+    get speechText() { return document.getElementById("speech-text-here"); },
+    get chatBody() { return document.getElementById("chat-messenger-body"); },
+    get avatarAi() { return document.getElementById("chat-avatar-ai"); },
+    get nameAi() { return document.getElementById("chat-name-ai"); },
+    get avatarHuman() { return document.getElementById("chat-avatar-human"); },
+    get nameHuman() { return document.getElementById("chat-name-human"); },
+    get heart3() { return document.getElementById("heart3"); },
+    get heart2() { return document.getElementById("heart2"); },
+    get heart1() { return document.getElementById("heart1"); },
+    get scoresAndHearts() { return document.getElementById("scoresAndHearts"); },
+    get progressbar() { return document.getElementById('progress'); },
+    get progressBarFill() { return document.getElementById("progress-bar"); },
+    get closeAndProgress() { return document.getElementById('closeAndProgress'); },
+    get micStatusText() { return document.getElementById("micStatusText"); },
+    get dayCountSpan() { return document.getElementById("dayCountSpan"); },
+    get streakCountSpan() { return document.getElementById("streakCountSpan"); },
+    get arrowContainer() { return document.getElementById("arrow-container"); },
+    get playbackVideo() { return document.getElementById('playback-video'); },
+    get playbackMuteToggle() { return document.getElementById('playback-mute-toggle'); },
+    get questionsContainerContainer() { return document.getElementById('questions-container-container'); },
+    get questionsContainer() { return document.getElementById('questions-container'); }
 };
 
 let webcamPreview = null;
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+// XSS Prevention Helper
+export function escapeHTML(str) {
+    if (!str) return "";
+    return str.replace(/[&<>'"]/g,
+        tag => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            "'": '&#39;',
+            '"': '&quot;'
+        }[tag])
+    );
+}
 
 // 2. Helper to switch between AI and Human headers
 function setChatHeader(isAI) {
@@ -132,8 +146,9 @@ export function safeRenderChatInterface(isAI, bodyContent) {
  * 🎨 UI BUILDER: Renders the user's spoken or typed response
  */
 export function renderUserResponse(text, statsHtml = "") {
+    const safeText = escapeHTML(text);
     const html = `
-        <div class='userResponse chat-bubble-sent chat-msg'>${text}</div>
+        <div class='userResponse chat-bubble-sent chat-msg'>${safeText}</div>
         ${statsHtml}`;
     safeRenderChatInterface(false, html);
 }
@@ -237,7 +252,7 @@ export function renderAIFeedback(contentChunks = []) {
  * 🎨 UI BUILDER: Internal helper to generate diff HTML
  */
 function buildGrammarDiff(original, corrected) {
-    const tokenize = str => str.trim().match(/[\w']+|[^\w\s']+|\s+/g) || [];
+    const tokenize = str => str.trim().match(/[\p{L}\p{N}]+(?:'[\p{L}\p{N}]+)?|[^\p{L}\p{N}\s]+|\s+/gu) || [];
     const tokA = tokenize(original), tokB = tokenize(corrected);
     const m = tokA.length, n = tokB.length;
     const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
@@ -253,11 +268,20 @@ function buildGrammarDiff(original, corrected) {
     }
 
     let userHTML = '', corrHTML = '';
+    const isPunct = tok => /^[^\p{L}\p{N}]+$/u.test(tok);
     ops.forEach(({ type, val }) => {
         const v = val.replace(/</g, '&lt;');
         if (type === 'eq') { userHTML += v; corrHTML += v; }
-        if (type === 'del') { userHTML += `<span class="diff-del">${v}</span>`; }
-        if (type === 'ins') { corrHTML += `<span class="diff-ins">${v}</span>`; }
+        else if (type === 'del') {
+            // Punctuation-only tokens: show plain in user line, skip in corrected line
+            if (isPunct(val)) { userHTML += v; }
+            else { userHTML += `<span class="diff-del">${v}</span>`; }
+        }
+        else if (type === 'ins') {
+            // Punctuation-only tokens: skip in user line, show plain in corrected line
+            if (isPunct(val)) { corrHTML += v; }
+            else { corrHTML += `<span class="diff-ins">${v}</span>`; }
+        }
     });
     return { userHTML, corrHTML };
 }
@@ -266,7 +290,7 @@ function buildGrammarDiff(original, corrected) {
  * 🎨 UI BUILDER: Generates a 'hangman' version of the cue based on user response
  */
 export function generateHangmanHint(userResponse, cue) {
-    const tokenize = str => str.trim().match(/[\w']+|[^\w\s']+|\s+/g) || [];
+    const tokenize = str => str.trim().match(/[\p{L}\p{N}]+(?:'[\p{L}\p{N}]+)?|[^\p{L}\p{N}\s]+|\s+/gu) || [];
     const tokA = tokenize(userResponse || ""), tokB = tokenize(cue || "");
     const m = tokA.length, n = tokB.length;
     const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
