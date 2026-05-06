@@ -1,6 +1,11 @@
 // --- modules/ui.js ---
 import { State } from '../modules/state.js';
 import { appStore } from '../modules/store.js';
+import Strings from '../data/strings.js';
+import getRandomPraise from '../modules/praise.js';
+import { getLocalizedTranslation } from '../modules/utils.js';
+import { Media } from '../modules/media.js';
+import { pointLoss } from './point-loss-animation.js';
 
 // 1. Centralize DOM Elements (Updated with Getters for dynamic evaluation)
 export const DOM = {
@@ -1190,5 +1195,178 @@ export function setupLessonUI(fullTitle) {
         if (titles[i]) {
             titles[i].textContent = fullTitle;
         }
+    }
+}
+
+// --- Correct/Incorrect UI Handlers (extracted from app.js) ---
+
+export function handlecueUI(qIndex, questionData, button, cue, explanation, translation, userResponse, englishLevel, englishLevelDeduction, userData, configData) {
+
+    if (questionData.inputType === "speech" && questionData.videoUrl) State.repeatPointsHistory.push(appStore.getState().listeningScore);
+    if (questionData.inputType === "ai" && questionData.videoUrl) State.rolePlayPointsHistory.push(appStore.getState().listeningScore);
+
+    // Unified: last AI question advances via Continue button like all others.
+
+    if (DOM.speechText) {
+        const lang = userData?.native_language;
+        const feedbackText = (questionData.inputType === "ai" && englishLevelDeduction > 0)
+            ? `${Strings.get('ai_acceptable', lang)}<br>${Strings.get('ai_language_level', lang)} ${englishLevel}<br>${Strings.get('ai_fluency_reduced', lang)} <span style='color:red'>${englishLevelDeduction} ${Strings.get('ai_percentage_points', lang)}</span>.`
+            : (questionData.inputType === "ai" ? getRandomPraise() : "");
+
+        if (questionData.inputType !== "ai" && questionData.inputType !== "speech") {
+            const localizedTrans = getLocalizedTranslation(translation, lang);
+
+            const correctBubble = document.createElement('div');
+            correctBubble.classList.add('correct-answer-display', 'chat-bubble-sent', 'chat-msg');
+            correctBubble.textContent = cue;
+
+            if (localizedTrans && lang && lang !== 'en') {
+                correctBubble.appendChild(document.createElement('br'));
+                const transSpan = document.createElement('span');
+                transSpan.lang = lang;
+                const transI = document.createElement('i');
+                transI.textContent = localizedTrans;
+                transSpan.appendChild(transI);
+                correctBubble.appendChild(transSpan);
+            }
+
+            const praiseBubble = document.createElement('div');
+            praiseBubble.classList.add('chat-bubble', 'chat-msg');
+            praiseBubble.style.marginTop = '12px';
+            const praiseStrong = document.createElement('strong');
+            praiseStrong.textContent = getRandomPraise();
+            praiseBubble.appendChild(praiseStrong);
+
+            const chunks = [correctBubble];
+            if (Array.isArray(explanation)) chunks.push(...explanation);
+            else if (explanation) chunks.push(explanation);
+            chunks.push(praiseBubble, questionData.headsUp);
+
+            renderAIFeedback(chunks);
+        } else {
+            // AI and Speech are already partially rendered in handleAnswer
+            const chunks = [];
+            if (Array.isArray(explanation)) chunks.push(...explanation);
+            else if (explanation) chunks.push(explanation);
+            chunks.push(feedbackText ? `<strong>${feedbackText}</strong>` : "", questionData.headsUp);
+
+            renderAIFeedback(chunks);
+        }
+    }
+
+    Media.playSound('correct-sound');
+
+    if (questionData.inputType === "lessonIntro" || questionData.inputType === "speech" || questionData.inputType === "ai") {
+        showPlaybackVideo();
+    }
+
+    markButtonAsCorrect(button);
+}
+
+export function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanation, normalizeduserResponse, normalizedcue, question, silent = false, userData, configData) {
+    appStore.getState().incrementIncorrectAttempts();
+
+    if (!silent && (questionData.inputType === "lessonIntro" || questionData.inputType === "speech" || questionData.inputType === "ai")) {
+        showPlaybackVideo();
+    }
+
+    if ((questionData.inputType === "speech" || questionData.inputType === "ai") && questionData.videoUrl) {
+        appStore.getState().deductListeningScore(25);
+        pointLoss.show(DOM.micStatusText, 25);
+        // Subscription handles the score display update 
+        if (appStore.getState().incorrectAttempts > 2) {
+            appStore.getState().setListeningScore(0);
+            State.rolePlayPointsHistory.push(appStore.getState().listeningScore);
+        }
+    }
+
+    if (silent) {
+        animateHeartLoss(appStore.getState().incorrectAttempts);
+        Media.playSound('incorrect-sound');
+        return;
+    }
+
+    if (questionData.inputType === "ai" && userResponse) {
+        if (appStore.getState().incorrectAttempts > 2) {
+            appStore.getState().setListeningScore(0);
+            State.rolePlayPointsHistory.push(appStore.getState().listeningScore);
+            // Subscription handles the score display update 
+        }
+
+        const teacherTextStr = appStore.getState().incorrectAttempts === 1
+            ? Strings.get('try_again_1', userData?.native_language)
+            : appStore.getState().incorrectAttempts === 2
+                ? Strings.get('try_again_2', userData?.native_language)
+                : `${Strings.get('failed_continue_correct', userData?.native_language)}<br>"${cue}"`;
+
+        const teacherDiv = document.createElement('div');
+        const teacherStrong = document.createElement('strong');
+        teacherStrong.innerHTML = teacherTextStr;
+        teacherDiv.appendChild(teacherStrong);
+
+        let headsUpNode = '';
+        if (questionData.headsUp) {
+            const headsUpText = appStore.getState().incorrectAttempts <= 2 ? Strings.get('heads_up_try_again', userData?.native_language) : questionData.headsUp;
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = headsUpText;
+            headsUpNode = tempDiv;
+        }
+
+        let possibleAnswerNode = '';
+        if (questionData.possibleAnswer && appStore.getState().incorrectAttempts > 2) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = `${Strings.get('example_correct_answer', State.userData?.native_language)}<br>${questionData.possibleAnswer}`;
+            possibleAnswerNode = tempDiv;
+        }
+
+        const chunks = [];
+        if (Array.isArray(explanation)) chunks.push(...explanation);
+        else if (explanation) chunks.push(explanation);
+
+        chunks.push(teacherDiv);
+        if (possibleAnswerNode) chunks.push(possibleAnswerNode);
+        if (headsUpNode) chunks.push(headsUpNode);
+
+        renderAIFeedback(chunks);
+    }
+
+    if (questionData.inputType === "speech" && userResponse && DOM.speechText) {
+        const selectedWords = [...new Set(normalizeduserResponse.split(/\\s+/))];
+        const correctWords = [...new Set(normalizedcue.split(/\\s+/))];
+        const correctWordSet = new Set(correctWords.map(w => w.toLowerCase()));
+        const correct = new Set(); const incorrect = new Set();
+
+        selectedWords.forEach(w => correctWordSet.has(w.toLowerCase()) ? correct.add(w) : incorrect.add(w));
+
+        const correctUl = `<ul class='card-text correctWords list-inline' id='correctWords'>${Array.from(correct).map(w => `<li class='list-inline-item'>${w}</li>`).join('')}</ul>`;
+        const incorrectUl = `<ul class='card-text incorrectWords list-inline' id='incorrectWords'>${Array.from(incorrect).map(w => `<li class='list-inline-item'>${w}</li>`).join('')}</ul>`;
+
+        const teacherText = appStore.getState().incorrectAttempts === 1
+            ? Strings.get('try_again_1', State.userData?.native_language)
+            : appStore.getState().incorrectAttempts === 2
+                ? Strings.get('try_again_2', State.userData?.native_language)
+                : `${Strings.get('failed_continue', State.userData?.native_language)}<br><br>Correct:<br>"${cue}"`;
+
+        const headsUpStr = questionData.headsUp
+            ? (appStore.getState().incorrectAttempts <= 2 ? Strings.get('heads_up_repeat_video', State.userData?.native_language) : questionData.headsUp)
+            : '';
+
+        const chunks = [`<strong>${teacherText}</strong><br><br>${correctUl}${incorrectUl}`];
+        if (Array.isArray(explanation)) chunks.push(...explanation);
+        else if (explanation) chunks.push(explanation);
+        chunks.push(headsUpStr);
+
+        renderAIFeedback(chunks);
+    }
+
+    animateHeartLoss(appStore.getState().incorrectAttempts);
+
+    Media.playSound('incorrect-sound');
+
+    const answersContainer = button.parentElement;
+    if (questionData.inputType !== "text") {
+        markButtonAsIncorrect(button, answersContainer, cue);
+    } else {
+        markButtonAsIncorrect(button, null, null);
     }
 }

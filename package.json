@@ -1,0 +1,14 @@
+{
+  "name": "uffenglish",
+  "version": "1.0.0",
+  "description": "![UFF Loading](assets/img/u-f-f.png)",
+  "main": "temp_video_share.js",
+  "scripts": {},
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@playwright/test": "^1.59.1",
+    "@types/node": "^25.6.0"
+  }
+}
