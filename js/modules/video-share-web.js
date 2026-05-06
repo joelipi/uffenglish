@@ -1,30 +1,36 @@
 import Strings from '../data/strings.js';
+import { VideoShareUI } from '../components/video-share-ui.js';
+
 const CLOUDINARY_CLOUD_NAME = 'dnolem9if';
 const CLOUDINARY_UPLOAD_PRESET = 'default';
 
 export async function shareVideo(blob, filename, fileExtension) {
     try {
         if (!blob) { 
-            alert(Strings.get('error_no_processed_video'));
+            VideoShareUI.showAlert(Strings.get('error_no_processed_video'));
             return; 
         }
 
         if (fileExtension === 'mp4') {
             const mp4File = new File([blob], filename, { type: 'video/mp4' });
             
-            if (navigator.canShare && navigator.canShare({ files: [mp4File] })) {
-                await navigator.share({
+            if (VideoShareUI.canShareFiles({ files: [mp4File] })) {
+                await VideoShareUI.shareFiles({
                     title: Strings.get('share_title'),
                     text: Strings.get('share_text'),
                     files: [mp4File]
                 });
             } else {
-                const url = URL.createObjectURL(blob);
-                await downloadFile(url, filename);
+                const url = VideoShareUI.createObjectURL(blob);
+                if (url) {
+                    await VideoShareUI.downloadFile(url, filename);
+                } else {
+                    console.warn('Cannot create object URL to download file');
+                }
             }
         } else {
             if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
-                alert(Strings.get('error_missing_cloudinary'));
+                VideoShareUI.showAlert(Strings.get('error_missing_cloudinary'));
                 return;
             }
             
@@ -44,18 +50,18 @@ export async function shareVideo(blob, filename, fileExtension) {
             const mp4Blob = await fileResp.blob();
             const mp4File = new File([mp4Blob], mp4Name, { type: 'video/mp4' });
 
-            if (navigator.canShare && navigator.canShare({ files: [mp4File] })) {
-                await navigator.share({
+            if (VideoShareUI.canShareFiles({ files: [mp4File] })) {
+                await VideoShareUI.shareFiles({
                     title: Strings.get('share_title'),
                     text: Strings.get('share_text'),
                     files: [mp4File]
                 });
             } else {
-                await downloadFile(mp4Url, mp4Name);
+                await VideoShareUI.downloadFile(mp4Url, mp4Name);
             }
         }
     } catch (e) {
-        alert(Strings.get('error_share_mp4') + ' ' + e.message);
+        VideoShareUI.showAlert(Strings.get('error_share_mp4') + ' ' + e.message);
         throw e;
     }
 }
@@ -99,16 +105,3 @@ function toMp4DeliveryUrl(secureUrl) {
     }
 }
 
-async function downloadFile(url, filename) {
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error(`Download failed: ${resp.status}`);
-    const blob = await resp.blob();
-    const dlUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = dlUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(dlUrl), 10000);
-}
