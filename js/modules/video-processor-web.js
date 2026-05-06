@@ -122,7 +122,7 @@ export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonI
                 }
 
                 // Draw overlay image if present
-                if (overlayImage?.complete) canvasCtx.drawImage(overlayImage, 0, 0);
+                if (overlayImage?.complete && overlayImage.naturalWidth > 0) canvasCtx.drawImage(overlayImage, 0, 0);
 
                 // Mirror to display canvas so user sees the render in real time
                 displayCtx.drawImage(videoCanvas, 0, 0, displayCanvas.width, displayCanvas.height);
