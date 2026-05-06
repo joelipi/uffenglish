@@ -259,6 +259,14 @@ const strings = {
     'stats_fluency_score': {
         en: "Overall Fluency Score:"
     },
+    'share_title': {
+        en: "My English Video",
+        es: "Mi Video de Inglés"
+    },
+    'share_text': {
+        en: "Check out my English fluency progress on UFF!",
+        es: "¡Mira mi progreso de fluidez en inglés en UFF!"
+    },
 
     'status_wait': {
         en: "WAIT.",
