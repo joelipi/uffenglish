@@ -1,4 +1,4 @@
-// modules/speech-web.js
+// modules/speech.web.js
 import Strings from '../data/strings.js';
 import { getDeepgramToken } from './api.js';
 import { saveSpeechRecording, updateSpeechRecording } from './storage.js';

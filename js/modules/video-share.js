@@ -1,1 +1,1 @@
-export * from './video-share-web.js';
+export * from './video-share.web.js';

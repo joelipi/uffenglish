@@ -1,1 +1,1 @@
-export * from './speech-web.js';
+export * from './speech.web.js';

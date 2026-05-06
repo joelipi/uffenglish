@@ -39,7 +39,7 @@ import {
 import getRandomPraise from './modules/praise.js';
 
 // --- Extracted Modules ---
-import { resolveCurrentLessonId, resolveCurrentCourseId } from './modules/lesson-router.js';
+import { resolveCurrentLessonId, resolveCurrentCourseId, getNextQuestion } from './modules/lesson-router.js';
 import { normalizeConfig } from './modules/config-normalizer.js';
 import { loadVideoForQuestion } from './modules/video-loader.js';
 import { appStore } from './modules/store.js';
@@ -48,6 +48,9 @@ import { State } from './modules/state.js';
 import { getLocalizedTranslation } from './modules/utils.js';
 import { analyzeSpeech } from './modules/analytics.js';
 import { Media } from './modules/media.js';
+import { buildFeedbackData, buildExplanationData } from './modules/feedback-builder.js';
+import { renderFeedbackToHTML, renderExplanationsToHTML } from './modules/feedback-renderer.js';
+import { loadQuestion as _loadQuestion } from './modules/question-loader.js';
 import {
     DOM,
     flashElement,
@@ -55,10 +58,6 @@ import {
     clearChatInterface,
     renderUserResponse,
     renderAIAnalysisLoading,
-    createStatsBubbleHTML,
-    createGrammarDiffHTML,
-    createHeaderHTML,
-    createPragmaticsBubbleHTML,
     renderAIFeedback,
     safeRenderChatInterface,
     showHintsAndScroll,
@@ -79,20 +78,8 @@ import {
     showContinueButton,
     hideContinueButton,
     renderFallbackContinueButton,
-    resetUIForNewQuestion,
     toggleScoresAndHearts,
-    removeRepeatButton,
-    clearMediaContainerAndPreservePlayers,
-    renderImageInMediaContainer,
-    renderYoutubeInMediaContainer,
-    resetAnswersContainer,
-    renderSpeechInputUI,
-    renderTextInputUI,
-    updateProgressAndCloseButton,
     setProgressBarWidth,
-    hideAnswerDiv,
-    bindProcessButton,
-    renderMultiChoiceUI,
     showMessageInQuestionsContainer,
     showErrorMessageInQuestionsContainer,
     setupLessonUI,
@@ -179,110 +166,7 @@ function resetButtonState(button) {
     }
 }
 
-function buildStatsBlocks(scoreData, speechAnalytics, result, questionData, userData, englishLevel) {
-    let htmlArr = [];
-    const lang = userData?.native_language;
-    const attemptNumber = appStore.getState().incorrectAttempts + 1;
-    
-    // 1. Pronunciation
-    htmlArr.push(createStatsBubbleHTML(
-        `${Strings.get('stats_speaking_header', lang).replace('{score}', scoreData.subScores.pronunciation)} - ${Strings.get('stats_attempts_required', lang)} ${attemptNumber}`, []
-    ));
-
-    // 2. Listening
-    htmlArr.push(createStatsBubbleHTML(
-        `${Strings.get('stats_listening_header', lang).replace('{score}', scoreData.subScores.listening)} - ${Strings.get('stats_repetitions_required', lang)} ${attemptNumber}`, []
-    ));
-
-    // 3. Flow
-    let flowParts = [
-        `<strong>${Strings.get('stats_pauses_speaking', lang)}:</strong> ${speechAnalytics.pauseCount || 0}`,
-        `<strong>${Strings.get('stats_wpm', lang)}:</strong> ${speechAnalytics.wpm || 0}`
-    ];
-    htmlArr.push(createStatsBubbleHTML(
-        `${Strings.get('stats_speech_flow_header', lang)} ${scoreData.subScores.flow}%`, flowParts
-    ));
-
-    // Only show Vocabulary, Grammar, Formality, Native-like, Understanding for AI questions
-    if (questionData.inputType === "ai") {
-        // 4. Vocabulary
-        let vocabParts = [];
-        const idiomCount = speechAnalytics.foundIdioms ? speechAnalytics.foundIdioms.length : 0;
-        let idiomThreshold = 0;
-        if (englishLevel === 'B1') idiomThreshold = 1;
-        else if (englishLevel === 'B2') idiomThreshold = 2;
-        else if (englishLevel === 'C1' || englishLevel === 'C2') idiomThreshold = 3;
-
-        vocabParts.push(`<strong>Idiom threshold (${englishLevel}):</strong> ${idiomThreshold}`);
-        vocabParts.push(`<strong>${Strings.get('stats_idioms', lang)}:</strong> ${idiomCount}`);
-        if (idiomCount > 0) {
-            const idiomList = speechAnalytics.foundIdioms.map(i => `<em>${i}</em>`).join(', ');
-            vocabParts.push(`<strong>Found:</strong> ${idiomList}`);
-        }
-        htmlArr.push(createStatsBubbleHTML(
-            `${Strings.get('stats_vocabulary_header', lang)} ${scoreData.subScores.vocabulary}%`, vocabParts
-        ));
-
-        // 5. Grammar
-        let grammarParts = [];
-        if (speechAnalytics.complexityScore !== null) {
-            grammarParts.push(`<strong>${Strings.get('stats_complexity', lang)}:</strong> ${speechAnalytics.complexityScore}`);
-        }
-
-        const grammarDiffChunk = (result.explanations || []).find(e => e.type === 'grammar_diff');
-        let grammarDiffHtml = '';
-        if (grammarDiffChunk) {
-            grammarDiffHtml = createGrammarDiffHTML(grammarDiffChunk.original, grammarDiffChunk.corrected, '').replace(/^<div class='chat-bubble chat-msg'[^>]*>/, '').replace(/<\/div>$/, '');
-        }
-
-        const grammarHeader = createHeaderHTML(`${Strings.get('stats_grammar_header', lang)} ${Math.round(scoreData.subScores.grammar)}%`);
-        const grammarListHtml = grammarParts.length > 0 ? `<ul>${grammarParts.map(p => `<li>${p}</li>`).join('')}</ul>` : '';
-        htmlArr.push(`
-            <div class='chat-bubble chat-msg' style='margin-bottom: 12px; display: block; border-left: 4px solid #17a2b8;'>
-                ${grammarHeader}
-                ${grammarListHtml}
-                ${grammarDiffHtml}
-            </div>`);
-
-        // 6. Formality
-        let formalityParts = [];
-        if ((result.intentLabels || []).includes('too formal')) {
-            formalityParts.push(Strings.get('feedback_too_formal', lang));
-        } else if ((result.intentLabels || []).includes('too informal')) {
-            formalityParts.push(Strings.get('feedback_too_informal', lang));
-        }
-        htmlArr.push(createStatsBubbleHTML(
-            `${Strings.get('stats_formality_header', lang)} ${scoreData.subScores.formality}%`, formalityParts
-        ));
-
-        // 7. Native-like
-        let nativeLikeParts = [];
-        if ((result.intentLabels || []).includes('unidiomatic')) {
-            nativeLikeParts.push(Strings.get('feedback_unidiomatic', lang));
-        }
-        htmlArr.push(createStatsBubbleHTML(
-            `${Strings.get('stats_native_like_header', lang)} ${scoreData.subScores.nativeLike}%`, nativeLikeParts
-        ));
-
-        // 8. Understanding
-        let understandingParts = [];
-        if ((result.intentLabels || []).includes('pragmatic failure')) {
-            understandingParts.push(Strings.get('feedback_pragmatic_failure', lang));
-        }
-        if ((result.intentLabels || []).includes('rude')) {
-            understandingParts.push(Strings.get('feedback_rude', lang));
-        }
-        htmlArr.push(createStatsBubbleHTML(
-            `${Strings.get('stats_pragmatics_header', lang)} ${scoreData.subScores.understanding}%`, understandingParts
-        ));
-
-        // 9. Overall Fluency
-        htmlArr.unshift(createStatsBubbleHTML(
-            `<strong>${Strings.get('stats_fluency_score', lang)} ${scoreData.fluencyScore}%</strong>`, []
-        ));
-    }
-    return htmlArr;
-}
+// buildStatsBlocks has been extracted to feedback-builder.js (data) + feedback-renderer-web.js (HTML)
 
 export async function handleAnswer(userResponse, cue, questionData, button, explanation, translation, stats = { pauseCount: null, netDuration: null }, userData = State.userData, configData = State.configData, courseId = State.courseId) {
     let speechAnalytics = null;
@@ -383,7 +267,12 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
                 understandingScore: scoreData.subScores.understanding
             });
 
-            immediateStatsHtmlArr = buildStatsBlocks(scoreData, speechAnalytics, result, questionData, userData, englishLevel);
+            const feedbackData = buildFeedbackData({
+                scoreData, speechAnalytics, result, questionData,
+                lang: userData?.native_language, englishLevel,
+                attemptNumber: incorrectAttempts + 1
+            });
+            immediateStatsHtmlArr = renderFeedbackToHTML(feedbackData);
         }
 
         // --- SILENT RETRY FLOW FOR SPEECH ---
@@ -441,31 +330,8 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
         }
 
         // --- WEB ADAPTER: Translate Pure Data to Web UI ---
-        let webFormattedExplanations = [];
-        if (result && result.explanations && Array.isArray(result.explanations)) {
-            webFormattedExplanations = result.explanations
-                .filter(chunk => chunk.type !== 'grammar_diff') // Grammar diff is already merged into stats bubble
-                .map(chunk => {
-                    // If it's already a string (fallback), keep it
-                    if (typeof chunk === 'string') return chunk;
-
-                    // Map the pure data object to the existing ui.js HTML generators
-                    switch (chunk.type) {
-                        case 'grammar_diff':
-                            return createGrammarDiffHTML(chunk.original, chunk.corrected, chunk.header);
-                        case 'grammar_error':
-                        case 'intent_encouragement':
-                            return chunk.message;
-                        case 'pragmatics':
-                            return createPragmaticsBubbleHTML(createHeaderHTML(chunk.header), chunk.message, chunk.correction);
-                        default:
-                            console.warn(`[UI Formatter] Unhandled chunk type encountered: ${chunk.type}`, chunk);
-                            return '';
-                    }
-                }).filter(Boolean);
-        } else {
-            webFormattedExplanations = explanation; // Fallback to question data explanation
-        }
+        const explanationData = buildExplanationData(result?.explanations, explanation);
+        const webFormattedExplanations = renderExplanationsToHTML(explanationData);
 
         if (isCorrect) {
             if (questionData.inputType === "ai") {
@@ -696,7 +562,7 @@ function showFeedbackAndProceed(questionData, isCorrect) {
         });
 
         if (isCorrect || appStore.getState().incorrectAttempts > 2) {
-            const nextQuestion = getNextQuestion(questionData);
+            const nextQuestion = getNextQuestion(questionData, State.configData, State.currentLessonIndex);
             if (nextQuestion && nextQuestion.videoUrl) {
                 const videoUrl = `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${nextQuestion.videoUrl}.mp4?alt=media`;
                 Media.preloader.preloadOnly(videoUrl);
@@ -713,260 +579,17 @@ function showFeedbackAndProceed(questionData, isCorrect) {
 
 // ➡➡➡➡➡➡➡➡⛰🗻 ADVANCE VIEWS CORE HOLY OF HOLIES ➡➡➡➡➡➡➡➡⛰🗻
 
-// Commented out during development; will be added back in production to prevent accidental data loss.
-function beforeUnloadHandler(e) { /* e.preventDefault(); e.returnValue = ''; return ''; */ }
-
+// loadQuestion has been extracted to question-loader-web.js.
+// This wrapper injects the app.js dependencies that the module needs.
 function loadQuestion(question, lesson, fluencyData) {
-    window.__currentQuestionIndex = getCurrentQuestionIndex(question, State.configData, State.currentLessonIndex);
-    clearChatInterface(); // Clear FIRST so the card collapses before we scroll
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-
-    resetUIForNewQuestion(question.inputType === 'lessonIntro', !!State.userData);
-
-    Media.cleanupPreviousPlayers();
-    clearPlaybackVideo();
-
-    toggleScoresAndHearts((question.inputType === 'speech' || question.inputType === 'ai') && question.videoUrl);
-
-    if (question.inputType === 'speech' || question.inputType === 'ai') {
-        warmUpSpeechCamStream();
-        if (isIOS) {
-            const closePageLink = document.getElementById('closePage');
-            if (closePageLink) {
-                closePageLink.removeEventListener('click', handleClosePageClick);
-                function handleClosePageClick(e) { if (!confirm(Strings.get('alert_lesson_reset', State.userData?.native_language))) e.preventDefault(); }
-                closePageLink.addEventListener('click', handleClosePageClick);
-            }
-        } else {
-            window.removeEventListener('beforeunload', beforeUnloadHandler);
-            window.addEventListener('beforeunload', beforeUnloadHandler);
-        }
-    } else {
-        hideWebcamPreview();
-        window.removeEventListener('beforeunload', beforeUnloadHandler);
-    }
-
-    if (question.inputType != 'lessonComplete' && question.inputType != 'unitComplete') {
-        removeRepeatButton();
-    }
-
-    if (question.inputType === 'speech' || question.inputType === 'ai') {
-        warmUpSpeechCamStream();
-    }
-
-    prepareMediaUI();
-
-    clearMediaContainerAndPreservePlayers();
-
-    if (question.image) {
-        renderImageInMediaContainer(question.image);
-    }
-    if (question.youtube) {
-        renderYoutubeInMediaContainer(question.youtube);
-    }
-
-    loadVideoForQuestion(question, State, State.userData?.native_language);
-
-    const questionDiv = document.createElement('div');
-    questionDiv.className = 'text-center';
-    questionDiv.textContent = question.question;
-    setMicStatusText(questionDiv);
-
-    resetAnswersContainer(`<div id="answers-container" class="d-grid gap-2 d-none"></div>`);
-
-    if (question.inputType === "speech" || question.inputType === "ai") {
-        hideHints();
-
-        const allHidden = false; let revealedFirst = false;
-        const escapeHtml = (text) => {
-            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-            return text.replace(/[&<>"']/g, (m) => map[m]);
-        };
-
-        const answerFragment = document.createDocumentFragment();
-        if (question.inputType === "speech") {
-            // No pulse-dot hints for speech input questions
-        } else {
-            const processTextToPulseDots = (text) => {
-                const parts = text.split(/(\\b[\\w']+\\b)/g);
-                parts.forEach(part => {
-                    if (!part) return;
-                    if (/\\b[\\w']+\\b/.test(part)) {
-                        if (allHidden && !revealedFirst) {
-                            revealedFirst = true;
-                            answerFragment.appendChild(document.createTextNode(part)); // Use part directly, createTextNode handles escaping
-                        } else {
-                            const span = document.createElement('span');
-                            span.className = 'pulse-dot';
-                            span.dataset.word = part; // Use part directly, dataset handles escaping safely
-                            const icon = document.createElement('i');
-                            icon.className = 'bi bi-app';
-                            span.appendChild(icon);
-                            answerFragment.appendChild(span);
-                        }
-                    } else {
-                        answerFragment.appendChild(document.createTextNode(part));
-                    }
-                });
-            };
-
-            processTextToPulseDots(question.cue);
-
-            if (question.possibleAnswer) {
-                answerFragment.appendChild(document.createElement('br'));
-                const strong = document.createElement('strong');
-                strong.textContent = Strings.get('possible_response', State.userData?.native_language);
-                answerFragment.appendChild(strong);
-                answerFragment.appendChild(document.createElement('br'));
-                processTextToPulseDots(question.possibleAnswer);
-            }
-        }
-
-        const handleRevealClick = function () {
-            if (!this.dataset.revealed) {
-                this.textContent = this.dataset.word;
-                appStore.getState().deductListeningScore(15);
-                pointLoss.show(this, 15);
-                // Subscription handles the score display update 
-                this.dataset.revealed = "true"; this.removeEventListener('click', handleRevealClick);
-            }
-        };
-
-        const qIndex = getCurrentQuestionIndex(question, State.configData, State.currentLessonIndex);
-
-        renderSpeechInputUI(
-            answerFragment,
-            question.inputType === "speech" ? null : () => handleHint(qIndex),
-            handleRevealClick,
-            async () => {
-                const speechButton = document.getElementById('speechButton');
-                try {
-                    await toggleSpeechRecognition({
-                        button: speechButton,
-                        question,
-                        micStatusText: DOM.micStatusText,
-                        userData: State.userData,
-                        configData: State.configData,
-                        currentLessonIndex: State.currentLessonIndex,
-                        currentQuestionIndex: qIndex,
-                        handleAnswer: submitAnswerPrecheck,
-                        player: State.player
-                    });
-                } catch (error) {
-                    console.error("Speech toggle failed", error);
-                }
-            }
-        );
-
-    } else if (question.inputType === 'text') {
-        renderTextInputUI(
-            Strings.get('placeholder_type_answer', State.userData?.native_language) || 'Type your answer here...',
-            Strings.get('btn_submit', State.userData?.native_language) || 'Submit',
-            (val, btn) => submitAnswerPrecheck(val, question.cue, question, btn, question.explanation, question.translation, { pauseCount: null, netDuration: null })
-        );
-
-    } else if (question.inputType === 'lessoncomplete') {
-        updateProgressAndCloseButton(true); toggleScoresAndHearts(false);
-        setProgressBarWidth("95%"); showFeedbackAndProceed(question, true);
-        hideAnswerDiv();
-
-    } else if (question.inputType === 'unitcomplete') {
-        question.lessonId = State.configData.lessons[State.currentLessonIndex].lessonId + 's';
-        State.successHandler.handleSuccessLesson(question);
-
-    } else if (question.inputType === 'lessonIntro') {
-        toggleScoresAndHearts(false);
-        State.repeatPointsHistory = [];
-        State.rolePlayPointsHistory = [];
-        hideAnswerDiv();
-
-        if (!question.simpleVideoUrl && question.explanation) {
-            const lang = State.userData?.native_language; const localizedTrans = getLocalizedTranslation(question.translation, lang); const hasTranslation = !!localizedTrans;
-            const imagineStr = Strings.get('imagine', lang); const listenRepeatStr = Strings.get('listen_repeat', lang);
-
-            const explanationStr = `
-            <p class='explanation'>
-              <strong>${imagineStr.split('<br>')[0]}</strong> ${question.explanation}
-              <br><br>
-              ➡${listenRepeatStr.split('<br>')[0]}
-              ${hasTranslation && lang !== 'en' ? `<br><br><span lang='${lang}'><i><strong>🎯${imagineStr.includes('<br>') ? imagineStr.split('<i>')[1].split('<i>')[0] : imagineStr}</strong>${localizedTrans}<br><br>${listenRepeatStr.includes('<br>') ? listenRepeatStr.split('<i>')[1].split('<i>')[0] : listenRepeatStr}</i></span>` : ''}
-            </p>`;
-
-            renderAIFeedback([
-                `<p class='lesson-name'><strong>Lesson: ${lesson.title}</strong></p>`,
-                explanationStr
-            ]);
-        }
-        showFeedbackAndProceed(question, true);
-
-    } else if (question.inputType === 'present') {
-        updateProgressAndCloseButton(false); toggleScoresAndHearts(false); hideAnswerDiv();
-
-        let headsUpHTML = question.headsUp ? `<div class='chat-bubble chat-msg'><p class='headsUp'>${question.headsUp}</p></div>` : "";
-
-        if (!question.simpleVideoUrl) {
-            let explanationStr = "";
-            if (question.explanation) {
-                const lang = State.userData?.native_language;
-                const expTrans = getLocalizedTranslation(question.translation, lang);
-                explanationStr = `<p class='explanation'>${question.explanation}${expTrans && lang && lang !== 'en' ? `<br><br><span lang='${lang}'><i>${expTrans}</i></span>` : ""}</p>`;
-            }
-
-            renderAIFeedback([
-                `<p class='lesson-name'><strong>${Strings.get('lesson_label', State.userData?.native_language)} ${lesson.title}</strong></p>`,
-                explanationStr
-            ]);
-        }
-        showFeedbackAndProceed(question, true);
-
-    } else if (question.inputType === 'success') {
-        window.removeEventListener('beforeunload', beforeUnloadHandler);
-        bindProcessButton(() => State.player.destroy());
-
-        question.lessonId = State.configData.lessons[State.currentLessonIndex].lessonId;
-
-        // Explicitly hand the config to the window object before calling the processor 👇
-        window.__currentConfigData = State.configData;
-
-        initVideoProcessor(question.cue, fluencyData, question.lessonId);
-        State.successHandler.handleSuccessLesson(question);
-
-        const currentLesson = State.configData.lessons[State.currentLessonIndex];
-        const nextLessonId = currentLesson.nextLessonId;
-
-        if (nextLessonId) {
-            saveLessonProgress(State.courseId, nextLessonId, State.userData, {
-                updateUserMeta: true,
-                incrementCount: true
-            }).then(progressResult => {
-                // Update the store with the new calculated numbers; subscription handles the UI
-                appStore.getState().setActivityMetrics(progressResult.newDayCount, progressResult.newStreak);
-            });
-        };
-
-        try { hideWebcamPreview(); } catch (error) { }
-
-    } else if (question.inputType === "multi") {
-        const answers = [question.cue, ...question.incues];
-        // Sorting functionality removed per request
-
-        renderMultiChoiceUI(
-            Strings.get('btn_not_sure', State.userData?.native_language) || "I'm not sure",
-            (val, btn) => submitAnswerPrecheck(val, question.cue, question, btn, question.explanation, undefined, { pauseCount: null, netDuration: null }),
-            answers,
-            (answer, button) => submitAnswerPrecheck(answer, question.cue, question, button, question.explanation, question.translation, { pauseCount: null, netDuration: null })
-        );
-    }
+    _loadQuestion(question, lesson, fluencyData, {
+        submitAnswerPrecheck,
+        showFeedbackAndProceed,
+        handleHint
+    });
 }
 
-function getNextQuestion(currentQuestion) {
-    if (!State.configData || !State.configData.lessons || State.currentLessonIndex >= State.configData.lessons.length) return null;
-    const currentLesson = State.configData.lessons[State.currentLessonIndex];
-    const currentIndex = currentLesson.questions.findIndex(q => q.question === currentQuestion.question && q.cue === currentQuestion.cue);
-    if (currentIndex === -1) return currentLesson.questions[0];
-    if (currentIndex >= currentLesson.questions.length - 1) return null;
-    return currentLesson.questions[currentIndex + 1];
-}
+// getNextQuestion has been moved to lesson-router.js
 
 function updateProgressBar() {
     if (!State.configData || !State.configData.lessons || State.configData.lessons.length === 0) return;
@@ -1112,7 +735,7 @@ async function loadLessonContent(lesson, configData) {
     setupLessonUI(fullTitle);
 
     const userData = queryClient.getQueryData(['user', 'profile']);
-    loadQuestion(lesson.questions[State.currentQuestionIndex], lesson, null, userData, configData);
+    loadQuestion(lesson.questions[State.currentQuestionIndex], lesson, null);
 }
 
 async function handleAuthClick(e) {
@@ -1241,7 +864,7 @@ async function initializeApp() {
                 if (typeof voiceInitFn !== 'function') {
                     console.warn('initLocalVoiceAI not available statically, attempting dynamic import...');
                     const scriptDir = new URL('.', import.meta.url).href;
-                    const speechModuleUrl = new URL('modules/speech-web.js?8', scriptDir).href;
+                    const speechModuleUrl = new URL('modules/speech.web.js?8', scriptDir).href;
                     const speechModule = await import(speechModuleUrl);
                     voiceInitFn = speechModule.initLocalVoiceAI;
                 }

@@ -1,4 +1,4 @@
-// --- modules/video-loader-web.js ---
+// --- modules/video-loader.web.js ---
 import { InteractiveVideoPlayer } from '../components/interactive-video-player.js';
 import { simpleVideoPlayer } from '../components/simple-video-player.js';
 import { introBackgroundVideo } from '../components/intro-background-video.js';

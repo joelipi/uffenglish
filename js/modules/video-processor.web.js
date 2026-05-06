@@ -1,4 +1,4 @@
-// js/modules/video-processor-web.js
+// js/modules/video-processor.web.js
 
 import { shareVideo } from './video-share.js';
 import { getAllSpeechRecordingsForLesson } from './storage.js';
@@ -257,7 +257,11 @@ function finalizeUI(blob, ext) {
             try {
                 await shareVideo(blob, window.__lastProcessedName, ext);
             } catch (e) {
-                console.error("Share error:", e);
+                if (e.name === 'AbortError') {
+                    console.log("[Share] User dismissed share dialog");
+                } else {
+                    console.error("[Share] Share error:", e);
+                }
             } finally {
                 shareBtn.disabled = false;
                 shareBtn.innerHTML = originalHTML;
