@@ -72,6 +72,61 @@ export class VideoRenderPlanner {
         }));
     }
 
+    /**
+     * Calculates the target canvas/video dimensions for a high-quality vertical output.
+     * Ensures height is at least 1080p and width is proportional.
+     */
+    getTargetDimensions(srcW, srcH) {
+        let targetW = srcW || 1080;
+        let targetH = srcH || 1920;
+        const isPortrait = targetH > targetW;
+
+        if (isPortrait) {
+            if (targetH < 1080) {
+                const scale = 1080 / targetH;
+                targetW = Math.round(targetW * scale);
+                targetH = 1080;
+            }
+        } else {
+            if (targetW < 1920) {
+                const scale = 1920 / targetW;
+                targetW = 1920;
+                targetH = Math.round(targetH * scale);
+            }
+        }
+
+        // Ensure dimensions are even for video codecs
+        if (targetW % 2) targetW++;
+        if (targetH % 2) targetH++;
+
+        return { width: targetW, height: targetH };
+    }
+
+    /**
+     * Calculates letterbox/pillarbox coordinates for drawing a source video onto a target canvas.
+     */
+    calculateLayout(srcW, srcH, dstW, dstH) {
+        const srcRatio = srcW / srcH;
+        const dstRatio = dstW / dstH;
+
+        let drawW = dstW;
+        let drawH = dstH;
+        let x = 0;
+        let y = 0;
+
+        if (srcRatio > dstRatio) {
+            // Source is wider than destination (landscape on portrait)
+            drawH = dstW / srcRatio;
+            y = (dstH - drawH) / 2;
+        } else {
+            // Source is taller than destination
+            drawW = dstH * srcRatio;
+            x = (dstW - drawW) / 2;
+        }
+
+        return { x, y, width: drawW, height: drawH };
+    }
+
     _getRemoteTarget(rec) {
         if (!this.configData.lessons) return null;
         const lesson = this.configData.lessons.find(l => l.lessonId === rec.originalLessonId);
