@@ -10,6 +10,7 @@ export async function shareVideo(blob, filename, fileExtension) {
         }
 
         if (fileExtension === 'mp4') {
+            console.log(`[VideoShare] Native MP4 supported. Skipping Cloudinary and sharing directly.`);
             const mp4File = new File([blob], filename, { type: 'video/mp4' });
             
             if (navigator.canShare && navigator.canShare({ files: [mp4File] })) {
@@ -19,10 +20,12 @@ export async function shareVideo(blob, filename, fileExtension) {
                     files: [mp4File]
                 });
             } else {
+                console.log(`[VideoShare] navigator.share not supported on this device. Downloading locally.`);
                 const url = URL.createObjectURL(blob);
                 await downloadFile(url, filename);
             }
         } else {
+            console.warn(`[VideoShare] Native MP4 not supported (extension: ${fileExtension}). Falling back to Cloudinary for transcoding...`);
             if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
                 alert(Strings.get('error_missing_cloudinary'));
                 return;
@@ -37,9 +40,13 @@ export async function shareVideo(blob, filename, fileExtension) {
             }
             
             const mp4Url = toMp4DeliveryUrl(response.data.secure_url);
+            const deleteToken = response.data.delete_token;
+            
             const fileResp = await fetch(mp4Url);
             
             if (!fileResp.ok) throw new Error(`Unable to fetch MP4: ${fileResp.status}`);
+            
+            console.log(`[VideoShare] Successfully transcoded via Cloudinary and fetched MP4 blob.`);
             
             const mp4Blob = await fileResp.blob();
             const mp4File = new File([mp4Blob], mp4Name, { type: 'video/mp4' });
@@ -51,12 +58,30 @@ export async function shareVideo(blob, filename, fileExtension) {
                     files: [mp4File]
                 });
             } else {
-                await downloadFile(mp4Url, mp4Name);
+                const localUrl = URL.createObjectURL(mp4Blob);
+                await downloadFile(localUrl, mp4Name);
+            }
+            
+            // Clean up the temporary file from Cloudinary to save storage quota
+            if (deleteToken) {
+                deleteFromCloudinary(deleteToken);
             }
         }
     } catch (e) {
         alert(Strings.get('error_share_mp4') + ' ' + e.message);
         throw e;
+    }
+}
+
+function deleteFromCloudinary(deleteToken) {
+    try {
+        const xhr = new XMLHttpRequest();
+        const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/delete_by_token`;
+        xhr.open('POST', url, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.send(JSON.stringify({ token: deleteToken }));
+    } catch (e) {
+        console.warn("Failed to delete temporary video from Cloudinary:", e);
     }
 }
 
@@ -68,6 +93,7 @@ function uploadWithXHR(url, fileOrBlob, preset, filename) {
             formData.append('file', fileOrBlob, filename || 'video.webm');
             formData.append('upload_preset', preset);
             formData.append('resource_type', 'video');
+            formData.append('return_delete_token', 'true');
             xhr.open('POST', url, true);
             xhr.onload = function() {
                 if (xhr.status === 200) {
