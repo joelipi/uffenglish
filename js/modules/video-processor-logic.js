@@ -28,7 +28,7 @@ export class VideoRenderPlanner {
                     plan.push({
                         type: 'remote',
                         targetId: remoteUrl,
-                        subtitle: rec.cue,
+                        subtitle: rec.cue || this._getQuestionCue(rec),
                         isFirst: plan.length === 0
                     });
                 }
@@ -133,5 +133,16 @@ export class VideoRenderPlanner {
         if (!lesson?.questions?.[rec.originalQuestionIndex]) return null;
         const q = lesson.questions[rec.originalQuestionIndex];
         return q.videoUrl || q.introBackgroundVideoUrl || null;
+    }
+
+    _getQuestionCue(rec) {
+        if (!this.configData.lessons) return null;
+        const lesson = this.configData.lessons.find(l => l.lessonId === rec.originalLessonId);
+        if (!lesson?.questions?.[rec.originalQuestionIndex]) return null;
+        const q = lesson.questions[rec.originalQuestionIndex];
+        
+        if (typeof q.cue === 'string') return q.cue;
+        if (q.cue && q.cue.en) return q.cue.en;
+        return null;
     }
 }

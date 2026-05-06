@@ -244,12 +244,25 @@ function finalizeUI(blob, ext) {
     resultVideo.style.display = 'block';
     
     window.__lastProcessedBlob = blob;
-    window.__lastProcessedName = `uffenglish.${ext}`;
+    window.__lastProcessedName = `uffenglish_${Date.now()}.${ext}`;
 
     const shareBtn = document.getElementById('shareMp4Btn');
     if (shareBtn) {
         shareBtn.classList.remove('d-none');
-        shareBtn.onclick = () => shareVideo(blob, window.__lastProcessedName, ext);
+        shareBtn.onclick = async () => {
+            if (shareBtn.disabled) return;
+            shareBtn.disabled = true;
+            const originalHTML = shareBtn.innerHTML;
+            shareBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sharing...';
+            try {
+                await shareVideo(blob, window.__lastProcessedName, ext);
+            } catch (e) {
+                console.error("Share error:", e);
+            } finally {
+                shareBtn.disabled = false;
+                shareBtn.innerHTML = originalHTML;
+            }
+        };
     }
 
     bigButtons.classList.remove('d-none');

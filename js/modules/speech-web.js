@@ -1,7 +1,7 @@
 // modules/speech-web.js
 import Strings from '../data/strings.js';
 import { getDeepgramToken } from './api.js';
-import { saveSpeechRecording } from './storage.js';
+import { saveSpeechRecording, updateSpeechRecording } from './storage.js';
 import { State } from './state.js';
 import swearjar from './swearjar.js';
 import { validateAnswerPrecheck } from './answers.js';
@@ -791,6 +791,15 @@ export async function toggleSpeechRecognition(params) {
 
               // Halt the pipeline (pass null so stopListeningEarly doesn't overwrite our custom UI message)
               stopListeningEarly(null, userData, player);
+
+              // Update the recording anyway so the final video has subtitles for this gibberish attempt!
+              const lessonId = configData?.lessons?.[currentLessonIndex]?.lessonId || null;
+              const qIndex = typeof currentQuestionIndex !== 'undefined' ? currentQuestionIndex : null;
+              updateSpeechRecording(lessonId, qIndex, {
+                  userResponse: finalTranscript,
+                  cue: question?.cue
+              }).catch(e => console.error('[Toggle] Failed to update gibberish recording:', e));
+              
               return;
             }
 
@@ -806,6 +815,15 @@ export async function toggleSpeechRecognition(params) {
               ui.removeWebcamPreview();
               window.dispatchEvent(new CustomEvent('preflightRejected'));
               ui.setMicStatusText(`<div class='text-center text-danger'>${message}</div>`);
+              
+              // Update the recording anyway so the final video has subtitles for this invalid attempt!
+              const lessonId = configData?.lessons?.[currentLessonIndex]?.lessonId || null;
+              const qIndex = typeof currentQuestionIndex !== 'undefined' ? currentQuestionIndex : null;
+              updateSpeechRecording(lessonId, qIndex, {
+                  userResponse: transcriptToReview,
+                  cue: question?.cue
+              }).catch(e => console.error('[Toggle] Failed to update preflight-rejected recording:', e));
+
               setTimeout(() => { isListening = false; toggleSpeechRecognition(params); }, 2500);
             };
 
@@ -845,6 +863,14 @@ export async function toggleSpeechRecognition(params) {
 
               window.dispatchEvent(new CustomEvent('transcriptRejected'));
               ui.setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Restarting Mic...</div>`);
+
+              // Update the recording anyway so the final video has subtitles for this rejected attempt!
+              const lessonId = configData?.lessons?.[currentLessonIndex]?.lessonId || null;
+              const qIndex = typeof currentQuestionIndex !== 'undefined' ? currentQuestionIndex : null;
+              updateSpeechRecording(lessonId, qIndex, {
+                  userResponse: transcriptToReview,
+                  cue: question?.cue
+              }).catch(e => console.error('[Toggle] Failed to update rejected recording:', e));
 
               setTimeout(() => {
                 isListening = false;

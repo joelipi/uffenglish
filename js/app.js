@@ -136,7 +136,7 @@ function handleHint(qIndex) {
     showHintsAndScroll();
 }
 
-export async function submitAnswerPrecheck(val, cue, questionData, btn, explanation, translation, stats = { pauseCount: null, netDuration: null }, userData = State.userData, configData = State.configData) {
+export async function submitAnswerPrecheck(val, cue, questionData, btn, explanation, translation, stats = { pauseCount: null, netDuration: null }, userData = State.userData, configData = State.configData, courseId = State.courseId) {
     const englishLevel = configData?.languageLevel || 'A0';
     const { isValid, warningMessage } = await validateAnswerPrecheck(
         val, cue, questionData, englishLevel, userData, State.cuesGiven
@@ -153,56 +153,173 @@ export async function submitAnswerPrecheck(val, cue, questionData, btn, explanat
         if (DOM.micStatusText) {
             DOM.micStatusText.innerHTML = `<div class='text-center text-danger'>${warningMessage}</div>`;
         }
+        
+        // Update the recording anyway so the final video has subtitles for this incorrect attempt!
+        const currentLessonId = resolveCurrentLessonId(configData, courseId);
+        const qIndex = getCurrentQuestionIndex(questionData, configData, courseId);
+        await updateSpeechRecording(currentLessonId, qIndex, {
+            userResponse: val,
+            cue: cue
+        });
+
         if (btn) btn.disabled = false;
         return;
     }
 
-    await handleAnswer(val, cue, questionData, btn, explanation, translation, stats, userData, configData);
+    await handleAnswer(val, cue, questionData, btn, explanation, translation, stats, userData, configData, courseId);
 }
 
-export async function handleAnswer(userResponse, cue, questionData, button, explanation, translation, stats = { pauseCount: null, netDuration: null }, userData = State.userData, configData = State.configData) {
-    const courseId = new URLSearchParams(window.location.search).get('courseid') || localStorage.getItem('currentCourse') || 'pronunciation';
+function resetButtonState(button) {
+    if (button) {
+        button.disabled = false;
+        button.classList.remove('disabled');
+        button.style.display = "inline-block";
+        button.innerHTML = '<i class="bi bi-mic-fill"></i>';
+        button.classList.remove('btn-danger', 'btn-danger-recording');
+    }
+}
+
+function buildStatsBlocks(scoreData, speechAnalytics, result, questionData, userData, englishLevel) {
+    let htmlArr = [];
+    const lang = userData?.native_language;
+    const attemptNumber = appStore.getState().incorrectAttempts + 1;
+    
+    // 1. Pronunciation
+    htmlArr.push(createStatsBubbleHTML(
+        `${Strings.get('stats_speaking_header', lang).replace('{score}', scoreData.subScores.pronunciation)} - ${Strings.get('stats_attempts_required', lang)} ${attemptNumber}`, []
+    ));
+
+    // 2. Listening
+    htmlArr.push(createStatsBubbleHTML(
+        `${Strings.get('stats_listening_header', lang).replace('{score}', scoreData.subScores.listening)} - ${Strings.get('stats_repetitions_required', lang)} ${attemptNumber}`, []
+    ));
+
+    // 3. Flow
+    let flowParts = [
+        `<strong>${Strings.get('stats_pauses_speaking', lang)}:</strong> ${speechAnalytics.pauseCount || 0}`,
+        `<strong>${Strings.get('stats_wpm', lang)}:</strong> ${speechAnalytics.wpm || 0}`
+    ];
+    htmlArr.push(createStatsBubbleHTML(
+        `${Strings.get('stats_speech_flow_header', lang)} ${scoreData.subScores.flow}%`, flowParts
+    ));
+
+    // Only show Vocabulary, Grammar, Formality, Native-like, Understanding for AI questions
+    if (questionData.inputType === "ai") {
+        // 4. Vocabulary
+        let vocabParts = [];
+        const idiomCount = speechAnalytics.foundIdioms ? speechAnalytics.foundIdioms.length : 0;
+        let idiomThreshold = 0;
+        if (englishLevel === 'B1') idiomThreshold = 1;
+        else if (englishLevel === 'B2') idiomThreshold = 2;
+        else if (englishLevel === 'C1' || englishLevel === 'C2') idiomThreshold = 3;
+
+        vocabParts.push(`<strong>Idiom threshold (${englishLevel}):</strong> ${idiomThreshold}`);
+        vocabParts.push(`<strong>${Strings.get('stats_idioms', lang)}:</strong> ${idiomCount}`);
+        if (idiomCount > 0) {
+            const idiomList = speechAnalytics.foundIdioms.map(i => `<em>${i}</em>`).join(', ');
+            vocabParts.push(`<strong>Found:</strong> ${idiomList}`);
+        }
+        htmlArr.push(createStatsBubbleHTML(
+            `${Strings.get('stats_vocabulary_header', lang)} ${scoreData.subScores.vocabulary}%`, vocabParts
+        ));
+
+        // 5. Grammar
+        let grammarParts = [];
+        if (speechAnalytics.complexityScore !== null) {
+            grammarParts.push(`<strong>${Strings.get('stats_complexity', lang)}:</strong> ${speechAnalytics.complexityScore}`);
+        }
+
+        const grammarDiffChunk = (result.explanations || []).find(e => e.type === 'grammar_diff');
+        let grammarDiffHtml = '';
+        if (grammarDiffChunk) {
+            grammarDiffHtml = createGrammarDiffHTML(grammarDiffChunk.original, grammarDiffChunk.corrected, '').replace(/^<div class='chat-bubble chat-msg'[^>]*>/, '').replace(/<\/div>$/, '');
+        }
+
+        const grammarHeader = createHeaderHTML(`${Strings.get('stats_grammar_header', lang)} ${Math.round(scoreData.subScores.grammar)}%`);
+        const grammarListHtml = grammarParts.length > 0 ? `<ul>${grammarParts.map(p => `<li>${p}</li>`).join('')}</ul>` : '';
+        htmlArr.push(`
+            <div class='chat-bubble chat-msg' style='margin-bottom: 12px; display: block; border-left: 4px solid #17a2b8;'>
+                ${grammarHeader}
+                ${grammarListHtml}
+                ${grammarDiffHtml}
+            </div>`);
+
+        // 6. Formality
+        let formalityParts = [];
+        if ((result.intentLabels || []).includes('too formal')) {
+            formalityParts.push(Strings.get('feedback_too_formal', lang));
+        } else if ((result.intentLabels || []).includes('too informal')) {
+            formalityParts.push(Strings.get('feedback_too_informal', lang));
+        }
+        htmlArr.push(createStatsBubbleHTML(
+            `${Strings.get('stats_formality_header', lang)} ${scoreData.subScores.formality}%`, formalityParts
+        ));
+
+        // 7. Native-like
+        let nativeLikeParts = [];
+        if ((result.intentLabels || []).includes('unidiomatic')) {
+            nativeLikeParts.push(Strings.get('feedback_unidiomatic', lang));
+        }
+        htmlArr.push(createStatsBubbleHTML(
+            `${Strings.get('stats_native_like_header', lang)} ${scoreData.subScores.nativeLike}%`, nativeLikeParts
+        ));
+
+        // 8. Understanding
+        let understandingParts = [];
+        if ((result.intentLabels || []).includes('pragmatic failure')) {
+            understandingParts.push(Strings.get('feedback_pragmatic_failure', lang));
+        }
+        if ((result.intentLabels || []).includes('rude')) {
+            understandingParts.push(Strings.get('feedback_rude', lang));
+        }
+        htmlArr.push(createStatsBubbleHTML(
+            `${Strings.get('stats_pragmatics_header', lang)} ${scoreData.subScores.understanding}%`, understandingParts
+        ));
+
+        // 9. Overall Fluency
+        htmlArr.unshift(createStatsBubbleHTML(
+            `<strong>${Strings.get('stats_fluency_score', lang)} ${scoreData.fluencyScore}%</strong>`, []
+        ));
+    }
+    return htmlArr;
+}
+
+export async function handleAnswer(userResponse, cue, questionData, button, explanation, translation, stats = { pauseCount: null, netDuration: null }, userData = State.userData, configData = State.configData, courseId = State.courseId) {
+    let speechAnalytics = null;
+    let cleanWordCount = 0;
+    const qIndex = getCurrentQuestionIndex(questionData, configData, State.currentLessonIndex);
+
     try {
         const currentLessonId = (configData && configData.lessons && configData.lessons[State.currentLessonIndex]) ? configData.lessons[State.currentLessonIndex].lessonId : 'unknown_lesson';
-        const qIndex = getCurrentQuestionIndex(questionData, configData, State.currentLessonIndex);
-        let analyticsToSave = {};
-
-        if (stats && stats.netDuration !== null) {
-            analyticsToSave = await analyzeSpeech(userResponse, stats.netDuration, stats.pauseCount, courseId ? courseId.substring(0, 2).toUpperCase() : 'A1', questionData.inputType);
+        
+        if (questionData.inputType === "speech" || questionData.inputType === "ai") {
+            cleanWordCount = userResponse.replace(/[^\w\s]/g, '').trim().split(/\s+/).filter(Boolean).length;
+            if (stats && stats.netDuration !== null) {
+                speechAnalytics = await analyzeSpeech(userResponse, stats.netDuration, stats.pauseCount, courseId ? courseId.substring(0, 2).toUpperCase() : 'A1', questionData.inputType);
+            } else {
+                speechAnalytics = {}; // fallback
+            }
+            await updateSpeechRecording(currentLessonId, qIndex, {
+                userResponse,
+                cue,
+                wpm: speechAnalytics.wpm,
+                pauseCount: speechAnalytics.pauseCount,
+                complexityScore: speechAnalytics.complexityScore
+            });
+            console.log("Successfully updated speech recording with answers");
         }
-        await updateSpeechRecording(currentLessonId, qIndex, {
-            userResponse,
-            cue,
-            wpm: analyticsToSave.wpm,
-            pauseCount: analyticsToSave.pauseCount,
-            complexityScore: analyticsToSave.complexityScore
-        });
-        console.log("Successfully updated speech recording with answers");
     } catch (e) {
         console.error("Error updating speech recording with answers", e);
     }
 
     Media.pauseVideoIfPlaying();
-
     clearMicStatusAndHideMedia();
     hideHints();
 
-    let speechAnalytics = null;
     let immediateStatsHtmlArr = [];
-
-    let cleanWordCount = 0;
-    if (questionData.inputType === "speech" || questionData.inputType === "ai") {
-        cleanWordCount = userResponse.replace(/[^\\w\\s]/g, '').trim().split(/\\s+/).filter(Boolean).length;
-        speechAnalytics = await analyzeSpeech(userResponse, stats.netDuration, stats.pauseCount, courseId ? courseId.substring(0, 2).toUpperCase() : 'A1', questionData.inputType);
-    }
-
-    const qIndex = getCurrentQuestionIndex(questionData, configData, State.currentLessonIndex);
-    window.__currentQuestionIndex = qIndex;
     disableAllButtons(button.parentElement);
 
     try {
-        let result = null;
-
         const englishLevel = configData?.languageLevel || 'A0';
         const lesson = (configData && configData.lessons) ? configData.lessons[State.currentLessonIndex] : null;
 
@@ -210,7 +327,8 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
             throw new Error("configData or lessons missing in handleAnswer");
         }
 
-        if (!result && (questionData.inputType === "speech" || questionData.inputType === "ai")) {
+        let result = null;
+        if (questionData.inputType === "speech" || questionData.inputType === "ai") {
             result = await processAnswerLogic({
                 userResponse, cue, questionData,
                 lesson: lesson,
@@ -219,22 +337,21 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
                 cuesGiven: State.cuesGiven,
                 apiRoot: State.apiRoot
             });
+            
+            if (!result) {
+                console.warn("⚠️ No result from local NLP — no Gemini fallback active. Treating as passed.");
+                result = { isCorrect: true, normalizeduserResponse: userResponse, normalizedcue: cue, explanation: explanation, intentLabels: [] };
+            }
         }
 
-        if (!result) {
-            console.warn("⚠️ No result from local NLP — no Gemini fallback active. Treating as passed.");
-            result = { isCorrect: true, normalizeduserResponse: userResponse, normalizedcue: cue, explanation: explanation, intentLabels: [] };
-        }
-
-        const isCorrect = result.isCorrect;
+        const isCorrect = result ? result.isCorrect : true;
+        const { listeningScore, speakingScore, incorrectAttempts } = appStore.getState();
 
         if (questionData.inputType === "speech" || questionData.inputType === "ai") {
-            const listeningScore = appStore.getState().listeningScore || 0;
-            const speakingScore = appStore.getState().speakingScore || 0;
-            const attemptNumber = appStore.getState().incorrectAttempts + 1; // 1-based attempt index
+            const attemptNumber = incorrectAttempts + 1; // 1-based attempt index
 
             let grammarErrorScore = 100;
-            if (result.explanations) {
+            if (result && result.explanations) {
                 const diffObj = result.explanations.find(e => e.type === 'grammar_diff');
                 if (diffObj) {
                     grammarErrorScore = 0;
@@ -245,14 +362,14 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
             const scoreData = calculateFluencyScore({
                 pronunciationScore: speakingScore,
                 listeningScore: listeningScore,
-                wpm: speechAnalytics.wpm || 0,
-                pauseCount: speechAnalytics.pauseCount || 0,
+                wpm: speechAnalytics?.wpm || 0,
+                pauseCount: speechAnalytics?.pauseCount || 0,
                 wordCount: cleanWordCount,
-                idiomCount: speechAnalytics.foundIdioms ? speechAnalytics.foundIdioms.length : 0,
+                idiomCount: speechAnalytics?.foundIdioms ? speechAnalytics.foundIdioms.length : 0,
                 cefrLevel: englishLevel,
                 grammarErrorScore: grammarErrorScore,
-                complexityScore: speechAnalytics.complexityScore || 100,
-                labels: result.intentLabels || [],
+                complexityScore: speechAnalytics?.complexityScore || 100,
+                labels: result && result.intentLabels ? result.intentLabels : [],
                 attemptNumber: attemptNumber
             });
 
@@ -266,108 +383,11 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
                 understandingScore: scoreData.subScores.understanding
             });
 
-            // 1. Pronunciation
-            immediateStatsHtmlArr.push(createStatsBubbleHTML(
-                `${Strings.get('stats_speaking_header', userData?.native_language).replace('{score}', scoreData.subScores.pronunciation)} - ${Strings.get('stats_attempts_required', userData?.native_language)} ${attemptNumber}`, []
-            ));
-
-            // 2. Listening
-            immediateStatsHtmlArr.push(createStatsBubbleHTML(
-                `${Strings.get('stats_listening_header', userData?.native_language).replace('{score}', scoreData.subScores.listening)} - ${Strings.get('stats_repetitions_required', userData?.native_language)} ${attemptNumber}`, []
-            ));
-
-            // 3. Flow
-            let flowParts = [
-                `<strong>${Strings.get('stats_pauses_speaking', userData?.native_language)}:</strong> ${speechAnalytics.pauseCount || 0}`,
-                `<strong>${Strings.get('stats_wpm', userData?.native_language)}:</strong> ${speechAnalytics.wpm || 0}`
-            ];
-            immediateStatsHtmlArr.push(createStatsBubbleHTML(
-                `${Strings.get('stats_speech_flow_header', userData?.native_language)} ${scoreData.subScores.flow}%`, flowParts
-            ));
-
-            // Only show Vocabulary, Grammar, Formality, Native-like, Understanding for AI questions
-            if (questionData.inputType === "ai") {
-                // 4. Vocabulary
-                let vocabParts = [];
-                const idiomCount = speechAnalytics.foundIdioms ? speechAnalytics.foundIdioms.length : 0;
-                let idiomThreshold = 0;
-                if (englishLevel === 'B1') idiomThreshold = 1;
-                else if (englishLevel === 'B2') idiomThreshold = 2;
-                else if (englishLevel === 'C1' || englishLevel === 'C2') idiomThreshold = 3;
-
-                vocabParts.push(`<strong>Idiom threshold (${englishLevel}):</strong> ${idiomThreshold}`);
-                vocabParts.push(`<strong>${Strings.get('stats_idioms', userData?.native_language)}:</strong> ${idiomCount}`);
-                if (idiomCount > 0) {
-                    const idiomList = speechAnalytics.foundIdioms.map(i => `<em>${i}</em>`).join(', ');
-                    vocabParts.push(`<strong>Found:</strong> ${idiomList}`);
-                }
-                immediateStatsHtmlArr.push(createStatsBubbleHTML(
-                    `${Strings.get('stats_vocabulary_header', userData?.native_language)} ${scoreData.subScores.vocabulary}%`, vocabParts
-                ));
-
-                // 5. Grammar
-                let grammarParts = [];
-                if (speechAnalytics.complexityScore !== null) {
-                    grammarParts.push(`<strong>${Strings.get('stats_complexity', userData?.native_language)}:</strong> ${speechAnalytics.complexityScore}`);
-                }
-
-                // Check if there's a grammar diff to merge into this bubble
-                const grammarDiffChunk = (result.explanations || []).find(e => e.type === 'grammar_diff');
-                let grammarDiffHtml = '';
-                if (grammarDiffChunk) {
-                    grammarDiffHtml = createGrammarDiffHTML(grammarDiffChunk.original, grammarDiffChunk.corrected, '').replace(/^<div class='chat-bubble chat-msg'[^>]*>/, '').replace(/<\/div>$/, '');
-                }
-
-                const grammarHeader = createHeaderHTML(`${Strings.get('stats_grammar_header', userData?.native_language)} ${Math.round(scoreData.subScores.grammar)}%`);
-                const grammarListHtml = grammarParts.length > 0 ? `<ul>${grammarParts.map(p => `<li>${p}</li>`).join('')}</ul>` : '';
-                immediateStatsHtmlArr.push(`
-                    <div class='chat-bubble chat-msg' style='margin-bottom: 12px; display: block; border-left: 4px solid #17a2b8;'>
-                        ${grammarHeader}
-                        ${grammarListHtml}
-                        ${grammarDiffHtml}
-                    </div>`);
-
-                // 6. Formality
-                let formalityParts = [];
-                if ((result.intentLabels || []).includes('too formal')) {
-                    formalityParts.push(Strings.get('feedback_too_formal', userData?.native_language));
-                } else if ((result.intentLabels || []).includes('too informal')) {
-                    formalityParts.push(Strings.get('feedback_too_informal', userData?.native_language));
-                }
-                immediateStatsHtmlArr.push(createStatsBubbleHTML(
-                    `${Strings.get('stats_formality_header', userData?.native_language)} ${scoreData.subScores.formality}%`, formalityParts
-                ));
-
-                // 7. Native-like
-                let nativeLikeParts = [];
-                if ((result.intentLabels || []).includes('unidiomatic')) {
-                    nativeLikeParts.push(Strings.get('feedback_unidiomatic', userData?.native_language));
-                }
-                immediateStatsHtmlArr.push(createStatsBubbleHTML(
-                    `${Strings.get('stats_native_like_header', userData?.native_language)} ${scoreData.subScores.nativeLike}%`, nativeLikeParts
-                ));
-
-                // 8. Understanding
-                let understandingParts = [];
-                if ((result.intentLabels || []).includes('pragmatic failure')) {
-                    understandingParts.push(Strings.get('feedback_pragmatic_failure', userData?.native_language));
-                }
-                if ((result.intentLabels || []).includes('rude')) {
-                    understandingParts.push(Strings.get('feedback_rude', userData?.native_language));
-                }
-                immediateStatsHtmlArr.push(createStatsBubbleHTML(
-                    `${Strings.get('stats_pragmatics_header', userData?.native_language)} ${scoreData.subScores.understanding}%`, understandingParts
-                ));
-
-                // 9. Overall Fluency
-                immediateStatsHtmlArr.unshift(createStatsBubbleHTML(
-                    `<strong>${Strings.get('stats_fluency_score', userData?.native_language)} ${scoreData.fluencyScore}%</strong>`, []
-                ));
-            }
+            immediateStatsHtmlArr = buildStatsBlocks(scoreData, speechAnalytics, result, questionData, userData, englishLevel);
         }
 
         // --- SILENT RETRY FLOW FOR SPEECH ---
-        if (!isCorrect && questionData.inputType === "speech" && appStore.getState().incorrectAttempts <= 1) {
+        if (!isCorrect && questionData.inputType === "speech" && incorrectAttempts <= 1) {
             // Use silent mode for handleIncueUI
             handleIncueUI(qIndex, questionData, button, cue, userResponse, result.explanations || explanation, result.normalizeduserResponse, result.normalizedcue, questionData.question, true, userData, configData);
 
@@ -401,14 +421,7 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
             micStatusDiv.textContent = questionData.question || "";
             setMicStatusText(micStatusDiv);
 
-            // Re-enable and show the speech button so user can try again immediately
-            if (button) {
-                button.disabled = false;
-                button.classList.remove('disabled');
-                button.style.display = "inline-block"; // Bootstrap buttons are usually inline-block
-                button.innerHTML = '<i class="bi bi-mic-fill"></i>'; // Reset to mic icon
-                button.classList.remove('btn-danger', 'btn-danger-recording'); // Remove recording state colors
-            }
+            resetButtonState(button);
 
             return; // EXIT EARLY: No chat bubbles, no proceed
         }
@@ -429,7 +442,7 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
 
         // --- WEB ADAPTER: Translate Pure Data to Web UI ---
         let webFormattedExplanations = [];
-        if (result.explanations && Array.isArray(result.explanations)) {
+        if (result && result.explanations && Array.isArray(result.explanations)) {
             webFormattedExplanations = result.explanations
                 .filter(chunk => chunk.type !== 'grammar_diff') // Grammar diff is already merged into stats bubble
                 .map(chunk => {
@@ -469,11 +482,11 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
             // In handleAnswer we did: `renderAIFeedback(immediateStatsHtmlArr);`
             // and we do NOT need to pass them to handlecueUI unless we want to replace `explanation`.
 
-            handlecueUI(qIndex, questionData, button, cue, webFormattedExplanations, translation, userResponse, result.cefrLevel, result.cefrLevelDeduction, userData, configData);
+            handlecueUI(qIndex, questionData, button, cue, webFormattedExplanations, translation, userResponse, result ? result.cefrLevel : undefined, result ? result.cefrLevelDeduction : undefined, userData, configData);
             showFeedbackAndProceed(questionData, isCorrect, userData, configData);
         } else {
             // Pass the webFormattedExplanations instead of result.explanations
-            handleIncueUI(qIndex, questionData, button, cue, userResponse, webFormattedExplanations, result.normalizeduserResponse, result.normalizedcue, questionData.question, false, userData, configData);
+            handleIncueUI(qIndex, questionData, button, cue, userResponse, webFormattedExplanations, result ? result.normalizeduserResponse : "", result ? result.normalizedcue : "", questionData.question, false, userData, configData);
             showFeedbackAndProceed(questionData, isCorrect, userData, configData);
         }
     } catch (error) {
@@ -1064,13 +1077,15 @@ async function initializeLesson(courseId = State.courseId, configData = State.co
     }
 }
 
-function loadLessonContent(lesson, configData) {
-    clearSpeechRecordingsForLesson(lesson.lessonId).catch(e => console.error(e));
+async function loadLessonContent(lesson, configData) {
+    try {
+        await clearSpeechRecordingsForLesson(lesson.lessonId);
+    } catch (e) {
+        console.error(e);
+    }
     if (State.player) State.player.destroy();
 
     State.resetForNewLesson();
-    State.mission = lesson.mission || "";
-    State.setting = lesson.setting || "";
     State.roleA = lesson.roleA || "";
     State.roleB = lesson.roleB || "";
     State.userRole = lesson.userRole || "";
