@@ -2,4 +2,4 @@
 // No runtime environment checks needed — the bundler picks the right file.
 // Web: media.web.js, Native: media.native.js
 
-export { Media } from './media.platform.js';
+export { Media } from './media.web.js';

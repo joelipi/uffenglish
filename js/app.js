@@ -47,7 +47,7 @@ import { appStore } from './modules/store.js';
 import { State } from './modules/state.js';
 import { getLocalizedTranslation } from './modules/utils.js';
 import { analyzeSpeech } from './modules/analytics.js';
-import { Media } from './modules/media-web.js';
+import { Media } from './modules/media.js';
 import {
     DOM,
     flashElement,
@@ -433,23 +433,23 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
             webFormattedExplanations = result.explanations
                 .filter(chunk => chunk.type !== 'grammar_diff') // Grammar diff is already merged into stats bubble
                 .map(chunk => {
-                // If it's already a string (fallback), keep it
-                if (typeof chunk === 'string') return chunk;
+                    // If it's already a string (fallback), keep it
+                    if (typeof chunk === 'string') return chunk;
 
-                // Map the pure data object to the existing ui.js HTML generators
-                switch (chunk.type) {
-                    case 'grammar_diff':
-                        return createGrammarDiffHTML(chunk.original, chunk.corrected, chunk.header);
-                    case 'grammar_error':
-                    case 'intent_encouragement':
-                        return chunk.message;
-                    case 'pragmatics':
-                        return createPragmaticsBubbleHTML(createHeaderHTML(chunk.header), chunk.message, chunk.correction);
-                    default:
-                        console.warn(`[UI Formatter] Unhandled chunk type encountered: ${chunk.type}`, chunk);
-                        return '';
-                }
-            }).filter(Boolean);
+                    // Map the pure data object to the existing ui.js HTML generators
+                    switch (chunk.type) {
+                        case 'grammar_diff':
+                            return createGrammarDiffHTML(chunk.original, chunk.corrected, chunk.header);
+                        case 'grammar_error':
+                        case 'intent_encouragement':
+                            return chunk.message;
+                        case 'pragmatics':
+                            return createPragmaticsBubbleHTML(createHeaderHTML(chunk.header), chunk.message, chunk.correction);
+                        default:
+                            console.warn(`[UI Formatter] Unhandled chunk type encountered: ${chunk.type}`, chunk);
+                            return '';
+                    }
+                }).filter(Boolean);
         } else {
             webFormattedExplanations = explanation; // Fallback to question data explanation
         }

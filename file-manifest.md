@@ -32,7 +32,7 @@ These files handle data persistence and have been abstracted so they do not cras
 These files handle HTML5 video, Web Audio, and browser DOM APIs. They are strictly for the web build. *(You will build `.native.js` counterparts for the app later).*
 
 - [ ] `js/modules/speech-web.js` *(Renamed from speech.js)*
-- [ ] `js/modules/media-web.js` *(Renamed from media.js)*
+- [ ] `js/modules/media.web.js` *(Renamed from media.js)*
 - [ ] `js/modules/storage-web.js` *(Renamed from storage.js)*
 - [ ] `js/modules/video-loader-web.js` *(Renamed)*
 - [ ] `js/modules/video-processor-web.js` *(Renamed)*
