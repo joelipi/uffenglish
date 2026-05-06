@@ -1,7 +1,7 @@
 // modules/speech-web.js
 import Strings from '../data/strings.js';
 import { getDeepgramToken } from './api.js';
-import { saveSpeechRecording } from './storage-web.js';
+import { saveSpeechRecording } from './storage.js';
 import { State } from './state.js';
 import swearjar from './swearjar.js';
 import { validateAnswerPrecheck } from './answers.js';

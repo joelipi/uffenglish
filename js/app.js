@@ -1,4 +1,4 @@
-import { clearSpeechRecordingsForLesson, updateSpeechRecording } from './modules/storage-web.js';
+import { clearSpeechRecordingsForLesson, updateSpeechRecording } from './modules/storage.js';
 
 // Initialize the background NLP Worker via blob URL to bypass service worker caching
 
@@ -7,7 +7,7 @@ let nlpModelsReady = false;
 // --- UI & Media Components (Root Directory) ---
 import { SuccessLessonHandler } from './components/success-lesson.js';
 import { pointLoss } from './components/point-loss-animation.js';
-import { initVideoProcessor } from './modules/video-processor-web.js';
+import { initVideoProcessor } from './modules/video-processor.js';
 
 import { calculateCurrentStreak } from './modules/user-profile.js';
 import { updateActivityDisplay } from './components/ui.js';
@@ -28,7 +28,7 @@ import {
     toggleSpeechRecognition,
     isListening,
     initLocalVoiceAI
-} from './modules/speech-web.js';
+} from './modules/speech.js';
 
 import {
     getCurrentQuestionIndex,
@@ -41,7 +41,7 @@ import getRandomPraise from './modules/praise.js';
 // --- Extracted Modules ---
 import { resolveCurrentLessonId, resolveCurrentCourseId } from './modules/lesson-router.js';
 import { normalizeConfig } from './modules/config-normalizer.js';
-import { loadVideoForQuestion } from './modules/video-loader-web.js';
+import { loadVideoForQuestion } from './modules/video-loader.js';
 import { appStore } from './modules/store.js';
 //window.appStore = appStore; // <-- ADD THIS TEMPORARY LINE FOR TESTING
 import { State } from './modules/state.js';
@@ -1144,7 +1144,7 @@ async function initializeApp() {
 
         if (!isLoggedIn) {
             console.warn('User not authenticated. Proceeding as guest.');
-            showGuestLoginModal();
+            // showGuestLoginModal(); // Temporarily turned off during testing
         }
         State.initializeUserMetrics(State.userData, calculateCurrentStreak);
 
