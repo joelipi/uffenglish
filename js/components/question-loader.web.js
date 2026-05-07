@@ -1,25 +1,25 @@
-// --- modules/question-loader-web.js ---
+// --- components/question-loader.web.js ---
 // Web-specific question rendering. Dispatches on question.inputType and renders
-// the appropriate UI using DOM helpers from components/ui.js.
+// the appropriate UI using DOM helpers from ui.js.
 // React Native counterpart would use navigation + JSX components.
 
-import { State } from './state.js';
-import { appStore } from './store.js';
+import { State } from '../modules/state.js';
+import { appStore } from '../modules/store.js';
 import Strings from '../data/strings.js';
-import { getLocalizedTranslation } from './utils.js';
-import { loadVideoForQuestion } from './video-loader.js';
-import { Media } from './media.js';
+import { getLocalizedTranslation } from '../modules/utils.js';
+import { loadVideoForQuestion } from '../modules/video-loader.js';
+import { Media } from '../modules/media.js';
 import {
     getCurrentQuestionIndex,
-} from './answers.js';
+} from '../modules/answers.js';
 import {
     isIOS,
     warmUpSpeechCamStream,
     toggleSpeechRecognition,
-} from './speech.js';
-import { initVideoProcessor } from './video-processor.js';
-import { saveLessonProgress } from './user-profile.js';
-import { pointLoss } from '../components/point-loss-animation.js';
+} from '../modules/speech.js';
+import { initVideoProcessor } from '../modules/video-processor.js';
+import { saveLessonProgress } from '../modules/user-profile.js';
+import { pointLoss } from './point-loss-animation.js';
 
 import {
     DOM,
@@ -45,7 +45,7 @@ import {
     bindProcessButton,
     renderMultiChoiceUI,
     renderAIFeedback,
-} from '../components/ui.js';
+} from './ui.js';
 
 // Commented out during development; will be added back in production to prevent accidental data loss.
 function beforeUnloadHandler(e) { /* e.preventDefault(); e.returnValue = ''; return ''; */ }

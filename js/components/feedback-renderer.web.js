@@ -1,4 +1,4 @@
-// --- modules/feedback-renderer-web.js ---
+// --- components/feedback-renderer.web.js ---
 // Web-specific: converts feedback data structures (from feedback-builder.js) into HTML strings.
 // React Native would have a feedback-renderer.native.jsx counterpart using <View>/<Text>.
 
@@ -7,7 +7,7 @@ import {
     createGrammarDiffHTML,
     createHeaderHTML,
     createPragmaticsBubbleHTML
-} from '../components/ui.js';
+} from './ui.js';
 
 /**
  * Renders feedback section descriptors (from buildFeedbackData) as an array of HTML strings.

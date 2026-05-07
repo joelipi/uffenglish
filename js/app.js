@@ -47,8 +47,8 @@ import { getLocalizedTranslation } from './modules/utils.js';
 import { analyzeSpeech } from './modules/analytics.js';
 import { Media } from './modules/media.js';
 import { buildFeedbackData, buildExplanationData } from './modules/feedback-builder.js';
-import { renderFeedbackToHTML, renderExplanationsToHTML } from './modules/feedback-renderer.js';
-import { loadQuestion as _loadQuestion } from './modules/question-loader.js';
+import { renderFeedbackToHTML, renderExplanationsToHTML } from './components/feedback-renderer.js';
+import { loadQuestion as _loadQuestion } from './components/question-loader.js';
 import {
     DOM,
     flashElement,

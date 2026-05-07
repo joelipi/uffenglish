@@ -2,7 +2,7 @@
 import { State } from '../modules/state.js';
 import { appStore } from '../modules/store.js';
 import Strings from '../data/strings.js';
-import getRandomPraise from '../modules/praise.js';
+import getRandomPraise from '../data/praise.js';
 import { getLocalizedTranslation } from '../modules/utils.js';
 import { Media } from '../modules/media.js';
 import { pointLoss } from './point-loss-animation.js';
