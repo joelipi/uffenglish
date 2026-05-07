@@ -1,7 +1,7 @@
 // modules/appwrite.js
 // IMPORTANT! THIS SCRIPT USES VERSION 24 OF APPWRITE, WHICH HAS MANY BREAKING CHANGES FROM EARLIER VERSIONS. DO NOT USE THE SYNTAX OR METHODS OF EARLIER VERSIONS WITHOUT CHECKING THEY ARE STILL VALID IN VERSION 24.
 // React Native does not support importing from url, so this will have to be changed.
-import { Client, Account, TablesDB, ID } from 'https://cdn.jsdelivr.net/npm/appwrite@24.2.0/+esm';
+import { Client, Account, TablesDB, ID } from 'appwrite';
 
 export const APPWRITE_CONFIG = {
     ENDPOINT: 'https://nyc.cloud.appwrite.io/v1',

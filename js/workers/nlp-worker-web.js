@@ -1,14 +1,14 @@
 // nlp-worker-web.js
 
-import { pipeline, cos_sim, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0';
-import Tokenizer from 'https://cdn.skypack.dev/wink-tokenizer';
+import { pipeline, cos_sim, env } from '@huggingface/transformers';
+import Tokenizer from 'wink-tokenizer';
 
 env.allowLocalModels = false;
 env.useBrowserCache = true;
 env.backends.onnx.wasm.numThreads = 1;
 env.backends.onnx.wasm.simd = false;
 env.backends.onnx.wasm.proxy = false;
-env.backends.onnx.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.0-dev.20241016-2b8fc5529b/dist/';
+env.backends.onnx.wasm.wasmPaths = '/assets/wasm/';
 
 const tokenizer = new Tokenizer();
 let zeroShotClassifier = null;

@@ -3,8 +3,8 @@
 // This store holds the 12 values that drive persistent on-screen indicators.
 // All other application state (lesson data, config, player refs, flags) remains in state.js.
 
-import { createStore } from 'https://esm.sh/zustand/vanilla';
-import { persist } from 'https://esm.sh/zustand/middleware';
+import { createStore } from 'zustand/vanilla';
+import { persist } from 'zustand/middleware';
 
 export const appStore = createStore(
     persist(

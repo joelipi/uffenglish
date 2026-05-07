@@ -1,6 +1,6 @@
 import { getCurrentUser, logout, tablesDB, APPWRITE_CONFIG } from './appwrite.js';
 import normalize from './normalize.js';
-import { QueryClient } from 'https://esm.sh/@tanstack/query-core@5';
+import { QueryClient } from '@tanstack/query-core';
 
 export const queryClient = new QueryClient({
   defaultOptions: {

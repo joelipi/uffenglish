@@ -1,5 +1,5 @@
 import { State } from './state.js';
-import { Howl, Howler } from 'https://cdn.jsdelivr.net/npm/howler@2.2.4/+esm';
+import { Howl, Howler } from 'howler';
 
 const AUDIO_URLS = {
     'correct-sound': 'assets/sounds/correct.mp3',

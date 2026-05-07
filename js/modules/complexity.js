@@ -1,4 +1,4 @@
-import nlp from 'https://cdn.jsdelivr.net/npm/compromise@14.15.0/+esm';
+import nlp from 'compromise';
 
 /**
  * Calculates the syntactical complexity of a text using Compromise.js.

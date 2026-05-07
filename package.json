@@ -4,7 +4,7 @@
   "description": "![UFF Loading](assets/img/u-f-f.png)",
   "main": "temp_video_share.js",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 3000",
     "build": "vite build",
     "preview": "vite preview"
   },
@@ -15,5 +15,16 @@
     "@playwright/test": "^1.59.1",
     "@types/node": "^25.6.0",
     "vite": "^8.0.10"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.0.0",
+    "@tanstack/query-core": "^5.100.9",
+    "appwrite": "^24.2.0",
+    "canvas-confetti": "^1.6.0",
+    "compromise": "^14.15.0",
+    "howler": "^2.2.4",
+    "onnxruntime-web": "^1.20.0-dev.20241016-2b8fc5529b",
+    "wink-tokenizer": "^5.3.0",
+    "zustand": "^5.0.13"
   }
 }
