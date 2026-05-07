@@ -229,6 +229,118 @@ const strings = {
         fr: "Écoutez et répétez-le aussi vite que vous le pouvez..."
     },
     
+
+    'praise_excellent': {
+        en: "Excellent!",
+        es: "¡Excelente!",
+        fr: "Excellent !"
+    },
+    'praise_awesome': {
+        en: "Awesome!",
+        es: "¡Increíble!",
+        fr: "Génial !"
+    },
+    'praise_great': {
+        en: "Great!",
+        es: "¡Genial!",
+        fr: "Super !"
+    },
+    'praise_amazing': {
+        en: "Amazing!",
+        es: "¡Asombroso!",
+        fr: "Incroyable !"
+    },
+    'praise_very_good': {
+        en: "Very good!",
+        es: "¡Muy bien!",
+        fr: "Très bien !"
+    },
+    'praise_good_work': {
+        en: "Good work!",
+        es: "¡Buen trabajo!",
+        fr: "Bon travail !"
+    },
+    'praise_good_job': {
+        en: "Good job!",
+        es: "¡Bien hecho!",
+        fr: "Beau travail !"
+    },
+    'praise_fantastic': {
+        en: "Fantastic!",
+        es: "¡Fantástico!",
+        fr: "Fantastique !"
+    },
+    'praise_stunning': {
+        en: "Stunning!",
+        es: "¡Impresionante!",
+        fr: "Époustouflant !"
+    },
+    'praise_well_said': {
+        en: "Well said!",
+        es: "¡Bien dicho!",
+        fr: "Bien dit !"
+    },
+    'praise_well_done': {
+        en: "Well done!",
+        es: "¡Bien hecho!",
+        fr: "Bien joué !"
+    },
+    'praise_perfect': {
+        en: "Perfect!",
+        es: "¡Perfecto!",
+        fr: "Parfait !"
+    },
+    'praise_impressive': {
+        en: "Impressive!",
+        es: "¡Impresionante!",
+        fr: "Impressionnant !"
+    },
+    'praise_brilliant': {
+        en: "Brilliant!",
+        es: "¡Brillante!",
+        fr: "Brillant !"
+    },
+    'praise_outstanding': {
+        en: "Outstanding!",
+        es: "¡Sobresaliente!",
+        fr: "Exceptionnel !"
+    },
+    'praise_superb': {
+        en: "Superb!",
+        es: "¡Excelente!",
+        fr: "Superbe !"
+    },
+    'praise_terrific': {
+        en: "Terrific!",
+        es: "¡Estupendo!",
+        fr: "Formidable !"
+    },
+    'praise_wonderful': {
+        en: "Wonderful!",
+        es: "¡Maravilloso!",
+        fr: "Merveilleux !"
+    },
+    'praise_spectacular': {
+        en: "Spectacular!",
+        es: "¡Espectacular!",
+        fr: "Spectaculaire !"
+    },
+    'praise_magnificent': {
+        en: "Magnificent!",
+        es: "¡Magnífico!",
+        fr: "Magnifique !"
+    },
+    'praise_phenomenal': {
+        en: "Phenomenal!",
+        es: "¡Fenomenal!",
+        fr: "Phénoménal !"
+    },
+    'praise_incredible': {
+        en: "Incredible!",
+        es: "¡Increíble!",
+        fr: "Incroyable !"
+    },
+
     // --- NEW LOCALIZATION STRINGS ADDED ---
 
     'recommended_correction': {
