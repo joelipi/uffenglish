@@ -1,5 +1,7 @@
 import { clearSpeechRecordingsForLesson, updateSpeechRecording } from './modules/storage.js';
 
+console.log("This merrily came via Pipedream.");
+
 // Initialize the background NLP Worker via blob URL to bypass service worker caching
 
 let nlpModelsReady = false;
