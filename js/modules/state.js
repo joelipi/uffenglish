@@ -16,14 +16,7 @@ export const State = {
     roleB: null,
     userRole: null,
     videoRole: null,
-    currentLessonIndex: 0,
-    currentQuestionIndex: 0,
     successHandler: null,
-
-    // Scoring & Metrics
-    cuesGiven: [],
-    repeatPointsHistory: [],
-    rolePlayPointsHistory: [],
     
     // Engagement Tracking
     questionCount: 0,
@@ -59,6 +52,8 @@ export const State = {
     resetForNewLesson() {
         // Reset reactive metrics in the Zustand store
         appStore.getState().resetForNewLesson();
+        // Clear history arrays in the Zustand store
+        appStore.getState().resetLessonHistory();
         // Reset non-reactive lesson data
         this.mission = null;
         this.setting = null;
@@ -66,9 +61,6 @@ export const State = {
         this.roleB = null;
         this.userRole = null;
         this.videoRole = null;
-        this.cuesGiven = [];
-        this.repeatPointsHistory = [];
-        this.rolePlayPointsHistory = [];
         this.wordsRevealed = 0;
         this.videoPlays = 0;
         this.videoClicks = 0;

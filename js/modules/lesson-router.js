@@ -1,5 +1,7 @@
 // --- modules/lesson-router.js ---
 
+import { appStore } from './store.js';
+
 /**
  * Platform-Agnostic Lesson & Course Routing
  *
@@ -12,9 +14,10 @@
 
 /**
  * Resolves the current lesson ID from pure data inputs (in priority order):
- * 1. Explicitly passed urlLessonId
- * 2. User profile and local storage parameters (most recent timestamp wins)
- * 3. First lesson in configData
+ * 1. Persisted store state (Zustand)
+ * 2. Explicitly passed urlLessonId
+ * 3. User profile and local storage parameters (most recent timestamp wins)
+ * 4. First lesson in configData
  * @returns {string}
  */
 export function resolveCurrentLessonId(configData, userData, courseId, context = {}) {
@@ -22,12 +25,24 @@ export function resolveCurrentLessonId(configData, userData, courseId, context =
         throw new Error('resolveCurrentLessonId: Invalid or missing course configuration.');
     }
 
+    // Priority 1: Persisted store state
+    const persistedLessonId = appStore.getState().activeLessonId;
+    if (persistedLessonId && typeof persistedLessonId === 'string' && persistedLessonId.trim() !== '') {
+        const lessonExists = configData.lessons?.some(lesson => lesson.lessonId === persistedLessonId);
+        if (lessonExists) {
+            console.log(`[LessonRouter] Resuming lesson from persisted state: ${persistedLessonId}`);
+            return persistedLessonId;
+        } else {
+            console.warn(`[LessonRouter] Persisted lesson ID '${persistedLessonId}' not found in course configuration. Ignoring stale ID.`);
+        }
+    }
+
     const { urlLessonId, storedLessonId, storedTimestamp } = context;
 
-    // Priority 1: Explicit URL param
+    // Priority 2: Explicit URL param
     if (urlLessonId) return urlLessonId;
 
-    // Priority 2: Most recent of WordPress profile vs localStorage (timestamp wins)
+    // Priority 3: Most recent of WordPress profile vs localStorage (timestamp wins)
     let wpLessonId = null;
     let wpTimestamp = null;
 
@@ -51,7 +66,7 @@ export function resolveCurrentLessonId(configData, userData, courseId, context =
         return sources[0].lessonId;
     }
 
-    // Priority 3: First lesson in config
+    // Priority 4: First lesson in config
     if (configData.lessons?.length > 0 && configData.lessons[0].lessonId) {
         return configData.lessons[0].lessonId;
     }
