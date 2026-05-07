@@ -1211,7 +1211,7 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
         const lang = userData?.native_language;
         const feedbackText = (questionData.inputType === "ai" && englishLevelDeduction > 0)
             ? `${Strings.get('ai_acceptable', lang)}<br>${Strings.get('ai_language_level', lang)} ${englishLevel}<br>${Strings.get('ai_fluency_reduced', lang)} <span style='color:red'>${englishLevelDeduction} ${Strings.get('ai_percentage_points', lang)}</span>.`
-            : (questionData.inputType === "ai" ? getRandomPraise() : "");
+            : (questionData.inputType === "ai" ? getRandomPraise('general', lang) : "");
 
         if (questionData.inputType !== "ai" && questionData.inputType !== "speech") {
             const localizedTrans = getLocalizedTranslation(translation, lang);
@@ -1234,7 +1234,7 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
             praiseBubble.classList.add('chat-bubble', 'chat-msg');
             praiseBubble.style.marginTop = '12px';
             const praiseStrong = document.createElement('strong');
-            praiseStrong.textContent = getRandomPraise();
+            praiseStrong.innerHTML = getRandomPraise('general', lang);
             praiseBubble.appendChild(praiseStrong);
 
             const chunks = [correctBubble];
