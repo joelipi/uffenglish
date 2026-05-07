@@ -551,12 +551,13 @@ const strings = {
 };
 
 /**
- * Gets a UI string, optionally with a translation appended.
+ * Gets a UI string, optionally with a translation appended and placeholders replaced.
  * @param {string} key - The string key.
- * @param {string} lang - The user's language code (e.g., 'es').
+ * @param {string} lang - The user's native language code (e.g., 'es').
+ * @param {Object} placeholders - Optional key-value pairs for interpolation (e.g., { score: 100 }).
  * @returns {string} - The formatted string.
  */
-export function get(key, lang = 'en') {
+export function get(key, lang = 'en', placeholders = {}) {
     const entry = strings[key];
     if (!entry) return key;
 
@@ -565,7 +566,17 @@ export function get(key, lang = 'en') {
         ? lang.split('-')[0].toLowerCase() 
         : 'en';
         
-    const englishText = entry.en || '';
+    let englishText = entry.en || '';
+    let translatedText = entry[normalizedLang] || '';
+
+    // Replace placeholders in both
+    if (placeholders && typeof placeholders === 'object') {
+        Object.entries(placeholders).forEach(([pKey, pValue]) => {
+            const token = `{${pKey}}`;
+            englishText = englishText.replaceAll(token, pValue);
+            translatedText = translatedText.replaceAll(token, pValue);
+        });
+    }
 
     // If no language is provided, or it's English, or we don't have that translation, return only English
     if (normalizedLang === 'en' || !entry[normalizedLang]) {
@@ -573,7 +584,7 @@ export function get(key, lang = 'en') {
     }
 
     // Return English + Translated version in a span
-    return `${englishText}<br><span lang='${normalizedLang}'><i>${entry[normalizedLang]}</i></span>`;
+    return `${englishText}<br><span lang='${normalizedLang}'><i>${translatedText}</i></span>`;
 }
 
 export default { get };

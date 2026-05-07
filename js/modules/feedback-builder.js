@@ -25,7 +25,7 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, question
     sections.push({
         type: 'stat',
         key: 'pronunciation',
-        header: `${Strings.get('stats_speaking_header', lang).replace('{score}', scoreData.subScores.pronunciation)} - ${Strings.get('stats_attempts_required', lang)} ${attemptNumber}`,
+        header: `${Strings.get('stats_speaking_header', lang, { score: scoreData.subScores.pronunciation })} - ${Strings.get('stats_attempts_required', lang)} ${attemptNumber}`,
         parts: []
     });
 
@@ -33,7 +33,7 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, question
     sections.push({
         type: 'stat',
         key: 'listening',
-        header: `${Strings.get('stats_listening_header', lang).replace('{score}', scoreData.subScores.listening)} - ${Strings.get('stats_repetitions_required', lang)} ${attemptNumber}`,
+        header: `${Strings.get('stats_listening_header', lang, { score: scoreData.subScores.listening })} - ${Strings.get('stats_repetitions_required', lang)} ${attemptNumber}`,
         parts: []
     });
 
