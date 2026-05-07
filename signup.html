@@ -79,9 +79,15 @@
         <div id="error-message" class="alert alert-danger d-none" role="alert"></div>
 
         <form id="signup-form">
-            <div class="mb-3">
-                <label for="name" class="form-label">Full Name</label>
-                <input type="text" class="form-control" id="name" required>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="first-name" class="form-label">First Name</label>
+                    <input type="text" class="form-control" id="first-name" required>
+                </div>
+                <div class="col-md-6 mt-3 mt-md-0">
+                    <label for="last-name" class="form-label">Last Name</label>
+                    <input type="text" class="form-control" id="last-name" required>
+                </div>
             </div>
             <div class="mb-3">
                 <label for="email" class="form-label">Email address</label>
@@ -135,7 +141,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
-            const redirectUrl = urlParams.get('redirect') || '/home';
+            const redirectUrl = urlParams.get('redirect') || 'homescreen.html';
 
             const redirectQuery = urlParams.get('redirect') ? `?redirect=${encodeURIComponent(urlParams.get('redirect'))}` : '';
             document.getElementById('login-link').href = `login.html${redirectQuery}`;
@@ -150,14 +156,20 @@
                 signupBtn.disabled = true;
                 signupBtn.textContent = 'Creating account...';
 
-                const name = document.getElementById('name').value;
+                const firstName = document.getElementById('first-name').value.trim();
+                const lastName = document.getElementById('last-name').value.trim();
+                const fullName = `${firstName} ${lastName}`;
+
                 const email = document.getElementById('email').value;
                 const password = document.getElementById('password').value;
                 const nativeLanguage = document.getElementById('nativeLanguage').value;
                 const englishLevel = document.getElementById('englishLevel').value;
 
                 try {
-                    const user = await account.create(ID.unique(), email, password, name);
+                    const user = await account.create(ID.unique(), email, password, fullName);
+
+                    // 🔑 Create a session immediately — without this, the next call runs as a guest
+                    await account.createEmailPasswordSession(email, password);
 
                     signupBtn.textContent = 'Setting up profile...';
                     await tablesDB.createRow({
@@ -166,6 +178,8 @@
                         rowId: user.$id,
                         data: {
                             email: email,
+                            firstName: firstName,
+                            lastName: lastName,
                             joinDate: new Date().toISOString(),
                             accountStatus: 'active',
                             native_language: nativeLanguage,
@@ -174,11 +188,7 @@
                         }
                     });
 
-                    // Appwrite automatically logs the user in upon successful account creation in some setups.
-                    // If your setup requires explicit session creation after signup, add `await account.createEmailPasswordSession(email, password);` here.
-
-                    invalidateUserAndAuthCache(); // 🚀 Bust the cache!
-
+                    invalidateUserAndAuthCache();
                     window.location.href = redirectUrl;
 
                 } catch (error) {

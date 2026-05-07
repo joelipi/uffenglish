@@ -94,7 +94,7 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
-            const redirectUrl = urlParams.get('redirect') || 'lesson.html';
+            const redirectUrl = urlParams.get('redirect') || 'homescreen.html';
 
             const redirectQuery = urlParams.get('redirect') ? `?redirect=${encodeURIComponent(urlParams.get('redirect'))}` : '';
             document.getElementById('signup-link').href = `signup.html${redirectQuery}`;
