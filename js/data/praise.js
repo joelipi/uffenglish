@@ -50,12 +50,13 @@ export default function getRandomPraise(category = 'general', lang = 'en') {
 
     if (selected.type === 'image') {
         console.log(`[Praise] Selected type: image, content: ${selected.content}`);
-        console.log(`[Praise] Rendering image in chat: ${selected.content}`);
-        return `<img src="${selected.content}" class="img-fluid rounded" alt="Praise" style="max-height: 200px; display: block; margin: 0 auto;">`;
+        return selected;
     }
 
-    const praiseHtml = Strings.get(selected.key, lang);
+    const praiseText = Strings.get(selected.key, lang);
     console.log(`[Praise] Selected type: ${selected.type}, key: ${selected.key}, lang: ${lang}`);
-    console.log(`[Praise] Resulting HTML: ${praiseHtml}`);
-    return "👍👍 " + praiseHtml;
+    return {
+        ...selected,
+        text: "👍👍 " + praiseText
+    };
 }

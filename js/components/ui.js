@@ -209,6 +209,20 @@ export function createGrammarDiffHTML(original, correction, headingText = "") {
 }
 
 /**
+ * 🎨 UI BUILDER: Converts praise data (text or image) into HTML
+ * @param {Object|string} praiseData - The praise data object or a direct string
+ * @returns {string} HTML string
+ */
+export function getPraiseHTML(praiseData) {
+    if (!praiseData) return "";
+    if (typeof praiseData === 'string') return praiseData;
+    if (praiseData.type === 'image') {
+        return `<img src="${praiseData.content}" class="img-fluid rounded" alt="Praise" style="max-height: 200px; display: block; margin: 0 auto;">`;
+    }
+    return praiseData.text || "";
+}
+
+/**
  * 🎨 UI BUILDER: Renders a general AI feedback bubble (explanation, heads-up, etc.)
  */
 export function renderAIFeedback(contentChunks = []) {
@@ -1209,9 +1223,10 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
 
     if (DOM.speechText) {
         const lang = userData?.native_language || State.userData?.native_language || 'en';
+        const praiseResult = (questionData.inputType === "ai" || questionData.inputType === "speech") ? getRandomPraise('general', lang) : "";
         const feedbackText = (questionData.inputType === "ai" && englishLevelDeduction > 0)
             ? `${Strings.get('ai_acceptable', lang)}<br>${Strings.get('ai_language_level', lang)} ${englishLevel}<br>${Strings.get('ai_fluency_reduced', lang)} <span style='color:red'>${englishLevelDeduction} ${Strings.get('ai_percentage_points', lang)}</span>.`
-            : ((questionData.inputType === "ai" || questionData.inputType === "speech") ? getRandomPraise('general', lang) : "");
+            : getPraiseHTML(praiseResult);
 
         if (questionData.inputType !== "ai" && questionData.inputType !== "speech") {
             const localizedTrans = getLocalizedTranslation(translation, lang);
@@ -1234,7 +1249,7 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
             praiseBubble.classList.add('chat-bubble', 'chat-msg');
             praiseBubble.style.marginTop = '12px';
             const praiseStrong = document.createElement('strong');
-            praiseStrong.innerHTML = getRandomPraise('general', lang);
+            praiseStrong.innerHTML = getPraiseHTML(getRandomPraise('general', lang));
             praiseBubble.appendChild(praiseStrong);
 
             const chunks = [correctBubble];
