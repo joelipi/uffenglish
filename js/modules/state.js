@@ -18,6 +18,29 @@ export const State = {
     videoRole: null,
     successHandler: null,
     
+    // Getters/Setters for properties that moved to appStore (persistence & reactivity)
+    get currentLessonIndex() { return appStore.getState().currentLessonIndex; },
+    set currentLessonIndex(val) { appStore.setState({ currentLessonIndex: val }); },
+
+    get currentQuestionIndex() { return appStore.getState().currentQuestionIndex; },
+    set currentQuestionIndex(val) { appStore.setState({ currentQuestionIndex: val }); },
+
+    get cuesGiven() { return appStore.getState().cuesGiven; },
+    set cuesGiven(val) { appStore.setState({ cuesGiven: val }); },
+
+    get repeatPointsHistory() { return appStore.getState().repeatPointsHistory; },
+    set repeatPointsHistory(val) { appStore.setState({ repeatPointsHistory: val }); },
+
+    get rolePlayPointsHistory() { return appStore.getState().rolePlayPointsHistory; },
+    set rolePlayPointsHistory(val) { appStore.setState({ rolePlayPointsHistory: val }); },
+
+    // Dynamic properties (initialized in app.js or initializeLesson)
+    courseId: null,
+    configData: null,
+    userData: null,
+    englishLevel: 'A0',
+    apiRoot: null,
+
     // Engagement Tracking
     questionCount: 0,
     questionsAnswered: 0,
@@ -54,6 +77,10 @@ export const State = {
         appStore.getState().resetForNewLesson();
         // Clear history arrays in the Zustand store
         appStore.getState().resetLessonHistory();
+        
+        // Reset question index to 0 for a fresh start
+        this.currentQuestionIndex = 0;
+
         // Reset non-reactive lesson data
         this.mission = null;
         this.setting = null;
@@ -65,6 +92,7 @@ export const State = {
         this.videoPlays = 0;
         this.videoClicks = 0;
         this.questionCount = 0;
+        this.questionsAnswered = 0;
     },
 
     resetForNextQuestion() {
@@ -76,4 +104,4 @@ export const State = {
         this.videoClicks = 0;
         this.isPlaybackMuted = false;
     }
-};
+};
