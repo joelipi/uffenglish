@@ -63,7 +63,7 @@
 
 
   <!-- Eruda for debugging COMMENT OUT IN PRODUCTION (optional) -->
-  <script src="https://cdn.jsdelivr.net/npm/eruda@3.4.1/eruda.min.js"></script>
+  <script src="./node_modules/eruda/eruda.js"></script>
   <script>
     eruda.init(); // Initialize Eruda
   </script>
@@ -83,7 +83,7 @@
 <!-- / SuperPWA.com -->
 <meta name='robots' content='max-image-preview:large' />
 <script type="module">
-        import { pipeline, env } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0";
+        import { pipeline, env } from "@huggingface/transformers";
         
         env.allowLocalModels = false;
         env.useBrowserCache = true;
@@ -103,10 +103,10 @@
             }, 3000); // 3 second delay after page load
         });
     </script><link rel='stylesheet' id='mwai_chatbot_theme_timeless-css' href='assets/css/timeless.css' media='all' />
-<link rel='stylesheet' id='bootstrap-css-css' href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css?ver=5.3.0' media='all' />
-<link rel='stylesheet' id='bootstrap-icons-css' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css?ver=1.11.0' media='all' />
-<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<link rel='stylesheet' id='bootstrap-css-css' href='./node_modules/bootstrap/dist/css/bootstrap.min.css' media='all' />
+<link rel='stylesheet' id='bootstrap-icons-css' href='./node_modules/bootstrap-icons/font/bootstrap-icons.css' media='all' />
+<script crossorigin src="./node_modules/react/umd/react.production.min.js"></script>
+<script crossorigin src="./node_modules/react-dom/umd/react-dom.production.min.js"></script>
 <script>
 window.wp = window.wp || {};
 window.wp.element = window.wp.element || Object.assign({}, window.React, window.ReactDOM);
@@ -178,7 +178,7 @@ window.wp.apiFetch = function() { return Promise.resolve({}); };
   
   <link
     rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
+    href="./node_modules/animate.css/animate.min.css"
   />
 
   <link rel="stylesheet" href="style.css">
@@ -494,8 +494,7 @@ Cómo hablamos en el día a día más allá de lo más esenical, incluyendo fras
         
         }
     </style><div class='mwai-chatbot-container' data-params='{&quot;aiName&quot;:&quot;Prof. Fluintel, UFF AI&quot;,&quot;userName&quot;:&quot;User: &quot;,&quot;guestName&quot;:&quot;Guest:&quot;,&quot;aiAvatar&quot;:true,&quot;userAvatar&quot;:true,&quot;guestAvatar&quot;:true,&quot;aiAvatarUrl&quot;:&quot;https:\/\/ultrafastfluency.com\/aiavatar.png&quot;,&quot;guestAvatarUrl&quot;:&quot;assets/img/ai-avatar.png&quot;,&quot;textSend&quot;:&quot;Send&quot;,&quot;textClear&quot;:&quot;Clear&quot;,&quot;imageUpload&quot;:false,&quot;fileUpload&quot;:false,&quot;multiUpload&quot;:false,&quot;maxUploads&quot;:1,&quot;fileUploads&quot;:0,&quot;mode&quot;:&quot;chat&quot;,&quot;textInputPlaceholder&quot;:&quot;Type your message...&quot;,&quot;textInputMaxLength&quot;:512,&quot;textCompliance&quot;:&quot;&quot;,&quot;startSentence&quot;:&quot;Hi! Hola! Haz me tus preguntas sobre el ingl\u00e9s. No olvides pegar cualquier texto relevante, pues, no veo lo que est\u00e1 en la app. No puedo ofrecer soporte t\u00e9cnico, tampoco s\u00e9 sobre las funciones de esta app.&quot;,&quot;localMemory&quot;:true,&quot;themeId&quot;:&quot;timeless&quot;,&quot;window&quot;:true,&quot;icon&quot;:&quot;https:\/\/ultrafastfluency.com\/aiavatarnobg.png?0&quot;,&quot;iconText&quot;:&quot;&quot;,&quot;iconTextDelay&quot;:1,&quot;iconAlt&quot;:&quot;AI Engine Chatbot&quot;,&quot;iconPosition&quot;:&quot;bottom-right&quot;,&quot;centerOpen&quot;:false,&quot;width&quot;:&quot;&quot;,&quot;openDelay&quot;:&quot;&quot;,&quot;iconBubble&quot;:false,&quot;windowAnimation&quot;:&quot;zoom&quot;,&quot;fullscreen&quot;:true,&quot;copyButton&quot;:true,&quot;headerSubtitle&quot;:&quot;&quot;,&quot;containerType&quot;:&quot;standard&quot;,&quot;headerType&quot;:&quot;standard&quot;,&quot;messagesType&quot;:&quot;standard&quot;,&quot;inputType&quot;:&quot;standard&quot;,&quot;footerType&quot;:&quot;standard&quot;}' data-system='{&quot;botId&quot;:&quot;default&quot;,&quot;customId&quot;:null,&quot;userData&quot;:{&quot;ID&quot;:45,&quot;name&quot;:&quot;test&quot;,&quot;email&quot;:&quot;testt@example.com&quot;,&quot;avatar&quot;:&quot;https:\/\/secure.gravatar.com\/avatar\/abc02beb233c67fbbff982999809fb9cb5a1575f374ad368ea38cb1fa753cf3f?s=96&amp;d=mm&amp;r=g&quot;,&quot;type&quot;:&quot;logged-in&quot;,&quot;FIRST_NAME&quot;:&quot;Testname&quot;,&quot;LAST_NAME&quot;:&quot;Testlast&quot;,&quot;USER_LOGIN&quot;:&quot;test&quot;,&quot;DISPLAY_NAME&quot;:&quot;test&quot;,&quot;AVATAR_URL&quot;:&quot;https:\/\/secure.gravatar.com\/avatar\/abc02beb233c67fbbff982999809fb9cb5a1575f374ad368ea38cb1fa753cf3f?s=96&amp;d=mm&amp;r=g&quot;},&quot;sessionId&quot;:&quot;N\/A&quot;,&quot;restNonce&quot;:&quot;ed2d2be5a9&quot;,&quot;contextId&quot;:24,&quot;pluginUrl&quot;:&quot;https:\/\/ultrafastfluency.com\/wp-content\/plugins\/ai-engine&quot;,&quot;restUrl&quot;:&quot;https:\/\/ultrafastfluency.com\/wp-json&quot;,&quot;stream&quot;:true,&quot;debugMode&quot;:true,&quot;eventLogs&quot;:true,&quot;speech_recognition&quot;:false,&quot;speech_synthesis&quot;:false,&quot;typewriter&quot;:false,&quot;crossSite&quot;:false,&quot;actions&quot;:[],&quot;blocks&quot;:[],&quot;shortcuts&quot;:[]}' data-theme='{&quot;type&quot;:&quot;internal&quot;,&quot;name&quot;:&quot;Timeless&quot;,&quot;themeId&quot;:&quot;timeless&quot;,&quot;settings&quot;:{&quot;backgroundAiColor&quot;:&quot;#ffffff&quot;,&quot;backgroundUserColor&quot;:&quot;#000000&quot;,&quot;backgroundPrimaryColor&quot;:&quot;#ffffff&quot;,&quot;backgroundAiSecondaryColor&quot;:&quot;#000&quot;,&quot;width&quot;:&quot;80vh&quot;,&quot;maxHeight&quot;:&quot;90vh&quot;,&quot;borderRadius&quot;:&quot;2px&quot;,&quot;backgroundHeaderColor&quot;:&quot;#1a3a5a&quot;,&quot;fontSize&quot;:&quot;16px&quot;,&quot;fontColor&quot;:&quot;#000000&quot;,&quot;headerButtonsColor&quot;:&quot;#ffffff &quot;,&quot;iconTextBackgroundColor&quot;:&quot;#343541&quot;,&quot;iconTextColor&quot;:&quot;#343541&quot;},&quot;style&quot;:&quot;&quot;,&quot;cssUrl&quot;:&quot;https:\/\/ultrafastfluency.com\/wp-content\/plugins\/ai-engine\/themes\/timeless.css&quot;}'></div>
-<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js?ver=2.11.6" id="popper-js-js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js?ver=5.3.0" id="bootstrap-js-js"></script>
+<script src="./node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://ultrafastfluency.com/wp-content/themes/twentytwentyfive-child/js/users-data.js?ver=1776612503" id="twentytwentyfive-child-users-data-js"></script>
 <!-- Ybug code start (https://ybug.io) -->
 <script type='text/javascript'>
@@ -654,7 +653,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <!--END WELCOME-->
 
 <!--Deepgram SDK for speech recognition-->
-    <script src="https://cdn.jsdelivr.net/npm/@deepgram/sdk@v4.9.0"></script>
+    <script src="./node_modules/@deepgram/sdk/dist/browser/index.js"></script>
 
 <!-- Cloudflare insights disabled for local -->
 </body>
