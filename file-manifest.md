@@ -98,3 +98,132 @@ This file bridges the pure logic and the web UI.
 
 ## 📁 Archived / For Future Use
 - [ ] `js/modules/FORFUTUREUSEnlp-coordinator.js`
+
+## 📁 Complete File Tree
+```text
+.
+├── README.md
+├── agents.md
+├── assets
+│   ├── fonts
+│   │   ├── fira-code
+│   │   │   └── FiraCode-VariableFont_wght.woff2
+│   │   └── manrope
+│   │       └── Manrope-VariableFont_wght.woff2
+│   ├── img
+│   │   ├── ai-avatar.png
+│   │   ├── bulb.svg
+│   │   ├── continue.png
+│   │   ├── continue.svg
+│   │   ├── cropped-teacher.png
+│   │   ├── exercise-brain.avif
+│   │   ├── favicons
+│   │   │   ├── apple-touch-icon.jpeg
+│   │   │   ├── favicon-192x192.jpeg
+│   │   │   └── favicon-32x32.jpeg
+│   │   ├── header.png
+│   │   ├── micoff.svg
+│   │   ├── micon.svg
+│   │   ├── mobileheaderhalf.png
+│   │   ├── party-brain.webp
+│   │   ├── teacherprofile.png
+│   │   ├── u-f-f.png
+│   │   ├── verygood01.png
+│   │   ├── verygood02.png
+│   │   ├── verygood03.png
+│   │   └── videoThumbnail.png
+│   └── sounds
+│       ├── complete-old.mp3
+│       ├── complete-zing.mp3
+│       ├── complete.mp3
+│       ├── correct-old.mp3
+│       ├── correct.mp3
+│       ├── enableaudio.mp3
+│       ├── incorrect-old.mp3
+│       └── incorrect.mp3
+├── engine
+│   ├── engine.js
+│   ├── package.json
+│   └── test.js
+├── file-manifest.md
+├── homescreen.html
+├── index.html
+├── js
+│   ├── app.js
+│   ├── components
+│   │   ├── feedback-renderer.js
+│   │   ├── feedback-renderer.web.js
+│   │   ├── interactive-video-player.js
+│   │   ├── interactive-video-player.native.jsx
+│   │   ├── intro-background-video.js
+│   │   ├── point-loss-animation.js
+│   │   ├── question-loader.js
+│   │   ├── question-loader.web.js
+│   │   ├── simple-video-player.js
+│   │   ├── simple-video-player.native.jsx
+│   │   ├── success-lesson.js
+│   │   └── ui.js
+│   ├── config
+│   │   └── gt2.json
+│   ├── data
+│   │   ├── idioms.json
+│   │   ├── idioms_original_with_blind_lemmatization.json
+│   │   ├── praise.js
+│   │   └── strings.js
+│   ├── modules
+│   │   ├── FORFUTUREUSEnlp-coordinator.js
+│   │   ├── analytics.js
+│   │   ├── answers.js
+│   │   ├── api.js
+│   │   ├── appwrite.js
+│   │   ├── calculate-similarity.js
+│   │   ├── complexity.js
+│   │   ├── config-normalizer.js
+│   │   ├── feedback-builder.js
+│   │   ├── idiom-checker.js
+│   │   ├── lesson-router.js
+│   │   ├── media.js
+│   │   ├── media.native.js
+│   │   ├── media.web.js
+│   │   ├── normalize.js
+│   │   ├── scoring.js
+│   │   ├── speech.js
+│   │   ├── speech.web.js
+│   │   ├── state.js
+│   │   ├── storage-adapter.js
+│   │   ├── storage.js
+│   │   ├── storage.web.js
+│   │   ├── store.js
+│   │   ├── swearjar.js
+│   │   ├── user-profile.js
+│   │   ├── utils.js
+│   │   ├── video-controller.js
+│   │   ├── video-loader.js
+│   │   ├── video-loader.web.js
+│   │   ├── video-processor-logic.js
+│   │   ├── video-processor-native.jsx
+│   │   ├── video-processor.js
+│   │   ├── video-processor.web.js
+│   │   ├── video-share.js
+│   │   └── video-share.web.js
+│   └── workers
+│       ├── nlp-worker-web.js
+│       └── whisper
+│           ├── app-vad-asr-web.js
+│           └── whisper-worker-web.js
+├── lesson.html
+├── login.html
+├── package-lock.json
+├── package.json
+├── playwright.config.js
+├── recover-password.html
+├── reset-password.html
+├── signup.html
+├── style.css
+├── temp_video_share.js
+├── tests
+│   └── example.spec.js
+├── tree.txt
+├── userprofile.html
+└── vite.config.js
+```

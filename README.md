@@ -27,11 +27,11 @@ UFF is built as a highly responsive, static frontend application with a decouple
 
 ### Backend & Authentication
 *   **Appwrite (v24):** Used for user authentication, session management, and database synchronization (`js/modules/appwrite.js`).
-*   **Local Storage Sync:** Guest and offline progress is stored locally and synced to Appwrite upon login (`js/modules/userProfile.js`).
+*   **Local Storage Sync:** Guest and offline progress is stored locally and synced to Appwrite upon login (`js/modules/user-profile.js`).
 
 ### AI & NLP Pipeline
 *   **Speech-to-Text:** Integrated with Deepgram and Whisper for highly accurate, fast transcription.
-*   **Background NLP Worker:** Heavy NLP tasks (like local Hugging Face model inferences and text normalization) are offloaded to a Web Worker (`js/nlp-worker-web.js`) so the main UI thread never freezes.
+*   **Background NLP Worker:** Heavy NLP tasks (like local Hugging Face model inferences and text normalization) are offloaded to a Web Worker (`js/workers/nlp-worker-web.js`) so the main UI thread never freezes.
 *   **Grammar & Intent Checking:** External APIs and proxy workers (e.g., Cloudflare Workers interacting with AI models) are queried to evaluate semantic correctness (`js/modules/api.js`).
 
 ## Directory Structure
@@ -40,7 +40,6 @@ UFF is built as a highly responsive, static frontend application with a decouple
 .
 ├── README.md               # This file
 ├── index.html / homescreen.html # Main entry points
-├── landing.html            # Marketing and informational landing page
 ├── lesson.html             # The core interactive lesson interface
 ├── userprofile.html        # User statistics and history
 ├── style.css               # Global application styles
@@ -51,14 +50,16 @@ UFF is built as a highly responsive, static frontend application with a decouple
 └── js/                     # Application logic
     ├── config/             # JSON configuration files (e.g., courses)
     ├── data/               # Static lesson data and dictionaries
-    ├── modules/            # Modularized logic (State, API, UI, Scoring)
+    ├── components/         # Visual rendering and DOM manipulation (e.g., ui.js)
+    ├── modules/            # Modularized logic (State, API, Scoring)
     │   ├── api.js          # API calls (AI evaluation, deepgram tokens)
     │   ├── appwrite.js     # Appwrite backend client setup
     │   ├── state.js        # Global application state object
-    │   ├── ui.js           # Visual rendering and DOM manipulation
+    │   ├── user-profile.js # Local storage and user progress syncing
     │   └── ...
-    ├── nlp-worker-web.js       # Background thread for heavy language processing
-    └── script.js           # Main application bootstrapping
+    ├── workers/            # Web workers for background processes
+    │   └── nlp-worker-web.js # Background thread for heavy language processing
+    └── app.js              # Main application bootstrapping
 ```
 
 ## Local Development Setup
@@ -71,11 +72,11 @@ Because UFF is designed as a static frontend, setting it up for local developmen
 ### Running the App
 1. Clone the repository to your local machine.
 2. Open a terminal in the root directory of the project.
-3. Start a local HTTP server. For example, using Python:
+3. Start a local HTTP server using serve (or any equivalent):
    ```bash
-   python3 -m http.server 8000
+   npx serve .
    ```
-4. Open your browser and navigate to `http://localhost:8000/landing.html` or `http://localhost:8000/homescreen.html`.
+4. Open your browser and navigate to `http://localhost:3000/index.html` or `http://localhost:3000/homescreen.html`.
 
 ### Testing Media & Speech locally
 To properly test the microphone and speech recognition features (especially in automated tests like Playwright), you may need to bypass standard browser security prompts for local environments.
