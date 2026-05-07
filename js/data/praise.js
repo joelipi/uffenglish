@@ -55,6 +55,7 @@ export default function getRandomPraise(category = 'general', lang = 'en') {
     }
 
     const praiseHtml = Strings.get(selected.key, lang);
-    console.log(`[Praise] Selected type: text, key: ${selected.key}`);
+    console.log(`[Praise] Selected type: ${selected.type}, key: ${selected.key}, lang: ${lang}`);
+    console.log(`[Praise] Resulting HTML: ${praiseHtml}`);
     return "👍👍 " + praiseHtml;
 }

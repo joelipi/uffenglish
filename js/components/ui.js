@@ -1208,10 +1208,10 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
     // Unified: last AI question advances via Continue button like all others.
 
     if (DOM.speechText) {
-        const lang = userData?.native_language;
+        const lang = userData?.native_language || State.userData?.native_language || 'en';
         const feedbackText = (questionData.inputType === "ai" && englishLevelDeduction > 0)
             ? `${Strings.get('ai_acceptable', lang)}<br>${Strings.get('ai_language_level', lang)} ${englishLevel}<br>${Strings.get('ai_fluency_reduced', lang)} <span style='color:red'>${englishLevelDeduction} ${Strings.get('ai_percentage_points', lang)}</span>.`
-            : (questionData.inputType === "ai" ? getRandomPraise('general', lang) : "");
+            : ((questionData.inputType === "ai" || questionData.inputType === "speech") ? getRandomPraise('general', lang) : "");
 
         if (questionData.inputType !== "ai" && questionData.inputType !== "speech") {
             const localizedTrans = getLocalizedTranslation(translation, lang);

@@ -553,22 +553,27 @@ const strings = {
 /**
  * Gets a UI string, optionally with a translation appended.
  * @param {string} key - The string key.
- * @param {string} lang - The user's native language code (e.g., 'es').
+ * @param {string} lang - The user's language code (e.g., 'es').
  * @returns {string} - The formatted string.
  */
 export function get(key, lang = 'en') {
     const entry = strings[key];
     if (!entry) return key;
 
+    // Support both 2-char codes (es) and full locales (es-ES)
+    const normalizedLang = (lang && typeof lang === 'string') 
+        ? lang.split('-')[0].toLowerCase() 
+        : 'en';
+        
     const englishText = entry.en || '';
 
     // If no language is provided, or it's English, or we don't have that translation, return only English
-    if (!lang || lang === 'en' || !entry[lang]) {
+    if (normalizedLang === 'en' || !entry[normalizedLang]) {
         return englishText;
     }
 
     // Return English + Translated version in a span
-    return `${englishText}<br><span lang='${lang}'><i>${entry[lang]}</i></span>`;
+    return `${englishText}<br><span lang='${normalizedLang}'><i>${entry[normalizedLang]}</i></span>`;
 }
 
 export default { get };
