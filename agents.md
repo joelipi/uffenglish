@@ -26,11 +26,12 @@
 
 Do not go to homescreen.html or landing.html they aren't hooked into the app logic yet.
 
-Here is the local address of the course I am using for testing http://127.0.0.1:5500/lesson.html?courseid=gt2 Remember that lessons cannot be initialized without that url parameter unless they are already stored in memory.
+Here is the local address of the course and lesson I am using for testing http://127.0.0.1:5500/lesson.html?courseid=gt2&lessonid=x Remember that lessons cannot be initialized without that url parameter unless they are already stored in memory.
 
 ## 5. App-Specific Testing Workarounds
 * **Speech-to-Text / Microphone Bypass:** Because you cannot natively utilize a microphone for the speech-to-text features, you must use the built-in testing functions. As appropriate, bypass the microphone entirely or directly invoke the `handleAnswer` function (or other required functions) to simulate user audio input.
 * **Authentication / Login Testing:** 
+AVOID logging into the web app as a user for now, since this will interfere with your ability to test the app as a guest user. It will not be an issue in the live version of the application. ONLY LOG IN OR SIGN UP IF THE TASK SPECIFICALLY REQUIRES IT.
 User credentials for the web app during your automated testing:
     * **Email:** jules@example.com
     * **Password:** testtest
