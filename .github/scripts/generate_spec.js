@@ -36,6 +36,7 @@ async function main() {
     console.log(`File contents loaded: ${repoContext.length} chars`);
     const data = await callWithRetry({
         model: "deepseek-v4-pro",
+        max_tokens: 100000,
         messages: [
             {
                 role: "system",

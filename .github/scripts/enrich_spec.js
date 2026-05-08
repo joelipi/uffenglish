@@ -44,6 +44,7 @@ async function main() {
     console.log(`Repo context loaded: ${repoContext.length} chars`);
     const data = await callWithRetry({
         model: "meta-llama/llama-4-scout-17b-16e-instruct",
+        max_tokens: 100000,
         messages: [
             {
                 role: "system",
