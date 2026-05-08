@@ -32,15 +32,11 @@ async function main() {
 
     const data = await response.json();
     const raw = data.choices[0].message.content;
+    console.log("RAW RESPONSE:", raw);
     const match = raw.match(/\[[\s\S]*\]/);
     if (!match) throw new Error("No JSON array found in response: " + raw);
     const text = match[0];
-
     const selectedFiles = JSON.parse(text);
-    const output = JSON.stringify(selectedFiles);
-
-    execSync(`echo 'selected_files=${output}' >> $GITHUB_OUTPUT`);
-    console.log("Selected files:", selectedFiles);
 }
 
 main().catch(err => {
