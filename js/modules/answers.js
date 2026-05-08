@@ -115,22 +115,27 @@ export async function processAnswerLogic({
         let correction = "";
 
         if (evaluationResult.length > 0) {
-            if (evaluationResult.length === 1 && (evaluationResult[0].trim().toLowerCase() === "correct" || evaluationResult[0].trim().toLowerCase() === "parse_error")) {
-                labels = [evaluationResult[0].trim().toLowerCase()];
+            const validLabelsSet = new Set(['ungrammatical', 'pragmatic failure', 'too formal', 'too informal', 'rude', 'unidiomatic', 'correct', 'parse_error']);
+            
+            // 1. Try to extract correction from the end of the array
+            const lastEl = evaluationResult[evaluationResult.length - 1];
+            if (typeof lastEl === 'string' && !validLabelsSet.has(lastEl.trim().toLowerCase())) {
+                correction = evaluationResult.pop();
+            }
+            
+            // 2. Filter the rest for valid labels
+            labels = evaluationResult
+                .filter(l => typeof l === 'string' && validLabelsSet.has(l.trim().toLowerCase()))
+                .map(l => l.toLowerCase().trim());
+
+            // 3. Handle appended correction (text after the brackets)
+            if (appendedCorrection) {
+                 correction = appendedCorrection.replace(/^"|"$/g, '').trim();
+            }
+            
+            // 4. Default correction if we just have "correct" or "parse_error"
+            if (!correction && labels.length === 1 && (labels.includes("correct") || labels.includes("parse_error"))) {
                 correction = grammarResult.correctedText;
-            } else {
-                const validLabelsSet = new Set(['ungrammatical', 'pragmatic failure', 'too formal', 'too informal', 'rude', 'unidiomatic', 'correct', 'parse_error']);
-                const lastEl = evaluationResult[evaluationResult.length - 1];
-                
-                if (typeof lastEl === 'string' && !validLabelsSet.has(lastEl.trim().toLowerCase())) {
-                    correction = evaluationResult.pop();
-                }
-                
-                if (appendedCorrection) {
-                     correction = appendedCorrection.replace(/^"|"$/g, '').trim();
-                }
-                
-                labels = evaluationResult.map(l => (typeof l === 'string' ? l.toLowerCase().trim() : l));
             }
         }
 
@@ -143,7 +148,7 @@ export async function processAnswerLogic({
 
         // --- TWO-TRACK EVALUATION ---
         let isGrammarCorrect = true;
-        if (grammarResult.isCorrect === false || grammarResult.hasError === true) {
+        if (grammarResult.isGrammarCorrect === false) {
             isGrammarCorrect = false;
         } else if (grammarResult.correctedText) {
             const cleanOriginal = userResponse.replace(/[^\w\s]/g, '').trim().toLowerCase();

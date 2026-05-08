@@ -8,7 +8,7 @@ const issueBody = process.env.ISSUE_BODY || "No description provided.";
 const repoContext = fs.readFileSync('/tmp/file_contents.txt', 'utf8');
 
 async function main() {
-    const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: {
             "Authorization": "Bearer " + apiKey,

@@ -139,8 +139,8 @@ export async function getDeepgramToken() {
 export async function checkGrammarWithAI(selectedAnswer, questionData) {
   const aiEndpoint = 'https://nvidia-proxy.joel-1cb.workers.dev';
   try {
-    console.log("､AI Evaluation: Starting Grammar Check...");
-    const grammarPrompt = `Find all the grammatical error(s) in this dialog, including if B does not agree with A in tense, number or gender. Return ONLY the grammar-corrected text of B's reply. If no errors, respond "CORRECT":  A: ${questionData.cue} B: ${selectedAnswer}`;
+    console.log("AI Evaluation: Starting Grammar Check...");
+    const grammarPrompt = `Find all the grammatical error(s) in B's response, including if B does not agree with A in tense, number or gender. Return ONLY the grammar-corrected text of B's reply. If no errors, respond ONLY "CORRECT".  A: ${questionData.cue} B: ${selectedAnswer}`;
 
     const response = await fetch(aiEndpoint, {
       method: 'POST',
@@ -153,18 +153,35 @@ export async function checkGrammarWithAI(selectedAnswer, questionData) {
 
     if (!response.ok) throw new Error(`Grammar API error ${response.status}`);
     const data = await response.json();
-    const correctedText = (data.choices?.[0]?.message?.content || '').trim();
+    const correctedTextRaw = (data.choices?.[0]?.message?.content || '').trim();
+    let correctedText = correctedTextRaw;
 
-    console.log("統 Grammar Check Result:", correctedText);
+    console.log("Grammar Check Result (Raw):", correctedTextRaw);
+
+    // If AI prefix with "CORRECT: ", strip it for comparison
+    if (correctedText.toUpperCase().startsWith("CORRECT:")) {
+      correctedText = correctedText.substring(8).trim();
+    } else if (correctedText.toUpperCase().startsWith("CORRECT")) {
+      // Handle cases like "CORRECT I would buy..."
+      const nextChar = correctedText.charAt(7);
+      if (!nextChar || nextChar === ' ' || nextChar === '\n') {
+        correctedText = correctedText.substring(7).trim();
+      }
+    }
 
     // normalize is correctly awaited based on normalize.js being an async function
     const normOriginal = await normalize(selectedAnswer);
     const normCorrected = await normalize(correctedText);
-    const isGrammarCorrect = normCorrected === 'correct' || normOriginal === normCorrected;
+
+    // It's correct if the AI literally said "CORRECT" (now empty string after stripping) 
+    // or if the normalized versions match.
+    const isGrammarCorrect = correctedTextRaw.toLowerCase() === 'correct' ||
+      correctedText === '' ||
+      normOriginal === normCorrected;
 
     return {
       isGrammarCorrect,
-      correctedText: isGrammarCorrect ? selectedAnswer : correctedText
+      correctedText: isGrammarCorrect ? selectedAnswer : (correctedText || selectedAnswer)
     };
   } catch (error) {
     console.error('Grammar AI Error:', error);
@@ -202,10 +219,10 @@ Evaluate B's response. Return ONLY an array with any applicable labels and any c
     const data = await response.json();
     const rawIntentText = data.choices?.[0]?.message?.content || '';
 
-    console.log("識 Intent Evaluation Raw Result:", rawIntentText);
+    console.log("Intent Evaluation Raw Result:", rawIntentText);
 
     // Robust parsing: bypass JSON.parse entirely to avoid AI formatting errors
-    const validLabels = ['UNGRAMMATICAL', 'PRAGMATIC FAILURE', 'TOO FORMAL', 'TOO INFORMAL', 'RUDE', 'UNIDIOMATIC', 'CORRECT'];
+    const validLabels = ['PRAGMATIC FAILURE', 'TOO FORMAL', 'TOO INFORMAL', 'RUDE', 'UNIDIOMATIC', 'CORRECT'];
     let intentLabel = 'parse_error';
     const textUpper = rawIntentText.toUpperCase();
 

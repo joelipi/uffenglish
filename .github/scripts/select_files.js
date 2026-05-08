@@ -9,7 +9,7 @@ const fileList = JSON.parse(process.env.FILE_LIST);
 const filePaths = fileList.join("\n");
 
 async function main() {
-    const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: {
             "Authorization": "Bearer " + apiKey,
