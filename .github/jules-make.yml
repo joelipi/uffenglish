@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    if: github.event.label.name == 'jules-make'
+    if: ${{ github.event.label.name == 'jules-make' }}
     runs-on: ubuntu-latest
     
     steps:
