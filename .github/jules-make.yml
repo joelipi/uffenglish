@@ -1,0 +1,69 @@
+name: Jules Build Pipeline
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  build:
+    if: github.event.label.name == 'jules-build'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: cd .github/scripts && npm install
+
+      - name: Fetch relevant files
+        id: fetch_files
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+        run: node .github/scripts/fetch_files.js
+
+      - name: Select relevant files
+        id: select_files
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          FILE_LIST: ${{ steps.fetch_files.outputs.file_list }}
+        run: node .github/scripts/select_files.js
+
+      - name: Fetch file contents
+        id: fetch_contents
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SELECTED_FILES: ${{ steps.select_files.outputs.selected_files }}
+        run: node .github/scripts/fetch_contents.js
+
+      - name: Generate spec
+        id: generate_spec
+        env:
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          FILE_CONTENTS: ${{ steps.fetch_contents.outputs.file_contents }}
+        run: node .github/scripts/generate_spec.js
+
+      - name: Enrich spec
+        id: enrich_spec
+        env:
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          SPEC: ${{ steps.generate_spec.outputs.spec }}
+        run: node .github/scripts/enrich_spec.js
+
+      - name: Trigger Jules
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          FINAL_SPEC: ${{ steps.enrich_spec.outputs.enriched_spec }}
+        run: node .github/scripts/trigger_jules.js
