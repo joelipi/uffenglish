@@ -31,10 +31,10 @@ async function main() {
     });
 
     const data = await response.json();
-    const text = data.choices[0].message.content.trim()
-        .replace(/```json/g, "")
-        .replace(/```/g, "")
-        .trim();
+    const raw = data.choices[0].message.content;
+    const match = raw.match(/\[[\s\S]*\]/);
+    if (!match) throw new Error("No JSON array found in response: " + raw);
+    const text = match[0];
 
     const selectedFiles = JSON.parse(text);
     const output = JSON.stringify(selectedFiles);
