@@ -19,7 +19,11 @@ async function callWithRetry(body, retries = 3) {
                 body: JSON.stringify(body)
             });
             const text = await res.text();
-            return JSON.parse(text);
+            console.log(`CEREBRAS STATUS: ${res.status}`);
+            console.log(`CEREBRAS RESPONSE (first 500 chars): ${text.slice(0, 500)}`);
+            const data = JSON.parse(text);
+            if (!data.choices) throw new Error("No choices in response: " + text.slice(0, 200));
+            return data;
         } catch (err) {
             console.log(`Attempt ${i + 1} failed: ${err.message}`);
             if (i === retries - 1) throw err;

@@ -6,7 +6,7 @@ const token = process.env.GITHUB_TOKEN;
 const issueNumber = process.env.ISSUE_NUMBER;
 const owner = "joelipi";
 const repo = "uffenglish";
-const enrichedSpec = fs.readFileSync('/tmp/enriched_spec.txt', 'utf8');
+const finalSpec = fs.readFileSync('/tmp/final_spec.txt', 'utf8');
 
 async function addComment() {
     const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}/comments`, {
@@ -15,12 +15,11 @@ async function addComment() {
             "Authorization": `Bearer ${token}`,
             "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-            body: enrichedSpec
-        })
+        body: JSON.stringify({ body: finalSpec })
     });
-    const data = await res.json();
-    console.log(`Comment added: ${data.html_url}`);
+    const text = await res.text();
+    console.log(`GITHUB COMMENT STATUS: ${res.status}`);
+    console.log(`GITHUB COMMENT RESPONSE (first 200 chars): ${text.slice(0, 200)}`);
 }
 
 async function addJulesLabel() {
@@ -30,21 +29,16 @@ async function addJulesLabel() {
             "Authorization": `Bearer ${token}`,
             "Content-Type": "application/json"
         },
-        body: JSON.stringify({
-            labels: ["jules"]
-        })
+        body: JSON.stringify({ labels: ["jules"] })
     });
-    const data = await res.json();
-    console.log(`Jules label added`);
+    const text = await res.text();
+    console.log(`GITHUB LABEL STATUS: ${res.status}`);
+    console.log(`GITHUB LABEL RESPONSE (first 200 chars): ${text.slice(0, 200)}`);
 }
 
 async function main() {
-    // Post the enriched spec as a comment so Jules has full context
     await addComment();
-
-    // Add the jules label to trigger Jules
     await addJulesLabel();
-
     console.log(`Done — Jules triggered on issue #${issueNumber}`);
 }
 
