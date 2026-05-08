@@ -8,37 +8,49 @@ const taskDescription = process.env.ISSUE_BODY || "No description provided.";
 const fileList = JSON.parse(process.env.FILE_LIST);
 const filePaths = fileList.join("\n");
 
-async function main() {
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-        method: "POST",
-        headers: {
-            "Authorization": "Bearer " + apiKey,
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            model: "stepfun-ai/step-3.5-flash",
-            messages: [
-                {
-                    role: "system",
-                    content: "You are a code navigation expert. Return ONLY a JSON array of file paths, no explanation, no markdown, no backticks."
+async function callWithRetry(body, retries = 3) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Authorization": "Bearer " + apiKey,
+                    "Content-Type": "application/json"
                 },
-                {
-                    role: "user",
-                    content: "Given this task:\n" + taskDescription + "\n\nAnd these files:\n" + filePaths + "\n\nReturn a JSON array of the 5-10 most relevant file paths."
-                }
-            ]
-        })
+                body: JSON.stringify(body)
+            });
+            const text = await res.text();
+            return JSON.parse(text);
+        } catch (err) {
+            console.log(`Attempt ${i + 1} failed: ${err.message}`);
+            if (i === retries - 1) throw err;
+            await new Promise(r => setTimeout(r, 5000));
+        }
+    }
+}
+
+async function main() {
+    const data = await callWithRetry({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+            {
+                role: "system",
+                content: "You are a code navigation expert. Return ONLY a JSON array of file paths, no explanation, no markdown, no backticks."
+            },
+            {
+                role: "user",
+                content: "Given this task:\n" + taskDescription + "\n\nAnd these files:\n" + filePaths + "\n\nReturn a JSON array of the 5-10 most relevant file paths."
+            }
+        ]
     });
 
-    const rawResponse = await response.text();
-    console.log("API RESPONSE:", rawResponse);
-    const data = JSON.parse(rawResponse);
     const raw = data.choices[0].message.content;
-    console.log("RAW RESPONSE:", raw);
     const match = raw.match(/\[[\s\S]*\]/);
     if (!match) throw new Error("No JSON array found in response: " + raw);
-    const text = match[0];
-    const selectedFiles = JSON.parse(text);
+    const selectedFiles = JSON.parse(match[0]);
+
+    execSync(`echo 'selected_files=${JSON.stringify(selectedFiles)}' >> $GITHUB_OUTPUT`);
+    console.log("Selected files:", selectedFiles);
 }
 
 main().catch(err => {
