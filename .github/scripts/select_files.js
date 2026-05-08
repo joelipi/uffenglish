@@ -3,7 +3,7 @@ import fetch from 'node-fetch';
 import { execSync } from 'child_process';
 import fs from 'fs';
 
-const apiKey = process.env.NVIDIA_API_KEY;
+const apiKey = process.env.GROQ_API_KEY;
 const taskDescription = process.env.ISSUE_BODY || "No description provided.";
 const fileList = JSON.parse(process.env.FILE_LIST);
 const filePaths = fileList.join("\n");

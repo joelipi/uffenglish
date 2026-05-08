@@ -3,7 +3,7 @@ import fetch from 'node-fetch';
 import { execSync } from 'child_process';
 import fs from 'fs';
 
-const apiKey = process.env.NVIDIA_API_KEY;
+const apiKey = process.env.GROQ_API_KEY;
 const issueBody = process.env.ISSUE_BODY || "No description provided.";
 const repoContext = fs.readFileSync('/tmp/file_contents.txt', 'utf8');
 
