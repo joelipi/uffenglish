@@ -171,6 +171,18 @@
                     // 🔑 Create a session immediately — without this, the next call runs as a guest
                     await account.createEmailPasswordSession(email, password);
 
+                    // --- Silent geo & referrer collection (non‑blocking) ---
+                    try {
+                        const { collectSignupGeoAndReferrer } = await import('./js/modules/collect-signup-data.js');
+                        // Fire‑and‑forget; we catch errors inside the function
+                        collectSignupGeoAndReferrer().then(() => {
+                            console.log('[Signup] Geo/referrer collection finished.');
+                        });
+                    } catch (importError) {
+                        console.error('[Signup] Failed to import collection module:', importError);
+                    }
+                    // ---------------------------------------------------------
+
                     signupBtn.textContent = 'Setting up profile...';
                     await tablesDB.createRow({
                         databaseId: APPWRITE_CONFIG.DATABASE_ID,
