@@ -3,14 +3,14 @@ import fetch from 'node-fetch';
 import { execSync } from 'child_process';
 import fs from 'fs';
 
-const apiKey = process.env.CEREBRAS_API_KEY;
+const apiKey = process.env.DEEPSEEK_API_KEY;
 const issueBody = process.env.ISSUE_BODY || "No description provided.";
 const repoContext = fs.readFileSync('/tmp/file_contents.txt', 'utf8');
 
 async function callWithRetry(body, retries = 3) {
     for (let i = 0; i < retries; i++) {
         try {
-            const res = await fetch("https://api.cerebras.ai/v1/chat/completions", {
+            const res = await fetch("https://api.deepseek.com/v1/chat/completions", {
                 method: "POST",
                 headers: {
                     "Authorization": "Bearer " + apiKey,
@@ -34,7 +34,7 @@ async function callWithRetry(body, retries = 3) {
 
 async function main() {
     const data = await callWithRetry({
-        model: "qwen-3-235b-a22b-instruct-2507",
+        model: "deepseek-v4-pro",
         messages: [
             {
                 role: "system",

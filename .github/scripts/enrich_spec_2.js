@@ -35,7 +35,7 @@ async function callWithRetry(body, retries = 3) {
 
 async function main() {
   const data = await callWithRetry({
-    model: "deepseek-chat",
+    model: "deepseek-v4-pro",
     messages: [
       {
         role: "system",
