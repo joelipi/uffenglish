@@ -568,94 +568,8 @@
             document.getElementById("supportButton").classList.remove("d-none");
           });
         </script>
-        <script>
-          document.addEventListener('DOMContentLoaded', function () {
-            // Don't redirect if we're already on the login page
-            if (window.location.pathname === '/membership-login/') {
-              return;
-            }
-            console.log('running homepage redirect script');
-            // First check localStorage for cached login status to avoid unnecessary AJAX calls
-            const cachedLogin = localStorage.getItem('wpLoggedIn');
-            if (cachedLogin === 'true') {
-              return;
-            }
-
-            // Local dev: assume logged in
-            localStorage.setItem('wpLoggedIn', 'true');
-            return;
-            fetch('/wp-admin/admin-ajax.php', {
-              method: 'POST',
-              credentials: 'same-origin',
-              headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-              },
-              body: 'action=is_user_logged_in'
-            })
-              .then(response => {
-                if (!response.ok) throw new Error('AJAX request failed');
-                return response.text();
-              })
-              .then(response => {
-                const isLoggedIn = response.trim() !== '0';
-
-                // Cache the result to minimize future AJAX calls
-                localStorage.setItem('wpLoggedIn', isLoggedIn.toString());
-
-                if (!isLoggedIn) {
-                  console.warn('User not authenticated. Proceeding as guest.');
-                  const modalHtml = `
-            <div class="modal fade" id="guestLoginModal" tabindex="-1" aria-labelledby="guestLoginModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content bg-dark text-white">
-                        <div class="modal-header border-secondary">
-                            <h5 class="modal-title" id="guestLoginModalLabel">Welcome!</h5>
-                        </div>
-                        <div class="modal-body">
-                            <p>You are currently not logged in. Log in or sign up to save your progress and access all features. Or, continue as a guest to try out the app.</p>
-                            <div class="d-grid gap-2 mt-4">
-                                <a href="login.html" class="btn btn-primary">Log In</a>
-                                <a href="signup.html" class="btn btn-secondary">Sign Up</a>
-                                <button type="button" class="btn btn-outline-light mt-2" data-bs-dismiss="modal">Continue as Guest</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>`;
-                  document.body.insertAdjacentHTML('beforeend', modalHtml);
-
-                  // Wait a brief moment to ensure DOM is updated before initializing modal
-                  setTimeout(() => {
-                    if (typeof bootstrap !== 'undefined') {
-                      const guestModal = new bootstrap.Modal(document.getElementById('guestLoginModal'));
-                      guestModal.show();
-                    } else {
-                      console.error('Bootstrap is not loaded, unable to show guest login modal.');
-                    }
-                  }, 100);
-                }
-              })
-              .catch(error => {
-                console.error('Login check failed:', error);
-                // If we're unsure, don't redirect to avoid locking out valid users
-              });
-          });
-        </script>
-
-        <div id="answerDiv" class="card-wrapper d-none" style="display: block">
-
-
-          <div class="card info-card">
-            <div class="card-header bg-dark text-white" id="correctAnswer"></div>
-            <div class="card-body">
-              <p class="info-content" id="translation"></p>
-              <p class="info-content" id="explanation"></p>
-            </div>
-          </div>
-        </div>
-
-        <!--Courses--
-<div id="coursesIntro" class="card border-dark mb-3 p-0" style="margin-top: 10px; margin-bottom: 70px;">
+        <!-- Courses Section -->
+        <div id="coursesIntro" class="card border-dark mb-3 p-0" style="margin-top: 10px; margin-bottom: 70px;">
 <div class='card-header bg-dark text-white p-0' id='correct'><div class='d-flex align-items-center p-3'><img src='assets/img/teacherprofile.png' alt='' class='rounded-circle me-3' style='width:100px;height:100px;object-fit:cover'><span class='fs-5'>Welcome!</span></div></div><div class='card-body text-dark'><h3 class='card-title'>
 Aquí una demo y tutorial de cómo usarlo.
 </h3></div>
@@ -941,9 +855,57 @@ Cómo hablamos en el día a día más allá de lo más esenical, incluyendo fras
       try {
         const isLoggedIn = await isUserLoggedIn();
         setupAuthMenu(isLoggedIn);
+
+        // Handle Guest Experience
+        if (!isLoggedIn && localStorage.getItem('wpLoggedIn') !== 'true') {
+          console.warn('User not authenticated. Guest mode active.');
+          /* 
+          // Modal disabled for now to prevent blocking overlay issues during dev
+          const modalHtml = `
+            <div class="modal fade" id="guestLoginModal" tabindex="-1" aria-labelledby="guestLoginModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content bg-dark text-white shadow-lg border-0" style="border-radius: 15px; overflow: hidden;">
+                        <div class="modal-header border-0 bg-primary text-white p-4">
+                            <h5 class="modal-title fw-bold" id="guestLoginModalLabel">Welcome to UFF!</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <p class="fs-5 mb-4 text-light">You are currently using the app as a guest. Sign up or Log in to save your progress, unlock all courses, and keep your streaks alive!</p>
+                            <div class="d-grid gap-3">
+                                <a href="login.html" class="btn btn-primary btn-lg fw-bold">Log In</a>
+                                <a href="signup.html" class="btn btn-light btn-lg fw-bold text-primary">Sign Up</a>
+                                <button type="button" class="btn btn-link text-white-50 mt-2 text-decoration-none" data-bs-dismiss="modal" id="continueAsGuestBtn">Continue as Guest</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+          document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+          if (typeof bootstrap !== 'undefined') {
+            const guestModal = new bootstrap.Modal(document.getElementById('guestLoginModal'));
+            guestModal.show();
+          }
+          */
+        }
       } catch (error) {
         console.error('Error initializing auth menu:', error);
       }
+    });
+
+    // 🛡️ Safety Check: Clean up any stuck backdrops
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        const openModals = document.querySelectorAll('.modal.show');
+        if (backdrops.length > 0 && openModals.length === 0) {
+          console.warn('Stray backdrop detected. Cleaning up...');
+          backdrops.forEach(b => b.remove());
+          document.body.classList.remove('modal-open');
+          document.body.style.overflow = '';
+          document.body.style.paddingRight = '';
+        }
+      }, 1000);
     });
   </script>
 

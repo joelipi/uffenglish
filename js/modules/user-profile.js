@@ -19,22 +19,35 @@ export async function syncUserMetaData(metaToUpdate, providedUserData) {
     }
     const userId = userData.$id;
     try {
-        await tablesDB.upsertRow({
-            databaseId: APPWRITE_CONFIG.DATABASE_ID,
-            tableId: APPWRITE_CONFIG.USER_PROFILES_TABLE_ID,
-            rowId: userId,
-            data: {
-                native_language: 'EN',
-                ...metaToUpdate
-            },
-            // Explicitly bind Row-Level Security to the user ID upon creation
-            permissions: [
-                `read("user:${userId}")`,
-                `update("user:${userId}")`,
-                `delete("user:${userId}")`
-            ]
-        });
-        console.log("🚀 syncUserMetaData: Profile successfully upserted!");
+        // 🚀 Use updateRow (PATCH) instead of upsertRow (PUT) to avoid wiping out fields not in metaToUpdate
+        try {
+            await tablesDB.updateRow({
+                databaseId: APPWRITE_CONFIG.DATABASE_ID,
+                tableId: APPWRITE_CONFIG.USER_PROFILES_TABLE_ID,
+                rowId: userId,
+                data: metaToUpdate
+            });
+            console.log(`🚀 syncUserMetaData: Profile ${userId} successfully updated!`, metaToUpdate);
+        } catch (updateError) {
+            // If the row doesn't exist (404), fall back to upsertRow (PUT) to create it
+            if (updateError.code === 404 || updateError.status === 404) {
+                console.log(`ℹ️ syncUserMetaData: Profile ${userId} not found, creating new one.`);
+                await tablesDB.upsertRow({
+                    databaseId: APPWRITE_CONFIG.DATABASE_ID,
+                    tableId: APPWRITE_CONFIG.USER_PROFILES_TABLE_ID,
+                    rowId: userId,
+                    data: metaToUpdate,
+                    permissions: [
+                        `read("user:${userId}")`,
+                        `update("user:${userId}")`,
+                        `delete("user:${userId}")`
+                    ]
+                });
+                console.log(`🚀 syncUserMetaData: Profile ${userId} successfully created!`, metaToUpdate);
+            } else {
+                throw updateError;
+            }
+        }
 
         // 🚀 Trigger cache bust globally after any successful profile write
         invalidateUserAndAuthCache();

@@ -265,6 +265,7 @@ export function invalidateUserAndAuthCache() {
 
 export async function signOut() {
   const result = await logout();
+  localStorage.removeItem('wpLoggedIn');
   invalidateUserAndAuthCache();
   return result;
 }

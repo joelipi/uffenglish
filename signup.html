@@ -189,6 +189,7 @@
                     });
 
                     invalidateUserAndAuthCache();
+                    localStorage.setItem('wpLoggedIn', 'true');
                     window.location.href = redirectUrl;
 
                 } catch (error) {
