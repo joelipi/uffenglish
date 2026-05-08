@@ -1,7 +1,6 @@
 // .github/scripts/select_files.js
 import fetch from 'node-fetch';
 import { execSync } from 'child_process';
-import fs from 'fs';
 
 const apiKey = process.env.GROQ_API_KEY;
 const taskDescription = process.env.ISSUE_BODY || "No description provided.";
@@ -20,7 +19,11 @@ async function callWithRetry(body, retries = 3) {
                 body: JSON.stringify(body)
             });
             const text = await res.text();
-            return JSON.parse(text);
+            console.log(`GROQ STATUS: ${res.status}`);
+            console.log(`GROQ RESPONSE (first 500 chars): ${text.slice(0, 500)}`);
+            const data = JSON.parse(text);
+            if (!data.choices) throw new Error("No choices in response: " + text.slice(0, 200));
+            return data;
         } catch (err) {
             console.log(`Attempt ${i + 1} failed: ${err.message}`);
             if (i === retries - 1) throw err;
@@ -48,7 +51,6 @@ async function main() {
     const match = raw.match(/\[[\s\S]*\]/);
     if (!match) throw new Error("No JSON array found in response: " + raw);
     const selectedFiles = JSON.parse(match[0]);
-
     execSync(`echo 'selected_files=${JSON.stringify(selectedFiles)}' >> $GITHUB_OUTPUT`);
     console.log("Selected files:", selectedFiles);
 }

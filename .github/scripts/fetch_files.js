@@ -1,6 +1,7 @@
 // .github/scripts/fetch_files.js
 import fetch from 'node-fetch';
 import { execSync } from 'child_process';
+import fs from 'fs';
 
 const token = process.env.GITHUB_TOKEN;
 const owner = "joelipi";
@@ -21,10 +22,7 @@ async function main() {
         const files = await fetchDir(dir);
         allFiles.push(...files);
     }
-
     const fileList = JSON.stringify(allFiles);
-
-    // Write output for next step
     execSync(`echo 'file_list=${fileList}' >> $GITHUB_OUTPUT`);
     console.log(`Found ${allFiles.length} files`);
 }

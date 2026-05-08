@@ -21,6 +21,13 @@ jobs:
       - name: Install dependencies
         run: cd .github/scripts && npm install
 
+      - name: Restore cached spec files
+        uses: actions/download-artifact@v4
+        with:
+          name: spec-files
+          path: /tmp
+        continue-on-error: true
+
       - name: Fetch relevant files
         id: fetch_files
         env:
@@ -51,6 +58,13 @@ jobs:
           ISSUE_BODY: ${{ github.event.issue.body }}
         run: node .github/scripts/generate_spec.js
 
+      - name: Cache after generate
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec-files
+          path: /tmp/*.txt
+          overwrite: true
+
       - name: Enrich spec
         id: enrich_spec
         env:
@@ -58,12 +72,26 @@ jobs:
           ISSUE_BODY: ${{ github.event.issue.body }}
         run: node .github/scripts/enrich_spec.js
 
+      - name: Cache after enrich
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec-files
+          path: /tmp/*.txt
+          overwrite: true
+
       - name: Final review
         id: final_review
         env:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           ISSUE_BODY: ${{ github.event.issue.body }}
         run: node .github/scripts/enrich_spec_2.js
+
+      - name: Cache after final review
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec-files
+          path: /tmp/*.txt
+          overwrite: true
 
       - name: Trigger Jules
         env:

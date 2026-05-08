@@ -34,6 +34,12 @@ async function callWithRetry(body, retries = 3) {
 }
 
 async function main() {
+    if (fs.existsSync('/tmp/enriched_spec.txt')) {
+        console.log('Enriched spec already cached, skipping');
+        execSync(`echo 'enriched_spec=/tmp/enriched_spec.txt' >> $GITHUB_OUTPUT`);
+        return;
+    }
+
     console.log(`Spec loaded: ${spec.length} chars`);
     console.log(`Repo context loaded: ${repoContext.length} chars`);
     const data = await callWithRetry({
