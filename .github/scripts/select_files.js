@@ -30,7 +30,9 @@ async function main() {
         })
     });
 
-    const data = await response.json();
+    const rawResponse = await response.text();
+    console.log("API RESPONSE:", rawResponse);
+    const data = JSON.parse(rawResponse);
     const raw = data.choices[0].message.content;
     console.log("RAW RESPONSE:", raw);
     const match = raw.match(/\[[\s\S]*\]/);
