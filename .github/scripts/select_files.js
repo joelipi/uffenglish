@@ -16,7 +16,7 @@ async function main() {
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
-            model: "stepfun-ai/step-3-5-flash",
+            model: "stepfun-ai/step-3.5-flash",
             messages: [
                 {
                     role: "system",
