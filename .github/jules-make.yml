@@ -1,4 +1,4 @@
-name: Jules Build Pipeline
+name: Jules Make Pipeline
 
 on:
   issues:
@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    if: github.event.label.name == 'jules-build'
+    if: github.event.label.name == 'jules-make'
     runs-on: ubuntu-latest
     
     steps:
