@@ -34,21 +34,23 @@ async function callWithRetry(body, retries = 3) {
 }
 
 async function main() {
+  console.log(`Enriched spec loaded: ${enrichedSpec.length} chars`);
+  console.log(`Repo context loaded: ${repoContext.length} chars`);
   const data = await callWithRetry({
     model: "deepseek-v4-pro",
     messages: [
       {
         role: "system",
-        content: "You are a principal engineer doing a final review of a technical spec before it is handed to Jules, an autonomous AI coding agent. A previous engineer has already enriched the spec with edge cases and error handling. Your job is to do one final pass focusing specifically on:\n\n1. Implementation order — are the steps in the right sequence? Will any step break if done before another?\n2. Missing specificity — are there any instructions Jules could misinterpret or where it would have to guess?\n3. Conflicts — any two parts of the spec that contradict each other\n4. Scope creep — flag anything in the spec that goes beyond what the original task asked for\n5. React Native readiness — confirm every web-specific API has a clearly defined adapter boundary\n6. Test completeness — are the tests for each step actually sufficient to catch regressions?\n\nDo not rewrite the spec. Add a clearly labeled final review section at the end."
+        content: "You are an expert reviewer refining a technical spec for Jules, an autonomous AI coding agent that requires exhaustive detail to function correctly. Jules will stall or hallucinate if left to make its own decisions, so the revised prompt (spec) you produce must eliminate all ambiguity. \nYou are receiving a first draft of the spec alongside the repository context. Cross-reference the draft against the codebase to fix any logical gaps or hallucinations. Jules will receive your revised prompt directly so you should return ONLY the revised prompt (spec) in markdown format.\nRewrite the draft to ensure the implementation is divided into self-contained sequential steps. Each step must be completable independently and adhere strictly to the following rules:\n### 1. Scope & Architecture\n* Name every specific file, function, and module that will be touched.\n* State explicitly what is being replaced, what is being added, and what must remain untouched.\n* Identify every module that imports from or exports to the affected files and describe how those relationships change.\n* Respect separation of concerns: logic in modules, rendering in components, state in store.\n* Every module must be written with a clear adapter boundary for future React Native implementation (e.g., the module.web.js / module.native.js pattern).\n### 2. Code Level Requirements\n* Describe every parameter, return value, and data shape for new or modified functions.\n* Specify exact variable names, method signatures, and call sites.\n* Separate all style changes into style.css — never inline styles in JS.\n* Account for all local-first interactions including UI flow, IndexedDB storage constraints, and offline state handling.\n* Never delete code comments or console logs unless you are specifically instructed to do so OR such comments refer to a block of code which is being deleted.\n### 3. Comments, Console Logs, and Debugging\n* Generously comment code to explain why choices were made when that might not be obvious. Also include debug statements and console logs for success conditions.\n### 4. Testing & Verification\nFor each sequential step, include:\n* Specific tests covering the most common use cases.\n* Specific tests covering edge cases and failure modes.\n* Clear definitions of what passing and failing tests look like.\n* A final integration test step covering the completed implementation end-to-end.\n* Verification that the code runs in the browser against the existing codebase without throwing errors (flagging any conflicts with existing imports, global variables, or event listeners).\n### 5. Formatting & Integrity\n* Be extremely careful that any code examples do not break the markdown file. Ensure all code blocks are properly fenced and avoid unescaped nested backticks that could prematurely terminate the document structure.\nIf no revisions are necessary, return the original draft verbatim."
       },
       {
         role: "user",
-        content: "Original task:\n" + issueBody + "\n\nFull enriched spec:\n" + enrichedSpec + "\n\nCode context:\n" + repoContext
+        content: "Original task:\n" + issueBody + "\n\nFirst draft spec:\n" + enrichedSpec + "\n\nRepository context:\n" + repoContext
       }
     ]
   });
 
-  const finalSpec = enrichedSpec + "\n\n---\n\n## Final Review Pass\n\n" + data.choices[0].message.content;
+  const finalSpec = data.choices[0].message.content;
   fs.writeFileSync('/tmp/final_spec.txt', finalSpec);
   execSync(`echo 'final_spec=/tmp/final_spec.txt' >> $GITHUB_OUTPUT`);
   console.log(`Final spec generated, ${finalSpec.length} chars`);
@@ -56,5 +58,5 @@ async function main() {
 
 main().catch(err => {
   console.error(err);
-  process.exit(1);
+  process.exit(1));
 });

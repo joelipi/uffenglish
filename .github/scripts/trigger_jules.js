@@ -3,43 +3,43 @@ import fetch from 'node-fetch';
 import fs from 'fs';
 
 const token = process.env.GITHUB_TOKEN;
-const issueNumber = process.env.ISSUE_NUMBER;
 const owner = "joelipi";
 const repo = "uffenglish";
+const issueNumber = process.env.ISSUE_NUMBER;
 const finalSpec = fs.readFileSync('/tmp/final_spec.txt', 'utf8');
 
-async function addComment() {
-    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}/comments`, {
-        method: "POST",
-        headers: {
-            "Authorization": `Bearer ${token}`,
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ body: finalSpec })
+async function getIssueTitle() {
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}`, {
+        headers: { "Authorization": `Bearer ${token}` }
     });
-    const text = await res.text();
-    console.log(`GITHUB COMMENT STATUS: ${res.status}`);
-    console.log(`GITHUB COMMENT RESPONSE (first 200 chars): ${text.slice(0, 200)}`);
+    const data = await res.json();
+    return data.title;
 }
 
-async function addJulesLabel() {
-    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues/${issueNumber}/labels`, {
+async function createJulesIssue(title, body) {
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/issues`, {
         method: "POST",
         headers: {
             "Authorization": `Bearer ${token}`,
             "Content-Type": "application/json"
         },
-        body: JSON.stringify({ labels: ["jules"] })
+        body: JSON.stringify({
+            title: title,
+            body: body,
+            labels: ["jules"]
+        })
     });
     const text = await res.text();
-    console.log(`GITHUB LABEL STATUS: ${res.status}`);
-    console.log(`GITHUB LABEL RESPONSE (first 200 chars): ${text.slice(0, 200)}`);
+    console.log(`GITHUB CREATE ISSUE STATUS: ${res.status}`);
+    console.log(`GITHUB CREATE ISSUE RESPONSE (first 200 chars): ${text.slice(0, 200)}`);
+    return JSON.parse(text);
 }
 
 async function main() {
-    await addComment();
-    await addJulesLabel();
-    console.log(`Done — Jules triggered on issue #${issueNumber}`);
+    const title = await getIssueTitle();
+    console.log(`Creating Jules issue with title: ${title}`);
+    const newIssue = await createJulesIssue(title, finalSpec);
+    console.log(`Done — Jules issue created: ${newIssue.html_url}`);
 }
 
 main().catch(err => {

@@ -34,21 +34,23 @@ async function callWithRetry(body, retries = 3) {
 }
 
 async function main() {
+    console.log(`Spec loaded: ${spec.length} chars`);
+    console.log(`Repo context loaded: ${repoContext.length} chars`);
     const data = await callWithRetry({
         model: "meta-llama/llama-4-scout-17b-16e-instruct",
         messages: [
             {
                 role: "system",
-                content: "You are a senior engineer reviewing a technical spec that will be handed to Jules, an autonomous AI coding agent. Your job is to enrich the spec — not rewrite it. Add what is missing, make vague parts concrete, and identify bugs and edge cases the original author did not consider.\n\nFocus on:\n1. Missing edge cases — what happens when data is null, empty, malformed, or out of range\n2. Missing error handling — what should happen when a fetch fails, IndexedDB is unavailable, or a module is missing\n3. Race conditions — async operations that could collide or resolve in unexpected order\n4. Browser compatibility — anything that might fail in Safari, Firefox, or older Chrome\n5. Conflicts with existing code — imports, global variables, event listeners, or CSS that could clash\n6. React Native adapter boundaries — flag any web-only APIs (DOM, localStorage, fetch) that will need adapters\n7. Do not remove or rewrite anything from the original spec — only add to it\n8. Do not add new features outside the scope of the original task"
+                content: "You are an expert reviewer refining a technical spec for Jules, an autonomous AI coding agent that requires exhaustive detail to function correctly. Jules will stall or hallucinate if left to make its own decisions, so the revised prompt (spec) you produce must eliminate all ambiguity. \nYou are receiving a first draft of the spec alongside the repository context. Cross-reference the draft against the codebase to fix any logical gaps or hallucinations. Jules will receive your revised prompt directly so you should return ONLY the revised prompt (spec) in markdown format.\nRewrite the draft to ensure the implementation is divided into self-contained sequential steps. Each step must be completable independently and adhere strictly to the following rules:\n### 1. Scope & Architecture\n* Name every specific file, function, and module that will be touched.\n* State explicitly what is being replaced, what is being added, and what must remain untouched.\n* Identify every module that imports from or exports to the affected files and describe how those relationships change.\n* Respect separation of concerns: logic in modules, rendering in components, state in store.\n* Every module must be written with a clear adapter boundary for future React Native implementation (e.g., the module.web.js / module.native.js pattern).\n### 2. Code Level Requirements\n* Describe every parameter, return value, and data shape for new or modified functions.\n* Specify exact variable names, method signatures, and call sites.\n* Separate all style changes into style.css — never inline styles in JS.\n* Account for all local-first interactions including UI flow, IndexedDB storage constraints, and offline state handling.\n* Never delete code comments or console logs unless you are specifically instructed to do so OR such comments refer to a block of code which is being deleted.\n### 3. Comments, Console Logs, and Debugging\n* Generously comment code to explain why choices were made when that might not be obvious. Also include debug statements and console logs for success conditions.\n### 4. Testing & Verification\nFor each sequential step, include:\n* Specific tests covering the most common use cases.\n* Specific tests covering edge cases and failure modes.\n* Clear definitions of what passing and failing tests look like.\n* A final integration test step covering the completed implementation end-to-end.\n* Verification that the code runs in the browser against the existing codebase without throwing errors (flagging any conflicts with existing imports, global variables, or event listeners).\n### 5. Formatting & Integrity\n* Be extremely careful that any code examples do not break the markdown file. Ensure all code blocks are properly fenced and avoid unescaped nested backticks that could prematurely terminate the document structure.\nIf no revisions are necessary, return the original draft verbatim."
             },
             {
                 role: "user",
-                content: "Original task:\n" + issueBody + "\n\nSpec to enrich:\n" + spec + "\n\nActual code context:\n" + repoContext
+                content: "Original task:\n" + issueBody + "\n\nFirst draft spec:\n" + spec + "\n\nRepository context:\n" + repoContext
             }
         ]
     });
 
-    const enrichedSpec = spec + "\n\n---\n\n## Enrichment Pass — Edge Cases & Bug Prevention\n\n" + data.choices[0].message.content;
+    const enrichedSpec = data.choices[0].message.content;
     fs.writeFileSync('/tmp/enriched_spec.txt', enrichedSpec);
     execSync(`echo 'enriched_spec=/tmp/enriched_spec.txt' >> $GITHUB_OUTPUT`);
     console.log(`Enriched spec generated, ${enrichedSpec.length} chars`);
