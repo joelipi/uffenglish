@@ -193,52 +193,21 @@ function _renderSpeechOrAI(question, lesson, deps) {
     };
 
     const answerFragment = document.createDocumentFragment();
-    if (question.inputType === "speech") {
-        // No pulse-dot hints for speech input questions
-    } else {
-        const processTextToPulseDots = (text) => {
-            const parts = text.split(/(\\b[\\w']+\\b)/g);
-            parts.forEach(part => {
-                if (!part) return;
-                if (/\\b[\\w']+\\b/.test(part)) {
-                    if (allHidden && !revealedFirst) {
-                        revealedFirst = true;
-                        answerFragment.appendChild(document.createTextNode(part));
-                    } else {
-                        const span = document.createElement('span');
-                        span.className = 'pulse-dot';
-                        span.dataset.word = part;
-                        const icon = document.createElement('i');
-                        icon.className = 'bi bi-app';
-                        span.appendChild(icon);
-                        answerFragment.appendChild(span);
-                    }
-                } else {
-                    answerFragment.appendChild(document.createTextNode(part));
-                }
-            });
-        };
-
-        processTextToPulseDots(question.cue);
-
+    // Add possible answers directly if not speech
+    if (question.inputType !== "speech") {
+        answerFragment.appendChild(document.createTextNode(question.cue));
         if (question.possibleAnswer) {
             answerFragment.appendChild(document.createElement('br'));
             const strong = document.createElement('strong');
             strong.textContent = Strings.get('possible_response', State.userData?.native_language);
             answerFragment.appendChild(strong);
             answerFragment.appendChild(document.createElement('br'));
-            processTextToPulseDots(question.possibleAnswer);
+            answerFragment.appendChild(document.createTextNode(question.possibleAnswer));
         }
     }
 
     const handleRevealClick = function () {
-        if (!this.dataset.revealed) {
-            this.textContent = this.dataset.word;
-            appStore.getState().deductListeningScore(15);
-            pointLoss.show(this, 15);
-            // Subscription handles the score display update 
-            this.dataset.revealed = "true"; this.removeEventListener('click', handleRevealClick);
-        }
+        // Handled by IVP internally
     };
 
     const qIndex = getCurrentQuestionIndex(question, State.configData, State.currentLessonIndex);

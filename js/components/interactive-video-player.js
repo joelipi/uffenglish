@@ -55,12 +55,24 @@ export class InteractiveVideoPlayerUI {
     blurOverlay.style.display = 'none'; // Always hidden in this configuration
     videoWrapper.appendChild(blurOverlay);
 
+    const overlay = document.createElement('div');
+    overlay.className = 'ivp-overlay';
+    overlay.innerHTML = `
+      <div class="ivp-overlay-content">
+        <div class="ivp-overlay-circle"></div>
+        <p class="ivp-overlay-text">Understand<br>100%?</p>
+      </div>
+      <div class="ivp-overlay-arrow ivp-overlay-arrow-up"><span class="ivp-arrow-label">NO</span></div>
+      <div class="ivp-overlay-arrow ivp-overlay-arrow-down"><span class="ivp-arrow-label">YES</span></div>
+    `;
+    videoWrapper.appendChild(overlay);
+
     const subtitleDisplay = document.createElement('div');
     subtitleDisplay.className = 'ivp-subtitles';
     if (this.config.subtitleStyles) Object.assign(subtitleDisplay.style, this.config.subtitleStyles);
     videoWrapper.appendChild(subtitleDisplay);
 
-    this.elements = { container, mainWrapper, videoWrapper, video, loadingSpinner, blurOverlay, subtitleDisplay };
+    this.elements = { container, mainWrapper, videoWrapper, video, loadingSpinner, blurOverlay, overlay, subtitleDisplay };
     return this.elements;
   }
 
@@ -78,14 +90,49 @@ export class InteractiveVideoPlayerUI {
       });
     }
 
-    // 2. Handle Subtitle Text Updates
-    if (this.elements.subtitleDisplay) {
-      this.elements.subtitleDisplay.textContent = state.subtitleText;
+    // 2. Handle Subtitle Tokens Updates
+    if (this.elements.subtitleDisplay && state.subtitleTokens) {
+      const tokensVersion = state.subtitleTokens.map(t => `${t.index}-${t.revealed}-${t.strikethrough}`).join(',');
+      if (this.elements.subtitleDisplay.dataset.tokensVersion !== tokensVersion) {
+        this.elements.subtitleDisplay.dataset.tokensVersion = tokensVersion;
+        const fragment = document.createDocumentFragment();
+        state.subtitleTokens.forEach(token => {
+          let el;
+          if (token.clickable) {
+            el = document.createElement('button');
+            el.className = 'ivp-token ivp-token-hidden';
+            el.setAttribute('aria-label', 'Hidden word');
+            el.textContent = token.text; // Text is hidden via CSS
+            el.onclick = (e) => {
+               e.stopPropagation();
+               if (this.onTokenClick) this.onTokenClick(token.index);
+            };
+          } else {
+            el = document.createElement('span');
+            el.className = 'ivp-token ' + (token.isPunctuation ? 'ivp-token-punctuation' : 'ivp-token-revealed');
+            if (token.strikethrough) el.classList.add('ivp-token-strikethrough');
+            el.textContent = token.text;
+          }
+          fragment.appendChild(el);
+        });
+        this.elements.subtitleDisplay.innerHTML = '';
+        this.elements.subtitleDisplay.appendChild(fragment);
+      }
     }
 
     // 3. Handle Playback Rate
     if (this.elements.video && this.elements.video.playbackRate !== state.playbackRate) {
       this.elements.video.playbackRate = state.playbackRate;
+    }
+
+    // 4. Handle Overlay
+    if (this.elements.overlay) {
+      this.elements.overlay.style.display = state.showOverlay ? 'flex' : 'none';
+    }
+
+    // 5. Handle Zoom (isSlowMode)
+    if (this.elements.video) {
+      this.elements.video.style.transform = state.isSlowMode ? 'scale(1.5)' : '';
     }
   }
 
@@ -104,7 +151,9 @@ export class InteractiveVideoPlayer {
       containerSelector: 'body',
       speeds: [0.75, 0.6, 1],
       videoStyles: {},
-      subtitleStyles: {}
+      subtitleStyles: {},
+      onRepetition: null,
+      onWordReveal: null
     };
 
     this.config = { ...defaults, ...config };
@@ -121,6 +170,7 @@ export class InteractiveVideoPlayer {
 
     // Initialize Pure Logic Controller
     this.controller = new InteractiveVideoStateController(this.config);
+    this.ui.onTokenClick = (index) => this.controller.revealToken(index);
 
     // Bind UI Renderer to Controller State
     this.unsubscribeController = this.controller.subscribe((state) => {
@@ -232,7 +282,12 @@ export class InteractiveVideoPlayer {
     }
   }
 
-  handleClick() {
+  handleClick(e) {
+    if (this.controller.state.showOverlay) {
+        this.controller.dismissOverlay();
+        return;
+    }
+
     if (this.video.paused) {
       const playPromise = this.video.play();
       if (playPromise !== undefined) {
@@ -241,6 +296,12 @@ export class InteractiveVideoPlayer {
     } else {
       this.video.pause();
     }
+  }
+
+  pauseAndPrepForSwap() {
+    this.video.pause();
+    this.elements.mainWrapper.classList.add('ivp-swapped');
+    return this.elements.mainWrapper;
   }
 
   play() {
