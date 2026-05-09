@@ -58,7 +58,7 @@ async function bootWhisperEngine() {
             let config = {
                 modelConfig: {
                     debug: 0,
-                    num_threads: navigator.hardwareConcurrency || 4, // 🚀 CORE OPTIMIZATION: Uses all available CPU threads
+                    numThreads: navigator.hardwareConcurrency || 4, // 🚀 CORE OPTIMIZATION: Uses all available CPU threads
                     provider: "cpu", // Ensures it uses the optimized CPU provider
                     tokens: './tokens.txt',
                     whisper: {
@@ -66,10 +66,8 @@ async function bootWhisperEngine() {
                         decoder: './whisper-decoder.onnx',
                     }
                 },
-                decoderConfig: {
-                    method: "greedy_search",
-                    num_active_paths: 1
-                }
+                decodingMethod: "greedy_search",
+                maxActivePaths: 1
             };
 
             recognizer = new OfflineRecognizer(config, self.Module);
