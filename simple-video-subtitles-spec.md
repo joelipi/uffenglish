@@ -7,44 +7,52 @@ When a subtitle string contains proper SRT timestamps (e.g., `00:00:01,000 --> 0
 
 This approach provides a more native viewing experience for videos with precise timing needs while maintaining backwards compatibility with existing plain-text subtitles.
 
+## Separation of Logic from DOM Manipulation
+To ensure a strict separation of concerns and to support both Vanilla JS Web and React Native environments, all parsing logic and time-based state math must be isolated in the platform-agnostic `VideoStateController`. The UI components (`simple-video-player.js` for Web, and `simple-video-player.native.jsx` for React Native) will only subscribe to state changes and manipulate the DOM or Native Views accordingly.
+
 ## Files to be Edited
-*   `js/components/simple-video-player.js`: The core UI component for simple videos. This file will contain the logic for parsing SRT timestamps, managing state between scroll/timed modes, and updating the subtitle display based on the video's current time.
+*   `js/modules/video-controller.js`: The shared logic controller. This file will be updated to handle subtitle parsing, time conversions, and tracking the active timed subtitle index based on video progress.
+*   `js/components/simple-video-player.js`: The Vanilla JS UI component for web. It will be updated to subscribe to the controller for subtitle updates, apply CSS classes for the timed view, and update `.innerHTML` dynamically without mingling parsing logic.
+*   `js/components/simple-video-player.native.jsx`: The React Native UI component. It will be updated to handle displaying timed subtitles alongside the existing ScrollView fallback, relying strictly on the `VideoStateController`.
 *   `js/config/gt2.json`: The course configuration file. We will update the first lesson's `simpleVideoUrl` question to include the new SRT formatted subtitles as an example.
 
 ## Existing Files to be Called (Not Edited)
-*   `js/modules/video-loader.web.js`: This module instantiates `simpleVideoPlayer` and passes the localized subtitle string via the config object. It will remain unchanged as it already passes the string correctly.
+*   `js/modules/video-loader.web.js`: This module instantiates `simpleVideoPlayer` and passes the localized subtitle string via the config object. It will remain unchanged.
 *   `js/app.js` or other entry points that trigger the video loader.
 
-## Changes to `js/components/simple-video-player.js`
+---
 
-### 1. New State Variables in `constructor(config)`
-Add new properties to track the subtitle mode and parsed data:
+## 1. Changes to `js/modules/video-controller.js` (Pure Logic)
+
+### New State Variables
+Add new properties to track the subtitle mode and parsed data in the constructor:
 ```javascript
-this.isTimedSubtitles = false;
-this.timedSubtitles = []; // Array of objects: { start: number, end: number, text: string }
-this.currentSubtitleIndex = -1;
+this.state = {
+    isPlaying: false,
+    isLoaded: false,
+    scrollRatio: 0,
+    isTimedSubtitles: false,
+    timedSubtitles: [], // Array of objects: { start, end, text }
+    activeSubtitleText: '' // The exact string to display at the current time
+};
 ```
 
-### 2. New Method: `parseSubtitles(subtitlesText)`
-This method will analyze the subtitle string.
-*   Check if the string contains the SRT time separator `-->`.
-*   If it does not, return `null`.
-*   If it does, split the string into blocks (separated by double newlines).
-*   For each block, extract the start/end times and the text.
-*   Convert the timestamp format (`HH:MM:SS,ms`) into seconds.
-*   Return an array of parsed subtitle objects.
-
+### New Method: `parseSubtitles(subtitlesText)`
+Called during initialization to analyze the subtitle string.
 ```javascript
-parseSubtitles(text) {
-  if (!text || typeof text !== 'string') return null;
-  if (!text.includes('-->')) return null;
+initSubtitles(text) {
+  if (!text || typeof text !== 'string') return;
+  if (!text.includes('-->')) {
+      // Fallback to scrolling mode
+      this.setState({ isTimedSubtitles: false, activeSubtitleText: text });
+      return;
+  }
 
   const blocks = text.trim().split(/\n\s*\n/);
   const parsed = [];
 
   for (const block of blocks) {
     const lines = block.split('\n');
-    // Basic validation to ensure it looks like an SRT block
     let timeLineIndex = lines.findIndex(line => line.includes('-->'));
     if (timeLineIndex === -1) continue;
 
@@ -53,22 +61,26 @@ parseSubtitles(text) {
 
     const [startStr, endStr] = timeString.split('-->').map(s => s.trim());
 
-    const start = this.timeToSeconds(startStr);
-    const end = this.timeToSeconds(endStr);
+    const start = this._timeToSeconds(startStr);
+    const end = this._timeToSeconds(endStr);
 
     if (!isNaN(start) && !isNaN(end)) {
         parsed.push({ start, end, text: textLines });
     }
   }
 
-  return parsed.length > 0 ? parsed : null;
+  this.setState({
+      isTimedSubtitles: parsed.length > 0,
+      timedSubtitles: parsed,
+      activeSubtitleText: ''
+  });
 }
 ```
 
-### 3. New Method: `timeToSeconds(timeStr)`
-Helper function to convert an SRT timestamp to seconds.
+### New Helper: `_timeToSeconds(timeStr)`
+Converts an SRT timestamp to seconds.
 ```javascript
-timeToSeconds(timeStr) {
+_timeToSeconds(timeStr) {
   const parts = timeStr.split(':');
   if (parts.length < 3) return 0;
 
@@ -82,74 +94,135 @@ timeToSeconds(timeStr) {
 }
 ```
 
-### 4. Modified Method: `initSubtitles()`
-Update to set the mode and initial display based on the parsing result. Note the switch to `.innerHTML` to support translations with spans, per repository guidelines.
-
+### Update `updateProgress(currentTime, duration)`
+Update this existing method to handle both timed text and scroll calculations.
 ```javascript
-// ... existing initSubtitles setup ...
+updateProgress(currentTime, duration) {
+    let updates = {};
 
-const parsed = this.parseSubtitles(this.config.subtitles);
-
-if (parsed) {
-  this.isTimedSubtitles = true;
-  this.timedSubtitles = parsed;
-  this.subtitleDisplay.innerHTML = ''; // Start empty
-  this.subtitleScrollContainer.classList.add('timed-subtitles-container');
-  this.subtitleDisplay.classList.add('timed-subtitles');
-} else {
-  this.isTimedSubtitles = false;
-  this.subtitleDisplay.innerHTML = this.config.subtitles;
-}
-
-// ... rest of initSubtitles ...
-```
-
-Note: The specific styles for `timed-subtitles-container` (e.g., `overflow: hidden;`) and `timed-subtitles` (e.g., `position: absolute; bottom: 10%; width: 100%; text-align: center; transform: translateY(0);`) should be added to the project's main `style.css` file to adhere to the strict separation of concerns and avoid inline styles.
-
-### 5. Modified Method: `updateSubtitleScroll(forceUpdate = false)`
-Update the timeupdate listener logic to handle both modes.
-
-```javascript
-updateSubtitleScroll(forceUpdate = false) {
-  if (this.isTimedSubtitles) {
-      this.updateTimedSubtitles();
-      return;
-  }
-
-  // ... existing scroll logic remains untouched ...
-}
-```
-
-### 6. New Method: `updateTimedSubtitles()`
-Handles displaying the correct text based on `video.currentTime`.
-
-```javascript
-updateTimedSubtitles() {
-  if (!this.video || this.timedSubtitles.length === 0) return;
-
-  const currentTime = this.video.currentTime;
-  let foundIndex = -1;
-
-  for (let i = 0; i < this.timedSubtitles.length; i++) {
-    const sub = this.timedSubtitles[i];
-    if (currentTime >= sub.start && currentTime <= sub.end) {
-      foundIndex = i;
-      break;
+    // Scroll calculation
+    if (this.config.scrollSubtitles && duration && duration > 0 && !isNaN(duration)) {
+        updates.scrollRatio = Math.max(0, Math.min(0.95, (currentTime / duration) * this.config.scrollSpeed));
     }
-  }
 
-  if (foundIndex !== this.currentSubtitleIndex) {
-    this.currentSubtitleIndex = foundIndex;
-    if (foundIndex !== -1) {
-      this.subtitleDisplay.innerHTML = this.timedSubtitles[foundIndex].text;
+    // Timed text calculation
+    if (this.state.isTimedSubtitles) {
+        let foundText = '';
+        for (let i = 0; i < this.state.timedSubtitles.length; i++) {
+            const sub = this.state.timedSubtitles[i];
+            if (currentTime >= sub.start && currentTime <= sub.end) {
+                foundText = sub.text;
+                break;
+            }
+        }
+        if (foundText !== this.state.activeSubtitleText) {
+            updates.activeSubtitleText = foundText;
+        }
+    }
+
+    if (Object.keys(updates).length > 0) {
+        this.setState(updates);
+    }
+}
+```
+
+---
+
+## 2. Changes to `js/components/simple-video-player.js` (Web UI)
+Refactor the web UI to rely heavily on the `VideoStateController`.
+
+### Initialization
+Initialize the controller and pass it the subtitle text.
+```javascript
+this.controller = new VideoStateController(this.config);
+this.controller.initSubtitles(this.config.subtitles);
+
+this.unsubscribe = this.controller.subscribe(state => this.render(state));
+```
+
+### Update `render(state)` Method
+Remove pure logic from the web class and only react to state. Note the strict usage of `.innerHTML` and CSS classes instead of inline styles.
+```javascript
+render(state) {
+    if (state.isTimedSubtitles) {
+        this.subtitleScrollContainer.classList.add('timed-subtitles-container');
+        this.subtitleDisplay.classList.add('timed-subtitles');
+        this.subtitleDisplay.innerHTML = state.activeSubtitleText;
+        // Transform is reset via CSS class, no scroll logic needed here
     } else {
-      this.subtitleDisplay.innerHTML = '';
+        this.subtitleScrollContainer.classList.remove('timed-subtitles-container');
+        this.subtitleDisplay.classList.remove('timed-subtitles');
+        // Apply scrolling behavior based on state.scrollRatio
+        const containerHeight = this.subtitleScrollContainer.offsetHeight;
+        const contentHeight = this.subtitleDisplay.scrollHeight;
+        const maxScroll = Math.max(0, contentHeight - containerHeight);
+        const currentScroll = state.scrollRatio * maxScroll;
+        this.subtitleDisplay.style.transform = `translateY(-${currentScroll}px)`;
     }
-  }
 }
 ```
+*Note: The styles for `timed-subtitles-container` and `timed-subtitles` must be added to `style.css`.*
 
-## Update Example in `js/config/gt2.json`
+---
+
+## 3. Changes to `js/components/simple-video-player.native.jsx` (React Native UI)
+Update the React Native component to support the new state variables.
+
+### Update `useEffect` hook
+```javascript
+useEffect(() => {
+    // Initialize controller subtitles once mounted
+    controllerRef.current.initSubtitles(subtitles);
+
+    const unsub = controllerRef.current.subscribe(state => {
+        setIsPlaying(state.isPlaying);
+        setIsLoaded(state.isLoaded);
+        setScrollRatio(state.scrollRatio);
+        setIsTimed(state.isTimedSubtitles);
+        setActiveText(state.activeSubtitleText);
+    });
+    return unsub;
+}, [subtitles]);
+```
+
+### Update the JSX Return
+Render based on whether it is timed or scrolling.
+```jsx
+{subtitles ? (
+    <View
+        style={styles.subtitleScrollContainer}
+        onLayout={e => {
+            subtitleContainerHeight.current = e.nativeEvent.layout.height;
+        }}
+        pointerEvents="none"
+    >
+        {isTimed ? (
+            <Text style={styles.timedSubtitleText}>
+                {activeText.replace(/<br>/g, '\n')}
+            </Text>
+        ) : (
+            <ScrollView
+                ref={scrollViewRef}
+                scrollEnabled={false}
+                showsVerticalScrollIndicator={false}
+            >
+                <Text
+                    style={styles.subtitleText}
+                    onLayout={e => {
+                        subtitleContentHeight.current = e.nativeEvent.layout.height;
+                    }}
+                >
+                    {subtitles}
+                </Text>
+            </ScrollView>
+        )}
+    </View>
+) : null}
+```
+
+---
+
+## 4. Update Example in `js/config/gt2.json`
 We will update the first lesson (`"lessonId": "a"`), specifically the second question which has `simpleVideoUrl: "gtests-1-0"`, to use SRT formatting in its `subtitles` property for all languages.
 
 ```json
