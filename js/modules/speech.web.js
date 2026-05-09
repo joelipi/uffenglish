@@ -861,7 +861,12 @@ export async function toggleSpeechRecognition(params) {
               ui.clearPlaybackVideo();
               ui.removeWebcamPreview();
 
-              window.dispatchEvent(new CustomEvent('transcriptRejected'));
+              window.dispatchEvent(new CustomEvent('transcriptRejected', {
+                  detail: {
+                      cue: question?.cue || "unknown_cue",
+                      transcript: transcriptToReview || "unknown_transcript"
+                  }
+              }));
               ui.setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Restarting Mic...</div>`);
 
               // Update the recording anyway so the final video has subtitles for this rejected attempt!

@@ -16,7 +16,7 @@ import { updateActivityDisplay } from './components/ui.js';
 import Strings from './data/strings.js';
 
 // --- Decoupled Business Logic (Modules Directory) ---
-import { calculateRepeatAverage, calculateRolePlayAverage, calculateAverage, calculateFluencyScore } from './modules/scoring.js';
+import { calculateRepeatAverage, calculateRolePlayAverage, calculateAverage, calculateFluencyScore, logInteraction } from './modules/scoring.js';
 import { isUserLoggedIn, getUserProfile, signOut, queryClient } from './modules/api.js';
 import { saveCourseToUserProfile, saveLessonProgress, syncOfflineScores } from './modules/user-profile.js';
 
@@ -94,7 +94,11 @@ import { calculateSyntacticComplexity } from './modules/complexity.js';
 const hearts = [DOM.heart1, DOM.heart2, DOM.heart3];
 
 // Speaking Score Logic ---
-window.addEventListener('transcriptRejected', () => {
+window.addEventListener('transcriptRejected', (e) => {
+    const cue = e.detail?.cue || "unknown_cue";
+    const transcript = e.detail?.transcript || "unknown_transcript";
+    logInteraction(cue, transcript, "rej_usr", "User rejected Whisper transcription");
+
     // Deduct 20 points, floor at 0
     appStore.getState().deductSpeakingScore(20);
 
@@ -130,6 +134,8 @@ export async function submitAnswerPrecheck(val, cue, questionData, btn, explanat
     );
 
     if (!isValid) {
+        logInteraction(cue, val, "rej_pre", warningMessage);
+
         if (!State.isTextMode) {
             // ✅ FIX: Now correctly deducts from the Speaking Score instead of the Listening Score
             appStore.getState().deductSpeakingScore(10);
@@ -247,6 +253,26 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
         }
 
         const isCorrect = result ? result.isCorrect : true;
+
+        let grammarCorrection = null;
+        if (result && result.explanations) {
+            const diffObj = result.explanations.find(e => e.type === 'grammar_diff');
+            if (diffObj && diffObj.correction) grammarCorrection = diffObj.correction;
+        }
+
+        let status = isCorrect ? "ok" : "inc";
+        let pragmaticDetails = result?.intentLabels?.length > 0 ? result.intentLabels : null;
+
+        logInteraction(cue, userResponse, status, pragmaticDetails, grammarCorrection);
+
+        // Log idioms and pragmatics to the global state arrays if they exist in the result object
+        if (result?.foundIdioms?.length > 0) {
+            State.recognizedIdioms.push(...result.foundIdioms);
+        }
+        if (result?.intentLabels?.length > 0) {
+            State.pragmaticFlags.push(...result.intentLabels);
+        }
+
         const { listeningScore, speakingScore, incorrectAttempts } = appStore.getState();
 
         if (questionData.inputType === "speech" || questionData.inputType === "ai") {
@@ -558,6 +584,7 @@ async function loadLessonContent(lesson, configData) {
     if (State.player) State.player.destroy();
 
     State.resetForNewLesson();
+    State.lessonStartTime = new Date().toISOString();
     State.roleA = lesson.roleA || "";
     State.roleB = lesson.roleB || "";
     State.userRole = lesson.userRole || "";

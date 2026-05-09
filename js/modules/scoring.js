@@ -1,3 +1,6 @@
+import { State } from "./state.js";
+import { appStore } from "./store.js";
+
 // modules/scoring.js
 
 export function calculateRepeatAverage(repeatPointsHistory) {
@@ -124,4 +127,86 @@ export function calculateFluencyScore({
             understanding
         }
     };
+}
+
+
+export function logInteraction(cue, response, status, details = null, grammarCorrection = null) {
+    try {
+        const entry = { q: cue || "", r: response || "", s: status || "unk" };
+
+        if (details && (!Array.isArray(details) || details.length > 0)) {
+            entry.d = Array.isArray(details) ? details.join(', ') : details;
+        }
+        if (grammarCorrection) entry.g = grammarCorrection;
+
+        State.interactionLog.push(entry);
+    } catch (e) {
+        console.warn("Failed to log interaction", e);
+    }
+}
+
+export function getCompressedLessonStats() {
+    try {
+        const state = appStore.getState() || {};
+
+        const safeNum = (val, fallback = null) => {
+            const parsed = Number(val);
+            return Number.isFinite(parsed) ? Math.round(parsed) : fallback;
+        };
+
+        let mode = 'cam';
+        if (State.isTextMode) mode = 'txt';
+        else if (State.isCameraOff) mode = 'mic';
+
+        const tsEnd = new Date().toISOString();
+        let tsStart = null;
+        try {
+            tsStart = State.lessonStartTime ? new Date(State.lessonStartTime).toISOString() : tsEnd;
+        } catch (e) { tsStart = tsEnd; }
+
+        const payload = {
+            tss: tsStart,
+            tse: tsEnd,
+            mod: mode,
+
+            // Core Zustand Metrics
+            fs: safeNum(state.fluencyScore),
+            ls: safeNum(state.listeningScore),
+            ss: safeNum(state.speakingScore),
+            fl: safeNum(state.flowScore),
+            vs: safeNum(state.vocabularyScore),
+            gs: safeNum(state.grammarScore),
+            fm: safeNum(state.formalityScore),
+            nl: safeNum(state.nativeLikeScore),
+            us: safeNum(state.understandingScore),
+            ia: safeNum(state.incorrectAttempts, 0),
+
+            // Aggregated State Metrics
+            wpm: safeNum(State.averageWpm),
+            pau: safeNum(State.totalPauses),
+            hes: safeNum(State.totalHesitations, 0),
+
+            // Arrays
+            ida: Array.isArray(State.recognizedIdioms) ? [...new Set(State.recognizedIdioms)] : [],
+            prg: Array.isArray(State.pragmaticFlags) ? [...new Set(State.pragmaticFlags)] : [],
+            hx: Array.isArray(State.interactionLog) ? State.interactionLog : []
+        };
+
+        // Minifier: Strip nulls, undefined, and empty arrays
+        Object.keys(payload).forEach(key => {
+            if (payload[key] === null || payload[key] === undefined) {
+                delete payload[key];
+            } else if (Array.isArray(payload[key]) && payload[key].length === 0) {
+                delete payload[key];
+            } else if (payload[key] === 0 && key === 'hes') {
+                delete payload[key];
+            }
+        });
+
+        return payload;
+
+    } catch (error) {
+        console.error("🚨 CRITICAL: Failed to compress lesson stats.", error);
+        return { err: 1 }; // Explicit error flag
+    }
 }

@@ -19,6 +19,7 @@ import {
 } from '../modules/speech.js';
 import { initVideoProcessor } from '../modules/video-processor.js';
 import { saveLessonProgress } from '../modules/user-profile.js';
+import { getCompressedLessonStats } from '../modules/scoring.js';
 import { pointLoss } from './point-loss-animation.js';
 
 import {
@@ -338,9 +339,13 @@ function _renderSuccess(question, fluencyData) {
     const nextLessonId = currentLesson.nextLessonId;
 
     if (nextLessonId) {
+        const finalStats = getCompressedLessonStats();
+
         saveLessonProgress(State.courseId, nextLessonId, State.userData, {
             updateUserMeta: true,
-            incrementCount: true
+            incrementCount: true,
+            lessonStats: finalStats,
+            currentLessonId: question.lessonId
         }).then(progressResult => {
             // Update the store with the new calculated numbers; subscription handles the UI
             appStore.getState().setActivityMetrics(progressResult.newDayCount, progressResult.newStreak);
