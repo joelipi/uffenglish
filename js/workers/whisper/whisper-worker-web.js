@@ -55,10 +55,13 @@ async function bootWhisperEngine() {
         self.Module.onRuntimeInitialized = function () {
             console.time('[whisper] total init');
 
+            // Cap threads to 4 to prevent out-of-memory crashes on mobile browsers
+            const safeThreadCount = Math.min(navigator.hardwareConcurrency || 2, 4);
+
             let config = {
                 modelConfig: {
                     debug: 0,
-                    numThreads: navigator.hardwareConcurrency || 4, // 🚀 CORE OPTIMIZATION: Uses all available CPU threads
+                    numThreads: safeThreadCount,
                     provider: "cpu", // Ensures it uses the optimized CPU provider
                     tokens: './tokens.txt',
                     whisper: {
