@@ -31,7 +31,10 @@ export const DOM = {
     get playbackVideo() { return document.getElementById('playback-video'); },
     get playbackMuteToggle() { return document.getElementById('playback-mute-toggle'); },
     get questionsContainerContainer() { return document.getElementById('questions-container-container'); },
-    get questionsContainer() { return document.getElementById('questions-container'); }
+    get questionsContainer() { return document.getElementById('questions-container'); },
+    get tutorChatInputArea() { return document.getElementById('tutor-chat-input-area'); },
+    get tutorChatTextarea() { return document.getElementById('tutor-chat-textarea'); },
+    get tutorChatSendBtn() { return document.getElementById('tutor-chat-send-btn'); }
 };
 
 let webcamPreview = null;
@@ -352,6 +355,65 @@ export function generateHangmanHint(userResponse, cue) {
 export function clearChatInterface() {
     DOM.chatBody.innerHTML = '';
     DOM.speechText.classList.add('d-none'); // Hide widget entirely
+    hideTutorChatInput();
+}
+
+// --- TUTOR CHAT UI FUNCTIONS ---
+
+export function initTutorChatUI(submitCallback) {
+    if (!DOM.tutorChatTextarea || !DOM.tutorChatSendBtn) return;
+
+    DOM.tutorChatSendBtn.addEventListener('click', () => {
+        const text = DOM.tutorChatTextarea.value;
+        if (text && text.trim().length > 0) {
+            DOM.tutorChatTextarea.value = '';
+            submitCallback(text);
+        }
+    });
+
+    DOM.tutorChatTextarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            // Let the textarea handle Enter for newlines natively.
+            // Do NOT trigger submit.
+        }
+    });
+}
+
+export function showTutorChatInput() {
+    if (DOM.tutorChatInputArea) DOM.tutorChatInputArea.classList.remove('d-none');
+}
+
+export function hideTutorChatInput() {
+    if (DOM.tutorChatInputArea) DOM.tutorChatInputArea.classList.add('d-none');
+}
+
+export function getChatHistoryContext() {
+    if (!DOM.chatBody) return "";
+
+    // Simple text extraction from the chat body's text content.
+    // In a more complex scenario, we'd distinguish roles more carefully,
+    // but the innerText of the bubbles typically captures the flow.
+    const bubbles = Array.from(DOM.chatBody.querySelectorAll('.chat-msg'));
+
+    let historyText = "";
+    for (const bubble of bubbles) {
+        // Skip loading indicators
+        if (bubble.id === 'ai-loading-status') continue;
+
+        let role = bubble.classList.contains('userResponse') ? "Student" : "Tutor";
+        historyText += `${role}: ${bubble.innerText}\n`;
+    }
+    return historyText;
+}
+
+export function renderTutorMessage(text, isUser) {
+    if (isUser) {
+        renderUserResponse(text);
+    } else {
+        const safeText = escapeHTML(text);
+        const html = `<div class='chat-bubble chat-msg'>${safeText}</div>`;
+        safeRenderChatInterface(true, html);
+    }
 }
 
 // 5. Encapsulated DOM Logic

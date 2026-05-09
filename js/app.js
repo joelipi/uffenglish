@@ -17,7 +17,7 @@ import Strings from './data/strings.js';
 
 // --- Decoupled Business Logic (Modules Directory) ---
 import { calculateRepeatAverage, calculateRolePlayAverage, calculateAverage, calculateFluencyScore } from './modules/scoring.js';
-import { isUserLoggedIn, getUserProfile, signOut, queryClient } from './modules/api.js';
+import { isUserLoggedIn, getUserProfile, signOut, queryClient, askEnglishTutor } from './modules/api.js';
 import { saveCourseToUserProfile, saveLessonProgress, syncOfflineScores } from './modules/user-profile.js';
 
 import {
@@ -71,6 +71,11 @@ import {
     showPlaybackVideo,
     markButtonAsCorrect,
     markButtonAsIncorrect,
+    initTutorChatUI,
+    showTutorChatInput,
+    hideTutorChatInput,
+    getChatHistoryContext,
+    renderTutorMessage,
     animateHeartLoss,
     resetHeartsUI,
     showContinueButton,
@@ -333,6 +338,9 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
         const explanationData = buildExplanationData(result?.explanations, explanation);
         const webFormattedExplanations = renderExplanationsToHTML(explanationData);
 
+        // Show the tutor chat input once the evaluation completes
+        showTutorChatInput();
+
         if (isCorrect) {
             if (questionData.inputType === "ai") {
                 State.cuesGiven.push(result.normalizeduserResponse);
@@ -490,8 +498,40 @@ async function loadNextLesson() {
 
 // 🏫🏫🏫🏫🏫🏫🏫🏫 INITIALIZATION/LESSON SETUP 🏫🏫🏫🏫🏫🏫🏫🏫
 
+async function handleTutorChatSubmit(rawText) {
+    if (!rawText || !rawText.trim()) return;
+
+    const wordCount = rawText.trim().split(/\s+/).length;
+    appStore.getState().incrementUserTutorStats(wordCount);
+
+    // Show user's message
+    renderTutorMessage(rawText, true);
+
+    // Show loading
+    renderAIAnalysisLoading("Tutor is thinking...");
+
+    // Get context and send to API
+    const context = getChatHistoryContext();
+    const aiResponse = await askEnglishTutor(context, rawText);
+
+    const aiWordCount = aiResponse.trim().split(/\s+/).length;
+    appStore.getState().incrementAiTutorStats(aiWordCount);
+
+    // Remove the loading indicator explicitly in case the render function doesn't
+    const loadingStatus = document.getElementById('ai-loading-status');
+    if (loadingStatus) {
+        loadingStatus.remove();
+    }
+
+    // Show AI response
+    renderTutorMessage(aiResponse, false);
+}
+
 async function initializeLesson(courseId = State.courseId, configData = State.configData, userData = State.userData) {
     try {
+        // Initialize the Tutor Chat UI and bind the submission logic
+        initTutorChatUI(handleTutorChatSubmit);
+
         // 1. Gather browser-specific context
         const urlParams = new URLSearchParams(window.location.search);
         const routerContext = {
