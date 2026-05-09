@@ -9,6 +9,13 @@ export const State = {
     
     isAudioEnabled: false,
 
+    interactionLog: [],
+    recognizedIdioms: [],
+    pragmaticFlags: [],
+    totalHesitations: 0,
+    totalPauses: null,
+    averageWpm: null,
+
     // Lesson Data
     mission: null,
     setting: null,
@@ -80,6 +87,13 @@ export const State = {
         
         // Reset question index to 0 for a fresh start
         this.currentQuestionIndex = 0;
+
+        this.interactionLog = [];
+        this.recognizedIdioms = [];
+        this.pragmaticFlags = [];
+        this.totalHesitations = 0;
+        this.totalPauses = null;
+        this.averageWpm = null;
 
         // Reset non-reactive lesson data
         this.mission = null;
