@@ -130,12 +130,16 @@ export async function submitAnswerPrecheck(val, cue, questionData, btn, explanat
     );
 
     if (!isValid) {
-        // ✅ FIX: Now correctly deducts from the Speaking Score instead of the Listening Score
-        appStore.getState().deductSpeakingScore(10);
+        if (!State.isTextMode) {
+            // ✅ FIX: Now correctly deducts from the Speaking Score instead of the Listening Score
+            appStore.getState().deductSpeakingScore(10);
 
-        // Show point loss animation (subscription handles the text update)
-        if (DOM.phrasesScore) {
-            pointLoss.show(DOM.phrasesScore, 10);
+            // Show point loss animation (subscription handles the text update)
+            if (DOM.phrasesScore) {
+                pointLoss.show(DOM.phrasesScore, 10);
+            }
+        } else {
+            console.log('[submitAnswerPrecheck] Text mode: skipping speaking score deduction');
         }
         if (DOM.micStatusText) {
             DOM.micStatusText.innerHTML = `<div class='text-center text-danger'>${warningMessage}</div>`;
@@ -146,7 +150,9 @@ export async function submitAnswerPrecheck(val, cue, questionData, btn, explanat
         const qIndex = getCurrentQuestionIndex(questionData, configData, courseId);
         await updateSpeechRecording(currentLessonId, qIndex, {
             userResponse: val,
-            cue: cue
+            cue: cue,
+            isTextMode: State.isTextMode,
+            duration: State.isTextMode ? 3 : null
         });
 
         if (btn) btn.disabled = false;
@@ -183,12 +189,24 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
             } else {
                 speechAnalytics = {}; // fallback
             }
+            if (State.isTextMode) {
+                if (speechAnalytics) {
+                    speechAnalytics.pronunciationScore = 100;
+                    speechAnalytics.flowScore = 100;
+                    speechAnalytics.wpm = 0;
+                    speechAnalytics.pauseCount = 0;
+                    speechAnalytics.netDuration = 3;
+                }
+                console.log('[handleAnswer] Text mode: overridden speech metrics for scoring');
+            }
             await updateSpeechRecording(currentLessonId, qIndex, {
                 userResponse,
                 cue,
-                wpm: speechAnalytics.wpm,
-                pauseCount: speechAnalytics.pauseCount,
-                complexityScore: speechAnalytics.complexityScore
+                wpm: State.isTextMode ? 0 : (speechAnalytics?.wpm || 0),
+                pauseCount: State.isTextMode ? 0 : (speechAnalytics?.pauseCount || 0),
+                complexityScore: speechAnalytics?.complexityScore || 100,
+                isTextMode: State.isTextMode,
+                duration: State.isTextMode ? 3 : (speechAnalytics?.netDuration || null)
             });
             console.log("Successfully updated speech recording with answers");
         }

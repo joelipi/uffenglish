@@ -78,7 +78,14 @@ export function loadQuestion(question, lesson, fluencyData, deps) {
     toggleScoresAndHearts((question.inputType === 'speech' || question.inputType === 'ai') && question.videoUrl);
 
     if (question.inputType === 'speech' || question.inputType === 'ai') {
-        warmUpSpeechCamStream();
+        if (!State.isCameraOff && !State.isTextMode) {
+            warmUpSpeechCamStream();
+        } else if (State.isTextMode) {
+            // Text mode: bypass hardware prompt completely
+            console.log('[QuestionLoader] Text mode: bypassing hardware prompt');
+        } else {
+            warmUpSpeechCamStream(); // For audio-only mode, the mock stream handles this
+        }
         if (isIOS) {
             const closePageLink = document.getElementById('closePage');
             if (closePageLink) {
@@ -100,7 +107,14 @@ export function loadQuestion(question, lesson, fluencyData, deps) {
     }
 
     if (question.inputType === 'speech' || question.inputType === 'ai') {
-        warmUpSpeechCamStream();
+        if (!State.isCameraOff && !State.isTextMode) {
+            warmUpSpeechCamStream();
+        } else if (State.isTextMode) {
+            // Text mode: bypass hardware prompt completely
+            console.log('[QuestionLoader] Text mode: bypassing hardware prompt');
+        } else {
+            warmUpSpeechCamStream(); // For audio-only mode, the mock stream handles this
+        }
     }
 
     prepareMediaUI();
@@ -228,29 +242,37 @@ function _renderSpeechOrAI(question, lesson, deps) {
 
     const qIndex = getCurrentQuestionIndex(question, State.configData, State.currentLessonIndex);
 
-    renderSpeechInputUI(
-        answerFragment,
-        question.inputType === "speech" ? null : () => handleHint(qIndex),
-        handleRevealClick,
-        async () => {
-            const speechButton = document.getElementById('speechButton');
-            try {
-                await toggleSpeechRecognition({
-                    button: speechButton,
-                    question,
-                    micStatusText: DOM.micStatusText,
-                    userData: State.userData,
-                    configData: State.configData,
-                    currentLessonIndex: State.currentLessonIndex,
-                    currentQuestionIndex: qIndex,
-                    handleAnswer: submitAnswerPrecheck,
-                    player: State.player
-                });
-            } catch (error) {
-                console.error("Speech toggle failed", error);
+    if (State.isTextMode) {
+        const placeholder = Strings.get('placeholder_type_answer', State.userData?.native_language) || 'Type your answer here...';
+        const submitLabel = Strings.get('btn_submit', State.userData?.native_language) || 'Submit';
+        renderTextInputUI(placeholder, submitLabel, (val, btn) => {
+            submitAnswerPrecheck(val, question.cue, question, btn, question.explanation, question.translation, { pauseCount: 0, netDuration: 3 });
+        });
+    } else {
+        renderSpeechInputUI(
+            answerFragment,
+            question.inputType === "speech" ? null : () => handleHint(qIndex),
+            handleRevealClick,
+            async () => {
+                const speechButton = document.getElementById('speechButton');
+                try {
+                    await toggleSpeechRecognition({
+                        button: speechButton,
+                        question,
+                        micStatusText: DOM.micStatusText,
+                        userData: State.userData,
+                        configData: State.configData,
+                        currentLessonIndex: State.currentLessonIndex,
+                        currentQuestionIndex: qIndex,
+                        handleAnswer: submitAnswerPrecheck,
+                        player: State.player
+                    });
+                } catch (error) {
+                    console.error("Speech toggle failed", error);
+                }
             }
-        }
-    );
+        );
+    }
 }
 
 function _renderLessonIntro(question, lesson, showFeedbackAndProceed) {

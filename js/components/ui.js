@@ -1,3 +1,15 @@
+
+export function syncTextModeUI() {
+    if (DOM.phrasesScore) {
+        if (State.isTextMode) {
+            DOM.phrasesScore.classList.add('d-none');
+            console.log('[UI] Text mode: hiding speaking score');
+        } else {
+            DOM.phrasesScore.classList.remove('d-none');
+            console.log('[UI] Camera/Mic mode: showing speaking score');
+        }
+    }
+}
 // --- modules/ui.js ---
 import { State } from '../modules/state.js';
 import { appStore } from '../modules/store.js';
@@ -873,10 +885,22 @@ export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyCl
         btnGroup.appendChild(audioOnlyButton);
     }
 
+    let textOnlyButton = document.getElementById('textOnlyButton');
+    if (!textOnlyButton && isLessonIntro && btnGroup) {
+        textOnlyButton = document.createElement('button');
+        textOnlyButton.id = 'textOnlyButton';
+        textOnlyButton.className = 'btn bg-transparent border-0 text-white w-100';
+        textOnlyButton.innerHTML = '<i class="bi bi-keyboard text-white" style="font-size: 40px; font-weight: 900;"></i>';
+        btnGroup.appendChild(textOnlyButton);
+        console.log('[UI] Text-only button added to lesson intro');
+    }
+
     if (audioOnlyButton) {
         audioOnlyButton.style.display = isLessonIntro ? 'inline-block' : 'none';
         if (isLessonIntro) {
             audioOnlyButton.onclick = () => {
+                State.isTextMode = false;
+                syncTextModeUI();
                 if (!State.isCameraOff) {
                     toggleCamera();
                 }
@@ -889,6 +913,18 @@ export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyCl
         }
     }
 
+    if (textOnlyButton) {
+        textOnlyButton.style.display = isLessonIntro ? 'inline-block' : 'none';
+        if (isLessonIntro) {
+            textOnlyButton.onclick = () => {
+                State.isTextMode = true;
+                State.isCameraOff = true;
+                syncTextModeUI();
+                onClickCallback();
+            };
+        }
+    }
+
     if (btnGroup) {
         btnGroup.style.display = isLessonIntro ? 'flex' : 'none';
     }
@@ -896,6 +932,8 @@ export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyCl
     if (continueButton) {
         continueButton.innerHTML = isLessonIntro ? '<i class="bi bi-camera-video-fill text-white" style="font-size: 40px; font-weight: 900;"></i>' : '<i class="bi bi-chevron-right text-white" style="font-size: 40px; font-weight: 900;"></i>';
         continueButton.onclick = () => {
+            State.isTextMode = false;
+            syncTextModeUI();
             if (isLessonIntro && State.isCameraOff) {
                 toggleCamera();
             }
@@ -903,12 +941,17 @@ export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyCl
         };
         continueButton.style.display = 'inline-block';
 
-        // Adjust button widths if both are showing
-        if (isLessonIntro && audioOnlyButton) {
-            continueButton.classList.replace('w-100', 'w-50');
-            audioOnlyButton.classList.replace('w-100', 'w-50');
+        // Adjust button widths if all are showing
+        if (isLessonIntro && audioOnlyButton && textOnlyButton) {
+            continueButton.classList.remove('w-100', 'w-50');
+            audioOnlyButton.classList.remove('w-100', 'w-50');
+            textOnlyButton.classList.remove('w-100', 'w-50');
+            continueButton.classList.add('w-33');
+            audioOnlyButton.classList.add('w-33');
+            textOnlyButton.classList.add('w-33');
         } else {
             continueButton.classList.replace('w-50', 'w-100');
+            continueButton.classList.replace('w-33', 'w-100');
         }
     }
 
@@ -1108,18 +1151,45 @@ export function renderTextInputUI(placeholder, submitText, handleSubmitCallback)
 
     const answersContainer = document.getElementById('answers-container');
     if (answersContainer) {
-        const inputField = document.createElement('input');
-        inputField.type = 'text';
-        inputField.className = 'form-control mb-3';
-        inputField.placeholder = placeholder;
+        answersContainer.innerHTML = ''; // clear existing content
 
-        const submitButton = document.createElement('button');
-        submitButton.className = 'btn btn-primary';
-        submitButton.textContent = submitText;
-        submitButton.onclick = () => handleSubmitCallback(inputField.value.trim(), submitButton);
+        const wrapper = document.createElement('div');
+        wrapper.className = 'text-input-mode d-flex flex-column gap-2 p-3';
 
-        answersContainer.appendChild(inputField);
-        answersContainer.appendChild(submitButton);
+        const textarea = document.createElement('textarea');
+        textarea.id = 'textInputAnswer';
+        textarea.className = 'form-control';
+        textarea.rows = 3;
+        textarea.placeholder = placeholder || 'Type your answer...';
+        textarea.setAttribute('aria-label', 'Type your answer');
+
+        const submitBtn = document.createElement('button');
+        submitBtn.id = 'submitTextAnswerBtn';
+        submitBtn.className = 'btn btn-primary';
+        submitBtn.textContent = submitText || 'Submit';
+        submitBtn.disabled = false;
+
+        const handleSubmit = () => {
+            const value = textarea.value.trim();
+            if (!value) return;
+            submitBtn.disabled = true;
+            textarea.disabled = true;
+            handleSubmitCallback(value, submitBtn);
+        };
+
+        submitBtn.addEventListener('click', handleSubmit);
+        textarea.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit();
+            }
+        });
+
+        wrapper.appendChild(textarea);
+        wrapper.appendChild(submitBtn);
+        answersContainer.appendChild(wrapper);
+
+        console.log('[renderTextInputUI] Text input UI rendered');
     }
 }
 

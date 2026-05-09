@@ -207,7 +207,11 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
             if (isTailing) {
                 if (performance.now() - tailStart > 4000) resolve();
             } else {
-                const endTime = step.trim?.end || video.duration;
+                let endTime = step.trim?.end || video.duration;
+                if (step.isTextMode) {
+                    endTime = 3;
+                    console.log(`[VideoProcessor] Text mode clip forced to 3s`);
+                }
                 if (video.ended || video.currentTime >= endTime) shouldAdvance = true;
             }
 

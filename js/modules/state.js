@@ -52,6 +52,7 @@ export const State = {
     // Active Media Player Reference
     player: null,
     isCameraOff: false,
+    isTextMode: false,
 
     /**
      * Initializes the state with values calculated from Appwrite userData
@@ -93,6 +94,7 @@ export const State = {
         this.videoClicks = 0;
         this.questionCount = 0;
         this.questionsAnswered = 0;
+        this.isTextMode = false;
     },
 
     resetForNextQuestion() {
