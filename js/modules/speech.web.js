@@ -668,12 +668,37 @@ export async function toggleSpeechRecognition(params) {
   console.log('[Toggle] toggleSpeechRecognition called — isListening:', isListening, '| question.inputType:', question?.inputType, '| question.videoUrl:', question?.videoUrl);
 
   ui.pauseVideoIfPlaying(player);
+  let swappedWrapper = null;
+  let ivpParent = null;
+  let webcamParent = null;
+  let webcamNode = null;
 
   const urlParams = new URLSearchParams(window.location.search);
   const forceDeepgram = urlParams.get('deepgram') === 'true';
   console.log('[Toggle] forceDeepgram:', forceDeepgram);
 
   if (!isListening) {
+      if (player && player.pauseAndPrepForSwap) {
+          swappedWrapper = player.pauseAndPrepForSwap();
+          webcamNode = document.getElementById('webcam-preview');
+          if (swappedWrapper && webcamNode) {
+              ivpParent = swappedWrapper.parentNode;
+              webcamParent = webcamNode.parentNode;
+
+              // Create invisible placeholders to hold the swapped elements
+              const ivpPlaceholder = document.createElement('div');
+              ivpPlaceholder.id = 'ivp-swap-placeholder';
+              const webcamPlaceholder = document.createElement('div');
+              webcamPlaceholder.id = 'webcam-swap-placeholder';
+
+              ivpParent.replaceChild(ivpPlaceholder, swappedWrapper);
+              webcamParent.replaceChild(webcamPlaceholder, webcamNode);
+
+              // Put elements into the opposing placeholders
+              ivpPlaceholder.appendChild(webcamNode);
+              webcamPlaceholder.appendChild(swappedWrapper);
+          }
+      }
     ui.setMicStatusText(`<div class="text-center"><div class="mb-0" style="color: green; font-size: 30px;"><i class="bi bi-mic" style="color: green; font-size: 100px !important;"></i><br>${Strings.get('status_speak', userData?.native_language)}</div></div>`);
 
     try {
@@ -850,6 +875,17 @@ export async function toggleSpeechRecognition(params) {
               reviewActive = false;
               clearInterval(timerInterval);
               ui.setMicStatusText("");
+              const ivpPlaceholder = document.getElementById('ivp-swap-placeholder');
+              const webcamPlaceholder = document.getElementById('webcam-swap-placeholder');
+              if (swappedWrapper && webcamNode && ivpPlaceholder && webcamPlaceholder) {
+                  const currentIvpParent = ivpPlaceholder.parentNode;
+                  const currentWebcamParent = webcamPlaceholder.parentNode;
+                  if (currentIvpParent && currentWebcamParent) {
+                      currentIvpParent.replaceChild(swappedWrapper, ivpPlaceholder);
+                      currentWebcamParent.replaceChild(webcamNode, webcamPlaceholder);
+                  }
+                  swappedWrapper.classList.remove('ivp-swapped');
+              }
               params.handleAnswer(transcriptToReview, question.cue, question, button, question.explanation, question.translation, stats, userData, configData);
             };
 
@@ -871,6 +907,23 @@ export async function toggleSpeechRecognition(params) {
                   userResponse: transcriptToReview,
                   cue: question?.cue
               }).catch(e => console.error('[Toggle] Failed to update rejected recording:', e));
+
+              const ivpPlaceholder = document.getElementById('ivp-swap-placeholder');
+              const webcamPlaceholder = document.getElementById('webcam-swap-placeholder');
+              if (swappedWrapper && webcamNode && ivpPlaceholder && webcamPlaceholder) {
+                  const currentIvpParent = ivpPlaceholder.parentNode;
+                  const currentWebcamParent = webcamPlaceholder.parentNode;
+                  if (currentIvpParent && currentWebcamParent) {
+                      currentIvpParent.replaceChild(swappedWrapper, ivpPlaceholder);
+                      currentWebcamParent.replaceChild(webcamNode, webcamPlaceholder);
+                  }
+                  swappedWrapper.classList.remove('ivp-swapped');
+              }
+              if (player && player.controller && player.controller.applySpeechResult) {
+                  // Compute indices simply (could be more sophisticated, but we just mark all wrong for a reject)
+                  const wrongIndices = player.controller.tokens.map((_, i) => i);
+                  player.controller.applySpeechResult([], wrongIndices);
+              }
 
               setTimeout(() => {
                 isListening = false;

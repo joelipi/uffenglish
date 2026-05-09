@@ -149,8 +149,33 @@ export async function submitAnswerPrecheck(val, cue, questionData, btn, explanat
             cue: cue
         });
 
+        // Apply speech results to the InteractiveVideoPlayer if present
+        if (State.player && State.player.controller && State.player.controller.applySpeechResult) {
+            const userWords = val.toLowerCase().replace(/[^\w\s']/g, '').split(/\s+/);
+            const correctIndices = [];
+            const wrongIndices = [];
+
+            // basic comparison logic matching exact tokens
+            State.player.controller.tokens.forEach((token, idx) => {
+                if (State.player.controller.punctuationMap.get(idx)) return;
+                const cleanToken = token.toLowerCase().replace(/[^\w\s']/g, '');
+                if (userWords.includes(cleanToken)) {
+                    correctIndices.push(idx);
+                } else {
+                    wrongIndices.push(idx);
+                }
+            });
+            State.player.controller.applySpeechResult(correctIndices, wrongIndices);
+        }
+
         if (btn) btn.disabled = false;
         return;
+    }
+
+    // Apply exact success to IVP
+    if (State.player && State.player.controller && State.player.controller.applySpeechResult) {
+        const correctIndices = State.player.controller.tokens.map((_, i) => i);
+        State.player.controller.applySpeechResult(correctIndices, []);
     }
 
     await handleAnswer(val, cue, questionData, btn, explanation, translation, stats, userData, configData, courseId);
