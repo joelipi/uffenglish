@@ -2224,3 +2224,18 @@ footer {
 .ivp-play-overlay:hover .ivp-play-icon-container {
   transform: scale(1.1);
 }
+.timed-subtitles-container {
+    /* Disable scroll-driven transform behavior */
+    overflow: hidden;
+}
+
+.timed-subtitles {
+    /* Center the cue text; disable translateY scroll */
+    transform: none !important;
+    transition: none !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    height: 100%;
+}

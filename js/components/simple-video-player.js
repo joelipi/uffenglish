@@ -1,3 +1,5 @@
+import { SimpleVideoStateController } from '../modules/simple-video-controller.js';
+
 export class simpleVideoPlayer {
   constructor(config) {
     // Styles are now consolidated in style.css
@@ -14,6 +16,10 @@ export class simpleVideoPlayer {
 
     this.config = { ...defaults, ...config };
     this.validateInput();
+
+    this.controller = new SimpleVideoStateController(this.config);
+    this.controller.initSubtitles(this.config.subtitles);
+    this.unsubscribe = this.controller.subscribe(state => this.render(state));
 
     this.naturalWidth = 0;
     this.naturalHeight = 0;
@@ -194,8 +200,6 @@ export class simpleVideoPlayer {
     this.subtitleScrollContainer.appendChild(this.subtitleDisplay);
     this.videoWrapper.appendChild(this.subtitleScrollContainer);
 
-    this.subtitleDisplay.textContent = this.config.subtitles;
-    
     // Apply config styles if provided
     if (this.config.subtitleStyles) {
       Object.assign(this.subtitleDisplay.style, this.config.subtitleStyles);
@@ -307,35 +311,42 @@ export class simpleVideoPlayer {
   }
 
   updateSubtitleScroll(forceUpdate = false) {
-    if (!this.config.scrollSubtitles || !this.subtitleScrollContainer) return;
+      if (this.video && this.controller) {
+          this.controller.updateProgress(this.video.currentTime, this.video.duration);
+      }
+  }
 
-    const now = Date.now();
-    if (!forceUpdate && now - this.lastScrollUpdate < this.scrollUpdateInterval) return;
-    this.lastScrollUpdate = now;
+  render(state) {
+    if (!this.subtitleScrollContainer || !this.subtitleDisplay) return;
 
-    const containerHeight = this.subtitleScrollContainer.offsetHeight;
-    const contentHeight = this.subtitleDisplay.scrollHeight;
-
-    if (contentHeight <= containerHeight) {
-      this.subtitleDisplay.style.transform = 'translateY(0)';
-      return;
-    }
-
-    let scrollRatio;
-    if (this.video.duration && this.video.duration > 0) {
-      scrollRatio = Math.min(0.95, this.video.currentTime / this.video.duration * this.config.scrollSpeed);
+    if (state.isTimedSubtitles) {
+        this.subtitleScrollContainer.classList.add('timed-subtitles-container');
+        this.subtitleDisplay.classList.add('timed-subtitles');
+        this.subtitleDisplay.innerHTML = state.activeSubtitleText;
+        // No transform/scroll logic here — CSS handles positioning
     } else {
-      scrollRatio = this.scrollPosition;
+        this.subtitleScrollContainer.classList.remove('timed-subtitles-container');
+        this.subtitleDisplay.classList.remove('timed-subtitles');
+
+        // Render fallback plain text content only if it changed
+        if (this.subtitleDisplay.innerHTML !== state.activeSubtitleText) {
+            this.subtitleDisplay.innerHTML = state.activeSubtitleText;
+        }
+
+        const containerHeight = this.subtitleScrollContainer.offsetHeight;
+        const contentHeight = this.subtitleDisplay.scrollHeight;
+
+        if (contentHeight <= containerHeight) {
+            this.subtitleDisplay.style.transform = 'translateY(0)';
+            return;
+        }
+
+        const maxScroll = Math.max(0, contentHeight - containerHeight);
+        const currentScroll = state.scrollRatio * maxScroll;
+
+        this.subtitleDisplay.style.transform = `translateY(-${currentScroll}px)`;
+        this.subtitleDisplay.style.transition = `transform ${this.scrollUpdateInterval / 1000}s linear`;
     }
-
-    scrollRatio = Math.max(0, Math.min(0.95, scrollRatio));
-    this.scrollPosition = scrollRatio;
-
-    const maxScroll = contentHeight - containerHeight;
-    const currentScroll = scrollRatio * maxScroll;
-
-    this.subtitleDisplay.style.transform = `translateY(-${currentScroll}px)`;
-    this.subtitleDisplay.style.transition = forceUpdate ? 'none' : `transform ${this.scrollUpdateInterval / 1000}s linear`;
   }
 
   applyVideoStyles() {
@@ -374,6 +385,7 @@ export class simpleVideoPlayer {
   }
 
   destroy() {
+    if (this.unsubscribe) this.unsubscribe();
     clearTimeout(this._fouc_fallback);
     if (this.mainWrapper) {
       this.mainWrapper.removeEventListener('click', this._handleClick);
