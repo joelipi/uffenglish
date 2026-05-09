@@ -55,8 +55,13 @@ async function bootWhisperEngine() {
         self.Module.onRuntimeInitialized = function () {
             console.time('[whisper] total init');
 
-            // Cap threads to 4 to prevent out-of-memory crashes on mobile browsers
-            const safeThreadCount = Math.min(navigator.hardwareConcurrency || 2, 4);
+            // Use Device Memory API if available, assume 4GB if missing
+            const deviceMemory = navigator.deviceMemory || 4;
+            // Cap to 2 threads for devices with less than 4GB RAM to prevent OOM
+            const maxAllowedThreads = deviceMemory < 4 ? 2 : 4;
+
+            // Cap threads to maxAllowedThreads to prevent out-of-memory crashes on mobile browsers
+            const safeThreadCount = Math.min(navigator.hardwareConcurrency || 2, maxAllowedThreads);
 
             let config = {
                 modelConfig: {
