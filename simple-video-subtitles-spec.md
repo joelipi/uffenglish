@@ -8,12 +8,12 @@ When a subtitle string contains proper SRT timestamps (e.g., `00:00:01,000 --> 0
 This approach provides a more native viewing experience for videos with precise timing needs while maintaining backwards compatibility with existing plain-text subtitles.
 
 ## Separation of Logic from DOM Manipulation
-To ensure a strict separation of concerns and to support both Vanilla JS Web and React Native environments, all parsing logic and time-based state math must be isolated in the platform-agnostic `VideoStateController`. The UI components (`simple-video-player.js` for Web, and `simple-video-player.native.jsx` for React Native) will only subscribe to state changes and manipulate the DOM or Native Views accordingly.
+To ensure a strict separation of concerns and to support both Vanilla JS Web and React Native environments, all parsing logic and time-based state math must be isolated in the platform-agnostic `SimpleVideoStateController`. The UI components (`simple-video-player.js` for Web, and `simple-video-player.native.jsx` for React Native) will only subscribe to state changes and manipulate the DOM or Native Views accordingly.
 
 ## Files to be Edited
-*   `js/modules/video-controller.js`: The shared logic controller. This file will be updated to handle subtitle parsing, time conversions, and tracking the active timed subtitle index based on video progress.
+*   `js/modules/video-controller.js`: This file will be renamed to `js/modules/simple-video-controller.js` and the class renamed to `SimpleVideoStateController` to accurately reflect its scope. It will be updated to handle subtitle parsing, time conversions, and tracking the active timed subtitle index based on video progress.
 *   `js/components/simple-video-player.js`: The Vanilla JS UI component for web. It will be updated to subscribe to the controller for subtitle updates, apply CSS classes for the timed view, and update `.innerHTML` dynamically without mingling parsing logic.
-*   `js/components/simple-video-player.native.jsx`: The React Native UI component. It will be updated to handle displaying timed subtitles alongside the existing ScrollView fallback, relying strictly on the `VideoStateController`.
+*   `js/components/simple-video-player.native.jsx`: The React Native UI component. It will be updated to handle displaying timed subtitles alongside the existing ScrollView fallback, relying strictly on the `SimpleVideoStateController`.
 *   `js/config/gt2.json`: The course configuration file. We will update the first lesson's `simpleVideoUrl` question to include the new SRT formatted subtitles as an example.
 
 ## Existing Files to be Called (Not Edited)
@@ -22,7 +22,15 @@ To ensure a strict separation of concerns and to support both Vanilla JS Web and
 
 ---
 
-## 1. Changes to `js/modules/video-controller.js` (Pure Logic)
+## 1. Changes to `js/modules/simple-video-controller.js` (Pure Logic)
+
+### Rename Class
+Ensure the class is renamed:
+```javascript
+export class SimpleVideoStateController {
+    // ...
+}
+```
 
 ### New State Variables
 Add new properties to track the subtitle mode and parsed data in the constructor:
@@ -129,12 +137,12 @@ updateProgress(currentTime, duration) {
 ---
 
 ## 2. Changes to `js/components/simple-video-player.js` (Web UI)
-Refactor the web UI to rely heavily on the `VideoStateController`.
+Refactor the web UI to rely heavily on the `SimpleVideoStateController`.
 
 ### Initialization
 Initialize the controller and pass it the subtitle text.
 ```javascript
-this.controller = new VideoStateController(this.config);
+this.controller = new SimpleVideoStateController(this.config);
 this.controller.initSubtitles(this.config.subtitles);
 
 this.unsubscribe = this.controller.subscribe(state => this.render(state));
@@ -166,7 +174,12 @@ render(state) {
 ---
 
 ## 3. Changes to `js/components/simple-video-player.native.jsx` (React Native UI)
-Update the React Native component to support the new state variables.
+Update the React Native component to support the new state variables and the renamed `SimpleVideoStateController`.
+
+### Update Controller Import
+```javascript
+import { SimpleVideoStateController } from '../modules/simple-video-controller.js';
+```
 
 ### Update `useEffect` hook
 ```javascript
