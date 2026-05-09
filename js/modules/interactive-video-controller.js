@@ -15,6 +15,9 @@ export class InteractiveVideoStateController {
         // Internal Logic State
         this.tokens = [];
         this.revealedIndices = new Set();
+        this.userRevealedIndices = new Set();
+        this.speechRevealedIndices = new Set();
+        this.autoRevealedIndices = new Set();
         this.unrevealedIndices = [];
         this.speechOverrides = new Map();
         this.slowSpeeds = [0.6, 0.75];
@@ -77,6 +80,9 @@ export class InteractiveVideoStateController {
 
     _resetRevealState() {
         this.revealedIndices.clear();
+        this.userRevealedIndices.clear();
+        this.speechRevealedIndices.clear();
+        this.autoRevealedIndices.clear();
         this.speechOverrides.clear();
         if (this._overlayTimer) {
             clearTimeout(this._overlayTimer);
@@ -105,6 +111,7 @@ export class InteractiveVideoStateController {
         for (let i = 0; i < toReveal; i++) {
             const idx = this.unrevealedIndices.pop();
             this.revealedIndices.add(idx);
+            this.autoRevealedIndices.add(idx);
         }
     }
 
@@ -126,6 +133,7 @@ export class InteractiveVideoStateController {
 
     revealToken(index) {
         this.revealedIndices.add(index);
+        this.userRevealedIndices.add(index);
         this.unrevealedIndices = this.unrevealedIndices.filter(i => i !== index);
         if (this.config.onWordReveal) {
             this.config.onWordReveal(index);
@@ -139,11 +147,20 @@ export class InteractiveVideoStateController {
             this._overlayTimer = null;
         }
         if (this.state.showOverlay) {
-            // Trigger phase 2 immediately on dismissal
+            // Trigger Phase 2: First repetition at 100% speed
             this.isSecondPlay = false;
-            this.useSlowSpeeds = true;
+            this.useSlowSpeeds = false; // Start at 100%
             this.currentSpeedIndex = 0;
-            this.revealedIndices.clear();
+            
+            // Clear only auto-revealed words
+            this.autoRevealedIndices.forEach(idx => {
+                if (!this.userRevealedIndices.has(idx) && !this.speechRevealedIndices.has(idx)) {
+                    this.revealedIndices.delete(idx);
+                    this.unrevealedIndices.push(idx);
+                }
+            });
+            this.autoRevealedIndices.clear();
+            this.reShuffleUnrevealed();
 
             if (this.config.onRepetition) {
                 this.config.onRepetition();
@@ -152,8 +169,8 @@ export class InteractiveVideoStateController {
             this.setState({
                 showOverlay: false,
                 isPlaying: true,
-                isSlowMode: true,
-                playbackRate: this.slowSpeeds[this.currentSpeedIndex],
+                isSlowMode: false,
+                playbackRate: 1.0,
                 subtitleTokens: this._computeSubtitleTokens()
             });
         }
@@ -163,6 +180,7 @@ export class InteractiveVideoStateController {
         correctIndices.forEach(idx => {
             this.speechOverrides.set(idx, 'revealed');
             this.revealedIndices.add(idx);
+            this.speechRevealedIndices.add(idx);
             this.unrevealedIndices = this.unrevealedIndices.filter(i => i !== idx);
         });
         wrongIndices.forEach(idx => {
@@ -210,10 +228,27 @@ export class InteractiveVideoStateController {
             this.dismissOverlay();
             return;
         } else {
+            // If we just finished the 100% repetition post-overlay, now start slow speeds
+            if (!this.useSlowSpeeds) {
+                this.useSlowSpeeds = true;
+                this.currentSpeedIndex = 0;
+            } else {
+                // Advance speed index only after we are already in slow mode
+                this.currentSpeedIndex = (this.currentSpeedIndex + 1) % this.slowSpeeds.length;
+            }
+
+            // Remove previous auto-revealed words (rolling reveal)
+            this.autoRevealedIndices.forEach(idx => {
+                if (!this.userRevealedIndices.has(idx) && !this.speechRevealedIndices.has(idx)) {
+                    this.revealedIndices.delete(idx);
+                    this.unrevealedIndices.push(idx);
+                }
+            });
+            this.autoRevealedIndices.clear();
+            this.reShuffleUnrevealed();
+
             const revealCount = Math.floor(this.tokens.length / 8) + 1;
             this._revealNextWords(revealCount);
-
-            this.currentSpeedIndex = (this.currentSpeedIndex + 1) % this.slowSpeeds.length;
 
             if (this.config.onRepetition) {
                 this.config.onRepetition();
