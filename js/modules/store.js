@@ -31,6 +31,12 @@ export const appStore = createStore(
             repeatPointsHistory: [],
             rolePlayPointsHistory: [],
 
+            // --- Tutor Engagement Metrics ---
+            userMessagesToAi: 0,
+            aIMessagesToUser: 0,
+            userMessagesToAiWordCount: 0,
+            aIMessagesToUserWordCount: 0,
+
             // --- Actions ---
 
             // Update physical place in the lesson
@@ -91,6 +97,17 @@ export const appStore = createStore(
                 currentStreak: Number(currentStreak) || 0
             }),
 
+            // Increment Tutor Engagement Stats
+            incrementUserTutorStats: (wordCount) => set((state) => ({
+                userMessagesToAi: state.userMessagesToAi + 1,
+                userMessagesToAiWordCount: state.userMessagesToAiWordCount + (Number(wordCount) || 0)
+            })),
+
+            incrementAiTutorStats: (wordCount) => set((state) => ({
+                aIMessagesToUser: state.aIMessagesToUser + 1,
+                aIMessagesToUserWordCount: state.aIMessagesToUserWordCount + (Number(wordCount) || 0)
+            })),
+
             // Reset all per-question metrics (called between questions)
             resetForNextQuestion: () => set({
                 listeningScore: 100,
@@ -127,7 +144,11 @@ export const appStore = createStore(
                 understandingScore: state.understandingScore,
                 cuesGiven: state.cuesGiven,
                 repeatPointsHistory: state.repeatPointsHistory,
-                rolePlayPointsHistory: state.rolePlayPointsHistory
+                rolePlayPointsHistory: state.rolePlayPointsHistory,
+                userMessagesToAi: state.userMessagesToAi,
+                aIMessagesToUser: state.aIMessagesToUser,
+                userMessagesToAiWordCount: state.userMessagesToAiWordCount,
+                aIMessagesToUserWordCount: state.aIMessagesToUserWordCount
             })
         }
     )
