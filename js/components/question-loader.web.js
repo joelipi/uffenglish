@@ -168,15 +168,21 @@ export function loadQuestion(question, lesson, fluencyData, deps) {
         _renderSuccess(question, fluencyData);
 
     } else if (question.inputType === "multi") {
-        const answers = [question.cue, ...question.incues];
-        // Sorting functionality removed per request
-
-        renderMultiChoiceUI(
-            Strings.get('btn_not_sure', State.userData?.native_language) || "I'm not sure",
-            (val, btn) => submitAnswerPrecheck(val, question.cue, question, btn, question.explanation, undefined, { pauseCount: null, netDuration: null }),
-            answers,
-            (answer, button) => submitAnswerPrecheck(answer, question.cue, question, button, question.explanation, question.translation, { pauseCount: null, netDuration: null })
-        );
+        if (State.isTextMode) {
+            renderTextInputUI(
+                Strings.get('placeholder_type_answer', State.userData?.native_language) || 'Type your answer here...',
+                Strings.get('btn_submit', State.userData?.native_language) || 'Submit',
+                (val, btn) => submitAnswerPrecheck(val, question.cue, question, btn, question.explanation, question.translation, { pauseCount: null, netDuration: null })
+            );
+        } else {
+            const answers = [question.cue, ...question.incues];
+            renderMultiChoiceUI(
+                Strings.get('btn_not_sure', State.userData?.native_language) || "I'm not sure",
+                (val, btn) => submitAnswerPrecheck(val, question.cue, question, btn, question.explanation, undefined, { pauseCount: null, netDuration: null }),
+                answers,
+                (answer, button) => submitAnswerPrecheck(answer, question.cue, question, button, question.explanation, question.translation, { pauseCount: null, netDuration: null })
+            );
+        }
     }
 }
 
