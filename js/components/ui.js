@@ -1,3 +1,15 @@
+
+export function syncTextModeUI() {
+    if (DOM.phrasesScore) {
+        if (State.isTextMode) {
+            DOM.phrasesScore.classList.add('d-none');
+            console.log('[UI] Text mode: hiding speaking score');
+        } else {
+            DOM.phrasesScore.classList.remove('d-none');
+            console.log('[UI] Camera/Mic mode: showing speaking score');
+        }
+    }
+}
 // --- modules/ui.js ---
 import { State } from '../modules/state.js';
 import { appStore } from '../modules/store.js';
@@ -891,91 +903,82 @@ export function resetHeartsUI() {
 export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyClickCallback) {
     let continueButton = document.getElementById('continueButton');
     let audioOnlyButton = document.getElementById('audioOnlyButton');
+    let textOnlyButton = document.getElementById('textOnlyButton');
     let btnGroup = document.getElementById('introButtonGroup');
     const centerBar = document.getElementById('bottomButtonBarCenter');
 
-    if (isLessonIntro) {
-        if (!btnGroup && centerBar) {
-            btnGroup = document.createElement('div');
-            btnGroup.className = 'd-flex gap-2 w-100';
-            btnGroup.id = 'introButtonGroup';
-            centerBar.appendChild(btnGroup);
-
-            // Move existing continueButton into the group if it exists
-            if (continueButton && continueButton.parentNode === centerBar) {
-                btnGroup.appendChild(continueButton);
-            }
-        }
+    // 1. Ensure btnGroup exists in intro
+    if (isLessonIntro && !btnGroup && centerBar) {
+        btnGroup = document.createElement('div');
+        btnGroup.className = 'd-flex gap-2 w-100 align-items-center';
+        btnGroup.id = 'introButtonGroup';
+        centerBar.appendChild(btnGroup);
     }
 
+    // 2. Create/Initialize Buttons
     if (!continueButton) {
         continueButton = document.createElement('button');
         continueButton.id = 'continueButton';
-        continueButton.className = 'btn btn-primary text-white w-100';
-        if (isLessonIntro && btnGroup) {
-            btnGroup.appendChild(continueButton);
-        } else if (centerBar) {
-            centerBar.appendChild(continueButton);
-        }
-    } else if (isLessonIntro && btnGroup && continueButton.parentNode !== btnGroup) {
-        // Ensure it is in the group
-        btnGroup.appendChild(continueButton);
-    } else if (!isLessonIntro && centerBar && continueButton.parentNode === btnGroup) {
-        // Move it back out of the group
-        centerBar.appendChild(continueButton);
-        // And hide the group
-        btnGroup.style.display = 'none';
     }
-
-    if (!audioOnlyButton && isLessonIntro && btnGroup) {
-        audioOnlyButton = document.createElement('button');
-        audioOnlyButton.id = 'audioOnlyButton';
-        audioOnlyButton.className = 'btn bg-transparent border-0 text-white w-100';
-        audioOnlyButton.innerHTML = '<i class="bi bi-telephone-fill text-white" style="font-size: 40px; font-weight: 900;"></i>';
-        btnGroup.appendChild(audioOnlyButton);
-    }
-
-    if (audioOnlyButton) {
-        audioOnlyButton.style.display = isLessonIntro ? 'inline-block' : 'none';
+    continueButton.className = isLessonIntro ? 'btn btn-primary text-white w-33' : 'btn btn-primary text-white w-100';
+    continueButton.innerHTML = isLessonIntro ? '<i class="bi bi-camera-video-fill text-white" style="font-size: 40px; font-weight: 900;"></i>' : '<i class="bi bi-chevron-right text-white" style="font-size: 40px; font-weight: 900;"></i>';
+    continueButton.onclick = () => {
         if (isLessonIntro) {
-            audioOnlyButton.onclick = () => {
-                if (!State.isCameraOff) {
-                    toggleCamera();
-                }
-                if (onAudioOnlyClickCallback) {
-                    onAudioOnlyClickCallback();
-                } else {
-                    onClickCallback();
-                }
-            };
+            State.isTextMode = false;
+            syncTextModeUI();
+            if (State.isCameraOff) toggleCamera();
         }
-    }
+        onClickCallback();
+    };
 
-    if (btnGroup) {
-        btnGroup.style.display = isLessonIntro ? 'flex' : 'none';
-    }
+    if (isLessonIntro) {
+        if (!audioOnlyButton) {
+            audioOnlyButton = document.createElement('button');
+            audioOnlyButton.id = 'audioOnlyButton';
+            audioOnlyButton.className = 'btn bg-transparent border-0 text-white w-33';
+            audioOnlyButton.innerHTML = '<i class="bi bi-telephone-fill text-white" style="font-size: 40px; font-weight: 900;"></i>';
+        }
+        audioOnlyButton.onclick = () => {
+            State.isTextMode = false;
+            syncTextModeUI();
+            if (!State.isCameraOff) toggleCamera();
+            if (onAudioOnlyClickCallback) onAudioOnlyClickCallback();
+            else onClickCallback();
+        };
 
-    if (continueButton) {
-        continueButton.innerHTML = isLessonIntro ? '<i class="bi bi-camera-video-fill text-white" style="font-size: 40px; font-weight: 900;"></i>' : '<i class="bi bi-chevron-right text-white" style="font-size: 40px; font-weight: 900;"></i>';
-        continueButton.onclick = () => {
-            if (isLessonIntro && State.isCameraOff) {
-                toggleCamera();
-            }
+        if (!textOnlyButton) {
+            textOnlyButton = document.createElement('button');
+            textOnlyButton.id = 'textOnlyButton';
+            textOnlyButton.className = 'btn bg-transparent border-0 text-white w-33';
+            textOnlyButton.innerHTML = '<i class="bi bi-keyboard text-white" style="font-size: 40px; font-weight: 900;"></i>';
+        }
+        textOnlyButton.onclick = () => {
+            State.isTextMode = true;
+            State.isCameraOff = true;
+            syncTextModeUI();
             onClickCallback();
         };
-        continueButton.style.display = 'inline-block';
+    }
 
-        // Adjust button widths if both are showing
-        if (isLessonIntro && audioOnlyButton) {
-            continueButton.classList.replace('w-100', 'w-50');
-            audioOnlyButton.classList.replace('w-100', 'w-50');
-        } else {
-            continueButton.classList.replace('w-50', 'w-100');
+    // 3. Position and Display
+    if (isLessonIntro && btnGroup) {
+        btnGroup.innerHTML = '';
+        if (audioOnlyButton) btnGroup.appendChild(audioOnlyButton); // Telephone Left
+        if (continueButton) btnGroup.appendChild(continueButton);  // Webcam Middle
+        if (textOnlyButton) btnGroup.appendChild(textOnlyButton);   // Keyboard Right
+        btnGroup.style.display = 'flex';
+    } else {
+        if (btnGroup) btnGroup.style.display = 'none';
+        if (centerBar && continueButton) {
+            centerBar.appendChild(continueButton);
+            continueButton.style.display = 'inline-block';
         }
     }
 
     return continueButton;
 }
+
+
 
 export function hideContinueButton() {
     const continueButton = document.getElementById('continueButton');
@@ -1170,18 +1173,45 @@ export function renderTextInputUI(placeholder, submitText, handleSubmitCallback)
 
     const answersContainer = document.getElementById('answers-container');
     if (answersContainer) {
-        const inputField = document.createElement('input');
-        inputField.type = 'text';
-        inputField.className = 'form-control mb-3';
-        inputField.placeholder = placeholder;
+        answersContainer.innerHTML = ''; // clear existing content
 
-        const submitButton = document.createElement('button');
-        submitButton.className = 'btn btn-primary';
-        submitButton.textContent = submitText;
-        submitButton.onclick = () => handleSubmitCallback(inputField.value.trim(), submitButton);
+        const wrapper = document.createElement('div');
+        wrapper.className = 'text-input-mode d-flex flex-column gap-2 p-3';
 
-        answersContainer.appendChild(inputField);
-        answersContainer.appendChild(submitButton);
+        const textarea = document.createElement('textarea');
+        textarea.id = 'textInputAnswer';
+        textarea.className = 'form-control';
+        textarea.rows = 3;
+        textarea.placeholder = placeholder || 'Type your answer...';
+        textarea.setAttribute('aria-label', 'Type your answer');
+
+        const submitBtn = document.createElement('button');
+        submitBtn.id = 'submitTextAnswerBtn';
+        submitBtn.className = 'btn btn-primary';
+        submitBtn.textContent = submitText || 'Submit';
+        submitBtn.disabled = false;
+
+        const handleSubmit = () => {
+            const value = textarea.value.trim();
+            if (!value) return;
+            submitBtn.disabled = true;
+            textarea.disabled = true;
+            handleSubmitCallback(value, submitBtn);
+        };
+
+        submitBtn.addEventListener('click', handleSubmit);
+        textarea.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit();
+            }
+        });
+
+        wrapper.appendChild(textarea);
+        wrapper.appendChild(submitBtn);
+        answersContainer.appendChild(wrapper);
+
+        console.log('[renderTextInputUI] Text input UI rendered');
     }
 }
 
@@ -1333,7 +1363,7 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
 
     Media.playSound('correct-sound');
 
-    if (questionData.inputType === "lessonIntro" || questionData.inputType === "speech" || questionData.inputType === "ai") {
+    if (!State.isTextMode && (questionData.inputType === "lessonIntro" || questionData.inputType === "speech" || questionData.inputType === "ai")) {
         showPlaybackVideo();
     }
 
@@ -1343,7 +1373,7 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
 export function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanation, normalizeduserResponse, normalizedcue, question, silent = false, userData, configData) {
     appStore.getState().incrementIncorrectAttempts();
 
-    if (!silent && (questionData.inputType === "lessonIntro" || questionData.inputType === "speech" || questionData.inputType === "ai")) {
+    if (!silent && !State.isTextMode && (questionData.inputType === "lessonIntro" || questionData.inputType === "speech" || questionData.inputType === "ai")) {
         showPlaybackVideo();
     }
 

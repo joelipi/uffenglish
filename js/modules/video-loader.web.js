@@ -32,7 +32,17 @@ export function loadVideoForQuestion(question, state, lang) {
             cue: getLocalizedTranslation(question.cue, lang),
             containerSelector: '#ivp-container',
             videoStyles: { maxWidth: '100%' },
-            subtitleStyles: { fontSize: '24px', backgroundColor: 'rgba(0, 0, 0, 0.8)' }
+            subtitleStyles: { fontSize: '24px', backgroundColor: 'rgba(0, 0, 0, 0.8)' },
+            onRepetition: () => {
+                appStore.getState().deductListeningScore(10);
+                const scoreEl = document.getElementById('currentScore');
+                if (scoreEl) pointLoss.show(scoreEl, 10);
+            },
+            onWordReveal: (index) => {
+                appStore.getState().deductListeningScore(15);
+                const scoreEl = document.getElementById('currentScore');
+                if (scoreEl) pointLoss.show(scoreEl, 15);
+            }
         });
         window.currentVideoPlayer = state.player;
 
