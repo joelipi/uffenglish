@@ -617,7 +617,7 @@ async function handleTutorChatSubmit(rawText) {
     renderTutorMessage(rawText, true);
 
     // Show loading
-    renderAIAnalysisLoading("Tutor is thinking...");
+    renderAIAnalysisLoading(Strings.get('ai_thinking', State.userData?.native_language));
 
     // Get context and send to API
     const context = getChatHistoryContext();
@@ -738,9 +738,9 @@ function setupAuthMenu(isLoggedIn) {
     if (!authLink) return;
 
     if (isLoggedIn) {
-        authLink.textContent = 'Sign Out';
+        authLink.textContent = Strings.get('sign_out', State.userData?.native_language) || 'Sign Out';
     } else {
-        authLink.textContent = 'Sign In';
+        authLink.textContent = Strings.get('sign_in', State.userData?.native_language) || 'Sign In';
     }
 
     authLink.removeEventListener('click', handleAuthClick);
