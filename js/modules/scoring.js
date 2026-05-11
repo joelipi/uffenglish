@@ -32,6 +32,7 @@ export function calculateFluencyScore({
     listeningScore,
     wpm,
     pauseCount,
+    hesitation,
     wordCount,
     idiomCount,
     cefrLevel,
@@ -46,10 +47,14 @@ export function calculateFluencyScore({
     // 2. Listening (40%)
     const listening = listeningScore;
 
-    // 3. Flow (5%)
+    // 3. Flow (5%) - Updated as per hesitation-spec.md
     const wpmScore = wpm < 60 ? 0 : 100;
     const pausesScore = Math.max(0, 100 - (pauseCount * 50));
-    const flow = (wpmScore + pausesScore) / 2;
+    
+    // Spec calculation: 100 score up to 500ms, then deduct 5 points for every 100ms
+    const hesitationScore = Math.max(0, 100 - Math.floor(Math.max(0, hesitation - 500) / 20));
+    
+    const flow = Math.round((wpmScore + pausesScore + hesitationScore) / 3);
 
     // 4. Vocabulary (5%)
     let vocabScore = 100;
@@ -58,11 +63,8 @@ export function calculateFluencyScore({
     else if (cefrLevel === 'B2') threshold = 2;
     else if (cefrLevel === 'C1' || cefrLevel === 'C2') threshold = 3;
     
-    // We could penalize vocab if wordCount is very low, but the prompt says:
-    // "Base this on total word count (do not penalize for punctuating as sentences) and idiom count (set thresholds per CEFR level: B1, B2, C1+)."
-    // Let's implement a basic threshold logic:
     if (cefrLevel && idiomCount < threshold) {
-        vocabScore = Math.max(0, 100 - ((threshold - idiomCount) * 25)); // Arbitrary penalty if not meeting threshold
+        vocabScore = Math.max(0, 100 - ((threshold - idiomCount) * 25));
     }
     const vocabulary = vocabScore;
 
@@ -88,7 +90,6 @@ export function calculateFluencyScore({
     let finalScore = 0;
 
     if (attemptNumber <= 1) {
-        // First Attempt Math
         finalScore = (pronunciation * 0.05) + 
                      (listening * 0.40) + 
                      (flow * 0.05) + 
@@ -98,7 +99,6 @@ export function calculateFluencyScore({
                      (nativeLike * 0.025) + 
                      (understanding * 0.35);
     } else {
-        // Subsequent Attempts Math
         finalScore = Math.min(
             pronunciation,
             listening,
@@ -113,12 +113,15 @@ export function calculateFluencyScore({
 
     return {
         fluencyScore: Math.round(finalScore),
+        flowScore: Math.round(flow),
         subScores: {
             pronunciation,
             listening,
             flow,
             wpmScore,
             pausesScore,
+            hesitationScore,
+            hesitation,
             vocabulary,
             grammar,
             diffScore,

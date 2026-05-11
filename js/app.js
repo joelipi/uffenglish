@@ -258,6 +258,9 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
             cleanWordCount = userResponse.replace(/[^\w\s]/g, '').trim().split(/\s+/).filter(Boolean).length;
             if (stats && stats.netDuration !== null) {
                 speechAnalytics = await analyzeSpeech(userResponse, stats.netDuration, stats.pauseCount, courseId ? courseId.substring(0, 2).toUpperCase() : 'A1', questionData.inputType);
+                if (speechAnalytics && stats.hesitation !== undefined) {
+                    speechAnalytics.hesitation = stats.hesitation;
+                }
             } else {
                 speechAnalytics = {}; // fallback
             }
@@ -357,7 +360,8 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
                 pronunciationScore: speakingScore,
                 listeningScore: listeningScore,
                 wpm: speechAnalytics?.wpm || 0,
-                pauseCount: speechAnalytics?.pauseCount || 0,
+                pauseCount: stats.pauseCount || 0,
+                hesitation: speechAnalytics?.hesitation || 0,
                 wordCount: cleanWordCount,
                 idiomCount: speechAnalytics?.foundIdioms ? speechAnalytics.foundIdioms.length : 0,
                 cefrLevel: englishLevel,

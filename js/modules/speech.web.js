@@ -566,6 +566,11 @@ export function stopDeepgramTranscription() {
     stopWhisperEngine();
     isWhisperActive = false;
   }
+
+  if (recognition) {
+    try { recognition.stop(); } catch (e) {}
+    recognition = null;
+  }
 }
 // IMPORTANT: THIS IS HERE AS A DEVELOPMENT FALLBACK ONLY. IT IS TOO EXPENSIVE FOR PRODUCTION AND WOULD REQUIRE REARCHITECTING TO WORK IN DEVELOPMENT.
 
@@ -588,37 +593,9 @@ export function fallbackToWebSpeech({ question, userData, configData, currentLes
     isListening = true;
   };
 
-  recognition.onend = () => {
-    console.log('[WebSpeech] recognition.onend — calling stopSpeechCamRecording');
-    isListening = false;
+  let capturedTranscript = '';
 
-    stopSpeechCamRecording({
-      download: false, persist: true, keepStreamAlive: true, playback: true, autoplay: true,
-      meta: {
-        lessonId: (configData && configData.lessons && configData.lessons[currentLessonIndex] && configData.lessons[currentLessonIndex].lessonId) || null,
-        questionIndex: typeof currentQuestionIndex !== 'undefined' ? currentQuestionIndex : null,
-        inputType: (question && question.inputType) || null,
-        title: (question && question.question) || null,
-      }
-    }).catch((err) => { console.error('[WebSpeech] stopSpeechCamRecording in onend failed:', err); });
-    recognition = null;
-  };
-
-  recognition.onerror = (event) => {
-    console.error('[WebSpeech] recognition.onerror:', event.error);
-    isListening = false;
-
-    let errorMessage = Strings.get('error_speech_generic', userData?.native_language);
-    if (event.error === 'NotAllowedError') {
-      errorMessage = `<div class='text-center'>${Strings.get('error_mic_permissions', userData?.native_language)}</div>`;
-    } else if (event.error === 'network') {
-      errorMessage = `<div class='text-center'>${Strings.get('error_internet', userData?.native_language)}</div>`;
-    }
-    ui.setMicStatusText(errorMessage);
-  };
-
-  recognition.onresult = ((currentQuestion) => (event) => {
-    recognition.stop();
+  recognition.onresult = (event) => {
     let finalTranscript = '';
     const isAndroid = /Android/.test(navigator.userAgent);
 
@@ -635,16 +612,75 @@ export function fallbackToWebSpeech({ question, userData, configData, currentLes
       }
     }
 
-    console.log('[WebSpeech] onresult — finalTranscript:', finalTranscript);
+    console.log('[WebSpeech] onresult — captured transcript:', finalTranscript);
+    capturedTranscript = finalTranscript;
+    
+    // Stop the recognition immediately once we have a final result
+    // This will trigger the onend handler where the audio analysis happens
+    recognition.stop();
+  };
 
-    if (finalTranscript) {
-      handleAnswer(finalTranscript, currentQuestion.cue, currentQuestion, document.getElementById('speechButton'), currentQuestion.explanation, currentQuestion.translation, { pauseCount: null, netDuration: finalTranscript ? Math.max(1, finalTranscript.split(' ').length * 0.4) : null }, userData, configData);
-    } else {
-      console.warn('[WebSpeech] onresult — empty transcript');
-      ui.setMicStatusText(`<div class='text-center'>${Strings.get('try_again_speech', userData?.native_language)}</div>`);
+  recognition.onerror = (event) => {
+    console.error('[WebSpeech] recognition.onerror:', event.error);
+    isListening = false;
+
+    let errorMessage = Strings.get('error_speech_generic', userData?.native_language);
+    if (event.error === 'NotAllowedError') {
+      errorMessage = `<div class='text-center'>${Strings.get('error_mic_permissions', userData?.native_language)}</div>`;
+    } else if (event.error === 'network') {
+      errorMessage = `<div class='text-center'>${Strings.get('error_internet', userData?.native_language)}</div>`;
     }
+    ui.setMicStatusText(errorMessage);
+  };
 
-  })(question);
+  recognition.onend = async () => {
+    console.log('[WebSpeech] recognition.onend — performing final audio analysis');
+    isListening = false;
+
+    try {
+      // 1. Stop the webcam recorder and get the actual audio blob
+      const blob = await stopSpeechCamRecording({
+        download: false, persist: true, keepStreamAlive: true, playback: true, autoplay: true,
+        meta: {
+          lessonId: (configData && configData.lessons && configData.lessons[currentLessonIndex] && configData.lessons[currentLessonIndex].lessonId) || null,
+          questionIndex: typeof currentQuestionIndex !== 'undefined' ? currentQuestionIndex : null,
+          inputType: (question && question.inputType) || null,
+          title: (question && question.question) || null,
+        }
+      });
+
+      if (capturedTranscript) {
+        let stats = { pauseCount: 0, netDuration: 0 };
+
+        // 2. Extract real stats from the blob instead of guessing
+        if (blob && blob.size > 0) {
+          try {
+            const arrayBuffer = await blob.arrayBuffer();
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+            const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+            const float32Data = audioBuffer.getChannelData(0);
+            
+            const analysis = trimSilenceWithPadding(float32Data, { sampleRate: 16000 });
+            stats = { pauseCount: analysis.pauseCount, hesitation: analysis.hesitation, netDuration: analysis.netDuration };
+            console.log('[WebSpeech] Real audio stats extracted:', stats);
+          } catch (e) {
+            console.error('[WebSpeech] Audio analysis failed, using estimates:', e);
+            stats = { pauseCount: null, netDuration: Math.max(1, capturedTranscript.split(' ').length * 0.4) };
+          }
+        }
+
+        // 3. Finalize with real text and real stats
+        handleAnswer(capturedTranscript, question.cue, question, document.getElementById('speechButton'), question.explanation, question.translation, stats, userData, configData);
+      } else {
+        console.warn('[WebSpeech] onend — no transcript captured');
+        ui.setMicStatusText(`<div class='text-center'>${Strings.get('try_again_speech', userData?.native_language)}</div>`);
+      }
+    } catch (err) {
+      console.error('[WebSpeech] Final processing in onend failed:', err);
+    } finally {
+      recognition = null;
+    }
+  };
 
   startRecognitionWithTimeout(micStatusText, userData);
 }
@@ -739,18 +775,23 @@ export async function toggleSpeechRecognition(params) {
       }
     }
 
-    console.log('[Toggle] transcriptionSuccess:', transcriptionSuccess);
+    const isDemoMode = urlParams.get('demo') === 'true';
+    console.log('[Toggle] transcriptionSuccess:', transcriptionSuccess, '| isDemoMode:', isDemoMode);
 
-    if (transcriptionSuccess) {
+    if (transcriptionSuccess && !isDemoMode) {
       isListening = true;
-      // Note: We still use button.innerHTML here because 'button' is passed in as a reference, 
-      // but we could move this to ui.setSpeechButtonState(button, state)
       button.style.display = "block";
       button.innerHTML = '<i class="bi bi-mic-mute-fill"></i>';
       button.classList.add('btn-danger');
     } else {
-      if (forceDeepgram) ui.setMicStatusText(`<div class='text-center'>${Strings.get('status_connecting', userData?.native_language)}</div>`);
-      if (forceDeepgram) fallbackToWebSpeech(params);
+      // If Whisper/Deepgram failed, OR if we are explicitly in demo mode
+      if (isDemoMode) {
+        console.log('[Toggle] 🚀 Demo Mode detected: Forcing Web Speech API');
+      } else {
+        console.warn('[Toggle] ⚠️ Whisper and Deepgram failed: Falling back to Web Speech API');
+      }
+      
+      fallbackToWebSpeech(params);
     }
   } else {
     // --- THE USER CLICKED STOP ---
@@ -801,8 +842,11 @@ export async function toggleSpeechRecognition(params) {
           });
 
           const audioData = extractionResult.trimmed;
-          const stats = { pauseCount: extractionResult.pauseCount, netDuration: extractionResult.netDuration };
-          // ... previous extraction code ...
+          const stats = { 
+            pauseCount: extractionResult.pauseCount, 
+            hesitation: extractionResult.hesitation, 
+            netDuration: extractionResult.netDuration 
+          };
           console.log('[Toggle] Audio extracted, samples:', audioData.length);
 
           // UPDATED: Expecting an object with metadata from Whisper now
@@ -990,7 +1034,7 @@ export function initLocalVoiceAI() {
 }
 
 function trimSilenceWithPadding(data, {
-  threshold = 0.01,
+  threshold = 0.0015, // Extremely sensitive
   preRoll = 0.2,
   postRoll = 0.2,
   sampleRate = 16000
@@ -998,10 +1042,37 @@ function trimSilenceWithPadding(data, {
   let start = 0;
   let end = data.length - 1;
 
-  // Find first speech
-  while (start < data.length && Math.abs(data[start]) < threshold) {
-    start++;
+  // Analytics: Find peak volume
+  let peak = 0;
+  for (let i = 0; i < data.length; i++) {
+    const val = Math.abs(data[i]);
+    if (val > peak) peak = val;
   }
+  console.log(`[Trim] Peak volume: ${peak.toFixed(4)} (Threshold: ${threshold})`);
+
+  // Find first speech, skip very short noise blips (< 10ms)
+  const minSpeechFrames = Math.floor(0.01 * sampleRate); 
+  let tempStart = 0;
+  while (tempStart < data.length) {
+    if (Math.abs(data[tempStart]) >= threshold) {
+        let sustained = 0;
+        for (let j = 0; j < minSpeechFrames && (tempStart + j) < data.length; j++) {
+            if (Math.abs(data[tempStart + j]) >= threshold * 0.5) sustained++;
+        }
+        if (sustained > minSpeechFrames * 0.5) {
+            start = tempStart;
+            break;
+        }
+        tempStart += minSpeechFrames;
+    } else {
+        tempStart++;
+    }
+  }
+
+  if (tempStart >= data.length) start = data.length;
+
+  // Calculate hesitation in ms
+  const hesitation = Math.round((start / sampleRate) * 1000);
 
   // Find last speech
   while (end > start && Math.abs(data[end]) < threshold) {
@@ -1009,50 +1080,41 @@ function trimSilenceWithPadding(data, {
   }
 
   if (start >= end) {
-    console.warn('[Trim] No speech detected, returning original');
-    return { trimmed: data, pauseCount: 0, netDuration: data.length / sampleRate };
+    console.warn('[Trim] No speech detected');
+    return { trimmed: data, pauseCount: 0, hesitation, netDuration: data.length / sampleRate };
   }
 
   // Phase 1: Count pauses within the bounded speech segment
   let pauseCount = 0;
   let inPause = false;
-  let pauseLength = 0;
-  const pauseThresholdFrames = sampleRate; // e.g., 1 second of silence
+  let pauseStartFrame = 0;
+  const pauseThresholdFrames = Math.floor(0.6 * sampleRate); // 600ms of silence
 
   for (let i = start; i <= end; i++) {
     if (Math.abs(data[i]) < threshold) {
       if (!inPause) {
         inPause = true;
-        pauseLength = 1;
-      } else {
-        pauseLength++;
+        pauseStartFrame = i;
       }
     } else {
       if (inPause) {
+        const pauseLength = i - pauseStartFrame;
         if (pauseLength >= pauseThresholdFrames) {
           pauseCount++;
+          console.log(`[Trim] Internal pause detected at ~${(pauseStartFrame / sampleRate).toFixed(2)}s (Duration: ${(pauseLength / sampleRate).toFixed(2)}s)`);
         }
         inPause = false;
-        pauseLength = 0;
       }
     }
   }
-  // Check if it ends with a long pause
-  if (inPause && pauseLength >= pauseThresholdFrames) {
-    pauseCount++;
-  }
 
-  // Apply padding
-  const preSamples = Math.floor(preRoll * sampleRate);
-  const postSamples = Math.floor(postRoll * sampleRate);
+  const finalStart = Math.max(0, start - Math.floor(preRoll * sampleRate));
+  const finalEnd = Math.min(data.length - 1, end + Math.floor(postRoll * sampleRate));
 
-  start = Math.max(0, start - preSamples);
-  end = Math.min(data.length - 1, end + postSamples);
+  console.log(`[Trim] Summary: start=${(start/sampleRate).toFixed(2)}s, end=${(end/sampleRate).toFixed(2)}s, hesitation=${hesitation}ms, pauses=${pauseCount}`);
 
-  console.log(`[Trim] start=${start}, end=${end}, total=${data.length}`);
+  const trimmed = data.slice(finalStart, finalEnd + 1);
+  const netDuration = (end - start) / sampleRate; 
 
-  const trimmed = data.slice(start, end + 1);
-  const netDuration = trimmed.length / sampleRate;
-
-  return { trimmed, pauseCount, netDuration };
+  return { trimmed, pauseCount, hesitation, netDuration };
 }

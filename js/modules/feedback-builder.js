@@ -43,6 +43,7 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, question
         key: 'flow',
         header: `${Strings.get('stats_speech_flow_header', lang)} ${scoreData.subScores.flow}%`,
         parts: [
+            { label: Strings.get('stats_hesitation', lang), value: `${speechAnalytics.hesitation || 0}ms` },
             { label: Strings.get('stats_pauses_speaking', lang), value: speechAnalytics.pauseCount || 0 },
             { label: Strings.get('stats_wpm', lang), value: speechAnalytics.wpm || 0 }
         ]
