@@ -176,10 +176,12 @@ export function renderUserResponse(text, statsHtml = "") {
 /**
  * 🎨 UI BUILDER: Renders a loading indicator while AI is thinking
  */
-export function renderAIAnalysisLoading(text = "Analyzing your response...") {
+export function renderAIAnalysisLoading(text) {
+    const defaultText = Strings.get('ai_analyzing', State.userData?.native_language);
+    const displayText = text || defaultText;
     const html = `
         <div class='chat-bubble chat-msg' id='ai-loading-status'>
-            <strong><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ${text}</strong>
+            <strong><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ${displayText}</strong>
         </div>`;
     safeRenderChatInterface(true, html);
 }

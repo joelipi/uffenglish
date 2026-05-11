@@ -545,6 +545,32 @@ const strings = {
     'intent_bad_grammar_bad': {
         en: "❌ Even with corrected grammar, this didn't match the expected meaning. Let's try again!"
     },
+
+    'error_render_failed': {
+        en: "Render failed: ",
+        es: "Error de renderizado: ",
+        fr: "Échec du rendu : "
+    },
+    'ai_analyzing': {
+        en: "Analyzing your response...",
+        es: "Analizando tu respuesta...",
+        fr: "Analyse de votre réponse..."
+    },
+    'ai_thinking': {
+        en: "Tutor is thinking...",
+        es: "El tutor está pensando...",
+        fr: "Le tuteur réfléchit..."
+    },
+    'sign_out': {
+        en: "Sign Out",
+        es: "Cerrar sesión",
+        fr: "Se déconnecter"
+    },
+    'sign_in': {
+        en: "Sign In",
+        es: "Iniciar sesión",
+        fr: "Se connecter"
+    },
     'intent_specific_fail': {
         en: "❌ It seems like you're {bad_intent}, but this indicates you didn't understand what was said."
     }
