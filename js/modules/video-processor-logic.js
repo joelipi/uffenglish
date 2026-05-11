@@ -42,7 +42,9 @@ export class VideoRenderPlanner {
                 uri: rec.uri,         // Used by native processor
                 trim: rec.meta?.trimTimestamps || null,
                 subtitle: rec.userResponse,
-                isFirst: plan.length === 0
+                isFirst: plan.length === 0,
+                isTextMode: rec.isTextMode,
+                duration: rec.duration
             });
         }
 

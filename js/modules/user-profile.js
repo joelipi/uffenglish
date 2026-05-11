@@ -93,6 +93,37 @@ export async function saveLessonProgress(courseId, lessonId, userData, options =
     const timestamp = new Date().toISOString();
     const localToday = new Date().toLocaleDateString('en-CA');
     const safeOptions = options || {};
+
+    // DO NOT save corrupted payloads
+    if (safeOptions.lessonStats && safeOptions.currentLessonId) {
+        if (safeOptions.lessonStats.err === 1) {
+            console.warn("⚠️ Skipping telemetry save due to compression error.");
+        } else {
+            try {
+                const baselineStr = userData?.lesson_scores || localStore.getItem('lesson_scores') || '{}';
+                let localScoresMap = {};
+
+                try {
+                    localScoresMap = JSON.parse(baselineStr);
+                } catch (parseErr) {
+                    console.warn("Could not parse existing lesson_scores, starting fresh.");
+                }
+
+                const lessonKey = `${courseId}_${safeOptions.currentLessonId}`;
+                localScoresMap[lessonKey] = safeOptions.lessonStats;
+
+                const scoresStringified = JSON.stringify(localScoresMap);
+                localStore.setItem('lesson_scores', scoresStringified);
+
+                if (userData) {
+                    userData.lesson_scores = scoresStringified;
+                }
+            } catch (dictionaryError) {
+                console.error("🚨 Failed to append lessonStats to dictionary:", dictionaryError);
+            }
+        }
+    }
+
     const updateUserMetaFlag = safeOptions.updateUserMeta !== false;
 
     let resultState = { savedToLocal: false, streakUpdated: false, dayCountIncremented: false, newDayCount: 0, newStreak: 0 };
