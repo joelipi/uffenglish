@@ -9,7 +9,7 @@ import * as ui from '../components/ui.js';
 
 
 // --- NEW: Import Whisper Logic ---
-import { transcribeAudioBuffer, preloadWhisperEngine, isEngineReady } from '../workers/whisper/app-vad-asr-web.js';
+import { transcribeAudioBuffer, analyzeAudioBufferWithVAD, preloadWhisperEngine, isEngineReady } from '../workers/whisper/app-vad-asr-web.js';
 
 // --- Constants ---
 export const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -660,8 +660,14 @@ export function fallbackToWebSpeech({ question, userData, configData, currentLes
             const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
             const float32Data = audioBuffer.getChannelData(0);
             
-            const analysis = trimSilenceWithPadding(float32Data, { sampleRate: 16000 });
-            stats = { pauseCount: analysis.pauseCount, hesitation: analysis.hesitation, netDuration: analysis.netDuration };
+            const analysis = await getAudioStatsAndTrim(float32Data, { sampleRate: 16000 });
+            stats = {
+              pauseCount: analysis.pauseCount,
+              hesitation: analysis.hesitation,
+              netDuration: analysis.netDuration,
+              speechStart: analysis.speechStart,
+              speechEnd: analysis.speechEnd
+            };
             console.log('[WebSpeech] Real audio stats extracted:', stats);
           } catch (e) {
             console.error('[WebSpeech] Audio analysis failed, using estimates:', e);
@@ -834,7 +840,7 @@ export async function toggleSpeechRecognition(params) {
           const rawAudioData = stopLocalAudioTap();
 
           // Pass directly to the trimming function
-          const extractionResult = trimSilenceWithPadding(rawAudioData, {
+          const extractionResult = await getAudioStatsAndTrim(rawAudioData, {
             threshold: 0.02,
             preRoll: 0.3,
             postRoll: 0.3,
@@ -845,7 +851,9 @@ export async function toggleSpeechRecognition(params) {
           const stats = { 
             pauseCount: extractionResult.pauseCount, 
             hesitation: extractionResult.hesitation, 
-            netDuration: extractionResult.netDuration 
+            netDuration: extractionResult.netDuration,
+            speechStart: extractionResult.speechStart,
+            speechEnd: extractionResult.speechEnd
           };
           console.log('[Toggle] Audio extracted, samples:', audioData.length);
 
@@ -1033,6 +1041,34 @@ export function initLocalVoiceAI() {
   }
 }
 
+async function getAudioStatsAndTrim(float32Data, options = {}) {
+  const sampleRate = options.sampleRate || 16000;
+
+  // Create a copy for analysis because the worker might transfer/consume the buffer
+  const dataCopy = new Float32Array(float32Data);
+
+  if (isEngineReady) {
+    try {
+      const result = await analyzeAudioBufferWithVAD(dataCopy, options);
+      if (result) {
+        return {
+          trimmed: result.trimmedAudio,
+          pauseCount: result.stats.pauseCount,
+          hesitation: result.stats.hesitation,
+          netDuration: result.stats.netDuration,
+          speechStart: result.stats.speechStart,
+          speechEnd: result.stats.speechEnd
+        };
+      }
+    } catch (e) {
+      console.warn('[Trim] Whisper VAD failed, falling back to volume thresholding.', e);
+    }
+  }
+
+  // Fallback to simple thresholding
+  return trimSilenceWithPadding(float32Data, options);
+}
+
 function trimSilenceWithPadding(data, {
   threshold = 0.0015, // Extremely sensitive
   preRoll = 0.2,
@@ -1081,7 +1117,7 @@ function trimSilenceWithPadding(data, {
 
   if (start >= end) {
     console.warn('[Trim] No speech detected');
-    return { trimmed: data, pauseCount: 0, hesitation, netDuration: data.length / sampleRate };
+    return { trimmed: data, pauseCount: 0, hesitation, netDuration: data.length / sampleRate, speechStart: 0, speechEnd: 0 };
   }
 
   // Phase 1: Count pauses within the bounded speech segment
@@ -1111,10 +1147,13 @@ function trimSilenceWithPadding(data, {
   const finalStart = Math.max(0, start - Math.floor(preRoll * sampleRate));
   const finalEnd = Math.min(data.length - 1, end + Math.floor(postRoll * sampleRate));
 
+  const speechStart = start / sampleRate;
+  const speechEnd = end / sampleRate;
+
   console.log(`[Trim] Summary: start=${(start/sampleRate).toFixed(2)}s, end=${(end/sampleRate).toFixed(2)}s, hesitation=${hesitation}ms, pauses=${pauseCount}`);
 
   const trimmed = data.slice(finalStart, finalEnd + 1);
   const netDuration = (end - start) / sampleRate; 
 
-  return { trimmed, pauseCount, hesitation, netDuration };
+  return { trimmed, pauseCount, hesitation, netDuration, speechStart, speechEnd };
 }
