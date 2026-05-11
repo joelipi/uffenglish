@@ -1,4 +1,4 @@
-﻿// idiom-checker.js
+// idiom-checker.js
 import idiomsData from '../data/idioms.json' with { type: "json" };
 
 // --- Number-To-Words Utility (Scoped locally to avoid polluting global namespace) ---
@@ -129,9 +129,7 @@ class IdiomChecker {
                 this.isReady = true;
 
                 console.log(`IdiomChecker: Successfully loaded ${this.idiomSet.size} valid multi-word idioms.`);
-                if (skippedWords > 0) {
-                    console.warn(`IdiomChecker: Skipped ${skippedWords} single-word entries from the JSON to prevent false positives.`);
-                }
+
                 console.log(`IdiomChecker: The longest idiom has ${this.maxWords} words. This sets the maximum search window.`);
 
             } catch (error) {

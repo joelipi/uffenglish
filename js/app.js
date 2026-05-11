@@ -1,3 +1,39 @@
+// --- SMART LOG SWITCH ---
+// This overrides console.log to prevent console clutter.
+// To see logs for a specific module, change its value to true in the window.enabledLogs object below.
+const originalConsoleLog = console.log;
+window.enabledLogs = {
+    whisper: false,   // Silenced as requested
+    recording: false,
+    api: false,
+    tanstack: false,
+    toggle: false,
+    ai: false,
+    analytics: false
+};
+
+console.log = (msg, ...args) => {
+    if (typeof msg === 'string') {
+        const match = msg.match(/^\[(.*?)\]/i);
+        if (match) {
+            const namespace = match[1].toLowerCase();
+            // If the namespace is enabled, show the log
+            if (window.enabledLogs[namespace]) {
+                originalConsoleLog(msg, ...args);
+                return;
+            }
+            // If it's a known namespace but disabled, keep it silent
+            if (window.enabledLogs.hasOwnProperty(namespace)) return;
+        }
+    }
+    // Fallback: If it's not namespaced, or not in our list, silence it by default
+    // (To see everything, you can type window.enabledLogs.all = true in the console)
+    if (window.enabledLogs.all) {
+        originalConsoleLog(msg, ...args);
+    }
+};
+// -----------------------
+
 import { clearSpeechRecordingsForLesson, updateSpeechRecording } from './modules/storage.js';
 
 // Initialize the background NLP Worker via blob URL to bypass service worker caching
