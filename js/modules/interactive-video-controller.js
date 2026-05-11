@@ -70,7 +70,8 @@ export class InteractiveVideoStateController {
     }
 
     initTokens(cue) {
-        this.tokens = cue.split(/\s+/);
+        // Separate words (including contractions) from punctuation marks
+        this.tokens = cue.match(/\w+(?:[''’]\w+)*|[^\w\s]+/g) || [];
         this.punctuationMap = new Map();
         this.tokens.forEach((token, i) => {
             this.punctuationMap.set(i, /^[^\w]+$/.test(token));
@@ -98,20 +99,26 @@ export class InteractiveVideoStateController {
     }
 
     _revealNextWords(count) {
-        if (this.unrevealedIndices.length === 0) {
-            this.tokens.forEach((_, i) => {
-                if (!this.punctuationMap.get(i) && !this.revealedIndices.has(i)) {
-                    this.unrevealedIndices.push(i);
-                }
-            });
-            this.reShuffleUnrevealed();
-        }
+        let revealedNow = 0;
+        while (revealedNow < count) {
+            if (this.unrevealedIndices.length === 0) {
+                // Refill pool with all hidden words that haven't been shown in this cycle
+                this.tokens.forEach((_, i) => {
+                    if (!this.punctuationMap.get(i) && !this.revealedIndices.has(i)) {
+                        this.unrevealedIndices.push(i);
+                    }
+                });
 
-        const toReveal = Math.min(count, this.unrevealedIndices.length);
-        for (let i = 0; i < toReveal; i++) {
+                // If still empty (e.g. all words are already revealed by the user/speech), we're done
+                if (this.unrevealedIndices.length === 0) break;
+
+                this.reShuffleUnrevealed();
+            }
+
             const idx = this.unrevealedIndices.pop();
             this.revealedIndices.add(idx);
             this.autoRevealedIndices.add(idx);
+            revealedNow++;
         }
     }
 
@@ -237,17 +244,20 @@ export class InteractiveVideoStateController {
                 this.currentSpeedIndex = (this.currentSpeedIndex + 1) % this.slowSpeeds.length;
             }
 
-            // Remove previous auto-revealed words (rolling reveal)
+            // Hide previous auto-revealed words to make room for new ones.
+            // We no longer push them back into unrevealedIndices here; 
+            // instead, they stay "used" until the entire cycle finishes and the pool refills.
             this.autoRevealedIndices.forEach(idx => {
                 if (!this.userRevealedIndices.has(idx) && !this.speechRevealedIndices.has(idx)) {
                     this.revealedIndices.delete(idx);
-                    this.unrevealedIndices.push(idx);
                 }
             });
             this.autoRevealedIndices.clear();
             this.reShuffleUnrevealed();
 
-            const revealCount = Math.floor(this.tokens.length / 8) + 1;
+            // Use only the count of actual words (excluding punctuation) to determine reveal density
+            const wordCount = this.tokens.filter((_, i) => !this.punctuationMap.get(i)).length;
+            const revealCount = Math.floor(wordCount / 8) + 1;
             this._revealNextWords(revealCount);
 
             if (this.config.onRepetition) {
