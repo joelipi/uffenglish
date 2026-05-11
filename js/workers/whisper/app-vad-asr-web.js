@@ -23,8 +23,15 @@ export function preloadWhisperEngine() {
 
         console.log('[whisper] spawning worker at', performance.now().toFixed(0), 'ms');
 
-        whisperWorker = new Worker(new URL('./whisper-worker-web.js?0', import.meta.url));
+        const params = typeof window !== 'undefined'
+            ? new URLSearchParams(window.location.search)
+            : new URLSearchParams();
+        const isDemoMode = params.has('demo');
 
+        whisperWorker = new Worker(new URL(
+            isDemoMode ? './whisper-worker-demo.js' : './whisper-worker-web.js',
+            import.meta.url
+        ));
         whisperWorker.onmessage = function (e) {
             if (e.data.type === 'ready') {
                 isEngineReady = true;

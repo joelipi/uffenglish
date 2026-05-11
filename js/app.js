@@ -62,7 +62,7 @@ import {
     startSpeechCamRecording,
     stopSpeechCamRecording,
     toggleSpeechRecognition,
-    isListening,
+    listeningState,
     initLocalVoiceAI
 } from './modules/speech.js';
 
@@ -191,7 +191,7 @@ export async function submitAnswerPrecheck(val, cue, questionData, btn, explanat
         if (DOM.micStatusText) {
             DOM.micStatusText.innerHTML = `<div class='text-center text-danger'>${warningMessage}</div>`;
         }
-        
+
         // Update the recording anyway so the final video has subtitles for this incorrect attempt!
         const currentLessonId = resolveCurrentLessonId(configData, courseId);
         const qIndex = getCurrentQuestionIndex(questionData, configData, courseId);
@@ -253,7 +253,7 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
 
     try {
         const currentLessonId = (configData && configData.lessons && configData.lessons[State.currentLessonIndex]) ? configData.lessons[State.currentLessonIndex].lessonId : 'unknown_lesson';
-        
+
         if (questionData.inputType === "speech" || questionData.inputType === "ai") {
             cleanWordCount = userResponse.replace(/[^\w\s]/g, '').trim().split(/\s+/).filter(Boolean).length;
             if (stats && stats.netDuration !== null) {
@@ -314,7 +314,7 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
                 cuesGiven: State.cuesGiven,
                 apiRoot: State.apiRoot
             });
-            
+
             if (!result) {
                 console.warn("⚠️ No result from local NLP — no Gemini fallback active. Treating as passed.");
                 result = { isCorrect: true, normalizeduserResponse: userResponse, normalizedcue: cue, explanation: explanation, intentLabels: [] };
