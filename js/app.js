@@ -16,8 +16,8 @@ import { updateActivityDisplay } from './components/ui.js';
 import Strings from './data/strings.js';
 
 // --- Decoupled Business Logic (Modules Directory) ---
-import { calculateRepeatAverage, calculateRolePlayAverage, calculateAverage, calculateFluencyScore } from './modules/scoring.js';
-import { isUserLoggedIn, getUserProfile, signOut, queryClient } from './modules/api.js';
+import { calculateRepeatAverage, calculateRolePlayAverage, calculateAverage, calculateFluencyScore, logInteraction } from './modules/scoring.js';
+import { isUserLoggedIn, getUserProfile, signOut, queryClient, askEnglishTutor } from './modules/api.js';
 import { saveCourseToUserProfile, saveLessonProgress, syncOfflineScores } from './modules/user-profile.js';
 
 import {
@@ -71,6 +71,11 @@ import {
     showPlaybackVideo,
     markButtonAsCorrect,
     markButtonAsIncorrect,
+    initTutorChatUI,
+    showTutorChatInput,
+    hideTutorChatInput,
+    getChatHistoryContext,
+    renderTutorMessage,
     animateHeartLoss,
     resetHeartsUI,
     showContinueButton,
@@ -94,7 +99,11 @@ import { calculateSyntacticComplexity } from './modules/complexity.js';
 const hearts = [DOM.heart1, DOM.heart2, DOM.heart3];
 
 // Speaking Score Logic ---
-window.addEventListener('transcriptRejected', () => {
+window.addEventListener('transcriptRejected', (e) => {
+    const cue = e.detail?.cue || "unknown_cue";
+    const transcript = e.detail?.transcript || "unknown_transcript";
+    logInteraction(cue, transcript, "rej_usr", "User rejected Whisper transcription");
+
     // Deduct 20 points, floor at 0
     appStore.getState().deductSpeakingScore(20);
 
@@ -130,12 +139,18 @@ export async function submitAnswerPrecheck(val, cue, questionData, btn, explanat
     );
 
     if (!isValid) {
-        // ✅ FIX: Now correctly deducts from the Speaking Score instead of the Listening Score
-        appStore.getState().deductSpeakingScore(10);
+        logInteraction(cue, val, "rej_pre", warningMessage);
 
-        // Show point loss animation (subscription handles the text update)
-        if (DOM.phrasesScore) {
-            pointLoss.show(DOM.phrasesScore, 10);
+        if (!State.isTextMode) {
+            // ✅ FIX: Now correctly deducts from the Speaking Score instead of the Listening Score
+            appStore.getState().deductSpeakingScore(10);
+
+            // Show point loss animation (subscription handles the text update)
+            if (DOM.phrasesScore) {
+                pointLoss.show(DOM.phrasesScore, 10);
+            }
+        } else {
+            console.log('[submitAnswerPrecheck] Text mode: skipping speaking score deduction');
         }
         if (DOM.micStatusText) {
             DOM.micStatusText.innerHTML = `<div class='text-center text-danger'>${warningMessage}</div>`;
@@ -146,11 +161,38 @@ export async function submitAnswerPrecheck(val, cue, questionData, btn, explanat
         const qIndex = getCurrentQuestionIndex(questionData, configData, courseId);
         await updateSpeechRecording(currentLessonId, qIndex, {
             userResponse: val,
-            cue: cue
+            cue: cue,
+            isTextMode: State.isTextMode,
+            duration: State.isTextMode ? 3 : null
         });
+
+        // Apply speech results to the InteractiveVideoPlayer if present
+        if (State.player && State.player.controller && State.player.controller.applySpeechResult) {
+            const userWords = val.toLowerCase().replace(/[^\w\s']/g, '').split(/\s+/);
+            const correctIndices = [];
+            const wrongIndices = [];
+
+            // basic comparison logic matching exact tokens
+            State.player.controller.tokens.forEach((token, idx) => {
+                if (State.player.controller.punctuationMap.get(idx)) return;
+                const cleanToken = token.toLowerCase().replace(/[^\w\s']/g, '');
+                if (userWords.includes(cleanToken)) {
+                    correctIndices.push(idx);
+                } else {
+                    wrongIndices.push(idx);
+                }
+            });
+            State.player.controller.applySpeechResult(correctIndices, wrongIndices);
+        }
 
         if (btn) btn.disabled = false;
         return;
+    }
+
+    // Apply exact success to IVP
+    if (State.player && State.player.controller && State.player.controller.applySpeechResult) {
+        const correctIndices = State.player.controller.tokens.map((_, i) => i);
+        State.player.controller.applySpeechResult(correctIndices, []);
     }
 
     await handleAnswer(val, cue, questionData, btn, explanation, translation, stats, userData, configData, courseId);
@@ -183,12 +225,24 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
             } else {
                 speechAnalytics = {}; // fallback
             }
+            if (State.isTextMode) {
+                if (speechAnalytics) {
+                    speechAnalytics.pronunciationScore = 100;
+                    speechAnalytics.flowScore = 100;
+                    speechAnalytics.wpm = 0;
+                    speechAnalytics.pauseCount = 0;
+                    speechAnalytics.netDuration = 3;
+                }
+                console.log('[handleAnswer] Text mode: overridden speech metrics for scoring');
+            }
             await updateSpeechRecording(currentLessonId, qIndex, {
                 userResponse,
                 cue,
-                wpm: speechAnalytics.wpm,
-                pauseCount: speechAnalytics.pauseCount,
-                complexityScore: speechAnalytics.complexityScore
+                wpm: State.isTextMode ? 0 : (speechAnalytics?.wpm || 0),
+                pauseCount: State.isTextMode ? 0 : (speechAnalytics?.pauseCount || 0),
+                complexityScore: speechAnalytics?.complexityScore || 100,
+                isTextMode: State.isTextMode,
+                duration: State.isTextMode ? 3 : (speechAnalytics?.netDuration || null)
             });
             console.log("Successfully updated speech recording with answers");
         }
@@ -229,6 +283,26 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
         }
 
         const isCorrect = result ? result.isCorrect : true;
+
+        let grammarCorrection = null;
+        if (result && result.explanations) {
+            const diffObj = result.explanations.find(e => e.type === 'grammar_diff');
+            if (diffObj && diffObj.correction) grammarCorrection = diffObj.correction;
+        }
+
+        let status = isCorrect ? "ok" : "inc";
+        let pragmaticDetails = result?.intentLabels?.length > 0 ? result.intentLabels : null;
+
+        logInteraction(cue, userResponse, status, pragmaticDetails, grammarCorrection);
+
+        // Log idioms and pragmatics to the global state arrays if they exist in the result object
+        if (result?.foundIdioms?.length > 0) {
+            State.recognizedIdioms.push(...result.foundIdioms);
+        }
+        if (result?.intentLabels?.length > 0) {
+            State.pragmaticFlags.push(...result.intentLabels);
+        }
+
         const { listeningScore, speakingScore, incorrectAttempts } = appStore.getState();
 
         if (questionData.inputType === "speech" || questionData.inputType === "ai") {
@@ -332,6 +406,9 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
         // --- WEB ADAPTER: Translate Pure Data to Web UI ---
         const explanationData = buildExplanationData(result?.explanations, explanation);
         const webFormattedExplanations = renderExplanationsToHTML(explanationData);
+
+        // Show the tutor chat input once the evaluation completes
+        showTutorChatInput();
 
         if (isCorrect) {
             if (questionData.inputType === "ai") {
@@ -490,8 +567,40 @@ async function loadNextLesson() {
 
 // 🏫🏫🏫🏫🏫🏫🏫🏫 INITIALIZATION/LESSON SETUP 🏫🏫🏫🏫🏫🏫🏫🏫
 
+async function handleTutorChatSubmit(rawText) {
+    if (!rawText || !rawText.trim()) return;
+
+    const wordCount = rawText.trim().split(/\s+/).length;
+    appStore.getState().incrementUserTutorStats(wordCount);
+
+    // Show user's message
+    renderTutorMessage(rawText, true);
+
+    // Show loading
+    renderAIAnalysisLoading("Tutor is thinking...");
+
+    // Get context and send to API
+    const context = getChatHistoryContext();
+    const aiResponse = await askEnglishTutor(context, rawText);
+
+    const aiWordCount = aiResponse.trim().split(/\s+/).length;
+    appStore.getState().incrementAiTutorStats(aiWordCount);
+
+    // Remove the loading indicator explicitly in case the render function doesn't
+    const loadingStatus = document.getElementById('ai-loading-status');
+    if (loadingStatus) {
+        loadingStatus.remove();
+    }
+
+    // Show AI response
+    renderTutorMessage(aiResponse, false);
+}
+
 async function initializeLesson(courseId = State.courseId, configData = State.configData, userData = State.userData) {
     try {
+        // Initialize the Tutor Chat UI and bind the submission logic
+        initTutorChatUI(handleTutorChatSubmit);
+
         // 1. Gather browser-specific context
         const urlParams = new URLSearchParams(window.location.search);
         const routerContext = {
@@ -540,6 +649,7 @@ async function loadLessonContent(lesson, configData) {
     if (State.player) State.player.destroy();
 
     State.resetForNewLesson();
+    State.lessonStartTime = new Date().toISOString();
     State.roleA = lesson.roleA || "";
     State.roleB = lesson.roleB || "";
     State.userRole = lesson.userRole || "";

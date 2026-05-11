@@ -27,7 +27,11 @@ async function loadAndCacheFile(filename, isWasm) {
 
         const buffer = await response.arrayBuffer();
         console.log(`[whisper] 💾 SAVING: Caching ${filename}`);
-        await cache.put(url, new Response(buffer.slice(0), { headers: response.headers }));
+        try {
+            await cache.put(url, new Response(buffer.slice(0), { headers: response.headers }));
+        } catch (cacheError) {
+            console.warn(`[whisper] ⚠️ Cache.put failed for ${filename}:`, cacheError);
+        }
         response = new Response(buffer, { headers: response.headers });
     }
 
