@@ -9,6 +9,13 @@ export const State = {
     
     isAudioEnabled: false,
 
+    interactionLog: [],
+    recognizedIdioms: [],
+    pragmaticFlags: [],
+    totalHesitations: 0,
+    totalPauses: null,
+    averageWpm: null,
+
     // Lesson Data
     mission: null,
     setting: null,
@@ -52,6 +59,7 @@ export const State = {
     // Active Media Player Reference
     player: null,
     isCameraOff: false,
+    isTextMode: false,
 
     /**
      * Initializes the state with values calculated from Appwrite userData
@@ -81,6 +89,13 @@ export const State = {
         // Reset question index to 0 for a fresh start
         this.currentQuestionIndex = 0;
 
+        this.interactionLog = [];
+        this.recognizedIdioms = [];
+        this.pragmaticFlags = [];
+        this.totalHesitations = 0;
+        this.totalPauses = null;
+        this.averageWpm = null;
+
         // Reset non-reactive lesson data
         this.mission = null;
         this.setting = null;
@@ -93,6 +108,7 @@ export const State = {
         this.videoClicks = 0;
         this.questionCount = 0;
         this.questionsAnswered = 0;
+        this.isTextMode = false;
     },
 
     resetForNextQuestion() {

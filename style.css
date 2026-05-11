@@ -1552,6 +1552,24 @@ ul.incorrectWords {
   display: none;
 }
 
+#tutor-chat-input-area {
+  border-top: 1px solid rgba(0,0,0,0.125);
+  padding: 0.5rem;
+  border-radius: 0 0 calc(0.375rem - 1px) calc(0.375rem - 1px);
+}
+
+#tutor-chat-textarea {
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+  font-size: 0.95rem;
+  resize: none;
+}
+
+#tutor-chat-send-btn {
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+
 /* Collapse card margins when the chat widget is hidden so the IVP doesn't get pushed down */
 #speech-text-here.d-none {
   margin-bottom: 0 !important;
@@ -2239,3 +2257,73 @@ footer {
     text-align: center;
     height: 100%;
 }
+
+.w-33 { width: 33.333%; }
+
+/* ==========================================================================
+   Interactive Video Player (IVP) Styles
+   ========================================================================== */
+
+/* Subtitles Container */
+.ivp-subtitles {
+  background: transparent !important;
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: center;
+  padding: 5px 10px; gap: 6px;
+}
+
+.ivp-token {
+  display: inline-block; border-radius: 9999px;
+  font-family: inherit; padding: 2px 8px; margin: 2px; font-size: 1.1rem;
+}
+
+/* Revealed & Punctuation: Stark white on solid black. NO click affordance. */
+.ivp-token-revealed, .ivp-token-punctuation {
+  background: #000; color: #fff; cursor: default; border: 1px solid #444;
+}
+.ivp-token-punctuation { font-size: 1.4rem; padding: 2px 4px; }
+.ivp-token-strikethrough { text-decoration: line-through 2px red; }
+
+/* Hidden Pill: 'Liquid' design aesthetic utilizing the EXACT brand gradient */
+.ivp-token-hidden {
+  background: linear-gradient(135deg, #3a8fd5 0%, #00c0d8 100%);
+  color: transparent; /* visually hide text placeholders */
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  box-shadow: inset 0 2px 4px rgba(255,255,255,0.4), 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  min-width: 1.5em; /* dynamically stretches based on the transparent textContent */
+}
+
+/* Hover for affordance */
+.ivp-token-hidden:hover {
+  transform: translateY(-2px);
+  box-shadow: inset 0 2px 4px rgba(255,255,255,0.6), 0 6px 12px rgba(0, 192, 216, 0.4);
+  filter: brightness(1.1);
+}
+
+/* Overlay & Timer */
+.ivp-overlay {
+  position: absolute; top: 50%; left: 0; right: 0; bottom: 0;
+  display: none; justify-content: center; align-items: center; z-index: 20;
+  background: transparent; pointer-events: none;
+}
+.ivp-overlay-content { position: relative; pointer-events: none; display: flex; flex-direction: column; align-items: center; }
+.ivp-overlay-circle {
+  width: 100px; height: 100px; border: 6px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #ffffff; border-radius: 50%;
+  animation: ivp-overlay-spin 3s linear forwards; /* Matches the 3s JS timer */
+  margin-bottom: 10px;
+}
+@keyframes ivp-overlay-spin { to { transform: rotate(360deg); } }
+.ivp-overlay-text { font-size: 2rem; color: #ffffff; text-align: center; font-weight: bold; text-shadow: 0 0 10px rgba(0,0,0,0.7); margin: 0; }
+
+/* Arrows pointing to interaction areas */
+.ivp-overlay-arrow-up, .ivp-overlay-arrow-down {
+  position: absolute; width: 0; height: 0;
+  border-left: 20px solid transparent; border-right: 20px solid transparent;
+}
+.ivp-overlay-arrow-up { top: 10%; border-bottom: 20px solid #fff; pointer-events: none; }
+.ivp-overlay-arrow-down { bottom: 10%; border-top: 20px solid #fff; }
+.ivp-arrow-label { position: absolute; color: #fff; font-weight: bold; text-shadow: 0 0 5px rgba(0,0,0,0.8); left: 50%; transform: translateX(-50%); }
+.ivp-overlay-arrow-up .ivp-arrow-label { top: -30px; }
+.ivp-overlay-arrow-down .ivp-arrow-label { bottom: -30px; }

@@ -22,9 +22,11 @@ export function InteractiveVideoPlayer({ videoUrl, cue, speeds, style }) {
     );
 
     // --- Reactive UI state, driven by controller subscriptions ---
-    const [subtitleText, setSubtitleText] = useState('');
+    const [subtitleTokens, setSubtitleTokens] = useState([]);
     const [playbackRate, setPlaybackRate] = useState(1.0);
     const [isLoaded, setIsLoaded] = useState(false);
+    const [showOverlay, setShowOverlay] = useState(false);
+    const [isSlowMode, setIsSlowMode] = useState(false);
 
     // --- expo-video player ---
     const player = useVideoPlayer(videoUrl, p => {
@@ -37,8 +39,10 @@ export function InteractiveVideoPlayer({ videoUrl, cue, speeds, style }) {
     useEffect(() => {
         const controller = controllerRef.current;
         const unsub = controller.subscribe(state => {
-            setSubtitleText(state.subtitleText);
+            setSubtitleTokens(state.subtitleTokens || []);
             setIsLoaded(state.isLoaded);
+            setShowOverlay(state.showOverlay);
+            setIsSlowMode(state.isSlowMode);
 
             // Sync playback rate to player
             if (player.rate !== state.playbackRate) {
@@ -86,6 +90,11 @@ export function InteractiveVideoPlayer({ videoUrl, cue, speeds, style }) {
     // --- Tap to toggle play/pause + unmute on first interaction ---
     const hasUnmuted = useRef(false);
     const handleTap = useCallback(() => {
+        if (showOverlay) {
+            controllerRef.current.dismissOverlay();
+            return;
+        }
+
         if (!hasUnmuted.current) {
             player.muted = false;
             hasUnmuted.current = true;
@@ -96,7 +105,7 @@ export function InteractiveVideoPlayer({ videoUrl, cue, speeds, style }) {
         } else {
             player.pause();
         }
-    }, [player]);
+    }, [player, showOverlay]);
 
     return (
         <TouchableWithoutFeedback onPress={handleTap}>
@@ -104,17 +113,44 @@ export function InteractiveVideoPlayer({ videoUrl, cue, speeds, style }) {
 
                 <VideoView
                     player={player}
-                    style={styles.video}
+                    style={[styles.video, isSlowMode && styles.videoZoomed]}
                     nativeControls={false}
                     contentFit="contain"
                 />
 
                 {/* Subtitle overlay — bottom 15-35% of the video, matching web */}
-                {subtitleText ? (
-                    <View style={styles.subtitleOverlay} pointerEvents="none">
-                        <Text style={styles.subtitleText}>{subtitleText}</Text>
+                {subtitleTokens && subtitleTokens.length > 0 ? (
+                    <View style={styles.subtitleOverlay} pointerEvents="box-none">
+                        <View style={styles.subtitlesContainer}>
+                            {subtitleTokens.map((token, idx) => {
+                                if (token.clickable) {
+                                    return (
+                                        <TouchableWithoutFeedback key={idx} onPress={() => controllerRef.current.revealToken(token.index)}>
+                                            <View style={[styles.token, styles.tokenHidden]}>
+                                                <Text style={styles.hiddenText}>{token.text}</Text>
+                                            </View>
+                                        </TouchableWithoutFeedback>
+                                    );
+                                } else {
+                                    return (
+                                        <View key={idx} style={[styles.token, token.isPunctuation ? styles.tokenPunctuation : styles.tokenRevealed]}>
+                                            <Text style={[styles.tokenText, token.strikethrough && styles.tokenStrikethrough]}>
+                                                {token.text}
+                                            </Text>
+                                        </View>
+                                    );
+                                }
+                            })}
+                        </View>
                     </View>
                 ) : null}
+
+                {showOverlay && (
+                    <View style={styles.overlay} pointerEvents="none">
+                        <View style={styles.overlayCircle} />
+                        <Text style={styles.overlayText}>Understand{`\n`}100%?</Text>
+                    </View>
+                )}
 
             </View>
         </TouchableWithoutFeedback>
@@ -136,6 +172,10 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
     },
+
+    videoZoomed: {
+        transform: [{ scale: 1.5 }],
+    },
     subtitleOverlay: {
         position: 'absolute',
         bottom: 0,
@@ -149,12 +189,75 @@ const styles = StyleSheet.create({
         // Soft gradient feel without expo-linear-gradient dependency
         backgroundColor: 'rgba(0, 0, 0, 0.35)',
     },
-    subtitleText: {
+    subtitlesContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    token: {
+        borderRadius: 9999,
+        paddingVertical: 2,
+        paddingHorizontal: 8,
+        margin: 2,
+    },
+    tokenRevealed: {
+        backgroundColor: '#000',
+        borderColor: '#444',
+        borderWidth: 1,
+    },
+    tokenPunctuation: {
+        backgroundColor: '#000',
+        borderColor: '#444',
+        borderWidth: 1,
+        paddingVertical: 2,
+        paddingHorizontal: 4,
+    },
+    tokenHidden: {
+        backgroundColor: '#3a8fd5', // fallback solid color (gradient not built into standard RN without expo-linear-gradient)
+        borderColor: 'rgba(255, 255, 255, 0.3)',
+        borderWidth: 1,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    tokenText: {
         color: '#fff',
         fontSize: 16,
-        fontWeight: '500',
-        textAlign: 'center',
-        lineHeight: 24,
-        letterSpacing: 0.3,
     },
+    hiddenText: {
+        color: 'transparent',
+        fontSize: 16,
+    },
+    tokenStrikethrough: {
+        textDecorationLine: 'line-through',
+        textDecorationColor: 'red',
+        textDecorationStyle: 'solid',
+    },
+    overlay: {
+        position: 'absolute',
+        top: 0, left: 0, right: 0, bottom: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: 'transparent',
+    },
+    overlayCircle: {
+        width: 100, height: 100,
+        borderRadius: 50,
+        borderWidth: 6,
+        borderColor: 'rgba(255, 255, 255, 0.4)',
+        borderTopColor: '#ffffff',
+        marginBottom: 10,
+    },
+    overlayText: {
+        fontSize: 32,
+        color: '#ffffff',
+        textAlign: 'center',
+        fontWeight: 'bold',
+        textShadowColor: 'rgba(0,0,0,0.7)',
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 10,
+    }
 });

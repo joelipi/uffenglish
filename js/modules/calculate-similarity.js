@@ -31,6 +31,10 @@ const calculateSimilarity = (() => {
             throw new Error('Inputs must be strings');
         }
 
+        if (sentence1 === '' && sentence2 === '') {
+            return 100;
+        }
+
         const levDist = levenshteinDistance(sentence1, sentence2);
         const maxLen = Math.max(sentence1.length, sentence2.length);
         const similarity = ((maxLen - levDist) / maxLen) * 100;

@@ -27,7 +27,11 @@ async function loadAndCacheFile(filename, isWasm) {
 
         const buffer = await response.arrayBuffer();
         console.log(`[whisper] 💾 SAVING: Caching ${filename}`);
-        await cache.put(url, new Response(buffer.slice(0), { headers: response.headers }));
+        try {
+            await cache.put(url, new Response(buffer.slice(0), { headers: response.headers }));
+        } catch (cacheError) {
+            console.warn(`[whisper] ⚠️ Cache.put failed for ${filename}:`, cacheError);
+        }
         response = new Response(buffer, { headers: response.headers });
     }
 
@@ -55,10 +59,18 @@ async function bootWhisperEngine() {
         self.Module.onRuntimeInitialized = function () {
             console.time('[whisper] total init');
 
+            // Use Device Memory API if available, assume 4GB if missing
+            const deviceMemory = navigator.deviceMemory || 4;
+            // Cap to 2 threads for devices with less than 4GB RAM to prevent OOM
+            const maxAllowedThreads = deviceMemory < 4 ? 2 : 4;
+
+            // Cap threads to maxAllowedThreads to prevent out-of-memory crashes on mobile browsers
+            const safeThreadCount = Math.min(navigator.hardwareConcurrency || 2, maxAllowedThreads);
+
             let config = {
                 modelConfig: {
                     debug: 0,
-                    num_threads: navigator.hardwareConcurrency || 4, // 🚀 CORE OPTIMIZATION: Uses all available CPU threads
+                    numThreads: safeThreadCount,
                     provider: "cpu", // Ensures it uses the optimized CPU provider
                     tokens: './tokens.txt',
                     whisper: {
@@ -66,10 +78,8 @@ async function bootWhisperEngine() {
                         decoder: './whisper-decoder.onnx',
                     }
                 },
-                decoderConfig: {
-                    method: "greedy_search",
-                    num_active_paths: 1
-                }
+                decodingMethod: "greedy_search",
+                maxActivePaths: 1
             };
 
             recognizer = new OfflineRecognizer(config, self.Module);

@@ -19,6 +19,7 @@ import {
 } from '../modules/speech.js';
 import { initVideoProcessor } from '../modules/video-processor.js';
 import { saveLessonProgress } from '../modules/user-profile.js';
+import { getCompressedLessonStats } from '../modules/scoring.js';
 import { pointLoss } from './point-loss-animation.js';
 
 import {
@@ -78,7 +79,14 @@ export function loadQuestion(question, lesson, fluencyData, deps) {
     toggleScoresAndHearts((question.inputType === 'speech' || question.inputType === 'ai') && question.videoUrl);
 
     if (question.inputType === 'speech' || question.inputType === 'ai') {
-        warmUpSpeechCamStream();
+        if (!State.isCameraOff && !State.isTextMode) {
+            warmUpSpeechCamStream();
+        } else if (State.isTextMode) {
+            // Text mode: bypass hardware prompt completely
+            console.log('[QuestionLoader] Text mode: bypassing hardware prompt');
+        } else {
+            warmUpSpeechCamStream(); // For audio-only mode, the mock stream handles this
+        }
         if (isIOS) {
             const closePageLink = document.getElementById('closePage');
             if (closePageLink) {
@@ -100,7 +108,14 @@ export function loadQuestion(question, lesson, fluencyData, deps) {
     }
 
     if (question.inputType === 'speech' || question.inputType === 'ai') {
-        warmUpSpeechCamStream();
+        if (!State.isCameraOff && !State.isTextMode) {
+            warmUpSpeechCamStream();
+        } else if (State.isTextMode) {
+            // Text mode: bypass hardware prompt completely
+            console.log('[QuestionLoader] Text mode: bypassing hardware prompt');
+        } else {
+            warmUpSpeechCamStream(); // For audio-only mode, the mock stream handles this
+        }
     }
 
     prepareMediaUI();
@@ -153,15 +168,21 @@ export function loadQuestion(question, lesson, fluencyData, deps) {
         _renderSuccess(question, fluencyData);
 
     } else if (question.inputType === "multi") {
-        const answers = [question.cue, ...question.incues];
-        // Sorting functionality removed per request
-
-        renderMultiChoiceUI(
-            Strings.get('btn_not_sure', State.userData?.native_language) || "I'm not sure",
-            (val, btn) => submitAnswerPrecheck(val, question.cue, question, btn, question.explanation, undefined, { pauseCount: null, netDuration: null }),
-            answers,
-            (answer, button) => submitAnswerPrecheck(answer, question.cue, question, button, question.explanation, question.translation, { pauseCount: null, netDuration: null })
-        );
+        if (State.isTextMode) {
+            renderTextInputUI(
+                Strings.get('placeholder_type_answer', State.userData?.native_language) || 'Type your answer here...',
+                Strings.get('btn_submit', State.userData?.native_language) || 'Submit',
+                (val, btn) => submitAnswerPrecheck(val, question.cue, question, btn, question.explanation, question.translation, { pauseCount: null, netDuration: null })
+            );
+        } else {
+            const answers = [question.cue, ...question.incues];
+            renderMultiChoiceUI(
+                Strings.get('btn_not_sure', State.userData?.native_language) || "I'm not sure",
+                (val, btn) => submitAnswerPrecheck(val, question.cue, question, btn, question.explanation, undefined, { pauseCount: null, netDuration: null }),
+                answers,
+                (answer, button) => submitAnswerPrecheck(answer, question.cue, question, button, question.explanation, question.translation, { pauseCount: null, netDuration: null })
+            );
+        }
     }
 }
 
@@ -178,79 +199,56 @@ function _renderSpeechOrAI(question, lesson, deps) {
     };
 
     const answerFragment = document.createDocumentFragment();
-    if (question.inputType === "speech") {
-        // No pulse-dot hints for speech input questions
-    } else {
-        const processTextToPulseDots = (text) => {
-            const parts = text.split(/(\\b[\\w']+\\b)/g);
-            parts.forEach(part => {
-                if (!part) return;
-                if (/\\b[\\w']+\\b/.test(part)) {
-                    if (allHidden && !revealedFirst) {
-                        revealedFirst = true;
-                        answerFragment.appendChild(document.createTextNode(part));
-                    } else {
-                        const span = document.createElement('span');
-                        span.className = 'pulse-dot';
-                        span.dataset.word = part;
-                        const icon = document.createElement('i');
-                        icon.className = 'bi bi-app';
-                        span.appendChild(icon);
-                        answerFragment.appendChild(span);
-                    }
-                } else {
-                    answerFragment.appendChild(document.createTextNode(part));
-                }
-            });
-        };
-
-        processTextToPulseDots(question.cue);
-
+    // Add possible answers directly if not speech
+    if (question.inputType !== "speech") {
+        answerFragment.appendChild(document.createTextNode(question.cue));
         if (question.possibleAnswer) {
             answerFragment.appendChild(document.createElement('br'));
             const strong = document.createElement('strong');
             strong.textContent = Strings.get('possible_response', State.userData?.native_language);
             answerFragment.appendChild(strong);
             answerFragment.appendChild(document.createElement('br'));
-            processTextToPulseDots(question.possibleAnswer);
+            answerFragment.appendChild(document.createTextNode(question.possibleAnswer));
         }
     }
 
     const handleRevealClick = function () {
-        if (!this.dataset.revealed) {
-            this.textContent = this.dataset.word;
-            appStore.getState().deductListeningScore(15);
-            pointLoss.show(this, 15);
-            // Subscription handles the score display update 
-            this.dataset.revealed = "true"; this.removeEventListener('click', handleRevealClick);
-        }
+        // Handled by IVP internally
     };
 
     const qIndex = getCurrentQuestionIndex(question, State.configData, State.currentLessonIndex);
 
-    renderSpeechInputUI(
-        answerFragment,
-        question.inputType === "speech" ? null : () => handleHint(qIndex),
-        handleRevealClick,
-        async () => {
-            const speechButton = document.getElementById('speechButton');
-            try {
-                await toggleSpeechRecognition({
-                    button: speechButton,
-                    question,
-                    micStatusText: DOM.micStatusText,
-                    userData: State.userData,
-                    configData: State.configData,
-                    currentLessonIndex: State.currentLessonIndex,
-                    currentQuestionIndex: qIndex,
-                    handleAnswer: submitAnswerPrecheck,
-                    player: State.player
-                });
-            } catch (error) {
-                console.error("Speech toggle failed", error);
+    if (State.isTextMode) {
+        const placeholder = Strings.get('placeholder_type_answer', State.userData?.native_language) || 'Type your answer here...';
+        const submitLabel = Strings.get('btn_submit', State.userData?.native_language) || 'Submit';
+        renderTextInputUI(placeholder, submitLabel, (val, btn) => {
+            submitAnswerPrecheck(val, question.cue, question, btn, question.explanation, question.translation, { pauseCount: 0, netDuration: 3 });
+        });
+    } else {
+        renderSpeechInputUI(
+            answerFragment,
+            question.inputType === "speech" ? null : () => handleHint(qIndex),
+            handleRevealClick,
+            async () => {
+                const speechButton = document.getElementById('speechButton');
+                try {
+                    await toggleSpeechRecognition({
+                        button: speechButton,
+                        question,
+                        micStatusText: DOM.micStatusText,
+                        userData: State.userData,
+                        configData: State.configData,
+                        currentLessonIndex: State.currentLessonIndex,
+                        currentQuestionIndex: qIndex,
+                        handleAnswer: submitAnswerPrecheck,
+                        player: State.player
+                    });
+                } catch (error) {
+                    console.error("Speech toggle failed", error);
+                }
             }
-        }
-    );
+        );
+    }
 }
 
 function _renderLessonIntro(question, lesson, showFeedbackAndProceed) {
@@ -316,9 +314,13 @@ function _renderSuccess(question, fluencyData) {
     const nextLessonId = currentLesson.nextLessonId;
 
     if (nextLessonId) {
+        const finalStats = getCompressedLessonStats();
+
         saveLessonProgress(State.courseId, nextLessonId, State.userData, {
             updateUserMeta: true,
-            incrementCount: true
+            incrementCount: true,
+            lessonStats: finalStats,
+            currentLessonId: question.lessonId
         }).then(progressResult => {
             // Update the store with the new calculated numbers; subscription handles the UI
             appStore.getState().setActivityMetrics(progressResult.newDayCount, progressResult.newStreak);

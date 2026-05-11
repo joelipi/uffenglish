@@ -158,15 +158,12 @@ export async function checkGrammarWithAI(selectedAnswer, questionData) {
 
     console.log("Grammar Check Result (Raw):", correctedTextRaw);
 
-    // If AI prefix with "CORRECT: ", strip it for comparison
-    if (correctedText.toUpperCase().startsWith("CORRECT:")) {
-      correctedText = correctedText.substring(8).trim();
-    } else if (correctedText.toUpperCase().startsWith("CORRECT")) {
-      // Handle cases like "CORRECT I would buy..."
-      const nextChar = correctedText.charAt(7);
-      if (!nextChar || nextChar === ' ' || nextChar === '\n') {
-        correctedText = correctedText.substring(7).trim();
-      }
+    // Robust "CORRECT" stripping: handles "CORRECT", "CORRECT.", "CORRECT: ", etc.
+    if (/^correct[.!: \n-]*$/i.test(correctedText)) {
+      correctedText = "";
+    } else {
+      // Strip "CORRECT:" or "CORRECT " prefix if followed by the actual correction
+      correctedText = correctedText.replace(/^correct[:\s.-]+/i, '').trim();
     }
 
     // normalize is correctly awaited based on normalize.js being an async function
@@ -175,8 +172,7 @@ export async function checkGrammarWithAI(selectedAnswer, questionData) {
 
     // It's correct if the AI literally said "CORRECT" (now empty string after stripping) 
     // or if the normalized versions match.
-    const isGrammarCorrect = correctedTextRaw.toLowerCase() === 'correct' ||
-      correctedText === '' ||
+    const isGrammarCorrect = correctedText === '' ||
       normOriginal === normCorrected;
 
     return {
@@ -272,6 +268,32 @@ export async function evaluateWithAI(selectedAnswer, normalizedSelectedAnswer, q
       correction: '',
       explanation: ''
     };
+  }
+}
+
+export async function askEnglishTutor(conversationHistoryContext, newUserMessage) {
+  const aiEndpoint = 'https://nvidia-proxy.joel-1cb.workers.dev';
+  try {
+    const systemPrompt = "You are strictly an English tutor. Answer the user's questions about English. The user is currently taking an English lesson. The context of their recent exercise is provided below. Use it to inform your answer if relevant.";
+
+    // Combine context and new message
+    const combinedPrompt = `${systemPrompt}\n\n--- Context from Lesson ---\n${conversationHistoryContext}\n\n--- User Question ---\n${newUserMessage}`;
+
+    const response = await fetch(aiEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: [{ role: "user", content: combinedPrompt }],
+        temperature: 0.7 // Slightly higher temperature for more conversational replies
+      })
+    });
+
+    if (!response.ok) throw new Error(`Tutor API error ${response.status}`);
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || '';
+  } catch (error) {
+    console.error('Tutor AI Error:', error);
+    return "I'm sorry, I couldn't connect to the tutoring service right now. Please try again later.";
   }
 }
 
