@@ -61,16 +61,19 @@ async function bootWhisperEngine() {
 
             // Use Device Memory API if available, assume 4GB if missing
             const deviceMemory = navigator.deviceMemory || 4;
-            // Cap to 2 threads for devices with less than 4GB RAM to prevent OOM
-            const maxAllowedThreads = deviceMemory < 4 ? 2 : 4;
+            
+            // If the device has low memory (< 4GB), aggressively cap to 2 threads to prevent OOM
+            // Otherwise, use available cores up to 8 (diminishing returns beyond 8 for ONNX WASM)
+            const safeThreadCount = deviceMemory < 4 
+                ? 2 
+                : Math.min(navigator.hardwareConcurrency || 4, 8);
 
-            // Cap threads to maxAllowedThreads to prevent out-of-memory crashes on mobile browsers
-            const safeThreadCount = Math.min(navigator.hardwareConcurrency || 2, maxAllowedThreads);
+            console.log(`[whisper] 🛠️ Hardware Info: Memory=${deviceMemory}GB, Cores=${navigator.hardwareConcurrency}, SelectedThreads=${safeThreadCount}`);
 
             let config = {
                 modelConfig: {
-                    debug: 0,
-                    numThreads: safeThreadCount,
+                    debug: 1,
+                    num_threads: safeThreadCount, // 🚀 CORE OPTIMIZATION: Caps threads to prevent crashes
                     provider: "cpu", // Ensures it uses the optimized CPU provider
                     tokens: './tokens.txt',
                     whisper: {
@@ -78,8 +81,10 @@ async function bootWhisperEngine() {
                         decoder: './whisper-decoder.onnx',
                     }
                 },
-                decodingMethod: "greedy_search",
-                maxActivePaths: 1
+                decoderConfig: {
+                    method: "greedy_search",
+                    num_active_paths: 1
+                }
             };
 
             recognizer = new OfflineRecognizer(config, self.Module);
