@@ -400,6 +400,7 @@ function convertFloat32ToInt16(float32Array) {
   return int16Array;
 }
 
+// IMPORTANT: THIS IS HERE AS A DEVELOPMENT FALLBACK ONLY. IT IS TOO EXPENSIVE FOR PRODUCTION AND WOULD REQUIRE REARCHITECTING TO WORK IN DEVELOPMENT.
 export async function setupDeepgramTranscription({
   question, button, userData, configData, currentLessonIndex, currentQuestionIndex, handleAnswer, micStatusText, player
 }) {
@@ -534,7 +535,9 @@ export async function setupDeepgramTranscription({
     return false;
   }
 }
+// IMPORTANT: THIS IS HERE AS A DEVELOPMENT FALLBACK ONLY. IT IS TOO EXPENSIVE FOR PRODUCTION AND WOULD REQUIRE REARCHITECTING TO WORK IN DEVELOPMENT.
 
+// IMPORTANT: THIS IS HERE AS A DEVELOPMENT FALLBACK ONLY. IT IS TOO EXPENSIVE FOR PRODUCTION AND WOULD REQUIRE REARCHITECTING TO WORK IN DEVELOPMENT.
 export function cleanupDeepgram() {
   if (deepgramSocket) { try { deepgramSocket.finish(); } catch (e) { } deepgramSocket = null; }
   if (silenceTimer) { clearInterval(silenceTimer); silenceTimer = null; }
@@ -543,6 +546,7 @@ export function cleanupDeepgram() {
   if (mediaStream) { mediaStream.getTracks().forEach(track => track.stop()); mediaStream = null; }
   isListening = false;
 }
+// IMPORTANT: THIS IS HERE AS A DEVELOPMENT FALLBACK ONLY. IT IS TOO EXPENSIVE FOR PRODUCTION AND WOULD REQUIRE REARCHITECTING TO WORK IN DEVELOPMENT.
 
 export function stopListeningEarly(micStatusText, userData, player) {
   console.warn('[Speech] stopListeningEarly called');
@@ -553,6 +557,7 @@ export function stopListeningEarly(micStatusText, userData, player) {
 }
 
 // --- UPDATED: Stop function now halts whichever engine is running ---
+// IMPORTANT: THIS IS HERE AS A DEVELOPMENT FALLBACK ONLY. IT IS TOO EXPENSIVE FOR PRODUCTION AND WOULD REQUIRE REARCHITECTING TO WORK IN DEVELOPMENT.
 export function stopDeepgramTranscription() {
   console.log('[Speech] stopDeepgramTranscription called');
   cleanupDeepgram();
@@ -562,6 +567,7 @@ export function stopDeepgramTranscription() {
     isWhisperActive = false;
   }
 }
+// IMPORTANT: THIS IS HERE AS A DEVELOPMENT FALLBACK ONLY. IT IS TOO EXPENSIVE FOR PRODUCTION AND WOULD REQUIRE REARCHITECTING TO WORK IN DEVELOPMENT.
 
 export function fallbackToWebSpeech({ question, userData, configData, currentLessonIndex, currentQuestionIndex, handleAnswer, micStatusText }) {
   console.log('[WebSpeech] fallbackToWebSpeech called');

@@ -123,6 +123,7 @@ export const currentLessonQuery = (courseId, lessonId) => ({
   gcTime: 30 * 24 * 60 * 60 * 1000
 });
 
+// IMPORTANT: THIS IS HERE AS A DEVELOPMENT FALLBACK ONLY. IT IS TOO EXPENSIVE FOR PRODUCTION AND WOULD REQUIRE REARCHITECTING TO WORK IN DEVELOPMENT.
 export async function getDeepgramToken() {
   try {
     const response = await fetch('https://magenta-shortbread-2f1be2.netlify.app/.netlify/functions/token', { method: 'GET', headers: { 'Content-Type': 'application/json' } });
@@ -135,6 +136,7 @@ export async function getDeepgramToken() {
     throw error;
   }
 }
+// IMPORTANT: THIS IS HERE AS A DEVELOPMENT FALLBACK ONLY. IT IS TOO EXPENSIVE FOR PRODUCTION AND WOULD REQUIRE REARCHITECTING TO WORK IN DEVELOPMENT.
 
 export async function checkGrammarWithAI(selectedAnswer, questionData) {
   const aiEndpoint = 'https://nvidia-proxy.joel-1cb.workers.dev';

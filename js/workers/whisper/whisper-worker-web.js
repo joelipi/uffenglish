@@ -68,7 +68,7 @@ async function bootWhisperEngine() {
                 ? 2 
                 : Math.min(navigator.hardwareConcurrency || 4, 8);
 
-            console.log(`[whisper] 🛠️ Hardware Info: Memory=${deviceMemory}GB, Cores=${navigator.hardwareConcurrency}, SelectedThreads=${safeThreadCount}`);
+            console.log(`[whisper] 🛠️ Hardware Info: Memory=${deviceMemory}GB, Cores=${navigator.hardwareConcurrency}, SelectedThreads=${safeThreadCount}, SharedArrayBuffer=${typeof SharedArrayBuffer !== 'undefined'}`);
 
             let config = {
                 modelConfig: {
