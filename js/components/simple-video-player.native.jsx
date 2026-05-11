@@ -2,11 +2,11 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableWithoutFeedback, ScrollView } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
-import { VideoStateController } from '../modules/video-controller.js';
+import { SimpleVideoStateController } from '../modules/simple-video-controller.js';
 
 /**
  * Native equivalent of SimpleVideoPlayer + SimpleVideoPlayerUI.
- * Driven by the same VideoStateController as the web version.
+ * Driven by the same SimpleVideoStateController as the web version.
  *
  * Usage:
  *   <SimpleVideoPlayer
@@ -25,13 +25,15 @@ export function SimpleVideoPlayer({
 }) {
     // --- Controller (pure logic, shared with web) ---
     const controllerRef = useRef(
-        new VideoStateController({ scrollSpeed, scrollSubtitles })
+        new SimpleVideoStateController({ scrollSpeed, scrollSubtitles })
     );
 
     // --- Reactive UI state, driven by controller subscriptions ---
     const [isPlaying, setIsPlaying] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
     const [scrollRatio, setScrollRatio] = useState(0);
+    const [isTimed, setIsTimed] = useState(false);
+    const [activeText, setActiveText] = useState('');
 
     // --- Subtitle scroll ---
     // On native we use a ScrollView driven programmatically,
@@ -49,13 +51,17 @@ export function SimpleVideoPlayer({
 
     // --- Subscribe controller → UI state ---
     useEffect(() => {
+        controllerRef.current.initSubtitles(subtitles);
+
         const unsub = controllerRef.current.subscribe(state => {
             setIsPlaying(state.isPlaying);
             setIsLoaded(state.isLoaded);
             setScrollRatio(state.scrollRatio);
+            setIsTimed(state.isTimedSubtitles);
+            setActiveText(state.activeSubtitleText);
         });
         return unsub;
-    }, []);
+    }, [subtitles]);
 
     // --- Drive subtitle scroll position from scrollRatio ---
     useEffect(() => {
@@ -146,20 +152,26 @@ export function SimpleVideoPlayer({
                         }}
                         pointerEvents="none"
                     >
-                        <ScrollView
-                            ref={scrollViewRef}
-                            scrollEnabled={false}  // User cannot manually scroll; driven by time
-                            showsVerticalScrollIndicator={false}
-                        >
-                            <Text
-                                style={styles.subtitleText}
-                                onLayout={e => {
-                                    subtitleContentHeight.current = e.nativeEvent.layout.height;
-                                }}
-                            >
-                                {subtitles}
+                        {isTimed ? (
+                            <Text style={styles.timedSubtitleText}>
+                                {activeText.replace(/<br>/g, '\n')}
                             </Text>
-                        </ScrollView>
+                        ) : (
+                            <ScrollView
+                                ref={scrollViewRef}
+                                scrollEnabled={false}
+                                showsVerticalScrollIndicator={false}
+                            >
+                                <Text
+                                    style={styles.subtitleText}
+                                    onLayout={e => {
+                                        subtitleContentHeight.current = e.nativeEvent.layout.height;
+                                    }}
+                                >
+                                    {subtitles}
+                                </Text>
+                            </ScrollView>
+                        )}
                     </View>
                 ) : null}
 
@@ -230,5 +242,13 @@ const styles = StyleSheet.create({
         fontSize: 14,
         lineHeight: 22,
         textAlign: 'left', // Matches typical subtitle/transcript style
+    },
+    timedSubtitleText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '500',
+        textAlign: 'center',
+        lineHeight: 24,
+        letterSpacing: 0.3,
     },
 });

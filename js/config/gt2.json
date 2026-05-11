@@ -47,9 +47,9 @@
           "inputType": "speech",
           "simpleVideoUrl": "gtests-1-0",
           "subtitles": {
-            "en": "Let's do a role play ordering a drink. You'll be the customer. I'll see you the drink. First, let's warm up our microphones and our mouths. Say: I LOVE ENGLISH!",
-            "es": "Vamos a hacer un role play de pedir una bebida. Tú serás el cliente y yo te venderé la bebida. Primero vamos a calentar nuestros micrófonos y nuestras bocas. Di: I LOVE ENGLISH!",
-            "pt": "Vamos fazer um role play pidiendoo uma bebida..."
+            "en": "1\n00:00:00,500 --> 00:00:03,000\nLet's do a role play ordering a drink.\n\n2\n00:00:03,500 --> 00:00:06,000\nYou'll be the customer. I'll sell you the drink.\n\n3\n00:00:06,500 --> 00:00:10,000\nFirst, let's warm up our microphones and our mouths. Say: I LOVE ENGLISH!",
+            "es": "1\n00:00:00,500 --> 00:00:03,000\nVamos a hacer un role play de pedir una bebida.\n\n2\n00:00:03,500 --> 00:00:06,000\nTú serás el cliente y yo te venderé la bebida.\n\n3\n00:00:06,500 --> 00:00:10,000\nPrimero vamos a calentar nuestros micrófonos y nuestras bocas. Di: I LOVE ENGLISH!",
+            "pt": "1\n00:00:00,500 --> 00:00:03,000\nVamos fazer um role play pidiendoo uma bebida...\n\n2\n00:00:03,500 --> 00:00:06,000\nVocê será o cliente e eu venderei a bebida.\n\n3\n00:00:06,500 --> 00:00:10,000\nPrimeiro vamos aquecer nossos microfones e bocas. Diga: I LOVE ENGLISH!"
           },
           "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
         },
