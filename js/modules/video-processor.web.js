@@ -126,7 +126,8 @@ async function processVideo(fluencyData, lessonId) {
 
     } catch (e) {
         console.error("[VideoProcessor] Render failed:", e);
-        alert("Render failed: " + e.message);
+        const userData = window.__currentUserData || window.State?.userData || {};
+        alert(Strings.get('error_render_failed', userData.native_language) + e.message);
         processBtn.disabled = false;
     }
 }
