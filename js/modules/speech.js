@@ -10,7 +10,7 @@ import Strings from '../data/strings.js';
 
 export * from './speech.web.js';
 
-const listeningState = { active: false };
+export const listeningState = { active: false };
 
 export function initLocalVoiceAI() {
     return preloadWhisperEngine();

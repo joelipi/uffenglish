@@ -94,7 +94,7 @@
             setTimeout(async () => {
                 try {
                     // Load sequentially
-                    await pipeline("zero-shot-classification", "Xenova/distilbert-base-uncased-mnli", { device: "wasm" });
+
                     await pipeline("token-classification", "Meyssa/gector-base-2020", { device: "wasm" });
                     console.log("Preloaded models sequentially.");
                 } catch (error) {
