@@ -1,8 +1,4 @@
 // --- components/question-loader.web.js ---
-// Web-specific question rendering. Dispatches on question.inputType and renders
-// the appropriate UI using DOM helpers from ui.js.
-// React Native counterpart would use navigation + JSX components.
-
 import { State } from '../modules/state.js';
 import { appStore } from '../modules/store.js';
 import Strings from '../data/strings.js';
@@ -46,29 +42,19 @@ import {
     bindProcessButton,
     renderMultiChoiceUI,
     renderAIFeedback,
+    clearMicStatusAndHideMedia,
+    removeWebcamPreview,
+    renderWhisperReviewUI,
+    updateWhisperTimer
 } from './ui.js';
 
-// Commented out during development; will be added back in production to prevent accidental data loss.
 function beforeUnloadHandler(e) { /* e.preventDefault(); e.returnValue = ''; return ''; */ }
 
-/**
- * Renders a question by dispatching on its inputType.
- * This is the web-specific view controller for the lesson flow.
- *
- * @param {Object} question - The question data object
- * @param {Object} lesson - The current lesson object
- * @param {*} fluencyData - Fluency data (passed through to success handler)
- * @param {Object} deps - Injected dependencies to avoid circular imports
- * @param {Function} deps.submitAnswerPrecheck - Answer submission handler
- * @param {Function} deps.showFeedbackAndProceed - Feedback + advance handler
- * @param {Function} deps.handleHint - Hint display handler
- */
 export function loadQuestion(question, lesson, fluencyData, deps) {
     const { submitAnswerPrecheck, showFeedbackAndProceed, handleHint } = deps;
 
-    // --- Common setup for ALL question types ---
     window.__currentQuestionIndex = getCurrentQuestionIndex(question, State.configData, State.currentLessonIndex);
-    clearChatInterface(); // Clear FIRST so the card collapses before we scroll
+    clearChatInterface();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     resetUIForNewQuestion(question.inputType === 'lessonIntro', !!State.userData);
@@ -82,10 +68,9 @@ export function loadQuestion(question, lesson, fluencyData, deps) {
         if (!State.isCameraOff && !State.isTextMode) {
             warmUpSpeechCamStream();
         } else if (State.isTextMode) {
-            // Text mode: bypass hardware prompt completely
             console.log('[QuestionLoader] Text mode: bypassing hardware prompt');
         } else {
-            warmUpSpeechCamStream(); // For audio-only mode, the mock stream handles this
+            warmUpSpeechCamStream();
         }
         if (isIOS) {
             const closePageLink = document.getElementById('closePage');
@@ -105,17 +90,6 @@ export function loadQuestion(question, lesson, fluencyData, deps) {
 
     if (question.inputType != 'lessonComplete' && question.inputType != 'unitComplete') {
         removeRepeatButton();
-    }
-
-    if (question.inputType === 'speech' || question.inputType === 'ai') {
-        if (!State.isCameraOff && !State.isTextMode) {
-            warmUpSpeechCamStream();
-        } else if (State.isTextMode) {
-            // Text mode: bypass hardware prompt completely
-            console.log('[QuestionLoader] Text mode: bypassing hardware prompt');
-        } else {
-            warmUpSpeechCamStream(); // For audio-only mode, the mock stream handles this
-        }
     }
 
     prepareMediaUI();
@@ -138,35 +112,27 @@ export function loadQuestion(question, lesson, fluencyData, deps) {
 
     resetAnswersContainer(`<div id="answers-container" class="d-grid gap-2 d-none"></div>`);
 
-    // --- InputType dispatch ---
     if (question.inputType === "speech" || question.inputType === "ai") {
         _renderSpeechOrAI(question, lesson, deps);
-
     } else if (question.inputType === 'text') {
         renderTextInputUI(
             Strings.get('placeholder_type_answer', State.userData?.native_language) || 'Type your answer here...',
             Strings.get('btn_submit', State.userData?.native_language) || 'Submit',
             (val, btn) => submitAnswerPrecheck(val, question.cue, question, btn, question.explanation, question.translation, { pauseCount: null, netDuration: null })
         );
-
     } else if (question.inputType === 'lessoncomplete') {
         updateProgressAndCloseButton(true); toggleScoresAndHearts(false);
         setProgressBarWidth("95%"); showFeedbackAndProceed(question, true);
         hideAnswerDiv();
-
     } else if (question.inputType === 'unitcomplete') {
         question.lessonId = State.configData.lessons[State.currentLessonIndex].lessonId + 's';
         State.successHandler.handleSuccessLesson(question);
-
     } else if (question.inputType === 'lessonIntro') {
         _renderLessonIntro(question, lesson, showFeedbackAndProceed);
-
     } else if (question.inputType === 'present') {
         _renderPresent(question, lesson, showFeedbackAndProceed);
-
     } else if (question.inputType === 'success') {
         _renderSuccess(question, fluencyData);
-
     } else if (question.inputType === "multi") {
         if (State.isTextMode) {
             renderTextInputUI(
@@ -186,20 +152,11 @@ export function loadQuestion(question, lesson, fluencyData, deps) {
     }
 }
 
-// --- Private helpers for each inputType branch ---
-
 function _renderSpeechOrAI(question, lesson, deps) {
     const { submitAnswerPrecheck, handleHint } = deps;
     hideHints();
 
-    const allHidden = false; let revealedFirst = false;
-    const escapeHtml = (text) => {
-        const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-        return text.replace(/[&<>"']/g, (m) => map[m]);
-    };
-
     const answerFragment = document.createDocumentFragment();
-    // Add possible answers directly if not speech
     if (question.inputType !== "speech") {
         answerFragment.appendChild(document.createTextNode(question.cue));
         if (question.possibleAnswer) {
@@ -212,9 +169,7 @@ function _renderSpeechOrAI(question, lesson, deps) {
         }
     }
 
-    const handleRevealClick = function () {
-        // Handled by IVP internally
-    };
+    const handleRevealClick = function () { };
 
     const qIndex = getCurrentQuestionIndex(question, State.configData, State.currentLessonIndex);
 
@@ -241,7 +196,69 @@ function _renderSpeechOrAI(question, lesson, deps) {
                         currentLessonIndex: State.currentLessonIndex,
                         currentQuestionIndex: qIndex,
                         handleAnswer: submitAnswerPrecheck,
-                        player: State.player
+                        player: State.player,
+                        uiHooks: {
+                            onPauseVideo: () => Media.pauseVideoIfPlaying(),
+                            onMicDisable: (btn) => {
+                                if (btn) btn.style.display = "none";
+                            },
+                            onRecordingStart: (userData) => {
+                                setMicStatusText(`<div class="text-center"><div class="mb-0" style="color: green; font-size: 30px;"><i class="bi bi-mic" style="color: green; font-size: 100px !important;"></i><br>${Strings.get('status_speak', userData?.native_language)}</div></div>`);
+                            },
+                            onEngineNotReady: (userData) => {
+                                const errorMsg = Strings.get('error_engine_not_ready', userData?.native_language) || "Speech engine not ready. Please wait a moment.";
+                                setMicStatusText(`<div class='text-center text-danger'><i class="bi bi-exclamation-triangle"></i> ${errorMsg}</div>`);
+                            },
+                            onEngineReady: (btn) => {
+                                if (btn) {
+                                    btn.style.display = "inline-block";
+                                    btn.disabled = false;
+                                    btn.classList.remove('disabled', 'btn-danger', 'btn-danger-recording');
+                                    btn.innerHTML = '<i class="bi bi-mic-fill"></i>';
+                                }
+                                setMicStatusText(`<div class='text-center text-success mt-2'><i class="bi bi-check-circle"></i> Engine ready. Try speaking now!</div>`);
+                            },
+                            onRecordingActive: (btn) => {
+                                if (btn) {
+                                    btn.style.display = "inline-block";
+                                    btn.innerHTML = '<i class="bi bi-mic-mute-fill"></i>';
+                                    btn.classList.add('btn-danger');
+                                }
+                            },
+                            onRecordingStop: (btn) => {
+                                if (btn) btn.style.display = "none";
+                                clearMicStatusAndHideMedia();
+                                setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Analyzing Speech...</div>`);
+                            },
+                            onStopEarly: (userData) => {
+                                prepareMediaUI();
+                                setMicStatusText(`<div class='text-center' style='color: red; font-size: large;'><i class='bi bi-exclamation-triangle-fill'></i> ${Strings.get('try_again_speech', userData?.native_language)}</div>`);
+                            },
+                            onGibberishDetected: () => {
+                                setMicStatusText(`<div class='text-center mt-3' style='color: #ff9800; font-size: large;'><i class='bi bi-ear-x'></i> Audio unclear. Please try speaking clearly.</div>`);
+                            },
+                            onPreflightRejected: (msg) => {
+                                clearPlaybackVideo();
+                                removeWebcamPreview();
+                                window.dispatchEvent(new CustomEvent('preflightRejected'));
+                                setMicStatusText(`<div class='text-center text-danger'>${msg}</div>`);
+                            },
+                            onTranscriptRejected: (cue, transcript) => {
+                                clearPlaybackVideo();
+                                removeWebcamPreview();
+                                window.dispatchEvent(new CustomEvent('transcriptRejected', { detail: { cue, transcript } }));
+                                setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Restarting Mic...</div>`);
+                            },
+                            onReviewStart: (transcript, timeLeft, acceptFn, rejectFn) => {
+                                renderWhisperReviewUI(transcript, timeLeft, acceptFn, rejectFn);
+                            },
+                            onReviewUpdate: (timeLeft) => {
+                                updateWhisperTimer(timeLeft);
+                            },
+                            onReviewEnd: () => {
+                                setMicStatusText("");
+                            }
+                        }
                     });
                 } catch (error) {
                     console.error("Speech toggle failed", error);
@@ -304,7 +321,6 @@ function _renderSuccess(question, fluencyData) {
 
     question.lessonId = State.configData.lessons[State.currentLessonIndex].lessonId;
 
-    // Explicitly hand the config to the window object before calling the processor 👇
     window.__currentConfigData = State.configData;
 
     initVideoProcessor(question.cue, fluencyData, question.lessonId);
@@ -322,7 +338,6 @@ function _renderSuccess(question, fluencyData) {
             lessonStats: finalStats,
             currentLessonId: question.lessonId
         }).then(progressResult => {
-            // Update the store with the new calculated numbers; subscription handles the UI
             appStore.getState().setActivityMetrics(progressResult.newDayCount, progressResult.newStreak);
         });
     };
