@@ -1,16 +1,19 @@
-// whisper-worker-demo.js
-// Lightweight Transformers.js Whisper worker for demo/mobile path.
-// Replaces the Sherpa-ONNX bundle (~104MB) with ~41MB of ONNX files.
-// Drop this alongside whisper-worker-web.js — no changes needed in speech.js.
-
 import { pipeline, env } from '@huggingface/transformers';
 
 env.allowLocalModels = false;
 env.useBrowserCache = true;
 
-// Point WASM files at your existing assets path if you have them locally,
-// otherwise Transformers.js fetches them from its CDN automatically.
-// env.backends.onnx.wasm.wasmPaths = '/assets/wasm/';
+// 1. Calculate safe thread count (same logic you had before)
+const deviceMemory = navigator.deviceMemory || 4;
+const safeThreadCount = deviceMemory < 4 ? 2 : Math.min(navigator.hardwareConcurrency || 4, 8);
+
+// 2. Explicitly tell the ONNX WASM backend how many threads to use
+env.backends.onnx.wasm.numThreads = safeThreadCount;
+
+// 3. Log it!
+console.log(`[whisper-demo] 🛠️ Hardware Info: Memory=${deviceMemory}GB, Cores=${navigator.hardwareConcurrency}`);
+console.log(`[whisper-demo] ⚙️ Transformers.js configured for ${env.backends.onnx.wasm.numThreads} threads.`);
+console.log(`[whisper-demo] 🚦 SharedArrayBuffer active: ${typeof SharedArrayBuffer !== 'undefined'}`);
 
 let transcriber = null;
 
@@ -73,9 +76,9 @@ self.onmessage = async function (e) {
             // 2. Sustained Speech Check with Hardware Pop Suppression
             const minSpeechFrames = Math.floor(0.025 * sampleRate); // 25ms window
             let start = audio.length;
-            
+
             // Skip the first 100ms for onset detection to ignore mic connection pops
-            let tempStart = Math.floor(0.1 * sampleRate); 
+            let tempStart = Math.floor(0.1 * sampleRate);
 
             while (tempStart < audio.length) {
                 if (Math.abs(audio[tempStart]) >= threshold) {
@@ -90,7 +93,7 @@ self.onmessage = async function (e) {
                 }
                 tempStart++;
             }
-            
+
             // If no speech found after the 100ms skip, check if it was actually in the first 100ms
             // but only if it's extremely loud (likely a fast response, not a pop)
             if (start === audio.length) {
@@ -112,7 +115,7 @@ self.onmessage = async function (e) {
                 type: 'vad_result',
                 id: e.data.id,
                 stats: {
-                    pauseCount: 0, 
+                    pauseCount: 0,
                     hesitation,
                     netDuration,
                     speechStart: start / sampleRate,

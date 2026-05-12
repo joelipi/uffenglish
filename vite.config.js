@@ -14,5 +14,19 @@ export default defineConfig({
                 // add any other HTML files you have here!
             },
         },
+        server: {
+            headers: {
+                'Cross-Origin-Opener-Policy': 'same-origin',
+                'Cross-Origin-Embedder-Policy': 'require-corp',
+            },
+        },
+
+        // (Optional) Add it to the preview server too, if you use `vite preview`
+        preview: {
+            headers: {
+                'Cross-Origin-Opener-Policy': 'same-origin',
+                'Cross-Origin-Embedder-Policy': 'require-corp',
+            },
+        }
     },
 })

@@ -183,8 +183,9 @@ export async function toggleSpeechRecognition(params) {
         }
 
         try {
-            const extractionResult = await WebAdapter.getAudioStatsAndTrim(rawAudioData, {
-                threshold: 0.02, preRoll: 0.3, postRoll: 0.3, sampleRate: 16000
+            // FIX: Bypass the buggy background VAD and strictly use the chronological math from Core
+            const extractionResult = Core.trimSilenceWithPadding(rawAudioData, {
+                threshold: 0.015, preRoll: 0.3, postRoll: 0.3, sampleRate: 16000
             });
 
             const whisperResult = await transcribeAudioBuffer(extractionResult.trimmed);
