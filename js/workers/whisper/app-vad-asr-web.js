@@ -2,6 +2,8 @@
 export let isEngineReady = false;
 let whisperWorker = null;
 let activeTranscriptionResolve = null;
+let activeVadResolvers = new Map();
+let vadRequestIdCounter = 0;
 
 export function preloadWhisperEngine() {
     return new Promise((resolve, reject) => {
@@ -23,8 +25,16 @@ export function preloadWhisperEngine() {
 
         console.log('[whisper] spawning worker at', performance.now().toFixed(0), 'ms');
 
-        whisperWorker = new Worker(new URL('./whisper-worker-web.js?0', import.meta.url));
+        const params = typeof window !== 'undefined'
+            ? new URLSearchParams(window.location.search)
+            : new URLSearchParams();
+        const isDemoMode = params.has('demo');
 
+        const workerOptions = isDemoMode ? { type: 'module' } : {};
+        whisperWorker = new Worker(new URL(
+            isDemoMode ? './whisper-worker-demo.js' : './whisper-worker-web.js',
+            import.meta.url
+        ), workerOptions);
         whisperWorker.onmessage = function (e) {
             if (e.data.type === 'ready') {
                 isEngineReady = true;
@@ -40,6 +50,13 @@ export function preloadWhisperEngine() {
                 if (activeTranscriptionResolve) {
                     activeTranscriptionResolve(e.data);
                     activeTranscriptionResolve = null;
+                }
+            }
+            else if (e.data.type === 'vad_result') {
+                const resolver = activeVadResolvers.get(e.data.id);
+                if (resolver) {
+                    resolver(e.data);
+                    activeVadResolvers.delete(e.data.id);
                 }
             }
         };
@@ -65,6 +82,26 @@ export function transcribeAudioBuffer(float32Array) {
         whisperWorker.postMessage({
             type: 'transcribe',
             audio: float32Array
+        }, [float32Array.buffer]);
+    });
+}
+
+export function analyzeAudioBufferWithVAD(float32Array, options = {}) {
+    return new Promise((resolve) => {
+        if (!isEngineReady || !whisperWorker) {
+            console.error('[whisper] engine not ready for VAD.');
+            resolve(null);
+            return;
+        }
+
+        const id = vadRequestIdCounter++;
+        activeVadResolvers.set(id, resolve);
+
+        whisperWorker.postMessage({
+            type: 'vad_analyze',
+            id: id,
+            audio: float32Array,
+            options: options
         }, [float32Array.buffer]);
     });
 }

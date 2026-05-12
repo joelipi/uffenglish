@@ -85,13 +85,14 @@
   <link rel="apple-touch-icon" sizes="192x192" href="assets/img/favicons/favicon-192x192.jpeg">
   <!-- / SuperPWA.com -->
   <meta name='robots' content='max-image-preview:large' />
+
   <script type="module">
     import { preloadWhisperEngine } from "./js/workers/whisper/app-vad-asr-web.js";
     import { pipeline, env } from "@huggingface/transformers";
 
     env.allowLocalModels = false;
     env.useBrowserCache = true;
-    env.backends.onnx.wasm.numThreads = 1;
+    env.backends.onnx.wasm.numThreads = 4;
 
     // Delay loading to prevent memory/CPU spikes during initial page load
     window.addEventListener('load', () => {
@@ -99,8 +100,9 @@
         try {
           // Load sequentially
           await preloadWhisperEngine();
-          await pipeline("zero-shot-classification", "Xenova/distilbert-base-uncased-mnli", { device: "wasm" });
-          await pipeline("token-classification", "Meyssa/gector-base-2020", { device: "wasm" });
+          // Local NLP models temporarily disabled to save resources. 
+          // Note: Re-insert GECToR specifically for the PWA/Offline version.
+          // await pipeline("token-classification", "Meyssa/gector-base-2020", { device: "wasm" });
           console.log("Preloaded models sequentially.");
         } catch (error) {
           console.error("Error preloading models:", error);
@@ -109,10 +111,10 @@
     });
   </script>
   <link rel='stylesheet' id='mwai_chatbot_theme_timeless-css' href='assets/css/timeless.css' media='all' />
-  <link rel='stylesheet' id='bootstrap-css-css'
-    href='./node_modules/bootstrap/dist/css/bootstrap.min.css' media='all' />
-  <link rel='stylesheet' id='bootstrap-icons-css'
-    href='./node_modules/bootstrap-icons/font/bootstrap-icons.css' media='all' />
+  <link rel='stylesheet' id='bootstrap-css-css' href='./node_modules/bootstrap/dist/css/bootstrap.min.css'
+    media='all' />
+  <link rel='stylesheet' id='bootstrap-icons-css' href='./node_modules/bootstrap-icons/font/bootstrap-icons.css'
+    media='all' />
   <script crossorigin src="./node_modules/react/umd/react.production.min.js"></script>
   <script crossorigin src="./node_modules/react-dom/umd/react-dom.production.min.js"></script>
   <script>
@@ -570,22 +572,42 @@
         </script>
         <!-- Courses Section -->
         <div id="coursesIntro" class="card border-dark mb-3 p-0" style="margin-top: 10px; margin-bottom: 70px;">
-<div class='card-header bg-dark text-white p-0' id='correct'><div class='d-flex align-items-center p-3'><img src='assets/img/teacherprofile.png' alt='' class='rounded-circle me-3' style='width:100px;height:100px;object-fit:cover'><span class='fs-5'>Welcome!</span></div></div><div class='card-body text-dark'><h3 class='card-title'>
-Aquí una demo y tutorial de cómo usarlo.
-</h3></div>
-</div>
+          <div class='card-header bg-dark text-white p-0' id='correct'>
+            <div class='d-flex align-items-center p-3'><img src='assets/img/teacherprofile.png' alt=''
+                class='rounded-circle me-3' style='width:100px;height:100px;object-fit:cover'><span
+                class='fs-5'>Welcome!</span></div>
+          </div>
+          <div class='card-body text-dark'>
+            <h3 class='card-title'>
+              Aquí una demo y tutorial de cómo usarlo.
+            </h3>
+          </div>
+        </div>
 
-<div id="courses1" class="card border-dark mb-3 p-0" style="margin-top: 10px; margin-bottom: 70px;">
-<div class='card-header bg-dark text-white p-0' id='correct'><div class='d-flex align-items-center p-3'><span class='fs-5'>Las Bases del Inglés</span></div></div><div class='card-body text-dark'><h3 class='card-title'>
-Todo el inglés más importante y fundamental, la base para todo, y también muy útil en sí mismo.
-</h3></div>
-</div>
-<div id="courses1" class="card border-dark p-0" style="margin-top: 10px; margin-bottom: 170px;">
-<div class='card-header bg-dark text-white p-0' id='correct'><div class='d-flex align-items-center p-3'><img src='assets/img/teacherprofile.png' alt='' class='rounded-circle me-3' style='width:100px;height:100px;object-fit:cover'><span class='fs-5'>El Inglés Coloquial</span></div></div><div class='card-body text-dark'><h3 class='card-title'>
-Cómo hablamos en el día a día más allá de lo más esenical, incluyendo frases comunes que normalmente no se enseñan en las clases de inglés.
-</h3></div>
-</div>
-<!--End Courses-->
+        <div id="courses1" class="card border-dark mb-3 p-0" style="margin-top: 10px; margin-bottom: 70px;">
+          <div class='card-header bg-dark text-white p-0' id='correct'>
+            <div class='d-flex align-items-center p-3'><span class='fs-5'>Las Bases del Inglés</span></div>
+          </div>
+          <div class='card-body text-dark'>
+            <h3 class='card-title'>
+              Todo el inglés más importante y fundamental, la base para todo, y también muy útil en sí mismo.
+            </h3>
+          </div>
+        </div>
+        <div id="courses1" class="card border-dark p-0" style="margin-top: 10px; margin-bottom: 170px;">
+          <div class='card-header bg-dark text-white p-0' id='correct'>
+            <div class='d-flex align-items-center p-3'><img src='assets/img/teacherprofile.png' alt=''
+                class='rounded-circle me-3' style='width:100px;height:100px;object-fit:cover'><span class='fs-5'>El
+                Inglés Coloquial</span></div>
+          </div>
+          <div class='card-body text-dark'>
+            <h3 class='card-title'>
+              Cómo hablamos en el día a día más allá de lo más esenical, incluyendo frases comunes que normalmente no se
+              enseñan en las clases de inglés.
+            </h3>
+          </div>
+        </div>
+        <!--End Courses-->
 
       </div>
     </div>

@@ -1,6 +1,6 @@
 // whisper-worker-web.js v5 - Aggressive Parallelization
 // SILENCE LOGS FOR PRODUCTION/CLEAN CONSOLE
-console.log = () => {}; 
+// console.log = () => {}; 
 const WHISPER_BASE_PATH = 'https://r2.ultrafastfluency.com/whisper/';
 const MODEL_CACHE_NAME = 'uff-whisper-cache-v3';
 
@@ -93,8 +93,8 @@ async function bootWhisperEngine() {
             isReady = true;
 
             console.timeEnd('[whisper] total init');
-            self.postMessage({ type: 'ready' });
             vad = createVad(self.Module);
+            self.postMessage({ type: 'ready' });
         };
 
         importScripts(
@@ -132,6 +132,95 @@ self.onmessage = function (e) {
         } catch (error) {
             console.error('[whisper] transcription error:', error);
             self.postMessage({ type: 'result', text: null });
+        }
+    } else if (e.data.type === 'vad_analyze' && isReady && vad) {
+        try {
+            const { audio, options, id } = e.data;
+            const sampleRate = options.sampleRate || 16000;
+            const preRollFrames = Math.floor((options.preRoll || 0.2) * sampleRate);
+            const postRollFrames = Math.floor((options.postRoll || 0.2) * sampleRate);
+
+            vad.reset();
+            vad.acceptWaveform(audio);
+            vad.flush();
+
+            let segments = [];
+            while (!vad.isEmpty()) {
+                const seg = vad.front();
+                // Copy the samples as seg.samples might be freed/overwritten
+                segments.push({
+                    start: seg.start,
+                    samples: new Float32Array(seg.samples),
+                    length: seg.samples.length
+                });
+                vad.pop();
+            }
+
+            if (segments.length === 0) {
+                console.log('[whisper-web] VAD found 0 speech segments. Returning full audio.');
+                self.postMessage({
+                    type: 'vad_result',
+                    id: id,
+                    trimmedAudio: audio,
+                    stats: { pauseCount: 0, hesitation: 0, netDuration: audio.length / sampleRate, speechStart: 0, speechEnd: 0 }
+                });
+                return;
+            }
+
+            console.log(`[whisper-web] VAD found ${segments.length} segments.`);
+            segments.forEach((seg, i) => {
+                console.log(`[whisper-web] Seg ${i}: start=${seg.start}, length=${seg.length}`);
+            });
+
+            let startFrame = segments[0].start;
+            let endFrame = segments[segments.length - 1].start + segments[segments.length - 1].length;
+
+            const hesitation = Math.round((startFrame / sampleRate) * 1000);
+            const speechStart = startFrame / sampleRate;
+            const speechEnd = endFrame / sampleRate;
+
+            let pauseCount = 0;
+            let netFrames = 0;
+            const pauseThresholdFrames = Math.floor(0.6 * sampleRate);
+
+            for (let i = 0; i < segments.length; i++) {
+                netFrames += segments[i].length;
+                if (i > 0) {
+                    const pauseLength = segments[i].start - (segments[i - 1].start + segments[i - 1].length);
+                    if (pauseLength >= pauseThresholdFrames) {
+                        pauseCount++;
+                    }
+                }
+            }
+
+            const netDuration = netFrames / sampleRate;
+
+            // We no longer slice the audio based on VAD boundaries for transcription.
+            // Whisper is perfectly capable of ignoring silence, and slicing it was causing 
+            // valid speech to be dropped if the VAD miscalculated the end frame.
+            // We still return the VAD metrics (hesitation, pauses) for the scoring UI.
+            self.postMessage({
+                type: 'vad_result',
+                id: id,
+                trimmedAudio: audio, // Pass the full, intact audio to Whisper
+                stats: {
+                    pauseCount: pauseCount,
+                    hesitation: hesitation,
+                    netDuration: netDuration,
+                    speechStart: speechStart,
+                    speechEnd: speechEnd
+                }
+            }); // Let structured clone handle the buffer transfer safely
+
+        } catch (error) {
+            console.error('[whisper] VAD analysis error:', error);
+            // fallback
+            self.postMessage({
+                type: 'vad_result',
+                id: e.data.id,
+                trimmedAudio: e.data.audio,
+                stats: { pauseCount: 0, hesitation: 0, netDuration: e.data.audio.length / (e.data.options.sampleRate || 16000), speechStart: 0, speechEnd: 0 }
+            });
         }
     }
 };

@@ -51,10 +51,16 @@ export function renderFeedbackToHTML(feedbackData) {
 
         // Standard stat bubble
         const htmlParts = section.parts.map(p => {
+            // Limitation notices (demo mode)
+            if (p.type === 'notice') return `<span class="limitation-notice">${p.message}</span>`;
             // Feedback messages (formality, native-like, understanding)
             if (p.message) return p.message;
             // Idiom list with <em> wrapping
-            if (p.idioms) return `<strong>${p.label}:</strong> ${p.idioms.map(i => `<em>${i}</em>`).join(', ')}`;
+            if (p.idioms) {
+                const count = p.idioms.length;
+                const listItems = p.idioms.map(i => `<li><em>${i}</em></li>`).join('');
+                return `<strong>${p.label} (${count}):</strong><ul>${listItems}</ul>`;
+            }
             // Standard label:value
             return `<strong>${p.label}:</strong> ${p.value}`;
         });
