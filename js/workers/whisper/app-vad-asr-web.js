@@ -28,10 +28,11 @@ export function preloadWhisperEngine() {
             : new URLSearchParams();
         const isDemoMode = params.has('demo');
 
+        const workerOptions = isDemoMode ? { type: 'module' } : {};
         whisperWorker = new Worker(new URL(
             isDemoMode ? './whisper-worker-demo.js' : './whisper-worker-web.js',
             import.meta.url
-        ));
+        ), workerOptions);
         whisperWorker.onmessage = function (e) {
             if (e.data.type === 'ready') {
                 isEngineReady = true;

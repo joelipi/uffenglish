@@ -28,6 +28,7 @@ async function bootWhisperEngine() {
             }
         );
 
+        console.log('[whisper] 🚀 Demo engine ready (Transformers.js / VAD-free)');
         self.postMessage({ type: 'ready' });
 
     } catch (error) {
