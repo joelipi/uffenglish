@@ -198,6 +198,7 @@ export function getCompressedLessonStats() {
 
             // Arrays
             ida: Array.isArray(State.recognizedIdioms) ? [...new Set(State.recognizedIdioms)] : [],
+            idc: Array.isArray(State.recognizedIdioms) ? [...new Set(State.recognizedIdioms)].length : 0,
             prg: Array.isArray(State.pragmaticFlags) ? [...new Set(State.pragmaticFlags)] : [],
             hx: Array.isArray(State.interactionLog) ? State.interactionLog : []
         };
@@ -208,7 +209,7 @@ export function getCompressedLessonStats() {
                 delete payload[key];
             } else if (Array.isArray(payload[key]) && payload[key].length === 0) {
                 delete payload[key];
-            } else if (payload[key] === 0 && key === 'hes') {
+            } else if (payload[key] === 0 && (key === 'hes' || key === 'idc')) {
                 delete payload[key];
             }
         });
