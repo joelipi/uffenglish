@@ -1,3 +1,4 @@
+import { State } from '../modules/state.js';
 
 export function syncTextModeUI() {
     if (DOM.phrasesScore) {
@@ -75,6 +76,12 @@ function setChatHeader(isAI) {
 }
 
 // 2. UI Helper Functions
+
+export function getFirstName(displayName) {
+    if (!displayName) return "User";
+    return displayName.split(' ')[0];
+}
+
 export function flashElement(element) {
     if (!element) return;
     element.classList.remove('score-update');
@@ -167,8 +174,16 @@ export function safeRenderChatInterface(isAI, bodyContent) {
  */
 export function renderUserResponse(text, statsHtml = "") {
     const safeText = escapeHTML(text);
+    const userName = getFirstName(State.userData?.display_name);
+    const userAvatarUrl = State.userData?.profilepicurl || 'assets/img/teacherprofile.png';
     const html = `
-        <div class='userResponse chat-bubble-sent chat-msg'>${safeText}</div>
+        <div class='chat-message-wrapper user-message-wrapper'>
+            <img src='${userAvatarUrl}' alt='${userName}' class='chat-avatar-inline' />
+            <div class='userResponse chat-bubble-sent chat-msg'>
+                <div class='chat-bubble-header'>~ ${userName}</div>
+                ${safeText}
+            </div>
+        </div>
         ${statsHtml}`;
     safeRenderChatInterface(false, html);
 }
@@ -179,9 +194,14 @@ export function renderUserResponse(text, statsHtml = "") {
 export function renderAIAnalysisLoading(text) {
     const defaultText = Strings.get('ai_analyzing', State.userData?.native_language);
     const displayText = text || defaultText;
+    const aiAvatarUrl = 'assets/img/ai-avatar.png'; // Use a default AI avatar
     const html = `
-        <div class='chat-bubble chat-msg' id='ai-loading-status'>
-            <strong><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ${displayText}</strong>
+        <div class='chat-message-wrapper ai-message-wrapper' id='ai-loading-status'>
+            <img src='${aiAvatarUrl}' alt='AI' class='chat-avatar-inline' />
+            <div class='chat-bubble chat-msg'>
+                <div class='chat-bubble-header'>FluIntel AI</div>
+                <strong><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ${displayText}</strong>
+            </div>
         </div>`;
     safeRenderChatInterface(true, html);
 }
@@ -195,33 +215,46 @@ export function createHeaderHTML(text) {
     return `<div style='font-size: 0.85em; text-transform: uppercase; color: #17a2b8; margin-bottom: 5px;'><strong>${text}</strong></div>`;
 }
 
-export function createPragmaticsBubbleHTML(headingHTML, contentHTML, correctionHTML = "") {
-    return `<div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>
-        ${headingHTML ? headingHTML : ''}
-        ${contentHTML}
-        ${correctionHTML ? `<div style="margin-top: 6px; font-weight: bold; color: #17a2b8;">${correctionHTML}</div>` : ''}
-    </div>`;
+export function createPragmaticsBubbleHTML(headingHTML, contentHTML, correctionHTML = "", botName = "Pragmatics Bot", avatarUrl = "assets/img/ai-avatar.png") {
+    return `
+        <div class='chat-message-wrapper ai-message-wrapper' style='margin-top: 12px;'>
+            <img src='${avatarUrl}' alt='${botName}' class='chat-avatar-inline' />
+            <div class='chat-bubble chat-msg' style='display: block;'>
+                <div class='chat-bubble-header'>${botName}</div>
+                ${headingHTML ? headingHTML : ''}
+                ${contentHTML}
+                ${correctionHTML ? `<div style="margin-top: 6px; font-weight: bold; color: #17a2b8;">${correctionHTML}</div>` : ''}
+            </div>
+        </div>`;
 }
 
-export function createStatsBubbleHTML(header, statsParts) {
+export function createStatsBubbleHTML(header, statsParts, botName = "Stats Bot", avatarUrl = "assets/img/ai-avatar.png") {
     const listHtml = statsParts && statsParts.length > 0 ? `<ul>${statsParts.map(part => `<li>${part}</li>`).join('')}</ul>` : '';
     return `
-        <div class='chat-bubble chat-msg' style='margin-bottom: 12px; display: block; border-left: 4px solid #17a2b8;'>
-            ${createHeaderHTML(header)}
-            ${listHtml}
+        <div class='chat-message-wrapper ai-message-wrapper' style='margin-bottom: 12px;'>
+            <img src='${avatarUrl}' alt='${botName}' class='chat-avatar-inline' />
+            <div class='chat-bubble chat-msg' style='display: block; border-left: 4px solid #17a2b8;'>
+                <div class='chat-bubble-header'>${botName}</div>
+                ${createHeaderHTML(header)}
+                ${listHtml}
+            </div>
         </div>`;
 }
 
 /**
  * 🎨 UI BUILDER: Renders a grammar correction bubble with a diff
  */
-export function createGrammarDiffHTML(original, correction, headingText = "") {
+export function createGrammarDiffHTML(original, correction, headingText = "", botName = "Grammar Bot", avatarUrl = "assets/img/ai-avatar.png") {
     const { userHTML, corrHTML } = buildGrammarDiff(original, correction);
     return `
-        <div class='chat-bubble chat-msg' style='margin-top: 12px; display: block;'>
-            ${createHeaderHTML(headingText)}
-            <div class="diff-del-bubble">${userHTML}</div>
-            <div style="margin-top:6px">${corrHTML}</div>
+        <div class='chat-message-wrapper ai-message-wrapper' style='margin-top: 12px;'>
+            <img src='${avatarUrl}' alt='${botName}' class='chat-avatar-inline' />
+            <div class='chat-bubble chat-msg' style='display: block;'>
+                <div class='chat-bubble-header'>${botName}</div>
+                ${createHeaderHTML(headingText)}
+                <div class="diff-del-bubble">${userHTML}</div>
+                <div style="margin-top:6px">${corrHTML}</div>
+            </div>
         </div>`;
 }
 
@@ -249,32 +282,55 @@ export function renderAIFeedback(contentChunks = []) {
         .filter(Boolean)
         .forEach(chunk => {
             if (typeof chunk === 'string') {
-                if (chunk.includes("chat-bubble")) {
+                if (chunk.includes("chat-message-wrapper") || chunk.includes("chat-bubble")) {
                     const tempDiv = document.createElement('div');
                     tempDiv.innerHTML = chunk;
                     while (tempDiv.firstChild) {
                         fragment.appendChild(tempDiv.firstChild);
                     }
                 } else {
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'chat-message-wrapper ai-message-wrapper';
+                    wrapper.style.marginTop = '12px';
+
+                    const img = document.createElement('img');
+                    img.src = 'assets/img/ai-avatar.png';
+                    img.alt = 'FluIntel AI';
+                    img.className = 'chat-avatar-inline';
+
                     const bubble = document.createElement('div');
                     bubble.className = 'chat-bubble chat-msg';
-                    bubble.style.marginTop = '12px';
                     bubble.style.display = 'block';
-                    bubble.innerHTML = chunk;
-                    fragment.appendChild(bubble);
+                    bubble.innerHTML = `<div class='chat-bubble-header'>FluIntel AI</div>${chunk}`;
+
+                    wrapper.appendChild(img);
+                    wrapper.appendChild(bubble);
+                    fragment.appendChild(wrapper);
                 }
             } else if (chunk instanceof Node) {
-                // If it's already a node, ensure it has chat-bubble styling if appropriate, or just append it
-                if (chunk.nodeType === Node.ELEMENT_NODE && !chunk.classList.contains('chat-msg')) {
-                    // It's just a raw element, maybe we wrap it or trust the caller to have styled it.
-                    // The caller might be providing a fully constructed bubble.
-                    // If it doesn't have chat-bubble, we'll wrap it to maintain style.
+                if (chunk.nodeType === Node.ELEMENT_NODE && !chunk.classList.contains('chat-msg') && !chunk.classList.contains('chat-message-wrapper')) {
+                    const outerWrapper = document.createElement('div');
+                    outerWrapper.className = 'chat-message-wrapper ai-message-wrapper';
+                    outerWrapper.style.marginTop = '12px';
+
+                    const img = document.createElement('img');
+                    img.src = 'assets/img/ai-avatar.png';
+                    img.alt = 'FluIntel AI';
+                    img.className = 'chat-avatar-inline';
+
                     const wrapper = document.createElement('div');
                     wrapper.className = 'chat-bubble chat-msg';
-                    wrapper.style.marginTop = '12px';
                     wrapper.style.display = 'block';
+
+                    const header = document.createElement('div');
+                    header.className = 'chat-bubble-header';
+                    header.textContent = 'FluIntel AI';
+
+                    wrapper.appendChild(header);
                     wrapper.appendChild(chunk);
-                    fragment.appendChild(wrapper);
+                    outerWrapper.appendChild(img);
+                    outerWrapper.appendChild(wrapper);
+                    fragment.appendChild(outerWrapper);
                 } else {
                     fragment.appendChild(chunk);
                 }
@@ -425,7 +481,15 @@ export function renderTutorMessage(text, isUser) {
         renderUserResponse(text);
     } else {
         const safeText = escapeHTML(text);
-        const html = `<div class='chat-bubble chat-msg'>${safeText}</div>`;
+        const aiAvatarUrl = 'assets/img/ai-avatar.png'; // Default tutor avatar
+        const html = `
+            <div class='chat-message-wrapper ai-message-wrapper'>
+                <img src='${aiAvatarUrl}' alt='Tutor' class='chat-avatar-inline' />
+                <div class='chat-bubble chat-msg'>
+                    <div class='chat-bubble-header'>Tutor</div>
+                    ${safeText}
+                </div>
+            </div>`;
         safeRenderChatInterface(true, html);
     }
 }
@@ -1325,9 +1389,27 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
         if (questionData.inputType !== "ai" && questionData.inputType !== "speech") {
             const localizedTrans = getLocalizedTranslation(translation, lang);
 
+            const correctWrapper = document.createElement('div');
+            correctWrapper.className = 'chat-message-wrapper ai-message-wrapper correct-answer-wrapper'; // reusing ai-message-wrapper for left alignment or user-message-wrapper for right depending on original
+            // Actually the original was chat-bubble-sent which means right-aligned. Let's make it a user message style.
+            correctWrapper.className = 'chat-message-wrapper user-message-wrapper correct-answer-wrapper';
+
+            const correctImg = document.createElement('img');
+            correctImg.src = State.userData?.profilepicurl || 'assets/img/teacherprofile.png';
+            correctImg.alt = getFirstName(State.userData?.display_name);
+            correctImg.className = 'chat-avatar-inline';
+
             const correctBubble = document.createElement('div');
             correctBubble.classList.add('correct-answer-display', 'chat-bubble-sent', 'chat-msg');
-            correctBubble.textContent = cue;
+
+            const correctHeader = document.createElement('div');
+            correctHeader.className = 'chat-bubble-header';
+            correctHeader.textContent = '~ ' + getFirstName(State.userData?.display_name);
+            correctBubble.appendChild(correctHeader);
+
+            const correctTextSpan = document.createElement('span');
+            correctTextSpan.textContent = cue;
+            correctBubble.appendChild(correctTextSpan);
 
             if (localizedTrans && lang && lang !== 'en') {
                 correctBubble.appendChild(document.createElement('br'));
@@ -1339,17 +1421,36 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
                 correctBubble.appendChild(transSpan);
             }
 
+            const praiseWrapper = document.createElement('div');
+            praiseWrapper.className = 'chat-message-wrapper ai-message-wrapper';
+            praiseWrapper.style.marginTop = '12px';
+
+            const praiseImg = document.createElement('img');
+            praiseImg.src = 'assets/img/ai-avatar.png';
+            praiseImg.alt = 'FluIntel AI';
+            praiseImg.className = 'chat-avatar-inline';
+
             const praiseBubble = document.createElement('div');
             praiseBubble.classList.add('chat-bubble', 'chat-msg');
-            praiseBubble.style.marginTop = '12px';
+
+            const praiseHeader = document.createElement('div');
+            praiseHeader.className = 'chat-bubble-header';
+            praiseHeader.textContent = 'FluIntel AI';
+            praiseBubble.appendChild(praiseHeader);
+
             const praiseStrong = document.createElement('strong');
             praiseStrong.innerHTML = getPraiseHTML(getRandomPraise('general', lang));
             praiseBubble.appendChild(praiseStrong);
 
-            const chunks = [correctBubble];
+            praiseWrapper.appendChild(praiseImg);
+            praiseWrapper.appendChild(praiseBubble);
+
+                        correctWrapper.appendChild(correctBubble);
+            correctWrapper.appendChild(correctImg);
+            const chunks = [correctWrapper];
             if (Array.isArray(explanation)) chunks.push(...explanation);
             else if (explanation) chunks.push(explanation);
-            chunks.push(praiseBubble, questionData.headsUp);
+            chunks.push(praiseWrapper, questionData.headsUp);
 
             renderAIFeedback(chunks);
         } else {

@@ -27,16 +27,25 @@ export function renderFeedbackToHTML(feedbackData) {
 
             let grammarDiffHtml = '';
             if (section.diff) {
-                grammarDiffHtml = createGrammarDiffHTML(section.diff.original, section.diff.corrected, '')
-                    .replace(/^<div class='chat-bubble chat-msg'[^>]*>/, '')
-                    .replace(/<\/div>$/, '');
+                // createGrammarDiffHTML returns a wrapper now, so we need to extract just the diff parts
+                // The easiest way is to let the diff logic reside inside the bubble.
+                // We'll just do a dirty regex to extract the inner content of the bubble.
+                const fullDiffHTML = createGrammarDiffHTML(section.diff.original, section.diff.corrected, '');
+                const match = fullDiffHTML.match(/<div class="diff-del-bubble">[\s\S]*?<\/div>\s*<div style="margin-top:6px">[\s\S]*?<\/div>/);
+                if (match) {
+                    grammarDiffHtml = match[0];
+                }
             }
 
             return `
-                <div class='chat-bubble chat-msg' style='margin-bottom: 12px; display: block; border-left: 4px solid #17a2b8;'>
-                    ${grammarHeader}
-                    ${grammarListHtml}
-                    ${grammarDiffHtml}
+                <div class='chat-message-wrapper ai-message-wrapper' style='margin-bottom: 12px;'>
+                    <img src='assets/img/ai-avatar.png' alt='Grammar Bot' class='chat-avatar-inline' />
+                    <div class='chat-bubble chat-msg' style='display: block; border-left: 4px solid #17a2b8;'>
+                        <div class='chat-bubble-header'>Grammar Bot</div>
+                        ${grammarHeader}
+                        ${grammarListHtml}
+                        ${grammarDiffHtml}
+                    </div>
                 </div>`;
         }
 
@@ -57,11 +66,26 @@ export function renderFeedbackToHTML(feedbackData) {
         });
 
         // Overall fluency gets bold header
+        const botInfo = (() => {
+            switch (section.key) {
+                case 'grammar': return { name: 'Grammar Bot', avatar: 'assets/img/ai-avatar.png' };
+                case 'vocabulary': return { name: 'Vocabulary Bot', avatar: 'assets/img/ai-avatar.png' };
+                case 'flow': return { name: 'Flow Bot', avatar: 'assets/img/ai-avatar.png' };
+                case 'pronunciation': return { name: 'Pronunciation Bot', avatar: 'assets/img/ai-avatar.png' };
+                case 'listening': return { name: 'Listening Bot', avatar: 'assets/img/ai-avatar.png' };
+                case 'formality': return { name: 'Formality Bot', avatar: 'assets/img/ai-avatar.png' };
+                case 'nativeLike': return { name: 'Idiom Bot', avatar: 'assets/img/ai-avatar.png' };
+                case 'understanding': return { name: 'Pragmatics Bot', avatar: 'assets/img/ai-avatar.png' };
+                case 'fluency': return { name: 'Fluency Bot', avatar: 'assets/img/ai-avatar.png' };
+                default: return { name: 'FluIntel AI', avatar: 'assets/img/ai-avatar.png' };
+            }
+        })();
+
         if (section.isOverall) {
-            return createStatsBubbleHTML(`<strong>${section.header}</strong>`, []);
+            return createStatsBubbleHTML(`<strong>${section.header}</strong>`, [], botInfo.name, botInfo.avatar);
         }
 
-        return createStatsBubbleHTML(section.header, htmlParts);
+        return createStatsBubbleHTML(section.header, htmlParts, botInfo.name, botInfo.avatar);
     });
 }
 
