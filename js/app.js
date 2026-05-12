@@ -4,12 +4,14 @@
 const originalConsoleLog = console.log;
 window.enabledLogs = {
     whisper: true,   // Enabled for debugging microphone issues
-    recording: false,
+    recording: true,
+    speech: true,
     api: false,
     tanstack: false,
     toggle: false,
     ai: false,
-    analytics: false
+    analytics: false,
+    all: true // Enable all logs globally as requested
 };
 
 console.log = (msg, ...args) => {

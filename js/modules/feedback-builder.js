@@ -38,15 +38,21 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, question
     });
 
     // 3. Flow
+    const flowParts = [
+        { label: Strings.get('stats_hesitation', lang), value: `${speechAnalytics.hesitation || 0}ms` },
+        { label: Strings.get('stats_pauses_speaking', lang), value: (new URLSearchParams(window.location.search).has('demo')) ? "N/A" : (speechAnalytics.pauseCount || 0) },
+        { label: Strings.get('stats_wpm', lang), value: speechAnalytics.wpm || 0 }
+    ];
+
+    if (new URLSearchParams(window.location.search).has('demo')) {
+        flowParts.push({ type: 'notice', message: Strings.get('demo_vad_limitation_notice', lang) });
+    }
+
     sections.push({
         type: 'stat',
         key: 'flow',
         header: `${Strings.get('stats_speech_flow_header', lang)} ${scoreData.subScores.flow}%`,
-        parts: [
-            { label: Strings.get('stats_hesitation', lang), value: `${speechAnalytics.hesitation || 0}ms` },
-            { label: Strings.get('stats_pauses_speaking', lang), value: speechAnalytics.pauseCount || 0 },
-            { label: Strings.get('stats_wpm', lang), value: speechAnalytics.wpm || 0 }
-        ]
+        parts: flowParts
     });
 
     // AI-only sections (4-9)

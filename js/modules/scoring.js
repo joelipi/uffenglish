@@ -54,7 +54,14 @@ export function calculateFluencyScore({
     // Spec calculation: 100 score up to 500ms, then deduct 5 points for every 100ms
     const hesitationScore = Math.max(0, 100 - Math.floor(Math.max(0, hesitation - 500) / 20));
     
-    const flow = Math.round((wpmScore + pausesScore + hesitationScore) / 3);
+    const isDemoMode = new URLSearchParams(window.location.search).has('demo');
+    let flow;
+    if (isDemoMode) {
+        // Average of ONLY WPM and Hesitation
+        flow = Math.round((wpmScore + hesitationScore) / 2);
+    } else {
+        flow = Math.round((wpmScore + pausesScore + hesitationScore) / 3);
+    }
 
     // 4. Vocabulary (5%)
     let vocabScore = 100;

@@ -1,6 +1,6 @@
 // whisper-worker-web.js v5 - Aggressive Parallelization
 // SILENCE LOGS FOR PRODUCTION/CLEAN CONSOLE
-console.log = () => {}; 
+// console.log = () => {}; 
 const WHISPER_BASE_PATH = 'https://r2.ultrafastfluency.com/whisper/';
 const MODEL_CACHE_NAME = 'uff-whisper-cache-v3';
 
@@ -157,6 +157,7 @@ self.onmessage = function (e) {
             }
 
             if (segments.length === 0) {
+                console.log('[whisper-web] VAD found 0 speech segments. Returning full audio.');
                 self.postMessage({
                     type: 'vad_result',
                     id: id,
@@ -165,6 +166,11 @@ self.onmessage = function (e) {
                 });
                 return;
             }
+
+            console.log(`[whisper-web] VAD found ${segments.length} segments.`);
+            segments.forEach((seg, i) => {
+                console.log(`[whisper-web] Seg ${i}: start=${seg.start}, length=${seg.length}`);
+            });
 
             let startFrame = segments[0].start;
             let endFrame = segments[segments.length - 1].start + segments[segments.length - 1].length;
@@ -189,15 +195,14 @@ self.onmessage = function (e) {
 
             const netDuration = netFrames / sampleRate;
 
-            const finalStart = Math.max(0, startFrame - preRollFrames);
-            const finalEnd = Math.min(audio.length - 1, endFrame + postRollFrames);
-
-            const trimmedAudio = audio.slice(finalStart, finalEnd + 1);
-
+            // We no longer slice the audio based on VAD boundaries for transcription.
+            // Whisper is perfectly capable of ignoring silence, and slicing it was causing 
+            // valid speech to be dropped if the VAD miscalculated the end frame.
+            // We still return the VAD metrics (hesitation, pauses) for the scoring UI.
             self.postMessage({
                 type: 'vad_result',
                 id: id,
-                trimmedAudio: trimmedAudio,
+                trimmedAudio: audio, // Pass the full, intact audio to Whisper
                 stats: {
                     pauseCount: pauseCount,
                     hesitation: hesitation,
@@ -205,7 +210,7 @@ self.onmessage = function (e) {
                     speechStart: speechStart,
                     speechEnd: speechEnd
                 }
-            }, [trimmedAudio.buffer]); // zero-copy transfer
+            }); // Let structured clone handle the buffer transfer safely
 
         } catch (error) {
             console.error('[whisper] VAD analysis error:', error);

@@ -42,6 +42,8 @@ export function renderFeedbackToHTML(feedbackData) {
 
         // Standard stat bubble
         const htmlParts = section.parts.map(p => {
+            // Limitation notices (demo mode)
+            if (p.type === 'notice') return `<span class="limitation-notice">${p.message}</span>`;
             // Feedback messages (formality, native-like, understanding)
             if (p.message) return p.message;
             // Idiom list with <em> wrapping

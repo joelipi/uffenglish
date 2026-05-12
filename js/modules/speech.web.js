@@ -221,7 +221,9 @@ export async function startLocalAudioTap(stream) {
     localAudioWorkletNode = new AudioWorkletNode(localAudioContext, 'audio-processor');
 
     localAudioWorkletNode.port.onmessage = (event) => {
-        const chunk = event.data; // Float32Array
+        // CRITICAL: We must clone the Float32Array because the underlying buffer 
+        // may be reused by the AudioWorklet global scope.
+        const chunk = new Float32Array(event.data); 
         localRawAudioChunks.push(chunk);
         
         if (window.enabledLogs.whisper && localRawAudioChunks.length % 40 === 0) {
@@ -231,7 +233,15 @@ export async function startLocalAudioTap(stream) {
     };
 
     source.connect(localAudioWorkletNode);
-    localAudioWorkletNode.connect(localAudioContext.destination);
+    
+    // CRITICAL: We cannot simply leave the Worklet disconnected from the destination.
+    // If we do, the browser's Web Audio optimizer will aggressively garbage-collect 
+    // or suspend the node after a few seconds, cutting off the recording.
+    // To prevent echo while keeping the node alive, we route it through a muted GainNode.
+    const silentGain = localAudioContext.createGain();
+    silentGain.gain.value = 0;
+    localAudioWorkletNode.connect(silentGain);
+    silentGain.connect(localAudioContext.destination);
 }
 
 export function stopLocalAudioTap() {

@@ -440,6 +440,10 @@ const strings = {
         es: "El motor de voz no está listo. Por favor, espera un momento.",
         fr: "Le moteur vocal n'est pas prêt. Veuillez patienter un instant."
     },
+    'demo_vad_limitation_notice': {
+        en: "The web version can't detect pauses during speech, only hesitation at the beginning. Add us to homescreen to get the full version with more accurate speech recognition.",
+        es: "La versión web no puede detectar pausas al hablar, solo la duda al inicio. Agrega nuestra app a la pantalla de inicio para obtener la versión completa con reconocimiento de voz más preciso."
+    },
     'example_correct_answer': {
         en: "Example correct answer:",
         es: "Respuesta correcta de ejemplo:",
