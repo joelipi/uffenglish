@@ -100,8 +100,9 @@
         try {
           // Load sequentially
           await preloadWhisperEngine();
-
-          await pipeline("token-classification", "Meyssa/gector-base-2020", { device: "wasm" });
+          // Local NLP models temporarily disabled to save resources. 
+          // Note: Re-insert GECToR specifically for the PWA/Offline version.
+          // await pipeline("token-classification", "Meyssa/gector-base-2020", { device: "wasm" });
           console.log("Preloaded models sequentially.");
         } catch (error) {
           console.error("Error preloading models:", error);
