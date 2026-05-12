@@ -93,8 +93,8 @@ async function bootWhisperEngine() {
             isReady = true;
 
             console.timeEnd('[whisper] total init');
-            self.postMessage({ type: 'ready' });
             vad = createVad(self.Module);
+            self.postMessage({ type: 'ready' });
         };
 
         importScripts(
@@ -132,6 +132,90 @@ self.onmessage = function (e) {
         } catch (error) {
             console.error('[whisper] transcription error:', error);
             self.postMessage({ type: 'result', text: null });
+        }
+    } else if (e.data.type === 'vad_analyze' && isReady && vad) {
+        try {
+            const { audio, options, id } = e.data;
+            const sampleRate = options.sampleRate || 16000;
+            const preRollFrames = Math.floor((options.preRoll || 0.2) * sampleRate);
+            const postRollFrames = Math.floor((options.postRoll || 0.2) * sampleRate);
+
+            vad.reset();
+            vad.acceptWaveform(audio);
+            vad.flush();
+
+            let segments = [];
+            while (!vad.isEmpty()) {
+                const seg = vad.front();
+                // Copy the samples as seg.samples might be freed/overwritten
+                segments.push({
+                    start: seg.start,
+                    samples: new Float32Array(seg.samples),
+                    length: seg.samples.length
+                });
+                vad.pop();
+            }
+
+            if (segments.length === 0) {
+                self.postMessage({
+                    type: 'vad_result',
+                    id: id,
+                    trimmedAudio: audio,
+                    stats: { pauseCount: 0, hesitation: 0, netDuration: audio.length / sampleRate, speechStart: 0, speechEnd: 0 }
+                });
+                return;
+            }
+
+            let startFrame = segments[0].start;
+            let endFrame = segments[segments.length - 1].start + segments[segments.length - 1].length;
+
+            const hesitation = Math.round((startFrame / sampleRate) * 1000);
+            const speechStart = startFrame / sampleRate;
+            const speechEnd = endFrame / sampleRate;
+
+            let pauseCount = 0;
+            let netFrames = 0;
+            const pauseThresholdFrames = Math.floor(0.6 * sampleRate);
+
+            for (let i = 0; i < segments.length; i++) {
+                netFrames += segments[i].length;
+                if (i > 0) {
+                    const pauseLength = segments[i].start - (segments[i - 1].start + segments[i - 1].length);
+                    if (pauseLength >= pauseThresholdFrames) {
+                        pauseCount++;
+                    }
+                }
+            }
+
+            const netDuration = netFrames / sampleRate;
+
+            const finalStart = Math.max(0, startFrame - preRollFrames);
+            const finalEnd = Math.min(audio.length - 1, endFrame + postRollFrames);
+
+            const trimmedAudio = audio.slice(finalStart, finalEnd + 1);
+
+            self.postMessage({
+                type: 'vad_result',
+                id: id,
+                trimmedAudio: trimmedAudio,
+                stats: {
+                    pauseCount: pauseCount,
+                    hesitation: hesitation,
+                    netDuration: netDuration,
+                    speechStart: speechStart,
+                    speechEnd: speechEnd
+                }
+            }, [trimmedAudio.buffer]); // zero-copy transfer
+
+        } catch (error) {
+            console.error('[whisper] VAD analysis error:', error);
+            // fallback
+            self.postMessage({
+                type: 'vad_result',
+                id: e.data.id,
+                trimmedAudio: e.data.audio,
+                stats: { pauseCount: 0, hesitation: 0, netDuration: e.data.audio.length / (e.data.options.sampleRate || 16000), speechStart: 0, speechEnd: 0 }
+            });
         }
     }
 };

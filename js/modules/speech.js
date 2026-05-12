@@ -202,7 +202,7 @@ export async function toggleSpeechRecognition(params) {
         }
 
         try {
-            const extractionResult = Core.trimSilenceWithPadding(rawAudioData, {
+            const extractionResult = await WebAdapter.getAudioStatsAndTrim(rawAudioData, {
                 threshold: 0.02, preRoll: 0.3, postRoll: 0.3, sampleRate: 16000
             });
 
