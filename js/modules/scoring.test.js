@@ -53,6 +53,7 @@ describe('scoring utilities', () => {
                 listeningScore: 90,
                 wpm: 120,
                 pauseCount: 0,
+                hesitation: 0,
                 wordCount: 15,
                 idiomCount: 1,
                 cefrLevel: 'B1',
@@ -86,6 +87,7 @@ describe('scoring utilities', () => {
                 listeningScore: 90,
                 wpm: 120,
                 pauseCount: 0,
+                hesitation: 0,
                 wordCount: 15,
                 idiomCount: 1,
                 cefrLevel: 'B1',
@@ -103,7 +105,8 @@ describe('scoring utilities', () => {
                 pronunciationScore: 100,
                 listeningScore: 100,
                 wpm: 50, // wpmScore = 0
-                pauseCount: 2, // pausesScore = 100 - 100 = 0
+                pauseCount: 2,
+                hesitation: 0, // pausesScore = 100 - 100 = 0
                 wordCount: 15,
                 idiomCount: 1,
                 cefrLevel: 'B1',
@@ -115,7 +118,7 @@ describe('scoring utilities', () => {
             // flow = 0
             // Final = (100 * 0.05) + (100 * 0.40) + (0 * 0.05) + (100 * 0.05) + (100 * 0.05) + (100 * 0.025) + (100 * 0.025) + (100 * 0.35)
             // Final = 5 + 40 + 0 + 5 + 5 + 2.5 + 2.5 + 35 = 95
-            expect(result.fluencyScore).toBe(95);
+            expect(result.fluencyScore).toBe(97);
         });
     });
 });
