@@ -435,6 +435,11 @@ const strings = {
         es: "VUELVE A INTENTAR. Error de reconocimiento de voz.",
         fr: "RÉESSAYEZ. Erreur de reconnaissance vocale."
     },
+    'error_engine_not_ready': {
+        en: "Speech engine not ready. Please wait a moment.",
+        es: "El motor de voz no está listo. Por favor, espera un momento.",
+        fr: "Le moteur vocal n'est pas prêt. Veuillez patienter un instant."
+    },
     'example_correct_answer': {
         en: "Example correct answer:",
         es: "Respuesta correcta de ejemplo:",

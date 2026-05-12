@@ -3,7 +3,7 @@
 // To see logs for a specific module, change its value to true in the window.enabledLogs object below.
 const originalConsoleLog = console.log;
 window.enabledLogs = {
-    whisper: false,   // Silenced as requested
+    whisper: true,   // Enabled for debugging microphone issues
     recording: false,
     api: false,
     tanstack: false,
