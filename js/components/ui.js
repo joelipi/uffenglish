@@ -55,12 +55,12 @@ export function syncTextModeUI() {
 export const DOM = {
     get phrasesScore() { return document.getElementById('phrasesScore'); },
     get mediaContainer() { return document.getElementById('media-container'); },
-    get speechText() { return document.getElementById("speech-text-here"); },
-    get chatBody() { return document.getElementById("chat-messenger-body"); },
-    get avatarAi() { return document.getElementById("chat-avatar-ai"); },
-    get nameAi() { return document.getElementById("chat-name-ai"); },
-    get avatarHuman() { return document.getElementById("chat-avatar-human"); },
-    get nameHuman() { return document.getElementById("chat-name-human"); },
+    get speechText() { return document.getElementById("chat-window-container"); },
+    get chatBody() { return document.getElementById("chat-message-list"); },
+    get avatarAi() { return document.getElementById("chat-avatar-system"); },
+    get nameAi() { return document.getElementById("chat-name-system"); },
+    get avatarHuman() { return document.getElementById("chat-avatar-user"); },
+    get nameHuman() { return document.getElementById("chat-name-user"); },
     get heart3() { return document.getElementById("heart3"); },
     get heart2() { return document.getElementById("heart2"); },
     get heart1() { return document.getElementById("heart1"); },
@@ -76,9 +76,9 @@ export const DOM = {
     get playbackMuteToggle() { return document.getElementById('playback-mute-toggle'); },
     get questionsContainerContainer() { return document.getElementById('questions-container-container'); },
     get questionsContainer() { return document.getElementById('questions-container'); },
-    get tutorChatInputArea() { return document.getElementById('tutor-chat-input-area'); },
-    get tutorChatTextarea() { return document.getElementById('tutor-chat-textarea'); },
-    get tutorChatSendBtn() { return document.getElementById('tutor-chat-send-btn'); }
+    get tutorChatInputArea() { return document.getElementById('chat-input-area'); },
+    get tutorChatTextarea() { return document.getElementById('chat-input-field'); },
+    get tutorChatSendBtn() { return document.getElementById('chat-send-button'); }
 };
 
 let webcamPreview = null;
@@ -98,10 +98,12 @@ export function escapeHTML(str) {
 }
 
 function setChatHeader(isAI) {
-    DOM.avatarAi.classList.toggle('d-none', !isAI);
-    DOM.nameAi.classList.toggle('d-none', !isAI);
-    DOM.avatarHuman.classList.toggle('d-none', isAI);
-    DOM.nameHuman.classList.toggle('d-none', isAI);
+    // The old avatar/name header elements have been replaced by the scoreboard table.
+    // Guard against null in case any code path still calls this.
+    if (DOM.avatarAi) DOM.avatarAi.classList.toggle('d-none', !isAI);
+    if (DOM.nameAi) DOM.nameAi.classList.toggle('d-none', !isAI);
+    if (DOM.avatarHuman) DOM.avatarHuman.classList.toggle('d-none', isAI);
+    if (DOM.nameHuman) DOM.nameHuman.classList.toggle('d-none', isAI);
 }
 
 export function getFirstName(displayName) {
@@ -173,11 +175,10 @@ export function safeRenderChatInterface(isAI, bodyContent) {
         }
     }
 
-    // Auto-scroll ONLY the chat container
+    // Auto-scroll ONLY the chat container — never the window
     setTimeout(() => {
-        const lastMessage = DOM.chatBody.lastElementChild;
-        if (lastMessage) {
-            lastMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        if (DOM.chatBody) {
+            DOM.chatBody.scrollTop = DOM.chatBody.scrollHeight;
         }
     }, 50);
 }
@@ -187,10 +188,10 @@ export function renderUserResponse(text, statsHtml = "") {
     const userName = getFirstName(appStore.getState().userData?.display_name || State.userData?.display_name);
     const userAvatarUrl = appStore.getState().userData?.profilepicurl || State.userData?.profilepicurl || 'assets/img/userprofile.png';
     const html = `
-        <div class='chat-message-wrapper user-message-wrapper'>
-            <img src='${userAvatarUrl}' alt='${userName}' class='chat-avatar-inline' />
-            <div class='userResponse chat-bubble-sent chat-msg'>
-                <div class='chat-bubble-header'>${userName}</div>
+        <div class="chat-message-row chat-message-row--user">
+            <img src="${userAvatarUrl}" alt="${userName}" class="chat-avatar-inline" />
+            <div class="chat-message-bubble chat-message-bubble--user">
+                <div class="chat-bubble-header">${userName}</div>
                 ${safeText}
             </div>
         </div>
@@ -203,10 +204,10 @@ export function renderAIAnalysisLoading(text) {
     const displayText = text || defaultText;
     const aiAvatarUrl = 'assets/img/teacherprofile.jpeg';
     const html = `
-        <div class='chat-message-wrapper ai-message-wrapper' id='ai-loading-status'>
-            <img src='${aiAvatarUrl}' alt='Joe Walsh' class='chat-avatar-inline' />
-            <div class='chat-bubble chat-msg'>
-                <div class='chat-bubble-header'>Joe Walsh</div>
+        <div class="chat-message-row chat-message-row--system" id="ai-loading-status">
+            <img src="${aiAvatarUrl}" alt="Joe Walsh" class="chat-avatar-inline" />
+            <div class="chat-message-bubble chat-message-bubble--system">
+                <div class="chat-bubble-header">Joe Walsh</div>
                 <strong><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ${displayText}</strong>
             </div>
         </div>`;
@@ -219,10 +220,10 @@ export function createHeaderHTML(text) {
 
 export function createPragmaticsBubbleHTML(headingHTML, contentHTML, correctionHTML = "", botName = "Joe Walsh", avatarUrl = "assets/img/teacherprofile.jpeg") {
     return `
-        <div class='chat-message-wrapper ai-message-wrapper' style='margin-top: 0px;'>
-            <img src='${avatarUrl}' alt='${botName}' class='chat-avatar-inline' />
-            <div class='chat-bubble chat-msg' style='display: block;'>
-                <div class='chat-bubble-header'>${botName}</div>
+        <div class="chat-message-row chat-message-row--system">
+            <img src="${avatarUrl}" alt="${botName}" class="chat-avatar-inline" />
+            <div class="chat-message-bubble chat-message-bubble--system">
+                <div class="chat-bubble-header">${botName}</div>
                 ${contentHTML}${correctionHTML ? ` ${correctionHTML}` : ''}
             </div>
         </div>`;
@@ -233,10 +234,10 @@ export function createStatsBubbleHTML(header, statsParts, botName = "Joe Walsh",
         ? ` ${statsParts.join('. ')}`
         : '';
     return `
-        <div class='chat-message-wrapper ai-message-wrapper' style='margin-bottom: 0px;'>
-            <img src='${avatarUrl}' alt='${botName}' class='chat-avatar-inline' />
-            <div class='chat-bubble chat-msg' style='display: block; border-left: 4px solid #17a2b8;'>
-                <div class='chat-bubble-header'>${botName}</div>
+        <div class="chat-message-row chat-message-row--system">
+            <img src="${avatarUrl}" alt="${botName}" class="chat-avatar-inline" />
+            <div class="chat-message-bubble chat-message-bubble--system" style="border-left: 4px solid #17a2b8;">
+                <div class="chat-bubble-header">${botName}</div>
                 <span>${header}${partsHtml}</span>
             </div>
         </div>`;
@@ -245,10 +246,10 @@ export function createStatsBubbleHTML(header, statsParts, botName = "Joe Walsh",
 export function createGrammarDiffHTML(original, correction, headingText = "", botName = "Joe Walsh", avatarUrl = "assets/img/teacherprofile.jpeg") {
     const { userHTML, corrHTML } = buildGrammarDiff(original, correction);
     return `
-        <div class='chat-message-wrapper ai-message-wrapper' style='margin-top: 0px;'>
-            <img src='${avatarUrl}' alt='${botName}' class='chat-avatar-inline' />
-            <div class='chat-bubble chat-msg' style='display: block;'>
-                <div class='chat-bubble-header'>${botName}</div>
+        <div class="chat-message-row chat-message-row--system">
+            <img src="${avatarUrl}" alt="${botName}" class="chat-avatar-inline" />
+            <div class="chat-message-bubble chat-message-bubble--system">
+                <div class="chat-bubble-header">${botName}</div>
                 <div class="diff-del-bubble">${userHTML}</div>
                 <div style="margin-top:6px">${corrHTML}</div>
             </div>
@@ -270,16 +271,15 @@ export function renderAIFeedback(contentChunks = []) {
         .filter(Boolean)
         .forEach(chunk => {
             if (typeof chunk === 'string') {
-                if (chunk.includes("chat-message-wrapper") || chunk.includes("chat-bubble")) {
+                if (chunk.includes("chat-message-row") || chunk.includes("chat-message-bubble")) {
                     const tempDiv = document.createElement('div');
                     tempDiv.innerHTML = chunk;
                     while (tempDiv.firstChild) {
                         fragment.appendChild(tempDiv.firstChild);
                     }
                 } else {
-                    const wrapper = document.createElement('div');
-                    wrapper.className = 'chat-message-wrapper ai-message-wrapper';
-                    wrapper.style.marginTop = '4px';
+                    const row = document.createElement('div');
+                    row.className = 'chat-message-row chat-message-row--system';
 
                     const img = document.createElement('img');
                     img.src = 'assets/img/teacherprofile.jpeg';
@@ -287,38 +287,43 @@ export function renderAIFeedback(contentChunks = []) {
                     img.className = 'chat-avatar-inline';
 
                     const bubble = document.createElement('div');
-                    bubble.className = 'chat-bubble chat-msg';
-                    bubble.style.display = 'block';
-                    bubble.innerHTML = `<div class='chat-bubble-header'>Joe Walsh</div>${chunk}`;
+                    bubble.className = 'chat-message-bubble chat-message-bubble--system';
 
-                    wrapper.appendChild(img);
-                    wrapper.appendChild(bubble);
-                    fragment.appendChild(wrapper);
+                    const header = document.createElement('div');
+                    header.className = 'chat-bubble-header';
+                    header.textContent = 'Joe Walsh';
+                    bubble.appendChild(header);
+
+                    const content = document.createElement('span');
+                    content.innerHTML = chunk;
+                    bubble.appendChild(content);
+
+                    row.appendChild(img);
+                    row.appendChild(bubble);
+                    fragment.appendChild(row);
                 }
             } else if (chunk instanceof Node) {
-                if (chunk.nodeType === Node.ELEMENT_NODE && !chunk.classList.contains('chat-msg') && !chunk.classList.contains('chat-message-wrapper')) {
-                    const outerWrapper = document.createElement('div');
-                    outerWrapper.className = 'chat-message-wrapper ai-message-wrapper';
-                    outerWrapper.style.marginTop = '4px';
+                if (chunk.nodeType === Node.ELEMENT_NODE && !chunk.classList.contains('chat-message-bubble') && !chunk.classList.contains('chat-message-row')) {
+                    const row = document.createElement('div');
+                    row.className = 'chat-message-row chat-message-row--system';
 
                     const img = document.createElement('img');
                     img.src = 'assets/img/teacherprofile.jpeg';
                     img.alt = 'Joe Walsh';
                     img.className = 'chat-avatar-inline';
 
-                    const wrapper = document.createElement('div');
-                    wrapper.className = 'chat-bubble chat-msg';
-                    wrapper.style.display = 'block';
+                    const bubble = document.createElement('div');
+                    bubble.className = 'chat-message-bubble chat-message-bubble--system';
 
                     const header = document.createElement('div');
                     header.className = 'chat-bubble-header';
                     header.textContent = 'Joe Walsh';
+                    bubble.appendChild(header);
+                    bubble.appendChild(chunk);
 
-                    wrapper.appendChild(header);
-                    wrapper.appendChild(chunk);
-                    outerWrapper.appendChild(img);
-                    outerWrapper.appendChild(wrapper);
-                    fragment.appendChild(outerWrapper);
+                    row.appendChild(img);
+                    row.appendChild(bubble);
+                    fragment.appendChild(row);
                 } else {
                     fragment.appendChild(chunk);
                 }
@@ -407,6 +412,48 @@ export function clearChatInterface() {
     DOM.chatBody.innerHTML = '';
     DOM.speechText.classList.add('d-none');
     hideTutorChatInput();
+    clearChatHeaderScores();
+}
+
+// Maps a feedbackData section key to its header score span ID
+const SCORE_SPAN_MAP = {
+    pronunciation:  'chat-score-pronunciation',
+    listening:      'chat-score-listening',
+    flow:           'chat-score-flow',
+    vocabulary:     'chat-score-vocabulary',
+    grammar:        'chat-score-grammar',
+    formality:      'chat-score-formality',
+    nativeLike:     'chat-score-nativelike',
+    understanding:  'chat-score-understanding',
+    fluency:        'chat-score-fluency',
+};
+
+/**
+ * Clears all nine header score spans back to empty (called at start of each question).
+ */
+export function clearChatHeaderScores() {
+    Object.values(SCORE_SPAN_MAP).forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = '';
+    });
+    console.log('[UI] Chat header scores cleared.');
+}
+
+/**
+ * Populates the header score spans from a feedbackData object.
+ * Score 100 → 💯, anything else → the number.
+ * @param {{ sections: Array<{key: string, score: number}> }} feedbackData
+ */
+export function updateChatHeaderScores(feedbackData) {
+    if (!feedbackData || !Array.isArray(feedbackData.sections)) return;
+    feedbackData.sections.forEach(section => {
+        const spanId = SCORE_SPAN_MAP[section.key];
+        if (!spanId) return;
+        const el = document.getElementById(spanId);
+        if (!el) return;
+        el.textContent = section.score === 100 ? '💯' : String(Math.round(section.score));
+    });
+    console.log('[UI] Chat header scores updated from feedbackData.');
 }
 
 export function initTutorChatUI(submitCallback) {
@@ -436,11 +483,11 @@ export function hideTutorChatInput() {
 export function getChatHistoryContext() {
     if (!DOM.chatBody) return "";
 
-    const bubbles = Array.from(DOM.chatBody.querySelectorAll('.chat-msg'));
+    const bubbles = Array.from(DOM.chatBody.querySelectorAll('.chat-message-bubble'));
     let historyText = "";
     for (const bubble of bubbles) {
-        if (bubble.id === 'ai-loading-status') continue;
-        let role = bubble.classList.contains('userResponse') ? "Student" : "Tutor";
+        if (bubble.parentElement.id === 'ai-loading-status') continue;
+        let role = bubble.classList.contains('chat-message-bubble--user') ? "Student" : "Tutor";
         historyText += `${role}: ${bubble.innerText}\n`;
     }
     return historyText;
@@ -453,10 +500,10 @@ export function renderTutorMessage(text, isUser) {
         const safeText = escapeHTML(text);
         const aiAvatarUrl = 'assets/img/teacherprofile.jpeg';
         const html = `
-            <div class='chat-message-wrapper ai-message-wrapper'>
-                <img src='${aiAvatarUrl}' alt='Joe Walsh' class='chat-avatar-inline' />
-                <div class='chat-bubble chat-msg'>
-                    <div class='chat-bubble-header'>Joe Walsh</div>
+            <div class="chat-message-row chat-message-row--system">
+                <img src="${aiAvatarUrl}" alt="Joe Walsh" class="chat-avatar-inline" />
+                <div class="chat-message-bubble chat-message-bubble--system">
+                    <div class="chat-bubble-header">Joe Walsh</div>
                     ${safeText}
                 </div>
             </div>`;
@@ -686,6 +733,17 @@ export function showPlaybackVideo() {
     const video = document.getElementById('playback-video') || DOM.playbackVideo;
 
     if (videoWrapper && video && DOM.chatBody) {
+        // Guard: if videoWrapper is already inside chatBody, just make sure it's visible and bail.
+        // Without this, a second call (e.g. from handleIncueUI) moves the wrapper into a new row,
+        // leaving an orphaned empty user bubble at the top and the video at the bottom.
+        if (DOM.chatBody.contains(videoWrapper)) {
+            videoWrapper.classList.remove('d-none');
+            videoWrapper.style.setProperty('display', 'block', 'important');
+            video.style.setProperty('display', 'block', 'important');
+            console.log('[showPlaybackVideo] videoWrapper already in chatBody — skipping re-injection.');
+            return;
+        }
+
         videoWrapper.classList.remove('d-none');
         videoWrapper.style.setProperty('display', 'block', 'important');
         videoWrapper.style.setProperty('visibility', 'visible', 'important');
@@ -695,9 +753,9 @@ export function showPlaybackVideo() {
         video.style.setProperty('opacity', '1', 'important');
 
         // Match renderUserResponse structure so row-reverse styling applies correctly
-        const chatWrapper = document.createElement('div');
-        chatWrapper.className = 'chat-message-wrapper user-message-wrapper';
-        chatWrapper.style.animation = 'popIn 0.3s ease-out forwards';
+        const row = document.createElement('div');
+        row.className = 'chat-message-row chat-message-row--user';
+        row.style.animation = 'popIn 0.3s ease-out forwards';
 
         const userName = getFirstName(appStore.getState().userData?.display_name || State.userData?.display_name);
         const userAvatarUrl = appStore.getState().userData?.profilepicurl || State.userData?.profilepicurl || 'assets/img/userprofile.png';
@@ -708,40 +766,32 @@ export function showPlaybackVideo() {
         avatar.className = 'chat-avatar-inline';
 
         const bubble = document.createElement('div');
-        bubble.className = 'userResponse chat-bubble-sent chat-msg p-1';
+        bubble.className = 'chat-message-bubble chat-message-bubble--user p-1';
         bubble.style.backgroundColor = '#000';
         bubble.style.border = '2px solid #4facfe';
         bubble.style.overflow = 'hidden';
-        bubble.style.borderRadius = '12px 12px 4px 12px';
-
-        const header = document.createElement('div');
-        header.className = 'chat-bubble-header';
-        header.textContent = userName;
-        header.style.color = '#fff';
-        header.style.padding = '4px 8px';
 
         videoWrapper.classList.remove('mb-2');
         video.style.width = '100%';
         video.style.height = 'auto';
-        video.style.maxHeight = '350px';
+        video.style.maxHeight = '150px';
         video.style.objectFit = 'cover';
 
-        bubble.appendChild(header);
         bubble.appendChild(videoWrapper);
+        row.appendChild(avatar);
+        row.appendChild(bubble);
 
-        chatWrapper.appendChild(avatar);
-        chatWrapper.appendChild(bubble);
-
-        DOM.chatBody.appendChild(chatWrapper);
+        DOM.chatBody.appendChild(row);
+        console.log('[showPlaybackVideo] Video bubble injected into chatBody.');
 
         setTimeout(() => {
-            const lastMessage = DOM.chatBody.lastElementChild;
-            if (lastMessage) {
-                lastMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            if (DOM.chatBody) {
+                DOM.chatBody.scrollTop = DOM.chatBody.scrollHeight;
             }
         }, 100);
     }
 }
+
 
 export function isWebcamPreviewVisible() {
     return webcamPreview && webcamPreview.isConnected && !webcamPreview.classList.contains('d-none');
@@ -1342,7 +1392,7 @@ export function setupLessonUI(fullTitle) {
     }
 }
 
-export function handlecueUI(qIndex, questionData, button, cue, explanation, translation, userResponse, englishLevel, englishLevelDeduction, userData, configData) {
+export function handlecueUI(qIndex, questionData, button, cue, explanation, translation, userResponse, englishLevel, englishLevelDeduction, userData, configData, fluencyBubble = null) {
 
     if (questionData.inputType === "speech" && questionData.videoUrl) State.repeatPointsHistory.push(appStore.getState().listeningScore);
     if (questionData.inputType === "ai" && questionData.videoUrl) State.rolePlayPointsHistory.push(appStore.getState().listeningScore);
@@ -1361,7 +1411,7 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
             const userAvatarUrl = appStore.getState().userData?.profilepicurl || State.userData?.profilepicurl || 'assets/img/userprofile.png';
 
             const correctWrapper = document.createElement('div');
-            correctWrapper.className = 'chat-message-wrapper user-message-wrapper correct-answer-wrapper';
+            correctWrapper.className = 'chat-message-row chat-message-row--user correct-answer-wrapper';
 
             const correctImg = document.createElement('img');
             correctImg.src = userAvatarUrl;
@@ -1369,10 +1419,10 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
             correctImg.className = 'chat-avatar-inline';
 
             const correctBubble = document.createElement('div');
-            correctBubble.classList.add('correct-answer-display', 'chat-bubble-sent', 'chat-msg');
+            correctBubble.classList.add('correct-answer-display', 'chat-message-bubble', 'chat-message-bubble--user');
 
             const correctHeader = document.createElement('div');
-            correctHeader.className = 'chat-bubble-header';
+            correctHeader.className = 'chat-bubble-header d-none';
             correctHeader.textContent = userName;
             correctBubble.appendChild(correctHeader);
 
@@ -1391,7 +1441,7 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
             }
 
             const praiseWrapper = document.createElement('div');
-            praiseWrapper.className = 'chat-message-wrapper ai-message-wrapper';
+            praiseWrapper.className = 'chat-message-row chat-message-row--system';
             praiseWrapper.style.marginTop = '6px';
 
             const praiseImg = document.createElement('img');
@@ -1400,7 +1450,7 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
             praiseImg.className = 'chat-avatar-inline';
 
             const praiseBubble = document.createElement('div');
-            praiseBubble.classList.add('chat-bubble', 'chat-msg');
+            praiseBubble.classList.add('chat-message-bubble', 'chat-message-bubble--system');
 
             const praiseHeader = document.createElement('div');
             praiseHeader.className = 'chat-bubble-header';
@@ -1420,6 +1470,7 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
             const chunks = [correctWrapper];
             if (Array.isArray(explanation)) chunks.push(...explanation);
             else if (explanation) chunks.push(explanation);
+            if (fluencyBubble) chunks.push(fluencyBubble);
             chunks.push(praiseWrapper, questionData.headsUp);
 
             renderAIFeedback(chunks);
@@ -1427,6 +1478,7 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
             const chunks = [];
             if (Array.isArray(explanation)) chunks.push(...explanation);
             else if (explanation) chunks.push(explanation);
+            if (fluencyBubble) chunks.push(fluencyBubble);
             chunks.push(feedbackText ? `<strong>${feedbackText}</strong>` : "", questionData.headsUp);
 
             renderAIFeedback(chunks);
@@ -1438,7 +1490,7 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
     markButtonAsCorrect(button);
 }
 
-export function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanation, normalizeduserResponse, normalizedcue, question, silent = false, userData, configData) {
+export function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanation, normalizeduserResponse, normalizedcue, question, silent = false, userData, configData, fluencyBubble = null) {
     appStore.getState().incrementIncorrectAttempts();
 
     if (!silent && !State.isTextMode && (questionData.inputType === "lessonIntro" || questionData.inputType === "speech" || questionData.inputType === "ai")) {
@@ -1497,6 +1549,7 @@ export function handleIncueUI(qIndex, questionData, button, cue, userResponse, e
         else if (explanation) chunks.push(explanation);
 
         chunks.push(teacherDiv);
+        if (fluencyBubble) chunks.push(fluencyBubble);
         if (possibleAnswerNode) chunks.push(possibleAnswerNode);
         if (headsUpNode) chunks.push(headsUpNode);
 
@@ -1511,8 +1564,8 @@ export function handleIncueUI(qIndex, questionData, button, cue, userResponse, e
 
         selectedWords.forEach(w => correctWordSet.has(w.toLowerCase()) ? correct.add(w) : incorrect.add(w));
 
-        const correctUl = `<ul class='card-text correctWords list-inline' id='correctWords'>${Array.from(correct).map(w => `<li class='list-inline-item'>${w}</li>`).join('')}</ul>`;
-        const incorrectUl = `<ul class='card-text incorrectWords list-inline' id='incorrectWords'>${Array.from(incorrect).map(w => `<li class='list-inline-item'>${w}</li>`).join('')}</ul>`;
+        const correctUl = `<ul class='card-text correctWords list-inline chat-message-bubble chat-message-bubble--user' id='correctWords' style='display:block'>${Array.from(correct).map(w => `<li class='list-inline-item'>${w}</li>`).join('')}</ul>`;
+        const incorrectUl = `<ul class='card-text incorrectWords list-inline chat-message-bubble chat-message-bubble--user' id='incorrectWords' style='display:block; border-top: 1px solid rgba(255,255,255,0.1)'>${Array.from(incorrect).map(w => `<li class='list-inline-item'>${w}</li>`).join('')}</ul>`;
 
         const teacherText = appStore.getState().incorrectAttempts === 1
             ? Strings.get('try_again_1', State.userData?.native_language)
@@ -1527,6 +1580,7 @@ export function handleIncueUI(qIndex, questionData, button, cue, userResponse, e
         const chunks = [`<strong>${teacherText}</strong><br><br>${correctUl}${incorrectUl}`];
         if (Array.isArray(explanation)) chunks.push(...explanation);
         else if (explanation) chunks.push(explanation);
+        if (fluencyBubble) chunks.push(fluencyBubble);
         chunks.push(headsUpStr);
 
         renderAIFeedback(chunks);

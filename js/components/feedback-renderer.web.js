@@ -42,10 +42,10 @@ export function renderFeedbackToHTML(feedbackData) {
             }
 
             return `
-                <div class='chat-message-wrapper ai-message-wrapper' style='margin-bottom: 0px;'>
-                    <img src='assets/img/grammarbot.png' alt='Grammar Bot' class='chat-avatar-inline' />
-                    <div class='chat-bubble chat-msg' style='display: block; border-left: 4px solid #17a2b8;'>
-                        <div class='chat-bubble-header'>Grammar Bot</div>
+                <div class="chat-message-row chat-message-row--system" style="margin-bottom: 0px;">
+                    <img src="assets/img/grammarbot.png" alt="Grammar Bot" class="chat-avatar-inline" />
+                    <div class="chat-message-bubble chat-message-bubble--system" style="border-left: 4px solid #17a2b8;">
+                        <div class="chat-bubble-header">Grammar Bot</div>
                         <span>${statsLine}</span>
                         ${grammarDiffHtml}
                     </div>
@@ -100,13 +100,13 @@ export function renderFeedbackToHTML(feedbackData) {
                 case 'formality': return { name: 'Formality Bot', avatar: 'assets/img/speakingbot.png' };
                 case 'nativeLike': return { name: 'Idiom Bot', avatar: 'assets/img/idiombot.png' };
                 case 'understanding': return { name: 'Pragmatics Bot', avatar: 'assets/img/pragmaticsbot.png' };
-                case 'fluency': return { name: 'Fluency Bot', avatar: 'assets/img/fluencybot.png' };
+                case 'fluency': return { name: 'Joe Walsh', avatar: 'assets/img/teacherprofile.jpeg' };
                 default: return { name: 'FluIntel AI', avatar: 'assets/img/ai-avatar.png' };
             }
         })();
 
-        // isOverall (fluency) renders bold, all others plain
-        const displayHeader = section.isOverall ? `<strong>${headerLine}</strong>` : headerLine;
+        // isOverall (fluency) renders bold with "Fluency" label, all others plain
+        const displayHeader = section.isOverall ? `<strong>${headerLine} Fluency</strong>` : headerLine;
         return createStatsBubbleHTML(displayHeader, htmlParts, botInfo.name, botInfo.avatar);
     });
 }

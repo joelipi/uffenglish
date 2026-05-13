@@ -128,7 +128,8 @@ import {
     showGuestLoginModal,
     initUISubscriptions,
     handlecueUI,
-    handleIncueUI
+    handleIncueUI,
+    updateChatHeaderScores
 } from './components/ui.js';
 
 import { idiomChecker } from './modules/idiom-checker.js';
@@ -301,6 +302,7 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
     hideHints();
 
     let immediateStatsHtmlArr = [];
+    let fluencyBubbleHTML = null; // extracted overall-fluency bubble rendered last
     disableAllButtons(button.parentElement);
 
     try {
@@ -393,7 +395,17 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
                 lang: userData?.native_language, englishLevel,
                 attemptNumber: incorrectAttempts + 1
             });
-            immediateStatsHtmlArr = renderFeedbackToHTML(feedbackData);
+            // Update header scoreboard immediately — scores are ready
+            updateChatHeaderScores(feedbackData);
+            const allFeedbackHTML = renderFeedbackToHTML(feedbackData);
+            // The fluency (overall) section is always first (unshifted in buildFeedbackData for 'ai').
+            // Split it out so it renders last — just before praise/try-again.
+            if (feedbackData.sections.length > 0 && feedbackData.sections[0].isOverall) {
+                fluencyBubbleHTML = allFeedbackHTML[0];
+                immediateStatsHtmlArr = allFeedbackHTML.slice(1);
+            } else {
+                immediateStatsHtmlArr = allFeedbackHTML;
+            }
         }
 
         // --- SILENT RETRY FLOW FOR SPEECH ---
@@ -472,11 +484,11 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
             // In handleAnswer we did: `renderAIFeedback(immediateStatsHtmlArr);`
             // and we do NOT need to pass them to handlecueUI unless we want to replace `explanation`.
 
-            handlecueUI(qIndex, questionData, button, cue, webFormattedExplanations, translation, userResponse, result ? result.cefrLevel : undefined, result ? result.cefrLevelDeduction : undefined, userData, configData);
+            handlecueUI(qIndex, questionData, button, cue, webFormattedExplanations, translation, userResponse, result ? result.cefrLevel : undefined, result ? result.cefrLevelDeduction : undefined, userData, configData, fluencyBubbleHTML);
             showFeedbackAndProceed(questionData, isCorrect, userData, configData);
         } else {
             // Pass the webFormattedExplanations instead of result.explanations
-            handleIncueUI(qIndex, questionData, button, cue, userResponse, webFormattedExplanations, result ? result.normalizeduserResponse : "", result ? result.normalizedcue : "", questionData.question, false, userData, configData);
+            handleIncueUI(qIndex, questionData, button, cue, userResponse, webFormattedExplanations, result ? result.normalizeduserResponse : "", result ? result.normalizedcue : "", questionData.question, false, userData, configData, fluencyBubbleHTML);
             showFeedbackAndProceed(questionData, isCorrect, userData, configData);
         }
     } catch (error) {

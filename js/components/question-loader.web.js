@@ -297,7 +297,7 @@ function _renderLessonIntro(question, lesson, showFeedbackAndProceed) {
 function _renderPresent(question, lesson, showFeedbackAndProceed) {
     updateProgressAndCloseButton(false); toggleScoresAndHearts(false); hideAnswerDiv();
 
-    let headsUpHTML = question.headsUp ? `<div class='chat-bubble chat-msg'><p class='headsUp'>${question.headsUp}</p></div>` : "";
+    let headsUpHTML = question.headsUp ? `<div class="chat-message-row chat-message-row--system"><div class="chat-message-bubble chat-message-bubble--system"><p class="headsUp mb-0">${question.headsUp}</p></div></div>` : "";
 
     if (!question.simpleVideoUrl) {
         let explanationStr = "";

@@ -211,33 +211,88 @@
             </div>
 
             <!-- 3. Chat Window (flows below the videos) -->
-            <div id="speech-text-here" class="card border-dark p-0 d-none mb-2">
-              <div class="card-header text-white p-0 card-header-custom">
-                <div class="d-flex align-items-center p-3">
-                  <img id="chat-avatar-ai" src="assets/img/teacherprofile.jpeg" alt="Joe Walsh"
-                    class="rounded-circle me-3 d-none chat-avatar"
-                    style="width: 40px; height: 40px; object-fit: cover;">
-                  <div id="chat-name-ai" class="d-none">
-                    Prof. Joe Walsh <div class="mt-1"><small>English Fluency Coach, UFF</small></div>
-                  </div>
-                  <img id="chat-avatar-human" src="assets/img/userprofile.png" alt=""
-                    class="rounded-circle me-3 d-none chat-avatar"
-                    style="width: 40px; height: 40px; object-fit: cover;">
-                  <div id="chat-name-human" class="d-none">
-                    Student <div class="mt-1"><small>User</small></div>
-                  </div>
-                </div>
+            <div id="chat-window-container" class="card border-dark p-0 d-none mb-2">
+              
+              <!-- Chat Header -->
+              <div id="chat-window-header" class="card-header text-white p-0 chat-window-header">
+                <table id="chat-scores-table" class="w-100 h-100" style="border-collapse:collapse;table-layout:fixed;background:transparent;border:none;color:white;">
+                  <tbody>
+                    <tr id="chat-scores-row-avatars">
+                      <td id="chat-score-cell-pronunciation" class="text-center p-0" style="border:none;">
+                        <img src="assets/img/pronunciationbot.png" alt="Pronunciation" class="w-100" style="display:block;object-fit:contain;">
+                      </td>
+                      <td id="chat-score-cell-listening" class="text-center p-0" style="border:none;">
+                        <img src="assets/img/listeningbot.png" alt="Listening" class="w-100" style="display:block;object-fit:contain;">
+                      </td>
+                      <td id="chat-score-cell-flow" class="text-center p-0" style="border:none;">
+                        <img src="assets/img/flowbot.png" alt="Flow" class="w-100" style="display:block;object-fit:contain;">
+                      </td>
+                      <td id="chat-score-cell-vocabulary" class="text-center p-0" style="border:none;">
+                        <img src="assets/img/vocabularybot.png" alt="Vocabulary" class="w-100" style="display:block;object-fit:contain;">
+                      </td>
+                      <td id="chat-score-cell-grammar" class="text-center p-0" style="border:none;">
+                        <img src="assets/img/grammarbot.png" alt="Grammar" class="w-100" style="display:block;object-fit:contain;">
+                      </td>
+                      <td id="chat-score-cell-formality" class="text-center p-0" style="border:none;">
+                        <img src="assets/img/speakingbot.png" alt="Formality" class="w-100" style="display:block;object-fit:contain;">
+                      </td>
+                      <td id="chat-score-cell-nativelike" class="text-center p-0" style="border:none;">
+                        <img src="assets/img/idiombot.png" alt="Idiom" class="w-100" style="display:block;object-fit:contain;">
+                      </td>
+                      <td id="chat-score-cell-understanding" class="text-center p-0" style="border:none;">
+                        <img src="assets/img/pragmaticsbot.png" alt="Understanding" class="w-100" style="display:block;object-fit:contain;">
+                      </td>
+                      <td id="chat-score-cell-fluency" class="text-center p-0" style="border:none;">
+                        <img src="assets/img/teacherprofile.jpeg" alt="Joe Walsh" class="w-100" style="display:block;object-fit:contain;">
+                      </td>
+                    </tr>
+                    <tr id="chat-scores-row-numbers">
+                      <td id="chat-score-num-cell-pronunciation" class="text-center p-0" style="border:none;">
+                        <span id="chat-score-pronunciation"></span>
+                      </td>
+                      <td id="chat-score-num-cell-listening" class="text-center p-0" style="border:none;">
+                        <span id="chat-score-listening"></span>
+                      </td>
+                      <td id="chat-score-num-cell-flow" class="text-center p-0" style="border:none;">
+                        <span id="chat-score-flow"></span>
+                      </td>
+                      <td id="chat-score-num-cell-vocabulary" class="text-center p-0" style="border:none;">
+                        <span id="chat-score-vocabulary"></span>
+                      </td>
+                      <td id="chat-score-num-cell-grammar" class="text-center p-0" style="border:none;">
+                        <span id="chat-score-grammar"></span>
+                      </td>
+                      <td id="chat-score-num-cell-formality" class="text-center p-0" style="border:none;">
+                        <span id="chat-score-formality"></span>
+                      </td>
+                      <td id="chat-score-num-cell-nativelike" class="text-center p-0" style="border:none;">
+                        <span id="chat-score-nativelike"></span>
+                      </td>
+                      <td id="chat-score-num-cell-understanding" class="text-center p-0" style="border:none;">
+                        <span id="chat-score-understanding"></span>
+                      </td>
+                      <td id="chat-score-num-cell-fluency" class="text-center p-0" style="border:none;">
+                        <span id="chat-score-fluency"></span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-              <div id="chat-messenger-body" class="card-body messenger-body text-dark"></div>
-              <div id="tutor-chat-input-area" class="card-footer bg-white border-top-0 d-none">
+
+              <!-- Chat Message List (Dynamic Injection Target) -->
+              <div id="chat-message-list" class="card-body chat-message-list text-dark"></div>
+              
+              <!-- Chat Input Footer -->
+              <div id="chat-input-area" class="card-footer bg-white border-top-0 d-none">
                 <div class="input-group">
-                  <textarea id="tutor-chat-textarea" class="form-control" rows="2"
+                  <textarea id="chat-input-field" class="form-control" rows="2"
                     placeholder="Ask your tutor a question..."></textarea>
-                  <button id="tutor-chat-send-btn" class="btn btn-primary" type="button">
+                  <button id="chat-send-button" class="btn btn-primary" type="button">
                     <i class="bi bi-send-fill"></i>
                   </button>
                 </div>
               </div>
+
             </div>
 
             <div id="big-buttons" class="d-flex justify-content-center mt-0 mb-5 big-buttons d-none">
@@ -283,16 +338,22 @@
                 </div>
               </div>
               <div id="fail-media" class="d-none"></div>
-              <div class="card-body messenger-body text-dark">
+              <div class="card-body chat-message-list text-dark">
                 <div id="success-media" class="d-none">
                   <div class="text-center mb-3">
                     <img src="assets/img/party-brain.webp" width="250px" alt="">
                   </div>
                 </div>
-                <p class="chat-bubble">💯 Lesson complete! ¡Lección completada!</p>
-                <div class="chat-bubble">
-                  <p class="nextHeadsup">Puedes repetir <i class="bi bi-arrow-counterclockwise"></i> esta lección o
-                    continuar <i class="bi bi-chevron-right"></i> a la próxima pulsando uno de los botones abajo.</p>
+                <div class="chat-message-row chat-message-row--system">
+                  <div class="chat-message-bubble chat-message-bubble--system">
+                    💯 Lesson complete! ¡Lección completada!
+                  </div>
+                </div>
+                <div class="chat-message-row chat-message-row--system">
+                  <div class="chat-message-bubble chat-message-bubble--system">
+                    <p class="nextHeadsup mb-0">Puedes repetir <i class="bi bi-arrow-counterclockwise"></i> esta lección o
+                      continuar <i class="bi bi-chevron-right"></i> a la próxima pulsando uno de los botones abajo.</p>
+                  </div>
                 </div>
               </div>
             </div>
