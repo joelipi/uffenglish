@@ -828,11 +828,9 @@ export function removeWebcamPreview() {
 }
 
 export async function setupPlaybackVideo(blob, autoplay = false, speechCamChunks = []) {
-    // 🔥 FIX: Dynamic fallback
+    //   FIX: Dynamic fallback
     const playbackVideo = document.getElementById('playback-video') || DOM.playbackVideo;
-
     if (!playbackVideo) {
-        // If it STILL fails, it means the element was deleted from the HTML file!
         console.error('[Playback] playbackVideo element not found. Make sure <video id="playback-video"> is in your HTML!');
         return;
     }
@@ -848,17 +846,14 @@ export async function setupPlaybackVideo(blob, autoplay = false, speechCamChunks
             playbackVideo.src = URL.createObjectURL(blob);
         }
 
-        // 🔥 FIX: Dynamic fallback for the mute toggle
+        //   FIX: Dynamic fallback for the mute toggle
         const muteToggle = document.getElementById('playback-mute-toggle') || DOM.playbackMuteToggle;
-
         if (muteToggle) {
             muteToggle.classList.remove('d-none');
             const icon = muteToggle.querySelector('i');
-
             if (icon) {
                 icon.className = State.isPlaybackMuted ? 'bi bi-volume-mute-fill' : 'bi bi-volume-up-fill';
             }
-
             muteToggle.onclick = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -880,25 +875,53 @@ export async function setupPlaybackVideo(blob, autoplay = false, speechCamChunks
             }
         };
 
-        playbackVideo.controls = true;
+        // 1. SOLVING THE WINDOWS/ANDROID BUG: Disable native controls globally
+        playbackVideo.controls = false;
         playbackVideo.loop = true;
         playbackVideo.autoplay = false;
         playbackVideo.preload = 'auto';
         playbackVideo.muted = State.isPlaybackMuted || false;
+        playbackVideo.style.cursor = 'pointer';
 
-        if (!isIOS) {
-            const handleVideoInteraction = function (e) {
-                e.preventDefault(); e.stopPropagation();
-                requestAnimationFrame(() => {
-                    if (this.paused && this.readyState >= 2) {
-                        this.play().catch(e => { this.currentTime = 0; setTimeout(() => this.play().catch(console.error), 100); });
-                    } else if (!this.paused) this.pause();
-                });
-            };
-            playbackVideo.addEventListener('touchstart', handleVideoInteraction, { passive: false });
-            playbackVideo.addEventListener('click', handleVideoInteraction);
-            playbackVideo.style.cursor = 'pointer';
+        // 2. UNIFIED TAP/CLICK-TO-PLAY: 
+        // Remove previous listeners so they don't stack up over multiple questions
+        if (playbackVideo._interactionHandler) {
+            playbackVideo.removeEventListener('touchstart', playbackVideo._interactionHandler);
+            playbackVideo.removeEventListener('click', playbackVideo._interactionHandler);
         }
+
+        playbackVideo._interactionHandler = function (e) {
+            e.preventDefault(); e.stopPropagation();
+            requestAnimationFrame(() => {
+                if (this.paused) {
+                    this.play().catch(e => {
+                        this.currentTime = 0;
+                        setTimeout(() => this.play().catch(console.error), 100);
+                    });
+                } else {
+                    this.pause();
+                }
+            });
+        };
+
+        playbackVideo.addEventListener('touchstart', playbackVideo._interactionHandler, { passive: false });
+        playbackVideo.addEventListener('click', playbackVideo._interactionHandler);
+
+        // 3. SOLVING THE SCROLL ANNOYANCE: Auto-pause when out of view
+        if (window._playbackObserver) {
+            window._playbackObserver.disconnect();
+        }
+        window._playbackObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                // If the video is playing and scrolls out of the viewport, pause it
+                if (!entry.isIntersecting && !playbackVideo.paused) {
+                    playbackVideo.pause();
+                    console.log('[UI] Video scrolled out of view. Auto-paused.');
+                }
+            });
+        }, { threshold: 0.1 }); // 0.1 means pause when 90% of the video is hidden
+
+        window._playbackObserver.observe(playbackVideo);
 
         playbackVideo.onloadedmetadata = () => {
             playbackVideo.style.display = 'block';
@@ -1446,7 +1469,7 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
             praiseWrapper.appendChild(praiseImg);
             praiseWrapper.appendChild(praiseBubble);
 
-                        correctWrapper.appendChild(correctBubble);
+            correctWrapper.appendChild(correctBubble);
             correctWrapper.appendChild(correctImg);
             const chunks = [correctWrapper];
             if (Array.isArray(explanation)) chunks.push(...explanation);
