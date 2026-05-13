@@ -2332,7 +2332,7 @@ footer {
 /* WhatsApp style chat bubble container */
 .chat-message-wrapper {
   display: flex;
-  align-items: flex-end;
+  align-items: flex-start;
   margin-bottom: 12px;
   max-width: 100%;
 }

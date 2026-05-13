@@ -39,7 +39,7 @@ export function renderFeedbackToHTML(feedbackData) {
 
             return `
                 <div class='chat-message-wrapper ai-message-wrapper' style='margin-bottom: 12px;'>
-                    <img src='assets/img/ai-avatar.png' alt='Grammar Bot' class='chat-avatar-inline' />
+                    <img src='assets/img/grammarbot.png' alt='Grammar Bot' class='chat-avatar-inline' />
                     <div class='chat-bubble chat-msg' style='display: block; border-left: 4px solid #17a2b8;'>
                         <div class='chat-bubble-header'>Grammar Bot</div>
                         ${grammarHeader}
@@ -68,15 +68,15 @@ export function renderFeedbackToHTML(feedbackData) {
         // Overall fluency gets bold header
         const botInfo = (() => {
             switch (section.key) {
-                case 'grammar': return { name: 'Grammar Bot', avatar: 'assets/img/ai-avatar.png' };
-                case 'vocabulary': return { name: 'Vocabulary Bot', avatar: 'assets/img/ai-avatar.png' };
-                case 'flow': return { name: 'Flow Bot', avatar: 'assets/img/ai-avatar.png' };
-                case 'pronunciation': return { name: 'Pronunciation Bot', avatar: 'assets/img/ai-avatar.png' };
-                case 'listening': return { name: 'Listening Bot', avatar: 'assets/img/ai-avatar.png' };
-                case 'formality': return { name: 'Formality Bot', avatar: 'assets/img/ai-avatar.png' };
-                case 'nativeLike': return { name: 'Idiom Bot', avatar: 'assets/img/ai-avatar.png' };
-                case 'understanding': return { name: 'Pragmatics Bot', avatar: 'assets/img/ai-avatar.png' };
-                case 'fluency': return { name: 'Fluency Bot', avatar: 'assets/img/ai-avatar.png' };
+                case 'grammar': return { name: 'Grammar Bot', avatar: 'assets/img/grammarbot.png' };
+                case 'vocabulary': return { name: 'Vocabulary Bot', avatar: 'assets/img/vocabularybot.png' };
+                case 'flow': return { name: 'Flow Bot', avatar: 'assets/img/flowbot.png' };
+                case 'pronunciation': return { name: 'Pronunciation Bot', avatar: 'assets/img/pronunciationbot.png' };
+                case 'listening': return { name: 'Listening Bot', avatar: 'assets/img/listeningbot.png' };
+                case 'formality': return { name: 'Formality Bot', avatar: 'assets/img/speakingbot.png' };
+                case 'nativeLike': return { name: 'Idiom Bot', avatar: 'assets/img/idiombot.png' };
+                case 'understanding': return { name: 'Pragmatics Bot', avatar: 'assets/img/pragmaticsbot.png' };
+                case 'fluency': return { name: 'Fluency Bot', avatar: 'assets/img/fluencybot.png' };
                 default: return { name: 'FluIntel AI', avatar: 'assets/img/ai-avatar.png' };
             }
         })();

@@ -1,16 +1,3 @@
-import { State } from '../modules/state.js';
-
-export function syncTextModeUI() {
-    if (DOM.phrasesScore) {
-        if (State.isTextMode) {
-            DOM.phrasesScore.classList.add('d-none');
-            console.log('[UI] Text mode: hiding speaking score');
-        } else {
-            DOM.phrasesScore.classList.remove('d-none');
-            console.log('[UI] Camera/Mic mode: showing speaking score');
-        }
-    }
-}
 // --- modules/ui.js ---
 import { State } from '../modules/state.js';
 import { appStore } from '../modules/store.js';
@@ -19,6 +6,20 @@ import getRandomPraise from '../data/praise.js';
 import { getLocalizedTranslation } from '../modules/utils.js';
 import { Media } from '../modules/media.js';
 import { pointLoss } from './point-loss-animation.js';
+
+export function syncTextModeUI() {
+    // DOM is defined below, but functions are hoisted — DOM getters will resolve at call time
+    const phrasesScore = document.getElementById('phrasesScore');
+    if (phrasesScore) {
+        if (State.isTextMode) {
+            phrasesScore.classList.add('d-none');
+            console.log('[UI] Text mode: hiding speaking score');
+        } else {
+            phrasesScore.classList.remove('d-none');
+            console.log('[UI] Camera/Mic mode: showing speaking score');
+        }
+    }
+}
 
 // 1. Centralize DOM Elements (Updated with Getters for dynamic evaluation)
 export const DOM = {
@@ -180,7 +181,7 @@ export function renderUserResponse(text, statsHtml = "") {
         <div class='chat-message-wrapper user-message-wrapper'>
             <img src='${userAvatarUrl}' alt='${userName}' class='chat-avatar-inline' />
             <div class='userResponse chat-bubble-sent chat-msg'>
-                <div class='chat-bubble-header'>~ ${userName}</div>
+                <div class='chat-bubble-header'>${userName}</div>
                 ${safeText}
             </div>
         </div>
