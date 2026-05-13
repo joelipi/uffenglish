@@ -67,7 +67,7 @@
 
             const imageUrls = [
               'assets/img/header.png',
-              'assets/img/teacherprofile.png',
+              'assets/img/teacherprofile.jpeg',
               'assets/img/party-brain.webp'
             ];
 
@@ -156,37 +156,12 @@
             </button>
           </div>
         </div>
-
-        <!-- 
-        <div id="scoresAndHearts" class="d-none d-flex justify-content-between align-items-center ps-2">
-          <div id="currentScoreContainer" class="scoreHeader score text-center">
-            <div>
-              <span class="score-label">LISTENING</span><br>
-              <span id="currentScore" class="scoreNumber">100</span>%
-            </div>
-          </div>
-          <div class="flex-grow-1 mx-1">
-            <div class="lesson-title lesson-title-main">Daily Challenge</div>
-            <div id="heartsContainer" class="text-center">
-              <span id="heart1"><i class="bi bi-heart-fill text-white"></i></span>
-              <span id="heart3"><i class="bi bi-heart-fill text-white"></i></span>
-              <span id="heart2"><i class="bi bi-heart-fill text-white"></i></span>
-            </div>
-          </div>
-          <div id="phrasesScoreContainer" class="scoreHeader score text-center">
-            <div>
-              <span class="score-label" id="phrasesScoreLabel">SPEAKING</span><br>
-              <span id="phrasesScore" class="scoreNumber">__</span>%
-            </div>
-          </div>
-        </div>
-        -->
       </div>
 
       <div class="container mt-2" id="container">
+        <!-- SINGLE FULL-WIDTH ROW FOR EVERYTHING -->
         <div class="row">
-
-          <div id="media-column" class="col-12 col-xl-7 mb-1">
+          <div id="main-column" class="col-12 mb-2">
 
             <!-- 1. Playback Video (Stays at the top) -->
             <div id="playback-video-wrapper" class="playback-video-container position-relative mb-2">
@@ -239,24 +214,25 @@
             <div id="speech-text-here" class="card border-dark p-0 d-none mb-2">
               <div class="card-header text-white p-0 card-header-custom">
                 <div class="d-flex align-items-center p-3">
-                  <video id="chat-avatar-ai" autoplay loop muted playsinline
-                    class="rounded-circle me-3 d-none chat-avatar">
-                    <source src="assets/img/avatar-ai.mp4" type="video/mp4">
-                  </video>
+                  <img id="chat-avatar-ai" src="assets/img/teacherprofile.jpeg" alt="Joe Walsh"
+                    class="rounded-circle me-3 d-none chat-avatar"
+                    style="width: 40px; height: 40px; object-fit: cover;">
                   <div id="chat-name-ai" class="d-none">
-                    Prof FluIntel <div class="mt-1"><small>UFF Artificial Intelligence</small></div>
+                    Prof. Joe Walsh <div class="mt-1"><small>English Fluency Coach, UFF</small></div>
                   </div>
-                  <img id="chat-avatar-human" src="assets/img/teacherprofile.png" alt=""
-                    class="rounded-circle me-3 d-none chat-avatar">
+                  <img id="chat-avatar-human" src="assets/img/userprofile.png" alt=""
+                    class="rounded-circle me-3 d-none chat-avatar"
+                    style="width: 40px; height: 40px; object-fit: cover;">
                   <div id="chat-name-human" class="d-none">
-                    Prof. Joe Walsh<div class="mt-1"><small>English Fluency Coach, UFF</small></div>
+                    Student <div class="mt-1"><small>User</small></div>
                   </div>
                 </div>
               </div>
               <div id="chat-messenger-body" class="card-body messenger-body text-dark"></div>
               <div id="tutor-chat-input-area" class="card-footer bg-white border-top-0 d-none">
                 <div class="input-group">
-                  <textarea id="tutor-chat-textarea" class="form-control" rows="2" placeholder="Ask your tutor a question..."></textarea>
+                  <textarea id="tutor-chat-textarea" class="form-control" rows="2"
+                    placeholder="Ask your tutor a question..."></textarea>
                   <button id="tutor-chat-send-btn" class="btn btn-primary" type="button">
                     <i class="bi bi-send-fill"></i>
                   </button>
@@ -279,10 +255,8 @@
               <button id="logIn" onclick="window.location.href='/membership-join/membership-registration/'">Comenzar
                 aquí</button>
             </div>
-          </div>
 
-          <div id="questions-column" class="col-12 col-xl-5 mb-2">
-
+            <!-- HIDDEN FUNCTIONAL ELEMENTS (Previously in the right column) -->
             <video id="originalVideo" src="" class="d-none"></video>
             <video id="resultVideo" class="d-none"></video>
             <a id="downloadLink" class="d-none">Download</a>
@@ -302,7 +276,8 @@
             <div id="courseProgress" class="d-none card border-dark mb-3 p-0">
               <div class="card-header text-white p-0 card-header-custom" id="correct">
                 <div class="d-flex align-items-center p-3">
-                  <img src="assets/img/teacherprofile.png" alt="" class="rounded-circle me-3 chat-avatar">
+                  <img src="assets/img/teacherprofile.jpeg" alt="Joe Walsh" class="rounded-circle me-3 chat-avatar"
+                    style="width: 40px; height: 40px; object-fit: cover;">
                   <div>Prof. Joe Walsh<div class="mt-1"><small>English Fluency Coach, UFF</small></div>
                   </div>
                 </div>
@@ -327,8 +302,8 @@
             </div>
 
             <div id="questions-container"></div>
-          </div>
 
+          </div>
         </div>
       </div>
 

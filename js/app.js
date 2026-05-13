@@ -249,6 +249,11 @@ function resetButtonState(button) {
 // buildStatsBlocks has been extracted to feedback-builder.js (data) + feedback-renderer-web.js (HTML)
 
 export async function handleAnswer(userResponse, cue, questionData, button, explanation, translation, stats = { pauseCount: null, netDuration: null }, userData = State.userData, configData = State.configData, courseId = State.courseId) {
+    // Show the playback video immediately as the first chat message while processing
+    if (!State.isTextMode && (questionData.inputType === "lessonIntro" || questionData.inputType === "speech" || questionData.inputType === "ai")) {
+        showPlaybackVideo();
+    }
+
     let speechAnalytics = null;
     let cleanWordCount = 0;
     const qIndex = getCurrentQuestionIndex(questionData, configData, State.currentLessonIndex);

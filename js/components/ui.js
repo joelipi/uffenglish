@@ -7,8 +7,39 @@ import { getLocalizedTranslation } from '../modules/utils.js';
 import { Media } from '../modules/media.js';
 import { pointLoss } from './point-loss-animation.js';
 
+// Inject dynamic styles to override padding, set avatar size, and control responsive width
+const dynamicStyles = document.createElement('style');
+dynamicStyles.textContent = `
+    .chat-avatar-inline {
+        width: 40px !important;
+        height: 40px !important;
+        flex-shrink: 0 !important;
+        object-fit: cover !important;
+        border-radius: 50% !important;
+    }
+    .chat-msg {
+        padding: 4px 12px !important;
+        width: 100%;
+        max-width: 95%; /* Mobile width */
+    }
+    @media (min-width: 768px) {
+        .chat-msg {
+            max-width: 80%; /* Desktop width */
+        }
+    }
+    .chat-bubble-header {
+        font-size: 0.75rem;
+        color: #888;
+        margin-bottom: 2px;
+        font-weight: bold;
+    }
+    .userResponse .chat-bubble-header {
+        text-align: right;
+    }
+`;
+document.head.appendChild(dynamicStyles);
+
 export function syncTextModeUI() {
-    // DOM is defined below, but functions are hoisted — DOM getters will resolve at call time
     const phrasesScore = document.getElementById('phrasesScore');
     if (phrasesScore) {
         if (State.isTextMode) {
@@ -21,7 +52,6 @@ export function syncTextModeUI() {
     }
 }
 
-// 1. Centralize DOM Elements (Updated with Getters for dynamic evaluation)
 export const DOM = {
     get phrasesScore() { return document.getElementById('phrasesScore'); },
     get mediaContainer() { return document.getElementById('media-container'); },
@@ -54,7 +84,6 @@ export const DOM = {
 let webcamPreview = null;
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-// XSS Prevention Helper
 export function escapeHTML(str) {
     if (!str) return "";
     return str.replace(/[&<>'"]/g,
@@ -68,15 +97,12 @@ export function escapeHTML(str) {
     );
 }
 
-// 2. Helper to switch between AI and Human headers
 function setChatHeader(isAI) {
     DOM.avatarAi.classList.toggle('d-none', !isAI);
     DOM.nameAi.classList.toggle('d-none', !isAI);
     DOM.avatarHuman.classList.toggle('d-none', isAI);
     DOM.nameHuman.classList.toggle('d-none', isAI);
 }
-
-// 2. UI Helper Functions
 
 export function getFirstName(displayName) {
     if (!displayName) return "User";
@@ -86,16 +112,13 @@ export function getFirstName(displayName) {
 export function flashElement(element) {
     if (!element) return;
     element.classList.remove('score-update');
-    // Force a reflow to restart the animation
     void element.offsetWidth;
     element.classList.add('score-update');
     setTimeout(() => element.classList.remove('score-update'), 300);
 }
 
 export function updateCurrentScoreDisplay(listeningScore) {
-    // Fallback: If legacy code calls this without args, fetch from store
     const points = listeningScore !== undefined ? listeningScore : appStore.getState().listeningScore;
-
     const element = document.getElementById('currentScore');
     if (element) {
         flashElement(element);
@@ -103,30 +126,19 @@ export function updateCurrentScoreDisplay(listeningScore) {
     }
 }
 
-/**
- * Updates the streak and day count displays simultaneously
- * @param {number} totalDays - Total count from completed_dates.length
- * @param {number} currentStreak - Result from calculateCurrentStreak()
- */
 export function updateActivityDisplay(totalDays, currentStreak) {
     if (DOM.dayCountSpan) {
         DOM.dayCountSpan.textContent = totalDays;
-        // Optional: flash only if value changes
         flashElement(DOM.dayCountSpan);
     }
-
     if (DOM.streakCountSpan) {
         DOM.streakCountSpan.textContent = currentStreak;
-        // Visual feedback for the streak is highly encouraging for users
         flashElement(DOM.streakCountSpan);
     }
 }
 
-// Keep the old function for backward compatibility with other parts of your app
 export function updateDayCountDisplay(dayCount) {
-    // Fallback: If legacy code calls this without args, fetch from store
     const safeDayCount = dayCount !== undefined ? dayCount : appStore.getState().dayCount;
-
     if (DOM.dayCountSpan) {
         flashElement(DOM.dayCountSpan);
         DOM.dayCountSpan.textContent = safeDayCount;
@@ -144,18 +156,15 @@ export function disableAllButtons(container) {
     });
 }
 
-// 3. The new Data-Driven render function
 export function safeRenderChatInterface(isAI, bodyContent) {
-    DOM.speechText.classList.remove('d-none'); // Unhide the whole widget
-    setChatHeader(isAI); // Swap the avatar/name
+    DOM.speechText.classList.remove('d-none');
+    setChatHeader(isAI);
 
-    // Remove the loading spinner if it exists
     const loadingStatus = DOM.chatBody.querySelector('#ai-loading-status');
     if (loadingStatus) {
         loadingStatus.remove();
     }
 
-    // Append the new bubbles
     if (bodyContent) {
         if (typeof bodyContent === 'string') {
             DOM.chatBody.insertAdjacentHTML('beforeend', bodyContent);
@@ -164,22 +173,19 @@ export function safeRenderChatInterface(isAI, bodyContent) {
         }
     }
 
-    // Auto-scroll the page window to the bottom of the chat
+    // Auto-scroll ONLY the chat container
     setTimeout(() => {
-        window.scrollTo({ 
-            top: document.documentElement.scrollHeight, 
-            behavior: 'smooth' 
-        });
+        const lastMessage = DOM.chatBody.lastElementChild;
+        if (lastMessage) {
+            lastMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
     }, 50);
 }
 
-/**
- * 🎨 UI BUILDER: Renders the user's spoken or typed response
- */
 export function renderUserResponse(text, statsHtml = "") {
     const safeText = escapeHTML(text);
-    const userName = getFirstName(State.userData?.display_name);
-    const userAvatarUrl = State.userData?.profilepicurl || 'assets/img/teacherprofile.png';
+    const userName = getFirstName(appStore.getState().userData?.display_name || State.userData?.display_name);
+    const userAvatarUrl = appStore.getState().userData?.profilepicurl || State.userData?.profilepicurl || 'assets/img/userprofile.png';
     const html = `
         <div class='chat-message-wrapper user-message-wrapper'>
             <img src='${userAvatarUrl}' alt='${userName}' class='chat-avatar-inline' />
@@ -192,81 +198,63 @@ export function renderUserResponse(text, statsHtml = "") {
     safeRenderChatInterface(false, html);
 }
 
-/**
- * 🎨 UI BUILDER: Renders a loading indicator while AI is thinking
- */
 export function renderAIAnalysisLoading(text) {
     const defaultText = Strings.get('ai_analyzing', State.userData?.native_language);
     const displayText = text || defaultText;
-    const aiAvatarUrl = 'assets/img/ai-avatar.png'; // Use a default AI avatar
+    const aiAvatarUrl = 'assets/img/teacherprofile.jpeg';
     const html = `
         <div class='chat-message-wrapper ai-message-wrapper' id='ai-loading-status'>
-            <img src='${aiAvatarUrl}' alt='AI' class='chat-avatar-inline' />
+            <img src='${aiAvatarUrl}' alt='Joe Walsh' class='chat-avatar-inline' />
             <div class='chat-bubble chat-msg'>
-                <div class='chat-bubble-header'>FluIntel AI</div>
+                <div class='chat-bubble-header'>Joe Walsh</div>
                 <strong><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ${displayText}</strong>
             </div>
         </div>`;
     safeRenderChatInterface(true, html);
 }
 
-/**
- * 🎨 UI BUILDER: Renders a standardized stats bubble
- */
-
 export function createHeaderHTML(text) {
-    if (!text) return "";
-    return `<div style='font-size: 0.85em; text-transform: uppercase; color: #17a2b8; margin-bottom: 5px;'><strong>${text}</strong></div>`;
+    return "";
 }
 
-export function createPragmaticsBubbleHTML(headingHTML, contentHTML, correctionHTML = "", botName = "Pragmatics Bot", avatarUrl = "assets/img/ai-avatar.png") {
+export function createPragmaticsBubbleHTML(headingHTML, contentHTML, correctionHTML = "", botName = "Joe Walsh", avatarUrl = "assets/img/teacherprofile.jpeg") {
     return `
-        <div class='chat-message-wrapper ai-message-wrapper' style='margin-top: 12px;'>
+        <div class='chat-message-wrapper ai-message-wrapper' style='margin-top: 0px;'>
             <img src='${avatarUrl}' alt='${botName}' class='chat-avatar-inline' />
             <div class='chat-bubble chat-msg' style='display: block;'>
                 <div class='chat-bubble-header'>${botName}</div>
-                ${headingHTML ? headingHTML : ''}
-                ${contentHTML}
-                ${correctionHTML ? `<div style="margin-top: 6px; font-weight: bold; color: #17a2b8;">${correctionHTML}</div>` : ''}
+                ${contentHTML}${correctionHTML ? ` ${correctionHTML}` : ''}
             </div>
         </div>`;
 }
 
-export function createStatsBubbleHTML(header, statsParts, botName = "Stats Bot", avatarUrl = "assets/img/ai-avatar.png") {
-    const listHtml = statsParts && statsParts.length > 0 ? `<ul>${statsParts.map(part => `<li>${part}</li>`).join('')}</ul>` : '';
+export function createStatsBubbleHTML(header, statsParts, botName = "Joe Walsh", avatarUrl = "assets/img/teacherprofile.jpeg") {
+    const partsHtml = statsParts && statsParts.length > 0
+        ? ` ${statsParts.join('. ')}`
+        : '';
     return `
-        <div class='chat-message-wrapper ai-message-wrapper' style='margin-bottom: 12px;'>
+        <div class='chat-message-wrapper ai-message-wrapper' style='margin-bottom: 0px;'>
             <img src='${avatarUrl}' alt='${botName}' class='chat-avatar-inline' />
             <div class='chat-bubble chat-msg' style='display: block; border-left: 4px solid #17a2b8;'>
                 <div class='chat-bubble-header'>${botName}</div>
-                ${createHeaderHTML(header)}
-                ${listHtml}
+                <span>${header}${partsHtml}</span>
             </div>
         </div>`;
 }
 
-/**
- * 🎨 UI BUILDER: Renders a grammar correction bubble with a diff
- */
-export function createGrammarDiffHTML(original, correction, headingText = "", botName = "Grammar Bot", avatarUrl = "assets/img/ai-avatar.png") {
+export function createGrammarDiffHTML(original, correction, headingText = "", botName = "Joe Walsh", avatarUrl = "assets/img/teacherprofile.jpeg") {
     const { userHTML, corrHTML } = buildGrammarDiff(original, correction);
     return `
-        <div class='chat-message-wrapper ai-message-wrapper' style='margin-top: 12px;'>
+        <div class='chat-message-wrapper ai-message-wrapper' style='margin-top: 0px;'>
             <img src='${avatarUrl}' alt='${botName}' class='chat-avatar-inline' />
             <div class='chat-bubble chat-msg' style='display: block;'>
                 <div class='chat-bubble-header'>${botName}</div>
-                ${createHeaderHTML(headingText)}
                 <div class="diff-del-bubble">${userHTML}</div>
                 <div style="margin-top:6px">${corrHTML}</div>
             </div>
         </div>`;
 }
 
-/**
- * 🎨 UI BUILDER: Converts praise data (text or image) into HTML
- * @param {Object|string} praiseData - The praise data object or a direct string
- * @returns {string} HTML string
- */
 export function getPraiseHTML(praiseData) {
     if (!praiseData) return "";
     if (typeof praiseData === 'string') return praiseData;
@@ -276,11 +264,7 @@ export function getPraiseHTML(praiseData) {
     return praiseData.text || "";
 }
 
-/**
- * 🎨 UI BUILDER: Renders a general AI feedback bubble (explanation, heads-up, etc.)
- */
 export function renderAIFeedback(contentChunks = []) {
-    // Filter out empty strings and wrap each chunk in a bubble if not already wrapped
     const fragment = document.createDocumentFragment();
     contentChunks
         .filter(Boolean)
@@ -295,17 +279,17 @@ export function renderAIFeedback(contentChunks = []) {
                 } else {
                     const wrapper = document.createElement('div');
                     wrapper.className = 'chat-message-wrapper ai-message-wrapper';
-                    wrapper.style.marginTop = '12px';
+                    wrapper.style.marginTop = '4px';
 
                     const img = document.createElement('img');
-                    img.src = 'assets/img/ai-avatar.png';
-                    img.alt = 'FluIntel AI';
+                    img.src = 'assets/img/teacherprofile.jpeg';
+                    img.alt = 'Joe Walsh';
                     img.className = 'chat-avatar-inline';
 
                     const bubble = document.createElement('div');
                     bubble.className = 'chat-bubble chat-msg';
                     bubble.style.display = 'block';
-                    bubble.innerHTML = `<div class='chat-bubble-header'>FluIntel AI</div>${chunk}`;
+                    bubble.innerHTML = `<div class='chat-bubble-header'>Joe Walsh</div>${chunk}`;
 
                     wrapper.appendChild(img);
                     wrapper.appendChild(bubble);
@@ -315,11 +299,11 @@ export function renderAIFeedback(contentChunks = []) {
                 if (chunk.nodeType === Node.ELEMENT_NODE && !chunk.classList.contains('chat-msg') && !chunk.classList.contains('chat-message-wrapper')) {
                     const outerWrapper = document.createElement('div');
                     outerWrapper.className = 'chat-message-wrapper ai-message-wrapper';
-                    outerWrapper.style.marginTop = '12px';
+                    outerWrapper.style.marginTop = '4px';
 
                     const img = document.createElement('img');
-                    img.src = 'assets/img/ai-avatar.png';
-                    img.alt = 'FluIntel AI';
+                    img.src = 'assets/img/teacherprofile.jpeg';
+                    img.alt = 'Joe Walsh';
                     img.className = 'chat-avatar-inline';
 
                     const wrapper = document.createElement('div');
@@ -328,7 +312,7 @@ export function renderAIFeedback(contentChunks = []) {
 
                     const header = document.createElement('div');
                     header.className = 'chat-bubble-header';
-                    header.textContent = 'FluIntel AI';
+                    header.textContent = 'Joe Walsh';
 
                     wrapper.appendChild(header);
                     wrapper.appendChild(chunk);
@@ -344,9 +328,6 @@ export function renderAIFeedback(contentChunks = []) {
     safeRenderChatInterface(true, fragment);
 }
 
-/**
- * 🎨 UI BUILDER: Internal helper to generate diff HTML
- */
 function buildGrammarDiff(original, corrected) {
     const tokenize = str => str.trim().match(/[\p{L}\p{N}]+(?:'[\p{L}\p{N}]+)?|[^\p{L}\p{N}\s]+|\s+/gu) || [];
     const tokA = tokenize(original), tokB = tokenize(corrected);
@@ -369,12 +350,10 @@ function buildGrammarDiff(original, corrected) {
         const v = val.replace(/</g, '&lt;');
         if (type === 'eq') { userHTML += v; corrHTML += v; }
         else if (type === 'del') {
-            // Punctuation-only tokens: show plain in user line, skip in corrected line
             if (isPunct(val)) { userHTML += v; }
             else { userHTML += `<span class="diff-del">${v}</span>`; }
         }
         else if (type === 'ins') {
-            // Punctuation-only tokens: skip in user line, show plain in corrected line
             if (isPunct(val)) { corrHTML += v; }
             else { corrHTML += `<span class="diff-ins">${v}</span>`; }
         }
@@ -382,9 +361,6 @@ function buildGrammarDiff(original, corrected) {
     return { userHTML, corrHTML };
 }
 
-/**
- * 🎨 UI BUILDER: Generates a 'hangman' version of the cue based on user response
- */
 export function generateHangmanHint(userResponse, cue) {
     const tokenize = str => str.trim().match(/[\p{L}\p{N}]+(?:'[\p{L}\p{N}]+)?|[^\p{L}\p{N}\s]+|\s+/gu) || [];
     const tokA = tokenize(userResponse || ""), tokB = tokenize(cue || "");
@@ -407,40 +383,31 @@ export function generateHangmanHint(userResponse, cue) {
         if (type === 'eq') {
             resultHTML += v;
         } else if (type === 'ins') {
-            // Missed word from cue -> underscore placeholder
             if (/\w/.test(v)) {
                 resultHTML += ' <span class="hangman-placeholder">&nbsp;&nbsp;&nbsp;</span> ';
             } else {
                 resultHTML += v;
             }
         } else if (type === 'del') {
-            // Incorrect word from user -> red text
             if (/\w/.test(v)) {
                 resultHTML += `<span class="hangman-incorrect">${v}</span>`;
             }
         }
     });
-
-    // Clean up double spaces
     return resultHTML.replace(/\s+/g, ' ').trim();
 }
 
-// 4. NEW: A clean way to wipe the chat between questions
 export function clearChatInterface() {
-    // 1. Rescue the playback video wrapper so it isn't destroyed by the wipe
     const videoWrapper = document.getElementById('playback-video-wrapper');
     if (videoWrapper) {
         videoWrapper.style.display = 'none';
-        document.body.appendChild(videoWrapper); // Move it safely to the body
+        document.body.appendChild(videoWrapper);
     }
 
-    // 2. Clear the chat
     DOM.chatBody.innerHTML = '';
-    DOM.speechText.classList.add('d-none'); // Hide widget entirely
+    DOM.speechText.classList.add('d-none');
     hideTutorChatInput();
 }
-
-// --- TUTOR CHAT UI FUNCTIONS ---
 
 export function initTutorChatUI(submitCallback) {
     if (!DOM.tutorChatTextarea || !DOM.tutorChatSendBtn) return;
@@ -454,10 +421,7 @@ export function initTutorChatUI(submitCallback) {
     });
 
     DOM.tutorChatTextarea.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            // Let the textarea handle Enter for newlines natively.
-            // Do NOT trigger submit.
-        }
+        if (e.key === 'Enter') { }
     });
 }
 
@@ -472,16 +436,10 @@ export function hideTutorChatInput() {
 export function getChatHistoryContext() {
     if (!DOM.chatBody) return "";
 
-    // Simple text extraction from the chat body's text content.
-    // In a more complex scenario, we'd distinguish roles more carefully,
-    // but the innerText of the bubbles typically captures the flow.
     const bubbles = Array.from(DOM.chatBody.querySelectorAll('.chat-msg'));
-
     let historyText = "";
     for (const bubble of bubbles) {
-        // Skip loading indicators
         if (bubble.id === 'ai-loading-status') continue;
-
         let role = bubble.classList.contains('userResponse') ? "Student" : "Tutor";
         historyText += `${role}: ${bubble.innerText}\n`;
     }
@@ -493,12 +451,12 @@ export function renderTutorMessage(text, isUser) {
         renderUserResponse(text);
     } else {
         const safeText = escapeHTML(text);
-        const aiAvatarUrl = 'assets/img/ai-avatar.png'; // Default tutor avatar
+        const aiAvatarUrl = 'assets/img/teacherprofile.jpeg';
         const html = `
             <div class='chat-message-wrapper ai-message-wrapper'>
-                <img src='${aiAvatarUrl}' alt='Tutor' class='chat-avatar-inline' />
+                <img src='${aiAvatarUrl}' alt='Joe Walsh' class='chat-avatar-inline' />
                 <div class='chat-bubble chat-msg'>
-                    <div class='chat-bubble-header'>Tutor</div>
+                    <div class='chat-bubble-header'>Joe Walsh</div>
                     ${safeText}
                 </div>
             </div>`;
@@ -506,12 +464,10 @@ export function renderTutorMessage(text, isUser) {
     }
 }
 
-// 5. Encapsulated DOM Logic
 export function showHintsAndScroll() {
     const hints = document.getElementById("hints");
     if (hints) {
         hints.classList.remove("d-none", "invisible");
-        //window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
     }
 }
 
@@ -538,23 +494,14 @@ export function setMicStatusText(content) {
     }
 }
 
-/**
- * Initializes Zustand store subscriptions that keep persistent UI indicators
- * in sync with reactive state. Call this once during app initialization.
- * Each subscriber also fires immediately to render the initial state.
- */
 export function initUISubscriptions() {
     const store = appStore;
-
-    // --- Version-Agnostic Trackers ---
-    // Track previous state locally to avoid "prevState is undefined" errors in newer Zustand versions
     let prevPoints = store.getState().listeningScore;
     let prevSpeaking = store.getState().speakingScore;
     let prevAttempts = store.getState().incorrectAttempts;
     let prevDayCount = store.getState().dayCount;
     let prevStreak = store.getState().currentStreak;
 
-    // --- listeningScore → #currentScore display ---
     const syncCurrentScore = (listeningScore) => {
         const element = document.getElementById('currentScore');
         if (element) {
@@ -562,20 +509,16 @@ export function initUISubscriptions() {
             element.textContent = listeningScore;
         }
     };
-    // Fire immediately for initial render
     syncCurrentScore(prevPoints);
 
-    // --- speakingScore → #phrasesScore display ---
     const syncSpeakingScore = (speakingScore) => {
         if (DOM.phrasesScore) {
             flashElement(DOM.phrasesScore);
             DOM.phrasesScore.textContent = `${speakingScore}`;
         }
     };
-    // Fire immediately for initial render
     syncSpeakingScore(prevSpeaking);
 
-    // --- Activity Stats ---
     const syncActivityDisplay = (dayCount, currentStreak) => {
         if (DOM.dayCountSpan) {
             DOM.dayCountSpan.textContent = dayCount;
@@ -586,34 +529,25 @@ export function initUISubscriptions() {
             flashElement(DOM.streakCountSpan);
         }
     };
-    // Fire immediately for initial render
     syncActivityDisplay(prevDayCount, prevStreak);
 
-    // --- Single Master Subscriber ---
     store.subscribe((state) => {
-        // listeningScore check
         if (state.listeningScore !== prevPoints) {
             syncCurrentScore(state.listeningScore);
             prevPoints = state.listeningScore;
         }
-
-        // speakingScore check
         if (state.speakingScore !== prevSpeaking) {
             syncSpeakingScore(state.speakingScore);
             prevSpeaking = state.speakingScore;
         }
-
-        // incorrectAttempts check
         if (state.incorrectAttempts > prevAttempts) {
             if (state.incorrectAttempts == 1 && DOM.heart1) DOM.heart1.classList.add("falling-image");
             else if (state.incorrectAttempts == 2 && DOM.heart2) DOM.heart2.classList.add("falling-image");
             else if (state.incorrectAttempts == 3 && DOM.heart3) DOM.heart3.classList.add("falling-image");
             prevAttempts = state.incorrectAttempts;
         } else if (state.incorrectAttempts === 0) {
-            prevAttempts = 0; // Reset tracking on new questions/lessons
+            prevAttempts = 0;
         }
-
-        // Activity Metrics check
         if (state.dayCount !== prevDayCount || state.currentStreak !== prevStreak) {
             syncActivityDisplay(state.dayCount, state.currentStreak);
             prevDayCount = state.dayCount;
@@ -622,10 +556,6 @@ export function initUISubscriptions() {
     });
 }
 
-/**
- * Inserts the guest login modal into the document body and shows it via Bootstrap.
- * Called when the user is not authenticated.
- */
 export function showGuestLoginModal() {
     const modalHtml = `
     <div class="modal fade" id="guestLoginModal" tabindex="-1" aria-labelledby="guestLoginModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
@@ -679,12 +609,10 @@ export function renderWhisperReviewUI(transcript, timeLeft, onAccept, onReject) 
             </div>
         </div>`;
 
-    // Bind listeners
     setTimeout(() => {
         document.getElementById('acceptBtn')?.addEventListener('click', onAccept);
         document.getElementById('rejectBtn')?.addEventListener('click', onReject);
 
-        // Trigger animation
         const bar = document.getElementById('reviewProgressBar');
         if (bar) {
             requestAnimationFrame(() => {
@@ -700,7 +628,6 @@ export function updateWhisperTimer(timeLeft) {
 }
 
 export function pauseVideoIfPlaying(playerInstance) {
-    // 1. Instance approach: keeps player UI/internal state in sync
     if (playerInstance) {
         if (typeof playerInstance.pause === 'function') {
             playerInstance.pause();
@@ -709,7 +636,6 @@ export function pauseVideoIfPlaying(playerInstance) {
         }
     }
 
-    // 2. DOM Fallback: Catch ALL .ivp-video elements
     const videoElements = document.querySelectorAll('video.ivp-video');
     videoElements.forEach(video => {
         if (!video.paused) {
@@ -719,14 +645,11 @@ export function pauseVideoIfPlaying(playerInstance) {
 }
 
 export function updateSpeakingScoreDisplay(score) {
-    // Fallback: If legacy code calls this without args, fetch from store
     const safeScore = score !== undefined ? score : appStore.getState().speakingScore;
-
     if (DOM.phrasesScore) DOM.phrasesScore.textContent = `${safeScore}`;
 }
 
 export function clearPlaybackVideo() {
-    console.log("clearPlaybackVideo called");
     const video = document.getElementById('playback-video') || DOM.playbackVideo;
     if (video) {
         video.pause();
@@ -738,8 +661,7 @@ export function clearPlaybackVideo() {
         video.onloadeddata = null;
         video.onloadedmetadata = null;
     }
-    
-    // Hide the rescued wrapper
+
     const videoWrapper = document.getElementById('playback-video-wrapper');
     if (videoWrapper) {
         videoWrapper.style.display = 'none';
@@ -754,56 +676,70 @@ export function prepareMediaUI() {
 }
 
 export function showPlaybackVideo() {
-    console.log("showPlaybackVideo");
+    if (DOM.speechText) {
+        DOM.speechText.classList.remove('d-none');
+        DOM.speechText.style.setProperty('display', 'block', 'important');
+        DOM.speechText.style.setProperty('opacity', '1', 'important');
+    }
+
     const videoWrapper = document.getElementById('playback-video-wrapper');
     const video = document.getElementById('playback-video') || DOM.playbackVideo;
-    
-    if (videoWrapper && video && DOM.chatBody) {
-        // Ensure visibility
-        videoWrapper.classList.remove('d-none');
-        videoWrapper.style.display = 'block';
-        video.style.display = 'block';
 
-        // 1. Create the outer chat wrapper
+    if (videoWrapper && video && DOM.chatBody) {
+        videoWrapper.classList.remove('d-none');
+        videoWrapper.style.setProperty('display', 'block', 'important');
+        videoWrapper.style.setProperty('visibility', 'visible', 'important');
+        videoWrapper.style.setProperty('opacity', '1', 'important');
+
+        video.style.setProperty('display', 'block', 'important');
+        video.style.setProperty('opacity', '1', 'important');
+
+        // Match renderUserResponse structure so row-reverse styling applies correctly
         const chatWrapper = document.createElement('div');
         chatWrapper.className = 'chat-message-wrapper user-message-wrapper';
         chatWrapper.style.animation = 'popIn 0.3s ease-out forwards';
 
-        // 2. Add the user's avatar
+        const userName = getFirstName(appStore.getState().userData?.display_name || State.userData?.display_name);
+        const userAvatarUrl = appStore.getState().userData?.profilepicurl || State.userData?.profilepicurl || 'assets/img/userprofile.png';
+
         const avatar = document.createElement('img');
-        avatar.src = State.userData?.profilepicurl || 'assets/img/teacherprofile.png';
+        avatar.src = userAvatarUrl;
+        avatar.alt = userName;
         avatar.className = 'chat-avatar-inline';
 
-        // 3. Create the chat bubble specifically styled for a video
         const bubble = document.createElement('div');
-        bubble.className = 'chat-bubble-sent p-1'; // Tight padding
+        bubble.className = 'userResponse chat-bubble-sent chat-msg p-1';
         bubble.style.backgroundColor = '#000';
-        bubble.style.width = '260px'; // Perfect mobile size
-        bubble.style.border = '2px solid #4facfe'; // Subtle brand border
-        bubble.style.overflow = 'hidden'; // Keeps the video from leaking over the rounded corners
-        bubble.style.borderRadius = '12px 12px 4px 12px'; 
-        
-        // 4. Clean up old classes and adjust video to fit the bubble perfectly
+        bubble.style.border = '2px solid #4facfe';
+        bubble.style.overflow = 'hidden';
+        bubble.style.borderRadius = '12px 12px 4px 12px';
+
+        const header = document.createElement('div');
+        header.className = 'chat-bubble-header';
+        header.textContent = userName;
+        header.style.color = '#fff';
+        header.style.padding = '4px 8px';
+
         videoWrapper.classList.remove('mb-2');
         video.style.width = '100%';
         video.style.height = 'auto';
         video.style.maxHeight = '350px';
         video.style.objectFit = 'cover';
 
-        // 5. Assemble the bubble and inject it
+        bubble.appendChild(header);
         bubble.appendChild(videoWrapper);
-        chatWrapper.appendChild(bubble);
+
         chatWrapper.appendChild(avatar);
+        chatWrapper.appendChild(bubble);
 
         DOM.chatBody.appendChild(chatWrapper);
-        
-        // 6. Smoothly auto-scroll the page to show the video
+
         setTimeout(() => {
-            window.scrollTo({ 
-                top: document.documentElement.scrollHeight, 
-                behavior: 'smooth' 
-            });
-        }, 50);
+            const lastMessage = DOM.chatBody.lastElementChild;
+            if (lastMessage) {
+                lastMessage.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }, 100);
     }
 }
 
@@ -819,8 +755,6 @@ export function createWebcamPreview() {
     webcamPreview.autoplay = true;
     webcamPreview.muted = true;
     webcamPreview.playsinline = true;
-
-    // Set opacity:0 BEFORE insertion
     webcamPreview.style.opacity = '0';
 
     if (DOM.mediaContainer) {
@@ -869,9 +803,7 @@ export function ensureWebcamPreview(stream) {
 export function toggleCamera() {
     State.isCameraOff = !State.isCameraOff;
     console.log(`[UI] Camera toggled. isCameraOff: ${State.isCameraOff}`);
-    // The placeholder/webcam switch will be handled by speech-web.js re-warming the stream
 }
-
 
 export function hideWebcamPreview() {
     if (webcamPreview && webcamPreview.isConnected) webcamPreview.classList.add('d-none');
@@ -882,17 +814,12 @@ export function removeWebcamPreview() {
         webcamPreview.pause();
         webcamPreview.srcObject = null;
         webcamPreview.classList.add('d-none');
-        // Do NOT remove from DOM and do NOT set to null
     }
 }
 
 export async function setupPlaybackVideo(blob, autoplay = false, speechCamChunks = []) {
-    //   FIX: Dynamic fallback
     const playbackVideo = document.getElementById('playback-video') || DOM.playbackVideo;
-    if (!playbackVideo) {
-        console.error('[Playback] playbackVideo element not found. Make sure <video id="playback-video"> is in your HTML!');
-        return;
-    }
+    if (!playbackVideo) return;
 
     try {
         if (playbackVideo.src && playbackVideo.src.startsWith('blob:')) {
@@ -905,7 +832,6 @@ export async function setupPlaybackVideo(blob, autoplay = false, speechCamChunks
             playbackVideo.src = URL.createObjectURL(blob);
         }
 
-        //   FIX: Dynamic fallback for the mute toggle
         const muteToggle = document.getElementById('playback-mute-toggle') || DOM.playbackMuteToggle;
         if (muteToggle) {
             muteToggle.classList.remove('d-none');
@@ -925,16 +851,12 @@ export async function setupPlaybackVideo(blob, autoplay = false, speechCamChunks
         }
 
         playbackVideo.onerror = (e) => {
-            console.error('[Playback] playbackVideo error:', e);
             try {
                 const fallbackBlob = new Blob(speechCamChunks, { type: 'video/mp4' });
                 playbackVideo.src = URL.createObjectURL(fallbackBlob);
-            } catch (fallbackError) {
-                console.error('[Playback] Fallback failed:', fallbackError);
-            }
+            } catch (fallbackError) { }
         };
 
-        // 1. SOLVING THE WINDOWS/ANDROID BUG: Disable native controls globally
         playbackVideo.controls = false;
         playbackVideo.loop = true;
         playbackVideo.autoplay = false;
@@ -942,8 +864,6 @@ export async function setupPlaybackVideo(blob, autoplay = false, speechCamChunks
         playbackVideo.muted = State.isPlaybackMuted || false;
         playbackVideo.style.cursor = 'pointer';
 
-        // 2. UNIFIED TAP/CLICK-TO-PLAY: 
-        // Remove previous listeners so they don't stack up over multiple questions
         if (playbackVideo._interactionHandler) {
             playbackVideo.removeEventListener('touchstart', playbackVideo._interactionHandler);
             playbackVideo.removeEventListener('click', playbackVideo._interactionHandler);
@@ -966,19 +886,16 @@ export async function setupPlaybackVideo(blob, autoplay = false, speechCamChunks
         playbackVideo.addEventListener('touchstart', playbackVideo._interactionHandler, { passive: false });
         playbackVideo.addEventListener('click', playbackVideo._interactionHandler);
 
-        // 3. SOLVING THE SCROLL ANNOYANCE: Auto-pause when out of view
         if (window._playbackObserver) {
             window._playbackObserver.disconnect();
         }
         window._playbackObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
-                // If the video is playing and scrolls out of the viewport, pause it
                 if (!entry.isIntersecting && !playbackVideo.paused) {
                     playbackVideo.pause();
-                    console.log('[UI] Video scrolled out of view. Auto-paused.');
                 }
             });
-        }, { threshold: 0.1 }); // 0.1 means pause when 90% of the video is hidden
+        }, { threshold: 0.1 });
 
         window._playbackObserver.observe(playbackVideo);
 
@@ -989,9 +906,7 @@ export async function setupPlaybackVideo(blob, autoplay = false, speechCamChunks
             }
         };
 
-    } catch (urlError) {
-        console.error('[Playback] setupPlaybackVideo threw:', urlError);
-    }
+    } catch (urlError) { }
 }
 
 async function setupIOSBlobPlayback(videoElement, blob) {
@@ -1056,7 +971,6 @@ export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyCl
     let btnGroup = document.getElementById('introButtonGroup');
     const centerBar = document.getElementById('bottomButtonBarCenter');
 
-    // 1. Ensure btnGroup exists in intro
     if (isLessonIntro && !btnGroup && centerBar) {
         btnGroup = document.createElement('div');
         btnGroup.className = 'd-flex gap-2 w-100 align-items-center';
@@ -1064,7 +978,6 @@ export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyCl
         centerBar.appendChild(btnGroup);
     }
 
-    // 2. Create/Initialize Buttons
     if (!continueButton) {
         continueButton = document.createElement('button');
         continueButton.id = 'continueButton';
@@ -1109,12 +1022,11 @@ export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyCl
         };
     }
 
-    // 3. Position and Display
     if (isLessonIntro && btnGroup) {
         btnGroup.innerHTML = '';
-        if (audioOnlyButton) btnGroup.appendChild(audioOnlyButton); // Telephone Left
-        if (continueButton) btnGroup.appendChild(continueButton);  // Webcam Middle
-        if (textOnlyButton) btnGroup.appendChild(textOnlyButton);   // Keyboard Right
+        if (audioOnlyButton) btnGroup.appendChild(audioOnlyButton);
+        if (continueButton) btnGroup.appendChild(continueButton);
+        if (textOnlyButton) btnGroup.appendChild(textOnlyButton);
         btnGroup.style.display = 'flex';
     } else {
         if (btnGroup) btnGroup.style.display = 'none';
@@ -1126,8 +1038,6 @@ export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyCl
 
     return continueButton;
 }
-
-
 
 export function hideContinueButton() {
     const continueButton = document.getElementById('continueButton');
@@ -1181,29 +1091,18 @@ export function removeRepeatButton() {
 export function clearMediaContainerAndPreservePlayers() {
     if (!DOM.mediaContainer) return;
 
-    // 1. Identify containers we want to keep
     const preserved = DOM.mediaContainer.querySelectorAll('#ivp-container, #simple-ivp-container, #intro-call-widget, #webcam-preview');
-
-    // 2. Wipe the parent container
     DOM.mediaContainer.innerHTML = '';
 
-    // 3. Re-append preserved shells and RESET any leftover inline style overrides or hidden classes.
-    // This allows the CSS :empty pseudo-class in style.css to manage visibility
-    // dynamically (hiding them when empty, showing them when they have children).
     preserved.forEach(el => {
         el.style.display = '';
         el.style.minHeight = '';
 
-        // Neutral state: Shells are available (unhidden), but the Call Widget is hidden by default
         if (el.id === 'intro-call-widget') {
             el.classList.add('d-none');
         } else if (el.id === 'webcam-preview') {
-            // Keep the webcam's current visibility state as managed by speech-web.js
-            // and do NOT clear its innerHTML (video element)
         } else {
             el.classList.remove('d-none');
-            // Always clear innerHTML of video shells during reset. This ensures they 
-            // are truly empty so CSS :empty can collapse them (0px height).
             el.innerHTML = '';
         }
 
@@ -1212,17 +1111,11 @@ export function clearMediaContainerAndPreservePlayers() {
 }
 
 export function renderImageInMediaContainer(imageUrl) {
-    console.log(`[UI] renderImageInMediaContainer called for: ${imageUrl}`);
-    if (!DOM.mediaContainer) {
-        console.error('[UI] mediaContainer DOM element not found!');
-        return;
-    }
+    if (!DOM.mediaContainer) return;
 
-    // Ensure visibility
     DOM.mediaContainer.classList.remove('d-none');
     DOM.mediaContainer.style.display = 'block';
 
-    // Remove any previous praise images to avoid stacking
     const existingPraise = DOM.mediaContainer.querySelectorAll('.praise-image-wrapper');
     existingPraise.forEach(el => el.remove());
 
@@ -1230,7 +1123,6 @@ export function renderImageInMediaContainer(imageUrl) {
     div.className = 'text-center mb-3 praise-image-wrapper';
     div.innerHTML = `<img src="${imageUrl}" class="img-fluid rounded" alt="Praise" style="max-height: 250px; border: 3px solid #00f2fe; box-shadow: 0 0 15px rgba(0,242,254,0.5);">`;
 
-    console.log('[UI] Prepending image to mediaContainer');
     DOM.mediaContainer.prepend(div);
 }
 
@@ -1263,7 +1155,6 @@ export function renderSpeechInputUI(answerContent, handleHintCallback, handleRev
             hintUncommonWords.appendChild(answerContent);
         }
         document.querySelectorAll('.pulse-dot').forEach(span => {
-            // Need a wrapper to handle the callback and clean up event listener, but handleRevealClickCallback inside script.js does it already
             span.addEventListener('click', handleRevealClickCallback);
         });
     }
@@ -1322,7 +1213,7 @@ export function renderTextInputUI(placeholder, submitText, handleSubmitCallback)
 
     const answersContainer = document.getElementById('answers-container');
     if (answersContainer) {
-        answersContainer.innerHTML = ''; // clear existing content
+        answersContainer.innerHTML = '';
 
         const wrapper = document.createElement('div');
         wrapper.className = 'text-input-mode d-flex flex-column gap-2 p-3';
@@ -1359,8 +1250,6 @@ export function renderTextInputUI(placeholder, submitText, handleSubmitCallback)
         wrapper.appendChild(textarea);
         wrapper.appendChild(submitBtn);
         answersContainer.appendChild(wrapper);
-
-        console.log('[renderTextInputUI] Text input UI rendered');
     }
 }
 
@@ -1441,7 +1330,7 @@ export function setupLessonUI(fullTitle) {
     if (lessonHeader) {
         lessonHeader.style.display = 'block';
         lessonHeader.classList.remove('lesson-header');
-        void lessonHeader.offsetWidth; // Trigger reflow for animation
+        void lessonHeader.offsetWidth;
         lessonHeader.classList.add('lesson-header');
     }
 
@@ -1453,19 +1342,10 @@ export function setupLessonUI(fullTitle) {
     }
 }
 
-// --- Correct/Incorrect UI Handlers (extracted from app.js) ---
-
 export function handlecueUI(qIndex, questionData, button, cue, explanation, translation, userResponse, englishLevel, englishLevelDeduction, userData, configData) {
 
     if (questionData.inputType === "speech" && questionData.videoUrl) State.repeatPointsHistory.push(appStore.getState().listeningScore);
     if (questionData.inputType === "ai" && questionData.videoUrl) State.rolePlayPointsHistory.push(appStore.getState().listeningScore);
-    
-    // MOVED: Show the video immediately so it appears at the top of the chat flow!
-    if (!State.isTextMode && (questionData.inputType === "lessonIntro" || questionData.inputType === "speech" || questionData.inputType === "ai")) {
-        showPlaybackVideo();
-    }
-
-    // Unified: last AI question advances via Continue button like all others.
 
     if (DOM.speechText) {
         const lang = userData?.native_language || State.userData?.native_language || 'en';
@@ -1477,14 +1357,15 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
         if (questionData.inputType !== "ai" && questionData.inputType !== "speech") {
             const localizedTrans = getLocalizedTranslation(translation, lang);
 
+            const userName = getFirstName(appStore.getState().userData?.display_name || State.userData?.display_name);
+            const userAvatarUrl = appStore.getState().userData?.profilepicurl || State.userData?.profilepicurl || 'assets/img/userprofile.png';
+
             const correctWrapper = document.createElement('div');
-            correctWrapper.className = 'chat-message-wrapper ai-message-wrapper correct-answer-wrapper'; // reusing ai-message-wrapper for left alignment or user-message-wrapper for right depending on original
-            // Actually the original was chat-bubble-sent which means right-aligned. Let's make it a user message style.
             correctWrapper.className = 'chat-message-wrapper user-message-wrapper correct-answer-wrapper';
 
             const correctImg = document.createElement('img');
-            correctImg.src = State.userData?.profilepicurl || 'assets/img/teacherprofile.png';
-            correctImg.alt = getFirstName(State.userData?.display_name);
+            correctImg.src = userAvatarUrl;
+            correctImg.alt = userName;
             correctImg.className = 'chat-avatar-inline';
 
             const correctBubble = document.createElement('div');
@@ -1492,7 +1373,7 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
 
             const correctHeader = document.createElement('div');
             correctHeader.className = 'chat-bubble-header';
-            correctHeader.textContent = '~ ' + getFirstName(State.userData?.display_name);
+            correctHeader.textContent = userName;
             correctBubble.appendChild(correctHeader);
 
             const correctTextSpan = document.createElement('span');
@@ -1511,11 +1392,11 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
 
             const praiseWrapper = document.createElement('div');
             praiseWrapper.className = 'chat-message-wrapper ai-message-wrapper';
-            praiseWrapper.style.marginTop = '12px';
+            praiseWrapper.style.marginTop = '6px';
 
             const praiseImg = document.createElement('img');
-            praiseImg.src = 'assets/img/ai-avatar.png';
-            praiseImg.alt = 'FluIntel AI';
+            praiseImg.src = 'assets/img/teacherprofile.jpeg';
+            praiseImg.alt = 'Joe Walsh';
             praiseImg.className = 'chat-avatar-inline';
 
             const praiseBubble = document.createElement('div');
@@ -1523,7 +1404,7 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
 
             const praiseHeader = document.createElement('div');
             praiseHeader.className = 'chat-bubble-header';
-            praiseHeader.textContent = 'FluIntel AI';
+            praiseHeader.textContent = 'Joe Walsh';
             praiseBubble.appendChild(praiseHeader);
 
             const praiseStrong = document.createElement('strong');
@@ -1533,8 +1414,9 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
             praiseWrapper.appendChild(praiseImg);
             praiseWrapper.appendChild(praiseBubble);
 
-            correctWrapper.appendChild(correctBubble);
             correctWrapper.appendChild(correctImg);
+            correctWrapper.appendChild(correctBubble);
+
             const chunks = [correctWrapper];
             if (Array.isArray(explanation)) chunks.push(...explanation);
             else if (explanation) chunks.push(explanation);
@@ -1542,7 +1424,6 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
 
             renderAIFeedback(chunks);
         } else {
-            // AI and Speech are already partially rendered in handleAnswer
             const chunks = [];
             if (Array.isArray(explanation)) chunks.push(...explanation);
             else if (explanation) chunks.push(explanation);
@@ -1567,7 +1448,6 @@ export function handleIncueUI(qIndex, questionData, button, cue, userResponse, e
     if ((questionData.inputType === "speech" || questionData.inputType === "ai") && questionData.videoUrl) {
         appStore.getState().deductListeningScore(25);
         pointLoss.show(DOM.micStatusText, 25);
-        // Subscription handles the score display update 
         if (appStore.getState().incorrectAttempts > 2) {
             appStore.getState().setListeningScore(0);
             State.rolePlayPointsHistory.push(appStore.getState().listeningScore);
@@ -1584,7 +1464,6 @@ export function handleIncueUI(qIndex, questionData, button, cue, userResponse, e
         if (appStore.getState().incorrectAttempts > 2) {
             appStore.getState().setListeningScore(0);
             State.rolePlayPointsHistory.push(appStore.getState().listeningScore);
-            // Subscription handles the score display update 
         }
 
         const teacherTextStr = appStore.getState().incorrectAttempts === 1

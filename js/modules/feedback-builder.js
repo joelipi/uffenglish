@@ -22,10 +22,13 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, question
     const sections = [];
 
     // 1. Pronunciation
+    // score and attemptLabel are kept separate so the renderer can swap 100 → 💯
     sections.push({
         type: 'stat',
         key: 'pronunciation',
-        header: `${Strings.get('stats_speaking_header', lang, { score: scoreData.subScores.pronunciation })} - ${Strings.get('stats_attempts_required', lang)} ${attemptNumber}`,
+        score: scoreData.subScores.pronunciation,
+        attemptLabel: Strings.get('stats_attempts_required', lang),
+        attemptCount: attemptNumber,
         parts: []
     });
 
@@ -33,25 +36,22 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, question
     sections.push({
         type: 'stat',
         key: 'listening',
-        header: `${Strings.get('stats_listening_header', lang, { score: scoreData.subScores.listening })} - ${Strings.get('stats_repetitions_required', lang)} ${attemptNumber}`,
+        score: scoreData.subScores.listening,
+        attemptLabel: Strings.get('stats_repetitions_required', lang),
+        attemptCount: attemptNumber,
         parts: []
     });
 
-    // 3. Flow
+    // 3. Flow — pauses removed; only hesitation and wpm
     const flowParts = [
         { label: Strings.get('stats_hesitation', lang), value: `${speechAnalytics.hesitation || 0}ms` },
-        { label: Strings.get('stats_pauses_speaking', lang), value: (new URLSearchParams(window.location.search).has('demo')) ? "N/A" : (speechAnalytics.pauseCount || 0) },
         { label: Strings.get('stats_wpm', lang), value: speechAnalytics.wpm || 0 }
     ];
-
-    if (new URLSearchParams(window.location.search).has('demo')) {
-        flowParts.push({ type: 'notice', message: Strings.get('demo_vad_limitation_notice', lang) });
-    }
 
     sections.push({
         type: 'stat',
         key: 'flow',
-        header: `${Strings.get('stats_speech_flow_header', lang)} ${scoreData.subScores.flow}%`,
+        score: scoreData.subScores.flow,
         parts: flowParts
     });
 
@@ -59,36 +59,26 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, question
     if (questionData.inputType === 'ai') {
         // 4. Vocabulary
         const idiomCount = speechAnalytics.foundIdioms ? speechAnalytics.foundIdioms.length : 0;
-        let idiomThreshold = 0;
-        if (englishLevel === 'B1') idiomThreshold = 1;
-        else if (englishLevel === 'B2') idiomThreshold = 2;
-        else if (englishLevel === 'C1' || englishLevel === 'C2') idiomThreshold = 3;
-
+        // vocabParts: count + found list only (no threshold, no translated label)
         const vocabParts = [
-            { label: `Idiom threshold (${englishLevel})`, value: idiomThreshold },
-            { label: Strings.get('stats_idioms', lang), value: idiomCount }
+            { idiomCount, idioms: idiomCount > 0 ? speechAnalytics.foundIdioms : null }
         ];
-        if (idiomCount > 0) {
-            vocabParts.push({ label: 'Found', idioms: speechAnalytics.foundIdioms });
-        }
         sections.push({
             type: 'stat',
             key: 'vocabulary',
-            header: `${Strings.get('stats_vocabulary_header', lang)} ${scoreData.subScores.vocabulary}%`,
+            score: scoreData.subScores.vocabulary,
             parts: vocabParts
         });
 
-        // 5. Grammar
-        const grammarParts = [];
-        if (speechAnalytics.complexityScore !== null) {
-            grammarParts.push({ label: Strings.get('stats_complexity', lang), value: speechAnalytics.complexityScore });
-        }
+        // 5. Grammar - errorCount from diff presence; complexityScore passed as a field
         const grammarDiffChunk = (result.explanations || []).find(e => e.type === 'grammar_diff');
+        const errorCount = grammarDiffChunk ? 1 : 0;
         sections.push({
             type: 'grammar',
             key: 'grammar',
-            header: `${Strings.get('stats_grammar_header', lang)} ${Math.round(scoreData.subScores.grammar)}%`,
-            parts: grammarParts,
+            score: Math.round(scoreData.subScores.grammar),
+            errorCount,
+            complexityScore: speechAnalytics.complexityScore,
             diff: grammarDiffChunk ? { original: grammarDiffChunk.original, corrected: grammarDiffChunk.corrected } : null
         });
 
@@ -102,7 +92,7 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, question
         sections.push({
             type: 'stat',
             key: 'formality',
-            header: `${Strings.get('stats_formality_header', lang)} ${scoreData.subScores.formality}%`,
+            score: scoreData.subScores.formality,
             parts: formalityParts
         });
 
@@ -114,7 +104,7 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, question
         sections.push({
             type: 'stat',
             key: 'nativeLike',
-            header: `${Strings.get('stats_native_like_header', lang)} ${scoreData.subScores.nativeLike}%`,
+            score: scoreData.subScores.nativeLike,
             parts: nativeLikeParts
         });
 
@@ -129,7 +119,7 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, question
         sections.push({
             type: 'stat',
             key: 'understanding',
-            header: `${Strings.get('stats_pragmatics_header', lang)} ${scoreData.subScores.understanding}%`,
+            score: scoreData.subScores.understanding,
             parts: understandingParts
         });
 
@@ -137,7 +127,7 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, question
         sections.unshift({
             type: 'stat',
             key: 'fluency',
-            header: `${Strings.get('stats_fluency_score', lang)} ${scoreData.fluencyScore}%`,
+            score: scoreData.fluencyScore,
             isOverall: true,
             parts: []
         });

@@ -10,6 +10,13 @@ import {
 } from './ui.js';
 
 /**
+ * Returns "💯" when score is 100, otherwise "N%" (e.g. "87%").
+ */
+function formatScore(score) {
+    return score === 100 ? '<strong>💯</strong>' : `<strong>${score}%</strong>`;
+}
+
+/**
  * Renders feedback section descriptors (from buildFeedbackData) as an array of HTML strings.
  * @param {{ sections: Array<Object> }} feedbackData - Output from buildFeedbackData()
  * @returns {string[]} Array of HTML strings ready for renderAIFeedback()
@@ -17,19 +24,16 @@ import {
 export function renderFeedbackToHTML(feedbackData) {
     const { sections } = feedbackData;
     return sections.map(section => {
-        // Grammar section has a custom layout with embedded diff
+        // Grammar section: bot name + inline stats + diff
         if (section.type === 'grammar') {
-            const grammarParts = section.parts.map(p => `<strong>${p.label}:</strong> ${p.value}`);
-            const grammarHeader = createHeaderHTML(section.header);
-            const grammarListHtml = grammarParts.length > 0
-                ? `<ul>${grammarParts.map(p => `<li>${p}</li>`).join('')}</ul>`
-                : '';
+            const scoreDisplay = formatScore(section.score);
+            const errorText = `${section.errorCount} error${section.errorCount !== 1 ? 's' : ''}`;
+            const complexityText = section.complexityScore !== null && section.complexityScore !== undefined
+                ? `. ${section.complexityScore}% complexity` : '';
+            const statsLine = `${scoreDisplay} &nbsp;·&nbsp; ${errorText}${complexityText}`;
 
             let grammarDiffHtml = '';
             if (section.diff) {
-                // createGrammarDiffHTML returns a wrapper now, so we need to extract just the diff parts
-                // The easiest way is to let the diff logic reside inside the bubble.
-                // We'll just do a dirty regex to extract the inner content of the bubble.
                 const fullDiffHTML = createGrammarDiffHTML(section.diff.original, section.diff.corrected, '');
                 const match = fullDiffHTML.match(/<div class="diff-del-bubble">[\s\S]*?<\/div>\s*<div style="margin-top:6px">[\s\S]*?<\/div>/);
                 if (match) {
@@ -38,34 +42,54 @@ export function renderFeedbackToHTML(feedbackData) {
             }
 
             return `
-                <div class='chat-message-wrapper ai-message-wrapper' style='margin-bottom: 12px;'>
+                <div class='chat-message-wrapper ai-message-wrapper' style='margin-bottom: 0px;'>
                     <img src='assets/img/grammarbot.png' alt='Grammar Bot' class='chat-avatar-inline' />
                     <div class='chat-bubble chat-msg' style='display: block; border-left: 4px solid #17a2b8;'>
                         <div class='chat-bubble-header'>Grammar Bot</div>
-                        ${grammarHeader}
-                        ${grammarListHtml}
+                        <span>${statsLine}</span>
                         ${grammarDiffHtml}
                     </div>
                 </div>`;
         }
 
-        // Standard stat bubble
-        const htmlParts = section.parts.map(p => {
-            // Limitation notices (demo mode)
-            if (p.type === 'notice') return `<span class="limitation-notice">${p.message}</span>`;
-            // Feedback messages (formality, native-like, understanding)
-            if (p.message) return p.message;
-            // Idiom list with <em> wrapping
-            if (p.idioms) {
-                const count = p.idioms.length;
-                const listItems = p.idioms.map(i => `<li><em>${i}</em></li>`).join('');
-                return `<strong>${p.label} (${count}):</strong><ul>${listItems}</ul>`;
+        // Build the compact header line: score (💯 or N%) + attempt/repetition label + count (if applicable)
+        let headerLine = formatScore(section.score);
+        if (section.attemptLabel && section.attemptCount !== undefined) {
+            headerLine += ` &nbsp;·&nbsp; ${section.attemptLabel} ${section.attemptCount}`;
+        }
+
+        // Flow: single inline line "Xms hesitation. Y wpm."
+        if (section.key === 'flow') {
+            const hesitation = section.parts.find(p => p.label && p.value !== undefined && String(p.value).includes('ms'));
+            const wpm = section.parts.find(p => p.label && !String(p.value).includes('ms') && !p.message && !p.idioms);
+            const flowLine = [
+                hesitation ? `${hesitation.value} hesitation` : null,
+                wpm ? `${wpm.value} wpm` : null
+            ].filter(Boolean).join('. ') + '.';
+            const botInfo = { name: 'Flow Bot', avatar: 'assets/img/flowbot.png' };
+            return createStatsBubbleHTML(formatScore(section.score), [flowLine], botInfo.name, botInfo.avatar);
+        }
+
+        // Vocab: "N idioms" + found list
+        if (section.key === 'vocabulary') {
+            const vocabPart = section.parts[0];
+            const htmlParts = [];
+            htmlParts.push(`${vocabPart.idiomCount} idioms`);
+            if (vocabPart.idioms && vocabPart.idioms.length > 0) {
+                const listItems = vocabPart.idioms.map(i => `<li><em>${i}</em></li>`).join('');
+                htmlParts.push(`<ul>${listItems}</ul>`);
             }
-            // Standard label:value
+            const botInfo = { name: 'Vocabulary Bot', avatar: 'assets/img/vocabularybot.png' };
+            return createStatsBubbleHTML(formatScore(section.score), htmlParts, botInfo.name, botInfo.avatar);
+        }
+
+        // Render parts (generic)
+        const htmlParts = (section.parts || []).map(p => {
+            if (p.type === 'notice') return `<span class="limitation-notice">${p.message}</span>`;
+            if (p.message) return p.message;
             return `<strong>${p.label}:</strong> ${p.value}`;
         });
 
-        // Overall fluency gets bold header
         const botInfo = (() => {
             switch (section.key) {
                 case 'grammar': return { name: 'Grammar Bot', avatar: 'assets/img/grammarbot.png' };
@@ -81,11 +105,9 @@ export function renderFeedbackToHTML(feedbackData) {
             }
         })();
 
-        if (section.isOverall) {
-            return createStatsBubbleHTML(`<strong>${section.header}</strong>`, [], botInfo.name, botInfo.avatar);
-        }
-
-        return createStatsBubbleHTML(section.header, htmlParts, botInfo.name, botInfo.avatar);
+        // isOverall (fluency) renders bold, all others plain
+        const displayHeader = section.isOverall ? `<strong>${headerLine}</strong>` : headerLine;
+        return createStatsBubbleHTML(displayHeader, htmlParts, botInfo.name, botInfo.avatar);
     });
 }
 
