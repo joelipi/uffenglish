@@ -427,6 +427,14 @@ export function generateHangmanHint(userResponse, cue) {
 
 // 4. NEW: A clean way to wipe the chat between questions
 export function clearChatInterface() {
+    // 1. Rescue the playback video wrapper so it isn't destroyed by the wipe
+    const videoWrapper = document.getElementById('playback-video-wrapper');
+    if (videoWrapper) {
+        videoWrapper.style.display = 'none';
+        document.body.appendChild(videoWrapper); // Move it safely to the body
+    }
+
+    // 2. Clear the chat
     DOM.chatBody.innerHTML = '';
     DOM.speechText.classList.add('d-none'); // Hide widget entirely
     hideTutorChatInput();
@@ -719,10 +727,7 @@ export function updateSpeakingScoreDisplay(score) {
 
 export function clearPlaybackVideo() {
     console.log("clearPlaybackVideo called");
-
-    // 🔥 FIX: Fallback to dynamic lookup if static DOM cache is null
     const video = document.getElementById('playback-video') || DOM.playbackVideo;
-
     if (video) {
         video.pause();
         if (video.src && video.src.startsWith('blob:')) URL.revokeObjectURL(video.src);
@@ -733,8 +738,13 @@ export function clearPlaybackVideo() {
         video.onloadeddata = null;
         video.onloadedmetadata = null;
     }
+    
+    // Hide the rescued wrapper
+    const videoWrapper = document.getElementById('playback-video-wrapper');
+    if (videoWrapper) {
+        videoWrapper.style.display = 'none';
+    }
 
-    // 🔥 FIX: Same for mute toggle
     const muteToggle = document.getElementById('playback-mute-toggle') || DOM.playbackMuteToggle;
     if (muteToggle) muteToggle.classList.add('d-none');
 }
@@ -745,10 +755,56 @@ export function prepareMediaUI() {
 
 export function showPlaybackVideo() {
     console.log("showPlaybackVideo");
-
-    // 🔥 FIX: Dynamic fallback
+    const videoWrapper = document.getElementById('playback-video-wrapper');
     const video = document.getElementById('playback-video') || DOM.playbackVideo;
-    if (video) video.style.display = 'block';
+    
+    if (videoWrapper && video && DOM.chatBody) {
+        // Ensure visibility
+        videoWrapper.classList.remove('d-none');
+        videoWrapper.style.display = 'block';
+        video.style.display = 'block';
+
+        // 1. Create the outer chat wrapper
+        const chatWrapper = document.createElement('div');
+        chatWrapper.className = 'chat-message-wrapper user-message-wrapper';
+        chatWrapper.style.animation = 'popIn 0.3s ease-out forwards';
+
+        // 2. Add the user's avatar
+        const avatar = document.createElement('img');
+        avatar.src = State.userData?.profilepicurl || 'assets/img/teacherprofile.png';
+        avatar.className = 'chat-avatar-inline';
+
+        // 3. Create the chat bubble specifically styled for a video
+        const bubble = document.createElement('div');
+        bubble.className = 'chat-bubble-sent p-1'; // Tight padding
+        bubble.style.backgroundColor = '#000';
+        bubble.style.width = '260px'; // Perfect mobile size
+        bubble.style.border = '2px solid #4facfe'; // Subtle brand border
+        bubble.style.overflow = 'hidden'; // Keeps the video from leaking over the rounded corners
+        bubble.style.borderRadius = '12px 12px 4px 12px'; 
+        
+        // 4. Clean up old classes and adjust video to fit the bubble perfectly
+        videoWrapper.classList.remove('mb-2');
+        video.style.width = '100%';
+        video.style.height = 'auto';
+        video.style.maxHeight = '350px';
+        video.style.objectFit = 'cover';
+
+        // 5. Assemble the bubble and inject it
+        bubble.appendChild(videoWrapper);
+        chatWrapper.appendChild(bubble);
+        chatWrapper.appendChild(avatar);
+
+        DOM.chatBody.appendChild(chatWrapper);
+        
+        // 6. Smoothly auto-scroll the page to show the video
+        setTimeout(() => {
+            window.scrollTo({ 
+                top: document.documentElement.scrollHeight, 
+                behavior: 'smooth' 
+            });
+        }, 50);
+    }
 }
 
 export function isWebcamPreviewVisible() {
@@ -1403,6 +1459,11 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
 
     if (questionData.inputType === "speech" && questionData.videoUrl) State.repeatPointsHistory.push(appStore.getState().listeningScore);
     if (questionData.inputType === "ai" && questionData.videoUrl) State.rolePlayPointsHistory.push(appStore.getState().listeningScore);
+    
+    // MOVED: Show the video immediately so it appears at the top of the chat flow!
+    if (!State.isTextMode && (questionData.inputType === "lessonIntro" || questionData.inputType === "speech" || questionData.inputType === "ai")) {
+        showPlaybackVideo();
+    }
 
     // Unified: last AI question advances via Continue button like all others.
 
@@ -1492,10 +1553,6 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
     }
 
     Media.playSound('correct-sound');
-
-    if (!State.isTextMode && (questionData.inputType === "lessonIntro" || questionData.inputType === "speech" || questionData.inputType === "ai")) {
-        showPlaybackVideo();
-    }
 
     markButtonAsCorrect(button);
 }
