@@ -2076,6 +2076,15 @@ video {
 #scoresAndHearts {
   margin-top: -10px;
   margin-bottom: 10px;
+  position: sticky;
+  top: -1px; /* -1px prevents a weird 1px gap on some mobile browsers */
+  z-index: 1020;
+  /* Use a frosted glass effect instead of a harsh gradient block */
+  background: rgba(58, 143, 213, 0.95); 
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  /* Subtler shadow that doesn't add bulk */
+  box-shadow: 0 4px 6px -4px rgba(0, 0, 0, 0.2); 
 }
 
 #currentScoreContainer,
@@ -2133,11 +2142,11 @@ video {
 }
 
 #chat-messenger-body {
-  overflow-y: auto;
-  height: 300px;
-  scroll-behavior: smooth;
-  scrollbar-width: auto;
-  scrollbar-color: #000000 #f0f0f0;
+  /* Let the whole page scroll instead of just this box */
+  height: auto;
+  min-height: 200px;
+  overflow-y: visible;
+  padding: 15px 10px; /* Gives the bubbles breathing room */
 }
 
 #courseProgress {
@@ -2370,4 +2379,37 @@ footer {
 .chat-message-wrapper .chat-bubble-sent {
   margin-bottom: 0 !important;
   margin-top: 0 !important;
+}
+
+/* ==========================================================================
+   Native Chat Layout Overrides (Full-Bleed Mobile)
+   ========================================================================== */
+@media (max-width: 991px) {
+  /* 1. Remove Bootstrap container padding on mobile */
+  #app .container {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    max-width: 100% !important;
+    overflow-x: hidden;
+  }
+  
+  /* 2. Strip card borders and margins so it feels like a native app screen */
+  #speech-text-here {
+    border: none !important;
+    border-radius: 0 !important;
+    margin-bottom: 0 !important;
+    box-shadow: none !important;
+  }
+  
+  .card-header-custom {
+    border-radius: 0 !important;
+  }
+}
+
+/* On Desktop, keep it centered and looking like a clean widget */
+@media (min-width: 992px) {
+  #speech-text-here {
+    border-radius: 12px !important;
+    overflow: hidden;
+  }
 }

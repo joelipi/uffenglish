@@ -186,6 +186,7 @@
 
           <div id="media-column" class="col-12 col-xl-7 mb-1">
 
+            <!-- 1. Playback Video (Stays at the top) -->
             <div id="playback-video-wrapper" class="playback-video-container position-relative mb-2">
               <video id="playback-video" playsinline controls preload="auto"
                 style="display: none; width: 100%; border-radius: 8px;"></video>
@@ -195,34 +196,7 @@
               </button>
             </div>
 
-            <div id="speech-text-here" class="card border-dark p-0 d-none mb-2">
-              <div class="card-header text-white p-0 card-header-custom">
-                <div class="d-flex align-items-center p-3">
-                  <video id="chat-avatar-ai" autoplay loop muted playsinline
-                    class="rounded-circle me-3 d-none chat-avatar">
-                    <source src="assets/img/avatar-ai.mp4" type="video/mp4">
-                  </video>
-                  <div id="chat-name-ai" class="d-none">
-                    Prof FluIntel <div class="mt-1"><small>UFF Artificial Intelligence</small></div>
-                  </div>
-                  <img id="chat-avatar-human" src="assets/img/teacherprofile.png" alt=""
-                    class="rounded-circle me-3 d-none chat-avatar">
-                  <div id="chat-name-human" class="d-none">
-                    Prof. Joe Walsh<div class="mt-1"><small>English Fluency Coach, UFF</small></div>
-                  </div>
-                </div>
-              </div>
-              <div id="chat-messenger-body" class="card-body messenger-body text-dark"></div>
-              <div id="tutor-chat-input-area" class="card-footer bg-white border-top-0 d-none">
-                <div class="input-group">
-                  <textarea id="tutor-chat-textarea" class="form-control" rows="2" placeholder="Ask your tutor a question..."></textarea>
-                  <button id="tutor-chat-send-btn" class="btn btn-primary" type="button">
-                    <i class="bi bi-send-fill"></i>
-                  </button>
-                </div>
-              </div>
-            </div>
-
+            <!-- 2. Main Video Container (above the chat) -->
             <div id="media-container">
               <div id="ivp-container">
                 <div class="ivp-main-wrapper loading" id="ivp-main-wrapper">
@@ -255,6 +229,35 @@
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. Chat Window (flows below the videos) -->
+            <div id="speech-text-here" class="card border-dark p-0 d-none mb-2">
+              <div class="card-header text-white p-0 card-header-custom">
+                <div class="d-flex align-items-center p-3">
+                  <video id="chat-avatar-ai" autoplay loop muted playsinline
+                    class="rounded-circle me-3 d-none chat-avatar">
+                    <source src="assets/img/avatar-ai.mp4" type="video/mp4">
+                  </video>
+                  <div id="chat-name-ai" class="d-none">
+                    Prof FluIntel <div class="mt-1"><small>UFF Artificial Intelligence</small></div>
+                  </div>
+                  <img id="chat-avatar-human" src="assets/img/teacherprofile.png" alt=""
+                    class="rounded-circle me-3 d-none chat-avatar">
+                  <div id="chat-name-human" class="d-none">
+                    Prof. Joe Walsh<div class="mt-1"><small>English Fluency Coach, UFF</small></div>
+                  </div>
+                </div>
+              </div>
+              <div id="chat-messenger-body" class="card-body messenger-body text-dark"></div>
+              <div id="tutor-chat-input-area" class="card-footer bg-white border-top-0 d-none">
+                <div class="input-group">
+                  <textarea id="tutor-chat-textarea" class="form-control" rows="2" placeholder="Ask your tutor a question..."></textarea>
+                  <button id="tutor-chat-send-btn" class="btn btn-primary" type="button">
+                    <i class="bi bi-send-fill"></i>
+                  </button>
                 </div>
               </div>
             </div>

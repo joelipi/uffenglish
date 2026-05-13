@@ -164,10 +164,13 @@ export function safeRenderChatInterface(isAI, bodyContent) {
         }
     }
 
-    // Auto-scroll to bottom
+    // Auto-scroll the page window to the bottom of the chat
     setTimeout(() => {
-        DOM.chatBody.scrollTop = DOM.chatBody.scrollHeight;
-    }, 10);
+        window.scrollTo({ 
+            top: document.documentElement.scrollHeight, 
+            behavior: 'smooth' 
+        });
+    }, 50);
 }
 
 /**
