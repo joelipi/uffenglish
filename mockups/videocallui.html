@@ -47,23 +47,47 @@
 
         .bottom-overlay {
             pointer-events: none;
-            /* Container now just holds the separate sections */
+            /* Container holds the background pool and the foreground content */
+        }
+
+        /* Layer 1: The Reflecting Pool (Masked Background) */
+        .reflecting-pool-bg {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            
+            backdrop-filter: blur(15px) grayscale(100%);
+            -webkit-backdrop-filter: blur(15px) grayscale(100%);
+            
+            /* Unified, smooth gradient across the entire bottom area */
+            background: linear-gradient(180deg, 
+                rgba(0, 0, 0, 0) 0%, 
+                rgba(0, 242, 254, 0.4) 40%, 
+                rgba(79, 172, 254, 0.9) 100%);
+
+            /* Feather the blur and color from the top down */
+            -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 80px);
+            mask-image: linear-gradient(to bottom, transparent 0%, black 80px);
+            pointer-events: none;
+        }
+
+        /* Layer 2: The Content (Unmasked, sits on top) */
+        .bottom-overlay-content {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
         }
 
         .mission-section {
-            padding: 12px 16px 8px;
-            /* Low blur for the mission line */
-            backdrop-filter: blur(2px) grayscale(100%);
-            -webkit-backdrop-filter: blur(2px) grayscale(100%);
-            background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(58, 143, 213, 0.2) 100%);
+            padding: 32px 16px 12px; /* Generous top padding to sit in the feathered area */
+            background: transparent;
         }
 
         .controls-section {
-            padding: 8px 16px 20px;
-            /* Heavy blur for the buttons */
-            backdrop-filter: blur(15px) grayscale(100%);
-            -webkit-backdrop-filter: blur(15px) grayscale(100%);
-            background: linear-gradient(180deg, rgba(58, 143, 213, 0.2) 0%, rgba(0, 192, 216, 0.6) 100%);
+            padding: 12px 16px 32px;
+            background: transparent;
         }
 
         .bottom-overlay * {
@@ -80,9 +104,7 @@
             width: 60px;
             height: 60px;
             flex-shrink: 0;
-            /* PREVENTS SQUISHING */
             aspect-ratio: 1 / 1;
-            /* FORCES CIRCULAR SHAPE */
             display: flex;
             align-items: center;
             justify-content: center;
@@ -90,30 +112,36 @@
             padding: 0;
             border-radius: 50% !important;
 
-            /* Obsidian Glass Effect (Dark & Clickable) */
-            background: rgba(0, 0, 0, 0.45);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1.5px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-            color: white;
+            /* Stark White Minimalism (2026 Trend) */
+            background-color: #ffffff !important;
+            border: none !important;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2) !important;
+            color: #1a1a1a !important; /* Dark icons for contrast */
 
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             overflow: hidden;
-            /* Keeps the friend image inside the border radius */
+            -webkit-tap-highlight-color: transparent; /* Prevents blue mobile tap overlay */
+        }
+
+        .call-btn:hover, .call-btn:focus, .call-btn:focus-visible {
+            background-color: #ffffff !important;
+            color: #1a1a1a !important;
+            outline: none !important;
+            /* Removes Bootstrap's blue focus ring */
         }
 
         .call-btn:active {
             transform: scale(0.9) translateY(2px);
-            background: rgba(255, 255, 255, 0.1);
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
+            background-color: #ffffff !important;
+            color: #1a1a1a !important;
         }
 
-        /* State class for toggled off (e.g. video off) */
-        .call-btn.toggled-off {
-            background: rgba(255, 255, 255, 0.95);
-            color: #000;
-            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.2);
+        /* State for when the mic/video is MUTED or OFF */
+        .call-btn.toggled-off, .call-btn.toggled-off:hover, .call-btn.toggled-off:focus {
+            background-color: #f8f9fa !important; /* Solid off-white/light gray */
+            color: #6c757d !important; /* Solid muted gray for the icon */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
         }
 
         /* Friend Button Image Styling */
@@ -253,12 +281,7 @@
             margin-left: 6px;
         }
 
-        .divider {
-            width: 100%;
-            height: 1px;
-            background: rgba(255, 255, 255, 0.1);
-            margin-bottom: 5px;
-        }
+
 
         /* Desktop and Tablet Breakpoint (Lock to 9:16 aspect ratio) */
         @media (min-width: 576px) {
@@ -478,7 +501,7 @@
 
                 micBtn.addEventListener('click', () => {
                     isMuted = !isMuted;
-                    
+
                     if (isMuted) {
                         micIcon.classList.replace('bi-mic-fill', 'bi-mic-mute-fill');
                         micBtn.classList.add('toggled-off');
@@ -709,29 +732,34 @@
             -->
             <div class="bottom-overlay position-absolute bottom-0 start-0 w-100 z-1 d-flex flex-column">
 
-                <div class="mission-section">
-                    <div class="mission-row text-shadow">
-                        <div>
-                            <span class="mission-label">Mission</span>
-                            <span class="mission-text">Order a soft drink</span>
+                <!-- Layer 1: The Reflecting Pool -->
+                <div class="reflecting-pool-bg"></div>
+
+                <!-- Layer 2: The Unmasked Content -->
+                <div class="bottom-overlay-content">
+                    <div class="mission-section">
+                        <div class="mission-row text-shadow">
+                            <div>
+                                <span class="mission-label">Mission</span>
+                                <span class="mission-text">Order a soft drink</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="divider"></div>
-                </div>
 
-                <div class="controls-section">
-                    <div class="d-flex justify-content-between align-items-center w-100">
-                        <button class="btn call-btn" id="friendBtn" aria-label="Contact Friend">
-                            <img src="https://i.pravatar.cc/150?img=47" alt="Friend Profile" class="friend-img">
-                        </button>
+                    <div class="controls-section">
+                        <div class="d-flex justify-content-between align-items-center w-100">
+                            <button class="btn call-btn" id="friendBtn" aria-label="Contact Friend">
+                                <img src="https://i.pravatar.cc/150?img=47" alt="Friend Profile" class="friend-img">
+                            </button>
 
-                        <button class="btn call-btn toggled-off" id="micBtn" aria-label="Toggle Microphone">
-                            <i class="bi bi-mic-mute-fill"></i>
-                        </button>
+                            <button class="btn call-btn toggled-off" id="micBtn" aria-label="Toggle Microphone">
+                                <i class="bi bi-mic-mute-fill"></i>
+                            </button>
 
-                        <button class="btn call-btn" id="helpBtn" aria-label="Help">
-                            <i class="bi bi-question-circle-fill"></i>
-                        </button>
+                            <button class="btn call-btn" id="helpBtn" aria-label="Help">
+                                <i class="bi bi-question-circle-fill"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
