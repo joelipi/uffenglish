@@ -5,6 +5,7 @@ import { transcribeAudioBuffer, preloadWhisperEngine } from '../workers/whisper/
 import { updateSpeechRecording } from './storage.js';
 import { validateAnswerPrecheck } from './answers.js';
 import { State } from './state.js';
+import { appStore } from './store.js';
 
 export * from './speech.web.js';
 
@@ -120,7 +121,6 @@ export async function toggleSpeechRecognition(params) {
     if (!listeningState.active) {
         // --- START ---
         listeningState.active = true;
-
         if (uiHooks?.onRecordingStart) uiHooks.onRecordingStart(userData);
 
         try {
@@ -132,39 +132,39 @@ export async function toggleSpeechRecognition(params) {
 
         if (uiHooks?.onMicDisable) uiHooks.onMicDisable(button);
 
-        if (!window.whisperEngineReady) {
+        // REFACTORED: Check Zustand instead of window
+        if (!appStore.getState().isWhisperReady) {
             listeningState.active = false;
             console.error('[Speech] Whisper engine not ready');
 
             // Abort the camera recording so the browser doesn't lock the stream
             try {
                 WebAdapter.stopSpeechCamRecording({ keepStreamAlive: true, download: false, persist: false, playback: false, autoplay: false });
-            } catch (e) { console.warn("Could not abort camera recording", e); }
+            } catch (e) {
+                console.warn("Could not abort camera recording", e);
+            }
 
             if (uiHooks?.onEngineNotReady) uiHooks.onEngineNotReady(userData);
 
             const readyInterval = setInterval(() => {
-                if (window.whisperEngineReady) {
+                // REFACTORED: Poll Zustand instead of window
+                if (appStore.getState().isWhisperReady) {
                     clearInterval(readyInterval);
                     if (uiHooks?.onEngineReady) uiHooks.onEngineReady(button);
                 }
             }, 1000);
-
             return;
         } else {
             // --- Whisper path ---
             if (WebAdapter.speechCamStream) await WebAdapter.startLocalAudioTap(WebAdapter.speechCamStream);
             if (uiHooks?.onRecordingActive) uiHooks.onRecordingActive(button);
         }
-
     } else {
         // --- STOP ---
         listeningState.active = false;
-
         if (uiHooks?.onRecordingStop) uiHooks.onRecordingStop(button);
 
         const rawAudioData = WebAdapter.stopLocalAudioTap();
-
         const videoBlob = await WebAdapter.stopSpeechCamRecording({
             download: false, persist: true, keepStreamAlive: true, playback: true, autoplay: true,
             meta: {
@@ -187,7 +187,6 @@ export async function toggleSpeechRecognition(params) {
             const extractionResult = Core.trimSilenceWithPadding(rawAudioData, {
                 threshold: 0.015, preRoll: 0.3, postRoll: 0.3, sampleRate: 16000
             });
-
             const whisperResult = await transcribeAudioBuffer(extractionResult.trimmed);
             const finalTranscript = typeof whisperResult === 'string' ? whisperResult : whisperResult.text;
             const logprob = whisperResult.avg_logprob !== undefined ? whisperResult.avg_logprob : 0;

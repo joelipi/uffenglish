@@ -1,6 +1,6 @@
 // --- modules/store.js ---
 // Zustand vanilla store for reactive UI metrics.
-// This store holds the 12 values that drive persistent on-screen indicators.
+// This store holds the values that drive persistent on-screen indicators and session states.
 // All other application state (lesson data, config, player refs, flags) remains in state.js.
 
 import { createStore } from 'zustand/vanilla';
@@ -9,6 +9,10 @@ import { persist } from 'zustand/middleware';
 export const appStore = createStore(
     persist(
         (set, get) => ({
+            // --- Session Flags (Not Persisted) ---
+            isDemoMode: false,
+            isWhisperReady: false,
+
             // --- Reactive UI Metrics ---
             listeningScore: 100,
             speakingScore: 100,
@@ -38,6 +42,10 @@ export const appStore = createStore(
             aIMessagesToUserWordCount: 0,
 
             // --- Actions ---
+
+            // Set Session Flags
+            setDemoMode: (val) => set({ isDemoMode: val }),
+            setWhisperReady: (val) => set({ isWhisperReady: val }),
 
             // Update physical place in the lesson
             setProgress: ({ lessonId, lessonIndex, questionIndex }) => set({
@@ -102,7 +110,6 @@ export const appStore = createStore(
                 userMessagesToAi: state.userMessagesToAi + 1,
                 userMessagesToAiWordCount: state.userMessagesToAiWordCount + (Number(wordCount) || 0)
             })),
-
             incrementAiTutorStats: (wordCount) => set((state) => ({
                 aIMessagesToUser: state.aIMessagesToUser + 1,
                 aIMessagesToUserWordCount: state.aIMessagesToUserWordCount + (Number(wordCount) || 0)
@@ -132,6 +139,8 @@ export const appStore = createStore(
         {
             name: 'uff-lesson-storage',
             partialize: (state) => ({
+                // Only these values are saved to localStorage. 
+                // isDemoMode and isWhisperReady are safely ignored.
                 activeLessonId: state.activeLessonId,
                 currentLessonIndex: state.currentLessonIndex,
                 currentQuestionIndex: state.currentQuestionIndex,

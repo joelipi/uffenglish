@@ -18,11 +18,11 @@ export function calculateRolePlayAverage(rolePlayPointsHistory) {
 export function calculateAverage(repeatPointsHistory, rolePlayPointsHistory) {
     const hasRepeat = repeatPointsHistory && repeatPointsHistory.length > 0;
     const hasRolePlay = rolePlayPointsHistory && rolePlayPointsHistory.length > 0;
-    
+
     if (!hasRepeat && !hasRolePlay) return 100;
     if (!hasRepeat) return calculateRolePlayAverage(rolePlayPointsHistory);
     if (!hasRolePlay) return calculateRepeatAverage(repeatPointsHistory);
-    
+
     const sum = calculateRepeatAverage(repeatPointsHistory) + calculateRolePlayAverage(rolePlayPointsHistory);
     return Math.round(sum / 2);
 }
@@ -50,11 +50,11 @@ export function calculateFluencyScore({
     // 3. Flow (5%) - Updated as per hesitation-spec.md
     const wpmScore = wpm < 60 ? 0 : 100;
     const pausesScore = Math.max(0, 100 - (pauseCount * 50));
-    
+
     // Spec calculation: 100 score up to 500ms, then deduct 5 points for every 100ms
     const hesitationScore = Math.max(0, 100 - Math.floor(Math.max(0, hesitation - 500) / 20));
-    
-    const isDemoMode = new URLSearchParams(window.location.search).has('demo');
+
+    const isDemoMode = appStore.getState().isDemoMode;
     let flow;
     if (isDemoMode) {
         // Average of ONLY WPM and Hesitation
@@ -69,7 +69,7 @@ export function calculateFluencyScore({
     if (cefrLevel === 'B1') threshold = 1;
     else if (cefrLevel === 'B2') threshold = 2;
     else if (cefrLevel === 'C1' || cefrLevel === 'C2') threshold = 3;
-    
+
     if (cefrLevel && idiomCount < threshold) {
         vocabScore = Math.max(0, 100 - ((threshold - idiomCount) * 25));
     }
@@ -78,7 +78,7 @@ export function calculateFluencyScore({
     // 5. Grammar (5%)
     const diffScore = grammarErrorScore !== undefined ? grammarErrorScore : 100;
     let grammar;
-    
+
     if (['A0', 'A1', 'A2'].includes(cefrLevel)) {
         grammar = diffScore;
     } else {
@@ -97,14 +97,14 @@ export function calculateFluencyScore({
     let finalScore = 0;
 
     if (attemptNumber <= 1) {
-        finalScore = (pronunciation * 0.05) + 
-                     (listening * 0.40) + 
-                     (flow * 0.05) + 
-                     (vocabulary * 0.05) + 
-                     (grammar * 0.05) + 
-                     (formality * 0.025) + 
-                     (nativeLike * 0.025) + 
-                     (understanding * 0.35);
+        finalScore = (pronunciation * 0.05) +
+            (listening * 0.40) +
+            (flow * 0.05) +
+            (vocabulary * 0.05) +
+            (grammar * 0.05) +
+            (formality * 0.025) +
+            (nativeLike * 0.025) +
+            (understanding * 0.35);
     } else {
         finalScore = Math.min(
             pronunciation,

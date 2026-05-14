@@ -1,4 +1,7 @@
 // app-vad-asr-web.js v2
+
+import { appStore } from '../../modules/store.js';
+
 export let isEngineReady = false;
 let whisperWorker = null;
 let activeTranscriptionResolve = null;
@@ -38,7 +41,9 @@ export function preloadWhisperEngine() {
         whisperWorker.onmessage = function (e) {
             if (e.data.type === 'ready') {
                 isEngineReady = true;
-                window.whisperEngineReady = true;
+                // REFACTORED: Push to Zustand
+                appStore.getState().setWhisperReady(true);
+                window.whisperEngineReady = true; // (Safe to leave this as a fallback for now)
                 console.log('[whisper] engine ready at', performance.now().toFixed(0), 'ms');
 
                 const preloader = document.getElementById('appLoadingImageDiv');

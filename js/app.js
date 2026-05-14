@@ -3,9 +3,9 @@
 // To see logs for a specific module, change its value to true in the window.enabledLogs object below.
 const originalConsoleLog = console.log;
 window.enabledLogs = {
-    whisper: true,   // Enabled for debugging microphone issues
-    recording: true,
-    speech: true,
+    whisper: false,   // Enabled for debugging microphone issues
+    recording: false,
+    speech: false,
     api: false,
     tanstack: false,
     toggle: false,
@@ -34,19 +34,20 @@ console.log = (msg, ...args) => {
         originalConsoleLog(msg, ...args);
     }
 };
-// -----------------------
 
+
+import { navigateToHome, navigateToLogin } from './modules/navigation.js';
+
+// -----------------------
 import { clearSpeechRecordingsForLesson, updateSpeechRecording } from './modules/storage.js';
 
 // Initialize the background NLP Worker via blob URL to bypass service worker caching
-
 let nlpModelsReady = false;
 
 // --- UI & Media Components (Root Directory) ---
 import { SuccessLessonHandler } from './components/success-lesson.js';
 import { pointLoss } from './components/point-loss-animation.js';
 import { initVideoProcessor } from './modules/video-processor.js';
-
 import { calculateCurrentStreak } from './modules/user-profile.js';
 import { updateActivityDisplay } from './components/ui.js';
 
@@ -57,7 +58,6 @@ import Strings from './data/strings.js';
 import { calculateRepeatAverage, calculateRolePlayAverage, calculateAverage, calculateFluencyScore, logInteraction } from './modules/scoring.js';
 import { isUserLoggedIn, getUserProfile, signOut, queryClient, askEnglishTutor } from './modules/api.js';
 import { saveCourseToUserProfile, saveLessonProgress, syncOfflineScores } from './modules/user-profile.js';
-
 import {
     isIOS,
     warmUpSpeechCamStream,
@@ -67,13 +67,13 @@ import {
     listeningState,
     initLocalVoiceAI
 } from './modules/speech.js';
-
 import {
     getCurrentQuestionIndex,
     isLastAiQuestionInLesson,
     processAnswerLogic,
     validateAnswerPrecheck
 } from './modules/answers.js';
+
 // --- Extracted Modules ---
 import { resolveCurrentLessonId, resolveCurrentCourseId, getNextQuestion } from './modules/lesson-router.js';
 import { normalizeConfig } from './modules/config-normalizer.js';
@@ -129,9 +129,14 @@ import {
     initUISubscriptions,
     handlecueUI,
     handleIncueUI,
-    updateChatHeaderScores
+    updateChatHeaderScores,
+    hidePreloader,
+    removeAILoadingStatus,
+    renderHangmanHint,
+    showMicWarning,
+    resetMicStatusWithQuestion,
+    bindAuthMenuUI
 } from './components/ui.js';
-
 import { idiomChecker } from './modules/idiom-checker.js';
 import { calculateSyntacticComplexity } from './modules/complexity.js';
 
@@ -145,7 +150,6 @@ window.addEventListener('transcriptRejected', (e) => {
 
     // Deduct 20 points, floor at 0
     appStore.getState().deductSpeakingScore(20);
-
     // Show point loss animation explicitly on the score span (subscription handles the text update)
     if (DOM.phrasesScore) {
         pointLoss.show(DOM.phrasesScore, 20);
@@ -153,20 +157,15 @@ window.addEventListener('transcriptRejected', (e) => {
 });
 
 window.addEventListener('preflightRejected', () => {
-    // ✅ FIX: Use the correct Zustand action for the Speaking Score
+    //   FIX: Use the correct Zustand action for the Speaking Score
     appStore.getState().deductSpeakingScore(10);
-
     // Show point loss animation (subscription handles the text update)
     if (DOM.phrasesScore) {
         pointLoss.show(DOM.phrasesScore, 10);
     }
 });
 
-
-
-// 🎓🎓🎓🎓🎓🎓🎓🎓 CORE ANSWER HANDLING 🎓🎓🎓🎓🎓🎓🎓🎓
-
-
+// CORE ANSWER HANDLING
 function handleHint(qIndex) {
     showHintsAndScroll();
 }
@@ -179,11 +178,9 @@ export async function submitAnswerPrecheck(val, cue, questionData, btn, explanat
 
     if (!isValid) {
         logInteraction(cue, val, "rej_pre", warningMessage);
-
         if (!State.isTextMode) {
-            // ✅ FIX: Now correctly deducts from the Speaking Score instead of the Listening Score
+            //   FIX: Now correctly deducts from the Speaking Score instead of the Listening Score
             appStore.getState().deductSpeakingScore(10);
-
             // Show point loss animation (subscription handles the text update)
             if (DOM.phrasesScore) {
                 pointLoss.show(DOM.phrasesScore, 10);
@@ -191,9 +188,9 @@ export async function submitAnswerPrecheck(val, cue, questionData, btn, explanat
         } else {
             console.log('[submitAnswerPrecheck] Text mode: skipping speaking score deduction');
         }
-        if (DOM.micStatusText) {
-            DOM.micStatusText.innerHTML = `<div class='text-center text-danger'>${warningMessage}</div>`;
-        }
+
+        // REFACTORED: Moved raw HTML injection to UI module
+        showMicWarning(warningMessage);
 
         // Update the recording anyway so the final video has subtitles for this incorrect attempt!
         const currentLessonId = resolveCurrentLessonId(configData, courseId);
@@ -264,6 +261,7 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
 
         if (questionData.inputType === "speech" || questionData.inputType === "ai") {
             cleanWordCount = userResponse.replace(/[^\w\s]/g, '').trim().split(/\s+/).filter(Boolean).length;
+
             if (stats && stats.netDuration !== null) {
                 speechAnalytics = await analyzeSpeech(userResponse, stats.netDuration, stats.pauseCount, courseId ? courseId.substring(0, 2).toUpperCase() : 'A1', questionData.inputType);
                 if (speechAnalytics && stats.hesitation !== undefined) {
@@ -272,6 +270,7 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
             } else {
                 speechAnalytics = {}; // fallback
             }
+
             if (State.isTextMode) {
                 if (speechAnalytics) {
                     speechAnalytics.pronunciationScore = 100;
@@ -282,6 +281,7 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
                 }
                 console.log('[handleAnswer] Text mode: overridden speech metrics for scoring');
             }
+
             await updateSpeechRecording(currentLessonId, qIndex, {
                 userResponse,
                 cue,
@@ -325,14 +325,14 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
             });
 
             if (!result) {
-                console.warn("⚠️ No result from local NLP — no Gemini fallback active. Treating as passed.");
+                console.warn("  No result from local NLP   no Gemini fallback active. Treating as passed.");
                 result = { isCorrect: true, normalizeduserResponse: userResponse, normalizedcue: cue, explanation: explanation, intentLabels: [] };
             }
         }
 
         const isCorrect = result ? result.isCorrect : true;
-
         let grammarCorrection = null;
+
         if (result && result.explanations) {
             const diffObj = result.explanations.find(e => e.type === 'grammar_diff');
             if (diffObj && diffObj.correction) grammarCorrection = diffObj.correction;
@@ -340,7 +340,6 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
 
         let status = isCorrect ? "ok" : "inc";
         let pragmaticDetails = result?.intentLabels?.length > 0 ? result.intentLabels : null;
-
         logInteraction(cue, userResponse, status, pragmaticDetails, grammarCorrection);
 
         // Log idioms and pragmatics to the global state arrays if they exist in the result object
@@ -355,8 +354,8 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
 
         if (questionData.inputType === "speech" || questionData.inputType === "ai") {
             const attemptNumber = incorrectAttempts + 1; // 1-based attempt index
-
             let grammarErrorScore = 100;
+
             if (result && result.explanations) {
                 const diffObj = result.explanations.find(e => e.type === 'grammar_diff');
                 if (diffObj) {
@@ -395,11 +394,14 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
                 lang: userData?.native_language, englishLevel,
                 attemptNumber: incorrectAttempts + 1
             });
-            // Update header scoreboard immediately — scores are ready
+
+            // Update header scoreboard immediately   scores are ready
             updateChatHeaderScores(feedbackData);
+
             const allFeedbackHTML = renderFeedbackToHTML(feedbackData);
+
             // The fluency (overall) section is always first (unshifted in buildFeedbackData for 'ai').
-            // Split it out so it renders last — just before praise/try-again.
+            // Split it out so it renders last   just before praise/try-again.
             if (feedbackData.sections.length > 0 && feedbackData.sections[0].isOverall) {
                 fluencyBubbleHTML = allFeedbackHTML[0];
                 immediateStatsHtmlArr = allFeedbackHTML.slice(1);
@@ -412,16 +414,18 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
         if (!isCorrect && questionData.inputType === "speech" && incorrectAttempts <= 1) {
             // Use silent mode for handleIncueUI
             handleIncueUI(qIndex, questionData, button, cue, userResponse, result.explanations || explanation, result.normalizeduserResponse, result.normalizedcue, questionData.question, true, userData, configData);
-
             clearPlaybackVideo();
+
             // Speech Hangman Logic: Show hint and stay on question
             const hangmanHTML = generateHangmanHint(userResponse, cue);
-            const hintUncommonWords = document.getElementById("hintUncommonWords");
-            if (hintUncommonWords) hintUncommonWords.innerHTML = hangmanHTML;
-            showHintsAndScroll();
 
+            // REFACTORED: Delegate DOM query and injection to UI module
+            renderHangmanHint(hangmanHTML);
+
+            showHintsAndScroll();
             // Restart video player if available
             prepareMediaUI();
+
             const player = State.player || window.currentVideoPlayer;
             if (player) {
                 if (player.video) {
@@ -437,14 +441,10 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
                 }, 50);
             }
 
-            // Restore the question text in the mic status area
-            const micStatusDiv = document.createElement('div');
-            micStatusDiv.className = 'text-center';
-            micStatusDiv.textContent = questionData.question || "";
-            setMicStatusText(micStatusDiv);
+            // REFACTORED: Removed document.createElement and raw class assignments
+            resetMicStatusWithQuestion(questionData.question);
 
             resetButtonState(button);
-
             return; // EXIT EARLY: No chat bubbles, no proceed
         }
 
@@ -453,6 +453,7 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
             const lang = userData?.native_language;
             const localizedTrans = getLocalizedTranslation(questionData.translation, lang);
             const translationStr = (localizedTrans && lang && lang !== 'en') ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>` : "";
+
             renderAIFeedback([`<strong>${cue}${translationStr}</strong>`]);
             renderUserResponse(userResponse, "");
             if (immediateStatsHtmlArr.length > 0) renderAIFeedback(immediateStatsHtmlArr);
@@ -476,14 +477,12 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
                     appStore.getState().deductListeningScore(result.cefrLevelDeduction);
                 }
             }
-
             // Pass the webFormattedExplanations instead of result.explanations
             // If the user gets it correct on AI, webFormattedExplanations may be empty.
             // We should ensure the new score bubbles that were added to immediateStatsHtmlArr are preserved.
             // Actually, handlecueUI uses `explanation` directly. 
             // In handleAnswer we did: `renderAIFeedback(immediateStatsHtmlArr);`
             // and we do NOT need to pass them to handlecueUI unless we want to replace `explanation`.
-
             handlecueUI(qIndex, questionData, button, cue, webFormattedExplanations, translation, userResponse, result ? result.cefrLevel : undefined, result ? result.cefrLevelDeduction : undefined, userData, configData, fluencyBubbleHTML);
             showFeedbackAndProceed(questionData, isCorrect, userData, configData);
         } else {
@@ -491,6 +490,7 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
             handleIncueUI(qIndex, questionData, button, cue, userResponse, webFormattedExplanations, result ? result.normalizeduserResponse : "", result ? result.normalizedcue : "", questionData.question, false, userData, configData, fluencyBubbleHTML);
             showFeedbackAndProceed(questionData, isCorrect, userData, configData);
         }
+
     } catch (error) {
         console.error("Error handling answer:", error);
         handleIncueUI(qIndex, questionData, button, cue, userResponse, explanation, "", "", translation, false, userData, configData);
@@ -502,10 +502,8 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
 
 function showFeedbackAndProceed(questionData, isCorrect) {
     if ((questionData.inputType === "speech" || questionData.inputType === "ai") && questionData.videoUrl) State.questionCount++;
-
     try {
         hideHints();
-
         const continueButton = showContinueButton(questionData.inputType === "lessonIntro", () => {
             if (questionData.inputType === "lessonIntro") {
                 const initializeMedia = async () => {
@@ -514,7 +512,6 @@ function showFeedbackAndProceed(questionData, isCorrect) {
                 };
                 initializeMedia();
             }
-
             hideContinueButton();
             if (questionData.inputType === "lessonIntro") {
                 setTimeout(() => loadNextQuestion(questionData), 2000);
@@ -535,7 +532,6 @@ function showFeedbackAndProceed(questionData, isCorrect) {
                 Media.preloader.preloadOnly(videoUrl);
             }
         }
-
     } catch (error) {
         renderFallbackContinueButton(Strings.get('btn_continue', State.userData?.native_language) || 'Continue', () => {
             if (isCorrect || appStore.getState().incorrectAttempts > 2) loadNextQuestion(questionData);
@@ -544,8 +540,7 @@ function showFeedbackAndProceed(questionData, isCorrect) {
     }
 }
 
-// ➡➡➡➡➡➡➡➡⛰🗻 ADVANCE VIEWS CORE HOLY OF HOLIES ➡➡➡➡➡➡➡➡⛰🗻
-
+// ADVANCE VIEWS CORE HOLY OF HOLIES 
 // loadQuestion has been extracted to question-loader-web.js.
 // This wrapper injects the app.js dependencies that the module needs.
 function loadQuestion(question, lesson, fluencyData) {
@@ -570,17 +565,16 @@ function updateProgressBar() {
 function loadNextQuestion(currentQuestion, fluencyData) {
     updateProgressBar();
     toggleScoresAndHearts(false);
-
     State.resetForNextQuestion();
+
     // No manual updateCurrentScoreDisplay call needed: resetForNextQuestion() updates the store,
     // and the subscription will automatically sync the UI.
-
     resetHeartsUI();
 
     if (!State.configData || !State.configData.lessons || State.configData.lessons.length === 0) return;
     const currentLesson = State.configData.lessons[State.currentLessonIndex];
-    State.currentQuestionIndex++;
 
+    State.currentQuestionIndex++;
     if (State.currentQuestionIndex < currentLesson.questions.length) {
         loadQuestion(currentLesson.questions[State.currentQuestionIndex], currentLesson, fluencyData);
     } else {
@@ -608,7 +602,6 @@ async function loadNextLesson() {
 
         setTimeout(async () => {
             const nextLessonIndex = State.configData.lessons.findIndex(l => l.lessonId === nextLessonId);
-
             if (nextLessonIndex !== -1) {
                 State.currentLessonIndex = nextLessonIndex;
                 localStorage.setItem(`${State.courseId}_currentLessonId`, nextLessonId);
@@ -620,15 +613,14 @@ async function loadNextLesson() {
             } else showCompletionMessage();
         }, 1200);
     } else {
-        Media.playSound('lesson-complete-sound'); showCompletionMessage();
+        Media.playSound('lesson-complete-sound');
+        showCompletionMessage();
     }
 }
 
-// 🏫🏫🏫🏫🏫🏫🏫🏫 INITIALIZATION/LESSON SETUP 🏫🏫🏫🏫🏫🏫🏫🏫
-
+// INITIALIZATION/LESSON SETUP 
 async function handleTutorChatSubmit(rawText) {
     if (!rawText || !rawText.trim()) return;
-
     const wordCount = rawText.trim().split(/\s+/).length;
     appStore.getState().incrementUserTutorStats(wordCount);
 
@@ -641,15 +633,11 @@ async function handleTutorChatSubmit(rawText) {
     // Get context and send to API
     const context = getChatHistoryContext();
     const aiResponse = await askEnglishTutor(context, rawText);
-
     const aiWordCount = aiResponse.trim().split(/\s+/).length;
     appStore.getState().incrementAiTutorStats(aiWordCount);
 
-    // Remove the loading indicator explicitly in case the render function doesn't
-    const loadingStatus = document.getElementById('ai-loading-status');
-    if (loadingStatus) {
-        loadingStatus.remove();
-    }
+    // REFACTORED: Remove the loading indicator explicitly in case the render function doesn't
+    removeAILoadingStatus();
 
     // Show AI response
     renderTutorMessage(aiResponse, false);
@@ -678,11 +666,13 @@ async function initializeLesson(courseId = State.courseId, configData = State.co
             url.searchParams.delete('course');
             window.history.replaceState({}, document.title, url.toString());
         }
+
         await saveLessonProgress(courseId, lessonId, userData, { updateUserMeta: false, incrementCount: false });
 
         if (!configData || !configData.lessons) return;
         const lesson = configData.lessons.find(l => l.lessonId === lessonId);
         if (!lesson) return;
+
         State.currentLessonIndex = configData.lessons.findIndex(l => l.lessonId === lessonId);
 
         if (window.preloadLessonAssets) {
@@ -693,8 +683,7 @@ async function initializeLesson(courseId = State.courseId, configData = State.co
         loadLessonContent(lesson, configData);
     } catch (error) {
         console.error("initializeLesson error:", error);
-        const preloader = document.getElementById('appLoadingImageDiv');
-        if (preloader) preloader.style.display = 'none';
+        hidePreloader(); // REFACTORED
         showErrorMessageInQuestionsContainer(Strings.get('lesson_load_error', userData?.native_language));
     }
 }
@@ -705,8 +694,8 @@ async function loadLessonContent(lesson, configData) {
     } catch (e) {
         console.error(e);
     }
-    if (State.player) State.player.destroy();
 
+    if (State.player) State.player.destroy();
     State.resetForNewLesson();
     State.lessonStartTime = new Date().toISOString();
     State.roleA = lesson.roleA || "";
@@ -719,9 +708,7 @@ async function loadLessonContent(lesson, configData) {
     // (they will be set by saveLessonProgress callbacks later); this ensures the header shows
     // the correct values immediately on lesson load.
     updateActivityDisplay(appStore.getState().dayCount, appStore.getState().currentStreak);
-
     resetHeartsUI();
-
     updateProgressBar(lesson);
 
     // --- TITLE LOGIC ---
@@ -744,48 +731,42 @@ async function handleAuthClick(e) {
     if (isLoggedIn) {
         if (confirm('Are you sure you want to sign out?')) {
             await signOut();
-            window.location.href = 'homescreen.html';
+            navigateToHome(); // REFACTORED
         }
     } else {
         const currentUrl = window.location.pathname + window.location.search;
-        window.location.href = `login.html?redirect=${encodeURIComponent(currentUrl)}`;
+        navigateToLogin(currentUrl); // REFACTORED
     }
 }
 
 function setupAuthMenu(isLoggedIn) {
-    const authLink = document.getElementById('auth-link');
-    if (!authLink) return;
-
-    if (isLoggedIn) {
-        authLink.textContent = Strings.get('sign_out', State.userData?.native_language) || 'Sign Out';
-    } else {
-        authLink.textContent = Strings.get('sign_in', State.userData?.native_language) || 'Sign In';
-    }
-
-    authLink.removeEventListener('click', handleAuthClick);
-    authLink.addEventListener('click', handleAuthClick);
+    // REFACTORED: Moved DOM logic to bindAuthMenuUI
+    const signOutText = Strings.get('sign_out', State.userData?.native_language) || 'Sign Out';
+    const signInText = Strings.get('sign_in', State.userData?.native_language) || 'Sign In';
+    bindAuthMenuUI(isLoggedIn, handleAuthClick, signOutText, signInText);
 }
 
-// 🚀🚀🚀🚀🚀🚀🚀🚀 INITIALIZE APP 🚀🚀🚀🚀🚀🚀🚀🚀
-
+// INITIALIZE APP 
 async function initializeApp() {
     // Initialize reactive UI subscriptions first so the UI responds to store changes 
     // from the moment any state is set during initialization. 
     initUISubscriptions();
 
+    const isDemoMode = new URLSearchParams(window.location.search).has('demo');
+    appStore.getState().setDemoMode(isDemoMode);
+
     try {
         requestPersistentStorage();
         const isLoggedIn = await isUserLoggedIn();
         setupAuthMenu(isLoggedIn);
-
         State.userData = await getUserProfile();
 
         if (!isLoggedIn) {
             console.warn('User not authenticated. Proceeding as guest.');
             // showGuestLoginModal(); // Temporarily turned off during testing
         }
-        State.initializeUserMetrics(State.userData, calculateCurrentStreak);
 
+        State.initializeUserMetrics(State.userData, calculateCurrentStreak);
         // Immediately trigger offline score sync if needed
         syncOfflineScores(State.userData);
 
@@ -795,10 +776,8 @@ async function initializeApp() {
             storedCourseId: localStorage.getItem('currentCourse'),
             wpCourseId: State.userData?.current_course || null
         };
-
         // 2. Pure function evaluation
         State.courseId = resolveCurrentCourseId(State.userData, courseContext);
-
         // 3. Side effects
         localStorage.setItem('currentCourse', State.courseId);
         if (State.userData && typeof State.userData === 'object') {
@@ -834,7 +813,6 @@ async function initializeApp() {
                         stateUpdates[key] = value;
                     }
                 });
-
                 if (Object.keys(storeUpdates).length > 0) {
                     appStore.setState(storeUpdates);
                 }
@@ -853,14 +831,13 @@ async function initializeApp() {
             }
         });
 
-        // 🛑 CRITICAL TO PREVENT RAM OVERLOAD: Render the UI and Video FIRST
+        //   CRITICAL TO PREVENT RAM OVERLOAD: Render the UI and Video FIRST
         await initializeLesson();
 
-        // 🛑 CRITICAL TO PREVENT RAM OVERLOAD: Boot Whisper and NLP background models IN SEQUENCE
+        //   CRITICAL TO PREVENT RAM OVERLOAD: Boot Whisper and NLP background models IN SEQUENCE
         (async () => {
             try {
                 let voiceInitFn = initLocalVoiceAI;
-
                 if (typeof voiceInitFn !== 'function') {
                     console.warn('initLocalVoiceAI not available statically, attempting dynamic import...');
                     const scriptDir = new URL('.', import.meta.url).href;
@@ -868,10 +845,9 @@ async function initializeApp() {
                     const speechModule = await import(speechModuleUrl);
                     voiceInitFn = speechModule.initLocalVoiceAI;
                 }
-
                 if (typeof voiceInitFn === 'function') {
                     await Promise.resolve(voiceInitFn());
-                    console.log('🎙️ Whisper initialization complete.');
+                    console.log('  Whisper initialization complete.');
                 }
             } catch (err) {
                 console.error('Voice AI initialization error:', err);
@@ -882,8 +858,7 @@ async function initializeApp() {
 
     } catch (error) {
         console.error("Initialization error:", error);
-        const preloader = document.getElementById('appLoadingImageDiv');
-        if (preloader) preloader.style.display = 'none';
+        hidePreloader(); // REFACTORED
     }
 }
 
@@ -892,33 +867,30 @@ async function requestPersistentStorage() {
     if (navigator.storage && navigator.storage.persist) {
         // Check if we already have persistent storage
         let isPersisted = await navigator.storage.persisted();
-
         if (!isPersisted) {
             // Request persistent storage
             isPersisted = await navigator.storage.persist();
         }
-
         if (isPersisted) {
-            console.log("✅ Storage is persistent. The browser will not auto-delete the GECToR models.");
+            console.log("  Storage is persistent. The browser will not auto-delete the GECToR models.");
         } else {
-            console.warn("⚠️ Persistent storage not granted. Models may be cleared if the device runs low on space.");
+            console.warn("  Persistent storage not granted. Models may be cleared if the device runs low on space.");
         }
     }
 }
 
 async function loadLocalModelsInBackground() {
-
     // Hardcode to true to allow idiomChecker to boot while NLP worker is disabled
     nlpModelsReady = true;
 
-    // 👉 SEQUENTIAL LOAD: Boot the idiom checker ONLY after the NLP worker is finished
+    //   SEQUENTIAL LOAD: Boot the idiom checker ONLY after the NLP worker is finished
     if (nlpModelsReady) {
         try {
-            console.log("📚 Local NLP bypassed. Now fetching and building idiom dictionary...");
+            console.log("  Local NLP bypassed. Now fetching and building idiom dictionary...");
             await idiomChecker.init();
-            console.log("✅ Idiom checker ready!");
+            console.log("  Idiom checker ready!");
         } catch (err) {
-            console.error("❌ Failed to initialize idiom checker:", err);
+            console.error("  Failed to initialize idiom checker:", err);
         }
     }
 }

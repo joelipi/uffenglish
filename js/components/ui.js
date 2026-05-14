@@ -333,6 +333,43 @@ export function renderAIFeedback(contentChunks = []) {
     safeRenderChatInterface(true, fragment);
 }
 
+// Add these exports to your components/ui.js file
+
+export function hidePreloader() {
+    const preloader = document.getElementById('appLoadingImageDiv');
+    if (preloader) preloader.style.display = 'none';
+}
+
+export function removeAILoadingStatus() {
+    const loadingStatus = document.getElementById('ai-loading-status');
+    if (loadingStatus) loadingStatus.remove();
+}
+
+export function renderHangmanHint(html) {
+    const hintUncommonWords = document.getElementById("hintUncommonWords");
+    if (hintUncommonWords) hintUncommonWords.innerHTML = html;
+}
+
+export function showMicWarning(message) {
+    if (DOM.micStatusText) {
+        DOM.micStatusText.innerHTML = `<div class='text-center text-danger'>${message}</div>`;
+    }
+}
+
+export function resetMicStatusWithQuestion(questionText) {
+    if (DOM.micStatusText) {
+        DOM.micStatusText.innerHTML = `<div class='text-center'>${questionText || ""}</div>`;
+    }
+}
+
+export function bindAuthMenuUI(isLoggedIn, handleAuthClick, signOutText, signInText) {
+    const authLink = document.getElementById('auth-link');
+    if (!authLink) return;
+    authLink.textContent = isLoggedIn ? signOutText : signInText;
+    authLink.removeEventListener('click', handleAuthClick);
+    authLink.addEventListener('click', handleAuthClick);
+}
+
 function buildGrammarDiff(original, corrected) {
     const tokenize = str => str.trim().match(/[\p{L}\p{N}]+(?:'[\p{L}\p{N}]+)?|[^\p{L}\p{N}\s]+|\s+/gu) || [];
     const tokA = tokenize(original), tokB = tokenize(corrected);
@@ -417,15 +454,15 @@ export function clearChatInterface() {
 
 // Maps a feedbackData section key to its header score span ID
 const SCORE_SPAN_MAP = {
-    pronunciation:  'chat-score-pronunciation',
-    listening:      'chat-score-listening',
-    flow:           'chat-score-flow',
-    vocabulary:     'chat-score-vocabulary',
-    grammar:        'chat-score-grammar',
-    formality:      'chat-score-formality',
-    nativeLike:     'chat-score-nativelike',
-    understanding:  'chat-score-understanding',
-    fluency:        'chat-score-fluency',
+    pronunciation: 'chat-score-pronunciation',
+    listening: 'chat-score-listening',
+    flow: 'chat-score-flow',
+    vocabulary: 'chat-score-vocabulary',
+    grammar: 'chat-score-grammar',
+    formality: 'chat-score-formality',
+    nativeLike: 'chat-score-nativelike',
+    understanding: 'chat-score-understanding',
+    fluency: 'chat-score-fluency',
 };
 
 /**
