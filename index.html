@@ -1,1439 +1,496 @@
 <!DOCTYPE html>
 <html lang="en-US">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name='robots' content='max-image-preview:large' />
-  
-  <title>UFF Ultra Fast Fluency in English</title>
-
-  <!-- External Stylesheets -->
-  <link rel='stylesheet' id='swpm.common-css' href='https://a.cogdex.com/wp-content/plugins/simple-membership/css/swpm.common.css?ver=4.6.5' media='all' />
-  <link rel='stylesheet' id='bootstrap-css' href='./node_modules/bootstrap/dist/css/bootstrap.min.css' media='all' />
-  <link rel='stylesheet' id='bootstrap-icons-css' href='./node_modules/bootstrap-icons/font/bootstrap-icons.css' media='all' />
-  <link rel="stylesheet" href="./node_modules/animate.css/animate.min.css" />
-  
-  <!-- Favicon -->
-  <link rel="icon" href="https://a.cogdex.com/wp-content/uploads/2025/07/cropped-WhatsApp-Image-2025-07-17-at-4.19.46-PM-32x32.jpeg" sizes="32x32" />
-  <link rel="icon" href="https://a.cogdex.com/wp-content/uploads/2025/07/cropped-WhatsApp-Image-2025-07-17-at-4.19.46-PM-192x192.jpeg" sizes="192x192" />
-  <link rel="apple-touch-icon" href="https://a.cogdex.com/wp-content/uploads/2025/07/cropped-WhatsApp-Image-2025-07-17-at-4.19.46-PM-180x180.jpeg" />
-  <meta name="msapplication-TileImage" content="https://a.cogdex.com/wp-content/uploads/2025/07/cropped-WhatsApp-Image-2025-07-17-at-4.19.46-PM-270x270.jpeg" />
-
-  <!-- Google Fonts -->
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Anton&family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
-    @import url('https://fonts.googleapis.com/css2?family=Lato:wght@100&display=swap');
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
-  </style>
-
-  <!-- ========== STYLES ========== -->
-  <style>
-    /* WordPress auto-sizing fix */
-    img:is([sizes="auto" i], [sizes^="auto," i]) { 
-      contain-intrinsic-size: 3000px 1500px; 
-    }
-    
-    /* Base styles */
-    html, body {
-      min-height: 100vh;
-    }
-
-    body {
-      font-family: "Plus Jakarta Sans", sans-serif !important;
-      font-optical-sizing: auto;
-    }
-
-    ol {
-      text-align: left;
-    }
-
-    h1, h2, h3, h4 {
-      font-family: "Lato", sans-serif !important;
-      font-weight: 200 !important;
-      font-style: normal;
-      text-align: left !important;
-        letter-spacing: -0.05em; /* Increases spacing by 0.1em relative to the font-size */
-        word-spacing: 0.3em; /* Increases spacing by 0.1em relative to the font-size */
-
-    }
-
-    /* Section backgrounds */
-    .gradient-bg {
-      background: linear-gradient(135deg, #3a8fd5 0%, #00c0d8 100%) !important;
-    }
-
-    .white-bg {
-      background: #ffffff !important;
-    }
-
-    .light-bg {
-      background: #f8f9fa !important;
-    }
-
-    .dark-bg {
-      background: #2c3e50 !important;
-    }
-
-    /* Text colors */
-    .gradient-bg h1, .gradient-bg h2, .gradient-bg h3, .gradient-bg h4, .gradient-bg h5, .gradient-bg h6,
-    .gradient-bg label, .gradient-bg p, .gradient-bg .text-inherit {
-      color: white !important;
-    }
-
-    .dark-bg h1, .dark-bg h2, .dark-bg h3, .dark-bg h4, .dark-bg h5, .dark-bg h6,
-    .dark-bg label, .dark-bg p, .dark-bg .text-inherit {
-      color: white !important;
-    }
-
-    .white-bg h1, .white-bg h2, .white-bg h3, .white-bg h4, .white-bg h5, .white-bg h6,
-    .white-bg p {
-      color: #2c3e50 !important;
-    }
-
-    .light-bg h1, .light-bg h2, .light-bg h3, .light-bg h4, .light-bg h5, .light-bg h6,
-    .light-bg p {
-      color: #2c3e50 !important;
-    }
-
-    p {
-      font-size: large !important;
-    }
-
-    /* Overlay Navigation */
-    .nav-overlay {
-      position: absolute;
-      top: 10px;
-      right: 15px;
-      z-index: 1000;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .auth-buttons .btn {
-      font-weight: 600;
-      border-radius: 8px;
-      padding: 0px 20px;
-      margin: 0 5px;
-      background: rgba(255, 255, 255, 0.9);
-      color: #3a8fd5;
-      border: 2px solid transparent;
-      transition: all 0.3s;
-    }
-
-    .auth-buttons .btn:hover {
-      background: white;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    }
-
-    .hamburger-btn {
-      background: rgba(255, 255, 255, 0.9);
-      border: 2px solid transparent;
-      border-radius: 8px;
-      padding: 3px 12px;
-      cursor: pointer;
-      transition: all 0.3s;
-    }
-
-    .hamburger-btn:hover {
-      background: white;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    }
-
-    .hamburger-icon {
-      width: 24px;
-      height: 18px;
-      position: relative;
-    }
-
-    .hamburger-icon span {
-      display: block;
-      position: absolute;
-      height: 3px;
-      width: 100%;
-      background: #3a8fd5;
-      border-radius: 2px;
-      opacity: 1;
-      left: 0;
-      transition: 0.25s ease-in-out;
-    }
-
-    .hamburger-icon span:nth-child(1) { top: 0px; }
-    .hamburger-icon span:nth-child(2) { top: 7px; }
-    .hamburger-icon span:nth-child(3) { top: 14px; }
-
-    /* Overlay Menu */
-    .overlay-menu {
-      position: fixed;
-      top: 0;
-      right: -100%;
-      width: 300px;
-      height: 100vh;
-      background: rgba(58, 143, 213, 0.98);
-      backdrop-filter: blur(10px);
-      z-index: 9999;
-      transition: right 0.3s ease;
-      padding: 80px 30px 30px;
-    }
-
-    .overlay-menu.active {
-      right: 0;
-    }
-
-
-/* Add backdrop when menu is active */
-.overlay-menu.active ~ .hero-section::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1999; /* Just below the menu */
-}
-
-    .overlay-menu ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-
-    .overlay-menu ul li {
-      margin-bottom: 20px;
-    }
-
-    .overlay-menu ul li a {
-      color: white;
-      text-decoration: none;
-      font-size: 18px;
-      font-weight: 600;
-      transition: all 0.3s;
-      display: block;
-      padding: 10px 0;
-    }
-
-    .overlay-menu ul li a:hover {
-      color: #00f2fe;
-      padding-left: 10px;
-    }
-
-    .overlay-close {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      background: none;
-      border: none;
-      color: white;
-      font-size: 30px;
-      cursor: pointer;
-    }
-
-    /* Layout and container styles */
-    .container-fluid img.img-fluid {
-      width: 100% !important;
-      max-width: 100% !important;
-      height: auto !important;
-    }
-
-    .container-fluid {
-      padding-left: 0 !important;
-      padding-right: 0 !important;
-      margin-left: 0 !important;
-      margin-right: 0 !important;
-      max-width: 100% !important;
-    }
-
-    /* Section spacing */
-    .section {
-      padding: 80px 0;
-    }
-
-    .section-sm {
-      padding: 60px 0;
-    }
-
-    /* Hero section */
-    .hero-section {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-
-    /* Card styles */
-    .card {
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06) !important;
-      border: 1px solid #e2e8f0 !important;
-      border-radius: 8px !important;
-      margin-bottom: 125px;
-    }
-
-    .card[style*="display: none"], 
-    .card[style*="display:none"] {
-      display: none !important;
-    }
-
-    .card-text {
-      font-size: large;
-    }
-
-    /* Form wrapper styles */
-    .swpm-form-wrapper {
-      display: none;
-    }
-    
-    #swpm-registration-form .swpm-username-row,
-    #swpm-registration-form .swpm-repass-row {
-      display: none !important;
-    }
-    
-    .swpm-english-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 15px;
-      justify-content: center;
-    }
-    
-    .swpm-english-buttons button {
-      padding: 12px 20px;
-      background: transparent;
-      border: 2px solid white;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.3s;
-      color: white;
-      font-weight: bold;
-      flex: 1;
-      min-width: 140px;
-      text-align: center;
-    }
-    
-    #swpm-registration-form .swpm-english-buttons button:hover {
-      background: rgba(255, 255, 255, 0.2);
-    }
-    
-    #swpm-registration-form .swpm-english-buttons button.active {
-      background: rgba(255, 255, 255, 0.3);
-      color: white;
-      border-color: white;
-    }
-    
-    #swpm-registration-form .swpm-english-level-row label {
-      color: white;
-      font-weight: bold;
-      display: block;
-      margin-bottom: 15px;
-      font-size: 24px;
-      text-align: center;
-      width: 100%;
-    }
-
-    /* Comparison tables */
-    .comparison-table {
-      background: white;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-    }
-
-    .comparison-table th {
-      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-      color: white;
-      font-weight: 600;
-      padding: 20px;
-      border: none;
-    }
-
-    .comparison-table td {
-      padding: 15px 20px;
-      border-bottom: 1px solid #f1f5f9;
-      vertical-align: middle;
-    }
-
-    .comparison-table .uff-column {
-      background-color: #f0f9ff;
-      font-weight: 600;
-    }
-
-    .check-icon {
-      color: #10b981;
-      font-size: 1.2em;
-    }
-
-    .x-icon {
-      color: #ef4444;
-      font-size: 1.2em;
-    }
-
-    /* FAQ Accordion */
-    .accordion-button {
-      background-color: #f8f9fa;
-      color: #2c3e50;
-      font-weight: 600;
-      border: none;
-      border-radius: 0;
-    }
-
-    .accordion-button:not(.collapsed) {
-      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-      color: white;
-      box-shadow: none;
-    }
-
-    .accordion-button:focus {
-      box-shadow: none;
-      border-color: transparent;
-    }
-
-    /* Screenshot placeholders */
-    .screenshot-placeholder {
-      background: linear-gradient(45deg, #f1f5f9 25%, transparent 25%), 
-                  linear-gradient(-45deg, #f1f5f9 25%, transparent 25%), 
-                  linear-gradient(45deg, transparent 75%, #f1f5f9 75%), 
-                  linear-gradient(-45deg, transparent 75%, #f1f5f9 75%);
-      background-size: 20px 20px;
-      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-      border: 2px dashed #cbd5e1;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #64748b;
-      font-weight: 600;
-      min-height: 300px;
-    }
-
-    .creator-image-placeholder {
-      width: 300px;
-      height: 300px;
-      background: linear-gradient(45deg, #f1f5f9 25%, transparent 25%), 
-                  linear-gradient(-45deg, #f1f5f9 25%, transparent 25%), 
-                  linear-gradient(45deg, transparent 75%, #f1f5f9 75%), 
-                  linear-gradient(-45deg, transparent 75%, #f1f5f9 75%);
-      background-size: 20px 20px;
-      background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-      border: 2px dashed #cbd5e1;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #64748b;
-      font-weight: 600;
-      margin: 0 auto;
-    }
-
-    /* Fixed support button */
-    .support-button-fixed {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      z-index: 1050;
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
-      border: none;
-      color: white;
-      font-size: 24px;
-      box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4);
-      transition: all 0.3s ease;
-    }
-
-    .support-button-fixed:hover {
-      transform: scale(1.1);
-      box-shadow: 0 6px 20px rgba(37, 211, 102, 0.6);
-    }
-
-    /* Error and success messages */
-    .swpm_error, .swpm_success {
-      color: #fff;
-      font-weight: 700;
-      font-size: 1.5rem;
-      line-height: 1.5;
-    }
-
-    /* reCAPTCHA badge hiding */
-    .grecaptcha-badge {
-      visibility: hidden !important;
-    }
-
-    /* Responsive styles */
-
-    @media (max-width: 991px) {
-      .section {
-        padding: 60px 0;
-      }
-      
-      .section-sm {
-        padding: 40px 0;
-      }
-
-      .hero-section {
-        min-height: auto;
-        padding: 40px 0;
-      }
-      
-      .comparison-table {
-        font-size: 14px;
-      }
-      
-      .comparison-table th,
-      .comparison-table td {
-        padding: 10px;
-      }
-
-      .creator-image-placeholder {
-        width: 200px;
-        height: 200px;
-      }
-
-      .screenshot-placeholder {
-        min-height: 200px;
-        font-size: 14px;
-      }
-
-      .swpm-english-buttons {
-        flex-direction: column;
-        align-items: center;
-      }
-      
-      .swpm-english-buttons button {
-        width: 80%;
-        max-width: 220px;
-      }
-    }
-
-/* Hide hamburger menu on mobile */
-@media (min-width: 992px) {
-  .nav-overlay .hamburger-btn {
-    display: none;
-  }
-  
-  /* Optional: Adjust auth buttons for mobile */
-  .auth-buttons {
-    margin-right: 0 !important;
-  }
-}
-
-  </style>
-  <!-- ========== END STYLES ========== -->
+  <title>Lesson | UFF English</title>
+
+  <link rel="stylesheet" href="./node_modules/animate.css/animate.min.css">
+  <link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="./node_modules/bootstrap-icons/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="style.css">
+
+  <link rel="icon" href="assets/img/favicons/favicon-32x32.jpeg" sizes="32x32">
+  <link rel="icon" href="assets/img/favicons/favicon-192x192.jpeg" sizes="192x192">
+  <link rel="apple-touch-icon" href="assets/img/favicons/apple-touch-icon.jpeg">
+
+  <script>
+    (function (c, l, a, r, i, t, y) {
+      c[a] = c[a] || function () { (c[a].q = c[a].q || []).push(arguments) };
+      t = l.createElement(r); t.async = 1; t.src = "https://www.clarity.ms/tag/" + i + "?ref=wordpress";
+      y = l.getElementsByTagName(r)[0]; y.parentNode.insertBefore(t, y);
+    })(window, document, "clarity", "script", "qq9dqk1hjl");
+
+    (function () {
+      window.ybug_settings = { "id": "z69gx22kp6h243vpdpjb" };
+      var ybug = document.createElement('script');
+      ybug.type = 'text/javascript'; ybug.async = true;
+      ybug.src = 'https://widget.ybug.io/button/' + window.ybug_settings.id + '.js';
+      document.getElementsByTagName('script')[0].parentNode.insertBefore(ybug, document.getElementsByTagName('script')[0]);
+    })();
+  </script>
 </head>
 
 <body>
 
-  <!-- Hero Section -->
-  <section id="hero" class="hero-section gradient-bg" style="position: relative;">
-    <!-- Header Images -->
-    <div class="container-fluid px-0 mb-3 d-block d-lg-none" id="bigHeader" style="position: relative;">
-      <div class="d-flex justify-content-center">
-      <img src="mobileheaderhalf.png"
-           class="img-fluid w-100 mt-2" 
-           alt="" 
-           style="height: auto; max-width: 70% !important; width: 100% !important;">
-      </div>
-      <!-- Overlay Navigation for Mobile -->
-      <div class="nav-overlay d-lg-none">
-        <div class="auth-buttons d-flex">
-          <button class="btn btn-sm">Login</button>
-          <button class="btn btn-sm">Inscribirte</button>
-        </div>
-        <button class="hamburger-btn" onclick="toggleMenu()">
-          <div class="hamburger-icon">
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-        </button>
-      </div>
+  <div id="appLoadingImageDiv">
+    <div class="appLoadingImage"></div>
+    <div id="ui-progress-container">
+      <div id="ui-progress-bar"></div>
     </div>
+    <p id="ui-loading-text">Loading...</p>
+  </div>
 
-    <div class="container-fluid px-0 mb-3 d-none d-lg-block" id="wideHeader" style="position: relative;">
-      <img src="https://a.cogdex.com/header.png" 
-           class="img-fluid w-100" 
-           id="uffposter"
-           alt="" 
-           style="height: auto; max-width: 100% !important; width: 100% !important;">
-      
-      <!-- Overlay Navigation for Desktop -->
-      <div class="nav-overlay d-flex">
-        <div class="auth-buttons d-flex">
-          <a href="#" class="text-white text-decoration-none">About</a>&nbsp;&nbsp;&nbsp;<a href="#" class="text-white text-decoration-none">Refunds</a>&nbsp;&nbsp; 
-          <button class="btn btn-sm">Sign In</button>
-          <button class="btn btn-sm">Sign Up</button>
-        </div>
-        <button class="hamburger-btn" onclick="toggleMenu()">
-          <div class="hamburger-icon">
-            <span>hi</span>
-            <span>hello</span>
-            <span>hey</span>
-          </div>
-        </button>
-      </div>
-    </div>
+  <script>
+    (function () {
+      window.preloadedMedia = {};
 
-  <!-- Overlay Menu -->
+      window.preloadLessonAssets = function (lessonData, buildVideoUrlFn) {
+        return new Promise(async (resolveApp) => {
+          let progress = 0;
+          const preloader = document.getElementById('appLoadingImageDiv');
+          const progressBar = document.getElementById('ui-progress-bar');
+          const loadingText = document.getElementById('ui-loading-text');
+
+          const progressInterval = setInterval(() => {
+            progress += (95 - progress) * 0.05;
+            if (progressBar) progressBar.style.width = progress + '%';
+          }, 100);
+
+          try {
+            if (lessonData?.questions && lessonData.questions[0]) {
+              const firstQ = lessonData.questions[0];
+              const slugToWarm = firstQ.videoUrl || firstQ.simpleVideoUrl || firstQ.introBackgroundVideoUrl;
+              if (slugToWarm) fetch(buildVideoUrlFn(slugToWarm)).catch(() => { });
+            }
+
+            const imageUrls = [
+              'assets/img/header.png',
+              'assets/img/teacherprofile.jpeg',
+              'assets/img/party-brain.webp'
+            ];
+
+            const imagePromises = imageUrls.map(url => new Promise(resolve => {
+              const img = new Image();
+              img.onload = resolve; img.onerror = resolve;
+              img.src = url;
+            }));
+
+            await Promise.race([Promise.all(imagePromises), new Promise(resolve => setTimeout(resolve, 1500))]);
+
+            clearInterval(progressInterval);
+            if (progressBar) progressBar.style.width = '100%';
+            if (loadingText) loadingText.innerText = 'Ready!';
+
+            setTimeout(() => {
+              if (preloader) preloader.style.display = 'none';
+              resolveApp();
+            }, 250);
+
+          } catch (error) {
+            console.error("Failsafe unlocked preloader:", error);
+            clearInterval(progressInterval);
+            if (preloader) preloader.style.display = 'none';
+            resolveApp();
+          }
+        });
+      };
+    })();
+  </script>
+
   <div class="overlay-menu" id="overlayMenu">
     <button class="overlay-close" onclick="toggleMenu()">&times;</button>
     <ul>
       <li><a href="#about" onclick="toggleMenu()">About</a></li>
-      <li><a href="#" onclick="toggleMenu()" data-bs-toggle="modal" data-bs-target="#returnPolicyModal">Return Policy</a></li>
+      <li><a href="#" onclick="toggleMenu()" data-bs-toggle="modal" data-bs-target="#returnPolicyModal">Return
+          Policy</a></li>
       <li><a href="#signup" onclick="toggleMenu()">Sign Up</a></li>
+      <li id="auth-menu-item"><a href="#" id="auth-link" onclick="toggleMenu()">Sign In</a></li>
     </ul>
   </div>
 
+  <div id="app">
     <div class="container">
-      <!-- Main Content Section with Responsive Layout -->
 
-      <div class="row align-items-center">      
-        <div class="col-12">
-          <div class="text-center">
-            <h2 class="display-8 fw-bold mb-2 text-center">LA <a href="#" class="text-white">ÚNICA</a> TECNOLOGÍA QUE <s>ENSEÑA ING</s> ENTRENA FLUIDEZ</h2>
-            <h2 class="display-8 fw-bold mb-2 text-center" style="font-family:'Orbitron' !important; color: yellow !important;">3-DAY FLUENCY CHALLENGE FREE<br>COMIENZA EN 0 DÍAS</h2>
-          </div>
-        </div>
-      </div>
-      
-      <div class="row align-items-center">
-        <!-- Screenshot placeholder - shows above content on mobile, right side on desktop -->
-        <div class="col-12 col-lg-6 order-1 order-lg-2 mb-4 mb-lg-0">
-          <div class="screenshot-placeholder">
-            App Screenshot (Animated GIF)
-          </div>
-        </div>
-        
-        <!-- Main content - shows below screenshot on mobile, left side on desktop -->
-        <div class="col-12 col-lg-6 order-2 order-lg-1">
-          <div class="text-center">
-            
-            <div class="mb-2">
-                <ol class="text-white">
-                  <li>Elige tu nivel de inglés abajo e ingresa tu nombre y email,</li>
-                  <li>Descubre tu UFF FluenScore™ en 2 minutos reptiendo y respondiendo a 6 de las frases más emblemáticas en inglés,</li> 
-                  <li>Mejora tu fluidez con estas frases indispensables al menos 30% en 10 min x día por 3 días,</li>
-                  GRATIS SIN TARJETA.
-                </ol>  
+      <div id="lesson-header">
+        <div id="lessonIntroHeader">
+          <div id="wideHeader" class="d-flex justify-content-between align-items-center">
+            <img src="assets/img/header.png" id="uffposter" alt="">
+            <div class="flex-grow-1 mx-1"></div>
+            <div class="d-flex align-items-center hamburger-container">
+              <button class="hamburger-btn" onclick="toggleMenu();">
+                <div class="hamburger-icon">
+                  <span></span><span></span><span></span>
+                </div>
+              </button>
             </div>
           </div>
+          <div class="lesson-title lesson-title-header"></div>
+        </div>
+
+        <div id="closeAndProgress" class="d-flex justify-content-between align-items-center d-none">
+          <a href="homescreen.html" id="closePage" class="d-flex align-items-center text-decoration-none">
+            <i class="bi bi-x-lg"></i>
+          </a>
+          <div class="flex-grow-1 mx-1">
+            <div id="progress" class="progress">
+              <div id="progress-bar" class="progress-bar" role="progressbar"></div>
+            </div>
+          </div>
+          <div class="d-flex align-items-center text-white gap-3 stats-container">
+            <div title="Listening Score">
+              <i class="bi bi-ear-fill"></i>
+              <span id="currentScore">100</span>%
+            </div>
+            <div title="Pronunciation Score">
+              <span style="font-size: 1.2rem;">👄</span>
+              <span id="phrasesScore">__</span>%
+            </div>
+          </div>
+          <div class="d-flex align-items-center hamburger-container ms-3">
+            <button class="hamburger-btn" onclick="toggleMenu();">
+              <div class="hamburger-icon">
+                <span></span><span></span><span></span>
+              </div>
+            </button>
+          </div>
         </div>
       </div>
-      
-      <!-- NEW ROW FOR SIGNUP FORM - Full width on desktop -->
-      <div class="row mt-0">
-        <div class="col-12">
-          <!-- Level Selection (unchanged) -->
-          <div id="signup" class="mb-5">
-            <div id="registration-form" style="display: block;">
-              <div class="swpm-registration-widget-form">
-                <form id="swpm-registration-form" class="swpm-form" name="swpm-registration-form" method="post" action="">
-                  <input type="hidden" name="level_identifier" value="c81e728d9d4c2f636f067f89cc14862c" />
-                  
-                  <div class="swpm-form-row swpm-english-level-row">
-                    <!--<label>Elige tu nivel de inglés para comenzar</label>-->
 
-                    <div class="swpm-english-buttons mt-3 mb-3">
-                      <button type="button" data-level="a0">Desde 0</button>
-                      <button type="button" data-level="a1">Principiante</button>
-                      <button type="button" data-level="b1">Intermedio</button>
-                      <button type="button" data-level="c1">Avanzado</button>
-                      <input type="hidden" name="english_level" id="swpm-english-level-value" required>
-                    </div>
-                    <p class="text-center mt-2"><a href="#" class="text-white text-decoration-underline" data-bs-toggle="modal" data-bs-target="#levelModal">No sé mi nivel</a></p>
+      <div class="container mt-2" id="container">
+        <!-- SINGLE FULL-WIDTH ROW FOR EVERYTHING -->
+        <div class="row">
+          <div id="main-column" class="col-12 mb-2">
+
+            <!-- 1. Playback Video (Stays at the top) -->
+            <div id="playback-video-wrapper" class="playback-video-container position-relative mb-2">
+              <video id="playback-video" playsinline controls preload="auto"
+                style="display: none; width: 100%; border-radius: 8px;"></video>
+              <button id="playback-mute-toggle" class="playback-mute-toggle d-none position-absolute bottom-0 end-0 m-2"
+                style="z-index: 10;">
+                <i class="bi bi-volume-up-fill"></i>
+              </button>
+            </div>
+
+            <!-- 2. Main Video Container (above the chat) -->
+            <div id="media-container">
+              <div id="ivp-container">
+                <div class="ivp-main-wrapper loading" id="ivp-main-wrapper">
+                  <div class="ivp-video-wrapper">
+                    <video class="ivp-video" playsinline crossorigin="anonymous"></video>
+                    <div class="ivp-blur-overlay"></div>
+                    <div class="ivp-subtitles"></div>
                   </div>
-                  
-                  <div class="swpm-registration-form-section">
-                    <!-- All other form fields remain unchanged -->
-                    <div class="swpm-form-row swpm-username-row">
-                      <div class="swpm-form-label-wrap swpm-form-username-label-wrap">
-                        <label for="user_name">Username</label>
-                      </div>
-                      <div class="swpm-form-input-wrap swpm-form-username-input-wrap">
-                        <input type="text" id="user_name" autocomplete="new-username" class="swpm-form-field swpm-form-username" value="" name="user_name" />
-                      </div>
-                      <div class="swpm-form-desc"></div>
-                    </div>
-                    
-                    <div class="swpm-form-row swpm-email-row">
-                      <div class="swpm-form-label-wrap swpm-form-email-label-wrap">
-                        <label for="email">Email</label>
-                      </div>
-                      <div class="swpm-form-input-wrap swpm-form-email-input-wrap">
-                        <input type="text" autocomplete="off" id="email" class="swpm-form-field swpm-form-email" value="" name="email" />
-                      </div>
-                      <div class="swpm-form-desc"></div>
-                    </div>
-                    
-                    <div class="swpm-form-row swpm-password-row">
-                      <div class="swpm-form-label-wrap swpm-form-password-label-wrap">
-                        <label for="password">Password</label>
-                      </div>
-                      <div class="swpm-form-input-wrap swpm-form-password-input-wrap">
-                        <input type="password" autocomplete="new-password" id="password" class="swpm-form-field swpm-form-password" value="" name="password" />
-                      </div>
-                      <div class="swpm-form-desc"></div>
-                    </div>
-                    
-                    <div class="swpm-form-row swpm-repass-row">
-                      <div class="swpm-form-label-wrap swpm-form-repass-label-wrap">
-                        <label for="password_re">Repeat Password</label>
-                      </div>
-                      <div class="swpm-form-input-wrap swpm-form-repass-input-wrap">
-                        <input type="password" autocomplete="new-password" id="password_re" class="swpm-form-field swpm-form-repass" value="" name="password_re" />
-                      </div>
-                      <div class="swpm-form-desc"></div>
-                    </div>
-                    
-                    <div class="swpm-form-row swpm-firstname-row">
-                      <div class="swpm-form-label-wrap swpm-form-firstname-label-wrap">
-                        <label for="first_name">First Name</label>
-                      </div>
-                      <div class="swpm-form-input-wrap swpm-form-firstname-input-wrap">
-                        <input type="text" id="first_name" class="swpm-form-field swpm-form-firstname" value="" name="first_name" />
-                      </div>
-                      <div class="swpm-form-desc"></div>
-                    </div>
-                    
-                    <div class="swpm-form-row swpm-lastname-row">
-                      <div class="swpm-form-label-wrap swpm-form-lastname-label-wrap">
-                        <label for="last_name">Last Name</label>
-                      </div>
-                      <div class="swpm-form-input-wrap swpm-form-lastname-input-wrap">
-                        <input type="text" id="last_name" class="swpm-form-field swpm-form-lastname" value="" name="last_name" />
-                      </div>
-                      <div class="swpm-form-desc"></div>
-                    </div>
-                    
-                    <div class="swpm-form-row swpm-membership-level-row" style="display:none">
-                      <div class="swpm-form-label-wrap swpm-form-membership-level-label-wrap">
-                        <label for="membership_level">Membership Level</label>
-                      </div>
-                      <div class="swpm-form-membership-level-value">
-                        Demo<input type="hidden" value="2" size="50" name="swpm_membership_level" id="membership_level" /><input type="hidden" name="swpm_level_hash" value="29d0086a407a5b8890c6152700a939b7" />
-                      </div>
-                    </div>
-                    
-                    <div class="swpm-before-registration-submit-section" align="center">
-                      <div class="swpm-recaptcha-section" style="margin-bottom: 15px;">
-                        <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-                        <div class="swpm_g_captcha">
-                          <div class="g-recaptcha" data-sitekey="6LelvpMrAAAAAJXz_TxscgUjlfuqpIXxdcZkf20X" data-theme="light" data-size="normal"></div>
+                </div>
+              </div>
+
+              <div id="simple-ivp-container"></div>
+
+              <div id="intro-call-widget" class="intro-video-wrapper d-none">
+                <div class="pulse-ring-wrapper">
+                  <div class="pulse-ring"></div>
+                  <div class="intro-video-container ringing-animation">
+                    <video class="intro-video" playsinline preload="auto" crossorigin="anonymous" muted></video>
+                    <div class="intro-notification-content">
+                      <div class="intro-notification-top">
+                        <div class="intro-call-title">
+                          <i class="bi bi-camera-video-fill text-info"></i>
+                          <span id="intro-title">Ringing...</span>
                         </div>
+                        <div class="intro-call-subtitle"><span lang="es"><i id="intro-subtitle"></i></span></div>
+                      </div>
+                      <div class="intro-notification-bottom">
+                        <div class="intro-caller-name" id="intro-name">Joe Walsh</div>
+                        <div class="intro-caller-title" id="intro-role">English Coach, UFF</div>
                       </div>
                     </div>
-
-                    <div class="swpm-form-row swpm-submit-section swpm-registration-submit-section">
-                      <button type="submit" class="swpm-submit swpm-registration-submit-button swpm-submit-btn-default-style">Register</button>
-                      <input type="hidden" name="swpm_registration_submit" value="Register">
-                    </div>
                   </div>
-
-                  <input type="hidden" name="action" value="custom_posts" />
-                </form>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Pain Section -->
-  <section class="section white-bg">
-    <div class="container">
-      <div class="row align-items-center">
-        <div class="col-12">
-         <h2 class="display-5 fw-bold mb-4 text-center">
-          ¿Puedes leer mucho más inglés de lo que puedes hablar? ¡No es inevitable!
-         </h2>
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="col-12 col-lg-6 mb-4 mb-lg-0">
-<p class="lead">
-  La mayoría de los métodos se enfocan en leer y escribir — incluso las apps.
-  <br><br>
-  Eso sirve para exámenes… pero no para hablar en el mundo real.
-  <br><br>
-  Por eso se te traba la lengua: entiendes, pero simplemente nunca aprendiste a <strong>escuchar y hablar</strong>.
-</p>
-        </div>
-        <div class="col-12 col-lg-6">
-      <p class="lead">En cambio, con cada actividad de UFF:</p>
-<ul class="list-unstyled">
-  <li class="mb-2">
-    <i class="bi bi-check-circle-fill text-dark me-2"></i>
-    <strong>100% videoclips de hablantes nativos</strong> hablando para otros hablantes nativos: series, películas y YouTube.
-  </li>
-  <li class="mb-2">
-    <i class="bi bi-x-circle-fill text-dark me-2"></i>
-    <strong>0% voces sintetizadas, “teacher English” ni actores que hablan lento</strong>.
-  </li>
-  <li class="mb-2">
-    <i class="bi bi-check-circle-fill text-dark me-2"></i>
-    <strong>Contestas hablando</strong> y la tecnología evalúa tu respuesta.
-  </li>
-  <li class="mb-2">
-    <i class="bi bi-x-circle-fill text-dark me-2"></i>
-    <strong>Jamás pulsas botones de opción múltiple</strong>, que no tienen relación con la vida real.
-  </li>
-</ul>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- UFF vs Duolingo -->
-  <section class="section gradient-bg">
-    <div class="container">
-      <div class="row">
-        <div class="col-12 text-center mb-5">
-          <h2 class="display-5 fw-bold text-center">UFF vs Duolingo</h2>
-          <!--
-          <p class="lead">See the difference that fluency-focused learning makes</p>
-          -->
-        </div>
-      </div>
-      <div class="row justify-content-center">
-        <div class="col-12 col-lg-10">
-          <div class="comparison-table">
-            <table class="table table-striped mb-0">
-              <thead>
-                <tr>
-                  <th scope="col"></th>
-                  <th scope="col" class="text-center">UFF</th>
-                  <th scope="col" class="text-center">Duolingo</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><strong>Entrenamiento de habla</strong></td>
-                  <td class="uff-column text-center">100% de las preguntas<i class="bi bi-check-circle-fill check-icon ms-2"></i></td>
-                  <td class="text-center">12% de las preguntas<i class="bi bi-x-circle-fill x-icon ms-2"></i></td>
-                </tr>
-                <tr>
-                  <td><strong>Entrenamiento de oído</strong></td>
-                  <td class="uff-column text-center">100% de las preguntas<i class="bi bi-check-circle-fill check-icon ms-2"></i></td>
-                  <td class="text-center">20% de las preguntas <i class="bi bi-x-circle-fill x-icon ms-2"></i></td>
-                </tr>
-                <tr>
-                  <td><strong>Tipos de frases</strong></td>
-                  <td class="uff-column text-center">Las más usadas en la vida real, como "¿Qué tal si te doy una mano con tu proyecto?" <i class="bi bi-check-circle-fill check-icon ms-2"></i></td>
-                  <td class="text-center">"Memorables" y "divertidas" como "El gato rojo come pan."<i class="bi bi-x-circle-fill x-icon ms-2"></i></td>
-                </tr>
-                <tr>
-                  <td><strong>Preguntas opción múltiple</strong></td>
-                  <td class="uff-column text-center">0 (igual que en la conversación) <i class="bi bi-check-circle-fill check-icon ms-2"></i></td>
-                  <td class="text-center">60% de las preguntas <i class="bi bi-x-circle-fill x-icon ms-2"></i></td>
-                </tr>
-                <tr>
-                  <td><strong>Grabaciones</strong></td>
-                  <td class="uff-column text-center">Videos<i class="bi bi-check-circle-fill check-icon ms-2"></i></td>
-                  <td class="text-center">Audio <i class="bi bi-x-circle-fill x-icon ms-2"></i></td>
-                </tr>
-                <tr>
-                  <td><strong>Voces sintetizadas de robot</strong></td>
-                  <td class="uff-column text-center">0, nunca, jamás <i class="bi bi-check-circle-fill check-icon ms-2"></i></td>
-                  <td class="text-center">100% <i class="bi bi-x-circle-fill x-icon ms-2"></i></td>
-                </tr>
-                <tr>
-                  <td><strong>Grabaciones de hablantes nativos</strong></td>
-                  <td class="uff-column text-center">100s <i class="bi bi-check-circle-fill check-icon ms-2"></i></td>
-                  <td class="text-center">0 <i class="bi bi-x-circle-fill x-icon ms-2"></i></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- UFF vs Live Classes -->
-<section class="section gradient-bg">
-    <div class="container">
-      <div class="row">
-        <div class="col-12 text-center mb-5">
-          <h2 class="display-5 fw-bold text-center">UFF vs las Clases en Vivo</h2>
-          <p class="lead">UFF es un excelente complemento para las clases en vivo, e incluso puede ser una alternativa razonable cuando estas no son convenientes.</p>
-        </div>
-      </div>
-      <div class="row justify-content-center">
-        <div class="col-12 col-lg-10">
-          <div class="comparison-table">
-            <table class="table table-striped mb-0">
-              <thead>
-                <tr>
-                  <th scope="col"></th>
-                  <th scope="col" class="text-center">UFF</th>
-                  <th scope="col" class="text-center">Clases en vivo</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td><strong>Disponibilidad</strong></td>
-                  <td class="uff-column text-center">24/7</td>
-                  <td class="text-center">Según horarios establecidos</td>
-                </tr>
-                <tr>
-                  <td><strong>Contenido</strong></td>
-                  <td class="uff-column text-center">Lenguaje para conversación y situaciones cotidianas</td>
-                  <td class="text-center">Al criterio del profesor, pero normalmente un rango de diferentes tipos de lenguaje, incluyendo lenguaje académico</td>
-                </tr>
-                <tr>
-                  <td><strong>Retroalimentación</strong></td>
-                  <td class="uff-column text-center">Inmediata, por parte de la IA</td>
-                  <td class="text-center">Inmediata, por parte del profesor (clases individuales), o cuando sea posible (clases grupales)</td>
-                </tr>
-                <tr>
-                  <td><strong>Enfoque</strong></td>
-                  <td class="uff-column text-center">La fluidez en el inglés hablado</td>
-                  <td class="text-center">Según el criterio del profesor, pero normalmente más enfocado en el inglés escrito</td>
-                </tr>
-                <tr>
-                  <td><strong>Oportunidades para hablar</strong></td>
-                  <td class="uff-column text-center">Constantes</td>
-                  <td class="text-center">Constantes (clases individuales) o regulares (clases grupales)</td>
-                </tr>
-                <tr>
-                  <td><strong>Seguimiento del progreso</strong></td>
-                  <td class="uff-column text-center">FluenScore objetivo con cada lección</td>
-                  <td class="text-center">Según el criterio del profesor</td>
-                </tr>
-                <tr>
-                  <td><strong>Oportunidades de escuchar a hablantes nativos</strong></td>
-                  <td class="uff-column text-center">Videos de decenas de hablantes nativos cada semana</td>
-                  <td class="text-center">Escuchas al profesor y las grabaciones que decida proporcionar</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- About the Creator -->
-  <section id="about" class="section light-bg">
-    <div class="container">
-      <div class="row align-items-center">
-        <div class="col-12 col-lg-4 text-center mb-4 mb-lg-0">
-          <div class="creator-image-placeholder">
-            Creator Photo
-          </div>
-        </div>
-        <div class="col-12 col-lg-8">
-          <h2 class="display-5 fw-bold mb-4">The teacher</h2>
-<p class="lead mb-4">Hola, soy Joe Walsh, profesor de inglés.</p>
-<p>He estado en tu posición: estudié español durante años sin poder hablarlo.</p>
-<p>Descubrí a las duras que la única manera de hablar bien un idioma es escuchándolo y hablándolo.</p>
-<p>Dediqué incontables horas a ver videos en español y hablar con quienes quisieran hablar conmigo.</p>
-<p class="fw-bold">Diseñé UFF para que tengas el mismo éxito sin tanto sufrimiento.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Testimonials -->
-  <section class="section white-bg">
-    <div class="container">
-      <div class="row">
-        <div class="col-12 text-center mb-5">
-          <h2 class="display-5 fw-bold">What Students Say</h2>
-          <p class="lead">Real results from real students</p>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-12 col-md-4 mb-4">
-          <div class="card h-100 border-0 shadow">
-            <div class="card-body text-center">
-              <div class="mb-3">
-                <i class="bi bi-star-fill text-warning"></i>
-                <i class="bi bi-star-fill text-warning"></i>
-                <i class="bi bi-star-fill text-warning"></i>
-                <i class="bi bi-star-fill text-warning"></i>
-                <i class="bi bi-star-fill text-warning"></i>
-              </div>
-              <p class="card-text">"I couldn't believe it. After just 3 days with UFF, I was having actual conversations in English without thinking about grammar!"</p>
-              <div class="d-flex align-items-center justify-content-center">
-                <div class="rounded-circle bg-secondary me-3" style="width: 50px; height: 50px;"></div>
-                <div>
-                  <h6 class="mb-0">María González</h6>
-                  <small class="text-muted">Madrid, Spain</small>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-        <div class="col-12 col-md-4 mb-4">
-          <div class="card h-100 border-0 shadow">
-            <div class="card-body text-center">
-              <div class="mb-3">
-                <i class="bi bi-star-fill text-warning"></i>
-                <i class="bi bi-star-fill text-warning"></i>
-                <i class="bi bi-star-fill text-warning"></i>
-                <i class="bi bi-star-fill text-warning"></i>
-                <i class="bi bi-star-fill text-warning"></i>
+
+            <!-- 3. Chat Window (flows below the videos) -->
+            <div id="chat-window-container" class="card border-dark p-0 d-none mb-2">
+              
+              <!-- Chat Header -->
+              <div id="chat-window-header" class="card-header text-white p-0 chat-window-header">
+                <table id="chat-scores-table" class="w-100 h-100" style="border-collapse:collapse;table-layout:fixed;background:transparent;border:none;color:white;">
+                  <tbody>
+                    <tr id="chat-scores-row-avatars">
+                      <td id="chat-score-cell-pronunciation" class="text-center p-0" style="border:none;">
+                        <img src="assets/img/pronunciationbot.png" alt="Pronunciation" class="w-100" style="display:block;object-fit:contain;">
+                      </td>
+                      <td id="chat-score-cell-listening" class="text-center p-0" style="border:none;">
+                        <img src="assets/img/listeningbot.png" alt="Listening" class="w-100" style="display:block;object-fit:contain;">
+                      </td>
+                      <td id="chat-score-cell-flow" class="text-center p-0" style="border:none;">
+                        <img src="assets/img/flowbot.png" alt="Flow" class="w-100" style="display:block;object-fit:contain;">
+                      </td>
+                      <td id="chat-score-cell-vocabulary" class="text-center p-0" style="border:none;">
+                        <img src="assets/img/vocabularybot.png" alt="Vocabulary" class="w-100" style="display:block;object-fit:contain;">
+                      </td>
+                      <td id="chat-score-cell-grammar" class="text-center p-0" style="border:none;">
+                        <img src="assets/img/grammarbot.png" alt="Grammar" class="w-100" style="display:block;object-fit:contain;">
+                      </td>
+                      <td id="chat-score-cell-formality" class="text-center p-0" style="border:none;">
+                        <img src="assets/img/speakingbot.png" alt="Formality" class="w-100" style="display:block;object-fit:contain;">
+                      </td>
+                      <td id="chat-score-cell-nativelike" class="text-center p-0" style="border:none;">
+                        <img src="assets/img/idiombot.png" alt="Idiom" class="w-100" style="display:block;object-fit:contain;">
+                      </td>
+                      <td id="chat-score-cell-understanding" class="text-center p-0" style="border:none;">
+                        <img src="assets/img/pragmaticsbot.png" alt="Understanding" class="w-100" style="display:block;object-fit:contain;">
+                      </td>
+                      <td id="chat-score-cell-fluency" class="text-center p-0" style="border:none;">
+                        <img src="assets/img/teacherprofile.jpeg" alt="Joe Walsh" class="w-100" style="display:block;object-fit:contain;">
+                      </td>
+                    </tr>
+                    <tr id="chat-scores-row-numbers">
+                      <td id="chat-score-num-cell-pronunciation" class="text-center p-0" style="border:none;">
+                        <span id="chat-score-pronunciation"></span>
+                      </td>
+                      <td id="chat-score-num-cell-listening" class="text-center p-0" style="border:none;">
+                        <span id="chat-score-listening"></span>
+                      </td>
+                      <td id="chat-score-num-cell-flow" class="text-center p-0" style="border:none;">
+                        <span id="chat-score-flow"></span>
+                      </td>
+                      <td id="chat-score-num-cell-vocabulary" class="text-center p-0" style="border:none;">
+                        <span id="chat-score-vocabulary"></span>
+                      </td>
+                      <td id="chat-score-num-cell-grammar" class="text-center p-0" style="border:none;">
+                        <span id="chat-score-grammar"></span>
+                      </td>
+                      <td id="chat-score-num-cell-formality" class="text-center p-0" style="border:none;">
+                        <span id="chat-score-formality"></span>
+                      </td>
+                      <td id="chat-score-num-cell-nativelike" class="text-center p-0" style="border:none;">
+                        <span id="chat-score-nativelike"></span>
+                      </td>
+                      <td id="chat-score-num-cell-understanding" class="text-center p-0" style="border:none;">
+                        <span id="chat-score-understanding"></span>
+                      </td>
+                      <td id="chat-score-num-cell-fluency" class="text-center p-0" style="border:none;">
+                        <span id="chat-score-fluency"></span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-              <p class="card-text">"UFF is revolutionary. I've tried everything - Duolingo, classes, tutors. Nothing worked like this. My fluency score went from 23 to 87 in one week!"</p>
-              <div class="d-flex align-items-center justify-content-center">
-                <div class="rounded-circle bg-secondary me-3" style="width: 50px; height: 50px;"></div>
-                <div>
-                  <h6 class="mb-0">Carlos Rodríguez</h6>
-                  <small class="text-muted">Mexico City, Mexico</small>
+
+              <!-- Chat Message List (Dynamic Injection Target) -->
+              <div id="chat-message-list" class="card-body chat-message-list text-dark"></div>
+              
+              <!-- Chat Input Footer -->
+              <div id="chat-input-area" class="card-footer bg-white border-top-0 d-none">
+                <div class="input-group">
+                  <textarea id="chat-input-field" class="form-control" rows="2"
+                    placeholder="Ask your tutor a question..."></textarea>
+                  <button id="chat-send-button" class="btn btn-primary" type="button">
+                    <i class="bi bi-send-fill"></i>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            <div id="big-buttons" class="d-flex justify-content-center mt-0 mb-5 big-buttons d-none">
+              <h3>Agrega tu video a redes con #uffenglish y ver cómo otros estudiantes han respondido a este video</h3>
+              <button id="shareMp4Btn" class="d-none">Agrega a redes</button>
+              <h3>Repetir esta lección a ver si puedes mejorar tu Fluency Score</h3>
+              <button id="repeatBtnSuccess" class="repeat-btn">Repeat</button>
+              <h3>¡Comparte esta lección con un amigo y compara Fluency Scores!</h3>
+              <button id="shareFriend">Comparte</button>
+              <br>
+              <h2>Has ganado 1 frase <br><b class="bi bi-gem"></b></h2>
+              <h3>¡No pierdas tu progreso!</h3>
+              <p class="text-white">Guarda Tu Progreso, Ser Notificado de Lecciones Gratuitas Nuevas, Recordar las
+                frases dominadas con repasos puntuales, y Agrega la App a Tu Pantalla de Inicio</p>
+              <button id="logIn" onclick="window.location.href='/membership-join/membership-registration/'">Comenzar
+                aquí</button>
+            </div>
+
+            <!-- HIDDEN FUNCTIONAL ELEMENTS (Previously in the right column) -->
+            <video id="originalVideo" src="" class="d-none"></video>
+            <video id="resultVideo" class="d-none"></video>
+            <a id="downloadLink" class="d-none">Download</a>
+            <canvas id="videoCanvas" class="d-none"></canvas>
+            <img id="overlayImage" src="assets/img/header.png" class="d-none">
+
+            <div id="answerDiv" class="card-wrapper d-none">
+              <div class="card info-card">
+                <div class="card-header bg-dark text-white" id="cue"></div>
+                <div class="card-body">
+                  <p class="info-content" id="translation"></p>
+                  <p class="info-content" id="explanation"></p>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-        <div class="col-12 col-md-4 mb-4">
-          <div class="card h-100 border-0 shadow">
-            <div class="card-body text-center">
-              <div class="mb-3">
-                <i class="bi bi-star-fill text-warning"></i>
-                <i class="bi bi-star-fill text-warning"></i>
-                <i class="bi bi-star-fill text-warning"></i>
-                <i class="bi bi-star-fill text-warning"></i>
-                <i class="bi bi-star-fill text-warning"></i>
+
+            <div id="courseProgress" class="d-none card border-dark mb-3 p-0">
+              <div class="card-header text-white p-0 card-header-custom" id="correct">
+                <div class="d-flex align-items-center p-3">
+                  <img src="assets/img/teacherprofile.jpeg" alt="Joe Walsh" class="rounded-circle me-3 chat-avatar"
+                    style="width: 40px; height: 40px; object-fit: cover;">
+                  <div>Prof. Joe Walsh<div class="mt-1"><small>English Fluency Coach, UFF</small></div>
+                  </div>
+                </div>
               </div>
-              <p class="card-text">"I was so embarrassed about my accent and mistakes. UFF helped me speak naturally and confidently. Now I give presentations in English at work!"</p>
-              <div class="d-flex align-items-center justify-content-center">
-                <div class="rounded-circle bg-secondary me-3" style="width: 50px; height: 50px;"></div>
-                <div>
-                  <h6 class="mb-0">Ana Silva</h6>
-                  <small class="text-muted">São Paulo, Brazil</small>
+              <div id="fail-media" class="d-none"></div>
+              <div class="card-body chat-message-list text-dark">
+                <div id="success-media" class="d-none">
+                  <div class="text-center mb-3">
+                    <img src="assets/img/party-brain.webp" width="250px" alt="">
+                  </div>
+                </div>
+                <div class="chat-message-row chat-message-row--system">
+                  <div class="chat-message-bubble chat-message-bubble--system">
+                    💯 Lesson complete! ¡Lección completada!
+                  </div>
+                </div>
+                <div class="chat-message-row chat-message-row--system">
+                  <div class="chat-message-bubble chat-message-bubble--system">
+                    <p class="nextHeadsup mb-0">Puedes repetir <i class="bi bi-arrow-counterclockwise"></i> esta lección o
+                      continuar <i class="bi bi-chevron-right"></i> a la próxima pulsando uno de los botones abajo.</p>
+                  </div>
                 </div>
               </div>
             </div>
+
+            <div id="hints" class="d-none card">
+              <p class="info-content" id="hintUncommonWords"></p>
+            </div>
+
+            <div id="questions-container"></div>
+
           </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="arrow-container" class="d-none">
+    <div class="arrow"></div>
+  </div>
+
+  <footer>
+    <div id="controls" class="fixed-bottom bg-dark p-1">
+      <div id="micStatusText" class="d-flex justify-content-center align-items-center"></div>
+      <div id="bottomButtonBar" class="d-flex justify-content-center gap-2 align-items-center">
+        <div id="bottomButtonBarLeft" class="me-auto ms-3"></div>
+        <div id="bottomButtonBarCenter" class="position-absolute start-50 translate-middle-x"></div>
+        <button id="supportButton" class="d-none btn bg-transparent text-white border-0 ms-auto me-3"
+          data-bs-toggle="modal" data-bs-target="#chatModal">
+          <i class="bi bi-chat-fill"></i>
+        </button>
+      </div>
+      <div id="bottomButtonBarSuccess" class="d-flex justify-content-center gap-2 align-items-center d-none">
+        <div id="bottomButtonBarLeft" class="me-auto ms-3"></div>
+        <div id="bottomButtonBarCenterSuccess" class="position-absolute start-50 translate-middle-x">
+          <button id="processBtn" class="btn btn-primary">
+            <strong class="bi bi-award-fill text-white"></strong>
+          </button>
         </div>
       </div>
     </div>
-  </section>
 
-<!-- FAQ Section -->
-<section class="section gradient-bg">
-    <div class="container">
-      <div class="row">
-        <div class="col-12 text-center mb-5">
-          <h2 class="display-5 fw-bold text-center">Preguntas Frecuentes</h2>
-          <!--<p class="lead">Todo lo que necesitas saber sobre UFF</p>-->
-        </div>
-      </div>
-      <div class="row justify-content-center">
-        <div class="col-12 col-lg-8">
-          <div class="accordion" id="faqAccordion">
-            <div class="accordion-item border-0 mb-3 rounded overflow-hidden">
-              <h3 class="accordion-header">
-                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
-              ¿Qué es el UFF FluenScore? 
-                </button>
-              </h3>
-              <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
-                <div class="accordion-body bg-white text-dark">
-                  El UFF FluenScore evalúa, en pocos minutos, tu capacidad para utilizar el inglés que has aprendido en situaciones reales, con pronunciación, velocidad y lenguaje propios de hablantes nativos en contextos cotidianos.<br><br>Es decir, aunque puedas aprobar un examen de nivel B1, ¿realmente podrías mantener una conversación a ese nivel con nativos en la vida real?
-                  <br><br>
-                  El UFF FluenScore NO es un nivel de inglés tradicional (A1-C2). Más bien, es una puntuación del 0% al 100% que mide tus habilidades de comunicación oral y auditiva en inglés para un nivel específico.
-                  <ul>
-                    <strong>Interpretación del FluenScore:</strong>
-                    <li>90-100%: Fluidez real. Te puedes desenvolver con soltura.</li>
-                    <li>80-89%: Fluidez parcial. Puedes comunicarte, pero con cierto esfuerzo. Es posible que necesites que te repitan algunas frases o que hablen más despacio. Se recomienda repetir la lección hasta alcanzar al menos un 90%.</li>
-                    <li>0-79%: Fluidez no alcanzada. La comunicación requiere un esfuerzo significativo por ambas partes. Es probable que necesites apoyarte en gestos, imágenes, traductores u otros recursos. Es fundamental repetir la lección hasta lograr al menos un 80%.</li>
-                  </ul> 
-                </div>
-              </div>
-            </div>
-            
-            <div class="accordion-item border-0 mb-3 rounded overflow-hidden">
-              <h3 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
-                  ¿No se supone que los niveles CEFR (A1, A2, B1, etc.) son indicadores de fluidez?
-                </button>
-              </h3>
-              <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                <div class="accordion-body bg-white text-dark">
-                  La realidad es que muchos exámenes existentes no distinguen adecuadamente entre el dominio del idioma hablado y el escrito. Como resultado, un estudiante con buena comprensión lectora puede obtener un nivel muy superior al que realmente tiene en habilidades conversacionales.
-                  <br><br>
-                  De hecho, según diversas encuestas, la mayoría de estudiantes que han estudiado inglés durante años en la escuela reconocen que no pueden mantener una conversación fluida, una habilidad que se espera incluso en el nivel A2.
-                </div>
-              </div>
-            </div>
-            
-            <div class="accordion-item border-0 mb-3 rounded overflow-hidden">
-              <h3 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
-                  ¿Qué tan preciso es el UFF FluenScore?
-                </button>
-              </h3>
-              <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                <div class="accordion-body bg-white text-dark">
-                  Para una lección específica (una frase o grupo de frases), es 100% preciso, ya que refleja directamente si puedes comprender lo escuchado y responder de manera oportuna y coherente. La evaluación del FluenScore es objetiva y no se puede alterar.
-                  <br><br>
-                  En cuanto a tu FluenScore global, que recibirás en pocos minutos, se trata de una estimación basada en tu desempeño con 6 frases representativas del lenguaje utilizado en un determinado nivel.  
-                </div>
-              </div>
-            </div>
-            
-            <div class="accordion-item border-0 mb-3 rounded overflow-hidden">
-              <h3 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
-                  ¿Realmente se puede mejorar en un 30% en 3 días?
-                </button>
-              </h3>
-              <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                <div class="accordion-body bg-white text-dark">
-                  Sí, es posible. Durante esos tres días, te entrenarás específicamente con las frases utilizadas en la prueba. Al finalizar este período, volverás a realizar el test con frases similares y podrás observar tu mejora.
-                  <br><br>
-                  Para mejorar tu fluidez de manera global, deberás continuar practicando regularmente. Sin embargo, en solo 3 días puedes dominar frases extremadamente útiles y dar un primer paso significativo hacia una mayor fluidez.
-                </div>
-              </div>
-            </div>
-            
-            <div class="accordion-item border-0 mb-3 rounded overflow-hidden">
-              <h3 class="accordion-header">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
-                  ¿Cuánto tiempo hay que dedicarle cada día?
-                </button>
-              </h3>
-              <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                <div class="accordion-body bg-white text-dark">
-                  Desde 15 minutos diarios, aunque recomendamos dedicar al menos 30 minutos. Además, no es necesario que realices la práctica de una sola vez. El programa incluye dos lecciones diarias que puedes completar en diferentes momentos del día.
-                </div>
-              </div>
-            </div>
+    <div class="modal fade" id="chatModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-
-  <!-- Final CTA -->
-  <section class="section gradient-bg">
-    <div class="container">
-      <div class="row">      
-        <div class="col-12">
-          <div class="text-center">
-            <h2 class="display-8 fw-bold mb-2 text-center">COMIENZA YA CON LA ÚNICA TECNOLOGÍA QUE <s>ENSEÑA</s> ENTRENA FLUIDEZ</h2>
-            
-            <div class="mb-2">
-                <ol class="text-white">
-                  <li>Elige tu nivel de inglés para comenzar,</li>
-                  <li>Descubre tu UFF FluenScore™ en 2 minutos practicando con 6 de las frases más útiles en inglés,</li> 
-                  <li>Mejora 30% en 10 min x día por 3 días en estas frases útiles,</li>
-                  GRATIS SIN TARJETA.
-                </ol>  
-            </div>
-          <div class="swpm-form-row swpm-english-level-row">
-            <div class="swpm-english-buttons mt-3 mb-3">
-              <a href="https://a.cogdex.com/membership-join/membership-registration/"><button type="button" data-level="a0">Comenzar</button></a>
-            </div>
+          <div class="modal-body">
+            <button class="btn btn-success"
+              onclick="window.location.href='https://api.whatsapp.com/send/?phone=16179030597&text=app_support'">
+              <i class="bi bi-whatsapp"></i> Soporte Técnico por Whatsapp
+            </button>
           </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
           </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-
-  <!-- Footer -->
-  <footer class="dark-bg">
-    <div class="container py-5">
-      <div class="row">
-        <!-- Column 1: Company Info -->
-        <div class="col-12 col-md-4 mb-4 mb-md-0">
-          <h5 class="fw-bold mb-3">Ultra Fast Fluency</h5>
-          <p>The first technology designed specifically for English fluency. Transform your speaking ability in days, not years.</p>
-          <div class="mt-3">
-            <h6>Contact Us</h6>
-            <p class="mb-1">Boston, USA</p>
-            <p class="mb-1">support@uff.com</p>
-            <p>+1 (617) 903-0597</p>
-          </div>
-        </div>
-        
-        <!-- Column 2: Legal -->
-        <div class="col-12 col-md-4 mb-4 mb-md-0">
-          <h5 class="fw-bold mb-3">Legal</h5>
-          <ul class="list-unstyled">
-            <li class="mb-2"><a href="#" class="text-light text-decoration-none" data-bs-toggle="modal" data-bs-target="#privacyModal">Privacy Policy</a></li>
-            <li class="mb-2"><a href="#" class="text-light text-decoration-none" data-bs-toggle="modal" data-bs-target="#termsModal">Terms & Conditions</a></li>
-            <li class="mb-2"><a href="#" class="text-light text-decoration-none" data-bs-toggle="modal" data-bs-target="#returnPolicyModal">Refund Policy</a></li>
-          </ul>
-        </div>
-        
-        <!-- Column 3: Quick Links -->
-        <div class="col-12 col-md-4">
-          <h5 class="fw-bold mb-3">Quick Links</h5>
-          <ul class="list-unstyled">
-            <li class="mb-2"><a href="#about" class="text-light text-decoration-none">About Us</a></li>
-            <li class="mb-2"><a href="#signup" class="text-light text-decoration-none">Get Started</a></li>
-            <li class="mb-2"><a href="#" class="text-light text-decoration-none" data-bs-toggle="modal" data-bs-target="#chatModal">Contact Support</a></li>
-          </ul>
-        </div>
-      </div>
-      
-      <hr class="my-4 border-secondary">
-      
-      <div class="row align-items-center">
-        <div class="col-12 col-md-6">
-          <p class="mb-0">&copy; 2025 Ultra Fast Fluency. All rights reserved.</p>
-        </div>
-        <div class="col-12 col-md-6 text-md-end mt-2 mt-md-0">
-          <p class="mb-0">Made with ❤️ for English learners worldwide</p>
         </div>
       </div>
     </div>
   </footer>
 
-  <!-- Fixed Support Button -->
-  <button class="support-button-fixed" data-bs-toggle="modal" data-bs-target="#chatModal">
-    <i class="bi bi-chat-fill"></i>
-  </button>
-
-  <!-- Modals -->
-  
-  <!-- Level Assessment Modal -->
-  <div class="modal fade" id="levelModal" tabindex="-1" aria-labelledby="levelModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title text-dark" id="levelModalLabel">Find Your English Level</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body text-dark">
-          <p>Not sure about your English level? Here's a quick guide:</p>
-          <ul>
-            <li><strong>Desde 0:</strong> You know very few English words</li>
-            <li><strong>Principiante (A1):</strong> You understand basic phrases and can introduce yourself</li>
-            <li><strong>Intermedio (B1):</strong> You can have simple conversations about familiar topics</li>
-            <li><strong>Avanzado (C1):</strong> You understand most English but struggle with fluency</li>
-          </ul>
-          <p class="mt-3"><em>Don't worry if you're not sure - UFF adapts to your actual level automatically!</em></p>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Got it!</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Chat Modal for WhatsApp Support -->
-  <div class="modal fade" id="chatModal" tabindex="-1" aria-labelledby="chatModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title text-dark" id="chatModalLabel">Get Support</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body text-center">
-          <p class="text-dark">Need help? Chat with our support team on WhatsApp!</p>
-          <a href="https://api.whatsapp.com/send/?phone=16179030597&text=app_support" class="btn btn-success btn-lg">
-            <i class="bi bi-whatsapp me-2"></i> Chat on WhatsApp
-          </a>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Return Policy Modal -->
-  <div class="modal fade" id="returnPolicyModal" tabindex="-1" aria-labelledby="returnPolicyModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title text-dark" id="returnPolicyModalLabel">Return Policy</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body text-dark">
-          <p><strong>30-Day Money-Back Guarantee</strong></p>
-          <p>We're so confident in UFF that we offer a complete 30-day money-back guarantee. If you don't see improvement in your English fluency within 30 days, we'll refund your purchase completely.</p>
-          <p><strong>How to Request a Refund:</strong></p>
-          <ul>
-            <li>Contact our support team within 30 days of purchase</li>
-            <li>No questions asked - we'll process your refund immediately</li>
-            <li>Refunds typically take 5-7 business days to appear in your account</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Privacy Policy Modal -->
-  <div class="modal fade" id="privacyModal" tabindex="-1" aria-labelledby="privacyModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title text-dark" id="privacyModalLabel">Privacy Policy</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body text-dark">
-          <p>Your privacy is important to us. This policy explains how we collect, use, and protect your information.</p>
-          <p><strong>Information We Collect:</strong></p>
-          <ul>
-            <li>Account information (name, email)</li>
-            <li>Learning progress and performance data</li>
-            <li>Voice recordings for fluency assessment (stored securely)</li>
-          </ul>
-          <p><strong>How We Use Your Information:</strong></p>
-          <ul>
-            <li>To provide and improve our educational services</li>
-            <li>To track your learning progress</li>
-            <li>To send important updates about your account</li>
-          </ul>
-          <p>We never sell your personal information to third parties.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Terms & Conditions Modal -->
-  <div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title text-dark" id="termsModalLabel">Terms & Conditions</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body text-dark">
-          <p><strong>Terms of Service for UFF Ultra Fast Fluency</strong></p>
-          <p><strong>1. Service Description:</strong> UFF provides AI-powered English fluency training through our web application.</p>
-          <p><strong>2. User Responsibilities:</strong></p>
-          <ul>
-            <li>Provide accurate registration information</li>
-            <li>Use the service for personal language learning only</li>
-            <li>Respect intellectual property rights</li>
-          </ul>
-          <p><strong>3. Payment & Refunds:</strong> All purchases are subject to our 30-day money-back guarantee.</p>
-          <p><strong>4. Limitation of Liability:</strong> UFF is provided "as is" and we make no guarantees about specific learning outcomes.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Scripts -->
-  <script src="./node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-
-  <!-- Overlay Menu Script -->
   <script>
-function toggleMenu() {
-  const menu = document.getElementById('overlayMenu');
-  menu.classList.toggle('active');
-  
-  // Toggle body scrolling when menu is open
-  if (menu.classList.contains('active')) {
-    document.body.style.overflow = 'hidden';
-  } else {
-    document.body.style.overflow = '';
-  }
-}
+    function toggleMenu() {
+      const menu = document.getElementById('overlayMenu');
+      menu.classList.toggle('active');
+      document.body.style.overflow = menu.classList.contains('active') ? 'hidden' : '';
+    }
 
-  // Close menu when clicking outside
-document.addEventListener('click', function(event) {
-  const menu = document.getElementById('overlayMenu');
-  const hamburger = document.querySelector('.hamburger-btn');
-  
-  if (menu.classList.contains('active') && 
-      !menu.contains(event.target) && 
-      !hamburger.contains(event.target)) {
-    menu.classList.remove('active');
-    document.body.style.overflow = ''; // Re-enable scrolling
-  }
-});
+    document.addEventListener('click', function (event) {
+      const menu = document.getElementById('overlayMenu');
+      const isHamburger = event.target.closest('.hamburger-btn');
+      if (menu.classList.contains('active') && !menu.contains(event.target) && !isHamburger) {
+        menu.classList.remove('active');
+        document.body.style.overflow = '';
+      }
+    });
 
+    function setupUserDayRestrictions() {
+      if (typeof wp_user_data !== 'undefined' && wp_user_data.days_since_registration !== undefined) {
+        const days = wp_user_data.days_since_registration;
+        document.body.classList.add(`user-day-${days}`);
+        document.querySelectorAll('[class*="day-"][class*="-content"]').forEach(el => el.style.display = 'none');
+        for (let i = 0; i <= days; i++) {
+          document.querySelectorAll(`.day-${i}-content`).forEach(el => el.style.display = 'block');
+        }
+        handleDaySpecificLogic(days);
+      } else {
+        document.body.classList.add('user-day-guest');
+        document.querySelectorAll('[class*="day-"][class*="-content"]').forEach(el => el.style.display = 'none');
+      }
+    }
+
+    function handleDaySpecificLogic(days) {
+      const elementsToHide = [];
+      switch (days) {
+        case 0: elementsToHide.push('.premium-feature', '.advanced-content'); break;
+        case 1: elementsToHide.push('.premium-feature'); break;
+        case 2: elementsToHide.push('.complex-feature'); break;
+      }
+      if (elementsToHide.length > 0) {
+        document.querySelectorAll(elementsToHide.join(',')).forEach(el => el.style.display = 'none');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', setupUserDayRestrictions);
   </script>
 
-  <!-- Registration Form Script -->
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script>
-    // Registration form enhancements (unchanged)
-    document.addEventListener('DOMContentLoaded', function() {
-      const form = document.getElementById('swpm-registration-form');
-      if (!form) return;
-      
-      // Wrap the registration section if not already wrapped
-      const registrationSection = document.querySelector('.swpm-registration-form-section');
-      if (registrationSection && !registrationSection.parentNode.classList.contains('swpm-form-wrapper')) {
-        const wrapper = document.createElement('div');
-        wrapper.className = 'swpm-form-wrapper';
-        registrationSection.parentNode.insertBefore(wrapper, registrationSection);
-        wrapper.appendChild(registrationSection);
-      }
-      
-      // Button interaction
-      document.querySelectorAll('.swpm-english-buttons button').forEach(btn => {
-        btn.addEventListener('click', function() {
-          document.querySelectorAll('.swpm-english-buttons button').forEach(b => {
-            b.classList.remove('active');
-          });
-          this.classList.add('active');
-          
-          document.getElementById('swpm-english-level-value').value = this.dataset.level;
-          
-          // Show form and scroll to it
-          const wrapper = document.querySelector('.swpm-form-wrapper');
-          if (wrapper) {
-            wrapper.style.display = 'block';
-            setTimeout(() => {
-              wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 10);
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function (OneSignal) {
+      await OneSignal.init({
+        appId: "064c0eb9-49d5-446f-b281-3eb3de310fdd",
+        serviceWorkerOverrideForTypical: true,
+        path: "https://ultrafastfluency.com/wp-content/plugins/onesignal-free-web-push-notifications/sdk_files/",
+        serviceWorkerParam: { scope: "https://ultrafastfluency.com/wp-content/plugins/onesignal-free-web-push-notifications/sdk_files/push/onesignal/" },
+        serviceWorkerPath: "OneSignalSDKWorker.js",
+      });
+    });
+
+    if (navigator.serviceWorker) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((registration) => {
+          if (registration.active && registration.active.scriptURL.includes('OneSignalSDKWorker.js.php')) {
+            registration.unregister().then((success) => {
+              console.log(success ? 'OneSignalSW: Unregistered:' : 'OneSignalSW: Failed to unregister:', registration.active.scriptURL);
+            });
           }
         });
-      });
-      
-      // Auto-fill username from email
-      const emailField = form.querySelector('.swpm-form-email');
-      const usernameField = form.querySelector('.swpm-form-username');
-      if (emailField && usernameField) {
-        emailField.addEventListener('blur', function() {
-          usernameField.value = emailField.value;
-        });
-      }
-      
-      // Auto-fill password confirmation
-      const passwordField = form.querySelector('.swpm-form-password');
-      const repassField = form.querySelector('.swpm-form-repass');
-      if (passwordField && repassField) {
-        passwordField.addEventListener('input', function() {
-          repassField.value = passwordField.value;
-        });
-      }
-      
-      // Form validation
-      form.addEventListener('submit', function(e) {
-        if (!document.getElementById('swpm-english-level-value').value) {
-          alert('Por favor selecciona tu nivel de inglés');
-          e.preventDefault();
-        }
-      });
-    });
-
-    // Smooth scrolling for anchor links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', function (e) {
-        e.preventDefault();
-        const target = document.querySelector(this.getAttribute('href'));
-        if (target) {
-          const offsetTop = target.offsetTop - 80; // Account for fixed navbar
-          window.scrollTo({
-            top: offsetTop,
-            behavior: 'smooth'
-          });
-        }
-      });
-    });
-
-    // Close mobile menu when clicking on links
-    document.querySelectorAll('.navbar-nav .nav-link').forEach(link => {
-      link.addEventListener('click', () => {
-        const navbarCollapse = document.querySelector('.navbar-collapse');
-        if (navbarCollapse.classList.contains('show')) {
-          bootstrap.Collapse.getInstance(navbarCollapse).hide();
-        }
-      });
-    });
+      }).catch((error) => console.error('Error fetching service worker registrations:', error));
+    }
   </script>
 
+  <script src="./node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+  <script type="module" src="js/app.js"></script>
+
 </body>
+
 </html>
