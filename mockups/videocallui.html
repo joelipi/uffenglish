@@ -23,6 +23,8 @@
             height: 100%;
             background-color: #000;
             overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            /* Modern, clean tech font */
         }
 
         /* Outer container representing the user's monitor/viewport */
@@ -47,31 +49,26 @@
 
         .bottom-overlay {
             pointer-events: none;
-            /* Container holds the background pool and the foreground content */
         }
 
-        /* Layer 1: The Reflecting Pool (Masked Background) */
         .reflecting-pool-bg {
             position: absolute;
             inset: 0;
             z-index: 0;
-            
+
             backdrop-filter: blur(15px) grayscale(100%);
             -webkit-backdrop-filter: blur(15px) grayscale(100%);
-            
-            /* Unified, smooth gradient across the entire bottom area */
-            background: linear-gradient(180deg, 
-                rgba(0, 0, 0, 0) 0%, 
-                rgba(0, 242, 254, 0.4) 40%, 
-                rgba(79, 172, 254, 0.9) 100%);
 
-            /* Feather the blur and color from the top down */
-            -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 80px);
-            mask-image: linear-gradient(to bottom, transparent 0%, black 80px);
+            background: linear-gradient(180deg,
+                    rgba(0, 242, 254, 0.5) 0%,
+                    rgba(0, 242, 254, 0.6) 30%,
+                    rgba(79, 172, 254, 0.9) 100%);
+
+            -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 120px);
+            mask-image: linear-gradient(to bottom, transparent 0%, black 120px);
             pointer-events: none;
         }
 
-        /* Layer 2: The Content (Unmasked, sits on top) */
         .bottom-overlay-content {
             position: relative;
             z-index: 1;
@@ -81,25 +78,27 @@
         }
 
         .mission-section {
-            padding: 32px 16px 12px; /* Generous top padding to sit in the feathered area */
-            background: transparent;
+            padding: 32px 16px 0px;
+            /* Top-down black gradient with minimum coverage (0.3) at the bottom */
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.2) 100%);
         }
 
         .controls-section {
-            padding: 12px 16px 32px;
+            padding: 24px 16px 32px;
             background: transparent;
+            /* CRITICAL: must NOT have overflow: hidden — rings radiate outside buttons */
+            overflow: visible;
         }
 
         .bottom-overlay * {
             pointer-events: auto;
-            /* Re-enable clicks on buttons and captions */
         }
 
         .text-shadow {
             text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.9);
         }
 
-        /* --- LIQUID / GLASSMORPHISM BUTTONS --- */
+        /* --- CALL BUTTONS --- */
         .call-btn {
             width: 60px;
             height: 60px;
@@ -112,22 +111,29 @@
             padding: 0;
             border-radius: 50% !important;
 
-            /* Stark White Minimalism (2026 Trend) */
             background-color: #ffffff !important;
             border: none !important;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2) !important;
-            color: #1a1a1a !important; /* Dark icons for contrast */
+            color: #1a1a1a !important;
 
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            overflow: hidden;
-            -webkit-tap-highlight-color: transparent; /* Prevents blue mobile tap overlay */
+            position: relative;
+            /* NO isolation: isolate — that was trapping rings behind the button bg */
+            -webkit-tap-highlight-color: transparent;
         }
 
-        .call-btn:hover, .call-btn:focus, .call-btn:focus-visible {
+        .call-btn i,
+        .call-btn img {
+            position: relative;
+            z-index: 2;
+        }
+
+        .call-btn:hover,
+        .call-btn:focus,
+        .call-btn:focus-visible {
             background-color: #ffffff !important;
             color: #1a1a1a !important;
             outline: none !important;
-            /* Removes Bootstrap's blue focus ring */
         }
 
         .call-btn:active {
@@ -137,11 +143,49 @@
             color: #1a1a1a !important;
         }
 
-        /* State for when the mic/video is MUTED or OFF */
-        .call-btn.toggled-off, .call-btn.toggled-off:hover, .call-btn.toggled-off:focus {
-            background-color: #f8f9fa !important; /* Solid off-white/light gray */
-            color: #6c757d !important; /* Solid muted gray for the icon */
+        .call-btn.toggled-off,
+        .call-btn.toggled-off:hover,
+        .call-btn.toggled-off:focus {
+            background-color: #f8f9fa !important;
+            color: #6c757d !important;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+        }
+
+        /* 
+           MIC BUTTON WRAPPER
+           The rings live here as siblings of the button, NOT inside it.
+           This wrapper provides the positioning context without overflow: hidden,
+           so rings can radiate freely beyond the button's bounds.
+        */
+        .mic-btn-wrapper {
+            position: relative;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        /*
+           RADIATING RINGS
+           Positioned inside the wrapper, sized to match the button exactly.
+           z-index: 0 keeps them above the wrapper bg (transparent) but the
+           button itself at natural stacking order sits on top.
+           When they scale to 2.6x they extend outside the wrapper — which has
+           no overflow clipping — so they are fully visible.
+        */
+        .mic-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.8);
+            width: 60px;
+            height: 60px;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 0;
         }
 
         /* Friend Button Image Styling */
@@ -163,7 +207,6 @@
             opacity: 0.7;
         }
 
-        /* Progress Bar with Custom Gradient */
         .progress {
             height: 10px;
             background-color: rgba(255, 255, 255, 0.2);
@@ -175,7 +218,6 @@
             border-radius: 10px;
         }
 
-        /* Stat Icons Colors */
         .stats-container {
             font-weight: bold;
             font-size: 0.85rem;
@@ -187,31 +229,26 @@
             font-size: 1.1rem;
         }
 
-        /* --- NEW GAMIFICATION TABLE --- */
+        /* --- GAMIFICATION TABLE --- */
         .gamification-table {
             table-layout: fixed;
-            /* Ensures 10 equal columns */
             border-collapse: collapse;
             border: 1px solid white;
-            /* Visible outer border */
         }
 
         .gamification-table td {
             padding: 0;
             vertical-align: middle;
             border: 1px solid white;
-            /* Visible cell borders */
         }
 
         .icon-row td {
             height: 20px;
             font-size: 0.9rem;
-            /* Icon size */
         }
 
         .icon-row i {
             color: white;
-            /* Forces all bootstrap icons to be white */
         }
 
         .icon-row img {
@@ -219,15 +256,12 @@
             height: 16px;
             object-fit: contain;
             filter: invert(1);
-            /* Keeps SVGs white on dark backgrounds */
         }
 
         .score-row td {
             height: 20px;
             font-size: 0.6rem;
-            /* Much smaller text */
             font-weight: normal;
-            /* Removed bold */
         }
 
         /* --- SELF-VIEW (PICTURE-IN-PICTURE) --- */
@@ -250,10 +284,9 @@
             height: 100%;
             object-fit: cover;
             transform: scaleX(-1);
-            /* Mirrors the webcam image */
         }
 
-        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
         /* --- MISSION UI --- */
         .mission-row {
@@ -265,9 +298,7 @@
         }
 
         .mission-label {
-            font-size: 24px;
-            font-weight: 700;
-            /* Extra Bold for impact */
+            font-size: 20px;
             letter-spacing: 0.05em;
             text-transform: uppercase;
             color: #ffffff;
@@ -276,14 +307,11 @@
         .mission-text {
             font-size: 24px;
             font-weight: 500;
-            /* Medium weight for readability */
             color: rgba(255, 255, 255, 0.95);
             margin-left: 6px;
         }
 
-
-
-        /* Desktop and Tablet Breakpoint (Lock to 9:16 aspect ratio) */
+        /* Desktop and Tablet Breakpoint */
         @media (min-width: 576px) {
             .video-frame {
                 height: 100vh;
@@ -294,7 +322,7 @@
             }
         }
 
-        /* --- CHAT BUBBLE STYLES (from existing app) --- */
+        /* --- CHAT BUBBLE STYLES --- */
         .chat-message-list {
             display: flex;
             flex-direction: column;
@@ -373,7 +401,6 @@
             align-self: flex-end;
         }
 
-        /* --- System bubble tail --- */
         .chat-message-bubble--system::before {
             content: "";
             position: absolute;
@@ -397,7 +424,6 @@
             z-index: -1;
         }
 
-        /* --- User bubble tail (mirrored) --- */
         .chat-message-bubble--user::before {
             content: "";
             position: absolute;
@@ -421,14 +447,11 @@
             z-index: -1;
         }
 
-        /* Container for chat mode */
         #chat-window-container {
             display: none;
             position: absolute;
             top: 90px;
-            /* Below top overlay */
             bottom: 120px;
-            /* Above bottom overlay in video mode */
             left: 0;
             right: 0;
             z-index: 2;
@@ -436,17 +459,14 @@
             flex-direction: column;
         }
 
-        /* Layout overrides for chat mode */
         .chat-mode-active #chat-window-container {
             bottom: 0;
-            /* Extended to bottom of screen in chat mode */
         }
 
         .chat-mode-active .bottom-overlay {
             display: none !important;
         }
 
-        /* Text Input area */
         #chat-input-area {
             display: none;
             width: 100%;
@@ -461,7 +481,6 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
 
-            // --- UI BUTTON LOGIC ---
             const friendBtn = document.getElementById('friendBtn');
             const micBtn = document.getElementById('micBtn');
             const helpBtn = document.getElementById('helpBtn');
@@ -469,26 +488,60 @@
 
             let isMuted = true;
 
+            // --- MIC ANIMATION LOGIC ---
+            // Rings are siblings of the button inside .mic-btn-wrapper,
+            // so we query from the wrapper (micBtn.parentElement).
+            let micAnimations = [];
+
+            function startMicAnimation() {
+                const rings = micBtn.parentElement.querySelectorAll('.mic-ring');
+                if (rings.length === 0) return;
+
+                const duration = 2000;
+                const delays = [0, 650, 1300];
+
+                rings.forEach((ring, index) => {
+                    ring.style.opacity = '0.7';
+                    const anim = ring.animate([
+                        { transform: 'scale(1)', opacity: 0.7 },
+                        { transform: 'scale(2.6)', opacity: 0 }
+                    ], {
+                        duration: duration,
+                        delay: delays[index],
+                        iterations: Infinity,
+                        easing: 'ease-out'
+                    });
+                    micAnimations.push(anim);
+                });
+            }
+
+            function stopMicAnimation() {
+                micAnimations.forEach(anim => anim.cancel());
+                micAnimations = [];
+
+                const rings = micBtn.parentElement.querySelectorAll('.mic-ring');
+                rings.forEach(ring => {
+                    ring.style.opacity = '0';
+                    ring.style.transform = 'scale(1)';
+                });
+            }
+
             const isChatMode = window.location.hash === '#chat';
 
             if (isChatMode) {
                 document.body.classList.add('chat-mode-active');
 
-                // Remove video elements
                 const callVideo = document.getElementById('callVideo');
                 if (callVideo) callVideo.remove();
                 const pipContainer = document.querySelector('.pip-container');
                 if (pipContainer) pipContainer.remove();
 
-                // Remove mission UI elements
                 const missionRow = document.querySelector('.mission-row');
                 if (missionRow) missionRow.remove();
 
-                // Show chat container and input
                 document.getElementById('chat-window-container').style.display = 'flex';
                 document.getElementById('chat-input-area').style.display = 'flex';
 
-                // Change micBtn to Continue button
                 const newMicBtn = micBtn.cloneNode(true);
                 newMicBtn.innerHTML = '<i class="bi bi-chevron-right"></i>';
                 newMicBtn.classList.remove('toggled-off');
@@ -505,11 +558,11 @@
                     if (isMuted) {
                         micIcon.classList.replace('bi-mic-fill', 'bi-mic-mute-fill');
                         micBtn.classList.add('toggled-off');
-                        console.log("Microphone muted");
+                        stopMicAnimation();
                     } else {
                         micIcon.classList.replace('bi-mic-mute-fill', 'bi-mic-fill');
                         micBtn.classList.remove('toggled-off');
-                        console.log("Microphone active");
+                        startMicAnimation();
                     }
                 });
 
@@ -517,7 +570,6 @@
                     alert("Help panel would open here.");
                 });
 
-                // --- WEBCAM INITIALIZATION ---
                 initWebcam();
             }
         });
@@ -543,9 +595,8 @@
 
         <div class="video-frame position-relative shadow-lg">
 
-            <!-- Main Remote Video Player (Vertical 9:16 Source) -->
+            <!-- Main Remote Video Player -->
             <video id="callVideo" class="w-100 h-100 object-fit-cover" autoplay loop muted playsinline>
-                <!-- Reliable Vertical Video from Pexels CDN -->
                 <source src="https://ultrafastfluency.com/wp-content/test.mp4" type="video/mp4">
                 Your browser does not support the video tag.
             </video>
@@ -555,7 +606,7 @@
                 <video id="web-cam-preview" autoplay muted playsinline></video>
             </div>
 
-            <!-- Top Overlay: Gamified Progress and Menu -->
+            <!-- Top Overlay -->
             <div class="top-overlay position-absolute top-0 start-0 w-100 p-2 pt-2 z-1">
                 <div id="closeAndProgress" class="d-flex justify-content-between align-items-center w-100 text-shadow">
 
@@ -583,12 +634,10 @@
                     </div>
 
                 </div>
-
             </div>
 
             <!-- Chat Window Container -->
             <div id="chat-window-container">
-                <!-- Chat Header -->
                 <div id="chat-window-header" class="card-header text-white p-0 chat-window-header">
                     Joel's group chat
                 </div>
@@ -628,7 +677,6 @@
                             I would buy a new car.
                         </div>
                     </div>
-
                     <div class="chat-message-row chat-message-row--system">
                         <img src="../assets/img/pronunciationbot.png" alt="Pronunciation Bot"
                             class="chat-avatar-inline">
@@ -668,7 +716,6 @@
                             style="border-left: 4px solid #17a2b8;">
                             <div class="chat-bubble-header">Grammar Bot</div>
                             <span><strong>💯</strong> &nbsp;·&nbsp; 0 errors. 0% complexity</span>
-
                         </div>
                     </div>
                     <div class="chat-message-row chat-message-row--system">
@@ -695,7 +742,6 @@
                             <span><strong>💯</strong></span>
                         </div>
                     </div>
-
                     <div class="chat-message-row chat-message-row--system">
                         <img src="../assets/img/teacherprofile.jpeg" alt="Joe Walsh" class="chat-avatar-inline">
                         <div class="chat-message-bubble chat-message-bubble--system"
@@ -713,7 +759,7 @@
                     </div>
                 </div>
 
-                <!-- Chat Input Footer (From original app) -->
+                <!-- Chat Input Footer -->
                 <div id="chat-input-area" class="card-footer bg-white border-top-0 w-100">
                     <div class="input-group">
                         <textarea id="chat-input-field" class="form-control" rows="2"
@@ -725,11 +771,7 @@
                 </div>
             </div>
 
-            <!-- 
-                MODIFICATION NOTE (2026-05-14 12:14:21): 
-                The bottom-overlay is now hidden via CSS (.chat-mode-active .bottom-overlay) 
-                only in #chat mode to allow testing layout changes.
-            -->
+            <!-- Bottom Overlay -->
             <div class="bottom-overlay position-absolute bottom-0 start-0 w-100 z-1 d-flex flex-column">
 
                 <!-- Layer 1: The Reflecting Pool -->
@@ -748,17 +790,29 @@
 
                     <div class="controls-section">
                         <div class="d-flex justify-content-between align-items-center w-100">
+
                             <button class="btn call-btn" id="friendBtn" aria-label="Contact Friend">
                                 <img src="https://i.pravatar.cc/150?img=47" alt="Friend Profile" class="friend-img">
                             </button>
 
-                            <button class="btn call-btn toggled-off" id="micBtn" aria-label="Toggle Microphone">
-                                <i class="bi bi-mic-mute-fill"></i>
-                            </button>
+                            <!--
+                                MIC WRAPPER: rings are siblings of the button here,
+                                NOT children of it. This prevents the button's stacking
+                                context from trapping the rings behind its background.
+                            -->
+                            <div class="mic-btn-wrapper">
+                                <div class="mic-ring"></div>
+                                <div class="mic-ring"></div>
+                                <div class="mic-ring"></div>
+                                <button class="btn call-btn toggled-off" id="micBtn" aria-label="Toggle Microphone">
+                                    <i class="bi bi-mic-mute-fill"></i>
+                                </button>
+                            </div>
 
                             <button class="btn call-btn" id="helpBtn" aria-label="Help">
                                 <i class="bi bi-question-circle-fill"></i>
                             </button>
+
                         </div>
                     </div>
                 </div>
