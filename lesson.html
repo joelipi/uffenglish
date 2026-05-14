@@ -212,38 +212,49 @@
 
             <!-- 3. Chat Window (flows below the videos) -->
             <div id="chat-window-container" class="card border-dark p-0 d-none mb-2">
-              
+
               <!-- Chat Header -->
               <div id="chat-window-header" class="card-header text-white p-0 chat-window-header">
-                <table id="chat-scores-table" class="w-100 h-100" style="border-collapse:collapse;table-layout:fixed;background:transparent;border:none;color:white;">
+                <!--Hiding this chat scores table while I decide whether to keep it and if so, where to put it-->
+                <table id="chat-scores-table" class="d-none w-100 h-100"
+                  style="border-collapse:collapse;table-layout:fixed;background:transparent;border:none;color:white;">
                   <tbody>
                     <tr id="chat-scores-row-avatars">
                       <td id="chat-score-cell-pronunciation" class="text-center p-0" style="border:none;">
-                        <img src="assets/img/pronunciationbot.png" alt="Pronunciation" class="w-100" style="display:block;object-fit:contain;">
+                        <img src="assets/img/pronunciationbot.png" alt="Pronunciation" class="w-100"
+                          style="display:block;object-fit:contain;">
                       </td>
                       <td id="chat-score-cell-listening" class="text-center p-0" style="border:none;">
-                        <img src="assets/img/listeningbot.png" alt="Listening" class="w-100" style="display:block;object-fit:contain;">
+                        <img src="assets/img/listeningbot.png" alt="Listening" class="w-100"
+                          style="display:block;object-fit:contain;">
                       </td>
                       <td id="chat-score-cell-flow" class="text-center p-0" style="border:none;">
-                        <img src="assets/img/flowbot.png" alt="Flow" class="w-100" style="display:block;object-fit:contain;">
+                        <img src="assets/img/flowbot.png" alt="Flow" class="w-100"
+                          style="display:block;object-fit:contain;">
                       </td>
                       <td id="chat-score-cell-vocabulary" class="text-center p-0" style="border:none;">
-                        <img src="assets/img/vocabularybot.png" alt="Vocabulary" class="w-100" style="display:block;object-fit:contain;">
+                        <img src="assets/img/vocabularybot.png" alt="Vocabulary" class="w-100"
+                          style="display:block;object-fit:contain;">
                       </td>
                       <td id="chat-score-cell-grammar" class="text-center p-0" style="border:none;">
-                        <img src="assets/img/grammarbot.png" alt="Grammar" class="w-100" style="display:block;object-fit:contain;">
+                        <img src="assets/img/grammarbot.png" alt="Grammar" class="w-100"
+                          style="display:block;object-fit:contain;">
                       </td>
                       <td id="chat-score-cell-formality" class="text-center p-0" style="border:none;">
-                        <img src="assets/img/speakingbot.png" alt="Formality" class="w-100" style="display:block;object-fit:contain;">
+                        <img src="assets/img/speakingbot.png" alt="Formality" class="w-100"
+                          style="display:block;object-fit:contain;">
                       </td>
                       <td id="chat-score-cell-nativelike" class="text-center p-0" style="border:none;">
-                        <img src="assets/img/idiombot.png" alt="Idiom" class="w-100" style="display:block;object-fit:contain;">
+                        <img src="assets/img/idiombot.png" alt="Idiom" class="w-100"
+                          style="display:block;object-fit:contain;">
                       </td>
                       <td id="chat-score-cell-understanding" class="text-center p-0" style="border:none;">
-                        <img src="assets/img/pragmaticsbot.png" alt="Understanding" class="w-100" style="display:block;object-fit:contain;">
+                        <img src="assets/img/pragmaticsbot.png" alt="Understanding" class="w-100"
+                          style="display:block;object-fit:contain;">
                       </td>
                       <td id="chat-score-cell-fluency" class="text-center p-0" style="border:none;">
-                        <img src="assets/img/teacherprofile.jpeg" alt="Joe Walsh" class="w-100" style="display:block;object-fit:contain;">
+                        <img src="assets/img/teacherprofile.jpeg" alt="Joe Walsh" class="w-100"
+                          style="display:block;object-fit:contain;">
                       </td>
                     </tr>
                     <tr id="chat-scores-row-numbers">
@@ -281,7 +292,7 @@
 
               <!-- Chat Message List (Dynamic Injection Target) -->
               <div id="chat-message-list" class="card-body chat-message-list text-dark"></div>
-              
+
               <!-- Chat Input Footer -->
               <div id="chat-input-area" class="card-footer bg-white border-top-0 d-none">
                 <div class="input-group">
@@ -351,7 +362,8 @@
                 </div>
                 <div class="chat-message-row chat-message-row--system">
                   <div class="chat-message-bubble chat-message-bubble--system">
-                    <p class="nextHeadsup mb-0">Puedes repetir <i class="bi bi-arrow-counterclockwise"></i> esta lección o
+                    <p class="nextHeadsup mb-0">Puedes repetir <i class="bi bi-arrow-counterclockwise"></i> esta lección
+                      o
                       continuar <i class="bi bi-chevron-right"></i> a la próxima pulsando uno de los botones abajo.</p>
                   </div>
                 </div>

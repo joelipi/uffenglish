@@ -701,6 +701,7 @@ body .wp-block-post-content {
 /* Chat header - natural size */
 #chat-window-header {
   flex: 0 0 auto;
+  background: linear-gradient(135deg, #3a8fd5 0%, #00c0d8 100%) !important;
 }
 
 /* Chat message list - takes remaining space and scrolls when needed */
