@@ -46,15 +46,27 @@
         }
 
         .bottom-overlay {
-            background: linear-gradient(135deg, rgba(58, 143, 213, 0.5) 0%, rgba(0, 192, 216, 0.2) 100%);
-            /* Blurs the background AND turns it black and white before our blue tint is applied */
-            backdrop-filter: blur(12px) grayscale(100%);
-            -webkit-backdrop-filter: blur(12px) grayscale(100%);
             pointer-events: none;
-            /* Let clicks pass through empty areas */
+            /* Container now just holds the separate sections */
         }
 
-        .bottom-overlay>* {
+        .mission-section {
+            padding: 12px 16px 8px;
+            /* Low blur for the mission line */
+            backdrop-filter: blur(2px) grayscale(100%);
+            -webkit-backdrop-filter: blur(2px) grayscale(100%);
+            background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(58, 143, 213, 0.2) 100%);
+        }
+
+        .controls-section {
+            padding: 8px 16px 20px;
+            /* Heavy blur for the buttons */
+            backdrop-filter: blur(15px) grayscale(100%);
+            -webkit-backdrop-filter: blur(15px) grayscale(100%);
+            background: linear-gradient(180deg, rgba(58, 143, 213, 0.2) 0%, rgba(0, 192, 216, 0.6) 100%);
+        }
+
+        .bottom-overlay * {
             pointer-events: auto;
             /* Re-enable clicks on buttons and captions */
         }
@@ -225,18 +237,27 @@
         }
 
         .mission-label {
-            font-size: 20px;
-            font-weight: 600;
-            letter-spacing: 0.1em;
+            font-size: 24px;
+            font-weight: 700;
+            /* Extra Bold for impact */
+            letter-spacing: 0.05em;
             text-transform: uppercase;
             color: #ffffff;
         }
 
         .mission-text {
-            font-size: 20px;
-            font-weight: 400;
-            color: rgba(255, 255, 255, 0.85);
+            font-size: 24px;
+            font-weight: 500;
+            /* Medium weight for readability */
+            color: rgba(255, 255, 255, 0.95);
             margin-left: 6px;
+        }
+
+        .divider {
+            width: 100%;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+            margin-bottom: 5px;
         }
 
         /* Desktop and Tablet Breakpoint (Lock to 9:16 aspect ratio) */
@@ -686,29 +707,32 @@
                 The bottom-overlay is now hidden via CSS (.chat-mode-active .bottom-overlay) 
                 only in #chat mode to allow testing layout changes.
             -->
-            <div class="bottom-overlay position-absolute bottom-0 start-0 w-100 px-2 py-3 pb-4 z-1 d-flex flex-column gap-3">
+            <div class="bottom-overlay position-absolute bottom-0 start-0 w-100 z-1 d-flex flex-column">
 
-                <div class="mission-row text-shadow">
-                    <div>
-                        <span class="mission-label">Mission</span>
-                        <span class="mission-text">Order a soft drink</span>
+                <div class="mission-section">
+                    <div class="mission-row text-shadow">
+                        <div>
+                            <span class="mission-label">Mission</span>
+                            <span class="mission-text">Order a soft drink</span>
+                        </div>
                     </div>
+                    <div class="divider"></div>
                 </div>
 
-                <div class="d-flex justify-content-between align-items-center w-100 px-1">
+                <div class="controls-section">
+                    <div class="d-flex justify-content-between align-items-center w-100">
+                        <button class="btn call-btn" id="friendBtn" aria-label="Contact Friend">
+                            <img src="https://i.pravatar.cc/150?img=47" alt="Friend Profile" class="friend-img">
+                        </button>
 
-                    <button class="btn call-btn" id="friendBtn" aria-label="Contact Friend">
-                        <img src="https://i.pravatar.cc/150?img=47" alt="Friend Profile" class="friend-img">
-                    </button>
+                        <button class="btn call-btn toggled-off" id="micBtn" aria-label="Toggle Microphone">
+                            <i class="bi bi-mic-mute-fill"></i>
+                        </button>
 
-                    <button class="btn call-btn toggled-off" id="micBtn" aria-label="Toggle Microphone">
-                        <i class="bi bi-mic-mute-fill"></i>
-                    </button>
-
-                    <button class="btn call-btn" id="helpBtn" aria-label="Help">
-                        <i class="bi bi-question-circle-fill"></i>
-                    </button>
-
+                        <button class="btn call-btn" id="helpBtn" aria-label="Help">
+                            <i class="bi bi-question-circle-fill"></i>
+                        </button>
+                    </div>
                 </div>
 
             </div>
