@@ -13,7 +13,7 @@ import {
     warmUpSpeechCamStream,
     toggleSpeechRecognition,
 } from '../modules/speech.js';
-import { initVideoProcessor } from '../modules/video-processor.js';
+import { processVideo } from '../modules/video-processor.js';
 import { saveLessonProgress } from '../modules/user-profile.js';
 import { getCompressedLessonStats } from '../modules/scoring.js';
 import { pointLoss } from './point-loss-animation.js';

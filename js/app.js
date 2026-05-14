@@ -47,7 +47,6 @@ let nlpModelsReady = false;
 // --- UI & Media Components (Root Directory) ---
 import { SuccessLessonHandler } from './components/success-lesson.js';
 import { pointLoss } from './components/point-loss-animation.js';
-import { initVideoProcessor } from './modules/video-processor.js';
 import { calculateCurrentStreak } from './modules/user-profile.js';
 import { updateActivityDisplay } from './components/ui.js';
 

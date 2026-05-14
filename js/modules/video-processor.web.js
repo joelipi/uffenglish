@@ -1,6 +1,4 @@
-// js/modules/video-processor.web.js
-
-import { shareVideo } from './video-share.js';
+// --- modules/video-processor.web.js ---
 import { getAllSpeechRecordingsForLesson } from './storage.js';
 import { VideoRenderPlanner } from './video-processor-logic.js';
 
@@ -8,133 +6,100 @@ let audioContext = null;
 let audioSource = null;
 let audioDestination = null;
 let animationId = null;
-let recorder = null;
 let fontReady = false;
-let overlayReady = false;
 
-export function initVideoProcessor(externalPromptText, fluencyData = {}, lessonId = null) {
-    console.log("[VideoProcessor] initVideoProcessor called");
-    
-    const processBtn = document.getElementById('processBtn');
-    if (!processBtn) {
-        console.error("[VideoProcessor] processBtn not found");
-        return;
-    }
+/**
+ * Processes the video recordings entirely in memory.
+ * @returns {Promise<{blob: Blob, ext: string}>} The finalized video blob and extension
+ */
+export async function processVideo(fluencyData = {}, lessonId = null) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            console.log("[VideoProcessor] Starting background processing...");
 
-    // Restore UI states
-    const bottomButtonBar = document.getElementById('bottomButtonBar');
-    const bottomButtonBarSuccess = document.getElementById('bottomButtonBarSuccess');
-    const micStatusText = document.getElementById("micStatusText");
+            const recordings = await getAllSpeechRecordingsForLesson(lessonId);
+            if (!recordings?.length) throw new Error("No recordings found.");
 
-    if (bottomButtonBar) bottomButtonBar.classList.add('d-none');
-    if (bottomButtonBarSuccess) bottomButtonBarSuccess.classList.remove('d-none');
-    if (micStatusText) {
-        micStatusText.innerHTML = "<div class='text-center'>Get Complete Fluency Score and Shareable Video.<br><span lang='es'><i>Recibir Calificación de Fluidez Completa y Video Compartible.</i></span></div>";
-    }
+            // 1. Setup In-Memory Elements (No DOM clutter required)
+            const originalVideo = document.createElement('video');
+            originalVideo.crossOrigin = "anonymous";
+            originalVideo.muted = true; // Crucial for auto-play without DOM attachment
+            originalVideo.playsInline = true;
 
-    // Attach click listener
-    processBtn.onclick = () => processVideo(fluencyData, lessonId);
-    
-    // Start loading the source video from IndexedDB (enables the button when ready)
-    loadSourceVideo(lessonId);
-}
+            const videoCanvas = document.createElement('canvas');
 
-async function loadSourceVideo(lessonId) {
-    const originalVideo = document.getElementById('originalVideo');
-    const processBtn = document.getElementById('processBtn');
-    
-    try {
-        const recordings = await getAllSpeechRecordingsForLesson(lessonId);
-        if (recordings?.length > 0 && recordings[0].blob) {
+            const overlayImage = new Image();
+            overlayImage.src = 'assets/img/header.png';
+
+            // Load initial recording to get dimensions
             originalVideo.src = URL.createObjectURL(recordings[0].blob);
-            processBtn.disabled = false;
-            console.log("[VideoProcessor] Source video loaded, button enabled");
-        } else {
-            console.warn("[VideoProcessor] No recordings found to load source video");
+            await new Promise((res) => {
+                originalVideo.onloadedmetadata = res;
+            });
+
+            const configData = window.__currentConfigData || window.State?.configData || {};
+            const planner = new VideoRenderPlanner(recordings, configData, fluencyData);
+            const plan = planner.generatePlan();
+
+            // 2. Setup Resolution
+            const dimensions = planner.getTargetDimensions(originalVideo.videoWidth, originalVideo.videoHeight);
+            videoCanvas.width = dimensions.width;
+            videoCanvas.height = dimensions.height;
+
+            // 3. Setup Audio
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                audioDestination = audioContext.createMediaStreamDestination();
+            }
+            if (!audioSource || audioSource.mediaElement !== originalVideo) {
+                if (audioSource) audioSource.disconnect();
+                audioSource = audioContext.createMediaElementSource(originalVideo);
+                audioSource.connect(audioDestination);
+                audioSource.connect(audioContext.destination);
+            }
+            if (audioContext.state === 'suspended') await audioContext.resume();
+
+            // 4. Prepare Fonts
+            await ensureFontsReady();
+
+            // 5. Start Recording
+            const canvasStream = videoCanvas.captureStream(30);
+            const combinedStream = new MediaStream([
+                ...canvasStream.getVideoTracks(),
+                ...audioDestination.stream.getAudioTracks()
+            ]);
+
+            const mimeType = getSupportedMimeType();
+            const recorder = new MediaRecorder(combinedStream, { mimeType });
+            const chunks = [];
+
+            recorder.ondataavailable = (e) => {
+                if (e.data.size > 0) chunks.push(e.data);
+            };
+
+            // 6. Resolve the promise when the recorder finishes
+            recorder.onstop = () => {
+                const blob = new Blob(chunks, { type: mimeType });
+                const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+                resolve({ blob, ext });
+            };
+
+            recorder.start(1000);
+
+            // 7. Execute Render Loop
+            await executeRenderLoop(plan, originalVideo, videoCanvas, overlayImage, fluencyData);
+
+            recorder.stop();
+
+        } catch (e) {
+            console.error("[VideoProcessor] Render failed:", e);
+            reject(e);
         }
-    } catch (e) {
-        console.error("[VideoProcessor] Failed to load source video:", e);
-    }
+    });
 }
 
-async function processVideo(fluencyData, lessonId) {
-    const processBtn = document.getElementById('processBtn');
-    const originalVideo = document.getElementById('originalVideo');
-    const videoCanvas = document.getElementById('videoCanvas');
-    const displayCanvas = document.getElementById('displayCanvas') || createDisplayCanvas();
-    const overlayImage = document.getElementById('overlayImage');
-
-    try {
-        processBtn.disabled = true;
-        document.getElementById('bottomButtonBarSuccess').classList.add('d-none');
-        displayCanvas.style.display = 'block';
-
-        const recordings = await getAllSpeechRecordingsForLesson(lessonId);
-        if (!recordings?.length) throw new Error("No recordings found.");
-
-        const configData = window.__currentConfigData || window.State?.configData || {};
-        const planner = new VideoRenderPlanner(recordings, configData, fluencyData);
-        const plan = planner.generatePlan();
-
-        // 1. Setup Resolution
-        const dimensions = planner.getTargetDimensions(originalVideo.videoWidth, originalVideo.videoHeight);
-        videoCanvas.width = dimensions.width;
-        videoCanvas.height = dimensions.height;
-        
-        // Setup display canvas to match aspect ratio
-        const displayWidth = Math.min(400, window.innerWidth * 0.9);
-        displayCanvas.width = displayWidth;
-        displayCanvas.height = Math.round(displayWidth * (dimensions.height / dimensions.width));
-
-        // 2. Setup Audio
-        if (!audioContext) {
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            audioDestination = audioContext.createMediaStreamDestination();
-        }
-        if (!audioSource || audioSource.mediaElement !== originalVideo) {
-            if (audioSource) audioSource.disconnect();
-            audioSource = audioContext.createMediaElementSource(originalVideo);
-            audioSource.connect(audioDestination);
-            audioSource.connect(audioContext.destination);
-        }
-        if (audioContext.state === 'suspended') await audioContext.resume();
-
-        // 3. Prepare Fonts
-        await ensureFontsReady();
-
-        // 4. Start Recording
-        const canvasStream = videoCanvas.captureStream(30);
-        const combinedStream = new MediaStream([
-            ...canvasStream.getVideoTracks(),
-            ...audioDestination.stream.getAudioTracks()
-        ]);
-
-        const mimeType = getSupportedMimeType();
-        recorder = new MediaRecorder(combinedStream, { mimeType });
-        const chunks = [];
-        recorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
-        recorder.start(1000);
-
-        // 5. Execute Render Loop
-        const finalBlob = await executeRenderLoop(plan, originalVideo, videoCanvas, displayCanvas, overlayImage, fluencyData);
-        
-        recorder.onstop = () => {
-            const blob = new Blob(chunks, { type: mimeType });
-            finalizeUI(blob, mimeType.includes('mp4') ? 'mp4' : 'webm');
-        };
-        recorder.stop();
-
-    } catch (e) {
-        console.error("[VideoProcessor] Render failed:", e);
-        const userData = window.__currentUserData || window.State?.userData || {};
-        alert(Strings.get('error_render_failed', userData.native_language) + e.message);
-        processBtn.disabled = false;
-    }
-}
-
-async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImage, fluencyData) {
+async function executeRenderLoop(plan, video, canvas, overlayImage, fluencyData) {
     const ctx = canvas.getContext('2d');
-    const dCtx = displayCanvas.getContext('2d');
     const planner = new VideoRenderPlanner(); // For layout helpers
 
     return new Promise(async (resolve) => {
@@ -153,7 +118,7 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
             if (step.type === 'tailing') {
                 isTailing = true;
                 tailStart = performance.now();
-                
+
                 // Freeze frame for tailing
                 lastFrameCanvas = document.createElement('canvas');
                 lastFrameCanvas.width = canvas.width;
@@ -167,7 +132,7 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
             const sourceUrl = step.type === 'remote' ? await resolveRemoteUrl(step.targetId) : URL.createObjectURL(step.blob);
             video.src = sourceUrl;
             video.load();
-            
+
             await new Promise((res) => {
                 video.onloadedmetadata = async () => {
                     if (step.trim?.start) video.currentTime = step.trim.start;
@@ -200,10 +165,7 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
             // 3. Draw Text (Subtitles / Scores)
             drawTextOverlay(ctx, canvas.width, canvas.height, isTailing, tailStart, fluencyData, step.isFirst, step.subtitle);
 
-            // 4. Mirror to display
-            dCtx.drawImage(canvas, 0, 0, displayCanvas.width, displayCanvas.height);
-
-            // 5. Check Timing / Advance
+            // 4. Check Timing / Advance
             let shouldAdvance = false;
             if (isTailing) {
                 if (performance.now() - tailStart > 4000) resolve();
@@ -231,59 +193,9 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
     });
 }
 
-function finalizeUI(blob, ext) {
-    let resultVideo = document.getElementById('resultVideo');
-    if (!resultVideo) {
-        resultVideo = document.createElement('video');
-        resultVideo.id = 'resultVideo';
-        resultVideo.classList.add('d-none');
-        const container = document.getElementById('media-container') || document.body;
-        container.appendChild(resultVideo);
-    }
-    const displayCanvas = document.getElementById('displayCanvas');
-    const bigButtons = document.getElementById('big-buttons');
-
-    if (displayCanvas) displayCanvas.style.display = 'none';
-    resultVideo.src = URL.createObjectURL(blob);
-    resultVideo.classList.remove('d-none');
-    resultVideo.style.display = 'block';
-    
-    window.__lastProcessedBlob = blob;
-    window.__lastProcessedName = `uffenglish_${Date.now()}.${ext}`;
-
-    const shareBtn = document.getElementById('shareMp4Btn');
-    if (shareBtn) {
-        shareBtn.classList.remove('d-none');
-        shareBtn.onclick = async () => {
-            if (shareBtn.disabled) return;
-            shareBtn.disabled = true;
-            const originalHTML = shareBtn.innerHTML;
-            shareBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Sharing...';
-            try {
-                await shareVideo(blob, window.__lastProcessedName, ext);
-            } catch (e) {
-                if (e.name === 'AbortError') {
-                    console.log("[Share] User dismissed share dialog");
-                } else {
-                    console.error("[Share] Share error:", e);
-                }
-            } finally {
-                shareBtn.disabled = false;
-                shareBtn.innerHTML = originalHTML;
-            }
-        };
-    }
-
-    bigButtons.classList.remove('d-none');
-    document.body.style.background = "black";
-}
-
-// --- Helpers Ported from Monolithic ---
-
 function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart, fluencyData, isFirst, subtitleText) {
     const now = performance.now();
     const blinkOn = Math.floor(now / 500) % 2 === 0;
-
     context.save();
 
     // 1. Draw top overlay text only if it's the first segment or the tail segment
@@ -295,14 +207,15 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
         context.textAlign = 'center';
         context.textBaseline = 'top';
         context.fillStyle = 'yellow';
-
         const centerX = Math.floor(canvasWidth / 2);
-        const data = tailing ? 
+
+        const data = tailing ?
             [{ text: 'FLUENCY SCORE', mult: 1.35, blink: false }, { text: `${fluencyData.total || "NA"}%`, mult: 1.8, blink: true }] :
             [{ text: 'CALCULATING', mult: 1.0, blink: true }, { text: 'FLUENCY', mult: 1.0, blink: true }];
 
         const baseSize = 30;
         context.font = `700 ${baseSize}px "Orbitron", sans-serif`;
+
         const longestWidth = Math.max(
             context.measureText(data[0].text).width,
             context.measureText(data[1].text).width
@@ -343,15 +256,17 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
     if (subtitleText && subtitleText.trim() !== "") {
         context.textAlign = 'center';
         context.textBaseline = 'bottom';
-
         const centerX = Math.floor(canvasWidth / 2);
+
         const subtitleFontSize = Math.max(16, Math.round(canvasWidth * 0.05));
         const maxSubtitleWidth = canvasWidth * 0.9;
+
         context.font = `bold ${subtitleFontSize}px "Plus Jakarta Sans", sans-serif`;
 
         const words = subtitleText.split(' ');
         let line = '';
         const lines = [];
+
         for (let n = 0; n < words.length; n++) {
             const testLine = line + words[n] + ' ';
             if (context.measureText(testLine).width > maxSubtitleWidth && n > 0) {
@@ -367,6 +282,7 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
         const subtitleStartY = canvasHeight * 0.75;
         const boxPadding = 10;
         let longestLineWidth = 0;
+
         lines.forEach(l => longestLineWidth = Math.max(longestLineWidth, context.measureText(l).width));
 
         context.fillStyle = 'rgba(0, 0, 0, 0.6)';
@@ -375,6 +291,7 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
         context.fillStyle = 'white';
         context.shadowColor = 'black';
         context.shadowBlur = 4;
+
         lines.forEach((l, i) => context.fillText(l, centerX, subtitleStartY + (i * lineHeight)));
     }
 
@@ -401,16 +318,6 @@ function getSupportedMimeType() {
         'video/webm'
     ];
     return types.find(t => MediaRecorder.isTypeSupported(t)) || '';
-}
-
-function createDisplayCanvas() {
-    const canvas = document.createElement('canvas');
-    canvas.id = 'displayCanvas';
-    canvas.style.maxWidth = '100%';
-    canvas.style.margin = '0 auto';
-    const container = document.getElementById('media-container') || document.body;
-    container.appendChild(canvas);
-    return canvas;
 }
 
 async function ensureFontsReady() {
