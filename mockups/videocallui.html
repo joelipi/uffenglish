@@ -46,7 +46,10 @@
         }
 
         .bottom-overlay {
-            background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0) 100%);
+            background: linear-gradient(135deg, rgba(58, 143, 213, 0.5) 0%, rgba(0, 192, 216, 0.2) 100%);
+            /* Blurs the background AND turns it black and white before our blue tint is applied */
+            backdrop-filter: blur(12px) grayscale(100%);
+            -webkit-backdrop-filter: blur(12px) grayscale(100%);
             pointer-events: none;
             /* Let clicks pass through empty areas */
         }
@@ -75,21 +78,23 @@
             padding: 0;
             border-radius: 50% !important;
 
-            /* Liquid Glass Effect */
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3), inset 0 2px 4px rgba(255, 255, 255, 0.2);
+            /* Obsidian Glass Effect (Dark & Clickable) */
+            background: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1.5px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
             color: white;
 
-            transition: transform 0.2s ease, background 0.3s ease, color 0.3s ease;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             overflow: hidden;
             /* Keeps the friend image inside the border radius */
         }
 
         .call-btn:active {
-            transform: scale(0.92);
+            transform: scale(0.9) translateY(2px);
+            background: rgba(255, 255, 255, 0.1);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
         }
 
         /* State class for toggled off (e.g. video off) */
@@ -208,16 +213,30 @@
             /* Mirrors the webcam image */
         }
 
-        /* --- CAPTIONS BAR --- */
-        .captions-bar {
-            background: linear-gradient(135deg, rgba(58, 143, 213, 0.25) 0%, rgba(0, 192, 216, 0.25) 100%), rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-radius: 12px;
-            font-size: 14pt;
-            letter-spacing: 0.5px;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.15);
+        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap');
+
+        /* --- MISSION UI --- */
+        .mission-row {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .mission-label {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #ffffff;
+        }
+
+        .mission-text {
+            font-size: 20px;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.85);
+            margin-left: 6px;
         }
 
         /* Desktop and Tablet Breakpoint (Lock to 9:16 aspect ratio) */
@@ -230,6 +249,168 @@
                 border-radius: 12px;
             }
         }
+
+        /* --- CHAT BUBBLE STYLES (from existing app) --- */
+        .chat-message-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding: 10px;
+            overflow-y: auto;
+            flex: 1;
+            background: linear-gradient(135deg, rgba(79, 172, 254, 0.1) 0%, rgba(0, 242, 254, 0.1) 100%),
+                url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 2L12.2 7.5H18L13.4 11L15.6 16.5L10 13L4.4 16.5L6.6 11L2 7.5H7.8L10 2Z' fill='%234facfe' fill-opacity='0.08'/%3E%3C/svg%3E");
+            background-color: #f0f5ff;
+            background-repeat: repeat;
+        }
+
+        .chat-message-row {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 0;
+            max-width: 100%;
+        }
+
+        .chat-message-row--system {
+            flex-direction: row;
+            justify-content: flex-start;
+        }
+
+        .chat-message-row--user {
+            flex-direction: row-reverse;
+            justify-content: flex-start;
+        }
+
+        .chat-message-row--system+.chat-message-row--user,
+        .chat-message-row--user+.chat-message-row--system {
+            margin-top: 10px;
+        }
+
+        .chat-avatar-inline {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin: 0 8px;
+            flex-shrink: 0;
+            align-self: flex-start;
+        }
+
+        .chat-bubble-header {
+            font-size: 0.8em;
+            font-weight: bold;
+            color: #17a2b8;
+            margin-bottom: 4px;
+            opacity: 0.8;
+        }
+
+        .chat-message-bubble {
+            padding: 0.25rem 0.50rem;
+            border-radius: 12px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e2e8f0;
+            max-width: 80%;
+            min-width: 40%;
+            position: relative;
+            margin-bottom: 0 !important;
+            color: black;
+            font-size: large;
+        }
+
+        .chat-message-bubble--system {
+            background-color: white;
+            border-radius: 12px 12px 12px 4px;
+            align-self: flex-start;
+        }
+
+        .chat-message-bubble--user {
+            background-color: white;
+            border-radius: 12px 12px 4px 12px;
+            align-self: flex-end;
+        }
+
+        /* --- System bubble tail --- */
+        .chat-message-bubble--system::before {
+            content: "";
+            position: absolute;
+            left: -8px;
+            top: 0;
+            border: 8px solid transparent;
+            border-right-color: white;
+            border-left: 0;
+            margin-top: 12px;
+        }
+
+        .chat-message-bubble--system::after {
+            content: "";
+            position: absolute;
+            left: -9px;
+            top: 0;
+            border: 8px solid transparent;
+            border-right-color: #e2e8f0;
+            border-left: 0;
+            margin-top: 12px;
+            z-index: -1;
+        }
+
+        /* --- User bubble tail (mirrored) --- */
+        .chat-message-bubble--user::before {
+            content: "";
+            position: absolute;
+            right: -8px;
+            top: 0;
+            border: 8px solid transparent;
+            border-left-color: white;
+            border-right: 0;
+            margin-top: 12px;
+        }
+
+        .chat-message-bubble--user::after {
+            content: "";
+            position: absolute;
+            right: -9px;
+            top: 0;
+            border: 8px solid transparent;
+            border-left-color: #e2e8f0;
+            border-right: 0;
+            margin-top: 12px;
+            z-index: -1;
+        }
+
+        /* Container for chat mode */
+        #chat-window-container {
+            display: none;
+            position: absolute;
+            top: 90px;
+            /* Below top overlay */
+            bottom: 120px;
+            /* Above bottom overlay in video mode */
+            left: 0;
+            right: 0;
+            z-index: 2;
+            overflow: hidden;
+            flex-direction: column;
+        }
+
+        /* Layout overrides for chat mode */
+        .chat-mode-active #chat-window-container {
+            bottom: 0;
+            /* Extended to bottom of screen in chat mode */
+        }
+
+        .chat-mode-active .bottom-overlay {
+            display: none !important;
+        }
+
+        /* Text Input area */
+        #chat-input-area {
+            display: none;
+            width: 100%;
+        }
+
+        .chat-mode-active .video-frame {
+            background-color: #000;
+        }
     </style>
 
     <!-- Embedded JavaScript -->
@@ -238,43 +419,63 @@
 
             // --- UI BUTTON LOGIC ---
             const friendBtn = document.getElementById('friendBtn');
-            const videoBtn = document.getElementById('videoBtn');
-            const infoBtn = document.getElementById('infoBtn');
-            const videoIcon = videoBtn.querySelector('i');
+            const micBtn = document.getElementById('micBtn');
+            const helpBtn = document.getElementById('helpBtn');
+            const micIcon = micBtn.querySelector('i');
 
-            let isVideoOff = false;
+            let isMuted = true;
 
-            friendBtn.addEventListener('click', () => {
-                alert("Contacting friend...");
-            });
+            const isChatMode = window.location.hash === '#chat';
 
-            videoBtn.addEventListener('click', () => {
-                isVideoOff = !isVideoOff;
-                const localVideo = document.getElementById('web-cam-preview');
+            if (isChatMode) {
+                document.body.classList.add('chat-mode-active');
 
-                if (isVideoOff) {
-                    videoIcon.classList.replace('bi-camera-video-fill', 'bi-camera-video-off-fill');
-                    videoBtn.classList.add('toggled-off');
+                // Remove video elements
+                const callVideo = document.getElementById('callVideo');
+                if (callVideo) callVideo.remove();
+                const pipContainer = document.querySelector('.pip-container');
+                if (pipContainer) pipContainer.remove();
 
-                    if (localVideo.srcObject) {
-                        localVideo.srcObject.getTracks().forEach(track => track.enabled = false);
+                // Remove mission UI elements
+                const missionRow = document.querySelector('.mission-row');
+                if (missionRow) missionRow.remove();
+
+                // Show chat container and input
+                document.getElementById('chat-window-container').style.display = 'flex';
+                document.getElementById('chat-input-area').style.display = 'flex';
+
+                // Change micBtn to Continue button
+                const newMicBtn = micBtn.cloneNode(true);
+                newMicBtn.innerHTML = '<i class="bi bi-chevron-right"></i>';
+                newMicBtn.classList.remove('toggled-off');
+                micBtn.parentNode.replaceChild(newMicBtn, micBtn);
+                newMicBtn.addEventListener('click', () => alert('Continue clicked'));
+            } else {
+                friendBtn.addEventListener('click', () => {
+                    alert("Contacting friend...");
+                });
+
+                micBtn.addEventListener('click', () => {
+                    isMuted = !isMuted;
+                    
+                    if (isMuted) {
+                        micIcon.classList.replace('bi-mic-fill', 'bi-mic-mute-fill');
+                        micBtn.classList.add('toggled-off');
+                        console.log("Microphone muted");
+                    } else {
+                        micIcon.classList.replace('bi-mic-mute-fill', 'bi-mic-fill');
+                        micBtn.classList.remove('toggled-off');
+                        console.log("Microphone active");
                     }
-                } else {
-                    videoIcon.classList.replace('bi-camera-video-off-fill', 'bi-camera-video-fill');
-                    videoBtn.classList.remove('toggled-off');
+                });
 
-                    if (localVideo.srcObject) {
-                        localVideo.srcObject.getTracks().forEach(track => track.enabled = true);
-                    }
-                }
-            });
+                helpBtn.addEventListener('click', () => {
+                    alert("Help panel would open here.");
+                });
 
-            infoBtn.addEventListener('click', () => {
-                alert("Help & Information panel would open here.");
-            });
-
-            // --- WEBCAM INITIALIZATION ---
-            initWebcam();
+                // --- WEBCAM INITIALIZATION ---
+                initWebcam();
+            }
         });
 
         async function initWebcam() {
@@ -301,8 +502,7 @@
             <!-- Main Remote Video Player (Vertical 9:16 Source) -->
             <video id="callVideo" class="w-100 h-100 object-fit-cover" autoplay loop muted playsinline>
                 <!-- Reliable Vertical Video from Pexels CDN -->
-                <source src="https://videos.pexels.com/video-files/5896379/5896379-sd_360_640_24fps.mp4"
-                    type="video/mp4">
+                <source src="https://ultrafastfluency.com/wp-content/test.mp4" type="video/mp4">
                 Your browser does not support the video tag.
             </video>
 
@@ -340,70 +540,178 @@
 
                 </div>
 
-                <!-- New Gamification Table -->
-                <div class="w-100 text-shadow">
-                    <table class="gamification-table w-100 text-center text-white">
-                        <tr class="icon-row">
-                            <!-- 8 Dummy Icons (Now strictly white) -->
-                            <td><i class="bi bi-star-fill"></i></td>
-                            <td><i class="bi bi-lightning-fill"></i></td>
-                            <td><i class="bi bi-shield-fill"></i></td>
-                            <td><i class="bi bi-heart-fill"></i></td>
-                            <td><i class="bi bi-gem"></i></td>
-                            <td><i class="bi bi-coin"></i></td>
-                            <td><i class="bi bi-award-fill"></i></td>
-                            <td><i class="bi bi-gift-fill"></i></td>
-                            <!-- Last 2 Custom SVGs -->
-                            <td><img src="assets/ear.svg" alt="Ear"></td>
-                            <td><img src="assets/mouth.svg" alt="Mouth"></td>
-                        </tr>
-                        <tr class="score-row">
-                            <!-- 10 Scores populated with "100" -->
-                            <td>100</td>
-                            <td>100</td>
-                            <td>100</td>
-                            <td>100</td>
-                            <td>100</td>
-                            <td>100</td>
-                            <td>100</td>
-                            <td>100</td>
-                            <td>100</td>
-                            <td>100</td>
-                        </tr>
-                    </table>
-                </div>
-
             </div>
 
-            <!-- Bottom Overlay: Captions & Main Call Controls -->
-            <div class="bottom-overlay position-absolute bottom-0 start-0 w-100 p-3 pb-4 z-1 d-flex flex-column gap-3">
+            <!-- Chat Window Container -->
+            <div id="chat-window-container">
+                <!-- Chat Header -->
+                <div id="chat-window-header" class="card-header text-white p-0 chat-window-header">
+                    Joel's group chat
+                </div>
+                <div id="chat-message-list" class="card-body chat-message-list text-dark">
+                    <div class="chat-message-row chat-message-row--user"
+                        style="animation: 0.3s ease-out 0s 1 normal forwards running popIn;"><img
+                            src="../assets/img/userprofile.png" alt="Joel" class="chat-avatar-inline">
+                        <div class="chat-message-bubble chat-message-bubble--user p-1"
+                            style="background-color: rgb(0, 0, 0); border: 2px solid rgb(79, 172, 254); overflow: hidden;">
+                            <div id="playback-video-wrapper" class="playback-video-container position-relative"
+                                style="display: block !important; visibility: visible !important; opacity: 1 !important;">
+                                <video id="playback-video" playsinline="" preload="auto"
+                                    style="display: block !important; width: 100%; border-radius: 8px; cursor: pointer; opacity: 1 !important; height: auto; max-height: 150px; object-fit: cover;"
+                                    src="blob:http://localhost:3000/0db8b0ea-9e57-4999-8da2-c62737262b1b"
+                                    loop=""></video>
+                                <button id="playback-mute-toggle"
+                                    class="playback-mute-toggle position-absolute bottom-0 end-0 m-2"
+                                    style="z-index: 10;">
+                                    <i class="bi bi-volume-up-fill"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-message-row chat-message-row--system"><img src="../assets/img/teacherprofile.jpeg"
+                            alt="Joe Walsh" class="chat-avatar-inline">
+                        <div class="chat-message-bubble chat-message-bubble--system">
+                            <div class="chat-bubble-header">Joe Walsh</div><span><strong>Hey, if you had to spend a
+                                    million dollars today, what would you buy?<br><span lang="ES"><i>Oye, si tuvieras
+                                            que gastar un millón de dólares hoy, ¿qué
+                                            comprarías?</i></span></strong></span>
+                        </div>
+                    </div>
+                    <div class="chat-message-row chat-message-row--user">
+                        <img src="../assets/img/userprofile.png" alt="Joel" class="chat-avatar-inline">
+                        <div class="chat-message-bubble chat-message-bubble--user">
+                            <div class="chat-bubble-header">Joel</div>
+                            I would buy a new car.
+                        </div>
+                    </div>
 
-                <!-- Call Captions Bar (Tinged with gradient) -->
-                <div class="captions-bar text-white p-2 w-100 shadow">
-                    MISSION: Buy a soft drink.
+                    <div class="chat-message-row chat-message-row--system">
+                        <img src="../assets/img/pronunciationbot.png" alt="Pronunciation Bot"
+                            class="chat-avatar-inline">
+                        <div class="chat-message-bubble chat-message-bubble--system"
+                            style="border-left: 4px solid #17a2b8;">
+                            <div class="chat-bubble-header">Pronunciation Bot</div>
+                            <span><strong>💯</strong> &nbsp;·&nbsp; Attempts required: 1</span>
+                        </div>
+                    </div>
+                    <div class="chat-message-row chat-message-row--system">
+                        <img src="../assets/img/listeningbot.png" alt="Listening Bot" class="chat-avatar-inline">
+                        <div class="chat-message-bubble chat-message-bubble--system"
+                            style="border-left: 4px solid #17a2b8;">
+                            <div class="chat-bubble-header">Listening Bot</div>
+                            <span><strong>💯</strong> &nbsp;·&nbsp; Repetitions required: 1</span>
+                        </div>
+                    </div>
+                    <div class="chat-message-row chat-message-row--system">
+                        <img src="../assets/img/flowbot.png" alt="Flow Bot" class="chat-avatar-inline">
+                        <div class="chat-message-bubble chat-message-bubble--system"
+                            style="border-left: 4px solid #17a2b8;">
+                            <div class="chat-bubble-header">Flow Bot</div>
+                            <span><strong>💯</strong> 396ms hesitation. 256 wpm.</span>
+                        </div>
+                    </div>
+                    <div class="chat-message-row chat-message-row--system">
+                        <img src="../assets/img/vocabularybot.png" alt="Vocabulary Bot" class="chat-avatar-inline">
+                        <div class="chat-message-bubble chat-message-bubble--system"
+                            style="border-left: 4px solid #17a2b8;">
+                            <div class="chat-bubble-header">Vocabulary Bot</div>
+                            <span><strong>75%</strong> 0 idioms</span>
+                        </div>
+                    </div>
+                    <div class="chat-message-row chat-message-row--system" style="margin-bottom: 0px;">
+                        <img src="../assets/img/grammarbot.png" alt="Grammar Bot" class="chat-avatar-inline">
+                        <div class="chat-message-bubble chat-message-bubble--system"
+                            style="border-left: 4px solid #17a2b8;">
+                            <div class="chat-bubble-header">Grammar Bot</div>
+                            <span><strong>💯</strong> &nbsp;·&nbsp; 0 errors. 0% complexity</span>
+
+                        </div>
+                    </div>
+                    <div class="chat-message-row chat-message-row--system">
+                        <img src="../assets/img/speakingbot.png" alt="Formality Bot" class="chat-avatar-inline">
+                        <div class="chat-message-bubble chat-message-bubble--system"
+                            style="border-left: 4px solid #17a2b8;">
+                            <div class="chat-bubble-header">Formality Bot</div>
+                            <span><strong>💯</strong></span>
+                        </div>
+                    </div>
+                    <div class="chat-message-row chat-message-row--system">
+                        <img src="../assets/img/idiombot.png" alt="Idiom Bot" class="chat-avatar-inline">
+                        <div class="chat-message-bubble chat-message-bubble--system"
+                            style="border-left: 4px solid #17a2b8;">
+                            <div class="chat-bubble-header">Idiom Bot</div>
+                            <span><strong>💯</strong></span>
+                        </div>
+                    </div>
+                    <div class="chat-message-row chat-message-row--system">
+                        <img src="../assets/img/pragmaticsbot.png" alt="Pragmatics Bot" class="chat-avatar-inline">
+                        <div class="chat-message-bubble chat-message-bubble--system"
+                            style="border-left: 4px solid #17a2b8;">
+                            <div class="chat-bubble-header">Pragmatics Bot</div>
+                            <span><strong>💯</strong></span>
+                        </div>
+                    </div>
+
+                    <div class="chat-message-row chat-message-row--system">
+                        <img src="../assets/img/teacherprofile.jpeg" alt="Joe Walsh" class="chat-avatar-inline">
+                        <div class="chat-message-bubble chat-message-bubble--system"
+                            style="border-left: 4px solid #17a2b8;">
+                            <div class="chat-bubble-header">Joe Walsh</div>
+                            <span><strong><strong>99%</strong> Fluency</strong></span>
+                        </div>
+                    </div>
+                    <div class="chat-message-row chat-message-row--system"><img src="../assets/img/teacherprofile.jpeg"
+                            alt="Joe Walsh" class="chat-avatar-inline">
+                        <div class="chat-message-bubble chat-message-bubble--system">
+                            <div class="chat-bubble-header">Joe Walsh</div><span><strong>👍👍 Well done!<br><span
+                                        lang="es"><i>¡Bien hecho!</i></span></strong></span>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Call Control Buttons -->
-                <div class="d-flex justify-content-center gap-4">
+                <!-- Chat Input Footer (From original app) -->
+                <div id="chat-input-area" class="card-footer bg-white border-top-0 w-100">
+                    <div class="input-group">
+                        <textarea id="chat-input-field" class="form-control" rows="2"
+                            placeholder="Ask your tutor a question..."></textarea>
+                        <button id="chat-send-button" class="btn btn-primary" type="button">
+                            <i class="bi bi-send-fill"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
 
-                    <!-- Friend Photo Button -->
+            <!-- 
+                MODIFICATION NOTE (2026-05-14 12:14:21): 
+                The bottom-overlay is now hidden via CSS (.chat-mode-active .bottom-overlay) 
+                only in #chat mode to allow testing layout changes.
+            -->
+            <div class="bottom-overlay position-absolute bottom-0 start-0 w-100 px-2 py-3 pb-4 z-1 d-flex flex-column gap-3">
+
+                <div class="mission-row text-shadow">
+                    <div>
+                        <span class="mission-label">Mission</span>
+                        <span class="mission-text">Order a soft drink</span>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center w-100 px-1">
+
                     <button class="btn call-btn" id="friendBtn" aria-label="Contact Friend">
                         <img src="https://i.pravatar.cc/150?img=47" alt="Friend Profile" class="friend-img">
                     </button>
 
-                    <!-- Video On/Off -->
-                    <button class="btn call-btn" id="videoBtn" aria-label="Toggle Video">
-                        <i class="bi bi-camera-video-fill"></i>
+                    <button class="btn call-btn toggled-off" id="micBtn" aria-label="Toggle Microphone">
+                        <i class="bi bi-mic-mute-fill"></i>
                     </button>
 
-                    <!-- Info/Help Button -->
-                    <button class="btn call-btn" id="infoBtn" aria-label="Information">
-                        <i class="bi bi-info-circle-fill"></i>
+                    <button class="btn call-btn" id="helpBtn" aria-label="Help">
+                        <i class="bi bi-question-circle-fill"></i>
                     </button>
 
                 </div>
-            </div>
 
+            </div>
         </div>
     </main>
 

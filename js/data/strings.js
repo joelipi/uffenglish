@@ -2,7 +2,7 @@
 
 const strings = {
 
-        'stats_header': {
+    'stats_header': {
         en: "SPEECH ANALYTICS",
         es: "ANÁLISIS DE VOZ"
     },
@@ -228,7 +228,7 @@ const strings = {
         es: "Escucha y repítelo tan rápido que puedas--",
         fr: "Écoutez et répétez-le aussi vite que vous le pouvez..."
     },
-    
+
 
     'praise_excellent': {
         en: "Excellent!",
@@ -363,13 +363,13 @@ const strings = {
         en: "That sounds a bit unnatural. Here is a more common way to say it."
     },
     'stats_repetitions_required': {
-        en: "Repetitions required:"
+        en: "Repetitions:"
     },
     'stats_attempts_required': {
-        en: "Attempts required:"
+        en: "Attempts:"
     },
     'stats_fluency_score': {
-        en: "Overall Fluency Score:"
+        en: "Fluency Score:"
     },
     'share_title': {
         en: "My English Video",
@@ -597,10 +597,10 @@ export function get(key, lang = 'en', placeholders = {}) {
     if (!entry) return key;
 
     // Support both 2-char codes (es) and full locales (es-ES)
-    const normalizedLang = (lang && typeof lang === 'string') 
-        ? lang.split('-')[0].toLowerCase() 
+    const normalizedLang = (lang && typeof lang === 'string')
+        ? lang.split('-')[0].toLowerCase()
         : 'en';
-        
+
     let englishText = entry.en || '';
     let translatedText = entry[normalizedLang] || '';
 

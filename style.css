@@ -257,41 +257,48 @@ body {
 }
 
 #app {
-  height: calc(100vh - 160px); /* Account for padding-bottom on body */
+  height: calc(100vh - 160px);
+  /* Account for padding-bottom on body */
   display: flex;
   flex-direction: column;
-  background: rgba(255,0,0,0.1); /* Debug: red background */
+  background: rgba(255, 0, 0, 0.1);
+  /* Debug: red background */
 }
 
-#app > .container {
+#app>.container {
   flex: 1 0 auto;
   display: flex;
   flex-direction: column;
-  background: rgba(0,255,0,0.1); /* Debug: green background */
+  background: rgba(0, 255, 0, 0.1);
+  /* Debug: green background */
 }
 
 #lesson-header {
   flex: 0 0 auto;
 }
 
-#app > .container > #container {
+#app>.container>#container {
   flex: 1 0 auto;
   display: flex;
   flex-direction: column;
-  background: rgba(0,0,255,0.1); /* Debug: blue background */
+  background: rgba(0, 0, 255, 0.1);
+  /* Debug: blue background */
 }
 
-#app > .container > #container > .row {
+#app>.container>#container>.row {
   flex: 1 0 auto;
-  background: rgba(255,255,0,0.1); /* Debug: yellow background */
+  background: rgba(255, 255, 0, 0.1);
+  /* Debug: yellow background */
 }
 
-#app > .container > #container > .row > #main-column {
+#app>.container>#container>.row>#main-column {
   flex: 1 0 auto;
   display: flex;
   flex-direction: column;
-  background: rgba(255,0,255,0.1); /* Debug: purple background */
-  min-height: 0; /* Allow shrinking */
+  background: rgba(255, 0, 255, 0.1);
+  /* Debug: purple background */
+  min-height: 0;
+  /* Allow shrinking */
 }
 
 body {
@@ -2247,7 +2254,8 @@ video {
   /* Fixed height — ONLY this box scrolls, never the window */
   height: 400px;
   max-height: 55vh;
-  overflow-y: scroll;   /* always show scrollbar */
+  overflow-y: scroll;
+  /* always show scrollbar */
   overflow-x: hidden;
   padding: 15px 10px;
   scroll-behavior: smooth;
@@ -2535,7 +2543,8 @@ footer {
 .chat-message-row {
   display: flex;
   align-items: flex-start;
-  margin-bottom: 0;   /* Gap handled by flex gap on .chat-message-list */
+  margin-bottom: 0;
+  /* Gap handled by flex gap on .chat-message-list */
   max-width: 100%;
 }
 
@@ -2558,8 +2567,8 @@ footer {
 }
 
 .chat-avatar-inline {
-  width: 32px;
-  height: 32px;
+  width: 55px;
+  height: 55px;
   border-radius: 50%;
   object-fit: cover;
   margin: 0 8px;
