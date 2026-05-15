@@ -47,7 +47,7 @@ export class introBackgroundVideo {
     // Attach listener before setting src to catch immediate loads
     this.video.addEventListener('loadeddata', this.onLoadedData);
     this.video.src = this.config.videoUrl;
-    
+
     // If the video is already cached and loaded
     if (this.video.readyState >= 2) {
       this.handleLoadedData();
@@ -71,12 +71,12 @@ export class introBackgroundVideo {
   }
 
   handleClick() {
-    const btn = document.getElementById('continueButton') || document.getElementById('speechButton');
+    const btn = document.getElementById('micBtn');
     if (btn) {
       btn.classList.remove('btn-bounce');
       void btn.offsetWidth; // trigger reflow
       btn.classList.add('btn-bounce');
-      
+
       setTimeout(() => {
         btn.classList.remove('btn-bounce');
       }, 1000);

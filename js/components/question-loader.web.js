@@ -16,7 +16,7 @@ import {
 import { processVideo } from '../modules/video-processor.js';
 import { saveLessonProgress } from '../modules/user-profile.js';
 import { getCompressedLessonStats } from '../modules/scoring.js';
-import { pointLoss } from './point-loss-animation.js';
+import { pointLoss } from '../components/point-loss-animation.js';
 
 import {
     DOM,
@@ -130,7 +130,7 @@ export function loadQuestion(question, lesson, fluencyData, deps) {
         question.lessonId = State.configData.lessons[State.currentLessonIndex].lessonId + 's';
         State.successHandler.handleSuccessLesson(question);
     } else if (question.inputType === 'lessonIntro') {
-        _renderLessonIntro(question, lesson, showFeedbackAndProceed);
+        _renderLessonIntro(question, lesson, deps);
     } else if (question.inputType === 'present') {
         _renderPresent(question, lesson, showFeedbackAndProceed);
     } else if (question.inputType === 'success') {
@@ -325,7 +325,7 @@ function _renderSuccess(question, fluencyData) {
 
     window.__currentConfigData = State.configData;
 
-    processVideo(fluencyData, question.lessonId);
+    initVideoProcessor(question.cue, fluencyData, question.lessonId);
     State.successHandler.handleSuccessLesson(question);
 
     const currentLesson = State.configData.lessons[State.currentLessonIndex];
@@ -348,24 +348,42 @@ function _renderSuccess(question, fluencyData) {
 }
 
 function _renderLessonIntro(question, lesson, deps) {
-    const { submitAnswerPrecheck } = deps;
-
-    // Ensure the hints are hidden for the intro screen
+    // Hide the standard hints for the intro screen
     hideHints();
 
     // Show the big incoming call buttons (Video, Audio, Text)
-    // ui.js handles setting the State.isTextMode / State.isCameraOff flags
     showContinueButton(
         true, // isLessonIntro flag
         () => {
-            // Called if Video or Text mode is selected
+            // --- CALLBACK FOR VIDEO OR TEXT MODE ---
             hideContinueButton();
-            submitAnswerPrecheck("started_lesson", question.cue, question, null, question.explanation, question.translation, { pauseCount: 0, netDuration: 0 });
+
+            const initializeMedia = async () => {
+                await Media.enableAudioSystem();
+                await warmUpSpeechCamStream();
+            };
+            initializeMedia();
+
+            // Dismiss the intro screen and load the first actual question
+            setTimeout(() => {
+                State.currentQuestionIndex = 0; // Explicitly ensure we reset to question index 0
+                loadQuestion(lesson.questions[State.currentQuestionIndex], lesson, null, deps);
+            }, 500);
         },
         () => {
-            // Called if Audio-only mode is selected
+            // --- CALLBACK FOR AUDIO-ONLY MODE ---
             hideContinueButton();
-            submitAnswerPrecheck("started_lesson", question.cue, question, null, question.explanation, question.translation, { pauseCount: 0, netDuration: 0 });
+
+            const initializeMedia = async () => {
+                await Media.enableAudioSystem();
+                // Bypassing webcam warmup for audio-only
+            };
+            initializeMedia();
+
+            setTimeout(() => {
+                State.currentQuestionIndex = 0;
+                loadQuestion(lesson.questions[State.currentQuestionIndex], lesson, null, deps);
+            }, 500);
         }
     );
 }

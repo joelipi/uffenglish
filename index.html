@@ -122,9 +122,9 @@
             border-radius: 50% !important;
             background-color: #ffffff !important;
             border: none !important;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2) !important;
             color: #1a1a1a !important;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.2s, color 0.2s;
             position: relative;
             -webkit-tap-highlight-color: transparent;
         }
@@ -147,6 +147,14 @@
             transform: scale(0.9) translateY(2px);
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
             background-color: #ffffff !important;
+            color: #1a1a1a !important;
+        }
+
+        .call-icon:active {
+            transform: scale(0.9) translateY(2px);
+            font-size: 2.5rem !important;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
+            background: transparent !important;
             color: #1a1a1a !important;
         }
 
@@ -927,7 +935,7 @@
            ========================================= */
         .intro-video-wrapper {
             position: absolute;
-            top: 0;
+            top: 15vh;
             left: 0;
             display: flex;
             flex-direction: column;
@@ -1374,29 +1382,32 @@
                 transition: width 0.3s ease, aspect-ratio 0.3s ease;
             }
         }
-    </style>
 
-    <!-- Embedded JavaScript -->
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            initWebcam();
-        });
+        /* Bounce animation for continue button when video is clicked */
+        @keyframes button-bounce {
 
-        // Simple webcam initializer for the pip container
-        async function initWebcam() {
-            const localVideo = document.getElementById('webcam-preview');
-            if (!localVideo) return;
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: "user" },
-                    audio: false
-                });
-                localVideo.srcObject = stream;
-            } catch (error) {
-                console.warn("Webcam access denied or unavailable. Using placeholder.", error);
+            0%,
+            20%,
+            50%,
+            80%,
+            100% {
+                transform: translateY(0);
+            }
+
+            40% {
+                transform: translateY(-20px);
+            }
+
+            60% {
+                transform: translateY(-10px);
             }
         }
-    </script>
+
+        .btn-bounce {
+            animation: button-bounce 1s;
+        }
+    </style>
+
 </head>
 
 <body>
@@ -1516,7 +1527,7 @@
             <video id="callVideo" class="w-100 h-100 object-fit-cover d-none" playsinline></video>
 
             <!-- Self-View (Picture-in-Picture) -->
-            <div class="pip-container shadow">
+            <div class="pip-container shadow d-none" id="pip-wrapper">
                 <video id="webcam-preview" autoplay muted playsinline></video>
             </div>
 
@@ -1682,11 +1693,13 @@
                     <div class="controls-section">
                         <div class="d-flex justify-content-between align-items-center w-100">
 
+                            <!-- LEFT: Friend Button -->
                             <button class="btn call-btn" id="friendBtn" aria-label="Contact Friend">
                                 <img src="assets/img/userprofile.png" alt="Friend Profile" class="friend-img">
                             </button>
 
-                            <div class="mic-btn-wrapper">
+                            <!-- CENTER STATE 1: Standard Mic (Visible by default) -->
+                            <div class="mic-btn-wrapper" id="state-standard-mic">
                                 <div class="mic-ring"></div>
                                 <div class="mic-ring"></div>
                                 <div class="mic-ring"></div>
@@ -1695,6 +1708,20 @@
                                 </button>
                             </div>
 
+                            <!-- CENTER STATE 2: Intro Choices (Hidden by default) -->
+                            <div class="d-flex gap-3 align-items-center d-none" id="state-intro-choices">
+                                <button class="btn call-icon" id="audioOnlyButton" aria-label="Audio Only">
+                                    <i class="bi bi-telephone-fill text-white"></i>
+                                </button>
+                                <button class="btn call-btn btn-primary" id="continueButton" aria-label="Video Call">
+                                    <i class="bi bi-camera-video-fill"></i>
+                                </button>
+                                <button class="btn call-icon" id="textOnlyButton" aria-label="Text Only">
+                                    <i class="bi bi-keyboard text-white"></i>
+                                </button>
+                            </div>
+
+                            <!-- RIGHT: Help Button -->
                             <button class="btn call-btn" id="helpBtn" aria-label="Help">
                                 <i class="bi bi-question-circle-fill"></i>
                             </button>

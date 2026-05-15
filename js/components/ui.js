@@ -837,75 +837,82 @@ export function showPlaybackVideo() {
 }
 
 export function isWebcamPreviewVisible() {
-    return webcamPreview && webcamPreview.isConnected && !webcamPreview.classList.contains('d-none');
+    const wrapper = document.getElementById('pip-wrapper');
+    return wrapper && !wrapper.classList.contains('d-none');
 }
 
 export function createWebcamPreview() {
-    if (webcamPreview) webcamPreview.remove();
-
-    webcamPreview = document.createElement('video');
-    webcamPreview.id = 'webcam-preview';
-    webcamPreview.autoplay = true;
-    webcamPreview.muted = true;
-    webcamPreview.playsinline = true;
-    webcamPreview.style.opacity = '0';
-
-    if (DOM.mediaViewport) {
-        DOM.mediaViewport.appendChild(webcamPreview);
-    } else {
-        webcamPreview.style.position = 'fixed';
-        webcamPreview.style.bottom = '10px';
-        webcamPreview.style.right = '10px';
-        document.body.appendChild(webcamPreview);
-    }
+    // We no longer create the element. We just grab your hardcoded one.
+    webcamPreview = document.getElementById('webcam-preview');
     return webcamPreview;
 }
 
 export function ensureWebcamPreview(stream) {
     if (!stream) return null;
-    if (!webcamPreview || !document.getElementById('webcam-preview')) {
-        webcamPreview = createWebcamPreview();
+
+    webcamPreview = document.getElementById('webcam-preview');
+    const pipWrapper = document.getElementById('pip-wrapper');
+
+    if (!webcamPreview || !pipWrapper) {
+        console.error("Hardcoded PIP elements not found in the DOM.");
+        return null;
     }
 
+    // Attach the video stream
     if (webcamPreview.srcObject !== stream) {
         webcamPreview.srcObject = stream;
     }
 
-    if (webcamPreview.classList.contains('d-none')) {
-        webcamPreview.style.transition = '';
-        webcamPreview.style.opacity = '0';
-        webcamPreview.style.transform = 'scaleX(-1) translateY(10px)';
-        webcamPreview.classList.remove('d-none');
-
-        setTimeout(() => {
-            webcamPreview.style.transition = 'opacity 0.4s ease-out, transform 0.4s ease-out';
-            webcamPreview.style.opacity = '1';
-            webcamPreview.style.transform = 'scaleX(-1) translateY(0)';
-        }, 500);
+    // Reveal the container securely
+    if (pipWrapper.classList.contains('d-none')) {
+        pipWrapper.classList.remove('d-none');
+        // Let your CSS handle the animations, no inline transitions here!
     }
 
+    // Ensure it plays
     setTimeout(() => {
-        if (isWebcamPreviewVisible() && (webcamPreview.readyState < 2 || webcamPreview.paused)) {
-            webcamPreview.play().catch(e => console.log('Play failed:', e));
+        if (webcamPreview.readyState >= 2 || webcamPreview.paused) {
+            webcamPreview.play().catch(e => console.log('Webcam play failed:', e));
         }
     }, 100);
 
     return webcamPreview;
 }
 
-export function toggleCamera() {
-    State.isCameraOff = !State.isCameraOff;
-}
-
 export function hideWebcamPreview() {
-    if (webcamPreview && webcamPreview.isConnected) webcamPreview.classList.add('d-none');
+    const pipWrapper = document.getElementById('pip-wrapper');
+    if (pipWrapper) {
+        pipWrapper.classList.add('d-none');
+    }
 }
 
 export function removeWebcamPreview() {
+    webcamPreview = document.getElementById('webcam-preview');
+    const pipWrapper = document.getElementById('pip-wrapper');
+
     if (webcamPreview) {
         webcamPreview.pause();
         webcamPreview.srcObject = null;
-        webcamPreview.classList.add('d-none');
+    }
+    if (pipWrapper) {
+        pipWrapper.classList.add('d-none');
+    }
+}
+
+export function toggleCamera() {
+    // 1. Flip the application state
+    State.isCameraOff = !State.isCameraOff;
+
+    // 2. Update the Liquid UI visually
+    const pipWrapper = document.getElementById('pip-wrapper');
+    if (pipWrapper) {
+        if (State.isCameraOff) {
+            // Hide the self-view when the camera is toggled off
+            pipWrapper.classList.add('d-none');
+        } else {
+            // Bring the self-view back when toggled on
+            pipWrapper.classList.remove('d-none');
+        }
     }
 }
 
@@ -1040,89 +1047,105 @@ export function markButtonAsIncorrect(button, answersContainer, cue) {
 }
 
 export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyClickCallback) {
-    let continueButton = document.getElementById('continueButton');
-    let audioOnlyButton = document.getElementById('audioOnlyButton');
-    let textOnlyButton = document.getElementById('textOnlyButton');
-    let btnGroup = document.getElementById('introButtonGroup');
-    const chatMessageList = document.getElementById('chat-message-list');
-
-    if (isLessonIntro && !btnGroup && chatMessageList) {
-        btnGroup = document.createElement('div');
-        btnGroup.className = 'd-flex gap-2 w-100 align-items-center';
-        btnGroup.id = 'introButtonGroup';
-        chatMessageList.appendChild(btnGroup);
-    }
-
-    if (!continueButton) {
-        continueButton = document.createElement('button');
-        continueButton.id = 'continueButton';
-    }
-    continueButton.className = isLessonIntro ? 'btn btn-primary text-white w-33' : 'btn btn-primary text-white w-100';
-    continueButton.innerHTML = isLessonIntro ? '<i class="bi bi-camera-video-fill text-white" style="font-size: 40px; font-weight: 900;"></i>' : '<i class="bi bi-chevron-right text-white" style="font-size: 40px; font-weight: 900;"></i>';
-    continueButton.onclick = () => {
-        if (isLessonIntro) {
-            State.isTextMode = false;
-            syncTextModeUI();
-            if (State.isCameraOff) toggleCamera();
-        }
-        onClickCallback();
-    };
-
     if (isLessonIntro) {
-        if (!audioOnlyButton) {
-            audioOnlyButton = document.createElement('button');
-            audioOnlyButton.id = 'audioOnlyButton';
-            audioOnlyButton.className = 'btn bg-transparent border-0 text-white w-33';
-            audioOnlyButton.innerHTML = '<i class="bi bi-telephone-fill text-white" style="font-size: 40px; font-weight: 900;"></i>';
-        }
-        audioOnlyButton.onclick = () => {
-            State.isTextMode = false;
-            syncTextModeUI();
-            if (!State.isCameraOff) toggleCamera();
-            if (onAudioOnlyClickCallback) onAudioOnlyClickCallback();
-            else onClickCallback();
-        };
+        // 1. Handle Intro State (Toggle Bottom Control Bar)
+        const standardMic = document.getElementById('state-standard-mic');
+        const introChoices = document.getElementById('state-intro-choices');
 
-        if (!textOnlyButton) {
-            textOnlyButton = document.createElement('button');
-            textOnlyButton.id = 'textOnlyButton';
-            textOnlyButton.className = 'btn bg-transparent border-0 text-white w-33';
-            textOnlyButton.innerHTML = '<i class="bi bi-keyboard text-white" style="font-size: 40px; font-weight: 900;"></i>';
-        }
-        textOnlyButton.onclick = () => {
-            State.isTextMode = true;
-            State.isCameraOff = true;
-            syncTextModeUI();
-            onClickCallback();
-        };
-    }
+        const videoBtn = document.getElementById('continueButton');
+        const audioBtn = document.getElementById('audioOnlyButton');
+        const textBtn = document.getElementById('textOnlyButton');
 
-    if (isLessonIntro && btnGroup) {
-        btnGroup.innerHTML = '';
-        if (audioOnlyButton) btnGroup.appendChild(audioOnlyButton);
-        if (continueButton) btnGroup.appendChild(continueButton);
-        if (textOnlyButton) btnGroup.appendChild(textOnlyButton);
-        btnGroup.style.display = 'flex';
+        // Swap the visible states
+        if (standardMic) standardMic.classList.add('d-none');
+        if (introChoices) {
+            introChoices.classList.remove('d-none');
+            introChoices.style.setProperty('display', 'flex', 'important');
+        }
+
+        // Attach event listeners to the hardcoded buttons
+        if (videoBtn) {
+            videoBtn.onclick = () => {
+                State.isTextMode = false;
+                syncTextModeUI();
+                if (State.isCameraOff) toggleCamera();
+                onClickCallback();
+            };
+        }
+
+        if (audioBtn) {
+            audioBtn.onclick = () => {
+                State.isTextMode = false;
+                syncTextModeUI();
+                if (!State.isCameraOff) toggleCamera();
+                if (onAudioOnlyClickCallback) onAudioOnlyClickCallback();
+                else onClickCallback();
+            };
+        }
+
+        if (textBtn) {
+            textBtn.onclick = () => {
+                State.isTextMode = true;
+                State.isCameraOff = true;
+                syncTextModeUI();
+                onClickCallback();
+            };
+        }
+
+        return videoBtn;
+
     } else {
-        if (btnGroup) btnGroup.style.display = 'none';
-        if (chatMessageList && continueButton) {
-            const systemRow = document.createElement('div');
-            systemRow.className = 'chat-message-row chat-message-row--system';
-            systemRow.id = 'continueButtonRow';
-            systemRow.appendChild(continueButton);
-            chatMessageList.appendChild(systemRow);
-            continueButton.style.display = 'inline-block';
-        }
-    }
+        // 2. Handle Mid-Lesson State (Inject "Next" Chevron into Chat)
+        const chatMessageList = document.getElementById('chat-message-list');
+        let nextButton = document.getElementById('lessonNextButton'); // Changed ID to prevent conflict
 
-    return continueButton;
+        if (!nextButton) {
+            nextButton = document.createElement('button');
+            nextButton.id = 'lessonNextButton';
+            nextButton.className = 'btn btn-primary text-white w-100';
+            nextButton.innerHTML = '<i class="bi bi-chevron-right text-white" style="font-size: 40px; font-weight: 900;"></i>';
+        }
+
+        nextButton.onclick = () => {
+            onClickCallback();
+            // Optionally remove itself after click to keep chat clean
+            const row = document.getElementById('continueButtonRow');
+            if (row) row.remove();
+        };
+
+        if (chatMessageList) {
+            let systemRow = document.getElementById('continueButtonRow');
+            if (!systemRow) {
+                systemRow = document.createElement('div');
+                systemRow.className = 'chat-message-row chat-message-row--system';
+                systemRow.id = 'continueButtonRow';
+                chatMessageList.appendChild(systemRow);
+            }
+            systemRow.appendChild(nextButton);
+            nextButton.style.display = 'inline-block';
+
+            // Auto-scroll to ensure the button is visible
+            setTimeout(() => chatMessageList.scrollTo({ top: chatMessageList.scrollHeight, behavior: 'smooth' }), 50);
+        }
+
+        return nextButton;
+    }
 }
 
 export function hideContinueButton() {
-    const continueButton = document.getElementById('continueButton');
-    if (continueButton) continueButton.style.display = 'none';
-    const audioOnlyButton = document.getElementById('audioOnlyButton');
-    if (audioOnlyButton) audioOnlyButton.style.display = 'none';
+    // 1. Revert Bottom Bar back to standard mic
+    const standardMic = document.getElementById('state-standard-mic');
+    const introChoices = document.getElementById('state-intro-choices');
+
+    if (introChoices) {
+        introChoices.classList.add('d-none');
+        introChoices.style.removeProperty('display');
+    }
+    if (standardMic) standardMic.classList.remove('d-none');
+
+    // 2. Remove the mid-lesson next button if it's in the chat
+    const nextBtnRow = document.getElementById('continueButtonRow');
+    if (nextBtnRow) nextBtnRow.remove();
 }
 
 export function renderFallbackContinueButton(text, onClickCallback) {
