@@ -7,7 +7,7 @@ import { getLocalizedTranslation } from '../modules/utils.js';
 import { Media } from '../modules/media.js';
 import { pointLoss } from './point-loss-animation.js';
 
-// Inject dynamic styles to override padding, set avatar size, and control responsive width
+// Inject dynamic styles to override padding, set avatar size, and aggressively fix the IVP Subtitles
 const dynamicStyles = document.createElement('style');
 dynamicStyles.textContent = `
     .chat-avatar-inline {
@@ -20,12 +20,10 @@ dynamicStyles.textContent = `
     .chat-msg {
         padding: 4px 12px !important;
         width: 100%;
-        max-width: 95%; /* Mobile width */
+        max-width: 95%;
     }
     @media (min-width: 768px) {
-        .chat-msg {
-            max-width: 80%; /* Desktop width */
-        }
+        .chat-msg { max-width: 80%; }
     }
     .chat-bubble-header {
         font-size: 0.75rem;
@@ -40,38 +38,35 @@ dynamicStyles.textContent = `
 document.head.appendChild(dynamicStyles);
 
 export function syncTextModeUI() {
-    const phrasesScore = document.getElementById('phrasesScore');
-    if (phrasesScore) {
+    const pronunciationScore = document.getElementById('pronunciationScore');
+    if (pronunciationScore) {
         if (State.isTextMode) {
-            phrasesScore.classList.add('d-none');
+            pronunciationScore.classList.add('d-none');
             console.log('[UI] Text mode: hiding speaking score');
         } else {
-            phrasesScore.classList.remove('d-none');
+            pronunciationScore.classList.remove('d-none');
             console.log('[UI] Camera/Mic mode: showing speaking score');
         }
     }
 }
 
 export const DOM = {
-    get phrasesScore() { return document.getElementById('phrasesScore'); },
-    get mediaContainer() { return document.getElementById('media-container'); },
+    get pronunciationScore() { return document.getElementById('pronunciationScore'); },
+    get mediaViewport() { return document.getElementById('media-viewport'); },
+    get bottomOverlay() { return document.querySelector('.bottom-overlay'); },
     get speechText() { return document.getElementById("chat-window-container"); },
     get chatBody() { return document.getElementById("chat-message-list"); },
     get avatarAi() { return document.getElementById("chat-avatar-system"); },
     get nameAi() { return document.getElementById("chat-name-system"); },
     get avatarHuman() { return document.getElementById("chat-avatar-user"); },
     get nameHuman() { return document.getElementById("chat-name-user"); },
-    get heart3() { return document.getElementById("heart3"); },
-    get heart2() { return document.getElementById("heart2"); },
-    get heart1() { return document.getElementById("heart1"); },
-    get scoresAndHearts() { return document.getElementById("scoresAndHearts"); },
+    get statsContainer() { return document.getElementById("stats-container"); },
     get progressbar() { return document.getElementById('progress'); },
     get progressBarFill() { return document.getElementById("progress-bar"); },
     get closeAndProgress() { return document.getElementById('closeAndProgress'); },
     get micStatusText() { return document.getElementById("micStatusText"); },
     get dayCountSpan() { return document.getElementById("dayCountSpan"); },
     get streakCountSpan() { return document.getElementById("streakCountSpan"); },
-    get arrowContainer() { return document.getElementById("arrow-container"); },
     get playbackVideo() { return document.getElementById('playback-video'); },
     get playbackMuteToggle() { return document.getElementById('playback-mute-toggle'); },
     get questionsContainerContainer() { return document.getElementById('questions-container-container'); },
@@ -98,8 +93,6 @@ export function escapeHTML(str) {
 }
 
 function setChatHeader(isAI) {
-    // The old avatar/name header elements have been replaced by the scoreboard table.
-    // Guard against null in case any code path still calls this.
     if (DOM.avatarAi) DOM.avatarAi.classList.toggle('d-none', !isAI);
     if (DOM.nameAi) DOM.nameAi.classList.toggle('d-none', !isAI);
     if (DOM.avatarHuman) DOM.avatarHuman.classList.toggle('d-none', isAI);
@@ -121,7 +114,7 @@ export function flashElement(element) {
 
 export function updateCurrentScoreDisplay(listeningScore) {
     const points = listeningScore !== undefined ? listeningScore : appStore.getState().listeningScore;
-    const element = document.getElementById('currentScore');
+    const element = document.getElementById('listeningScore');
     if (element) {
         flashElement(element);
         element.textContent = points;
@@ -160,6 +153,13 @@ export function disableAllButtons(container) {
 
 export function safeRenderChatInterface(isAI, bodyContent) {
     DOM.speechText.classList.remove('d-none');
+    DOM.speechText.style.setProperty('display', 'flex', 'important');
+
+    if (DOM.bottomOverlay) {
+        DOM.bottomOverlay.style.setProperty('display', 'none', 'important');
+    }
+
+    document.body.classList.add('chat-mode-active');
     setChatHeader(isAI);
 
     const loadingStatus = DOM.chatBody.querySelector('#ai-loading-status');
@@ -174,19 +174,12 @@ export function safeRenderChatInterface(isAI, bodyContent) {
             DOM.chatBody.appendChild(bodyContent);
         }
     }
-
-    // Auto-scroll ONLY the chat container — never the window
-    setTimeout(() => {
-        if (DOM.chatBody) {
-            DOM.chatBody.scrollTop = DOM.chatBody.scrollHeight;
-        }
-    }, 50);
 }
 
 export function renderUserResponse(text, statsHtml = "") {
     const safeText = escapeHTML(text);
     const userName = getFirstName(appStore.getState().userData?.display_name || State.userData?.display_name);
-    const userAvatarUrl = appStore.getState().userData?.profilepicurl || State.userData?.profilepicurl || 'assets/img/userprofile.png';
+    const userAvatarUrl = appStore.getState().userData?.profilepicurl || State.userData?.profilepicurl || 'assets/img/userprofile.webp';
     const html = `
         <div class="chat-message-row chat-message-row--user">
             <img src="${userAvatarUrl}" alt="${userName}" class="chat-avatar-inline" />
@@ -202,7 +195,7 @@ export function renderUserResponse(text, statsHtml = "") {
 export function renderAIAnalysisLoading(text) {
     const defaultText = Strings.get('ai_analyzing', State.userData?.native_language);
     const displayText = text || defaultText;
-    const aiAvatarUrl = 'assets/img/teacherprofile.jpeg';
+    const aiAvatarUrl = 'assets/img/teacherprofile.webp';
     const html = `
         <div class="chat-message-row chat-message-row--system" id="ai-loading-status">
             <img src="${aiAvatarUrl}" alt="Joe Walsh" class="chat-avatar-inline" />
@@ -218,7 +211,7 @@ export function createHeaderHTML(text) {
     return "";
 }
 
-export function createPragmaticsBubbleHTML(headingHTML, contentHTML, correctionHTML = "", botName = "Joe Walsh", avatarUrl = "assets/img/teacherprofile.jpeg") {
+export function createPragmaticsBubbleHTML(headingHTML, contentHTML, correctionHTML = "", botName = "Joe Walsh", avatarUrl = "assets/img/teacherprofile.webp") {
     return `
         <div class="chat-message-row chat-message-row--system">
             <img src="${avatarUrl}" alt="${botName}" class="chat-avatar-inline" />
@@ -229,7 +222,7 @@ export function createPragmaticsBubbleHTML(headingHTML, contentHTML, correctionH
         </div>`;
 }
 
-export function createStatsBubbleHTML(header, statsParts, botName = "Joe Walsh", avatarUrl = "assets/img/teacherprofile.jpeg") {
+export function createStatsBubbleHTML(header, statsParts, botName = "Joe Walsh", avatarUrl = "assets/img/teacherprofile.webp") {
     const partsHtml = statsParts && statsParts.length > 0
         ? ` ${statsParts.join('. ')}`
         : '';
@@ -243,7 +236,7 @@ export function createStatsBubbleHTML(header, statsParts, botName = "Joe Walsh",
         </div>`;
 }
 
-export function createGrammarDiffHTML(original, correction, headingText = "", botName = "Joe Walsh", avatarUrl = "assets/img/teacherprofile.jpeg") {
+export function createGrammarDiffHTML(original, correction, headingText = "", botName = "Joe Walsh", avatarUrl = "assets/img/teacherprofile.webp") {
     const { userHTML, corrHTML } = buildGrammarDiff(original, correction);
     return `
         <div class="chat-message-row chat-message-row--system">
@@ -282,7 +275,7 @@ export function renderAIFeedback(contentChunks = []) {
                     row.className = 'chat-message-row chat-message-row--system';
 
                     const img = document.createElement('img');
-                    img.src = 'assets/img/teacherprofile.jpeg';
+                    img.src = 'assets/img/teacherprofile.webp';
                     img.alt = 'Joe Walsh';
                     img.className = 'chat-avatar-inline';
 
@@ -308,7 +301,7 @@ export function renderAIFeedback(contentChunks = []) {
                     row.className = 'chat-message-row chat-message-row--system';
 
                     const img = document.createElement('img');
-                    img.src = 'assets/img/teacherprofile.jpeg';
+                    img.src = 'assets/img/teacherprofile.webp';
                     img.alt = 'Joe Walsh';
                     img.className = 'chat-avatar-inline';
 
@@ -332,8 +325,6 @@ export function renderAIFeedback(contentChunks = []) {
 
     safeRenderChatInterface(true, fragment);
 }
-
-// Add these exports to your components/ui.js file
 
 export function hidePreloader() {
     const preloader = document.getElementById('appLoadingImageDiv');
@@ -359,6 +350,10 @@ export function showMicWarning(message) {
 export function resetMicStatusWithQuestion(questionText) {
     if (DOM.micStatusText) {
         DOM.micStatusText.innerHTML = `<div class='text-center'>${questionText || ""}</div>`;
+    }
+    const missionText = document.querySelector('.mission-text');
+    if (missionText && questionText) {
+        missionText.textContent = questionText;
     }
 }
 
@@ -448,11 +443,18 @@ export function clearChatInterface() {
 
     DOM.chatBody.innerHTML = '';
     DOM.speechText.classList.add('d-none');
+    DOM.speechText.style.removeProperty('display');
+
+    if (DOM.bottomOverlay) {
+        DOM.bottomOverlay.style.removeProperty('display');
+    }
+
+    document.body.classList.remove('chat-mode-active');
+
     hideTutorChatInput();
     clearChatHeaderScores();
 }
 
-// Maps a feedbackData section key to its header score span ID
 const SCORE_SPAN_MAP = {
     pronunciation: 'chat-score-pronunciation',
     listening: 'chat-score-listening',
@@ -465,22 +467,13 @@ const SCORE_SPAN_MAP = {
     fluency: 'chat-score-fluency',
 };
 
-/**
- * Clears all nine header score spans back to empty (called at start of each question).
- */
 export function clearChatHeaderScores() {
     Object.values(SCORE_SPAN_MAP).forEach(id => {
         const el = document.getElementById(id);
         if (el) el.textContent = '';
     });
-    console.log('[UI] Chat header scores cleared.');
 }
 
-/**
- * Populates the header score spans from a feedbackData object.
- * Score 100 → 💯, anything else → the number.
- * @param {{ sections: Array<{key: string, score: number}> }} feedbackData
- */
 export function updateChatHeaderScores(feedbackData) {
     if (!feedbackData || !Array.isArray(feedbackData.sections)) return;
     feedbackData.sections.forEach(section => {
@@ -490,7 +483,6 @@ export function updateChatHeaderScores(feedbackData) {
         if (!el) return;
         el.textContent = section.score === 100 ? '💯' : String(Math.round(section.score));
     });
-    console.log('[UI] Chat header scores updated from feedbackData.');
 }
 
 export function initTutorChatUI(submitCallback) {
@@ -510,11 +502,17 @@ export function initTutorChatUI(submitCallback) {
 }
 
 export function showTutorChatInput() {
-    if (DOM.tutorChatInputArea) DOM.tutorChatInputArea.classList.remove('d-none');
+    if (DOM.tutorChatInputArea) {
+        DOM.tutorChatInputArea.classList.remove('d-none');
+        DOM.tutorChatInputArea.style.setProperty('display', 'block', 'important');
+    }
 }
 
 export function hideTutorChatInput() {
-    if (DOM.tutorChatInputArea) DOM.tutorChatInputArea.classList.add('d-none');
+    if (DOM.tutorChatInputArea) {
+        DOM.tutorChatInputArea.classList.add('d-none');
+        DOM.tutorChatInputArea.style.setProperty('display', 'none', 'important');
+    }
 }
 
 export function getChatHistoryContext() {
@@ -535,7 +533,7 @@ export function renderTutorMessage(text, isUser) {
         renderUserResponse(text);
     } else {
         const safeText = escapeHTML(text);
-        const aiAvatarUrl = 'assets/img/teacherprofile.jpeg';
+        const aiAvatarUrl = 'assets/img/teacherprofile.webp';
         const html = `
             <div class="chat-message-row chat-message-row--system">
                 <img src="${aiAvatarUrl}" alt="Joe Walsh" class="chat-avatar-inline" />
@@ -564,7 +562,7 @@ export function hideHints() {
 
 export function clearMicStatusAndHideMedia() {
     if (DOM.micStatusText) DOM.micStatusText.innerHTML = "";
-    if (DOM.mediaContainer) DOM.mediaContainer.classList.add('d-none');
+    if (DOM.mediaViewport) DOM.mediaViewport.classList.add('d-none');
 }
 
 export function setMicStatusText(content) {
@@ -586,8 +584,21 @@ export function initUISubscriptions() {
     let prevDayCount = store.getState().dayCount;
     let prevStreak = store.getState().currentStreak;
 
+    const chatList = document.getElementById('chat-message-list');
+    if (chatList) {
+        const observer = new MutationObserver(() => {
+            setTimeout(() => {
+                chatList.scrollTo({
+                    top: chatList.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }, 50);
+        });
+        observer.observe(chatList, { childList: true, subtree: true });
+    }
+
     const syncCurrentScore = (listeningScore) => {
-        const element = document.getElementById('currentScore');
+        const element = document.getElementById('listeningScore');
         if (element) {
             flashElement(element);
             element.textContent = listeningScore;
@@ -596,9 +607,9 @@ export function initUISubscriptions() {
     syncCurrentScore(prevPoints);
 
     const syncSpeakingScore = (speakingScore) => {
-        if (DOM.phrasesScore) {
-            flashElement(DOM.phrasesScore);
-            DOM.phrasesScore.textContent = `${speakingScore}`;
+        if (DOM.pronunciationScore) {
+            flashElement(DOM.pronunciationScore);
+            DOM.pronunciationScore.textContent = `${speakingScore}`;
         }
     };
     syncSpeakingScore(prevSpeaking);
@@ -625,9 +636,6 @@ export function initUISubscriptions() {
             prevSpeaking = state.speakingScore;
         }
         if (state.incorrectAttempts > prevAttempts) {
-            if (state.incorrectAttempts == 1 && DOM.heart1) DOM.heart1.classList.add("falling-image");
-            else if (state.incorrectAttempts == 2 && DOM.heart2) DOM.heart2.classList.add("falling-image");
-            else if (state.incorrectAttempts == 3 && DOM.heart3) DOM.heart3.classList.add("falling-image");
             prevAttempts = state.incorrectAttempts;
         } else if (state.incorrectAttempts === 0) {
             prevAttempts = 0;
@@ -665,8 +673,6 @@ export function showGuestLoginModal() {
         if (typeof bootstrap !== 'undefined') {
             const guestModal = new bootstrap.Modal(document.getElementById('guestLoginModal'));
             guestModal.show();
-        } else {
-            console.error('Bootstrap is not loaded, unable to show guest login modal.');
         }
     }, 100);
 }
@@ -730,7 +736,7 @@ export function pauseVideoIfPlaying(playerInstance) {
 
 export function updateSpeakingScoreDisplay(score) {
     const safeScore = score !== undefined ? score : appStore.getState().speakingScore;
-    if (DOM.phrasesScore) DOM.phrasesScore.textContent = `${safeScore}`;
+    if (DOM.pronunciationScore) DOM.pronunciationScore.textContent = `${safeScore}`;
 }
 
 export function clearPlaybackVideo() {
@@ -756,13 +762,13 @@ export function clearPlaybackVideo() {
 }
 
 export function prepareMediaUI() {
-    if (DOM.mediaContainer) DOM.mediaContainer.classList.remove('d-none');
+    if (DOM.mediaViewport) DOM.mediaViewport.classList.remove('d-none');
 }
 
 export function showPlaybackVideo() {
     if (DOM.speechText) {
         DOM.speechText.classList.remove('d-none');
-        DOM.speechText.style.setProperty('display', 'block', 'important');
+        DOM.speechText.style.setProperty('display', 'flex', 'important');
         DOM.speechText.style.setProperty('opacity', '1', 'important');
     }
 
@@ -770,14 +776,10 @@ export function showPlaybackVideo() {
     const video = document.getElementById('playback-video') || DOM.playbackVideo;
 
     if (videoWrapper && video && DOM.chatBody) {
-        // Guard: if videoWrapper is already inside chatBody, just make sure it's visible and bail.
-        // Without this, a second call (e.g. from handleIncueUI) moves the wrapper into a new row,
-        // leaving an orphaned empty user bubble at the top and the video at the bottom.
         if (DOM.chatBody.contains(videoWrapper)) {
             videoWrapper.classList.remove('d-none');
             videoWrapper.style.setProperty('display', 'block', 'important');
             video.style.setProperty('display', 'block', 'important');
-            console.log('[showPlaybackVideo] videoWrapper already in chatBody — skipping re-injection.');
             return;
         }
 
@@ -789,13 +791,12 @@ export function showPlaybackVideo() {
         video.style.setProperty('display', 'block', 'important');
         video.style.setProperty('opacity', '1', 'important');
 
-        // Match renderUserResponse structure so row-reverse styling applies correctly
         const row = document.createElement('div');
         row.className = 'chat-message-row chat-message-row--user';
         row.style.animation = 'popIn 0.3s ease-out forwards';
 
         const userName = getFirstName(appStore.getState().userData?.display_name || State.userData?.display_name);
-        const userAvatarUrl = appStore.getState().userData?.profilepicurl || State.userData?.profilepicurl || 'assets/img/userprofile.png';
+        const userAvatarUrl = appStore.getState().userData?.profilepicurl || State.userData?.profilepicurl || 'assets/img/userprofile.webp';
 
         const avatar = document.createElement('img');
         avatar.src = userAvatarUrl;
@@ -808,10 +809,17 @@ export function showPlaybackVideo() {
         bubble.style.border = '2px solid #4facfe';
         bubble.style.overflow = 'hidden';
 
+        bubble.style.setProperty('min-width', '0', 'important');
+        bubble.style.setProperty('width', 'max-content');
+
         videoWrapper.classList.remove('mb-2');
+        videoWrapper.style.width = '100px';
+        videoWrapper.style.height = '178px';
+
         video.style.width = '100%';
-        video.style.height = 'auto';
-        video.style.maxHeight = '150px';
+        video.style.height = '100%';
+        video.style.maxHeight = 'none';
+        video.style.borderRadius = '8px';
         video.style.objectFit = 'cover';
 
         bubble.appendChild(videoWrapper);
@@ -819,16 +827,14 @@ export function showPlaybackVideo() {
         row.appendChild(bubble);
 
         DOM.chatBody.appendChild(row);
-        console.log('[showPlaybackVideo] Video bubble injected into chatBody.');
 
         setTimeout(() => {
             if (DOM.chatBody) {
-                DOM.chatBody.scrollTop = DOM.chatBody.scrollHeight;
+                DOM.chatBody.scrollTo({ top: DOM.chatBody.scrollHeight, behavior: 'smooth' });
             }
         }, 100);
     }
 }
-
 
 export function isWebcamPreviewVisible() {
     return webcamPreview && webcamPreview.isConnected && !webcamPreview.classList.contains('d-none');
@@ -844,8 +850,8 @@ export function createWebcamPreview() {
     webcamPreview.playsinline = true;
     webcamPreview.style.opacity = '0';
 
-    if (DOM.mediaContainer) {
-        DOM.mediaContainer.appendChild(webcamPreview);
+    if (DOM.mediaViewport) {
+        DOM.mediaViewport.appendChild(webcamPreview);
     } else {
         webcamPreview.style.position = 'fixed';
         webcamPreview.style.bottom = '10px';
@@ -889,7 +895,6 @@ export function ensureWebcamPreview(stream) {
 
 export function toggleCamera() {
     State.isCameraOff = !State.isCameraOff;
-    console.log(`[UI] Camera toggled. isCameraOff: ${State.isCameraOff}`);
 }
 
 export function hideWebcamPreview() {
@@ -1015,7 +1020,6 @@ async function setupIOSBlobPlayback(videoElement, blob) {
     });
 }
 
-
 export function markButtonAsCorrect(button) {
     if (!button) return;
     button.classList.add('btn-success', 'correct-answer');
@@ -1035,34 +1039,18 @@ export function markButtonAsIncorrect(button, answersContainer, cue) {
     button.addEventListener('animationend', () => button.classList.remove('incorrect-answer'), { once: true });
 }
 
-export function animateHeartLoss(incorrectAttempts) {
-    if (incorrectAttempts == 1 && DOM.heart1) DOM.heart1.classList.add("falling-image");
-    else if (incorrectAttempts == 2 && DOM.heart2) DOM.heart2.classList.add("falling-image");
-    else if (incorrectAttempts == 3 && DOM.heart3) DOM.heart3.classList.add("falling-image");
-}
-
-export function resetHeartsUI() {
-    const hearts = [DOM.heart1, DOM.heart2, DOM.heart3];
-    hearts.forEach(heart => {
-        if (heart) {
-            heart.classList.remove("falling-image");
-            heart.classList.remove("d-none");
-        }
-    });
-}
-
 export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyClickCallback) {
     let continueButton = document.getElementById('continueButton');
     let audioOnlyButton = document.getElementById('audioOnlyButton');
     let textOnlyButton = document.getElementById('textOnlyButton');
     let btnGroup = document.getElementById('introButtonGroup');
-    const centerBar = document.getElementById('bottomButtonBarCenter');
+    const chatMessageList = document.getElementById('chat-message-list');
 
-    if (isLessonIntro && !btnGroup && centerBar) {
+    if (isLessonIntro && !btnGroup && chatMessageList) {
         btnGroup = document.createElement('div');
         btnGroup.className = 'd-flex gap-2 w-100 align-items-center';
         btnGroup.id = 'introButtonGroup';
-        centerBar.appendChild(btnGroup);
+        chatMessageList.appendChild(btnGroup);
     }
 
     if (!continueButton) {
@@ -1117,8 +1105,12 @@ export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyCl
         btnGroup.style.display = 'flex';
     } else {
         if (btnGroup) btnGroup.style.display = 'none';
-        if (centerBar && continueButton) {
-            centerBar.appendChild(continueButton);
+        if (chatMessageList && continueButton) {
+            const systemRow = document.createElement('div');
+            systemRow.className = 'chat-message-row chat-message-row--system';
+            systemRow.id = 'continueButtonRow';
+            systemRow.appendChild(continueButton);
+            chatMessageList.appendChild(systemRow);
             continueButton.style.display = 'inline-block';
         }
     }
@@ -1146,8 +1138,6 @@ export function resetUIForNewQuestion(isLessonIntro, hasUserData) {
     const displayCanvas = document.getElementById('displayCanvas');
     if (displayCanvas) displayCanvas.remove();
 
-    if (DOM.arrowContainer) DOM.arrowContainer.classList.toggle('d-none', !isLessonIntro);
-
     const lessonIntroHeader = document.getElementById('lessonIntroHeader');
     if (lessonIntroHeader) lessonIntroHeader.classList.toggle('d-none', !isLessonIntro || hasUserData);
 
@@ -1164,9 +1154,9 @@ export function resetUIForNewQuestion(isLessonIntro, hasUserData) {
 }
 
 export function toggleScoresAndHearts(show) {
-    if (DOM.scoresAndHearts) {
-        if (show) DOM.scoresAndHearts.classList.remove('d-none');
-        else DOM.scoresAndHearts.classList.add('d-none');
+    if (DOM.statsContainer) {
+        if (show) DOM.statsContainer.classList.remove('d-none');
+        else DOM.statsContainer.classList.add('d-none');
     }
 }
 
@@ -1176,10 +1166,10 @@ export function removeRepeatButton() {
 }
 
 export function clearMediaContainerAndPreservePlayers() {
-    if (!DOM.mediaContainer) return;
+    if (!DOM.mediaViewport) return;
 
-    const preserved = DOM.mediaContainer.querySelectorAll('#ivp-container, #simple-ivp-container, #intro-call-widget, #webcam-preview');
-    DOM.mediaContainer.innerHTML = '';
+    const preserved = DOM.mediaViewport.querySelectorAll('#ivp-container, #simple-ivp-container, #intro-call-widget, #webcam-preview');
+    DOM.mediaViewport.innerHTML = '';
 
     preserved.forEach(el => {
         el.style.display = '';
@@ -1193,32 +1183,32 @@ export function clearMediaContainerAndPreservePlayers() {
             el.innerHTML = '';
         }
 
-        DOM.mediaContainer.appendChild(el);
+        DOM.mediaViewport.appendChild(el);
     });
 }
 
 export function renderImageInMediaContainer(imageUrl) {
-    if (!DOM.mediaContainer) return;
+    if (!DOM.mediaViewport) return;
 
-    DOM.mediaContainer.classList.remove('d-none');
-    DOM.mediaContainer.style.display = 'block';
+    DOM.mediaViewport.classList.remove('d-none');
+    DOM.mediaViewport.style.display = 'block';
 
-    const existingPraise = DOM.mediaContainer.querySelectorAll('.praise-image-wrapper');
+    const existingPraise = DOM.mediaViewport.querySelectorAll('.praise-image-wrapper');
     existingPraise.forEach(el => el.remove());
 
     const div = document.createElement('div');
     div.className = 'text-center mb-3 praise-image-wrapper';
     div.innerHTML = `<img src="${imageUrl}" class="img-fluid rounded" alt="Praise" style="max-height: 250px; border: 3px solid #00f2fe; box-shadow: 0 0 15px rgba(0,242,254,0.5);">`;
 
-    DOM.mediaContainer.prepend(div);
+    DOM.mediaViewport.prepend(div);
 }
 
 export function renderYoutubeInMediaContainer(youtubeId) {
-    if (!DOM.mediaContainer) return;
+    if (!DOM.mediaViewport) return;
     const div = document.createElement('div');
     div.className = 'text-center mb-3';
     div.innerHTML = `<iframe width="315" height="560" src="https://www.youtube.com/embed/${youtubeId}?autoplay=1&rel=0&modestbranding=1&controls=0&disablekb=1&fs=0&playsinline=1&short=1&playback_rate=0.8" title="Intro" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope" referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
-    DOM.mediaContainer.prepend(div);
+    DOM.mediaViewport.prepend(div);
 }
 
 export function resetAnswersContainer(html) {
@@ -1246,97 +1236,62 @@ export function renderSpeechInputUI(answerContent, handleHintCallback, handleRev
         });
     }
 
-    const bottomButtonBarLeft = document.getElementById("bottomButtonBarLeft");
-    if (bottomButtonBarLeft) {
-        if (handleHintCallback) {
-            const hintButton = document.createElement('button');
-            hintButton.className = 'btn bg-transparent text-white border-0';
-            hintButton.id = 'hintButton';
-            hintButton.innerHTML = '<i class="bi bi-life-preserver fs-1"></i>';
-            hintButton.onclick = () => {
-                handleHintCallback();
-                hintButton.style.visibility = 'hidden';
-            };
-            bottomButtonBarLeft.innerHTML = '';
-            bottomButtonBarLeft.appendChild(hintButton);
-        } else {
-            bottomButtonBarLeft.innerHTML = '';
-        }
-    }
+    const micBtn = document.getElementById('micBtn');
+    if (micBtn) {
+        const newMicBtn = micBtn.cloneNode(true);
+        newMicBtn.className = 'btn call-btn toggled-off';
+        newMicBtn.disabled = false;
+        newMicBtn.innerHTML = '<i class="bi bi-mic-mute-fill"></i>';
 
-    const answersContainer = document.getElementById('answers-container');
-    if (answersContainer) {
-        const speechInput = document.createElement('div');
-        speechInput.className = 'speech-input';
-
-        const buttonContainer = document.createElement('div');
-        buttonContainer.className = 'button-container';
-        buttonContainer.id = 'buttonContainer';
-
-        const speechButton = document.createElement('button');
-        speechButton.className = 'btn btn-primary';
-        speechButton.id = 'speechButton';
-        speechButton.innerHTML = '<i class="bi bi-mic-fill"></i>';
-        speechButton.onclick = toggleSpeechCallback;
-
-        const bottomButtonBarCenter = document.getElementById("bottomButtonBarCenter");
-        if (bottomButtonBarCenter) {
-            bottomButtonBarCenter.innerHTML = '';
-            bottomButtonBarCenter.appendChild(buttonContainer);
-            buttonContainer.appendChild(speechButton);
-        }
-
-        const speechText = document.createElement('p');
-        speechInput.appendChild(speechText);
-        answersContainer.appendChild(speechInput);
+        micBtn.parentNode.replaceChild(newMicBtn, micBtn);
+        newMicBtn.addEventListener('click', toggleSpeechCallback);
     }
 }
 
 export function renderTextInputUI(placeholder, submitText, handleSubmitCallback) {
     if (DOM.closeAndProgress) DOM.closeAndProgress.classList.remove('d-none');
-    if (DOM.scoresAndHearts) DOM.scoresAndHearts.classList.remove('d-none');
+    if (DOM.statsContainer) DOM.statsContainer.classList.remove('d-none');
     const answerDiv = document.getElementById("answerDiv");
     if (answerDiv) answerDiv.classList.add("d-none");
 
-    const answersContainer = document.getElementById('answers-container');
-    if (answersContainer) {
-        answersContainer.innerHTML = '';
+    const chatInputArea = document.getElementById('chat-input-area');
+    const chatInputField = document.getElementById('chat-input-field');
+    const chatSendBtn = document.getElementById('chat-send-button');
 
-        const wrapper = document.createElement('div');
-        wrapper.className = 'text-input-mode d-flex flex-column gap-2 p-3';
+    if (chatInputArea && chatInputField && chatSendBtn) {
+        chatInputArea.classList.remove('d-none');
+        chatInputArea.style.setProperty('display', 'block', 'important');
 
-        const textarea = document.createElement('textarea');
-        textarea.id = 'textInputAnswer';
-        textarea.className = 'form-control';
-        textarea.rows = 3;
-        textarea.placeholder = placeholder || 'Type your answer...';
-        textarea.setAttribute('aria-label', 'Type your answer');
+        chatInputField.placeholder = placeholder || 'Type your answer...';
+        chatInputField.disabled = false;
+        chatInputField.value = '';
 
-        const submitBtn = document.createElement('button');
-        submitBtn.id = 'submitTextAnswerBtn';
-        submitBtn.className = 'btn btn-primary';
-        submitBtn.textContent = submitText || 'Submit';
-        submitBtn.disabled = false;
+        chatSendBtn.disabled = false;
+        chatSendBtn.className = 'btn btn-primary';
+        chatSendBtn.innerHTML = '<i class="bi bi-send-fill"></i>';
+
+        const newSendBtn = chatSendBtn.cloneNode(true);
+        chatSendBtn.parentNode.replaceChild(newSendBtn, chatSendBtn);
 
         const handleSubmit = () => {
-            const value = textarea.value.trim();
+            const value = chatInputField.value.trim();
             if (!value) return;
-            submitBtn.disabled = true;
-            textarea.disabled = true;
-            handleSubmitCallback(value, submitBtn);
+            newSendBtn.disabled = true;
+            chatInputField.disabled = true;
+            handleSubmitCallback(value, newSendBtn);
         };
 
-        submitBtn.addEventListener('click', handleSubmit);
-        textarea.addEventListener('keydown', (e) => {
+        newSendBtn.addEventListener('click', handleSubmit);
+
+        const newInputField = chatInputField.cloneNode(true);
+        chatInputField.parentNode.replaceChild(newInputField, chatInputField);
+
+        newInputField.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 handleSubmit();
             }
         });
-
-        wrapper.appendChild(textarea);
-        wrapper.appendChild(submitBtn);
-        answersContainer.appendChild(wrapper);
     }
 }
 
@@ -1363,7 +1318,7 @@ export function bindProcessButton(onClickCallback) {
 
 export function renderMultiChoiceUI(notSureText, handleNotSureCallback, answers, handleAnswerCallback) {
     if (DOM.closeAndProgress) DOM.closeAndProgress.classList.remove('d-none');
-    if (DOM.scoresAndHearts) DOM.scoresAndHearts.classList.remove('d-none');
+    if (DOM.statsContainer) DOM.statsContainer.classList.remove('d-none');
 
     const answersContainer = document.getElementById('answers-container');
     if (answersContainer) {
@@ -1404,14 +1359,8 @@ export function setupLessonUI(fullTitle) {
     const footer = document.querySelector('footer');
     if (footer) footer.classList.remove("d-none");
 
-    const bottomBar = document.getElementById('bottomButtonBar');
-    if (bottomBar) bottomBar.classList.remove('d-none');
-
-    const bottomBarSuccess = document.getElementById('bottomButtonBarSuccess');
-    if (bottomBarSuccess) bottomBarSuccess.classList.add('d-none');
-
     document.body.classList.remove('bg-dark');
-    if (DOM.mediaContainer) DOM.mediaContainer.classList.remove('d-none');
+    if (DOM.mediaViewport) DOM.mediaViewport.classList.remove('d-none');
 
     const lessonHeader = document.getElementById('lesson-header');
     if (lessonHeader) {
@@ -1445,7 +1394,7 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
             const localizedTrans = getLocalizedTranslation(translation, lang);
 
             const userName = getFirstName(appStore.getState().userData?.display_name || State.userData?.display_name);
-            const userAvatarUrl = appStore.getState().userData?.profilepicurl || State.userData?.profilepicurl || 'assets/img/userprofile.png';
+            const userAvatarUrl = appStore.getState().userData?.profilepicurl || State.userData?.profilepicurl || 'assets/img/userprofile.webp';
 
             const correctWrapper = document.createElement('div');
             correctWrapper.className = 'chat-message-row chat-message-row--user correct-answer-wrapper';
@@ -1482,7 +1431,7 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
             praiseWrapper.style.marginTop = '6px';
 
             const praiseImg = document.createElement('img');
-            praiseImg.src = 'assets/img/teacherprofile.jpeg';
+            praiseImg.src = 'assets/img/teacherprofile.webp';
             praiseImg.alt = 'Joe Walsh';
             praiseImg.className = 'chat-avatar-inline';
 
@@ -1544,7 +1493,6 @@ export function handleIncueUI(qIndex, questionData, button, cue, userResponse, e
     }
 
     if (silent) {
-        animateHeartLoss(appStore.getState().incorrectAttempts);
         Media.playSound('incorrect-sound');
         return;
     }
@@ -1622,8 +1570,6 @@ export function handleIncueUI(qIndex, questionData, button, cue, userResponse, e
 
         renderAIFeedback(chunks);
     }
-
-    animateHeartLoss(appStore.getState().incorrectAttempts);
 
     Media.playSound('incorrect-sound');
 

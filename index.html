@@ -1,496 +1,1717 @@
 <!DOCTYPE html>
-<html lang="en-US">
+<html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lesson | UFF English</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mobile Video Call - Liquid UI & Gamification</title>
 
-  <link rel="stylesheet" href="./node_modules/animate.css/animate.min.css">
-  <link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap.min.css">
-  <link rel="stylesheet" href="./node_modules/bootstrap-icons/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="style.css">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
-  <link rel="icon" href="assets/img/favicons/favicon-32x32.jpeg" sizes="32x32">
-  <link rel="icon" href="assets/img/favicons/favicon-192x192.jpeg" sizes="192x192">
-  <link rel="apple-touch-icon" href="assets/img/favicons/apple-touch-icon.jpeg">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
-  <script>
-    (function (c, l, a, r, i, t, y) {
-      c[a] = c[a] || function () { (c[a].q = c[a].q || []).push(arguments) };
-      t = l.createElement(r); t.async = 1; t.src = "https://www.clarity.ms/tag/" + i + "?ref=wordpress";
-      y = l.getElementsByTagName(r)[0]; y.parentNode.insertBefore(t, y);
-    })(window, document, "clarity", "script", "qq9dqk1hjl");
+    <!-- Embedded CSS -->
+    <style>
+        /* Reset and prevent pull-to-refresh / scrolling on mobile */
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+        }
 
-    (function () {
-      window.ybug_settings = { "id": "z69gx22kp6h243vpdpjb" };
-      var ybug = document.createElement('script');
-      ybug.type = 'text/javascript'; ybug.async = true;
-      ybug.src = 'https://widget.ybug.io/button/' + window.ybug_settings.id + '.js';
-      document.getElementsByTagName('script')[0].parentNode.insertBefore(ybug, document.getElementsByTagName('script')[0]);
-    })();
-  </script>
+        /* Outer container representing the user's monitor/viewport */
+        .app-container {
+            width: 100vw;
+            height: 100vh;
+            background-color: #000;
+        }
+
+        /* Base style for the video window (Mobile First) */
+        .video-frame {
+            background-color: #1a1a1a;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* UI Overlays with gradients */
+        .top-overlay {
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 100%);
+        }
+
+        .header-avatar {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 2px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .bot-score {
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .bottom-overlay {
+            pointer-events: none;
+        }
+
+        .reflecting-pool-bg {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            backdrop-filter: blur(15px) grayscale(100%) saturate(0);
+            -webkit-backdrop-filter: blur(15px) grayscale(100%) saturate(0);
+            background: linear-gradient(180deg,
+                    rgba(0, 242, 254, 0.5) 0%,
+                    rgba(0, 242, 254, 0.6) 30%,
+                    rgba(79, 172, 254, 0.9) 100%);
+            -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.3) 0%, black 120px);
+            mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.3) 0%, black 120px);
+            pointer-events: none;
+        }
+
+        .bottom-overlay-content {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .mission-section {
+            padding: 10px 16px 0px;
+            background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.2) 100%);
+            height: 80px !important;
+        }
+
+        .controls-section {
+            padding: 24px 16px 32px;
+            background: transparent;
+            overflow: visible;
+        }
+
+        .bottom-overlay * {
+            pointer-events: auto;
+        }
+
+        .text-shadow {
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.9);
+        }
+
+        /* --- CALL BUTTONS --- */
+        .call-btn {
+            width: 60px;
+            height: 60px;
+            flex-shrink: 0;
+            aspect-ratio: 1 / 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            padding: 0;
+            border-radius: 50% !important;
+            background-color: #ffffff !important;
+            border: none !important;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2) !important;
+            color: #1a1a1a !important;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .call-btn i,
+        .call-btn img {
+            position: relative;
+            z-index: 2;
+        }
+
+        .call-btn:hover,
+        .call-btn:focus,
+        .call-btn:focus-visible {
+            background-color: #ffffff !important;
+            color: #1a1a1a !important;
+            outline: none !important;
+        }
+
+        .call-btn:active {
+            transform: scale(0.9) translateY(2px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
+            background-color: #ffffff !important;
+            color: #1a1a1a !important;
+        }
+
+        .call-btn.toggled-off,
+        .call-btn.toggled-off:hover,
+        .call-btn.toggled-off:focus {
+            background-color: #f8f9fa !important;
+            color: #6c757d !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+        }
+
+        /* MIC BUTTON WRAPPER */
+        .mic-btn-wrapper {
+            position: relative;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        /* RADIATING RINGS */
+        .mic-ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 3px solid rgba(255, 255, 255, 0.8);
+            width: 60px;
+            height: 60px;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Friend Button Image Styling */
+        .friend-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        /* --- TOP OVERLAY STYLES --- */
+        #closePage {
+            color: white;
+            font-size: 1.5rem;
+            transition: opacity 0.2s;
+        }
+
+        #closePage:hover {
+            opacity: 0.7;
+        }
+
+        .progress {
+            height: 10px;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+
+        .progress-bar {
+            background: linear-gradient(135deg, #3a8fd5 0%, #00c0d8 100%);
+            border-radius: 10px;
+        }
+
+        .stats-container {
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+
+        .stats-container i {
+            color: #ffffff;
+            margin-right: 4px;
+            font-size: 1.1rem;
+        }
+
+        /* --- SELF-VIEW (PICTURE-IN-PICTURE) --- */
+        .pip-container {
+            position: absolute;
+            top: 90px;
+            right: 16px;
+            width: 80px;
+            aspect-ratio: 9 / 16;
+            background-color: #333;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            z-index: 2;
+        }
+
+        #webcam-preview {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        /* --- MISSION UI --- */
+        .mission-row {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .mission-label {
+            font-size: 20px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: #ffffff;
+        }
+
+        .mission-text {
+            font-size: 24px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.95);
+            margin-left: 6px;
+        }
+
+        /* Tablet and up Breakpoint */
+        @media (min-width: 576px) {
+            .video-frame {
+                height: 100vh;
+                aspect-ratio: 9 / 16;
+                width: auto;
+                max-width: 100vw;
+                border-radius: 12px;
+                margin: 0 auto;
+            }
+
+            .mission-label {
+                font-size: 14px;
+            }
+
+            .mission-text {
+                font-size: 18px;
+            }
+
+            .mission-section {
+                padding: 4px 16px 0px;
+            }
+
+            .controls-section {
+                padding: 8px 16px 16px;
+            }
+
+            .call-btn,
+            .mic-btn-wrapper,
+            .mic-ring {
+                width: 50px !important;
+                height: 50px !important;
+            }
+
+            .call-btn {
+                font-size: 1.2rem;
+            }
+        }
+
+        /* --- CHAT BUBBLE STYLES --- */
+        .chat-message-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding: 15px 10px;
+            overflow-y: scroll;
+            /* Restores the permanent scrollbar */
+            scroll-behavior: smooth;
+            /* Restores the smooth glide */
+            flex: 1 1 auto;
+            min-height: 0;
+            /* CRITICAL: Forces the box to scroll instead of stretching infinitely */
+            background: linear-gradient(135deg, rgba(79, 172, 254, 0.1) 0%, rgba(0, 242, 254, 0.1) 100%),
+                url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 2L12.2 7.5H18L13.4 11L15.6 16.5L10 13L4.4 16.5L6.6 11L2 7.5H7.8L10 2Z' fill='%234facfe' fill-opacity='0.08'/%3E%3C/svg%3E");
+            background-color: #f0f5ff;
+            background-repeat: repeat;
+        }
+
+        .chat-message-row {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 0;
+            max-width: 100%;
+            /* Animation set by JS on insertion */
+            opacity: 0;
+            transform: translateY(20px) scale(0.95);
+            animation: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards popIn;
+        }
+
+        @keyframes popIn {
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .chat-message-row--system {
+            flex-direction: row;
+            justify-content: flex-start;
+        }
+
+        .chat-message-row--user {
+            flex-direction: row-reverse;
+            justify-content: flex-start;
+        }
+
+        .chat-message-row--system+.chat-message-row--user,
+        .chat-message-row--user+.chat-message-row--system {
+            margin-top: 10px;
+        }
+
+        .chat-avatar-inline {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin: 0 8px;
+            flex-shrink: 0;
+            align-self: flex-start;
+        }
+
+        .chat-message-bubble {
+            padding: 0.50rem 0.75rem;
+            border-radius: 12px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e2e8f0;
+            max-width: 80%;
+            min-width: 40%;
+            position: relative;
+            margin-bottom: 0 !important;
+            color: black;
+            font-size: 1.05rem;
+            line-height: 1.3;
+        }
+
+        .chat-message-bubble--system {
+            background-color: white;
+            border-radius: 12px 12px 12px 4px;
+            align-self: flex-start;
+        }
+
+        .chat-message-bubble--user {
+            background-color: white;
+            border-radius: 12px 12px 4px 12px;
+            align-self: flex-end;
+        }
+
+        .chat-message-bubble--system::before {
+            content: "";
+            position: absolute;
+            left: -8px;
+            top: 0;
+            border: 8px solid transparent;
+            border-right-color: white;
+            border-left: 0;
+            margin-top: 12px;
+        }
+
+        .chat-message-bubble--system::after {
+            content: "";
+            position: absolute;
+            left: -9px;
+            top: 0;
+            border: 8px solid transparent;
+            border-right-color: #e2e8f0;
+            border-left: 0;
+            margin-top: 12px;
+            z-index: -1;
+        }
+
+        .chat-message-bubble--user::before {
+            content: "";
+            position: absolute;
+            right: -8px;
+            top: 0;
+            border: 8px solid transparent;
+            border-left-color: white;
+            border-right: 0;
+            margin-top: 12px;
+        }
+
+        .chat-message-bubble--user::after {
+            content: "";
+            position: absolute;
+            right: -9px;
+            top: 0;
+            border: 8px solid transparent;
+            border-left-color: #e2e8f0;
+            border-right: 0;
+            margin-top: 12px;
+            z-index: -1;
+        }
+
+        .chat-bubble-header {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #64748b;
+            margin-bottom: 0px;
+            line-height: 1.2;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+
+        #chat-window-container {
+            display: none;
+            position: absolute;
+            top: 60px;
+            bottom: 0;
+            /* Snaps flush to the bottom */
+            left: 0;
+            right: 0;
+            z-index: 2;
+            overflow: visible !important;
+            flex-direction: column;
+        }
+
+        .chat-window-header {
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 1.1rem;
+            background: linear-gradient(135deg, #3a8fd5 0%, #00c0d8 100%) !important;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #chat-send-button {
+            background-color: #ffffff !important;
+            border: none !important;
+            border-radius: 50% !important;
+            width: 64px;
+            height: 64px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1a1a1a !important;
+            box-shadow: 0 44px 42px rgba(0, 0, 0, 0.15) !important;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-left: 10px;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+
+        #chat-send-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(58, 143, 213, 0.4) !important;
+        }
+
+        #chat-send-button:active {
+            transform: scale(0.95);
+        }
+
+        #chat-input-field {
+            border-radius: 24px !important;
+            padding: 10px 16px !important;
+            border: none !important;
+            resize: none;
+            background: #ffffff !important;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            margin: 4px 0;
+        }
+
+        #chat-input-field:focus {
+            box-shadow: none !important;
+            background: #ffffff !important;
+        }
+
+        #chat-input-area {
+            display: none;
+            width: 100%;
+            overflow: visible !important;
+            background: linear-gradient(135deg, #3a8fd5 0%, #00c0d8 100%) !important;
+            border: none !important;
+            padding: 12px 16px 24px !important;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1) !important;
+        }
+
+        #chat-input-area .input-group {
+            background: transparent !important;
+            padding: 0;
+            border-radius: 0;
+            box-shadow: none;
+            align-items: center;
+        }
+
+        /*Extracted from lesson.html*/
+        /* =========================================
+           APP LOADING SCREEN & PRELOADER
+           ========================================= */
+        #appLoadingImageDiv {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #3a8fd5 0%, #00c0d8 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999999;
+        }
+
+        .appLoadingImage {
+            width: 80vw;
+            height: 80vh;
+            max-width: 800px;
+            max-height: 800px;
+            background: url('assets/img/u-f-f.png') no-repeat center center;
+            background-size: contain;
+            animation: scaleIn 1.5s ease-out forwards, scaleOut 1.5s 1.5s ease-in forwards;
+        }
+
+        @keyframes scaleIn {
+            0% {
+                transform: scale(0.7);
+                opacity: 0;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes scaleOut {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1.3);
+                opacity: 0;
+            }
+        }
+
+        #ui-progress-container {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            max-width: 300px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            z-index: 1000000;
+            opacity: 0;
+            animation: showAfterLogo 0.5s 2.8s forwards;
+        }
+
+        @keyframes showAfterLogo {
+            to {
+                opacity: 1;
+            }
+        }
+
+        #ui-progress-bar {
+            width: 0%;
+            height: 100%;
+            background: #ffffff;
+            border-radius: 10px;
+            transition: width 0.1s linear;
+        }
+
+        /* =========================================
+           IVP (INTERACTIVE VIDEO PLAYER)
+           ========================================= */
+        #ivp-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            /* FIX: Force full height to fill the screen */
+            max-width: 100%;
+            /* FIX: Remove 600px mobile cap */
+            margin: 0 auto;
+            overflow: hidden;
+        }
+
+        #ivp-container:empty,
+        #simple-ivp-container:empty {
+            min-height: 0 !important;
+            display: none;
+        }
+
+        .ivp-main-wrapper {
+            opacity: 1;
+            transition: opacity 0.4s ease-out;
+            will-change: opacity, transform;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            /* FIX: Force full height */
+            margin: 0 auto;
+        }
+
+        .ivp-main-wrapper.loading {
+            visibility: hidden;
+            opacity: 0;
+            transform: translateY(5px);
+        }
+
+        .ivp-video-wrapper {
+            position: relative;
+            overflow: hidden;
+            background-color: #000;
+            width: 100%;
+            height: 100%;
+            /* FIX: Force full height */
+            aspect-ratio: auto;
+            /* FIX: Remove the old 4/5 box constraint */
+            margin: 0 auto;
+        }
+
+
+
+        .ivp-video {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            background-color: #000;
+            border-radius: 0 !important;
+        }
+
+        .ivp-subtitles {
+            position: absolute;
+            bottom: 180px !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100% !important;
+            margin: 0 !important;
+            height: auto;
+            padding: 12px 24px;
+            color: white;
+            text-align: center;
+            box-sizing: border-box;
+            z-index: 2;
+            line-height: 1.3;
+            word-spacing: 0.15em;
+            letter-spacing: 0.05em;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            min-height: 94px;
+            background: transparent !important;
+        }
+
+        .ivp-blur-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 40%;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.4) 60%, transparent 100%);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .ivp-token {
+            display: inline-block;
+            border-radius: 9999px;
+            font-family: inherit;
+            padding: 2px 8px;
+            margin: 2px;
+            font-size: 1.1rem;
+        }
+
+        .ivp-token-revealed,
+        .ivp-token-punctuation {
+            background: #000;
+            color: #fff;
+            cursor: default;
+            border: 1px solid #444;
+        }
+
+        .ivp-token-punctuation {
+            font-size: 1.8rem;
+            padding: 2px 6px;
+            font-weight: bold;
+        }
+
+        .ivp-token-strikethrough {
+            text-decoration: line-through 2px red;
+        }
+
+        .ivp-token-hidden {
+            background: linear-gradient(135deg, #3a8fd5 0%, #00c0d8 100%);
+            color: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.4), 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+            min-width: 1.5em;
+        }
+
+        .ivp-token-hidden:hover {
+            transform: translateY(-2px);
+            box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.6), 0 6px 12px rgba(0, 192, 216, 0.4);
+            filter: brightness(1.1);
+        }
+
+        .ivp-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            background: transparent;
+            pointer-events: none;
+        }
+
+        .ivp-overlay-content {
+            position: relative;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .ivp-overlay-circle {
+            width: 100px;
+            height: 100px;
+            border: 6px solid rgba(255, 255, 255, 0.4);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: ivp-overlay-spin 3s linear forwards;
+            margin-bottom: 10px;
+        }
+
+        @keyframes ivp-overlay-spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .ivp-overlay-text {
+            font-size: 2rem;
+            color: #ffffff;
+            text-align: center;
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+            margin: 0;
+        }
+
+        .ivp-overlay-arrow-up,
+        .ivp-overlay-arrow-down {
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+        }
+
+        .ivp-overlay-arrow-up {
+            top: 10%;
+            border-bottom: 20px solid #fff;
+            pointer-events: none;
+        }
+
+        .ivp-overlay-arrow-down {
+            bottom: 10%;
+            border-top: 20px solid #fff;
+        }
+
+        .ivp-arrow-label {
+            position: absolute;
+            color: #fff;
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+        }
+
+        .ivp-overlay-arrow-up .ivp-arrow-label {
+            top: -30px;
+        }
+
+        .ivp-overlay-arrow-down .ivp-arrow-label {
+            bottom: -30px;
+        }
+
+        /* =========================================
+           SIMPLE VIDEO PLAYER (Scroll Overlay)
+           ========================================= */
+        .ivp-subtitle-scroll-container {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 94px;
+            overflow: hidden;
+            z-index: 2;
+        }
+
+        .ivp-subtitle-scroll-container .ivp-subtitles {
+            position: relative;
+            bottom: auto;
+            left: auto !important;
+            right: auto !important;
+            width: 100% !important;
+        }
+
+        .ivp-play-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0, 0, 0, 0.4);
+            z-index: 10;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
+
+        .ivp-play-icon-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 120px;
+            height: 120px;
+            transition: transform 0.2s ease;
+        }
+
+        .ivp-play-overlay svg {
+            width: 100px;
+            height: 100px;
+            color: white;
+            filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.7));
+        }
+
+        .ivp-play-overlay:hover .ivp-play-icon-container {
+            transform: scale(1.1);
+        }
+
+        .timed-subtitles-container {
+            overflow: hidden;
+        }
+
+        .timed-subtitles {
+            transform: none !important;
+            transition: none !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            height: 100%;
+        }
+
+        /* =========================================
+           INTRO VIDEO WIDGET
+           ========================================= */
+        .intro-video-wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            margin: 0 auto;
+            z-index: 5;
+        }
+
+        .intro-video-container {
+            width: min(90vw, 360px);
+            aspect-ratio: 3 / 4;
+            position: relative;
+            overflow: hidden;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .intro-video-container::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .intro-video {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+            background: transparent !important;
+            z-index: 0 !important;
+        }
+
+        @media (min-width: 801px) {
+            .intro-video-container {
+                width: auto;
+                height: 480px;
+                max-height: calc(100vh - 280px);
+            }
+        }
+
+        .pulse-ring-wrapper {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pulse-ring {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 12px;
+            box-shadow: 0 0 0 0 rgba(0, 242, 254, 0.6);
+            animation: pulse-ring-anim 2s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+            z-index: -1;
+        }
+
+        @keyframes pulse-ring-anim {
+            0% {
+                box-shadow: 0 0 0 0 rgba(0, 242, 254, 0.6);
+            }
+
+            70% {
+                box-shadow: 0 0 0 35px rgba(0, 242, 254, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(0, 242, 254, 0);
+            }
+        }
+
+        .intro-notification-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 2;
+            color: white;
+            text-align: center;
+            padding: 5px;
+        }
+
+        .intro-notification-top {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        .intro-notification-bottom {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 30px;
+        }
+
+        .intro-call-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .intro-call-subtitle {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            font-style: italic;
+        }
+
+        .intro-caller-name {
+            font-size: 2.2rem;
+            font-weight: 800;
+            text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+            margin-bottom: 2px;
+        }
+
+        .intro-caller-title {
+            font-size: 1.3rem;
+            opacity: 0.8;
+        }
+
+        @keyframes ring-shake {
+
+            0%,
+            100% {
+                transform: rotate(0) scale(0.95);
+            }
+
+            25% {
+                transform: rotate(-2deg) scale(0.97);
+            }
+
+            50% {
+                transform: rotate(2deg) scale(0.99);
+            }
+
+            75% {
+                transform: rotate(-1deg) scale(0.97);
+            }
+        }
+
+        @keyframes ring-pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 0 15px rgba(255, 255, 255, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 25px rgba(255, 255, 255, 0.7);
+            }
+        }
+
+        .ringing-animation {
+            animation: ring-shake 0.8s infinite ease-in-out, ring-pulse 1.5s infinite ease-in-out;
+        }
+
+        /* =========================================
+           FEEDBACK, HINTS & GRAMMAR
+           ========================================= */
+        .headsUp::before {
+            content: "➡️ ";
+        }
+
+        .explanation {
+            font-weight: bold;
+        }
+
+        .explanation::before {
+            content: "🎯  ";
+        }
+
+        .explanation:empty {
+            display: none;
+        }
+
+        .diff-del {
+            background: #FAECE7;
+            color: #993C1D;
+            border-radius: 3px;
+            padding: 1px 3px;
+            text-decoration: line-through;
+        }
+
+        .diff-ins {
+            background: #EAF3DE;
+            color: #3B6D11;
+            border-radius: 3px;
+            padding: 1px 3px;
+            font-weight: 500;
+        }
+
+        .diff-del-bubble {
+            color: #212529;
+            opacity: 0.6;
+            font-size: 0.95em;
+        }
+
+        .correct-answer {
+            animation: correctShake 0.8s ease;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+            color: white !important;
+            border: none !important;
+        }
+
+        .incorrect-answer {
+            animation: incorrectShake 0.5s ease;
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%) !important;
+            color: white !important;
+            border: none !important;
+        }
+
+        @keyframes correctShake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            10%,
+            30%,
+            50% {
+                transform: translateX(-2px) rotate(-1deg);
+            }
+
+            20%,
+            40% {
+                transform: translateX(2px) rotate(1deg);
+            }
+        }
+
+        @keyframes incorrectShake {
+
+            0%,
+            100% {
+                transform: translateX(0);
+            }
+
+            10%,
+            30%,
+            50%,
+            70%,
+            90% {
+                transform: translateX(-5px);
+            }
+
+            20%,
+            40%,
+            60%,
+            80% {
+                transform: translateX(5px);
+            }
+        }
+
+        .hangman-placeholder {
+            color: #666;
+            font-weight: bold;
+            border-bottom: 2px solid #666;
+            margin: 0 2px;
+            padding: 0 4px;
+        }
+
+        .hangman-incorrect {
+            color: #ff4d4d;
+            text-decoration: line-through;
+            margin: 0 2px;
+        }
+
+        #hintUncommonWords {
+            font-size: 1.4rem;
+            line-height: 1.6;
+        }
+
+        .pulse-dot {
+            animation: pulse-dot-anim 1s infinite;
+            color: #ff0000;
+            font-size: 1.8rem;
+            display: inline-block;
+            margin: 0 0.5em 0.3em 0.5em;
+            padding: 0.4em;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .pulse-dot:hover {
+            transform: scale(1.1);
+        }
+
+        @keyframes pulse-dot-anim {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.05);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        ul.correctWords,
+        ul.incorrectWords {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        ul.correctWords li,
+        ul.incorrectWords li {
+            position: relative;
+            padding-left: 30px;
+            margin-bottom: 8px;
+        }
+
+        ul.correctWords li::before {
+            content: "\F26E";
+            font-family: "bootstrap-icons";
+            position: absolute;
+            left: 0;
+            color: #198754;
+            font-size: 1.2em;
+        }
+
+        ul.incorrectWords li::before {
+            content: "\F62A";
+            font-family: "bootstrap-icons";
+            position: absolute;
+            left: 0;
+            color: #dc3545;
+            font-size: 1.2em;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            opacity: 0;
+            z-index: 1000;
+        }
+
+        @keyframes confetti-fall {
+            0% {
+                transform: translateY(-100px) rotate(0deg);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        /* =========================================
+           PLAYBACK OVERLAYS
+           ========================================= */
+        .playback-video-container {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+
+        .playback-mute-toggle {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1000;
+            transition: background 0.3s ease, transform 0.2s ease;
+        }
+
+        .playback-mute-toggle:hover {
+            background: rgba(0, 0, 0, 0.8);
+            transform: scale(1.1);
+        }
+
+        #playback-video {
+            display: none;
+            border-radius: 8px;
+            width: auto !important;
+            height: auto;
+            max-height: 300px;
+        }
+
+        @media (min-width: 1200px) {
+            #playback-video {
+                max-height: 400px;
+            }
+        }
+
+        /* Custom Webkit Scrollbar */
+        .chat-message-list::-webkit-scrollbar {
+            width: 8px;
+            background: transparent;
+        }
+
+        .chat-message-list::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+
+        .chat-message-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        /* =========================================
+           RESPONSIVE CHAT WIDTH (DESKTOP)
+           ========================================= */
+        @media (min-width: 768px) {
+            body.chat-mode-active .video-frame {
+                aspect-ratio: auto !important;
+                width: 66.6vw !important;
+                max-width: 900px !important;
+                transition: width 0.3s ease, aspect-ratio 0.3s ease;
+            }
+        }
+    </style>
+
+    <!-- Embedded JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            initWebcam();
+        });
+
+        // Simple webcam initializer for the pip container
+        async function initWebcam() {
+            const localVideo = document.getElementById('webcam-preview');
+            if (!localVideo) return;
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "user" },
+                    audio: false
+                });
+                localVideo.srcObject = stream;
+            } catch (error) {
+                console.warn("Webcam access denied or unavailable. Using placeholder.", error);
+            }
+        }
+    </script>
 </head>
 
 <body>
 
-  <div id="appLoadingImageDiv">
-    <div class="appLoadingImage"></div>
-    <div id="ui-progress-container">
-      <div id="ui-progress-bar"></div>
+    <div id="appLoadingImageDiv">
+        <div class="appLoadingImage"></div>
+        <div id="ui-progress-container">
+            <div id="ui-progress-bar"></div>
+        </div>
     </div>
-    <p id="ui-loading-text">Loading...</p>
-  </div>
 
-  <script>
-    (function () {
-      window.preloadedMedia = {};
+    <!-- RESTORED: App Loading & Pre-caching Script -->
+    <script>
+        (function () {
+            window.preloadedMedia = {};
 
-      window.preloadLessonAssets = function (lessonData, buildVideoUrlFn) {
-        return new Promise(async (resolveApp) => {
-          let progress = 0;
-          const preloader = document.getElementById('appLoadingImageDiv');
-          const progressBar = document.getElementById('ui-progress-bar');
-          const loadingText = document.getElementById('ui-loading-text');
+            window.preloadLessonAssets = function (lessonData, buildVideoUrlFn) {
+                return new Promise(async (resolveApp) => {
+                    let progress = 0;
+                    const preloader = document.getElementById('appLoadingImageDiv');
+                    const progressBar = document.getElementById('ui-progress-bar');
+                    const loadingText = document.getElementById('ui-loading-text');
 
-          const progressInterval = setInterval(() => {
-            progress += (95 - progress) * 0.05;
-            if (progressBar) progressBar.style.width = progress + '%';
-          }, 100);
+                    // Start the fake loading pulse
+                    const progressInterval = setInterval(() => {
+                        progress += (95 - progress) * 0.05;
+                        if (progressBar) progressBar.style.width = progress + '%';
+                    }, 100);
 
-          try {
-            if (lessonData?.questions && lessonData.questions[0]) {
-              const firstQ = lessonData.questions[0];
-              const slugToWarm = firstQ.videoUrl || firstQ.simpleVideoUrl || firstQ.introBackgroundVideoUrl;
-              if (slugToWarm) fetch(buildVideoUrlFn(slugToWarm)).catch(() => { });
-            }
+                    try {
+                        // Pre-warm the first video
+                        if (lessonData?.questions && lessonData.questions[0]) {
+                            const firstQ = lessonData.questions[0];
+                            const slugToWarm = firstQ.videoUrl || firstQ.simpleVideoUrl || firstQ.introBackgroundVideoUrl;
+                            if (slugToWarm) fetch(buildVideoUrlFn(slugToWarm)).catch(() => { });
+                        }
 
-            const imageUrls = [
-              'assets/img/header.png',
-              'assets/img/teacherprofile.jpeg',
-              'assets/img/party-brain.webp'
-            ];
+                        // Preload essential UI images
+                        const imageUrls = [
+                            'assets/img/header.png',
+                            'assets/img/teacherprofile.jpeg',
+                            'assets/img/party-brain.webp'
+                        ];
 
-            const imagePromises = imageUrls.map(url => new Promise(resolve => {
-              const img = new Image();
-              img.onload = resolve; img.onerror = resolve;
-              img.src = url;
-            }));
+                        const imagePromises = imageUrls.map(url => new Promise(resolve => {
+                            const img = new Image();
+                            img.onload = resolve; img.onerror = resolve;
+                            img.src = url;
+                        }));
 
-            await Promise.race([Promise.all(imagePromises), new Promise(resolve => setTimeout(resolve, 1500))]);
+                        // Wait for images or 1.5 second timeout, whichever is faster
+                        await Promise.race([Promise.all(imagePromises), new Promise(resolve => setTimeout(resolve, 1500))]);
 
-            clearInterval(progressInterval);
-            if (progressBar) progressBar.style.width = '100%';
-            if (loadingText) loadingText.innerText = 'Ready!';
+                        // Finish the loading bar
+                        clearInterval(progressInterval);
+                        if (progressBar) progressBar.style.width = '100%';
+                        if (loadingText) loadingText.innerText = 'Ready!';
 
-            setTimeout(() => {
-              if (preloader) preloader.style.display = 'none';
-              resolveApp();
-            }, 250);
+                        setTimeout(() => {
+                            resolveApp();
+                        }, 250);
 
-          } catch (error) {
-            console.error("Failsafe unlocked preloader:", error);
-            clearInterval(progressInterval);
-            if (preloader) preloader.style.display = 'none';
-            resolveApp();
-          }
-        });
-      };
-    })();
-  </script>
+                    } catch (error) {
+                        console.error("Failsafe unlocked preloader:", error);
+                        clearInterval(progressInterval);
+                        resolveApp();
+                    }
+                });
+            };
+        })();
+    </script>
 
-  <div class="overlay-menu" id="overlayMenu">
-    <button class="overlay-close" onclick="toggleMenu()">&times;</button>
-    <ul>
-      <li><a href="#about" onclick="toggleMenu()">About</a></li>
-      <li><a href="#" onclick="toggleMenu()" data-bs-toggle="modal" data-bs-target="#returnPolicyModal">Return
-          Policy</a></li>
-      <li><a href="#signup" onclick="toggleMenu()">Sign Up</a></li>
-      <li id="auth-menu-item"><a href="#" id="auth-link" onclick="toggleMenu()">Sign In</a></li>
-    </ul>
-  </div>
+    <!-- AUTH LINK (hidden until needed) -->
+    <a href="#" id="auth-link" class="d-none"></a>
 
-  <div id="app">
-    <div class="container">
+    <main class="app-container d-flex justify-content-center align-items-center">
 
-      <div id="lesson-header">
-        <div id="lessonIntroHeader">
-          <div id="wideHeader" class="d-flex justify-content-between align-items-center">
-            <img src="assets/img/header.png" id="uffposter" alt="">
-            <div class="flex-grow-1 mx-1"></div>
-            <div class="d-flex align-items-center hamburger-container">
-              <button class="hamburger-btn" onclick="toggleMenu();">
-                <div class="hamburger-icon">
-                  <span></span><span></span><span></span>
-                </div>
-              </button>
-            </div>
-          </div>
-          <div class="lesson-title lesson-title-header"></div>
-        </div>
+        <div class="video-frame position-relative shadow-lg">
 
-        <div id="closeAndProgress" class="d-flex justify-content-between align-items-center d-none">
-          <a href="homescreen.html" id="closePage" class="d-flex align-items-center text-decoration-none">
-            <i class="bi bi-x-lg"></i>
-          </a>
-          <div class="flex-grow-1 mx-1">
-            <div id="progress" class="progress">
-              <div id="progress-bar" class="progress-bar" role="progressbar"></div>
-            </div>
-          </div>
-          <div class="d-flex align-items-center text-white gap-3 stats-container">
-            <div title="Listening Score">
-              <i class="bi bi-ear-fill"></i>
-              <span id="currentScore">100</span>%
-            </div>
-            <div title="Pronunciation Score">
-              <span style="font-size: 1.2rem;">👄</span>
-              <span id="phrasesScore">__</span>%
-            </div>
-          </div>
-          <div class="d-flex align-items-center hamburger-container ms-3">
-            <button class="hamburger-btn" onclick="toggleMenu();">
-              <div class="hamburger-icon">
-                <span></span><span></span><span></span>
-              </div>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div class="container mt-2" id="container">
-        <!-- SINGLE FULL-WIDTH ROW FOR EVERYTHING -->
-        <div class="row">
-          <div id="main-column" class="col-12 mb-2">
-
-            <!-- 1. Playback Video (Stays at the top) -->
-            <div id="playback-video-wrapper" class="playback-video-container position-relative mb-2">
-              <video id="playback-video" playsinline controls preload="auto"
-                style="display: none; width: 100%; border-radius: 8px;"></video>
-              <button id="playback-mute-toggle" class="playback-mute-toggle d-none position-absolute bottom-0 end-0 m-2"
-                style="z-index: 10;">
-                <i class="bi bi-volume-up-fill"></i>
-              </button>
-            </div>
-
-            <!-- 2. Main Video Container (above the chat) -->
-            <div id="media-container">
-              <div id="ivp-container">
-                <div class="ivp-main-wrapper loading" id="ivp-main-wrapper">
-                  <div class="ivp-video-wrapper">
-                    <video class="ivp-video" playsinline crossorigin="anonymous"></video>
-                    <div class="ivp-blur-overlay"></div>
-                    <div class="ivp-subtitles"></div>
-                  </div>
-                </div>
-              </div>
-
-              <div id="simple-ivp-container"></div>
-
-              <div id="intro-call-widget" class="intro-video-wrapper d-none">
-                <div class="pulse-ring-wrapper">
-                  <div class="pulse-ring"></div>
-                  <div class="intro-video-container ringing-animation">
-                    <video class="intro-video" playsinline preload="auto" crossorigin="anonymous" muted></video>
-                    <div class="intro-notification-content">
-                      <div class="intro-notification-top">
-                        <div class="intro-call-title">
-                          <i class="bi bi-camera-video-fill text-info"></i>
-                          <span id="intro-title">Ringing...</span>
+            <!-- Media Viewport: IVP, webcam preview, praise images, YouTube -->
+            <div id="media-viewport" class="position-absolute top-0 start-0 w-100 h-100 d-none">
+                <div id="ivp-container">
+                    <div class="ivp-main-wrapper loading" id="ivp-main-wrapper">
+                        <div class="ivp-video-wrapper">
+                            <video class="ivp-video" playsinline crossorigin="anonymous"></video>
+                            <div class="ivp-blur-overlay"></div>
+                            <div class="ivp-subtitles"></div>
                         </div>
-                        <div class="intro-call-subtitle"><span lang="es"><i id="intro-subtitle"></i></span></div>
-                      </div>
-                      <div class="intro-notification-bottom">
-                        <div class="intro-caller-name" id="intro-name">Joe Walsh</div>
-                        <div class="intro-caller-title" id="intro-role">English Coach, UFF</div>
-                      </div>
                     </div>
-                  </div>
                 </div>
-              </div>
-            </div>
-
-            <!-- 3. Chat Window (flows below the videos) -->
-            <div id="chat-window-container" class="card border-dark p-0 d-none mb-2">
-              
-              <!-- Chat Header -->
-              <div id="chat-window-header" class="card-header text-white p-0 chat-window-header">
-                <table id="chat-scores-table" class="w-100 h-100" style="border-collapse:collapse;table-layout:fixed;background:transparent;border:none;color:white;">
-                  <tbody>
-                    <tr id="chat-scores-row-avatars">
-                      <td id="chat-score-cell-pronunciation" class="text-center p-0" style="border:none;">
-                        <img src="assets/img/pronunciationbot.png" alt="Pronunciation" class="w-100" style="display:block;object-fit:contain;">
-                      </td>
-                      <td id="chat-score-cell-listening" class="text-center p-0" style="border:none;">
-                        <img src="assets/img/listeningbot.png" alt="Listening" class="w-100" style="display:block;object-fit:contain;">
-                      </td>
-                      <td id="chat-score-cell-flow" class="text-center p-0" style="border:none;">
-                        <img src="assets/img/flowbot.png" alt="Flow" class="w-100" style="display:block;object-fit:contain;">
-                      </td>
-                      <td id="chat-score-cell-vocabulary" class="text-center p-0" style="border:none;">
-                        <img src="assets/img/vocabularybot.png" alt="Vocabulary" class="w-100" style="display:block;object-fit:contain;">
-                      </td>
-                      <td id="chat-score-cell-grammar" class="text-center p-0" style="border:none;">
-                        <img src="assets/img/grammarbot.png" alt="Grammar" class="w-100" style="display:block;object-fit:contain;">
-                      </td>
-                      <td id="chat-score-cell-formality" class="text-center p-0" style="border:none;">
-                        <img src="assets/img/speakingbot.png" alt="Formality" class="w-100" style="display:block;object-fit:contain;">
-                      </td>
-                      <td id="chat-score-cell-nativelike" class="text-center p-0" style="border:none;">
-                        <img src="assets/img/idiombot.png" alt="Idiom" class="w-100" style="display:block;object-fit:contain;">
-                      </td>
-                      <td id="chat-score-cell-understanding" class="text-center p-0" style="border:none;">
-                        <img src="assets/img/pragmaticsbot.png" alt="Understanding" class="w-100" style="display:block;object-fit:contain;">
-                      </td>
-                      <td id="chat-score-cell-fluency" class="text-center p-0" style="border:none;">
-                        <img src="assets/img/teacherprofile.jpeg" alt="Joe Walsh" class="w-100" style="display:block;object-fit:contain;">
-                      </td>
-                    </tr>
-                    <tr id="chat-scores-row-numbers">
-                      <td id="chat-score-num-cell-pronunciation" class="text-center p-0" style="border:none;">
-                        <span id="chat-score-pronunciation"></span>
-                      </td>
-                      <td id="chat-score-num-cell-listening" class="text-center p-0" style="border:none;">
-                        <span id="chat-score-listening"></span>
-                      </td>
-                      <td id="chat-score-num-cell-flow" class="text-center p-0" style="border:none;">
-                        <span id="chat-score-flow"></span>
-                      </td>
-                      <td id="chat-score-num-cell-vocabulary" class="text-center p-0" style="border:none;">
-                        <span id="chat-score-vocabulary"></span>
-                      </td>
-                      <td id="chat-score-num-cell-grammar" class="text-center p-0" style="border:none;">
-                        <span id="chat-score-grammar"></span>
-                      </td>
-                      <td id="chat-score-num-cell-formality" class="text-center p-0" style="border:none;">
-                        <span id="chat-score-formality"></span>
-                      </td>
-                      <td id="chat-score-num-cell-nativelike" class="text-center p-0" style="border:none;">
-                        <span id="chat-score-nativelike"></span>
-                      </td>
-                      <td id="chat-score-num-cell-understanding" class="text-center p-0" style="border:none;">
-                        <span id="chat-score-understanding"></span>
-                      </td>
-                      <td id="chat-score-num-cell-fluency" class="text-center p-0" style="border:none;">
-                        <span id="chat-score-fluency"></span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <!-- Chat Message List (Dynamic Injection Target) -->
-              <div id="chat-message-list" class="card-body chat-message-list text-dark"></div>
-              
-              <!-- Chat Input Footer -->
-              <div id="chat-input-area" class="card-footer bg-white border-top-0 d-none">
-                <div class="input-group">
-                  <textarea id="chat-input-field" class="form-control" rows="2"
-                    placeholder="Ask your tutor a question..."></textarea>
-                  <button id="chat-send-button" class="btn btn-primary" type="button">
-                    <i class="bi bi-send-fill"></i>
-                  </button>
+                <div id="simple-ivp-container"></div>
+                <div id="intro-call-widget" class="intro-video-wrapper d-none">
+                    <div class="pulse-ring-wrapper">
+                        <div class="pulse-ring"></div>
+                        <div class="intro-video-container ringing-animation">
+                            <video class="intro-video" playsinline preload="auto" crossorigin="anonymous" muted></video>
+                            <div class="intro-notification-content">
+                                <div class="intro-notification-top">
+                                    <div class="intro-call-title">
+                                        <i class="bi bi-camera-video-fill text-info"></i>
+                                        <span id="intro-title">Ringing...</span>
+                                    </div>
+                                    <div class="intro-call-subtitle"><span lang="es"><i id="intro-subtitle"></i></span>
+                                    </div>
+                                </div>
+                                <div class="intro-notification-bottom">
+                                    <div class="intro-caller-name" id="intro-name">Joe Walsh</div>
+                                    <div class="intro-caller-title" id="intro-role">English Coach, UFF</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-              </div>
-
             </div>
 
-            <div id="big-buttons" class="d-flex justify-content-center mt-0 mb-5 big-buttons d-none">
-              <h3>Agrega tu video a redes con #uffenglish y ver cómo otros estudiantes han respondido a este video</h3>
-              <button id="shareMp4Btn" class="d-none">Agrega a redes</button>
-              <h3>Repetir esta lección a ver si puedes mejorar tu Fluency Score</h3>
-              <button id="repeatBtnSuccess" class="repeat-btn">Repeat</button>
-              <h3>¡Comparte esta lección con un amigo y compara Fluency Scores!</h3>
-              <button id="shareFriend">Comparte</button>
-              <br>
-              <h2>Has ganado 1 frase <br><b class="bi bi-gem"></b></h2>
-              <h3>¡No pierdas tu progreso!</h3>
-              <p class="text-white">Guarda Tu Progreso, Ser Notificado de Lecciones Gratuitas Nuevas, Recordar las
-                frases dominadas con repasos puntuales, y Agrega la App a Tu Pantalla de Inicio</p>
-              <button id="logIn" onclick="window.location.href='/membership-join/membership-registration/'">Comenzar
-                aquí</button>
+            <!-- Main Remote Video Player -->
+            <video id="callVideo" class="w-100 h-100 object-fit-cover d-none" playsinline></video>
+
+            <!-- Self-View (Picture-in-Picture) -->
+            <div class="pip-container shadow">
+                <video id="webcam-preview" autoplay muted playsinline></video>
             </div>
 
-            <!-- HIDDEN FUNCTIONAL ELEMENTS (Previously in the right column) -->
+            <!-- Top Overlay -->
+            <div class="top-overlay position-absolute top-0 start-0 w-100 p-2 pt-2 z-1">
+                <div id="closeAndProgress" class="d-flex align-items-center w-100 text-shadow">
+
+                    <!-- Left Half: Close Button & Progress Bar (50%) -->
+                    <div class="d-flex align-items-center w-50 pe-2">
+                        <a href="homescreen.html" id="closePage"
+                            class="d-flex align-items-center text-decoration-none flex-shrink-0" aria-label="Close">
+                            <i class="bi bi-x-lg"></i>
+                        </a>
+                        <div class="flex-grow-1 ms-3">
+                            <div id="progress" class="progress shadow-sm">
+                                <div id="progress-bar" class="progress-bar" role="progressbar" style="width: 0%;"
+                                    aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right Half: Bot Stats (50%) -->
+                    <div id="stats-container"
+                        class="d-flex justify-content-end align-items-center text-white gap-1 stats-container w-50 ps-1 d-none">
+
+                        <!-- Hidden tracking spans (updated by JS subscriptions) -->
+                        <span id="dayCountSpan" class="d-none"></span>
+                        <span id="streakCountSpan" class="d-none"></span>
+
+                        <!-- Chat header score spans (hidden until populated by JS) -->
+                        <span id="chat-score-pronunciation" class="d-none"></span>
+                        <span id="chat-score-listening" class="d-none"></span>
+                        <span id="chat-score-flow" class="d-none"></span>
+                        <span id="chat-score-vocabulary" class="d-none"></span>
+                        <span id="chat-score-grammar" class="d-none"></span>
+                        <span id="chat-score-formality" class="d-none"></span>
+                        <span id="chat-score-nativelike" class="d-none"></span>
+                        <span id="chat-score-understanding" class="d-none"></span>
+                        <span id="chat-score-fluency" class="d-none"></span>
+
+                        <div title="Pronunciation" class="d-flex align-items-center">
+                            <img src="assets/img/pronunciationbot.webp" alt="P" class="header-avatar">
+                            <span id="pronunciationScore" class="bot-score">100</span>
+                        </div>
+                        <div title="Listening" class="d-flex align-items-center">
+                            <img src="assets/img/listeningbot.png" alt="L" class="header-avatar">
+                            <span id="listeningScore" class="bot-score">100</span>
+                        </div>
+                        <div title="Flow" class="d-flex align-items-center">
+                            <img src="assets/img/flowbot.webp" alt="F" class="header-avatar">
+                            <span id="flowScore" class="bot-score">100</span>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- HIDDEN FUNCTIONAL ELEMENTS -->
             <video id="originalVideo" src="" class="d-none"></video>
             <video id="resultVideo" class="d-none"></video>
-            <a id="downloadLink" class="d-none">Download</a>
             <canvas id="videoCanvas" class="d-none"></canvas>
             <img id="overlayImage" src="assets/img/header.png" class="d-none">
 
+            <!-- RESTORED: Playback Video Elements -->
+            <div id="playback-video-wrapper" class="playback-video-container position-relative d-none">
+                <video id="playback-video" playsinline preload="auto" loop></video>
+                <button id="playback-mute-toggle" class="playback-mute-toggle position-absolute bottom-0 end-0 m-1"
+                    style="z-index: 10; width: 30px; height: 30px;">
+                    <i class="bi bi-volume-up-fill" style="font-size: 16px !important;"></i>
+                </button>
+            </div>
+
             <div id="answerDiv" class="card-wrapper d-none">
-              <div class="card info-card">
-                <div class="card-header bg-dark text-white" id="cue"></div>
-                <div class="card-body">
-                  <p class="info-content" id="translation"></p>
-                  <p class="info-content" id="explanation"></p>
+                <div class="card info-card">
+                    <div class="card-header bg-dark text-white" id="cue"></div>
+                    <div class="card-body">
+                        <p class="info-content" id="translation"></p>
+                        <p class="info-content" id="explanation"></p>
+                    </div>
                 </div>
-              </div>
             </div>
 
             <div id="courseProgress" class="d-none card border-dark mb-3 p-0">
-              <div class="card-header text-white p-0 card-header-custom" id="correct">
-                <div class="d-flex align-items-center p-3">
-                  <img src="assets/img/teacherprofile.jpeg" alt="Joe Walsh" class="rounded-circle me-3 chat-avatar"
-                    style="width: 40px; height: 40px; object-fit: cover;">
-                  <div>Prof. Joe Walsh<div class="mt-1"><small>English Fluency Coach, UFF</small></div>
-                  </div>
+                <div class="card-header text-white p-0 card-header-custom" id="correct">
+                    <div class="d-flex align-items-center p-3">
+                        <img src="assets/img/teacherprofile.jpeg" alt="Joe Walsh"
+                            class="rounded-circle me-3 chat-avatar"
+                            style="width: 40px; height: 40px; object-fit: cover;">
+                        <div>Prof. Joe Walsh<div class="mt-1"><small>English Fluency Coach, UFF</small></div>
+                        </div>
+                    </div>
                 </div>
-              </div>
-              <div id="fail-media" class="d-none"></div>
-              <div class="card-body chat-message-list text-dark">
-                <div id="success-media" class="d-none">
-                  <div class="text-center mb-3">
-                    <img src="assets/img/party-brain.webp" width="250px" alt="">
-                  </div>
+                <div id="fail-media" class="d-none"></div>
+                <div class="card-body chat-message-list text-dark">
+                    <div id="success-media" class="d-none">
+                        <div class="text-center mb-3">
+                            <img src="assets/img/party-brain.webp" width="250px" alt="">
+                        </div>
+                    </div>
+                    <div class="chat-message-row chat-message-row--system">
+                        <div class="chat-message-bubble chat-message-bubble--system">
+                            💯 Lesson complete! ¡Lección completada!
+                        </div>
+                    </div>
+                    <div class="chat-message-row chat-message-row--system">
+                        <div class="chat-message-bubble chat-message-bubble--system">
+                            <p class="nextHeadsup mb-0">You can repeat <i class="bi bi-arrow-counterclockwise"></i> this
+                                lesson
+                                or continue <i class="bi bi-chevron-right"></i> to the next by pressing one of the
+                                buttons below.</p>
+                        </div>
+                    </div>
                 </div>
-                <div class="chat-message-row chat-message-row--system">
-                  <div class="chat-message-bubble chat-message-bubble--system">
-                    💯 Lesson complete! ¡Lección completada!
-                  </div>
-                </div>
-                <div class="chat-message-row chat-message-row--system">
-                  <div class="chat-message-bubble chat-message-bubble--system">
-                    <p class="nextHeadsup mb-0">Puedes repetir <i class="bi bi-arrow-counterclockwise"></i> esta lección o
-                      continuar <i class="bi bi-chevron-right"></i> a la próxima pulsando uno de los botones abajo.</p>
-                  </div>
-                </div>
-              </div>
             </div>
 
             <div id="hints" class="d-none card">
-              <p class="info-content" id="hintUncommonWords"></p>
+                <p class="info-content" id="hintUncommonWords"></p>
             </div>
 
             <div id="questions-container"></div>
 
-          </div>
+            <div id="micStatusText" class="d-flex justify-content-center align-items-center"></div>
+
+            <!-- Chat Window Container -->
+            <div id="chat-window-container">
+                <div id="chat-window-header" class="card-header text-white p-0 chat-window-header">
+                    Joel's Fluency Team
+                </div>
+
+                <!-- CLEAN, EMPTY CONTAINER FOR PRODUCTION JS -->
+                <div id="chat-message-list" class="card-body chat-message-list text-dark">
+                </div>
+
+                <!-- Chat Input Footer -->
+                <div id="chat-input-area" class="card-footer bg-white border-top-0 w-100">
+                    <div class="input-group">
+                        <textarea id="chat-input-field" class="form-control" rows="2"
+                            placeholder="Ask your tutor a question..."></textarea>
+                        <button id="chat-send-button" class="btn btn-primary" type="button">
+                            <i class="bi bi-send-fill"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Overlay -->
+            <div class="bottom-overlay position-absolute bottom-0 start-0 w-100 z-1 d-flex flex-column">
+
+                <!-- Layer 1: The Reflecting Pool -->
+                <div class="reflecting-pool-bg"></div>
+
+                <!-- Layer 2: The Unmasked Content -->
+                <div class="bottom-overlay-content">
+                    <div class="mission-section">
+                        <div class="mission-row text-shadow">
+                            <div>
+                                <span class="mission-label">Mission</span>
+                                <span class="mission-text"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="controls-section">
+                        <div class="d-flex justify-content-between align-items-center w-100">
+
+                            <button class="btn call-btn" id="friendBtn" aria-label="Contact Friend">
+                                <img src="assets/img/userprofile.png" alt="Friend Profile" class="friend-img">
+                            </button>
+
+                            <div class="mic-btn-wrapper">
+                                <div class="mic-ring"></div>
+                                <div class="mic-ring"></div>
+                                <div class="mic-ring"></div>
+                                <button class="btn call-btn toggled-off" id="micBtn" aria-label="Toggle Microphone">
+                                    <i class="bi bi-mic-mute-fill"></i>
+                                </button>
+                            </div>
+
+                            <button class="btn call-btn" id="helpBtn" aria-label="Help">
+                                <i class="bi bi-question-circle-fill"></i>
+                            </button>
+
+                        </div>
+                    </div>
+                </div>
+
+            </div>
         </div>
-      </div>
+    </main>
 
-    </div>
-  </div>
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-  <div id="arrow-container" class="d-none">
-    <div class="arrow"></div>
-  </div>
-
-  <footer>
-    <div id="controls" class="fixed-bottom bg-dark p-1">
-      <div id="micStatusText" class="d-flex justify-content-center align-items-center"></div>
-      <div id="bottomButtonBar" class="d-flex justify-content-center gap-2 align-items-center">
-        <div id="bottomButtonBarLeft" class="me-auto ms-3"></div>
-        <div id="bottomButtonBarCenter" class="position-absolute start-50 translate-middle-x"></div>
-        <button id="supportButton" class="d-none btn bg-transparent text-white border-0 ms-auto me-3"
-          data-bs-toggle="modal" data-bs-target="#chatModal">
-          <i class="bi bi-chat-fill"></i>
-        </button>
-      </div>
-      <div id="bottomButtonBarSuccess" class="d-flex justify-content-center gap-2 align-items-center d-none">
-        <div id="bottomButtonBarLeft" class="me-auto ms-3"></div>
-        <div id="bottomButtonBarCenterSuccess" class="position-absolute start-50 translate-middle-x">
-          <button id="processBtn" class="btn btn-primary">
-            <strong class="bi bi-award-fill text-white"></strong>
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <div class="modal fade" id="chatModal" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-          <div class="modal-header">
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <button class="btn btn-success"
-              onclick="window.location.href='https://api.whatsapp.com/send/?phone=16179030597&text=app_support'">
-              <i class="bi bi-whatsapp"></i> Soporte Técnico por Whatsapp
-            </button>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </footer>
-
-  <script>
-    function toggleMenu() {
-      const menu = document.getElementById('overlayMenu');
-      menu.classList.toggle('active');
-      document.body.style.overflow = menu.classList.contains('active') ? 'hidden' : '';
-    }
-
-    document.addEventListener('click', function (event) {
-      const menu = document.getElementById('overlayMenu');
-      const isHamburger = event.target.closest('.hamburger-btn');
-      if (menu.classList.contains('active') && !menu.contains(event.target) && !isHamburger) {
-        menu.classList.remove('active');
-        document.body.style.overflow = '';
-      }
-    });
-
-    function setupUserDayRestrictions() {
-      if (typeof wp_user_data !== 'undefined' && wp_user_data.days_since_registration !== undefined) {
-        const days = wp_user_data.days_since_registration;
-        document.body.classList.add(`user-day-${days}`);
-        document.querySelectorAll('[class*="day-"][class*="-content"]').forEach(el => el.style.display = 'none');
-        for (let i = 0; i <= days; i++) {
-          document.querySelectorAll(`.day-${i}-content`).forEach(el => el.style.display = 'block');
-        }
-        handleDaySpecificLogic(days);
-      } else {
-        document.body.classList.add('user-day-guest');
-        document.querySelectorAll('[class*="day-"][class*="-content"]').forEach(el => el.style.display = 'none');
-      }
-    }
-
-    function handleDaySpecificLogic(days) {
-      const elementsToHide = [];
-      switch (days) {
-        case 0: elementsToHide.push('.premium-feature', '.advanced-content'); break;
-        case 1: elementsToHide.push('.premium-feature'); break;
-        case 2: elementsToHide.push('.complex-feature'); break;
-      }
-      if (elementsToHide.length > 0) {
-        document.querySelectorAll(elementsToHide.join(',')).forEach(el => el.style.display = 'none');
-      }
-    }
-
-    document.addEventListener('DOMContentLoaded', setupUserDayRestrictions);
-  </script>
-
-  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-  <script>
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    OneSignalDeferred.push(async function (OneSignal) {
-      await OneSignal.init({
-        appId: "064c0eb9-49d5-446f-b281-3eb3de310fdd",
-        serviceWorkerOverrideForTypical: true,
-        path: "https://ultrafastfluency.com/wp-content/plugins/onesignal-free-web-push-notifications/sdk_files/",
-        serviceWorkerParam: { scope: "https://ultrafastfluency.com/wp-content/plugins/onesignal-free-web-push-notifications/sdk_files/push/onesignal/" },
-        serviceWorkerPath: "OneSignalSDKWorker.js",
-      });
-    });
-
-    if (navigator.serviceWorker) {
-      navigator.serviceWorker.getRegistrations().then((registrations) => {
-        registrations.forEach((registration) => {
-          if (registration.active && registration.active.scriptURL.includes('OneSignalSDKWorker.js.php')) {
-            registration.unregister().then((success) => {
-              console.log(success ? 'OneSignalSW: Unregistered:' : 'OneSignalSW: Failed to unregister:', registration.active.scriptURL);
-            });
-          }
-        });
-      }).catch((error) => console.error('Error fetching service worker registrations:', error));
-    }
-  </script>
-
-  <script src="./node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-  <script type="module" src="js/app.js"></script>
-
+    <!-- App Module -->
+    <script type="module" src="js/app.js"></script>
 </body>
 
 </html>

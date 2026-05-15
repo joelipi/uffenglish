@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson | UFF English</title>
+
+
+  <link rel="icon" href="/assets/favicon-32x32-YzzxzIhk.jpeg" sizes="32x32">
+  <link rel="icon" href="/assets/teacherprofile-edLSdN6N.jpeg" sizes="192x192">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon-BK9R0ckt.jpeg">
+
+  <script>
+    (function (c, l, a, r, i, t, y) {
+      c[a] = c[a] || function () { (c[a].q = c[a].q || []).push(arguments) };
+      t = l.createElement(r); t.async = 1; t.src = "https://www.clarity.ms/tag/" + i + "?ref=wordpress";
+      y = l.getElementsByTagName(r)[0]; y.parentNode.insertBefore(t, y);
+    })(window, document, "clarity", "script", "qq9dqk1hjl");
+
+    (function () {
+      window.ybug_settings = { "id": "z69gx22kp6h243vpdpjb" };
+      var ybug = document.createElement('script');
+      ybug.type = 'text/javascript'; ybug.async = true;
+      ybug.src = 'https://widget.ybug.io/button/' + window.ybug_settings.id + '.js';
+      document.getElementsByTagName('script')[0].parentNode.insertBefore(ybug, document.getElementsByTagName('script')[0]);
+    })();
+  </script>
+  <script type="module" crossorigin src="/assets/modulepreload-polyfill-DfS4ul37.js"></script>
+  <script type="module" crossorigin src="/assets/chunk-CcdRbIIE.js"></script>
+  <script type="module" crossorigin src="/assets/preload-helper-BEFjQwLd.js"></script>
+  <script type="module" crossorigin src="/assets/api-BmnlLuAz.js"></script>
+  <script type="module" crossorigin src="/assets/user-profile-CPUyiSvz.js"></script>
+  <script type="module" crossorigin src="/assets/app-vad-asr-web-DI5Lx5yO.js"></script>
+  <script type="module" crossorigin src="/assets/app-63byk5hp.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/lesson-DoPGwjiM.css">
+  <link rel="stylesheet" crossorigin href="/assets/style-D2AHlh6N.css">
+  <link rel="stylesheet" crossorigin href="/assets/bootstrap-CwawXFoc.css">
+</head>
+
+<body>
+
+  <div id="appLoadingImageDiv">
+    <div class="appLoadingImage"></div>
+    <div id="ui-progress-container">
+      <div id="ui-progress-bar"></div>
+    </div>
+    <p id="ui-loading-text">Loading...</p>
+  </div>
+
+  <script>
+    (function () {
+      window.preloadedMedia = {};
+
+      window.preloadLessonAssets = function (lessonData, buildVideoUrlFn) {
+        return new Promise(async (resolveApp) => {
+          let progress = 0;
+          const preloader = document.getElementById('appLoadingImageDiv');
+          const progressBar = document.getElementById('ui-progress-bar');
+          const loadingText = document.getElementById('ui-loading-text');
+
+          const progressInterval = setInterval(() => {
+            progress += (95 - progress) * 0.05;
+            if (progressBar) progressBar.style.width = progress + '%';
+          }, 100);
+
+          try {
+            if (lessonData?.questions && lessonData.questions[0]) {
+              const firstQ = lessonData.questions[0];
+              const slugToWarm = firstQ.videoUrl || firstQ.simpleVideoUrl || firstQ.introBackgroundVideoUrl;
+              if (slugToWarm) fetch(buildVideoUrlFn(slugToWarm)).catch(() => { });
+            }
+
+            const imageUrls = [
+              'assets/img/header.png',
+              'assets/img/teacherprofile.jpeg',
+              'assets/img/party-brain.webp'
+            ];
+
+            const imagePromises = imageUrls.map(url => new Promise(resolve => {
+              const img = new Image();
+              img.onload = resolve; img.onerror = resolve;
+              img.src = url;
+            }));
+
+            await Promise.race([Promise.all(imagePromises), new Promise(resolve => setTimeout(resolve, 1500))]);
+
+            clearInterval(progressInterval);
+            if (progressBar) progressBar.style.width = '100%';
+            if (loadingText) loadingText.innerText = 'Ready!';
+
+            setTimeout(() => {
+              if (preloader) preloader.style.display = 'none';
+              resolveApp();
+            }, 250);
+
+          } catch (error) {
+            console.error("Failsafe unlocked preloader:", error);
+            clearInterval(progressInterval);
+            if (preloader) preloader.style.display = 'none';
+            resolveApp();
+          }
+        });
+      };
+    })();
+  </script>
+
+  <div class="overlay-menu" id="overlayMenu">
+    <button class="overlay-close" onclick="toggleMenu()">&times;</button>
+    <ul>
+      <li><a href="#about" onclick="toggleMenu()">About</a></li>
+      <li><a href="#" onclick="toggleMenu()" data-bs-toggle="modal" data-bs-target="#returnPolicyModal">Return
+          Policy</a></li>
+      <li><a href="#signup" onclick="toggleMenu()">Sign Up</a></li>
+      <li id="auth-menu-item"><a href="#" id="auth-link" onclick="toggleMenu()">Sign In</a></li>
+    </ul>
+  </div>
+
+  <div id="app">
+    <div class="container">
+
+      <div id="lesson-header">
+        <div id="lessonIntroHeader">
+          <div id="wideHeader" class="d-flex justify-content-between align-items-center">
+            <img src="/assets/header-C1FW5jiU.png" id="uffposter" alt="">
+            <div class="flex-grow-1 mx-1"></div>
+            <div class="d-flex align-items-center hamburger-container">
+              <button class="hamburger-btn" onclick="toggleMenu();">
+                <div class="hamburger-icon">
+                  <span></span><span></span><span></span>
+                </div>
+              </button>
+            </div>
+          </div>
+          <div class="lesson-title lesson-title-header"></div>
+        </div>
+
+        <div id="closeAndProgress" class="d-flex justify-content-between align-items-center d-none">
+          <a href="homescreen.html" id="closePage" class="d-flex align-items-center text-decoration-none">
+            <i class="bi bi-x-lg"></i>
+          </a>
+          <div class="flex-grow-1 mx-1">
+            <div id="progress" class="progress">
+              <div id="progress-bar" class="progress-bar" role="progressbar"></div>
+            </div>
+          </div>
+          <div class="d-flex align-items-center text-white gap-3 stats-container">
+            <div title="Listening Score">
+              <i class="bi bi-ear-fill"></i>
+              <span id="currentScore">100</span>%
+            </div>
+            <div title="Pronunciation Score">
+              <span style="font-size: 1.2rem;">👄</span>
+              <span id="phrasesScore">__</span>%
+            </div>
+          </div>
+          <div class="d-flex align-items-center hamburger-container ms-3">
+            <button class="hamburger-btn" onclick="toggleMenu();">
+              <div class="hamburger-icon">
+                <span></span><span></span><span></span>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="container mt-2" id="container">
+        <!-- SINGLE FULL-WIDTH ROW FOR EVERYTHING -->
+        <div class="row">
+          <div id="main-column" class="col-12 mb-2">
+
+            <!-- 1. Playback Video (Stays at the top) -->
+            <div id="playback-video-wrapper" class="playback-video-container position-relative mb-2">
+              <video id="playback-video" playsinline controls preload="auto"
+                style="display: none; width: 100%; border-radius: 8px;"></video>
+              <button id="playback-mute-toggle" class="playback-mute-toggle d-none position-absolute bottom-0 end-0 m-2"
+                style="z-index: 10;">
+                <i class="bi bi-volume-up-fill"></i>
+              </button>
+            </div>
+
+            <!-- 2. Main Video Container (above the chat) -->
+            <div id="media-container">
+              <div id="ivp-container">
+                <div class="ivp-main-wrapper loading" id="ivp-main-wrapper">
+                  <div class="ivp-video-wrapper">
+                    <video class="ivp-video" playsinline crossorigin="anonymous"></video>
+                    <div class="ivp-blur-overlay"></div>
+                    <div class="ivp-subtitles"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div id="simple-ivp-container"></div>
+
+              <div id="intro-call-widget" class="intro-video-wrapper d-none">
+                <div class="pulse-ring-wrapper">
+                  <div class="pulse-ring"></div>
+                  <div class="intro-video-container ringing-animation">
+                    <video class="intro-video" playsinline preload="auto" crossorigin="anonymous" muted></video>
+                    <div class="intro-notification-content">
+                      <div class="intro-notification-top">
+                        <div class="intro-call-title">
+                          <i class="bi bi-camera-video-fill text-info"></i>
+                          <span id="intro-title">Ringing...</span>
+                        </div>
+                        <div class="intro-call-subtitle"><span lang="es"><i id="intro-subtitle"></i></span></div>
+                      </div>
+                      <div class="intro-notification-bottom">
+                        <div class="intro-caller-name" id="intro-name">Joe Walsh</div>
+                        <div class="intro-caller-title" id="intro-role">English Coach, UFF</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. Chat Window (flows below the videos) -->
+            <div id="chat-window-container" class="card border-dark p-0 d-none mb-2">
+
+              <!-- Chat Header -->
+              <div id="chat-window-header" class="card-header text-white p-0 chat-window-header">
+                <!--Hiding this chat scores table while I decide whether to keep it and if so, where to put it-->
+                <table id="chat-scores-table" class="d-none w-100 h-100"
+                  style="border-collapse:collapse;table-layout:fixed;background:transparent;border:none;color:white;">
+                  <tbody>
+                    <tr id="chat-scores-row-avatars">
+                      <td id="chat-score-cell-pronunciation" class="text-center p-0" style="border:none;">
+                        <img src="/assets/pronunciationbot-B1YrTwd5.png" alt="Pronunciation" class="w-100"
+                          style="display:block;object-fit:contain;">
+                      </td>
+                      <td id="chat-score-cell-listening" class="text-center p-0" style="border:none;">
+                        <img src="/assets/listeningbot-graH9EVW.png" alt="Listening" class="w-100"
+                          style="display:block;object-fit:contain;">
+                      </td>
+                      <td id="chat-score-cell-flow" class="text-center p-0" style="border:none;">
+                        <img src="data:image/png;base64,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" alt="Flow" class="w-100"
+                          style="display:block;object-fit:contain;">
+                      </td>
+                      <td id="chat-score-cell-vocabulary" class="text-center p-0" style="border:none;">
+                        <img src="assets/img/vocabularybot.png" alt="Vocabulary" class="w-100"
+                          style="display:block;object-fit:contain;">
+                      </td>
+                      <td id="chat-score-cell-grammar" class="text-center p-0" style="border:none;">
+                        <img src="assets/img/grammarbot.png" alt="Grammar" class="w-100"
+                          style="display:block;object-fit:contain;">
+                      </td>
+                      <td id="chat-score-cell-formality" class="text-center p-0" style="border:none;">
+                        <img src="assets/img/speakingbot.png" alt="Formality" class="w-100"
+                          style="display:block;object-fit:contain;">
+                      </td>
+                      <td id="chat-score-cell-nativelike" class="text-center p-0" style="border:none;">
+                        <img src="assets/img/idiombot.png" alt="Idiom" class="w-100"
+                          style="display:block;object-fit:contain;">
+                      </td>
+                      <td id="chat-score-cell-understanding" class="text-center p-0" style="border:none;">
+                        <img src="assets/img/pragmaticsbot.png" alt="Understanding" class="w-100"
+                          style="display:block;object-fit:contain;">
+                      </td>
+                      <td id="chat-score-cell-fluency" class="text-center p-0" style="border:none;">
+                        <img src="/assets/teacherprofile-edLSdN6N.jpeg" alt="Joe Walsh" class="w-100"
+                          style="display:block;object-fit:contain;">
+                      </td>
+                    </tr>
+                    <tr id="chat-scores-row-numbers">
+                      <td id="chat-score-num-cell-pronunciation" class="text-center p-0" style="border:none;">
+                        <span id="chat-score-pronunciation"></span>
+                      </td>
+                      <td id="chat-score-num-cell-listening" class="text-center p-0" style="border:none;">
+                        <span id="chat-score-listening"></span>
+                      </td>
+                      <td id="chat-score-num-cell-flow" class="text-center p-0" style="border:none;">
+                        <span id="chat-score-flow"></span>
+                      </td>
+                      <td id="chat-score-num-cell-vocabulary" class="text-center p-0" style="border:none;">
+                        <span id="chat-score-vocabulary"></span>
+                      </td>
+                      <td id="chat-score-num-cell-grammar" class="text-center p-0" style="border:none;">
+                        <span id="chat-score-grammar"></span>
+                      </td>
+                      <td id="chat-score-num-cell-formality" class="text-center p-0" style="border:none;">
+                        <span id="chat-score-formality"></span>
+                      </td>
+                      <td id="chat-score-num-cell-nativelike" class="text-center p-0" style="border:none;">
+                        <span id="chat-score-nativelike"></span>
+                      </td>
+                      <td id="chat-score-num-cell-understanding" class="text-center p-0" style="border:none;">
+                        <span id="chat-score-understanding"></span>
+                      </td>
+                      <td id="chat-score-num-cell-fluency" class="text-center p-0" style="border:none;">
+                        <span id="chat-score-fluency"></span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Chat Message List (Dynamic Injection Target) -->
+              <div id="chat-message-list" class="card-body chat-message-list text-dark"></div>
+
+              <!-- Chat Input Footer -->
+              <div id="chat-input-area" class="card-footer bg-white border-top-0 d-none">
+                <div class="input-group">
+                  <textarea id="chat-input-field" class="form-control" rows="2"
+                    placeholder="Ask your tutor a question..."></textarea>
+                  <button id="chat-send-button" class="btn btn-primary" type="button">
+                    <i class="bi bi-send-fill"></i>
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            <div id="big-buttons" class="d-flex justify-content-center mt-0 mb-5 big-buttons d-none">
+              <h3>Agrega tu video a redes con #uffenglish y ver cómo otros estudiantes han respondido a este video</h3>
+              <button id="shareMp4Btn" class="d-none">Agrega a redes</button>
+              <h3>Repetir esta lección a ver si puedes mejorar tu Fluency Score</h3>
+              <button id="repeatBtnSuccess" class="repeat-btn">Repeat</button>
+              <h3>¡Comparte esta lección con un amigo y compara Fluency Scores!</h3>
+              <button id="shareFriend">Comparte</button>
+              <br>
+              <h2>Has ganado 1 frase <br><b class="bi bi-gem"></b></h2>
+              <h3>¡No pierdas tu progreso!</h3>
+              <p class="text-white">Guarda Tu Progreso, Ser Notificado de Lecciones Gratuitas Nuevas, Recordar las
+                frases dominadas con repasos puntuales, y Agrega la App a Tu Pantalla de Inicio</p>
+              <button id="logIn" onclick="window.location.href='/membership-join/membership-registration/'">Comenzar
+                aquí</button>
+            </div>
+
+            <!-- HIDDEN FUNCTIONAL ELEMENTS (Previously in the right column) -->
+            <video id="originalVideo" src="" class="d-none"></video>
+            <video id="resultVideo" class="d-none"></video>
+            <a id="downloadLink" class="d-none">Download</a>
+            <canvas id="videoCanvas" class="d-none"></canvas>
+            <img id="overlayImage" src="/assets/header-C1FW5jiU.png" class="d-none">
+
+            <div id="answerDiv" class="card-wrapper d-none">
+              <div class="card info-card">
+                <div class="card-header bg-dark text-white" id="cue"></div>
+                <div class="card-body">
+                  <p class="info-content" id="translation"></p>
+                  <p class="info-content" id="explanation"></p>
+                </div>
+              </div>
+            </div>
+
+            <div id="courseProgress" class="d-none card border-dark mb-3 p-0">
+              <div class="card-header text-white p-0 card-header-custom" id="correct">
+                <div class="d-flex align-items-center p-3">
+                  <img src="/assets/teacherprofile-edLSdN6N.jpeg" alt="Joe Walsh" class="rounded-circle me-3 chat-avatar"
+                    style="width: 40px; height: 40px; object-fit: cover;">
+                  <div>Prof. Joe Walsh<div class="mt-1"><small>English Fluency Coach, UFF</small></div>
+                  </div>
+                </div>
+              </div>
+              <div id="fail-media" class="d-none"></div>
+              <div class="card-body chat-message-list text-dark">
+                <div id="success-media" class="d-none">
+                  <div class="text-center mb-3">
+                    <img src="/assets/party-brain-Cx8xHJrj.webp" width="250px" alt="">
+                  </div>
+                </div>
+                <div class="chat-message-row chat-message-row--system">
+                  <div class="chat-message-bubble chat-message-bubble--system">
+                    💯 Lesson complete! ¡Lección completada!
+                  </div>
+                </div>
+                <div class="chat-message-row chat-message-row--system">
+                  <div class="chat-message-bubble chat-message-bubble--system">
+                    <p class="nextHeadsup mb-0">Puedes repetir <i class="bi bi-arrow-counterclockwise"></i> esta lección
+                      o
+                      continuar <i class="bi bi-chevron-right"></i> a la próxima pulsando uno de los botones abajo.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div id="hints" class="d-none card">
+              <p class="info-content" id="hintUncommonWords"></p>
+            </div>
+
+            <div id="questions-container"></div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="arrow-container" class="d-none">
+    <div class="arrow"></div>
+  </div>
+
+  <footer>
+    <div id="controls" class="fixed-bottom bg-dark p-1">
+      <div id="micStatusText" class="d-flex justify-content-center align-items-center"></div>
+      <div id="bottomButtonBar" class="d-flex justify-content-center gap-2 align-items-center">
+        <div id="bottomButtonBarLeft" class="me-auto ms-3"></div>
+        <div id="bottomButtonBarCenter" class="position-absolute start-50 translate-middle-x"></div>
+        <button id="supportButton" class="d-none btn bg-transparent text-white border-0 ms-auto me-3"
+          data-bs-toggle="modal" data-bs-target="#chatModal">
+          <i class="bi bi-chat-fill"></i>
+        </button>
+      </div>
+      <div id="bottomButtonBarSuccess" class="d-flex justify-content-center gap-2 align-items-center d-none">
+        <div id="bottomButtonBarLeft" class="me-auto ms-3"></div>
+        <div id="bottomButtonBarCenterSuccess" class="position-absolute start-50 translate-middle-x">
+          <button id="processBtn" class="btn btn-primary">
+            <strong class="bi bi-award-fill text-white"></strong>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="chatModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <button class="btn btn-success"
+              onclick="window.location.href='https://api.whatsapp.com/send/?phone=16179030597&text=app_support'">
+              <i class="bi bi-whatsapp"></i> Soporte Técnico por Whatsapp
+            </button>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    function toggleMenu() {
+      const menu = document.getElementById('overlayMenu');
+      menu.classList.toggle('active');
+      document.body.style.overflow = menu.classList.contains('active') ? 'hidden' : '';
+    }
+
+    document.addEventListener('click', function (event) {
+      const menu = document.getElementById('overlayMenu');
+      const isHamburger = event.target.closest('.hamburger-btn');
+      if (menu.classList.contains('active') && !menu.contains(event.target) && !isHamburger) {
+        menu.classList.remove('active');
+        document.body.style.overflow = '';
+      }
+    });
+
+    function setupUserDayRestrictions() {
+      if (typeof wp_user_data !== 'undefined' && wp_user_data.days_since_registration !== undefined) {
+        const days = wp_user_data.days_since_registration;
+        document.body.classList.add(`user-day-${days}`);
+        document.querySelectorAll('[class*="day-"][class*="-content"]').forEach(el => el.style.display = 'none');
+        for (let i = 0; i <= days; i++) {
+          document.querySelectorAll(`.day-${i}-content`).forEach(el => el.style.display = 'block');
+        }
+        handleDaySpecificLogic(days);
+      } else {
+        document.body.classList.add('user-day-guest');
+        document.querySelectorAll('[class*="day-"][class*="-content"]').forEach(el => el.style.display = 'none');
+      }
+    }
+
+    function handleDaySpecificLogic(days) {
+      const elementsToHide = [];
+      switch (days) {
+        case 0: elementsToHide.push('.premium-feature', '.advanced-content'); break;
+        case 1: elementsToHide.push('.premium-feature'); break;
+        case 2: elementsToHide.push('.complex-feature'); break;
+      }
+      if (elementsToHide.length > 0) {
+        document.querySelectorAll(elementsToHide.join(',')).forEach(el => el.style.display = 'none');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', setupUserDayRestrictions);
+  </script>
+
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function (OneSignal) {
+      await OneSignal.init({
+        appId: "064c0eb9-49d5-446f-b281-3eb3de310fdd",
+        serviceWorkerOverrideForTypical: true,
+        path: "https://ultrafastfluency.com/wp-content/plugins/onesignal-free-web-push-notifications/sdk_files/",
+        serviceWorkerParam: { scope: "https://ultrafastfluency.com/wp-content/plugins/onesignal-free-web-push-notifications/sdk_files/push/onesignal/" },
+        serviceWorkerPath: "OneSignalSDKWorker.js",
+      });
+    });
+
+    if (navigator.serviceWorker) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((registration) => {
+          if (registration.active && registration.active.scriptURL.includes('OneSignalSDKWorker.js.php')) {
+            registration.unregister().then((success) => {
+              console.log(success ? 'OneSignalSW: Unregistered:' : 'OneSignalSW: Failed to unregister:', registration.active.scriptURL);
+            });
+          }
+        });
+      }).catch((error) => console.error('Error fetching service worker registrations:', error));
+    }
+  </script>
+
+  <script src="./node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+
+</html>

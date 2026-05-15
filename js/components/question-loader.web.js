@@ -45,7 +45,9 @@ import {
     clearMicStatusAndHideMedia,
     removeWebcamPreview,
     renderWhisperReviewUI,
-    updateWhisperTimer
+    updateWhisperTimer,
+    showContinueButton,
+    hideContinueButton
 } from './ui.js';
 
 function beforeUnloadHandler(e) { /* e.preventDefault(); e.returnValue = ''; return ''; */ }
@@ -185,7 +187,8 @@ function _renderSpeechOrAI(question, lesson, deps) {
             question.inputType === "speech" ? null : () => handleHint(qIndex),
             handleRevealClick,
             async () => {
-                const speechButton = document.getElementById('speechButton');
+                const speechButton = document.getElementById('micBtn');
+
                 try {
                     await toggleSpeechRecognition({
                         button: speechButton,
@@ -200,9 +203,19 @@ function _renderSpeechOrAI(question, lesson, deps) {
                         uiHooks: {
                             onPauseVideo: () => Media.pauseVideoIfPlaying(),
                             onMicDisable: (btn) => {
-                                if (btn) btn.style.display = "none";
+                                window.isMicActive = false; // Release the lock
+                                if (btn) {
+                                    btn.classList.add('toggled-off');
+                                    btn.innerHTML = '<i class="bi bi-mic-mute-fill"></i>';
+                                    stopMicAnimation(btn);
+                                }
                             },
                             onRecordingStart: (userData) => {
+                                window.isMicActive = true; // Lock the video timer
+                                // Force video pause just in case
+                                if (window.currentVideoPlayer && window.currentVideoPlayer.video) {
+                                    window.currentVideoPlayer.video.pause();
+                                }
                                 setMicStatusText(`<div class="text-center"><div class="mb-0" style="color: green; font-size: 30px;"><i class="bi bi-mic" style="color: green; font-size: 100px !important;"></i><br>${Strings.get('status_speak', userData?.native_language)}</div></div>`);
                             },
                             onEngineNotReady: (userData) => {
@@ -211,45 +224,60 @@ function _renderSpeechOrAI(question, lesson, deps) {
                             },
                             onEngineReady: (btn) => {
                                 if (btn) {
-                                    btn.style.display = "inline-block";
+                                    btn.style.display = "flex";
                                     btn.disabled = false;
-                                    btn.classList.remove('disabled', 'btn-danger', 'btn-danger-recording');
-                                    btn.innerHTML = '<i class="bi bi-mic-fill"></i>';
+                                    btn.classList.add('toggled-off');
+                                    btn.innerHTML = '<i class="bi bi-mic-mute-fill"></i>';
                                 }
                                 setMicStatusText(`<div class='text-center text-success mt-2'><i class="bi bi-check-circle"></i> Engine ready. Try speaking now!</div>`);
                             },
                             onRecordingActive: (btn) => {
                                 if (btn) {
-                                    btn.style.display = "inline-block";
-                                    btn.innerHTML = '<i class="bi bi-mic-mute-fill"></i>';
-                                    btn.classList.add('btn-danger');
+                                    btn.style.display = "flex";
+                                    btn.innerHTML = '<i class="bi bi-mic-fill"></i>';
+                                    btn.classList.remove('toggled-off', 'btn-danger', 'disabled');
+                                    startMicAnimation(btn);
                                 }
                             },
                             onRecordingStop: (btn) => {
-                                if (btn) btn.style.display = "none";
+                                window.isMicActive = false; // Release the lock
+                                if (btn) {
+                                    btn.classList.add('toggled-off');
+                                    btn.innerHTML = '<i class="bi bi-mic-mute-fill"></i>';
+                                    stopMicAnimation(btn);
+                                }
                                 clearMicStatusAndHideMedia();
                                 setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Analyzing Speech...</div>`);
                             },
                             onStopEarly: (userData) => {
+                                window.isMicActive = false; // Release the lock
                                 prepareMediaUI();
                                 setMicStatusText(`<div class='text-center' style='color: red; font-size: large;'><i class='bi bi-exclamation-triangle-fill'></i> ${Strings.get('try_again_speech', userData?.native_language)}</div>`);
                             },
                             onGibberishDetected: () => {
+                                window.isMicActive = false; // Release the lock
                                 setMicStatusText(`<div class='text-center mt-3' style='color: #ff9800; font-size: large;'><i class='bi bi-ear-x'></i> Audio unclear. Please try speaking clearly.</div>`);
                             },
                             onPreflightRejected: (msg) => {
+                                window.isMicActive = false; // Release the lock
                                 clearPlaybackVideo();
                                 removeWebcamPreview();
                                 window.dispatchEvent(new CustomEvent('preflightRejected'));
                                 setMicStatusText(`<div class='text-center text-danger'>${msg}</div>`);
+                                const btn = document.getElementById('micBtn');
+                                if (btn) stopMicAnimation(btn);
                             },
                             onTranscriptRejected: (cue, transcript) => {
+                                window.isMicActive = false; // Release the lock
                                 clearPlaybackVideo();
                                 removeWebcamPreview();
                                 window.dispatchEvent(new CustomEvent('transcriptRejected', { detail: { cue, transcript } }));
                                 setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Restarting Mic...</div>`);
+                                const btn = document.getElementById('micBtn');
+                                if (btn) stopMicAnimation(btn);
                             },
                             onReviewStart: (transcript, timeLeft, acceptFn, rejectFn) => {
+                                window.isMicActive = false; // Release the lock
                                 renderWhisperReviewUI(transcript, timeLeft, acceptFn, rejectFn);
                             },
                             onReviewUpdate: (timeLeft) => {
@@ -266,32 +294,6 @@ function _renderSpeechOrAI(question, lesson, deps) {
             }
         );
     }
-}
-
-function _renderLessonIntro(question, lesson, showFeedbackAndProceed) {
-    toggleScoresAndHearts(false);
-    State.repeatPointsHistory = [];
-    State.rolePlayPointsHistory = [];
-    hideAnswerDiv();
-
-    if (!question.simpleVideoUrl && question.explanation) {
-        const lang = State.userData?.native_language; const localizedTrans = getLocalizedTranslation(question.translation, lang); const hasTranslation = !!localizedTrans;
-        const imagineStr = Strings.get('imagine', lang); const listenRepeatStr = Strings.get('listen_repeat', lang);
-
-        const explanationStr = `
-            <p class='explanation'>
-              <strong>${imagineStr.split('<br>')[0]}</strong> ${question.explanation}
-              <br><br>
-              ➡${listenRepeatStr.split('<br>')[0]}
-              ${hasTranslation && lang !== 'en' ? `<br><br><span lang='${lang}'><i><strong>🎯${imagineStr.includes('<br>') ? imagineStr.split('<i>')[1].split('<i>')[0] : imagineStr}</strong>${localizedTrans}<br><br>${listenRepeatStr.includes('<br>') ? listenRepeatStr.split('<i>')[1].split('<i>')[0] : listenRepeatStr}</i></span>` : ''}
-            </p>`;
-
-        renderAIFeedback([
-            `<p class='lesson-name'><strong>Lesson: ${lesson.title}</strong></p>`,
-            explanationStr
-        ]);
-    }
-    showFeedbackAndProceed(question, true);
 }
 
 function _renderPresent(question, lesson, showFeedbackAndProceed) {
@@ -323,7 +325,7 @@ function _renderSuccess(question, fluencyData) {
 
     window.__currentConfigData = State.configData;
 
-    initVideoProcessor(question.cue, fluencyData, question.lessonId);
+    processVideo(fluencyData, question.lessonId);
     State.successHandler.handleSuccessLesson(question);
 
     const currentLesson = State.configData.lessons[State.currentLessonIndex];
@@ -343,4 +345,65 @@ function _renderSuccess(question, fluencyData) {
     };
 
     try { hideWebcamPreview(); } catch (error) { }
+}
+
+function _renderLessonIntro(question, lesson, deps) {
+    const { submitAnswerPrecheck } = deps;
+
+    // Ensure the hints are hidden for the intro screen
+    hideHints();
+
+    // Show the big incoming call buttons (Video, Audio, Text)
+    // ui.js handles setting the State.isTextMode / State.isCameraOff flags
+    showContinueButton(
+        true, // isLessonIntro flag
+        () => {
+            // Called if Video or Text mode is selected
+            hideContinueButton();
+            submitAnswerPrecheck("started_lesson", question.cue, question, null, question.explanation, question.translation, { pauseCount: 0, netDuration: 0 });
+        },
+        () => {
+            // Called if Audio-only mode is selected
+            hideContinueButton();
+            submitAnswerPrecheck("started_lesson", question.cue, question, null, question.explanation, question.translation, { pauseCount: 0, netDuration: 0 });
+        }
+    );
+}
+
+// --- LIQUID UI MIC ANIMATIONS ---
+let micAnimations = [];
+
+function startMicAnimation(btn) {
+    if (!btn) return;
+    const rings = btn.parentElement.querySelectorAll('.mic-ring');
+    if (rings.length === 0) return;
+
+    const duration = 2000;
+    const delays = [0, 650, 1300];
+
+    rings.forEach((ring, index) => {
+        ring.style.opacity = '0.7';
+        const anim = ring.animate([
+            { transform: 'scale(1)', opacity: 0.7 },
+            { transform: 'scale(2.6)', opacity: 0 }
+        ], {
+            duration: duration,
+            delay: delays[index],
+            iterations: Infinity,
+            easing: 'ease-out'
+        });
+        micAnimations.push(anim);
+    });
+}
+
+function stopMicAnimation(btn) {
+    micAnimations.forEach(anim => anim.cancel());
+    micAnimations = [];
+
+    if (!btn) return;
+    const rings = btn.parentElement.querySelectorAll('.mic-ring');
+    rings.forEach(ring => {
+        ring.style.opacity = '0';
+        ring.style.transform = 'scale(1)';
+    });
 }

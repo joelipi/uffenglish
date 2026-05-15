@@ -21,16 +21,14 @@ export class SuccessLessonHandler {
     // State management
     this.updateState = updateState;
     
-    // UI elements
-    this.uiElements = {
-      scoresAndHearts: uiElements.scoresAndHearts,
-      progressbar: uiElements.progressbar,
-      progressBarFill: uiElements.progressBarFill,
-      speechTextHere: uiElements.speechTextHere,
-      bottomButtonBarCenter: uiElements.bottomButtonBarCenter,
-      bottomButtonBarLeft: uiElements.bottomButtonBarLeft,
-      hearts: uiElements.hearts
-    };
+// UI elements
+     this.uiElements = {
+       statsContainer: uiElements.statsContainer,
+       progressbar: uiElements.progressbar,
+       progressBarFill: uiElements.progressBarFill,
+       speechTextHere: uiElements.speechTextHere,
+       chatMessageList: uiElements.chatMessageList
+     };
     
     // Internal state
     this.hasPlayed = false;
@@ -65,33 +63,27 @@ export class SuccessLessonHandler {
     `;*/
   }
 
-  updateUI(lessonAverage) {
-    this.uiElements.speechTextHere.classList.add('d-none');
-    this.uiElements.scoresAndHearts.classList.add('d-none');
-    //this.uiElements.progressbar.classList.remove('invisible');
-    this.uiElements.progressBarFill.style.width = "100%";
-    
-    // Only show success media if fluencyScore is at least 90
-    /*
-    if (lessonAverage >= 90) {
-      this.uiElements.successMedia.classList.remove("d-none");
-      setTimeout(() => {
-        this.uiElements.successMedia.classList.add("d-none");
-      }, 1200);
-    } else {
-      // Ensure it's hidden if score is below 90
-      this.uiElements.successMedia.classList.add("d-none");
-    }
-    
-    this.uiElements.courseProgress.classList.remove("d-none");
-    */
-    // Reset hearts display
-    this.uiElements.hearts.forEach(heart => {
-      if (heart) {
-        heart.classList.remove("falling-image", "d-none");
-      }
-    });
-  }
+updateUI(lessonAverage) {
+     this.uiElements.speechTextHere.classList.add('d-none');
+     if (this.uiElements.statsContainer) this.uiElements.statsContainer.classList.add('d-none');
+     //this.uiElements.progressbar.classList.remove('invisible');
+     this.uiElements.progressBarFill.style.width = "100%";
+
+     // Only show success media if fluencyScore is at least 90
+     /*
+     if (lessonAverage >= 90) {
+       this.uiElements.successMedia.classList.remove("d-none");
+       setTimeout(() => {
+         this.uiElements.successMedia.classList.add("d-none");
+       }, 1200);
+     } else {
+       // Ensure it's hidden if score is below 90
+       this.uiElements.successMedia.classList.add("d-none");
+     }
+
+     this.uiElements.courseProgress.classList.remove("d-none");
+     */
+   }
 
   handleSuccessLesson(question) {
     if (!question?.lessonId) {
@@ -113,96 +105,80 @@ export class SuccessLessonHandler {
     this.playEffects(lessonAverage);
   }
 
-  createContinueButton() {
-    let continueButton = document.getElementById('continueButton');
-    const { bottomButtonBarCenter } = this.uiElements;
+createContinueButton() {
+     let continueButton = document.getElementById('continueButton');
+     const { chatMessageList } = this.uiElements;
 
-    if (!continueButton) {
-      continueButton = document.createElement('button');
-      continueButton.id = 'continueButton';
-      continueButton.className = 'btn btn-primary text-white w-100';
-      continueButton.innerHTML = '<i class="bi bi-chevron-right text-white" style="font-size: 40px; font-weight: 900;"></i>';
-      bottomButtonBarCenter.innerHTML = '';
-      bottomButtonBarCenter.appendChild(continueButton);
-    }
+     if (!continueButton) {
+       continueButton = document.createElement('button');
+       continueButton.id = 'continueButton';
+       continueButton.className = 'btn btn-primary text-white w-100';
+       continueButton.innerHTML = '<i class="bi bi-chevron-right text-white" style="font-size: 40px; font-weight: 900;"></i>';
+     }
 
-    bottomButtonBarCenter.className = 'position-absolute start-50 translate-middle-x';
-    continueButton.style.display = 'inline-block';
-    
-    continueButton.onclick = () => {
-      continueButton.style.display = 'none';
-      if (typeof this.loadNextLesson === 'function') {
-        this.loadNextLesson();
+     // Place inside chat-message-list as last system row
+     const systemRow = document.createElement('div');
+     systemRow.className = 'chat-message-row chat-message-row--system';
+     systemRow.id = 'continueButtonRow';
+     systemRow.appendChild(continueButton);
+
+     if (chatMessageList) {
+       chatMessageList.appendChild(systemRow);
+     }
+
+     continueButton.style.display = 'inline-block';
+
+     continueButton.onclick = () => {
+       continueButton.style.display = 'none';
+       if (typeof this.loadNextLesson === 'function') {
+         this.loadNextLesson();
+       }
+     };
+   }
+
+async createRepeatButton(question) {
+      const { chatMessageList } = this.uiElements;
+      if (!chatMessageList) return;
+
+      // Normalize lessonId by stripping all trailing 's'
+      const originalLessonId = question.lessonId?.trim();
+      if (!originalLessonId) {
+        console.warn("Invalid lessonId in question:", question);
+        return;
       }
-    };
-  }
 
-  async createRepeatButton(question) {
-    const { bottomButtonBarLeft } = this.uiElements;
-    if (!bottomButtonBarLeft) return;
-
-    bottomButtonBarLeft.innerHTML = '';
-
-    // Normalize lessonId by stripping all trailing 's'
-    const originalLessonId = question.lessonId?.trim();
-    if (!originalLessonId) {
-      console.warn("Invalid lessonId in question:", question);
-      return;
-    }
-    
-    // I modified it so that the end of lesson "success" question/view is now in the same lesson so the alteration is not necessary
-    //const baseLessonId = originalLessonId.replace(/s+$/, '');
       const baseLessonId = originalLessonId;
       console.log("baseLessonId: ", baseLessonId);
-/* This is not necessary if the "success" question/view is in the same lesson
-    // Find the base lesson in configData
-    // We fetch configData dynamically
-    const courseId = new URLSearchParams(window.location.search).get('courseid') || localStorage.getItem('currentCourse') || 'pronunciation';
-    let configData = queryClient.getQueryData(['course', 'config', courseId]);
-    if (!configData) {
-        // Use the queryFn logic from api.js if not in cache
-        const response = await fetch(`js/config/${courseId}.json`);
-        configData = await response.json();
-    }
-    const precedingLesson = configData.lessons.find(
-      l => l.lessonId === baseLessonId
-    );
-
-    if (!precedingLesson) {
-      console.warn(`Lesson not found for ID "${baseLessonId}"`);
-      return;
-    }
-*/
 
       const repeatButton = document.createElement('button');
-repeatButton.className = 'btn btn-primary text-white w-100 repeat-btn';
-repeatButton.setAttribute('id', 'repeatButton');
-repeatButton.innerHTML = '<i class="bi bi-arrow-counterclockwise text-white" style="font-size: 40px; font-weight: 900;"></i>';
-repeatButton.title = 'Repeat this lesson / Repetir esta lección';
+      repeatButton.className = 'btn btn-primary text-white w-100 repeat-btn';
+      repeatButton.setAttribute('id', 'repeatButton');
+      repeatButton.innerHTML = '<i class="bi bi-arrow-counterclockwise text-white" style="font-size: 40px; font-weight: 900;"></i>';
+      repeatButton.title = 'Repeat this lesson / Repetir esta lección';
 
-// Function to handle the repeat action
-const handleRepeat = () => {
-  // Get current URL without query params
-  const baseUrl = window.location.origin + window.location.pathname;
-  console.log("baseUrl: ", baseUrl);
-  // Build new URL with ?lessonId=baseLessonId
-  const newUrl = `${baseUrl}?lessonId=${encodeURIComponent(baseLessonId)}`;
-  console.log("newUrl: ", newUrl);
-  // Reload the page with the new URL
-  window.location.href = newUrl;
-};
+      // Function to handle the repeat action
+      const handleRepeat = () => {
+        // Get current URL without query params
+        const baseUrl = window.location.origin + window.location.pathname;
+        console.log("baseUrl: ", baseUrl);
+        // Build new URL with ?lessonId=baseLessonId
+        const newUrl = `${baseUrl}?lessonId=${encodeURIComponent(baseLessonId)}`;
+        console.log("newUrl: ", newUrl);
+        // Reload the page with the new URL
+        window.location.href = newUrl;
+      };
 
-// Set click handler for the new button
-repeatButton.onclick = handleRepeat;
+      // Set click handler for the new button
+      repeatButton.onclick = handleRepeat;
 
-// Also set the same handler for the existing button
-const existingRepeatBtn = document.getElementById('repeatBtnSuccess');
-if (existingRepeatBtn) {
-  existingRepeatBtn.onclick = handleRepeat;
-}
+      // Also set the same handler for the existing button
+      const existingRepeatBtn = document.getElementById('repeatBtnSuccess');
+      if (existingRepeatBtn) {
+        existingRepeatBtn.onclick = handleRepeat;
+      }
 
-    bottomButtonBarLeft.appendChild(repeatButton);
-  }
+      chatMessageList.appendChild(repeatButton);
+   }
 
   playEffects(lessonAverage) {
     this.playSound('lesson-complete-sound');

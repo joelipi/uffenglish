@@ -3,16 +3,17 @@
 // To see logs for a specific module, change its value to true in the window.enabledLogs object below.
 const originalConsoleLog = console.log;
 window.enabledLogs = {
-    whisper: false,   // Enabled for debugging microphone issues
-    recording: false,
-    speech: false,
-    api: false,
-    tanstack: false,
-    toggle: false,
-    ai: false,
-    analytics: false,
-    all: true // Enable all logs globally as requested
-};
+     whisper: false,
+     recording: false,
+     speech: false,
+     api: false,
+     tanstack: false,
+     toggle: false,
+     ai: false,
+     analytics: false,
+     ui: true,
+     all: true
+ };
 
 console.log = (msg, ...args) => {
     if (typeof msg === 'string') {
@@ -47,6 +48,7 @@ let nlpModelsReady = false;
 // --- UI & Media Components (Root Directory) ---
 import { SuccessLessonHandler } from './components/success-lesson.js';
 import { pointLoss } from './components/point-loss-animation.js';
+import { initMicAnimation } from './components/mic-animation.js';
 import { calculateCurrentStreak } from './modules/user-profile.js';
 import { updateActivityDisplay } from './components/ui.js';
 
@@ -87,82 +89,78 @@ import { buildFeedbackData, buildExplanationData } from './modules/feedback-buil
 import { renderFeedbackToHTML, renderExplanationsToHTML } from './components/feedback-renderer.js';
 import { loadQuestion as _loadQuestion } from './components/question-loader.js';
 import {
-    DOM,
-    flashElement,
-    disableAllButtons,
-    clearChatInterface,
-    renderUserResponse,
-    renderAIAnalysisLoading,
-    renderAIFeedback,
-    safeRenderChatInterface,
-    showHintsAndScroll,
-    hideHints,
-    clearMicStatusAndHideMedia,
-    setMicStatusText,
-    updateSpeakingScoreDisplay,
-    ensureWebcamPreview,
-    hideWebcamPreview,
-    removeWebcamPreview,
-    clearPlaybackVideo,
-    prepareMediaUI,
-    showPlaybackVideo,
-    markButtonAsCorrect,
-    markButtonAsIncorrect,
-    initTutorChatUI,
-    showTutorChatInput,
-    hideTutorChatInput,
-    getChatHistoryContext,
-    renderTutorMessage,
-    animateHeartLoss,
-    resetHeartsUI,
-    showContinueButton,
-    hideContinueButton,
-    renderFallbackContinueButton,
-    toggleScoresAndHearts,
-    setProgressBarWidth,
-    showMessageInQuestionsContainer,
-    showErrorMessageInQuestionsContainer,
-    setupLessonUI,
-    generateHangmanHint,
-    showGuestLoginModal,
-    initUISubscriptions,
-    handlecueUI,
-    handleIncueUI,
-    updateChatHeaderScores,
-    hidePreloader,
-    removeAILoadingStatus,
-    renderHangmanHint,
-    showMicWarning,
-    resetMicStatusWithQuestion,
-    bindAuthMenuUI
-} from './components/ui.js';
+     DOM,
+     flashElement,
+     disableAllButtons,
+     clearChatInterface,
+     renderUserResponse,
+     renderAIAnalysisLoading,
+     renderAIFeedback,
+     safeRenderChatInterface,
+     showHintsAndScroll,
+     hideHints,
+     clearMicStatusAndHideMedia,
+     setMicStatusText,
+     updateSpeakingScoreDisplay,
+     ensureWebcamPreview,
+     hideWebcamPreview,
+     removeWebcamPreview,
+     clearPlaybackVideo,
+     prepareMediaUI,
+     showPlaybackVideo,
+     markButtonAsCorrect,
+     markButtonAsIncorrect,
+     initTutorChatUI,
+     showTutorChatInput,
+     hideTutorChatInput,
+     getChatHistoryContext,
+     renderTutorMessage,
+     showContinueButton,
+     hideContinueButton,
+     renderFallbackContinueButton,
+     toggleScoresAndHearts,
+     setProgressBarWidth,
+     showMessageInQuestionsContainer,
+     showErrorMessageInQuestionsContainer,
+     setupLessonUI,
+     generateHangmanHint,
+showGuestLoginModal,
+      initUISubscriptions,
+     handlecueUI,
+     handleIncueUI,
+     updateChatHeaderScores,
+     hidePreloader,
+     removeAILoadingStatus,
+     renderHangmanHint,
+     showMicWarning,
+     resetMicStatusWithQuestion,
+     bindAuthMenuUI
+ } from './components/ui.js';
 import { idiomChecker } from './modules/idiom-checker.js';
 import { calculateSyntacticComplexity } from './modules/complexity.js';
 
-const hearts = [DOM.heart1, DOM.heart2, DOM.heart3];
-
 // Speaking Score Logic ---
 window.addEventListener('transcriptRejected', (e) => {
-    const cue = e.detail?.cue || "unknown_cue";
-    const transcript = e.detail?.transcript || "unknown_transcript";
-    logInteraction(cue, transcript, "rej_usr", "User rejected Whisper transcription");
+     const cue = e.detail?.cue || "unknown_cue";
+     const transcript = e.detail?.transcript || "unknown_transcript";
+     logInteraction(cue, transcript, "rej_usr", "User rejected Whisper transcription");
 
-    // Deduct 20 points, floor at 0
-    appStore.getState().deductSpeakingScore(20);
-    // Show point loss animation explicitly on the score span (subscription handles the text update)
-    if (DOM.phrasesScore) {
-        pointLoss.show(DOM.phrasesScore, 20);
-    }
-});
+     // Deduct 20 points, floor at 0
+     appStore.getState().deductSpeakingScore(20);
+     // Show point loss animation explicitly on the score span (subscription handles the text update)
+     if (DOM.pronunciationScore) {
+         pointLoss.show(DOM.pronunciationScore, 20);
+     }
+ });
 
-window.addEventListener('preflightRejected', () => {
-    //   FIX: Use the correct Zustand action for the Speaking Score
-    appStore.getState().deductSpeakingScore(10);
-    // Show point loss animation (subscription handles the text update)
-    if (DOM.phrasesScore) {
-        pointLoss.show(DOM.phrasesScore, 10);
-    }
-});
+ window.addEventListener('preflightRejected', () => {
+     //   FIX: Use the correct Zustand action for the Speaking Score
+     appStore.getState().deductSpeakingScore(10);
+     // Show point loss animation (subscription handles the text update)
+     if (DOM.pronunciationScore) {
+         pointLoss.show(DOM.pronunciationScore, 10);
+     }
+ });
 
 // CORE ANSWER HANDLING
 function handleHint(qIndex) {
@@ -177,13 +175,13 @@ export async function submitAnswerPrecheck(val, cue, questionData, btn, explanat
 
     if (!isValid) {
         logInteraction(cue, val, "rej_pre", warningMessage);
-        if (!State.isTextMode) {
-            //   FIX: Now correctly deducts from the Speaking Score instead of the Listening Score
-            appStore.getState().deductSpeakingScore(10);
-            // Show point loss animation (subscription handles the text update)
-            if (DOM.phrasesScore) {
-                pointLoss.show(DOM.phrasesScore, 10);
-            }
+if (!State.isTextMode) {
+             //   FIX: Now correctly deducts from the Speaking Score instead of the Listening Score
+             appStore.getState().deductSpeakingScore(10);
+             // Show point loss animation (subscription handles the text update)
+             if (DOM.pronunciationScore) {
+                 pointLoss.show(DOM.pronunciationScore, 10);
+             }
         } else {
             console.log('[submitAnswerPrecheck] Text mode: skipping speaking score deduction');
         }
@@ -563,12 +561,8 @@ function updateProgressBar() {
 
 function loadNextQuestion(currentQuestion, fluencyData) {
     updateProgressBar();
-    toggleScoresAndHearts(false);
-    State.resetForNextQuestion();
-
-    // No manual updateCurrentScoreDisplay call needed: resetForNextQuestion() updates the store,
-    // and the subscription will automatically sync the UI.
-    resetHeartsUI();
+toggleScoresAndHearts(false);
+     State.resetForNextQuestion();
 
     if (!State.configData || !State.configData.lessons || State.configData.lessons.length === 0) return;
     const currentLesson = State.configData.lessons[State.currentLessonIndex];
@@ -706,9 +700,8 @@ async function loadLessonContent(lesson, configData) {
     // updateActivityDisplay is still called here because dayCount/currentStreak haven't changed yet
     // (they will be set by saveLessonProgress callbacks later); this ensures the header shows
     // the correct values immediately on lesson load.
-    updateActivityDisplay(appStore.getState().dayCount, appStore.getState().currentStreak);
-    resetHeartsUI();
-    updateProgressBar(lesson);
+updateActivityDisplay(appStore.getState().dayCount, appStore.getState().currentStreak);
+     updateProgressBar(lesson);
 
     // --- TITLE LOGIC ---
     const course = configData?.courseName || "";
@@ -765,8 +758,9 @@ async function initializeApp() {
             // showGuestLoginModal(); // Temporarily turned off during testing
         }
 
-        State.initializeUserMetrics(State.userData, calculateCurrentStreak);
-        // Immediately trigger offline score sync if needed
+State.initializeUserMetrics(State.userData, calculateCurrentStreak);
+         initMicAnimation();
+         // Immediately trigger offline score sync if needed
         syncOfflineScores(State.userData);
 
         // 1. Gather context
@@ -819,15 +813,13 @@ async function initializeApp() {
                     Object.assign(State, stateUpdates);
                 }
             },
-            uiElements: {
-                scoresAndHearts: DOM.scoresAndHearts,
-                progressbar: DOM.progressbar,
-                progressBarFill: DOM.progressBarFill,
-                speechTextHere: DOM.speechText,
-                bottomButtonBarCenter: document.getElementById('bottomButtonBarCenter'),
-                bottomButtonBarLeft: document.getElementById('bottomButtonBarLeft'),
-                hearts
-            }
+uiElements: {
+                 statsContainer: DOM.statsContainer,
+                 progressbar: DOM.progressbar,
+                 progressBarFill: DOM.progressBarFill,
+                 speechTextHere: DOM.speechText,
+                 chatMessageList: document.getElementById('chat-message-list')
+             }
         });
 
         //   CRITICAL TO PREVENT RAM OVERLOAD: Render the UI and Video FIRST
