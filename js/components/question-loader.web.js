@@ -348,44 +348,30 @@ function _renderSuccess(question, fluencyData) {
 }
 
 function _renderLessonIntro(question, lesson, deps) {
-    // Hide the standard hints for the intro screen
-    hideHints();
+    const { showFeedbackAndProceed } = deps;
+    toggleScoresAndHearts(false);
+    State.repeatPointsHistory = [];
+    State.rolePlayPointsHistory = [];
+    hideAnswerDiv();
 
-    // Show the big incoming call buttons (Video, Audio, Text)
-    showContinueButton(
-        true, // isLessonIntro flag
-        () => {
-            // --- CALLBACK FOR VIDEO OR TEXT MODE ---
-            hideContinueButton();
+    if (!question.simpleVideoUrl && question.explanation) {
+        const lang = State.userData?.native_language; const localizedTrans = getLocalizedTranslation(question.translation, lang); const hasTranslation = !!localizedTrans;
+        const imagineStr = Strings.get('imagine', lang); const listenRepeatStr = Strings.get('listen_repeat', lang);
 
-            const initializeMedia = async () => {
-                await Media.enableAudioSystem();
-                await warmUpSpeechCamStream();
-            };
-            initializeMedia();
+        const explanationStr = `
+            <p class='explanation'>
+              <strong>${imagineStr.split('<br>')[0]}</strong> ${question.explanation}
+              <br><br>
+              ➡${listenRepeatStr.split('<br>')[0]}
+              ${hasTranslation && lang !== 'en' ? `<br><br><span lang='${lang}'><i><strong>🎯${imagineStr.includes('<br>') ? imagineStr.split('<i>')[1].split('<i>')[0] : imagineStr}</strong>${localizedTrans}<br><br>${listenRepeatStr.includes('<br>') ? listenRepeatStr.split('<i>')[1].split('<i>')[0] : listenRepeatStr}</i></span>` : ''}
+            </p>`;
 
-            // Dismiss the intro screen and load the first actual question
-            setTimeout(() => {
-                State.currentQuestionIndex = 0; // Explicitly ensure we reset to question index 0
-                loadQuestion(lesson.questions[State.currentQuestionIndex], lesson, null, deps);
-            }, 500);
-        },
-        () => {
-            // --- CALLBACK FOR AUDIO-ONLY MODE ---
-            hideContinueButton();
-
-            const initializeMedia = async () => {
-                await Media.enableAudioSystem();
-                // Bypassing webcam warmup for audio-only
-            };
-            initializeMedia();
-
-            setTimeout(() => {
-                State.currentQuestionIndex = 0;
-                loadQuestion(lesson.questions[State.currentQuestionIndex], lesson, null, deps);
-            }, 500);
-        }
-    );
+        renderAIFeedback([
+            `<p class='lesson-name'><strong>Lesson: ${lesson.title}</strong></p>`,
+            explanationStr
+        ]);
+    }
+    showFeedbackAndProceed(question, true);
 }
 
 // --- LIQUID UI MIC ANIMATIONS ---
