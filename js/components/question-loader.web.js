@@ -345,7 +345,7 @@ function _renderSuccess(question, fluencyData) {
 
     window.__currentConfigData = State.configData;
 
-    initVideoProcessor(question.cue, fluencyData, question.lessonId);
+    // initVideoProcessor was removed during index.html migration
     State.successHandler.handleSuccessLesson(question);
 
     const currentLesson = State.configData.lessons[State.currentLessonIndex];

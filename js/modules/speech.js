@@ -171,10 +171,13 @@ export async function toggleSpeechRecognition(params) {
             } else {
                 // --- Whisper path ---
                 let speechDetected = false;
+                let speechStarted = false;
+                let pauseTick = 0;
+                const PAUSE_GRACE_TICKS = 10; // 1s
+                let lastSpeechTime = Date.now();
 
                 // Clean up old timer if any exists
                 if (listeningState.hesitationTimer) {
-                    console.log('[Hesitation] Clearing previous timer before starting new one');
                     clearInterval(listeningState.hesitationTimer);
                 }
 
@@ -202,18 +205,44 @@ export async function toggleSpeechRecognition(params) {
                         }
                         if (uiHooks?.onHesitation) uiHooks.onHesitation(1);
                     }
+
+                    // Mid-speech pause detection (after user has started speaking)
+                    // Treat as silence if no speech chunk seen for >1s
+                    if (speechStarted && Date.now() - lastSpeechTime > 1000) {
+                        speechDetected = false;
+                    }
+
+                    if (speechStarted && !speechDetected && currentActive) {
+                        pauseTick++;
+                        if (pauseTick === PAUSE_GRACE_TICKS + 1) {
+                            console.log('[Hesitation] Mid-speech pause >1s detected - resuming deductions');
+                        }
+                        if (pauseTick > PAUSE_GRACE_TICKS) {
+                            console.log(`[Hesitation] MID-SPEECH PAUSE - deducting 1pt`);
+                            if (typeof appStore.getState().deductFlowScore === 'function') {
+                                appStore.getState().deductFlowScore(1);
+                            }
+                            if (uiHooks?.onHesitation) uiHooks.onHesitation(1);
+                        }
+                    }
                 }, 100);
 
                 if (WebAdapter.speechCamStream) {
                     await WebAdapter.startLocalAudioTap(WebAdapter.speechCamStream, () => {
+                        lastSpeechTime = Date.now();
                         if (!speechDetected) {
                             speechDetected = true;
+                            speechStarted = true;
+                            pauseTick = 0;
                             if (listeningState.hesitationTimer) {
                                 console.log('[Hesitation] Voice onset detected - clearing timer');
                                 clearInterval(listeningState.hesitationTimer);
                                 listeningState.hesitationTimer = null;
                             }
                             console.log('[Hesitation] Real-time speech detected! Timer stopped.');
+                        } else if (speechStarted) {
+                            // User resumed speaking after a pause
+                            pauseTick = 0;
                         }
                     });
                 }
