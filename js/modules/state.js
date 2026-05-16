@@ -4,9 +4,9 @@ import { appStore } from './store.js';
 
 export const State = {
     // Application & User Data
-    
+
     // Logic-driven values
-    
+
     isAudioEnabled: false,
 
     interactionLog: [],
@@ -19,12 +19,12 @@ export const State = {
     // Lesson Data
     mission: null,
     setting: null,
-    roleA: null,
-    roleB: null,
+    roleOther: null,
+    roleUser: null,
     userRole: null,
     videoRole: null,
     successHandler: null,
-    
+
     // Getters/Setters for properties that moved to appStore (persistence & reactivity)
     get currentLessonIndex() { return appStore.getState().currentLessonIndex; },
     set currentLessonIndex(val) { appStore.setState({ currentLessonIndex: val }); },
@@ -91,7 +91,7 @@ export const State = {
         appStore.getState().resetForNewLesson();
         // Clear history arrays in the Zustand store
         appStore.getState().resetLessonHistory();
-        
+
         // Reset question index to 0 for a fresh start
         this.currentQuestionIndex = 0;
 
@@ -105,8 +105,8 @@ export const State = {
         // Reset non-reactive lesson data
         this.mission = null;
         this.setting = null;
-        this.roleA = null;
-        this.roleB = null;
+        this.roleOther = null;
+        this.roleUser = null;
         this.userRole = null;
         this.videoRole = null;
         this.wordsRevealed = 0;

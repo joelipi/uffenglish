@@ -197,8 +197,8 @@ export async function evaluateIntentWithAI(answerForIntentPass, questionData, le
 
     // Updated prompt based on user instructions
     const intentPrompt = `Setting: ${lessonData.setting?.en || ''} 
-A: ${lessonData.roleA?.en || ''} 
-B: ${lessonData.roleB?.en || ''} 
+A: ${lessonData.roleOther?.en || ''} 
+B: ${lessonData.roleUser?.en || ''} 
 B's goal: ${questionData.mission || 'Respond appropriately'} 
 A: ${questionData.cue} 
 B: ${answerForIntentPass} 

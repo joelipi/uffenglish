@@ -442,10 +442,11 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
         }
 
         // --- SILENT RETRY FLOW FOR SPEECH ---
-        if (!isCorrect && questionData.inputType === "speech" && incorrectAttempts <= 1) {
-            // Use silent mode for handleIncueUI
+        if (!isCorrect && questionData.inputType === "speech" && incorrectAttempts === 0) {
+            // Use silent mode for handleIncueUI - show feedback but skip some UI sounds
             handleIncueUI(qIndex, questionData, button, cue, userResponse, result.explanations || explanation, result.normalizeduserResponse, result.normalizedcue, questionData.question, true, userData, configData);
             clearPlaybackVideo();
+            removeWebcamPreview();
 
             // Speech Hangman Logic: Show hint and stay on question
             const hangmanHTML = generateHangmanHint(userResponse, cue);
@@ -724,8 +725,8 @@ async function loadLessonContent(lesson, configData) {
     if (State.player) State.player.destroy();
     State.resetForNewLesson();
     State.lessonStartTime = new Date().toISOString();
-    State.roleA = lesson.roleA || "";
-    State.roleB = lesson.roleB || "";
+    State.roleOther = lesson.roleOther || "";
+    State.roleUser = lesson.roleUser || "";
     State.userRole = lesson.userRole || "";
     State.videoRole = lesson.videoRole || "";
 
@@ -752,7 +753,10 @@ async function loadLessonContent(lesson, configData) {
     // The mission is lesson-wide and should stay the same throughout.
     const lang = userData?.native_language;
     const missionText = getLocalizedTranslation(lesson.mission, lang);
-    resetMissionText(missionText);
+    const settingText = getLocalizedTranslation(lesson.setting, lang);
+    const roleUserText = getLocalizedTranslation(lesson.roleUser, lang);
+    const roleOtherText = getLocalizedTranslation(lesson.roleOther, lang);
+    resetMissionText(missionText, settingText, roleUserText, roleOtherText);
 
     loadQuestion(lesson.questions[State.currentQuestionIndex], lesson, null);
 }

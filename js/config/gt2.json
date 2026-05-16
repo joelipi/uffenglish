@@ -21,12 +21,12 @@
         "es": "lugar de comida rápida",
         "pt": "lugar de fast food"
       },
-      "roleA": {
+      "roleOther": {
         "en": "Fast food worker",
         "es": "Trabajador de comida rápida",
         "pt": "Trabalhador de fast food"
       },
-      "roleB": {
+      "roleUser": {
         "en": "customer",
         "es": "cliente",
         "pt": "cliente"
@@ -128,7 +128,6 @@
         }
       ],
       "nextLessonId": "2-2s",
-      "setting": "",
       "userRole": "",
       "videoRole": ""
     },

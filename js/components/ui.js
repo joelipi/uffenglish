@@ -382,10 +382,23 @@ export function showAnswerError(message) {
         }, 4000);
     }
 }
-export function resetMissionText(missionText) {
+
+export function resetMissionText(missionText, settingText, roleUserText, roleOtherText) {
     const missionEl = document.querySelector('.mission-text');
     if (missionEl) {
         missionEl.textContent = missionText || "";
+    }
+    const settingEl = document.querySelector('.setting-text');
+    if (settingEl) {
+        settingEl.textContent = settingText || "";
+    }
+    const roleUserEl = document.querySelector('.roleUser-text');
+    if (roleUserEl) {
+        roleUserEl.textContent = roleUserText || "";
+    }
+    const roleOtherEl = document.querySelector('.roleOther-text');
+    if (roleOtherEl) {
+        roleOtherEl.textContent = roleOtherText || "";
     }
 }
 
@@ -1633,8 +1646,13 @@ export function handleIncueUI(qIndex, questionData, button, cue, userResponse, e
         }
     }
 
-    if (silent) {
-        Media.playSound('incorrect-sound');
+    // In silent mode for speech questions, we're called from the silent retry flow in app.js
+    // which handles its own hangman hint rendering. Skip chat bubbles entirely for this case.
+    const isSilentSpeechRetry = silent && questionData.inputType === "speech";
+
+    if (isSilentSpeechRetry) {
+        // Silent retry for speech: just increment attempts, no UI rendering needed
+        // The calling code in app.js handles hangman hint separately
         return;
     }
 
@@ -1712,6 +1730,9 @@ export function handleIncueUI(qIndex, questionData, button, cue, userResponse, e
         renderAIFeedback(chunks);
     }
 
-    Media.playSound('incorrect-sound');
+    // Only play sound if not in silent mode (silent means minimal audio feedback)
+    if (!silent) {
+        Media.playSound('incorrect-sound');
+    }
 
 }
