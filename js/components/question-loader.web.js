@@ -217,7 +217,7 @@ function _renderSpeechOrAI(question, lesson, deps) {
                             },
                             onEngineNotReady: (userData) => {
                                 const errorMsg = Strings.get('error_engine_not_ready', userData?.native_language) || "Speech engine not ready. Please wait a moment.";
-                                setMicStatusText(`<div class='text-center text-danger'><i class="bi bi-exclamation-triangle"></i> ${errorMsg}</div>`);
+                                setMicStatusText(`<div class='text-center text-danger' style="color: red; font-size: 30px;"><i class="bi bi-exclamation-triangle"></i> ${errorMsg}</div>`);
                             },
                             onEngineReady: (btn) => {
                                 if (btn) {

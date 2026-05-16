@@ -14,7 +14,33 @@
 
     <!-- Embedded CSS -->
     <style>
-        /* Reset and prevent pull-to-refresh / scrolling on mobile */
+        /* Critical Error State */
+        #criticalErrorContainer {
+            backdrop-filter: blur(5px);
+        }
+
+        #micStatusText {
+            color: white !important;
+            font-size: 1.5rem !important;
+            font-weight: 700 !important;
+            text-shadow: 
+                -1px -1px 0 #000,  
+                 1px -1px 0 #000,
+                -1px  1px 0 #000,  
+                 1px  1px 0 #000,
+                 0 0 15px rgba(0,0,0,0.8),
+                 0 0 30px rgba(0,0,0,1) !important;
+            z-index: 10007 !important;
+            pointer-events: none;
+            text-align: center;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+        }
+
+
         body,
         html {
             margin: 0;
@@ -1568,6 +1594,37 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            
+            <!-- Critical Error Container (Hardcoded) -->
+            <div id="criticalErrorContainer" class="d-none w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4 text-white text-center" style="background: rgba(0,0,0,0.85); z-index: 10006; position: absolute; top: 0; left: 0;">
+                <i class="bi bi-exclamation-triangle-fill text-warning mb-3" style="font-size: 3rem;"></i>
+                <h4 class="mb-2">Lesson Load Error</h4>
+                <p id="criticalErrorMessage" class="text-secondary mb-4"></p>
+                <button class="btn btn-primary px-4 rounded-pill" onclick="window.location.reload()">
+                    <i class="bi bi-arrow-clockwise"></i> Try Again
+                </button>
+            </div>
+
+            <!-- Whisper Review UI (Hardcoded Overlay) -->
+            <div id="whisperReviewContainer" class="d-none position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4 text-white text-center" style="background: rgba(0,0,0,0.85); z-index: 10005;">
+                <div class="bg-dark p-4 rounded border border-secondary shadow-lg" style="max-width: 90%; width: 500px;">
+                    <div class="mb-3">
+                        <div id="whisperTranscript" class="mb-3" style="font-size: 1.25rem; font-weight: 500; color: #fff;"></div>
+                    </div>
+                    <div class="progress mb-4" style="height: 6px; background: rgba(255,255,255,0.1);">
+                        <div id="reviewProgressBar" class="progress-bar bg-success" role="progressbar" style="width: 100%; transition: width 7s linear;"></div>
+                    </div>
+                    <div class="d-flex justify-content-center gap-3">
+                        <button id="rejectBtn" class="btn btn-outline-danger px-4 rounded-pill">
+                            <i class="bi bi-arrow-counterclockwise"></i> Re-record
+                        </button>
+                        <button id="acceptBtn" class="btn btn-primary px-4 rounded-pill">
+                            <i class="bi bi-check2"></i> Accept (<span id="reviewTimer"></span>s)
+                        </button>
                     </div>
                 </div>
             </div>

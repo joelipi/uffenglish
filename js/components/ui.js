@@ -1,4 +1,4 @@
-// --- modules/ui.js ---
+﻿// --- modules/ui.js ---
 import { State } from '../modules/state.js';
 import { appStore } from '../modules/store.js';
 import Strings from '../data/strings.js';
@@ -82,6 +82,10 @@ export const DOM = {
     get progressBarFill() { return document.getElementById("progress-bar"); },
     get closeAndProgress() { return document.getElementById('closeAndProgress'); },
     get micStatusText() { return document.getElementById("micStatusText"); },
+    get whisperReviewContainer() { return document.getElementById('whisperReviewContainer'); },
+    get whisperTranscript() { return document.getElementById('whisperTranscript'); },
+    get criticalErrorContainer() { return document.getElementById('criticalErrorContainer'); },
+    get criticalErrorMessage() { return document.getElementById('criticalErrorMessage'); },
     get dayCountSpan() { return document.getElementById("dayCountSpan"); },
     get streakCountSpan() { return document.getElementById("streakCountSpan"); },
     get playbackVideo() { return document.getElementById('playback-video'); },
@@ -216,6 +220,7 @@ export function renderUserResponse(text, statsHtml = "") {
 }
 
 export function renderAIAnalysisLoading(text) {
+    hideWhisperReviewUI();
     const defaultText = Strings.get('ai_analyzing', State.userData?.native_language);
     const displayText = text || defaultText;
     const aiAvatarUrl = 'assets/img/teacherprofile.webp';
@@ -470,6 +475,7 @@ export function generateHangmanHint(userResponse, cue) {
 }
 
 export function clearChatInterface() {
+    hideWhisperReviewUI();
     const videoWrapper = document.getElementById('playback-video-wrapper');
     if (videoWrapper) {
         videoWrapper.style.display = 'none';
@@ -517,7 +523,7 @@ export function updateChatHeaderScores(feedbackData) {
         if (!spanId) return;
         const el = document.getElementById(spanId);
         if (!el) return;
-        el.textContent = section.score === 100 ? '💯' : String(Math.round(section.score));
+        el.textContent = section.score === 100 ? 'ÃƒÂ°Ã…Â¸Ã¢â‚¬â„¢Ã‚Â¯' : String(Math.round(section.score));
     });
 }
 
@@ -749,69 +755,80 @@ export function initUISubscriptions() {
 }
 
 export function showGuestLoginModal() {
-    const modalHtml = `
-    <div class="modal fade" id="guestLoginModal" tabindex="-1" aria-labelledby="guestLoginModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content bg-dark text-white">
-                <div class="modal-header border-secondary">
-                    <h5 class="modal-title" id="guestLoginModalLabel">Welcome!</h5>
-                </div>
-                <div class="modal-body">
-                    <p>You are currently not logged in. Log in or sign up to save your progress and access all features. Or, continue as a guest to try out the app.</p>
-                    <div class="d-grid gap-2 mt-4">
-                        <a href="login.html" class="btn btn-primary">Log In</a>
-                        <a href="signup.html" class="btn btn-secondary">Sign Up</a>
-                        <button type="button" class="btn btn-outline-light mt-2" data-bs-dismiss="modal">Continue as Guest</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>`;
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    const modalElement = document.getElementById('guestLoginModal');
+    if (modalElement && typeof modalElement.showModal === 'function') {
+        modalElement.showModal();
+    } else {
+        console.warn('[UI] Native dialog not supported or element missing.');
+    }
+}
+export function hideWhisperReviewUI() {
+    if (DOM.whisperReviewContainer) {
+        DOM.whisperReviewContainer.classList.add("d-none");
+    }
+}
 
-    setTimeout(() => {
-        if (typeof bootstrap !== 'undefined') {
-            const guestModal = new bootstrap.Modal(document.getElementById('guestLoginModal'));
-            guestModal.show();
-        }
-    }, 100);
+export function showCriticalError(message) {
+    if (DOM.criticalErrorContainer && DOM.criticalErrorMessage) {
+        DOM.criticalErrorMessage.textContent = message || "An unexpected error occurred.";
+        DOM.criticalErrorContainer.classList.remove("d-none");
+        if (DOM.mediaViewport) DOM.mediaViewport.classList.remove("d-none");
+        console.error("[UI] Critical Error Shown:", message);
+    }
+}
+
+export function hideCriticalError() {
+    if (DOM.criticalErrorContainer) {
+        DOM.criticalErrorContainer.classList.add("d-none");
+    }
 }
 
 export function renderWhisperReviewUI(transcript, timeLeft, onAccept, onReject) {
-    if (!DOM.micStatusText) return;
+    removeAILoadingStatus();
+    if (DOM.micStatusText) DOM.micStatusText.innerHTML = "";
+    if (!DOM.whisperReviewContainer || !DOM.whisperTranscript) return;
 
-    DOM.micStatusText.innerHTML = `
-        <div class='text-center mt-3 p-3 bg-dark rounded border border-secondary shadow-sm'>
-            <div style='font-size: 1.1rem; color: #fff; margin-bottom: 15px;'>
-                <small class="text-muted d-block mb-1">Whisper heard:</small>
-                <strong>"${transcript}"</strong>
-            </div>
-            <div class="d-flex justify-content-center gap-3">
-                <button id="rejectBtn" class="btn btn-outline-danger px-4">
-                    <i class="bi bi-arrow-repeat"></i> Re-record
-                </button>
-                <button id="acceptBtn" class="btn btn-primary px-4">
-                    <i class="bi bi-check-circle"></i> Accept (<span id="reviewTimer">${timeLeft}</span>s)
-                </button>
-            </div>
-            <div class="progress mt-3" style="height: 5px; background-color: #333;">
-                <div id="reviewProgressBar" class="progress-bar bg-success" role="progressbar" style="width: 100%; transition: width 7s linear;"></div>
-            </div>
-        </div>`;
+    // Populate content
+    DOM.whisperTranscript.textContent = `"${transcript}"`;
+    const timerSpan = document.getElementById("reviewTimer");
+    if (timerSpan) timerSpan.innerText = timeLeft;
 
-    setTimeout(() => {
-        document.getElementById('acceptBtn')?.addEventListener('click', onAccept);
-        document.getElementById('rejectBtn')?.addEventListener('click', onReject);
+    // Show container
+    DOM.whisperReviewContainer.classList.remove("d-none");
 
-        const bar = document.getElementById('reviewProgressBar');
-        if (bar) {
-            requestAnimationFrame(() => {
-                bar.style.width = '0%';
-            });
-        }
-    }, 50);
+    // Setup progress bar
+    const bar = document.getElementById("reviewProgressBar");
+    if (bar) {
+        bar.style.transition = "none";
+        bar.style.width = "100%";
+        requestAnimationFrame(() => {
+            bar.style.transition = "width 7s linear";
+            bar.style.width = "0%";
+        });
+    }
+
+    // Attach events (cloning to clear previous)
+    const acceptBtn = document.getElementById("acceptBtn");
+    const rejectBtn = document.getElementById("rejectBtn");
+
+    if (acceptBtn) {
+        const newAccept = acceptBtn.cloneNode(true);
+        acceptBtn.parentNode.replaceChild(newAccept, acceptBtn);
+        newAccept.addEventListener("click", () => {
+            DOM.whisperReviewContainer.classList.add("d-none");
+            onAccept();
+        });
+    }
+
+    if (rejectBtn) {
+        const newReject = rejectBtn.cloneNode(true);
+        rejectBtn.parentNode.replaceChild(newReject, rejectBtn);
+        newReject.addEventListener("click", () => {
+            DOM.whisperReviewContainer.classList.add("d-none");
+            onReject();
+        });
+    }
 }
-
 export function updateWhisperTimer(timeLeft) {
     const timerSpan = document.getElementById('reviewTimer');
     if (timerSpan) timerSpan.innerText = timeLeft;
@@ -1462,10 +1479,7 @@ export function showMessageInQuestionsContainer(messageHTML) {
 }
 
 export function showErrorMessageInQuestionsContainer(messageHTML) {
-    const container = document.getElementById('questions-container');
-    if (container) {
-        container.innerHTML = `<div class="alert alert-danger">${messageHTML}</div>`;
-    }
+    showCriticalError(messageHTML);
 }
 
 export function setupLessonUI(fullTitle) {
