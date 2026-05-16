@@ -1,5 +1,12 @@
 import { pipeline, env } from '@huggingface/transformers';
 
+const SILENT_LOGS = true; 
+if (SILENT_LOGS) {
+    console.log = () => {};
+    console.time = () => {};
+    console.timeEnd = () => {};
+}
+
 env.allowLocalModels = false;
 env.useBrowserCache = true;
 

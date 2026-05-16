@@ -11,8 +11,8 @@ window.enabledLogs = {
     toggle: false,
     ai: false,
     analytics: false,
-    ui: true,
-    all: true
+    ui: false,
+    all: false
 };
 
 console.log = (msg, ...args) => {

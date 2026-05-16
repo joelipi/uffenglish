@@ -42,10 +42,14 @@ export function syncTextModeUI() {
     if (pronunciationScore) {
         if (State.isTextMode) {
             pronunciationScore.classList.add('d-none');
-            console.log('[UI] Text mode: hiding speaking score');
+            if (DOM.micBtn) DOM.micBtn.classList.add('d-none');
+            if (DOM.txtBtn) DOM.txtBtn.classList.remove('d-none');
+            console.log('[UI] Text mode: hiding speaking score, swapping mic for keyboard');
         } else {
             pronunciationScore.classList.remove('d-none');
-            console.log('[UI] Camera/Mic mode: showing speaking score');
+            if (DOM.micBtn) DOM.micBtn.classList.remove('d-none');
+            if (DOM.txtBtn) DOM.txtBtn.classList.add('d-none');
+            console.log('[UI] Camera/Mic mode: showing speaking score, swapping keyboard for mic');
         }
     }
 }
@@ -73,7 +77,12 @@ export const DOM = {
     get questionsContainer() { return document.getElementById('questions-container'); },
     get tutorChatInputArea() { return document.getElementById('chat-input-area'); },
     get tutorChatTextarea() { return document.getElementById('chat-input-field'); },
-    get tutorChatSendBtn() { return document.getElementById('chat-send-button'); }
+    get tutorChatSendBtn() { return document.getElementById('chat-send-button'); },
+    get micBtn() { return document.getElementById('micBtn'); },
+    get txtBtn() { return document.getElementById('txtBtn'); },
+    get answerInputArea() { return document.getElementById('answer-input-area'); },
+    get answerInputField() { return document.getElementById('answer-input-field'); },
+    get answerSubmitBtn() { return document.getElementById('answer-submit-button'); }
 };
 
 let webcamPreview = null;
@@ -452,6 +461,7 @@ export function clearChatInterface() {
     document.body.classList.remove('chat-mode-active');
 
     hideTutorChatInput();
+    hideAnswerInputArea();
     clearChatHeaderScores();
 }
 
@@ -512,6 +522,12 @@ export function hideTutorChatInput() {
     if (DOM.tutorChatInputArea) {
         DOM.tutorChatInputArea.classList.add('d-none');
         DOM.tutorChatInputArea.style.setProperty('display', 'none', 'important');
+    }
+}
+
+export function hideAnswerInputArea() {
+    if (DOM.answerInputArea) {
+        DOM.answerInputArea.classList.add('d-none');
     }
 }
 
@@ -646,6 +662,43 @@ export function initUISubscriptions() {
             prevStreak = state.currentStreak;
         }
     });
+
+    if (DOM.txtBtn) {
+        DOM.txtBtn.onclick = () => {
+            if (DOM.answerInputArea) {
+                const isHiding = !DOM.answerInputArea.classList.contains('d-none');
+                
+                if (isHiding) {
+                    // --- CLOSING ---
+                    DOM.answerInputArea.classList.add('d-none');
+                    window.isMicActive = false;
+                    
+                    // Resume video
+                    const player = State.player || window.currentVideoPlayer;
+                    if (player && player.play) {
+                        player.play().catch(e => console.warn('[UI] Video resume failed:', e));
+                    }
+                    console.log('[UI] Text area hidden, video resumed');
+                } else {
+                    // --- OPENING ---
+                    DOM.answerInputArea.classList.remove('d-none');
+                    window.isMicActive = true;
+                    
+                    // Pause video
+                    Media.pauseVideoIfPlaying();
+                    
+                    // Hide hints
+                    hideHints();
+                    
+                    // Focus
+                    if (DOM.answerInputField) {
+                        setTimeout(() => DOM.answerInputField.focus(), 100);
+                    }
+                    console.log('[UI] Text area shown, video paused');
+                }
+            }
+        };
+    }
 }
 
 export function showGuestLoginModal() {
@@ -1277,37 +1330,33 @@ export function renderTextInputUI(placeholder, submitText, handleSubmitCallback)
     const answerDiv = document.getElementById("answerDiv");
     if (answerDiv) answerDiv.classList.add("d-none");
 
-    const chatInputArea = document.getElementById('chat-input-area');
-    const chatInputField = document.getElementById('chat-input-field');
-    const chatSendBtn = document.getElementById('chat-send-button');
+    if (DOM.answerInputArea && DOM.answerInputField && DOM.answerSubmitBtn) {
+        // Keep hidden by default so video is visible
+        DOM.answerInputArea.classList.add('d-none');
 
-    if (chatInputArea && chatInputField && chatSendBtn) {
-        chatInputArea.classList.remove('d-none');
-        chatInputArea.style.setProperty('display', 'block', 'important');
+        DOM.answerInputField.placeholder = placeholder || 'Type your answer...';
+        DOM.answerInputField.disabled = false;
+        DOM.answerInputField.value = '';
 
-        chatInputField.placeholder = placeholder || 'Type your answer...';
-        chatInputField.disabled = false;
-        chatInputField.value = '';
+        DOM.answerSubmitBtn.disabled = false;
+        DOM.answerSubmitBtn.textContent = submitText || 'Submit Answer';
 
-        chatSendBtn.disabled = false;
-        chatSendBtn.className = 'btn btn-primary';
-        chatSendBtn.innerHTML = '<i class="bi bi-send-fill"></i>';
-
-        const newSendBtn = chatSendBtn.cloneNode(true);
-        chatSendBtn.parentNode.replaceChild(newSendBtn, chatSendBtn);
+        // Clear previous event listeners
+        const newSubmitBtn = DOM.answerSubmitBtn.cloneNode(true);
+        DOM.answerSubmitBtn.parentNode.replaceChild(newSubmitBtn, DOM.answerSubmitBtn);
 
         const handleSubmit = () => {
-            const value = chatInputField.value.trim();
+            const value = DOM.answerInputField.value.trim();
             if (!value) return;
-            newSendBtn.disabled = true;
-            chatInputField.disabled = true;
-            handleSubmitCallback(value, newSendBtn);
+            newSubmitBtn.disabled = true;
+            DOM.answerInputField.disabled = true;
+            handleSubmitCallback(value, newSubmitBtn);
         };
 
-        newSendBtn.addEventListener('click', handleSubmit);
+        newSubmitBtn.addEventListener('click', handleSubmit);
 
-        const newInputField = chatInputField.cloneNode(true);
-        chatInputField.parentNode.replaceChild(newInputField, chatInputField);
+        const newInputField = DOM.answerInputField.cloneNode(true);
+        DOM.answerInputField.parentNode.replaceChild(newInputField, DOM.answerInputField);
 
         newInputField.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -1315,6 +1364,9 @@ export function renderTextInputUI(placeholder, submitText, handleSubmitCallback)
                 handleSubmit();
             }
         });
+
+        // Ensure it's focused
+        setTimeout(() => newInputField.focus(), 100);
     }
 }
 

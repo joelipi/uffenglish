@@ -1,6 +1,11 @@
 // whisper-worker-web.js v5 - Aggressive Parallelization
 // SILENCE LOGS FOR PRODUCTION/CLEAN CONSOLE
-// console.log = () => {}; 
+const SILENT_LOGS = true; 
+if (SILENT_LOGS) {
+    console.log = () => {};
+    console.time = () => {};
+    console.timeEnd = () => {};
+}
 const WHISPER_BASE_PATH = 'https://r2.ultrafastfluency.com/whisper/';
 const MODEL_CACHE_NAME = 'uff-whisper-cache-v3';
 
