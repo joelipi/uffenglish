@@ -131,6 +131,7 @@ import {
     removeAILoadingStatus,
     renderHangmanHint,
     showMicWarning,
+    showAnswerError,
     resetMicStatusWithQuestion,
     resetMissionText,
     bindAuthMenuUI
@@ -188,9 +189,22 @@ export async function submitAnswerPrecheck(val, cue, questionData, btn, explanat
         // REFACTORED: Moved raw HTML injection to UI module
         showMicWarning(warningMessage);
 
+        if (State.isTextMode) {
+            showAnswerError(warningMessage);
+            clearPlaybackVideo();
+            removeWebcamPreview();
+            const inputField = document.getElementById('answer-input-field');
+            if (inputField) {
+                inputField.disabled = false;
+                inputField.classList.remove('disabled');
+                inputField.focus();
+                if (DOM.answerInputArea) flashElement(DOM.answerInputArea);
+            }
+        }
+
         // Update the recording anyway so the final video has subtitles for this incorrect attempt!
-        const currentLessonId = resolveCurrentLessonId(configData, courseId);
-        const qIndex = getCurrentQuestionIndex(questionData, configData, courseId);
+        const currentLessonId = resolveCurrentLessonId(configData, userData, courseId);
+        const qIndex = getCurrentQuestionIndex(questionData, configData, State.currentLessonIndex);
         await updateSpeechRecording(currentLessonId, qIndex, {
             userResponse: val,
             cue: cue,

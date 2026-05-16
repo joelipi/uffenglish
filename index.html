@@ -524,8 +524,8 @@
             background-color: #ffffff !important;
             border: none !important;
             border-radius: 50% !important;
-            width: 64px;
-            height: 64px;
+            width: 50px;
+            height: 50px;
             flex-shrink: 0;
             display: flex;
             align-items: center;
@@ -533,7 +533,7 @@
             color: #1a1a1a !important;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            margin: 10px auto;
+            margin: 0;
         }
 
         #answer-submit-button:hover {
@@ -1164,6 +1164,11 @@
         /* =========================================
            FEEDBACK, HINTS & GRAMMAR
            ========================================= */
+        #hints {
+            top: 50px;
+            left: 25px;
+        }
+
         .headsUp::before {
             content: "➡️ ";
         }
@@ -1714,11 +1719,14 @@
             </div>
 
             <!-- Permanent Answer Input Area (for text-input questions) -->
-            <div id="answer-input-area" class="d-none position-absolute w-100 p-3 z-3" style="bottom: 160px;">
+            <div id="answer-input-area" class="d-none position-absolute w-100 p-3 z-3" style="top: 220px;">
                 <div class="card bg-dark border-secondary shadow-lg">
-                    <div class="card-body p-2">
-                        <textarea id="answer-input-field" class="form-control bg-dark text-white border-secondary mb-2"
-                            rows="3" placeholder="Type your answer..."></textarea>
+                    <div class="card-body p-2 d-flex align-items-center gap-2">
+                        <div class="flex-grow-1 d-flex flex-column">
+                            <textarea id="answer-input-field" class="form-control bg-dark text-white border-secondary"
+                                rows="2" placeholder="Type your answer..."></textarea>
+                            <div id="answer-error-message" class="text-danger small mt-1 d-none" style="font-weight: 500;"></div>
+                        </div>
                         <button id="answer-submit-button">
                             <i class="bi bi-send-fill"></i>
                         </button>

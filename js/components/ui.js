@@ -95,7 +95,8 @@ export const DOM = {
     get txtBtn() { return document.getElementById('txtBtn'); },
     get answerInputArea() { return document.getElementById('answer-input-area'); },
     get answerInputField() { return document.getElementById('answer-input-field'); },
-    get answerSubmitBtn() { return document.getElementById('answer-submit-button'); }
+    get answerSubmitBtn() { return document.getElementById('answer-submit-button'); },
+    get answerErrorMsg() { return document.getElementById('answer-error-message'); },
 };
 
 let webcamPreview = null;
@@ -368,7 +369,16 @@ export function showMicWarning(message) {
         DOM.micStatusText.innerHTML = `<div class='text-center text-danger'>${message}</div>`;
     }
 }
-
+export function showAnswerError(message) {
+    if (DOM.answerErrorMsg) {
+        DOM.answerErrorMsg.innerHTML = message;
+        DOM.answerErrorMsg.classList.remove('d-none');
+        // Hide after 4 seconds
+        setTimeout(() => {
+            if (DOM.answerErrorMsg) DOM.answerErrorMsg.classList.add('d-none');
+        }, 4000);
+    }
+}
 export function resetMissionText(missionText) {
     const missionEl = document.querySelector('.mission-text');
     if (missionEl) {

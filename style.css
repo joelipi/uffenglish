@@ -569,7 +569,6 @@ body .wp-block-post-content {
 #audioOnlyButton,
 #repeatButton,
 #processBtn,
-#answer-submit-button,
 .big-buttons button {
   font-size: x-large;
   text-align: center;
@@ -622,7 +621,6 @@ body .wp-block-post-content {
 #continueButton,
 #repeatButton,
 #processBtn,
-#answer-submit-button,
 .big-buttons button {
   background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
 }
@@ -634,7 +632,6 @@ body .wp-block-post-content {
 #audioOnlyButton::before,
 #repeatButton::before,
 #processBtn::before,
-#answer-submit-button::before,
 .big-buttons button::before {
   content: '';
   position: absolute;
@@ -652,7 +649,6 @@ body .wp-block-post-content {
 #audioOnlyButton:hover::before,
 #repeatButton:hover::before,
 #processBtn:hover::before,
-#answer-submit-button:hover::before,
 .big-buttons button:hover::before {
   left: 100%;
 }
@@ -663,7 +659,6 @@ body .wp-block-post-content {
 #audioOnlyButton:hover,
 #repeatButton:hover,
 #processBtn:hover,
-#answer-submit-button:hover,
 .big-buttons button:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
