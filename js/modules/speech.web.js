@@ -218,11 +218,21 @@ export async function startLocalAudioTap(stream, onSpeechDetected = null) {
     localAudioWorkletNode = new AudioWorkletNode(localAudioContext, 'audio-processor');
 
     let consecutiveSpeechChunks = 0;
+    const tapStartTime = Date.now();
+    const MIC_SETTLE_MS = 800; // ignore first 800ms to suppress mic pop/click
 
     localAudioWorkletNode.port.onmessage = (event) => {
         const chunk = new Float32Array(event.data); 
         localRawAudioChunks.push(chunk);
         
+        // Skip amplitude check during mic startup settle period
+        if (Date.now() - tapStartTime < MIC_SETTLE_MS) {
+            return;
+        }
+        if (localRawAudioChunks.length === 9) {
+            console.log('[Hesitation] Mic settle period ended, now monitoring for speech');
+        }
+
         // Threshold check for real-time speech detection (ignoring transient clicks/pops)
         const maxVal = Math.max(...chunk);
         if (maxVal > 0.03) {

@@ -120,6 +120,13 @@ export async function toggleSpeechRecognition(params) {
     }
     listeningState.transitioning = true;
     try {
+        // Always kill any previous hesitation timer before doing anything
+        if (listeningState.hesitationTimer) {
+            console.log('[Hesitation] Top-level cleanup: killing existing timer');
+            clearInterval(listeningState.hesitationTimer);
+            listeningState.hesitationTimer = null;
+        }
+
         const { button, question, micStatusText, userData, configData, currentLessonIndex, currentQuestionIndex, player, uiHooks } = params;
 
         if (uiHooks?.onPauseVideo) uiHooks.onPauseVideo(player);
@@ -166,29 +173,43 @@ export async function toggleSpeechRecognition(params) {
 
                 // Clean up old timer if any exists
                 if (listeningState.hesitationTimer) {
+                    console.log('[Hesitation] Clearing previous timer before starting new one');
                     clearInterval(listeningState.hesitationTimer);
                 }
 
-                // Start a 1-second hesitation timer
+                console.log('[Hesitation] Starting new 100ms hesitation timer (1s grace period)');
+                // Smooth hesitation: 1 point per 100ms after 1s grace
+                let hesitationTick = 0;
+                const GRACE_TICKS = 10;
                 listeningState.hesitationTimer = setInterval(() => {
-                    if (!speechDetected && listeningState.active) {
-                        console.log('[Speech] Hesitation detected! Deducting flow points.');
-                        if (typeof appStore.getState().deductFlowScore === 'function') {
-                            appStore.getState().deductFlowScore(10);
-                        }
-                        if (uiHooks?.onHesitation) uiHooks.onHesitation(10);
+                    hesitationTick++;
+                    const currentActive = listeningState.active;
+                    console.log(`[Hesitation] Tick #${hesitationTick} | active=${currentActive} | speechDetected=${speechDetected} | time=${Date.now()}`);
+                    if (!speechDetected && currentActive && hesitationTick === GRACE_TICKS + 1) {
+                        console.log('[Hesitation] Grace period ended - starting deductions');
                     }
-                }, 1000);
+                    if (!speechDetected && currentActive && hesitationTick > GRACE_TICKS) {
+                        console.log(`[Hesitation] SILENCE DETECTED (after grace) → deducting 1pt`);
+                        if (typeof appStore.getState().deductFlowScore === 'function') {
+                            const before = appStore.getState().flowScore;
+                            appStore.getState().deductFlowScore(1);
+                            const after = appStore.getState().flowScore;
+                            console.log(`[Hesitation] flowScore: ${before} → ${after}`);
+                        }
+                        if (uiHooks?.onHesitation) uiHooks.onHesitation(1);
+                    }
+                }, 100);
 
                 if (WebAdapter.speechCamStream) {
                     await WebAdapter.startLocalAudioTap(WebAdapter.speechCamStream, () => {
                         if (!speechDetected) {
                             speechDetected = true;
                             if (listeningState.hesitationTimer) {
+                                console.log('[Hesitation] Voice onset detected - clearing timer');
                                 clearInterval(listeningState.hesitationTimer);
                                 listeningState.hesitationTimer = null;
                             }
-                            console.log('[Speech] Real-time speech detected! Hesitation timer cleared.');
+                            console.log('[Hesitation] Real-time speech detected! Timer stopped.');
                         }
                     });
                 }
@@ -198,6 +219,7 @@ export async function toggleSpeechRecognition(params) {
             // --- STOP ---
             listeningState.active = false;
             if (listeningState.hesitationTimer) {
+                console.log('[Hesitation] Recording stopped manually - clearing timer');
                 clearInterval(listeningState.hesitationTimer);
                 listeningState.hesitationTimer = null;
             }
@@ -224,7 +246,7 @@ export async function toggleSpeechRecognition(params) {
             try {
                 // FIX: Bypass the buggy background VAD and strictly use the chronological math from Core
                 const extractionResult = Core.trimSilenceWithPadding(rawAudioData, {
-                    threshold: 0.015, preRoll: 0.3, postRoll: 0.3, sampleRate: 16000
+                    threshold: 0.03, preRoll: 0.3, postRoll: 0.3, sampleRate: 16000, initialIgnoreMs: 800
                 });
                 const whisperResult = await transcribeAudioBuffer(extractionResult.trimmed);
                 const finalTranscript = typeof whisperResult === 'string' ? whisperResult : whisperResult.text;

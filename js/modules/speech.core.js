@@ -20,17 +20,14 @@ export function trimSilenceWithPadding(data, {
     threshold = 0.02,
     preRoll = 0.2,
     postRoll = 0.2,
-    sampleRate = 16000
+    sampleRate = 16000,
+    initialIgnoreMs = 0
 } = {}) {
     // --- Find first sustained speech ---
-    // FIX: The original code jumped by minSpeechFrames when no sustained speech
-    // was found at tempStart. This skipped over short speech bursts that fell
-    // between those jump boundaries, pushing `start` too far forward and
-    // inflating the hesitation value. Now we always advance by 1 frame so no
-    // speech onset is skipped.
     const minSpeechFrames = Math.floor(0.01 * sampleRate);
     let start = data.length; // default: no speech found
-    let tempStart = 0;
+    const ignoreFrames = Math.floor((initialIgnoreMs / 1000) * sampleRate);
+    let tempStart = ignoreFrames;
 
     while (tempStart < data.length) {
         if (Math.abs(data[tempStart]) >= threshold) {

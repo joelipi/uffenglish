@@ -12,6 +12,7 @@ window.enabledLogs = {
     ai: false,
     analytics: false,
     ui: false,
+    hesitation: true,
     all: false
 };
 
