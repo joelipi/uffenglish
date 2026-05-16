@@ -1,4 +1,4 @@
-﻿// --- modules/ui.js ---
+// --- modules/ui.js ---
 import { State } from '../modules/state.js';
 import { appStore } from '../modules/store.js';
 import Strings from '../data/strings.js';
@@ -90,8 +90,6 @@ export const DOM = {
     get streakCountSpan() { return document.getElementById("streakCountSpan"); },
     get playbackVideo() { return document.getElementById('playback-video'); },
     get playbackMuteToggle() { return document.getElementById('playback-mute-toggle'); },
-    get questionsContainerContainer() { return document.getElementById('questions-container-container'); },
-    get questionsContainer() { return document.getElementById('questions-container'); },
     get tutorChatInputArea() { return document.getElementById('chat-input-area'); },
     get tutorChatTextarea() { return document.getElementById('chat-input-field'); },
     get tutorChatSendBtn() { return document.getElementById('chat-send-button'); },
@@ -405,6 +403,31 @@ export function bindAuthMenuUI(isLoggedIn, handleAuthClick, signOutText, signInT
     authLink.addEventListener('click', handleAuthClick);
 }
 
+/**
+ * Initializes the mission section toggle logic.
+ * Truncates text to one line by default and expands on click.
+ */
+export function initMissionToggle() {
+    const missionSection = document.getElementById('mission-section');
+    const carat = document.getElementById('mission-carat');
+
+    if (missionSection) {
+        missionSection.addEventListener('click', () => {
+            const isExpanded = missionSection.classList.toggle('expanded');
+            if (carat) {
+                if (isExpanded) {
+                    carat.classList.remove('bi-chevron-up');
+                    carat.classList.add('bi-chevron-down');
+                } else {
+                    carat.classList.remove('bi-chevron-down');
+                    carat.classList.add('bi-chevron-up');
+                }
+            }
+            console.log(`[UI] Mission section ${isExpanded ? 'expanded' : 'collapsed'}`);
+        });
+    }
+}
+
 function buildGrammarDiff(original, corrected) {
     const tokenize = str => str.trim().match(/[\p{L}\p{N}]+(?:'[\p{L}\p{N}]+)?|[^\p{L}\p{N}\s]+|\s+/gu) || [];
     const tokA = tokenize(original), tokB = tokenize(corrected);
@@ -628,6 +651,7 @@ export function setMicStatusText(content) {
     }
 }
 
+
 export function initUISubscriptions() {
     const store = appStore;
     let prevPoints = store.getState().listeningScore;
@@ -770,7 +794,7 @@ export function hideWhisperReviewUI() {
 
 export function showCriticalError(message) {
     if (DOM.criticalErrorContainer && DOM.criticalErrorMessage) {
-        DOM.criticalErrorMessage.textContent = message || "An unexpected error occurred.";
+        DOM.criticalErrorMessage.innerHTML = message || "An unexpected error occurred.";
         DOM.criticalErrorContainer.classList.remove("d-none");
         if (DOM.mediaViewport) DOM.mediaViewport.classList.remove("d-none");
         console.error("[UI] Critical Error Shown:", message);
@@ -1333,17 +1357,6 @@ export function renderYoutubeInMediaContainer(youtubeId) {
     DOM.mediaViewport.prepend(div);
 }
 
-export function resetAnswersContainer(html) {
-    const container = document.getElementById('questions-container');
-    if (container) {
-        container.innerHTML = html;
-    }
-    const answerDiv = document.getElementById("answerDiv");
-    if (answerDiv) answerDiv.classList.add("d-none");
-    const answersContainer = document.getElementById("answers-container");
-    if (answersContainer) answersContainer.classList.remove("d-none");
-}
-
 export function renderSpeechInputUI(answerContent, handleHintCallback, handleRevealClickCallback, toggleSpeechCallback) {
     if (State.isTextMode) {
         console.log('[UI] renderSpeechInputUI: Bypassing voice UI in text mode');
@@ -1478,7 +1491,7 @@ export function showMessageInQuestionsContainer(messageHTML) {
     }
 }
 
-export function showErrorMessageInQuestionsContainer(messageHTML) {
+export function showInitializationErrorMessage(messageHTML) {
     showCriticalError(messageHTML);
 }
 

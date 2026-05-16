@@ -119,7 +119,7 @@ import {
     toggleScoresAndHearts,
     setProgressBarWidth,
     showMessageInQuestionsContainer,
-    showErrorMessageInQuestionsContainer,
+    showInitializationErrorMessage,
     setupLessonUI,
     generateHangmanHint,
     showGuestLoginModal,
@@ -134,7 +134,8 @@ import {
     showAnswerError,
     resetMicStatusWithQuestion,
     resetMissionText,
-    bindAuthMenuUI
+    bindAuthMenuUI,
+    initMissionToggle
 } from './components/ui.js';
 import { idiomChecker } from './modules/idiom-checker.js';
 import { calculateSyntacticComplexity } from './modules/complexity.js';
@@ -709,7 +710,7 @@ async function initializeLesson(courseId = State.courseId, configData = State.co
     } catch (error) {
         console.error("initializeLesson error:", error);
         hidePreloader(); // REFACTORED
-        showErrorMessageInQuestionsContainer(Strings.get('lesson_load_error', userData?.native_language));
+        showInitializationErrorMessage(Strings.get('lesson_load_error', userData?.native_language));
     }
 }
 
@@ -782,6 +783,7 @@ async function initializeApp() {
     // Initialize reactive UI subscriptions first so the UI responds to store changes 
     // from the moment any state is set during initialization. 
     initUISubscriptions();
+    initMissionToggle();
 
     const isDemoMode = new URLSearchParams(window.location.search).has('demo');
     appStore.getState().setDemoMode(isDemoMode);
@@ -888,7 +890,8 @@ async function initializeApp() {
 
     } catch (error) {
         console.error("Initialization error:", error);
-        hidePreloader(); // REFACTORED
+        hidePreloader();
+        showInitializationErrorMessage(Strings.get('lesson_load_error', State.userData?.native_language));
     }
 }
 

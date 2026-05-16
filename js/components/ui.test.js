@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { showErrorMessageInQuestionsContainer, setupLessonUI, DOM } from './ui.js';
+import { showInitializationErrorMessage, setupLessonUI, DOM } from './ui.js';
 
 describe('UI Component functions', () => {
-beforeEach(() => {
-         // Set up the JSDOM environment
-         document.body.innerHTML = `
+    beforeEach(() => {
+        // Set up the JSDOM environment
+        document.body.innerHTML = `
              <div id="questions-container"></div>
              <div id="media-viewport" class="d-none"></div>
              <div class="ivp-main-wrapper d-none"></div>
@@ -13,49 +13,49 @@ beforeEach(() => {
              <div class="lesson-title">Old Title</div>
              <div class="lesson-title">Old Title 2</div>
          `;
-     });
+    });
+});
+
+afterEach(() => {
+    document.body.innerHTML = '';
+    vi.clearAllMocks();
+});
+
+describe('showInitializationErrorMessage', () => {
+    it('should render an error message into the questions-container', () => {
+        showInitializationErrorMessage('Test error message');
+        const container = document.getElementById('questions-container');
+        expect(container.innerHTML).toContain('Test error message');
+        expect(container.innerHTML).toContain('alert-danger');
     });
 
-    afterEach(() => {
-        document.body.innerHTML = '';
-        vi.clearAllMocks();
+    it('should do nothing if questions-container is missing', () => {
+        document.body.innerHTML = ''; // Remove container
+        expect(() => showInitializationErrorMessage('Test')).not.toThrow();
     });
+});
 
-    describe('showErrorMessageInQuestionsContainer', () => {
-        it('should render an error message into the questions-container', () => {
-            showErrorMessageInQuestionsContainer('Test error message');
-            const container = document.getElementById('questions-container');
-            expect(container.innerHTML).toContain('Test error message');
-            expect(container.innerHTML).toContain('alert-danger');
-        });
+describe('setupLessonUI', () => {
+    it('should update DOM classes and text content appropriately', () => {
+        // Pre-condition check
+        expect(document.querySelector('.ivp-main-wrapper').classList.contains('d-none')).toBe(true);
+        expect(document.getElementById('media-viewport').classList.contains('d-none')).toBe(true);
 
-        it('should do nothing if questions-container is missing', () => {
-            document.body.innerHTML = ''; // Remove container
-            expect(() => showErrorMessageInQuestionsContainer('Test')).not.toThrow();
-        });
+        setupLessonUI('New Awesome Lesson');
+
+        // Assertions
+        expect(document.querySelector('.ivp-main-wrapper').classList.contains('d-none')).toBe(false);
+        expect(document.querySelector('footer').classList.contains('d-none')).toBe(false);
+        expect(document.getElementById('media-viewport').classList.contains('d-none')).toBe(false);
+        expect(document.body.classList.contains('bg-dark')).toBe(false);
+
+        const header = document.getElementById('lesson-header');
+        expect(header.style.display).toBe('block');
+        expect(header.classList.contains('lesson-header')).toBe(true);
+
+        const titles = document.getElementsByClassName('lesson-title');
+        expect(titles[0].textContent).toBe('New Awesome Lesson');
+        expect(titles[1].textContent).toBe('New Awesome Lesson');
     });
-
-    describe('setupLessonUI', () => {
-it('should update DOM classes and text content appropriately', () => {
-             // Pre-condition check
-             expect(document.querySelector('.ivp-main-wrapper').classList.contains('d-none')).toBe(true);
-             expect(document.getElementById('media-viewport').classList.contains('d-none')).toBe(true);
-
-             setupLessonUI('New Awesome Lesson');
-
-             // Assertions
-             expect(document.querySelector('.ivp-main-wrapper').classList.contains('d-none')).toBe(false);
-             expect(document.querySelector('footer').classList.contains('d-none')).toBe(false);
-             expect(document.getElementById('media-viewport').classList.contains('d-none')).toBe(false);
-             expect(document.body.classList.contains('bg-dark')).toBe(false);
-
-             const header = document.getElementById('lesson-header');
-             expect(header.style.display).toBe('block');
-             expect(header.classList.contains('lesson-header')).toBe(true);
-
-             const titles = document.getElementsByClassName('lesson-title');
-             expect(titles[0].textContent).toBe('New Awesome Lesson');
-             expect(titles[1].textContent).toBe('New Awesome Lesson');
-         });
-    });
+});
 });

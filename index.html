@@ -117,7 +117,59 @@
         .mission-section {
             padding: 10px 16px 0px;
             background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.2) 100%);
-            height: 80px !important;
+            height: 80px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: height 0.3s ease;
+        }
+
+        .mission-section.expanded {
+            height: auto !important;
+            min-height: 80px;
+        }
+
+        .mission-row {
+            width: 100%;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+        }
+
+        .mission-label {
+            font-size: 20px;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: #ffffff;
+            flex-shrink: 0;
+            margin-right: 8px;
+        }
+
+        .mission-text {
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 500;
+            flex-grow: 1;
+            min-width: 0;
+        }
+
+        /* Truncation logic */
+        .mission-section:not(.expanded) .mission-text {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+        }
+
+        .mission-section.expanded .mission-text {
+            white-space: normal;
+            word-break: break-word;
+        }
+
+        .mission-toggle-icon {
+            color: #fff;
+            font-size: 1.2rem;
+            margin-left: 8px;
+            transition: transform 0.3s ease;
         }
 
         .controls-section {
@@ -287,28 +339,6 @@
 
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-        /* --- MISSION UI --- */
-        .mission-row {
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 10px;
-        }
-
-        .mission-label {
-            font-size: 20px;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            color: #ffffff;
-        }
-
-        .mission-text {
-            font-size: 24px;
-            font-weight: 500;
-            color: rgba(255, 255, 255, 0.95);
-            margin-left: 6px;
-        }
 
         /* Tablet and up Breakpoint */
         @media (min-width: 576px) {
@@ -321,13 +351,6 @@
                 margin: 0 auto;
             }
 
-            .mission-label {
-                font-size: 14px;
-            }
-
-            .mission-text {
-                font-size: 18px;
-            }
 
             .mission-section {
                 padding: 4px 16px 0px;
@@ -1756,8 +1779,6 @@
                 </div>
             </div>
 
-            <div id="questions-container"></div>
-
             <div id="micStatusText" class="d-flex justify-content-center align-items-center"></div>
 
             <!-- Chat Window Container -->
@@ -1809,11 +1830,14 @@
 
                 <!-- Layer 2: The Unmasked Content -->
                 <div class="bottom-overlay-content">
-                    <div class="mission-section">
+                    <div class="mission-section" id="mission-section">
                         <div class="mission-row text-shadow">
-                            <div>
+                            <div class="d-flex align-items-baseline flex-grow-1 overflow-hidden">
                                 <span class="mission-label">Mission</span>
                                 <span class="mission-text"></span>
+                            </div>
+                            <div class="mission-toggle-icon">
+                                <i class="bi bi-chevron-up" id="mission-carat"></i>
                             </div>
                         </div>
                     </div>

@@ -31,7 +31,6 @@ import {
     renderImageInMediaContainer,
     renderYoutubeInMediaContainer,
     setMicStatusText,
-    resetAnswersContainer,
     hideHints,
     showHintsAndScroll,
     renderSpeechInputUI,
@@ -112,8 +111,6 @@ export function loadQuestion(question, lesson, fluencyData, deps) {
     questionDiv.className = 'text-center';
     questionDiv.textContent = question.question;
     setMicStatusText(questionDiv);
-
-    resetAnswersContainer(`<div id="answers-container" class="d-grid gap-2 d-none"></div>`);
 
     if (question.inputType === "speech" || question.inputType === "ai") {
         _renderSpeechOrAI(question, lesson, deps);
