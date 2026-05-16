@@ -150,6 +150,11 @@
             color: #1a1a1a !important;
         }
 
+        .call-icon,
+        .call-icon i {
+            font-size: 2.0rem !important;
+        }
+
         .call-icon:active {
             transform: scale(0.9) translateY(2px);
             font-size: 2.5rem !important;
@@ -515,6 +520,31 @@
             transform: scale(0.95);
         }
 
+        #answer-submit-button {
+            background-color: #ffffff !important;
+            border: none !important;
+            border-radius: 50% !important;
+            width: 64px;
+            height: 64px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1a1a1a !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            margin: 10px auto;
+        }
+
+        #answer-submit-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 16px rgba(58, 143, 213, 0.4) !important;
+        }
+
+        #answer-submit-button:active {
+            transform: scale(0.95);
+        }
+
         #chat-input-field {
             border-radius: 24px !important;
             padding: 10px 16px !important;
@@ -632,6 +662,8 @@
 
         /* =========================================
            IVP (INTERACTIVE VIDEO PLAYER)
+
+           DO NOT ALTER!! THESE HAVE BEEN HEAVILY TESTED AND WORK PERFECTLY. ANY CHANGE IS HIGHLY LIKELY TO BREAK FUNCTIONALITY ON SOME DEVICE.
            ========================================= */
         #ivp-container {
             position: relative;
@@ -682,8 +714,6 @@
             margin: 0 auto;
         }
 
-
-
         .ivp-video {
             position: absolute;
             top: 0;
@@ -697,7 +727,8 @@
         }
 
         .ivp-subtitles {
-            position: absolute;
+            display: flex !important;
+            position: absolute !important;
             bottom: 180px !important;
             left: 0 !important;
             right: 0 !important;
@@ -712,7 +743,6 @@
             line-height: 1.3;
             word-spacing: 0.15em;
             letter-spacing: 0.05em;
-            display: flex;
             flex-wrap: wrap;
             justify-content: center;
             align-items: center;
@@ -865,7 +895,8 @@
            ========================================= */
         .ivp-subtitle-scroll-container {
             position: absolute;
-            bottom: 0;
+            bottom: 180px !important;
+            /* Matches Interactive Player height */
             left: 0;
             right: 0;
             height: 94px;
@@ -874,11 +905,30 @@
         }
 
         .ivp-subtitle-scroll-container .ivp-subtitles {
-            position: relative;
-            bottom: auto;
+            display: flex !important;
+            position: relative !important;
+            bottom: auto !important;
+            /* Prevents text from jumping out of the 94px window */
             left: auto !important;
             right: auto !important;
             width: 100% !important;
+            margin: 0 !important;
+            height: auto;
+            padding: 12px 24px;
+            color: white;
+            text-align: center;
+            box-sizing: border-box;
+            z-index: 2;
+            line-height: 1.3;
+            word-spacing: 0.15em;
+            letter-spacing: 0.05em;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 6px;
+            min-height: 94px;
+            background: rgba(0, 0, 0, 0.8) !important;
+            /* Restore background */
         }
 
         .ivp-play-overlay {
@@ -1152,19 +1202,7 @@
             font-size: 0.95em;
         }
 
-        .correct-answer {
-            animation: correctShake 0.8s ease;
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
-            color: white !important;
-            border: none !important;
-        }
-
-        .incorrect-answer {
-            animation: incorrectShake 0.5s ease;
-            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%) !important;
-            color: white !important;
-            border: none !important;
-        }
+        /* Legacy feedback classes removed */
 
         @keyframes correctShake {
 
@@ -1681,8 +1719,8 @@
                     <div class="card-body p-2">
                         <textarea id="answer-input-field" class="form-control bg-dark text-white border-secondary mb-2"
                             rows="3" placeholder="Type your answer..."></textarea>
-                        <button id="answer-submit-button" class="btn btn-primary w-100">
-                            Submit Answer
+                        <button id="answer-submit-button">
+                            <i class="bi bi-send-fill"></i>
                         </button>
                     </div>
                 </div>

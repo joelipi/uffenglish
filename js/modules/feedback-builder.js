@@ -22,38 +22,43 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, question
     const sections = [];
 
     // 1. Pronunciation
-    // score and attemptLabel are kept separate so the renderer can swap 100 → 💯
-    sections.push({
-        type: 'stat',
-        key: 'pronunciation',
-        score: scoreData.subScores.pronunciation,
-        attemptLabel: Strings.get('stats_attempts_required', lang),
-        attemptCount: attemptNumber,
-        parts: []
-    });
-
+    if (scoreData.subScores.pronunciation !== null) {
+        sections.push({
+            type: 'stat',
+            key: 'pronunciation',
+            score: scoreData.subScores.pronunciation,
+            attemptLabel: Strings.get('stats_attempts_required', lang),
+            attemptCount: attemptNumber,
+            parts: []
+        });
+    }
+ 
     // 2. Listening
-    sections.push({
-        type: 'stat',
-        key: 'listening',
-        score: scoreData.subScores.listening,
-        attemptLabel: Strings.get('stats_repetitions_required', lang),
-        attemptCount: attemptNumber,
-        parts: []
-    });
-
-    // 3. Flow — pauses removed; only hesitation and wpm
-    const flowParts = [
-        { label: Strings.get('stats_hesitation', lang), value: `${speechAnalytics.hesitation || 0}ms` },
-        { label: Strings.get('stats_wpm', lang), value: speechAnalytics.wpm || 0 }
-    ];
-
-    sections.push({
-        type: 'stat',
-        key: 'flow',
-        score: scoreData.subScores.flow,
-        parts: flowParts
-    });
+    if (scoreData.subScores.listening !== null) {
+        sections.push({
+            type: 'stat',
+            key: 'listening',
+            score: scoreData.subScores.listening,
+            attemptLabel: Strings.get('stats_repetitions_required', lang),
+            attemptCount: attemptNumber,
+            parts: []
+        });
+    }
+ 
+    // 3. Flow
+    if (scoreData.subScores.flow !== null) {
+        const flowParts = [
+            { label: Strings.get('stats_hesitation', lang), value: `${speechAnalytics.hesitation || 0}ms` },
+            { label: Strings.get('stats_wpm', lang), value: speechAnalytics.wpm || 0 }
+        ];
+ 
+        sections.push({
+            type: 'stat',
+            key: 'flow',
+            score: scoreData.subScores.flow,
+            parts: flowParts
+        });
+    }
 
     // AI-only sections (4-9)
     if (questionData.inputType === 'ai') {

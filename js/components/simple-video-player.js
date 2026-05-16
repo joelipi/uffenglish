@@ -2,7 +2,6 @@ import { SimpleVideoStateController } from '../modules/simple-video-controller.j
 
 export class simpleVideoPlayer {
   constructor(config) {
-    // Styles are now consolidated in style.css
 
     const defaults = {
       videoUrl: '',
@@ -231,11 +230,11 @@ export class simpleVideoPlayer {
           navigator.mediaSession.metadata = null;
           navigator.mediaSession.playbackState = 'none';
           const actions = ['play', 'pause', 'stop', 'seekbackward', 'seekforward',
-                          'seekto', 'previoustrack', 'nexttrack', 'skipad'];
+            'seekto', 'previoustrack', 'nexttrack', 'skipad'];
           actions.forEach(action => {
-            try { navigator.mediaSession.setActionHandler(action, null); } catch (e) {}
+            try { navigator.mediaSession.setActionHandler(action, null); } catch (e) { }
           });
-        } catch (error) {}
+        } catch (error) { }
       };
 
       clearMediaSession();
@@ -260,7 +259,7 @@ export class simpleVideoPlayer {
           try {
             navigator.mediaSession.playbackState = 'none';
             navigator.mediaSession.metadata = null;
-          } catch (e) {}
+          } catch (e) { }
         }, 100);
       }
     });
@@ -311,41 +310,41 @@ export class simpleVideoPlayer {
   }
 
   updateSubtitleScroll(forceUpdate = false) {
-      if (this.video && this.controller) {
-          this.controller.updateProgress(this.video.currentTime, this.video.duration);
-      }
+    if (this.video && this.controller) {
+      this.controller.updateProgress(this.video.currentTime, this.video.duration);
+    }
   }
 
   render(state) {
     if (!this.subtitleScrollContainer || !this.subtitleDisplay) return;
 
     if (state.isTimedSubtitles) {
-        this.subtitleScrollContainer.classList.add('timed-subtitles-container');
-        this.subtitleDisplay.classList.add('timed-subtitles');
-        this.subtitleDisplay.innerHTML = state.activeSubtitleText;
-        // No transform/scroll logic here — CSS handles positioning
+      this.subtitleScrollContainer.classList.add('timed-subtitles-container');
+      this.subtitleDisplay.classList.add('timed-subtitles');
+      this.subtitleDisplay.innerHTML = state.activeSubtitleText;
+      // No transform/scroll logic here — CSS handles positioning
     } else {
-        this.subtitleScrollContainer.classList.remove('timed-subtitles-container');
-        this.subtitleDisplay.classList.remove('timed-subtitles');
+      this.subtitleScrollContainer.classList.remove('timed-subtitles-container');
+      this.subtitleDisplay.classList.remove('timed-subtitles');
 
-        // Render fallback plain text content only if it changed
-        if (this.subtitleDisplay.innerHTML !== state.activeSubtitleText) {
-            this.subtitleDisplay.innerHTML = state.activeSubtitleText;
-        }
+      // Render fallback plain text content only if it changed
+      if (this.subtitleDisplay.innerHTML !== state.activeSubtitleText) {
+        this.subtitleDisplay.innerHTML = state.activeSubtitleText;
+      }
 
-        const containerHeight = this.subtitleScrollContainer.offsetHeight;
-        const contentHeight = this.subtitleDisplay.scrollHeight;
+      const containerHeight = this.subtitleScrollContainer.offsetHeight;
+      const contentHeight = this.subtitleDisplay.scrollHeight;
 
-        if (contentHeight <= containerHeight) {
-            this.subtitleDisplay.style.transform = 'translateY(0)';
-            return;
-        }
+      if (contentHeight <= containerHeight) {
+        this.subtitleDisplay.style.transform = 'translateY(0)';
+        return;
+      }
 
-        const maxScroll = Math.max(0, contentHeight - containerHeight);
-        const currentScroll = state.scrollRatio * maxScroll;
+      const maxScroll = Math.max(0, contentHeight - containerHeight);
+      const currentScroll = state.scrollRatio * maxScroll;
 
-        this.subtitleDisplay.style.transform = `translateY(-${currentScroll}px)`;
-        this.subtitleDisplay.style.transition = `transform ${this.scrollUpdateInterval / 1000}s linear`;
+      this.subtitleDisplay.style.transform = `translateY(-${currentScroll}px)`;
+      this.subtitleDisplay.style.transition = `transform ${this.scrollUpdateInterval / 1000}s linear`;
     }
   }
 

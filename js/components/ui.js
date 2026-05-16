@@ -38,24 +38,37 @@ dynamicStyles.textContent = `
 document.head.appendChild(dynamicStyles);
 
 export function syncTextModeUI() {
-    const pronunciationScore = document.getElementById('pronunciationScore');
-    if (pronunciationScore) {
-        if (State.isTextMode) {
-            pronunciationScore.classList.add('d-none');
-            if (DOM.micBtn) DOM.micBtn.classList.add('d-none');
-            if (DOM.txtBtn) DOM.txtBtn.classList.remove('d-none');
-            console.log('[UI] Text mode: hiding speaking score, swapping mic for keyboard');
-        } else {
-            pronunciationScore.classList.remove('d-none');
-            if (DOM.micBtn) DOM.micBtn.classList.remove('d-none');
-            if (DOM.txtBtn) DOM.txtBtn.classList.add('d-none');
-            console.log('[UI] Camera/Mic mode: showing speaking score, swapping keyboard for mic');
+    const pronunciationScore = DOM.pronunciationScore;
+    const flowScore = DOM.flowScore;
+
+    if (State.isTextMode) {
+        if (pronunciationScore && pronunciationScore.parentElement) {
+            pronunciationScore.parentElement.classList.add('d-none');
         }
+        if (flowScore && flowScore.parentElement) {
+            flowScore.parentElement.classList.add('d-none');
+        }
+
+        if (DOM.micBtn) DOM.micBtn.classList.add('d-none');
+        if (DOM.txtBtn) DOM.txtBtn.classList.remove('d-none');
+        console.log('[UI] Text mode: hiding speaking/flow scores, swapping mic for keyboard');
+    } else {
+        if (pronunciationScore && pronunciationScore.parentElement) {
+            pronunciationScore.parentElement.classList.remove('d-none');
+        }
+        if (flowScore && flowScore.parentElement) {
+            flowScore.parentElement.classList.remove('d-none');
+        }
+
+        if (DOM.micBtn) DOM.micBtn.classList.remove('d-none');
+        if (DOM.txtBtn) DOM.txtBtn.classList.add('d-none');
+        console.log('[UI] Camera/Mic mode: showing speaking/flow scores, swapping keyboard for mic');
     }
 }
 
 export const DOM = {
     get pronunciationScore() { return document.getElementById('pronunciationScore'); },
+    get flowScore() { return document.getElementById('flowScore'); },
     get mediaViewport() { return document.getElementById('media-viewport'); },
     get bottomOverlay() { return document.querySelector('.bottom-overlay'); },
     get speechText() { return document.getElementById("chat-window-container"); },
@@ -356,13 +369,16 @@ export function showMicWarning(message) {
     }
 }
 
+export function resetMissionText(missionText) {
+    const missionEl = document.querySelector('.mission-text');
+    if (missionEl) {
+        missionEl.textContent = missionText || "";
+    }
+}
+
 export function resetMicStatusWithQuestion(questionText) {
     if (DOM.micStatusText) {
         DOM.micStatusText.innerHTML = `<div class='text-center'>${questionText || ""}</div>`;
-    }
-    const missionText = document.querySelector('.mission-text');
-    if (missionText && questionText) {
-        missionText.textContent = questionText;
     }
 }
 
@@ -507,7 +523,10 @@ export function initTutorChatUI(submitCallback) {
     });
 
     DOM.tutorChatTextarea.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') { }
+        if (e.key === 'Enter' && e.ctrlKey) {
+            e.preventDefault();
+            DOM.tutorChatSendBtn.click();
+        }
     });
 }
 
@@ -668,12 +687,12 @@ export function initUISubscriptions() {
         DOM.txtBtn.onclick = () => {
             if (DOM.answerInputArea) {
                 const isHiding = !DOM.answerInputArea.classList.contains('d-none');
-                
+
                 if (isHiding) {
                     // --- CLOSING ---
                     DOM.answerInputArea.classList.add('d-none');
                     window.isMicActive = false;
-                    
+
                     // Resume video
                     const player = State.player || window.currentVideoPlayer;
                     if (player && player.play) {
@@ -684,13 +703,13 @@ export function initUISubscriptions() {
                     // --- OPENING ---
                     DOM.answerInputArea.classList.remove('d-none');
                     window.isMicActive = true;
-                    
+
                     // Pause video
                     Media.pauseVideoIfPlaying();
-                    
+
                     // Hide hints
                     hideHints();
-                    
+
                     // Focus
                     if (DOM.answerInputField) {
                         setTimeout(() => DOM.answerInputField.focus(), 100);
@@ -744,7 +763,7 @@ export function renderWhisperReviewUI(transcript, timeLeft, onAccept, onReject) 
                 <button id="rejectBtn" class="btn btn-outline-danger px-4">
                     <i class="bi bi-arrow-repeat"></i> Re-record
                 </button>
-                <button id="acceptBtn" class="btn btn-success px-4">
+                <button id="acceptBtn" class="btn btn-primary px-4">
                     <i class="bi bi-check-circle"></i> Accept (<span id="reviewTimer">${timeLeft}</span>s)
                 </button>
             </div>
@@ -1081,24 +1100,6 @@ async function setupIOSBlobPlayback(videoElement, blob) {
     });
 }
 
-export function markButtonAsCorrect(button) {
-    if (!button) return;
-    button.classList.add('btn-success', 'correct-answer');
-    button.addEventListener('animationend', () => button.classList.remove('correct-answer'), { once: true });
-}
-
-export function markButtonAsIncorrect(button, answersContainer, cue) {
-    if (!button) return;
-    button.classList.remove('btn-outline-primary');
-    button.classList.add('btn-secondary', 'disabled', 'incorrect-answer');
-
-    if (answersContainer && cue) {
-        const cueButton = Array.from(answersContainer.querySelectorAll('button')).find(btn => btn.textContent.trim().toLowerCase() === cue.trim().toLowerCase());
-        if (cueButton) cueButton.classList.add('correct-answer-highlight');
-    }
-
-    button.addEventListener('animationend', () => button.classList.remove('incorrect-answer'), { once: true });
-}
 
 export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyClickCallback) {
     if (isLessonIntro) {
@@ -1346,7 +1347,7 @@ export function renderTextInputUI(placeholder, submitText, handleSubmitCallback)
 
         DOM.answerSubmitBtn.disabled = false;
         DOM.answerSubmitBtn.classList.remove('disabled');
-        DOM.answerSubmitBtn.textContent = submitText || 'Submit Answer';
+        DOM.answerSubmitBtn.innerHTML = '<i class="bi bi-send-fill"></i>';
 
         // Clear previous event listeners
         const newSubmitBtn = DOM.answerSubmitBtn.cloneNode(true);
@@ -1368,11 +1369,12 @@ export function renderTextInputUI(placeholder, submitText, handleSubmitCallback)
         DOM.answerInputField.parentNode.replaceChild(newInputField, DOM.answerInputField);
 
         newInputField.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
+            if (e.key === 'Enter' && e.ctrlKey) {
                 e.preventDefault();
-                console.log('[UI] Enter key detected');
+                console.log('[UI] Ctrl+Enter detected - submitting');
                 handleSubmit();
             }
+            // Normal Enter will now create a carriage return by default in the textarea
         });
 
         console.log('[UI] renderTextInputUI completed. Listeners attached to new nodes.');
@@ -1560,7 +1562,9 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
 
     Media.playSound('correct-sound');
 
-    markButtonAsCorrect(button);
+    if (questionData.inputType !== "text" && button?.id !== 'answer-submit-button') {
+        markButtonAsCorrect(button);
+    }
 }
 
 export function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanation, normalizeduserResponse, normalizedcue, question, silent = false, userData, configData, fluencyBubble = null) {
@@ -1661,9 +1665,7 @@ export function handleIncueUI(qIndex, questionData, button, cue, userResponse, e
     Media.playSound('incorrect-sound');
 
     const answersContainer = button.parentElement;
-    if (questionData.inputType !== "text") {
+    if (questionData.inputType !== "text" && button?.id !== 'answer-submit-button') {
         markButtonAsIncorrect(button, answersContainer, cue);
-    } else {
-        markButtonAsIncorrect(button, null, null);
     }
 }

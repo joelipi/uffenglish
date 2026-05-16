@@ -108,8 +108,6 @@ import {
     clearPlaybackVideo,
     prepareMediaUI,
     showPlaybackVideo,
-    markButtonAsCorrect,
-    markButtonAsIncorrect,
     initTutorChatUI,
     showTutorChatInput,
     hideTutorChatInput,
@@ -134,6 +132,7 @@ import {
     renderHangmanHint,
     showMicWarning,
     resetMicStatusWithQuestion,
+    resetMissionText,
     bindAuthMenuUI
 } from './components/ui.js';
 import { idiomChecker } from './modules/idiom-checker.js';
@@ -236,9 +235,9 @@ function resetButtonState(button) {
         button.disabled = false;
         button.classList.remove('disabled');
         button.style.display = "inline-block";
-        
+
         if (State.isTextMode) {
-            button.textContent = Strings.get('btn_submit', State.userData?.native_language) || 'Submit Answer';
+            button.innerHTML = '<i class="bi bi-send-fill"></i>';
             // Re-enable and clear the input field
             const inputField = document.getElementById('answer-input-field');
             if (inputField) {
@@ -250,7 +249,7 @@ function resetButtonState(button) {
         } else {
             button.innerHTML = '<i class="bi bi-mic-fill"></i>';
         }
-        
+
         button.classList.remove('btn-danger', 'btn-danger-recording');
     }
 }
@@ -284,8 +283,8 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
 
             if (State.isTextMode) {
                 if (speechAnalytics) {
-                    speechAnalytics.pronunciationScore = 100;
-                    speechAnalytics.flowScore = 100;
+                    speechAnalytics.pronunciationScore = null;
+                    speechAnalytics.flowScore = null;
                     speechAnalytics.wpm = 0;
                     speechAnalytics.pauseCount = 0;
                     speechAnalytics.netDuration = 3;
@@ -457,7 +456,6 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
 
             // REFACTORED: Removed document.createElement and raw class assignments
             resetMicStatusWithQuestion(questionData.question);
-
             resetButtonState(button);
             return; // EXIT EARLY: No chat bubbles, no proceed
         }
@@ -731,6 +729,13 @@ async function loadLessonContent(lesson, configData) {
     setupLessonUI(fullTitle);
 
     const userData = queryClient.getQueryData(['user', 'profile']);
+
+    // --- MISSION LOGIC ---
+    // The mission is lesson-wide and should stay the same throughout.
+    const lang = userData?.native_language;
+    const missionText = getLocalizedTranslation(lesson.mission, lang);
+    resetMissionText(missionText);
+
     loadQuestion(lesson.questions[State.currentQuestionIndex], lesson, null);
 }
 

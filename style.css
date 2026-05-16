@@ -569,6 +569,7 @@ body .wp-block-post-content {
 #audioOnlyButton,
 #repeatButton,
 #processBtn,
+#answer-submit-button,
 .big-buttons button {
   font-size: x-large;
   text-align: center;
@@ -621,6 +622,7 @@ body .wp-block-post-content {
 #continueButton,
 #repeatButton,
 #processBtn,
+#answer-submit-button,
 .big-buttons button {
   background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
 }
@@ -632,6 +634,7 @@ body .wp-block-post-content {
 #audioOnlyButton::before,
 #repeatButton::before,
 #processBtn::before,
+#answer-submit-button::before,
 .big-buttons button::before {
   content: '';
   position: absolute;
@@ -649,6 +652,7 @@ body .wp-block-post-content {
 #audioOnlyButton:hover::before,
 #repeatButton:hover::before,
 #processBtn:hover::before,
+#answer-submit-button:hover::before,
 .big-buttons button:hover::before {
   left: 100%;
 }
@@ -659,6 +663,7 @@ body .wp-block-post-content {
 #audioOnlyButton:hover,
 #repeatButton:hover,
 #processBtn:hover,
+#answer-submit-button:hover,
 .big-buttons button:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1), 0 4px 6px rgba(0, 0, 0, 0.05);
@@ -844,21 +849,7 @@ p {
 }
 
 /* Enhanced Correct/Incorrect Feedback Styling */
-.correct-answer {
-  animation: correctShake 0.8s ease;
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
-  color: white !important;
-  border: none !important;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06) !important;
-}
-
-.incorrect-answer {
-  animation: incorrectShake 0.5s ease;
-  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%) !important;
-  color: white !important;
-  border: none !important;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.06) !important;
-}
+/* Legacy feedback classes removed to align with new design system */
 
 /* Hangman Hint Styles */
 .hangman-placeholder {

@@ -41,26 +41,33 @@ export function calculateFluencyScore({
     labels,
     attemptNumber
 }) {
+    const isTextMode = State.isTextMode;
+ 
     // 1. Pronunciation (5%)
-    const pronunciation = pronunciationScore;
-
+    const pronunciation = isTextMode ? null : pronunciationScore;
+ 
     // 2. Listening (40%)
     const listening = listeningScore;
-
+ 
     // 3. Flow (5%) - Updated as per hesitation-spec.md
-    const wpmScore = wpm < 60 ? 0 : 100;
-    const pausesScore = Math.max(0, 100 - (pauseCount * 50));
-
-    // Spec calculation: 100 score up to 500ms, then deduct 5 points for every 100ms
-    const hesitationScore = Math.max(0, 100 - Math.floor(Math.max(0, hesitation - 500) / 20));
-
-    const isDemoMode = appStore.getState().isDemoMode;
-    let flow;
-    if (isDemoMode) {
-        // Average of ONLY WPM and Hesitation
-        flow = Math.round((wpmScore + hesitationScore) / 2);
-    } else {
-        flow = Math.round((wpmScore + pausesScore + hesitationScore) / 3);
+    let flow = null;
+    let wpmScore = null;
+    let pausesScore = null;
+    let hesitationScore = null;
+ 
+    if (!isTextMode) {
+        wpmScore = wpm < 60 ? 0 : 100;
+        pausesScore = Math.max(0, 100 - (pauseCount * 50));
+        // Spec calculation: 100 score up to 500ms, then deduct 5 points for every 100ms
+        hesitationScore = Math.max(0, 100 - Math.floor(Math.max(0, hesitation - 500) / 20));
+ 
+        const isDemoMode = appStore.getState().isDemoMode;
+        if (isDemoMode) {
+            // Average of ONLY WPM and Hesitation
+            flow = Math.round((wpmScore + hesitationScore) / 2);
+        } else {
+            flow = Math.round((wpmScore + pausesScore + hesitationScore) / 3);
+        }
     }
 
     // 4. Vocabulary (5%)
@@ -96,39 +103,64 @@ export function calculateFluencyScore({
 
     let finalScore = 0;
 
+
     if (attemptNumber <= 1) {
-        finalScore = (pronunciation * 0.05) +
-            (listening * 0.40) +
-            (flow * 0.05) +
-            (vocabulary * 0.05) +
-            (grammar * 0.05) +
-            (formality * 0.025) +
-            (nativeLike * 0.025) +
-            (understanding * 0.35);
+        if (isTextMode) {
+            // Pronunciation (5%) and Flow (5%) are skipped.
+            // Remaining weights sum to 0.9 (90%).
+            // We normalize by dividing the weighted sum by 0.9.
+            const weightedSum = (listening * 0.40) +
+                (vocabulary * 0.05) +
+                (grammar * 0.05) +
+                (formality * 0.025) +
+                (nativeLike * 0.025) +
+                (understanding * 0.35);
+            finalScore = weightedSum / 0.9;
+        } else {
+            finalScore = (pronunciation * 0.05) +
+                (listening * 0.40) +
+                (flow * 0.05) +
+                (vocabulary * 0.05) +
+                (grammar * 0.05) +
+                (formality * 0.025) +
+                (nativeLike * 0.025) +
+                (understanding * 0.35);
+        }
     } else {
-        finalScore = Math.min(
-            pronunciation,
-            listening,
-            flow,
-            vocabulary,
-            grammar,
-            formality,
-            nativeLike,
-            understanding
-        );
+        if (isTextMode) {
+            finalScore = Math.min(
+                listening,
+                vocabulary,
+                grammar,
+                formality,
+                nativeLike,
+                understanding
+            );
+        } else {
+            finalScore = Math.min(
+                pronunciation,
+                listening,
+                flow,
+                vocabulary,
+                grammar,
+                formality,
+                nativeLike,
+                understanding
+            );
+        }
     }
 
     return {
         fluencyScore: Math.round(finalScore),
-        flowScore: Math.round(flow),
+        flowScore: isTextMode ? null : Math.round(flow),
         subScores: {
-            pronunciation,
+            pronunciation: isTextMode ? null : pronunciation,
             listening,
-            flow,
-            wpmScore,
-            pausesScore,
-            hesitationScore,
-            hesitation,
+            flow: isTextMode ? null : flow,
+            wpmScore: isTextMode ? null : wpmScore,
+            pausesScore: isTextMode ? null : pausesScore,
+            hesitationScore: isTextMode ? null : hesitationScore,
+            hesitation: isTextMode ? null : hesitation,
             vocabulary,
             grammar,
             diffScore,
