@@ -217,13 +217,21 @@ export async function startLocalAudioTap(stream, onSpeechDetected = null) {
     const source = localAudioContext.createMediaStreamSource(stream);
     localAudioWorkletNode = new AudioWorkletNode(localAudioContext, 'audio-processor');
 
+    let consecutiveSpeechChunks = 0;
+
     localAudioWorkletNode.port.onmessage = (event) => {
         const chunk = new Float32Array(event.data); 
         localRawAudioChunks.push(chunk);
         
-        // Threshold check for real-time speech detection
+        // Threshold check for real-time speech detection (ignoring transient clicks/pops)
         const maxVal = Math.max(...chunk);
-        if (onSpeechDetected && maxVal > 0.01) {
+        if (maxVal > 0.03) {
+            consecutiveSpeechChunks++;
+        } else {
+            consecutiveSpeechChunks = 0;
+        }
+
+        if (consecutiveSpeechChunks >= 4 && onSpeechDetected) {
             onSpeechDetected(maxVal);
         }
 

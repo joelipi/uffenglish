@@ -12,6 +12,7 @@ import {
     isIOS,
     warmUpSpeechCamStream,
     toggleSpeechRecognition,
+    listeningState,
 } from '../modules/speech.js';
 import { processVideo } from '../modules/video-processor.js';
 import { saveLessonProgress } from '../modules/user-profile.js';
@@ -53,6 +54,16 @@ function beforeUnloadHandler(e) { /* e.preventDefault(); e.returnValue = ''; ret
 
 export function loadQuestion(question, lesson, fluencyData, deps) {
     const { submitAnswerPrecheck, showFeedbackAndProceed, handleHint } = deps;
+
+    // Strict voice/hesitation state isolation between questions
+    if (listeningState) {
+        listeningState.active = false;
+        listeningState.transitioning = false;
+        if (listeningState.hesitationTimer) {
+            clearInterval(listeningState.hesitationTimer);
+            listeningState.hesitationTimer = null;
+        }
+    }
 
     window.__currentQuestionIndex = getCurrentQuestionIndex(question, State.configData, State.currentLessonIndex);
     clearChatInterface();

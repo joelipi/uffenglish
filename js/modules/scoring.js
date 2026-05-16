@@ -58,8 +58,8 @@ export function calculateFluencyScore({
     if (!isTextMode) {
         wpmScore = wpm < 60 ? 0 : 100;
         pausesScore = Math.max(0, 100 - (pauseCount * 50));
-        // Spec calculation: 100 score up to 500ms, then deduct 5 points for every 100ms
-        hesitationScore = Math.max(0, 100 - Math.floor(Math.max(0, hesitation - 500) / 20));
+        // Spec calculation: deduct 10 points for every 1000ms (1 point per 100ms)
+        hesitationScore = Math.max(0, 100 - Math.floor(hesitation / 100));
  
         const isDemoMode = appStore.getState().isDemoMode;
         if (isDemoMode) {

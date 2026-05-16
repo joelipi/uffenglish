@@ -131,7 +131,14 @@ export const appStore = createStore(
                 listeningScore: 100,
                 speakingScore: 100,
                 incorrectAttempts: 0,
-                whisperRejections: 0
+                whisperRejections: 0,
+                fluencyScore: 100,
+                flowScore: 100,
+                vocabularyScore: 100,
+                grammarScore: 100,
+                formalityScore: 100,
+                nativeLikeScore: 100,
+                understandingScore: 100
             }),
 
             // Reset all per-lesson metrics (called at lesson start)
