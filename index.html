@@ -1406,6 +1406,12 @@
         .btn-bounce {
             animation: button-bounce 1s;
         }
+
+        #ivp-container,
+        #simple-ivp-container {
+            width: 100%;
+            height: 100%;
+        }
     </style>
 
 </head>
@@ -1643,10 +1649,6 @@
                 </div>
             </div>
 
-            <div id="hints" class="d-none card">
-                <p class="info-content" id="hintUncommonWords"></p>
-            </div>
-
             <div id="questions-container"></div>
 
             <div id="micStatusText" class="d-flex justify-content-center align-items-center"></div>
@@ -1677,14 +1679,17 @@
             <div id="answer-input-area" class="d-none position-absolute w-100 p-3 z-3" style="bottom: 160px;">
                 <div class="card bg-dark border-secondary shadow-lg">
                     <div class="card-body p-2">
-                        <textarea id="answer-input-field" class="form-control bg-dark text-white border-secondary mb-2" rows="3" placeholder="Type your answer..."></textarea>
+                        <textarea id="answer-input-field" class="form-control bg-dark text-white border-secondary mb-2"
+                            rows="3" placeholder="Type your answer..."></textarea>
                         <button id="answer-submit-button" class="btn btn-primary w-100">
                             Submit Answer
                         </button>
                     </div>
                 </div>
             </div>
-
+            <div id="hints" class="d-none card">
+                <p class="info-content" id="hintUncommonWords"></p>
+            </div>
             <!-- Bottom Overlay -->
             <div class="bottom-overlay position-absolute bottom-0 start-0 w-100 z-1 d-flex flex-column">
 

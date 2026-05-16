@@ -1300,6 +1300,10 @@ export function resetAnswersContainer(html) {
 }
 
 export function renderSpeechInputUI(answerContent, handleHintCallback, handleRevealClickCallback, toggleSpeechCallback) {
+    if (State.isTextMode) {
+        console.log('[UI] renderSpeechInputUI: Bypassing voice UI in text mode');
+        return;
+    }
     const hintUncommonWords = document.getElementById("hintUncommonWords");
     if (hintUncommonWords) {
         hintUncommonWords.innerHTML = '';
@@ -1337,9 +1341,11 @@ export function renderTextInputUI(placeholder, submitText, handleSubmitCallback)
 
         DOM.answerInputField.placeholder = placeholder || 'Type your answer...';
         DOM.answerInputField.disabled = false;
+        DOM.answerInputField.classList.remove('disabled');
         DOM.answerInputField.value = '';
 
         DOM.answerSubmitBtn.disabled = false;
+        DOM.answerSubmitBtn.classList.remove('disabled');
         DOM.answerSubmitBtn.textContent = submitText || 'Submit Answer';
 
         // Clear previous event listeners

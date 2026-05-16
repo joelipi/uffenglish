@@ -236,7 +236,21 @@ function resetButtonState(button) {
         button.disabled = false;
         button.classList.remove('disabled');
         button.style.display = "inline-block";
-        button.innerHTML = '<i class="bi bi-mic-fill"></i>';
+        
+        if (State.isTextMode) {
+            button.textContent = Strings.get('btn_submit', State.userData?.native_language) || 'Submit Answer';
+            // Re-enable and clear the input field
+            const inputField = document.getElementById('answer-input-field');
+            if (inputField) {
+                inputField.value = '';
+                inputField.disabled = false;
+                inputField.classList.remove('disabled');
+                setTimeout(() => inputField.focus(), 100);
+            }
+        } else {
+            button.innerHTML = '<i class="bi bi-mic-fill"></i>';
+        }
+        
         button.classList.remove('btn-danger', 'btn-danger-recording');
     }
 }
