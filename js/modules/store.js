@@ -16,8 +16,8 @@ export const appStore = createStore(
 
             // --- Reactive UI Metrics ---
             listeningScore: 100,
-            speakingScore: 100,
             incorrectAttempts: 0,
+            whisperRejections: 0,
             dayCount: 0,
             currentStreak: 0,
             fluencyScore: 100,
@@ -96,9 +96,13 @@ export const appStore = createStore(
                 speakingScore: Math.max(0, Number(value) || 0)
             }),
 
-            // Increment incorrectAttempts by 1
             incrementIncorrectAttempts: () => set((state) => ({
                 incorrectAttempts: state.incorrectAttempts + 1
+            })),
+
+            // Increment whisperRejections by 1
+            incrementWhisperRejections: () => set((state) => ({
+                whisperRejections: state.whisperRejections + 1
             })),
 
             // Update dayCount and currentStreak together
@@ -117,11 +121,11 @@ export const appStore = createStore(
                 aIMessagesToUserWordCount: state.aIMessagesToUserWordCount + (Number(wordCount) || 0)
             })),
 
-            // Reset all per-question metrics (called between questions)
             resetForNextQuestion: () => set({
                 listeningScore: 100,
                 speakingScore: 100,
-                incorrectAttempts: 0
+                incorrectAttempts: 0,
+                whisperRejections: 0
             }),
 
             // Reset all per-lesson metrics (called at lesson start)
@@ -129,6 +133,7 @@ export const appStore = createStore(
                 listeningScore: 100,
                 speakingScore: 100,
                 incorrectAttempts: 0,
+                whisperRejections: 0,
                 fluencyScore: 100,
                 flowScore: 100,
                 vocabularyScore: 100,

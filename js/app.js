@@ -148,7 +148,7 @@ window.addEventListener('transcriptRejected', (e) => {
 
     // Deduct 20 points, floor at 0
     appStore.getState().deductSpeakingScore(20);
-    appStore.getState().incrementIncorrectAttempts();
+    appStore.getState().incrementWhisperRejections();
     // Show point loss animation explicitly on the score span (subscription handles the text update)
     if (DOM.pronunciationScore) {
         pointLoss.show(DOM.pronunciationScore, 20);
@@ -158,7 +158,7 @@ window.addEventListener('transcriptRejected', (e) => {
 window.addEventListener('preflightRejected', () => {
     //   FIX: Use the correct Zustand action for the Speaking Score
     appStore.getState().deductSpeakingScore(10);
-    appStore.getState().incrementIncorrectAttempts();
+    appStore.getState().incrementWhisperRejections();
     // Show point loss animation (subscription handles the text update)
     if (DOM.pronunciationScore) {
         pointLoss.show(DOM.pronunciationScore, 10);
@@ -380,7 +380,7 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
             State.pragmaticFlags.push(...result.intentLabels);
         }
 
-        const { listeningScore, speakingScore, incorrectAttempts } = appStore.getState();
+        const { listeningScore, speakingScore, incorrectAttempts, whisperRejections } = appStore.getState();
 
         if (questionData.inputType === "speech" || questionData.inputType === "ai") {
             const attemptNumber = incorrectAttempts + 1; // 1-based attempt index
@@ -423,7 +423,8 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
                 scoreData, speechAnalytics, result, questionData,
                 lang: userData?.native_language, englishLevel,
                 attemptNumber: incorrectAttempts + 1,
-                repetitionCount: State.videoPlays
+                repetitionCount: State.videoPlays,
+                whisperRejections: whisperRejections
             });
 
             // Update header scoreboard immediately   scores are ready

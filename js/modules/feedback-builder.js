@@ -16,9 +16,11 @@ import Strings from '../data/strings.js';
  * @param {string} params.lang - User's native language code
  * @param {string} params.englishLevel - CEFR level string (A0-C2)
  * @param {number} params.attemptNumber - 1-based attempt count
+ * @param {number} params.repetitionCount - Number of video repetitions
+ * @param {number} params.whisperRejections - Number of times whisper transcription was rejected
  * @returns {{ sections: Array<Object> }}
  */
-export function buildFeedbackData({ scoreData, speechAnalytics, result, questionData, lang, englishLevel, attemptNumber, repetitionCount }) {
+export function buildFeedbackData({ scoreData, speechAnalytics, result, questionData, lang, englishLevel, attemptNumber, repetitionCount, whisperRejections = 0 }) {
     const sections = [];
 
     // 1. Pronunciation
@@ -28,7 +30,7 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, question
             key: 'pronunciation',
             score: scoreData.subScores.pronunciation,
             attemptLabel: Strings.get('stats_attempts_required', lang),
-            attemptCount: attemptNumber,
+            attemptCount: whisperRejections + 1,
             parts: []
         });
     }

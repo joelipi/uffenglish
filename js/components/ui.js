@@ -1701,15 +1701,15 @@ export function handleIncueUI(qIndex, questionData, button, cue, userResponse, e
     }
 
     if (questionData.inputType === "speech" && userResponse && DOM.speechText) {
-        const selectedWords = [...new Set(normalizeduserResponse.split(/\\s+/))];
-        const correctWords = [...new Set(normalizedcue.split(/\\s+/))];
+        const selectedWords = [...new Set(normalizeduserResponse.split(/\s+/))];
+        const correctWords = [...new Set(normalizedcue.split(/\s+/))];
         const correctWordSet = new Set(correctWords.map(w => w.toLowerCase()));
         const correct = new Set(); const incorrect = new Set();
 
         selectedWords.forEach(w => correctWordSet.has(w.toLowerCase()) ? correct.add(w) : incorrect.add(w));
 
-        const correctUl = `<ul class='card-text correctWords list-inline chat-message-bubble chat-message-bubble--user' id='correctWords' style='display:block'>${Array.from(correct).map(w => `<li class='list-inline-item'>${w}</li>`).join('')}</ul>`;
-        const incorrectUl = `<ul class='card-text incorrectWords list-inline chat-message-bubble chat-message-bubble--user' id='incorrectWords' style='display:block; border-top: 1px solid rgba(255,255,255,0.1)'>${Array.from(incorrect).map(w => `<li class='list-inline-item'>${w}</li>`).join('')}</ul>`;
+        const correctUl = correct.size > 0 ? `<ul class='card-text correctWords list-inline' id='correctWords' style='display:block'>${Array.from(correct).map(w => `<li class='list-inline-item'>${w}</li>`).join('')}</ul>` : '';
+        const incorrectUl = incorrect.size > 0 ? `<ul class='card-text incorrectWords list-inline' id='incorrectWords' style='display:block; border-top: 1px solid rgba(255,255,255,0.1)'>${Array.from(incorrect).map(w => `<li class='list-inline-item'>${w}</li>`).join('')}</ul>` : '';
 
         const teacherText = appStore.getState().incorrectAttempts === 1
             ? Strings.get('try_again_1', State.userData?.native_language)
