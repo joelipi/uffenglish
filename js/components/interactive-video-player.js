@@ -176,7 +176,7 @@ export class InteractiveVideoPlayer {
     this.unsubscribeController = this.controller.subscribe((state) => {
       this.ui.render(state);
       // Handle Video Player Auto-Looping execution
-      if (state.isPlaying && this.video.paused) {
+      if (state.isPlaying && this.video.paused && !window.isMicActive) {
         const playPromise = this.video.play();
         if (playPromise !== undefined) playPromise.catch(() => { });
       }
@@ -315,7 +315,12 @@ export class InteractiveVideoPlayer {
   }
 
   pause() {
-    this.video.pause();
+    if (this.controller) {
+      this.controller.cancelOverlayTimer();
+    }
+    if (this.video) {
+      this.video.pause();
+    }
   }
 
   destroy() {

@@ -12,6 +12,7 @@ export const appStore = createStore(
             // --- Session Flags (Not Persisted) ---
             isDemoMode: false,
             isWhisperReady: false,
+            userFirstName: null,
 
             // --- Reactive UI Metrics ---
             listeningScore: 100,
@@ -46,6 +47,7 @@ export const appStore = createStore(
             // Set Session Flags
             setDemoMode: (val) => set({ isDemoMode: val }),
             setWhisperReady: (val) => set({ isWhisperReady: val }),
+            setUserFirstName: (val) => set({ userFirstName: val }),
 
             // Update physical place in the lesson
             setProgress: ({ lessonId, lessonIndex, questionIndex }) => set({

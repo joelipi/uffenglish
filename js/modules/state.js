@@ -69,13 +69,19 @@ export const State = {
     initializeUserMetrics(userData, streakCalculator) {
         this.userData = userData;
         // Map the Appwrite 'english_level' to your State
-        this.englishLevel = userData?.english_level || 'A0'; 
+        this.englishLevel = userData?.english_level || 'A0';
 
-        if (userData && Array.isArray(userData.completed_dates)) {
-            // dayCount and currentStreak now live in the Zustand store
-            const dayCount = userData.completed_dates.length;
-            const currentStreak = streakCalculator(userData.completed_dates);
-            appStore.getState().setActivityMetrics(dayCount, currentStreak);
+        if (userData) {
+            const isGuest = userData.auth_method === 'guest' || userData.display_name === 'Guest User';
+            const firstName = isGuest ? null : (userData.first_name || (userData.display_name ? userData.display_name.split(' ')[0] : null));
+            appStore.getState().setUserFirstName(firstName);
+
+            if (Array.isArray(userData.completed_dates)) {
+                // dayCount and currentStreak now live in the Zustand store
+                const dayCount = userData.completed_dates.length;
+                const currentStreak = streakCalculator(userData.completed_dates);
+                appStore.getState().setActivityMetrics(dayCount, currentStreak);
+            }
         }
     },
 
@@ -120,4 +126,4 @@ export const State = {
         this.videoClicks = 0;
         this.isPlaybackMuted = false;
     }
-};
+};

@@ -629,6 +629,19 @@ export function initUISubscriptions() {
     let prevAttempts = store.getState().incorrectAttempts;
     let prevDayCount = store.getState().dayCount;
     let prevStreak = store.getState().currentStreak;
+    let prevUserFirstName = store.getState().userFirstName;
+
+    const updateChatHeader = (userFirstName) => {
+        const header = document.getElementById('chat-window-header');
+        if (header) {
+            if (userFirstName) {
+                header.textContent = `${userFirstName}'s Fluency Team`;
+            } else {
+                header.textContent = `Your Fluency Team`;
+            }
+        }
+    };
+    updateChatHeader(prevUserFirstName);
 
     const chatList = document.getElementById('chat-message-list');
     if (chatList) {
@@ -690,6 +703,10 @@ export function initUISubscriptions() {
             syncActivityDisplay(state.dayCount, state.currentStreak);
             prevDayCount = state.dayCount;
             prevStreak = state.currentStreak;
+        }
+        if (state.userFirstName !== prevUserFirstName) {
+            updateChatHeader(state.userFirstName);
+            prevUserFirstName = state.userFirstName;
         }
     });
 
@@ -1571,10 +1588,6 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
     }
 
     Media.playSound('correct-sound');
-
-    if (questionData.inputType !== "text" && button?.id !== 'answer-submit-button') {
-        markButtonAsCorrect(button);
-    }
 }
 
 export function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanation, normalizeduserResponse, normalizedcue, question, silent = false, userData, configData, fluencyBubble = null) {
@@ -1674,8 +1687,4 @@ export function handleIncueUI(qIndex, questionData, button, cue, userResponse, e
 
     Media.playSound('incorrect-sound');
 
-    const answersContainer = button.parentElement;
-    if (questionData.inputType !== "text" && button?.id !== 'answer-submit-button') {
-        markButtonAsIncorrect(button, answersContainer, cue);
-    }
 }

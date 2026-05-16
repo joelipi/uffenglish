@@ -210,6 +210,13 @@ export class InteractiveVideoStateController {
         this.setState({ isPlaying: false });
     }
 
+    cancelOverlayTimer() {
+        if (this._overlayTimer) {
+            clearTimeout(this._overlayTimer);
+            this._overlayTimer = null;
+        }
+    }
+
     setLoaded() {
         if (!this.state.isLoaded) {
             this.setState({ isLoaded: true });

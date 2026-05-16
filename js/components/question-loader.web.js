@@ -62,6 +62,7 @@ export function loadQuestion(question, lesson, fluencyData, deps) {
     resetUIForNewQuestion(question.inputType === 'lessonIntro', !!State.userData);
 
     Media.cleanupPreviousPlayers();
+    State.player = null;
     clearPlaybackVideo();
 
     toggleScoresAndHearts((question.inputType === 'speech' || question.inputType === 'ai') && question.videoUrl);
@@ -185,7 +186,16 @@ function _renderSpeechOrAI(question, lesson, deps) {
                         handleAnswer: submitAnswerPrecheck,
                         player: State.player,
                         uiHooks: {
-                            onPauseVideo: () => Media.pauseVideoIfPlaying(),
+                            onPauseVideo: (player) => {
+                                try {
+                                    if (player && typeof player.pause === 'function') {
+                                        player.pause();
+                                    }
+                                } catch (e) {
+                                    console.warn('[QuestionLoader] Failed to pause player object:', e);
+                                }
+                                Media.pauseVideoIfPlaying();
+                            },
                             onMicDisable: (btn) => {
                                 window.isMicActive = false; // Release the lock
                                 if (btn) {
@@ -196,9 +206,12 @@ function _renderSpeechOrAI(question, lesson, deps) {
                             },
                             onRecordingStart: (userData) => {
                                 window.isMicActive = true; // Lock the video timer
-                                // Force video pause just in case
-                                if (window.currentVideoPlayer && window.currentVideoPlayer.video) {
-                                    window.currentVideoPlayer.video.pause();
+                                if (window.currentVideoPlayer) {
+                                    if (typeof window.currentVideoPlayer.pause === 'function') {
+                                        window.currentVideoPlayer.pause();
+                                    } else if (window.currentVideoPlayer.video) {
+                                        window.currentVideoPlayer.video.pause();
+                                    }
                                 }
                                 setMicStatusText(`<div class="text-center"><div class="mb-0" style="color: green; font-size: 30px;"><i class="bi bi-mic" style="color: green; font-size: 100px !important;"></i><br>${Strings.get('status_speak', userData?.native_language)}</div></div>`);
                             },
@@ -235,11 +248,13 @@ function _renderSpeechOrAI(question, lesson, deps) {
                             },
                             onStopEarly: (userData) => {
                                 window.isMicActive = false; // Release the lock
+                                window.dispatchEvent(new CustomEvent('preflightRejected'));
                                 prepareMediaUI();
                                 setMicStatusText(`<div class='text-center' style='color: red; font-size: large;'><i class='bi bi-exclamation-triangle-fill'></i> ${Strings.get('try_again_speech', userData?.native_language)}</div>`);
                             },
                             onGibberishDetected: () => {
                                 window.isMicActive = false; // Release the lock
+                                window.dispatchEvent(new CustomEvent('preflightRejected'));
                                 setMicStatusText(`<div class='text-center mt-3' style='color: #ff9800; font-size: large;'><i class='bi bi-ear-x'></i> Audio unclear. Please try speaking clearly.</div>`);
                             },
                             onPreflightRejected: (msg) => {

@@ -20,8 +20,9 @@ export const Media = {
     },
 
     pauseVideoIfPlaying() {
-        const videoElement = document.querySelector('video.ivp-video');
-        if (videoElement && !videoElement.paused) videoElement.pause();
+        document.querySelectorAll('video.ivp-video, video.intro-video, #playback-video').forEach(video => {
+            if (!video.paused) video.pause();
+        });
     },
 
     cleanupPreviousPlayers() {

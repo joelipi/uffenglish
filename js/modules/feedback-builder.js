@@ -18,7 +18,7 @@ import Strings from '../data/strings.js';
  * @param {number} params.attemptNumber - 1-based attempt count
  * @returns {{ sections: Array<Object> }}
  */
-export function buildFeedbackData({ scoreData, speechAnalytics, result, questionData, lang, englishLevel, attemptNumber }) {
+export function buildFeedbackData({ scoreData, speechAnalytics, result, questionData, lang, englishLevel, attemptNumber, repetitionCount }) {
     const sections = [];
 
     // 1. Pronunciation
@@ -40,7 +40,7 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, question
             key: 'listening',
             score: scoreData.subScores.listening,
             attemptLabel: Strings.get('stats_repetitions_required', lang),
-            attemptCount: attemptNumber,
+            attemptCount: repetitionCount,
             parts: []
         });
     }
