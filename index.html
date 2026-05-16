@@ -23,13 +23,13 @@
             color: white !important;
             font-size: 1.5rem !important;
             font-weight: 700 !important;
-            text-shadow: 
-                -1px -1px 0 #000,  
-                 1px -1px 0 #000,
-                -1px  1px 0 #000,  
-                 1px  1px 0 #000,
-                 0 0 15px rgba(0,0,0,0.8),
-                 0 0 30px rgba(0,0,0,1) !important;
+            text-shadow:
+                -1px -1px 0 #000,
+                1px -1px 0 #000,
+                -1px 1px 0 #000,
+                1px 1px 0 #000,
+                0 0 15px rgba(0, 0, 0, 0.8),
+                0 0 30px rgba(0, 0, 0, 1) !important;
             z-index: 10007 !important;
             pointer-events: none;
             text-align: center;
@@ -1598,9 +1598,11 @@
                 </div>
             </div>
 
-            
+
             <!-- Critical Error Container (Hardcoded) -->
-            <div id="criticalErrorContainer" class="d-none w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4 text-white text-center" style="background: rgba(0,0,0,0.85); z-index: 10006; position: absolute; top: 0; left: 0;">
+            <div id="criticalErrorContainer"
+                class="d-none w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4 text-white text-center"
+                style="background: rgba(0,0,0,0.85); z-index: 10006; position: absolute; top: 0; left: 0;">
                 <i class="bi bi-exclamation-triangle-fill text-warning mb-3" style="font-size: 3rem;"></i>
                 <h4 class="mb-2">Lesson Load Error</h4>
                 <p id="criticalErrorMessage" class="text-secondary mb-4"></p>
@@ -1610,13 +1612,18 @@
             </div>
 
             <!-- Whisper Review UI (Hardcoded Overlay) -->
-            <div id="whisperReviewContainer" class="d-none position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4 text-white text-center" style="background: rgba(0,0,0,0.85); z-index: 10005;">
-                <div class="bg-dark p-4 rounded border border-secondary shadow-lg" style="max-width: 90%; width: 500px;">
+            <div id="whisperReviewContainer"
+                class="d-none position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4 text-white text-center"
+                style="background: rgba(0,0,0,0.85); z-index: 10005;">
+                <div class="bg-dark p-4 rounded border border-secondary shadow-lg"
+                    style="max-width: 90%; width: 500px;">
                     <div class="mb-3">
-                        <div id="whisperTranscript" class="mb-3" style="font-size: 1.25rem; font-weight: 500; color: #fff;"></div>
+                        <div id="whisperTranscript" class="mb-3"
+                            style="font-size: 1.25rem; font-weight: 500; color: #fff;"></div>
                     </div>
                     <div class="progress mb-4" style="height: 6px; background: rgba(255,255,255,0.1);">
-                        <div id="reviewProgressBar" class="progress-bar bg-success" role="progressbar" style="width: 100%; transition: width 7s linear;"></div>
+                        <div id="reviewProgressBar" class="progress-bar bg-success" role="progressbar"
+                            style="width: 100%; transition: width 7s linear;"></div>
                     </div>
                     <div class="d-flex justify-content-center gap-3">
                         <button id="rejectBtn" class="btn btn-outline-danger px-4 rounded-pill">
@@ -1782,7 +1789,8 @@
                         <div class="flex-grow-1 d-flex flex-column">
                             <textarea id="answer-input-field" class="form-control bg-dark text-white border-secondary"
                                 rows="2" placeholder="Type your answer..."></textarea>
-                            <div id="answer-error-message" class="text-danger small mt-1 d-none" style="font-weight: 500;"></div>
+                            <div id="answer-error-message" class="text-danger small mt-1 d-none"
+                                style="font-weight: 500;"></div>
                         </div>
                         <button id="answer-submit-button">
                             <i class="bi bi-send-fill"></i>
@@ -1856,6 +1864,31 @@
             </div>
         </div>
     </main>
+
+    <!-- MODAL: Permission Request Dialog (Replaces Alert) -->
+    <div class="modal fade" id="permissionModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static"
+        data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-white border-light">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title"><i class="bi bi-shield-lock-fill text-warning me-2"></i>Permission Required
+                    </h5>
+                    <!-- Removed X button to enforce user action -->
+                </div>
+                <div class="modal-body">
+                    <p id="permissionMessage" class="text-light"></p>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" id="permissionDenyBtn">
+                        <i class="bi bi-x-circle me-1"></i>Deny
+                    </button>
+                    <button type="button" class="btn btn-primary" id="permissionGrantBtn">
+                        <i class="bi bi-check-circle me-1"></i>Allow
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
