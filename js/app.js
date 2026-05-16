@@ -295,6 +295,7 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
     }
 
     Media.pauseVideoIfPlaying();
+    window.isMicActive = false; // Release the interaction lock
     clearMicStatusAndHideMedia();
     hideHints();
 

@@ -579,6 +579,7 @@ export function hideHints() {
 export function clearMicStatusAndHideMedia() {
     if (DOM.micStatusText) DOM.micStatusText.innerHTML = "";
     if (DOM.mediaViewport) DOM.mediaViewport.classList.add('d-none');
+    hideAnswerInputArea();
 }
 
 export function setMicStatusText(content) {
@@ -1347,9 +1348,11 @@ export function renderTextInputUI(placeholder, submitText, handleSubmitCallback)
 
         const handleSubmit = () => {
             const value = DOM.answerInputField.value.trim();
+            console.log('[UI] handleSubmit triggered. Value:', value);
             if (!value) return;
             newSubmitBtn.disabled = true;
             DOM.answerInputField.disabled = true;
+            console.log('[UI] Calling handleSubmitCallback...');
             handleSubmitCallback(value, newSubmitBtn);
         };
 
@@ -1361,9 +1364,12 @@ export function renderTextInputUI(placeholder, submitText, handleSubmitCallback)
         newInputField.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
+                console.log('[UI] Enter key detected');
                 handleSubmit();
             }
         });
+
+        console.log('[UI] renderTextInputUI completed. Listeners attached to new nodes.');
 
         // Ensure it's focused
         setTimeout(() => newInputField.focus(), 100);
