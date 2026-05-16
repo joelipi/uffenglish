@@ -202,7 +202,7 @@
         }
 
         /* --- CALL BUTTONS --- */
-        .call-btn {
+        .call-btn, .call-icon {
             width: 60px;
             height: 60px;
             flex-shrink: 0;
@@ -210,20 +210,31 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
+            font-size: 1.75rem;
             padding: 0;
             border-radius: 50% !important;
-            background-color: #ffffff !important;
             border: none !important;
-            color: #1a1a1a !important;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-            transition: background-color 0.2s, color 0.2s;
+            transition: background-color 0.2s, color 0.2s, transform 0.2s;
             position: relative;
             -webkit-tap-highlight-color: transparent;
         }
 
+        .call-btn {
+            background-color: #ffffff !important;
+            color: #1a1a1a !important;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .call-icon {
+            background-color: transparent !important;
+            color: #ffffff !important;
+            box-shadow: none !important;
+        }
+
         .call-btn i,
-        .call-btn img {
+        .call-btn img,
+        .call-icon i,
+        .call-icon img {
             position: relative;
             z-index: 2;
         }
@@ -245,15 +256,15 @@
 
         .call-icon,
         .call-icon i {
-            font-size: 2.0rem !important;
+            font-size: 1.75rem !important;
         }
 
         .call-icon:active {
             transform: scale(0.9) translateY(2px);
-            font-size: 2.5rem !important;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
+            font-size: 1.75rem !important;
             background: transparent !important;
-            color: #1a1a1a !important;
+            color: #ffffff !important;
+            box-shadow: none !important;
         }
 
         .call-btn.toggled-off,
@@ -376,14 +387,16 @@
             }
 
             .call-btn,
+            .call-icon,
             .mic-btn-wrapper,
             .mic-ring {
                 width: 50px !important;
                 height: 50px !important;
             }
 
-            .call-btn {
-                font-size: 1.2rem;
+            .call-btn,
+            .call-icon {
+                font-size: 1.75rem;
             }
         }
 
