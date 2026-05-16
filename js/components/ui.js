@@ -146,6 +146,13 @@ export function updateCurrentScoreDisplay(listeningScore) {
     }
 }
 
+export function animatePointLoss(amount) {
+    const element = document.getElementById('listeningScore');
+    if (element && pointLoss) {
+        pointLoss.show(element, amount);
+    }
+}
+
 export function updateActivityDisplay(totalDays, currentStreak) {
     if (DOM.dayCountSpan) {
         DOM.dayCountSpan.textContent = totalDays;
@@ -669,6 +676,7 @@ export function initUISubscriptions() {
     const store = appStore;
     let prevPoints = store.getState().listeningScore;
     let prevSpeaking = store.getState().speakingScore;
+    let prevFlow = store.getState().flowScore;
     let prevAttempts = store.getState().incorrectAttempts;
     let prevDayCount = store.getState().dayCount;
     let prevStreak = store.getState().currentStreak;
@@ -716,6 +724,14 @@ export function initUISubscriptions() {
     };
     syncSpeakingScore(prevSpeaking);
 
+    const syncFlowScore = (flowScore) => {
+        if (DOM.flowScore) {
+            flashElement(DOM.flowScore);
+            DOM.flowScore.textContent = `${flowScore}`;
+        }
+    };
+    syncFlowScore(prevFlow);
+
     const syncActivityDisplay = (dayCount, currentStreak) => {
         if (DOM.dayCountSpan) {
             DOM.dayCountSpan.textContent = dayCount;
@@ -736,6 +752,10 @@ export function initUISubscriptions() {
         if (state.speakingScore !== prevSpeaking) {
             syncSpeakingScore(state.speakingScore);
             prevSpeaking = state.speakingScore;
+        }
+        if (state.flowScore !== prevFlow) {
+            syncFlowScore(state.flowScore);
+            prevFlow = state.flowScore;
         }
         if (state.incorrectAttempts > prevAttempts) {
             prevAttempts = state.incorrectAttempts;
@@ -1445,6 +1465,7 @@ export function renderSpeechInputUI(answerContent, handleHintCallback, handleRev
     if (micBtn) {
         const newMicBtn = micBtn.cloneNode(true);
         newMicBtn.className = 'btn call-btn toggled-off';
+        newMicBtn.style.display = 'flex'; // Force visibility
         newMicBtn.disabled = false;
         newMicBtn.innerHTML = '<i class="bi bi-mic-mute-fill"></i>';
 

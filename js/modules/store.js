@@ -85,6 +85,12 @@ export const appStore = createStore(
                 listeningScore: Math.max(0, Number(value) || 0)
             }),
 
+            // Deduct from flowScore, floored at 0
+            deductFlowScore: (amount) => set((state) => {
+                const safeAmount = Number(amount) || 0;
+                return { flowScore: Math.max(0, state.flowScore - safeAmount) };
+            }),
+
             // Deduct from speakingScore, floored at 0
             deductSpeakingScore: (amount) => set((state) => {
                 const safeAmount = Number(amount) || 0;

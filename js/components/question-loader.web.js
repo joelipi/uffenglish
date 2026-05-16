@@ -183,6 +183,12 @@ function _renderSpeechOrAI(question, lesson, deps) {
                         handleAnswer: submitAnswerPrecheck,
                         player: State.player,
                         uiHooks: {
+                            onHesitation: (points) => {
+                                const scoreEl = document.getElementById('flowScore');
+                                if (scoreEl && pointLoss) {
+                                    pointLoss.show(scoreEl, points);
+                                }
+                            },
                             onPauseVideo: (player) => {
                                 try {
                                     if (player && typeof player.pause === 'function') {

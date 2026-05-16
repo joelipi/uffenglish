@@ -9,7 +9,7 @@ import { appStore } from './store.js';
 
 export * from './speech.web.js';
 
-export const listeningState = { active: false };
+export const listeningState = { active: false, hesitationTimer: null };
 
 export function initLocalVoiceAI() {
     return preloadWhisperEngine();
@@ -156,12 +156,45 @@ export async function toggleSpeechRecognition(params) {
             return;
         } else {
             // --- Whisper path ---
-            if (WebAdapter.speechCamStream) await WebAdapter.startLocalAudioTap(WebAdapter.speechCamStream);
+            let speechDetected = false;
+
+            // Clean up old timer if any exists
+            if (listeningState.hesitationTimer) {
+                clearInterval(listeningState.hesitationTimer);
+            }
+
+            // Start a 1-second hesitation timer
+            listeningState.hesitationTimer = setInterval(() => {
+                if (!speechDetected && listeningState.active) {
+                    console.log('[Speech] Hesitation detected! Deducting flow points.');
+                    if (typeof appStore.getState().deductFlowScore === 'function') {
+                        appStore.getState().deductFlowScore(10);
+                    }
+                    if (uiHooks?.onHesitation) uiHooks.onHesitation(10);
+                }
+            }, 1000);
+
+            if (WebAdapter.speechCamStream) {
+                await WebAdapter.startLocalAudioTap(WebAdapter.speechCamStream, () => {
+                    if (!speechDetected) {
+                        speechDetected = true;
+                        if (listeningState.hesitationTimer) {
+                            clearInterval(listeningState.hesitationTimer);
+                            listeningState.hesitationTimer = null;
+                        }
+                        console.log('[Speech] Real-time speech detected! Hesitation timer cleared.');
+                    }
+                });
+            }
             if (uiHooks?.onRecordingActive) uiHooks.onRecordingActive(button);
         }
     } else {
         // --- STOP ---
         listeningState.active = false;
+        if (listeningState.hesitationTimer) {
+            clearInterval(listeningState.hesitationTimer);
+            listeningState.hesitationTimer = null;
+        }
         if (uiHooks?.onRecordingStop) uiHooks.onRecordingStop(button);
 
         const rawAudioData = WebAdapter.stopLocalAudioTap();

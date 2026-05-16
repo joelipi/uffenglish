@@ -53,7 +53,7 @@ export const Media = {
             if (Howler.ctx?.state === 'suspended') {
                 await Howler.ctx.resume();
             }
-            audioPlayers['enable-audio'].play();
+            // audioPlayers['enable-audio'].play();
             State.isAudioEnabled = true;
         } catch (error) {
             console.warn('[Media] Audio unlock failed — will retry on next interaction.', error);
@@ -66,6 +66,7 @@ export const Media = {
             if (!this.video) {
                 this.video = document.createElement('video');
                 this.video.muted = true;
+                this.video.setAttribute('muted', ''); // Explicit attribute for some browsers
                 this.video.setAttribute('playsinline', '');
                 this.video.style.display = 'none';
                 this.video.id = 'media-preloader-element';

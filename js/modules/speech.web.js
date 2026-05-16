@@ -195,7 +195,7 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
     }
 }
 
-export async function startLocalAudioTap(stream) {
+export async function startLocalAudioTap(stream, onSpeechDetected = null) {
     localRawAudioChunks = [];
 
     if (!localAudioContext) {
@@ -207,13 +207,10 @@ export async function startLocalAudioTap(stream) {
     }
 
     // Load the worklet module if not already loaded
-    // We use a relative path from this module's URL
     try {
         const workletUrl = new URL('../workers/whisper/audio-processor.js', import.meta.url);
         await localAudioContext.audioWorklet.addModule(workletUrl);
     } catch (e) {
-        // If it's already added, addModule might throw or we can just ignore it 
-        // if we have a better way to check. In most browsers, adding it again is a no-op or ignored.
         console.warn('[Speech] AudioWorklet module load note:', e.message);
     }
 
@@ -221,23 +218,22 @@ export async function startLocalAudioTap(stream) {
     localAudioWorkletNode = new AudioWorkletNode(localAudioContext, 'audio-processor');
 
     localAudioWorkletNode.port.onmessage = (event) => {
-        // CRITICAL: We must clone the Float32Array because the underlying buffer 
-        // may be reused by the AudioWorklet global scope.
         const chunk = new Float32Array(event.data); 
         localRawAudioChunks.push(chunk);
         
+        // Threshold check for real-time speech detection
+        const maxVal = Math.max(...chunk);
+        if (onSpeechDetected && maxVal > 0.01) {
+            onSpeechDetected(maxVal);
+        }
+
         if (window.enabledLogs.whisper && localRawAudioChunks.length % 40 === 0) {
-            const maxVal = Math.max(...chunk);
             console.log(`[Speech] Audio Worklet Flowing - Max Amplitude: ${maxVal.toFixed(4)}`);
         }
     };
 
     source.connect(localAudioWorkletNode);
     
-    // CRITICAL: We cannot simply leave the Worklet disconnected from the destination.
-    // If we do, the browser's Web Audio optimizer will aggressively garbage-collect 
-    // or suspend the node after a few seconds, cutting off the recording.
-    // To prevent echo while keeping the node alive, we route it through a muted GainNode.
     const silentGain = localAudioContext.createGain();
     silentGain.gain.value = 0;
     localAudioWorkletNode.connect(silentGain);

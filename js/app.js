@@ -538,6 +538,7 @@ function showFeedbackAndProceed(questionData, isCorrect) {
     try {
         hideHints();
         const continueButton = showContinueButton(questionData.inputType === "lessonIntro", () => {
+            Media.pauseVideoIfPlaying(); // Stop any rogue background video sounds immediately
             if (questionData.inputType === "lessonIntro") {
                 const initializeMedia = async () => {
                     await Media.enableAudioSystem();
