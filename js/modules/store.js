@@ -22,6 +22,7 @@ export const appStore = createStore(
             currentStreak: 0,
             fluencyScore: 100,
             flowScore: 100,
+            hesitationMs: 0,
             vocabularyScore: 100,
             grammarScore: 100,
             formalityScore: 100,
@@ -91,6 +92,8 @@ export const appStore = createStore(
                 return { flowScore: Math.max(0, state.flowScore - safeAmount) };
             }),
 
+            setHesitationMs: (ms) => set({ hesitationMs: Math.max(0, Number(ms) || 0) }),
+
             // Deduct from speakingScore, floored at 0
             deductSpeakingScore: (amount) => set((state) => {
                 const safeAmount = Number(amount) || 0;
@@ -134,6 +137,7 @@ export const appStore = createStore(
                 whisperRejections: 0,
                 fluencyScore: 100,
                 flowScore: 100,
+                hesitationMs: 0,
                 vocabularyScore: 100,
                 grammarScore: 100,
                 formalityScore: 100,

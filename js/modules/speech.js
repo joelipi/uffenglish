@@ -134,6 +134,7 @@ export async function toggleSpeechRecognition(params) {
         if (!listeningState.active) {
             // --- START ---
             listeningState.active = true;
+            appStore.getState().setHesitationMs(0);
             if (uiHooks?.onRecordingStart) uiHooks.onRecordingStart(userData);
 
             try {
@@ -181,6 +182,7 @@ export async function toggleSpeechRecognition(params) {
                 // Smooth hesitation: 1 point per 100ms after 1s grace
                 let hesitationTick = 0;
                 const GRACE_TICKS = 10;
+                let liveHesitationMs = 0;
                 listeningState.hesitationTimer = setInterval(() => {
                     hesitationTick++;
                     const currentActive = listeningState.active;
@@ -189,7 +191,9 @@ export async function toggleSpeechRecognition(params) {
                         console.log('[Hesitation] Grace period ended - starting deductions');
                     }
                     if (!speechDetected && currentActive && hesitationTick > GRACE_TICKS) {
-                        console.log(`[Hesitation] SILENCE DETECTED (after grace) → deducting 1pt`);
+                        liveHesitationMs = (hesitationTick - GRACE_TICKS) * 100;
+                        appStore.getState().setHesitationMs(liveHesitationMs);
+                        console.log(`[Hesitation] SILENCE DETECTED (after grace) → deducting 1pt, liveHesitationMs=${liveHesitationMs}`);
                         if (typeof appStore.getState().deductFlowScore === 'function') {
                             const before = appStore.getState().flowScore;
                             appStore.getState().deductFlowScore(1);
@@ -252,11 +256,13 @@ export async function toggleSpeechRecognition(params) {
                 const finalTranscript = typeof whisperResult === 'string' ? whisperResult : whisperResult.text;
                 const logprob = whisperResult.avg_logprob !== undefined ? whisperResult.avg_logprob : 0;
 
+                const liveHesitation = appStore.getState().hesitationMs || extractionResult.hesitation;
+
                 await processTranscript({
                     transcript: finalTranscript,
                     timingMeta: {
                         pauseCount: extractionResult.pauseCount,
-                        hesitation: extractionResult.hesitation,
+                        hesitation: liveHesitation,
                         netDuration: extractionResult.netDuration
                     },
                     checkGibberish: true,
