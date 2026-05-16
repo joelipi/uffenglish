@@ -442,10 +442,11 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
         }
 
         // --- SILENT RETRY FLOW FOR SPEECH ---
-        if (!isCorrect && questionData.inputType === "speech" && incorrectAttempts === 0) {
+        if (!isCorrect && questionData.inputType === "speech" && incorrectAttempts < 2) {
             // Use silent mode for handleIncueUI - show feedback but skip some UI sounds
             handleIncueUI(qIndex, questionData, button, cue, userResponse, result.explanations || explanation, result.normalizeduserResponse, result.normalizedcue, questionData.question, true, userData, configData);
             clearPlaybackVideo();
+            clearChatInterface();
             removeWebcamPreview();
 
             // Speech Hangman Logic: Show hint and stay on question
