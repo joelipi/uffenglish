@@ -236,8 +236,7 @@ function _renderSpeechOrAI(question, lesson, deps) {
                             onRecordingStop: (btn) => {
                                 window.isMicActive = false; // Release the lock
                                 if (btn) {
-                                    btn.classList.add('toggled-off');
-                                    btn.innerHTML = '<i class="bi bi-mic-mute-fill"></i>';
+                                    btn.style.display = 'none';
                                     stopMicAnimation(btn);
                                 }
                                 clearMicStatusAndHideMedia();
@@ -248,6 +247,8 @@ function _renderSpeechOrAI(question, lesson, deps) {
                                 window.dispatchEvent(new CustomEvent('preflightRejected'));
                                 prepareMediaUI();
                                 setMicStatusText(`<div class='text-center' style='color: red; font-size: large;'><i class='bi bi-exclamation-triangle-fill'></i> ${Strings.get('try_again_speech', userData?.native_language)}</div>`);
+                                const btn = document.getElementById('micBtn');
+                                if (btn) btn.style.display = 'flex';
                             },
                             onGibberishDetected: () => {
                                 window.isMicActive = false; // Release the lock
@@ -261,7 +262,10 @@ function _renderSpeechOrAI(question, lesson, deps) {
                                 window.dispatchEvent(new CustomEvent('preflightRejected'));
                                 setMicStatusText(`<div class='text-center text-danger'>${msg}</div>`);
                                 const btn = document.getElementById('micBtn');
-                                if (btn) stopMicAnimation(btn);
+                                if (btn) {
+                                    btn.style.display = 'flex';
+                                    stopMicAnimation(btn);
+                                }
                             },
                             onTranscriptRejected: (cue, transcript) => {
                                 window.isMicActive = false; // Release the lock
@@ -270,7 +274,10 @@ function _renderSpeechOrAI(question, lesson, deps) {
                                 window.dispatchEvent(new CustomEvent('transcriptRejected', { detail: { cue, transcript } }));
                                 setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Restarting Mic...</div>`);
                                 const btn = document.getElementById('micBtn');
-                                if (btn) stopMicAnimation(btn);
+                                if (btn) {
+                                    btn.style.display = 'flex';
+                                    stopMicAnimation(btn);
+                                }
                             },
                             onReviewStart: (transcript, timeLeft, acceptFn, rejectFn) => {
                                 window.isMicActive = false; // Release the lock

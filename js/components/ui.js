@@ -934,6 +934,8 @@ export function showPlaybackVideo() {
             videoWrapper.classList.remove('d-none');
             videoWrapper.style.setProperty('display', 'block', 'important');
             video.style.setProperty('display', 'block', 'important');
+            video.muted = State.isPlaybackMuted;
+            video.play().catch(e => console.warn('[UI] Playback resume failed:', e));
             return;
         }
 
@@ -969,6 +971,10 @@ export function showPlaybackVideo() {
         videoWrapper.classList.remove('mb-2');
         videoWrapper.style.width = '100px';
         videoWrapper.style.height = '178px';
+        videoWrapper.style.position = 'relative'; // Reset from absolute
+        videoWrapper.style.top = '';
+        videoWrapper.style.left = '';
+        videoWrapper.style.right = '';
 
         video.style.width = '100%';
         video.style.height = '100%';
@@ -981,6 +987,9 @@ export function showPlaybackVideo() {
         row.appendChild(bubble);
 
         DOM.chatBody.appendChild(row);
+        
+        video.muted = State.isPlaybackMuted;
+        video.play().catch(e => console.warn('[UI] Playback initial play failed:', e));
 
         setTimeout(() => {
             if (DOM.chatBody) {
@@ -1150,13 +1159,57 @@ export async function setupPlaybackVideo(blob, autoplay = false, speechCamChunks
             });
         }, { threshold: 0.1 });
 
-        window._playbackObserver.observe(playbackVideo);
-
         playbackVideo.onloadedmetadata = () => {
+            const wrapper = document.getElementById('playback-video-wrapper');
+            if (wrapper) {
+                const videoFrame = document.querySelector('.video-frame');
+                if (videoFrame && wrapper.parentElement !== videoFrame) {
+                    videoFrame.appendChild(wrapper);
+                }
+                wrapper.classList.remove('d-none');
+                wrapper.style.display = 'flex';
+                
+                // Clear any inline styles set by showPlaybackVideo chat bubble conversion
+                wrapper.style.width = '';
+                wrapper.style.height = '';
+                playbackVideo.style.width = '';
+                playbackVideo.style.height = '';
+                playbackVideo.style.maxHeight = '';
+                playbackVideo.style.borderRadius = '';
+                playbackVideo.style.objectFit = '';
+                
+                // Set absolute positioning so it floats correctly inside video-frame
+                wrapper.style.position = 'absolute';
+                wrapper.style.top = '15%';
+                wrapper.style.left = '0';
+                wrapper.style.right = '0';
+                wrapper.style.zIndex = '5';
+            }
+
             playbackVideo.style.display = 'block';
             if (autoplay) {
-                playbackVideo.play().catch(e => console.warn('[Playback] autoplay failed:', e));
+                playbackVideo.play().catch(e => {
+                    console.warn('[Playback] autoplay failed:', e);
+                    if (e.name === 'NotAllowedError') {
+                        // Fallback to muted playback if browser blocks unmuted
+                        playbackVideo.muted = true;
+                        State.isPlaybackMuted = true;
+                        const muteToggle = document.getElementById('playback-mute-toggle') || DOM.playbackMuteToggle;
+                        if (muteToggle) {
+                            const icon = muteToggle.querySelector('i');
+                            if (icon) icon.className = 'bi bi-volume-mute-fill';
+                        }
+                        playbackVideo.play().catch(err => console.error('[Playback] muted fallback failed:', err));
+                    }
+                });
             }
+
+            // Observe visibility AFTER making it visible, using requestAnimationFrame
+            requestAnimationFrame(() => {
+                if (window._playbackObserver) {
+                    window._playbackObserver.observe(playbackVideo);
+                }
+            });
         };
 
     } catch (urlError) { }
