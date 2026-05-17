@@ -67,36 +67,84 @@ export class SuccessLessonHandler {
 
     this.createContinueButton();
     this.createRepeatButton(question).catch(console.error);
+    this.createVideoButton(question).catch(console.error);
 
+    // Play celebration effects - pass lessonAverage to conditionally play confetti
     this.playEffects(lessonAverage);
   }
 
   createContinueButton() {
+      let continueButton = document.getElementById('continueButton');
+
+      if (!continueButton) {
+        continueButton = document.createElement('button');
+        continueButton.id = 'continueButton';
+        continueButton.className = 'btn btn-primary text-white w-100';
+        continueButton.innerHTML = '<i class="bi bi-chevron-right text-white" style="font-size: 40px; font-weight: 900;"></i>';
+      }
+
+      // Place in the bottom control area (where micBtn normally lives)
+      const bottomOverlayContent = document.querySelector('.bottom-overlay-content');
+      if (bottomOverlayContent) {
+        bottomOverlayContent.innerHTML = '';
+        bottomOverlayContent.appendChild(continueButton);
+        bottomOverlayContent.className = 'bottom-overlay-content position-absolute start-50 translate-middle-x';
+      } else {
+        // Fallback: append to chat if bottom overlay not found
+        const chatMessageList = this.uiElements.chatMessageList;
+        if (chatMessageList) {
+          const systemRow = document.createElement('div');
+          systemRow.className = 'chat-message-row chat-message-row--system';
+          systemRow.id = 'continueButtonRow';
+          systemRow.appendChild(continueButton);
+          chatMessageList.appendChild(systemRow);
+        }
+      }
+
+      continueButton.style.display = 'inline-block';
+
+      continueButton.onclick = () => {
+        continueButton.style.display = 'none';
+        if (typeof this.loadNextLesson === 'function') {
+          this.loadNextLesson();
+        }
+      };
+    }
+
+  async createVideoButton(question) {
     const chatMessageList = this.uiElements.chatMessageList;
     if (!chatMessageList) return;
 
-    let continueButton = document.getElementById('continueButton');
-    if (!continueButton) {
-      continueButton = document.createElement('button');
-      continueButton.id = 'continueButton';
-      continueButton.className = 'btn btn-primary text-white w-100';
-      continueButton.innerHTML = '<i class="bi bi-chevron-right text-white" style="font-size: 40px; font-weight: 900;"></i>';
-    }
+    const videoBtn = document.createElement('button');
+    videoBtn.className = 'btn btn-outline-primary w-100 mt-2';
+    videoBtn.innerHTML = '<i class="bi bi-film me-2"></i> Create Lesson Video';
 
-    const systemRow = document.createElement('div');
-    systemRow.className = 'chat-message-row chat-message-row--system';
-    systemRow.id = 'continueButtonRow';
-    systemRow.appendChild(continueButton);
+    videoBtn.onclick = async () => {
+      videoBtn.disabled = true;
+      videoBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Generating...';
 
-    chatMessageList.appendChild(systemRow);
-    continueButton.style.display = 'inline-block';
-
-    continueButton.onclick = () => {
-      continueButton.style.display = 'none';
-      if (typeof this.loadNextLesson === 'function') {
-        this.loadNextLesson();
+      try {
+        const { processVideo } = await import('../modules/video-processor.js');
+        const result = await processVideo({}, question.lessonId);
+        
+        if (result?.blob) {
+          const url = URL.createObjectURL(result.blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `lesson-${question.lessonId}-summary.webm`;
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 5000);
+        }
+      } catch (err) {
+        console.error('[Success] Video generation failed:', err);
+        alert('Failed to generate video. Please try again.');
+      } finally {
+        videoBtn.disabled = false;
+        videoBtn.innerHTML = '<i class="bi bi-film me-2"></i> Download Video';
       }
     };
+
+    chatMessageList.appendChild(videoBtn);
   }
 
   async createRepeatButton(question) {
