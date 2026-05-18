@@ -19,8 +19,8 @@ export class VideoRenderPlanner {
             const rec = this.recordings[i];
             const prevRec = i > 0 ? this.recordings[i - 1] : null;
 
-            // Skip remote prompt if this is a retry of the same question
-            const needsRemote = !(prevRec && rec.originalQuestionIndex === prevRec.originalQuestionIndex);
+            // Skip remote prompt if this is a retry of the same screen
+            const needsRemote = !(prevRec && rec.originalScreenIndex === prevRec.originalScreenIndex);
 
             if (needsRemote) {
                 const remoteUrl = this._getRemoteTarget(rec);
@@ -28,7 +28,7 @@ export class VideoRenderPlanner {
                     plan.push({
                         type: 'remote',
                         targetId: remoteUrl,
-                        subtitle: rec.cue || this._getQuestionCue(rec),
+                        subtitle: rec.cue || this._getScreenCue(rec),
                         isFirst: plan.length === 0
                     });
                 }
@@ -132,16 +132,16 @@ export class VideoRenderPlanner {
     _getRemoteTarget(rec) {
         if (!this.configData.lessons) return null;
         const lesson = this.configData.lessons.find(l => l.lessonId === rec.originalLessonId);
-        if (!lesson?.questions?.[rec.originalQuestionIndex]) return null;
-        const q = lesson.questions[rec.originalQuestionIndex];
+        if (!lesson?.screens?.[rec.originalScreenIndex]) return null;
+        const q = lesson.screens[rec.originalScreenIndex];
         return q.videoUrl || q.introBackgroundVideoUrl || null;
     }
 
-    _getQuestionCue(rec) {
+    _getScreenCue(rec) {
         if (!this.configData.lessons) return null;
         const lesson = this.configData.lessons.find(l => l.lessonId === rec.originalLessonId);
-        if (!lesson?.questions?.[rec.originalQuestionIndex]) return null;
-        const q = lesson.questions[rec.originalQuestionIndex];
+        if (!lesson?.screens?.[rec.originalScreenIndex]) return null;
+        const q = lesson.screens[rec.originalScreenIndex];
         
         if (typeof q.cue === 'string') return q.cue;
         if (q.cue && q.cue.en) return q.cue.en;

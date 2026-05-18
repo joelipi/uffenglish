@@ -52,8 +52,8 @@ export class SuccessLessonHandler {
     }
   }
 
-  handleSuccessLesson(question) {
-    if (!question?.lessonId) {
+  handleSuccessLesson(screen) {
+    if (!screen?.lessonId) {
       console.error('[Success] Missing lessonId');
       return;
     }
@@ -66,8 +66,8 @@ export class SuccessLessonHandler {
     this.displayScore(lessonAverage);
 
     this.createContinueButton();
-    this.createRepeatButton(question).catch(console.error);
-    this.createVideoButton(question).catch(console.error);
+    this.createRepeatButton(screen).catch(console.error);
+    this.createVideoButton(screen).catch(console.error);
 
     // Play celebration effects - pass lessonAverage to conditionally play confetti
     this.playEffects(lessonAverage);
@@ -111,7 +111,7 @@ export class SuccessLessonHandler {
       };
     }
 
-  async createVideoButton(question) {
+  async createVideoButton(screen) {
     const chatMessageList = this.uiElements.chatMessageList;
     if (!chatMessageList) return;
 
@@ -125,13 +125,13 @@ export class SuccessLessonHandler {
 
       try {
         const { processVideo } = await import('../modules/video-processor.js');
-        const result = await processVideo({}, question.lessonId);
+        const result = await processVideo({}, screen.lessonId);
         
         if (result?.blob) {
           const url = URL.createObjectURL(result.blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `lesson-${question.lessonId}-summary.webm`;
+          a.download = `lesson-${screen.lessonId}-summary.webm`;
           a.click();
           setTimeout(() => URL.revokeObjectURL(url), 5000);
         }
@@ -147,11 +147,11 @@ export class SuccessLessonHandler {
     chatMessageList.appendChild(videoBtn);
   }
 
-  async createRepeatButton(question) {
+  async createRepeatButton(screen) {
     const chatMessageList = this.uiElements.chatMessageList;
     if (!chatMessageList) return;
 
-    const baseLessonId = question.lessonId?.trim();
+    const baseLessonId = screen.lessonId?.trim();
     if (!baseLessonId) return;
 
     const repeatButton = document.createElement('button');

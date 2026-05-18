@@ -141,11 +141,11 @@ export async function getDeepgramToken() {
 }
 // IMPORTANT: THIS IS HERE AS A DEVELOPMENT FALLBACK ONLY. IT IS TOO EXPENSIVE FOR PRODUCTION AND WOULD REQUIRE REARCHITECTING TO WORK IN DEVELOPMENT.
 
-export async function checkGrammarWithAI(selectedAnswer, questionData) {
+export async function checkGrammarWithAI(selectedAnswer, screenData) {
   const aiEndpoint = 'https://nvidia-proxy.joel-1cb.workers.dev';
   try {
     console.log("AI Evaluation: Starting Grammar Check...");
-    const grammarPrompt = `Find all the grammatical error(s) in B's response, including if B does not agree with A in tense, number or gender. Return ONLY the grammar-corrected text of B's reply. If no errors, respond ONLY "CORRECT".  A: ${questionData.cue} B: ${selectedAnswer}`;
+    const grammarPrompt = `Find all the grammatical error(s) in B's response, including if B does not agree with A in tense, number or gender. Return ONLY the grammar-corrected text of B's reply. If no errors, respond ONLY "CORRECT".  A: ${screenData.cue} B: ${selectedAnswer}`;
 
     const response = await fetch(aiEndpoint, {
       method: 'POST',
@@ -190,7 +190,7 @@ export async function checkGrammarWithAI(selectedAnswer, questionData) {
   }
 }
 
-export async function evaluateIntentWithAI(answerForIntentPass, questionData, lessonData) {
+export async function evaluateIntentWithAI(answerForIntentPass, screenData, lessonData) {
   const aiEndpoint = 'https://nvidia-proxy.joel-1cb.workers.dev';
   try {
     console.log("､AI Evaluation: Starting Intent Check...");
@@ -199,8 +199,8 @@ export async function evaluateIntentWithAI(answerForIntentPass, questionData, le
     const intentPrompt = `Setting: ${lessonData.setting?.en || ''} 
 A: ${lessonData.roleOther?.en || ''} 
 B: ${lessonData.roleUser?.en || ''} 
-B's goal: ${questionData.mission || 'Respond appropriately'} 
-A: ${questionData.cue} 
+B's goal: ${screenData.mission || 'Respond appropriately'}
+A: ${screenData.cue}
 B: ${answerForIntentPass} 
  
 Evaluate B's response. Return ONLY an array with any applicable labels and any corrected version of B's response: [ungrammatical, pragmatic failure, too formal, too informal, rude, unidiomatic, correct].`;
@@ -246,13 +246,13 @@ Evaluate B's response. Return ONLY an array with any applicable labels and any c
 }
 
 // Added lessonData to the parameters so it can be passed down correctly
-export async function evaluateWithAI(selectedAnswer, normalizedSelectedAnswer, questionData, lessonData, userCefrLevel, uffApiDataRoot) {
+export async function evaluateWithAI(selectedAnswer, normalizedSelectedAnswer, screenData, lessonData, userCefrLevel, uffApiDataRoot) {
   try {
-    // Passed questionData here to prevent undefined errors
-    const grammarResult = await checkGrammarWithAI(selectedAnswer, questionData);
+    // Passed screenData here to prevent undefined errors
+    const grammarResult = await checkGrammarWithAI(selectedAnswer, screenData);
 
     // Passed lessonData here to prevent undefined errors
-    const intentResult = await evaluateIntentWithAI(grammarResult.correctedText, questionData, lessonData);
+    const intentResult = await evaluateIntentWithAI(grammarResult.correctedText, screenData, lessonData);
 
     return {
       isGrammarCorrect: grammarResult.isGrammarCorrect,

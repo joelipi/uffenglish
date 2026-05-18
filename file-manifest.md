@@ -74,7 +74,7 @@ These are visual renderers using HTML/CSS. They will be entirely replaced by Nat
 - [ ] `js/components/intro-background-video.js`
 - [ ] `js/components/mic-animation.js`
 - [ ] `js/components/point-loss-animation.js`
-- [ ] `js/components/question-loader.web.js`
+- [ ] `js/components/screen-loader.web.js`
 - [ ] `js/components/simple-video-player.js`
 - [ ] `js/components/success-lesson.js`
 - [ ] `js/components/ui.js`
@@ -102,7 +102,7 @@ These are visual renderers using HTML/CSS. They will be entirely replaced by Nat
 ## 📁 Group G: Metro Resolvers (.js files that resolve to .web.js or .native.js / .native.jsx)
 
 - [ ] `js/components/feedback-renderer.js`
-- [ ] `js/components/question-loader.js`
+- [ ] `js/components/screen-loader.js`
 - [ ] `js/modules/geo-service.js`
 - [ ] `js/modules/media.js`
 - [ ] `js/modules/navigation.js`
@@ -202,8 +202,8 @@ This file bridges the pure logic and the web UI.
 │   │   ├── intro-background-video.js
 │   │   ├── mic-animation.js
 │   │   ├── point-loss-animation.js
-│   │   ├── question-loader.js
-│   │   ├── question-loader.web.js
+│   │   ├── screen-loader.js
+│   │   ├── screen-loader.web.js
 │   │   ├── simple-video-player.js
 │   │   ├── simple-video-player.native.jsx
 │   │   ├── success-lesson.js

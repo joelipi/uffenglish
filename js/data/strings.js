@@ -489,12 +489,12 @@ const strings = {
         es: "Respuesta posible:",
         fr: "Réponse possible :"
     },
-    'default_q_speech': {
+    'default_q_closedResponse': {
         en: "Repeat exactly what you hear.",
         es: "Repite exactamente lo que escuchas.",
         fr: "Répétez exactement ce que vous entendez."
     },
-    'default_q_ai': {
+    'default_q_openResponse': {
         en: "Respond as well as you can.",
         es: "Responde lo mejor que puedas.",
         fr: "Répondez du mieux que vous pouvez."

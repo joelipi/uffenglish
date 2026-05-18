@@ -1,12 +1,12 @@
-// --- components/question-loader.web.js ---
+// --- components/screen-loader.web.js ---
 import { State } from '../modules/state.js';
 import { appStore } from '../modules/store.js';
 import Strings from '../data/strings.js';
 import { getLocalizedTranslation } from '../modules/utils.js';
-import { loadVideoForQuestion } from '../modules/video-loader.js';
+import { loadVideoForScreen } from '../modules/video-loader.js';
 import { Media } from '../modules/media.js';
 import {
-    getCurrentQuestionIndex,
+    getCurrentScreenIndex,
 } from '../modules/answers.js';
 import {
     isIOS,
@@ -22,7 +22,7 @@ import { pointLoss } from '../components/point-loss-animation.js';
 import {
     DOM,
     clearChatInterface,
-    resetUIForNewQuestion,
+    resetUIForNewScreen,
     clearPlaybackVideo,
     toggleScoresAndHearts,
     hideWebcamPreview,
@@ -52,10 +52,10 @@ import {
 
 function beforeUnloadHandler(e) { /* e.preventDefault(); e.returnValue = ''; return ''; */ }
 
-export function loadQuestion(question, lesson, fluencyData, deps) {
+export function loadScreen(screen, lesson, fluencyData, deps) {
     const { submitAnswerPrecheck, showFeedbackAndProceed, handleHint } = deps;
 
-    // Strict voice/hesitation state isolation between questions
+    // Strict voice/hesitation state isolation between screens
     if (listeningState) {
         listeningState.active = false;
         listeningState.transitioning = false;
@@ -65,23 +65,23 @@ export function loadQuestion(question, lesson, fluencyData, deps) {
         }
     }
 
-    window.__currentQuestionIndex = getCurrentQuestionIndex(question, State.configData, State.currentLessonIndex);
+    window.__currentScreenIndex = getCurrentScreenIndex(screen, State.configData, State.currentLessonIndex);
     clearChatInterface();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    resetUIForNewQuestion(question.inputType === 'lessonIntro', !!State.userData);
+    resetUIForNewScreen(screen.screenType === 'lessonIntro', !!State.userData);
 
     Media.cleanupPreviousPlayers();
     State.player = null;
     clearPlaybackVideo();
 
-    toggleScoresAndHearts((question.inputType === 'speech' || question.inputType === 'ai') && question.videoUrl);
+    toggleScoresAndHearts((screen.screenType === 'closedResponse' || screen.screenType === 'openResponse') && screen.videoUrl);
 
-    if (question.inputType === 'speech' || question.inputType === 'ai') {
+    if (screen.screenType === 'closedResponse' || screen.screenType === 'openResponse') {
         if (!State.isCameraOff && !State.isTextMode) {
             warmUpSpeechCamStream();
         } else if (State.isTextMode) {
-            console.log('[QuestionLoader] Text mode: bypassing hardware prompt');
+            console.log('[ScreenLoader] Text mode: bypassing hardware prompt');
         } else {
             warmUpSpeechCamStream();
         }
@@ -101,7 +101,7 @@ export function loadQuestion(question, lesson, fluencyData, deps) {
         window.removeEventListener('beforeunload', beforeUnloadHandler);
     }
 
-    if (question.inputType != 'lessonComplete' && question.inputType != 'unitComplete') {
+    if (screen.screenType != 'lessonComplete' && screen.screenType != 'unitComplete') {
         removeRepeatButton();
     }
 
@@ -109,75 +109,75 @@ export function loadQuestion(question, lesson, fluencyData, deps) {
 
     clearMediaContainerAndPreservePlayers();
 
-    if (question.image) {
-        renderImageInMediaContainer(question.image);
+    if (screen.image) {
+        renderImageInMediaContainer(screen.image);
     }
-    if (question.youtube) {
-        renderYoutubeInMediaContainer(question.youtube);
+    if (screen.youtube) {
+        renderYoutubeInMediaContainer(screen.youtube);
     }
 
-    loadVideoForQuestion(question, State, State.userData?.native_language);
+    loadVideoForScreen(screen, State, State.userData?.native_language);
 
     const questionDiv = document.createElement('div');
     questionDiv.className = 'text-center';
-    questionDiv.textContent = question.question;
+    questionDiv.textContent = screen.screen;
     setMicStatusText(questionDiv);
 
-    if (question.inputType === "speech" || question.inputType === "ai") {
-        _renderSpeechOrAI(question, lesson, deps);
-    } else if (question.inputType === 'text') {
+    if (screen.screenType === "closedResponse" || screen.screenType === "openResponse") {
+        _renderSpeechOrAI(screen, lesson, deps);
+    } else if (screen.screenType === 'text') {
         renderTextInputUI(
             Strings.get('placeholder_type_answer', State.userData?.native_language) || 'Type your answer here...',
             Strings.get('btn_submit', State.userData?.native_language) || 'Submit',
-            (val, btn) => submitAnswerPrecheck(val, question.cue, question, btn, question.explanation, question.translation, { pauseCount: null, netDuration: null })
+            (val, btn) => submitAnswerPrecheck(val, screen.cue, screen, btn, screen.explanation, screen.translation, { pauseCount: null, netDuration: null })
         );
-    } else if (question.inputType === 'lessoncomplete') {
+    } else if (screen.screenType === 'lessoncomplete') {
         updateProgressAndCloseButton(true); toggleScoresAndHearts(false);
-        setProgressBarWidth("95%"); showFeedbackAndProceed(question, true);
+        setProgressBarWidth("95%"); showFeedbackAndProceed(screen, true);
         hideAnswerDiv();
-    } else if (question.inputType === 'unitcomplete') {
-        question.lessonId = State.configData.lessons[State.currentLessonIndex].lessonId + 's';
-        State.successHandler.handleSuccessLesson(question);
-    } else if (question.inputType === 'lessonIntro') {
-        _renderLessonIntro(question, lesson, deps);
-    } else if (question.inputType === 'present') {
-        _renderPresent(question, lesson, showFeedbackAndProceed);
-    } else if (question.inputType === 'success') {
-        _renderSuccess(question, fluencyData);
+    } else if (screen.screenType === 'unitcomplete') {
+        screen.lessonId = State.configData.lessons[State.currentLessonIndex].lessonId + 's';
+        State.successHandler.handleSuccessLesson(screen);
+    } else if (screen.screenType === 'lessonIntro') {
+        _renderLessonIntro(screen, lesson, deps);
+    } else if (screen.screenType === 'present') {
+        _renderPresent(screen, lesson, showFeedbackAndProceed);
+    } else if (screen.screenType === 'success') {
+        _renderSuccess(screen, fluencyData);
     }
 }
 
-function _renderSpeechOrAI(question, lesson, deps) {
+function _renderSpeechOrAI(screen, lesson, deps) {
     const { submitAnswerPrecheck, handleHint } = deps;
     hideHints();
 
     const answerFragment = document.createDocumentFragment();
-    if (question.inputType !== "speech") {
-        answerFragment.appendChild(document.createTextNode(question.cue));
-        if (question.possibleAnswer) {
+    if (screen.screenType !== "closedResponse") {
+        answerFragment.appendChild(document.createTextNode(screen.cue));
+        if (screen.possibleAnswer) {
             answerFragment.appendChild(document.createElement('br'));
             const strong = document.createElement('strong');
             strong.textContent = Strings.get('possible_response', State.userData?.native_language);
             answerFragment.appendChild(strong);
             answerFragment.appendChild(document.createElement('br'));
-            answerFragment.appendChild(document.createTextNode(question.possibleAnswer));
+            answerFragment.appendChild(document.createTextNode(screen.possibleAnswer));
         }
     }
 
     const handleRevealClick = function () { };
 
-    const qIndex = getCurrentQuestionIndex(question, State.configData, State.currentLessonIndex);
+    const qIndex = getCurrentScreenIndex(screen, State.configData, State.currentLessonIndex);
 
     if (State.isTextMode) {
         const placeholder = Strings.get('placeholder_type_answer', State.userData?.native_language) || 'Type your answer here...';
         const submitLabel = Strings.get('btn_submit', State.userData?.native_language) || 'Submit';
         renderTextInputUI(placeholder, submitLabel, (val, btn) => {
-            submitAnswerPrecheck(val, question.cue, question, btn, question.explanation, question.translation, { pauseCount: 0, netDuration: 3 });
+            submitAnswerPrecheck(val, screen.cue, screen, btn, screen.explanation, screen.translation, { pauseCount: 0, netDuration: 3 });
         });
     } else {
         renderSpeechInputUI(
             answerFragment,
-            question.inputType === "speech" ? null : () => handleHint(qIndex),
+            screen.screenType === "closedResponse" ? null : () => handleHint(qIndex),
             handleRevealClick,
             async () => {
                 const speechButton = document.getElementById('micBtn');
@@ -185,12 +185,12 @@ function _renderSpeechOrAI(question, lesson, deps) {
                 try {
                     await toggleSpeechRecognition({
                         button: speechButton,
-                        question,
+                        screen,
                         micStatusText: DOM.micStatusText,
                         userData: State.userData,
                         configData: State.configData,
                         currentLessonIndex: State.currentLessonIndex,
-                        currentQuestionIndex: qIndex,
+                        currentScreenIndex: qIndex,
                         handleAnswer: submitAnswerPrecheck,
                         player: State.player,
                         uiHooks: {
@@ -206,7 +206,7 @@ function _renderSpeechOrAI(question, lesson, deps) {
                                         player.pause();
                                     }
                                 } catch (e) {
-                                    console.warn('[QuestionLoader] Failed to pause player object:', e);
+                                    console.warn('[ScreenLoader] Failed to pause player object:', e);
                                 }
                                 Media.pauseVideoIfPlaying();
                             },
@@ -316,17 +316,17 @@ function _renderSpeechOrAI(question, lesson, deps) {
     }
 }
 
-function _renderPresent(question, lesson, showFeedbackAndProceed) {
+function _renderPresent(screen, lesson, showFeedbackAndProceed) {
     updateProgressAndCloseButton(false); toggleScoresAndHearts(false); hideAnswerDiv();
 
-    let headsUpHTML = question.headsUp ? `<div class="chat-message-row chat-message-row--system"><div class="chat-message-bubble chat-message-bubble--system"><p class="headsUp mb-0">${question.headsUp}</p></div></div>` : "";
+    let headsUpHTML = screen.headsUp ? `<div class="chat-message-row chat-message-row--system"><div class="chat-message-bubble chat-message-bubble--system"><p class="headsUp mb-0">${screen.headsUp}</p></div></div>` : "";
 
-    if (!question.simpleVideoUrl) {
+    if (!screen.simpleVideoUrl) {
         let explanationStr = "";
-        if (question.explanation) {
+        if (screen.explanation) {
             const lang = State.userData?.native_language;
-            const expTrans = getLocalizedTranslation(question.translation, lang);
-            explanationStr = `<p class='explanation'>${question.explanation}${expTrans && lang && lang !== 'en' ? `<br><br><span lang='${lang}'><i>${expTrans}</i></span>` : ""}</p>`;
+            const expTrans = getLocalizedTranslation(screen.translation, lang);
+            explanationStr = `<p class='explanation'>${screen.explanation}${expTrans && lang && lang !== 'en' ? `<br><br><span lang='${lang}'><i>${expTrans}</i></span>` : ""}</p>`;
         }
 
         renderAIFeedback([
@@ -334,19 +334,19 @@ function _renderPresent(question, lesson, showFeedbackAndProceed) {
             explanationStr
         ]);
     }
-    showFeedbackAndProceed(question, true);
+    showFeedbackAndProceed(screen, true);
 }
 
-function _renderSuccess(question, fluencyData) {
+function _renderSuccess(screen, fluencyData) {
     window.removeEventListener('beforeunload', beforeUnloadHandler);
     bindProcessButton(() => State.player.destroy());
 
-    question.lessonId = State.configData.lessons[State.currentLessonIndex].lessonId;
+    screen.lessonId = State.configData.lessons[State.currentLessonIndex].lessonId;
 
     window.__currentConfigData = State.configData;
 
     // initVideoProcessor was removed during index.html migration
-    State.successHandler.handleSuccessLesson(question);
+    State.successHandler.handleSuccessLesson(screen);
 
     const currentLesson = State.configData.lessons[State.currentLessonIndex];
     const nextLessonId = currentLesson.nextLessonId;
@@ -358,7 +358,7 @@ function _renderSuccess(question, fluencyData) {
             updateUserMeta: true,
             incrementCount: true,
             lessonStats: finalStats,
-            currentLessonId: question.lessonId
+            currentLessonId: screen.lessonId
         }).then(progressResult => {
             appStore.getState().setActivityMetrics(progressResult.newDayCount, progressResult.newStreak);
         });
@@ -367,20 +367,20 @@ function _renderSuccess(question, fluencyData) {
     try { hideWebcamPreview(); } catch (error) { }
 }
 
-function _renderLessonIntro(question, lesson, deps) {
+function _renderLessonIntro(screen, lesson, deps) {
     const { showFeedbackAndProceed } = deps;
     toggleScoresAndHearts(false);
     State.repeatPointsHistory = [];
     State.rolePlayPointsHistory = [];
     hideAnswerDiv();
 
-    if (!question.simpleVideoUrl && question.explanation) {
-        const lang = State.userData?.native_language; const localizedTrans = getLocalizedTranslation(question.translation, lang); const hasTranslation = !!localizedTrans;
+    if (!screen.simpleVideoUrl && screen.explanation) {
+        const lang = State.userData?.native_language; const localizedTrans = getLocalizedTranslation(screen.translation, lang); const hasTranslation = !!localizedTrans;
         const imagineStr = Strings.get('imagine', lang); const listenRepeatStr = Strings.get('listen_repeat', lang);
 
         const explanationStr = `
             <p class='explanation'>
-              <strong>${imagineStr.split('<br>')[0]}</strong> ${question.explanation}
+              <strong>${imagineStr.split('<br>')[0]}</strong> ${screen.explanation}
               <br><br>
               ➡${listenRepeatStr.split('<br>')[0]}
               ${hasTranslation && lang !== 'en' ? `<br><br><span lang='${lang}'><i><strong>🎯${imagineStr.includes('<br>') ? imagineStr.split('<i>')[1].split('<i>')[0] : imagineStr}</strong>${localizedTrans}<br><br>${listenRepeatStr.includes('<br>') ? listenRepeatStr.split('<i>')[1].split('<i>')[0] : listenRepeatStr}</i></span>` : ''}
@@ -391,7 +391,7 @@ function _renderLessonIntro(question, lesson, deps) {
             explanationStr
         ]);
     }
-    showFeedbackAndProceed(question, true);
+    showFeedbackAndProceed(screen, true);
 }
 
 // --- LIQUID UI MIC ANIMATIONS ---

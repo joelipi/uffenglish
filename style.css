@@ -142,7 +142,7 @@
 
 /* Desktop Placement */
 @media (min-width: 1200px) {
-  #questions-container-container {
+  #screens-container-container {
     position: relative;
   }
 
@@ -739,7 +739,7 @@ p {
 }
 
 /* Custom animations */
-@keyframes fadeInQuestion {
+@keyframes fadeInScreen {
   from {
     opacity: 0;
     transform: translateY(20px);
@@ -835,8 +835,8 @@ p {
 }
 
 /* Apply animations to elements */
-.question {
-  animation: fadeInQuestion 0.5s ease-out forwards;
+.screen {
+  animation: fadeInScreen 0.5s ease-out forwards;
 }
 
 .lesson-header {

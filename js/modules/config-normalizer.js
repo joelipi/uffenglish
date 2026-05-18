@@ -3,7 +3,7 @@ import { getLocalizedTranslation } from './utils.js';
 
 /**
  * Mutates configData in place, normalizing all localized object fields to plain strings
- * and filling in default question text where the question field is missing.
+ * and filling in default screen text where the screen field is missing.
  * Safe to call multiple times — skips fields that are already strings.
  *
  * @param {Object} configData - The raw config object loaded from the course JSON
@@ -14,9 +14,9 @@ export function normalizeConfig(configData, lang = 'en') {
 
     const userLang = lang || 'en';
 
-    const defaultQuestions = {
-        'speech': Strings.get('default_q_speech', userLang),
-        'ai': Strings.get('default_q_ai', userLang),
+    const defaultScreens = {
+        'closedResponse': Strings.get('default_q_closedResponse', userLang),
+        'openResponse': Strings.get('default_q_openResponse', userLang),
         'present': Strings.get('default_q_present', userLang),
         'success': Strings.get('default_q_present', userLang),
         'lessonIntro': Strings.get('default_q_lesson_intro', userLang)
@@ -29,23 +29,23 @@ export function normalizeConfig(configData, lang = 'en') {
         lesson.roleOther = getLocalizedTranslation(lesson.roleOther, userLang);
         lesson.roleUser = getLocalizedTranslation(lesson.roleUser, userLang);
 
-        if (lesson.questions) {
-            lesson.questions.forEach(question => {
+        if (lesson.screens) {
+            lesson.screens.forEach(screen => {
                 // cue is the speech recognition target, always use English
-                question.cue = getLocalizedTranslation(question.cue, 'en');
+                screen.cue = getLocalizedTranslation(screen.cue, 'en');
 
                 // subtitles and other UI fields use the user's language
-                question.subtitles = getLocalizedTranslation(question.subtitles, userLang);
-                question.translation = getLocalizedTranslation(question.translation, userLang);
-                question.explanation = getLocalizedTranslation(question.explanation, userLang);
-                question.headsUp = getLocalizedTranslation(question.headsUp, userLang);
+                screen.subtitles = getLocalizedTranslation(screen.subtitles, userLang);
+                screen.translation = getLocalizedTranslation(screen.translation, userLang);
+                screen.explanation = getLocalizedTranslation(screen.explanation, userLang);
+                screen.headsUp = getLocalizedTranslation(screen.headsUp, userLang);
 
-                if (Array.isArray(question.incues)) {
-                    question.incues = question.incues.map(incue => getLocalizedTranslation(incue, userLang));
+                if (Array.isArray(screen.incues)) {
+                    screen.incues = screen.incues.map(incue => getLocalizedTranslation(incue, userLang));
                 }
 
-                if (!question.question && defaultQuestions[question.inputType]) {
-                    question.question = defaultQuestions[question.inputType];
+                if (!screen.screen && defaultScreens[screen.screenType]) {
+                    screen.screen = defaultScreens[screen.screenType];
                 }
             });
         }

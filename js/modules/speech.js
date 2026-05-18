@@ -22,7 +22,7 @@ function stopListeningEarly(userData, player, uiHooks) {
 }
 
 async function processTranscript({ transcript, timingMeta, checkGibberish = false, logprob = 0, params, player }) {
-    const { button, question, userData, configData, currentLessonIndex, currentQuestionIndex, handleAnswer, uiHooks } = params;
+    const { button, screen, userData, configData, currentLessonIndex, currentScreenIndex, handleAnswer, uiHooks } = params;
 
     if (!transcript) {
         stopListeningEarly(userData, player, uiHooks);
@@ -36,8 +36,8 @@ async function processTranscript({ transcript, timingMeta, checkGibberish = fals
 
         updateSpeechRecording(
             configData?.lessons?.[currentLessonIndex]?.lessonId,
-            currentQuestionIndex,
-            { userResponse: transcript, cue: question?.cue }
+            currentScreenIndex,
+            { userResponse: transcript, cue: screen?.cue }
         ).catch(e => console.error(e));
         return;
     }
@@ -50,8 +50,8 @@ async function processTranscript({ transcript, timingMeta, checkGibberish = fals
 
         updateSpeechRecording(
             configData?.lessons?.[currentLessonIndex]?.lessonId,
-            currentQuestionIndex,
-            { userResponse: transcriptToReview, cue: question?.cue }
+            currentScreenIndex,
+            { userResponse: transcriptToReview, cue: screen?.cue }
         ).catch(e => console.error(e));
 
         setTimeout(() => toggleSpeechRecognition(params), 2500);
@@ -59,7 +59,7 @@ async function processTranscript({ transcript, timingMeta, checkGibberish = fals
 
     const englishLevel = configData?.languageLevel || 'A0';
     const { isValid, warningMessage } = await validateAnswerPrecheck(
-        transcriptToReview, question.cue, question, englishLevel, userData, State.cuesGiven
+        transcriptToReview, screen.cue, screen, englishLevel, userData, State.cuesGiven
     );
 
     if (!isValid) { rejectPreflight(warningMessage); return; }
@@ -76,11 +76,11 @@ async function processTranscript({ transcript, timingMeta, checkGibberish = fals
 
         handleAnswer(
             transcriptToReview,
-            question.cue,
-            question,
+            screen.cue,
+            screen,
             button,
-            question.explanation,
-            question.translation,
+            screen.explanation,
+            screen.translation,
             timingMeta,
             userData,
             configData
@@ -92,12 +92,12 @@ async function processTranscript({ transcript, timingMeta, checkGibberish = fals
         reviewActive = false;
         clearInterval(timerInterval);
 
-        if (uiHooks?.onTranscriptRejected) uiHooks.onTranscriptRejected(question?.cue, transcriptToReview);
+        if (uiHooks?.onTranscriptRejected) uiHooks.onTranscriptRejected(screen?.cue, transcriptToReview);
 
         updateSpeechRecording(
             configData?.lessons?.[currentLessonIndex]?.lessonId,
-            currentQuestionIndex,
-            { userResponse: transcriptToReview, cue: question?.cue }
+            currentScreenIndex,
+            { userResponse: transcriptToReview, cue: screen?.cue }
         ).catch(e => console.error(e));
 
         setTimeout(() => toggleSpeechRecognition(params), 600);
@@ -127,7 +127,7 @@ export async function toggleSpeechRecognition(params) {
             listeningState.hesitationTimer = null;
         }
 
-        const { button, question, micStatusText, userData, configData, currentLessonIndex, currentQuestionIndex, player, uiHooks } = params;
+        const { button, screen, micStatusText, userData, configData, currentLessonIndex, currentScreenIndex, player, uiHooks } = params;
 
         if (uiHooks?.onPauseVideo) uiHooks.onPauseVideo(player);
 
@@ -263,9 +263,9 @@ export async function toggleSpeechRecognition(params) {
                 download: false, persist: true, keepStreamAlive: true, playback: true, autoplay: true,
                 meta: {
                     lessonId: configData?.lessons?.[currentLessonIndex]?.lessonId || null,
-                    questionIndex: currentQuestionIndex ?? null,
-                    inputType: question?.inputType || null,
-                    title: question?.question || null,
+                    screenIndex: currentScreenIndex ?? null,
+                    screenType: screen?.screenType || null,
+                    title: screen?.screen || null,
                 }
             });
 

@@ -59,8 +59,8 @@
           }, 100);
 
           try {
-            if (lessonData?.questions && lessonData.questions[0]) {
-              const firstQ = lessonData.questions[0];
+            if (lessonData?.screens && lessonData.screens[0]) {
+              const firstQ = lessonData.screens[0];
               const slugToWarm = firstQ.videoUrl || firstQ.simpleVideoUrl || firstQ.introBackgroundVideoUrl;
               if (slugToWarm) fetch(buildVideoUrlFn(slugToWarm)).catch(() => { });
             }
@@ -374,7 +374,7 @@
               <p class="info-content" id="hintUncommonWords"></p>
             </div>
 
-            <div id="questions-container"></div>
+            <div id="screens-container"></div>
 
           </div>
         </div>

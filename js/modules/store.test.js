@@ -19,7 +19,7 @@ describe('Zustand App Store', () => {
             understandingScore: 100,
             activeLessonId: null,
             currentLessonIndex: 0,
-            currentQuestionIndex: 0,
+            currentScreenIndex: 0,
             cuesGiven: [],
             repeatPointsHistory: [],
             rolePlayPointsHistory: []
@@ -27,11 +27,11 @@ describe('Zustand App Store', () => {
     });
 
     it('should correctly set progress', () => {
-        appStore.getState().setProgress({ lessonId: 'lesson_1', lessonIndex: 1, questionIndex: 2 });
+        appStore.getState().setProgress({ lessonId: 'lesson_1', lessonIndex: 1, screenIndex: 2 });
         const state = appStore.getState();
         expect(state.activeLessonId).toBe('lesson_1');
         expect(state.currentLessonIndex).toBe(1);
-        expect(state.currentQuestionIndex).toBe(2);
+        expect(state.currentScreenIndex).toBe(2);
     });
 
     it('should deduct listening and speaking scores without going below 0', () => {
@@ -64,14 +64,14 @@ describe('Zustand App Store', () => {
         expect(appStore.getState().incorrectAttempts).toBe(2);
     });
 
-    it('should reset per-question metrics correctly', () => {
+    it('should reset per-screen metrics correctly', () => {
         appStore.setState({
             listeningScore: 50,
             speakingScore: 40,
             incorrectAttempts: 2
         });
 
-        appStore.getState().resetForNextQuestion();
+        appStore.getState().resetForNextScreen();
 
         const state = appStore.getState();
         expect(state.listeningScore).toBe(100);

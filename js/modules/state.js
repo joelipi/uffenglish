@@ -29,8 +29,8 @@ export const State = {
     get currentLessonIndex() { return appStore.getState().currentLessonIndex; },
     set currentLessonIndex(val) { appStore.setState({ currentLessonIndex: val }); },
 
-    get currentQuestionIndex() { return appStore.getState().currentQuestionIndex; },
-    set currentQuestionIndex(val) { appStore.setState({ currentQuestionIndex: val }); },
+    get currentScreenIndex() { return appStore.getState().currentScreenIndex; },
+    set currentScreenIndex(val) { appStore.setState({ currentScreenIndex: val }); },
 
     get cuesGiven() { return appStore.getState().cuesGiven; },
     set cuesGiven(val) { appStore.setState({ cuesGiven: val }); },
@@ -49,8 +49,8 @@ export const State = {
     apiRoot: null,
 
     // Engagement Tracking
-    questionCount: 0,
-    questionsAnswered: 0,
+    screenCount: 0,
+    screensAnswered: 0,
     wordsRevealed: 0,
     videoPlays: 0,
     videoClicks: 0,
@@ -92,8 +92,8 @@ export const State = {
         // Clear history arrays in the Zustand store
         appStore.getState().resetLessonHistory();
 
-        // Reset question index to 0 for a fresh start
-        this.currentQuestionIndex = 0;
+        // Reset screen index to 0 for a fresh start
+        this.currentScreenIndex = 0;
 
         this.interactionLog = [];
         this.recognizedIdioms = [];
@@ -112,15 +112,15 @@ export const State = {
         this.wordsRevealed = 0;
         this.videoPlays = 0;
         this.videoClicks = 0;
-        this.questionCount = 0;
-        this.questionsAnswered = 0;
+        this.screenCount = 0;
+        this.screensAnswered = 0;
         this.isTextMode = false;
     },
 
-    resetForNextQuestion() {
+    resetForNextScreen() {
         // Reset reactive metrics in the Zustand store
-        appStore.getState().resetForNextQuestion();
-        // Reset non-reactive per-question data
+        appStore.getState().resetForNextScreen();
+        // Reset non-reactive per-screen data
         this.wordsRevealed = 0;
         this.videoPlays = 0;
         this.videoClicks = 0;

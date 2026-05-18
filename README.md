@@ -4,14 +4,14 @@
 
 ## Overview
 
-**UFF (Ultra Fast Fluency)** is a revolutionary web-based English language learning platform designed to fundamentally change how students learn to speak English. Unlike traditional methods or popular apps that focus heavily on reading, writing, and multiple-choice questions (often featuring unnatural, synthesized voices), UFF is strictly focused on **speaking and listening** in real-world scenarios.
+**UFF (Ultra Fast Fluency)** is a revolutionary web-based English language learning platform designed to fundamentally change how students learn to speak English. Unlike traditional methods or popular apps that focus heavily on reading, writing, and multiple-choice screens (often featuring unnatural, synthesized voices), UFF is strictly focused on **speaking and listening** in real-world scenarios.
 
 The core philosophy of UFF is that fluency is achieved by listening to native speakers speak at normal speeds and responding naturally with your own voice. The technology evaluates your verbal responses in real-time, focusing not just on grammar, but on semantic intent and pragmatics.
 
 ## Key Features
 
 *   **100% Real-World Media:** UFF exclusively uses video clips of native speakers (from movies, series, and YouTube) speaking naturally. There are zero synthesized voices, "teacher English," or unnaturally slow speech.
-*   **Voice-First Interaction:** You answer by speaking. The platform uses speech-to-text to capture your response, meaning no multiple-choice questions.
+*   **Voice-First Interaction:** You answer by speaking. The platform uses speech-to-text to capture your response, meaning no multiple-choice screens.
 *   **AI-Powered Evaluation:** Instead of rigid "exact match" grading, UFF uses AI to evaluate if your response makes sense in the context of the conversation (Intent) and if it is grammatically correct.
 *   **The UFF FluenScore™:** A proprietary metric (from 0% to 100%) that measures your actual ability to communicate in real-life situations, rather than just your theoretical CEFR level. It evaluates comprehension, response appropriateness, and speed.
 *   **Offline/Guest Mode Support:** The app supports a lazy login/guest mode, keeping users engaged before they even create an account. Data synchronizes once an account is established.

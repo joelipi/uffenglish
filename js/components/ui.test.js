@@ -4,7 +4,7 @@ import { showInitializationErrorMessage, setupLessonUI, DOM } from './ui.js';
 beforeEach(() => {
     // Set up the JSDOM environment
     document.body.innerHTML = `
-         <div id="questions-container"></div>
+         <div id="screens-container"></div>
          <div id="media-viewport" class="d-none"></div>
          <div class="ivp-main-wrapper d-none"></div>
          <footer class="d-none"></footer>

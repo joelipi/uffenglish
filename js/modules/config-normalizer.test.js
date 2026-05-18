@@ -13,8 +13,8 @@ describe('normalizeConfig', () => {
             lessons: [
                 {
                     title: { en: 'Hello', es: 'Hola' },
-                    questions: [
-                        { inputType: 'speech' }
+                    screens: [
+                        { screenType: 'closedResponse' }
                     ]
                 }
             ]
@@ -23,8 +23,8 @@ describe('normalizeConfig', () => {
         normalizeConfig(configData, 'es');
 
         expect(configData.lessons[0].title).toBe('Hola');
-        // Because "question" is missing and inputType is speech, it gets the default
-        expect(configData.lessons[0].questions[0].question).toBe('default_q_speech_es');
+        // Because "screen" is missing and screenType is speech, it gets the default
+        expect(configData.lessons[0].screens[0].screen).toBe('default_q_closedResponse_es');
     });
 
     it('should handle undefined or missing config data gracefully', () => {
@@ -44,11 +44,11 @@ describe('normalizeConfig', () => {
         expect(configData.lessons[0].title).toBe('Hello');
     });
 
-    it('should normalize question fields correctly, always using en for cue', () => {
+    it('should normalize screen fields correctly, always using en for cue', () => {
         const configData = {
             lessons: [
                 {
-                    questions: [
+                    screens: [
                         {
                             cue: { en: 'cue_en', es: 'cue_es' },
                             subtitles: { en: 'sub_en', es: 'sub_es' },
@@ -60,8 +60,8 @@ describe('normalizeConfig', () => {
         };
         normalizeConfig(configData, 'es');
 
-        expect(configData.lessons[0].questions[0].cue).toBe('cue_en'); // Force EN for cue
-        expect(configData.lessons[0].questions[0].subtitles).toBe('sub_es');
-        expect(configData.lessons[0].questions[0].incues[0]).toBe('incue_es');
+        expect(configData.lessons[0].screens[0].cue).toBe('cue_en'); // Force EN for cue
+        expect(configData.lessons[0].screens[0].subtitles).toBe('sub_es');
+        expect(configData.lessons[0].screens[0].incues[0]).toBe('incue_es');
     });
 });
