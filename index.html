@@ -19,6 +19,11 @@
         /* Critical Error State */
         #criticalErrorContainer {
             backdrop-filter: blur(5px);
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 10006;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
 
         #micStatusText {
@@ -1537,6 +1542,66 @@
             background: rgba(0, 0, 0, 0.65);
             backdrop-filter: blur(4px);
         }
+
+        /* Consolidated styles from elements with inline styles */
+        #criticalErrorContainer i.bi-exclamation-triangle-fill {
+            font-size: 3rem;
+        }
+
+        #whisperReviewContainer {
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 10005;
+        }
+
+        .whisper-review-box {
+            max-width: 90%;
+            width: 500px;
+        }
+
+        #whisperTranscript {
+            font-size: 1.25rem;
+            font-weight: 500;
+            color: #fff;
+        }
+
+        .whisper-progress {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1) !important;
+        }
+
+        #reviewProgressBar {
+            width: 100%;
+            transition: width 7s linear;
+        }
+
+        #playback-video-wrapper .playback-mute-toggle {
+            z-index: 10;
+            width: 30px;
+            height: 30px;
+        }
+
+        #playback-video-wrapper .playback-mute-toggle i {
+            font-size: 16px !important;
+        }
+
+        #answer-input-area {
+            top: 220px;
+        }
+
+        #answer-error-message {
+            font-weight: 500;
+        }
+
+        #guestLoginModal {
+            padding: 0;
+            border: none;
+            background: transparent;
+            outline: none;
+        }
+
+        #guestLoginModal .modal-content {
+            border-radius: 8px;
+        }
     </style>
 
 </head>
@@ -1655,9 +1720,8 @@
 
             <!-- Critical Error Container (Hardcoded) -->
             <div id="criticalErrorContainer"
-                class="d-none w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4 text-white text-center"
-                style="background: rgba(0,0,0,0.85); z-index: 10006; position: absolute; top: 0; left: 0;">
-                <i class="bi bi-exclamation-triangle-fill text-warning mb-3" style="font-size: 3rem;"></i>
+                class="d-none w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4 text-white text-center">
+                <i class="bi bi-exclamation-triangle-fill text-warning mb-3"></i>
                 <h4 class="mb-2">Lesson Load Error</h4>
                 <p id="criticalErrorMessage" class="text-secondary mb-4"></p>
                 <button class="btn btn-primary px-4 rounded-pill" onclick="window.location.reload()">
@@ -1667,17 +1731,13 @@
 
             <!-- Whisper Review UI (Hardcoded Overlay) -->
             <div id="whisperReviewContainer"
-                class="d-none position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4 text-white text-center"
-                style="background: rgba(0,0,0,0.85); z-index: 10005;">
-                <div class="bg-dark p-4 rounded border border-secondary shadow-lg"
-                    style="max-width: 90%; width: 500px;">
+                class="d-none position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4 text-white text-center">
+                <div class="whisper-review-box bg-dark p-4 rounded border border-secondary shadow-lg">
                     <div class="mb-3">
-                        <div id="whisperTranscript" class="mb-3"
-                            style="font-size: 1.25rem; font-weight: 500; color: #fff;"></div>
+                        <div id="whisperTranscript" class="mb-3"></div>
                     </div>
-                    <div class="progress mb-4" style="height: 6px; background: rgba(255,255,255,0.1);">
-                        <div id="reviewProgressBar" class="progress-bar bg-success" role="progressbar"
-                            style="width: 100%; transition: width 7s linear;"></div>
+                    <div class="progress whisper-progress mb-4">
+                        <div id="reviewProgressBar" class="progress-bar bg-success" role="progressbar"></div>
                     </div>
                     <div class="d-flex justify-content-center gap-3">
                         <button id="rejectBtn" class="btn btn-outline-danger px-4 rounded-pill">
@@ -1761,9 +1821,8 @@
             <!-- RESTORED: Playback Video Elements -->
             <div id="playback-video-wrapper" class="playback-video-container position-relative d-none">
                 <video id="playback-video" playsinline preload="auto" loop></video>
-                <button id="playback-mute-toggle" class="playback-mute-toggle position-absolute bottom-0 end-0 m-1"
-                    style="z-index: 10; width: 30px; height: 30px;">
-                    <i class="bi bi-volume-up-fill" style="font-size: 16px !important;"></i>
+                <button id="playback-mute-toggle" class="playback-mute-toggle position-absolute bottom-0 end-0 m-1">
+                    <i class="bi bi-volume-up-fill"></i>
                 </button>
             </div>
 
@@ -1790,14 +1849,13 @@
             </div>
 
             <!-- Permanent Answer Input Area (for text-input questions; this is distinct from the chat) -->
-            <div id="answer-input-area" class="d-none position-absolute w-100 p-3 z-3" style="top: 220px;">
+            <div id="answer-input-area" class="d-none position-absolute w-100 p-3 z-3">
                 <div class="card bg-dark border-secondary shadow-lg">
                     <div class="card-body p-2 d-flex align-items-center gap-2">
                         <div class="flex-grow-1 d-flex flex-column">
                             <textarea id="answer-input-field" class="form-control bg-dark text-white border-secondary"
                                 rows="2" placeholder="Type your answer..."></textarea>
-                            <div id="answer-error-message" class="text-danger small mt-1 d-none"
-                                style="font-weight: 500;"></div>
+                            <div id="answer-error-message" class="text-danger small mt-1 d-none"></div>
                         </div>
                         <button id="answer-submit-button">
                             <i class="bi bi-send-fill"></i>
@@ -1892,9 +1950,9 @@
     </main>
 
     <!-- DIALOG: Guest Login Welcome Modal (Native <dialog>, styled cleanly) -->
-    <dialog id="guestLoginModal" style="padding:0; border:none; background:transparent; outline:none;">
+    <dialog id="guestLoginModal">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content bg-dark text-white border-light shadow-lg" style="border-radius: 8px;">
+            <div class="modal-content bg-dark text-white border-light shadow-lg">
                 <div class="modal-header border-secondary">
                     <h5 class="modal-title" id="guestLoginModalLabel"><i class="bi bi-shield-lock-fill text-warning me-2"></i>Welcome!</h5>
                 </div>
