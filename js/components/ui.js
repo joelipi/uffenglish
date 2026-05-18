@@ -7,6 +7,9 @@ import { getLocalizedTranslation } from '../modules/utils.js';
 import { Media } from '../modules/media.js';
 import { pointLoss } from './point-loss-animation.js';
 
+const AI_TUTOR_NAME = 'AI Tutor';
+const AI_TUTOR_AVATAR = 'assets/img/ai.webp';
+
 // Inject dynamic styles to override padding, set avatar size, and aggressively fix the IVP Subtitles
 const dynamicStyles = document.createElement('style');
 dynamicStyles.textContent = `
@@ -228,12 +231,12 @@ export function renderAIAnalysisLoading(text) {
     hideWhisperReviewUI();
     const defaultText = Strings.get('ai_analyzing', State.userData?.native_language);
     const displayText = text || defaultText;
-    const aiAvatarUrl = 'assets/img/teacherprofile.webp';
+    const aiAvatarUrl = AI_TUTOR_AVATAR;
     const html = `
         <div class="chat-message-row chat-message-row--system" id="ai-loading-status">
-            <img src="${aiAvatarUrl}" alt="Joe Walsh" class="chat-avatar-inline" />
+            <img src="${aiAvatarUrl}" alt="${AI_TUTOR_NAME}" class="chat-avatar-inline" />
             <div class="chat-message-bubble chat-message-bubble--system">
-                <div class="chat-bubble-header">Joe Walsh</div>
+                <div class="chat-bubble-header">${AI_TUTOR_NAME}</div>
                 <strong><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ${displayText}</strong>
             </div>
         </div>`;
@@ -627,12 +630,12 @@ export function renderTutorMessage(text, isUser) {
         renderUserResponse(text);
     } else {
         const safeText = escapeHTML(text);
-        const aiAvatarUrl = 'assets/img/teacherprofile.webp';
+        const aiAvatarUrl = AI_TUTOR_AVATAR;
         const html = `
             <div class="chat-message-row chat-message-row--system">
-                <img src="${aiAvatarUrl}" alt="Joe Walsh" class="chat-avatar-inline" />
+                <img src="${aiAvatarUrl}" alt="${AI_TUTOR_NAME}" class="chat-avatar-inline" />
                 <div class="chat-message-bubble chat-message-bubble--system">
-                    <div class="chat-bubble-header">Joe Walsh</div>
+                    <div class="chat-bubble-header">${AI_TUTOR_NAME}</div>
                     ${safeText}
                 </div>
             </div>`;
@@ -812,11 +815,35 @@ export function initUISubscriptions() {
 }
 
 export function showGuestLoginModal() {
-    const modalElement = document.getElementById('guestLoginModal');
-    if (modalElement && typeof modalElement.showModal === 'function') {
-        modalElement.showModal();
+    const dialog = document.getElementById('guestLoginModal');
+    const loginBtn = document.getElementById('guestLoginBtn');
+    const signupBtn = document.getElementById('guestSignupBtn');
+    const continueBtn = document.getElementById('guestContinueBtn');
+
+    if (!dialog || !loginBtn || !signupBtn || !continueBtn) {
+        console.warn('[GuestLoginModal] Required elements not found');
+        return;
+    }
+
+    const currentUrl = window.location.pathname + window.location.search;
+    loginBtn.href = `login.html?redirect=${encodeURIComponent(currentUrl)}`;
+    signupBtn.href = `signup.html?redirect=${encodeURIComponent(currentUrl)}`;
+
+    const closeDialog = () => {
+        if (dialog.close) dialog.close();
+        else dialog.style.display = 'none';
+    };
+
+    continueBtn.onclick = () => {
+        closeDialog();
+        console.log('[GuestLoginModal] User chose to continue as guest');
+    };
+
+    // Show as native dialog
+    if (dialog.showModal) {
+        dialog.showModal();
     } else {
-        console.warn('[UI] Native dialog not supported or element missing.');
+        dialog.style.display = 'block';
     }
 }
 export function hideWhisperReviewUI() {

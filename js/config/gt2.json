@@ -54,37 +54,13 @@
           "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
         },
         {
-          "question": "VIDEOURL + SPEECH INPUTTYPE. Watch video then say: I LOVE ENGLISH!",
-          "cue": {
-            "en": "I love English!",
-            "es": "¡Amo el inglés!",
-            "pt": "Eu amo o inglês!"
-          },
-          "inputType": "speech",
-          "videoUrl": "gtests-1-0",
-          "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
-        },
-        {
           "cue": {
             "en": "Hi, what would you like to drink?",
             "es": "Hola, ¿qué quisieras para tomar?",
             "pt": "Ola, o qué voce quer de beber?"
           },
           "inputType": "ai",
-          "videoUrl": "gtests-1-1",
-          "targetIntents": [
-            "ordering a specific drink",
-            "asking for a drink menu",
-            "asking what drinks are available",
-            "ordering water"
-          ],
-          "badIntents": [
-            "talking about drinks",
-            "refusing a drink",
-            "asking about the price",
-            "asking for a manager",
-            "talking about something completely unrelated to drinks"
-          ]
+          "videoUrl": "gtests-1-1"
         },
         {
           "cue": "Sorry, we're all out of that today.",
@@ -93,32 +69,12 @@
             "pt": "Disculpe. Isso acabou para hoje."
           },
           "inputType": "ai",
-          "videoUrl": "gtests-1-2",
-          "targetIntents": [
-            "accepting the situation and choosing a different item",
-            "asking for a recommendation or alternative",
-            "canceling the order and getting nothing",
-            "ordering a different drink"
-          ],
-          "badIntents": [
-            "asking about the price or cost",
-            "asking to speak to the manager"
-          ]
+          "videoUrl": "gtests-1-2"
         },
         {
           "cue": "Sure, what size do you want?",
           "inputType": "ai",
-          "videoUrl": "gtests-1-3",
-          "targetIntents": [
-            "I want a small, medium, or large size.",
-            "What are the different sizes you have?",
-            "Give me the biggest one you have.",
-            "The regular size is fine."
-          ],
-          "badIntents": [
-            "I am asking about the price",
-            "I want to speak to the manager"
-          ]
+          "videoUrl": "gtests-1-3"
         },
         {
           "cue": "Sure, what size do you want?",
@@ -127,9 +83,7 @@
           "inputType": "success"
         }
       ],
-      "nextLessonId": "2-2s",
-      "userRole": "",
-      "videoRole": ""
+      "nextLessonId": "2-2s"
     },
     {
       "lessonId": "x",
@@ -224,77 +178,27 @@
         {
           "cue": "Hi, what would you like to drink?",
           "inputType": "ai",
-          "videoUrl": "gtests-1-1",
-          "targetIntents": [
-            "I would like to order a specific beverage.",
-            "Can I see a menu or a list of drinks?",
-            "I'm not sure yet, what do you have?",
-            "Just a water for me, please."
-          ],
-          "badIntents": [
-            "I am asking about the price",
-            "I want to speak to the manager"
-          ]
+          "videoUrl": "gtests-1-1"
         },
         {
           "cue": "Sorry, we're all out of that today.",
           "inputType": "ai",
-          "videoUrl": "gtests-1-2",
-          "targetIntents": [
-            "That is okay, I will choose something else.",
-            "What else do you recommend instead?",
-            "In that case, I don't want anything.",
-            "I'll have a different drink then."
-          ],
-          "badIntents": [
-            "I am asking about the price",
-            "I want to speak to the manager"
-          ]
+          "videoUrl": "gtests-1-2"
         },
         {
           "cue": "Sure, what size do you want?",
           "inputType": "ai",
-          "videoUrl": "gtests-1-3",
-          "targetIntents": [
-            "I want a small, medium, or large size.",
-            "What are the different sizes you have?",
-            "Give me the biggest one you have.",
-            "The regular size is fine."
-          ],
-          "badIntents": [
-            "I am asking about the price",
-            "I want to speak to the manager"
-          ]
+          "videoUrl": "gtests-1-3"
         },
         {
           "cue": "If you want, you can upgrade to the extra large size for only fifty cents more.",
           "inputType": "ai",
-          "videoUrl": "gtests-1-4",
-          "targetIntents": [
-            "Yes, please upgrade my drink to the larger size.",
-            "No thank you, I will stay with the current size.",
-            "That sounds like a good deal, let's do it.",
-            "I don't need that much to drink."
-          ],
-          "badIntents": [
-            "I am asking about the price",
-            "I want to speak to the manager"
-          ]
+          "videoUrl": "gtests-1-4"
         },
         {
           "cue": "Okay, one extra large Diet Coke. Will that be all?",
           "inputType": "ai",
-          "videoUrl": "gtests-1-5",
-          "targetIntents": [
-            "Wait, there is a mistake in my order.",
-            "Yes, that is everything I want.",
-            "No, I also need to order some food.",
-            "Actually, I changed my mind about the drink."
-          ],
-          "badIntents": [
-            "I am asking about the price",
-            "I want to speak to the manager"
-          ]
+          "videoUrl": "gtests-1-5"
         },
         {
           "cue": "Okay, one extra large Diet Coke. Will that be all?",

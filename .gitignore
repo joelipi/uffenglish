@@ -9,3 +9,4 @@ node_modules/
 file_last_touched.txt
 full_git_log.txt
 full_reflog.txt
+/.kilo

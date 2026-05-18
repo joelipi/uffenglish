@@ -787,44 +787,6 @@ function setupAuthMenu(isLoggedIn) {
     bindAuthMenuUI(isLoggedIn, handleAuthClick, signOutText, signInText);
 }
 
-function showPermissionDialog() {
-    const dialog = document.getElementById('permissionModal');
-    const messageEl = document.getElementById('permissionMessage');
-    const grantBtn = document.getElementById('permissionGrantBtn');
-    const denyBtn = document.getElementById('permissionDenyBtn');
-
-    if (!dialog || !messageEl || !grantBtn || !denyBtn) {
-        console.warn('[PermissionDialog] Required elements not found');
-        return;
-    }
-
-    messageEl.textContent = 'Sign in to save your progress and unlock full features.';
-
-    const closeDialog = () => {
-        if (dialog.close) dialog.close();
-        else dialog.style.display = 'none';
-    };
-
-    grantBtn.onclick = () => {
-        closeDialog();
-        // TODO: trigger actual login flow when available
-        console.log('[PermissionDialog] User chose to sign in');
-        // Future: window.location.href = '/login' or show login modal
-    };
-
-    denyBtn.onclick = () => {
-        closeDialog();
-        console.log('[PermissionDialog] User chose to continue as guest');
-    };
-
-    // Show as native dialog
-    if (dialog.showModal) {
-        dialog.showModal();
-    } else {
-        dialog.style.display = 'block';
-    }
-}
-
 // INITIALIZE APP 
 async function initializeApp() {
     // Initialize reactive UI subscriptions first so the UI responds to store changes 
@@ -843,7 +805,7 @@ async function initializeApp() {
 
         if (!isLoggedIn) {
             console.warn('User not authenticated. Proceeding as guest.');
-            showPermissionDialog();
+            showGuestLoginModal();
         }
 
         State.initializeUserMetrics(State.userData, calculateCurrentStreak);

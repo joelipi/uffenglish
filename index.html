@@ -1532,6 +1532,11 @@
             width: 100%;
             height: 100%;
         }
+
+        #guestLoginModal::backdrop {
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(4px);
+        }
     </style>
 
 </head>
@@ -1886,25 +1891,26 @@
         </div>
     </main>
 
-    <!-- DIALOG: Permission Request (native <dialog>, Bootstrap classes preserved for styling) -->
-    <dialog id="permissionModal" class="modal fade" style="display:none; padding:0; border:none; background:none;">
+    <!-- DIALOG: Guest Login Welcome Modal (Native <dialog>, styled cleanly) -->
+    <dialog id="guestLoginModal" style="padding:0; border:none; background:transparent; outline:none;">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content bg-dark text-white border-light">
+            <div class="modal-content bg-dark text-white border-light shadow-lg" style="border-radius: 8px;">
                 <div class="modal-header border-secondary">
-                    <h5 class="modal-title"><i class="bi bi-shield-lock-fill text-warning me-2"></i>Permission Required
-                    </h5>
-                    <!-- Removed X button to enforce user action -->
+                    <h5 class="modal-title" id="guestLoginModalLabel"><i class="bi bi-shield-lock-fill text-warning me-2"></i>Welcome!</h5>
                 </div>
                 <div class="modal-body">
-                    <p id="permissionMessage" class="text-light"></p>
-                </div>
-                <div class="modal-footer border-secondary">
-                    <button type="button" class="btn btn-secondary" id="permissionDenyBtn">
-                        <i class="bi bi-x-circle me-1"></i>Deny
-                    </button>
-                    <button type="button" class="btn btn-primary" id="permissionGrantBtn">
-                        <i class="bi bi-check-circle me-1"></i>Allow
-                    </button>
+                    <p class="text-light">You are currently not logged in. Log in or sign up to save your progress and access all features. Or, continue as a guest to try out the app.</p>
+                    <div class="d-grid gap-2 mt-4">
+                        <a href="login.html" id="guestLoginBtn" class="btn btn-primary">
+                            <i class="bi bi-box-arrow-in-right me-1"></i>Log In
+                        </a>
+                        <a href="signup.html" id="guestSignupBtn" class="btn btn-secondary">
+                            <i class="bi bi-person-plus-fill me-1"></i>Sign Up
+                        </a>
+                        <button type="button" class="btn btn-outline-light mt-2" id="guestContinueBtn">
+                            Continue as Guest
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
