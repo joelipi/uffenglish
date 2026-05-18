@@ -139,7 +139,7 @@ export { PointLossAnimation, createPointLossAnimation, pointLoss };
 
 // Also support CommonJS
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { PointLossAnimation, createPointLossAnimation, pointLoss };
+    // module.exports removed for ESM compatibility
 }
 
 // For script tag usage (creates global variable)

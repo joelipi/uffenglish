@@ -113,27 +113,27 @@ export function cleanBrowserUrlRoute() {
 }
 
 /**
- * Returns the next question in the current lesson, or null if at the end.
- * Returns the first question as a fallback if the current question is not found —
- * if this happens in production it likely indicates a stale question reference.
+ * Returns the next screen in the current lesson, or null if at the end.
+ * Returns the first screen as a fallback if the current screen is not found —
+ * if this happens in production it likely indicates a stale screen reference.
  * @returns {object|null}
  */
-export function getNextQuestion(currentQuestion, configData, currentLessonIndex) {
+export function getNextScreen(currentScreen, configData, currentLessonIndex) {
     if (!configData?.lessons || currentLessonIndex >= configData.lessons.length) return null;
 
     const currentLesson = configData.lessons[currentLessonIndex];
-    const currentIndex = currentLesson.questions.findIndex(
-        q => q.question === currentQuestion.question && q.cue === currentQuestion.cue
+    const currentIndex = currentLesson.screens.findIndex(
+        q => q.screen === currentScreen.screen && q.cue === currentScreen.cue
     );
 
     if (currentIndex === -1) {
-        console.warn('[LessonRouter] getNextQuestion: current question not found in lesson — falling back to first question. This may indicate a stale question reference.');
-        return currentLesson.questions[0];
+        console.warn('[LessonRouter] getNextScreen: current screen not found in lesson — falling back to first screen. This may indicate a stale screen reference.');
+        return currentLesson.screens[0];
     }
 
-    if (currentIndex >= currentLesson.questions.length - 1) return null;
+    if (currentIndex >= currentLesson.screens.length - 1) return null;
 
-    return currentLesson.questions[currentIndex + 1];
+    return currentLesson.screens[currentIndex + 1];
 }
 
 /**

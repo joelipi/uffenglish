@@ -27,10 +27,10 @@ export async function saveSpeechRecording(blob, meta = {}) {
     const store = tx.objectStore(IDB_STORE_SPEECH);
 
     const lessonId = meta.lessonId ?? State.lessonId ?? 'unknown_lesson';
-    const questionIndex = meta.questionIndex ?? State.currentQuestionIndex ?? 0;
+    const screenIndex = meta.screenIndex ?? State.currentScreenIndex ?? 0;
 
     const timestamp = Date.now();
-    const videoKey = `uffvideo_${lessonId}_${questionIndex}_${timestamp}`;
+    const videoKey = `uffvideo_${lessonId}_${screenIndex}_${timestamp}`;
 
     const record = {
       id: videoKey,
@@ -40,7 +40,7 @@ export async function saveSpeechRecording(blob, meta = {}) {
       blob,
       ...meta,
       originalLessonId: lessonId,
-      originalQuestionIndex: questionIndex
+      originalScreenIndex: screenIndex
     };
 
     const req = store.put(record);
@@ -101,14 +101,14 @@ export async function clearSpeechRecordingsForLesson(lessonId) {
   });
 }
 
-export async function updateSpeechRecording(lessonId, questionIndex, updates = {}) {
+export async function updateSpeechRecording(lessonId, screenIndex, updates = {}) {
   const db = await openMediaDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(IDB_STORE_SPEECH, 'readwrite');
     const store = tx.objectStore(IDB_STORE_SPEECH);
 
     const resolvedLessonId = lessonId ?? State.lessonId ?? 'unknown_lesson';
-    const resolvedQuestionIndex = questionIndex ?? State.currentQuestionIndex ?? 0;
+    const resolvedScreenIndex = screenIndex ?? State.currentScreenIndex ?? 0;
 
     const request = store.getAll();
 
@@ -117,7 +117,7 @@ export async function updateSpeechRecording(lessonId, questionIndex, updates = {
       const matchingRecords = allRecords
         .filter(record =>
           record.originalLessonId === resolvedLessonId &&
-          record.originalQuestionIndex === resolvedQuestionIndex
+          record.originalScreenIndex === resolvedScreenIndex
         )
         .sort((a, b) => b.createdAt - a.createdAt);
 

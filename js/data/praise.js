@@ -1,5 +1,5 @@
 // praise.js
-// Function to get random praise for the end-of-question messages
+// Function to get random praise for the end-of-screen messages
 
 import Strings from './strings.js';
 

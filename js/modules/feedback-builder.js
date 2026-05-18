@@ -12,7 +12,7 @@ import Strings from '../data/strings.js';
  * @param {Object} params.scoreData - Output from calculateFluencyScore()
  * @param {Object} params.speechAnalytics - Speech analytics (wpm, pauseCount, foundIdioms, complexityScore)
  * @param {Object} params.result - Output from processAnswerLogic()
- * @param {Object} params.questionData - The current question object
+ * @param {Object} params.screenData - The current screen object
  * @param {string} params.lang - User's native language code
  * @param {string} params.englishLevel - CEFR level string (A0-C2)
  * @param {number} params.attemptNumber - 1-based attempt count
@@ -20,7 +20,7 @@ import Strings from '../data/strings.js';
  * @param {number} params.whisperRejections - Number of times whisper transcription was rejected
  * @returns {{ sections: Array<Object> }}
  */
-export function buildFeedbackData({ scoreData, speechAnalytics, result, questionData, lang, englishLevel, attemptNumber, repetitionCount, whisperRejections = 0 }) {
+export function buildFeedbackData({ scoreData, speechAnalytics, result, screenData, lang, englishLevel, attemptNumber, repetitionCount, whisperRejections = 0 }) {
     const sections = [];
 
     // 1. Pronunciation
@@ -63,7 +63,7 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, question
     }
 
     // AI-only sections (4-9)
-    if (questionData.inputType === 'ai') {
+    if (screenData.screenType === 'openResponse') {
         // 4. Vocabulary
         const idiomCount = speechAnalytics.foundIdioms ? speechAnalytics.foundIdioms.length : 0;
         // vocabParts: count + found list only (no threshold, no translated label)
@@ -148,7 +148,7 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, question
  * Filters out grammar_diff (already handled in stats sections).
  *
  * @param {Array} explanations - Raw explanation chunks from processAnswerLogic()
- * @param {*} fallbackExplanation - Fallback from questionData.explanation
+ * @param {*} fallbackExplanation - Fallback from screenData.explanation
  * @returns {{ chunks: Array<Object>, useFallback: boolean }}
  */
 export function buildExplanationData(explanations, fallbackExplanation) {

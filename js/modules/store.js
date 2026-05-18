@@ -32,7 +32,7 @@ export const appStore = createStore(
             // --- Persisted Progress & History ---
             activeLessonId: null,
             currentLessonIndex: 0,
-            currentQuestionIndex: 0,
+            currentScreenIndex: 0,
             cuesGiven: [],
             repeatPointsHistory: [],
             rolePlayPointsHistory: [],
@@ -51,10 +51,10 @@ export const appStore = createStore(
             setUserFirstName: (val) => set({ userFirstName: val }),
 
             // Update physical place in the lesson
-            setProgress: ({ lessonId, lessonIndex, questionIndex }) => set({
+            setProgress: ({ lessonId, lessonIndex, screenIndex }) => set({
                 activeLessonId: lessonId,
                 currentLessonIndex: lessonIndex,
-                currentQuestionIndex: questionIndex
+                currentScreenIndex: screenIndex
             }),
 
             // Clear history arrays when a new lesson begins
@@ -130,7 +130,7 @@ export const appStore = createStore(
                 aIMessagesToUserWordCount: state.aIMessagesToUserWordCount + (Number(wordCount) || 0)
             })),
 
-            resetForNextQuestion: () => set({
+            resetForNextScreen: () => set({
                 listeningScore: 100,
                 speakingScore: 100,
                 incorrectAttempts: 0,
@@ -167,7 +167,7 @@ export const appStore = createStore(
                 // isDemoMode and isWhisperReady are safely ignored.
                 activeLessonId: state.activeLessonId,
                 currentLessonIndex: state.currentLessonIndex,
-                currentQuestionIndex: state.currentQuestionIndex,
+                currentScreenIndex: state.currentScreenIndex,
                 fluencyScore: state.fluencyScore,
                 flowScore: state.flowScore,
                 vocabularyScore: state.vocabularyScore,

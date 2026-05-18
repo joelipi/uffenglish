@@ -1,5 +1,5 @@
 // Uses Metro's platform extension resolution (.web.js / .native.jsx).
 // No runtime environment checks needed — the bundler picks the right file.
-// Web: question-loader.web.js, Native: question-loader.native.jsx (future)
+// Web: screen-loader.web.js, Native: screen-loader.native.jsx (future)
 
-export { loadQuestion } from './question-loader.web.js';
+export { loadScreen } from './screen-loader.web.js';

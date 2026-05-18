@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lesson | UFF English</title>
-
+
 
   <link rel="icon" href="/assets/favicon-32x32-YzzxzIhk.jpeg" sizes="32x32">
   <link rel="icon" href="/assets/teacherprofile-edLSdN6N.jpeg" sizes="192x192">
@@ -27,14 +27,16 @@
     })();
   </script>
   <script type="module" crossorigin src="/assets/modulepreload-polyfill-DfS4ul37.js"></script>
-  <script type="module" crossorigin src="/assets/chunk-CcdRbIIE.js"></script>
-  <script type="module" crossorigin src="/assets/preload-helper-BEFjQwLd.js"></script>
-  <script type="module" crossorigin src="/assets/api-BmnlLuAz.js"></script>
-  <script type="module" crossorigin src="/assets/user-profile-CPUyiSvz.js"></script>
-  <script type="module" crossorigin src="/assets/app-vad-asr-web-DI5Lx5yO.js"></script>
-  <script type="module" crossorigin src="/assets/app-63byk5hp.js"></script>
+  <script type="module" crossorigin src="/assets/chunk-CeT-YOtV.js"></script>
+  <script type="module" crossorigin src="/assets/preload-helper-qlgyTAkD.js"></script>
+  <script type="module" crossorigin src="/assets/api-CWVAoYbt.js"></script>
+  <script type="module" crossorigin src="/assets/store-m8pVexrW.js"></script>
+  <script type="module" crossorigin src="/assets/video-processor-n0kwPuRg.js"></script>
+  <script type="module" crossorigin src="/assets/user-profile-CuJudYZz.js"></script>
+  <script type="module" crossorigin src="/assets/app-vad-asr-web-Cq8PMVNp.js"></script>
+  <script type="module" crossorigin src="/assets/app-BjSsydmC.js"></script>
   <link rel="stylesheet" crossorigin href="/assets/lesson-DoPGwjiM.css">
-  <link rel="stylesheet" crossorigin href="/assets/style-D2AHlh6N.css">
+  <link rel="stylesheet" crossorigin href="/assets/style-TsAkTAgE.css">
   <link rel="stylesheet" crossorigin href="/assets/bootstrap-CwawXFoc.css">
 </head>
 
@@ -65,8 +67,8 @@
           }, 100);
 
           try {
-            if (lessonData?.questions && lessonData.questions[0]) {
-              const firstQ = lessonData.questions[0];
+            if (lessonData?.screens && lessonData.screens[0]) {
+              const firstQ = lessonData.screens[0];
               const slugToWarm = firstQ.videoUrl || firstQ.simpleVideoUrl || firstQ.introBackgroundVideoUrl;
               if (slugToWarm) fetch(buildVideoUrlFn(slugToWarm)).catch(() => { });
             }
@@ -380,7 +382,7 @@
               <p class="info-content" id="hintUncommonWords"></p>
             </div>
 
-            <div id="questions-container"></div>
+            <div id="screens-container"></div>
 
           </div>
         </div>
@@ -421,7 +423,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            <button class="btn btn-success"
+            <button class="btn btn-primary"
               onclick="window.location.href='https://api.whatsapp.com/send/?phone=16179030597&text=app_support'">
               <i class="bi bi-whatsapp"></i> Soporte Técnico por Whatsapp
             </button>
@@ -506,7 +508,7 @@
     }
   </script>
 
-  <script src="./node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="./node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 

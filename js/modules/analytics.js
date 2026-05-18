@@ -1,6 +1,6 @@
 import { idiomChecker } from './idiom-checker.js';
 
-export async function analyzeSpeech(text, netDuration, pauseCount, currentCourseLevel, inputType) {
+export async function analyzeSpeech(text, netDuration, pauseCount, currentCourseLevel, screenType) {
     let wpm = null;
     let complexityScore = null;
     let complexityScoreBreakdown = null;
@@ -12,8 +12,8 @@ export async function analyzeSpeech(text, netDuration, pauseCount, currentCourse
         wpm = Math.round((wordCount / netDuration) * 60);
     }
 
-    // Only calculate complexity and idioms for AI roleplay questions
-    if (currentCourseLevel !== 'A1' && inputType === 'ai') {
+    // Only calculate complexity and idioms for AI roleplay screens
+    if (currentCourseLevel !== 'A1' && screenType === 'openResponse') {
         const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
         const sentenceCount = text.split(/[.!?]+/).filter(s => s.trim().length > 0).length || 1;
 
