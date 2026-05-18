@@ -34,6 +34,16 @@ export class VideoRenderPlanner {
                 }
             }
 
+            // --- CRITICAL FIX ---
+            // Aggressively hunt for the transcription. If the AI moved it inside the meta object 
+            // or renamed it to 'transcript' during the refactor, this ensures we still find it.
+            let userText = rec.userResponse;
+            if (!userText && rec.meta) {
+                userText = rec.meta.userResponse || rec.meta.transcript || rec.meta.text;
+            }
+            userText = userText || rec.transcript || rec.text || rec.answer || "";
+            // --------------------
+
             // isFirst evaluated after remote push so webcam is correctly
             // marked first when there is no preceding remote step
             plan.push({
@@ -41,7 +51,7 @@ export class VideoRenderPlanner {
                 blob: rec.blob,       // Used by web processor
                 uri: rec.uri,         // Used by native processor
                 trim: rec.meta?.trimTimestamps || null,
-                subtitle: rec.userResponse,
+                subtitle: userText,   // Passes the properly extracted text
                 isFirst: plan.length === 0,
                 isTextMode: rec.isTextMode,
                 duration: rec.duration
@@ -142,7 +152,7 @@ export class VideoRenderPlanner {
         const lesson = this.configData.lessons.find(l => l.lessonId === rec.originalLessonId);
         if (!lesson?.questions?.[rec.originalQuestionIndex]) return null;
         const q = lesson.questions[rec.originalQuestionIndex];
-        
+
         if (typeof q.cue === 'string') return q.cue;
         if (q.cue && q.cue.en) return q.cue.en;
         return null;

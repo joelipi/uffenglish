@@ -193,7 +193,7 @@ export async function checkGrammarWithAI(selectedAnswer, questionData) {
 export async function evaluateIntentWithAI(answerForIntentPass, questionData, lessonData) {
   const aiEndpoint = 'https://nvidia-proxy.joel-1cb.workers.dev';
   try {
-    console.log("､AI Evaluation: Starting Intent Check...");
+    console.log("AI Evaluation: Starting Intent Check...");
 
     // Updated prompt based on user instructions
     const intentPrompt = `Setting: ${lessonData.setting?.en || ''} 
@@ -203,9 +203,9 @@ B's goal: ${questionData.mission || 'Respond appropriately'}
 A: ${questionData.cue} 
 B: ${answerForIntentPass} 
  
-Evaluate B's response. Return ONLY an array with any applicable labels and any corrected version of B's response: [ungrammatical, pragmatic failure, too formal, too informal, rude, unidiomatic, correct].`;
+Evaluate B's response. Return ONLY an array with any applicable labels and any corrected version of B's response: [pragmatic failure, too formal, too informal, rude, unidiomatic, correct].`;
 
-    console.log("､役洟prompt to AI: ", intentPrompt);
+    console.log("prompt to AI: ", intentPrompt);
 
     const response = await fetch(aiEndpoint, {
       method: 'POST',

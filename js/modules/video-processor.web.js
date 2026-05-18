@@ -29,7 +29,6 @@ export async function processVideo(fluencyData = {}, lessonId = null, displayCan
                 originalVideo.playsInline = true;
             }
 
-            // CRITICAL FIX: Ensure audio plays out loud so the user hears the review
             originalVideo.muted = false;
 
             const videoCanvas = document.createElement('canvas');
@@ -42,6 +41,7 @@ export async function processVideo(fluencyData = {}, lessonId = null, displayCan
                 originalVideo.src = URL.createObjectURL(firstValidRec.blob);
                 await new Promise((res) => {
                     originalVideo.onloadedmetadata = res;
+                    setTimeout(res, 2000);
                 });
             }
 
@@ -67,7 +67,6 @@ export async function processVideo(fluencyData = {}, lessonId = null, displayCan
                 if (audioSource) audioSource.disconnect();
                 audioSource = audioContext.createMediaElementSource(originalVideo);
                 audioSource.connect(audioDestination);
-                // The crucial line that connects the video element's audio out to the speakers
                 audioSource.connect(audioContext.destination);
             }
 
@@ -132,7 +131,13 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                 lastFrameCanvas = document.createElement('canvas');
                 lastFrameCanvas.width = canvas.width;
                 lastFrameCanvas.height = canvas.height;
-                lastFrameCanvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                if (video.readyState >= 2) {
+                    lastFrameCanvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+                } else {
+                    lastFrameCanvas.getContext('2d').fillStyle = '#111318';
+                    lastFrameCanvas.getContext('2d').fillRect(0, 0, canvas.width, canvas.height);
+                }
                 return;
             }
 
@@ -150,9 +155,20 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
             await new Promise((res) => {
                 video.onloadedmetadata = async () => {
                     if (step.trim?.start) video.currentTime = step.trim.start;
-                    await video.play();
+                    try {
+                        await video.play();
+                    } catch (err) {
+                        console.warn("[VideoProcessor] Browser blocked loud autoplay. Retrying muted.", err);
+                        video.muted = true;
+                        try {
+                            await video.play();
+                        } catch (fatalErr) {
+                            console.error("[VideoProcessor] Fatal play error", fatalErr);
+                        }
+                    }
                     res();
                 };
+                setTimeout(res, 3000);
             });
         };
 
@@ -172,6 +188,12 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                 ctx.fillStyle = '#000';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(video, layout.x, layout.y, layout.width, layout.height);
+            } else {
+                // --- CRITICAL FIX ---
+                // If the video is buffering/loading, explicitly clear the screen to black 
+                // so the old subtitle from the previous frame doesn't freeze on screen.
+                ctx.fillStyle = '#000';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
 
             if (overlayImage?.complete && overlayImage.naturalWidth > 0) {
@@ -181,7 +203,6 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
 
             drawTextOverlay(ctx, canvas.width, canvas.height, isTailing, tailStart, fluencyData, step.isFirst, step.subtitle);
 
-            // The real-time mirroring to the visible canvas so the user can watch
             if (displayCanvas) {
                 const dCtx = displayCanvas.getContext('2d');
                 dCtx.drawImage(canvas, 0, 0, displayCanvas.width, displayCanvas.height);
