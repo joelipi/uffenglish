@@ -1007,7 +1007,7 @@ export function showPlaybackVideo() {
         row.appendChild(bubble);
 
         DOM.chatBody.appendChild(row);
-        
+
         video.muted = State.isPlaybackMuted;
         video.play().catch(e => console.warn('[UI] Playback initial play failed:', e));
 
@@ -1188,7 +1188,7 @@ export async function setupPlaybackVideo(blob, autoplay = false, speechCamChunks
                 }
                 wrapper.classList.remove('d-none');
                 wrapper.style.display = 'flex';
-                
+
                 // Clear any inline styles set by showPlaybackVideo chat bubble conversion
                 wrapper.style.width = '';
                 wrapper.style.height = '';
@@ -1197,7 +1197,7 @@ export async function setupPlaybackVideo(blob, autoplay = false, speechCamChunks
                 playbackVideo.style.maxHeight = '';
                 playbackVideo.style.borderRadius = '';
                 playbackVideo.style.objectFit = '';
-                
+
                 // Set absolute positioning so it floats correctly inside video-frame
                 wrapper.style.position = 'absolute';
                 wrapper.style.top = '15%';
@@ -1373,11 +1373,35 @@ export function renderFallbackContinueButton(text, onClickCallback) {
 }
 
 export function resetUIForNewQuestion(isLessonIntro, hasUserData) {
+    // 1. Clear out our dynamic compilation elements
     const resultVideo = document.getElementById('resultVideo');
     if (resultVideo) resultVideo.remove();
     const displayCanvas = document.getElementById('displayCanvas');
     if (displayCanvas) displayCanvas.remove();
 
+    // 2. Clear out the dynamic success action buttons
+    const continueSuccess = document.getElementById('continueButtonSuccess');
+    if (continueSuccess) continueSuccess.remove();
+
+    const repeatSuccess = document.getElementById('repeatButtonSuccess');
+    if (repeatSuccess) repeatSuccess.remove();
+
+    // 3. Reset the core process/create video button back to its initial UI state
+    const videoBtn = document.getElementById('processBtn') || document.getElementById('createVideoButton');
+    if (videoBtn) {
+        videoBtn.disabled = false;
+        videoBtn.classList.remove('btn-success', 'flex-fill');
+        videoBtn.classList.add('btn-outline-primary', 'w-100');
+        videoBtn.innerHTML = '<i class="bi bi-film text-white"></i>';
+    }
+
+    // 4. Reset the visibility of the parent container states
+    const lessonSuccess = document.getElementById('state-lesson-success');
+    if (lessonSuccess) {
+        lessonSuccess.classList.add('d-none');
+    }
+
+    // --- Rest of your original resetUIForNewQuestion code begins here ---
     const lessonIntroHeader = document.getElementById('lessonIntroHeader');
     if (lessonIntroHeader) lessonIntroHeader.classList.toggle('d-none', !isLessonIntro || hasUserData);
 

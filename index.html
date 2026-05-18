@@ -14,6 +14,8 @@
 
     <!-- Embedded CSS -->
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
         /* Critical Error State */
         #criticalErrorContainer {
             backdrop-filter: blur(5px);
@@ -363,9 +365,6 @@
             object-fit: cover;
             transform: scaleX(-1);
         }
-
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
 
         /* Tablet and up Breakpoint */
         @media (min-width: 576px) {
@@ -1904,9 +1903,9 @@
                             <!-- CENTER STATE 3: (End of) Lesson Success (Hidden by default) -->
                             <div class="d-flex gap-3 align-items-center d-none" id="state-lesson-success">
 
-                                <button class="btn btn-outline-primary w-100 mt-2" id="createVideoButton"
+                                <button class="btn btn-outline-primary w-100 text-white" id="createVideoButton"
                                     aria-label="Create Video">
-                                    <i class="bi bi-film-fill text-white"></i>
+                                    <i class="bi bi-film text-white"></i>
                                 </button>
 
                             </div>

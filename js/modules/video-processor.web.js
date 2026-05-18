@@ -1,4 +1,4 @@
-// --- modules/video-processor.web.js ---
+// modules/video-processor.web.js
 import { getAllSpeechRecordingsForLesson } from './storage.js';
 import { VideoRenderPlanner } from './video-processor-logic.js';
 import { shareVideo } from './video-share.web.js';
@@ -11,61 +11,70 @@ let audioDestination = null;
 let animationId = null;
 let fontReady = false;
 
-/**
- * Processes the video recordings entirely in memory.
- * @returns {Promise<{blob: Blob, ext: string}>} The finalized video blob and extension
- */
-export async function processVideo(fluencyData = {}, lessonId = null) {
+export async function processVideo(fluencyData = {}, lessonId = null, displayCanvas = null) {
     return new Promise(async (resolve, reject) => {
         try {
-            console.log("[VideoProcessor] Starting background processing...");
+            console.log("[VideoProcessor] Starting live processing on screen...");
 
-            const recordings = await getAllSpeechRecordingsForLesson(lessonId);
-            if (!recordings?.length) throw new Error("No recordings found.");
+            const recordings = await getAllSpeechRecordingsForLesson(lessonId) || [];
 
-            // 1. Setup In-Memory Elements (No DOM clutter required)
-            const originalVideo = document.createElement('video');
-            originalVideo.crossOrigin = "anonymous";
-            originalVideo.muted = true; // Crucial for auto-play without DOM attachment
-            originalVideo.playsInline = true;
+            if (!recordings.length) {
+                console.warn("[VideoProcessor] No recordings found. Proceeding with text-mode/summary generation.");
+            }
+
+            let originalVideo = document.getElementById('originalVideo');
+            if (!originalVideo) {
+                originalVideo = document.createElement('video');
+                originalVideo.crossOrigin = "anonymous";
+                originalVideo.playsInline = true;
+            }
+
+            // CRITICAL FIX: Ensure audio plays out loud so the user hears the review
+            originalVideo.muted = false;
 
             const videoCanvas = document.createElement('canvas');
 
             const overlayImage = new Image();
             overlayImage.src = 'assets/img/header.png';
 
-            // Load initial recording to get dimensions
-            originalVideo.src = URL.createObjectURL(recordings[0].blob);
-            await new Promise((res) => {
-                originalVideo.onloadedmetadata = res;
-            });
+            const firstValidRec = recordings.find(r => r.blob);
+            if (firstValidRec) {
+                originalVideo.src = URL.createObjectURL(firstValidRec.blob);
+                await new Promise((res) => {
+                    originalVideo.onloadedmetadata = res;
+                });
+            }
 
             const configData = window.__currentConfigData || window.State?.configData || {};
             const planner = new VideoRenderPlanner(recordings, configData, fluencyData);
             const plan = planner.generatePlan();
 
-            // 2. Setup Resolution
-            const dimensions = planner.getTargetDimensions(originalVideo.videoWidth, originalVideo.videoHeight);
+            const dimensions = planner.getTargetDimensions(originalVideo.videoWidth || 1080, originalVideo.videoHeight || 1920);
             videoCanvas.width = dimensions.width;
             videoCanvas.height = dimensions.height;
 
-            // 3. Setup Audio
+            if (displayCanvas) {
+                displayCanvas.width = dimensions.width;
+                displayCanvas.height = dimensions.height;
+            }
+
             if (!audioContext) {
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 audioDestination = audioContext.createMediaStreamDestination();
             }
+
             if (!audioSource || audioSource.mediaElement !== originalVideo) {
                 if (audioSource) audioSource.disconnect();
                 audioSource = audioContext.createMediaElementSource(originalVideo);
                 audioSource.connect(audioDestination);
+                // The crucial line that connects the video element's audio out to the speakers
                 audioSource.connect(audioContext.destination);
             }
+
             if (audioContext.state === 'suspended') await audioContext.resume();
 
-            // 4. Prepare Fonts
             await ensureFontsReady();
 
-            // 5. Start Recording
             const canvasStream = videoCanvas.captureStream(30);
             const combinedStream = new MediaStream([
                 ...canvasStream.getVideoTracks(),
@@ -80,7 +89,6 @@ export async function processVideo(fluencyData = {}, lessonId = null) {
                 if (e.data.size > 0) chunks.push(e.data);
             };
 
-            // 6. Resolve the promise when the recorder finishes
             recorder.onstop = () => {
                 const blob = new Blob(chunks, { type: mimeType });
                 const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
@@ -89,8 +97,7 @@ export async function processVideo(fluencyData = {}, lessonId = null) {
 
             recorder.start(1000);
 
-            // 7. Execute Render Loop
-            await executeRenderLoop(plan, originalVideo, videoCanvas, overlayImage, fluencyData);
+            await executeRenderLoop(plan, originalVideo, videoCanvas, displayCanvas, overlayImage, fluencyData);
 
             recorder.stop();
 
@@ -101,9 +108,9 @@ export async function processVideo(fluencyData = {}, lessonId = null) {
     });
 }
 
-async function executeRenderLoop(plan, video, canvas, overlayImage, fluencyData) {
+async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImage, fluencyData) {
     const ctx = canvas.getContext('2d');
-    const planner = new VideoRenderPlanner(); // For layout helpers
+    const planner = new VideoRenderPlanner();
 
     return new Promise(async (resolve) => {
         let stepIndex = 0;
@@ -122,7 +129,6 @@ async function executeRenderLoop(plan, video, canvas, overlayImage, fluencyData)
                 isTailing = true;
                 tailStart = performance.now();
 
-                // Freeze frame for tailing
                 lastFrameCanvas = document.createElement('canvas');
                 lastFrameCanvas.width = canvas.width;
                 lastFrameCanvas.height = canvas.height;
@@ -130,7 +136,12 @@ async function executeRenderLoop(plan, video, canvas, overlayImage, fluencyData)
                 return;
             }
 
-            // Load Video Source
+            if (step.type === 'webcam' && (!step.blob || step.isTextMode)) {
+                video.src = '';
+                step.textModeStartTime = performance.now();
+                return;
+            }
+
             video.crossOrigin = "anonymous";
             const sourceUrl = step.type === 'remote' ? await resolveRemoteUrl(step.targetId) : URL.createObjectURL(step.blob);
             video.src = sourceUrl;
@@ -149,9 +160,13 @@ async function executeRenderLoop(plan, video, canvas, overlayImage, fluencyData)
             const step = plan[stepIndex];
             if (!step) return;
 
-            // 1. Draw Background (Video or Freeze Frame)
             if (isTailing && lastFrameCanvas) {
+                ctx.fillStyle = '#111318';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(lastFrameCanvas, 0, 0);
+            } else if (step.type === 'webcam' && (!step.blob || step.isTextMode)) {
+                ctx.fillStyle = '#111318';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
             } else if (video.readyState >= 2) {
                 const layout = planner.calculateLayout(video.videoWidth, video.videoHeight, canvas.width, canvas.height);
                 ctx.fillStyle = '#000';
@@ -159,26 +174,30 @@ async function executeRenderLoop(plan, video, canvas, overlayImage, fluencyData)
                 ctx.drawImage(video, layout.x, layout.y, layout.width, layout.height);
             }
 
-            // 2. Draw Overlay Image (Branding)
             if (overlayImage?.complete && overlayImage.naturalWidth > 0) {
                 const x = (canvas.width - overlayImage.naturalWidth) / 2;
                 ctx.drawImage(overlayImage, x, 0);
             }
 
-            // 3. Draw Text (Subtitles / Scores)
             drawTextOverlay(ctx, canvas.width, canvas.height, isTailing, tailStart, fluencyData, step.isFirst, step.subtitle);
 
-            // 4. Check Timing / Advance
+            // The real-time mirroring to the visible canvas so the user can watch
+            if (displayCanvas) {
+                const dCtx = displayCanvas.getContext('2d');
+                dCtx.drawImage(canvas, 0, 0, displayCanvas.width, displayCanvas.height);
+            }
+
             let shouldAdvance = false;
             if (isTailing) {
                 if (performance.now() - tailStart > 4000) resolve();
             } else {
-                let endTime = step.trim?.end || video.duration;
-                if (step.isTextMode) {
-                    endTime = 3;
-                    console.log(`[VideoProcessor] Text mode clip forced to 3s`);
+                if (step.isTextMode || (step.type === 'webcam' && !step.blob)) {
+                    const elapsed = performance.now() - (step.textModeStartTime || performance.now());
+                    if (elapsed >= 3000) shouldAdvance = true;
+                } else {
+                    let endTime = step.trim?.end || video.duration;
+                    if (video.ended || video.currentTime >= endTime) shouldAdvance = true;
                 }
-                if (video.ended || video.currentTime >= endTime) shouldAdvance = true;
             }
 
             if (shouldAdvance) {
@@ -201,7 +220,6 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
     const blinkOn = Math.floor(now / 500) % 2 === 0;
     context.save();
 
-    // 1. Draw top overlay text only if it's the first segment or the tail segment
     if (isFirst || tailing) {
         const yFromBottom = canvasHeight * 0.20;
         const baseY = canvasHeight - yFromBottom;
@@ -255,7 +273,6 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
         });
     }
 
-    // 2. Draw Subtitles at the bottom (burned in)
     if (subtitleText && subtitleText.trim() !== "") {
         context.textAlign = 'center';
         context.textBaseline = 'bottom';

@@ -1,6 +1,8 @@
 // success-lesson.js
 import confetti from 'canvas-confetti';
 import { appStore } from '../modules/store.js';
+import { showLessonSuccessState } from './ui.js';
+import { clearSpeechRecordingsForLesson } from '../modules/storage.js';
 
 export class SuccessLessonHandler {
   constructor({
@@ -17,7 +19,6 @@ export class SuccessLessonHandler {
     this.loadNextLesson = loadNextLesson;
     this.updateState = updateState;
 
-    // Map UI elements from current index.html
     this.uiElements = {
       statsContainer: uiElements.statsContainer || document.getElementById('stats-container'),
       progressbar: uiElements.progressbar || document.getElementById('progress'),
@@ -29,7 +30,6 @@ export class SuccessLessonHandler {
   }
 
   displayScore(lessonAverage) {
-    // Kept for compatibility but minimal implementation
     console.log(`[Success] Lesson average: ${lessonAverage}%`);
   }
 
@@ -43,6 +43,9 @@ export class SuccessLessonHandler {
       progressBarFill.classList.add('bg-success');
     }
 
+    if (typeof showLessonSuccessState === 'function') {
+      showLessonSuccessState();
+    }
   }
 
   handleSuccessLesson(question) {
@@ -51,49 +54,38 @@ export class SuccessLessonHandler {
       return;
     }
 
-    const lessonAverage = typeof this.calculateAverage === 'function'
-      ? this.calculateAverage()
-      : 0;
+    const lessonAverage = typeof this.calculateAverage === 'function' ? this.calculateAverage() : 0;
+    const fluencyData = { total: lessonAverage };
 
     this.updateUI(lessonAverage);
     this.displayScore(lessonAverage);
 
     if (typeof this.updateState === 'function') {
       this.updateState({ state: 'success-lesson' });
-      console.log('[Success] Successfully updated application state to "success-lesson"');
-    } else {
-      console.warn('[Success] updateState function not provided, failed to transition state');
     }
 
-    this.createVideoButton(question).catch(console.error);
-
-    // Play celebration effects - pass lessonAverage to conditionally play confetti
+    this.createVideoButton(question, fluencyData).catch(console.error);
     this.playEffects(lessonAverage);
   }
 
   createContinueButton() {
-    let continueButton = document.getElementById('continueButton');
+    let continueButton = document.getElementById('continueButtonSuccess');
 
     if (!continueButton) {
       continueButton = document.createElement('button');
-      continueButton.id = 'continueButton';
-      continueButton.className = 'btn btn-primary text-white w-100';
-      continueButton.innerHTML = '<i class="bi bi-chevron-right text-white" style="font-size: 40px; font-weight: 900;"></i>';
+      continueButton.id = 'continueButtonSuccess';
+      continueButton.className = 'btn btn-primary text-white flex-fill';
+      continueButton.innerHTML = '<i class="bi bi-chevron-right text-white" style="font-size: 24px; font-weight: 900;"></i>';
     }
 
-    // Place in the bottom control area (where micBtn normally lives)
-    const bottomOverlayContent = document.querySelector('.bottom-overlay-content');
-    if (bottomOverlayContent) {
-      bottomOverlayContent.innerHTML = '';
-      bottomOverlayContent.appendChild(continueButton);
-      bottomOverlayContent.className = 'bottom-overlay-content position-absolute start-50 translate-middle-x';
+    const successContainer = document.getElementById('state-lesson-success');
+    if (successContainer) {
+      successContainer.appendChild(continueButton);
     } else {
-      // Fallback: append to chat if bottom overlay not found
       const chatMessageList = this.uiElements.chatMessageList;
       if (chatMessageList) {
         const systemRow = document.createElement('div');
         systemRow.className = 'chat-message-row chat-message-row--system';
-        systemRow.id = 'continueButtonRow';
         systemRow.appendChild(continueButton);
         chatMessageList.appendChild(systemRow);
       }
@@ -109,26 +101,86 @@ export class SuccessLessonHandler {
     };
   }
 
-  async createVideoButton(question) {
-    const videoBtn = document.getElementById('createVideoButton');
-
+  async createVideoButton(question, fluencyData) {
+    const videoBtn = document.getElementById('processBtn') || document.getElementById('createVideoButton');
     if (!videoBtn) return;
+
     videoBtn.classList.remove('d-none');
     videoBtn.onclick = async () => {
       videoBtn.disabled = true;
       videoBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Generating...';
 
       try {
-        const { processVideo } = await import('../modules/video-processor.js');
-        const result = await processVideo({}, question.lessonId);
+        document.querySelectorAll('video').forEach(v => {
+          if (v.id !== 'originalVideo') {
+            v.pause();
+            v.muted = true;
+          }
+        });
+
+        let mediaViewport = document.getElementById('media-viewport');
+        if (mediaViewport) {
+          mediaViewport.classList.remove('d-none');
+          Array.from(mediaViewport.children).forEach(c => {
+            if (c.id !== 'displayCanvas' && c.id !== 'resultVideo') {
+              c.style.display = 'none';
+            }
+          });
+        }
+
+        const { processVideo, shareVideo } = await import('../modules/video-processor.js');
+
+        let displayCanvas = document.getElementById('displayCanvas');
+        if (!displayCanvas) {
+          displayCanvas = document.createElement('canvas');
+          displayCanvas.id = 'displayCanvas';
+
+          displayCanvas.style.width = '100%';
+          displayCanvas.style.height = 'calc(100% - 140px)';
+          displayCanvas.style.objectFit = 'contain';
+          displayCanvas.style.backgroundColor = 'black';
+
+          const container = mediaViewport || document.querySelector('.video-frame');
+          container.appendChild(displayCanvas);
+        }
+        displayCanvas.style.display = 'block';
+
+        let targetLessonId = question?.lessonId?.trim();
+        if (!targetLessonId) {
+          targetLessonId = new URLSearchParams(window.location.search).get('lessonId');
+        }
+        if (targetLessonId) targetLessonId = targetLessonId.replace(/s+$/, '');
+
+        const result = await processVideo(fluencyData, targetLessonId, displayCanvas);
 
         if (result?.blob) {
-          const url = URL.createObjectURL(result.blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `lesson-${question.lessonId}-summary.webm`;
-          a.click();
-          setTimeout(() => URL.revokeObjectURL(url), 5000);
+          displayCanvas.style.display = 'none';
+          this.mountResultVideo(result.blob);
+
+          try {
+            await clearSpeechRecordingsForLesson(targetLessonId);
+            console.log(`[Storage] Cleaned up raw webcam blobs for lesson: "${targetLessonId}"`);
+          } catch (cleanupError) {
+            console.warn('[Storage] Safe cleanup of raw recordings failed:', cleanupError);
+          }
+
+          videoBtn.disabled = false;
+          videoBtn.classList.remove('btn-outline-primary', 'w-100');
+          videoBtn.classList.add('btn-success', 'flex-fill');
+          videoBtn.innerHTML = '<i class="bi bi-share-fill text-white"></i> Share';
+
+          const now = new Date();
+          const timestamp = now.getFullYear() +
+            String(now.getMonth() + 1).padStart(2, '0') +
+            String(now.getDate()).padStart(2, '0') +
+            String(now.getHours()).padStart(2, '0') +
+            String(now.getMinutes()).padStart(2, '0') +
+            String(now.getSeconds()).padStart(2, '0');
+
+          videoBtn.onclick = async () => {
+            const filename = `uff-${targetLessonId}-${timestamp}.${result.ext || 'webm'}`;
+            await shareVideo(result.blob, filename, result.ext || 'webm');
+          };
 
           this.createContinueButton();
           this.createRepeatButton(question).catch(console.error);
@@ -136,25 +188,47 @@ export class SuccessLessonHandler {
       } catch (err) {
         console.error('[Success] Video generation failed:', err);
         alert('Failed to generate video. Please try again.');
-      } finally {
         videoBtn.disabled = false;
-        videoBtn.innerHTML = '<i class="bi bi-film me-2"></i> Download Video';
+        videoBtn.innerHTML = '<i class="bi bi-film text-white"></i>';
       }
     };
   }
 
-  async createRepeatButton(question) {
-    const chatMessageList = this.uiElements.chatMessageList;
-    if (!chatMessageList) return;
+  mountResultVideo(blob) {
+    let resultVideo = document.getElementById('resultVideo');
+    if (!resultVideo) {
+      resultVideo = document.createElement('video');
+      resultVideo.id = 'resultVideo';
 
+      const mediaViewport = document.getElementById('media-viewport');
+      const container = mediaViewport || document.querySelector('.video-frame');
+      container.appendChild(resultVideo);
+    }
+
+    resultVideo.style.width = '100%';
+    resultVideo.style.height = 'calc(100% - 140px)';
+    resultVideo.style.objectFit = 'contain';
+    resultVideo.style.backgroundColor = 'black';
+    resultVideo.controls = true;
+    resultVideo.playsInline = true;
+
+    resultVideo.src = URL.createObjectURL(blob);
+    resultVideo.classList.remove('d-none');
+    resultVideo.style.display = 'block';
+  }
+
+  async createRepeatButton(question) {
     const baseLessonId = question.lessonId?.trim();
     if (!baseLessonId) return;
 
-    const repeatButton = document.createElement('button');
-    repeatButton.className = 'btn btn-primary text-white w-100 repeat-btn';
-    repeatButton.id = 'repeatButton';
-    repeatButton.innerHTML = '<i class="bi bi-arrow-counterclockwise text-white" style="font-size: 40px; font-weight: 900;"></i>';
-    repeatButton.title = 'Repeat this lesson / Repetir esta lección';
+    let repeatButton = document.getElementById('repeatButtonSuccess');
+    if (!repeatButton) {
+      repeatButton = document.createElement('button');
+      repeatButton.className = 'btn btn-primary text-white flex-fill repeat-btn';
+      repeatButton.id = 'repeatButtonSuccess';
+      repeatButton.innerHTML = '<i class="bi bi-arrow-counterclockwise text-white" style="font-size: 24px; font-weight: 900;"></i>';
+      repeatButton.title = 'Repeat this lesson / Repetir esta lección';
+    }
 
     const handleRepeat = () => {
       const baseUrl = window.location.origin + window.location.pathname;
@@ -164,10 +238,13 @@ export class SuccessLessonHandler {
 
     repeatButton.onclick = handleRepeat;
 
-    const existing = document.getElementById('repeatBtnSuccess');
-    if (existing) existing.onclick = handleRepeat;
-
-    chatMessageList.appendChild(repeatButton);
+    const successContainer = document.getElementById('state-lesson-success');
+    if (successContainer) {
+      successContainer.insertBefore(repeatButton, successContainer.firstChild);
+    } else {
+      const chatMessageList = this.uiElements.chatMessageList;
+      if (chatMessageList) chatMessageList.appendChild(repeatButton);
+    }
   }
 
   playEffects(lessonAverage) {

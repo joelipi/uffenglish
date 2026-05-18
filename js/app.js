@@ -13,7 +13,8 @@ window.enabledLogs = {
     analytics: false,
     ui: false,
     hesitation: true,
-    all: false
+    success: true,
+    all: true
 };
 
 console.log = (msg, ...args) => {
@@ -881,8 +882,8 @@ async function initializeApp() {
                 if (typeof voiceInitFn !== 'function') {
                     console.warn('initLocalVoiceAI not available statically, attempting dynamic import...');
                     const scriptDir = new URL('.', import.meta.url).href;
-                    const speechModuleUrl = new URL('modules/speech.web.js?8', scriptDir).href;
-                    const speechModule = await import(speechModuleUrl);
+                    const speechModuleUrl = new URL('modules/speech.web.js', scriptDir).href;
+                    const speechModule = await import(/* @vite-ignore */ speechModuleUrl);
                     voiceInitFn = speechModule.initLocalVoiceAI;
                 }
                 if (typeof voiceInitFn === 'function') {
