@@ -1886,9 +1886,8 @@
         </div>
     </main>
 
-    <!-- MODAL: Permission Request Dialog (Replaces Alert) -->
-    <div class="modal fade" id="permissionModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static"
-        data-bs-keyboard="false">
+    <!-- DIALOG: Permission Request (native <dialog>, Bootstrap classes preserved for styling) -->
+    <dialog id="permissionModal" class="modal fade" style="display:none; padding:0; border:none; background:none;">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content bg-dark text-white border-light">
                 <div class="modal-header border-secondary">
@@ -1909,7 +1908,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </dialog>
 
     <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
