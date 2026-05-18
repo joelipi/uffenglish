@@ -1,19 +1,20 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { showInitializationErrorMessage, setupLessonUI, DOM } from './ui.js';
 
-describe('UI Component functions', () => {
-    beforeEach(() => {
-        // Set up the JSDOM environment
-        document.body.innerHTML = `
-             <div id="questions-container"></div>
-             <div id="media-viewport" class="d-none"></div>
-             <div class="ivp-main-wrapper d-none"></div>
-             <footer class="d-none"></footer>
-             <div id="lesson-header" class="lesson-header" style="display: none;"></div>
-             <div class="lesson-title">Old Title</div>
-             <div class="lesson-title">Old Title 2</div>
-         `;
-    });
+beforeEach(() => {
+    // Set up the JSDOM environment
+    document.body.innerHTML = `
+         <div id="questions-container"></div>
+         <div id="media-viewport" class="d-none"></div>
+         <div class="ivp-main-wrapper d-none"></div>
+         <footer class="d-none"></footer>
+         <div id="lesson-header" class="lesson-header" style="display: none;"></div>
+         <div class="lesson-title">Old Title</div>
+         <div class="lesson-title">Old Title 2</div>
+
+         <div id="criticalErrorContainer" class="d-none"></div>
+         <div id="criticalErrorMessage"></div>
+     `;
 });
 
 afterEach(() => {
@@ -22,14 +23,13 @@ afterEach(() => {
 });
 
 describe('showInitializationErrorMessage', () => {
-    it('should render an error message into the questions-container', () => {
+    it('should render an error message into the critical error container', () => {
         showInitializationErrorMessage('Test error message');
-        const container = document.getElementById('questions-container');
+        const container = document.getElementById('criticalErrorMessage');
         expect(container.innerHTML).toContain('Test error message');
-        expect(container.innerHTML).toContain('alert-danger');
     });
 
-    it('should do nothing if questions-container is missing', () => {
+    it('should do nothing if critical error container is missing', () => {
         document.body.innerHTML = ''; // Remove container
         expect(() => showInitializationErrorMessage('Test')).not.toThrow();
     });
@@ -57,5 +57,4 @@ describe('setupLessonUI', () => {
         expect(titles[0].textContent).toBe('New Awesome Lesson');
         expect(titles[1].textContent).toBe('New Awesome Lesson');
     });
-});
 });

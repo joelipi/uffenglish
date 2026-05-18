@@ -7,36 +7,6 @@ import { getLocalizedTranslation } from '../modules/utils.js';
 import { Media } from '../modules/media.js';
 import { pointLoss } from './point-loss-animation.js';
 
-// Inject dynamic styles to override padding, set avatar size, and aggressively fix the IVP Subtitles
-const dynamicStyles = document.createElement('style');
-dynamicStyles.textContent = `
-    .chat-avatar-inline {
-        width: 40px !important;
-        height: 40px !important;
-        flex-shrink: 0 !important;
-        object-fit: cover !important;
-        border-radius: 50% !important;
-    }
-    .chat-msg {
-        padding: 4px 12px !important;
-        width: 100%;
-        max-width: 95%;
-    }
-    @media (min-width: 768px) {
-        .chat-msg { max-width: 80%; }
-    }
-    .chat-bubble-header {
-        font-size: 0.75rem;
-        color: #888;
-        margin-bottom: 2px;
-        font-weight: bold;
-    }
-    .userResponse .chat-bubble-header {
-        text-align: right;
-    }
-`;
-document.head.appendChild(dynamicStyles);
-
 export function syncTextModeUI() {
     const pronunciationScore = DOM.pronunciationScore;
     const flowScore = DOM.flowScore;
@@ -262,7 +232,7 @@ export function createStatsBubbleHTML(header, statsParts, botName = "Joe Walsh",
     return `
         <div class="chat-message-row chat-message-row--system">
             <img src="${avatarUrl}" alt="${botName}" class="chat-avatar-inline" />
-            <div class="chat-message-bubble chat-message-bubble--system" style="border-left: 4px solid #17a2b8;">
+            <div class="chat-message-bubble chat-message-bubble--system border-info-left">
                 <div class="chat-bubble-header">${botName}</div>
                 <span>${header}${partsHtml}</span>
             </div>
@@ -277,7 +247,7 @@ export function createGrammarDiffHTML(original, correction, headingText = "", bo
             <div class="chat-message-bubble chat-message-bubble--system">
                 <div class="chat-bubble-header">${botName}</div>
                 <div class="diff-del-bubble">${userHTML}</div>
-                <div style="margin-top:6px">${corrHTML}</div>
+                <div class="margin-top-6px">${corrHTML}</div>
             </div>
         </div>`;
 }
@@ -286,7 +256,7 @@ export function getPraiseHTML(praiseData) {
     if (!praiseData) return "";
     if (typeof praiseData === 'string') return praiseData;
     if (praiseData.type === 'image') {
-        return `<img src="${praiseData.content}" class="img-fluid rounded" alt="Praise" style="max-height: 200px; display: block; margin: 0 auto;">`;
+        return `<img src="${praiseData.content}" class="img-fluid rounded praise-img-wrapper" alt="Praise">`;
     }
     return praiseData.text || "";
 }
@@ -1312,7 +1282,7 @@ export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyCl
             nextButton = document.createElement('button');
             nextButton.id = 'lessonNextButton';
             nextButton.className = 'btn btn-primary text-white w-100';
-            nextButton.innerHTML = '<i class="bi bi-chevron-right text-white" style="font-size: 40px; font-weight: 900;"></i>';
+            nextButton.innerHTML = '<i class="bi bi-chevron-right text-white font-size-40-bold"></i>';
         }
 
         nextButton.onclick = () => {
@@ -1430,7 +1400,7 @@ export function renderImageInMediaContainer(imageUrl) {
 
     const div = document.createElement('div');
     div.className = 'text-center mb-3 praise-image-wrapper';
-    div.innerHTML = `<img src="${imageUrl}" class="img-fluid rounded" alt="Praise" style="max-height: 250px; border: 3px solid #00f2fe; box-shadow: 0 0 15px rgba(0,242,254,0.5);">`;
+    div.innerHTML = `<img src="${imageUrl}" class="img-fluid rounded praise-img-bordered" alt="Praise">`;
 
     DOM.mediaViewport.prepend(div);
 }
@@ -1617,7 +1587,7 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
         const lang = userData?.native_language || State.userData?.native_language || 'en';
         const praiseResult = (questionData.inputType === "ai" || questionData.inputType === "speech") ? getRandomPraise('general', lang) : "";
         const feedbackText = (questionData.inputType === "ai" && englishLevelDeduction > 0)
-            ? `${Strings.get('ai_acceptable', lang)}<br>${Strings.get('ai_language_level', lang)} ${englishLevel}<br>${Strings.get('ai_fluency_reduced', lang)} <span style='color:red'>${englishLevelDeduction} ${Strings.get('ai_percentage_points', lang)}</span>.`
+            ? `${Strings.get('ai_acceptable', lang)}<br>${Strings.get('ai_language_level', lang)} ${englishLevel}<br>${Strings.get('ai_fluency_reduced', lang)} <span class='ai-reduced-points'>${englishLevelDeduction} ${Strings.get('ai_percentage_points', lang)}</span>.`
             : getPraiseHTML(praiseResult);
 
         if (questionData.inputType !== "ai" && questionData.inputType !== "speech") {
@@ -1782,8 +1752,8 @@ export function handleIncueUI(qIndex, questionData, button, cue, userResponse, e
 
         selectedWords.forEach(w => correctWordSet.has(w.toLowerCase()) ? correct.add(w) : incorrect.add(w));
 
-        const correctUl = correct.size > 0 ? `<ul class='card-text correctWords list-inline' id='correctWords' style='display:block'>${Array.from(correct).map(w => `<li class='list-inline-item'>${w}</li>`).join('')}</ul>` : '';
-        const incorrectUl = incorrect.size > 0 ? `<ul class='card-text incorrectWords list-inline' id='incorrectWords' style='display:block; border-top: 1px solid rgba(255,255,255,0.1)'>${Array.from(incorrect).map(w => `<li class='list-inline-item'>${w}</li>`).join('')}</ul>` : '';
+        const correctUl = correct.size > 0 ? `<ul class='card-text correctWords list-inline correct-words-ul' id='correctWords'>${Array.from(correct).map(w => `<li class='list-inline-item'>${w}</li>`).join('')}</ul>` : '';
+        const incorrectUl = incorrect.size > 0 ? `<ul class='card-text incorrectWords list-inline incorrect-words-ul' id='incorrectWords'>${Array.from(incorrect).map(w => `<li class='list-inline-item'>${w}</li>`).join('')}</ul>` : '';
 
         const teacherText = appStore.getState().incorrectAttempts === 1
             ? Strings.get('try_again_1', State.userData?.native_language)

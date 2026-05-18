@@ -1533,6 +1533,139 @@
             width: 100%;
             height: 100%;
         }
+
+        /* Classes extracted from inline styles in index.html and ui.js */
+        .critical-error-bg {
+            background: rgba(0,0,0,0.85);
+            z-index: 10006;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .icon-3rem {
+            font-size: 3rem;
+        }
+
+        .whisper-review-bg {
+            background: rgba(0,0,0,0.85);
+            z-index: 10005;
+        }
+
+        .whisper-review-box {
+            max-width: 90%;
+            width: 500px;
+        }
+
+        .whisper-transcript-text {
+            font-size: 1.25rem;
+            font-weight: 500;
+            color: #fff;
+        }
+
+        .progress-bg-subtle {
+            height: 6px;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .review-progress-bar {
+            width: 100%;
+            transition: width 7s linear;
+        }
+
+        .progress-bar-initial {
+            width: 0%;
+        }
+
+        .playback-mute-toggle-btn {
+            z-index: 10;
+            width: 30px;
+            height: 30px;
+        }
+
+        .icon-16px-important {
+            font-size: 16px !important;
+        }
+
+        .avatar-40px {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+        }
+
+        .answer-area-top {
+            top: 220px;
+        }
+
+        .font-weight-500 {
+            font-weight: 500;
+        }
+
+        .chat-avatar-inline {
+            width: 40px !important;
+            height: 40px !important;
+            flex-shrink: 0 !important;
+            object-fit: cover !important;
+            border-radius: 50% !important;
+        }
+
+        .chat-msg {
+            padding: 4px 12px !important;
+            width: 100%;
+            max-width: 95%;
+        }
+        @media (min-width: 768px) {
+            .chat-msg { max-width: 80%; }
+        }
+
+        .chat-bubble-header {
+            font-size: 0.75rem;
+            color: #888;
+            margin-bottom: 2px;
+            font-weight: bold;
+        }
+
+        .userResponse .chat-bubble-header {
+            text-align: right;
+        }
+
+        .border-info-left {
+            border-left: 4px solid #17a2b8;
+        }
+
+        .margin-top-6px {
+            margin-top: 6px;
+        }
+
+        .praise-img-wrapper {
+            max-height: 200px;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .font-size-40-bold {
+            font-size: 40px;
+            font-weight: 900;
+        }
+
+        .praise-img-bordered {
+            max-height: 250px;
+            border: 3px solid #00f2fe;
+            box-shadow: 0 0 15px rgba(0,242,254,0.5);
+        }
+
+        .ai-reduced-points {
+            color: red;
+        }
+
+        .correct-words-ul {
+            display: block;
+        }
+
+        .incorrect-words-ul {
+            display: block;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
     </style>
 
 </head>
@@ -1651,9 +1784,8 @@
 
             <!-- Critical Error Container (Hardcoded) -->
             <div id="criticalErrorContainer"
-                class="d-none w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4 text-white text-center"
-                style="background: rgba(0,0,0,0.85); z-index: 10006; position: absolute; top: 0; left: 0;">
-                <i class="bi bi-exclamation-triangle-fill text-warning mb-3" style="font-size: 3rem;"></i>
+                class="d-none w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4 text-white text-center critical-error-bg">
+                <i class="bi bi-exclamation-triangle-fill text-warning mb-3 icon-3rem"></i>
                 <h4 class="mb-2">Lesson Load Error</h4>
                 <p id="criticalErrorMessage" class="text-secondary mb-4"></p>
                 <button class="btn btn-primary px-4 rounded-pill" onclick="window.location.reload()">
@@ -1663,17 +1795,13 @@
 
             <!-- Whisper Review UI (Hardcoded Overlay) -->
             <div id="whisperReviewContainer"
-                class="d-none position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4 text-white text-center"
-                style="background: rgba(0,0,0,0.85); z-index: 10005;">
-                <div class="bg-dark p-4 rounded border border-secondary shadow-lg"
-                    style="max-width: 90%; width: 500px;">
+                class="d-none position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4 text-white text-center whisper-review-bg">
+                <div class="bg-dark p-4 rounded border border-secondary shadow-lg whisper-review-box">
                     <div class="mb-3">
-                        <div id="whisperTranscript" class="mb-3"
-                            style="font-size: 1.25rem; font-weight: 500; color: #fff;"></div>
+                        <div id="whisperTranscript" class="mb-3 whisper-transcript-text"></div>
                     </div>
-                    <div class="progress mb-4" style="height: 6px; background: rgba(255,255,255,0.1);">
-                        <div id="reviewProgressBar" class="progress-bar bg-success" role="progressbar"
-                            style="width: 100%; transition: width 7s linear;"></div>
+                    <div class="progress mb-4 progress-bg-subtle">
+                        <div id="reviewProgressBar" class="progress-bar bg-success review-progress-bar" role="progressbar"></div>
                     </div>
                     <div class="d-flex justify-content-center gap-3">
                         <button id="rejectBtn" class="btn btn-outline-danger px-4 rounded-pill">
@@ -1706,7 +1834,7 @@
                         </a>
                         <div class="flex-grow-1 ms-3">
                             <div id="progress" class="progress shadow-sm">
-                                <div id="progress-bar" class="progress-bar" role="progressbar" style="width: 0%;"
+                                <div id="progress-bar" class="progress-bar progress-bar-initial" role="progressbar"
                                     aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                             </div>
                         </div>
@@ -1757,9 +1885,8 @@
             <!-- RESTORED: Playback Video Elements -->
             <div id="playback-video-wrapper" class="playback-video-container position-relative d-none">
                 <video id="playback-video" playsinline preload="auto" loop></video>
-                <button id="playback-mute-toggle" class="playback-mute-toggle position-absolute bottom-0 end-0 m-1"
-                    style="z-index: 10; width: 30px; height: 30px;">
-                    <i class="bi bi-volume-up-fill" style="font-size: 16px !important;"></i>
+                <button id="playback-mute-toggle" class="playback-mute-toggle position-absolute bottom-0 end-0 m-1 playback-mute-toggle-btn">
+                    <i class="bi bi-volume-up-fill icon-16px-important"></i>
                 </button>
             </div>
 
@@ -1777,8 +1904,7 @@
                 <div class="card-header text-white p-0 card-header-custom" id="correct">
                     <div class="d-flex align-items-center p-3">
                         <img src="assets/img/teacherprofile.jpeg" alt="Joe Walsh"
-                            class="rounded-circle me-3 chat-avatar"
-                            style="width: 40px; height: 40px; object-fit: cover;">
+                            class="rounded-circle me-3 chat-avatar avatar-40px">
                         <div>Prof. Joe Walsh<div class="mt-1"><small>English Fluency Coach, UFF</small></div>
                         </div>
                     </div>
@@ -1829,14 +1955,13 @@
             </div>
 
             <!-- Permanent Answer Input Area (for text-input questions; this is distinct from the chat) -->
-            <div id="answer-input-area" class="d-none position-absolute w-100 p-3 z-3" style="top: 220px;">
+            <div id="answer-input-area" class="d-none position-absolute w-100 p-3 z-3 answer-area-top">
                 <div class="card bg-dark border-secondary shadow-lg">
                     <div class="card-body p-2 d-flex align-items-center gap-2">
                         <div class="flex-grow-1 d-flex flex-column">
                             <textarea id="answer-input-field" class="form-control bg-dark text-white border-secondary"
                                 rows="2" placeholder="Type your answer..."></textarea>
-                            <div id="answer-error-message" class="text-danger small mt-1 d-none"
-                                style="font-weight: 500;"></div>
+                            <div id="answer-error-message" class="text-danger small mt-1 d-none font-weight-500"></div>
                         </div>
                         <button id="answer-submit-button">
                             <i class="bi bi-send-fill"></i>
