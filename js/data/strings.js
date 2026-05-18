@@ -489,26 +489,6 @@ const strings = {
         es: "Respuesta posible:",
         fr: "Réponse possible :"
     },
-    'default_q_speech': {
-        en: "Repeat exactly what you hear.",
-        es: "Repite exactamente lo que escuchas.",
-        fr: "Répétez exactement ce que vous entendez."
-    },
-    'default_q_ai': {
-        en: "Respond as well as you can.",
-        es: "Responde lo mejor que puedas.",
-        fr: "Répondez du mieux que vous pouvez."
-    },
-    'default_q_present': {
-        en: "Continue.",
-        es: "Continuar.",
-        fr: "Continuez."
-    },
-    'default_q_lesson_intro': {
-        en: "Turn on the cam.",
-        es: "Enciende la cámara.",
-        fr: "Allumez la caméra."
-    },
     'lesson_label': {
         en: "Lesson:",
         es: "Lección:",
