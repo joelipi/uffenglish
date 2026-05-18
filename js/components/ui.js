@@ -1357,6 +1357,14 @@ export function hideContinueButton() {
     if (nextBtnRow) nextBtnRow.remove();
 }
 
+export function showLessonSuccessState() {
+    const standardMic = document.getElementById('state-standard-mic');
+    const lessonSuccess = document.getElementById('state-lesson-success');
+
+    if (standardMic) standardMic.classList.add('d-none');
+    if (lessonSuccess) lessonSuccess.classList.remove('d-none');
+}
+
 export function renderFallbackContinueButton(text, onClickCallback) {
     const btn = document.createElement('button');
     btn.textContent = text;

@@ -1,6 +1,9 @@
 // --- modules/video-processor.web.js ---
 import { getAllSpeechRecordingsForLesson } from './storage.js';
 import { VideoRenderPlanner } from './video-processor-logic.js';
+import { shareVideo } from './video-share.web.js';
+
+export { shareVideo };
 
 let audioContext = null;
 let audioSource = null;

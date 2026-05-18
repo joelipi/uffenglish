@@ -1783,13 +1783,7 @@
                         </div>
                     </div>
                 </div>
-                <div id="fail-media" class="d-none"></div>
                 <div class="card-body chat-message-list text-dark">
-                    <div id="success-media" class="d-none">
-                        <div class="text-center mb-3">
-                            <img src="assets/img/party-brain.webp" width="250px" alt="">
-                        </div>
-                    </div>
                     <div class="chat-message-row chat-message-row--system">
                         <div class="chat-message-bubble chat-message-bubble--system">
                             💯 Lesson complete! ¡Lección completada!
@@ -1905,6 +1899,16 @@
                                 <button class="btn call-icon" id="textOnlyButton" aria-label="Text Only">
                                     <i class="bi bi-keyboard text-white"></i>
                                 </button>
+                            </div>
+
+                            <!-- CENTER STATE 3: (End of) Lesson Success (Hidden by default) -->
+                            <div class="d-flex gap-3 align-items-center d-none" id="state-lesson-success">
+
+                                <button class="btn btn-outline-primary w-100 mt-2" id="createVideoButton"
+                                    aria-label="Create Video">
+                                    <i class="bi bi-film-fill text-white"></i>
+                                </button>
+
                             </div>
 
                             <!-- RIGHT: Help Button -->

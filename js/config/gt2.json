@@ -135,7 +135,15 @@
       "lessonId": "x",
       "title": "Success Test",
       "unit": "Daily Challenge Unit",
+      "mission": "Answer intelligently.",
+      "setting": "A game show",
+      "roleOther": "Game show host",
+      "roleUser": "Contestant",
       "questions": [
+        {
+          "inputType": "lessonIntro",
+          "introBackgroundVideoUrl": "gtests-0-1-1"
+        },
         {
           "cue": "Hey, if you had to spend a million dollars today, what would you buy?",
           "inputType": "ai",
@@ -155,14 +163,10 @@
           "inputType": "success"
         }
       ],
-      "nextLessonId": "new",
-      "mission": "",
-      "setting": "",
-      "userRole": "",
-      "videoRole": ""
+      "nextLessonId": "new"
     },
     {
-      "lessonId": "x",
+      "lessonId": "s",
       "title": "Success Test",
       "unit": "Daily Challenge Unit",
       "questions": [
