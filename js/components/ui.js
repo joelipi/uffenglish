@@ -39,6 +39,7 @@ dynamicStyles.textContent = `
     }
     .stats-header-label {
         font-size: clamp(0.45rem, 2.3cqi, 0.7rem) !important;
+        color: #ffffff !important;
         white-space: nowrap !important;
         display: block !important;
         width: 100% !important;

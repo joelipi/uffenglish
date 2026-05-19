@@ -360,6 +360,7 @@
 
         .stats-header-label {
             font-size: clamp(0.45rem, 2.3cqi, 0.7rem) !important;
+            color: #ffffff !important;
             white-space: nowrap;
             display: block;
             width: 100%;
@@ -822,6 +823,7 @@
             aspect-ratio: auto;
             /* FIX: Remove the old 4/5 box constraint */
             margin: 0 auto;
+            container-type: size;
         }
 
         .ivp-video {
@@ -843,6 +845,8 @@
             left: 0 !important;
             right: 0 !important;
             width: 100% !important;
+            max-height: calc(60% - 150px) !important;
+            overflow-y: auto !important;
             margin: 0 !important;
             height: auto;
             padding: 12px 24px;
@@ -878,7 +882,7 @@
             font-family: inherit;
             padding: 2px 8px;
             margin: 2px;
-            font-size: 1.1rem;
+            font-size: clamp(0.7rem, 4.2cqi, 1.1rem);
         }
 
         .ivp-token-revealed,
@@ -890,7 +894,7 @@
         }
 
         .ivp-token-punctuation {
-            font-size: 1.8rem;
+            font-size: clamp(1rem, 6cqi, 1.8rem);
             padding: 2px 6px;
             font-weight: bold;
         }
@@ -900,19 +904,19 @@
         }
 
         .ivp-token-hidden {
-            background: linear-gradient(135deg, #3a8fd5 0%, #00c0d8 100%);
+            background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 40%, #cbd5e1 70%, #f1f5f9 100%);
             color: transparent;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.9);
             cursor: pointer;
-            box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.4), 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.6), 0 0 15px rgba(203, 213, 225, 0.4), inset 0 1px 3px rgba(255, 255, 255, 1);
             transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
             min-width: 1.5em;
         }
 
         .ivp-token-hidden:hover {
             transform: translateY(-2px);
-            box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.6), 0 6px 12px rgba(0, 192, 216, 0.4);
-            filter: brightness(1.1);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.9), 0 0 25px rgba(203, 213, 225, 0.7), inset 0 1px 3px rgba(255, 255, 255, 1);
+            filter: brightness(1.05);
         }
 
         .ivp-overlay {
@@ -1009,7 +1013,8 @@
             /* Matches Interactive Player height */
             left: 0;
             right: 0;
-            height: 94px;
+            height: auto;
+            max-height: calc(60% - 150px) !important;
             overflow: hidden;
             z-index: 2;
         }
