@@ -20,6 +20,9 @@ export const appStore = createStore(
             whisperRejections: 0,
             dayCount: 0,
             currentStreak: 0,
+            lessonsCompleted: 0,
+            lastLessonFluencyAvg: null,
+            fluencyImproving: false,
             fluencyScore: 100,
             flowScore: 100,
             hesitationMs: 0,
@@ -119,6 +122,20 @@ export const appStore = createStore(
                 dayCount: Number(dayCount) || 0,
                 currentStreak: Number(currentStreak) || 0
             }),
+
+            setLessonsCompleted: (count) => {
+                const safeCount = Number(count) || 0;
+                console.log(`[Gamification] Lessons completed updated: ${safeCount}`);
+                set({ lessonsCompleted: safeCount });
+            },
+            setLastLessonFluencyAvg: (avg) => {
+                console.log(`[Gamification] Last lesson fluency avg updated: ${avg}`);
+                set({ lastLessonFluencyAvg: avg });
+            },
+            setFluencyImproving: (improving) => {
+                console.log(`[Gamification] Fluency improving flag: ${!!improving}`);
+                set({ fluencyImproving: !!improving });
+            },
 
             // Increment Tutor Engagement Stats
             incrementUserTutorStats: (wordCount) => set((state) => ({

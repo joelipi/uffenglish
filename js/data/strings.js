@@ -562,6 +562,26 @@ const strings = {
     },
     'intent_specific_fail': {
         en: "❌ It seems like you're {bad_intent}, but this indicates you didn't understand what was said."
+    },
+    'widget_incoming': {
+        en: "INCOMING",
+        es: "ENTRANTE",
+        fr: "ENTRANT"
+    },
+    'widget_action_video': {
+        en: "Tap to watch...",
+        es: "Toca para ver...",
+        fr: "Appuyez pour voir..."
+    },
+    'widget_action_audio': {
+        en: "Tap to listen...",
+        es: "Toca para escuchar...",
+        fr: "Appuyez pour écouter..."
+    },
+    'widget_action_text': {
+        en: "Tap to continue...",
+        es: "Toca para continuar...",
+        fr: "Appuyez pour continuer..."
     }
 };
 

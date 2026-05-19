@@ -361,6 +361,9 @@ function _renderSuccess(question, fluencyData) {
             currentLessonId: question.lessonId
         }).then(progressResult => {
             appStore.getState().setActivityMetrics(progressResult.newDayCount, progressResult.newStreak);
+            if (progressResult.lessonsCompleted) {
+                appStore.getState().setLessonsCompleted(progressResult.lessonsCompleted);
+            }
         });
     };
 

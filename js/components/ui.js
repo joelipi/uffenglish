@@ -1331,40 +1331,90 @@ export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyCl
         return videoBtn;
 
     } else {
-        // 2. Handle Mid-Lesson State (Inject "Next" Chevron into Chat)
+        // 2. Handle Mid-Lesson State (Inject Incoming Video Message Widget into Chat)
         const chatMessageList = document.getElementById('chat-message-list');
-        let nextButton = document.getElementById('lessonNextButton'); // Changed ID to prevent conflict
+        let nextButtonRow = document.getElementById('continueButtonRow');
 
-        if (!nextButton) {
-            nextButton = document.createElement('button');
-            nextButton.id = 'lessonNextButton';
-            nextButton.className = 'btn btn-primary text-white w-100';
-            nextButton.innerHTML = '<i class="bi bi-chevron-right text-white" style="font-size: 40px; font-weight: 900;"></i>';
-        }
+        if (!nextButtonRow && chatMessageList) {
+            nextButtonRow = document.createElement('div');
+            nextButtonRow.className = 'chat-message-row chat-message-row--system';
+            nextButtonRow.id = 'continueButtonRow';
 
-        nextButton.onclick = () => {
-            onClickCallback();
-            // Optionally remove itself after click to keep chat clean
-            const row = document.getElementById('continueButtonRow');
-            if (row) row.remove();
-        };
+            // Create avatar inline
+            const avatar = document.createElement('img');
+            avatar.src = 'assets/img/teacherprofile.webp';
+            avatar.alt = 'Joe Walsh';
+            avatar.className = 'chat-avatar-inline';
+            nextButtonRow.appendChild(avatar);
 
-        if (chatMessageList) {
-            let systemRow = document.getElementById('continueButtonRow');
-            if (!systemRow) {
-                systemRow = document.createElement('div');
-                systemRow.className = 'chat-message-row chat-message-row--system';
-                systemRow.id = 'continueButtonRow';
-                chatMessageList.appendChild(systemRow);
+            // Create chat bubble
+            const bubble = document.createElement('div');
+            bubble.className = 'chat-message-bubble chat-message-bubble--system incoming-call-bubble';
+
+            // Create Tutor Header
+            const header = document.createElement('div');
+            header.className = 'chat-bubble-header';
+            header.textContent = 'Joe Walsh';
+            bubble.appendChild(header);
+
+            // Determine active mode details (video, audio, text)
+            let iconClass = 'bi-camera-video-fill'; // Default to video
+            let actionTextKey = 'widget_action_video';
+
+            if (State.isTextMode) {
+                iconClass = 'bi-keyboard-fill';
+                actionTextKey = 'widget_action_text';
+            } else if (State.isCameraOff) {
+                iconClass = 'bi-telephone-fill';
+                actionTextKey = 'widget_action_audio';
             }
-            systemRow.appendChild(nextButton);
-            nextButton.style.display = 'inline-block';
 
-            // Auto-scroll to ensure the button is visible
-            setTimeout(() => chatMessageList.scrollTo({ top: chatMessageList.scrollHeight, behavior: 'smooth' }), 50);
+            // Retrieve localized strings
+            const lang = State.userData?.native_language || 'en';
+            const incomingLabel = Strings.get('widget_incoming', lang) || 'INCOMING';
+            const actionText = Strings.get(actionTextKey, lang) || 'Tap to answer...';
+
+            // Create incoming video widget button element
+            const nextButton = document.createElement('div');
+            nextButton.id = 'lessonNextButton';
+            nextButton.className = 'incoming-video-widget ringing-animation';
+            nextButton.innerHTML = `
+                <div class="incoming-video-inner">
+                    <div class="incoming-video-header">
+                        <i class="bi ${iconClass} text-info pulse-camera"></i>
+                        <span>${incomingLabel}</span>
+                    </div>
+                    <div class="incoming-video-caller">
+                        <span class="caller-name">Joe Walsh</span>
+                        <span class="caller-action">${actionText}</span>
+                    </div>
+                    <div class="incoming-video-btn-wrapper">
+                        <div class="btn-pulse-ring"></div>
+                        <button class="incoming-video-btn" aria-label="Answer Call">
+                            <i class="bi ${iconClass}"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            nextButton.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onClickCallback();
+                nextButtonRow.remove();
+            };
+
+            bubble.appendChild(nextButton);
+            nextButtonRow.appendChild(bubble);
+            chatMessageList.appendChild(nextButtonRow);
+
+            // Auto-scroll to ensure the widget is visible
+            setTimeout(() => {
+                chatMessageList.scrollTo({ top: chatMessageList.scrollHeight, behavior: 'smooth' });
+            }, 100);
         }
 
-        return nextButton;
+        return document.getElementById('lessonNextButton');
     }
 }
 

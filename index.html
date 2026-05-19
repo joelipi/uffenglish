@@ -1602,6 +1602,157 @@
         #guestLoginModal .modal-content {
             border-radius: 8px;
         }
+
+        /* Incoming Video Call Continue Button Widget Styles */
+        .incoming-call-bubble {
+            padding: 8px 12px 12px !important;
+            max-width: 85% !important;
+            border-radius: 12px 12px 12px 4px !important;
+        }
+
+        .incoming-video-widget {
+            margin-top: 6px;
+            cursor: pointer;
+            background: linear-gradient(135deg, rgba(30, 41, 59, 0.98) 0%, rgba(15, 23, 42, 0.98) 100%);
+            border: 2px solid rgba(0, 242, 254, 0.5);
+            border-radius: 12px;
+            padding: 14px 18px;
+            box-shadow: 0 8px 24px rgba(0, 242, 254, 0.15);
+            width: 210px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .incoming-video-widget:hover {
+            transform: scale(1.02);
+            border-color: rgba(0, 242, 254, 0.8);
+            box-shadow: 0 10px 30px rgba(0, 242, 254, 0.3);
+        }
+
+        .incoming-video-widget:active {
+            transform: scale(0.98);
+        }
+
+        .incoming-video-inner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .incoming-video-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            color: #00f2fe;
+            text-transform: uppercase;
+        }
+
+        .pulse-camera {
+            animation: camera-pulse 1s infinite alternate;
+        }
+
+        .incoming-video-caller {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 2px;
+        }
+
+        .incoming-video-caller .caller-name {
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 1.05rem;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+        }
+
+        .incoming-video-caller .caller-action {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.75rem;
+            font-weight: 500;
+            animation: blink-text 1.5s infinite;
+        }
+
+        .incoming-video-btn-wrapper {
+            position: relative;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .incoming-video-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #ffffff;
+            border: none;
+            color: #000000;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+            z-index: 2;
+            cursor: pointer;
+            pointer-events: none; /* Let parent click handle everything */
+        }
+
+        .btn-pulse-ring {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid #ffffff;
+            opacity: 0;
+            animation: btn-pulse 1.5s infinite;
+            z-index: 1;
+        }
+
+        /* Custom animation keyframes */
+        @keyframes camera-pulse {
+            from {
+                opacity: 0.4;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1.1);
+            }
+        }
+
+        @keyframes blink-text {
+            0%, 100% {
+                opacity: 0.5;
+            }
+            50% {
+                opacity: 1;
+            }
+        }
+
+        @keyframes btn-pulse {
+            0% {
+                transform: scale(0.85);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(1.4);
+                opacity: 0;
+            }
+        }
     </style>
 
 </head>

@@ -82,6 +82,11 @@ export const State = {
                 const currentStreak = streakCalculator(userData.completed_dates);
                 appStore.getState().setActivityMetrics(dayCount, currentStreak);
             }
+
+            // Initialize new gamification metrics
+            const lessonsCompleted = Number(userData.lessons_completed || 0);
+            appStore.getState().setLessonsCompleted(lessonsCompleted);
+            console.log(`[Gamification] Initialized lessonsCompleted: ${lessonsCompleted}`);
         }
     },
 

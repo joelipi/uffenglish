@@ -57,6 +57,15 @@ export class SuccessLessonHandler {
     const lessonAverage = typeof this.calculateAverage === 'function' ? this.calculateAverage() : 0;
     const fluencyData = { total: lessonAverage };
 
+    // Fluency trend detection
+    const prevAvg = appStore.getState().lastLessonFluencyAvg;
+    const isImproving = prevAvg !== null && lessonAverage > prevAvg;
+    appStore.getState().setFluencyImproving(isImproving);
+    appStore.getState().setLastLessonFluencyAvg(lessonAverage);
+    if (isImproving) {
+        console.log(`[Gamification] ✅ Fluency improving! Previous: ${prevAvg}% → Current: ${lessonAverage}%`);
+    }
+
     this.updateUI(lessonAverage);
     this.displayScore(lessonAverage);
 

@@ -14,6 +14,7 @@ window.enabledLogs = {
     ui: false,
     hesitation: true,
     success: true,
+    gamification: false,
     all: true
 };
 

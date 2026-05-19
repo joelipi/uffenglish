@@ -126,7 +126,7 @@ export async function saveLessonProgress(courseId, lessonId, userData, options =
 
     const updateUserMetaFlag = safeOptions.updateUserMeta !== false;
 
-    let resultState = { savedToLocal: false, streakUpdated: false, dayCountIncremented: false, newDayCount: 0, newStreak: 0 };
+    let resultState = { savedToLocal: false, streakUpdated: false, dayCountIncremented: false, newDayCount: 0, newStreak: 0, lessonsCompleted: 0, fluencyImproving: false };
 
     try {
         localStore.setItem(`${courseId}_currentLessonId`, lessonId);
@@ -170,6 +170,13 @@ export async function saveLessonProgress(courseId, lessonId, userData, options =
             }
 
             if (userData.lesson_scores) metaToUpdate.lesson_scores = userData.lesson_scores;
+
+            // Increment lessons completed count
+            const currentLessons = Number(userData.lessons_completed || 0);
+            const newLessons = currentLessons + 1;
+            metaToUpdate.lessons_completed = newLessons;
+            resultState.lessonsCompleted = newLessons;
+            console.log(`[Gamification] Lesson completed. Total lessons: ${newLessons}`);
 
             await syncUserMetaData(metaToUpdate, userData);
         } catch (e) { console.error('🚨 Appwrite Sync Error:', e); }
