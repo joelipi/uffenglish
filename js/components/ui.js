@@ -420,7 +420,7 @@ export function resetMissionText(missionText, settingText, roleUserText, roleOth
     }
 }
 
-export function resetMicStatusWithQuestion(questionText) {
+export function resetMicStatusWithStep(questionText) {
     if (DOM.micStatusText) {
         DOM.micStatusText.innerHTML = `<div class='text-center'>${questionText || ""}</div>`;
     }
@@ -1471,7 +1471,7 @@ export function renderFallbackContinueButton(text, onClickCallback) {
     document.body.appendChild(btn);
 }
 
-export function resetUIForNewQuestion(isLessonIntro, hasUserData) {
+export function resetUIForNewStep(isLessonIntro, hasUserData) {
     // 1. Clear out our dynamic compilation elements
     const resultVideo = document.getElementById('resultVideo');
     if (resultVideo) resultVideo.remove();
@@ -1500,7 +1500,7 @@ export function resetUIForNewQuestion(isLessonIntro, hasUserData) {
         lessonSuccess.classList.add('d-none');
     }
 
-    // --- Rest of your original resetUIForNewQuestion code begins here ---
+    // --- Rest of your original resetUIForNewStep code begins here ---
     const lessonIntroHeader = document.getElementById('lessonIntroHeader');
     if (lessonIntroHeader) lessonIntroHeader.classList.toggle('d-none', !isLessonIntro || hasUserData);
 
@@ -1702,7 +1702,7 @@ export function renderMultiChoiceUI(notSureText, handleNotSureCallback, answers,
     }
 }
 
-export function showMessageInQuestionsContainer(messageHTML) {
+export function showMessageInStepsContainer(messageHTML) {
     const container = document.getElementById('steps-container');
     if (container) {
         container.innerHTML = `<div class="text-center">${messageHTML}</div>`;
@@ -1739,7 +1739,7 @@ export function setupLessonUI(fullTitle) {
     }
 }
 
-export function handlecueUI(qIndex, stepData, button, cue, explanation, translation, userResponse, englishLevel, englishLevelDeduction, userData, configData, fluencyBubble = null) {
+export function handlecueUI(stepIndex, stepData, button, cue, explanation, translation, userResponse, englishLevel, englishLevelDeduction, userData, configData, fluencyBubble = null) {
 
     if (stepData.stepType === "closedResponse" && stepData.videoUrl) State.repeatPointsHistory.push(appStore.getState().listeningScore);
     if (stepData.stepType === "openResponse" && stepData.videoUrl) State.rolePlayPointsHistory.push(appStore.getState().listeningScore);
@@ -1835,7 +1835,7 @@ export function handlecueUI(qIndex, stepData, button, cue, explanation, translat
     Media.playSound('correct-sound');
 }
 
-export function handleIncueUI(qIndex, stepData, button, cue, userResponse, explanation, normalizeduserResponse, normalizedcue, step, silent = false, userData, configData, fluencyBubble = null) {
+export function handleIncueUI(stepIndex, stepData, button, cue, userResponse, explanation, normalizeduserResponse, normalizedcue, step, silent = false, userData, configData, fluencyBubble = null) {
     appStore.getState().incrementIncorrectAttempts();
 
     if (!silent && !State.isTextMode && (stepData.stepType === "lessonIntro" || stepData.stepType === "closedResponse" || stepData.stepType === "openResponse")) {

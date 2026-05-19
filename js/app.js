@@ -79,9 +79,9 @@ import {
 } from './modules/answers.js';
 
 // --- Extracted Modules ---
-import { resolveCurrentLessonId, resolveCurrentCourseId, getNextQuestion } from './modules/lesson-router.js';
+import { resolveCurrentLessonId, resolveCurrentCourseId, getNextStep } from './modules/lesson-router.js';
 import { normalizeConfig } from './modules/config-normalizer.js';
-import { loadVideoForQuestion } from './modules/video-loader.js';
+import { loadVideoForStep } from './modules/video-loader.js';
 import { appStore } from './modules/store.js';
 //window.appStore = appStore; // <-- ADD THIS TEMPORARY LINE FOR TESTING
 import { State } from './modules/state.js';
@@ -90,7 +90,7 @@ import { analyzeSpeech } from './modules/analytics.js';
 import { Media } from './modules/media.js';
 import { buildFeedbackData, buildExplanationData } from './modules/feedback-builder.js';
 import { renderFeedbackToHTML, renderExplanationsToHTML } from './components/feedback-renderer.js';
-import { loadQuestion as _loadQuestion } from './components/step-loader.js';
+import { loadStep } from './components/step-loader.js';
 import {
     DOM,
     flashElement,
@@ -121,7 +121,7 @@ import {
     renderFallbackContinueButton,
     toggleScoresAndHearts,
     setProgressBarWidth,
-    showMessageInQuestionsContainer,
+    showMessageInStepsContainer,
     showInitializationErrorMessage,
     setupLessonUI,
     generateHangmanHint,
@@ -135,7 +135,7 @@ import {
     renderHangmanHint,
     showMicWarning,
     showAnswerError,
-    resetMicStatusWithQuestion,
+    resetMicStatusWithStep,
     resetMissionText,
     bindAuthMenuUI,
     initMissionToggle
@@ -169,7 +169,7 @@ window.addEventListener('preflightRejected', () => {
 });
 
 // CORE ANSWER HANDLING
-function handleHint(qIndex) {
+function handleHint(stepIndex) {
     showHintsAndScroll();
 }
 
@@ -210,8 +210,8 @@ export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation,
 
         // Update the recording anyway so the final video has subtitles for this incorrect attempt!
         const currentLessonId = resolveCurrentLessonId(configData, userData, courseId);
-        const qIndex = getCurrentStepIndex(stepData, configData, State.currentLessonIndex);
-        await updateSpeechRecording(currentLessonId, qIndex, {
+        const stepIndex = getCurrentStepIndex(stepData, configData, State.currentLessonIndex);
+        await updateSpeechRecording(currentLessonId, stepIndex, {
             userResponse: val,
             cue: cue,
             isTextMode: State.isTextMode,
@@ -284,7 +284,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
 
     let speechAnalytics = null;
     let cleanWordCount = 0;
-    const qIndex = getCurrentStepIndex(stepData, configData, State.currentLessonIndex);
+    const stepIndex = getCurrentStepIndex(stepData, configData, State.currentLessonIndex);
 
     try {
         const currentLessonId = (configData && configData.lessons && configData.lessons[State.currentLessonIndex]) ? configData.lessons[State.currentLessonIndex].lessonId : 'unknown_lesson';
@@ -312,7 +312,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
                 console.log('[handleAnswer] Text mode: overridden speech metrics for scoring');
             }
 
-            await updateSpeechRecording(currentLessonId, qIndex, {
+            await updateSpeechRecording(currentLessonId, stepIndex, {
                 userResponse,
                 cue,
                 wpm: State.isTextMode ? 0 : (speechAnalytics?.wpm || 0),
@@ -448,7 +448,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
         // --- SILENT RETRY FLOW FOR SPEECH ---
         if (!isCorrect && stepData.stepType === "closedResponse" && incorrectAttempts < 2) {
             // Use silent mode for handleIncueUI - show feedback but skip some UI sounds
-            handleIncueUI(qIndex, stepData, button, cue, userResponse, result.explanations || explanation, result.normalizeduserResponse, result.normalizedcue, stepData.step, true, userData, configData);
+            handleIncueUI(stepIndex, stepData, button, cue, userResponse, result.explanations || explanation, result.normalizeduserResponse, result.normalizedcue, stepData.step, true, userData, configData);
             clearPlaybackVideo();
             clearChatInterface();
             removeWebcamPreview();
@@ -479,7 +479,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
             }
 
             // REFACTORED: Removed document.createElement and raw class assignments
-            resetMicStatusWithQuestion(stepData.step);
+            resetMicStatusWithStep(stepData.step);
             resetButtonState(button);
             return; // EXIT EARLY: No chat bubbles, no proceed
         }
@@ -519,17 +519,17 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
             // Actually, handlecueUI uses `explanation` directly. 
             // In handleAnswer we did: `renderAIFeedback(immediateStatsHtmlArr);`
             // and we do NOT need to pass them to handlecueUI unless we want to replace `explanation`.
-            handlecueUI(qIndex, stepData, button, cue, webFormattedExplanations, translation, userResponse, result ? result.cefrLevel : undefined, result ? result.cefrLevelDeduction : undefined, userData, configData, fluencyBubbleHTML);
+            handlecueUI(stepIndex, stepData, button, cue, webFormattedExplanations, translation, userResponse, result ? result.cefrLevel : undefined, result ? result.cefrLevelDeduction : undefined, userData, configData, fluencyBubbleHTML);
             showFeedbackAndProceed(stepData, isCorrect, userData, configData);
         } else {
             // Pass the webFormattedExplanations instead of result.explanations
-            handleIncueUI(qIndex, stepData, button, cue, userResponse, webFormattedExplanations, result ? result.normalizeduserResponse : "", result ? result.normalizedcue : "", stepData.step, false, userData, configData, fluencyBubbleHTML);
+            handleIncueUI(stepIndex, stepData, button, cue, userResponse, webFormattedExplanations, result ? result.normalizeduserResponse : "", result ? result.normalizedcue : "", stepData.step, false, userData, configData, fluencyBubbleHTML);
             showFeedbackAndProceed(stepData, isCorrect, userData, configData);
         }
 
     } catch (error) {
         console.error("Error handling answer:", error);
-        handleIncueUI(qIndex, stepData, button, cue, userResponse, explanation, "", "", translation, false, userData, configData);
+        handleIncueUI(stepIndex, stepData, button, cue, userResponse, explanation, "", "", translation, false, userData, configData);
         showFeedbackAndProceed(stepData, false, userData, configData);
     }
 }
@@ -537,7 +537,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
 // handlecueUI and handleIncueUI have been extracted to components/ui.js
 
 function showFeedbackAndProceed(stepData, isCorrect) {
-    if ((stepData.stepType === "closedResponse" || stepData.stepType === "openResponse") && stepData.videoUrl) State.questionCount++;
+    if ((stepData.stepType === "closedResponse" || stepData.stepType === "openResponse") && stepData.videoUrl) State.stepCount++;
     try {
         hideHints();
         const continueButton = showContinueButton(stepData.stepType === "lessonIntro", () => {
@@ -551,65 +551,65 @@ function showFeedbackAndProceed(stepData, isCorrect) {
             }
             hideContinueButton();
             if (stepData.stepType === "lessonIntro") {
-                setTimeout(() => loadNextQuestion(stepData), 2000);
+                setTimeout(() => loadNextStep(stepData), 2000);
             } else {
-                if (isCorrect || appStore.getState().incorrectAttempts > 2) loadNextQuestion(stepData);
+                if (isCorrect || appStore.getState().incorrectAttempts > 2) loadNextStep(stepData);
                 else {
-                    const qIndex = getCurrentStepIndex(stepData, State.configData, State.currentLessonIndex);
-                    window.__currentQuestionIndex = qIndex;
-                    loadQuestion(State.configData.lessons[State.currentLessonIndex].steps[qIndex], State.configData.lessons[State.currentLessonIndex]);
+                    const stepIndex = getCurrentStepIndex(stepData, State.configData, State.currentLessonIndex);
+                    window.__currentStepIndex = stepIndex;
+                    callLoadStep(State.configData.lessons[State.currentLessonIndex].steps[stepIndex], State.configData.lessons[State.currentLessonIndex]);
                 }
             }
         });
 
         if (isCorrect || appStore.getState().incorrectAttempts > 2) {
-            const nextQuestion = getNextQuestion(stepData, State.configData, State.currentLessonIndex);
-            if (nextQuestion && nextQuestion.videoUrl) {
-                const videoUrl = `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${nextQuestion.videoUrl}.mp4?alt=media`;
+            const nextStep = getNextStep(stepData, State.configData, State.currentLessonIndex);
+            if (nextStep && nextStep.videoUrl) {
+                const videoUrl = `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${nextStep.videoUrl}.mp4?alt=media`;
                 Media.preloader.preloadOnly(videoUrl);
             }
         }
     } catch (error) {
         renderFallbackContinueButton(Strings.get('btn_continue', State.userData?.native_language) || 'Continue', () => {
-            if (isCorrect || appStore.getState().incorrectAttempts > 2) loadNextQuestion(stepData);
-            else loadQuestion(stepData, State.configData.lessons[State.currentLessonIndex]);
+            if (isCorrect || appStore.getState().incorrectAttempts > 2) loadNextStep(stepData);
+            else callLoadStep(stepData, State.configData.lessons[State.currentLessonIndex]);
         });
     }
 }
 
 // ADVANCE VIEWS CORE HOLY OF HOLIES 
-// loadQuestion has been extracted to step-loader-web.js.
+// loadStep has been extracted to step-loader-web.js.
 // This wrapper injects the app.js dependencies that the module needs.
-function loadQuestion(step, lesson, fluencyData) {
-    _loadQuestion(step, lesson, fluencyData, {
+function callLoadStep(step, lesson, fluencyData) {
+    loadStep(step, lesson, fluencyData, {
         submitAnswerPrecheck,
         showFeedbackAndProceed,
         handleHint
     });
 }
 
-// getNextQuestion has been moved to lesson-router.js
+// getNextStep has been moved to lesson-router.js
 
 function updateProgressBar() {
     if (!State.configData || !State.configData.lessons || State.configData.lessons.length === 0) return;
     const currentLesson = State.configData.lessons[State.currentLessonIndex];
-    const totalQuestions = currentLesson.steps.length;
-    let currentQuestions = State.questionsAnswered++;
-    const finalProgress = Math.min(Math.max((currentQuestions / totalQuestions) * 100, 10), 90);
+    const totalSteps = currentLesson.steps.length;
+    let currentSteps = State.stepsAnswered++;
+    const finalProgress = Math.min(Math.max((currentSteps / totalSteps) * 100, 10), 90);
     setProgressBarWidth(`${finalProgress}%`);
 }
 
-function loadNextQuestion(currentQuestion, fluencyData) {
+function loadNextStep(currentStep, fluencyData) {
     updateProgressBar();
     toggleScoresAndHearts(false);
-    State.resetForNextQuestion();
+    State.resetForNextStep();
 
     if (!State.configData || !State.configData.lessons || State.configData.lessons.length === 0) return;
     const currentLesson = State.configData.lessons[State.currentLessonIndex];
 
-    State.currentQuestionIndex++;
-    if (State.currentQuestionIndex < currentLesson.steps.length) {
-        loadQuestion(currentLesson.steps[State.currentQuestionIndex], currentLesson, fluencyData);
+    State.currentStepIndex++;
+    if (State.currentStepIndex < currentLesson.steps.length) {
+        callLoadStep(currentLesson.steps[State.currentStepIndex], currentLesson, fluencyData);
     } else {
         if (currentLesson.nextLessonId) loadNextLesson();
         else showCompletionMessage();
@@ -617,7 +617,7 @@ function loadNextQuestion(currentQuestion, fluencyData) {
 }
 
 function showCompletionMessage() {
-    showMessageInQuestionsContainer(Strings.get('msg_lesson_complete_all', State.userData?.native_language));
+    showMessageInStepsContainer(Strings.get('msg_lesson_complete_all', State.userData?.native_language));
 }
 
 async function loadNextLesson() {
@@ -640,8 +640,8 @@ async function loadNextLesson() {
                 localStorage.setItem(`${State.courseId}_currentLessonId`, nextLessonId);
                 localStorage.setItem(`${State.courseId}_currentLessonTimestamp`, new Date().toISOString());
                 setProgressBarWidth("100%");
-                State.questionsAnswered = 0;
-                State.currentQuestionIndex = 0;
+                State.stepsAnswered = 0;
+                State.currentStepIndex = 0;
                 loadLessonContent(State.configData.lessons[nextLessonIndex]);
             } else showCompletionMessage();
         }, 1200);
@@ -764,7 +764,7 @@ async function loadLessonContent(lesson, configData) {
     const roleOtherText = getLocalizedTranslation(lesson.roleOther, lang);
     resetMissionText(missionText, settingText, roleUserText, roleOtherText);
 
-    loadQuestion(lesson.steps[State.currentQuestionIndex], lesson, null);
+    callLoadStep(lesson.steps[State.currentStepIndex], lesson, null);
 }
 
 async function handleAuthClick(e) {

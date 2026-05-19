@@ -1833,8 +1833,8 @@
                     try {
                         // Pre-warm the first video
                         if (lessonData?.steps && lessonData.steps[0]) {
-                            const firstQ = lessonData.steps[0];
-                            const slugToWarm = firstQ.videoUrl || firstQ.simpleVideoUrl || firstQ.introBackgroundVideoUrl;
+                            const firstStep = lessonData.steps[0];
+                            const slugToWarm = firstStep.videoUrl || firstStep.simpleVideoUrl || firstStep.introBackgroundVideoUrl;
                             if (slugToWarm) fetch(buildVideoUrlFn(slugToWarm)).catch(() => { });
                         }
 

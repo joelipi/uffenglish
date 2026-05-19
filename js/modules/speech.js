@@ -22,7 +22,7 @@ function stopListeningEarly(userData, player, uiHooks) {
 }
 
 async function processTranscript({ transcript, timingMeta, checkGibberish = false, logprob = 0, params, player }) {
-    const { button, step, userData, configData, currentLessonIndex, currentQuestionIndex, handleAnswer, uiHooks } = params;
+    const { button, step, userData, configData, currentLessonIndex, currentStepIndex, handleAnswer, uiHooks } = params;
 
     if (!transcript) {
         stopListeningEarly(userData, player, uiHooks);
@@ -36,7 +36,7 @@ async function processTranscript({ transcript, timingMeta, checkGibberish = fals
 
         updateSpeechRecording(
             configData?.lessons?.[currentLessonIndex]?.lessonId,
-            currentQuestionIndex,
+            currentStepIndex,
             { userResponse: transcript, cue: step?.cue }
         ).catch(e => console.error(e));
         return;
@@ -50,7 +50,7 @@ async function processTranscript({ transcript, timingMeta, checkGibberish = fals
 
         updateSpeechRecording(
             configData?.lessons?.[currentLessonIndex]?.lessonId,
-            currentQuestionIndex,
+            currentStepIndex,
             { userResponse: transcriptToReview, cue: step?.cue }
         ).catch(e => console.error(e));
 
@@ -96,7 +96,7 @@ async function processTranscript({ transcript, timingMeta, checkGibberish = fals
 
         updateSpeechRecording(
             configData?.lessons?.[currentLessonIndex]?.lessonId,
-            currentQuestionIndex,
+            currentStepIndex,
             { userResponse: transcriptToReview, cue: step?.cue }
         ).catch(e => console.error(e));
 
@@ -127,7 +127,7 @@ export async function toggleSpeechRecognition(params) {
             listeningState.hesitationTimer = null;
         }
 
-        const { button, step, micStatusText, userData, configData, currentLessonIndex, currentQuestionIndex, player, uiHooks } = params;
+        const { button, step, micStatusText, userData, configData, currentLessonIndex, currentStepIndex, player, uiHooks } = params;
 
         if (uiHooks?.onPauseVideo) uiHooks.onPauseVideo(player);
 
@@ -263,7 +263,7 @@ export async function toggleSpeechRecognition(params) {
                 download: false, persist: true, keepStreamAlive: true, playback: true, autoplay: true,
                 meta: {
                     lessonId: configData?.lessons?.[currentLessonIndex]?.lessonId || null,
-                    questionIndex: currentQuestionIndex ?? null,
+                    stepIndex: currentStepIndex ?? null,
                     stepType: step?.stepType || null,
                     title: step?.step || null,
                 }

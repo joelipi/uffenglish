@@ -44,7 +44,7 @@ describe('normalizeConfig', () => {
         expect(configData.lessons[0].title).toBe('Hello');
     });
 
-    it('should normalize question fields correctly, always using en for cue', () => {
+    it('should normalize step fields correctly, always using en for cue', () => {
         const configData = {
             lessons: [
                 {

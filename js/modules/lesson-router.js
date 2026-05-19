@@ -118,16 +118,16 @@ export function cleanBrowserUrlRoute() {
  * if this happens in production it likely indicates a stale step reference.
  * @returns {object|null}
  */
-export function getNextQuestion(currentQuestion, configData, currentLessonIndex) {
+export function getNextStep(currentStep, configData, currentLessonIndex) {
     if (!configData?.lessons || currentLessonIndex >= configData.lessons.length) return null;
 
     const currentLesson = configData.lessons[currentLessonIndex];
     const currentIndex = currentLesson.steps.findIndex(
-        q => q.step === currentQuestion.step && q.cue === currentQuestion.cue
+        q => q.step === currentStep.step && q.cue === currentStep.cue
     );
 
     if (currentIndex === -1) {
-        console.warn('[LessonRouter] getNextQuestion: current step not found in lesson — falling back to first step. This may indicate a stale step reference.');
+        console.warn('[LessonRouter] getNextStep: current step not found in lesson — falling back to first step. This may indicate a stale step reference.');
         return currentLesson.steps[0];
     }
 
