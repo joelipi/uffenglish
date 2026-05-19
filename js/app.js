@@ -46,7 +46,6 @@ import { navigateToHome, navigateToLogin } from './modules/navigation.js';
 import { clearSpeechRecordingsForLesson, updateSpeechRecording } from './modules/storage.js';
 
 // Initialize the background NLP Worker via blob URL to bypass service worker caching
-let nlpModelsReady = false;
 
 // --- UI & Media Components (Root Directory) ---
 import { SuccessLessonHandler } from './components/success-lesson.js';
@@ -889,26 +888,7 @@ async function initializeApp() {
         await initializeLesson();
 
         //   CRITICAL TO PREVENT RAM OVERLOAD: Boot Whisper and NLP background models IN SEQUENCE
-        (async () => {
-            try {
-                let voiceInitFn = initLocalVoiceAI;
-                if (typeof voiceInitFn !== 'function') {
-                    console.warn('initLocalVoiceAI not available statically, attempting dynamic import...');
-                    const scriptDir = new URL('.', import.meta.url).href;
-                    const speechModuleUrl = new URL('modules/speech.web.js', scriptDir).href;
-                    const speechModule = await import(/* @vite-ignore */ speechModuleUrl);
-                    voiceInitFn = speechModule.initLocalVoiceAI;
-                }
-                if (typeof voiceInitFn === 'function') {
-                    await Promise.resolve(voiceInitFn());
-                    console.log('  Whisper initialization complete.');
-                }
-            } catch (err) {
-                console.error('Voice AI initialization error:', err);
-            } finally {
-                loadLocalModelsInBackground();
-            }
-        })();
+        // Note: Deferred to React App shell component.
 
     } catch (error) {
         console.error("Initialization error:", error);
@@ -934,21 +914,9 @@ async function requestPersistentStorage() {
     }
 }
 
-async function loadLocalModelsInBackground() {
-    // Hardcode to true to allow idiomChecker to boot while NLP worker is disabled
-    nlpModelsReady = true;
-
-    //   SEQUENTIAL LOAD: Boot the idiom checker ONLY after the NLP worker is finished
-    if (nlpModelsReady) {
-        try {
-            console.log("  Local NLP bypassed. Now fetching and building idiom dictionary...");
-            await idiomChecker.init();
-            console.log("  Idiom checker ready!");
-        } catch (err) {
-            console.error("  Failed to initialize idiom checker:", err);
-        }
-    }
-}
+// Hardcode to true to allow idiomChecker to boot while NLP worker is disabled
+//   SEQUENTIAL LOAD: Boot the idiom checker ONLY after the NLP worker is finished
+// Note: loadLocalModelsInBackground has been moved to the React App shell.
 
 // Check if the page is already loaded before adding the listener.
 // This prevents the "silent hang" race condition.
