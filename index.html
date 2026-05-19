@@ -1799,6 +1799,43 @@
                 opacity: 0;
             }
         }
+
+        /* --- STYLES MIGRATED FROM ui.js --- */
+        /* Overrides existing .chat-avatar-inline */
+        .chat-avatar-inline {
+            width: 40px !important;
+            height: 40px !important;
+            flex-shrink: 0 !important;
+            object-fit: cover !important;
+            border-radius: 50% !important;
+        }
+        .chat-msg {
+            padding: 4px 12px !important;
+            width: 100%;
+            max-width: 95%;
+        }
+        @media (min-width: 768px) {
+            .chat-msg { max-width: 80%; }
+        }
+        /* Overrides existing .chat-bubble-header */
+        .chat-bubble-header {
+            font-size: 0.75rem !important;
+            color: #888 !important;
+            margin-bottom: 2px !important;
+            font-weight: bold !important;
+        }
+        .userResponse .chat-bubble-header {
+            text-align: right;
+        }
+        /* Overrides existing .stats-header-label */
+        .stats-header-label {
+            font-size: clamp(0.45rem, 2.3cqi, 0.7rem) !important;
+            color: #ffffff !important;
+            white-space: nowrap !important;
+            display: block !important;
+            width: 100% !important;
+            text-align: center !important;
+        }
     </style>
 
 </head>
