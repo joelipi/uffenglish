@@ -3,7 +3,7 @@ import { State } from '../modules/state.js';
 import { appStore } from '../modules/store.js';
 import Strings from '../data/strings.js';
 import { getLocalizedTranslation } from '../modules/utils.js';
-import { loadVideoForQuestion } from '../modules/video-loader.js';
+import { loadVideoForStep } from '../modules/video-loader.js';
 import { Media } from '../modules/media.js';
 import {
     getCurrentStepIndex,
@@ -22,7 +22,7 @@ import { pointLoss } from '../components/point-loss-animation.js';
 import {
     DOM,
     clearChatInterface,
-    resetUIForNewQuestion,
+    resetUIForNewStep,
     clearPlaybackVideo,
     toggleScoresAndHearts,
     hideWebcamPreview,
@@ -52,7 +52,7 @@ import {
 
 function beforeUnloadHandler(e) { /* e.preventDefault(); e.returnValue = ''; return ''; */ }
 
-export function loadQuestion(step, lesson, fluencyData, deps) {
+export function loadStep(step, lesson, fluencyData, deps) {
     const { submitAnswerPrecheck, showFeedbackAndProceed, handleHint } = deps;
 
     // Strict voice/hesitation state isolation between steps
@@ -65,11 +65,11 @@ export function loadQuestion(step, lesson, fluencyData, deps) {
         }
     }
 
-    window.__currentQuestionIndex = getCurrentStepIndex(step, State.configData, State.currentLessonIndex);
+    window.__currentStepIndex = getCurrentStepIndex(step, State.configData, State.currentLessonIndex);
     clearChatInterface();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    resetUIForNewQuestion(step.stepType === 'lessonIntro', !!State.userData);
+    resetUIForNewStep(step.stepType === 'lessonIntro', !!State.userData);
 
     Media.cleanupPreviousPlayers();
     State.player = null;
@@ -116,12 +116,12 @@ export function loadQuestion(step, lesson, fluencyData, deps) {
         renderYoutubeInMediaContainer(step.youtube);
     }
 
-    loadVideoForQuestion(step, State, State.userData?.native_language);
+    loadVideoForStep(step, State, State.userData?.native_language);
 
-    const questionDiv = document.createElement('div');
-    questionDiv.className = 'text-center';
-    questionDiv.textContent = step.step;
-    setMicStatusText(questionDiv);
+    const stepDiv = document.createElement('div');
+    stepDiv.className = 'text-center';
+    stepDiv.textContent = step.step;
+    setMicStatusText(stepDiv);
 
     if (step.stepType === "closedResponse" || step.stepType === "openResponse") {
         _renderSpeechOrAI(step, lesson, deps);
@@ -166,7 +166,7 @@ function _renderSpeechOrAI(step, lesson, deps) {
 
     const handleRevealClick = function () { };
 
-    const qIndex = getCurrentStepIndex(step, State.configData, State.currentLessonIndex);
+    const stepIndex = getCurrentStepIndex(step, State.configData, State.currentLessonIndex);
 
     if (State.isTextMode) {
         const placeholder = Strings.get('placeholder_type_answer', State.userData?.native_language) || 'Type your answer here...';
@@ -177,7 +177,7 @@ function _renderSpeechOrAI(step, lesson, deps) {
     } else {
         renderSpeechInputUI(
             answerFragment,
-            step.stepType === "closedResponse" ? null : () => handleHint(qIndex),
+            step.stepType === "closedResponse" ? null : () => handleHint(stepIndex),
             handleRevealClick,
             async () => {
                 const speechButton = document.getElementById('micBtn');
@@ -190,7 +190,7 @@ function _renderSpeechOrAI(step, lesson, deps) {
                         userData: State.userData,
                         configData: State.configData,
                         currentLessonIndex: State.currentLessonIndex,
-                        currentQuestionIndex: qIndex,
+                        currentStepIndex: stepIndex,
                         handleAnswer: submitAnswerPrecheck,
                         player: State.player,
                         uiHooks: {

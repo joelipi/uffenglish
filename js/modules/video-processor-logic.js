@@ -20,7 +20,7 @@ export class VideoRenderPlanner {
             const prevRec = i > 0 ? this.recordings[i - 1] : null;
 
             // Skip remote prompt if this is a retry of the same step
-            const needsRemote = !(prevRec && rec.originalQuestionIndex === prevRec.originalQuestionIndex);
+            const needsRemote = !(prevRec && rec.originalStepIndex === prevRec.originalStepIndex);
 
             if (needsRemote) {
                 const remoteUrl = this._getRemoteTarget(rec);
@@ -28,7 +28,7 @@ export class VideoRenderPlanner {
                     plan.push({
                         type: 'remote',
                         targetId: remoteUrl,
-                        subtitle: rec.cue || this._getQuestionCue(rec),
+                        subtitle: rec.cue || this._getStepCue(rec),
                         isFirst: plan.length === 0
                     });
                 }
@@ -142,16 +142,16 @@ export class VideoRenderPlanner {
     _getRemoteTarget(rec) {
         if (!this.configData.lessons) return null;
         const lesson = this.configData.lessons.find(l => l.lessonId === rec.originalLessonId);
-        if (!lesson?.steps?.[rec.originalQuestionIndex]) return null;
-        const q = lesson.steps[rec.originalQuestionIndex];
+        if (!lesson?.steps?.[rec.originalStepIndex]) return null;
+        const q = lesson.steps[rec.originalStepIndex];
         return q.videoUrl || q.introBackgroundVideoUrl || null;
     }
 
-    _getQuestionCue(rec) {
+    _getStepCue(rec) {
         if (!this.configData.lessons) return null;
         const lesson = this.configData.lessons.find(l => l.lessonId === rec.originalLessonId);
-        if (!lesson?.steps?.[rec.originalQuestionIndex]) return null;
-        const q = lesson.steps[rec.originalQuestionIndex];
+        if (!lesson?.steps?.[rec.originalStepIndex]) return null;
+        const q = lesson.steps[rec.originalStepIndex];
 
         if (typeof q.cue === 'string') return q.cue;
         if (q.cue && q.cue.en) return q.cue.en;

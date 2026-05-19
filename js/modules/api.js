@@ -282,7 +282,7 @@ export async function askEnglishTutor(conversationHistoryContext, newUserMessage
     const systemPrompt = "You are strictly an English tutor. Answer the user's questions about English. The user is currently taking an English lesson. The context of their recent exercise is provided below. Use it to inform your answer if relevant.";
 
     // Combine context and new message
-    const combinedPrompt = `${systemPrompt}\n\n--- Context from Lesson ---\n${conversationHistoryContext}\n\n--- User Step ---\n${newUserMessage}`;
+    const combinedPrompt = `${systemPrompt}\n\n--- Context from Lesson ---\n${conversationHistoryContext}\n\n--- User Question ---\n${newUserMessage}`;
 
     const response = await fetch(aiEndpoint, {
       method: 'POST',
