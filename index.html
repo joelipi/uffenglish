@@ -96,6 +96,7 @@
 
         .bottom-overlay {
             pointer-events: none;
+            z-index: 1050;
         }
 
         .reflecting-pool-bg {
@@ -161,6 +162,9 @@
             font-weight: 500;
             flex-grow: 1;
             min-width: 0;
+            white-space: normal !important;
+            word-break: break-word;
+            overflow-wrap: break-word;
         }
 
         /* Truncation logic */
@@ -2003,7 +2007,7 @@
                 <p class="info-content" id="hintUncommonWords"></p>
             </div>
             <!-- Bottom Overlay -->
-            <div class="bottom-overlay position-absolute bottom-0 start-0 w-100 z-1 d-flex flex-column">
+            <div class="bottom-overlay position-absolute bottom-0 start-0 w-100 d-flex flex-column">
 
                 <!-- Layer 1: The Reflecting Pool -->
                 <div class="reflecting-pool-bg"></div>
