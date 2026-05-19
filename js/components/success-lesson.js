@@ -48,8 +48,8 @@ export class SuccessLessonHandler {
     }
   }
 
-  handleSuccessLesson(question) {
-    if (!question?.lessonId) {
+  handleSuccessLesson(step) {
+    if (!step?.lessonId) {
       console.error('[Success] Missing lessonId');
       return;
     }
@@ -74,7 +74,7 @@ export class SuccessLessonHandler {
       this.updateState({ state: 'success-lesson' });
     }
 
-    this.createVideoButton(question, fluencyData).catch(console.error);
+    this.createVideoButton(step, fluencyData).catch(console.error);
     this.playEffects(lessonAverage);
   }
 
@@ -111,7 +111,7 @@ export class SuccessLessonHandler {
     };
   }
 
-  async createVideoButton(question, fluencyData) {
+  async createVideoButton(step, fluencyData) {
     const videoBtn = document.getElementById('processBtn') || document.getElementById('createVideoButton');
     if (!videoBtn) return;
 
@@ -155,7 +155,7 @@ export class SuccessLessonHandler {
         }
         displayCanvas.style.display = 'block';
 
-        let targetLessonId = question?.lessonId?.trim();
+        let targetLessonId = step?.lessonId?.trim();
         if (!targetLessonId) {
           targetLessonId = new URLSearchParams(window.location.search).get('lessonId');
         }
@@ -193,7 +193,7 @@ export class SuccessLessonHandler {
           };
 
           this.createContinueButton();
-          this.createRepeatButton(question).catch(console.error);
+          this.createRepeatButton(step).catch(console.error);
         }
       } catch (err) {
         console.error('[Success] Video generation failed:', err);
@@ -227,8 +227,8 @@ export class SuccessLessonHandler {
     resultVideo.style.display = 'block';
   }
 
-  async createRepeatButton(question) {
-    const baseLessonId = question.lessonId?.trim();
+  async createRepeatButton(step) {
+    const baseLessonId = step.lessonId?.trim();
     if (!baseLessonId) return;
 
     let repeatButton = document.getElementById('repeatButtonSuccess');

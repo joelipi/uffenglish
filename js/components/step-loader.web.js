@@ -1,4 +1,4 @@
-// --- components/question-loader.web.js ---
+// --- components/step-loader.web.js ---
 import { State } from '../modules/state.js';
 import { appStore } from '../modules/store.js';
 import Strings from '../data/strings.js';
@@ -6,7 +6,7 @@ import { getLocalizedTranslation } from '../modules/utils.js';
 import { loadVideoForQuestion } from '../modules/video-loader.js';
 import { Media } from '../modules/media.js';
 import {
-    getCurrentQuestionIndex,
+    getCurrentStepIndex,
 } from '../modules/answers.js';
 import {
     isIOS,
@@ -52,10 +52,10 @@ import {
 
 function beforeUnloadHandler(e) { /* e.preventDefault(); e.returnValue = ''; return ''; */ }
 
-export function loadQuestion(question, lesson, fluencyData, deps) {
+export function loadQuestion(step, lesson, fluencyData, deps) {
     const { submitAnswerPrecheck, showFeedbackAndProceed, handleHint } = deps;
 
-    // Strict voice/hesitation state isolation between questions
+    // Strict voice/hesitation state isolation between steps
     if (listeningState) {
         listeningState.active = false;
         listeningState.transitioning = false;
@@ -65,19 +65,19 @@ export function loadQuestion(question, lesson, fluencyData, deps) {
         }
     }
 
-    window.__currentQuestionIndex = getCurrentQuestionIndex(question, State.configData, State.currentLessonIndex);
+    window.__currentQuestionIndex = getCurrentStepIndex(step, State.configData, State.currentLessonIndex);
     clearChatInterface();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    resetUIForNewQuestion(question.inputType === 'lessonIntro', !!State.userData);
+    resetUIForNewQuestion(step.stepType === 'lessonIntro', !!State.userData);
 
     Media.cleanupPreviousPlayers();
     State.player = null;
     clearPlaybackVideo();
 
-    toggleScoresAndHearts((question.inputType === 'closedResponse' || question.inputType === 'openResponse') && question.videoUrl);
+    toggleScoresAndHearts((step.stepType === 'closedResponse' || step.stepType === 'openResponse') && step.videoUrl);
 
-    if (question.inputType === 'closedResponse' || question.inputType === 'openResponse') {
+    if (step.stepType === 'closedResponse' || step.stepType === 'openResponse') {
         if (!State.isCameraOff && !State.isTextMode) {
             warmUpSpeechCamStream();
         } else if (State.isTextMode) {
@@ -101,7 +101,7 @@ export function loadQuestion(question, lesson, fluencyData, deps) {
         window.removeEventListener('beforeunload', beforeUnloadHandler);
     }
 
-    if (question.inputType != 'lessonComplete' && question.inputType != 'unitComplete') {
+    if (step.stepType != 'lessonComplete' && step.stepType != 'unitComplete') {
         removeRepeatButton();
     }
 
@@ -109,75 +109,75 @@ export function loadQuestion(question, lesson, fluencyData, deps) {
 
     clearMediaContainerAndPreservePlayers();
 
-    if (question.image) {
-        renderImageInMediaContainer(question.image);
+    if (step.image) {
+        renderImageInMediaContainer(step.image);
     }
-    if (question.youtube) {
-        renderYoutubeInMediaContainer(question.youtube);
+    if (step.youtube) {
+        renderYoutubeInMediaContainer(step.youtube);
     }
 
-    loadVideoForQuestion(question, State, State.userData?.native_language);
+    loadVideoForQuestion(step, State, State.userData?.native_language);
 
     const questionDiv = document.createElement('div');
     questionDiv.className = 'text-center';
-    questionDiv.textContent = question.question;
+    questionDiv.textContent = step.step;
     setMicStatusText(questionDiv);
 
-    if (question.inputType === "closedResponse" || question.inputType === "openResponse") {
-        _renderSpeechOrAI(question, lesson, deps);
-    } else if (question.inputType === 'text') {
+    if (step.stepType === "closedResponse" || step.stepType === "openResponse") {
+        _renderSpeechOrAI(step, lesson, deps);
+    } else if (step.stepType === 'text') {
         renderTextInputUI(
             Strings.get('placeholder_type_answer', State.userData?.native_language) || 'Type your answer here...',
             Strings.get('btn_submit', State.userData?.native_language) || 'Submit',
-            (val, btn) => submitAnswerPrecheck(val, question.cue, question, btn, question.explanation, question.translation, { pauseCount: null, netDuration: null })
+            (val, btn) => submitAnswerPrecheck(val, step.cue, step, btn, step.explanation, step.translation, { pauseCount: null, netDuration: null })
         );
-    } else if (question.inputType === 'lessoncomplete') {
+    } else if (step.stepType === 'lessoncomplete') {
         updateProgressAndCloseButton(true); toggleScoresAndHearts(false);
-        setProgressBarWidth("95%"); showFeedbackAndProceed(question, true);
+        setProgressBarWidth("95%"); showFeedbackAndProceed(step, true);
         hideAnswerDiv();
-    } else if (question.inputType === 'unitcomplete') {
-        question.lessonId = State.configData.lessons[State.currentLessonIndex].lessonId + 's';
-        State.successHandler.handleSuccessLesson(question);
-    } else if (question.inputType === 'lessonIntro') {
-        _renderLessonIntro(question, lesson, deps);
-    } else if (question.inputType === 'present') {
-        _renderPresent(question, lesson, showFeedbackAndProceed);
-    } else if (question.inputType === 'success') {
-        _renderSuccess(question, fluencyData);
+    } else if (step.stepType === 'unitcomplete') {
+        step.lessonId = State.configData.lessons[State.currentLessonIndex].lessonId + 's';
+        State.successHandler.handleSuccessLesson(step);
+    } else if (step.stepType === 'lessonIntro') {
+        _renderLessonIntro(step, lesson, deps);
+    } else if (step.stepType === 'present') {
+        _renderPresent(step, lesson, showFeedbackAndProceed);
+    } else if (step.stepType === 'success') {
+        _renderSuccess(step, fluencyData);
     }
 }
 
-function _renderSpeechOrAI(question, lesson, deps) {
+function _renderSpeechOrAI(step, lesson, deps) {
     const { submitAnswerPrecheck, handleHint } = deps;
     hideHints();
 
     const answerFragment = document.createDocumentFragment();
-    if (question.inputType !== "closedResponse") {
-        answerFragment.appendChild(document.createTextNode(question.cue));
-        if (question.possibleAnswer) {
+    if (step.stepType !== "closedResponse") {
+        answerFragment.appendChild(document.createTextNode(step.cue));
+        if (step.possibleAnswer) {
             answerFragment.appendChild(document.createElement('br'));
             const strong = document.createElement('strong');
             strong.textContent = Strings.get('possible_response', State.userData?.native_language);
             answerFragment.appendChild(strong);
             answerFragment.appendChild(document.createElement('br'));
-            answerFragment.appendChild(document.createTextNode(question.possibleAnswer));
+            answerFragment.appendChild(document.createTextNode(step.possibleAnswer));
         }
     }
 
     const handleRevealClick = function () { };
 
-    const qIndex = getCurrentQuestionIndex(question, State.configData, State.currentLessonIndex);
+    const qIndex = getCurrentStepIndex(step, State.configData, State.currentLessonIndex);
 
     if (State.isTextMode) {
         const placeholder = Strings.get('placeholder_type_answer', State.userData?.native_language) || 'Type your answer here...';
         const submitLabel = Strings.get('btn_submit', State.userData?.native_language) || 'Submit';
         renderTextInputUI(placeholder, submitLabel, (val, btn) => {
-            submitAnswerPrecheck(val, question.cue, question, btn, question.explanation, question.translation, { pauseCount: 0, netDuration: 3 });
+            submitAnswerPrecheck(val, step.cue, step, btn, step.explanation, step.translation, { pauseCount: 0, netDuration: 3 });
         });
     } else {
         renderSpeechInputUI(
             answerFragment,
-            question.inputType === "closedResponse" ? null : () => handleHint(qIndex),
+            step.stepType === "closedResponse" ? null : () => handleHint(qIndex),
             handleRevealClick,
             async () => {
                 const speechButton = document.getElementById('micBtn');
@@ -185,7 +185,7 @@ function _renderSpeechOrAI(question, lesson, deps) {
                 try {
                     await toggleSpeechRecognition({
                         button: speechButton,
-                        question,
+                        step,
                         micStatusText: DOM.micStatusText,
                         userData: State.userData,
                         configData: State.configData,
@@ -316,17 +316,17 @@ function _renderSpeechOrAI(question, lesson, deps) {
     }
 }
 
-function _renderPresent(question, lesson, showFeedbackAndProceed) {
+function _renderPresent(step, lesson, showFeedbackAndProceed) {
     updateProgressAndCloseButton(false); toggleScoresAndHearts(false); hideAnswerDiv();
 
-    let headsUpHTML = question.headsUp ? `<div class="chat-message-row chat-message-row--system"><div class="chat-message-bubble chat-message-bubble--system"><p class="headsUp mb-0">${question.headsUp}</p></div></div>` : "";
+    let headsUpHTML = step.headsUp ? `<div class="chat-message-row chat-message-row--system"><div class="chat-message-bubble chat-message-bubble--system"><p class="headsUp mb-0">${step.headsUp}</p></div></div>` : "";
 
-    if (!question.simpleVideoUrl) {
+    if (!step.simpleVideoUrl) {
         let explanationStr = "";
-        if (question.explanation) {
+        if (step.explanation) {
             const lang = State.userData?.native_language;
-            const expTrans = getLocalizedTranslation(question.translation, lang);
-            explanationStr = `<p class='explanation'>${question.explanation}${expTrans && lang && lang !== 'en' ? `<br><br><span lang='${lang}'><i>${expTrans}</i></span>` : ""}</p>`;
+            const expTrans = getLocalizedTranslation(step.translation, lang);
+            explanationStr = `<p class='explanation'>${step.explanation}${expTrans && lang && lang !== 'en' ? `<br><br><span lang='${lang}'><i>${expTrans}</i></span>` : ""}</p>`;
         }
 
         renderAIFeedback([
@@ -334,19 +334,19 @@ function _renderPresent(question, lesson, showFeedbackAndProceed) {
             explanationStr
         ]);
     }
-    showFeedbackAndProceed(question, true);
+    showFeedbackAndProceed(step, true);
 }
 
-function _renderSuccess(question, fluencyData) {
+function _renderSuccess(step, fluencyData) {
     window.removeEventListener('beforeunload', beforeUnloadHandler);
     bindProcessButton(() => State.player.destroy());
 
-    question.lessonId = State.configData.lessons[State.currentLessonIndex].lessonId;
+    step.lessonId = State.configData.lessons[State.currentLessonIndex].lessonId;
 
     window.__currentConfigData = State.configData;
 
     // initVideoProcessor was removed during index.html migration
-    State.successHandler.handleSuccessLesson(question);
+    State.successHandler.handleSuccessLesson(step);
 
     const currentLesson = State.configData.lessons[State.currentLessonIndex];
     const nextLessonId = currentLesson.nextLessonId;
@@ -358,7 +358,7 @@ function _renderSuccess(question, fluencyData) {
             updateUserMeta: true,
             incrementCount: true,
             lessonStats: finalStats,
-            currentLessonId: question.lessonId
+            currentLessonId: step.lessonId
         }).then(progressResult => {
             appStore.getState().setActivityMetrics(progressResult.newDayCount, progressResult.newStreak);
             if (progressResult.lessonsCompleted) {
@@ -370,20 +370,20 @@ function _renderSuccess(question, fluencyData) {
     try { hideWebcamPreview(); } catch (error) { }
 }
 
-function _renderLessonIntro(question, lesson, deps) {
+function _renderLessonIntro(step, lesson, deps) {
     const { showFeedbackAndProceed } = deps;
     toggleScoresAndHearts(false);
     State.repeatPointsHistory = [];
     State.rolePlayPointsHistory = [];
     hideAnswerDiv();
 
-    if (!question.simpleVideoUrl && question.explanation) {
-        const lang = State.userData?.native_language; const localizedTrans = getLocalizedTranslation(question.translation, lang); const hasTranslation = !!localizedTrans;
+    if (!step.simpleVideoUrl && step.explanation) {
+        const lang = State.userData?.native_language; const localizedTrans = getLocalizedTranslation(step.translation, lang); const hasTranslation = !!localizedTrans;
         const imagineStr = Strings.get('imagine', lang); const listenRepeatStr = Strings.get('listen_repeat', lang);
 
         const explanationStr = `
             <p class='explanation'>
-              <strong>${imagineStr.split('<br>')[0]}</strong> ${question.explanation}
+              <strong>${imagineStr.split('<br>')[0]}</strong> ${step.explanation}
               <br><br>
               ➡${listenRepeatStr.split('<br>')[0]}
               ${hasTranslation && lang !== 'en' ? `<br><br><span lang='${lang}'><i><strong>🎯${imagineStr.includes('<br>') ? imagineStr.split('<i>')[1].split('<i>')[0] : imagineStr}</strong>${localizedTrans}<br><br>${listenRepeatStr.includes('<br>') ? listenRepeatStr.split('<i>')[1].split('<i>')[0] : listenRepeatStr}</i></span>` : ''}
@@ -394,7 +394,7 @@ function _renderLessonIntro(question, lesson, deps) {
             explanationStr
         ]);
     }
-    showFeedbackAndProceed(question, true);
+    showFeedbackAndProceed(step, true);
 }
 
 // --- LIQUID UI MIC ANIMATIONS ---

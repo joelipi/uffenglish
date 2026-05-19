@@ -22,7 +22,7 @@ function stopListeningEarly(userData, player, uiHooks) {
 }
 
 async function processTranscript({ transcript, timingMeta, checkGibberish = false, logprob = 0, params, player }) {
-    const { button, question, userData, configData, currentLessonIndex, currentQuestionIndex, handleAnswer, uiHooks } = params;
+    const { button, step, userData, configData, currentLessonIndex, currentQuestionIndex, handleAnswer, uiHooks } = params;
 
     if (!transcript) {
         stopListeningEarly(userData, player, uiHooks);
@@ -37,7 +37,7 @@ async function processTranscript({ transcript, timingMeta, checkGibberish = fals
         updateSpeechRecording(
             configData?.lessons?.[currentLessonIndex]?.lessonId,
             currentQuestionIndex,
-            { userResponse: transcript, cue: question?.cue }
+            { userResponse: transcript, cue: step?.cue }
         ).catch(e => console.error(e));
         return;
     }
@@ -51,7 +51,7 @@ async function processTranscript({ transcript, timingMeta, checkGibberish = fals
         updateSpeechRecording(
             configData?.lessons?.[currentLessonIndex]?.lessonId,
             currentQuestionIndex,
-            { userResponse: transcriptToReview, cue: question?.cue }
+            { userResponse: transcriptToReview, cue: step?.cue }
         ).catch(e => console.error(e));
 
         setTimeout(() => toggleSpeechRecognition(params), 2500);
@@ -59,7 +59,7 @@ async function processTranscript({ transcript, timingMeta, checkGibberish = fals
 
     const englishLevel = configData?.languageLevel || 'A0';
     const { isValid, warningMessage } = await validateAnswerPrecheck(
-        transcriptToReview, question.cue, question, englishLevel, userData, State.cuesGiven
+        transcriptToReview, step.cue, step, englishLevel, userData, State.cuesGiven
     );
 
     if (!isValid) { rejectPreflight(warningMessage); return; }
@@ -76,11 +76,11 @@ async function processTranscript({ transcript, timingMeta, checkGibberish = fals
 
         handleAnswer(
             transcriptToReview,
-            question.cue,
-            question,
+            step.cue,
+            step,
             button,
-            question.explanation,
-            question.translation,
+            step.explanation,
+            step.translation,
             timingMeta,
             userData,
             configData
@@ -92,12 +92,12 @@ async function processTranscript({ transcript, timingMeta, checkGibberish = fals
         reviewActive = false;
         clearInterval(timerInterval);
 
-        if (uiHooks?.onTranscriptRejected) uiHooks.onTranscriptRejected(question?.cue, transcriptToReview);
+        if (uiHooks?.onTranscriptRejected) uiHooks.onTranscriptRejected(step?.cue, transcriptToReview);
 
         updateSpeechRecording(
             configData?.lessons?.[currentLessonIndex]?.lessonId,
             currentQuestionIndex,
-            { userResponse: transcriptToReview, cue: question?.cue }
+            { userResponse: transcriptToReview, cue: step?.cue }
         ).catch(e => console.error(e));
 
         setTimeout(() => toggleSpeechRecognition(params), 600);
@@ -127,7 +127,7 @@ export async function toggleSpeechRecognition(params) {
             listeningState.hesitationTimer = null;
         }
 
-        const { button, question, micStatusText, userData, configData, currentLessonIndex, currentQuestionIndex, player, uiHooks } = params;
+        const { button, step, micStatusText, userData, configData, currentLessonIndex, currentQuestionIndex, player, uiHooks } = params;
 
         if (uiHooks?.onPauseVideo) uiHooks.onPauseVideo(player);
 
@@ -264,8 +264,8 @@ export async function toggleSpeechRecognition(params) {
                 meta: {
                     lessonId: configData?.lessons?.[currentLessonIndex]?.lessonId || null,
                     questionIndex: currentQuestionIndex ?? null,
-                    inputType: question?.inputType || null,
-                    title: question?.question || null,
+                    stepType: step?.stepType || null,
+                    title: step?.step || null,
                 }
             });
 

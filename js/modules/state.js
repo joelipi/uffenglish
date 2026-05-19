@@ -101,7 +101,7 @@ export const State = {
         // Clear history arrays in the Zustand store
         appStore.getState().resetLessonHistory();
 
-        // Reset question index to 0 for a fresh start
+        // Reset step index to 0 for a fresh start
         this.currentQuestionIndex = 0;
 
         this.interactionLog = [];
@@ -129,7 +129,7 @@ export const State = {
     resetForNextQuestion() {
         // Reset reactive metrics in the Zustand store
         appStore.getState().resetForNextQuestion();
-        // Reset non-reactive per-question data
+        // Reset non-reactive per-step data
         this.wordsRevealed = 0;
         this.videoPlays = 0;
         this.videoClicks = 0;

@@ -66,7 +66,7 @@ These are visual renderers using HTML/CSS. They will be entirely replaced by Nat
 - [ ] `js/components/simple-video-player.js`
 - [ ] `js/components/success-lesson.js`
 - [ ] `js/components/feedback-renderer.web.js`
-- [ ] `js/components/question-loader.web.js`
+- [ ] `js/components/step-loader.web.js`
 
 ## 📁 Group E: React Native Only platform handlers
 - [ ] `js/components/interactive-video-player.native.jsx`
@@ -89,7 +89,7 @@ These are visual renderers using HTML/CSS. They will be entirely replaced by Nat
 - [ ] `js/modules/video-processor.js`
 - [ ] `js/modules/video-share.js`
 - [ ] `js/components/feedback-renderer.js`
-- [ ] `js/components/question-loader.js`
+- [ ] `js/components/step-loader.js`
 
 ## 📁 The Orchestrator
 This file bridges the pure logic and the web UI.
@@ -157,8 +157,8 @@ This file bridges the pure logic and the web UI.
 │   │   ├── interactive-video-player.native.jsx
 │   │   ├── intro-background-video.js
 │   │   ├── point-loss-animation.js
-│   │   ├── question-loader.js
-│   │   ├── question-loader.web.js
+│   │   ├── step-loader.js
+│   │   ├── step-loader.web.js
 │   │   ├── simple-video-player.js
 │   │   ├── simple-video-player.native.jsx
 │   │   ├── success-lesson.js

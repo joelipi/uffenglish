@@ -3,7 +3,7 @@ import { getLocalizedTranslation } from './utils.js';
 
 /**
  * Mutates configData in place, normalizing all localized object fields to plain strings
- * and filling in default question text where the question field is missing.
+ * and filling in default step text where the step field is missing.
  * Safe to call multiple times — skips fields that are already strings.
  *
  * @param {Object} configData - The raw config object loaded from the course JSON
@@ -20,5 +20,25 @@ export function normalizeConfig(configData, lang = 'en') {
         lesson.setting = getLocalizedTranslation(lesson.setting, userLang);
         lesson.roleOther = getLocalizedTranslation(lesson.roleOther, userLang);
         lesson.roleUser = getLocalizedTranslation(lesson.roleUser, userLang);
+
+        if (lesson.steps) {
+            lesson.steps.forEach(step => {
+                if (!step.step && (step.stepType === 'speech' || step.stepType === 'closedResponse' || step.stepType === 'openResponse')) {
+                    step.step = Strings.get('default_q_speech', userLang);
+                }
+
+                if (step.step) step.step = getLocalizedTranslation(step.step, userLang);
+                if (step.explanation) step.explanation = getLocalizedTranslation(step.explanation, userLang);
+                if (step.translation) step.translation = getLocalizedTranslation(step.translation, userLang);
+                if (step.subtitles) step.subtitles = getLocalizedTranslation(step.subtitles, userLang);
+
+                // Ensure cue is always in English
+                if (step.cue) step.cue = getLocalizedTranslation(step.cue, 'en');
+
+                if (step.incues) {
+                     step.incues = step.incues.map(incue => getLocalizedTranslation(incue, userLang));
+                }
+            });
+        }
     });
 }
