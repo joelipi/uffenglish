@@ -1,0 +1,123 @@
+{
+  "courseId": "model",
+  "languageLevel": "B1",
+  "courseName": "Ordering a Drink",
+  "lessons": [
+    {
+      "lessonId": "a",
+      "title": {
+        "en": "Soda 1",
+        "es": "Gaseosa 1",
+        "pt": "Gaseosa 1"
+      },
+      "unit": "Unit 1",
+      "mission": {
+        "en": "order a drink",
+        "es": "pedir una bebida",
+        "pt": "pedir uma bebida"
+      },
+      "setting": {
+        "en": "Fast food place",
+        "es": "lugar de comida rápida",
+        "pt": "lugar de fast food"
+      },
+      "roleOther": {
+        "en": "Fast food worker",
+        "es": "Trabajador de comida rápida",
+        "pt": "Trabalhador de fast food"
+      },
+      "roleUser": {
+        "en": "customer",
+        "es": "cliente",
+        "pt": "cliente"
+      },
+      "questions": [
+        {
+          "cue": "",
+          "inputType": "lessonIntro",
+          "introBackgroundVideoUrl": "gtests-1-0"
+        },
+        {
+          "cue": {
+            "en": "I love English!",
+            "es": "¡Amo el inglés!",
+            "pt": "Eu amo o inglês!"
+          },
+          "inputType": "closedResponse",
+          "simpleVideoUrl": "gtests-1-0",
+          "subtitles": {
+            "en": "1\n00:00:00,500 --> 00:00:03,000\nLet's do a role play ordering a drink.\n\n2\n00:00:03,500 --> 00:00:06,000\nYou'll be the customer. I'll sell you the drink.\n\n3\n00:00:06,500 --> 00:00:10,000\nFirst, let's warm up our microphones and our mouths. Say: I LOVE ENGLISH!",
+            "es": "1\n00:00:00,500 --> 00:00:03,000\nVamos a hacer un role play de pedir una bebida.\n\n2\n00:00:03,500 --> 00:00:06,000\nTú serás el cliente y yo te venderé la bebida.\n\n3\n00:00:06,500 --> 00:00:10,000\nPrimero vamos a calentar nuestros micrófonos y nuestras bocas. Di: I LOVE ENGLISH!",
+            "pt": "1\n00:00:00,500 --> 00:00:03,000\nVamos fazer um role play pidiendoo uma bebida...\n\n2\n00:00:03,500 --> 00:00:06,000\nVocê será o cliente e eu venderei a bebida.\n\n3\n00:00:06,500 --> 00:00:10,000\nPrimeiro vamos aquecer nossos microfones e bocas. Diga: I LOVE ENGLISH!"
+          },
+          "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
+        },
+        {
+          "cue": {
+            "en": "Hi, what would you like to drink?",
+            "es": "Hola, ¿qué quisieras para tomar?",
+            "pt": "Ola, o qué voce quer de beber?"
+          },
+          "inputType": "openResponse",
+          "videoUrl": "gtests-1-1"
+        },
+        {
+          "cue": "Sorry, we're all out of that today.",
+          "translation": {
+            "es": "Disculpe, eso se nos terminó para hoy.",
+            "pt": "Disculpe. Isso acabou para hoje."
+          },
+          "inputType": "openResponse",
+          "videoUrl": "gtests-1-2"
+        },
+        {
+          "cue": "Sure, what size do you want?",
+          "inputType": "openResponse",
+          "videoUrl": "gtests-1-3"
+        },
+        {
+          "cue": "Sure, what size do you want?",
+          "simpleVideoUrl": "success",
+          "subtitles": "Very good! ¡Muy bien! Oprime el botón para calcular tu calificación de fluidez (Fluency Score) para esta frase. Si tu calificación es menor a 80% te recomiendo repetir la lección.",
+          "inputType": "success"
+        }
+      ],
+      "nextLessonId": "x"
+    },
+    {
+      "lessonId": "x",
+      "title": "Success Test",
+      "unit": "Daily Challenge Unit",
+      "mission": "Answer intelligently.",
+      "setting": "A game show",
+      "roleOther": "Game show host",
+      "roleUser": "Contestant",
+      "questions": [
+        {
+          "inputType": "lessonIntro",
+          "introBackgroundVideoUrl": "gtests-0-1-1"
+        },
+        {
+          "cue": "Hey, if you had to spend a million dollars today, what would you buy?",
+          "inputType": "openResponse",
+          "translation": "Oye, si tuvieras que gastar un millón de dólares hoy, ¿qué comprarías?",
+          "videoUrl": "gtests-0-1-1"
+        },
+        {
+          "cue": "Hey, if you had to spend 1 million dollars today, what would you buy?",
+          "inputType": "openResponse",
+          "translation": "Oye, si tuvieras que gastar un millón de dólares hoy, ¿qué comprarías?",
+          "videoUrl": "gtests-0-1-1"
+        },
+        {
+          "simpleVideoUrl": "success",
+          "subtitles": "Very good! ¡Muy bien! Oprime el botón para calcular tu calificación de fluidez (Fluency Score) para esta frase. Si tu calificación es menor a 80% te recomiendo repetir la lección.",
+          "cue": "Hey, if you had to spend a million dollars today, what would you buy?",
+          "inputType": "success"
+        }
+      ],
+      "nextLessonId": "x"
+    }
+  ],
+  "nextCourseId": "gt3"
+}

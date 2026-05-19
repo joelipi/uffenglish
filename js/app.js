@@ -79,7 +79,7 @@ import {
 } from './modules/answers.js';
 
 // --- Extracted Modules ---
-import { resolveCurrentLessonId, resolveCurrentCourseId, getNextStep } from './modules/lesson-router.js';
+import { resolveCurrentLessonId, resolveCurrentCourseId, getNextStep, getUrlParamCaseInsensitive } from './modules/lesson-router.js';
 import { normalizeConfig } from './modules/config-normalizer.js';
 import { loadVideoForStep } from './modules/video-loader.js';
 import { appStore } from './modules/store.js';
@@ -684,7 +684,7 @@ async function initializeLesson(courseId = State.courseId, configData = State.co
         // 1. Gather browser-specific context
         const urlParams = new URLSearchParams(window.location.search);
         const routerContext = {
-            urlLessonId: urlParams.get('lessonid'),
+            urlLessonId: getUrlParamCaseInsensitive(urlParams, 'lessonid'),
             storedLessonId: localStorage.getItem(`${courseId}_currentLessonId`),
             storedTimestamp: localStorage.getItem(`${courseId}_currentLessonTimestamp`)
         };
@@ -695,8 +695,14 @@ async function initializeLesson(courseId = State.courseId, configData = State.co
         // 3. Execute Browser Side-Effects (Previously hidden inside lesson-router.js)
         if (routerContext.urlLessonId) {
             const url = new URL(window.location.href);
-            url.searchParams.delete('lessonid');
-            url.searchParams.delete('course');
+            const keysToDelete = [];
+            for (const key of url.searchParams.keys()) {
+                const lowerKey = key.toLowerCase();
+                if (lowerKey === 'lessonid' || lowerKey === 'course' || lowerKey === 'courseid') {
+                    keysToDelete.push(key);
+                }
+            }
+            keysToDelete.forEach(key => url.searchParams.delete(key));
             window.history.replaceState({}, document.title, url.toString());
         }
 
@@ -815,8 +821,9 @@ async function initializeApp() {
         syncOfflineScores(State.userData);
 
         // 1. Gather context
+        const urlParamsApp = new URLSearchParams(window.location.search);
         const courseContext = {
-            urlCourseId: new URLSearchParams(window.location.search).get('courseid'),
+            urlCourseId: getUrlParamCaseInsensitive(urlParamsApp, 'courseid'),
             storedCourseId: localStorage.getItem('currentCourse'),
             wpCourseId: State.userData?.current_course || null
         };
