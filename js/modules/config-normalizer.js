@@ -38,10 +38,6 @@ export function normalizeConfig(configData, lang = 'en') {
                     step.stepType = step.inputType;
                 }
 
-                if (!step.step && (step.stepType === 'speech' || step.stepType === 'closedResponse' || step.stepType === 'openResponse')) {
-                    step.step = Strings.get('default_q_speech', userLang);
-                }
-
                 if (step.step) step.step = getLocalizedTranslation(step.step, userLang);
                 if (step.explanation) step.explanation = getLocalizedTranslation(step.explanation, userLang);
                 if (step.translation) step.translation = getLocalizedTranslation(step.translation, userLang);
@@ -51,7 +47,7 @@ export function normalizeConfig(configData, lang = 'en') {
                 if (step.cue) step.cue = getLocalizedTranslation(step.cue, 'en');
 
                 if (step.incues) {
-                     step.incues = step.incues.map(incue => getLocalizedTranslation(incue, userLang));
+                    step.incues = step.incues.map(incue => getLocalizedTranslation(incue, userLang));
                 }
             });
         }
