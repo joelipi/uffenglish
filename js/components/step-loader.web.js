@@ -65,11 +65,11 @@ export function loadStep(step, lesson, fluencyData, deps) {
         }
     }
 
-    window.__currentStepIndex = getCurrentStepIndex(step, State.configData, State.currentLessonIndex);
+    window.__currentStepIndex = getCurrentStepIndex(step, appStore.getState().configData, appStore.getState().currentLessonIndex);
     clearChatInterface();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    resetUIForNewStep(step.stepType === 'lessonIntro', !!State.userData);
+    resetUIForNewStep(step.stepType === 'lessonIntro', !!appStore.getState().userData);
 
     Media.cleanupPreviousPlayers();
     State.player = null;
@@ -89,7 +89,7 @@ export function loadStep(step, lesson, fluencyData, deps) {
             const closePageLink = document.getElementById('closePage');
             if (closePageLink) {
                 closePageLink.removeEventListener('click', handleClosePageClick);
-                function handleClosePageClick(e) { if (!confirm(Strings.get('alert_lesson_reset', State.userData?.native_language))) e.preventDefault(); }
+                function handleClosePageClick(e) { if (!confirm(Strings.get('alert_lesson_reset', appStore.getState().userData?.native_language))) e.preventDefault(); }
                 closePageLink.addEventListener('click', handleClosePageClick);
             }
         } else {
@@ -116,7 +116,7 @@ export function loadStep(step, lesson, fluencyData, deps) {
         renderYoutubeInMediaContainer(step.youtube);
     }
 
-    loadVideoForStep(step, State, State.userData?.native_language);
+    loadVideoForStep(step, State, appStore.getState().userData?.native_language);
 
     const stepDiv = document.createElement('div');
     stepDiv.className = 'text-center';
@@ -127,8 +127,8 @@ export function loadStep(step, lesson, fluencyData, deps) {
         _renderSpeechOrAI(step, lesson, deps);
     } else if (step.stepType === 'text') {
         renderTextInputUI(
-            Strings.get('placeholder_type_answer', State.userData?.native_language) || 'Type your answer here...',
-            Strings.get('btn_submit', State.userData?.native_language) || 'Submit',
+            Strings.get('placeholder_type_answer', appStore.getState().userData?.native_language) || 'Type your answer here...',
+            Strings.get('btn_submit', appStore.getState().userData?.native_language) || 'Submit',
             (val, btn) => submitAnswerPrecheck(val, step.cue, step, btn, step.explanation, step.translation, { pauseCount: null, netDuration: null })
         );
     } else if (step.stepType === 'lessoncomplete') {
@@ -136,7 +136,7 @@ export function loadStep(step, lesson, fluencyData, deps) {
         setProgressBarWidth("95%"); showFeedbackAndProceed(step, true);
         hideAnswerDiv();
     } else if (step.stepType === 'unitcomplete') {
-        step.lessonId = State.configData.lessons[State.currentLessonIndex].lessonId + 's';
+        step.lessonId = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex].lessonId + 's';
         State.successHandler.handleSuccessLesson(step);
     } else if (step.stepType === 'lessonIntro') {
         _renderLessonIntro(step, lesson, deps);
@@ -157,7 +157,7 @@ function _renderSpeechOrAI(step, lesson, deps) {
         if (step.possibleAnswer) {
             answerFragment.appendChild(document.createElement('br'));
             const strong = document.createElement('strong');
-            strong.textContent = Strings.get('possible_response', State.userData?.native_language);
+            strong.textContent = Strings.get('possible_response', appStore.getState().userData?.native_language);
             answerFragment.appendChild(strong);
             answerFragment.appendChild(document.createElement('br'));
             answerFragment.appendChild(document.createTextNode(step.possibleAnswer));
@@ -166,11 +166,11 @@ function _renderSpeechOrAI(step, lesson, deps) {
 
     const handleRevealClick = function () { };
 
-    const stepIndex = getCurrentStepIndex(step, State.configData, State.currentLessonIndex);
+    const stepIndex = getCurrentStepIndex(step, appStore.getState().configData, appStore.getState().currentLessonIndex);
 
     if (State.isTextMode) {
-        const placeholder = Strings.get('placeholder_type_answer', State.userData?.native_language) || 'Type your answer here...';
-        const submitLabel = Strings.get('btn_submit', State.userData?.native_language) || 'Submit';
+        const placeholder = Strings.get('placeholder_type_answer', appStore.getState().userData?.native_language) || 'Type your answer here...';
+        const submitLabel = Strings.get('btn_submit', appStore.getState().userData?.native_language) || 'Submit';
         renderTextInputUI(placeholder, submitLabel, (val, btn) => {
             submitAnswerPrecheck(val, step.cue, step, btn, step.explanation, step.translation, { pauseCount: 0, netDuration: 3 });
         });
@@ -187,9 +187,9 @@ function _renderSpeechOrAI(step, lesson, deps) {
                         button: speechButton,
                         step,
                         micStatusText: DOM.micStatusText,
-                        userData: State.userData,
-                        configData: State.configData,
-                        currentLessonIndex: State.currentLessonIndex,
+                        userData: appStore.getState().userData,
+                        configData: appStore.getState().configData,
+                        currentLessonIndex: appStore.getState().currentLessonIndex,
                         currentStepIndex: stepIndex,
                         handleAnswer: submitAnswerPrecheck,
                         player: State.player,
@@ -324,13 +324,13 @@ function _renderPresent(step, lesson, showFeedbackAndProceed) {
     if (!step.simpleVideoUrl) {
         let explanationStr = "";
         if (step.explanation) {
-            const lang = State.userData?.native_language;
+            const lang = appStore.getState().userData?.native_language;
             const expTrans = getLocalizedTranslation(step.translation, lang);
             explanationStr = `<p class='explanation'>${step.explanation}${expTrans && lang && lang !== 'en' ? `<br><br><span lang='${lang}'><i>${expTrans}</i></span>` : ""}</p>`;
         }
 
         renderAIFeedback([
-            `<p class='lesson-name'><strong>${Strings.get('lesson_label', State.userData?.native_language)} ${lesson.title}</strong></p>`,
+            `<p class='lesson-name'><strong>${Strings.get('lesson_label', appStore.getState().userData?.native_language)} ${lesson.title}</strong></p>`,
             explanationStr
         ]);
     }
@@ -341,14 +341,14 @@ function _renderSuccess(step, fluencyData) {
     window.removeEventListener('beforeunload', beforeUnloadHandler);
     bindProcessButton(() => State.player.destroy());
 
-    step.lessonId = State.configData.lessons[State.currentLessonIndex].lessonId;
+    step.lessonId = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex].lessonId;
 
-    window.__currentConfigData = State.configData;
+    window.__currentConfigData = appStore.getState().configData;
 
     // initVideoProcessor was removed during index.html migration
     State.successHandler.handleSuccessLesson(step);
 
-    const currentLesson = State.configData.lessons[State.currentLessonIndex];
+    const currentLesson = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex];
     const nextLessonId = currentLesson.nextLessonId;
 
     if (nextLessonId) {
@@ -364,7 +364,7 @@ function _renderSuccess(step, fluencyData) {
             interactionLog: State.interactionLog
         });
 
-        saveLessonProgress(State.courseId, nextLessonId, State.userData, {
+        saveLessonProgress(appStore.getState().courseId, nextLessonId, appStore.getState().userData, {
             updateUserMeta: true,
             incrementCount: true,
             lessonStats: finalStats,
@@ -383,12 +383,12 @@ function _renderSuccess(step, fluencyData) {
 function _renderLessonIntro(step, lesson, deps) {
     const { showFeedbackAndProceed } = deps;
     toggleScoresAndHearts(false);
-    State.repeatPointsHistory = [];
-    State.rolePlayPointsHistory = [];
+    appStore.setState({ repeatPointsHistory: [] });
+    appStore.setState({ rolePlayPointsHistory: [] });
     hideAnswerDiv();
 
     if (!step.simpleVideoUrl && step.explanation) {
-        const lang = State.userData?.native_language; const localizedTrans = getLocalizedTranslation(step.translation, lang); const hasTranslation = !!localizedTrans;
+        const lang = appStore.getState().userData?.native_language; const localizedTrans = getLocalizedTranslation(step.translation, lang); const hasTranslation = !!localizedTrans;
         const imagineStr = Strings.get('imagine', lang); const listenRepeatStr = Strings.get('listen_repeat', lang);
 
         const explanationStr = `

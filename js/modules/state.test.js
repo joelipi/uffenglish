@@ -9,26 +9,21 @@ describe('State Module', () => {
     });
 
     it('should set and get values from appStore correctly', () => {
-        State.currentLessonIndex = 5;
+        appStore.setState({ currentLessonIndex: 5 });
         expect(appStore.getState().currentLessonIndex).toBe(5);
-        expect(State.currentLessonIndex).toBe(5);
 
-        State.currentStepIndex = 3;
+        appStore.setState({ currentStepIndex: 3 });
         expect(appStore.getState().currentStepIndex).toBe(3);
-        expect(State.currentStepIndex).toBe(3);
 
         const cues = ['cue1', 'cue2'];
-        State.cuesGiven = cues;
+        appStore.setState({ cuesGiven: cues });
         expect(appStore.getState().cuesGiven).toEqual(cues);
-        expect(State.cuesGiven).toEqual(cues);
 
-        State.repeatPointsHistory = [100, 80];
+        appStore.setState({ repeatPointsHistory: [100, 80] });
         expect(appStore.getState().repeatPointsHistory).toEqual([100, 80]);
-        expect(State.repeatPointsHistory).toEqual([100, 80]);
 
-        State.rolePlayPointsHistory = [90, 70];
+        appStore.setState({ rolePlayPointsHistory: [90, 70] });
         expect(appStore.getState().rolePlayPointsHistory).toEqual([90, 70]);
-        expect(State.rolePlayPointsHistory).toEqual([90, 70]);
     });
 
     describe('initializeUserMetrics', () => {
@@ -46,8 +41,8 @@ describe('State Module', () => {
 
             State.initializeUserMetrics(userData, mockStreakCalculator);
 
-            expect(State.userData).toEqual(userData);
-            expect(State.englishLevel).toBe('B1');
+            expect(appStore.getState().userData).toEqual(userData);
+            expect(appStore.getState().englishLevel).toBe('B1');
 
             const storeState = appStore.getState();
             expect(storeState.userFirstName).toBe('John');
@@ -82,28 +77,28 @@ describe('State Module', () => {
 
             State.initializeUserMetrics(userData, mockStreakCalculator);
 
-            expect(State.englishLevel).toBe('A1');
+            expect(appStore.getState().englishLevel).toBe('A1');
             expect(appStore.getState().userFirstName).toBeNull();
             expect(mockStreakCalculator).not.toHaveBeenCalled();
         });
 
         it('should default to A0 if no english_level', () => {
              State.initializeUserMetrics({}, vi.fn());
-             expect(State.englishLevel).toBe('A0');
-        });
+             expect(appStore.getState().englishLevel).toBe('A0');
+         });
 
         it('should handle null userData', () => {
              State.initializeUserMetrics(null, vi.fn());
-             expect(State.userData).toBeNull();
-             expect(State.englishLevel).toBe('A0');
-        });
+             expect(appStore.getState().userData).toBeNull();
+             expect(appStore.getState().englishLevel).toBe('A0');
+         });
     });
 
     describe('resetForNewLesson', () => {
         it('should reset all lesson specific state', () => {
             // Set some dirty state
             State.interactionLog = ['test'];
-            State.currentStepIndex = 5;
+            appStore.setState({ currentStepIndex: 5 });
             State.mission = 'Test Mission';
             State.isTextMode = true;
             State.totalHesitations = 10;
@@ -115,7 +110,7 @@ describe('State Module', () => {
             State.resetForNewLesson();
 
             expect(State.interactionLog).toEqual([]);
-            expect(State.currentStepIndex).toBe(0);
+            expect(appStore.getState().currentStepIndex).toBe(0);
             expect(State.mission).toBeNull();
             expect(State.isTextMode).toBe(false);
             expect(State.recognizedIdioms).toEqual([]);

@@ -173,10 +173,10 @@ function handleHint(stepIndex) {
     showHintsAndScroll();
 }
 
-export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation, translation, stats = { pauseCount: null, netDuration: null }, userData = State.userData, configData = State.configData, courseId = State.courseId) {
+export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation, translation, stats = { pauseCount: null, netDuration: null }, userData = appStore.getState().userData, configData = appStore.getState().configData, courseId = appStore.getState().courseId) {
     const englishLevel = configData?.languageLevel || 'A0';
     const { isValid, warningMessage } = await validateAnswerPrecheck(
-        val, cue, stepData, englishLevel, userData, State.cuesGiven
+        val, cue, stepData, englishLevel, userData, appStore.getState().cuesGiven
     );
 
     if (!isValid) {
@@ -210,7 +210,7 @@ export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation,
 
         // Update the recording anyway so the final video has subtitles for this incorrect attempt!
         const currentLessonId = resolveCurrentLessonId(configData, userData, courseId);
-        const stepIndex = getCurrentStepIndex(stepData, configData, State.currentLessonIndex);
+        const stepIndex = getCurrentStepIndex(stepData, configData, appStore.getState().currentLessonIndex);
         await updateSpeechRecording(currentLessonId, stepIndex, {
             userResponse: val,
             cue: cue,
@@ -276,7 +276,7 @@ function resetButtonState(button) {
 
 // buildStatsBlocks has been extracted to feedback-builder.js (data) + feedback-renderer-web.js (HTML)
 
-export async function handleAnswer(userResponse, cue, stepData, button, explanation, translation, stats = { pauseCount: null, netDuration: null }, userData = State.userData, configData = State.configData, courseId = State.courseId) {
+export async function handleAnswer(userResponse, cue, stepData, button, explanation, translation, stats = { pauseCount: null, netDuration: null }, userData = appStore.getState().userData, configData = appStore.getState().configData, courseId = appStore.getState().courseId) {
     // Show the playback video immediately as the first chat message while processing
     if (!State.isTextMode && (stepData.stepType === "lessonIntro" || stepData.stepType === "closedResponse" || stepData.stepType === "openResponse")) {
         showPlaybackVideo();
@@ -284,10 +284,10 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
 
     let speechAnalytics = null;
     let cleanWordCount = 0;
-    const stepIndex = getCurrentStepIndex(stepData, configData, State.currentLessonIndex);
+    const stepIndex = getCurrentStepIndex(stepData, configData, appStore.getState().currentLessonIndex);
 
     try {
-        const currentLessonId = (configData && configData.lessons && configData.lessons[State.currentLessonIndex]) ? configData.lessons[State.currentLessonIndex].lessonId : 'unknown_lesson';
+        const currentLessonId = (configData && configData.lessons && configData.lessons[appStore.getState().currentLessonIndex]) ? configData.lessons[appStore.getState().currentLessonIndex].lessonId : 'unknown_lesson';
 
         if (stepData.stepType === "closedResponse" || stepData.stepType === "openResponse") {
             cleanWordCount = userResponse.replace(/[^\w\s]/g, '').trim().split(/\s+/).filter(Boolean).length;
@@ -340,7 +340,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
 
     try {
         const englishLevel = configData?.languageLevel || 'A0';
-        const lesson = (configData && configData.lessons) ? configData.lessons[State.currentLessonIndex] : null;
+        const lesson = (configData && configData.lessons) ? configData.lessons[appStore.getState().currentLessonIndex] : null;
 
         if (!lesson) {
             throw new Error("configData or lessons missing in handleAnswer");
@@ -353,7 +353,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
                 lesson: lesson,
                 english_level: englishLevel,
                 userData: userData,
-                cuesGiven: State.cuesGiven,
+                cuesGiven: appStore.getState().cuesGiven,
                 apiRoot: State.apiRoot
             });
 
@@ -509,7 +509,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
 
         if (isCorrect) {
             if (stepData.stepType === "openResponse") {
-                State.cuesGiven.push(result.normalizeduserResponse);
+                appStore.setState({ cuesGiven: [...appStore.getState().cuesGiven, result.normalizeduserResponse] });
                 if (result.cefrLevelDeduction > 0) {
                     appStore.getState().deductListeningScore(result.cefrLevelDeduction);
                 }
@@ -556,24 +556,24 @@ function showFeedbackAndProceed(stepData, isCorrect) {
             } else {
                 if (isCorrect || appStore.getState().incorrectAttempts > 2) loadNextStep(stepData);
                 else {
-                    const stepIndex = getCurrentStepIndex(stepData, State.configData, State.currentLessonIndex);
+                    const stepIndex = getCurrentStepIndex(stepData, appStore.getState().configData, appStore.getState().currentLessonIndex);
                     window.__currentStepIndex = stepIndex;
-                    callLoadStep(State.configData.lessons[State.currentLessonIndex].steps[stepIndex], State.configData.lessons[State.currentLessonIndex]);
+                    callLoadStep(appStore.getState().configData.lessons[appStore.getState().currentLessonIndex].steps[stepIndex], appStore.getState().configData.lessons[appStore.getState().currentLessonIndex]);
                 }
             }
         });
 
         if (isCorrect || appStore.getState().incorrectAttempts > 2) {
-            const nextStep = getNextStep(stepData, State.configData, State.currentLessonIndex);
+            const nextStep = getNextStep(stepData, appStore.getState().configData, appStore.getState().currentLessonIndex);
             if (nextStep && nextStep.videoUrl) {
                 const videoUrl = `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${nextStep.videoUrl}.mp4?alt=media`;
                 Media.preloader.preloadOnly(videoUrl);
             }
         }
     } catch (error) {
-        renderFallbackContinueButton(Strings.get('btn_continue', State.userData?.native_language) || 'Continue', () => {
+        renderFallbackContinueButton(Strings.get('btn_continue', appStore.getState().userData?.native_language) || 'Continue', () => {
             if (isCorrect || appStore.getState().incorrectAttempts > 2) loadNextStep(stepData);
-            else callLoadStep(stepData, State.configData.lessons[State.currentLessonIndex]);
+            else callLoadStep(stepData, appStore.getState().configData.lessons[appStore.getState().currentLessonIndex]);
         });
     }
 }
@@ -592,8 +592,8 @@ function callLoadStep(step, lesson, fluencyData) {
 // getNextStep has been moved to lesson-router.js
 
 function updateProgressBar() {
-    if (!State.configData || !State.configData.lessons || State.configData.lessons.length === 0) return;
-    const currentLesson = State.configData.lessons[State.currentLessonIndex];
+    if (!appStore.getState().configData || !appStore.getState().configData.lessons || appStore.getState().configData.lessons.length === 0) return;
+    const currentLesson = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex];
     const totalSteps = currentLesson.steps.length;
     let currentSteps = State.stepsAnswered++;
     const finalProgress = Math.min(Math.max((currentSteps / totalSteps) * 100, 10), 90);
@@ -605,12 +605,12 @@ function loadNextStep(currentStep, fluencyData) {
     toggleScoresAndHearts(false);
     State.resetForNextStep();
 
-    if (!State.configData || !State.configData.lessons || State.configData.lessons.length === 0) return;
-    const currentLesson = State.configData.lessons[State.currentLessonIndex];
+    if (!appStore.getState().configData || !appStore.getState().configData.lessons || appStore.getState().configData.lessons.length === 0) return;
+    const currentLesson = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex];
 
-    State.currentStepIndex++;
-    if (State.currentStepIndex < currentLesson.steps.length) {
-        callLoadStep(currentLesson.steps[State.currentStepIndex], currentLesson, fluencyData);
+    appStore.setState({ currentStepIndex: appStore.getState().currentStepIndex + 1 });
+    if (appStore.getState().currentStepIndex < currentLesson.steps.length) {
+        callLoadStep(currentLesson.steps[appStore.getState().currentStepIndex], currentLesson, fluencyData);
     } else {
         if (currentLesson.nextLessonId) loadNextLesson();
         else showCompletionMessage();
@@ -618,16 +618,16 @@ function loadNextStep(currentStep, fluencyData) {
 }
 
 function showCompletionMessage() {
-    showMessageInStepsContainer(Strings.get('msg_lesson_complete_all', State.userData?.native_language));
+    showMessageInStepsContainer(Strings.get('msg_lesson_complete_all', appStore.getState().userData?.native_language));
 }
 
 async function loadNextLesson() {
-    if (!State.configData || !State.configData.lessons || State.configData.lessons.length === 0) return;
-    const currentLesson = State.configData.lessons[State.currentLessonIndex];
+    if (!appStore.getState().configData || !appStore.getState().configData.lessons || appStore.getState().configData.lessons.length === 0) return;
+    const currentLesson = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex];
     const nextLessonId = currentLesson.nextLessonId;
 
     if (nextLessonId) {
-        saveLessonProgress(State.courseId, nextLessonId, State.userData).then(progressResult => {
+        saveLessonProgress(appStore.getState().courseId, nextLessonId, appStore.getState().userData).then(progressResult => {
             if (progressResult.dayCountIncremented) {
                 // Update the store; subscription handles the display
                 appStore.getState().setActivityMetrics(progressResult.newDayCount, appStore.getState().currentStreak);
@@ -635,15 +635,15 @@ async function loadNextLesson() {
         });
 
         setTimeout(async () => {
-            const nextLessonIndex = State.configData.lessons.findIndex(l => l.lessonId === nextLessonId);
+            const nextLessonIndex = appStore.getState().configData.lessons.findIndex(l => l.lessonId === nextLessonId);
             if (nextLessonIndex !== -1) {
-                State.currentLessonIndex = nextLessonIndex;
-                localStorage.setItem(`${State.courseId}_currentLessonId`, nextLessonId);
-                localStorage.setItem(`${State.courseId}_currentLessonTimestamp`, new Date().toISOString());
+                appStore.setState({ currentLessonIndex: nextLessonIndex });
+                localStorage.setItem(`${appStore.getState().courseId}_currentLessonId`, nextLessonId);
+                localStorage.setItem(`${appStore.getState().courseId}_currentLessonTimestamp`, new Date().toISOString());
                 setProgressBarWidth("100%");
                 State.stepsAnswered = 0;
-                State.currentStepIndex = 0;
-                loadLessonContent(State.configData.lessons[nextLessonIndex]);
+                appStore.setState({ currentStepIndex: 0 });
+                loadLessonContent(appStore.getState().configData.lessons[nextLessonIndex]);
             } else showCompletionMessage();
         }, 1200);
     } else {
@@ -662,7 +662,7 @@ async function handleTutorChatSubmit(rawText) {
     renderTutorMessage(rawText, true);
 
     // Show loading
-    renderAIAnalysisLoading(Strings.get('ai_thinking', State.userData?.native_language));
+    renderAIAnalysisLoading(Strings.get('ai_thinking', appStore.getState().userData?.native_language));
 
     // Get context and send to API
     const context = getChatHistoryContext();
@@ -677,7 +677,7 @@ async function handleTutorChatSubmit(rawText) {
     renderTutorMessage(aiResponse, false);
 }
 
-async function initializeLesson(courseId = State.courseId, configData = State.configData, userData = State.userData) {
+async function initializeLesson(courseId = appStore.getState().courseId, configData = appStore.getState().configData, userData = appStore.getState().userData) {
     try {
         // Initialize the Tutor Chat UI and bind the submission logic
         initTutorChatUI(handleTutorChatSubmit);
@@ -713,7 +713,7 @@ async function initializeLesson(courseId = State.courseId, configData = State.co
         const lesson = configData.lessons.find(l => l.lessonId === lessonId);
         if (!lesson) return;
 
-        State.currentLessonIndex = configData.lessons.findIndex(l => l.lessonId === lessonId);
+        appStore.setState({ currentLessonIndex: configData.lessons.findIndex(l => l.lessonId === lessonId) });
 
         if (window.preloadLessonAssets) {
             const constructFirebaseUrl = (slug) => `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${slug}.mp4?alt=media`;
@@ -771,7 +771,7 @@ async function loadLessonContent(lesson, configData) {
     const roleOtherText = getLocalizedTranslation(lesson.roleOther, lang);
     resetMissionText(missionText, settingText, roleUserText, roleOtherText);
 
-    callLoadStep(lesson.steps[State.currentStepIndex], lesson, null);
+    callLoadStep(lesson.steps[appStore.getState().currentStepIndex], lesson, null);
 }
 
 async function handleAuthClick(e) {
@@ -790,8 +790,8 @@ async function handleAuthClick(e) {
 
 function setupAuthMenu(isLoggedIn) {
     // REFACTORED: Moved DOM logic to bindAuthMenuUI
-    const signOutText = Strings.get('sign_out', State.userData?.native_language) || 'Sign Out';
-    const signInText = Strings.get('sign_in', State.userData?.native_language) || 'Sign In';
+    const signOutText = Strings.get('sign_out', appStore.getState().userData?.native_language) || 'Sign Out';
+    const signInText = Strings.get('sign_in', appStore.getState().userData?.native_language) || 'Sign In';
     bindAuthMenuUI(isLoggedIn, handleAuthClick, signOutText, signInText);
 }
 
@@ -809,45 +809,49 @@ async function initializeApp() {
         requestPersistentStorage();
         const isLoggedIn = await isUserLoggedIn();
         setupAuthMenu(isLoggedIn);
-        State.userData = await getUserProfile();
+        const userData = await getUserProfile();
+        appStore.getState().setCourseData({ userData });
 
         if (!isLoggedIn) {
             console.warn('User not authenticated. Proceeding as guest.');
             showGuestLoginModal();
         }
 
-        State.initializeUserMetrics(State.userData, calculateCurrentStreak);
+        State.initializeUserMetrics(appStore.getState().userData, calculateCurrentStreak);
         initMicAnimation();
         // Immediately trigger offline score sync if needed
-        syncOfflineScores(State.userData);
+        syncOfflineScores(appStore.getState().userData);
 
         // 1. Gather context
         const urlParamsApp = new URLSearchParams(window.location.search);
         const courseContext = {
             urlCourseId: getUrlParamCaseInsensitive(urlParamsApp, 'courseid'),
             storedCourseId: localStorage.getItem('currentCourse'),
-            wpCourseId: State.userData?.current_course || null
+            wpCourseId: appStore.getState().userData?.current_course || null
         };
         // 2. Pure function evaluation
-        State.courseId = resolveCurrentCourseId(State.userData, courseContext);
+        const courseId = resolveCurrentCourseId(appStore.getState().userData, courseContext);
+        appStore.getState().setCourseData({ courseId });
         // 3. Side effects
-        localStorage.setItem('currentCourse', State.courseId);
-        if (State.userData && typeof State.userData === 'object') {
-            await saveCourseToUserProfile(State.courseId, State.userData);
+        localStorage.setItem('currentCourse', appStore.getState().courseId);
+        if (appStore.getState().userData && typeof appStore.getState().userData === 'object') {
+            await saveCourseToUserProfile(appStore.getState().courseId, appStore.getState().userData);
         }
 
         // --- FETCH CONFIG AND SET LANGUAGE LEVEL ---
-        const response = await fetch(`js/config/${State.courseId}.json`);
-        State.configData = await response.json();
+        const response = await fetch(`js/config/${appStore.getState().courseId}.json`);
+        const configData = await response.json();
 
         // Pull level directly from the JSON field (e.g., "B1")
-        State.englishLevel = State.configData.languageLevel || 'A0';
-        console.log(`Course Level initialized to: ${State.englishLevel}`);
+        const englishLevel = configData.languageLevel || 'A0';
+        console.log(`Course Level initialized to: ${englishLevel}`);
 
-        normalizeConfig(State.configData, State.userData?.native_language);
+        appStore.getState().setCourseData({ configData, englishLevel });
+
+        normalizeConfig(appStore.getState().configData, appStore.getState().userData?.native_language);
 
         State.successHandler = new SuccessLessonHandler({
-            configData: State.configData,
+            configData: appStore.getState().configData,
             loadLessonContent,
             calculateAverage,
             playSound: Media.playSound,
@@ -909,7 +913,7 @@ async function initializeApp() {
     } catch (error) {
         console.error("Initialization error:", error);
         hidePreloader();
-        showInitializationErrorMessage(Strings.get('lesson_load_error', State.userData?.native_language));
+        showInitializationErrorMessage(Strings.get('lesson_load_error', appStore.getState().userData?.native_language));
     }
 }
 

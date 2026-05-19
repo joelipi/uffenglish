@@ -1,6 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { showInitializationErrorMessage, setupLessonUI, DOM, escapeHTML, getFirstName, flashElement, disableAllButtons, updateCurrentScoreDisplay, updateSpeakingScoreDisplay, showCriticalError, hideCriticalError, updateActivityDisplay, updateDayCountDisplay } from './ui.js';
+import {
+    showInitializationErrorMessage, setupLessonUI, DOM, escapeHTML, getFirstName, flashElement,
+    disableAllButtons, updateCurrentScoreDisplay, updateSpeakingScoreDisplay, showCriticalError,
+    hideCriticalError, updateActivityDisplay, updateDayCountDisplay,
+    safeRenderChatInterface, renderUserResponse, renderAIAnalysisLoading, removeAILoadingStatus,
+    getPraiseHTML, renderAIFeedback, clearChatInterface, renderHangmanHint, showMicWarning,
+    showAnswerError, setProgressBarWidth, hideAnswerDiv, bindProcessButton, resetUIForNewStep,
+    toggleScoresAndHearts, removeRepeatButton
+} from './ui.js';
 import { appStore } from '../modules/store.js';
+import { State } from '../modules/state.js';
 
 describe('UI Component functions', () => {
 
@@ -210,7 +219,6 @@ describe('UI Component functions', () => {
         it('should execute safeRenderChatInterface safely', () => {
             // Because safeRenderChatInterface uses specific DOM properties we mocked
             // we can test it directly
-            const { safeRenderChatInterface } = require('./ui.js');
             expect(() => safeRenderChatInterface(true, '<p>test</p>')).not.toThrow();
             expect(document.body.classList.contains('chat-mode-active')).toBe(true);
             const chatList = document.getElementById('chat-message-list');
@@ -218,7 +226,6 @@ describe('UI Component functions', () => {
         });
 
         it('should append a Node to the chat body', () => {
-             const { safeRenderChatInterface } = require('./ui.js');
              const div = document.createElement('div');
              div.id = 'test-node';
              safeRenderChatInterface(true, div);
@@ -227,9 +234,7 @@ describe('UI Component functions', () => {
         });
 
         it('should render user response', () => {
-             const { renderUserResponse } = require('./ui.js');
              // ui.js looks at State.userData as well for fallback, let's mock the State or appStore correctly
-             const { State } = require('../modules/state.js');
              State.userData = { display_name: 'Test User', profilepicurl: 'http://test.jpg' };
              appStore.setState({ userData: { display_name: 'Test User', profilepicurl: 'http://test.jpg' } });
 
@@ -241,7 +246,6 @@ describe('UI Component functions', () => {
         });
 
         it('should render AI analysis loading', () => {
-             const { renderAIAnalysisLoading, removeAILoadingStatus } = require('./ui.js');
              expect(() => renderAIAnalysisLoading('loading test')).not.toThrow();
              const chatList = document.getElementById('chat-message-list');
              expect(chatList.innerHTML).toContain('loading test');
@@ -251,7 +255,6 @@ describe('UI Component functions', () => {
         });
 
         it('should get praise HTML without errors', () => {
-             const { getPraiseHTML } = require('./ui.js');
              expect(getPraiseHTML(null)).toBe('');
              expect(getPraiseHTML('Good job!')).toBe('Good job!');
              expect(getPraiseHTML({ text: 'Good job!' })).toBe('Good job!');
@@ -259,7 +262,6 @@ describe('UI Component functions', () => {
         });
 
         it('should render AI feedback chunks correctly', () => {
-            const { renderAIFeedback } = require('./ui.js');
             const pNode = document.createElement('p');
             pNode.textContent = 'Node content';
             const rowNode = document.createElement('div');
@@ -284,21 +286,18 @@ describe('UI Component functions', () => {
         });
 
         it('should test clearChatInterface', () => {
-             const { clearChatInterface } = require('./ui.js');
              expect(() => clearChatInterface()).not.toThrow();
         });
     });
 
     describe('Hints and Errors Rendering', () => {
         it('should render hangman hint', () => {
-            const { renderHangmanHint } = require('./ui.js');
             document.body.innerHTML += '<div id="hintUncommonWords"></div>';
             renderHangmanHint('<span>hint text</span>');
             expect(document.getElementById('hintUncommonWords').innerHTML).toBe('<span>hint text</span>');
         });
 
         it('should show mic warning', () => {
-            const { showMicWarning } = require('./ui.js');
             document.body.innerHTML += '<div id="micStatusText"></div>';
             showMicWarning('Warning!');
             expect(document.getElementById('micStatusText').innerHTML).toContain('Warning!');
@@ -306,7 +305,6 @@ describe('UI Component functions', () => {
 
         it('should show answer error and hide after timeout', () => {
             vi.useFakeTimers();
-            const { showAnswerError } = require('./ui.js');
             document.body.innerHTML += '<div id="answer-error-message" class="d-none"></div>';
 
             showAnswerError('Answer is wrong');
@@ -322,21 +320,18 @@ describe('UI Component functions', () => {
 
     describe('Miscellaneous UI Functions', () => {
         it('should set progress bar width', () => {
-            const { setProgressBarWidth } = require('./ui.js');
             document.body.innerHTML += '<div id="progress-bar"></div>';
             setProgressBarWidth('50%');
             expect(document.getElementById('progress-bar').style.width).toBe('50%');
         });
 
         it('should hide answer div', () => {
-            const { hideAnswerDiv } = require('./ui.js');
             document.body.innerHTML += '<div id="answerDiv" class=""></div>';
             hideAnswerDiv();
             expect(document.getElementById('answerDiv').classList.contains('d-none')).toBe(true);
         });
 
         it('should bind process button', () => {
-            const { bindProcessButton } = require('./ui.js');
             document.body.innerHTML += '<button id="processBtn"></button>';
             const mockClick = vi.fn();
             bindProcessButton(mockClick);
@@ -347,7 +342,6 @@ describe('UI Component functions', () => {
 
     describe('resetUIForNewStep', () => {
         it('should remove elements and reset buttons', () => {
-            const { resetUIForNewStep } = require('./ui.js');
             document.body.innerHTML = `
                 <div id="resultVideo"></div>
                 <div id="displayCanvas"></div>
@@ -383,7 +377,6 @@ describe('UI Component functions', () => {
 
     describe('toggleScoresAndHearts & removeRepeatButton', () => {
         it('should toggle scores container', () => {
-            const { toggleScoresAndHearts } = require('./ui.js');
             document.body.innerHTML = '<div id="stats-container" class="d-none"></div>';
 
             toggleScoresAndHearts(true);
@@ -394,7 +387,6 @@ describe('UI Component functions', () => {
         });
 
         it('should remove repeat button', () => {
-            const { removeRepeatButton } = require('./ui.js');
             document.body.innerHTML = '<button id="repeatButton"></button>';
             removeRepeatButton();
             expect(document.getElementById('repeatButton')).toBeNull();

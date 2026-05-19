@@ -25,27 +25,7 @@ export const State = {
     videoRole: null,
     successHandler: null,
 
-    // Getters/Setters for properties that moved to appStore (persistence & reactivity)
-    get currentLessonIndex() { return appStore.getState().currentLessonIndex; },
-    set currentLessonIndex(val) { appStore.setState({ currentLessonIndex: val }); },
-
-    get currentStepIndex() { return appStore.getState().currentStepIndex; },
-    set currentStepIndex(val) { appStore.setState({ currentStepIndex: val }); },
-
-    get cuesGiven() { return appStore.getState().cuesGiven; },
-    set cuesGiven(val) { appStore.setState({ cuesGiven: val }); },
-
-    get repeatPointsHistory() { return appStore.getState().repeatPointsHistory; },
-    set repeatPointsHistory(val) { appStore.setState({ repeatPointsHistory: val }); },
-
-    get rolePlayPointsHistory() { return appStore.getState().rolePlayPointsHistory; },
-    set rolePlayPointsHistory(val) { appStore.setState({ rolePlayPointsHistory: val }); },
-
     // Dynamic properties (initialized in app.js or initializeLesson)
-    courseId: null,
-    configData: null,
-    userData: null,
-    englishLevel: 'A0',
     apiRoot: null,
 
     // Engagement Tracking
@@ -67,9 +47,10 @@ export const State = {
      * @param {Function} streakCalculator - The calculateCurrentStreak function from userProfile.js
      */
     initializeUserMetrics(userData, streakCalculator) {
-        this.userData = userData;
-        // Map the Appwrite 'english_level' to your State
-        this.englishLevel = userData?.english_level || 'A0';
+        appStore.getState().setCourseData({
+            userData,
+            englishLevel: userData?.english_level || 'A0'
+        });
 
         if (userData) {
             const isGuest = userData.auth_method === 'guest' || userData.display_name === 'Guest User';
@@ -102,7 +83,7 @@ export const State = {
         appStore.getState().resetLessonHistory();
 
         // Reset step index to 0 for a fresh start
-        this.currentStepIndex = 0;
+        appStore.setState({ currentStepIndex: 0 });
 
         this.interactionLog = [];
         this.recognizedIdioms = [];

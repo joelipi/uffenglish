@@ -183,8 +183,8 @@ export function safeRenderChatInterface(isAI, bodyContent) {
 
 export function renderUserResponse(text, statsHtml = "") {
     const safeText = escapeHTML(text);
-    const userName = getFirstName(appStore.getState().userData?.display_name || State.userData?.display_name);
-    const userAvatarUrl = appStore.getState().userData?.profilepicurl || State.userData?.profilepicurl || 'assets/img/userprofile.webp';
+    const userName = getFirstName(appStore.getState().userData?.display_name);
+    const userAvatarUrl = appStore.getState().userData?.profilepicurl || 'assets/img/userprofile.webp';
     const html = `
         <div class="chat-message-row chat-message-row--user">
             <img src="${userAvatarUrl}" alt="${userName}" class="chat-avatar-inline" />
@@ -199,7 +199,7 @@ export function renderUserResponse(text, statsHtml = "") {
 
 export function renderAIAnalysisLoading(text) {
     hideWhisperReviewUI();
-    const defaultText = Strings.get('ai_analyzing', State.userData?.native_language);
+    const defaultText = Strings.get('ai_analyzing', appStore.getState().userData?.native_language);
     const displayText = text || defaultText;
     const aiAvatarUrl = AI_TUTOR_AVATAR;
     const html = `
@@ -796,7 +796,7 @@ export function showGuestLoginModal() {
     }
 
     // Set localized strings
-    const lang = State.userData?.native_language || 'en';
+    const lang = appStore.getState().userData?.native_language || 'en';
     const titleEl = document.getElementById('guestLoginModalTitleText');
     const bodyEl = document.getElementById('guestLoginModalBodyText');
     const loginBtnTextEl = document.getElementById('guestLoginBtnText');
@@ -982,8 +982,8 @@ export function showPlaybackVideo() {
         row.className = 'chat-message-row chat-message-row--user';
         row.style.animation = 'popIn 0.3s ease-out forwards';
 
-        const userName = getFirstName(appStore.getState().userData?.display_name || State.userData?.display_name);
-        const userAvatarUrl = appStore.getState().userData?.profilepicurl || State.userData?.profilepicurl || 'assets/img/userprofile.webp';
+        const userName = getFirstName(appStore.getState().userData?.display_name);
+        const userAvatarUrl = appStore.getState().userData?.profilepicurl || 'assets/img/userprofile.webp';
 
         const avatar = document.createElement('img');
         avatar.src = userAvatarUrl;
@@ -1354,7 +1354,7 @@ export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyCl
             }
 
             // Retrieve localized strings
-            const lang = State.userData?.native_language || 'en';
+            const lang = appStore.getState().userData?.native_language || 'en';
             const incomingLabel = Strings.get('widget_incoming', lang) || 'INCOMING';
             const actionText = Strings.get(actionTextKey, lang) || 'Tap to answer...';
 
@@ -1703,11 +1703,11 @@ export function setupLessonUI(fullTitle) {
 
 export function handlecueUI(stepIndex, stepData, button, cue, explanation, translation, userResponse, englishLevel, englishLevelDeduction, userData, configData, fluencyBubble = null) {
 
-    if (stepData.stepType === "closedResponse" && stepData.videoUrl) State.repeatPointsHistory.push(appStore.getState().listeningScore);
-    if (stepData.stepType === "openResponse" && stepData.videoUrl) State.rolePlayPointsHistory.push(appStore.getState().listeningScore);
+    if (stepData.stepType === "closedResponse" && stepData.videoUrl) appStore.setState({ repeatPointsHistory: [...appStore.getState().repeatPointsHistory, appStore.getState().listeningScore] });
+    if (stepData.stepType === "openResponse" && stepData.videoUrl) appStore.setState({ rolePlayPointsHistory: [...appStore.getState().rolePlayPointsHistory, appStore.getState().listeningScore] });
 
     if (DOM.speechText) {
-        const lang = userData?.native_language || State.userData?.native_language || 'en';
+        const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
         const praiseResult = (stepData.stepType === "openResponse" || stepData.stepType === "closedResponse") ? getRandomPraise('general', lang) : "";
         const feedbackText = (stepData.stepType === "openResponse" && englishLevelDeduction > 0)
             ? `${Strings.get('ai_acceptable', lang)}<br>${Strings.get('ai_language_level', lang)} ${englishLevel}<br>${Strings.get('ai_fluency_reduced', lang)} <span style='color:red'>${englishLevelDeduction} ${Strings.get('ai_percentage_points', lang)}</span>.`
@@ -1716,8 +1716,8 @@ export function handlecueUI(stepIndex, stepData, button, cue, explanation, trans
         if (stepData.stepType !== "openResponse" && stepData.stepType !== "closedResponse") {
             const localizedTrans = getLocalizedTranslation(translation, lang);
 
-            const userName = getFirstName(appStore.getState().userData?.display_name || State.userData?.display_name);
-            const userAvatarUrl = appStore.getState().userData?.profilepicurl || State.userData?.profilepicurl || 'assets/img/userprofile.webp';
+            const userName = getFirstName(appStore.getState().userData?.display_name);
+            const userAvatarUrl = appStore.getState().userData?.profilepicurl || 'assets/img/userprofile.webp';
 
             const correctWrapper = document.createElement('div');
             correctWrapper.className = 'chat-message-row chat-message-row--user correct-answer-wrapper';
@@ -1809,7 +1809,7 @@ export function handleIncueUI(stepIndex, stepData, button, cue, userResponse, ex
         pointLoss.show(DOM.micStatusText, 25);
         if (appStore.getState().incorrectAttempts > 2) {
             appStore.getState().setListeningScore(0);
-            State.rolePlayPointsHistory.push(appStore.getState().listeningScore);
+            appStore.setState({ rolePlayPointsHistory: [...appStore.getState().rolePlayPointsHistory, appStore.getState().listeningScore] });
         }
     }
 
@@ -1826,7 +1826,7 @@ export function handleIncueUI(stepIndex, stepData, button, cue, userResponse, ex
     if (stepData.stepType === "openResponse" && userResponse) {
         if (appStore.getState().incorrectAttempts > 2) {
             appStore.getState().setListeningScore(0);
-            State.rolePlayPointsHistory.push(appStore.getState().listeningScore);
+            appStore.setState({ rolePlayPointsHistory: [...appStore.getState().rolePlayPointsHistory, appStore.getState().listeningScore] });
         }
 
         const teacherTextStr = appStore.getState().incorrectAttempts === 1
@@ -1851,7 +1851,7 @@ export function handleIncueUI(stepIndex, stepData, button, cue, userResponse, ex
         let possibleAnswerNode = '';
         if (stepData.possibleAnswer && appStore.getState().incorrectAttempts > 2) {
             const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = `${Strings.get('example_correct_answer', State.userData?.native_language)}<br>${stepData.possibleAnswer}`;
+            tempDiv.innerHTML = `${Strings.get('example_correct_answer', appStore.getState().userData?.native_language)}<br>${stepData.possibleAnswer}`;
             possibleAnswerNode = tempDiv;
         }
 
@@ -1879,13 +1879,13 @@ export function handleIncueUI(stepIndex, stepData, button, cue, userResponse, ex
         const incorrectUl = incorrect.size > 0 ? `<ul class='card-text incorrectWords list-inline' id='incorrectWords' style='display:block; border-top: 1px solid rgba(255,255,255,0.1)'>${Array.from(incorrect).map(w => `<li class='list-inline-item'>${w}</li>`).join('')}</ul>` : '';
 
         const teacherText = appStore.getState().incorrectAttempts === 1
-            ? Strings.get('try_again_1', State.userData?.native_language)
+            ? Strings.get('try_again_1', appStore.getState().userData?.native_language)
             : appStore.getState().incorrectAttempts === 2
-                ? Strings.get('try_again_2', State.userData?.native_language)
-                : `${Strings.get('failed_continue', State.userData?.native_language)}<br><br>Correct:<br>"${cue}"`;
+                ? Strings.get('try_again_2', appStore.getState().userData?.native_language)
+                : `${Strings.get('failed_continue', appStore.getState().userData?.native_language)}<br><br>Correct:<br>"${cue}"`;
 
         const headsUpStr = stepData.headsUp
-            ? (appStore.getState().incorrectAttempts <= 2 ? Strings.get('heads_up_repeat_video', State.userData?.native_language) : stepData.headsUp)
+            ? (appStore.getState().incorrectAttempts <= 2 ? Strings.get('heads_up_repeat_video', appStore.getState().userData?.native_language) : stepData.headsUp)
             : '';
 
         const chunks = [`<strong>${teacherText}</strong><br><br>${correctUl}${incorrectUl}`];

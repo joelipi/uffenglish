@@ -13,6 +13,10 @@ export const appStore = createStore(
             isDemoMode: false,
             isWhisperReady: false,
             userFirstName: null,
+            userData: null,
+            configData: null,
+            courseId: null,
+            englishLevel: 'A0',
 
             // --- Reactive UI Metrics ---
             listeningScore: 100,
@@ -55,6 +59,12 @@ export const appStore = createStore(
             setDemoMode: (val) => set({ isDemoMode: val }),
             setWhisperReady: (val) => set({ isWhisperReady: val }),
             setUserFirstName: (val) => set({ userFirstName: val }),
+            setCourseData: (data) => set((state) => ({
+                userData: data.userData !== undefined ? data.userData : state.userData,
+                configData: data.configData !== undefined ? data.configData : state.configData,
+                courseId: data.courseId !== undefined ? data.courseId : state.courseId,
+                englishLevel: data.englishLevel !== undefined ? data.englishLevel : state.englishLevel,
+            })),
 
             // Update physical place in the lesson
             setProgress: ({ lessonId, lessonIndex, questionIndex }) => set({

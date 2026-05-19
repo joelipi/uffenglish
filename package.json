@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "![UFF Loading](assets/img/u-f-f.png)",
   "main": "temp_video_share.js",
+  "type": "module",
   "scripts": {
     "dev": "vite --port 3000",
     "build": "vite build",

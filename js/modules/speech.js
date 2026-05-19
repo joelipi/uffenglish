@@ -4,7 +4,6 @@ import * as WebAdapter from './speech.web.js';
 import { transcribeAudioBuffer, preloadWhisperEngine } from '../workers/whisper/app-vad-asr-web.js';
 import { updateSpeechRecording } from './storage.js';
 import { validateAnswerPrecheck } from './answers.js';
-import { State } from './state.js';
 import { appStore } from './store.js';
 
 export * from './speech.web.js';
@@ -59,7 +58,7 @@ async function processTranscript({ transcript, timingMeta, checkGibberish = fals
 
     const englishLevel = configData?.languageLevel || 'A0';
     const { isValid, warningMessage } = await validateAnswerPrecheck(
-        transcriptToReview, step.cue, step, englishLevel, userData, State.cuesGiven
+        transcriptToReview, step.cue, step, englishLevel, userData, appStore.getState().cuesGiven
     );
 
     if (!isValid) { rejectPreflight(warningMessage); return; }
