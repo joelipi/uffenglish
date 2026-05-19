@@ -113,27 +113,27 @@ export function cleanBrowserUrlRoute() {
 }
 
 /**
- * Returns the next question in the current lesson, or null if at the end.
- * Returns the first question as a fallback if the current question is not found —
- * if this happens in production it likely indicates a stale question reference.
+ * Returns the next step in the current lesson, or null if at the end.
+ * Returns the first step as a fallback if the current question is not found —
+ * if this happens in production it likely indicates a stale step reference.
  * @returns {object|null}
  */
 export function getNextQuestion(currentQuestion, configData, currentLessonIndex) {
     if (!configData?.lessons || currentLessonIndex >= configData.lessons.length) return null;
 
     const currentLesson = configData.lessons[currentLessonIndex];
-    const currentIndex = currentLesson.questions.findIndex(
-        q => q.question === currentQuestion.question && q.cue === currentQuestion.cue
+    const currentIndex = currentLesson.steps.findIndex(
+        q => q.step === currentQuestion.step && q.cue === currentQuestion.cue
     );
 
     if (currentIndex === -1) {
-        console.warn('[LessonRouter] getNextQuestion: current question not found in lesson — falling back to first question. This may indicate a stale question reference.');
-        return currentLesson.questions[0];
+        console.warn('[LessonRouter] getNextQuestion: current step not found in lesson — falling back to first step. This may indicate a stale step reference.');
+        return currentLesson.steps[0];
     }
 
-    if (currentIndex >= currentLesson.questions.length - 1) return null;
+    if (currentIndex >= currentLesson.steps.length - 1) return null;
 
-    return currentLesson.questions[currentIndex + 1];
+    return currentLesson.steps[currentIndex + 1];
 }
 
 /**

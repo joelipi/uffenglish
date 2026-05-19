@@ -1703,7 +1703,7 @@ export function renderMultiChoiceUI(notSureText, handleNotSureCallback, answers,
 }
 
 export function showMessageInQuestionsContainer(messageHTML) {
-    const container = document.getElementById('questions-container');
+    const container = document.getElementById('steps-container');
     if (container) {
         container.innerHTML = `<div class="text-center">${messageHTML}</div>`;
     }
@@ -1739,19 +1739,19 @@ export function setupLessonUI(fullTitle) {
     }
 }
 
-export function handlecueUI(qIndex, questionData, button, cue, explanation, translation, userResponse, englishLevel, englishLevelDeduction, userData, configData, fluencyBubble = null) {
+export function handlecueUI(qIndex, stepData, button, cue, explanation, translation, userResponse, englishLevel, englishLevelDeduction, userData, configData, fluencyBubble = null) {
 
-    if (questionData.inputType === "closedResponse" && questionData.videoUrl) State.repeatPointsHistory.push(appStore.getState().listeningScore);
-    if (questionData.inputType === "openResponse" && questionData.videoUrl) State.rolePlayPointsHistory.push(appStore.getState().listeningScore);
+    if (stepData.stepType === "closedResponse" && stepData.videoUrl) State.repeatPointsHistory.push(appStore.getState().listeningScore);
+    if (stepData.stepType === "openResponse" && stepData.videoUrl) State.rolePlayPointsHistory.push(appStore.getState().listeningScore);
 
     if (DOM.speechText) {
         const lang = userData?.native_language || State.userData?.native_language || 'en';
-        const praiseResult = (questionData.inputType === "openResponse" || questionData.inputType === "closedResponse") ? getRandomPraise('general', lang) : "";
-        const feedbackText = (questionData.inputType === "openResponse" && englishLevelDeduction > 0)
+        const praiseResult = (stepData.stepType === "openResponse" || stepData.stepType === "closedResponse") ? getRandomPraise('general', lang) : "";
+        const feedbackText = (stepData.stepType === "openResponse" && englishLevelDeduction > 0)
             ? `${Strings.get('ai_acceptable', lang)}<br>${Strings.get('ai_language_level', lang)} ${englishLevel}<br>${Strings.get('ai_fluency_reduced', lang)} <span style='color:red'>${englishLevelDeduction} ${Strings.get('ai_percentage_points', lang)}</span>.`
             : getPraiseHTML(praiseResult);
 
-        if (questionData.inputType !== "openResponse" && questionData.inputType !== "closedResponse") {
+        if (stepData.stepType !== "openResponse" && stepData.stepType !== "closedResponse") {
             const localizedTrans = getLocalizedTranslation(translation, lang);
 
             const userName = getFirstName(appStore.getState().userData?.display_name || State.userData?.display_name);
@@ -1818,7 +1818,7 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
             if (Array.isArray(explanation)) chunks.push(...explanation);
             else if (explanation) chunks.push(explanation);
             if (fluencyBubble) chunks.push(fluencyBubble);
-            chunks.push(praiseWrapper, questionData.headsUp);
+            chunks.push(praiseWrapper, stepData.headsUp);
 
             renderAIFeedback(chunks);
         } else {
@@ -1826,7 +1826,7 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
             if (Array.isArray(explanation)) chunks.push(...explanation);
             else if (explanation) chunks.push(explanation);
             if (fluencyBubble) chunks.push(fluencyBubble);
-            chunks.push(feedbackText ? `<strong>${feedbackText}</strong>` : "", questionData.headsUp);
+            chunks.push(feedbackText ? `<strong>${feedbackText}</strong>` : "", stepData.headsUp);
 
             renderAIFeedback(chunks);
         }
@@ -1835,14 +1835,14 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
     Media.playSound('correct-sound');
 }
 
-export function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanation, normalizeduserResponse, normalizedcue, question, silent = false, userData, configData, fluencyBubble = null) {
+export function handleIncueUI(qIndex, stepData, button, cue, userResponse, explanation, normalizeduserResponse, normalizedcue, step, silent = false, userData, configData, fluencyBubble = null) {
     appStore.getState().incrementIncorrectAttempts();
 
-    if (!silent && !State.isTextMode && (questionData.inputType === "lessonIntro" || questionData.inputType === "closedResponse" || questionData.inputType === "openResponse")) {
+    if (!silent && !State.isTextMode && (stepData.stepType === "lessonIntro" || stepData.stepType === "closedResponse" || stepData.stepType === "openResponse")) {
         showPlaybackVideo();
     }
 
-    if ((questionData.inputType === "closedResponse" || questionData.inputType === "openResponse") && questionData.videoUrl) {
+    if ((stepData.stepType === "closedResponse" || stepData.stepType === "openResponse") && stepData.videoUrl) {
         appStore.getState().deductListeningScore(25);
         pointLoss.show(DOM.micStatusText, 25);
         if (appStore.getState().incorrectAttempts > 2) {
@@ -1851,9 +1851,9 @@ export function handleIncueUI(qIndex, questionData, button, cue, userResponse, e
         }
     }
 
-    // In silent mode for speech questions, we're called from the silent retry flow in app.js
+    // In silent mode for speech steps, we're called from the silent retry flow in app.js
     // which handles its own hangman hint rendering. Skip chat bubbles entirely for this case.
-    const isSilentSpeechRetry = silent && questionData.inputType === "closedResponse";
+    const isSilentSpeechRetry = silent && stepData.stepType === "closedResponse";
 
     if (isSilentSpeechRetry) {
         // Silent retry for speech: just increment attempts, no UI rendering needed
@@ -1861,7 +1861,7 @@ export function handleIncueUI(qIndex, questionData, button, cue, userResponse, e
         return;
     }
 
-    if (questionData.inputType === "openResponse" && userResponse) {
+    if (stepData.stepType === "openResponse" && userResponse) {
         if (appStore.getState().incorrectAttempts > 2) {
             appStore.getState().setListeningScore(0);
             State.rolePlayPointsHistory.push(appStore.getState().listeningScore);
@@ -1879,17 +1879,17 @@ export function handleIncueUI(qIndex, questionData, button, cue, userResponse, e
         teacherDiv.appendChild(teacherStrong);
 
         let headsUpNode = '';
-        if (questionData.headsUp) {
-            const headsUpText = appStore.getState().incorrectAttempts <= 2 ? Strings.get('heads_up_try_again', userData?.native_language) : questionData.headsUp;
+        if (stepData.headsUp) {
+            const headsUpText = appStore.getState().incorrectAttempts <= 2 ? Strings.get('heads_up_try_again', userData?.native_language) : stepData.headsUp;
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = headsUpText;
             headsUpNode = tempDiv;
         }
 
         let possibleAnswerNode = '';
-        if (questionData.possibleAnswer && appStore.getState().incorrectAttempts > 2) {
+        if (stepData.possibleAnswer && appStore.getState().incorrectAttempts > 2) {
             const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = `${Strings.get('example_correct_answer', State.userData?.native_language)}<br>${questionData.possibleAnswer}`;
+            tempDiv.innerHTML = `${Strings.get('example_correct_answer', State.userData?.native_language)}<br>${stepData.possibleAnswer}`;
             possibleAnswerNode = tempDiv;
         }
 
@@ -1905,7 +1905,7 @@ export function handleIncueUI(qIndex, questionData, button, cue, userResponse, e
         renderAIFeedback(chunks);
     }
 
-    if (questionData.inputType === "closedResponse" && userResponse && DOM.speechText) {
+    if (stepData.stepType === "closedResponse" && userResponse && DOM.speechText) {
         const selectedWords = [...new Set(normalizeduserResponse.split(/\s+/))];
         const correctWords = [...new Set(normalizedcue.split(/\s+/))];
         const correctWordSet = new Set(correctWords.map(w => w.toLowerCase()));
@@ -1922,8 +1922,8 @@ export function handleIncueUI(qIndex, questionData, button, cue, userResponse, e
                 ? Strings.get('try_again_2', State.userData?.native_language)
                 : `${Strings.get('failed_continue', State.userData?.native_language)}<br><br>Correct:<br>"${cue}"`;
 
-        const headsUpStr = questionData.headsUp
-            ? (appStore.getState().incorrectAttempts <= 2 ? Strings.get('heads_up_repeat_video', State.userData?.native_language) : questionData.headsUp)
+        const headsUpStr = stepData.headsUp
+            ? (appStore.getState().incorrectAttempts <= 2 ? Strings.get('heads_up_repeat_video', State.userData?.native_language) : stepData.headsUp)
             : '';
 
         const chunks = [`<strong>${teacherText}</strong><br><br>${correctUl}${incorrectUl}`];

@@ -5,19 +5,19 @@ import swearjar from './swearjar.js';
 import { checkGrammarWithAI, evaluateIntentWithAI } from './api.js';
 import Strings from '../data/strings.js';
 
-export function getCurrentQuestionIndex(questionData, configData, currentLessonIndex) {
+export function getCurrentStepIndex(stepData, configData, currentLessonIndex) {
     if (!configData || !configData.lessons || configData.lessons.length === 0) return -1;
     if (currentLessonIndex < 0 || currentLessonIndex >= configData.lessons.length) return -1;
 
     const currentLesson = configData.lessons[currentLessonIndex];
-    return currentLesson.questions.findIndex(q => {
-        const sameQuestion = q.question === questionData.question &&
-            q.explanation === questionData.explanation &&
-            q.cue === questionData.cue;
+    return currentLesson.steps.findIndex(q => {
+        const sameQuestion = q.step === stepData.step &&
+            q.explanation === stepData.explanation &&
+            q.cue === stepData.cue;
 
         // Safely compare incues arrays regardless of order
         const qIncues = Array.isArray(q.incues) ? [...q.incues].sort() : [];
-        const dataIncues = Array.isArray(questionData.incues) ? [...questionData.incues].sort() : [];
+        const dataIncues = Array.isArray(stepData.incues) ? [...stepData.incues].sort() : [];
         const sameIncues = qIncues.length === dataIncues.length &&
             qIncues.every((val, index) => val === dataIncues[index]);
 
@@ -25,24 +25,24 @@ export function getCurrentQuestionIndex(questionData, configData, currentLessonI
     });
 }
 
-export function isLastAiQuestionInLesson(lesson, currentIndex) {
-    const aiQuestions = lesson.questions.filter(q => q.inputType === "openResponse");
-    if (aiQuestions.length === 0) return false;
-    const lastAiIndex = lesson.questions.findIndex(q => q === aiQuestions[aiQuestions.length - 1]);
+export function isLastAiStepInLesson(lesson, currentIndex) {
+    const aiSteps = lesson.steps.filter(q => q.stepType === "openResponse");
+    if (aiSteps.length === 0) return false;
+    const lastAiIndex = lesson.steps.findIndex(q => q === aiSteps[aiSteps.length - 1]);
     return currentIndex === lastAiIndex;
 }
 
 export async function processAnswerLogic({
-    userResponse, cue, questionData, lesson, englishLevel, userData, cuesGiven, apiRoot
+    userResponse, cue, stepData, lesson, englishLevel, userData, cuesGiven, apiRoot
 }) {
-    if (questionData.inputType === "openResponse") {
+    if (stepData.stepType === "openResponse") {
         const normalizeduserResponse = await normalize(userResponse.trim().toLowerCase());
         const normalizedcue = await normalize(cue.trim().toLowerCase());
 
         let result = {
             isCorrect: false,
             explanation: "",
-            translation: questionData.translation,
+            translation: stepData.translation,
             userResponse: userResponse,
             normalizeduserResponse: normalizeduserResponse,
             normalizedcue: normalizedcue,
@@ -52,10 +52,10 @@ export async function processAnswerLogic({
         };
 
         // 1. Grammar Pass (Local fallback or AI)
-        const grammarResult = await checkGrammarWithAI(userResponse, questionData);
+        const grammarResult = await checkGrammarWithAI(userResponse, stepData);
 
         // 2. Intent Pass (AI)
-        const intentResult = await evaluateIntentWithAI(grammarResult.correctedText, questionData, lesson);
+        const intentResult = await evaluateIntentWithAI(grammarResult.correctedText, stepData, lesson);
 
         // --- NEW BUSINESS LOGIC: Robust Array Parsing ---
         let evaluationResult = [];
@@ -212,26 +212,26 @@ export async function processAnswerLogic({
         }
         return result;
     }
-    else if (questionData.inputType === "closedResponse") {
+    else if (stepData.stepType === "closedResponse") {
         const normalizeduserResponse = await normalize(userResponse.trim().toLowerCase());
         const normalizedcue = await normalize(cue.trim().toLowerCase());
         const similarity = calculateSimilarity(normalizeduserResponse, normalizedcue);
         const threshold = 95;
         let result = {
             isCorrect: similarity >= threshold,
-            explanation: questionData.explanation,
+            explanation: stepData.explanation,
             normalizeduserResponse,
             normalizedcue
         };
         return result;
     } else {
-        let result = { isCorrect: false, explanation: questionData.explanation };
+        let result = { isCorrect: false, explanation: stepData.explanation };
         return result;
     }
 }
 
-export async function validateAnswerPrecheck(val, cue, questionData, englishLevel, userData, cuesGiven) {
-    if (questionData.inputType !== "openResponse") return { isValid: true };
+export async function validateAnswerPrecheck(val, cue, stepData, englishLevel, userData, cuesGiven) {
+    if (stepData.stepType !== "openResponse") return { isValid: true };
 
     const wordCount = val.trim().split(/\s+/).length;
     let minWordsRequired = 3;

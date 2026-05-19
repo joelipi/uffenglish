@@ -19,7 +19,7 @@ export class VideoRenderPlanner {
             const rec = this.recordings[i];
             const prevRec = i > 0 ? this.recordings[i - 1] : null;
 
-            // Skip remote prompt if this is a retry of the same question
+            // Skip remote prompt if this is a retry of the same step
             const needsRemote = !(prevRec && rec.originalQuestionIndex === prevRec.originalQuestionIndex);
 
             if (needsRemote) {
@@ -142,16 +142,16 @@ export class VideoRenderPlanner {
     _getRemoteTarget(rec) {
         if (!this.configData.lessons) return null;
         const lesson = this.configData.lessons.find(l => l.lessonId === rec.originalLessonId);
-        if (!lesson?.questions?.[rec.originalQuestionIndex]) return null;
-        const q = lesson.questions[rec.originalQuestionIndex];
+        if (!lesson?.steps?.[rec.originalQuestionIndex]) return null;
+        const q = lesson.steps[rec.originalQuestionIndex];
         return q.videoUrl || q.introBackgroundVideoUrl || null;
     }
 
     _getQuestionCue(rec) {
         if (!this.configData.lessons) return null;
         const lesson = this.configData.lessons.find(l => l.lessonId === rec.originalLessonId);
-        if (!lesson?.questions?.[rec.originalQuestionIndex]) return null;
-        const q = lesson.questions[rec.originalQuestionIndex];
+        if (!lesson?.steps?.[rec.originalQuestionIndex]) return null;
+        const q = lesson.steps[rec.originalQuestionIndex];
 
         if (typeof q.cue === 'string') return q.cue;
         if (q.cue && q.cue.en) return q.cue.en;

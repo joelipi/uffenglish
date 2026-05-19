@@ -13,8 +13,8 @@ describe('normalizeConfig', () => {
             lessons: [
                 {
                     title: { en: 'Hello', es: 'Hola' },
-                    questions: [
-                        { inputType: 'speech' }
+                    steps: [
+                        { stepType: 'speech' }
                     ]
                 }
             ]
@@ -23,8 +23,8 @@ describe('normalizeConfig', () => {
         normalizeConfig(configData, 'es');
 
         expect(configData.lessons[0].title).toBe('Hola');
-        // Because "question" is missing and inputType is speech, it gets the default
-        expect(configData.lessons[0].questions[0].question).toBe('default_q_speech_es');
+        // Because "step" is missing and stepType is speech, it gets the default
+        expect(configData.lessons[0].steps[0].step).toBe('default_q_speech_es');
     });
 
     it('should handle undefined or missing config data gracefully', () => {
@@ -48,7 +48,7 @@ describe('normalizeConfig', () => {
         const configData = {
             lessons: [
                 {
-                    questions: [
+                    steps: [
                         {
                             cue: { en: 'cue_en', es: 'cue_es' },
                             subtitles: { en: 'sub_en', es: 'sub_es' },
@@ -60,8 +60,8 @@ describe('normalizeConfig', () => {
         };
         normalizeConfig(configData, 'es');
 
-        expect(configData.lessons[0].questions[0].cue).toBe('cue_en'); // Force EN for cue
-        expect(configData.lessons[0].questions[0].subtitles).toBe('sub_es');
-        expect(configData.lessons[0].questions[0].incues[0]).toBe('incue_es');
+        expect(configData.lessons[0].steps[0].cue).toBe('cue_en'); // Force EN for cue
+        expect(configData.lessons[0].steps[0].subtitles).toBe('sub_es');
+        expect(configData.lessons[0].steps[0].incues[0]).toBe('incue_es');
     });
 });

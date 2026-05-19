@@ -30,12 +30,12 @@ function playWhenReady(player) {
     setTimeout(checkAndPlay, 200);
 }
 
-export function loadVideoForQuestion(question, state, lang) {
-    if (question.videoUrl) {
-        const currentVideoUrl = resolveVideoUrl(question.videoUrl);
+export function loadVideoForQuestion(step, state, lang) {
+    if (step.videoUrl) {
+        const currentVideoUrl = resolveVideoUrl(step.videoUrl);
         state.player = new InteractiveVideoPlayer({
             videoUrl: currentVideoUrl,
-            cue: getLocalizedTranslation(question.cue, lang),
+            cue: getLocalizedTranslation(step.cue, lang),
             containerSelector: '#ivp-container',
             videoStyles: { maxWidth: '100%' },
             subtitleStyles: { fontSize: '24px', backgroundColor: 'rgba(0, 0, 0, 0.8)' },
@@ -75,7 +75,7 @@ export function loadVideoForQuestion(question, state, lang) {
                 return;
             }
             state.videoPlays++;
-            if (state.videoPlays > 2 && (question.inputType === "closedResponse" || question.inputType === "openResponse")) {
+            if (state.videoPlays > 2 && (step.stepType === "closedResponse" || step.stepType === "openResponse")) {
                 appStore.getState().deductListeningScore(10);
                 pointLoss.show(state.player.video, 10);
             }
@@ -83,7 +83,7 @@ export function loadVideoForQuestion(question, state, lang) {
 
         state.player.video.addEventListener('click', () => {
             state.videoClicks++;
-            if (state.videoClicks % 2 === 1 && (question.inputType === "closedResponse" || question.inputType === "openResponse")) {
+            if (state.videoClicks % 2 === 1 && (step.stepType === "closedResponse" || step.stepType === "openResponse")) {
                 clickTriggeredPlay = true;
                 appStore.getState().deductListeningScore(15);
                 pointLoss.show(state.player.video, 15);
@@ -91,11 +91,11 @@ export function loadVideoForQuestion(question, state, lang) {
         });
     }
 
-    if (question.simpleVideoUrl) {
-        const currentVideoUrl = resolveVideoUrl(question.simpleVideoUrl);
+    if (step.simpleVideoUrl) {
+        const currentVideoUrl = resolveVideoUrl(step.simpleVideoUrl);
         state.player = new simpleVideoPlayer({
             videoUrl: currentVideoUrl,
-            subtitles: getLocalizedTranslation(question.subtitles, lang),
+            subtitles: getLocalizedTranslation(step.subtitles, lang),
             containerSelector: '#simple-ivp-container',
             videoStyles: { maxWidth: '100%' },
             subtitleStyles: { fontSize: '24px', backgroundColor: 'rgba(0, 0, 0, 0.8)' }
@@ -110,8 +110,8 @@ export function loadVideoForQuestion(question, state, lang) {
         } catch (e) { }
     }
 
-    if (question.introBackgroundVideoUrl) {
-        const currentVideoUrl = resolveVideoUrl(question.introBackgroundVideoUrl);
+    if (step.introBackgroundVideoUrl) {
+        const currentVideoUrl = resolveVideoUrl(step.introBackgroundVideoUrl);
         state.player = new introBackgroundVideo({
             videoUrl: currentVideoUrl,
             title: Strings.get('incoming_video', lang) || 'INCOMING VIDEO',

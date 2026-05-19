@@ -64,7 +64,7 @@ describe('Zustand App Store', () => {
         expect(appStore.getState().incorrectAttempts).toBe(2);
     });
 
-    it('should reset per-question metrics correctly', () => {
+    it('should reset per-step metrics correctly', () => {
         appStore.setState({
             listeningScore: 50,
             speakingScore: 40,

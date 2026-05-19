@@ -9,7 +9,7 @@ This document outlines the architecture, data flow, key components, and identifi
 1. **Scoring Metric**: Hesitation (Silence) deductions apply to the **Flow (Fluency)** sub-score, not the Listening score.
 2. **Scoring Cadence**: During the real-time speech recording stage, if the user remains silent, their score must deduct at a rate of **10 points per second** (or smoothly at **1 point per 100ms**).
 3. **Voice Detection (Onset)**: The real-time countdown begins immediately upon microphone activation. The moment the user starts speaking (voice onset detected), the silence countdown must stop immediately.
-4. **State Isolation**: The `flowScore` must strictly start at **100** for every new question. Score reductions do not carry over between lesson questions.
+4. **State Isolation**: The `flowScore` must strictly start at **100** for every new step. Score reductions do not carry over between lesson steps.
 5. **Score Synchronization**: Real-time score deductions must be reactively bound to the DOM element (`#flowScore`) so the user sees the points ticking down in real time, accompanied by point-loss floating animations.
 6. **ASR Score Congruence**: At the end of the recording, the final offline audio trimming/evaluation must calculate silence duration and produce an equivalent Flow deduction congruent with the real-time updates.
 
@@ -23,7 +23,7 @@ graph TD
     B -- Syncs DOM Text --> C[index.html: #flowScore]
     D[speech.js: Real-Time Voice Loop] -- 1-second hesitation timer --> A
     E[speech.web.js: Web Audio API Worklet Node] -- Processes mic amplitude --> D
-    F[question-loader.web.js: Question Loader] -- Clears leftover state --> D
+    F[step-loader.web.js: Step Loader] -- Clears leftover state --> D
     G[scoring.js: Final Chronological Math] -- Overwrites final flowScore --> A
 ```
 
@@ -61,7 +61,7 @@ graph TD
     *   Determines whether the amplitude exceeds a speech threshold to trigger `onSpeechDetected()`.
     *   When `onSpeechDetected()` triggers inside `speech.js`, the hesitation timer is immediately cancelled via `clearInterval(listeningState.hesitationTimer)`.
 
-### D. UI Synchronization & Animations (`js/components/ui.js` & `question-loader.web.js`)
+### D. UI Synchronization & Animations (`js/components/ui.js` & `step-loader.web.js`)
 *   **State Subscription**: Inside `ui.js` `initUISubscriptions()`:
     ```javascript
     store.subscribe((state) => {
@@ -107,9 +107,9 @@ Any developer working on this must be aware of these three subtle bugs that caus
     ```
 
 ### 3. Leftover Timers (carry-over scoring)
-*   **The Bug**: If a lesson question changes (e.g., user clicks "Continue") while a microphone timer was in a pending or dirty state, the interval is never destroyed.
-*   **The Symptom**: The leaked timer continues to run in the background, deducting flow scores on subsequent questions.
-*   **The Remedy**: In the question loading module (`question-loader.web.js`), the very first action of `loadQuestion()` must explicitly clear any lingering intervals:
+*   **The Bug**: If a lesson step changes (e.g., user clicks "Continue") while a microphone timer was in a pending or dirty state, the interval is never destroyed.
+*   **The Symptom**: The leaked timer continues to run in the background, deducting flow scores on subsequent steps.
+*   **The Remedy**: In the step loading module (`step-loader.web.js`), the very first action of `loadQuestion()` must explicitly clear any lingering intervals:
     ```javascript
     if (listeningState.hesitationTimer) {
         clearInterval(listeningState.hesitationTimer);
