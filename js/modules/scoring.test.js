@@ -1,7 +1,37 @@
-import { describe, it, expect } from 'vitest';
-import { calculateRepeatAverage, calculateRolePlayAverage, calculateAverage, calculateFluencyScore } from './scoring.js';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { calculateRepeatAverage, calculateRolePlayAverage, calculateAverage, calculateFluencyScore, logInteraction, getCompressedLessonStats } from './scoring.js';
+import { State } from './state.js';
+import { appStore } from './store.js';
 
 describe('scoring utilities', () => {
+    beforeEach(() => {
+        State.interactionLog = [];
+        State.isTextMode = false;
+        State.isCameraOff = false;
+        State.lessonStartTime = null;
+        State.averageWpm = 0;
+        State.totalPauses = 0;
+        State.totalHesitations = 0;
+        State.recognizedIdioms = [];
+        State.pragmaticFlags = [];
+
+        // Mock appStore state
+        vi.spyOn(appStore, 'getState').mockReturnValue({
+            isDemoMode: false,
+            fluencyScore: null,
+            listeningScore: null,
+            speakingScore: null,
+            flowScore: null,
+            vocabularyScore: null,
+            grammarScore: null,
+            formalityScore: null,
+            nativeLikeScore: null,
+            understandingScore: null,
+            incorrectAttempts: 0
+        });
+    });
+
+    // ... original tests ...
     describe('calculateRepeatAverage', () => {
         it('should return 0 for empty or null history', () => {
             expect(calculateRepeatAverage([])).toBe(0);
@@ -39,9 +69,6 @@ describe('scoring utilities', () => {
         });
 
         it('should return combined average when both have history', () => {
-            // repeat: (80 + 100) / 2 = 90
-            // roleplay: (50 + 60) / 2 = 55
-            // combined: (90 + 55) / 2 = 145 / 2 = 72.5 -> 73
             expect(calculateAverage([80, 100], [50, 60])).toBe(73);
         });
     });
@@ -62,22 +89,6 @@ describe('scoring utilities', () => {
                 labels: ['correct'],
                 attemptNumber: 1
             });
-
-            // Expected subscores:
-            // pronunciation: 80
-            // listening: 90
-            // wpmScore: 100 (wpm >= 60)
-            // pausesScore: 100 (100 - 0*50)
-            // flow: 100
-            // vocabScore: 100 (idiomCount 1 >= threshold 1)
-            // grammar: ((85 * 2) + 90) / 3 = 260 / 3 = 86.666
-            // formality: 100 (no too formal/informal)
-            // nativeLike: 100 (no unidiomatic)
-            // understanding: 100 (no pragmatic failure/rude)
-
-            // Final = (80 * 0.05) + (90 * 0.40) + (100 * 0.05) + (100 * 0.05) + (86.666 * 0.05) + (100 * 0.025) + (100 * 0.025) + (100 * 0.35)
-            // Final = 4 + 36 + 5 + 5 + 4.333 + 2.5 + 2.5 + 35 = 94.333 -> 94
-
             expect(result.fluencyScore).toBe(94);
         });
 
@@ -115,10 +126,42 @@ describe('scoring utilities', () => {
                 labels: ['correct'],
                 attemptNumber: 1
             });
-            // flow = (0 + 0 + 100) / 3 = 33.333 -> 33
-            // Final = (100 * 0.05) + (100 * 0.40) + (33 * 0.05) + (100 * 0.05) + (100 * 0.05) + (100 * 0.025) + (100 * 0.025) + (100 * 0.35)
-            // Final = 5 + 40 + 1.65 + 5 + 5 + 2.5 + 2.5 + 35 = 96.65 -> 97
             expect(result.fluencyScore).toBe(97);
+        });
+    });
+
+    describe('logInteraction', () => {
+        it('should log interaction to State.interactionLog', () => {
+            logInteraction('Hello', 'Hi', 'correct');
+            expect(State.interactionLog).toHaveLength(1);
+            expect(State.interactionLog[0]).toEqual({ q: 'Hello', r: 'Hi', s: 'correct' });
+        });
+
+        it('should log details as string if provided as array', () => {
+            logInteraction('Hello', 'Hi', 'correct', ['detail1', 'detail2']);
+            expect(State.interactionLog[0].d).toBe('detail1, detail2');
+        });
+
+        it('should add grammarCorrection if provided', () => {
+            logInteraction('He go', 'He goes', 'incorrect', null, 'He goes');
+            expect(State.interactionLog[0].g).toBe('He goes');
+        });
+    });
+
+    describe('getCompressedLessonStats', () => {
+        it('should return compressed lesson stats stripping nulls and empty arrays', () => {
+            State.isTextMode = true;
+            vi.spyOn(appStore, 'getState').mockReturnValue({
+                fluencyScore: 85,
+                incorrectAttempts: 2
+            });
+            const result = getCompressedLessonStats();
+            expect(result.mod).toBe('txt');
+            expect(result.fs).toBe(85);
+            expect(result.ia).toBe(2);
+            expect(result.ls).toBeUndefined(); // null stripped
+            expect(result.ida).toBeUndefined(); // empty array stripped
+            expect(result.idc).toBeUndefined(); // 0 idc stripped
         });
     });
 });
