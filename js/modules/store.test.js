@@ -7,6 +7,7 @@ describe('Zustand App Store', () => {
         appStore.setState({
             isDemoMode: false,
             isWhisperReady: false,
+            chatHistory: [],
             userFirstName: null,
             listeningScore: 100,
             speakingScore: 100,
@@ -201,5 +202,44 @@ describe('Zustand App Store', () => {
         appStore.getState().incrementAiTutorStats(5);
         expect(appStore.getState().aIMessagesToUser).toBe(1);
         expect(appStore.getState().aIMessagesToUserWordCount).toBe(5);
+    });
+
+    it('should manage chat history correctly', () => {
+        // Initial state
+        expect(appStore.getState().chatHistory).toEqual([]);
+
+        // Add standard message
+        const msg1 = { role: 'user', content: 'Hello tutor' };
+        appStore.getState().addChatMessage(msg1);
+        let history = appStore.getState().chatHistory;
+        expect(history.length).toBe(1);
+        expect(history[0].role).toBe('user');
+        expect(history[0].content).toBe('Hello tutor');
+        expect(history[0].type).toBe('standard');
+        expect(typeof history[0].id).toBe('number');
+
+        // Add custom message with id and type
+        const msg2 = { id: 12345, role: 'system', type: 'grammarDiff', content: 'Correction' };
+        appStore.getState().addChatMessage(msg2);
+        history = appStore.getState().chatHistory;
+        expect(history.length).toBe(2);
+        expect(history[1].id).toBe(12345);
+        expect(history[1].type).toBe('grammarDiff');
+
+        // Replace last message
+        appStore.getState().replaceLastMessage({ content: 'Correction updated' });
+        history = appStore.getState().chatHistory;
+        expect(history.length).toBe(2);
+        expect(history[1].id).toBe(12345);
+        expect(history[1].content).toBe('Correction updated');
+
+        // Replace last message on empty history
+        appStore.getState().clearChatHistory();
+        expect(appStore.getState().chatHistory).toEqual([]);
+        appStore.getState().replaceLastMessage({ role: 'system', content: 'New message' });
+        history = appStore.getState().chatHistory;
+        expect(history.length).toBe(1);
+        expect(history[0].content).toBe('New message');
+        expect(history[0].role).toBe('system');
     });
 });

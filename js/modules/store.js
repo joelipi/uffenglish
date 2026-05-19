@@ -20,6 +20,7 @@ export const appStore = createStore(
             configData: null,
             courseId: null,
             englishLevel: 'A0',
+            chatHistory: [],
 
             // --- Reactive UI Metrics ---
             listeningScore: 100,
@@ -65,6 +66,36 @@ export const appStore = createStore(
             setMicActive: (val) => set({ isMicActive: val }),
             setGuestModalOpen: (val) => set({ isGuestModalOpen: val }),
             setCriticalErrorMessage: (val) => set({ criticalErrorMessage: val }),
+            addChatMessage: (msg) => set((state) => {
+                const newMsg = {
+                    id: msg.id !== undefined ? msg.id : Date.now(),
+                    role: msg.role,
+                    type: msg.type || 'standard',
+                    content: msg.content,
+                    ...msg
+                };
+                return { chatHistory: [...state.chatHistory, newMsg] };
+            }),
+            clearChatHistory: () => set({ chatHistory: [] }),
+            replaceLastMessage: (msg) => set((state) => {
+                if (state.chatHistory.length === 0) {
+                    const newMsg = {
+                        id: msg.id !== undefined ? msg.id : Date.now(),
+                        role: msg.role,
+                        type: msg.type || 'standard',
+                        content: msg.content,
+                        ...msg
+                    };
+                    return { chatHistory: [newMsg] };
+                }
+                const newHistory = [...state.chatHistory];
+                const lastMsg = newHistory[newHistory.length - 1];
+                newHistory[newHistory.length - 1] = {
+                    ...lastMsg,
+                    ...msg
+                };
+                return { chatHistory: newHistory };
+            }),
             setUserFirstName: (val) => set({ userFirstName: val }),
             setCourseData: (data) => set((state) => ({
                 userData: data.userData !== undefined ? data.userData : state.userData,
