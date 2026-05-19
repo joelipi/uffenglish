@@ -78,10 +78,10 @@
 <meta name="application-name" content="UFF Ultra Fast Fluency in English">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="apple-touch-icon"  href="/assets/teacherprofile-edLSdN6N.jpeg">
-<link rel="apple-touch-icon" sizes="192x192" href="/assets/teacherprofile-edLSdN6N.jpeg">
+<link rel="apple-touch-icon"  href="/assets/favicon-192x192-edLSdN6N.jpeg">
+<link rel="apple-touch-icon" sizes="192x192" href="/assets/favicon-192x192-edLSdN6N.jpeg">
 <!-- / SuperPWA.com -->
-<meta name='robots' content='max-image-preview:large' /><link rel='stylesheet' id='mwai_chatbot_theme_timeless-css' href='assets/css/timeless.css' media='all' />
+<meta name='robots' content='max-image-preview:large' /><link rel='stylesheet' id='mwai_chatbot_theme_timeless-css' href='assets/css/timeless.css' media='all' />
 <link rel='stylesheet' id='bootstrap-css-css' href='/assets/bootstrap.min-CcYoYf_H.css' media='all' />
 <link rel='stylesheet' id='bootstrap-icons-css' href='/assets/bootstrap-icons-SDQHRZ8X.css' media='all' />
 <script crossorigin src="./node_modules/react/umd/react.production.min.js"></script>
@@ -151,17 +151,19 @@ window.wp.apiFetch = function() { return Promise.resolve({}); };
         }
         </script>
 <link rel="icon" href="/assets/favicon-32x32-YzzxzIhk.jpeg" sizes="32x32" />
-<link rel="icon" href="/assets/teacherprofile-edLSdN6N.jpeg" sizes="192x192" />
-<meta name="msapplication-TileImage" content="/assets/teacherprofile-edLSdN6N.jpeg" />
+<link rel="icon" href="/assets/favicon-192x192-edLSdN6N.jpeg" sizes="192x192" />
+<meta name="msapplication-TileImage" content="/assets/favicon-192x192-edLSdN6N.jpeg" />
  <!-- This injects all enqueued styles and scripts -->
-  
-
-  <script type="module" crossorigin src="/assets/userprofile-CGNytt7Y.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-DfS4ul37.js">
-  <link rel="modulepreload" crossorigin href="/assets/app-vad-asr-web-DI5Lx5yO.js">
-  <link rel="modulepreload" crossorigin href="/assets/chunk-CcdRbIIE.js">
-  <link rel="modulepreload" crossorigin href="/assets/transformers-C1E41uUr.js">
-  <link rel="stylesheet" crossorigin href="/assets/style-D2AHlh6N.css">
+
+
+  <link rel="stylesheet" href="style.css">
+  <script type="module" crossorigin src="/assets/userprofile-C7U267M2.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/modulepreload-polyfill-CXK8biUa.js">
+  <link rel="modulepreload" crossorigin href="/assets/store-6KmhZxdA.js">
+  <link rel="modulepreload" crossorigin href="/assets/app-vad-asr-web-CBUSf5PO.js">
+  <link rel="modulepreload" crossorigin href="/assets/chunk-DTwqp90w.js">
+  <link rel="modulepreload" crossorigin href="/assets/animate.min-BBxVy1_r.js">
+  <link rel="stylesheet" crossorigin href="/assets/animate-Bbp8YVpb.css">
 </head>
 <body class="wp-singular page-template page-template-home page-template-home-php page page-id-24 logged-in wp-embed-responsive wp-theme-twentytwentyfive wp-child-theme-twentytwentyfive-child">
 <!--installPrompt Message-->
@@ -178,7 +180,7 @@ window.wp.apiFetch = function() { return Promise.resolve({}); };
         <li>Según tu dispositivo, esto se llama "Agregar a Inicio" (iphone, ipad) o Instalar (Android, computadora, Windows).</li>
         <li>¡Puedes agregarnos a todos tus dispositivos y mantener progreso!</li></ul>
     <p style="font-size: 1rem; color: #666; margin-bottom: 20px;">Toma menos de 5 segundos.</p>
-    
+
 <button id="installPromptButton" style="width: 100%; padding: 12px; background-color: #0d6efd; color: white; border: none; border-radius: 5px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: background-color 0.2s;">Continuar</button>
   </div>
 </div>
@@ -193,7 +195,7 @@ window.wp.apiFetch = function() { return Promise.resolve({}); };
     <h2 style="font-size: 1.8rem; color: #333; margin-bottom: 20px;">Aceptar notificaciones esenciales</h2>
     <p style="font-size: 1rem; color: #666; margin-bottom: 10px;">Es necesario para recibir lecciones</p>
     <p style="font-size: 1rem; color: #666; margin-bottom: 20px;">Promedio de menos de una notificación por día</p>
-    
+
     <button id="notificationsPromptButton" style="width: 100%; padding: 12px; background-color: #0d6efd; color: white; border: none; border-radius: 5px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: background-color 0.2s;">Dar permiso para notificaciones esenciales</button>
   </div>
 </div>
@@ -208,7 +210,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <path fill="white" d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM12.735 14c.618 0 1.093-.561.872-1.139a6.002 6.002 0 0 0-11.215 0c-.22.578.254 1.139.872 1.139h9.47z"/>
         </svg>
     `;
-    
+
     // Button styling
     profileBtn.style.background = 'transparent';
     profileBtn.style.border = 'none';
@@ -237,21 +239,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- BIG HEADER IMAGE - Shows only on screens ≤ 1100px (mobile) -->
 <div class="container-fluid px-0 mb-5 d-block d-lg-none" id="bigHeader">
-  <img 
+  <img
     src="/assets/u-f-f-BwrEq44A.png"
-    class="img-fluid w-100" 
-    alt="" 
+    class="img-fluid w-100"
+    alt=""
     style="height: auto; max-width: 100% !important; width: 100% !important;"
   >
 </div>
 
 <!-- WIDE HEADER IMAGE - Shows only on screens > 1100px (desktop) -->
 <div class="container-fluid px-0 mb-3 d-none d-lg-block" id="wideHeader">
-  <img 
+  <img
     src="/assets/header-C1FW5jiU.png"
-    class="img-fluid w-100" 
+    class="img-fluid w-100"
     id="uffposter"
-    alt="" 
+    alt=""
     style="height: auto; max-width: 100% !important; width: 100% !important;"
   >
 </div>
@@ -267,15 +269,15 @@ document.addEventListener('DOMContentLoaded', function() {
       <span class="d-flex align-items-center text-decoration-none" style="font-size: x-large;">
         <img src='assets/img/teacherprofile.png' alt='' class='rounded-circle me-3' style='width:100px;height:100px;object-fit:cover'> <strong>UFF: Ultra Fast Fluency in English</strong>
       </span>
-    
+
     <!-- Progress Bar --
     <div class="flex-grow-1 mx-1">
-      <div class="progress" style="height: 20px; margin-right: 20px;">  
+      <div class="progress" style="height: 20px; margin-right: 20px;">
         <div id="progress-bar" class="progress-bar" role="progressbar" style="width: 10%;"></div>
       </div>
     </div>
-    
-    <!-- Right X 
+
+    <!-- Right X
     <div class="d-flex align-items-center" style="height: 20px;">
       <a href="#" class="d-flex align-items-center text-decoration-none">
         <i class="bi bi-x-lg" style="font-size: 20px;"></i>
@@ -311,14 +313,14 @@ document.addEventListener('DOMContentLoaded', function() {
 			    <input class="text-input " name="passw1" maxlength="70" type="password" id="passw1" value="" autocomplete="new-password" />
 			     <!-- add the HTML for the visibility toggle -->
 			</span><span class="wppb-description-delimiter"> </span></li></ul><ul></ul></ul>			<p class="form-submit"  >
-				                				<input name="edit_profile" type="submit" id="edit_profile" class="submit button" value="Update" />
+										<input name="edit_profile" type="submit" id="edit_profile" class="submit button" value="Update" />
                 <input name="redirect_to" type="hidden" value="" />
-                				<input name="action" type="hidden" id="action" value="edit_profile" />
+						<input name="action" type="hidden" id="action" value="edit_profile" />
 				<input name="form_name" type="hidden" id="form_name" value="unspecified" />
 				<input name="form_id" type="hidden" id="form_id" value="" />
 							</p><!-- .form-submit -->
 			<input type="hidden" id="edit_profile_unspecified_nonce_field" name="edit_profile_unspecified_nonce_field" value="efcf71b128" /><input type="hidden" name="_wp_http_referer" value="/edit-profile/" />		</form>
-		
+
 <p style="margin-bottom:150px;">
 <style>
 .wppb-default-password {display: none;}<br />
@@ -344,9 +346,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
       <div class="card info-card">
-        <div class="card-header bg-dark text-white" id="correctAnswer"></div>       
+        <div class="card-header bg-dark text-white" id="correctAnswer"></div>
         <div class="card-body">
-    <p class="info-content" id="translation"></p>          
+    <p class="info-content" id="translation"></p>
     <p class="info-content" id="explanation"></p>
         </div>
       </div>
@@ -423,7 +425,7 @@ Cómo hablamos en el día a día más allá de lo más esenical, incluyendo fras
         <!--"Profile," "Hint" and "Repeat" buttons will go here-->
         <div id="bottomButtonBarLeft" class="me-auto ms-3"></div>
         <!--Mic button and Continue button will go here-->
-        <div id="bottomButtonBarCenter" class="position-absolute start-50 translate-middle-x"></div>  
+        <div id="bottomButtonBarCenter" class="position-absolute start-50 translate-middle-x"></div>
         <!--Support/chat button will go here, and AI button will be imposed over it-->
         <button id="supportButton" class="d-none btn bg-transparent text-white border-0 ms-auto me-3" data-bs-toggle="modal" data-bs-target="#chatModal"><i class="bi bi-chat-fill"></i></button>
     </div>
@@ -432,12 +434,12 @@ Cómo hablamos en el día a día más allá de lo más esenical, incluyendo fras
         <div id="bottomButtonBarLeft" class="me-auto ms-3"></div>
         <!--Process button will go here-->
         <div id="bottomButtonBarCenterSuccess" class="position-absolute start-50 translate-middle-x">
-            
+
         <button id="processBtn" class="btn btn-primary">
             <strong class="bi bi-award-fill text-white"></strong>
         </button>
 
-        </div>  
+        </div>
     </div>
 
 </div>
@@ -453,7 +455,7 @@ Cómo hablamos en el día a día más allá de lo más esenical, incluyendo fras
       <div class="modal-body">
 
 
-<button class="btn btn-success" onclick="window.location.href='https://api.whatsapp.com/send/?phone=16179030597&text=app_support'">
+<button class="btn btn-primary" onclick="window.location.href='https://api.whatsapp.com/send/?phone=16179030597&text=app_support'">
     <i class="bi bi-whatsapp"></i> Soporte Técnico por Whatsapp
 </button>
 
@@ -479,8 +481,8 @@ Cómo hablamos en el día a día más allá de lo más esenical, incluyendo fras
       </div>
       <div class="modal-body">
         <h3 style="color:black;">Solo se pueden chatear con el tutor de inglés IA, Fluintel, los estudiantes pagados.</h3>
-        <h4 style="color:black;">Lo siento, es necesario porque el costo de la integración del chat con la inteligencia artificial es alto.</h4> 
-<button class="btn btn-success" onclick="window.location.href='https://api.whatsapp.com/send/?phone=16179030597&text=app_support'">
+        <h4 style="color:black;">Lo siento, es necesario porque el costo de la integración del chat con la inteligencia artificial es alto.</h4>
+<button class="btn btn-primary" onclick="window.location.href='https://api.whatsapp.com/send/?phone=16179030597&text=app_support'">
     <i class="bi bi-whatsapp"></i> Soporte Técnico por Whatsapp
 </button>
       </div>
@@ -506,18 +508,18 @@ document.addEventListener('DOMContentLoaded', function() {
 function setupUserDayRestrictions() {
     if (typeof wp_user_data !== 'undefined' && wp_user_data.days_since_registration !== undefined) {
         const days = wp_user_data.days_since_registration;
-        
+
         // Add class to body for CSS targeting (keep this for other styling if needed)
         document.body.classList.add(`user-day-${days}`);
-        
+
         // Hide all day content first
         document.querySelectorAll('[class*="day-"][class*="-content"]').forEach(el => el.style.display = 'none');
-        
+
         // Show content for current day and all previous days
         for (let i = 0; i <= days; i++) {
             document.querySelectorAll(`.day-${i}-content`).forEach(el => el.style.display = 'block');
         }
-        
+
         // Additional JavaScript logic if needed
         handleDaySpecificLogic(days);
     } else {
@@ -531,7 +533,7 @@ function setupUserDayRestrictions() {
 function handleDaySpecificLogic(days) {
     // Example: Hide specific elements based on day
     const elementsToHide = [];
-    
+
     switch(days) {
         case 0: // First day
             elementsToHide.push('.premium-feature', '.advanced-content');
@@ -544,7 +546,7 @@ function handleDaySpecificLogic(days) {
             break;
         // Add more cases as needed
     }
-    
+
     // Hide elements
     if (elementsToHide.length > 0) {
         document.querySelectorAll(elementsToHide.join(',')).forEach(element => {

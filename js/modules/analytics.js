@@ -13,7 +13,7 @@ export async function analyzeSpeech(text, netDuration, pauseCount, currentCourse
     }
 
     // Only calculate complexity and idioms for AI roleplay questions
-    if (currentCourseLevel !== 'A1' && inputType === 'ai') {
+    if (currentCourseLevel !== 'A1' && inputType === 'openResponse') {
         const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0;
         const sentenceCount = text.split(/[.!?]+/).filter(s => s.trim().length > 0).length || 1;
 

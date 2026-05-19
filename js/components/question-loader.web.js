@@ -75,9 +75,9 @@ export function loadQuestion(question, lesson, fluencyData, deps) {
     State.player = null;
     clearPlaybackVideo();
 
-    toggleScoresAndHearts((question.inputType === 'speech' || question.inputType === 'ai') && question.videoUrl);
+    toggleScoresAndHearts((question.inputType === 'closedResponse' || question.inputType === 'openResponse') && question.videoUrl);
 
-    if (question.inputType === 'speech' || question.inputType === 'ai') {
+    if (question.inputType === 'closedResponse' || question.inputType === 'openResponse') {
         if (!State.isCameraOff && !State.isTextMode) {
             warmUpSpeechCamStream();
         } else if (State.isTextMode) {
@@ -123,7 +123,7 @@ export function loadQuestion(question, lesson, fluencyData, deps) {
     questionDiv.textContent = question.question;
     setMicStatusText(questionDiv);
 
-    if (question.inputType === "speech" || question.inputType === "ai") {
+    if (question.inputType === "closedResponse" || question.inputType === "openResponse") {
         _renderSpeechOrAI(question, lesson, deps);
     } else if (question.inputType === 'text') {
         renderTextInputUI(
@@ -152,7 +152,7 @@ function _renderSpeechOrAI(question, lesson, deps) {
     hideHints();
 
     const answerFragment = document.createDocumentFragment();
-    if (question.inputType !== "speech") {
+    if (question.inputType !== "closedResponse") {
         answerFragment.appendChild(document.createTextNode(question.cue));
         if (question.possibleAnswer) {
             answerFragment.appendChild(document.createElement('br'));
@@ -177,7 +177,7 @@ function _renderSpeechOrAI(question, lesson, deps) {
     } else {
         renderSpeechInputUI(
             answerFragment,
-            question.inputType === "speech" ? null : () => handleHint(qIndex),
+            question.inputType === "closedResponse" ? null : () => handleHint(qIndex),
             handleRevealClick,
             async () => {
                 const speechButton = document.getElementById('micBtn');

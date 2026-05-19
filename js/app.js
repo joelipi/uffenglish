@@ -219,7 +219,7 @@ export async function submitAnswerPrecheck(val, cue, questionData, btn, explanat
         });
 
         // Apply speech results to the InteractiveVideoPlayer if present
-        if (questionData.inputType === "speech" && State.player && State.player.controller && State.player.controller.applySpeechResult) {
+        if (questionData.inputType === "closedResponse" && State.player && State.player.controller && State.player.controller.applySpeechResult) {
             const userWords = val.toLowerCase().replace(/[^\w\s']/g, '').split(/\s+/);
             const correctIndices = [];
             const wrongIndices = [];
@@ -242,7 +242,7 @@ export async function submitAnswerPrecheck(val, cue, questionData, btn, explanat
     }
 
     // Apply exact success to IVP
-    if (questionData.inputType === "speech" && State.player && State.player.controller && State.player.controller.applySpeechResult) {
+    if (questionData.inputType === "closedResponse" && State.player && State.player.controller && State.player.controller.applySpeechResult) {
         const correctIndices = State.player.controller.tokens.map((_, i) => i);
         State.player.controller.applySpeechResult(correctIndices, []);
     }
@@ -278,7 +278,7 @@ function resetButtonState(button) {
 
 export async function handleAnswer(userResponse, cue, questionData, button, explanation, translation, stats = { pauseCount: null, netDuration: null }, userData = State.userData, configData = State.configData, courseId = State.courseId) {
     // Show the playback video immediately as the first chat message while processing
-    if (!State.isTextMode && (questionData.inputType === "lessonIntro" || questionData.inputType === "speech" || questionData.inputType === "ai")) {
+    if (!State.isTextMode && (questionData.inputType === "lessonIntro" || questionData.inputType === "closedResponse" || questionData.inputType === "openResponse")) {
         showPlaybackVideo();
     }
 
@@ -289,7 +289,7 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
     try {
         const currentLessonId = (configData && configData.lessons && configData.lessons[State.currentLessonIndex]) ? configData.lessons[State.currentLessonIndex].lessonId : 'unknown_lesson';
 
-        if (questionData.inputType === "speech" || questionData.inputType === "ai") {
+        if (questionData.inputType === "closedResponse" || questionData.inputType === "openResponse") {
             cleanWordCount = userResponse.replace(/[^\w\s]/g, '').trim().split(/\s+/).filter(Boolean).length;
 
             if (stats && stats.netDuration !== null) {
@@ -347,7 +347,7 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
         }
 
         let result = null;
-        if (questionData.inputType === "speech" || questionData.inputType === "ai") {
+        if (questionData.inputType === "closedResponse" || questionData.inputType === "openResponse") {
             result = await processAnswerLogic({
                 userResponse, cue, questionData,
                 lesson: lesson,
@@ -385,7 +385,7 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
 
         const { listeningScore, speakingScore, incorrectAttempts, whisperRejections } = appStore.getState();
 
-        if (questionData.inputType === "speech" || questionData.inputType === "ai") {
+        if (questionData.inputType === "closedResponse" || questionData.inputType === "openResponse") {
             const attemptNumber = incorrectAttempts + 1; // 1-based attempt index
             let grammarErrorScore = 100;
 
@@ -446,7 +446,7 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
         }
 
         // --- SILENT RETRY FLOW FOR SPEECH ---
-        if (!isCorrect && questionData.inputType === "speech" && incorrectAttempts < 2) {
+        if (!isCorrect && questionData.inputType === "closedResponse" && incorrectAttempts < 2) {
             // Use silent mode for handleIncueUI - show feedback but skip some UI sounds
             handleIncueUI(qIndex, questionData, button, cue, userResponse, result.explanations || explanation, result.normalizeduserResponse, result.normalizedcue, questionData.question, true, userData, configData);
             clearPlaybackVideo();
@@ -485,7 +485,7 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
         }
 
         // --- STANDARD UI RENDERING LOGIC (POST-EVALUATION) ---
-        if (questionData.inputType === "ai" && userResponse && DOM.speechText) {
+        if (questionData.inputType === "openResponse" && userResponse && DOM.speechText) {
             const lang = userData?.native_language;
             const localizedTrans = getLocalizedTranslation(questionData.translation, lang);
             const translationStr = (localizedTrans && lang && lang !== 'en') ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>` : "";
@@ -494,7 +494,7 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
             renderUserResponse(userResponse, "");
             if (immediateStatsHtmlArr.length > 0) renderAIFeedback(immediateStatsHtmlArr);
             renderAIAnalysisLoading();
-        } else if (questionData.inputType === "speech" && userResponse && DOM.speechText) {
+        } else if (questionData.inputType === "closedResponse" && userResponse && DOM.speechText) {
             renderUserResponse(userResponse, "");
             if (immediateStatsHtmlArr.length > 0) renderAIFeedback(immediateStatsHtmlArr);
         }
@@ -507,7 +507,7 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
         showTutorChatInput();
 
         if (isCorrect) {
-            if (questionData.inputType === "ai") {
+            if (questionData.inputType === "openResponse") {
                 State.cuesGiven.push(result.normalizeduserResponse);
                 if (result.cefrLevelDeduction > 0) {
                     appStore.getState().deductListeningScore(result.cefrLevelDeduction);
@@ -537,7 +537,7 @@ export async function handleAnswer(userResponse, cue, questionData, button, expl
 // handlecueUI and handleIncueUI have been extracted to components/ui.js
 
 function showFeedbackAndProceed(questionData, isCorrect) {
-    if ((questionData.inputType === "speech" || questionData.inputType === "ai") && questionData.videoUrl) State.questionCount++;
+    if ((questionData.inputType === "closedResponse" || questionData.inputType === "openResponse") && questionData.videoUrl) State.questionCount++;
     try {
         hideHints();
         const continueButton = showContinueButton(questionData.inputType === "lessonIntro", () => {

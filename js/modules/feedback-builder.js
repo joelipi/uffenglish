@@ -63,7 +63,7 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, question
     }
 
     // AI-only sections (4-9)
-    if (questionData.inputType === 'ai') {
+    if (questionData.inputType === 'openResponse') {
         // 4. Vocabulary
         const idiomCount = speechAnalytics.foundIdioms ? speechAnalytics.foundIdioms.length : 0;
         // vocabParts: count + found list only (no threshold, no translated label)
