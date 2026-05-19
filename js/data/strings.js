@@ -582,6 +582,26 @@ const strings = {
         en: "Tap to continue...",
         es: "Toca para continuar...",
         fr: "Appuyez pour continuer..."
+    },
+    'guest_modal_title': {
+        en: "Welcome!",
+        es: "¡Bienvenido!"
+    },
+    'guest_modal_body': {
+        en: "You are currently not logged in. Log in or sign up to save your progress and access all features. Or, continue as a guest to try out the app.",
+        es: "Actualmente no has iniciado sesión. Inicia sesión o regístrate para guardar tu progreso y acceder a todas las funciones. O continúa como invitado para probar la aplicación."
+    },
+    'guest_modal_login': {
+        en: "Log In",
+        es: "Iniciar sesión"
+    },
+    'guest_modal_signup': {
+        en: "Sign Up",
+        es: "Registrarse"
+    },
+    'guest_modal_continue': {
+        en: "Continue as Guest",
+        es: "Continuar como invitado"
     }
 };
 

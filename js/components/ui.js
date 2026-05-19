@@ -825,6 +825,20 @@ export function showGuestLoginModal() {
         return;
     }
 
+    // Set localized strings
+    const lang = State.userData?.native_language || 'en';
+    const titleEl = document.getElementById('guestLoginModalTitleText');
+    const bodyEl = document.getElementById('guestLoginModalBodyText');
+    const loginBtnTextEl = document.getElementById('guestLoginBtnText');
+    const signupBtnTextEl = document.getElementById('guestSignupBtnText');
+    const continueBtnTextEl = document.getElementById('guestContinueBtnText');
+
+    if (titleEl) titleEl.innerHTML = Strings.get('guest_modal_title', lang);
+    if (bodyEl) bodyEl.innerHTML = Strings.get('guest_modal_body', lang);
+    if (loginBtnTextEl) loginBtnTextEl.innerHTML = Strings.get('guest_modal_login', lang);
+    if (signupBtnTextEl) signupBtnTextEl.innerHTML = Strings.get('guest_modal_signup', lang);
+    if (continueBtnTextEl) continueBtnTextEl.innerHTML = Strings.get('guest_modal_continue', lang);
+
     const currentUrl = window.location.pathname + window.location.search;
     loginBtn.href = `login.html?redirect=${encodeURIComponent(currentUrl)}`;
     signupBtn.href = `signup.html?redirect=${encodeURIComponent(currentUrl)}`;

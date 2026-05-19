@@ -1612,10 +1612,23 @@
             border: none;
             background: transparent;
             outline: none;
+            width: min(90vw, 420px);
+            max-width: 100%;
         }
 
         #guestLoginModal .modal-content {
-            border-radius: 8px;
+            border-radius: 16px;
+            padding: 1.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.25) !important;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5) !important;
+        }
+
+        #guestLoginModal .modal-header {
+            padding: 0 0 1rem 0;
+        }
+
+        #guestLoginModal .modal-body {
+            padding: 0;
         }
 
         /* Incoming Video Call Continue Button Widget Styles */
@@ -2106,20 +2119,20 @@
             <div class="modal-content bg-dark text-white border-light shadow-lg">
                 <div class="modal-header border-secondary">
                     <h5 class="modal-title" id="guestLoginModalLabel"><i
-                            class="bi bi-shield-lock-fill text-warning me-2"></i>Welcome!</h5>
+                            class="bi bi-shield-lock-fill text-warning me-2"></i><span id="guestLoginModalTitleText">Welcome!</span></h5>
                 </div>
                 <div class="modal-body">
-                    <p class="text-light">You are currently not logged in. Log in or sign up to save your progress and
+                    <p class="text-light" id="guestLoginModalBodyText">You are currently not logged in. Log in or sign up to save your progress and
                         access all features. Or, continue as a guest to try out the app.</p>
                     <div class="d-grid gap-2 mt-4">
                         <a href="login.html" id="guestLoginBtn" class="btn btn-primary">
-                            <i class="bi bi-box-arrow-in-right me-1"></i>Log In
+                            <i class="bi bi-box-arrow-in-right me-1"></i><span id="guestLoginBtnText">Log In</span>
                         </a>
                         <a href="signup.html" id="guestSignupBtn" class="btn btn-secondary">
-                            <i class="bi bi-person-plus-fill me-1"></i>Sign Up
+                            <i class="bi bi-person-plus-fill me-1"></i><span id="guestSignupBtnText">Sign Up</span>
                         </a>
                         <button type="button" class="btn btn-outline-light mt-2" id="guestContinueBtn">
-                            Continue as Guest
+                            <span id="guestContinueBtnText">Continue as Guest</span>
                         </button>
                     </div>
                 </div>
