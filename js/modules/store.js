@@ -29,6 +29,17 @@ export const appStore = createStore(
             nativeLikeScore: 100,
             understandingScore: 100,
 
+            // --- Recommendation Engine State ---
+            level: 'A0',
+            tags: [],
+            focus: '',
+            streak: 0,
+            openLessons: [],
+            completedUnitIds: [],
+            startedUnitIds: [],
+            neverRecommendIds: [],
+            lastCompletedCourseId: null,
+
             // --- Persisted Progress & History ---
             activeLessonId: null,
             currentLessonIndex: 0,
@@ -158,7 +169,19 @@ export const appStore = createStore(
                 formalityScore: 100,
                 nativeLikeScore: 100,
                 understandingScore: 100
-            })
+            }),
+
+            // --- Recommendation Engine Actions ---
+            setLevel: (val) => set({ level: val }),
+            setTags: (val) => set({ tags: val }),
+            setFocus: (val) => set({ focus: val }),
+            setStreak: (val) => set({ streak: val }),
+            setOpenLessons: (val) => set({ openLessons: val }),
+            setCompletedUnitIds: (val) => set({ completedUnitIds: val }),
+            setStartedUnitIds: (val) => set({ startedUnitIds: val }),
+            setNeverRecommendIds: (val) => set({ neverRecommendIds: val }),
+            setLastCompletedCourseId: (val) => set({ lastCompletedCourseId: val })
+
         }),
         {
             name: 'uff-lesson-storage',
@@ -181,7 +204,17 @@ export const appStore = createStore(
                 userMessagesToAi: state.userMessagesToAi,
                 aIMessagesToUser: state.aIMessagesToUser,
                 userMessagesToAiWordCount: state.userMessagesToAiWordCount,
-                aIMessagesToUserWordCount: state.aIMessagesToUserWordCount
+                aIMessagesToUserWordCount: state.aIMessagesToUserWordCount,
+                level: state.level,
+                tags: state.tags,
+                focus: state.focus,
+                streak: state.streak,
+                openLessons: state.openLessons,
+                completedUnitIds: state.completedUnitIds,
+                startedUnitIds: state.startedUnitIds,
+                neverRecommendIds: state.neverRecommendIds,
+                lastCompletedCourseId: state.lastCompletedCourseId
+
             })
         }
     )

@@ -139,6 +139,8 @@ import {
     bindAuthMenuUI,
     initMissionToggle
 } from './components/ui.js';
+import { conversationService } from './modules/recommendation/conversationService.js';
+import { initRecommendationUI } from './components/ui.js';
 import { idiomChecker } from './modules/idiom-checker.js';
 import { calculateSyntacticComplexity } from './modules/complexity.js';
 
@@ -616,6 +618,7 @@ function loadNextQuestion(currentQuestion, fluencyData) {
 }
 
 function showCompletionMessage() {
+    appStore.getState().setLastCompletedCourseId(State.courseId);
     showMessageInQuestionsContainer(Strings.get('msg_lesson_complete_all', State.userData?.native_language));
 }
 
@@ -873,6 +876,37 @@ async function initializeApp() {
         });
 
         //   CRITICAL TO PREVENT RAM OVERLOAD: Render the UI and Video FIRST
+
+        // Hydrate conversation service and start
+        const previousStreak = parseInt(sessionStorage.getItem('previousStreak') || '0', 10);
+        // In a real app we'd fetch the full manifest from a remote endpoint.
+        // For now, we'll wrap the current configData as a single-item array,
+        // and ideally we would use a local cached course list if we had one.
+        const manifest = State.configData ? [State.configData] : [];
+        if (stateUser.currentStreak > previousStreak && stateUser.currentStreak >= 1) {
+            sessionStorage.setItem('previousStreak', stateUser.currentStreak.toString());
+        }
+        const stateUser = appStore.getState();
+        conversationService.hydrate({
+            user: {
+                level: State.englishLevel,
+                tags: stateUser.tags || [],
+                focus: stateUser.focus || '',
+                streak: stateUser.currentStreak || 0,
+                openLessons: stateUser.openLessons || [],
+                completedUnitIds: stateUser.completedUnitIds || [],
+                startedUnitIds: stateUser.startedUnitIds || [],
+                neverRecommendIds: stateUser.neverRecommendIds || [],
+                lastCompletedCourseId: stateUser.lastCompletedCourseId || null
+            },
+            manifest: manifest,
+            sessionSkipped: [],
+            chatMode: 'chat',
+            previousStreak: previousStreak
+        });
+        initRecommendationUI(conversationService);
+        conversationService.send({ type: 'START' });
+
         await initializeLesson();
 
         //   CRITICAL TO PREVENT RAM OVERLOAD: Boot Whisper and NLP background models IN SEQUENCE

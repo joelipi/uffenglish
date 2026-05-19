@@ -1,3 +1,4 @@
+import { conversationService } from '../modules/recommendation/conversationService.js';
 // --- modules/ui.js ---
 import { State } from '../modules/state.js';
 import { appStore } from '../modules/store.js';
@@ -576,11 +577,57 @@ export function updateChatHeaderScores(feedbackData) {
 export function initTutorChatUI(submitCallback) {
     if (!DOM.tutorChatTextarea || !DOM.tutorChatSendBtn) return;
 
-    DOM.tutorChatSendBtn.addEventListener('click', () => {
+    DOM.tutorChatSendBtn.addEventListener('click', async () => {
         const text = DOM.tutorChatTextarea.value;
         if (text && text.trim().length > 0) {
             DOM.tutorChatTextarea.value = '';
-            submitCallback(text);
+
+            // Basic channel extraction
+            if (text.startsWith('@grammar ')) {
+                // Call grammar handler stub
+                const userInput = text.replace('@grammar ', '').trim();
+                if (userInput) {
+                    renderUserResponse(text);
+                    const grammarResult = await handleGrammarChannel(userInput, window.askWorker);
+                    if (!grammarResult) {
+                        const chunks = [
+                            `<div class="chat-message-row chat-message-row--system">
+                                <img src="assets/img/ai.webp" alt="Grammar Check" class="chat-avatar-inline" />
+                                <div class="chat-message-bubble chat-message-bubble--system">
+                                    <div class="chat-bubble-header">Grammar Check</div>
+                                    Worker not ready or error occurred.
+                                </div>
+                            </div>`
+                        ];
+                        renderAIFeedback(chunks);
+                    }
+                }
+                return;
+            } else if (text.startsWith('@')) {
+                // Other channels fallback
+                submitCallback(text);
+                return;
+            }
+
+            // Unprefixed input goes to router
+            const routerResult = routeInput(text);
+            if (routerResult.intent === 'navigation') {
+                 console.log("Navigation intent detected:", routerResult.navigationEvent);
+                 // Import is already at the top or available
+                 if (routerResult.navigationEvent === 'SKIP') {
+                     conversationService.send({ type: 'SKIP' });
+                 } else if (routerResult.navigationEvent === 'NEVER') {
+                     conversationService.send({ type: 'NEVER' });
+                 } else {
+                     conversationService.send({ type: routerResult.navigationEvent });
+                 }
+            } else if (routerResult.intent === 'out_of_scope') {
+                 console.log("Out of scope input:", routerResult.reason);
+                 renderUserResponse(text);
+                 renderAIFeedback(["I can only help with English learning topics."]);
+            } else {
+                 submitCallback(text);
+            }
         }
     });
 
@@ -1868,4 +1915,157 @@ export function handleIncueUI(qIndex, questionData, button, cue, userResponse, e
         Media.playSound('incorrect-sound');
     }
 
+}
+
+import { getAvailableChannels, handleGrammarChannel } from '../modules/recommendation/composerMenu.js';
+import { routeInput } from '../modules/recommendation/inputRouter.js';
+
+export function renderQuickReplies(quickReplies, onSelect) {
+    if (!DOM.chatBody) return;
+    const row = document.createElement('div');
+    row.className = 'quick-reply-row mt-2 text-end';
+
+    quickReplies.forEach(reply => {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-outline-primary btn-sm rounded-pill ms-2 mb-2';
+        btn.textContent = reply.label;
+        btn.onclick = () => {
+            onSelect(reply.event);
+            const allBtns = row.querySelectorAll('button');
+            allBtns.forEach(b => {
+                b.disabled = true;
+                b.classList.add('disabled');
+            });
+        };
+        row.appendChild(btn);
+    });
+
+    DOM.chatBody.appendChild(row);
+    DOM.chatBody.scrollTo({ top: DOM.chatBody.scrollHeight, behavior: 'smooth' });
+}
+
+export function initRecommendationUI(conversationService) {
+    let lastStateValue = null;
+
+    conversationService.subscribe(snapshot => {
+        const stateValue = typeof snapshot.value === 'object' ? JSON.stringify(snapshot.value) : snapshot.value;
+        const context = snapshot.context;
+
+        if (stateValue === lastStateValue) return; // Prevent re-rendering
+        lastStateValue = stateValue;
+
+        // Check for streak acknowledgment on idle
+        if (stateValue === 'idle' && context.streakMessage) {
+            renderAIFeedback([context.streakMessage]);
+        }
+
+        if (stateValue === 'presenting_next_course') {
+            renderAIFeedback([`Based on what you just finished... I recommend ${context.currentRecommendation?.courseName}`]);
+            renderQuickReplies([
+                { label: 'Start Lesson', event: 'NEXT_COURSE_ACCEPT' },
+                { label: 'Skip', event: 'NEXT_COURSE_SKIP' },
+                { label: 'Never recommend', event: 'NEVER' }
+            ], event => conversationService.send({ type: event, courseId: context.currentRecommendation?.courseId }));
+            conversationService.send({ type: 'AWAIT' });
+        } else if (stateValue === 'presenting_resumable') {
+            renderAIFeedback([`You started this one — want to pick up where you left off? ${context.currentRecommendation?.courseName}`]);
+            renderQuickReplies([
+                { label: 'Resume Lesson', event: 'ACCEPT' },
+                { label: 'Skip', event: 'SKIP' },
+                { label: 'Never recommend', event: 'NEVER' }
+            ], event => conversationService.send({ type: event, courseId: context.currentRecommendation?.courseId }));
+            conversationService.send({ type: 'AWAIT' });
+        } else if (stateValue === 'presenting_fresh') {
+            renderAIFeedback([`Here's a lesson you might like: ${context.currentRecommendation?.courseName}`]);
+            renderQuickReplies([
+                { label: 'Start Lesson', event: 'ACCEPT' },
+                { label: 'Skip', event: 'SKIP' },
+                { label: 'Never recommend', event: 'NEVER' }
+            ], event => conversationService.send({ type: event, courseId: context.currentRecommendation?.courseId }));
+            conversationService.send({ type: 'AWAIT' });
+        } else if (stateValue === 'presenting_fallback') {
+            renderAIFeedback([`I widened the search a bit. How about: ${context.currentRecommendation?.courseName}`]);
+            renderQuickReplies([
+                { label: 'Start Lesson', event: 'ACCEPT' },
+                { label: 'Skip', event: 'SKIP' },
+                { label: 'Never recommend', event: 'NEVER' }
+            ], event => conversationService.send({ type: event, courseId: context.currentRecommendation?.courseId }));
+            conversationService.send({ type: 'AWAIT' });
+        } else if (stateValue === 'empty') {
+            renderAIFeedback([`You've completed everything at your level. Check back soon!`]);
+        } else if (stateValue === 'error') {
+            showCriticalError(context.error);
+        }
+    });
+
+    // Wire composer menu to tutorChatTextarea
+    if (DOM.tutorChatTextarea) {
+        DOM.tutorChatTextarea.addEventListener('focus', () => {
+            if (DOM.tutorChatTextarea.value.trim() === '') {
+                const snapshot = conversationService.getSnapshot();
+                const chatContext = {
+                    screen: 'home',
+                    lessonState: null,
+                    chatMode: snapshot?.context?.chatMode || 'chat'
+                };
+                const channels = getAvailableChannels(chatContext);
+
+                let dropdown = document.getElementById('composer-dropdown');
+                if (!dropdown) {
+                    dropdown = document.createElement('div');
+                    dropdown.id = 'composer-dropdown';
+                    dropdown.className = 'dropdown-menu show position-absolute bottom-100 w-100 mb-1';
+                    dropdown.style.zIndex = '1000';
+                    DOM.tutorChatInputArea.style.position = 'relative';
+                    DOM.tutorChatInputArea.appendChild(dropdown);
+                }
+
+                dropdown.innerHTML = '';
+                if (channels.length > 0) {
+                    channels.forEach(channel => {
+                        const item = document.createElement('button');
+                        item.className = 'dropdown-item';
+                        item.type = 'button';
+                        item.textContent = `${channel.handle} - ${channel.label}`;
+                        item.onclick = (e) => {
+                            e.preventDefault();
+                            dropdown.remove();
+                            if (channel.handle === '@grammar') {
+                                // For grammar, we might trigger worker immediately or prefill
+                                // If inputMode is template:
+                                DOM.tutorChatTextarea.value = `${channel.handle} `;
+                                DOM.tutorChatTextarea.focus();
+                            } else if (channel.handle === '@vocabulary') {
+                                DOM.tutorChatTextarea.value = `${channel.handle} `;
+                                DOM.tutorChatTextarea.focus();
+                            } else if (channel.handle === '@aitutor') {
+                                DOM.tutorChatTextarea.value = `${channel.handle} `;
+                                DOM.tutorChatTextarea.focus();
+                            } else {
+                                DOM.tutorChatTextarea.value = `${channel.handle} `;
+                                DOM.tutorChatTextarea.focus();
+                            }
+                        };
+                        dropdown.appendChild(item);
+                    });
+                } else {
+                    dropdown.remove();
+                }
+            }
+        });
+
+        DOM.tutorChatTextarea.addEventListener('input', () => {
+             const dropdown = document.getElementById('composer-dropdown');
+             if (dropdown && DOM.tutorChatTextarea.value.trim() !== '') {
+                 dropdown.remove();
+             }
+        });
+
+        document.addEventListener('click', (e) => {
+             const dropdown = document.getElementById('composer-dropdown');
+             if (dropdown && !DOM.tutorChatInputArea.contains(e.target)) {
+                 dropdown.remove();
+             }
+        });
+    }
 }

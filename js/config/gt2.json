@@ -7477,5 +7477,17 @@
       "userRole": "",
       "videoRole": ""
     }
-  ]
+  ],
+  "tags": [
+    "food",
+    "dining",
+    "service_encounters",
+    "daily_life"
+  ],
+  "focus": [
+    "speaking",
+    "vocabulary",
+    "pronunciation"
+  ],
+  "recommendedNextCourseId": null
 }
