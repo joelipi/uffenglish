@@ -27,4 +27,9 @@ describe('calculateSimilarity', () => {
         expect(() => calculateSimilarity(123, 'test')).toThrow('Inputs must be strings');
         expect(() => calculateSimilarity('test', null)).toThrow('Inputs must be strings');
     });
+
+    it('should handle one empty string', () => {
+        expect(calculateSimilarity('test', '')).toBe(0);
+        expect(calculateSimilarity('', 'test')).toBe(0);
+    });
 });

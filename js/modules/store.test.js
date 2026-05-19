@@ -3,15 +3,26 @@ import { appStore } from './store.js';
 
 describe('Zustand App Store', () => {
     beforeEach(() => {
-        // Reset the store to default state before each test using native methods to not clear functions
+        // Reset the store to default state before each test
         appStore.setState({
+            isDemoMode: false,
+            isWhisperReady: false,
+            userFirstName: null,
             listeningScore: 100,
             speakingScore: 100,
             incorrectAttempts: 0,
+            whisperRejections: 0,
             dayCount: 0,
             currentStreak: 0,
+            lessonsCompleted: 0,
+            lastLessonFluencyAvg: null,
+            fluencyImproving: false,
+            totalFluencySum: 0,
+            recentFluencyAvgs: [],
+            countedLessons: [],
             fluencyScore: 100,
             flowScore: 100,
+            hesitationMs: 0,
             vocabularyScore: 100,
             grammarScore: 100,
             formalityScore: 100,
@@ -22,7 +33,11 @@ describe('Zustand App Store', () => {
             currentQuestionIndex: 0,
             cuesGiven: [],
             repeatPointsHistory: [],
-            rolePlayPointsHistory: []
+            rolePlayPointsHistory: [],
+            userMessagesToAi: 0,
+            aIMessagesToUser: 0,
+            userMessagesToAiWordCount: 0,
+            aIMessagesToUserWordCount: 0,
         });
     });
 
@@ -56,19 +71,23 @@ describe('Zustand App Store', () => {
         expect(appStore.getState().speakingScore).toBe(100);
     });
 
-    it('should increment incorrect attempts', () => {
+    it('should increment incorrect attempts and rejections', () => {
         appStore.getState().incrementIncorrectAttempts();
         expect(appStore.getState().incorrectAttempts).toBe(1);
 
         appStore.getState().incrementIncorrectAttempts();
         expect(appStore.getState().incorrectAttempts).toBe(2);
+
+        appStore.getState().incrementWhisperRejections();
+        expect(appStore.getState().whisperRejections).toBe(1);
     });
 
     it('should reset per-step metrics correctly', () => {
         appStore.setState({
             listeningScore: 50,
             speakingScore: 40,
-            incorrectAttempts: 2
+            incorrectAttempts: 2,
+            whisperRejections: 1
         });
 
         appStore.getState().resetForNextQuestion();
@@ -77,6 +96,7 @@ describe('Zustand App Store', () => {
         expect(state.listeningScore).toBe(100);
         expect(state.speakingScore).toBe(100);
         expect(state.incorrectAttempts).toBe(0);
+        expect(state.whisperRejections).toBe(0);
     });
 
     it('should set fluency metrics partially', () => {
@@ -89,5 +109,97 @@ describe('Zustand App Store', () => {
         expect(state.fluencyScore).toBe(85);
         expect(state.grammarScore).toBe(90);
         expect(state.flowScore).toBe(100); // Unchanged
+    });
+
+    it('should set session flags', () => {
+        appStore.getState().setDemoMode(true);
+        expect(appStore.getState().isDemoMode).toBe(true);
+
+        appStore.getState().setWhisperReady(true);
+        expect(appStore.getState().isWhisperReady).toBe(true);
+
+        appStore.getState().setUserFirstName('Jules');
+        expect(appStore.getState().userFirstName).toBe('Jules');
+    });
+
+    it('should reset lesson history', () => {
+        appStore.setState({
+            cuesGiven: ['cue1'],
+            repeatPointsHistory: [100],
+            rolePlayPointsHistory: [80]
+        });
+
+        appStore.getState().resetLessonHistory();
+        const state = appStore.getState();
+        expect(state.cuesGiven).toEqual([]);
+        expect(state.repeatPointsHistory).toEqual([]);
+        expect(state.rolePlayPointsHistory).toEqual([]);
+    });
+
+    it('should handle setting specific scores', () => {
+        appStore.getState().setListeningScore(80);
+        expect(appStore.getState().listeningScore).toBe(80);
+
+        appStore.getState().setListeningScore(-10);
+        expect(appStore.getState().listeningScore).toBe(0);
+
+        appStore.getState().deductFlowScore(20);
+        expect(appStore.getState().flowScore).toBe(80);
+
+        appStore.getState().setHesitationMs(150);
+        expect(appStore.getState().hesitationMs).toBe(150);
+
+        appStore.getState().setSpeakingScore(70);
+        expect(appStore.getState().speakingScore).toBe(70);
+    });
+
+    it('should handle gamification updates correctly', () => {
+        appStore.getState().setActivityMetrics(5, 3);
+        expect(appStore.getState().dayCount).toBe(5);
+        expect(appStore.getState().currentStreak).toBe(3);
+
+        appStore.getState().setLessonsCompleted(10);
+        expect(appStore.getState().lessonsCompleted).toBe(10);
+
+        appStore.getState().setLastLessonFluencyAvg(95);
+        expect(appStore.getState().lastLessonFluencyAvg).toBe(95);
+
+        appStore.getState().setFluencyImproving(true);
+        expect(appStore.getState().fluencyImproving).toBe(true);
+
+        appStore.getState().setTotalFluencySum(500);
+        expect(appStore.getState().totalFluencySum).toBe(500);
+
+        appStore.getState().setRecentFluencyAvgs([90, 95]);
+        expect(appStore.getState().recentFluencyAvgs).toEqual([90, 95]);
+
+        appStore.getState().setCountedLessons(['lesson1']);
+        expect(appStore.getState().countedLessons).toEqual(['lesson1']);
+    });
+
+    it('should reset for new lesson', () => {
+        appStore.setState({
+            listeningScore: 50,
+            speakingScore: 40,
+            incorrectAttempts: 2,
+            whisperRejections: 1
+        });
+
+        appStore.getState().resetForNewLesson();
+        const state = appStore.getState();
+        expect(state.listeningScore).toBe(100);
+        expect(state.speakingScore).toBe(100);
+        expect(state.incorrectAttempts).toBe(0);
+        expect(state.whisperRejections).toBe(0);
+    });
+
+    it('should track tutor engagement metrics', () => {
+        appStore.getState().incrementUserTutorStats(10);
+        expect(appStore.getState().userMessagesToAi).toBe(1);
+        expect(appStore.getState().userMessagesToAiWordCount).toBe(10);
+
+        appStore.getState().incrementAiTutorStats(5);
+        expect(appStore.getState().aIMessagesToUser).toBe(1);
+        expect(appStore.getState().aIMessagesToUserWordCount).toBe(5);
     });
 });

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { showInitializationErrorMessage, setupLessonUI, DOM } from './ui.js';
+import { showInitializationErrorMessage, setupLessonUI, DOM, escapeHTML, getFirstName, flashElement, disableAllButtons } from './ui.js';
 
 describe('UI Component functions', () => {
 
@@ -16,6 +16,8 @@ describe('UI Component functions', () => {
              <div id="lesson-header" class="lesson-header" style="display: none;"></div>
              <div class="lesson-title">Old Title</div>
              <div class="lesson-title">Old Title 2</div>
+             <div id="test-container"><button></button><button></button></div>
+             <div id="flash-element"></div>
          `;
     });
 
@@ -60,6 +62,54 @@ describe('UI Component functions', () => {
             const titles = document.getElementsByClassName('lesson-title');
             expect(titles[0].textContent).toBe('New Awesome Lesson');
             expect(titles[1].textContent).toBe('New Awesome Lesson');
+        });
+    });
+
+    describe('escapeHTML', () => {
+        it('should replace special characters with html entities', () => {
+            expect(escapeHTML('<script>alert("test & it \' works")</script>'))
+                .toBe('&lt;script&gt;alert(&quot;test &amp; it &#39; works&quot;)&lt;/script&gt;');
+        });
+    });
+
+    describe('getFirstName', () => {
+        it('should extract the first name from a full name', () => {
+            expect(getFirstName('John Doe')).toBe('John');
+            expect(getFirstName('Alice')).toBe('Alice');
+            expect(getFirstName(' ')).toBe('');
+            expect(getFirstName(null)).toBe('User');
+            expect(getFirstName(undefined)).toBe('User');
+        });
+    });
+
+    describe('disableAllButtons', () => {
+        it('should disable all buttons within a container', () => {
+            const container = document.getElementById('test-container');
+            const buttons = container.querySelectorAll('button');
+            expect(buttons[0].disabled).toBe(false);
+            expect(buttons[1].disabled).toBe(false);
+
+            disableAllButtons(container);
+
+            expect(buttons[0].disabled).toBe(true);
+            expect(buttons[1].disabled).toBe(true);
+        });
+    });
+
+    describe('flashElement', () => {
+        it('should add and remove animation classes', () => {
+            vi.useFakeTimers();
+            const el = document.getElementById('flash-element');
+
+            flashElement(el);
+
+            expect(el.classList.contains('score-update')).toBe(true);
+
+            vi.advanceTimersByTime(300);
+
+            expect(el.classList.contains('score-update')).toBe(false);
+
+            vi.useRealTimers();
         });
     });
 });
