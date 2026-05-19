@@ -1741,17 +1741,17 @@ export function setupLessonUI(fullTitle) {
 
 export function handlecueUI(qIndex, questionData, button, cue, explanation, translation, userResponse, englishLevel, englishLevelDeduction, userData, configData, fluencyBubble = null) {
 
-    if (questionData.inputType === "speech" && questionData.videoUrl) State.repeatPointsHistory.push(appStore.getState().listeningScore);
-    if (questionData.inputType === "ai" && questionData.videoUrl) State.rolePlayPointsHistory.push(appStore.getState().listeningScore);
+    if (questionData.inputType === "closedResponse" && questionData.videoUrl) State.repeatPointsHistory.push(appStore.getState().listeningScore);
+    if (questionData.inputType === "openResponse" && questionData.videoUrl) State.rolePlayPointsHistory.push(appStore.getState().listeningScore);
 
     if (DOM.speechText) {
         const lang = userData?.native_language || State.userData?.native_language || 'en';
-        const praiseResult = (questionData.inputType === "ai" || questionData.inputType === "speech") ? getRandomPraise('general', lang) : "";
-        const feedbackText = (questionData.inputType === "ai" && englishLevelDeduction > 0)
+        const praiseResult = (questionData.inputType === "openResponse" || questionData.inputType === "closedResponse") ? getRandomPraise('general', lang) : "";
+        const feedbackText = (questionData.inputType === "openResponse" && englishLevelDeduction > 0)
             ? `${Strings.get('ai_acceptable', lang)}<br>${Strings.get('ai_language_level', lang)} ${englishLevel}<br>${Strings.get('ai_fluency_reduced', lang)} <span style='color:red'>${englishLevelDeduction} ${Strings.get('ai_percentage_points', lang)}</span>.`
             : getPraiseHTML(praiseResult);
 
-        if (questionData.inputType !== "ai" && questionData.inputType !== "speech") {
+        if (questionData.inputType !== "openResponse" && questionData.inputType !== "closedResponse") {
             const localizedTrans = getLocalizedTranslation(translation, lang);
 
             const userName = getFirstName(appStore.getState().userData?.display_name || State.userData?.display_name);
@@ -1838,11 +1838,11 @@ export function handlecueUI(qIndex, questionData, button, cue, explanation, tran
 export function handleIncueUI(qIndex, questionData, button, cue, userResponse, explanation, normalizeduserResponse, normalizedcue, question, silent = false, userData, configData, fluencyBubble = null) {
     appStore.getState().incrementIncorrectAttempts();
 
-    if (!silent && !State.isTextMode && (questionData.inputType === "lessonIntro" || questionData.inputType === "speech" || questionData.inputType === "ai")) {
+    if (!silent && !State.isTextMode && (questionData.inputType === "lessonIntro" || questionData.inputType === "closedResponse" || questionData.inputType === "openResponse")) {
         showPlaybackVideo();
     }
 
-    if ((questionData.inputType === "speech" || questionData.inputType === "ai") && questionData.videoUrl) {
+    if ((questionData.inputType === "closedResponse" || questionData.inputType === "openResponse") && questionData.videoUrl) {
         appStore.getState().deductListeningScore(25);
         pointLoss.show(DOM.micStatusText, 25);
         if (appStore.getState().incorrectAttempts > 2) {
@@ -1853,7 +1853,7 @@ export function handleIncueUI(qIndex, questionData, button, cue, userResponse, e
 
     // In silent mode for speech questions, we're called from the silent retry flow in app.js
     // which handles its own hangman hint rendering. Skip chat bubbles entirely for this case.
-    const isSilentSpeechRetry = silent && questionData.inputType === "speech";
+    const isSilentSpeechRetry = silent && questionData.inputType === "closedResponse";
 
     if (isSilentSpeechRetry) {
         // Silent retry for speech: just increment attempts, no UI rendering needed
@@ -1861,7 +1861,7 @@ export function handleIncueUI(qIndex, questionData, button, cue, userResponse, e
         return;
     }
 
-    if (questionData.inputType === "ai" && userResponse) {
+    if (questionData.inputType === "openResponse" && userResponse) {
         if (appStore.getState().incorrectAttempts > 2) {
             appStore.getState().setListeningScore(0);
             State.rolePlayPointsHistory.push(appStore.getState().listeningScore);
@@ -1905,7 +1905,7 @@ export function handleIncueUI(qIndex, questionData, button, cue, userResponse, e
         renderAIFeedback(chunks);
     }
 
-    if (questionData.inputType === "speech" && userResponse && DOM.speechText) {
+    if (questionData.inputType === "closedResponse" && userResponse && DOM.speechText) {
         const selectedWords = [...new Set(normalizeduserResponse.split(/\s+/))];
         const correctWords = [...new Set(normalizedcue.split(/\s+/))];
         const correctWordSet = new Set(correctWords.map(w => w.toLowerCase()));

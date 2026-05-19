@@ -26,7 +26,7 @@ export function getCurrentQuestionIndex(questionData, configData, currentLessonI
 }
 
 export function isLastAiQuestionInLesson(lesson, currentIndex) {
-    const aiQuestions = lesson.questions.filter(q => q.inputType === "ai");
+    const aiQuestions = lesson.questions.filter(q => q.inputType === "openResponse");
     if (aiQuestions.length === 0) return false;
     const lastAiIndex = lesson.questions.findIndex(q => q === aiQuestions[aiQuestions.length - 1]);
     return currentIndex === lastAiIndex;
@@ -35,7 +35,7 @@ export function isLastAiQuestionInLesson(lesson, currentIndex) {
 export async function processAnswerLogic({
     userResponse, cue, questionData, lesson, englishLevel, userData, cuesGiven, apiRoot
 }) {
-    if (questionData.inputType === "ai") {
+    if (questionData.inputType === "openResponse") {
         const normalizeduserResponse = await normalize(userResponse.trim().toLowerCase());
         const normalizedcue = await normalize(cue.trim().toLowerCase());
 
@@ -212,7 +212,7 @@ export async function processAnswerLogic({
         }
         return result;
     }
-    else if (questionData.inputType === "speech") {
+    else if (questionData.inputType === "closedResponse") {
         const normalizeduserResponse = await normalize(userResponse.trim().toLowerCase());
         const normalizedcue = await normalize(cue.trim().toLowerCase());
         const similarity = calculateSimilarity(normalizeduserResponse, normalizedcue);
@@ -231,7 +231,7 @@ export async function processAnswerLogic({
 }
 
 export async function validateAnswerPrecheck(val, cue, questionData, englishLevel, userData, cuesGiven) {
-    if (questionData.inputType !== "ai") return { isValid: true };
+    if (questionData.inputType !== "openResponse") return { isValid: true };
 
     const wordCount = val.trim().split(/\s+/).length;
     let minWordsRequired = 3;

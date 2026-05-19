@@ -75,7 +75,7 @@ export function loadVideoForQuestion(question, state, lang) {
                 return;
             }
             state.videoPlays++;
-            if (state.videoPlays > 2 && (question.inputType === "speech" || question.inputType === "ai")) {
+            if (state.videoPlays > 2 && (question.inputType === "closedResponse" || question.inputType === "openResponse")) {
                 appStore.getState().deductListeningScore(10);
                 pointLoss.show(state.player.video, 10);
             }
@@ -83,7 +83,7 @@ export function loadVideoForQuestion(question, state, lang) {
 
         state.player.video.addEventListener('click', () => {
             state.videoClicks++;
-            if (state.videoClicks % 2 === 1 && (question.inputType === "speech" || question.inputType === "ai")) {
+            if (state.videoClicks % 2 === 1 && (question.inputType === "closedResponse" || question.inputType === "openResponse")) {
                 clickTriggeredPlay = true;
                 appStore.getState().deductListeningScore(15);
                 pointLoss.show(state.player.video, 15);
