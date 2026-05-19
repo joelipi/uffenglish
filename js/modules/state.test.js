@@ -13,9 +13,9 @@ describe('State Module', () => {
         expect(appStore.getState().currentLessonIndex).toBe(5);
         expect(State.currentLessonIndex).toBe(5);
 
-        State.currentQuestionIndex = 3;
-        expect(appStore.getState().currentQuestionIndex).toBe(3);
-        expect(State.currentQuestionIndex).toBe(3);
+        State.currentStepIndex = 3;
+        expect(appStore.getState().currentStepIndex).toBe(3);
+        expect(State.currentStepIndex).toBe(3);
 
         const cues = ['cue1', 'cue2'];
         State.cuesGiven = cues;
@@ -75,7 +75,8 @@ describe('State Module', () => {
         it('should handle guest user properly with Guest User display name', () => {
              const userData = {
                 display_name: 'Guest User',
-                english_level: 'A1'
+                english_level: 'A1',
+                auth_method: 'guest'
             };
             const mockStreakCalculator = vi.fn();
 
@@ -102,38 +103,38 @@ describe('State Module', () => {
         it('should reset all lesson specific state', () => {
             // Set some dirty state
             State.interactionLog = ['test'];
-            State.currentQuestionIndex = 5;
+            State.currentStepIndex = 5;
             State.mission = 'Test Mission';
             State.isTextMode = true;
             State.totalHesitations = 10;
             State.totalPauses = 5;
             State.averageWpm = 100;
-            State.questionCount = 5;
-            State.questionsAnswered = 3;
+            State.stepCount = 5;
+            State.stepsAnswered = 3;
 
             State.resetForNewLesson();
 
             expect(State.interactionLog).toEqual([]);
-            expect(State.currentQuestionIndex).toBe(0);
+            expect(State.currentStepIndex).toBe(0);
             expect(State.mission).toBeNull();
             expect(State.isTextMode).toBe(false);
             expect(State.recognizedIdioms).toEqual([]);
             expect(State.totalHesitations).toBe(0);
             expect(State.totalPauses).toBeNull();
             expect(State.averageWpm).toBeNull();
-            expect(State.questionCount).toBe(0);
-            expect(State.questionsAnswered).toBe(0);
+            expect(State.stepCount).toBe(0);
+            expect(State.stepsAnswered).toBe(0);
         });
     });
 
-    describe('resetForNextQuestion', () => {
-        it('should reset question specific state', () => {
+    describe('resetForNextStep', () => {
+        it('should reset step specific state', () => {
             State.wordsRevealed = 5;
             State.videoPlays = 2;
             State.videoClicks = 1;
             State.isPlaybackMuted = true;
 
-            State.resetForNextQuestion();
+            State.resetForNextStep();
 
             expect(State.wordsRevealed).toBe(0);
             expect(State.videoPlays).toBe(0);
