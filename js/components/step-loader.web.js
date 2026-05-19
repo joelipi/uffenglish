@@ -352,7 +352,17 @@ function _renderSuccess(step, fluencyData) {
     const nextLessonId = currentLesson.nextLessonId;
 
     if (nextLessonId) {
-        const finalStats = getCompressedLessonStats();
+        const finalStats = getCompressedLessonStats({
+            isTextMode: State.isTextMode,
+            isCameraOff: State.isCameraOff,
+            lessonStartTime: State.lessonStartTime,
+            averageWpm: State.averageWpm,
+            totalPauses: State.totalPauses,
+            totalHesitations: State.totalHesitations,
+            recognizedIdioms: State.recognizedIdioms,
+            pragmaticFlags: State.pragmaticFlags,
+            interactionLog: State.interactionLog
+        });
 
         saveLessonProgress(State.courseId, nextLessonId, State.userData, {
             updateUserMeta: true,

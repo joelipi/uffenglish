@@ -132,30 +132,39 @@ describe('scoring utilities', () => {
 
     describe('logInteraction', () => {
         it('should log interaction to State.interactionLog', () => {
-            logInteraction('Hello', 'Hi', 'correct');
+            logInteraction('Hello', 'Hi', 'correct', null, null, State.interactionLog);
             expect(State.interactionLog).toHaveLength(1);
             expect(State.interactionLog[0]).toEqual({ q: 'Hello', r: 'Hi', s: 'correct' });
         });
 
         it('should log details as string if provided as array', () => {
-            logInteraction('Hello', 'Hi', 'correct', ['detail1', 'detail2']);
+            logInteraction('Hello', 'Hi', 'correct', ['detail1', 'detail2'], null, State.interactionLog);
             expect(State.interactionLog[0].d).toBe('detail1, detail2');
         });
 
         it('should add grammarCorrection if provided', () => {
-            logInteraction('He go', 'He goes', 'incorrect', null, 'He goes');
+            logInteraction('He go', 'He goes', 'incorrect', null, 'He goes', State.interactionLog);
             expect(State.interactionLog[0].g).toBe('He goes');
         });
     });
 
     describe('getCompressedLessonStats', () => {
         it('should return compressed lesson stats stripping nulls and empty arrays', () => {
-            State.isTextMode = true;
             vi.spyOn(appStore, 'getState').mockReturnValue({
                 fluencyScore: 85,
                 incorrectAttempts: 2
             });
-            const result = getCompressedLessonStats();
+            const result = getCompressedLessonStats({
+                isTextMode: true,
+                isCameraOff: false,
+                lessonStartTime: null,
+                averageWpm: 0,
+                totalPauses: 0,
+                totalHesitations: 0,
+                recognizedIdioms: [],
+                pragmaticFlags: [],
+                interactionLog: []
+            });
             expect(result.mod).toBe('txt');
             expect(result.fs).toBe(85);
             expect(result.ia).toBe(2);

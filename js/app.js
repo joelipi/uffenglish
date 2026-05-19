@@ -147,7 +147,7 @@ import { calculateSyntacticComplexity } from './modules/complexity.js';
 window.addEventListener('transcriptRejected', (e) => {
     const cue = e.detail?.cue || "unknown_cue";
     const transcript = e.detail?.transcript || "unknown_transcript";
-    logInteraction(cue, transcript, "rej_usr", "User rejected Whisper transcription");
+    logInteraction(cue, transcript, "rej_usr", "User rejected Whisper transcription", null, State.interactionLog);
 
     // Deduct 20 points, floor at 0
     appStore.getState().deductSpeakingScore(20);
@@ -180,7 +180,7 @@ export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation,
     );
 
     if (!isValid) {
-        logInteraction(cue, val, "rej_pre", warningMessage);
+        logInteraction(cue, val, "rej_pre", warningMessage, null, State.interactionLog);
         if (!State.isTextMode) {
             //   FIX: Now correctly deducts from the Speaking Score instead of the Listening Score
             appStore.getState().deductSpeakingScore(10);
@@ -373,7 +373,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
 
         let status = isCorrect ? "ok" : "inc";
         let pragmaticDetails = result?.intentLabels?.length > 0 ? result.intentLabels : null;
-        logInteraction(cue, userResponse, status, pragmaticDetails, grammarCorrection);
+        logInteraction(cue, userResponse, status, pragmaticDetails, grammarCorrection, State.interactionLog);
 
         // Log idioms and pragmatics to the global state arrays if they exist in the result object
         if (result?.foundIdioms?.length > 0) {
@@ -409,7 +409,8 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
                 grammarErrorScore: grammarErrorScore,
                 complexityScore: speechAnalytics?.complexityScore || 100,
                 labels: result && result.intentLabels ? result.intentLabels : [],
-                attemptNumber: attemptNumber
+                attemptNumber: attemptNumber,
+                isTextMode: State.isTextMode
             });
 
             appStore.getState().setFluencyMetrics({

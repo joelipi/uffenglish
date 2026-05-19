@@ -1,4 +1,3 @@
-import { State } from "./state.js";
 import { appStore } from "./store.js";
 
 // modules/scoring.js
@@ -39,9 +38,9 @@ export function calculateFluencyScore({
     grammarErrorScore,
     complexityScore,
     labels,
-    attemptNumber
+    attemptNumber,
+    isTextMode = false
 }) {
-    const isTextMode = State.isTextMode;
  
     // 1. Pronunciation (5%)
     const pronunciation = isTextMode ? null : pronunciationScore;
@@ -172,7 +171,7 @@ export function calculateFluencyScore({
 }
 
 
-export function logInteraction(cue, response, status, details = null, grammarCorrection = null) {
+export function logInteraction(cue, response, status, details = null, grammarCorrection = null, interactionLog = []) {
     try {
         const entry = { q: cue || "", r: response || "", s: status || "unk" };
 
@@ -181,13 +180,23 @@ export function logInteraction(cue, response, status, details = null, grammarCor
         }
         if (grammarCorrection) entry.g = grammarCorrection;
 
-        State.interactionLog.push(entry);
+        interactionLog.push(entry);
     } catch (e) {
         console.warn("Failed to log interaction", e);
     }
 }
 
-export function getCompressedLessonStats() {
+export function getCompressedLessonStats({
+    isTextMode = false,
+    isCameraOff = false,
+    lessonStartTime = null,
+    averageWpm = null,
+    totalPauses = null,
+    totalHesitations = null,
+    recognizedIdioms = [],
+    pragmaticFlags = [],
+    interactionLog = []
+} = {}) {
     try {
         const state = appStore.getState() || {};
 
@@ -197,13 +206,13 @@ export function getCompressedLessonStats() {
         };
 
         let mode = 'cam';
-        if (State.isTextMode) mode = 'txt';
-        else if (State.isCameraOff) mode = 'mic';
+        if (isTextMode) mode = 'txt';
+        else if (isCameraOff) mode = 'mic';
 
         const tsEnd = new Date().toISOString();
         let tsStart = null;
         try {
-            tsStart = State.lessonStartTime ? new Date(State.lessonStartTime).toISOString() : tsEnd;
+            tsStart = lessonStartTime ? new Date(lessonStartTime).toISOString() : tsEnd;
         } catch (e) { tsStart = tsEnd; }
 
         const payload = {
@@ -224,15 +233,15 @@ export function getCompressedLessonStats() {
             ia: safeNum(state.incorrectAttempts, 0),
 
             // Aggregated State Metrics
-            wpm: safeNum(State.averageWpm),
-            pau: safeNum(State.totalPauses),
-            hes: safeNum(State.totalHesitations, 0),
+            wpm: safeNum(averageWpm),
+            pau: safeNum(totalPauses),
+            hes: safeNum(totalHesitations, 0),
 
             // Arrays
-            ida: Array.isArray(State.recognizedIdioms) ? [...new Set(State.recognizedIdioms)] : [],
-            idc: Array.isArray(State.recognizedIdioms) ? [...new Set(State.recognizedIdioms)].length : 0,
-            prg: Array.isArray(State.pragmaticFlags) ? [...new Set(State.pragmaticFlags)] : [],
-            hx: Array.isArray(State.interactionLog) ? State.interactionLog : []
+            ida: Array.isArray(recognizedIdioms) ? [...new Set(recognizedIdioms)] : [],
+            idc: Array.isArray(recognizedIdioms) ? [...new Set(recognizedIdioms)].length : 0,
+            prg: Array.isArray(pragmaticFlags) ? [...new Set(pragmaticFlags)] : [],
+            hx: Array.isArray(interactionLog) ? interactionLog : []
         };
 
         // Minifier: Strip nulls, undefined, and empty arrays
