@@ -23,7 +23,7 @@ export class introBackgroundVideo {
     this.initClick();
 
     // Hide standard video containers to prevent stacking
-    ['#ivp-container', '#simple-ivp-container'].forEach(selector => {
+    ['#ivp-container', '#simple-video-container'].forEach(selector => {
       const el = document.querySelector(selector);
       if (el) el.classList.add('d-none');
     });

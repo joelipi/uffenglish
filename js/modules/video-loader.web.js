@@ -96,7 +96,7 @@ export function loadVideoForStep(step, state, lang) {
         state.player = new simpleVideoPlayer({
             videoUrl: currentVideoUrl,
             subtitles: getLocalizedTranslation(step.subtitles, lang),
-            containerSelector: '#simple-ivp-container',
+            containerSelector: '#simple-video-container',
             videoStyles: { maxWidth: '100%' },
             subtitleStyles: { fontSize: '24px', backgroundColor: 'rgba(0, 0, 0, 0.8)' }
         });

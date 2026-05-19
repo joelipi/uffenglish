@@ -1493,7 +1493,7 @@ export function removeRepeatButton() {
 export function clearMediaContainerAndPreservePlayers() {
     if (!DOM.mediaViewport) return;
 
-    const preserved = DOM.mediaViewport.querySelectorAll('#ivp-container, #simple-ivp-container, #intro-call-widget, #webcam-preview');
+    const preserved = DOM.mediaViewport.querySelectorAll('#ivp-container, #simple-video-container, #intro-call-widget, #webcam-preview');
     DOM.mediaViewport.innerHTML = '';
 
     preserved.forEach(el => {

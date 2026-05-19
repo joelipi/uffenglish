@@ -788,7 +788,7 @@
         }
 
         #ivp-container:empty,
-        #simple-ivp-container:empty {
+        #simple-video-container:empty {
             min-height: 0 !important;
             display: none;
         }
@@ -1566,7 +1566,7 @@
         }
 
         #ivp-container,
-        #simple-ivp-container {
+        #simple-video-container {
             width: 100%;
             height: 100%;
         }
@@ -1721,7 +1721,7 @@
             color: #ffffff;
             font-weight: 800;
             font-size: 1.05rem;
-            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
         }
 
         .incoming-video-caller .caller-action {
@@ -1754,7 +1754,8 @@
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
             z-index: 2;
             cursor: pointer;
-            pointer-events: none; /* Let parent click handle everything */
+            pointer-events: none;
+            /* Let parent click handle everything */
         }
 
         .btn-pulse-ring {
@@ -1774,6 +1775,7 @@
                 opacity: 0.4;
                 transform: scale(0.9);
             }
+
             to {
                 opacity: 1;
                 transform: scale(1.1);
@@ -1781,9 +1783,12 @@
         }
 
         @keyframes blink-text {
-            0%, 100% {
+
+            0%,
+            100% {
                 opacity: 0.5;
             }
+
             50% {
                 opacity: 1;
             }
@@ -1794,6 +1799,7 @@
                 transform: scale(0.85);
                 opacity: 0.8;
             }
+
             100% {
                 transform: scale(1.4);
                 opacity: 0;
@@ -1809,14 +1815,19 @@
             object-fit: cover !important;
             border-radius: 50% !important;
         }
+
         .chat-msg {
             padding: 4px 12px !important;
             width: 100%;
             max-width: 95%;
         }
+
         @media (min-width: 768px) {
-            .chat-msg { max-width: 80%; }
+            .chat-msg {
+                max-width: 80%;
+            }
         }
+
         /* Overrides existing .chat-bubble-header */
         .chat-bubble-header {
             font-size: 0.75rem !important;
@@ -1824,9 +1835,11 @@
             margin-bottom: 2px !important;
             font-weight: bold !important;
         }
+
         .userResponse .chat-bubble-header {
             text-align: right;
         }
+
         /* Overrides existing .stats-header-label */
         .stats-header-label {
             font-size: clamp(0.45rem, 2.3cqi, 0.7rem) !important;
@@ -1926,7 +1939,7 @@
                         </div>
                     </div>
                 </div>
-                <div id="simple-ivp-container"></div>
+                <div id="simple-video-container"></div>
                 <div id="intro-call-widget" class="intro-video-wrapper d-none">
                     <div class="pulse-ring-wrapper">
                         <div class="pulse-ring"></div>
@@ -2011,8 +2024,7 @@
                     </div>
 
                     <!-- Bottom Row: Bot Stats (Spread out columns with Listening centered) -->
-                    <div id="stats-container"
-                        class="row w-100 mx-0 mt-0 text-white stats-container d-none">
+                    <div id="stats-container" class="row w-100 mx-0 mt-0 text-white stats-container d-none">
                         <!-- Pronunciation (left) -->
                         <div class="col-4 d-flex align-items-center justify-content-center px-2">
                             <div title="Pronunciation" class="d-flex flex-column align-items-center w-100">
@@ -2182,10 +2194,12 @@
             <div class="modal-content bg-dark text-white border-light shadow-lg">
                 <div class="modal-header border-secondary">
                     <h5 class="modal-title" id="guestLoginModalLabel"><i
-                            class="bi bi-shield-lock-fill text-warning me-2"></i><span id="guestLoginModalTitleText">Welcome!</span></h5>
+                            class="bi bi-shield-lock-fill text-warning me-2"></i><span
+                            id="guestLoginModalTitleText">Welcome!</span></h5>
                 </div>
                 <div class="modal-body">
-                    <p class="text-light" id="guestLoginModalBodyText">You are currently not logged in. Log in or sign up to save your progress and
+                    <p class="text-light" id="guestLoginModalBodyText">You are currently not logged in. Log in or sign
+                        up to save your progress and
                         access all features. Or, continue as a guest to try out the app.</p>
                     <div class="d-grid gap-2 mt-4">
                         <a href="login.html" id="guestLoginBtn" class="btn btn-primary">
