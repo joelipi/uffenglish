@@ -133,6 +133,7 @@ export async function toggleSpeechRecognition(params) {
         if (!listeningState.active) {
             // --- START ---
             listeningState.active = true;
+            appStore.getState().setMicActive(true);
             appStore.getState().setHesitationMs(0);
             if (uiHooks?.onRecordingStart) uiHooks.onRecordingStart(userData);
 
@@ -140,6 +141,7 @@ export async function toggleSpeechRecognition(params) {
                 await WebAdapter.startSpeechCamRecording(micStatusText, userData);
             } catch (e) {
                 listeningState.active = false;
+                appStore.getState().setMicActive(false);
                 return;
             }
 
@@ -148,6 +150,7 @@ export async function toggleSpeechRecognition(params) {
             // REFACTORED: Check Zustand instead of window
             if (!appStore.getState().isWhisperReady) {
                 listeningState.active = false;
+                appStore.getState().setMicActive(false);
                 console.error('[Speech] Whisper engine not ready');
 
                 // Abort the camera recording so the browser doesn't lock the stream
@@ -250,6 +253,7 @@ export async function toggleSpeechRecognition(params) {
         } else {
             // --- STOP ---
             listeningState.active = false;
+            appStore.getState().setMicActive(false);
             if (listeningState.hesitationTimer) {
                 console.log('[Hesitation] Recording stopped manually - clearing timer');
                 clearInterval(listeningState.hesitationTimer);
@@ -272,6 +276,7 @@ export async function toggleSpeechRecognition(params) {
 
             if (!videoBlob) {
                 stopListeningEarly(userData, player, uiHooks);
+                appStore.getState().setMicActive(false);
                 return;
             }
 

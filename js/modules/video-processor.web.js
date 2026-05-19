@@ -2,14 +2,60 @@
 import { getAllSpeechRecordingsForLesson } from './storage.js';
 import { VideoRenderPlanner } from './video-processor-logic.js';
 import { shareVideo } from './video-share.web.js';
+import { appStore } from './store.js';
 
 export { shareVideo };
 
+let processorContainer = null;
 let audioContext = null;
 let audioSource = null;
 let audioDestination = null;
 let animationId = null;
 let fontReady = false;
+
+export function initVideoProcessor(container) {
+    console.log("[VideoProcessor] Initializing with container:", container);
+    processorContainer = container;
+
+    let originalVideo = container.querySelector('#originalVideo') || document.getElementById('originalVideo');
+    if (!originalVideo) {
+        originalVideo = document.createElement('video');
+        originalVideo.id = 'originalVideo';
+        originalVideo.crossOrigin = "anonymous";
+        originalVideo.playsInline = true;
+        originalVideo.style.display = 'none';
+    }
+    if (originalVideo.parentNode !== container) {
+        container.appendChild(originalVideo);
+    }
+}
+
+export function cleanupVideoProcessor() {
+    console.log("[VideoProcessor] Cleaning up processor...");
+    if (animationId) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+    }
+    if (audioContext) {
+        if (audioContext.state !== 'closed') {
+            audioContext.close().catch(e => console.warn("[VideoProcessor] Error closing AudioContext:", e));
+        }
+        audioContext = null;
+    }
+    audioSource = null;
+    audioDestination = null;
+
+    const originalVideo = processorContainer ? processorContainer.querySelector('#originalVideo') : document.getElementById('originalVideo');
+    if (originalVideo) {
+        originalVideo.pause();
+        originalVideo.src = '';
+        originalVideo.load();
+        if (originalVideo.parentNode) {
+            originalVideo.parentNode.removeChild(originalVideo);
+        }
+    }
+    processorContainer = null;
+}
 
 export async function processVideo(fluencyData = {}, lessonId = null, displayCanvas = null) {
     return new Promise(async (resolve, reject) => {
@@ -22,11 +68,16 @@ export async function processVideo(fluencyData = {}, lessonId = null, displayCan
                 console.warn("[VideoProcessor] No recordings found. Proceeding with text-mode/summary generation.");
             }
 
-            let originalVideo = document.getElementById('originalVideo');
+            let originalVideo = processorContainer ? processorContainer.querySelector('#originalVideo') : document.getElementById('originalVideo');
             if (!originalVideo) {
                 originalVideo = document.createElement('video');
+                originalVideo.id = 'originalVideo';
                 originalVideo.crossOrigin = "anonymous";
                 originalVideo.playsInline = true;
+                originalVideo.style.display = 'none';
+                if (processorContainer) {
+                    processorContainer.appendChild(originalVideo);
+                }
             }
 
             originalVideo.muted = false;
@@ -45,7 +96,7 @@ export async function processVideo(fluencyData = {}, lessonId = null, displayCan
                 });
             }
 
-            const configData = window.__currentConfigData || window.State?.configData || {};
+            const configData = appStore.getState().configData || {};
             const planner = new VideoRenderPlanner(recordings, configData, fluencyData);
             const plan = planner.generatePlan();
 

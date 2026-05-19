@@ -12,6 +12,7 @@ export const appStore = createStore(
             // --- Session Flags (Not Persisted) ---
             isDemoMode: false,
             isWhisperReady: false,
+            isMicActive: false,
             userFirstName: null,
             userData: null,
             configData: null,
@@ -58,6 +59,7 @@ export const appStore = createStore(
             // Set Session Flags
             setDemoMode: (val) => set({ isDemoMode: val }),
             setWhisperReady: (val) => set({ isWhisperReady: val }),
+            setMicActive: (val) => set({ isMicActive: val }),
             setUserFirstName: (val) => set({ userFirstName: val }),
             setCourseData: (data) => set((state) => ({
                 userData: data.userData !== undefined ? data.userData : state.userData,
@@ -222,3 +224,16 @@ export const appStore = createStore(
         }
     )
 );
+
+// Global bridge for legacy window.isMicActive
+if (typeof window !== 'undefined') {
+    Object.defineProperty(window, 'isMicActive', {
+        get() {
+            return appStore.getState().isMicActive;
+        },
+        set(value) {
+            appStore.getState().setMicActive(value);
+        },
+        configurable: true
+    });
+}
