@@ -13,6 +13,8 @@ export const appStore = createStore(
             isDemoMode: false,
             isWhisperReady: false,
             isMicActive: false,
+            isGuestModalOpen: false,
+            criticalErrorMessage: null,
             userFirstName: null,
             userData: null,
             configData: null,
@@ -21,6 +23,7 @@ export const appStore = createStore(
 
             // --- Reactive UI Metrics ---
             listeningScore: 100,
+            speakingScore: 100,
             incorrectAttempts: 0,
             whisperRejections: 0,
             dayCount: 0,
@@ -60,6 +63,8 @@ export const appStore = createStore(
             setDemoMode: (val) => set({ isDemoMode: val }),
             setWhisperReady: (val) => set({ isWhisperReady: val }),
             setMicActive: (val) => set({ isMicActive: val }),
+            setGuestModalOpen: (val) => set({ isGuestModalOpen: val }),
+            setCriticalErrorMessage: (val) => set({ criticalErrorMessage: val }),
             setUserFirstName: (val) => set({ userFirstName: val }),
             setCourseData: (data) => set((state) => ({
                 userData: data.userData !== undefined ? data.userData : state.userData,

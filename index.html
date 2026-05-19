@@ -1965,16 +1965,8 @@
             </div>
 
 
-            <!-- Critical Error Container (Hardcoded) -->
-            <div id="criticalErrorContainer"
-                class="d-none w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4 text-white text-center">
-                <i class="bi bi-exclamation-triangle-fill text-warning mb-3"></i>
-                <h4 class="mb-2">Lesson Load Error</h4>
-                <p id="criticalErrorMessage" class="text-secondary mb-4"></p>
-                <button class="btn btn-primary px-4 rounded-pill" onclick="window.location.reload()">
-                    <i class="bi bi-arrow-clockwise"></i> Try Again
-                </button>
-            </div>
+            <!-- Critical Error Container (React Portal Anchor) -->
+            <div id="react-root-critical-error"></div>
 
             <!-- Whisper Review UI (Hardcoded Overlay) -->
             <div id="whisperReviewContainer"
@@ -2021,26 +2013,26 @@
                                     aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
                             </div>
                         </div>
+                        <div id="react-root-activity" class="ms-2"></div>
                     </div>
 
                     <!-- Bottom Row: Bot Stats (Spread out columns with Listening centered) -->
                     <div id="react-root-stats"></div>
+                    <!-- Legacy stats container replaced by react-root-stats ScoreBoard -->
+                    <!--
                     <div id="stats-container" class="row w-100 mx-0 mt-0 text-white stats-container d-none">
-                        <!-- Pronunciation (left) -->
                         <div class="col-4 d-flex align-items-center justify-content-center px-2">
                             <div title="Pronunciation" class="d-flex flex-column align-items-center w-100">
                                 <div class="chat-bubble-header stats-header-label">PRONUNCIATION</div>
                                 <span id="pronunciationScore" class="bot-score">100</span>
                             </div>
                         </div>
-                        <!-- Listening (centered) -->
                         <div class="col-4 d-flex align-items-center justify-content-center px-2">
                             <div title="Listening" class="d-flex flex-column align-items-center w-100">
                                 <div class="chat-bubble-header stats-header-label">LISTENING</div>
                                 <span id="listeningScore" class="bot-score">100</span>
                             </div>
                         </div>
-                        <!-- Flow (right) -->
                         <div class="col-4 d-flex align-items-center justify-content-center px-2">
                             <div title="Flow" class="d-flex flex-column align-items-center w-100">
                                 <div class="chat-bubble-header stats-header-label">SPEAKING FLOW</div>
@@ -2048,6 +2040,7 @@
                             </div>
                         </div>
                     </div>
+                    -->
 
                 </div>
             </div>
@@ -2142,6 +2135,8 @@
                             </button>
 
                             <!-- CENTER STATE 1: Standard Mic (Visible by default) -->
+                            <div id="react-root-mic"></div>
+                            <!-- Legacy mic button replaced by react-root-mic MicrophoneToggle
                             <div class="mic-btn-wrapper" id="state-standard-mic">
                                 <div class="mic-ring"></div>
                                 <div class="mic-ring"></div>
@@ -2153,6 +2148,7 @@
                                     <i class="bi bi-keyboard-fill"></i>
                                 </button>
                             </div>
+                            -->
 
                             <!-- CENTER STATE 2: Intro Choices (Hidden by default) -->
                             <div class="d-flex gap-3 align-items-center d-none" id="state-intro-choices">
@@ -2190,7 +2186,7 @@
         </div>
     </main>
 
-    <!-- DIALOG: Guest Login Welcome Modal (Native <dialog>, styled cleanly) -->
+    <!--
     <dialog id="guestLoginModal">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content bg-dark text-white border-light shadow-lg">
@@ -2218,6 +2214,7 @@
             </div>
         </div>
     </dialog>
+    -->
 
     <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

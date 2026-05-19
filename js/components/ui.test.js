@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
     showInitializationErrorMessage, setupLessonUI, DOM, escapeHTML, getFirstName, flashElement,
-    disableAllButtons, updateCurrentScoreDisplay, updateSpeakingScoreDisplay, showCriticalError,
-    hideCriticalError, updateActivityDisplay, updateDayCountDisplay,
+    disableAllButtons, showCriticalError,
+    hideCriticalError,
     safeRenderChatInterface, renderUserResponse, renderAIAnalysisLoading, removeAILoadingStatus,
     getPraiseHTML, renderAIFeedback, clearChatInterface, renderHangmanHint, showMicWarning,
     showAnswerError, setProgressBarWidth, hideAnswerDiv, bindProcessButton, resetUIForNewStep,
@@ -49,30 +49,20 @@ describe('UI Component functions', () => {
     });
 
     describe('Critical Error Handling', () => {
-        it('should render an error message into the criticalErrorContainer', () => {
+        it('should update criticalErrorMessage in store', () => {
             showCriticalError('Test error message');
-            const message = document.getElementById('criticalErrorMessage');
-            const container = document.getElementById('criticalErrorContainer');
-            expect(message.innerHTML).toContain('Test error message');
-            expect(container.classList.contains('d-none')).toBe(false);
+            expect(appStore.getState().criticalErrorMessage).toBe('Test error message');
         });
 
         it('should route showInitializationErrorMessage to showCriticalError', () => {
             showInitializationErrorMessage('Init error');
-            const message = document.getElementById('criticalErrorMessage');
-            expect(message.innerHTML).toContain('Init error');
-        });
-
-        it('should do nothing if criticalErrorContainer is missing', () => {
-            document.body.innerHTML = ''; // Remove container
-            expect(() => showCriticalError('Test')).not.toThrow();
+            expect(appStore.getState().criticalErrorMessage).toBe('Init error');
         });
 
         it('should hide critical error', () => {
             showCriticalError('Test error message');
             hideCriticalError();
-            const container = document.getElementById('criticalErrorContainer');
-            expect(container.classList.contains('d-none')).toBe(true);
+            expect(appStore.getState().criticalErrorMessage).toBeNull();
         });
     });
 
@@ -153,67 +143,6 @@ describe('UI Component functions', () => {
         });
     });
 
-    describe('updateCurrentScoreDisplay', () => {
-        it('should update listeningScore display and flash if decreased', () => {
-            appStore.setState({ listeningScore: 90 });
-            vi.useFakeTimers();
-
-            updateCurrentScoreDisplay(); // should use store value
-
-            const span = document.getElementById('listeningScore');
-            expect(span.textContent).toBe('90');
-            expect(span.classList.contains('score-update')).toBe(true);
-
-            vi.advanceTimersByTime(300);
-            expect(span.classList.contains('score-update')).toBe(false);
-
-            vi.useRealTimers();
-        });
-
-        it('should accept direct score value', () => {
-            updateCurrentScoreDisplay(85);
-            const span = document.getElementById('listeningScore');
-            expect(span.textContent).toBe('85');
-        });
-    });
-
-    describe('updateSpeakingScoreDisplay', () => {
-        it('should update speakingScore display', () => {
-            appStore.setState({ speakingScore: 70 });
-            updateSpeakingScoreDisplay(); // should use store value
-            const span = document.getElementById('pronunciationScore');
-            expect(span.textContent).toBe('70');
-        });
-
-        it('should accept direct score value', () => {
-            updateSpeakingScoreDisplay(60);
-            const span = document.getElementById('pronunciationScore');
-            expect(span.textContent).toBe('60');
-        });
-    });
-
-    describe('updateActivityDisplay & updateDayCountDisplay', () => {
-        it('should update both total days and current streak', () => {
-            updateActivityDisplay(5, 3);
-            expect(document.getElementById('dayCountSpan').textContent).toBe('5');
-            expect(document.getElementById('streakCountSpan').textContent).toBe('3');
-        });
-
-        it('should handle undefined totalDays and currentStreak gracefully', () => {
-             expect(() => updateActivityDisplay(undefined, undefined)).not.toThrow();
-        });
-
-        it('should update just dayCount using updateDayCountDisplay', () => {
-            updateDayCountDisplay(15);
-            expect(document.getElementById('dayCountSpan').textContent).toBe('15');
-        });
-
-        it('should fallback to store state in updateDayCountDisplay', () => {
-            appStore.setState({ dayCount: 22 });
-            updateDayCountDisplay();
-            expect(document.getElementById('dayCountSpan').textContent).toBe('22');
-        });
-    });
 
     describe('Chat Interface Rendering', () => {
         it('should execute safeRenderChatInterface safely', () => {

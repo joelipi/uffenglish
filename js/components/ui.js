@@ -109,39 +109,10 @@ export function flashElement(element) {
     element.classList.add('score-update');
     setTimeout(() => element.classList.remove('score-update'), 300);
 }
-
-export function updateCurrentScoreDisplay(listeningScore) {
-    const points = listeningScore !== undefined ? listeningScore : appStore.getState().listeningScore;
-    const element = document.getElementById('listeningScore');
-    if (element) {
-        flashElement(element);
-        element.textContent = points;
-    }
-}
-
 export function animatePointLoss(amount) {
     const element = document.getElementById('listeningScore');
     if (element && pointLoss) {
         pointLoss.show(element, amount);
-    }
-}
-
-export function updateActivityDisplay(totalDays, currentStreak) {
-    if (DOM.dayCountSpan) {
-        DOM.dayCountSpan.textContent = totalDays;
-        flashElement(DOM.dayCountSpan);
-    }
-    if (DOM.streakCountSpan) {
-        DOM.streakCountSpan.textContent = currentStreak;
-        flashElement(DOM.streakCountSpan);
-    }
-}
-
-export function updateDayCountDisplay(dayCount) {
-    const safeDayCount = dayCount !== undefined ? dayCount : appStore.getState().dayCount;
-    if (DOM.dayCountSpan) {
-        flashElement(DOM.dayCountSpan);
-        DOM.dayCountSpan.textContent = safeDayCount;
     }
 }
 
@@ -647,12 +618,7 @@ export function setMicStatusText(content) {
 
 export function initUISubscriptions() {
     const store = appStore;
-    let prevPoints = store.getState().listeningScore;
-    let prevSpeaking = store.getState().speakingScore;
-    let prevFlow = store.getState().flowScore;
     let prevAttempts = store.getState().incorrectAttempts;
-    let prevDayCount = store.getState().dayCount;
-    let prevStreak = store.getState().currentStreak;
     let prevUserFirstName = store.getState().userFirstName;
 
     const updateChatHeader = (userFirstName) => {
@@ -680,65 +646,11 @@ export function initUISubscriptions() {
         observer.observe(chatList, { childList: true, subtree: true });
     }
 
-    const syncCurrentScore = (listeningScore) => {
-        const element = document.getElementById('listeningScore');
-        if (element) {
-            flashElement(element);
-            element.textContent = listeningScore;
-        }
-    };
-    syncCurrentScore(prevPoints);
-
-    const syncSpeakingScore = (speakingScore) => {
-        if (DOM.pronunciationScore) {
-            flashElement(DOM.pronunciationScore);
-            DOM.pronunciationScore.textContent = `${speakingScore}`;
-        }
-    };
-    syncSpeakingScore(prevSpeaking);
-
-    const syncFlowScore = (flowScore) => {
-        if (DOM.flowScore) {
-            flashElement(DOM.flowScore);
-            DOM.flowScore.textContent = `${flowScore}`;
-        }
-    };
-    syncFlowScore(prevFlow);
-
-    const syncActivityDisplay = (dayCount, currentStreak) => {
-        if (DOM.dayCountSpan) {
-            DOM.dayCountSpan.textContent = dayCount;
-            flashElement(DOM.dayCountSpan);
-        }
-        if (DOM.streakCountSpan) {
-            DOM.streakCountSpan.textContent = currentStreak;
-            flashElement(DOM.streakCountSpan);
-        }
-    };
-    syncActivityDisplay(prevDayCount, prevStreak);
-
     store.subscribe((state) => {
-        if (state.listeningScore !== prevPoints) {
-            syncCurrentScore(state.listeningScore);
-            prevPoints = state.listeningScore;
-        }
-        if (state.speakingScore !== prevSpeaking) {
-            syncSpeakingScore(state.speakingScore);
-            prevSpeaking = state.speakingScore;
-        }
-        if (state.flowScore !== prevFlow) {
-            syncFlowScore(state.flowScore);
-            prevFlow = state.flowScore;
-        }
         if (state.incorrectAttempts > prevAttempts) {
             prevAttempts = state.incorrectAttempts;
         } else if (state.incorrectAttempts === 0) {
             prevAttempts = 0;
-        }
-        if (state.dayCount !== prevDayCount || state.currentStreak !== prevStreak) {
-            syncActivityDisplay(state.dayCount, state.currentStreak);
-            prevDayCount = state.dayCount;
-            prevStreak = state.currentStreak;
         }
         if (state.userFirstName !== prevUserFirstName) {
             updateChatHeader(state.userFirstName);
@@ -785,50 +697,7 @@ export function initUISubscriptions() {
 }
 
 export function showGuestLoginModal() {
-    const dialog = document.getElementById('guestLoginModal');
-    const loginBtn = document.getElementById('guestLoginBtn');
-    const signupBtn = document.getElementById('guestSignupBtn');
-    const continueBtn = document.getElementById('guestContinueBtn');
-
-    if (!dialog || !loginBtn || !signupBtn || !continueBtn) {
-        console.warn('[GuestLoginModal] Required elements not found');
-        return;
-    }
-
-    // Set localized strings
-    const lang = appStore.getState().userData?.native_language || 'en';
-    const titleEl = document.getElementById('guestLoginModalTitleText');
-    const bodyEl = document.getElementById('guestLoginModalBodyText');
-    const loginBtnTextEl = document.getElementById('guestLoginBtnText');
-    const signupBtnTextEl = document.getElementById('guestSignupBtnText');
-    const continueBtnTextEl = document.getElementById('guestContinueBtnText');
-
-    if (titleEl) titleEl.innerHTML = Strings.get('guest_modal_title', lang);
-    if (bodyEl) bodyEl.innerHTML = Strings.get('guest_modal_body', lang);
-    if (loginBtnTextEl) loginBtnTextEl.innerHTML = Strings.get('guest_modal_login', lang);
-    if (signupBtnTextEl) signupBtnTextEl.innerHTML = Strings.get('guest_modal_signup', lang);
-    if (continueBtnTextEl) continueBtnTextEl.innerHTML = Strings.get('guest_modal_continue', lang);
-
-    const currentUrl = window.location.pathname + window.location.search;
-    loginBtn.href = `login.html?redirect=${encodeURIComponent(currentUrl)}`;
-    signupBtn.href = `signup.html?redirect=${encodeURIComponent(currentUrl)}`;
-
-    const closeDialog = () => {
-        if (dialog.close) dialog.close();
-        else dialog.style.display = 'none';
-    };
-
-    continueBtn.onclick = () => {
-        closeDialog();
-        console.log('[GuestLoginModal] User chose to continue as guest');
-    };
-
-    // Show as native dialog
-    if (dialog.showModal) {
-        dialog.showModal();
-    } else {
-        dialog.style.display = 'block';
-    }
+    appStore.getState().setGuestModalOpen(true);
 }
 export function hideWhisperReviewUI() {
     if (DOM.whisperReviewContainer) {
@@ -837,18 +706,11 @@ export function hideWhisperReviewUI() {
 }
 
 export function showCriticalError(message) {
-    if (DOM.criticalErrorContainer && DOM.criticalErrorMessage) {
-        DOM.criticalErrorMessage.innerHTML = message || "An unexpected error occurred.";
-        DOM.criticalErrorContainer.classList.remove("d-none");
-        if (DOM.mediaViewport) DOM.mediaViewport.classList.remove("d-none");
-        console.error("[UI] Critical Error Shown:", message);
-    }
+    appStore.getState().setCriticalErrorMessage(message || "An unexpected error occurred.");
 }
 
 export function hideCriticalError() {
-    if (DOM.criticalErrorContainer) {
-        DOM.criticalErrorContainer.classList.add("d-none");
-    }
+    appStore.getState().setCriticalErrorMessage(null);
 }
 
 export function renderWhisperReviewUI(transcript, timeLeft, onAccept, onReject) {
@@ -919,10 +781,7 @@ export function pauseVideoIfPlaying(playerInstance) {
     });
 }
 
-export function updateSpeakingScoreDisplay(score) {
-    const safeScore = score !== undefined ? score : appStore.getState().speakingScore;
-    if (DOM.pronunciationScore) DOM.pronunciationScore.textContent = `${safeScore}`;
-}
+
 
 export function clearPlaybackVideo() {
     const video = document.getElementById('playback-video') || DOM.playbackVideo;

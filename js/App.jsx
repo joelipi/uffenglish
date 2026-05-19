@@ -2,9 +2,13 @@ import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { initLocalVoiceAI } from './modules/speech.js';
 import { idiomChecker } from './modules/idiom-checker.js';
+import ScoreBoard from './components/widgets/ScoreBoard.jsx';
+import ActivityStats from './components/widgets/ActivityStats.jsx';
+import MicrophoneToggle from './components/widgets/MicrophoneToggle.jsx';
+import GuestLoginModal from './components/modals/GuestLoginModal.jsx';
+import CriticalErrorModal from './components/modals/CriticalErrorModal.jsx';
 
 const ChatRoot = () => <></>;
-const StatsRoot = () => <></>;
 
 export default function App() {
     const isWorkerInitialized = useRef(false);
@@ -44,11 +48,18 @@ export default function App() {
 
     const chatRootEl = document.getElementById('react-root-chat');
     const statsRootEl = document.getElementById('react-root-stats');
+    const activityRootEl = document.getElementById('react-root-activity');
+    const micRootEl = document.getElementById('react-root-mic');
+    const criticalErrorRootEl = document.getElementById('react-root-critical-error');
 
     return (
         <>
             {chatRootEl && createPortal(<ChatRoot />, chatRootEl)}
-            {statsRootEl && createPortal(<StatsRoot />, statsRootEl)}
+            {statsRootEl && createPortal(<ScoreBoard />, statsRootEl)}
+            {activityRootEl && createPortal(<ActivityStats />, activityRootEl)}
+            {micRootEl && createPortal(<MicrophoneToggle />, micRootEl)}
+            {criticalErrorRootEl && createPortal(<CriticalErrorModal />, criticalErrorRootEl)}
+            {createPortal(<GuestLoginModal />, document.body)}
         </>
     );
 }

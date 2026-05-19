@@ -52,7 +52,6 @@ import { SuccessLessonHandler } from './components/success-lesson.js';
 import { pointLoss } from './components/point-loss-animation.js';
 import { initMicAnimation } from './components/mic-animation.js';
 import { calculateCurrentStreak } from './modules/user-profile.js';
-import { updateActivityDisplay } from './components/ui.js';
 
 // --- Data & Configuration ---
 import Strings from './data/strings.js';
@@ -103,7 +102,6 @@ import {
     hideHints,
     clearMicStatusAndHideMedia,
     setMicStatusText,
-    updateSpeakingScoreDisplay,
     ensureWebcamPreview,
     hideWebcamPreview,
     removeWebcamPreview,
@@ -692,6 +690,14 @@ async function initializeLesson(courseId = appStore.getState().courseId, configD
         // 2. Call the pure logic function
         const lessonId = resolveCurrentLessonId(configData, userData, courseId, routerContext);
 
+        if (!configData || !configData.lessons) {
+            throw new Error("No course configuration or lessons available.");
+        }
+        const lesson = configData.lessons.find(l => l.lessonId === lessonId);
+        if (!lesson) {
+            throw new Error(`Lesson '${lessonId}' not found in course configuration.`);
+        }
+
         // 3. Execute Browser Side-Effects (Previously hidden inside lesson-router.js)
         if (routerContext.urlLessonId) {
             const url = new URL(window.location.href);
@@ -707,10 +713,6 @@ async function initializeLesson(courseId = appStore.getState().courseId, configD
         }
 
         await saveLessonProgress(courseId, lessonId, userData, { updateUserMeta: false, incrementCount: false });
-
-        if (!configData || !configData.lessons) return;
-        const lesson = configData.lessons.find(l => l.lessonId === lessonId);
-        if (!lesson) return;
 
         appStore.setState({ currentLessonIndex: configData.lessons.findIndex(l => l.lessonId === lessonId) });
 
@@ -742,11 +744,7 @@ async function loadLessonContent(lesson, configData) {
     State.userRole = lesson.userRole || "";
     State.videoRole = lesson.videoRole || "";
 
-    // No manual updateCurrentScoreDisplay call needed: the store subscription handles it.
-    // updateActivityDisplay is still called here because dayCount/currentStreak haven't changed yet
-    // (they will be set by saveLessonProgress callbacks later); this ensures the header shows
-    // the correct values immediately on lesson load.
-    updateActivityDisplay(appStore.getState().dayCount, appStore.getState().currentStreak);
+    // No manual updateCurrentScoreDisplay or updateActivityDisplay call needed: they are reactively handled by React.
     updateProgressBar(lesson);
 
     // --- TITLE LOGIC ---
