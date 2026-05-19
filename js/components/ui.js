@@ -21,9 +21,6 @@ export function syncTextModeUI() {
         if (flowScore && flowScore.parentElement) {
             flowScore.parentElement.classList.add('d-none');
         }
-
-        if (DOM.micBtn) DOM.micBtn.classList.add('d-none');
-        if (DOM.txtBtn) DOM.txtBtn.classList.remove('d-none');
         console.log('[UI] Text mode: hiding speaking/flow scores, swapping mic for keyboard');
     } else {
         if (pronunciationScore && pronunciationScore.parentElement) {
@@ -32,9 +29,6 @@ export function syncTextModeUI() {
         if (flowScore && flowScore.parentElement) {
             flowScore.parentElement.classList.remove('d-none');
         }
-
-        if (DOM.micBtn) DOM.micBtn.classList.remove('d-none');
-        if (DOM.txtBtn) DOM.txtBtn.classList.add('d-none');
         console.log('[UI] Camera/Mic mode: showing speaking/flow scores, swapping keyboard for mic');
     }
 }
@@ -120,10 +114,10 @@ export function disableAllButtons(container) {
     if (!container) return;
     const buttons = container.querySelectorAll('button');
     buttons.forEach(btn => {
-        if (btn) {
-            btn.disabled = true;
-            btn.classList.add('disabled');
-        }
+        // Skip React-owned mic/txt buttons — React controls their state
+        if (!btn || btn.id === 'micBtn' || btn.id === 'txtBtn') return;
+        btn.disabled = true;
+        btn.classList.add('disabled');
     });
 }
 
@@ -633,18 +627,6 @@ export function initUISubscriptions() {
     };
     updateChatHeader(prevUserFirstName);
 
-    const chatList = document.getElementById('chat-message-list');
-    if (chatList) {
-        const observer = new MutationObserver(() => {
-            setTimeout(() => {
-                chatList.scrollTo({
-                    top: chatList.scrollHeight,
-                    behavior: 'smooth'
-                });
-            }, 50);
-        });
-        observer.observe(chatList, { childList: true, subtree: true });
-    }
 
     store.subscribe((state) => {
         if (state.incorrectAttempts > prevAttempts) {
@@ -1146,6 +1128,7 @@ export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyCl
         if (videoBtn) {
             videoBtn.onclick = () => {
                 State.isTextMode = false;
+                appStore.getState().setTextMode(false);
                 syncTextModeUI();
                 if (State.isCameraOff) toggleCamera();
                 onClickCallback();
@@ -1155,6 +1138,7 @@ export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyCl
         if (audioBtn) {
             audioBtn.onclick = () => {
                 State.isTextMode = false;
+                appStore.getState().setTextMode(false);
                 syncTextModeUI();
                 if (!State.isCameraOff) toggleCamera();
                 if (onAudioOnlyClickCallback) onAudioOnlyClickCallback();
@@ -1165,6 +1149,7 @@ export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyCl
         if (textBtn) {
             textBtn.onclick = () => {
                 State.isTextMode = true;
+                appStore.getState().setTextMode(true);
                 State.isCameraOff = true;
                 syncTextModeUI();
                 onClickCallback();
@@ -1335,6 +1320,21 @@ export function resetUIForNewStep(isLessonIntro, hasUserData) {
 
     const courseProgress = document.getElementById("courseProgress");
     if (courseProgress) courseProgress.classList.add("d-none");
+
+    // Clear any inline styles or disabled states that speech callbacks may have left
+    // on the React-owned mic/txt buttons from the previous step.
+    const micBtn = document.getElementById('micBtn');
+    if (micBtn) {
+        micBtn.style.removeProperty('display');
+        micBtn.disabled = false;
+        micBtn.classList.remove('disabled');
+    }
+    const txtBtn = document.getElementById('txtBtn');
+    if (txtBtn) {
+        txtBtn.style.removeProperty('display');
+        txtBtn.disabled = false;
+        txtBtn.classList.remove('disabled');
+    }
 }
 
 export function toggleScoresAndHearts(show) {
@@ -1413,17 +1413,8 @@ export function renderSpeechInputUI(answerContent, handleHintCallback, handleRev
         });
     }
 
-    const micBtn = document.getElementById('micBtn');
-    if (micBtn) {
-        const newMicBtn = micBtn.cloneNode(true);
-        newMicBtn.className = 'btn call-btn toggled-off';
-        newMicBtn.style.display = 'flex'; // Force visibility
-        newMicBtn.disabled = false;
-        newMicBtn.innerHTML = '<i class="bi bi-mic-mute-fill"></i>';
-
-        micBtn.parentNode.replaceChild(newMicBtn, micBtn);
-        newMicBtn.addEventListener('click', toggleSpeechCallback);
-    }
+    // Bind the mic click handler globally for the React MicrophoneToggle component to use
+    window.onMicClick = toggleSpeechCallback;
 }
 
 export function renderTextInputUI(placeholder, submitText, handleSubmitCallback) {

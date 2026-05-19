@@ -199,7 +199,7 @@ export async function processAnswerLogic({
             const cleanCorrected = result.correction.replace(/[^\w\s]/g, '').trim().toLowerCase();
             const displayCorrection = (cleanOriginal === cleanCorrected) ? "" : result.correction;
             
-            if (displayCorrection && labels.some(l => ["pragmatic failure", "too formal", "too informal", "unidiomatic", "rude"].includes(l))) {
+            if (displayCorrection && cleanCorrected.length > 0 && labels.some(l => ["pragmatic failure", "too formal", "too informal", "unidiomatic", "rude"].includes(l))) {
                 feedbackChunks.push({
                     type: 'pragmatics',
                     header: Strings.get('recommended_correction', userData?.native_language) || "Recommended Corrected Version",

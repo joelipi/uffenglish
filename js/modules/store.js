@@ -13,6 +13,7 @@ export const appStore = createStore(
             isDemoMode: false,
             isWhisperReady: false,
             isMicActive: false,
+            isTextMode: false,
             isGuestModalOpen: false,
             criticalErrorMessage: null,
             userFirstName: null,
@@ -64,6 +65,7 @@ export const appStore = createStore(
             setDemoMode: (val) => set({ isDemoMode: val }),
             setWhisperReady: (val) => set({ isWhisperReady: val }),
             setMicActive: (val) => set({ isMicActive: val }),
+            setTextMode: (val) => set({ isTextMode: val }),
             setGuestModalOpen: (val) => set({ isGuestModalOpen: val }),
             setCriticalErrorMessage: (val) => set({ criticalErrorMessage: val }),
             addChatMessage: (msg) => set((state) => {

@@ -7,8 +7,7 @@ import ActivityStats from './components/widgets/ActivityStats.jsx';
 import MicrophoneToggle from './components/widgets/MicrophoneToggle.jsx';
 import GuestLoginModal from './components/modals/GuestLoginModal.jsx';
 import CriticalErrorModal from './components/modals/CriticalErrorModal.jsx';
-
-const ChatRoot = () => <></>;
+import ChatInterface from './components/chat/ChatInterface.jsx';
 
 export default function App() {
     const isWorkerInitialized = useRef(false);
@@ -54,7 +53,7 @@ export default function App() {
 
     return (
         <>
-            {chatRootEl && createPortal(<ChatRoot />, chatRootEl)}
+            {chatRootEl && createPortal(<ChatInterface />, chatRootEl)}
             {statsRootEl && createPortal(<ScoreBoard />, statsRootEl)}
             {activityRootEl && createPortal(<ActivityStats />, activityRootEl)}
             {micRootEl && createPortal(<MicrophoneToggle />, micRootEl)}
