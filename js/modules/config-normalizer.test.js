@@ -53,7 +53,7 @@ describe('normalizeConfig', () => {
         expect(step.incues).toEqual(['Incue1_es', 'Incue2_es']);
     });
 
-    it('normalizes step field if it already exists', () => {
+    it('should normalize step fields correctly, always using en for cue', () => {
         const configData = {
             lessons: [{
                 steps: [{

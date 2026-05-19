@@ -11,7 +11,7 @@ export function getCurrentStepIndex(stepData, configData, currentLessonIndex) {
 
     const currentLesson = configData.lessons[currentLessonIndex];
     return currentLesson.steps.findIndex(q => {
-        const sameQuestion = q.step === stepData.step &&
+        const sameStep = q.step === stepData.step &&
             q.explanation === stepData.explanation &&
             q.cue === stepData.cue;
 
@@ -21,7 +21,7 @@ export function getCurrentStepIndex(stepData, configData, currentLessonIndex) {
         const sameIncues = qIncues.length === dataIncues.length &&
             qIncues.every((val, index) => val === dataIncues[index]);
 
-        return sameQuestion && sameIncues;
+        return sameStep && sameIncues;
     });
 }
 

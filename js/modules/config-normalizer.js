@@ -21,8 +21,23 @@ export function normalizeConfig(configData, lang = 'en') {
         lesson.roleOther = getLocalizedTranslation(lesson.roleOther, userLang);
         lesson.roleUser = getLocalizedTranslation(lesson.roleUser, userLang);
 
+        // Map 'questions' to 'steps' if it comes from legacy JSON
+        if (lesson.questions && !lesson.steps) {
+            lesson.steps = lesson.questions;
+        }
+
         if (lesson.steps) {
             lesson.steps.forEach(step => {
+                // Map 'question' to 'step'
+                if (step.question !== undefined && step.step === undefined) {
+                    step.step = step.question;
+                }
+
+                // Map 'inputType' to 'stepType'
+                if (step.inputType !== undefined && step.stepType === undefined) {
+                    step.stepType = step.inputType;
+                }
+
                 if (!step.step && (step.stepType === 'speech' || step.stepType === 'closedResponse' || step.stepType === 'openResponse')) {
                     step.step = Strings.get('default_q_speech', userLang);
                 }

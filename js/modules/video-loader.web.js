@@ -30,7 +30,7 @@ function playWhenReady(player) {
     setTimeout(checkAndPlay, 200);
 }
 
-export function loadVideoForQuestion(step, state, lang) {
+export function loadVideoForStep(step, state, lang) {
     if (step.videoUrl) {
         const currentVideoUrl = resolveVideoUrl(step.videoUrl);
         state.player = new InteractiveVideoPlayer({

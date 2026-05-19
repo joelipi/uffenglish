@@ -2,4 +2,4 @@
 // No runtime environment checks needed — the bundler picks the right file.
 // Web: step-loader.web.js, Native: step-loader.native.jsx (future)
 
-export { loadQuestion } from './step-loader.web.js';
+export { loadStep } from './step-loader.web.js';

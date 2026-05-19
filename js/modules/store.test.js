@@ -30,7 +30,7 @@ describe('Zustand App Store', () => {
             understandingScore: 100,
             activeLessonId: null,
             currentLessonIndex: 0,
-            currentQuestionIndex: 0,
+            currentStepIndex: 0,
             cuesGiven: [],
             repeatPointsHistory: [],
             rolePlayPointsHistory: [],
@@ -46,7 +46,7 @@ describe('Zustand App Store', () => {
         const state = appStore.getState();
         expect(state.activeLessonId).toBe('lesson_1');
         expect(state.currentLessonIndex).toBe(1);
-        expect(state.currentQuestionIndex).toBe(2);
+        expect(state.currentStepIndex).toBe(2);
     });
 
     it('should deduct listening and speaking scores without going below 0', () => {
@@ -90,7 +90,7 @@ describe('Zustand App Store', () => {
             whisperRejections: 1
         });
 
-        appStore.getState().resetForNextQuestion();
+        appStore.getState().resetForNextStep();
 
         const state = appStore.getState();
         expect(state.listeningScore).toBe(100);

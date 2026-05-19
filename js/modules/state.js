@@ -29,8 +29,8 @@ export const State = {
     get currentLessonIndex() { return appStore.getState().currentLessonIndex; },
     set currentLessonIndex(val) { appStore.setState({ currentLessonIndex: val }); },
 
-    get currentQuestionIndex() { return appStore.getState().currentQuestionIndex; },
-    set currentQuestionIndex(val) { appStore.setState({ currentQuestionIndex: val }); },
+    get currentStepIndex() { return appStore.getState().currentStepIndex; },
+    set currentStepIndex(val) { appStore.setState({ currentStepIndex: val }); },
 
     get cuesGiven() { return appStore.getState().cuesGiven; },
     set cuesGiven(val) { appStore.setState({ cuesGiven: val }); },
@@ -49,8 +49,8 @@ export const State = {
     apiRoot: null,
 
     // Engagement Tracking
-    questionCount: 0,
-    questionsAnswered: 0,
+    stepCount: 0,
+    stepsAnswered: 0,
     wordsRevealed: 0,
     videoPlays: 0,
     videoClicks: 0,
@@ -102,7 +102,7 @@ export const State = {
         appStore.getState().resetLessonHistory();
 
         // Reset step index to 0 for a fresh start
-        this.currentQuestionIndex = 0;
+        this.currentStepIndex = 0;
 
         this.interactionLog = [];
         this.recognizedIdioms = [];
@@ -121,14 +121,14 @@ export const State = {
         this.wordsRevealed = 0;
         this.videoPlays = 0;
         this.videoClicks = 0;
-        this.questionCount = 0;
-        this.questionsAnswered = 0;
+        this.stepCount = 0;
+        this.stepsAnswered = 0;
         this.isTextMode = false;
     },
 
-    resetForNextQuestion() {
+    resetForNextStep() {
         // Reset reactive metrics in the Zustand store
-        appStore.getState().resetForNextQuestion();
+        appStore.getState().resetForNextStep();
         // Reset non-reactive per-step data
         this.wordsRevealed = 0;
         this.videoPlays = 0;
