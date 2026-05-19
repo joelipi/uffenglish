@@ -10,3 +10,8 @@ file_last_touched.txt
 full_git_log.txt
 full_reflog.txt
 /.kilo
+/dist
+/dist/assets
+/dist
+/dist
+/dist
