@@ -87,6 +87,10 @@ export const State = {
             const lessonsCompleted = Number(userData.lessons_completed || 0);
             appStore.getState().setLessonsCompleted(lessonsCompleted);
             console.log(`[Gamification] Initialized lessonsCompleted: ${lessonsCompleted}`);
+
+            appStore.getState().setTotalFluencySum(Number(userData.total_fluency_sum || 0));
+            appStore.getState().setRecentFluencyAvgs(userData.recent_fluency_avgs || []);
+            appStore.getState().setCountedLessons(userData.counted_lessons || []);
         }
     },
 

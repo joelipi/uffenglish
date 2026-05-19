@@ -57,13 +57,14 @@ export class SuccessLessonHandler {
     const lessonAverage = typeof this.calculateAverage === 'function' ? this.calculateAverage() : 0;
     const fluencyData = { total: lessonAverage };
 
-    // Fluency trend detection
-    const prevAvg = appStore.getState().lastLessonFluencyAvg;
-    const isImproving = prevAvg !== null && lessonAverage > prevAvg;
+    // Fluency trend detection using last-10 average
+    const recent = appStore.getState().recentFluencyAvgs || [];
+    const last10Avg = recent.length > 0 ? recent.reduce((a, b) => a + b, 0) / recent.length : null;
+    const isImproving = last10Avg !== null && lessonAverage > last10Avg;
     appStore.getState().setFluencyImproving(isImproving);
     appStore.getState().setLastLessonFluencyAvg(lessonAverage);
     if (isImproving) {
-        console.log(`[Gamification] ✅ Fluency improving! Previous: ${prevAvg}% → Current: ${lessonAverage}%`);
+        console.log(`[Gamification] ✅ Fluency improving! Last-10 avg: ${last10Avg}% → Current: ${lessonAverage}%`);
     }
 
     this.updateUI(lessonAverage);

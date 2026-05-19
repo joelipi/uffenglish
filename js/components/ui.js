@@ -37,6 +37,13 @@ dynamicStyles.textContent = `
     .userResponse .chat-bubble-header {
         text-align: right;
     }
+    .stats-header-label {
+        font-size: clamp(0.45rem, 2.3cqi, 0.7rem) !important;
+        white-space: nowrap !important;
+        display: block !important;
+        width: 100% !important;
+        text-align: center !important;
+    }
 `;
 document.head.appendChild(dynamicStyles);
 

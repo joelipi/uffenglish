@@ -23,6 +23,9 @@ export const appStore = createStore(
             lessonsCompleted: 0,
             lastLessonFluencyAvg: null,
             fluencyImproving: false,
+            totalFluencySum: 0,
+            recentFluencyAvgs: [],
+            countedLessons: [],
             fluencyScore: 100,
             flowScore: 100,
             hesitationMs: 0,
@@ -136,6 +139,9 @@ export const appStore = createStore(
                 console.log(`[Gamification] Fluency improving flag: ${!!improving}`);
                 set({ fluencyImproving: !!improving });
             },
+            setTotalFluencySum: (sum) => set({ totalFluencySum: Number(sum) || 0 }),
+            setRecentFluencyAvgs: (avgs) => set({ recentFluencyAvgs: Array.isArray(avgs) ? avgs : [] }),
+            setCountedLessons: (lessons) => set({ countedLessons: Array.isArray(lessons) ? lessons : [] }),
 
             // Increment Tutor Engagement Stats
             incrementUserTutorStats: (wordCount) => set((state) => ({
@@ -192,6 +198,9 @@ export const appStore = createStore(
                 formalityScore: state.formalityScore,
                 nativeLikeScore: state.nativeLikeScore,
                 understandingScore: state.understandingScore,
+                totalFluencySum: state.totalFluencySum,
+                recentFluencyAvgs: state.recentFluencyAvgs,
+                countedLessons: state.countedLessons,
                 cuesGiven: state.cuesGiven,
                 repeatPointsHistory: state.repeatPointsHistory,
                 rolePlayPointsHistory: state.rolePlayPointsHistory,

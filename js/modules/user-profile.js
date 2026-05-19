@@ -178,6 +178,25 @@ export async function saveLessonProgress(courseId, lessonId, userData, options =
             resultState.lessonsCompleted = newLessons;
             console.log(`[Gamification] Lesson completed. Total lessons: ${newLessons}`);
 
+            // Fluency running averages (exclude repeats)
+            let counted = Array.isArray(userData.counted_lessons) ? [...userData.counted_lessons] : [];
+            const lessonKey = `${courseId}_${lessonId}`;
+            if (!counted.includes(lessonKey)) {
+                counted.push(lessonKey);
+                metaToUpdate.counted_lessons = counted;
+                const currentSum = Number(userData.total_fluency_sum || 0);
+                const lessonAvg = safeOptions.lessonAverage || 0;
+                const newSum = currentSum + lessonAvg;
+                metaToUpdate.total_fluency_sum = newSum;
+                let recent = Array.isArray(userData.recent_fluency_avgs) ? [...userData.recent_fluency_avgs] : [];
+                recent.push(lessonAvg);
+                if (recent.length > 10) recent.shift();
+                metaToUpdate.recent_fluency_avgs = recent;
+                console.log(`[Gamification] Fluency avg updated. Sum: ${newSum}, Recent count: ${recent.length}`);
+            } else {
+                console.log(`[Gamification] Repeat lesson ${lessonKey} ignored for fluency avg`);
+            }
+
             await syncUserMetaData(metaToUpdate, userData);
         } catch (e) { console.error('🚨 Appwrite Sync Error:', e); }
     }
