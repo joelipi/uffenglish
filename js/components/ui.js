@@ -10,44 +10,6 @@ import { pointLoss } from './point-loss-animation.js';
 const AI_TUTOR_NAME = 'AI Tutor';
 const AI_TUTOR_AVATAR = 'assets/img/ai.webp';
 
-// Inject dynamic styles to override padding, set avatar size, and aggressively fix the IVP Subtitles
-const dynamicStyles = document.createElement('style');
-dynamicStyles.textContent = `
-    .chat-avatar-inline {
-        width: 40px !important;
-        height: 40px !important;
-        flex-shrink: 0 !important;
-        object-fit: cover !important;
-        border-radius: 50% !important;
-    }
-    .chat-msg {
-        padding: 4px 12px !important;
-        width: 100%;
-        max-width: 95%;
-    }
-    @media (min-width: 768px) {
-        .chat-msg { max-width: 80%; }
-    }
-    .chat-bubble-header {
-        font-size: 0.75rem;
-        color: #888;
-        margin-bottom: 2px;
-        font-weight: bold;
-    }
-    .userResponse .chat-bubble-header {
-        text-align: right;
-    }
-    .stats-header-label {
-        font-size: clamp(0.45rem, 2.3cqi, 0.7rem) !important;
-        color: #ffffff !important;
-        white-space: nowrap !important;
-        display: block !important;
-        width: 100% !important;
-        text-align: center !important;
-    }
-`;
-document.head.appendChild(dynamicStyles);
-
 export function syncTextModeUI() {
     const pronunciationScore = DOM.pronunciationScore;
     const flowScore = DOM.flowScore;
