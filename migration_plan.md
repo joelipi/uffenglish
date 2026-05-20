@@ -118,6 +118,14 @@ React Wrapper Component (JSX + Refs)
 
 ---
 
+### Known Issue: AI Chat Feature Bug (FIXED)
+
+**Bug found and fixed during review:** The AI tutor chat feature was broken. The `renderTutorMessage()` function in `ui.js` was not adding AI responses to Zustand for React to render - it was trying to render HTML directly which doesn't work with the React chat interface.
+
+**Fix applied:** Modified `renderTutorMessage()` in `js/components/ui.js` to add AI messages to Zustand via `addChatMessage()`, following the same pattern as user messages.
+
+---
+
 ### Phase 2: Lesson Body Reactification (Realistic Scope)
 
 *The core migration, scoped realistically. Keep the heavy DOM manipulation in vanilla JS, add React shell and wrapper components.*

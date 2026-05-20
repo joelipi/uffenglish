@@ -522,17 +522,16 @@ export function renderTutorMessage(text, isUser) {
     if (isUser) {
         renderUserResponse(text);
     } else {
-        const safeText = escapeHTML(text);
+        // AI response - add to Zustand so React can render it
+        const storeState = appStore.getState();
         const aiAvatarUrl = AI_TUTOR_AVATAR;
-        const html = `
-            <div class="chat-message-row chat-message-row--system">
-                <img src="${aiAvatarUrl}" alt="${AI_TUTOR_NAME}" class="chat-avatar-inline" />
-                <div class="chat-message-bubble chat-message-bubble--system">
-                    <div class="chat-bubble-header">${AI_TUTOR_NAME}</div>
-                    ${safeText}
-                </div>
-            </div>`;
-        safeRenderChatInterface(true, html);
+        storeState.addChatMessage({
+            role: 'system',
+            type: 'standard',
+            content: text,
+            botName: AI_TUTOR_NAME,
+            avatarUrl: aiAvatarUrl
+        });
     }
 }
 

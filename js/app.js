@@ -718,7 +718,7 @@ async function loadNextLesson() {
     }
 }
 
-// INITIALIZATION/LESSON SETUP 
+// INITIALIZATION/LESSON SETUP
 async function handleTutorChatSubmit(rawText) {
     if (!rawText || !rawText.trim()) return;
     const wordCount = rawText.trim().split(/\s+/).length;
@@ -732,15 +732,20 @@ async function handleTutorChatSubmit(rawText) {
 
     // Get context and send to API
     const context = getChatHistoryContext();
-    const aiResponse = await askEnglishTutor(context, rawText);
-    const aiWordCount = aiResponse.trim().split(/\s+/).length;
-    appStore.getState().incrementAiTutorStats(aiWordCount);
+    try {
+        const aiResponse = await askEnglishTutor(context, rawText);
+        const aiWordCount = aiResponse.trim().split(/\s+/).length;
+        appStore.getState().incrementAiTutorStats(aiWordCount);
 
-    // REFACTORED: Remove the loading indicator explicitly in case the render function doesn't
-    removeAILoadingStatus();
+        // Remove the loading indicator
+        removeAILoadingStatus();
 
-    // Show AI response
-    renderTutorMessage(aiResponse, false);
+        // Show AI response
+        renderTutorMessage(aiResponse, false);
+    } catch (error) {
+        console.error('[app] Error in askEnglishTutor:', error);
+        removeAILoadingStatus();
+    }
 }
 
 async function initializeLesson(courseId = appStore.getState().courseId, configData = appStore.getState().configData, userData = appStore.getState().userData) {
