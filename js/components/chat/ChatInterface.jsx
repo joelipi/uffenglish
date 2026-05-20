@@ -27,7 +27,6 @@ export default function ChatInterface() {
             id="chat-message-list"
             ref={containerRef}
             className="card-body chat-message-list text-dark"
-            style={{ height: '100%', overflowY: 'auto' }}
         >
             {chatHistory.map((msg, index) => {
                 const key = msg.id || index;

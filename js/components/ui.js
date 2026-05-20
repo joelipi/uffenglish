@@ -138,7 +138,6 @@ export function safeRenderChatInterface(isAI) {
 }
 
 export function renderUserResponse(text, statsHtml = "") {
-    const safeText = escapeHTML(text);
     const storeState = appStore.getState();
     const userName = getFirstName(storeState.userData?.display_name);
     const userAvatarUrl = storeState.userData?.profilepicurl || 'assets/img/userprofile.webp';
@@ -148,7 +147,7 @@ export function renderUserResponse(text, statsHtml = "") {
     storeState.addChatMessage({
         role: 'user',
         type: 'standard',
-        content: safeText,
+        content: text,
         statsHtml: statsHtml,
         userName: userName,
         userAvatarUrl: userAvatarUrl

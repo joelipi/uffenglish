@@ -562,7 +562,6 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
             renderAIFeedback([`<strong>${cue}${translationStr}</strong>`]);
             renderUserResponse(userResponse, "");
             if (immediateStatsHtmlArr.length > 0) renderAIFeedback(immediateStatsHtmlArr);
-            renderAIAnalysisLoading();
         } else if (stepData.stepType === "closedResponse" && userResponse && DOM.speechText) {
             renderUserResponse(userResponse, "");
             if (immediateStatsHtmlArr.length > 0) renderAIFeedback(immediateStatsHtmlArr);

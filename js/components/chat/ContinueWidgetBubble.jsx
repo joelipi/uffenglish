@@ -42,11 +42,11 @@ export default function ContinueWidgetBubble({ onClick }) {
                     <div className="incoming-video-inner">
                         <div className="incoming-video-header">
                             <i className={`bi ${iconClass} text-info pulse-camera`}></i>
-                            <span>{incomingLabel}</span>
+                            <span dangerouslySetInnerHTML={{ __html: incomingLabel }} />
                         </div>
                         <div className="incoming-video-caller">
                             <span className="caller-name">Joe Walsh</span>
-                            <span className="caller-action">{actionText}</span>
+                            <span className="caller-action" dangerouslySetInnerHTML={{ __html: actionText }} />
                         </div>
                         <div className="incoming-video-btn-wrapper">
                             <div className="btn-pulse-ring"></div>

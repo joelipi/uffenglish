@@ -12,7 +12,7 @@ export default function AiLoadingBubble({ text }) {
                 <div className="chat-bubble-header">{aiTutorName}</div>
                 <strong>
                     <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                    {' '}{defaultText}
+                    {' '}<span dangerouslySetInnerHTML={{ __html: defaultText }} />
                 </strong>
             </div>
         </div>
