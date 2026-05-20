@@ -275,12 +275,9 @@ export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation,
         }
 
         // Update the recording anyway so the final video has subtitles for this incorrect attempt!
-        const currentLessonId = resolveCurrentLessonId(configData, userData, courseId, {
-            urlLessonId,
-            persistedLessonId: appStore.getState().activeLessonId, // 👈 moved to caller
-            storedLessonId,
-            storedTimestamp,
-        });
+        const currentLessonId = appStore.getState().activeLessonId
+            || (configData?.lessons?.[appStore.getState().currentLessonIndex]?.lessonId)
+            || 'unknown_lesson';
         const stepIndex = getCurrentStepIndex(stepData, configData, appStore.getState().currentLessonIndex);
         await updateSpeechRecording(currentLessonId, stepIndex, {
             userResponse: val,
