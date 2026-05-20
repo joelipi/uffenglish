@@ -1,23 +1,30 @@
-// --- modules/lesson-router.js ---
-
-import { appStore } from './store.js';
+// --- modules/lessonRouting.js ---
 
 /**
- * Platform-Agnostic Lesson & Course Routing
+ * Platform-Agnostic Lesson & Course Routing Utilities
  *
- * All functions are pure (no DOM/localStorage side effects) unless noted.
+ * All functions are pure (no DOM, no store, no side effects).
  * Side effects (saving progress, updating URL) must be handled by the caller.
  *
- * NOTE: cleanBrowserUrlRoute() is intentionally web-only.
- * For native routing, the caller should handle URL/deep-link cleanup directly.
+ * The Zustand store is intentionally NOT imported here. Pass activeLessonId
+ * in via context.storedLessonId (with its timestamp) so this file stays testable
+ * and framework-agnostic.
  */
 
 /**
  * Resolves the current lesson ID from pure data inputs (in priority order):
  * 1. Explicitly passed urlLessonId
- * 2. Persisted store state (Zustand)
+ * 2. Persisted store state, passed in via context.persistedLessonId
  * 3. User profile and local storage parameters (most recent timestamp wins)
  * 4. First lesson in configData
+ * @param {object} configData
+ * @param {object|null} userData
+ * @param {string} courseId
+ * @param {object} context
+ * @param {string} [context.urlLessonId]
+ * @param {string} [context.persistedLessonId]   - pass appStore.getState().activeLessonId here
+ * @param {string} [context.storedLessonId]       - localStorage lesson ID
+ * @param {string} [context.storedTimestamp]      - localStorage timestamp
  * @returns {string}
  */
 export function resolveCurrentLessonId(configData, userData, courseId, context = {}) {
@@ -25,13 +32,12 @@ export function resolveCurrentLessonId(configData, userData, courseId, context =
         throw new Error('resolveCurrentLessonId: Invalid or missing course configuration.');
     }
 
-    const { urlLessonId, storedLessonId, storedTimestamp } = context;
+    const { urlLessonId, persistedLessonId, storedLessonId, storedTimestamp } = context;
 
     // Priority 1: Explicit URL param
     if (urlLessonId) return urlLessonId;
 
-    // Priority 2: Persisted store state
-    const persistedLessonId = appStore.getState().activeLessonId;
+    // Priority 2: Persisted store state (passed in by caller — store not imported here)
     if (persistedLessonId && typeof persistedLessonId === 'string' && persistedLessonId.trim() !== '') {
         const lessonExists = configData.lessons?.some(lesson => lesson.lessonId === persistedLessonId);
         if (lessonExists) {
@@ -80,6 +86,11 @@ export function resolveCurrentLessonId(configData, userData, courseId, context =
  * 2. WordPress user profile param (wpCourseId)
  * 3. Stored course ID
  * 4. Default: 'tutorial'
+ * @param {object|null} userData
+ * @param {object} context
+ * @param {string} [context.urlCourseId]
+ * @param {string} [context.wpCourseId]
+ * @param {string} [context.storedCourseId]
  * @returns {string}
  */
 export function resolveCurrentCourseId(userData, context = {}) {
@@ -98,30 +109,12 @@ export function resolveCurrentCourseId(userData, context = {}) {
 }
 
 /**
- * Cleans routing parameters from the browser URL without reloading the page.
- * WEB ONLY — for native, handle deep-link param cleanup in your navigation layer.
- */
-export function cleanBrowserUrlRoute() {
-    if (typeof window === 'undefined' || !window.history) return;
-
-    const url = new URL(window.location.href);
-    const keysToDelete = [];
-    for (const key of url.searchParams.keys()) {
-        const lowerKey = key.toLowerCase();
-        if (lowerKey === 'lessonid' || lowerKey === 'course' || lowerKey === 'courseid') {
-            keysToDelete.push(key);
-        }
-    }
-    if (keysToDelete.length > 0) {
-        keysToDelete.forEach(key => url.searchParams.delete(key));
-        window.history.replaceState({}, document.title, url.toString());
-    }
-}
-
-/**
  * Returns the next step in the current lesson, or null if at the end.
- * Returns the first step as a fallback if the current question is not found —
+ * Returns the first step as a fallback if the current step is not found —
  * if this happens in production it likely indicates a stale step reference.
+ * @param {object} currentStep
+ * @param {object} configData
+ * @param {number} currentLessonIndex
  * @returns {object|null}
  */
 export function getNextStep(currentStep, configData, currentLessonIndex) {
@@ -140,26 +133,6 @@ export function getNextStep(currentStep, configData, currentLessonIndex) {
     if (currentIndex >= currentLesson.steps.length - 1) return null;
 
     return currentLesson.steps[currentIndex + 1];
-}
-
-/**
- * Redirects the user to the login screen with an encoded redirect URL.
- * WEB ONLY — for native, navigate to your login screen via your navigation stack.
- */
-export function navigateToLogin(redirectUrl) {
-    if (typeof window !== 'undefined') {
-        window.location.href = `login.html?redirect=${encodeURIComponent(redirectUrl)}`;
-    }
-}
-
-/**
- * Redirects the user to the homescreen.
- * WEB ONLY — for native, navigate to your home screen via your navigation stack.
- */
-export function navigateToHome() {
-    if (typeof window !== 'undefined') {
-        window.location.href = 'homescreen.html';
-    }
 }
 
 /**

@@ -10,7 +10,7 @@ import MicrophoneToggle from './components/widgets/MicrophoneToggle.jsx';
 import GuestLoginModal from './components/modals/GuestLoginModal.jsx';
 import CriticalErrorModal from './components/modals/CriticalErrorModal.jsx';
 import ChatInterface from './components/chat/ChatInterface.jsx';
-import LessonContainer from './LessonContainer.jsx';
+import LessonContainer from './components/LessonContainer.jsx';
 
 export default function App() {
     const isWorkerInitialized = useRef(false);

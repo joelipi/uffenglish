@@ -76,11 +76,11 @@ import {
     validateAnswerPrecheck
 } from './modules/answers.js';
 
-// --- Extracted Modules ---
-import { resolveCurrentLessonId, resolveCurrentCourseId, getNextStep, getUrlParamCaseInsensitive } from './modules/lesson-router.js';
+import { appStore } from './modules/store.js';
+
+
 import { normalizeConfig } from './modules/config-normalizer.js';
 import { loadVideoForStep } from './modules/video-loader.js';
-import { appStore } from './modules/store.js';
 //window.appStore = appStore; // <-- ADD THIS TEMPORARY LINE FOR TESTING
 import { State } from './modules/state.js';
 import { getLocalizedTranslation } from './modules/utils.js';
@@ -139,6 +139,75 @@ import {
 } from './components/ui.js';
 import { idiomChecker } from './modules/idiom-checker.js';
 import { calculateSyntacticComplexity } from './modules/complexity.js';
+
+//STOPGAP CODE WHILE MIGRATING
+// TEMP: duplicate of resolveCurrentLessonId in modules/lessonRouting.js
+// Remove once callers at lines 239 and 724 are migrated to React.
+function resolveCurrentLessonId(configData, userData, courseId, context = {}) {
+    if (!configData || typeof configData !== 'object') {
+        throw new Error('resolveCurrentLessonId: Invalid or missing course configuration.');
+    }
+    const { urlLessonId, persistedLessonId, storedLessonId, storedTimestamp } = context;
+    if (urlLessonId) return urlLessonId;
+    if (persistedLessonId && typeof persistedLessonId === 'string' && persistedLessonId.trim() !== '') {
+        const lessonExists = configData.lessons?.some(lesson => lesson.lessonId === persistedLessonId);
+        if (lessonExists) return persistedLessonId;
+    }
+    let wpLessonId = null, wpTimestamp = null;
+    if (userData) {
+        wpLessonId = userData[`${courseId}_current_lesson`] ?? null;
+        const ts = userData[`${courseId}_lesson_timestamp`];
+        wpTimestamp = ts && !isNaN(new Date(ts).getTime()) ? new Date(ts) : null;
+    }
+    const lsTs = storedTimestamp && !isNaN(new Date(storedTimestamp).getTime()) ? new Date(storedTimestamp) : null;
+    const sources = [];
+    if (wpLessonId && wpTimestamp) sources.push({ lessonId: wpLessonId, timestamp: wpTimestamp });
+    if (storedLessonId && lsTs) sources.push({ lessonId: storedLessonId, timestamp: lsTs });
+    if (sources.length === 1) return sources[0].lessonId;
+    if (sources.length > 1) { sources.sort((a, b) => b.timestamp - a.timestamp); return sources[0].lessonId; }
+    if (configData.lessons?.length > 0 && configData.lessons[0].lessonId) return configData.lessons[0].lessonId;
+    throw new Error('resolveCurrentLessonId: No lessons found in the course configuration.');
+}
+
+// TEMP: duplicate of getNextStep in modules/lessonRouting.js
+// Remove once caller at line 599 is migrated to React.
+function getNextStep(currentStep, configData, currentLessonIndex) {
+    if (!configData?.lessons || currentLessonIndex >= configData.lessons.length) return null;
+    const currentLesson = configData.lessons[currentLessonIndex];
+    const currentIndex = currentLesson.steps.findIndex(q => q.step === currentStep.step && q.cue === currentStep.cue);
+    if (currentIndex === -1) return currentLesson.steps[0];
+    if (currentIndex >= currentLesson.steps.length - 1) return null;
+    return currentLesson.steps[currentIndex + 1];
+}
+
+function getUrlParamCaseInsensitive(urlParams, paramName) {
+    const target = paramName.toLowerCase();
+    for (const [key, value] of urlParams.entries()) {
+        if (key.toLowerCase() === target) {
+            return value;
+        }
+    }
+    return null;
+}
+
+// TEMP: duplicate of resolveCurrentCourseId in modules/lessonRouting.js
+// Remove this once the caller at line 844 is migrated to React.
+function resolveCurrentCourseId(userData, context = {}) {
+    const { urlCourseId, wpCourseId, storedCourseId } = context;
+
+    if (urlCourseId) return urlCourseId;
+
+    if (userData && typeof userData === 'object') {
+        const fromProfile = wpCourseId || userData.current_course || null;
+        if (fromProfile) return fromProfile;
+    }
+
+    if (storedCourseId) return storedCourseId;
+
+    return 'tutorial';
+}
+
+// END STOPGAPS
 
 // Speaking Score Logic ---
 window.addEventListener('transcriptRejected', (e) => {
@@ -206,7 +275,12 @@ export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation,
         }
 
         // Update the recording anyway so the final video has subtitles for this incorrect attempt!
-        const currentLessonId = resolveCurrentLessonId(configData, userData, courseId);
+        const currentLessonId = resolveCurrentLessonId(configData, userData, courseId, {
+            urlLessonId,
+            persistedLessonId: appStore.getState().activeLessonId, // 👈 moved to caller
+            storedLessonId,
+            storedTimestamp,
+        });
         const stepIndex = getCurrentStepIndex(stepData, configData, appStore.getState().currentLessonIndex);
         await updateSpeechRecording(currentLessonId, stepIndex, {
             userResponse: val,
@@ -586,8 +660,6 @@ function callLoadStep(step, lesson, fluencyData) {
     });
 }
 
-// getNextStep has been moved to lesson-router.js
-
 function updateProgressBar() {
     if (!appStore.getState().configData || !appStore.getState().configData.lessons || appStore.getState().configData.lessons.length === 0) return;
     const currentLesson = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex];
@@ -836,7 +908,7 @@ async function initializeApp() {
         }
 
         // --- FETCH CONFIG AND SET LANGUAGE LEVEL ---
-        const response = await fetch(`js/config/${appStore.getState().courseId}.json`);
+        const response = await fetch(`/js/config/${appStore.getState().courseId}.json`);
         const configData = await response.json();
 
         // Pull level directly from the JSON field (e.g., "B1")
@@ -912,9 +984,22 @@ async function requestPersistentStorage() {
     }
 }
 
-// Hardcode to true to allow idiomChecker to boot while NLP worker is disabled
-//   SEQUENTIAL LOAD: Boot the idiom checker ONLY after the NLP worker is finished
 // Note: loadLocalModelsInBackground has been moved to the React App shell.
+
+// HYBRID ROUTER: Listen for React Router navigation events
+// Remove this once initializeApp and initializeLesson are fully migrated to React.
+window.addEventListener('hybridRouteChange', async (e) => {
+    const { courseId, lessonId } = e.detail;
+    console.log(`[HybridRouter] Route change received. Course: ${courseId}, Lesson: ${lessonId}`);
+
+    if (!appStore.getState().configData) {
+        console.warn('[HybridRouter] Config not loaded yet — waiting for initializeApp to complete.');
+        return;
+    }
+
+    appStore.setState({ activeLessonId: lessonId });
+    await initializeLesson(courseId, appStore.getState().configData, appStore.getState().userData);
+});
 
 // Check if the page is already loaded before adding the listener.
 // This prevents the "silent hang" race condition.
