@@ -121,7 +121,7 @@ export function disableAllButtons(container) {
     });
 }
 
-export function safeRenderChatInterface(isAI, bodyContent) {
+export function safeRenderChatInterface(isAI) {
     DOM.speechText.classList.remove('d-none');
     DOM.speechText.style.setProperty('display', 'flex', 'important');
 
@@ -130,52 +130,48 @@ export function safeRenderChatInterface(isAI, bodyContent) {
     }
 
     document.body.classList.add('chat-mode-active');
-    setChatHeader(isAI);
 
-    const loadingStatus = DOM.chatBody.querySelector('#ai-loading-status');
-    if (loadingStatus) {
-        loadingStatus.remove();
-    }
-
-    if (bodyContent) {
-        if (typeof bodyContent === 'string') {
-            DOM.chatBody.insertAdjacentHTML('beforeend', bodyContent);
-        } else if (bodyContent instanceof Node) {
-            DOM.chatBody.appendChild(bodyContent);
-        }
+    // We keep the header toggle for now until the header is also componentized
+    if (typeof setChatHeader === 'function') {
+        setChatHeader(isAI);
     }
 }
 
 export function renderUserResponse(text, statsHtml = "") {
     const safeText = escapeHTML(text);
-    const userName = getFirstName(appStore.getState().userData?.display_name);
-    const userAvatarUrl = appStore.getState().userData?.profilepicurl || 'assets/img/userprofile.webp';
-    const html = `
-        <div class="chat-message-row chat-message-row--user">
-            <img src="${userAvatarUrl}" alt="${userName}" class="chat-avatar-inline" />
-            <div class="chat-message-bubble chat-message-bubble--user">
-                <div class="chat-bubble-header">${userName}</div>
-                ${safeText}
-            </div>
-        </div>
-        ${statsHtml}`;
-    safeRenderChatInterface(false, html);
+    const storeState = appStore.getState();
+    const userName = getFirstName(storeState.userData?.display_name);
+    const userAvatarUrl = storeState.userData?.profilepicurl || 'assets/img/userprofile.webp';
+
+    safeRenderChatInterface(false);
+
+    storeState.addChatMessage({
+        role: 'user',
+        type: 'standard',
+        content: safeText,
+        statsHtml: statsHtml,
+        userName: userName,
+        userAvatarUrl: userAvatarUrl
+    });
 }
 
 export function renderAIAnalysisLoading(text) {
     hideWhisperReviewUI();
-    const defaultText = Strings.get('ai_analyzing', appStore.getState().userData?.native_language);
-    const displayText = text || defaultText;
-    const aiAvatarUrl = AI_TUTOR_AVATAR;
-    const html = `
-        <div class="chat-message-row chat-message-row--system" id="ai-loading-status">
-            <img src="${aiAvatarUrl}" alt="${AI_TUTOR_NAME}" class="chat-avatar-inline" />
-            <div class="chat-message-bubble chat-message-bubble--system">
-                <div class="chat-bubble-header">${AI_TUTOR_NAME}</div>
-                <strong><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> ${displayText}</strong>
-            </div>
-        </div>`;
-    safeRenderChatInterface(true, html);
+    const storeState = appStore.getState();
+
+    // Fallback translation handling
+    let defaultText = 'Analyzing...';
+    if (typeof Strings !== 'undefined' && typeof Strings.get === 'function') {
+        defaultText = Strings.get('ai_analyzing', storeState.userData?.native_language) || defaultText;
+    }
+
+    safeRenderChatInterface(true);
+
+    storeState.addChatMessage({
+        role: 'system',
+        type: 'aiLoading',
+        content: text || defaultText
+    });
 }
 
 export function createHeaderHTML(text) {
@@ -230,71 +226,33 @@ export function getPraiseHTML(praiseData) {
 }
 
 export function renderAIFeedback(contentChunks = []) {
-    const fragment = document.createDocumentFragment();
-    contentChunks
-        .filter(Boolean)
-        .forEach(chunk => {
-            if (typeof chunk === 'string') {
-                if (chunk.includes("chat-message-row") || chunk.includes("chat-message-bubble")) {
-                    const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = chunk;
-                    while (tempDiv.firstChild) {
-                        fragment.appendChild(tempDiv.firstChild);
-                    }
-                } else {
-                    const row = document.createElement('div');
-                    row.className = 'chat-message-row chat-message-row--system';
+    safeRenderChatInterface(true);
 
-                    const img = document.createElement('img');
-                    img.src = 'assets/img/teacherprofile.webp';
-                    img.alt = 'Joe Walsh';
-                    img.className = 'chat-avatar-inline';
+    contentChunks.filter(Boolean).forEach(chunk => {
+        // Check if this is a praise element (created by handleCorrectUI)
+        const isPraise = chunk instanceof Element && chunk.classList.contains('chat-message-row--system') && chunk.querySelector('strong');
 
-                    const bubble = document.createElement('div');
-                    bubble.className = 'chat-message-bubble chat-message-bubble--system';
+        if (isPraise) {
+            const strongEl = chunk.querySelector('strong');
+            const praiseText = strongEl ? strongEl.innerHTML : '';
+            appStore.getState().addChatMessage({
+                role: 'system',
+                type: 'praise',
+                content: praiseText,
+                botName: 'Joe Walsh',
+                avatarUrl: 'assets/img/teacherprofile.webp'
+            });
+        } else {
+            // CRITICAL: Serialize DOM nodes to strings for Zustand
+            const htmlContent = typeof chunk === 'string' ? chunk : chunk.outerHTML;
 
-                    const header = document.createElement('div');
-                    header.className = 'chat-bubble-header';
-                    header.textContent = 'Joe Walsh';
-                    bubble.appendChild(header);
-
-                    const content = document.createElement('span');
-                    content.innerHTML = chunk;
-                    bubble.appendChild(content);
-
-                    row.appendChild(img);
-                    row.appendChild(bubble);
-                    fragment.appendChild(row);
-                }
-            } else if (chunk instanceof Node) {
-                if (chunk.nodeType === Node.ELEMENT_NODE && !chunk.classList.contains('chat-message-bubble') && !chunk.classList.contains('chat-message-row')) {
-                    const row = document.createElement('div');
-                    row.className = 'chat-message-row chat-message-row--system';
-
-                    const img = document.createElement('img');
-                    img.src = 'assets/img/teacherprofile.webp';
-                    img.alt = 'Joe Walsh';
-                    img.className = 'chat-avatar-inline';
-
-                    const bubble = document.createElement('div');
-                    bubble.className = 'chat-message-bubble chat-message-bubble--system';
-
-                    const header = document.createElement('div');
-                    header.className = 'chat-bubble-header';
-                    header.textContent = 'Joe Walsh';
-                    bubble.appendChild(header);
-                    bubble.appendChild(chunk);
-
-                    row.appendChild(img);
-                    row.appendChild(bubble);
-                    fragment.appendChild(row);
-                } else {
-                    fragment.appendChild(chunk);
-                }
-            }
-        });
-
-    safeRenderChatInterface(true, fragment);
+            appStore.getState().addChatMessage({
+                role: 'system',
+                type: 'htmlChunk',
+                content: htmlContent
+            });
+        }
+    });
 }
 
 export function hidePreloader() {
@@ -303,8 +261,7 @@ export function hidePreloader() {
 }
 
 export function removeAILoadingStatus() {
-    const loadingStatus = document.getElementById('ai-loading-status');
-    if (loadingStatus) loadingStatus.remove();
+    appStore.getState().removeAiLoadingMessage();
 }
 
 export function renderHangmanHint(html) {
@@ -460,10 +417,11 @@ export function clearChatInterface() {
     const videoWrapper = document.getElementById('playback-video-wrapper');
     if (videoWrapper) {
         videoWrapper.style.display = 'none';
-        document.body.appendChild(videoWrapper);
+        document.body.appendChild(videoWrapper); // Move it to safety before clearing
     }
 
-    DOM.chatBody.innerHTML = '';
+    appStore.getState().clearChatHistory();
+
     DOM.speechText.classList.add('d-none');
     DOM.speechText.style.removeProperty('display');
 
@@ -504,7 +462,7 @@ export function updateChatHeaderScores(feedbackData) {
         if (!spanId) return;
         const el = document.getElementById(spanId);
         if (!el) return;
-        el.textContent = section.score === 100 ? 'ÃƒÂ°Ã…Â¸Ã¢â‚¬â„¢Ã‚Â¯' : String(Math.round(section.score));
+        el.textContent = section.score === 100 ? '💯' : String(Math.round(section.score));
     });
 }
 
@@ -819,31 +777,10 @@ export function showPlaybackVideo() {
         video.style.setProperty('display', 'block', 'important');
         video.style.setProperty('opacity', '1', 'important');
 
-        const row = document.createElement('div');
-        row.className = 'chat-message-row chat-message-row--user';
-        row.style.animation = 'popIn 0.3s ease-out forwards';
-
-        const userName = getFirstName(appStore.getState().userData?.display_name);
-        const userAvatarUrl = appStore.getState().userData?.profilepicurl || 'assets/img/userprofile.webp';
-
-        const avatar = document.createElement('img');
-        avatar.src = userAvatarUrl;
-        avatar.alt = userName;
-        avatar.className = 'chat-avatar-inline';
-
-        const bubble = document.createElement('div');
-        bubble.className = 'chat-message-bubble chat-message-bubble--user p-1';
-        bubble.style.backgroundColor = '#000';
-        bubble.style.border = '2px solid #4facfe';
-        bubble.style.overflow = 'hidden';
-
-        bubble.style.setProperty('min-width', '0', 'important');
-        bubble.style.setProperty('width', 'max-content');
-
         videoWrapper.classList.remove('mb-2');
         videoWrapper.style.width = '100px';
         videoWrapper.style.height = '178px';
-        videoWrapper.style.position = 'relative'; // Reset from absolute
+        videoWrapper.style.position = 'relative';
         videoWrapper.style.top = '';
         videoWrapper.style.left = '';
         videoWrapper.style.right = '';
@@ -854,20 +791,19 @@ export function showPlaybackVideo() {
         video.style.borderRadius = '8px';
         video.style.objectFit = 'cover';
 
-        bubble.appendChild(videoWrapper);
-        row.appendChild(avatar);
-        row.appendChild(bubble);
+        // Push the video bubble command to Zustand
+        appStore.getState().addChatMessage({
+            role: 'user',
+            type: 'video',
+            userName: getFirstName(appStore.getState().userData?.display_name),
+            userAvatarUrl: appStore.getState().userData?.profilepicurl || 'assets/img/userprofile.webp'
+        });
 
-        DOM.chatBody.appendChild(row);
-
-        video.muted = State.isPlaybackMuted;
+        // Continue playing the vanilla video instance
+        video.style.display = 'block';
+        video.style.opacity = '1';
+        video.muted = appStore.getState().isPlaybackMuted; // Note: Ensure this checks Zustand now
         video.play().catch(e => console.warn('[UI] Playback initial play failed:', e));
-
-        setTimeout(() => {
-            if (DOM.chatBody) {
-                DOM.chatBody.scrollTo({ top: DOM.chatBody.scrollHeight, behavior: 'smooth' });
-            }
-        }, 100);
     }
 }
 
@@ -1112,19 +1048,15 @@ export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyCl
         // 1. Handle Intro State (Toggle Bottom Control Bar)
         const standardMic = document.getElementById('state-standard-mic');
         const introChoices = document.getElementById('state-intro-choices');
-
         const videoBtn = document.getElementById('continueButton');
         const audioBtn = document.getElementById('audioOnlyButton');
         const textBtn = document.getElementById('textOnlyButton');
 
-        // Swap the visible states
         if (standardMic) standardMic.classList.add('d-none');
         if (introChoices) {
             introChoices.classList.remove('d-none');
             introChoices.style.setProperty('display', 'flex', 'important');
         }
-
-        // Attach event listeners to the hardcoded buttons
         if (videoBtn) {
             videoBtn.onclick = () => {
                 State.isTextMode = false;
@@ -1134,7 +1066,6 @@ export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyCl
                 onClickCallback();
             };
         }
-
         if (audioBtn) {
             audioBtn.onclick = () => {
                 State.isTextMode = false;
@@ -1145,7 +1076,6 @@ export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyCl
                 else onClickCallback();
             };
         }
-
         if (textBtn) {
             textBtn.onclick = () => {
                 State.isTextMode = true;
@@ -1155,94 +1085,25 @@ export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyCl
                 onClickCallback();
             };
         }
-
         return videoBtn;
-
     } else {
-        // 2. Handle Mid-Lesson State (Inject Incoming Video Message Widget into Chat)
-        const chatMessageList = document.getElementById('chat-message-list');
-        let nextButtonRow = document.getElementById('continueButtonRow');
+        // 2. Handle Mid-Lesson State (Inject Incoming Video Message Widget into Chat via Zustand)
+        const storeState = appStore.getState();
+        const hasWidget = storeState.chatHistory.some(msg => msg.type === 'continueWidget');
 
-        if (!nextButtonRow && chatMessageList) {
-            nextButtonRow = document.createElement('div');
-            nextButtonRow.className = 'chat-message-row chat-message-row--system';
-            nextButtonRow.id = 'continueButtonRow';
-
-            // Create avatar inline
-            const avatar = document.createElement('img');
-            avatar.src = 'assets/img/teacherprofile.webp';
-            avatar.alt = 'Joe Walsh';
-            avatar.className = 'chat-avatar-inline';
-            nextButtonRow.appendChild(avatar);
-
-            // Create chat bubble
-            const bubble = document.createElement('div');
-            bubble.className = 'chat-message-bubble chat-message-bubble--system incoming-call-bubble';
-
-            // Create Tutor Header
-            const header = document.createElement('div');
-            header.className = 'chat-bubble-header';
-            header.textContent = 'Joe Walsh';
-            bubble.appendChild(header);
-
-            // Determine active mode details (video, audio, text)
-            let iconClass = 'bi-camera-video-fill'; // Default to video
-            let actionTextKey = 'widget_action_video';
-
-            if (State.isTextMode) {
-                iconClass = 'bi-keyboard-fill';
-                actionTextKey = 'widget_action_text';
-            } else if (State.isCameraOff) {
-                iconClass = 'bi-telephone-fill';
-                actionTextKey = 'widget_action_audio';
-            }
-
-            // Retrieve localized strings
-            const lang = appStore.getState().userData?.native_language || 'en';
-            const incomingLabel = Strings.get('widget_incoming', lang) || 'INCOMING';
-            const actionText = Strings.get(actionTextKey, lang) || 'Tap to answer...';
-
-            // Create incoming video widget button element
-            const nextButton = document.createElement('div');
-            nextButton.id = 'lessonNextButton';
-            nextButton.className = 'incoming-video-widget ringing-animation';
-            nextButton.innerHTML = `
-                <div class="incoming-video-inner">
-                    <div class="incoming-video-header">
-                        <i class="bi ${iconClass} text-info pulse-camera"></i>
-                        <span>${incomingLabel}</span>
-                    </div>
-                    <div class="incoming-video-caller">
-                        <span class="caller-name">Joe Walsh</span>
-                        <span class="caller-action">${actionText}</span>
-                    </div>
-                    <div class="incoming-video-btn-wrapper">
-                        <div class="btn-pulse-ring"></div>
-                        <button class="incoming-video-btn" aria-label="Answer Call">
-                            <i class="bi ${iconClass}"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
-
-            nextButton.onclick = (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onClickCallback();
-                nextButtonRow.remove();
-            };
-
-            bubble.appendChild(nextButton);
-            nextButtonRow.appendChild(bubble);
-            chatMessageList.appendChild(nextButtonRow);
-
-            // Auto-scroll to ensure the widget is visible
-            setTimeout(() => {
-                chatMessageList.scrollTo({ top: chatMessageList.scrollHeight, behavior: 'smooth' });
-            }, 100);
+        if (!hasWidget) {
+            storeState.addChatMessage({
+                role: 'system',
+                type: 'continueWidget',
+                onClick: () => {
+                    onClickCallback();
+                    appStore.getState().removeContinueWidget();
+                }
+            });
         }
 
-        return document.getElementById('lessonNextButton');
+        // Return a dummy element in case legacy app.js tries to check properties on the returned node
+        return document.createElement('div');
     }
 }
 
@@ -1250,16 +1111,13 @@ export function hideContinueButton() {
     // 1. Revert Bottom Bar back to standard mic
     const standardMic = document.getElementById('state-standard-mic');
     const introChoices = document.getElementById('state-intro-choices');
-
     if (introChoices) {
         introChoices.classList.add('d-none');
         introChoices.style.removeProperty('display');
     }
     if (standardMic) standardMic.classList.remove('d-none');
-
-    // 2. Remove the mid-lesson next button if it's in the chat
-    const nextBtnRow = document.getElementById('continueButtonRow');
-    if (nextBtnRow) nextBtnRow.remove();
+    // 2. Remove the mid-lesson next button from Zustand chat history
+    appStore.getState().removeContinueWidget();
 }
 
 export function showLessonSuccessState() {

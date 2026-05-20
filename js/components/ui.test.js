@@ -145,42 +145,33 @@ describe('UI Component functions', () => {
 
 
     describe('Chat Interface Rendering', () => {
-        it('should execute safeRenderChatInterface safely', () => {
-            // Because safeRenderChatInterface uses specific DOM properties we mocked
-            // we can test it directly
-            expect(() => safeRenderChatInterface(true, '<p>test</p>')).not.toThrow();
-            expect(document.body.classList.contains('chat-mode-active')).toBe(true);
-            const chatList = document.getElementById('chat-message-list');
-            expect(chatList.innerHTML).toContain('<p>test</p>');
+        beforeEach(() => {
+            appStore.setState({ chatHistory: [] });
         });
 
-        it('should append a Node to the chat body', () => {
-             const div = document.createElement('div');
-             div.id = 'test-node';
-             safeRenderChatInterface(true, div);
-             const chatList = document.getElementById('chat-message-list');
-             expect(chatList.querySelector('#test-node')).toBeDefined();
+        it('should execute safeRenderChatInterface safely', () => {
+            expect(() => safeRenderChatInterface(true)).not.toThrow();
+            expect(document.body.classList.contains('chat-mode-active')).toBe(true);
         });
 
         it('should render user response', () => {
-             // ui.js looks at State.userData as well for fallback, let's mock the State or appStore correctly
              State.userData = { display_name: 'Test User', profilepicurl: 'http://test.jpg' };
              appStore.setState({ userData: { display_name: 'Test User', profilepicurl: 'http://test.jpg' } });
 
              expect(() => renderUserResponse('my answer')).not.toThrow();
-             const chatList = document.getElementById('chat-message-list');
-             expect(chatList.innerHTML).toContain('my answer');
-             expect(chatList.innerHTML).toContain('Test');
-             expect(chatList.innerHTML).toContain('http://test.jpg');
+             const history = appStore.getState().chatHistory;
+             expect(history.some(m => m.content === 'my answer')).toBe(true);
+             expect(history.some(m => m.userName === 'Test')).toBe(true);
         });
 
         it('should render AI analysis loading', () => {
              expect(() => renderAIAnalysisLoading('loading test')).not.toThrow();
-             const chatList = document.getElementById('chat-message-list');
-             expect(chatList.innerHTML).toContain('loading test');
+             let history = appStore.getState().chatHistory;
+             expect(history.some(m => m.type === 'aiLoading' && m.content.includes('loading test'))).toBe(true);
 
              removeAILoadingStatus();
-             expect(chatList.innerHTML).not.toContain('loading test');
+             history = appStore.getState().chatHistory;
+             expect(history.some(m => m.type === 'aiLoading')).toBe(false);
         });
 
         it('should get praise HTML without errors', () => {
@@ -191,31 +182,20 @@ describe('UI Component functions', () => {
         });
 
         it('should render AI feedback chunks correctly', () => {
-            const pNode = document.createElement('p');
-            pNode.textContent = 'Node content';
-            const rowNode = document.createElement('div');
-            rowNode.classList.add('chat-message-row');
-            rowNode.textContent = 'Row Node content';
-
             const chunks = [
                 '<div class="chat-message-row">html chunk</div>',
-                'Just a simple string',
-                pNode,
-                rowNode,
-                null,
-                undefined
+                'Just a simple string'
             ];
 
             expect(() => renderAIFeedback(chunks)).not.toThrow();
-            const chatList = document.getElementById('chat-message-list');
-            expect(chatList.innerHTML).toContain('html chunk');
-            expect(chatList.innerHTML).toContain('Just a simple string');
-            expect(chatList.innerHTML).toContain('Node content');
-            expect(chatList.innerHTML).toContain('Row Node content');
+            const history = appStore.getState().chatHistory;
+            expect(history.some(m => m.content.includes('html chunk'))).toBe(true);
+            expect(history.some(m => m.content.includes('Just a simple string'))).toBe(true);
         });
 
         it('should test clearChatInterface', () => {
              expect(() => clearChatInterface()).not.toThrow();
+             expect(appStore.getState().chatHistory.length).toBe(0);
         });
     });
 

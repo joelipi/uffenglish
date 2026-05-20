@@ -1,9 +1,8 @@
 import React from 'react';
-import { appStore } from '../../modules/store.js';
 
 export default function UserBubble({ text, userName, userAvatarUrl }) {
-    const defaultUserName = userName || appStore.getState().userData?.display_name?.split(' ')[0] || 'You';
-    const defaultAvatarUrl = userAvatarUrl || appStore.getState().userData?.profilepicurl || 'assets/img/userprofile.webp';
+    const defaultUserName = userName || 'You';
+    const defaultAvatarUrl = userAvatarUrl || 'assets/img/userprofile.webp';
 
     return (
         <div className="chat-message-row chat-message-row--user">

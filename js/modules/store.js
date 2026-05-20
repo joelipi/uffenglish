@@ -68,9 +68,10 @@ export const appStore = createStore(
             setTextMode: (val) => set({ isTextMode: val }),
             setGuestModalOpen: (val) => set({ isGuestModalOpen: val }),
             setCriticalErrorMessage: (val) => set({ criticalErrorMessage: val }),
+
             addChatMessage: (msg) => set((state) => {
                 const newMsg = {
-                    id: msg.id !== undefined ? msg.id : Date.now(),
+                    id: msg.id !== undefined ? msg.id : Date.now() + Math.random(),
                     role: msg.role,
                     type: msg.type || 'standard',
                     content: msg.content,
@@ -79,10 +80,16 @@ export const appStore = createStore(
                 return { chatHistory: [...state.chatHistory, newMsg] };
             }),
             clearChatHistory: () => set({ chatHistory: [] }),
+            removeAiLoadingMessage: () => set((state) => ({
+                chatHistory: state.chatHistory.filter(msg => msg.type !== 'aiLoading')
+            })),
+            removeContinueWidget: () => set((state) => ({
+                chatHistory: state.chatHistory.filter(msg => msg.type !== 'continueWidget')
+            })),
             replaceLastMessage: (msg) => set((state) => {
                 if (state.chatHistory.length === 0) {
                     const newMsg = {
-                        id: msg.id !== undefined ? msg.id : Date.now(),
+                        id: msg.id !== undefined ? msg.id : Date.now() + Math.random(),
                         role: msg.role,
                         type: msg.type || 'standard',
                         content: msg.content,

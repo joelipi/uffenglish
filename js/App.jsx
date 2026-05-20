@@ -1,13 +1,16 @@
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { initLocalVoiceAI } from './modules/speech.js';
 import { idiomChecker } from './modules/idiom-checker.js';
+
 import ScoreBoard from './components/widgets/ScoreBoard.jsx';
 import ActivityStats from './components/widgets/ActivityStats.jsx';
 import MicrophoneToggle from './components/widgets/MicrophoneToggle.jsx';
 import GuestLoginModal from './components/modals/GuestLoginModal.jsx';
 import CriticalErrorModal from './components/modals/CriticalErrorModal.jsx';
 import ChatInterface from './components/chat/ChatInterface.jsx';
+import LessonContainer from './LessonContainer.jsx';
 
 export default function App() {
     const isWorkerInitialized = useRef(false);
@@ -52,13 +55,21 @@ export default function App() {
     const criticalErrorRootEl = document.getElementById('react-root-critical-error');
 
     return (
-        <>
+        <BrowserRouter>
+            {/* The React Router Controller */}
+            <Routes>
+                <Route path="/course/:courseId/lesson/:lessonId" element={<LessonContainer />} />
+                {/* Temporary fallback to catch empty URLs during testing */}
+                <Route path="*" element={<Navigate to="/course/gt2/lesson/a" replace />} />
+            </Routes>
+
+            {/* The Portals injecting into the Vanilla index.html */}
             {chatRootEl && createPortal(<ChatInterface />, chatRootEl)}
             {statsRootEl && createPortal(<ScoreBoard />, statsRootEl)}
             {activityRootEl && createPortal(<ActivityStats />, activityRootEl)}
             {micRootEl && createPortal(<MicrophoneToggle />, micRootEl)}
             {criticalErrorRootEl && createPortal(<CriticalErrorModal />, criticalErrorRootEl)}
             {createPortal(<GuestLoginModal />, document.body)}
-        </>
+        </BrowserRouter>
     );
 }
