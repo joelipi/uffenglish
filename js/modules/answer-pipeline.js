@@ -36,7 +36,6 @@ import {
     disableAllButtons,
     showContinueButton,
     hideContinueButton,
-    renderFallbackContinueButton,
     resetMicStatusWithStep,
     handlecueUI,
     handleIncueUI,
@@ -431,10 +430,14 @@ export function showFeedbackAndProceed(stepData, isCorrect, _deps = {}) {
             }
         }
     } catch (error) {
-        renderFallbackContinueButton(Strings.get('btn_continue', appStore.getState().userData?.native_language) || 'Continue', () => {
-            if (isCorrect || appStore.getState().incorrectAttempts > 2) {
-                if (loadNextStep) loadNextStep(stepData);
-            } else if (callLoadStep) callLoadStep(stepData, appStore.getState().configData.lessons[appStore.getState().currentLessonIndex]);
+        appStore.getState().addChatMessage({
+            role: 'system',
+            type: 'continueWidget',
+            onClick: () => {
+                if (isCorrect || appStore.getState().incorrectAttempts > 2) {
+                    if (loadNextStep) loadNextStep(stepData);
+                } else if (callLoadStep) callLoadStep(stepData, appStore.getState().configData.lessons[appStore.getState().currentLessonIndex]);
+            }
         });
     }
 }

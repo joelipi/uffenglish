@@ -119,7 +119,7 @@ import {
     renderTutorMessage,
     showContinueButton,
     hideContinueButton,
-    renderFallbackContinueButton,
+
     toggleStatsContainer,
     setProgressBarWidth,
     showMessageInStepsContainer,

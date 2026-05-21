@@ -1119,13 +1119,6 @@ export function showLessonSuccessState() {
     if (lessonSuccess) lessonSuccess.classList.remove('d-none');
 }
 
-export function renderFallbackContinueButton(text, onClickCallback) {
-    const btn = document.createElement('button');
-    btn.textContent = text;
-    btn.onclick = onClickCallback;
-    document.body.appendChild(btn);
-}
-
 export function resetUIForNewStep(isLessonIntro, hasUserData) {
     // 1. Clear out our dynamic compilation elements
     const resultVideo = document.getElementById('resultVideo');
