@@ -1,35 +1,82 @@
 import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { useSyncExternalStore } from 'react';
+import { appStore } from '../modules/store.js';
+import { State } from '../modules/state.js';
 import { simpleVideoPlayer } from './simple-video-player.js';
 
-export default function SimpleVideoWrapper({ videoUrl, config }) {
+function portalTarget() {
+    return document.getElementById('simple-video-container');
+}
+
+export default function SimpleVideoWrapper() {
     const containerRef = useRef(null);
     const playerInstance = useRef(null);
 
+    const currentVideo = useSyncExternalStore(
+        appStore.subscribe,
+        () => appStore.getState().currentVideo
+    );
+
     useEffect(() => {
-        if (!videoUrl) return;
-        if (containerRef.current && !playerInstance.current) {
-            const uniqueId = `svp-container-${Math.random().toString(36).substr(2, 9)}`;
-            containerRef.current.id = uniqueId;
-
-            const mergedConfig = {
-                ...config,
-                videoUrl,
-                containerSelector: `#${uniqueId}`
-            };
-
-            // Mount the vanilla class into the React-controlled DOM node
-            playerInstance.current = new simpleVideoPlayer(mergedConfig);
+        if (!currentVideo || currentVideo.type !== 'simple') {
+            if (playerInstance.current) {
+                playerInstance.current.destroy();
+                playerInstance.current = null;
+                if (State.player) State.player = null;
+                window.currentSimpleVideoPlayer = null;
+            }
+            return;
         }
+
+        if (!containerRef.current || playerInstance.current) return;
+
+        const uniqueId = `svp-container-${Math.random().toString(36).substr(2, 9)}`;
+        containerRef.current.id = uniqueId;
+
+        const mergedConfig = {
+            ...currentVideo.config,
+            videoUrl: currentVideo.url,
+            containerSelector: `#${uniqueId}`
+        };
+
+        const player = new simpleVideoPlayer(mergedConfig);
+        playerInstance.current = player;
+        State.player = player;
+        window.currentSimpleVideoPlayer = player;
+
+        try {
+            const videoEl = player.video;
+            videoEl.muted = false;
+            const checkAndPlay = () => {
+                const preloader = document.getElementById('appLoadingImageDiv');
+                if (preloader && preloader.style.display !== 'none') {
+                    setTimeout(checkAndPlay, 100);
+                    return;
+                }
+                try {
+                    const playPromise = player.play();
+                    if (playPromise !== undefined) playPromise.catch(() => { });
+                } catch (e) { }
+            };
+            setTimeout(checkAndPlay, 200);
+        } catch (e) { }
 
         return () => {
             if (playerInstance.current) {
-                if (typeof playerInstance.current.destroy === 'function') {
-                    playerInstance.current.destroy();
-                }
+                playerInstance.current.destroy();
                 playerInstance.current = null;
+                if (State.player) State.player = null;
+                window.currentSimpleVideoPlayer = null;
             }
         };
-    }, [videoUrl, config]);
+    }, [currentVideo]);
 
-    return <div ref={containerRef} className="video-wrapper"></div>;
+    const target = portalTarget();
+    const isActive = currentVideo && currentVideo.type === 'simple';
+
+    return target && isActive ? createPortal(
+        <div ref={containerRef} className="video-wrapper" style={{ width: '100%', height: '100%' }}></div>,
+        target
+    ) : null;
 }

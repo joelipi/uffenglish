@@ -81,6 +81,7 @@ export function loadStep(step, lesson, fluencyData, deps) {
 
     Media.cleanupPreviousPlayers();
     State.player = null;
+    appStore.getState().setCurrentVideo(null);
     clearPlaybackVideo();
 
     toggleStatsContainer((step.stepType === 'closedResponse' || step.stepType === 'openResponse') && step.videoUrl);

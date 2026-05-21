@@ -1,46 +1,60 @@
 import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { useSyncExternalStore } from 'react';
+import { appStore } from '../modules/store.js';
+import { State } from '../modules/state.js';
 import { introBackgroundVideo } from './intro-background-video.js';
 
-export default function IntroVideoWrapper({ videoUrl, config }) {
+function portalTarget() {
+    return document.getElementById('intro-call-widget');
+}
+
+export default function IntroVideoWrapper() {
     const containerRef = useRef(null);
     const playerInstance = useRef(null);
 
+    const currentVideo = useSyncExternalStore(
+        appStore.subscribe,
+        () => appStore.getState().currentVideo
+    );
+
     useEffect(() => {
-        if (!videoUrl) return;
-
-        const staticWidget = document.getElementById('intro-call-widget');
-        let originalId = '';
-        if (staticWidget && staticWidget !== containerRef.current) {
-            originalId = staticWidget.id;
-            staticWidget.id = 'intro-call-widget-static';
+        if (!currentVideo || currentVideo.type !== 'intro') {
+            if (playerInstance.current) {
+                playerInstance.current.destroy();
+                playerInstance.current = null;
+                if (State.player) State.player = null;
+                window.currentIntroVideoPlayer = null;
+            }
+            return;
         }
 
-        if (containerRef.current && !playerInstance.current) {
-            containerRef.current.id = 'intro-call-widget';
+        if (!containerRef.current || playerInstance.current) return;
 
-            const mergedConfig = {
-                ...config,
-                videoUrl
-            };
+        const mergedConfig = {
+            ...currentVideo.config,
+            videoUrl: currentVideo.url
+        };
 
-            // Mount the vanilla class into the React-controlled DOM node
-            playerInstance.current = new introBackgroundVideo(mergedConfig);
-        }
+        const player = new introBackgroundVideo(mergedConfig);
+        playerInstance.current = player;
+        State.player = player;
+        window.currentIntroVideoPlayer = player;
 
         return () => {
             if (playerInstance.current) {
-                if (typeof playerInstance.current.destroy === 'function') {
-                    playerInstance.current.destroy();
-                }
+                playerInstance.current.destroy();
                 playerInstance.current = null;
-            }
-            if (staticWidget && originalId) {
-                staticWidget.id = originalId;
+                if (State.player) State.player = null;
+                window.currentIntroVideoPlayer = null;
             }
         };
-    }, [videoUrl, config]);
+    }, [currentVideo]);
 
-    return (
+    const target = portalTarget();
+    const isActive = currentVideo && currentVideo.type === 'intro';
+
+    return target && isActive ? createPortal(
         <div ref={containerRef} className="intro-video-wrapper d-none">
             <div className="pulse-ring-wrapper">
                 <div className="pulse-ring"></div>
@@ -61,6 +75,7 @@ export default function IntroVideoWrapper({ videoUrl, config }) {
                     </div>
                 </div>
             </div>
-        </div>
-    );
+        </div>,
+        target
+    ) : null;
 }

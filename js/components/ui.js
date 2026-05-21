@@ -1220,7 +1220,12 @@ export function clearMediaContainerAndPreservePlayers() {
         } else if (el.id === 'webcam-preview') {
         } else {
             el.classList.remove('d-none');
-            el.innerHTML = '';
+            if (el.id === 'ivp-container' || el.id === 'simple-video-container') {
+                // React wrappers (InteractiveVideoWrapper, SimpleVideoWrapper)
+                // manage these containers via portal — preserve content across steps.
+            } else {
+                el.innerHTML = '';
+            }
         }
 
         DOM.mediaViewport.appendChild(el);

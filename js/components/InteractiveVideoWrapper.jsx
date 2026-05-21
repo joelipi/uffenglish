@@ -1,35 +1,132 @@
 import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { useSyncExternalStore } from 'react';
+import { appStore } from '../modules/store.js';
+import { State } from '../modules/state.js';
 import { InteractiveVideoPlayer } from './interactive-video-player.js';
+import { pointLoss } from './point-loss-animation.js';
 
-export default function InteractiveVideoWrapper({ videoUrl, config }) {
+function portalTarget() {
+    return document.getElementById('ivp-container');
+}
+
+export default function InteractiveVideoWrapper() {
     const containerRef = useRef(null);
     const playerInstance = useRef(null);
+    const clickTriggeredPlayRef = useRef(false);
+
+    const currentVideo = useSyncExternalStore(
+        appStore.subscribe,
+        () => appStore.getState().currentVideo
+    );
 
     useEffect(() => {
-        if (!videoUrl) return;
-        if (containerRef.current && !playerInstance.current) {
-            const uniqueId = `ivp-container-${Math.random().toString(36).substr(2, 9)}`;
-            containerRef.current.id = uniqueId;
-
-            const mergedConfig = {
-                ...config,
-                videoUrl,
-                containerSelector: `#${uniqueId}`
-            };
-
-            // Mount the vanilla class into the React-controlled DOM node
-            playerInstance.current = new InteractiveVideoPlayer(mergedConfig);
+        if (!currentVideo || currentVideo.type !== 'interactive') {
+            if (playerInstance.current) {
+                playerInstance.current.destroy();
+                playerInstance.current = null;
+                if (State.player) State.player = null;
+                window.currentVideoPlayer = null;
+            }
+            return;
         }
 
-        return () => {
-            if (playerInstance.current) {
-                if (typeof playerInstance.current.destroy === 'function') {
-                    playerInstance.current.destroy();
-                }
-                playerInstance.current = null;
+        if (!containerRef.current || playerInstance.current) return;
+
+        const uniqueId = `ivp-container-${Math.random().toString(36).substr(2, 9)}`;
+        containerRef.current.id = uniqueId;
+
+        const mergedConfig = {
+            ...currentVideo.config,
+            videoUrl: currentVideo.url,
+            containerSelector: `#${uniqueId}`,
+            onRepetition: () => {
+                appStore.getState().deductListeningScore(10);
+                const scoreEl = document.getElementById('listeningScore');
+                if (scoreEl) pointLoss.show(scoreEl, 10);
+            },
+            onWordReveal: (index) => {
+                appStore.getState().deductListeningScore(15);
+                const scoreEl = document.getElementById('listeningScore');
+                if (scoreEl) pointLoss.show(scoreEl, 15);
             }
         };
-    }, [videoUrl, config]);
 
-    return <div ref={containerRef} className="video-wrapper"></div>;
+        const player = new InteractiveVideoPlayer(mergedConfig);
+        playerInstance.current = player;
+        State.player = player;
+        window.currentVideoPlayer = player;
+
+        try {
+            const videoEl = player.video;
+            videoEl.muted = false;
+            videoEl.setAttribute('playsinline', '');
+
+            const checkAndPlay = () => {
+                const preloader = document.getElementById('appLoadingImageDiv');
+                if (preloader && preloader.style.display !== 'none') {
+                    setTimeout(checkAndPlay, 100);
+                    return;
+                }
+                try {
+                    const playPromise = player.play();
+                    if (playPromise !== undefined) playPromise.catch(() => { });
+                } catch (e) { }
+            };
+            setTimeout(checkAndPlay, 200);
+        } catch (e) { }
+
+        player.video.addEventListener('playing', () => player.video.controls = false);
+
+        clickTriggeredPlayRef.current = false;
+        const playHandler = () => {
+            if (window.isMicActive) {
+                player.video.pause();
+                return;
+            }
+            if (clickTriggeredPlayRef.current) {
+                clickTriggeredPlayRef.current = false;
+                return;
+            }
+            State.videoPlays++;
+            const stepType = currentVideo.stepType || '';
+            if (State.videoPlays > 2 && (stepType === 'closedResponse' || stepType === 'openResponse')) {
+                appStore.getState().deductListeningScore(10);
+                pointLoss.show(player.video, 10);
+            }
+        };
+        player.video.addEventListener('play', playHandler);
+
+        const clickHandler = () => {
+            State.videoClicks++;
+            const stepType = currentVideo.stepType || '';
+            if (State.videoClicks % 2 === 1 && (stepType === 'closedResponse' || stepType === 'openResponse')) {
+                clickTriggeredPlayRef.current = true;
+                appStore.getState().deductListeningScore(15);
+                pointLoss.show(player.video, 15);
+            }
+        };
+        player.video.addEventListener('click', clickHandler);
+
+        return () => {
+            if (player.video) {
+                player.video.removeEventListener('play', playHandler);
+                player.video.removeEventListener('click', clickHandler);
+            }
+            if (playerInstance.current) {
+                playerInstance.current.destroy();
+                playerInstance.current = null;
+                if (State.player) State.player = null;
+                window.currentVideoPlayer = null;
+            }
+        };
+    }, [currentVideo]);
+
+    const target = portalTarget();
+    const isActive = currentVideo && currentVideo.type === 'interactive';
+
+    return target && isActive ? createPortal(
+        <div ref={containerRef} className="video-wrapper" style={{ width: '100%', height: '100%' }}></div>,
+        target
+    ) : null;
 }

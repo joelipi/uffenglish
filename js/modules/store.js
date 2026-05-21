@@ -21,6 +21,7 @@ export const appStore = createStore(
             configData: null,
             courseId: null,
             englishLevel: 'A0',
+            currentVideo: null,
             chatHistory: [],
 
             // --- Reactive UI Metrics ---
@@ -112,6 +113,11 @@ export const appStore = createStore(
                 courseId: data.courseId !== undefined ? data.courseId : state.courseId,
                 englishLevel: data.englishLevel !== undefined ? data.englishLevel : state.englishLevel,
             })),
+
+            setCurrentVideo: (video) => {
+                console.log(`[Store] setCurrentVideo: ${video ? video.type : 'null'}`);
+                set({ currentVideo: video });
+            },
 
             // Update physical place in the lesson
             setProgress: ({ lessonId, lessonIndex, questionIndex }) => set({
