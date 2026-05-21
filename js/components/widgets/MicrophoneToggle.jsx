@@ -58,8 +58,6 @@ export default function MicrophoneToggle() {
     const handleClick = () => {
         if (typeof window.onMicClick === 'function') {
             window.onMicClick();
-        } else {
-            console.warn('[MicrophoneToggle] No window.onMicClick handler registered.');
         }
     };
 
@@ -93,7 +91,7 @@ export default function MicrophoneToggle() {
     };
 
     return (
-        <div ref={containerRef} className="mic-btn-wrapper" id="state-standard-mic" style={{ display: 'flex' }}>
+        <div ref={containerRef} className="mic-btn-wrapper d-flex" id="state-standard-mic">
             <div className="mic-ring" style={{ opacity: 0, pointerEvents: 'none' }}></div>
             <div className="mic-ring" style={{ opacity: 0, pointerEvents: 'none' }}></div>
             <div className="mic-ring" style={{ opacity: 0, pointerEvents: 'none' }}></div>
