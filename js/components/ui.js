@@ -196,9 +196,6 @@ export function hidePreloader() {
 export function showMicWarning(message) {
     const html = `<div class='text-center text-danger'>${message}</div>`;
     appStore.getState().setMicStatusText(html);
-    if (DOM.micStatusText) {
-        DOM.micStatusText.innerHTML = html;
-    }
 }
 export function showAnswerError(message) {
     if (DOM.answerErrorMsg) {
@@ -233,9 +230,6 @@ export function resetMissionText(missionText, settingText, roleUserText, roleOth
 export function resetMicStatusWithStep(questionText) {
     const html = `<div class='text-center'>${questionText || ""}</div>`;
     appStore.getState().setMicStatusText(html);
-    if (DOM.micStatusText) {
-        DOM.micStatusText.innerHTML = html;
-    }
 }
 
 export function bindAuthMenuUI(isLoggedIn, handleAuthClick, signOutText, signInText) {
@@ -448,7 +442,6 @@ export function getChatHistoryContext() {
 
 export function clearMicStatusAndHideMedia() {
     appStore.getState().setMicStatusText("");
-    if (DOM.micStatusText) DOM.micStatusText.innerHTML = "";
     if (DOM.mediaViewport) DOM.mediaViewport.classList.add('d-none');
     hideAnswerInputArea();
 }
@@ -529,7 +522,7 @@ export function hideWhisperReviewUI() {
 
 export function renderWhisperReviewUI(transcript, timeLeft, onAccept, onReject) {
     appStore.getState().removeAiLoadingMessage();
-    if (DOM.micStatusText) DOM.micStatusText.innerHTML = "";
+    appStore.getState().setMicStatusText("");
     if (!DOM.whisperReviewContainer || !DOM.whisperTranscript) return;
 
     // Populate content
