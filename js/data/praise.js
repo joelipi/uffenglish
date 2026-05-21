@@ -30,9 +30,9 @@ const praiseData = {
         { type: 'text', key: 'praise_incredible' }
     ],
     images: [
-        { type: 'image', content: "assets/img/verygood01.png" },
-        { type: 'image', content: "assets/img/verygood02.png" },
-        { type: 'image', content: "assets/img/verygood03.png" }
+        { type: 'image', content: "/assets/img/verygood01.png" },
+        { type: 'image', content: "/assets/img/verygood02.png" },
+        { type: 'image', content: "/assets/img/verygood03.png" }
     ]
 };
 

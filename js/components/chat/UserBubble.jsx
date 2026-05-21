@@ -2,7 +2,7 @@ import React from 'react';
 
 export default function UserBubble({ text, userName, userAvatarUrl }) {
     const defaultUserName = userName || 'You';
-    const defaultAvatarUrl = userAvatarUrl || 'assets/img/userprofile.webp';
+    const defaultAvatarUrl = userAvatarUrl || '/assets/img/userprofile.webp';
 
     return (
         <div className="chat-message-row chat-message-row--user">

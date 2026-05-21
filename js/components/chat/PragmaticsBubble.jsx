@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function PragmaticsBubble({ contentHTML, correctionHTML = "", botName = "Joe Walsh", avatarUrl = "assets/img/teacherprofile.webp" }) {
+export default function PragmaticsBubble({ contentHTML, correctionHTML = "", botName = "Joe Walsh", avatarUrl = "/assets/img/teacherprofile.webp" }) {
     const fullHtml = `${contentHTML}${correctionHTML ? ` ${correctionHTML}` : ''}`;
 
     return (

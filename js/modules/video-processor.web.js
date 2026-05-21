@@ -85,7 +85,7 @@ export async function processVideo(fluencyData = {}, lessonId = null, displayCan
             const videoCanvas = document.createElement('canvas');
 
             const overlayImage = new Image();
-            overlayImage.src = 'assets/img/header.png';
+            overlayImage.src = '/assets/img/header.png';
 
             const firstValidRec = recordings.find(r => r.blob);
             if (firstValidRec) {

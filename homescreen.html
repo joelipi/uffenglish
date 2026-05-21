@@ -33,7 +33,7 @@
       height: 80vh;
       max-width: 800px;
       max-height: 800px;
-      background: url('assets/img/u-f-f.png') no-repeat center center;
+      background: url('/assets/img/u-f-f.png') no-repeat center center;
       background-size: contain;
       animation: scaleIn 1.5s ease-out forwards, scaleOut 1.5s 1.5s ease-in forwards;
     }
@@ -81,8 +81,8 @@
   <meta name="application-name" content="UFF Ultra Fast Fluency in English">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <link rel="apple-touch-icon" href="assets/img/favicons/favicon-192x192.jpeg">
-  <link rel="apple-touch-icon" sizes="192x192" href="assets/img/favicons/favicon-192x192.jpeg">
+  <link rel="apple-touch-icon" href="/assets/img/favicons/favicon-192x192.jpeg">
+  <link rel="apple-touch-icon" sizes="192x192" href="/assets/img/favicons/favicon-192x192.jpeg">
   <!-- / SuperPWA.com -->
   <meta name='robots' content='max-image-preview:large' />
 
@@ -378,9 +378,9 @@
       });
     }
   </script>
-  <link rel="icon" href="assets/img/favicons/favicon-32x32.jpeg" sizes="32x32" />
-  <link rel="icon" href="assets/img/favicons/favicon-192x192.jpeg" sizes="192x192" />
-  <meta name="msapplication-TileImage" content="assets/img/favicons/favicon-192x192.jpeg" />
+  <link rel="icon" href="/assets/img/favicons/favicon-32x32.jpeg" sizes="32x32" />
+  <link rel="icon" href="/assets/img/favicons/favicon-192x192.jpeg" sizes="192x192" />
+  <meta name="msapplication-TileImage" content="/assets/img/favicons/favicon-192x192.jpeg" />
   <!-- This injects all enqueued styles and scripts -->
 
   <link rel="stylesheet" href="./node_modules/animate.css/animate.min.css" />
@@ -475,7 +475,7 @@
         const btn = document.createElement('button');
         btn.id = 'continueButton';
         btn.className = 'btn btn-primary text-white w-100';
-        btn.innerHTML = '<img decoding="async" src="assets/img/continue.svg" alt="Continue" width="40px">';
+        btn.innerHTML = '<img decoding="async" src="/assets/img/continue.svg" alt="Continue" width="40px">';
         btn.onclick = function () {
           window.location.href = "/courseid-gtests-a2";
         };
@@ -489,7 +489,7 @@
   <!-- BIG HEADER IMAGE - Shows only on screens ≤ 1100px (mobile) -->
   <div class="container-fluid px-0 mb-5 d-block d-lg-none" id="bigHeader">
     <div class="d-flex justify-content-between align-items-center w-100 px-3">
-      <img src="assets/img/u-f-f.png" class="img-fluid" alt="" style="height: auto; max-width: 80% !important;">
+      <img src="/assets/img/u-f-f.png" class="img-fluid" alt="" style="height: auto; max-width: 80% !important;">
       <div class="flex-grow-1 mx-1"></div>
       <div class="d-flex align-items-center hamburger-container">
         <button class="hamburger-btn" onclick="toggleMenu();">
@@ -504,7 +504,7 @@
   <!-- WIDE HEADER IMAGE - Shows only on screens > 1100px (desktop) -->
   <div class="container-fluid px-0 mb-3 d-none d-lg-block" id="wideHeader">
     <div class="d-flex justify-content-between align-items-center w-100 px-3">
-      <img src="assets/img/header.png" class="img-fluid" id="uffposter" alt=""
+      <img src="/assets/img/header.png" class="img-fluid" id="uffposter" alt=""
         style="height: auto; max-width: 80% !important;">
       <div class="flex-grow-1 mx-1"></div>
       <div class="d-flex align-items-center hamburger-container">
@@ -526,7 +526,7 @@
   <div class="d-flex justify-content-between align-items-center" style="padding-top: 0; margin-top: 10px; margin-bottom: 10px;">
     <!-- Left X --
       <span class="d-flex align-items-center text-decoration-none" style="font-size: x-large;">
-        <img src='assets/img/teacherprofile.png' alt='' class='rounded-circle me-3' style='width:100px;height:100px;object-fit:cover'> <strong>UFF: Ultra Fast Fluency in English</strong>
+        <img src='/assets/img/teacherprofile.png' alt='' class='rounded-circle me-3' style='width:100px;height:100px;object-fit:cover'> <strong>UFF: Ultra Fast Fluency in English</strong>
       </span>
     
     <!-- Progress Bar --
@@ -573,7 +573,7 @@
         <!-- Courses Section -->
         <div id="coursesIntro" class="card border-dark mb-3 p-0" style="margin-top: 10px; margin-bottom: 70px;">
           <div class='card-header bg-dark text-white p-0' id='correct'>
-            <div class='d-flex align-items-center p-3'><img src='assets/img/teacherprofile.png' alt=''
+            <div class='d-flex align-items-center p-3'><img src='/assets/img/teacherprofile.png' alt=''
                 class='rounded-circle me-3' style='width:100px;height:100px;object-fit:cover'><span
                 class='fs-5'>Welcome!</span></div>
           </div>
@@ -596,7 +596,7 @@
         </div>
         <div id="courses1" class="card border-dark p-0" style="margin-top: 10px; margin-bottom: 170px;">
           <div class='card-header bg-dark text-white p-0' id='correct'>
-            <div class='d-flex align-items-center p-3'><img src='assets/img/teacherprofile.png' alt=''
+            <div class='d-flex align-items-center p-3'><img src='/assets/img/teacherprofile.png' alt=''
                 class='rounded-circle me-3' style='width:100px;height:100px;object-fit:cover'><span class='fs-5'>El
                 Inglés Coloquial</span></div>
           </div>

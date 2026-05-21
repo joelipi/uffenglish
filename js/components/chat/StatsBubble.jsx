@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function StatsBubble({ header, statsParts = [], botName = "Joe Walsh", avatarUrl = "assets/img/teacherprofile.webp" }) {
+export default function StatsBubble({ header, statsParts = [], botName = "Joe Walsh", avatarUrl = "/assets/img/teacherprofile.webp" }) {
     const partsText = statsParts && statsParts.length > 0 ? ` ${statsParts.join('. ')}` : '';
     const fullContentHtml = `${header}${partsText}`;
 

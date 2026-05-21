@@ -27,7 +27,7 @@ export default function ContinueWidgetBubble({ onClick }) {
 
     return (
         <div className="chat-message-row chat-message-row--system" id="continueButtonRow">
-            <img src="assets/img/teacherprofile.webp" alt="Joe Walsh" className="chat-avatar-inline" />
+            <img src="/assets/img/teacherprofile.webp" alt="Joe Walsh" className="chat-avatar-inline" />
             <div className="chat-message-bubble chat-message-bubble--system incoming-call-bubble">
                 <div className="chat-bubble-header">Joe Walsh</div>
                 <div

@@ -585,7 +585,7 @@
             bottom: 0;
             left: 0;
             right: 0;
-            z-index: 2;
+            z-index: 11;
             flex-direction: column;
         }
 
@@ -717,7 +717,7 @@
             height: 80vh;
             max-width: 800px;
             max-height: 800px;
-            background: url('assets/img/u-f-f.png') no-repeat center center;
+            background: url('/assets/img/u-f-f.png') no-repeat center center;
             background-size: contain;
             animation: scaleIn 1.5s ease-out forwards, scaleOut 1.5s 1.5s ease-in forwards;
         }
@@ -801,7 +801,6 @@
         .ivp-main-wrapper {
             opacity: 1;
             transition: opacity 0.4s ease-out;
-            will-change: opacity, transform;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -1895,8 +1894,8 @@
 
                         // Preload essential UI images
                         const imageUrls = [
-                            'assets/img/header.png',
-                            'assets/img/teacherprofile.webp'];
+                            '/assets/img/header.png',
+                            '/assets/img/teacherprofile.webp'];
 
                         const imagePromises = imageUrls.map(url => new Promise(resolve => {
                             const img = new Image();
@@ -2054,7 +2053,7 @@
             <video id="originalVideo" src="" class="d-none"></video>
             <video id="resultVideo" class="d-none"></video>
             <canvas id="videoCanvas" class="d-none"></canvas>
-            <img id="overlayImage" src="assets/img/header.png" class="d-none">
+            <img id="overlayImage" src="/assets/img/header.png" class="d-none">
 
             <!-- RESTORED: Playback Video Elements -->
             <div id="playback-video-wrapper" class="playback-video-container position-relative d-none">
@@ -2131,7 +2130,7 @@
 
                             <!-- LEFT: Friend Button -->
                             <button class="btn call-btn" id="friendBtn" aria-label="Contact Friend">
-                                <img src="assets/img/userprofile.png" alt="Friend Profile" class="friend-img">
+                                <img src="/assets/img/userprofile.png" alt="Friend Profile" class="friend-img">
                             </button>
 
                             <!-- CENTER STATE 1: Standard Mic (Visible by default) -->

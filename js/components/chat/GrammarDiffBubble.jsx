@@ -33,7 +33,7 @@ function buildGrammarDiff(original, corrected) {
     return { userHTML, corrHTML };
 }
 
-export default function GrammarDiffBubble({ original, correction, botName = "Joe Walsh", avatarUrl = "assets/img/teacherprofile.webp" }) {
+export default function GrammarDiffBubble({ original, correction, botName = "Joe Walsh", avatarUrl = "/assets/img/teacherprofile.webp" }) {
     const { userHTML, corrHTML } = buildGrammarDiff(original || "", correction || "");
 
     return (

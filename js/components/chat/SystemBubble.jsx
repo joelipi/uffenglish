@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function SystemBubble({ content, botName = "Joe Walsh", avatarUrl = "assets/img/teacherprofile.webp" }) {
+export default function SystemBubble({ content, botName = "Joe Walsh", avatarUrl = "/assets/img/teacherprofile.webp" }) {
     return (
         <div className="chat-message-row chat-message-row--system">
             <img src={avatarUrl} alt={botName} className="chat-avatar-inline" />

@@ -43,7 +43,7 @@ export function renderFeedbackToHTML(feedbackData) {
 
             return `
                 <div class="chat-message-row chat-message-row--system" style="margin-bottom: 0px;">
-                    <img src="assets/img/grammarbot.webp" alt="Grammar" class="chat-avatar-inline" />
+                    <img src="/assets/img/grammarbot.webp" alt="Grammar" class="chat-avatar-inline" />
                     <div class="chat-message-bubble chat-message-bubble--system" style="border-left: 4px solid #17a2b8;">
                         <div class="chat-bubble-header">Grammar</div>
                         <span>${statsLine}</span>
@@ -66,7 +66,7 @@ export function renderFeedbackToHTML(feedbackData) {
                 hesitation ? `${hesitation.value} hesitation` : null,
                 wpm ? `${wpm.value} wpm` : null
             ].filter(Boolean).join('. ') + '.';
-            const botInfo = { name: 'Flow', avatar: 'assets/img/flowbot.webp' };
+            const botInfo = { name: 'Flow', avatar: '/assets/img/flowbot.webp' };
             return createStatsBubbleHTML(formatScore(section.score), [flowLine], botInfo.name, botInfo.avatar);
         }
 
@@ -79,7 +79,7 @@ export function renderFeedbackToHTML(feedbackData) {
                 const listItems = vocabPart.idioms.map(i => `<li><em>${i}</em></li>`).join('');
                 htmlParts.push(`<ul>${listItems}</ul>`);
             }
-            const botInfo = { name: 'Vocabulary', avatar: 'assets/img/vocabularybot.webp' };
+            const botInfo = { name: 'Vocabulary', avatar: '/assets/img/vocabularybot.webp' };
             return createStatsBubbleHTML(formatScore(section.score), htmlParts, botInfo.name, botInfo.avatar);
         }
 
@@ -92,16 +92,16 @@ export function renderFeedbackToHTML(feedbackData) {
 
         const botInfo = (() => {
             switch (section.key) {
-                case 'grammar': return { name: 'Grammar', avatar: 'assets/img/grammarbot.webp' };
-                case 'vocabulary': return { name: 'Vocabulary', avatar: 'assets/img/vocabularybot.webp' };
-                case 'flow': return { name: 'Flow', avatar: 'assets/img/flowbot.webp' };
-                case 'pronunciation': return { name: 'Pronunciation', avatar: 'assets/img/pronunciationbot.webp' };
-                case 'listening': return { name: 'Listening', avatar: 'assets/img/listeningbot.webp' };
-                case 'formality': return { name: 'Formality', avatar: 'assets/img/formalitybot.webp' };
-                case 'nativeLike': return { name: 'Smoothness', avatar: 'assets/img/smoothnessbot.webp' };
-                case 'understanding': return { name: 'Understanding', avatar: 'assets/img/understandingbot.webp' };
-                case 'fluency': return { name: 'Joe Walsh', avatar: 'assets/img/teacherprofile.webp' };
-                default: return { name: 'FluIntel AI', avatar: 'assets/img/ai.webp' };
+                case 'grammar': return { name: 'Grammar', avatar: '/assets/img/grammarbot.webp' };
+                case 'vocabulary': return { name: 'Vocabulary', avatar: '/assets/img/vocabularybot.webp' };
+                case 'flow': return { name: 'Flow', avatar: '/assets/img/flowbot.webp' };
+                case 'pronunciation': return { name: 'Pronunciation', avatar: '/assets/img/pronunciationbot.webp' };
+                case 'listening': return { name: 'Listening', avatar: '/assets/img/listeningbot.webp' };
+                case 'formality': return { name: 'Formality', avatar: '/assets/img/formalitybot.webp' };
+                case 'nativeLike': return { name: 'Smoothness', avatar: '/assets/img/smoothnessbot.webp' };
+                case 'understanding': return { name: 'Understanding', avatar: '/assets/img/understandingbot.webp' };
+                case 'fluency': return { name: 'Joe Walsh', avatar: '/assets/img/teacherprofile.webp' };
+                default: return { name: 'FluIntel AI', avatar: '/assets/img/ai.webp' };
             }
         })();
 

@@ -2,7 +2,7 @@ import React from 'react';
 
 export default function AiLoadingBubble({ text }) {
     const defaultText = text || 'Analyzing audio...';
-    const aiAvatarUrl = 'assets/img/ai.webp';
+    const aiAvatarUrl = '/assets/img/ai.webp';
     const aiTutorName = 'FluIntel AI';
 
     return (

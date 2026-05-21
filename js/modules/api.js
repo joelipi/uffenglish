@@ -45,7 +45,7 @@ export async function getUserProfile() {
             english_level: 'A0',
             native_language: 'EN',
             completed_dates: [],
-            profilepicurl: 'assets/img/userprofile.png' // Default fallback
+            profilepicurl: '/assets/img/userprofile.png' // Default fallback
           };
           console.log('[TanStack Query] Successfully fetched data for query: userProfileQuery', guestData);
           return guestData;
@@ -67,7 +67,7 @@ export async function getUserProfile() {
             join_date: user.$createdAt,
             auth_method: 'appwrite',
             ...profileDoc,
-            profilepicurl: profileDoc?.profilepicurl || 'assets/img/userprofile.png'
+            profilepicurl: profileDoc?.profilepicurl || '/assets/img/userprofile.png'
           };
           console.log('[TanStack Query] Successfully fetched data for query: userProfileQuery', mergedData);
           return mergedData;
@@ -79,7 +79,7 @@ export async function getUserProfile() {
             display_name: user.name,
             join_date: user.$createdAt,
             auth_method: 'appwrite',
-            profilepicurl: 'assets/img/userprofile.png'
+            profilepicurl: '/assets/img/userprofile.png'
           };
           console.log('[TanStack Query] Successfully fetched data for query: userProfileQuery', coreData);
           return coreData;

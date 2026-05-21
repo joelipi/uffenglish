@@ -51,7 +51,7 @@ export default function ChatInterface() {
                         case 'praise':
                             return (
                                 <div key={key} className="chat-message-row chat-message-row--system">
-                                    <img src={msg.avatarUrl || "assets/img/teacherprofile.webp"} alt={msg.botName || "Joe Walsh"} className="chat-avatar-inline" />
+                                    <img src={msg.avatarUrl || "/assets/img/teacherprofile.webp"} alt={msg.botName || "Joe Walsh"} className="chat-avatar-inline" />
                                     <div className="chat-message-bubble chat-message-bubble--system">
                                         <div className="chat-bubble-header">{msg.botName || "Joe Walsh"}</div>
                                         <PraiseBubble praiseData={msg.praiseData || msg.content} />

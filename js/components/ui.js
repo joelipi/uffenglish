@@ -8,7 +8,7 @@ import { Media } from '../modules/media.js';
 import { pointLoss } from './point-loss-animation.js';
 
 const AI_TUTOR_NAME = 'AI Tutor';
-const AI_TUTOR_AVATAR = 'assets/img/ai.webp';
+const AI_TUTOR_AVATAR = '/assets/img/ai.webp';
 
 export function syncTextModeUI() {
     const pronunciationScore = DOM.pronunciationScore;
@@ -140,7 +140,7 @@ export function safeRenderChatInterface(isAI) {
 export function renderUserResponse(text, statsHtml = "") {
     const storeState = appStore.getState();
     const userName = getFirstName(storeState.userData?.display_name);
-    const userAvatarUrl = storeState.userData?.profilepicurl || 'assets/img/userprofile.webp';
+    const userAvatarUrl = storeState.userData?.profilepicurl || '/assets/img/userprofile.webp';
 
     safeRenderChatInterface(false);
 
@@ -177,7 +177,7 @@ export function createHeaderHTML(text) {
     return "";
 }
 
-export function createPragmaticsBubbleHTML(headingHTML, contentHTML, correctionHTML = "", botName = "Joe Walsh", avatarUrl = "assets/img/teacherprofile.webp") {
+export function createPragmaticsBubbleHTML(headingHTML, contentHTML, correctionHTML = "", botName = "Joe Walsh", avatarUrl = "/assets/img/teacherprofile.webp") {
     return `
         <div class="chat-message-row chat-message-row--system">
             <img src="${avatarUrl}" alt="${botName}" class="chat-avatar-inline" />
@@ -188,7 +188,7 @@ export function createPragmaticsBubbleHTML(headingHTML, contentHTML, correctionH
         </div>`;
 }
 
-export function createStatsBubbleHTML(header, statsParts, botName = "Joe Walsh", avatarUrl = "assets/img/teacherprofile.webp") {
+export function createStatsBubbleHTML(header, statsParts, botName = "Joe Walsh", avatarUrl = "/assets/img/teacherprofile.webp") {
     const partsHtml = statsParts && statsParts.length > 0
         ? ` ${statsParts.join('. ')}`
         : '';
@@ -202,7 +202,7 @@ export function createStatsBubbleHTML(header, statsParts, botName = "Joe Walsh",
         </div>`;
 }
 
-export function createGrammarDiffHTML(original, correction, headingText = "", botName = "Joe Walsh", avatarUrl = "assets/img/teacherprofile.webp") {
+export function createGrammarDiffHTML(original, correction, headingText = "", botName = "Joe Walsh", avatarUrl = "/assets/img/teacherprofile.webp") {
     const { userHTML, corrHTML } = buildGrammarDiff(original, correction);
     return `
         <div class="chat-message-row chat-message-row--system">
@@ -239,7 +239,7 @@ export function renderAIFeedback(contentChunks = []) {
                 type: 'praise',
                 content: praiseText,
                 botName: 'Joe Walsh',
-                avatarUrl: 'assets/img/teacherprofile.webp'
+                avatarUrl: '/assets/img/teacherprofile.webp'
             });
         } else {
             // CRITICAL: Serialize DOM nodes to strings for Zustand
@@ -794,7 +794,7 @@ export function showPlaybackVideo() {
             role: 'user',
             type: 'video',
             userName: getFirstName(appStore.getState().userData?.display_name),
-            userAvatarUrl: appStore.getState().userData?.profilepicurl || 'assets/img/userprofile.webp'
+            userAvatarUrl: appStore.getState().userData?.profilepicurl || '/assets/img/userprofile.webp'
         });
 
         // Continue playing the vanilla video instance
@@ -1423,7 +1423,7 @@ export function handlecueUI(stepIndex, stepData, button, cue, explanation, trans
             const localizedTrans = getLocalizedTranslation(translation, lang);
 
             const userName = getFirstName(appStore.getState().userData?.display_name);
-            const userAvatarUrl = appStore.getState().userData?.profilepicurl || 'assets/img/userprofile.webp';
+            const userAvatarUrl = appStore.getState().userData?.profilepicurl || '/assets/img/userprofile.webp';
 
             const correctWrapper = document.createElement('div');
             correctWrapper.className = 'chat-message-row chat-message-row--user correct-answer-wrapper';
@@ -1460,7 +1460,7 @@ export function handlecueUI(stepIndex, stepData, button, cue, explanation, trans
             praiseWrapper.style.marginTop = '6px';
 
             const praiseImg = document.createElement('img');
-            praiseImg.src = 'assets/img/teacherprofile.webp';
+            praiseImg.src = '/assets/img/teacherprofile.webp';
             praiseImg.alt = 'Joe Walsh';
             praiseImg.className = 'chat-avatar-inline';
 
