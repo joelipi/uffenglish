@@ -752,10 +752,11 @@ async function initializeLesson(courseId = appStore.getState().courseId, configD
         // Initialize the Tutor Chat UI and bind the submission logic
         initTutorChatUI(handleTutorChatSubmit);
 
-        // 1. Gather browser-specific context
+        // 1. Gather browser-specific context — URL path takes precedence, then query params, then memory
         const urlParams = new URLSearchParams(window.location.search);
+        const pathLessonMatch = window.location.pathname.match(/^\/course\/([^/]+)\/lesson\/([^/]+)/);
         const routerContext = {
-            urlLessonId: getUrlParamCaseInsensitive(urlParams, 'lessonid'),
+            urlLessonId: pathLessonMatch?.[2] || getUrlParamCaseInsensitive(urlParams, 'lessonid'),
             storedLessonId: localStorage.getItem(`${courseId}_currentLessonId`),
             storedTimestamp: localStorage.getItem(`${courseId}_currentLessonTimestamp`)
         };
@@ -771,8 +772,10 @@ async function initializeLesson(courseId = appStore.getState().courseId, configD
             throw new Error(`Lesson '${lessonId}' not found in course configuration.`);
         }
 
-        // 3. Execute Browser Side-Effects (Previously hidden inside lesson-router.js)
-        if (routerContext.urlLessonId) {
+        // 3. Execute Browser Side-Effects — strip stale query params from the URL
+        // so a page refresh doesn't re-load an outdated course/lesson from the query string.
+        // Only runs when a lessonId was resolved (from path or query string).
+        if (routerContext.urlLessonId && window.location.search) {
             const url = new URL(window.location.href);
             const keysToDelete = [];
             for (const key of url.searchParams.keys()) {
@@ -781,8 +784,10 @@ async function initializeLesson(courseId = appStore.getState().courseId, configD
                     keysToDelete.push(key);
                 }
             }
-            keysToDelete.forEach(key => url.searchParams.delete(key));
-            window.history.replaceState({}, document.title, url.toString());
+            if (keysToDelete.length > 0) {
+                keysToDelete.forEach(key => url.searchParams.delete(key));
+                window.history.replaceState({}, document.title, url.toString());
+            }
         }
 
         await saveLessonProgress(courseId, lessonId, userData, { updateUserMeta: false, incrementCount: false });
@@ -892,10 +897,11 @@ async function initializeApp() {
         // Immediately trigger offline score sync if needed
         syncOfflineScores(appStore.getState().userData);
 
-        // 1. Gather context
+        // 1. Gather context — URL path takes precedence, then query params, then memory
         const urlParamsApp = new URLSearchParams(window.location.search);
+        const pathCourseMatch = window.location.pathname.match(/^\/course\/([^/]+)\/lesson\/([^/]+)/);
         const courseContext = {
-            urlCourseId: getUrlParamCaseInsensitive(urlParamsApp, 'courseid'),
+            urlCourseId: pathCourseMatch?.[1] || getUrlParamCaseInsensitive(urlParamsApp, 'courseid'),
             storedCourseId: localStorage.getItem('currentCourse'),
             wpCourseId: appStore.getState().userData?.current_course || null
         };

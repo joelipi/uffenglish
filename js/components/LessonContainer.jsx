@@ -1,8 +1,13 @@
-// components/LessonContainer.jsx
-
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams } from 'react-router-dom';
 import { appStore } from '../modules/store.js';
+import Header from './lesson/Header.jsx';
+import ChatContainer from './lesson/ChatContainer.jsx';
+import StatsBar from './lesson/StatsBar.jsx';
+import MicrophoneToggle from './widgets/MicrophoneToggle.jsx';
+import GuestLoginModal from './modals/GuestLoginModal.jsx';
+import CriticalErrorModal from './modals/CriticalErrorModal.jsx';
 
 export default function LessonContainer() {
     const { courseId, lessonId } = useParams();
@@ -11,18 +16,30 @@ export default function LessonContainer() {
         if (courseId && lessonId) {
             console.log(`[Router] Route matched. Course: ${courseId}, Lesson: ${lessonId}`);
 
-            // 1. Save the route parameters to Zustand so Vanilla JS can read them
             appStore.getState().setCourseData({ courseId });
             appStore.setState({ activeLessonId: lessonId });
 
-            // 2. Fire a custom event to tell app.js to boot or reboot the lesson
             window.dispatchEvent(new CustomEvent('hybridRouteChange', {
                 detail: { courseId, lessonId }
             }));
         }
     }, [courseId, lessonId]);
 
-    // For now, it just returns an empty fragment. 
-    // The Vanilla JS DOM elements (video players, etc.) are still hardcoded in index.html.
-    return <></>;
+    const micRootEl = document.getElementById('react-root-mic');
+    const criticalErrorRootEl = document.getElementById('react-root-critical-error');
+
+    return (
+        <div className="react-lesson-shell">
+            <Header />
+            <StatsBar />
+
+            <div className="lesson-body">
+                {micRootEl && createPortal(<MicrophoneToggle />, micRootEl)}
+                {criticalErrorRootEl && createPortal(<CriticalErrorModal />, criticalErrorRootEl)}
+                {createPortal(<GuestLoginModal />, document.body)}
+            </div>
+
+            <ChatContainer />
+        </div>
+    );
 }
