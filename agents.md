@@ -23,6 +23,7 @@
     * Console errors.
     * Console warnings.
 * **Verify Expected Logs:** Check for expected console logs (both debug and success logs). If a process runs but fails to output a log that is expected to fire, you must treat this as a bug and review the code.
+* **Clean imports after ui.js deletions:** After deleting any export from `ui.js`, verify `app.js`'s import block is cleaned up — it imports individual names from `ui.js` that may be stale. Run the Playwright smoke test (`tests/answer-flow.spec.js`) to catch missing-export SyntaxErrors at load time.
 
 Here is the local address of the course and lesson I am using for testing http://localhost:3000/index.html?courseid=gt2 Remember that lessons cannot be initialized without that url parameter unless they are already stored in memory.
 

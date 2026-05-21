@@ -32,20 +32,15 @@ import {
     clearChatInterface,
     resetUIForNewStep,
     clearPlaybackVideo,
-    toggleStatsContainer,
     hideWebcamPreview,
     removeRepeatButton,
     prepareMediaUI,
     clearMediaContainerAndPreservePlayers,
     renderImageInMediaContainer,
     renderYoutubeInMediaContainer,
-    setMicStatusText,
-    hideHints,
-    showHintsAndScroll,
     renderSpeechInputUI,
     renderTextInputUI,
     updateProgressAndCloseButton,
-    setProgressBarWidth,
     hideAnswerDiv,
     bindProcessButton,
     renderMultiChoiceUI,
@@ -84,7 +79,7 @@ export function loadStep(step, lesson, fluencyData, deps) {
     appStore.getState().setCurrentVideo(null);
     clearPlaybackVideo();
 
-    toggleStatsContainer((step.stepType === 'closedResponse' || step.stepType === 'openResponse') && step.videoUrl);
+    appStore.getState().setStatsVisible((step.stepType === 'closedResponse' || step.stepType === 'openResponse') && step.videoUrl);
 
     if (step.stepType === 'closedResponse' || step.stepType === 'openResponse') {
         if (!State.isCameraOff && !State.isTextMode) {
@@ -127,10 +122,7 @@ export function loadStep(step, lesson, fluencyData, deps) {
 
     loadVideoForStep(step, State, appStore.getState().userData?.native_language);
 
-    const stepDiv = document.createElement('div');
-    stepDiv.className = 'text-center';
-    stepDiv.textContent = step.step;
-    setMicStatusText(stepDiv);
+    appStore.getState().setMicStatusText(step.step);
 
     if (step.stepType === "closedResponse" || step.stepType === "openResponse") {
         _renderResponseStep(step, lesson, deps);
@@ -141,8 +133,8 @@ export function loadStep(step, lesson, fluencyData, deps) {
             (val, btn) => submitAnswerPrecheck(val, step.cue, step, btn, step.explanation, step.translation, { pauseCount: null, netDuration: null })
         );
     } else if (step.stepType === 'lessoncomplete') {
-        updateProgressAndCloseButton(true); toggleStatsContainer(false);
-        setProgressBarWidth("95%"); showFeedbackAndProceed(step, true);
+        updateProgressAndCloseButton(true); appStore.getState().setStatsVisible(false);
+        appStore.getState().setProgressPercent("95%"); showFeedbackAndProceed(step, true);
         hideAnswerDiv();
     } else if (step.stepType === 'unitcomplete') {
         step.lessonId = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex].lessonId + 's';
@@ -158,7 +150,7 @@ export function loadStep(step, lesson, fluencyData, deps) {
 
 function _renderResponseStep(step, lesson, deps) {
     const { submitAnswerPrecheck, handleHint } = deps;
-    hideHints();
+    appStore.getState().setHintsVisible(false);
 
     const answerFragment = document.createDocumentFragment();
     if (step.stepType !== "closedResponse") {
@@ -227,7 +219,7 @@ function _renderResponseStep(step, lesson, deps) {
                                     stopMicAnimation(btn);
                                 }
                             },
-                            onRecordingStart: (userData) => {
+                             onRecordingStart: (userData) => {
                                 window.isMicActive = true; // Lock the video timer
                                 if (window.currentVideoPlayer) {
                                     if (typeof window.currentVideoPlayer.pause === 'function') {
@@ -236,11 +228,11 @@ function _renderResponseStep(step, lesson, deps) {
                                         window.currentVideoPlayer.video.pause();
                                     }
                                 }
-                                setMicStatusText(`<div class="text-center"><div class="mb-0" style="color: green; font-size: 30px;"><i class="bi bi-mic" style="color: green; font-size: 100px !important;"></i><br>${Strings.get('status_speak', userData?.native_language)}</div></div>`);
+                                appStore.getState().setMicStatusText(`<div class="text-center"><div class="mb-0" style="color: green; font-size: 30px;"><i class="bi bi-mic" style="color: green; font-size: 100px !important;"></i><br>${Strings.get('status_speak', userData?.native_language)}</div></div>`);
                             },
                             onEngineNotReady: (userData) => {
                                 const errorMsg = Strings.get('error_engine_not_ready', userData?.native_language) || "Speech engine not ready. Please wait a moment.";
-                                setMicStatusText(`<div class='text-center text-danger' style="color: red; font-size: 30px;"><i class="bi bi-exclamation-triangle"></i> ${errorMsg}</div>`);
+                                appStore.getState().setMicStatusText(`<div class='text-center text-danger' style="color: red; font-size: 30px;"><i class="bi bi-exclamation-triangle"></i> ${errorMsg}</div>`);
                             },
                             onEngineReady: (btn) => {
                                 if (btn) {
@@ -249,7 +241,7 @@ function _renderResponseStep(step, lesson, deps) {
                                     btn.classList.add('toggled-off');
                                     btn.innerHTML = '<i class="bi bi-mic-mute-fill"></i>';
                                 }
-                                setMicStatusText(`<div class='text-center text-success mt-2'><i class="bi bi-check-circle"></i> Engine ready. Try speaking now!</div>`);
+                                appStore.getState().setMicStatusText(`<div class='text-center text-success mt-2'><i class="bi bi-check-circle"></i> Engine ready. Try speaking now!</div>`);
                             },
                             onRecordingActive: (btn) => {
                                 if (btn) {
@@ -266,27 +258,27 @@ function _renderResponseStep(step, lesson, deps) {
                                     stopMicAnimation(btn);
                                 }
                                 clearMicStatusAndHideMedia();
-                                setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Analyzing Speech...</div>`);
+                                appStore.getState().setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Analyzing Speech...</div>`);
                             },
                             onStopEarly: (userData) => {
                                 window.isMicActive = false; // Release the lock
                                 window.dispatchEvent(new CustomEvent('preflightRejected'));
                                 prepareMediaUI();
-                                setMicStatusText(`<div class='text-center' style='color: red; font-size: large;'><i class='bi bi-exclamation-triangle-fill'></i> ${Strings.get('try_again_speech', userData?.native_language)}</div>`);
+                                appStore.getState().setMicStatusText(`<div class='text-center' style='color: red; font-size: large;'><i class='bi bi-exclamation-triangle-fill'></i> ${Strings.get('try_again_speech', userData?.native_language)}</div>`);
                                 const btn = document.getElementById('micBtn');
                                 if (btn) btn.style.display = 'flex';
                             },
                             onGibberishDetected: () => {
                                 window.isMicActive = false; // Release the lock
                                 window.dispatchEvent(new CustomEvent('preflightRejected'));
-                                setMicStatusText(`<div class='text-center mt-3' style='color: #ff9800; font-size: large;'><i class='bi bi-ear-x'></i> Audio unclear. Please try speaking clearly.</div>`);
+                                appStore.getState().setMicStatusText(`<div class='text-center mt-3' style='color: #ff9800; font-size: large;'><i class='bi bi-ear-x'></i> Audio unclear. Please try speaking clearly.</div>`);
                             },
                             onPreflightRejected: (msg) => {
                                 window.isMicActive = false; // Release the lock
                                 clearPlaybackVideo();
                                 removeWebcamPreview();
                                 window.dispatchEvent(new CustomEvent('preflightRejected'));
-                                setMicStatusText(`<div class='text-center text-danger'>${msg}</div>`);
+                                appStore.getState().setMicStatusText(`<div class='text-center text-danger'>${msg}</div>`);
                                 const btn = document.getElementById('micBtn');
                                 if (btn) {
                                     btn.style.display = 'flex';
@@ -298,7 +290,7 @@ function _renderResponseStep(step, lesson, deps) {
                                 clearPlaybackVideo();
                                 removeWebcamPreview();
                                 window.dispatchEvent(new CustomEvent('transcriptRejected', { detail: { cue, transcript } }));
-                                setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Restarting Mic...</div>`);
+                                appStore.getState().setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Restarting Mic...</div>`);
                                 const btn = document.getElementById('micBtn');
                                 if (btn) {
                                     btn.style.display = 'flex';
@@ -313,7 +305,7 @@ function _renderResponseStep(step, lesson, deps) {
                                 updateWhisperTimer(timeLeft);
                             },
                             onReviewEnd: () => {
-                                setMicStatusText("");
+                                appStore.getState().setMicStatusText("");
                             }
                         }
                     });
@@ -326,7 +318,7 @@ function _renderResponseStep(step, lesson, deps) {
 }
 
 function _renderPresent(step, lesson, showFeedbackAndProceed) {
-    updateProgressAndCloseButton(false); toggleStatsContainer(false); hideAnswerDiv();
+    updateProgressAndCloseButton(false); appStore.getState().setStatsVisible(false); hideAnswerDiv();
 
     let headsUpHTML = step.headsUp ? `<div class="chat-message-row chat-message-row--system"><div class="chat-message-bubble chat-message-bubble--system"><p class="headsUp mb-0">${step.headsUp}</p></div></div>` : "";
 
@@ -391,7 +383,7 @@ function _renderSuccess(step, fluencyData) {
 
 function _renderLessonIntro(step, lesson, deps) {
     const { showFeedbackAndProceed } = deps;
-    toggleStatsContainer(false);
+    appStore.getState().setStatsVisible(false);
     appStore.setState({ repeatPointsHistory: [] });
     appStore.setState({ rolePlayPointsHistory: [] });
     hideAnswerDiv();

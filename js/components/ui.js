@@ -243,11 +243,6 @@ export function hidePreloader() {
     if (preloader) preloader.style.display = 'none';
 }
 
-export function renderHangmanHint(html) {
-    appStore.getState().setHangmanHintHTML(html);
-    appStore.getState().setHintsVisible(true);
-}
-
 export function showMicWarning(message) {
     if (DOM.micStatusText) {
         DOM.micStatusText.innerHTML = `<div class='text-center text-danger'>${message}</div>`;
@@ -497,29 +492,11 @@ export function getChatHistoryContext() {
     return historyText;
 }
 
-export function showHintsAndScroll() {
-    appStore.getState().setHintsVisible(true);
-}
-
-export function hideHints() {
-    appStore.getState().setHintsVisible(false);
-}
-
 export function clearMicStatusAndHideMedia() {
     if (DOM.micStatusText) DOM.micStatusText.innerHTML = "";
     if (DOM.mediaViewport) DOM.mediaViewport.classList.add('d-none');
     hideAnswerInputArea();
 }
-
-export function setMicStatusText(content) {
-    if (typeof content === 'string') {
-        appStore.getState().setMicStatusText(content);
-    } else if (content instanceof Node && DOM.micStatusText) {
-        DOM.micStatusText.innerHTML = '';
-        DOM.micStatusText.appendChild(content);
-    }
-}
-
 
 export function initUISubscriptions() {
     const store = appStore;
@@ -576,7 +553,7 @@ export function initUISubscriptions() {
                     Media.pauseVideoIfPlaying();
 
                     // Hide hints
-                    hideHints();
+                    appStore.getState().setHintsVisible(false);
 
                     // Focus
                     if (DOM.answerInputField) {
@@ -1131,10 +1108,6 @@ export function resetUIForNewStep(isLessonIntro, hasUserData) {
     }
 }
 
-export function toggleStatsContainer(show) {
-    appStore.getState().setStatsVisible(show);
-}
-
 export function removeRepeatButton() {
     let repeatButton = document.getElementById('repeatButton');
     if (repeatButton) repeatButton.remove();
@@ -1272,10 +1245,6 @@ export function updateProgressAndCloseButton(showClose) {
         if (showClose) DOM.closeAndProgress.classList.remove('d-none');
         else DOM.closeAndProgress.classList.add('d-none');
     }
-}
-
-export function setProgressBarWidth(percentage) {
-    appStore.getState().setProgressPercent(percentage);
 }
 
 export function hideAnswerDiv() {

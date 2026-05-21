@@ -3,6 +3,19 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Answer Flow — mic bypass integration test', () => {
 
+    test('app loads without SyntaxError on missing exports', async ({ page }) => {
+        const errors = [];
+        page.on('pageerror', e => errors.push(e.message));
+        await page.goto('/course/gt2/lesson/a');
+        await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
+        expect(errors.filter(e =>
+            !e.includes('favicon') &&
+            !e.includes('source map') &&
+            !e.includes('Whisper') &&
+            !e.includes('vite')
+        )).toEqual([]);
+    });
+
     test('submitAnswerPrecheck and handleAnswer wrappers resolve without error', async ({ page }) => {
         const errors = [];
         page.on('pageerror', err => errors.push(err.message));

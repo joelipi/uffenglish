@@ -2,6 +2,7 @@
 import Strings from '../data/strings.js';
 import { saveSpeechRecording } from './storage.js';
 import { State } from './state.js';
+import { appStore } from './store.js';
 import * as ui from '../components/ui.js';
 import { transcribeAudioBuffer, analyzeAudioBufferWithVAD, preloadWhisperEngine } from '../workers/whisper/app-vad-asr-web.js';
 
@@ -130,7 +131,7 @@ export async function startSpeechCamRecording(micStatusText, userData) {
     } catch (err) {
         console.error('[Recording] startSpeechCamRecording FAILED:', err);
         alert(Strings.get('alert_media_error', userData?.native_language));
-        ui.setMicStatusText(`<i class='bi bi-exclamation-diamond'></i> ${Strings.get('error_media_details', userData?.native_language)}`);
+        appStore.getState().setMicStatusText(`<i class='bi bi-exclamation-diamond'></i> ${Strings.get('error_media_details', userData?.native_language)}`);
         ui.removeWebcamPreview();
         safelyStopStream();
         throw err; // re-throw so the orchestrator can abort cleanly

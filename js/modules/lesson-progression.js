@@ -7,8 +7,6 @@ import { appStore } from './store.js';
 import { State } from './state.js';
 import Strings from '../data/strings.js';
 import {
-    setProgressBarWidth,
-    toggleStatsContainer,
     showMessageInStepsContainer,
     renderAIAnalysisLoading,
     getChatHistoryContext
@@ -23,7 +21,7 @@ export function updateProgressBar() {
     const totalSteps = currentLesson.steps.length;
     let currentSteps = State.stepsAnswered++;
     const finalProgress = Math.min(Math.max((currentSteps / totalSteps) * 100, 10), 90);
-    setProgressBarWidth(`${finalProgress}%`);
+    appStore.getState().setProgressPercent(`${finalProgress}%`);
 }
 
 export function showCompletionMessage() {
@@ -32,7 +30,7 @@ export function showCompletionMessage() {
 
 export function loadNextStep(currentStep, fluencyData, _deps = {}) {
     updateProgressBar();
-    toggleStatsContainer(false);
+    appStore.getState().setStatsVisible(false);
     State.resetForNextStep();
 
     if (!appStore.getState().configData || !appStore.getState().configData.lessons || appStore.getState().configData.lessons.length === 0) return;
@@ -65,7 +63,7 @@ export async function loadNextLesson(_deps = {}) {
                 appStore.setState({ currentLessonIndex: nextLessonIndex });
                 localStorage.setItem(`${appStore.getState().courseId}_currentLessonId`, nextLessonId);
                 localStorage.setItem(`${appStore.getState().courseId}_currentLessonTimestamp`, new Date().toISOString());
-                setProgressBarWidth("100%");
+                appStore.getState().setProgressPercent("100%");
                 State.stepsAnswered = 0;
                 appStore.setState({ currentStepIndex: 0 });
                 _deps.loadLessonContent(appStore.getState().configData.lessons[nextLessonIndex]);

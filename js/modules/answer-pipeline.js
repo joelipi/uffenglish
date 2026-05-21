@@ -23,8 +23,6 @@ import { getNextStep } from './lessonRouting.js';
 import { warmUpSpeechCamStream } from './speech.js';
 import {
     DOM,
-    showHintsAndScroll,
-    hideHints,
     clearMicStatusAndHideMedia,
     showMicWarning,
     showAnswerError,
@@ -40,7 +38,6 @@ import {
     handlecueUI,
     handleIncueUI,
     generateHangmanHint,
-    renderHangmanHint,
     prepareMediaUI,
     showPlaybackVideo,
     showTutorChatInput,
@@ -49,7 +46,7 @@ import {
 } from '../components/ui.js';
 
 export function handleHint(stepIndex) {
-    showHintsAndScroll();
+    appStore.getState().setHintsVisible(true);
 }
 
 function resetButtonState(button) {
@@ -200,7 +197,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
     Media.pauseVideoIfPlaying();
     window.isMicActive = false;
     clearMicStatusAndHideMedia();
-    hideHints();
+    appStore.getState().setHintsVisible(false);
 
     let immediateStatsHtmlArr = [];
     let fluencyBubbleHTML = null;
@@ -328,9 +325,8 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
             removeWebcamPreview();
 
             const hangmanHTML = generateHangmanHint(userResponse, cue);
-            renderHangmanHint(hangmanHTML);
-
-            showHintsAndScroll();
+            appStore.getState().setHangmanHintHTML(hangmanHTML);
+            appStore.getState().setHintsVisible(true);
             prepareMediaUI();
 
             const player = State.player || window.currentVideoPlayer;
@@ -412,7 +408,7 @@ export function showFeedbackAndProceed(stepData, isCorrect, _deps = {}) {
 
     if ((stepData.stepType === "closedResponse" || stepData.stepType === "openResponse") && stepData.videoUrl) State.stepCount++;
     try {
-        hideHints();
+        appStore.getState().setHintsVisible(false);
         console.log('[showFeedbackAndProceed] stepType:', stepData.stepType, '| isLessonIntro:', stepData.stepType === "lessonIntro");
         const continueButton = showContinueButton(stepData.stepType === "lessonIntro", () => {
             Media.pauseVideoIfPlaying();
