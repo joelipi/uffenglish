@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
     setupLessonUI, DOM, escapeHTML, getFirstName, flashElement,
     disableAllButtons,
-    safeRenderChatInterface, renderUserChatMessage, renderAIAnalysisLoading, removeAILoadingStatus,
+    safeRenderChatInterface, renderAIAnalysisLoading,
     getPraiseHTML, renderAIFeedback, clearChatInterface, renderHangmanHint, showMicWarning,
     showAnswerError, setProgressBarWidth, hideAnswerDiv, bindProcessButton, resetUIForNewStep,
     toggleStatsContainer, removeRepeatButton
@@ -148,11 +148,17 @@ describe('UI Component functions', () => {
             expect(document.body.classList.contains('chat-mode-active')).toBe(true);
         });
 
-        it('should render user response', () => {
+        it('should add user chat message to store', () => {
              State.userData = { display_name: 'Test User', profilepicurl: 'http://test.jpg' };
              appStore.setState({ userData: { display_name: 'Test User', profilepicurl: 'http://test.jpg' } });
 
-             expect(() => renderUserChatMessage('my answer')).not.toThrow();
+             appStore.getState().addChatMessage({
+                 role: 'user',
+                 type: 'standard',
+                 content: 'my answer',
+                 userName: 'Test',
+                 userAvatarUrl: 'http://test.jpg'
+             });
              const history = appStore.getState().chatHistory;
              expect(history.some(m => m.content === 'my answer')).toBe(true);
              expect(history.some(m => m.userName === 'Test')).toBe(true);
@@ -163,7 +169,7 @@ describe('UI Component functions', () => {
              let history = appStore.getState().chatHistory;
              expect(history.some(m => m.type === 'aiLoading' && m.content.includes('loading test'))).toBe(true);
 
-             removeAILoadingStatus();
+             appStore.getState().removeAiLoadingMessage();
              history = appStore.getState().chatHistory;
              expect(history.some(m => m.type === 'aiLoading')).toBe(false);
         });

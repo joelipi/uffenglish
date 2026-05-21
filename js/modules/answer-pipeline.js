@@ -31,11 +31,9 @@ import {
     clearPlaybackVideo,
     removeWebcamPreview,
     flashElement,
-    renderUserChatMessage,
+    safeRenderChatInterface,
     renderAIFeedback,
     disableAllButtons,
-    showContinueButton,
-    hideContinueButton,
     resetMicStatusWithStep,
     handlecueUI,
     handleIncueUI,
@@ -358,10 +356,26 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
             const translationStr = (localizedTrans && lang && lang !== 'en') ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>` : "";
 
             renderAIFeedback([`<strong>${cue}${translationStr}</strong>`]);
-            renderUserChatMessage(userResponse, "");
+            safeRenderChatInterface(false);
+            appStore.getState().addChatMessage({
+                role: 'user',
+                type: 'standard',
+                content: userResponse,
+                statsHtml: "",
+                userName: userData?.display_name?.split(' ')[0] || 'User',
+                userAvatarUrl: userData?.profilepicurl || '/assets/img/userprofile.webp'
+            });
             if (immediateStatsHtmlArr.length > 0) renderAIFeedback(immediateStatsHtmlArr);
         } else if (stepData.stepType === "closedResponse" && userResponse && DOM.speechText) {
-            renderUserChatMessage(userResponse, "");
+            safeRenderChatInterface(false);
+            appStore.getState().addChatMessage({
+                role: 'user',
+                type: 'standard',
+                content: userResponse,
+                statsHtml: "",
+                userName: userData?.display_name?.split(' ')[0] || 'User',
+                userAvatarUrl: userData?.profilepicurl || '/assets/img/userprofile.webp'
+            });
             if (immediateStatsHtmlArr.length > 0) renderAIFeedback(immediateStatsHtmlArr);
         }
 

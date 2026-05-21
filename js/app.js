@@ -98,7 +98,6 @@ import {
     flashElement,
     disableAllButtons,
     clearChatInterface,
-    renderUserChatMessage,
     renderAIAnalysisLoading,
     renderAIFeedback,
     safeRenderChatInterface,
@@ -116,7 +115,6 @@ import {
     showTutorChatInput,
     hideTutorChatInput,
     getChatHistoryContext,
-    renderTutorMessage,
     showContinueButton,
     hideContinueButton,
 
@@ -130,7 +128,6 @@ import {
     handleIncueUI,
     updateChatHeaderScores,
     hidePreloader,
-    removeAILoadingStatus,
     renderHangmanHint,
     showMicWarning,
     showAnswerError,

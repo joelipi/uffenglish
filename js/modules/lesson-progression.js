@@ -10,10 +10,8 @@ import {
     setProgressBarWidth,
     toggleStatsContainer,
     showMessageInStepsContainer,
-    renderTutorMessage,
     renderAIAnalysisLoading,
-    getChatHistoryContext,
-    removeAILoadingStatus
+    getChatHistoryContext
 } from '../components/ui.js';
 import { askEnglishTutor } from './api.js';
 import { saveLessonProgress } from './user-profile.js';
@@ -84,7 +82,13 @@ export async function handleTutorChatSubmit(rawText) {
     const wordCount = rawText.trim().split(/\s+/).length;
     appStore.getState().incrementUserTutorStats(wordCount);
 
-    renderTutorMessage(rawText, true);
+    appStore.getState().addChatMessage({
+        role: 'user',
+        type: 'standard',
+        content: rawText,
+        userName: appStore.getState().userData?.display_name?.split(' ')[0] || 'User',
+        userAvatarUrl: appStore.getState().userData?.profilepicurl || '/assets/img/userprofile.webp'
+    });
 
     renderAIAnalysisLoading(Strings.get('ai_thinking', appStore.getState().userData?.native_language));
 
@@ -94,11 +98,17 @@ export async function handleTutorChatSubmit(rawText) {
         const aiWordCount = aiResponse.trim().split(/\s+/).length;
         appStore.getState().incrementAiTutorStats(aiWordCount);
 
-        removeAILoadingStatus();
+        appStore.getState().removeAiLoadingMessage();
 
-        renderTutorMessage(aiResponse, false);
+        appStore.getState().addChatMessage({
+            role: 'system',
+            type: 'standard',
+            content: aiResponse,
+            botName: 'Joe Walsh',
+            avatarUrl: '/assets/img/teacherprofile.webp'
+        });
     } catch (error) {
         console.error('[app] Error in askEnglishTutor:', error);
-        removeAILoadingStatus();
+        appStore.getState().removeAiLoadingMessage();
     }
 }

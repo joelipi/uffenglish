@@ -137,23 +137,6 @@ export function safeRenderChatInterface(isAI) {
     }
 }
 
-export function renderUserChatMessage(text, statsHtml = "") {
-    const storeState = appStore.getState();
-    const userName = getFirstName(storeState.userData?.display_name);
-    const userAvatarUrl = storeState.userData?.profilepicurl || '/assets/img/userprofile.webp';
-
-    safeRenderChatInterface(false);
-
-    storeState.addChatMessage({
-        role: 'user',
-        type: 'standard',
-        content: text,
-        statsHtml: statsHtml,
-        userName: userName,
-        userAvatarUrl: userAvatarUrl
-    });
-}
-
 export function renderAIAnalysisLoading(text) {
     hideWhisperReviewUI();
     const storeState = appStore.getState();
@@ -258,10 +241,6 @@ export function hidePreloader() {
     appStore.getState().setIsLoaded(true);
     const preloader = document.getElementById('appLoadingImageDiv');
     if (preloader) preloader.style.display = 'none';
-}
-
-export function removeAILoadingStatus() {
-    appStore.getState().removeAiLoadingMessage();
 }
 
 export function renderHangmanHint(html) {
@@ -516,23 +495,6 @@ export function getChatHistoryContext() {
         historyText += `${role}: ${bubble.innerText}\n`;
     }
     return historyText;
-}
-
-export function renderTutorMessage(text, isUser) {
-    if (isUser) {
-        renderUserChatMessage(text);
-    } else {
-        // AI response - add to Zustand so React can render it
-        const storeState = appStore.getState();
-        const aiAvatarUrl = AI_TUTOR_AVATAR;
-        storeState.addChatMessage({
-            role: 'system',
-            type: 'standard',
-            content: text,
-            botName: AI_TUTOR_NAME,
-            avatarUrl: aiAvatarUrl
-        });
-    }
 }
 
 export function showHintsAndScroll() {
