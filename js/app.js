@@ -123,10 +123,8 @@ import {
     toggleStatsContainer,
     setProgressBarWidth,
     showMessageInStepsContainer,
-    showInitializationErrorMessage,
     setupLessonUI,
     generateHangmanHint,
-    showGuestLoginModal,
     initUISubscriptions,
     handlecueUI,
     handleIncueUI,
@@ -277,7 +275,7 @@ async function initializeLesson(courseId = appStore.getState().courseId, configD
     } catch (error) {
         console.error("initializeLesson error:", error);
         hidePreloader(); // REFACTORED
-        showInitializationErrorMessage(Strings.get('lesson_load_error', userData?.native_language));
+        appStore.getState().setCriticalErrorMessage(Strings.get('lesson_load_error', userData?.native_language));
     }
 }
 
@@ -342,7 +340,7 @@ async function initializeApp() {
 
         if (!isLoggedIn) {
             console.warn('User not authenticated. Proceeding as guest.');
-            showGuestLoginModal();
+            appStore.getState().setGuestModalOpen(true);
         }
 
         State.initializeUserMetrics(appStore.getState().userData, calculateCurrentStreak);
@@ -423,7 +421,7 @@ async function initializeApp() {
     } catch (error) {
         console.error("Initialization error:", error);
         hidePreloader();
-        showInitializationErrorMessage(Strings.get('lesson_load_error', appStore.getState().userData?.native_language));
+        appStore.getState().setCriticalErrorMessage(Strings.get('lesson_load_error', appStore.getState().userData?.native_language));
     }
 }
 

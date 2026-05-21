@@ -627,21 +627,10 @@ export function initUISubscriptions() {
     }
 }
 
-export function showGuestLoginModal() {
-    appStore.getState().setGuestModalOpen(true);
-}
 export function hideWhisperReviewUI() {
     if (DOM.whisperReviewContainer) {
         DOM.whisperReviewContainer.classList.add("d-none");
     }
-}
-
-export function showCriticalError(message) {
-    appStore.getState().setCriticalErrorMessage(message || "An unexpected error occurred.");
-}
-
-export function hideCriticalError() {
-    appStore.getState().setCriticalErrorMessage(null);
 }
 
 export function renderWhisperReviewUI(transcript, timeLeft, onAccept, onReject) {
@@ -1363,10 +1352,6 @@ export function showMessageInStepsContainer(messageHTML) {
     if (container) {
         container.innerHTML = `<div class="text-center">${messageHTML}</div>`;
     }
-}
-
-export function showInitializationErrorMessage(messageHTML) {
-    showCriticalError(messageHTML);
 }
 
 export function setupLessonUI(fullTitle) {

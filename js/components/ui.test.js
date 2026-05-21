@@ -1,8 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
-    showInitializationErrorMessage, setupLessonUI, DOM, escapeHTML, getFirstName, flashElement,
-    disableAllButtons, showCriticalError,
-    hideCriticalError,
+    setupLessonUI, DOM, escapeHTML, getFirstName, flashElement,
+    disableAllButtons,
     safeRenderChatInterface, renderUserChatMessage, renderAIAnalysisLoading, removeAILoadingStatus,
     getPraiseHTML, renderAIFeedback, clearChatInterface, renderHangmanHint, showMicWarning,
     showAnswerError, setProgressBarWidth, hideAnswerDiv, bindProcessButton, resetUIForNewStep,
@@ -50,18 +49,13 @@ describe('UI Component functions', () => {
 
     describe('Critical Error Handling', () => {
         it('should update criticalErrorMessage in store', () => {
-            showCriticalError('Test error message');
+            appStore.getState().setCriticalErrorMessage('Test error message');
             expect(appStore.getState().criticalErrorMessage).toBe('Test error message');
         });
 
-        it('should route showInitializationErrorMessage to showCriticalError', () => {
-            showInitializationErrorMessage('Init error');
-            expect(appStore.getState().criticalErrorMessage).toBe('Init error');
-        });
-
-        it('should hide critical error', () => {
-            showCriticalError('Test error message');
-            hideCriticalError();
+        it('should clear critical error in store', () => {
+            appStore.getState().setCriticalErrorMessage('Test error message');
+            appStore.getState().setCriticalErrorMessage(null);
             expect(appStore.getState().criticalErrorMessage).toBeNull();
         });
     });
