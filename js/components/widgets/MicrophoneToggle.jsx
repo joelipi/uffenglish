@@ -9,8 +9,6 @@ export default function MicrophoneToggle() {
     const containerRef = useRef(null);
     const animationRefs = useRef([]);
 
-    if (typeof window.onMicClick !== 'function') return null;
-
     useEffect(() => {
         if (!containerRef.current) return;
         const rings = containerRef.current.querySelectorAll('.mic-ring');
