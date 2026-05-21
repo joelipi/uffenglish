@@ -9,8 +9,6 @@ export default function MicrophoneToggle() {
     const containerRef = useRef(null);
     const animationRefs = useRef([]);
 
-    if (typeof window.onMicClick !== 'function') return null;
-
     useEffect(() => {
         if (!containerRef.current) return;
         const rings = containerRef.current.querySelectorAll('.mic-ring');
@@ -57,10 +55,10 @@ export default function MicrophoneToggle() {
         };
     }, [isMicActive]);
 
+    const micOnClick = typeof window.onMicClick === 'function' ? window.onMicClick : null;
+
     const handleClick = () => {
-        if (typeof window.onMicClick === 'function') {
-            window.onMicClick();
-        }
+        if (micOnClick) micOnClick();
     };
 
     const handleTextClick = () => {
@@ -93,7 +91,7 @@ export default function MicrophoneToggle() {
     };
 
     return (
-        <div ref={containerRef} className="mic-btn-wrapper d-flex" id="state-standard-mic">
+        <div ref={containerRef} className="mic-btn-wrapper" id="state-standard-mic" style={{ display: 'flex' }}>
             <div className="mic-ring" style={{ opacity: 0, pointerEvents: 'none' }}></div>
             <div className="mic-ring" style={{ opacity: 0, pointerEvents: 'none' }}></div>
             <div className="mic-ring" style={{ opacity: 0, pointerEvents: 'none' }}></div>
@@ -101,6 +99,7 @@ export default function MicrophoneToggle() {
                 className={`btn call-btn ${isMicActive ? '' : 'toggled-off'} ${isTextMode ? 'd-none' : ''}`}
                 id="micBtn"
                 aria-label="Toggle Microphone"
+                disabled={!micOnClick}
                 onClick={handleClick}
             >
                 <i className={isMicActive ? "bi bi-mic-fill" : "bi bi-mic-mute-fill"}></i>
