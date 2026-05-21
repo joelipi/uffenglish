@@ -6,6 +6,7 @@ export default function InteractiveVideoWrapper({ videoUrl, config }) {
     const playerInstance = useRef(null);
 
     useEffect(() => {
+        if (!videoUrl) return;
         if (containerRef.current && !playerInstance.current) {
             const uniqueId = `ivp-container-${Math.random().toString(36).substr(2, 9)}`;
             containerRef.current.id = uniqueId;

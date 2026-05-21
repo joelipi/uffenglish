@@ -6,6 +6,8 @@ export default function IntroVideoWrapper({ videoUrl, config }) {
     const playerInstance = useRef(null);
 
     useEffect(() => {
+        if (!videoUrl) return;
+
         const staticWidget = document.getElementById('intro-call-widget');
         let originalId = '';
         if (staticWidget && staticWidget !== containerRef.current) {

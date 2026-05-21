@@ -6,6 +6,7 @@ export default function SimpleVideoWrapper({ videoUrl, config }) {
     const playerInstance = useRef(null);
 
     useEffect(() => {
+        if (!videoUrl) return;
         if (containerRef.current && !playerInstance.current) {
             const uniqueId = `svp-container-${Math.random().toString(36).substr(2, 9)}`;
             containerRef.current.id = uniqueId;

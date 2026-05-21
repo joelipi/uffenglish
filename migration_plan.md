@@ -2,19 +2,20 @@
 
 ## Current State Summary
 
-The app is a **hybrid architecture in active migration**. React (v18.3.1) has been introduced as a "UI skin" layer using React Portals into a predominantly vanilla JS HTML page. The chat system, score displays, modals, and mic button have been successfully migrated to React components driven by a shared Zustand store. However, the **core lesson engine**, **video players**, **step loading**, **CSS**, and **all non-index HTML pages** remain vanilla JS.
+The app is a **hybrid architecture in active migration**. React (v19.2.0) has been introduced as a "UI skin" layer using React Portals into a predominantly vanilla JS HTML page. The chat system, score displays, modals, mic button, and now the lesson layout shell have been successfully migrated to React components driven by a shared Zustand store. However, the **core lesson engine**, **video players**, **step loading**, **CSS**, and **all non-index HTML pages** remain vanilla JS.
 
-### What's Already React (25 `.jsx` files)
-- `js/App.jsx` — BrowserRouter, Routes, React Portals
+### What's Already React (28 `.jsx` files)
+- `js/App.jsx` — BrowserRouter, Routes only (portals moved to LessonContainer)
 - `js/index.jsx` — React entry point with `createRoot`
+- `js/components/lesson/` — 3 shell components (Header, ChatContainer, StatsBar)
 - `js/components/chat/` — 10 chat bubble components (ChatInterface, UserBubble, SystemBubble, GrammarDiffBubble, PragmaticsBubble, PraiseBubble, StatsBubble, AiLoadingBubble, VideoBubble, ContinueWidgetBubble)
-- `js/components/widgets/` — ScoreBoard, ActivityStats, MicrophoneToggle (portal-mounted)
-- `js/components/modals/` — GuestLoginModal, CriticalErrorModal (portal-mounted)
+- `js/components/widgets/` — ScoreBoard, ActivityStats, MicrophoneToggle
+- `js/components/modals/` — GuestLoginModal, CriticalErrorModal
 - `js/components/*Wrapper.jsx` — 4 thin React shells around vanilla video player classes
-- `js/components/LessonContainer.jsx` — route component, **currently returns `<></>` (empty fragment)**
+- `js/components/LessonContainer.jsx` — route component, **now renders a React shell** managing all lesson portals
 
 ### What's Still Vanilla JS
-- `js/app.js` (1007 lines) — main application controller, lesson orchestration, answer handling
+- `js/app.js` (~1017 lines) — main application controller, lesson orchestration, answer handling
 - `js/components/ui.js` (1613 lines, 66KB) — UI bridge monolith, DOM manipulation, Zustand writes
 - `js/components/step-loader.web.js` (446 lines) — step loading orchestration
 - `js/components/interactive-video-player.js` (359 lines) — vanilla IVP class
@@ -24,11 +25,13 @@ The app is a **hybrid architecture in active migration**. React (v18.3.1) has be
 - `js/components/point-loss-animation.js` — floating animation
 - `js/components/mic-animation.js` — mic initialization
 - `js/components/success-lesson.js` — lesson completion
-- All standalone HTML pages: `homescreen.html`, `login.html`, `signup.html`, `userprofile.html`, `recover-password.html`, `reset-password.html`, `landing.html`
+- All standalone HTML pages: `homescreen.html`, `login.html`, `signup.html`, `userprofile.html`, `recover-password.html`, `reset-password.html` (`landing.html` stays as standalone marketing page — see Phase 5.4)
 
 ### Key Architecture Facts
 - **State bridge:** Zustand vanilla store (`js/modules/store.js`) with persist middleware — serves as shared state between vanilla JS and React
-- **Routing:** `react-router-dom` v7.15.1 is active but barely used; route changes are signaled via `hybridRouteChange` custom events from React to vanilla JS
+- **Routing:** `react-router-dom` v7.15.1 active; route changes are signaled via `hybridRouteChange` custom events from React to vanilla JS. URL format: `/course/:courseId/lesson/:lessonId`
+- **URL resolution:** `initializeApp()` and `initializeLesson()` in `app.js` now read `courseId`/`lessonId` from the URL pathname first (`/course/:courseId/lesson/:lessonId` regex match), falling back to query params, then Zustand/localStorage
+- **URL param wiping:** Stale `?courseid`/`?lessonid` query params are stripped via `history.replaceState` after they're consumed (gated on `routerContext.urlLessonId && window.location.search`)
 - **CSS:** All styles are inline `<style>` blocks in each HTML file. No `style.css` exists. Bootstrap 5.3.3 loaded from CDN.
 - **Entry point:** Both `js/app.js` and `js/index.jsx` load as separate `<script type="module">` tags in `index.html`
 - **Platform targets:** Platform adapter pattern (`.web.js` / `.native.js`) exists for future React Native support
@@ -74,6 +77,21 @@ React Wrapper Component (JSX + Refs)
 
 ---
 
+## Bugs Fixed During Active Development
+
+These were discovered and fixed during the migration process, not as part of a specific phase:
+
+| Bug | Root Cause | Fix |
+|-----|-----------|-----|
+| AI tutor chat not rendering | `renderTutorMessage()` wrote HTML directly instead of pushing to Zustand | Changed to `addChatMessage()` — React renders from Zustand |
+| `AiLoadingBubble` showing HTML tags as text | JSX `{defaultText}` auto-escapes, but `Strings.get()` returns HTML with `<br>`/`<span>` | Switched to `dangerouslySetInnerHTML` |
+| Stale "FluIntel AI" loading bubble after openResponse answer | `renderAIAnalysisLoading()` called at `app.js:565` with no matching `removeAILoadingStatus()` | Removed the call |
+| Double-escaped HTML entities in user responses (`&#39;` displayed literally) | `escapeHTML()` in `renderUserResponse` + React's `{text}` auto-escape = double escape | Removed `escapeHTML()` — React handles it |
+| Chat message list not scrollable | `#react-root-chat` React wrapper broke the flex chain inside `#chat-window-container` | Added `flex: 1; min-height: 0; display: flex; flex-direction: column` to `#react-root-chat` |
+| App not clickable with DevTools console open + video not pausing | `will-change: opacity, transform` on `.ivp-main-wrapper` created a Chrome compositing layer that intercepted all input when DevTools opened | Removed `will-change` from `.ivp-main-wrapper`; set `#chat-window-container` z-index from 1051→11 (above play overlay's 10, not blocking video) |
+
+---
+
 ## Phased Migration Roadmap (Revised)
 
 ---
@@ -90,23 +108,13 @@ React Wrapper Component (JSX + Refs)
 
 **The other HTML pages (`homescreen.html`, `login.html`, `signup.html`, `userprofile.html`, etc.) will be completely reworked as React routes in Phase 5. Skip extracting their CSS now — it will be handled when those pages are migrated to React.**
 
-#### Step 1.3: Resolve STOPGAP duplicates in `js/app.js`
+#### Step 1.3: Deferred — resolved AFTER Phase 2 (see Phase 2.4)
 
-**Current state:** Lines 143-210 of `js/app.js` contain explicit TEMP/STOPGAP duplicates of `resolveCurrentLessonId`, `resolveCurrentCourseId`, and `getNextStep` with comments reading "Remove once...migrated to React."
-
-**Actions:**
-1. Read the current implementations in `js/modules/lessonRouting.js` to confirm they match the STOPGAP versions
-2. Replace the STOPGAP block in `js/app.js` with imports from `lessonRouting.js`:
-   ```js
-   import { resolveCurrentLessonId, resolveCurrentCourseId, getNextStep } from './modules/lessonRouting.js';
-   ```
-3. Remove the entire STOPGAP block (lines 143-210)
-4. Update all call sites in `js/app.js` to use the imported functions (if they already use local vars, this may be a no-op after import)
-5. Run `npm run dev` and verify the lesson still loads and navigates correctly at `http://localhost:3000/index.html?courseid=gt2`
-
-**Expected outcome:** Zero STOPGAP/TEMP code in `js/app.js`. Single source of truth for routing logic in `lessonRouting.js`.
+**STOPGAP duplicates in `js/app.js` (lines 146–208) will be removed after the hybrid flow is verified working in Phase 2.4.**
 
 #### Step 1.4: Audit and clean up unused code
+
+**Current state:** Not yet done.
 
 **Actions:**
 1. `js/modules/useLessonRouter.js` — verify it is truly unused (search all `.jsx` and `.js` files for imports). Either integrate it (see Phase 2) or delete it with a note.
@@ -118,57 +126,49 @@ React Wrapper Component (JSX + Refs)
 
 ---
 
-### Known Issue: AI Chat Feature Bug (FIXED)
-
-**Bug found and fixed during review:** The AI tutor chat feature was broken. The `renderTutorMessage()` function in `ui.js` was not adding AI responses to Zustand for React to render - it was trying to render HTML directly which doesn't work with the React chat interface.
-
-**Fix applied:** Modified `renderTutorMessage()` in `js/components/ui.js` to add AI messages to Zustand via `addChatMessage()`, following the same pattern as user messages.
-
----
-
 ### Phase 2: Lesson Body Reactification (Realistic Scope)
 
 *The core migration, scoped realistically. Keep the heavy DOM manipulation in vanilla JS, add React shell and wrapper components.*
 
 **What stays vanilla (NOT converted to React):**
-- `step-loader.web.js` - Creates step content DOM programmatically based on step type
-- `ui.js` - Heavy DOM manipulation functions (renderTextInputUI, renderSpeechInputUI, etc.)
-- Video player classes - Complex programmatic DOM creation
+- `step-loader.web.js` — Creates step content DOM programmatically based on step type
+- `ui.js` — Heavy DOM manipulation functions (renderTextInputUI, renderSpeechInputUI, etc.)
+- Video player classes — Complex programmatic DOM creation
 
 **What becomes React:**
-- Lesson layout shell (replacing empty `<></>`)
-- Better integration of existing React components
-- React wrapper components that mount vanilla classes
+- Lesson layout shell (replacing empty `<></>`) — ✅ DONE
+- Better integration of existing React components — ✅ DONE (portals moved into LessonContainer)
+- React wrapper components that mount vanilla classes — NEXT
 
-#### Step 2.1: Make LessonContainer render a shell
+#### Step 2.1: ✅ LessonContainer renders a shell **(DONE)**
 
-**Current state:** `LessonContainer.jsx` returns `<></>` (empty fragment).
+**What was done:**
+1. Created `js/components/lesson/Header.jsx` — portals `ActivityStats` into `#react-root-activity`
+2. Created `js/components/lesson/ChatContainer.jsx` — portals `ChatInterface` into `#react-root-chat`
+3. Created `js/components/lesson/StatsBar.jsx` — portals `ScoreBoard` into `#react-root-stats`
+4. Rewrote `LessonContainer.jsx` to render `<div className="react-lesson-shell">` wrapping Header, StatsBar, ChatContainer, MicrophoneToggle, and modals. Keeps `hybridRouteChange` event.
+5. Simplified `App.jsx` — removed all portal rendering. App is now just BrowserRouter + Routes + LessonContainer + AI worker boot.
+6. Fixed `initializeApp()` and `initializeLesson()` to read `courseId`/`lessonId` from URL pathname (`/course/:courseId/lesson/:lessonId`), falling back to query params, then memory.
+7. Fixed URL param wiping to work with path-based URLs (stale `?courseid`/`?lessonid` stripped after consumption).
 
-**Actions:**
-1. Replace `<></>` with a simple layout shell component:
-   ```jsx
-   <div className="lesson-container">
-     <Header /> {/* Course title, lesson progress */}
-     <div className="lesson-body">
-       {/* Existing vanilla DOM from index.html lives here */}
-     </div>
-     <ChatContainer /> {/* Already React - ensure it's properly integrated */}
-     <StatsBar /> {/* Already React - ensure it's properly integrated */}
-   </div>
-   ```
-2. Keep the `hybridRouteChange` event for now (vanilla needs it)
-3. This shell provides the React mounting points without trying to replace vanilla
+**URL format:** Changed from `index.html?courseid=gt2` (query params) to `/course/:courseId/lesson/:lessonId` (React Router path).
 
-**Expected outcome:** LessonContainer actually renders something visible, not empty.
+**Key files:**
+- `js/components/LessonContainer.jsx` — shell component
+- `js/components/lesson/Header.jsx` — header shell
+- `js/components/lesson/ChatContainer.jsx` — chat shell
+- `js/components/lesson/StatsBar.jsx` — stats shell
+- `js/App.jsx` — simplified, no portals
+- `js/app.js` lines 757–759 (path-based lessonId), lines 902–907 (path-based courseId), lines 775–791 (param wiping)
 
 #### Step 2.2: Verify existing React components work in the shell
 
-**Current state:** ChatInterface, ScoreBoard, ActivityStats, MicrophoneToggle exist and work.
+**Current state:** NOT YET VERIFIED.
 
 **Actions:**
 1. Ensure all existing React components are properly mounted within the LessonContainer shell
 2. Verify chat, stats, and mic toggle still work with the new shell
-3. Test the full lesson flow: load → prompt → answer → feedback → continue
+3. Test the full lesson flow at `/course/model/lesson/a`: load → prompt → answer → feedback → continue
 
 **Expected outcome:** Existing React components continue working within the shell.
 
@@ -197,42 +197,10 @@ React Wrapper Component (JSX + Refs)
 
 **Expected outcome:** Realistic scope - heavy DOM code stays vanilla, React provides the shell.
 
-#### Step 2.2: Implement `LessonBoot` — initialization hook
-
-**Current state:** `js/app.js` `initializeApp()` and `initializeLesson()` handle boot sequence on `DOMContentLoaded` and `hybridRouteChange` events.
+#### Step 2.5: Test the hybrid flow
 
 **Actions:**
-1. Create `js/components/lesson/LessonBoot.jsx`
-2. Implement `useLessonBoot` custom hook that:
-   - Reads `courseId` and `lessonId` from `useParams()`
-   - Calls `resolveCurrentLessonId()` and `resolveCurrentCourseId()` from `lessonRouting.js` (no more custom event dispatch)
-   - Initializes the lesson via `loadLessonContent()` (imported from `step-loader.web.js`, refactored as needed)
-   - Manages loading/error/ready states via `useState`
-   - Stores boot state in Zustand or React state as appropriate
-3. Wire `useLessonRouter.js` into this flow — this hook was designed for this purpose but is currently unused
-4. Keep the `hybridRouteChange` event for now (vanilla still needs it)
-5. **Do not delete `js/app.js`** — it contains essential functions
-
-**Expected outcome:** React provides the shell, vanilla provides the lesson content. Both work together via Zustand.
-
-#### Step 2.2: Keep step-loader as vanilla (don't convert)
-
-**Current state:** `step-loader.web.js` creates DOM programmatically for different step types (closedResponse, openResponse, text, lessonIntro, etc.). This is ~400 lines of heavy DOM creation.
-
-**Actions:**
-1. **Do NOT try to convert step-loader to React** - it creates DOM programmatically
-2. Keep it as a vanilla JS module that:
-   - Imports from `ui.js` for DOM manipulation
-   - Writes chat messages to Zustand (React picks them up)
-   - Manages video players, microphone, text input
-3. The vanilla code "fills" the React shell
-
-**Expected outcome:** Realistic scope - heavy DOM code stays vanilla, React provides wrapper.
-
-#### Step 2.3: Test the hybrid flow
-
-**Actions:**
-1. Run the app at `http://localhost:3000/index.html?courseid=gt2`
+1. Run the app at `/course/:courseId/lesson/:lessonId`
 2. Test: load lesson → see prompt → answer → feedback → continue → next step
 3. Verify React components (chat, stats, mic) still work
 4. Verify vanilla step-loader still works (loads step content)
@@ -240,12 +208,12 @@ React Wrapper Component (JSX + Refs)
 
 **Expected outcome:** The hybrid works - React shell + vanilla step content + Zustand bridge.
 
-#### Step 2.4: Remove STOPGAP duplicates from `js/app.js`
+#### Step 2.6: Remove STOPGAP duplicates from `js/app.js`
 
-**After Step 2.3 is verified working:**
+**After Step 2.5 is verified working:**
 - React now uses `lessonRouting.js` directly
 - Vanilla can use the imported functions instead of STOPGAP duplicates
-- Remove the STOPGAP block (lines 143-210 in app.js)
+- Remove the STOPGAP block (lines 146–208 in app.js)
 - Verify lesson still works
 
 ---
@@ -376,15 +344,6 @@ React Wrapper Component (JSX + Refs)
 
 **Expected outcome:** Video player wrappers are improved but the vanilla classes remain. This is the correct hybrid architecture.
 
-**Actions:**
-1. Remove all hardcoded video player container divs:
-   - `#ivp-container`
-   - `#simple-video-container`
-   - `#intro-call-widget`
-2. These are now created by their respective React components
-
-**Expected outcome:** All video players are true React components. Zero vanilla video player classes remain. `index.html` no longer contains video player scaffolding.
-
 ---
 
 ### Phase 5: Remaining HTML Pages → React Routes
@@ -404,7 +363,7 @@ React Wrapper Component (JSX + Refs)
    <Route path="/profile" element={<UserProfile />} />
    <Route path="/recover-password" element={<RecoverPassword />} />
    <Route path="/reset-password" element={<ResetPassword />} />
-   <Route path="/landing" element={<Landing />} />
+   <!-- Landing page stays as standalone HTML — not migrated to React -->
    ```
 2. After all pages are migrated, remove the extra entries from `vite.config.js` `rollupOptions.input`, keeping only `index.html`
 3. Add a Vite dev server fallback rewrite so all routes serve `index.html` (for client-side routing):
@@ -432,22 +391,18 @@ React Wrapper Component (JSX + Refs)
 4. Extract inline CSS to `css/style.css` (most auth styling should be shared)
 5. Add client-side redirects for authenticated/unauthenticated states
 
-#### Step 5.4: Migrate `landing.html` → `Landing.jsx`
+#### Step 5.4: Skip — `landing.html` stays as standalone
 
-**Actions:**
-1. Create `js/components/pages/Landing.jsx`
-2. Port content — this is primarily a static marketing page, so this is straightforward JSX conversion
-3. Replace anchor links with React Router `<Link>` components where they navigate within the app
-4. Extract its CSS
+**`landing.html` is a marketing/landing page that is intentionally separate from the app SPA. It will not be migrated to React.** It functions as its own standalone entry point and will remain as-is.
 
-#### Step 5.5: Remove old HTML files
+#### Step 5.5: Remove old HTML files (excluding `landing.html`)
 
 **Actions:**
 1. Once each page is verified working as a React route, delete the corresponding `.html` file
 2. Update `vite.config.js` to remove the entry
 3. Verify all cross-page navigation links work (no broken `<a href="...">` pointing to deleted `.html` files)
 
-**Expected outcome:** Single `index.html` entry point. All pages are React routes within the SPA. No standalone HTML pages remain.
+**Expected outcome:** Single `index.html` entry point for the SPA. All app pages are React routes. `landing.html` remains as a standalone marketing page with its own entry point.
 
 ---
 
@@ -537,14 +492,16 @@ React Wrapper Component (JSX + Refs)
 ### Phase 1: Foundation Cleanup
 - [ ] 1.1: SKIP — CSS handled in Phase 6
 - [ ] 1.2: SKIP — Other HTML pages reworked in Phase 5
-- [ ] 1.3: SKIP — STOPGAP duplicates removed AFTER Phase 2 (when React is using lessonRouting.js)
+- [ ] 1.3: DEFERRED — STOPGAP duplicates removed after Phase 2 (see Phase 2.6)
 - [ ] 1.4: Audit and catalog unused/dead code
 
 ### Phase 2: Lesson Body Reactification (Realistic Scope)
-- [ ] 2.1: Make LessonContainer render a shell (replace `<></>`)
-- [ ] 2.2: Keep step-loader as vanilla (don't convert to React)
-- [ ] 2.3: Test the hybrid flow (React shell + vanilla content)
-- [ ] 2.4: Remove STOPGAP duplicates from `js/app.js` (after 2.3 verified)
+- [x] 2.1: LessonContainer renders a shell (replaced `<>`)
+- [ ] 2.2: Verify existing React components work in the shell
+- [ ] 2.3: Add video player wrappers to the shell
+- [ ] 2.4: Keep step-loader as vanilla (don't convert to React)
+- [ ] 2.5: Test the hybrid flow (React shell + vanilla content)
+- [ ] 2.6: Remove STOPGAP duplicates from `js/app.js` (after 2.5 verified)
 
 ### Phase 3: `ui.js` Cleanup
 - [ ] 3.1: Inventory all functions by category (KEEP chat bridge, HTML generators)
@@ -565,7 +522,7 @@ React Wrapper Component (JSX + Refs)
 - [ ] 5.1: Convert to SPA (single `index.html` entry, React Router for all routes)
 - [ ] 5.2: `homescreen.html` → `HomeScreen.jsx`
 - [ ] 5.3: Auth pages → React components
-- [ ] 5.4: `landing.html` → `Landing.jsx`
+- [ ] 5.4: SKIP — `landing.html` stays as standalone marketing page
 - [ ] 5.5: Delete old HTML files, update Vite config
 
 ### Phase 6: Architecture Modernization
@@ -576,14 +533,14 @@ React Wrapper Component (JSX + Refs)
 - [ ] 6.5: Re-enable NLP worker
 - [ ] 6.6: TypeScript evaluation (decision point)
 - [ ] 6.7: Test coverage audit
-- [ ] 6.8: CSS Consolidation - Extract inline `<style>` to `css/style.css` (AFTER React components exist)
+- [ ] 6.8: CSS Consolidation — Extract inline `<style>` to `css/style.css` (AFTER React components exist)
 
 ---
 
 ## Risk Considerations
 
 ### High-risk items
-- **Phase 2 (lesson body):** The core UX. A regression here breaks the entire app. Test thoroughly after each sub-step (2.2-2.6) at `http://localhost:3000/index.html?courseid=gt2`.
+- **Phase 2 (lesson body):** The core UX. A regression here breaks the entire app. Test thoroughly after each sub-step at `/course/:courseId/lesson/:lessonId`.
 - **Verify after each step:** Load the full lesson flow (start → answer → feedback → continue → next step) before moving on.
 
 ### Medium-risk items
@@ -600,7 +557,7 @@ React Wrapper Component (JSX + Refs)
 ## Completion Criteria
 
 The migration is complete when:
-1. `index.html` is the only HTML file, containing only the root `<div>` and script/link tags
+1. `index.html` is the SPA entry point containing only the root `<div>` and script/link tags; `landing.html` remains as a standalone marketing page
 2. All UI layout and data-display is handled by React components (chat, stats, forms, layout)
 3. `js/app.js` is purely a module of exported utility functions (no `DOMContentLoaded`, no app initialization)
 4. `js/components/ui.js` remains as the essential bridge (NOT deleted) — it writes to Zustand, React consumes it
