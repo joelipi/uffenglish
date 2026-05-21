@@ -986,13 +986,14 @@ async function setupIOSBlobPlayback(videoElement, blob) {
 
 
 export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyClickCallback) {
+    console.log('[showContinueButton] isLessonIntro:', isLessonIntro);
     if (isLessonIntro) {
-        // 1. Handle Intro State (Toggle Bottom Control Bar)
         const standardMic = document.getElementById('state-standard-mic');
         const introChoices = document.getElementById('state-intro-choices');
         const videoBtn = document.getElementById('continueButton');
         const audioBtn = document.getElementById('audioOnlyButton');
         const textBtn = document.getElementById('textOnlyButton');
+        console.log('[showContinueButton] DOM elements - standardMic:', !!standardMic, '| introChoices:', !!introChoices, '| videoBtn:', !!videoBtn, '| audioBtn:', !!audioBtn, '| textBtn:', !!textBtn);
 
         if (standardMic) standardMic.classList.add('d-none');
         if (introChoices) {
@@ -1050,7 +1051,7 @@ export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyCl
 }
 
 export function hideContinueButton() {
-    // 1. Revert Bottom Bar back to standard mic
+    console.log('[hideContinueButton] called');
     const standardMic = document.getElementById('state-standard-mic');
     const introChoices = document.getElementById('state-intro-choices');
     if (introChoices) {

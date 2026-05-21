@@ -34,6 +34,8 @@ import {
     safeRenderChatInterface,
     renderAIFeedback,
     disableAllButtons,
+    showContinueButton,
+    hideContinueButton,
     resetMicStatusWithStep,
     handlecueUI,
     handleIncueUI,
@@ -411,6 +413,7 @@ export function showFeedbackAndProceed(stepData, isCorrect, _deps = {}) {
     if ((stepData.stepType === "closedResponse" || stepData.stepType === "openResponse") && stepData.videoUrl) State.stepCount++;
     try {
         hideHints();
+        console.log('[showFeedbackAndProceed] stepType:', stepData.stepType, '| isLessonIntro:', stepData.stepType === "lessonIntro");
         const continueButton = showContinueButton(stepData.stepType === "lessonIntro", () => {
             Media.pauseVideoIfPlaying();
             if (stepData.stepType === "lessonIntro") {
@@ -420,6 +423,7 @@ export function showFeedbackAndProceed(stepData, isCorrect, _deps = {}) {
                 };
                 initializeMedia();
             }
+            console.log('[showFeedbackAndProceed] calling hideContinueButton');
             hideContinueButton();
             if (stepData.stepType === "lessonIntro") {
                 setTimeout(() => {
