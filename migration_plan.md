@@ -88,44 +88,9 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 
 ---
 
-## Phase 2: Delete Callers, Then Functions (Rolling)
+## Phase 2: Replace ui.js Functions with Zustand + React (Ongoing)
 
-*Several ui.js functions have React equivalents but still have vanilla callers. Each one becomes deletable only when its last caller switches to the React/Zustand path.*
-
-| Function | Blocked By | Unblocked When |
-|----------|-----------|----------------|
-| `showGuestLoginModal` | `app.js:324` calls it | `initializeApp()` migrates to React or writes `isGuestModalOpen` directly |
-| `showInitializationErrorMessage` | `app.js:259,405` | Same |
-| `showCriticalError` / `hideCriticalError` | Called by `showInitializationErrorMessage` | Same |
-| `renderFallbackContinueButton` | `answer-pipeline.js:424` | `answer-pipeline.js` uses the React `ContinueWidgetBubble` as sole fallback |
-| `createPragmaticsBubbleHTML` | `feedback-renderer.web.js` | `feedback-renderer` writes structured data instead of HTML |
-| `createStatsBubbleHTML` | `feedback-renderer.web.js` | Same |
-| `createGrammarDiffHTML` / `buildGrammarDiff` | `feedback-renderer.web.js` | Same |
-| `getPraiseHTML` | `handlecueUI` (ui.js:1420,1476) | `handlecueUI` uses Zustand + React path |
-| `renderUserChatMessage` | Multiple callers | All callers use `addChatMessage` directly |
-| `renderTutorMessage` | Multiple callers | All callers use `addChatMessage` directly |
-| `showPlaybackVideo` | `handleAnswer` (answer-pipeline.js) | `<VideoBubble>` is sole path |
-| `showContinueButton` (mid-lesson) | `showFeedbackAndProceed` | `ContinueWidgetBubble` is sole path |
-| `removeAILoadingStatus` | Various | Zustand + `<AiLoadingBubble>` handles removal |
-
-**Strategy:** Don't touch these in isolation. Instead, each time a replacement is done (Phase 3), delete the old function immediately after switching its callers.
-
----
-
-## Phase 3: Replace Simple DOM Functions with Zustand + React (Ongoing)
-
-*For each remaining ui.js DOM manipulator, add a Zustand action + React element that replaces it. Delete the old function once nothing calls it.*
-
-**Start with the simplest:** (ordered by complexity)
-
-| Function | Replace With |
-|----------|-------------|
-| `setProgressBarWidth` | Zustand `progressPercent` → React `<ProgressBar>` element in shell |
-| `toggleStatsContainer` | Zustand `statsVisible` → React `StatsBar` reads it |
-| `setMicStatusText` | Zustand `micStatusText` → React `<MicStatusText>` reads it |
-| `hidePreloader` | Zustand `isLoaded` → React handles preloader visibility |
-| `showHintsAndScroll` / `hideHints` | Zustand `hintsHTML` → React renders hints inline |
-| `renderHangmanHint` / `generateHangmanHint` | Zustand `hangmanHint` → React `<HangmanHint>` component |
+*For each remaining ui.js function, add a Zustand action + React component that replaces it, then delete the old function. This is a single loop — replacement unblocks deletion, deletion is the completion signal.*
 
 **Per-function process:**
 1. Add state to Zustand (the data, not the DOM)
@@ -133,46 +98,52 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 3. Vanilla function either writes to Zustand or is replaced
 4. Delete the old ui.js function
 
-**Target deletion list** (all functions that have React equivalents but currently still have callers):
+**Backlog ordered by complexity:**
 
-| Function | Caller(s) | Will Be Deleted When |
-|----------|-----------|----------------------|
-| `showGuestLoginModal` | `app.js` | `app.js` renders `<GuestLoginModal>` directly or `initializeApp` migrates to React |
-| `showCriticalError` / `hideCriticalError` | `app.js`, `ui.test.js` | `showInitializationErrorMessage` stops calling it |
-| `showInitializationErrorMessage` | `app.js` | `app.js` writes `criticalErrorMessage` to Zustand directly |
-| `renderFallbackContinueButton` | `answer-pipeline.js` | `answer-pipeline.js` uses the React `ContinueWidgetBubble` as sole fallback |
-| `createPragmaticsBubbleHTML` | `feedback-renderer.web.js` | `feedback-renderer` writes structured data, not HTML |
-| `createStatsBubbleHTML` | `feedback-renderer.web.js` | Same |
-| `createGrammarDiffHTML` / `buildGrammarDiff` | `feedback-renderer.web.js` | Same |
-| `getPraiseHTML` | `handlecueUI` (ui.js) | `handlecueUI` uses Zustand + React path |
-| `renderUserChatMessage` | Various | All callers use `addChatMessage` directly |
-| `renderTutorMessage` | Various | All callers use `addChatMessage` directly |
-| `showPlaybackVideo` | `handleAnswer` | Callers write to Zustand; `<VideoBubble>` renders |
-| `showContinueButton` (mid-lesson path) | `showFeedbackAndProceed` | `ContinueWidgetBubble` is sole path |
-| `removeAILoadingStatus` | Various | Zustand + `<AiLoadingBubble>` handles removal |
+| Function | Replace With | Unblocked When |
+|----------|-------------|----------------|
+| `setProgressBarWidth` | Zustand `progressPercent` → React `<ProgressBar>` | Immediate — standalone |
+| `toggleStatsContainer` | Zustand `statsVisible` → React `StatsBar` reads it | Immediate — standalone |
+| `setMicStatusText` | Zustand `micStatusText` → React `<MicStatusText>` | Immediate — standalone |
+| `hidePreloader` | Zustand `isLoaded` → React handles preloader visibility | Immediate — standalone |
+| `showHintsAndScroll` / `hideHints` | Zustand `hintsHTML` → React renders hints inline | Immediate — standalone |
+| `renderHangmanHint` / `generateHangmanHint` | Zustand `hangmanHint` → React `<HangmanHint>` | Immediate — standalone |
+| `showGuestLoginModal` | `initializeApp()` writes `isGuestModalOpen` directly | `app.js` last caller |
+| `showInitializationErrorMessage` | `app.js` writes `criticalErrorMessage` directly | `app.js` last caller |
+| `showCriticalError` / `hideCriticalError` | Called by `showInitializationErrorMessage` | Same as above |
+| `renderFallbackContinueButton` | `ContinueWidgetBubble` is sole path | `answer-pipeline.js` last caller |
+| `createPragmaticsBubbleHTML` | `feedback-renderer` writes structured data | `feedback-renderer` last caller |
+| `createStatsBubbleHTML` | Same | Same |
+| `createGrammarDiffHTML` / `buildGrammarDiff` | Same | Same |
+| `getPraiseHTML` | `handlecueUI` uses Zustand + React path | `handlecueUI` last caller (Phase 4) |
+| `renderUserChatMessage` | All callers use `addChatMessage` directly | Various callers |
+| `renderTutorMessage` | All callers use `addChatMessage` directly | Various callers |
+| `showPlaybackVideo` | `<VideoBubble>` is sole path | `handleAnswer` last caller |
+| `showContinueButton` (mid-lesson) | `ContinueWidgetBubble` is sole path | `showFeedbackAndProceed` last caller |
+| `removeAILoadingStatus` | Zustand + `<AiLoadingBubble>` | Various callers |
 
-**When to stop:** When the remaining ui.js functions are too complex to extract individually (likely `handlecueUI`, `handleIncueUI`, and the webcam/whisper chain). These become Phase 5.
+**When to stop simple replacements:** Once only `handlecueUI`, `handleIncueUI`, and the webcam/whisper chain remain — these become Phase 4.
 
 ---
 
-## Phase 4: HTML Pages → React Routes (~2-3 hours)
+## Phase 3: HTML Pages → React Routes (~2-3 hours)
 
 *Convert standalone HTML pages to React components. Self-contained, easy to verify.*
 
 | Step | Description |
 |------|-------------|
-| 4.1 | Convert Vite multi-page build to SPA (single `index.html` entry) |
-| 4.2 | Migrate `homescreen.html` → `<HomeScreen>` |
-| 4.3 | Migrate auth pages (`login.html`, `signup.html`, `userprofile.html`, `recover-password.html`, `reset-password.html`) |
-| 4.4 | SKIP — `landing.html` stays standalone |
-| 4.5 | Delete old HTML files, update Vite config |
-| 4.6 | Remove `hybridRouteChange` event listener from `app.js` (routing fully owned by React) |
+| 3.1 | Convert Vite multi-page build to SPA (single `index.html` entry) |
+| 3.2 | Migrate `homescreen.html` → `<HomeScreen>` |
+| 3.3 | Migrate auth pages (`login.html`, `signup.html`, `userprofile.html`, `recover-password.html`, `reset-password.html`) |
+| 3.4 | SKIP — `landing.html` stays standalone |
+| 3.5 | Delete old HTML files, update Vite config |
+| 3.6 | Remove `hybridRouteChange` event listener from `app.js` (routing fully owned by React) |
 
 ---
 
-## Phase 5: Heavy Functions (Last Resort)
+## Phase 4: Heavy Functions (Last Resort)
 
-*Tackle the remaining ui.js monoliths. Only start this after Phases 1-4 have eliminated everything else.*
+*Tackle the remaining ui.js monoliths. Only start this after Phases 1-3 have eliminated everything else.*
 
 | Function | Lines | Strategy |
 |----------|-------|----------|
@@ -188,7 +159,7 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 
 ---
 
-## Phase 6: `/course/:courseId/lesson/:lessonId` Cleanup
+## Phase 5: `/course/:courseId/lesson/:lessonId` Cleanup
 
 - Remove `app.js` `<script>` tag from `index.html`
 - `app.js` logic moves to React `useEffect` in LessonContainer
@@ -199,10 +170,10 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 ## Risk Considerations
 
 - **Highest value for lowest risk:** Phase 1 (pure deletion, zero behavior change)
-- **Cleanest React win:** Phase 2 (video wrappers consume Zustand directly, no DOM bridge)
-- **Most repetitive:** Phase 3 (each function is a small self-contained replacement)
-- **Self-contained:** Phase 4 (HTML pages don't share state with the lesson engine)
-- **Riskiest:** Phase 5 (`handlecueUI`/`handleIncueUI` are critical paths)
+- **Cleanest React win:** Phase 1 (video wrappers consume Zustand directly, no DOM bridge)
+- **Most repetitive:** Phase 2 (each function is a small self-contained replacement)
+- **Self-contained:** Phase 3 (HTML pages don't share state with the lesson engine)
+- **Riskiest:** Phase 4 (`handlecueUI`/`handleIncueUI` are critical paths)
 
 ## Completion Criteria
 

@@ -214,6 +214,16 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
         const lesson = (configData && configData.lessons) ? configData.lessons[appStore.getState().currentLessonIndex] : null;
 
         if (!lesson) {
+            console.error('[handleAnswer] DEBUG:', {
+                configDataKeys: configData ? Object.keys(configData) : null,
+                lessonCount: configData?.lessons?.length,
+                currentLessonIndex: appStore.getState().currentLessonIndex,
+                activeLessonId: appStore.getState().activeLessonId,
+                courseId: appStore.getState().courseId,
+                firstLessonId: configData?.lessons?.[0]?.lessonId,
+                hasSteps: configData?.lessons?.[0]?.steps ? 'yes' : 'no',
+                hasQuestions: configData?.lessons?.[0]?.questions ? 'yes' : 'no'
+            });
             throw new Error("configData or lessons missing in handleAnswer");
         }
 

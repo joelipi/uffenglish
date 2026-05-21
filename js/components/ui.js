@@ -44,11 +44,11 @@ export const DOM = {
     get nameAi() { return document.getElementById("chat-name-system"); },
     get avatarHuman() { return document.getElementById("chat-avatar-user"); },
     get nameHuman() { return document.getElementById("chat-name-user"); },
-    get statsContainer() { return document.getElementById("stats-container"); },
+    get statsContainer() { return document.getElementById("react-root-stats"); },
     get progressbar() { return document.getElementById('progress'); },
-    get progressBarFill() { return document.getElementById("progress-bar"); },
+    get progressBarFill() { return document.getElementById("react-root-progress"); },
     get closeAndProgress() { return document.getElementById('closeAndProgress'); },
-    get micStatusText() { return document.getElementById("micStatusText"); },
+    get micStatusText() { return document.getElementById("react-root-micstatus"); },
     get whisperReviewContainer() { return document.getElementById('whisperReviewContainer'); },
     get whisperTranscript() { return document.getElementById('whisperTranscript'); },
     get criticalErrorContainer() { return document.getElementById('criticalErrorContainer'); },
@@ -255,6 +255,7 @@ export function renderAIFeedback(contentChunks = []) {
 }
 
 export function hidePreloader() {
+    appStore.getState().setIsLoaded(true);
     const preloader = document.getElementById('appLoadingImageDiv');
     if (preloader) preloader.style.display = 'none';
 }
@@ -264,8 +265,8 @@ export function removeAILoadingStatus() {
 }
 
 export function renderHangmanHint(html) {
-    const hintUncommonWords = document.getElementById("hintUncommonWords");
-    if (hintUncommonWords) hintUncommonWords.innerHTML = html;
+    appStore.getState().setHangmanHintHTML(html);
+    appStore.getState().setHintsVisible(true);
 }
 
 export function showMicWarning(message) {
@@ -535,17 +536,11 @@ export function renderTutorMessage(text, isUser) {
 }
 
 export function showHintsAndScroll() {
-    const hints = document.getElementById("hints");
-    if (hints) {
-        hints.classList.remove("d-none", "invisible");
-    }
+    appStore.getState().setHintsVisible(true);
 }
 
 export function hideHints() {
-    const hints = document.getElementById("hints");
-    if (hints) hints.classList.add("d-none");
-    const hintButton = document.getElementById('hintButton');
-    if (hintButton) hintButton.classList.add('invisible');
+    appStore.getState().setHintsVisible(false);
 }
 
 export function clearMicStatusAndHideMedia() {
@@ -555,13 +550,11 @@ export function clearMicStatusAndHideMedia() {
 }
 
 export function setMicStatusText(content) {
-    if (DOM.micStatusText) {
+    if (typeof content === 'string') {
+        appStore.getState().setMicStatusText(content);
+    } else if (content instanceof Node && DOM.micStatusText) {
         DOM.micStatusText.innerHTML = '';
-        if (typeof content === 'string') {
-            DOM.micStatusText.innerHTML = content;
-        } else if (content instanceof Node) {
-            DOM.micStatusText.appendChild(content);
-        }
+        DOM.micStatusText.appendChild(content);
     }
 }
 
@@ -1194,10 +1187,7 @@ export function resetUIForNewStep(isLessonIntro, hasUserData) {
 }
 
 export function toggleStatsContainer(show) {
-    if (DOM.statsContainer) {
-        if (show) DOM.statsContainer.classList.remove('d-none');
-        else DOM.statsContainer.classList.add('d-none');
-    }
+    appStore.getState().setStatsVisible(show);
 }
 
 export function removeRepeatButton() {
@@ -1340,7 +1330,7 @@ export function updateProgressAndCloseButton(showClose) {
 }
 
 export function setProgressBarWidth(percentage) {
-    if (DOM.progressBarFill) DOM.progressBarFill.style.width = percentage;
+    appStore.getState().setProgressPercent(percentage);
 }
 
 export function hideAnswerDiv() {

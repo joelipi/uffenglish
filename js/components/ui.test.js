@@ -201,15 +201,15 @@ describe('UI Component functions', () => {
 
     describe('Hints and Errors Rendering', () => {
         it('should render hangman hint', () => {
-            document.body.innerHTML += '<div id="hintUncommonWords"></div>';
             renderHangmanHint('<span>hint text</span>');
-            expect(document.getElementById('hintUncommonWords').innerHTML).toBe('<span>hint text</span>');
+            expect(appStore.getState().hangmanHintHTML).toBe('<span>hint text</span>');
+            expect(appStore.getState().hintsVisible).toBe(true);
         });
 
         it('should show mic warning', () => {
-            document.body.innerHTML += '<div id="micStatusText"></div>';
+            document.body.innerHTML += '<div id="react-root-micstatus"></div>';
             showMicWarning('Warning!');
-            expect(document.getElementById('micStatusText').innerHTML).toContain('Warning!');
+            expect(document.getElementById('react-root-micstatus').innerHTML).toContain('Warning!');
         });
 
         it('should show answer error and hide after timeout', () => {
@@ -229,9 +229,8 @@ describe('UI Component functions', () => {
 
     describe('Miscellaneous UI Functions', () => {
         it('should set progress bar width', () => {
-            document.body.innerHTML += '<div id="progress-bar"></div>';
             setProgressBarWidth('50%');
-            expect(document.getElementById('progress-bar').style.width).toBe('50%');
+            expect(appStore.getState().progressPercent).toBe('50%');
         });
 
         it('should hide answer div', () => {
@@ -286,13 +285,11 @@ describe('UI Component functions', () => {
 
     describe('toggleStatsContainer & removeRepeatButton', () => {
         it('should toggle scores container', () => {
-            document.body.innerHTML = '<div id="stats-container" class="d-none"></div>';
-
             toggleStatsContainer(true);
-            expect(document.getElementById('stats-container').classList.contains('d-none')).toBe(false);
+            expect(appStore.getState().statsVisible).toBe(true);
 
             toggleStatsContainer(false);
-            expect(document.getElementById('stats-container').classList.contains('d-none')).toBe(true);
+            expect(appStore.getState().statsVisible).toBe(false);
         });
 
         it('should remove repeat button', () => {

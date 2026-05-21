@@ -54,6 +54,14 @@ export const appStore = createStore(
             repeatPointsHistory: [],
             rolePlayPointsHistory: [],
 
+            // --- UI State (Replaced ui.js functions) ---
+            progressPercent: 0,
+            statsVisible: true,
+            micStatusText: '',
+            isLoaded: false,
+            hintsVisible: false,
+            hangmanHintHTML: '',
+
             // --- Tutor Engagement Metrics ---
             userMessagesToAi: 0,
             aIMessagesToUser: 0,
@@ -118,6 +126,14 @@ export const appStore = createStore(
                 console.log(`[Store] setCurrentVideo: ${video ? video.type : 'null'}`);
                 set({ currentVideo: video });
             },
+
+            // --- UI State Actions (bridge for ui.js → React) ---
+            setProgressPercent: (percent) => set({ progressPercent: percent }),
+            setStatsVisible: (visible) => set({ statsVisible: visible }),
+            setMicStatusText: (text) => set({ micStatusText: text }),
+            setIsLoaded: (loaded) => set({ isLoaded: loaded }),
+            setHintsVisible: (visible) => set({ hintsVisible: visible }),
+            setHangmanHintHTML: (html) => set({ hangmanHintHTML: html }),
 
             // Update physical place in the lesson
             setProgress: ({ lessonId, lessonIndex, questionIndex }) => set({

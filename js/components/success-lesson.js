@@ -22,7 +22,6 @@ export class SuccessLessonHandler {
     this.uiElements = {
       statsContainer: uiElements.statsContainer || document.getElementById('stats-container'),
       progressbar: uiElements.progressbar || document.getElementById('progress'),
-      progressBarFill: uiElements.progressBarFill || document.getElementById('progress-bar'),
       chatMessageList: uiElements.chatMessageList || document.getElementById('chat-message-list')
     };
 
@@ -34,14 +33,12 @@ export class SuccessLessonHandler {
   }
 
   updateUI(lessonAverage) {
-    const { statsContainer, progressBarFill } = this.uiElements;
+    const { statsContainer } = this.uiElements;
 
     if (statsContainer) statsContainer.classList.add('d-none');
 
-    if (progressBarFill) {
-      progressBarFill.style.width = "100%";
-      progressBarFill.classList.add('bg-success');
-    }
+    appStore.getState().setProgressPercent("100%");
+    appStore.getState().setStatsVisible(false);
 
     if (typeof showLessonSuccessState === 'function') {
       showLessonSuccessState();

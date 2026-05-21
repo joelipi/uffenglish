@@ -2005,8 +2005,7 @@
                         </a>
                         <div class="flex-grow-1 ms-3">
                             <div id="progress" class="progress shadow-sm">
-                                <div id="progress-bar" class="progress-bar" role="progressbar" style="width: 0%;"
-                                    aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                <div id="react-root-progress"></div>
                             </div>
                         </div>
                         <div id="react-root-activity" class="ms-2"></div>
@@ -2055,7 +2054,7 @@
                 </button>
             </div>
 
-            <div id="micStatusText" class="d-flex justify-content-center align-items-center"></div>
+            <div id="react-root-micstatus" class="d-flex justify-content-center align-items-center"></div>
 
             <div id="chat-window-container">
                 <div id="chat-window-header" class="card-header text-white p-0 chat-window-header"></div>
@@ -2088,9 +2087,7 @@
                     </div>
                 </div>
             </div>
-            <div id="hints" class="d-none card">
-                <p class="info-content" id="hintUncommonWords"></p>
-            </div>
+            <div id="react-root-hints" class="card"></div>
             <!-- Bottom Overlay -->
             <div class="bottom-overlay position-absolute bottom-0 start-0 w-100 d-flex flex-column">
 

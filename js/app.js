@@ -85,7 +85,7 @@ import { appStore } from './modules/store.js';
 
 import { normalizeConfig } from './modules/config-normalizer.js';
 import { loadVideoForStep } from './modules/video-loader.js';
-//window.appStore = appStore; // <-- ADD THIS TEMPORARY LINE FOR TESTING
+window.appStore = appStore;
 import { State } from './modules/state.js';
 import { getLocalizedTranslation } from './modules/utils.js';
 import { analyzeSpeech } from './modules/analytics.js';
@@ -177,8 +177,29 @@ window.addEventListener('preflightRejected', () => {
 const answerDeps = { loadNextStep, callLoadStep };
 
 function handleHint(...args) { return handleHintImpl(...args); }
-export async function submitAnswerPrecheck(...args) { return submitAnswerPrecheckImpl(...args, answerDeps); }
-export async function handleAnswer(...args) { return handleAnswerImpl(...args, answerDeps); }
+// Both wrappers must insert answerDeps at position 7 (_deps) when callers
+// pass fewer args, because speech.js passes submitAnswerPrecheck as handleAnswer
+// with 9 args (no _deps or courseId). Appending at the end shifts everything.
+export async function submitAnswerPrecheck(...args) {
+    if (args.length < 11) {
+        return submitAnswerPrecheckImpl(
+            args[0], args[1], args[2], args[3], args[4], args[5], args[6],
+            answerDeps,
+            args[7], args[8], args[9]
+        );
+    }
+    return submitAnswerPrecheckImpl(...args, answerDeps);
+}
+export async function handleAnswer(...args) {
+    if (args.length < 11) {
+        return handleAnswerImpl(
+            args[0], args[1], args[2], args[3], args[4], args[5], args[6],
+            answerDeps,
+            args[7], args[8], args[9]
+        );
+    }
+    return handleAnswerImpl(...args, answerDeps);
+}
 function showFeedbackAndProceed(...args) { return showFeedbackAndProceedImpl(...args, answerDeps); }
 
 // ADVANCE VIEWS CORE HOLY OF HOLIES 

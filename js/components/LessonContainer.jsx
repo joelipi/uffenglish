@@ -8,6 +8,8 @@ import StatsBar from './lesson/StatsBar.jsx';
 import MicrophoneToggle from './widgets/MicrophoneToggle.jsx';
 import GuestLoginModal from './modals/GuestLoginModal.jsx';
 import CriticalErrorModal from './modals/CriticalErrorModal.jsx';
+import MicStatusText from './widgets/MicStatusText.jsx';
+import Hints from './widgets/Hints.jsx';
 import InteractiveVideoWrapper from './InteractiveVideoWrapper.jsx';
 import SimpleVideoWrapper from './SimpleVideoWrapper.jsx';
 import IntroVideoWrapper from './IntroVideoWrapper.jsx';
@@ -42,6 +44,9 @@ export default function LessonContainer() {
                 {criticalErrorRootEl && createPortal(<CriticalErrorModal />, criticalErrorRootEl)}
                 {createPortal(<GuestLoginModal />, document.body)}
             </div>
+
+            <MicStatusText />
+            <Hints />
 
             <ChatContainer />
 
