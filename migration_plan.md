@@ -92,6 +92,13 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 
 *For each remaining ui.js function, add a Zustand action + React component that replaces it, then delete the old function. This is a single loop — replacement unblocks deletion, deletion is the completion signal.*
 
+### Phase 2.0: Monolith Shrinkage (Low Risk)
+*Before tackling complex logic shifts, shrink the monolith by removing dead code and moving pure utilities.*
+
+1. **Dead Code Purge:** Delete functions with no external callers and no functional impact (e.g., `syncTextModeUI`, `animatePointLoss` as their DOM targets are now commented out in `index.html`).
+2. **Utility Migration:** Move pure HTML generation utilities (e.g., `createPragmaticsBubbleHTML`, `createStatsBubbleHTML`, `createGrammarDiffHTML`, `getPraiseHTML`, `createHeaderHTML`) from `ui.js` to `feedback-renderer.web.js`.
+3. **Import Cleanup:** Verify `app.js` import block is cleaned up after every `ui.js` deletion to avoid SyntaxErrors on load.
+
 **Per-function process:**
 1. Add state to Zustand (the data, not the DOM)
 2. React component reads Zustand and renders the UI
@@ -100,27 +107,27 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 
 **Backlog ordered by complexity:**
 
-| Function | Replace With | Unblocked When |
-|----------|-------------|----------------|
-| `setProgressBarWidth` | Zustand `progressPercent` → React `<ProgressBar>` | Immediate — standalone |
-| `toggleStatsContainer` | Zustand `statsVisible` → React `StatsBar` reads it | Immediate — standalone |
-| `setMicStatusText` | Zustand `micStatusText` → React `<MicStatusText>` | Immediate — standalone |
-| `hidePreloader` | Zustand `isLoaded` → React handles preloader visibility | Immediate — standalone |
-| `showHintsAndScroll` / `hideHints` | Zustand `hintsHTML` → React renders hints inline | Immediate — standalone |
-| `renderHangmanHint` / `generateHangmanHint` | Zustand `hangmanHint` → React `<HangmanHint>` | Immediate — standalone |
-| `showGuestLoginModal` | `initializeApp()` writes `isGuestModalOpen` directly | `app.js` last caller |
-| `showInitializationErrorMessage` | `app.js` writes `criticalErrorMessage` directly | `app.js` last caller |
-| `showCriticalError` / `hideCriticalError` | Called by `showInitializationErrorMessage` | Same as above |
-| `renderFallbackContinueButton` | `ContinueWidgetBubble` is sole path | `answer-pipeline.js` last caller |
-| `createPragmaticsBubbleHTML` | `feedback-renderer` writes structured data | `feedback-renderer` last caller |
-| `createStatsBubbleHTML` | Same | Same |
-| `createGrammarDiffHTML` / `buildGrammarDiff` | Same | Same |
-| `getPraiseHTML` | `handlecueUI` uses Zustand + React path | `handlecueUI` last caller (Phase 4) |
-| `renderUserChatMessage` | All callers use `addChatMessage` directly | Various callers |
-| `renderTutorMessage` | All callers use `addChatMessage` directly | Various callers |
-| `showPlaybackVideo` | `<VideoBubble>` is sole path | `handleAnswer` last caller |
-| `showContinueButton` (mid-lesson) | `ContinueWidgetBubble` is sole path | `showFeedbackAndProceed` last caller |
-| `removeAILoadingStatus` | Zustand + `<AiLoadingBubble>` | Various callers |
+| Function | Replace With | Unblocked When | Status |
+|----------|-------------|----------------|---------|
+| `setProgressBarWidth` | Zustand `progressPercent` → React `<ProgressBar>` | Immediate | COMPLETED |
+| `toggleStatsContainer` | Zustand `statsVisible` → React `StatsBar` reads it | Immediate | COMPLETED |
+| `setMicStatusText` | Zustand `micStatusText` → React `<MicStatusText>` | Immediate | COMPLETED |
+| `hidePreloader` | Zustand `isLoaded` → React handles preloader visibility | Immediate | Pending |
+| `showHintsAndScroll` / `hideHints` | Zustand `hintsHTML` → React renders hints inline | Immediate | COMPLETED |
+| `renderHangmanHint` / `generateHangmanHint` | Zustand `hangmanHint` → React `<HangmanHint>` | Immediate | COMPLETED |
+| `showGuestLoginModal` | `initializeApp()` writes `isGuestModalOpen` directly | `app.js` last caller | COMPLETED |
+| `showInitializationErrorMessage` | `app.js` writes `criticalErrorMessage` directly | `app.js` last caller | COMPLETED |
+| `showCriticalError` / `hideCriticalError` | Called by `showInitializationErrorMessage` | Same as above | COMPLETED |
+| `renderFallbackContinueButton` | `ContinueWidgetBubble` is sole path | `answer-pipeline.js` last caller | COMPLETED |
+| `createPragmaticsBubbleHTML` | `feedback-renderer` writes structured data | `feedback-renderer` last caller | Pending (Phase 2.0) |
+| `createStatsBubbleHTML` | Same | Same | Pending (Phase 2.0) |
+| `createGrammarDiffHTML` / `buildGrammarDiff` | Same | Same | Pending (Phase 2.0) |
+| `getPraiseHTML` | `handlecueUI` uses Zustand + React path | `handlecueUI` last caller (Phase 4) | Pending (Phase 2.0) |
+| `renderUserChatMessage` | All callers use `addChatMessage` directly | Various callers | COMPLETED |
+| `renderTutorMessage` | All callers use `addChatMessage` directly | Various callers | COMPLETED |
+| `showPlaybackVideo` | `<VideoBubble>` is sole path | `handleAnswer` last caller | Pending |
+| `showContinueButton` (mid-lesson) | `ContinueWidgetBubble` is sole path | `showFeedbackAndProceed` last caller | Pending |
+| `removeAILoadingStatus` | Zustand + `<AiLoadingBubble>` | Various callers | COMPLETED |
 
 **When to stop simple replacements:** Once only `handlecueUI`, `handleIncueUI`, and the webcam/whisper chain remain — these become Phase 4.
 
