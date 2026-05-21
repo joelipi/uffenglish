@@ -41,6 +41,7 @@ console.log = (msg, ...args) => {
 
 
 import { navigateToHome, navigateToLogin } from './modules/navigation.js';
+import { requestPersistentStorage, handleAuthClick, setupAuthMenu } from './modules/lesson-init.js';
 
 // -----------------------
 import { clearSpeechRecordingsForLesson, updateSpeechRecording } from './modules/storage.js';
@@ -58,6 +59,7 @@ import Strings from './data/strings.js';
 
 // --- Decoupled Business Logic (Modules Directory) ---
 import { calculateRepeatAverage, calculateRolePlayAverage, calculateAverage, calculateFluencyScore, logInteraction } from './modules/scoring.js';
+import { resolveCurrentLessonId, getNextStep, getUrlParamCaseInsensitive, resolveCurrentCourseId } from './modules/lessonRouting.js';
 import { isUserLoggedIn, getUserProfile, signOut, queryClient, askEnglishTutor } from './modules/api.js';
 import { saveCourseToUserProfile, saveLessonProgress, syncOfflineScores } from './modules/user-profile.js';
 import {
@@ -140,74 +142,7 @@ import {
 import { idiomChecker } from './modules/idiom-checker.js';
 import { calculateSyntacticComplexity } from './modules/complexity.js';
 
-//STOPGAP CODE WHILE MIGRATING
-// TEMP: duplicate of resolveCurrentLessonId in modules/lessonRouting.js
-// Remove once callers at lines 239 and 724 are migrated to React.
-function resolveCurrentLessonId(configData, userData, courseId, context = {}) {
-    if (!configData || typeof configData !== 'object') {
-        throw new Error('resolveCurrentLessonId: Invalid or missing course configuration.');
-    }
-    const { urlLessonId, persistedLessonId, storedLessonId, storedTimestamp } = context;
-    if (urlLessonId) return urlLessonId;
-    if (persistedLessonId && typeof persistedLessonId === 'string' && persistedLessonId.trim() !== '') {
-        const lessonExists = configData.lessons?.some(lesson => lesson.lessonId === persistedLessonId);
-        if (lessonExists) return persistedLessonId;
-    }
-    let wpLessonId = null, wpTimestamp = null;
-    if (userData) {
-        wpLessonId = userData[`${courseId}_current_lesson`] ?? null;
-        const ts = userData[`${courseId}_lesson_timestamp`];
-        wpTimestamp = ts && !isNaN(new Date(ts).getTime()) ? new Date(ts) : null;
-    }
-    const lsTs = storedTimestamp && !isNaN(new Date(storedTimestamp).getTime()) ? new Date(storedTimestamp) : null;
-    const sources = [];
-    if (wpLessonId && wpTimestamp) sources.push({ lessonId: wpLessonId, timestamp: wpTimestamp });
-    if (storedLessonId && lsTs) sources.push({ lessonId: storedLessonId, timestamp: lsTs });
-    if (sources.length === 1) return sources[0].lessonId;
-    if (sources.length > 1) { sources.sort((a, b) => b.timestamp - a.timestamp); return sources[0].lessonId; }
-    if (configData.lessons?.length > 0 && configData.lessons[0].lessonId) return configData.lessons[0].lessonId;
-    throw new Error('resolveCurrentLessonId: No lessons found in the course configuration.');
-}
-
-// TEMP: duplicate of getNextStep in modules/lessonRouting.js
-// Remove once caller at line 599 is migrated to React.
-function getNextStep(currentStep, configData, currentLessonIndex) {
-    if (!configData?.lessons || currentLessonIndex >= configData.lessons.length) return null;
-    const currentLesson = configData.lessons[currentLessonIndex];
-    const currentIndex = currentLesson.steps.findIndex(q => q.step === currentStep.step && q.cue === currentStep.cue);
-    if (currentIndex === -1) return currentLesson.steps[0];
-    if (currentIndex >= currentLesson.steps.length - 1) return null;
-    return currentLesson.steps[currentIndex + 1];
-}
-
-function getUrlParamCaseInsensitive(urlParams, paramName) {
-    const target = paramName.toLowerCase();
-    for (const [key, value] of urlParams.entries()) {
-        if (key.toLowerCase() === target) {
-            return value;
-        }
-    }
-    return null;
-}
-
-// TEMP: duplicate of resolveCurrentCourseId in modules/lessonRouting.js
-// Remove this once the caller at line 844 is migrated to React.
-function resolveCurrentCourseId(userData, context = {}) {
-    const { urlCourseId, wpCourseId, storedCourseId } = context;
-
-    if (urlCourseId) return urlCourseId;
-
-    if (userData && typeof userData === 'object') {
-        const fromProfile = wpCourseId || userData.current_course || null;
-        if (fromProfile) return fromProfile;
-    }
-
-    if (storedCourseId) return storedCourseId;
-
-    return 'tutorial';
-}
-
-// END STOPGAPS
+// END STOPGAPS — functions now imported from modules/lessonRouting.js
 
 // Speaking Score Logic ---
 window.addEventListener('transcriptRejected', (e) => {
@@ -849,27 +784,6 @@ async function loadLessonContent(lesson, configData) {
     callLoadStep(lesson.steps[appStore.getState().currentStepIndex], lesson, null);
 }
 
-async function handleAuthClick(e) {
-    e.preventDefault();
-    const isLoggedIn = await isUserLoggedIn();
-    if (isLoggedIn) {
-        if (confirm('Are you sure you want to sign out?')) {
-            await signOut();
-            navigateToHome(); // REFACTORED
-        }
-    } else {
-        const currentUrl = window.location.pathname + window.location.search;
-        navigateToLogin(currentUrl); // REFACTORED
-    }
-}
-
-function setupAuthMenu(isLoggedIn) {
-    // REFACTORED: Moved DOM logic to bindAuthMenuUI
-    const signOutText = Strings.get('sign_out', appStore.getState().userData?.native_language) || 'Sign Out';
-    const signInText = Strings.get('sign_in', appStore.getState().userData?.native_language) || 'Sign In';
-    bindAuthMenuUI(isLoggedIn, handleAuthClick, signOutText, signInText);
-}
-
 // INITIALIZE APP 
 async function initializeApp() {
     // Initialize reactive UI subscriptions first so the UI responds to store changes 
@@ -971,23 +885,6 @@ async function initializeApp() {
         console.error("Initialization error:", error);
         hidePreloader();
         showInitializationErrorMessage(Strings.get('lesson_load_error', appStore.getState().userData?.native_language));
-    }
-}
-
-async function requestPersistentStorage() {
-    // Check if the browser supports the Storage API
-    if (navigator.storage && navigator.storage.persist) {
-        // Check if we already have persistent storage
-        let isPersisted = await navigator.storage.persisted();
-        if (!isPersisted) {
-            // Request persistent storage
-            isPersisted = await navigator.storage.persist();
-        }
-        if (isPersisted) {
-            console.log("  Storage is persistent. The browser will not auto-delete the GECToR models.");
-        } else {
-            console.warn("  Persistent storage not granted. Models may be cleared if the device runs low on space.");
-        }
     }
 }
 
