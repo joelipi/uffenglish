@@ -3,10 +3,10 @@ import {
     showInitializationErrorMessage, setupLessonUI, DOM, escapeHTML, getFirstName, flashElement,
     disableAllButtons, showCriticalError,
     hideCriticalError,
-    safeRenderChatInterface, renderUserResponse, renderAIAnalysisLoading, removeAILoadingStatus,
+    safeRenderChatInterface, renderUserChatMessage, renderAIAnalysisLoading, removeAILoadingStatus,
     getPraiseHTML, renderAIFeedback, clearChatInterface, renderHangmanHint, showMicWarning,
     showAnswerError, setProgressBarWidth, hideAnswerDiv, bindProcessButton, resetUIForNewStep,
-    toggleScoresAndHearts, removeRepeatButton
+    toggleStatsContainer, removeRepeatButton
 } from './ui.js';
 import { appStore } from '../modules/store.js';
 import { State } from '../modules/state.js';
@@ -158,7 +158,7 @@ describe('UI Component functions', () => {
              State.userData = { display_name: 'Test User', profilepicurl: 'http://test.jpg' };
              appStore.setState({ userData: { display_name: 'Test User', profilepicurl: 'http://test.jpg' } });
 
-             expect(() => renderUserResponse('my answer')).not.toThrow();
+             expect(() => renderUserChatMessage('my answer')).not.toThrow();
              const history = appStore.getState().chatHistory;
              expect(history.some(m => m.content === 'my answer')).toBe(true);
              expect(history.some(m => m.userName === 'Test')).toBe(true);
@@ -284,14 +284,14 @@ describe('UI Component functions', () => {
         });
     });
 
-    describe('toggleScoresAndHearts & removeRepeatButton', () => {
+    describe('toggleStatsContainer & removeRepeatButton', () => {
         it('should toggle scores container', () => {
             document.body.innerHTML = '<div id="stats-container" class="d-none"></div>';
 
-            toggleScoresAndHearts(true);
+            toggleStatsContainer(true);
             expect(document.getElementById('stats-container').classList.contains('d-none')).toBe(false);
 
-            toggleScoresAndHearts(false);
+            toggleStatsContainer(false);
             expect(document.getElementById('stats-container').classList.contains('d-none')).toBe(true);
         });
 

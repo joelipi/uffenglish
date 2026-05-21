@@ -137,7 +137,7 @@ export function safeRenderChatInterface(isAI) {
     }
 }
 
-export function renderUserResponse(text, statsHtml = "") {
+export function renderUserChatMessage(text, statsHtml = "") {
     const storeState = appStore.getState();
     const userName = getFirstName(storeState.userData?.display_name);
     const userAvatarUrl = storeState.userData?.profilepicurl || '/assets/img/userprofile.webp';
@@ -519,7 +519,7 @@ export function getChatHistoryContext() {
 
 export function renderTutorMessage(text, isUser) {
     if (isUser) {
-        renderUserResponse(text);
+        renderUserChatMessage(text);
     } else {
         // AI response - add to Zustand so React can render it
         const storeState = appStore.getState();
@@ -1193,7 +1193,7 @@ export function resetUIForNewStep(isLessonIntro, hasUserData) {
     }
 }
 
-export function toggleScoresAndHearts(show) {
+export function toggleStatsContainer(show) {
     if (DOM.statsContainer) {
         if (show) DOM.statsContainer.classList.remove('d-none');
         else DOM.statsContainer.classList.add('d-none');

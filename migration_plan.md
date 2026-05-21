@@ -86,7 +86,7 @@ These were discovered and fixed during the migration process, not as part of a s
 | AI tutor chat not rendering | `renderTutorMessage()` wrote HTML directly instead of pushing to Zustand | Changed to `addChatMessage()` — React renders from Zustand |
 | `AiLoadingBubble` showing HTML tags as text | JSX `{defaultText}` auto-escapes, but `Strings.get()` returns HTML with `<br>`/`<span>` | Switched to `dangerouslySetInnerHTML` |
 | Stale "FluIntel AI" loading bubble after openResponse answer | `renderAIAnalysisLoading()` called at `app.js:565` with no matching `removeAILoadingStatus()` | Removed the call |
-| Double-escaped HTML entities in user responses (`&#39;` displayed literally) | `escapeHTML()` in `renderUserResponse` + React's `{text}` auto-escape = double escape | Removed `escapeHTML()` — React handles it |
+| Double-escaped HTML entities in user responses (`&#39;` displayed literally) | `escapeHTML()` in `renderUserChatMessage` + React's `{text}` auto-escape = double escape | Removed `escapeHTML()` — React handles it |
 | Chat message list not scrollable | `#react-root-chat` React wrapper broke the flex chain inside `#chat-window-container` | Added `flex: 1; min-height: 0; display: flex; flex-direction: column` to `#react-root-chat` |
 | App not clickable with DevTools console open + video not pausing | `will-change: opacity, transform` on `.ivp-main-wrapper` created a Chrome compositing layer that intercepted all input when DevTools opened | Removed `will-change` from `.ivp-main-wrapper`; set `#chat-window-container` z-index from 1051→11 (above play overlay's 10, not blocking video) |
 
@@ -228,7 +228,7 @@ These were discovered and fixed during the migration process, not as part of a s
 
 **Actions:**
 1. Catalog every exported and internal function in `ui.js` into categories:
-   - **Chat bridge functions:** Functions that push to `chatHistory` in Zustand (e.g., `renderUserResponse`, `renderAIFeedback`, `renderAIAnalysisLoading`) — **KEEP, this is the bridge**
+   - **Chat bridge functions:** Functions that push to `chatHistory` in Zustand (e.g., `renderUserChatMessage`, `renderAIFeedback`, `renderAIAnalysisLoading`) — **KEEP, this is the bridge**
    - **HTML generators:** Functions returning HTML strings (e.g., `buildGrammarDiff`, feedback HTML) — **KEEP for backward compatibility**
    - **DOM manipulators:** Functions using `innerHTML`, `createElement`, `appendChild` (e.g., `generateHangmanHint`, mic status, mission text) — **EVALUATE: some may be replaced by React, but the function can stay for vanilla-only paths**
    - **Pure utilities:** Functions with no side effects (e.g., `escapeHTML`) — **MOVE to utils.js if not already there**
@@ -241,7 +241,7 @@ These were discovered and fixed during the migration process, not as part of a s
 **Actions:**
 1. Create `js/modules/chat-bridge.js`
 2. Move Zustand chat-writing functions into this file:
-   - `renderUserResponse()` → `addUserMessage(text)`
+   - `renderUserChatMessage()` → `addUserMessage(text)`
    - `renderAIFeedback()` → `addAIFeedbackMessage(feedback)`
    - `renderAIAnalysisLoading()` → `addLoadingMessage()`
    - Any other functions that call `appStore.getState().addChatMessage()`

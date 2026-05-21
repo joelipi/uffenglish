@@ -1,4 +1,12 @@
 // --- components/step-loader.web.js ---
+// This file is deliberately kept as vanilla JS (not converted to React).
+// Reason: _renderResponseStep wires up the speech recognition pipeline with
+// 15+ imperative callbacks (onHesitation, onRecordingStart, onGibberishDetected,
+// onTranscriptRejected, etc.) that manipulate DOM by ID and dispatch CustomEvents.
+// The speech module (speech.js) is also vanilla and calls these synchronously.
+// Converting would require rewriting the entire speech pipeline — not worth the
+// risk mid-migration. This module works as a page controller alongside the React shell.
+
 import { State } from '../modules/state.js';
 import { appStore } from '../modules/store.js';
 import Strings from '../data/strings.js';
@@ -24,7 +32,7 @@ import {
     clearChatInterface,
     resetUIForNewStep,
     clearPlaybackVideo,
-    toggleScoresAndHearts,
+    toggleStatsContainer,
     hideWebcamPreview,
     removeRepeatButton,
     prepareMediaUI,
@@ -75,7 +83,7 @@ export function loadStep(step, lesson, fluencyData, deps) {
     State.player = null;
     clearPlaybackVideo();
 
-    toggleScoresAndHearts((step.stepType === 'closedResponse' || step.stepType === 'openResponse') && step.videoUrl);
+    toggleStatsContainer((step.stepType === 'closedResponse' || step.stepType === 'openResponse') && step.videoUrl);
 
     if (step.stepType === 'closedResponse' || step.stepType === 'openResponse') {
         if (!State.isCameraOff && !State.isTextMode) {
@@ -124,7 +132,7 @@ export function loadStep(step, lesson, fluencyData, deps) {
     setMicStatusText(stepDiv);
 
     if (step.stepType === "closedResponse" || step.stepType === "openResponse") {
-        _renderSpeechOrAI(step, lesson, deps);
+        _renderResponseStep(step, lesson, deps);
     } else if (step.stepType === 'text') {
         renderTextInputUI(
             Strings.get('placeholder_type_answer', appStore.getState().userData?.native_language) || 'Type your answer here...',
@@ -132,7 +140,7 @@ export function loadStep(step, lesson, fluencyData, deps) {
             (val, btn) => submitAnswerPrecheck(val, step.cue, step, btn, step.explanation, step.translation, { pauseCount: null, netDuration: null })
         );
     } else if (step.stepType === 'lessoncomplete') {
-        updateProgressAndCloseButton(true); toggleScoresAndHearts(false);
+        updateProgressAndCloseButton(true); toggleStatsContainer(false);
         setProgressBarWidth("95%"); showFeedbackAndProceed(step, true);
         hideAnswerDiv();
     } else if (step.stepType === 'unitcomplete') {
@@ -147,7 +155,7 @@ export function loadStep(step, lesson, fluencyData, deps) {
     }
 }
 
-function _renderSpeechOrAI(step, lesson, deps) {
+function _renderResponseStep(step, lesson, deps) {
     const { submitAnswerPrecheck, handleHint } = deps;
     hideHints();
 
@@ -317,7 +325,7 @@ function _renderSpeechOrAI(step, lesson, deps) {
 }
 
 function _renderPresent(step, lesson, showFeedbackAndProceed) {
-    updateProgressAndCloseButton(false); toggleScoresAndHearts(false); hideAnswerDiv();
+    updateProgressAndCloseButton(false); toggleStatsContainer(false); hideAnswerDiv();
 
     let headsUpHTML = step.headsUp ? `<div class="chat-message-row chat-message-row--system"><div class="chat-message-bubble chat-message-bubble--system"><p class="headsUp mb-0">${step.headsUp}</p></div></div>` : "";
 
@@ -382,7 +390,7 @@ function _renderSuccess(step, fluencyData) {
 
 function _renderLessonIntro(step, lesson, deps) {
     const { showFeedbackAndProceed } = deps;
-    toggleScoresAndHearts(false);
+    toggleStatsContainer(false);
     appStore.setState({ repeatPointsHistory: [] });
     appStore.setState({ rolePlayPointsHistory: [] });
     hideAnswerDiv();

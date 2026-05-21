@@ -94,7 +94,7 @@ import {
     flashElement,
     disableAllButtons,
     clearChatInterface,
-    renderUserResponse,
+    renderUserChatMessage,
     renderAIAnalysisLoading,
     renderAIFeedback,
     safeRenderChatInterface,
@@ -116,7 +116,7 @@ import {
     showContinueButton,
     hideContinueButton,
     renderFallbackContinueButton,
-    toggleScoresAndHearts,
+    toggleStatsContainer,
     setProgressBarWidth,
     showMessageInStepsContainer,
     showInitializationErrorMessage,
@@ -560,10 +560,10 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
             const translationStr = (localizedTrans && lang && lang !== 'en') ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>` : "";
 
             renderAIFeedback([`<strong>${cue}${translationStr}</strong>`]);
-            renderUserResponse(userResponse, "");
+            renderUserChatMessage(userResponse, "");
             if (immediateStatsHtmlArr.length > 0) renderAIFeedback(immediateStatsHtmlArr);
         } else if (stepData.stepType === "closedResponse" && userResponse && DOM.speechText) {
-            renderUserResponse(userResponse, "");
+            renderUserChatMessage(userResponse, "");
             if (immediateStatsHtmlArr.length > 0) renderAIFeedback(immediateStatsHtmlArr);
         }
 
@@ -667,7 +667,7 @@ function updateProgressBar() {
 
 function loadNextStep(currentStep, fluencyData) {
     updateProgressBar();
-    toggleScoresAndHearts(false);
+    toggleStatsContainer(false);
     State.resetForNextStep();
 
     if (!appStore.getState().configData || !appStore.getState().configData.lessons || appStore.getState().configData.lessons.length === 0) return;

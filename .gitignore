@@ -16,3 +16,7 @@ full_reflog.txt
 /dist
 /dist
 coverage/
+playwright.config.cjs
+playwright.config.js
+tests/phase2-verify.spec.js
+playwright.config.js
