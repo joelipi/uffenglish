@@ -5,7 +5,7 @@ import {
     safeRenderChatInterface, renderAIAnalysisLoading,
     getPraiseHTML, renderAIFeedback, clearChatInterface, renderHangmanHint, showMicWarning,
     showAnswerError, setProgressBarWidth, hideAnswerDiv, bindProcessButton, resetUIForNewStep,
-    toggleStatsContainer, removeRepeatButton
+    toggleStatsContainer, removeRepeatButton, renderWhisperReviewUI
 } from './ui.js';
 import { appStore } from '../modules/store.js';
 import { State } from '../modules/state.js';
@@ -196,6 +196,31 @@ describe('UI Component functions', () => {
         it('should test clearChatInterface', () => {
              expect(() => clearChatInterface()).not.toThrow();
              expect(appStore.getState().chatHistory.length).toBe(0);
+        });
+    });
+
+    describe('Whisper Review UI', () => {
+        beforeEach(() => {
+            document.body.innerHTML += `
+                <div id="whisperReviewContainer" class="d-none">
+                    <div id="whisperTranscript"></div>
+                    <div id="reviewProgressBar"></div>
+                    <button id="rejectBtn"></button>
+                    <button id="acceptBtn"><span id="reviewTimer"></span></button>
+                </div>`;
+        });
+
+        it('should not throw ReferenceError (catches missing internal refs like removeAILoadingStatus)', () => {
+            const onAccept = vi.fn();
+            const onReject = vi.fn();
+            expect(() => renderWhisperReviewUI('test transcript', 7, onAccept, onReject)).not.toThrow();
+        });
+
+        it('should show the whisper review container', () => {
+            const onAccept = vi.fn();
+            const onReject = vi.fn();
+            renderWhisperReviewUI('hello world', 5, onAccept, onReject);
+            expect(document.getElementById('whisperReviewContainer').classList.contains('d-none')).toBe(false);
         });
     });
 
