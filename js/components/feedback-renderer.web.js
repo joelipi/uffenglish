@@ -2,12 +2,101 @@
 // Web-specific: converts feedback data structures (from feedback-builder.js) into HTML strings.
 // React Native would have a feedback-renderer.native.jsx counterpart using <View>/<Text>.
 
-import {
-    createStatsBubbleHTML,
-    createGrammarDiffHTML,
-    createHeaderHTML,
-    createPragmaticsBubbleHTML
-} from './ui.js';
+import { appStore } from '../modules/store.js';
+import Strings from '../data/strings.js';
+
+/**
+ * Internal HTML Utilities for Feedback Bubbles
+ */
+
+function createHeaderHTML(text) {
+    if (!text) return "";
+    return `<div style="font-size: 0.85em; text-transform: uppercase; color: #17a2b8; margin-bottom: 5px;"><strong>${text}</strong></div>`;
+}
+
+function createPragmaticsBubbleHTML(headingHTML, contentHTML, correctionHTML = "", botName = "Joe Walsh", avatarUrl = "/assets/img/teacherprofile.webp") {
+    return `
+        <div class="chat-message-row chat-message-row--system" style="margin-bottom: 0px;">
+            <img src="${avatarUrl}" alt="${botName}" class="chat-avatar-inline" />
+            <div class="chat-message-bubble chat-message-bubble--system" style="border-left: 4px solid #ffc107;">
+                <div class="chat-bubble-header">${botName}</div>
+                ${headingHTML ? headingHTML : ''}
+                <div class="chat-message-content">${contentHTML}</div>
+                ${correctionHTML ? `<div class="chat-message-correction">${correctionHTML}</div>` : ''}
+            </div>
+        </div>`;
+}
+
+function createStatsBubbleHTML(header, statsParts, botName = "Joe Walsh", avatarUrl = "/assets/img/teacherprofile.webp") {
+    const statsHtml = statsParts.map(part => `<div>${part}</div>`).join('');
+    return `
+        <div class="chat-message-row chat-message-row--system" style="margin-bottom: 0px;">
+            <img src="${avatarUrl}" alt="${botName}" class="chat-avatar-inline" />
+            <div class="chat-message-bubble chat-message-bubble--system" style="border-left: 4px solid #17a2b8;">
+                <div class="chat-bubble-header">${botName}</div>
+                <span>${header}</span>
+                <div class="chat-message-content">${statsHtml}</div>
+            </div>
+        </div>`;
+}
+
+function buildGrammarDiff(original, corrected) {
+    // Simple LCS-based diff for highlighting insertions/deletions
+    const tokensA = original.split(/(\s+)/);
+    const tokensB = corrected.split(/(\s+)/);
+    const m = tokensA.length, n = tokensB.length;
+    const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+    for (let i = 1; i <= m; i++)
+        for (let j = 1; j <= n; j++)
+            dp[i][j] = tokensA[i - 1] === tokensB[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
+
+    const result = [];
+    let i = m, j = n;
+    while (i > 0 || j > 0) {
+        if (i > 0 && j > 0 && tokensA[i - 1] === tokensB[j - 1]) {
+            result.unshift({ type: 'eq', val: tokensA[i - 1] });
+            i--; j--;
+        } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+            result.unshift({ type: 'ins', val: tokensB[j - 1] });
+            j--;
+        } else {
+            result.unshift({ type: 'del', val: tokensA[i - 1] });
+            i--;
+        }
+    }
+    return result;
+}
+
+function createGrammarDiffHTML(original, corrected, headingText = "", botName = "Joe Walsh", avatarUrl = "/assets/img/teacherprofile.webp") {
+    const diff = buildGrammarDiff(original, corrected);
+    let diffHtml = '';
+    diff.forEach(token => {
+        if (token.type === 'eq') diffHtml += token.val;
+        else if (token.type === 'ins') diffHtml += `<span class="diff-ins">${token.val}</span>`;
+        else if (token.type === 'del') diffHtml += `<span class="diff-del">${token.val}</span>`;
+    });
+
+    return `
+        <div class="chat-message-row chat-message-row--system" style="margin-bottom: 0px;">
+            <img src="${avatarUrl}" alt="${botName}" class="chat-avatar-inline" />
+            <div class="chat-message-bubble chat-message-bubble--system" style="border-left: 4px solid #dc3545;">
+                <div class="chat-bubble-header">${headingText}</div>
+                <div class="chat-message-content">${diffHtml}</div>
+            </div>
+        </div>`;
+}
+
+export function getPraiseHTML(praiseData) {
+    if (!praiseData) return "";
+    if (typeof praiseData === 'string') return praiseData;
+    if (typeof praiseData === 'object' && praiseData.type === 'image') {
+        return `<img src="${praiseData.content}" alt="Praise" class="praise-image" style="max-width: 200px; border-radius: 8px; display: block; margin: 10px auto;">`;
+    }
+    if (typeof praiseData === 'object' && praiseData.text) {
+        return praiseData.text;
+    }
+    return "";
+}
 
 /**
  * Returns "💯" when score is 100, otherwise "N%" (e.g. "87%").

@@ -3,7 +3,7 @@ import {
     setupLessonUI, DOM, escapeHTML, getFirstName, flashElement,
     disableAllButtons,
     safeRenderChatInterface, renderAIAnalysisLoading,
-    getPraiseHTML, renderAIFeedback, clearChatInterface, showMicWarning,
+    renderAIFeedback, clearChatInterface, showMicWarning,
     showAnswerError, hideAnswerDiv, bindProcessButton, resetUIForNewStep,
     removeRepeatButton, renderWhisperReviewUI
 } from './ui.js';
@@ -172,13 +172,6 @@ describe('UI Component functions', () => {
              appStore.getState().removeAiLoadingMessage();
              history = appStore.getState().chatHistory;
              expect(history.some(m => m.type === 'aiLoading')).toBe(false);
-        });
-
-        it('should get praise HTML without errors', () => {
-             expect(getPraiseHTML(null)).toBe('');
-             expect(getPraiseHTML('Good job!')).toBe('Good job!');
-             expect(getPraiseHTML({ text: 'Good job!' })).toBe('Good job!');
-             expect(getPraiseHTML({ type: 'image', content: 'test.jpg' })).toContain('img src="test.jpg"');
         });
 
         it('should render AI feedback chunks correctly', () => {

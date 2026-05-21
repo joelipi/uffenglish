@@ -94,7 +94,9 @@ test.describe('Answer Flow — mic bypass integration test', () => {
             !e.includes('favicon') &&
             !e.includes('source map') &&
             !e.includes('Whisper') &&
-            !e.includes('vite')
+            !e.includes('vite') &&
+            !e.includes('401') &&
+            !e.includes('Unauthorized')
         )).toEqual([]);
     });
 

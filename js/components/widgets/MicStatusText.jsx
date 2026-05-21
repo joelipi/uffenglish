@@ -8,7 +8,7 @@ export default function MicStatusText() {
     const target = document.getElementById('react-root-micstatus');
 
     return target ? createPortal(
-        <div className="d-flex justify-content-center align-items-center"
+        <div id="micStatusText" className="d-flex justify-content-center align-items-center"
             dangerouslySetInnerHTML={{ __html: micStatusText }}>
         </div>,
         target

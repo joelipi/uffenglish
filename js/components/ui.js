@@ -6,6 +6,7 @@ import getRandomPraise from '../data/praise.js';
 import { getLocalizedTranslation } from '../modules/utils.js';
 import { Media } from '../modules/media.js';
 import { pointLoss } from './point-loss-animation.js';
+import { getPraiseHTML } from './feedback-renderer.web.js';
 
 const AI_TUTOR_NAME = 'AI Tutor';
 const AI_TUTOR_AVATAR = '/assets/img/ai.webp';
@@ -156,57 +157,6 @@ export function renderAIAnalysisLoading(text) {
     });
 }
 
-export function createHeaderHTML(text) {
-    return "";
-}
-
-export function createPragmaticsBubbleHTML(headingHTML, contentHTML, correctionHTML = "", botName = "Joe Walsh", avatarUrl = "/assets/img/teacherprofile.webp") {
-    return `
-        <div class="chat-message-row chat-message-row--system">
-            <img src="${avatarUrl}" alt="${botName}" class="chat-avatar-inline" />
-            <div class="chat-message-bubble chat-message-bubble--system">
-                <div class="chat-bubble-header">${botName}</div>
-                ${contentHTML}${correctionHTML ? ` ${correctionHTML}` : ''}
-            </div>
-        </div>`;
-}
-
-export function createStatsBubbleHTML(header, statsParts, botName = "Joe Walsh", avatarUrl = "/assets/img/teacherprofile.webp") {
-    const partsHtml = statsParts && statsParts.length > 0
-        ? ` ${statsParts.join('. ')}`
-        : '';
-    return `
-        <div class="chat-message-row chat-message-row--system">
-            <img src="${avatarUrl}" alt="${botName}" class="chat-avatar-inline" />
-            <div class="chat-message-bubble chat-message-bubble--system" style="border-left: 4px solid #17a2b8;">
-                <div class="chat-bubble-header">${botName}</div>
-                <span>${header}${partsHtml}</span>
-            </div>
-        </div>`;
-}
-
-export function createGrammarDiffHTML(original, correction, headingText = "", botName = "Joe Walsh", avatarUrl = "/assets/img/teacherprofile.webp") {
-    const { userHTML, corrHTML } = buildGrammarDiff(original, correction);
-    return `
-        <div class="chat-message-row chat-message-row--system">
-            <img src="${avatarUrl}" alt="${botName}" class="chat-avatar-inline" />
-            <div class="chat-message-bubble chat-message-bubble--system">
-                <div class="chat-bubble-header">${botName}</div>
-                <div class="diff-del-bubble">${userHTML}</div>
-                <div style="margin-top:6px">${corrHTML}</div>
-            </div>
-        </div>`;
-}
-
-export function getPraiseHTML(praiseData) {
-    if (!praiseData) return "";
-    if (typeof praiseData === 'string') return praiseData;
-    if (praiseData.type === 'image') {
-        return `<img src="${praiseData.content}" class="img-fluid rounded" alt="Praise" style="max-height: 200px; display: block; margin: 0 auto;">`;
-    }
-    return praiseData.text || "";
-}
-
 export function renderAIFeedback(contentChunks = []) {
     safeRenderChatInterface(true);
 
@@ -244,8 +194,10 @@ export function hidePreloader() {
 }
 
 export function showMicWarning(message) {
+    const html = `<div class='text-center text-danger'>${message}</div>`;
+    appStore.getState().setMicStatusText(html);
     if (DOM.micStatusText) {
-        DOM.micStatusText.innerHTML = `<div class='text-center text-danger'>${message}</div>`;
+        DOM.micStatusText.innerHTML = html;
     }
 }
 export function showAnswerError(message) {
@@ -279,8 +231,10 @@ export function resetMissionText(missionText, settingText, roleUserText, roleOth
 }
 
 export function resetMicStatusWithStep(questionText) {
+    const html = `<div class='text-center'>${questionText || ""}</div>`;
+    appStore.getState().setMicStatusText(html);
     if (DOM.micStatusText) {
-        DOM.micStatusText.innerHTML = `<div class='text-center'>${questionText || ""}</div>`;
+        DOM.micStatusText.innerHTML = html;
     }
 }
 
@@ -493,6 +447,7 @@ export function getChatHistoryContext() {
 }
 
 export function clearMicStatusAndHideMedia() {
+    appStore.getState().setMicStatusText("");
     if (DOM.micStatusText) DOM.micStatusText.innerHTML = "";
     if (DOM.mediaViewport) DOM.mediaViewport.classList.add('d-none');
     hideAnswerInputArea();

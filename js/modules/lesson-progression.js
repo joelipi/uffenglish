@@ -102,8 +102,8 @@ export async function handleTutorChatSubmit(rawText) {
             role: 'system',
             type: 'standard',
             content: aiResponse,
-            botName: 'Joe Walsh',
-            avatarUrl: '/assets/img/teacherprofile.webp'
+            botName: 'FluIntel AI',
+            avatarUrl: '/assets/img/ai.webp'
         });
     } catch (error) {
         console.error('[app] Error in askEnglishTutor:', error);
