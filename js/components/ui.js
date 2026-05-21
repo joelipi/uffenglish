@@ -596,7 +596,7 @@ export function hideWhisperReviewUI() {
 }
 
 export function renderWhisperReviewUI(transcript, timeLeft, onAccept, onReject) {
-    removeAILoadingStatus();
+    appStore.getState().removeAiLoadingMessage();
     if (DOM.micStatusText) DOM.micStatusText.innerHTML = "";
     if (!DOM.whisperReviewContainer || !DOM.whisperTranscript) return;
 
