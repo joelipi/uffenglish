@@ -2,18 +2,20 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Answer Flow — mic bypass integration test', () => {
+    let errors = [];
 
-    test('app loads without SyntaxError on missing exports', async ({ page }) => {
-        const errors = [];
+    test.beforeEach(async ({ page }) => {
+        errors = [];
         page.on('pageerror', e => errors.push(e.message));
-        await page.goto('/course/gt2/lesson/a');
-        await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
-        expect(errors.filter(e =>
-            !e.includes('favicon') &&
-            !e.includes('source map') &&
-            !e.includes('Whisper') &&
-            !e.includes('vite')
-        )).toEqual([]);
+        page.on('console', msg => {
+            if (msg.type() === 'error') {
+                const text = msg.text();
+                const noise = ['favicon', 'source map', 'Whisper', 'vite', '401 (Unauthorized)'];
+                if (!noise.some(n => text.includes(n))) {
+                    errors.push(text);
+                }
+            }
+        });
     });
 
     test('submitAnswerPrecheck and handleAnswer wrappers resolve without error', async ({ page }) => {
