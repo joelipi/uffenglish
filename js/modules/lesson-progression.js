@@ -1,0 +1,104 @@
+// --- modules/lesson-progression.js ---
+// Progression functions extracted from app.js.
+// Manages step transitions, lesson advancement, progress bar, and tutor chat.
+// Uses deps pattern (_deps) for callLoadStep and loadLessonContent to avoid circular imports.
+
+import { appStore } from './store.js';
+import { State } from './state.js';
+import Strings from '../data/strings.js';
+import {
+    setProgressBarWidth,
+    toggleStatsContainer,
+    showMessageInStepsContainer,
+    renderTutorMessage,
+    renderAIAnalysisLoading,
+    getChatHistoryContext,
+    removeAILoadingStatus
+} from '../components/ui.js';
+import { askEnglishTutor } from './api.js';
+import { saveLessonProgress } from './user-profile.js';
+import { Media } from './media.js';
+
+export function updateProgressBar() {
+    if (!appStore.getState().configData || !appStore.getState().configData.lessons || appStore.getState().configData.lessons.length === 0) return;
+    const currentLesson = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex];
+    const totalSteps = currentLesson.steps.length;
+    let currentSteps = State.stepsAnswered++;
+    const finalProgress = Math.min(Math.max((currentSteps / totalSteps) * 100, 10), 90);
+    setProgressBarWidth(`${finalProgress}%`);
+}
+
+export function showCompletionMessage() {
+    showMessageInStepsContainer(Strings.get('msg_lesson_complete_all', appStore.getState().userData?.native_language));
+}
+
+export function loadNextStep(currentStep, fluencyData, _deps = {}) {
+    updateProgressBar();
+    toggleStatsContainer(false);
+    State.resetForNextStep();
+
+    if (!appStore.getState().configData || !appStore.getState().configData.lessons || appStore.getState().configData.lessons.length === 0) return;
+    const currentLesson = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex];
+
+    appStore.setState({ currentStepIndex: appStore.getState().currentStepIndex + 1 });
+    if (appStore.getState().currentStepIndex < currentLesson.steps.length) {
+        _deps.callLoadStep(currentLesson.steps[appStore.getState().currentStepIndex], currentLesson, fluencyData);
+    } else {
+        if (currentLesson.nextLessonId) loadNextLesson(_deps);
+        else showCompletionMessage();
+    }
+}
+
+export async function loadNextLesson(_deps = {}) {
+    if (!appStore.getState().configData || !appStore.getState().configData.lessons || appStore.getState().configData.lessons.length === 0) return;
+    const currentLesson = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex];
+    const nextLessonId = currentLesson.nextLessonId;
+
+    if (nextLessonId) {
+        saveLessonProgress(appStore.getState().courseId, nextLessonId, appStore.getState().userData).then(progressResult => {
+            if (progressResult.dayCountIncremented) {
+                appStore.getState().setActivityMetrics(progressResult.newDayCount, appStore.getState().currentStreak);
+            }
+        });
+
+        setTimeout(async () => {
+            const nextLessonIndex = appStore.getState().configData.lessons.findIndex(l => l.lessonId === nextLessonId);
+            if (nextLessonIndex !== -1) {
+                appStore.setState({ currentLessonIndex: nextLessonIndex });
+                localStorage.setItem(`${appStore.getState().courseId}_currentLessonId`, nextLessonId);
+                localStorage.setItem(`${appStore.getState().courseId}_currentLessonTimestamp`, new Date().toISOString());
+                setProgressBarWidth("100%");
+                State.stepsAnswered = 0;
+                appStore.setState({ currentStepIndex: 0 });
+                _deps.loadLessonContent(appStore.getState().configData.lessons[nextLessonIndex]);
+            } else showCompletionMessage();
+        }, 1200);
+    } else {
+        Media.playSound('lesson-complete-sound');
+        showCompletionMessage();
+    }
+}
+
+export async function handleTutorChatSubmit(rawText) {
+    if (!rawText || !rawText.trim()) return;
+    const wordCount = rawText.trim().split(/\s+/).length;
+    appStore.getState().incrementUserTutorStats(wordCount);
+
+    renderTutorMessage(rawText, true);
+
+    renderAIAnalysisLoading(Strings.get('ai_thinking', appStore.getState().userData?.native_language));
+
+    const context = getChatHistoryContext();
+    try {
+        const aiResponse = await askEnglishTutor(context, rawText);
+        const aiWordCount = aiResponse.trim().split(/\s+/).length;
+        appStore.getState().incrementAiTutorStats(aiWordCount);
+
+        removeAILoadingStatus();
+
+        renderTutorMessage(aiResponse, false);
+    } catch (error) {
+        console.error('[app] Error in askEnglishTutor:', error);
+        removeAILoadingStatus();
+    }
+}
