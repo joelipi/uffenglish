@@ -16,16 +16,21 @@ export default function LessonSuccessControls() {
 
         const successHandler = State.successHandler;
         if (successHandler && typeof successHandler.createVideoButton === 'function') {
+            console.log('[success] LessonSuccessControls mount', {
+                bottomControlState,
+                currentLessonIndex,
+                currentStepCount: configData?.lessons?.[currentLessonIndex]?.steps?.length,
+                fluencyScore: appStore.getState().fluencyScore
+            });
             // Get the current step from the lesson data
             const currentLesson = configData?.lessons?.[currentLessonIndex];
             const currentStep = currentLesson?.steps?.[currentLesson.steps.length - 1]; // Last step is typically the success step
             
             if (currentStep) {
-                // Calculate fluency data (simplified - actual calculation would be more complex)
                 const fluencyData = {
                     total: appStore.getState().fluencyScore || 0
                 };
-                
+                console.log('[success] LessonSuccessControls invoking createVideoButton', { currentStep, fluencyData });
                 successHandler.createVideoButton(currentStep, fluencyData).catch(console.error);
             } else {
                 console.error('[LessonSuccessControls] Could not determine current step for video generation');

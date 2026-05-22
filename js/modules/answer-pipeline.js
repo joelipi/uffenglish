@@ -467,6 +467,21 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
                 attemptNumber: attemptNumber,
                 isTextMode: State.isTextMode
             });
+            console.log('[scoring] calculateFluencyScore', {
+                pronunciationScore: speakingScore,
+                listeningScore: listeningScore,
+                wpm: speechAnalytics?.wpm || 0,
+                pauseCount: stats.pauseCount || 0,
+                hesitation: speechAnalytics?.hesitation || 0,
+                idiomCount: speechAnalytics?.foundIdioms ? speechAnalytics.foundIdioms.length : 0,
+                cefrLevel: englishLevel,
+                grammarErrorScore,
+                complexityScore: speechAnalytics?.complexityScore || 100,
+                labels: result && result.intentLabels ? result.intentLabels : [],
+                attemptNumber,
+                isTextMode: State.isTextMode,
+                scoreData
+            });
 
             appStore.getState().setFluencyMetrics({
                 fluencyScore: scoreData.fluencyScore,
@@ -476,6 +491,15 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
                 formalityScore: scoreData.subScores.formality,
                 nativeLikeScore: scoreData.subScores.nativeLike,
                 understandingScore: scoreData.subScores.understanding
+            });
+            console.log('[scoring] setFluencyMetrics applied', {
+                fluencyScore: appStore.getState().fluencyScore,
+                flowScore: appStore.getState().flowScore,
+                vocabularyScore: appStore.getState().vocabularyScore,
+                grammarScore: appStore.getState().grammarScore,
+                formalityScore: appStore.getState().formalityScore,
+                nativeLikeScore: appStore.getState().nativeLikeScore,
+                understandingScore: appStore.getState().understandingScore
             });
 
             const feedbackData = buildFeedbackData({

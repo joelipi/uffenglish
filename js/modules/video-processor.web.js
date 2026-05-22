@@ -63,6 +63,7 @@ export async function processVideo(fluencyData = {}, lessonId = null, displayCan
             console.log("[VideoProcessor] Starting live processing on screen...");
 
             const recordings = await getAllSpeechRecordingsForLesson(lessonId) || [];
+            console.log('[video] processVideo called', { lessonId, fluencyData, recordingsLength: recordings.length });
 
             if (!recordings.length) {
                 console.warn("[VideoProcessor] No recordings found. Proceeding with text-mode/summary generation.");
@@ -289,6 +290,7 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
 
 function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart, fluencyData, isFirst, subtitleText) {
     const now = performance.now();
+    console.log('[video] drawTextOverlay', { tailing, fluencyDataTotal: fluencyData?.total, isFirst, subtitleText });
     const blinkOn = Math.floor(now / 500) % 2 === 0;
     context.save();
 

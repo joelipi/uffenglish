@@ -14,6 +14,11 @@ window.enabledLogs = {
     ui: false,
     hesitation: true,
     success: true,
+    scoring: true,
+    video: true,
+    pipeline: true,
+    app: true,
+    storage: true,
     gamification: false,
     all: true
 };
@@ -369,6 +374,14 @@ async function initializeApp() {
                 speechTextHere: DOM.speechText,
                 chatMessageList: document.getElementById('chat-message-list')
             }
+        });
+
+        console.log('[app] SuccessLessonHandler initialized', {
+            currentLessonIndex: appStore.getState().currentLessonIndex,
+            lessonsLoaded: appStore.getState().configData?.lessons?.length,
+            fluencyScore: appStore.getState().fluencyScore,
+            listeningScore: appStore.getState().listeningScore,
+            speakingScore: appStore.getState().speakingScore
         });
 
         //   CRITICAL TO PREVENT RAM OVERLOAD: Render the UI and Video FIRST

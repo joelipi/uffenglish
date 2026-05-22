@@ -51,12 +51,21 @@ export class SuccessLessonHandler {
     const state = appStore.getState();
     const repeatPointsHistory = Array.isArray(state.repeatPointsHistory) ? state.repeatPointsHistory : [];
     const rolePlayPointsHistory = Array.isArray(state.rolePlayPointsHistory) ? state.rolePlayPointsHistory : [];
+    console.log('[success] handleSuccessLesson start', {
+      lessonId: step.lessonId,
+      repeatPointsHistory,
+      rolePlayPointsHistory,
+      stateFluencyScore: state.fluencyScore,
+      stateListeningScore: state.listeningScore,
+      stateSpeakingScore: state.speakingScore
+    });
     const lessonAverage = typeof this.calculateAverage === 'function'
       ? (repeatPointsHistory.length || rolePlayPointsHistory.length
           ? this.calculateAverage(repeatPointsHistory, rolePlayPointsHistory)
           : state.fluencyScore || 0)
       : state.fluencyScore || 0;
     const fluencyData = { total: lessonAverage };
+    console.log('[success] computed success fluency', { lessonAverage, fluencyData, repeatPointsHistory, rolePlayPointsHistory });
 
     // Fluency trend detection using last-10 average
     const recent = state.recentFluencyAvgs || [];
@@ -161,6 +170,7 @@ export class SuccessLessonHandler {
           targetLessonId = new URLSearchParams(window.location.search).get('lessonId');
         }
         if (targetLessonId) targetLessonId = targetLessonId.replace(/s+$/, '');
+        console.log('[success] calling processVideo', { targetLessonId, fluencyData });
 
         const result = await processVideo(fluencyData, targetLessonId, displayCanvas);
 
