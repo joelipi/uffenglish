@@ -262,7 +262,6 @@ describe('UI Component functions', () => {
                 <button id="continueButtonSuccess"></button>
                 <button id="repeatButtonSuccess"></button>
                 <button id="processBtn" class="btn-success flex-fill" disabled></button>
-                <div id="state-lesson-success" class=""></div>
                 <div id="lessonIntroHeader"></div>
                 <div id="closeAndProgress"></div>
                 <div id="success-media" class=""></div>
@@ -282,7 +281,11 @@ describe('UI Component functions', () => {
             expect(btn.classList.contains('btn-success')).toBe(false);
             expect(btn.classList.contains('btn-outline-primary')).toBe(true);
 
-            expect(document.getElementById('state-lesson-success').classList.contains('d-none')).toBe(true);
+            // Set to lessonSuccess, then verify resetUIForNewStep resets it to 'mic'
+            appStore.getState().setBottomControlState('lessonSuccess');
+            resetUIForNewStep(true, false);
+            expect(appStore.getState().bottomControlState).toBe('mic');
+
             expect(document.getElementById('lessonIntroHeader').classList.contains('d-none')).toBe(false);
             expect(document.getElementById('closeAndProgress').classList.contains('d-none')).toBe(true);
             expect(document.getElementById('success-media').classList.contains('d-none')).toBe(true);

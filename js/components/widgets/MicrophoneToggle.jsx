@@ -6,6 +6,7 @@ import { State } from '../../modules/state.js';
 export default function MicrophoneToggle() {
     const isMicActive = useStore(appStore, (state) => state.isMicActive);
     const isTextMode = useStore(appStore, (state) => state.isTextMode);
+    const bottomControlState = useStore(appStore, (state) => state.bottomControlState);
     const containerRef = useRef(null);
     const animationRefs = useRef([]);
 
@@ -93,7 +94,7 @@ export default function MicrophoneToggle() {
     };
 
     return (
-        <div ref={containerRef} className="mic-btn-wrapper" id="state-standard-mic" style={{ display: 'flex' }}>
+        <div ref={containerRef} className={`mic-btn-wrapper${bottomControlState !== 'mic' ? ' d-none' : ''}`} id="state-standard-mic" style={{ display: 'flex' }}>
             <div className="mic-ring" style={{ opacity: 0, pointerEvents: 'none' }}></div>
             <div className="mic-ring" style={{ opacity: 0, pointerEvents: 'none' }}></div>
             <div className="mic-ring" style={{ opacity: 0, pointerEvents: 'none' }}></div>

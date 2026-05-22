@@ -123,11 +123,22 @@ export function renderFeedbackToHTML(feedbackData) {
 
             let grammarDiffHtml = '';
             if (section.diff) {
-                const fullDiffHTML = createGrammarDiffHTML(section.diff.original, section.diff.corrected, '');
-                const match = fullDiffHTML.match(/<div class="diff-del-bubble">[\s\S]*?<\/div>\s*<div style="margin-top:6px">[\s\S]*?<\/div>/);
-                if (match) {
-                    grammarDiffHtml = match[0];
-                }
+                const diffTokens = buildGrammarDiff(section.diff.original, section.diff.corrected);
+                let userHTML = '', corrHTML = '';
+                const isPunct = tok => /^[^\p{L}\p{N}]+$/u.test(tok);
+                diffTokens.forEach(({ type, val }) => {
+                    const v = val.replace(/</g, '&lt;');
+                    if (type === 'eq') { userHTML += v; corrHTML += v; }
+                    else if (type === 'del') {
+                        if (isPunct(val)) { userHTML += v; }
+                        else { userHTML += `<span class="diff-del">${v}</span>`; }
+                    }
+                    else if (type === 'ins') {
+                        if (isPunct(val)) { corrHTML += v; }
+                        else { corrHTML += `<span class="diff-ins">${v}</span>`; }
+                    }
+                });
+                grammarDiffHtml = `<div class="diff-del-bubble">${userHTML}</div><div style="margin-top:6px">${corrHTML}</div>`;
             }
 
             return `

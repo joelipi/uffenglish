@@ -32,8 +32,6 @@ import {
     safeRenderChatInterface,
     renderAIFeedback,
     disableAllButtons,
-    showContinueButton,
-    hideContinueButton,
     resetMicStatusWithStep,
     handlecueUI,
     handleIncueUI,
@@ -410,7 +408,7 @@ export function showFeedbackAndProceed(stepData, isCorrect, _deps = {}) {
     try {
         appStore.getState().setHintsVisible(false);
         console.log('[showFeedbackAndProceed] stepType:', stepData.stepType, '| isLessonIntro:', stepData.stepType === "lessonIntro");
-        const continueButton = showContinueButton(stepData.stepType === "lessonIntro", () => {
+        const onContinue = () => {
             Media.pauseVideoIfPlaying();
             if (stepData.stepType === "lessonIntro") {
                 const initializeMedia = async () => {
@@ -419,8 +417,9 @@ export function showFeedbackAndProceed(stepData, isCorrect, _deps = {}) {
                 };
                 initializeMedia();
             }
-            console.log('[showFeedbackAndProceed] calling hideContinueButton');
-            hideContinueButton();
+            console.log('[showFeedbackAndProceed] continue clicked, restoring mic controls');
+            appStore.getState().setBottomControlState('mic');
+            appStore.getState().removeContinueWidget();
             if (stepData.stepType === "lessonIntro") {
                 setTimeout(() => {
                     if (loadNextStep) loadNextStep(stepData);
@@ -434,7 +433,21 @@ export function showFeedbackAndProceed(stepData, isCorrect, _deps = {}) {
                     if (callLoadStep) callLoadStep(appStore.getState().configData.lessons[appStore.getState().currentLessonIndex].steps[stepIndex], appStore.getState().configData.lessons[appStore.getState().currentLessonIndex]);
                 }
             }
-        });
+        };
+
+        if (stepData.stepType === "lessonIntro") {
+            window.__introContinueCallback = onContinue;
+            appStore.getState().setBottomControlState('introChoices');
+        } else {
+            const hasWidget = appStore.getState().chatHistory.some(msg => msg.type === 'continueWidget');
+            if (!hasWidget) {
+                appStore.getState().addChatMessage({
+                    role: 'system',
+                    type: 'continueWidget',
+                    onClick: onContinue
+                });
+            }
+        }
 
         if (isCorrect || appStore.getState().incorrectAttempts > 2) {
             const nextStep = getNextStep(stepData, appStore.getState().configData, appStore.getState().currentLessonIndex);

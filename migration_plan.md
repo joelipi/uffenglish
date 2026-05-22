@@ -16,7 +16,7 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 
 ### What's Still Vanilla JS
 - `js/app.js` (374 lines) — main application controller: initialization, lesson orchestration
-- `js/components/ui.js` (1,425 lines) — UI bridge monolith: DOM manipulation, Zustand writes, HTML generation
+- `js/components/ui.js` (~1,315 lines) — UI bridge monolith: DOM manipulation, Zustand writes, HTML generation
 - `js/components/step-loader.web.js` (446 lines) — step loading orchestration (deliberately kept vanilla)
 - `js/components/interactive-video-player.js` (359 lines), `simple-video-player.js` (401 lines), `intro-background-video.js` (97 lines) — video player classes
 - `js/components/feedback-renderer.web.js`, `point-loss-animation.js`, `mic-animation.js`, `success-lesson.js` — utility modules
@@ -89,13 +89,40 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 
 *For each remaining ui.js function, add a Zustand action + React component that replaces it, then delete the old function. This is a single loop — replacement unblocks deletion, deletion is the completion signal.*
 
-**Progress snapshot:** 21 of 25 backlog items COMPLETED. `ui.js` shrunk from 1,613 → 1,425 lines. Phase 1 (video wrappers) COMPLETED. Phase 2.0 (monolith shrinkage) COMPLETED.
+**Progress snapshot:** 24 of 28 backlog items COMPLETED. `ui.js` shrunk from 1,613 → ~1,315 lines. Phase 1 (video wrappers) COMPLETED. Phase 2.0 (monolith shrinkage) COMPLETED. Phase 2.1 (bottom controls state machine) COMPLETED.
 
 **Remaining Phase 2 work (next actions):**
 1. `hidePreloader` — small, only called from `app.js`
 2. `showPlaybackVideo` — called from `answer-pipeline.js` and `handleIncueUI`; `VideoBubble` React component already exists
-3. `showContinueButton` — called from `answer-pipeline.js` and `step-loader.web.js`; `ContinueWidgetBubble` React component already exists
-4. `syncTextModeUI` — still called from `showContinueButton` click handlers; will be removed when `showContinueButton` is migrated
+
+### Phase 2.1: Bottom Controls State Machine — COMPLETED
+
+*Replace `showContinueButton`, `hideContinueButton`, `showLessonSuccessState`, and `syncTextModeUI` with a Zustand-driven three-state system for the bottom controls area.*
+
+**Bug being fixed:** `#state-standard-mic` (rendered by React `MicrophoneToggle` portal) is invisible but takes up space during lesson intro because vanilla JS adds `d-none` to a React-owned element, but React's rendering overrides it. The intro choices (`#state-intro-choices`) appear alongside the ghost mic wrapper instead of replacing it.
+
+**Current behavior (vanilla):** The `controls-section` in `index.html` has 3 mutually-exclusive center states:
+1. `#state-standard-mic` (default) — mic button, now rendered by React portal into `#react-root-mic`
+2. `#state-intro-choices` (lesson intro) — Video/Audio/Text choice buttons, hardcoded in `index.html`
+3. `#state-lesson-success` (lesson end) — Create Video button, hardcoded in `index.html`
+
+Vanilla JS toggles these by adding/removing `d-none` on DOM elements, which fights with React's portal rendering.
+
+**Migration steps:**
+
+| Step | Description |
+|------|-------------|
+| 2.1.1 | Add `bottomControlState` to Zustand store — string enum: `'mic'` \| `'introChoices'` \| `'lessonSuccess'` (default: `'mic'`). Add `setBottomControlState` action. |
+| 2.1.2 | Update `MicrophoneToggle.jsx` — read `bottomControlState`; add `d-none` class when state is not `'mic'`. This fixes the invisible-but-taking-space bug. |
+| 2.1.3 | Create `IntroChoices.jsx` — React component rendered into `#react-root-mic` (or alongside it); reads `bottomControlState`; shows Video/Audio/Text buttons when `'introChoices'`; on click, writes `isTextMode`/`isCameraOff` to Zustand and calls the stored callback. |
+| 2.1.4 | Handle `LessonSuccessControls` — read `bottomControlState`; show success UI when `'lessonSuccess'`. Can be a separate component or part of `MicrophoneToggle` conditional rendering. |
+| 2.1.5 | Replace callers: `answer-pipeline.js` `showContinueButton(...)` → write `bottomControlState: 'introChoices'` to store + store callback; `hideContinueButton()` → write `bottomControlState: 'mic'` + `removeContinueWidget()`. `success-lesson.js` `showLessonSuccessState()` → write `bottomControlState: 'lessonSuccess'`. |
+| 2.1.6 | Delete from `ui.js`: `showContinueButton` (~64 lines), `hideContinueButton` (~12 lines), `showLessonSuccessState` (~7 lines), `syncTextModeUI` (~22 lines). Remove stale imports from `step-loader.web.js` and `answer-pipeline.js`. |
+| 2.1.7 | Remove hardcoded `#state-intro-choices` and `#state-lesson-success` divs from `index.html` (now React-rendered). |
+| 2.1.8 | Ensure `resetUIForNewStep` resets `bottomControlState` to `'mic'` when a new step loads. |
+| 2.1.9 | Run full test suite. |
+
+**Net result:** ~105 lines deleted from `ui.js`. MicrophoneToggle visibility fully React-controlled. Three-state bottom controls driven entirely by Zustand. `syncTextModeUI` dead code eliminated.
 
 ### Phase 2.0: Monolith Shrinkage — COMPLETED
 
@@ -133,9 +160,9 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 | `renderUserChatMessage` | All callers use `addChatMessage` directly | Various callers | COMPLETED |
 | `renderTutorMessage` | All callers use `addChatMessage` directly | Various callers | COMPLETED |
 | `showPlaybackVideo` | `<VideoBubble>` is sole React path | `answer-pipeline.js` and `handleIncueUI` last callers; stale import removed from `app.js` | Pending |
-| `showContinueButton` (mid-lesson) | `ContinueWidgetBubble` is sole React path | `answer-pipeline.js` and `step-loader.web.js` last callers; stale import removed from `app.js` | Pending |
+| `showContinueButton` / `hideContinueButton` / `showLessonSuccessState` | Zustand `bottomControlState` → React `<IntroChoices>` + `MicrophoneToggle` reads it | `answer-pipeline.js` and `success-lesson.js` last callers | COMPLETED |
 | `removeAILoadingStatus` | Zustand + `<AiLoadingBubble>` | Various callers | COMPLETED |
-| `syncTextModeUI` | DOM targets commented out in `index.html` but still called from `showContinueButton` click handlers | Will be removed with `showContinueButton` | Pending |
+| `syncTextModeUI` | Only called from `showContinueButton` — deleted with it | N/A | COMPLETED |
 | `animatePointLoss` | No callers — removed | N/A | COMPLETED |
 
 **When to stop simple replacements:** Once only `handlecueUI`, `handleIncueUI`, and the webcam/whisper chain remain — these become Phase 4.

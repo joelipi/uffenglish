@@ -2122,44 +2122,8 @@
                                 <img src="/assets/img/userprofile.png" alt="Friend Profile" class="friend-img">
                             </button>
 
-                            <!-- CENTER STATE 1: Standard Mic (Visible by default) -->
+                            <!-- CENTER: Mic / Intro Choices / Lesson Success — all rendered by React into #react-root-mic -->
                             <div id="react-root-mic"></div>
-                            <!-- Legacy mic button replaced by react-root-mic MicrophoneToggle
-                            <div class="mic-btn-wrapper" id="state-standard-mic">
-                                <div class="mic-ring"></div>
-                                <div class="mic-ring"></div>
-                                <div class="mic-ring"></div>
-                                <button class="btn call-btn toggled-off" id="micBtn" aria-label="Toggle Microphone">
-                                    <i class="bi bi-mic-mute-fill"></i>
-                                </button>
-                                <button class="btn call-btn d-none" id="txtBtn" aria-label="Toggle Text Input">
-                                    <i class="bi bi-keyboard-fill"></i>
-                                </button>
-                            </div>
-                            -->
-
-                            <!-- CENTER STATE 2: Intro Choices (Hidden by default) -->
-                            <div class="d-flex gap-3 align-items-center d-none" id="state-intro-choices">
-                                <button class="btn call-icon" id="audioOnlyButton" aria-label="Audio Only">
-                                    <i class="bi bi-telephone-fill text-white"></i>
-                                </button>
-                                <button class="btn call-btn btn-primary" id="continueButton" aria-label="Video Call">
-                                    <i class="bi bi-camera-video-fill"></i>
-                                </button>
-                                <button class="btn call-icon" id="textOnlyButton" aria-label="Text Only">
-                                    <i class="bi bi-keyboard text-white"></i>
-                                </button>
-                            </div>
-
-                            <!-- CENTER STATE 3: (End of) Lesson Success (Hidden by default) -->
-                            <div class="d-flex gap-3 align-items-center d-none" id="state-lesson-success">
-
-                                <button class="btn btn-outline-primary w-100 text-white" id="createVideoButton"
-                                    aria-label="Create Video">
-                                    <i class="bi bi-film text-white"></i>
-                                </button>
-
-                            </div>
 
                             <!-- RIGHT: Help Button -->
                             <button class="btn call-btn" id="helpBtn" aria-label="Help">

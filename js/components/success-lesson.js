@@ -1,7 +1,6 @@
 // success-lesson.js
 import confetti from 'canvas-confetti';
 import { appStore } from '../modules/store.js';
-import { showLessonSuccessState } from './ui.js';
 import { clearSpeechRecordingsForLesson } from '../modules/storage.js';
 
 export class SuccessLessonHandler {
@@ -40,9 +39,7 @@ export class SuccessLessonHandler {
     appStore.getState().setProgressPercent("100%");
     appStore.getState().setStatsVisible(false);
 
-    if (typeof showLessonSuccessState === 'function') {
-      showLessonSuccessState();
-    }
+    appStore.getState().setBottomControlState('lessonSuccess');
   }
 
   handleSuccessLesson(step) {

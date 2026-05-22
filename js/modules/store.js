@@ -61,6 +61,7 @@ export const appStore = createStore(
             isLoaded: false,
             hintsVisible: false,
             hangmanHintHTML: '',
+            bottomControlState: 'mic',
 
             // --- Tutor Engagement Metrics ---
             userMessagesToAi: 0,
@@ -134,6 +135,7 @@ export const appStore = createStore(
             setIsLoaded: (loaded) => set({ isLoaded: loaded }),
             setHintsVisible: (visible) => set({ hintsVisible: visible }),
             setHangmanHintHTML: (html) => set({ hangmanHintHTML: html }),
+            setBottomControlState: (state) => set({ bottomControlState: state }),
 
             // Update physical place in the lesson
             setProgress: ({ lessonId, lessonIndex, questionIndex }) => set({

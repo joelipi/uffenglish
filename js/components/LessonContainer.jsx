@@ -6,6 +6,8 @@ import Header from './lesson/Header.jsx';
 import ChatContainer from './lesson/ChatContainer.jsx';
 import StatsBar from './lesson/StatsBar.jsx';
 import MicrophoneToggle from './widgets/MicrophoneToggle.jsx';
+import IntroChoices from './widgets/IntroChoices.jsx';
+import LessonSuccessControls from './widgets/LessonSuccessControls.jsx';
 import GuestLoginModal from './modals/GuestLoginModal.jsx';
 import CriticalErrorModal from './modals/CriticalErrorModal.jsx';
 import MicStatusText from './widgets/MicStatusText.jsx';
@@ -40,7 +42,11 @@ export default function LessonContainer() {
             <StatsBar />
 
             <div className="lesson-body">
-                {micRootEl && createPortal(<MicrophoneToggle />, micRootEl)}
+                {micRootEl && createPortal(<>
+                    <MicrophoneToggle />
+                    <IntroChoices />
+                    <LessonSuccessControls />
+                </>, micRootEl)}
                 {criticalErrorRootEl && createPortal(<CriticalErrorModal />, criticalErrorRootEl)}
                 {createPortal(<GuestLoginModal />, document.body)}
             </div>

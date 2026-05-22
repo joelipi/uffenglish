@@ -11,29 +11,6 @@ import { getPraiseHTML } from './feedback-renderer.web.js';
 const AI_TUTOR_NAME = 'AI Tutor';
 const AI_TUTOR_AVATAR = '/assets/img/ai.webp';
 
-export function syncTextModeUI() {
-    const pronunciationScore = DOM.pronunciationScore;
-    const flowScore = DOM.flowScore;
-
-    if (State.isTextMode) {
-        if (pronunciationScore && pronunciationScore.parentElement) {
-            pronunciationScore.parentElement.classList.add('d-none');
-        }
-        if (flowScore && flowScore.parentElement) {
-            flowScore.parentElement.classList.add('d-none');
-        }
-        console.log('[UI] Text mode: hiding speaking/flow scores, swapping mic for keyboard');
-    } else {
-        if (pronunciationScore && pronunciationScore.parentElement) {
-            pronunciationScore.parentElement.classList.remove('d-none');
-        }
-        if (flowScore && flowScore.parentElement) {
-            flowScore.parentElement.classList.remove('d-none');
-        }
-        console.log('[UI] Camera/Mic mode: showing speaking/flow scores, swapping keyboard for mic');
-    }
-}
-
 export const DOM = {
     get pronunciationScore() { return document.getElementById('pronunciationScore'); },
     get flowScore() { return document.getElementById('flowScore'); },
@@ -870,93 +847,10 @@ async function setupIOSBlobPlayback(videoElement, blob) {
 }
 
 
-export function showContinueButton(isLessonIntro, onClickCallback, onAudioOnlyClickCallback) {
-    console.log('[showContinueButton] isLessonIntro:', isLessonIntro);
-    if (isLessonIntro) {
-        const standardMic = document.getElementById('state-standard-mic');
-        const introChoices = document.getElementById('state-intro-choices');
-        const videoBtn = document.getElementById('continueButton');
-        const audioBtn = document.getElementById('audioOnlyButton');
-        const textBtn = document.getElementById('textOnlyButton');
-        console.log('[showContinueButton] DOM elements - standardMic:', !!standardMic, '| introChoices:', !!introChoices, '| videoBtn:', !!videoBtn, '| audioBtn:', !!audioBtn, '| textBtn:', !!textBtn);
-
-        if (standardMic) standardMic.classList.add('d-none');
-        if (introChoices) {
-            introChoices.classList.remove('d-none');
-            introChoices.style.setProperty('display', 'flex', 'important');
-        }
-        if (videoBtn) {
-            videoBtn.onclick = () => {
-                State.isTextMode = false;
-                appStore.getState().setTextMode(false);
-                syncTextModeUI();
-                if (State.isCameraOff) toggleCamera();
-                onClickCallback();
-            };
-        }
-        if (audioBtn) {
-            audioBtn.onclick = () => {
-                State.isTextMode = false;
-                appStore.getState().setTextMode(false);
-                syncTextModeUI();
-                if (!State.isCameraOff) toggleCamera();
-                if (onAudioOnlyClickCallback) onAudioOnlyClickCallback();
-                else onClickCallback();
-            };
-        }
-        if (textBtn) {
-            textBtn.onclick = () => {
-                State.isTextMode = true;
-                appStore.getState().setTextMode(true);
-                State.isCameraOff = true;
-                syncTextModeUI();
-                onClickCallback();
-            };
-        }
-        return videoBtn;
-    } else {
-        // 2. Handle Mid-Lesson State (Inject Incoming Video Message Widget into Chat via Zustand)
-        const storeState = appStore.getState();
-        const hasWidget = storeState.chatHistory.some(msg => msg.type === 'continueWidget');
-
-        if (!hasWidget) {
-            storeState.addChatMessage({
-                role: 'system',
-                type: 'continueWidget',
-                onClick: () => {
-                    onClickCallback();
-                    appStore.getState().removeContinueWidget();
-                }
-            });
-        }
-
-        // Return a dummy element in case legacy app.js tries to check properties on the returned node
-        return document.createElement('div');
-    }
-}
-
-export function hideContinueButton() {
-    console.log('[hideContinueButton] called');
-    const standardMic = document.getElementById('state-standard-mic');
-    const introChoices = document.getElementById('state-intro-choices');
-    if (introChoices) {
-        introChoices.classList.add('d-none');
-        introChoices.style.removeProperty('display');
-    }
-    if (standardMic) standardMic.classList.remove('d-none');
-    // 2. Remove the mid-lesson next button from Zustand chat history
-    appStore.getState().removeContinueWidget();
-}
-
-export function showLessonSuccessState() {
-    const standardMic = document.getElementById('state-standard-mic');
-    const lessonSuccess = document.getElementById('state-lesson-success');
-
-    if (standardMic) standardMic.classList.add('d-none');
-    if (lessonSuccess) lessonSuccess.classList.remove('d-none');
-}
-
 export function resetUIForNewStep(isLessonIntro, hasUserData) {
+    // Reset bottom controls to mic state
+    appStore.getState().setBottomControlState('mic');
+
     // 1. Clear out our dynamic compilation elements
     const resultVideo = document.getElementById('resultVideo');
     if (resultVideo) resultVideo.remove();
@@ -977,12 +871,6 @@ export function resetUIForNewStep(isLessonIntro, hasUserData) {
         videoBtn.classList.remove('btn-success', 'flex-fill');
         videoBtn.classList.add('btn-outline-primary', 'w-100');
         videoBtn.innerHTML = '<i class="bi bi-film text-white"></i>';
-    }
-
-    // 4. Reset the visibility of the parent container states
-    const lessonSuccess = document.getElementById('state-lesson-success');
-    if (lessonSuccess) {
-        lessonSuccess.classList.add('d-none');
     }
 
     // --- Rest of your original resetUIForNewStep code begins here ---

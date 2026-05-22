@@ -48,9 +48,7 @@ import {
     clearMicStatusAndHideMedia,
     removeWebcamPreview,
     renderWhisperReviewUI,
-    updateWhisperTimer,
-    showContinueButton,
-    hideContinueButton
+    updateWhisperTimer
 } from './ui.js';
 
 function beforeUnloadHandler(e) { /* e.preventDefault(); e.returnValue = ''; return ''; */ }
