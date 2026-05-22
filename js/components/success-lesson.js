@@ -48,11 +48,18 @@ export class SuccessLessonHandler {
       return;
     }
 
-    const lessonAverage = typeof this.calculateAverage === 'function' ? this.calculateAverage() : 0;
+    const state = appStore.getState();
+    const repeatPointsHistory = Array.isArray(state.repeatPointsHistory) ? state.repeatPointsHistory : [];
+    const rolePlayPointsHistory = Array.isArray(state.rolePlayPointsHistory) ? state.rolePlayPointsHistory : [];
+    const lessonAverage = typeof this.calculateAverage === 'function'
+      ? (repeatPointsHistory.length || rolePlayPointsHistory.length
+          ? this.calculateAverage(repeatPointsHistory, rolePlayPointsHistory)
+          : state.fluencyScore || 0)
+      : state.fluencyScore || 0;
     const fluencyData = { total: lessonAverage };
 
     // Fluency trend detection using last-10 average
-    const recent = appStore.getState().recentFluencyAvgs || [];
+    const recent = state.recentFluencyAvgs || [];
     const last10Avg = recent.length > 0 ? recent.reduce((a, b) => a + b, 0) / recent.length : null;
     const isImproving = last10Avg !== null && lessonAverage > last10Avg;
     appStore.getState().setFluencyImproving(isImproving);
