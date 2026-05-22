@@ -51,6 +51,14 @@ export class SuccessLessonHandler {
     const state = appStore.getState();
     const repeatPointsHistory = Array.isArray(state.repeatPointsHistory) ? state.repeatPointsHistory : [];
     const rolePlayPointsHistory = Array.isArray(state.rolePlayPointsHistory) ? state.rolePlayPointsHistory : [];
+    console.warn('[success] handleSuccessLesson invoked', {
+      lessonId: step.lessonId,
+      repeatPointsHistory,
+      rolePlayPointsHistory,
+      stateFluencyScore: state.fluencyScore,
+      stateListeningScore: state.listeningScore,
+      stateSpeakingScore: state.speakingScore
+    });
     console.log('[success] handleSuccessLesson start', {
       lessonId: step.lessonId,
       repeatPointsHistory,
