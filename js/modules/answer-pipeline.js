@@ -12,6 +12,7 @@ import {
 } from './answers.js';
 import { logInteraction, calculateFluencyScore } from './scoring.js';
 import { pointLoss } from '../components/point-loss-animation.js';
+import { clearPlaybackVideo } from '../components/playback.js';
 import { Media } from './media.js';
 import Strings from '../data/strings.js';
 import { getLocalizedTranslation } from './utils.js';
@@ -21,23 +22,191 @@ import { buildFeedbackData, buildExplanationData } from './feedback-builder.js';
 import { renderFeedbackToHTML, renderExplanationsToHTML } from '../components/feedback-renderer.js';
 import { getNextStep } from './lessonRouting.js';
 import { warmUpSpeechCamStream } from './speech.js';
+import getRandomPraise from '../data/praise.js';
+import { getPraiseHTML } from '../components/feedback-renderer.web.js';
 import {
     DOM,
     showMicWarning,
     showAnswerError,
-    clearPlaybackVideo,
     flashElement,
     safeRenderChatInterface,
     renderAIFeedback,
     disableAllButtons,
     resetMicStatusWithStep,
     getFirstName,
-    handlecueUI,
-    handleIncueUI,
     generateHangmanHint,
     updateChatHeaderScores,
     clearChatInterface
 } from '../components/ui.js';
+
+function handlecueUI(stepIndex, stepData, button, cue, explanation, translation, userResponse, englishLevel, englishLevelDeduction, userData, configData, fluencyBubble = null) {
+    if (stepData.stepType === "closedResponse" && stepData.videoUrl) appStore.setState({ repeatPointsHistory: [...appStore.getState().repeatPointsHistory, appStore.getState().listeningScore] });
+    if (stepData.stepType === "openResponse" && stepData.videoUrl) appStore.setState({ rolePlayPointsHistory: [...appStore.getState().rolePlayPointsHistory, appStore.getState().listeningScore] });
+
+    safeRenderChatInterface(true);
+
+    const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
+    const praiseResult = (stepData.stepType === "openResponse" || stepData.stepType === "closedResponse") ? getRandomPraise('general', lang) : "";
+    const feedbackText = (stepData.stepType === "openResponse" && englishLevelDeduction > 0)
+        ? `${Strings.get('ai_acceptable', lang)}<br>${Strings.get('ai_language_level', lang)} ${englishLevel}<br>${Strings.get('ai_fluency_reduced', lang)} <span style='color:red'>${englishLevelDeduction} ${Strings.get('ai_percentage_points', lang)}</span>.`
+        : getPraiseHTML(praiseResult);
+
+    if (stepData.stepType !== "openResponse" && stepData.stepType !== "closedResponse") {
+        const localizedTrans = getLocalizedTranslation(translation, lang);
+        const userName = getFirstName(appStore.getState().userData?.display_name);
+        const userAvatarUrl = appStore.getState().userData?.profilepicurl || '/assets/img/userprofile.webp';
+
+        const translationHTML = (localizedTrans && lang && lang !== 'en')
+            ? `<br><span lang="${lang}"><i>${localizedTrans}</i></span>`
+            : '';
+
+        const correctBubbleHTML = `<div class="correct-answer-display chat-message-bubble chat-message-bubble--user"><div class="chat-bubble-header d-none">${userName}</div><span>${cue}</span>${translationHTML}</div>`;
+        const correctWrapperHTML = `<div class="chat-message-row chat-message-row--user correct-answer-wrapper"><img src="${userAvatarUrl}" alt="${userName}" class="chat-avatar-inline" />${correctBubbleHTML}</div>`;
+
+        const praiseHTML = getPraiseHTML(getRandomPraise('general', lang));
+        const praiseWrapperHTML = `<div class="chat-message-row chat-message-row--system" style="margin-top:6px"><img src="/assets/img/teacherprofile.webp" alt="Joe Walsh" class="chat-avatar-inline" /><div class="chat-message-bubble chat-message-bubble--system"><div class="chat-bubble-header">Joe Walsh</div><strong>${praiseHTML}</strong></div></div>`;
+
+        appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: correctWrapperHTML });
+
+        if (Array.isArray(explanation)) explanation.filter(Boolean).forEach(c => appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: c }));
+        else if (explanation) appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: explanation });
+
+        if (fluencyBubble) appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: fluencyBubble });
+
+        appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: praiseWrapperHTML });
+        if (stepData.headsUp) appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: stepData.headsUp });
+    } else {
+        if (Array.isArray(explanation)) explanation.filter(Boolean).forEach(c => appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: c }));
+        else if (explanation) appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: explanation });
+
+        if (fluencyBubble) appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: fluencyBubble });
+
+        if (feedbackText) appStore.getState().addChatMessage({ role: 'system', type: 'praise', content: feedbackText, botName: 'Joe Walsh', avatarUrl: '/assets/img/teacherprofile.webp' });
+        if (stepData.headsUp) appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: stepData.headsUp });
+    }
+
+    Media.playSound('correct-sound');
+}
+
+function handleIncueUI(stepIndex, stepData, button, cue, userResponse, explanation, normalizeduserResponse, normalizedcue, step, silent = false, userData, configData, fluencyBubble = null) {
+    appStore.getState().incrementIncorrectAttempts();
+
+    if (!silent && !State.isTextMode && (stepData.stepType === "lessonIntro" || stepData.stepType === "closedResponse" || stepData.stepType === "openResponse")) {
+        const storeState = appStore.getState();
+        const hasVideoBubble = storeState.chatHistory.some(msg => msg.type === 'video');
+        if (!hasVideoBubble) {
+            storeState.addChatMessage({
+                role: 'user',
+                type: 'video',
+                userName: getFirstName(storeState.userData?.display_name),
+                userAvatarUrl: storeState.userData?.profilepicurl || '/assets/img/userprofile.webp'
+            });
+        } else {
+            const video = document.getElementById('playback-video');
+            if (video) {
+                video.muted = storeState.isPlaybackMuted;
+                video.play().catch(e => console.warn('[handleIncueUI] Playback resume failed:', e));
+            }
+        }
+    }
+
+    if ((stepData.stepType === "closedResponse" || stepData.stepType === "openResponse") && stepData.videoUrl) {
+        appStore.getState().deductListeningScore(25);
+        pointLoss.show(DOM.micStatusText, 25);
+        if (appStore.getState().incorrectAttempts > 2) {
+            appStore.getState().setListeningScore(0);
+            appStore.setState({ rolePlayPointsHistory: [...appStore.getState().rolePlayPointsHistory, appStore.getState().listeningScore] });
+        }
+    }
+
+    const isSilentSpeechRetry = silent && stepData.stepType === "closedResponse";
+
+    if (isSilentSpeechRetry) {
+        return;
+    }
+
+    if (stepData.stepType === "openResponse" && userResponse) {
+        if (appStore.getState().incorrectAttempts > 2) {
+            appStore.getState().setListeningScore(0);
+            appStore.setState({ rolePlayPointsHistory: [...appStore.getState().rolePlayPointsHistory, appStore.getState().listeningScore] });
+        }
+
+        const teacherTextStr = appStore.getState().incorrectAttempts === 1
+            ? Strings.get('try_again_1', userData?.native_language)
+            : appStore.getState().incorrectAttempts === 2
+                ? Strings.get('try_again_2', userData?.native_language)
+                : (() => {
+                    const lang = userData?.native_language;
+                    const localizedTrans = getLocalizedTranslation(stepData.translation, lang);
+                    const transStr = (localizedTrans && lang && lang !== 'en')
+                        ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>`
+                        : "";
+                    return `${Strings.get('failed_continue_correct', userData?.native_language)}<br>"${cue}"${transStr}`;
+                })();
+
+        const teacherHTML = `<div><strong>${teacherTextStr}</strong></div>`;
+
+        if (Array.isArray(explanation)) explanation.filter(Boolean).forEach(c => appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: c }));
+        else if (explanation) appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: explanation });
+
+        appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: teacherHTML });
+
+        if (fluencyBubble) appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: fluencyBubble });
+
+        if (stepData.possibleAnswer && appStore.getState().incorrectAttempts > 2) {
+            const possibleHTML = `${Strings.get('example_correct_answer', appStore.getState().userData?.native_language)}<br>${stepData.possibleAnswer}`;
+            appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: possibleHTML });
+        }
+
+        if (stepData.headsUp) {
+            const headsUpText = appStore.getState().incorrectAttempts <= 2 ? Strings.get('heads_up_try_again', userData?.native_language) : stepData.headsUp;
+            appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: headsUpText });
+        }
+    }
+
+    if (stepData.stepType === "closedResponse" && userResponse && DOM.speechText) {
+        const selectedWords = [...new Set(normalizeduserResponse.split(/\s+/))];
+        const correctWords = [...new Set(normalizedcue.split(/\s+/))];
+        const correctWordSet = new Set(correctWords.map(w => w.toLowerCase()));
+        const correct = new Set(); const incorrect = new Set();
+
+        selectedWords.forEach(w => correctWordSet.has(w.toLowerCase()) ? correct.add(w) : incorrect.add(w));
+
+        const correctUl = correct.size > 0 ? `<ul class='card-text correctWords list-inline' id='correctWords' style='display:block'>${Array.from(correct).map(w => `<li class='list-inline-item'>${w}</li>`).join('')}</ul>` : '';
+        const incorrectUl = incorrect.size > 0 ? `<ul class='card-text incorrectWords list-inline' id='incorrectWords' style='display:block; border-top: 1px solid rgba(255,255,255,0.1)'>${Array.from(incorrect).map(w => `<li class='list-inline-item'>${w}</li>`).join('')}</ul>` : '';
+
+        const teacherText = appStore.getState().incorrectAttempts === 1
+            ? Strings.get('try_again_1', appStore.getState().userData?.native_language)
+            : appStore.getState().incorrectAttempts === 2
+                ? Strings.get('try_again_2', appStore.getState().userData?.native_language)
+                : (() => {
+                    const lang = appStore.getState().userData?.native_language;
+                    const localizedTrans = getLocalizedTranslation(stepData.translation, lang);
+                    const transStr = (localizedTrans && lang && lang !== 'en')
+                        ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>`
+                        : "";
+                    return `${Strings.get('failed_continue', appStore.getState().userData?.native_language)}<br><br>Correct:<br>"${cue}"${transStr}`;
+                })();
+
+        const mainFeedbackHTML = `<strong>${teacherText}</strong><br><br>${correctUl}${incorrectUl}`;
+
+        if (Array.isArray(explanation)) explanation.filter(Boolean).forEach(c => appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: c }));
+        else if (explanation) appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: explanation });
+
+        appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: mainFeedbackHTML });
+
+        if (fluencyBubble) appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: fluencyBubble });
+
+        const headsUpStr = stepData.headsUp
+            ? (appStore.getState().incorrectAttempts <= 2 ? Strings.get('heads_up_repeat_video', appStore.getState().userData?.native_language) : stepData.headsUp)
+            : '';
+        if (headsUpStr) appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: headsUpStr });
+    }
+
+    if (!silent) {
+        Media.playSound('incorrect-sound');
+    }
+}
 
 export function handleHint(stepIndex) {
     appStore.getState().setHintsVisible(true);

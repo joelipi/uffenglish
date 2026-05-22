@@ -40,17 +40,15 @@ test.describe('End-to-End Smoke Test', () => {
         
         // Force the chat interface to be visible for the smoke test
         await page.evaluate(() => {
-            const { safeRenderChatInterface } = window.ui || {}; // Check if ui is global
-            if (safeRenderChatInterface) {
-                safeRenderChatInterface(true);
-            } else {
-                // Fallback: manually manipulate DOM if ui.js is not global
-                const chat = document.getElementById('chat-window-container');
-                if (chat) {
-                    chat.classList.remove('d-none');
-                    chat.style.setProperty('display', 'flex', 'important');
-                }
+            const chat = document.getElementById('chat-window-container');
+            if (chat) {
+                chat.classList.remove('d-none');
+                chat.style.setProperty('display', 'flex', 'important');
             }
+            const stats = document.getElementById('react-root-stats');
+            if (stats) stats.classList.remove('d-none');
+            const media = document.getElementById('media-viewport');
+            if (media) media.classList.remove('d-none');
         });
         await assertNoError();
 
@@ -105,8 +103,8 @@ test.describe('End-to-End Smoke Test', () => {
 
         // 4. AI Tutor Interaction
         await page.evaluate(async () => {
+            await new Promise(r => setTimeout(r, 500));
             const state = window.appStore.getState();
-            // Simulate sending a message directly via the store to bypass DOM timing
             state.addChatMessage({
                 role: 'user',
                 type: 'standard',

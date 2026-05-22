@@ -4,8 +4,7 @@ import {
     disableAllButtons,
     safeRenderChatInterface, renderAIAnalysisLoading,
     renderAIFeedback, clearChatInterface, showMicWarning,
-    showAnswerError, hideAnswerDiv, bindProcessButton, resetUIForNewStep,
-    removeRepeatButton, renderWhisperReviewUI
+    showAnswerError
 } from './ui.js';
 import { appStore } from '../modules/store.js';
 import { State } from '../modules/state.js';
@@ -181,31 +180,6 @@ describe('UI Component functions', () => {
         });
     });
 
-    describe('Whisper Review UI', () => {
-        beforeEach(() => {
-            document.body.innerHTML += `
-                <div id="whisperReviewContainer" class="d-none">
-                    <div id="whisperTranscript"></div>
-                    <div id="reviewProgressBar"></div>
-                    <button id="rejectBtn"></button>
-                    <button id="acceptBtn"><span id="reviewTimer"></span></button>
-                </div>`;
-        });
-
-        it('should not throw ReferenceError (catches missing internal refs like removeAILoadingStatus)', () => {
-            const onAccept = vi.fn();
-            const onReject = vi.fn();
-            expect(() => renderWhisperReviewUI('test transcript', 7, onAccept, onReject)).not.toThrow();
-        });
-
-        it('should show the whisper review container', () => {
-            const onAccept = vi.fn();
-            const onReject = vi.fn();
-            renderWhisperReviewUI('hello world', 5, onAccept, onReject);
-            expect(document.getElementById('whisperReviewContainer').classList.contains('d-none')).toBe(false);
-        });
-    });
-
     describe('Hints and Errors Rendering', () => {
         it('should show mic warning', () => {
             showMicWarning('Warning!');
@@ -224,68 +198,6 @@ describe('UI Component functions', () => {
             vi.advanceTimersByTime(4000);
             expect(msg.classList.contains('d-none')).toBe(true);
             vi.useRealTimers();
-        });
-    });
-
-    describe('Miscellaneous UI Functions', () => {
-        it('should hide answer div', () => {
-            document.body.innerHTML += '<div id="answerDiv" class=""></div>';
-            hideAnswerDiv();
-            expect(document.getElementById('answerDiv').classList.contains('d-none')).toBe(true);
-        });
-
-        it('should bind process button', () => {
-            document.body.innerHTML += '<button id="processBtn"></button>';
-            const mockClick = vi.fn();
-            bindProcessButton(mockClick);
-            document.getElementById('processBtn').click();
-            expect(mockClick).toHaveBeenCalled();
-        });
-    });
-
-    describe('resetUIForNewStep', () => {
-        it('should remove elements and reset buttons', () => {
-            document.body.innerHTML = `
-                <div id="resultVideo"></div>
-                <div id="displayCanvas"></div>
-                <button id="continueButtonSuccess"></button>
-                <button id="repeatButtonSuccess"></button>
-                <button id="processBtn" class="btn-success flex-fill" disabled></button>
-                <div id="lessonIntroHeader"></div>
-                <div id="closeAndProgress"></div>
-                <div id="success-media" class=""></div>
-                <div id="myToast"><button class="btn-close"></button></div>
-            `;
-
-            // Should hide closeAndProgress since we pass (true, false) for intro and hasUserData
-            resetUIForNewStep(true, false);
-
-            expect(document.getElementById('resultVideo')).toBeNull();
-            expect(document.getElementById('displayCanvas')).toBeNull();
-            expect(document.getElementById('continueButtonSuccess')).toBeNull();
-            expect(document.getElementById('repeatButtonSuccess')).toBeNull();
-
-            const btn = document.getElementById('processBtn');
-            expect(btn.disabled).toBe(false);
-            expect(btn.classList.contains('btn-success')).toBe(false);
-            expect(btn.classList.contains('btn-outline-primary')).toBe(true);
-
-            // Set to lessonSuccess, then verify resetUIForNewStep resets it to 'mic'
-            appStore.getState().setBottomControlState('lessonSuccess');
-            resetUIForNewStep(true, false);
-            expect(appStore.getState().bottomControlState).toBe('mic');
-
-            expect(document.getElementById('lessonIntroHeader').classList.contains('d-none')).toBe(false);
-            expect(document.getElementById('closeAndProgress').classList.contains('d-none')).toBe(true);
-            expect(document.getElementById('success-media').classList.contains('d-none')).toBe(true);
-        });
-    });
-
-    describe('toggleStatsContainer & removeRepeatButton', () => {
-        it('should remove repeat button', () => {
-            document.body.innerHTML = '<button id="repeatButton"></button>';
-            removeRepeatButton();
-            expect(document.getElementById('repeatButton')).toBeNull();
         });
     });
 });

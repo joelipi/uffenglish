@@ -29,19 +29,181 @@ import { pointLoss } from '../components/point-loss-animation.js';
 import {
     DOM,
     clearChatInterface,
-    resetUIForNewStep,
-    clearPlaybackVideo,
-    removeRepeatButton,
-    clearMediaContainerAndPreservePlayers,
-    renderImageInMediaContainer,
-    renderYoutubeInMediaContainer,
-    updateProgressAndCloseButton,
-    hideAnswerDiv,
-    bindProcessButton,
-    renderAIFeedback,
-    renderWhisperReviewUI,
-    updateWhisperTimer
+    renderAIFeedback
 } from './ui.js';
+import { clearPlaybackVideo } from './playback.js';
+
+function renderWhisperReviewUI(transcript, timeLeft, onAccept, onReject) {
+    appStore.getState().removeAiLoadingMessage();
+    appStore.getState().setMicStatusText("");
+    const container = document.getElementById('whisperReviewContainer');
+    const transcriptEl = document.getElementById('whisperTranscript');
+    if (!container || !transcriptEl) return;
+
+    transcriptEl.textContent = `"${transcript}"`;
+    const timerSpan = document.getElementById("reviewTimer");
+    if (timerSpan) timerSpan.innerText = timeLeft;
+
+    container.classList.remove("d-none");
+
+    const bar = document.getElementById("reviewProgressBar");
+    if (bar) {
+        bar.style.transition = "none";
+        bar.style.width = "100%";
+        requestAnimationFrame(() => {
+            bar.style.transition = "width 7s linear";
+            bar.style.width = "0%";
+        });
+    }
+
+    const acceptBtn = document.getElementById("acceptBtn");
+    const rejectBtn = document.getElementById("rejectBtn");
+
+    if (acceptBtn) {
+        const newAccept = acceptBtn.cloneNode(true);
+        acceptBtn.parentNode.replaceChild(newAccept, acceptBtn);
+        newAccept.addEventListener("click", () => {
+            container.classList.add("d-none");
+            onAccept();
+        });
+    }
+
+    if (rejectBtn) {
+        const newReject = rejectBtn.cloneNode(true);
+        rejectBtn.parentNode.replaceChild(newReject, rejectBtn);
+        newReject.addEventListener("click", () => {
+            container.classList.add("d-none");
+            onReject();
+        });
+    }
+}
+
+function updateWhisperTimer(timeLeft) {
+    const timerSpan = document.getElementById('reviewTimer');
+    if (timerSpan) timerSpan.innerText = timeLeft;
+}
+
+function resetUIForNewStep(isLessonIntro, hasUserData) {
+    appStore.getState().setBottomControlState('mic');
+
+    const resultVideo = document.getElementById('resultVideo');
+    if (resultVideo) resultVideo.remove();
+    const displayCanvas = document.getElementById('displayCanvas');
+    if (displayCanvas) displayCanvas.remove();
+
+    const continueSuccess = document.getElementById('continueButtonSuccess');
+    if (continueSuccess) continueSuccess.remove();
+
+    const repeatSuccess = document.getElementById('repeatButtonSuccess');
+    if (repeatSuccess) repeatSuccess.remove();
+
+    const videoBtn = document.getElementById('processBtn') || document.getElementById('createVideoButton');
+    if (videoBtn) {
+        videoBtn.disabled = false;
+        videoBtn.classList.remove('btn-success', 'flex-fill');
+        videoBtn.classList.add('btn-outline-primary', 'w-100');
+        videoBtn.innerHTML = '<i class="bi bi-film text-white"></i>';
+    }
+
+    const lessonIntroHeader = document.getElementById('lessonIntroHeader');
+    if (lessonIntroHeader) lessonIntroHeader.classList.toggle('d-none', !isLessonIntro || hasUserData);
+
+    if (DOM.closeAndProgress) DOM.closeAndProgress.classList.toggle('d-none', isLessonIntro && !hasUserData);
+
+    const myToastClose = document.querySelector('#myToast .btn-close');
+    if (myToastClose) myToastClose.click();
+
+    const successMedia = document.getElementById("success-media");
+    if (successMedia) successMedia.classList.add("d-none");
+
+    const courseProgress = document.getElementById("courseProgress");
+    if (courseProgress) courseProgress.classList.add("d-none");
+
+    const micBtn = document.getElementById('micBtn');
+    if (micBtn) {
+        micBtn.style.removeProperty('display');
+        micBtn.disabled = false;
+        micBtn.classList.remove('disabled');
+    }
+    const txtBtn = document.getElementById('txtBtn');
+    if (txtBtn) {
+        txtBtn.style.removeProperty('display');
+        txtBtn.disabled = false;
+        txtBtn.classList.remove('disabled');
+    }
+}
+
+function removeRepeatButton() {
+    let repeatButton = document.getElementById('repeatButton');
+    if (repeatButton) repeatButton.remove();
+}
+
+function clearMediaContainerAndPreservePlayers() {
+    if (!DOM.mediaViewport) return;
+
+    const preserved = DOM.mediaViewport.querySelectorAll('#ivp-container, #simple-video-container, #intro-call-widget, #webcam-preview');
+    DOM.mediaViewport.innerHTML = '';
+
+    preserved.forEach(el => {
+        el.style.display = '';
+        el.style.minHeight = '';
+
+        if (el.id === 'intro-call-widget') {
+            el.classList.add('d-none');
+        } else if (el.id === 'webcam-preview') {
+        } else {
+            el.classList.remove('d-none');
+            if (el.id === 'ivp-container' || el.id === 'simple-video-container') {
+                // React wrappers manage these containers via portal
+            } else {
+                el.innerHTML = '';
+            }
+        }
+
+        DOM.mediaViewport.appendChild(el);
+    });
+}
+
+function renderImageInMediaContainer(imageUrl) {
+    if (!DOM.mediaViewport) return;
+
+    DOM.mediaViewport.classList.remove('d-none');
+    DOM.mediaViewport.style.display = 'block';
+
+    const existingPraise = DOM.mediaViewport.querySelectorAll('.praise-image-wrapper');
+    existingPraise.forEach(el => el.remove());
+
+    const div = document.createElement('div');
+    div.className = 'text-center mb-3 praise-image-wrapper';
+    div.innerHTML = `<img src="${imageUrl}" class="img-fluid rounded" alt="Praise" style="max-height: 250px; border: 3px solid #00f2fe; box-shadow: 0 0 15px rgba(0,242,254,0.5);">`;
+
+    DOM.mediaViewport.prepend(div);
+}
+
+function renderYoutubeInMediaContainer(youtubeId) {
+    if (!DOM.mediaViewport) return;
+    const div = document.createElement('div');
+    div.className = 'text-center mb-3';
+    div.innerHTML = `<iframe width="315" height="560" src="https://www.youtube.com/embed/${youtubeId}?autoplay=1&rel=0&modestbranding=1&controls=0&disablekb=1&fs=0&playsinline=1&short=1&playback_rate=0.8" title="Intro" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope" referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+    DOM.mediaViewport.prepend(div);
+}
+
+function updateProgressAndCloseButton(showClose) {
+    if (DOM.closeAndProgress) {
+        if (showClose) DOM.closeAndProgress.classList.remove('d-none');
+        else DOM.closeAndProgress.classList.add('d-none');
+    }
+}
+
+function hideAnswerDiv() {
+    const answerDiv = document.getElementById("answerDiv");
+    if (answerDiv) answerDiv.classList.add("d-none");
+}
+
+function bindProcessButton(onClickCallback) {
+    const processBtn = document.getElementById('processBtn');
+    if (processBtn) processBtn.addEventListener('click', onClickCallback);
+}
 
 function beforeUnloadHandler(e) { /* e.preventDefault(); e.returnValue = ''; return ''; */ }
 

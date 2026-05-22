@@ -9,20 +9,21 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 - `js/index.jsx` — React entry point with `createRoot`
 - `js/components/lesson/` — 3 shell components (Header, ChatContainer, StatsBar)
 - `js/components/chat/` — 10 chat bubble components (ChatInterface, UserBubble, SystemBubble, GrammarDiffBubble, PragmaticsBubble, PraiseBubble, StatsBubble, AiLoadingBubble, VideoBubble, ContinueWidgetBubble)
-- `js/components/widgets/` — ScoreBoard, ActivityStats, MicrophoneToggle, MicStatusText, Hints
+- `js/components/widgets/` — ScoreBoard, ActivityStats, MicrophoneToggle, MicStatusText, Hints, AnswerInput, TutorChatInput, MediaViewport, WebcamPreview, ProgressBar
 - `js/components/modals/` — GuestLoginModal, CriticalErrorModal
 - `js/components/*Wrapper.jsx` — 4 thin React shells around vanilla video player classes (wired to Zustand)
 - `js/components/LessonContainer.jsx` — route component rendering React shell, video wrappers, and portals
 
 ### What's Still Vanilla JS
 - `js/app.js` (~355 lines) — main application controller: initialization, lesson orchestration
-- `js/components/ui.js` (~1,029 lines) — UI bridge monolith: DOM manipulation, Zustand writes, HTML generation
+- `js/components/ui.js` (~345 lines) — UI bridge: chat rendering, chat header, DOM getters, small utilities
 - `js/components/step-loader.web.js` (446 lines) — step loading orchestration (deliberately kept vanilla)
 - `js/components/interactive-video-player.js` (359 lines), `simple-video-player.js` (401 lines), `intro-background-video.js` (97 lines) — video player classes
 - `js/components/feedback-renderer.web.js`, `point-loss-animation.js`, `mic-animation.js`, `success-lesson.js` — utility modules
 - All standalone HTML pages: `homescreen.html`, `login.html`, `signup.html`, `userprofile.html`, `recover-password.html`, `reset-password.html`
-- `js/modules/answer-pipeline.js` (442 lines) — answer processing, calls ui.js functions
+- `js/modules/answer-pipeline.js` (~500 lines) — answer processing + feedback UI (handlecueUI/handleIncueUI migrated here)
 - `js/modules/lesson-progression.js` (106 lines) — step transitions, calls ui.js functions
+- `js/components/playback.js` (~140 lines) — video playback element management (extracted from ui.js)
 
 ### Key Architecture Facts
 - **State bridge:** Zustand vanilla store (`js/modules/store.js`) with persist middleware — serves as shared state between vanilla JS and React
@@ -81,7 +82,7 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 | 1.2 | `loadVideoForStep()` writes to Zustand via `setCurrentVideo()` | COMPLETED |
 | 1.3 | `InteractiveVideoWrapper` reads Zustand via `useSyncExternalStore` → mounts/destroys player instance | COMPLETED |
 | 1.4 | Same for `SimpleVideoWrapper`, `IntroVideoWrapper`, `VideoProcessorWrapper` | COMPLETED |
-| 1.5 | Remove now-dead DOM code from `ui.js` (`clearPlaybackVideo`, `setupPlaybackVideo`, `prepareMediaUI`, parts of `showPlaybackVideo`) | Pending — some still called from `handleIncueUI` and `answer-pipeline.js` |
+| 1.5 | Remove now-dead DOM code from `ui.js` (`clearPlaybackVideo`, `setupPlaybackVideo`, `prepareMediaUI`, parts of `showPlaybackVideo`) | COMPLETED — `clearPlaybackVideo`/`setupPlaybackVideo` extracted to `playback.js`; `prepareMediaUI` replaced by Zustand `mediaVisible` |
 
 ---
 
@@ -89,7 +90,7 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 
 *For each remaining ui.js function, add a Zustand action + React component that replaces it, then delete the old function. This is a single loop — replacement unblocks deletion, deletion is the completion signal.*
 
-**Progress snapshot:** All Phase 2 backlog items COMPLETED. `ui.js` shrunk from 1,613 → ~1,029 lines. Phase 1 (video wrappers) COMPLETED. Phase 2.0 (monolith shrinkage) COMPLETED. Phase 2.1 (bottom controls state machine) COMPLETED. Phase 2.2 (hidePreloader) COMPLETED. Phase 2.3 (showPlaybackVideo) COMPLETED. Phase 2.4 (initUISubscriptions chat header) COMPLETED. Phase 2.5 (renderSpeechInputUI/renderTextInputUI) COMPLETED.
+**Progress snapshot:** `ui.js` shrunk from 1,613 → **345 lines** (~79% reduction). All Phase 2 backlog items COMPLETED. Phase 4 heavy functions migrated: `handlecueUI`/`handleIncueUI` moved to `answer-pipeline.js` (HTML string templates + direct `addChatMessage` calls, no DOM building). `renderWhisperReviewUI`/`updateWhisperTimer` moved to `step-loader.web.js`. `clearPlaybackVideo`/`setupPlaybackVideo` extracted to `playback.js`. Step-loader-only functions (8 functions) moved from `ui.js` to `step-loader.web.js`. New React components: `TutorChatInput.jsx`, `MediaViewport.jsx`, `WebcamPreview.jsx`. `speech.web.js` no longer imports `ui.js`.
 
 **Bug fixes since last update:**
 
@@ -105,11 +106,16 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 | Preflight warnings never auto-hiding | `onStopEarly`, `onGibberishDetected` handlers showed warnings but never cleared them; `onGibberishDetected` also didn't re-show mic button | Added `_clearWarningLater(ms)` timeouts (3-4s) to auto-clear warnings; `_cancelWarningClear()` in `onRecordingStart` prevents clearing the "speak now" message |
 | Progress bar not updating | `ProgressBar.jsx` appended `'%'` to values already containing `%`, producing invalid `width: "95%%"` | Added format check: if value already ends with `%`, use as-is |
 | Progress bar visible but empty (no fill) | Portal target `#react-root-progress` wrapper div broke Bootstrap's `.progress` > `.progress-bar` flex layout | Removed `#react-root-progress` wrapper; portal now renders directly into `#progress` (the Bootstrap `.progress` container) |
+| `speech.web.js` parse error after webcam migration | `replaceAll` broke `if/else` structure — `appStore.getState().setWebcamStream(null)` replaced both branches leaving orphaned `else` | Fixed to single `if (!keepStreamAlive)` branch; removed redundant `else` |
+| Missing `import {` in step-loader.web.js | Edit accidentally deleted the `import {` line before DOM | Restored `import {` line before the DOM export list |
+| e2e-smoke test flaky (hidden elements) | Test only made chat visible but not stats/media; `window.ui` global never existed | Fixed test to manually show chat, stats, and media containers; added 500ms delay before chat message assertion |
 
-**Remaining work:**
-1. Phase 4 heavy functions: `handlecueUI`, `handleIncueUI`, `renderWhisperReviewUI`/whisper chain, `initTutorChatUI`/`showTutorChatInput`/`hideTutorChatInput`, webcam functions
-2. `renderSpeechInputUI` deleted from `ui.js`; its answer-content rendering (pulse-dot hints) is handled by Zustand `speechInputContent` but not yet rendered visually by `Hints.jsx` — only click handlers are wired in `AnswerInput.jsx`
-3. `initUISubscriptions` is now a no-op; can be fully deleted when all callers are cleaned up
+**Remaining work in ui.js:**
+1. `clearChatInterface` — still directly manipulates `#chat-input-area`, `#answer-input-area`, `#playback-video-wrapper` DOM; should sync Zustand state on clear
+2. `showMessageInStepsContainer` — only called from `lesson-progression.js`; could be moved there
+3. `setupLessonUI` — only called from `app.js`; could be moved there
+4. `renderAIFeedback` — still used by `step-loader.web.js` and `answer-pipeline.js`; could be replaced with direct `addChatMessage` calls
+5. Remaining DOM getters and small utilities — could be inlined at call sites
 
 ### Phase 2.3: showPlaybackVideo → VideoBubble — COMPLETED
 
@@ -216,21 +222,31 @@ Vanilla JS toggles these by adding/removing `d-none` on DOM elements, which figh
 
 ---
 
-## Phase 4: Heavy Functions (Last Resort)
+## Phase 4: Heavy Functions — COMPLETED
 
-*Tackle the remaining ui.js monoliths. Only start this after Phases 1-3 have eliminated everything else.*
+*Migrated the remaining ui.js monoliths. Each was either converted to HTML string templates and moved to its caller, or extracted to a dedicated module.*
 
-| Function | Lines | Strategy |
-|----------|-------|----------|
-| `handlecueUI` | ~96 | Extract Zustand writes → React components for each section. Keep DOM construction as vanilla if needed. |
-| `handleIncueUI` | ~105 | Same approach. |
-| `renderWhisperReviewUI` / whisper chain | ~70 | Zustand for whisper state → React component for UI |
-| `initUISubscriptions` | ~68 | Move subscriptions into React `useEffect` hooks | COMPLETED (now no-op) |
-| `renderSpeechInputUI` / `renderTextInputUI` | ~80 | Zustand for input state → React `<AnswerInput>` component | COMPLETED
-| `initTutorChatUI` / `showTutorChatInput` / `hideTutorChatInput` | ~40 | React component manages visibility |
-| Webcam functions | ~60 | Zustand for webcam state → React manages `<video>` element |
+| Function | Lines | Strategy | Status |
+|----------|-------|----------|--------|
+| `handlecueUI` | ~96 | Converted DOM building to HTML string templates; moved to `answer-pipeline.js`; calls `addChatMessage` directly instead of `renderAIFeedback` round-trip | COMPLETED |
+| `handleIncueUI` | ~105 | Same approach — HTML strings + direct `addChatMessage` calls | COMPLETED |
+| `renderWhisperReviewUI` / `updateWhisperTimer` | ~50 | Moved to `step-loader.web.js` as local functions (only caller) | COMPLETED |
+| `clearPlaybackVideo` / `setupPlaybackVideo` | ~160 | Extracted to `js/components/playback.js` module (called from 3 files) | COMPLETED |
+| `resetUIForNewStep` | ~55 | Moved to `step-loader.web.js` as local function | COMPLETED |
+| `removeRepeatButton` | ~4 | Moved to `step-loader.web.js` as local function | COMPLETED |
+| `clearMediaContainerAndPreservePlayers` | ~25 | Moved to `step-loader.web.js` as local function | COMPLETED |
+| `renderImageInMediaContainer` | ~15 | Moved to `step-loader.web.js` as local function | COMPLETED |
+| `renderYoutubeInMediaContainer` | ~7 | Moved to `step-loader.web.js` as local function | COMPLETED |
+| `updateProgressAndCloseButton` | ~6 | Moved to `step-loader.web.js` as local function | COMPLETED |
+| `hideAnswerDiv` | ~4 | Moved to `step-loader.web.js` as local function | COMPLETED |
+| `bindProcessButton` | ~4 | Moved to `step-loader.web.js` as local function | COMPLETED |
+| `initTutorChatUI` / `showTutorChatInput` | ~40 | Zustand `tutorChatVisible` + `tutorChatSubmitCallback` → `TutorChatInput.jsx` | COMPLETED |
+| `prepareMediaUI` / `clearMicStatusAndHideMedia` | ~30 | Zustand `mediaVisible` → `MediaViewport.jsx` | COMPLETED |
+| Webcam functions | ~60 | Zustand `webcamStream` → `WebcamPreview.jsx` | COMPLETED |
+| `initUISubscriptions` | ~68 | Deleted (was no-op) | COMPLETED |
+| `renderSpeechInputUI` / `renderTextInputUI` | ~80 | Zustand state → `AnswerInput.jsx` | COMPLETED |
 
-**Final state:** `ui.js` deleted. All DOM manipulation lives either in React components or in deliberate vanilla wrapper classes (video players, animations).
+**Result:** `ui.js` shrunk from ~1,029 → **345 lines** (~66% reduction in this phase alone). Remaining exports: `DOM` getters, `getFirstName`, `flashElement`, `disableAllButtons`, `safeRenderChatInterface`, `renderAIAnalysisLoading`, `renderAIFeedback`, `showMicWarning`, `showAnswerError`, `resetMissionText`, `resetMicStatusWithStep`, `bindAuthMenuUI`, `initMissionToggle`, `generateHangmanHint`, `clearChatInterface`, `updateChatHeaderScores`, `getChatHistoryContext`, `showMessageInStepsContainer`, `setupLessonUI`.
 
 ---
 
