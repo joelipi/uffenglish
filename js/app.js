@@ -229,7 +229,7 @@ async function initializeLesson(courseId = appStore.getState().courseId, configD
         appStore.setState({ currentLessonIndex: configData.lessons.findIndex(l => l.lessonId === lessonId) });
 
         if (window.preloadLessonAssets) {
-            const constructFirebaseUrl = (slug) => `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${slug}.mp4?alt=media`;
+            const constructFirebaseUrl = (slug) => `https://r2.ultrafastfluency.com/assets/videos/${slug}.mp4`;
             await window.preloadLessonAssets(lesson, constructFirebaseUrl);
         }
 

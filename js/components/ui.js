@@ -498,17 +498,6 @@ export function prepareMediaUI() {
     if (DOM.mediaViewport) DOM.mediaViewport.classList.remove('d-none');
 }
 
-export function isWebcamPreviewVisible() {
-    const wrapper = document.getElementById('pip-wrapper');
-    return wrapper && !wrapper.classList.contains('d-none');
-}
-
-export function createWebcamPreview() {
-    // We no longer create the element. We just grab your hardcoded one.
-    webcamPreview = document.getElementById('webcam-preview');
-    return webcamPreview;
-}
-
 export function ensureWebcamPreview(stream) {
     if (!stream) return null;
 
@@ -558,23 +547,6 @@ export function removeWebcamPreview() {
     }
     if (pipWrapper) {
         pipWrapper.classList.add('d-none');
-    }
-}
-
-export function toggleCamera() {
-    // 1. Flip the application state
-    State.isCameraOff = !State.isCameraOff;
-
-    // 2. Update the Liquid UI visually
-    const pipWrapper = document.getElementById('pip-wrapper');
-    if (pipWrapper) {
-        if (State.isCameraOff) {
-            // Hide the self-view when the camera is toggled off
-            pipWrapper.classList.add('d-none');
-        } else {
-            // Bring the self-view back when toggled on
-            pipWrapper.classList.remove('d-none');
-        }
     }
 }
 
@@ -938,28 +910,6 @@ export function hideAnswerDiv() {
 export function bindProcessButton(onClickCallback) {
     const processBtn = document.getElementById('processBtn');
     if (processBtn) processBtn.addEventListener('click', onClickCallback);
-}
-
-export function renderMultiChoiceUI(notSureText, handleNotSureCallback, answers, handleAnswerCallback) {
-    if (DOM.closeAndProgress) DOM.closeAndProgress.classList.remove('d-none');
-    if (DOM.statsContainer) DOM.statsContainer.classList.remove('d-none');
-
-    const answersContainer = document.getElementById('answers-container');
-    if (answersContainer) {
-        const notSureButton = document.createElement('button');
-        notSureButton.className = 'btn btn-outline-secondary';
-        notSureButton.textContent = notSureText;
-        notSureButton.onclick = () => handleNotSureCallback("I'm not sure", notSureButton);
-        answersContainer.appendChild(notSureButton);
-
-        answers.forEach((answer) => {
-            const button = document.createElement('button');
-            button.className = 'btn btn-outline-primary';
-            button.textContent = answer;
-            button.onclick = () => handleAnswerCallback(answer, button);
-            answersContainer.appendChild(button);
-        });
-    }
 }
 
 export function showMessageInStepsContainer(messageHTML) {

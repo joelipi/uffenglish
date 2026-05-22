@@ -467,7 +467,7 @@ export function showFeedbackAndProceed(stepData, isCorrect, _deps = {}) {
         if (isCorrect || appStore.getState().incorrectAttempts > 2) {
             const nextStep = getNextStep(stepData, appStore.getState().configData, appStore.getState().currentLessonIndex);
             if (nextStep && nextStep.videoUrl) {
-                const videoUrl = `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${nextStep.videoUrl}.mp4?alt=media`;
+                const videoUrl = `https://r2.ultrafastfluency.com/assets/videos/${nextStep.videoUrl}.mp4`;
                 Media.preloader.preloadOnly(videoUrl);
             }
         }

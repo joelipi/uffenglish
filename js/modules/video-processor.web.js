@@ -392,7 +392,7 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
 
 async function resolveRemoteUrl(vUrl) {
     if (window.preloadedMedia && window.preloadedMedia[vUrl]) return window.preloadedMedia[vUrl];
-    return `https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F${vUrl}.mp4?alt=media`;
+    return `https://r2.ultrafastfluency.com/assets/videos/${vUrl}.mp4`;
 }
 
 function getSupportedMimeType() {

@@ -8,12 +8,12 @@ import { appStore } from './store.js';
 import Strings from '../data/strings.js';
 import { getLocalizedTranslation } from './utils.js';
 
-const FIREBASE_BASE = 'https://firebasestorage.googleapis.com/v0/b/cogdexapptest.appspot.com/o/videos%2F';
+const FIREBASE_BASE = 'https://r2.ultrafastfluency.com/assets/videos/';
 
 function resolveVideoUrl(slug) {
     return (window.preloadedMedia && window.preloadedMedia[slug])
         ? window.preloadedMedia[slug]
-        : `${FIREBASE_BASE}${slug}.mp4?alt=media`;
+        : `${FIREBASE_BASE}${slug}.mp4`;
 }
 
 export function loadVideoForStep(step, _state, lang) {

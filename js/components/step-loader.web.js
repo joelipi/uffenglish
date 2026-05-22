@@ -43,7 +43,6 @@ import {
     updateProgressAndCloseButton,
     hideAnswerDiv,
     bindProcessButton,
-    renderMultiChoiceUI,
     renderAIFeedback,
     clearMicStatusAndHideMedia,
     removeWebcamPreview,
