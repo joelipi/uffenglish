@@ -205,7 +205,6 @@
         {
           "simpleVideoUrl": "success",
           "subtitles": "Very good! ¡Muy bien! Oprime el botón para calcular tu calificación de fluidez (Fluency Score) para esta frase. Si tu calificación es menor a 80% te recomiendo repetir la lección.",
-          "cue": "Hey, if you had to spend a million dollars today, what would you buy?",
           "stepType": "success"
         }
       ],
