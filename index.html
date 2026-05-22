@@ -1283,9 +1283,10 @@
         /* =========================================
            FEEDBACK, HINTS & GRAMMAR
            ========================================= */
-        #hints {
+        #react-root-hints {
             top: 50px;
             left: 25px;
+            z-index: 20;
         }
 
         .headsUp::before {
@@ -1623,6 +1624,7 @@
 
         #answer-input-area {
             top: 220px;
+            z-index: 20 !important;
         }
 
         #answer-error-message {
@@ -2004,9 +2006,7 @@
                             <i class="bi bi-x-lg"></i>
                         </a>
                         <div class="flex-grow-1 ms-3">
-                            <div id="progress" class="progress shadow-sm">
-                                <div id="react-root-progress"></div>
-                            </div>
+                            <div id="progress" class="progress shadow-sm" style="height: 8px;"></div>
                         </div>
                         <div id="react-root-activity" class="ms-2"></div>
                     </div>
@@ -2073,21 +2073,9 @@
             </div>
 
             <!-- Permanent Answer Input Area (for text-input steps; this is distinct from the chat) -->
-            <div id="answer-input-area" class="d-none position-absolute w-100 p-3 z-3">
-                <div class="card bg-dark border-secondary shadow-lg">
-                    <div class="card-body p-2 d-flex align-items-center gap-2">
-                        <div class="flex-grow-1 d-flex flex-column">
-                            <textarea id="answer-input-field" class="form-control bg-dark text-white border-secondary"
-                                rows="2" placeholder="Type your answer..."></textarea>
-                            <div id="answer-error-message" class="text-danger small mt-1 d-none"></div>
-                        </div>
-                        <button id="answer-submit-button">
-                            <i class="bi bi-send-fill"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <div id="react-root-hints" class="card"></div>
+            <!-- Rendered by React AnswerInput component -->
+            <div id="answer-input-area" class="d-none position-absolute w-100 p-3 z-3"></div>
+            <div id="react-root-hints" class="card position-absolute"></div>
             <!-- Bottom Overlay -->
             <div class="bottom-overlay position-absolute bottom-0 start-0 w-100 d-flex flex-column">
 

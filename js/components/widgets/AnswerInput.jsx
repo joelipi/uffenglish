@@ -1,0 +1,124 @@
+import React, { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import { useStore } from 'zustand';
+import { appStore } from '../../modules/store.js';
+
+export default function AnswerInput() {
+    const textInputVisible = useStore(appStore, (state) => state.textInputVisible);
+    const textInputPlaceholder = useStore(appStore, (state) => state.textInputPlaceholder);
+    const textInputSubmitCallback = useStore(appStore, (state) => state.textInputSubmitCallback);
+    const speechInputContent = useStore(appStore, (state) => state.speechInputContent);
+    const speechInputHintCallback = useStore(appStore, (state) => state.speechInputHintCallback);
+    const speechInputRevealCallback = useStore(appStore, (state) => state.speechInputRevealCallback);
+    const speechInputToggleCallback = useStore(appStore, (state) => state.speechInputToggleCallback);
+
+    const answerInputAreaRef = useRef(null);
+    const answerInputFieldRef = useRef(null);
+    const answerSubmitBtnRef = useRef(null);
+
+    // Handle text input submission
+    const handleSubmit = () => {
+        console.log('[AnswerInput] handleSubmit called');
+        console.log('answerInputFieldRef.current:', answerInputFieldRef.current);
+        console.log('textInputSubmitCallback:', textInputSubmitCallback);
+        if (answerInputFieldRef.current && textInputSubmitCallback) {
+            const value = answerInputFieldRef.current.value.trim();
+            console.log('[AnswerInput] Submitting value:', value);
+            if (value) {
+                textInputSubmitCallback(value, answerSubmitBtnRef.current);
+            }
+        }
+    };
+
+    // Toggle d-none on the portal target element when visibility changes
+    useEffect(() => {
+        const el = document.getElementById('answer-input-area');
+        if (el) {
+            el.classList.toggle('d-none', !textInputVisible);
+        }
+    }, [textInputVisible]);
+
+    // Clear textarea when a new step's submit callback is bound
+    useEffect(() => {
+        if (answerInputFieldRef.current) {
+            answerInputFieldRef.current.value = '';
+        }
+    }, [textInputSubmitCallback]);
+
+    // Focus the input field when it becomes visible
+    useEffect(() => {
+        if (textInputVisible && answerInputFieldRef.current) {
+            setTimeout(() => {
+                answerInputFieldRef.current.focus();
+            }, 100);
+        }
+    }, [textInputVisible]);
+
+    // Set up speech input hint click handlers
+    useEffect(() => {
+        if (!speechInputContent || !speechInputHintCallback || !speechInputRevealCallback) return;
+
+        const pulseDots = document.querySelectorAll('.pulse-dot');
+        pulseDots.forEach(span => {
+            span.addEventListener('click', speechInputRevealCallback);
+        });
+
+        return () => {
+            document.querySelectorAll('.pulse-dot').forEach(span => {
+                span.removeEventListener('click', speechInputRevealCallback);
+            });
+        };
+    }, [speechInputContent, speechInputHintCallback, speechInputRevealCallback]);
+
+    // Bind global mic click handler
+    useEffect(() => {
+        if (speechInputToggleCallback) {
+            window.onMicClick = speechInputToggleCallback;
+        }
+        return () => {
+            window.onMicClick = null;
+        };
+    }, [speechInputToggleCallback]);
+
+    const answerInputAreaEl = document.getElementById('answer-input-area');
+
+    if (!answerInputAreaEl) {
+        // If the element doesn't exist yet, don't render anything
+        return null;
+    }
+
+    return createPortal(
+        <div>
+            <div className="card bg-dark border-secondary shadow-lg">
+                <div className="card-body p-2 d-flex align-items-center gap-2">
+                    <div className="flex-grow-1 d-flex flex-column">
+                        <textarea
+                            ref={answerInputFieldRef}
+                            id="answer-input-field"
+                            className="form-control bg-dark text-white border-secondary"
+                            rows="2"
+                            placeholder={textInputPlaceholder || 'Type your answer...'}
+                            disabled={!textInputVisible}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && e.ctrlKey) {
+                                    e.preventDefault();
+                                    handleSubmit();
+                                }
+                            }}
+                        />
+                        <div id="answer-error-message" className="text-danger small mt-1 d-none"></div>
+                    </div>
+                    <button
+                        ref={answerSubmitBtnRef}
+                        id="answer-submit-button"
+                        disabled={!textInputVisible}
+                        onClick={handleSubmit}
+                    >
+                        <i className="bi bi-send-fill"></i>
+                    </button>
+                </div>
+            </div>
+        </div>,
+        answerInputAreaEl
+    );
+}

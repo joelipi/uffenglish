@@ -62,6 +62,15 @@ export const appStore = createStore(
             hintsVisible: false,
             hangmanHintHTML: '',
             bottomControlState: 'mic',
+            
+            // --- Input UI State (Replaces renderSpeechInputUI/renderTextInputUI) ---
+            textInputVisible: false,
+            textInputPlaceholder: '',
+            textInputSubmitCallback: null,
+            speechInputContent: null,
+            speechInputHintCallback: null,
+            speechInputRevealCallback: null,
+            speechInputToggleCallback: null,
 
             // --- Tutor Engagement Metrics ---
             userMessagesToAi: 0,
@@ -262,6 +271,24 @@ export const appStore = createStore(
                 formalityScore: 100,
                 nativeLikeScore: 100,
                 understandingScore: 100
+            }),
+
+            // --- Input UI Actions (Replaces renderSpeechInputUI/renderTextInputUI) ---
+            setTextInputVisible: (visible) => set({ textInputVisible: visible }),
+            setTextInputPlaceholder: (placeholder) => set({ textInputPlaceholder: placeholder }),
+            setTextInputSubmitCallback: (callback) => set({ textInputSubmitCallback: callback }),
+            setSpeechInputContent: (content) => set({ speechInputContent: content }),
+            setSpeechInputHintCallback: (callback) => set({ speechInputHintCallback: callback }),
+            setSpeechInputRevealCallback: (callback) => set({ speechInputRevealCallback: callback }),
+            setSpeechInputToggleCallback: (callback) => set({ speechInputToggleCallback: callback }),
+            clearInputUI: () => set({
+                textInputVisible: false,
+                textInputPlaceholder: '',
+                textInputSubmitCallback: null,
+                speechInputContent: null,
+                speechInputHintCallback: null,
+                speechInputRevealCallback: null,
+                speechInputToggleCallback: null
             })
         }),
         {

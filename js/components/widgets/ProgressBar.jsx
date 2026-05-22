@@ -5,12 +5,15 @@ import { appStore } from '../../modules/store.js';
 
 export default function ProgressBar() {
     const progressPercent = useStore(appStore, (state) => state.progressPercent);
-    const target = document.getElementById('react-root-progress');
+    const target = document.getElementById('progress');
+    const widthValue = typeof progressPercent === 'string' && progressPercent.endsWith('%')
+        ? progressPercent
+        : progressPercent + '%';
 
     return target ? createPortal(
         <div className="progress-bar" role="progressbar"
-            style={{ width: progressPercent + '%' }}
-            aria-valuenow={progressPercent} aria-valuemin="0" aria-valuemax="100">
+            style={{ width: widthValue }}
+            aria-valuenow={parseInt(progressPercent)} aria-valuemin="0" aria-valuemax="100">
         </div>,
         target
     ) : null;

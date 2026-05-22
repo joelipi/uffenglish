@@ -89,10 +89,14 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 
 *For each remaining ui.js function, add a Zustand action + React component that replaces it, then delete the old function. This is a single loop — replacement unblocks deletion, deletion is the completion signal.*
 
-**Progress snapshot:** 27 of 28 backlog items COMPLETED. `ui.js` shrunk from 1,613 → ~958 lines. Phase 1 (video wrappers) COMPLETED. Phase 2.0 (monolith shrinkage) COMPLETED. Phase 2.1 (bottom controls state machine) COMPLETED. Phase 2.2 (hidePreloader) COMPLETED. Phase 2.3 (showPlaybackVideo) COMPLETED. Phase 2.4 (initUISubscriptions) COMPLETED.
+**Progress snapshot:** All Phase 2 backlog items COMPLETED. `ui.js` shrunk from 1,613 → ~958 lines. Phase 1 (video wrappers) COMPLETED. Phase 2.0 (monolith shrinkage) COMPLETED. Phase 2.1 (bottom controls state machine) COMPLETED. Phase 2.2 (hidePreloader) COMPLETED. Phase 2.3 (showPlaybackVideo) COMPLETED. Phase 2.4 (initUISubscriptions) COMPLETED. Phase 2.5 (renderSpeechInputUI/renderTextInputUI) COMPLETED.
 
-**Remaining Phase 2 work (next actions):**
-1. Phase 4 heavy functions: `handlecueUI`, `handleIncueUI`, `renderWhisperReviewUI`/whisper chain, `renderSpeechInputUI`/`renderTextInputUI`, `initTutorChatUI`/`showTutorChatInput`/`hideTutorChatInput`, webcam functions
+**Remaining work:**
+1. Phase 4 heavy functions: `handlecueUI`, `handleIncueUI`, `renderWhisperReviewUI`/whisper chain, `initTutorChatUI`/`showTutorChatInput`/`hideTutorChatInput`, webcam functions
+2. Bug fix: `LessonSuccessControls` now properly attaches click handler to `#createVideoButton` via `SuccessLessonHandler.createVideoButton()`
+3. Bug fix: Fixed `TypeError: Cannot read properties of undefined (reading 'lessonId')` by passing current step and fluency data to `createVideoButton()`
+4. Bug fix: Removed `renderTextInputUI` from `ui.js` to prevent duplicate answer input areas in text mode
+5. Bug fix: Updated `MicrophoneToggle` to use Zustand state instead of direct DOM manipulation for text input toggle
 
 ### Phase 2.3: showPlaybackVideo → VideoBubble — COMPLETED
 

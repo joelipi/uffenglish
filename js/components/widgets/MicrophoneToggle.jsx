@@ -65,31 +65,28 @@ export default function MicrophoneToggle() {
     };
 
     const handleTextClick = () => {
-        const answerInputArea = document.getElementById('answer-input-area');
-        if (answerInputArea) {
-            const isHiding = !answerInputArea.classList.contains('d-none');
+        const isTextInputVisible = appStore.getState().textInputVisible;
+        
+        if (isTextInputVisible) {
+            // CLOSING
+            appStore.getState().setTextInputVisible(false);
+            appStore.getState().setMicActive(false);
+            if (typeof window.isMicActive !== 'undefined') window.isMicActive = false;
             
-            if (isHiding) {
-                // CLOSING
-                answerInputArea.classList.add('d-none');
-                appStore.getState().setMicActive(false);
-                if (typeof window.isMicActive !== 'undefined') window.isMicActive = false;
-                
-                const player = window.State?.player || window.currentVideoPlayer;
-                if (player && player.play) {
-                    player.play().catch(e => console.warn('[UI] Video resume failed:', e));
-                }
-                console.log('[UI] Text area hidden, video resumed');
-            } else {
-                // OPENING
-                answerInputArea.classList.remove('d-none');
-                appStore.getState().setMicActive(true);
-                if (typeof window.isMicActive !== 'undefined') window.isMicActive = true;
-                
-                const player = window.State?.player || window.currentVideoPlayer;
-                if (player && player.pause) player.pause();
-                console.log('[UI] Text area shown, video paused');
+            const player = window.State?.player || window.currentVideoPlayer;
+            if (player && player.play) {
+                player.play().catch(e => console.warn('[UI] Video resume failed:', e));
             }
+            console.log('[UI] Text area hidden, video resumed');
+        } else {
+            // OPENING
+            appStore.getState().setTextInputVisible(true);
+            appStore.getState().setMicActive(true);
+            if (typeof window.isMicActive !== 'undefined') window.isMicActive = true;
+            
+            const player = window.State?.player || window.currentVideoPlayer;
+            if (player && player.pause) player.pause();
+            console.log('[UI] Text area shown, video paused');
         }
     };
 

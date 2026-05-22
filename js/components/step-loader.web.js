@@ -38,8 +38,6 @@ import {
     clearMediaContainerAndPreservePlayers,
     renderImageInMediaContainer,
     renderYoutubeInMediaContainer,
-    renderSpeechInputUI,
-    renderTextInputUI,
     updateProgressAndCloseButton,
     hideAnswerDiv,
     bindProcessButton,
@@ -51,6 +49,21 @@ import {
 } from './ui.js';
 
 function beforeUnloadHandler(e) { /* e.preventDefault(); e.returnValue = ''; return ''; */ }
+
+let _warningClearTimer = null;
+
+function _clearWarningLater(ms) {
+    clearTimeout(_warningClearTimer);
+    _warningClearTimer = setTimeout(() => {
+        appStore.getState().setMicStatusText('');
+        _warningClearTimer = null;
+    }, ms);
+}
+
+function _cancelWarningClear() {
+    clearTimeout(_warningClearTimer);
+    _warningClearTimer = null;
+}
 
 export function loadStep(step, lesson, fluencyData, deps) {
     const { submitAnswerPrecheck, showFeedbackAndProceed, handleHint } = deps;
@@ -124,9 +137,12 @@ export function loadStep(step, lesson, fluencyData, deps) {
     if (step.stepType === "closedResponse" || step.stepType === "openResponse") {
         _renderResponseStep(step, lesson, deps);
     } else if (step.stepType === 'text') {
-        renderTextInputUI(
-            Strings.get('placeholder_type_answer', appStore.getState().userData?.native_language) || 'Type your answer here...',
-            Strings.get('btn_submit', appStore.getState().userData?.native_language) || 'Submit',
+        appStore.getState().setStatsVisible(true);
+        updateProgressAndCloseButton(false);
+        appStore.getState().setTextInputPlaceholder(
+            Strings.get('placeholder_type_answer', appStore.getState().userData?.native_language) || 'Type your answer here...'
+        );
+        appStore.getState().setTextInputSubmitCallback(
             (val, btn) => submitAnswerPrecheck(val, step.cue, step, btn, step.explanation, step.translation, { pauseCount: null, netDuration: null })
         );
     } else if (step.stepType === 'lessoncomplete') {
@@ -167,17 +183,19 @@ function _renderResponseStep(step, lesson, deps) {
     const stepIndex = getCurrentStepIndex(step, appStore.getState().configData, appStore.getState().currentLessonIndex);
 
     if (State.isTextMode) {
+        appStore.getState().setStatsVisible(true);
+        updateProgressAndCloseButton(false);
         const placeholder = Strings.get('placeholder_type_answer', appStore.getState().userData?.native_language) || 'Type your answer here...';
         const submitLabel = Strings.get('btn_submit', appStore.getState().userData?.native_language) || 'Submit';
-        renderTextInputUI(placeholder, submitLabel, (val, btn) => {
+        appStore.getState().setTextInputPlaceholder(placeholder);
+        appStore.getState().setTextInputSubmitCallback((val, btn) => {
             submitAnswerPrecheck(val, step.cue, step, btn, step.explanation, step.translation, { pauseCount: 0, netDuration: 3 });
         });
     } else {
-        renderSpeechInputUI(
-            answerFragment,
-            step.stepType === "closedResponse" ? null : () => handleHint(stepIndex),
-            handleRevealClick,
-            async () => {
+        appStore.getState().setSpeechInputContent(answerFragment);
+        appStore.getState().setSpeechInputHintCallback(step.stepType === "closedResponse" ? null : () => handleHint(stepIndex));
+        appStore.getState().setSpeechInputRevealCallback(handleRevealClick);
+        appStore.getState().setSpeechInputToggleCallback(async () => {
                 const speechButton = document.getElementById('micBtn');
 
                 try {
@@ -217,6 +235,7 @@ function _renderResponseStep(step, lesson, deps) {
                                 }
                             },
                              onRecordingStart: (userData) => {
+                                _cancelWarningClear();
                                 window.isMicActive = true; // Lock the video timer
                                 if (window.currentVideoPlayer) {
                                     if (typeof window.currentVideoPlayer.pause === 'function') {
@@ -258,20 +277,24 @@ function _renderResponseStep(step, lesson, deps) {
                                 appStore.getState().setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Analyzing Speech...</div>`);
                             },
                             onStopEarly: (userData) => {
-                                window.isMicActive = false; // Release the lock
+                                window.isMicActive = false;
                                 window.dispatchEvent(new CustomEvent('preflightRejected'));
                                 prepareMediaUI();
                                 appStore.getState().setMicStatusText(`<div class='text-center' style='color: red; font-size: large;'><i class='bi bi-exclamation-triangle-fill'></i> ${Strings.get('try_again_speech', userData?.native_language)}</div>`);
                                 const btn = document.getElementById('micBtn');
                                 if (btn) btn.style.display = 'flex';
+                                _clearWarningLater(3000);
                             },
                             onGibberishDetected: () => {
-                                window.isMicActive = false; // Release the lock
+                                window.isMicActive = false;
                                 window.dispatchEvent(new CustomEvent('preflightRejected'));
                                 appStore.getState().setMicStatusText(`<div class='text-center mt-3' style='color: #ff9800; font-size: large;'><i class='bi bi-ear-x'></i> Audio unclear. Please try speaking clearly.</div>`);
+                                const btn = document.getElementById('micBtn');
+                                if (btn) btn.style.display = 'flex';
+                                _clearWarningLater(3000);
                             },
                             onPreflightRejected: (msg) => {
-                                window.isMicActive = false; // Release the lock
+                                window.isMicActive = false;
                                 clearPlaybackVideo();
                                 removeWebcamPreview();
                                 window.dispatchEvent(new CustomEvent('preflightRejected'));
@@ -281,6 +304,7 @@ function _renderResponseStep(step, lesson, deps) {
                                     btn.style.display = 'flex';
                                     stopMicAnimation(btn);
                                 }
+                                _clearWarningLater(4000);
                             },
                             onTranscriptRejected: (cue, transcript) => {
                                 window.isMicActive = false; // Release the lock

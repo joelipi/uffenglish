@@ -67,6 +67,7 @@ export const Media = {
                 this.video = document.createElement('video');
                 this.video.muted = true;
                 this.video.setAttribute('muted', ''); // Explicit attribute for some browsers
+                this.video.setAttribute('crossorigin', 'anonymous');
                 this.video.setAttribute('playsinline', '');
                 this.video.style.display = 'none';
                 this.video.id = 'media-preloader-element';

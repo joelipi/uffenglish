@@ -13,6 +13,7 @@ import GuestLoginModal from './modals/GuestLoginModal.jsx';
 import CriticalErrorModal from './modals/CriticalErrorModal.jsx';
 import MicStatusText from './widgets/MicStatusText.jsx';
 import Hints from './widgets/Hints.jsx';
+import AnswerInput from './widgets/AnswerInput.jsx';
 import InteractiveVideoWrapper from './InteractiveVideoWrapper.jsx';
 import SimpleVideoWrapper from './SimpleVideoWrapper.jsx';
 import IntroVideoWrapper from './IntroVideoWrapper.jsx';
@@ -60,6 +61,7 @@ export default function LessonContainer() {
 
             <MicStatusText />
             <Hints />
+            <AnswerInput />
 
             <ChatContainer />
 

@@ -24,7 +24,7 @@ export const DOM = {
     get nameHuman() { return document.getElementById("chat-name-user"); },
     get statsContainer() { return document.getElementById("react-root-stats"); },
     get progressbar() { return document.getElementById('progress'); },
-    get progressBarFill() { return document.getElementById("react-root-progress"); },
+    get progressBarFill() { return document.getElementById("progress"); },
     get closeAndProgress() { return document.getElementById('closeAndProgress'); },
     get micStatusText() { return document.getElementById("react-root-micstatus"); },
     get whisperReviewContainer() { return document.getElementById('whisperReviewContainer'); },
@@ -278,6 +278,7 @@ export function clearChatInterface() {
     if (DOM.answerInputArea) {
         DOM.answerInputArea.classList.add('d-none');
     }
+    appStore.getState().setTextInputVisible(false);
     Object.values(SCORE_SPAN_MAP).forEach(id => {
         const el = document.getElementById(id);
         if (el) el.textContent = '';
@@ -350,45 +351,12 @@ export function clearMicStatusAndHideMedia() {
     appStore.getState().setMicStatusText("");
     if (DOM.mediaViewport) DOM.mediaViewport.classList.add('d-none');
     if (DOM.answerInputArea) DOM.answerInputArea.classList.add('d-none');
+    appStore.getState().setTextInputVisible(false);
 }
 
 export function initUISubscriptions() {
-    if (DOM.txtBtn) {
-        DOM.txtBtn.onclick = () => {
-            if (DOM.answerInputArea) {
-                const isHiding = !DOM.answerInputArea.classList.contains('d-none');
-
-                if (isHiding) {
-                    // --- CLOSING ---
-                    DOM.answerInputArea.classList.add('d-none');
-                    window.isMicActive = false;
-
-                    // Resume video
-                    const player = State.player || window.currentVideoPlayer;
-                    if (player && player.play) {
-                        player.play().catch(e => console.warn('[UI] Video resume failed:', e));
-                    }
-                    console.log('[UI] Text area hidden, video resumed');
-                } else {
-                    // --- OPENING ---
-                    DOM.answerInputArea.classList.remove('d-none');
-                    window.isMicActive = true;
-
-                    // Pause video
-                    Media.pauseVideoIfPlaying();
-
-                    // Hide hints
-                    appStore.getState().setHintsVisible(false);
-
-                    // Focus
-                    if (DOM.answerInputField) {
-                        setTimeout(() => DOM.answerInputField.focus(), 100);
-                    }
-                    console.log('[UI] Text area shown, video paused');
-                }
-            }
-        };
-    }
+    // txtBtn click handler now owned by MicrophoneToggle.jsx via Zustand
+    // answer-input-area visibility now owned by AnswerInput.jsx via d-none toggle
 }
 
 export function renderWhisperReviewUI(transcript, timeLeft, onAccept, onReject) {
@@ -790,81 +758,7 @@ export function renderYoutubeInMediaContainer(youtubeId) {
     DOM.mediaViewport.prepend(div);
 }
 
-export function renderSpeechInputUI(answerContent, handleHintCallback, handleRevealClickCallback, toggleSpeechCallback) {
-    if (State.isTextMode) {
-        console.log('[UI] renderSpeechInputUI: Bypassing voice UI in text mode');
-        return;
-    }
-    const hintUncommonWords = document.getElementById("hintUncommonWords");
-    if (hintUncommonWords) {
-        hintUncommonWords.innerHTML = '';
-        if (typeof answerContent === 'string') {
-            hintUncommonWords.innerHTML = answerContent;
-        } else if (answerContent instanceof Node) {
-            hintUncommonWords.appendChild(answerContent);
-        }
-        document.querySelectorAll('.pulse-dot').forEach(span => {
-            span.addEventListener('click', handleRevealClickCallback);
-        });
-    }
 
-    // Bind the mic click handler globally for the React MicrophoneToggle component to use
-    window.onMicClick = toggleSpeechCallback;
-}
-
-export function renderTextInputUI(placeholder, submitText, handleSubmitCallback) {
-    if (DOM.closeAndProgress) DOM.closeAndProgress.classList.remove('d-none');
-    if (DOM.statsContainer) DOM.statsContainer.classList.remove('d-none');
-    const answerDiv = document.getElementById("answerDiv");
-    if (answerDiv) answerDiv.classList.add("d-none");
-
-    if (DOM.answerInputArea && DOM.answerInputField && DOM.answerSubmitBtn) {
-        // Keep hidden by default so video is visible
-        DOM.answerInputArea.classList.add('d-none');
-
-        DOM.answerInputField.placeholder = placeholder || 'Type your answer...';
-        DOM.answerInputField.disabled = false;
-        DOM.answerInputField.classList.remove('disabled');
-        DOM.answerInputField.value = '';
-
-        DOM.answerSubmitBtn.disabled = false;
-        DOM.answerSubmitBtn.classList.remove('disabled');
-        DOM.answerSubmitBtn.innerHTML = '<i class="bi bi-send-fill"></i>';
-
-        // Clear previous event listeners
-        const newSubmitBtn = DOM.answerSubmitBtn.cloneNode(true);
-        DOM.answerSubmitBtn.parentNode.replaceChild(newSubmitBtn, DOM.answerSubmitBtn);
-
-        const handleSubmit = () => {
-            const value = DOM.answerInputField.value.trim();
-            console.log('[UI] handleSubmit triggered. Value:', value);
-            if (!value) return;
-            newSubmitBtn.disabled = true;
-            DOM.answerInputField.disabled = true;
-            console.log('[UI] Calling handleSubmitCallback...');
-            handleSubmitCallback(value, newSubmitBtn);
-        };
-
-        newSubmitBtn.addEventListener('click', handleSubmit);
-
-        const newInputField = DOM.answerInputField.cloneNode(true);
-        DOM.answerInputField.parentNode.replaceChild(newInputField, DOM.answerInputField);
-
-        newInputField.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && e.ctrlKey) {
-                e.preventDefault();
-                console.log('[UI] Ctrl+Enter detected - submitting');
-                handleSubmit();
-            }
-            // Normal Enter will now create a carriage return by default in the textarea
-        });
-
-        console.log('[UI] renderTextInputUI completed. Listeners attached to new nodes.');
-
-        // Ensure it's focused
-        setTimeout(() => newInputField.focus(), 100);
-    }
-}
 
 export function updateProgressAndCloseButton(showClose) {
     if (DOM.closeAndProgress) {
