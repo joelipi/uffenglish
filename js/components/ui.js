@@ -353,35 +353,6 @@ export function clearMicStatusAndHideMedia() {
 }
 
 export function initUISubscriptions() {
-    const store = appStore;
-    let prevAttempts = store.getState().incorrectAttempts;
-    let prevUserFirstName = store.getState().userFirstName;
-
-    const updateChatHeader = (userFirstName) => {
-        const header = document.getElementById('chat-window-header');
-        if (header) {
-            if (userFirstName) {
-                header.textContent = `${userFirstName}'s Fluency Team`;
-            } else {
-                header.textContent = `Your Fluency Team`;
-            }
-        }
-    };
-    updateChatHeader(prevUserFirstName);
-
-
-    store.subscribe((state) => {
-        if (state.incorrectAttempts > prevAttempts) {
-            prevAttempts = state.incorrectAttempts;
-        } else if (state.incorrectAttempts === 0) {
-            prevAttempts = 0;
-        }
-        if (state.userFirstName !== prevUserFirstName) {
-            updateChatHeader(state.userFirstName);
-            prevUserFirstName = state.userFirstName;
-        }
-    });
-
     if (DOM.txtBtn) {
         DOM.txtBtn.onclick = () => {
             if (DOM.answerInputArea) {

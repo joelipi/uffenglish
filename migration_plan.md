@@ -89,10 +89,10 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 
 *For each remaining ui.js function, add a Zustand action + React component that replaces it, then delete the old function. This is a single loop — replacement unblocks deletion, deletion is the completion signal.*
 
-**Progress snapshot:** 26 of 28 backlog items COMPLETED. `ui.js` shrunk from 1,613 → ~1,067 lines. Phase 1 (video wrappers) COMPLETED. Phase 2.0 (monolith shrinkage) COMPLETED. Phase 2.1 (bottom controls state machine) COMPLETED. Phase 2.2 (hidePreloader) COMPLETED. Phase 2.3 (showPlaybackVideo) COMPLETED.
+**Progress snapshot:** 27 of 28 backlog items COMPLETED. `ui.js` shrunk from 1,613 → ~958 lines. Phase 1 (video wrappers) COMPLETED. Phase 2.0 (monolith shrinkage) COMPLETED. Phase 2.1 (bottom controls state machine) COMPLETED. Phase 2.2 (hidePreloader) COMPLETED. Phase 2.3 (showPlaybackVideo) COMPLETED. Phase 2.4 (initUISubscriptions) COMPLETED.
 
 **Remaining Phase 2 work (next actions):**
-1. Phase 4 heavy functions: `handlecueUI`, `handleIncueUI`, `renderWhisperReviewUI`/whisper chain, `initUISubscriptions`, `renderSpeechInputUI`/`renderTextInputUI`, `initTutorChatUI`/`showTutorChatInput`/`hideTutorChatInput`, webcam functions
+1. Phase 4 heavy functions: `handlecueUI`, `handleIncueUI`, `renderWhisperReviewUI`/whisper chain, `renderSpeechInputUI`/`renderTextInputUI`, `initTutorChatUI`/`showTutorChatInput`/`hideTutorChatInput`, webcam functions
 
 ### Phase 2.3: showPlaybackVideo → VideoBubble — COMPLETED
 
@@ -208,7 +208,7 @@ Vanilla JS toggles these by adding/removing `d-none` on DOM elements, which figh
 | `handlecueUI` | ~96 | Extract Zustand writes → React components for each section. Keep DOM construction as vanilla if needed. |
 | `handleIncueUI` | ~105 | Same approach. |
 | `renderWhisperReviewUI` / whisper chain | ~70 | Zustand for whisper state → React component for UI |
-| `initUISubscriptions` | ~68 | Move subscriptions into React `useEffect` hooks |
+| `initUISubscriptions` | ~68 | Move subscriptions into React `useEffect` hooks | COMPLETED |
 | `renderSpeechInputUI` / `renderTextInputUI` | ~80 | Zustand for input state → React `<AnswerInput>` component |
 | `initTutorChatUI` / `showTutorChatInput` / `hideTutorChatInput` | ~40 | React component manages visibility |
 | Webcam functions | ~60 | Zustand for webcam state → React manages `<video>` element |

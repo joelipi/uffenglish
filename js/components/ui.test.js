@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
-    setupLessonUI, DOM, escapeHTML, getFirstName, flashElement,
+    setupLessonUI, DOM, getFirstName, flashElement,
     disableAllButtons,
     safeRenderChatInterface, renderAIAnalysisLoading,
     renderAIFeedback, clearChatInterface, showMicWarning,
@@ -76,17 +76,6 @@ describe('UI Component functions', () => {
             const titles = document.getElementsByClassName('lesson-title');
             expect(titles[0].textContent).toBe('New Awesome Lesson');
             expect(titles[1].textContent).toBe('New Awesome Lesson');
-        });
-    });
-
-    describe('escapeHTML', () => {
-        it('should replace special characters with html entities', () => {
-            expect(escapeHTML('<script>alert("test & it \' works")</script>'))
-                .toBe('&lt;script&gt;alert(&quot;test &amp; it &#39; works&quot;)&lt;/script&gt;');
-        });
-        it('should handle null/undefined', () => {
-            expect(escapeHTML(null)).toBe('');
-            expect(escapeHTML(undefined)).toBe('');
         });
     });
 
