@@ -49,19 +49,6 @@ export const DOM = {
 let webcamPreview = null;
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-export function escapeHTML(str) {
-    if (!str) return "";
-    return str.replace(/[&<>'"]/g,
-        tag => ({
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            "'": '&#39;',
-            '"': '&quot;'
-        }[tag])
-    );
-}
-
 function setChatHeader(isAI) {
     if (DOM.avatarAi) DOM.avatarAi.classList.toggle('d-none', !isAI);
     if (DOM.nameAi) DOM.nameAi.classList.toggle('d-none', !isAI);
@@ -109,7 +96,7 @@ export function safeRenderChatInterface(isAI) {
 }
 
 export function renderAIAnalysisLoading(text) {
-    hideWhisperReviewUI();
+    if (DOM.whisperReviewContainer) DOM.whisperReviewContainer.classList.add("d-none");
     const storeState = appStore.getState();
 
     // Fallback translation handling
@@ -266,7 +253,7 @@ export function generateHangmanHint(userResponse, cue) {
 }
 
 export function clearChatInterface() {
-    hideWhisperReviewUI();
+    if (DOM.whisperReviewContainer) DOM.whisperReviewContainer.classList.add("d-none");
     const videoWrapper = document.getElementById('playback-video-wrapper');
     if (videoWrapper) {
         videoWrapper.style.display = 'none';
@@ -284,9 +271,17 @@ export function clearChatInterface() {
 
     document.body.classList.remove('chat-mode-active');
 
-    hideTutorChatInput();
-    hideAnswerInputArea();
-    clearChatHeaderScores();
+    if (DOM.tutorChatInputArea) {
+        DOM.tutorChatInputArea.classList.add('d-none');
+        DOM.tutorChatInputArea.style.setProperty('display', 'none', 'important');
+    }
+    if (DOM.answerInputArea) {
+        DOM.answerInputArea.classList.add('d-none');
+    }
+    Object.values(SCORE_SPAN_MAP).forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = '';
+    });
 }
 
 const SCORE_SPAN_MAP = {
@@ -300,13 +295,6 @@ const SCORE_SPAN_MAP = {
     understanding: 'chat-score-understanding',
     fluency: 'chat-score-fluency',
 };
-
-export function clearChatHeaderScores() {
-    Object.values(SCORE_SPAN_MAP).forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.textContent = '';
-    });
-}
 
 export function updateChatHeaderScores(feedbackData) {
     if (!feedbackData || !Array.isArray(feedbackData.sections)) return;
@@ -345,19 +333,6 @@ export function showTutorChatInput() {
     }
 }
 
-export function hideTutorChatInput() {
-    if (DOM.tutorChatInputArea) {
-        DOM.tutorChatInputArea.classList.add('d-none');
-        DOM.tutorChatInputArea.style.setProperty('display', 'none', 'important');
-    }
-}
-
-export function hideAnswerInputArea() {
-    if (DOM.answerInputArea) {
-        DOM.answerInputArea.classList.add('d-none');
-    }
-}
-
 export function getChatHistoryContext() {
     if (!DOM.chatBody) return "";
 
@@ -374,7 +349,7 @@ export function getChatHistoryContext() {
 export function clearMicStatusAndHideMedia() {
     appStore.getState().setMicStatusText("");
     if (DOM.mediaViewport) DOM.mediaViewport.classList.add('d-none');
-    hideAnswerInputArea();
+    if (DOM.answerInputArea) DOM.answerInputArea.classList.add('d-none');
 }
 
 export function initUISubscriptions() {
@@ -445,12 +420,6 @@ export function initUISubscriptions() {
     }
 }
 
-export function hideWhisperReviewUI() {
-    if (DOM.whisperReviewContainer) {
-        DOM.whisperReviewContainer.classList.add("d-none");
-    }
-}
-
 export function renderWhisperReviewUI(transcript, timeLeft, onAccept, onReject) {
     appStore.getState().removeAiLoadingMessage();
     appStore.getState().setMicStatusText("");
@@ -501,24 +470,6 @@ export function updateWhisperTimer(timeLeft) {
     const timerSpan = document.getElementById('reviewTimer');
     if (timerSpan) timerSpan.innerText = timeLeft;
 }
-
-export function pauseVideoIfPlaying(playerInstance) {
-    if (playerInstance) {
-        if (typeof playerInstance.pause === 'function') {
-            playerInstance.pause();
-        } else if (playerInstance.video && !playerInstance.video.paused) {
-            playerInstance.video.pause();
-        }
-    }
-
-    const videoElements = document.querySelectorAll('video.ivp-video');
-    videoElements.forEach(video => {
-        if (!video.paused) {
-            video.pause();
-        }
-    });
-}
-
 
 
 export function clearPlaybackVideo() {
