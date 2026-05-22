@@ -860,11 +860,18 @@ export function handleIncueUI(stepIndex, stepData, button, cue, userResponse, ex
             appStore.setState({ rolePlayPointsHistory: [...appStore.getState().rolePlayPointsHistory, appStore.getState().listeningScore] });
         }
 
-        const teacherTextStr = appStore.getState().incorrectAttempts === 1
-            ? Strings.get('try_again_1', userData?.native_language)
-            : appStore.getState().incorrectAttempts === 2
-                ? Strings.get('try_again_2', userData?.native_language)
-                : `${Strings.get('failed_continue_correct', userData?.native_language)}<br>"${cue}"`;
+const teacherTextStr = appStore.getState().incorrectAttempts === 1
+                ? Strings.get('try_again_1', userData?.native_language)
+                : appStore.getState().incorrectAttempts === 2
+                    ? Strings.get('try_again_2', userData?.native_language)
+                    : (() => {
+                        const lang = userData?.native_language;
+                        const localizedTrans = getLocalizedTranslation(stepData.translation, lang);
+                        const transStr = (localizedTrans && lang && lang !== 'en')
+                            ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>`
+                            : "";
+                        return `${Strings.get('failed_continue_correct', userData?.native_language)}<br>"${cue}"${transStr}`;
+                    })();
 
         const teacherDiv = document.createElement('div');
         const teacherStrong = document.createElement('strong');
@@ -913,7 +920,14 @@ export function handleIncueUI(stepIndex, stepData, button, cue, userResponse, ex
             ? Strings.get('try_again_1', appStore.getState().userData?.native_language)
             : appStore.getState().incorrectAttempts === 2
                 ? Strings.get('try_again_2', appStore.getState().userData?.native_language)
-                : `${Strings.get('failed_continue', appStore.getState().userData?.native_language)}<br><br>Correct:<br>"${cue}"`;
+                : (() => {
+                    const lang = appStore.getState().userData?.native_language;
+                    const localizedTrans = getLocalizedTranslation(stepData.translation, lang);
+                    const transStr = (localizedTrans && lang && lang !== 'en')
+                        ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>`
+                        : "";
+                    return `${Strings.get('failed_continue', appStore.getState().userData?.native_language)}<br><br>Correct:<br>"${cue}"${transStr}`;
+                })();
 
         const headsUpStr = stepData.headsUp
             ? (appStore.getState().incorrectAttempts <= 2 ? Strings.get('heads_up_repeat_video', appStore.getState().userData?.native_language) : stepData.headsUp)

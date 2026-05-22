@@ -133,7 +133,7 @@ export function loadStep(step, lesson, fluencyData, deps) {
         _renderResponseStep(step, lesson, deps);
     } else if (step.stepType === 'text') {
         appStore.getState().setStatsVisible(true);
-        updateProgressAndCloseButton(false);
+        updateProgressAndCloseButton(true);
         appStore.getState().setTextInputPlaceholder(
             Strings.get('placeholder_type_answer', appStore.getState().userData?.native_language) || 'Type your answer here...'
         );
@@ -179,7 +179,7 @@ function _renderResponseStep(step, lesson, deps) {
 
     if (State.isTextMode) {
         appStore.getState().setStatsVisible(true);
-        updateProgressAndCloseButton(false);
+        updateProgressAndCloseButton(true);
         const placeholder = Strings.get('placeholder_type_answer', appStore.getState().userData?.native_language) || 'Type your answer here...';
         const submitLabel = Strings.get('btn_submit', appStore.getState().userData?.native_language) || 'Submit';
         appStore.getState().setTextInputPlaceholder(placeholder);
@@ -187,6 +187,8 @@ function _renderResponseStep(step, lesson, deps) {
             submitAnswerPrecheck(val, step.cue, step, btn, step.explanation, step.translation, { pauseCount: 0, netDuration: 3 });
         });
     } else {
+        // Show close/progress button for speech response steps
+        updateProgressAndCloseButton(true);
         const hintTempDiv = document.createElement('div');
         hintTempDiv.appendChild(answerFragment.cloneNode(true));
         appStore.getState().setSpeechInputContent(hintTempDiv.innerHTML);
