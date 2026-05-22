@@ -33,11 +33,11 @@ import {
     renderAIFeedback,
     disableAllButtons,
     resetMicStatusWithStep,
+    getFirstName,
     handlecueUI,
     handleIncueUI,
     generateHangmanHint,
     prepareMediaUI,
-    showPlaybackVideo,
     showTutorChatInput,
     updateChatHeaderScores,
     clearChatInterface
@@ -144,7 +144,22 @@ export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation,
 
 export async function handleAnswer(userResponse, cue, stepData, button, explanation, translation, stats = { pauseCount: null, netDuration: null }, _deps = {}, userData = appStore.getState().userData, configData = appStore.getState().configData, courseId = appStore.getState().courseId) {
     if (!State.isTextMode && (stepData.stepType === "lessonIntro" || stepData.stepType === "closedResponse" || stepData.stepType === "openResponse")) {
-        showPlaybackVideo();
+        const storeState = appStore.getState();
+        const hasVideoBubble = storeState.chatHistory.some(msg => msg.type === 'video');
+        if (!hasVideoBubble) {
+            storeState.addChatMessage({
+                role: 'user',
+                type: 'video',
+                userName: getFirstName(storeState.userData?.display_name),
+                userAvatarUrl: storeState.userData?.profilepicurl || '/assets/img/userprofile.webp'
+            });
+        } else {
+            const video = document.getElementById('playback-video');
+            if (video) {
+                video.muted = storeState.isPlaybackMuted;
+                video.play().catch(e => console.warn('[answer-pipeline] Playback resume failed:', e));
+            }
+        }
     }
 
     let speechAnalytics = null;

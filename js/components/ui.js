@@ -157,12 +157,6 @@ export function renderAIFeedback(contentChunks = []) {
     });
 }
 
-export function hidePreloader() {
-    appStore.getState().setIsLoaded(true);
-    const preloader = document.getElementById('appLoadingImageDiv');
-    if (preloader) preloader.style.display = 'none';
-}
-
 export function showMicWarning(message) {
     const html = `<div class='text-center text-danger'>${message}</div>`;
     appStore.getState().setMicStatusText(html);
@@ -553,64 +547,6 @@ export function prepareMediaUI() {
     if (DOM.mediaViewport) DOM.mediaViewport.classList.remove('d-none');
 }
 
-export function showPlaybackVideo() {
-    if (DOM.speechText) {
-        DOM.speechText.classList.remove('d-none');
-        DOM.speechText.style.setProperty('display', 'flex', 'important');
-        DOM.speechText.style.setProperty('opacity', '1', 'important');
-    }
-
-    const videoWrapper = document.getElementById('playback-video-wrapper');
-    const video = document.getElementById('playback-video') || DOM.playbackVideo;
-
-    if (videoWrapper && video && DOM.chatBody) {
-        if (DOM.chatBody.contains(videoWrapper)) {
-            videoWrapper.classList.remove('d-none');
-            videoWrapper.style.setProperty('display', 'block', 'important');
-            video.style.setProperty('display', 'block', 'important');
-            video.muted = State.isPlaybackMuted;
-            video.play().catch(e => console.warn('[UI] Playback resume failed:', e));
-            return;
-        }
-
-        videoWrapper.classList.remove('d-none');
-        videoWrapper.style.setProperty('display', 'block', 'important');
-        videoWrapper.style.setProperty('visibility', 'visible', 'important');
-        videoWrapper.style.setProperty('opacity', '1', 'important');
-
-        video.style.setProperty('display', 'block', 'important');
-        video.style.setProperty('opacity', '1', 'important');
-
-        videoWrapper.classList.remove('mb-2');
-        videoWrapper.style.width = '100px';
-        videoWrapper.style.height = '178px';
-        videoWrapper.style.position = 'relative';
-        videoWrapper.style.top = '';
-        videoWrapper.style.left = '';
-        videoWrapper.style.right = '';
-
-        video.style.width = '100%';
-        video.style.height = '100%';
-        video.style.maxHeight = 'none';
-        video.style.borderRadius = '8px';
-        video.style.objectFit = 'cover';
-
-        // Push the video bubble command to Zustand
-        appStore.getState().addChatMessage({
-            role: 'user',
-            type: 'video',
-            userName: getFirstName(appStore.getState().userData?.display_name),
-            userAvatarUrl: appStore.getState().userData?.profilepicurl || '/assets/img/userprofile.webp'
-        });
-
-        // Continue playing the vanilla video instance
-        video.style.display = 'block';
-        video.style.opacity = '1';
-        video.muted = appStore.getState().isPlaybackMuted; // Note: Ensure this checks Zustand now
-        video.play().catch(e => console.warn('[UI] Playback initial play failed:', e));
-    }
-}
-
 export function isWebcamPreviewVisible() {
     const wrapper = document.getElementById('pip-wrapper');
     return wrapper && !wrapper.classList.contains('d-none');
@@ -781,7 +717,7 @@ export async function setupPlaybackVideo(blob, autoplay = false, speechCamChunks
                 wrapper.classList.remove('d-none');
                 wrapper.style.display = 'flex';
 
-                // Clear any inline styles set by showPlaybackVideo chat bubble conversion
+                // Clear any inline styles set by VideoBubble chat bubble conversion
                 wrapper.style.width = '';
                 wrapper.style.height = '';
                 playbackVideo.style.width = '';
@@ -1208,7 +1144,22 @@ export function handleIncueUI(stepIndex, stepData, button, cue, userResponse, ex
     appStore.getState().incrementIncorrectAttempts();
 
     if (!silent && !State.isTextMode && (stepData.stepType === "lessonIntro" || stepData.stepType === "closedResponse" || stepData.stepType === "openResponse")) {
-        showPlaybackVideo();
+        const storeState = appStore.getState();
+        const hasVideoBubble = storeState.chatHistory.some(msg => msg.type === 'video');
+        if (!hasVideoBubble) {
+            storeState.addChatMessage({
+                role: 'user',
+                type: 'video',
+                userName: getFirstName(storeState.userData?.display_name),
+                userAvatarUrl: storeState.userData?.profilepicurl || '/assets/img/userprofile.webp'
+            });
+        } else {
+            const video = document.getElementById('playback-video');
+            if (video) {
+                video.muted = storeState.isPlaybackMuted;
+                video.play().catch(e => console.warn('[handleIncueUI] Playback resume failed:', e));
+            }
+        }
     }
 
     if ((stepData.stepType === "closedResponse" || stepData.stepType === "openResponse") && stepData.videoUrl) {

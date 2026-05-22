@@ -1,8 +1,130 @@
 {
   "courseId": "model",
   "languageLevel": "B1",
-  "courseName": "Ordering a Drink",
+  "courseName": "Grocery Shopping",
   "lessons": [
+    {
+      "lessonId": "g",
+      "title": {
+        "en": "Grocery Shopping",
+        "es": "Compras de comestibles",
+        "pt": "Compras de mercado"
+      },
+      "unit": "Unit 1",
+      "mission": {
+        "en": "find items in the store",
+        "es": "encontrar artículos en la tienda",
+        "pt": "encontrar itens na loja"
+      },
+      "setting": {
+        "en": "Grocery store",
+        "es": "tienda de comestibles",
+        "pt": "mercado"
+      },
+      "roleOther": {
+        "en": "Store clerk",
+        "es": "empleado de tienda",
+        "pt": "funcionário de loja"
+      },
+      "roleUser": {
+        "en": "Customer",
+        "es": "cliente",
+        "pt": "cliente"
+      },
+      "questions": [
+        {
+          "cue": "",
+          "inputType": "lessonIntro",
+          "introBackgroundVideoUrl": "groceries-1-0"
+        },
+        {
+          "cue": {
+            "en": "Do you have dark chocolate?",
+            "es": "¿Tienes chocolate oscuro?",
+            "pt": "Você tem chocolate escuro?"
+          },
+          "inputType": "closedResponse",
+          "simpleVideoUrl": "do_you_have_dark_chocolate",
+          "subtitles": {
+            "en": "1\n00:00:00,500 --> 00:00:03,000\nLet's practice asking about grocery items.\n\n2\n00:00:03,500 --> 00:00:06,000\nYou'll be the customer asking for items.\n\n3\n00:00:06,500 --> 00:00:10,000\nSay: Do you have dark chocolate?",
+            "es": "1\n00:00:00,500 --> 00:00:03,000\nVamos a practicar preguntar por artículos de comestibles.\n\n2\n00:00:03,500 --> 00:00:06,000\nTú serás el cliente pidiendo artículos.\n\n3\n00:00:06,500 --> 00:00:10,000\nDi: Do you have dark chocolate?",
+            "pt": "1\n00:00:00,500 --> 00:00:03,000\nVamos praticar a perguntar sobre itens de mercado.\n\n2\n00:00:03,500 --> 00:00:06,000\nVocê será o cliente pedindo itens.\n\n3\n00:00:06,500 --> 00:00:10,000\nDiga: Do you have dark chocolate?"
+          },
+          "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
+        },
+        {
+          "cue": {
+            "en": "Do you have loaves of bread?",
+            "es": "¿Tienes barros de pan?",
+            "pt": "Você tem pães inteiros?"
+          },
+          "inputType": "closedResponse",
+          "simpleVideoUrl": "do_you_have_loaves_of_bread",
+          "subtitles": {
+            "en": "1\n00:00:00,500 --> 00:00:03,000\nNow ask about bread.\n\n2\n00:00:03,500 --> 00:00:06,000\nSay: Do you have loaves of bread?",
+            "es": "1\n00:00:00,500 --> 00:00:03,000\nAhora pregunta por pan.\n\n2\n00:00:03,500 --> 00:00:06,000\nDi: Do you have loaves of bread?",
+            "pt": "1\n00:00:00,500 --> 00:00:03,000\nAgora pergunte sobre pão.\n\n2\n00:00:03,500 --> 00:00:06,000\nDiga: Do you have loaves of bread?"
+          },
+          "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
+        },
+        {
+          "cue": {
+            "en": "Do you have rolls, too?",
+            "es": "¿Tienes panes de molde también?",
+            "pt": "Você tem rolls também?"
+          },
+          "inputType": "closedResponse",
+          "simpleVideoUrl": "do_you_have_rolls_too",
+          "subtitles": {
+            "en": "1\n00:00:00,500 --> 00:00:03,000\nNow ask about additional items.\n\n2\n00:00:03,500 --> 00:00:06,000\nSay: Do you have rolls, too?",
+            "es": "1\n00:00:00,500 --> 00:00:03,000\nAhora pregunta por artículos adicionales.\n\n2\n00:00:03,500 --> 00:00:06,000\nDi: Do you have rolls, too?",
+            "pt": "1\n00:00:00,500 --> 00:00:03,000\nAgora pergunte sobre itens adicionais.\n\n2\n00:00:03,500 --> 00:00:06,000\nDiga: Do you have rolls, too?"
+          },
+          "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
+        },
+        {
+          "cue": {
+            "en": "Do you have very bitter dark chocolate?",
+            "es": "¿Tienes chocolate oscuro muy amargo?",
+            "pt": "Você tem chocolate escuro muito amargo?"
+          },
+          "inputType": "closedResponse",
+          "simpleVideoUrl": "do_you_have_very_bitter_dark_chocolate",
+          "subtitles": {
+            "en": "1\n00:00:00,500 --> 00:00:03,000\nNow ask about a specific type of chocolate.\n\n2\n00:00:03,500 --> 00:00:06,000\nSay: Do you have very bitter dark chocolate?",
+            "es": "1\n00:00:00,500 --> 00:00:03,000\nAhora pregunta por un tipo específico de chocolate.\n\n2\n00:00:03,500 --> 00:00:06,000\nDi: Do you have very bitter dark chocolate?",
+            "pt": "1\n00:00:00,500 --> 00:00:03,000\nAgora pergunte sobre um tipo específico de chocolate.\n\n2\n00:00:03,500 --> 00:00:06,000\nDiga: Do you have very bitter dark chocolate?"
+          },
+          "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
+        },
+        {
+          "cue": {
+            "en": "Where is the bread aisle?",
+            "es": "¿Dónde está el pasillo del pan?",
+            "pt": "Onde fica o corredor do pão?"
+          },
+          "inputType": "closedResponse",
+          "simpleVideoUrl": "where_is_the_bread_aisle",
+          "subtitles": {
+            "en": "1\n00:00:00,500 --> 00:00:03,000\nNow ask for directions in the store.\n\n2\n00:00:03,500 --> 00:00:06,000\nSay: Where is the bread aisle?",
+            "es": "1\n00:00:00,500 --> 00:00:03,000\nAhora pide direcciones en la tienda.\n\n2\n00:00:03,500 --> 00:00:06,000\nDi: Where is the bread aisle?",
+            "pt": "1\n00:00:00,500 --> 00:00:03,000\nAgora peça direções na loja.\n\n2\n00:00:03,500 --> 00:00:06,000\nDiga: Where is the bread aisle?"
+          },
+          "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
+        },
+        {
+          "cue": {
+            "en": "Where is the bread aisle?",
+            "es": "¿Dónde está el pasillo del pan?",
+            "pt": "Onde fica o corredor do pão?"
+          },
+          "simpleVideoUrl": "success",
+          "subtitles": "Very good! ¡Muy bien! Oprime el botón para calcular tu calificación de fluidez (Fluency Score) para esta frase. Si tu calificación es menor a 80% te recomiendo repetir la lección.",
+          "inputType": "success"
+        }
+      ],
+      "nextLessonId": "a"
+    },
     {
       "lessonId": "a",
       "title": {

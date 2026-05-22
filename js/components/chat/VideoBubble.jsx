@@ -1,14 +1,15 @@
 import React, { useEffect, useRef } from 'react';
+import { appStore } from '../../modules/store.js';
 
 export default function VideoBubble({ avatarUrl, userName }) {
     const containerRef = useRef(null);
 
     useEffect(() => {
         const videoWrapper = document.getElementById('playback-video-wrapper');
+        const video = document.getElementById('playback-video');
         if (containerRef.current && videoWrapper) {
             containerRef.current.appendChild(videoWrapper);
 
-            // Replicate the inline styles originally set in ui.js showPlaybackVideo
             videoWrapper.classList.remove('d-none', 'mb-2');
             videoWrapper.style.setProperty('display', 'block', 'important');
             videoWrapper.style.setProperty('visibility', 'visible', 'important');
@@ -19,6 +20,18 @@ export default function VideoBubble({ avatarUrl, userName }) {
             videoWrapper.style.top = '';
             videoWrapper.style.left = '';
             videoWrapper.style.right = '';
+
+            if (video) {
+                video.style.setProperty('display', 'block', 'important');
+                video.style.setProperty('opacity', '1', 'important');
+                video.style.width = '100%';
+                video.style.height = '100%';
+                video.style.maxHeight = 'none';
+                video.style.borderRadius = '8px';
+                video.style.objectFit = 'cover';
+                video.muted = appStore.getState().isPlaybackMuted;
+                video.play().catch(e => console.warn('[VideoBubble] Playback failed:', e));
+            }
         }
     }, []);
 

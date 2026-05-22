@@ -98,7 +98,6 @@ import {
     initTutorChatUI,
     setupLessonUI,
     initUISubscriptions,
-    hidePreloader,
     resetMissionText,
     initMissionToggle
 } from './components/ui.js';
@@ -237,7 +236,7 @@ async function initializeLesson(courseId = appStore.getState().courseId, configD
         loadLessonContent(lesson, configData);
     } catch (error) {
         console.error("initializeLesson error:", error);
-        hidePreloader(); // REFACTORED
+        appStore.getState().setIsLoaded(true);
         appStore.getState().setCriticalErrorMessage(Strings.get('lesson_load_error', userData?.native_language));
     }
 }
@@ -383,7 +382,7 @@ async function initializeApp() {
 
     } catch (error) {
         console.error("Initialization error:", error);
-        hidePreloader();
+        appStore.getState().setIsLoaded(true);
         appStore.getState().setCriticalErrorMessage(Strings.get('lesson_load_error', appStore.getState().userData?.native_language));
     }
 }

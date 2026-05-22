@@ -15,8 +15,8 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 - `js/components/LessonContainer.jsx` — route component rendering React shell, video wrappers, and portals
 
 ### What's Still Vanilla JS
-- `js/app.js` (374 lines) — main application controller: initialization, lesson orchestration
-- `js/components/ui.js` (~1,315 lines) — UI bridge monolith: DOM manipulation, Zustand writes, HTML generation
+- `js/app.js` (~355 lines) — main application controller: initialization, lesson orchestration
+- `js/components/ui.js` (~1,067 lines) — UI bridge monolith: DOM manipulation, Zustand writes, HTML generation
 - `js/components/step-loader.web.js` (446 lines) — step loading orchestration (deliberately kept vanilla)
 - `js/components/interactive-video-player.js` (359 lines), `simple-video-player.js` (401 lines), `intro-background-video.js` (97 lines) — video player classes
 - `js/components/feedback-renderer.web.js`, `point-loss-animation.js`, `mic-animation.js`, `success-lesson.js` — utility modules
@@ -89,11 +89,26 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 
 *For each remaining ui.js function, add a Zustand action + React component that replaces it, then delete the old function. This is a single loop — replacement unblocks deletion, deletion is the completion signal.*
 
-**Progress snapshot:** 24 of 28 backlog items COMPLETED. `ui.js` shrunk from 1,613 → ~1,315 lines. Phase 1 (video wrappers) COMPLETED. Phase 2.0 (monolith shrinkage) COMPLETED. Phase 2.1 (bottom controls state machine) COMPLETED.
+**Progress snapshot:** 26 of 28 backlog items COMPLETED. `ui.js` shrunk from 1,613 → ~1,067 lines. Phase 1 (video wrappers) COMPLETED. Phase 2.0 (monolith shrinkage) COMPLETED. Phase 2.1 (bottom controls state machine) COMPLETED. Phase 2.2 (hidePreloader) COMPLETED. Phase 2.3 (showPlaybackVideo) COMPLETED.
 
 **Remaining Phase 2 work (next actions):**
-1. `hidePreloader` — small, only called from `app.js`
-2. `showPlaybackVideo` — called from `answer-pipeline.js` and `handleIncueUI`; `VideoBubble` React component already exists
+1. Phase 4 heavy functions: `handlecueUI`, `handleIncueUI`, `renderWhisperReviewUI`/whisper chain, `initUISubscriptions`, `renderSpeechInputUI`/`renderTextInputUI`, `initTutorChatUI`/`showTutorChatInput`/`hideTutorChatInput`, webcam functions
+
+### Phase 2.3: showPlaybackVideo → VideoBubble — COMPLETED
+
+*Replaced `showPlaybackVideo()` (~55 lines) with direct Zustand chat message pushes. `VideoBubble.jsx` now handles all video wrapper DOM manipulation + playback.*
+
+- `answer-pipeline.js` and `ui.js handleIncueUI`: replaced `showPlaybackVideo()` with `addChatMessage({ type: 'video' })` + duplicate guard (if video bubble already exists, just resume play)
+- `VideoBubble.jsx`: added video element style setup + `video.play()` on mount
+- Deleted `showPlaybackVideo` from `ui.js`
+
+### Phase 2.2: hidePreloader → React — COMPLETED
+
+*Replaced `hidePreloader()` (~5 lines) with Zustand write + React useEffect.*
+
+- `app.js`: replaced `hidePreloader()` calls with `appStore.getState().setIsLoaded(true)`
+- `LessonContainer.jsx`: added `useEffect` that reads `isLoaded` and hides `#appLoadingImageDiv`
+- Deleted `hidePreloader` from `ui.js`; removed import from `app.js`
 
 ### Phase 2.1: Bottom Controls State Machine — COMPLETED
 
@@ -146,7 +161,7 @@ Vanilla JS toggles these by adding/removing `d-none` on DOM elements, which figh
 | `toggleStatsContainer` | Zustand `statsVisible` → React `StatsBar` reads it | Immediate | COMPLETED |
 | `setMicStatusText` | Zustand `micStatusText` → React `<MicStatusText>` | Immediate | COMPLETED |
 | `setMicStatusText` innerHTML writes | Removed direct `DOM.micStatusText.innerHTML` from 4 ui.js functions — React portal now exclusively owns micstatus DOM | Just fixed | COMPLETED |
-| `hidePreloader` | Zustand `isLoaded` → React handles preloader visibility | Immediate | Pending |
+| `hidePreloader` | Zustand `isLoaded` → React `LessonContainer` hides preloader | `app.js` last caller | COMPLETED |
 | `showHintsAndScroll` / `hideHints` | Zustand `hintsHTML` → React renders hints inline | Immediate | COMPLETED |
 | `renderHangmanHint` / `generateHangmanHint` | Zustand `hangmanHint` → React `<HangmanHint>` | Immediate | COMPLETED |
 | `showGuestLoginModal` | `initializeApp()` writes `isGuestModalOpen` directly | `app.js` last caller | COMPLETED |
@@ -159,7 +174,7 @@ Vanilla JS toggles these by adding/removing `d-none` on DOM elements, which figh
 | `getPraiseHTML` | Already in `feedback-renderer.web.js`, imported by ui.js | N/A | COMPLETED |
 | `renderUserChatMessage` | All callers use `addChatMessage` directly | Various callers | COMPLETED |
 | `renderTutorMessage` | All callers use `addChatMessage` directly | Various callers | COMPLETED |
-| `showPlaybackVideo` | `<VideoBubble>` is sole React path | `answer-pipeline.js` and `handleIncueUI` last callers; stale import removed from `app.js` | Pending |
+| `showPlaybackVideo` | `<VideoBubble>` handles DOM + video play; callers push `type: 'video'` chat message directly | `answer-pipeline.js` and `handleIncueUI` last callers | COMPLETED |
 | `showContinueButton` / `hideContinueButton` / `showLessonSuccessState` | Zustand `bottomControlState` → React `<IntroChoices>` + `MicrophoneToggle` reads it | `answer-pipeline.js` and `success-lesson.js` last callers | COMPLETED |
 | `removeAILoadingStatus` | Zustand + `<AiLoadingBubble>` | Various callers | COMPLETED |
 | `syncTextModeUI` | Only called from `showContinueButton` — deleted with it | N/A | COMPLETED |

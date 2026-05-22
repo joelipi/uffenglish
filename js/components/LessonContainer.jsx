@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams } from 'react-router-dom';
+import { useStore } from 'zustand';
 import { appStore } from '../modules/store.js';
 import Header from './lesson/Header.jsx';
 import ChatContainer from './lesson/ChatContainer.jsx';
@@ -19,6 +20,12 @@ import VideoProcessorWrapper from './VideoProcessorWrapper.jsx';
 
 export default function LessonContainer() {
     const { courseId, lessonId } = useParams();
+    const isLoaded = useStore(appStore, (state) => state.isLoaded);
+
+    useEffect(() => {
+        const preloader = document.getElementById('appLoadingImageDiv');
+        if (isLoaded && preloader) preloader.style.display = 'none';
+    }, [isLoaded]);
 
     useEffect(() => {
         if (courseId && lessonId) {
