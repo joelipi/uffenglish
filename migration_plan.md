@@ -4,19 +4,19 @@
 
 The app is a **hybrid architecture in active migration**. React (v19.2.0) has been introduced as a "UI skin" layer using React Portals into a predominantly vanilla JS HTML page. The chat system, score displays, modals, mic button, and lesson layout shell have been successfully migrated to React components driven by a shared Zustand store. However, the **core lesson engine**, **video players**, **step loading**, **CSS**, and **all non-index HTML pages** remain vanilla JS.
 
-### What's Already React (28 `.jsx` files)
+### What's Already React (30 `.jsx` files)
 - `js/App.jsx` — BrowserRouter, Routes only (portals moved to LessonContainer)
 - `js/index.jsx` — React entry point with `createRoot`
 - `js/components/lesson/` — 3 shell components (Header, ChatContainer, StatsBar)
 - `js/components/chat/` — 10 chat bubble components (ChatInterface, UserBubble, SystemBubble, GrammarDiffBubble, PragmaticsBubble, PraiseBubble, StatsBubble, AiLoadingBubble, VideoBubble, ContinueWidgetBubble)
-- `js/components/widgets/` — ScoreBoard, ActivityStats, MicrophoneToggle
+- `js/components/widgets/` — ScoreBoard, ActivityStats, MicrophoneToggle, MicStatusText, Hints
 - `js/components/modals/` — GuestLoginModal, CriticalErrorModal
-- `js/components/*Wrapper.jsx` — 4 thin React shells around vanilla video player classes
+- `js/components/*Wrapper.jsx` — 4 thin React shells around vanilla video player classes (wired to Zustand)
 - `js/components/LessonContainer.jsx` — route component rendering React shell, video wrappers, and portals
 
 ### What's Still Vanilla JS
 - `js/app.js` (374 lines) — main application controller: initialization, lesson orchestration
-- `js/components/ui.js` (1613 lines, 66KB) — UI bridge monolith: DOM manipulation, Zustand writes, HTML generation
+- `js/components/ui.js` (1,464 lines) — UI bridge monolith: DOM manipulation, Zustand writes, HTML generation
 - `js/components/step-loader.web.js` (446 lines) — step loading orchestration (deliberately kept vanilla)
 - `js/components/interactive-video-player.js` (359 lines), `simple-video-player.js` (401 lines), `intro-background-video.js` (97 lines) — video player classes
 - `js/components/feedback-renderer.web.js`, `point-loss-animation.js`, `mic-animation.js`, `success-lesson.js` — utility modules
@@ -54,6 +54,7 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 | Chat message list not scrollable | `#react-root-chat` broke flex chain | Added `flex: 1; min-height: 0` CSS |
 | App not clickable with DevTools open + video not pausing | `will-change` on `.ivp-main-wrapper` created Chrome compositing layer intercepting input | Removed `will-change`; set `#chat-window-container` z-index: 11 |
 | Continue button click did nothing | `_deps` param at wrong position in wrapper spread | Moved `_deps` before `userData`/`configData`/`courseId` in function signature |
+| Preflight error text invisible in micstatus | `ui.js` directly set `DOM.micStatusText.innerHTML`, destroying React portal's `#micStatusText` node — after that React could never re-render content into the portal | Removed all 4 `DOM.micStatusText.innerHTML` writes from `ui.js` (`showMicWarning`, `resetMicStatusWithStep`, `clearMicStatusAndHideMedia`, `renderWhisperReviewUI`); React now exclusively owns micstatus DOM via Zustand + portal |
 
 ---
 
@@ -70,21 +71,17 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 
 ---
 
-## Phase 1: Wire Video Wrappers to Zustand (~1-2 hours)
+## Phase 1: Wire Video Wrappers to Zustand — COMPLETED
 
-*Video wrapper components exist but are inert. Wire them so React controls video lifecycle. Pure React gain — no ui.js involvement.*
+*Video wrapper components existed but were inert. Wired them so React controls video lifecycle. Pure React gain — no ui.js involvement.*
 
-**Why this is first:** It's the most self-contained React win. The 4 wrapper `.jsx` files already exist. `loadVideoForStep()` already runs. We just need to route the video state through Zustand instead of directly creating DOM elements.
-
-| Step | Description |
-|------|-------------|
-| 1.1 | Add `currentVideoType`, `videoUrl`, `videoConfig` to Zustand store |
-| 1.2 | `loadVideoForStep()` writes to Zustand instead of directly manipulating DOM |
-| 1.3 | `InteractiveVideoWrapper` reads Zustand → mounts/destroys player instance |
-| 1.4 | Same for `SimpleVideoWrapper`, `IntroVideoWrapper`, `VideoProcessorWrapper` |
-| 1.5 | Remove now-dead DOM code from `ui.js` (`clearPlaybackVideo`, `setupPlaybackVideo`, `prepareMediaUI`, parts of `showPlaybackVideo`) |
-
-**Key win:** Video lifecycle moves from imperative DOM to React. These are the first ui.js deletions that are actually safe because the new React path replaces the old one entirely.
+| Step | Description | Status |
+|------|-------------|--------|
+| 1.1 | Add `currentVideo` to Zustand store | COMPLETED |
+| 1.2 | `loadVideoForStep()` writes to Zustand via `setCurrentVideo()` | COMPLETED |
+| 1.3 | `InteractiveVideoWrapper` reads Zustand via `useSyncExternalStore` → mounts/destroys player instance | COMPLETED |
+| 1.4 | Same for `SimpleVideoWrapper`, `IntroVideoWrapper`, `VideoProcessorWrapper` | COMPLETED |
+| 1.5 | Remove now-dead DOM code from `ui.js` (`clearPlaybackVideo`, `setupPlaybackVideo`, `prepareMediaUI`, parts of `showPlaybackVideo`) | Pending — some still called from `handleIncueUI` and `answer-pipeline.js` |
 
 ---
 
@@ -92,11 +89,20 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 
 *For each remaining ui.js function, add a Zustand action + React component that replaces it, then delete the old function. This is a single loop — replacement unblocks deletion, deletion is the completion signal.*
 
+**Progress snapshot:** 18 of 23 backlog items COMPLETED. `ui.js` shrunk from 1,613 → 1,464 lines. Phase 1 (video wrappers) COMPLETED.
+
+**Remaining Phase 2 work (next actions):**
+1. Dead code purge: `buildGrammarDiff` dead copy, `syncTextModeUI`, `animatePointLoss` (~50 lines)
+2. Stale import cleanup in `app.js` (`showPlaybackVideo`, `showContinueButton` imported but never called)
+3. `hidePreloader` — small, only called from `app.js`
+4. `showPlaybackVideo` — called from `answer-pipeline.js` and `handleIncueUI`; `VideoBubble` React component already exists
+5. `showContinueButton` — called from `answer-pipeline.js` and `step-loader.web.js`; `ContinueWidgetBubble` React component already exists
+
 ### Phase 2.0: Monolith Shrinkage (Low Risk)
 *Before tackling complex logic shifts, shrink the monolith by removing dead code and moving pure utilities.*
 
-1. **Dead Code Purge:** Delete functions with no external callers and no functional impact (e.g., `syncTextModeUI`, `animatePointLoss` as their DOM targets are now commented out in `index.html`).
-2. **Utility Migration:** Move pure HTML generation utilities (e.g., `createPragmaticsBubbleHTML`, `createStatsBubbleHTML`, `createGrammarDiffHTML`, `getPraiseHTML`, `createHeaderHTML`) from `ui.js` to `feedback-renderer.web.js`.
+1. **Dead Code Purge:** Delete functions with no external callers and no functional impact (e.g., `syncTextModeUI`, `animatePointLoss` as their DOM targets are now commented out in `index.html`; `buildGrammarDiff` dead copy at ui.js:268-299).
+2. **Stale Import Cleanup:** Remove unused imports from `app.js` (e.g., `showPlaybackVideo`, `showContinueButton` are imported but never called).
 3. **Import Cleanup:** Verify `app.js` import block is cleaned up after every `ui.js` deletion to avoid SyntaxErrors on load.
 
 **Per-function process:**
@@ -112,6 +118,7 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 | `setProgressBarWidth` | Zustand `progressPercent` → React `<ProgressBar>` | Immediate | COMPLETED |
 | `toggleStatsContainer` | Zustand `statsVisible` → React `StatsBar` reads it | Immediate | COMPLETED |
 | `setMicStatusText` | Zustand `micStatusText` → React `<MicStatusText>` | Immediate | COMPLETED |
+| `setMicStatusText` innerHTML writes | Removed direct `DOM.micStatusText.innerHTML` from 4 ui.js functions — React portal now exclusively owns micstatus DOM | Just fixed | COMPLETED |
 | `hidePreloader` | Zustand `isLoaded` → React handles preloader visibility | Immediate | Pending |
 | `showHintsAndScroll` / `hideHints` | Zustand `hintsHTML` → React renders hints inline | Immediate | COMPLETED |
 | `renderHangmanHint` / `generateHangmanHint` | Zustand `hangmanHint` → React `<HangmanHint>` | Immediate | COMPLETED |
@@ -119,15 +126,17 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 | `showInitializationErrorMessage` | `app.js` writes `criticalErrorMessage` directly | `app.js` last caller | COMPLETED |
 | `showCriticalError` / `hideCriticalError` | Called by `showInitializationErrorMessage` | Same as above | COMPLETED |
 | `renderFallbackContinueButton` | `ContinueWidgetBubble` is sole path | `answer-pipeline.js` last caller | COMPLETED |
-| `createPragmaticsBubbleHTML` | `feedback-renderer` writes structured data | `feedback-renderer` last caller | Pending (Phase 2.0) |
-| `createStatsBubbleHTML` | Same | Same | Pending (Phase 2.0) |
-| `createGrammarDiffHTML` / `buildGrammarDiff` | Same | Same | Pending (Phase 2.0) |
-| `getPraiseHTML` | `handlecueUI` uses Zustand + React path | `handlecueUI` last caller (Phase 4) | Pending (Phase 2.0) |
+| `createPragmaticsBubbleHTML` | Already in `feedback-renderer.web.js` | N/A | COMPLETED |
+| `createStatsBubbleHTML` | Already in `feedback-renderer.web.js` | N/A | COMPLETED |
+| `createGrammarDiffHTML` / `buildGrammarDiff` | Active version in `feedback-renderer.web.js`; dead copy still in ui.js:268-299 | Dead code removal | Pending (Phase 2.0) |
+| `getPraiseHTML` | Already in `feedback-renderer.web.js`, imported by ui.js | N/A | COMPLETED |
 | `renderUserChatMessage` | All callers use `addChatMessage` directly | Various callers | COMPLETED |
 | `renderTutorMessage` | All callers use `addChatMessage` directly | Various callers | COMPLETED |
-| `showPlaybackVideo` | `<VideoBubble>` is sole path | `handleAnswer` last caller | Pending |
-| `showContinueButton` (mid-lesson) | `ContinueWidgetBubble` is sole path | `showFeedbackAndProceed` last caller | Pending |
+| `showPlaybackVideo` | `<VideoBubble>` is sole React path | `answer-pipeline.js` and `handleIncueUI` last callers; stale import in `app.js` to remove | Pending |
+| `showContinueButton` (mid-lesson) | `ContinueWidgetBubble` is sole React path | `answer-pipeline.js` and `step-loader.web.js` last callers; stale import in `app.js` to remove | Pending |
 | `removeAILoadingStatus` | Zustand + `<AiLoadingBubble>` | Various callers | COMPLETED |
+| `syncTextModeUI` | Dead code — DOM targets commented out in `index.html` | N/A | Pending (Phase 2.0) |
+| `animatePointLoss` | Dead code — DOM targets commented out in `index.html` | N/A | Pending (Phase 2.0) |
 
 **When to stop simple replacements:** Once only `handlecueUI`, `handleIncueUI`, and the webcam/whisper chain remain — these become Phase 4.
 
@@ -176,8 +185,8 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 
 ## Risk Considerations
 
-- **Highest value for lowest risk:** Phase 1 (pure deletion, zero behavior change)
-- **Cleanest React win:** Phase 1 (video wrappers consume Zustand directly, no DOM bridge)
+- **Highest value for lowest risk:** Phase 2.0 dead code purge (pure deletion, zero behavior change)
+- **Next easiest wins:** `showPlaybackVideo` / `showContinueButton` — React components already exist, just need to delete the old ui.js functions and redirect callers
 - **Most repetitive:** Phase 2 (each function is a small self-contained replacement)
 - **Self-contained:** Phase 3 (HTML pages don't share state with the lesson engine)
 - **Riskiest:** Phase 4 (`handlecueUI`/`handleIncueUI` are critical paths)
