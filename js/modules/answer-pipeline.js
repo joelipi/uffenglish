@@ -40,8 +40,15 @@ import {
 } from '../components/ui.js';
 
 function handlecueUI(stepIndex, stepData, button, cue, explanation, translation, userResponse, englishLevel, englishLevelDeduction, userData, configData, fluencyBubble = null) {
-    if (stepData.stepType === "closedResponse" && stepData.videoUrl) appStore.setState({ repeatPointsHistory: [...appStore.getState().repeatPointsHistory, appStore.getState().listeningScore] });
-    if (stepData.stepType === "openResponse" && stepData.videoUrl) appStore.setState({ rolePlayPointsHistory: [...appStore.getState().rolePlayPointsHistory, appStore.getState().listeningScore] });
+    const currentFluencyScore = appStore.getState().fluencyScore;
+    if (stepData.stepType === "closedResponse" && stepData.videoUrl) {
+        appStore.setState({ repeatPointsHistory: [...appStore.getState().repeatPointsHistory, currentFluencyScore] });
+        console.log('[scoring] append repeatPointsHistory', { currentFluencyScore, repeatPointsHistory: appStore.getState().repeatPointsHistory });
+    }
+    if (stepData.stepType === "openResponse" && stepData.videoUrl) {
+        appStore.setState({ rolePlayPointsHistory: [...appStore.getState().rolePlayPointsHistory, currentFluencyScore] });
+        console.log('[scoring] append rolePlayPointsHistory', { currentFluencyScore, rolePlayPointsHistory: appStore.getState().rolePlayPointsHistory });
+    }
 
     safeRenderChatInterface(true);
 
