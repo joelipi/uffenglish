@@ -71,6 +71,10 @@ export const appStore = createStore(
             speechInputHintCallback: null,
             speechInputRevealCallback: null,
             speechInputToggleCallback: null,
+            tutorChatVisible: false,
+            tutorChatSubmitCallback: null,
+            webcamStream: null,
+            mediaVisible: false,
 
             // --- Tutor Engagement Metrics ---
             userMessagesToAi: 0,
@@ -281,6 +285,10 @@ export const appStore = createStore(
             setSpeechInputHintCallback: (callback) => set({ speechInputHintCallback: callback }),
             setSpeechInputRevealCallback: (callback) => set({ speechInputRevealCallback: callback }),
             setSpeechInputToggleCallback: (callback) => set({ speechInputToggleCallback: callback }),
+            setTutorChatVisible: (visible) => set({ tutorChatVisible: visible }),
+            setTutorChatSubmitCallback: (callback) => set({ tutorChatSubmitCallback: callback }),
+            setWebcamStream: (stream) => set({ webcamStream: stream }),
+            setMediaVisible: (visible) => set({ mediaVisible: visible }),
             clearInputUI: () => set({
                 textInputVisible: false,
                 textInputPlaceholder: '',
@@ -288,7 +296,8 @@ export const appStore = createStore(
                 speechInputContent: null,
                 speechInputHintCallback: null,
                 speechInputRevealCallback: null,
-                speechInputToggleCallback: null
+                speechInputToggleCallback: null,
+                tutorChatVisible: false
             })
         }),
         {

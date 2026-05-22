@@ -275,6 +275,7 @@ export function clearChatInterface() {
         DOM.tutorChatInputArea.classList.add('d-none');
         DOM.tutorChatInputArea.style.setProperty('display', 'none', 'important');
     }
+    appStore.getState().setTutorChatVisible(false);
     if (DOM.answerInputArea) {
         DOM.answerInputArea.classList.add('d-none');
     }
@@ -308,32 +309,6 @@ export function updateChatHeaderScores(feedbackData) {
     });
 }
 
-export function initTutorChatUI(submitCallback) {
-    if (!DOM.tutorChatTextarea || !DOM.tutorChatSendBtn) return;
-
-    DOM.tutorChatSendBtn.addEventListener('click', () => {
-        const text = DOM.tutorChatTextarea.value;
-        if (text && text.trim().length > 0) {
-            DOM.tutorChatTextarea.value = '';
-            submitCallback(text);
-        }
-    });
-
-    DOM.tutorChatTextarea.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && e.ctrlKey) {
-            e.preventDefault();
-            DOM.tutorChatSendBtn.click();
-        }
-    });
-}
-
-export function showTutorChatInput() {
-    if (DOM.tutorChatInputArea) {
-        DOM.tutorChatInputArea.classList.remove('d-none');
-        DOM.tutorChatInputArea.style.setProperty('display', 'block', 'important');
-    }
-}
-
 export function getChatHistoryContext() {
     if (!DOM.chatBody) return "";
 
@@ -345,18 +320,6 @@ export function getChatHistoryContext() {
         historyText += `${role}: ${bubble.innerText}\n`;
     }
     return historyText;
-}
-
-export function clearMicStatusAndHideMedia() {
-    appStore.getState().setMicStatusText("");
-    if (DOM.mediaViewport) DOM.mediaViewport.classList.add('d-none');
-    if (DOM.answerInputArea) DOM.answerInputArea.classList.add('d-none');
-    appStore.getState().setTextInputVisible(false);
-}
-
-export function initUISubscriptions() {
-    // txtBtn click handler now owned by MicrophoneToggle.jsx via Zustand
-    // answer-input-area visibility now owned by AnswerInput.jsx via d-none toggle
 }
 
 export function renderWhisperReviewUI(transcript, timeLeft, onAccept, onReject) {
@@ -431,62 +394,6 @@ export function clearPlaybackVideo() {
 
     const muteToggle = document.getElementById('playback-mute-toggle') || DOM.playbackMuteToggle;
     if (muteToggle) muteToggle.classList.add('d-none');
-}
-
-export function prepareMediaUI() {
-    if (DOM.mediaViewport) DOM.mediaViewport.classList.remove('d-none');
-}
-
-export function ensureWebcamPreview(stream) {
-    if (!stream) return null;
-
-    webcamPreview = document.getElementById('webcam-preview');
-    const pipWrapper = document.getElementById('pip-wrapper');
-
-    if (!webcamPreview || !pipWrapper) {
-        console.error("Hardcoded PIP elements not found in the DOM.");
-        return null;
-    }
-
-    // Attach the video stream
-    if (webcamPreview.srcObject !== stream) {
-        webcamPreview.srcObject = stream;
-    }
-
-    // Reveal the container securely
-    if (pipWrapper.classList.contains('d-none')) {
-        pipWrapper.classList.remove('d-none');
-        // Let your CSS handle the animations, no inline transitions here!
-    }
-
-    // Ensure it plays
-    setTimeout(() => {
-        if (webcamPreview.readyState >= 2 || webcamPreview.paused) {
-            webcamPreview.play().catch(e => console.log('Webcam play failed:', e));
-        }
-    }, 100);
-
-    return webcamPreview;
-}
-
-export function hideWebcamPreview() {
-    const pipWrapper = document.getElementById('pip-wrapper');
-    if (pipWrapper) {
-        pipWrapper.classList.add('d-none');
-    }
-}
-
-export function removeWebcamPreview() {
-    webcamPreview = document.getElementById('webcam-preview');
-    const pipWrapper = document.getElementById('pip-wrapper');
-
-    if (webcamPreview) {
-        webcamPreview.pause();
-        webcamPreview.srcObject = null;
-    }
-    if (pipWrapper) {
-        pipWrapper.classList.add('d-none');
-    }
 }
 
 export async function setupPlaybackVideo(blob, autoplay = false, speechCamChunks = []) {

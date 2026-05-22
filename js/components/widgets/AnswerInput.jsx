@@ -7,9 +7,6 @@ export default function AnswerInput() {
     const textInputVisible = useStore(appStore, (state) => state.textInputVisible);
     const textInputPlaceholder = useStore(appStore, (state) => state.textInputPlaceholder);
     const textInputSubmitCallback = useStore(appStore, (state) => state.textInputSubmitCallback);
-    const speechInputContent = useStore(appStore, (state) => state.speechInputContent);
-    const speechInputHintCallback = useStore(appStore, (state) => state.speechInputHintCallback);
-    const speechInputRevealCallback = useStore(appStore, (state) => state.speechInputRevealCallback);
     const speechInputToggleCallback = useStore(appStore, (state) => state.speechInputToggleCallback);
 
     const answerInputAreaRef = useRef(null);
@@ -53,22 +50,6 @@ export default function AnswerInput() {
             }, 100);
         }
     }, [textInputVisible]);
-
-    // Set up speech input hint click handlers
-    useEffect(() => {
-        if (!speechInputContent || !speechInputHintCallback || !speechInputRevealCallback) return;
-
-        const pulseDots = document.querySelectorAll('.pulse-dot');
-        pulseDots.forEach(span => {
-            span.addEventListener('click', speechInputRevealCallback);
-        });
-
-        return () => {
-            document.querySelectorAll('.pulse-dot').forEach(span => {
-                span.removeEventListener('click', speechInputRevealCallback);
-            });
-        };
-    }, [speechInputContent, speechInputHintCallback, speechInputRevealCallback]);
 
     // Bind global mic click handler
     useEffect(() => {

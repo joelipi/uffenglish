@@ -23,11 +23,9 @@ import { getNextStep } from './lessonRouting.js';
 import { warmUpSpeechCamStream } from './speech.js';
 import {
     DOM,
-    clearMicStatusAndHideMedia,
     showMicWarning,
     showAnswerError,
     clearPlaybackVideo,
-    removeWebcamPreview,
     flashElement,
     safeRenderChatInterface,
     renderAIFeedback,
@@ -37,8 +35,6 @@ import {
     handlecueUI,
     handleIncueUI,
     generateHangmanHint,
-    prepareMediaUI,
-    showTutorChatInput,
     updateChatHeaderScores,
     clearChatInterface
 } from '../components/ui.js';
@@ -92,7 +88,7 @@ export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation,
         if (State.isTextMode) {
             showAnswerError(warningMessage);
             clearPlaybackVideo();
-            removeWebcamPreview();
+            appStore.getState().setWebcamStream(null);
             const inputField = document.getElementById('answer-input-field');
             if (inputField) {
                 inputField.disabled = false;
@@ -209,7 +205,9 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
 
     Media.pauseVideoIfPlaying();
     window.isMicActive = false;
-    clearMicStatusAndHideMedia();
+    appStore.getState().setMicStatusText("");
+    appStore.getState().setMediaVisible(false);
+    appStore.getState().setTextInputVisible(false);
     appStore.getState().setHintsVisible(false);
 
     let immediateStatsHtmlArr = [];
@@ -335,12 +333,12 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
             handleIncueUI(stepIndex, stepData, button, cue, userResponse, result.explanations || explanation, result.normalizeduserResponse, result.normalizedcue, stepData.step, true, userData, configData);
             clearPlaybackVideo();
             clearChatInterface();
-            removeWebcamPreview();
+            appStore.getState().setWebcamStream(null);
 
             const hangmanHTML = generateHangmanHint(userResponse, cue);
             appStore.getState().setHangmanHintHTML(hangmanHTML);
             appStore.getState().setHintsVisible(true);
-            prepareMediaUI();
+            appStore.getState().setMediaVisible(true);
 
             const player = State.player || window.currentVideoPlayer;
             if (player) {
@@ -393,7 +391,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
         const explanationData = buildExplanationData(result?.explanations, explanation);
         const webFormattedExplanations = renderExplanationsToHTML(explanationData);
 
-        showTutorChatInput();
+        appStore.getState().setTutorChatVisible(true);
 
         if (isCorrect) {
             if (stepData.stepType === "openResponse") {

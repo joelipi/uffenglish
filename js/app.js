@@ -95,9 +95,7 @@ import { renderFeedbackToHTML, renderExplanationsToHTML } from './components/fee
 import { loadStep } from './components/step-loader.js';
 import {
     DOM,
-    initTutorChatUI,
     setupLessonUI,
-    initUISubscriptions,
     resetMissionText,
     initMissionToggle
 } from './components/ui.js';
@@ -184,7 +182,7 @@ async function handleTutorChatSubmit(rawText) { return handleTutorChatSubmitImpl
 async function initializeLesson(courseId = appStore.getState().courseId, configData = appStore.getState().configData, userData = appStore.getState().userData) {
     try {
         // Initialize the Tutor Chat UI and bind the submission logic
-        initTutorChatUI(handleTutorChatSubmit);
+        appStore.getState().setTutorChatSubmitCallback(handleTutorChatSubmit);
 
         // 1. Gather browser-specific context — URL path takes precedence, then query params, then memory
         const urlParams = new URLSearchParams(window.location.search);
@@ -287,7 +285,6 @@ async function loadLessonContent(lesson, configData) {
 async function initializeApp() {
     // Initialize reactive UI subscriptions first so the UI responds to store changes 
     // from the moment any state is set during initialization. 
-    initUISubscriptions();
     initMissionToggle();
 
     const isDemoMode = new URLSearchParams(window.location.search).has('demo');

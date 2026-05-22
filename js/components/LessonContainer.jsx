@@ -14,6 +14,9 @@ import CriticalErrorModal from './modals/CriticalErrorModal.jsx';
 import MicStatusText from './widgets/MicStatusText.jsx';
 import Hints from './widgets/Hints.jsx';
 import AnswerInput from './widgets/AnswerInput.jsx';
+import TutorChatInput from './widgets/TutorChatInput.jsx';
+import MediaViewport from './widgets/MediaViewport.jsx';
+import WebcamPreview from './widgets/WebcamPreview.jsx';
 import InteractiveVideoWrapper from './InteractiveVideoWrapper.jsx';
 import SimpleVideoWrapper from './SimpleVideoWrapper.jsx';
 import IntroVideoWrapper from './IntroVideoWrapper.jsx';
@@ -62,6 +65,9 @@ export default function LessonContainer() {
             <MicStatusText />
             <Hints />
             <AnswerInput />
+            <TutorChatInput />
+            <MediaViewport />
+            <WebcamPreview />
 
             <ChatContainer />
 

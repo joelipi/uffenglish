@@ -16,7 +16,7 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 
 ### What's Still Vanilla JS
 - `js/app.js` (~355 lines) — main application controller: initialization, lesson orchestration
-- `js/components/ui.js` (~1,067 lines) — UI bridge monolith: DOM manipulation, Zustand writes, HTML generation
+- `js/components/ui.js` (~1,029 lines) — UI bridge monolith: DOM manipulation, Zustand writes, HTML generation
 - `js/components/step-loader.web.js` (446 lines) — step loading orchestration (deliberately kept vanilla)
 - `js/components/interactive-video-player.js` (359 lines), `simple-video-player.js` (401 lines), `intro-background-video.js` (97 lines) — video player classes
 - `js/components/feedback-renderer.web.js`, `point-loss-animation.js`, `mic-animation.js`, `success-lesson.js` — utility modules
@@ -89,14 +89,27 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 
 *For each remaining ui.js function, add a Zustand action + React component that replaces it, then delete the old function. This is a single loop — replacement unblocks deletion, deletion is the completion signal.*
 
-**Progress snapshot:** All Phase 2 backlog items COMPLETED. `ui.js` shrunk from 1,613 → ~958 lines. Phase 1 (video wrappers) COMPLETED. Phase 2.0 (monolith shrinkage) COMPLETED. Phase 2.1 (bottom controls state machine) COMPLETED. Phase 2.2 (hidePreloader) COMPLETED. Phase 2.3 (showPlaybackVideo) COMPLETED. Phase 2.4 (initUISubscriptions) COMPLETED. Phase 2.5 (renderSpeechInputUI/renderTextInputUI) COMPLETED.
+**Progress snapshot:** All Phase 2 backlog items COMPLETED. `ui.js` shrunk from 1,613 → ~1,029 lines. Phase 1 (video wrappers) COMPLETED. Phase 2.0 (monolith shrinkage) COMPLETED. Phase 2.1 (bottom controls state machine) COMPLETED. Phase 2.2 (hidePreloader) COMPLETED. Phase 2.3 (showPlaybackVideo) COMPLETED. Phase 2.4 (initUISubscriptions chat header) COMPLETED. Phase 2.5 (renderSpeechInputUI/renderTextInputUI) COMPLETED.
+
+**Bug fixes since last update:**
+
+| Bug | Root Cause | Fix |
+|-----|-----------|-----|
+| Answer input area visible immediately on step load | `step-loader` called `setTextInputVisible(true)` when step loaded; original `renderTextInputUI` kept input hidden by default | Removed `setTextInputVisible(true)` from both `step-loader` call sites; input only appears when user clicks `#txtBtn` |
+| Answer input area in wrong position | Layout classes (`position-absolute w-100 p-3 z-3`) removed from `#answer-input-area` during refactor, breaking `top: 220px` CSS | Restored classes on `#answer-input-area` div; removed duplicates from portal inner content |
+| `#txtBtn` click had no effect (input stayed hidden) | `#answer-input-area` had `class="d-none"` but `AnswerInput.jsx` only toggled inner content display, not the outer div's `d-none` class | Added `useEffect` in `AnswerInput.jsx` to toggle `d-none` on portal target; gutted competing `initUISubscriptions` txtBtn handler |
+| Answer input retained text from previous step | Original `renderTextInputUI` cleared textarea; React version never did | Added `useEffect` in `AnswerInput.jsx` that clears textarea when `textInputSubmitCallback` changes |
+| Dark overlay covering answer input on paused simpleVideo | `#answer-input-area` had `z-index: 3` but `.ivp-play-overlay` had `z-index: 10` | Added `z-index: 20 !important` to `#answer-input-area` CSS |
+| Hints appearing behind video overlay and mispositioned | `#react-root-hints` missing `position-absolute` class and z-index; CSS rule targeted old `#hints` ID | Updated CSS selector to `#react-root-hints`, added `position-absolute` class and `z-index: 20` |
+| Stats container hidden after step load | Original `renderTextInputUI` called `DOM.statsContainer.classList.remove('d-none')`; this was lost in migration | Added `appStore.getState().setStatsVisible(true)` and `updateProgressAndCloseButton(false)` in `step-loader` for text/response steps |
+| Preflight warnings never auto-hiding | `onStopEarly`, `onGibberishDetected` handlers showed warnings but never cleared them; `onGibberishDetected` also didn't re-show mic button | Added `_clearWarningLater(ms)` timeouts (3-4s) to auto-clear warnings; `_cancelWarningClear()` in `onRecordingStart` prevents clearing the "speak now" message |
+| Progress bar not updating | `ProgressBar.jsx` appended `'%'` to values already containing `%`, producing invalid `width: "95%%"` | Added format check: if value already ends with `%`, use as-is |
+| Progress bar visible but empty (no fill) | Portal target `#react-root-progress` wrapper div broke Bootstrap's `.progress` > `.progress-bar` flex layout | Removed `#react-root-progress` wrapper; portal now renders directly into `#progress` (the Bootstrap `.progress` container) |
 
 **Remaining work:**
 1. Phase 4 heavy functions: `handlecueUI`, `handleIncueUI`, `renderWhisperReviewUI`/whisper chain, `initTutorChatUI`/`showTutorChatInput`/`hideTutorChatInput`, webcam functions
-2. Bug fix: `LessonSuccessControls` now properly attaches click handler to `#createVideoButton` via `SuccessLessonHandler.createVideoButton()`
-3. Bug fix: Fixed `TypeError: Cannot read properties of undefined (reading 'lessonId')` by passing current step and fluency data to `createVideoButton()`
-4. Bug fix: Removed `renderTextInputUI` from `ui.js` to prevent duplicate answer input areas in text mode
-5. Bug fix: Updated `MicrophoneToggle` to use Zustand state instead of direct DOM manipulation for text input toggle
+2. `renderSpeechInputUI` deleted from `ui.js`; its answer-content rendering (pulse-dot hints) is handled by Zustand `speechInputContent` but not yet rendered visually by `Hints.jsx` — only click handlers are wired in `AnswerInput.jsx`
+3. `initUISubscriptions` is now a no-op; can be fully deleted when all callers are cleaned up
 
 ### Phase 2.3: showPlaybackVideo → VideoBubble — COMPLETED
 
@@ -212,8 +225,8 @@ Vanilla JS toggles these by adding/removing `d-none` on DOM elements, which figh
 | `handlecueUI` | ~96 | Extract Zustand writes → React components for each section. Keep DOM construction as vanilla if needed. |
 | `handleIncueUI` | ~105 | Same approach. |
 | `renderWhisperReviewUI` / whisper chain | ~70 | Zustand for whisper state → React component for UI |
-| `initUISubscriptions` | ~68 | Move subscriptions into React `useEffect` hooks | COMPLETED |
-| `renderSpeechInputUI` / `renderTextInputUI` | ~80 | Zustand for input state → React `<AnswerInput>` component |
+| `initUISubscriptions` | ~68 | Move subscriptions into React `useEffect` hooks | COMPLETED (now no-op) |
+| `renderSpeechInputUI` / `renderTextInputUI` | ~80 | Zustand for input state → React `<AnswerInput>` component | COMPLETED
 | `initTutorChatUI` / `showTutorChatInput` / `hideTutorChatInput` | ~40 | React component manages visibility |
 | Webcam functions | ~60 | Zustand for webcam state → React manages `<video>` element |
 
