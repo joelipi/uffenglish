@@ -12,15 +12,15 @@ window.enabledLogs = {
     ai: false,
     analytics: false,
     ui: false,
-    hesitation: true,
-    success: true,
-    scoring: true,
-    video: true,
+    hesitation: false,
+    success: false,
+    scoring: false,
+    video: false,
     pipeline: true,
-    app: true,
-    storage: true,
+    app: false,
+    storage: false,
     gamification: false,
-    all: true
+    all: false
 };
 
 console.log = (msg, ...args) => {
