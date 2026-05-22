@@ -7,6 +7,7 @@ export default function LessonSuccessControls() {
     const bottomControlState = useStore(appStore, (state) => state.bottomControlState);
     const configData = useStore(appStore, (state) => state.configData);
     const currentLessonIndex = useStore(appStore, (state) => state.currentLessonIndex);
+    const lastSuccessFluencyData = useStore(appStore, (state) => state.lastSuccessFluencyData);
     const createVideoButtonRef = useRef(null);
 
     // Attach click handler when component mounts
@@ -27,17 +28,17 @@ export default function LessonSuccessControls() {
             const currentStep = currentLesson?.steps?.[currentLesson.steps.length - 1]; // Last step is typically the success step
             
             if (currentStep) {
-                const fluencyData = {
+                const fluencyData = lastSuccessFluencyData || {
                     total: appStore.getState().fluencyScore || 0
                 };
-                console.log('[success] LessonSuccessControls invoking createVideoButton', { currentStep, fluencyData });
+                console.log('[success] LessonSuccessControls invoking createVideoButton', { currentStep, fluencyData, lastSuccessFluencyData });
                 successHandler.createVideoButton(currentStep, fluencyData).catch(console.error);
             } else {
                 console.error('[LessonSuccessControls] Could not determine current step for video generation');
                 successHandler.createVideoButton().catch(console.error);
             }
         }
-    }, [bottomControlState, configData, currentLessonIndex]);
+    }, [bottomControlState, configData, currentLessonIndex, lastSuccessFluencyData]);
 
     if (bottomControlState !== 'lessonSuccess') return null;
 

@@ -53,6 +53,7 @@ export const appStore = createStore(
             cuesGiven: [],
             repeatPointsHistory: [],
             rolePlayPointsHistory: [],
+            lastSuccessFluencyData: null,
 
             // --- UI State (Replaced ui.js functions) ---
             progressPercent: 0,
@@ -233,6 +234,7 @@ export const appStore = createStore(
                 console.log(`[Gamification] Fluency improving flag: ${!!improving}`);
                 set({ fluencyImproving: !!improving });
             },
+            setLastSuccessFluencyData: (data) => set({ lastSuccessFluencyData: data || null }),
             setTotalFluencySum: (sum) => set({ totalFluencySum: Number(sum) || 0 }),
             setRecentFluencyAvgs: (avgs) => set({ recentFluencyAvgs: Array.isArray(avgs) ? avgs : [] }),
             setCountedLessons: (lessons) => set({ countedLessons: Array.isArray(lessons) ? lessons : [] }),
@@ -259,7 +261,8 @@ export const appStore = createStore(
                 grammarScore: 100,
                 formalityScore: 100,
                 nativeLikeScore: 100,
-                understandingScore: 100
+                understandingScore: 100,
+                lastSuccessFluencyData: null
             }),
 
             // Reset all per-lesson metrics (called at lesson start)
@@ -274,7 +277,8 @@ export const appStore = createStore(
                 grammarScore: 100,
                 formalityScore: 100,
                 nativeLikeScore: 100,
-                understandingScore: 100
+                understandingScore: 100,
+                lastSuccessFluencyData: null
             }),
 
             // --- Input UI Actions (Replaces renderSpeechInputUI/renderTextInputUI) ---

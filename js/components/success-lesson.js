@@ -73,6 +73,7 @@ export class SuccessLessonHandler {
           : state.fluencyScore || 0)
       : state.fluencyScore || 0;
     const fluencyData = { total: lessonAverage };
+    appStore.getState().setLastSuccessFluencyData(fluencyData);
     console.log('[success] computed success fluency', { lessonAverage, fluencyData, repeatPointsHistory, rolePlayPointsHistory });
 
     // Fluency trend detection using last-10 average
@@ -132,6 +133,13 @@ export class SuccessLessonHandler {
   async createVideoButton(step, fluencyData) {
     const videoBtn = document.getElementById('processBtn') || document.getElementById('createVideoButton');
     if (!videoBtn) return;
+
+    const successMarker = `${String(step?.lessonId || 'unknown')}:${String(fluencyData?.total || 'na')}`;
+    if (videoBtn.dataset.successVideoHandlerMarker === successMarker) {
+      console.log('[success] createVideoButton skipped: handler already attached', { successMarker });
+      return;
+    }
+    videoBtn.dataset.successVideoHandlerMarker = successMarker;
 
     videoBtn.classList.remove('d-none');
     videoBtn.onclick = async () => {
