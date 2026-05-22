@@ -16,7 +16,7 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 
 ### What's Still Vanilla JS
 - `js/app.js` (374 lines) — main application controller: initialization, lesson orchestration
-- `js/components/ui.js` (1,464 lines) — UI bridge monolith: DOM manipulation, Zustand writes, HTML generation
+- `js/components/ui.js` (1,425 lines) — UI bridge monolith: DOM manipulation, Zustand writes, HTML generation
 - `js/components/step-loader.web.js` (446 lines) — step loading orchestration (deliberately kept vanilla)
 - `js/components/interactive-video-player.js` (359 lines), `simple-video-player.js` (401 lines), `intro-background-video.js` (97 lines) — video player classes
 - `js/components/feedback-renderer.web.js`, `point-loss-animation.js`, `mic-animation.js`, `success-lesson.js` — utility modules
@@ -89,21 +89,21 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 
 *For each remaining ui.js function, add a Zustand action + React component that replaces it, then delete the old function. This is a single loop — replacement unblocks deletion, deletion is the completion signal.*
 
-**Progress snapshot:** 18 of 23 backlog items COMPLETED. `ui.js` shrunk from 1,613 → 1,464 lines. Phase 1 (video wrappers) COMPLETED.
+**Progress snapshot:** 21 of 25 backlog items COMPLETED. `ui.js` shrunk from 1,613 → 1,425 lines. Phase 1 (video wrappers) COMPLETED. Phase 2.0 (monolith shrinkage) COMPLETED.
 
 **Remaining Phase 2 work (next actions):**
-1. Dead code purge: `buildGrammarDiff` dead copy, `syncTextModeUI`, `animatePointLoss` (~50 lines)
-2. Stale import cleanup in `app.js` (`showPlaybackVideo`, `showContinueButton` imported but never called)
-3. `hidePreloader` — small, only called from `app.js`
-4. `showPlaybackVideo` — called from `answer-pipeline.js` and `handleIncueUI`; `VideoBubble` React component already exists
-5. `showContinueButton` — called from `answer-pipeline.js` and `step-loader.web.js`; `ContinueWidgetBubble` React component already exists
+1. `hidePreloader` — small, only called from `app.js`
+2. `showPlaybackVideo` — called from `answer-pipeline.js` and `handleIncueUI`; `VideoBubble` React component already exists
+3. `showContinueButton` — called from `answer-pipeline.js` and `step-loader.web.js`; `ContinueWidgetBubble` React component already exists
+4. `syncTextModeUI` — still called from `showContinueButton` click handlers; will be removed when `showContinueButton` is migrated
 
-### Phase 2.0: Monolith Shrinkage (Low Risk)
-*Before tackling complex logic shifts, shrink the monolith by removing dead code and moving pure utilities.*
+### Phase 2.0: Monolith Shrinkage — COMPLETED
 
-1. **Dead Code Purge:** Delete functions with no external callers and no functional impact (e.g., `syncTextModeUI`, `animatePointLoss` as their DOM targets are now commented out in `index.html`; `buildGrammarDiff` dead copy at ui.js:268-299).
-2. **Stale Import Cleanup:** Remove unused imports from `app.js` (e.g., `showPlaybackVideo`, `showContinueButton` are imported but never called).
-3. **Import Cleanup:** Verify `app.js` import block is cleaned up after every `ui.js` deletion to avoid SyntaxErrors on load.
+*Shrunk the monolith by removing dead code, dead copies, and stale imports.*
+
+1. **Dead Code Purge:** Removed `animatePointLoss` (no callers) and `buildGrammarDiff` dead copy (active version lives in `feedback-renderer.web.js`).
+2. **Stale Import Cleanup:** Removed 27 unused imports from `app.js` — only 7 of 34 ui.js imports were actually used (`DOM`, `initTutorChatUI`, `setupLessonUI`, `initUISubscriptions`, `hidePreloader`, `resetMissionText`, `initMissionToggle`).
+3. **Import Cleanup:** Verified `app.js` import block is clean after deletions; updated `showMicWarning` unit test to check Zustand store instead of DOM (React portal owns DOM now).
 
 **Per-function process:**
 1. Add state to Zustand (the data, not the DOM)
@@ -128,15 +128,15 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 | `renderFallbackContinueButton` | `ContinueWidgetBubble` is sole path | `answer-pipeline.js` last caller | COMPLETED |
 | `createPragmaticsBubbleHTML` | Already in `feedback-renderer.web.js` | N/A | COMPLETED |
 | `createStatsBubbleHTML` | Already in `feedback-renderer.web.js` | N/A | COMPLETED |
-| `createGrammarDiffHTML` / `buildGrammarDiff` | Active version in `feedback-renderer.web.js`; dead copy still in ui.js:268-299 | Dead code removal | Pending (Phase 2.0) |
+| `createGrammarDiffHTML` / `buildGrammarDiff` | Active version in `feedback-renderer.web.js`; dead copy removed from ui.js | N/A | COMPLETED |
 | `getPraiseHTML` | Already in `feedback-renderer.web.js`, imported by ui.js | N/A | COMPLETED |
 | `renderUserChatMessage` | All callers use `addChatMessage` directly | Various callers | COMPLETED |
 | `renderTutorMessage` | All callers use `addChatMessage` directly | Various callers | COMPLETED |
-| `showPlaybackVideo` | `<VideoBubble>` is sole React path | `answer-pipeline.js` and `handleIncueUI` last callers; stale import in `app.js` to remove | Pending |
-| `showContinueButton` (mid-lesson) | `ContinueWidgetBubble` is sole React path | `answer-pipeline.js` and `step-loader.web.js` last callers; stale import in `app.js` to remove | Pending |
+| `showPlaybackVideo` | `<VideoBubble>` is sole React path | `answer-pipeline.js` and `handleIncueUI` last callers; stale import removed from `app.js` | Pending |
+| `showContinueButton` (mid-lesson) | `ContinueWidgetBubble` is sole React path | `answer-pipeline.js` and `step-loader.web.js` last callers; stale import removed from `app.js` | Pending |
 | `removeAILoadingStatus` | Zustand + `<AiLoadingBubble>` | Various callers | COMPLETED |
-| `syncTextModeUI` | Dead code — DOM targets commented out in `index.html` | N/A | Pending (Phase 2.0) |
-| `animatePointLoss` | Dead code — DOM targets commented out in `index.html` | N/A | Pending (Phase 2.0) |
+| `syncTextModeUI` | DOM targets commented out in `index.html` but still called from `showContinueButton` click handlers | Will be removed with `showContinueButton` | Pending |
+| `animatePointLoss` | No callers — removed | N/A | COMPLETED |
 
 **When to stop simple replacements:** Once only `handlecueUI`, `handleIncueUI`, and the webcam/whisper chain remain — these become Phase 4.
 

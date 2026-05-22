@@ -219,9 +219,8 @@ describe('UI Component functions', () => {
 
     describe('Hints and Errors Rendering', () => {
         it('should show mic warning', () => {
-            document.body.innerHTML += '<div id="react-root-micstatus"></div>';
             showMicWarning('Warning!');
-            expect(document.getElementById('react-root-micstatus').innerHTML).toContain('Warning!');
+            expect(appStore.getState().micStatusText).toContain('Warning!');
         });
 
         it('should show answer error and hide after timeout', () => {
