@@ -38,13 +38,12 @@ export function normalizeConfig(configData, lang = 'en') {
                     step.stepType = step.inputType;
                 }
 
-                if (step.step) step.step = getLocalizedTranslation(step.step, userLang);
+if (step.step) step.step = getLocalizedTranslation(step.step, userLang);
                 if (step.explanation) step.explanation = getLocalizedTranslation(step.explanation, userLang);
                 if (step.translation) step.translation = getLocalizedTranslation(step.translation, userLang);
                 if (step.subtitles) step.subtitles = getLocalizedTranslation(step.subtitles, userLang);
 
-                // Ensure cue is always in English
-                if (step.cue) step.cue = getLocalizedTranslation(step.cue, userLang);
+                // Keep cue as multi-language object for bilingual display
 
                 if (step.incues) {
                     step.incues = step.incues.map(incue => getLocalizedTranslation(incue, userLang));

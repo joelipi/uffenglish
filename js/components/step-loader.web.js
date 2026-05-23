@@ -10,7 +10,7 @@
 import { State } from '../modules/state.js';
 import { appStore } from '../modules/store.js';
 import Strings from '../data/strings.js';
-import { getLocalizedTranslation } from '../modules/utils.js';
+import { getLocalizedTranslation, getBilingualCue } from '../modules/utils.js';
 import { loadVideoForStep } from '../modules/video-loader.js';
 import { Media } from '../modules/media.js';
 import {
@@ -299,9 +299,9 @@ export function loadStep(step, lesson, fluencyData, deps) {
         appStore.getState().setTextInputPlaceholder(
             Strings.get('placeholder_type_answer', appStore.getState().userData?.native_language) || 'Type your answer here...'
         );
-        appStore.getState().setTextInputSubmitCallback(
-            (val, btn) => submitAnswerPrecheck(val, step.cue, step, btn, step.explanation, step.translation, { pauseCount: null, netDuration: null })
-        );
+appStore.getState().setTextInputSubmitCallback(
+             (val, btn) => submitAnswerPrecheck(val, typeof step.cue === 'object' ? step.cue.en : step.cue, step, btn, step.explanation, step.translation, { pauseCount: null, netDuration: null })
+         );
     } else if (step.stepType === 'lessoncomplete') {
         updateProgressAndCloseButton(true); appStore.getState().setStatsVisible(false);
         appStore.getState().setProgressPercent("95%"); showFeedbackAndProceed(step, true);
@@ -324,7 +324,27 @@ function _renderResponseStep(step, lesson, deps) {
 
     const answerFragment = document.createDocumentFragment();
     if (step.stepType !== "closedResponse") {
-        answerFragment.appendChild(document.createTextNode(step.cue));
+        const userLang = appStore.getState().userData?.native_language;
+        const cueData = getBilingualCue(step.cue, userLang);
+        
+        if (cueData.en && cueData.localized && cueData.en !== cueData.localized && userLang && userLang !== 'en') {
+            // Both languages available - show with span wrapper for localized version
+            const cueWrapper = document.createElement('span');
+            cueWrapper.appendChild(document.createTextNode(cueData.en));
+            
+            const spaceNode = document.createTextNode(' ');
+            cueWrapper.appendChild(spaceNode);
+            
+            const localizedSpan = document.createElement('span');
+            localizedSpan.setAttribute('lang', userLang);
+            localizedSpan.textContent = `/ ${cueData.localized}`;
+            cueWrapper.appendChild(localizedSpan);
+            
+            answerFragment.appendChild(cueWrapper);
+        } else {
+            // Single language or same in both - just show the cue
+            answerFragment.appendChild(document.createTextNode(cueData.en));
+        }
         if (step.possibleAnswer) {
             answerFragment.appendChild(document.createElement('br'));
             const strong = document.createElement('strong');
@@ -345,9 +365,9 @@ function _renderResponseStep(step, lesson, deps) {
         const placeholder = Strings.get('placeholder_type_answer', appStore.getState().userData?.native_language) || 'Type your answer here...';
         const submitLabel = Strings.get('btn_submit', appStore.getState().userData?.native_language) || 'Submit';
         appStore.getState().setTextInputPlaceholder(placeholder);
-        appStore.getState().setTextInputSubmitCallback((val, btn) => {
-            submitAnswerPrecheck(val, step.cue, step, btn, step.explanation, step.translation, { pauseCount: 0, netDuration: 3 });
-        });
+appStore.getState().setTextInputSubmitCallback((val, btn) => {
+             submitAnswerPrecheck(val, typeof step.cue === 'object' ? step.cue.en : step.cue, step, btn, step.explanation, step.translation, { pauseCount: 0, netDuration: 3 });
+         });
     } else {
         // Show close/progress button for speech response steps
         updateProgressAndCloseButton(true);

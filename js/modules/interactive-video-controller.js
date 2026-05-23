@@ -69,9 +69,10 @@ export class InteractiveVideoStateController {
         return array;
     }
 
-    initTokens(cue) {
+initTokens(cue) {
+        const cueText = typeof cue === 'object' ? cue?.en : cue;
         // Separate words (including contractions) from punctuation marks
-        this.tokens = cue.match(/\w+(?:[''’]\w+)*|[^\w\s]+/g) || [];
+        this.tokens = cueText.match(/\w+(?:['\u2019]\w+)*|[^\w\s]+/g) || [];
         this.punctuationMap = new Map();
         this.tokens.forEach((token, i) => {
             this.punctuationMap.set(i, /^[^\w]+$/.test(token));

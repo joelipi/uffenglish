@@ -206,8 +206,9 @@ export function initMissionToggle() {
 }
 
 export function generateHangmanHint(userResponse, cue) {
+    const cueText = typeof cue === 'object' ? cue?.en : cue;
     const tokenize = str => str.trim().match(/[\p{L}\p{N}]+(?:'[\p{L}\p{N}]+)?|[^\p{L}\p{N}\s]+|\s+/gu) || [];
-    const tokA = tokenize(userResponse || ""), tokB = tokenize(cue || "");
+    const tokA = tokenize(userResponse || ""), tokB = tokenize(cueText || "");
     const m = tokA.length, n = tokB.length;
     const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
     for (let i = 1; i <= m; i++)

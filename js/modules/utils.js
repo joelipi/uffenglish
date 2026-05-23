@@ -23,3 +23,21 @@ export function getLocalizedTranslation(translationData, lang = 'en') {
     
     return '';
 }
+
+/**
+ * Gets both English and localized versions of a cue translation object.
+ * @param {Object|string} translationData - The translation object or string.
+ * @param {string} lang - The user's native language code.
+ * @returns {Object} - { en: string, localized: string }
+ */
+export function getBilingualCue(translationData, lang = 'en') {
+    if (!translationData) return { en: '', localized: '' };
+    if (typeof translationData === 'string') return { en: translationData, localized: translationData };
+    
+    const enVersion = translationData['en'] || '';
+    const localizedVersion = lang && lang !== 'en' && translationData[lang]
+        ? translationData[lang]
+        : enVersion;
+    
+    return { en: enVersion, localized: localizedVersion };
+}

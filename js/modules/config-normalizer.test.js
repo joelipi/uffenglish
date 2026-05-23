@@ -39,7 +39,7 @@ describe('normalizeConfig', () => {
                     explanation: { en: 'Exp', es: 'Exp_es' },
                     translation: { en: 'Trans', es: 'Trans_es' },
                     subtitles: { en: 'Sub', es: 'Sub_es' },
-                    cue: { en: 'Cue', es: 'Cue_es' }, // Should use en
+                    cue: { en: 'Cue', es: 'Cue_es' }, // Kept as object for bilingual display
                     incues: [{ en: 'Incue1', es: 'Incue1_es' }, { en: 'Incue2', es: 'Incue2_es' }]
                 }]
             }]
@@ -50,7 +50,7 @@ describe('normalizeConfig', () => {
         expect(step.explanation).toBe('Exp_es');
         expect(step.translation).toBe('Trans_es');
         expect(step.subtitles).toBe('Sub_es');
-        expect(step.cue).toBe('Cue'); // Always english
+        expect(step.cue).toEqual({ en: 'Cue', es: 'Cue_es' }); // Kept as object for bilingual display
         expect(step.incues).toEqual(['Incue1_es', 'Incue2_es']);
     });
 
@@ -63,7 +63,7 @@ describe('normalizeConfig', () => {
                     explanation: { en: 'Exp', es: 'Exp_es' },
                     translation: { en: 'Trans', es: 'Trans_es' },
                     subtitles: { en: 'Sub', es: 'Sub_es' },
-                    cue: { en: 'Cue', es: 'Cue_es' }, // Should use en
+                    cue: { en: 'Cue', es: 'Cue_es' }, // Kept as object for bilingual display
                     incues: [{ en: 'Incue1', es: 'Incue1_es' }, { en: 'Incue2', es: 'Incue2_es' }]
                 }]
             }]
@@ -75,11 +75,11 @@ describe('normalizeConfig', () => {
         expect(step.explanation).toBe('Exp_es');
         expect(step.translation).toBe('Trans_es');
         expect(step.subtitles).toBe('Sub_es');
-        expect(step.cue).toBe('Cue'); // Always english
+        expect(step.cue).toEqual({ en: 'Cue', es: 'Cue_es' }); // Kept as object for bilingual display
         expect(step.incues).toEqual(['Incue1_es', 'Incue2_es']);
     });
 
-    it('should normalize step fields correctly, always using en for cue', () => {
+    it('should normalize step fields correctly, cue kept as object for bilingual display', () => {
         const configData = {
             lessons: [{
                 steps: [{

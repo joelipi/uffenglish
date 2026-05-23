@@ -104,8 +104,8 @@ export class InteractiveVideoPlayerUI {
             el.setAttribute('aria-label', 'Hidden word');
             el.textContent = token.text; // Text is hidden via CSS
             el.onclick = (e) => {
-               e.stopPropagation();
-               if (this.onTokenClick) this.onTokenClick(token.index);
+              e.stopPropagation();
+              if (this.onTokenClick) this.onTokenClick(token.index);
             };
           } else {
             el = document.createElement('span');
@@ -204,7 +204,8 @@ export class InteractiveVideoPlayer {
 
   validateInput() {
     if (!this.config.videoUrl) throw new Error('videoUrl is required');
-    if (!this.config.cue) throw new Error('cue is required');
+    const cueText = typeof this.config.cue === 'object' ? this.config.cue?.en : this.config.cue;
+    if (!cueText) throw new Error('cue is required');
   }
 
   initVideoLogic() {
@@ -284,8 +285,8 @@ export class InteractiveVideoPlayer {
 
   handleClick(e) {
     if (this.controller.state.showOverlay) {
-        this.controller.dismissOverlay();
-        return;
+      this.controller.dismissOverlay();
+      return;
     }
 
     if (this.video.paused) {

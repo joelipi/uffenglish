@@ -15,7 +15,7 @@ import { pointLoss } from '../components/point-loss-animation.js';
 import { clearPlaybackVideo } from '../components/playback.js';
 import { Media } from './media.js';
 import Strings from '../data/strings.js';
-import { getLocalizedTranslation } from './utils.js';
+import { getLocalizedTranslation, getBilingualCue } from './utils.js';
 import { analyzeSpeech } from './analytics.js';
 import { updateSpeechRecording } from './storage.js';
 import { buildFeedbackData, buildExplanationData } from './feedback-builder.js';
@@ -40,6 +40,18 @@ import {
 } from '../components/ui.js';
 
 function handlecueUI(stepIndex, stepData, button, cue, explanation, translation, userResponse, englishLevel, englishLevelDeduction, userData, configData, fluencyBubble = null) {
+    const cueText = typeof cue === 'object' ? cue?.en : cue;
+    const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
+    const cueData = typeof cue === 'object' ? getBilingualCue(cue, lang) : { en: cueText, localized: '' };
+    
+    // Build bilingual cue display HTML
+    let cueDisplayHTML;
+    if (cueData.localized && cueData.en !== cueData.localized && lang && lang !== 'en') {
+        cueDisplayHTML = `<span>${cueData.en} <span lang="${lang}">/ ${cueData.localized}</span></span>`;
+    } else {
+        cueDisplayHTML = `<span>${cueData.en}</span>`;
+    }
+    
     const currentFluencyScore = appStore.getState().fluencyScore;
     if (stepData.stepType === "closedResponse" && stepData.videoUrl) {
         appStore.setState({ repeatPointsHistory: [...appStore.getState().repeatPointsHistory, currentFluencyScore] });
@@ -52,7 +64,6 @@ function handlecueUI(stepIndex, stepData, button, cue, explanation, translation,
 
     safeRenderChatInterface(true);
 
-    const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
     const praiseResult = (stepData.stepType === "openResponse" || stepData.stepType === "closedResponse") ? getRandomPraise('general', lang) : "";
     const feedbackText = (stepData.stepType === "openResponse" && englishLevelDeduction > 0)
         ? `${Strings.get('ai_acceptable', lang)}<br>${Strings.get('ai_language_level', lang)} ${englishLevel}<br>${Strings.get('ai_fluency_reduced', lang)} <span style='color:red'>${englishLevelDeduction} ${Strings.get('ai_percentage_points', lang)}</span>.`
@@ -67,7 +78,7 @@ function handlecueUI(stepIndex, stepData, button, cue, explanation, translation,
             ? `<br><span lang="${lang}"><i>${localizedTrans}</i></span>`
             : '';
 
-        const correctBubbleHTML = `<div class="correct-answer-display chat-message-bubble chat-message-bubble--user"><div class="chat-bubble-header d-none">${userName}</div><span>${cue}</span>${translationHTML}</div>`;
+        const correctBubbleHTML = `<div class="correct-answer-display chat-message-bubble chat-message-bubble--user"><div class="chat-bubble-header d-none">${userName}</div>${cueDisplayHTML}${translationHTML}</div>`;
         const correctWrapperHTML = `<div class="chat-message-row chat-message-row--user correct-answer-wrapper"><img src="${userAvatarUrl}" alt="${userName}" class="chat-avatar-inline" />${correctBubbleHTML}</div>`;
 
         const praiseHTML = getPraiseHTML(getRandomPraise('general', lang));
@@ -96,6 +107,7 @@ function handlecueUI(stepIndex, stepData, button, cue, explanation, translation,
 }
 
 function handleIncueUI(stepIndex, stepData, button, cue, userResponse, explanation, normalizeduserResponse, normalizedcue, step, silent = false, userData, configData, fluencyBubble = null) {
+    const cueText = typeof cue === 'object' ? cue?.en : cue;
     appStore.getState().incrementIncorrectAttempts();
 
     if (!silent && !State.isTextMode && (stepData.stepType === "lessonIntro" || stepData.stepType === "closedResponse" || stepData.stepType === "openResponse")) {
@@ -148,7 +160,7 @@ function handleIncueUI(stepIndex, stepData, button, cue, userResponse, explanati
                     const transStr = (localizedTrans && lang && lang !== 'en')
                         ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>`
                         : "";
-                    return `${Strings.get('failed_continue_correct', userData?.native_language)}<br>"${cue}"${transStr}`;
+                    return `${Strings.get('failed_continue_correct', userData?.native_language)}<br>"${cueText}"${transStr}`;
                 })();
 
         const teacherHTML = `<div><strong>${teacherTextStr}</strong></div>`;
@@ -192,7 +204,7 @@ function handleIncueUI(stepIndex, stepData, button, cue, userResponse, explanati
                     const transStr = (localizedTrans && lang && lang !== 'en')
                         ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>`
                         : "";
-                    return `${Strings.get('failed_continue', appStore.getState().userData?.native_language)}<br><br>Correct:<br>"${cue}"${transStr}`;
+                    return `${Strings.get('failed_continue', appStore.getState().userData?.native_language)}<br><br>Correct:<br>"${cueText}"${transStr}`;
                 })();
 
         const mainFeedbackHTML = `<strong>${teacherText}</strong><br><br>${correctUl}${incorrectUl}`;
@@ -249,7 +261,8 @@ export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation,
     );
 
     if (!isValid) {
-        logInteraction(cue, val, "rej_pre", warningMessage, null, State.interactionLog);
+        const cueText = typeof cue === 'object' ? cue?.en : cue;
+        logInteraction(cueText, val, "rej_pre", warningMessage, null, State.interactionLog);
         if (!State.isTextMode) {
             appStore.getState().deductSpeakingScore(10);
             if (DOM.pronunciationScore) {
@@ -280,7 +293,7 @@ export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation,
         const stepIndex = getCurrentStepIndex(stepData, configData, appStore.getState().currentLessonIndex);
         await updateSpeechRecording(currentLessonId, stepIndex, {
             userResponse: val,
-            cue: cue,
+            cue: typeof cue === 'object' ? cue?.en : cue,
             isTextMode: State.isTextMode,
             duration: State.isTextMode ? 3 : null
         });
@@ -315,6 +328,7 @@ export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation,
 }
 
 export async function handleAnswer(userResponse, cue, stepData, button, explanation, translation, stats = { pauseCount: null, netDuration: null }, _deps = {}, userData = appStore.getState().userData, configData = appStore.getState().configData, courseId = appStore.getState().courseId) {
+    const cueText = typeof cue === 'object' ? cue?.en : cue;
     if (!State.isTextMode && (stepData.stepType === "lessonIntro" || stepData.stepType === "closedResponse" || stepData.stepType === "openResponse")) {
         const storeState = appStore.getState();
         const hasVideoBubble = storeState.chatHistory.some(msg => msg.type === 'video');
@@ -366,7 +380,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
 
             await updateSpeechRecording(currentLessonId, stepIndex, {
                 userResponse,
-                cue,
+                cue: cueText,
                 wpm: State.isTextMode ? 0 : (speechAnalytics?.wpm || 0),
                 pauseCount: State.isTextMode ? 0 : (speechAnalytics?.pauseCount || 0),
                 complexityScore: speechAnalytics?.complexityScore || 100,
@@ -423,7 +437,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
 
             if (!result) {
                 console.warn("  No result from local NLP — no Gemini fallback active. Treating as passed.");
-                result = { isCorrect: true, normalizeduserResponse: userResponse, normalizedcue: cue, explanation: explanation, intentLabels: [] };
+                result = { isCorrect: true, normalizeduserResponse: userResponse, normalizedcue: cueText, explanation: explanation, intentLabels: [] };
             }
         }
 
@@ -437,7 +451,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
 
         let status = isCorrect ? "ok" : "inc";
         let pragmaticDetails = result?.intentLabels?.length > 0 ? result.intentLabels : null;
-        logInteraction(cue, userResponse, status, pragmaticDetails, grammarCorrection, State.interactionLog);
+        logInteraction(cueText, userResponse, status, pragmaticDetails, grammarCorrection, State.interactionLog);
 
         if (result?.foundIdioms?.length > 0) {
             State.recognizedIdioms.push(...result.foundIdioms);
@@ -535,7 +549,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
             clearChatInterface();
             appStore.getState().setWebcamStream(null);
 
-            const hangmanHTML = generateHangmanHint(userResponse, cue);
+            const hangmanHTML = generateHangmanHint(userResponse, cueText);
             appStore.getState().setHangmanHintHTML(hangmanHTML);
             appStore.getState().setHintsVisible(true);
             appStore.getState().setMediaVisible(true);
@@ -560,11 +574,19 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
         }
 
         if (stepData.stepType === "openResponse" && userResponse && DOM.speechText) {
-            const lang = userData?.native_language;
+            const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
+            console.log('[handleAnswer] openResponse lang:', lang, 'cue:', typeof cue, 'native_language:', userData?.native_language);
+            const cueData = typeof cue === 'object' ? getBilingualCue(cue, lang) : { en: cueText, localized: '' };
+            let cueDisplayHTML;
+            if (cueData.localized && cueData.en !== cueData.localized && lang && lang !== 'en') {
+                cueDisplayHTML = `<span>${cueData.en} <span lang="${lang}">/ ${cueData.localized}</span></span>`;
+            } else {
+                cueDisplayHTML = `<span>${cueData.en}</span>`;
+            }
             const localizedTrans = getLocalizedTranslation(stepData.translation, lang);
             const translationStr = (localizedTrans && lang && lang !== 'en') ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>` : "";
 
-            renderAIFeedback([`<strong>${cue}${translationStr}</strong>`]);
+            renderAIFeedback([`<strong>${cueDisplayHTML}${translationStr}</strong>`]);
             safeRenderChatInterface(false);
             appStore.getState().addChatMessage({
                 role: 'user',

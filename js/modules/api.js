@@ -145,7 +145,7 @@ export async function checkGrammarWithAI(selectedAnswer, stepData) {
   const aiEndpoint = 'https://nvidia-proxy.joel-1cb.workers.dev';
   try {
     console.log("AI Evaluation: Starting Grammar Check...");
-    const grammarPrompt = `Find all the grammatical error(s) in B's response, including if B does not agree with A in tense, number or gender. Return ONLY the grammar-corrected text of B's reply. If no errors, respond ONLY "CORRECT".  A: ${stepData.cue} B: ${selectedAnswer}`;
+    const grammarPrompt = `Find all the grammatical error(s) in B's response, including if B does not agree with A in tense, number or gender. Return ONLY the grammar-corrected text of B's reply. If no errors, respond ONLY "CORRECT".  A: ${stepData.cue.en} B: ${selectedAnswer}`;
 
     const response = await fetch(aiEndpoint, {
       method: 'POST',
@@ -200,7 +200,7 @@ export async function evaluateIntentWithAI(answerForIntentPass, stepData, lesson
 A: ${lessonData.roleOther?.en || ''} 
 B: ${lessonData.roleUser?.en || ''} 
 B's goal: ${stepData.mission || 'Respond appropriately'}
-A: ${stepData.cue}
+A: ${stepData.cue.en}
 B: ${answerForIntentPass} 
  
 Evaluate B's response. Return ONLY an array with any applicable labels and any corrected version of B's response: [pragmatic failure, too formal, too informal, rude, unidiomatic, correct].`;

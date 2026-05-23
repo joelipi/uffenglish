@@ -7,7 +7,7 @@ window.enabledLogs = {
     recording: false,
     speech: false,
     api: false,
-    tanstack: false,
+    'tanstack query': false,
     toggle: false,
     ai: false,
     analytics: false,
@@ -16,11 +16,12 @@ window.enabledLogs = {
     success: false,
     scoring: false,
     video: false,
+    router: false,
     pipeline: true,
     app: false,
     storage: false,
     gamification: false,
-    all: false
+    all: true
 };
 
 console.log = (msg, ...args) => {

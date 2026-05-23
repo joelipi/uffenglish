@@ -10,10 +10,12 @@ export function getCurrentStepIndex(stepData, configData, currentLessonIndex) {
     if (currentLessonIndex < 0 || currentLessonIndex >= configData.lessons.length) return -1;
 
     const currentLesson = configData.lessons[currentLessonIndex];
+    const normalizedCue1 = typeof stepData.cue === 'object' ? stepData.cue?.en : stepData.cue;
     return currentLesson.steps.findIndex(q => {
+        const normalizedCue2 = typeof q.cue === 'object' ? q.cue?.en : q.cue;
         const sameStep = q.step === stepData.step &&
             q.explanation === stepData.explanation &&
-            q.cue === stepData.cue;
+            normalizedCue2 === normalizedCue1;
 
         // Safely compare incues arrays regardless of order
         const qIncues = Array.isArray(q.incues) ? [...q.incues].sort() : [];
@@ -37,8 +39,9 @@ export async function processAnswerLogic({
     userResponse, cue, stepData, lesson, englishLevel, userData, cuesGiven, apiRoot
 }) {
     if (stepData.stepType === "openResponse") {
+        const cueText = typeof cue === 'object' ? cue?.en : cue;
         const normalizeduserResponse = await normalize(userResponse.trim().toLowerCase());
-        const normalizedcue = await normalize(cue.trim().toLowerCase());
+        const normalizedcue = await normalize(cueText.trim().toLowerCase());
 
         let result = {
             isCorrect: false,
@@ -214,8 +217,9 @@ export async function processAnswerLogic({
         return result;
     }
     else if (stepData.stepType === "closedResponse") {
+        const cueText = typeof cue === 'object' ? cue?.en : cue;
         const normalizeduserResponse = await normalize(userResponse.trim().toLowerCase());
-        const normalizedcue = await normalize(cue.trim().toLowerCase());
+        const normalizedcue = await normalize(cueText.trim().toLowerCase());
         const similarity = calculateSimilarity(normalizeduserResponse, normalizedcue);
         const threshold = 95;
         let result = {
@@ -234,13 +238,14 @@ export async function processAnswerLogic({
 export async function validateAnswerPrecheck(val, cue, stepData, englishLevel, userData, cuesGiven) {
     if (stepData.stepType !== "openResponse") return { isValid: true };
 
+    const cueText = typeof cue === 'object' ? cue?.en : cue;
     const wordCount = val.trim().split(/\s+/).length;
     let minWordsRequired = 3;
     let warningMessage = null;
     let isInvalid = false;
 
     const normalizeduserResponse = await normalize(val.trim().toLowerCase());
-    const normalizedcue = await normalize(cue.trim().toLowerCase());
+    const normalizedcue = await normalize(cueText.trim().toLowerCase());
     const similarity = calculateSimilarity(normalizeduserResponse, normalizedcue);
 
     if (cuesGiven && cuesGiven.includes(normalizeduserResponse)) {
