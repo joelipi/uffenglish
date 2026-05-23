@@ -115,7 +115,7 @@ export function formatBilingualHTML(
             enPrefix +
             english +
             enSuffix +
-            ' <span lang="' + lang + '">/' +
+            ' <span lang="' + lang + '">' +
             spanPrefix +
             localized +
             '</span>';

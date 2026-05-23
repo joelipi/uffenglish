@@ -300,9 +300,9 @@ export function loadStep(step, lesson, fluencyData, deps) {
         appStore.getState().setTextInputPlaceholder(
             Strings.get('placeholder_type_answer', appStore.getState().userData?.native_language) || 'Type your answer here...'
         );
-appStore.getState().setTextInputSubmitCallback(
-             (val, btn) => submitAnswerPrecheck(val, typeof step.cue === 'object' ? step.cue.en : step.cue, step, btn, step.explanation, step.translation, { pauseCount: null, netDuration: null })
-         );
+        appStore.getState().setTextInputSubmitCallback(
+            (val, btn) => submitAnswerPrecheck(val, typeof step.cue === 'object' ? step.cue.en : step.cue, step, btn, step.explanation, step.translation, { pauseCount: null, netDuration: null })
+        );
     } else if (step.stepType === 'lessoncomplete') {
         updateProgressAndCloseButton(true); appStore.getState().setStatsVisible(false);
         appStore.getState().setProgressPercent("95%"); showFeedbackAndProceed(step, true);
@@ -350,9 +350,9 @@ function _renderResponseStep(step, lesson, deps) {
         const placeholder = Strings.get('placeholder_type_answer', appStore.getState().userData?.native_language) || 'Type your answer here...';
         const submitLabel = Strings.get('btn_submit', appStore.getState().userData?.native_language) || 'Submit';
         appStore.getState().setTextInputPlaceholder(placeholder);
-appStore.getState().setTextInputSubmitCallback((val, btn) => {
-             submitAnswerPrecheck(val, typeof step.cue === 'object' ? step.cue.en : step.cue, step, btn, step.explanation, step.translation, { pauseCount: 0, netDuration: 3 });
-         });
+        appStore.getState().setTextInputSubmitCallback((val, btn) => {
+            submitAnswerPrecheck(val, step.cue, step, btn, step.explanation, step.translation, { pauseCount: 0, netDuration: 3 });
+        });
     } else {
         // Show close/progress button for speech response steps
         updateProgressAndCloseButton(true);
@@ -362,146 +362,146 @@ appStore.getState().setTextInputSubmitCallback((val, btn) => {
         appStore.getState().setSpeechInputHintCallback(step.stepType === "closedResponse" ? null : () => handleHint(stepIndex));
         appStore.getState().setSpeechInputRevealCallback(handleRevealClick);
         appStore.getState().setSpeechInputToggleCallback(async () => {
-                const speechButton = document.getElementById('micBtn');
+            const speechButton = document.getElementById('micBtn');
 
-                try {
-                    await toggleSpeechRecognition({
-                        button: speechButton,
-                        step,
-                        micStatusText: DOM.micStatusText,
-                        userData: appStore.getState().userData,
-                        configData: appStore.getState().configData,
-                        currentLessonIndex: appStore.getState().currentLessonIndex,
-                        currentStepIndex: stepIndex,
-                        handleAnswer: submitAnswerPrecheck,
-                        player: State.player,
-                        uiHooks: {
-                            onHesitation: (points) => {
-                                const scoreEl = document.getElementById('flowScore');
-                                if (scoreEl && pointLoss) {
-                                    pointLoss.show(scoreEl, points);
-                                }
-                            },
-                            onPauseVideo: (player) => {
-                                try {
-                                    if (player && typeof player.pause === 'function') {
-                                        player.pause();
-                                    }
-                                } catch (e) {
-                                    console.warn('[QuestionLoader] Failed to pause player object:', e);
-                                }
-                                Media.pauseVideoIfPlaying();
-                            },
-                            onMicDisable: (btn) => {
-                                window.isMicActive = false; // Release the lock
-                                if (btn) {
-                                    btn.classList.add('toggled-off');
-                                    btn.innerHTML = '<i class="bi bi-mic-mute-fill"></i>';
-                                    stopMicAnimation(btn);
-                                }
-                            },
-                             onRecordingStart: (userData) => {
-                                _cancelWarningClear();
-                                window.isMicActive = true; // Lock the video timer
-                                if (window.currentVideoPlayer) {
-                                    if (typeof window.currentVideoPlayer.pause === 'function') {
-                                        window.currentVideoPlayer.pause();
-                                    } else if (window.currentVideoPlayer.video) {
-                                        window.currentVideoPlayer.video.pause();
-                                    }
-                                }
-                                appStore.getState().setMicStatusText(`<div class="text-center"><div class="mb-0" style="color: green; font-size: 30px;"><i class="bi bi-mic" style="color: green; font-size: 100px !important;"></i><br>${Strings.get('status_speak', userData?.native_language)}</div></div>`);
-                            },
-                            onEngineNotReady: (userData) => {
-                                const errorMsg = Strings.get('error_engine_not_ready', userData?.native_language) || "Speech engine not ready. Please wait a moment.";
-                                appStore.getState().setMicStatusText(`<div class='text-center text-danger' style="color: red; font-size: 30px;"><i class="bi bi-exclamation-triangle"></i> ${errorMsg}</div>`);
-                            },
-                            onEngineReady: (btn) => {
-                                if (btn) {
-                                    btn.style.display = "flex";
-                                    btn.disabled = false;
-                                    btn.classList.add('toggled-off');
-                                    btn.innerHTML = '<i class="bi bi-mic-mute-fill"></i>';
-                                }
-                                appStore.getState().setMicStatusText(`<div class='text-center text-success mt-2'><i class="bi bi-check-circle"></i> Engine ready. Try speaking now!</div>`);
-                            },
-                            onRecordingActive: (btn) => {
-                                if (btn) {
-                                    btn.style.display = "flex";
-                                    btn.innerHTML = '<i class="bi bi-mic-fill"></i>';
-                                    btn.classList.remove('toggled-off', 'btn-danger', 'disabled');
-                                    startMicAnimation(btn);
-                                }
-                            },
-                            onRecordingStop: (btn) => {
-                                window.isMicActive = false; // Release the lock
-                                if (btn) {
-                                    btn.style.display = 'none';
-                                    stopMicAnimation(btn);
-                                }
-                                appStore.getState().setMicStatusText("");
-                                appStore.getState().setMediaVisible(false);
-                                appStore.getState().setTextInputVisible(false);
-                                appStore.getState().setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Analyzing Speech...</div>`);
-                            },
-                            onStopEarly: (userData) => {
-                                window.isMicActive = false;
-                                window.dispatchEvent(new CustomEvent('preflightRejected'));
-                                appStore.getState().setMediaVisible(true);
-                                appStore.getState().setMicStatusText(`<div class='text-center' style='color: red; font-size: large;'><i class='bi bi-exclamation-triangle-fill'></i> ${Strings.get('try_again_speech', userData?.native_language)}</div>`);
-                                const btn = document.getElementById('micBtn');
-                                if (btn) btn.style.display = 'flex';
-                                _clearWarningLater(3000);
-                            },
-                            onGibberishDetected: () => {
-                                window.isMicActive = false;
-                                window.dispatchEvent(new CustomEvent('preflightRejected'));
-                                appStore.getState().setMicStatusText(`<div class='text-center mt-3' style='color: #ff9800; font-size: large;'><i class='bi bi-ear-x'></i> Audio unclear. Please try speaking clearly.</div>`);
-                                const btn = document.getElementById('micBtn');
-                                if (btn) btn.style.display = 'flex';
-                                _clearWarningLater(3000);
-                            },
-                            onPreflightRejected: (msg) => {
-                                window.isMicActive = false;
-                                clearPlaybackVideo();
-                                appStore.getState().setWebcamStream(null);
-                                window.dispatchEvent(new CustomEvent('preflightRejected'));
-                                appStore.getState().setMicStatusText(`<div class='text-center text-danger'>${msg}</div>`);
-                                const btn = document.getElementById('micBtn');
-                                if (btn) {
-                                    btn.style.display = 'flex';
-                                    stopMicAnimation(btn);
-                                }
-                                _clearWarningLater(4000);
-                            },
-                            onTranscriptRejected: (cue, transcript) => {
-                                window.isMicActive = false; // Release the lock
-                                clearPlaybackVideo();
-                                appStore.getState().setWebcamStream(null);
-                                window.dispatchEvent(new CustomEvent('transcriptRejected', { detail: { cue, transcript } }));
-                                appStore.getState().setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Restarting Mic...</div>`);
-                                const btn = document.getElementById('micBtn');
-                                if (btn) {
-                                    btn.style.display = 'flex';
-                                    stopMicAnimation(btn);
-                                }
-                            },
-                            onReviewStart: (transcript, timeLeft, acceptFn, rejectFn) => {
-                                window.isMicActive = false; // Release the lock
-                                renderWhisperReviewUI(transcript, timeLeft, acceptFn, rejectFn);
-                            },
-                            onReviewUpdate: (timeLeft) => {
-                                updateWhisperTimer(timeLeft);
-                            },
-                            onReviewEnd: () => {
-                                appStore.getState().setMicStatusText("");
+            try {
+                await toggleSpeechRecognition({
+                    button: speechButton,
+                    step,
+                    micStatusText: DOM.micStatusText,
+                    userData: appStore.getState().userData,
+                    configData: appStore.getState().configData,
+                    currentLessonIndex: appStore.getState().currentLessonIndex,
+                    currentStepIndex: stepIndex,
+                    handleAnswer: submitAnswerPrecheck,
+                    player: State.player,
+                    uiHooks: {
+                        onHesitation: (points) => {
+                            const scoreEl = document.getElementById('flowScore');
+                            if (scoreEl && pointLoss) {
+                                pointLoss.show(scoreEl, points);
                             }
+                        },
+                        onPauseVideo: (player) => {
+                            try {
+                                if (player && typeof player.pause === 'function') {
+                                    player.pause();
+                                }
+                            } catch (e) {
+                                console.warn('[QuestionLoader] Failed to pause player object:', e);
+                            }
+                            Media.pauseVideoIfPlaying();
+                        },
+                        onMicDisable: (btn) => {
+                            window.isMicActive = false; // Release the lock
+                            if (btn) {
+                                btn.classList.add('toggled-off');
+                                btn.innerHTML = '<i class="bi bi-mic-mute-fill"></i>';
+                                stopMicAnimation(btn);
+                            }
+                        },
+                        onRecordingStart: (userData) => {
+                            _cancelWarningClear();
+                            window.isMicActive = true; // Lock the video timer
+                            if (window.currentVideoPlayer) {
+                                if (typeof window.currentVideoPlayer.pause === 'function') {
+                                    window.currentVideoPlayer.pause();
+                                } else if (window.currentVideoPlayer.video) {
+                                    window.currentVideoPlayer.video.pause();
+                                }
+                            }
+                            appStore.getState().setMicStatusText(`<div class="text-center"><div class="mb-0" style="color: green; font-size: 30px;"><i class="bi bi-mic" style="color: green; font-size: 100px !important;"></i><br>${Strings.get('status_speak', userData?.native_language)}</div></div>`);
+                        },
+                        onEngineNotReady: (userData) => {
+                            const errorMsg = Strings.get('error_engine_not_ready', userData?.native_language) || "Speech engine not ready. Please wait a moment.";
+                            appStore.getState().setMicStatusText(`<div class='text-center text-danger' style="color: red; font-size: 30px;"><i class="bi bi-exclamation-triangle"></i> ${errorMsg}</div>`);
+                        },
+                        onEngineReady: (btn) => {
+                            if (btn) {
+                                btn.style.display = "flex";
+                                btn.disabled = false;
+                                btn.classList.add('toggled-off');
+                                btn.innerHTML = '<i class="bi bi-mic-mute-fill"></i>';
+                            }
+                            appStore.getState().setMicStatusText(`<div class='text-center text-success mt-2'><i class="bi bi-check-circle"></i> Engine ready. Try speaking now!</div>`);
+                        },
+                        onRecordingActive: (btn) => {
+                            if (btn) {
+                                btn.style.display = "flex";
+                                btn.innerHTML = '<i class="bi bi-mic-fill"></i>';
+                                btn.classList.remove('toggled-off', 'btn-danger', 'disabled');
+                                startMicAnimation(btn);
+                            }
+                        },
+                        onRecordingStop: (btn) => {
+                            window.isMicActive = false; // Release the lock
+                            if (btn) {
+                                btn.style.display = 'none';
+                                stopMicAnimation(btn);
+                            }
+                            appStore.getState().setMicStatusText("");
+                            appStore.getState().setMediaVisible(false);
+                            appStore.getState().setTextInputVisible(false);
+                            appStore.getState().setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Analyzing Speech...</div>`);
+                        },
+                        onStopEarly: (userData) => {
+                            window.isMicActive = false;
+                            window.dispatchEvent(new CustomEvent('preflightRejected'));
+                            appStore.getState().setMediaVisible(true);
+                            appStore.getState().setMicStatusText(`<div class='text-center' style='color: red; font-size: large;'><i class='bi bi-exclamation-triangle-fill'></i> ${Strings.get('try_again_speech', userData?.native_language)}</div>`);
+                            const btn = document.getElementById('micBtn');
+                            if (btn) btn.style.display = 'flex';
+                            _clearWarningLater(3000);
+                        },
+                        onGibberishDetected: () => {
+                            window.isMicActive = false;
+                            window.dispatchEvent(new CustomEvent('preflightRejected'));
+                            appStore.getState().setMicStatusText(`<div class='text-center mt-3' style='color: #ff9800; font-size: large;'><i class='bi bi-ear-x'></i> Audio unclear. Please try speaking clearly.</div>`);
+                            const btn = document.getElementById('micBtn');
+                            if (btn) btn.style.display = 'flex';
+                            _clearWarningLater(3000);
+                        },
+                        onPreflightRejected: (msg) => {
+                            window.isMicActive = false;
+                            clearPlaybackVideo();
+                            appStore.getState().setWebcamStream(null);
+                            window.dispatchEvent(new CustomEvent('preflightRejected'));
+                            appStore.getState().setMicStatusText(`<div class='text-center text-danger'>${msg}</div>`);
+                            const btn = document.getElementById('micBtn');
+                            if (btn) {
+                                btn.style.display = 'flex';
+                                stopMicAnimation(btn);
+                            }
+                            _clearWarningLater(4000);
+                        },
+                        onTranscriptRejected: (cue, transcript) => {
+                            window.isMicActive = false; // Release the lock
+                            clearPlaybackVideo();
+                            appStore.getState().setWebcamStream(null);
+                            window.dispatchEvent(new CustomEvent('transcriptRejected', { detail: { cue, transcript } }));
+                            appStore.getState().setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Restarting Mic...</div>`);
+                            const btn = document.getElementById('micBtn');
+                            if (btn) {
+                                btn.style.display = 'flex';
+                                stopMicAnimation(btn);
+                            }
+                        },
+                        onReviewStart: (transcript, timeLeft, acceptFn, rejectFn) => {
+                            window.isMicActive = false; // Release the lock
+                            renderWhisperReviewUI(transcript, timeLeft, acceptFn, rejectFn);
+                        },
+                        onReviewUpdate: (timeLeft) => {
+                            updateWhisperTimer(timeLeft);
+                        },
+                        onReviewEnd: () => {
+                            appStore.getState().setMicStatusText("");
                         }
-                    });
-                } catch (error) {
-                    console.error("Speech toggle failed", error);
-                }
+                    }
+                });
+            } catch (error) {
+                console.error("Speech toggle failed", error);
             }
+        }
         );
     }
 }
