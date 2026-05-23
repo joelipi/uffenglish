@@ -11,7 +11,7 @@ import { State } from '../modules/state.js';
 import { appStore } from '../modules/store.js';
 import Strings from '../data/strings.js';
 import { getLocalizedTranslation } from '../modules/utils.js';
-import { formatBilingualHTML } from '../modules/bilingual-display.js';
+import { formatBilingualHTML } from '../modules/bilingual-display.web.js';
 import { loadVideoForStep } from '../modules/video-loader.js';
 import { Media } from '../modules/media.js';
 import {

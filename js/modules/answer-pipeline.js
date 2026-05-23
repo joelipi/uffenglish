@@ -16,7 +16,7 @@ import { clearPlaybackVideo } from '../components/playback.js';
 import { Media } from './media.js';
 import Strings from '../data/strings.js';
 import { getLocalizedTranslation } from './utils.js';
-import { formatBilingualHTML } from './bilingual-display.js';
+import { formatBilingualHTML } from './bilingual-display.web.js';
 import { analyzeSpeech } from './analytics.js';
 import { updateSpeechRecording } from './storage.js';
 import { buildFeedbackData, buildExplanationData } from './feedback-builder.js';

@@ -1,5 +1,5 @@
 /**
- * Bilingual Display Utility
+ * Bilingual Display Utility (Web)
  *
  * Formats translation fields stored as `{ en: "...", es: "…" }` objects so
  * that English is always shown and a `<span lang="L">` with the user-language
@@ -10,62 +10,22 @@
  *     `Hello`                               ← lang is `en`, `null`, or `undefined`
  */
 
-/**
- * Extract English text from a translation field.
- * @param {string|object} translationData
- * @returns {string}
- */
-function getEnglish(translationData) {
-    if (!translationData) return '';
-    if (typeof translationData === 'string') return translationData;
-    return translationData.en || '';
-}
-
-/**
- * Extract the user-language text from a translation field.
- * @param {string|object} translationData
- * @param {string} lang
- * @returns {string}
- */
-function getLocalizedString(translationData, lang) {
-    if (!translationData || !lang || lang === 'en') return '';
-    if (typeof translationData === 'string') return '';
-    return translationData[lang] || '';
-}
-
-/**
- * True when a distinct localized version worth showing exists.
- * @param {string} english
- * @param {string} localized
- * @param {string} lang
- * @returns {boolean}
- */
-function shouldShowLocalized(english, localized, lang) {
-    return (
-        !!english
-        && !!lang
-        && lang !== 'en'
-        && !!localized
-        && localized !== english
-    );
-}
+import { getEnglish, getLocalizedString, shouldShowLocalized } from './bilingual-logic.js';
 
 /**
  * Formats a translation field as bilingual HTML.
  *
  * **Default output**
  * ```
- * English <span lang="es">/ Localized</span>
+ * English <span lang="es"> Localized</span>
  * ```
  *
- * the `/` separator inside the span are both hardcoded.
- *
- * `spanPrefix` controls what is appended *after* the `/` and *before* the
+ * `spanPrefix` controls what is appended *after* the ` ` and *before* the
  * localized word inside the `<span>`.  Default `' '` produces `/ Hola`.
  * Pass `'// '` for `/ // Hola`, or `''` for `/Hola`.
  *
- * `enPrefix` / `enSuffix` let callers wrap the English portion
- * (e.g. `<strong>`  /  `</strong>`).
+ * `enPrefix` `enSuffix` let callers wrap the English portion
+ * (e.g. `<strong>`   `</strong>`).
  *
  * `{ skipEnglish: true }` emits only the `<span lang="…">localized</span>`.
  *
@@ -127,4 +87,15 @@ export function formatBilingualHTML(
     const inner = enPrefix + english + enSuffix;
     console.log('formatBilingualHTML fallback result:', inner);
     return wrapper(inner);
+}
+
+/**
+ * Builds a bilingual span wrapper for localized text.
+ * @param {string} text - The localized text
+ * @param {string} lang - The language code
+ * @returns {string} HTML span element
+ */
+export function buildBilingualSpan(text, lang) {
+    if (!text || !lang) return '';
+    return `<span lang="${lang}">${text}</span>`;
 }

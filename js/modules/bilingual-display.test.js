@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatBilingualHTML, buildBilingualSpan } from './bilingual-display.js';
+import { formatBilingualHTML, buildBilingualSpan } from './bilingual-display.web.js';
 
 const HOLA = { en: 'Hello', es: 'Hola' };
 
