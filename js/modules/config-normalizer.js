@@ -16,10 +16,8 @@ export function normalizeConfig(configData, lang = 'en') {
 
     configData.lessons.forEach(lesson => {
         lesson.title = getLocalizedTranslation(lesson.title, userLang);
-        lesson.mission = getLocalizedTranslation(lesson.mission, userLang);
-        lesson.setting = getLocalizedTranslation(lesson.setting, userLang);
-        lesson.roleOther = getLocalizedTranslation(lesson.roleOther, userLang);
-        lesson.roleUser = getLocalizedTranslation(lesson.roleUser, userLang);
+        // Keep mission/setting/roleUser/roleOther as multi-language objects for bilingual display
+        // (same approach as cue below)
 
         // Map 'questions' to 'steps' if it comes from legacy JSON
         if (lesson.questions && !lesson.steps) {

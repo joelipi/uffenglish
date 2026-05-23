@@ -48,14 +48,6 @@ export function formatBilingualHTML(
     const english = getEnglish(translationData);
     const localized = getLocalizedString(translationData, lang);
 
-    console.trace('formatBilingualHTML called', {
-        translationData,
-        userLang,
-        options: { enPrefix, enSuffix, spanPrefix, skipEnglish },
-        english,
-        localized
-    });
-
     if (skipEnglish) {
         // when the caller passes a plain string, treat it as the localized text
         // and return just the <span lang="..."> wrapper (no English part).

@@ -8,6 +8,7 @@ export default function AnswerInput() {
     const textInputPlaceholder = useStore(appStore, (state) => state.textInputPlaceholder);
     const textInputSubmitCallback = useStore(appStore, (state) => state.textInputSubmitCallback);
     const speechInputToggleCallback = useStore(appStore, (state) => state.speechInputToggleCallback);
+    const answerErrorMessage = useStore(appStore, (state) => state.answerErrorMessage);
 
     const answerInputAreaRef = useRef(null);
     const answerInputFieldRef = useRef(null);
@@ -41,6 +42,16 @@ export default function AnswerInput() {
             answerInputFieldRef.current.value = '';
         }
     }, [textInputSubmitCallback]);
+
+    // Auto-clear answer error after 4 seconds
+    useEffect(() => {
+        if (answerErrorMessage) {
+            const timer = setTimeout(() => {
+                appStore.getState().setAnswerErrorMessage(null);
+            }, 4000);
+            return () => clearTimeout(timer);
+        }
+    }, [answerErrorMessage]);
 
     // Focus the input field when it becomes visible
     useEffect(() => {
@@ -87,7 +98,9 @@ export default function AnswerInput() {
                                 }
                             }}
                         />
-                        <div id="answer-error-message" className="text-danger small mt-1 d-none"></div>
+                        {answerErrorMessage && (
+                            <div id="answer-error-message" className="text-danger small mt-1">{answerErrorMessage}</div>
+                        )}
                     </div>
                     <button
                         ref={answerSubmitBtnRef}

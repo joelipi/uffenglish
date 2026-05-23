@@ -3,10 +3,7 @@
 // Heavier functions (initializeApp, initializeLesson, loadLessonContent)
 // remain in app.js due to tight coupling with answer pipeline and progression.
 
-import { appStore } from './store.js';
 import { isUserLoggedIn, signOut } from './api.js';
-import Strings from '../data/strings.js';
-import { bindAuthMenuUI } from '../components/ui.js';
 import { navigateToHome, navigateToLogin } from './navigation.js';
 
 export async function requestPersistentStorage() {
@@ -37,8 +34,4 @@ export async function handleAuthClick(e) {
     }
 }
 
-export function setupAuthMenu(isLoggedIn) {
-    const signOutText = Strings.get('sign_out', appStore.getState().userData?.native_language) || 'Sign Out';
-    const signInText = Strings.get('sign_in', appStore.getState().userData?.native_language) || 'Sign In';
-    bindAuthMenuUI(isLoggedIn, handleAuthClick, signOutText, signInText);
-}
+

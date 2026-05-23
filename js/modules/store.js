@@ -15,7 +15,9 @@ export const appStore = createStore(
             isMicActive: false,
             isTextMode: false,
             isGuestModalOpen: false,
+            isLoggedIn: false,
             criticalErrorMessage: null,
+            answerErrorMessage: null,
             userFirstName: null,
             userData: null,
             configData: null,
@@ -91,7 +93,9 @@ export const appStore = createStore(
             setMicActive: (val) => set({ isMicActive: val }),
             setTextMode: (val) => set({ isTextMode: val }),
             setGuestModalOpen: (val) => set({ isGuestModalOpen: val }),
+            setIsLoggedIn: (val) => set({ isLoggedIn: val }),
             setCriticalErrorMessage: (val) => set({ criticalErrorMessage: val }),
+            setAnswerErrorMessage: (val) => set({ answerErrorMessage: val }),
 
             addChatMessage: (msg) => set((state) => {
                 const newMsg = {

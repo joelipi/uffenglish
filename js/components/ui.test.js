@@ -1,11 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+
 import {
-    setupLessonUI, DOM, getFirstName, flashElement,
-    disableAllButtons,
     safeRenderChatInterface, renderAIAnalysisLoading,
-    renderAIFeedback, clearChatInterface, showMicWarning,
-    showAnswerError
-} from './ui.js';
+    renderAIFeedback, clearChatInterface
+} from './chat/chat-interface.js';
 import { appStore } from '../modules/store.js';
 import { State } from '../modules/state.js';
 
@@ -58,73 +56,6 @@ describe('UI Component functions', () => {
             expect(appStore.getState().criticalErrorMessage).toBeNull();
         });
     });
-
-    describe('setupLessonUI', () => {
-        it('should update DOM classes and text content appropriately', () => {
-            setupLessonUI('New Awesome Lesson');
-
-            expect(document.querySelector('.ivp-main-wrapper').classList.contains('d-none')).toBe(false);
-            expect(document.querySelector('footer').classList.contains('d-none')).toBe(false);
-            expect(document.getElementById('media-viewport').classList.contains('d-none')).toBe(false);
-            expect(document.body.classList.contains('bg-dark')).toBe(false);
-
-            const header = document.getElementById('lesson-header');
-            expect(header.style.display).toBe('block');
-            expect(header.classList.contains('lesson-header')).toBe(true);
-
-            const titles = document.getElementsByClassName('lesson-title');
-            expect(titles[0].textContent).toBe('New Awesome Lesson');
-            expect(titles[1].textContent).toBe('New Awesome Lesson');
-        });
-    });
-
-    describe('getFirstName', () => {
-        it('should extract the first name from a full name', () => {
-            expect(getFirstName('John Doe')).toBe('John');
-            expect(getFirstName('Alice')).toBe('Alice');
-            expect(getFirstName(' ')).toBe('');
-            expect(getFirstName(null)).toBe('User');
-            expect(getFirstName(undefined)).toBe('User');
-        });
-    });
-
-    describe('disableAllButtons', () => {
-        it('should disable all buttons within a container', () => {
-            const container = document.getElementById('test-container');
-            const buttons = container.querySelectorAll('button');
-            expect(buttons[0].disabled).toBe(false);
-
-            disableAllButtons(container);
-
-            expect(buttons[0].disabled).toBe(true);
-            expect(buttons[1].disabled).toBe(true);
-        });
-
-        it('should do nothing if container is falsy', () => {
-            expect(() => disableAllButtons(null)).not.toThrow();
-        });
-    });
-
-    describe('flashElement', () => {
-        it('should add and remove animation classes', () => {
-            vi.useFakeTimers();
-            const el = document.getElementById('flash-element');
-
-            flashElement(el);
-
-            expect(el.classList.contains('score-update')).toBe(true);
-
-            vi.advanceTimersByTime(300);
-
-            expect(el.classList.contains('score-update')).toBe(false);
-
-            vi.useRealTimers();
-        });
-        it('should do nothing if element is missing', () => {
-            expect(() => flashElement(null)).not.toThrow();
-        });
-    });
-
 
     describe('Chat Interface Rendering', () => {
         beforeEach(() => {
@@ -180,24 +111,4 @@ describe('UI Component functions', () => {
         });
     });
 
-    describe('Hints and Errors Rendering', () => {
-        it('should show mic warning', () => {
-            showMicWarning('Warning!');
-            expect(appStore.getState().micStatusText).toContain('Warning!');
-        });
-
-        it('should show answer error and hide after timeout', () => {
-            vi.useFakeTimers();
-            document.body.innerHTML += '<div id="answer-error-message" class="d-none"></div>';
-
-            showAnswerError('Answer is wrong');
-            const msg = document.getElementById('answer-error-message');
-            expect(msg.innerHTML).toBe('Answer is wrong');
-            expect(msg.classList.contains('d-none')).toBe(false);
-
-            vi.advanceTimersByTime(4000);
-            expect(msg.classList.contains('d-none')).toBe(true);
-            vi.useRealTimers();
-        });
-    });
 });

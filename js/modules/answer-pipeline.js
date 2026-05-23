@@ -25,20 +25,14 @@ import { getNextStep } from './lessonRouting.js';
 import { warmUpSpeechCamStream } from './speech.js';
 import getRandomPraise from '../data/praise.js';
 import { getPraiseHTML } from '../components/feedback-renderer.web.js';
+import { DOM } from '../components/ui.js';
+import { generateHangmanHint } from './utils.js';
 import {
-    DOM,
-    showMicWarning,
-    showAnswerError,
-    flashElement,
     safeRenderChatInterface,
     renderAIFeedback,
-    disableAllButtons,
-    resetMicStatusWithStep,
-    getFirstName,
-    generateHangmanHint,
     updateChatHeaderScores,
     clearChatInterface
-} from '../components/ui.js';
+} from '../components/chat/chat-interface.js';
 
 function handleCorrectFeedbackUI(stepIndex, stepData, button, cue, explanation, translation, userResponse, englishLevel, englishLevelDeduction, userData, configData, fluencyBubble = null) {
     const cueText = typeof cue === 'object' ? cue?.en : cue;
@@ -64,7 +58,7 @@ function handleCorrectFeedbackUI(stepIndex, stepData, button, cue, explanation, 
 
     if (stepData.stepType !== "openResponse" && stepData.stepType !== "closedResponse") {
         const localizedTrans = getLocalizedTranslation(translation, lang);
-        const userName = getFirstName(appStore.getState().userData?.display_name);
+        const userName = appStore.getState().userData?.display_name?.split(' ')[0] || 'User';
         const userAvatarUrl = appStore.getState().userData?.profilepicurl || '/assets/img/userprofile.webp';
 
         const translationHTML = (localizedTrans && lang && lang !== 'en')
@@ -110,7 +104,7 @@ function handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userRespons
             storeState.addChatMessage({
                 role: 'user',
                 type: 'video',
-                userName: getFirstName(storeState.userData?.display_name),
+                userName: storeState.userData?.display_name?.split(' ')[0] || 'User',
                 userAvatarUrl: storeState.userData?.profilepicurl || '/assets/img/userprofile.webp'
             });
         } else {
@@ -265,10 +259,10 @@ export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation,
             console.log('[submitAnswerPrecheck] Text mode: skipping speaking score deduction');
         }
 
-        showMicWarning(warningMessage);
+        appStore.getState().setMicStatusText(`<div class='text-center text-danger'>${warningMessage}</div>`);
 
         if (State.isTextMode) {
-            showAnswerError(warningMessage);
+            appStore.getState().setAnswerErrorMessage(warningMessage);
             clearPlaybackVideo();
             appStore.getState().setWebcamStream(null);
             const inputField = document.getElementById('answer-input-field');
@@ -276,7 +270,12 @@ export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation,
                 inputField.disabled = false;
                 inputField.classList.remove('disabled');
                 inputField.focus();
-                if (DOM.answerInputArea) flashElement(DOM.answerInputArea);
+                if (DOM.answerInputArea) {
+                    DOM.answerInputArea.classList.remove('score-update');
+                    void DOM.answerInputArea.offsetWidth;
+                    DOM.answerInputArea.classList.add('score-update');
+                    setTimeout(() => DOM.answerInputArea.classList.remove('score-update'), 300);
+                }
             }
         }
 
@@ -329,7 +328,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
             storeState.addChatMessage({
                 role: 'user',
                 type: 'video',
-                userName: getFirstName(storeState.userData?.display_name),
+                userName: storeState.userData?.display_name?.split(' ')[0] || 'User',
                 userAvatarUrl: storeState.userData?.profilepicurl || '/assets/img/userprofile.webp'
             });
         } else {
@@ -395,8 +394,12 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
 
     let immediateStatsHtmlArr = [];
     let fluencyBubbleHTML = null;
-    if (button) {
-        disableAllButtons(button.parentElement);
+    if (button && button.parentElement) {
+        button.parentElement.querySelectorAll('button').forEach(btn => {
+            if (!btn || btn.id === 'micBtn' || btn.id === 'txtBtn') return;
+            btn.disabled = true;
+            btn.classList.add('disabled');
+        });
     }
 
     try {
@@ -561,7 +564,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
                 }, 50);
             }
 
-            resetMicStatusWithStep(stepData.step);
+            appStore.getState().setMicStatusText(`<div class='text-center'>${stepData.step || ""}</div>`);
             resetButtonState(button);
             return;
         }

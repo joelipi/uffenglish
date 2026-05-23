@@ -21,7 +21,7 @@ window.enabledLogs = {
     app: false,
     storage: false,
     gamification: false,
-    all: true
+    all: false
 };
 
 console.log = (msg, ...args) => {
@@ -47,7 +47,7 @@ console.log = (msg, ...args) => {
 
 
 import { navigateToHome, navigateToLogin } from './modules/navigation.js';
-import { requestPersistentStorage, handleAuthClick, setupAuthMenu } from './modules/lesson-init.js';
+import { requestPersistentStorage, handleAuthClick } from './modules/lesson-init.js';
 import { handleHint as handleHintImpl, submitAnswerPrecheck as submitAnswerPrecheckImpl, handleAnswer as handleAnswerImpl, showFeedbackAndProceed as showFeedbackAndProceedImpl } from './modules/answer-pipeline.js';
 import { updateProgressBar as updateProgressBarImpl, loadNextStep as loadNextStepImpl, loadNextLesson as loadNextLessonImpl, showCompletionMessage as showCompletionMessageImpl, handleTutorChatSubmit as handleTutorChatSubmitImpl } from './modules/lesson-progression.js';
 
@@ -92,18 +92,12 @@ import { normalizeConfig } from './modules/config-normalizer.js';
 import { loadVideoForStep } from './modules/video-loader.js';
 window.appStore = appStore;
 import { State } from './modules/state.js';
-import { getLocalizedTranslation } from './modules/utils.js';
 import { analyzeSpeech } from './modules/analytics.js';
 import { Media } from './modules/media.js';
 import { buildFeedbackData, buildExplanationData } from './modules/feedback-builder.js';
 import { renderFeedbackToHTML, renderExplanationsToHTML } from './components/feedback-renderer.js';
 import { loadStep } from './components/step-loader.js';
-import {
-    DOM,
-    setupLessonUI,
-    resetMissionText,
-    initMissionToggle
-} from './components/ui.js';
+import { DOM } from './components/ui.js';
 import { idiomChecker } from './modules/idiom-checker.js';
 import { calculateSyntacticComplexity } from './modules/complexity.js';
 
@@ -270,27 +264,40 @@ async function loadLessonContent(lesson, configData) {
     const titleText = (typeof lesson.title === 'object') ? (lesson.title.en || "") : (lesson.title || "");
     const fullTitle = `${course}${level}${course ? ': ' : ''}${unit}${titleText}`;
 
-    setupLessonUI(fullTitle);
+    {
+        const ivpWrapper = document.querySelector('.ivp-main-wrapper');
+        if (ivpWrapper) ivpWrapper.classList.remove('d-none');
+        const footer = document.querySelector('footer');
+        if (footer) footer.classList.remove("d-none");
+        document.body.classList.remove('bg-dark');
+        if (DOM.mediaViewport) DOM.mediaViewport.classList.remove('d-none');
+        const lessonHeader = document.getElementById('lesson-header');
+        if (lessonHeader) {
+            lessonHeader.style.display = 'block';
+            lessonHeader.classList.remove('lesson-header');
+            void lessonHeader.offsetWidth;
+            lessonHeader.classList.add('lesson-header');
+        }
+        const titles = document.getElementsByClassName('lesson-title');
+        for (let i = 0; i < titles.length; i++) {
+            if (titles[i]) {
+                titles[i].textContent = fullTitle;
+            }
+        }
+    }
 
     const userData = queryClient.getQueryData(['user', 'profile']);
 
     // --- MISSION LOGIC ---
     // The mission is lesson-wide and should stay the same throughout.
     const lang = userData?.native_language;
-    const missionText = getLocalizedTranslation(lesson.mission, lang);
-    const settingText = getLocalizedTranslation(lesson.setting, lang);
-    const roleUserText = getLocalizedTranslation(lesson.roleUser, lang);
-    const roleOtherText = getLocalizedTranslation(lesson.roleOther, lang);
-    resetMissionText(missionText, settingText, roleUserText, roleOtherText);
-
     callLoadStep(lesson.steps[appStore.getState().currentStepIndex], lesson, null);
 }
 
 // INITIALIZE APP 
 async function initializeApp() {
     // Initialize reactive UI subscriptions first so the UI responds to store changes 
-    // from the moment any state is set during initialization. 
-    initMissionToggle();
+    // from the moment any state is set during initialization.
 
     const isDemoMode = new URLSearchParams(window.location.search).has('demo');
     appStore.getState().setDemoMode(isDemoMode);
@@ -298,7 +305,7 @@ async function initializeApp() {
     try {
         requestPersistentStorage();
         const isLoggedIn = await isUserLoggedIn();
-        setupAuthMenu(isLoggedIn);
+        appStore.getState().setIsLoggedIn(isLoggedIn);
         const userData = await getUserProfile();
         appStore.getState().setCourseData({ userData });
 

@@ -24,10 +24,11 @@ describe('normalizeConfig', () => {
         };
         normalizeConfig(configData, 'es');
         expect(configData.lessons[0].title).toBe('Titulo');
-        expect(configData.lessons[0].mission).toBe('Mision');
-        expect(configData.lessons[0].setting).toBe('Config');
-        expect(configData.lessons[0].roleOther).toBe('Otro');
-        expect(configData.lessons[0].roleUser).toBe('Usuario');
+        // mission/setting/roleOther/roleUser kept as objects for bilingual display
+        expect(configData.lessons[0].mission).toEqual({ en: 'Mission', es: 'Mision' });
+        expect(configData.lessons[0].setting).toEqual({ en: 'Setting', es: 'Config' });
+        expect(configData.lessons[0].roleOther).toEqual({ en: 'Other', es: 'Otro' });
+        expect(configData.lessons[0].roleUser).toEqual({ en: 'User', es: 'Usuario' });
     });
 
     it('normalizes step fields and applies default speech step', () => {

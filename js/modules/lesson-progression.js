@@ -6,11 +6,11 @@
 import { appStore } from './store.js';
 import { State } from './state.js';
 import Strings from '../data/strings.js';
+
 import {
-    showMessageInStepsContainer,
     renderAIAnalysisLoading,
     getChatHistoryContext
-} from '../components/ui.js';
+} from '../components/chat/chat-interface.js';
 import { askEnglishTutor } from './api.js';
 import { saveLessonProgress } from './user-profile.js';
 import { Media } from './media.js';
@@ -25,7 +25,12 @@ export function updateProgressBar() {
 }
 
 export function showCompletionMessage() {
-    showMessageInStepsContainer(Strings.get('msg_lesson_complete_all', appStore.getState().userData?.native_language));
+    {
+        const container = document.getElementById('steps-container');
+        if (container) {
+            container.innerHTML = `<div class="text-center">${Strings.get('msg_lesson_complete_all', appStore.getState().userData?.native_language)}</div>`;
+        }
+    }
 }
 
 export function loadNextStep(currentStep, fluencyData, _deps = {}) {

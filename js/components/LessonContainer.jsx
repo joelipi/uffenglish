@@ -12,6 +12,8 @@ import LessonSuccessControls from './widgets/LessonSuccessControls.jsx';
 import GuestLoginModal from './modals/GuestLoginModal.jsx';
 import CriticalErrorModal from './modals/CriticalErrorModal.jsx';
 import MicStatusText from './widgets/MicStatusText.jsx';
+import AuthLink from './widgets/AuthLink.jsx';
+import MissionSection from './widgets/MissionSection.jsx';
 import Hints from './widgets/Hints.jsx';
 import AnswerInput from './widgets/AnswerInput.jsx';
 import TutorChatInput from './widgets/TutorChatInput.jsx';
@@ -62,6 +64,8 @@ export default function LessonContainer() {
                 {createPortal(<GuestLoginModal />, document.body)}
             </div>
 
+            <AuthLink />
+            <MissionSection />
             <MicStatusText />
             <Hints />
             <AnswerInput />

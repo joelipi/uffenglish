@@ -9,7 +9,7 @@ export function getLocalizedTranslation(translationData, lang = 'en') {
     if (typeof translationData === 'string') return translationData;
     
     // Default to 'en' if lang is null or undefined
-    const targetLang = lang || 'en';
+    const targetLang = (lang || 'en').toLowerCase();
     
     // Try the target language
     if (translationData[targetLang]) return translationData[targetLang];
@@ -40,4 +40,41 @@ export function getBilingualCue(translationData, lang = 'en') {
         : enVersion;
     
     return { en: enVersion, localized: localizedVersion };
+}
+
+export function generateHangmanHint(userResponse, cue) {
+    const cueText = typeof cue === 'object' ? cue?.en : cue;
+    const tokenize = str => str.trim().match(/[\p{L}\p{N}]+(?:'[\p{L}\p{N}]+)?|[^\p{L}\p{N}\s]+|\s+/gu) || [];
+    const tokA = tokenize(userResponse || ""), tokB = tokenize(cueText || "");
+    const m = tokA.length, n = tokB.length;
+    const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+    for (let i = 1; i <= m; i++)
+        for (let j = 1; j <= n; j++)
+            dp[i][j] = tokA[i - 1].toLowerCase() === tokB[j - 1].toLowerCase() ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
+
+    const ops = []; let i = m, j = n;
+    while (i > 0 || j > 0) {
+        if (i > 0 && j > 0 && tokA[i - 1].toLowerCase() === tokB[j - 1].toLowerCase()) { ops.unshift({ type: 'eq', val: tokB[j - 1] }); i--; j--; }
+        else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) { ops.unshift({ type: 'ins', val: tokB[j - 1] }); j--; }
+        else { ops.unshift({ type: 'del', val: tokA[i - 1] }); i--; }
+    }
+
+    let resultHTML = '';
+    ops.forEach(({ type, val }) => {
+        const v = val.replace(/</g, '&lt;');
+        if (type === 'eq') {
+            resultHTML += v;
+        } else if (type === 'ins') {
+            if (/\w/.test(v)) {
+                resultHTML += ' <span class="hangman-placeholder">&nbsp;&nbsp;&nbsp;</span> ';
+            } else {
+                resultHTML += v;
+            }
+        } else if (type === 'del') {
+            if (/\w/.test(v)) {
+                resultHTML += `<span class="hangman-incorrect">${v}</span>`;
+            }
+        }
+    });
+    return resultHTML.replace(/\s+/g, ' ').trim();
 }

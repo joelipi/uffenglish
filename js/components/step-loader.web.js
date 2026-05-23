@@ -28,10 +28,12 @@ import { saveLessonProgress } from '../modules/user-profile.js';
 import { getCompressedLessonStats } from '../modules/scoring.js';
 import { pointLoss } from '../components/point-loss-animation.js';
 import {
-    DOM,
+    DOM
+} from './ui.js';
+import {
     clearChatInterface,
     renderAIFeedback
-} from './ui.js';
+} from './chat/chat-interface.js';
 import { clearPlaybackVideo } from './playback.js';
 
 function renderWhisperReviewUI(transcript, timeLeft, onAccept, onReject) {
