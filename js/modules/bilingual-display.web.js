@@ -88,14 +88,3 @@ export function formatBilingualHTML(
     console.log('formatBilingualHTML fallback result:', inner);
     return wrapper(inner);
 }
-
-/**
- * Builds a bilingual span wrapper for localized text.
- * @param {string} text - The localized text
- * @param {string} lang - The language code
- * @returns {string} HTML span element
- */
-export function buildBilingualSpan(text, lang) {
-    if (!text || !lang) return '';
-    return `<span lang="${lang}">${text}</span>`;
-}

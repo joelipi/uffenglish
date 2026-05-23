@@ -21,7 +21,7 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 - `js/components/interactive-video-player.js` (359 lines), `simple-video-player.js` (401 lines), `intro-background-video.js` (97 lines) — video player classes
 - `js/components/feedback-renderer.web.js`, `point-loss-animation.js`, `mic-animation.js`, `success-lesson.js` — utility modules
 - All standalone HTML pages: `homescreen.html`, `login.html`, `signup.html`, `userprofile.html`, `recover-password.html`, `reset-password.html`
-- `js/modules/answer-pipeline.js` (~500 lines) — answer processing + feedback UI (handlecueUI/handleIncueUI migrated here)
+- `js/modules/answer-pipeline.js` (~500 lines) — answer processing + feedback UI (handlecueUI/handleIncorrectFeedbackUI migrated here)
 - `js/modules/lesson-progression.js` (106 lines) — step transitions, calls ui.js functions
 - `js/components/playback.js` (~140 lines) — video playback element management (extracted from ui.js)
 
@@ -90,7 +90,7 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 
 *For each remaining ui.js function, add a Zustand action + React component that replaces it, then delete the old function. This is a single loop — replacement unblocks deletion, deletion is the completion signal.*
 
-**Progress snapshot:** `ui.js` shrunk from 1,613 → **345 lines** (~79% reduction). All Phase 2 backlog items COMPLETED. Phase 4 heavy functions migrated: `handlecueUI`/`handleIncueUI` moved to `answer-pipeline.js` (HTML string templates + direct `addChatMessage` calls, no DOM building). `renderWhisperReviewUI`/`updateWhisperTimer` moved to `step-loader.web.js`. `clearPlaybackVideo`/`setupPlaybackVideo` extracted to `playback.js`. Step-loader-only functions (8 functions) moved from `ui.js` to `step-loader.web.js`. New React components: `TutorChatInput.jsx`, `MediaViewport.jsx`, `WebcamPreview.jsx`. `speech.web.js` no longer imports `ui.js`.
+**Progress snapshot:** `ui.js` shrunk from 1,613 → **345 lines** (~79% reduction). All Phase 2 backlog items COMPLETED. Phase 4 heavy functions migrated: `handlecueUI`/`handleIncorrectFeedbackUI` moved to `answer-pipeline.js` (HTML string templates + direct `addChatMessage` calls, no DOM building). `renderWhisperReviewUI`/`updateWhisperTimer` moved to `step-loader.web.js`. `clearPlaybackVideo`/`setupPlaybackVideo` extracted to `playback.js`. Step-loader-only functions (8 functions) moved from `ui.js` to `step-loader.web.js`. New React components: `TutorChatInput.jsx`, `MediaViewport.jsx`, `WebcamPreview.jsx`. `speech.web.js` no longer imports `ui.js`.
 
 **Bug fixes since last update:**
 
@@ -121,7 +121,7 @@ The app is a **hybrid architecture in active migration**. React (v19.2.0) has be
 
 *Replaced `showPlaybackVideo()` (~55 lines) with direct Zustand chat message pushes. `VideoBubble.jsx` now handles all video wrapper DOM manipulation + playback.*
 
-- `answer-pipeline.js` and `ui.js handleIncueUI`: replaced `showPlaybackVideo()` with `addChatMessage({ type: 'video' })` + duplicate guard (if video bubble already exists, just resume play)
+- `answer-pipeline.js` and `ui.js handleIncorrectFeedbackUI`: replaced `showPlaybackVideo()` with `addChatMessage({ type: 'video' })` + duplicate guard (if video bubble already exists, just resume play)
 - `VideoBubble.jsx`: added video element style setup + `video.play()` on mount
 - Deleted `showPlaybackVideo` from `ui.js`
 
@@ -197,13 +197,13 @@ Vanilla JS toggles these by adding/removing `d-none` on DOM elements, which figh
 | `getPraiseHTML` | Already in `feedback-renderer.web.js`, imported by ui.js | N/A | COMPLETED |
 | `renderUserChatMessage` | All callers use `addChatMessage` directly | Various callers | COMPLETED |
 | `renderTutorMessage` | All callers use `addChatMessage` directly | Various callers | COMPLETED |
-| `showPlaybackVideo` | `<VideoBubble>` handles DOM + video play; callers push `type: 'video'` chat message directly | `answer-pipeline.js` and `handleIncueUI` last callers | COMPLETED |
+| `showPlaybackVideo` | `<VideoBubble>` handles DOM + video play; callers push `type: 'video'` chat message directly | `answer-pipeline.js` and `handleIncorrectFeedbackUI` last callers | COMPLETED |
 | `showContinueButton` / `hideContinueButton` / `showLessonSuccessState` | Zustand `bottomControlState` → React `<IntroChoices>` + `MicrophoneToggle` reads it | `answer-pipeline.js` and `success-lesson.js` last callers | COMPLETED |
 | `removeAILoadingStatus` | Zustand + `<AiLoadingBubble>` | Various callers | COMPLETED |
 | `syncTextModeUI` | Only called from `showContinueButton` — deleted with it | N/A | COMPLETED |
 | `animatePointLoss` | No callers — removed | N/A | COMPLETED |
 
-**When to stop simple replacements:** Once only `handlecueUI`, `handleIncueUI`, and the webcam/whisper chain remain — these become Phase 4.
+**When to stop simple replacements:** Once only `handlecueUI`, `handleIncorrectFeedbackUI`, and the webcam/whisper chain remain — these become Phase 4.
 
 ---
 
@@ -229,7 +229,7 @@ Vanilla JS toggles these by adding/removing `d-none` on DOM elements, which figh
 | Function | Lines | Strategy | Status |
 |----------|-------|----------|--------|
 | `handlecueUI` | ~96 | Converted DOM building to HTML string templates; moved to `answer-pipeline.js`; calls `addChatMessage` directly instead of `renderAIFeedback` round-trip | COMPLETED |
-| `handleIncueUI` | ~105 | Same approach — HTML strings + direct `addChatMessage` calls | COMPLETED |
+| `handleIncorrectFeedbackUI` | ~105 | Same approach — HTML strings + direct `addChatMessage` calls | COMPLETED |
 | `renderWhisperReviewUI` / `updateWhisperTimer` | ~50 | Moved to `step-loader.web.js` as local functions (only caller) | COMPLETED |
 | `clearPlaybackVideo` / `setupPlaybackVideo` | ~160 | Extracted to `js/components/playback.js` module (called from 3 files) | COMPLETED |
 | `resetUIForNewStep` | ~55 | Moved to `step-loader.web.js` as local function | COMPLETED |
@@ -264,7 +264,7 @@ Vanilla JS toggles these by adding/removing `d-none` on DOM elements, which figh
 - **Next easiest wins:** `showPlaybackVideo` / `showContinueButton` — React components already exist, just need to delete the old ui.js functions and redirect callers
 - **Most repetitive:** Phase 2 (each function is a small self-contained replacement)
 - **Self-contained:** Phase 3 (HTML pages don't share state with the lesson engine)
-- **Riskiest:** Phase 4 (`handlecueUI`/`handleIncueUI` are critical paths)
+- **Riskiest:** Phase 4 (`handlecueUI`/`handleIncorrectFeedbackUI` are critical paths)
 
 ## Completion Criteria
 

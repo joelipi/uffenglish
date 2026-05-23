@@ -40,11 +40,11 @@ import {
     clearChatInterface
 } from '../components/ui.js';
 
-function handlecueUI(stepIndex, stepData, button, cue, explanation, translation, userResponse, englishLevel, englishLevelDeduction, userData, configData, fluencyBubble = null) {
+function handleCorrectFeedbackUI(stepIndex, stepData, button, cue, explanation, translation, userResponse, englishLevel, englishLevelDeduction, userData, configData, fluencyBubble = null) {
     const cueText = typeof cue === 'object' ? cue?.en : cue;
     const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
     const cueDisplayHTML = formatBilingualHTML(cue, lang);
-    
+
     const currentFluencyScore = appStore.getState().fluencyScore;
     if (stepData.stepType === "closedResponse" && stepData.videoUrl) {
         appStore.setState({ repeatPointsHistory: [...appStore.getState().repeatPointsHistory, currentFluencyScore] });
@@ -99,7 +99,7 @@ function handlecueUI(stepIndex, stepData, button, cue, explanation, translation,
     Media.playSound('correct-sound');
 }
 
-function handleIncueUI(stepIndex, stepData, button, cue, userResponse, explanation, normalizeduserResponse, normalizedcue, step, silent = false, userData, configData, fluencyBubble = null) {
+function handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userResponse, explanation, normalizeduserResponse, normalizedcue, step, silent = false, userData, configData, fluencyBubble = null) {
     const cueText = typeof cue === 'object' ? cue?.en : cue;
     appStore.getState().incrementIncorrectAttempts();
 
@@ -117,7 +117,7 @@ function handleIncueUI(stepIndex, stepData, button, cue, userResponse, explanati
             const video = document.getElementById('playback-video');
             if (video) {
                 video.muted = storeState.isPlaybackMuted;
-                video.play().catch(e => console.warn('[handleIncueUI] Playback resume failed:', e));
+                video.play().catch(e => console.warn('[handleIncorrectFeedbackUI] Playback resume failed:', e));
             }
         }
     }
@@ -537,7 +537,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
         }
 
         if (!isCorrect && stepData.stepType === "closedResponse" && incorrectAttempts < 2) {
-            handleIncueUI(stepIndex, stepData, button, cue, userResponse, result.explanations || explanation, result.normalizeduserResponse, result.normalizedcue, stepData.step, true, userData, configData);
+            handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userResponse, result.explanations || explanation, result.normalizeduserResponse, result.normalizedcue, stepData.step, true, userData, configData);
             clearPlaybackVideo();
             clearChatInterface();
             appStore.getState().setWebcamStream(null);
@@ -585,11 +585,17 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
             });
             if (immediateStatsHtmlArr.length > 0) renderAIFeedback(immediateStatsHtmlArr);
         } else if (stepData.stepType === "closedResponse" && userResponse && DOM.speechText) {
-            safeRenderChatInterface(false);
+            const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
+
+            const cueDisplayHTML = formatBilingualHTML(cue, lang);
+            const localizedTrans = getLocalizedTranslation(stepData.translation, lang);
+            const translationStr = (localizedTrans && lang && lang !== 'en') ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>` : "";
+            safeRenderChatInterface(true);
+            let htmlContent = cueDisplayHTML + " " + translationStr;
             appStore.getState().addChatMessage({
                 role: 'user',
-                type: 'standard',
-                content: userResponse,
+                type: 'htmlChunk',
+                content: htmlContent,
                 statsHtml: "",
                 userName: userData?.display_name?.split(' ')[0] || 'User',
                 userAvatarUrl: userData?.profilepicurl || '/assets/img/userprofile.webp'
@@ -609,16 +615,16 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
                     appStore.getState().deductListeningScore(result.cefrLevelDeduction);
                 }
             }
-            handlecueUI(stepIndex, stepData, button, cue, webFormattedExplanations, translation, userResponse, result ? result.cefrLevel : undefined, result ? result.cefrLevelDeduction : undefined, userData, configData, fluencyBubbleHTML);
+            handleCorrectFeedbackUI(stepIndex, stepData, button, cue, webFormattedExplanations, translation, userResponse, result ? result.cefrLevel : undefined, result ? result.cefrLevelDeduction : undefined, userData, configData, fluencyBubbleHTML);
             showFeedbackAndProceed(stepData, isCorrect, _deps);
         } else {
-            handleIncueUI(stepIndex, stepData, button, cue, userResponse, webFormattedExplanations, result ? result.normalizeduserResponse : "", result ? result.normalizedcue : "", stepData.step, false, userData, configData, fluencyBubbleHTML);
+            handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userResponse, webFormattedExplanations, result ? result.normalizeduserResponse : "", result ? result.normalizedcue : "", stepData.step, false, userData, configData, fluencyBubbleHTML);
             showFeedbackAndProceed(stepData, isCorrect, _deps);
         }
 
     } catch (error) {
         console.error("Error handling answer:", error);
-        handleIncueUI(stepIndex, stepData, button, cue, userResponse, explanation, "", "", translation, false, userData, configData);
+        handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userResponse, explanation, "", "", translation, false, userData, configData);
         showFeedbackAndProceed(stepData, false, _deps);
     }
 }

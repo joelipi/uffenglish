@@ -31,7 +31,7 @@
         "es": "cliente",
         "pt": "cliente"
       },
-      "questions": [
+      "steps": [
         {
           "cue": "",
           "stepType": "lessonIntro",
@@ -118,7 +118,7 @@
         "es": "cliente",
         "pt": "cliente"
       },
-      "questions": [
+      "steps": [
         {
           "cue": "",
           "stepType": "lessonIntro",
@@ -179,7 +179,7 @@
       "setting": "A game show",
       "roleOther": "Game show host",
       "roleUser": "Contestant",
-      "questions": [
+      "steps": [
         {
           "stepType": "lessonIntro",
           "introBackgroundVideoUrl": "gtests-0-1-1"
