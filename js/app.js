@@ -97,7 +97,7 @@ import { Media } from './modules/media.js';
 import { buildFeedbackData, buildExplanationData } from './modules/feedback-builder.js';
 import { renderFeedbackToHTML, renderExplanationsToHTML } from './components/feedback-renderer.js';
 import { loadStep } from './components/step-loader.js';
-import { DOM } from './components/ui.js';
+
 import { idiomChecker } from './modules/idiom-checker.js';
 import { calculateSyntacticComplexity } from './modules/complexity.js';
 
@@ -113,8 +113,8 @@ window.addEventListener('transcriptRejected', (e) => {
     appStore.getState().deductSpeakingScore(20);
     appStore.getState().incrementWhisperRejections();
     // Show point loss animation explicitly on the score span (subscription handles the text update)
-    if (DOM.pronunciationScore) {
-        pointLoss.show(DOM.pronunciationScore, 20);
+    if (document.getElementById('pronunciationScore')) {
+        pointLoss.show(document.getElementById('pronunciationScore'), 20);
     }
 });
 
@@ -123,8 +123,8 @@ window.addEventListener('preflightRejected', () => {
     appStore.getState().deductSpeakingScore(10);
     appStore.getState().incrementWhisperRejections();
     // Show point loss animation (subscription handles the text update)
-    if (DOM.pronunciationScore) {
-        pointLoss.show(DOM.pronunciationScore, 10);
+    if (document.getElementById('pronunciationScore')) {
+        pointLoss.show(document.getElementById('pronunciationScore'), 10);
     }
 });
 
@@ -270,7 +270,7 @@ async function loadLessonContent(lesson, configData) {
         const footer = document.querySelector('footer');
         if (footer) footer.classList.remove("d-none");
         document.body.classList.remove('bg-dark');
-        if (DOM.mediaViewport) DOM.mediaViewport.classList.remove('d-none');
+        if (document.getElementById('media-viewport')) document.getElementById('media-viewport').classList.remove('d-none');
         const lessonHeader = document.getElementById('lesson-header');
         if (lessonHeader) {
             lessonHeader.style.display = 'block';
@@ -375,10 +375,10 @@ async function initializeApp() {
                 }
             },
             uiElements: {
-                statsContainer: DOM.statsContainer,
-                progressbar: DOM.progressbar,
-                progressBarFill: DOM.progressBarFill,
-                speechTextHere: DOM.speechText,
+                statsContainer: document.getElementById('react-root-stats'),
+                progressbar: document.getElementById('progress'),
+                progressBarFill: document.getElementById('progress'),
+                speechTextHere: document.getElementById('chat-window-container'),
                 chatMessageList: document.getElementById('chat-message-list')
             }
         });

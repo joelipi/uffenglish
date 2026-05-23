@@ -1,31 +1,27 @@
 import { appStore } from '../../modules/store.js';
 import Strings from '../../data/strings.js';
-import { DOM } from '../ui.js';
-
-function setChatHeader(isAI) {
-    if (DOM.avatarAi) DOM.avatarAi.classList.toggle('d-none', !isAI);
-    if (DOM.nameAi) DOM.nameAi.classList.toggle('d-none', !isAI);
-    if (DOM.avatarHuman) DOM.avatarHuman.classList.toggle('d-none', isAI);
-    if (DOM.nameHuman) DOM.nameHuman.classList.toggle('d-none', isAI);
-}
 
 export function safeRenderChatInterface(isAI) {
-    DOM.speechText.classList.remove('d-none');
-    DOM.speechText.style.setProperty('display', 'flex', 'important');
+    const chatWindow = document.getElementById('chat-window-container');
+    if (chatWindow) {
+        chatWindow.classList.remove('d-none');
+        chatWindow.style.setProperty('display', 'flex', 'important');
+    }
 
-    if (DOM.bottomOverlay) {
-        DOM.bottomOverlay.style.setProperty('display', 'none', 'important');
+    const bottomOverlay = document.querySelector('.bottom-overlay');
+    if (bottomOverlay) {
+        bottomOverlay.style.setProperty('display', 'none', 'important');
     }
 
     document.body.classList.add('chat-mode-active');
 
-    if (typeof setChatHeader === 'function') {
-        setChatHeader(isAI);
-    }
+    appStore.getState().setChatModeActive(true);
+    appStore.getState().setChatHeaderMode(isAI ? 'ai' : 'human');
 }
 
 export function renderAIAnalysisLoading(text) {
-    if (DOM.whisperReviewContainer) DOM.whisperReviewContainer.classList.add("d-none");
+    const whisperEl = document.getElementById('whisperReviewContainer');
+    if (whisperEl) whisperEl.classList.add("d-none");
     const storeState = appStore.getState();
 
     let defaultText = 'Analyzing...';
@@ -71,7 +67,8 @@ export function renderAIFeedback(contentChunks = []) {
 }
 
 export function clearChatInterface() {
-    if (DOM.whisperReviewContainer) DOM.whisperReviewContainer.classList.add("d-none");
+    const whisperEl = document.getElementById('whisperReviewContainer');
+    if (whisperEl) whisperEl.classList.add("d-none");
     const videoWrapper = document.getElementById('playback-video-wrapper');
     if (videoWrapper) {
         videoWrapper.style.display = 'none';
@@ -80,24 +77,22 @@ export function clearChatInterface() {
 
     appStore.getState().clearChatHistory();
 
-    DOM.speechText.classList.add('d-none');
-    DOM.speechText.style.removeProperty('display');
+    const chatWindow = document.getElementById('chat-window-container');
+    if (chatWindow) {
+        chatWindow.classList.add('d-none');
+        chatWindow.style.removeProperty('display');
+    }
 
-    if (DOM.bottomOverlay) {
-        DOM.bottomOverlay.style.removeProperty('display');
+    const bottomOverlay = document.querySelector('.bottom-overlay');
+    if (bottomOverlay) {
+        bottomOverlay.style.removeProperty('display');
     }
 
     document.body.classList.remove('chat-mode-active');
 
-    if (DOM.tutorChatInputArea) {
-        DOM.tutorChatInputArea.classList.add('d-none');
-        DOM.tutorChatInputArea.style.setProperty('display', 'none', 'important');
-    }
     appStore.getState().setTutorChatVisible(false);
-    if (DOM.answerInputArea) {
-        DOM.answerInputArea.classList.add('d-none');
-    }
     appStore.getState().setTextInputVisible(false);
+    appStore.getState().setChatModeActive(false);
     Object.values(SCORE_SPAN_MAP).forEach(id => {
         const el = document.getElementById(id);
         if (el) el.textContent = '';
@@ -128,14 +123,13 @@ export function updateChatHeaderScores(feedbackData) {
 }
 
 export function getChatHistoryContext() {
-    if (!DOM.chatBody) return "";
-
-    const bubbles = Array.from(DOM.chatBody.querySelectorAll('.chat-message-bubble'));
+    const history = appStore.getState().chatHistory;
     let historyText = "";
-    for (const bubble of bubbles) {
-        if (bubble.parentElement.id === 'ai-loading-status') continue;
-        let role = bubble.classList.contains('chat-message-bubble--user') ? "Student" : "Tutor";
-        historyText += `${role}: ${bubble.innerText}\n`;
+    for (const msg of history) {
+        if (msg.type === 'aiLoading') continue;
+        const role = msg.role === 'user' ? "Student" : "Tutor";
+        const content = typeof msg.content === 'string' ? msg.content : '';
+        historyText += `${role}: ${content}\n`;
     }
     return historyText;
 }

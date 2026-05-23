@@ -25,7 +25,6 @@ import { getNextStep } from './lessonRouting.js';
 import { warmUpSpeechCamStream } from './speech.js';
 import getRandomPraise from '../data/praise.js';
 import { getPraiseHTML } from '../components/feedback-renderer.web.js';
-import { DOM } from '../components/ui.js';
 import { generateHangmanHint } from './utils.js';
 import {
     safeRenderChatInterface,
@@ -118,7 +117,7 @@ function handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userRespons
 
     if ((stepData.stepType === "closedResponse" || stepData.stepType === "openResponse") && stepData.videoUrl) {
         appStore.getState().deductListeningScore(25);
-        pointLoss.show(DOM.micStatusText, 25);
+        pointLoss.show(document.getElementById('react-root-micstatus'), 25);
         if (appStore.getState().incorrectAttempts > 2) {
             appStore.getState().setListeningScore(0);
             appStore.setState({ rolePlayPointsHistory: [...appStore.getState().rolePlayPointsHistory, appStore.getState().listeningScore] });
@@ -170,7 +169,7 @@ function handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userRespons
         }
     }
 
-    if (stepData.stepType === "closedResponse" && userResponse && DOM.speechText) {
+    if (stepData.stepType === "closedResponse" && userResponse && document.getElementById('chat-window-container')) {
         const selectedWords = [...new Set(normalizeduserResponse.split(/\s+/))];
         const correctWords = [...new Set(normalizedcue.split(/\s+/))];
         const correctWordSet = new Set(correctWords.map(w => w.toLowerCase()));
@@ -252,8 +251,8 @@ export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation,
         logInteraction(cueText, val, "rej_pre", warningMessage, null, State.interactionLog);
         if (!State.isTextMode) {
             appStore.getState().deductSpeakingScore(10);
-            if (DOM.pronunciationScore) {
-                pointLoss.show(DOM.pronunciationScore, 10);
+            if (document.getElementById('pronunciationScore')) {
+                pointLoss.show(document.getElementById('pronunciationScore'), 10);
             }
         } else {
             console.log('[submitAnswerPrecheck] Text mode: skipping speaking score deduction');
@@ -270,11 +269,11 @@ export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation,
                 inputField.disabled = false;
                 inputField.classList.remove('disabled');
                 inputField.focus();
-                if (DOM.answerInputArea) {
-                    DOM.answerInputArea.classList.remove('score-update');
-                    void DOM.answerInputArea.offsetWidth;
-                    DOM.answerInputArea.classList.add('score-update');
-                    setTimeout(() => DOM.answerInputArea.classList.remove('score-update'), 300);
+                if (document.getElementById('answer-input-area')) {
+                    document.getElementById('answer-input-area').classList.remove('score-update');
+                    void document.getElementById('answer-input-area').offsetWidth;
+                    document.getElementById('answer-input-area').classList.add('score-update');
+                    setTimeout(() => document.getElementById('answer-input-area').classList.remove('score-update'), 300);
                 }
             }
         }
@@ -569,7 +568,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
             return;
         }
 
-        if (stepData.stepType === "openResponse" && userResponse && DOM.speechText) {
+        if (stepData.stepType === "openResponse" && userResponse && document.getElementById('chat-window-container')) {
             const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
             console.log('[handleAnswer] openResponse lang:', lang, 'cue:', typeof cue, 'native_language:', userData?.native_language);
             const cueDisplayHTML = formatBilingualHTML(cue, lang);
@@ -587,7 +586,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
                 userAvatarUrl: userData?.profilepicurl || '/assets/img/userprofile.webp'
             });
             if (immediateStatsHtmlArr.length > 0) renderAIFeedback(immediateStatsHtmlArr);
-        } else if (stepData.stepType === "closedResponse" && userResponse && DOM.speechText) {
+        } else if (stepData.stepType === "closedResponse" && userResponse && document.getElementById('chat-window-container')) {
             const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
 
             const cueDisplayHTML = formatBilingualHTML(cue, lang);

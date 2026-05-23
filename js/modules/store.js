@@ -57,7 +57,7 @@ export const appStore = createStore(
             rolePlayPointsHistory: [],
             lastSuccessFluencyData: null,
 
-            // --- UI State (Replaced ui.js functions) ---
+            // --- UI State ---
             progressPercent: 0,
             statsVisible: true,
             micStatusText: '',
@@ -65,6 +65,8 @@ export const appStore = createStore(
             hintsVisible: false,
             hangmanHintHTML: '',
             bottomControlState: 'mic',
+            chatModeActive: false,
+            chatHeaderMode: 'human',
             
             // --- Input UI State (Replaces renderSpeechInputUI/renderTextInputUI) ---
             textInputVisible: false,
@@ -146,7 +148,7 @@ export const appStore = createStore(
                 set({ currentVideo: video });
             },
 
-            // --- UI State Actions (bridge for ui.js → React) ---
+            // --- UI State Actions ---
             setProgressPercent: (percent) => set({ progressPercent: percent }),
             setStatsVisible: (visible) => set({ statsVisible: visible }),
             setMicStatusText: (text) => set({ micStatusText: text }),
@@ -154,6 +156,8 @@ export const appStore = createStore(
             setHintsVisible: (visible) => set({ hintsVisible: visible }),
             setHangmanHintHTML: (html) => set({ hangmanHintHTML: html }),
             setBottomControlState: (state) => set({ bottomControlState: state }),
+            setChatModeActive: (val) => set({ chatModeActive: val }),
+            setChatHeaderMode: (mode) => set({ chatHeaderMode: mode }),
 
             // Update physical place in the lesson
             setProgress: ({ lessonId, lessonIndex, questionIndex }) => set({

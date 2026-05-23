@@ -27,9 +27,7 @@ import { processVideo } from '../modules/video-processor.js';
 import { saveLessonProgress } from '../modules/user-profile.js';
 import { getCompressedLessonStats } from '../modules/scoring.js';
 import { pointLoss } from '../components/point-loss-animation.js';
-import {
-    DOM
-} from './ui.js';
+
 import {
     clearChatInterface,
     renderAIFeedback
@@ -111,7 +109,7 @@ function resetUIForNewStep(isLessonIntro, hasUserData) {
     const lessonIntroHeader = document.getElementById('lessonIntroHeader');
     if (lessonIntroHeader) lessonIntroHeader.classList.toggle('d-none', !isLessonIntro || hasUserData);
 
-    if (DOM.closeAndProgress) DOM.closeAndProgress.classList.toggle('d-none', isLessonIntro && !hasUserData);
+    if (document.getElementById('closeAndProgress')) document.getElementById('closeAndProgress').classList.toggle('d-none', isLessonIntro && !hasUserData);
 
     const myToastClose = document.querySelector('#myToast .btn-close');
     if (myToastClose) myToastClose.click();
@@ -142,10 +140,10 @@ function removeRepeatButton() {
 }
 
 function clearMediaContainerAndPreservePlayers() {
-    if (!DOM.mediaViewport) return;
+    if (!document.getElementById('media-viewport')) return;
 
-    const preserved = DOM.mediaViewport.querySelectorAll('#ivp-container, #simple-video-container, #intro-call-widget, #webcam-preview');
-    DOM.mediaViewport.innerHTML = '';
+    const preserved = document.getElementById('media-viewport').querySelectorAll('#ivp-container, #simple-video-container, #intro-call-widget, #webcam-preview');
+    document.getElementById('media-viewport').innerHTML = '';
 
     preserved.forEach(el => {
         el.style.display = '';
@@ -163,38 +161,38 @@ function clearMediaContainerAndPreservePlayers() {
             }
         }
 
-        DOM.mediaViewport.appendChild(el);
+        document.getElementById('media-viewport').appendChild(el);
     });
 }
 
 function renderImageInMediaContainer(imageUrl) {
-    if (!DOM.mediaViewport) return;
+    if (!document.getElementById('media-viewport')) return;
 
-    DOM.mediaViewport.classList.remove('d-none');
-    DOM.mediaViewport.style.display = 'block';
+    document.getElementById('media-viewport').classList.remove('d-none');
+    document.getElementById('media-viewport').style.display = 'block';
 
-    const existingPraise = DOM.mediaViewport.querySelectorAll('.praise-image-wrapper');
+    const existingPraise = document.getElementById('media-viewport').querySelectorAll('.praise-image-wrapper');
     existingPraise.forEach(el => el.remove());
 
     const div = document.createElement('div');
     div.className = 'text-center mb-3 praise-image-wrapper';
     div.innerHTML = `<img src="${imageUrl}" class="img-fluid rounded" alt="Praise" style="max-height: 250px; border: 3px solid #00f2fe; box-shadow: 0 0 15px rgba(0,242,254,0.5);">`;
 
-    DOM.mediaViewport.prepend(div);
+    document.getElementById('media-viewport').prepend(div);
 }
 
 function renderYoutubeInMediaContainer(youtubeId) {
-    if (!DOM.mediaViewport) return;
+    if (!document.getElementById('media-viewport')) return;
     const div = document.createElement('div');
     div.className = 'text-center mb-3';
     div.innerHTML = `<iframe width="315" height="560" src="https://www.youtube.com/embed/${youtubeId}?autoplay=1&rel=0&modestbranding=1&controls=0&disablekb=1&fs=0&playsinline=1&short=1&playback_rate=0.8" title="Intro" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope" referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
-    DOM.mediaViewport.prepend(div);
+    document.getElementById('media-viewport').prepend(div);
 }
 
 function updateProgressAndCloseButton(showClose) {
-    if (DOM.closeAndProgress) {
-        if (showClose) DOM.closeAndProgress.classList.remove('d-none');
-        else DOM.closeAndProgress.classList.add('d-none');
+    if (document.getElementById('closeAndProgress')) {
+        if (showClose) document.getElementById('closeAndProgress').classList.remove('d-none');
+        else document.getElementById('closeAndProgress').classList.add('d-none');
     }
 }
 
@@ -370,7 +368,7 @@ function _renderResponseStep(step, lesson, deps) {
                 await toggleSpeechRecognition({
                     button: speechButton,
                     step,
-                    micStatusText: DOM.micStatusText,
+                    micStatusText: document.getElementById('react-root-micstatus'),
                     userData: appStore.getState().userData,
                     configData: appStore.getState().configData,
                     currentLessonIndex: appStore.getState().currentLessonIndex,

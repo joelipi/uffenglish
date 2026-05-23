@@ -27,14 +27,6 @@ export function getCurrentStepIndex(stepData, configData, currentLessonIndex) {
     });
 }
 
-/* I THINK THIS IS PROBABLY DEAD CODE. 
-export function isLastAiStepInLesson(lesson, currentIndex) {
-    const aiSteps = lesson.steps.filter(q => q.stepType === "openResponse");
-    if (aiSteps.length === 0) return false;
-    const lastAiIndex = lesson.steps.findIndex(q => q === aiSteps[aiSteps.length - 1]);
-    return currentIndex === lastAiIndex;
-}
-*/
 export async function processAnswerLogic({
     userResponse, cue, stepData, lesson, englishLevel, userData, cuesGiven, apiRoot
 }) {
