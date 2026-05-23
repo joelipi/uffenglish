@@ -1586,6 +1586,11 @@
             font-size: 3rem;
         }
 
+        /* Italicize localized text (non-English lang attributes) */
+        [lang]:not([lang="en"]):not([lang="EN"]) {
+            font-style: italic;
+        }
+
         #whisperReviewContainer {
             background: rgba(0, 0, 0, 0.85);
             z-index: 10005;

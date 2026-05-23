@@ -15,7 +15,8 @@ import { pointLoss } from '../components/point-loss-animation.js';
 import { clearPlaybackVideo } from '../components/playback.js';
 import { Media } from './media.js';
 import Strings from '../data/strings.js';
-import { getLocalizedTranslation, getBilingualCue } from './utils.js';
+import { getLocalizedTranslation } from './utils.js';
+import { formatBilingualHTML } from './bilingual-display.js';
 import { analyzeSpeech } from './analytics.js';
 import { updateSpeechRecording } from './storage.js';
 import { buildFeedbackData, buildExplanationData } from './feedback-builder.js';
@@ -42,15 +43,7 @@ import {
 function handlecueUI(stepIndex, stepData, button, cue, explanation, translation, userResponse, englishLevel, englishLevelDeduction, userData, configData, fluencyBubble = null) {
     const cueText = typeof cue === 'object' ? cue?.en : cue;
     const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
-    const cueData = typeof cue === 'object' ? getBilingualCue(cue, lang) : { en: cueText, localized: '' };
-    
-    // Build bilingual cue display HTML
-    let cueDisplayHTML;
-    if (cueData.localized && cueData.en !== cueData.localized && lang && lang !== 'en') {
-        cueDisplayHTML = `<span>${cueData.en} <span lang="${lang}">/ ${cueData.localized}</span></span>`;
-    } else {
-        cueDisplayHTML = `<span>${cueData.en}</span>`;
-    }
+    const cueDisplayHTML = formatBilingualHTML(cue, lang);
     
     const currentFluencyScore = appStore.getState().fluencyScore;
     if (stepData.stepType === "closedResponse" && stepData.videoUrl) {
@@ -576,13 +569,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
         if (stepData.stepType === "openResponse" && userResponse && DOM.speechText) {
             const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
             console.log('[handleAnswer] openResponse lang:', lang, 'cue:', typeof cue, 'native_language:', userData?.native_language);
-            const cueData = typeof cue === 'object' ? getBilingualCue(cue, lang) : { en: cueText, localized: '' };
-            let cueDisplayHTML;
-            if (cueData.localized && cueData.en !== cueData.localized && lang && lang !== 'en') {
-                cueDisplayHTML = `<span>${cueData.en} <span lang="${lang}">/ ${cueData.localized}</span></span>`;
-            } else {
-                cueDisplayHTML = `<span>${cueData.en}</span>`;
-            }
+            const cueDisplayHTML = formatBilingualHTML(cue, lang);
             const localizedTrans = getLocalizedTranslation(stepData.translation, lang);
             const translationStr = (localizedTrans && lang && lang !== 'en') ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>` : "";
 

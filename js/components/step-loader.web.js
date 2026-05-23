@@ -10,7 +10,8 @@
 import { State } from '../modules/state.js';
 import { appStore } from '../modules/store.js';
 import Strings from '../data/strings.js';
-import { getLocalizedTranslation, getBilingualCue } from '../modules/utils.js';
+import { getLocalizedTranslation } from '../modules/utils.js';
+import { formatBilingualHTML } from '../modules/bilingual-display.js';
 import { loadVideoForStep } from '../modules/video-loader.js';
 import { Media } from '../modules/media.js';
 import {
@@ -325,26 +326,10 @@ function _renderResponseStep(step, lesson, deps) {
     const answerFragment = document.createDocumentFragment();
     if (step.stepType !== "closedResponse") {
         const userLang = appStore.getState().userData?.native_language;
-        const cueData = getBilingualCue(step.cue, userLang);
-        
-        if (cueData.en && cueData.localized && cueData.en !== cueData.localized && userLang && userLang !== 'en') {
-            // Both languages available - show with span wrapper for localized version
-            const cueWrapper = document.createElement('span');
-            cueWrapper.appendChild(document.createTextNode(cueData.en));
-            
-            const spaceNode = document.createTextNode(' ');
-            cueWrapper.appendChild(spaceNode);
-            
-            const localizedSpan = document.createElement('span');
-            localizedSpan.setAttribute('lang', userLang);
-            localizedSpan.textContent = `/ ${cueData.localized}`;
-            cueWrapper.appendChild(localizedSpan);
-            
-            answerFragment.appendChild(cueWrapper);
-        } else {
-            // Single language or same in both - just show the cue
-            answerFragment.appendChild(document.createTextNode(cueData.en));
-        }
+        const cueHTML = formatBilingualHTML(step.cue, userLang);
+        const tempEl = document.createElement('span');
+        tempEl.innerHTML = cueHTML;
+        while (tempEl.firstChild) answerFragment.appendChild(tempEl.firstChild);
         if (step.possibleAnswer) {
             answerFragment.appendChild(document.createElement('br'));
             const strong = document.createElement('strong');
@@ -527,16 +512,17 @@ function _renderPresent(step, lesson, showFeedbackAndProceed) {
     let headsUpHTML = step.headsUp ? `<div class="chat-message-row chat-message-row--system"><div class="chat-message-bubble chat-message-bubble--system"><p class="headsUp mb-0">${step.headsUp}</p></div></div>` : "";
 
     if (!step.simpleVideoUrl) {
-        let explanationStr = "";
+        let explanationHTML = "";
         if (step.explanation) {
             const lang = appStore.getState().userData?.native_language;
             const expTrans = getLocalizedTranslation(step.translation, lang);
-            explanationStr = `<p class='explanation'>${step.explanation}${expTrans && lang && lang !== 'en' ? `<br><br><span lang='${lang}'><i>${expTrans}</i></span>` : ""}</p>`;
+            const localized = expTrans && lang && lang !== 'en' ? `<br><br><span lang='${lang}'><i>${expTrans}</i></span>` : '';
+            explanationHTML = `<p class='explanation'>${step.explanation}${localized}</p>`;
         }
 
         renderAIFeedback([
-            `<p class='lesson-name'><strong>${Strings.get('lesson_label', appStore.getState().userData?.native_language)} ${lesson.title}</strong></p>`,
-            explanationStr
+            `<p class='lesson-name'><strong>${Strings.get('lesson_label', appStore.getState().userData?.native_language)} ${getLocalizedTranslation(lesson.title)}</strong></p>`,
+            explanationHTML
         ]);
     }
     showFeedbackAndProceed(step, true);
