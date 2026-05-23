@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getCurrentStepIndex, isLastAiStepInLesson, validateAnswerPrecheck, processAnswerLogic } from './answers.js';
+import { getCurrentStepIndex, validateAnswerPrecheck, processAnswerLogic } from './answers.js';
 import swearjar from './swearjar.js';
 import * as api from './api.js';
 
@@ -33,29 +33,6 @@ describe('Answers Module', () => {
 
         it('should return -1 if step is not found', () => {
             expect(getCurrentStepIndex({ step: 'Unknown', cue: 'unk' }, configData, 0)).toBe(-1);
-        });
-    });
-
-    describe('isLastAiStepInLesson', () => {
-        const lesson = {
-            steps: [
-                { stepType: 'openResponse' },
-                { stepType: 'video' },
-                { stepType: 'openResponse' },
-                { stepType: 'video' }
-            ]
-        };
-
-        it('should return true if it is the last speech step', () => {
-            expect(isLastAiStepInLesson(lesson, 2)).toBe(true);
-        });
-
-        it('should return false if it is not the last speech step', () => {
-            expect(isLastAiStepInLesson(lesson, 0)).toBe(false);
-        });
-
-        it('should return false if lesson is empty', () => {
-            expect(isLastAiStepInLesson({ steps: [] }, 0)).toBe(false);
         });
     });
 
@@ -170,7 +147,7 @@ describe('Answers Module', () => {
             // The JSON.parse inside the second try block attempts to parse `["{"foo":"bar"}","]` which should fail
             api.evaluateIntentWithAI.mockResolvedValue({ rawIntentText: '{foo: "bar"}' });
 
-            const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
 
             const result = await processAnswerLogic({
                 stepData: { stepType: 'openResponse' },

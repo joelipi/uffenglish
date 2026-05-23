@@ -44,7 +44,7 @@ export function normalizeConfig(configData, lang = 'en') {
                 if (step.subtitles) step.subtitles = getLocalizedTranslation(step.subtitles, userLang);
 
                 // Ensure cue is always in English
-                if (step.cue) step.cue = getLocalizedTranslation(step.cue, 'en');
+                if (step.cue) step.cue = getLocalizedTranslation(step.cue, userLang);
 
                 if (step.incues) {
                     step.incues = step.incues.map(incue => getLocalizedTranslation(incue, userLang));

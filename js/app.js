@@ -80,7 +80,6 @@ import {
 } from './modules/speech.js';
 import {
     getCurrentStepIndex,
-    isLastAiStepInLesson,
     processAnswerLogic,
     validateAnswerPrecheck
 } from './modules/answers.js';

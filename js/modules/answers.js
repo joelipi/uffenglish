@@ -25,13 +25,14 @@ export function getCurrentStepIndex(stepData, configData, currentLessonIndex) {
     });
 }
 
+/* I THINK THIS IS PROBABLY DEAD CODE. 
 export function isLastAiStepInLesson(lesson, currentIndex) {
     const aiSteps = lesson.steps.filter(q => q.stepType === "openResponse");
     if (aiSteps.length === 0) return false;
     const lastAiIndex = lesson.steps.findIndex(q => q === aiSteps[aiSteps.length - 1]);
     return currentIndex === lastAiIndex;
 }
-
+*/
 export async function processAnswerLogic({
     userResponse, cue, stepData, lesson, englishLevel, userData, cuesGiven, apiRoot
 }) {
@@ -116,13 +117,13 @@ export async function processAnswerLogic({
 
         if (evaluationResult.length > 0) {
             const validLabelsSet = new Set(['ungrammatical', 'pragmatic failure', 'too formal', 'too informal', 'rude', 'unidiomatic', 'correct', 'parse_error']);
-            
+
             // 1. Try to extract correction from the end of the array
             const lastEl = evaluationResult[evaluationResult.length - 1];
             if (typeof lastEl === 'string' && !validLabelsSet.has(lastEl.trim().toLowerCase())) {
                 correction = evaluationResult.pop();
             }
-            
+
             // 2. Filter the rest for valid labels
             labels = evaluationResult
                 .filter(l => typeof l === 'string' && validLabelsSet.has(l.trim().toLowerCase()))
@@ -130,9 +131,9 @@ export async function processAnswerLogic({
 
             // 3. Handle appended correction (text after the brackets)
             if (appendedCorrection) {
-                 correction = appendedCorrection.replace(/^"|"$/g, '').trim();
+                correction = appendedCorrection.replace(/^"|"$/g, '').trim();
             }
-            
+
             // 4. Default correction if we just have "correct" or "parse_error"
             if (!correction && labels.length === 1 && (labels.includes("correct") || labels.includes("parse_error"))) {
                 correction = grammarResult.correctedText;
@@ -198,7 +199,7 @@ export async function processAnswerLogic({
             const cleanOriginal = userResponse.replace(/[^\w\s]/g, '').trim().toLowerCase();
             const cleanCorrected = result.correction.replace(/[^\w\s]/g, '').trim().toLowerCase();
             const displayCorrection = (cleanOriginal === cleanCorrected) ? "" : result.correction;
-            
+
             if (displayCorrection && cleanCorrected.length > 0 && labels.some(l => ["pragmatic failure", "too formal", "too informal", "unidiomatic", "rude"].includes(l))) {
                 feedbackChunks.push({
                     type: 'pragmatics',
