@@ -291,8 +291,8 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
 
 function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart, fluencyData, isFirst, subtitleText) {
     const now = performance.now();
-    console.warn('[video] drawTextOverlay', { tailing, fluencyDataTotal: fluencyData?.total, isFirst, subtitleText });
-    console.log('[video] drawTextOverlay', { tailing, fluencyDataTotal: fluencyData?.total, isFirst, subtitleText });
+    //console.warn('[video] drawTextOverlay', { tailing, fluencyDataTotal: fluencyData?.total, isFirst, subtitleText });
+    //console.log('[video] drawTextOverlay', { tailing, fluencyDataTotal: fluencyData?.total, isFirst, subtitleText });
     const blinkOn = Math.floor(now / 500) % 2 === 0;
     context.save();
 
