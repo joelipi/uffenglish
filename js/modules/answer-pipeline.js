@@ -26,10 +26,9 @@ import getRandomPraise from '../data/praise.js';
 import { getPraiseHTML } from '../components/feedback-renderer.web.js';
 import { generateHangmanHint } from './utils.js';
 import {
-    safeRenderChatInterface,
-    renderAIFeedback,
-    updateChatHeaderScores,
-    clearChatInterface
+    showChat,
+    addAIFeedbackMessages,
+    clearChat
 } from '../components/chat/chat-interface.js';
 
 function handleCorrectFeedbackUI(stepIndex, stepData, button, cue, explanation, translation, userResponse, englishLevel, englishLevelDeduction, userData, configData, fluencyBubble = null) {
@@ -47,7 +46,7 @@ function handleCorrectFeedbackUI(stepIndex, stepData, button, cue, explanation, 
         console.log('[scoring] append rolePlayPointsHistory', { currentFluencyScore, rolePlayPointsHistory: appStore.getState().rolePlayPointsHistory });
     }
 
-    safeRenderChatInterface(true);
+    showChat(true);
 
     const praiseResult = (stepData.stepType === "openResponse" || stepData.stepType === "closedResponse") ? getRandomPraise('general', lang) : "";
     const feedbackText = (stepData.stepType === "openResponse" && englishLevelDeduction > 0)
@@ -485,8 +484,6 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
                 whisperRejections: whisperRejections
             });
 
-            updateChatHeaderScores(feedbackData);
-
             const allFeedbackHTML = renderFeedbackToHTML(feedbackData);
 
             if (feedbackData.sections.length > 0 && feedbackData.sections[0].isOverall) {
@@ -500,7 +497,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
         if (!isCorrect && stepData.stepType === "closedResponse" && incorrectAttempts < 2) {
             handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userResponse, result.explanations || explanation, result.normalizeduserResponse, result.normalizedcue, stepData.step, true, userData, configData);
             appStore.getState().triggerVideoClear();
-            clearChatInterface();
+            clearChat();
             appStore.getState().setWebcamStream(null);
 
             const hangmanHTML = generateHangmanHint(userResponse, cueText);
@@ -534,8 +531,8 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
             const localizedTrans = getLocalizedTranslation(stepData.translation, lang);
             const translationStr = (localizedTrans && lang && lang !== 'en') ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>` : "";
 
-            renderAIFeedback([`<strong>${cueDisplayHTML}${translationStr}</strong>`]);
-            safeRenderChatInterface(false);
+            addAIFeedbackMessages([`<strong>${cueDisplayHTML}${translationStr}</strong>`]);
+            showChat(false);
             appStore.getState().addChatMessage({
                 role: 'user',
                 type: 'standard',
@@ -544,14 +541,14 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
                 userName: userData?.display_name?.split(' ')[0] || 'User',
                 userAvatarUrl: userData?.profilepicurl || '/assets/img/userprofile.webp'
             });
-            if (immediateStatsHtmlArr.length > 0) renderAIFeedback(immediateStatsHtmlArr);
+            if (immediateStatsHtmlArr.length > 0) addAIFeedbackMessages(immediateStatsHtmlArr);
         } else if (stepData.stepType === "closedResponse" && userResponse) {
             const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
 
             const cueDisplayHTML = formatBilingualHTML(cue, lang);
             const localizedTrans = getLocalizedTranslation(stepData.translation, lang);
             const translationStr = (localizedTrans && lang && lang !== 'en') ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>` : "";
-            safeRenderChatInterface(true);
+            showChat(true);
             let htmlContent = cueDisplayHTML + " " + translationStr;
             appStore.getState().addChatMessage({
                 role: 'user',
@@ -561,7 +558,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
                 userName: userData?.display_name?.split(' ')[0] || 'User',
                 userAvatarUrl: userData?.profilepicurl || '/assets/img/userprofile.webp'
             });
-            if (immediateStatsHtmlArr.length > 0) renderAIFeedback(immediateStatsHtmlArr);
+            if (immediateStatsHtmlArr.length > 0) addAIFeedbackMessages(immediateStatsHtmlArr);
         }
 
         const explanationData = buildExplanationData(result?.explanations, explanation);

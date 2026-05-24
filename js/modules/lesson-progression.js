@@ -8,7 +8,7 @@ import { State } from './state.js';
 import Strings from '../data/strings.js';
 
 import {
-    renderAIAnalysisLoading,
+    addAILoadingMessage,
     getChatHistoryContext
 } from '../components/chat/chat-interface.js';
 import { askEnglishTutor } from './api.js';
@@ -88,7 +88,7 @@ export async function handleTutorChatSubmit(rawText) {
         userAvatarUrl: appStore.getState().userData?.profilepicurl || '/assets/img/userprofile.webp'
     });
 
-    renderAIAnalysisLoading(Strings.get('ai_thinking', appStore.getState().userData?.native_language));
+    addAILoadingMessage(Strings.get('ai_thinking', appStore.getState().userData?.native_language));
 
     const context = getChatHistoryContext();
     try {

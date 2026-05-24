@@ -29,8 +29,8 @@ import { getCompressedLessonStats } from '../modules/scoring.js';
 import { pointLoss } from '../components/point-loss-animation.js';
 
 import {
-    clearChatInterface,
-    renderAIFeedback
+    clearChat,
+    addAIFeedbackMessages
 } from './chat/chat-interface.js';
 import { clearPlaybackVideo } from './playback.js';
 
@@ -237,7 +237,7 @@ export function loadStep(step, lesson, fluencyData, deps) {
     }
 
     window.__currentStepIndex = getCurrentStepIndex(step, appStore.getState().configData, appStore.getState().currentLessonIndex);
-    clearChatInterface();
+    clearChat();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
     resetUIForNewStep(step.stepType === 'lessonIntro', !!appStore.getState().userData);
@@ -520,7 +520,7 @@ function _renderPresent(step, lesson, showFeedbackAndProceed) {
             explanationHTML = `<p class='explanation'>${step.explanation}${localized}</p>`;
         }
 
-        renderAIFeedback([
+        addAIFeedbackMessages([
             `<p class='lesson-name'><strong>${Strings.get('lesson_label', appStore.getState().userData?.native_language)} ${getLocalizedTranslation(lesson.title)}</strong></p>`,
             explanationHTML
         ]);
@@ -590,7 +590,7 @@ function _renderLessonIntro(step, lesson, deps) {
               ${hasTranslation && lang !== 'en' ? `<br><br><span lang='${lang}'><i><strong>🎯${imagineStr.includes('<br>') ? imagineStr.split('<i>')[1].split('<i>')[0] : imagineStr}</strong>${localizedTrans}<br><br>${listenRepeatStr.includes('<br>') ? listenRepeatStr.split('<i>')[1].split('<i>')[0] : listenRepeatStr}</i></span>` : ''}
             </p>`;
 
-        renderAIFeedback([
+        addAIFeedbackMessages([
             `<p class='lesson-name'><strong>Lesson: ${lesson.title}</strong></p>`,
             explanationStr
         ]);

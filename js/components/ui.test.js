@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 import {
-    safeRenderChatInterface, renderAIAnalysisLoading,
-    renderAIFeedback, clearChatInterface
+    showChat, addAILoadingMessage,
+    addAIFeedbackMessages, clearChat
 } from './chat/chat-interface.js';
 import { appStore } from '../modules/store.js';
 import { State } from '../modules/state.js';
@@ -62,9 +62,10 @@ describe('UI Component functions', () => {
             appStore.setState({ chatHistory: [] });
         });
 
-        it('should execute safeRenderChatInterface safely', () => {
-            expect(() => safeRenderChatInterface(true)).not.toThrow();
-            expect(document.body.classList.contains('chat-mode-active')).toBe(true);
+        it('should execute showChat and update store', () => {
+            expect(() => showChat(true)).not.toThrow();
+            expect(appStore.getState().chatModeActive).toBe(true);
+            expect(appStore.getState().chatHeaderMode).toBe('ai');
         });
 
         it('should add user chat message to store', () => {
@@ -84,7 +85,7 @@ describe('UI Component functions', () => {
         });
 
         it('should render AI analysis loading', () => {
-             expect(() => renderAIAnalysisLoading('loading test')).not.toThrow();
+             expect(() => addAILoadingMessage('loading test')).not.toThrow();
              let history = appStore.getState().chatHistory;
              expect(history.some(m => m.type === 'aiLoading' && m.content.includes('loading test'))).toBe(true);
 
@@ -99,15 +100,16 @@ describe('UI Component functions', () => {
                 'Just a simple string'
             ];
 
-            expect(() => renderAIFeedback(chunks)).not.toThrow();
+            expect(() => addAIFeedbackMessages(chunks)).not.toThrow();
             const history = appStore.getState().chatHistory;
             expect(history.some(m => m.content.includes('html chunk'))).toBe(true);
             expect(history.some(m => m.content.includes('Just a simple string'))).toBe(true);
         });
 
-        it('should test clearChatInterface', () => {
-             expect(() => clearChatInterface()).not.toThrow();
+        it('should test clearChat', () => {
+             expect(() => clearChat()).not.toThrow();
              expect(appStore.getState().chatHistory.length).toBe(0);
+             expect(appStore.getState().chatModeActive).toBe(false);
         });
     });
 

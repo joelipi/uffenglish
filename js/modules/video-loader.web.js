@@ -27,7 +27,7 @@ export function loadVideoForStep(step, _state, lang) {
             stepType: step.stepType,
             url: currentVideoUrl,
             config: {
-                cue: getLocalizedTranslation(step.cue, lang),
+                cue: step.cue,
                 videoStyles: { maxWidth: '100%' },
                 subtitleStyles: { fontSize: '24px', backgroundColor: 'rgba(0, 0, 0, 0.8)' },
             }

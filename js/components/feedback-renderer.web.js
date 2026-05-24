@@ -108,7 +108,7 @@ function formatScore(score) {
 /**
  * Renders feedback section descriptors (from buildFeedbackData) as an array of HTML strings.
  * @param {{ sections: Array<Object> }} feedbackData - Output from buildFeedbackData()
- * @returns {string[]} Array of HTML strings ready for renderAIFeedback()
+ * @returns {string[]} Array of HTML strings ready for addAIFeedbackMessages()
  */
 export function renderFeedbackToHTML(feedbackData) {
     const { sections } = feedbackData;

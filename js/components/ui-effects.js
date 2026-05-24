@@ -14,6 +14,23 @@ let prevPointLossTrigger = 0;
 let prevScoreUpdateTrigger = 0;
 let prevInputFocusTrigger = 0;
 let prevCompletionMessage = null;
+let prevChatModeActive = false;
+
+const SCORE_SPAN_MAP = {
+    pronunciationScore: 'chat-score-pronunciation',
+    listeningScore: 'chat-score-listening',
+    flowScore: 'chat-score-flow',
+    vocabularyScore: 'chat-score-vocabulary',
+    grammarScore: 'chat-score-grammar',
+    formalityScore: 'chat-score-formality',
+    nativeLikeScore: 'chat-score-nativelike',
+    understandingScore: 'chat-score-understanding',
+    fluencyScore: 'chat-score-fluency',
+};
+
+const SCORE_SPAN_LIST = Object.values(SCORE_SPAN_MAP);
+
+let prevScoreValues = {};
 
 export function initUiEffects() {
     appStore.subscribe((state) => {
@@ -72,6 +89,61 @@ export function initUiEffects() {
             if (container) {
                 container.innerHTML = `<div class="text-center">${state.completionMessage}</div>`;
             }
+        }
+
+        // --- Chat visibility ---
+        if (state.chatModeActive !== prevChatModeActive) {
+            prevChatModeActive = state.chatModeActive;
+            if (state.chatModeActive) {
+                const chatWindow = document.getElementById('chat-window-container');
+                if (chatWindow) {
+                    chatWindow.classList.remove('d-none');
+                    chatWindow.style.setProperty('display', 'flex', 'important');
+                }
+                const bottomOverlay = document.querySelector('.bottom-overlay');
+                if (bottomOverlay) {
+                    bottomOverlay.style.setProperty('display', 'none', 'important');
+                }
+                document.body.classList.add('chat-mode-active');
+                // Hide whisper container when chat opens
+                const whisperEl = document.getElementById('whisperReviewContainer');
+                if (whisperEl) whisperEl.classList.add('d-none');
+            } else {
+                const chatWindow = document.getElementById('chat-window-container');
+                if (chatWindow) {
+                    chatWindow.classList.add('d-none');
+                    chatWindow.style.removeProperty('display');
+                }
+                const bottomOverlay = document.querySelector('.bottom-overlay');
+                if (bottomOverlay) {
+                    bottomOverlay.style.removeProperty('display');
+                }
+                document.body.classList.remove('chat-mode-active');
+                const videoWrapper = document.getElementById('playback-video-wrapper');
+                if (videoWrapper) {
+                    videoWrapper.style.display = 'none';
+                    document.body.appendChild(videoWrapper);
+                }
+                const whisperEl = document.getElementById('whisperReviewContainer');
+                if (whisperEl) whisperEl.classList.add('d-none');
+                // Clear score spans
+                SCORE_SPAN_LIST.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = '';
+                });
+            }
+        }
+
+        // --- Chat header score spans ---
+        if (state.chatModeActive) {
+            Object.entries(SCORE_SPAN_MAP).forEach(([storeKey, spanId]) => {
+                const score = state[storeKey];
+                if (score !== undefined && score !== prevScoreValues[storeKey]) {
+                    prevScoreValues[storeKey] = score;
+                    const el = document.getElementById(spanId);
+                    if (el) el.textContent = score === 100 ? '\uD83D\uDC4D' : String(Math.round(score));
+                }
+            });
         }
     });
 }
