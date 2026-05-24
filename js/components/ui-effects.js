@@ -7,7 +7,6 @@
 import { appStore } from '../modules/store.js';
 import { pointLoss } from './point-loss-animation.js';
 import { clearPlaybackVideo } from './playback.js';
-import { State } from '../modules/state.js';
 
 let prevVideoPlayTrigger = 0;
 let prevVideoClearTrigger = 0;

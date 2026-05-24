@@ -294,7 +294,9 @@ export const appStore = createStore(
                 formalityScore: 100,
                 nativeLikeScore: 100,
                 understandingScore: 100,
-                lastSuccessFluencyData: null
+                lastSuccessFluencyData: null,
+                submitBtnDisabled: false,
+                inputDisabled: false
             }),
 
             // Reset all per-lesson metrics (called at lesson start)
@@ -310,7 +312,9 @@ export const appStore = createStore(
                 formalityScore: 100,
                 nativeLikeScore: 100,
                 understandingScore: 100,
-                lastSuccessFluencyData: null
+                lastSuccessFluencyData: null,
+                submitBtnDisabled: false,
+                inputDisabled: false
             }),
 
             // --- Input UI Actions (Replaces renderSpeechInputUI/renderTextInputUI) ---

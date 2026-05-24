@@ -359,7 +359,6 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
     let immediateStatsHtmlArr = [];
     let fluencyBubbleHTML = null;
     appStore.getState().setSubmitBtnDisabled(true);
-    appStore.getState().setInputDisabled(true);
 
     try {
         const englishLevel = configData?.languageLevel || 'A0';
