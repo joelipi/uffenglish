@@ -58,7 +58,6 @@ import { clearSpeechRecordingsForLesson, updateSpeechRecording } from './modules
 
 // --- UI & Media Components (Root Directory) ---
 import { SuccessLessonHandler } from './components/success-lesson.js';
-import { pointLoss } from './components/point-loss-animation.js';
 import { initMicAnimation } from './components/mic-animation.js';
 import { calculateCurrentStreak } from './modules/user-profile.js';
 
@@ -66,7 +65,7 @@ import { calculateCurrentStreak } from './modules/user-profile.js';
 import Strings from './data/strings.js';
 
 // --- Decoupled Business Logic (Modules Directory) ---
-import { calculateRepeatAverage, calculateRolePlayAverage, calculateAverage, calculateFluencyScore, logInteraction } from './modules/scoring.js';
+import { calculateRepeatAverage, calculateRolePlayAverage, calculateAverage, calculateFluencyScore } from './modules/scoring.js';
 import { resolveCurrentLessonId, getNextStep, getUrlParamCaseInsensitive, resolveCurrentCourseId } from './modules/lessonRouting.js';
 import { isUserLoggedIn, getUserProfile, signOut, queryClient, askEnglishTutor } from './modules/api.js';
 import { saveCourseToUserProfile, saveLessonProgress, syncOfflineScores } from './modules/user-profile.js';
@@ -100,31 +99,6 @@ import { idiomChecker } from './modules/idiom-checker.js';
 import { calculateSyntacticComplexity } from './modules/complexity.js';
 
 // END STOPGAPS — functions now imported from modules/lessonRouting.js
-
-// Speaking Score Logic ---
-window.addEventListener('transcriptRejected', (e) => {
-    const cue = e.detail?.cue || "unknown_cue";
-    const transcript = e.detail?.transcript || "unknown_transcript";
-    logInteraction(cue, transcript, "rej_usr", "User rejected Whisper transcription", null, State.interactionLog);
-
-    // Deduct 20 points, floor at 0
-    appStore.getState().deductSpeakingScore(20);
-    appStore.getState().incrementWhisperRejections();
-    // Show point loss animation explicitly on the score span (subscription handles the text update)
-    if (document.getElementById('pronunciationScore')) {
-        pointLoss.show(document.getElementById('pronunciationScore'), 20);
-    }
-});
-
-window.addEventListener('preflightRejected', () => {
-    //   FIX: Use the correct Zustand action for the Speaking Score
-    appStore.getState().deductSpeakingScore(10);
-    appStore.getState().incrementWhisperRejections();
-    // Show point loss animation (subscription handles the text update)
-    if (document.getElementById('pronunciationScore')) {
-        pointLoss.show(document.getElementById('pronunciationScore'), 10);
-    }
-});
 
 // CORE ANSWER HANDLING — extracted to modules/answer-pipeline.js
 // Wrappers inject progression deps (loadNextStep, callLoadStep) to avoid circular imports.

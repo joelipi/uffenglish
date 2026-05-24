@@ -12,7 +12,6 @@ import { appStore } from '../modules/store.js';
 import Strings from '../data/strings.js';
 import { getLocalizedTranslation } from '../modules/utils.js';
 import { formatBilingualHTML } from '../modules/bilingual-display.web.js';
-import { loadVideoForStep } from '../modules/video-loader.js';
 import { Media } from '../modules/media.js';
 import {
     getCurrentStepIndex,
@@ -24,6 +23,7 @@ import {
     listeningState,
 } from '../modules/speech.js';
 import { processVideo } from '../modules/video-processor.js';
+import { logInteraction } from '../modules/scoring.js';
 import { pointLoss } from '../components/point-loss-animation.js';
 
 import {
@@ -420,7 +420,9 @@ function _renderResponseStep(step, lesson, deps) {
                         },
                         onStopEarly: (userData) => {
                             appStore.getState().setMicActive(false);
-                            window.dispatchEvent(new CustomEvent('preflightRejected'));
+                            appStore.getState().deductSpeakingScore(10);
+                            appStore.getState().incrementWhisperRejections();
+                            appStore.getState().triggerPreflightRejected();
                             appStore.getState().setMediaVisible(true);
                             appStore.getState().setMicStatusText(`<div class='text-center' style='color: red; font-size: large;'><i class='bi bi-exclamation-triangle-fill'></i> ${Strings.get('try_again_speech', userData?.native_language)}</div>`);
                             const btn = document.getElementById('micBtn');
@@ -429,7 +431,9 @@ function _renderResponseStep(step, lesson, deps) {
                         },
                         onGibberishDetected: () => {
                             appStore.getState().setMicActive(false);
-                            window.dispatchEvent(new CustomEvent('preflightRejected'));
+                            appStore.getState().deductSpeakingScore(10);
+                            appStore.getState().incrementWhisperRejections();
+                            appStore.getState().triggerPreflightRejected();
                             appStore.getState().setMicStatusText(`<div class='text-center mt-3' style='color: #ff9800; font-size: large;'><i class='bi bi-ear-x'></i> Audio unclear. Please try speaking clearly.</div>`);
                             const btn = document.getElementById('micBtn');
                             if (btn) btn.style.display = 'flex';
@@ -437,9 +441,11 @@ function _renderResponseStep(step, lesson, deps) {
                         },
                         onPreflightRejected: (msg) => {
                             appStore.getState().setMicActive(false);
+                            appStore.getState().deductSpeakingScore(10);
+                            appStore.getState().incrementWhisperRejections();
                             appStore.getState().triggerVideoClear();
                             appStore.getState().setWebcamStream(null);
-                            window.dispatchEvent(new CustomEvent('preflightRejected'));
+                            appStore.getState().triggerPreflightRejected();
                             appStore.getState().setMicStatusText(`<div class='text-center text-danger'>${msg}</div>`);
                             const btn = document.getElementById('micBtn');
                             if (btn) {
@@ -450,9 +456,12 @@ function _renderResponseStep(step, lesson, deps) {
                         },
                         onTranscriptRejected: (cue, transcript) => {
                             appStore.getState().setMicActive(false); // Release the lock
+                            logInteraction(cue, transcript, "rej_usr", "User rejected Whisper transcription", null, State.interactionLog);
+                            appStore.getState().deductSpeakingScore(20);
+                            appStore.getState().incrementWhisperRejections();
                             appStore.getState().triggerVideoClear();
                             appStore.getState().setWebcamStream(null);
-                            window.dispatchEvent(new CustomEvent('transcriptRejected', { detail: { cue, transcript } }));
+                            appStore.getState().triggerTranscriptRejected(cue, transcript);
                             appStore.getState().setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Restarting Mic...</div>`);
                             const btn = document.getElementById('micBtn');
                             if (btn) {

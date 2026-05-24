@@ -84,6 +84,10 @@ export const appStore = createStore(
             videoPlayMuted: false,
             videoClearTrigger: 0,
             scoreUpdateTrigger: 0,
+            preflightRejectedTrigger: 0,
+            transcriptRejectedTrigger: 0,
+            transcriptRejectedCue: null,
+            transcriptRejectedTranscript: null,
             completionMessage: null,
             
             // --- Input UI State (Replaces renderSpeechInputUI/renderTextInputUI) ---
@@ -191,6 +195,8 @@ export const appStore = createStore(
             clearPointLoss: () => set({ pointLossData: null }),
             triggerVideoPlay: (muted) => set((state) => ({ videoPlayTrigger: state.videoPlayTrigger + 1, videoPlayMuted: muted })),
             triggerVideoClear: () => set((state) => ({ videoClearTrigger: state.videoClearTrigger + 1 })),
+            triggerPreflightRejected: () => set((state) => ({ preflightRejectedTrigger: state.preflightRejectedTrigger + 1 })),
+            triggerTranscriptRejected: (cue, transcript) => set((state) => ({ transcriptRejectedTrigger: state.transcriptRejectedTrigger + 1, transcriptRejectedCue: cue, transcriptRejectedTranscript: transcript })),
             triggerScoreUpdate: () => set((state) => ({ scoreUpdateTrigger: state.scoreUpdateTrigger + 1 })),
             setCompletionMessage: (msg) => set({ completionMessage: msg }),
             clearCompletionMessage: () => set({ completionMessage: null }),

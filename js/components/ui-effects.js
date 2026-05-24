@@ -15,6 +15,8 @@ let prevScoreUpdateTrigger = 0;
 let prevInputFocusTrigger = 0;
 let prevCompletionMessage = null;
 let prevChatModeActive = false;
+let prevPreflightTrigger = 0;
+let prevTranscriptTrigger = 0;
 
 const SCORE_SPAN_MAP = {
     pronunciationScore: 'chat-score-pronunciation',
@@ -58,6 +60,22 @@ export function initUiEffects() {
                 pointLoss.show(targetEl, data.points);
             }
             appStore.getState().clearPointLoss();
+        }
+
+        if (state.preflightRejectedTrigger !== prevPreflightTrigger) {
+            prevPreflightTrigger = state.preflightRejectedTrigger;
+            const targetEl = document.getElementById('pronunciationScore');
+            if (targetEl) {
+                pointLoss.show(targetEl, 10);
+            }
+        }
+
+        if (state.transcriptRejectedTrigger !== prevTranscriptTrigger) {
+            prevTranscriptTrigger = state.transcriptRejectedTrigger;
+            const targetEl = document.getElementById('pronunciationScore');
+            if (targetEl) {
+                pointLoss.show(targetEl, 20);
+            }
         }
 
         if (state.scoreUpdateTrigger !== prevScoreUpdateTrigger) {
