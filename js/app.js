@@ -9,7 +9,7 @@ window.enabledLogs = {
     api: false,
     'tanstack query': false,
     toggle: false,
-    ai: true,
+    ai: false,
     analytics: false,
     ui: false,
     hesitation: false,
@@ -17,7 +17,7 @@ window.enabledLogs = {
     scoring: false,
     video: false,
     router: false,
-    pipeline: true,
+    pipeline: false,
     app: false,
     storage: false,
     gamification: false,
@@ -73,8 +73,6 @@ import { saveCourseToUserProfile, saveLessonProgress, syncOfflineScores } from '
 import {
     isIOS,
     warmUpSpeechCamStream,
-    startSpeechCamRecording,
-    stopSpeechCamRecording,
     toggleSpeechRecognition,
     listeningState,
     initLocalVoiceAI
