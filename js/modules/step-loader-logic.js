@@ -61,8 +61,8 @@ function renderSuccess(step, fluencyData) {
 
     if (nextLessonId) {
         const finalStats = getCompressedLessonStats({
-            isTextMode: State.isTextMode,
-            isCameraOff: State.isCameraOff,
+            isTextMode: appStore.getState().isTextMode,
+            isCameraOff: appStore.getState().isCameraOff,
             lessonStartTime: State.lessonStartTime,
             averageWpm: State.averageWpm,
             totalPauses: State.totalPauses,

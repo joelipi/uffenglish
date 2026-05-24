@@ -1,37 +1,39 @@
 import React from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store.js';
-import { State } from '../../modules/state.js';
 
 export default function IntroChoices() {
     const bottomControlState = useStore(appStore, (state) => state.bottomControlState);
+    const introContinueCallback = useStore(appStore, (state) => state.introContinueCallback);
+    const introAudioOnlyCallback = useStore(appStore, (state) => state.introAudioOnlyCallback);
 
     if (bottomControlState !== 'introChoices') return null;
 
+    const getContinueCb = () => {
+        return introContinueCallback || introAudioOnlyCallback || window.__introAudioOnlyCallback || null;
+    };
+
     const handleVideoClick = () => {
-        State.isTextMode = false;
-        State.isCameraOff = false;
         appStore.getState().setTextMode(false);
+        appStore.getState().setCameraOff(false);
         appStore.getState().setBottomControlState('mic');
-        const cb = window.__introContinueCallback;
+        const cb = getContinueCb();
         if (cb) cb();
     };
 
     const handleAudioClick = () => {
-        State.isTextMode = false;
-        State.isCameraOff = true;
         appStore.getState().setTextMode(false);
+        appStore.getState().setCameraOff(true);
         appStore.getState().setBottomControlState('mic');
-        const cb = window.__introContinueCallback || window.__introAudioOnlyCallback;
+        const cb = getContinueCb();
         if (cb) cb();
     };
 
     const handleTextClick = () => {
-        State.isTextMode = true;
-        State.isCameraOff = true;
         appStore.getState().setTextMode(true);
+        appStore.getState().setCameraOff(true);
         appStore.getState().setBottomControlState('mic');
-        const cb = window.__introContinueCallback;
+        const cb = getContinueCb();
         if (cb) cb();
     };
 

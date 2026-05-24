@@ -66,13 +66,11 @@ export default function AnswerInput() {
         }
     }, [textInputVisible]);
 
-    // Bind global mic click handler
+    // Bind mic click handler to store
     useEffect(() => {
-        if (speechInputToggleCallback) {
-            window.onMicClick = speechInputToggleCallback;
-        }
+        appStore.getState().setOnMicClickCallback(speechInputToggleCallback || null);
         return () => {
-            window.onMicClick = null;
+            appStore.getState().setOnMicClickCallback(null);
         };
     }, [speechInputToggleCallback]);
 

@@ -25,21 +25,15 @@ export const State = {
     videoRole: null,
     successHandler: null,
 
-    // Dynamic properties (initialized in app.js or initializeLesson)
-    apiRoot: null,
-
     // Engagement Tracking
     stepCount: 0,
     stepsAnswered: 0,
     wordsRevealed: 0,
     videoPlays: 0,
     videoClicks: 0,
-    isPlaybackMuted: false,
 
     // Active Media Player Reference
     player: null,
-    isCameraOff: false,
-    isTextMode: false,
 
     /**
      * Initializes the state with values calculated from Appwrite userData
@@ -93,8 +87,6 @@ export const State = {
         this.averageWpm = null;
 
         // Reset non-reactive lesson data
-        this.mission = null;
-        this.setting = null;
         this.roleOther = null;
         this.roleUser = null;
         this.userRole = null;
@@ -104,7 +96,6 @@ export const State = {
         this.videoClicks = 0;
         this.stepCount = 0;
         this.stepsAnswered = 0;
-        this.isTextMode = false;
     },
 
     resetForNextStep() {
@@ -114,6 +105,5 @@ export const State = {
         this.wordsRevealed = 0;
         this.videoPlays = 0;
         this.videoClicks = 0;
-        this.isPlaybackMuted = false;
     }
 };

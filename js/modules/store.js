@@ -14,6 +14,8 @@ export const appStore = createStore(
             isWhisperReady: false,
             isMicActive: false,
             isTextMode: false,
+            isPlaybackMuted: false,
+            isCameraOff: false,
             isGuestModalOpen: false,
             isLoggedIn: false,
             criticalErrorMessage: null,
@@ -24,6 +26,10 @@ export const appStore = createStore(
             courseId: null,
             englishLevel: 'A0',
             currentVideo: null,
+            currentVideoPlayer: null,
+            introContinueCallback: null,
+            introAudioOnlyCallback: null,
+            onMicClickCallback: null,
             chatHistory: [],
 
             // --- Reactive UI Metrics ---
@@ -106,10 +112,16 @@ export const appStore = createStore(
             setWhisperReady: (val) => set({ isWhisperReady: val }),
             setMicActive: (val) => set({ isMicActive: val }),
             setTextMode: (val) => set({ isTextMode: val }),
+            setPlaybackMuted: (val) => set({ isPlaybackMuted: val }),
+            setCameraOff: (val) => set({ isCameraOff: val }),
             setGuestModalOpen: (val) => set({ isGuestModalOpen: val }),
             setIsLoggedIn: (val) => set({ isLoggedIn: val }),
             setCriticalErrorMessage: (val) => set({ criticalErrorMessage: val }),
             setAnswerErrorMessage: (val) => set({ answerErrorMessage: val }),
+            setCurrentVideoPlayer: (val) => set({ currentVideoPlayer: val }),
+            setIntroContinueCallback: (val) => set({ introContinueCallback: val }),
+            setIntroAudioOnlyCallback: (val) => set({ introAudioOnlyCallback: val }),
+            setOnMicClickCallback: (val) => set({ onMicClickCallback: val }),
 
             addChatMessage: (msg) => set((state) => {
                 const newMsg = {
@@ -296,7 +308,8 @@ export const appStore = createStore(
                 understandingScore: 100,
                 lastSuccessFluencyData: null,
                 submitBtnDisabled: false,
-                inputDisabled: false
+                inputDisabled: false,
+                isPlaybackMuted: false
             }),
 
             // Reset all per-lesson metrics (called at lesson start)

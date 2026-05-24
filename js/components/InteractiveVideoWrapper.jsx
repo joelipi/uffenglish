@@ -26,7 +26,7 @@ export default function InteractiveVideoWrapper() {
                 playerInstance.current.destroy();
                 playerInstance.current = null;
                 if (State.player) State.player = null;
-                window.currentVideoPlayer = null;
+                appStore.getState().setCurrentVideoPlayer(null);
             }
             return;
         }
@@ -55,7 +55,7 @@ export default function InteractiveVideoWrapper() {
         const player = new InteractiveVideoPlayer(mergedConfig);
         playerInstance.current = player;
         State.player = player;
-        window.currentVideoPlayer = player;
+        appStore.getState().setCurrentVideoPlayer(player);
 
         try {
             const videoEl = player.video;
@@ -117,7 +117,7 @@ export default function InteractiveVideoWrapper() {
                 playerInstance.current.destroy();
                 playerInstance.current = null;
                 if (State.player) State.player = null;
-                window.currentVideoPlayer = null;
+                appStore.getState().setCurrentVideoPlayer(null);
             }
         };
     }, [currentVideo]);

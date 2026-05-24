@@ -94,7 +94,7 @@ function handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userRespons
     const cueText = typeof cue === 'object' ? cue?.en : cue;
     appStore.getState().incrementIncorrectAttempts();
 
-    if (!silent && !State.isTextMode && (stepData.stepType === "lessonIntro" || stepData.stepType === "closedResponse" || stepData.stepType === "openResponse")) {
+    if (!silent && !appStore.getState().isTextMode && (stepData.stepType === "lessonIntro" || stepData.stepType === "closedResponse" || stepData.stepType === "openResponse")) {
         const storeState = appStore.getState();
         const hasVideoBubble = storeState.chatHistory.some(msg => msg.type === 'video');
         if (!hasVideoBubble) {
@@ -213,7 +213,7 @@ export function handleHint(stepIndex) {
 
 function resetButtonState(button) {
     appStore.getState().setSubmitBtnDisabled(false);
-    appStore.getState().setSubmitBtnIcon(State.isTextMode ? 'send' : 'mic');
+    appStore.getState().setSubmitBtnIcon(appStore.getState().isTextMode ? 'send' : 'mic');
     appStore.getState().setSubmitBtnDanger(false);
     appStore.getState().setInputDisabled(false);
     appStore.getState().triggerInputFocus();
@@ -228,7 +228,7 @@ export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation,
     if (!isValid) {
         const cueText = typeof cue === 'object' ? cue?.en : cue;
         logInteraction(cueText, val, "rej_pre", warningMessage, null, State.interactionLog);
-        if (!State.isTextMode) {
+        if (!appStore.getState().isTextMode) {
             appStore.getState().deductSpeakingScore(10);
             appStore.getState().triggerPointLoss('pronunciation', 10);
         } else {
@@ -237,7 +237,7 @@ export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation,
 
         appStore.getState().setMicStatusText(`<div class='text-center text-danger'>${warningMessage}</div>`);
 
-        if (State.isTextMode) {
+        if (appStore.getState().isTextMode) {
             appStore.getState().setAnswerErrorMessage(warningMessage);
             appStore.getState().triggerVideoClear();
             appStore.getState().setWebcamStream(null);
@@ -254,8 +254,8 @@ export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation,
         await updateSpeechRecording(currentLessonId, stepIndex, {
             userResponse: val,
             cue: typeof cue === 'object' ? cue?.en : cue,
-            isTextMode: State.isTextMode,
-            duration: State.isTextMode ? 3 : null
+            isTextMode: appStore.getState().isTextMode,
+            duration: appStore.getState().isTextMode ? 3 : null
         });
 
         if (stepData.stepType === "closedResponse" && State.player && State.player.controller && State.player.controller.applySpeechResult) {
@@ -289,7 +289,7 @@ export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation,
 
 export async function handleAnswer(userResponse, cue, stepData, button, explanation, translation, stats = { pauseCount: null, netDuration: null }, _deps = {}, userData = appStore.getState().userData, configData = appStore.getState().configData, courseId = appStore.getState().courseId) {
     const cueText = typeof cue === 'object' ? cue?.en : cue;
-    if (!State.isTextMode && (stepData.stepType === "lessonIntro" || stepData.stepType === "closedResponse" || stepData.stepType === "openResponse")) {
+    if (!appStore.getState().isTextMode && (stepData.stepType === "lessonIntro" || stepData.stepType === "closedResponse" || stepData.stepType === "openResponse")) {
         const storeState = appStore.getState();
         const hasVideoBubble = storeState.chatHistory.some(msg => msg.type === 'video');
         if (!hasVideoBubble) {
@@ -323,7 +323,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
                 speechAnalytics = {};
             }
 
-            if (State.isTextMode) {
+            if (appStore.getState().isTextMode) {
                 if (speechAnalytics) {
                     speechAnalytics.pronunciationScore = null;
                     speechAnalytics.flowScore = null;
@@ -337,11 +337,11 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
             await updateSpeechRecording(currentLessonId, stepIndex, {
                 userResponse,
                 cue: cueText,
-                wpm: State.isTextMode ? 0 : (speechAnalytics?.wpm || 0),
-                pauseCount: State.isTextMode ? 0 : (speechAnalytics?.pauseCount || 0),
+                wpm: appStore.getState().isTextMode ? 0 : (speechAnalytics?.wpm || 0),
+                pauseCount: appStore.getState().isTextMode ? 0 : (speechAnalytics?.pauseCount || 0),
                 complexityScore: speechAnalytics?.complexityScore || 100,
-                isTextMode: State.isTextMode,
-                duration: State.isTextMode ? 3 : (speechAnalytics?.netDuration || null)
+                isTextMode: appStore.getState().isTextMode,
+                duration: appStore.getState().isTextMode ? 3 : (speechAnalytics?.netDuration || null)
             });
             console.log("Successfully updated speech recording with answers");
         }
@@ -386,7 +386,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
                 english_level: englishLevel,
                 userData: userData,
                 cuesGiven: appStore.getState().cuesGiven,
-                apiRoot: State.apiRoot
+                apiRoot: null
             });
 
             if (!result) {
@@ -440,7 +440,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
                 complexityScore: speechAnalytics?.complexityScore || 100,
                 labels: result && result.intentLabels ? result.intentLabels : [],
                 attemptNumber: attemptNumber,
-                isTextMode: State.isTextMode
+                isTextMode: appStore.getState().isTextMode
             });
             console.log('[scoring] calculateFluencyScore', {
                 pronunciationScore: speakingScore,
@@ -454,7 +454,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
                 complexityScore: speechAnalytics?.complexityScore || 100,
                 labels: result && result.intentLabels ? result.intentLabels : [],
                 attemptNumber,
-                isTextMode: State.isTextMode,
+                isTextMode: appStore.getState().isTextMode,
                 scoreData
             });
 
@@ -506,7 +506,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
             appStore.getState().setHintsVisible(true);
             appStore.getState().setMediaVisible(true);
 
-            const player = State.player || (typeof window !== 'undefined' ? window.currentVideoPlayer : null);
+            const player = State.player || (typeof window !== 'undefined' ? appStore.getState().currentVideoPlayer : null);
             if (player) {
                 if (player.video) {
                     player.video.currentTime = 0;
@@ -616,14 +616,13 @@ export function showFeedbackAndProceed(stepData, isCorrect, _deps = {}) {
                     if (loadNextStep) loadNextStep(stepData);
                 } else {
                     const stepIndex = getCurrentStepIndex(stepData, appStore.getState().configData, appStore.getState().currentLessonIndex);
-                    window.__currentStepIndex = stepIndex;
                     if (callLoadStep) callLoadStep(appStore.getState().configData.lessons[appStore.getState().currentLessonIndex].steps[stepIndex], appStore.getState().configData.lessons[appStore.getState().currentLessonIndex]);
                 }
             }
         };
 
         if (stepData.stepType === "lessonIntro") {
-            window.__introContinueCallback = onContinue;
+            appStore.getState().setIntroContinueCallback(onContinue);
             appStore.getState().setBottomControlState('introChoices');
         } else {
             const hasWidget = appStore.getState().chatHistory.some(msg => msg.type === 'continueWidget');

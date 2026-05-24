@@ -1,4 +1,4 @@
-import { State } from '../modules/state.js';
+import { appStore } from '../modules/store.js';
 
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
@@ -44,15 +44,16 @@ export async function setupPlaybackVideo(blob, autoplay = false, speechCamChunks
             muteToggle.classList.remove('d-none');
             const icon = muteToggle.querySelector('i');
             if (icon) {
-                icon.className = State.isPlaybackMuted ? 'bi bi-volume-mute-fill' : 'bi bi-volume-up-fill';
+                icon.className = appStore.getState().isPlaybackMuted ? 'bi bi-volume-mute-fill' : 'bi bi-volume-up-fill';
             }
             muteToggle.onclick = (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                State.isPlaybackMuted = !State.isPlaybackMuted;
-                playbackVideo.muted = State.isPlaybackMuted;
+                const wasMuted = appStore.getState().isPlaybackMuted;
+                appStore.getState().setPlaybackMuted(!wasMuted);
+                playbackVideo.muted = !wasMuted;
                 if (icon) {
-                    icon.className = State.isPlaybackMuted ? 'bi bi-volume-mute-fill' : 'bi bi-volume-up-fill';
+                icon.className = !wasMuted ? 'bi bi-volume-mute-fill' : 'bi bi-volume-up-fill';
                 }
             };
         }
@@ -68,7 +69,7 @@ export async function setupPlaybackVideo(blob, autoplay = false, speechCamChunks
         playbackVideo.loop = true;
         playbackVideo.autoplay = false;
         playbackVideo.preload = 'auto';
-        playbackVideo.muted = State.isPlaybackMuted || false;
+        playbackVideo.muted = appStore.getState().isPlaybackMuted || false;
         playbackVideo.style.cursor = 'pointer';
 
         if (playbackVideo._interactionHandler) {
@@ -138,7 +139,7 @@ export async function setupPlaybackVideo(blob, autoplay = false, speechCamChunks
                     if (e.name === 'NotAllowedError') {
                         // Fallback to muted playback if browser blocks unmuted
                         playbackVideo.muted = true;
-                        State.isPlaybackMuted = true;
+                        appStore.getState().setPlaybackMuted(true);
                         const muteToggle = document.getElementById('playback-mute-toggle');
                         if (muteToggle) {
                             const icon = muteToggle.querySelector('i');

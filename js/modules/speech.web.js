@@ -77,7 +77,7 @@ async function createPlaceholderStream() {
 }
 
 async function ensureSpeechCamStream() {
-    const wantsPlaceholder = !!State.isCameraOff;
+    const wantsPlaceholder = !!appStore.getState().isCameraOff;
     if (speechCamStream) {
         if (isPlaceholderStream === wantsPlaceholder) return speechCamStream;
         safelyStopStream();

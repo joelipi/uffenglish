@@ -99,8 +99,6 @@ describe('State Module', () => {
             // Set some dirty state
             State.interactionLog = ['test'];
             appStore.setState({ currentStepIndex: 5 });
-            State.mission = 'Test Mission';
-            State.isTextMode = true;
             State.totalHesitations = 10;
             State.totalPauses = 5;
             State.averageWpm = 100;
@@ -111,8 +109,6 @@ describe('State Module', () => {
 
             expect(State.interactionLog).toEqual([]);
             expect(appStore.getState().currentStepIndex).toBe(0);
-            expect(State.mission).toBeNull();
-            expect(State.isTextMode).toBe(false);
             expect(State.recognizedIdioms).toEqual([]);
             expect(State.totalHesitations).toBe(0);
             expect(State.totalPauses).toBeNull();
@@ -127,14 +123,14 @@ describe('State Module', () => {
             State.wordsRevealed = 5;
             State.videoPlays = 2;
             State.videoClicks = 1;
-            State.isPlaybackMuted = true;
+            appStore.getState().setPlaybackMuted(true);
 
             State.resetForNextStep();
 
             expect(State.wordsRevealed).toBe(0);
             expect(State.videoPlays).toBe(0);
             expect(State.videoClicks).toBe(0);
-            expect(State.isPlaybackMuted).toBe(false);
+            expect(appStore.getState().isPlaybackMuted).toBe(false);
         });
     });
 });

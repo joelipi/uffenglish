@@ -6,8 +6,6 @@ import { appStore } from './store.js';
 describe('scoring utilities', () => {
     beforeEach(() => {
         State.interactionLog = [];
-        State.isTextMode = false;
-        State.isCameraOff = false;
         State.lessonStartTime = null;
         State.averageWpm = 0;
         State.totalPauses = 0;
@@ -17,6 +15,7 @@ describe('scoring utilities', () => {
 
         // Mock appStore state
         vi.spyOn(appStore, 'getState').mockReturnValue({
+            ...appStore.getState(),
             isDemoMode: false,
             fluencyScore: null,
             listeningScore: null,
