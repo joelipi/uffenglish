@@ -242,6 +242,7 @@ export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation,
             appStore.getState().triggerVideoClear();
             appStore.getState().setWebcamStream(null);
             appStore.getState().setInputDisabled(false);
+            appStore.getState().setSubmitBtnDisabled(false);
             appStore.getState().triggerInputFocus();
             appStore.getState().triggerScoreUpdate();
         }
@@ -357,7 +358,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
 
     let immediateStatsHtmlArr = [];
     let fluencyBubbleHTML = null;
-    appStore.getState().setSubmitBtnDisabled(true);
+    //appStore.getState().setSubmitBtnDisabled(true);
 
     try {
         const englishLevel = configData?.languageLevel || 'A0';
