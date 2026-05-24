@@ -9,6 +9,10 @@ export default function AnswerInput() {
     const textInputSubmitCallback = useStore(appStore, (state) => state.textInputSubmitCallback);
     const speechInputToggleCallback = useStore(appStore, (state) => state.speechInputToggleCallback);
     const answerErrorMessage = useStore(appStore, (state) => state.answerErrorMessage);
+    const submitBtnDisabled = useStore(appStore, (state) => state.submitBtnDisabled);
+    const submitBtnIcon = useStore(appStore, (state) => state.submitBtnIcon);
+    const submitBtnDanger = useStore(appStore, (state) => state.submitBtnDanger);
+    const inputDisabled = useStore(appStore, (state) => state.inputDisabled);
 
     const answerInputAreaRef = useRef(null);
     const answerInputFieldRef = useRef(null);
@@ -84,28 +88,28 @@ export default function AnswerInput() {
             <div className="card bg-dark border-secondary shadow-lg">
                 <div className="card-body p-2 d-flex align-items-center gap-2">
                     <div className="flex-grow-1 d-flex flex-column">
-                        <textarea
-                            ref={answerInputFieldRef}
-                            id="answer-input-field"
-                            className="form-control bg-dark text-white border-secondary"
-                            rows="2"
-                            placeholder={textInputPlaceholder || 'Type your answer...'}
-                            disabled={!textInputVisible}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && e.ctrlKey) {
-                                    e.preventDefault();
-                                    handleSubmit();
-                                }
-                            }}
-                        />
-                        {answerErrorMessage && (
-                            <div id="answer-error-message" className="text-danger small mt-1">{answerErrorMessage}</div>
-                        )}
+                    <textarea
+                        ref={answerInputFieldRef}
+                        id="answer-input-field"
+                        className="form-control bg-dark text-white border-secondary"
+                        rows="2"
+                        placeholder={textInputPlaceholder || 'Type your answer...'}
+                        disabled={!textInputVisible || inputDisabled}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && e.ctrlKey) {
+                                e.preventDefault();
+                                handleSubmit();
+                            }
+                        }}
+                    />
+                    {answerErrorMessage && (
+                        <div id="answer-error-message" className="text-danger small mt-1">{answerErrorMessage}</div>
+                    )}
                     </div>
                     <button
                         ref={answerSubmitBtnRef}
                         id="answer-submit-button"
-                        disabled={!textInputVisible}
+                        disabled={!textInputVisible || submitBtnDisabled}
                         onClick={handleSubmit}
                     >
                         <i className="bi bi-send-fill"></i>

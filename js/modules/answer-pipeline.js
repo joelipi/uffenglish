@@ -11,8 +11,7 @@ import {
     validateAnswerPrecheck
 } from './answers.js';
 import { logInteraction, calculateFluencyScore } from './scoring.js';
-import { pointLoss } from '../components/point-loss-animation.js';
-import { clearPlaybackVideo } from '../components/playback.js';
+
 import { Media } from './media.js';
 import Strings from '../data/strings.js';
 import { getLocalizedTranslation } from './utils.js';
@@ -107,17 +106,13 @@ function handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userRespons
                 userAvatarUrl: storeState.userData?.profilepicurl || '/assets/img/userprofile.webp'
             });
         } else {
-            const video = document.getElementById('playback-video');
-            if (video) {
-                video.muted = storeState.isPlaybackMuted;
-                video.play().catch(e => console.warn('[handleIncorrectFeedbackUI] Playback resume failed:', e));
-            }
+            appStore.getState().triggerVideoPlay(storeState.isPlaybackMuted);
         }
     }
 
     if ((stepData.stepType === "closedResponse" || stepData.stepType === "openResponse") && stepData.videoUrl) {
         appStore.getState().deductListeningScore(25);
-        pointLoss.show(document.getElementById('react-root-micstatus'), 25);
+        appStore.getState().triggerPointLoss('listening', 25);
         if (appStore.getState().incorrectAttempts > 2) {
             appStore.getState().setListeningScore(0);
             appStore.setState({ rolePlayPointsHistory: [...appStore.getState().rolePlayPointsHistory, appStore.getState().listeningScore] });
@@ -169,7 +164,7 @@ function handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userRespons
         }
     }
 
-    if (stepData.stepType === "closedResponse" && userResponse && document.getElementById('chat-window-container')) {
+    if (stepData.stepType === "closedResponse" && userResponse) {
         const selectedWords = [...new Set(normalizeduserResponse.split(/\s+/))];
         const correctWords = [...new Set(normalizedcue.split(/\s+/))];
         const correctWordSet = new Set(correctWords.map(w => w.toLowerCase()));
@@ -218,26 +213,11 @@ export function handleHint(stepIndex) {
 }
 
 function resetButtonState(button) {
-    if (button) {
-        button.disabled = false;
-        button.classList.remove('disabled');
-        button.style.display = "inline-block";
-
-        if (State.isTextMode) {
-            button.innerHTML = '<i class="bi bi-send-fill"></i>';
-            const inputField = document.getElementById('answer-input-field');
-            if (inputField) {
-                inputField.value = '';
-                inputField.disabled = false;
-                inputField.classList.remove('disabled');
-                setTimeout(() => inputField.focus(), 100);
-            }
-        } else {
-            button.innerHTML = '<i class="bi bi-mic-fill"></i>';
-        }
-
-        button.classList.remove('btn-danger', 'btn-danger-recording');
-    }
+    appStore.getState().setSubmitBtnDisabled(false);
+    appStore.getState().setSubmitBtnIcon(State.isTextMode ? 'send' : 'mic');
+    appStore.getState().setSubmitBtnDanger(false);
+    appStore.getState().setInputDisabled(false);
+    appStore.getState().triggerInputFocus();
 }
 
 export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation, translation, stats = { pauseCount: null, netDuration: null }, _deps = {}, userData = appStore.getState().userData, configData = appStore.getState().configData, courseId = appStore.getState().courseId) {
@@ -251,9 +231,7 @@ export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation,
         logInteraction(cueText, val, "rej_pre", warningMessage, null, State.interactionLog);
         if (!State.isTextMode) {
             appStore.getState().deductSpeakingScore(10);
-            if (document.getElementById('pronunciationScore')) {
-                pointLoss.show(document.getElementById('pronunciationScore'), 10);
-            }
+            appStore.getState().triggerPointLoss('pronunciation', 10);
         } else {
             console.log('[submitAnswerPrecheck] Text mode: skipping speaking score deduction');
         }
@@ -262,20 +240,11 @@ export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation,
 
         if (State.isTextMode) {
             appStore.getState().setAnswerErrorMessage(warningMessage);
-            clearPlaybackVideo();
+            appStore.getState().triggerVideoClear();
             appStore.getState().setWebcamStream(null);
-            const inputField = document.getElementById('answer-input-field');
-            if (inputField) {
-                inputField.disabled = false;
-                inputField.classList.remove('disabled');
-                inputField.focus();
-                if (document.getElementById('answer-input-area')) {
-                    document.getElementById('answer-input-area').classList.remove('score-update');
-                    void document.getElementById('answer-input-area').offsetWidth;
-                    document.getElementById('answer-input-area').classList.add('score-update');
-                    setTimeout(() => document.getElementById('answer-input-area').classList.remove('score-update'), 300);
-                }
-            }
+            appStore.getState().setInputDisabled(false);
+            appStore.getState().triggerInputFocus();
+            appStore.getState().triggerScoreUpdate();
         }
 
         const currentLessonId = appStore.getState().activeLessonId
@@ -306,7 +275,7 @@ export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation,
             State.player.controller.applySpeechResult(correctIndices, wrongIndices);
         }
 
-        if (btn) btn.disabled = false;
+        appStore.getState().setSubmitBtnDisabled(false);
         return;
     }
 
@@ -331,11 +300,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
                 userAvatarUrl: storeState.userData?.profilepicurl || '/assets/img/userprofile.webp'
             });
         } else {
-            const video = document.getElementById('playback-video');
-            if (video) {
-                video.muted = storeState.isPlaybackMuted;
-                video.play().catch(e => console.warn('[answer-pipeline] Playback resume failed:', e));
-            }
+            appStore.getState().triggerVideoPlay(storeState.isPlaybackMuted);
         }
     }
 
@@ -385,7 +350,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
     }
 
     Media.pauseVideoIfPlaying();
-    window.isMicActive = false;
+    appStore.getState().setMicActive(false);
     appStore.getState().setMicStatusText("");
     appStore.getState().setMediaVisible(false);
     appStore.getState().setTextInputVisible(false);
@@ -393,13 +358,8 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
 
     let immediateStatsHtmlArr = [];
     let fluencyBubbleHTML = null;
-    if (button && button.parentElement) {
-        button.parentElement.querySelectorAll('button').forEach(btn => {
-            if (!btn || btn.id === 'micBtn' || btn.id === 'txtBtn') return;
-            btn.disabled = true;
-            btn.classList.add('disabled');
-        });
-    }
+    appStore.getState().setSubmitBtnDisabled(true);
+    appStore.getState().setInputDisabled(true);
 
     try {
         const englishLevel = configData?.languageLevel || 'A0';
@@ -540,7 +500,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
 
         if (!isCorrect && stepData.stepType === "closedResponse" && incorrectAttempts < 2) {
             handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userResponse, result.explanations || explanation, result.normalizeduserResponse, result.normalizedcue, stepData.step, true, userData, configData);
-            clearPlaybackVideo();
+            appStore.getState().triggerVideoClear();
             clearChatInterface();
             appStore.getState().setWebcamStream(null);
 
@@ -549,7 +509,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
             appStore.getState().setHintsVisible(true);
             appStore.getState().setMediaVisible(true);
 
-            const player = State.player || window.currentVideoPlayer;
+            const player = State.player || (typeof window !== 'undefined' ? window.currentVideoPlayer : null);
             if (player) {
                 if (player.video) {
                     player.video.currentTime = 0;
@@ -568,7 +528,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
             return;
         }
 
-        if (stepData.stepType === "openResponse" && userResponse && document.getElementById('chat-window-container')) {
+        if (stepData.stepType === "openResponse" && userResponse) {
             const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
             console.log('[handleAnswer] openResponse lang:', lang, 'cue:', typeof cue, 'native_language:', userData?.native_language);
             const cueDisplayHTML = formatBilingualHTML(cue, lang);
@@ -586,7 +546,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
                 userAvatarUrl: userData?.profilepicurl || '/assets/img/userprofile.webp'
             });
             if (immediateStatsHtmlArr.length > 0) renderAIFeedback(immediateStatsHtmlArr);
-        } else if (stepData.stepType === "closedResponse" && userResponse && document.getElementById('chat-window-container')) {
+        } else if (stepData.stepType === "closedResponse" && userResponse) {
             const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
 
             const cueDisplayHTML = formatBilingualHTML(cue, lang);

@@ -25,12 +25,7 @@ export function updateProgressBar() {
 }
 
 export function showCompletionMessage() {
-    {
-        const container = document.getElementById('steps-container');
-        if (container) {
-            container.innerHTML = `<div class="text-center">${Strings.get('msg_lesson_complete_all', appStore.getState().userData?.native_language)}</div>`;
-        }
-    }
+    appStore.getState().setCompletionMessage(Strings.get('msg_lesson_complete_all', appStore.getState().userData?.native_language));
 }
 
 export function loadNextStep(currentStep, fluencyData, _deps = {}) {

@@ -23,6 +23,7 @@ import InteractiveVideoWrapper from './InteractiveVideoWrapper.jsx';
 import SimpleVideoWrapper from './SimpleVideoWrapper.jsx';
 import IntroVideoWrapper from './IntroVideoWrapper.jsx';
 import VideoProcessorWrapper from './VideoProcessorWrapper.jsx';
+import { initUiEffects } from './ui-effects.js';
 
 export default function LessonContainer() {
     const { courseId, lessonId } = useParams();
@@ -32,6 +33,11 @@ export default function LessonContainer() {
         const preloader = document.getElementById('appLoadingImageDiv');
         if (isLoaded && preloader) preloader.style.display = 'none';
     }, [isLoaded]);
+
+    // Initialize web-only DOM side-effect subscriber once on mount
+    useEffect(() => {
+        initUiEffects();
+    }, []);
 
     useEffect(() => {
         if (courseId && lessonId) {

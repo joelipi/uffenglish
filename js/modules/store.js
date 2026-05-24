@@ -67,6 +67,18 @@ export const appStore = createStore(
             bottomControlState: 'mic',
             chatModeActive: false,
             chatHeaderMode: 'human',
+            submitBtnDisabled: false,
+            submitBtnIcon: 'send',
+            submitBtnDanger: false,
+            inputDisabled: false,
+            inputFocusTrigger: 0,
+            pointLossTrigger: 0,
+            pointLossData: null,
+            videoPlayTrigger: 0,
+            videoPlayMuted: false,
+            videoClearTrigger: 0,
+            scoreUpdateTrigger: 0,
+            completionMessage: null,
             
             // --- Input UI State (Replaces renderSpeechInputUI/renderTextInputUI) ---
             textInputVisible: false,
@@ -158,6 +170,18 @@ export const appStore = createStore(
             setBottomControlState: (state) => set({ bottomControlState: state }),
             setChatModeActive: (val) => set({ chatModeActive: val }),
             setChatHeaderMode: (mode) => set({ chatHeaderMode: mode }),
+            setSubmitBtnDisabled: (val) => set({ submitBtnDisabled: val }),
+            setSubmitBtnIcon: (icon) => set({ submitBtnIcon: icon }),
+            setSubmitBtnDanger: (val) => set({ submitBtnDanger: val }),
+            setInputDisabled: (val) => set({ inputDisabled: val }),
+            triggerInputFocus: () => set((state) => ({ inputFocusTrigger: state.inputFocusTrigger + 1 })),
+            triggerPointLoss: (target, points) => set((state) => ({ pointLossTrigger: state.pointLossTrigger + 1, pointLossData: { target, points } })),
+            clearPointLoss: () => set({ pointLossData: null }),
+            triggerVideoPlay: (muted) => set((state) => ({ videoPlayTrigger: state.videoPlayTrigger + 1, videoPlayMuted: muted })),
+            triggerVideoClear: () => set((state) => ({ videoClearTrigger: state.videoClearTrigger + 1 })),
+            triggerScoreUpdate: () => set((state) => ({ scoreUpdateTrigger: state.scoreUpdateTrigger + 1 })),
+            setCompletionMessage: (msg) => set({ completionMessage: msg }),
+            clearCompletionMessage: () => set({ completionMessage: null }),
 
             // Update physical place in the lesson
             setProgress: ({ lessonId, lessonIndex, questionIndex }) => set({
