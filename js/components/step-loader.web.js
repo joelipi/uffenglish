@@ -40,7 +40,6 @@ import {
     clearChat,
     addAIFeedbackMessages
 } from './chat/chat-interface.js';
-import { clearPlaybackVideo } from './playback.js';
 
 function renderWhisperReviewUI(transcript, timeLeft, onAccept, onReject) {
     appStore.getState().removeAiLoadingMessage();
@@ -438,7 +437,7 @@ function _renderResponseStep(step, lesson, deps) {
                         },
                         onPreflightRejected: (msg) => {
                             appStore.getState().setMicActive(false);
-                            clearPlaybackVideo();
+                            appStore.getState().triggerVideoClear();
                             appStore.getState().setWebcamStream(null);
                             window.dispatchEvent(new CustomEvent('preflightRejected'));
                             appStore.getState().setMicStatusText(`<div class='text-center text-danger'>${msg}</div>`);
@@ -451,7 +450,7 @@ function _renderResponseStep(step, lesson, deps) {
                         },
                         onTranscriptRejected: (cue, transcript) => {
                             appStore.getState().setMicActive(false); // Release the lock
-                            clearPlaybackVideo();
+                            appStore.getState().triggerVideoClear();
                             appStore.getState().setWebcamStream(null);
                             window.dispatchEvent(new CustomEvent('transcriptRejected', { detail: { cue, transcript } }));
                             appStore.getState().setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Restarting Mic...</div>`);
