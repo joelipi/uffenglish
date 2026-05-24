@@ -24,9 +24,17 @@ import {
     listeningState,
 } from '../modules/speech.js';
 import { processVideo } from '../modules/video-processor.js';
-import { saveLessonProgress } from '../modules/user-profile.js';
-import { getCompressedLessonStats } from '../modules/scoring.js';
 import { pointLoss } from '../components/point-loss-animation.js';
+
+import {
+    handleStepCore,
+    handleTextStep,
+    handleLessonComplete,
+    handleUnitComplete,
+    handleSuccessStep,
+    clearWarningLater,
+    cancelWarningClear
+} from '../modules/step-loader-logic.js';
 
 import {
     clearChat,
@@ -208,21 +216,6 @@ function bindProcessButton(onClickCallback) {
 
 function beforeUnloadHandler(e) { /* e.preventDefault(); e.returnValue = ''; return ''; */ }
 
-let _warningClearTimer = null;
-
-function _clearWarningLater(ms) {
-    clearTimeout(_warningClearTimer);
-    _warningClearTimer = setTimeout(() => {
-        appStore.getState().setMicStatusText('');
-        _warningClearTimer = null;
-    }, ms);
-}
-
-function _cancelWarningClear() {
-    clearTimeout(_warningClearTimer);
-    _warningClearTimer = null;
-}
-
 export function loadStep(step, lesson, fluencyData, deps) {
     const { submitAnswerPrecheck, showFeedbackAndProceed, handleHint } = deps;
 
@@ -242,12 +235,7 @@ export function loadStep(step, lesson, fluencyData, deps) {
 
     resetUIForNewStep(step.stepType === 'lessonIntro', !!appStore.getState().userData);
 
-    Media.cleanupPreviousPlayers();
-    State.player = null;
-    appStore.getState().setCurrentVideo(null);
-    clearPlaybackVideo();
-
-    appStore.getState().setStatsVisible((step.stepType === 'closedResponse' || step.stepType === 'openResponse') && step.videoUrl);
+    handleStepCore(step);
 
     if (step.stepType === 'closedResponse' || step.stepType === 'openResponse') {
         if (!appStore.getState().isCameraOff && !appStore.getState().isTextMode) {
@@ -277,8 +265,6 @@ export function loadStep(step, lesson, fluencyData, deps) {
         removeRepeatButton();
     }
 
-    appStore.getState().setMediaVisible(true);
-
     clearMediaContainerAndPreservePlayers();
 
     if (step.image) {
@@ -288,28 +274,17 @@ export function loadStep(step, lesson, fluencyData, deps) {
         renderYoutubeInMediaContainer(step.youtube);
     }
 
-    loadVideoForStep(step, State, appStore.getState().userData?.native_language);
-
-    appStore.getState().setMicStatusText(step.step);
-
     if (step.stepType === "closedResponse" || step.stepType === "openResponse") {
         _renderResponseStep(step, lesson, deps);
     } else if (step.stepType === 'text') {
-        appStore.getState().setStatsVisible(true);
+        handleTextStep(step, submitAnswerPrecheck);
         updateProgressAndCloseButton(true);
-        appStore.getState().setTextInputPlaceholder(
-            Strings.get('placeholder_type_answer', appStore.getState().userData?.native_language) || 'Type your answer here...'
-        );
-        appStore.getState().setTextInputSubmitCallback(
-            (val, btn) => submitAnswerPrecheck(val, typeof step.cue === 'object' ? step.cue.en : step.cue, step, btn, step.explanation, step.translation, { pauseCount: null, netDuration: null })
-        );
     } else if (step.stepType === 'lessoncomplete') {
-        updateProgressAndCloseButton(true); appStore.getState().setStatsVisible(false);
-        appStore.getState().setProgressPercent("95%"); showFeedbackAndProceed(step, true);
+        updateProgressAndCloseButton(true);
+        handleLessonComplete(step, showFeedbackAndProceed);
         hideAnswerDiv();
     } else if (step.stepType === 'unitcomplete') {
-        step.lessonId = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex].lessonId + 's';
-        State.successHandler.handleSuccessLesson(step);
+        handleUnitComplete(step);
     } else if (step.stepType === 'lessonIntro') {
         _renderLessonIntro(step, lesson, deps);
     } else if (step.stepType === 'present') {
@@ -401,7 +376,7 @@ function _renderResponseStep(step, lesson, deps) {
                             }
                         },
                         onRecordingStart: (userData) => {
-                            _cancelWarningClear();
+                            cancelWarningClear();
                             appStore.getState().setMicActive(true); // Lock the video timer
                             if (appStore.getState().currentVideoPlayer) {
                                 if (typeof appStore.getState().currentVideoPlayer.pause === 'function') {
@@ -451,7 +426,7 @@ function _renderResponseStep(step, lesson, deps) {
                             appStore.getState().setMicStatusText(`<div class='text-center' style='color: red; font-size: large;'><i class='bi bi-exclamation-triangle-fill'></i> ${Strings.get('try_again_speech', userData?.native_language)}</div>`);
                             const btn = document.getElementById('micBtn');
                             if (btn) btn.style.display = 'flex';
-                            _clearWarningLater(3000);
+                            clearWarningLater(3000);
                         },
                         onGibberishDetected: () => {
                             appStore.getState().setMicActive(false);
@@ -459,7 +434,7 @@ function _renderResponseStep(step, lesson, deps) {
                             appStore.getState().setMicStatusText(`<div class='text-center mt-3' style='color: #ff9800; font-size: large;'><i class='bi bi-ear-x'></i> Audio unclear. Please try speaking clearly.</div>`);
                             const btn = document.getElementById('micBtn');
                             if (btn) btn.style.display = 'flex';
-                            _clearWarningLater(3000);
+                            clearWarningLater(3000);
                         },
                         onPreflightRejected: (msg) => {
                             appStore.getState().setMicActive(false);
@@ -472,7 +447,7 @@ function _renderResponseStep(step, lesson, deps) {
                                 btn.style.display = 'flex';
                                 stopMicAnimation(btn);
                             }
-                            _clearWarningLater(4000);
+                            clearWarningLater(4000);
                         },
                         onTranscriptRejected: (cue, transcript) => {
                             appStore.getState().setMicActive(false); // Release the lock
@@ -536,37 +511,7 @@ function _renderSuccess(step, fluencyData) {
 
     window.__currentConfigData = appStore.getState().configData;
 
-    // initVideoProcessor was removed during index.html migration
-    State.successHandler.handleSuccessLesson(step);
-
-    const currentLesson = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex];
-    const nextLessonId = currentLesson.nextLessonId;
-
-    if (nextLessonId) {
-        const finalStats = getCompressedLessonStats({
-            isTextMode: appStore.getState().isTextMode,
-            isCameraOff: appStore.getState().isCameraOff,
-            lessonStartTime: State.lessonStartTime,
-            averageWpm: State.averageWpm,
-            totalPauses: State.totalPauses,
-            totalHesitations: State.totalHesitations,
-            recognizedIdioms: State.recognizedIdioms,
-            pragmaticFlags: State.pragmaticFlags,
-            interactionLog: State.interactionLog
-        });
-
-        saveLessonProgress(appStore.getState().courseId, nextLessonId, appStore.getState().userData, {
-            updateUserMeta: true,
-            incrementCount: true,
-            lessonStats: finalStats,
-            currentLessonId: step.lessonId
-        }).then(progressResult => {
-            appStore.getState().setActivityMetrics(progressResult.newDayCount, progressResult.newStreak);
-            if (progressResult.lessonsCompleted) {
-                appStore.getState().setLessonsCompleted(progressResult.lessonsCompleted);
-            }
-        });
-    };
+    handleSuccessStep(step, fluencyData);
 
     try { hideWebcamPreview(); } catch (error) { }
 }

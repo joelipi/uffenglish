@@ -14,11 +14,26 @@ import { Media } from './media.js';
 import { saveLessonProgress } from './user-profile.js';
 import { getCompressedLessonStats } from './scoring.js';
 
-// --- Step Loading ---
+// --- Warning Clear Timer (no DOM) ---
 
-export function loadStep(step, lesson, fluencyData, deps) {
-    const { submitAnswerPrecheck, showFeedbackAndProceed } = deps;
+let _warningClearTimer = null;
 
+export function clearWarningLater(ms) {
+    clearTimeout(_warningClearTimer);
+    _warningClearTimer = setTimeout(() => {
+        appStore.getState().setMicStatusText('');
+        _warningClearTimer = null;
+    }, ms);
+}
+
+export function cancelWarningClear() {
+    clearTimeout(_warningClearTimer);
+    _warningClearTimer = null;
+}
+
+// --- Core Step Loading State (no DOM) ---
+
+export function handleStepCore(step) {
     Media.cleanupPreviousPlayers();
     State.player = null;
     appStore.getState().setCurrentVideo(null);
@@ -30,30 +45,38 @@ export function loadStep(step, lesson, fluencyData, deps) {
     loadVideoForStep(step, State, appStore.getState().userData?.native_language);
 
     appStore.getState().setMicStatusText(step.step);
+}
 
-    if (step.stepType === 'text') {
-        appStore.getState().setStatsVisible(true);
-        appStore.getState().setTextInputPlaceholder(
-            Strings.get('placeholder_type_answer', appStore.getState().userData?.native_language) || 'Type your answer here...'
-        );
-        appStore.getState().setTextInputSubmitCallback(
-            (val, btn) => submitAnswerPrecheck(val, typeof step.cue === 'object' ? step.cue.en : step.cue, step, btn, step.explanation, step.translation, { pauseCount: null, netDuration: null })
-        );
-    } else if (step.stepType === 'lessoncomplete') {
-        appStore.getState().setStatsVisible(false);
-        appStore.getState().setProgressPercent("95%");
-        showFeedbackAndProceed(step, true);
-    } else if (step.stepType === 'unitcomplete') {
-        step.lessonId = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex].lessonId + 's';
-        State.successHandler.handleSuccessLesson(step);
-    } else if (step.stepType === 'success') {
-        renderSuccess(step, fluencyData);
-    }
+// --- Text Step Handling ---
+
+export function handleTextStep(step, submitAnswerPrecheck) {
+    appStore.getState().setStatsVisible(true);
+    appStore.getState().setTextInputPlaceholder(
+        Strings.get('placeholder_type_answer', appStore.getState().userData?.native_language) || 'Type your answer here...'
+    );
+    appStore.getState().setTextInputSubmitCallback(
+        (val, btn) => submitAnswerPrecheck(val, typeof step.cue === 'object' ? step.cue.en : step.cue, step, btn, step.explanation, step.translation, { pauseCount: null, netDuration: null })
+    );
+}
+
+// --- Lesson Complete ---
+
+export function handleLessonComplete(step, showFeedbackAndProceed) {
+    appStore.getState().setStatsVisible(false);
+    appStore.getState().setProgressPercent("95%");
+    showFeedbackAndProceed(step, true);
+}
+
+// --- Unit Complete ---
+
+export function handleUnitComplete(step) {
+    step.lessonId = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex].lessonId + 's';
+    State.successHandler.handleSuccessLesson(step);
 }
 
 // --- Success Step Rendering ---
 
-function renderSuccess(step, fluencyData) {
+export function handleSuccessStep(step, fluencyData) {
     State.successHandler.handleSuccessLesson(step);
 
     const currentLesson = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex];
@@ -85,5 +108,3 @@ function renderSuccess(step, fluencyData) {
         });
     };
 }
-
-
