@@ -199,13 +199,13 @@ export async function evaluateIntentWithAI(answerForIntentPass, stepData, lesson
     const intentPrompt = `Setting: ${lessonData.setting?.en || ''} 
 A: ${lessonData.roleOther?.en || ''} 
 B: ${lessonData.roleUser?.en || ''} 
-B's goal: ${stepData.mission || 'Respond appropriately'}
+B's goal: ${lessonData.mission?.en || 'Respond appropriately'}
 A: ${stepData.cue.en}
-B: ${answerForIntentPass} 
+B: ${answerForIntentPass}
  
 Evaluate B's response. Return ONLY an array with any applicable labels and any corrected version of B's response: [pragmatic failure, too formal, too informal, rude, unidiomatic, correct].`;
 
-    console.log("prompt to AI: ", intentPrompt);
+    console.log("[AI] prompt to AI: ", intentPrompt);
 
     const response = await fetch(aiEndpoint, {
       method: 'POST',

@@ -363,7 +363,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
     try {
         const englishLevel = configData?.languageLevel || 'A0';
         const lesson = (configData && configData.lessons) ? configData.lessons[appStore.getState().currentLessonIndex] : null;
-
+        console.log('[pipeline] lesson ', lesson);
         if (!lesson) {
             console.error('[handleAnswer] DEBUG:', {
                 configDataKeys: configData ? Object.keys(configData) : null,

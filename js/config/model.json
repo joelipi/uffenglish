@@ -149,8 +149,8 @@
           "videoUrl": "gtests-1-1"
         },
         {
-          "cue": "Sorry, we're all out of that today.",
-          "translation": {
+          "cue": {
+            "en": "Sorry, we're all out of that today.",
             "es": "Disculpe, eso se nos terminó para hoy.",
             "pt": "Disculpe. Isso acabou para hoje."
           },
@@ -158,12 +158,15 @@
           "videoUrl": "gtests-1-2"
         },
         {
-          "cue": "Sure, what size do you want?",
+          "cue": {
+            "en": "Sure, what size do you want?",
+            "es": "Claro. ¿Qué tamaño quiere?",
+            "pt": "Claro. O que tamanho voce quer?"
+          },
           "stepType": "openResponse",
           "videoUrl": "gtests-1-3"
         },
         {
-          "cue": "Sure, what size do you want?",
           "simpleVideoUrl": "success",
           "subtitles": "Very good! ¡Muy bien! Oprime el botón para calcular tu calificación de fluidez (Fluency Score) para esta frase. Si tu calificación es menor a 80% te recomiendo repetir la lección.",
           "stepType": "success"
