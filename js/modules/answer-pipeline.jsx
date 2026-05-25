@@ -1,4 +1,4 @@
-// --- modules/answer-pipeline.js ---
+// --- modules/answer-pipeline.jsx ---
 // Core answer processing: validation, submission, feedback, and step progression.
 // Uses deps pattern to avoid circular imports with lesson-progression.
 // Deps: { loadNextStep, callLoadStep }
@@ -15,7 +15,9 @@ import { logInteraction, calculateFluencyScore } from './scoring.js';
 import { Media } from './media.js';
 import Strings from '../data/strings.js';
 import { getLocalizedTranslation } from './utils.js';
-import { formatBilingualHTML } from './bilingual-display.web.js';
+import React from 'react';
+import ReactDOMServer from 'react-dom/server';
+import { BilingualText } from '../components/BilingualText.jsx';
 import { analyzeSpeech } from './analytics.js';
 import { updateSpeechRecording } from './storage.js';
 import { buildFeedbackData, buildExplanationData } from './feedback-builder.js';
@@ -34,7 +36,9 @@ import {
 function handleCorrectFeedbackUI(stepIndex, stepData, button, cue, explanation, translation, userResponse, englishLevel, englishLevelDeduction, userData, configData, fluencyBubble = null) {
     const cueText = typeof cue === 'object' ? cue?.en : cue;
     const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
-    const cueDisplayHTML = formatBilingualHTML(cue, lang);
+    const cueDisplayHTML = ReactDOMServer.renderToString(
+        <BilingualText translationData={cue} userLang={lang} />
+    );
 
     const currentFluencyScore = appStore.getState().fluencyScore;
     if (stepData.stepType === "closedResponse" && stepData.videoUrl) {
@@ -528,7 +532,9 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
         if (stepData.stepType === "openResponse" && userResponse) {
             const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
             console.log('[handleAnswer] openResponse lang:', lang, 'cue:', typeof cue, 'native_language:', userData?.native_language);
-            const cueDisplayHTML = formatBilingualHTML(cue, lang);
+            const cueDisplayHTML = ReactDOMServer.renderToString(
+                <BilingualText translationData={cue} userLang={lang} />
+            );
             const localizedTrans = getLocalizedTranslation(stepData.translation, lang);
             const translationStr = (localizedTrans && lang && lang !== 'en') ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>` : "";
 
@@ -546,7 +552,9 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
         } else if (stepData.stepType === "closedResponse" && userResponse) {
             const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
 
-            const cueDisplayHTML = formatBilingualHTML(cue, lang);
+            const cueDisplayHTML = ReactDOMServer.renderToString(
+                <BilingualText translationData={cue} userLang={lang} />
+            );
             const localizedTrans = getLocalizedTranslation(stepData.translation, lang);
             const translationStr = (localizedTrans && lang && lang !== 'en') ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>` : "";
             showChat(true);

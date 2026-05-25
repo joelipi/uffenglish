@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { handleAnswer, submitAnswerPrecheck, showFeedbackAndProceed } from './answer-pipeline.js';
+import { handleAnswer, submitAnswerPrecheck, showFeedbackAndProceed } from './answer-pipeline.jsx';
 import { appStore } from './store.js';
 
 // Suppress whisper worker load in test environment (no Worker API in JSDOM)

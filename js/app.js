@@ -48,7 +48,7 @@ console.log = (msg, ...args) => {
 
 import { navigateToHome, navigateToLogin } from './modules/navigation.js';
 import { requestPersistentStorage, handleAuthClick } from './modules/lesson-init.js';
-import { handleHint as handleHintImpl, submitAnswerPrecheck as submitAnswerPrecheckImpl, handleAnswer as handleAnswerImpl, showFeedbackAndProceed as showFeedbackAndProceedImpl } from './modules/answer-pipeline.js';
+import { handleHint as handleHintImpl, submitAnswerPrecheck as submitAnswerPrecheckImpl, handleAnswer as handleAnswerImpl, showFeedbackAndProceed as showFeedbackAndProceedImpl } from './modules/answer-pipeline.jsx';
 import { updateProgressBar as updateProgressBarImpl, loadNextStep as loadNextStepImpl, loadNextLesson as loadNextLessonImpl, showCompletionMessage as showCompletionMessageImpl, handleTutorChatSubmit as handleTutorChatSubmitImpl } from './modules/lesson-progression.js';
 
 // -----------------------
