@@ -1,3 +1,8 @@
+/**
+ * GuestLoginModal — modal dialog for guest login prompt
+ * Renders a native <dialog> element. No portal needed — dialog creates top-layer.
+ */
+
 import React, { useEffect, useRef } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store.js';

@@ -2,13 +2,11 @@
  * useAnswerPipeline — React hook for answer processing pipeline
  *
  * Encapsulates the answer deps injection pattern that was previously
- * handled by app.js wrapper functions. Provides submitAnswerPrecheck,
- * handleAnswer, showFeedbackAndProceed, and handleHint with the
- * progression dependencies automatically injected.
+ * handled by app.js wrapper functions. Uses refs to break the circular
+ * dependency between callLoadStep and the answer pipeline.
  */
 
-import { useCallback, useMemo } from 'react';
-import { appStore } from '../modules/store.js';
+import { useCallback, useMemo, useRef } from 'react';
 import {
     handleHint as handleHintImpl,
     submitAnswerPrecheck as submitAnswerPrecheckImpl,
@@ -16,11 +14,24 @@ import {
     showFeedbackAndProceed as showFeedbackAndProceedImpl
 } from '../modules/answer-pipeline.jsx';
 
-export function useAnswerPipeline(callLoadStep, loadNextStep) {
+export function useAnswerPipeline() {
+    // Use refs to break circular dependency: callLoadStep needs answerPipeline,
+    // and answerPipeline needs callLoadStep. Refs allow lazy resolution.
+    const callLoadStepRef = useRef(null);
+    const loadNextStepRef = useRef(null);
+
+    const setCallLoadStep = useCallback((fn) => {
+        callLoadStepRef.current = fn;
+    }, []);
+
+    const setLoadNextStep = useCallback((fn) => {
+        loadNextStepRef.current = fn;
+    }, []);
+
     const answerDeps = useMemo(() => ({
-        loadNextStep,
-        callLoadStep
-    }), [loadNextStep, callLoadStep]);
+        get callLoadStep() { return callLoadStepRef.current; },
+        get loadNextStep() { return loadNextStepRef.current; }
+    }), []);
 
     const handleHint = useCallback((...args) => {
         return handleHintImpl(...args);
@@ -56,6 +67,8 @@ export function useAnswerPipeline(callLoadStep, loadNextStep) {
         handleHint,
         submitAnswerPrecheck,
         handleAnswer,
-        showFeedbackAndProceed
+        showFeedbackAndProceed,
+        setCallLoadStep,
+        setLoadNextStep
     };
 }

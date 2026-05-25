@@ -1,5 +1,4 @@
 import React from 'react';
-import { createPortal } from 'react-dom';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store.js';
 import Strings from '../../data/strings.js';
@@ -9,15 +8,11 @@ export default function AuthLink() {
     const isLoggedIn = useStore(appStore, (state) => state.isLoggedIn);
     const nativeLang = useStore(appStore, (state) => state.userData?.native_language);
 
-    const target = document.getElementById('auth-link');
-    if (!target) return null;
-
     const text = isLoggedIn
         ? (Strings.get('sign_out', nativeLang) || 'Sign Out')
         : (Strings.get('sign_in', nativeLang) || 'Sign In');
 
-    return createPortal(
-        <a href="#" onClick={handleAuthClick}>{text}</a>,
-        target
+    return (
+        <a href="#" onClick={handleAuthClick}>{text}</a>
     );
 }

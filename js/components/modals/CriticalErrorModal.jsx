@@ -1,19 +1,14 @@
-import React, { useEffect } from 'react';
+/**
+ * CriticalErrorModal — displays critical error messages
+ * Pure React component, no DOM manipulation.
+ */
+
+import React from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store.js';
 
 export default function CriticalErrorModal() {
     const criticalErrorMessage = useStore(appStore, (state) => state.criticalErrorMessage);
-
-    useEffect(() => {
-        if (criticalErrorMessage) {
-            const mediaViewport = document.getElementById('media-viewport');
-            if (mediaViewport) {
-                mediaViewport.classList.remove('d-none');
-            }
-            console.error("[UI] Critical Error Shown:", criticalErrorMessage);
-        }
-    }, [criticalErrorMessage]);
 
     if (!criticalErrorMessage) return null;
 
