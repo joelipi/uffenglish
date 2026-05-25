@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { formatBilingualHTML, buildBilingualSpan } from './bilingual-display.web.js';
+import { formatBilingualHTML } from './bilingual-display.web.js';
+import { formatBilingualText } from './bilingual-display.js';
 
 const HOLA = { en: 'Hello', es: 'Hola' };
 
@@ -79,18 +80,133 @@ describe('formatBilingualHTML', () => {
     });
 });
 
-// ── buildBilingualSpan ───────────────────────────────────────────────────────
+// ── formatBilingualText ──────────────────────────────────────────────────────
 
-describe('buildBilingualSpan', () => {
-    it('returns "" for falsy text', () => {
-        expect(buildBilingualSpan('', 'es')).toBe('');
-        expect(buildBilingualSpan(null, 'es')).toBe('');
-        expect(buildBilingualSpan(undefined, 'es')).toBe('');
-        expect(buildBilingualSpan('text', '')).toBe('');
+describe('formatBilingualText', () => {
+    it('returns structured data for null/undefined translationData', () => {
+        expect(formatBilingualText(null, 'es')).toEqual({
+            english: '',
+            shouldShowLocalized: false,
+        });
+        expect(formatBilingualText(undefined, 'es')).toEqual({
+            english: '',
+            shouldShowLocalized: false,
+        });
     });
 
-    it('wraps text in a span with the correct lang attribute', () => {
-        expect(buildBilingualSpan('Hola', 'es')).toBe('<span lang="es">Hola</span>');
-        expect(buildBilingualSpan('Olá', 'pt')).toBe('<span lang="pt">Olá</span>');
+    it('passes through a plain string regardless of lang', () => {
+        expect(formatBilingualText('hello', 'en')).toEqual({
+            english: 'hello',
+            shouldShowLocalized: false,
+        });
+        expect(formatBilingualText('hello', 'es')).toEqual({
+            english: 'hello',
+            shouldShowLocalized: false,
+        });
+        expect(formatBilingualText('hello', null)).toEqual({
+            english: 'hello',
+            shouldShowLocalized: false,
+        });
+    });
+
+    it('returns only English when userLang is null', () => {
+        expect(formatBilingualText(HOLA, null)).toEqual({
+            english: 'Hello',
+            shouldShowLocalized: false,
+        });
+    });
+
+    it('returns only English when userLang is undefined', () => {
+        expect(formatBilingualText(HOLA, undefined)).toEqual({
+            english: 'Hello',
+            shouldShowLocalized: false,
+        });
+    });
+
+    it('returns only English when userLang is "en"', () => {
+        expect(formatBilingualText(HOLA, 'en')).toEqual({
+            english: 'Hello',
+            shouldShowLocalized: false,
+        });
+    });
+
+    it('returns English plus localized data when userLang is "es"', () => {
+        expect(formatBilingualText(HOLA, 'es')).toEqual({
+            english: 'Hello',
+            localized: 'Hola',
+            lang: 'es',
+            shouldShowLocalized: true,
+            enPrefix: '',
+            enSuffix: '',
+            spanPrefix: ' ',
+        });
+    });
+
+    it('returns only English when userLang has no matching entry', () => {
+        expect(formatBilingualText(HOLA, 'fr')).toEqual({
+            english: 'Hello',
+            shouldShowLocalized: false,
+        });
+    });
+
+    it('returns empty string when object has no en key', () => {
+        expect(formatBilingualText({ es: 'Hola' }, 'es')).toEqual({
+            english: '',
+            shouldShowLocalized: false,
+        });
+    });
+
+    it('returns only English when localized text equals English text', () => {
+        const same = { en: 'Hello', es: 'Hello' };
+        expect(formatBilingualText(same, 'es')).toEqual({
+            english: 'Hello',
+            shouldShowLocalized: false,
+        });
+    });
+
+    it('honours enPrefix and enSuffix for English decoration', () => {
+        expect(formatBilingualText(HOLA, 'es', {
+            enPrefix: '<strong>',
+            enSuffix: '</strong>',
+        })).toEqual({
+            english: 'Hello',
+            localized: 'Hola',
+            lang: 'es',
+            shouldShowLocalized: true,
+            enPrefix: '<strong>',
+            enSuffix: '</strong>',
+            spanPrefix: ' ',
+        });
+    });
+
+    it('returns only the localized data when skipEnglish is true', () => {
+        expect(formatBilingualText(HOLA, 'es', { skipEnglish: true })).toEqual({
+            localized: 'Hola',
+            lang: 'es',
+            shouldShowLocalized: true,
+        });
+    });
+
+    it('skipEnglish with no localized returns empty data', () => {
+        const noLocalized = { en: 'Hello' };
+        expect(formatBilingualText(noLocalized, 'es', { skipEnglish: true })).toEqual({
+            localized: '',
+            lang: 'es',
+            shouldShowLocalized: false,
+        });
+    });
+
+    it('handles an empty translation object', () => {
+        expect(formatBilingualText({}, 'es')).toEqual({
+            english: '',
+            shouldShowLocalized: false,
+        });
+    });
+
+    it('handles { en: "", es: "" }', () => {
+        expect(formatBilingualText({ en: '', es: '' }, 'es')).toEqual({
+            english: '',
+            shouldShowLocalized: false,
+        });
     });
 });

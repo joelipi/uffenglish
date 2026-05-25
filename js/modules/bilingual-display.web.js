@@ -42,7 +42,7 @@ import { getEnglish, getLocalizedString, shouldShowLocalized } from './bilingual
 export function formatBilingualHTML(
     translationData,
     userLang = 'en',
-    { enPrefix = '', enSuffix = '', spanPrefix = ' ', skipEnglish = false, wrapper = _v => _v } = {}
+    { enPrefix = '', enSuffix = '', spanPrefix = '/ ', skipEnglish = false, wrapper = _v => _v } = {}
 ) {
     const lang = String(userLang || 'en').toLowerCase();
     const english = getEnglish(translationData);

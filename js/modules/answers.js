@@ -247,9 +247,9 @@ export async function validateAnswerPrecheck(val, cue, stepData, englishLevel, u
         warningMessage = Strings.get('no_repetition', userData?.native_language);
         isInvalid = true;
     } else {
-        if (englishLevel === 'A2') { minWordsRequired = 4; }
-        else if (englishLevel === 'B1') { minWordsRequired = 5; }
-        else if (englishLevel === 'B2' || englishLevel === 'C1' || englishLevel === 'C2') { minWordsRequired = 6; }
+        if (englishLevel.toUpperCase() === 'A2') { minWordsRequired = 4; }
+        else if (englishLevel.toUpperCase() === 'B1') { minWordsRequired = 5; }
+        else if (englishLevel.toUpperCase() === 'B2' || englishLevel.toUpperCase() === 'C1' || englishLevel.toUpperCase() === 'C2') { minWordsRequired = 6; }
 
         const isProfane = swearjar.profane(val);
 
