@@ -245,7 +245,7 @@ export async function startLocalAudioTap(stream, onSpeechDetected = null) {
             onSpeechDetected(maxVal);
         }
 
-        if (window.enabledLogs.whisper && localRawAudioChunks.length % 40 === 0) {
+        if (window.enabledLogs && window.enabledLogs.whisper && localRawAudioChunks.length % 40 === 0) {
             console.log(`[Speech] Audio Worklet Flowing - Max Amplitude: ${maxVal.toFixed(4)}`);
         }
     };

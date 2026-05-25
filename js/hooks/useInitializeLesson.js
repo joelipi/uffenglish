@@ -1,13 +1,15 @@
 /**
  * useInitializeLesson — React hook for lesson initialization
  *
- * Pure data/state logic only. No DOM manipulation.
- * All UI changes happen through Zustand store updates that React components react to.
+ * Handles lesson resolution, content loading, and first step dispatch.
+ * The stepLoaderDepsRef allows lazy resolution of the circular dependency
+ * between the answer pipeline and the step loader.
  */
 
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { appStore } from '../modules/store.js';
 import { State } from '../modules/state.js';
+import { loadStep } from '../components/step-loader.web.js';
 import {
     resolveCurrentLessonId,
     getUrlParamCaseInsensitive
@@ -18,6 +20,14 @@ import { updateProgressBar } from '../modules/lesson-progression.js';
 import Strings from '../data/strings.js';
 
 export function useInitializeLesson() {
+    // Ref to hold the step loader deps — set externally after construction
+    // to break the circular dependency with the answer pipeline.
+    const stepLoaderDepsRef = useRef(null);
+
+    const setStepLoaderDeps = useCallback((deps) => {
+        stepLoaderDepsRef.current = deps;
+    }, []);
+
     const initializeLesson = useCallback(async (courseId, lessonId, configData, userData) => {
         try {
             // 1. Resolve the lesson
@@ -66,7 +76,7 @@ export function useInitializeLesson() {
                 await window.preloadLessonAssets(lesson, constructFirebaseUrl);
             }
 
-            // 5. Load lesson content — pure state reset, no DOM
+            // 5. Load lesson content — state reset + dispatch first step
             await loadLessonContent(lesson, configData);
 
             return { success: true, lesson, lessonIndex };
@@ -78,42 +88,44 @@ export function useInitializeLesson() {
         }
     }, []);
 
-    return { initializeLesson };
-}
+    async function loadLessonContent(lesson, configData) {
+        try {
+            await clearSpeechRecordingsForLesson(lesson.lessonId);
+        } catch (e) {
+            console.error(e);
+        }
 
-/**
- * Load lesson content — pure state management, no DOM manipulation.
- * All UI updates happen through Zustand store.
- */
-async function loadLessonContent(lesson, configData) {
-    try {
-        await clearSpeechRecordingsForLesson(lesson.lessonId);
-    } catch (e) {
-        console.error(e);
+        if (State.player) State.player.destroy();
+        State.resetForNewLesson();
+        State.lessonStartTime = new Date().toISOString();
+        State.roleOther = lesson.roleOther || "";
+        State.roleUser = lesson.roleUser || "";
+        State.userRole = lesson.userRole || "";
+        State.videoRole = lesson.videoRole || "";
+
+        updateProgressBar(lesson);
+
+        // Compute title
+        const course = configData?.courseName || "";
+        const englishLevel = configData?.languageLevel || 'A0';
+        const level = englishLevel ? ` (${englishLevel})` : "";
+        const unit = (lesson.unit && String(lesson.unit).trim() !== "") ? `${lesson.unit}: ` : "";
+        const titleText = (typeof lesson.title === 'object') ? (lesson.title.en || "") : (lesson.title || "");
+        const fullTitle = `${course}${level}${course ? ': ' : ''}${unit}${titleText}`;
+
+        appStore.setState({
+            currentStepIndex: 0,
+            lessonTitle: fullTitle,
+            isLessonActive: true
+        });
+
+        // Dispatch the first step via the vanilla step loader
+        const deps = stepLoaderDepsRef.current;
+        if (deps) {
+            const currentStepIndex = appStore.getState().currentStepIndex;
+            loadStep(lesson.steps[currentStepIndex], lesson, null, deps);
+        }
     }
 
-    if (State.player) State.player.destroy();
-    State.resetForNewLesson();
-    State.lessonStartTime = new Date().toISOString();
-    State.roleOther = lesson.roleOther || "";
-    State.roleUser = lesson.roleUser || "";
-    State.userRole = lesson.userRole || "";
-    State.videoRole = lesson.videoRole || "";
-
-    updateProgressBar(lesson);
-
-    // Compute title
-    const course = configData?.courseName || "";
-    const englishLevel = configData?.languageLevel || 'A0';
-    const level = englishLevel ? ` (${englishLevel})` : "";
-    const unit = (lesson.unit && String(lesson.unit).trim() !== "") ? `${lesson.unit}: ` : "";
-    const titleText = (typeof lesson.title === 'object') ? (lesson.title.en || "") : (lesson.title || "");
-    const fullTitle = `${course}${level}${course ? ': ' : ''}${unit}${titleText}`;
-
-    // Update store — React components react to these
-    appStore.setState({
-        currentStepIndex: 0,
-        lessonTitle: fullTitle,
-        isLessonActive: true
-    });
+    return { initializeLesson, setStepLoaderDeps };
 }

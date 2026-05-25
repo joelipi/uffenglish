@@ -349,7 +349,7 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
         });
     }
 
-    if (subtitleText && subtitleText.trim() !== "") {
+    if (typeof subtitleText === 'string' && subtitleText.trim() !== "") {
         context.textAlign = 'center';
         context.textBaseline = 'bottom';
         const centerX = Math.floor(canvasWidth / 2);

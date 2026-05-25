@@ -50,7 +50,13 @@ export default function LessonContainer() {
     const answerPipeline = useAnswerPipeline();
     const { submitAnswerPrecheck, showFeedbackAndProceed, handleHint, setCallLoadStep, setLoadNextStep } = answerPipeline;
     const { callLoadStep } = useStepLoader(submitAnswerPrecheck, showFeedbackAndProceed, handleHint, setCallLoadStep, setLoadNextStep);
-    const { initializeLesson } = useInitializeLesson();
+    const { initializeLesson, setStepLoaderDeps } = useInitializeLesson();
+
+    // Provide the answer pipeline deps to the lesson initializer so it can
+    // call the vanilla step loader (step-loader.web.js) for the first step.
+    useEffect(() => {
+        setStepLoaderDeps({ submitAnswerPrecheck, showFeedbackAndProceed, handleHint });
+    }, [submitAnswerPrecheck, showFeedbackAndProceed, handleHint, setStepLoaderDeps]);
 
     // Initialize web-only DOM side-effect subscriber once on mount
     useEffect(() => {
@@ -92,7 +98,6 @@ export default function LessonContainer() {
 
             <div className="lesson-body">
                 <MicrophoneToggle />
-                <IntroChoices />
                 <LessonSuccessControls />
                 <CriticalErrorModal />
                 <GuestLoginModal />
@@ -100,6 +105,7 @@ export default function LessonContainer() {
 
             <AuthLink />
             <MissionSection />
+            <IntroChoices />
             <MicStatusText />
             <Hints />
             <AnswerInput />

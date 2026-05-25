@@ -49,6 +49,7 @@ export async function loadNextLesson(_deps = {}) {
     if (!appStore.getState().configData || !appStore.getState().configData.lessons || appStore.getState().configData.lessons.length === 0) return;
     const currentLesson = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex];
     const nextLessonId = currentLesson.nextLessonId;
+    console.log(`[Progression] loadNextLesson: ${currentLesson?.lessonId} → ${nextLessonId}`);
 
     if (nextLessonId) {
         saveLessonProgress(appStore.getState().courseId, nextLessonId, appStore.getState().userData).then(progressResult => {
@@ -68,7 +69,7 @@ export async function loadNextLesson(_deps = {}) {
                 appStore.setState({ currentStepIndex: 0 });
                 _deps.loadLessonContent(appStore.getState().configData.lessons[nextLessonIndex]);
             } else showCompletionMessage();
-        }, 1200);
+        }, 500);
     } else {
         Media.playSound('lesson-complete-sound');
         showCompletionMessage();

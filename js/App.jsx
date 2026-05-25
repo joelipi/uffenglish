@@ -4,9 +4,11 @@ import { initLocalVoiceAI } from './modules/speech.js';
 import { idiomChecker } from './modules/idiom-checker.js';
 
 import LessonContainer from './components/LessonContainer.jsx';
+import { useAppBootstrap } from './hooks/useAppBootstrap.js';
 
 export default function App() {
     const isWorkerInitialized = useRef(false);
+    const { bootState } = useAppBootstrap();
 
     useEffect(() => {
         if (isWorkerInitialized.current) return;
@@ -40,6 +42,10 @@ export default function App() {
             }
         })();
     }, []);
+
+    if (bootState !== 'ready') {
+        return null;
+    }
 
     return (
         <BrowserRouter>

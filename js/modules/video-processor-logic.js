@@ -28,7 +28,7 @@ export class VideoRenderPlanner {
                     plan.push({
                         type: 'remote',
                         targetId: remoteUrl,
-                        subtitle: rec.cue || this._getStepCue(rec),
+                        subtitle: this._getStepCue(rec),
                         isFirst: plan.length === 0
                     });
                 }
