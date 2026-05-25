@@ -36,6 +36,8 @@ import {
     cancelWarningClear
 } from '../modules/step-loader-logic.js';
 
+import { loadStepOrchestrate } from '../modules/step-loader-orchestrate.js';
+
 import {
     clearChat,
     addAIFeedbackMessages
@@ -234,63 +236,92 @@ export function loadStep(step, lesson, fluencyData, deps) {
 
     resetUIForNewStep(step.stepType === 'lessonIntro', !!appStore.getState().userData);
 
-    handleStepCore(step);
-
-    if (step.stepType === 'closedResponse' || step.stepType === 'openResponse') {
-        if (!appStore.getState().isCameraOff && !appStore.getState().isTextMode) {
-            warmUpSpeechCamStream();
-        } else if (appStore.getState().isTextMode) {
-            console.log('[QuestionLoader] Text mode: bypassing hardware prompt');
-        } else {
-            warmUpSpeechCamStream();
-        }
-        if (isIOS) {
-            const closePageLink = document.getElementById('closePage');
-            if (closePageLink) {
-                closePageLink.removeEventListener('click', handleClosePageClick);
-                function handleClosePageClick(e) { if (!confirm(Strings.get('alert_lesson_reset', appStore.getState().userData?.native_language))) e.preventDefault(); }
-                closePageLink.addEventListener('click', handleClosePageClick);
+    // Platform-specific pre-dispatch: speech warmup, media rendering, UI setup
+    const onStepLoaded = (step, lesson, fluencyData) => {
+        if (step.stepType === 'closedResponse' || step.stepType === 'openResponse') {
+            if (!appStore.getState().isCameraOff && !appStore.getState().isTextMode) {
+                warmUpSpeechCamStream();
+            } else if (appStore.getState().isTextMode) {
+                console.log('[QuestionLoader] Text mode: bypassing hardware prompt');
+            } else {
+                warmUpSpeechCamStream();
+            }
+            if (isIOS) {
+                const closePageLink = document.getElementById('closePage');
+                if (closePageLink) {
+                    closePageLink.removeEventListener('click', handleClosePageClick);
+                    function handleClosePageClick(e) { if (!confirm(Strings.get('alert_lesson_reset', appStore.getState().userData?.native_language))) e.preventDefault(); }
+                    closePageLink.addEventListener('click', handleClosePageClick);
+                }
+            } else {
+                window.removeEventListener('beforeunload', beforeUnloadHandler);
+                window.addEventListener('beforeunload', beforeUnloadHandler);
             }
         } else {
+            appStore.getState().setWebcamStream(null);
             window.removeEventListener('beforeunload', beforeUnloadHandler);
-            window.addEventListener('beforeunload', beforeUnloadHandler);
         }
-    } else {
-        appStore.getState().setWebcamStream(null);
-        window.removeEventListener('beforeunload', beforeUnloadHandler);
-    }
 
-    if (step.stepType != 'lessonComplete' && step.stepType != 'unitComplete') {
-        removeRepeatButton();
-    }
+        if (step.stepType != 'lessonComplete' && step.stepType != 'unitComplete') {
+            removeRepeatButton();
+        }
 
-    clearMediaContainerAndPreservePlayers();
+        clearMediaContainerAndPreservePlayers();
 
-    if (step.image) {
-        renderImageInMediaContainer(step.image);
-    }
-    if (step.youtube) {
-        renderYoutubeInMediaContainer(step.youtube);
-    }
+        if (step.image) {
+            renderImageInMediaContainer(step.image);
+        }
+        if (step.youtube) {
+            renderYoutubeInMediaContainer(step.youtube);
+        }
+    };
 
-    if (step.stepType === "closedResponse" || step.stepType === "openResponse") {
+    // Platform-specific step type handlers
+    const onResponseStep = (step, lesson, deps) => {
         _renderResponseStep(step, lesson, deps);
-    } else if (step.stepType === 'text') {
-        handleTextStep(step, submitAnswerPrecheck);
+    };
+
+    const onTextStep = (step, deps) => {
+        handleTextStep(step, deps.submitAnswerPrecheck);
         updateProgressAndCloseButton(true);
-    } else if (step.stepType === 'lessoncomplete') {
+    };
+
+    const onLessonComplete = (step, deps) => {
         updateProgressAndCloseButton(true);
-        handleLessonComplete(step, showFeedbackAndProceed);
+        handleLessonComplete(step, deps.showFeedbackAndProceed);
         hideAnswerDiv();
-    } else if (step.stepType === 'unitcomplete') {
+    };
+
+    const onUnitComplete = (step) => {
         handleUnitComplete(step);
-    } else if (step.stepType === 'lessonIntro') {
+    };
+
+    const onLessonIntro = (step, lesson, deps) => {
         _renderLessonIntro(step, lesson, deps);
-    } else if (step.stepType === 'present') {
-        _renderPresent(step, lesson, showFeedbackAndProceed);
-    } else if (step.stepType === 'success') {
+    };
+
+    const onPresent = (step, lesson, deps) => {
+        _renderPresent(step, lesson, deps.showFeedbackAndProceed);
+    };
+
+    const onSuccess = (step, fluencyData) => {
         _renderSuccess(step, fluencyData);
-    }
+    };
+
+    // Platform-agnostic orchestration
+    loadStepOrchestrate(step, lesson, fluencyData, {
+        submitAnswerPrecheck,
+        showFeedbackAndProceed,
+        handleHint,
+        onStepLoaded,
+        onResponseStep,
+        onTextStep,
+        onLessonIntro,
+        onPresent,
+        onSuccess,
+        onLessonComplete,
+        onUnitComplete
+    });
 }
 
 function _renderResponseStep(step, lesson, deps) {
