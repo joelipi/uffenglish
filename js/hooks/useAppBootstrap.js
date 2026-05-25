@@ -25,6 +25,8 @@ let progressInterval = null;
 function ensurePreloader() {
     preloadDiv = document.getElementById('appLoadingImageDiv');
     progressBar = document.getElementById('ui-progress-bar');
+    const progressContainer = document.getElementById('ui-progress-container');
+    if (progressContainer) progressContainer.style.opacity = '1';
 }
 
 function startProgressPulse() {
