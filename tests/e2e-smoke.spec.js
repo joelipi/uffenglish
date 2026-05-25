@@ -68,7 +68,7 @@ test.describe('End-to-End Smoke Test', () => {
 
         // 3. Interaction Loop: Respond Correctly and Incorrectly
         const answerResults = await page.evaluate(async () => {
-            const { submitAnswerPrecheck, handleAnswer } = await import('/js/app.js');
+            const { submitAnswerPrecheck, handleAnswer } = await import('/js/tests/test-helpers.js');
             const state = window.appStore.getState();
             const lesson = state.configData.lessons[state.currentLessonIndex];
             const step = lesson.steps[state.currentStepIndex] || lesson.steps[1];

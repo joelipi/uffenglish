@@ -1,7 +1,7 @@
 /**
  * useAppBootstrap — React hook for full app bootstrap
  *
- * Encapsulates the initializeApp() flow that was previously in js/app.js.
+ * Encapsulates the initializeApp() flow that was previously in the deleted js/app.js.
  * Mounts the preloader in the DOM, then bootstraps app infra so React Router
  * can render routes.
  *

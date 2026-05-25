@@ -35,7 +35,7 @@ test.describe('Answer Flow — mic bypass integration test', () => {
 
         // Import the wrappers and call submitAnswerPrecheck with a mock speech response
         const precheckResult = await page.evaluate(async () => {
-            const { submitAnswerPrecheck } = await import('/js/app.js');
+            const { submitAnswerPrecheck } = await import('/js/tests/test-helpers.js');
             const state = window.appStore.getState();
             const lesson = state.configData.lessons[state.currentLessonIndex];
             const step = lesson.steps[state.currentStepIndex] || lesson.steps[1];
@@ -62,7 +62,7 @@ test.describe('Answer Flow — mic bypass integration test', () => {
 
         // Also test handleAnswer wrapper directly (simulates speech.js call)
         const answerResult = await page.evaluate(async () => {
-            const { handleAnswer } = await import('/js/app.js');
+            const { handleAnswer } = await import('/js/tests/test-helpers.js');
             const state = window.appStore.getState();
             const lesson = state.configData.lessons[state.currentLessonIndex];
             const step = lesson.steps[state.currentStepIndex] || lesson.steps[1];
