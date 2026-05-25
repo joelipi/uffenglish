@@ -35,7 +35,8 @@ test.describe('Answer Flow — mic bypass integration test', () => {
 
         // Import the wrappers and call submitAnswerPrecheck with a mock speech response
         const precheckResult = await page.evaluate(async () => {
-            const { submitAnswerPrecheck } = await import('/js/tests/test-helpers.js');
+            const { submitAnswerPrecheck } = await import('/js/modules/answer-pipeline.jsx');
+            const answerDeps = { loadNextStep: null };
             const state = window.appStore.getState();
             const lesson = state.configData.lessons[state.currentLessonIndex];
             const step = lesson.steps[state.currentStepIndex] || lesson.steps[1];
@@ -47,7 +48,10 @@ test.describe('Answer Flow — mic bypass integration test', () => {
                     null,
                     step.explanation || '',
                     step.translation || null,
-                    { pauseCount: 0, netDuration: 3 }
+                    { pauseCount: 0, netDuration: 3 },
+                    answerDeps,
+                    state.userData,
+                    state.configData
                 );
                 return { ok: true };
             } catch (e) {
@@ -62,7 +66,8 @@ test.describe('Answer Flow — mic bypass integration test', () => {
 
         // Also test handleAnswer wrapper directly (simulates speech.js call)
         const answerResult = await page.evaluate(async () => {
-            const { handleAnswer } = await import('/js/tests/test-helpers.js');
+            const { handleAnswer } = await import('/js/modules/answer-pipeline.jsx');
+            const answerDeps = { loadNextStep: null };
             const state = window.appStore.getState();
             const lesson = state.configData.lessons[state.currentLessonIndex];
             const step = lesson.steps[state.currentStepIndex] || lesson.steps[1];
@@ -75,6 +80,7 @@ test.describe('Answer Flow — mic bypass integration test', () => {
                     step.explanation || '',
                     step.translation || null,
                     { pauseCount: 0, netDuration: 3 },
+                    answerDeps,
                     state.userData,
                     state.configData
                 );

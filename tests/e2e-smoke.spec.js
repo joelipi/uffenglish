@@ -49,6 +49,8 @@ test.describe('End-to-End Smoke Test', () => {
             if (stats) stats.classList.remove('d-none');
             const media = document.getElementById('media-viewport');
             if (media) media.classList.remove('d-none');
+            // Ensure store state matches (StatsBar React component manages d-none via store)
+            if (window.appStore) window.appStore.getState().setStatsVisible(true);
         });
         await assertNoError();
 
@@ -68,7 +70,8 @@ test.describe('End-to-End Smoke Test', () => {
 
         // 3. Interaction Loop: Respond Correctly and Incorrectly
         const answerResults = await page.evaluate(async () => {
-            const { submitAnswerPrecheck, handleAnswer } = await import('/js/tests/test-helpers.js');
+            const { submitAnswerPrecheck, handleAnswer } = await import('/js/modules/answer-pipeline.jsx');
+            const answerDeps = { loadNextStep: null };
             const state = window.appStore.getState();
             const lesson = state.configData.lessons[state.currentLessonIndex];
             const step = lesson.steps[state.currentStepIndex] || lesson.steps[1];
@@ -77,8 +80,8 @@ test.describe('End-to-End Smoke Test', () => {
 
             // Path A: Incorrect Response
             try {
-                const precheck = await submitAnswerPrecheck('wrong answer', step.cue, step, null, step.explanation, step.translation, { pauseCount: 0, netDuration: 3 });
-                const answer = await handleAnswer('wrong answer', step.cue, step, null, step.explanation, step.translation, { pauseCount: 0, netDuration: 3 }, state.userData, state.configData);
+                const precheck = await submitAnswerPrecheck('wrong answer', step.cue, step, null, step.explanation, step.translation, { pauseCount: 0, netDuration: 3 }, answerDeps);
+                const answer = await handleAnswer('wrong answer', step.cue, step, null, step.explanation, step.translation, { pauseCount: 0, netDuration: 3 }, answerDeps, state.userData, state.configData);
                 results.push({ type: 'incorrect', ok: true });
             } catch (e) {
                 results.push({ type: 'incorrect', ok: false, error: e.message });
@@ -86,9 +89,8 @@ test.describe('End-to-End Smoke Test', () => {
 
             // Path B: Correct Response
             try {
-                // We simulate a correct answer by passing the cue exactly (simplest path)
-                const precheck = await submitAnswerPrecheck(step.cue, step.cue, step, null, step.explanation, step.translation, { pauseCount: 0, netDuration: 3 });
-                const answer = await handleAnswer(step.cue, step.cue, step, null, step.explanation, step.translation, { pauseCount: 0, netDuration: 3 }, state.userData, state.configData);
+                const precheck = await submitAnswerPrecheck(step.cue, step.cue, step, null, step.explanation, step.translation, { pauseCount: 0, netDuration: 3 }, answerDeps);
+                const answer = await handleAnswer(step.cue, step.cue, step, null, step.explanation, step.translation, { pauseCount: 0, netDuration: 3 }, answerDeps, state.userData, state.configData);
                 results.push({ type: 'correct', ok: true });
             } catch (e) {
                 results.push({ type: 'correct', ok: false, error: e.message });

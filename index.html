@@ -1280,14 +1280,9 @@
             animation: ring-shake 0.8s infinite ease-in-out, ring-pulse 1.5s infinite ease-in-out;
         }
 
-        /* =========================================
+         /* =========================================
            FEEDBACK, HINTS & GRAMMAR
            ========================================= */
-        #react-root-hints {
-            top: 50px;
-            left: 25px;
-            z-index: 20;
-        }
 
         .headsUp::before {
             content: "➡️ ";
@@ -1883,7 +1878,6 @@
                     let progress = 0;
                     const preloader = document.getElementById('appLoadingImageDiv');
                     const progressBar = document.getElementById('ui-progress-bar');
-                    const loadingText = document.getElementById('ui-loading-text');
 
                     // Start the fake loading pulse
                     const progressInterval = setInterval(() => {
@@ -1916,7 +1910,6 @@
                         // Finish the loading bar
                         clearInterval(progressInterval);
                         if (progressBar) progressBar.style.width = '100%';
-                        if (loadingText) loadingText.innerText = 'Ready!';
 
                         setTimeout(() => {
                             resolveApp();
@@ -1932,8 +1925,7 @@
         })();
     </script>
 
-    <!-- AUTH LINK (hidden until needed) -->
-    <span id="auth-link" class="d-none"></span>
+    <!-- React Entry (sole entry point after full migration) -->
 
     <main class="app-container d-flex justify-content-center align-items-center">
 
@@ -1968,9 +1960,6 @@
             </div>
 
 
-            <!-- Critical Error Container (React Portal Anchor) -->
-            <div id="react-root-critical-error"></div>
-
             <!-- Whisper Review UI (Hardcoded Overlay) -->
             <div id="whisperReviewContainer"
                 class="d-none position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4 text-white text-center">
@@ -1991,9 +1980,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Main Remote Video Player -->
-            <video id="callVideo" class="w-100 h-100 object-fit-cover d-none" playsinline></video>
 
             <!-- Self-View (Picture-in-Picture) -->
             <div class="pip-container shadow d-none" id="pip-wrapper">
@@ -2080,8 +2066,7 @@
             <!-- Permanent Answer Input Area (for text-input steps; this is distinct from the chat) -->
             <!-- Rendered by React AnswerInput component -->
             <div id="answer-input-area" class="d-none position-absolute w-100 p-3 z-3"></div>
-            <div id="react-root-hints" class="card position-absolute"></div>
-            <!-- Bottom Overlay -->
+             <!-- Bottom Overlay -->
             <div class="bottom-overlay position-absolute bottom-0 start-0 w-100 d-flex flex-column">
 
                 <!-- Layer 1: The Reflecting Pool -->
@@ -2092,20 +2077,7 @@
                     <div id="react-root-mission"></div>
 
                     <div class="controls-section">
-                        <div class="d-flex justify-content-between align-items-center w-100">
-
-                            <!-- LEFT: Friend Button -->
-                            <button class="btn call-btn" id="friendBtn" aria-label="Contact Friend">
-                                <img src="/assets/img/userprofile.png" alt="Friend Profile" class="friend-img">
-                            </button>
-
-                            <!-- CENTER: Mic / Intro Choices / Lesson Success — all rendered by React into #react-root-mic -->
-                            <div id="react-root-mic"></div>
-
-                            <!-- RIGHT: Help Button -->
-                            <button class="btn call-btn" id="helpBtn" aria-label="Help">
-                                <i class="bi bi-question-circle-fill"></i>
-                            </button>
+                         <div class="d-flex justify-content-between align-items-center w-100">
 
                         </div>
                     </div>
