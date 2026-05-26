@@ -12,21 +12,26 @@ export default function SuccessVideo() {
 
         const url = URL.createObjectURL(blob);
         video.src = url;
-        video.classList.remove('d-none');
-        video.style.display = 'block';
+        video.play().catch(() => {});
 
         return () => {
             URL.revokeObjectURL(url);
-            const displayCanvas = document.getElementById('displayCanvas');
-            if (displayCanvas) displayCanvas.classList.add('d-none');
         };
     }, [blob]);
 
     if (!blob) return null;
 
     return (
-        <video ref={videoRef} id="resultVideo" playsInline controls
-            className="d-none"
-            style={{ width: '100%', height: 'calc(100% - 140px)', objectFit: 'contain', backgroundColor: 'black' }} />
+        <video ref={videoRef} id="resultVideo" playsInline autoPlay loop controls
+            style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                backgroundColor: 'black',
+                zIndex: 10
+            }} />
     );
 }
