@@ -9,6 +9,11 @@ function portalTarget() {
     return document.getElementById('ivp-container');
 }
 
+function setIvpContainerVisible(visible) {
+    const el = document.getElementById('ivp-container');
+    if (el) el.classList.toggle('d-none', !visible);
+}
+
 export default function InteractiveVideoWrapper() {
     const containerRef = useRef(null);
     const playerInstance = useRef(null);
@@ -21,6 +26,7 @@ export default function InteractiveVideoWrapper() {
 
     useEffect(() => {
         if (!currentVideo || currentVideo.type !== 'interactive') {
+            setIvpContainerVisible(false);
             if (playerInstance.current) {
                 playerInstance.current.destroy();
                 playerInstance.current = null;
@@ -30,6 +36,7 @@ export default function InteractiveVideoWrapper() {
             return;
         }
 
+        setIvpContainerVisible(true);
         appStore.getState().setMediaVisible(true);
 
         if (!containerRef.current || playerInstance.current) return;

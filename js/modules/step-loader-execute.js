@@ -1,513 +1,592 @@
+// --- modules/step-loader-execute.js ---
+// Extracted from step-loader.web.js — contains all imperative DOM step loading logic.
+// Exports createLoadStep(submitAnswerPrecheck, showFeedbackAndProceed, handleHint) factory.
+
+import { State } from '../modules/state.js';
 import { appStore } from '../modules/store.js';
-import { loadStepOrchestrate } from '../modules/step-loader-orchestrate.js';
-import {
-    handleSuccessStep,
-    clearWarningLater
-} from '../modules/step-loader-logic.js';
-import { getCurrentStepIndex } from '../modules/answers.js';
-import {
-    isIOS,
-    warmUpSpeechCamStream,
-    toggleSpeechRecognition
-} from '../modules/speech.js';
-import { Media } from '../modules/media.js';
 import Strings from '../data/strings.js';
+import { getLocalizedTranslation } from '../modules/utils.js';
+import { formatBilingualHTML } from '../modules/bilingual-display.web.js';
+import { Media } from '../modules/media.js';
+import { getCurrentStepIndex } from '../modules/answers.js';
+import { isIOS, warmUpSpeechCamStream, toggleSpeechRecognition, listeningState } from '../modules/speech.js';
+import { logInteraction } from '../modules/scoring.js';
+import { pointLoss } from '../components/point-loss-animation.js';
+import { handleStepCore, handleTextStep, handleLessonComplete, handleUnitComplete, handleSuccessStep, clearWarningLater, cancelWarningClear } from '../modules/step-loader-logic.js';
+import { loadStepOrchestrate } from '../modules/step-loader-orchestrate.js';
+import { clearChat, addAIFeedbackMessages } from '../components/chat/chat-interface.js';
 
-export function createLoadStep(submitAnswerPrecheck, showFeedbackAndProceed, handleHint, startMicAnimation, stopMicAnimation) {
+function renderWhisperReviewUI(transcript, timeLeft, onAccept, onReject) {
+    appStore.getState().removeAiLoadingMessage();
+    appStore.getState().setMicStatusText("");
+    const container = document.getElementById('whisperReviewContainer');
+    const transcriptEl = document.getElementById('whisperTranscript');
+    if (!container || !transcriptEl) return;
 
-    // ---------------------------------------------------------------------------
-    // DOM helper: render Whisper transcript review UI
-    // ---------------------------------------------------------------------------
-    function renderWhisperReviewUI(transcript, timeLeft, onAccept, onReject) {
-        const container = document.getElementById('whisper-review-ui');
-        if (!container) return;
-        container.innerHTML = '';
-        container.style.display = 'block';
+    transcriptEl.textContent = `"${transcript}"`;
+    const timerSpan = document.getElementById("reviewTimer");
+    if (timerSpan) timerSpan.innerText = timeLeft;
 
-        const transcriptEl = document.createElement('div');
-        transcriptEl.className = 'whisper-review-transcript';
-        transcriptEl.textContent = transcript;
-        container.appendChild(transcriptEl);
+    container.classList.remove("d-none");
 
-        const timerEl = document.createElement('div');
-        timerEl.className = 'whisper-review-timer';
-        timerEl.textContent = `${timeLeft}s`;
-        container.appendChild(timerEl);
-
-        const actionsEl = document.createElement('div');
-        actionsEl.className = 'whisper-review-actions';
-
-        const acceptBtn = document.createElement('button');
-        acceptBtn.className = 'btn btn-success whisper-review-accept';
-        acceptBtn.textContent = '✓ Accept';
-        acceptBtn.addEventListener('click', onAccept);
-        actionsEl.appendChild(acceptBtn);
-
-        const rejectBtn = document.createElement('button');
-        rejectBtn.className = 'btn btn-danger whisper-review-reject';
-        rejectBtn.textContent = '✗ Reject';
-        rejectBtn.addEventListener('click', onReject);
-        actionsEl.appendChild(rejectBtn);
-
-        container.appendChild(actionsEl);
-    }
-
-    // ---------------------------------------------------------------------------
-    // DOM helper: update Whisper timer display
-    // ---------------------------------------------------------------------------
-    function updateWhisperTimer(timeLeft) {
-        const timerEl = document.querySelector('.whisper-review-timer');
-        if (timerEl) timerEl.textContent = `${timeLeft}s`;
-    }
-
-    // ---------------------------------------------------------------------------
-    // DOM helper: reset UI for new step
-    // ---------------------------------------------------------------------------
-    function resetUIForNewStep(isLessonIntro, hasUserData) {
-        const answerDiv = document.getElementById('answer-div');
-        if (answerDiv) answerDiv.classList.add('d-none');
-
-        const hintBtn = document.getElementById('hint-btn');
-        if (hintBtn) hintBtn.classList.add('d-none');
-
-        const repeatBtn = document.getElementById('repeat-btn');
-        if (repeatBtn) repeatBtn.classList.add('d-none');
-
-        const whisperReview = document.getElementById('whisper-review-ui');
-        if (whisperReview) whisperReview.style.display = 'none';
-
-        appStore.getState().setHangmanHintHTML('');
-        appStore.getState().setHintsVisible(false);
-        appStore.getState().setMicStatusText('');
-
-        if (isLessonIntro) {
-            appStore.getState().setBottomControlState('introChoices');
-        } else {
-            appStore.getState().setBottomControlState('mic');
-        }
-
-        const mediaViewport = document.getElementById('media-viewport');
-        if (mediaViewport) mediaViewport.classList.remove('d-none');
-    }
-
-    // ---------------------------------------------------------------------------
-    // DOM helper: clear media container, preserving player instances
-    // ---------------------------------------------------------------------------
-    function clearMediaContainerAndPreservePlayers() {
-        const mediaViewport = document.getElementById('media-viewport');
-        if (!mediaViewport) return;
-
-        // Remove everything except elements we want to keep (video players)
-        const children = Array.from(mediaViewport.children);
-        children.forEach(child => {
-            if (child.id && (currentVideoPlayerIds.has(child.id) || child.classList.contains('player-preserve'))) {
-                return;
-            }
-            child.remove();
+    const bar = document.getElementById("reviewProgressBar");
+    if (bar) {
+        bar.style.transition = "none";
+        bar.style.width = "100%";
+        requestAnimationFrame(() => {
+            bar.style.transition = "width 7s linear";
+            bar.style.width = "0%";
         });
     }
 
-    const currentVideoPlayerIds = new Set(['playback-video']);
+    const acceptBtn = document.getElementById("acceptBtn");
+    const rejectBtn = document.getElementById("rejectBtn");
 
-    // ---------------------------------------------------------------------------
-    // DOM helper: show media viewport, hide intro call widget
-    // ---------------------------------------------------------------------------
-    function showMediaViewport() {
-        const mediaViewport = document.getElementById('media-viewport');
-        if (mediaViewport) mediaViewport.classList.remove('d-none');
-        const introCallWidget = document.getElementById('intro-call-widget');
-        if (introCallWidget) introCallWidget.classList.remove('d-none');
+    if (acceptBtn) {
+        const newAccept = acceptBtn.cloneNode(true);
+        acceptBtn.parentNode.replaceChild(newAccept, acceptBtn);
+        newAccept.addEventListener("click", () => {
+            container.classList.add("d-none");
+            onAccept();
+        });
     }
 
-    // ---------------------------------------------------------------------------
-    // DOM helper: hide media viewport, show intro call widget
-    // ---------------------------------------------------------------------------
-    function hideMediaViewport() {
-        const mediaViewport = document.getElementById('media-viewport');
-        if (mediaViewport) mediaViewport.classList.add('d-none');
-        const introCallWidget = document.getElementById('intro-call-widget');
-        if (introCallWidget) introCallWidget.classList.add('d-none');
+    if (rejectBtn) {
+        const newReject = rejectBtn.cloneNode(true);
+        rejectBtn.parentNode.replaceChild(newReject, rejectBtn);
+        newReject.addEventListener("click", () => {
+            container.classList.add("d-none");
+            onReject();
+        });
+    }
+}
+
+function updateWhisperTimer(timeLeft) {
+    const timerSpan = document.getElementById('reviewTimer');
+    if (timerSpan) timerSpan.innerText = timeLeft;
+}
+
+function resetUIForNewStep(isLessonIntro, hasUserData) {
+    appStore.getState().setBottomControlState('mic');
+
+    const resultVideo = document.getElementById('resultVideo');
+    if (resultVideo) resultVideo.remove();
+    const displayCanvas = document.getElementById('displayCanvas');
+    if (displayCanvas) displayCanvas.remove();
+
+    const continueSuccess = document.getElementById('continueButtonSuccess');
+    if (continueSuccess) continueSuccess.remove();
+
+    const repeatSuccess = document.getElementById('repeatButtonSuccess');
+    if (repeatSuccess) repeatSuccess.remove();
+
+    const videoBtn = document.getElementById('processBtn') || document.getElementById('createVideoButton');
+    if (videoBtn) {
+        videoBtn.disabled = false;
+        videoBtn.classList.remove('btn-success', 'flex-fill');
+        videoBtn.classList.add('btn-outline-primary', 'w-100');
+        videoBtn.innerHTML = '<i class="bi bi-film text-white"></i>';
     }
 
-    // ---------------------------------------------------------------------------
-    // DOM helper: render image in media container
-    // ---------------------------------------------------------------------------
-    function renderImageInMediaContainer(imageUrl) {
-        const mediaViewport = document.getElementById('media-viewport');
-        if (!mediaViewport) return;
+    const lessonIntroHeader = document.getElementById('lessonIntroHeader');
+    if (lessonIntroHeader) lessonIntroHeader.classList.toggle('d-none', !isLessonIntro || hasUserData);
+
+    if (document.getElementById('closeAndProgress')) document.getElementById('closeAndProgress').classList.toggle('d-none', isLessonIntro && !hasUserData);
+
+    const myToastClose = document.querySelector('#myToast .btn-close');
+    if (myToastClose) myToastClose.click();
+
+    const successMedia = document.getElementById("success-media");
+    if (successMedia) successMedia.classList.add("d-none");
+
+    const courseProgress = document.getElementById("courseProgress");
+    if (courseProgress) courseProgress.classList.add("d-none");
+
+    const micBtn = document.getElementById('micBtn');
+    if (micBtn) {
+        micBtn.style.removeProperty('display');
+        micBtn.disabled = false;
+        micBtn.classList.remove('disabled');
+    }
+    const txtBtn = document.getElementById('txtBtn');
+    if (txtBtn) {
+        txtBtn.style.removeProperty('display');
+        txtBtn.disabled = false;
+        txtBtn.classList.remove('disabled');
+    }
+}
+
+function removeRepeatButton() {
+    let repeatButton = document.getElementById('repeatButton');
+    if (repeatButton) repeatButton.remove();
+}
+
+function clearMediaContainerAndPreservePlayers() {
+    if (!document.getElementById('media-viewport')) return;
+
+    const preserved = document.getElementById('media-viewport').querySelectorAll('#ivp-container, #simple-video-container, #intro-call-widget, #webcam-preview');
+    document.getElementById('media-viewport').innerHTML = '';
+
+    preserved.forEach(el => {
+        el.style.display = '';
+        el.style.minHeight = '';
+
+        if (el.id === 'webcam-preview') {
+            // no-op
+        } else {
+            if (el.id !== 'ivp-container' && el.id !== 'simple-video-container' && el.id !== 'intro-call-widget') {
+                el.innerHTML = '';
+            }
+        }
+
+        document.getElementById('media-viewport').appendChild(el);
+    });
+}
+
+function renderImageInMediaContainer(imageUrl) {
+    if (!document.getElementById('media-viewport')) return;
+
+    document.getElementById('media-viewport').classList.remove('d-none');
+    document.getElementById('media-viewport').style.display = 'block';
+
+    const existingPraise = document.getElementById('media-viewport').querySelectorAll('.praise-image-wrapper');
+    existingPraise.forEach(el => el.remove());
+
+    const div = document.createElement('div');
+    div.className = 'text-center mb-3 praise-image-wrapper';
+    div.innerHTML = `<img src="${imageUrl}" class="img-fluid rounded" alt="Praise" style="max-height: 250px; border: 3px solid #00f2fe; box-shadow: 0 0 15px rgba(0,242,254,0.5);">`;
+
+    document.getElementById('media-viewport').prepend(div);
+}
+
+function renderYoutubeInMediaContainer(youtubeId) {
+    if (!document.getElementById('media-viewport')) return;
+    const div = document.createElement('div');
+    div.className = 'text-center mb-3';
+    div.innerHTML = `<iframe width="315" height="560" src="https://www.youtube.com/embed/${youtubeId}?autoplay=1&rel=0&modestbranding=1&controls=0&disablekb=1&fs=0&playsinline=1&short=1&playback_rate=0.8" title="Intro" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope" referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+    document.getElementById('media-viewport').prepend(div);
+}
+
+function updateProgressAndCloseButton(showClose) {
+    if (document.getElementById('closeAndProgress')) {
+        if (showClose) document.getElementById('closeAndProgress').classList.remove('d-none');
+        else document.getElementById('closeAndProgress').classList.add('d-none');
+    }
+}
+
+function hideAnswerDiv() {
+    const answerDiv = document.getElementById("answerDiv");
+    if (answerDiv) answerDiv.classList.add("d-none");
+}
+
+function bindProcessButton(onClickCallback) {
+    const processBtn = document.getElementById('processBtn');
+    if (processBtn) processBtn.addEventListener('click', onClickCallback);
+}
+
+function beforeUnloadHandler(e) { /* e.preventDefault(); e.returnValue = ''; return ''; */ }
+
+export function createLoadStep(submitAnswerPrecheck, showFeedbackAndProceed, handleHint) {
+    return function loadStep(step, lesson, fluencyData) {
+    // submitAnswerPrecheck, showFeedbackAndProceed, handleHint closed over from factory
+
+    // Strict voice/hesitation state isolation between steps
+    if (listeningState) {
+        listeningState.active = false;
+        listeningState.transitioning = false;
+        if (listeningState.hesitationTimer) {
+            clearInterval(listeningState.hesitationTimer);
+            listeningState.hesitationTimer = null;
+        }
+    }
+
+    window.__currentStepIndex = getCurrentStepIndex(step, appStore.getState().configData, appStore.getState().currentLessonIndex);
+    clearChat();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    resetUIForNewStep(step.stepType === 'lessonIntro', !!appStore.getState().userData);
+
+    // Platform-specific pre-dispatch: speech warmup, media rendering, UI setup
+    const onStepLoaded = (step, lesson, fluencyData) => {
+        if (step.stepType === 'closedResponse' || step.stepType === 'openResponse') {
+            if (!appStore.getState().isCameraOff && !appStore.getState().isTextMode) {
+                warmUpSpeechCamStream();
+            } else if (appStore.getState().isTextMode) {
+                console.log('[QuestionLoader] Text mode: bypassing hardware prompt');
+            } else {
+                warmUpSpeechCamStream();
+            }
+            if (isIOS) {
+                const closePageLink = document.getElementById('closePage');
+                if (closePageLink) {
+                    closePageLink.removeEventListener('click', handleClosePageClick);
+                    function handleClosePageClick(e) { if (!confirm(Strings.get('alert_lesson_reset', appStore.getState().userData?.native_language))) e.preventDefault(); }
+                    closePageLink.addEventListener('click', handleClosePageClick);
+                }
+            } else {
+                window.removeEventListener('beforeunload', beforeUnloadHandler);
+                window.addEventListener('beforeunload', beforeUnloadHandler);
+            }
+        } else {
+            appStore.getState().setWebcamStream(null);
+            window.removeEventListener('beforeunload', beforeUnloadHandler);
+        }
+
+        if (step.stepType != 'lessonComplete' && step.stepType != 'unitComplete') {
+            removeRepeatButton();
+        }
 
         clearMediaContainerAndPreservePlayers();
 
-        const img = document.createElement('img');
-        img.src = imageUrl;
-        img.className = 'img-fluid step-image';
-        img.alt = 'Step image';
-        mediaViewport.appendChild(img);
+        if (step.image) {
+            renderImageInMediaContainer(step.image);
+        }
+        if (step.youtube) {
+            renderYoutubeInMediaContainer(step.youtube);
+        }
+    };
 
-        showMediaViewport();
-    }
+    // Platform-specific step type handlers
+    const onResponseStep = (step, lesson, deps) => {
+        _renderResponseStep(step, lesson, deps);
+    };
 
-    // ---------------------------------------------------------------------------
-    // DOM helper: render YouTube embed in media container
-    // ---------------------------------------------------------------------------
-    function renderYoutubeInMediaContainer(youtubeId) {
-        const mediaViewport = document.getElementById('media-viewport');
-        if (!mediaViewport) return;
+    const onTextStep = (step, deps) => {
+        handleTextStep(step, deps.submitAnswerPrecheck);
+        updateProgressAndCloseButton(true);
+    };
 
-        clearMediaContainerAndPreservePlayers();
+    const onLessonComplete = (step, deps) => {
+        updateProgressAndCloseButton(true);
+        handleLessonComplete(step, deps.showFeedbackAndProceed);
+        hideAnswerDiv();
+    };
 
-        const wrapper = document.createElement('div');
-        wrapper.className = 'ratio ratio-16x9';
+    const onUnitComplete = (step) => {
+        handleUnitComplete(step);
+    };
 
-        const iframe = document.createElement('iframe');
-        iframe.src = `https://www.youtube.com/embed/${youtubeId}`;
-        iframe.setAttribute('frameborder', '0');
-        iframe.setAttribute('allowfullscreen', '');
-        iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture');
+    const onLessonIntro = (step, lesson, deps) => {
+        _renderLessonIntro(step, lesson, deps);
+    };
 
-        wrapper.appendChild(iframe);
-        mediaViewport.appendChild(wrapper);
+    const onPresent = (step, lesson, deps) => {
+        _renderPresent(step, lesson, deps.showFeedbackAndProceed);
+    };
 
-        showMediaViewport();
-    }
+    const onSuccess = (step, fluencyData) => {
+        _renderSuccess(step, fluencyData);
+    };
 
-    // ---------------------------------------------------------------------------
-    // DOM helper: update progress bar and close button
-    // ---------------------------------------------------------------------------
-    function updateProgressAndCloseButton(showClose) {
-        const currentLesson = appStore.getState().configData?.lessons?.[appStore.getState().currentLessonIndex];
-        if (!currentLesson) return;
+    // Platform-agnostic orchestration
+    loadStepOrchestrate(step, lesson, fluencyData, {
+        submitAnswerPrecheck,
+        showFeedbackAndProceed,
+        handleHint,
+        onStepLoaded,
+        onResponseStep,
+        onTextStep,
+        onLessonIntro,
+        onPresent,
+        onSuccess,
+        onLessonComplete,
+        onUnitComplete
+    });
+    };
+}
 
-        const totalSteps = currentLesson.steps.length;
-        const currentStepIndex = appStore.getState().currentStepIndex;
-        const progress = Math.min(Math.max(((currentStepIndex + 1) / totalSteps) * 100, 1), 99);
-        appStore.getState().setProgressPercent(`${progress}%`);
+function _renderResponseStep(step, lesson, deps) {
+    const { submitAnswerPrecheck, handleHint } = deps;
+    appStore.getState().setHintsVisible(false);
 
-        const closeBtn = document.getElementById('close-btn');
-        if (closeBtn) {
-            if (showClose) closeBtn.classList.remove('d-none');
-            else closeBtn.classList.add('d-none');
+    const answerFragment = document.createDocumentFragment();
+    if (step.stepType !== "closedResponse") {
+        const userLang = appStore.getState().userData?.native_language;
+        const cueHTML = formatBilingualHTML(step.cue, userLang);
+        const tempEl = document.createElement('span');
+        tempEl.innerHTML = cueHTML;
+        while (tempEl.firstChild) answerFragment.appendChild(tempEl.firstChild);
+        if (step.possibleAnswer) {
+            answerFragment.appendChild(document.createElement('br'));
+            const strong = document.createElement('strong');
+            strong.textContent = Strings.get('possible_response', appStore.getState().userData?.native_language);
+            answerFragment.appendChild(strong);
+            answerFragment.appendChild(document.createElement('br'));
+            answerFragment.appendChild(document.createTextNode(step.possibleAnswer));
         }
     }
 
-    // ---------------------------------------------------------------------------
-    // DOM helper: hide answer div
-    // ---------------------------------------------------------------------------
-    function hideAnswerDiv() {
-        const answerDiv = document.getElementById('answer-div');
-        if (answerDiv) answerDiv.classList.add('d-none');
-    }
+    const handleRevealClick = function () { };
 
-    // ---------------------------------------------------------------------------
-    // DOM helper: remove repeat button
-    // ---------------------------------------------------------------------------
-    function removeRepeatButton() {
-        const repeatBtn = document.getElementById('repeat-btn');
-        if (repeatBtn) repeatBtn.remove();
-    }
+    const stepIndex = getCurrentStepIndex(step, appStore.getState().configData, appStore.getState().currentLessonIndex);
 
-    // ---------------------------------------------------------------------------
-    // DOM helper: bind process button click
-    // ---------------------------------------------------------------------------
-    function bindProcessButton(onClickCallback) {
-        const processBtn = document.getElementById('process-btn');
-        if (!processBtn) return;
+    if (appStore.getState().isTextMode) {
+        appStore.getState().setStatsVisible(true);
+        updateProgressAndCloseButton(true);
+        const placeholder = Strings.get('placeholder_type_answer', appStore.getState().userData?.native_language) || 'Type your answer here...';
+        const submitLabel = Strings.get('btn_submit', appStore.getState().userData?.native_language) || 'Submit';
+        appStore.getState().setTextInputPlaceholder(placeholder);
+        appStore.getState().setTextInputSubmitCallback((val, btn) => {
+            submitAnswerPrecheck(val, step.cue, step, btn, step.explanation, step.translation, { pauseCount: 0, netDuration: 3 });
+        });
+    } else {
+        // Show close/progress button for speech response steps
+        updateProgressAndCloseButton(true);
+        const hintTempDiv = document.createElement('div');
+        hintTempDiv.appendChild(answerFragment.cloneNode(true));
+        appStore.getState().setSpeechInputContent(hintTempDiv.innerHTML);
+        appStore.getState().setSpeechInputHintCallback(step.stepType === "closedResponse" ? null : () => handleHint(stepIndex));
+        appStore.getState().setSpeechInputRevealCallback(handleRevealClick);
+        appStore.getState().setSpeechInputToggleCallback(async () => {
+            const speechButton = document.getElementById('micBtn');
 
-        // Remove old listeners by cloning
-        const newBtn = processBtn.cloneNode(true);
-        processBtn.parentNode.replaceChild(newBtn, processBtn);
-        newBtn.addEventListener('click', onClickCallback);
-    }
-
-    // ---------------------------------------------------------------------------
-    // onStepLoaded callback: speech warmup, media rendering, UI reset
-    // ---------------------------------------------------------------------------
-    function onStepLoaded(step, lesson, fluencyData) {
-        console.log('[onStepLoaded] stepType:', step.stepType, 'step:', step.step);
-
-        const isLessonIntro = step.stepType === 'lessonIntro';
-        const hasUserData = !!appStore.getState().userData;
-
-        resetUIForNewStep(isLessonIntro, hasUserData);
-
-        if (isIOS) {
-            warmUpSpeechCamStream();
-        }
-
-        if (step.imageUrl) {
-            renderImageInMediaContainer(step.imageUrl);
-        } else if (step.youtubeId) {
-            renderYoutubeInMediaContainer(step.youtubeId);
-        }
-
-        updateProgressAndCloseButton(false);
-
-        appStore.getState().setMicStatusText(step.step || '');
-    }
-
-    // ---------------------------------------------------------------------------
-    // onResponseStep callback: speech recognition pipeline wiring
-    // ---------------------------------------------------------------------------
-    function onResponseStep(step, lesson, { submitAnswerPrecheck, showFeedbackAndProceed, handleHint }) {
-        console.log('[onResponseStep] stepType:', step.stepType, 'step:', step.step);
-
-        const configData = appStore.getState().configData;
-        const userData = appStore.getState().userData;
-        const currentLessonIndex = appStore.getState().currentLessonIndex;
-        const currentStepIndex = appStore.getState().currentStepIndex;
-        const micStatusEl = document.getElementById('mic-status');
-
-        appStore.getState().setMediaVisible(true);
-        showMediaViewport();
-
-        const cueText = typeof step.cue === 'object' ? step.cue?.en : step.cue;
-        const lang = userData?.native_language || 'en';
-
-        appStore.getState().setMicStatusText(step.step || cueText || '');
-
-        if (step.stepType === 'closedResponse') {
-            appStore.getState().setMediaVisible(true);
-        }
-
-        const btn = document.getElementById('mic-btn') || document.getElementById('process-btn');
-        if (btn) {
-            appStore.getState().setOnMicClickCallback(() => {
-                toggleSpeechRecognition({
-                    button: btn,
-                    step: step,
-                    micStatusText: micStatusEl,
-                    userData: userData,
-                    configData: configData,
-                    currentLessonIndex: currentLessonIndex,
-                    currentStepIndex: currentStepIndex,
-                    player: appStore.getState().currentVideoPlayer,
+            try {
+                await toggleSpeechRecognition({
+                    button: speechButton,
+                    step,
+                    micStatusText: document.getElementById('react-root-micstatus'),
+                    userData: appStore.getState().userData,
+                    configData: appStore.getState().configData,
+                    currentLessonIndex: appStore.getState().currentLessonIndex,
+                    currentStepIndex: stepIndex,
+                    handleAnswer: submitAnswerPrecheck,
+                    player: State.player,
                     uiHooks: {
+                        onHesitation: (points) => {
+                            const scoreEl = document.getElementById('flowScore');
+                            if (scoreEl && pointLoss) {
+                                pointLoss.show(scoreEl, points);
+                            }
+                        },
                         onPauseVideo: (player) => {
-                            if (player && typeof player.pause === 'function') {
-                                player.pause();
+                            try {
+                                if (player && typeof player.pause === 'function') {
+                                    player.pause();
+                                }
+                            } catch (e) {
+                                console.warn('[QuestionLoader] Failed to pause player object:', e);
+                            }
+                            Media.pauseVideoIfPlaying();
+                        },
+                        onMicDisable: (btn) => {
+                            appStore.getState().setMicActive(false); // Release the lock
+                            if (btn) {
+                                btn.classList.add('toggled-off');
+                                btn.innerHTML = '<i class="bi bi-mic-mute-fill"></i>';
+                                stopMicAnimation(btn);
                             }
                         },
                         onRecordingStart: (userData) => {
-                            console.log('[Speech] Recording started');
-                            if (btn && startMicAnimation) startMicAnimation(btn);
-                        },
-                        onRecordingStop: (button) => {
-                            console.log('[Speech] Recording stopped');
-                            if (button && stopMicAnimation) stopMicAnimation(button);
-                        },
-                        onRecordingActive: (button) => {
-                            console.log('[Speech] Recording active');
-                        },
-                        onMicDisable: (button) => {
-                            if (button) button.disabled = true;
+                            cancelWarningClear();
+                            appStore.getState().setMicActive(true); // Lock the video timer
+                            if (appStore.getState().currentVideoPlayer) {
+                                if (typeof appStore.getState().currentVideoPlayer.pause === 'function') {
+                                    appStore.getState().currentVideoPlayer.pause();
+                                } else if (appStore.getState().currentVideoPlayer.video) {
+                                    appStore.getState().currentVideoPlayer.video.pause();
+                                }
+                            }
+                            appStore.getState().setMicStatusText(`<div class="text-center"><div class="mb-0" style="color: green; font-size: 30px;"><i class="bi bi-mic" style="color: green; font-size: 100px !important;"></i><br>${Strings.get('status_speak', userData?.native_language)}</div></div>`);
                         },
                         onEngineNotReady: (userData) => {
-                            const msg = Strings.get('error_engine_not_ready', userData?.native_language) || 'Speech engine not ready. Please wait a moment.';
-                            appStore.getState().setMicStatusText(`<div class='text-center text-warning'>${msg}</div>`);
+                            const errorMsg = Strings.get('error_engine_not_ready', userData?.native_language) || "Speech engine not ready. Please wait a moment.";
+                            appStore.getState().setMicStatusText(`<div class='text-center text-danger' style="color: red; font-size: 30px;"><i class="bi bi-exclamation-triangle"></i> ${errorMsg}</div>`);
                         },
-                        onEngineReady: (button) => {
-                            if (button) button.disabled = false;
+                        onEngineReady: (btn) => {
+                            if (btn) {
+                                btn.style.display = "flex";
+                                btn.disabled = false;
+                                btn.classList.add('toggled-off');
+                                btn.innerHTML = '<i class="bi bi-mic-mute-fill"></i>';
+                            }
+                            appStore.getState().setMicStatusText(`<div class='text-center text-success mt-2'><i class="bi bi-check-circle"></i> Engine ready. Try speaking now!</div>`);
+                        },
+                        onRecordingActive: (btn) => {
+                            if (btn) {
+                                btn.style.display = "flex";
+                                btn.innerHTML = '<i class="bi bi-mic-fill"></i>';
+                                btn.classList.remove('toggled-off', 'btn-danger', 'disabled');
+                                startMicAnimation(btn);
+                            }
+                        },
+                        onRecordingStop: (btn) => {
+                            appStore.getState().setMicActive(false); // Release the lock
+                            if (btn) {
+                                btn.style.display = 'none';
+                                stopMicAnimation(btn);
+                            }
+                            appStore.getState().setMicStatusText("");
+                            appStore.getState().setMediaVisible(false);
+                            appStore.getState().setTextInputVisible(false);
+                            appStore.getState().setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Analyzing Speech...</div>`);
                         },
                         onStopEarly: (userData) => {
-                            console.log('[Speech] Stopped early — no transcript');
-                        },
-                        onGibberishDetected: () => {
-                            console.log('[Speech] Gibberish detected');
-                            const msg = Strings.get('error_speech_generic', userData?.native_language) || 'Speech recognition error.';
-                            appStore.getState().setMicStatusText(`<div class='text-center text-danger'>${msg}</div>`);
+                            appStore.getState().setMicActive(false);
+                            appStore.getState().deductSpeakingScore(10);
+                            appStore.getState().incrementWhisperRejections();
+                            appStore.getState().triggerPreflightRejected();
+                            appStore.getState().setMediaVisible(true);
+                            appStore.getState().setMicStatusText(`<div class='text-center' style='color: red; font-size: large;'><i class='bi bi-exclamation-triangle-fill'></i> ${Strings.get('try_again_speech', userData?.native_language)}</div>`);
+                            const btn = document.getElementById('micBtn');
+                            if (btn) btn.style.display = 'flex';
                             clearWarningLater(3000);
                         },
-                        onReviewStart: (transcript, timeLeft, onAccept, onReject) => {
-                            console.log('[Speech] Review started:', transcript);
-                            renderWhisperReviewUI(transcript, timeLeft, onAccept, onReject);
+                        onGibberishDetected: () => {
+                            appStore.getState().setMicActive(false);
+                            appStore.getState().deductSpeakingScore(10);
+                            appStore.getState().incrementWhisperRejections();
+                            appStore.getState().triggerPreflightRejected();
+                            appStore.getState().setMicStatusText(`<div class='text-center mt-3' style='color: #ff9800; font-size: large;'><i class='bi bi-ear-x'></i> Audio unclear. Please try speaking clearly.</div>`);
+                            const btn = document.getElementById('micBtn');
+                            if (btn) btn.style.display = 'flex';
+                            clearWarningLater(3000);
+                        },
+                        onPreflightRejected: (msg) => {
+                            appStore.getState().setMicActive(false);
+                            appStore.getState().deductSpeakingScore(10);
+                            appStore.getState().incrementWhisperRejections();
+                            appStore.getState().triggerVideoClear();
+                            appStore.getState().setWebcamStream(null);
+                            appStore.getState().triggerPreflightRejected();
+                            appStore.getState().setMicStatusText(`<div class='text-center text-danger'>${msg}</div>`);
+                            const btn = document.getElementById('micBtn');
+                            if (btn) {
+                                btn.style.display = 'flex';
+                                stopMicAnimation(btn);
+                            }
+                            clearWarningLater(4000);
+                        },
+                        onTranscriptRejected: (cue, transcript) => {
+                            appStore.getState().setMicActive(false); // Release the lock
+                            logInteraction(cue, transcript, "rej_usr", "User rejected Whisper transcription", null, State.interactionLog);
+                            appStore.getState().deductSpeakingScore(20);
+                            appStore.getState().incrementWhisperRejections();
+                            appStore.getState().triggerVideoClear();
+                            appStore.getState().setWebcamStream(null);
+                            appStore.getState().triggerTranscriptRejected(cue, transcript);
+                            appStore.getState().setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Restarting Mic...</div>`);
+                            const btn = document.getElementById('micBtn');
+                            if (btn) {
+                                btn.style.display = 'flex';
+                                stopMicAnimation(btn);
+                            }
+                        },
+                        onReviewStart: (transcript, timeLeft, acceptFn, rejectFn) => {
+                            appStore.getState().setMicActive(false); // Release the lock
+                            renderWhisperReviewUI(transcript, timeLeft, acceptFn, rejectFn);
                         },
                         onReviewUpdate: (timeLeft) => {
                             updateWhisperTimer(timeLeft);
                         },
                         onReviewEnd: () => {
-                            const container = document.getElementById('whisper-review-ui');
-                            if (container) container.style.display = 'none';
-                        },
-                        onPreflightRejected: (warningMessage) => {
-                            console.log('[Speech] Preflight rejected:', warningMessage);
-                            appStore.getState().setMicStatusText(`<div class='text-center text-danger'>${warningMessage}</div>`);
-                            clearWarningLater(3000);
-                        },
-                        onTranscriptRejected: (cue, transcript) => {
-                            console.log('[Speech] Transcript rejected:', transcript);
-                            appStore.getState().triggerTranscriptRejected(cue, transcript);
-                        },
-                        onHesitation: (points) => {
-                            console.log('[Speech] Hesitation detected, deducting', points);
+                            appStore.getState().setMicStatusText("");
                         }
                     }
                 });
-            });
-        }
-
-        if (step.stepType === 'closedResponse') {
-            const repeatBtn = document.getElementById('repeat-btn');
-            if (repeatBtn) {
-                repeatBtn.classList.remove('d-none');
-                repeatBtn.onclick = () => {
-                    const player = appStore.getState().currentVideoPlayer;
-                    if (player) {
-                        if (player.video) player.video.currentTime = 0;
-                        if (typeof player.play === 'function') {
-                            player.play().catch(e => console.warn('Video play failed:', e));
-                        }
-                    }
-                    appStore.getState().incrementVideoPlays();
-                };
+            } catch (error) {
+                console.error("Speech toggle failed", error);
             }
         }
-
-        const hintBtn = document.getElementById('hint-btn');
-        if (hintBtn && step.stepType === 'openResponse') {
-            hintBtn.classList.remove('d-none');
-            hintBtn.onclick = () => handleHint(getCurrentStepIndex(step, configData, currentLessonIndex));
-        }
-    }
-
-    // ---------------------------------------------------------------------------
-    // onTextStep callback
-    // ---------------------------------------------------------------------------
-    function onTextStep(step, { submitAnswerPrecheck, showFeedbackAndProceed }) {
-        console.log('[onTextStep] step:', step.step);
-
-        appStore.getState().setMediaVisible(false);
-        hideMediaViewport();
-
-        const cueText = typeof step.cue === 'object' ? step.cue?.en : step.cue;
-        const placeholder = Strings.get('placeholder_type_answer', appStore.getState().userData?.native_language) || 'Type your answer here...';
-
-        appStore.getState().setTextInputVisible(true);
-        appStore.getState().setTextInputPlaceholder(placeholder);
-        appStore.getState().setTextInputSubmitCallback(
-            (val, btn) => submitAnswerPrecheck(
-                val,
-                cueText,
-                step,
-                btn,
-                step.explanation,
-                step.translation,
-                { pauseCount: null, netDuration: null }
-            )
         );
-
-        appStore.getState().setMicStatusText(step.step || '');
-        appStore.getState().triggerInputFocus();
     }
+}
 
-    // ---------------------------------------------------------------------------
-    // onLessonComplete callback
-    // ---------------------------------------------------------------------------
-    function onLessonComplete(step, { showFeedbackAndProceed }) {
-        console.log('[onLessonComplete]');
+function _renderPresent(step, lesson, showFeedbackAndProceed) {
+    updateProgressAndCloseButton(false); appStore.getState().setStatsVisible(false); hideAnswerDiv();
 
-        appStore.getState().setStatsVisible(false);
-        appStore.getState().setProgressPercent("95%");
-        appStore.getState().setMediaVisible(false);
-        hideMediaViewport();
+    let headsUpHTML = step.headsUp ? `<div class="chat-message-row chat-message-row--system"><div class="chat-message-bubble chat-message-bubble--system"><p class="headsUp mb-0">${step.headsUp}</p></div></div>` : "";
 
-        showFeedbackAndProceed(step, true);
-    }
-
-    // ---------------------------------------------------------------------------
-    // onUnitComplete callback
-    // ---------------------------------------------------------------------------
-    function onUnitComplete(step) {
-        console.log('[onUnitComplete]');
-
-        const currentLesson = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex];
-        step.lessonId = currentLesson.lessonId + 's';
-        appStore.getState().successHandler.handleSuccessLesson(step);
-    }
-
-    // ---------------------------------------------------------------------------
-    // onLessonIntro callback
-    // ---------------------------------------------------------------------------
-    function onLessonIntro(step, lesson, { showFeedbackAndProceed }) {
-        console.log('[onLessonIntro] step:', step.step);
-
-        appStore.getState().setMediaVisible(true);
-        showMediaViewport();
-
-        appStore.getState().setMicStatusText(step.step || '');
-
-        if (step.introBackgroundVideoUrl) {
-            // Video is loaded via the store by handleStepCore → loadVideoForStep
-            // The React wrapper picks it up and renders the player
+    if (!step.simpleVideoUrl) {
+        let explanationHTML = "";
+        if (step.explanation) {
+            const lang = appStore.getState().userData?.native_language;
+            const expTrans = getLocalizedTranslation(step.translation, lang);
+            const localized = expTrans && lang && lang !== 'en' ? `<br><br><span lang='${lang}'><i>${expTrans}</i></span>` : '';
+            explanationHTML = `<p class='explanation'>${step.explanation}${localized}</p>`;
         }
 
-        const onContinue = async () => {
-            await Media.enableAudioSystem();
-            await warmUpSpeechCamStream();
-            appStore.getState().setBottomControlState('mic');
-            appStore.getState().removeContinueWidget();
-            setTimeout(() => {
-                showFeedbackAndProceed(step, true);
-            }, 2000);
-        };
-
-        appStore.getState().setIntroContinueCallback(onContinue);
-        appStore.getState().setBottomControlState('introChoices');
+        addAIFeedbackMessages([
+            `<p class='lesson-name'><strong>${Strings.get('lesson_label', appStore.getState().userData?.native_language)} ${getLocalizedTranslation(lesson.title)}</strong></p>`,
+            explanationHTML
+        ]);
     }
+    showFeedbackAndProceed(step, true);
+}
 
-    // ---------------------------------------------------------------------------
-    // onPresent callback
-    // ---------------------------------------------------------------------------
-    function onPresent(step, lesson, { showFeedbackAndProceed }) {
-        console.log('[onPresent] step:', step.step);
+function _renderSuccess(step, fluencyData) {
+    window.removeEventListener('beforeunload', beforeUnloadHandler);
+    bindProcessButton(() => State.player.destroy());
 
-        appStore.getState().setMediaVisible(true);
-        showMediaViewport();
+    step.lessonId = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex].lessonId;
 
-        appStore.getState().setMicStatusText(step.step || '');
+    window.__currentConfigData = appStore.getState().configData;
 
-        const onContinue = () => {
-            appStore.getState().setBottomControlState('mic');
-            appStore.getState().removeContinueWidget();
-            showFeedbackAndProceed(step, true);
-        };
+    handleSuccessStep(step, fluencyData);
 
-        const hasWidget = appStore.getState().chatHistory.some(msg => msg.type === 'continueWidget');
-        if (!hasWidget) {
-            appStore.getState().addChatMessage({
-                role: 'system',
-                type: 'continueWidget',
-                onClick: onContinue
-            });
-        }
+    try { hideWebcamPreview(); } catch (error) { }
+}
+
+function _renderLessonIntro(step, lesson, deps) {
+    const { showFeedbackAndProceed } = deps;
+    appStore.getState().setStatsVisible(false);
+    appStore.setState({ repeatPointsHistory: [] });
+    appStore.setState({ rolePlayPointsHistory: [] });
+    hideAnswerDiv();
+
+    if (!step.simpleVideoUrl && step.explanation) {
+        const lang = appStore.getState().userData?.native_language; const localizedTrans = getLocalizedTranslation(step.translation, lang); const hasTranslation = !!localizedTrans;
+        const imagineStr = Strings.get('imagine', lang); const listenRepeatStr = Strings.get('listen_repeat', lang);
+
+        const explanationStr = `
+            <p class='explanation'>
+              <strong>${imagineStr.split('<br>')[0]}</strong> ${step.explanation}
+              <br><br>
+              Γ₧í${listenRepeatStr.split('<br>')[0]}
+              ${hasTranslation && lang !== 'en' ? `<br><br><span lang='${lang}'><i><strong>≡ƒÄ»${imagineStr.includes('<br>') ? imagineStr.split('<i>')[1].split('<i>')[0] : imagineStr}</strong>${localizedTrans}<br><br>${listenRepeatStr.includes('<br>') ? listenRepeatStr.split('<i>')[1].split('<i>')[0] : listenRepeatStr}</i></span>` : ''}
+            </p>`;
+
+        addAIFeedbackMessages([
+            `<p class='lesson-name'><strong>Lesson: ${lesson.title}</strong></p>`,
+            explanationStr
+        ]);
     }
+    showFeedbackAndProceed(step, true);
+}
 
-    // ---------------------------------------------------------------------------
-    // onSuccess callback
-    // ---------------------------------------------------------------------------
-    function onSuccess(step, fluencyData) {
-        console.log('[onSuccess]');
+// --- LIQUID UI MIC ANIMATIONS ---
+let micAnimations = [];
 
-        handleSuccessStep(step, fluencyData);
-    }
+function startMicAnimation(btn) {
+    if (!btn) return;
+    const rings = btn.parentElement.querySelectorAll('.mic-ring');
+    if (rings.length === 0) return;
 
-    // ---------------------------------------------------------------------------
-    // Return the execute function
-    // ---------------------------------------------------------------------------
-    return function executeLoadStep(step, lesson, fluencyData) {
-        console.log('[executeLoadStep] stepType:', step?.stepType, 'step:', step?.step);
+    const duration = 2000;
+    const delays = [0, 650, 1300];
 
-        loadStepOrchestrate(step, lesson, fluencyData, {
-            submitAnswerPrecheck,
-            showFeedbackAndProceed,
-            handleHint,
-            onStepLoaded,
-            onResponseStep,
-            onTextStep,
-            onLessonIntro,
-            onPresent,
-            onSuccess,
-            onLessonComplete,
-            onUnitComplete
+    rings.forEach((ring, index) => {
+        ring.style.opacity = '0.7';
+        const anim = ring.animate([
+            { transform: 'scale(1)', opacity: 0.7 },
+            { transform: 'scale(2.6)', opacity: 0 }
+        ], {
+            duration: duration,
+            delay: delays[index],
+            iterations: Infinity,
+            easing: 'ease-out'
         });
-    };
+        micAnimations.push(anim);
+    });
+}
+
+function stopMicAnimation(btn) {
+    micAnimations.forEach(anim => anim.cancel());
+    micAnimations = [];
+
+    if (!btn) return;
+    const rings = btn.parentElement.querySelectorAll('.mic-ring');
+    rings.forEach(ring => {
+        ring.style.opacity = '0';
+        ring.style.transform = 'scale(1)';
+    });
 }

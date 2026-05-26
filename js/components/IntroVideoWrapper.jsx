@@ -3,6 +3,11 @@ import { useSyncExternalStore } from 'react';
 import { appStore } from '../modules/store.js';
 import { introBackgroundVideo } from './intro-background-video.js';
 
+function setIntroCallWidgetVisible(visible) {
+    const el = document.getElementById('intro-call-widget');
+    if (el) el.classList.toggle('d-none', !visible);
+}
+
 export default function IntroVideoWrapper() {
     const playerInstance = useRef(null);
 
@@ -13,6 +18,7 @@ export default function IntroVideoWrapper() {
 
     useEffect(() => {
         if (!currentVideo || currentVideo.type !== 'intro') {
+            setIntroCallWidgetVisible(false);
             if (playerInstance.current) {
                 playerInstance.current.destroy();
                 playerInstance.current = null;
@@ -23,6 +29,7 @@ export default function IntroVideoWrapper() {
             return;
         }
 
+        setIntroCallWidgetVisible(true);
         appStore.getState().setMediaVisible(true);
 
         if (playerInstance.current) return;
@@ -38,6 +45,7 @@ export default function IntroVideoWrapper() {
         window.currentIntroVideoPlayer = player;
 
         return () => {
+            setIntroCallWidgetVisible(false);
             if (playerInstance.current) {
                 playerInstance.current.destroy();
                 playerInstance.current = null;

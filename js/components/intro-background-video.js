@@ -15,6 +15,7 @@ export class introBackgroundVideo {
     if (!this.widget) return;
 
     this.video = this.widget.querySelector('.intro-video');
+    if (!this.video) return;
     this.onClick = this.handleClick.bind(this);
     this.onLoadedData = this.handleLoadedData.bind(this);
 

@@ -11,6 +11,7 @@ import { usePlaybackEffects } from '../hooks/usePlaybackEffects.js';
 import { usePointLossEffects } from '../hooks/usePointLossEffects.js';
 import { useCompletionEffects } from '../hooks/useCompletionEffects.js';
 import { useChatScoreSpanEffects } from '../hooks/useChatScoreSpanEffects.js';
+import { useMediaViewportVisibility } from '../hooks/useMediaViewportVisibility.js';
 import StepLoader from './StepLoader.jsx';
 import MicrophoneToggle from './widgets/MicrophoneToggle.jsx';
 import IntroChoices from './widgets/IntroChoices.jsx';
@@ -85,6 +86,7 @@ export default function LessonContainer() {
     usePointLossEffects();
     useCompletionEffects();
     useChatScoreSpanEffects();
+    useMediaViewportVisibility();
 
     return (
         <>
