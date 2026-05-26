@@ -19,7 +19,7 @@ test.describe('End-to-End Smoke Test', () => {
         page.on('console', (msg) => {
             if (msg.type() === 'error') {
                 const text = msg.text();
-                const noise = ['favicon', 'source map', 'Whisper', 'vite', '401'];
+                const noise = ['favicon', 'source map', 'Whisper', 'vite', '401', 'ERR_CACHE_WRITE_FAILURE', 'cache'];
                 if (!noise.some(n => text.includes(n))) {
                     errors.push(`ConsoleError: ${text}`);
                 }

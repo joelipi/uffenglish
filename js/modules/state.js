@@ -1,45 +1,71 @@
-// --- modules/state.js ---
-
 import { appStore } from './store.js';
 
+function get() { return appStore.getState(); }
+
 export const State = {
-    // Application & User Data
+    get isAudioEnabled() { return get().isAudioEnabled; },
+    set isAudioEnabled(v) { get().setAudioEnabled(v); },
 
-    // Logic-driven values
+    get interactionLog() { return get().interactionLog; },
+    set interactionLog(v) { get().setInteractionLog(v); },
 
-    isAudioEnabled: false,
+    get recognizedIdioms() { return get().recognizedIdioms; },
+    set recognizedIdioms(v) { get().setInteractionLog(v); },
 
-    interactionLog: [],
-    recognizedIdioms: [],
-    pragmaticFlags: [],
-    totalHesitations: 0,
-    totalPauses: null,
-    averageWpm: null,
+    get pragmaticFlags() { return get().pragmaticFlags; },
+    set pragmaticFlags(v) { get().clearPragmaticFlags(); if (v) v.forEach(f => get().addPragmaticFlag(f)); },
 
-    // Lesson Data
-    mission: null,
-    setting: null,
-    roleOther: null,
-    roleUser: null,
-    userRole: null,
-    videoRole: null,
-    successHandler: null,
+    get totalHesitations() { return get().totalHesitations; },
+    set totalHesitations(v) { get().setTotalHesitations(v); },
 
-    // Engagement Tracking
-    stepCount: 0,
-    stepsAnswered: 0,
-    wordsRevealed: 0,
-    videoPlays: 0,
-    videoClicks: 0,
+    get totalPauses() { return get().totalPauses; },
+    set totalPauses(v) { get().setTotalPauses(v); },
 
-    // Active Media Player Reference
-    player: null,
+    get averageWpm() { return get().averageWpm; },
+    set averageWpm(v) { get().setAverageWpm(v); },
 
-    /**
-     * Initializes the state with values calculated from Appwrite userData
-     * @param {Object} userData - The profile document from Appwrite
-     * @param {Function} streakCalculator - The calculateCurrentStreak function from userProfile.js
-     */
+    get mission() { return get().mission; },
+    set mission(v) { get().setMission(v); },
+
+    get setting() { return get().setting; },
+    set setting(v) { get().setSetting(v); },
+
+    get roleOther() { return get().roleOther; },
+    set roleOther(v) { get().setRoleOther(v); },
+
+    get roleUser() { return get().roleUser; },
+    set roleUser(v) { get().setUserRole(v); },
+
+    get userRole() { return get().userRole; },
+    set userRole(v) { get().setUserRole(v); },
+
+    get videoRole() { return get().videoRole; },
+    set videoRole(v) { get().setVideoRole(v); },
+
+    get successHandler() { return get().successHandler; },
+    set successHandler(v) { get().setSuccessHandler(v); },
+
+    get stepCount() { return get().stepCount; },
+    set stepCount(v) { get().setStepCount(v); },
+
+    get stepsAnswered() { return get().stepsAnswered; },
+    set stepsAnswered(v) { get().setStepsAnswered(v); },
+
+    get wordsRevealed() { return get().wordsRevealed; },
+    set wordsRevealed(v) { get().setWordsRevealed(v); },
+
+    get videoPlays() { return get().videoPlays; },
+    set videoPlays(v) { get().setVideoPlays(v); },
+
+    get videoClicks() { return get().videoClicks; },
+    set videoClicks(v) { get().setVideoClicks(v); },
+
+    get player() { return get().currentVideoPlayer; },
+    set player(v) { get().setCurrentVideoPlayer(v); },
+
+    get lessonStartTime() { return get().lessonStartTime; },
+    set lessonStartTime(v) { get().setLessonStartTime(v); },
+
     initializeUserMetrics(userData, streakCalculator) {
         appStore.getState().setCourseData({
             userData,
@@ -52,58 +78,28 @@ export const State = {
             appStore.getState().setUserFirstName(firstName);
 
             if (Array.isArray(userData.completed_dates)) {
-                // dayCount and currentStreak now live in the Zustand store
                 const dayCount = userData.completed_dates.length;
                 const currentStreak = streakCalculator(userData.completed_dates);
                 appStore.getState().setActivityMetrics(dayCount, currentStreak);
             }
 
-            // Initialize new gamification metrics
             const lessonsCompleted = Number(userData.lessons_completed || 0);
             appStore.getState().setLessonsCompleted(lessonsCompleted);
-            console.log(`[Gamification] Initialized lessonsCompleted: ${lessonsCompleted}`);
-
             appStore.getState().setTotalFluencySum(Number(userData.total_fluency_sum || 0));
             appStore.getState().setRecentFluencyAvgs(userData.recent_fluency_avgs || []);
             appStore.getState().setCountedLessons(userData.counted_lessons || []);
         }
     },
 
-    // Helpers to quickly reset state
     resetForNewLesson() {
-        // Reset reactive metrics in the Zustand store
         appStore.getState().resetForNewLesson();
-        // Clear history arrays in the Zustand store
         appStore.getState().resetLessonHistory();
-
-        // Reset step index to 0 for a fresh start
         appStore.setState({ currentStepIndex: 0 });
-
-        this.interactionLog = [];
-        this.recognizedIdioms = [];
-        this.pragmaticFlags = [];
-        this.totalHesitations = 0;
-        this.totalPauses = null;
-        this.averageWpm = null;
-
-        // Reset non-reactive lesson data
-        this.roleOther = null;
-        this.roleUser = null;
-        this.userRole = null;
-        this.videoRole = null;
-        this.wordsRevealed = 0;
-        this.videoPlays = 0;
-        this.videoClicks = 0;
-        this.stepCount = 0;
-        this.stepsAnswered = 0;
+        appStore.getState().resetLessonState();
     },
 
     resetForNextStep() {
-        // Reset reactive metrics in the Zustand store
         appStore.getState().resetForNextStep();
-        // Reset non-reactive per-step data
-        this.wordsRevealed = 0;
-        this.videoPlays = 0;
-        this.videoClicks = 0;
+        appStore.getState().resetStepState();
     }
 };
