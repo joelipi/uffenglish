@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store.js';
 import { shouldShowConfetti } from '../../modules/success-lesson-logic.js';
+import { Media } from '../../modules/media.js';
 
 export default function SuccessEffects() {
   const visible = useStore(appStore, state => state.successScreenVisible);
@@ -10,11 +11,8 @@ export default function SuccessEffects() {
   useEffect(() => {
     if (!visible || !fluencyData) return;
 
-    // Play sound
-    const { Media } = require('../../modules/media.js');
     Media.playSound('lesson-complete-sound');
 
-    // Show confetti if high score
     if (shouldShowConfetti(fluencyData.total)) {
       import('canvas-confetti').then(confetti => {
         confetti.default({
@@ -26,5 +24,5 @@ export default function SuccessEffects() {
     }
   }, [visible, fluencyData]);
 
-  return null; // No visual output
+  return null;
 }
