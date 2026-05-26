@@ -5,7 +5,6 @@ import { idiomChecker } from './modules/idiom-checker.js';
 
 import LessonContainer from './components/LessonContainer.jsx';
 import Preloader from './components/Preloader.jsx';
-import PlaybackManager from './components/PlaybackManager.jsx';
 import { useAppBootstrap } from './hooks/useAppBootstrap.js';
 
 export default function App() {
@@ -52,7 +51,6 @@ export default function App() {
     return (
         <>
             <Preloader />
-            <PlaybackManager />
             <BrowserRouter>
                 <Routes>
                     <Route path="/course/:courseId/lesson/:lessonId" element={<LessonContainer />} />

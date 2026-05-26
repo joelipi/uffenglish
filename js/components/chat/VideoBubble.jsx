@@ -1,12 +1,13 @@
 import React, { useEffect, useRef } from 'react';
 import { appStore } from '../../modules/store.js';
+import { getPlaybackVideoWrapper, getPlaybackVideoElement } from '../PlaybackVideo.jsx';
 
 export default function VideoBubble({ avatarUrl, userName }) {
     const containerRef = useRef(null);
 
     useEffect(() => {
-        const videoWrapper = document.getElementById('playback-video-wrapper');
-        const video = document.getElementById('playback-video');
+        const videoWrapper = getPlaybackVideoWrapper();
+        const video = getPlaybackVideoElement();
         if (containerRef.current && videoWrapper) {
             containerRef.current.appendChild(videoWrapper);
 

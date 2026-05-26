@@ -142,6 +142,11 @@ export const appStore = createStore(
             youtubeVideoId: null,
             mediaClearTrigger: 0,
 
+            // --- Playback Video State ---
+            playbackBlob: null,
+            playbackAutoplay: false,
+            playbackSpeechCamChunks: [],
+
             // --- Tutor Engagement Metrics ---
             userMessagesToAi: 0,
             aIMessagesToUser: 0,
@@ -297,6 +302,8 @@ export const appStore = createStore(
             triggerPreflightRejected: () => set((state) => ({ preflightRejectedTrigger: state.preflightRejectedTrigger + 1 })),
             triggerTranscriptRejected: (cue, transcript) => set((state) => ({ transcriptRejectedTrigger: state.transcriptRejectedTrigger + 1, transcriptRejectedCue: cue, transcriptRejectedTranscript: transcript })),
             triggerScoreUpdate: () => set((state) => ({ scoreUpdateTrigger: state.scoreUpdateTrigger + 1 })),
+            setPlaybackBlob: (blob, autoplay = false, speechCamChunks = []) => set({ playbackBlob: blob, playbackAutoplay: autoplay, playbackSpeechCamChunks: speechCamChunks }),
+            clearPlaybackBlob: () => set({ playbackBlob: null, playbackAutoplay: false, playbackSpeechCamChunks: [] }),
             setCompletionMessage: (msg) => set({ completionMessage: msg }),
             clearCompletionMessage: () => set({ completionMessage: null }),
 
@@ -418,7 +425,10 @@ export const appStore = createStore(
                 praiseImageUrl: null,
                 youtubeVideoId: null,
                 whisperReviewData: null,
-                whisperReviewTimeLeft: null
+                whisperReviewTimeLeft: null,
+                playbackBlob: null,
+                playbackAutoplay: false,
+                playbackSpeechCamChunks: []
             }),
 
             // Reset all per-lesson metrics (called at lesson start)

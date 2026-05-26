@@ -29,6 +29,8 @@ import InteractiveVideoWrapper from './InteractiveVideoWrapper.jsx';
 import SimpleVideoWrapper from './SimpleVideoWrapper.jsx';
 import IntroVideoWrapper from './IntroVideoWrapper.jsx';
 import VideoProcessorWrapper from './VideoProcessorWrapper.jsx';
+import PlaybackVideo from './PlaybackVideo.jsx';
+import { getPlaybackVideoWrapper } from './PlaybackVideo.jsx';
 import { useStepLoader } from '../hooks/useStepLoader.js';
 import { loadNextStep as loadNextStepImpl } from '../modules/lesson-progression.js';
 
@@ -115,7 +117,7 @@ export default function LessonContainer() {
             document.body.classList.add('chat-mode-active');
         } else {
             document.body.classList.remove('chat-mode-active');
-            const videoWrapper = document.getElementById('playback-video-wrapper');
+            const videoWrapper = getPlaybackVideoWrapper();
             if (videoWrapper) {
                 videoWrapper.style.display = 'none';
                 document.body.appendChild(videoWrapper);
@@ -189,6 +191,7 @@ export default function LessonContainer() {
 
             <WhisperReview />
             <MediaContent />
+            <PlaybackVideo />
             <InteractiveVideoWrapper />
             <SimpleVideoWrapper />
             <IntroVideoWrapper />

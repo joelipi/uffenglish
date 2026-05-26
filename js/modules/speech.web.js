@@ -2,7 +2,7 @@
 import Strings from '../data/strings.js';
 import { saveSpeechRecording } from './storage.js';
 import { appStore } from './store.js';
-import { setupPlaybackVideo } from '../components/playback.js';
+
 import { transcribeAudioBuffer, analyzeAudioBufferWithVAD, preloadWhisperEngine } from '../workers/whisper/app-vad-asr-web.js';
 
 export const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -156,7 +156,7 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
                         const blob = new Blob(chunks, { type: mime });
                         blobToReturn = blob;
 
-                        if (playback && blob.size > 0) await setupPlaybackVideo(blob, autoplay, chunks);
+                        if (playback && blob.size > 0) appStore.getState().setPlaybackBlob(blob, autoplay, chunks);
 
                         if (download && blob.size > 0) {
                             const url = URL.createObjectURL(blob);
