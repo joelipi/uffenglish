@@ -160,7 +160,6 @@ export default function LessonContainer() {
                 <GuestLoginModal />
             </div>
 
-            <SuccessScreen onLoadNextLesson={onLoadNextLesson} />
             <Hints />
             <WebcamPreview />
 
@@ -181,6 +180,7 @@ export default function LessonContainer() {
                         <div className="d-flex justify-content-center align-items-center w-100">
                             <MicrophoneToggle />
                             <IntroChoices />
+                            <SuccessScreen onLoadNextLesson={onLoadNextLesson} />
                         </div>
                     </div>
                 </div>
