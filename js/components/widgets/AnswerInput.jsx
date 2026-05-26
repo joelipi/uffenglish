@@ -12,10 +12,42 @@ export default function AnswerInput() {
     const submitBtnIcon = useStore(appStore, (state) => state.submitBtnIcon);
     const submitBtnDanger = useStore(appStore, (state) => state.submitBtnDanger);
     const inputDisabled = useStore(appStore, (state) => state.inputDisabled);
+    const scoreUpdateTrigger = useStore(appStore, (state) => state.scoreUpdateTrigger);
+    const inputFocusTrigger = useStore(appStore, (state) => state.inputFocusTrigger);
 
     const [inputValue, setInputValue] = useState('');
     const inputFieldRef = useRef(null);
     const submitBtnRef = useRef(null);
+    const containerRef = useRef(null);
+
+    // Score update CSS animation trigger
+    const prevScoreUpdateTrigger = useRef(scoreUpdateTrigger);
+    useEffect(() => {
+        if (scoreUpdateTrigger === prevScoreUpdateTrigger.current) return;
+        prevScoreUpdateTrigger.current = scoreUpdateTrigger;
+        const el = containerRef.current;
+        if (el) {
+            el.classList.remove('score-update');
+            void el.offsetWidth;
+            el.classList.add('score-update');
+            setTimeout(() => el.classList.remove('score-update'), 300);
+        }
+    }, [scoreUpdateTrigger]);
+
+    // Input focus trigger
+    const prevInputFocusTrigger = useRef(inputFocusTrigger);
+    useEffect(() => {
+        if (inputFocusTrigger === prevInputFocusTrigger.current) return;
+        prevInputFocusTrigger.current = inputFocusTrigger;
+        const field = inputFieldRef.current;
+        if (field) {
+            field.disabled = !!inputDisabled;
+            if (!inputDisabled) {
+                field.classList.remove('disabled');
+                setTimeout(() => field.focus(), 100);
+            }
+        }
+    }, [inputFocusTrigger, inputDisabled]);
 
     const handleSubmit = useCallback(() => {
         const value = inputValue.trim();
@@ -62,7 +94,7 @@ export default function AnswerInput() {
     if (!textInputVisible) return null;
 
     return (
-        <div className="position-absolute w-100 p-3" style={{ zIndex: 9999 }}>
+        <div ref={containerRef} className="position-absolute w-100 p-3" style={{ zIndex: 9999 }}>
             <div className="card bg-dark border-secondary shadow-lg">
                 <div className="card-body p-2 d-flex align-items-center gap-2">
                     <div className="flex-grow-1 d-flex flex-column">

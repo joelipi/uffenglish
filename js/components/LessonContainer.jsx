@@ -5,13 +5,8 @@ import { appStore } from '../modules/store.js';
 import { useAnswerPipeline } from '../hooks/useAnswerPipeline.js';
 import { useInitializeLesson } from '../hooks/useInitializeLesson.js';
 import { useChatVisibilityEffects } from '../hooks/useChatVisibilityEffects.js';
-import { useScoreUpdateEffects } from '../hooks/useScoreUpdateEffects.js';
-import { useInputFocusEffects } from '../hooks/useInputFocusEffects.js';
 import { usePlaybackEffects } from '../hooks/usePlaybackEffects.js';
-import { usePointLossEffects } from '../hooks/usePointLossEffects.js';
-import { useCompletionEffects } from '../hooks/useCompletionEffects.js';
 import { useChatScoreSpanEffects } from '../hooks/useChatScoreSpanEffects.js';
-import { useMediaViewportVisibility } from '../hooks/useMediaViewportVisibility.js';
 import StepLoader from './StepLoader.jsx';
 import MicrophoneToggle from './widgets/MicrophoneToggle.jsx';
 import IntroChoices from './widgets/IntroChoices.jsx';
@@ -45,6 +40,7 @@ export default function LessonContainer() {
     const currentStepIndex = useStore(appStore, (state) => state.currentStepIndex);
     const successHandler = useStore(appStore, (state) => state.successHandler);
     const statsVisible = useStore(appStore, (state) => state.statsVisible);
+    const mediaVisible = useStore(appStore, (state) => state.mediaVisible);
     const chatModeActive = useStore(appStore, (state) => state.chatModeActive);
 
     const [lesson, setLesson] = useState(null);
@@ -104,14 +100,14 @@ export default function LessonContainer() {
 
     const currentStep = getCurrentStep();
 
+    useEffect(() => {
+        const mv = document.getElementById('media-viewport');
+        if (mv) mv.classList.toggle('d-none', !mediaVisible);
+    }, [mediaVisible]);
+
     useChatVisibilityEffects();
-    useScoreUpdateEffects();
-    useInputFocusEffects();
     usePlaybackEffects();
-    usePointLossEffects();
-    useCompletionEffects();
     useChatScoreSpanEffects();
-    useMediaViewportVisibility();
 
     return (
         <>

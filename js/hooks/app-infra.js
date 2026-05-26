@@ -119,6 +119,7 @@ export async function setupAppInfra({ userData }) {
         appStore.getState().resetLessonState();
         appStore.getState().setLessonStartTime(new Date().toISOString());
         appStore.getState().setRoleOther(lesson.roleOther || "");
+        appStore.getState().setRoleUser(lesson.roleUser || "");
         appStore.getState().setUserRole(lesson.userRole || "");
         appStore.getState().setVideoRole(lesson.videoRole || "");
         updateProgressBar();

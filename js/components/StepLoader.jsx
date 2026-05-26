@@ -1,11 +1,6 @@
-/**
- * StepLoader.jsx — React Step Loader (Web)
- *
- * A proper React component that renders step content declaratively.
- * No DOM manipulation, no portals into static HTML.
- */
-
 import React from 'react';
+import { useStore } from 'zustand';
+import { appStore } from '../modules/store.js';
 
 function UnknownStepType({ stepType }) {
     return (
@@ -58,6 +53,16 @@ function SuccessStep() {
 }
 
 export default function StepLoader({ step, lesson }) {
+    const completionMessage = useStore(appStore, (state) => state.completionMessage);
+
+    if (completionMessage) {
+        return (
+            <div id="steps-container">
+                <div className="text-center" dangerouslySetInnerHTML={{ __html: completionMessage }} />
+            </div>
+        );
+    }
+
     if (!step) return null;
 
     switch (step.stepType) {
