@@ -24,9 +24,12 @@ export default function SimpleVideoWrapper() {
                 playerInstance.current = null;
                 appStore.getState().setCurrentVideoPlayer(null);
                 window.currentSimpleVideoPlayer = null;
+                appStore.getState().setMediaVisible(false);
             }
             return;
         }
+
+        appStore.getState().setMediaVisible(true);
 
         if (!containerRef.current || playerInstance.current) return;
 

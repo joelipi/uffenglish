@@ -18,9 +18,12 @@ export default function IntroVideoWrapper() {
                 playerInstance.current = null;
                 appStore.getState().setCurrentVideoPlayer(null);
                 window.currentIntroVideoPlayer = null;
+                appStore.getState().setMediaVisible(false);
             }
             return;
         }
+
+        appStore.getState().setMediaVisible(true);
 
         if (playerInstance.current) return;
 

@@ -21,12 +21,6 @@ export class introBackgroundVideo {
     this.initText();
     this.initVideo();
     this.initClick();
-
-    // Hide standard video containers to prevent stacking
-    ['#ivp-container', '#simple-video-container'].forEach(selector => {
-      const el = document.querySelector(selector);
-      if (el) el.classList.add('d-none');
-    });
   }
 
   initText() {
@@ -44,11 +38,9 @@ export class introBackgroundVideo {
   }
 
   initVideo() {
-    // Attach listener before setting src to catch immediate loads
     this.video.addEventListener('loadeddata', this.onLoadedData);
     this.video.src = this.config.videoUrl;
 
-    // If the video is already cached and loaded
     if (this.video.readyState >= 2) {
       this.handleLoadedData();
     }
@@ -57,13 +49,6 @@ export class introBackgroundVideo {
   handleLoadedData() {
     this.video.currentTime = 0;
     this.video.pause();
-
-    // Reveal only after frame is painted
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        this.widget.classList.remove('d-none');
-      });
-    });
   }
 
   initClick() {
@@ -74,7 +59,7 @@ export class introBackgroundVideo {
     const btn = document.getElementById('micBtn');
     if (btn) {
       btn.classList.remove('btn-bounce');
-      void btn.offsetWidth; // trigger reflow
+      void btn.offsetWidth;
       btn.classList.add('btn-bounce');
 
       setTimeout(() => {
@@ -85,7 +70,6 @@ export class introBackgroundVideo {
 
   destroy() {
     if (this.widget) {
-      this.widget.classList.add('d-none');
       this.widget.removeEventListener('click', this.onClick);
     }
     if (this.video) {

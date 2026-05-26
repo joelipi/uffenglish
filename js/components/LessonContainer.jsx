@@ -3,7 +3,6 @@ import { useParams } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { appStore } from '../modules/store.js';
 import { useAnswerPipeline } from '../hooks/useAnswerPipeline.js';
-import { useStepLoader } from '../hooks/useStepLoader.js';
 import { useInitializeLesson } from '../hooks/useInitializeLesson.js';
 import { useChatVisibilityEffects } from '../hooks/useChatVisibilityEffects.js';
 import { useScoreUpdateEffects } from '../hooks/useScoreUpdateEffects.js';
@@ -48,8 +47,7 @@ export default function LessonContainer() {
     const [lesson, setLesson] = useState(null);
 
     const answerPipeline = useAnswerPipeline();
-    const { submitAnswerPrecheck, showFeedbackAndProceed, handleHint, setCallLoadStep, setLoadNextStep } = answerPipeline;
-    const { callLoadStep } = useStepLoader(submitAnswerPrecheck, showFeedbackAndProceed, handleHint, setCallLoadStep, setLoadNextStep);
+    const { submitAnswerPrecheck, showFeedbackAndProceed, handleHint } = answerPipeline;
     const { initializeLesson, setStepLoaderDeps } = useInitializeLesson();
 
     useEffect(() => {

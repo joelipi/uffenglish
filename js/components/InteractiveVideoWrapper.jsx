@@ -25,9 +25,12 @@ export default function InteractiveVideoWrapper() {
                 playerInstance.current.destroy();
                 playerInstance.current = null;
                 appStore.getState().setCurrentVideoPlayer(null);
+                appStore.getState().setMediaVisible(false);
             }
             return;
         }
+
+        appStore.getState().setMediaVisible(true);
 
         if (!containerRef.current || playerInstance.current) return;
 

@@ -1,36 +1,60 @@
 # Agent Instructions (`agents.md`)
 
 ## 1. Code Architecture & Organization
-* **Strict Separation of Concerns:** Maintain a highly modular codebase. Do not place logic in a module where it does not conceptually belong.
-* **Resource & Cost Optimization:** Minimize read/write operations to the Appwrite database. To save costs and lay the groundwork for a future offline mode, prioritize running operations within browser memory using the local client-side models instead of making external API calls to server-side LLMs. Balance this local-first approach with the need to avoid overloading the user's device resources (CPU/memory).
-* **CSS Consolidation:** Consolidate all styling into the `style.css` file. Avoid inline styles or creating fragmented CSS files unless strictly required by a specific framework component.
-* **Leverage Bootstrap:** Use built-in Bootstrap classes and UI elements whenever possible rather than writing custom CSS, to keep the codebase lean and prevent bulking up the code.
-* **Appwrite & Dependencies:** Always perform a web search to check the current version and documentation for Appwrite before writing or modifying related code. Appwrite has had major updates with breaking changes, and your baseline LLM knowledge is likely out of date.
-* **Version Control:** Note that the primary branch is `main`.
+
+**Pure React — No DOM Manipulation**
+This codebase is moving strictly to React patterns. Never use `document.querySelector`, `getElementById`, `classList`, `style.setProperty`, `appendChild`, or any direct DOM API. Drive all UI changes through React state, refs (for focus/measurement only), and CSS classes on React elements. Violations of this rule will be treated as bugs.
+
+**Modular Structure**
+Keep logic in the module where it conceptually belongs. Do not co-locate unrelated concerns.
+
+**Resource & Cost Optimization**
+Minimize external operations. All data fetching and mutations must go through TanStack Query and Zustand — never call Appwrite or any external service directly from components or hooks. Prefer in-browser, client-side model operations over external LLM API calls to reduce cost and lay groundwork for offline mode. Balance local-first execution against device CPU/memory constraints.
+
+**Version Control**
+Primary branch is `main`.
+
+---
 
 ## 2. Comments & Logging
-* **Preserve Comments:** NEVER delete existing code comments unless explicitly instructed to do so.
-* **Preserve Console Logs:** Do **NOT** remove existing `console.log` statements unless explicitly instructed to do so.
-* **Implement Debug & Success Logging:** Write code with comprehensive error handling, detailed debug logging, AND "success" logging so it is immediately clear when a specific event or function has successfully fired.
+
+- **Preserve comments.** Update them when the code they describe changes. Only delete a comment if its code is deleted.
+- **Preserve `console.log` statements.** Do not remove existing logs unless the code they relate to has also been removed; comment them out if suppression is needed.
+- **Add debug and success logging.** Every significant function or event should log both on failure (with detail) and on success (so it's immediately clear the path fired).
+
+---
 
 ## 3. Autonomy & Approvals
-* **Fast Iteration:** Do not ask for user approval for small, incremental changes or routine bug fixes. Execute them immediately.
-* **Major Changes:** You must pause and ask for confirmation only for major decisions, such as adding new dependencies, altering the core architecture, or completely rewriting established modules.
+
+Execute small, incremental changes and routine bug fixes immediately without asking for approval.
+
+---
 
 ## 4. Testing & Console Monitoring
-* **Automated Browser Testing:** Use your built-in browser and testing capabilities to verify front-end functionality and HTML/JS interactions.
-* **Strict Console Inspection:** During testing runs, actively monitor the console. You must look for and resolve:
-    * Console errors.
-    * Console warnings.
-* **Verify Expected Logs:** Check for expected console logs (both debug and success logs). If a process runs but fails to output a log that is expected to fire, you must treat this as a bug and review the code.
-* **Clean imports after ui.js deletions:** After deleting any export from `ui.js`, verify `app.js`'s import block is cleaned up — it imports individual names from `ui.js` that may be stale. Run the Playwright smoke test (`tests/answer-flow.spec.js`) to catch missing-export SyntaxErrors at load time.
 
-Here is the local address of the course and lesson I am using for testing http://localhost:3000/course/model/lesson/a Remember that lessons cannot be initialized without that full URL in which `course` and `model` refer to valid JSON files and `lesson` is a key within that JSON, unless the lesson data is already stored in memory.
+**Automated browser testing** via Playwright unless the user says they will test manually.
+
+**Console discipline — treat these as bugs:**
+- Any unexpected or relevant console error or warning
+- Any expected debug/success log that does not appear (silent failures must be investigated)
+
+**Clean up after deletions.** After removing any export, verify all imports of that export are also removed. Run the smoke test to catch load-time errors:
+```
+tests/answer-flow.spec.js
+```
+
+**Test URL:** `http://localhost:3000/course/model/lesson/g`
+Lessons require a full URL where `course` and `model` map to valid JSON files and `lesson` is a valid key within that JSON, unless lesson data is already in memory.
+
+---
 
 ## 5. App-Specific Testing Workarounds
-* **Speech-to-Text / Microphone Bypass:** Because you cannot natively utilize a microphone for the speech-to-text features, you must use the built-in testing functions. As appropriate, bypass the microphone entirely or directly invoke the `handleAnswer` function (or other required functions) to simulate user audio input.
-* **Authentication / Login Testing:** 
-AVOID logging into the web app as a user for now, since this will interfere with your ability to test the app as a guest user. It will not be an issue in the live version of the application. ONLY LOG IN OR SIGN UP IF THE TASK SPECIFICALLY REQUIRES IT.
-User credentials for the web app during your automated testing:
-    * **Email:** jules@example.com
-    * **Password:** testtest
+
+**Speech-to-Text / Microphone**
+You cannot use a microphone. Bypass it using built-in testing functions, or invoke `handleAnswer` (or equivalent) directly to simulate audio input.
+
+**Authentication**
+Do not log in unless the task explicitly requires it — login interferes with guest-user testing.
+Credentials (use only when required):
+- Email: `jules@example.com`
+- Password: `testtest`
