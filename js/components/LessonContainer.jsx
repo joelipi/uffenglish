@@ -8,6 +8,7 @@ import { useInitializeLesson } from '../hooks/useInitializeLesson.js';
 import StepLoader from './StepLoader.jsx';
 import MicrophoneToggle from './widgets/MicrophoneToggle.jsx';
 import IntroChoices from './widgets/IntroChoices.jsx';
+import LessonSuccessControls from './widgets/LessonSuccessControls.jsx';
 import GuestLoginModal from './modals/GuestLoginModal.jsx';
 import CriticalErrorModal from './modals/CriticalErrorModal.jsx';
 import MicStatusText from './widgets/MicStatusText.jsx';
@@ -19,7 +20,6 @@ import WebcamPreview from './widgets/WebcamPreview.jsx';
 import WhisperReview from './widgets/WhisperReview.jsx';
 import MediaContent from './widgets/MediaContent.jsx';
 import SuccessVideo from './widgets/SuccessVideo.jsx';
-import SuccessScreen from './widgets/SuccessScreen.jsx';
 import ScoreBoard from './widgets/ScoreBoard.jsx';
 import ProgressBar from './widgets/ProgressBar.jsx';
 import ActivityStats from './widgets/ActivityStats.jsx';
@@ -39,6 +39,7 @@ export default function LessonContainer() {
     const configData = useStore(appStore, (state) => state.configData);
     const currentLessonIndex = useStore(appStore, (state) => state.currentLessonIndex);
     const currentStepIndex = useStore(appStore, (state) => state.currentStepIndex);
+    const successHandler = useStore(appStore, (state) => state.successHandler);
     const statsVisible = useStore(appStore, (state) => state.statsVisible);
     const mediaVisible = useStore(appStore, (state) => state.mediaVisible);
     const chatModeActive = useStore(appStore, (state) => state.chatModeActive);
@@ -72,18 +73,6 @@ export default function LessonContainer() {
         loadNextStepImpl(currentStep, fluencyData, { callLoadStep });
     }, [callLoadStep]);
 
-    const getCurrentStep = useCallback(() => {
-        if (!configData?.lessons) return null;
-        const currentLesson = configData.lessons[currentLessonIndex];
-        if (!currentLesson?.steps) return null;
-        return currentLesson.steps[currentStepIndex] || null;
-    }, [configData, currentLessonIndex, currentStepIndex]);
-
-    const onLoadNextLesson = useCallback(() => {
-        const currentStep = getCurrentStep();
-        loadNextStep(currentStep, null);
-    }, [getCurrentStep, loadNextStep]);
-
     useEffect(() => {
         setLoadNextStep(loadNextStep);
     }, [loadNextStep, setLoadNextStep]);
@@ -102,6 +91,13 @@ export default function LessonContainer() {
                 });
         }
     }, [courseId, lessonId, configData, initializeLesson]);
+
+    const getCurrentStep = useCallback(() => {
+        if (!configData?.lessons) return null;
+        const currentLesson = configData.lessons[currentLessonIndex];
+        if (!currentLesson?.steps) return null;
+        return currentLesson.steps[currentStepIndex] || null;
+    }, [configData, currentLessonIndex, currentStepIndex]);
 
     const currentStep = getCurrentStep();
 
@@ -180,7 +176,7 @@ export default function LessonContainer() {
                         <div className="d-flex justify-content-center align-items-center w-100">
                             <MicrophoneToggle />
                             <IntroChoices />
-                            <SuccessScreen onLoadNextLesson={onLoadNextLesson} />
+                            <LessonSuccessControls successHandler={successHandler} />
                         </div>
                     </div>
                 </div>

@@ -12,7 +12,6 @@ import { loadVideoForStep } from './video-loader.js';
 import { Media } from './media.js';
 import { saveLessonProgress } from './user-profile.js';
 import { getCompressedLessonStats } from './scoring.js';
-import { calculateLessonAverage, detectFluencyTrend } from './success-lesson-logic.js';
 
 // --- Warning Clear Timer (no DOM) ---
 
@@ -77,49 +76,33 @@ export function handleUnitComplete(step) {
 // --- Success Step Rendering ---
 
 export function handleSuccessStep(step, fluencyData) {
-    const state = appStore.getState();
-    const lessonAverage = calculateLessonAverage(state);
-    const isImproving = detectFluencyTrend(lessonAverage, state.recentFluencyAvgs || []);
-    
-    const fluencyDataObj = { total: lessonAverage };
-    state.setLastSuccessFluencyData(fluencyDataObj);
-    state.setFluencyImproving(isImproving);
-    state.setLastLessonFluencyAvg(lessonAverage);
-    
-    if (isImproving) {
-        console.log(`[Gamification] ✅ Fluency improving! Last-10 avg: ${state.recentFluencyAvgs?.reduce((a, b) => a + b, 0) / (state.recentFluencyAvgs?.length || 1)}% → Current: ${lessonAverage}%`);
-    }
-    
-    state.setSuccessScreen(step.lessonId, fluencyDataObj);
-    state.setStatsVisible(false);
-    state.setProgressPercent("100%");
-    state.setBottomControlState('lessonSuccess');
+    appStore.getState().successHandler.handleSuccessLesson(step);
 
-    const currentLesson = state.configData.lessons[state.currentLessonIndex];
+    const currentLesson = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex];
     const nextLessonId = currentLesson.nextLessonId;
 
     if (nextLessonId) {
         const finalStats = getCompressedLessonStats({
-            isTextMode: state.isTextMode,
-            isCameraOff: state.isCameraOff,
-            lessonStartTime: state.lessonStartTime,
-            averageWpm: state.averageWpm,
-            totalPauses: state.totalPauses,
-            totalHesitations: state.totalHesitations,
-            recognizedIdioms: state.recognizedIdioms,
-            pragmaticFlags: state.pragmaticFlags,
-            interactionLog: state.interactionLog
+            isTextMode: appStore.getState().isTextMode,
+            isCameraOff: appStore.getState().isCameraOff,
+            lessonStartTime: appStore.getState().lessonStartTime,
+            averageWpm: appStore.getState().averageWpm,
+            totalPauses: appStore.getState().totalPauses,
+            totalHesitations: appStore.getState().totalHesitations,
+            recognizedIdioms: appStore.getState().recognizedIdioms,
+            pragmaticFlags: appStore.getState().pragmaticFlags,
+            interactionLog: appStore.getState().interactionLog
         });
 
-        saveLessonProgress(state.courseId, nextLessonId, state.userData, {
+        saveLessonProgress(appStore.getState().courseId, nextLessonId, appStore.getState().userData, {
             updateUserMeta: true,
             incrementCount: true,
             lessonStats: finalStats,
             currentLessonId: step.lessonId
         }).then(progressResult => {
-            state.setActivityMetrics(progressResult.newDayCount, progressResult.newStreak);
+            appStore.getState().setActivityMetrics(progressResult.newDayCount, progressResult.newStreak);
             if (progressResult.lessonsCompleted) {
-                state.setLessonsCompleted(progressResult.lessonsCompleted);
+                appStore.getState().setLessonsCompleted(progressResult.lessonsCompleted);
             }
         });
     };
