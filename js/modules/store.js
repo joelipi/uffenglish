@@ -63,6 +63,10 @@ export const appStore = createStore(
             rolePlayPointsHistory: [],
             lastSuccessFluencyData: null,
 
+            // --- Preloader State ---
+            preloaderProgress: 0,
+            preloaderVisible: true,
+
             // --- UI State ---
             progressPercent: 0,
             statsVisible: true,
@@ -257,6 +261,10 @@ export const appStore = createStore(
                 console.log(`[Store] setCurrentVideo: ${video ? video.type : 'null'}`);
                 set({ currentVideo: video });
             },
+
+            // --- Preloader Actions ---
+            setPreloaderProgress: (val) => set({ preloaderProgress: val }),
+            setPreloaderVisible: (val) => set({ preloaderVisible: val }),
 
             // --- UI State Actions ---
             setProgressPercent: (percent) => set({ progressPercent: percent }),

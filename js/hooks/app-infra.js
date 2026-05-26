@@ -7,7 +7,6 @@
  */
 
 import { appStore } from '../modules/store.js';
-import { State } from '../modules/state.js';
 
 import { syncOfflineScores } from '../modules/user-profile.js';
 import { calculateCurrentStreak } from '../modules/user-profile.js';
@@ -54,22 +53,7 @@ export async function setupAppInfra({ userData }) {
     appStore.getState().setTutorChatSubmitCallback(handleTutorChatSubmitFn);
 
     const updateState = (newState) => {
-        const reactiveKeys = ['listeningScore', 'speakingScore', 'incorrectAttempts', 'dayCount', 'currentStreak'];
-        const storeUpdates = {};
-        const stateUpdates = {};
-        Object.entries(newState).forEach(([key, value]) => {
-            if (reactiveKeys.includes(key)) {
-                storeUpdates[key] = value;
-            } else {
-                stateUpdates[key] = value;
-            }
-        });
-        if (Object.keys(storeUpdates).length > 0) {
-            appStore.setState(storeUpdates);
-        }
-        if (Object.keys(stateUpdates).length > 0) {
-            Object.assign(State, stateUpdates);
-        }
+        appStore.setState(newState);
     };
 
     const handleHint = (...args) => handleHintImpl(...args);
@@ -127,13 +111,16 @@ export async function setupAppInfra({ userData }) {
         } catch (e) {
             console.error(e);
         }
-        if (State.player) State.player.destroy();
-        State.resetForNewLesson();
-        State.lessonStartTime = new Date().toISOString();
-        State.roleOther = lesson.roleOther || "";
-        State.roleUser = lesson.roleUser || "";
-        State.userRole = lesson.userRole || "";
-        State.videoRole = lesson.videoRole || "";
+        const player = appStore.getState().currentVideoPlayer;
+        if (player) player.destroy();
+        appStore.getState().resetForNewLesson();
+        appStore.getState().resetLessonHistory();
+        appStore.setState({ currentStepIndex: 0 });
+        appStore.getState().resetLessonState();
+        appStore.getState().setLessonStartTime(new Date().toISOString());
+        appStore.getState().setRoleOther(lesson.roleOther || "");
+        appStore.getState().setUserRole(lesson.userRole || "");
+        appStore.getState().setVideoRole(lesson.videoRole || "");
         updateProgressBar();
 
         const configData = appStore.getState().configData;
@@ -169,7 +156,6 @@ export async function setupAppInfra({ userData }) {
         uiElements: {}
     });
 
-    State.successHandler = handler;
     appStore.getState().setSuccessHandler(handler);
 
     console.log('[app-infra] SuccessLessonHandler initialized', {

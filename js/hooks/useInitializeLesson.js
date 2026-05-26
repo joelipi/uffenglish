@@ -49,7 +49,7 @@ export function useInitializeLesson() {
                 }
                 if (keysToDelete.length > 0) {
                     keysToDelete.forEach(key => url.searchParams.delete(key));
-                    window.history.replaceState({}, document.title, url.toString());
+                    window.history.replaceState({}, '', url.toString());
                 }
             }
 

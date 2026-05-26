@@ -1,35 +1,41 @@
-let preloadDiv = null;
-let progressBar = null;
-let progressInterval = null;
+import { useCallback, useEffect, useRef } from 'react';
+import { appStore } from '../modules/store.js';
 
 export function usePreloader() {
-    const ensurePreloader = () => {
-        preloadDiv = document.getElementById('appLoadingImageDiv');
-        progressBar = document.getElementById('ui-progress-bar');
-        const progressContainer = document.getElementById('ui-progress-container');
-        if (progressContainer) progressContainer.style.opacity = '1';
-    };
+    const progressIntervalRef = useRef(null);
 
-    const startProgressPulse = () => {
-        if (!progressBar) return;
-        let progress = 0;
-        progressInterval = setInterval(() => {
-            progress += (95 - progress) * 0.05;
-            if (progressBar) progressBar.style.width = progress + '%';
+    const ensurePreloader = useCallback(() => {
+        appStore.getState().setPreloaderProgress(0);
+        appStore.getState().setPreloaderVisible(true);
+    }, []);
+
+    const startProgressPulse = useCallback(() => {
+        if (progressIntervalRef.current) return;
+        progressIntervalRef.current = setInterval(() => {
+            const current = appStore.getState().preloaderProgress;
+            const next = current + (95 - current) * 0.05;
+            appStore.getState().setPreloaderProgress(next);
         }, 100);
-    };
+    }, []);
 
-    const finishPreloader = () => {
-        if (progressInterval) clearInterval(progressInterval);
-        if (progressBar) progressBar.style.width = '100%';
+    const finishPreloader = useCallback(() => {
+        if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current);
+            progressIntervalRef.current = null;
+        }
+        appStore.getState().setPreloaderProgress(100);
         setTimeout(() => {
-            if (preloadDiv) {
-                preloadDiv.style.opacity = '0';
-                preloadDiv.style.transition = 'opacity 0.3s ease-out';
-                setTimeout(() => { preloadDiv.style.display = 'none'; }, 300);
+            appStore.getState().setPreloaderVisible(false);
+        }, 550);
+    }, []);
+
+    useEffect(() => {
+        return () => {
+            if (progressIntervalRef.current) {
+                clearInterval(progressIntervalRef.current);
             }
-        }, 250);
-    };
+        };
+    }, []);
 
     return { ensurePreloader, startProgressPulse, finishPreloader };
 }
