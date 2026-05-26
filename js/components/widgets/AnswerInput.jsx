@@ -62,7 +62,7 @@ export default function AnswerInput() {
     if (!textInputVisible) return null;
 
     return (
-        <div className="position-absolute w-100 p-3 z-3">
+        <div className="position-absolute w-100 p-3" style={{ zIndex: 9999 }}>
             <div className="card bg-dark border-secondary shadow-lg">
                 <div className="card-body p-2 d-flex align-items-center gap-2">
                     <div className="flex-grow-1 d-flex flex-column">

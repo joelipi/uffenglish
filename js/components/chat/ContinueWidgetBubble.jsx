@@ -2,7 +2,21 @@ import React from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store.js';
 import { DEFAULT_BOT_NAME, DEFAULT_AVATAR_URL } from '../../modules/tutor-config.js';
-import Strings from '../../data/strings.js';
+import { getBilingual } from '../../data/strings.js';
+
+function BilingualLabel({ textKey, lang, fallback }) {
+    const data = getBilingual(textKey, lang);
+    if (!data.localized) {
+        return <>{data.english}</>;
+    }
+    return (
+        <>
+            {data.english}
+            <br />
+            <span lang={data.lang}><i>{data.localized}</i></span>
+        </>
+    );
+}
 
 export default function ContinueWidgetBubble({ onClick }) {
     const isTextMode = useStore(appStore, (state) => state.isTextMode);
@@ -18,13 +32,6 @@ export default function ContinueWidgetBubble({ onClick }) {
         iconClass = 'bi-telephone-fill';
         actionTextKey = 'widget_action_audio';
     }
-
-    const incomingLabel = (typeof Strings !== 'undefined' && typeof Strings.get === 'function')
-        ? (Strings.get('widget_incoming', lang) || 'INCOMING')
-        : 'INCOMING';
-    const actionText = (typeof Strings !== 'undefined' && typeof Strings.get === 'function')
-        ? (Strings.get(actionTextKey, lang) || 'Tap to answer...')
-        : 'Tap to answer...';
 
     return (
         <div className="chat-message-row chat-message-row--system" id="continueButtonRow">
@@ -43,11 +50,11 @@ export default function ContinueWidgetBubble({ onClick }) {
                     <div className="incoming-video-inner">
                         <div className="incoming-video-header">
                             <i className={`bi ${iconClass} text-info pulse-camera`}></i>
-                            <span>{incomingLabel}</span>
+                            <span><BilingualLabel textKey="widget_incoming" lang={lang} fallback="INCOMING" /></span>
                         </div>
                         <div className="incoming-video-caller">
                             <span className="caller-name">{DEFAULT_BOT_NAME}</span>
-                            <span className="caller-action">{actionText}</span>
+                            <span className="caller-action"><BilingualLabel textKey={actionTextKey} lang={lang} fallback="Tap to answer..." /></span>
                         </div>
                         <div className="incoming-video-btn-wrapper">
                             <div className="btn-pulse-ring"></div>

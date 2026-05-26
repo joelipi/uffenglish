@@ -642,4 +642,35 @@ export function get(key, lang = 'en', placeholders = {}) {
     return `${englishText}<br><span lang='${normalizedLang}'><i>${translatedText}</i></span>`;
 }
 
-export default { get };
+/**
+ * Gets a UI string as structured bilingual data (no HTML).
+ * Returns { english, localized, lang } so the caller can render
+ * with platform-native elements (React, React Native, etc.).
+ */
+export function getBilingual(key, lang = 'en', placeholders = {}) {
+    const entry = strings[key];
+    if (!entry) return { english: key, localized: null, lang };
+
+    const normalizedLang = (lang && typeof lang === 'string')
+        ? lang.split('-')[0].toLowerCase()
+        : 'en';
+
+    let english = entry.en || '';
+    let localized = entry[normalizedLang] || '';
+
+    if (placeholders && typeof placeholders === 'object') {
+        Object.entries(placeholders).forEach(([pKey, pValue]) => {
+            const token = `{${pKey}}`;
+            english = english.replaceAll(token, pValue);
+            localized = localized.replaceAll(token, pValue);
+        });
+    }
+
+    return {
+        english,
+        localized: (normalizedLang !== 'en' && localized) ? localized : null,
+        lang: normalizedLang
+    };
+}
+
+export default { get, getBilingual };

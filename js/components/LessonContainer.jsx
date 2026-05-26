@@ -35,6 +35,8 @@ import SimpleVideoWrapper from './SimpleVideoWrapper.jsx';
 import IntroVideoWrapper from './IntroVideoWrapper.jsx';
 import VideoProcessorWrapper from './VideoProcessorWrapper.jsx';
 import { handleAuthClick } from '../modules/lesson-init.js';
+import { useStepLoader } from '../hooks/useStepLoader.js';
+import { loadNextStep as loadNextStepImpl } from '../modules/lesson-progression.js';
 
 export default function LessonContainer() {
     const { courseId, lessonId } = useParams();
@@ -54,6 +56,29 @@ export default function LessonContainer() {
     useEffect(() => {
         setStepLoaderDeps({ submitAnswerPrecheck, showFeedbackAndProceed, handleHint });
     }, [submitAnswerPrecheck, showFeedbackAndProceed, handleHint, setStepLoaderDeps]);
+
+    const { loadStep } = useStepLoader();
+    const { setCallLoadStep, setLoadNextStep } = answerPipeline;
+
+    const callLoadStep = useCallback((step, lesson, fluencyData) => {
+        loadStep(step, lesson, fluencyData, {
+            submitAnswerPrecheck,
+            showFeedbackAndProceed,
+            handleHint
+        });
+    }, [loadStep, submitAnswerPrecheck, showFeedbackAndProceed, handleHint]);
+
+    useEffect(() => {
+        setCallLoadStep(callLoadStep);
+    }, [callLoadStep, setCallLoadStep]);
+
+    const loadNextStep = useCallback((currentStep, fluencyData) => {
+        loadNextStepImpl(currentStep, fluencyData, { callLoadStep });
+    }, [callLoadStep]);
+
+    useEffect(() => {
+        setLoadNextStep(loadNextStep);
+    }, [loadNextStep, setLoadNextStep]);
 
     useEffect(() => {
         if (courseId && lessonId && configData) {
@@ -109,7 +134,7 @@ export default function LessonContainer() {
                             <ActivityStats />
                         </div>
                     </div>
-                    {statsVisible && (
+                    {statsVisible && !chatModeActive && (
                         <ScoreBoard />
                     )}
                 </div>
@@ -120,20 +145,16 @@ export default function LessonContainer() {
 
             {/* Controls */}
             <div className="lesson-body">
-                <MicrophoneToggle />
                 <LessonSuccessControls successHandler={successHandler} />
                 <CriticalErrorModal />
                 <GuestLoginModal />
-                <AuthLink onAuthClick={handleAuthClick} />
             </div>
 
-            <MissionSection />
-            <IntroChoices />
             <Hints />
             <WebcamPreview />
 
             {/* Chat Window */}
-            <div id="chat-window-container" className={chatModeActive ? '' : 'd-none'} style={chatModeActive ? { display: 'flex', flexDirection: 'column' } : {}}>
+            <div id="chat-window-container" className={chatModeActive ? '' : 'd-none'} style={chatModeActive ? { position: 'absolute', top: 60, bottom: 80, left: 0, right: 0, display: 'flex', flexDirection: 'column' } : {}}>
                 <ChatHeader />
                 <ChatInterface />
                 <TutorChatInput />
@@ -141,10 +162,15 @@ export default function LessonContainer() {
 
             {/* Bottom Overlay */}
             <div className="bottom-overlay position-absolute bottom-0 start-0 w-100 d-flex flex-column">
-                <div className="reflecting-pool-bg"></div>
+                <MissionSection />
+                {/* reflecting-pool-bg temporarily removed — was covering the mission section; reinstate when we can fix the stacking */}
+                {/* <div className="reflecting-pool-bg"></div> */}
                 <div className="bottom-overlay-content">
                     <div className="controls-section">
-                        <div className="d-flex justify-content-between align-items-center w-100"></div>
+                        <div className="d-flex justify-content-center align-items-center w-100">
+                            <MicrophoneToggle />
+                            <IntroChoices />
+                        </div>
                     </div>
                 </div>
             </div>

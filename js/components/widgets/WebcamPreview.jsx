@@ -4,6 +4,7 @@ import { appStore } from '../../modules/store.js';
 
 export default function WebcamPreview() {
     const webcamStream = useStore(appStore, (state) => state.webcamStream);
+    const chatModeActive = useStore(appStore, (state) => state.chatModeActive);
     const videoRef = useRef(null);
     const wrapperRef = useRef(null);
 
@@ -34,6 +35,16 @@ export default function WebcamPreview() {
             wrapper.classList.add('d-none');
         }
     }, [webcamStream]);
+
+    useEffect(() => {
+        const wrapper = wrapperRef.current;
+        if (!wrapper) return;
+        if (chatModeActive) {
+            wrapper.classList.add('d-none');
+        } else if (webcamStream) {
+            wrapper.classList.remove('d-none');
+        }
+    }, [chatModeActive, webcamStream]);
 
     return null;
 }

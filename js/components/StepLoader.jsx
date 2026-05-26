@@ -15,22 +15,8 @@ function UnknownStepType({ stepType }) {
     );
 }
 
-function LessonIntroStep({ step, lesson }) {
-    const hasExplanation = step.explanation && !step.simpleVideoUrl;
-    return (
-        <div className="step-lesson-intro">
-            <div className="chat-message-row chat-message-row--system">
-                <div className="chat-message-bubble chat-message-bubble--system">
-                    <p className="lesson-name">
-                        <strong>Lesson: {lesson?.title}</strong>
-                    </p>
-                    {hasExplanation && (
-                        <p className="explanation">{step.explanation}</p>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
+function LessonIntroStep() {
+    return <div className="step-lesson-intro"></div>;
 }
 
 function PresentStep({ step, lesson }) {

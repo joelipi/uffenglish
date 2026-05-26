@@ -533,23 +533,6 @@ function _renderLessonIntro(step, lesson, deps) {
     appStore.setState({ rolePlayPointsHistory: [] });
     hideAnswerDiv();
 
-    if (!step.simpleVideoUrl && step.explanation) {
-        const lang = appStore.getState().userData?.native_language; const localizedTrans = getLocalizedTranslation(step.translation, lang); const hasTranslation = !!localizedTrans;
-        const imagineStr = Strings.get('imagine', lang); const listenRepeatStr = Strings.get('listen_repeat', lang);
-
-        const explanationStr = `
-            <p class='explanation'>
-              <strong>${imagineStr.split('<br>')[0]}</strong> ${step.explanation}
-              <br><br>
-              Γ₧í${listenRepeatStr.split('<br>')[0]}
-              ${hasTranslation && lang !== 'en' ? `<br><br><span lang='${lang}'><i><strong>≡ƒÄ»${imagineStr.includes('<br>') ? imagineStr.split('<i>')[1].split('<i>')[0] : imagineStr}</strong>${localizedTrans}<br><br>${listenRepeatStr.includes('<br>') ? listenRepeatStr.split('<i>')[1].split('<i>')[0] : listenRepeatStr}</i></span>` : ''}
-            </p>`;
-
-        addAIFeedbackMessages([
-            `<p class='lesson-name'><strong>Lesson: ${lesson.title}</strong></p>`,
-            explanationStr
-        ]);
-    }
     showFeedbackAndProceed(step, true);
 }
 
