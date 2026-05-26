@@ -69,6 +69,7 @@ export async function loadNextLesson(_deps = {}) {
                 appStore.getState().setProgressPercent("100%");
                 appStore.getState().setStepsAnswered(0);
                 appStore.setState({ currentStepIndex: 0 });
+                appStore.getState().clearSuccessVideoBlob();
                 _deps.loadLessonContent(appStore.getState().configData.lessons[nextLessonIndex]);
             } else showCompletionMessage();
         }, 500);

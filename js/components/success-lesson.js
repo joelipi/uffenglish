@@ -159,7 +159,7 @@ export class SuccessLessonHandler {
           mediaViewport.classList.remove('d-none');
           Array.from(mediaViewport.children).forEach(c => {
             if (c.id !== 'displayCanvas' && c.id !== 'resultVideo') {
-              c.style.display = 'none';
+              c.classList.add('d-none');
             }
           });
         }
@@ -192,7 +192,7 @@ export class SuccessLessonHandler {
 
         if (result?.blob) {
           displayCanvas.style.display = 'none';
-          this.mountResultVideo(result.blob);
+          appStore.getState().setSuccessVideoBlob(result.blob);
 
           try {
             await clearSpeechRecordingsForLesson(targetLessonId);
@@ -229,29 +229,6 @@ export class SuccessLessonHandler {
         videoBtn.innerHTML = '<i class="bi bi-film text-white"></i>';
       }
     };
-  }
-
-  mountResultVideo(blob) {
-    let resultVideo = document.getElementById('resultVideo');
-    if (!resultVideo) {
-      resultVideo = document.createElement('video');
-      resultVideo.id = 'resultVideo';
-
-      const mediaViewport = document.getElementById('media-viewport');
-      const container = mediaViewport || document.querySelector('.video-frame');
-      container.appendChild(resultVideo);
-    }
-
-    resultVideo.style.width = '100%';
-    resultVideo.style.height = 'calc(100% - 140px)';
-    resultVideo.style.objectFit = 'contain';
-    resultVideo.style.backgroundColor = 'black';
-    resultVideo.controls = true;
-    resultVideo.playsInline = true;
-
-    resultVideo.src = URL.createObjectURL(blob);
-    resultVideo.classList.remove('d-none');
-    resultVideo.style.display = 'block';
   }
 
   async createRepeatButton(step) {

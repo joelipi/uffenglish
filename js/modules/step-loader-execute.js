@@ -15,9 +15,6 @@ import { clearChat, addAIFeedbackMessages } from '../components/chat/chat-interf
 
 function resetUIForNewStep(isLessonIntro, hasUserData) {
     appStore.getState().setBottomControlState('mic');
-
-    const resultVideo = document.getElementById('resultVideo');
-    if (resultVideo) resultVideo.remove();
 }
 
 export function createLoadStep(submitAnswerPrecheck, showFeedbackAndProceed, handleHint) {

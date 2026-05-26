@@ -139,6 +139,7 @@ export const appStore = createStore(
             // --- Whisper Review Overlay ---
             whisperReviewData: null,
             whisperReviewTimeLeft: null,
+            successVideoBlob: null,
 
             // --- Media Viewport Dynamic Content ---
             praiseImageUrl: null,
@@ -430,6 +431,7 @@ export const appStore = createStore(
                 youtubeVideoId: null,
                 whisperReviewData: null,
                 whisperReviewTimeLeft: null,
+                successVideoBlob: null,
                 playbackBlob: null,
                 playbackAutoplay: false,
                 playbackSpeechCamChunks: [],
@@ -473,6 +475,8 @@ export const appStore = createStore(
             // --- Whisper Review Actions ---
             setWhisperReviewData: (data) => set({ whisperReviewData: data }),
             setWhisperReviewTimeLeft: (timeLeft) => set({ whisperReviewTimeLeft: timeLeft }),
+            setSuccessVideoBlob: (blob) => set({ successVideoBlob: blob }),
+            clearSuccessVideoBlob: () => set({ successVideoBlob: null }),
 
             // --- Media Viewport Actions ---
             setPraiseImageUrl: (url) => set({ praiseImageUrl: url }),

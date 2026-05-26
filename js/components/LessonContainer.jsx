@@ -19,6 +19,7 @@ import AnswerInput from './widgets/AnswerInput.jsx';
 import WebcamPreview from './widgets/WebcamPreview.jsx';
 import WhisperReview from './widgets/WhisperReview.jsx';
 import MediaContent from './widgets/MediaContent.jsx';
+import SuccessVideo from './widgets/SuccessVideo.jsx';
 import ScoreBoard from './widgets/ScoreBoard.jsx';
 import ProgressBar from './widgets/ProgressBar.jsx';
 import ActivityStats from './widgets/ActivityStats.jsx';
@@ -185,6 +186,7 @@ export default function LessonContainer() {
 
             <WhisperReview />
             <MediaContent />
+            <SuccessVideo />
             <PlaybackVideo />
             <InteractiveVideoWrapper />
             <SimpleVideoWrapper />
