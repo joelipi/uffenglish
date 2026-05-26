@@ -38,25 +38,24 @@ test.describe('End-to-End Smoke Test', () => {
         await page.goto('/course/gt2/lesson/a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         
-        // Force the chat interface to be visible for the smoke test
+        // Force the chat interface to be visible for the smoke test.
+        // Wait for all async init (lesson load, step load, clearChat) to complete.
+        await page.waitForTimeout(3000);
         await page.evaluate(() => {
-            const chat = document.getElementById('chat-window-container');
-            if (chat) {
-                chat.classList.remove('d-none');
-                chat.style.setProperty('display', 'flex', 'important');
-            }
-            const stats = document.getElementById('react-root-stats');
-            if (stats) stats.classList.remove('d-none');
-            const media = document.getElementById('media-viewport');
-            if (media) media.classList.remove('d-none');
-            // Ensure store state matches (StatsBar React component manages d-none via store)
-            if (window.appStore) window.appStore.getState().setStatsVisible(true);
+            window.appStore.getState().setStatsVisible(true);
+            window.appStore.getState().setChatModeActive(true);
         });
+        await page.waitForTimeout(1000);
         await assertNoError();
 
         // Verify key UI elements are visible
-        await expect(page.locator('#react-root-chat')).toBeVisible();
-        await expect(page.locator('#react-root-stats')).toBeVisible();
+        await expect(page.locator('#chat-message-list')).toBeVisible({ timeout: 10000 });
+        await expect(page.locator('#stats-container')).toBeVisible();
+        // media-viewport is vanilla-managed; remove d-none for test visibility
+        await page.evaluate(() => {
+            const media = document.getElementById('media-viewport');
+            if (media) media.classList.remove('d-none');
+        });
         await expect(page.locator('#media-viewport')).toBeVisible();
 
         // 2. Test Mode Selection (Bypass actual clicks to ensure we hit the logic)

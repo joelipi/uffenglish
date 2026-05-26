@@ -578,17 +578,6 @@
             letter-spacing: 0.02em;
         }
 
-        #chat-window-container {
-            display: none;
-            position: absolute;
-            top: 60px;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            z-index: 11;
-            flex-direction: column;
-        }
-
         #react-root-chat {
             flex: 1;
             min-height: 0;
@@ -1926,7 +1915,6 @@
                 </div>
             </div>
 
-
             <!-- Whisper Review UI (Hardcoded Overlay) -->
             <div id="whisperReviewContainer"
                 class="d-none position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4 text-white text-center">
@@ -1953,58 +1941,13 @@
                 <video id="webcam-preview" autoplay muted playsinline></video>
             </div>
 
-            <!-- Top Overlay -->
-            <div class="top-overlay position-absolute top-0 start-0 w-100 px-3 py-2 z-1">
-                <div id="closeAndProgress" class="w-100 text-shadow">
-
-                    <!-- Top Row: Close Button & Progress Bar (Spanning full width) -->
-                    <div class="d-flex align-items-center w-100 mb-0">
-                        <a href="homescreen.html" id="closePage"
-                            class="d-flex align-items-center text-decoration-none flex-shrink-0" aria-label="Close">
-                            <i class="bi bi-x-lg"></i>
-                        </a>
-                        <div class="flex-grow-1 ms-3">
-                            <div id="progress" class="progress shadow-sm" style="height: 8px;"></div>
-                        </div>
-                        <div id="react-root-activity" class="ms-2"></div>
-                    </div>
-
-                    <!-- Bottom Row: Bot Stats (Spread out columns with Listening centered) -->
-                    <div id="react-root-stats"></div>
-                    <!-- Legacy stats container replaced by react-root-stats ScoreBoard -->
-                    <!--
-                    <div id="stats-container" class="row w-100 mx-0 mt-0 text-white stats-container d-none">
-                        <div class="col-4 d-flex align-items-center justify-content-center px-2">
-                            <div title="Pronunciation" class="d-flex flex-column align-items-center w-100">
-                                <div class="chat-bubble-header stats-header-label">PRONUNCIATION</div>
-                                <span id="pronunciationScore" class="bot-score">100</span>
-                            </div>
-                        </div>
-                        <div class="col-4 d-flex align-items-center justify-content-center px-2">
-                            <div title="Listening" class="d-flex flex-column align-items-center w-100">
-                                <div class="chat-bubble-header stats-header-label">LISTENING</div>
-                                <span id="listeningScore" class="bot-score">100</span>
-                            </div>
-                        </div>
-                        <div class="col-4 d-flex align-items-center justify-content-center px-2">
-                            <div title="Flow" class="d-flex flex-column align-items-center w-100">
-                                <div class="chat-bubble-header stats-header-label">SPEAKING FLOW</div>
-                                <span id="flowScore" class="bot-score">100</span>
-                            </div>
-                        </div>
-                    </div>
-                    -->
-
-                </div>
-            </div>
-
             <!-- HIDDEN FUNCTIONAL ELEMENTS -->
             <video id="originalVideo" src="" class="d-none"></video>
             <video id="resultVideo" class="d-none"></video>
             <canvas id="videoCanvas" class="d-none"></canvas>
             <img id="overlayImage" src="/assets/img/header.png" class="d-none">
 
-            <!-- RESTORED: Playback Video Elements -->
+            <!-- Playback Video Elements -->
             <div id="playback-video-wrapper" class="playback-video-container position-relative d-none">
                 <video id="playback-video" playsinline preload="auto" loop></video>
                 <button id="playback-mute-toggle" class="playback-mute-toggle position-absolute bottom-0 end-0 m-1">
@@ -2012,77 +1955,8 @@
                 </button>
             </div>
 
-            <div id="react-root-micstatus" class="d-flex justify-content-center align-items-center"></div>
-
-            <div id="chat-window-container">
-                <div id="chat-window-header" class="card-header text-white p-0 chat-window-header"></div>
-
-                <div id="react-root-chat"></div>
-
-                <div id="chat-input-area" class="card-footer bg-white border-top-0 w-100">
-                    <div class="input-group">
-                        <textarea id="chat-input-field" class="form-control" rows="2"
-                            placeholder="Ask your tutor a question..."></textarea>
-                        <button id="chat-send-button" class="btn btn-primary" type="button">
-                            <i class="bi bi-send-fill"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Permanent Answer Input Area (for text-input steps; this is distinct from the chat) -->
-            <!-- Rendered by React AnswerInput component -->
-            <div id="answer-input-area" class="d-none position-absolute w-100 p-3 z-3"></div>
-             <!-- Bottom Overlay -->
-            <div class="bottom-overlay position-absolute bottom-0 start-0 w-100 d-flex flex-column">
-
-                <!-- Layer 1: The Reflecting Pool -->
-                <div class="reflecting-pool-bg"></div>
-
-                <!-- Layer 2: The Unmasked Content -->
-                <div class="bottom-overlay-content">
-                    <div id="react-root-mission"></div>
-
-                    <div class="controls-section">
-                         <div class="d-flex justify-content-between align-items-center w-100">
-
-                        </div>
-                    </div>
-                </div>
-
-            </div>
         </div>
     </main>
-
-    <!--
-    <dialog id="guestLoginModal">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content bg-dark text-white border-light shadow-lg">
-                <div class="modal-header border-secondary">
-                    <h5 class="modal-title" id="guestLoginModalLabel"><i
-                            class="bi bi-shield-lock-fill text-warning me-2"></i><span
-                            id="guestLoginModalTitleText">Welcome!</span></h5>
-                </div>
-                <div class="modal-body">
-                    <p class="text-light" id="guestLoginModalBodyText">You are currently not logged in. Log in or sign
-                        up to save your progress and
-                        access all features. Or, continue as a guest to try out the app.</p>
-                    <div class="d-grid gap-2 mt-4">
-                        <a href="login.html" id="guestLoginBtn" class="btn btn-primary">
-                            <i class="bi bi-box-arrow-in-right me-1"></i><span id="guestLoginBtnText">Log In</span>
-                        </a>
-                        <a href="signup.html" id="guestSignupBtn" class="btn btn-secondary">
-                            <i class="bi bi-person-plus-fill me-1"></i><span id="guestSignupBtnText">Sign Up</span>
-                        </a>
-                        <button type="button" class="btn btn-outline-light mt-2" id="guestContinueBtn">
-                            <span id="guestContinueBtnText">Continue as Guest</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </dialog>
-    -->
 
     <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

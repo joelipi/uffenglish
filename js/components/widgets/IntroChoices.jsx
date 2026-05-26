@@ -10,7 +10,7 @@ export default function IntroChoices() {
     if (bottomControlState !== 'introChoices') return null;
 
     const getContinueCb = () => {
-        return introContinueCallback || introAudioOnlyCallback || window.__introAudioOnlyCallback || null;
+        return introContinueCallback || introAudioOnlyCallback || null;
     };
 
     const handleVideoClick = () => {

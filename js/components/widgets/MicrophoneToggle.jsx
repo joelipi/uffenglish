@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store.js';
-import { State } from '../../modules/state.js';
 
 export default function MicrophoneToggle() {
     const isMicActive = useStore(appStore, (state) => state.isMicActive);
@@ -17,30 +16,24 @@ export default function MicrophoneToggle() {
         const rings = containerRef.current.querySelectorAll('.mic-ring');
 
         if (isMicActive) {
-            // Start animation
-            const duration = 2000;
-            const delays = [0, 650, 1300];
-            
-            // Cancel any existing animations first
             animationRefs.current.forEach(anim => {
                 try { anim.cancel(); } catch (e) {}
             });
-            
+
             animationRefs.current = Array.from(rings).map((ring, index) => {
                 ring.style.opacity = '0.7';
                 const anim = ring.animate([
                     { transform: 'scale(1)', opacity: 0.7 },
                     { transform: 'scale(2.6)', opacity: 0 }
                 ], {
-                    duration: duration,
-                    delay: delays[index],
+                    duration: 2000,
+                    delay: [0, 650, 1300][index],
                     iterations: Infinity,
                     easing: 'ease-out'
                 });
                 return anim;
             });
         } else {
-            // Stop animation
             animationRefs.current.forEach(anim => {
                 try { anim.cancel(); } catch (e) {}
             });
@@ -70,25 +63,18 @@ export default function MicrophoneToggle() {
 
     const handleTextClick = () => {
         const isTextInputVisible = appStore.getState().textInputVisible;
+        const player = currentVideoPlayer;
 
         if (isTextInputVisible) {
-            // CLOSING
             appStore.getState().setTextInputVisible(false);
             appStore.getState().setMicActive(false);
-
-            const player = window.State?.player || currentVideoPlayer;
             if (player && player.play) {
                 player.play().catch(e => console.warn('[UI] Video resume failed:', e));
             }
-            console.log('[UI] Text area hidden, video resumed');
         } else {
-            // OPENING
             appStore.getState().setTextInputVisible(true);
             appStore.getState().setMicActive(true);
-
-            const player = window.State?.player || currentVideoPlayer;
             if (player && player.pause) player.pause();
-            console.log('[UI] Text area shown, video paused');
         }
     };
 
@@ -105,9 +91,9 @@ export default function MicrophoneToggle() {
             >
                 <i className={isMicActive ? "bi bi-mic-fill" : "bi bi-mic-mute-fill"}></i>
             </button>
-            <button 
-                className={`btn call-btn ${isTextMode ? '' : 'd-none'}`} 
-                id="txtBtn" 
+            <button
+                className={`btn call-btn ${isTextMode ? '' : 'd-none'}`}
+                id="txtBtn"
                 aria-label="Toggle Text Input"
                 onClick={handleTextClick}
             >

@@ -91,7 +91,10 @@ export const appStore = createStore(
             completionMessage: null,
             lessonTitle: null,
             isLessonActive: false,
-            
+
+            // --- Controller References (not persisted) ---
+            successHandler: null,
+
             // --- Input UI State (Replaces renderSpeechInputUI/renderTextInputUI) ---
             textInputVisible: false,
             textInputPlaceholder: '',
@@ -128,6 +131,7 @@ export const appStore = createStore(
             setIntroContinueCallback: (val) => set({ introContinueCallback: val }),
             setIntroAudioOnlyCallback: (val) => set({ introAudioOnlyCallback: val }),
             setOnMicClickCallback: (val) => set({ onMicClickCallback: val }),
+            setSuccessHandler: (val) => set({ successHandler: val }),
             setLessonTitle: (val) => set({ lessonTitle: val }),
             setIsLessonActive: (val) => set({ isLessonActive: val }),
 

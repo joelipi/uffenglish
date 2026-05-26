@@ -10,7 +10,6 @@ export default function Hints() {
 
     const hasContent = hangmanHintHTML || speechInputContent;
 
-    // Delegate clicks on pulse-dot spans via bubbling — no manual listener registration needed
     const handleClick = useCallback((e) => {
         if (speechInputRevealCallback && e.target.classList.contains('pulse-dot')) {
             speechInputRevealCallback(e);

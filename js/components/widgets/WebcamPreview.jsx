@@ -1,29 +1,37 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store.js';
 
 export default function WebcamPreview() {
     const webcamStream = useStore(appStore, (state) => state.webcamStream);
+    const videoRef = useRef(null);
+    const wrapperRef = useRef(null);
 
     useEffect(() => {
-        const video = document.getElementById('webcam-preview');
-        const pipWrapper = document.getElementById('pip-wrapper');
-        if (!video || !pipWrapper) return;
+        videoRef.current = document.getElementById('webcam-preview');
+        wrapperRef.current = document.getElementById('pip-wrapper');
+    }, []);
+
+    useEffect(() => {
+        const video = videoRef.current;
+        const wrapper = wrapperRef.current;
+        if (!video || !wrapper) return;
 
         if (webcamStream) {
             if (video.srcObject !== webcamStream) {
                 video.srcObject = webcamStream;
             }
-            pipWrapper.classList.remove('d-none');
-            setTimeout(() => {
+            wrapper.classList.remove('d-none');
+            const timer = setTimeout(() => {
                 if (video.readyState >= 2 || video.paused) {
                     video.play().catch(e => console.log('[Webcam] play failed:', e));
                 }
             }, 100);
+            return () => clearTimeout(timer);
         } else {
             video.pause();
             video.srcObject = null;
-            pipWrapper.classList.add('d-none');
+            wrapper.classList.add('d-none');
         }
     }, [webcamStream]);
 

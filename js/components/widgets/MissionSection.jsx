@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store.js';
 import { BilingualText } from '../BilingualText.jsx';
@@ -10,16 +9,13 @@ export default function MissionSection() {
     const currentLessonIndex = useStore(appStore, (state) => state.currentLessonIndex);
     const userData = useStore(appStore, (state) => state.userData);
 
-    const target = document.getElementById('react-root-mission');
-
     const lesson = configData?.lessons?.[currentLessonIndex];
-    if (!lesson || !target) return null;
+    if (!lesson) return null;
 
     const lang = userData?.native_language || 'en';
-
     const toggle = () => setExpanded((prev) => !prev);
 
-    return createPortal(
+    return (
         <div
             className={'mission-section' + (expanded ? ' expanded' : '')}
             onClick={toggle}
@@ -39,7 +35,6 @@ export default function MissionSection() {
                     <i className={'bi ' + (expanded ? 'bi-chevron-down' : 'bi-chevron-up')} id="mission-carat"></i>
                 </div>
             </div>
-        </div>,
-        target
+        </div>
     );
 }

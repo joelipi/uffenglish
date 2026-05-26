@@ -162,7 +162,7 @@ export async function setupAppInfra({ userData }) {
 
     const { SuccessLessonHandler } = await import('../components/success-lesson.js');
 
-    State.successHandler = new SuccessLessonHandler({
+    const handler = new SuccessLessonHandler({
         loadLessonContent,
         calculateAverage,
         playSound: Media.playSound,
@@ -170,6 +170,9 @@ export async function setupAppInfra({ userData }) {
         updateState,
         uiElements: {}
     });
+
+    State.successHandler = handler;
+    appStore.getState().setSuccessHandler(handler);
 
     console.log('[app-infra] SuccessLessonHandler initialized', {
         currentLessonIndex: appStore.getState().currentLessonIndex,

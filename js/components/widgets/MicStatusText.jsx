@@ -1,16 +1,15 @@
 import React from 'react';
-import { createPortal } from 'react-dom';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store.js';
 
 export default function MicStatusText() {
     const micStatusText = useStore(appStore, (state) => state.micStatusText);
-    const target = document.getElementById('react-root-micstatus');
 
-    return target ? createPortal(
-        <div id="micStatusText" className="d-flex justify-content-center align-items-center"
-            dangerouslySetInnerHTML={{ __html: micStatusText }}>
-        </div>,
-        target
-    ) : null;
+    if (!micStatusText) return null;
+
+    return (
+        <div id="react-root-micstatus" className="d-flex justify-content-center align-items-center">
+            <div id="micStatusText" dangerouslySetInnerHTML={{ __html: micStatusText }} />
+        </div>
+    );
 }
