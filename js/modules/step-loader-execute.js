@@ -175,8 +175,7 @@ function _renderResponseStep(step, lesson, deps) {
                             }
                             Media.pauseVideoIfPlaying();
                         },
-                        onMicDisable: (btn) => {
-                            appStore.getState().setMicActive(false);
+                        onMicDisable: () => {
                         },
                         onRecordingStart: (userData) => {
                             cancelWarningClear();
@@ -200,9 +199,7 @@ function _renderResponseStep(step, lesson, deps) {
                             }
                             appStore.getState().setMicStatusText(`<div class='text-center text-success mt-2'><i class="bi bi-check-circle"></i> Engine ready. Try speaking now!</div>`);
                         },
-                        onRecordingActive: (btn) => {
-                            if (btn) {
-                            }
+                        onRecordingActive: () => {
                         },
                         onRecordingStop: (btn) => {
                             appStore.getState().setMicActive(false);
