@@ -223,9 +223,13 @@ export default function PlaybackVideo() {
         if (chatModeActive) {
             wrapper.style.setProperty('display', 'none', 'important');
         } else {
-            wrapper.style.removeProperty('display');
+            if (blob) {
+                wrapper.style.removeProperty('display');
+            } else {
+                wrapper.style.display = 'none';
+            }
         }
-    }, [chatModeActive]);
+    }, [chatModeActive, blob]);
 
     return (
         <div ref={wrapperRef} id="playback-video-wrapper"
