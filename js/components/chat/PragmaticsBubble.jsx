@@ -1,6 +1,7 @@
 import React from 'react';
+import { DEFAULT_BOT_NAME, DEFAULT_AVATAR_URL } from '../../modules/tutor-config.js';
 
-export default function PragmaticsBubble({ contentHTML, correctionHTML = "", botName = "Joe Walsh", avatarUrl = "/assets/img/teacherprofile.webp" }) {
+export default function PragmaticsBubble({ contentHTML, correctionHTML = "", botName = DEFAULT_BOT_NAME, avatarUrl = DEFAULT_AVATAR_URL }) {
     const fullHtml = `${contentHTML}${correctionHTML ? ` ${correctionHTML}` : ''}`;
 
     return (

@@ -11,11 +11,40 @@ import AiLoadingBubble from './AiLoadingBubble.jsx';
 import VideoBubble from './VideoBubble.jsx';
 import ContinueWidgetBubble from './ContinueWidgetBubble.jsx';
 
+function PraiseWrapper({ msg }) {
+    return (
+        <div className="chat-message-row chat-message-row--system">
+            <img src={msg.avatarUrl || "/assets/img/teacherprofile.webp"} alt={msg.botName || "Joe Walsh"} className="chat-avatar-inline" />
+            <div className="chat-message-bubble chat-message-bubble--system">
+                <div className="chat-bubble-header">{msg.botName || "Joe Walsh"}</div>
+                <PraiseBubble praiseData={msg.praiseData || msg.content} />
+            </div>
+        </div>
+    );
+}
+
+function HtmlChunk({ msg }) {
+    if (msg.content && msg.content.includes('chat-message-row')) {
+        return <div style={{ display: 'contents' }} dangerouslySetInnerHTML={{ __html: msg.content }} />;
+    }
+    return <SystemBubble content={msg.content} botName={msg.botName} avatarUrl={msg.avatarUrl} />;
+}
+
+const SYSTEM_TYPE_COMPONENTS = {
+    continueWidget: (msg) => <ContinueWidgetBubble key={msg.id} onClick={msg.onClick} />,
+    grammarDiff: (msg) => <GrammarDiffBubble key={msg.id} original={msg.original} correction={msg.correction} botName={msg.botName} avatarUrl={msg.avatarUrl} />,
+    stats: (msg) => <StatsBubble key={msg.id} header={msg.header} statsParts={msg.statsParts} botName={msg.botName} avatarUrl={msg.avatarUrl} />,
+    pragmatics: (msg) => <PragmaticsBubble key={msg.id} contentHTML={msg.contentHTML || msg.content} correctionHTML={msg.correctionHTML} botName={msg.botName} avatarUrl={msg.avatarUrl} />,
+    praise: (msg) => <PraiseWrapper key={msg.id} msg={msg} />,
+    htmlChunk: (msg) => <HtmlChunk key={msg.id} msg={msg} />,
+    aiLoading: (msg) => <AiLoadingBubble key={msg.id} text={msg.content} />,
+    standard: (msg) => <SystemBubble key={msg.id} content={msg.content} botName={msg.botName} avatarUrl={msg.avatarUrl} />,
+};
+
 export default function ChatInterface() {
     const chatHistory = useStore(appStore, (state) => state.chatHistory);
     const containerRef = useRef(null);
 
-    // Auto-scroll to bottom whenever chat history changes
     useEffect(() => {
         if (containerRef.current) {
             containerRef.current.scrollTop = containerRef.current.scrollHeight;
@@ -39,41 +68,10 @@ export default function ChatInterface() {
                 }
 
                 if (msg.role === 'system') {
-                    switch (msg.type) {
-                        case 'continueWidget':
-                            return <ContinueWidgetBubble key={key} onClick={msg.onClick} />;
-                        case 'grammarDiff':
-                            return <GrammarDiffBubble key={key} original={msg.original} correction={msg.correction} botName={msg.botName} avatarUrl={msg.avatarUrl} />;
-                        case 'stats':
-                            return <StatsBubble key={key} header={msg.header} statsParts={msg.statsParts} botName={msg.botName} avatarUrl={msg.avatarUrl} />;
-                        case 'pragmatics':
-                            return <PragmaticsBubble key={key} contentHTML={msg.contentHTML || msg.content} correctionHTML={msg.correctionHTML} botName={msg.botName} avatarUrl={msg.avatarUrl} />;
-                        case 'praise':
-                            return (
-                                <div key={key} className="chat-message-row chat-message-row--system">
-                                    <img src={msg.avatarUrl || "/assets/img/teacherprofile.webp"} alt={msg.botName || "Joe Walsh"} className="chat-avatar-inline" />
-                                    <div className="chat-message-bubble chat-message-bubble--system">
-                                        <div className="chat-bubble-header">{msg.botName || "Joe Walsh"}</div>
-                                        <PraiseBubble praiseData={msg.praiseData || msg.content} />
-                                    </div>
-                                </div>
-                            );
-                        case 'htmlChunk':
-                            // SMART ROUTER FIX:
-                            // If it's a fully formed vanilla DOM widget, render it as-is so it fits the CSS flexbox.
-                            if (msg.content && msg.content.includes('chat-message-row')) {
-                                return <div key={key} style={{ display: 'contents' }} dangerouslySetInnerHTML={{ __html: msg.content }} />;
-                            }
-                            // If it's just naked text (e.g. "👍👍 Very good!"), wrap it in a proper SystemBubble!
-                            return <SystemBubble key={key} content={msg.content} botName={msg.botName} avatarUrl={msg.avatarUrl} />;
-
-                        case 'aiLoading':
-                            return <AiLoadingBubble key={key} text={msg.content} />;
-                        case 'standard':
-                        default:
-                            return <SystemBubble key={key} content={msg.content} botName={msg.botName} avatarUrl={msg.avatarUrl} />;
-                    }
+                    const componentFn = SYSTEM_TYPE_COMPONENTS[msg.type] || SYSTEM_TYPE_COMPONENTS.standard;
+                    return componentFn(msg);
                 }
+
                 return null;
             })}
         </div>

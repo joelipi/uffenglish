@@ -1,59 +1,19 @@
-/**
- * useAppBootstrap — React hook for full app bootstrap
- *
- * Encapsulates the initializeApp() flow that was previously in the deleted js/app.js.
- * Mounts the preloader in the DOM, then bootstraps app infra so React Router
- * can render routes.
- *
- * Must be called in App.jsx (or equivalent root component).
- */
 import { useState, useEffect, useRef } from 'react';
 import { appStore } from '../modules/store.js';
-
 import { requestPersistentStorage } from '../modules/lesson-init.js';
 import { isUserLoggedIn, getUserProfile } from '../modules/api.js';
 import { resolveCurrentCourseId, getUrlParamCaseInsensitive } from '../modules/lessonRouting.js';
 import { normalizeConfig } from '../modules/config-normalizer.js';
 import { saveCourseToUserProfile } from '../modules/user-profile.js';
 import { setupAppInfra } from './app-infra.js';
+import { usePreloader } from './usePreloader.js';
 import Strings from '../data/strings.js';
-
-let preloadDiv = null;
-let progressBar = null;
-let progressInterval = null;
-
-function ensurePreloader() {
-    preloadDiv = document.getElementById('appLoadingImageDiv');
-    progressBar = document.getElementById('ui-progress-bar');
-    const progressContainer = document.getElementById('ui-progress-container');
-    if (progressContainer) progressContainer.style.opacity = '1';
-}
-
-function startProgressPulse() {
-    if (!progressBar) return;
-    let progress = 0;
-    progressInterval = setInterval(() => {
-        progress += (95 - progress) * 0.05;
-        if (progressBar) progressBar.style.width = progress + '%';
-    }, 100);
-}
-
-function finishPreloader() {
-    if (progressInterval) clearInterval(progressInterval);
-    if (progressBar) progressBar.style.width = '100%';
-    setTimeout(() => {
-        if (preloadDiv) {
-            preloadDiv.style.opacity = '0';
-            preloadDiv.style.transition = 'opacity 0.3s ease-out';
-            setTimeout(() => { preloadDiv.style.display = 'none'; }, 300);
-        }
-    }, 250);
-}
 
 export function useAppBootstrap() {
     const [bootState, setBootState] = useState('loading');
     const [error, setError] = useState(null);
     const initStarted = useRef(false);
+    const { ensurePreloader, startProgressPulse, finishPreloader } = usePreloader();
 
     useEffect(() => {
         if (initStarted.current) return;
@@ -90,7 +50,6 @@ export function useAppBootstrap() {
                     appStore.getState().setGuestModalOpen(true);
                 }
 
-                // Resolve course ID and fetch config
                 const urlParams = new URLSearchParams(window.location.search);
                 const pathCourseMatch = window.location.pathname.match(/^\/course\/([^/]+)\/lesson\/([^/]+)/);
                 const courseContext = {

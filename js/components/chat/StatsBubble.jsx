@@ -1,6 +1,7 @@
 import React from 'react';
+import { DEFAULT_BOT_NAME, DEFAULT_AVATAR_URL } from '../../modules/tutor-config.js';
 
-export default function StatsBubble({ header, statsParts = [], botName = "Joe Walsh", avatarUrl = "/assets/img/teacherprofile.webp" }) {
+export default function StatsBubble({ header, statsParts = [], botName = DEFAULT_BOT_NAME, avatarUrl = DEFAULT_AVATAR_URL }) {
     const partsText = statsParts && statsParts.length > 0 ? ` ${statsParts.join('. ')}` : '';
     const fullContentHtml = `${header}${partsText}`;
 

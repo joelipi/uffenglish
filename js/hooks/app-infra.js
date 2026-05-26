@@ -9,7 +9,6 @@
 import { appStore } from '../modules/store.js';
 import { State } from '../modules/state.js';
 
-import { initMicAnimation } from '../components/mic-animation.js';
 import { syncOfflineScores } from '../modules/user-profile.js';
 import { calculateCurrentStreak } from '../modules/user-profile.js';
 import { calculateAverage } from '../modules/scoring.js';
@@ -50,7 +49,6 @@ export async function setupAppInfra({ userData }) {
         appStore.getState().setCountedLessons(userData.counted_lessons || []);
     }
 
-    initMicAnimation();
     syncOfflineScores(userData);
 
     appStore.getState().setTutorChatSubmitCallback(handleTutorChatSubmitFn);
@@ -181,7 +179,4 @@ export async function setupAppInfra({ userData }) {
         listeningScore: appStore.getState().listeningScore,
         speakingScore: appStore.getState().speakingScore
     });
-
-    window.__submitAnswerPrecheck = submitAnswerPrecheck;
-    window.__handleAnswer = handleAnswer;
 }
