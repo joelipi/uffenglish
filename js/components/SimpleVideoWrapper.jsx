@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useSyncExternalStore } from 'react';
 import { appStore } from '../modules/store.js';
-import { State } from '../modules/state.js';
 import { simpleVideoPlayer } from './simple-video-player.js';
 
 function portalTarget() {
@@ -23,7 +22,7 @@ export default function SimpleVideoWrapper() {
             if (playerInstance.current) {
                 playerInstance.current.destroy();
                 playerInstance.current = null;
-                if (State.player) State.player = null;
+                appStore.getState().setCurrentVideoPlayer(null);
                 window.currentSimpleVideoPlayer = null;
             }
             return;
@@ -42,7 +41,7 @@ export default function SimpleVideoWrapper() {
 
         const player = new simpleVideoPlayer(mergedConfig);
         playerInstance.current = player;
-        State.player = player;
+        appStore.getState().setCurrentVideoPlayer(player);
         window.currentSimpleVideoPlayer = player;
 
         try {
@@ -66,7 +65,7 @@ export default function SimpleVideoWrapper() {
             if (playerInstance.current) {
                 playerInstance.current.destroy();
                 playerInstance.current = null;
-                if (State.player) State.player = null;
+                appStore.getState().setCurrentVideoPlayer(null);
                 window.currentSimpleVideoPlayer = null;
             }
         };

@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useSyncExternalStore } from 'react';
 import { appStore } from '../modules/store.js';
-import { State } from '../modules/state.js';
 import { InteractiveVideoPlayer } from './interactive-video-player.js';
 import { pointLoss } from './point-loss-animation.js';
 
@@ -25,7 +24,6 @@ export default function InteractiveVideoWrapper() {
             if (playerInstance.current) {
                 playerInstance.current.destroy();
                 playerInstance.current = null;
-                if (State.player) State.player = null;
                 appStore.getState().setCurrentVideoPlayer(null);
             }
             return;
@@ -54,7 +52,6 @@ export default function InteractiveVideoWrapper() {
 
         const player = new InteractiveVideoPlayer(mergedConfig);
         playerInstance.current = player;
-        State.player = player;
         appStore.getState().setCurrentVideoPlayer(player);
 
         try {
@@ -88,9 +85,9 @@ export default function InteractiveVideoWrapper() {
                 clickTriggeredPlayRef.current = false;
                 return;
             }
-            State.videoPlays++;
+            appStore.getState().incrementVideoPlays();
             const stepType = currentVideo.stepType || '';
-            if (State.videoPlays > 2 && (stepType === 'closedResponse' || stepType === 'openResponse')) {
+            if (appStore.getState().videoPlays > 2 && (stepType === 'closedResponse' || stepType === 'openResponse')) {
                 appStore.getState().deductListeningScore(10);
                 pointLoss.show(player.video, 10);
             }
@@ -98,9 +95,9 @@ export default function InteractiveVideoWrapper() {
         player.video.addEventListener('play', playHandler);
 
         const clickHandler = () => {
-            State.videoClicks++;
+            appStore.getState().incrementVideoClicks();
             const stepType = currentVideo.stepType || '';
-            if (State.videoClicks % 2 === 1 && (stepType === 'closedResponse' || stepType === 'openResponse')) {
+            if (appStore.getState().videoClicks % 2 === 1 && (stepType === 'closedResponse' || stepType === 'openResponse')) {
                 clickTriggeredPlayRef.current = true;
                 appStore.getState().deductListeningScore(15);
                 pointLoss.show(player.video, 15);
@@ -116,7 +113,6 @@ export default function InteractiveVideoWrapper() {
             if (playerInstance.current) {
                 playerInstance.current.destroy();
                 playerInstance.current = null;
-                if (State.player) State.player = null;
                 appStore.getState().setCurrentVideoPlayer(null);
             }
         };
