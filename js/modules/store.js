@@ -125,6 +125,8 @@ export const appStore = createStore(
             textInputPlaceholder: '',
             textInputSubmitCallback: null,
             speechInputContent: null,
+            speechCue: null,
+            speechPossibleAnswer: null,
             speechInputHintCallback: null,
             speechInputRevealCallback: null,
             speechInputToggleCallback: null,
@@ -428,7 +430,9 @@ export const appStore = createStore(
                 whisperReviewTimeLeft: null,
                 playbackBlob: null,
                 playbackAutoplay: false,
-                playbackSpeechCamChunks: []
+                playbackSpeechCamChunks: [],
+                speechCue: null,
+                speechPossibleAnswer: null,
             }),
 
             // Reset all per-lesson metrics (called at lesson start)
@@ -454,6 +458,8 @@ export const appStore = createStore(
             setTextInputPlaceholder: (placeholder) => set({ textInputPlaceholder: placeholder }),
             setTextInputSubmitCallback: (callback) => set({ textInputSubmitCallback: callback }),
             setSpeechInputContent: (content) => set({ speechInputContent: content }),
+            setSpeechCue: (cue) => set({ speechCue: cue }),
+            setSpeechPossibleAnswer: (answer) => set({ speechPossibleAnswer: answer }),
             setSpeechInputHintCallback: (callback) => set({ speechInputHintCallback: callback }),
             setSpeechInputRevealCallback: (callback) => set({ speechInputRevealCallback: callback }),
             setSpeechInputToggleCallback: (callback) => set({ speechInputToggleCallback: callback }),
@@ -475,6 +481,8 @@ export const appStore = createStore(
                 textInputPlaceholder: '',
                 textInputSubmitCallback: null,
                 speechInputContent: null,
+                speechCue: null,
+                speechPossibleAnswer: null,
                 speechInputHintCallback: null,
                 speechInputRevealCallback: null,
                 speechInputToggleCallback: null,

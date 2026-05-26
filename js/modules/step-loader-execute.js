@@ -5,7 +5,6 @@
 import { appStore } from '../modules/store.js';
 import Strings from '../data/strings.js';
 import { getLocalizedTranslation } from '../modules/utils.js';
-import { formatBilingualHTML } from '../modules/bilingual-display.web.js';
 import { Media } from '../modules/media.js';
 import { getCurrentStepIndex } from '../modules/answers.js';
 import { warmUpSpeechCamStream, toggleSpeechRecognition, listeningState } from '../modules/speech.js';
@@ -114,21 +113,9 @@ function _renderResponseStep(step, lesson, deps) {
     const { submitAnswerPrecheck, handleHint } = deps;
     appStore.getState().setHintsVisible(false);
 
-    const answerFragment = document.createDocumentFragment();
     if (step.stepType !== "closedResponse") {
-        const userLang = appStore.getState().userData?.native_language;
-        const cueHTML = formatBilingualHTML(step.cue, userLang);
-        const tempEl = document.createElement('span');
-        tempEl.innerHTML = cueHTML;
-        while (tempEl.firstChild) answerFragment.appendChild(tempEl.firstChild);
-        if (step.possibleAnswer) {
-            answerFragment.appendChild(document.createElement('br'));
-            const strong = document.createElement('strong');
-            strong.textContent = Strings.get('possible_response', appStore.getState().userData?.native_language);
-            answerFragment.appendChild(strong);
-            answerFragment.appendChild(document.createElement('br'));
-            answerFragment.appendChild(document.createTextNode(step.possibleAnswer));
-        }
+        appStore.getState().setSpeechCue(step.cue);
+        appStore.getState().setSpeechPossibleAnswer(step.possibleAnswer || null);
     }
 
     const handleRevealClick = function () { };
@@ -143,9 +130,6 @@ function _renderResponseStep(step, lesson, deps) {
             submitAnswerPrecheck(val, step.cue, step, btn, step.explanation, step.translation, { pauseCount: 0, netDuration: 3 });
         });
     } else {
-        const hintTempDiv = document.createElement('div');
-        hintTempDiv.appendChild(answerFragment.cloneNode(true));
-        appStore.getState().setSpeechInputContent(hintTempDiv.innerHTML);
         appStore.getState().setSpeechInputHintCallback(step.stepType === "closedResponse" ? null : () => handleHint(stepIndex));
         appStore.getState().setSpeechInputRevealCallback(handleRevealClick);
         appStore.getState().setSpeechInputToggleCallback(async () => {
