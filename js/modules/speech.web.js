@@ -151,10 +151,11 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
                 recorder.onstop = async () => {
                     let blobToReturn = null;
                     try {
-                        if (chunks.length === 0) { resolve(null); return; }
+                        if (chunks.length === 0) { console.warn('[DBUG] chunks empty, resolving null'); resolve(null); return; }
 
                         const blob = new Blob(chunks, { type: mime });
                         blobToReturn = blob;
+                        console.warn('[DBUG] blob created, size:', blob.size, 'playback:', playback);
 
                         if (playback && blob.size > 0) appStore.getState().setPlaybackBlob(blob, autoplay, chunks);
 

@@ -21,13 +21,16 @@ function stopListeningEarly(userData, player, uiHooks) {
 async function processTranscript({ transcript, timingMeta, checkGibberish = false, logprob = 0, params, player }) {
     const { button, step, userData, configData, currentLessonIndex, currentStepIndex, handleAnswer, uiHooks } = params;
 
+    console.warn('[PT] ENTERED', { hasTranscript: !!transcript, checkGibberish, hasUiHooks: !!uiHooks, hasOnReviewStart: !!uiHooks?.onReviewStart });
+
     if (!transcript) {
+        console.warn('[PT] EXIT: empty transcript');
         stopListeningEarly(userData, player, uiHooks);
         return;
     }
 
     if (checkGibberish && Core.isGibberish(logprob)) {
-        console.warn('[Speech] Gibberish detected');
+        console.warn('[PT] EXIT: gibberish', { logprob });
         if (uiHooks?.onGibberishDetected) uiHooks.onGibberishDetected();
         stopListeningEarly(null, player, uiHooks);
 
@@ -41,6 +44,8 @@ async function processTranscript({ transcript, timingMeta, checkGibberish = fals
 
     const processedTranscript = Core.cleanTranscript(transcript);
     const transcriptToReview = processedTranscript || transcript;
+
+    console.warn('[PT] VALIDATING', { transcriptToReview: transcriptToReview.substring(0, 30) });
 
     const rejectPreflight = (warningMessage) => {
         if (uiHooks?.onPreflightRejected) uiHooks.onPreflightRejected(warningMessage);
@@ -100,6 +105,7 @@ async function processTranscript({ transcript, timingMeta, checkGibberish = fals
         setTimeout(() => toggleSpeechRecognition(params), 600);
     };
 
+    console.warn('[PT] CALLING onReviewStart', { transcriptToReview: transcriptToReview.substring(0, 30), timeLeft });
     if (uiHooks?.onReviewStart) uiHooks.onReviewStart(transcriptToReview, timeLeft, acceptTranscript, rejectTranscript);
 
     const timerInterval = setInterval(() => {
@@ -259,16 +265,30 @@ export async function toggleSpeechRecognition(params) {
             }
             if (uiHooks?.onRecordingStop) uiHooks.onRecordingStop(button);
 
-            const rawAudioData = WebAdapter.stopLocalAudioTap();
-            const videoBlob = await WebAdapter.stopSpeechCamRecording({
-                download: false, persist: true, keepStreamAlive: true, playback: true, autoplay: true,
-                meta: {
-                    lessonId: configData?.lessons?.[currentLessonIndex]?.lessonId || null,
-                    stepIndex: currentStepIndex ?? null,
-                    stepType: step?.stepType || null,
-                    title: step?.step || null,
-                }
-            });
+            let rawAudioData;
+            try {
+                rawAudioData = WebAdapter.stopLocalAudioTap();
+            } catch (e) {
+                console.error('[DBUG] stopLocalAudioTap threw:', e);
+                stopListeningEarly(userData, player, uiHooks);
+                return;
+            }
+            let videoBlob;
+            try {
+                videoBlob = await WebAdapter.stopSpeechCamRecording({
+                    download: false, persist: true, keepStreamAlive: true, playback: true, autoplay: true,
+                    meta: {
+                        lessonId: configData?.lessons?.[currentLessonIndex]?.lessonId || null,
+                        stepIndex: currentStepIndex ?? null,
+                        stepType: step?.stepType || null,
+                        title: step?.step || null,
+                    }
+                });
+            } catch (e) {
+                console.error('[DBUG] stopSpeechCamRecording threw:', e);
+                stopListeningEarly(userData, player, uiHooks);
+                return;
+            }
 
             await new Promise(r => setTimeout(r, 250));
 
@@ -279,16 +299,18 @@ export async function toggleSpeechRecognition(params) {
             }
 
             try {
-                // FIX: Bypass the buggy background VAD and strictly use the chronological math from Core
                 const extractionResult = Core.trimSilenceWithPadding(rawAudioData, {
                     threshold: 0.03, preRoll: 0.3, postRoll: 0.3, sampleRate: 16000, initialIgnoreMs: 800
                 });
+                console.warn('[PT] trimmed len=', extractionResult?.trimmed?.length);
                 const whisperResult = await transcribeAudioBuffer(extractionResult.trimmed);
-                const finalTranscript = typeof whisperResult === 'string' ? whisperResult : whisperResult.text;
-                const logprob = whisperResult.avg_logprob !== undefined ? whisperResult.avg_logprob : 0;
+                console.warn('[PT] whisper result=', typeof whisperResult === 'string' ? whisperResult : whisperResult?.text);
+                const finalTranscript = typeof whisperResult === 'string' ? whisperResult : whisperResult?.text;
+                const logprob = whisperResult?.avg_logprob !== undefined ? whisperResult.avg_logprob : 0;
 
                 const liveHesitation = appStore.getState().hesitationMs || extractionResult.hesitation;
 
+                console.warn('[PT] ABOUT TO CALL processTranscript', { transcript: finalTranscript?.substring(0, 30), logprob });
                 await processTranscript({
                     transcript: finalTranscript,
                     timingMeta: {

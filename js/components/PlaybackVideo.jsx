@@ -99,10 +99,6 @@ export default function PlaybackVideo() {
         video.onloadedmetadata = () => {
             const wrapper = wrapperRef.current;
             if (wrapper) {
-                const videoFrame = document.querySelector('.video-frame');
-                if (videoFrame && wrapper.parentElement !== videoFrame) {
-                    videoFrame.appendChild(wrapper);
-                }
                 wrapper.classList.remove('d-none');
                 wrapper.style.display = 'flex';
 
@@ -214,8 +210,25 @@ export default function PlaybackVideo() {
         }
     }, [videoPlayTrigger]);
 
+    const chatModeActive = useStore(appStore, (s) => s.chatModeActive);
+    const prevChatRef = useRef(chatModeActive);
+
+    useEffect(() => {
+        if (chatModeActive === prevChatRef.current) return;
+        prevChatRef.current = chatModeActive;
+        const wrapper = wrapperRef.current;
+        if (!wrapper) return;
+        if (chatModeActive) {
+            wrapper.style.setProperty('display', 'none', 'important');
+        } else {
+            wrapper.style.removeProperty('display');
+        }
+    }, [chatModeActive]);
+
     return (
-        <div ref={wrapperRef} id="playback-video-wrapper" className="playback-video-container position-relative d-none">
+        <div ref={wrapperRef} id="playback-video-wrapper"
+            className="playback-video-container d-none"
+            style={{ position: 'absolute', top: '15%', left: 0, right: 0, zIndex: 5 }}>
             <video ref={videoRef} id="playback-video" playsInline preload="auto" loop />
             <button ref={muteRef} id="playback-mute-toggle" className="playback-mute-toggle position-absolute bottom-0 end-0 m-1 d-none">
                 <i className="bi bi-volume-up-fill"></i>

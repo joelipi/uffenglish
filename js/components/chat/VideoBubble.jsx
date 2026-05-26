@@ -1,46 +1,39 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { useStore } from 'zustand';
 import { appStore } from '../../modules/store.js';
-import { getPlaybackVideoWrapper, getPlaybackVideoElement } from '../PlaybackVideo.jsx';
 
 export default function VideoBubble({ avatarUrl, userName }) {
-    const containerRef = useRef(null);
+    const videoRef = useRef(null);
+    const blob = useStore(appStore, (s) => s.playbackBlob);
+    const [muted, setMuted] = useState(true);
 
     useEffect(() => {
-        const videoWrapper = getPlaybackVideoWrapper();
-        const video = getPlaybackVideoElement();
-        if (containerRef.current && videoWrapper) {
-            containerRef.current.appendChild(videoWrapper);
-
-            videoWrapper.classList.remove('d-none', 'mb-2');
-            videoWrapper.style.setProperty('display', 'block', 'important');
-            videoWrapper.style.setProperty('visibility', 'visible', 'important');
-            videoWrapper.style.setProperty('opacity', '1', 'important');
-            videoWrapper.style.width = '100px';
-            videoWrapper.style.height = '178px';
-            videoWrapper.style.position = 'relative';
-            videoWrapper.style.top = '';
-            videoWrapper.style.left = '';
-            videoWrapper.style.right = '';
-
-            if (video) {
-                video.style.setProperty('display', 'block', 'important');
-                video.style.setProperty('opacity', '1', 'important');
-                video.style.width = '100%';
-                video.style.height = '100%';
-                video.style.maxHeight = 'none';
-                video.style.borderRadius = '8px';
-                video.style.objectFit = 'cover';
-                video.muted = appStore.getState().isPlaybackMuted;
-                video.play().catch(e => console.warn('[VideoBubble] Playback failed:', e));
-            }
-        }
-    }, []);
+        const video = videoRef.current;
+        if (!video || !blob) return;
+        const url = URL.createObjectURL(blob);
+        video.src = url;
+        video.muted = true;
+        video.play().catch(() => {});
+        const toggleMute = () => {
+            const next = !video.muted;
+            video.muted = next;
+            setMuted(next);
+        };
+        video.addEventListener('click', toggleMute);
+        return () => {
+            URL.revokeObjectURL(url);
+            video.removeEventListener('click', toggleMute);
+        };
+    }, [blob]);
 
     return (
         <div className="chat-message-row chat-message-row--user" style={{ animation: 'popIn 0.3s ease-out forwards' }}>
             <img src={avatarUrl} alt={userName} className="chat-avatar-inline" />
             <div className="chat-message-bubble chat-message-bubble--user p-1" style={{ backgroundColor: '#000', border: '2px solid #4facfe', overflow: 'hidden', minWidth: '0', width: 'max-content' }}>
-                <div ref={containerRef}></div>
+                <div style={{ position: 'relative', width: '100px', height: '178px' }}>
+                    <video ref={videoRef} playsInline loop
+                        style={{ display: 'block', width: '100%', height: '100%', borderRadius: '8px', objectFit: 'cover', cursor: 'pointer' }} />
+                </div>
             </div>
         </div>
     );
