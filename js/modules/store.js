@@ -141,6 +141,15 @@ export const appStore = createStore(
             whisperReviewTimeLeft: null,
             successVideoBlob: null,
 
+            // --- Success Screen State ---
+            successScreenVisible: false,
+            successLessonId: null,
+            successFluencyData: null,
+            successContinueButton: { visible: false, loading: false },
+            successVideoButton: { visible: false, loading: false, state: 'idle' },
+            successRepeatButton: { visible: false },
+            successCanvasVisible: false,
+
             // --- Media Viewport Dynamic Content ---
             praiseImageUrl: null,
             youtubeVideoId: null,
@@ -432,6 +441,13 @@ export const appStore = createStore(
                 whisperReviewData: null,
                 whisperReviewTimeLeft: null,
                 successVideoBlob: null,
+                successScreenVisible: false,
+                successLessonId: null,
+                successFluencyData: null,
+                successContinueButton: { visible: false, loading: false },
+                successVideoButton: { visible: false, loading: false, state: 'idle' },
+                successRepeatButton: { visible: false },
+                successCanvasVisible: false,
                 playbackBlob: null,
                 playbackAutoplay: false,
                 playbackSpeechCamChunks: [],
@@ -477,6 +493,36 @@ export const appStore = createStore(
             setWhisperReviewTimeLeft: (timeLeft) => set({ whisperReviewTimeLeft: timeLeft }),
             setSuccessVideoBlob: (blob) => set({ successVideoBlob: blob }),
             clearSuccessVideoBlob: () => set({ successVideoBlob: null }),
+
+            // --- Success Screen Actions ---
+            setSuccessScreen: (lessonId, fluencyData) => set({
+                successScreenVisible: true,
+                successLessonId: lessonId,
+                successFluencyData: fluencyData,
+                successContinueButton: { visible: true, loading: false },
+                successVideoButton: { visible: true, loading: false, state: 'idle' },
+                successRepeatButton: { visible: false },
+                successCanvasVisible: false,
+            }),
+            hideSuccessScreen: () => set({
+                successScreenVisible: false,
+                successLessonId: null,
+                successFluencyData: null,
+                successContinueButton: { visible: false, loading: false },
+                successVideoButton: { visible: false, loading: false, state: 'idle' },
+                successRepeatButton: { visible: false },
+                successCanvasVisible: false,
+            }),
+            setSuccessContinueLoading: (loading) => set(state => ({
+                successContinueButton: { ...state.successContinueButton, loading }
+            })),
+            setSuccessVideoState: (state) => set({
+                successVideoButton: { visible: true, loading: state === 'processing', state }
+            }),
+            setSuccessCanvasVisible: (visible) => set({ successCanvasVisible: visible }),
+            setSuccessRepeatButtonVisible: (visible) => set(state => ({
+                successRepeatButton: { visible }
+            })),
 
             // --- Media Viewport Actions ---
             setPraiseImageUrl: (url) => set({ praiseImageUrl: url }),
