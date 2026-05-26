@@ -49,6 +49,8 @@ export default function PlaybackVideo() {
         if (!blob) {
             video.src = '';
             video.load();
+            const wrapper = wrapperRef.current;
+            if (wrapper) wrapper.style.display = 'none';
             return;
         }
 
