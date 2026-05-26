@@ -44,6 +44,16 @@
             "pt": "Você tem chocolate escuro?"
           },
           "stepType": "closedResponse",
+          "videoUrl": "do_you_have_dark_chocolate",
+          "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
+        },
+        {
+          "cue": {
+            "en": "Do you have dark chocolate?",
+            "es": "¿Tienes chocolate oscuro?",
+            "pt": "Você tem chocolate escuro?"
+          },
+          "stepType": "closedResponse",
           "simpleVideoUrl": "do_you_have_dark_chocolate",
           "subtitles": {
             "en": "1\n00:00:00,500 --> 00:00:03,000\nLet's practice asking about grocery items.\n\n2\n00:00:03,500 --> 00:00:06,000\nYou'll be the customer asking for items.\n\n3\n00:00:06,500 --> 00:00:10,000\nSay: Do you have dark chocolate?",

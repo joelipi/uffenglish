@@ -25,7 +25,7 @@ import { getNextStep } from './lessonRouting.js';
 import { warmUpSpeechCamStream } from './speech.js';
 import getRandomPraise from '../data/praise.js';
 import { getPraiseHTML } from '../components/feedback-renderer.web.js';
-import { generateHangmanHint } from './utils.js';
+import { generateHangmanOps } from './utils.js';
 import {
     showChat,
     addAIFeedbackMessages,
@@ -506,8 +506,8 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
             clearChat();
             appStore.getState().setWebcamStream(null);
 
-            const hangmanHTML = generateHangmanHint(userResponse, cueText);
-            appStore.getState().setHangmanHintHTML(hangmanHTML);
+            const hangmanOps = generateHangmanOps(userResponse, cueText);
+            appStore.getState().setHangmanOps(hangmanOps);
             appStore.getState().setHintsVisible(true);
             appStore.getState().setMediaVisible(true);
 

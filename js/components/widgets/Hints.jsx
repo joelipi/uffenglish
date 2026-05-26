@@ -5,13 +5,13 @@ import { formatBilingualText } from '../../modules/bilingual-display.js';
 
 export default function Hints() {
     const hintsVisible = useStore(appStore, (state) => state.hintsVisible);
-    const hangmanHintHTML = useStore(appStore, (state) => state.hangmanHintHTML);
+    const hangmanOps = useStore(appStore, (state) => state.hangmanOps);
     const speechCue = useStore(appStore, (state) => state.speechCue);
     const speechPossibleAnswer = useStore(appStore, (state) => state.speechPossibleAnswer);
     const userData = useStore(appStore, (state) => state.userData);
     const speechInputRevealCallback = useStore(appStore, (state) => state.speechInputRevealCallback);
 
-    const hasContent = hangmanHintHTML || speechCue;
+    const hasContent = hangmanOps || speechCue;
 
     const handleClick = useCallback((e) => {
         if (speechInputRevealCallback && e.target.classList.contains('pulse-dot')) {
@@ -40,11 +40,10 @@ export default function Hints() {
                     )}
                 </p>
             )}
-            {hangmanHintHTML && (
-                <p
-                    className="info-content"
-                    dangerouslySetInnerHTML={{ __html: hangmanHintHTML }}
-                />
+            {hangmanOps && (
+                <p className="info-content">
+                    <HangmanDisplay ops={hangmanOps} />
+                </p>
             )}
         </div>
     );
@@ -57,4 +56,27 @@ function CueDisplay({ cue, userLang }) {
         return <>{b.english} <span lang={b.lang}>/ {b.localized}</span></>;
     }
     return <>{b.english}</>;
+}
+
+function HangmanDisplay({ ops }) {
+    const isWordChar = (s) => /\w/.test(s);
+    const elements = ops.map((op, i) => {
+        if (op.type === 'eq') {
+            return <span key={i}>{op.val}</span>;
+        }
+        if (op.type === 'ins') {
+            if (isWordChar(op.val)) {
+                return <span key={i} className="hangman-placeholder">&nbsp;&nbsp;&nbsp;</span>;
+            }
+            return <span key={i}>{op.val}</span>;
+        }
+        if (op.type === 'del') {
+            if (isWordChar(op.val)) {
+                return <span key={i} className="hangman-incorrect">{op.val}</span>;
+            }
+            return null;
+        }
+        return null;
+    }).filter(Boolean);
+    return <>{elements}</>;
 }

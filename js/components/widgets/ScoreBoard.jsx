@@ -14,6 +14,7 @@ export default function ScoreBoard() {
     const transcriptRejectedTrigger = useStore(appStore, (state) => state.transcriptRejectedTrigger);
 
     const pronunciationRef = useRef(null);
+    const flowRef = useRef(null);
     const prevPointLossTrigger = useRef(pointLossTrigger);
     const prevPreflightTrigger = useRef(preflightRejectedTrigger);
     const prevTranscriptTrigger = useRef(transcriptRejectedTrigger);
@@ -23,6 +24,9 @@ export default function ScoreBoard() {
         prevPointLossTrigger.current = pointLossTrigger;
         if (pointLossData.target === 'pronunciation' && pronunciationRef.current) {
             pointLoss.show(pronunciationRef.current, pointLossData.points);
+        }
+        if (pointLossData.target === 'flow' && flowRef.current) {
+            pointLoss.show(flowRef.current, pointLossData.points);
         }
         appStore.getState().clearPointLoss();
     }, [pointLossTrigger, pointLossData]);
@@ -60,7 +64,7 @@ export default function ScoreBoard() {
             <div className={`col-4 d-flex align-items-center justify-content-center px-2${isTextMode ? ' invisible' : ''}`}>
                 <div title="Flow" className="d-flex flex-column align-items-center w-100">
                     <div className="chat-bubble-header stats-header-label">SPEAKING FLOW</div>
-                    <span id="flowScore" className="bot-score">{flowScore}</span>
+                    <span ref={flowRef} id="flowScore" className="bot-score">{flowScore}</span>
                 </div>
             </div>
         </div>

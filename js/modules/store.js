@@ -74,6 +74,7 @@ export const appStore = createStore(
             isLoaded: false,
             hintsVisible: false,
             hangmanHintHTML: '',
+            hangmanOps: null,
             bottomControlState: 'mic',
             chatModeActive: false,
             chatHeaderMode: 'human',
@@ -289,6 +290,7 @@ export const appStore = createStore(
             setIsLoaded: (loaded) => set({ isLoaded: loaded }),
             setHintsVisible: (visible) => set({ hintsVisible: visible }),
             setHangmanHintHTML: (html) => set({ hangmanHintHTML: html }),
+            setHangmanOps: (ops) => set({ hangmanOps: ops }),
             setBottomControlState: (state) => set({ bottomControlState: state }),
             setChatModeActive: (val) => set({ chatModeActive: val }),
             setChatHeaderMode: (mode) => set({ chatHeaderMode: mode }),
@@ -433,6 +435,7 @@ export const appStore = createStore(
                 playbackSpeechCamChunks: [],
                 speechCue: null,
                 speechPossibleAnswer: null,
+                hangmanOps: null,
             }),
 
             // Reset all per-lesson metrics (called at lesson start)

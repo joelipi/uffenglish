@@ -9,7 +9,6 @@ import { Media } from '../modules/media.js';
 import { getCurrentStepIndex } from '../modules/answers.js';
 import { warmUpSpeechCamStream, toggleSpeechRecognition, listeningState } from '../modules/speech.js';
 import { logInteraction } from '../modules/scoring.js';
-import { pointLoss } from '../components/point-loss-animation.js';
 import { handleTextStep, handleLessonComplete, handleUnitComplete, handleSuccessStep, clearWarningLater, cancelWarningClear } from '../modules/step-loader-logic.js';
 import { loadStepOrchestrate } from '../modules/step-loader-orchestrate.js';
 import { clearChat, addAIFeedbackMessages } from '../components/chat/chat-interface.js';
@@ -144,10 +143,7 @@ function _renderResponseStep(step, lesson, deps) {
                     player: appStore.getState().currentVideoPlayer,
                     uiHooks: {
                         onHesitation: (points) => {
-                            const scoreEl = document.getElementById('flowScore');
-                            if (scoreEl && pointLoss) {
-                                pointLoss.show(scoreEl, points);
-                            }
+                            appStore.getState().triggerPointLoss('flow', points);
                         },
                         onPauseVideo: (player) => {
                             try {
