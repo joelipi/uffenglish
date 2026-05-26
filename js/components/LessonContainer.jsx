@@ -72,6 +72,13 @@ export default function LessonContainer() {
         loadNextStepImpl(currentStep, fluencyData, { callLoadStep });
     }, [callLoadStep]);
 
+    const getCurrentStep = useCallback(() => {
+        if (!configData?.lessons) return null;
+        const currentLesson = configData.lessons[currentLessonIndex];
+        if (!currentLesson?.steps) return null;
+        return currentLesson.steps[currentStepIndex] || null;
+    }, [configData, currentLessonIndex, currentStepIndex]);
+
     const onLoadNextLesson = useCallback(() => {
         const currentStep = getCurrentStep();
         loadNextStep(currentStep, null);
@@ -95,13 +102,6 @@ export default function LessonContainer() {
                 });
         }
     }, [courseId, lessonId, configData, initializeLesson]);
-
-    const getCurrentStep = useCallback(() => {
-        if (!configData?.lessons) return null;
-        const currentLesson = configData.lessons[currentLessonIndex];
-        if (!currentLesson?.steps) return null;
-        return currentLesson.steps[currentStepIndex] || null;
-    }, [configData, currentLessonIndex, currentStepIndex]);
 
     const currentStep = getCurrentStep();
 
