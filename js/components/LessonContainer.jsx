@@ -17,6 +17,8 @@ import MissionSection from './widgets/MissionSection.jsx';
 import Hints from './widgets/Hints.jsx';
 import AnswerInput from './widgets/AnswerInput.jsx';
 import WebcamPreview from './widgets/WebcamPreview.jsx';
+import WhisperReview from './widgets/WhisperReview.jsx';
+import MediaContent from './widgets/MediaContent.jsx';
 import ScoreBoard from './widgets/ScoreBoard.jsx';
 import ProgressBar from './widgets/ProgressBar.jsx';
 import ActivityStats from './widgets/ActivityStats.jsx';
@@ -116,16 +118,12 @@ export default function LessonContainer() {
                 bottomOverlay.style.setProperty('display', 'none', 'important');
             }
             document.body.classList.add('chat-mode-active');
-            const whisperEl = document.getElementById('whisperReviewContainer');
-            if (whisperEl) whisperEl.classList.add('d-none');
         } else {
             const bottomOverlay = document.querySelector('.bottom-overlay');
             if (bottomOverlay) {
                 bottomOverlay.style.removeProperty('display');
             }
             document.body.classList.remove('chat-mode-active');
-            const whisperEl = document.getElementById('whisperReviewContainer');
-            if (whisperEl) whisperEl.classList.add('d-none');
             const videoWrapper = document.getElementById('playback-video-wrapper');
             if (videoWrapper) {
                 videoWrapper.style.display = 'none';
@@ -198,6 +196,8 @@ export default function LessonContainer() {
 
             <StepLoader step={currentStep} lesson={lesson} />
 
+            <WhisperReview />
+            <MediaContent />
             <InteractiveVideoWrapper />
             <SimpleVideoWrapper />
             <IntroVideoWrapper />

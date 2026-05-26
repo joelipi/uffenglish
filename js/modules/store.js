@@ -133,6 +133,15 @@ export const appStore = createStore(
             webcamStream: null,
             mediaVisible: false,
 
+            // --- Whisper Review Overlay ---
+            whisperReviewData: null,
+            whisperReviewTimeLeft: null,
+
+            // --- Media Viewport Dynamic Content ---
+            praiseImageUrl: null,
+            youtubeVideoId: null,
+            mediaClearTrigger: 0,
+
             // --- Tutor Engagement Metrics ---
             userMessagesToAi: 0,
             aIMessagesToUser: 0,
@@ -405,7 +414,11 @@ export const appStore = createStore(
                 lastSuccessFluencyData: null,
                 submitBtnDisabled: false,
                 inputDisabled: false,
-                isPlaybackMuted: false
+                isPlaybackMuted: false,
+                praiseImageUrl: null,
+                youtubeVideoId: null,
+                whisperReviewData: null,
+                whisperReviewTimeLeft: null
             }),
 
             // Reset all per-lesson metrics (called at lesson start)
@@ -438,6 +451,15 @@ export const appStore = createStore(
             setTutorChatSubmitCallback: (callback) => set({ tutorChatSubmitCallback: callback }),
             setWebcamStream: (stream) => set({ webcamStream: stream }),
             setMediaVisible: (visible) => set({ mediaVisible: visible }),
+            // --- Whisper Review Actions ---
+            setWhisperReviewData: (data) => set({ whisperReviewData: data }),
+            setWhisperReviewTimeLeft: (timeLeft) => set({ whisperReviewTimeLeft: timeLeft }),
+
+            // --- Media Viewport Actions ---
+            setPraiseImageUrl: (url) => set({ praiseImageUrl: url }),
+            setYoutubeVideoId: (id) => set({ youtubeVideoId: id }),
+            triggerMediaClear: () => set((state) => ({ mediaClearTrigger: state.mediaClearTrigger + 1 })),
+
             clearInputUI: () => set({
                 textInputVisible: false,
                 textInputPlaceholder: '',
