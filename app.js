@@ -58,7 +58,6 @@ import { clearSpeechRecordingsForLesson, updateSpeechRecording } from './modules
 
 // --- UI & Media Components (Root Directory) ---
 import { SuccessLessonHandler } from './components/success-lesson.js';
-import { initMicAnimation } from './components/mic-animation.js';
 import { calculateCurrentStreak } from './modules/user-profile.js';
 
 // --- Data & Configuration ---

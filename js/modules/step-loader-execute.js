@@ -256,6 +256,8 @@ function _renderResponseStep(step, lesson, deps) {
                             appStore.getState().setWhisperReviewTimeLeft(timeLeft);
                         },
                         onReviewEnd: () => {
+                            appStore.getState().setWhisperReviewData(null);
+                            appStore.getState().setWhisperReviewTimeLeft(null);
                             appStore.getState().setMicStatusText("");
                         }
                     }

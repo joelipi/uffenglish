@@ -29,7 +29,6 @@ import InteractiveVideoWrapper from './InteractiveVideoWrapper.jsx';
 import SimpleVideoWrapper from './SimpleVideoWrapper.jsx';
 import IntroVideoWrapper from './IntroVideoWrapper.jsx';
 import VideoProcessorWrapper from './VideoProcessorWrapper.jsx';
-import { handleAuthClick } from '../modules/lesson-init.js';
 import { useStepLoader } from '../hooks/useStepLoader.js';
 import { loadNextStep as loadNextStepImpl } from '../modules/lesson-progression.js';
 
@@ -113,16 +112,8 @@ export default function LessonContainer() {
         prevChatModeRef.current = active;
 
         if (active) {
-            const bottomOverlay = document.querySelector('.bottom-overlay');
-            if (bottomOverlay) {
-                bottomOverlay.style.setProperty('display', 'none', 'important');
-            }
             document.body.classList.add('chat-mode-active');
         } else {
-            const bottomOverlay = document.querySelector('.bottom-overlay');
-            if (bottomOverlay) {
-                bottomOverlay.style.removeProperty('display');
-            }
             document.body.classList.remove('chat-mode-active');
             const videoWrapper = document.getElementById('playback-video-wrapper');
             if (videoWrapper) {
@@ -179,7 +170,7 @@ export default function LessonContainer() {
             </div>
 
             {/* Bottom Overlay */}
-            <div className="bottom-overlay position-absolute bottom-0 start-0 w-100 d-flex flex-column">
+            <div className={`bottom-overlay position-absolute bottom-0 start-0 w-100${chatModeActive ? ' d-none' : ' d-flex flex-column'}`}>
                 <MissionSection />
                 {/* reflecting-pool-bg temporarily removed — was covering the mission section; reinstate when we can fix the stacking */}
                 {/* <div className="reflecting-pool-bg"></div> */}
