@@ -1,12 +1,10 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { appStore } from '../modules/store.js';
 import { useAnswerPipeline } from '../hooks/useAnswerPipeline.js';
 import { useInitializeLesson } from '../hooks/useInitializeLesson.js';
-import { useChatVisibilityEffects } from '../hooks/useChatVisibilityEffects.js';
-import { usePlaybackEffects } from '../hooks/usePlaybackEffects.js';
-import { useChatScoreSpanEffects } from '../hooks/useChatScoreSpanEffects.js';
+
 import StepLoader from './StepLoader.jsx';
 import MicrophoneToggle from './widgets/MicrophoneToggle.jsx';
 import IntroChoices from './widgets/IntroChoices.jsx';
@@ -105,9 +103,36 @@ export default function LessonContainer() {
         if (mv) mv.classList.toggle('d-none', !mediaVisible);
     }, [mediaVisible]);
 
-    useChatVisibilityEffects();
-    usePlaybackEffects();
-    useChatScoreSpanEffects();
+    const prevChatModeRef = useRef(chatModeActive);
+
+    useEffect(() => {
+        const active = chatModeActive;
+        if (active === prevChatModeRef.current) return;
+        prevChatModeRef.current = active;
+
+        if (active) {
+            const bottomOverlay = document.querySelector('.bottom-overlay');
+            if (bottomOverlay) {
+                bottomOverlay.style.setProperty('display', 'none', 'important');
+            }
+            document.body.classList.add('chat-mode-active');
+            const whisperEl = document.getElementById('whisperReviewContainer');
+            if (whisperEl) whisperEl.classList.add('d-none');
+        } else {
+            const bottomOverlay = document.querySelector('.bottom-overlay');
+            if (bottomOverlay) {
+                bottomOverlay.style.removeProperty('display');
+            }
+            document.body.classList.remove('chat-mode-active');
+            const whisperEl = document.getElementById('whisperReviewContainer');
+            if (whisperEl) whisperEl.classList.add('d-none');
+            const videoWrapper = document.getElementById('playback-video-wrapper');
+            if (videoWrapper) {
+                videoWrapper.style.display = 'none';
+                document.body.appendChild(videoWrapper);
+            }
+        }
+    }, [chatModeActive]);
 
     return (
         <>
