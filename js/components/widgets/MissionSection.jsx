@@ -8,9 +8,10 @@ export default function MissionSection() {
     const configData = useStore(appStore, (state) => state.configData);
     const currentLessonIndex = useStore(appStore, (state) => state.currentLessonIndex);
     const userData = useStore(appStore, (state) => state.userData);
+    const successScreenVisible = useStore(appStore, (state) => state.successScreenVisible);
 
     const lesson = configData?.lessons?.[currentLessonIndex];
-    if (!lesson) return null;
+    if (!lesson || successScreenVisible) return null;
 
     const lang = userData?.native_language || 'en';
     const toggle = () => setExpanded((prev) => !prev);
