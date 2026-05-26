@@ -4,7 +4,6 @@
 // Deps: { loadNextStep, callLoadStep }
 
 import { appStore } from './store.js';
-import { State } from './state.js';
 import {
     getCurrentStepIndex,
     processAnswerLogic,
@@ -231,7 +230,7 @@ export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation,
 
     if (!isValid) {
         const cueText = typeof cue === 'object' ? cue?.en : cue;
-        logInteraction(cueText, val, "rej_pre", warningMessage, null, State.interactionLog);
+        logInteraction(cueText, val, "rej_pre", warningMessage, null, appStore.getState().interactionLog);
         if (!appStore.getState().isTextMode) {
             appStore.getState().deductSpeakingScore(10);
             appStore.getState().triggerPointLoss('pronunciation', 10);
@@ -262,13 +261,14 @@ export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation,
             duration: appStore.getState().isTextMode ? 3 : null
         });
 
-        if (stepData.stepType === "closedResponse" && State.player && State.player.controller && State.player.controller.applySpeechResult) {
+        const player = appStore.getState().currentVideoPlayer;
+        if (stepData.stepType === "closedResponse" && player && player.controller && player.controller.applySpeechResult) {
             const userWords = val.toLowerCase().replace(/[^\w\s']/g, '').split(/\s+/);
             const correctIndices = [];
             const wrongIndices = [];
 
-            State.player.controller.tokens.forEach((token, idx) => {
-                if (State.player.controller.punctuationMap.get(idx)) return;
+            player.controller.tokens.forEach((token, idx) => {
+                if (player.controller.punctuationMap.get(idx)) return;
                 const cleanToken = token.toLowerCase().replace(/[^\w\s']/g, '');
                 if (userWords.includes(cleanToken)) {
                     correctIndices.push(idx);
@@ -276,16 +276,17 @@ export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation,
                     wrongIndices.push(idx);
                 }
             });
-            State.player.controller.applySpeechResult(correctIndices, wrongIndices);
+            player.controller.applySpeechResult(correctIndices, wrongIndices);
         }
 
         appStore.getState().setSubmitBtnDisabled(false);
         return;
     }
 
-    if (stepData.stepType === "closedResponse" && State.player && State.player.controller && State.player.controller.applySpeechResult) {
-        const correctIndices = State.player.controller.tokens.map((_, i) => i);
-        State.player.controller.applySpeechResult(correctIndices, []);
+    const player = appStore.getState().currentVideoPlayer;
+    if (stepData.stepType === "closedResponse" && player && player.controller && player.controller.applySpeechResult) {
+        const correctIndices = player.controller.tokens.map((_, i) => i);
+        player.controller.applySpeechResult(correctIndices, []);
     }
 
     await handleAnswer(val, cue, stepData, btn, explanation, translation, stats, _deps, userData, configData, courseId);
@@ -409,13 +410,13 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
 
         let status = isCorrect ? "ok" : "inc";
         let pragmaticDetails = result?.intentLabels?.length > 0 ? result.intentLabels : null;
-        logInteraction(cueText, userResponse, status, pragmaticDetails, grammarCorrection, State.interactionLog);
+        logInteraction(cueText, userResponse, status, pragmaticDetails, grammarCorrection, appStore.getState().interactionLog);
 
         if (result?.foundIdioms?.length > 0) {
-            State.recognizedIdioms.push(...result.foundIdioms);
+            result.foundIdioms.forEach(id => appStore.getState().addRecognizedIdiom(id));
         }
         if (result?.intentLabels?.length > 0) {
-            State.pragmaticFlags.push(...result.intentLabels);
+            result.intentLabels.forEach(label => appStore.getState().addPragmaticFlag(label));
         }
 
         const { listeningScore, speakingScore, incorrectAttempts, whisperRejections } = appStore.getState();
@@ -485,7 +486,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
                 scoreData, speechAnalytics, result, stepData,
                 lang: userData?.native_language, englishLevel,
                 attemptNumber: incorrectAttempts + 1,
-                repetitionCount: State.videoPlays,
+                repetitionCount: appStore.getState().videoPlays,
                 whisperRejections: whisperRejections
             });
 
@@ -510,7 +511,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
             appStore.getState().setHintsVisible(true);
             appStore.getState().setMediaVisible(true);
 
-            const player = State.player || (typeof window !== 'undefined' ? appStore.getState().currentVideoPlayer : null);
+            const player = appStore.getState().currentVideoPlayer;
             if (player) {
                 if (player.video) {
                     player.video.currentTime = 0;
@@ -599,7 +600,10 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
 export function showFeedbackAndProceed(stepData, isCorrect, _deps = {}) {
     const { loadNextStep, callLoadStep } = _deps;
 
-    if ((stepData.stepType === "closedResponse" || stepData.stepType === "openResponse") && stepData.videoUrl) State.stepCount++;
+    if ((stepData.stepType === "closedResponse" || stepData.stepType === "openResponse") && stepData.videoUrl) {
+        const gs = appStore.getState();
+        gs.setStepCount(gs.stepCount + 1);
+    }
     try {
         appStore.getState().setHintsVisible(false);
         console.log('[showFeedbackAndProceed] stepType:', stepData.stepType, '| isLessonIntro:', stepData.stepType === "lessonIntro");

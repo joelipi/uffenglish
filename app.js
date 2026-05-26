@@ -88,7 +88,6 @@ import { appStore } from './modules/store.js';
 import { normalizeConfig } from './modules/config-normalizer.js';
 import { loadVideoForStep } from './modules/video-loader.js';
 window.appStore = appStore;
-import { State } from './modules/state.js';
 import { analyzeSpeech } from './modules/analytics.js';
 import { Media } from './modules/media.js';
 import { buildFeedbackData, buildExplanationData } from './modules/feedback-builder.js';

@@ -1,6 +1,6 @@
 // modules/storage.web.js
 
-import { State } from './state.js';
+import { appStore } from './store.js';
 
 const IDB_DB_NAME = 'uff-media';
 const IDB_STORE_SPEECH = 'speechRecordings';
@@ -26,8 +26,9 @@ export async function saveSpeechRecording(blob, meta = {}) {
     const tx = db.transaction(IDB_STORE_SPEECH, 'readwrite');
     const store = tx.objectStore(IDB_STORE_SPEECH);
 
-    const lessonId = meta.lessonId ?? State.lessonId ?? 'unknown_lesson';
-    const stepIndex = meta.stepIndex ?? State.currentStepIndex ?? 0;
+    const storeState = appStore.getState();
+    const lessonId = meta.lessonId ?? storeState.activeLessonId ?? storeState.configData?.lessons?.[storeState.currentLessonIndex]?.lessonId ?? 'unknown_lesson';
+    const stepIndex = meta.stepIndex ?? storeState.currentStepIndex ?? 0;
 
     const timestamp = Date.now();
     const videoKey = `uffvideo_${lessonId}_${stepIndex}_${timestamp}`;
@@ -107,8 +108,9 @@ export async function updateSpeechRecording(lessonId, stepIndex, updates = {}) {
     const tx = db.transaction(IDB_STORE_SPEECH, 'readwrite');
     const store = tx.objectStore(IDB_STORE_SPEECH);
 
-    const resolvedLessonId = lessonId ?? State.lessonId ?? 'unknown_lesson';
-    const resolvedStepIndex = stepIndex ?? State.currentStepIndex ?? 0;
+    const storeState = appStore.getState();
+    const resolvedLessonId = lessonId ?? storeState.activeLessonId ?? storeState.configData?.lessons?.[storeState.currentLessonIndex]?.lessonId ?? 'unknown_lesson';
+    const resolvedStepIndex = stepIndex ?? storeState.currentStepIndex ?? 0;
 
     const request = store.getAll();
 

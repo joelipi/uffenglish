@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Media } from './media.web.js';
-import { State } from './state.js';
+import { appStore } from './store.js';
 import { Howl, Howler } from 'howler';
 
 vi.mock('howler', () => {
@@ -19,7 +19,7 @@ vi.mock('howler', () => {
 
 describe('Media Web Module', () => {
     beforeEach(() => {
-        State.isAudioEnabled = false;
+        appStore.getState().setAudioEnabled(false);
         document.body.innerHTML = '';
         vi.clearAllMocks();
     });
@@ -30,19 +30,19 @@ describe('Media Web Module', () => {
 
     describe('playSound', () => {
         it('should not play if audio is disabled', () => {
-            State.isAudioEnabled = false;
+            appStore.getState().setAudioEnabled(false);
             Media.playSound('correct-sound');
             // Since we mocked Howl, we can check instances if needed, but it's hard to access the inner instances
             // We just ensure it doesn't crash
         });
 
         it('should play if audio is enabled', () => {
-            State.isAudioEnabled = true;
+            appStore.getState().setAudioEnabled(true);
             Media.playSound('correct-sound');
         });
 
         it('should not throw if sound ID is invalid', () => {
-            State.isAudioEnabled = true;
+            appStore.getState().setAudioEnabled(true);
             expect(() => Media.playSound('non-existent')).not.toThrow();
         });
     });
@@ -99,14 +99,14 @@ describe('Media Web Module', () => {
             Howler.ctx.state = 'suspended';
             await Media.enableAudioSystem();
             expect(Howler.ctx.resume).toHaveBeenCalled();
-            expect(State.isAudioEnabled).toBe(true);
+            expect(appStore.getState().isAudioEnabled).toBe(true);
         });
 
         it('should not resume if not suspended', async () => {
             Howler.ctx.state = 'running';
             await Media.enableAudioSystem();
             expect(Howler.ctx.resume).not.toHaveBeenCalled();
-            expect(State.isAudioEnabled).toBe(true);
+            expect(appStore.getState().isAudioEnabled).toBe(true);
         });
 
         it('should catch errors gracefully', async () => {
@@ -116,7 +116,7 @@ describe('Media Web Module', () => {
 
             await Media.enableAudioSystem();
             expect(consoleWarn).toHaveBeenCalled();
-            expect(State.isAudioEnabled).toBe(false); // State shouldn't enable on error
+            expect(appStore.getState().isAudioEnabled).toBe(false); // State shouldn't enable on error
 
             consoleWarn.mockRestore();
         });

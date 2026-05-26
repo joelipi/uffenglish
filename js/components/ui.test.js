@@ -5,7 +5,6 @@ import {
     addAIFeedbackMessages, clearChat
 } from './chat/chat-interface.js';
 import { appStore } from '../modules/store.js';
-import { State } from '../modules/state.js';
 
 describe('UI Component functions', () => {
 
@@ -69,7 +68,6 @@ describe('UI Component functions', () => {
         });
 
         it('should add user chat message to store', () => {
-             State.userData = { display_name: 'Test User', profilepicurl: 'http://test.jpg' };
              appStore.setState({ userData: { display_name: 'Test User', profilepicurl: 'http://test.jpg' } });
 
              appStore.getState().addChatMessage({

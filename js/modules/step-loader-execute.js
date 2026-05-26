@@ -2,7 +2,6 @@
 // Extracted from step-loader.web.js — contains all imperative DOM step loading logic.
 // Exports createLoadStep(submitAnswerPrecheck, showFeedbackAndProceed, handleHint) factory.
 
-import { State } from '../modules/state.js';
 import { appStore } from '../modules/store.js';
 import Strings from '../data/strings.js';
 import { getLocalizedTranslation } from '../modules/utils.js';
@@ -102,18 +101,7 @@ function resetUIForNewStep(isLessonIntro, hasUserData) {
     const courseProgress = document.getElementById("courseProgress");
     if (courseProgress) courseProgress.classList.add("d-none");
 
-    const micBtn = document.getElementById('micBtn');
-    if (micBtn) {
-        micBtn.style.removeProperty('display');
-        micBtn.disabled = false;
-        micBtn.classList.remove('disabled');
-    }
-    const txtBtn = document.getElementById('txtBtn');
-    if (txtBtn) {
-        txtBtn.style.removeProperty('display');
-        txtBtn.disabled = false;
-        txtBtn.classList.remove('disabled');
-    }
+    // micBtn/txtBtn visibility managed by React via MicrophoneToggle.jsx
 }
 
 function removeRepeatButton() {
@@ -350,7 +338,7 @@ function _renderResponseStep(step, lesson, deps) {
                     currentLessonIndex: appStore.getState().currentLessonIndex,
                     currentStepIndex: stepIndex,
                     handleAnswer: submitAnswerPrecheck,
-                    player: State.player,
+                    player: appStore.getState().currentVideoPlayer,
                     uiHooks: {
                         onHesitation: (points) => {
                             const scoreEl = document.getElementById('flowScore');
@@ -394,7 +382,6 @@ function _renderResponseStep(step, lesson, deps) {
                         },
                         onEngineReady: (btn) => {
                             if (btn) {
-                                btn.style.display = "flex";
                                 btn.disabled = false;
                                 btn.classList.add('toggled-off');
                                 btn.innerHTML = '<i class="bi bi-mic-mute-fill"></i>';
@@ -403,7 +390,6 @@ function _renderResponseStep(step, lesson, deps) {
                         },
                         onRecordingActive: (btn) => {
                             if (btn) {
-                                btn.style.display = "flex";
                                 btn.innerHTML = '<i class="bi bi-mic-fill"></i>';
                                 btn.classList.remove('toggled-off', 'btn-danger', 'disabled');
                                 startMicAnimation(btn);
@@ -412,7 +398,6 @@ function _renderResponseStep(step, lesson, deps) {
                         onRecordingStop: (btn) => {
                             appStore.getState().setMicActive(false); // Release the lock
                             if (btn) {
-                                btn.style.display = 'none';
                                 stopMicAnimation(btn);
                             }
                             appStore.getState().setMicStatusText("");
@@ -427,8 +412,6 @@ function _renderResponseStep(step, lesson, deps) {
                             appStore.getState().triggerPreflightRejected();
                             appStore.getState().setMediaVisible(true);
                             appStore.getState().setMicStatusText(`<div class='text-center' style='color: red; font-size: large;'><i class='bi bi-exclamation-triangle-fill'></i> ${Strings.get('try_again_speech', userData?.native_language)}</div>`);
-                            const btn = document.getElementById('micBtn');
-                            if (btn) btn.style.display = 'flex';
                             clearWarningLater(3000);
                         },
                         onGibberishDetected: () => {
@@ -437,8 +420,6 @@ function _renderResponseStep(step, lesson, deps) {
                             appStore.getState().incrementWhisperRejections();
                             appStore.getState().triggerPreflightRejected();
                             appStore.getState().setMicStatusText(`<div class='text-center mt-3' style='color: #ff9800; font-size: large;'><i class='bi bi-ear-x'></i> Audio unclear. Please try speaking clearly.</div>`);
-                            const btn = document.getElementById('micBtn');
-                            if (btn) btn.style.display = 'flex';
                             clearWarningLater(3000);
                         },
                         onPreflightRejected: (msg) => {
@@ -451,14 +432,13 @@ function _renderResponseStep(step, lesson, deps) {
                             appStore.getState().setMicStatusText(`<div class='text-center text-danger'>${msg}</div>`);
                             const btn = document.getElementById('micBtn');
                             if (btn) {
-                                btn.style.display = 'flex';
                                 stopMicAnimation(btn);
                             }
                             clearWarningLater(4000);
                         },
                         onTranscriptRejected: (cue, transcript) => {
                             appStore.getState().setMicActive(false); // Release the lock
-                            logInteraction(cue, transcript, "rej_usr", "User rejected Whisper transcription", null, State.interactionLog);
+                            logInteraction(cue, transcript, "rej_usr", "User rejected Whisper transcription", null, appStore.getState().interactionLog);
                             appStore.getState().deductSpeakingScore(20);
                             appStore.getState().incrementWhisperRejections();
                             appStore.getState().triggerVideoClear();
@@ -467,7 +447,6 @@ function _renderResponseStep(step, lesson, deps) {
                             appStore.getState().setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Restarting Mic...</div>`);
                             const btn = document.getElementById('micBtn');
                             if (btn) {
-                                btn.style.display = 'flex';
                                 stopMicAnimation(btn);
                             }
                         },
@@ -512,7 +491,7 @@ function _renderPresent(step, lesson, showFeedbackAndProceed) {
 
 function _renderSuccess(step, fluencyData) {
     window.removeEventListener('beforeunload', beforeUnloadHandler);
-    bindProcessButton(() => State.player.destroy());
+    bindProcessButton(() => appStore.getState().currentVideoPlayer?.destroy());
 
     step.lessonId = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex].lessonId;
 

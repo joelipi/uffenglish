@@ -1,6 +1,6 @@
 import { Audio } from 'expo-av';
 import { useVideoPlayer } from 'expo-video';
-import { State } from './state.js';
+import { appStore } from './store.js';
 
 const AUDIO_URLS = {
     'correct-sound': require('../assets/sounds/correct.mp3'),
@@ -34,14 +34,14 @@ export const Media = {
     async init() {
         try {
             await loadSounds();
-            State.isAudioEnabled = true;
+            appStore.getState().setAudioEnabled(true);
         } catch (error) {
             console.warn('[Media] Sound preload failed:', error);
         }
     },
 
     async playSound(soundId) {
-        if (!audioPlayers[soundId] || !State.isAudioEnabled) return;
+        if (!audioPlayers[soundId] || !appStore.getState().isAudioEnabled) return;
         try {
             // Rewind before play so rapid triggers don't queue silently
             await audioPlayers[soundId].setPositionAsync(0);
@@ -71,7 +71,7 @@ export const Media = {
     async enableAudioSystem() {
         // On native, audio mode is set during init().
         // This is a no-op unless init() hasn't been called yet.
-        if (!State.isAudioEnabled) {
+        if (!appStore.getState().isAudioEnabled) {
             await this.init();
         }
     },

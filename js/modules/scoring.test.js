@@ -1,33 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { calculateRepeatAverage, calculateRolePlayAverage, calculateAverage, calculateFluencyScore, logInteraction, getCompressedLessonStats } from './scoring.js';
-import { State } from './state.js';
 import { appStore } from './store.js';
 
 describe('scoring utilities', () => {
     beforeEach(() => {
-        State.interactionLog = [];
-        State.lessonStartTime = null;
-        State.averageWpm = 0;
-        State.totalPauses = 0;
-        State.totalHesitations = 0;
-        State.recognizedIdioms = [];
-        State.pragmaticFlags = [];
-
-        // Mock appStore state
-        vi.spyOn(appStore, 'getState').mockReturnValue({
-            ...appStore.getState(),
-            isDemoMode: false,
-            fluencyScore: null,
-            listeningScore: null,
-            speakingScore: null,
-            flowScore: null,
-            vocabularyScore: null,
-            grammarScore: null,
-            formalityScore: null,
-            nativeLikeScore: null,
-            understandingScore: null,
-            incorrectAttempts: 0
-        });
+        appStore.getState().setInteractionLog([]);
+        appStore.getState().setLessonStartTime(null);
+        appStore.getState().setAverageWpm(0);
+        appStore.getState().setTotalPauses(0);
+        appStore.getState().setTotalHesitations(0);
+        appStore.getState().clearRecognizedIdioms();
+        appStore.getState().clearPragmaticFlags();
     });
 
     // ... original tests ...
@@ -130,26 +113,27 @@ describe('scoring utilities', () => {
     });
 
     describe('logInteraction', () => {
-        it('should log interaction to State.interactionLog', () => {
-            logInteraction('Hello', 'Hi', 'correct', null, null, State.interactionLog);
-            expect(State.interactionLog).toHaveLength(1);
-            expect(State.interactionLog[0]).toEqual({ q: 'Hello', r: 'Hi', s: 'correct' });
+        it('should log interaction to appStore.getState().interactionLog', () => {
+            logInteraction('Hello', 'Hi', 'correct', null, null, appStore.getState().interactionLog);
+            expect(appStore.getState().interactionLog).toHaveLength(1);
+            expect(appStore.getState().interactionLog[0]).toEqual({ q: 'Hello', r: 'Hi', s: 'correct' });
         });
 
         it('should log details as string if provided as array', () => {
-            logInteraction('Hello', 'Hi', 'correct', ['detail1', 'detail2'], null, State.interactionLog);
-            expect(State.interactionLog[0].d).toBe('detail1, detail2');
+            logInteraction('Hello', 'Hi', 'correct', ['detail1', 'detail2'], null, appStore.getState().interactionLog);
+            expect(appStore.getState().interactionLog[0].d).toBe('detail1, detail2');
         });
 
         it('should add grammarCorrection if provided', () => {
-            logInteraction('He go', 'He goes', 'incorrect', null, 'He goes', State.interactionLog);
-            expect(State.interactionLog[0].g).toBe('He goes');
+            logInteraction('He go', 'He goes', 'incorrect', null, 'He goes', appStore.getState().interactionLog);
+            expect(appStore.getState().interactionLog[0].g).toBe('He goes');
         });
     });
 
     describe('getCompressedLessonStats', () => {
         it('should return compressed lesson stats stripping nulls and empty arrays', () => {
-            vi.spyOn(appStore, 'getState').mockReturnValue({
+            const spy = vi.spyOn(appStore, 'getState');
+            spy.mockReturnValue({
                 fluencyScore: 85,
                 incorrectAttempts: 2
             });
@@ -164,6 +148,7 @@ describe('scoring utilities', () => {
                 pragmaticFlags: [],
                 interactionLog: []
             });
+            spy.mockRestore();
             expect(result.mod).toBe('txt');
             expect(result.fs).toBe(85);
             expect(result.ia).toBe(2);

@@ -4,7 +4,6 @@
 // Uses deps pattern (_deps) for callLoadStep and loadLessonContent to avoid circular imports.
 
 import { appStore } from './store.js';
-import { State } from './state.js';
 import Strings from '../data/strings.js';
 
 import {
@@ -19,7 +18,9 @@ export function updateProgressBar() {
     if (!appStore.getState().configData || !appStore.getState().configData.lessons || appStore.getState().configData.lessons.length === 0) return;
     const currentLesson = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex];
     const totalSteps = currentLesson.steps.length;
-    let currentSteps = State.stepsAnswered++;
+    const gs = appStore.getState();
+    let currentSteps = gs.stepsAnswered;
+    gs.setStepsAnswered(currentSteps + 1);
     const finalProgress = Math.min(Math.max((currentSteps / totalSteps) * 100, 10), 90);
     appStore.getState().setProgressPercent(`${finalProgress}%`);
 }
@@ -31,7 +32,8 @@ export function showCompletionMessage() {
 export function loadNextStep(currentStep, fluencyData, _deps = {}) {
     updateProgressBar();
     appStore.getState().setStatsVisible(false);
-    State.resetForNextStep();
+    appStore.getState().resetForNextStep();
+    appStore.getState().resetStepState();
 
     if (!appStore.getState().configData || !appStore.getState().configData.lessons || appStore.getState().configData.lessons.length === 0) return;
     const currentLesson = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex];
@@ -65,7 +67,7 @@ export async function loadNextLesson(_deps = {}) {
                 localStorage.setItem(`${appStore.getState().courseId}_currentLessonId`, nextLessonId);
                 localStorage.setItem(`${appStore.getState().courseId}_currentLessonTimestamp`, new Date().toISOString());
                 appStore.getState().setProgressPercent("100%");
-                State.stepsAnswered = 0;
+                appStore.getState().setStepsAnswered(0);
                 appStore.setState({ currentStepIndex: 0 });
                 _deps.loadLessonContent(appStore.getState().configData.lessons[nextLessonIndex]);
             } else showCompletionMessage();

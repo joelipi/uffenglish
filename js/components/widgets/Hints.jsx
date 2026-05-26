@@ -21,7 +21,7 @@ export default function Hints() {
     }
 
     return (
-        <div className="card position-absolute" onClick={handleClick}>
+        <div className="card position-absolute" id="hint-hangman-card" style={{ top: '25%', left: '50%', transform: 'translateX(-50%)' }} onClick={handleClick}>
             {speechInputContent && (
                 <p
                     className="info-content"

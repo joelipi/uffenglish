@@ -1,4 +1,4 @@
-import { State } from './state.js';
+import { appStore } from './store.js';
 import { Howl, Howler } from 'howler';
 
 const AUDIO_URLS = {
@@ -15,7 +15,7 @@ for (const [id, url] of Object.entries(AUDIO_URLS)) {
 
 export const Media = {
     playSound(soundId) {
-        if (!audioPlayers[soundId] || !State.isAudioEnabled) return;
+        if (!audioPlayers[soundId] || !appStore.getState().isAudioEnabled) return;
         audioPlayers[soundId].play();
     },
 
@@ -54,7 +54,7 @@ export const Media = {
                 await Howler.ctx.resume();
             }
             // audioPlayers['enable-audio'].play();
-            State.isAudioEnabled = true;
+            appStore.getState().setAudioEnabled(true);
         } catch (error) {
             console.warn('[Media] Audio unlock failed — will retry on next interaction.', error);
         }

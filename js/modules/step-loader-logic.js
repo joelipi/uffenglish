@@ -6,7 +6,6 @@
  * Can be used by both web and React Native.
  */
 
-import { State } from './state.js';
 import { appStore } from './store.js';
 import Strings from '../data/strings.js';
 import { loadVideoForStep } from './video-loader.js';
@@ -35,14 +34,14 @@ export function cancelWarningClear() {
 
 export function handleStepCore(step) {
     Media.cleanupPreviousPlayers();
-    State.player = null;
+    appStore.getState().setCurrentVideoPlayer(null);
     appStore.getState().setCurrentVideo(null);
 
     appStore.getState().setStatsVisible((step.stepType === 'closedResponse' || step.stepType === 'openResponse') && step.videoUrl);
 
     appStore.getState().setMediaVisible(true);
 
-    loadVideoForStep(step, State, appStore.getState().userData?.native_language);
+    loadVideoForStep(step, null, appStore.getState().userData?.native_language);
 
     appStore.getState().setMicStatusText(step.step);
 }
@@ -71,13 +70,13 @@ export function handleLessonComplete(step, showFeedbackAndProceed) {
 
 export function handleUnitComplete(step) {
     step.lessonId = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex].lessonId + 's';
-    State.successHandler.handleSuccessLesson(step);
+    appStore.getState().successHandler.handleSuccessLesson(step);
 }
 
 // --- Success Step Rendering ---
 
 export function handleSuccessStep(step, fluencyData) {
-    State.successHandler.handleSuccessLesson(step);
+    appStore.getState().successHandler.handleSuccessLesson(step);
 
     const currentLesson = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex];
     const nextLessonId = currentLesson.nextLessonId;
@@ -86,13 +85,13 @@ export function handleSuccessStep(step, fluencyData) {
         const finalStats = getCompressedLessonStats({
             isTextMode: appStore.getState().isTextMode,
             isCameraOff: appStore.getState().isCameraOff,
-            lessonStartTime: State.lessonStartTime,
-            averageWpm: State.averageWpm,
-            totalPauses: State.totalPauses,
-            totalHesitations: State.totalHesitations,
-            recognizedIdioms: State.recognizedIdioms,
-            pragmaticFlags: State.pragmaticFlags,
-            interactionLog: State.interactionLog
+            lessonStartTime: appStore.getState().lessonStartTime,
+            averageWpm: appStore.getState().averageWpm,
+            totalPauses: appStore.getState().totalPauses,
+            totalHesitations: appStore.getState().totalHesitations,
+            recognizedIdioms: appStore.getState().recognizedIdioms,
+            pragmaticFlags: appStore.getState().pragmaticFlags,
+            interactionLog: appStore.getState().interactionLog
         });
 
         saveLessonProgress(appStore.getState().courseId, nextLessonId, appStore.getState().userData, {

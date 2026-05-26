@@ -1,7 +1,6 @@
 // modules/speech.web.js
 import Strings from '../data/strings.js';
 import { saveSpeechRecording } from './storage.js';
-import { State } from './state.js';
 import { appStore } from './store.js';
 import { setupPlaybackVideo } from '../components/playback.js';
 import { transcribeAudioBuffer, analyzeAudioBufferWithVAD, preloadWhisperEngine } from '../workers/whisper/app-vad-asr-web.js';
