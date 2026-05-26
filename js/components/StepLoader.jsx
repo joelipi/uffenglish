@@ -19,20 +19,13 @@ function LessonIntroStep() {
     return <div className="step-lesson-intro"></div>;
 }
 
-function PresentStep({ step, lesson }) {
+function PresentStep({ step }) {
     if (!step.simpleVideoUrl) return null;
     return (
         <div className="step-present">
-            <div className="chat-message-row chat-message-row--system">
-                <div className="chat-message-bubble chat-message-bubble--system">
-                    <p className="lesson-name">
-                        <strong>Lesson: {lesson?.title}</strong>
-                    </p>
-                    {step.explanation && (
-                        <p className="explanation">{step.explanation}</p>
-                    )}
-                </div>
-            </div>
+            {step.explanation && (
+                <p className="explanation">{step.explanation}</p>
+            )}
         </div>
     );
 }
@@ -61,17 +54,7 @@ function TextStep({ step }) {
 }
 
 function SuccessStep() {
-    return (
-        <div className="step-success">
-            <div className="chat-message-row chat-message-row--system">
-                <div className="chat-message-bubble chat-message-bubble--system">
-                    <p className="lesson-name">
-                        <strong>Lesson Complete!</strong>
-                    </p>
-                </div>
-            </div>
-        </div>
-    );
+    return <div className="step-success"></div>;
 }
 
 export default function StepLoader({ step, lesson }) {

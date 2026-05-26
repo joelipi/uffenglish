@@ -145,7 +145,6 @@ export default function LessonContainer() {
 
             {/* Controls */}
             <div className="lesson-body">
-                <LessonSuccessControls successHandler={successHandler} />
                 <CriticalErrorModal />
                 <GuestLoginModal />
             </div>
@@ -170,6 +169,7 @@ export default function LessonContainer() {
                         <div className="d-flex justify-content-center align-items-center w-100">
                             <MicrophoneToggle />
                             <IntroChoices />
+                            <LessonSuccessControls successHandler={successHandler} />
                         </div>
                     </div>
                 </div>

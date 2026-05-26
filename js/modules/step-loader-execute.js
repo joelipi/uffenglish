@@ -505,10 +505,7 @@ function _renderPresent(step, lesson, showFeedbackAndProceed) {
             explanationHTML = `<p class='explanation'>${step.explanation}${localized}</p>`;
         }
 
-        addAIFeedbackMessages([
-            `<p class='lesson-name'><strong>${Strings.get('lesson_label', appStore.getState().userData?.native_language)} ${getLocalizedTranslation(lesson.title)}</strong></p>`,
-            explanationHTML
-        ]);
+        addAIFeedbackMessages([explanationHTML]);
     }
     showFeedbackAndProceed(step, true);
 }
