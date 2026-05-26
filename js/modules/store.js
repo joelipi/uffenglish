@@ -499,7 +499,7 @@ export const appStore = createStore(
                 successScreenVisible: true,
                 successLessonId: lessonId,
                 successFluencyData: fluencyData,
-                successContinueButton: { visible: true, loading: false },
+                successContinueButton: { visible: false, loading: false },
                 successVideoButton: { visible: true, loading: false, state: 'idle' },
                 successRepeatButton: { visible: false },
                 successCanvasVisible: false,
@@ -522,6 +522,9 @@ export const appStore = createStore(
             setSuccessCanvasVisible: (visible) => set({ successCanvasVisible: visible }),
             setSuccessRepeatButtonVisible: (visible) => set(state => ({
                 successRepeatButton: { visible }
+            })),
+            setSuccessContinueVisible: (visible) => set(state => ({
+                successContinueButton: { ...state.successContinueButton, visible }
             })),
 
             // --- Media Viewport Actions ---

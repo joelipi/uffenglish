@@ -34,6 +34,7 @@ export function VideoButton() {
   const setCanvasVisible = useStore(appStore, state => state.setSuccessCanvasVisible);
   const setRepeatVisible = useStore(appStore, state => state.setSuccessRepeatButtonVisible);
   const setSuccessVideoBlob = useStore(appStore, state => state.setSuccessVideoBlob);
+  const setContinueVisible = useStore(appStore, state => state.setSuccessContinueVisible);
 
   if (!button.visible) return null;
 
@@ -59,6 +60,7 @@ export function VideoButton() {
         setSuccessVideoBlob(result.blob);
         setVideoState('ready');
         setRepeatVisible(true);
+        setContinueVisible(true);
 
         // Store share handler (temporary bridge)
         window.__shareVideoHandler = async () => {

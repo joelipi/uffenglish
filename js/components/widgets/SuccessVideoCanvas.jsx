@@ -23,10 +23,14 @@ export default function SuccessVideoCanvas() {
       ref={canvasRef}
       id="displayCanvas"
       style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
         width: '100%',
-        height: 'calc(100% - 140px)',
+        height: '100%',
         objectFit: 'contain',
-        backgroundColor: 'black'
+        backgroundColor: 'black',
+        zIndex: 10
       }}
     />
   );
