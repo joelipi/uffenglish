@@ -85,8 +85,7 @@ export function handleUnitComplete(step) {
         loadVideoForStep(step, null, state.userData?.native_language);
     }
 
-    step.lessonId = lessonId;
-    state.setSuccessScreen(step.lessonId, fluencyDataObj);
+    state.setSuccessScreen(lessonId, fluencyDataObj);
     state.setStatsVisible(false);
     state.setProgressPercent("100%");
     state.setBottomControlState('lessonSuccess');
