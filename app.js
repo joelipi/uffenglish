@@ -76,7 +76,6 @@ import {
 } from './modules/speech.js';
 import {
     getCurrentStepIndex,
-    processAnswerLogic,
     validateAnswerPrecheck
 } from './modules/answers.js';
 
