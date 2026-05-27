@@ -125,7 +125,8 @@ export default function PlaybackVideo() {
 
         video.onloadedmetadata = () => {
             const wrapper = wrapperRef.current;
-            if (wrapper && shouldShow) {
+            const currentBlob = appStore.getState().playbackBlob;
+            if (wrapper && currentBlob) {
                 wrapper.classList.remove('d-none');
                 wrapper.style.removeProperty('display');
 
@@ -176,6 +177,20 @@ export default function PlaybackVideo() {
             });
         };
     }, [blob, shouldShow]);
+
+    // Cleanup: revoke blob URL on unmount or blob change
+    useEffect(() => {
+        const video = videoRef.current;
+        return () => {
+            if (video) {
+                video.onloadedmetadata = null;
+                video.onerror = null;
+                if (video.src && video.src.startsWith('blob:')) {
+                    URL.revokeObjectURL(video.src);
+                }
+            }
+        };
+    }, [blob]);
 
     useEffect(() => {
         if (!muteRef.current) return;
