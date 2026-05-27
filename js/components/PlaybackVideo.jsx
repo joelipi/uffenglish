@@ -126,7 +126,8 @@ export default function PlaybackVideo() {
         video.onloadedmetadata = () => {
             const wrapper = wrapperRef.current;
             const currentBlob = appStore.getState().playbackBlob;
-            if (wrapper && currentBlob) {
+            const currentChatMode = appStore.getState().chatModeActive;
+            if (wrapper && currentBlob && !currentChatMode) {
                 wrapper.classList.remove('d-none');
                 wrapper.style.removeProperty('display');
 
@@ -147,7 +148,7 @@ export default function PlaybackVideo() {
 
             video.style.display = 'block';
 
-            if (autoplay || appStore.getState().playbackAutoplay) {
+            if (!currentChatMode && (autoplay || appStore.getState().playbackAutoplay)) {
                 video.play().catch(e => {
                     if (e.name === 'NotAllowedError') {
                         video.muted = true;
@@ -176,7 +177,7 @@ export default function PlaybackVideo() {
                 }
             });
         };
-    }, [blob, shouldShow]);
+    }, [blob]);
 
     // Cleanup: revoke blob URL on unmount or blob change
     useEffect(() => {

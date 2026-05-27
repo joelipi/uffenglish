@@ -182,6 +182,7 @@ export class simpleVideoPlayer {
     this.video.removeEventListener('loadeddata', this._handleVideoLoaded);
     this.video.removeEventListener('canplay', this._handleVideoLoaded);
 
+    this.controller.setLoaded();
     this.reveal();
   }
 

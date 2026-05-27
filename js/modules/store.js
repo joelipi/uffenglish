@@ -73,6 +73,7 @@ onMicClickCallback: null,
             whisperReviewData: null,
             whisperReviewTimeLeft: null,
             successVideoBlob: null,
+            successSubtitles: null,
 
             // --- Success Screen State ---
             successScreenVisible: false,
@@ -375,6 +376,7 @@ onMicClickCallback: null,
                 whisperReviewData: null,
                 whisperReviewTimeLeft: null,
                 successVideoBlob: null,
+                successSubtitles: null,
                 successScreenVisible: false,
                 successLessonId: null,
                 successFluencyData: null,
@@ -427,6 +429,7 @@ onMicClickCallback: null,
             setWhisperReviewTimeLeft: (timeLeft) => set({ whisperReviewTimeLeft: timeLeft }),
             setSuccessVideoBlob: (blob) => set({ successVideoBlob: blob }),
             clearSuccessVideoBlob: () => set({ successVideoBlob: null }),
+            setSuccessSubtitles: (subtitles) => set({ successSubtitles: subtitles }),
 
             // --- Success Screen Actions ---
             setSuccessScreen: (lessonId, fluencyData) => set({

@@ -81,10 +81,6 @@ export function handleUnitComplete(step) {
     state.setFluencyImproving(isImproving);
     state.setLastLessonFluencyAvg(lessonAverage);
 
-    if (step.subtitles) {
-        state.setSpeechCue(step.subtitles);
-        state.setHintsVisible(true);
-    }
     if (step.simpleVideoUrl) {
         loadVideoForStep(step, null, state.userData?.native_language);
     }
@@ -112,10 +108,6 @@ export function handleSuccessStep(step, fluencyData) {
         console.log(`[Gamification] ✅ Fluency improving! Last-10 avg: ${state.recentFluencyAvgs?.reduce((a, b) => a + b, 0) / (state.recentFluencyAvgs?.length || 1)}% → Current: ${lessonAverage}%`);
     }
 
-    if (step.subtitles) {
-        state.setSpeechCue(step.subtitles);
-        state.setHintsVisible(true);
-    }
     if (step.simpleVideoUrl) {
         loadVideoForStep(step, null, state.userData?.native_language);
     }
