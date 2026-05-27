@@ -26,7 +26,7 @@ export default function Hints() {
     const userLang = userData?.native_language;
 
     return (
-        <div className="card position-absolute" id="hint-hangman-card" style={{ top: '25%', left: '50%', transform: 'translateX(-50%)' }} onClick={handleClick}>
+        <div className="card position-absolute" id="hint-hangman-card" style={{ top: '25%', left: '50%', transform: 'translateX(-50%)', zIndex: 20 }} onClick={handleClick}>
             {speechCue && (
                 <p className="info-content" id="hintUncommonWords">
                     <CueDisplay cue={speechCue} userLang={userLang} />

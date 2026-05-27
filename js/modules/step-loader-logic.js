@@ -83,6 +83,7 @@ export function handleUnitComplete(step) {
 
     if (step.subtitles) {
         state.setSpeechCue(step.subtitles);
+        state.setHintsVisible(true);
     }
     if (step.simpleVideoUrl) {
         loadVideoForStep(step, null, state.userData?.native_language);
@@ -113,6 +114,7 @@ export function handleSuccessStep(step, fluencyData) {
 
     if (step.subtitles) {
         state.setSpeechCue(step.subtitles);
+        state.setHintsVisible(true);
     }
     if (step.simpleVideoUrl) {
         loadVideoForStep(step, null, state.userData?.native_language);
