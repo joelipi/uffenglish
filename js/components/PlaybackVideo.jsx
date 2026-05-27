@@ -24,8 +24,11 @@ export default function PlaybackVideo() {
     const isMuted = useStore(appStore, (s) => s.isPlaybackMuted);
     const videoPlayTrigger = useStore(appStore, (s) => s.videoPlayTrigger);
     const videoClearTrigger = useStore(appStore, (s) => s.videoClearTrigger);
+    const chatModeActive = useStore(appStore, (s) => s.chatModeActive);
     const prevPlayTrigger = useRef(videoPlayTrigger);
     const prevClearTrigger = useRef(videoClearTrigger);
+
+    const shouldShow = blob && !chatModeActive;
 
     useEffect(() => {
         _videoEl = videoRef.current;
@@ -38,20 +41,40 @@ export default function PlaybackVideo() {
         };
     }, []);
 
+    // Single authoritative visibility effect
+    useEffect(() => {
+        const wrapper = wrapperRef.current;
+        if (!wrapper) return;
+
+        if (!shouldShow) {
+            wrapper.style.setProperty('display', 'none', 'important');
+            const muteToggle = muteRef.current;
+            if (muteToggle) muteToggle.classList.add('d-none');
+
+            if (!blob) {
+                const video = videoRef.current;
+                if (video) {
+                    video.pause();
+                    if (video.src && video.src.startsWith('blob:')) URL.revokeObjectURL(video.src);
+                    video.src = '';
+                    video.load();
+                    video.style.display = 'none';
+                    video.onerror = null;
+                    video.onloadeddata = null;
+                    video.onloadedmetadata = null;
+                }
+            }
+        } else {
+            wrapper.style.removeProperty('display');
+        }
+    }, [shouldShow, blob]);
+
     useEffect(() => {
         const video = videoRef.current;
-        if (!video) return;
+        if (!video || !blob) return;
 
         if (video.src && video.src.startsWith('blob:')) {
             URL.revokeObjectURL(video.src);
-        }
-
-        if (!blob) {
-            video.src = '';
-            video.load();
-            const wrapper = wrapperRef.current;
-            if (wrapper) wrapper.style.display = 'none';
-            return;
         }
 
         if (isIOS) {
@@ -100,9 +123,8 @@ export default function PlaybackVideo() {
 
         video.onloadedmetadata = () => {
             const wrapper = wrapperRef.current;
-            if (wrapper) {
-                wrapper.classList.remove('d-none');
-                wrapper.style.display = 'flex';
+            if (wrapper && shouldShow) {
+                wrapper.style.removeProperty('display');
 
                 wrapper.style.width = '';
                 wrapper.style.height = '';
@@ -150,7 +172,7 @@ export default function PlaybackVideo() {
                 }
             });
         };
-    }, [blob]);
+    }, [blob, shouldShow]);
 
     useEffect(() => {
         if (!muteRef.current) return;
@@ -184,22 +206,7 @@ export default function PlaybackVideo() {
     useEffect(() => {
         if (videoClearTrigger === prevClearTrigger.current) return;
         prevClearTrigger.current = videoClearTrigger;
-        const video = videoRef.current;
-        const wrapper = wrapperRef.current;
-        const muteToggle = muteRef.current;
-
-        if (video) {
-            video.pause();
-            if (video.src && video.src.startsWith('blob:')) URL.revokeObjectURL(video.src);
-            video.src = '';
-            video.load();
-            video.style.display = 'none';
-            video.onerror = null;
-            video.onloadeddata = null;
-            video.onloadedmetadata = null;
-        }
-        if (wrapper) wrapper.style.display = 'none';
-        if (muteToggle) muteToggle.classList.add('d-none');
+        appStore.getState().clearPlaybackBlob();
     }, [videoClearTrigger]);
 
     useEffect(() => {
@@ -212,29 +219,10 @@ export default function PlaybackVideo() {
         }
     }, [videoPlayTrigger]);
 
-    const chatModeActive = useStore(appStore, (s) => s.chatModeActive);
-    const prevChatRef = useRef(chatModeActive);
-
-    useEffect(() => {
-        if (chatModeActive === prevChatRef.current) return;
-        prevChatRef.current = chatModeActive;
-        const wrapper = wrapperRef.current;
-        if (!wrapper) return;
-        if (chatModeActive) {
-            wrapper.style.setProperty('display', 'none', 'important');
-        } else {
-            if (blob) {
-                wrapper.style.removeProperty('display');
-            } else {
-                wrapper.style.display = 'none';
-            }
-        }
-    }, [chatModeActive, blob]);
-
     return (
         <div ref={wrapperRef} id="playback-video-wrapper"
             className="playback-video-container d-none"
-            style={{ position: 'absolute', top: '15%', left: 0, right: 0, zIndex: 5 }}>
+            style={{ position: 'absolute', top: '15%', left: 0, right: 0, zIndex: 5, display: 'none' }}>
             <video ref={videoRef} id="playback-video" playsInline preload="auto" loop />
             <button ref={muteRef} id="playback-mute-toggle" className="playback-mute-toggle position-absolute bottom-0 end-0 m-1 d-none">
                 <i className="bi bi-volume-up-fill"></i>

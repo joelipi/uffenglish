@@ -70,8 +70,22 @@ export function handleLessonComplete(step, showFeedbackAndProceed) {
 // --- Unit Complete ---
 
 export function handleUnitComplete(step) {
-    step.lessonId = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex].lessonId + 's';
-    appStore.getState().successHandler.handleSuccessLesson(step);
+    const state = appStore.getState();
+    const lessonAverage = calculateLessonAverage(state);
+    const isImproving = detectFluencyTrend(lessonAverage, state.recentFluencyAvgs || []);
+
+    const fluencyDataObj = { total: lessonAverage };
+    const lessonId = state.configData.lessons[state.currentLessonIndex].lessonId + 's';
+
+    state.setLastSuccessFluencyData(fluencyDataObj);
+    state.setFluencyImproving(isImproving);
+    state.setLastLessonFluencyAvg(lessonAverage);
+
+    step.lessonId = lessonId;
+    state.setSuccessScreen(step.lessonId, fluencyDataObj);
+    state.setStatsVisible(false);
+    state.setProgressPercent("100%");
+    state.setBottomControlState('lessonSuccess');
 }
 
 // --- Success Step Rendering ---

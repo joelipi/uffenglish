@@ -97,9 +97,6 @@ export const appStore = createStore(
             lessonTitle: null,
             isLessonActive: false,
 
-            // --- Controller References (not persisted) ---
-            successHandler: null,
-
             // --- Session-scoped State (not persisted, reset per lesson) ---
             isAudioEnabled: false,
             interactionLog: [],
@@ -183,7 +180,6 @@ export const appStore = createStore(
             setIntroContinueCallback: (val) => set({ introContinueCallback: val }),
             setIntroAudioOnlyCallback: (val) => set({ introAudioOnlyCallback: val }),
             setOnMicClickCallback: (val) => set({ onMicClickCallback: val }),
-            setSuccessHandler: (val) => set({ successHandler: val }),
             setLessonTitle: (val) => set({ lessonTitle: val }),
             setIsLessonActive: (val) => set({ isLessonActive: val }),
 
@@ -436,6 +432,7 @@ export const appStore = createStore(
                 submitBtnDisabled: false,
                 inputDisabled: false,
                 isPlaybackMuted: false,
+                bottomControlState: 'mic',
                 praiseImageUrl: null,
                 youtubeVideoId: null,
                 whisperReviewData: null,

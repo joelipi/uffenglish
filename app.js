@@ -57,7 +57,6 @@ import { clearSpeechRecordingsForLesson, updateSpeechRecording } from './modules
 // Initialize the background NLP Worker via blob URL to bypass service worker caching
 
 // --- UI & Media Components (Root Directory) ---
-import { SuccessLessonHandler } from './components/success-lesson.js';
 import { calculateCurrentStreak } from './modules/user-profile.js';
 
 // --- Data & Configuration ---

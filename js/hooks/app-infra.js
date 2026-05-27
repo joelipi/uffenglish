@@ -1,7 +1,7 @@
 /**
  * app-infra.js — Application infrastructure setup
  *
- * Wires up SuccessLessonHandler, progress tracking, tutor chat,
+ * Wires up progress tracking, tutor chat,
  * mic animation, and deferred AI/BG workers. Called from the React
  * bootstrap hook after auth and config are loaded.
  */
@@ -145,25 +145,4 @@ export async function setupAppInfra({ userData }) {
             handleHint
         });
     }
-
-    const { SuccessLessonHandler } = await import('../components/success-lesson.js');
-
-    const handler = new SuccessLessonHandler({
-        loadLessonContent,
-        calculateAverage,
-        playSound: Media.playSound,
-        loadNextLesson,
-        updateState,
-        uiElements: {}
-    });
-
-    appStore.getState().setSuccessHandler(handler);
-
-    console.log('[app-infra] SuccessLessonHandler initialized', {
-        currentLessonIndex: appStore.getState().currentLessonIndex,
-        lessonsLoaded: appStore.getState().configData?.lessons?.length,
-        fluencyScore: appStore.getState().fluencyScore,
-        listeningScore: appStore.getState().listeningScore,
-        speakingScore: appStore.getState().speakingScore
-    });
 }
