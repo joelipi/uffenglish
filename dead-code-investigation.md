@@ -62,6 +62,22 @@ This entire feature chain is dead — `collect-signup-data.js` has no consumer.
 
 ---
 
+## 🔍 Investigate: Legacy DOM Elements in `index.html`
+
+These HTML elements in `index.html` body are not rendered by React and are manipulated directly by non-React code.
+
+| Element | Used by | Notes |
+|---|---|---|
+| `#ivp-container` | `interactive-video-player.js` | Known, being dealt with |
+| `#simple-video-container` | `simple-video-player.js` | Known, being dealt with |
+| `#intro-call-widget` | `intro-video-widget` code | Known, being dealt with |
+| `#pip-wrapper` / `#webcam-preview` | `js/components/widgets/WebcamPreview.jsx` | ✅ **Fixed** — React-ified (owns its own DOM via refs, no getElementById) |
+| `#videoCanvas` | (none) | ✅ **Removed from HTML** — code creates its own |
+| `#overlayImage` | (none) | ✅ **Removed from HTML** — code creates its own |
+| `#originalVideo` | `video-processor.web.js` | Keep for now (video processor relies on it, though it also falls back)
+
+---
+
 ## Category A: React Native Stubs (future native app)
 
 All `.native.*` files are in knip's ignore list — not flagged as dead.
@@ -70,17 +86,11 @@ Includes: BilingualText.native.jsx, interactive-video-player.native.jsx, simple-
 
 ---
 
-## Category B: Dependencies to Investigate
+## Category B: Dependencies
 
-| Package | Status |
-|---|---|
-| `@deepgram/sdk` | **Probably dead** — API goes through proxy |
-| `wink-tokenizer` | **Probably dead** — no import |
-| `onnxruntime-web` | **Likely alive** — used dynamically by whisper workers |
-| `@vitejs/plugin-vue` | **Dead** — no Vue code |
-| `@testing-library/dom` | **Likely dead** (transitive) |
-| `@testing-library/jest-dom` | **Likely dead** (transitive) |
-| `@testing-library/react` | **Keep** — used in test files |
+✅ **Resolved (deleted):** `@deepgram/sdk`, `wink-tokenizer`, `@vitejs/plugin-vue`, `@testing-library/dom`, `@testing-library/jest-dom`, `@testing-library/react`, `onnxruntime-web`
+
+**Remaining flagged:** `compromise` — on investigate list with `complexity.js`
 | `temp_video_share.js` | **Fix** — package.json `"main"` points to non-existent file |
 
 ---

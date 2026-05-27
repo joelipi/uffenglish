@@ -9,20 +9,13 @@ export default function WebcamPreview() {
     const wrapperRef = useRef(null);
 
     useEffect(() => {
-        videoRef.current = document.getElementById('webcam-preview');
-        wrapperRef.current = document.getElementById('pip-wrapper');
-    }, []);
-
-    useEffect(() => {
         const video = videoRef.current;
-        const wrapper = wrapperRef.current;
-        if (!video || !wrapper) return;
+        if (!video) return;
 
         if (webcamStream) {
             if (video.srcObject !== webcamStream) {
                 video.srcObject = webcamStream;
             }
-            wrapper.classList.remove('d-none');
             const timer = setTimeout(() => {
                 if (video.readyState >= 2 || video.paused) {
                     video.play().catch(e => console.log('[Webcam] play failed:', e));
@@ -32,19 +25,14 @@ export default function WebcamPreview() {
         } else {
             video.pause();
             video.srcObject = null;
-            wrapper.classList.add('d-none');
         }
     }, [webcamStream]);
 
-    useEffect(() => {
-        const wrapper = wrapperRef.current;
-        if (!wrapper) return;
-        if (chatModeActive) {
-            wrapper.classList.add('d-none');
-        } else if (webcamStream) {
-            wrapper.classList.remove('d-none');
-        }
-    }, [chatModeActive, webcamStream]);
+    const show = webcamStream && !chatModeActive;
 
-    return null;
+    return (
+        <div ref={wrapperRef} id="pip-wrapper" className={`pip-container shadow ${show ? '' : 'd-none'}`}>
+            <video ref={videoRef} id="webcam-preview" autoPlay muted playsInline></video>
+        </div>
+    );
 }

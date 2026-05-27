@@ -6,12 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>UFF English</title>
 
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-
     <!-- Embedded CSS -->
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -1916,21 +1910,11 @@
             </div>
 
 
-            <!-- Self-View (Picture-in-Picture) -->
-            <div class="pip-container shadow d-none" id="pip-wrapper">
-                <video id="webcam-preview" autoplay muted playsinline></video>
-            </div>
-
             <!-- HIDDEN FUNCTIONAL ELEMENTS -->
             <video id="originalVideo" src="" class="d-none"></video>
-            <canvas id="videoCanvas" class="d-none"></canvas>
-            <img id="overlayImage" src="/assets/img/header.png" class="d-none">
 
         </div>
     </main>
-
-    <!-- Bootstrap 5 JS Bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <!-- React Entry (sole entry point after full migration) -->
     <script type="module" src="/js/index.jsx"></script>
