@@ -28,7 +28,7 @@ export function getCurrentStepIndex(stepData, configData, currentLessonIndex) {
 }
 
 export async function processAnswerLogic({
-    userResponse, cue, stepData, lesson, englishLevel, userData, cuesGiven, apiRoot
+    userResponse, cue, stepData, lesson, englishLevel, userData, apiRoot
 }) {
     if (stepData.stepType === "openResponse") {
         const cueText = typeof cue === 'object' ? cue?.en : cue;
@@ -227,7 +227,7 @@ export async function processAnswerLogic({
     }
 }
 
-export async function validateAnswerPrecheck(val, cue, stepData, englishLevel, userData, cuesGiven) {
+export async function validateAnswerPrecheck(val, cue, stepData, englishLevel, userData, responsesGiven) {
     if (stepData.stepType !== "openResponse") return { isValid: true };
 
     const cueText = typeof cue === 'object' ? cue?.en : cue;
@@ -240,7 +240,7 @@ export async function validateAnswerPrecheck(val, cue, stepData, englishLevel, u
     const normalizedcue = await normalize(cueText.trim().toLowerCase());
     const similarity = calculateSimilarity(normalizeduserResponse, normalizedcue);
 
-    if (cuesGiven && cuesGiven.includes(normalizeduserResponse)) {
+    if (responsesGiven && responsesGiven.includes(normalizeduserResponse)) {
         warningMessage = Strings.get('already_used', userData?.native_language);
         isInvalid = true;
     } else if (similarity >= 85) {

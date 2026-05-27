@@ -32,7 +32,7 @@ describe('Zustand App Store', () => {
             activeLessonId: null,
             currentLessonIndex: 0,
             currentStepIndex: 0,
-            cuesGiven: [],
+            responsesGiven: [],
             repeatPointsHistory: [],
             rolePlayPointsHistory: [],
             userMessagesToAi: 0,
@@ -125,14 +125,14 @@ describe('Zustand App Store', () => {
 
     it('should reset lesson history', () => {
         appStore.setState({
-            cuesGiven: ['cue1'],
+            responsesGiven: ['response1'],
             repeatPointsHistory: [100],
             rolePlayPointsHistory: [80]
         });
 
         appStore.getState().resetLessonHistory();
         const state = appStore.getState();
-        expect(state.cuesGiven).toEqual([]);
+        expect(state.responsesGiven).toEqual([]);
         expect(state.repeatPointsHistory).toEqual([]);
         expect(state.rolePlayPointsHistory).toEqual([]);
     });

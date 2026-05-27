@@ -225,7 +225,7 @@ function resetButtonState(button) {
 export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation, translation, stats = { pauseCount: null, netDuration: null }, _deps = {}, userData = appStore.getState().userData, configData = appStore.getState().configData, courseId = appStore.getState().courseId) {
     const englishLevel = configData?.languageLevel || 'A0';
     const { isValid, warningMessage } = await validateAnswerPrecheck(
-        val, cue, stepData, englishLevel, userData, appStore.getState().cuesGiven
+        val, cue, stepData, englishLevel, userData, appStore.getState().responsesGiven
     );
 
     if (!isValid) {
@@ -390,7 +390,6 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
                 lesson: lesson,
                 english_level: englishLevel,
                 userData: userData,
-                cuesGiven: appStore.getState().cuesGiven,
                 apiRoot: null
             });
 
@@ -578,7 +577,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
 
         if (isCorrect) {
             if (stepData.stepType === "openResponse") {
-                appStore.setState({ cuesGiven: [...appStore.getState().cuesGiven, result.normalizeduserResponse] });
+                appStore.setState({ responsesGiven: [...appStore.getState().responsesGiven, result.normalizeduserResponse] });
                 if (result.cefrLevelDeduction > 0) {
                     appStore.getState().deductListeningScore(result.cefrLevelDeduction);
                 }

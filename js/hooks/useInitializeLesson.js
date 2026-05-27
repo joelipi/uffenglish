@@ -82,6 +82,7 @@ export function useInitializeLesson() {
 
         const player = appStore.getState().currentVideoPlayer;
         if (player) player.destroy();
+        appStore.getState().resetLessonHistory();
         appStore.getState().resetLessonState();
         appStore.getState().setLessonStartTime(new Date().toISOString());
         appStore.getState().setRoleOther(lesson.roleOther || "");

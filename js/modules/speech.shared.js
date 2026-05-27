@@ -61,7 +61,7 @@ async function processTranscript({ transcript, timingMeta, checkGibberish = fals
 
     const englishLevel = configData?.languageLevel || 'A0';
     const { isValid, warningMessage } = await validateAnswerPrecheck(
-        transcriptToReview, step.cue, step, englishLevel, userData, appStore.getState().cuesGiven
+        transcriptToReview, step.cue, step, englishLevel, userData, appStore.getState().responsesGiven
     );
 
     if (!isValid) { rejectPreflight(warningMessage); return; }

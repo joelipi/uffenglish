@@ -263,7 +263,7 @@ onMicClickCallback: null,
 
             // Clear history arrays when a new lesson begins
             resetLessonHistory: () => set({
-                cuesGiven: [],
+                responsesGiven: [],
                 repeatPointsHistory: [],
                 rolePlayPointsHistory: []
             }),
@@ -497,7 +497,7 @@ onMicClickCallback: null,
                 totalFluencySum: state.totalFluencySum,
                 recentFluencyAvgs: state.recentFluencyAvgs,
                 countedLessons: state.countedLessons,
-                cuesGiven: state.cuesGiven,
+                responsesGiven: state.responsesGiven,
                 repeatPointsHistory: state.repeatPointsHistory,
                 rolePlayPointsHistory: state.rolePlayPointsHistory,
                 userMessagesToAi: state.userMessagesToAi,
