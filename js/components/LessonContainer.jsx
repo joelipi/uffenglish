@@ -29,7 +29,7 @@ import ChatHeader from './chat/ChatHeader.jsx';
 import TutorChatInput from './widgets/TutorChatInput.jsx';
 import InteractiveVideoWrapper from './InteractiveVideoWrapper.jsx';
 import SimpleVideoWrapper from './SimpleVideoWrapper.jsx';
-import IntroVideoWrapper from './IntroVideoWrapper.jsx';
+import IncomingVideoWidget from './IncomingVideoWidget.jsx';
 import VideoProcessorWrapper from './VideoProcessorWrapper.jsx';
 import PlaybackVideo from './PlaybackVideo.jsx';
 import { useStepLoader } from '../hooks/useStepLoader.js';
@@ -197,7 +197,7 @@ export default function LessonContainer() {
             <PlaybackVideo />
             <InteractiveVideoWrapper />
             <SimpleVideoWrapper />
-            <IntroVideoWrapper />
+            <IncomingVideoWidget />
             <VideoProcessorWrapper />
         </>
     );

@@ -8,6 +8,7 @@ export default function MicrophoneToggle() {
     const bottomControlState = useStore(appStore, (state) => state.bottomControlState);
     const onMicClickCallback = useStore(appStore, (state) => state.onMicClickCallback);
     const currentVideoPlayer = useStore(appStore, (state) => state.currentVideoPlayer);
+    const micBounceTrigger = useStore(appStore, (state) => state.micBounceTrigger);
     const containerRef = useRef(null);
     const animationRefs = useRef([]);
 
@@ -50,6 +51,14 @@ export default function MicrophoneToggle() {
             animationRefs.current = [];
         };
     }, [isMicActive]);
+
+    useEffect(() => {
+        const btn = document.getElementById('micBtn');
+        if (!btn || micBounceTrigger === 0) return;
+        btn.classList.add('btn-bounce');
+        const timer = setTimeout(() => btn.classList.remove('btn-bounce'), 1000);
+        return () => clearTimeout(timer);
+    }, [micBounceTrigger]);
 
     const handleClick = () => {
         if (typeof onMicClickCallback === 'function') {
