@@ -99,7 +99,7 @@ export async function setupAppInfra({ userData }) {
     callLoadStepRef = callLoadStep;
 
     const updateProgressBar = () => updateProgressBarFn();
-    const loadNextStep = (currentStep, fluencyData) => loadNextStepImpl(currentStep, fluencyData, { callLoadStep });
+    const loadNextStep = (currentStep, fluencyData) => loadNextStepImpl(currentStep, fluencyData, { callLoadStep, loadLessonContent });
     const loadNextLesson = () => {
         loadNextLessonFn({ callLoadStep, loadLessonContent });
     };
@@ -145,4 +145,6 @@ export async function setupAppInfra({ userData }) {
             handleHint
         });
     }
+
+    appStore.getState().setLoadLessonContentCallback(loadLessonContent);
 }

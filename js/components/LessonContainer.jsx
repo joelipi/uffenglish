@@ -70,7 +70,8 @@ export default function LessonContainer() {
     }, [callLoadStep, setCallLoadStep]);
 
     const loadNextStep = useCallback((currentStep, fluencyData) => {
-        loadNextStepImpl(currentStep, fluencyData, { callLoadStep });
+        const loadLessonContent = appStore.getState().loadLessonContentCallback;
+        loadNextStepImpl(currentStep, fluencyData, { callLoadStep, loadLessonContent });
     }, [callLoadStep]);
 
     useEffect(() => {

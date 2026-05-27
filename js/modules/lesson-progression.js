@@ -38,11 +38,13 @@ export function loadNextStep(currentStep, fluencyData, _deps = {}) {
     if (!appStore.getState().configData || !appStore.getState().configData.lessons || appStore.getState().configData.lessons.length === 0) return;
     const currentLesson = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex];
 
+    const loadLessonContent = _deps.loadLessonContent || appStore.getState().loadLessonContentCallback;
+
     appStore.setState({ currentStepIndex: appStore.getState().currentStepIndex + 1 });
     if (appStore.getState().currentStepIndex < currentLesson.steps.length) {
         _deps.callLoadStep(currentLesson.steps[appStore.getState().currentStepIndex], currentLesson, fluencyData);
     } else {
-        if (currentLesson.nextLessonId) loadNextLesson(_deps);
+        if (currentLesson.nextLessonId) loadNextLesson({ callLoadStep: _deps.callLoadStep, loadLessonContent });
         else showCompletionMessage();
     }
 }
@@ -52,6 +54,8 @@ export async function loadNextLesson(_deps = {}) {
     const currentLesson = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex];
     const nextLessonId = currentLesson.nextLessonId;
     console.log(`[Progression] loadNextLesson: ${currentLesson?.lessonId} → ${nextLessonId}`);
+
+    const loadLessonContent = _deps.loadLessonContent || appStore.getState().loadLessonContentCallback;
 
     if (nextLessonId) {
         saveLessonProgress(appStore.getState().courseId, nextLessonId, appStore.getState().userData).then(progressResult => {
@@ -70,7 +74,12 @@ export async function loadNextLesson(_deps = {}) {
                 appStore.getState().setStepsAnswered(0);
                 appStore.setState({ currentStepIndex: 0 });
                 appStore.getState().clearSuccessVideoBlob();
-                _deps.loadLessonContent(appStore.getState().configData.lessons[nextLessonIndex]);
+                if (loadLessonContent) {
+                    loadLessonContent(appStore.getState().configData.lessons[nextLessonIndex]);
+                } else {
+                    console.error('[Progression] loadLessonContent not available');
+                    showCompletionMessage();
+                }
             } else showCompletionMessage();
         }, 500);
     } else {

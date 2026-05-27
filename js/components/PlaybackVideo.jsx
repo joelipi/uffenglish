@@ -47,6 +47,7 @@ export default function PlaybackVideo() {
         if (!wrapper) return;
 
         if (!shouldShow) {
+            wrapper.classList.add('d-none');
             wrapper.style.setProperty('display', 'none', 'important');
             const muteToggle = muteRef.current;
             if (muteToggle) muteToggle.classList.add('d-none');
@@ -65,6 +66,7 @@ export default function PlaybackVideo() {
                 }
             }
         } else {
+            wrapper.classList.remove('d-none');
             wrapper.style.removeProperty('display');
         }
     }, [shouldShow, blob]);
@@ -124,6 +126,7 @@ export default function PlaybackVideo() {
         video.onloadedmetadata = () => {
             const wrapper = wrapperRef.current;
             if (wrapper && shouldShow) {
+                wrapper.classList.remove('d-none');
                 wrapper.style.removeProperty('display');
 
                 wrapper.style.width = '';

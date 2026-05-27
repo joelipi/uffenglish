@@ -288,7 +288,11 @@
         },
         {
           "simpleVideoUrl": "success",
-          "subtitles": "Very good! ¡Muy bien! Oprime el botón para calcular tu calificación de fluidez (Fluency Score) para esta frase. Si tu calificación es menor a 80% te recomiendo repetir la lección.",
+          "subtitles": {
+            "en": "That's great!",
+            "es": "¡Eso es genial!",
+            "pt": "Ótimo!"
+          },
           "stepType": "success"
         }
       ],
