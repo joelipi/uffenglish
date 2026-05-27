@@ -338,3 +338,24 @@ body[data-react-ready] #appLoadingImageDiv { display: none !important; }
 /* --- Containers --- */
 .container { width: 100%; margin-right: auto; margin-left: auto; }
 .container-fluid { width: 100%; margin-right: auto; margin-left: auto; }
+
+/* --- Point Loss Animation --- */
+.point-loss-float {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: 'Orbitron', monospace;
+  font-size: 2.5em;
+  font-weight: bold;
+  color: #ff4757;
+  pointer-events: none;
+  z-index: 10000;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+@keyframes pointLossFloatAnim {
+  0% { opacity: 1; transform: translate(-50%, -50%) translateY(0) scale(1); }
+  20% { transform: translate(-50%, -50%) translateY(-10px) scale(1.2); }
+  100% { opacity: 0; transform: translate(-50%, -50%) translateY(-60px) scale(0.8); }
+}
+.point-loss-float.animate { animation: pointLossFloatAnim 1500ms ease-out forwards; }

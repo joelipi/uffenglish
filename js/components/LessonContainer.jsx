@@ -30,6 +30,7 @@ import TutorChatInput from './widgets/TutorChatInput.jsx';
 import InteractiveVideoWrapper from './InteractiveVideoWrapper.jsx';
 import SimpleVideoWrapper from './SimpleVideoWrapper.jsx';
 import IncomingVideoWidget from './IncomingVideoWidget.jsx';
+import PointLossOverlay from './PointLossOverlay.jsx';
 import VideoProcessorWrapper from './VideoProcessorWrapper.jsx';
 import PlaybackVideo from './PlaybackVideo.jsx';
 import { useStepLoader } from '../hooks/useStepLoader.js';
@@ -198,6 +199,7 @@ export default function LessonContainer() {
             <InteractiveVideoWrapper />
             <SimpleVideoWrapper />
             <IncomingVideoWidget />
+            <PointLossOverlay />
             <VideoProcessorWrapper />
         </>
     );

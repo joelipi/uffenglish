@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import { useSyncExternalStore } from 'react';
 import { appStore } from '../modules/store.js';
 import { InteractiveVideoPlayer } from './interactive-video-player.js';
-import { pointLoss } from './point-loss-animation.js';
 
 function portalTarget() {
     return document.getElementById('ivp-container');
@@ -50,13 +49,11 @@ export default function InteractiveVideoWrapper() {
             containerSelector: `#${uniqueId}`,
             onRepetition: () => {
                 appStore.getState().deductListeningScore(10);
-                const scoreEl = document.getElementById('listeningScore');
-                if (scoreEl) pointLoss.show(scoreEl, 10);
+                appStore.getState().setPointLossAmount(10);
             },
             onWordReveal: (index) => {
                 appStore.getState().deductListeningScore(15);
-                const scoreEl = document.getElementById('listeningScore');
-                if (scoreEl) pointLoss.show(scoreEl, 15);
+                appStore.getState().setPointLossAmount(15);
             }
         };
 
@@ -99,7 +96,7 @@ export default function InteractiveVideoWrapper() {
             const stepType = currentVideo.stepType || '';
             if (appStore.getState().videoPlays > 2 && (stepType === 'closedResponse' || stepType === 'openResponse')) {
                 appStore.getState().deductListeningScore(10);
-                pointLoss.show(player.video, 10);
+                appStore.getState().setPointLossAmount(10);
             }
         };
         player.video.addEventListener('play', playHandler);
@@ -110,7 +107,7 @@ export default function InteractiveVideoWrapper() {
             if (appStore.getState().videoClicks % 2 === 1 && (stepType === 'closedResponse' || stepType === 'openResponse')) {
                 clickTriggeredPlayRef.current = true;
                 appStore.getState().deductListeningScore(15);
-                pointLoss.show(player.video, 15);
+                appStore.getState().setPointLossAmount(15);
             }
         };
         player.video.addEventListener('click', clickHandler);

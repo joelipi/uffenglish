@@ -83,6 +83,7 @@ onMicClickCallback: null,
             successVideoButton: { visible: false, loading: false, state: 'idle' },
             successRepeatButton: { visible: false },
             successCanvasVisible: false,
+            pointLossAmount: null,
 
             // --- Media Viewport Dynamic Content ---
             praiseImageUrl: null,
@@ -406,6 +407,7 @@ onMicClickCallback: null,
                 nativeLikeScore: 100,
                 understandingScore: 100,
                 lastSuccessFluencyData: null,
+                pointLossAmount: null,
                 submitBtnDisabled: false,
                 inputDisabled: false
             }),
@@ -424,6 +426,7 @@ onMicClickCallback: null,
             setTutorChatSubmitCallback: (callback) => set({ tutorChatSubmitCallback: callback }),
             setWebcamStream: (stream) => set({ webcamStream: stream }),
             setMediaVisible: (visible) => set({ mediaVisible: visible }),
+            setPointLossAmount: (amount) => set({ pointLossAmount: amount }),
             // --- Whisper Review Actions ---
             setWhisperReviewData: (data) => set({ whisperReviewData: data }),
             setWhisperReviewTimeLeft: (timeLeft) => set({ whisperReviewTimeLeft: timeLeft }),
