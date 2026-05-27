@@ -89,7 +89,7 @@ Includes: BilingualText.native.jsx, interactive-video-player.native.jsx, simple-
 
 | File | Notes |
 |---|---|
-| `app.js` | Legacy entry point with broken imports. Not loaded by any HTML file. |
+| `app.js` | ✅ **Deleted** — log suppression extracted to `js/modules/log-control.js`, imported by `index.jsx` |
 
 ---
 
