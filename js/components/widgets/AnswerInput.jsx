@@ -16,6 +16,7 @@ export default function AnswerInput() {
     const inputFocusTrigger = useStore(appStore, (state) => state.inputFocusTrigger);
 
     const [inputValue, setInputValue] = useState('');
+    const [scoreAnimating, setScoreAnimating] = useState(false);
     const inputFieldRef = useRef(null);
     const submitBtnRef = useRef(null);
     const containerRef = useRef(null);
@@ -25,13 +26,8 @@ export default function AnswerInput() {
     useEffect(() => {
         if (scoreUpdateTrigger === prevScoreUpdateTrigger.current) return;
         prevScoreUpdateTrigger.current = scoreUpdateTrigger;
-        const el = containerRef.current;
-        if (el) {
-            el.classList.remove('score-update');
-            void el.offsetWidth;
-            el.classList.add('score-update');
-            setTimeout(() => el.classList.remove('score-update'), 300);
-        }
+        setScoreAnimating(true);
+        setTimeout(() => setScoreAnimating(false), 300);
     }, [scoreUpdateTrigger]);
 
     // Input focus trigger
@@ -39,13 +35,8 @@ export default function AnswerInput() {
     useEffect(() => {
         if (inputFocusTrigger === prevInputFocusTrigger.current) return;
         prevInputFocusTrigger.current = inputFocusTrigger;
-        const field = inputFieldRef.current;
-        if (field) {
-            field.disabled = !!inputDisabled;
-            if (!inputDisabled) {
-                field.classList.remove('disabled');
-                setTimeout(() => field.focus(), 100);
-            }
+        if (inputFieldRef.current && !inputDisabled) {
+            setTimeout(() => inputFieldRef.current.focus(), 100);
         }
     }, [inputFocusTrigger, inputDisabled]);
 
@@ -94,7 +85,7 @@ export default function AnswerInput() {
     if (!textInputVisible) return null;
 
     return (
-        <div ref={containerRef} className="position-absolute w-100 p-3" style={{ zIndex: 9999 }}>
+        <div ref={containerRef} className={`position-absolute w-100 p-3${scoreAnimating ? ' score-update' : ''}`} style={{ zIndex: 9999 }}>
             <div className="card bg-dark border-secondary shadow-lg">
                 <div className="card-body p-2 d-flex align-items-center gap-2">
                     <div className="flex-grow-1 d-flex flex-column">

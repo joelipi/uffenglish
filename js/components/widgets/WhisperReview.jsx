@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store.js';
 
@@ -24,25 +24,20 @@ export default function WhisperReview() {
 }
 
 function WhisperReviewBody({ transcript, timeLeft, onAccept, onReject }) {
-    const barRef = useRef(null);
-    const hasStarted = useRef(false);
+    const [barWidth, setBarWidth] = useState(100);
+    const [animating, setAnimating] = useState(false);
 
     useEffect(() => {
-        hasStarted.current = false;
+        setBarWidth(100);
+        setAnimating(false);
+        requestAnimationFrame(() => setAnimating(true));
     }, [transcript]);
 
     useEffect(() => {
-        if (!barRef.current || hasStarted.current) return;
-        hasStarted.current = true;
-        barRef.current.style.transition = 'none';
-        barRef.current.style.width = '100%';
-        requestAnimationFrame(() => {
-            if (barRef.current) {
-                barRef.current.style.transition = 'width 7s linear';
-                barRef.current.style.width = '0%';
-            }
-        });
-    }, [transcript]);
+        if (animating) {
+            setBarWidth(0);
+        }
+    }, [animating]);
 
     const handleAccept = () => {
         appStore.getState().setWhisperReviewData(null);
@@ -62,7 +57,7 @@ function WhisperReviewBody({ transcript, timeLeft, onAccept, onReject }) {
                 <div className="mb-3">{`"${transcript}"`}</div>
             </div>
             <div className="progress whisper-progress mb-4">
-                <div ref={barRef} className="progress-bar bg-success" role="progressbar"></div>
+                <div className="progress-bar bg-success" role="progressbar" style={{ width: `${barWidth}%`, transition: animating ? 'width 7s linear' : 'none' }}></div>
             </div>
             <div className="d-flex justify-content-center gap-3">
                 <button className="btn btn-outline-danger px-4 rounded-pill" onClick={handleReject}>

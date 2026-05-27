@@ -52,10 +52,7 @@ export default function Preloader() {
     const preloaderProgress = useStore(appStore, (state) => state.preloaderProgress);
 
     useEffect(() => {
-        const staticPreloader = document.getElementById('appLoadingImageDiv');
-        if (staticPreloader) {
-            staticPreloader.style.display = 'none';
-        }
+        document.body.dataset.reactReady = 'true';
     }, []);
 
     if (!preloaderVisible) return null;

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store.js';
+import { Media } from '../../modules/media.js';
 
 export function ContinueButton({ onLoadNextLesson }) {
   const button = useStore(appStore, state => state.successContinueButton);
@@ -43,13 +44,7 @@ export function VideoButton() {
     setCanvasVisible(true);
 
     try {
-      // Pause all videos except originalVideo
-      document.querySelectorAll('video').forEach(v => {
-        if (v.id !== 'originalVideo') {
-          v.pause();
-          v.muted = true;
-        }
-      });
+      Media.pauseVideoIfPlaying();
 
       const { processVideo, shareVideo } = await import('../../modules/video-processor.js');
       const canvas = window.__successVideoCanvas;

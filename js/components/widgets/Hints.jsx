@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store.js';
 import { formatBilingualText } from '../../modules/bilingual-display.js';
@@ -9,15 +9,8 @@ export default function Hints() {
     const speechCue = useStore(appStore, (state) => state.speechCue);
     const speechPossibleAnswer = useStore(appStore, (state) => state.speechPossibleAnswer);
     const userData = useStore(appStore, (state) => state.userData);
-    const speechInputRevealCallback = useStore(appStore, (state) => state.speechInputRevealCallback);
 
     const hasContent = hangmanOps || speechCue;
-
-    const handleClick = useCallback((e) => {
-        if (speechInputRevealCallback && e.target.classList.contains('pulse-dot')) {
-            speechInputRevealCallback(e);
-        }
-    }, [speechInputRevealCallback]);
 
     if (!hintsVisible || !hasContent) {
         return null;
@@ -26,7 +19,7 @@ export default function Hints() {
     const userLang = userData?.native_language;
 
     return (
-        <div className="card position-absolute" id="hint-hangman-card" style={{ top: '25%', left: '50%', transform: 'translateX(-50%)', zIndex: 20 }} onClick={handleClick}>
+        <div className="card position-absolute" id="hint-hangman-card" style={{ top: '25%', left: '50%', transform: 'translateX(-50%)', zIndex: 20 }}>
             {speechCue && (
                 <p className="info-content" id="hintUncommonWords">
                     <CueDisplay cue={speechCue} userLang={userLang} />

@@ -1,6 +1,7 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; font-size: 1rem; font-weight: 400; line-height: 1.5; color: #212529; background-color: #fff; -webkit-text-size-adjust: 100%; -moz-tab-size: 4; tab-size: 4; }
+body[data-react-ready] #appLoadingImageDiv { display: none !important; }
 
 :root {
   --bs-blue: #0d6efd; --bs-indigo: #6610f2; --bs-purple: #6f42c1;
