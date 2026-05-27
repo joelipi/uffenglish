@@ -201,4 +201,59 @@ test.describe('PlaybackVideo Visibility', () => {
 
         expect(isHidden).toBe(true);
     });
+
+    test('playback-video-wrapper stays hidden during chat feedback after onloadedmetadata fires', async ({ page }) => {
+        await page.goto('/course/gt2/lesson/a');
+        await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
+        await page.waitForTimeout(1000);
+
+        // Step 1: Set blob — React effect registers onloadedmetadata handler
+        await page.evaluate(() => {
+            const blob = new Blob(['fake'], { type: 'video/webm' });
+            window.appStore.getState().setPlaybackBlob(blob, true);
+        });
+        await page.waitForTimeout(300);
+
+        // Step 2: Simulate video load completing
+        await page.evaluate(() => {
+            const video = document.getElementById('playback-video');
+            if (video) video.dispatchEvent(new Event('loadedmetadata'));
+        });
+        await page.waitForTimeout(100);
+
+        // Wrapper should be visible (blob exists, chat mode off)
+        const visibleAfterLoad = await page.evaluate(() => {
+            const w = document.getElementById('playback-video-wrapper');
+            if (!w) return false;
+            return !w.classList.contains('d-none') && w.style.getPropertyValue('display') !== 'none';
+        });
+        expect(visibleAfterLoad).toBe(true);
+
+        // Step 3: Activate chat mode — should hide wrapper
+        await page.evaluate(() => {
+            window.appStore.getState().setChatModeActive(true);
+        });
+        await page.waitForTimeout(300);
+
+        const hiddenAfterChat = await page.evaluate(() => {
+            const w = document.getElementById('playback-video-wrapper');
+            if (!w) return true;
+            return w.classList.contains('d-none') || w.style.getPropertyValue('display') === 'none';
+        });
+        expect(hiddenAfterChat).toBe(true);
+
+        // Step 4: Dispatch loadedmetadata again — onloadedmetadata must check chatModeActive
+        await page.evaluate(() => {
+            const video = document.getElementById('playback-video');
+            if (video) video.dispatchEvent(new Event('loadedmetadata'));
+        });
+        await page.waitForTimeout(100);
+
+        const stillHidden = await page.evaluate(() => {
+            const w = document.getElementById('playback-video-wrapper');
+            if (!w) return true;
+            return w.classList.contains('d-none') || w.style.getPropertyValue('display') === 'none';
+        });
+        expect(stillHidden).toBe(true);
+    });
 });
