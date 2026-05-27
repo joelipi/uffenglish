@@ -22,7 +22,7 @@ import {
     handleAnswer as handleAnswerImpl,
     showFeedbackAndProceed as showFeedbackAndProceedImpl
 } from '../modules/answer-pipeline.jsx';
-import { loadStep } from '../components/step-loader.web.js';
+import { loadStep } from '../components/step-loader.js';
 
 export async function setupAppInfra({ userData }) {
     if (userData) {
