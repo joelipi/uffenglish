@@ -38,7 +38,9 @@ export default function IncomingVideoWidget() {
     }, [show, currentVideo]);
 
     useEffect(() => {
-        appStore.getState().setMediaVisible(show);
+        if (show) {
+            appStore.getState().setMediaVisible(true);
+        }
     }, [show]);
 
     const handleClick = () => {

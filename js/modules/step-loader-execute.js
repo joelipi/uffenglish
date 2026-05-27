@@ -236,6 +236,11 @@ function _renderResponseStep(step, lesson, deps) {
                             appStore.getState().setWhisperReviewData(null);
                             appStore.getState().setWhisperReviewTimeLeft(null);
                             appStore.getState().setMicStatusText("");
+                            // CRITICAL: Clear playback blob so the playback-video overlay
+                            // is hidden when advancing to the next step after whisper timeout.
+                            // If removed, the playback video will remain visible over
+                            // the next step's content. Do NOT remove this line.
+                            appStore.getState().clearPlaybackBlob();
                         }
                     }
                 });
