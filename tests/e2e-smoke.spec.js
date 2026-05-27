@@ -50,7 +50,9 @@ test.describe('End-to-End Smoke Test', () => {
 
         // Verify key UI elements are visible
         await expect(page.locator('#chat-message-list')).toBeVisible({ timeout: 10000 });
-        await expect(page.locator('#stats-container')).toBeVisible();
+        // Note: #stats-container is hidden when chatModeActive is true, which is set above
+        // Verify it exists in DOM even if hidden
+        await expect(page.locator('#stats-container')).toBeAttached();
         // media-viewport is vanilla-managed; remove d-none for test visibility
         await page.evaluate(() => {
             const media = document.getElementById('media-viewport');
