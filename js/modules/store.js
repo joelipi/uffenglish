@@ -3,7 +3,7 @@
 // This store holds the values that drive persistent on-screen indicators and session states.
 // All other application state (lesson data, config, player refs, flags) remains in state.js.
 
-import { createStore } from 'zustand/vanilla';
+import { createStore } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export const appStore = createStore(
