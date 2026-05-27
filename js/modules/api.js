@@ -1,5 +1,6 @@
 import { getCurrentUser, logout, tablesDB, APPWRITE_CONFIG } from './appwrite.js';
 import normalize from './normalize.js';
+import { getEnglish } from './bilingual-logic.js';
 import { QueryClient } from '@tanstack/query-core';
 
 export const queryClient = new QueryClient({
@@ -196,10 +197,10 @@ export async function evaluateIntentWithAI(answerForIntentPass, stepData, lesson
     console.log("AI Evaluation: Starting Intent Check...");
 
     // Updated prompt based on user instructions
-    const intentPrompt = `Setting: ${lessonData.setting?.en || ''} 
-A: ${lessonData.roleOther?.en || ''} 
-B: ${lessonData.roleUser?.en || ''} 
-B's goal: ${lessonData.mission?.en || 'Respond appropriately'}
+    const intentPrompt = `Setting: ${getEnglish(lessonData.setting) || ''} 
+A: ${getEnglish(lessonData.roleOther) || ''} 
+B: ${getEnglish(lessonData.roleUser) || ''} 
+B's goal: ${getEnglish(lessonData.mission) || 'Respond appropriately'}
 A: ${stepData.cue.en}
 B: ${answerForIntentPass}
  
