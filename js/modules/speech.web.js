@@ -7,7 +7,7 @@ import { transcribeAudioBuffer, analyzeAudioBufferWithVAD, preloadWhisperEngine 
 
 export const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 export const isWindows = navigator.platform.indexOf('Win') > -1;
-export const isAndroid = /Android/.test(navigator.userAgent);
+
 
 let localRawAudioChunks = [];
 let localAudioContext = null;
@@ -300,92 +300,4 @@ export function startWebSpeechRecognition({ lang = 'en-US', audioTrack = null, n
 }
 */
 
-export async function getAudioStatsAndTrim(float32Data, options = {}) {
-  const sampleRate = options.sampleRate || 16000;
 
-  // Create a copy for analysis because the worker might transfer/consume the buffer
-  const dataCopy = new Float32Array(float32Data);
-
-  if (window.whisperEngineReady) {
-    try {
-      const result = await analyzeAudioBufferWithVAD(dataCopy, options);
-      if (result) {
-        return {
-          trimmed: result.trimmedAudio,
-          pauseCount: result.stats.pauseCount,
-          hesitation: result.stats.hesitation,
-          netDuration: result.stats.netDuration,
-          speechStart: result.stats.speechStart,
-          speechEnd: result.stats.speechEnd
-        };
-      }
-    } catch (e) {
-      console.warn('[Trim] Whisper VAD failed, falling back to volume thresholding.', e);
-    }
-  }
-
-  // Fallback to simple thresholding (defined in speech.core.js but we keep a local version or call core)
-  // For now, we'll keep the logic local to ensure resolution works
-  return trimSilenceWithPadding(float32Data, options);
-}
-
-function trimSilenceWithPadding(data, {
-  threshold = 0.0015, 
-  preRoll = 0.2,
-  postRoll = 0.2,
-  sampleRate = 16000
-} = {}) {
-  let start = 0;
-  let end = data.length - 1;
-
-  // Analytics: Find peak volume
-  let peak = 0;
-  for (let i = 0; i < data.length; i++) {
-    const val = Math.abs(data[i]);
-    if (val > peak) peak = val;
-  }
-  console.log(`[Trim] Peak volume: ${peak.toFixed(4)} (Threshold: ${threshold})`);
-
-  const minSpeechFrames = Math.floor(0.01 * sampleRate); 
-  let tempStart = 0;
-  while (tempStart < data.length) {
-    if (Math.abs(data[tempStart]) >= threshold) {
-        let sustained = 0;
-        for (let j = 0; j < minSpeechFrames && (tempStart + j) < data.length; j++) {
-            if (Math.abs(data[tempStart + j]) >= threshold * 0.5) sustained++;
-        }
-        if (sustained > minSpeechFrames * 0.5) {
-            start = tempStart;
-            break;
-        }
-        tempStart += minSpeechFrames;
-    } else {
-        tempStart++;
-    }
-  }
-
-  if (tempStart >= data.length) start = data.length;
-  const hesitation = Math.round((start / sampleRate) * 1000);
-
-  while (end > start && Math.abs(data[end]) < threshold) {
-    end--;
-  }
-
-  if (start >= end) {
-    console.warn('[Trim] No speech detected');
-    return { trimmed: data, pauseCount: 0, hesitation, netDuration: data.length / sampleRate, speechStart: 0, speechEnd: 0 };
-  }
-
-  const padStart = Math.max(0, start - Math.floor(preRoll * sampleRate));
-  const padEnd = Math.min(data.length, end + Math.floor(postRoll * sampleRate));
-  const trimmed = data.slice(padStart, padEnd);
-
-  return {
-    trimmed,
-    pauseCount: 0, 
-    hesitation,
-    netDuration: trimmed.length / sampleRate,
-    speechStart: start / sampleRate,
-    speechEnd: end / sampleRate
-  };
-}

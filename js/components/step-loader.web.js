@@ -4,14 +4,7 @@
 
 import { createLoadStep } from '../modules/step-loader-execute.js';
 
-let _deps = { submitAnswerPrecheck: null, showFeedbackAndProceed: null, handleHint: null };
-
-export function setStepLoaderDeps(deps) {
-    _deps = deps;
-}
-
 export function loadStep(step, lesson, fluencyData, deps) {
-    const d = deps || _deps;
-    const execute = createLoadStep(d.submitAnswerPrecheck, d.showFeedbackAndProceed, d.handleHint);
+    const execute = createLoadStep(deps.submitAnswerPrecheck, deps.showFeedbackAndProceed, deps.handleHint);
     return execute(step, lesson, fluencyData);
 }

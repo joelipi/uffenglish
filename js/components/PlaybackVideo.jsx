@@ -2,14 +2,6 @@ import { useEffect, useRef } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../modules/store.js';
 
-let _videoEl = null;
-let _wrapperEl = null;
-let _muteToggleEl = null;
-
-export function getPlaybackVideoElement() { return _videoEl; }
-export function getPlaybackVideoWrapper() { return _wrapperEl; }
-export function getPlaybackMuteToggle() { return _muteToggleEl; }
-
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
 export default function PlaybackVideo() {
@@ -29,17 +21,6 @@ export default function PlaybackVideo() {
     const prevClearTrigger = useRef(videoClearTrigger);
 
     const shouldShow = blob && !chatModeActive;
-
-    useEffect(() => {
-        _videoEl = videoRef.current;
-        _wrapperEl = wrapperRef.current;
-        _muteToggleEl = muteRef.current;
-        return () => {
-            _videoEl = null;
-            _wrapperEl = null;
-            _muteToggleEl = null;
-        };
-    }, []);
 
     // Single authoritative visibility effect
     useEffect(() => {

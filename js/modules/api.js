@@ -92,55 +92,7 @@ export async function getUserProfile() {
   });
 }
 
-export const courseConfigQuery = (courseId) => ({
-  queryKey: ['course', 'config', courseId],
-  queryFn: async () => {
-    const response = await fetch(`js/config/${courseId}.json`);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch config for course ${courseId}`);
-    }
-    const data = await response.json();
-    console.log('[TanStack Query] Successfully fetched data for query: courseConfigQuery', data);
-    return data;
-  },
-  staleTime: Infinity,
-  gcTime: 30 * 24 * 60 * 60 * 1000
-});
 
-export const currentLessonQuery = (courseId, lessonId) => ({
-  queryKey: ['course', 'lesson', courseId, lessonId],
-  queryFn: async () => {
-    let configData = queryClient.getQueryData(['course', 'config', courseId]);
-
-    if (!configData) {
-      configData = await queryClient.fetchQuery(courseConfigQuery(courseId));
-    }
-
-    const lesson = configData.lessons.find(l => l.lessonId === lessonId);
-    if (!lesson) {
-      throw new Error(`Lesson ${lessonId} not found in course ${courseId}`);
-    }
-    console.log('[TanStack Query] Successfully fetched data for query: currentLessonQuery', lesson);
-    return lesson;
-  },
-  staleTime: Infinity,
-  gcTime: 30 * 24 * 60 * 60 * 1000
-});
-
-// IMPORTANT: THIS IS HERE AS A DEVELOPMENT FALLBACK ONLY. IT IS TOO EXPENSIVE FOR PRODUCTION AND WOULD REQUIRE REARCHITECTING TO WORK IN DEVELOPMENT.
-export async function getDeepgramToken() {
-  try {
-    const response = await fetch('https://magenta-shortbread-2f1be2.netlify.app/.netlify/functions/token', { method: 'GET', headers: { 'Content-Type': 'application/json' } });
-    if (!response.ok) throw new Error(`Failed to get token: ${response.status}`);
-    const data = await response.json();
-    if (!data.access_token) throw new Error('No access token received from server');
-    return data.access_token;
-  } catch (error) {
-    console.error('Error getting Deepgram token:', error);
-    throw error;
-  }
-}
-// IMPORTANT: THIS IS HERE AS A DEVELOPMENT FALLBACK ONLY. IT IS TOO EXPENSIVE FOR PRODUCTION AND WOULD REQUIRE REARCHITECTING TO WORK IN DEVELOPMENT.
 
 export async function checkGrammarWithAI(selectedAnswer, stepData) {
   const aiEndpoint = 'https://nvidia-proxy.joel-1cb.workers.dev';
@@ -243,37 +195,6 @@ Evaluate B's response. Return ONLY an array with any applicable labels and any c
   } catch (error) {
     console.error('Intent AI Error:', error);
     throw error;
-  }
-}
-
-// Added lessonData to the parameters so it can be passed down correctly
-export async function evaluateWithAI(selectedAnswer, normalizedSelectedAnswer, stepData, lessonData, userCefrLevel, uffApiDataRoot) {
-  try {
-    // Passed stepData here to prevent undefined errors
-    const grammarResult = await checkGrammarWithAI(selectedAnswer, stepData);
-
-    // Passed lessonData here to prevent undefined errors
-    const intentResult = await evaluateIntentWithAI(grammarResult.correctedText, stepData, lessonData);
-
-    return {
-      isGrammarCorrect: grammarResult.isGrammarCorrect,
-      correctedText: grammarResult.correctedText,
-      isIntentCorrect: intentResult.isIntentCorrect,
-      intentLabel: intentResult.intentLabel,
-      rawIntentText: intentResult.rawIntentText,
-      cefrLevel: 'B1',
-      cefrLevelDeduction: 0
-    };
-  } catch (error) {
-    console.error('Combined AI Evaluation Error:', error);
-    return {
-      isCorrect: false,
-      errorType: 'api_error',
-      cefrLevel: '',
-      cefrLevelDeduction: 0,
-      correction: '',
-      explanation: ''
-    };
   }
 }
 

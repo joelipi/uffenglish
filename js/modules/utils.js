@@ -30,18 +30,6 @@ export function getLocalizedTranslation(translationData, lang = 'en') {
  * @param {string} lang - The user's native language code.
  * @returns {Object} - { en: string, localized: string }
  */
-export function getBilingualCue(translationData, lang = 'en') {
-    if (!translationData) return { en: '', localized: '' };
-    if (typeof translationData === 'string') return { en: translationData, localized: translationData };
-    
-    const enVersion = translationData['en'] || '';
-    const localizedVersion = lang && lang !== 'en' && translationData[lang]
-        ? translationData[lang]
-        : enVersion;
-    
-    return { en: enVersion, localized: localizedVersion };
-}
-
 export function generateHangmanOps(userResponse, cue) {
     const cueText = typeof cue === 'object' ? cue?.en : cue;
     const tokenize = str => str.trim().match(/[\p{L}\p{N}]+(?:'[\p{L}\p{N}]+)?|[^\p{L}\p{N}\s]+|\s+/gu) || [];
@@ -59,26 +47,4 @@ export function generateHangmanOps(userResponse, cue) {
         else { ops.unshift({ type: 'del', val: tokA[i - 1] }); i--; }
     }
     return ops;
-}
-
-export function generateHangmanHint(userResponse, cue) {
-    const ops = generateHangmanOps(userResponse, cue);
-    let resultHTML = '';
-    ops.forEach(({ type, val }) => {
-        const v = val.replace(/</g, '&lt;');
-        if (type === 'eq') {
-            resultHTML += v;
-        } else if (type === 'ins') {
-            if (/\w/.test(v)) {
-                resultHTML += ' <span class="hangman-placeholder">&nbsp;&nbsp;&nbsp;</span> ';
-            } else {
-                resultHTML += v;
-            }
-        } else if (type === 'del') {
-            if (/\w/.test(v)) {
-                resultHTML += `<span class="hangman-incorrect">${v}</span>`;
-            }
-        }
-    });
-    return resultHTML.replace(/\s+/g, ' ').trim();
 }

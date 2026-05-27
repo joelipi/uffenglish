@@ -13,6 +13,13 @@
     "js/workers/whisper/whisper-worker-demo.js"
   ],
   "project": ["js/**/*.{js,jsx}"],
+  "ignoreExportsUsedInFile": true,
+  "ignore": [
+    "js/workers/whisper/app-vad-asr-web.js",
+    "js/modules/swearjar.js",
+    "js/modules/lesson-init.js",
+    "js/modules/navigation.web.js"
+  ],
   "ignoreDependencies": [
     "@popperjs/core",
     "animate.css",
