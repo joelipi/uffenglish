@@ -6,82 +6,90 @@
 
 ---
 
-## Category A: React Native Bridge Files (prepared for Metro bundler)
+## ✅ Resolved: Metro Bridge Files
 
-Platform-agnostic re-export files that follow Metro's extension resolution pattern.
-
-| File | Status | Notes |
-|---|---|---|
-| `js/components/step-loader.js` | ✅ **Fixed** | Import updated in `app-infra.js` to use bridge instead of `.web.js` |
-| `js/modules/geo-service.js` | Dead | Re-exports `geo-service.web.js`. Entire feature chain dead (collect-signup-data.js has no consumer) |
-| `js/modules/referrer.js` | Dead | Re-exports `referrer.web.js`. Same dead chain as geo-service |
+| File | Fix |
+|---|---|
+| `js/components/step-loader.js` | Import updated in `app-infra.js` to use bridge |
+| `js/modules/video-share.js` | Import updated in `video-processor.web.js` to use bridge |
 
 ---
 
-## Category B: React Native Stubs (future native app)
+## ✅ Resolved: Deleted Files/Exports
 
-Written as stubs for a future React Native port. Not wired into the web build.
+**Files deleted:** `useLessonRouter.js`
+
+**Internal function deleted:** `updateState` (app-infra.js), `createGrammarDiffHTML` (feedback-renderer.web.js)
+
+**Exports deleted (13):** `getDeepgramToken`, `evaluateWithAI`, `currentLessonQuery`, `courseConfigQuery`, `isAndroid`, `getAudioStatsAndTrim` + `trimSilenceWithPadding`, `getBilingualCue`, `generateHangmanHint`, `getPlaybackVideoElement/Wrapper/MuteToggle`, `setStepLoaderDeps`, `ID`
+
+---
+
+## 🔍 Investigate: Collect Signup Data Module
+
+This entire feature chain is dead — `collect-signup-data.js` has no consumer.
+
+| File | Role |
+|---|---|
+| `js/modules/collect-signup-data.js` | Imports geo-service + referrer bridges |
+| `js/modules/geo-service.js` | Bridge → re-exports from geo-service.web.js |
+| `js/modules/geo-service.web.js` | Web implementation |
+| `js/modules/referrer.js` | Bridge → re-exports from referrer.web.js |
+| `js/modules/referrer.web.js` | Web implementation |
+
+**Action:** Verify the signup data collection feature is truly dead, then delete the whole chain.
+
+---
+
+## 🔍 Investigate: Complexity Module
+
+| File / Package | Notes |
+|---|---|
+| `js/modules/complexity.js` | Sentence complexity scorer — no consumer |
+| `compromise` (npm dep) | Only used by complexity.js |
+
+**Action:** Verify no consumer exists, then delete the file + remove the npm dep.
+
+---
+
+## 🔍 Investigate: NLP Worker
 
 | File | Notes |
 |---|---|
-| `js/components/BilingualText.native.jsx` | Native version of BilingualText |
-| `js/components/interactive-video-player.native.jsx` | Native IVP stub |
-| `js/components/simple-video-player.native.jsx` | Native SVP stub |
-| `js/components/StepLoader.native.jsx` | Native step loader stub |
-| `js/modules/video-processor-native.jsx` | Native video processor |
-| `js/modules/media.native.js` | Native media module |
-| `js/modules/navigation.native.js` | Native navigation |
-| `js/modules/referrer.native.js` | Native referrer |
-| `js/modules/geo-service.native.js` | Native geo-service |
+| `js/workers/nlp-worker-web.js` | NLP web worker — never instantiated via `new Worker()` |
+
+**Action:** Verify no dynamic instantiation, then delete.
 
 ---
 
-## Category C: Dead Modules (no consumer, not a bridge)
+## Category A: React Native Stubs (future native app)
+
+All `.native.*` files are in knip's ignore list — not flagged as dead.
+
+Includes: BilingualText.native.jsx, interactive-video-player.native.jsx, simple-video-player.native.jsx, StepLoader.native.jsx, media.native.js, navigation.native.js, referrer.native.js, geo-service.native.js, video-processor-native.jsx
+
+---
+
+## Category B: Dependencies to Investigate
+
+| Package | Status |
+|---|---|
+| `@deepgram/sdk` | **Probably dead** — API goes through proxy |
+| `wink-tokenizer` | **Probably dead** — no import |
+| `onnxruntime-web` | **Likely alive** — used dynamically by whisper workers |
+| `@vitejs/plugin-vue` | **Dead** — no Vue code |
+| `@testing-library/dom` | **Likely dead** (transitive) |
+| `@testing-library/jest-dom` | **Likely dead** (transitive) |
+| `@testing-library/react` | **Keep** — used in test files |
+| `temp_video_share.js` | **Fix** — package.json `"main"` points to non-existent file |
+
+---
+
+## Category C: Legacy Code Not in Build
 
 | File | Notes |
 |---|---|
-| `js/modules/complexity.js` | Sentence complexity scorer. `compromise` dep is also dead. |
-| `js/modules/collect-signup-data.js` | Signup data collection — no consumer. Keeps geo-service + referrer chain alive. |
-| `js/modules/geo-service.web.js` | Web implementation of dead geo-service feature |
-| `js/modules/referrer.web.js` | Web implementation of dead referrer feature |
-| `js/modules/useLessonRouter.js` | Custom hook for lesson routing — replaced by React Router? |
-| `js/modules/video-share.js` | Video share module — dead entry in package.json too |
-| `js/workers/nlp-worker-web.js` | NLP worker — never instantiated via `new Worker()` |
-
-If `collect-signup-data.js` is deleted, the entire geo-service + referrer chain (bridges + web impls + native stubs) can go too.
-
----
-
-## Category D: Dependencies to Investigate
-
-| Package | knip reason | Likely status |
-|---|---|---|
-| `@deepgram/sdk` | No JS import | **Probably dead** — API goes through proxy |
-| `compromise` | Only used by dead `complexity.js` | **Dead** |
-| `wink-tokenizer` | No import found | **Probably dead** |
-| `onnxruntime-web` | No import found | **Likely alive** — used dynamically by whisper workers |
-| `@vitejs/plugin-vue` | No Vue code | **Dead** |
-| `@testing-library/dom` | No import | **Likely dead** (transitive) |
-| `@testing-library/jest-dom` | No import | **Likely dead** (transitive) |
-| `@testing-library/react` | No import | **Keep** — used in test files (knip doesn't track test files by default) |
-| `temp_video_share.js` | Package.json `"main"` points to non-existent file | **Fix**: remove or update |
-
----
-
-## Category E: Unused Exports (all resolved)
-
-All 36 originally flagged unused exports have been resolved:
-- **13 deleted**: `getDeepgramToken`, `evaluateWithAI`, `currentLessonQuery`, `courseConfigQuery`, `isAndroid`, `getAudioStatsAndTrim`, `getBilingualCue`, `generateHangmanHint`, `getPlaybackVideoElement`, `getPlaybackVideoWrapper`, `getPlaybackMuteToggle`, `setStepLoaderDeps`, `ID`
-- **5 ignored** (knip config): swearjar.js (7 exports), `startWhisperEngine`/`stopWhisperEngine`/`isEngineReady` (app-vad-asr-web.js), `handleAuthClick` (lesson-init.js), `cleanBrowserUrlRoute` (navigation.web.js)
-- **18 silenced** via `ignoreExportsUsedInFile: true`: internal-use exports (get, getBilingual, InteractiveVideoPlayerUI, PointLossAnimation, buildGrammarDiffOps, syncUserMetaData, isIOS, isWindows, MIN_LOGPROB_THRESHOLD, safelyStopStream, openMediaDB, queryClient, swearjar internals, etc.)
-
----
-
-## Category F: Legacy Code Not in Build
-
-| File | Notes |
-|---|---|
-| `app.js` | Legacy entry point. **Broken imports** — references `./modules/navigation.js`, `./modules/lesson-init.js` etc. at root level where files don't exist. Not loaded by any HTML file. Likely a migration remnant from before the move to `js/` and Vite. |
+| `app.js` | Legacy entry point with broken imports. Not loaded by any HTML file. |
 
 ---
 

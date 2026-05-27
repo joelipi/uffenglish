@@ -18,7 +18,9 @@
     "js/workers/whisper/app-vad-asr-web.js",
     "js/modules/swearjar.js",
     "js/modules/lesson-init.js",
-    "js/modules/navigation.web.js"
+    "js/modules/navigation.web.js",
+    "**/*.native.*",
+    "**/video-processor-native.*"
   ],
   "ignoreDependencies": [
     "@popperjs/core",

@@ -1,7 +1,7 @@
 // modules/video-processor.web.js
 import { getAllSpeechRecordingsForLesson } from './storage.js';
 import { VideoRenderPlanner } from './video-processor-logic.js';
-import { shareVideo } from './video-share.web.js';
+import { shareVideo } from './video-share.js';
 import { appStore } from './store.js';
 
 export { shareVideo };

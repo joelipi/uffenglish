@@ -67,25 +67,6 @@ function buildGrammarDiff(original, corrected) {
     return result;
 }
 
-function createGrammarDiffHTML(original, corrected, headingText = "", botName = "Joe Walsh", avatarUrl = "/assets/img/teacherprofile.webp") {
-    const diff = buildGrammarDiff(original, corrected);
-    let diffHtml = '';
-    diff.forEach(token => {
-        if (token.type === 'eq') diffHtml += token.val;
-        else if (token.type === 'ins') diffHtml += `<span class="diff-ins">${token.val}</span>`;
-        else if (token.type === 'del') diffHtml += `<span class="diff-del">${token.val}</span>`;
-    });
-
-    return `
-        <div class="chat-message-row chat-message-row--system" style="margin-bottom: 0px;">
-            <img src="${avatarUrl}" alt="${botName}" class="chat-avatar-inline" />
-            <div class="chat-message-bubble chat-message-bubble--system" style="border-left: 4px solid #dc3545;">
-                <div class="chat-bubble-header">${headingText}</div>
-                <div class="chat-message-content">${diffHtml}</div>
-            </div>
-        </div>`;
-}
-
 export function getPraiseHTML(praiseData) {
     if (!praiseData) return "";
     if (typeof praiseData === 'string') return praiseData;

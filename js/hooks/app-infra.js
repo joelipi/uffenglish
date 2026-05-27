@@ -52,10 +52,6 @@ export async function setupAppInfra({ userData }) {
 
     appStore.getState().setTutorChatSubmitCallback(handleTutorChatSubmitFn);
 
-    const updateState = (newState) => {
-        appStore.setState(newState);
-    };
-
     const handleHint = (...args) => handleHintImpl(...args);
 
     let callLoadStepRef = null;
