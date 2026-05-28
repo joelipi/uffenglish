@@ -96,6 +96,8 @@ export async function getUserProfile() {
 
 export async function checkGrammarWithAI(selectedAnswer, stepData) {
   const aiEndpoint = 'https://nvidia-proxy.joel-1cb.workers.dev';
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
   try {
     console.log("AI Evaluation: Starting Grammar Check...");
     const grammarPrompt = `Find all the grammatical error(s) in B's response, including if B does not agree with A in tense, number or gender. Return ONLY the grammar-corrected text of B's reply. If no errors, respond ONLY "CORRECT".  A: ${stepData.cue.en} B: ${selectedAnswer}`;
@@ -106,30 +108,29 @@ export async function checkGrammarWithAI(selectedAnswer, stepData) {
       body: JSON.stringify({
         messages: [{ role: "user", content: grammarPrompt }],
         temperature: 0.1
-      })
+      }),
+      signal: controller.signal
     });
 
-    if (!response.ok) throw new Error(`Grammar API error ${response.status}`);
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      throw new Error(`Grammar API error ${response.status}: ${body.slice(0, 200)}`);
+    }
     const data = await response.json();
     const correctedTextRaw = (data.choices?.[0]?.message?.content || '').trim();
     let correctedText = correctedTextRaw;
 
     console.log("Grammar Check Result (Raw):", correctedTextRaw);
 
-    // Robust "CORRECT" stripping: handles "CORRECT", "CORRECT.", "CORRECT: ", etc.
     if (/^correct[.!: \n-]*$/i.test(correctedText)) {
       correctedText = "";
     } else {
-      // Strip "CORRECT:" or "CORRECT " prefix if followed by the actual correction
       correctedText = correctedText.replace(/^correct[:\s.-]+/i, '').trim();
     }
 
-    // normalize is correctly awaited based on normalize.js being an async function
     const normOriginal = await normalize(selectedAnswer);
     const normCorrected = await normalize(correctedText);
 
-    // It's correct if the AI literally said "CORRECT" (now empty string after stripping) 
-    // or if the normalized versions match.
     const isGrammarCorrect = correctedText === '' ||
       normOriginal === normCorrected;
 
@@ -138,17 +139,29 @@ export async function checkGrammarWithAI(selectedAnswer, stepData) {
       correctedText: isGrammarCorrect ? selectedAnswer : (correctedText || selectedAnswer)
     };
   } catch (error) {
-    console.error('Grammar AI Error:', error);
+    clearTimeout(timeout);
+    let detail = '';
+    if (error.name === 'AbortError') {
+      detail = '(timeout - endpoint unreachable after 15s)';
+    } else if (!navigator.onLine) {
+      detail = '(browser is offline)';
+    } else if (error instanceof TypeError) {
+      detail = '(network error - possible: endpoint down, CORS blocked, or ad blocker interfering)';
+    } else {
+      detail = `(${error.message})`;
+    }
+    console.error(`Grammar AI Error ${detail}:`, error);
     throw error;
   }
 }
 
 export async function evaluateIntentWithAI(answerForIntentPass, stepData, lessonData) {
   const aiEndpoint = 'https://nvidia-proxy.joel-1cb.workers.dev';
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
   try {
     console.log("AI Evaluation: Starting Intent Check...");
 
-    // Updated prompt based on user instructions
     const intentPrompt = `Setting: ${getEnglish(lessonData.setting) || ''} 
 A: ${getEnglish(lessonData.roleOther) || ''} 
 B: ${getEnglish(lessonData.roleUser) || ''} 
@@ -166,10 +179,14 @@ Evaluate B's response. Return ONLY an array with any applicable labels and any c
       body: JSON.stringify({
         messages: [{ role: "user", content: intentPrompt }],
         temperature: 0.1
-      })
+      }),
+      signal: controller.signal
     });
 
-    if (!response.ok) throw new Error(`Intent API error ${response.status}`);
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      throw new Error(`Intent API error ${response.status}: ${body.slice(0, 200)}`);
+    }
     const data = await response.json();
     const rawIntentText = data.choices?.[0]?.message?.content || '';
 
@@ -193,17 +210,29 @@ Evaluate B's response. Return ONLY an array with any applicable labels and any c
       rawIntentText
     };
   } catch (error) {
-    console.error('Intent AI Error:', error);
+    clearTimeout(timeout);
+    let detail = '';
+    if (error.name === 'AbortError') {
+      detail = '(timeout - endpoint unreachable after 15s)';
+    } else if (!navigator.onLine) {
+      detail = '(browser is offline)';
+    } else if (error instanceof TypeError) {
+      detail = '(network error - possible: endpoint down, CORS blocked, or ad blocker interfering)';
+    } else {
+      detail = `(${error.message})`;
+    }
+    console.error(`Intent AI Error ${detail}:`, error);
     throw error;
   }
 }
 
 export async function askEnglishTutor(conversationHistoryContext, newUserMessage) {
   const aiEndpoint = 'https://nvidia-proxy.joel-1cb.workers.dev';
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
   try {
     const systemPrompt = "You are strictly an English tutor. Answer the user's questions about English. The user is currently taking an English lesson. The context of their recent exercise is provided below. Use it to inform your answer if relevant.";
 
-    // Combine context and new message
     const combinedPrompt = `${systemPrompt}\n\n--- Context from Lesson ---\n${conversationHistoryContext}\n\n--- User Question ---\n${newUserMessage}`;
 
     const response = await fetch(aiEndpoint, {
@@ -211,15 +240,30 @@ export async function askEnglishTutor(conversationHistoryContext, newUserMessage
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         messages: [{ role: "user", content: combinedPrompt }],
-        temperature: 0.7 // Slightly higher temperature for more conversational replies
-      })
+        temperature: 0.7
+      }),
+      signal: controller.signal
     });
 
-    if (!response.ok) throw new Error(`Tutor API error ${response.status}`);
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      throw new Error(`Tutor API error ${response.status}: ${body.slice(0, 200)}`);
+    }
     const data = await response.json();
     return data.choices?.[0]?.message?.content || '';
   } catch (error) {
-    console.error('Tutor AI Error:', error);
+    clearTimeout(timeout);
+    let detail = '';
+    if (error.name === 'AbortError') {
+      detail = '(timeout - endpoint unreachable after 15s)';
+    } else if (!navigator.onLine) {
+      detail = '(browser is offline)';
+    } else if (error instanceof TypeError) {
+      detail = '(network error - possible: endpoint down, CORS blocked, or ad blocker interfering)';
+    } else if (error.message) {
+      detail = `(${error.message})`;
+    }
+    console.error(`Tutor AI Error ${detail}:`, error);
     return "I'm sorry, I couldn't connect to the tutoring service right now. Please try again later.";
   }
 }

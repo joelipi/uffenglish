@@ -1,57 +1,18 @@
 import { useEffect, useRef } from 'react';
-import { useStore } from 'zustand';
 import { appStore } from '../modules/store.js';
+import { usePlaybackVideo } from '../hooks/usePlaybackVideo.js';
 
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
 export default function PlaybackVideo() {
+    const { blob, autoplay, isMuted, visible, clearVideo, videoPlayTrigger, videoClearTrigger, chatModeActive } = usePlaybackVideo();
+
     const videoRef = useRef(null);
-    const wrapperRef = useRef(null);
-    const muteRef = useRef(null);
     const observerRef = useRef(null);
-
-    const blob = useStore(appStore, (s) => s.playbackBlob);
-    const autoplay = useStore(appStore, (s) => s.playbackAutoplay);
-    const speechCamChunks = useStore(appStore, (s) => s.playbackSpeechCamChunks);
-    const isMuted = useStore(appStore, (s) => s.isPlaybackMuted);
-    const videoPlayTrigger = useStore(appStore, (s) => s.videoPlayTrigger);
-    const videoClearTrigger = useStore(appStore, (s) => s.videoClearTrigger);
-    const chatModeActive = useStore(appStore, (s) => s.chatModeActive);
-    const prevPlayTrigger = useRef(videoPlayTrigger);
     const prevClearTrigger = useRef(videoClearTrigger);
+    const prevPlayTrigger = useRef(videoPlayTrigger);
 
-    const shouldShow = blob && !chatModeActive;
-
-    // Single authoritative visibility effect
-    useEffect(() => {
-        const wrapper = wrapperRef.current;
-        if (!wrapper) return;
-
-        if (!shouldShow) {
-            wrapper.classList.add('d-none');
-            wrapper.style.setProperty('display', 'none', 'important');
-            const muteToggle = muteRef.current;
-            if (muteToggle) muteToggle.classList.add('d-none');
-
-            if (!blob) {
-                const video = videoRef.current;
-                if (video) {
-                    video.pause();
-                    if (video.src && video.src.startsWith('blob:')) URL.revokeObjectURL(video.src);
-                    video.src = '';
-                    video.load();
-                    video.style.display = 'none';
-                    video.onerror = null;
-                    video.onloadeddata = null;
-                    video.onloadedmetadata = null;
-                }
-            }
-        } else {
-            wrapper.classList.remove('d-none');
-            wrapper.style.removeProperty('display');
-        }
-    }, [shouldShow, blob]);
-
+    // Blob URL management
     useEffect(() => {
         const video = videoRef.current;
         if (!video || !blob) return;
@@ -81,69 +42,28 @@ export default function PlaybackVideo() {
         video.loop = true;
         video.autoplay = false;
         video.preload = 'auto';
-        video.muted = appStore.getState().isPlaybackMuted || false;
-        video.style.cursor = 'pointer';
+        video.muted = isMuted;
 
-        if (video._interactionHandler) {
-            video.removeEventListener('touchstart', video._interactionHandler);
-            video.removeEventListener('click', video._interactionHandler);
-        }
-        video._interactionHandler = function (e) {
-            e.preventDefault(); e.stopPropagation();
-            requestAnimationFrame(() => {
-                if (this.paused) {
-                    this.play().catch(e => {
-                        this.currentTime = 0;
-                        setTimeout(() => this.play().catch(console.error), 100);
-                    });
-                } else {
-                    this.pause();
-                }
-            });
+        // Toggle mute on click (matches VideoBubble behavior)
+        const onToggleMute = () => {
+            const next = !video.muted;
+            video.muted = next;
+            appStore.getState().setPlaybackMuted(next);
         };
-        video.addEventListener('touchstart', video._interactionHandler, { passive: false });
-        video.addEventListener('click', video._interactionHandler);
+        video.addEventListener('click', onToggleMute);
 
         video.onloadedmetadata = () => {
-            const wrapper = wrapperRef.current;
-            const currentBlob = appStore.getState().playbackBlob;
-            const currentChatMode = appStore.getState().chatModeActive;
-            if (wrapper && currentBlob && !currentChatMode) {
-                wrapper.classList.remove('d-none');
-                wrapper.style.removeProperty('display');
-
-                wrapper.style.width = '';
-                wrapper.style.height = '';
-                video.style.width = '';
-                video.style.height = '';
-                video.style.maxHeight = '';
-                video.style.borderRadius = '';
-                video.style.objectFit = '';
-
-                wrapper.style.position = 'absolute';
-                wrapper.style.top = '15%';
-                wrapper.style.left = '0';
-                wrapper.style.right = '0';
-                wrapper.style.zIndex = '5';
-            }
-
-            video.style.display = 'block';
-
-            if (!currentChatMode && (autoplay || appStore.getState().playbackAutoplay)) {
+            if (!chatModeActive && autoplay) {
                 video.play().catch(e => {
                     if (e.name === 'NotAllowedError') {
-                        video.muted = true;
                         appStore.getState().setPlaybackMuted(true);
-                        const muteToggle = muteRef.current;
-                        if (muteToggle) {
-                            const icon = muteToggle.querySelector('i');
-                            if (icon) icon.className = 'bi bi-volume-mute-fill';
-                        }
+                        video.muted = true;
                         video.play().catch(err => console.error('[Playback] muted fallback failed:', err));
                     }
                 });
             }
 
+            // Restart IntersectionObserver
             if (observerRef.current) observerRef.current.disconnect();
             observerRef.current = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
@@ -158,75 +78,43 @@ export default function PlaybackVideo() {
                 }
             });
         };
-    }, [blob]);
 
-    // Cleanup: revoke blob URL on unmount or blob change
-    useEffect(() => {
-        const video = videoRef.current;
         return () => {
-            if (video) {
-                video.onloadedmetadata = null;
-                video.onerror = null;
-                if (video.src && video.src.startsWith('blob:')) {
-                    URL.revokeObjectURL(video.src);
-                }
+            video.removeEventListener('click', onToggleMute);
+            video.onloadedmetadata = null;
+            video.onerror = null;
+            if (video.src && video.src.startsWith('blob:')) {
+                URL.revokeObjectURL(video.src);
             }
         };
     }, [blob]);
 
-    useEffect(() => {
-        if (!muteRef.current) return;
-        const muteToggle = muteRef.current;
-        const video = videoRef.current;
-        const icon = muteToggle.querySelector('i');
-
-        if (blob) {
-            muteToggle.classList.remove('d-none');
-        } else {
-            muteToggle.classList.add('d-none');
-            return;
-        }
-
-        if (icon) {
-            icon.className = isMuted ? 'bi bi-volume-mute-fill' : 'bi bi-volume-up-fill';
-        }
-
-        muteToggle.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const wasMuted = appStore.getState().isPlaybackMuted;
-            appStore.getState().setPlaybackMuted(!wasMuted);
-            if (video) video.muted = !wasMuted;
-            if (icon) {
-                icon.className = !wasMuted ? 'bi bi-volume-mute-fill' : 'bi bi-volume-up-fill';
-            }
-        };
-    }, [blob, isMuted]);
-
+    // Clear trigger
     useEffect(() => {
         if (videoClearTrigger === prevClearTrigger.current) return;
         prevClearTrigger.current = videoClearTrigger;
-        appStore.getState().clearPlaybackBlob();
+        clearVideo();
     }, [videoClearTrigger]);
 
+    // Play trigger
     useEffect(() => {
         if (videoPlayTrigger === prevPlayTrigger.current) return;
         prevPlayTrigger.current = videoPlayTrigger;
         const video = videoRef.current;
         if (video) {
-            video.muted = appStore.getState().videoPlayMuted;
+            video.muted = isMuted;
             video.play().catch(e => console.warn('[playback] Playback resume failed:', e));
         }
     }, [videoPlayTrigger]);
 
+    if (!blob) return null;
+
     return (
-        <div ref={wrapperRef} id="playback-video-wrapper"
-            className="playback-video-container d-none"
-            style={{ position: 'absolute', top: '15%', left: 0, right: 0, zIndex: 5, display: 'none' }}>
-            <video ref={videoRef} id="playback-video" playsInline preload="auto" loop />
-            <button ref={muteRef} id="playback-mute-toggle" className="playback-mute-toggle position-absolute bottom-0 end-0 m-1 d-none">
-                <i className="bi bi-volume-up-fill"></i>
-            </button>
+        <div id="playback-video-wrapper"
+            className={`playback-video-container ${visible ? '' : 'd-none'}`}
+            style={{ position: 'absolute', top: '15%', left: 0, right: 0, zIndex: 5 }}>
+            <video ref={videoRef} id="playback-video" playsInline preload="auto" loop
+                style={{ cursor: 'pointer' }} />
         </div>
     );
 }

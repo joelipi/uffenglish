@@ -48,10 +48,15 @@ export async function processAnswerLogic({
         };
 
         // 1. Grammar Pass (Local fallback or AI)
-        const grammarResult = await checkGrammarWithAI(userResponse, stepData);
-
-        // 2. Intent Pass (AI)
-        const intentResult = await evaluateIntentWithAI(grammarResult.correctedText, stepData, lesson);
+        let grammarResult, intentResult;
+        try {
+            grammarResult = await checkGrammarWithAI(userResponse, stepData);
+            intentResult = await evaluateIntentWithAI(grammarResult.correctedText, stepData, lesson);
+        } catch (apiError) {
+            console.error('[processAnswerLogic] AI API error, returning api_error result:', apiError);
+            result.errorType = 'api_error';
+            return result;
+        }
 
         // --- NEW BUSINESS LOGIC: Robust Array Parsing ---
         let evaluationResult = [];

@@ -8,11 +8,6 @@ function portalTarget() {
     return document.getElementById('simple-video-container');
 }
 
-function setSimpleVideoContainerVisible(visible) {
-    const el = document.getElementById('simple-video-container');
-    if (el) el.classList.toggle('d-none', !visible);
-}
-
 export default function SimpleVideoWrapper() {
     const containerRef = useRef(null);
     const playerInstance = useRef(null);
@@ -24,7 +19,6 @@ export default function SimpleVideoWrapper() {
 
     useEffect(() => {
         if (!currentVideo || currentVideo.type !== 'simple') {
-            setSimpleVideoContainerVisible(false);
             if (playerInstance.current) {
                 playerInstance.current.destroy();
                 playerInstance.current = null;
@@ -35,7 +29,6 @@ export default function SimpleVideoWrapper() {
             return;
         }
 
-        setSimpleVideoContainerVisible(true);
         appStore.getState().setMediaVisible(true);
 
         if (!containerRef.current || playerInstance.current) return;
@@ -58,8 +51,7 @@ export default function SimpleVideoWrapper() {
             const videoEl = player.video;
             videoEl.muted = false;
             const checkAndPlay = () => {
-                const preloader = document.getElementById('appLoadingImageDiv');
-                if (preloader && preloader.style.display !== 'none') {
+                if (!document.body.dataset.reactReady) {
                     setTimeout(checkAndPlay, 100);
                     return;
                 }
@@ -72,7 +64,6 @@ export default function SimpleVideoWrapper() {
         } catch (e) { }
 
         return () => {
-            setSimpleVideoContainerVisible(false);
             if (playerInstance.current) {
                 playerInstance.current.destroy();
                 playerInstance.current = null;

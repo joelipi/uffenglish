@@ -1483,7 +1483,7 @@
            RESPONSIVE CHAT WIDTH (DESKTOP)
            ========================================= */
         @media (min-width: 768px) {
-            body.chat-mode-active .video-frame {
+            body[data-chat-mode="true"] .video-frame {
                 aspect-ratio: auto !important;
                 width: 66.6vw !important;
                 max-width: 900px !important;
@@ -1883,8 +1883,8 @@
 
             <!-- Media Viewport: IVP, webcam preview, praise images, YouTube -->
             <div id="media-viewport" class="position-absolute top-0 start-0 w-100 h-100">
-                <div id="ivp-container" class="d-none"></div>
-                <div id="simple-video-container" class="d-none"></div>
+                <div id="ivp-container"></div>
+                <div id="simple-video-container"></div>
             </div>
 
 

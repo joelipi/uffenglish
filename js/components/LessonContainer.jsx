@@ -119,12 +119,7 @@ export default function LessonContainer() {
         const active = chatModeActive;
         if (active === prevChatModeRef.current) return;
         prevChatModeRef.current = active;
-
-        if (active) {
-            document.body.classList.add('chat-mode-active');
-        } else {
-            document.body.classList.remove('chat-mode-active');
-        }
+        document.body.dataset.chatMode = String(active);
     }, [chatModeActive]);
 
     return (

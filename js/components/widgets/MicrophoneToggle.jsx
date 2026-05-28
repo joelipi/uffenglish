@@ -10,6 +10,7 @@ export default function MicrophoneToggle() {
     const currentVideoPlayer = useStore(appStore, (state) => state.currentVideoPlayer);
     const micBounceTrigger = useStore(appStore, (state) => state.micBounceTrigger);
     const containerRef = useRef(null);
+    const micBtnRef = useRef(null);
     const animationRefs = useRef([]);
 
     useEffect(() => {
@@ -53,7 +54,7 @@ export default function MicrophoneToggle() {
     }, [isMicActive]);
 
     useEffect(() => {
-        const btn = document.getElementById('micBtn');
+        const btn = micBtnRef.current;
         if (!btn || micBounceTrigger === 0) return;
         btn.classList.add('btn-bounce');
         const timer = setTimeout(() => btn.classList.remove('btn-bounce'), 1000);
@@ -93,6 +94,7 @@ export default function MicrophoneToggle() {
             <div className="mic-ring" style={{ opacity: 0, pointerEvents: 'none' }}></div>
             <div className="mic-ring" style={{ opacity: 0, pointerEvents: 'none' }}></div>
             <button
+                ref={micBtnRef}
                 className={`btn call-btn ${isMicActive ? '' : 'toggled-off'} ${isTextMode ? 'd-none' : ''}`}
                 id="micBtn"
                 aria-label="Toggle Microphone"
