@@ -112,7 +112,7 @@ export default function PlaybackVideo() {
     return (
         <div id="playback-video-wrapper"
             className={`playback-video-container ${visible ? '' : 'd-none'}`}
-            style={{ position: 'absolute', top: '15%', left: 0, right: 0, zIndex: 5 }}>
+            style={{ position: 'absolute', top: '15%', left: 0, right: 0, zIndex: 1060 }}>
             <video ref={videoRef} id="playback-video" playsInline preload="auto" loop
                 style={{ cursor: 'pointer' }} />
         </div>
