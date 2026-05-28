@@ -6,7 +6,7 @@ window.enabledLogs = {
     api: false,
     'tanstack query': false,
     toggle: false,
-    ai: false,
+    ai: true,
     analytics: false,
     ui: false,
     hesitation: false,

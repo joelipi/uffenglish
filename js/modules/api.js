@@ -92,10 +92,8 @@ export async function getUserProfile() {
   });
 }
 
-
-
 export async function checkGrammarWithAI(selectedAnswer, stepData) {
-  const aiEndpoint = 'https://nvidia-proxy.joel-1cb.workers.dev';
+  const aiEndpoint = 'https://deepseek-proxy.joel-1cb.workers.dev';
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
   try {
@@ -156,7 +154,7 @@ export async function checkGrammarWithAI(selectedAnswer, stepData) {
 }
 
 export async function evaluateIntentWithAI(answerForIntentPass, stepData, lessonData) {
-  const aiEndpoint = 'https://nvidia-proxy.joel-1cb.workers.dev';
+  const aiEndpoint = 'https://deepseek-proxy.joel-1cb.workers.dev';
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
   try {
@@ -227,7 +225,7 @@ Evaluate B's response. Return ONLY an array with any applicable labels and any c
 }
 
 export async function askEnglishTutor(conversationHistoryContext, newUserMessage) {
-  const aiEndpoint = 'https://nvidia-proxy.joel-1cb.workers.dev';
+  const aiEndpoint = 'https://deepseek-proxy.joel-1cb.workers.dev';
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
   try {
