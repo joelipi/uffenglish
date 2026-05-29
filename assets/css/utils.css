@@ -342,7 +342,7 @@ body[data-react-ready] #appLoadingImageDiv { display: none !important; }
 /* --- Point Loss Animation --- */
 .point-loss-float {
   position: fixed;
-  top: 50%;
+  top: 35%;
   left: 50%;
   transform: translate(-50%, -50%);
   font-family: 'Orbitron', monospace;

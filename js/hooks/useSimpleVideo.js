@@ -19,7 +19,11 @@ export function useSimpleVideo() {
     const configChanged = config?.videoUrl !== prevConfig?.videoUrl || config?.subtitles !== prevConfig?.subtitles;
 
     useEffect(() => {
-        if (!config || !configChanged) return;
+        if (!config) {
+            prevConfigRef.current = null;
+            return;
+        }
+        if (!configChanged) return;
 
         if (controllerRef.current) {
             controllerRef.current = null;

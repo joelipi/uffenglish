@@ -3,6 +3,7 @@ import { useStore } from 'zustand';
 import { appStore } from '../modules/store.js';
 
 export default function PointLossOverlay() {
+    const trigger = useStore(appStore, (state) => state.pointLossTrigger);
     const amount = useStore(appStore, (state) => state.pointLossAmount);
 
     useEffect(() => {
@@ -11,11 +12,11 @@ export default function PointLossOverlay() {
             appStore.getState().setPointLossAmount(null);
         }, 1500);
         return () => clearTimeout(timer);
-    }, [amount]);
+    }, [trigger]);
 
     if (amount === null) return null;
 
     return (
-        <div className="point-loss-float animate">-{amount}</div>
+        <div key={trigger} className="point-loss-float animate">-{amount}</div>
     );
 }

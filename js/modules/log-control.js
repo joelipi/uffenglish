@@ -20,6 +20,8 @@ window.enabledLogs = {
     app: false,
     storage: false,
     gamification: false,
+    PointLossOverlay: true,
+    store: true,
     all: false
 };
 

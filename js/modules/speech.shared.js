@@ -190,6 +190,7 @@ export async function toggleSpeechRecognition(params) {
                 console.log('[Hesitation] Starting new 100ms hesitation timer (1s grace period)');
                 // Smooth hesitation: 1 point per 100ms after 1s grace
                 let hesitationTick = 0;
+                let totalHesitationPoints = 0;
                 const GRACE_TICKS = 10;
                 let liveHesitationMs = 0;
                 listeningState.hesitationTimer = setInterval(() => {
@@ -209,7 +210,7 @@ export async function toggleSpeechRecognition(params) {
                             const after = appStore.getState().flowScore;
                             console.log(`[Hesitation] flowScore: ${before} → ${after}`);
                         }
-                        if (uiHooks?.onHesitation) uiHooks.onHesitation(1);
+                        if (uiHooks?.onHesitation) uiHooks.onHesitation(++totalHesitationPoints);
                     }
 
                     // Mid-speech pause detection (after user has started speaking)
@@ -228,7 +229,7 @@ export async function toggleSpeechRecognition(params) {
                             if (typeof appStore.getState().deductFlowScore === 'function') {
                                 appStore.getState().deductFlowScore(1);
                             }
-                            if (uiHooks?.onHesitation) uiHooks.onHesitation(1);
+                            if (uiHooks?.onHesitation) uiHooks.onHesitation(++totalHesitationPoints);
                         }
                     }
                 }, 100);
