@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store.js';
 
@@ -8,21 +8,19 @@ export default function MicrophoneToggle() {
     const bottomControlState = useStore(appStore, (state) => state.bottomControlState);
     const onMicClickCallback = useStore(appStore, (state) => state.onMicClickCallback);
     const micBounceTrigger = useStore(appStore, (state) => state.micBounceTrigger);
-    const containerRef = useRef(null);
+    const [bouncing, setBouncing] = useState(false);
+    const ringRefs = useRef([null, null, null]);
     const micBtnRef = useRef(null);
     const animationRefs = useRef([]);
 
     useEffect(() => {
-        if (!containerRef.current) return;
-        const rings = containerRef.current.querySelectorAll('.mic-ring');
-
         if (isMicActive) {
             animationRefs.current.forEach(anim => {
                 try { anim.cancel(); } catch (e) {}
             });
 
-            animationRefs.current = Array.from(rings).map((ring, index) => {
-                ring.style.opacity = '0.7';
+            animationRefs.current = ringRefs.current.map((ring, index) => {
+                if (!ring) return null;
                 const anim = ring.animate([
                     { transform: 'scale(1)', opacity: 0.7 },
                     { transform: 'scale(2.6)', opacity: 0 }
@@ -33,15 +31,12 @@ export default function MicrophoneToggle() {
                     easing: 'ease-out'
                 });
                 return anim;
-            });
+            }).filter(Boolean);
         } else {
             animationRefs.current.forEach(anim => {
                 try { anim.cancel(); } catch (e) {}
             });
             animationRefs.current = [];
-            rings.forEach(ring => {
-                ring.style.opacity = '0';
-            });
         }
 
         return () => {
@@ -53,10 +48,9 @@ export default function MicrophoneToggle() {
     }, [isMicActive]);
 
     useEffect(() => {
-        const btn = micBtnRef.current;
-        if (!btn || micBounceTrigger === 0) return;
-        btn.classList.add('btn-bounce');
-        const timer = setTimeout(() => btn.classList.remove('btn-bounce'), 1000);
+        if (micBounceTrigger === 0) return;
+        setBouncing(true);
+        const timer = setTimeout(() => setBouncing(false), 1000);
         return () => clearTimeout(timer);
     }, [micBounceTrigger]);
 
@@ -87,14 +81,16 @@ export default function MicrophoneToggle() {
         }
     };
 
+    const ringStyle = isMicActive ? { opacity: 0.7, pointerEvents: 'none' } : { opacity: 0, pointerEvents: 'none' };
+
     return (
-        <div ref={containerRef} className={`mic-btn-wrapper${bottomControlState !== 'mic' ? ' d-none' : ''}`} id="state-standard-mic" style={{ display: 'flex' }}>
-            <div className="mic-ring" style={{ opacity: 0, pointerEvents: 'none' }}></div>
-            <div className="mic-ring" style={{ opacity: 0, pointerEvents: 'none' }}></div>
-            <div className="mic-ring" style={{ opacity: 0, pointerEvents: 'none' }}></div>
+        <div className={`mic-btn-wrapper${bottomControlState !== 'mic' ? ' d-none' : ''}`} id="state-standard-mic" style={{ display: 'flex' }}>
+            <div ref={el => ringRefs.current[0] = el} className="mic-ring" style={ringStyle}></div>
+            <div ref={el => ringRefs.current[1] = el} className="mic-ring" style={ringStyle}></div>
+            <div ref={el => ringRefs.current[2] = el} className="mic-ring" style={ringStyle}></div>
             <button
                 ref={micBtnRef}
-                className={`btn call-btn ${isMicActive ? '' : 'toggled-off'} ${isTextMode ? 'd-none' : ''}`}
+                className={`btn call-btn ${isMicActive ? '' : 'toggled-off'} ${isTextMode ? 'd-none' : ''}${bouncing ? ' btn-bounce' : ''}`}
                 id="micBtn"
                 aria-label="Toggle Microphone"
                 onClick={handleClick}
