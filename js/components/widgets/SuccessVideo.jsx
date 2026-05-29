@@ -44,7 +44,7 @@ export default function SuccessVideo() {
     if (!blob) return null;
 
     return (
-        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10 }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 20 }}>
             <video ref={videoRef} id="resultVideo" playsInline
                 onClick={handleToggle}
                 style={{

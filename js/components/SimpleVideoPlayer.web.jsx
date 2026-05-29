@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useLayoutEffect, useCallback } from 'react';
+import { useEffect, useRef, useState, useLayoutEffect } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../modules/store.js';
 import { useSimpleVideo } from '../hooks/useSimpleVideo.js';
@@ -175,9 +175,6 @@ export default function SimpleVideoPlayer() {
         };
     }, [isActive, config?.videoUrl]);
 
-    const onPlay = useCallback(() => setPlaying(true), []);
-    const onPause = useCallback(() => setPlaying(false), []);
-
     // Delayed play after React mount
     useEffect(() => {
         if (!isActive || !videoRef.current) return;
@@ -225,7 +222,8 @@ export default function SimpleVideoPlayer() {
             <div className="ivp-video-wrapper">
                 <video ref={videoRef} className="ivp-video" playsInline disableRemotePlayback preload="metadata" crossOrigin="anonymous"
                     src={config?.videoUrl}
-                    onPlay={onPlay} onPause={onPause}
+                    onPlay={() => setPlaying(true)}
+                    onPause={() => setPlaying(false)}
                     onTimeUpdate={() => {
                         const v = videoRef.current;
                         if (v) updateProgress(v.currentTime, v.duration);

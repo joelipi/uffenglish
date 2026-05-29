@@ -30,7 +30,7 @@ export default function SuccessVideoCanvas() {
         height: '100%',
         objectFit: 'contain',
         backgroundColor: 'black',
-        zIndex: 10
+        zIndex: 20
       }}
     />
   );
