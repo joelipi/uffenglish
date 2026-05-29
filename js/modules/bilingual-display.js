@@ -38,12 +38,12 @@ export function formatBilingualText(
             ? translationData
             : localized;
 
-        console.log('formatBilingualText skipEnglish result:', {
+        /*console.log('formatBilingualText skipEnglish result:', {
             localized: content,
             lang,
             shouldShowLocalized: !!content
         });
-
+        */
         return {
             localized: content,
             lang,
@@ -54,6 +54,7 @@ export function formatBilingualText(
     const showLocalized = shouldShowLocalized(english, localized, userLang);
 
     if (showLocalized) {
+        /*
         console.log('formatBilingualText bilingual result:', {
             english,
             localized,
@@ -63,7 +64,7 @@ export function formatBilingualText(
             enSuffix,
             spanPrefix
         });
-
+        */
         return {
             english,
             localized,
@@ -76,11 +77,12 @@ export function formatBilingualText(
     }
 
     // Single-language fallback
+    /*
     console.log('formatBilingualText fallback result:', {
         english,
         shouldShowLocalized: false
     });
-
+    */
     return {
         english,
         shouldShowLocalized: false

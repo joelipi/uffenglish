@@ -246,7 +246,7 @@ export async function startLocalAudioTap(stream, onSpeechDetected = null) {
         }
 
         if (window.enabledLogs && window.enabledLogs.whisper && localRawAudioChunks.length % 40 === 0) {
-            console.log(`[Speech] Audio Worklet Flowing - Max Amplitude: ${maxVal.toFixed(4)}`);
+            //console.log(`[Speech] Audio Worklet Flowing - Max Amplitude: ${maxVal.toFixed(4)}`);
         }
     };
 
@@ -299,5 +299,3 @@ export function startWebSpeechRecognition({ lang = 'en-US', audioTrack = null, n
     // ... logic removed for brevity but functionally disabled
 }
 */
-
-

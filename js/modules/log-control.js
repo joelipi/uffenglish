@@ -1,4 +1,6 @@
+
 const originalConsoleLog = console.log;
+
 window.enabledLogs = {
     whisper: false,
     recording: false,
@@ -6,7 +8,7 @@ window.enabledLogs = {
     api: false,
     'tanstack query': false,
     toggle: false,
-    ai: true,
+    ai: false,
     analytics: false,
     ui: false,
     hesitation: false,

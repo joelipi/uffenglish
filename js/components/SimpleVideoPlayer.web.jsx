@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useLayoutEffect } from 'react';
+import { useStore } from 'zustand';
 import { appStore } from '../modules/store.js';
 import { useSimpleVideo } from '../hooks/useSimpleVideo.js';
 
@@ -7,6 +8,7 @@ const isAndroid = /Android/.test(navigator.userAgent);
 
 export default function SimpleVideoPlayer() {
     const { isActive, config, subtitleText, isTimedSubtitles, scrollRatio, updateProgress } = useSimpleVideo();
+    const mediaVisible = useStore(appStore, (s) => s.mediaVisible);
     const videoRef = useRef(null);
     const subtitleContainerRef = useRef(null);
     const subtitleDisplayRef = useRef(null);
@@ -229,7 +231,7 @@ export default function SimpleVideoPlayer() {
         else video.pause();
     };
 
-    if (!isActive) return null;
+    if (!isActive || !mediaVisible) return null;
 
     // Render subtitle lines (split on \n to avoid dangerouslySetInnerHTML)
     const subtitleLines = subtitleText.split('\n');
