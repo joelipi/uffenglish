@@ -8,7 +8,7 @@ window.enabledLogs = {
     api: false,
     'tanstack query': false,
     toggle: false,
-    ai: false,
+    ai: true,
     analytics: false,
     ui: false,
     hesitation: false,
@@ -22,8 +22,9 @@ window.enabledLogs = {
     gamification: false,
     pointlossoverlay: false,
     store: false,
+    pt: false,
     debug: true,
-    all: true
+    all: false
 };
 
 console.log = (msg, ...args) => {

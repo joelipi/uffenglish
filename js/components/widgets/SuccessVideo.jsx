@@ -15,18 +15,7 @@ export default function SuccessVideo() {
         video.src = url;
         video.play().catch(() => {});
 
-        const onPlay = () => setPlaying(true);
-        const onPause = () => setPlaying(false);
-        const onEnded = () => { video.pause(); setPlaying(false); };
-
-        video.addEventListener('play', onPlay);
-        video.addEventListener('pause', onPause);
-        video.addEventListener('ended', onEnded);
-
         return () => {
-            video.removeEventListener('play', onPlay);
-            video.removeEventListener('pause', onPause);
-            video.removeEventListener('ended', onEnded);
             URL.revokeObjectURL(url);
         };
     }, [blob]);
@@ -47,6 +36,9 @@ export default function SuccessVideo() {
         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 20 }}>
             <video ref={videoRef} id="resultVideo" playsInline
                 onClick={handleToggle}
+                onPlay={() => setPlaying(true)}
+                onPause={() => setPlaying(false)}
+                onEnded={() => setPlaying(false)}
                 style={{
                     width: '100%',
                     height: '100%',

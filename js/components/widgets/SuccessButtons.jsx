@@ -44,6 +44,7 @@ export function VideoButton() {
 
     try {
       appStore.getState().triggerPauseAllVideos();
+      appStore.getState().setCurrentVideo(null);
 
       const { processVideo, shareVideo } = await import('../../modules/video-processor.js');
       const canvas = window.__successVideoCanvas;

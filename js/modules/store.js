@@ -522,16 +522,3 @@ onMicClickCallback: null,
     )
 );
 
-// Global bridge for legacy window.isMicActive
-if (typeof window !== 'undefined') {
-    Object.defineProperty(window, 'isMicActive', {
-        get() {
-            return appStore.getState().isMicActive;
-        },
-        set(value) {
-            appStore.getState().setMicActive(value);
-        },
-        configurable: true
-    });
-}
-

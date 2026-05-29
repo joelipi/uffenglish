@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { appStore } from '../modules/store.js';
 import { usePlaybackVideo } from '../hooks/usePlaybackVideo.js';
 
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent) || (typeof navigator !== 'undefined' && navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
 export default function PlaybackVideo() {
     const { blob, autoplay, isMuted, visible, clearVideo, videoPlayTrigger, videoClearTrigger, chatModeActive } = usePlaybackVideo();
@@ -11,6 +11,42 @@ export default function PlaybackVideo() {
     const observerRef = useRef(null);
     const prevClearTrigger = useRef(videoClearTrigger);
     const prevPlayTrigger = useRef(videoPlayTrigger);
+
+    const handleVideoError = () => {
+        const video = videoRef.current;
+        if (!video) return;
+        try {
+            const alternativeBlob = new Blob([blob], { type: 'video/mp4' });
+            video.src = URL.createObjectURL(alternativeBlob);
+        } catch (e) { }
+    };
+
+    const handleLoadedMetadata = () => {
+        const video = videoRef.current;
+        if (!video) return;
+        if (!chatModeActive && autoplay) {
+            video.play().catch(e => {
+                if (e.name === 'NotAllowedError') {
+                    appStore.getState().setPlaybackMuted(true);
+                    video.muted = true;
+                    video.play().catch(err => console.error('[Playback] muted fallback failed:', err));
+                }
+            });
+        }
+        if (observerRef.current) observerRef.current.disconnect();
+        observerRef.current = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (!entry.isIntersecting && !video.paused) {
+                    video.pause();
+                }
+            });
+        }, { threshold: 0.1 });
+        requestAnimationFrame(() => {
+            if (observerRef.current && video) {
+                observerRef.current.observe(video);
+            }
+        });
+    };
 
     // Blob URL management
     useEffect(() => {
@@ -31,68 +67,9 @@ export default function PlaybackVideo() {
             URL.revokeObjectURL(video.src);
         }
 
-        if (isIOS) {
-            video.controls = true;
-            video.loop = true;
-            const url = URL.createObjectURL(blob);
-            video.onerror = () => {
-                try {
-                    const alternativeBlob = new Blob([blob], { type: 'video/mp4' });
-                    video.src = URL.createObjectURL(alternativeBlob);
-                } catch (e) { }
-            };
-            video.src = url;
-            video.onloadeddata = () => { };
-        } else {
-            video.src = URL.createObjectURL(blob);
-            video.onerror = null;
-        }
-
-        video.controls = false;
-        video.loop = true;
-        video.autoplay = false;
-        video.preload = 'auto';
-        video.muted = isMuted;
-
-        // Toggle mute on click (matches VideoBubble behavior)
-        const onToggleMute = () => {
-            const next = !video.muted;
-            video.muted = next;
-            appStore.getState().setPlaybackMuted(next);
-        };
-        video.addEventListener('click', onToggleMute);
-
-        video.onloadedmetadata = () => {
-            if (!chatModeActive && autoplay) {
-                video.play().catch(e => {
-                    if (e.name === 'NotAllowedError') {
-                        appStore.getState().setPlaybackMuted(true);
-                        video.muted = true;
-                        video.play().catch(err => console.error('[Playback] muted fallback failed:', err));
-                    }
-                });
-            }
-
-            // Restart IntersectionObserver
-            if (observerRef.current) observerRef.current.disconnect();
-            observerRef.current = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (!entry.isIntersecting && !video.paused) {
-                        video.pause();
-                    }
-                });
-            }, { threshold: 0.1 });
-            requestAnimationFrame(() => {
-                if (observerRef.current && video) {
-                    observerRef.current.observe(video);
-                }
-            });
-        };
+        video.src = URL.createObjectURL(blob);
 
         return () => {
-            video.removeEventListener('click', onToggleMute);
-            video.onloadedmetadata = null;
-            video.onerror = null;
             if (video.src && video.src.startsWith('blob:')) {
                 URL.revokeObjectURL(video.src);
             }
@@ -133,7 +110,14 @@ export default function PlaybackVideo() {
         <div id="playback-video-wrapper"
             className={`playback-video-container ${visible ? '' : 'd-none'}`}
             style={{ position: 'absolute', top: '15%', left: 0, right: 0, zIndex: 10 }}>
-            <video ref={videoRef} id="playback-video" playsInline preload="auto" loop
+            <video ref={videoRef} id="playback-video" playsInline preload="auto" controls={isIOS} loop muted={isMuted} onError={handleVideoError} onLoadedData={() => {}} onLoadedMetadata={handleLoadedMetadata}
+                onClick={() => {
+                    const video = videoRef.current;
+                    if (!video) return;
+                    const next = !video.muted;
+                    video.muted = next;
+                    appStore.getState().setPlaybackMuted(next);
+                }}
                 style={{ cursor: 'pointer' }} />
         </div>
     );

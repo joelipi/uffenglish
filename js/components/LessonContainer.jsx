@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { appStore } from '../modules/store.js';
 import { useAnswerPipeline } from '../hooks/useAnswerPipeline.js';
@@ -116,10 +116,10 @@ export default function LessonContainer() {
             <div className="top-overlay position-absolute top-0 start-0 w-100 px-3 py-2 z-1">
                 <div className="w-100 text-shadow">
                     <div className="d-flex align-items-center w-100 mb-0">
-                        <a href="homescreen.html" id="closePage"
+                        <Link to="/" id="closePage"
                             className="d-flex align-items-center text-decoration-none flex-shrink-0" aria-label="Close">
                             <i className="bi bi-x-lg"></i>
-                        </a>
+                        </Link>
                         <div className="flex-grow-1 ms-3">
                             <div className="progress shadow-sm" style={{ height: '8px' }}>
                                 <ProgressBar />
@@ -180,8 +180,8 @@ export default function LessonContainer() {
             <div id="media-viewport" className="position-absolute top-0 start-0 w-100 h-100" style={{ display: mediaVisible ? 'block' : 'none' }}>
                 <div id="ivp-container"></div>
                 <div id="simple-video-container"></div>
+                <InteractiveVideoWrapper />
             </div>
-            <InteractiveVideoWrapper />
             <SimpleVideoPlayer />
             <IncomingVideoWidget />
             <PointLossOverlay />

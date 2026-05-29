@@ -85,7 +85,7 @@ class IdiomChecker {
         // If an initialization is already in progress, wait for it to finish
         if (this.initPromise) return this.initPromise;
 
-        console.log("IdiomChecker: Starting initialization...");
+        //console.log("IdiomChecker: Starting initialization...");
 
         // Create the promise and assign it to the lock
         this.initPromise = (async () => {
@@ -128,9 +128,9 @@ class IdiomChecker {
 
                 this.isReady = true;
 
-                console.log(`IdiomChecker: Successfully loaded ${this.idiomSet.size} valid multi-word idioms.`);
+                //console.log(`IdiomChecker: Successfully loaded ${this.idiomSet.size} valid multi-word idioms.`);
 
-                console.log(`IdiomChecker: The longest idiom has ${this.maxWords} words. This sets the maximum search window.`);
+                //console.log(`IdiomChecker: The longest idiom has ${this.maxWords} words. This sets the maximum search window.`);
 
             } catch (error) {
                 console.error("Failed to load idioms data:", error);
@@ -152,15 +152,15 @@ class IdiomChecker {
 
         if (!text || typeof text !== 'string') return 0;
 
-        console.log(`\n--- IdiomChecker: Analyzing new text ---`);
-        console.log(`Original text: "${text}"`);
+        //console.log(`\n--- IdiomChecker: Analyzing new text ---`);
+        //console.log(`Original text: "${text}"`);
 
         // Clean and split the input text into an array of words
         const normalizedString = this._normalizeText(text);
-        console.log(`Normalized string: "${normalizedString}"`);
+        //console.log(`Normalized string: "${normalizedString}"`);
 
         const words = normalizedString.split(' ').filter(w => w.length > 0);
-        console.log(`Word array:`, words);
+        //console.log(`Word array:`, words);
 
         let idiomCount = 0;
         let i = 0;
@@ -171,12 +171,12 @@ class IdiomChecker {
 
             // Check the longest possible combinations first (greedy match)
             const maxLen = Math.min(this.maxWords, words.length - i);
-            console.log(`\n🔍 Checking at index ${i} (word: "${words[i]}")`);
+            //console.log(`\n🔍 Checking at index ${i} (word: "${words[i]}")`);
 
             // Stop at len >= 2. An idiom must be at least 2 words.
             for (let len = maxLen; len >= 2; len--) {
                 const candidate = words.slice(i, i + len).join(' ');
-                console.log(`  Testing candidate (${len} words): "${candidate}"`);
+                //console.log(`  Testing candidate (${len} words): "${candidate}"`);
 
                 if (this.idiomSet.has(candidate)) {
                     idiomCount++;
@@ -193,7 +193,7 @@ class IdiomChecker {
 
             // If no idiom starts with this word, move to the next single word
             if (!matched) {
-                console.log(`  ❌ No matches starting with "${words[i]}". Moving to next word.`);
+                //console.log(`  ❌ No matches starting with "${words[i]}". Moving to next word.`);
                 i++;
             }
         }
@@ -202,8 +202,7 @@ class IdiomChecker {
         if (idiomCount > 0) {
             console.log(`📝 Idioms matched:`, foundIdioms);
         }
-        console.log(`----------------------------------------`);
-
+        
         return { count: idiomCount, foundIdioms: foundIdioms };
     }
 }

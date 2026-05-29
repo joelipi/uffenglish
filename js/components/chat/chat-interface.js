@@ -20,27 +20,29 @@ export function addAILoadingMessage(text) {
     });
 }
 
-export function addAIFeedbackMessages(contentChunks = []) {
-    if (contentChunks.length === 0) return;
+export function addAIFeedbackMessages(inputs = []) {
+    if (inputs.length === 0) return;
     showChat(true);
-    contentChunks.filter(Boolean).forEach(chunk => {
-        const isPraise = chunk instanceof Element && chunk.classList.contains('chat-message-row--system') && chunk.querySelector('strong');
-        if (isPraise) {
-            const strongEl = chunk.querySelector('strong');
-            const praiseText = strongEl ? strongEl.innerHTML : '';
-            appStore.getState().addChatMessage({
-                role: 'system',
-                type: 'praise',
-                content: praiseText,
-                botName: 'Joe Walsh',
-                avatarUrl: '/assets/img/teacherprofile.webp'
-            });
-        } else {
-            const htmlContent = typeof chunk === 'string' ? chunk : chunk.outerHTML;
+    inputs.filter(Boolean).forEach(input => {
+        if (typeof input === 'string') {
             appStore.getState().addChatMessage({
                 role: 'system',
                 type: 'htmlChunk',
-                content: htmlContent
+                content: input
+            });
+        } else if (input.type === 'praise') {
+            appStore.getState().addChatMessage({
+                role: 'system',
+                type: 'praise',
+                content: input.content,
+                botName: input.botName || 'Joe Walsh',
+                avatarUrl: input.avatarUrl || '/assets/img/teacherprofile.webp'
+            });
+        } else {
+            appStore.getState().addChatMessage({
+                role: 'system',
+                type: input.type || 'htmlChunk',
+                content: input.content
             });
         }
     });

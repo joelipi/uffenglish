@@ -1,12 +1,7 @@
 import React, { useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { useSyncExternalStore } from 'react';
 import { appStore } from '../modules/store.js';
 import { InteractiveVideoPlayer } from './interactive-video-player.js';
-
-function portalTarget() {
-    return document.getElementById('ivp-container');
-}
 
 export default function InteractiveVideoWrapper() {
     const containerRef = useRef(null);
@@ -87,7 +82,7 @@ export default function InteractiveVideoWrapper() {
 
         clickTriggeredPlayRef.current = false;
         const playHandler = () => {
-            if (window.isMicActive) {
+            if (appStore.getState().isMicActive) {
                 player.video.pause();
                 return;
             }
@@ -138,11 +133,11 @@ export default function InteractiveVideoWrapper() {
         return unsub;
     }, []);
 
-    const target = portalTarget();
     const isActive = currentVideo && currentVideo.type === 'interactive';
 
-    return target && isActive ? createPortal(
-        <div ref={containerRef} className="video-wrapper" style={{ width: '100%', height: '100%' }}></div>,
-        target
+    return isActive ? (
+        <div ref={containerRef} className="video-wrapper"
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
+        </div>
     ) : null;
 }

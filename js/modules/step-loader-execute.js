@@ -30,7 +30,6 @@ export function createLoadStep(submitAnswerPrecheck, showFeedbackAndProceed, han
         }
     }
 
-    window.__currentStepIndex = getCurrentStepIndex(step, appStore.getState().configData, appStore.getState().currentLessonIndex);
     clearChat();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -271,8 +270,6 @@ function _renderPresent(step, lesson, showFeedbackAndProceed) {
 
 function _renderSuccess(step, fluencyData) {
     step.lessonId = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex].lessonId;
-
-    window.__currentConfigData = appStore.getState().configData;
 
     handleSuccessStep(step, fluencyData);
 }
