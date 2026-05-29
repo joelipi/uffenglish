@@ -20,6 +20,7 @@ export class InteractiveVideoStateController {
         this.autoRevealedIndices = new Set();
         this.unrevealedIndices = [];
         this.speechOverrides = new Map();
+        this.extraWrongTokens = [];
         this.slowSpeeds = [0.6, 0.75];
         this.useSlowSpeeds = false;
         this._overlayTimer = null;
@@ -86,6 +87,7 @@ initTokens(cue) {
         this.speechRevealedIndices.clear();
         this.autoRevealedIndices.clear();
         this.speechOverrides.clear();
+        this.extraWrongTokens = [];
         if (this._overlayTimer) {
             clearTimeout(this._overlayTimer);
             this._overlayTimer = null;
@@ -128,15 +130,55 @@ initTokens(cue) {
     }
 
     _computeSubtitleTokens() {
-        return this.tokens.map((token, i) => {
+        const result = [];
+        let extraIdx = 0;
+
+        const extrasBefore = new Map();
+        this.extraWrongTokens.forEach(t => {
+            const pos = t.position !== null && t.position !== undefined ? t.position : this.tokens.length;
+            if (!extrasBefore.has(pos)) extrasBefore.set(pos, []);
+            extrasBefore.get(pos).push(t);
+        });
+
+        this.tokens.forEach((token, i) => {
+            if (extrasBefore.has(i)) {
+                extrasBefore.get(i).forEach(t => {
+                    result.push({
+                        index: -(extraIdx + 1),
+                        text: t.text,
+                        isPunctuation: false,
+                        revealed: true,
+                        strikethrough: true,
+                        clickable: false
+                    });
+                    extraIdx++;
+                });
+            }
+
             const isPunct = this.punctuationMap.get(i);
             const speechOverride = this.speechOverrides.get(i);
             const revealed = this.revealedIndices.has(i) || (speechOverride === 'revealed' || speechOverride === 'strikethrough');
             const strikethrough = speechOverride === 'strikethrough';
             const clickable = !revealed && !isPunct && !strikethrough;
 
-            return { index: i, text: token, isPunctuation: isPunct, revealed, strikethrough, clickable };
+            result.push({ index: i, text: token, isPunctuation: isPunct, revealed, strikethrough, clickable });
         });
+
+        if (extrasBefore.has(this.tokens.length)) {
+            extrasBefore.get(this.tokens.length).forEach(t => {
+                result.push({
+                    index: -(extraIdx + 1),
+                    text: t.text,
+                    isPunctuation: false,
+                    revealed: true,
+                    strikethrough: true,
+                    clickable: false
+                });
+                extraIdx++;
+            });
+        }
+
+        return result;
     }
 
     revealToken(index) {
@@ -184,7 +226,7 @@ initTokens(cue) {
         }
     }
 
-    applySpeechResult(correctIndices, wrongIndices) {
+    applySpeechResult(correctIndices, wrongIndices, extraWrongWords = []) {
         correctIndices.forEach(idx => {
             this.speechOverrides.set(idx, 'revealed');
             this.revealedIndices.add(idx);
@@ -194,6 +236,9 @@ initTokens(cue) {
         wrongIndices.forEach(idx => {
             this.speechOverrides.set(idx, 'strikethrough');
         });
+        this.extraWrongTokens = extraWrongWords.map(w =>
+            typeof w === 'string' ? { text: w, position: null } : { text: w.text, position: w.position !== undefined ? w.position : null }
+        );
         this.setState({ subtitleTokens: this._computeSubtitleTokens() });
     }
 

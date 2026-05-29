@@ -41,9 +41,9 @@ function createStatsBubbleHTML(header, statsParts, botName = "Joe Walsh", avatar
 }
 
 function buildGrammarDiff(original, corrected) {
-    // Simple LCS-based diff for highlighting insertions/deletions
-    const tokensA = original.split(/(\s+)/);
-    const tokensB = corrected.split(/(\s+)/);
+    const tokenize = str => str.trim().match(/[\p{L}\p{N}]+(?:'[\p{L}\p{N}]+)?|[^\p{L}\p{N}\s]+|\s+/gu) || [];
+    const tokensA = tokenize(original);
+    const tokensB = tokenize(corrected);
     const m = tokensA.length, n = tokensB.length;
     const dp = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
     for (let i = 1; i <= m; i++)

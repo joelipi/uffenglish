@@ -32,6 +32,42 @@ import {
     clearChat
 } from '../components/chat/chat-interface.js';
 
+function applySpeechResultToPlayer(val, player) {
+    const cueTokens = [];
+    player.controller.tokens.forEach((token, idx) => {
+        if (player.controller.punctuationMap.get(idx)) return;
+        cueTokens.push({
+            clean: token.toLowerCase().replace(/[^\w\s']/g, ''),
+            idx
+        });
+    });
+
+    const userWords = val.toLowerCase().replace(/[^\w\s']/g, '').split(/\s+/);
+    const correctIndices = [];
+    const extraWrongWords = [];
+
+    let cuePos = 0;
+    for (let userPos = 0; userPos < userWords.length; userPos++) {
+        const userWord = userWords[userPos];
+        let found = -1;
+        for (let i = cuePos; i < cueTokens.length; i++) {
+            if (cueTokens[i].clean === userWord) {
+                found = i;
+                break;
+            }
+        }
+        if (found !== -1) {
+            correctIndices.push(cueTokens[found].idx);
+            cuePos = found + 1;
+        } else {
+            const position = cuePos < cueTokens.length ? cueTokens[cuePos].idx : null;
+            extraWrongWords.push({ text: userWord, position });
+        }
+    }
+
+    player.controller.applySpeechResult(correctIndices, [], extraWrongWords);
+}
+
 function handleCorrectFeedbackUI(stepIndex, stepData, button, cue, explanation, translation, userResponse, englishLevel, englishLevelDeduction, userData, configData, fluencyBubble = null) {
     const cueText = typeof cue === 'object' ? cue?.en : cue;
     const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
@@ -263,20 +299,7 @@ export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation,
 
         const player = appStore.getState().currentVideoPlayer;
         if (stepData.stepType === "closedResponse" && player && player.controller && player.controller.applySpeechResult) {
-            const userWords = val.toLowerCase().replace(/[^\w\s']/g, '').split(/\s+/);
-            const correctIndices = [];
-            const wrongIndices = [];
-
-            player.controller.tokens.forEach((token, idx) => {
-                if (player.controller.punctuationMap.get(idx)) return;
-                const cleanToken = token.toLowerCase().replace(/[^\w\s']/g, '');
-                if (userWords.includes(cleanToken)) {
-                    correctIndices.push(idx);
-                } else {
-                    wrongIndices.push(idx);
-                }
-            });
-            player.controller.applySpeechResult(correctIndices, wrongIndices);
+            applySpeechResultToPlayer(val, player);
         }
 
         appStore.getState().setSubmitBtnDisabled(false);
@@ -285,8 +308,7 @@ export async function submitAnswerPrecheck(val, cue, stepData, btn, explanation,
 
     const player = appStore.getState().currentVideoPlayer;
     if (stepData.stepType === "closedResponse" && player && player.controller && player.controller.applySpeechResult) {
-        const correctIndices = player.controller.tokens.map((_, i) => i);
-        player.controller.applySpeechResult(correctIndices, []);
+        applySpeechResultToPlayer(val, player);
     }
 
     await handleAnswer(val, cue, stepData, btn, explanation, translation, stats, _deps, userData, configData, courseId);
@@ -505,9 +527,11 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
             clearChat();
             appStore.getState().setWebcamStream(null);
 
-            const hangmanOps = generateHangmanOps(userResponse, cueText);
-            appStore.getState().setHangmanOps(hangmanOps);
-            appStore.getState().setHintsVisible(true);
+            if (!stepData.videoUrl) {
+                const hangmanOps = generateHangmanOps(userResponse, cueText);
+                appStore.getState().setHangmanOps(hangmanOps);
+                appStore.getState().setHintsVisible(true);
+            }
             appStore.getState().setMediaVisible(true);
 
             const player = appStore.getState().currentVideoPlayer;

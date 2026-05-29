@@ -71,7 +71,7 @@ export class SimpleVideoStateController {
 
             const timeLine = lines[timeLineIndex];
             const textLines = lines.slice(timeLineIndex + 1);
-            const textContent = textLines.join('<br>');
+            const textContent = textLines.join('\n');
 
             const timeParts = timeLine.split('-->');
             const startStr = timeParts[0].trim();

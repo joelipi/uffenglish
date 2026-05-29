@@ -151,6 +151,13 @@ export async function processAnswerLogic({
         let isGrammarCorrect = true;
         if (grammarResult.isGrammarCorrect === false) {
             isGrammarCorrect = false;
+            if (grammarResult.correctedText) {
+                const cleanOriginal = userResponse.replace(/[^\w\s]/g, '').trim().toLowerCase();
+                const cleanCorrected = grammarResult.correctedText.replace(/[^\w\s]/g, '').trim().toLowerCase();
+                if (cleanOriginal === cleanCorrected && cleanOriginal !== '') {
+                    isGrammarCorrect = true;
+                }
+            }
         } else if (grammarResult.correctedText) {
             const cleanOriginal = userResponse.replace(/[^\w\s]/g, '').trim().toLowerCase();
             const cleanCorrected = grammarResult.correctedText.replace(/[^\w\s]/g, '').trim().toLowerCase();

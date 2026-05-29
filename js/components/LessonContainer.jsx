@@ -28,7 +28,7 @@ import ChatInterface from './chat/ChatInterface.jsx';
 import ChatHeader from './chat/ChatHeader.jsx';
 import TutorChatInput from './widgets/TutorChatInput.jsx';
 import InteractiveVideoWrapper from './InteractiveVideoWrapper.jsx';
-import SimpleVideoWrapper from './SimpleVideoWrapper.jsx';
+import SimpleVideoPlayer from './SimpleVideoPlayer.js';
 import IncomingVideoWidget from './IncomingVideoWidget.jsx';
 import PointLossOverlay from './PointLossOverlay.jsx';
 import VideoProcessorWrapper from './VideoProcessorWrapper.jsx';
@@ -192,7 +192,7 @@ export default function LessonContainer() {
             <SuccessVideoCanvas />
             <PlaybackVideo />
             <InteractiveVideoWrapper />
-            <SimpleVideoWrapper />
+            <SimpleVideoPlayer />
             <IncomingVideoWidget />
             <PointLossOverlay />
             <VideoProcessorWrapper />

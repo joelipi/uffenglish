@@ -92,34 +92,82 @@ export async function getUserProfile() {
   });
 }
 
+const GRAMMAR_SYSTEM_PROMPT = `You are an English language error detector. Your only job is to find language errors (NOT logical errors) in B's response.
+
+Check for the following error types:
+1. Verb tense errors (e.g. "I goes" instead of "I go", "I will having" instead of "I will have")
+2. Subject-verb agreement (e.g. "she go" instead of "she goes")
+3. Number agreement (e.g. "two dog" instead of "two dogs")
+4. Gender agreement where applicable
+5. Article errors (e.g. "I want go" instead of "I want to go")
+6. Auxiliary verb errors (e.g. "I am go" instead of "I am going")
+7. Preposition errors that change grammatical correctness
+8. Pronoun case errors (e.g. "me go" instead of "I go")
+9. Tense agreement with the interlocutor's cue
+
+Do NOT flag:
+- Logical or factual errors
+- Style or word choice issues unless grammatically wrong
+- Punctuation or capitalisation
+
+If there are no grammatical errors, respond ONLY with the word CORRECT.
+If there are errors, respond ONLY with a corrected version of B's reply, minimum 5 words.
+Do not explain. Do not add commentary. Do not repeat the question. Output only the corrected sentence or the word CORRECT.`;
+
+
+const INTENT_SYSTEM_PROMPT = `Evaluate B's response. Return ONLY "CORRECT" or an array with any applicable labels [pragmatic failure, too formal, too informal, rude, unidiomatic] and a corrected version of B's response (minimum 5 words).`;
+
 export async function checkGrammarWithAI(selectedAnswer, stepData) {
   const aiEndpoint = 'https://deepseek-proxy.joel-1cb.workers.dev';
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
   try {
-    console.log("AI Evaluation: Starting Grammar Check...");
-    const grammarPrompt = `Find all the grammatical error(s) in B's response, including if B does not agree with A in tense, number or gender. Return ONLY the grammar-corrected text of B's reply. If no errors, respond ONLY "CORRECT".  A: ${stepData.cue.en} B: ${selectedAnswer}`;
+    const requestBody = {
+      messages: [
+  { role: "user", content: `${GRAMMAR_SYSTEM_PROMPT}\n\nA: ${stepData.cue.en} B: ${selectedAnswer}` }
+],
+      temperature: 0.1
+    };
+
+    console.log("[AI] Grammar Check");
+    console.log("[AI] Endpoint:", aiEndpoint);
+    console.log("[AI] Request body:", JSON.stringify(requestBody, null, 2));
+    console.log("[AI] System prompt:", GRAMMAR_SYSTEM_PROMPT);
+    console.log("[AI] User message:", requestBody.messages[0].content);
 
     const response = await fetch(aiEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: [{ role: "user", content: grammarPrompt }],
-        temperature: 0.1
-      }),
+      body: JSON.stringify(requestBody),
       signal: controller.signal
     });
 
     if (!response.ok) {
       const body = await response.text().catch(() => '');
+      console.error("← HTTP error", response.status, body);
       throw new Error(`Grammar API error ${response.status}: ${body.slice(0, 200)}`);
     }
+
     const data = await response.json();
-    const correctedTextRaw = (data.choices?.[0]?.message?.content || '').trim();
+    console.log("[AI] Full API response:", JSON.stringify(data, null, 2));
+    console.log("[AI] Model:", data.model);
+    console.log("[AI] Usage:", JSON.stringify(data.usage));
+    console.log("[AI] Cache hit tokens:", data.usage?.prompt_cache_hit_tokens ?? 'N/A');
+    console.log("[AI] Cache miss tokens:", data.usage?.prompt_cache_miss_tokens ?? 'N/A');
+    console.log("[AI] Finish reason:", data.choices?.[0]?.finish_reason);
+
+    const correctedTextRaw = data.choices?.[0]?.message?.content?.trim() || '';
+    console.log("[AI] Raw content:", correctedTextRaw);
+
+    if (!correctedTextRaw) {
+      console.warn("← Empty response — treating as grammar error, no correction available");
+      return {
+        isGrammarCorrect: false,
+        correctedText: selectedAnswer
+      };
+    }
+
     let correctedText = correctedTextRaw;
-
-    console.log("Grammar Check Result (Raw):", correctedTextRaw);
-
     if (/^correct[.!: \n-]*$/i.test(correctedText)) {
       correctedText = "";
     } else {
@@ -129,8 +177,12 @@ export async function checkGrammarWithAI(selectedAnswer, stepData) {
     const normOriginal = await normalize(selectedAnswer);
     const normCorrected = await normalize(correctedText);
 
-    const isGrammarCorrect = correctedText === '' ||
-      normOriginal === normCorrected;
+    const isGrammarCorrect = correctedText === '' || normOriginal === normCorrected;
+
+    console.log("[AI] Normalized original:", normOriginal);
+    console.log("[AI] Normalized corrected:", normCorrected);
+    console.log("[AI] isGrammarCorrect:", isGrammarCorrect);
+    console.log("[AI] Final correctedText:", isGrammarCorrect ? selectedAnswer : (correctedText || selectedAnswer));
 
     return {
       isGrammarCorrect,
@@ -158,39 +210,58 @@ export async function evaluateIntentWithAI(answerForIntentPass, stepData, lesson
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
   try {
-    console.log("AI Evaluation: Starting Intent Check...");
-
-    const intentPrompt = `Setting: ${getEnglish(lessonData.setting) || ''} 
-A: ${getEnglish(lessonData.roleOther) || ''} 
-B: ${getEnglish(lessonData.roleUser) || ''} 
+    const intentUserPrompt = `Setting: ${getEnglish(lessonData.setting) || ''}
+A: ${getEnglish(lessonData.roleOther) || ''}
+B: ${getEnglish(lessonData.roleUser) || ''}
 B's goal: ${getEnglish(lessonData.mission) || 'Respond appropriately'}
 A: ${stepData.cue.en}
-B: ${answerForIntentPass}
- 
-Evaluate B's response. Return ONLY an array with any applicable labels and any corrected version of B's response: [pragmatic failure, too formal, too informal, rude, unidiomatic, correct].`;
+B: ${answerForIntentPass}`;
 
-    console.log("[AI] prompt to AI: ", intentPrompt);
+    const requestBody = {
+      messages: [
+  { role: "user", content: `${INTENT_SYSTEM_PROMPT}\n\nSetting: ${getEnglish(lessonData.setting) || ''}
+A: ${getEnglish(lessonData.roleOther) || ''}
+B: ${getEnglish(lessonData.roleUser) || ''}
+B's goal: ${getEnglish(lessonData.mission) || 'Respond appropriately'}
+A: ${stepData.cue.en}
+B: ${answerForIntentPass}` }
+],
+      temperature: 0.1,
+      max_tokens: 200
+    };
 
+/*
+    console.log("[AI] Intent Check");
+    console.log("[AI] Endpoint:", aiEndpoint);
+    console.log("[AI] Request body:", JSON.stringify(requestBody, null, 2));
+    console.log("[AI] System prompt:", INTENT_SYSTEM_PROMPT);
+    console.log("[AI] User message:", intentUserPrompt);
+*/
     const response = await fetch(aiEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: [{ role: "user", content: intentPrompt }],
-        temperature: 0.1
-      }),
+      body: JSON.stringify(requestBody),
       signal: controller.signal
     });
 
     if (!response.ok) {
       const body = await response.text().catch(() => '');
+      console.error("← HTTP error", response.status, body);
       throw new Error(`Intent API error ${response.status}: ${body.slice(0, 200)}`);
     }
+
     const data = await response.json();
+    /*
+    console.log("[AI] Full API response:", JSON.stringify(data, null, 2));
+    console.log("[AI] Model:", data.model);
+    console.log("[AI] Usage:", JSON.stringify(data.usage));
+    console.log("[AI] Cache hit tokens:", data.usage?.prompt_cache_hit_tokens ?? 'N/A');
+    console.log("[AI] Cache miss tokens:", data.usage?.prompt_cache_miss_tokens ?? 'N/A');
+    console.log("[AI] Finish reason:", data.choices?.[0]?.finish_reason);
+*/
     const rawIntentText = data.choices?.[0]?.message?.content || '';
+    /*console.log("[AI] Raw intent content:", rawIntentText);*/
 
-    console.log("Intent Evaluation Raw Result:", rawIntentText);
-
-    // Robust parsing: bypass JSON.parse entirely to avoid AI formatting errors
     const validLabels = ['PRAGMATIC FAILURE', 'TOO FORMAL', 'TOO INFORMAL', 'RUDE', 'UNIDIOMATIC', 'CORRECT'];
     let intentLabel = 'parse_error';
     const textUpper = rawIntentText.toUpperCase();
@@ -201,7 +272,10 @@ Evaluate B's response. Return ONLY an array with any applicable labels and any c
         break;
       }
     }
-
+/*
+    console.log("[AI] intentLabel:", intentLabel);
+    console.log("[AI] isIntentCorrect:", intentLabel === 'correct');
+*/
     return {
       isIntentCorrect: intentLabel === 'correct',
       intentLabel,
@@ -229,15 +303,20 @@ export async function askEnglishTutor(conversationHistoryContext, newUserMessage
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
   try {
-    const systemPrompt = "You are strictly an English tutor. Answer the user's questions about English. The user is currently taking an English lesson. The context of their recent exercise is provided below. Use it to inform your answer if relevant.";
-
-    const combinedPrompt = `${systemPrompt}\n\n--- Context from Lesson ---\n${conversationHistoryContext}\n\n--- User Question ---\n${newUserMessage}`;
-
     const response = await fetch(aiEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        messages: [{ role: "user", content: combinedPrompt }],
+        messages: [
+          {
+            role: "system",
+            content: "You are strictly an English tutor. Answer the user's questions about English. The user is currently taking an English lesson. The context of their recent exercise is provided below. Use it to inform your answer if relevant."
+          },
+          {
+            role: "user",
+            content: `--- Context from Lesson ---\n${conversationHistoryContext}\n\n--- User Question ---\n${newUserMessage}`
+          }
+        ],
         temperature: 0.7
       }),
       signal: controller.signal
