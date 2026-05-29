@@ -48,6 +48,7 @@ async function processTranscript({ transcript, timingMeta, checkGibberish = fals
     console.warn('[PT] VALIDATING', { transcriptToReview: transcriptToReview.substring(0, 30) });
 
     const rejectPreflight = (warningMessage) => {
+        appStore.getState().clearPlaybackBlob();
         if (uiHooks?.onPreflightRejected) uiHooks.onPreflightRejected(warningMessage);
 
         updateSpeechRecording(
@@ -93,6 +94,7 @@ async function processTranscript({ transcript, timingMeta, checkGibberish = fals
         if (!reviewActive) return;
         reviewActive = false;
         clearInterval(timerInterval);
+        appStore.getState().clearPlaybackBlob();
 
         if (uiHooks?.onTranscriptRejected) uiHooks.onTranscriptRejected(step?.cue, transcriptToReview);
 

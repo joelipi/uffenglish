@@ -35,6 +35,7 @@ export function cancelWarningClear() {
 
 export function handleStepCore(step) {
     Media.cleanupPreviousPlayers();
+    appStore.getState().clearPlaybackBlob();
     appStore.getState().setCurrentVideoPlayer(null);
     appStore.getState().setCurrentVideo(null);
 

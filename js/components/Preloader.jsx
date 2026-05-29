@@ -52,7 +52,7 @@ export default function Preloader() {
     const preloaderProgress = useStore(appStore, (state) => state.preloaderProgress);
 
     useEffect(() => {
-        document.body.dataset.reactReady = 'true';
+        appStore.getState().setReactReady(true);
     }, []);
 
     if (!preloaderVisible) return null;

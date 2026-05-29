@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { appStore } from '../modules/store.js';
@@ -108,20 +108,6 @@ export default function LessonContainer() {
 
     const currentStep = getCurrentStep();
 
-    useEffect(() => {
-        const mv = document.getElementById('media-viewport');
-        if (mv) mv.classList.toggle('d-none', !mediaVisible);
-    }, [mediaVisible]);
-
-    const prevChatModeRef = useRef(chatModeActive);
-
-    useEffect(() => {
-        const active = chatModeActive;
-        if (active === prevChatModeRef.current) return;
-        prevChatModeRef.current = active;
-        document.body.dataset.chatMode = String(active);
-    }, [chatModeActive]);
-
     return (
         <>
             <MicStatusText />
@@ -191,6 +177,10 @@ export default function LessonContainer() {
             <SuccessVideo />
             <SuccessVideoCanvas />
             <PlaybackVideo />
+            <div id="media-viewport" className="position-absolute top-0 start-0 w-100 h-100" style={{ display: mediaVisible ? 'block' : 'none' }}>
+                <div id="ivp-container"></div>
+                <div id="simple-video-container"></div>
+            </div>
             <InteractiveVideoWrapper />
             <SimpleVideoPlayer />
             <IncomingVideoWidget />

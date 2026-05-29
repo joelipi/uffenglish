@@ -59,17 +59,15 @@ export default function InteractiveVideoWrapper() {
             videoEl.muted = false;
             videoEl.setAttribute('playsinline', '');
 
-            const checkAndPlay = () => {
-                if (!document.body.dataset.reactReady) {
-                    setTimeout(checkAndPlay, 100);
-                    return;
+            const unsubReactReady = appStore.subscribe((state) => {
+                if (state.reactReady) {
+                    unsubReactReady();
+                    try {
+                        const playPromise = player.play();
+                        if (playPromise !== undefined) playPromise.catch(() => { });
+                    } catch (e) { }
                 }
-                try {
-                    const playPromise = player.play();
-                    if (playPromise !== undefined) playPromise.catch(() => { });
-                } catch (e) { }
-            };
-            setTimeout(checkAndPlay, 200);
+            });
         } catch (e) { }
 
         player.video.addEventListener('playing', () => player.video.controls = false);

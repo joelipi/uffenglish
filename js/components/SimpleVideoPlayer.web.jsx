@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useLayoutEffect } from 'react';
+import { useEffect, useRef, useState, useLayoutEffect, useCallback } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../modules/store.js';
 import { useSimpleVideo } from '../hooks/useSimpleVideo.js';
@@ -29,8 +29,9 @@ export default function SimpleVideoPlayer() {
             play: () => videoRef.current?.play(),
             get video() { return videoRef.current; },
             destroy: () => {
+                console.warn('[SVP] destroy called');
                 const v = videoRef.current;
-                if (v) { v.pause(); v.removeAttribute('src'); }
+                if (v) { v.pause(); }
             }
         };
         appStore.getState().setCurrentVideoPlayer(player);
@@ -42,21 +43,13 @@ export default function SimpleVideoPlayer() {
         };
     }, [isActive]);
 
-    // Pause when triggerPauseAllVideos fires
-    useEffect(() => {
-        const unsub = appStore.subscribe((state, prev) => {
-            if (state.pauseAllVideosTrigger !== prev.pauseAllVideosTrigger) {
-                videoRef.current?.pause();
-            }
-        });
-        return unsub;
-    }, []);
-
     // Video source and poster
     useEffect(() => {
+        console.warn('[SVP videoSrc] effect running', { isActive, hasRef: !!videoRef.current, hasConfig: !!config, videoUrl: config?.videoUrl });
         if (!isActive || !videoRef.current || !config) return;
         const video = videoRef.current;
         video.src = config.videoUrl;
+        console.warn('[SVP videoSrc] src set to', video.src);
 
         // iOS: transparent poster to avoid black frame flash
         if (isIOS) {
@@ -163,14 +156,15 @@ export default function SimpleVideoPlayer() {
                 if (document.body.contains(tempVideo)) cleanupTemp();
             }, 2000);
 
-            return () => {
-                clearTimeout(posterFallback);
-                cleanupTemp();
-                video.removeEventListener('loadeddata', onLoad);
-                video.removeEventListener('canplay', onLoad);
-                if (foucFallback) clearTimeout(foucFallback);
-                if (video._msCleanup) { video._msCleanup(); video._msCleanup = null; }
-            };
+        return () => {
+            console.warn('[SVP videoSrc] cleanup running');
+            clearTimeout(posterFallback);
+            cleanupTemp();
+            video.removeEventListener('loadeddata', onLoad);
+            video.removeEventListener('canplay', onLoad);
+            if (foucFallback) clearTimeout(foucFallback);
+            if (video._msCleanup) { video._msCleanup(); video._msCleanup = null; }
+        };
         }
 
         return () => {
@@ -181,29 +175,19 @@ export default function SimpleVideoPlayer() {
         };
     }, [isActive, config?.videoUrl]);
 
-    // Play/pause event listeners from video element
-    useEffect(() => {
-        if (!isActive || !videoRef.current) return;
-        const video = videoRef.current;
-        const onPlay = () => setPlaying(true);
-        const onPause = () => setPlaying(false);
-        video.addEventListener('play', onPlay);
-        video.addEventListener('pause', onPause);
-        return () => {
-            video.removeEventListener('play', onPlay);
-            video.removeEventListener('pause', onPause);
-        };
-    }, [isActive]);
+    const onPlay = useCallback(() => setPlaying(true), []);
+    const onPause = useCallback(() => setPlaying(false), []);
 
     // Delayed play after React mount
     useEffect(() => {
         if (!isActive || !videoRef.current) return;
-        const timer = setTimeout(() => {
-            if (document.body.dataset.reactReady) {
+        const unsub = appStore.subscribe((state) => {
+            if (state.reactReady) {
+                unsub();
                 videoRef.current.play().catch(() => {});
             }
-        }, 200);
-        return () => clearTimeout(timer);
+        });
+        return unsub;
     }, [isActive]);
 
     // Compute scroll offset for scrolling subtitles
@@ -240,6 +224,8 @@ export default function SimpleVideoPlayer() {
         <div className="ivp-main-wrapper position-absolute top-0 start-0 w-100 h-100" onClick={handleClick} style={{ visibility: loaded ? 'visible' : 'hidden' }}>
             <div className="ivp-video-wrapper">
                 <video ref={videoRef} className="ivp-video" playsInline disableRemotePlayback preload="metadata" crossOrigin="anonymous"
+                    src={config?.videoUrl}
+                    onPlay={onPlay} onPause={onPause}
                     onTimeUpdate={() => {
                         const v = videoRef.current;
                         if (v) updateProgress(v.currentTime, v.duration);

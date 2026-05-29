@@ -380,6 +380,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
     appStore.getState().setMicActive(false);
     appStore.getState().setMicStatusText("");
     appStore.getState().setMediaVisible(false);
+    appStore.getState().clearPlaybackBlob();
     appStore.getState().setTextInputVisible(false);
     appStore.getState().setHintsVisible(false);
 

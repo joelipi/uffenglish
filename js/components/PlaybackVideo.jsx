@@ -15,7 +15,17 @@ export default function PlaybackVideo() {
     // Blob URL management
     useEffect(() => {
         const video = videoRef.current;
-        if (!video || !blob) return;
+        if (!video) return;
+
+        if (!blob) {
+            video.pause();
+            if (video.src && video.src.startsWith('blob:')) {
+                URL.revokeObjectURL(video.src);
+            }
+            video.src = '';
+            video.load();
+            return;
+        }
 
         if (video.src && video.src.startsWith('blob:')) {
             URL.revokeObjectURL(video.src);

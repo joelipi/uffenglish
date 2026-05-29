@@ -20,9 +20,10 @@ window.enabledLogs = {
     app: false,
     storage: false,
     gamification: false,
-    PointLossOverlay: true,
-    store: true,
-    all: false
+    pointlossoverlay: false,
+    store: false,
+    debug: true,
+    all: true
 };
 
 console.log = (msg, ...args) => {
