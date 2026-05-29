@@ -178,13 +178,29 @@ export default function SimpleVideoPlayer() {
     // Delayed play after React mount
     useEffect(() => {
         if (!isActive || !videoRef.current) return;
-        const unsub = appStore.subscribe((state) => {
-            if (state.reactReady) {
-                unsub();
-                videoRef.current.play().catch(() => {});
+        const tryPlay = () => {
+            const video = videoRef.current;
+            const p = video.play();
+            if (p !== undefined) {
+                p.catch(() => {
+                    video.muted = true;
+                    video.play().then(() => {
+                        setTimeout(() => { video.muted = false; }, 100);
+                    }).catch(() => {});
+                });
             }
-        });
-        return unsub;
+        };
+        if (appStore.getState().reactReady) {
+            tryPlay();
+        } else {
+            const unsub = appStore.subscribe((state) => {
+                if (state.reactReady) {
+                    unsub();
+                    tryPlay();
+                }
+            });
+            return unsub;
+        }
     }, [isActive]);
 
     // Compute scroll offset for scrolling subtitles

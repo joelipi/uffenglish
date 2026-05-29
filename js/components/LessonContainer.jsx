@@ -6,7 +6,7 @@ import { useAnswerPipeline } from '../hooks/useAnswerPipeline.js';
 import { useInitializeLesson } from '../hooks/useInitializeLesson.js';
 
 import StepLoader from './StepLoader.jsx';
-import MicrophoneToggle from './widgets/MicrophoneToggle.jsx';
+import MicrophoneToggle from './widgets/MicrophoneToggle.js';
 import IntroChoices from './widgets/IntroChoices.jsx';
 import SuccessScreen from './widgets/SuccessScreen.jsx';
 import GuestLoginModal from './modals/GuestLoginModal.jsx';

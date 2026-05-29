@@ -59,15 +59,28 @@ export default function InteractiveVideoWrapper() {
             videoEl.muted = false;
             videoEl.setAttribute('playsinline', '');
 
-            const unsubReactReady = appStore.subscribe((state) => {
-                if (state.reactReady) {
-                    unsubReactReady();
-                    try {
-                        const playPromise = player.play();
-                        if (playPromise !== undefined) playPromise.catch(() => { });
-                    } catch (e) { }
+            const attemptPlay = () => {
+                const p = player.play();
+                if (p !== undefined) {
+                    p.catch(() => {
+                        videoEl.muted = true;
+                        player.play().then(() => {
+                            setTimeout(() => { videoEl.muted = false; }, 100);
+                        }).catch(() => {});
+                    });
                 }
-            });
+            };
+
+            if (appStore.getState().reactReady) {
+                attemptPlay();
+            } else {
+                const unsubReactReady = appStore.subscribe((state) => {
+                    if (state.reactReady) {
+                        unsubReactReady();
+                        attemptPlay();
+                    }
+                });
+            }
         } catch (e) { }
 
         player.video.addEventListener('playing', () => player.video.controls = false);

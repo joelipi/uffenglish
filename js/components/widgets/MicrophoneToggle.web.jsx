@@ -7,7 +7,6 @@ export default function MicrophoneToggle() {
     const isTextMode = useStore(appStore, (state) => state.isTextMode);
     const bottomControlState = useStore(appStore, (state) => state.bottomControlState);
     const onMicClickCallback = useStore(appStore, (state) => state.onMicClickCallback);
-    const currentVideoPlayer = useStore(appStore, (state) => state.currentVideoPlayer);
     const micBounceTrigger = useStore(appStore, (state) => state.micBounceTrigger);
     const containerRef = useRef(null);
     const micBtnRef = useRef(null);
@@ -73,18 +72,18 @@ export default function MicrophoneToggle() {
 
     const handleTextClick = () => {
         const isTextInputVisible = appStore.getState().textInputVisible;
-        const player = currentVideoPlayer;
 
         if (isTextInputVisible) {
             appStore.getState().setTextInputVisible(false);
             appStore.getState().setMicActive(false);
+            const player = appStore.getState().currentVideoPlayer;
             if (player && player.play) {
                 player.play().catch(e => console.warn('[UI] Video resume failed:', e));
             }
         } else {
             appStore.getState().setTextInputVisible(true);
             appStore.getState().setMicActive(true);
-            if (player && player.pause) player.pause();
+            appStore.getState().triggerPauseAllVideos();
         }
     };
 
