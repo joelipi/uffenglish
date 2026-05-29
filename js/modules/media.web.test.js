@@ -48,49 +48,14 @@ describe('Media Web Module', () => {
     });
 
     describe('pauseVideoIfPlaying', () => {
-        it('should pause any unpaused video elements', () => {
-            const video1 = document.createElement('video');
-            video1.className = 'ivp-video';
-            // mock properties
-            Object.defineProperty(video1, 'paused', { value: false, writable: true });
-            video1.pause = vi.fn();
-
-            const video2 = document.createElement('video');
-            video2.id = 'playback-video';
-            Object.defineProperty(video2, 'paused', { value: true, writable: true });
-            video2.pause = vi.fn();
-
-            document.body.appendChild(video1);
-            document.body.appendChild(video2);
-
-            Media.pauseVideoIfPlaying();
-
-            expect(video1.pause).toHaveBeenCalled();
-            expect(video2.pause).not.toHaveBeenCalled();
+        it('should be a no-op (pausing is now store-driven via triggerPauseAllVideos)', () => {
+            expect(() => Media.pauseVideoIfPlaying()).not.toThrow();
         });
     });
 
     describe('cleanupPreviousPlayers', () => {
-        it('should cleanup global video players and DOM videos', () => {
-            window.currentVideoPlayer = { destroy: vi.fn() };
-            window.currentSimpleVideoPlayer = { destroy: vi.fn() };
-            window.currentIntroVideoPlayer = { destroy: vi.fn() };
-
-            const video1 = document.createElement('video');
-            video1.className = 'ivp-video';
-            video1.pause = vi.fn();
-            video1.load = vi.fn();
-            document.body.appendChild(video1);
-
-            Media.cleanupPreviousPlayers();
-
-            expect(window.currentVideoPlayer).toBeNull();
-            expect(window.currentSimpleVideoPlayer).toBeNull();
-            expect(window.currentIntroVideoPlayer).toBeNull();
-
-            expect(video1.pause).toHaveBeenCalled();
-            expect(video1.load).toHaveBeenCalled();
-            expect(video1.getAttribute('src')).toBeNull();
+        it('should be a no-op (React handles teardown via component lifecycle)', () => {
+            expect(() => Media.cleanupPreviousPlayers()).not.toThrow();
         });
     });
 
@@ -123,34 +88,28 @@ describe('Media Web Module', () => {
     });
 
     describe('preloader', () => {
-        it('should create preload video element on first call', () => {
-            Media.preloader.preloadOnly('test.mp4');
-            const video = document.getElementById('media-preloader-element');
-            expect(video).toBeDefined();
-            expect(video.src).toMatch(/test\.mp4$/);
+        it('should not throw if url is empty', () => {
+            expect(() => Media.preloader.preloadOnly('')).not.toThrow();
+            expect(() => Media.preloader.preloadOnly(null)).not.toThrow();
+            expect(() => Media.preloader.preloadOnly(undefined)).not.toThrow();
         });
 
-        it('should update source if url changes', () => {
+        it('should call fetch with the given url', () => {
+            const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce();
             Media.preloader.preloadOnly('test.mp4');
-            Media.preloader.preloadOnly('test2.mp4');
-            const video = document.getElementById('media-preloader-element');
-            expect(video.src).toMatch(/test2\.mp4$/);
+            expect(fetchSpy).toHaveBeenCalledWith('test.mp4', { method: 'HEAD', mode: 'no-cors' });
+            fetchSpy.mockRestore();
         });
 
-        it('should not update source if url is same', () => {
-             Media.preloader.preloadOnly('http://localhost:3000/test.mp4'); // JSDOM sets full url
-             const video = document.getElementById('media-preloader-element');
-             video.load = vi.fn();
-             Media.preloader.preloadOnly('http://localhost:3000/test.mp4');
-             expect(video.load).not.toHaveBeenCalled();
+        it('should not throw if fetch fails', () => {
+            const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new Error('net error'));
+            expect(() => Media.preloader.preloadOnly('test.mp4')).not.toThrow();
+            fetchSpy.mockRestore();
         });
 
-        it('should destroy preload element', () => {
-            Media.preloader.preloadOnly('test.mp4');
-            Media.preloader.destroy();
-            const video = document.getElementById('media-preloader-element');
-            expect(video).toBeNull();
-            expect(Media.preloader.video).toBeNull();
+        it('should not throw on double destroy', () => {
+            expect(() => Media.preloader.destroy()).not.toThrow();
+            expect(() => Media.preloader.destroy()).not.toThrow();
         });
     });
 });

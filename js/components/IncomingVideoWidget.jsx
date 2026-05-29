@@ -43,6 +43,15 @@ export default function IncomingVideoWidget() {
         }
     }, [show]);
 
+    useEffect(() => {
+        const unsub = appStore.subscribe((state, prev) => {
+            if (state.pauseAllVideosTrigger !== prev.pauseAllVideosTrigger) {
+                videoRef.current?.pause();
+            }
+        });
+        return unsub;
+    }, []);
+
     const handleClick = () => {
         appStore.getState().triggerMicBounce();
     };

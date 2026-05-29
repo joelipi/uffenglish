@@ -107,6 +107,16 @@ export default function PlaybackVideo() {
         }
     }, [videoPlayTrigger]);
 
+    // Pause when triggerPauseAllVideos fires
+    useEffect(() => {
+        const unsub = appStore.subscribe((state, prev) => {
+            if (state.pauseAllVideosTrigger !== prev.pauseAllVideosTrigger) {
+                videoRef.current?.pause();
+            }
+        });
+        return unsub;
+    }, []);
+
     if (!blob) return null;
 
     return (

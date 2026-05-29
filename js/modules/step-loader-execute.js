@@ -5,7 +5,6 @@
 import { appStore } from '../modules/store.js';
 import Strings from '../data/strings.js';
 import { getLocalizedTranslation } from '../modules/utils.js';
-import { Media } from '../modules/media.js';
 import { getCurrentStepIndex } from '../modules/answers.js';
 import { warmUpSpeechCamStream, toggleSpeechRecognition, listeningState } from '../modules/speech.js';
 import { logInteraction } from '../modules/scoring.js';
@@ -150,7 +149,7 @@ function _renderResponseStep(step, lesson, deps) {
                             } catch (e) {
                                 console.warn('[QuestionLoader] Failed to pause player object:', e);
                             }
-                            Media.pauseVideoIfPlaying();
+                            appStore.getState().triggerPauseAllVideos();
                         },
                         onMicDisable: () => {
                         },
@@ -190,6 +189,7 @@ function _renderResponseStep(step, lesson, deps) {
                             appStore.getState().deductSpeakingScore(10);
                             appStore.getState().incrementWhisperRejections();
                             appStore.getState().triggerPreflightRejected();
+                            appStore.getState().setPointLossAmount(10);
                             appStore.getState().setMediaVisible(true);
                             appStore.getState().setMicStatusText(`<div class='text-center' style='color: red; font-size: large;'><i class='bi bi-exclamation-triangle-fill'></i> ${Strings.get('try_again_speech', userData?.native_language)}</div>`);
                             clearWarningLater(3000);
@@ -199,6 +199,7 @@ function _renderResponseStep(step, lesson, deps) {
                             appStore.getState().deductSpeakingScore(10);
                             appStore.getState().incrementWhisperRejections();
                             appStore.getState().triggerPreflightRejected();
+                            appStore.getState().setPointLossAmount(10);
                             appStore.getState().setMicStatusText(`<div class='text-center mt-3' style='color: #ff9800; font-size: large;'><i class='bi bi-ear-x'></i> Audio unclear. Please try speaking clearly.</div>`);
                             clearWarningLater(3000);
                         },
@@ -209,6 +210,7 @@ function _renderResponseStep(step, lesson, deps) {
                             appStore.getState().triggerVideoClear();
                             appStore.getState().setWebcamStream(null);
                             appStore.getState().triggerPreflightRejected();
+                            appStore.getState().setPointLossAmount(10);
                             appStore.getState().setMicStatusText(`<div class='text-center text-danger'>${msg}</div>`);
                             clearWarningLater(4000);
                         },
@@ -220,6 +222,7 @@ function _renderResponseStep(step, lesson, deps) {
                             appStore.getState().triggerVideoClear();
                             appStore.getState().setWebcamStream(null);
                             appStore.getState().triggerTranscriptRejected(cue, transcript);
+                            appStore.getState().setPointLossAmount(20);
                             appStore.getState().setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Restarting Mic...</div>`);
                         },
                         onReviewStart: (transcript, timeLeft, acceptFn, rejectFn) => {

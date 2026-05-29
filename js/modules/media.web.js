@@ -20,30 +20,12 @@ export const Media = {
     },
 
     pauseVideoIfPlaying() {
-        document.querySelectorAll('video.ivp-video, video.intro-video, #playback-video').forEach(video => {
-            if (!video.paused) video.pause();
-        });
+        // Pausing is now driven by store triggerPauseAllVideos — each video
+        // component subscribes to pauseAllVideosTrigger and pauses via its ref.
     },
 
     cleanupPreviousPlayers() {
-        // Restore window.* player teardown (was accidentally dropped in v3)
-        const players = [
-            'currentVideoPlayer',
-            'currentSimpleVideoPlayer',
-            'currentIntroVideoPlayer'
-        ];
-        for (const key of players) {
-            if (window[key]) {
-                window[key].destroy?.();
-                window[key] = null;
-            }
-        }
-
-        document.querySelectorAll('video.ivp-video, video.intro-video').forEach(media => {
-            media.pause();
-            media.removeAttribute('src');
-            media.load();
-        });
+        // React handles video teardown via component lifecycle on `currentVideo` change.
     },
 
     async enableAudioSystem() {
@@ -61,28 +43,13 @@ export const Media = {
     },
 
     preloader: {
-        video: null,
         preloadOnly(url) {
-            if (!this.video) {
-                this.video = document.createElement('video');
-                this.video.muted = true;
-                this.video.setAttribute('muted', ''); // Explicit attribute for some browsers
-                this.video.setAttribute('crossorigin', 'anonymous');
-                this.video.setAttribute('playsinline', '');
-                this.video.style.display = 'none';
-                this.video.id = 'media-preloader-element';
-                document.body.appendChild(this.video);
-            }
-            if (url && this.video.src !== url) {
-                this.video.src = url;
-                this.video.load();
-            }
+            if (!url) return;
+            // Warm the browser cache — same pattern as preloadLessonAssets in index.html
+            fetch(url, { method: 'HEAD', mode: 'no-cors' }).catch(() => {});
         },
         destroy() {
-            if (this.video) {
-                this.video.remove();
-                this.video = null;
-            }
+            // fetch-based preloading needs no cleanup
         }
     }
 };

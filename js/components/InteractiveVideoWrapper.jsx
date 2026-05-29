@@ -117,6 +117,16 @@ export default function InteractiveVideoWrapper() {
         };
     }, [currentVideo]);
 
+    // Pause when triggerPauseAllVideos fires
+    useEffect(() => {
+        const unsub = appStore.subscribe((state, prev) => {
+            if (state.pauseAllVideosTrigger !== prev.pauseAllVideosTrigger) {
+                playerInstance.current?.pause?.();
+            }
+        });
+        return unsub;
+    }, []);
+
     const target = portalTarget();
     const isActive = currentVideo && currentVideo.type === 'interactive';
 

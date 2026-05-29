@@ -376,7 +376,7 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
         console.error("Error updating speech recording with answers", e);
     }
 
-    Media.pauseVideoIfPlaying();
+    appStore.getState().triggerPauseAllVideos();
     appStore.getState().setMicActive(false);
     appStore.getState().setMicStatusText("");
     appStore.getState().setMediaVisible(false);
@@ -631,7 +631,7 @@ export function showFeedbackAndProceed(stepData, isCorrect, _deps = {}) {
         appStore.getState().setHintsVisible(false);
         console.log('[showFeedbackAndProceed] stepType:', stepData.stepType, '| isLessonIntro:', stepData.stepType === "lessonIntro");
         const onContinue = () => {
-            Media.pauseVideoIfPlaying();
+            appStore.getState().triggerPauseAllVideos();
             if (stepData.stepType === "lessonIntro") {
                 const initializeMedia = async () => {
                     await Media.enableAudioSystem();
