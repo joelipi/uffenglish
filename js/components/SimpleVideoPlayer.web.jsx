@@ -12,15 +12,16 @@ export default function SimpleVideoPlayer() {
     const videoRef = useRef(null);
     const subtitleContainerRef = useRef(null);
     const subtitleDisplayRef = useRef(null);
+    const posterCanvasRef = useRef(null);
     const [playing, setPlaying] = useState(false);
     const [loaded, setLoaded] = useState(false);
+    const [poster, setPoster] = useState(null);
     const [scrollOffset, setScrollOffset] = useState(0);
 
     // Store player reference for external pause/play
     useEffect(() => {
         if (!isActive) {
             appStore.getState().setCurrentVideoPlayer(null);
-            window.currentSimpleVideoPlayer = null;
             return;
         }
         appStore.getState().setMediaVisible(true);
@@ -35,11 +36,9 @@ export default function SimpleVideoPlayer() {
             }
         };
         appStore.getState().setCurrentVideoPlayer(player);
-        window.currentSimpleVideoPlayer = player;
         return () => {
             appStore.getState().setMediaVisible(false);
             appStore.getState().setCurrentVideoPlayer(null);
-            window.currentSimpleVideoPlayer = null;
         };
     }, [isActive]);
 
@@ -53,7 +52,7 @@ export default function SimpleVideoPlayer() {
 
         // iOS: transparent poster to avoid black frame flash
         if (isIOS) {
-            video.setAttribute('poster', 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==');
+            setPoster('data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==');
         }
 
         // Android: disable MediaSession to prevent lockscreen takeover
@@ -68,11 +67,10 @@ export default function SimpleVideoPlayer() {
                 } catch (e) { }
             };
             clearMs();
-            const clearHandlers = [video, video, video].map((_, i) => {
-                const evt = ['play', 'playing', 'loadstart', 'canplay'][i];
-                if (evt) video.addEventListener(evt, clearMs);
-                return evt ? { evt, fn: clearMs } : null;
-            }).filter(Boolean);
+            const clearHandlers = ['play', 'playing', 'loadstart', 'canplay'].map(evt => {
+                video.addEventListener(evt, clearMs);
+                return { evt, fn: clearMs };
+            });
 
             let msInterval;
             const onPlayMs = () => {
@@ -96,12 +94,10 @@ export default function SimpleVideoPlayer() {
             video.addEventListener('pause', onPauseMs);
             video.addEventListener('ended', onPauseMs);
 
+            // Prevent Android lockscreen from showing duration-based controls
             Object.defineProperty(video, 'duration', { get: () => NaN, configurable: true });
-            video.setAttribute('title', '');
-            video.removeAttribute('title');
-            video.setAttribute('data-ambient', 'true');
+            video.title = '';
 
-            // Store cleanup for unmount
             video._msCleanup = () => {
                 if (msInterval) clearInterval(msInterval);
                 clearHandlers.forEach(h => video.removeEventListener(h.evt, h.fn));
@@ -111,7 +107,6 @@ export default function SimpleVideoPlayer() {
             };
         }
 
-        // Fallback: reveal if loadeddata never fires
         let foucFallback = null;
 
         const onLoad = () => {
@@ -119,55 +114,24 @@ export default function SimpleVideoPlayer() {
             video.removeEventListener('canplay', onLoad);
             if (!loaded) setLoaded(true);
             if (foucFallback) clearTimeout(foucFallback);
+            if (!isIOS && posterCanvasRef.current && video.videoWidth) {
+                try {
+                    const canvas = posterCanvasRef.current;
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    canvas.getContext('2d').drawImage(video, 0, 0);
+                    setPoster(canvas.toDataURL('image/jpeg', 0.8));
+                } catch (e) {
+                    setPoster('data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==');
+                }
+            }
         };
         video.addEventListener('loadeddata', onLoad);
         video.addEventListener('canplay', onLoad);
         foucFallback = setTimeout(onLoad, 3000);
 
-        // Fallback: reveal if loadeddata never fires
-        if (!isIOS) {
-            const tempVideo = document.createElement('video');
-            tempVideo.crossOrigin = 'anonymous';
-            tempVideo.src = config.videoUrl;
-            tempVideo.muted = true;
-            tempVideo.preload = 'auto';
-            tempVideo.style.display = 'none';
-
-            const cleanupTemp = () => {
-                if (document.body.contains(tempVideo)) document.body.removeChild(tempVideo);
-            };
-            tempVideo.addEventListener('loadeddata', () => {
-                const canvas = document.createElement('canvas');
-                canvas.width = tempVideo.videoWidth;
-                canvas.height = tempVideo.videoHeight;
-                const ctx = canvas.getContext('2d');
-                try {
-                    ctx.drawImage(tempVideo, 0, 0, canvas.width, canvas.height);
-                    video.setAttribute('poster', canvas.toDataURL('image/jpeg', 0.8));
-                } catch (e) {
-                    video.setAttribute('poster', 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==');
-                }
-                cleanupTemp();
-            });
-            document.body.appendChild(tempVideo);
-            tempVideo.load();
-
-            const posterFallback = setTimeout(() => {
-                if (document.body.contains(tempVideo)) cleanupTemp();
-            }, 2000);
-
         return () => {
             console.warn('[SVP videoSrc] cleanup running');
-            clearTimeout(posterFallback);
-            cleanupTemp();
-            video.removeEventListener('loadeddata', onLoad);
-            video.removeEventListener('canplay', onLoad);
-            if (foucFallback) clearTimeout(foucFallback);
-            if (video._msCleanup) { video._msCleanup(); video._msCleanup = null; }
-        };
-        }
-
-        return () => {
             video.removeEventListener('loadeddata', onLoad);
             video.removeEventListener('canplay', onLoad);
             if (foucFallback) clearTimeout(foucFallback);
@@ -230,7 +194,6 @@ export default function SimpleVideoPlayer() {
 
     if (!isActive || !mediaVisible) return null;
 
-    // Render subtitle lines (split on \n to avoid dangerouslySetInnerHTML)
     const subtitleLines = subtitleText.split('\n');
 
     return (
@@ -238,6 +201,8 @@ export default function SimpleVideoPlayer() {
             <div className="ivp-video-wrapper">
                 <video ref={videoRef} className="ivp-video" playsInline disableRemotePlayback preload="metadata" crossOrigin="anonymous"
                     src={config?.videoUrl}
+                    poster={poster}
+                    {...(isAndroid ? { 'data-ambient': 'true' } : {})}
                     onPlay={() => setPlaying(true)}
                     onPause={() => setPlaying(false)}
                     onTimeUpdate={() => {
@@ -249,6 +214,7 @@ export default function SimpleVideoPlayer() {
                         if (v) updateProgress(v.currentTime, v.duration);
                     }}
                 />
+                <canvas ref={posterCanvasRef} style={{ display: 'none' }} />
                 <div className="ivp-blur-overlay" />
                 {subtitleText && (
                 <div ref={subtitleContainerRef} className={`ivp-subtitle-scroll-container${isTimedSubtitles ? ' timed-subtitles-container' : ''}`}>
