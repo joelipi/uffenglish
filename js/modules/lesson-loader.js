@@ -28,7 +28,9 @@ export async function loadLessonContent(lesson) {
     const titleText = (typeof lesson.title === 'object') ? (lesson.title.en || "") : (lesson.title || "");
     const fullTitle = `${course}${level}${course ? ': ' : ''}${unit}${titleText}`;
 
-    const persistedIndex = appStore.getState().currentStepIndex;
+    const urlParams = new URLSearchParams(window.location.search);
+    const forceRestart = urlParams.has('restart');
+    const persistedIndex = forceRestart ? 0 : appStore.getState().currentStepIndex;
     const startIndex = (persistedIndex > 0 && persistedIndex < lesson.steps.length) ? persistedIndex : 0;
 
     appStore.setState({
