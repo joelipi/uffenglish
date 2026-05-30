@@ -71,7 +71,18 @@ test.describe('End-to-End Smoke Test', () => {
 
         // 3. Interaction Loop: Respond Correctly and Incorrectly
         const answerResults = await page.evaluate(async () => {
-            const { submitAnswerPrecheck, handleAnswer } = await import('/js/modules/answer-pipeline.jsx');
+            const { createAnswerPipeline } = await import('/js/modules/answer-pipeline.js');
+            const { showChat, addAIFeedbackMessages, clearChat } = await import('/js/components/chat/chat-interface.js');
+            const pipeline = createAnswerPipeline({
+                showChat,
+                clearChat,
+                addAIFeedbackMessages,
+                playSound: () => {},
+                enableAudioSystem: () => {},
+                preloadVideo: () => {},
+                warmUpSpeechCam: () => {},
+            });
+            const { submitAnswerPrecheck, handleAnswer } = pipeline;
             const answerDeps = { loadNextStep: null };
             const state = window.appStore.getState();
             const lesson = state.configData.lessons[state.currentLessonIndex];

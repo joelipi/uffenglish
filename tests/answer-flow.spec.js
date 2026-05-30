@@ -35,13 +35,23 @@ test.describe('Answer Flow — mic bypass integration test', () => {
 
         // Import the wrappers and call submitAnswerPrecheck with a mock speech response
         const precheckResult = await page.evaluate(async () => {
-            const { submitAnswerPrecheck } = await import('/js/modules/answer-pipeline.jsx');
+            const { createAnswerPipeline } = await import('/js/modules/answer-pipeline.js');
+            const { showChat, addAIFeedbackMessages, clearChat } = await import('/js/components/chat/chat-interface.js');
+            const pipeline = createAnswerPipeline({
+                showChat,
+                clearChat,
+                addAIFeedbackMessages,
+                playSound: () => {},
+                enableAudioSystem: () => {},
+                preloadVideo: () => {},
+                warmUpSpeechCam: () => {},
+            });
             const answerDeps = { loadNextStep: null };
             const state = window.appStore.getState();
             const lesson = state.configData.lessons[state.currentLessonIndex];
             const step = lesson.steps[state.currentStepIndex] || lesson.steps[1];
             try {
-                await submitAnswerPrecheck(
+                await pipeline.submitAnswerPrecheck(
                     'hello there',
                     step.cue,
                     step,
@@ -66,13 +76,23 @@ test.describe('Answer Flow — mic bypass integration test', () => {
 
         // Also test handleAnswer wrapper directly (simulates speech.js call)
         const answerResult = await page.evaluate(async () => {
-            const { handleAnswer } = await import('/js/modules/answer-pipeline.jsx');
+            const { createAnswerPipeline } = await import('/js/modules/answer-pipeline.js');
+            const { showChat, addAIFeedbackMessages, clearChat } = await import('/js/components/chat/chat-interface.js');
+            const pipeline = createAnswerPipeline({
+                showChat,
+                clearChat,
+                addAIFeedbackMessages,
+                playSound: () => {},
+                enableAudioSystem: () => {},
+                preloadVideo: () => {},
+                warmUpSpeechCam: () => {},
+            });
             const answerDeps = { loadNextStep: null };
             const state = window.appStore.getState();
             const lesson = state.configData.lessons[state.currentLessonIndex];
             const step = lesson.steps[state.currentStepIndex] || lesson.steps[1];
             try {
-                await handleAnswer(
+                await pipeline.handleAnswer(
                     'hello there',
                     step.cue,
                     step,

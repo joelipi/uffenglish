@@ -6,112 +6,144 @@
 import { appStore } from './store.js';
 import Strings from '../data/strings.js';
 
-import {
-    addAILoadingMessage,
-    getChatHistoryContext
-} from '../components/chat/chat-interface.js';
-import { askEnglishTutor } from './api.js';
-import { saveLessonProgress } from './user-profile.js';
-import { Media } from './media.js';
+export function createProgression(deps) {
+    const {
+        addAILoadingMessage,
+        getChatHistoryContext,
+        askEnglishTutor,
+        saveLessonProgress,
+        playSound,
+    } = deps;
 
-export function updateProgressBar() {
-    if (!appStore.getState().configData || !appStore.getState().configData.lessons || appStore.getState().configData.lessons.length === 0) return;
-    const currentLesson = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex];
-    const totalSteps = currentLesson.steps.length;
-    const gs = appStore.getState();
-    let currentSteps = gs.stepsAnswered;
-    gs.setStepsAnswered(currentSteps + 1);
-    const finalProgress = Math.min(Math.max((currentSteps / totalSteps) * 100, 10), 90);
-    appStore.getState().setProgressPercent(`${finalProgress}%`);
-}
-
-export function showCompletionMessage() {
-    appStore.getState().setCompletionMessage(Strings.get('msg_lesson_complete_all', appStore.getState().userData?.native_language));
-}
-
-export function loadNextStep(currentStep, fluencyData, _deps = {}) {
-    updateProgressBar();
-    appStore.getState().setStatsVisible(false);
-    appStore.getState().resetForNextStep();
-    appStore.getState().resetStepState();
-
-    if (!appStore.getState().configData || !appStore.getState().configData.lessons || appStore.getState().configData.lessons.length === 0) return;
-    const currentLesson = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex];
-
-    const loadLessonContent = _deps.loadLessonContent || appStore.getState().loadLessonContentCallback;
-
-    appStore.setState({ currentStepIndex: appStore.getState().currentStepIndex + 1 });
-    if (appStore.getState().currentStepIndex < currentLesson.steps.length) {
-        _deps.callLoadStep(currentLesson.steps[appStore.getState().currentStepIndex], currentLesson, fluencyData);
-    } else {
-        if (currentLesson.nextLessonId) loadNextLesson({ callLoadStep: _deps.callLoadStep, loadLessonContent });
-        else showCompletionMessage();
+    function updateProgressBar() {
+        if (!appStore.getState().configData || !appStore.getState().configData.lessons || appStore.getState().configData.lessons.length === 0) return;
+        const currentLesson = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex];
+        const totalSteps = currentLesson.steps.length;
+        const gs = appStore.getState();
+        let currentSteps = gs.stepsAnswered;
+        gs.setStepsAnswered(currentSteps + 1);
+        const finalProgress = Math.min(Math.max((currentSteps / totalSteps) * 100, 10), 90);
+        appStore.getState().setProgressPercent(`${finalProgress}%`);
     }
-}
 
-export async function loadNextLesson(_deps = {}) {
-    if (!appStore.getState().configData || !appStore.getState().configData.lessons || appStore.getState().configData.lessons.length === 0) return;
-    const currentLesson = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex];
-    const nextLessonId = currentLesson.nextLessonId;
-    console.log(`[Progression] loadNextLesson: ${currentLesson?.lessonId} → ${nextLessonId}`);
-
-    if (nextLessonId) {
-        // Update URL immediately so reload lands on the correct lesson
-        appStore.setState({ pendingLessonNavigation: nextLessonId });
-
-        saveLessonProgress(appStore.getState().courseId, nextLessonId, appStore.getState().userData).then(progressResult => {
-            if (progressResult.dayCountIncremented) {
-                appStore.getState().setActivityMetrics(progressResult.newDayCount, appStore.getState().currentStreak);
-            }
-        });
-
-        // Async state persistence — route navigation handles loading the new lesson content
-        setTimeout(() => {
-            const nextLessonIndex = appStore.getState().configData.lessons.findIndex(l => l.lessonId === nextLessonId);
-            if (nextLessonIndex !== -1) {
-                appStore.setState({ currentLessonIndex: nextLessonIndex });
-                localStorage.setItem(`${appStore.getState().courseId}_currentLessonId`, nextLessonId);
-                localStorage.setItem(`${appStore.getState().courseId}_currentLessonTimestamp`, new Date().toISOString());
-            }
-        }, 500);
-    } else {
-        Media.playSound('lesson-complete-sound');
-        showCompletionMessage();
+    function showCompletionMessage() {
+        appStore.getState().setCompletionMessage(Strings.get('msg_lesson_complete_all', appStore.getState().userData?.native_language));
     }
-}
 
-export async function handleTutorChatSubmit(rawText) {
-    if (!rawText || !rawText.trim()) return;
-    const wordCount = rawText.trim().split(/\s+/).length;
-    appStore.getState().incrementUserTutorStats(wordCount);
+    function loadNextStep(currentStep, fluencyData, _deps = {}) {
+        updateProgressBar();
+        appStore.getState().setStatsVisible(false);
+        appStore.getState().resetForNextStep();
+        appStore.getState().resetStepState();
 
-    appStore.getState().addChatMessage({
-        role: 'user',
-        type: 'standard',
-        content: rawText,
-        userName: appStore.getState().userData?.display_name?.split(' ')[0] || 'User',
-        userAvatarUrl: appStore.getState().userData?.profilepicurl || '/assets/img/userprofile.webp'
-    });
+        if (!appStore.getState().configData || !appStore.getState().configData.lessons || appStore.getState().configData.lessons.length === 0) return;
+        const currentLesson = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex];
 
-    addAILoadingMessage(Strings.get('ai_thinking', appStore.getState().userData?.native_language));
+        const loadLessonContent = _deps.loadLessonContent || appStore.getState().loadLessonContentCallback;
 
-    const context = getChatHistoryContext();
-    try {
-        const aiResponse = await askEnglishTutor(context, rawText);
-        const aiWordCount = aiResponse.trim().split(/\s+/).length;
-        appStore.getState().incrementAiTutorStats(aiWordCount);
+        appStore.setState({ currentStepIndex: appStore.getState().currentStepIndex + 1 });
+        if (appStore.getState().currentStepIndex < currentLesson.steps.length) {
+            _deps.callLoadStep(currentLesson.steps[appStore.getState().currentStepIndex], currentLesson, fluencyData);
+        } else {
+            if (currentLesson.nextLessonId) loadNextLesson({ callLoadStep: _deps.callLoadStep, loadLessonContent });
+            else showCompletionMessage();
+        }
+    }
 
-        appStore.getState().removeAiLoadingMessage();
+    async function loadNextLesson(_deps = {}) {
+        if (!appStore.getState().configData || !appStore.getState().configData.lessons || appStore.getState().configData.lessons.length === 0) return;
+        const currentLesson = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex];
+        const nextLessonId = currentLesson.nextLessonId;
+        console.log(`[Progression] loadNextLesson: ${currentLesson?.lessonId} → ${nextLessonId}`);
+
+        if (nextLessonId) {
+            appStore.setState({ pendingLessonNavigation: nextLessonId });
+
+            saveLessonProgress(appStore.getState().courseId, nextLessonId, appStore.getState().userData).then(progressResult => {
+                if (progressResult.dayCountIncremented) {
+                    appStore.getState().setActivityMetrics(progressResult.newDayCount, appStore.getState().currentStreak);
+                }
+            });
+
+            setTimeout(() => {
+                const nextLessonIndex = appStore.getState().configData.lessons.findIndex(l => l.lessonId === nextLessonId);
+                if (nextLessonIndex !== -1) {
+                    appStore.setState({ currentLessonIndex: nextLessonIndex });
+                    localStorage.setItem(`${appStore.getState().courseId}_currentLessonId`, nextLessonId);
+                    localStorage.setItem(`${appStore.getState().courseId}_currentLessonTimestamp`, new Date().toISOString());
+                }
+            }, 500);
+        } else {
+            playSound('lesson-complete-sound');
+            showCompletionMessage();
+        }
+    }
+
+    async function handleTutorChatSubmit(rawText) {
+        if (!rawText || !rawText.trim()) return;
+        const wordCount = rawText.trim().split(/\s+/).length;
+        appStore.getState().incrementUserTutorStats(wordCount);
 
         appStore.getState().addChatMessage({
-            role: 'system',
+            role: 'user',
             type: 'standard',
-            content: aiResponse,
-            botName: 'FluIntel AI',
-            avatarUrl: '/assets/img/ai.webp'
+            content: rawText,
+            userName: appStore.getState().userData?.display_name?.split(' ')[0] || 'User',
+            userAvatarUrl: appStore.getState().userData?.profilepicurl || '/assets/img/userprofile.webp'
         });
-    } catch (error) {
-        console.error('[app] Error in askEnglishTutor:', error);
-        appStore.getState().removeAiLoadingMessage();
+
+        addAILoadingMessage(Strings.get('ai_thinking', appStore.getState().userData?.native_language));
+
+        const context = getChatHistoryContext();
+        try {
+            const aiResponse = await askEnglishTutor(context, rawText);
+            const aiWordCount = aiResponse.trim().split(/\s+/).length;
+            appStore.getState().incrementAiTutorStats(aiWordCount);
+
+            appStore.getState().removeAiLoadingMessage();
+
+            appStore.getState().addChatMessage({
+                role: 'system',
+                type: 'standard',
+                content: aiResponse,
+                botName: 'FluIntel AI',
+                avatarUrl: '/assets/img/ai.webp'
+            });
+        } catch (error) {
+            console.error('[app] Error in askEnglishTutor:', error);
+            appStore.getState().removeAiLoadingMessage();
+        }
     }
+
+    return { updateProgressBar, showCompletionMessage, loadNextStep, loadNextLesson, handleTutorChatSubmit };
 }
+
+// --- Backward-compatible free-function exports ---
+// These allow existing importers (LessonContainer.jsx, app-infra.js) to keep working
+// without immediately switching to the factory pattern.
+// app-infra.js calls setProgressionDeps() to configure the default instance.
+
+let _deps = {
+    addAILoadingMessage: () => {},
+    getChatHistoryContext: () => '',
+    askEnglishTutor: async () => '',
+    saveLessonProgress: async () => ({}),
+    playSound: () => {},
+};
+let _instance = null;
+
+export function setProgressionDeps(deps) {
+    _deps = deps;
+    _instance = null;
+}
+
+function getProgression() {
+    if (!_instance) _instance = createProgression(_deps);
+    return _instance;
+}
+
+export function updateProgressBar() { return getProgression().updateProgressBar(); }
+export function showCompletionMessage() { return getProgression().showCompletionMessage(); }
+export function loadNextStep(currentStep, fluencyData, _deps) { return getProgression().loadNextStep(currentStep, fluencyData, _deps); }
+export function loadNextLesson(_deps) { return getProgression().loadNextLesson(_deps); }
+export function handleTutorChatSubmit(rawText) { return getProgression().handleTutorChatSubmit(rawText); }

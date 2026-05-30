@@ -1,24 +1,32 @@
 // --- modules/step-loader-execute.js ---
-// Exports createLoadStep(submitAnswerPrecheck, showFeedbackAndProceed, handleHint) factory.
+// Exports createLoadStep(deps) factory.
 // UI rendering is driven through Zustand store actions — React components handle the DOM.
 
 import { appStore } from '../modules/store.js';
 import Strings from '../data/strings.js';
 import { getLocalizedTranslation } from '../modules/utils.js';
 import { getCurrentStepIndex } from '../modules/answers.js';
-import { warmUpSpeechCamStream, toggleSpeechRecognition, listeningState } from '../modules/speech.js';
 import { logInteraction } from '../modules/scoring.js';
 import { handleTextStep, handleLessonComplete, handleUnitComplete, handleSuccessStep, clearWarningLater, cancelWarningClear } from '../modules/step-loader-logic.js';
 import { loadStepOrchestrate } from '../modules/step-loader-orchestrate.js';
-import { clearChat, addAIFeedbackMessages } from '../components/chat/chat-interface.js';
 
 function resetUIForNewStep(isLessonIntro, hasUserData) {
     appStore.getState().setBottomControlState('mic');
 }
 
-export function createLoadStep(submitAnswerPrecheck, showFeedbackAndProceed, handleHint) {
+export function createLoadStep(deps) {
+    const {
+        submitAnswerPrecheck,
+        showFeedbackAndProceed,
+        handleHint,
+        warmUpSpeechCam,
+        toggleSpeechRecognition,
+        listeningState,
+        clearChat,
+        addAIFeedbackMessages,
+    } = deps;
+
     return function loadStep(step, lesson, fluencyData) {
-    // submitAnswerPrecheck, showFeedbackAndProceed, handleHint closed over from factory
 
     // Strict voice/hesitation state isolation between steps
     if (listeningState) {
@@ -39,11 +47,11 @@ export function createLoadStep(submitAnswerPrecheck, showFeedbackAndProceed, han
     const onStepLoaded = (step, lesson, fluencyData) => {
         if (step.stepType === 'closedResponse' || step.stepType === 'openResponse') {
             if (!appStore.getState().isCameraOff && !appStore.getState().isTextMode) {
-                warmUpSpeechCamStream();
+                warmUpSpeechCam();
             } else if (appStore.getState().isTextMode) {
                 console.log('[QuestionLoader] Text mode: bypassing hardware prompt');
             } else {
-                warmUpSpeechCamStream();
+                warmUpSpeechCam();
             }
         } else {
             appStore.getState().setWebcamStream(null);
@@ -59,7 +67,7 @@ export function createLoadStep(submitAnswerPrecheck, showFeedbackAndProceed, han
 
     // Platform-specific step type handlers
     const onResponseStep = (step, lesson, deps) => {
-        _renderResponseStep(step, lesson, deps);
+        _renderResponseStep(step, lesson, deps, toggleSpeechRecognition);
     };
 
     const onTextStep = (step, deps) => {
@@ -79,7 +87,7 @@ export function createLoadStep(submitAnswerPrecheck, showFeedbackAndProceed, han
     };
 
     const onPresent = (step, lesson, deps) => {
-        _renderPresent(step, lesson, deps.showFeedbackAndProceed);
+        _renderPresent(step, lesson, deps.showFeedbackAndProceed, addAIFeedbackMessages);
     };
 
     const onSuccess = (step, fluencyData) => {
@@ -103,7 +111,7 @@ export function createLoadStep(submitAnswerPrecheck, showFeedbackAndProceed, han
     };
 }
 
-function _renderResponseStep(step, lesson, deps) {
+function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
     const { submitAnswerPrecheck, handleHint } = deps;
     appStore.getState().setHintsVisible(false);
 
@@ -249,7 +257,7 @@ function _renderResponseStep(step, lesson, deps) {
     }
 }
 
-function _renderPresent(step, lesson, showFeedbackAndProceed) {
+function _renderPresent(step, lesson, showFeedbackAndProceed, addAIFeedbackMessages) {
     appStore.getState().setStatsVisible(false);
 
     if (!step.simpleVideoUrl) {

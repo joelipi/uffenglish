@@ -1,28 +1,25 @@
-/**
- * app-infra.js — Application infrastructure setup
- *
- * Wires up progress tracking, tutor chat,
- * mic animation, and deferred AI/BG workers. Called from the React
- * bootstrap hook after auth and config are loaded.
- */
+// --- hooks/app-infra.js ---
+// Application infrastructure setup.
+// Wires up progress tracking, tutor chat,
+// mic animation, and deferred AI/BG workers via deps-injection factories.
+// Called from the React bootstrap hook after auth and config are loaded.
 
 import { appStore } from '../modules/store.js';
 
 import { syncOfflineScores } from '../modules/user-profile.js';
 import { calculateCurrentStreak } from '../modules/user-profile.js';
+import { saveLessonProgress } from '../modules/user-profile.js';
 import { calculateAverage } from '../modules/scoring.js';
 import { Media } from '../modules/media.js';
 import Strings from '../data/strings.js';
-import { updateProgressBar as updateProgressBarFn, loadNextStep as loadNextStepImpl, loadNextLesson as loadNextLessonFn, showCompletionMessage as showCompletionMessageFn, handleTutorChatSubmit as handleTutorChatSubmitFn } from '../modules/lesson-progression.js';
+import { setProgressionDeps, updateProgressBar as updateProgressBarFn, loadNextStep as loadNextStepImpl, loadNextLesson as loadNextLessonFn, showCompletionMessage as showCompletionMessageFn, handleTutorChatSubmit as handleTutorChatSubmitFn } from '../modules/lesson-progression.js';
 import { loadLessonContent as loadLessonContentShared } from '../modules/lesson-loader.js';
 import { loadStep } from '../components/step-loader.js';
 
-import {
-    handleHint as handleHintImpl,
-    submitAnswerPrecheck as submitAnswerPrecheckImpl,
-    handleAnswer as handleAnswerImpl,
-    showFeedbackAndProceed as showFeedbackAndProceedImpl
-} from '../modules/answer-pipeline.jsx';
+import { createAnswerPipeline } from '../modules/answer-pipeline.js';
+import { showChat, addAILoadingMessage, addAIFeedbackMessages, clearChat, getChatHistoryContext } from '../components/chat/chat-interface.js';
+import { askEnglishTutor } from '../modules/api.js';
+import { warmUpSpeechCamStream, toggleSpeechRecognition, listeningState } from '../modules/speech.js';
 
 export async function setupAppInfra({ userData }) {
     if (userData) {
@@ -50,7 +47,33 @@ export async function setupAppInfra({ userData }) {
 
     syncOfflineScores(userData);
 
+    // Wire progression backward-compatible wrappers
+    setProgressionDeps({
+        addAILoadingMessage,
+        getChatHistoryContext,
+        askEnglishTutor,
+        saveLessonProgress,
+        playSound: Media.playSound,
+    });
+
+    // Create answer pipeline
+    const pipeline = createAnswerPipeline({
+        showChat,
+        clearChat,
+        addAIFeedbackMessages,
+        playSound: Media.playSound,
+        enableAudioSystem: Media.enableAudioSystem,
+        preloadVideo: (url) => Media.preloader.preloadOnly(url),
+        warmUpSpeechCam: warmUpSpeechCamStream,
+    });
+
     appStore.getState().setTutorChatSubmitCallback(handleTutorChatSubmitFn);
+
+    const {
+        handleHint: handleHintImpl,
+        submitAnswerPrecheck: submitAnswerPrecheckImpl,
+        showFeedbackAndProceed: showFeedbackAndProceedImpl,
+    } = pipeline;
 
     const handleHint = (...args) => handleHintImpl(...args);
 
@@ -70,17 +93,6 @@ export async function setupAppInfra({ userData }) {
             );
         }
         return submitAnswerPrecheckImpl(...args, answerDeps);
-    };
-
-    const handleAnswer = (...args) => {
-        if (args.length < 11) {
-            return handleAnswerImpl(
-                args[0], args[1], args[2], args[3], args[4], args[5], args[6],
-                answerDeps,
-                args[7], args[8], args[9]
-            );
-        }
-        return handleAnswerImpl(...args, answerDeps);
     };
 
     const showFeedbackAndProceed = (...args) => showFeedbackAndProceedImpl(...args, answerDeps);
