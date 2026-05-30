@@ -55,7 +55,7 @@ export function useAppBootstrap() {
                 const courseContext = {
                     urlCourseId: pathCourseMatch?.[1] || getUrlParamCaseInsensitive(urlParams, 'courseid'),
                     storedCourseId: localStorage.getItem('currentCourse'),
-                    wpCourseId: userData?.current_course || null
+                    profileCourseId: userData?.current_course || null
                 };
                 const courseId = resolveCurrentCourseId(userData, courseContext);
                 localStorage.setItem('currentCourse', courseId);

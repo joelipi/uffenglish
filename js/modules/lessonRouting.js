@@ -48,14 +48,14 @@ export function resolveCurrentLessonId(configData, userData, courseId, context =
         }
     }
 
-    // Priority 3: Most recent of WordPress profile vs localStorage (timestamp wins)
-    let wpLessonId = null;
-    let wpTimestamp = null;
+    // Priority 3: Most recent of user profile vs localStorage (timestamp wins)
+    let profileLessonId = null;
+    let profileTimestamp = null;
 
     if (userData) {
-        wpLessonId = userData[`${courseId}_current_lesson`] ?? null;
+        profileLessonId = userData[`${courseId}_current_lesson`] ?? null;
         const ts = userData[`${courseId}_lesson_timestamp`];
-        wpTimestamp = ts && !isNaN(new Date(ts).getTime()) ? new Date(ts) : null;
+        profileTimestamp = ts && !isNaN(new Date(ts).getTime()) ? new Date(ts) : null;
     }
 
     const lsTs = storedTimestamp && !isNaN(new Date(storedTimestamp).getTime())
@@ -63,7 +63,7 @@ export function resolveCurrentLessonId(configData, userData, courseId, context =
         : null;
 
     const sources = [];
-    if (wpLessonId && wpTimestamp) sources.push({ lessonId: wpLessonId, timestamp: wpTimestamp });
+    if (profileLessonId && profileTimestamp) sources.push({ lessonId: profileLessonId, timestamp: profileTimestamp });
     if (storedLessonId && lsTs) sources.push({ lessonId: storedLessonId, timestamp: lsTs });
 
     if (sources.length === 1) return sources[0].lessonId;
@@ -83,23 +83,23 @@ export function resolveCurrentLessonId(configData, userData, courseId, context =
 /**
  * Resolves the current course ID from pure data inputs (in priority order):
  * 1. Explicitly passed urlCourseId
- * 2. WordPress user profile param (wpCourseId)
+ * 2. User profile param (profileCourseId)
  * 3. Stored course ID
  * 4. Default: 'tutorial'
  * @param {object|null} userData
  * @param {object} context
  * @param {string} [context.urlCourseId]
- * @param {string} [context.wpCourseId]
+ * @param {string} [context.profileCourseId]
  * @param {string} [context.storedCourseId]
  * @returns {string}
  */
 export function resolveCurrentCourseId(userData, context = {}) {
-    const { urlCourseId, wpCourseId, storedCourseId } = context;
+    const { urlCourseId, profileCourseId, storedCourseId } = context;
 
     if (urlCourseId) return urlCourseId;
 
     if (userData && typeof userData === 'object') {
-        const fromProfile = wpCourseId || userData.current_course || null;
+        const fromProfile = profileCourseId || userData.current_course || null;
         if (fromProfile) return fromProfile;
     }
 
