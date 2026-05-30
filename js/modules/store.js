@@ -33,6 +33,7 @@ export const appStore = createStore(
 onMicClickCallback: null,
             loadLessonContentCallback: null,
             answerPipelineDeps: null,
+            pendingLessonNavigation: null,
             pauseAllVideosTrigger: 0,
 
 // --- Session-scoped State (not persisted, reset per lesson) ---

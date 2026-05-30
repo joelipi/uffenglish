@@ -4,7 +4,6 @@
 // remain in app.js due to tight coupling with answer pipeline and progression.
 
 import { isUserLoggedIn, signOut } from './api.js';
-import { navigateToHome, navigateToLogin } from './navigation.js';
 
 export async function requestPersistentStorage() {
     if (navigator.storage && navigator.storage.persist) {
@@ -26,11 +25,11 @@ export async function handleAuthClick(e) {
     if (isLoggedIn) {
         if (confirm('Are you sure you want to sign out?')) {
             await signOut();
-            navigateToHome();
+            window.location.href = 'homescreen.html';
         }
     } else {
         const currentUrl = window.location.pathname + window.location.search;
-        navigateToLogin(currentUrl);
+        window.location.href = `login.html?redirect=${encodeURIComponent(currentUrl)}`;
     }
 }
 

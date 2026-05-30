@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { appStore } from '../modules/store.js';
 import { useInitializeLesson } from '../hooks/useInitializeLesson.js';
@@ -63,6 +63,16 @@ export default function LessonContainer() {
         }
     }, [courseId, lessonId, configData, initializeLesson]);
 
+    const navigate = useNavigate();
+    const pendingNav = useStore(appStore, (state) => state.pendingLessonNavigation);
+
+    useEffect(() => {
+        if (pendingNav && courseId) {
+            navigate(`/course/${courseId}/lesson/${pendingNav}`, { replace: true });
+            appStore.setState({ pendingLessonNavigation: null });
+        }
+    }, [pendingNav, courseId, navigate]);
+
     const getCurrentStep = useCallback(() => {
         if (!configData?.lessons) return null;
         const currentLesson = configData.lessons[currentLessonIndex];
@@ -94,6 +104,7 @@ export default function LessonContainer() {
             <div className="top-overlay position-absolute top-0 start-0 w-100 px-3 py-2 z-1">
                 <div className="w-100 text-shadow">
                     <div className="d-flex align-items-center w-100 mb-0">
+                        {/* TODO: Replace with proper home route when one exists */}
                         <Link to="/" id="closePage"
                             className="d-flex align-items-center text-decoration-none flex-shrink-0" aria-label="Close">
                             <i className="bi bi-x-lg"></i>

@@ -80,6 +80,7 @@ export async function loadNextLesson(_deps = {}) {
                     console.error('[Progression] loadLessonContent not available');
                     showCompletionMessage();
                 }
+                appStore.setState({ pendingLessonNavigation: nextLessonId });
             } else showCompletionMessage();
         }, 500);
     } else {

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store.js';
 
@@ -113,16 +114,15 @@ export function VideoButton() {
   return null;
 }
 
-export function RepeatButton() {
+export function RepeatButton({ lessonId }) {
   const button = useStore(appStore, state => state.successRepeatButton);
-  const lessonId = useStore(appStore, state => state.successLessonId);
+  const navigate = useNavigate();
+  const { courseId } = useParams();
 
-  if (!button.visible || !lessonId) return null;
+  if (!button.visible || !lessonId || !courseId) return null;
 
   const handleRepeat = () => {
-    const baseUrl = window.location.origin + window.location.pathname;
-    const newUrl = `${baseUrl}?lessonId=${encodeURIComponent(lessonId)}`;
-    window.location.href = newUrl;
+    navigate(`/course/${courseId}/lesson/${lessonId}`, { replace: true });
   };
 
   return (

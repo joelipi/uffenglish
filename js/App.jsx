@@ -1,15 +1,12 @@
 import React, { useEffect, useRef } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { RouterProvider } from 'react-router-dom';
+import { router } from '../app/router.web.jsx';
 import { initLocalVoiceAI } from './modules/speech.js';
 import { idiomChecker } from './modules/idiom-checker.js';
-
-import LessonContainer from './components/LessonContainer.jsx';
 import Preloader from './components/Preloader.jsx';
-import { useAppBootstrap } from './hooks/useAppBootstrap.js';
 
 export default function App() {
     const isWorkerInitialized = useRef(false);
-    const { bootState } = useAppBootstrap();
 
     useEffect(() => {
         if (isWorkerInitialized.current) return;
@@ -44,19 +41,7 @@ export default function App() {
         })();
     }, []);
 
-    if (bootState !== 'ready') {
-        return <Preloader />;
-    }
-
     return (
-        <>
-            <Preloader />
-            <BrowserRouter>
-                <Routes>
-                    <Route path="/course/:courseId/lesson/:lessonId" element={<LessonContainer />} />
-                    <Route path="*" element={<Navigate to="/course/gt2/lesson/a" replace />} />
-                </Routes>
-            </BrowserRouter>
-        </>
+        <RouterProvider router={router} fallbackElement={<Preloader />} />
     );
 }

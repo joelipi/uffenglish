@@ -1,9 +1,6 @@
 import { useCallback } from 'react';
 import { appStore } from '../modules/store.js';
-import {
-    resolveCurrentLessonId,
-    getUrlParamCaseInsensitive
-} from '../modules/lessonRouting.js';
+import { resolveCurrentLessonId } from '../modules/lessonRouting.js';
 import { saveLessonProgress } from '../modules/user-profile.js';
 import { loadLessonContent } from '../modules/lesson-loader.js';
 import Strings from '../data/strings.js';
@@ -11,10 +8,9 @@ import Strings from '../data/strings.js';
 export function useInitializeLesson() {
     const initializeLesson = useCallback(async (courseId, lessonId, configData, userData) => {
         try {
-            const urlParams = new URLSearchParams(window.location.search);
-            const pathLessonMatch = window.location.pathname.match(/^\/course\/([^/]+)\/lesson\/([^/]+)/);
             const routerContext = {
-                urlLessonId: pathLessonMatch?.[2] || getUrlParamCaseInsensitive(urlParams, 'lessonid'),
+                urlLessonId: lessonId,
+                persistedLessonId: appStore.getState().activeLessonId,
                 storedLessonId: localStorage.getItem(`${courseId}_currentLessonId`),
                 storedTimestamp: localStorage.getItem(`${courseId}_currentLessonTimestamp`)
             };
@@ -27,21 +23,6 @@ export function useInitializeLesson() {
             const lesson = configData.lessons.find(l => l.lessonId === resolvedLessonId);
             if (!lesson) {
                 throw new Error(`Lesson '${resolvedLessonId}' not found in course configuration.`);
-            }
-
-            if (routerContext.urlLessonId && window.location.search) {
-                const url = new URL(window.location.href);
-                const keysToDelete = [];
-                for (const key of url.searchParams.keys()) {
-                    const lowerKey = key.toLowerCase();
-                    if (lowerKey === 'lessonid' || lowerKey === 'course' || lowerKey === 'courseid') {
-                        keysToDelete.push(key);
-                    }
-                }
-                if (keysToDelete.length > 0) {
-                    keysToDelete.forEach(key => url.searchParams.delete(key));
-                    window.history.replaceState({}, '', url.toString());
-                }
             }
 
             await saveLessonProgress(courseId, resolvedLessonId, userData, { updateUserMeta: false, incrementCount: false });

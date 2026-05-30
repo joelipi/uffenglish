@@ -2,14 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { appStore } from '../modules/store.js';
 import { requestPersistentStorage } from '../modules/lesson-init.js';
 import { isUserLoggedIn, getUserProfile } from '../modules/api.js';
-import { resolveCurrentCourseId, getUrlParamCaseInsensitive } from '../modules/lessonRouting.js';
-import { normalizeConfig } from '../modules/config-normalizer.js';
-import { saveCourseToUserProfile } from '../modules/user-profile.js';
 import { setupAppInfra } from './app-infra.js';
 import { usePreloader } from './usePreloader.js';
 import Strings from '../data/strings.js';
 
-export function useAppBootstrap() {
+export function useAppBootstrap({ courseId } = {}) {
     const [bootState, setBootState] = useState('loading');
     const [error, setError] = useState(null);
     const initStarted = useRef(false);
@@ -50,24 +47,13 @@ export function useAppBootstrap() {
                     appStore.getState().setGuestModalOpen(true);
                 }
 
-                const urlParams = new URLSearchParams(window.location.search);
-                const pathCourseMatch = window.location.pathname.match(/^\/course\/([^/]+)\/lesson\/([^/]+)/);
-                const courseContext = {
-                    urlCourseId: pathCourseMatch?.[1] || getUrlParamCaseInsensitive(urlParams, 'courseid'),
-                    storedCourseId: localStorage.getItem('currentCourse'),
-                    profileCourseId: userData?.current_course || null
-                };
-                const courseId = resolveCurrentCourseId(userData, courseContext);
-                localStorage.setItem('currentCourse', courseId);
-                if (userData && typeof userData === 'object') {
-                    await saveCourseToUserProfile(courseId, userData);
+                if (courseId) {
+                    localStorage.setItem('currentCourse', courseId);
+                    if (userData && typeof userData === 'object') {
+                        const { saveCourseToUserProfile } = await import('../modules/user-profile.js');
+                        await saveCourseToUserProfile(courseId, userData);
+                    }
                 }
-
-                const configResponse = await fetch(`/js/config/${courseId}.json`);
-                const configData = await configResponse.json();
-                const englishLevel = configData.languageLevel || 'A0';
-                normalizeConfig(configData, userData?.native_language);
-                appStore.getState().setCourseData({ courseId, configData, englishLevel });
 
                 await setupAppInfra({ userData });
 
