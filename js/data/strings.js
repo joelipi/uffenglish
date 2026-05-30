@@ -633,13 +633,12 @@ export function get(key, lang = 'en', placeholders = {}) {
         });
     }
 
-    // If no language is provided, or it's English, or we don't have that translation, return only English
+    // Return the localized text or fall back to English (no HTML).
+    // Components that need bilingual display should use getBilingual() instead.
     if (normalizedLang === 'en' || !entry[normalizedLang]) {
         return englishText;
     }
-
-    // Return English + Translated version in a span
-    return `${englishText}<br><span lang='${normalizedLang}'><i>${translatedText}</i></span>`;
+    return translatedText;
 }
 
 /**
