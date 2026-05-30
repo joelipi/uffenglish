@@ -37,7 +37,7 @@ import { getEnglish, getLocalizedString, shouldShowLocalized } from './bilingual
  * @param {string}  [options.spanPrefix='/ ']      — text inside span between `/` and localized
  * @param {boolean} [options.skipEnglish=false]     — emit only the localized span
  * @param {Function} [options.wrapper=html=>html]  — wrap the final HTML string
- * @returns {string} HTML for `.innerHTML` / Zustand `htmlChunk`
+ * @returns {string} HTML for `.innerHTML`
  */
 export function formatBilingualHTML(
     translationData,

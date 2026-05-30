@@ -197,25 +197,6 @@ onMicClickCallback: null,
             removeContinueWidget: () => set((state) => ({
                 chatHistory: state.chatHistory.filter(msg => msg.type !== 'continueWidget')
             })),
-            replaceLastMessage: (msg) => set((state) => {
-                if (state.chatHistory.length === 0) {
-                    const newMsg = {
-                        id: msg.id !== undefined ? msg.id : Date.now() + Math.random(),
-                        role: msg.role,
-                        type: msg.type || 'standard',
-                        content: msg.content,
-                        ...msg
-                    };
-                    return { chatHistory: [newMsg] };
-                }
-                const newHistory = [...state.chatHistory];
-                const lastMsg = newHistory[newHistory.length - 1];
-                newHistory[newHistory.length - 1] = {
-                    ...lastMsg,
-                    ...msg
-                };
-                return { chatHistory: newHistory };
-            }),
             setUserFirstName: (val) => set({ userFirstName: val }),
             setCourseData: (data) => set((state) => ({
                 userData: data.userData !== undefined ? data.userData : state.userData,
@@ -243,7 +224,6 @@ onMicClickCallback: null,
             setHangmanOps: (ops) => set({ hangmanOps: ops }),
             setBottomControlState: (state) => set({ bottomControlState: state }),
             setChatModeActive: (val) => set({ chatModeActive: val }),
-            setChatHeaderMode: (mode) => set({ chatHeaderMode: mode }),
             setSubmitBtnDisabled: (val) => set({ submitBtnDisabled: val }),
             setSubmitBtnIcon: (icon) => set({ submitBtnIcon: icon }),
             setSubmitBtnDanger: (val) => set({ submitBtnDanger: val }),

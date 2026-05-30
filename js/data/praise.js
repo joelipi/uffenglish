@@ -53,10 +53,12 @@ export default function getRandomPraise(category = 'general', lang = 'en') {
         return selected;
     }
 
-    const praiseText = Strings.get(selected.key, lang);
+    const bilingual = Strings.getBilingual(selected.key, lang);
     console.log(`[Praise] Selected type: ${selected.type}, key: ${selected.key}, lang: ${lang}`);
     return {
         ...selected,
-        text: "👍👍 " + praiseText
+        text: "👍👍 " + bilingual.english,
+        translation: bilingual.localized,
+        translationLang: bilingual.localized ? bilingual.lang : undefined
     };
 }

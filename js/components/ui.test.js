@@ -62,9 +62,8 @@ describe('UI Component functions', () => {
         });
 
         it('should execute showChat and update store', () => {
-            expect(() => showChat(true)).not.toThrow();
+            expect(() => showChat()).not.toThrow();
             expect(appStore.getState().chatModeActive).toBe(true);
-            expect(appStore.getState().chatHeaderMode).toBe('ai');
         });
 
         it('should add user chat message to store', () => {
@@ -80,7 +79,7 @@ describe('UI Component functions', () => {
              const history = appStore.getState().chatHistory;
              expect(history.some(m => m.content === 'my answer')).toBe(true);
              expect(history.some(m => m.userName === 'Test')).toBe(true);
-        });
+         });
 
         it('should render AI analysis loading', () => {
              expect(() => addAILoadingMessage('loading test')).not.toThrow();
@@ -90,12 +89,12 @@ describe('UI Component functions', () => {
              appStore.getState().removeAiLoadingMessage();
              history = appStore.getState().chatHistory;
              expect(history.some(m => m.type === 'aiLoading')).toBe(false);
-        });
+         });
 
         it('should render AI feedback chunks correctly', () => {
             const chunks = [
-                '<div class="chat-message-row">html chunk</div>',
-                'Just a simple string'
+                { role: 'system', type: 'standard', content: 'html chunk' },
+                { role: 'system', type: 'standard', content: 'Just a simple string' }
             ];
 
             expect(() => addAIFeedbackMessages(chunks)).not.toThrow();

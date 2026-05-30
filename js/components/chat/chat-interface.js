@@ -1,17 +1,18 @@
 import { appStore } from '../../modules/store.js';
 import Strings from '../../data/strings.js';
+import { getBotIdentity } from '../../modules/bot-identity.js';
 
-export function showChat(isAI) {
+export function showChat() {
     appStore.getState().setChatModeActive(true);
-    appStore.getState().setChatHeaderMode(isAI ? 'ai' : 'human');
 }
 
 export function addAILoadingMessage(text) {
     const storeState = appStore.getState();
-    showChat(true);
+    showChat();
     let defaultText = 'Analyzing...';
-    if (typeof Strings !== 'undefined' && typeof Strings.get === 'function') {
-        defaultText = Strings.get('ai_analyzing', storeState.userData?.native_language) || defaultText;
+    if (typeof Strings !== 'undefined' && typeof Strings.getBilingual === 'function') {
+        const bilingual = Strings.getBilingual('ai_analyzing', storeState.userData?.native_language);
+        defaultText = bilingual.english || defaultText;
     }
     storeState.addChatMessage({
         role: 'system',
@@ -22,29 +23,20 @@ export function addAILoadingMessage(text) {
 
 export function addAIFeedbackMessages(inputs = []) {
     if (inputs.length === 0) return;
-    showChat(true);
+    showChat();
+    const store = appStore.getState();
     inputs.filter(Boolean).forEach(input => {
-        if (typeof input === 'string') {
-            appStore.getState().addChatMessage({
-                role: 'system',
-                type: 'htmlChunk',
-                content: input
-            });
-        } else if (input.type === 'praise') {
-            appStore.getState().addChatMessage({
-                role: 'system',
-                type: 'praise',
-                content: input.content,
-                botName: input.botName || 'Joe Walsh',
-                avatarUrl: input.avatarUrl || '/assets/img/teacherprofile.webp'
-            });
-        } else {
-            appStore.getState().addChatMessage({
-                role: 'system',
-                type: input.type || 'htmlChunk',
-                content: input.content
-            });
-        }
+        const sectionKey = input.sectionKey || input.key;
+        const botInfo = getBotIdentity(sectionKey);
+
+        const msgObj = {
+            ...input,
+            role: input.role || 'system',
+            type: input.type || 'standard',
+            botName: input.botName || botInfo.name,
+            avatarUrl: input.avatarUrl || botInfo.avatar,
+        };
+        store.addChatMessage(msgObj);
     });
 }
 

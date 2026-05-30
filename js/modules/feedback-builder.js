@@ -29,7 +29,7 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, stepData
             type: 'stat',
             key: 'pronunciation',
             score: scoreData.subScores.pronunciation,
-            attemptLabel: Strings.get('stats_attempts_required', lang),
+            attemptLabel: Strings.getBilingual('stats_attempts_required', lang).english,
             attemptCount: whisperRejections + 1,
             parts: []
         });
@@ -41,7 +41,7 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, stepData
             type: 'stat',
             key: 'listening',
             score: scoreData.subScores.listening,
-            attemptLabel: Strings.get('stats_repetitions_required', lang),
+            attemptLabel: Strings.getBilingual('stats_repetitions_required', lang).english,
             attemptCount: repetitionCount,
             parts: []
         });
@@ -50,8 +50,8 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, stepData
     // 3. Flow
     if (scoreData.subScores.flow !== null) {
         const flowParts = [
-            { label: Strings.get('stats_hesitation', lang), value: `${speechAnalytics.hesitation || 0}ms` },
-            { label: Strings.get('stats_wpm', lang), value: speechAnalytics.wpm || 0 }
+            { label: Strings.getBilingual('stats_hesitation', lang).english, value: `${speechAnalytics.hesitation || 0}ms` },
+            { label: Strings.getBilingual('stats_wpm', lang).english, value: speechAnalytics.wpm || 0 }
         ];
  
         sections.push({
@@ -92,9 +92,9 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, stepData
         // 6. Formality
         const formalityParts = [];
         if ((result.intentLabels || []).includes('too formal')) {
-            formalityParts.push({ message: Strings.get('feedback_too_formal', lang) });
+            formalityParts.push({ message: Strings.getBilingual('feedback_too_formal', lang).english });
         } else if ((result.intentLabels || []).includes('too informal')) {
-            formalityParts.push({ message: Strings.get('feedback_too_informal', lang) });
+            formalityParts.push({ message: Strings.getBilingual('feedback_too_informal', lang).english });
         }
         sections.push({
             type: 'stat',
@@ -106,7 +106,7 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, stepData
         // 7. Native-like
         const nativeLikeParts = [];
         if ((result.intentLabels || []).includes('unidiomatic')) {
-            nativeLikeParts.push({ message: Strings.get('feedback_unidiomatic', lang) });
+            nativeLikeParts.push({ message: Strings.getBilingual('feedback_unidiomatic', lang).english });
         }
         sections.push({
             type: 'stat',
@@ -118,10 +118,10 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, stepData
         // 8. Understanding
         const understandingParts = [];
         if ((result.intentLabels || []).includes('pragmatic failure')) {
-            understandingParts.push({ message: Strings.get('feedback_pragmatic_failure', lang) });
+            understandingParts.push({ message: Strings.getBilingual('feedback_pragmatic_failure', lang).english });
         }
         if ((result.intentLabels || []).includes('rude')) {
-            understandingParts.push({ message: Strings.get('feedback_rude', lang) });
+            understandingParts.push({ message: Strings.getBilingual('feedback_rude', lang).english });
         }
         sections.push({
             type: 'stat',

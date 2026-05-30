@@ -15,22 +15,116 @@ import { Media } from './media.js';
 import Strings from '../data/strings.js';
 import { getLocalizedTranslation } from './utils.js';
 import React from 'react';
-import ReactDOMServer from 'react-dom/server';
 import { BilingualText } from '../components/BilingualText.jsx';
 import { analyzeSpeech } from './analytics.js';
 import { updateSpeechRecording } from './storage.js';
 import { buildFeedbackData, buildExplanationData } from './feedback-builder.js';
-import { renderFeedbackToHTML, renderExplanationsToHTML } from '../components/feedback-renderer.js';
 import { getNextStep } from './lessonRouting.js';
 import { warmUpSpeechCamStream } from './speech.js';
 import getRandomPraise from '../data/praise.js';
-import { getPraiseHTML } from '../components/feedback-renderer.web.js';
 import { generateHangmanOps } from './utils.js';
 import {
     showChat,
     addAIFeedbackMessages,
     clearChat
 } from '../components/chat/chat-interface.js';
+import { getBotIdentity } from './bot-identity.js';
+
+function mapSectionToMessage(section) {
+    if (section.type === 'grammar') {
+        return {
+            role: 'system',
+            type: 'grammarDiff',
+            sectionKey: 'grammar',
+            score: section.score,
+            errorCount: section.errorCount,
+            complexityScore: section.complexityScore,
+            original: section.diff?.original || '',
+            correction: section.diff?.corrected || ''
+        };
+    }
+    if (section.key === 'vocabulary') {
+        const vocabPart = section.parts && section.parts[0];
+        return {
+            role: 'system',
+            type: 'stat',
+            sectionKey: 'vocabulary',
+            score: section.score,
+            isPerfect: section.score === 100,
+            isOverall: false,
+            parts: vocabPart ? [{
+                display: 'block',
+                type: 'idioms',
+                count: vocabPart.idiomCount || 0,
+                items: vocabPart.idioms || []
+            }] : []
+        };
+    }
+    if (section.key === 'flow') {
+        return {
+            role: 'system',
+            type: 'stat',
+            sectionKey: 'flow',
+            score: section.score,
+            isPerfect: section.score === 100,
+            isOverall: false,
+            parts: (section.parts || []).map(p => ({
+                display: 'inline',
+                label: p.label,
+                value: p.value
+            }))
+        };
+    }
+    return {
+        role: 'system',
+        type: 'stat',
+        sectionKey: section.key,
+        score: section.score,
+        isPerfect: section.score === 100,
+        isOverall: !!section.isOverall,
+        attemptLabel: section.attemptLabel,
+        attemptCount: section.attemptCount,
+        parts: (section.parts || []).map(p => {
+            if (p.type === 'notice') {
+                return { display: 'block', type: 'notice', message: p.message };
+            }
+            if (p.message) {
+                return { display: 'block', message: p.message };
+            }
+            return { display: 'block', label: p.label, value: p.value };
+        })
+    };
+}
+
+function getExplanationMessages(explanationData) {
+    if (!explanationData) return [];
+    if (explanationData.useFallback) {
+        if (!explanationData.fallback) return [];
+        return [{
+            role: 'system',
+            type: 'standard',
+            content: explanationData.fallback
+        }];
+    }
+    return explanationData.chunks.map(chunk => {
+        if (chunk.type === 'message' || chunk.type === 'raw') {
+            return {
+                role: 'system',
+                type: 'standard',
+                content: chunk.content
+            };
+        }
+        if (chunk.type === 'pragmatics') {
+            return {
+                role: 'system',
+                type: 'pragmatics',
+                header: chunk.header,
+                correction: chunk.correction
+            };
+        }
+        return null;
+    }).filter(Boolean);
+}
 
 function applySpeechResultToPlayer(val, player) {
     const cueTokens = [];
@@ -71,9 +165,6 @@ function applySpeechResultToPlayer(val, player) {
 function handleCorrectFeedbackUI(stepIndex, stepData, button, cue, explanation, translation, userResponse, englishLevel, englishLevelDeduction, userData, configData, fluencyBubble = null) {
     const cueText = typeof cue === 'object' ? cue?.en : cue;
     const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
-    const cueDisplayHTML = ReactDOMServer.renderToString(
-        <BilingualText translationData={cue} userLang={lang} />
-    );
 
     const currentFluencyScore = appStore.getState().fluencyScore;
     if (stepData.stepType === "closedResponse" && stepData.videoUrl) {
@@ -85,45 +176,128 @@ function handleCorrectFeedbackUI(stepIndex, stepData, button, cue, explanation, 
         console.log('[scoring] append rolePlayPointsHistory', { currentFluencyScore, rolePlayPointsHistory: appStore.getState().rolePlayPointsHistory });
     }
 
-    showChat(true);
+    showChat();
 
     const praiseResult = (stepData.stepType === "openResponse" || stepData.stepType === "closedResponse") ? getRandomPraise('general', lang) : "";
     const feedbackText = (stepData.stepType === "openResponse" && englishLevelDeduction > 0)
-        ? `${Strings.get('ai_acceptable', lang)}<br>${Strings.get('ai_language_level', lang)} ${englishLevel}<br>${Strings.get('ai_fluency_reduced', lang)} <span style='color:red'>${englishLevelDeduction} ${Strings.get('ai_percentage_points', lang)}</span>.`
-        : getPraiseHTML(praiseResult);
+        ? (() => {
+            const acceptable = Strings.getBilingual('ai_acceptable', lang);
+            const level = Strings.getBilingual('ai_language_level', lang);
+            const reduced = Strings.getBilingual('ai_fluency_reduced', lang);
+            const points = Strings.getBilingual('ai_percentage_points', lang);
+            const english = `${acceptable.english}. ${level.english} ${englishLevel}. ${reduced.english} ${englishLevelDeduction} ${points.english}.`;
+            const hasTrans = acceptable.localized && level.localized && reduced.localized && points.localized;
+            const translation = hasTrans
+                ? `${acceptable.localized}. ${level.localized} ${englishLevel}. ${reduced.localized} ${englishLevelDeduction} ${points.localized}.`
+                : undefined;
+            return { type: 'text', text: english, translation, translationLang: translation ? lang : undefined };
+        })()
+        : praiseResult;
 
     if (stepData.stepType !== "openResponse" && stepData.stepType !== "closedResponse") {
         const localizedTrans = getLocalizedTranslation(translation, lang);
         const userName = appStore.getState().userData?.display_name?.split(' ')[0] || 'User';
         const userAvatarUrl = appStore.getState().userData?.profilepicurl || '/assets/img/userprofile.webp';
 
-        const translationHTML = (localizedTrans && lang && lang !== 'en')
-            ? `<br><span lang="${lang}"><i>${localizedTrans}</i></span>`
-            : '';
+        // 1. User standard bubble (cue)
+        appStore.getState().addChatMessage({
+            role: 'user',
+            type: 'standard',
+            content: cueText,
+            translation: localizedTrans,
+            translationLang: (localizedTrans && lang && lang !== 'en') ? lang : undefined,
+            userName,
+            userAvatarUrl
+        });
 
-        const correctBubbleHTML = `<div class="correct-answer-display chat-message-bubble chat-message-bubble--user"><div class="chat-bubble-header d-none">${userName}</div>${cueDisplayHTML}${translationHTML}</div>`;
-        const correctWrapperHTML = `<div class="chat-message-row chat-message-row--user correct-answer-wrapper"><img src="${userAvatarUrl}" alt="${userName}" class="chat-avatar-inline" />${correctBubbleHTML}</div>`;
+        // 2. Explanation chunks
+        if (explanation && explanation.length > 0) {
+            addAIFeedbackMessages(explanation);
+        }
 
-        const praiseHTML = getPraiseHTML(getRandomPraise('general', lang));
-        const praiseWrapperHTML = `<div class="chat-message-row chat-message-row--system" style="margin-top:6px"><img src="/assets/img/teacherprofile.webp" alt="Joe Walsh" class="chat-avatar-inline" /><div class="chat-message-bubble chat-message-bubble--system"><div class="chat-bubble-header">Joe Walsh</div><strong>${praiseHTML}</strong></div></div>`;
+        // 3. Fluency overall bubble
+        if (fluencyBubble) {
+            addAIFeedbackMessages([fluencyBubble]);
+        }
 
-        appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: correctWrapperHTML });
+        // 4. Praise bubble (Joe Walsh image or text praise as standard bubble)
+        const immediatePraise = getRandomPraise('general', lang);
+        if (immediatePraise.type === 'image') {
+            appStore.getState().addChatMessage({
+                role: 'system',
+                type: 'praise',
+                praiseData: immediatePraise,
+                botName: 'Joe Walsh',
+                avatarUrl: '/assets/img/teacherprofile.webp'
+            });
+        } else {
+            const msg = {
+                role: 'system',
+                type: 'standard',
+                content: immediatePraise.text || immediatePraise,
+                botName: 'Joe Walsh',
+                avatarUrl: '/assets/img/teacherprofile.webp'
+            };
+            if (immediatePraise.translation) {
+                msg.translation = immediatePraise.translation;
+                msg.translationLang = immediatePraise.translationLang;
+            }
+            appStore.getState().addChatMessage(msg);
+        }
 
-        if (Array.isArray(explanation)) explanation.filter(Boolean).forEach(c => appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: c }));
-        else if (explanation) appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: explanation });
-
-        if (fluencyBubble) appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: fluencyBubble });
-
-        appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: praiseWrapperHTML });
-        if (stepData.headsUp) appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: stepData.headsUp });
+        // 5. HeadsUp standard bubble
+        if (stepData.headsUp) {
+            appStore.getState().addChatMessage({
+                role: 'system',
+                type: 'standard',
+                content: stepData.headsUp,
+                botName: 'Joe Walsh',
+                avatarUrl: '/assets/img/teacherprofile.webp'
+            });
+        }
     } else {
-        if (Array.isArray(explanation)) explanation.filter(Boolean).forEach(c => appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: c }));
-        else if (explanation) appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: explanation });
+        // For open/closed response
+        if (explanation && explanation.length > 0) {
+            addAIFeedbackMessages(explanation);
+        }
 
-        if (fluencyBubble) appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: fluencyBubble });
+        if (fluencyBubble) {
+            addAIFeedbackMessages([fluencyBubble]);
+        }
 
-        if (feedbackText) appStore.getState().addChatMessage({ role: 'system', type: 'praise', content: feedbackText, botName: 'Joe Walsh', avatarUrl: '/assets/img/teacherprofile.webp' });
-        if (stepData.headsUp) appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: stepData.headsUp });
+        if (feedbackText) {
+            if (feedbackText.type === 'image') {
+                appStore.getState().addChatMessage({
+                    role: 'system',
+                    type: 'praise',
+                    praiseData: feedbackText,
+                    botName: 'Joe Walsh',
+                    avatarUrl: '/assets/img/teacherprofile.webp'
+                });
+            } else {
+                const msg = {
+                    role: 'system',
+                    type: 'standard',
+                    content: feedbackText.text || feedbackText,
+                    botName: 'Joe Walsh',
+                    avatarUrl: '/assets/img/teacherprofile.webp'
+                };
+                if (feedbackText.translation) {
+                    msg.translation = feedbackText.translation;
+                    msg.translationLang = feedbackText.translationLang;
+                }
+                appStore.getState().addChatMessage(msg);
+            }
+        }
+        if (stepData.headsUp) {
+            appStore.getState().addChatMessage({
+                role: 'system',
+                type: 'standard',
+                content: stepData.headsUp,
+                botName: 'Joe Walsh',
+                avatarUrl: '/assets/img/teacherprofile.webp'
+            });
+        }
     }
 
     Media.playSound('correct-sound');
@@ -163,42 +337,70 @@ function handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userRespons
         return;
     }
 
+    const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
+
     if (stepData.stepType === "openResponse" && userResponse) {
         if (appStore.getState().incorrectAttempts > 2) {
             appStore.getState().setListeningScore(0);
             appStore.setState({ rolePlayPointsHistory: [...appStore.getState().rolePlayPointsHistory, appStore.getState().listeningScore] });
         }
 
-        const teacherTextStr = appStore.getState().incorrectAttempts === 1
-            ? Strings.get('try_again_1', userData?.native_language)
+        const teacherKey = appStore.getState().incorrectAttempts === 1
+            ? 'try_again_1'
             : appStore.getState().incorrectAttempts === 2
-                ? Strings.get('try_again_2', userData?.native_language)
-                : (() => {
-                    const lang = userData?.native_language;
-                    const localizedTrans = getLocalizedTranslation(stepData.translation, lang);
-                    const transStr = (localizedTrans && lang && lang !== 'en')
-                        ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>`
-                        : "";
-                    return `${Strings.get('failed_continue_correct', userData?.native_language)}<br>"${cueText}"${transStr}`;
-                })();
+                ? 'try_again_2'
+                : 'failed_continue_correct';
+        const teacherBilingual = Strings.getBilingual(teacherKey, lang);
+        const teacherTranslation = appStore.getState().incorrectAttempts > 2
+            ? getLocalizedTranslation(stepData.translation, lang)
+            : undefined;
 
-        const teacherHTML = `<div><strong>${teacherTextStr}</strong></div>`;
+        if (explanation && explanation.length > 0) {
+            addAIFeedbackMessages(explanation);
+        }
 
-        if (Array.isArray(explanation)) explanation.filter(Boolean).forEach(c => appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: c }));
-        else if (explanation) appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: explanation });
+        // Add teacher feedback
+        appStore.getState().addChatMessage({
+            role: 'system',
+            type: 'teacherFeedback',
+            content: teacherBilingual.english,
+            translation: teacherBilingual.localized || teacherTranslation,
+            translationLang: (teacherBilingual.localized || teacherTranslation) ? teacherBilingual.lang : undefined,
+            botName: 'Joe Walsh',
+            avatarUrl: '/assets/img/teacherprofile.webp'
+        });
 
-        appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: teacherHTML });
-
-        if (fluencyBubble) appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: fluencyBubble });
+        if (fluencyBubble) {
+            addAIFeedbackMessages([fluencyBubble]);
+        }
 
         if (stepData.possibleAnswer && appStore.getState().incorrectAttempts > 2) {
-            const possibleHTML = `${Strings.get('example_correct_answer', appStore.getState().userData?.native_language)}<br>${stepData.possibleAnswer}`;
-            appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: possibleHTML });
+            const labelBilingual = Strings.getBilingual('example_correct_answer', lang);
+            appStore.getState().addChatMessage({
+                role: 'system',
+                type: 'possibleAnswer',
+                label: labelBilingual.english || 'A possible answer:',
+                answer: stepData.possibleAnswer,
+                translation: labelBilingual.localized,
+                translationLang: labelBilingual.localized ? labelBilingual.lang : undefined,
+                botName: 'Joe Walsh',
+                avatarUrl: '/assets/img/teacherprofile.webp'
+            });
         }
 
         if (stepData.headsUp) {
-            const headsUpText = appStore.getState().incorrectAttempts <= 2 ? Strings.get('heads_up_try_again', userData?.native_language) : stepData.headsUp;
-            appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: headsUpText });
+            const isLowAttempt = appStore.getState().incorrectAttempts <= 2;
+            const headsUpBilingual = isLowAttempt ? Strings.getBilingual('heads_up_try_again', lang) : null;
+            const headsUpContent = isLowAttempt ? headsUpBilingual.english : stepData.headsUp;
+            appStore.getState().addChatMessage({
+                role: 'system',
+                type: 'standard',
+                content: headsUpContent,
+                translation: isLowAttempt ? headsUpBilingual.localized : undefined,
+                translationLang: isLowAttempt && headsUpBilingual.localized ? headsUpBilingual.lang : undefined,
+                botName: 'Joe Walsh',
+                avatarUrl: '/assets/img/teacherprofile.webp'
+            });
         }
     }
 
@@ -210,35 +412,67 @@ function handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userRespons
 
         selectedWords.forEach(w => correctWordSet.has(w.toLowerCase()) ? correct.add(w) : incorrect.add(w));
 
-        const correctUl = correct.size > 0 ? `<ul class='card-text correctWords list-inline' id='correctWords' style='display:block'>${Array.from(correct).map(w => `<li class='list-inline-item'>${w}</li>`).join('')}</ul>` : '';
-        const incorrectUl = incorrect.size > 0 ? `<ul class='card-text incorrectWords list-inline' id='incorrectWords' style='display:block; border-top: 1px solid rgba(255,255,255,0.1)'>${Array.from(incorrect).map(w => `<li class='list-inline-item'>${w}</li>`).join('')}</ul>` : '';
-
-        const teacherText = appStore.getState().incorrectAttempts === 1
-            ? Strings.get('try_again_1', appStore.getState().userData?.native_language)
+        const teacherKey = appStore.getState().incorrectAttempts === 1
+            ? 'try_again_1'
             : appStore.getState().incorrectAttempts === 2
-                ? Strings.get('try_again_2', appStore.getState().userData?.native_language)
-                : (() => {
-                    const lang = appStore.getState().userData?.native_language;
-                    const localizedTrans = getLocalizedTranslation(stepData.translation, lang);
-                    const transStr = (localizedTrans && lang && lang !== 'en')
-                        ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>`
-                        : "";
-                    return `${Strings.get('failed_continue', appStore.getState().userData?.native_language)}<br><br>Correct:<br>"${cueText}"${transStr}`;
-                })();
+                ? 'try_again_2'
+                : 'failed_continue';
+        const teacherBilingual = Strings.getBilingual(teacherKey, lang);
 
-        const mainFeedbackHTML = `<strong>${teacherText}</strong><br><br>${correctUl}${incorrectUl}`;
+        if (explanation && explanation.length > 0) {
+            addAIFeedbackMessages(explanation);
+        }
 
-        if (Array.isArray(explanation)) explanation.filter(Boolean).forEach(c => appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: c }));
-        else if (explanation) appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: explanation });
+        // Add teacher feedback (with correct/incorrect words list to render in React component)
+        appStore.getState().addChatMessage({
+            role: 'system',
+            type: 'teacherFeedback',
+            content: teacherBilingual.english,
+            translation: teacherBilingual.localized,
+            translationLang: teacherBilingual.localized ? teacherBilingual.lang : undefined,
+            correctWords: Array.from(correct),
+            incorrectWords: Array.from(incorrect),
+            botName: 'Joe Walsh',
+            avatarUrl: '/assets/img/teacherprofile.webp'
+        });
 
-        appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: mainFeedbackHTML });
+        if (appStore.getState().incorrectAttempts > 2) {
+            const translationText = getLocalizedTranslation(stepData.translation, lang);
+            const labelBilingual = Strings.getBilingual('failed_continue_correct_label', lang);
+            appStore.getState().addChatMessage({
+                role: 'system',
+                type: 'possibleAnswer',
+                label: labelBilingual.english || 'Correct:',
+                answer: cueText,
+                translation: translationText,
+                translationLang: (translationText && lang && lang !== 'en') ? lang : undefined,
+                botName: 'Joe Walsh',
+                avatarUrl: '/assets/img/teacherprofile.webp'
+            });
+        }
 
-        if (fluencyBubble) appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: fluencyBubble });
+        if (fluencyBubble) {
+            addAIFeedbackMessages([fluencyBubble]);
+        }
 
+        const isLowAttemptHeadsUp = appStore.getState().incorrectAttempts <= 2;
+        const headsUpBilingual = isLowAttemptHeadsUp && stepData.headsUp
+            ? Strings.getBilingual('heads_up_repeat_video', lang)
+            : null;
         const headsUpStr = stepData.headsUp
-            ? (appStore.getState().incorrectAttempts <= 2 ? Strings.get('heads_up_repeat_video', appStore.getState().userData?.native_language) : stepData.headsUp)
+            ? (isLowAttemptHeadsUp ? headsUpBilingual.english : stepData.headsUp)
             : '';
-        if (headsUpStr) appStore.getState().addChatMessage({ role: 'system', type: 'htmlChunk', content: headsUpStr });
+        if (headsUpStr) {
+            appStore.getState().addChatMessage({
+                role: 'system',
+                type: 'standard',
+                content: headsUpStr,
+                translation: isLowAttemptHeadsUp && headsUpBilingual?.localized ? headsUpBilingual.localized : undefined,
+                translationLang: isLowAttemptHeadsUp && headsUpBilingual?.localized ? headsUpBilingual.lang : undefined,
+                botName: 'Joe Walsh',
+                avatarUrl: '/assets/img/teacherprofile.webp'
+            });
+        }
     }
 
     if (!silent) {
@@ -383,8 +617,8 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
     appStore.getState().setTextInputVisible(false);
     appStore.getState().setHintsVisible(false);
 
-    let immediateStatsHtmlArr = [];
-    let fluencyBubbleHTML = null;
+    let immediateStatsMessages = [];
+    let fluencyBubble = null;
     //appStore.getState().setSubmitBtnDisabled(true);
 
     try {
@@ -511,18 +745,21 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
                 whisperRejections: whisperRejections
             });
 
-            const allFeedbackHTML = renderFeedbackToHTML(feedbackData);
+            const allFeedbackMessages = (feedbackData.sections || []).map(mapSectionToMessage);
 
-            if (feedbackData.sections.length > 0 && feedbackData.sections[0].isOverall) {
-                fluencyBubbleHTML = allFeedbackHTML[0];
-                immediateStatsHtmlArr = allFeedbackHTML.slice(1);
+            if (allFeedbackMessages.length > 0 && allFeedbackMessages[0].isOverall) {
+                fluencyBubble = allFeedbackMessages[0];
+                immediateStatsMessages = allFeedbackMessages.slice(1);
             } else {
-                immediateStatsHtmlArr = allFeedbackHTML;
+                immediateStatsMessages = allFeedbackMessages;
             }
         }
 
         if (!isCorrect && stepData.stepType === "closedResponse" && incorrectAttempts < 2) {
-            handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userResponse, result.explanations || explanation, result.normalizeduserResponse, result.normalizedcue, stepData.step, true, userData, configData);
+            const explanationData = buildExplanationData(result.explanations || explanation, explanation);
+            const structuredExplanations = getExplanationMessages(explanationData);
+
+            handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userResponse, structuredExplanations, result.normalizeduserResponse, result.normalizedcue, stepData.step, true, userData, configData);
             appStore.getState().triggerVideoClear();
             clearChat();
             appStore.getState().setWebcamStream(null);
@@ -556,46 +793,48 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
         if (stepData.stepType === "openResponse" && userResponse) {
             const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
             console.log('[handleAnswer] openResponse lang:', lang, 'cue:', typeof cue, 'native_language:', userData?.native_language);
-            const cueDisplayHTML = ReactDOMServer.renderToString(
-                <BilingualText translationData={cue} userLang={lang} />
-            );
-            const localizedTrans = getLocalizedTranslation(stepData.translation, lang);
-            const translationStr = (localizedTrans && lang && lang !== 'en') ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>` : "";
 
-            addAIFeedbackMessages([`<strong>${cueDisplayHTML}${translationStr}</strong>`]);
-            showChat(false);
+            appStore.getState().addChatMessage({
+                role: 'system',
+                type: 'standard',
+                content: cueText,
+                translation: getLocalizedTranslation(stepData.translation, lang),
+                translationLang: (getLocalizedTranslation(stepData.translation, lang) && lang !== 'en') ? lang : undefined,
+                botName: 'Joe Walsh',
+                avatarUrl: '/assets/img/teacherprofile.webp'
+            });
+
+            showChat();
+
             appStore.getState().addChatMessage({
                 role: 'user',
                 type: 'standard',
                 content: userResponse,
-                statsHtml: "",
                 userName: userData?.display_name?.split(' ')[0] || 'User',
                 userAvatarUrl: userData?.profilepicurl || '/assets/img/userprofile.webp'
             });
-            if (immediateStatsHtmlArr.length > 0) addAIFeedbackMessages(immediateStatsHtmlArr);
+
+            if (immediateStatsMessages.length > 0) addAIFeedbackMessages(immediateStatsMessages);
         } else if (stepData.stepType === "closedResponse" && userResponse) {
             const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
 
-            const cueDisplayHTML = ReactDOMServer.renderToString(
-                <BilingualText translationData={cue} userLang={lang} />
-            );
-            const localizedTrans = getLocalizedTranslation(stepData.translation, lang);
-            const translationStr = (localizedTrans && lang && lang !== 'en') ? `<br><span lang='${lang}'><i>${localizedTrans}</i></span>` : "";
-            showChat(true);
-            let htmlContent = cueDisplayHTML + " " + translationStr;
+            showChat();
+
             appStore.getState().addChatMessage({
                 role: 'user',
-                type: 'htmlChunk',
-                content: htmlContent,
-                statsHtml: "",
+                type: 'standard',
+                content: cueText,
+                translation: getLocalizedTranslation(stepData.translation, lang),
+                translationLang: (getLocalizedTranslation(stepData.translation, lang) && lang !== 'en') ? lang : undefined,
                 userName: userData?.display_name?.split(' ')[0] || 'User',
                 userAvatarUrl: userData?.profilepicurl || '/assets/img/userprofile.webp'
             });
-            if (immediateStatsHtmlArr.length > 0) addAIFeedbackMessages(immediateStatsHtmlArr);
+
+            if (immediateStatsMessages.length > 0) addAIFeedbackMessages(immediateStatsMessages);
         }
 
         const explanationData = buildExplanationData(result?.explanations, explanation);
-        const webFormattedExplanations = renderExplanationsToHTML(explanationData);
+        const structuredExplanations = getExplanationMessages(explanationData);
 
         appStore.getState().setTutorChatVisible(true);
 
@@ -606,10 +845,10 @@ export async function handleAnswer(userResponse, cue, stepData, button, explanat
                     appStore.getState().deductListeningScore(result.cefrLevelDeduction);
                 }
             }
-            handleCorrectFeedbackUI(stepIndex, stepData, button, cue, webFormattedExplanations, translation, userResponse, result ? result.cefrLevel : undefined, result ? result.cefrLevelDeduction : undefined, userData, configData, fluencyBubbleHTML);
+            handleCorrectFeedbackUI(stepIndex, stepData, button, cue, structuredExplanations, translation, userResponse, result ? result.cefrLevel : undefined, result ? result.cefrLevelDeduction : undefined, userData, configData, fluencyBubble);
             showFeedbackAndProceed(stepData, isCorrect, _deps);
         } else {
-            handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userResponse, webFormattedExplanations, result ? result.normalizeduserResponse : "", result ? result.normalizedcue : "", stepData.step, false, userData, configData, fluencyBubbleHTML);
+            handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userResponse, structuredExplanations, result ? result.normalizeduserResponse : "", result ? result.normalizedcue : "", stepData.step, false, userData, configData, fluencyBubble);
             showFeedbackAndProceed(stepData, isCorrect, _deps);
         }
 

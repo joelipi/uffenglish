@@ -16,21 +16,8 @@ export function buildGrammarDiffOps(original, corrected) {
     return ops;
 }
 
-export function renderGrammarDiffHTML(original, corrected) {
-    const ops = buildGrammarDiffOps(original || "", corrected || "");
-    const isPunct = tok => /^[^\p{L}\p{N}]+$/u.test(tok);
-    let userHTML = '', corrHTML = '';
-    ops.forEach(({ type, val }) => {
-        const v = val.replace(/</g, '&lt;');
-        if (type === 'eq') { userHTML += v; corrHTML += v; }
-        else if (type === 'del') {
-            if (isPunct(val)) { userHTML += v; }
-            else { userHTML += `<span class="diff-del">${v}</span>`; }
-        }
-        else if (type === 'ins') {
-            if (isPunct(val)) { corrHTML += v; }
-            else { corrHTML += `<span class="diff-ins">${v}</span>`; }
-        }
-    });
-    return { userHTML, corrHTML };
+export function computeGrammarDiff(original, corrected) {
+    return buildGrammarDiffOps(original || "", corrected || "");
 }
+
+export const isPunct = tok => /^[^\p{L}\p{N}]+$/u.test(tok);

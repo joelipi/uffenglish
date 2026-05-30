@@ -10,35 +10,89 @@ import StatsBubble from './StatsBubble.jsx';
 import AiLoadingBubble from './AiLoadingBubble.jsx';
 import VideoBubble from './VideoBubble.jsx';
 import ContinueWidgetBubble from './ContinueWidgetBubble.jsx';
-
-function PraiseWrapper({ msg }) {
-    return (
-        <div className="chat-message-row chat-message-row--system">
-            <img src={msg.avatarUrl || "/assets/img/teacherprofile.webp"} alt={msg.botName || "Joe Walsh"} className="chat-avatar-inline" />
-            <div className="chat-message-bubble chat-message-bubble--system">
-                <div className="chat-bubble-header">{msg.botName || "Joe Walsh"}</div>
-                <PraiseBubble praiseData={msg.praiseData || msg.content} />
-            </div>
-        </div>
-    );
-}
-
-function HtmlChunk({ msg }) {
-    if (msg.content && msg.content.includes('chat-message-row')) {
-        return <div style={{ display: 'contents' }} dangerouslySetInnerHTML={{ __html: msg.content }} />;
-    }
-    return <SystemBubble content={msg.content} botName={msg.botName} avatarUrl={msg.avatarUrl} />;
-}
+import TeacherFeedbackBubble from './TeacherFeedbackBubble.jsx';
+import PossibleAnswerBubble from './PossibleAnswerBubble.jsx';
 
 const SYSTEM_TYPE_COMPONENTS = {
     continueWidget: (msg) => <ContinueWidgetBubble key={msg.id} onClick={msg.onClick} />,
-    grammarDiff: (msg) => <GrammarDiffBubble key={msg.id} original={msg.original} correction={msg.correction} botName={msg.botName} avatarUrl={msg.avatarUrl} />,
-    stats: (msg) => <StatsBubble key={msg.id} header={msg.header} statsParts={msg.statsParts} botName={msg.botName} avatarUrl={msg.avatarUrl} />,
-    pragmatics: (msg) => <PragmaticsBubble key={msg.id} contentHTML={msg.contentHTML || msg.content} correctionHTML={msg.correctionHTML} botName={msg.botName} avatarUrl={msg.avatarUrl} />,
-    praise: (msg) => <PraiseWrapper key={msg.id} msg={msg} />,
-    htmlChunk: (msg) => <HtmlChunk key={msg.id} msg={msg} />,
+    grammarDiff: (msg) => (
+        <GrammarDiffBubble
+            key={msg.id}
+            original={msg.original}
+            correction={msg.correction}
+            score={msg.score}
+            errorCount={msg.errorCount}
+            complexityScore={msg.complexityScore}
+            sectionKey={msg.sectionKey}
+            botName={msg.botName}
+            avatarUrl={msg.avatarUrl}
+        />
+    ),
+    stat: (msg) => (
+        <StatsBubble
+            key={msg.id}
+            sectionKey={msg.sectionKey}
+            score={msg.score}
+            isPerfect={msg.isPerfect}
+            isOverall={msg.isOverall}
+            attemptLabel={msg.attemptLabel}
+            attemptCount={msg.attemptCount}
+            parts={msg.parts}
+            botName={msg.botName}
+            avatarUrl={msg.avatarUrl}
+        />
+    ),
+    pragmatics: (msg) => (
+        <PragmaticsBubble
+            key={msg.id}
+            header={msg.header}
+            correction={msg.correction}
+            botName={msg.botName}
+            avatarUrl={msg.avatarUrl}
+        />
+    ),
+    praise: (msg) => (
+        <PraiseBubble
+            key={msg.id}
+            praiseData={msg.praiseData || msg.content}
+            botName={msg.botName}
+            avatarUrl={msg.avatarUrl}
+        />
+    ),
+    teacherFeedback: (msg) => (
+        <TeacherFeedbackBubble
+            key={msg.id}
+            content={msg.content}
+            translation={msg.translation}
+            translationLang={msg.translationLang}
+            correctWords={msg.correctWords}
+            incorrectWords={msg.incorrectWords}
+            botName={msg.botName}
+            avatarUrl={msg.avatarUrl}
+        />
+    ),
+    possibleAnswer: (msg) => (
+        <PossibleAnswerBubble
+            key={msg.id}
+            label={msg.label}
+            answer={msg.answer}
+            translation={msg.translation}
+            translationLang={msg.translationLang}
+            botName={msg.botName}
+            avatarUrl={msg.avatarUrl}
+        />
+    ),
     aiLoading: (msg) => <AiLoadingBubble key={msg.id} text={msg.content} />,
-    standard: (msg) => <SystemBubble key={msg.id} content={msg.content} botName={msg.botName} avatarUrl={msg.avatarUrl} />,
+    standard: (msg) => (
+        <SystemBubble
+            key={msg.id}
+            content={msg.content}
+            translation={msg.translation}
+            translationLang={msg.translationLang}
+            botName={msg.botName}
+            avatarUrl={msg.avatarUrl}
+        />
+    ),
 };
 
 export default function ChatInterface() {
@@ -65,7 +119,16 @@ export default function ChatInterface() {
                     if (msg.type === 'video') {
                         return <VideoBubble key={key} avatarUrl={msg.userAvatarUrl} userName={msg.userName} />;
                     }
-                    return <UserBubble key={key} text={msg.content} userName={msg.userName} userAvatarUrl={msg.userAvatarUrl} />;
+                    return (
+                        <UserBubble
+                            key={key}
+                            text={msg.content}
+                            translation={msg.translation}
+                            translationLang={msg.translationLang}
+                            userName={msg.userName}
+                            userAvatarUrl={msg.userAvatarUrl}
+                        />
+                    );
                 }
 
                 if (msg.role === 'system') {

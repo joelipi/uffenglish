@@ -252,18 +252,51 @@ function _renderResponseStep(step, lesson, deps) {
 function _renderPresent(step, lesson, showFeedbackAndProceed) {
     appStore.getState().setStatsVisible(false);
 
-    let headsUpHTML = step.headsUp ? `<div class="chat-message-row chat-message-row--system"><div class="chat-message-bubble chat-message-bubble--system"><p class="headsUp mb-0">${step.headsUp}</p></div></div>` : "";
-
     if (!step.simpleVideoUrl) {
-        let explanationHTML = "";
-        if (step.explanation) {
+        const messages = [];
+
+        if (step.explanations && Array.isArray(step.explanations)) {
+            step.explanations.forEach(chunk => {
+                if (chunk.type === 'grammar_diff') {
+                    messages.push({
+                        role: 'system',
+                        type: 'grammarDiff',
+                        score: chunk.score || 100,
+                        errorCount: chunk.errorCount || 0,
+                        complexityScore: chunk.complexityScore || 100,
+                        original: chunk.original,
+                        correction: chunk.corrected || chunk.correction
+                    });
+                } else if (chunk.type === 'pragmatics') {
+                    messages.push({
+                        role: 'system',
+                        type: 'pragmatics',
+                        header: chunk.header,
+                        correction: chunk.correction
+                    });
+                } else if (chunk.type === 'raw' || chunk.type === 'message') {
+                    messages.push({
+                        role: 'system',
+                        type: 'standard',
+                        content: chunk.content || chunk.message
+                    });
+                }
+            });
+        } else if (step.explanation) {
             const lang = appStore.getState().userData?.native_language;
             const expTrans = getLocalizedTranslation(step.translation, lang);
-            const localized = expTrans && lang && lang !== 'en' ? `<br><br><span lang='${lang}'><i>${expTrans}</i></span>` : '';
-            explanationHTML = `<p class='explanation'>${step.explanation}${localized}</p>`;
+            messages.push({
+                role: 'system',
+                type: 'standard',
+                content: step.explanation,
+                translation: expTrans,
+                translationLang: (expTrans && lang && lang !== 'en') ? lang : undefined
+            });
         }
 
-        addAIFeedbackMessages([explanationHTML]);
+        if (messages.length > 0) {
+            addAIFeedbackMessages(messages);
+        }
     }
     showFeedbackAndProceed(step, true);
 }
