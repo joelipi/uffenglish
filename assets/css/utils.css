@@ -359,3 +359,8 @@ body[data-react-ready] #appLoadingImageDiv { display: none !important; }
   100% { opacity: 0; transform: translate(-50%, -50%) translateY(-60px) scale(0.8); }
 }
 .point-loss-float.animate { animation: pointLossFloatAnim 1500ms ease-out forwards; }
+
+/* LessonContainer layout classes */
+.progress-xs { height: 8px; }
+.chat-window-container { position: absolute; top: 60px; bottom: 80px; left: 0; right: 0; display: flex; flex-direction: column; }
+.media-viewport-hidden { display: none; }

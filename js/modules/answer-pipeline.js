@@ -500,7 +500,7 @@ export function createAnswerPipeline(deps) {
                 console.log('[submitAnswerPrecheck] Text mode: skipping speaking score deduction');
             }
 
-            appStore.getState().setMicStatusText(`<div class='text-center text-danger'>${warningMessage}</div>`);
+            appStore.getState().setMicStatus({ type: 'danger', text: warningMessage });
 
             if (appStore.getState().isTextMode) {
                 appStore.getState().setAnswerErrorMessage(warningMessage);
@@ -604,7 +604,7 @@ export function createAnswerPipeline(deps) {
 
         appStore.getState().triggerPauseAllVideos();
         appStore.getState().setMicActive(false);
-        appStore.getState().setMicStatusText("");
+        appStore.getState().setMicStatus(null);
         appStore.getState().setMediaVisible(false);
         appStore.getState().setTextInputVisible(false);
         appStore.getState().setHintsVisible(false);
@@ -776,7 +776,7 @@ export function createAnswerPipeline(deps) {
                     }, 50);
                 }
 
-                appStore.getState().setMicStatusText(`<div class='text-center'>${stepData.step || ""}</div>`);
+                appStore.getState().setMicStatus({ type: 'info', text: stepData.step || '' });
                 resetButtonState(button);
                 return;
             }

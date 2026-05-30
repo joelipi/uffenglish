@@ -21,7 +21,7 @@ let _warningClearTimer = null;
 export function clearWarningLater(ms) {
     clearTimeout(_warningClearTimer);
     _warningClearTimer = setTimeout(() => {
-        appStore.getState().setMicStatusText('');
+        appStore.getState().setMicStatus(null);
         _warningClearTimer = null;
     }, ms);
 }
@@ -45,7 +45,7 @@ export function handleStepCore(step) {
 
     loadVideoForStep(step, null, appStore.getState().userData?.native_language);
 
-    appStore.getState().setMicStatusText(step.step);
+    appStore.getState().setMicStatus({ type: 'info', text: step.step });
 }
 
 // --- Text Step Handling ---

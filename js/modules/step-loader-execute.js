@@ -120,8 +120,6 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
         appStore.getState().setSpeechPossibleAnswer(step.possibleAnswer || null);
     }
 
-    const handleRevealClick = function () { };
-
     const stepIndex = getCurrentStepIndex(step, appStore.getState().configData, appStore.getState().currentLessonIndex);
 
     if (appStore.getState().isTextMode) {
@@ -132,8 +130,6 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
             submitAnswerPrecheck(val, step.cue, step, btn, step.explanation, step.translation, { pauseCount: 0, netDuration: 3 });
         });
     } else {
-        appStore.getState().setSpeechInputHintCallback(step.stepType === "closedResponse" ? null : () => handleHint(stepIndex));
-        appStore.getState().setSpeechInputRevealCallback(handleRevealClick);
         appStore.getState().setSpeechInputToggleCallback(async () => {
             try {
                 await toggleSpeechRecognition({
@@ -170,26 +166,26 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                                     appStore.getState().currentVideoPlayer.video.pause();
                                 }
                             }
-                            appStore.getState().setMicStatusText(`<div class="text-center"><div class="mb-0" style="color: green; font-size: 30px;"><i class="bi bi-mic" style="color: green; font-size: 100px !important;"></i><br>${Strings.get('status_speak', userData?.native_language)}</div></div>`);
+                            appStore.getState().setMicStatus({ type: 'speak-now', bilingual: Strings.getBilingual('status_speak', userData?.native_language) });
                         },
                         onEngineNotReady: (userData) => {
                             const errorMsg = Strings.get('error_engine_not_ready', userData?.native_language) || "Speech engine not ready. Please wait a moment.";
-                            appStore.getState().setMicStatusText(`<div class='text-center text-danger' style="color: red; font-size: 30px;"><i class="bi bi-exclamation-triangle"></i> ${errorMsg}</div>`);
+                            appStore.getState().setMicStatus({ type: 'engine-error', text: errorMsg });
                         },
                         onEngineReady: (btn) => {
                             if (btn) {
                                 btn.disabled = false;
                             }
-                            appStore.getState().setMicStatusText(`<div class='text-center text-success mt-2'><i class="bi bi-check-circle"></i> Engine ready. Try speaking now!</div>`);
+                            appStore.getState().setMicStatus({ type: 'engine-ready', text: 'Engine ready. Try speaking now!' });
                         },
                         onRecordingActive: () => {
                         },
                         onRecordingStop: (btn) => {
                             appStore.getState().setMicActive(false);
-                            appStore.getState().setMicStatusText("");
+                            appStore.getState().setMicStatus(null);
                             appStore.getState().setMediaVisible(false);
                             appStore.getState().setTextInputVisible(false);
-                            appStore.getState().setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Analyzing Speech...</div>`);
+                            appStore.getState().setMicStatus({ type: 'analyzing', text: 'Analyzing Speech...' });
                         },
                         onStopEarly: (userData) => {
                             appStore.getState().setMicActive(false);
@@ -198,7 +194,7 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             appStore.getState().triggerPreflightRejected();
                             appStore.getState().setPointLossAmount(10);
                             appStore.getState().setMediaVisible(true);
-                            appStore.getState().setMicStatusText(`<div class='text-center' style='color: red; font-size: large;'><i class='bi bi-exclamation-triangle-fill'></i> ${Strings.get('try_again_speech', userData?.native_language)}</div>`);
+                            appStore.getState().setMicStatus({ type: 'stop-early', text: Strings.get('try_again_speech', userData?.native_language) });
                             clearWarningLater(3000);
                         },
                         onGibberishDetected: () => {
@@ -207,7 +203,7 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             appStore.getState().incrementWhisperRejections();
                             appStore.getState().triggerPreflightRejected();
                             appStore.getState().setPointLossAmount(10);
-                            appStore.getState().setMicStatusText(`<div class='text-center mt-3' style='color: #ff9800; font-size: large;'><i class='bi bi-ear-x'></i> Audio unclear. Please try speaking clearly.</div>`);
+                            appStore.getState().setMicStatus({ type: 'gibberish', text: 'Audio unclear. Please try speaking clearly.' });
                             clearWarningLater(3000);
                         },
                         onPreflightRejected: (msg) => {
@@ -218,7 +214,7 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             appStore.getState().setWebcamStream(null);
                             appStore.getState().triggerPreflightRejected();
                             appStore.getState().setPointLossAmount(10);
-                            appStore.getState().setMicStatusText(`<div class='text-center text-danger'>${msg}</div>`);
+                            appStore.getState().setMicStatus({ type: 'preflight-rejected', text: msg });
                             clearWarningLater(4000);
                         },
                         onTranscriptRejected: (cue, transcript) => {
@@ -230,12 +226,12 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             appStore.getState().setWebcamStream(null);
                             appStore.getState().triggerTranscriptRejected(cue, transcript);
                             appStore.getState().setPointLossAmount(20);
-                            appStore.getState().setMicStatusText(`<div class='text-center text-warning mt-3'><div class="spinner-border spinner-border-sm" role="status"></div> Restarting Mic...</div>`);
+                            appStore.getState().setMicStatus({ type: 'restarting', text: 'Restarting Mic...' });
                         },
                         onReviewStart: (transcript, timeLeft, acceptFn, rejectFn) => {
                             appStore.getState().setMicActive(false);
                             appStore.getState().removeAiLoadingMessage();
-                            appStore.getState().setMicStatusText("");
+                            appStore.getState().setMicStatus(null);
                             appStore.getState().setWhisperReviewData({ transcript, timeLeft, onAccept: acceptFn, onReject: rejectFn });
                             appStore.getState().setWhisperReviewTimeLeft(timeLeft);
                         },
@@ -245,7 +241,7 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                         onReviewEnd: () => {
                             appStore.getState().setWhisperReviewData(null);
                             appStore.getState().setWhisperReviewTimeLeft(null);
-                            appStore.getState().setMicStatusText("");
+                            appStore.getState().setMicStatus(null);
                         }
                     }
                 });

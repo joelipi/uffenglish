@@ -27,7 +27,10 @@ export function createProgression(deps) {
     }
 
     function showCompletionMessage() {
-        appStore.getState().setCompletionMessage(Strings.get('msg_lesson_complete_all', appStore.getState().userData?.native_language));
+        const msg = Strings.get('msg_lesson_complete_all', appStore.getState().userData?.native_language);
+        const heading = msg.match(/<h3>(.*?)<\/h3>/)?.[1] || '';
+        const body = msg.match(/<p>(.*?)<\/p>/)?.[1] || '';
+        appStore.getState().setCompletionMessage({ heading, body });
     }
 
     function loadNextStep(currentStep, fluencyData, _deps = {}) {

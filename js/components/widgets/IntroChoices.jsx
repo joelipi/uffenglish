@@ -5,12 +5,11 @@ import { appStore } from '../../modules/store.js';
 export default function IntroChoices() {
     const bottomControlState = useStore(appStore, (state) => state.bottomControlState);
     const introContinueCallback = useStore(appStore, (state) => state.introContinueCallback);
-    const introAudioOnlyCallback = useStore(appStore, (state) => state.introAudioOnlyCallback);
 
     if (bottomControlState !== 'introChoices') return null;
 
     const getContinueCb = () => {
-        return introContinueCallback || introAudioOnlyCallback || null;
+        return introContinueCallback || null;
     };
 
     const handleVideoClick = () => {

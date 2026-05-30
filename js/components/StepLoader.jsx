@@ -58,7 +58,10 @@ export default function StepLoader({ step, lesson }) {
     if (completionMessage) {
         return (
             <div id="steps-container">
-                <div className="text-center" dangerouslySetInnerHTML={{ __html: completionMessage }} />
+                <div className="text-center">
+                    {completionMessage.heading && <h3>{completionMessage.heading}</h3>}
+                    {completionMessage.body && <p>{completionMessage.body}</p>}
+                </div>
             </div>
         );
     }

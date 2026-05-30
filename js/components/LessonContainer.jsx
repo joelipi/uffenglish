@@ -110,7 +110,7 @@ export default function LessonContainer() {
                             <i className="bi bi-x-lg"></i>
                         </Link>
                         <div className="flex-grow-1 ms-3">
-                            <div className="progress shadow-sm" style={{ height: '8px' }}>
+                            <div className="progress progress-xs shadow-sm">
                                 <ProgressBar />
                             </div>
                         </div>
@@ -137,7 +137,7 @@ export default function LessonContainer() {
             <WebcamPreview />
 
             {/* Chat Window */}
-            <div id="chat-window-container" className={chatModeActive ? '' : 'd-none'} style={chatModeActive ? { position: 'absolute', top: 60, bottom: 80, left: 0, right: 0, display: 'flex', flexDirection: 'column' } : {}}>
+            <div id="chat-window-container" className={`chat-window-container ${chatModeActive ? '' : 'd-none'}`}>
                 <ChatHeader />
                 <ChatInterface />
                 <TutorChatInput />
@@ -166,7 +166,7 @@ export default function LessonContainer() {
             <SuccessVideo />
             <SuccessVideoCanvas />
             <PlaybackVideo />
-            <div id="media-viewport" className="position-absolute top-0 start-0 w-100 h-100" style={{ display: mediaVisible ? 'block' : 'none' }}>
+            <div id="media-viewport" className={`position-absolute top-0 start-0 w-100 h-100${mediaVisible ? '' : ' media-viewport-hidden'}`}>
                 <div id="ivp-container"></div>
                 <div id="simple-video-container"></div>
                 <InteractiveVideoWrapper />
