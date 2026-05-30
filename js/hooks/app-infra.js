@@ -14,7 +14,8 @@ import { calculateAverage } from '../modules/scoring.js';
 import { Media } from '../modules/media.js';
 import Strings from '../data/strings.js';
 import { updateProgressBar as updateProgressBarFn, loadNextStep as loadNextStepImpl, loadNextLesson as loadNextLessonFn, showCompletionMessage as showCompletionMessageFn, handleTutorChatSubmit as handleTutorChatSubmitFn } from '../modules/lesson-progression.js';
-import { clearSpeechRecordingsForLesson } from '../modules/storage.js';
+import { loadLessonContent as loadLessonContentShared } from '../modules/lesson-loader.js';
+import { loadStep } from '../components/step-loader.js';
 
 import {
     handleHint as handleHintImpl,
@@ -22,7 +23,6 @@ import {
     handleAnswer as handleAnswerImpl,
     showFeedbackAndProceed as showFeedbackAndProceedImpl
 } from '../modules/answer-pipeline.jsx';
-import { loadStep } from '../components/step-loader.js';
 
 export async function setupAppInfra({ userData }) {
     if (userData) {
@@ -85,6 +85,8 @@ export async function setupAppInfra({ userData }) {
 
     const showFeedbackAndProceed = (...args) => showFeedbackAndProceedImpl(...args, answerDeps);
 
+    appStore.getState().setAnswerPipelineDeps({ submitAnswerPrecheck, showFeedbackAndProceed, handleHint });
+
     function callLoadStep(step, lesson, fluencyData) {
         loadStep(step, lesson, fluencyData, {
             submitAnswerPrecheck,
@@ -101,46 +103,7 @@ export async function setupAppInfra({ userData }) {
     };
     const showCompletionMessage = () => showCompletionMessageFn();
 
-    async function loadLessonContent(lesson) {
-        try {
-            await clearSpeechRecordingsForLesson(lesson.lessonId);
-        } catch (e) {
-            console.error(e);
-        }
-        const player = appStore.getState().currentVideoPlayer;
-        if (player) player.destroy();
-        appStore.getState().resetForNewLesson();
-        appStore.getState().resetLessonHistory();
-        appStore.setState({ currentStepIndex: 0 });
-        appStore.getState().resetLessonState();
-        appStore.getState().setLessonStartTime(new Date().toISOString());
-        appStore.getState().setRoleOther(lesson.roleOther || "");
-        appStore.getState().setRoleUser(lesson.roleUser || "");
-        appStore.getState().setUserRole(lesson.userRole || "");
-        appStore.getState().setVideoRole(lesson.videoRole || "");
-        updateProgressBar();
-
-        const configData = appStore.getState().configData;
-        const course = configData?.courseName || "";
-        const englishLevel = configData?.languageLevel || 'A0';
-        const level = englishLevel ? ` (${englishLevel})` : "";
-        const unit = (lesson.unit && String(lesson.unit).trim() !== "") ? `${lesson.unit}: ` : "";
-        const titleText = (typeof lesson.title === 'object') ? (lesson.title.en || "") : (lesson.title || "");
-        const fullTitle = `${course}${level}${course ? ': ' : ''}${unit}${titleText}`;
-
-        appStore.setState({
-            currentStepIndex: 0,
-            lessonTitle: fullTitle,
-            isLessonActive: true
-        });
-
-        // Dispatch the first step of the new lesson
-        loadStep(lesson.steps[appStore.getState().currentStepIndex], lesson, null, {
-            submitAnswerPrecheck,
-            showFeedbackAndProceed,
-            handleHint
-        });
-    }
+    const loadLessonContent = (lesson) => loadLessonContentShared(lesson);
 
     appStore.getState().setLoadLessonContentCallback(loadLessonContent);
 }

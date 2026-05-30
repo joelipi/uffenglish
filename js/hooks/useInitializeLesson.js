@@ -1,23 +1,14 @@
-import { useCallback, useRef } from 'react';
+import { useCallback } from 'react';
 import { appStore } from '../modules/store.js';
-import { useStepLoader } from './useStepLoader.js';
 import {
     resolveCurrentLessonId,
     getUrlParamCaseInsensitive
 } from '../modules/lessonRouting.js';
 import { saveLessonProgress } from '../modules/user-profile.js';
-import { clearSpeechRecordingsForLesson } from '../modules/storage.js';
-import { updateProgressBar } from '../modules/lesson-progression.js';
+import { loadLessonContent } from '../modules/lesson-loader.js';
 import Strings from '../data/strings.js';
 
 export function useInitializeLesson() {
-    const stepLoaderDepsRef = useRef(null);
-    const { loadStep } = useStepLoader();
-
-    const setStepLoaderDeps = useCallback((deps) => {
-        stepLoaderDepsRef.current = deps;
-    }, []);
-
     const initializeLesson = useCallback(async (courseId, lessonId, configData, userData) => {
         try {
             const urlParams = new URLSearchParams(window.location.search);
@@ -62,7 +53,7 @@ export function useInitializeLesson() {
                 await window.preloadLessonAssets(lesson, constructFirebaseUrl);
             }
 
-            await loadLessonContent(lesson, configData);
+            await loadLessonContent(lesson);
 
             return { success: true, lesson, lessonIndex };
         } catch (error) {
@@ -71,46 +62,7 @@ export function useInitializeLesson() {
             appStore.getState().setCriticalErrorMessage(Strings.get('lesson_load_error', userData?.native_language));
             return { success: false, error };
         }
-    }, [loadStep]);
+    }, []);
 
-    async function loadLessonContent(lesson, configData) {
-        try {
-            await clearSpeechRecordingsForLesson(lesson.lessonId);
-        } catch (e) {
-            console.error(e);
-        }
-
-        const player = appStore.getState().currentVideoPlayer;
-        if (player) player.destroy();
-        appStore.getState().resetLessonHistory();
-        appStore.getState().resetLessonState();
-        appStore.getState().setLessonStartTime(new Date().toISOString());
-        appStore.getState().setRoleOther(lesson.roleOther || "");
-        appStore.getState().setRoleUser(lesson.roleUser || "");
-        appStore.getState().setUserRole(lesson.userRole || "");
-        appStore.getState().setVideoRole(lesson.videoRole || "");
-
-        updateProgressBar(lesson);
-
-        const course = configData?.courseName || "";
-        const englishLevel = configData?.languageLevel || 'A0';
-        const level = englishLevel ? ` (${englishLevel})` : "";
-        const unit = (lesson.unit && String(lesson.unit).trim() !== "") ? `${lesson.unit}: ` : "";
-        const titleText = (typeof lesson.title === 'object') ? (lesson.title.en || "") : (lesson.title || "");
-        const fullTitle = `${course}${level}${course ? ': ' : ''}${unit}${titleText}`;
-
-        appStore.setState({
-            currentStepIndex: 0,
-            lessonTitle: fullTitle,
-            isLessonActive: true
-        });
-
-        const deps = stepLoaderDepsRef.current;
-        if (deps) {
-            const currentStepIndex = appStore.getState().currentStepIndex;
-            loadStep(lesson.steps[currentStepIndex], lesson, null, deps);
-        }
-    }
-
-    return { initializeLesson, setStepLoaderDeps };
+    return { initializeLesson };
 }

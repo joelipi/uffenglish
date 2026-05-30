@@ -2,7 +2,6 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { appStore } from '../modules/store.js';
-import { useAnswerPipeline } from '../hooks/useAnswerPipeline.js';
 import { useInitializeLesson } from '../hooks/useInitializeLesson.js';
 
 import StepLoader from './StepLoader.jsx';
@@ -33,8 +32,8 @@ import IncomingVideoWidget from './IncomingVideoWidget.jsx';
 import PointLossOverlay from './PointLossOverlay.jsx';
 import VideoProcessorWrapper from './VideoProcessorWrapper.jsx';
 import PlaybackVideo from './PlaybackVideo.jsx';
-import { useStepLoader } from '../hooks/useStepLoader.js';
 import { loadNextStep as loadNextStepImpl } from '../modules/lesson-progression.js';
+import { loadStep } from './step-loader.js';
 
 export default function LessonContainer() {
     const { courseId, lessonId } = useParams();
@@ -47,37 +46,7 @@ export default function LessonContainer() {
 
     const [lesson, setLesson] = useState(null);
 
-    const answerPipeline = useAnswerPipeline();
-    const { submitAnswerPrecheck, showFeedbackAndProceed, handleHint } = answerPipeline;
-    const { initializeLesson, setStepLoaderDeps } = useInitializeLesson();
-
-    useEffect(() => {
-        setStepLoaderDeps({ submitAnswerPrecheck, showFeedbackAndProceed, handleHint });
-    }, [submitAnswerPrecheck, showFeedbackAndProceed, handleHint, setStepLoaderDeps]);
-
-    const { loadStep } = useStepLoader();
-    const { setCallLoadStep, setLoadNextStep } = answerPipeline;
-
-    const callLoadStep = useCallback((step, lesson, fluencyData) => {
-        loadStep(step, lesson, fluencyData, {
-            submitAnswerPrecheck,
-            showFeedbackAndProceed,
-            handleHint
-        });
-    }, [loadStep, submitAnswerPrecheck, showFeedbackAndProceed, handleHint]);
-
-    useEffect(() => {
-        setCallLoadStep(callLoadStep);
-    }, [callLoadStep, setCallLoadStep]);
-
-    const loadNextStep = useCallback((currentStep, fluencyData) => {
-        const loadLessonContent = appStore.getState().loadLessonContentCallback;
-        loadNextStepImpl(currentStep, fluencyData, { callLoadStep, loadLessonContent });
-    }, [callLoadStep]);
-
-    useEffect(() => {
-        setLoadNextStep(loadNextStep);
-    }, [loadNextStep, setLoadNextStep]);
+    const { initializeLesson } = useInitializeLesson();
 
     useEffect(() => {
         if (courseId && lessonId && configData) {
@@ -103,8 +72,17 @@ export default function LessonContainer() {
 
     const onLoadNextLesson = useCallback(() => {
         const currentStep = getCurrentStep();
-        loadNextStep(currentStep, null);
-    }, [getCurrentStep, loadNextStep]);
+        if (!currentStep) return;
+        const stepDeps = appStore.getState().answerPipelineDeps;
+        const loadLessonContentCb = appStore.getState().loadLessonContentCallback;
+        if (!stepDeps) return;
+        loadNextStepImpl(currentStep, null, {
+            callLoadStep: (step, lesson, fluencyData) => {
+                loadStep(step, lesson, fluencyData, stepDeps);
+            },
+            loadLessonContent: loadLessonContentCb
+        });
+    }, [getCurrentStep]);
 
     const currentStep = getCurrentStep();
 

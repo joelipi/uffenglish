@@ -32,6 +32,7 @@ export const appStore = createStore(
             introAudioOnlyCallback: null,
 onMicClickCallback: null,
             loadLessonContentCallback: null,
+            answerPipelineDeps: null,
             pauseAllVideosTrigger: 0,
 
 // --- Session-scoped State (not persisted, reset per lesson) ---
@@ -124,6 +125,7 @@ onMicClickCallback: null,
             setIntroAudioOnlyCallback: (val) => set({ introAudioOnlyCallback: val }),
             setOnMicClickCallback: (val) => set({ onMicClickCallback: val }),
             setLoadLessonContentCallback: (val) => set({ loadLessonContentCallback: val }),
+            setAnswerPipelineDeps: (deps) => set({ answerPipelineDeps: deps }),
             setLessonTitle: (val) => set({ lessonTitle: val }),
             setIsLessonActive: (val) => set({ isLessonActive: val }),
 
