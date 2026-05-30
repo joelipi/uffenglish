@@ -122,6 +122,7 @@ export function RepeatButton({ lessonId }) {
   if (!button.visible || !lessonId || !courseId) return null;
 
   const handleRepeat = () => {
+    appStore.setState({ currentStepIndex: 0 });
     navigate(`/course/${courseId}/lesson/${lessonId}`, { replace: true });
   };
 

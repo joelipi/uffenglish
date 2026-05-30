@@ -55,33 +55,24 @@ export async function loadNextLesson(_deps = {}) {
     const nextLessonId = currentLesson.nextLessonId;
     console.log(`[Progression] loadNextLesson: ${currentLesson?.lessonId} → ${nextLessonId}`);
 
-    const loadLessonContent = _deps.loadLessonContent || appStore.getState().loadLessonContentCallback;
-
     if (nextLessonId) {
+        // Update URL immediately so reload lands on the correct lesson
+        appStore.setState({ pendingLessonNavigation: nextLessonId });
+
         saveLessonProgress(appStore.getState().courseId, nextLessonId, appStore.getState().userData).then(progressResult => {
             if (progressResult.dayCountIncremented) {
                 appStore.getState().setActivityMetrics(progressResult.newDayCount, appStore.getState().currentStreak);
             }
         });
 
-        setTimeout(async () => {
+        // Async state persistence — route navigation handles loading the new lesson content
+        setTimeout(() => {
             const nextLessonIndex = appStore.getState().configData.lessons.findIndex(l => l.lessonId === nextLessonId);
             if (nextLessonIndex !== -1) {
                 appStore.setState({ currentLessonIndex: nextLessonIndex });
                 localStorage.setItem(`${appStore.getState().courseId}_currentLessonId`, nextLessonId);
                 localStorage.setItem(`${appStore.getState().courseId}_currentLessonTimestamp`, new Date().toISOString());
-                appStore.getState().setProgressPercent("100%");
-                appStore.getState().setStepsAnswered(0);
-                appStore.setState({ currentStepIndex: 0 });
-                appStore.getState().clearSuccessVideoBlob();
-                if (loadLessonContent) {
-                    loadLessonContent(appStore.getState().configData.lessons[nextLessonIndex]);
-                } else {
-                    console.error('[Progression] loadLessonContent not available');
-                    showCompletionMessage();
-                }
-                appStore.setState({ pendingLessonNavigation: nextLessonId });
-            } else showCompletionMessage();
+            }
         }, 500);
     } else {
         Media.playSound('lesson-complete-sound');
