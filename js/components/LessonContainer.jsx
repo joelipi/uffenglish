@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { appStore } from '../modules/store.js';
@@ -47,6 +47,7 @@ export default function LessonContainer() {
     const [lesson, setLesson] = useState(null);
 
     const { initializeLesson } = useInitializeLesson();
+    const successCanvasRef = useRef(null);
 
     useEffect(() => {
         if (courseId && lessonId && configData) {
@@ -153,7 +154,7 @@ export default function LessonContainer() {
                         <div className="d-flex justify-content-center align-items-center w-100">
                             <MicrophoneToggle />
                             <IntroChoices />
-                            <SuccessScreen onLoadNextLesson={onLoadNextLesson} />
+                            <SuccessScreen onLoadNextLesson={onLoadNextLesson} canvasRef={successCanvasRef} />
                         </div>
                     </div>
                 </div>
@@ -164,7 +165,7 @@ export default function LessonContainer() {
             <WhisperReview />
             <MediaContent />
             <SuccessVideo />
-            <SuccessVideoCanvas />
+            <SuccessVideoCanvas canvasRef={successCanvasRef} />
             <PlaybackVideo />
             <div id="media-viewport" className={`position-absolute top-0 start-0 w-100 h-100${mediaVisible ? '' : ' media-viewport-hidden'}`}>
                 <div id="ivp-container"></div>

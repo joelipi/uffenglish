@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store.js';
@@ -27,7 +27,7 @@ export function ContinueButton({ onLoadNextLesson }) {
   );
 }
 
-export function VideoButton() {
+export function VideoButton({ canvasRef }) {
   const button = useStore(appStore, state => state.successVideoButton);
   const lessonId = useStore(appStore, state => state.successLessonId);
   const fluencyData = useStore(appStore, state => state.successFluencyData);
@@ -36,6 +36,7 @@ export function VideoButton() {
   const setRepeatVisible = useStore(appStore, state => state.setSuccessRepeatButtonVisible);
   const setSuccessVideoBlob = useStore(appStore, state => state.setSuccessVideoBlob);
   const setContinueVisible = useStore(appStore, state => state.setSuccessContinueVisible);
+  const shareHandlerRef = useRef(null);
 
   if (!button.visible) return null;
 
@@ -48,7 +49,7 @@ export function VideoButton() {
       appStore.getState().setCurrentVideo(null);
 
       const { processVideo, shareVideo } = await import('../../modules/video-processor.js');
-      const canvas = window.__successVideoCanvas;
+      const canvas = canvasRef?.current;
       const result = await processVideo(fluencyData, lessonId, canvas);
 
       if (result?.blob) {
@@ -58,8 +59,7 @@ export function VideoButton() {
         setRepeatVisible(true);
         setContinueVisible(true);
 
-        // Store share handler (temporary bridge)
-        window.__shareVideoHandler = async () => {
+        shareHandlerRef.current = async () => {
           const { generateVideoFilename } = await import('../../modules/success-lesson-logic.js');
           const filename = `${generateVideoFilename(lessonId)}.${result.ext || 'webm'}`;
           await shareVideo(result.blob, filename, result.ext || 'webm');
@@ -73,8 +73,8 @@ export function VideoButton() {
   };
 
   const handleShare = () => {
-    if (window.__shareVideoHandler) {
-      window.__shareVideoHandler();
+    if (shareHandlerRef.current) {
+      shareHandlerRef.current();
     }
   };
 

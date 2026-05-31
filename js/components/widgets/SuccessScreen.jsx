@@ -4,7 +4,7 @@ import { appStore } from '../../modules/store.js';
 import { ContinueButton, VideoButton, RepeatButton } from './SuccessButtons.jsx';
 import SuccessEffects from './SuccessEffects.jsx';
 
-export default function SuccessScreen({ onLoadNextLesson }) {
+export default function SuccessScreen({ onLoadNextLesson, canvasRef }) {
   const visible = useStore(appStore, state => state.successScreenVisible);
   const lessonId = useStore(appStore, state => state.successLessonId);
 
@@ -16,7 +16,7 @@ export default function SuccessScreen({ onLoadNextLesson }) {
       
       <div id="state-lesson-success" className="d-flex gap-2">
         <RepeatButton lessonId={lessonId} />
-        <VideoButton />
+        <VideoButton canvasRef={canvasRef} />
         <ContinueButton onLoadNextLesson={onLoadNextLesson} />
       </div>
     </>

@@ -57,8 +57,6 @@ export default function MicrophoneToggle() {
     const handleClick = () => {
         if (typeof onMicClickCallback === 'function') {
             onMicClickCallback();
-        } else if (typeof window.onMicClick === 'function') {
-            window.onMicClick();
         } else {
             console.warn('[MicrophoneToggle] No mic click handler registered.');
         }
