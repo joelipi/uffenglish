@@ -5,6 +5,8 @@
 
 import { isUserLoggedIn, signOut } from './api.js';
 
+// Intentional navigator.storage — guarded check. In React Native this is undefined
+// so the entire block is a no-op. Web-only storage persistence hint.
 export async function requestPersistentStorage() {
     if (navigator.storage && navigator.storage.persist) {
         let isPersisted = await navigator.storage.persisted();
@@ -19,6 +21,8 @@ export async function requestPersistentStorage() {
     }
 }
 
+// Intentional window.location — called from non-React HTML pages (homescreen.html,
+// login.html, signup.html). When those pages become React routes, switch to useNavigate().
 export async function handleAuthClick(e) {
     e.preventDefault();
     const isLoggedIn = await isUserLoggedIn();

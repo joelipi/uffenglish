@@ -1,4 +1,6 @@
 // modules/video-processor.web.js
+// Web-only module — uses navigator.userAgent, window.preloadedMedia, MediaRecorder.
+// React Native replaces this with video-processor.native.js.
 import { getAllSpeechRecordingsForLesson } from './storage.js';
 import { VideoRenderPlanner } from './video-processor-logic.js';
 import { shareVideo } from './video-share.js';

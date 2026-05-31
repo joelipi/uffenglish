@@ -3,22 +3,17 @@
  * Core signup geo/referrer collection shared between web and React Native.
  * Uses platform‑specific getGeoInfo & getReferrer (resolved by bundler).
  */
-import { getGeoInfo }       from './geo-service.js';       // resolves to .web or .native
+import { fetchGeoInfo, getCurrentUser, syncUserMetaDataMutation } from './api.js';
 import { getReferrer }      from './referrer.js';           // resolves to .web or .native
-import { getCurrentUser }   from './appwrite.js';
-import { syncUserMetaData } from './user-profile.js';
-import { localStore }       from './storage-adapter.js';
-
-const STORAGE_KEY = 'userSignupGeoReferrer';
 
 /**
- * Collects IP geolocation and referrer, stores locally and syncs to Appwrite.
+ * Collects IP geolocation and referrer, syncs to Appwrite if authenticated.
  * Silently fails if any step fails.
  */
 export async function collectSignupGeoAndReferrer() {
   try {
     console.log('[CollectSignup] Starting silent geo & referrer collection...');
-    const geo     = await getGeoInfo();
+    const geo     = await fetchGeoInfo();
     const ref     = getReferrer();
     console.log('[CollectSignup] Raw data:', { geo, ref });
 
@@ -35,19 +30,14 @@ export async function collectSignupGeoAndReferrer() {
       return;
     }
 
-    // 1. Store locally (web localStorage, RN AsyncStorage via adapter)
-    localStore.setItem(STORAGE_KEY, JSON.stringify(meta));
-    console.log('[CollectSignup] Data stored locally:', meta);
-
-    // 2. Sync to Appwrite if user is logged in
+    // Sync to Appwrite if user is logged in
     const currentUser = await getCurrentUser();
     if (currentUser && currentUser.$id) {
       try {
-        await syncUserMetaData(meta, currentUser);
+        await syncUserMetaDataMutation(meta, currentUser.$id);
         console.log('[CollectSignup] Data synced to Appwrite successfully.');
       } catch (syncError) {
         console.error('[CollectSignup] Failed to sync to Appwrite:', syncError);
-        // local copy remains valid
       }
     } else {
       console.log('[CollectSignup] User not authenticated, skipping server sync.');

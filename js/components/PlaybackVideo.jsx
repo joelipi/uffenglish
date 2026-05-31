@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react';
 import { appStore } from '../modules/store.js';
 import { usePlaybackVideo } from '../hooks/usePlaybackVideo.js';
 
+// Intentional navigator sniff — guarded with typeof checks. In React Native
+// navigator is undefined → isIOS is false (native video player handles iOS specifics).
 const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent) || (typeof navigator !== 'undefined' && navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
 export default function PlaybackVideo() {

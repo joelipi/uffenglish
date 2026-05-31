@@ -1,4 +1,6 @@
 
+// Intentional window.enabledLogs — debug/logging utility shared across modules.
+// React Native would use a different logging mechanism; this is a web convenience.
 const originalConsoleLog = console.log;
 
 window.enabledLogs = {

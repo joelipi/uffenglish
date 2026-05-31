@@ -1,3 +1,6 @@
+// Intentional window access — guarded by typeof window === 'undefined' check.
+// In React Native window is undefined → returns false (demo mode off).
+// In web, reads URL search params + localStorage for demo/whisper mode flags.
 export function getIsDemoMode() {
     if (typeof window === 'undefined' || typeof window.location === 'undefined') return false;
     if (window.location.search.includes('demo')) return true;

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { appStore } from '../modules/store.js';
 import { useInitializeLesson } from '../hooks/useInitializeLesson.js';
@@ -47,7 +47,9 @@ export default function LessonContainer() {
 
     const [lesson, setLesson] = useState(null);
 
-    const { initializeLesson } = useInitializeLesson();
+    const [searchParams] = useSearchParams();
+    const forceRestart = searchParams.has('restart');
+    const { initializeLesson } = useInitializeLesson({ forceRestart });
     const successCanvasRef = useRef(null);
 
     useEffect(() => {

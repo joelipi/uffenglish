@@ -2,7 +2,9 @@ import { appStore } from './store.js';
 import { clearSpeechRecordingsForLesson } from './storage.js';
 import { loadStep } from '../components/step-loader.js';
 
-export async function loadLessonContent(lesson) {
+export async function loadLessonContent(lesson, options = {}) {
+    const { forceRestart = false } = options;
+
     try {
         await clearSpeechRecordingsForLesson(lesson.lessonId);
     } catch (e) {
@@ -28,8 +30,6 @@ export async function loadLessonContent(lesson) {
     const titleText = (typeof lesson.title === 'object') ? (lesson.title.en || "") : (lesson.title || "");
     const fullTitle = `${course}${level}${course ? ': ' : ''}${unit}${titleText}`;
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const forceRestart = urlParams.has('restart');
     const persistedIndex = forceRestart ? 0 : appStore.getState().currentStepIndex;
     const startIndex = (persistedIndex > 0 && persistedIndex < lesson.steps.length) ? persistedIndex : 0;
 

@@ -45,7 +45,8 @@ export const Media = {
     preloader: {
         preloadOnly(url) {
             if (!url) return;
-            // Warm the browser cache — same pattern as preloadLessonAssets in index.html
+            // Intentional raw fetch() — browser cache-warming side effect, not data retrieval.
+            // The response is never read; TanStack Query would add overhead with zero benefit.
             fetch(url, { method: 'HEAD', mode: 'no-cors' }).catch(() => {});
         },
         destroy() {

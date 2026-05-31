@@ -5,14 +5,14 @@ import { saveLessonProgress } from '../modules/user-profile.js';
 import { loadLessonContent } from '../modules/lesson-loader.js';
 import Strings from '../data/strings.js';
 
-export function useInitializeLesson() {
+export function useInitializeLesson({ forceRestart = false } = {}) {
     const initializeLesson = useCallback(async (courseId, lessonId, configData, userData) => {
         try {
             const routerContext = {
                 urlLessonId: lessonId,
                 persistedLessonId: appStore.getState().activeLessonId,
-                storedLessonId: localStorage.getItem(`${courseId}_currentLessonId`),
-                storedTimestamp: localStorage.getItem(`${courseId}_currentLessonTimestamp`)
+                storedLessonId: appStore.getState().activeLessonId,
+                storedTimestamp: appStore.getState().currentLessonTimestamp
             };
 
             const resolvedLessonId = resolveCurrentLessonId(configData, userData, courseId, routerContext);
@@ -29,12 +29,14 @@ export function useInitializeLesson() {
             const lessonIndex = configData.lessons.findIndex(l => l.lessonId === resolvedLessonId);
             appStore.setState({ currentLessonIndex: lessonIndex });
 
+            // Intentional window.preloadLessonAssets — web asset preloading injected
+            // by index.html inline script. Guarded: if undefined (RN), just skipped.
             if (window.preloadLessonAssets) {
                 const constructFirebaseUrl = (slug) => `https://r2.ultrafastfluency.com/assets/videos/${slug}.mp4`;
                 await window.preloadLessonAssets(lesson, constructFirebaseUrl);
             }
 
-            await loadLessonContent(lesson);
+            await loadLessonContent(lesson, { forceRestart });
 
             return { success: true, lesson, lessonIndex };
         } catch (error) {
@@ -43,7 +45,7 @@ export function useInitializeLesson() {
             appStore.getState().setCriticalErrorMessage(Strings.get('lesson_load_error', userData?.native_language));
             return { success: false, error };
         }
-    }, []);
+    }, [forceRestart]);
 
     return { initializeLesson };
 }

@@ -1,7 +1,12 @@
 import { getCurrentUser, logout, tablesDB, APPWRITE_CONFIG } from './appwrite.js';
+import { getGeoInfo } from './geo-service.js'; // platform-resolved (web → ipapi.co fetch)
+
+// Re-export so consumers can get the raw user object via api.js instead of appwrite.js directly
+export { getCurrentUser };
 import normalize from './normalize.js';
 import { getEnglish } from './bilingual-logic.js';
 import { QueryClient } from '@tanstack/query-core';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -13,6 +18,18 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+export async function fetchGeoInfo() {
+  return queryClient.fetchQuery({
+    queryKey: ['geo', 'ip'],
+    queryFn: async () => {
+      const geo = await getGeoInfo();
+      console.log('[api] fetchGeoInfo:', geo);
+      return geo;
+    },
+    staleTime: 1000 * 60 * 60, // 1 hour — IP geolocation doesn't change mid-session
+  });
+}
 
 export async function isUserLoggedIn() {
   return queryClient.fetchQuery({
@@ -117,6 +134,8 @@ Do not explain. Do not add commentary. Do not repeat the question. Output only t
 
 const INTENT_SYSTEM_PROMPT = `Evaluate B's response. Return ONLY "CORRECT" or an array with any applicable labels [pragmatic failure, too formal, too informal, rude, unidiomatic] and a corrected version of B's response (minimum 5 words).`;
 
+// Intentional raw fetch() — one-shot AI inference. Every input is unique so
+// caching via TanStack Query would be harmful (stale analysis for wrong answer).
 export async function checkGrammarWithAI(selectedAnswer, stepData) {
   const aiEndpoint = 'https://deepseek-proxy.joel-1cb.workers.dev';
   const controller = new AbortController();
@@ -193,6 +212,8 @@ export async function checkGrammarWithAI(selectedAnswer, stepData) {
     let detail = '';
     if (error.name === 'AbortError') {
       detail = '(timeout - endpoint unreachable after 15s)';
+    // Intentional navigator.onLine — just enriches error messages. In React Native
+    // this is undefined (falsy), so the check is a harmless no-op.
     } else if (!navigator.onLine) {
       detail = '(browser is offline)';
     } else if (error instanceof TypeError) {
@@ -205,6 +226,7 @@ export async function checkGrammarWithAI(selectedAnswer, stepData) {
   }
 }
 
+// Intentional raw fetch() — one-shot AI inference (see checkGrammarWithAI).
 export async function evaluateIntentWithAI(answerForIntentPass, stepData, lessonData) {
   const aiEndpoint = 'https://deepseek-proxy.joel-1cb.workers.dev';
   const controller = new AbortController();
@@ -286,6 +308,7 @@ B: ${answerForIntentPass}` }
     let detail = '';
     if (error.name === 'AbortError') {
       detail = '(timeout - endpoint unreachable after 15s)';
+    // Intentional navigator.onLine — harmless error-detail fallback (see checkGrammarWithAI).
     } else if (!navigator.onLine) {
       detail = '(browser is offline)';
     } else if (error instanceof TypeError) {
@@ -298,6 +321,7 @@ B: ${answerForIntentPass}` }
   }
 }
 
+// Intentional raw fetch() — one-shot AI inference (see checkGrammarWithAI).
 export async function askEnglishTutor(conversationHistoryContext, newUserMessage) {
   const aiEndpoint = 'https://deepseek-proxy.joel-1cb.workers.dev';
   const controller = new AbortController();
@@ -333,6 +357,7 @@ export async function askEnglishTutor(conversationHistoryContext, newUserMessage
     let detail = '';
     if (error.name === 'AbortError') {
       detail = '(timeout - endpoint unreachable after 15s)';
+    // Intentional navigator.onLine — harmless error-detail fallback (see checkGrammarWithAI).
     } else if (!navigator.onLine) {
       detail = '(browser is offline)';
     } else if (error instanceof TypeError) {
@@ -350,8 +375,168 @@ export function invalidateUserAndAuthCache() {
   queryClient.invalidateQueries({ queryKey: ['auth', 'status'] });
 }
 
+export async function syncUserMetaDataMutation(metaToUpdate, userId) {
+  try {
+    try {
+      await tablesDB.updateRow({
+        databaseId: APPWRITE_CONFIG.DATABASE_ID,
+        tableId: APPWRITE_CONFIG.USER_PROFILES_TABLE_ID,
+        rowId: userId,
+        data: metaToUpdate
+      });
+      console.log(`🚀 syncUserMetaDataMutation: Profile ${userId} successfully updated!`, metaToUpdate);
+    } catch (updateError) {
+      // If the row doesn't exist (404), fall back to upsertRow (PUT) to create it
+      if (updateError.code === 404 || updateError.status === 404) {
+        console.log(`ℹ️ syncUserMetaDataMutation: Profile ${userId} not found, creating new one.`);
+        await tablesDB.upsertRow({
+          databaseId: APPWRITE_CONFIG.DATABASE_ID,
+          tableId: APPWRITE_CONFIG.USER_PROFILES_TABLE_ID,
+          rowId: userId,
+          data: metaToUpdate,
+          permissions: [
+            `read("user:${userId}")`,
+            `update("user:${userId}")`,
+            `delete("user:${userId}")`
+          ]
+        });
+        console.log(`🚀 syncUserMetaDataMutation: Profile ${userId} successfully created!`, metaToUpdate);
+      } else {
+        throw updateError;
+      }
+    }
+
+    // 🚀 Trigger cache bust globally after any successful profile write
+    invalidateUserAndAuthCache();
+  } catch (error) {
+    console.error('🚨 Error syncing user meta data:', error);
+  }
+}
+
 export async function signOut() {
   const result = await logout();
   invalidateUserAndAuthCache();
   return result;
+}
+
+// ── React Query hooks ──────────────────────────────────────────────
+// These hooks provide reactive subscriptions for React components.
+// Imperative functions above remain for non-React callers (homescreen.html, etc.).
+
+export function useAuthStatus() {
+  return useQuery({
+    queryKey: ['auth', 'status'],
+    queryFn: async () => {
+      try {
+        const user = await getCurrentUser();
+        return user !== null;
+      } catch {
+        return false;
+      }
+    },
+  });
+}
+
+export function useUserProfile() {
+  return useQuery({
+    queryKey: ['user', 'profile'],
+    staleTime: Infinity,
+    gcTime: 30 * 24 * 60 * 60 * 1000,
+    queryFn: async () => {
+      try {
+        const user = await getCurrentUser();
+        if (!user) {
+          const guestData = {
+            $id: 'guest',
+            email: 'guest@example.com',
+            display_name: 'Guest User',
+            join_date: new Date().toISOString(),
+            auth_method: 'guest',
+            english_level: 'A0',
+            native_language: 'EN',
+            completed_dates: [],
+            profilepicurl: '/assets/img/userprofile.png'
+          };
+          console.log('[TanStack Query] Successfully fetched data for query: userProfileQuery', guestData);
+          return guestData;
+        }
+
+        try {
+          const profileDoc = await tablesDB.getRow({
+            databaseId: APPWRITE_CONFIG.DATABASE_ID,
+            tableId: APPWRITE_CONFIG.USER_PROFILES_TABLE_ID,
+            rowId: user.$id
+          });
+
+          const mergedData = {
+            $id: user.$id,
+            email: user.email,
+            display_name: user.name,
+            join_date: user.$createdAt,
+            auth_method: 'appwrite',
+            ...profileDoc,
+            profilepicurl: profileDoc?.profilepicurl || '/assets/img/userprofile.png'
+          };
+          console.log('[TanStack Query] Successfully fetched data for query: userProfileQuery', mergedData);
+          return mergedData;
+        } catch (dbError) {
+          console.warn('Profile row not found, returning core user data', dbError);
+          const coreData = {
+            $id: user.$id,
+            email: user.email,
+            display_name: user.name,
+            join_date: user.$createdAt,
+            auth_method: 'appwrite',
+            profilepicurl: '/assets/img/userprofile.png'
+          };
+          console.log('[TanStack Query] Successfully fetched data for query: userProfileQuery', coreData);
+          return coreData;
+        }
+      } catch (error) {
+        throw error;
+      }
+    }
+  });
+}
+
+export function useSyncUserMetaData() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ metaToUpdate, userId }) => {
+      try {
+        await tablesDB.updateRow({
+          databaseId: APPWRITE_CONFIG.DATABASE_ID,
+          tableId: APPWRITE_CONFIG.USER_PROFILES_TABLE_ID,
+          rowId: userId,
+          data: metaToUpdate
+        });
+        console.log(`🚀 useSyncUserMetaData: Profile ${userId} successfully updated!`, metaToUpdate);
+      } catch (updateError) {
+        if (updateError.code === 404 || updateError.status === 404) {
+          console.log(`ℹ️ useSyncUserMetaData: Profile ${userId} not found, creating new one.`);
+          await tablesDB.upsertRow({
+            databaseId: APPWRITE_CONFIG.DATABASE_ID,
+            tableId: APPWRITE_CONFIG.USER_PROFILES_TABLE_ID,
+            rowId: userId,
+            data: metaToUpdate,
+            permissions: [
+              `read("user:${userId}")`,
+              `update("user:${userId}")`,
+              `delete("user:${userId}")`
+            ]
+          });
+          console.log(`🚀 useSyncUserMetaData: Profile ${userId} successfully created!`, metaToUpdate);
+        } else {
+          throw updateError;
+        }
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
+      queryClient.invalidateQueries({ queryKey: ['auth', 'status'] });
+    },
+    onError: (error) => {
+      console.error('🚨 useSyncUserMetaData error:', error);
+    }
+  });
 }

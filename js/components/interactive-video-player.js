@@ -5,6 +5,7 @@ export class InteractiveVideoPlayerUI {
   constructor(config) {
     this.config = config;
     this.elements = {};
+    // Intentional navigator sniff — vanilla JS web component (not React).
     this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   }
 
@@ -161,6 +162,8 @@ export class InteractiveVideoPlayer {
 
     // Safety trackers to prevent memory leaks
     this.timeouts = new Set();
+    // Intentional navigator sniff — vanilla JS web component (not React).
+    // React Native uses a completely different video player.
     this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
     // Core Components
@@ -176,6 +179,8 @@ export class InteractiveVideoPlayer {
     this.unsubscribeController = this.controller.subscribe((state) => {
       this.ui.render(state);
       // Handle Video Player Auto-Looping execution
+      // Intentional window.isMicActive — web-only component; Zustand store holds the
+      // canonical value, but this vanilla JS class reads the window bridge for speed.
       if (state.isPlaying && this.video.paused && !window.isMicActive) {
         const playPromise = this.video.play();
         if (playPromise !== undefined) playPromise.catch(() => { });

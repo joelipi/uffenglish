@@ -1,3 +1,6 @@
+// SimpleVideoPlayer.web.jsx
+// Web-only component — uses navigator.userAgent for iOS/Android detection.
+// React Native replaces this with SimpleVideoPlayer.native.jsx.
 import { useEffect, useRef, useState, useLayoutEffect, useCallback } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../modules/store.js';

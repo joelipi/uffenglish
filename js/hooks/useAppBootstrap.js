@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { appStore } from '../modules/store.js';
 import { requestPersistentStorage } from '../modules/lesson-init.js';
-import { isUserLoggedIn, getUserProfile } from '../modules/api.js';
+import { useAuthStatus, useUserProfile } from '../modules/api.js';
 import { setupAppInfra } from './app-infra.js';
 import { usePreloader } from './usePreloader.js';
 import Strings from '../data/strings.js';
@@ -11,44 +12,57 @@ export function useAppBootstrap({ courseId } = {}) {
     const [error, setError] = useState(null);
     const initStarted = useRef(false);
     const { ensurePreloader, startProgressPulse, finishPreloader } = usePreloader();
+    const [searchParams] = useSearchParams();
 
+    // ── Reactive queries (replaces imperative isUserLoggedIn / getUserProfile) ──
+    const { data: isLoggedIn, isLoading: authLoading } = useAuthStatus();
+    const { data: userData, isLoading: profileLoading } = useUserProfile();
+
+    // ── One-time setup on mount (globals, preloader) ──
+    // Intentional window.appStore — Playwright test bridge. Tests call
+    // window.appStore.getState() from page.evaluate(). RN tests use different plumbing.
+    // Intentional window.enabledLogs — shared debug namespace (see log-control.js).
     useEffect(() => {
+        window.appStore = appStore;
+        window.enabledLogs = window.enabledLogs || {
+            whisper: false, recording: false, speech: false, api: false,
+            'tanstack query': false, toggle: false, ai: false, analytics: false,
+            ui: false, hesitation: false, success: false, scoring: false,
+            video: false, router: false, pipeline: false, app: false,
+            storage: false, gamification: false, all: false
+        };
+        appStore.getState().setIsLoaded(false);
+
+        ensurePreloader();
+        startProgressPulse();
+
+        requestPersistentStorage();
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // ── Demo mode from React Router search params ──
+    useEffect(() => {
+        const isDemoMode = searchParams.has('demo');
+        appStore.getState().setDemoMode(isDemoMode);
+    }, [searchParams]);
+
+    // ── Bootstrap once both queries resolve ──
+    useEffect(() => {
+        if (authLoading || profileLoading) return;
         if (initStarted.current) return;
         initStarted.current = true;
 
         (async () => {
             try {
-                window.appStore = appStore;
-                window.enabledLogs = window.enabledLogs || {
-                    whisper: false, recording: false, speech: false, api: false,
-                    'tanstack query': false, toggle: false, ai: false, analytics: false,
-                    ui: false, hesitation: false, success: false, scoring: false,
-                    video: false, router: false, pipeline: false, app: false,
-                    storage: false, gamification: false, all: false
-                };
-                appStore.getState().setIsLoaded(false);
-
-                ensurePreloader();
-                startProgressPulse();
-
-                const isDemoMode = new URLSearchParams(window.location.search).has('demo');
-                appStore.getState().setDemoMode(isDemoMode);
-
-                requestPersistentStorage();
-
-                const loggedIn = await isUserLoggedIn();
-                appStore.getState().setIsLoggedIn(loggedIn);
-
-                const userData = await getUserProfile();
+                appStore.getState().setIsLoggedIn(!!isLoggedIn);
                 appStore.getState().setCourseData({ userData });
 
-                if (!loggedIn) {
+                if (!isLoggedIn) {
                     console.warn('[Bootstrap] User not authenticated. Proceeding as guest.');
                     appStore.getState().setGuestModalOpen(true);
                 }
 
                 if (courseId) {
-                    localStorage.setItem('currentCourse', courseId);
+                    appStore.getState().setCourseId(courseId);
                     if (userData && typeof userData === 'object') {
                         const { saveCourseToUserProfile } = await import('../modules/user-profile.js');
                         await saveCourseToUserProfile(courseId, userData);
@@ -69,7 +83,7 @@ export function useAppBootstrap({ courseId } = {}) {
                 setBootState('error');
             }
         })();
-    }, []);
+    }, [authLoading, profileLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
     return { bootState, error };
 }

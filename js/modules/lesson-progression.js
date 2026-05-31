@@ -72,8 +72,8 @@ export function createProgression(deps) {
                 const nextLessonIndex = appStore.getState().configData.lessons.findIndex(l => l.lessonId === nextLessonId);
                 if (nextLessonIndex !== -1) {
                     appStore.setState({ currentLessonIndex: nextLessonIndex });
-                    localStorage.setItem(`${appStore.getState().courseId}_currentLessonId`, nextLessonId);
-                    localStorage.setItem(`${appStore.getState().courseId}_currentLessonTimestamp`, new Date().toISOString());
+                    appStore.getState().setProgress({ lessonId: nextLessonId, lessonIndex: nextLessonIndex, questionIndex: 0 });
+                    appStore.getState().setCurrentLessonTimestamp(new Date().toISOString());
                 }
             }, 500);
         } else {

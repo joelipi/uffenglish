@@ -1,5 +1,8 @@
 /**
  * referrer.web.js
+ * Web-only module — reads window.location.search + document.referrer.
+ * React Native replaces this with referrer.native.js.
+ *
  * Web‑specific referrer extraction from URL params or document.referrer.
  * Returns: string (empty string if none available)
  */

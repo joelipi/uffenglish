@@ -1,3 +1,6 @@
+// video-share.web.js
+// Web-only module — uses navigator.share / navigator.canShare + XMLHttpRequest to Cloudinary.
+// React Native replaces this with video-share.native.js.
 import Strings from '../data/strings.js';
 const CLOUDINARY_CLOUD_NAME = 'dnolem9if';
 const CLOUDINARY_UPLOAD_PRESET = 'default';

@@ -4,6 +4,7 @@
  */
 
 import React, { useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store.js';
 import Strings from '../../data/strings.js';
@@ -40,8 +41,9 @@ export default function GuestLoginModal() {
         console.log('[GuestLoginModal] User chose to continue as guest');
     };
 
+    const location = useLocation();
     const lang = userData?.native_language || 'en';
-    const currentUrl = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '';
+    const currentUrl = location.pathname + location.search;
 
     return (
         <dialog ref={dialogRef} id="guestLoginModal" onClose={handleClose}>

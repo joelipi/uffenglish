@@ -25,6 +25,8 @@ export const appStore = createStore(
             userData: null,
             configData: null,
             courseId: null,
+            currentLessonTimestamp: null,
+            lessonScores: '{}',
             englishLevel: 'A0',
             currentVideo: null,
             currentVideoPlayer: null,
@@ -196,6 +198,9 @@ export const appStore = createStore(
                 courseId: data.courseId !== undefined ? data.courseId : state.courseId,
                 englishLevel: data.englishLevel !== undefined ? data.englishLevel : state.englishLevel,
             })),
+            setCourseId: (val) => set({ courseId: val }),
+            setCurrentLessonTimestamp: (val) => set({ currentLessonTimestamp: val }),
+            setLessonScores: (val) => set({ lessonScores: val }),
 
             setCurrentVideo: (video) => {
                 console.log(`[Store] setCurrentVideo: ${video ? video.type : 'null'}`);
@@ -510,7 +515,10 @@ export const appStore = createStore(
                 userMessagesToAi: state.userMessagesToAi,
                 aIMessagesToUser: state.aIMessagesToUser,
                 userMessagesToAiWordCount: state.userMessagesToAiWordCount,
-                aIMessagesToUserWordCount: state.aIMessagesToUserWordCount
+                aIMessagesToUserWordCount: state.aIMessagesToUserWordCount,
+                courseId: state.courseId,
+                currentLessonTimestamp: state.currentLessonTimestamp,
+                lessonScores: state.lessonScores
             })
         }
     )

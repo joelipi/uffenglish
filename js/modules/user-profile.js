@@ -1,8 +1,7 @@
 // modules/user-profile.js
 // IMPORTANT! THIS SCRIPT USES VERSION 24 OF THE APPWRITE SDK, WHICH HAS MANY BREAKING CHANGES FROM EARLIER VERSIONS. DO NOT USE THE SYNTAX OR METHODS OF EARLIER VERSIONS WITHOUT CHECKING THEY ARE STILL VALID IN VERSION 24.
-import { tablesDB, APPWRITE_CONFIG, getCurrentUser } from './appwrite.js';
-import { invalidateUserAndAuthCache } from './api.js'; // 🚀 TanStack invalidation helper
-import { localStore } from './storage-adapter.js'; // <-- Adapter for React Native compatibility
+import { syncUserMetaDataMutation, getCurrentUser } from './api.js';
+import { appStore } from './store.js';
 
 /**
  * Syncs metadata to Appwrite. 
@@ -18,43 +17,7 @@ export async function syncUserMetaData(metaToUpdate, providedUserData) {
         }
     }
     const userId = userData.$id;
-    try {
-        // 🚀 Use updateRow (PATCH) instead of upsertRow (PUT) to avoid wiping out fields not in metaToUpdate
-        try {
-            await tablesDB.updateRow({
-                databaseId: APPWRITE_CONFIG.DATABASE_ID,
-                tableId: APPWRITE_CONFIG.USER_PROFILES_TABLE_ID,
-                rowId: userId,
-                data: metaToUpdate
-            });
-            console.log(`🚀 syncUserMetaData: Profile ${userId} successfully updated!`, metaToUpdate);
-        } catch (updateError) {
-            // If the row doesn't exist (404), fall back to upsertRow (PUT) to create it
-            if (updateError.code === 404 || updateError.status === 404) {
-                console.log(`ℹ️ syncUserMetaData: Profile ${userId} not found, creating new one.`);
-                await tablesDB.upsertRow({
-                    databaseId: APPWRITE_CONFIG.DATABASE_ID,
-                    tableId: APPWRITE_CONFIG.USER_PROFILES_TABLE_ID,
-                    rowId: userId,
-                    data: metaToUpdate,
-                    permissions: [
-                        `read("user:${userId}")`,
-                        `update("user:${userId}")`,
-                        `delete("user:${userId}")`
-                    ]
-                });
-                console.log(`🚀 syncUserMetaData: Profile ${userId} successfully created!`, metaToUpdate);
-            } else {
-                throw updateError;
-            }
-        }
-
-        // 🚀 Trigger cache bust globally after any successful profile write
-        invalidateUserAndAuthCache();
-
-    } catch (error) {
-        console.error("🚨 Error syncing user meta data:", error);
-    }
+    await syncUserMetaDataMutation(metaToUpdate, userId);
 }
 
 /**
@@ -86,8 +49,7 @@ export async function saveCourseToUserProfile(courseId, userData) {
 }
 
 /**
- * Restored from your original file: Handles per-lesson progress
- * Updated to use localStore adapter for React Native compatibility
+ * Handles per-lesson progress. All storage goes through the Zustand store (persist middleware).
  */
 export async function saveLessonProgress(courseId, lessonId, userData, options = {}) {
     const timestamp = new Date().toISOString();
@@ -100,7 +62,7 @@ export async function saveLessonProgress(courseId, lessonId, userData, options =
             console.warn("⚠️ Skipping telemetry save due to compression error.");
         } else {
             try {
-                const baselineStr = userData?.lesson_scores || localStore.getItem('lesson_scores') || '{}';
+                const baselineStr = userData?.lesson_scores || appStore.getState().lessonScores || '{}';
                 let localScoresMap = {};
 
                 try {
@@ -113,7 +75,7 @@ export async function saveLessonProgress(courseId, lessonId, userData, options =
                 localScoresMap[lessonKey] = safeOptions.lessonStats;
 
                 const scoresStringified = JSON.stringify(localScoresMap);
-                localStore.setItem('lesson_scores', scoresStringified);
+                appStore.getState().setLessonScores(scoresStringified);
 
                 if (userData) {
                     userData.lesson_scores = scoresStringified;
@@ -129,21 +91,21 @@ export async function saveLessonProgress(courseId, lessonId, userData, options =
     let resultState = { savedToLocal: false, streakUpdated: false, dayCountIncremented: false, newDayCount: 0, newStreak: 0, lessonsCompleted: 0, fluencyImproving: false };
 
     try {
-        localStore.setItem(`${courseId}_currentLessonId`, lessonId);
-        localStore.setItem(`${courseId}_currentLessonTimestamp`, timestamp);
+        appStore.setState({ activeLessonId: lessonId });
+        appStore.getState().setCurrentLessonTimestamp(timestamp);
 
         if (safeOptions.scores && Array.isArray(safeOptions.scores)) {
-            const baselineStr = userData?.lesson_scores || localStore.getItem('lesson_scores') || '{}';
+            const baselineStr = userData?.lesson_scores || appStore.getState().lessonScores || '{}';
             let localScoresMap = {};
             try { localScoresMap = JSON.parse(baselineStr); } catch (e) { }
 
             localScoresMap[`${courseId}_${lessonId}`] = safeOptions.scores;
             const scoresStringified = JSON.stringify(localScoresMap);
-            localStore.setItem('lesson_scores', scoresStringified);
+            appStore.getState().setLessonScores(scoresStringified);
             if (userData) userData.lesson_scores = scoresStringified;
         }
         resultState.savedToLocal = true;
-    } catch (e) { console.error('❌ LocalStore Error:', e); }
+    } catch (e) { console.error('❌ Store Error:', e); }
 
     if (updateUserMetaFlag && userData) {
         try {
@@ -227,19 +189,18 @@ export function calculateCurrentStreak(completedDatesArray) {
 }
 
 /**
- * Restored from your original file: Handles offline score syncing
- * Updated to use localStore adapter for React Native compatibility
+ * Handles offline score syncing. All storage goes through the Zustand store (persist middleware).
  */
 export async function syncOfflineScores(userData) {
     if (!userData || typeof userData !== 'object' || userData.$id === 'guest') return;
     try {
-        const localScoresStr = localStore.getItem('lesson_scores');
+        const localScoresStr = appStore.getState().lessonScores;
         const remoteScoresStr = userData.lesson_scores || '{}';
 
-        if (!localScoresStr) {
+        if (!localScoresStr || localScoresStr === '{}') {
             if (remoteScoresStr !== '{}') {
-                localStore.setItem('lesson_scores', remoteScoresStr);
-                console.log('🚀 syncOfflineScores: Seeded local storage with remote scores.');
+                appStore.getState().setLessonScores(remoteScoresStr);
+                console.log('🚀 syncOfflineScores: Seeded local store with remote scores.');
             }
             return;
         }
@@ -261,9 +222,9 @@ export async function syncOfflineScores(userData) {
         if (needsSync) {
             const mergedScoresStr = JSON.stringify(remoteScoresMap);
             await syncUserMetaData({ lesson_scores: mergedScoresStr }, userData);
-            localStore.setItem('lesson_scores', mergedScoresStr);
+            appStore.getState().setLessonScores(mergedScoresStr);
         } else if (remoteScoresStr !== localScoresStr) {
-            localStore.setItem('lesson_scores', remoteScoresStr);
+            appStore.getState().setLessonScores(remoteScoresStr);
         }
     } catch (error) { console.error('🚨 Error during offline score sync:', error); }
 }

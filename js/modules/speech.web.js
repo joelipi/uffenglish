@@ -1,4 +1,6 @@
 // modules/speech.web.js
+// Web-only module — uses navigator.userAgent, navigator.platform, navigator.mediaDevices.
+// React Native replaces this with speech.native.js via platform-specific file resolution.
 import Strings from '../data/strings.js';
 import { saveSpeechRecording } from './storage.js';
 import { appStore } from './store.js';
