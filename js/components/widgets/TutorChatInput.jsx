@@ -1,23 +1,19 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store.js';
 
-export default function TutorChatInput() {
+export default function TutorChatInput({ onSubmit }) {
     const tutorChatVisible = useStore(appStore, (state) => state.tutorChatVisible);
-    const tutorChatSubmitCallback = useStore(appStore, (state) => state.tutorChatSubmitCallback);
     const [inputValue, setInputValue] = useState('');
     const textareaRef = useRef(null);
-    const callbackRef = useRef(tutorChatSubmitCallback);
-
-    callbackRef.current = tutorChatSubmitCallback;
 
     const handleSend = useCallback(() => {
         const text = inputValue.trim();
-        if (text && callbackRef.current) {
+        if (text && onSubmit) {
             setInputValue('');
-            callbackRef.current(text);
+            onSubmit(text);
         }
-    }, [inputValue]);
+    }, [inputValue, onSubmit]);
 
     const handleKeyDown = useCallback((e) => {
         if (e.key === 'Enter' && e.ctrlKey) {

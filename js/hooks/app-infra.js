@@ -12,7 +12,7 @@ import { saveLessonProgress } from '../modules/user-profile.js';
 import { calculateAverage } from '../modules/scoring.js';
 import { Media } from '../modules/media.js';
 import Strings from '../data/strings.js';
-import { setProgressionDeps, updateProgressBar as updateProgressBarFn, loadNextStep as loadNextStepImpl, loadNextLesson as loadNextLessonFn, showCompletionMessage as showCompletionMessageFn, handleTutorChatSubmit as handleTutorChatSubmitFn } from '../modules/lesson-progression.js';
+import { setProgressionDeps, updateProgressBar as updateProgressBarFn, loadNextStep as loadNextStepImpl, loadNextLesson as loadNextLessonFn, showCompletionMessage as showCompletionMessageFn } from '../modules/lesson-progression.js';
 import { loadLessonContent as loadLessonContentShared } from '../modules/lesson-loader.js';
 import { loadStep } from '../components/step-loader.js';
 
@@ -67,8 +67,6 @@ export async function setupAppInfra({ userData }) {
         warmUpSpeechCam: warmUpSpeechCamStream,
     });
 
-    appStore.getState().setTutorChatSubmitCallback(handleTutorChatSubmitFn);
-
     const {
         handleHint: handleHintImpl,
         submitAnswerPrecheck: submitAnswerPrecheckImpl,
@@ -116,6 +114,4 @@ export async function setupAppInfra({ userData }) {
     const showCompletionMessage = () => showCompletionMessageFn();
 
     const loadLessonContent = (lesson) => loadLessonContentShared(lesson);
-
-    appStore.getState().setLoadLessonContentCallback(loadLessonContent);
 }

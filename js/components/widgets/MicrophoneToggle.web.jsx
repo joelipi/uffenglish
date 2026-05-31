@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store.js';
+import { getSpeechInputToggleCallback } from '../../modules/step-loader-callbacks.js';
 
 export default function MicrophoneToggle() {
     const isMicActive = useStore(appStore, (state) => state.isMicActive);
     const isTextMode = useStore(appStore, (state) => state.isTextMode);
     const bottomControlState = useStore(appStore, (state) => state.bottomControlState);
-    const onMicClickCallback = useStore(appStore, (state) => state.onMicClickCallback);
     const micBounceTrigger = useStore(appStore, (state) => state.micBounceTrigger);
     const [bouncing, setBouncing] = useState(false);
     const ringRefs = useRef([null, null, null]);
@@ -55,8 +55,9 @@ export default function MicrophoneToggle() {
     }, [micBounceTrigger]);
 
     const handleClick = () => {
-        if (typeof onMicClickCallback === 'function') {
-            onMicClickCallback();
+        const cb = getSpeechInputToggleCallback();
+        if (typeof cb === 'function') {
+            cb();
         } else {
             console.warn('[MicrophoneToggle] No mic click handler registered.');
         }

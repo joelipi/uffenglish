@@ -695,6 +695,10 @@
             z-index: 999999;
         }
 
+        #root:not(:empty) ~ #appLoadingImageDiv {
+            display: none !important;
+        }
+
         .appLoadingImage {
             width: 80vw;
             height: 80vh;
@@ -1810,13 +1814,6 @@
 
 <body>
 
-    <div id="appLoadingImageDiv">
-        <div class="appLoadingImage"></div>
-        <div id="ui-progress-container">
-            <div id="ui-progress-bar"></div>
-        </div>
-    </div>
-
     <!-- RESTORED: App Loading & Pre-caching Script -->
     <script>
         (function () {
@@ -1886,6 +1883,12 @@
             <!-- HIDDEN FUNCTIONAL ELEMENTS -->
 
         </div>
+            <div id="appLoadingImageDiv">
+                <div class="appLoadingImage"></div>
+                <div id="ui-progress-container">
+                    <div id="ui-progress-bar"></div>
+                </div>
+            </div>
             <video id="originalVideo" src="" class="d-none"></video>
     </main>
 

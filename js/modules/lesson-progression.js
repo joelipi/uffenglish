@@ -42,7 +42,7 @@ export function createProgression(deps) {
         if (!appStore.getState().configData || !appStore.getState().configData.lessons || appStore.getState().configData.lessons.length === 0) return;
         const currentLesson = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex];
 
-        const loadLessonContent = _deps.loadLessonContent || appStore.getState().loadLessonContentCallback;
+        const loadLessonContent = _deps.loadLessonContent;
 
         appStore.setState({ currentStepIndex: appStore.getState().currentStepIndex + 1 });
         if (appStore.getState().currentStepIndex < currentLesson.steps.length) {

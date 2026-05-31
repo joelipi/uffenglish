@@ -32,7 +32,8 @@ import IncomingVideoWidget from './IncomingVideoWidget.jsx';
 import PointLossOverlay from './PointLossOverlay.jsx';
 import VideoProcessorWrapper from './VideoProcessorWrapper.jsx';
 import PlaybackVideo from './PlaybackVideo.jsx';
-import { loadNextStep as loadNextStepImpl } from '../modules/lesson-progression.js';
+import { loadNextStep as loadNextStepImpl, handleTutorChatSubmit } from '../modules/lesson-progression.js';
+import { loadLessonContent } from '../modules/lesson-loader.js';
 import { loadStep } from './step-loader.js';
 
 export default function LessonContainer() {
@@ -85,15 +86,23 @@ export default function LessonContainer() {
         const currentStep = getCurrentStep();
         if (!currentStep) return;
         const stepDeps = appStore.getState().answerPipelineDeps;
-        const loadLessonContentCb = appStore.getState().loadLessonContentCallback;
         if (!stepDeps) return;
         loadNextStepImpl(currentStep, null, {
             callLoadStep: (step, lesson, fluencyData) => {
                 loadStep(step, lesson, fluencyData, stepDeps);
             },
-            loadLessonContent: loadLessonContentCb
+            loadLessonContent
         });
     }, [getCurrentStep]);
+
+    const handleRepeat = useCallback((repeatLessonId) => {
+        appStore.getState().hideSuccessScreen();
+        const configData = appStore.getState().configData;
+        const lesson = configData?.lessons?.find(l => l.lessonId === repeatLessonId);
+        if (lesson) {
+            loadLessonContent(lesson);
+        }
+    }, []);
 
     const currentStep = getCurrentStep();
 
@@ -141,7 +150,7 @@ export default function LessonContainer() {
             <div id="chat-window-container" className={`chat-window-container ${chatModeActive ? '' : 'd-none'}`}>
                 <ChatHeader />
                 <ChatInterface />
-                <TutorChatInput />
+                <TutorChatInput onSubmit={handleTutorChatSubmit} />
             </div>
 
             {/* Bottom Overlay */}
@@ -154,7 +163,7 @@ export default function LessonContainer() {
                         <div className="d-flex justify-content-center align-items-center w-100">
                             <MicrophoneToggle />
                             <IntroChoices />
-                            <SuccessScreen onLoadNextLesson={onLoadNextLesson} canvasRef={successCanvasRef} />
+                            <SuccessScreen onLoadNextLesson={onLoadNextLesson} onRepeat={handleRepeat} canvasRef={successCanvasRef} />
                         </div>
                     </div>
                 </div>

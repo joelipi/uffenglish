@@ -1,5 +1,4 @@
 import React, { useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store.js';
 
@@ -114,17 +113,12 @@ export function VideoButton({ canvasRef }) {
   return null;
 }
 
-export function RepeatButton({ lessonId }) {
+export function RepeatButton({ lessonId, onRepeat }) {
   const button = useStore(appStore, state => state.successRepeatButton);
-  const navigate = useNavigate();
-  const { courseId } = useParams();
 
-  if (!button.visible || !lessonId || !courseId) return null;
+  if (!button.visible || !lessonId || !onRepeat) return null;
 
-  const handleRepeat = () => {
-    appStore.setState({ currentStepIndex: 0 });
-    navigate(`/course/${courseId}/lesson/${lessonId}`, { replace: true });
-  };
+  const handleRepeat = () => onRepeat(lessonId);
 
   return (
     <button

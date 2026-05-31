@@ -9,6 +9,7 @@ import { getCurrentStepIndex } from '../modules/answers.js';
 import { logInteraction } from '../modules/scoring.js';
 import { handleTextStep, handleLessonComplete, handleUnitComplete, handleSuccessStep, clearWarningLater, cancelWarningClear } from '../modules/step-loader-logic.js';
 import { loadStepOrchestrate } from '../modules/step-loader-orchestrate.js';
+import { setTextInputSubmitCallback as setTextCb, setSpeechInputToggleCallback as setSpeechCb } from './step-loader-callbacks.js';
 
 function resetUIForNewStep(isLessonIntro, hasUserData) {
     appStore.getState().setBottomControlState('mic');
@@ -126,11 +127,11 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
         appStore.getState().setStatsVisible(true);
         const placeholder = Strings.get('placeholder_type_answer', appStore.getState().userData?.native_language) || 'Type your answer here...';
         appStore.getState().setTextInputPlaceholder(placeholder);
-        appStore.getState().setTextInputSubmitCallback((val, btn) => {
+        setTextCb((val, btn) => {
             submitAnswerPrecheck(val, step.cue, step, btn, step.explanation, step.translation, { pauseCount: 0, netDuration: 3 });
         });
     } else {
-        appStore.getState().setSpeechInputToggleCallback(async () => {
+        setSpeechCb(async () => {
             try {
                 await toggleSpeechRecognition({
                     step,

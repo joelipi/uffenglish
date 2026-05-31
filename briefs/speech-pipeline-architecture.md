@@ -2,7 +2,7 @@
 
 ## Origin Notes
 
-**"Demo" mode** (`?demo` URL param, `whisper-worker-demo.js`): This was not the first step toward a Transformers.js migration. It was a separate optimization path for a hypothetical web-only demo version of the app — a trimmed-down experience users could try before downloading the full app. The Transformers.js `whisper-tiny.en` model is ~40MB vs the Sherpa-ONNX production model's ~110MB. The `?demo` gate was left in place but never activated in production; the codebase always uses the full Sherpa-ONNX path. If the demo path is ever pursued, the Transformers.js v3 runtime improvements may make it viable today without the perf cliff it hit when this was written.
+**"Demo" mode** (`?demo` URL param, `whisper-worker-demo.js`): This was not the first step toward a Transformers.js migration. It was a separate optimization path for a web-only demo version — a trimmed-down experience users could try before downloading the full app. The Transformers.js `whisper-tiny.en` model is ~40MB vs the Sherpa-ONNX production model's ~110MB. The `?demo` gate was left in place but never activated in production; the codebase always used the full Sherpa-ONNX path. Transformers.js v3 runtime improvements made this viable — see Phase 2 of the execution plan.
 
 **AudioWorklet** (`audio-processor.js`): This pipeline uses `AudioWorklet` (not `ScriptProcessorNode`) for raw PCM capture, running on a dedicated audio rendering thread. It is loaded dynamically via `audioWorklet.addModule()` in `speech.web.js:startLocalAudioTap()`, not through the ES module import system.
 
@@ -16,9 +16,9 @@
 | 2 | Create `createWhisperAdapter({ workerUrl, workerOptions })` factory in `app-vad-asr-web.js` — decouples worker selection from the adapter | `js/workers/whisper/app-vad-asr-web.js` | 5, 6c.1 |
 | 3 | Update `speech.js` — wire both factories, choose worker at entry point based on feature flag, call `preloadWhisperEngine()` (replaces import-time side effect) | `js/modules/speech.js` | 5, 6c.2 |
 | 4 | Remove `preloadWhisperEngine()` call at `app-vad-asr-web.js:118` (import-time side effect) | `js/workers/whisper/app-vad-asr-web.js` | 5 |
-| 5 | Remove `document.getElementById('appLoadingImageDiv')` DOM call from `app-vad-asr-web.js`; add React Preloader component that watches `isWhisperReady` from Zustand | `js/workers/whisper/app-vad-asr-web.js`, Preloader component (new or existing) | 7.1 |
-| 6 | Remove `window.whisperEngineReady` fallback from `app-vad-asr-web.js` | `js/workers/whisper/app-vad-asr-web.js` | 7.2 |
-| 7 | Inject `updateSpeechRecording` as factory dep in `createSpeechOrchestrator()` | `js/modules/speech-orchestrator.js`, `js/modules/speech.js` | 7.4 |
+| 5 | Remove `document.getElementById('appLoadingImageDiv')` DOM call from `app-vad-asr-web.js`; add React Preloader component that watches `isWhisperReady` from Zustand | `js/workers/whisper/app-vad-asr-web.js`, Preloader component (new or existing) | resolved |
+| 6 | Remove `window.whisperEngineReady` fallback from `app-vad-asr-web.js` | `js/workers/whisper/app-vad-asr-web.js` | §4d |
+| 7 | Inject `updateSpeechRecording` as factory dep in `createSpeechOrchestrator()` | `js/modules/speech-orchestrator.js`, `js/modules/speech.js` | §5 |
 | — | Run vitest suite (140 tests), fix any regressions | — | — |
 
 ### Phase 2 — Demo Mode
@@ -34,10 +34,10 @@
 
 | Step | Action | Files | Combo? |
 |------|--------|-------|--------|
-| 11 | Remove `tutorChatSubmitCallback` — pass `onSubmit` prop to `TutorChatInput.jsx` via `LessonContainer` | `TutorChatInput.jsx`, `LessonContainer.jsx`, `app-infra.js`, `store.js` | 8.6 |
-| 12 | Remove `introContinueCallback` — `answer-pipeline.js` factory returns `onContinue`, passed as prop to `IntroChoices.jsx` | `answer-pipeline.js`, `app-infra.js`, `IntroChoices.jsx`, `LessonContainer.jsx`, `store.js` | 8.1 |
-| 13 | Remove `loadLessonContentCallback` — `app-infra.js` already has it locally, pass directly | `LessonContainer.jsx`, `lesson-progression.js`, `app-infra.js`, `store.js`, `regression-guard.spec.js` | 8.3 |
-| 14 | Batch: remove `textInputSubmitCallback` + `speechInputToggleCallback` + `onMicClickCallback` — intertwined through `step-loader-execute.js` / `AnswerInput.jsx` / `MicrophoneToggle.web.jsx` | `step-loader-execute.js`, `AnswerInput.jsx`, `MicrophoneToggle.web.jsx`, `store.js` | 8.2, 8.4, 8.5 |
+| 11 | Remove `tutorChatSubmitCallback` — pass `onSubmit` prop to `TutorChatInput.jsx` via `LessonContainer` | `TutorChatInput.jsx`, `LessonContainer.jsx`, `app-infra.js`, `store.js` | §7c #6 |
+| 12 | Remove `introContinueCallback` — `answer-pipeline.js` factory returns `onContinue`, passed as prop to `IntroChoices.jsx` | `answer-pipeline.js`, `app-infra.js`, `IntroChoices.jsx`, `LessonContainer.jsx`, `store.js` | §7c #1 |
+| 13 | Remove `loadLessonContentCallback` — `app-infra.js` already has it locally, pass directly | `LessonContainer.jsx`, `lesson-progression.js`, `app-infra.js`, `store.js`, `regression-guard.spec.js` | §7c #3 |
+| 14 | Batch: remove `textInputSubmitCallback` + `speechInputToggleCallback` + `onMicClickCallback` — intertwined through `step-loader-execute.js` / `AnswerInput.jsx` / `MicrophoneToggle.web.jsx` | `step-loader-execute.js`, `AnswerInput.jsx`, `MicrophoneToggle.web.jsx`, `store.js` | §7c #2, #4, #5 |
 | — | Run vitest suite, then Playwright smoke test (`tests/answer-flow.spec.js`) | — | — |
 
 ### Phase 4 — Deferred
@@ -46,6 +46,7 @@
 |------|--------|--------|
 | 15 | Add demo→full conversion analytics events | When demo mode is activated in production and you need to measure conversion (deferred per section 6f.3) |
 | 16 | Clean up `currentVideoPlayer` and `answerPipelineDeps` from store | After all Phase 3 callbacks are removed — these two are the same anti-pattern (separate work item per section 8 bottom) |
+| 17 | Investigate removing the unused `transcribeAudioBuffer`/`analyzeAudioBufferWithVAD` import from `speech.web.js`, or keep for future desktop PWA | When desktop PWA usage on PC/Mac/Chromebook is being investigated |
 
 ## 1. File Map
 
@@ -303,7 +304,7 @@ export function createSpeechOrchestrator({
 }
 ```
 
-### Updated `js/modules/speech.js` (final — supersedes §6c.2 sample, which is identical)
+### Updated `js/modules/speech.js` (final — supersedes §6c.2 sample; §6c.2 is missing `getSpeechCamStream`)
 
 ```js
 import * as mediaAdapter from './speech.web.js';
@@ -395,6 +396,8 @@ The entire worker-selection logic lives inside `app-vad-asr-web.js`. The factory
 
 ### 6c. Strategy
 
+> **Note**: The code samples below are simplified to show the demo-relevant changes. See §5 for the canonical `speech.js` wiring with `getSpeechCamStream` and full factory integration.
+
 **Step 1 — Decouple worker selection from the whisper adapter.**
 
 The whisper adapter (`app-vad-asr-web.js`) should accept the worker URL/path as a parameter rather than sniffing `window.location.search`. Create a thin factory inside `app-vad-asr-web.js`:
@@ -450,7 +453,7 @@ whisperAdapter.preloadWhisperEngine();
 - Remove `window.location.search` sniffing (moved to `speech.js`)
 - Remove the `document.getElementById('appLoadingImageDiv')` call (preloader hiding belongs in React)
 - Remove line 118 `preloadWhisperEngine()` import-time side effect
-- Keep `window.whisperEngineReady` fallback until confirmed unused (Open Question #2)
+- Remove `window.whisperEngineReady` fallback — confirmed unused, Zustand path is primary
 - The existing `transcribeAudioBuffer` / `analyzeAudioBufferWithVAD` / state management can stay as-is; the factory just wraps them
 
 ### 6d. Feature Flag Options
@@ -470,7 +473,7 @@ whisperAdapter.preloadWhisperEngine();
 |------|--------|
 | `app-vad-asr-web.js` | Add `createWhisperAdapter()` factory; remove URL sniffing + DOM call + import-time side effect |
 | `speech.js` (after refactor) | Choose worker path based on feature flag, pass to `createWhisperAdapter()`, call `preloadWhisperEngine()` |
-| `whisper-worker-demo.js` | No changes needed (already has same message interface) |
+| `whisper-worker-demo.js` | Add `loadAndCacheFile()` equivalent pointing at R2 — fetches model from your CDN, writes to Cache Storage API (~20 lines) |
 | `whisper-worker-web.js` | No changes needed |
 | `storage.js` | Optionally persist `whisperMode` preference if demo mode becomes user-selectable |
 
@@ -484,17 +487,7 @@ whisperAdapter.preloadWhisperEngine();
    Files changed: `whisper-worker-demo.js` — add `loadAndCacheFile()` equivalent pointing at your R2 path. No changes to `whisper-worker-web.js`.
 3. **Analytics**: Yes, but can be deferred to a later iteration.
 
-## 7. Open Questions — Resolved
-
-1. **`app-vad-asr-web.js` DOM call**: Part of this refactor. Move `document.getElementById('appLoadingImageDiv')` to a React Preloader component that watches `isWhisperReady` from Zustand.
-
-2. **`window.whisperEngineReady` fallback**: Remove it as part of this refactor. The Zustand path is primary and confirmed working.
-
-3. **`speech.web.js` unused import**: This is NOT for the web demo version. It may belong in the eventual native RN adapter. Open question: do desktop browsers (PWA on PC/Mac/Chromebook) allow more resource usage, making the heavier path feasible for the eventual desktop version? Deferred until desktop PWA usage is investigated.
-
-4. **`storage.js` (IndexedDB)**: Yes, inject `updateSpeechRecording` as a dependency in the factory. The RN path would pass a native storage adapter.
-
-## 8. Eliminate Callbacks from Zustand
+## 7. Eliminate Callbacks from Zustand
 
 There are **6** function-valued fields in the store that should be removed. All follow the same anti-pattern: a module stashes a closure, a React component retrieves it.
 

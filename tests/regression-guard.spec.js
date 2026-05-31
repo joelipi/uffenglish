@@ -149,15 +149,20 @@ test.describe('Regression Guard — Store, DOM IDs, Module Imports', () => {
         expect(state).toBe('mic');
     });
 
-    test('loadLessonContentCallback is available in store', async ({ page }) => {
+    test('loadLessonContent is importable', async ({ page }) => {
         await page.goto('/course/gt2/lesson/a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
-        await page.waitForTimeout(3000);
 
-        const hasCallback = await page.evaluate(() => {
-            return typeof window.appStore.getState().loadLessonContentCallback === 'function';
+        const result = await page.evaluate(async () => {
+            try {
+                const { loadLessonContent } = await import('/js/modules/lesson-loader.js');
+                return { ok: true, type: typeof loadLessonContent };
+            } catch (e) {
+                return { ok: false, error: e.message };
+            }
         });
-        expect(hasCallback).toBe(true);
+        expect(result.ok).toBe(true);
+        expect(result.type).toBe('function');
     });
 
     test('handleSuccessStep uses store (no successHandler)', async ({ page }) => {

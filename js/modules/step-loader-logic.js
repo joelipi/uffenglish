@@ -13,6 +13,7 @@ import { Media } from './media.js';
 import { saveLessonProgress } from './user-profile.js';
 import { getCompressedLessonStats } from './scoring.js';
 import { calculateLessonAverage, detectFluencyTrend } from './success-lesson-logic.js';
+import { setTextInputSubmitCallback } from './step-loader-callbacks.js';
 
 // --- Warning Clear Timer (no DOM) ---
 
@@ -55,7 +56,7 @@ export function handleTextStep(step, submitAnswerPrecheck) {
     appStore.getState().setTextInputPlaceholder(
         Strings.get('placeholder_type_answer', appStore.getState().userData?.native_language) || 'Type your answer here...'
     );
-    appStore.getState().setTextInputSubmitCallback(
+    setTextInputSubmitCallback(
         (val, btn) => submitAnswerPrecheck(val, typeof step.cue === 'object' ? step.cue.en : step.cue, step, btn, step.explanation, step.translation, { pauseCount: null, netDuration: null })
     );
 }

@@ -4,6 +4,11 @@
 // Deps: { loadNextStep, callLoadStep }
 
 import { appStore } from './store.js';
+
+// Module-level ref for intro continue handler, avoiding store callback anti-pattern
+let _introContinueHandler = null;
+export function setIntroContinueHandler(fn) { _introContinueHandler = fn; }
+export function getIntroContinueHandler() { return _introContinueHandler; }
 import {
     getCurrentStepIndex,
     processAnswerLogic,
@@ -887,7 +892,7 @@ export function createAnswerPipeline(deps) {
             };
 
             if (stepData.stepType === "lessonIntro") {
-                appStore.getState().setIntroContinueCallback(onContinue);
+                setIntroContinueHandler(onContinue);
                 appStore.getState().setBottomControlState('introChoices');
             } else {
                 const hasWidget = appStore.getState().chatHistory.some(msg => msg.type === 'continueWidget');

@@ -1,12 +1,11 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store.js';
+import { getTextInputSubmitCallback, getSpeechInputToggleCallback, getCallbackVersion } from '../../modules/step-loader-callbacks.js';
 
 export default function AnswerInput() {
     const textInputVisible = useStore(appStore, (state) => state.textInputVisible);
     const textInputPlaceholder = useStore(appStore, (state) => state.textInputPlaceholder);
-    const textInputSubmitCallback = useStore(appStore, (state) => state.textInputSubmitCallback);
-    const speechInputToggleCallback = useStore(appStore, (state) => state.speechInputToggleCallback);
     const answerErrorMessage = useStore(appStore, (state) => state.answerErrorMessage);
     const submitBtnDisabled = useStore(appStore, (state) => state.submitBtnDisabled);
     const submitBtnIcon = useStore(appStore, (state) => state.submitBtnIcon);
@@ -14,12 +13,21 @@ export default function AnswerInput() {
     const inputDisabled = useStore(appStore, (state) => state.inputDisabled);
     const scoreUpdateTrigger = useStore(appStore, (state) => state.scoreUpdateTrigger);
     const inputFocusTrigger = useStore(appStore, (state) => state.inputFocusTrigger);
-
     const [inputValue, setInputValue] = useState('');
     const [scoreAnimating, setScoreAnimating] = useState(false);
     const inputFieldRef = useRef(null);
     const submitBtnRef = useRef(null);
     const containerRef = useRef(null);
+
+    // Reset input on callback version change (new step loaded)
+    const prevCbVersion = useRef(getCallbackVersion());
+    useEffect(() => {
+        const v = getCallbackVersion();
+        if (v !== prevCbVersion.current) {
+            prevCbVersion.current = v;
+            setInputValue('');
+        }
+    });
 
     // Score update CSS animation trigger
     const prevScoreUpdateTrigger = useRef(scoreUpdateTrigger);
@@ -42,10 +50,11 @@ export default function AnswerInput() {
 
     const handleSubmit = useCallback(() => {
         const value = inputValue.trim();
-        if (value && textInputSubmitCallback) {
-            textInputSubmitCallback(value, submitBtnRef.current);
+        const cb = getTextInputSubmitCallback();
+        if (value && cb) {
+            cb(value, submitBtnRef.current);
         }
-    }, [inputValue, textInputSubmitCallback]);
+    }, [inputValue]);
 
     const handleKeyDown = useCallback((e) => {
         if (e.key === 'Enter' && e.ctrlKey) {
@@ -53,10 +62,6 @@ export default function AnswerInput() {
             handleSubmit();
         }
     }, [handleSubmit]);
-
-    useEffect(() => {
-        setInputValue('');
-    }, [textInputSubmitCallback]);
 
     useEffect(() => {
         if (answerErrorMessage) {
@@ -74,13 +79,6 @@ export default function AnswerInput() {
             }, 100);
         }
     }, [textInputVisible]);
-
-    useEffect(() => {
-        appStore.getState().setOnMicClickCallback(speechInputToggleCallback || null);
-        return () => {
-            appStore.getState().setOnMicClickCallback(null);
-        };
-    }, [speechInputToggleCallback]);
 
     if (!textInputVisible) return null;
 
