@@ -3,8 +3,9 @@ import { useStore } from 'zustand';
 import { appStore } from '../modules/store.js';
 import { useSimpleVideo } from '../hooks/useSimpleVideo.js';
 
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-const isAndroid = /Android/.test(navigator.userAgent);
+const hasNavigator = typeof navigator !== 'undefined';
+const isIOS = hasNavigator && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+const isAndroid = hasNavigator && /Android/.test(navigator.userAgent);
 
 export default function SimpleVideoPlayer() {
     const { isActive, config, subtitleText, isTimedSubtitles, scrollRatio, updateProgress } = useSimpleVideo();
@@ -94,8 +95,6 @@ export default function SimpleVideoPlayer() {
             video.addEventListener('pause', onPauseMs);
             video.addEventListener('ended', onPauseMs);
 
-            // Prevent Android lockscreen from showing duration-based controls
-            Object.defineProperty(video, 'duration', { get: () => NaN, configurable: true });
             video.title = '';
 
             video._msCleanup = () => {

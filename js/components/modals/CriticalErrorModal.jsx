@@ -22,7 +22,7 @@ export default function CriticalErrorModal() {
             <p id="criticalErrorMessage" className="text-secondary mb-4">
                 {criticalErrorMessage}
             </p>
-            <button className="btn btn-primary px-4 rounded-pill" onClick={() => window.location.reload()}>
+            <button className="btn btn-primary px-4 rounded-pill" onClick={() => appStore.getState().clearCriticalError()}>
                 <i className="bi bi-arrow-clockwise"></i> Try Again
             </button>
         </div>
