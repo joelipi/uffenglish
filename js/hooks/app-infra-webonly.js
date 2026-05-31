@@ -1,8 +1,8 @@
-// --- hooks/app-infra.js ---
-// Application infrastructure setup.
-// Wires up progress tracking, tutor chat,
-// mic animation, and deferred AI/BG workers via deps-injection factories.
-// Called from the React bootstrap hook after auth and config are loaded.
+// @web-only
+// Application infrastructure wiring for web.
+// Imports web-specific modules (speech.js, chat-interface.js) and wires them
+// into the platform-agnostic factories (progression, answer-pipeline, step-loader).
+// Called from the web-only useAppBootstrap hook after auth and config are loaded.
 
 import { appStore } from '../modules/store.js';
 

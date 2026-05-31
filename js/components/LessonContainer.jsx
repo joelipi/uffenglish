@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { appStore } from '../modules/store.js';
-import { useInitializeLesson } from '../hooks/useInitializeLesson.js';
+import { useInitializeLesson } from '../hooks/use-initialize-lesson-webonly.js';
 
 import StepLoader from './StepLoader.jsx';
 import MicrophoneToggle from './widgets/MicrophoneToggle.js';

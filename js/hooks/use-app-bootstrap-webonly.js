@@ -1,9 +1,14 @@
+// @web-only
+// Web-only app bootstrap hook. Uses useSearchParams (React Router web),
+// window.appStore (Playwright test bridge), and window.enabledLogs (debug namespace).
+// React Native provides its own bootstrap via a separate entry point.
+
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { appStore } from '../modules/store.js';
-import { requestPersistentStorage } from '../modules/lesson-init.js';
+import { requestPersistentStorage } from '../modules/storage-persistence-webonly.js';
 import { useAuthStatus, useUserProfile } from '../modules/api.js';
-import { setupAppInfra } from './app-infra.js';
+import { setupAppInfra } from './app-infra-webonly.js';
 import { usePreloader } from './usePreloader.js';
 import Strings from '../data/strings.js';
 
@@ -23,14 +28,16 @@ export function useAppBootstrap({ courseId } = {}) {
     // window.appStore.getState() from page.evaluate(). RN tests use different plumbing.
     // Intentional window.enabledLogs — shared debug namespace (see log-control.js).
     useEffect(() => {
-        window.appStore = appStore;
-        window.enabledLogs = window.enabledLogs || {
-            whisper: false, recording: false, speech: false, api: false,
-            'tanstack query': false, toggle: false, ai: false, analytics: false,
-            ui: false, hesitation: false, success: false, scoring: false,
-            video: false, router: false, pipeline: false, app: false,
-            storage: false, gamification: false, all: false
-        };
+        if (typeof window !== 'undefined') {
+            window.appStore = appStore;
+            window.enabledLogs = window.enabledLogs || {
+                whisper: false, recording: false, speech: false, api: false,
+                'tanstack query': false, toggle: false, ai: false, analytics: false,
+                ui: false, hesitation: false, success: false, scoring: false,
+                video: false, router: false, pipeline: false, app: false,
+                storage: false, gamification: false, all: false
+            };
+        }
         appStore.getState().setIsLoaded(false);
 
         ensurePreloader();

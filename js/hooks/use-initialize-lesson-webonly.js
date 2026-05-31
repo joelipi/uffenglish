@@ -1,3 +1,8 @@
+// @web-only
+// Web-only lesson initialization hook.
+// Uses window.preloadLessonAssets — a web asset preloader injected by index.html
+// inline script. Guarded: in React Native the guard skips preloading entirely.
+
 import { useCallback } from 'react';
 import { appStore } from '../modules/store.js';
 import { resolveCurrentLessonId } from '../modules/lessonRouting.js';
@@ -31,7 +36,7 @@ export function useInitializeLesson({ forceRestart = false } = {}) {
 
             // Intentional window.preloadLessonAssets — web asset preloading injected
             // by index.html inline script. Guarded: if undefined (RN), just skipped.
-            if (window.preloadLessonAssets) {
+            if (typeof window !== 'undefined' && window.preloadLessonAssets) {
                 const constructFirebaseUrl = (slug) => `https://r2.ultrafastfluency.com/assets/videos/${slug}.mp4`;
                 await window.preloadLessonAssets(lesson, constructFirebaseUrl);
             }

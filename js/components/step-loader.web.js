@@ -2,7 +2,7 @@
 // Thin wrapper — all logic moved to js/modules/step-loader-execute.js.
 // This exists so non-React callers (app-infra.js) can import loadStep as before.
 
-import { createLoadStep } from '../modules/step-loader-execute.js';
+import { createLoadStep } from '../modules/step-executor-webonly.js';
 import { warmUpSpeechCamStream, toggleSpeechRecognition, listeningState } from '../modules/speech.js';
 import { clearChat, addAIFeedbackMessages } from './chat/chat-interface.js';
 

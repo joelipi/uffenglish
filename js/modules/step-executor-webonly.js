@@ -1,5 +1,6 @@
-// --- modules/step-loader-execute.js ---
+// @web-only
 // Exports createLoadStep(deps) factory.
+// Imported only by step-loader.web.js — never loaded on React Native.
 // UI rendering is driven through Zustand store actions — React components handle the DOM.
 
 import { appStore } from '../modules/store.js';
@@ -40,7 +41,7 @@ export function createLoadStep(deps) {
     }
 
     clearChat();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
 
     resetUIForNewStep(step.stepType === 'lessonIntro', !!appStore.getState().userData);
 

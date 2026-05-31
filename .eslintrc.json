@@ -1,0 +1,21 @@
+{
+  "overrides": [
+    {
+      "files": ["js/**/*.js", "js/**/*.jsx"],
+      "excludedFiles": ["*-webonly.*"],
+      "rules": {
+        "no-restricted-syntax": [
+          "warn",
+          {
+            "selector": "MemberExpression[object.name='window']",
+            "message": "window is browser-only. Either rename file to *-webonly.js, or guard with 'typeof window !== \"undefined\"' and add a comment explaining why."
+          },
+          {
+            "selector": "MemberExpression[object.name='document']",
+            "message": "document is browser-only. Either rename file to *-webonly.js, or guard with 'typeof document !== \"undefined\"' and add a comment explaining why."
+          }
+        ]
+      }
+    }
+  ]
+}

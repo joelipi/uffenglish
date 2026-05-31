@@ -4,7 +4,7 @@ import { useStore } from 'zustand';
 import { useQuery } from '@tanstack/react-query';
 import { appStore } from '../js/modules/store.js';
 import { normalizeConfig } from '../js/modules/config-normalizer.js';
-import { useAppBootstrap } from '../js/hooks/useAppBootstrap.js';
+import { useAppBootstrap } from '../js/hooks/use-app-bootstrap-webonly.js';
 import Preloader from '../js/components/Preloader.jsx';
 
 export default function AppLayout() {
