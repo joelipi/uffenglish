@@ -515,9 +515,9 @@ const strings = {
         fr: "points de pourcentage"
     },
     'failed_continue_correct': {
-        en: "💔💔💔 Let's continue. Better luck next time.<br><br>I said:",
-        es: "💔💔💔 Vamos a continuar. Mejor suerte la próxima vez.<br><br>Yo dije:",
-        fr: "💔💔💔 Continuons. Plus de chance la prochaine fois.<br><br>J'ai dit :"
+        en: "💔💔💔 Let's continue. Better luck next time. I said:",
+        es: "💔💔💔 Vamos a continuar. Mejor suerte la próxima vez. Yo dije:",
+        fr: "💔💔💔 Continuons. Plus de chance la prochaine fois. J'ai dit :"
     },
     'grammar_perfect': {
         en: "✅ No language errors detected."

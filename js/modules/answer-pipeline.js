@@ -410,43 +410,39 @@ export function createAnswerPipeline(deps) {
 
             selectedWords.forEach(w => correctWordSet.has(w.toLowerCase()) ? correct.add(w) : incorrect.add(w));
 
-            const teacherKey = appStore.getState().incorrectAttempts === 1
-                ? 'try_again_1'
-                : appStore.getState().incorrectAttempts === 2
-                    ? 'try_again_2'
-                    : 'failed_continue';
+            const teacherKey = appStore.getState().incorrectAttempts > 2
+                ? 'failed_continue_correct'
+                : appStore.getState().incorrectAttempts === 1
+                    ? 'try_again_1'
+                    : 'try_again_2';
             const teacherBilingual = Strings.getBilingual(teacherKey, lang);
 
             if (explanation && explanation.length > 0) {
                 addAIFeedbackMessages(explanation);
             }
 
+            let teacherContent = teacherBilingual.english;
+            let teacherTranslation = teacherBilingual.localized;
+
+            if (appStore.getState().incorrectAttempts > 2) {
+                const translationText = getLocalizedTranslation(stepData.translation, lang);
+                teacherContent = teacherBilingual.english + ' ' + cueText;
+                teacherTranslation = teacherBilingual.localized
+                    ? teacherBilingual.localized + (translationText ? ' ' + translationText : '')
+                    : null;
+            }
+
             appStore.getState().addChatMessage({
                 role: 'system',
                 type: 'teacherFeedback',
-                content: teacherBilingual.english,
-                translation: teacherBilingual.localized,
+                content: teacherContent,
+                translation: teacherTranslation,
                 translationLang: teacherBilingual.localized ? teacherBilingual.lang : undefined,
                 correctWords: Array.from(correct),
                 incorrectWords: Array.from(incorrect),
                 botName: 'Joe Walsh',
                 avatarUrl: '/assets/img/teacherprofile.webp'
             });
-
-            if (appStore.getState().incorrectAttempts > 2) {
-                const translationText = getLocalizedTranslation(stepData.translation, lang);
-                const labelBilingual = Strings.getBilingual('failed_continue_correct_label', lang);
-                appStore.getState().addChatMessage({
-                    role: 'system',
-                    type: 'possibleAnswer',
-                    label: labelBilingual.english || 'Correct:',
-                    answer: cueText,
-                    translation: translationText,
-                    translationLang: (translationText && lang && lang !== 'en') ? lang : undefined,
-                    botName: 'Joe Walsh',
-                    avatarUrl: '/assets/img/teacherprofile.webp'
-                });
-            }
 
             if (fluencyBubble) {
                 addAIFeedbackMessages([fluencyBubble]);
@@ -756,6 +752,7 @@ export function createAnswerPipeline(deps) {
                 const structuredExplanations = getExplanationMessages(explanationData);
 
                 handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userResponse, structuredExplanations, result.normalizeduserResponse, result.normalizedcue, stepData.step, true, userData, configData);
+                appStore.getState().clearPlaybackBlob();
                 appStore.getState().triggerVideoClear();
                 clearChat();
                 appStore.getState().setWebcamStream(null);
@@ -844,6 +841,7 @@ export function createAnswerPipeline(deps) {
                 handleCorrectFeedbackUI(stepIndex, stepData, button, cue, structuredExplanations, translation, userResponse, result ? result.cefrLevel : undefined, result ? result.cefrLevelDeduction : undefined, userData, configData, fluencyBubble);
                 showFeedbackAndProceed(stepData, isCorrect, _deps);
             } else {
+                appStore.getState().clearPlaybackBlob();
                 handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userResponse, structuredExplanations, result ? result.normalizeduserResponse : "", result ? result.normalizedcue : "", stepData.step, false, userData, configData, fluencyBubble);
                 showFeedbackAndProceed(stepData, isCorrect, _deps);
             }

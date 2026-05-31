@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useLayoutEffect } from 'react';
+import { useEffect, useRef, useState, useLayoutEffect, useCallback } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../modules/store.js';
 import { useSimpleVideo } from '../hooks/useSimpleVideo.js';
@@ -14,10 +14,13 @@ export default function SimpleVideoPlayer() {
     const subtitleContainerRef = useRef(null);
     const subtitleDisplayRef = useRef(null);
     const posterCanvasRef = useRef(null);
+    const msIntervalRef = useRef(null);
+    const foucFallbackRef = useRef(null);
     const [playing, setPlaying] = useState(false);
     const [loaded, setLoaded] = useState(false);
     const [poster, setPoster] = useState(null);
     const [scrollOffset, setScrollOffset] = useState(0);
+    const [answerStatus, setAnswerStatus] = useState(null);
 
     // Store player reference for external pause/play
     useEffect(() => {
@@ -43,20 +46,14 @@ export default function SimpleVideoPlayer() {
         };
     }, [isActive]);
 
-    // Video source and poster
+    // iOS transparent poster, Android MediaSession cleanup, fouc fallback timeout
     useEffect(() => {
-        console.warn('[SVP videoSrc] effect running', { isActive, hasRef: !!videoRef.current, hasConfig: !!config, videoUrl: config?.videoUrl });
-        if (!isActive || !videoRef.current || !config) return;
-        const video = videoRef.current;
-        video.src = config.videoUrl;
-        console.warn('[SVP videoSrc] src set to', video.src);
+        if (!isActive) return;
 
-        // iOS: transparent poster to avoid black frame flash
         if (isIOS) {
             setPoster('data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==');
         }
 
-        // Android: disable MediaSession to prevent lockscreen takeover
         if (isAndroid) {
             const clearMs = () => {
                 try {
@@ -68,75 +65,117 @@ export default function SimpleVideoPlayer() {
                 } catch (e) { }
             };
             clearMs();
-            const clearHandlers = ['play', 'playing', 'loadstart', 'canplay'].map(evt => {
-                video.addEventListener(evt, clearMs);
-                return { evt, fn: clearMs };
-            });
-
-            let msInterval;
-            const onPlayMs = () => {
-                if ('mediaSession' in navigator) {
-                    navigator.mediaSession.playbackState = 'none';
-                    navigator.mediaSession.metadata = null;
-                    msInterval = setInterval(() => {
-                        try {
-                            navigator.mediaSession.playbackState = 'none';
-                            navigator.mediaSession.metadata = null;
-                        } catch (e) { }
-                    }, 100);
-                }
-            };
-            const onPauseMs = () => {
-                if (msInterval) clearInterval(msInterval);
-                msInterval = null;
-                if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
-            };
-            video.addEventListener('play', onPlayMs);
-            video.addEventListener('pause', onPauseMs);
-            video.addEventListener('ended', onPauseMs);
-
-            video.title = '';
-
-            video._msCleanup = () => {
-                if (msInterval) clearInterval(msInterval);
-                clearHandlers.forEach(h => video.removeEventListener(h.evt, h.fn));
-                video.removeEventListener('play', onPlayMs);
-                video.removeEventListener('pause', onPauseMs);
-                video.removeEventListener('ended', onPauseMs);
-            };
         }
 
-        let foucFallback = null;
-
-        const onLoad = () => {
-            video.removeEventListener('loadeddata', onLoad);
-            video.removeEventListener('canplay', onLoad);
+        foucFallbackRef.current = setTimeout(() => {
             if (!loaded) setLoaded(true);
-            if (foucFallback) clearTimeout(foucFallback);
-            if (!isIOS && posterCanvasRef.current && video.videoWidth) {
-                try {
-                    const canvas = posterCanvasRef.current;
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    canvas.getContext('2d').drawImage(video, 0, 0);
-                    setPoster(canvas.toDataURL('image/jpeg', 0.8));
-                } catch (e) {
-                    setPoster('data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==');
-                }
-            }
-        };
-        video.addEventListener('loadeddata', onLoad);
-        video.addEventListener('canplay', onLoad);
-        foucFallback = setTimeout(onLoad, 3000);
+        }, 3000);
 
         return () => {
-            console.warn('[SVP videoSrc] cleanup running');
-            video.removeEventListener('loadeddata', onLoad);
-            video.removeEventListener('canplay', onLoad);
-            if (foucFallback) clearTimeout(foucFallback);
-            if (video._msCleanup) { video._msCleanup(); video._msCleanup = null; }
+            if (foucFallbackRef.current) clearTimeout(foucFallbackRef.current);
+            if (msIntervalRef.current) clearInterval(msIntervalRef.current);
         };
-    }, [isActive, config?.videoUrl]);
+    }, [isActive]);
+
+    // Reset the video player's state when an incorrect answer is given
+    useEffect(() => {
+        if (answerStatus === 'incorrect') {
+            setPlaying(false);
+            setLoaded(false);
+            setPoster(null);
+            setScrollOffset(0);
+            if (videoRef.current) {
+                videoRef.current.pause();
+                videoRef.current.currentTime = 0;
+            }
+        }
+    }, [answerStatus]);
+
+    // Ensure that the video player properly handles the transition between different video states when an incorrect answer is given
+    useEffect(() => {
+        if (answerStatus === 'incorrect') {
+            setAnswerStatus(null);
+        }
+    }, [answerStatus]);
+
+    const handleVideoLoaded = useCallback(() => {
+        if (!loaded) setLoaded(true);
+        if (foucFallbackRef.current) clearTimeout(foucFallbackRef.current);
+        if (!isIOS && posterCanvasRef.current && videoRef.current?.videoWidth) {
+            try {
+                const canvas = posterCanvasRef.current;
+                const video = videoRef.current;
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.getContext('2d').drawImage(video, 0, 0);
+                setPoster(canvas.toDataURL('image/jpeg', 0.8));
+            } catch (e) {
+                setPoster('data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==');
+            }
+        }
+        if (isAndroid) {
+            try {
+                navigator.mediaSession.metadata = null;
+                navigator.mediaSession.playbackState = 'none';
+            } catch (e) { }
+        }
+    }, [loaded]);
+
+    const handlePlay = useCallback(() => {
+        setPlaying(true);
+        if (isAndroid) {
+            try {
+                navigator.mediaSession.playbackState = 'none';
+                navigator.mediaSession.metadata = null;
+                msIntervalRef.current = setInterval(() => {
+                    try {
+                        navigator.mediaSession.playbackState = 'none';
+                        navigator.mediaSession.metadata = null;
+                    } catch (e) { }
+                }, 100);
+            } catch (e) { }
+        }
+    }, []);
+
+    const handlePause = useCallback(() => {
+        setPlaying(false);
+        if (isAndroid) {
+            if (msIntervalRef.current) {
+                clearInterval(msIntervalRef.current);
+                msIntervalRef.current = null;
+            }
+            try {
+                navigator.mediaSession.playbackState = 'none';
+            } catch (e) { }
+        }
+    }, []);
+
+    const handleEnded = useCallback(() => {
+        if (isAndroid) {
+            if (msIntervalRef.current) {
+                clearInterval(msIntervalRef.current);
+                msIntervalRef.current = null;
+            }
+            try {
+                navigator.mediaSession.playbackState = 'none';
+            } catch (e) { }
+        }
+    }, []);
+
+    const handleTimeUpdate = useCallback(() => {
+        const v = videoRef.current;
+        if (v) updateProgress(v.currentTime, v.duration);
+    }, [updateProgress]);
+
+    const handleSeeked = useCallback(() => {
+        const v = videoRef.current;
+        if (v) updateProgress(v.currentTime, v.duration);
+    }, [updateProgress]);
+
+    // Update the answer status when an incorrect answer is given
+    const handleIncorrectAnswer = useCallback(() => {
+        setAnswerStatus('incorrect');
+    }, []);
 
     // Delayed play after React mount
     useEffect(() => {
@@ -202,16 +241,13 @@ export default function SimpleVideoPlayer() {
                     src={config?.videoUrl}
                     poster={poster}
                     {...(isAndroid ? { 'data-ambient': 'true' } : {})}
-                    onPlay={() => setPlaying(true)}
-                    onPause={() => setPlaying(false)}
-                    onTimeUpdate={() => {
-                        const v = videoRef.current;
-                        if (v) updateProgress(v.currentTime, v.duration);
-                    }}
-                    onSeeked={() => {
-                        const v = videoRef.current;
-                        if (v) updateProgress(v.currentTime, v.duration);
-                    }}
+                    onLoadedData={handleVideoLoaded}
+                    onCanPlay={handleVideoLoaded}
+                    onPlay={handlePlay}
+                    onPause={handlePause}
+                    onEnded={handleEnded}
+                    onTimeUpdate={handleTimeUpdate}
+                    onSeeked={handleSeeked}
                 />
                 <canvas ref={posterCanvasRef} style={{ display: 'none' }} />
                 <div className="ivp-blur-overlay" />
