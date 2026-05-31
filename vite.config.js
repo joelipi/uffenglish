@@ -1,6 +1,24 @@
 import { resolve } from 'path'
 import { defineConfig } from 'vite'
 
+// vite.config.js
+import { defineConfig } from 'vite'
+import purgecss from 'vite-plugin-purgecss'
+
+export default defineConfig({
+  plugins: [
+    purgecss({
+      safelist: [
+        'toggled-off',
+        'btn-bounce',
+        'expanded',
+        'media-viewport-hidden',
+        // add others you know are dynamically applied
+      ]
+    })
+  ]
+})
+
 export default defineConfig({
     resolve: {
         extensions: ['.web.jsx', '.web.js', '.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json'],
