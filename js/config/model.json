@@ -198,7 +198,7 @@
         "pt": "funcionário de loja"
       },
       "roleUser": {
-        "en": "Customer",
+        "en": "customer",
         "es": "cliente",
         "pt": "cliente"
       },
@@ -207,6 +207,16 @@
           "cue": "",
           "stepType": "lessonIntro",
           "introBackgroundVideoUrl": "gtests-1-0"
+        },
+                {
+          "cue": {
+            "en": "Do you have dark chocolate?",
+            "es": "¿Tienes chocolate oscuro?",
+            "pt": "Você tem chocolate escuro?"
+          },
+          "stepType": "closedResponse",
+          "videoUrl": "do_you_have_dark_chocolate",
+          "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
         },
         {
           "cue": {

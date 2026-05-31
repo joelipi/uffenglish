@@ -122,8 +122,8 @@ function getExplanationMessages(explanationData) {
 
 function applySpeechResultToPlayer(val, player) {
     const cueTokens = [];
-    player.controller.tokens.forEach((token, idx) => {
-        if (player.controller.punctuationMap.get(idx)) return;
+    player.tokens.forEach((token, idx) => {
+        if (player.punctuationMap.get(idx)) return;
         cueTokens.push({
             clean: token.toLowerCase().replace(/[^\w\s']/g, ''),
             idx
@@ -153,7 +153,7 @@ function applySpeechResultToPlayer(val, player) {
         }
     }
 
-    player.controller.applySpeechResult(correctIndices, [], extraWrongWords);
+    player.applySpeechResult(correctIndices, [], extraWrongWords);
 }
 
 export function createAnswerPipeline(deps) {
@@ -525,7 +525,7 @@ export function createAnswerPipeline(deps) {
             });
 
             const player = appStore.getState().currentVideoPlayer;
-            if (stepData.stepType === "closedResponse" && player && player.controller && player.controller.applySpeechResult) {
+            if (stepData.stepType === "closedResponse" && player && typeof player.applySpeechResult === 'function') {
                 applySpeechResultToPlayer(val, player);
             }
 
@@ -534,7 +534,7 @@ export function createAnswerPipeline(deps) {
         }
 
         const player = appStore.getState().currentVideoPlayer;
-        if (stepData.stepType === "closedResponse" && player && player.controller && player.controller.applySpeechResult) {
+        if (stepData.stepType === "closedResponse" && player && typeof player.applySpeechResult === 'function') {
             applySpeechResultToPlayer(val, player);
         }
 

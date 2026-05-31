@@ -1,9 +1,5 @@
 // modules/interactive-video-controller.js
 
-/**
- * Platform-Agnostic Interactive Video Logic Controller
- * Manages pure state (masked subtitles, playback rates, loop counts) separated from the DOM.
- */
 export class InteractiveVideoStateController {
     constructor(config = {}) {
         this.config = {
@@ -28,6 +24,7 @@ export class InteractiveVideoStateController {
         this.currentSpeedIndex = 0;
         this.isFirstPlay = true;
         this.isSecondPlay = false;
+        this.hasStartedPlaying = false;
 
         // Reactive UI State
         this.state = {
@@ -70,9 +67,8 @@ export class InteractiveVideoStateController {
         return array;
     }
 
-initTokens(cue) {
+    initTokens(cue) {
         const cueText = typeof cue === 'object' ? cue?.en : cue;
-        // Separate words (including contractions) from punctuation marks
         this.tokens = cueText.match(/\w+(?:['\u2019]\w+)*|[^\w\s]+/g) || [];
         this.punctuationMap = new Map();
         this.tokens.forEach((token, i) => {
@@ -105,16 +101,13 @@ initTokens(cue) {
         let revealedNow = 0;
         while (revealedNow < count) {
             if (this.unrevealedIndices.length === 0) {
-                // Refill pool with all hidden words that haven't been shown in this cycle
                 this.tokens.forEach((_, i) => {
                     if (!this.punctuationMap.get(i) && !this.revealedIndices.has(i)) {
                         this.unrevealedIndices.push(i);
                     }
                 });
 
-                // If still empty (e.g. all words are already revealed by the user/speech), we're done
                 if (this.unrevealedIndices.length === 0) break;
-
                 this.reShuffleUnrevealed();
             }
 
@@ -197,12 +190,10 @@ initTokens(cue) {
             this._overlayTimer = null;
         }
         if (this.state.showOverlay) {
-            // Trigger Phase 2: First repetition at 100% speed
             this.isSecondPlay = false;
-            this.useSlowSpeeds = false; // Start at 100%
+            this.useSlowSpeeds = false; 
             this.currentSpeedIndex = 0;
             
-            // Clear only auto-revealed words
             this.autoRevealedIndices.forEach(idx => {
                 if (!this.userRevealedIndices.has(idx) && !this.speechRevealedIndices.has(idx)) {
                     this.revealedIndices.delete(idx);
@@ -239,17 +230,19 @@ initTokens(cue) {
         this.extraWrongTokens = extraWrongWords.map(w =>
             typeof w === 'string' ? { text: w, position: null } : { text: w.text, position: w.position !== undefined ? w.position : null }
         );
+
+        // Once speech results are applied, the controller is past the first-play
+        // state. Without this, if handleLoop() fires (video ends after wrong-answer
+        // replay) it would see isFirstPlay===true, show the "Understand 100%?" overlay,
+        // and hard-wipe subtitleTokens with an empty array.
+        this.isFirstPlay = false;
+
         this.setState({ subtitleTokens: this._computeSubtitleTokens() });
     }
 
     // --- Core Actions ---
     play() {
-        if (this.isFirstPlay) {
-            // Ensure subtitles are cleared on the very first user interaction
-            this.setState({ isPlaying: true, subtitleTokens: [] });
-        } else {
-            this.setState({ isPlaying: true });
-        }
+        this.setState({ isPlaying: true });
     }
 
     pause() {
@@ -263,6 +256,13 @@ initTokens(cue) {
         }
     }
 
+    destroy() {
+        this.cancelOverlayTimer();
+        this.subscribers.clear();
+        this.config.onRepetition = null;
+        this.config.onWordReveal = null;
+    }
+
     setLoaded() {
         if (!this.state.isLoaded) {
             this.setState({ isLoaded: true });
@@ -270,7 +270,6 @@ initTokens(cue) {
     }
 
     handleLoop() {
-        // Advance State Logic
         if (this.isFirstPlay) {
             this.isFirstPlay = false;
             this.isSecondPlay = true;
@@ -284,22 +283,16 @@ initTokens(cue) {
             }, 3000);
             return;
         } else if (this.isSecondPlay) {
-            // Fallback if not caught by dismiss overlay
             this.dismissOverlay();
             return;
         } else {
-            // If we just finished the 100% repetition post-overlay, now start slow speeds
             if (!this.useSlowSpeeds) {
                 this.useSlowSpeeds = true;
                 this.currentSpeedIndex = 0;
             } else {
-                // Advance speed index only after we are already in slow mode
                 this.currentSpeedIndex = (this.currentSpeedIndex + 1) % this.slowSpeeds.length;
             }
 
-            // Hide previous auto-revealed words to make room for new ones.
-            // We no longer push them back into unrevealedIndices here; 
-            // instead, they stay "used" until the entire cycle finishes and the pool refills.
             this.autoRevealedIndices.forEach(idx => {
                 if (!this.userRevealedIndices.has(idx) && !this.speechRevealedIndices.has(idx)) {
                     this.revealedIndices.delete(idx);
@@ -308,7 +301,6 @@ initTokens(cue) {
             this.autoRevealedIndices.clear();
             this.reShuffleUnrevealed();
 
-            // Use only the count of actual words (excluding punctuation) to determine reveal density
             const wordCount = this.tokens.filter((_, i) => !this.punctuationMap.get(i)).length;
             const revealCount = Math.floor(wordCount / 8) + 1;
             this._revealNextWords(revealCount);
@@ -318,12 +310,12 @@ initTokens(cue) {
             }
         }
 
-        // Compute New Rates and Text
         const newPlaybackRate = this.useSlowSpeeds ? this.slowSpeeds[this.currentSpeedIndex] : this.config.speeds[this.currentSpeedIndex];
         const newSubtitleTokens = this._computeSubtitleTokens();
 
         this.setState({
-            isPlaying: true, // Auto-play continues on loop
+            isPlaying: true, 
+            isSlowMode: this.useSlowSpeeds,
             playbackRate: newPlaybackRate,
             subtitleTokens: newSubtitleTokens
         });

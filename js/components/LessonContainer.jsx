@@ -1,3 +1,5 @@
+// js/components/LessonContainer.jsx
+
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useStore } from 'zustand';
@@ -26,8 +28,11 @@ import ActivityStats from './widgets/ActivityStats.jsx';
 import ChatInterface from './chat/ChatInterface.jsx';
 import ChatHeader from './chat/ChatHeader.jsx';
 import TutorChatInput from './widgets/TutorChatInput.jsx';
-import InteractiveVideoWrapper from './InteractiveVideoWrapper.jsx';
-import SimpleVideoPlayer from './SimpleVideoPlayer.js';
+
+// Replaced legacy wrapper with the direct React component
+import InteractiveVideoPlayer from './InteractiveVideoPlayer'; 
+import SimpleVideoPlayer from './SimpleVideoPlayer';
+
 import IncomingVideoWidget from './IncomingVideoWidget.jsx';
 import PointLossOverlay from './PointLossOverlay.jsx';
 import VideoProcessorWrapper from './VideoProcessorWrapper.jsx';
@@ -158,8 +163,6 @@ export default function LessonContainer() {
             {/* Bottom Overlay */}
             <div className={`bottom-overlay position-absolute bottom-0 start-0 w-100${chatModeActive ? ' d-none' : ' d-flex flex-column'}`}>
                 <MissionSection />
-                {/* reflecting-pool-bg temporarily removed — was covering the mission section; reinstate when we can fix the stacking */}
-                {/* <div className="reflecting-pool-bg"></div> */}
                 <div className="bottom-overlay-content">
                     <div className="controls-section">
                         <div className="d-flex justify-content-center align-items-center w-100">
@@ -178,12 +181,13 @@ export default function LessonContainer() {
             <SuccessVideo />
             <SuccessVideoCanvas canvasRef={successCanvasRef} />
             <PlaybackVideo />
+
+            {/* Media Viewport cleanly houses the pure React players now */}
             <div id="media-viewport" className={`position-absolute top-0 start-0 w-100 h-100${mediaVisible ? '' : ' media-viewport-hidden'}`}>
-                <div id="ivp-container"></div>
-                <div id="simple-video-container"></div>
-                <InteractiveVideoWrapper />
+                <InteractiveVideoPlayer />
+                <SimpleVideoPlayer />
             </div>
-            <SimpleVideoPlayer />
+
             <IncomingVideoWidget />
             <PointLossOverlay />
             <VideoProcessorWrapper />
