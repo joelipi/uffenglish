@@ -1,1 +1,1 @@
-export { router } from './router.web.jsx';
+export { router } from './router';

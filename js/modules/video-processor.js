@@ -1,1 +1,1 @@
-export * from './video-processor.web.js';
+export * from './video-processor';

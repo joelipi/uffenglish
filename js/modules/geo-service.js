@@ -1,1 +1,1 @@
-export * from './geo-service.web.js';
+export * from './geo-service';

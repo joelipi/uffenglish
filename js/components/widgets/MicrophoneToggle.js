@@ -1,1 +1,1 @@
-export { default } from './MicrophoneToggle.web.jsx';
+export { default } from './MicrophoneToggle';
