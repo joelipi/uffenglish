@@ -41,6 +41,11 @@ export function createLoadStep(deps) {
     }
 
     clearChat();
+    // Imperative scroll call is correct here, not a Zustand store adapter:
+    // 1) This file is already -webonly — never loaded on React Native.
+    // 2) Scrolling must happen synchronously in the step-load sequence
+    //    (clearChat → scroll → resetUI) — a store-driven adapter would
+    //    add an unnecessary render cycle delay with zero benefit.
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
 
     resetUIForNewStep(step.stepType === 'lessonIntro', !!appStore.getState().userData);

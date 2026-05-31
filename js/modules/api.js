@@ -213,8 +213,8 @@ export async function checkGrammarWithAI(selectedAnswer, stepData) {
     if (error.name === 'AbortError') {
       detail = '(timeout - endpoint unreachable after 15s)';
     // Intentional navigator.onLine — just enriches error messages. In React Native
-    // this is undefined (falsy), so the check is a harmless no-op.
-    } else if (!navigator.onLine) {
+    // navigator may not have an onLine property, so guard with typeof check.
+    } else if (typeof navigator !== 'undefined' && navigator.onLine === false) {
       detail = '(browser is offline)';
     } else if (error instanceof TypeError) {
       detail = '(network error - possible: endpoint down, CORS blocked, or ad blocker interfering)';
@@ -309,7 +309,8 @@ B: ${answerForIntentPass}` }
     if (error.name === 'AbortError') {
       detail = '(timeout - endpoint unreachable after 15s)';
     // Intentional navigator.onLine — harmless error-detail fallback (see checkGrammarWithAI).
-    } else if (!navigator.onLine) {
+    // Guarded: in React Native navigator may not have onLine, so explicit false check.
+    } else if (typeof navigator !== 'undefined' && navigator.onLine === false) {
       detail = '(browser is offline)';
     } else if (error instanceof TypeError) {
       detail = '(network error - possible: endpoint down, CORS blocked, or ad blocker interfering)';
@@ -358,7 +359,8 @@ export async function askEnglishTutor(conversationHistoryContext, newUserMessage
     if (error.name === 'AbortError') {
       detail = '(timeout - endpoint unreachable after 15s)';
     // Intentional navigator.onLine — harmless error-detail fallback (see checkGrammarWithAI).
-    } else if (!navigator.onLine) {
+    // Guarded: in React Native navigator may not have onLine, so explicit false check.
+    } else if (typeof navigator !== 'undefined' && navigator.onLine === false) {
       detail = '(browser is offline)';
     } else if (error instanceof TypeError) {
       detail = '(network error - possible: endpoint down, CORS blocked, or ad blocker interfering)';

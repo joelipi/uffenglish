@@ -1,4 +1,4 @@
-import './modules/log-control.js';
+import './modules/log-control-webonly.js';
 import '../assets/css/utils.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import React from 'react';

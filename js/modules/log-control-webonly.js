@@ -1,3 +1,7 @@
+// @web-only
+// Debug logging utility — patches console.log to filter messages by namespace.
+// Uses window.enabledLogs as a toggle registry, only relevant in browser dev tools.
+// React Native would use a different logging mechanism (e.g. react-native-log-level).
 
 // Intentional window.enabledLogs — debug/logging utility shared across modules.
 // React Native would use a different logging mechanism; this is a web convenience.
