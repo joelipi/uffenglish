@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { RouterProvider } from 'react-router-dom';
-import { router } from '../app/router.web.jsx';
+import { router } from '../app/router.js';
 import { initLocalVoiceAI } from './modules/speech.js';
 import { idiomChecker } from './modules/idiom-checker.js';
 import Preloader from './components/Preloader.jsx';

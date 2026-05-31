@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { initVideoProcessor, cleanupVideoProcessor } from '../modules/video-processor.web.js';
+import { initVideoProcessor, cleanupVideoProcessor } from '../modules/video-processor.js';
 
 export default function VideoProcessorWrapper() {
     const containerRef = useRef(null);
