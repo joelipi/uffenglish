@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useStore } from 'zustand';
-import { appStore } from '../modules/store.js';
+import { appStore, getAnswerPipelineDeps } from '../modules/store.js';
 import { useInitializeLesson } from '../hooks/use-initialize-lesson-webonly.js';
 
 import StepLoader from './StepLoader.jsx';
@@ -92,7 +92,7 @@ export default function LessonContainer() {
     const onLoadNextLesson = useCallback(() => {
         const currentStep = getCurrentStep();
         if (!currentStep) return;
-        const stepDeps = appStore.getState().answerPipelineDeps;
+        const stepDeps = getAnswerPipelineDeps();
         if (!stepDeps) return;
         loadNextStepImpl(currentStep, null, {
             callLoadStep: (step, lesson, fluencyData) => {
@@ -107,7 +107,7 @@ export default function LessonContainer() {
         const configData = appStore.getState().configData;
         const lesson = configData?.lessons?.find(l => l.lessonId === repeatLessonId);
         if (lesson) {
-            loadLessonContent(lesson);
+            loadLessonContent(lesson, { forceRestart: true });
         }
     }, []);
 

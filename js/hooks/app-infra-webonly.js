@@ -4,7 +4,7 @@
 // into the platform-agnostic factories (progression, answer-pipeline, step-loader).
 // Called from the web-only useAppBootstrap hook after auth and config are loaded.
 
-import { appStore } from '../modules/store.js';
+import { appStore, setAnswerPipelineDeps } from '../modules/store.js';
 
 import { syncOfflineScores } from '../modules/user-profile.js';
 import { calculateCurrentStreak } from '../modules/user-profile.js';
@@ -95,7 +95,7 @@ export async function setupAppInfra({ userData }) {
 
     const showFeedbackAndProceed = (...args) => showFeedbackAndProceedImpl(...args, answerDeps);
 
-    appStore.getState().setAnswerPipelineDeps({ submitAnswerPrecheck, showFeedbackAndProceed, handleHint });
+    setAnswerPipelineDeps({ submitAnswerPrecheck, showFeedbackAndProceed, handleHint });
 
     function callLoadStep(step, lesson, fluencyData) {
         loadStep(step, lesson, fluencyData, {

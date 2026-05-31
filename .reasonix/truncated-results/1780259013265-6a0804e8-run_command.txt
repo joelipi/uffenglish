@@ -1,0 +1,265 @@
+$ npx vitest run 2>&1
+[exit 0]
+
+[1m[30m[46m RUN [49m[39m[22m [36mv4.1.6 [39m[90mC:/Users/joelg/Documents/GitHub/uffenglish[39m
+
+ [32m✓[39m js/modules/media.web.test.js [2m([22m[2m12 tests[22m[2m)[22m[32m 56[2mms[22m[39m
+ [32m✓[39m js/components/ui.test.js [2m([22m[2m7 tests[22m[2m)[22m[32m 194[2mms[22m[39m
+ [32m✓[39m js/components/PointLossOverlay.test.jsx [2m([22m[2m2 tests[22m[2m)[22m[32m 133[2mms[22m[39m
+[2m4:23:16 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m Failed to load source map for C:/Users/joelg/Documents/GitHub/uffenglish/js/modules/swearjar.js.
+Error: An error occurred while trying to read the map file at /sm/5dfed46eb7c576d5dd193af5fe8f942997992f80c9980f4f6a8f0112e3371bed.map
+Error: ENOENT: no such file or directory, open 'C:\sm\5dfed46eb7c576d5dd193af5fe8f942997992f80c9980f4f6a8f0112e3371bed.map'
+    at Object.readFileSync (node:fs:441:20)
+    at file:///C:/Users/joelg/Documents/GitHub/uffenglish/node_modules/vite/dist/node/chunks/node.js:20079:13
+    at readFromFileMap (file:///C:/Users/joelg/Documents/GitHub/uffenglish/node_modules/vite/dist/node/chunks/node.js:19858:13)
+    at Object.exports.fromMapFileComment (file:///C:/Users/joelg/Documents/GitHub/uffenglish/node_modules/vite/dist/node/chunks/node.js:19952:12)
+    at Object.exports.fromMapFileSource (file:///C:/Users/joelg/Documents/GitHub/uffenglish/node_modules/vite/dist/node/chunks/node.js:19963:22)
+    at extractSourcemapFromFile (file:///C:/Users/joelg/Documents/GitHub/uffenglish/node_modules/vite/dist/node/chunks/node.js:20065:87)
+    at loadAndTransform (file:///C:/Users/joelg/Documents/GitHub/uffenglish/node_modules/vite/dist/node/chunks/node.js:24478:22)
+[90mstdout[2m | js/modules/store.test.js[2m > [22m[2mZustand App Store[2m > [22m[2mshould handle gamification updates correctly
+[22m[39m[Gamification] Lessons completed updated: 10
+[Gamification] Last lesson fluency avg updated: 95
+[Gamification] Fluency improving flag: true
+
+[90mstdout[2m | js/modules/answers.test.js[2m > [22m[2mAnswers Module[2m > [22m[2mprocessAnswerLogic[2m > [22m[2mshould handle grammar differences without ungrammatical label
+[22m[39m[Intent Parse] Final labels: ["correct"] | Correction: hello there | Appended: 
+
+[90mstdout[2m | js/modules/answers.test.js[2m > [22m[2mAnswers Module[2m > [22m[2mprocessAnswerLogic[2m > [22m[2mshould process openResponse correctly when valid JSON is returned by AI
+[22m[39m[Intent Parse] Final labels: ["correct"] | Correction: hello | Appended: 
+
+[90mstdout[2m | js/modules/answers.test.js[2m > [22m[2mAnswers Module[2m > [22m[2mprocessAnswerLogic[2m > [22m[2mshould process openResponse correctly with feedback chunks when incorrect
+[22m[39m[Intent Parse] Final labels: ["pragmatic failure","too informal"] | Correction: hello there sir | Appended: 
+
+[90mstdout[2m | js/modules/answers.test.js[2m > [22m[2mAnswers Module[2m > [22m[2mprocessAnswerLogic[2m > [22m[2mshould handle unquoted JSON array recovery
+[22m[39m[Intent Parse] Fixed unquoted array: ["too formal","unidiomatic"]
+[Intent Parse] Final labels: ["too formal","unidiomatic"] | Correction:  | Appended: 
+
+[90mstdout[2m | js/modules/answers.test.js[2m > [22m[2mAnswers Module[2m > [22m[2mprocessAnswerLogic[2m > [22m[2mshould handle single label unquoted JSON array recovery
+[22m[39m[Intent Parse] Fixed unquoted array: ["too formal"]
+[Intent Parse] Final labels: ["too formal"] | Correction:  | Appended: 
+
+[90mstdout[2m | js/modules/answers.test.js[2m > [22m[2mAnswers Module[2m > [22m[2mprocessAnswerLogic[2m > [22m[2mshould fallback to manual split if JSON fails entirely
+[22m[39m[Intent Parse] Fixed unquoted array: ["{foo: "bar"}"]
+[Intent Parse] Final labels: [] | Correction: {foo: "bar"} | Appended: 
+
+[90mstdout[2m | js/modules/answers.test.js[2m > [22m[2mAnswers Module[2m > [22m[2mprocessAnswerLogic[2m > [22m[2mshould fallback to manual split for single correct string
+[22m[39m[Intent Parse] Fixed unquoted array: ["correct"]
+[Intent Parse] Final labels: ["correct"] | Correction: hello | Appended: 
+
+[90mstdout[2m | js/modules/answers.test.js[2m > [22m[2mAnswers Module[2m > [22m[2mprocessAnswerLogic[2m > [22m[2mshould handle valid JSON array but not an array type
+[22m[39m[Intent Parse] Final labels: [] | Correction:  | Appended: 
+
+[90mstdout[2m | js/modules/answers.test.js[2m > [22m[2mAnswers Module[2m > [22m[2mprocessAnswerLogic[2m > [22m[2mshould handle correct override when other valid labels exist
+[22m[39m[Intent Parse] Final labels: ["too formal"] | Correction:  | Appended: 
+
+[90mstdout[2m | js/modules/answers.test.js[2m > [22m[2mAnswers Module[2m > [22m[2mprocessAnswerLogic[2m > [22m[2mshould prioritize pragmatic_failure as errorType
+[22m[39m[Intent Parse] Final labels: ["pragmatic failure","unidiomatic"] | Correction:  | Appended: 
+
+[90mstdout[2m | js/modules/answers.test.js[2m > [22m[2mAnswers Module[2m > [22m[2mprocessAnswerLogic[2m > [22m[2mshould mark ungrammatical and return false if grammar differences exist despite valid grammar flag
+[22m[39m[Intent Parse] Final labels: ["correct"] | Correction: hello sir | Appended: 
+
+[90mstdout[2m | js/modules/answers.test.js[2m > [22m[2mAnswers Module[2m > [22m[2mprocessAnswerLogic[2m > [22m[2mshould parse appended correction
+[22m[39m[Intent Parse] Final labels: ["rude"] | Correction: Please say hello | Appended: Please say hello
+
+ [32m✓[39m js/modules/store.test.js [2m([22m[2m13 tests[22m[2m)[22m[32m 68[2mms[22m[39m
+ [32m✓[39m js/modules/answers.test.js [2m([22m[2m26 tests[22m[2m)[22m[32m 92[2mms[22m[39m
+ [32m✓[39m js/modules/appwrite.test.js [2m([22m[2m5 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m js/modules/scoring.test.js [2m([22m[2m15 tests[22m[2m)[22m[32m 34[2mms[22m[39m
+[90mstdout[2m | js/modules/answer-pipeline.test.js[2m > [22m[2mAnswer Pipeline Integration[2m > [22m[2mshowFeedbackAndProceed should not throw ReferenceError (catches missing imports)
+[22m[39m[showFeedbackAndProceed] stepType: closedResponse | isLessonIntro: [33mfalse[39m
+
+[90mstderr[2m | js/modules/answer-pipeline.test.js[2m > [22m[2mAnswer Pipeline Integration[2m > [22m[2mshowFeedbackAndProceed should not throw ReferenceError (catches missing imports)
+[22m[39m[LessonRouter] getNextStep: current step not found in lesson — falling back to first step. This may indicate a stale step reference.
+
+[90mstdout[2m | js/modules/answer-pipeline.test.js[2m > [22m[2mAnswer Pipeline Integration[2m > [22m[2mshowFeedbackAndProceed should not throw for lessonIntro step
+[22m[39m[showFeedbackAndProceed] stepType: lessonIntro | isLessonIntro: [33mtrue[39m
+
+[90mstdout[2m | js/modules/answer-pipeline.test.js[2m > [22m[2mAnswer Pipeline Integration[2m > [22m[2msubmitAnswerPrecheck should accept _deps at position 7
+[22m[39m[pipeline] lesson  {
+  lessonId: [32m'test-lesson'[39m,
+  steps: [
+    { stepType: [32m'lessonIntro'[39m, cue: [32m'Welcome'[39m },
+    { stepType: [32m'openResponse'[39m, cue: [32m'Hello'[39m }
+  ]
+}
+
+[90mstderr[2m | js/modules/answer-pipeline.test.js[2m > [22m[2mAnswer Pipeline Integration[2m > [22m[2msubmitAnswerPrecheck should accept _deps at position 7
+[22m[39mError updating speech recording with answers TypeError: (0 , __vite_ssr_import_6__.updateSpeechRecording) is not a function
+    at handleAnswer (C:/Users/joelg/Documents/GitHub/uffenglish/js/modules/answer-pipeline.js:591:44)
+[90m    at processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+    at Object.submitAnswerPrecheck (C:/Users/joelg/Documents/GitHub/uffenglish/js/modules/answer-pipeline.js:541:9)
+    at C:/Users/joelg/Documents/GitHub/uffenglish/js/modules/answer-pipeline.test.js:63:9
+    at [90mfile:///C:/Users/joelg/Documents/GitHub/uffenglish/[39mnode_modules/[4m@vitest/runner[24m/dist/chunk-artifact.js:1903:20
+
+[90mstdout[2m | js/modules/answer-pipeline.test.js[2m > [22m[2mAnswer Pipeline Integration[2m > [22m[2msubmitAnswerPrecheck should accept _deps at position 7
+[22m[39m[scoring] calculateFluencyScore {
+  pronunciationScore: [90mundefined[39m,
+  listeningScore: [90mundefined[39m,
+  wpm: [33m0[39m,
+  pauseCount: [33m0[39m,
+  hesitation: [33m0[39m,
+  idiomCount: [33m0[39m,
+  cefrLevel: [32m'A1'[39m,
+  grammarErrorScore: [33m100[39m,
+  complexityScore: [33m100[39m,
+  labels: [],
+  attemptNumber: [33mNaN[39m,
+  isTextMode: [33mfalse[39m,
+  scoreData: {
+    fluencyScore: [33mNaN[39m,
+    flowScore: [33m67[39m,
+    subScores: {
+      pronunciation: [90mundefined[39m,
+      listening: [90mundefined[39m,
+      flow: [33m67[39m,
+      wpmScore: [33m0[39m,
+      pausesScore: [33m100[39m,
+      hesitationScore: [33m100[39m,
+      hesitation: [33m0[39m,
+      vocabulary: [33m100[39m,
+      grammar: [33m100[39m,
+      diffScore: [33m100[39m,
+      formality: [33m100[39m,
+      nativeLike: [33m100[39m,
+      understanding: [33m100[39m
+    }
+  }
+}
+[scoring] setFluencyMetrics applied {
+  fluencyScore: [33mNaN[39m,
+  flowScore: [33m67[39m,
+  vocabularyScore: [33m100[39m,
+  grammarScore: [33m100[39m,
+  formalityScore: [33m100[39m,
+  nativeLikeScore: [33m100[39m,
+  understandingScore: [33m100[39m
+}
+[Praise] Selected type: text, key: praise_good_work, lang: en
+[showFeedbackAndProceed] stepType: closedResponse | isLessonIntro: [33mfalse[39m
+
+[90mstderr[2m | js/modules/answer-pipeline.test.js[2m > [22m[2mAnswer Pipeline Integration[2m > [22m[2msubmitAnswerPrecheck should accept _deps at position 7
+[22m[39m[LessonRouter] getNextStep: current step not found in lesson — falling back to first step. This may indicate a stale step reference.
+
+[90mstdout[2m | js/modules/answer-pipeline.test.js[2m > [22m[2mAnswer Pipeline Integration[2m > [22m[2mhandleAnswer should accept _deps at position 7
+[22m[39m[pipeline] lesson  {
+  lessonId: [32m'test-lesson'[39m,
+  steps: [
+    { stepType: [32m'lessonIntro'[39m, cue: [32m'Welcome'[39m },
+    { stepType: [32m'openResponse'[39m, cue: [32m'Hello'[39m }
+  ]
+}
+
+[90mstderr[2m | js/modules/answer-pipeline.test.js[2m > [22m[2mAnswer Pipeline Integration[2m > [22m[2mhandleAnswer should accept _deps at position 7
+[22m[39mError updating speech recording with answers TypeError: (0 , __vite_ssr_import_6__.updateSpeechRecording) is not a function
+    at Object.handleAnswer (C:/Users/joelg/Documents/GitHub/uffenglish/js/modules/answer-pipeline.js:591:44)
+[90m    at processTicksAndRejections (node:internal/process/task_queues:104:5)[39m
+
+[90mstdout[2m | js/modules/answer-pipeline.test.js[2m > [22m[2mAnswer Pipeline Integration[2m > [22m[2mhandleAnswer should accept _deps at position 7
+[22m[39m[scoring] calculateFluencyScore {
+  pronunciationScore: [90mundefined[39m,
+  listeningScore: [90mundefined[39m,
+  wpm: [33m0[39m,
+  pauseCount: [33m0[39m,
+  hesitation: [33m0[39m,
+  idiomCount: [33m0[39m,
+  cefrLevel: [32m'A1'[39m,
+  grammarErrorScore: [33m100[39m,
+  complexityScore: [33m100[39m,
+  labels: [],
+  attemptNumber: [33mNaN[39m,
+  isTextMode: [33mfalse[39m,
+  scoreData: {
+    fluencyScore: [33mNaN[39m,
+    flowScore: [33m67[39m,
+    subScores: {
+      pronunciation: [90mundefined[39m,
+      listening: [90mundefined[39m,
+      flow: [33m67[39m,
+      wpmScore: [33m0[39m,
+      pausesScore: [33m100[39m,
+      hesitationScore: [33m100[39m,
+      hesitation: [33m0[39m,
+      vocabulary: [33m100[39m,
+      grammar: [33m100[39m,
+      diffScore: [33m100[39m,
+      formality: [33m100[39m,
+      nativeLike: [33m100[39m,
+      understanding: [33m100[39m
+    }
+  }
+}
+[scoring] setFluencyMetrics applied {
+  fluencyScore: [33mNaN[39m,
+  flowScore: [33m67[39m,
+  vocabularyScore: [33m100[39m,
+  grammarScore: [33m100[39m,
+  formalityScore: [33m100[39m,
+  nativeLikeScore: [33m100[39m,
+  understandingScore: [33m100[39m
+}
+[Praise] Selected type: text, key: praise_perfect, lang: en
+[showFeedbackAndProceed] stepType: closedResponse | isLessonIntro: [33mfalse[39m
+
+[90mstderr[2m | js/modules/answer-pipeline.test.js[2m > [22m[2mAnswer Pipeline Integration[2m > [22m[2mhandleAnswer should accept _deps at position 7
+[22m[39m[LessonRouter] getNextStep: current step not found in lesson — falling back to first step. This may indicate a stale step reference.
+
+ [32m✓[39m js/modules/answer-pipeline.test.js [2m([22m[2m4 tests[22m[2m)[22m[32m 60[2mms[22m[39m
+[90mstdout[2m | js/modules/bilingual-display.test.js[2m > [22m[2mformatBilingualHTML[2m > [22m[2mreturns empty string for null/undefined translationData
+[22m[39mformatBilingualHTML fallback result: 
+formatBilingualHTML fallback result: 
+
+[90mstdout[2m | js/modules/bilingual-display.test.js[2m > [22m[2mformatBilingualHTML[2m > [22m[2mpasses through a plain string regardless of lang
+[22m[39mformatBilingualHTML fallback result: hello
+formatBilingualHTML fallback result: hello
+formatBilingualHTML fallback result: hello
+
+[90mstdout[2m | js/modules/bilingual-display.test.js[2m > [22m[2mformatBilingualHTML[2m > [22m[2mreturns only English when userLang is null
+[22m[39mformatBilingualHTML fallback result: Hello
+
+[90mstdout[2m | js/modules/bilingual-display.test.js[2m > [22m[2mformatBilingualHTML[2m > [22m[2mreturns only English when userLang is undefined
+[22m[39mformatBilingualHTML fallback result: Hello
+
+[90mstdout[2m | js/modules/bilingual-display.test.js[2m > [22m[2mformatBilingualHTML[2m > [22m[2mreturns only English when userLang is "en"
+[22m[39mformatBilingualHTML fallback result: Hello
+
+[90mstdout[2m | js/modules/bilingual-display.test.js[2m > [22m[2mformatBilingualHTML[2m > [22m[2mreturns English plus localized span when userLang is "es"
+[22m[39mformatBilingualHTML bilingual result: Hello <span lang="es">/ Hola</span>
+
+[90mstdout[2m | js/modules/bilingual-display.test.js[2m > [22m[2mformatBilingualHTML[2m > [22m[2mreturns only English when userLang has no matching entry
+[22m[39mformatBilingualHTML fallback result: Hello
+
+[90mstdout[2m | js/modules/bilingual-display.test.js[2m > [22m[2mformatBilingualHTML[2m > [22m[2mreturns empty string when object has no en key
+[22m[39mformatBilingualHTML fallback result: 
+
+[90mstdout[2m | js/modules/bilingual-display.test.js[2m > [22m[2mformatBilingualHTML[2m > [22m[2mreturns only English when localized text equals English text
+[22m[39mformatBilingualHTML fallback result: Hello
+
+[90mstdout[2m | js/modules/bilingual-display.test.js[2m > [22m[2mformatBilingualHTML[2m > [22m[2mhonours enPrefix and enSuffix for English decoration
+[22m[39mformatBilingualHTML bilingual result: <strong>Hello</strong> <span lang="es">/ Hola</span>
+
+[90mstdout[2m | js/modules/bilingual-display.test.js[2m > [22m[2mformatBilingualHTML[2m > [22m[2mreturns only the localized span when skipEnglish is true
+[22m[39mformatBilingualHTML skipEnglish result: <span lang="es">Hola</span>
+
+[90mstdout[2m | js/modules/bilingual-display.test.js[2m > [22m[2mformatBilingualHTML[2m > [22m[2mskipEnglish with no localized returns empty string
+[22m[39mformatBilingualHTML skipEnglish result: 
+
+[90mstdout[2m | js/modules/bilingual-display.test.js[2m > [22m[2mformatBilingualHTML[2m > [22m[2mapplies the wrapper callback to the final HTML
+[22m[39mformatBilingualHTML bilingual result: Hello <span lang="es">/ Hola</span>
+
+[90mstdout[2m | js/modules/bilingual-display.test.js[2m > [22m[2mformatBilingualHTML[2m > [22m[2mhandles an empty translation object
+[22m[39mformatBilingualHTML fallback result: 
+
+[90mstdout[2m | js/modules/bilingual-display.test.js[2m > [22m[2mformatBilingualHTML[2m > [22m[2mhandles { en: "", es: "" }
+[22m[39mformatBilingualHTML fallback result: 
+
+ [32m✓[39m js/modules/bilingual-display.test.js [2m([22m[2m29 tests[22m[2m)[22m[32m 63[2mms[22m[39m
+ [32m✓[39m js/modules/config-normalizer.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 17[2mms[22m[39m
+ [32m✓[39m js/modules/normalize.test.js [2m([22m[2m8 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m js/modules/calculate-similarity.test.js [2m([22m[2m6 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32m✓[39m js/modules/utils.test.js [2m([22m[2m7 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+
+[2m Test Files [22m [1m[32m13 passed[39m[22m[90m (13)[39m
+[2m      Tests [22m [1m[32m140 passed[39m[22m[90m (140)[39m
+[2m   Start at [22m 16:23:05
+[2m   Duration [22m 27.83s[2m (transform 9.20s, setup 0ms, import 13.27s, tests 773ms, environment 49.23s)[22m
+

@@ -6,7 +6,7 @@
  * Can be used by both web and React Native.
  */
 
-import { appStore } from './store.js';
+import { appStore, setCurrentVideoPlayer } from './store.js';
 import Strings from '../data/strings.js';
 import { loadVideoForStep } from './video-loader.js';
 import { Media } from './media.js';
@@ -37,7 +37,7 @@ export function cancelWarningClear() {
 export function handleStepCore(step) {
     Media.cleanupPreviousPlayers();
     appStore.getState().clearPlaybackBlob();
-    appStore.getState().setCurrentVideoPlayer(null);
+    setCurrentVideoPlayer(null);
     appStore.getState().setCurrentVideo(null);
 
     appStore.getState().setStatsVisible((step.stepType === 'closedResponse' || step.stepType === 'openResponse') && step.videoUrl);

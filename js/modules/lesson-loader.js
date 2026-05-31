@@ -1,4 +1,4 @@
-import { appStore } from './store.js';
+import { appStore, getAnswerPipelineDeps, getCurrentVideoPlayer } from './store.js';
 import { clearSpeechRecordingsForLesson } from './storage.js';
 import { loadStep } from '../components/step-loader.js';
 
@@ -11,7 +11,7 @@ export async function loadLessonContent(lesson, options = {}) {
         console.error(e);
     }
 
-    const player = appStore.getState().currentVideoPlayer;
+    const player = getCurrentVideoPlayer();
     if (player) player.destroy();
     appStore.getState().resetForNewLesson();
     appStore.getState().resetLessonHistory();
@@ -40,7 +40,7 @@ export async function loadLessonContent(lesson, options = {}) {
         stepsAnswered: startIndex
     });
 
-    const stepDeps = appStore.getState().answerPipelineDeps;
+    const stepDeps = getAnswerPipelineDeps();
     if (stepDeps) {
         loadStep(lesson.steps[startIndex], lesson, null, stepDeps);
     }

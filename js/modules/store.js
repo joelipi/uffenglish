@@ -6,6 +6,20 @@
 import { createStore } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+// ── Module-level mutable refs (not reactive) ──
+// These hold instances that don't belong in Zustand's reactive state.
+// Components needing reactivity should subscribe to related trigger counters.
+let _answerPipelineDeps = null;
+let _currentVideoPlayer = null;
+let _webcamStream = null;
+
+export function getAnswerPipelineDeps()    { return _answerPipelineDeps; }
+export function setAnswerPipelineDeps(v)   { _answerPipelineDeps = v; }
+export function getCurrentVideoPlayer()    { return _currentVideoPlayer; }
+export function setCurrentVideoPlayer(v)   { _currentVideoPlayer = v; }
+export function getWebcamStream()          { return _webcamStream; }
+export function setWebcamStream(v)         { _webcamStream = v; appStore.getState()._bumpWebcamStreamKey(); }
+
 export const appStore = createStore(
     persist(
         (set, get) => ({
@@ -29,9 +43,6 @@ export const appStore = createStore(
             lessonScores: '{}',
             englishLevel: 'A0',
             currentVideo: null,
-            currentVideoPlayer: null,
-
-            answerPipelineDeps: null,
             pendingLessonNavigation: null,
             pauseAllVideosTrigger: 0,
 
@@ -65,7 +76,7 @@ export const appStore = createStore(
             speechPossibleAnswer: null,
             tutorChatVisible: false,
 
-            webcamStream: null,
+            _webcamStreamKey: 0,
             mediaVisible: false,
             micBounceTrigger: 0,
 
@@ -116,8 +127,7 @@ export const appStore = createStore(
             triggerMicBounce: () => set((state) => ({ micBounceTrigger: state.micBounceTrigger + 1 })),
             setCriticalErrorMessage: (val) => set({ criticalErrorMessage: val }),
             setAnswerErrorMessage: (val) => set({ answerErrorMessage: val }),
-            setCurrentVideoPlayer: (val) => set({ currentVideoPlayer: val }),
-            setAnswerPipelineDeps: (deps) => set({ answerPipelineDeps: deps }),
+            _bumpWebcamStreamKey: () => set((s) => ({ _webcamStreamKey: s._webcamStreamKey + 1 })),
             setLessonTitle: (val) => set({ lessonTitle: val }),
             setIsLessonActive: (val) => set({ isLessonActive: val }),
 
@@ -406,7 +416,7 @@ export const appStore = createStore(
             setSpeechPossibleAnswer: (answer) => set({ speechPossibleAnswer: answer }),
             setTutorChatVisible: (visible) => set({ tutorChatVisible: visible }),
 
-            setWebcamStream: (stream) => set({ webcamStream: stream }),
+
             setMediaVisible: (visible) => set({ mediaVisible: visible }),
             setPointLossAmount: (amount) => set((state) => ({ pointLossAmount: amount, pointLossTrigger: state.pointLossTrigger + 1 })),
             // --- Whisper Review Actions ---
@@ -462,7 +472,6 @@ export const appStore = createStore(
                 chatHistory: [],
                 mediaVisible: false,
                 currentVideo: null,
-                currentVideoPlayer: null,
                 textInputVisible: false,
                 speechInputContent: null,
                 tutorChatVisible: false,

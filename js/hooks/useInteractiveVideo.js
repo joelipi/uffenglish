@@ -44,8 +44,6 @@ export function useInteractiveVideo() {
     useEffect(() => {
         if (!config) return;
 
-        console.log("🛠️ CONTROLLER BUILT"); // <--- ADD THIS
-
         const controller = new InteractiveVideoStateController(config);
         stateSnapshotRef.current = { ...controller.state };
 
@@ -61,7 +59,6 @@ export function useInteractiveVideo() {
         controllerRef.current = controller;
 
         return () => {
-            console.log("🗑️ CONTROLLER DESTROYED"); // <--- ADD THIS
             unsub();
             controller.destroy(); // Neutralize timers/callbacks
             controllerRef.current = null;

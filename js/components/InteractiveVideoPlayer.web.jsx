@@ -3,7 +3,7 @@
 // React Native replaces this with InteractiveVideoPlayer.native.jsx.
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useStore } from 'zustand';
-import { appStore } from '../modules/store.js';
+import { appStore, setCurrentVideoPlayer } from '../modules/store.js';
 import { useInteractiveVideo } from '../hooks/useInteractiveVideo.js';
 
 const hasNavigator = typeof navigator !== 'undefined';
@@ -67,17 +67,37 @@ export default function InteractiveVideoPlayer() {
     // -------------------------------------------------------------------------
     useEffect(() => {
         if (!isActive) {
-            appStore.getState().setCurrentVideoPlayer(null);
+            setCurrentVideoPlayer(null);
             return;
         }
 
         appStore.getState().setMediaVisible(true);
 
-        appStore.getState().setCurrentVideoPlayer({
+        // VideoPlayerHandle — the contract shared between web, native, and the
+        // platform-agnostic answer pipeline.  Every platform registers an object
+        // conforming to this shape on appStore.currentVideoPlayer.
+        //
+        // @typedef {Object} VideoPlayerHandle
+        // @property {() => void}                 pause
+        // @property {() => Promise<void>}        play
+        // @property {() => void}                 destroy
+        // @property {() => void}                 replay          — seek to 0 then play
+        // @property {(c:number[],w:number[],e:Array) => void} applySpeechResult
+        // @property {string[]}                   tokens          — cue tokens (live)
+        // @property {Map<number,boolean>}        punctuationMap  — punctuation mask (live)
+        // @property {HTMLVideoElement|undefined} video           — raw element (web only)
+        setCurrentVideoPlayer({
             pause:  () => videoRef.current?.pause(),
             play:   () => videoRef.current?.play(),
             get video() { return videoRef.current; },
             destroy: () => videoRef.current?.pause(),
+            replay: () => {
+                const el = videoRef.current;
+                if (el) el.currentTime = 0;
+                setTimeout(() => {
+                    videoRef.current?.play()?.catch(() => {});
+                }, 50);
+            },
             applySpeechResult, // Exposed to the store for speech pipeline
             // Bridge: answer-pipeline's applySpeechResultToPlayer needs access
             // to the controller's token list and punctuation map to match
@@ -90,7 +110,7 @@ export default function InteractiveVideoPlayer() {
 
         return () => {
             appStore.getState().setMediaVisible(false);
-            appStore.getState().setCurrentVideoPlayer(null);
+            setCurrentVideoPlayer(null);
         };
     }, [isActive, applySpeechResult]);
 
@@ -232,13 +252,6 @@ export default function InteractiveVideoPlayer() {
             video.pause();
         }
     }, [handleWrapperTap]);
-
-    // -------------------------------------------------------------------------
-    // Log unmount
-    // -------------------------------------------------------------------------
-    useEffect(() => {
-        return () => console.log("💥 PLAYER COMPONENT UNMOUNTED");
-    }, []);
 
     if (!isActive) return null;
 

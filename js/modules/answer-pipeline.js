@@ -3,7 +3,7 @@
 // Uses deps pattern to avoid circular imports with lesson-progression.
 // Deps: { loadNextStep, callLoadStep }
 
-import { appStore } from './store.js';
+import { appStore, getCurrentVideoPlayer, setWebcamStream } from './store.js';
 
 // Module-level ref for intro continue handler, avoiding store callback anti-pattern
 let _introContinueHandler = null;
@@ -506,7 +506,7 @@ export function createAnswerPipeline(deps) {
             if (appStore.getState().isTextMode) {
                 appStore.getState().setAnswerErrorMessage(warningMessage);
                 appStore.getState().triggerVideoClear();
-                appStore.getState().setWebcamStream(null);
+                setWebcamStream(null);
                 appStore.getState().setInputDisabled(false);
                 appStore.getState().setSubmitBtnDisabled(false);
                 appStore.getState().triggerInputFocus();
@@ -524,7 +524,7 @@ export function createAnswerPipeline(deps) {
                 duration: appStore.getState().isTextMode ? 3 : null
             });
 
-            const player = appStore.getState().currentVideoPlayer;
+            const player = getCurrentVideoPlayer();
             if (stepData.stepType === "closedResponse" && player && typeof player.applySpeechResult === 'function') {
                 applySpeechResultToPlayer(val, player);
             }
@@ -533,7 +533,7 @@ export function createAnswerPipeline(deps) {
             return;
         }
 
-        const player = appStore.getState().currentVideoPlayer;
+        const player = getCurrentVideoPlayer();
         if (stepData.stepType === "closedResponse" && player && typeof player.applySpeechResult === 'function') {
             applySpeechResultToPlayer(val, player);
         }
@@ -755,7 +755,7 @@ export function createAnswerPipeline(deps) {
                 appStore.getState().clearPlaybackBlob();
                 appStore.getState().triggerVideoClear();
                 clearChat();
-                appStore.getState().setWebcamStream(null);
+                setWebcamStream(null);
 
                 if (!stepData.videoUrl) {
                     const hangmanOps = generateHangmanOps(userResponse, cueText);
@@ -764,18 +764,9 @@ export function createAnswerPipeline(deps) {
                 }
                 appStore.getState().setMediaVisible(true);
 
-                const player = appStore.getState().currentVideoPlayer;
-                if (player) {
-                    if (player.video) {
-                        player.video.currentTime = 0;
-                    }
-                    setTimeout(() => {
-                        if (player.play) {
-                            player.play().catch(e => console.warn("Video play failed:", e));
-                        } else if (player.video) {
-                            player.video.play().catch(e => console.warn("Video play failed:", e));
-                        }
-                    }, 50);
+                const player = getCurrentVideoPlayer();
+                if (player && typeof player.replay === 'function') {
+                    player.replay();
                 }
 
                 appStore.getState().setMicStatus({ type: 'info', text: stepData.step || '' });

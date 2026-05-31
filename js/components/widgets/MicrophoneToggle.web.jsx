@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from 'zustand';
-import { appStore } from '../../modules/store.js';
+import { appStore, getCurrentVideoPlayer } from '../../modules/store.js';
 import { getSpeechInputToggleCallback } from '../../modules/step-loader-callbacks.js';
 
 export default function MicrophoneToggle() {
@@ -69,7 +69,7 @@ export default function MicrophoneToggle() {
         if (isTextInputVisible) {
             appStore.getState().setTextInputVisible(false);
             appStore.getState().setMicActive(false);
-            const player = appStore.getState().currentVideoPlayer;
+            const player = getCurrentVideoPlayer();
             if (player && player.play) {
                 player.play().catch(e => console.warn('[UI] Video resume failed:', e));
             }

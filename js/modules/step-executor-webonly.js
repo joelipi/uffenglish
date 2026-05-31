@@ -3,7 +3,7 @@
 // Imported only by step-loader.web.js — never loaded on React Native.
 // UI rendering is driven through Zustand store actions — React components handle the DOM.
 
-import { appStore } from '../modules/store.js';
+import { appStore, getCurrentVideoPlayer, setWebcamStream } from '../modules/store.js';
 import Strings from '../data/strings.js';
 import { getLocalizedTranslation } from '../modules/utils.js';
 import { getCurrentStepIndex } from '../modules/answers.js';
@@ -61,7 +61,7 @@ export function createLoadStep(deps) {
                 warmUpSpeechCam();
             }
         } else {
-            appStore.getState().setWebcamStream(null);
+            setWebcamStream(null);
         }
 
         if (step.image) {
@@ -146,7 +146,7 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                     currentLessonIndex: appStore.getState().currentLessonIndex,
                     currentStepIndex: stepIndex,
                     handleAnswer: submitAnswerPrecheck,
-                    player: appStore.getState().currentVideoPlayer,
+                    player: getCurrentVideoPlayer(),
                     uiHooks: {
                         onHesitation: (points) => {
                             appStore.getState().triggerPointLoss('flow', points);
@@ -166,11 +166,12 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                         onRecordingStart: (userData) => {
                             cancelWarningClear();
                             appStore.getState().setMicActive(true);
-                            if (appStore.getState().currentVideoPlayer) {
-                                if (typeof appStore.getState().currentVideoPlayer.pause === 'function') {
-                                    appStore.getState().currentVideoPlayer.pause();
-                                } else if (appStore.getState().currentVideoPlayer.video) {
-                                    appStore.getState().currentVideoPlayer.video.pause();
+                            const currentPlayer = getCurrentVideoPlayer();
+                            if (currentPlayer) {
+                                if (typeof currentPlayer.pause === 'function') {
+                                    currentPlayer.pause();
+                                } else if (currentPlayer.video) {
+                                    currentPlayer.video.pause();
                                 }
                             }
                             appStore.getState().setMicStatus({ type: 'speak-now', bilingual: Strings.getBilingual('status_speak', userData?.native_language) });
@@ -218,7 +219,7 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             appStore.getState().deductSpeakingScore(10);
                             appStore.getState().incrementWhisperRejections();
                             appStore.getState().triggerVideoClear();
-                            appStore.getState().setWebcamStream(null);
+                            setWebcamStream(null);
                             appStore.getState().triggerPreflightRejected();
                             appStore.getState().setPointLossAmount(10);
                             appStore.getState().setMicStatus({ type: 'preflight-rejected', text: msg });
@@ -230,7 +231,7 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             appStore.getState().deductSpeakingScore(20);
                             appStore.getState().incrementWhisperRejections();
                             appStore.getState().triggerVideoClear();
-                            appStore.getState().setWebcamStream(null);
+                            setWebcamStream(null);
                             appStore.getState().triggerTranscriptRejected(cue, transcript);
                             appStore.getState().setPointLossAmount(20);
                             appStore.getState().setMicStatus({ type: 'restarting', text: 'Restarting Mic...' });

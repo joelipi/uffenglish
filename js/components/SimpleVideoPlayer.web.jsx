@@ -3,7 +3,7 @@
 // React Native replaces this with SimpleVideoPlayer.native.jsx.
 import { useEffect, useRef, useState, useLayoutEffect, useCallback } from 'react';
 import { useStore } from 'zustand';
-import { appStore } from '../modules/store.js';
+import { appStore, setCurrentVideoPlayer } from '../modules/store.js';
 import { useSimpleVideo } from '../hooks/useSimpleVideo.js';
 
 const hasNavigator = typeof navigator !== 'undefined';
@@ -23,12 +23,12 @@ export default function SimpleVideoPlayer() {
     const [loaded, setLoaded] = useState(false);
     const [poster, setPoster] = useState(null);
     const [scrollOffset, setScrollOffset] = useState(0);
-    const [answerStatus, setAnswerStatus] = useState(null);
-
     // Store player reference for external pause/play
+    // Conforms to VideoPlayerHandle — same contract as InteractiveVideoPlayer
+    // so the platform-agnostic answer pipeline can drive both uniformly.
     useEffect(() => {
         if (!isActive) {
-            appStore.getState().setCurrentVideoPlayer(null);
+            setCurrentVideoPlayer(null);
             return;
         }
         appStore.getState().setMediaVisible(true);
@@ -37,15 +37,21 @@ export default function SimpleVideoPlayer() {
             play: () => videoRef.current?.play(),
             get video() { return videoRef.current; },
             destroy: () => {
-                console.warn('[SVP] destroy called');
                 const v = videoRef.current;
                 if (v) { v.pause(); }
-            }
+            },
+            replay: () => {
+                const el = videoRef.current;
+                if (el) el.currentTime = 0;
+                setTimeout(() => {
+                    videoRef.current?.play()?.catch(() => {});
+                }, 50);
+            },
         };
-        appStore.getState().setCurrentVideoPlayer(player);
+        setCurrentVideoPlayer(player);
         return () => {
             appStore.getState().setMediaVisible(false);
-            appStore.getState().setCurrentVideoPlayer(null);
+            setCurrentVideoPlayer(null);
         };
     }, [isActive]);
 
@@ -79,27 +85,6 @@ export default function SimpleVideoPlayer() {
             if (msIntervalRef.current) clearInterval(msIntervalRef.current);
         };
     }, [isActive]);
-
-    // Reset the video player's state when an incorrect answer is given
-    useEffect(() => {
-        if (answerStatus === 'incorrect') {
-            setPlaying(false);
-            setLoaded(false);
-            setPoster(null);
-            setScrollOffset(0);
-            if (videoRef.current) {
-                videoRef.current.pause();
-                videoRef.current.currentTime = 0;
-            }
-        }
-    }, [answerStatus]);
-
-    // Ensure that the video player properly handles the transition between different video states when an incorrect answer is given
-    useEffect(() => {
-        if (answerStatus === 'incorrect') {
-            setAnswerStatus(null);
-        }
-    }, [answerStatus]);
 
     const handleVideoLoaded = useCallback(() => {
         if (!loaded) setLoaded(true);
@@ -174,11 +159,6 @@ export default function SimpleVideoPlayer() {
         const v = videoRef.current;
         if (v) updateProgress(v.currentTime, v.duration);
     }, [updateProgress]);
-
-    // Update the answer status when an incorrect answer is given
-    const handleIncorrectAnswer = useCallback(() => {
-        setAnswerStatus('incorrect');
-    }, []);
 
     // Delayed play after React mount
     useEffect(() => {

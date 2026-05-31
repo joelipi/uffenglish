@@ -3,7 +3,7 @@
 // React Native replaces this with speech.native.js via platform-specific file resolution.
 import Strings from '../data/strings.js';
 import { saveSpeechRecording } from './storage.js';
-import { appStore } from './store.js';
+import { appStore, setWebcamStream } from './store.js';
 
 import { transcribeAudioBuffer, analyzeAudioBufferWithVAD, preloadWhisperEngine } from '../workers/whisper/app-vad-asr-web.js';
 
@@ -96,9 +96,9 @@ async function ensureSpeechCamStream() {
 export async function warmUpSpeechCamStream() {
     try {
         await ensureSpeechCamStream();
-        appStore.getState().setWebcamStream(speechCamStream);
+        setWebcamStream(speechCamStream);
     } catch (err) {
-        appStore.getState().setWebcamStream(null);
+        setWebcamStream(null);
         safelyStopStream();
     }
 }
@@ -106,7 +106,7 @@ export async function warmUpSpeechCamStream() {
 export async function startSpeechCamRecording(micStatusText, userData) {
     try {
         await ensureSpeechCamStream();
-        appStore.getState().setWebcamStream(speechCamStream);
+        setWebcamStream(speechCamStream);
 
         let mimeType = '';
         if (isIOS) {
@@ -133,7 +133,7 @@ export async function startSpeechCamRecording(micStatusText, userData) {
         console.error('[Recording] startSpeechCamRecording FAILED:', err);
         alert(Strings.get('alert_media_error', userData?.native_language));
         appStore.getState().setMicStatus({ type: 'alert', text: Strings.get('error_media_details', userData?.native_language) });
-        appStore.getState().setWebcamStream(null);
+        setWebcamStream(null);
         safelyStopStream();
         throw err; // re-throw so the orchestrator can abort cleanly
     }
@@ -176,7 +176,7 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
                         // Clear the array safely after processing
                         speechCamChunks = [];
                         
-                        if (!keepStreamAlive) { appStore.getState().setWebcamStream(null); safelyStopStream(); }
+                        if (!keepStreamAlive) { setWebcamStream(null); safelyStopStream(); }
                         resolve(blobToReturn);
                     }
                 };
@@ -185,14 +185,14 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
         } else {
             speechCamRecorder = null;
             speechCamChunks = [];
-            if (!keepStreamAlive) { appStore.getState().setWebcamStream(null); safelyStopStream(); }
-            else appStore.getState().setWebcamStream(null);
+            if (!keepStreamAlive) { setWebcamStream(null); safelyStopStream(); }
+            else setWebcamStream(null);
             return Promise.resolve(null);
         }
     } catch (err) {
         speechCamRecorder = null;
         speechCamChunks = [];
-        appStore.getState().setWebcamStream(null); safelyStopStream();
+        setWebcamStream(null); safelyStopStream();
         return Promise.resolve(null);
     }
 }
