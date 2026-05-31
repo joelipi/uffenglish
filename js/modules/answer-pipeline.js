@@ -875,7 +875,8 @@ export function createAnswerPipeline(deps) {
                         if (loadNextStep) loadNextStep(stepData);
                     } else {
                         const stepIndex = getCurrentStepIndex(stepData, appStore.getState().configData, appStore.getState().currentLessonIndex);
-                        if (callLoadStep) callLoadStep(appStore.getState().configData.lessons[appStore.getState().currentLessonIndex].steps[stepIndex], appStore.getState().configData.lessons[appStore.getState().currentLessonIndex]);
+                        const currentLesson = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex];
+                        if (callLoadStep) callLoadStep(currentLesson.steps[stepIndex], currentLesson);
                     }
                 }
             };

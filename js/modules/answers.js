@@ -4,12 +4,34 @@ import calculateSimilarity from './calculate-similarity.js';
 import swearjar from './swearjar.js';
 import { checkGrammarWithAI, evaluateIntentWithAI } from './api.js';
 import Strings from '../data/strings.js';
+import { appStore } from './store.js';
 
+/**
+ * Returns the position of stepData within the current lesson's steps array.
+ *
+ * Primary path: trusts the store-tracked currentStepIndex when it matches.
+ * Fallback: content-based findIndex when there's a mismatch.
+ */
 export function getCurrentStepIndex(stepData, configData, currentLessonIndex) {
-    if (!configData || !configData.lessons || configData.lessons.length === 0) return -1;
+    if (!configData?.lessons?.length) return -1;
     if (currentLessonIndex < 0 || currentLessonIndex >= configData.lessons.length) return -1;
 
     const currentLesson = configData.lessons[currentLessonIndex];
+
+    // ── Primary: store-tracked index ──
+    const storeIndex = appStore.getState().currentStepIndex;
+    if (storeIndex >= 0 && storeIndex < currentLesson.steps.length) {
+        const storedStep = currentLesson.steps[storeIndex];
+        const normCue1 = typeof stepData.cue === 'object' ? stepData.cue?.en : stepData.cue;
+        const normCue2 = typeof storedStep.cue === 'object' ? storedStep.cue?.en : storedStep.cue;
+        if (storedStep.step === stepData.step && normCue1 === normCue2) {
+            return storeIndex;
+        }
+    }
+
+    // ── Fallback: content-based findIndex ──
+    console.warn('[getCurrentStepIndex] Store index mismatch, falling back to content lookup. storeIndex:', storeIndex, 'stepData.step:', stepData.step, 'cue:', typeof stepData.cue === 'object' ? stepData.cue?.en : stepData.cue);
+
     const normalizedCue1 = typeof stepData.cue === 'object' ? stepData.cue?.en : stepData.cue;
     return currentLesson.steps.findIndex(q => {
         const normalizedCue2 = typeof q.cue === 'object' ? q.cue?.en : q.cue;
@@ -17,7 +39,6 @@ export function getCurrentStepIndex(stepData, configData, currentLessonIndex) {
             q.explanation === stepData.explanation &&
             normalizedCue2 === normalizedCue1;
 
-        // Safely compare incues arrays regardless of order
         const qIncues = Array.isArray(q.incues) ? [...q.incues].sort() : [];
         const dataIncues = Array.isArray(stepData.incues) ? [...stepData.incues].sort() : [];
         const sameIncues = qIncues.length === dataIncues.length &&

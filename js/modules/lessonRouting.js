@@ -1,13 +1,9 @@
 // --- modules/lessonRouting.js ---
 
+import { appStore } from './store.js';
+
 /**
  * Platform-Agnostic Lesson & Course Routing Utilities
- *
- * All functions are pure (no DOM, no store, no side effects).
- * Side effects (saving progress, updating URL) must be handled by the caller.
- *
- * The Zustand store is intentionally NOT imported here. Pass activeLessonId
- * in via context.storedLessonId (with its timestamp) so this file stays testable
  * and framework-agnostic.
  */
 
@@ -110,28 +106,32 @@ export function resolveCurrentCourseId(userData, context = {}) {
 
 /**
  * Returns the next step in the current lesson, or null if at the end.
- * Returns the first step as a fallback if the current step is not found —
- * if this happens in production it likely indicates a stale step reference.
- * @param {object} currentStep
- * @param {object} configData
- * @param {number} currentLessonIndex
- * @returns {object|null}
+ * Uses store-tracked currentStepIndex primarily, falls back to content match.
  */
 export function getNextStep(currentStep, configData, currentLessonIndex) {
     if (!configData?.lessons || currentLessonIndex >= configData.lessons.length) return null;
 
     const currentLesson = configData.lessons[currentLessonIndex];
+    const storeIndex = appStore.getState().currentStepIndex;
+
+    // Primary: use store index
+    if (storeIndex >= 0 && storeIndex < currentLesson.steps.length) {
+        const nextIndex = storeIndex + 1;
+        return nextIndex < currentLesson.steps.length ? currentLesson.steps[nextIndex] : null;
+    }
+
+    // Fallback: content-based findIndex
+    console.warn('[getNextStep] Store index out of bounds, falling back to content lookup. storeIndex:', storeIndex);
     const currentIndex = currentLesson.steps.findIndex(
         q => q.step === currentStep.step && q.cue === currentStep.cue
     );
 
     if (currentIndex === -1) {
-        console.warn('[LessonRouter] getNextStep: current step not found in lesson — falling back to first step. This may indicate a stale step reference.');
-        return currentLesson.steps[0];
+        console.warn('[getNextStep] current step not found in lesson — returning null');
+        return null;
     }
 
     if (currentIndex >= currentLesson.steps.length - 1) return null;
-
     return currentLesson.steps[currentIndex + 1];
 }
 

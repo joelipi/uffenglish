@@ -19,7 +19,7 @@ describe('Answers Module', () => {
             }]
         };
 
-        it('should return correct index if step exists', () => {
+        it('should return correct index via store when step matches', () => {
             expect(getCurrentStepIndex({ step: 'Step 2', cue: 'cue2' }, configData, 0)).toBe(1);
         });
 
@@ -31,11 +31,10 @@ describe('Answers Module', () => {
             expect(getCurrentStepIndex({}, configData, 1)).toBe(-1);
         });
 
-        it('should return -1 if step is not found', () => {
+        it('should fall back to content lookup if store index mismatches', () => {
             expect(getCurrentStepIndex({ step: 'Unknown', cue: 'unk' }, configData, 0)).toBe(-1);
         });
     });
-
 
     describe('processAnswerLogic', () => {
         beforeEach(() => {
