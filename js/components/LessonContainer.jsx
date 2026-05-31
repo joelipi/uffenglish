@@ -35,7 +35,6 @@ import SimpleVideoPlayer from './SimpleVideoPlayer';
 
 import IncomingVideoWidget from './IncomingVideoWidget.jsx';
 import PointLossOverlay from './PointLossOverlay.jsx';
-import VideoProcessorWrapper from './VideoProcessorWrapper.jsx';
 import PlaybackVideo from './PlaybackVideo.jsx';
 import { loadNextStep as loadNextStepImpl, handleTutorChatSubmit } from '../modules/lesson-progression.js';
 import { loadLessonContent } from '../modules/lesson-loader.js';
@@ -190,7 +189,6 @@ export default function LessonContainer() {
 
             <IncomingVideoWidget />
             <PointLossOverlay />
-            <VideoProcessorWrapper />
         </>
     );
 }

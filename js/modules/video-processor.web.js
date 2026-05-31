@@ -8,47 +8,43 @@ import { appStore } from './store.js';
 
 export { shareVideo };
 
-let processorContainer = null;
-let audioContext = null;
-let audioSource = null;
-let audioDestination = null;
-let animationId = null;
-let fontReady = false;
+// ---------------------------------------------------------------------------
+// Instance factory — each processVideo call owns its own context.
+// No module-level mutable state. Safe under HMR, Strict Mode double-invoke,
+// and concurrent calls (though the UI prevents those via button state).
+// ---------------------------------------------------------------------------
+function createVideoProcessor() {
+    let audioContext = null;
+    let audioSource = null;
+    let audioDestination = null;
+    let animationId = null;
+    let fontReady = false;
 
-export function initVideoProcessor(container) {
-    console.log("[VideoProcessor] Initializing with container:", container);
-    processorContainer = container;
+    // The hidden video element is created and destroyed entirely within this
+    // instance. Nothing is queried from the DOM by ID.
+    const originalVideo = document.createElement('video');
+    originalVideo.crossOrigin = 'anonymous';
+    originalVideo.playsInline = true;
+    originalVideo.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;';
+    document.body.appendChild(originalVideo);
 
-    let originalVideo = container.querySelector('#originalVideo') || document.getElementById('originalVideo');
-    if (!originalVideo) {
-        originalVideo = document.createElement('video');
-        originalVideo.id = 'originalVideo';
-        originalVideo.crossOrigin = "anonymous";
-        originalVideo.playsInline = true;
-        originalVideo.style.display = 'none';
-    }
-    if (originalVideo.parentNode !== container) {
-        container.appendChild(originalVideo);
-    }
-}
-
-export function cleanupVideoProcessor() {
-    console.log("[VideoProcessor] Cleaning up processor...");
-    if (animationId) {
-        cancelAnimationFrame(animationId);
-        animationId = null;
-    }
-    if (audioContext) {
-        if (audioContext.state !== 'closed') {
-            audioContext.close().catch(e => console.warn("[VideoProcessor] Error closing AudioContext:", e));
+    function cleanup() {
+        if (animationId) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
         }
-        audioContext = null;
-    }
-    audioSource = null;
-    audioDestination = null;
 
-    const originalVideo = processorContainer ? processorContainer.querySelector('#originalVideo') : document.getElementById('originalVideo');
-    if (originalVideo) {
+        if (audioContext) {
+            if (audioContext.state !== 'closed') {
+                audioContext.close().catch(e =>
+                    console.warn('[VideoProcessor] Error closing AudioContext:', e)
+                );
+            }
+            audioContext = null;
+        }
+        audioSource = null;
+        audioDestination = null;
+
         originalVideo.pause();
         originalVideo.src = '';
         originalVideo.load();
@@ -56,113 +52,141 @@ export function cleanupVideoProcessor() {
             originalVideo.parentNode.removeChild(originalVideo);
         }
     }
-    processorContainer = null;
-}
 
-export async function processVideo(fluencyData = {}, lessonId = null, displayCanvas = null) {
-    return new Promise(async (resolve, reject) => {
+    async function ensureFontsReady() {
+        if (fontReady || !document.fonts) return;
         try {
-            console.log("[VideoProcessor] Starting live processing on screen...");
-
-            const recordings = await getAllSpeechRecordingsForLesson(lessonId) || [];
-            console.warn('[video] processVideo called', { lessonId, fluencyData, recordingsLength: recordings.length });
-            console.log('[video] processVideo called', { lessonId, fluencyData, recordingsLength: recordings.length });
-
-            if (!recordings.length) {
-                console.warn("[VideoProcessor] No recordings found. Proceeding with text-mode/summary generation.");
-            }
-
-            let originalVideo = processorContainer ? processorContainer.querySelector('#originalVideo') : document.getElementById('originalVideo');
-            if (!originalVideo) {
-                originalVideo = document.createElement('video');
-                originalVideo.id = 'originalVideo';
-                originalVideo.crossOrigin = "anonymous";
-                originalVideo.playsInline = true;
-                originalVideo.style.display = 'none';
-                if (processorContainer) {
-                    processorContainer.appendChild(originalVideo);
-                }
-            }
-
-            originalVideo.muted = false;
-
-            const videoCanvas = document.createElement('canvas');
-
-            const overlayImage = new Image();
-            overlayImage.src = '/assets/img/header.png';
-
-            const firstValidRec = recordings.find(r => r.blob);
-            if (firstValidRec) {
-                originalVideo.src = URL.createObjectURL(firstValidRec.blob);
-                await new Promise((res) => {
-                    originalVideo.onloadedmetadata = res;
-                    setTimeout(res, 2000);
-                });
-            }
-
-            const configData = appStore.getState().configData || {};
-            const planner = new VideoRenderPlanner(recordings, configData, fluencyData);
-            const plan = planner.generatePlan();
-
-            const dimensions = planner.getTargetDimensions(originalVideo.videoWidth || 1080, originalVideo.videoHeight || 1920);
-            videoCanvas.width = dimensions.width;
-            videoCanvas.height = dimensions.height;
-
-            if (displayCanvas) {
-                displayCanvas.width = dimensions.width;
-                displayCanvas.height = dimensions.height;
-            }
-
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                audioDestination = audioContext.createMediaStreamDestination();
-            }
-
-            if (!audioSource || audioSource.mediaElement !== originalVideo) {
-                if (audioSource) audioSource.disconnect();
-                audioSource = audioContext.createMediaElementSource(originalVideo);
-                audioSource.connect(audioDestination);
-                audioSource.connect(audioContext.destination);
-            }
-
-            if (audioContext.state === 'suspended') await audioContext.resume();
-
-            await ensureFontsReady();
-
-            const canvasStream = videoCanvas.captureStream(30);
-            const combinedStream = new MediaStream([
-                ...canvasStream.getVideoTracks(),
-                ...audioDestination.stream.getAudioTracks()
+            await Promise.all([
+                document.fonts.load('700 24px "Orbitron"'),
+                document.fonts.load('bold 24px "Plus Jakarta Sans"'),
             ]);
-
-            const mimeType = getSupportedMimeType();
-            const recorder = new MediaRecorder(combinedStream, { mimeType });
-            const chunks = [];
-
-            recorder.ondataavailable = (e) => {
-                if (e.data.size > 0) chunks.push(e.data);
-            };
-
-            recorder.onstop = () => {
-                const blob = new Blob(chunks, { type: mimeType });
-                const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
-                resolve({ blob, ext });
-            };
-
-            recorder.start(1000);
-
-            await executeRenderLoop(plan, originalVideo, videoCanvas, displayCanvas, overlayImage, fluencyData);
-
-            recorder.stop();
-
+            fontReady = true;
         } catch (e) {
-            console.error("[VideoProcessor] Render failed:", e);
-            reject(e);
+            console.warn('[VideoProcessor] Font load failed:', e);
         }
-    });
+    }
+
+    function initAudio() {
+        if (!audioContext) {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            audioDestination = audioContext.createMediaStreamDestination();
+        }
+
+        if (!audioSource || audioSource.mediaElement !== originalVideo) {
+            if (audioSource) audioSource.disconnect();
+            audioSource = audioContext.createMediaElementSource(originalVideo);
+            audioSource.connect(audioDestination);
+            audioSource.connect(audioContext.destination);
+        }
+    }
+
+    async function process(fluencyData = {}, lessonId = null, displayCanvas = null) {
+        return new Promise(async (resolve, reject) => {
+            try {
+                console.log('[VideoProcessor] Starting live processing on screen...');
+
+                const recordings = await getAllSpeechRecordingsForLesson(lessonId) || [];
+                console.log('[VideoProcessor] processVideo called', {
+                    lessonId,
+                    fluencyData,
+                    recordingsLength: recordings.length,
+                });
+
+                if (!recordings.length) {
+                    console.warn('[VideoProcessor] No recordings found. Proceeding with text-mode/summary generation.');
+                }
+
+                const videoCanvas = document.createElement('canvas');
+                const overlayImage = new Image();
+                overlayImage.src = '/assets/img/header.png';
+
+                // Probe dimensions from the first real recording blob
+                const firstValidRec = recordings.find(r => r.blob);
+                if (firstValidRec) {
+                    originalVideo.src = URL.createObjectURL(firstValidRec.blob);
+                    await new Promise(res => {
+                        originalVideo.onloadedmetadata = res;
+                        setTimeout(res, 2000);
+                    });
+                }
+
+                const configData = appStore.getState().configData || {};
+                const planner = new VideoRenderPlanner(recordings, configData, fluencyData);
+                const plan = planner.generatePlan();
+
+                const dimensions = planner.getTargetDimensions(
+                    originalVideo.videoWidth || 1080,
+                    originalVideo.videoHeight || 1920
+                );
+                videoCanvas.width = dimensions.width;
+                videoCanvas.height = dimensions.height;
+
+                if (displayCanvas) {
+                    displayCanvas.width = dimensions.width;
+                    displayCanvas.height = dimensions.height;
+                }
+
+                initAudio();
+                if (audioContext.state === 'suspended') await audioContext.resume();
+
+                await ensureFontsReady();
+
+                const canvasStream = videoCanvas.captureStream(30);
+                const combinedStream = new MediaStream([
+                    ...canvasStream.getVideoTracks(),
+                    ...audioDestination.stream.getAudioTracks(),
+                ]);
+
+                const mimeType = getSupportedMimeType();
+                const recorder = new MediaRecorder(combinedStream, { mimeType });
+                const chunks = [];
+
+                recorder.ondataavailable = e => {
+                    if (e.data.size > 0) chunks.push(e.data);
+                };
+
+                recorder.onstop = () => {
+                    const blob = new Blob(chunks, { type: mimeType });
+                    const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+                    cleanup();
+                    resolve({ blob, ext });
+                };
+
+                recorder.start(1000);
+
+                await executeRenderLoop(
+                    plan, originalVideo, videoCanvas, displayCanvas,
+                    overlayImage, fluencyData,
+                    id => { animationId = id; }
+                );
+
+                recorder.stop();
+
+            } catch (e) {
+                console.error('[VideoProcessor] Render failed:', e);
+                cleanup();
+                reject(e);
+            }
+        });
+    }
+
+    return { process, cleanup };
 }
 
-async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImage, fluencyData) {
+// ---------------------------------------------------------------------------
+// Public API — matches the existing call site in SuccessButtons.jsx exactly:
+//   const { processVideo, shareVideo } = await import('../../modules/video-processor.js');
+//   const result = await processVideo(fluencyData, lessonId, canvas);
+// ---------------------------------------------------------------------------
+export async function processVideo(fluencyData = {}, lessonId = null, displayCanvas = null) {
+    const processor = createVideoProcessor();
+    return processor.process(fluencyData, lessonId, displayCanvas);
+}
+
+// ---------------------------------------------------------------------------
+// Render loop — receives an animationId setter so the instance can cancel it
+// ---------------------------------------------------------------------------
+async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImage, fluencyData, setAnimationId) {
     const ctx = canvas.getContext('2d');
     const planner = new VideoRenderPlanner();
 
@@ -179,6 +203,7 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
             }
 
             const step = plan[stepIndex];
+
             if (step.type === 'tailing') {
                 isTailing = true;
                 tailStart = performance.now();
@@ -190,8 +215,9 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                 if (video.readyState >= 2) {
                     lastFrameCanvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
                 } else {
-                    lastFrameCanvas.getContext('2d').fillStyle = '#111318';
-                    lastFrameCanvas.getContext('2d').fillRect(0, 0, canvas.width, canvas.height);
+                    const lCtx = lastFrameCanvas.getContext('2d');
+                    lCtx.fillStyle = '#111318';
+                    lCtx.fillRect(0, 0, canvas.width, canvas.height);
                 }
                 return;
             }
@@ -202,23 +228,25 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                 return;
             }
 
-            video.crossOrigin = "anonymous";
-            const sourceUrl = step.type === 'remote' ? await resolveRemoteUrl(step.targetId) : URL.createObjectURL(step.blob);
+            video.crossOrigin = 'anonymous';
+            const sourceUrl = step.type === 'remote'
+                ? await resolveRemoteUrl(step.targetId)
+                : URL.createObjectURL(step.blob);
             video.src = sourceUrl;
             video.load();
 
-            await new Promise((res) => {
+            await new Promise(res => {
                 video.onloadedmetadata = async () => {
                     if (step.trim?.start) video.currentTime = step.trim.start;
                     try {
                         await video.play();
                     } catch (err) {
-                        console.warn("[VideoProcessor] Browser blocked loud autoplay. Retrying muted.", err);
+                        console.warn('[VideoProcessor] Browser blocked autoplay. Retrying muted.', err);
                         video.muted = true;
                         try {
                             await video.play();
                         } catch (fatalErr) {
-                            console.error("[VideoProcessor] Fatal play error", fatalErr);
+                            console.error('[VideoProcessor] Fatal play error', fatalErr);
                         }
                     }
                     res();
@@ -239,14 +267,15 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                 ctx.fillStyle = '#111318';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
             } else if (video.readyState >= 2) {
-                const layout = planner.calculateLayout(video.videoWidth, video.videoHeight, canvas.width, canvas.height);
+                const layout = planner.calculateLayout(
+                    video.videoWidth, video.videoHeight, canvas.width, canvas.height
+                );
                 ctx.fillStyle = '#000';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(video, layout.x, layout.y, layout.width, layout.height);
             } else {
-                // --- CRITICAL FIX ---
-                // If the video is buffering/loading, explicitly clear the screen to black 
-                // so the old subtitle from the previous frame doesn't freeze on screen.
+                // Video is buffering — clear to black so the previous subtitle
+                // doesn't freeze on screen.
                 ctx.fillStyle = '#000';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
@@ -256,7 +285,11 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                 ctx.drawImage(overlayImage, x, 0);
             }
 
-            drawTextOverlay(ctx, canvas.width, canvas.height, isTailing, tailStart, fluencyData, step.isFirst, step.subtitle);
+            drawTextOverlay(
+                ctx, canvas.width, canvas.height,
+                isTailing, tailStart, fluencyData,
+                step.isFirst, step.subtitle
+            );
 
             if (displayCanvas) {
                 const dCtx = displayCanvas.getContext('2d');
@@ -271,7 +304,7 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                     const elapsed = performance.now() - (step.textModeStartTime || performance.now());
                     if (elapsed >= 3000) shouldAdvance = true;
                 } else {
-                    let endTime = step.trim?.end || video.duration;
+                    const endTime = step.trim?.end || video.duration;
                     if (video.ended || video.currentTime >= endTime) shouldAdvance = true;
                 }
             }
@@ -282,7 +315,7 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
             }
 
             if (stepIndex < plan.length || isTailing) {
-                animationId = requestAnimationFrame(draw);
+                setAnimationId(requestAnimationFrame(draw));
             }
         };
 
@@ -291,10 +324,11 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
     });
 }
 
+// ---------------------------------------------------------------------------
+// Drawing
+// ---------------------------------------------------------------------------
 function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart, fluencyData, isFirst, subtitleText) {
     const now = performance.now();
-    //console.warn('[video] drawTextOverlay', { tailing, fluencyDataTotal: fluencyData?.total, isFirst, subtitleText });
-    //console.log('[video] drawTextOverlay', { tailing, fluencyDataTotal: fluencyData?.total, isFirst, subtitleText });
     const blinkOn = Math.floor(now / 500) % 2 === 0;
     context.save();
 
@@ -308,9 +342,15 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
         context.fillStyle = 'yellow';
         const centerX = Math.floor(canvasWidth / 2);
 
-        const data = tailing ?
-            [{ text: 'FLUENCY SCORE', mult: 1.35, blink: false }, { text: `${fluencyData.total || "NA"}%`, mult: 1.8, blink: true }] :
-            [{ text: 'CALCULATING', mult: 1.0, blink: true }, { text: 'FLUENCY', mult: 1.0, blink: true }];
+        const data = tailing
+            ? [
+                { text: 'FLUENCY SCORE', mult: 1.35, blink: false },
+                { text: `${fluencyData.total || 'NA'}%`, mult: 1.8, blink: true },
+              ]
+            : [
+                { text: 'CALCULATING', mult: 1.0, blink: true },
+                { text: 'FLUENCY', mult: 1.0, blink: true },
+              ];
 
         const baseSize = 30;
         context.font = `700 ${baseSize}px "Orbitron", sans-serif`;
@@ -324,7 +364,7 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
         const scale = desiredWidth / (longestWidth || 1);
         const baseFontSize = Math.max(18, Math.floor(baseSize * scale));
 
-        const heights = data.map((d, i) => {
+        const heights = data.map(d => {
             const size = Math.floor(baseFontSize * d.mult);
             context.font = `700 ${size}px "Orbitron", sans-serif`;
             const m = context.measureText(d.text);
@@ -351,7 +391,7 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
         });
     }
 
-    if (typeof subtitleText === 'string' && subtitleText.trim() !== "") {
+    if (typeof subtitleText === 'string' && subtitleText.trim() !== '') {
         context.textAlign = 'center';
         context.textBaseline = 'bottom';
         const centerX = Math.floor(canvasWidth / 2);
@@ -381,50 +421,57 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
         const boxPadding = 10;
         let longestLineWidth = 0;
 
-        lines.forEach(l => longestLineWidth = Math.max(longestLineWidth, context.measureText(l).width));
+        lines.forEach(l => {
+            longestLineWidth = Math.max(longestLineWidth, context.measureText(l).width);
+        });
 
         context.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        context.fillRect(centerX - (longestLineWidth / 2) - boxPadding, subtitleStartY - lineHeight - boxPadding, longestLineWidth + (boxPadding * 2), (lines.length * lineHeight) + (boxPadding * 2));
+        context.fillRect(
+            centerX - longestLineWidth / 2 - boxPadding,
+            subtitleStartY - lineHeight - boxPadding,
+            longestLineWidth + boxPadding * 2,
+            lines.length * lineHeight + boxPadding * 2
+        );
 
         context.fillStyle = 'white';
         context.shadowColor = 'black';
         context.shadowBlur = 4;
 
-        lines.forEach((l, i) => context.fillText(l, centerX, subtitleStartY + (i * lineHeight)));
+        lines.forEach((l, i) => {
+            context.fillText(l, centerX, subtitleStartY + i * lineHeight);
+        });
     }
 
     context.restore();
 }
 
+// ---------------------------------------------------------------------------
+// Utilities
+// ---------------------------------------------------------------------------
 async function resolveRemoteUrl(vUrl) {
     if (window.preloadedMedia && window.preloadedMedia[vUrl]) return window.preloadedMedia[vUrl];
     return `https://r2.ultrafastfluency.com/assets/videos/${vUrl}.mp4`;
 }
 
 function getSupportedMimeType() {
-    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    const types = isIOSDevice ? [
-        'video/mp4;codecs="avc1.42E01E,mp4a.40.2"',
-        'video/mp4;codecs=avc1.42E01E',
-        'video/mp4',
-        'video/webm;codecs=vp8,opus'
-    ] : [
-        'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
-        'video/mp4',
-        'video/webm;codecs=vp9,opus',
-        'video/webm;codecs=vp8,opus',
-        'video/webm'
-    ];
-    return types.find(t => MediaRecorder.isTypeSupported(t)) || '';
-}
+    const isIOSDevice =
+        /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-async function ensureFontsReady() {
-    if (fontReady || !document.fonts) return;
-    try {
-        await Promise.all([
-            document.fonts.load('700 24px "Orbitron"'),
-            document.fonts.load('bold 24px "Plus Jakarta Sans"')
-        ]);
-        fontReady = true;
-    } catch (e) { console.warn("Font load failed", e); }
+    const types = isIOSDevice
+        ? [
+            'video/mp4;codecs="avc1.42E01E,mp4a.40.2"',
+            'video/mp4;codecs=avc1.42E01E',
+            'video/mp4',
+            'video/webm;codecs=vp8,opus',
+          ]
+        : [
+            'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+            'video/mp4',
+            'video/webm;codecs=vp9,opus',
+            'video/webm;codecs=vp8,opus',
+            'video/webm',
+          ];
+
+    return types.find(t => MediaRecorder.isTypeSupported(t)) || '';
 }
