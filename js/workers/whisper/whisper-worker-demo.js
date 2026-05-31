@@ -9,6 +9,36 @@ if (SILENT_LOGS) {
 
 env.allowLocalModels = false;
 env.useBrowserCache = true;
+env.remoteHost = 'https://r2.ultrafastfluency.com';
+env.remotePathTemplate = 'whisper/{model}/';
+
+const DEMO_CACHE_NAME = 'uff-whisper-demo-cache-v1';
+const DEMO_MODEL_FILES = [
+    'onnx/encoder_model_quantized.onnx',
+    'onnx/decoder_model_merged_quantized.onnx',
+];
+
+async function loadAndCacheFile(filePath) {
+    const url = `https://r2.ultrafastfluency.com/whisper/onnx-community/whisper-tiny.en/${filePath}`;
+    const cache = await caches.open(DEMO_CACHE_NAME);
+    let response = await cache.match(url);
+
+    if (response) {
+        console.log(`[whisper-demo] CACHE HIT: ${filePath}`);
+    } else {
+        console.log(`[whisper-demo] CACHE MISS: Downloading ${filePath}...`);
+        response = await fetch(url, { mode: 'cors' });
+        if (!response.ok) throw new Error(`HTTP Error ${response.status} for ${filePath}`);
+        const buffer = await response.arrayBuffer();
+        try {
+            await cache.put(url, new Response(buffer.slice(0), { headers: response.headers }));
+        } catch (cacheError) {
+            console.warn(`[whisper-demo] Cache.put failed for ${filePath}:`, cacheError);
+        }
+        response = new Response(buffer, { headers: response.headers });
+    }
+    return response;
+}
 
 // 1. Calculate safe thread count (same logic you had before)
 const deviceMemory = navigator.deviceMemory || 4;
@@ -26,6 +56,11 @@ let transcriber = null;
 
 async function bootWhisperEngine() {
     try {
+        // Pre-cache ONNX model files for faster pipeline loading
+        console.log(`[whisper-demo] Pre-caching ${DEMO_MODEL_FILES.length} ONNX files...`);
+        await Promise.all(DEMO_MODEL_FILES.map(loadAndCacheFile));
+        console.log('[whisper-demo] ONNX files cached, booting pipeline...');
+
         transcriber = await pipeline(
             'automatic-speech-recognition',
             'onnx-community/whisper-tiny.en',
