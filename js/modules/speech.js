@@ -3,9 +3,9 @@ import * as mediaAdapter from './speech.web.js';
 import { createWhisperAdapter } from '../workers/whisper/app-vad-asr-web.js';
 import { updateSpeechRecording } from './storage.js';
 import { createSpeechOrchestrator } from './speech-orchestrator.js';
+import { getIsDemoMode } from './demo-mode.js';
 
-const isDemoMode = window.location.search.includes('demo')
-    || window.localStorage.getItem('whisperMode') === 'demo';
+const isDemoMode = getIsDemoMode();
 
 const whisperAdapter = createWhisperAdapter({
     workerUrl: isDemoMode
