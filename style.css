@@ -64,15 +64,6 @@
             background: linear-gradient(to bottom, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 100%);
         }
 
-        .header-avatar {
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            object-fit: cover;
-            margin-right: 2px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
         .bot-score {
             font-size: 0.8rem;
             font-weight: 600;
@@ -81,21 +72,6 @@
         .bottom-overlay {
             pointer-events: none;
             z-index: 1050;
-        }
-
-        .reflecting-pool-bg {
-            position: absolute;
-            inset: 0;
-            z-index: 0;
-            backdrop-filter: blur(15px) grayscale(100%) saturate(0);
-            -webkit-backdrop-filter: blur(15px) grayscale(100%) saturate(0);
-            background: linear-gradient(180deg,
-                    rgba(0, 242, 254, 0.5) 0%,
-                    rgba(0, 242, 254, 0.6) 30%,
-                    rgba(79, 172, 254, 0.9) 100%);
-            -webkit-mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.3) 0%, black 120px);
-            mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.3) 0%, black 120px);
-            pointer-events: none;
         }
 
         .bottom-overlay-content {
@@ -297,12 +273,6 @@
         }
 
         /* Friend Button Image Styling */
-        .friend-img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 50%;
-        }
 
         /* --- TOP OVERLAY STYLES --- */
         #closePage {
@@ -335,11 +305,6 @@
             color: #ffffff;
             margin-right: 4px;
             font-size: 1.1rem;
-        }
-
-        #closeAndProgress {
-            container-type: inline-size;
-            width: 100%;
         }
 
         .stats-header-label {
@@ -562,13 +527,6 @@
             letter-spacing: 0.02em;
         }
 
-        #react-root-chat {
-            flex: 1;
-            min-height: 0;
-            display: flex;
-            flex-direction: column;
-        }
-
         .chat-window-header {
             min-height: 60px;
             display: flex;
@@ -580,33 +538,6 @@
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        #chat-send-button {
-            background-color: #ffffff !important;
-            border: none !important;
-            border-radius: 50% !important;
-            width: 64px;
-            height: 64px;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #1a1a1a !important;
-            box-shadow: 0 44px 42px rgba(0, 0, 0, 0.15) !important;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            margin-left: 10px;
-            margin-right: 10px;
-            margin-top: 10px;
-        }
-
-        #chat-send-button:hover {
-            transform: scale(1.05);
-            box-shadow: 0 6px 16px rgba(58, 143, 213, 0.4) !important;
-        }
-
-        #chat-send-button:active {
-            transform: scale(0.95);
         }
 
         #answer-submit-button {
@@ -632,40 +563,6 @@
 
         #answer-submit-button:active {
             transform: scale(0.95);
-        }
-
-        #chat-input-field {
-            border-radius: 24px !important;
-            padding: 10px 16px !important;
-            border: none !important;
-            resize: none;
-            background: #ffffff !important;
-            font-size: 0.95rem;
-            transition: all 0.2s ease;
-            margin: 4px 0;
-        }
-
-        #chat-input-field:focus {
-            box-shadow: none !important;
-            background: #ffffff !important;
-        }
-
-        #chat-input-area {
-            display: none;
-            width: 100%;
-            overflow: visible !important;
-            background: linear-gradient(135deg, #3a8fd5 0%, #00c0d8 100%) !important;
-            border: none !important;
-            padding: 12px 16px 24px !important;
-            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1) !important;
-        }
-
-        #chat-input-area .input-group {
-            background: transparent !important;
-            padding: 0;
-            border-radius: 0;
-            box-shadow: none;
-            align-items: center;
         }
 
         /*Extracted from lesson.html*/
@@ -725,22 +622,6 @@
 
            DO NOT ALTER!! THESE HAVE BEEN HEAVILY TESTED AND WORK PERFECTLY. ANY CHANGE IS HIGHLY LIKELY TO BREAK FUNCTIONALITY ON SOME DEVICE.
            ========================================= */
-        #ivp-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            /* FIX: Force full height to fill the screen */
-            max-width: 100%;
-            /* FIX: Remove 600px mobile cap */
-            margin: 0 auto;
-            overflow: hidden;
-        }
-
-        #ivp-container:empty,
-        #simple-video-container:empty {
-            min-height: 0 !important;
-            display: none;
-        }
 
         .ivp-main-wrapper {
             opacity: 1;
@@ -1329,21 +1210,6 @@
             line-height: 1.6;
         }
 
-        .pulse-dot {
-            animation: pulse-dot-anim 1s infinite;
-            color: #ff0000;
-            font-size: 1.8rem;
-            display: inline-block;
-            margin: 0 0.5em 0.3em 0.5em;
-            padding: 0.4em;
-            cursor: pointer;
-            transition: transform 0.2s ease;
-        }
-
-        .pulse-dot:hover {
-            transform: scale(1.1);
-        }
-
         @keyframes pulse-dot-anim {
             0% {
                 transform: scale(1);
@@ -1421,29 +1287,6 @@
             width: 100%;
         }
 
-        .playback-mute-toggle {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.6);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            z-index: 1000;
-            transition: background 0.3s ease, transform 0.2s ease;
-        }
-
-        .playback-mute-toggle:hover {
-            background: rgba(0, 0, 0, 0.8);
-            transform: scale(1.1);
-        }
-
         #playback-video {
             border-radius: 8px;
             width: auto !important;
@@ -1475,14 +1318,6 @@
         /* =========================================
            RESPONSIVE CHAT WIDTH (DESKTOP)
            ========================================= */
-        @media (min-width: 768px) {
-            body[data-chat-mode="true"] .video-frame {
-                aspect-ratio: auto !important;
-                width: 66.6vw !important;
-                max-width: 900px !important;
-                transition: width 0.3s ease, aspect-ratio 0.3s ease;
-            }
-        }
 
         /* Bounce animation for continue button when video is clicked */
         @keyframes button-bounce {
@@ -1508,12 +1343,6 @@
             animation: button-bounce 1s;
         }
 
-        #ivp-container,
-        #simple-video-container {
-            width: 100%;
-            height: 100%;
-        }
-
         #guestLoginModal::backdrop {
             background: rgba(0, 0, 0, 0.65);
             backdrop-filter: blur(4px);
@@ -1529,45 +1358,14 @@
             font-style: italic;
         }
 
-        #whisperReviewContainer {
-            background: rgba(0, 0, 0, 0.85);
-            z-index: 11;
-        }
-
         .whisper-review-box {
             max-width: 90%;
             width: 500px;
         }
 
-        #whisperTranscript {
-            font-size: 1.25rem;
-            font-weight: 500;
-            color: #fff;
-        }
-
         .whisper-progress {
             height: 6px;
             background: rgba(255, 255, 255, 0.1) !important;
-        }
-
-        #reviewProgressBar {
-            width: 100%;
-            transition: width 7s linear;
-        }
-
-        #playback-video-wrapper .playback-mute-toggle {
-            z-index: 10;
-            width: 30px;
-            height: 30px;
-        }
-
-        #playback-video-wrapper .playback-mute-toggle i {
-            font-size: 16px !important;
-        }
-
-        #answer-input-area {
-            top: 220px;
-            z-index: 20 !important;
         }
 
         #answer-error-message {
@@ -1763,18 +1561,6 @@
             flex-shrink: 0 !important;
             object-fit: cover !important;
             border-radius: 50% !important;
-        }
-
-        .chat-msg {
-            padding: 4px 12px !important;
-            width: 100%;
-            max-width: 95%;
-        }
-
-        @media (min-width: 768px) {
-            .chat-msg {
-                max-width: 80%;
-            }
         }
 
         /* Overrides existing .chat-bubble-header */
