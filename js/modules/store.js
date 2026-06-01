@@ -89,6 +89,7 @@ export const appStore = createStore(
             successScreenVisible: false,
             successLessonId: null,
             successFluencyData: null,
+            lastSuccessFluencyData: null,
             successContinueButton: { visible: false, loading: false },
             successVideoButton: { visible: false, loading: false, state: 'idle' },
             successRepeatButton: { visible: false },
