@@ -1,5 +1,5 @@
 import './modules/log-control-webonly.js';
-import '../assets/css/utils.css';
+import '../assets/css/app.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
