@@ -16,6 +16,7 @@ export async function loadLessonContent(lesson, options = {}) {
     appStore.getState().resetForNewLesson();
     appStore.getState().resetLessonHistory();
     appStore.getState().resetLessonState();
+    appStore.getState().setProgressPercent('0%');
     appStore.getState().setLessonStartTime(new Date().toISOString());
     appStore.getState().setRoleOther(lesson.roleOther || "");
     appStore.getState().setRoleUser(lesson.roleUser || "");
