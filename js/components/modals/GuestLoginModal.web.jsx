@@ -4,7 +4,7 @@
  */
 
 import React, { useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import Strings from '../../data/strings.js';
@@ -62,8 +62,8 @@ export default function GuestLoginModal() {
                             {Strings.get('guest_modal_body', lang) || "You are currently not logged in. Log in or sign up to save your progress and access all features. Or, continue as a guest to try out the app."}
                         </p>
                         <div className="d-grid gap-2 mt-4">
-                            <a
-                                href={`login.html?redirect=${encodeURIComponent(currentUrl)}`}
+                            <Link
+                                to={`/login?redirect=${encodeURIComponent(currentUrl)}`}
                                 id="guestLoginBtn"
                                 className="btn btn-primary"
                             >
@@ -71,9 +71,9 @@ export default function GuestLoginModal() {
                                 <span id="guestLoginBtnText">
                                     {Strings.get('guest_modal_login', lang) || "Log In"}
                                 </span>
-                            </a>
-                            <a
-                                href={`signup.html?redirect=${encodeURIComponent(currentUrl)}`}
+                            </Link>
+                            <Link
+                                to={`/signup?redirect=${encodeURIComponent(currentUrl)}`}
                                 id="guestSignupBtn"
                                 className="btn btn-secondary"
                             >
@@ -81,7 +81,7 @@ export default function GuestLoginModal() {
                                 <span id="guestSignupBtnText">
                                     {Strings.get('guest_modal_signup', lang) || "Sign Up"}
                                 </span>
-                            </a>
+                            </Link>
                             <button
                                 type="button"
                                 className="btn btn-outline-light mt-2"

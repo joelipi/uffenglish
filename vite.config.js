@@ -22,9 +22,6 @@ export default defineConfig({
             input: {
                 main: resolve(__dirname, 'index.html'),
                 homescreen: resolve(__dirname, 'homescreen.html'),
-                login: resolve(__dirname, 'login.html'),
-                signup: resolve(__dirname, 'signup.html'),
-                userprofile: resolve(__dirname, 'userprofile.html'),
             },
         },
     },

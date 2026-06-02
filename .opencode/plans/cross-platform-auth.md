@@ -1,17 +1,18 @@
 # Plan: Cross-Platform Auth (Login, Signup, Password Reset)
 
 ## Goal
-Convert the standalone HTML auth pages into React components that work on both web (Vite + React Router) and React Native (Expo + Expo Router). The core Appwrite SDK logic is already cross-platform — this plan creates the UI layer.
+Convert the standalone HTML auth pages into React components for the **web app** (Vite + React Router). Create correct cross-platform file structure with native stubs so the Expo app inherits a clear contract without speculative UI code.
 
 ---
 
 ## Decisions
 
-- **Web navigation:** React Router (not `window.location.href`)
-- **Native navigation:** Expo Router
+- **Web navigation:** React Router with `useNavigate()` (no `window.location.href` — preserves SPA state)
 - **Auth pages get their own layout** (centered card, no sidebar) — separate from `AppLayout`
 - **HTML pages get deleted** after React forms are verified working
-- **Form components are navigation-agnostic** — callbacks only, platform wrappers connect to their router
+- **Native: stubs only** — `.native.jsx` files get the correct export signature and a `// TODO` body. No StyleSheet implementations, no React Native primitives. Real native work moves to a separate plan when Expo development begins.
+- **Phase 4 (native bootstrap hooks) deferred** — pure native concern, no web work unblocked by writing them now
+- **Appwrite redirect URL:** Must whitelist custom scheme (e.g., `uffenglish://`) in Appwrite Console for native password reset deep linking (future concern)
 
 ---
 
@@ -26,126 +27,155 @@ Convert the standalone HTML auth pages into React components that work on both w
 - `js/modules/store/store.js` — Zustand store (`isLoggedIn`, `setIsLoggedIn()`)
 
 **Web-only (must be replaced or deleted):**
-- `login.html` — standalone HTML page with inline JS → replaced by `LoginForm.jsx`
-- `signup.html` — standalone HTML page with inline JS → replaced by `SignupForm.jsx`
-- `recover-password.html` — standalone HTML page → replaced by `RecoverPasswordForm.jsx`
-- `reset-password.html` — standalone HTML page → replaced by `ResetPasswordForm.jsx`
-- `js/components/modals/GuestLoginModal.jsx` — uses `<dialog>` element → split into `.web.jsx` + `.native.jsx`
-- `js/hooks/use-app-bootstrap-webonly.js` — web bootstrap hook → needs native counterpart
-- `js/hooks/app-infra-webonly.js` — web infrastructure → needs native counterpart
+- `login.html` — standalone HTML page with inline JS → replaced by `LoginForm.web.jsx`
+- `signup.html` — standalone HTML page with inline JS → replaced by `SignupForm.web.jsx`
+- `recover-password.html` — standalone HTML page → replaced by `RecoverPasswordForm.web.jsx`
+- `reset-password.html` — standalone HTML page → replaced by `ResetPasswordForm.web.jsx`
+- `js/components/modals/GuestLoginModal.jsx` — uses `<dialog>` element → rename to `.web.jsx`
 
 ---
 
 ## Phase 1: Create React Auth Form Components
 
-Create shared React components in `js/components/auth/`. These import directly from the existing cross-platform `modules/api/` code.
+Create form components in `js/components/auth/` with `.web.jsx` / `.native.jsx` split. The logic (Appwrite SDK calls, state management, error handling) is shared. The UI primitives differ per platform.
 
-### 1.1 `js/components/auth/LoginForm.jsx`
+### Shared Logic Pattern
 
-React form component. Replaces `login.html`.
+Each form has a shared logic file and two platform renderers:
 
 ```
-Exports: LoginForm (default)
-Props: onLoginSuccess?, onSignupLink?, onForgotPassword?
+LoginForm.jsx          → shared logic (Appwrite calls, state, handlers) — built now
+LoginForm.web.jsx      → web UI (<form>, <input>, <button>) — built now
+LoginForm.native.jsx   → stub with correct export signature — future
 ```
 
-**Behavior:**
-- Email + password inputs
+The shared `.jsx` file exports a `useLoginForm()` hook containing all Appwrite SDK logic. The `.web.jsx` file imports this hook and renders HTML primitives. The `.native.jsx` file is a stub.
+
+### 1.1 `js/components/auth/LoginForm.jsx` + `LoginForm.web.jsx` + `LoginForm.native.jsx`
+
+**`LoginForm.jsx` (shared logic) — build now:**
+- Email + password state
 - On submit: `account.createEmailPasswordSession(email, password)` (from `appwrite.js`)
 - Calls `invalidateUserAndAuthCache()` (from `api.js`)
 - On success: calls `onLoginSuccess()` callback
-- "Forgot password?" link → calls `onForgotPassword()` callback
-- "Sign up" link → calls `onSignupLink()` callback
-- Error handling: shows inline error message
-- No web-only APIs used — pure React state + Appwrite SDK
+- Error handling: stores error message in state
+- No web-only APIs — pure React state + Appwrite SDK
 
-### 1.2 `js/components/auth/SignupForm.jsx`
+**`LoginForm.web.jsx` — build now:**
+- Imports `useLoginForm` from `./LoginForm.jsx`
+- Renders `<form>`, `<input type="email">`, `<input type="password">`, `<button type="submit">`
+- Bootstrap classes for styling
 
-React form component. Replaces `signup.html`.
-
+**`LoginForm.native.jsx` — stub:**
+```jsx
+// TODO: Implement with React Native primitives (<View>, <TextInput>, <TouchableOpacity>)
+// Contract: default export LoginForm component with props { onLoginSuccess?, onSignupLink?, onForgotPassword? }
+// Shared logic lives in ./LoginForm.jsx — import useLoginForm() from there.
+export default function LoginForm({ onLoginSuccess, onSignupLink, onForgotPassword }) {
+    return null; // placeholder
+}
 ```
-Exports: SignupForm (default)
-Props: onSignupSuccess?, onLoginLink?
-```
 
-**Behavior:**
-- First name, last name, email, password, native language, English level inputs
+### 1.2 `js/components/auth/SignupForm.jsx` + `SignupForm.web.jsx` + `SignupForm.native.jsx`
+
+**`SignupForm.jsx` (shared logic) — build now:**
+- First name, last name, email, password, native language, English level state
 - On submit:
   1. `account.create(ID.unique(), email, password, fullName)` — create account
   2. `account.createEmailPasswordSession(email, password)` — create session
-  3. `tablesDB.createRow(...)` — create profile row
-  4. `collectSignupGeoAndReferrer()` — fire-and-forget (dynamic import)
-  5. `invalidateUserAndAuthCache()` — bust cache
-- On success: calls `onSignupSuccess()` callback
-- "Already have an account?" link → calls `onLoginLink()` callback
+  3. Wait briefly for session to propagate (avoid race condition with DB permissions)
+  4. `tablesDB.createRow(...)` — create profile row
+  5. `collectSignupGeoAndReferrer()` — fire-and-forget (dynamic import)
+  6. `invalidateUserAndAuthCache()` — bust cache
 - Error handling: inline validation + API error display
-- No web-only APIs — pure React + Appwrite SDK
 
-### 1.3 `js/components/auth/RecoverPasswordForm.jsx`
+**`SignupForm.web.jsx` — build now:**
+- Imports `useSignupForm` from `./SignupForm.jsx`
+- Renders all form fields with HTML primitives and Bootstrap classes
 
-React form component. Replaces `recover-password.html`.
-
+**`SignupForm.native.jsx` — stub:**
+```jsx
+// TODO: Implement with React Native primitives
+// Contract: default export SignupForm component with props { onSignupSuccess?, onLoginLink? }
+export default function SignupForm({ onSignupSuccess, onLoginLink }) {
+    return null;
+}
 ```
-Exports: RecoverPasswordForm (default)
-Props: onBackToLogin?
-```
 
-**Behavior:**
-- Email input
-- On submit: `account.createEmailPassword(email, redirectUrl)`
-  - `redirectUrl` is platform-specific, passed via `getAppOrigin()` from `url-params.js` + path
+### 1.3 `js/components/auth/RecoverPasswordForm.jsx` + `RecoverPasswordForm.web.jsx` + `RecoverPasswordForm.native.jsx`
+
+**`RecoverPasswordForm.jsx` (shared logic) — build now:**
+- Email input state
+- On submit: `account.createRecovery(email, resetUrl)` (Appwrite SDK v24 method)
+  - `resetUrl` = `getAppOrigin()` (from Phase 3) + `'/reset-password'`
   - Web: `window.location.origin + '/reset-password'`
-  - Native: deep link URL
+  - Native (future): `uffenglish://reset-password`
 - Show success message: "Check your email for reset link"
-- "Back to login" link → calls `onBackToLogin()` callback
 
-### 1.4 `js/components/auth/ResetPasswordForm.jsx`
+**`RecoverPasswordForm.web.jsx` — build now:**
+- Imports `useRecoverPasswordForm` from `./RecoverPasswordForm.jsx`
+- Renders email input + submit button
 
-React form component. Replaces `reset-password.html`.
-
+**`RecoverPasswordForm.native.jsx` — stub:**
+```jsx
+// TODO: Implement with React Native primitives
+// Contract: default export RecoverPasswordForm component with props { onBackToLogin? }
+export default function RecoverPasswordForm({ onBackToLogin }) {
+    return null;
+}
 ```
-Exports: ResetPasswordForm (default)
-Props: onResetSuccess?, onError?
-```
 
-**Behavior:**
+### 1.4 `js/components/auth/ResetPasswordForm.jsx` + `ResetPasswordForm.web.jsx` + `ResetPasswordForm.native.jsx`
+
+**`ResetPasswordForm.jsx` (shared logic) — build now:**
 - Reads `userId` and `secret` from URL params via `getUrlParam()` from `url-params.js`
-- New password + confirm password inputs
+- New password + confirm password state
 - On submit: `account.updateRecovery(userId, secret, password, passwordConfirm)`
 - On success: shows success message, calls `onResetSuccess()`
+
+**`ResetPasswordForm.web.jsx` — build now:**
+- Imports `useResetPasswordForm` from `./ResetPasswordForm.jsx`
+- Renders new password + confirm password inputs
+
+**`ResetPasswordForm.native.jsx` — stub:**
+```jsx
+// TODO: Implement with React Native primitives
+// Contract: default export ResetPasswordForm component with props { onResetSuccess?, onError? }
+export default function ResetPasswordForm({ onResetSuccess, onError }) {
+    return null;
+}
+```
 
 ### 1.5 `js/components/auth/index.js`
 
 Barrel export:
 ```js
-export { default as LoginForm } from './LoginForm.jsx';
-export { default as SignupForm } from './SignupForm.jsx';
-export { default as RecoverPasswordForm } from './RecoverPasswordForm.jsx';
-export { default as ResetPasswordForm } from './ResetPasswordForm.jsx';
+export { default as LoginForm } from './LoginForm.web.jsx';
+export { default as SignupForm } from './SignupForm.web.jsx';
+export { default as RecoverPasswordForm } from './RecoverPasswordForm.web.jsx';
+export { default as ResetPasswordForm } from './ResetPasswordForm.web.jsx';
 ```
+
+Note: The barrel exports the `.web.jsx` versions for Vite (which resolves `.web.jsx` first via `resolve.extensions`). The Expo app imports `.native.jsx` directly.
+
+**Metro bundler caveat (future):** React Native's Metro bundler can sometimes resolve barrel files differently than Vite regarding `.web` vs `.native` extensions. If you encounter "Module not found" errors in Expo, either configure Metro's `resolver.sourceExts` in `metro.config.js` to prioritize `.native.jsx`, or bypass the barrel file entirely in Expo screens and import `LoginForm.native.jsx` directly.
 
 ---
 
-## Phase 2: Fix GuestLoginModal for Cross-Platform
+## Phase 2: Rename GuestLoginModal for Web
 
-### 2.1 Split `js/components/modals/GuestLoginModal.jsx`
+### 2.1 Rename `js/components/modals/GuestLoginModal.jsx` → `GuestLoginModal.web.jsx`
 
-The current implementation uses the HTML `<dialog>` element with `.showModal()` / `.close()` — web-only.
+The current implementation uses the HTML `<dialog>` element with `.showModal()` / `.close()` — web-only. Rename to `.web.jsx` to follow the platform split convention.
 
-**Approach:** Create a platform-split pair:
-- `GuestLoginModal.web.jsx` — keeps current `<dialog>` implementation
-- `GuestLoginModal.native.jsx` — uses React Native `<Modal>` from `react-native`
-
-**Shared logic:** The modal content (title, buttons, link handlers) is identical. Both variants:
-- Read `guestModalOpen` from Zustand store
-- Show three options: Log In, Sign Up, Continue as Guest
-- "Log In" → calls `onLogin()` callback
-- "Sign Up" → calls `onSignup()` callback
-- "Continue as Guest" → `appStore.getState().setGuestModalOpen(false)`
-
-**Web variant (`GuestLoginModal.web.jsx`):** Keep `<dialog>` with `.showModal()` / `.close()`. Use `useNavigate()` from React Router for navigation callbacks.
-
-**Native variant (`GuestLoginModal.native.jsx`):** Use `react-native`'s `<Modal>` with `<View>` for overlay, `<TouchableOpacity>` for buttons. Use `useRouter()` from Expo Router for navigation callbacks.
+Create `GuestLoginModal.native.jsx` as a stub:
+```jsx
+// TODO: Implement with React Native <Modal> from react-native
+// Contract: default export GuestLoginModal component (reads guestModalOpen from Zustand store)
+export default function GuestLoginModal() {
+    return null;
+}
+```
 
 ---
 
@@ -155,7 +185,7 @@ The current implementation uses the HTML `<dialog>` element with `.showModal()` 
 
 A small platform-split utility for reading URL parameters and getting the app origin.
 
-**`url-params.web.js`:**
+**`url-params.web.js` — build now:**
 ```js
 export function getUrlParam(name) {
     return new URLSearchParams(window.location.search).get(name);
@@ -165,20 +195,25 @@ export function getAppOrigin() {
 }
 ```
 
-**`url-params.native.js`:**
+**`url-params.native.js` — stub:**
 ```js
-import * as Linking from 'expo-linking';
-
-export function getUrlParam(name) {
-    const url = Linking.useURL?.() ?? null;
-    if (!url) return null;
-    const params = new URL(url).searchParams;
-    return params.get(name);
+// TODO: Implement with expo-linking
+// Contract: useUrlParam(name) hook, getAppOrigin() function
+//
+// ⚠️ DO NOT import from url-params.js (the router) in native code.
+// The router hardcodes web exports. Import from this file directly:
+//   import { useUrlParam, getAppOrigin } from './url-params.native.js';
+export function useUrlParam(name) {
+    // TODO: use useURL() from expo-linking to read deep link params
+    return null;
 }
 export function getAppOrigin() {
-    return Linking.createURL('/');
+    // TODO: use Linking.createURL('/') from expo-linking
+    return '';
 }
 ```
+
+Note: Native uses `useUrlParam()` (React hook) instead of `getUrlParam()` (plain function) because `useURL()` is a hook. The web version uses a plain function. The shared logic files should use the hook interface (web version wraps `getUrlParam` in a hook for consistency).
 
 **`url-params.js` (router):**
 ```js
@@ -189,37 +224,17 @@ export { getUrlParam, getAppOrigin } from './url-params.web.js';
 
 ---
 
-## Phase 4: Native Bootstrap Hooks
+## Phase 4: Route Integration (Web)
 
-### 4.1 `js/hooks/app-infra-native.js`
+### 4.1 Web Routes (React Router)
 
-React Native equivalent of `app-infra-webonly.js`. Responsibilities:
-- Initialize Appwrite client (already cross-platform)
-- Set up TanStack Query client (already cross-platform)
-- Wire Zustand store subscriptions
-- Detect guest mode and trigger login/signup navigation
-- No web-only APIs
+**Problem:** Route definitions in `routes.jsx` are static objects — can't use React hooks (`useNavigate()`) there. But `window.location.href` destroys SPA state.
 
-**Key difference from web:** Instead of attaching to `window.appStore`, just export the store. Instead of `window.enabledLogs`, use a module-level flag.
-
-### 4.2 `js/hooks/use-app-bootstrap-native.js`
-
-React Native equivalent of `use-app-bootstrap-webonly.js`. Responsibilities:
-- Run `useAuthStatus()` to check session
-- Run `useUserProfile()` to load profile
-- Set `isLoggedIn` in Zustand store
-- Handle guest mode detection
-- No `document.getElementById`, no `window.appStore`
-
----
-
-## Phase 5: Route Integration
-
-### 5.1 Web Routes (React Router)
+**Solution:** Use small wrapper components that have access to `useNavigate()`.
 
 **New file: `app/AuthLayout.jsx`**
 
-A centered card layout for auth pages — no sidebar, no lesson loading. Renders children (the form component) in a centered container with the app logo/branding.
+A centered card layout for auth pages — no sidebar, no lesson loading.
 
 ```jsx
 import { Outlet } from 'react-router-dom';
@@ -237,17 +252,39 @@ export default function AuthLayout() {
 }
 ```
 
+**New file: `app/LoginRoute.jsx`** (and similar for each auth route)
+
+A thin wrapper that renders the form and connects callbacks to `useNavigate()`:
+
+```jsx
+import { useNavigate } from 'react-router-dom';
+import LoginForm from '../js/components/auth/LoginForm.web.jsx';
+
+export default function LoginRoute() {
+    const navigate = useNavigate();
+    return (
+        <LoginForm
+            onLoginSuccess={() => navigate('/')}
+            onSignupLink={() => navigate('/signup')}
+            onForgotPassword={() => navigate('/recover-password')}
+        />
+    );
+}
+```
+
+Same pattern for `SignupRoute.jsx`, `RecoverPasswordRoute.jsx`, `ResetPasswordRoute.jsx`.
+
 **Updated `app/routes.jsx`:**
 
 ```jsx
 import { Navigate, Link } from 'react-router-dom';
 import AppLayout from './AppLayout.jsx';
 import AuthLayout from './AuthLayout.jsx';
+import LoginRoute from './LoginRoute.jsx';
+import SignupRoute from './SignupRoute.jsx';
+import RecoverPasswordRoute from './RecoverPasswordRoute.jsx';
+import ResetPasswordRoute from './ResetPasswordRoute.jsx';
 import LessonContainer from '../js/components/LessonContainer.jsx';
-import LoginForm from '../js/components/auth/LoginForm.jsx';
-import SignupForm from '../js/components/auth/SignupForm.jsx';
-import RecoverPasswordForm from '../js/components/auth/RecoverPasswordForm.jsx';
-import ResetPasswordForm from '../js/components/auth/ResetPasswordForm.jsx';
 
 function LessonError() {
     return (
@@ -263,46 +300,31 @@ export const routes = [
     // Auth routes (own layout, no sidebar)
     {
         path: '/login',
-        element: (
-            <AuthLayout>
-                <LoginForm
-                    onLoginSuccess={() => window.location.href = '/'}
-                    onSignupLink={() => window.location.href = '/signup'}
-                    onForgotPassword={() => window.location.href = '/recover-password'}
-                />
-            </AuthLayout>
-        )
+        element: <AuthLayout />,
+        children: [
+            { index: true, element: <LoginRoute /> }
+        ]
     },
     {
         path: '/signup',
-        element: (
-            <AuthLayout>
-                <SignupForm
-                    onSignupSuccess={() => window.location.href = '/'}
-                    onLoginLink={() => window.location.href = '/login'}
-                />
-            </AuthLayout>
-        )
+        element: <AuthLayout />,
+        children: [
+            { index: true, element: <SignupRoute /> }
+        ]
     },
     {
         path: '/recover-password',
-        element: (
-            <AuthLayout>
-                <RecoverPasswordForm
-                    onBackToLogin={() => window.location.href = '/login'}
-                />
-            </AuthLayout>
-        )
+        element: <AuthLayout />,
+        children: [
+            { index: true, element: <RecoverPasswordRoute /> }
+        ]
     },
     {
         path: '/reset-password',
-        element: (
-            <AuthLayout>
-                <ResetPasswordForm
-                    onResetSuccess={() => window.location.href = '/login'}
-                />
-            </AuthLayout>
-        )
+        element: <AuthLayout />,
+        children: [
+            { index: true, element: <ResetPasswordRoute /> }
+        ]
     },
 
     // Lesson routes (with AppLayout)
@@ -327,54 +349,24 @@ export const routes = [
 ];
 ```
 
-**Note:** Auth route callbacks use `window.location.href` (not `useNavigate()`) because the auth components receive callbacks as props — the route definitions are outside any React component, so hooks can't be used there. The callbacks are simple redirects that work fine with `window.location.href`. If we want full SPA navigation, we'd wrap each route in a small component that uses `useNavigate()`, but for auth pages a full page reload is acceptable and simpler.
-
 **Delete after verification:**
 - `login.html`
 - `signup.html`
 - `recover-password.html`
 - `reset-password.html`
 
-### 5.2 Native Routes (Expo Router)
-
-In the Expo app, auth screens would be:
-```
-app/
-├── (auth)/
-│   ├── login.jsx          → renders LoginForm
-│   ├── signup.jsx         → renders SignupForm
-│   ├── recover.jsx        → renders RecoverPasswordForm
-│   └── reset.jsx          → renders ResetPasswordForm
-```
-
-Each screen is a thin wrapper:
-```jsx
-import { LoginForm } from '../../components/auth';
-import { useRouter } from 'expo-router';
-
-export default function LoginScreen() {
-    const router = useRouter();
-    return (
-        <LoginForm
-            onLoginSuccess={() => router.replace('/(main)')}
-            onSignupLink={() => router.push('/(auth)/signup')}
-            onForgotPassword={() => router.push('/(auth)/recover')}
-        />
-    );
-}
-```
-
 ---
 
 ## Execution Order
 
-| Phase | What | Verify |
-|-------|------|--------|
-| 1 | Create 4 auth form components + barrel export | `npm run build` |
-| 2 | Split GuestLoginModal into `.web.jsx` + `.native.jsx` | `npm run build` |
-| 3 | Create url-params utility with platform split | `npm run build` |
-| 4 | Create native bootstrap hooks | `npm run build` |
-| 5 | Route integration (web routes + delete HTML pages + native stubs) | `npm run build` + manual test |
+| Phase | What | Files Created | Verify |
+|-------|------|---------------|--------|
+| 1 | Auth form components | 13 (4 shared `.jsx` + 4 web `.web.jsx` + 4 native stubs + 1 barrel `index.js`) | `npm run build` |
+| 2 | GuestLoginModal rename + native stub | 1 rename + 1 new stub | `npm run build` |
+| 3 | url-params utility | 2 new (`url-params.web.js`, `url-params.js` router) + 1 stub (`url-params.native.js`) | `npm run build` |
+| 4 | Route integration (web wrappers + delete HTML pages) | 5 new (`AuthLayout.jsx` + 4 route wrappers) | `npm run build` + manual test |
+
+**Total:** 22 files created (4 shared logic + 4 web renderers + 5 native stubs + 1 barrel + 3 url-params + 5 route files). 4 HTML pages deleted. 1 file renamed.
 
 ---
 
@@ -384,25 +376,41 @@ export default function LoginScreen() {
 - `api.js` — no changes (already cross-platform)
 - `user-profile.js` — no changes (already cross-platform)
 - `collect-signup-data.js` — no changes (already cross-platform)
-- `store.js` — no changes (auth state already works)
 - No new npm dependencies (Appwrite SDK already supports RN, Expo Linking is built-in)
+
+---
+
+## Deferred to Native Plan
+
+The following are **not** part of this plan — they move to a separate native-phase plan when Expo development begins:
+
+- Full `.native.jsx` implementations (LoginForm, SignupForm, RecoverPasswordForm, ResetPasswordForm, GuestLoginModal)
+- `app-infra-native.js` and `use-app-bootstrap-native.js` (native bootstrap hooks)
+- Deep link handling for password reset (`uffenglish://reset-password`)
+- Expo Router screen files (`app/(auth)/login.jsx`, etc.)
+- Metro bundler configuration for `.web`/`.native` extension resolution
+- Zustand persistence cross-platform storage engine (`@react-native-async-storage/async-storage`)
+
+---
+
+## Zustand Persistence (Future Concern)
+
+`store.js` uses `persist` middleware with `partialize` to save lesson scores, fluency metrics, gamification data, and tutor engagement stats to `localStorage`. This works on web but **not on React Native** — `localStorage` doesn't exist there.
+
+**Not blocking for this plan** — no auth data is persisted (only `isLoggedIn` which is in-memory). Lesson progress and gamification state will be lost on mobile app restart until addressed in the native plan.
 
 ---
 
 ## Verification
 
 After Phase 1:
-- Web: Render `<LoginForm />` in a test route, verify login flow works
-- Web: Render `<SignupForm />` in a test route, verify signup flow works
+- Web: Render `LoginForm.web.jsx` in a test route, verify login flow works
+- Web: Render `SignupForm.web.jsx` in a test route, verify signup flow works
 
 After Phase 2:
 - Web: GuestLoginModal still works with `<dialog>`
-- Native: GuestLoginModal renders with React Native `<Modal>`
 
 After Phase 4:
-- Native: Bootstrap hook initializes without web-only API errors
-
-After Phase 5:
 - Web: `/login`, `/signup`, `/recover-password`, `/reset-password` routes work
-- Web: After login, redirects to lesson page
+- Web: After login, navigates to lesson page (no full reload, SPA state preserved)
 - HTML pages deleted, no broken links

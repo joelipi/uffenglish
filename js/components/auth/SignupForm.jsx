@@ -1,0 +1,78 @@
+import { useState } from 'react';
+import { account, tablesDB, ID, APPWRITE_CONFIG } from '../../modules/api/appwrite.js';
+import { invalidateUserAndAuthCache } from '../../modules/api/api.js';
+
+export function useSignupForm({ onSignupSuccess } = {}) {
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [nativeLanguage, setNativeLanguage] = useState('');
+    const [englishLevel, setEnglishLevel] = useState('');
+    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
+
+    async function handleSubmit(e) {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+
+        try {
+            const fullName = `${firstName.trim()} ${lastName.trim()}`;
+
+            const user = await account.create(ID.unique(), email, password, fullName);
+
+            await account.createEmailPasswordSession(email, password);
+
+            try {
+                const { collectSignupGeoAndReferrer } = await import('../../modules/user/collect-signup-data.js');
+                collectSignupGeoAndReferrer().then(() => {
+                    console.log('[Signup] Geo/referrer collection finished.');
+                });
+            } catch (importError) {
+                console.error('[Signup] Failed to import collection module:', importError);
+            }
+
+            await tablesDB.createRow({
+                databaseId: APPWRITE_CONFIG.DATABASE_ID,
+                tableId: APPWRITE_CONFIG.USER_PROFILES_TABLE_ID,
+                rowId: user.$id,
+                data: {
+                    email: email,
+                    firstName: firstName.trim(),
+                    lastName: lastName.trim(),
+                    joinDate: new Date().toISOString(),
+                    accountStatus: 'active',
+                    native_language: nativeLanguage,
+                    english_level: englishLevel,
+                    completed_dates: []
+                }
+            });
+
+            invalidateUserAndAuthCache();
+            onSignupSuccess?.();
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    return {
+        firstName,
+        setFirstName,
+        lastName,
+        setLastName,
+        email,
+        setEmail,
+        password,
+        setPassword,
+        nativeLanguage,
+        setNativeLanguage,
+        englishLevel,
+        setEnglishLevel,
+        error,
+        loading,
+        handleSubmit,
+    };
+}
