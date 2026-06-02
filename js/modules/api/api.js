@@ -366,9 +366,10 @@ export async function checkGrammarWithAI(selectedAnswer, stepData) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
   try {
+    const cueText = typeof stepData.cue === 'object' ? (stepData.cue?.en || '') : (stepData.cue || '');
     const requestBody = {
       messages: [
-  { role: "user", content: `${GRAMMAR_SYSTEM_PROMPT}\n\nA: ${stepData.cue.en} B: ${selectedAnswer}` }
+  { role: "user", content: `${GRAMMAR_SYSTEM_PROMPT}\n\nA: ${cueText} B: ${selectedAnswer}` }
 ],
       temperature: 0.1
     };
@@ -457,11 +458,12 @@ export async function evaluateIntentWithAI(answerForIntentPass, stepData, lesson
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
   try {
+    const cueText = typeof stepData.cue === 'object' ? (stepData.cue?.en || '') : (stepData.cue || '');
     const intentUserPrompt = `Setting: ${getEnglish(lessonData.setting) || ''}
 A: ${getEnglish(lessonData.roleOther) || ''}
 B: ${getEnglish(lessonData.roleUser) || ''}
 B's goal: ${getEnglish(lessonData.mission) || 'Respond appropriately'}
-A: ${stepData.cue.en}
+A: ${cueText}
 B: ${answerForIntentPass}`;
 
     const requestBody = {
@@ -470,7 +472,7 @@ B: ${answerForIntentPass}`;
 A: ${getEnglish(lessonData.roleOther) || ''}
 B: ${getEnglish(lessonData.roleUser) || ''}
 B's goal: ${getEnglish(lessonData.mission) || 'Respond appropriately'}
-A: ${stepData.cue.en}
+A: ${cueText}
 B: ${answerForIntentPass}` }
 ],
       temperature: 0.1,
