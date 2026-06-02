@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useStore } from 'zustand';
-import { appStore, getAnswerPipelineDeps } from '../modules/store.js';
+import { appStore, getAnswerPipelineDeps } from '../modules/store/store.js';
 import { useInitializeLesson } from '../hooks/use-initialize-lesson-webonly.js';
 
 import StepLoader from './StepLoader.jsx';
@@ -36,8 +36,8 @@ import SimpleVideoPlayer from './SimpleVideoPlayer';
 import IncomingVideoWidget from './IncomingVideoWidget.jsx';
 import PointLossOverlay from './PointLossOverlay.jsx';
 import PlaybackVideo from './PlaybackVideo.jsx';
-import { loadNextStep as loadNextStepImpl, handleTutorChatSubmit } from '../modules/lesson-progression.js';
-import { loadLessonContent } from '../modules/lesson-loader.js';
+import { loadNextStep as loadNextStepImpl, handleTutorChatSubmit } from '../modules/lesson/lesson-progression.js';
+import { loadLessonContent } from '../modules/lesson/lesson-loader.js';
 import { loadStep } from './step-loader.js';
 
 export default function LessonContainer() {

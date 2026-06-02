@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { appStore } from '../modules/store.js';
+import { appStore } from '../modules/store/store.js';
 import { usePlaybackVideo } from '../hooks/usePlaybackVideo.js';
 
 // Intentional navigator sniff — guarded with typeof checks. In React Native

@@ -3,7 +3,7 @@
 // React Native replaces this with SimpleVideoPlayer.native.jsx.
 import { useEffect, useRef, useState, useLayoutEffect, useCallback } from 'react';
 import { useStore } from 'zustand';
-import { appStore, setCurrentVideoPlayer } from '../modules/store.js';
+import { appStore, setCurrentVideoPlayer } from '../modules/store/store.js';
 import { useSimpleVideo } from '../hooks/useSimpleVideo.js';
 
 const hasNavigator = typeof navigator !== 'undefined';

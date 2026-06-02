@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useStore } from 'zustand';
-import { appStore } from '../../modules/store.js';
+import { appStore } from '../../modules/store/store.js';
 import UserBubble from './UserBubble.jsx';
 import SystemBubble from './SystemBubble.jsx';
 import GrammarDiffBubble from './GrammarDiffBubble.jsx';

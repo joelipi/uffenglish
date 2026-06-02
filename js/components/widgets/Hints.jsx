@@ -1,7 +1,7 @@
 import React from 'react';
 import { useStore } from 'zustand';
-import { appStore } from '../../modules/store.js';
-import { formatBilingualText } from '../../modules/bilingual-display.js';
+import { appStore } from '../../modules/store/store.js';
+import { formatBilingualText } from '../../modules/bilingual/bilingual-display.js';
 
 export default function Hints() {
     const hintsVisible = useStore(appStore, (state) => state.hintsVisible);

@@ -136,8 +136,8 @@
     </div>
 
     <script type="module">
-        import { account, tablesDB, ID, APPWRITE_CONFIG } from './js/modules/appwrite.js';
-        import { invalidateUserAndAuthCache } from './js/modules/api.js'; // 🚀 Added import
+        import { account, tablesDB, ID, APPWRITE_CONFIG } from './js/modules/api/appwrite.js';
+        import { invalidateUserAndAuthCache } from './js/modules/api/api.js'; // 🚀 Added import
 
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);
@@ -173,7 +173,7 @@
 
                     // --- Silent geo & referrer collection (non‑blocking) ---
                     try {
-                        const { collectSignupGeoAndReferrer } = await import('./js/modules/collect-signup-data.js');
+                        const { collectSignupGeoAndReferrer } = await import('./js/modules/user/collect-signup-data.js');
                         // Fire‑and‑forget; we catch errors inside the function
                         collectSignupGeoAndReferrer().then(() => {
                             console.log('[Signup] Geo/referrer collection finished.');

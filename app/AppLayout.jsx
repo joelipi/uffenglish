@@ -2,8 +2,8 @@ import React, { useEffect } from 'react';
 import { Outlet, useParams } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { useQuery } from '@tanstack/react-query';
-import { appStore } from '../js/modules/store.js';
-import { normalizeConfig } from '../js/modules/config-normalizer.js';
+import { appStore } from '../js/modules/store/store.js';
+import { normalizeConfig } from '../js/modules/bilingual/config-normalizer.js';
 import { useAppBootstrap } from '../js/hooks/use-app-bootstrap-webonly.js';
 import Preloader from '../js/components/Preloader.jsx';
 

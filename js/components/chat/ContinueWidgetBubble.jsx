@@ -1,7 +1,7 @@
 import React from 'react';
 import { useStore } from 'zustand';
-import { appStore } from '../../modules/store.js';
-import { DEFAULT_BOT_NAME, DEFAULT_AVATAR_URL } from '../../modules/tutor-config.js';
+import { appStore } from '../../modules/store/store.js';
+import { DEFAULT_BOT_NAME, DEFAULT_AVATAR_URL } from '../../modules/user/tutor-config.js';
 import { getBilingual } from '../../data/strings.js';
 
 function BilingualLabel({ textKey, lang, fallback }) {

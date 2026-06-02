@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import PointLossOverlay from './PointLossOverlay.jsx';
-import { appStore } from '../modules/store.js';
+import { appStore } from '../modules/store/store.js';
 
 describe('PointLossOverlay', () => {
     beforeEach(() => {

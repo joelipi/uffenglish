@@ -3,7 +3,7 @@
 // React Native replaces this with InteractiveVideoPlayer.native.jsx.
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useStore } from 'zustand';
-import { appStore, setCurrentVideoPlayer } from '../modules/store.js';
+import { appStore, setCurrentVideoPlayer } from '../modules/store/store.js';
 import { useInteractiveVideo } from '../hooks/useInteractiveVideo.js';
 
 const hasNavigator = typeof navigator !== 'undefined';

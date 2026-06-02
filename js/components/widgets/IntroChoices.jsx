@@ -1,7 +1,7 @@
 import React from 'react';
 import { useStore } from 'zustand';
-import { appStore } from '../../modules/store.js';
-import { getIntroContinueHandler } from '../../modules/answer-pipeline.js';
+import { appStore } from '../../modules/store/store.js';
+import { getIntroContinueHandler } from '../../modules/answer/answer-pipeline.js';
 
 export default function IntroChoices() {
     const bottomControlState = useStore(appStore, (state) => state.bottomControlState);

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useStore } from 'zustand';
-import { appStore } from '../../modules/store.js';
+import { appStore } from '../../modules/store/store.js';
 import { ContinueButton, VideoButton, RepeatButton } from './SuccessButtons.jsx';
 import SuccessEffects from './SuccessEffects.jsx';
 

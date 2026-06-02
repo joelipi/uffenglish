@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { Text } from 'react-native';
-import { formatBilingualText } from '../../modules/bilingual-display.js';
+import { formatBilingualText } from '../../modules/bilingual/bilingual-display.js';
 
 export const BilingualText = ({
     translationData,

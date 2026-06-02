@@ -1,6 +1,6 @@
 import React from 'react';
-import { computeGrammarDiff, isPunct } from '../../modules/diff-utils.js';
-import { getBotIdentity } from '../../modules/bot-identity.js';
+import { computeGrammarDiff, isPunct } from '../../modules/utils/diff-utils.js';
+import { getBotIdentity } from '../../modules/user/bot-identity.js';
 
 export default function GrammarDiffBubble({
     original,

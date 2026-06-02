@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import { useStore } from 'zustand';
-import { appStore } from '../modules/store.js';
-import { InteractiveVideoStateController } from '../modules/interactive-video-controller.js';
+import { appStore } from '../modules/store/store.js';
+import { InteractiveVideoStateController } from '../modules/video/interactive-video-controller.js';
 
 export function useInteractiveVideo() {
     const currentVideo = useStore(appStore, (s) => s.currentVideo);

@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { useStore } from 'zustand';
-import { appStore } from '../../modules/store.js';
+import { appStore } from '../../modules/store/store.js';
 
 export default function TutorChatInput({ onSubmit }) {
     const tutorChatVisible = useStore(appStore, (state) => state.tutorChatVisible);

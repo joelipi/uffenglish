@@ -1,6 +1,6 @@
 import React from 'react';
 import { useStore } from 'zustand';
-import { appStore } from '../../modules/store.js';
+import { appStore } from '../../modules/store/store.js';
 
 export default function MediaContent() {
     const praiseImageUrl = useStore(appStore, (s) => s.praiseImageUrl);

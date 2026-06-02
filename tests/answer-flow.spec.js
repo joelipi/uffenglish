@@ -35,7 +35,7 @@ test.describe('Answer Flow — mic bypass integration test', () => {
 
         // Import the wrappers and call submitAnswerPrecheck with a mock speech response
         const precheckResult = await page.evaluate(async () => {
-            const { createAnswerPipeline } = await import('/js/modules/answer-pipeline.js');
+            const { createAnswerPipeline } = await import('/js/modules/answer/answer-pipeline.js');
             const { showChat, addAIFeedbackMessages, clearChat } = await import('/js/components/chat/chat-interface.js');
             const pipeline = createAnswerPipeline({
                 showChat,
@@ -76,7 +76,7 @@ test.describe('Answer Flow — mic bypass integration test', () => {
 
         // Also test handleAnswer wrapper directly (simulates speech.js call)
         const answerResult = await page.evaluate(async () => {
-            const { createAnswerPipeline } = await import('/js/modules/answer-pipeline.js');
+            const { createAnswerPipeline } = await import('/js/modules/answer/answer-pipeline.js');
             const { showChat, addAIFeedbackMessages, clearChat } = await import('/js/components/chat/chat-interface.js');
             const pipeline = createAnswerPipeline({
                 showChat,

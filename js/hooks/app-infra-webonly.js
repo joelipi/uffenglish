@@ -4,22 +4,22 @@
 // into the platform-agnostic factories (progression, answer-pipeline, step-loader).
 // Called from the web-only useAppBootstrap hook after auth and config are loaded.
 
-import { appStore, setAnswerPipelineDeps } from '../modules/store.js';
+import { appStore, setAnswerPipelineDeps } from '../modules/store/store.js';
 
-import { syncOfflineScores } from '../modules/user-profile.js';
-import { calculateCurrentStreak } from '../modules/user-profile.js';
-import { saveLessonProgress } from '../modules/user-profile.js';
-import { calculateAverage } from '../modules/scoring.js';
-import { Media } from '../modules/media.js';
+import { syncOfflineScores } from '../modules/user/user-profile.js';
+import { calculateCurrentStreak } from '../modules/user/user-profile.js';
+import { saveLessonProgress } from '../modules/user/user-profile.js';
+import { calculateAverage } from '../modules/answer/scoring.js';
+import { Media } from '../modules/media/media.js';
 import Strings from '../data/strings.js';
-import { setProgressionDeps, updateProgressBar as updateProgressBarFn, loadNextStep as loadNextStepImpl, loadNextLesson as loadNextLessonFn, showCompletionMessage as showCompletionMessageFn } from '../modules/lesson-progression.js';
-import { loadLessonContent as loadLessonContentShared } from '../modules/lesson-loader.js';
+import { setProgressionDeps, updateProgressBar as updateProgressBarFn, loadNextStep as loadNextStepImpl, loadNextLesson as loadNextLessonFn, showCompletionMessage as showCompletionMessageFn } from '../modules/lesson/lesson-progression.js';
+import { loadLessonContent as loadLessonContentShared } from '../modules/lesson/lesson-loader.js';
 import { loadStep } from '../components/step-loader.js';
 
-import { createAnswerPipeline } from '../modules/answer-pipeline.js';
+import { createAnswerPipeline } from '../modules/answer/answer-pipeline.js';
 import { showChat, addAILoadingMessage, addAIFeedbackMessages, clearChat, getChatHistoryContext } from '../components/chat/chat-interface.js';
-import { askEnglishTutor } from '../modules/api.js';
-import { warmUpSpeechCamStream, toggleSpeechRecognition, listeningState } from '../modules/speech.js';
+import { askEnglishTutor } from '../modules/api/api.js';
+import { warmUpSpeechCamStream, toggleSpeechRecognition, listeningState } from '../modules/speech/speech.js';
 
 export async function setupAppInfra({ userData }) {
     if (userData) {

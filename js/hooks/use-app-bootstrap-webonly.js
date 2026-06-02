@@ -5,9 +5,9 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { appStore } from '../modules/store.js';
-import { requestPersistentStorage } from '../modules/storage-persistence-webonly.js';
-import { useAuthStatus, useUserProfile } from '../modules/api.js';
+import { appStore } from '../modules/store/store.js';
+import { requestPersistentStorage } from '../modules/storage/storage-persistence-webonly.js';
+import { useAuthStatus, useUserProfile } from '../modules/api/api.js';
 import { setupAppInfra } from './app-infra-webonly.js';
 import { usePreloader } from './usePreloader.js';
 import Strings from '../data/strings.js';
@@ -71,7 +71,7 @@ export function useAppBootstrap({ courseId } = {}) {
                 if (courseId) {
                     appStore.getState().setCourseId(courseId);
                     if (userData && typeof userData === 'object') {
-                        const { saveCourseToUserProfile } = await import('../modules/user-profile.js');
+                        const { saveCourseToUserProfile } = await import('../modules/user/user-profile.js');
                         await saveCourseToUserProfile(courseId, userData);
                     }
                 }

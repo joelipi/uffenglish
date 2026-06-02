@@ -152,7 +152,7 @@ test.describe('Whisper Review Regression Guard', () => {
         await page.waitForTimeout(2000);
 
         const result = await page.evaluate(async () => {
-            const { handleSuccessStep } = await import('/js/modules/step-loader-logic.js');
+            const { handleSuccessStep } = await import('/js/modules/lesson/step-loader-logic.js');
             const state = window.appStore.getState();
             const lessonId = state.configData.lessons[state.currentLessonIndex]?.lessonId || 'test';
 

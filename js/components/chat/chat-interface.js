@@ -1,6 +1,6 @@
-import { appStore } from '../../modules/store.js';
+import { appStore } from '../../modules/store/store.js';
 import Strings from '../../data/strings.js';
-import { getBotIdentity } from '../../modules/bot-identity.js';
+import { getBotIdentity } from '../../modules/user/bot-identity.js';
 
 export function showChat() {
     appStore.getState().setChatModeActive(true);

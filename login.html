@@ -89,8 +89,8 @@
     </div>
 
     <script type="module">
-        import { account } from './js/modules/appwrite.js';
-        import { invalidateUserAndAuthCache } from './js/modules/api.js'; // 🚀 Added import
+        import { account } from './js/modules/api/appwrite.js';
+        import { invalidateUserAndAuthCache } from './js/modules/api/api.js'; // 🚀 Added import
 
         document.addEventListener('DOMContentLoaded', () => {
             const urlParams = new URLSearchParams(window.location.search);

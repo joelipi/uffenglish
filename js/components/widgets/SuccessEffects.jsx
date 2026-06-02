@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { useStore } from 'zustand';
-import { appStore } from '../../modules/store.js';
-import { shouldShowConfetti } from '../../modules/success-lesson-logic.js';
-import { Media } from '../../modules/media.js';
+import { appStore } from '../../modules/store/store.js';
+import { shouldShowConfetti } from '../../modules/lesson/success-lesson-logic.js';
+import { Media } from '../../modules/media/media.js';
 
 export default function SuccessEffects() {
   const visible = useStore(appStore, state => state.successScreenVisible);

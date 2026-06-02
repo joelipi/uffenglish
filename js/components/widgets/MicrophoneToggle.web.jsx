@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from 'zustand';
-import { appStore, getCurrentVideoPlayer } from '../../modules/store.js';
-import { getSpeechInputToggleCallback } from '../../modules/step-loader-callbacks.js';
+import { appStore, getCurrentVideoPlayer } from '../../modules/store/store.js';
+import { getSpeechInputToggleCallback } from '../../modules/lesson/step-loader-callbacks.js';
 
 export default function MicrophoneToggle() {
     const isMicActive = useStore(appStore, (state) => state.isMicActive);

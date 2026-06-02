@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useStore } from 'zustand';
-import { appStore } from '../../modules/store.js';
+import { appStore } from '../../modules/store/store.js';
 import { BilingualText } from '../BilingualText.jsx';
 
 export default function MissionSection() {

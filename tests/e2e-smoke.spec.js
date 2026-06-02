@@ -71,7 +71,7 @@ test.describe('End-to-End Smoke Test', () => {
 
         // 3. Interaction Loop: Respond Correctly and Incorrectly
         const answerResults = await page.evaluate(async () => {
-            const { createAnswerPipeline } = await import('/js/modules/answer-pipeline.js');
+            const { createAnswerPipeline } = await import('/js/modules/answer/answer-pipeline.js');
             const { showChat, addAIFeedbackMessages, clearChat } = await import('/js/components/chat/chat-interface.js');
             const pipeline = createAnswerPipeline({
                 showChat,

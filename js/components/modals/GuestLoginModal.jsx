@@ -6,7 +6,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useStore } from 'zustand';
-import { appStore } from '../../modules/store.js';
+import { appStore } from '../../modules/store/store.js';
 import Strings from '../../data/strings.js';
 
 export default function GuestLoginModal() {

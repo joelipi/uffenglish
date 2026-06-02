@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useStore } from 'zustand';
-import { appStore } from '../../modules/store.js';
-import { getTextInputSubmitCallback, getSpeechInputToggleCallback, getCallbackVersion } from '../../modules/step-loader-callbacks.js';
+import { appStore } from '../../modules/store/store.js';
+import { getTextInputSubmitCallback, getSpeechInputToggleCallback, getCallbackVersion } from '../../modules/lesson/step-loader-callbacks.js';
 
 export default function AnswerInput() {
     const textInputVisible = useStore(appStore, (state) => state.textInputVisible);
@@ -75,7 +75,7 @@ export default function AnswerInput() {
     useEffect(() => {
         if (textInputVisible && inputFieldRef.current) {
             setTimeout(() => {
-                inputFieldRef.current.focus();
+                inputFieldRef.current?.focus();
             }, 100);
         }
     }, [textInputVisible]);

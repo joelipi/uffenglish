@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useStore } from 'zustand';
-import { appStore } from '../modules/store.js';
+import { appStore } from '../modules/store/store.js';
 
 export default function PointLossOverlay() {
     const trigger = useStore(appStore, (state) => state.pointLossTrigger);

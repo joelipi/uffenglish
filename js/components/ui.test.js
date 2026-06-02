@@ -4,7 +4,7 @@ import {
     showChat, addAILoadingMessage,
     addAIFeedbackMessages, clearChat
 } from './chat/chat-interface.js';
-import { appStore } from '../modules/store.js';
+import { appStore } from '../modules/store/store.js';
 
 describe('UI Component functions', () => {
 

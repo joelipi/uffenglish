@@ -4,10 +4,10 @@
 // inline script. Guarded: in React Native the guard skips preloading entirely.
 
 import { useCallback } from 'react';
-import { appStore } from '../modules/store.js';
-import { resolveCurrentLessonId } from '../modules/lessonRouting.js';
-import { saveLessonProgress } from '../modules/user-profile.js';
-import { loadLessonContent } from '../modules/lesson-loader.js';
+import { appStore } from '../modules/store/store.js';
+import { resolveCurrentLessonId } from '../modules/lesson/lesson-routing.js';
+import { saveLessonProgress } from '../modules/user/user-profile.js';
+import { loadLessonContent } from '../modules/lesson/lesson-loader.js';
 import Strings from '../data/strings.js';
 
 export function useInitializeLesson({ forceRestart = false } = {}) {

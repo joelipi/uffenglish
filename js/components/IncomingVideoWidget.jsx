@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useSyncExternalStore } from 'react';
-import { appStore } from '../modules/store.js';
+import { appStore } from '../modules/store/store.js';
 
 export default function IncomingVideoWidget() {
     const videoRef = useRef(null);

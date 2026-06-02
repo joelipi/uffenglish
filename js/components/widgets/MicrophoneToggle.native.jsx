@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
-import { appStore } from '../../modules/store.js';
+import { appStore } from '../../modules/store/store.js';
 
 export default function MicrophoneToggleNative() {
     return (

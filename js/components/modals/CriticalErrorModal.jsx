@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { useStore } from 'zustand';
-import { appStore } from '../../modules/store.js';
+import { appStore } from '../../modules/store/store.js';
 
 export default function CriticalErrorModal() {
     const criticalErrorMessage = useStore(appStore, (state) => state.criticalErrorMessage);

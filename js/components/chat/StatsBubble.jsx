@@ -1,5 +1,5 @@
 import React from 'react';
-import { getBotIdentity } from '../../modules/bot-identity.js';
+import { getBotIdentity } from '../../modules/user/bot-identity.js';
 
 export default function StatsBubble({
     sectionKey,

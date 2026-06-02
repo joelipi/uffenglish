@@ -1,5 +1,5 @@
 import React from 'react';
-import { DEFAULT_AI_NAME, DEFAULT_AI_AVATAR_URL } from '../../modules/tutor-config.js';
+import { DEFAULT_AI_NAME, DEFAULT_AI_AVATAR_URL } from '../../modules/user/tutor-config.js';
 
 export default function AiLoadingBubble({ text }) {
     const displayText = text || 'Analyzing audio...';

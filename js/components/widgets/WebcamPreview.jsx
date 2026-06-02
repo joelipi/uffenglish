@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useStore } from 'zustand';
-import { appStore, getWebcamStream } from '../../modules/store.js';
+import { appStore, getWebcamStream } from '../../modules/store/store.js';
 
 export default function WebcamPreview() {
     // Subscribe to the key counter (bumped by setWebcamStream) for reactivity,

@@ -1,5 +1,5 @@
 import React from 'react';
-import { DEFAULT_BOT_NAME, DEFAULT_AVATAR_URL } from '../../modules/tutor-config.js';
+import { DEFAULT_BOT_NAME, DEFAULT_AVATAR_URL } from '../../modules/user/tutor-config.js';
 
 export default function TeacherFeedbackBubble({
     content,

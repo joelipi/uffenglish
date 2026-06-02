@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useStore } from 'zustand';
-import { appStore } from '../modules/store.js';
-import { SimpleVideoStateController } from '../modules/simple-video-controller.js';
+import { appStore } from '../modules/store/store.js';
+import { SimpleVideoStateController } from '../modules/video/simple-video-controller.js';
 
 export function useSimpleVideo() {
     const currentVideo = useStore(appStore, (s) => s.currentVideo);

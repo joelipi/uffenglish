@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { appStore } from '../modules/store.js';
+import { appStore } from '../modules/store/store.js';
 
 export function usePreloader() {
     const progressIntervalRef = useRef(null);

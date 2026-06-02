@@ -1,5 +1,5 @@
 import { useStore } from 'zustand';
-import { appStore } from '../modules/store.js';
+import { appStore } from '../modules/store/store.js';
 
 export function usePlaybackVideo() {
     const blob = useStore(appStore, (s) => s.playbackBlob);

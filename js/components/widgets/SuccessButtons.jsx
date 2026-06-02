@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { useStore } from 'zustand';
-import { appStore } from '../../modules/store.js';
+import { appStore } from '../../modules/store/store.js';
 
 export function ContinueButton({ onLoadNextLesson }) {
   const button = useStore(appStore, state => state.successContinueButton);
@@ -47,7 +47,7 @@ export function VideoButton({ canvasRef }) {
       appStore.getState().triggerPauseAllVideos();
       appStore.getState().setCurrentVideo(null);
 
-      const { processVideo, shareVideo } = await import('../../modules/video-processor.js');
+      const { processVideo, shareVideo } = await import('../../modules/video/video-processor.js');
       const canvas = canvasRef?.current;
       const result = await processVideo(fluencyData, lessonId, canvas);
 
@@ -59,7 +59,7 @@ export function VideoButton({ canvasRef }) {
         setContinueVisible(true);
 
         shareHandlerRef.current = async () => {
-          const { generateVideoFilename } = await import('../../modules/success-lesson-logic.js');
+          const { generateVideoFilename } = await import('../../modules/lesson/success-lesson-logic.js');
           const filename = `${generateVideoFilename(lessonId)}.${result.ext || 'webm'}`;
           await shareVideo(result.blob, filename, result.ext || 'webm');
         };

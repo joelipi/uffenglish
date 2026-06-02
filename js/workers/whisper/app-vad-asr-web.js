@@ -1,6 +1,6 @@
 // app-vad-asr-web.js v2
 
-import { appStore } from '../../modules/store.js';
+import { appStore } from '../../modules/store/store.js';
 
 export let isEngineReady = false;
 let whisperWorker = null;

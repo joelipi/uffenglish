@@ -1,6 +1,6 @@
 import React from 'react';
 import { useStore } from 'zustand';
-import { appStore } from '../../modules/store.js';
+import { appStore } from '../../modules/store/store.js';
 
 export default function SuccessVideoCanvas({ canvasRef }) {
   const visible = useStore(appStore, state => state.successCanvasVisible);
