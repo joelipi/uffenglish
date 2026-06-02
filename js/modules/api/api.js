@@ -160,7 +160,7 @@ export async function signOut() {
 
 // ── React Query hooks ──────────────────────────────────────────────
 // These hooks provide reactive subscriptions for React components.
-// Imperative functions above remain for non-React callers (homescreen.html, etc.).
+// Imperative functions above remain for non-React callers (previous HTML pages, etc.).
 
 export function useAuthStatus() {
   return useQuery({

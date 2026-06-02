@@ -39,9 +39,7 @@ UFF is built as a highly responsive, static frontend application with a decouple
 ```text
 .
 ├── README.md               # This file
-├── index.html / homescreen.html # Main entry points
-├── lesson.html             # The core interactive lesson interface
-├── userprofile.html        # User statistics and history
+├── index.html               # Main entry point
 ├── style.css               # Global application styles
 ├── assets/                 # Images, icons, and audio/video fallbacks
 │   ├── img/
@@ -76,7 +74,7 @@ Because UFF is designed as a static frontend, setting it up for local developmen
    ```bash
    npx serve .
    ```
-4. Open your browser and navigate to `http://localhost:3000/index.html` or `http://localhost:3000/homescreen.html`.
+4. Open your browser and navigate to `http://localhost:3000/`.
 
 ### Testing Media & Speech locally
 To properly test the microphone and speech recognition features (especially in automated tests like Playwright), you may need to bypass standard browser security prompts for local environments.

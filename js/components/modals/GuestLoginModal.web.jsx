@@ -42,7 +42,7 @@ export default function GuestLoginModal() {
     };
 
     const location = useLocation();
-    const lang = userData?.native_language || 'en';
+    const lang = userData?.native_language?.toLowerCase() || (navigator.language || 'en').split('-')[0].toLowerCase();
     const currentUrl = location.pathname + location.search;
 
     return (

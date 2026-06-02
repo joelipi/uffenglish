@@ -1,5 +1,6 @@
 import React from 'react';
 import { useRecoverPasswordForm } from './RecoverPasswordForm.jsx';
+import Strings from '../../data/strings.js';
 
 export default function RecoverPasswordForm({ onBackToLogin }) {
     const {
@@ -11,19 +12,21 @@ export default function RecoverPasswordForm({ onBackToLogin }) {
         handleSubmit,
     } = useRecoverPasswordForm({ onBackToLogin });
 
+    const lang = (navigator.language || 'en').split('-')[0].toLowerCase();
+
     return (
         <>
             <h2 className="text-center mb-4" style={{ fontFamily: "'Orbitron', sans-serif", color: 'yellow' }}>
-                Recover Password
+                {Strings.get('auth_recover_title', lang)}
             </h2>
             {error && <div className="alert alert-danger" role="alert">{error}</div>}
-            {success && <div className="alert alert-success" role="alert">Recovery email sent. Check your inbox.</div>}
+            {success && <div className="alert alert-success" role="alert">{Strings.get('auth_recovery_sent', lang)}</div>}
 
-            <p className="text-center text-light mb-4">Enter your email address to receive a password reset link.</p>
+            <p className="text-center text-light mb-4">{Strings.get('auth_recover_instruction', lang)}</p>
 
             <form onSubmit={handleSubmit}>
                 <div className="mb-3">
-                    <label htmlFor="email" className="form-label">Email address</label>
+                    <label htmlFor="email" className="form-label">{Strings.get('auth_email_label', lang)}</label>
                     <input
                         type="email"
                         className="form-control"
@@ -34,12 +37,12 @@ export default function RecoverPasswordForm({ onBackToLogin }) {
                     />
                 </div>
                 <button type="submit" className="btn btn-primary" disabled={loading}>
-                    {loading ? 'Sending...' : 'Send Recovery Email'}
+                    {loading ? Strings.get('auth_sending', lang) : Strings.get('auth_send_recovery', lang)}
                 </button>
             </form>
 
             <div className="text-center mt-3">
-                <p><a href="#" onClick={(e) => { e.preventDefault(); onBackToLogin?.(); }}>Back to login</a></p>
+                <p><a href="#" onClick={(e) => { e.preventDefault(); onBackToLogin?.(); }}>{Strings.get('auth_back_to_login', lang)}</a></p>
             </div>
         </>
     );

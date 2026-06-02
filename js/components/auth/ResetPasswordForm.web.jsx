@@ -1,5 +1,6 @@
 import React from 'react';
 import { useResetPasswordForm } from './ResetPasswordForm.jsx';
+import Strings from '../../data/strings.js';
 
 export default function ResetPasswordForm({ onResetSuccess }) {
     const {
@@ -14,14 +15,16 @@ export default function ResetPasswordForm({ onResetSuccess }) {
         handleSubmit,
     } = useResetPasswordForm({ onResetSuccess });
 
+    const lang = (navigator.language || 'en').split('-')[0].toLowerCase();
+
     if (invalidLink) {
         return (
             <>
                 <h2 className="text-center mb-4" style={{ fontFamily: "'Orbitron', sans-serif", color: 'yellow' }}>
-                    Set New Password
+                    {Strings.get('auth_reset_title', lang)}
                 </h2>
                 <div className="alert alert-danger" role="alert">
-                    Invalid password reset link. Please request a new one.
+                    {Strings.get('auth_invalid_reset_link', lang)}
                 </div>
             </>
         );
@@ -30,19 +33,19 @@ export default function ResetPasswordForm({ onResetSuccess }) {
     return (
         <>
             <h2 className="text-center mb-4" style={{ fontFamily: "'Orbitron', sans-serif", color: 'yellow' }}>
-                Set New Password
+                {Strings.get('auth_reset_title', lang)}
             </h2>
             {error && <div className="alert alert-danger" role="alert">{error}</div>}
             {success && (
                 <div className="alert alert-success" role="alert">
-                    Password updated successfully! <a href="/login" className="alert-link">Log in now</a>.
+                    {Strings.get('profile_password_updated', lang)} <a href="/login" className="alert-link">{Strings.get('auth_log_in_now', lang)}</a>.
                 </div>
             )}
 
             {!success && (
                 <form onSubmit={handleSubmit}>
                     <div className="mb-3">
-                        <label htmlFor="password" className="form-label">New Password (min 8 chars)</label>
+                        <label htmlFor="password" className="form-label">{Strings.get('auth_reset_password_label', lang)}</label>
                         <input
                             type="password"
                             className="form-control"
@@ -54,7 +57,7 @@ export default function ResetPasswordForm({ onResetSuccess }) {
                         />
                     </div>
                     <div className="mb-3">
-                        <label htmlFor="password-confirm" className="form-label">Confirm Password</label>
+                        <label htmlFor="password-confirm" className="form-label">{Strings.get('auth_confirm_password_label', lang)}</label>
                         <input
                             type="password"
                             className="form-control"
@@ -66,7 +69,7 @@ export default function ResetPasswordForm({ onResetSuccess }) {
                         />
                     </div>
                     <button type="submit" className="btn btn-primary" disabled={loading}>
-                        {loading ? 'Updating...' : 'Update Password'}
+                        {loading ? Strings.get('auth_updating', lang) : Strings.get('profile_update_password', lang)}
                     </button>
                 </form>
             )}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { account } from '../../modules/api/appwrite.js';
 import { getUrlParam } from '../../modules/utils/url-params.js';
+import Strings from '../../data/strings.js';
 
 export function useResetPasswordForm({ onResetSuccess } = {}) {
     const [password, setPassword] = useState('');
@@ -24,7 +25,7 @@ export function useResetPasswordForm({ onResetSuccess } = {}) {
         setError('');
 
         if (password !== passwordConfirm) {
-            setError('Passwords do not match.');
+            setError(Strings.get('auth_passwords_mismatch', 'en'));
             return;
         }
 

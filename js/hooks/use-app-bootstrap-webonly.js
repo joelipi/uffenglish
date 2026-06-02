@@ -65,7 +65,6 @@ export function useAppBootstrap({ courseId } = {}) {
 
                 if (!isLoggedIn) {
                     console.warn('[Bootstrap] User not authenticated. Proceeding as guest.');
-                    appStore.getState().setGuestModalOpen(true);
                 }
 
                 if (courseId) {

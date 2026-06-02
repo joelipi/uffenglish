@@ -2,13 +2,7 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
     "index.html",
-    "homescreen.html",
-    "login.html",
-    "signup.html",
-    "userprofile.html",
     "landing.html",
-    "recover-password.html",
-    "reset-password.html",
     "js/workers/whisper/whisper-worker-web.js",
     "js/workers/whisper/whisper-worker-demo.js"
   ],

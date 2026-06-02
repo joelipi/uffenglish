@@ -10,7 +10,6 @@ import StepLoader from './StepLoader.jsx';
 import MicrophoneToggle from './widgets/MicrophoneToggle.js';
 import IntroChoices from './widgets/IntroChoices.jsx';
 import SuccessScreen from './widgets/SuccessScreen.jsx';
-import GuestLoginModal from './modals/GuestLoginModal.web.jsx';
 import CriticalErrorModal from './modals/CriticalErrorModal.jsx';
 import MicStatusText from './widgets/MicStatusText.jsx';
 import AuthLink from './widgets/AuthLink.jsx';
@@ -146,7 +145,6 @@ export default function LessonContainer() {
             {/* Controls */}
             <div className="lesson-body">
                 <CriticalErrorModal />
-                <GuestLoginModal />
             </div>
 
             <Hints />

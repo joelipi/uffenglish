@@ -602,6 +602,260 @@ const strings = {
     'guest_modal_continue': {
         en: "Continue as Guest",
         es: "Continuar como invitado"
+    },
+
+    // --- Home Screen ---
+    'home_title': {
+        en: "Ultra Fast Fluency",
+        es: "Fluidez Ultra Rápida"
+    },
+    'home_menu': {
+        en: "Menu",
+        es: "Menú"
+    },
+    'home_home': {
+        en: "Home",
+        es: "Inicio"
+    },
+    'home_profile': {
+        en: "Profile",
+        es: "Perfil"
+    },
+    'home_courses': {
+        en: "Courses",
+        es: "Cursos"
+    },
+    'home_continue': {
+        en: "Continue",
+        es: "Continuar"
+    },
+    'home_courses_load_error': {
+        en: "Failed to load courses. Please try again later.",
+        es: "Error al cargar los cursos. Inténtalo de nuevo más tarde."
+    },
+
+    // --- Profile Screen ---
+    'profile_title': {
+        en: "Profile",
+        es: "Perfil"
+    },
+    'profile_member_since': {
+        en: "Member since {date}",
+        es: "Miembro desde {date}"
+    },
+    'profile_personal_info': {
+        en: "Personal Information",
+        es: "Información Personal"
+    },
+    'profile_first_name': {
+        en: "First Name",
+        es: "Nombre"
+    },
+    'profile_last_name': {
+        en: "Last Name",
+        es: "Apellido"
+    },
+    'profile_native_language': {
+        en: "Native Language",
+        es: "Idioma Nativo"
+    },
+    'profile_english_level': {
+        en: "English Level",
+        es: "Nivel de Inglés"
+    },
+    'profile_save': {
+        en: "Save",
+        es: "Guardar"
+    },
+    'profile_change_email': {
+        en: "Change Email",
+        es: "Cambiar Correo"
+    },
+    'profile_new_email': {
+        en: "New Email",
+        es: "Nuevo Correo"
+    },
+    'profile_current_password': {
+        en: "Current Password",
+        es: "Contraseña Actual"
+    },
+    'profile_update_email': {
+        en: "Update Email",
+        es: "Actualizar Correo"
+    },
+    'profile_change_password': {
+        en: "Change Password",
+        es: "Cambiar Contraseña"
+    },
+    'profile_new_password': {
+        en: "New Password",
+        es: "Nueva Contraseña"
+    },
+    'profile_confirm_password': {
+        en: "Confirm New Password",
+        es: "Confirmar Nueva Contraseña"
+    },
+    'profile_update_password': {
+        en: "Update Password",
+        es: "Actualizar Contraseña"
+    },
+    'profile_statistics': {
+        en: "Statistics",
+        es: "Estadísticas"
+    },
+    'profile_lessons_completed': {
+        en: "Lessons Completed",
+        es: "Lecciones Completadas"
+    },
+    'profile_days_active': {
+        en: "Days Active",
+        es: "Días Activos"
+    },
+    'profile_guest_title': {
+        en: "Guest",
+        es: "Invitado"
+    },
+    'profile_guest_message': {
+        en: "Sign up to save your progress and access your profile.",
+        es: "Regístrate para guardar tu progreso y acceder a tu perfil."
+    },
+    'profile_updated': {
+        en: "Profile updated successfully.",
+        es: "Perfil actualizado correctamente."
+    },
+    'profile_email_verification_sent': {
+        en: "Verification email sent. Check your inbox to confirm the change.",
+        es: "Correo de verificación enviado. Revisa tu bandeja de entrada para confirmar el cambio."
+    },
+    'profile_password_updated': {
+        en: "Password updated successfully.",
+        es: "Contraseña actualizada correctamente."
+    },
+    'profile_update_failed': {
+        en: "Failed to update profile.",
+        es: "Error al actualizar el perfil."
+    },
+    'profile_email_update_failed': {
+        en: "Failed to update email.",
+        es: "Error al actualizar el correo."
+    },
+    'profile_password_update_failed': {
+        en: "Failed to update password.",
+        es: "Error al actualizar la contraseña."
+    },
+    'profile_min_chars': {
+        en: "Min 8 characters",
+        es: "Mín 8 caracteres"
+    },
+    'profile_load_failed': {
+        en: "Failed to load profile.",
+        es: "Error al cargar el perfil."
+    },
+
+    // --- Auth Forms ---
+    'auth_login_title': {
+        en: "Login",
+        es: "Iniciar sesión"
+    },
+    'auth_email_label': {
+        en: "Email address",
+        es: "Correo electrónico"
+    },
+    'auth_password_label': {
+        en: "Password",
+        es: "Contraseña"
+    },
+    'auth_logging_in': {
+        en: "Logging in...",
+        es: "Iniciando sesión..."
+    },
+    'auth_log_in': {
+        en: "Log In",
+        es: "Iniciar sesión"
+    },
+    'auth_no_account': {
+        en: "Don't have an account?",
+        es: "¿No tienes una cuenta?"
+    },
+    'auth_sign_up_link': {
+        en: "Sign up",
+        es: "Registrarse"
+    },
+    'auth_forgot_password': {
+        en: "Forgot password?",
+        es: "¿Olvidaste tu contraseña?"
+    },
+    'auth_signup_title': {
+        en: "Sign Up",
+        es: "Registrarse"
+    },
+    'auth_creating_account': {
+        en: "Creating account...",
+        es: "Creando cuenta..."
+    },
+    'auth_password_min_chars': {
+        en: "Password (min 8 chars)",
+        es: "Contraseña (mín 8 caracteres)"
+    },
+    'auth_already_account': {
+        en: "Already have an account?",
+        es: "¿Ya tienes una cuenta?"
+    },
+    'auth_log_in_link': {
+        en: "Log in",
+        es: "Iniciar sesión"
+    },
+    'auth_recover_title': {
+        en: "Recover Password",
+        es: "Recuperar Contraseña"
+    },
+    'auth_recover_instruction': {
+        en: "Enter your email address to receive a password reset link.",
+        es: "Ingresa tu correo electrónico para recibir un enlace de restablecimiento."
+    },
+    'auth_sending': {
+        en: "Sending...",
+        es: "Enviando..."
+    },
+    'auth_send_recovery': {
+        en: "Send Recovery Email",
+        es: "Enviar Correo de Recuperación"
+    },
+    'auth_back_to_login': {
+        en: "Back to login",
+        es: "Volver a iniciar sesión"
+    },
+    'auth_recovery_sent': {
+        en: "Recovery email sent. Check your inbox.",
+        es: "Correo de recuperación enviado. Revisa tu bandeja de entrada."
+    },
+    'auth_reset_title': {
+        en: "Set New Password",
+        es: "Establecer Nueva Contraseña"
+    },
+    'auth_invalid_reset_link': {
+        en: "Invalid password reset link. Please request a new one.",
+        es: "Enlace de restablecimiento inválido. Solicita uno nuevo."
+    },
+    'auth_reset_password_label': {
+        en: "New Password (min 8 chars)",
+        es: "Nueva Contraseña (mín 8 caracteres)"
+    },
+    'auth_confirm_password_label': {
+        en: "Confirm Password",
+        es: "Confirmar Contraseña"
+    },
+    'auth_updating': {
+        en: "Updating...",
+        es: "Actualizando..."
+    },
+    'auth_log_in_now': {
+        en: "Log in now",
+        es: "Iniciar sesión ahora"
+    },
+    'auth_passwords_mismatch': {
+        en: "Passwords do not match.",
+        es: "Las contraseñas no coinciden."
     }
 };
 

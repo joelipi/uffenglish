@@ -1,5 +1,6 @@
 import React from 'react';
 import { useSignupForm } from './SignupForm.jsx';
+import Strings from '../../data/strings.js';
 
 const NATIVE_LANGUAGES = [
     { value: '', label: 'Select...', disabled: true },
@@ -42,17 +43,19 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
         handleSubmit,
     } = useSignupForm({ onSignupSuccess });
 
+    const lang = (navigator.language || 'en').split('-')[0].toLowerCase();
+
     return (
         <>
             <h2 className="text-center mb-4" style={{ fontFamily: "'Orbitron', sans-serif", color: 'yellow' }}>
-                Sign Up
+                {Strings.get('auth_signup_title', lang)}
             </h2>
             {error && <div className="alert alert-danger" role="alert">{error}</div>}
 
             <form onSubmit={handleSubmit}>
                 <div className="row mb-3">
                     <div className="col-md-6">
-                        <label htmlFor="first-name" className="form-label">First Name</label>
+                        <label htmlFor="first-name" className="form-label">{Strings.get('profile_first_name', lang)}</label>
                         <input
                             type="text"
                             className="form-control"
@@ -63,7 +66,7 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
                         />
                     </div>
                     <div className="col-md-6 mt-3 mt-md-0">
-                        <label htmlFor="last-name" className="form-label">Last Name</label>
+                        <label htmlFor="last-name" className="form-label">{Strings.get('profile_last_name', lang)}</label>
                         <input
                             type="text"
                             className="form-control"
@@ -75,7 +78,7 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
                     </div>
                 </div>
                 <div className="mb-3">
-                    <label htmlFor="email" className="form-label">Email address</label>
+                    <label htmlFor="email" className="form-label">{Strings.get('auth_email_label', lang)}</label>
                     <input
                         type="email"
                         className="form-control"
@@ -86,7 +89,7 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
                     />
                 </div>
                 <div className="mb-3">
-                    <label htmlFor="password" className="form-label">Password (min 8 chars)</label>
+                    <label htmlFor="password" className="form-label">{Strings.get('auth_password_min_chars', lang)}</label>
                     <input
                         type="password"
                         className="form-control"
@@ -100,7 +103,7 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
 
                 <div className="row mb-3">
                     <div className="col-6">
-                        <label htmlFor="nativeLanguage" className="form-label">Native Language</label>
+                        <label htmlFor="nativeLanguage" className="form-label">{Strings.get('profile_native_language', lang)}</label>
                         <select
                             className="form-select"
                             id="nativeLanguage"
@@ -116,7 +119,7 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
                         </select>
                     </div>
                     <div className="col-6">
-                        <label htmlFor="englishLevel" className="form-label">English Level</label>
+                        <label htmlFor="englishLevel" className="form-label">{Strings.get('profile_english_level', lang)}</label>
                         <select
                             className="form-select"
                             id="englishLevel"
@@ -134,12 +137,12 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
                 </div>
 
                 <button type="submit" className="btn btn-primary" disabled={loading}>
-                    {loading ? 'Creating account...' : 'Sign Up'}
+                    {loading ? Strings.get('auth_creating_account', lang) : Strings.get('auth_signup_title', lang)}
                 </button>
             </form>
 
             <div className="text-center mt-3">
-                <p>Already have an account? <a href="#" onClick={(e) => { e.preventDefault(); onLoginLink?.(); }}>Log in</a></p>
+                <p>{Strings.get('auth_already_account', lang)} <a href="#" onClick={(e) => { e.preventDefault(); onLoginLink?.(); }}>{Strings.get('auth_log_in_link', lang)}</a></p>
             </div>
         </>
     );
