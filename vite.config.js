@@ -1,9 +1,19 @@
 import { resolve } from 'path'
+import { existsSync, mkdirSync, cpSync } from 'fs'
 import { defineConfig } from 'vite'
 import purgecss from 'vite-plugin-purgecss'
 
 export default defineConfig({
     plugins: [
+        {
+            name: 'copy-config',
+            closeBundle() {
+                const distConfig = resolve(__dirname, 'dist/src/config')
+                if (!existsSync(distConfig)) mkdirSync(distConfig, { recursive: true })
+                cpSync(resolve(__dirname, 'src/config'), distConfig, { recursive: true })
+                console.log('[copy-config] Copied config JSONs to dist/src/config/')
+            }
+        },
         purgecss({
             safelist: [
                 /^ivp-token-/,
