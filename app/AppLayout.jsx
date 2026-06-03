@@ -5,7 +5,6 @@ import { useQuery } from '@tanstack/react-query';
 import { appStore } from '../js/modules/store/store.js';
 import { normalizeConfig } from '../js/modules/bilingual/config-normalizer.js';
 import { useAppBootstrap } from '../js/hooks/use-app-bootstrap-webonly.js';
-import Preloader from '../js/components/Preloader.jsx';
 
 export default function AppLayout() {
     const { courseId } = useParams();
@@ -45,7 +44,6 @@ export default function AppLayout() {
 
     return (
         <>
-            <Preloader />
             {isReady ? <Outlet /> : null}
         </>
     );

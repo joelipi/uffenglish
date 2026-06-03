@@ -3,7 +3,6 @@ import { RouterProvider } from 'react-router-dom';
 import { router } from '../app/router.js';
 import { initLocalVoiceAI } from './modules/speech/speech.js';
 import { idiomChecker } from './modules/utils/idiom-checker.js';
-import Preloader from './components/Preloader.jsx';
 
 export default function App() {
     const isWorkerInitialized = useRef(false);
@@ -42,6 +41,6 @@ export default function App() {
     }, []);
 
     return (
-        <RouterProvider router={router} fallbackElement={<Preloader />} />
+        <RouterProvider router={router} />
     );
 }
