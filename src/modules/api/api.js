@@ -283,7 +283,7 @@ export function useSyncUserMetaData() {
 
 // 🤖🤖 LLMs
 
-// Intentional raw fetch() without TanStack Query — one-shot AI inference (see checkGrammarWithAI).
+// Intentional raw fetch() without TanStack Query — one-shot AI inference (see evaluateWithAI).
 export async function askEnglishTutor(conversationHistoryContext, newUserMessage) {
   const aiEndpoint = 'https://deepseek-proxy.joel-1cb.workers.dev';
   const controller = new AbortController();
@@ -319,7 +319,7 @@ export async function askEnglishTutor(conversationHistoryContext, newUserMessage
     let detail = '';
     if (error.name === 'AbortError') {
       detail = '(timeout - endpoint unreachable after 15s)';
-    // Intentional navigator.onLine — harmless error-detail fallback (see checkGrammarWithAI).
+    // Intentional navigator.onLine — harmless error-detail fallback (see evaluateWithAI).
     // Guarded: in React Native navigator may not have onLine, so explicit false check.
     } else if (typeof navigator !== 'undefined' && navigator.onLine === false) {
       detail = '(browser is offline)';
@@ -333,53 +333,117 @@ export async function askEnglishTutor(conversationHistoryContext, newUserMessage
   }
 }
 
-// 🤖🤖LLM evaluation userResonse
+// 🤖🤖LLM evaluation userResponse
 
-const GRAMMAR_SYSTEM_PROMPT = `You are an English language error detector. Your only job is to find language errors (NOT logical errors) in B's response.
+const EVALUATION_SYSTEM_PROMPT = `You are a strict ESL evaluator. You receive a dialog (A and B) and a context string (CTX) containing the setting, roles, goals, and a minimum word count. Evaluate B's utterance only. Output ONLY a valid JSON array of strings. Do not include markdown, preambles, or explanations. ### Rules 1. If flawless: Output \`["CORRECT"]\` 2. If unguessable: \`["GIBBERISH"]\` 3. If errors exist: Output an array of labels. * **For language errors**, append the corrected text: \`"LABEL: Corrected text"\`. Each correction must build on the previous one (e.g., evaluate vocabulary on the grammar-corrected version). Maintain the minimum word count in your corrections. * ### Correction Labels * **GRAMMAR:** Mechanical errors (tense, gender, number, modals, missing/misplaced prepositions). * **VOCAB:** Wrong word choice. Includes garbled idioms ("sound and safe" → "safe and sound"), wrong count form ("moneys" → "money"), or inappropriate connotation ("My dog is a lovely beast" → "…lovely animal"). * **UNNATURAL:** Correct and meaningful but sounds awkward, unidiomatic or not native (L1 calques, unnecessary complexity, unlikely collocations in everyday settings). "I see your sadness." → "You look sad."; "eat within a lapse of two hours" → "eat within two hours." * **TOO_FORMAL:** Diction too elevated for the context. "Purchase" → "buy"; "investigate" → "look into"; "if you would be so kind" → "please." * **TOO_INFORMAL:** If much lower register than A's utterance, or unfit for the setting. ### Flag Labels (No corrections needed) * **RUDE** / **INSENSITIVE** / **OFFENSIVE** * **PRAGMATIC_FAILURE:** B's utterance does not fit A's utterance or B's goal. --- ### EXAMPLES **SCENARIO 1** \`CTX: supermarket. A=employee, B=customer, goal: buy paper towels. Min_words: 4\` \`A: Can I help you find anything?\` * If B: "I'm looking for paper towels." **Output:** \`["CORRECT"]\` * If B: "Paper towels blue here on where." **Output:** \`["GIBBERISH"]\` * If B: "I seek a paper towels." **Output:** \`["GRAMMAR: I seek some paper towels.", "NATURAL: I'm looking for some paper towels."]\` * If B: "I look for towels of paper." **Output:** \`["GRAMMAR: I'm looking for towels of paper.", "VOCAB: I'm looking for paper towels."]\` * If B: "Kindly direct me to the paper towels." **Output:** \`["TOO_FORMAL: Could you tell me where the paper towels are?"]\` * If B: "It a beautiful day." **Output:** \`["GRAMMAR: It's a beautiful day.", PRAGMATIC_FAILURE"]\` **SCENARIO 2** \`CTX: the park. A=friend, B=friend.\` \`A: Do you like it here?\` * If B: "I'm really enjoying it." **Output:** \`["CORRECT"]\` * If B: "I adore it here." **Output:** \`["VOCAB: I love it here."]\` * If B: "It is a place of beauty." **Output:** \`["NATURAL: It's a beautiful place."]\` * If B: "I finding it delighting." **Output:** \`["GRAMMAR: I find it delighting.", "VOCAB: I find it delightful.", "TOO_FORMAL: I think it's wonderful."]\` * If B: "It's not park very impressive." **Output:** \`["GRAMMAR: It's not a very impressive park.", "RUDE"]\` **Misc** * \`A: My friend died.\` | \`B: That's too bad.\` **Output:** \`["INSENSITIVE"]\` * \`A: Should I keep going?\` | \`B: You is in for a pound, in for a penny.\` **Output:** \`["GRAMMAR: You are in for a pound, in for a penny.", "VOCAB: You are in for a penny, in for a pound.", "NATURAL: You're in for a penny, in for a pound."]\` * \`A: We want to sing and dance.\` | \`B: You're too antique for that.\` **Output:** \`["VOCAB: You're too old for that.", "OFFENSIVE"]\``;
 
-Check for the following error types:
-1. Verb tense errors (e.g. "I goes" instead of "I go", "I will having" instead of "I will have")
-2. Subject-verb agreement (e.g. "she go" instead of "she goes")
-3. Number agreement (e.g. "two dog" instead of "two dogs")
-4. Gender agreement where applicable
-5. Article errors (e.g. "I want go" instead of "I want to go")
-6. Auxiliary verb errors (e.g. "I am go" instead of "I am going")
-7. Preposition errors that change grammatical correctness
-8. Pronoun case errors (e.g. "me go" instead of "I go")
-9. Tense agreement with the interlocutor's cue
+function deriveMinWords(englishLevel) {
+  if (!englishLevel) return 3;
+  const level = englishLevel.toUpperCase();
+  if (level === 'A0' || level === 'A1') return 3;
+  if (level === 'A2') return 4;
+  if (level === 'B1') return 5;
+  return 6;
+}
 
-Do NOT flag:
-- Logical or factual errors
-- Style or word choice issues unless grammatically wrong
-- Punctuation or capitalisation
+function parseEvaluationResult(rawText) {
+  const result = {
+    labels: [],
+    corrections: [],
+    grammarCorrectedText: null,
+    finalCorrectedText: null,
+    isCorrect: false,
+    isGibberish: false,
+    rawOutput: rawText || ''
+  };
 
-If there are no grammatical errors, respond ONLY with the word CORRECT.
-If there are errors, respond ONLY with a corrected version of B's reply, minimum 5 words.
-Do not explain. Do not add commentary. Do not repeat the question. Output only the corrected sentence or the word CORRECT.`;
+  if (!rawText) return result;
 
+  let cleanedText = rawText.trim();
+  let array = null;
 
-const INTENT_SYSTEM_PROMPT = `Evaluate B's response. Return ONLY "CORRECT" or an array with any applicable labels [pragmatic failure, too formal, too informal, rude, unidiomatic] and a corrected version of B's response (minimum 5 words).`;
+  try {
+    array = JSON.parse(cleanedText);
+  } catch {
+    try {
+      const firstBracket = cleanedText.indexOf('[');
+      if (firstBracket >= 0) cleanedText = cleanedText.substring(firstBracket);
+      const lastBracket = cleanedText.lastIndexOf(']');
+      if (lastBracket !== -1 && lastBracket < cleanedText.length - 1) {
+        cleanedText = cleanedText.substring(0, lastBracket + 1);
+      }
+      const innerContent = cleanedText.replace(/^\[/, '').replace(/\]$/, '').trim();
+      const parts = innerContent.split(',').map(p => {
+        let trimmed = p.trim().replace(/^"|"$/g, '');
+        return `"${trimmed}"`;
+      });
+      const fixedText = `[${parts.join(',')}]`;
+      array = JSON.parse(fixedText);
+    } catch {
+      if (/correct/i.test(cleanedText)) {
+        result.labels.push('correct');
+        result.isCorrect = true;
+      }
+      return result;
+    }
+  }
+
+  if (!Array.isArray(array)) return result;
+
+  for (const entry of array) {
+    if (typeof entry !== 'string') continue;
+    const colonIdx = entry.indexOf(':');
+    if (colonIdx >= 0) {
+      let label = entry.substring(0, colonIdx).trim().toLowerCase();
+      const text = entry.substring(colonIdx + 1).trim();
+      if (label === 'natural') label = 'unnatural';
+      result.labels.push(label);
+      result.corrections.push({ label, correctedText: text });
+      if (label === 'grammar' && !result.grammarCorrectedText) {
+        result.grammarCorrectedText = text;
+      }
+      result.finalCorrectedText = text;
+    } else {
+      result.labels.push(entry.trim().toLowerCase());
+    }
+  }
+
+  result.isCorrect = result.labels.length === 1 && result.labels[0] === 'correct';
+  result.isGibberish = result.labels.length === 1 && result.labels[0] === 'gibberish';
+
+  return result;
+}
 
 // Intentional raw fetch() — one-shot AI inference. Every input is unique so
 // caching via TanStack Query would be harmful (stale analysis for wrong answer).
-export async function checkGrammarWithAI(selectedAnswer, stepData) {
+export async function evaluateWithAI(userResponse, stepData, lessonData, englishLevel) {
   const aiEndpoint = 'https://deepseek-proxy.joel-1cb.workers.dev';
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
   try {
     const cueText = typeof stepData.cue === 'object' ? (stepData.cue?.en || '') : (stepData.cue || '');
+    const setting = getEnglish(lessonData.setting) || '';
+    const roleOther = getEnglish(lessonData.roleOther) || '';
+    const roleUser = getEnglish(lessonData.roleUser) || '';
+    const mission = getEnglish(lessonData.mission) || 'Respond appropriately';
+    const minWords = deriveMinWords(englishLevel);
+
+    const ctx = `CTX: ${setting}. A=${roleOther}, B=${roleUser}, goal: ${mission}. Min_words: ${minWords}`;
+    const userPrompt = `${ctx}\n\nA: ${cueText}\nB: ${userResponse}`;
+
     const requestBody = {
       messages: [
-  { role: "user", content: `${GRAMMAR_SYSTEM_PROMPT}\n\nA: ${cueText} B: ${selectedAnswer}` }
-],
+        { role: "system", content: EVALUATION_SYSTEM_PROMPT },
+        { role: "user", content: userPrompt }
+      ],
       temperature: 0.1
     };
 
-    console.log("[AI] Grammar Check");
+    console.log("[AI] Evaluation");
     console.log("[AI] Endpoint:", aiEndpoint);
     console.log("[AI] Request body:", JSON.stringify(requestBody, null, 2));
-    console.log("[AI] System prompt:", GRAMMAR_SYSTEM_PROMPT);
-    console.log("[AI] User message:", requestBody.messages[0].content);
+    console.log("[AI] System prompt:", EVALUATION_SYSTEM_PROMPT);
+    console.log("[AI] User message:", userPrompt);
 
     const response = await fetch(aiEndpoint, {
       method: 'POST',
@@ -391,7 +455,7 @@ export async function checkGrammarWithAI(selectedAnswer, stepData) {
     if (!response.ok) {
       const body = await response.text().catch(() => '');
       console.error("← HTTP error", response.status, body);
-      throw new Error(`Grammar API error ${response.status}: ${body.slice(0, 200)}`);
+      throw new Error(`Evaluation API error ${response.status}: ${body.slice(0, 200)}`);
     }
 
     const data = await response.json();
@@ -402,38 +466,25 @@ export async function checkGrammarWithAI(selectedAnswer, stepData) {
     console.log("[AI] Cache miss tokens:", data.usage?.prompt_cache_miss_tokens ?? 'N/A');
     console.log("[AI] Finish reason:", data.choices?.[0]?.finish_reason);
 
-    const correctedTextRaw = data.choices?.[0]?.message?.content?.trim() || '';
-    console.log("[AI] Raw content:", correctedTextRaw);
+    const rawText = data.choices?.[0]?.message?.content?.trim() || '';
+    console.log("[AI] Raw content:", rawText);
 
-    if (!correctedTextRaw) {
-      console.warn("← Empty response — treating as grammar error, no correction available");
+    if (!rawText) {
+      console.warn("← Empty response — treating as evaluation error");
       return {
-        isGrammarCorrect: false,
-        correctedText: selectedAnswer
+        labels: [],
+        corrections: [],
+        grammarCorrectedText: null,
+        finalCorrectedText: null,
+        isCorrect: false,
+        isGibberish: false,
+        rawOutput: ''
       };
     }
 
-    let correctedText = correctedTextRaw;
-    if (/^correct[.!: \n-]*$/i.test(correctedText)) {
-      correctedText = "";
-    } else {
-      correctedText = correctedText.replace(/^correct[:\s.-]+/i, '').trim();
-    }
-
-    const normOriginal = await normalize(selectedAnswer);
-    const normCorrected = await normalize(correctedText);
-
-    const isGrammarCorrect = correctedText === '' || normOriginal === normCorrected;
-
-    console.log("[AI] Normalized original:", normOriginal);
-    console.log("[AI] Normalized corrected:", normCorrected);
-    console.log("[AI] isGrammarCorrect:", isGrammarCorrect);
-    console.log("[AI] Final correctedText:", isGrammarCorrect ? selectedAnswer : (correctedText || selectedAnswer));
-
-    return {
-      isGrammarCorrect,
-      correctedText: isGrammarCorrect ? selectedAnswer : (correctedText || selectedAnswer)
-    };
+    const result = parseEvaluationResult(rawText);
+    console.log("[AI] Parsed result:", JSON.stringify(result));
+    return result;
   } catch (error) {
     clearTimeout(timeout);
     let detail = '';
@@ -448,103 +499,7 @@ export async function checkGrammarWithAI(selectedAnswer, stepData) {
     } else {
       detail = `(${error.message})`;
     }
-    console.error(`Grammar AI Error ${detail}:`, error);
-    throw error;
-  }
-}
-
-// Intentional raw fetch() — one-shot AI inference (see checkGrammarWithAI).
-export async function evaluateIntentWithAI(answerForIntentPass, stepData, lessonData) {
-  const aiEndpoint = 'https://deepseek-proxy.joel-1cb.workers.dev';
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
-  try {
-    const cueText = typeof stepData.cue === 'object' ? (stepData.cue?.en || '') : (stepData.cue || '');
-    const intentUserPrompt = `Setting: ${getEnglish(lessonData.setting) || ''}
-A: ${getEnglish(lessonData.roleOther) || ''}
-B: ${getEnglish(lessonData.roleUser) || ''}
-B's goal: ${getEnglish(lessonData.mission) || 'Respond appropriately'}
-A: ${cueText}
-B: ${answerForIntentPass}`;
-
-    const requestBody = {
-      messages: [
-  { role: "user", content: `${INTENT_SYSTEM_PROMPT}\n\nSetting: ${getEnglish(lessonData.setting) || ''}
-A: ${getEnglish(lessonData.roleOther) || ''}
-B: ${getEnglish(lessonData.roleUser) || ''}
-B's goal: ${getEnglish(lessonData.mission) || 'Respond appropriately'}
-A: ${cueText}
-B: ${answerForIntentPass}` }
-],
-      temperature: 0.1,
-      max_tokens: 200
-    };
-
-    console.log("[AI] Intent Check");
-    console.log("[AI] Endpoint:", aiEndpoint);
-    console.log("[AI] Request body:", JSON.stringify(requestBody, null, 2));
-    console.log("[AI] System prompt:", INTENT_SYSTEM_PROMPT);
-    console.log("[AI] User message:", intentUserPrompt);
-
-    const response = await fetch(aiEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody),
-      signal: controller.signal
-    });
-
-    if (!response.ok) {
-      const body = await response.text().catch(() => '');
-      console.error("← HTTP error", response.status, body);
-      throw new Error(`Intent API error ${response.status}: ${body.slice(0, 200)}`);
-    }
-
-    const data = await response.json();
-
-    console.log("[AI] Full API response:", JSON.stringify(data, null, 2));
-    console.log("[AI] Model:", data.model);
-    console.log("[AI] Usage:", JSON.stringify(data.usage));
-    console.log("[AI] Cache hit tokens:", data.usage?.prompt_cache_hit_tokens ?? 'N/A');
-    console.log("[AI] Cache miss tokens:", data.usage?.prompt_cache_miss_tokens ?? 'N/A');
-    console.log("[AI] Finish reason:", data.choices?.[0]?.finish_reason);
-
-    const rawIntentText = data.choices?.[0]?.message?.content || '';
-    console.log("[AI] Raw intent content:", rawIntentText);
-
-    const validLabels = ['PRAGMATIC FAILURE', 'TOO FORMAL', 'TOO INFORMAL', 'RUDE', 'UNIDIOMATIC', 'CORRECT'];
-    let intentLabel = 'parse_error';
-    const textUpper = rawIntentText.toUpperCase();
-
-    for (const label of validLabels) {
-      if (textUpper.includes(label)) {
-        intentLabel = label.toLowerCase();
-        break;
-      }
-    }
-
-    console.log("[AI] intentLabel:", intentLabel);
-    console.log("[AI] isIntentCorrect:", intentLabel === 'correct');
-
-    return {
-      isIntentCorrect: intentLabel === 'correct',
-      intentLabel,
-      rawIntentText
-    };
-  } catch (error) {
-    clearTimeout(timeout);
-    let detail = '';
-    if (error.name === 'AbortError') {
-      detail = '(timeout - endpoint unreachable after 15s)';
-    // Intentional navigator.onLine — harmless error-detail fallback (see checkGrammarWithAI).
-    // Guarded: in React Native navigator may not have onLine, so explicit false check.
-    } else if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-      detail = '(browser is offline)';
-    } else if (error instanceof TypeError) {
-      detail = '(network error - possible: endpoint down, CORS blocked, or ad blocker interfering)';
-    } else {
-      detail = `(${error.message})`;
-    }
-    console.error(`Intent AI Error ${detail}:`, error);
+    console.error(`Evaluation AI Error ${detail}:`, error);
     throw error;
   }
 }

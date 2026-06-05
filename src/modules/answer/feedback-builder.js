@@ -91,9 +91,9 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, stepData
 
         // 6. Formality
         const formalityParts = [];
-        if ((result.intentLabels || []).includes('too formal')) {
+        if ((result.intentLabels || []).includes('too_formal')) {
             formalityParts.push({ message: Strings.getBilingual('feedback_too_formal', lang).english });
-        } else if ((result.intentLabels || []).includes('too informal')) {
+        } else if ((result.intentLabels || []).includes('too_informal')) {
             formalityParts.push({ message: Strings.getBilingual('feedback_too_informal', lang).english });
         }
         sections.push({
@@ -105,7 +105,7 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, stepData
 
         // 7. Native-like
         const nativeLikeParts = [];
-        if ((result.intentLabels || []).includes('unidiomatic')) {
+        if ((result.intentLabels || []).includes('unnatural') || (result.intentLabels || []).includes('vocab')) {
             nativeLikeParts.push({ message: Strings.getBilingual('feedback_unidiomatic', lang).english });
         }
         sections.push({
@@ -117,10 +117,13 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, stepData
 
         // 8. Understanding
         const understandingParts = [];
-        if ((result.intentLabels || []).includes('pragmatic failure')) {
+        if ((result.intentLabels || []).includes('pragmatic_failure')) {
             understandingParts.push({ message: Strings.getBilingual('feedback_pragmatic_failure', lang).english });
         }
         if ((result.intentLabels || []).includes('rude')) {
+            understandingParts.push({ message: Strings.getBilingual('feedback_rude', lang).english });
+        }
+        if ((result.intentLabels || []).includes('insensitive') || (result.intentLabels || []).includes('offensive')) {
             understandingParts.push({ message: Strings.getBilingual('feedback_rude', lang).english });
         }
         sections.push({

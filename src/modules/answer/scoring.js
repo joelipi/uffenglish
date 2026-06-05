@@ -92,13 +92,13 @@ export function calculateFluencyScore({
     }
 
     // 6. Formality (2.5%)
-    const formality = (labels.includes("too formal") || labels.includes("too informal")) ? 0 : 100;
+    const formality = (labels.includes("too_formal") || labels.includes("too_informal")) ? 0 : 100;
 
     // 7. Native-like (2.5%)
-    const nativeLike = labels.includes("unidiomatic") ? 0 : 100;
+    const nativeLike = (labels.includes("unnatural") || labels.includes("vocab")) ? 0 : 100;
 
     // 8. Understanding (35%)
-    const understanding = (labels.includes("pragmatic failure") || labels.includes("rude")) ? 0 : 100;
+    const understanding = (labels.includes("pragmatic_failure") || labels.includes("rude") || labels.includes("insensitive") || labels.includes("offensive")) ? 0 : 100;
 
     let finalScore = 0;
 

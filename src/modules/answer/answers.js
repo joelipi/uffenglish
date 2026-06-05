@@ -2,7 +2,7 @@
 import normalize from '../bilingual/normalize.js';
 import calculateSimilarity from './calculate-similarity.js';
 import swearjar from '../utils/swearjar.js';
-import { checkGrammarWithAI, evaluateIntentWithAI } from '../api/api.js';
+import { evaluateWithAI } from '../api/api.js';
 import Strings from '../../data/strings.js';
 import { appStore } from '../store/store.js';
 
@@ -68,130 +68,27 @@ export async function processAnswerLogic({
             errorType: ""
         };
 
-        // 1. Grammar Pass (Local fallback or AI)
-        let grammarResult, intentResult;
+        let evaluation;
         try {
-            grammarResult = await checkGrammarWithAI(userResponse, stepData);
-            intentResult = await evaluateIntentWithAI(grammarResult.correctedText, stepData, lesson);
+            evaluation = await evaluateWithAI(userResponse, stepData, lesson, englishLevel);
         } catch (apiError) {
             console.error('[processAnswerLogic] AI API error, returning api_error result:', apiError);
             result.errorType = 'api_error';
             return result;
         }
 
-        // --- NEW BUSINESS LOGIC: Robust Array Parsing ---
-        let evaluationResult = [];
-        let cleanedText = intentResult.rawIntentText.trim();
-        let appendedCorrection = "";
+        let labels = evaluation.labels;
 
-        try {
-            const firstBracket = cleanedText.indexOf('[');
-            if (firstBracket >= 0) cleanedText = cleanedText.substring(firstBracket);
-            const lastBracket = cleanedText.lastIndexOf(']');
-            if (lastBracket !== -1 && lastBracket < cleanedText.length - 1) {
-                appendedCorrection = cleanedText.substring(lastBracket + 1).trim();
-                cleanedText = cleanedText.substring(0, lastBracket + 1);
-            }
-
-            try {
-                // 1. Try strict JSON parse first
-                evaluationResult = JSON.parse(cleanedText);
-            } catch (e) {
-                // 2. Pre-process for common AI formatting mistakes (missing quotes)
-                // Strip outer brackets, split by comma, trim and quote each part individually
-                let innerContent = cleanedText.replace(/^\[/, '').replace(/\]$/, '').trim();
-                let parts = innerContent.split(',').map(p => {
-                    let trimmed = p.trim().replace(/^"|"$/g, ''); // strip existing quotes if partial
-                    return `"${trimmed}"`;
-                });
-                let fixedText = `[${parts.join(',')}]`;
-                console.log('[Intent Parse] Fixed unquoted array:', fixedText);
-                evaluationResult = JSON.parse(fixedText);
-            }
-
-            if (!Array.isArray(evaluationResult)) {
-                evaluationResult = [];
-            }
-        } catch (e) {
-            console.warn("Failed to JSON parse AI intent result, falling back to manual split", e);
-
-            // 3. Ultimate fallback for severely malformed strings
-            let innerText = cleanedText.replace(/^\[/, '').replace(/\]$/, '').trim();
-
-            if (innerText.toLowerCase() === 'correct') {
-                evaluationResult = ["correct"];
-            } else {
-                const firstCommaIdx = innerText.indexOf(',');
-                if (firstCommaIdx !== -1) {
-                    evaluationResult = [
-                        innerText.substring(0, firstCommaIdx).trim().replace(/^"|"$/g, ''),
-                        innerText.substring(firstCommaIdx + 1).trim().replace(/^"|"$/g, '')
-                    ];
-                } else {
-                    evaluationResult = [innerText.replace(/^"|"$/g, '')];
-                }
-            }
-        }
-
-        let labels = [];
-        let correction = "";
-
-        if (evaluationResult.length > 0) {
-            const validLabelsSet = new Set(['ungrammatical', 'pragmatic failure', 'too formal', 'too informal', 'rude', 'unidiomatic', 'correct', 'parse_error']);
-
-            // 1. Try to extract correction from the end of the array
-            const lastEl = evaluationResult[evaluationResult.length - 1];
-            if (typeof lastEl === 'string' && !validLabelsSet.has(lastEl.trim().toLowerCase())) {
-                correction = evaluationResult.pop();
-            }
-
-            // 2. Filter the rest for valid labels
-            labels = evaluationResult
-                .filter(l => typeof l === 'string' && validLabelsSet.has(l.trim().toLowerCase()))
-                .map(l => l.toLowerCase().trim());
-
-            // 3. Handle appended correction (text after the brackets)
-            if (appendedCorrection) {
-                correction = appendedCorrection.replace(/^"|"$/g, '').trim();
-            }
-
-            // 4. Default correction if we just have "correct" or "parse_error"
-            if (!correction && labels.length === 1 && (labels.includes("correct") || labels.includes("parse_error"))) {
-                correction = grammarResult.correctedText;
-            }
-        }
-
-        // 2. The "Correct" Override
         if (labels.length > 1 && labels.includes("correct")) {
             labels = labels.filter(label => label !== "correct");
         }
 
-        console.log('[Intent Parse] Final labels:', JSON.stringify(labels), '| Correction:', correction, '| Appended:', appendedCorrection);
-
-        // --- TWO-TRACK EVALUATION ---
-        let isGrammarCorrect = true;
-        if (grammarResult.isGrammarCorrect === false) {
-            isGrammarCorrect = false;
-            if (grammarResult.correctedText) {
-                const cleanOriginal = userResponse.replace(/[^\w\s]/g, '').trim().toLowerCase();
-                const cleanCorrected = grammarResult.correctedText.replace(/[^\w\s]/g, '').trim().toLowerCase();
-                if (cleanOriginal === cleanCorrected && cleanOriginal !== '') {
-                    isGrammarCorrect = true;
-                }
-            }
-        } else if (grammarResult.correctedText) {
-            const cleanOriginal = userResponse.replace(/[^\w\s]/g, '').trim().toLowerCase();
-            const cleanCorrected = grammarResult.correctedText.replace(/[^\w\s]/g, '').trim().toLowerCase();
-            if (cleanOriginal !== cleanCorrected && cleanOriginal !== '') {
-                isGrammarCorrect = false;
-            }
-        }
-
-        let isIntentCorrect = labels.length === 1 && labels.includes("correct");
+        const isGrammarCorrect = !labels.includes('grammar') && !labels.includes('gibberish');
+        const isIntentCorrect = labels.length === 0 || (labels.length === 1 && labels.includes('correct'));
 
         result.intentLabels = labels;
         result.isCorrect = isGrammarCorrect && isIntentCorrect;
-        result.correction = correction || grammarResult.correctedText;
+        result.correction = evaluation.finalCorrectedText || evaluation.grammarCorrectedText || userResponse;
 
         if (result.isCorrect) {
             result.cefrLevel = 'B1';
@@ -201,34 +98,32 @@ export async function processAnswerLogic({
             let feedbackChunks = [];
             result.errorType = null;
 
-            // 1. SEPARATE BUBBLE: Grammar
-            if (!isGrammarCorrect || labels.includes("ungrammatical")) {
+            if (labels.includes('grammar') || labels.includes('gibberish') || labels.includes('vocab')) {
                 result.errorType = 'ungrammatical';
                 feedbackChunks.push({
                     type: 'grammar_diff',
                     original: userResponse,
-                    corrected: grammarResult.correctedText,
+                    corrected: evaluation.grammarCorrectedText || evaluation.finalCorrectedText || userResponse,
                     header: Strings.get('stats_grammar_header', userData?.native_language)
                 });
             }
 
-            // 2. Set errorType for intent labels (feedback text is now in stats bubbles in app.js)
-            if (labels.includes("pragmatic failure")) {
-                if (!result.errorType) result.errorType = 'pragmatic_failure';
+            if (labels.includes('pragmatic_failure') && !result.errorType) {
+                result.errorType = 'pragmatic_failure';
             }
-            if (labels.includes("too formal") || labels.includes("too informal")) {
-                if (!result.errorType) result.errorType = 'formality_error';
+            if ((labels.includes('too_formal') || labels.includes('too_informal')) && !result.errorType) {
+                result.errorType = 'formality_error';
             }
-            if (labels.includes("unidiomatic")) {
-                if (!result.errorType) result.errorType = 'unidiomatic';
+            if ((labels.includes('unnatural') || labels.includes('vocab')) && !result.errorType) {
+                result.errorType = 'unidiomatic';
             }
 
-            // 3. RECOMMENDED CORRECTED VERSION (single consolidated bubble)
             const cleanOriginal = userResponse.replace(/[^\w\s]/g, '').trim().toLowerCase();
             const cleanCorrected = result.correction.replace(/[^\w\s]/g, '').trim().toLowerCase();
             const displayCorrection = (cleanOriginal === cleanCorrected) ? "" : result.correction;
 
-            if (displayCorrection && cleanCorrected.length > 0 && labels.some(l => ["pragmatic failure", "too formal", "too informal", "unidiomatic", "rude"].includes(l))) {
+            const pragmaticsLabels = ['pragmatic_failure', 'too_formal', 'too_informal', 'unnatural', 'vocab', 'rude', 'insensitive', 'offensive'];
+            if (displayCorrection && cleanCorrected.length > 0 && labels.some(l => pragmaticsLabels.includes(l))) {
                 feedbackChunks.push({
                     type: 'pragmatics',
                     header: Strings.get('recommended_correction', userData?.native_language) || "Recommended Corrected Version",

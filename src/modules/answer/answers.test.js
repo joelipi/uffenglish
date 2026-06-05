@@ -3,9 +3,8 @@ import { getCurrentStepIndex, validateAnswerPrecheck, processAnswerLogic } from 
 import swearjar from '../utils/swearjar.js';
 import * as api from '../api/api.js';
 
-vi.mock('./api.js', () => ({
-    checkGrammarWithAI: vi.fn(),
-    evaluateIntentWithAI: vi.fn()
+vi.mock('../api/api.js', () => ({
+    evaluateWithAI: vi.fn()
 }));
 
 describe('Answers Module', () => {
@@ -51,9 +50,16 @@ describe('Answers Module', () => {
             expect(result.explanation).toBeUndefined();
         });
 
-        it('should handle grammar differences without ungrammatical label', async () => {
-            api.checkGrammarWithAI.mockResolvedValue({ isGrammarCorrect: false, correctedText: 'hello there' });
-            api.evaluateIntentWithAI.mockResolvedValue({ rawIntentText: '["correct"]' });
+        it('should handle grammar differences without grammar label', async () => {
+            api.evaluateWithAI.mockResolvedValue({
+                labels: ['grammar'],
+                corrections: [{ label: 'grammar', correctedText: 'hello there' }],
+                grammarCorrectedText: 'hello there',
+                finalCorrectedText: 'hello there',
+                isCorrect: false,
+                isGibberish: false,
+                rawOutput: '["GRAMMAR: hello there"]'
+            });
 
             const result = await processAnswerLogic({
                 stepData: { stepType: 'openResponse' },
@@ -78,9 +84,16 @@ describe('Answers Module', () => {
             expect(result.explanation).toBe('default explain');
         });
 
-        it('should process openResponse correctly when valid JSON is returned by AI', async () => {
-            api.checkGrammarWithAI.mockResolvedValue({ isGrammarCorrect: true, correctedText: 'hello' });
-            api.evaluateIntentWithAI.mockResolvedValue({ rawIntentText: '["correct"]' });
+        it('should process openResponse correctly when CORRECT is returned', async () => {
+            api.evaluateWithAI.mockResolvedValue({
+                labels: ['correct'],
+                corrections: [],
+                grammarCorrectedText: null,
+                finalCorrectedText: null,
+                isCorrect: true,
+                isGibberish: false,
+                rawOutput: '["CORRECT"]'
+            });
 
             const result = await processAnswerLogic({
                 stepData: { stepType: 'openResponse' },
@@ -96,8 +109,18 @@ describe('Answers Module', () => {
         });
 
         it('should process openResponse correctly with feedback chunks when incorrect', async () => {
-            api.checkGrammarWithAI.mockResolvedValue({ isGrammarCorrect: false, correctedText: 'hello there' });
-            api.evaluateIntentWithAI.mockResolvedValue({ rawIntentText: '["pragmatic failure", "too informal", "hello there sir"]' });
+            api.evaluateWithAI.mockResolvedValue({
+                labels: ['grammar', 'pragmatic_failure', 'too_informal'],
+                corrections: [
+                    { label: 'grammar', correctedText: 'hello there' },
+                    { label: 'too_informal', correctedText: 'hello there sir' }
+                ],
+                grammarCorrectedText: 'hello there',
+                finalCorrectedText: 'hello there sir',
+                isCorrect: false,
+                isGibberish: false,
+                rawOutput: '["GRAMMAR: hello there","PRAGMATIC_FAILURE","TOO_INFORMAL: hello there sir"]'
+            });
 
             const result = await processAnswerLogic({
                 stepData: { stepType: 'openResponse' },
@@ -108,16 +131,23 @@ describe('Answers Module', () => {
 
             expect(result.isCorrect).toBe(false);
             expect(result.errorType).toBe('ungrammatical');
-            expect(result.intentLabels).toEqual(['pragmatic failure', 'too informal']);
+            expect(result.intentLabels).toEqual(['grammar', 'pragmatic_failure', 'too_informal']);
             expect(result.correction).toBe('hello there sir');
             expect(result.explanations).toHaveLength(2); // grammar diff and pragmatics
             expect(result.explanations[0].type).toBe('grammar_diff');
             expect(result.explanations[1].type).toBe('pragmatics');
         });
 
-        it('should handle unquoted JSON array recovery', async () => {
-            api.checkGrammarWithAI.mockResolvedValue({ isGrammarCorrect: true, correctedText: 'hello' });
-            api.evaluateIntentWithAI.mockResolvedValue({ rawIntentText: '[too formal, unidiomatic]' }); // missing quotes
+        it('should handle CORRECT override when other labels exist', async () => {
+            api.evaluateWithAI.mockResolvedValue({
+                labels: ['correct', 'too_formal'],
+                corrections: [{ label: 'too_formal', correctedText: 'hello there' }],
+                grammarCorrectedText: null,
+                finalCorrectedText: 'hello there',
+                isCorrect: false,
+                isGibberish: false,
+                rawOutput: '["CORRECT", "TOO_FORMAL: hello there"]'
+            });
 
             const result = await processAnswerLogic({
                 stepData: { stepType: 'openResponse' },
@@ -125,83 +155,20 @@ describe('Answers Module', () => {
                 cue: 'hello'
             });
 
-            expect(result.intentLabels).toEqual(['too formal', 'unidiomatic']);
-        });
-
-        it('should handle single label unquoted JSON array recovery', async () => {
-            api.checkGrammarWithAI.mockResolvedValue({ isGrammarCorrect: true, correctedText: 'hello' });
-            api.evaluateIntentWithAI.mockResolvedValue({ rawIntentText: '[too formal]' }); // missing quotes
-
-            const result = await processAnswerLogic({
-                stepData: { stepType: 'openResponse' },
-                userResponse: 'hello',
-                cue: 'hello'
-            });
-
-            expect(result.intentLabels).toEqual(['too formal']);
-        });
-
-        it('should fallback to manual split if JSON fails entirely', async () => {
-            api.checkGrammarWithAI.mockResolvedValue({ isGrammarCorrect: true, correctedText: 'hello' });
-            // The JSON.parse inside the second try block attempts to parse `["{"foo":"bar"}","]` which should fail
-            api.evaluateIntentWithAI.mockResolvedValue({ rawIntentText: '{foo: "bar"}' });
-
-            const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => { });
-
-            const result = await processAnswerLogic({
-                stepData: { stepType: 'openResponse' },
-                userResponse: 'hello',
-                cue: 'hello'
-            });
-
-            expect(result.intentLabels).toEqual([]);
-            expect(consoleSpy).toHaveBeenCalled();
-            consoleSpy.mockRestore();
-        });
-
-        it('should fallback to manual split for single correct string', async () => {
-            api.checkGrammarWithAI.mockResolvedValue({ isGrammarCorrect: true, correctedText: 'hello' });
-            api.evaluateIntentWithAI.mockResolvedValue({ rawIntentText: 'correct' }); // totally invalid JSON
-
-            const result = await processAnswerLogic({
-                stepData: { stepType: 'openResponse' },
-                userResponse: 'hello',
-                cue: 'hello'
-            });
-
-            expect(result.intentLabels).toEqual(['correct']);
-        });
-
-        it('should handle valid JSON array but not an array type', async () => {
-            api.checkGrammarWithAI.mockResolvedValue({ isGrammarCorrect: true, correctedText: 'hello' });
-            api.evaluateIntentWithAI.mockResolvedValue({ rawIntentText: '{"correct": true}' }); // not an array
-
-            const result = await processAnswerLogic({
-                stepData: { stepType: 'openResponse' },
-                userResponse: 'hello',
-                cue: 'hello'
-            });
-
-            expect(result.intentLabels).toEqual([]);
-        });
-
-        it('should handle correct override when other valid labels exist', async () => {
-            api.checkGrammarWithAI.mockResolvedValue({ isGrammarCorrect: true, correctedText: 'hello' });
-            api.evaluateIntentWithAI.mockResolvedValue({ rawIntentText: '["correct", "too formal"]' });
-
-            const result = await processAnswerLogic({
-                stepData: { stepType: 'openResponse' },
-                userResponse: 'hello',
-                cue: 'hello'
-            });
-
-            expect(result.intentLabels).toEqual(['too formal']); // correct should be removed
+            expect(result.intentLabels).toEqual(['too_formal']);
             expect(result.errorType).toBe('formality_error');
         });
 
         it('should prioritize pragmatic_failure as errorType', async () => {
-            api.checkGrammarWithAI.mockResolvedValue({ isGrammarCorrect: true, correctedText: 'hello' });
-            api.evaluateIntentWithAI.mockResolvedValue({ rawIntentText: '["pragmatic failure", "unidiomatic"]' });
+            api.evaluateWithAI.mockResolvedValue({
+                labels: ['pragmatic_failure', 'unnatural'],
+                corrections: [{ label: 'unnatural', correctedText: 'hello' }],
+                grammarCorrectedText: null,
+                finalCorrectedText: 'hello',
+                isCorrect: false,
+                isGibberish: false,
+                rawOutput: '["PRAGMATIC_FAILURE", "UNNATURAL: hello"]'
+            });
 
             const result = await processAnswerLogic({
                 stepData: { stepType: 'openResponse' },
@@ -212,31 +179,26 @@ describe('Answers Module', () => {
             expect(result.errorType).toBe('pragmatic_failure');
         });
 
-        it('should mark ungrammatical and return false if grammar differences exist despite valid grammar flag', async () => {
-            api.checkGrammarWithAI.mockResolvedValue({ isGrammarCorrect: true, correctedText: 'hello sir' });
-            api.evaluateIntentWithAI.mockResolvedValue({ rawIntentText: '["correct"]' });
+        it('should return labels for gibberish input', async () => {
+            api.evaluateWithAI.mockResolvedValue({
+                labels: ['gibberish'],
+                corrections: [],
+                grammarCorrectedText: null,
+                finalCorrectedText: null,
+                isCorrect: false,
+                isGibberish: true,
+                rawOutput: '["GIBBERISH"]'
+            });
 
             const result = await processAnswerLogic({
                 stepData: { stepType: 'openResponse' },
-                userResponse: 'hello', // difference triggers grammar check failure
+                userResponse: 'asdf xyz',
                 cue: 'hello'
             });
 
             expect(result.isCorrect).toBe(false);
             expect(result.errorType).toBe('ungrammatical');
-        });
-
-        it('should parse appended correction', async () => {
-            api.checkGrammarWithAI.mockResolvedValue({ isGrammarCorrect: true, correctedText: 'hello' });
-            api.evaluateIntentWithAI.mockResolvedValue({ rawIntentText: '["rude"] Please say hello' }); // appended
-
-            const result = await processAnswerLogic({
-                stepData: { stepType: 'openResponse' },
-                userResponse: 'hello',
-                cue: 'hello'
-            });
-
-            expect(result.correction).toBe('Please say hello');
+            expect(result.intentLabels).toEqual(['gibberish']);
         });
 
         it('should handle closedResponse stepType correctly', async () => {
