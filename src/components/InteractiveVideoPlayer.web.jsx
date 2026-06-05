@@ -42,12 +42,14 @@ export default function InteractiveVideoPlayer() {
         pauseWithOverlayCancel,
         handleVideoPlay,
         handleWrapperTap,
+        dismissOverlay,
     } = ivh;
 
     const mediaVisible = useStore(appStore, (s) => s.mediaVisible);
     // isMicActive lives in the store — not on window — so React's data flow
     // stays traceable and the value is always fresh in derived state.
     const isMicActive = useStore(appStore, (s) => s.isMicActive);
+    const textInputVisible = useStore(appStore, (s) => s.textInputVisible);
 
     const videoRef          = useRef(null);
     const posterCanvasRef   = useRef(null);
@@ -101,6 +103,7 @@ export default function InteractiveVideoPlayer() {
         // @property {() => void}                 pause
         // @property {() => Promise<void>}        play
         // @property {() => void}                 destroy
+        // @property {() => void}                 dismissOverlay  — dismiss "Understand 100%?" overlay
         // @property {() => void}                 replay          — seek to 0 then play
         // @property {(c:number[],w:number[],e:Array) => void} applySpeechResult
         // @property {string[]}                   tokens          — cue tokens (live)
@@ -127,6 +130,7 @@ export default function InteractiveVideoPlayer() {
             // latest hook state regardless of when this effect last ran,
             // without needing ivh in the dependency array.
             get applySpeechResult() { return ivhRef.current.applySpeechResult; },
+            get dismissOverlay()    { return ivhRef.current.dismissOverlay; },
             get tokens()            { return ivhRef.current.tokens; },
             get punctuationMap()    { return ivhRef.current.punctuationMap; },
         });
@@ -302,6 +306,8 @@ export default function InteractiveVideoPlayer() {
 
                 <div className="ivp-blur-overlay" style={{ display: 'none' }} />
 
+                {(showOverlay || isMicActive || textInputVisible) && <div className="ivp-click-block" />}
+
                 {showOverlay && (
                     <div className="ivp-overlay" style={{ display: 'flex' }}>
                         <div className="ivp-overlay-content">
@@ -357,7 +363,7 @@ export default function InteractiveVideoPlayer() {
                     </div>
                 )}
 
-                {!playing && (
+                {!playing && !showOverlay && !isMicActive && !textInputVisible && !videoRef.current?.ended && (
                     <div className="ivp-play-overlay">
                         <div className="ivp-play-icon-container">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white">

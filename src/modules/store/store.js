@@ -79,6 +79,7 @@ export const appStore = createStore(
             _webcamStreamKey: 0,
             mediaVisible: false,
             micBounceTrigger: 0,
+            overlayVisible: false,
 
             // --- Whisper Review Overlay ---
             whisperReviewData: null,
@@ -232,6 +233,7 @@ export const appStore = createStore(
             setHangmanHintHTML: (html) => set({ hangmanHintHTML: html }),
             setHangmanOps: (ops) => set({ hangmanOps: ops }),
             setBottomControlState: (state) => set({ bottomControlState: state }),
+            setOverlayVisible: (val) => set({ overlayVisible: val }),
             setChatModeActive: (val) => set({ chatModeActive: val }),
             setSubmitBtnDisabled: (val) => set({ submitBtnDisabled: val }),
             setSubmitBtnIcon: (icon) => set({ submitBtnIcon: icon }),

@@ -30,10 +30,6 @@ export function useInteractiveVideo() {
         return {
             ...currentVideo.config,
             videoUrl: currentVideo.url,
-            onRepetition: () => {
-                appStore.getState().deductListeningScore(10);
-                appStore.getState().setPointLossAmount(10);
-            },
             onWordReveal: () => {
                 appStore.getState().deductListeningScore(15);
                 appStore.getState().setPointLossAmount(15);
@@ -49,6 +45,7 @@ export function useInteractiveVideo() {
 
         const unsub = controller.subscribe((state) => {
             stateSnapshotRef.current = { ...state };
+            appStore.getState().setOverlayVisible(state.showOverlay);
 
             if (state.isPlaying && requestPlayRef.current) {
                 requestPlayRef.current();
@@ -85,12 +82,11 @@ export function useInteractiveVideo() {
         controllerRef.current?.applySpeechResult(correctIndices, wrongIndices, extraWrongWords);
     }, []);
 
-    const dismissOverlay = useCallback(() => {
-        controllerRef.current?.dismissOverlay();
+    const dismissOverlay = useCallback((options) => {
+        controllerRef.current?.dismissOverlay(options);
     }, []);
 
     const pauseWithOverlayCancel = useCallback(() => {
-        controllerRef.current?.cancelOverlayTimer();
         controllerRef.current?.pause();
     }, []);
 
@@ -106,7 +102,7 @@ export function useInteractiveVideo() {
         appStore.getState().incrementVideoPlays();
         const stepType = appStore.getState().currentVideo?.stepType ?? '';
         if (
-            appStore.getState().videoPlays > 2 &&
+            appStore.getState().videoPlays > 1 &&
             (stepType === 'closedResponse' || stepType === 'openResponse')
         ) {
             appStore.getState().deductListeningScore(10);
@@ -116,7 +112,9 @@ export function useInteractiveVideo() {
 
     const handleWrapperTap = useCallback(() => {
         if (stateSnapshotRef.current.showOverlay) {
-            dismissOverlay();
+            return false;
+        }
+        if (appStore.getState().isMicActive || appStore.getState().textInputVisible) {
             return false;
         }
 
@@ -132,7 +130,7 @@ export function useInteractiveVideo() {
         }
 
         return true;
-    }, [dismissOverlay]);
+    }, []);
 
     return {
         isActive,
@@ -155,5 +153,6 @@ export function useInteractiveVideo() {
         pauseWithOverlayCancel,
         handleVideoPlay,
         handleWrapperTap,
+        dismissOverlay,
     };
 }

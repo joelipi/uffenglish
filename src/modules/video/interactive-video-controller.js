@@ -179,7 +179,7 @@ export class InteractiveVideoStateController {
         this.setState({ subtitleTokens: this._computeSubtitleTokens() });
     }
 
-    dismissOverlay() {
+    dismissOverlay({ replay = true } = {}) {
         if (this.state.showOverlay) {
             this.isSecondPlay = false;
             this.useSlowSpeeds = false; 
@@ -194,16 +194,12 @@ export class InteractiveVideoStateController {
             this.autoRevealedIndices.clear();
             this.reShuffleUnrevealed();
 
-            if (this.config.onRepetition) {
-                this.config.onRepetition();
-            }
-
             this.setState({
                 showOverlay: false,
-                isPlaying: true,
+                isPlaying: replay,
                 isSlowMode: false,
                 playbackRate: 1.0,
-                subtitleTokens: this._computeSubtitleTokens()
+                subtitleTokens: replay ? this._computeSubtitleTokens() : []
             });
         }
     }
