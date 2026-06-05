@@ -1,0 +1,16 @@
+{
+  "courseId": "test-api",
+  "languageLevel": "A1",
+  "lessons": [
+    {
+      "lessonId": "t",
+      "setting": "the beach",
+      "steps": [
+        {
+          "stepType": "openResponse",
+          "cue": "hi"
+        }
+      ]
+    }
+  ]
+}

@@ -335,7 +335,7 @@ export async function askEnglishTutor(conversationHistoryContext, newUserMessage
 
 // 🤖🤖LLM evaluation userResponse
 
-const EVALUATION_SYSTEM_PROMPT = `You are a strict ESL evaluator. You receive a dialog (A and B) and a context string (CTX) containing the setting, roles, goals, and a minimum word count. Evaluate B's utterance only. Output ONLY a valid JSON array of strings. Do not include markdown, preambles, or explanations. ### Rules 1. If flawless: Output \`["CORRECT"]\` 2. If unguessable: \`["GIBBERISH"]\` 3. If errors exist: Output an array of labels. * **For language errors**, append the corrected text: \`"LABEL: Corrected text"\`. Each correction must build on the previous one (e.g., evaluate vocabulary on the grammar-corrected version). Maintain the minimum word count in your corrections. * ### Correction Labels * **GRAMMAR:** Mechanical errors (tense, gender, number, modals, missing/misplaced prepositions). * **VOCAB:** Wrong word choice. Includes garbled idioms ("sound and safe" → "safe and sound"), wrong count form ("moneys" → "money"), or inappropriate connotation ("My dog is a lovely beast" → "…lovely animal"). * **UNNATURAL:** Correct and meaningful but sounds awkward, unidiomatic or not native (L1 calques, unnecessary complexity, unlikely collocations in everyday settings). "I see your sadness." → "You look sad."; "eat within a lapse of two hours" → "eat within two hours." * **TOO_FORMAL:** Diction too elevated for the context. "Purchase" → "buy"; "investigate" → "look into"; "if you would be so kind" → "please." * **TOO_INFORMAL:** If much lower register than A's utterance, or unfit for the setting. ### Flag Labels (No corrections needed) * **RUDE** / **INSENSITIVE** / **OFFENSIVE** * **PRAGMATIC_FAILURE:** B's utterance does not fit A's utterance or B's goal. --- ### EXAMPLES **SCENARIO 1** \`CTX: supermarket. A=employee, B=customer, goal: buy paper towels. Min_words: 4\` \`A: Can I help you find anything?\` * If B: "I'm looking for paper towels." **Output:** \`["CORRECT"]\` * If B: "Paper towels blue here on where." **Output:** \`["GIBBERISH"]\` * If B: "I seek a paper towels." **Output:** \`["GRAMMAR: I seek some paper towels.", "NATURAL: I'm looking for some paper towels."]\` * If B: "I look for towels of paper." **Output:** \`["GRAMMAR: I'm looking for towels of paper.", "VOCAB: I'm looking for paper towels."]\` * If B: "Kindly direct me to the paper towels." **Output:** \`["TOO_FORMAL: Could you tell me where the paper towels are?"]\` * If B: "It a beautiful day." **Output:** \`["GRAMMAR: It's a beautiful day.", PRAGMATIC_FAILURE"]\` **SCENARIO 2** \`CTX: the park. A=friend, B=friend.\` \`A: Do you like it here?\` * If B: "I'm really enjoying it." **Output:** \`["CORRECT"]\` * If B: "I adore it here." **Output:** \`["VOCAB: I love it here."]\` * If B: "It is a place of beauty." **Output:** \`["NATURAL: It's a beautiful place."]\` * If B: "I finding it delighting." **Output:** \`["GRAMMAR: I find it delighting.", "VOCAB: I find it delightful.", "TOO_FORMAL: I think it's wonderful."]\` * If B: "It's not park very impressive." **Output:** \`["GRAMMAR: It's not a very impressive park.", "RUDE"]\` **Misc** * \`A: My friend died.\` | \`B: That's too bad.\` **Output:** \`["INSENSITIVE"]\` * \`A: Should I keep going?\` | \`B: You is in for a pound, in for a penny.\` **Output:** \`["GRAMMAR: You are in for a pound, in for a penny.", "VOCAB: You are in for a penny, in for a pound.", "NATURAL: You're in for a penny, in for a pound."]\` * \`A: We want to sing and dance.\` | \`B: You're too antique for that.\` **Output:** \`["VOCAB: You're too old for that.", "OFFENSIVE"]\``;
+const EVALUATION_SYSTEM_PROMPT = `You are a strict ESL evaluator. You receive a dialog (A and B) and a context string (CTX) containing the setting, roles, goals, and a minimum word count. Evaluate B's utterance only. Output ONLY one or more lines. Do not include markdown, preambles, explanations, JSON, arrays, extra formatting, or punctuation like commas or quotes. ### Rules 1. If flawless: Output \`OK\` 2. If unguessable: Output \`GIBBERISH\` 3. If errors exist: Output one line per item. * **For language errors**, write \`LABEL: Corrected text\` on one line. Each correction builds on the previous one (evaluate vocabulary on the grammar-corrected version). Maintain the minimum word count in your corrections. * **For flag labels** (no correction needed), write the label alone on one line. ### Correction Labels * **GRAMMAR:** Mechanical errors (tense, gender, number, modals, missing/misplaced prepositions). * **VOCAB:** Wrong word choice. Includes garbled idioms ("sound and safe" → "safe and sound"), wrong count form ("moneys" → "money"), or inappropriate connotation ("My dog is a lovely beast" → "…lovely animal"). * **UNNATURAL:** Correct and meaningful but sounds awkward, unidiomatic or not native (L1 calques, unnecessary complexity, unlikely collocations in everyday settings). "I see your sadness." → "You look sad."; "eat within a lapse of two hours" → "eat within two hours." * **TOO_FORMAL:** Diction too elevated for the context. "Purchase" → "buy"; "investigate" → "look into"; "if you would be so kind" → "please." * **TOO_INFORMAL:** If much lower register than A's utterance, or unfit for the setting. ### Flag Labels * **RUDE** / **INSENSITIVE** / **OFFENSIVE** * **PRAGMATIC_FAILURE:** B's utterance does not fit A's utterance or B's goal. --- ### EXAMPLES **SCENARIO 1** \`CTX: supermarket. A=employee, B=customer, goal: buy paper towels. Min_words: 4\` \`A: Can I help you find anything?\` * If B: "I'm looking for paper towels." **Output:** \`OK\` * If B: "Paper towels blue here on where." **Output:** \`GIBBERISH\` * If B: "I seek a paper towels." **Output:** \`GRAMMAR: I seek some paper towels.\` \`UNNATURAL: I'm looking for some paper towels.\` * If B: "I look for towels of paper." **Output:** \`GRAMMAR: I'm looking for towels of paper.\` \`VOCAB: I'm looking for paper towels.\` * If B: "Kindly direct me to the paper towels." **Output:** \`TOO_FORMAL: Could you tell me where the paper towels are?\` * If B: "It a beautiful day." **Output:** \`GRAMMAR: It's a beautiful day.\` \`PRAGMATIC_FAILURE\` **SCENARIO 2** \`CTX: the park. A=friend, B=friend.\` \`A: Do you like it here?\` * If B: "I'm really enjoying it." **Output:** \`OK\` * If B: "I adore it here." **Output:** \`VOCAB: I love it here.\` * If B: "It is a place of beauty." **Output:** \`UNNATURAL: It's a beautiful place.\` * If B: "I finding it delighting." **Output:** \`GRAMMAR: I find it delighting.\` \`VOCAB: I find it delightful.\` \`TOO_FORMAL: I think it's wonderful.\` * If B: "It's not park very impressive." **Output:** \`GRAMMAR: It's not a very impressive park.\` \`RUDE\` **Misc** * \`A: My friend died.\` | \`B: That's too bad.\` **Output:** \`INSENSITIVE\` * \`A: Should I keep going?\` | \`B: You is in for a pound, in for a penny.\` **Output:** \`GRAMMAR: You are in for a pound, in for a penny.\` \`VOCAB: You are in for a penny, in for a pound.\` \`UNNATURAL: You're in for a penny, in for a pound.\` * \`A: We want to sing and dance with you.\` | \`B: No way, old dudes! You're way too old to sing and dance with us.\` **Output:** \`OFFENSIVE\``;
 
 function deriveMinWords(englishLevel) {
   if (!englishLevel) return 3;
@@ -359,57 +359,93 @@ function parseEvaluationResult(rawText) {
 
   if (!rawText) return result;
 
-  let cleanedText = rawText.trim();
-  let array = null;
+  const text = rawText.trim();
 
-  try {
-    array = JSON.parse(cleanedText);
-  } catch {
+  // Exact matches for simple outputs
+  if (text === 'OK') {
+    result.labels.push('correct');
+    result.isCorrect = true;
+    return result;
+  }
+
+  if (text === 'GIBBERISH') {
+    result.labels.push('gibberish');
+    result.isGibberish = true;
+    return result;
+  }
+
+  // If it looks like JSON (backward compat), try JSON parsing
+  if (text.startsWith('[')) {
+    let array = null;
     try {
-      const firstBracket = cleanedText.indexOf('[');
-      if (firstBracket >= 0) cleanedText = cleanedText.substring(firstBracket);
-      const lastBracket = cleanedText.lastIndexOf(']');
-      if (lastBracket !== -1 && lastBracket < cleanedText.length - 1) {
-        cleanedText = cleanedText.substring(0, lastBracket + 1);
-      }
-      const innerContent = cleanedText.replace(/^\[/, '').replace(/\]$/, '').trim();
-      const parts = innerContent.split(',').map(p => {
-        let trimmed = p.trim().replace(/^"|"$/g, '');
-        return `"${trimmed}"`;
-      });
-      const fixedText = `[${parts.join(',')}]`;
-      array = JSON.parse(fixedText);
+      array = JSON.parse(text);
     } catch {
-      if (/correct/i.test(cleanedText)) {
-        result.labels.push('correct');
-        result.isCorrect = true;
+      try {
+        const firstBracket = text.indexOf('[');
+        const lastBracket = text.lastIndexOf(']');
+        const inner = lastBracket >= 0 ? text.substring(firstBracket, lastBracket + 1) : text.substring(firstBracket);
+        const innerContent = inner.replace(/^\[/, '').replace(/\]$/, '').trim();
+        const parts = innerContent.split(',').map(p => {
+          let trimmed = p.trim().replace(/^"|"$/g, '');
+          return `"${trimmed}"`;
+        });
+        array = JSON.parse(`[${parts.join(',')}]`);
+      } catch {
+        // fall through to line-based
       }
+    }
+    if (Array.isArray(array)) {
+      for (const entry of array) {
+        if (typeof entry !== 'string') continue;
+        const colonIdx = entry.indexOf(':');
+        if (colonIdx >= 0) {
+          let label = entry.substring(0, colonIdx).trim().toLowerCase();
+          const content = entry.substring(colonIdx + 1).trim();
+          if (label === 'natural') label = 'unnatural';
+          result.labels.push(label);
+          result.corrections.push({ label, correctedText: content });
+          if (label === 'grammar' && !result.grammarCorrectedText) {
+            result.grammarCorrectedText = content;
+          }
+          result.finalCorrectedText = content;
+        } else {
+          const label = entry.trim().toLowerCase();
+          if (label === 'correct') { result.isCorrect = true; }
+          result.labels.push(label);
+        }
+      }
+      result.isCorrect = result.labels.length === 1 && result.labels[0] === 'correct';
+      result.isGibberish = result.labels.length === 1 && result.labels[0] === 'gibberish';
       return result;
     }
   }
 
-  if (!Array.isArray(array)) return result;
-
-  for (const entry of array) {
-    if (typeof entry !== 'string') continue;
-    const colonIdx = entry.indexOf(':');
+  // Newline-delimited parsing (primary format)
+  const lines = text.split('\n');
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const colonIdx = trimmed.indexOf(':');
     if (colonIdx >= 0) {
-      let label = entry.substring(0, colonIdx).trim().toLowerCase();
-      const text = entry.substring(colonIdx + 1).trim();
+      let label = trimmed.substring(0, colonIdx).trim().toLowerCase();
+      const content = trimmed.substring(colonIdx + 1).trim();
       if (label === 'natural') label = 'unnatural';
       result.labels.push(label);
-      result.corrections.push({ label, correctedText: text });
+      result.corrections.push({ label, correctedText: content });
       if (label === 'grammar' && !result.grammarCorrectedText) {
-        result.grammarCorrectedText = text;
+        result.grammarCorrectedText = content;
       }
-      result.finalCorrectedText = text;
+      result.finalCorrectedText = content;
     } else {
-      result.labels.push(entry.trim().toLowerCase());
+      const label = trimmed.toLowerCase();
+      if (label === 'ok') { result.labels.push('correct'); result.isCorrect = true; }
+      else if (label === 'gibberish') { result.labels.push('gibberish'); result.isGibberish = true; }
+      else { result.labels.push(label); }
     }
   }
 
-  result.isCorrect = result.labels.length === 1 && result.labels[0] === 'correct';
-  result.isGibberish = result.labels.length === 1 && result.labels[0] === 'gibberish';
+  result.isCorrect = result.isCorrect || (result.labels.length === 1 && result.labels[0] === 'correct');
+  result.isGibberish = result.isGibberish || (result.labels.length === 1 && result.labels[0] === 'gibberish');
 
   return result;
 }
@@ -425,7 +461,7 @@ export async function evaluateWithAI(userResponse, stepData, lessonData, english
     const setting = getEnglish(lessonData.setting) || '';
     const roleOther = getEnglish(lessonData.roleOther) || '';
     const roleUser = getEnglish(lessonData.roleUser) || '';
-    const mission = getEnglish(lessonData.mission) || 'Respond appropriately';
+    const mission = getEnglish(lessonData.mission) || '';
     const minWords = deriveMinWords(englishLevel);
 
     const ctx = `CTX: ${setting}. A=${roleOther}, B=${roleUser}, goal: ${mission}. Min_words: ${minWords}`;
