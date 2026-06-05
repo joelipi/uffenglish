@@ -1,29 +1,38 @@
 // InteractiveVideoPlayer.web.jsx
 // Web-only component — uses navigator.userAgent for iOS detection.
 // React Native replaces this with InteractiveVideoPlayer.native.jsx.
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useStore } from 'zustand';
 import { appStore, setCurrentVideoPlayer } from '../modules/store/store.js';
 import { useInteractiveVideo } from '../hooks/useInteractiveVideo.js';
 
-const hasNavigator = typeof navigator !== 'undefined';
-const isIOS =
-    hasNavigator &&
-    (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
-        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+// ---------------------------------------------------------------------------
+// Module-level constants
+// ---------------------------------------------------------------------------
+const TAP_THRESHOLD = 10;
+
+// Wrapped in a function so navigator is never touched in SSR / test envs.
+function detectIOS() {
+    if (typeof navigator === 'undefined') return false;
+    return (
+        /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    );
+}
+
+const TRANSPARENT_GIF =
+    'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 
 export default function InteractiveVideoPlayer() {
     const ivh = useInteractiveVideo();
     const {
         isActive,
         config,
-        // State (via getters — always fresh at render time)
         isLoaded,
         subtitleTokens,
         playbackRate,
         showOverlay,
         isSlowMode,
-        // Callbacks
         requestPlayRef,
         setLoaded,
         handleLoop,
@@ -36,34 +45,45 @@ export default function InteractiveVideoPlayer() {
     } = ivh;
 
     const mediaVisible = useStore(appStore, (s) => s.mediaVisible);
+    // isMicActive lives in the store — not on window — so React's data flow
+    // stays traceable and the value is always fresh in derived state.
+    const isMicActive = useStore(appStore, (s) => s.isMicActive);
 
-    const videoRef        = useRef(null);
-    const posterCanvasRef = useRef(null);
-    const foucFallbackRef = useRef(null);
-    // Pointer position at pointerdown — used to distinguish a tap from a drag.
+    const videoRef          = useRef(null);
+    const posterCanvasRef   = useRef(null);
     const pointerDownPosRef = useRef(null);
+    // Ref mirrors so async callbacks always read the latest values without
+    // needing to be recreated on every render.
+    const isMicActiveRef    = useRef(isMicActive);
+    const ivhRef            = useRef(ivh);
+    // Guards against handleVideoLoaded running twice (onLoadedData + onCanPlay
+    // both fire on a normal load).
+    const loadHandledRef    = useRef(false);
 
     const [playing, setPlaying] = useState(false);
     const [poster,  setPoster]  = useState(null);
 
+    // Keep refs in sync after each render.
+    useEffect(() => { isMicActiveRef.current = isMicActive; }, [isMicActive]);
+    useEffect(() => { ivhRef.current = ivh; }, [ivh]);
+
+    // Evaluate once at mount; never touches navigator during SSR or tests.
+    const isIOS = useMemo(detectIOS, []);
+
     // -------------------------------------------------------------------------
-    // Register the play executor. The hook's controller subscription calls this
-    // directly (not through React state) so loop-driven plays are never dropped.
+    // Register the play executor.
     // -------------------------------------------------------------------------
     useEffect(() => {
         requestPlayRef.current = () => {
             const video = videoRef.current;
-            if (!video || window.isMicActive) return;
-            if (video.paused) {
-                const p = video.play();
-                if (p !== undefined) p.catch(() => {});
-            }
+            if (!video || isMicActiveRef.current) return;
+            if (video.paused) video.play().catch(() => {});
         };
         return () => { requestPlayRef.current = null; };
     }, [requestPlayRef]);
 
     // -------------------------------------------------------------------------
-    // Register player interface in the store for external pause/play callers.
+    // Register player interface in the store for external callers.
     // -------------------------------------------------------------------------
     useEffect(() => {
         if (!isActive) {
@@ -74,7 +94,7 @@ export default function InteractiveVideoPlayer() {
         appStore.getState().setMediaVisible(true);
 
         // VideoPlayerHandle — the contract shared between web, native, and the
-        // platform-agnostic answer pipeline.  Every platform registers an object
+        // platform-agnostic answer pipeline. Every platform registers an object
         // conforming to this shape on appStore.currentVideoPlayer.
         //
         // @typedef {Object} VideoPlayerHandle
@@ -87,32 +107,35 @@ export default function InteractiveVideoPlayer() {
         // @property {Map<number,boolean>}        punctuationMap  — punctuation mask (live)
         // @property {HTMLVideoElement|undefined} video           — raw element (web only)
         setCurrentVideoPlayer({
-            pause:  () => videoRef.current?.pause(),
-            play:   () => videoRef.current?.play(),
-            get video() { return videoRef.current; },
+            pause:   () => videoRef.current?.pause(),
+            play:    () => videoRef.current?.play(),
             destroy: () => videoRef.current?.pause(),
-            replay: () => {
+            get video() { return videoRef.current; },
+            replay() {
                 const el = videoRef.current;
-                if (el) el.currentTime = 0;
-                setTimeout(() => {
-                    videoRef.current?.play()?.catch(() => {});
-                }, 50);
+                if (!el) return;
+                // Listen for 'seeked' rather than using a fixed-delay timeout,
+                // so play is triggered exactly when the seek completes.
+                const onSeeked = () => {
+                    el.removeEventListener('seeked', onSeeked);
+                    el.play().catch(() => {});
+                };
+                el.addEventListener('seeked', onSeeked);
+                el.currentTime = 0;
             },
-            applySpeechResult, // Exposed to the store for speech pipeline
-            // Bridge: answer-pipeline's applySpeechResultToPlayer needs access
-            // to the controller's token list and punctuation map to match
-            // user words against cue tokens. These delegate to the hook's
-            // live getters (which in turn read controllerRef.current from the
-            // hook's closure, where the ref actually lives).
-            get tokens() { return ivh.tokens; },
-            get punctuationMap() { return ivh.punctuationMap; },
+            // All three delegate through ivhRef so they always reflect the
+            // latest hook state regardless of when this effect last ran,
+            // without needing ivh in the dependency array.
+            get applySpeechResult() { return ivhRef.current.applySpeechResult; },
+            get tokens()            { return ivhRef.current.tokens; },
+            get punctuationMap()    { return ivhRef.current.punctuationMap; },
         });
 
         return () => {
             appStore.getState().setMediaVisible(false);
             setCurrentVideoPlayer(null);
         };
-    }, [isActive, applySpeechResult]);
+    }, [isActive]);
 
     // -------------------------------------------------------------------------
     // FOUC fallback + iOS transparent poster.
@@ -120,16 +143,11 @@ export default function InteractiveVideoPlayer() {
     useEffect(() => {
         if (!isActive) return;
 
-        if (isIOS) {
-            setPoster('data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==');
-        }
+        if (isIOS) setPoster(TRANSPARENT_GIF);
 
-        foucFallbackRef.current = setTimeout(() => setLoaded(), 3000);
-
-        return () => {
-            if (foucFallbackRef.current) clearTimeout(foucFallbackRef.current);
-        };
-    }, [isActive, setLoaded]);
+        const fallback = setTimeout(() => setLoaded(), 3000);
+        return () => clearTimeout(fallback);
+    }, [isActive, isIOS, setLoaded]);
 
     // -------------------------------------------------------------------------
     // Initial autoplay gated on appStore.reactReady.
@@ -138,26 +156,20 @@ export default function InteractiveVideoPlayer() {
         if (!isActive || !videoRef.current) return;
 
         const tryPlay = () => {
-            const video = videoRef.current;
-            if (!video) return;
-            const p = video.play();
-            if (p !== undefined) {
-                p.catch(() => {
-                    // Browser blocked unmuted autoplay.
-                    // Leave it paused so the user sees the play button.
-                    console.log('Unmuted autoplay blocked. Waiting for user interaction.');
-                });
-            }
+            videoRef.current?.play().catch(() => {
+                console.log('Unmuted autoplay blocked. Waiting for user interaction.');
+            });
         };
 
         if (appStore.getState().reactReady) {
             tryPlay();
-        } else {
-            const unsub = appStore.subscribe((state) => {
-                if (state.reactReady) { unsub(); tryPlay(); }
-            });
-            return unsub;
+            return;
         }
+
+        const unsub = appStore.subscribe((state) => {
+            if (state.reactReady) { unsub(); tryPlay(); }
+        });
+        return unsub;
     }, [isActive]);
 
     // -------------------------------------------------------------------------
@@ -174,38 +186,46 @@ export default function InteractiveVideoPlayer() {
     // External pause trigger.
     // -------------------------------------------------------------------------
     useEffect(() => {
-        const unsub = appStore.subscribe((state, prev) => {
+        return appStore.subscribe((state, prev) => {
             if (state.pauseAllVideosTrigger !== prev.pauseAllVideosTrigger) {
                 videoRef.current?.pause();
                 pauseWithOverlayCancel();
             }
         });
-        return unsub;
     }, [pauseWithOverlayCancel]);
 
     // -------------------------------------------------------------------------
     // Video element event handlers.
     // -------------------------------------------------------------------------
+
+    // Reset the dedup guard whenever the video source changes.
+    useEffect(() => { loadHandledRef.current = false; }, [config?.videoUrl]);
+
     const handleVideoLoaded = useCallback(() => {
+        // Both onLoadedData and onCanPlay fire on a normal load; only run once.
+        if (loadHandledRef.current) return;
+        loadHandledRef.current = true;
+
         setLoaded();
-        if (foucFallbackRef.current) clearTimeout(foucFallbackRef.current);
 
         if (!isIOS && posterCanvasRef.current && videoRef.current?.videoWidth) {
             try {
-                const canvas = posterCanvasRef.current;
-                const video  = videoRef.current;
+                const canvas  = posterCanvasRef.current;
+                const video   = videoRef.current;
                 canvas.width  = video.videoWidth;
                 canvas.height = video.videoHeight;
                 canvas.getContext('2d').drawImage(video, 0, 0);
                 setPoster(canvas.toDataURL('image/jpeg', 0.8));
             } catch {
-                setPoster('data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==');
+                setPoster(TRANSPARENT_GIF);
             }
         }
-    }, [setLoaded]);
+    }, [isIOS, setLoaded]);
 
     const onPlay = useCallback(() => {
-        if (window.isMicActive) {
+        // Read from ref so this callback is never recreated when isMicActive
+        // changes; the ref is always current.
+        if (isMicActiveRef.current) {
             videoRef.current?.pause();
             return;
         }
@@ -226,8 +246,6 @@ export default function InteractiveVideoPlayer() {
     // -------------------------------------------------------------------------
     // Wrapper tap detection
     // -------------------------------------------------------------------------
-    const TAP_THRESHOLD = 10;
-
     const handlePointerDown = useCallback((e) => {
         pointerDownPosRef.current = { x: e.clientX, y: e.clientY };
     }, []);
