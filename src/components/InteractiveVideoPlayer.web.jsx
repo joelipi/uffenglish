@@ -144,10 +144,7 @@ export default function InteractiveVideoPlayer() {
         if (!isActive) return;
 
         if (isIOS) setPoster(TRANSPARENT_GIF);
-
-        const fallback = setTimeout(() => setLoaded(), 3000);
-        return () => clearTimeout(fallback);
-    }, [isActive, isIOS, setLoaded]);
+    }, [isActive, isIOS]);
 
     // -------------------------------------------------------------------------
     // Initial autoplay gated on appStore.reactReady.
@@ -248,7 +245,10 @@ export default function InteractiveVideoPlayer() {
     // -------------------------------------------------------------------------
     const handlePointerDown = useCallback((e) => {
         pointerDownPosRef.current = { x: e.clientX, y: e.clientY };
-    }, []);
+        // If the video hasn't loaded yet, reveal the player on first touch
+        // rather than waiting for a timer.
+        setLoaded();
+    }, [setLoaded]);
 
     const handlePointerUp = useCallback((e) => {
         const down = pointerDownPosRef.current;
@@ -305,7 +305,6 @@ export default function InteractiveVideoPlayer() {
                 {showOverlay && (
                     <div className="ivp-overlay" style={{ display: 'flex' }}>
                         <div className="ivp-overlay-content">
-                            <div className="ivp-overlay-circle" />
                             <p className="ivp-overlay-text">
                                 Understand<br />100%?
                             </p>

@@ -19,7 +19,6 @@ export class InteractiveVideoStateController {
         this.extraWrongTokens = [];
         this.slowSpeeds = [0.6, 0.75];
         this.useSlowSpeeds = false;
-        this._overlayTimer = null;
 
         this.currentSpeedIndex = 0;
         this.isFirstPlay = true;
@@ -84,10 +83,6 @@ export class InteractiveVideoStateController {
         this.autoRevealedIndices.clear();
         this.speechOverrides.clear();
         this.extraWrongTokens = [];
-        if (this._overlayTimer) {
-            clearTimeout(this._overlayTimer);
-            this._overlayTimer = null;
-        }
         this.unrevealedIndices = [];
         this.tokens.forEach((_, i) => {
             if (!this.punctuationMap.get(i)) {
@@ -185,10 +180,6 @@ export class InteractiveVideoStateController {
     }
 
     dismissOverlay() {
-        if (this._overlayTimer) {
-            clearTimeout(this._overlayTimer);
-            this._overlayTimer = null;
-        }
         if (this.state.showOverlay) {
             this.isSecondPlay = false;
             this.useSlowSpeeds = false; 
@@ -249,15 +240,7 @@ export class InteractiveVideoStateController {
         this.setState({ isPlaying: false });
     }
 
-    cancelOverlayTimer() {
-        if (this._overlayTimer) {
-            clearTimeout(this._overlayTimer);
-            this._overlayTimer = null;
-        }
-    }
-
     destroy() {
-        this.cancelOverlayTimer();
         this.subscribers.clear();
         this.config.onRepetition = null;
         this.config.onWordReveal = null;
@@ -278,9 +261,6 @@ export class InteractiveVideoStateController {
                 showOverlay: true,
                 subtitleTokens: []
             });
-            this._overlayTimer = setTimeout(() => {
-                this.dismissOverlay();
-            }, 3000);
             return;
         } else if (this.isSecondPlay) {
             this.dismissOverlay();
