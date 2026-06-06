@@ -99,11 +99,15 @@ export default function ChatInterface() {
     const chatHistory = useStore(appStore, (state) => state.chatHistory);
     const containerRef = useRef(null);
 
+    const perfectScoreCount = chatHistory.filter(m => m.type === 'stat' && m.isPerfect).length;
+
     useEffect(() => {
         if (containerRef.current) {
             containerRef.current.scrollTop = containerRef.current.scrollHeight;
         }
     }, [chatHistory]);
+
+    let firstUserRendered = false;
 
     return (
         <div
@@ -114,10 +118,11 @@ export default function ChatInterface() {
         >
             {chatHistory.map((msg, index) => {
                 const key = msg.id || index;
-
+                const isFirstUser = msg.role === 'user' && !firstUserRendered;
                 if (msg.role === 'user') {
+                    firstUserRendered = true;
                     if (msg.type === 'video') {
-                        return <VideoBubble key={key} avatarUrl={msg.userAvatarUrl} userName={msg.userName} />;
+                        return <VideoBubble key={key} avatarUrl={msg.userAvatarUrl} userName={msg.userName} reactionCount={isFirstUser ? perfectScoreCount : 0} />;
                     }
                     return (
                         <UserBubble
@@ -127,6 +132,7 @@ export default function ChatInterface() {
                             translationLang={msg.translationLang}
                             userName={msg.userName}
                             userAvatarUrl={msg.userAvatarUrl}
+                            reactionCount={isFirstUser ? perfectScoreCount : 0}
                         />
                     );
                 }

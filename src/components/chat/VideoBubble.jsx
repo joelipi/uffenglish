@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 
-export default function VideoBubble({ avatarUrl, userName }) {
+export default function VideoBubble({ avatarUrl, userName, reactionCount }) {
     const videoRef = useRef(null);
     const blob = useStore(appStore, (s) => s.playbackBlob);
     const [muted, setMuted] = useState(true);
@@ -35,6 +35,7 @@ export default function VideoBubble({ avatarUrl, userName }) {
                         style={{ display: 'block', width: '100%', height: '100%', borderRadius: '8px', objectFit: 'cover', cursor: 'pointer' }} />
                 </div>
             </div>
+            {reactionCount > 0 && <div id="bot-reaction">💯{reactionCount}</div>}
         </div>
     );
 }

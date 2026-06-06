@@ -1,7 +1,7 @@
 import React from 'react';
 import { DEFAULT_USER_NAME, DEFAULT_USER_AVATAR_URL } from '../../modules/user/tutor-config.js';
 
-export default function UserBubble({ text, translation, translationLang, userName, userAvatarUrl }) {
+export default function UserBubble({ text, translation, translationLang, userName, userAvatarUrl, reactionCount }) {
     return (
         <div className="chat-message-row chat-message-row--user">
             <img src={userAvatarUrl || DEFAULT_USER_AVATAR_URL} alt={userName || DEFAULT_USER_NAME} className="chat-avatar-inline" />
@@ -17,6 +17,7 @@ export default function UserBubble({ text, translation, translationLang, userNam
                     )}
                 </div>
             </div>
+            {reactionCount > 0 && <div id="bot-reaction">💯{reactionCount}</div>}
         </div>
     );
 }
