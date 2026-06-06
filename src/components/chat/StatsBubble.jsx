@@ -26,7 +26,7 @@ export default function StatsBubble({
                 <div className="chat-bubble-header">{displayBotName}</div>
                 <div>
                     {headerContent}
-                    {attemptLabel && attemptCount !== undefined && ` · ${attemptLabel} ${attemptCount}`}
+                    {attemptLabel && attemptCount !== undefined && !(isPerfect && (sectionKey === 'pronunciation' || sectionKey === 'listening')) && ` · ${attemptLabel} ${attemptCount}`}
                 </div>
                 {parts.length > 0 && (
                     <div className="chat-message-content" style={{ marginTop: '5px' }}>
