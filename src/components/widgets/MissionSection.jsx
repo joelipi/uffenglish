@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { BilingualText } from '../BilingualText.jsx';
 
-export default function MissionSection() {
-    const [expanded, setExpanded] = useState(false);
+export default function MissionSection({ stepType }) {
+    const [expanded, setExpanded] = useState(stepType === 'lessonIntro');
+
+    useEffect(() => {
+        setExpanded(stepType === 'lessonIntro');
+    }, [stepType]);
     const configData = useStore(appStore, (state) => state.configData);
     const currentLessonIndex = useStore(appStore, (state) => state.currentLessonIndex);
     const userData = useStore(appStore, (state) => state.userData);

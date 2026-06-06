@@ -159,7 +159,7 @@ export default function LessonContainer() {
 
             {/* Bottom Overlay */}
             <div className={`bottom-overlay position-absolute bottom-0 start-0 w-100${chatModeActive ? ' d-none' : ' d-flex flex-column'}`}>
-                <MissionSection />
+                <MissionSection stepType={currentStep?.stepType} />
                 <div className="bottom-overlay-content">
                     <div className="controls-section">
                         <div className="d-flex justify-content-center align-items-center w-100">
