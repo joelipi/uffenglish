@@ -34,6 +34,7 @@ function mapSectionToMessage(section) {
             type: 'grammarDiff',
             sectionKey: 'grammar',
             score: section.score,
+            isPerfect: section.score === 100,
             errorCount: section.errorCount,
             complexityScore: section.complexityScore,
             original: section.diff?.original || '',

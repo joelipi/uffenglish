@@ -28,36 +28,42 @@ export default function GrammarDiffBubble({
             <div className="chat-message-bubble chat-message-bubble--system" style={{ borderLeft: '4px solid #17a2b8' }}>
                 <div className="chat-bubble-header">{displayBotName}</div>
                 {score !== undefined && (
-                    <div style={{ marginBottom: '8px' }}>
+                    <div>
                         <strong>{scoreDisplay}</strong>
-                        {errorText && ` · ${errorText}`}
-                        {complexityText}
+                        {score !== 100 && (
+                            <>
+                                {errorText && ` · ${errorText}`}
+                                {complexityText}
+                            </>
+                        )}
                     </div>
                 )}
-                {/* Deleted Row (Original with deletions highlighted) */}
-                <div className="diff-del-bubble">
-                    {tokens
-                        .filter(t => t.type === 'eq' || t.type === 'del')
-                        .map((t, idx) => {
-                            if (t.type === 'del' && !isPunct(t.val)) {
-                                return <span key={idx} className="diff-del">{t.val}</span>;
+                {score !== 100 && (
+                    <>
+                        <div className="diff-del-bubble">
+                            {tokens
+                                .filter(t => t.type === 'eq' || t.type === 'del')
+                                .map((t, idx) => {
+                                    if (t.type === 'del' && !isPunct(t.val)) {
+                                        return <span key={idx} className="diff-del">{t.val}</span>;
+                                    }
+                                    return <span key={idx}>{t.val}</span>;
+                                })
                             }
-                            return <span key={idx}>{t.val}</span>;
-                        })
-                    }
-                </div>
-                {/* Inserted Row (Correction with insertions highlighted) */}
-                <div style={{ marginTop: '6px' }}>
-                    {tokens
-                        .filter(t => t.type === 'eq' || t.type === 'ins')
-                        .map((t, idx) => {
-                            if (t.type === 'ins' && !isPunct(t.val)) {
-                                return <span key={idx} className="diff-ins">{t.val}</span>;
+                        </div>
+                        <div style={{ marginTop: '6px' }}>
+                            {tokens
+                                .filter(t => t.type === 'eq' || t.type === 'ins')
+                                .map((t, idx) => {
+                                    if (t.type === 'ins' && !isPunct(t.val)) {
+                                        return <span key={idx} className="diff-ins">{t.val}</span>;
+                                    }
+                                    return <span key={idx}>{t.val}</span>;
+                                })
                             }
-                            return <span key={idx}>{t.val}</span>;
-                        })
-                    }
-                </div>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );

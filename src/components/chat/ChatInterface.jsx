@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import UserBubble from './UserBubble.jsx';
@@ -12,6 +12,7 @@ import VideoBubble from './VideoBubble.jsx';
 import ContinueWidgetBubble from './ContinueWidgetBubble.jsx';
 import TeacherFeedbackBubble from './TeacherFeedbackBubble.jsx';
 import PossibleAnswerBubble from './PossibleAnswerBubble.jsx';
+import PerfectStatHero from './PerfectStatHero.jsx';
 
 const SYSTEM_TYPE_COMPONENTS = {
     continueWidget: (msg) => <ContinueWidgetBubble key={msg.id} onClick={msg.onClick} />,
@@ -98,52 +99,91 @@ const SYSTEM_TYPE_COMPONENTS = {
 export default function ChatInterface() {
     const chatHistory = useStore(appStore, (state) => state.chatHistory);
     const containerRef = useRef(null);
+    const [heroCount, setHeroCount] = useState(0);
 
-    const perfectScoreCount = chatHistory.filter(m => m.type === 'stat' && m.isPerfect).length;
+    const { listItems, perfectItems } = useMemo(() => {
+        const list = [];
+        const perfect = [];
+        
+        for (const msg of chatHistory) {
+            const isPerfect = (msg.type === 'stat' || msg.type === 'grammarDiff') && msg.isPerfect;
+            const item = { msg, key: msg.id };
+            
+            if (isPerfect) {
+                perfect.push(item);
+            } else {
+                list.push(item);
+            }
+        }
+        return { listItems: list, perfectItems: perfect };
+    }, [chatHistory]);
 
     useEffect(() => {
         if (containerRef.current) {
-            containerRef.current.scrollTop = containerRef.current.scrollHeight;
+            containerRef.current.scrollTo({
+                top: containerRef.current.scrollHeight,
+                behavior: 'smooth'
+            });
         }
     }, [chatHistory]);
 
-    let firstUserRendered = false;
+    const handleHeroComplete = () => {
+        setHeroCount(c => c + 1);
+    };
 
     return (
         <div
             id="chat-message-list"
             ref={containerRef}
             className="card-body chat-message-list text-dark"
-            style={{ overflowY: 'auto' }}
+            style={{ overflowY: 'auto', position: 'relative' }}
         >
-            {chatHistory.map((msg, index) => {
-                const key = msg.id || index;
-                const isFirstUser = msg.role === 'user' && !firstUserRendered;
+            {listItems.map(({ msg, key }) => {
                 if (msg.role === 'user') {
-                    firstUserRendered = true;
+                    const isFirstUser = msg === listItems.find(i => i.msg.role === 'user')?.msg;
+                    let bubble;
                     if (msg.type === 'video') {
-                        return <VideoBubble key={key} avatarUrl={msg.userAvatarUrl} userName={msg.userName} reactionCount={isFirstUser ? perfectScoreCount : 0} />;
+                        bubble = <VideoBubble avatarUrl={msg.userAvatarUrl} userName={msg.userName} reactionCount={isFirstUser ? heroCount : 0} />;
+                    } else {
+                        bubble = (
+                            <UserBubble
+                                text={msg.content}
+                                translation={msg.translation}
+                                translationLang={msg.translationLang}
+                                userName={msg.userName}
+                                userAvatarUrl={msg.userAvatarUrl}
+                                reactionCount={isFirstUser ? heroCount : 0}
+                            />
+                        );
                     }
                     return (
-                        <UserBubble
-                            key={key}
-                            text={msg.content}
-                            translation={msg.translation}
-                            translationLang={msg.translationLang}
-                            userName={msg.userName}
-                            userAvatarUrl={msg.userAvatarUrl}
-                            reactionCount={isFirstUser ? perfectScoreCount : 0}
-                        />
+                        <div key={key} className="chat-message-row-wrapper">
+                            {bubble}
+                        </div>
                     );
                 }
 
                 if (msg.role === 'system') {
                     const componentFn = SYSTEM_TYPE_COMPONENTS[msg.type] || SYSTEM_TYPE_COMPONENTS.standard;
-                    return componentFn(msg);
+                    return (
+                        <div key={key} className="chat-message-row-wrapper">
+                            {componentFn(msg)}
+                        </div>
+                    );
                 }
 
                 return null;
             })}
+            
+            {perfectItems.map(({ msg, key }) => (
+                <PerfectStatHero
+                    key={key}
+                    msg={msg}
+                    delay={150} 
+                    onHeroComplete={handleHeroComplete}
+                    onExitComplete={() => {}}
+                />
+            ))}
         </div>
     );
 }
