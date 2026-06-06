@@ -600,22 +600,7 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     color: #6c757d !important;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
 }
-/*
-@container player (min-width: 420px) {
-    .call-btn,
-    .call-icon,
-    .mic-btn-wrapper,
-    .mic-ring {
-        width: 50px !important;
-        height: 50px !important;
-    }
 
-    .call-btn,
-    .call-icon {
-        font-size: 1.75rem;
-    }
-}
-*/
 /* MIC BUTTON WRAPPER */
 .mic-btn-wrapper {
     position: relative;
@@ -795,50 +780,12 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 }
 
 .ivp-overlay-text {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
     color: #ffffff;
     text-align: center;
     font-weight: bold;
     text-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
     margin: 0;
-}
-
-.ivp-overlay-arrow-up,
-.ivp-overlay-arrow-down {
-    position: absolute;
-    width: 0;
-    height: 0;
-    border-left: 20px solid transparent;
-    border-right: 20px solid transparent;
-}
-
-.ivp-overlay-arrow-up {
-    top: 10%;
-    border-bottom: 20px solid #fff;
-    pointer-events: none;
-}
-
-.ivp-overlay-arrow-down {
-    bottom: 10%;
-    border-top: 20px solid #fff;
-}
-
-.ivp-arrow-label {
-    position: absolute;
-    color: #fff;
-    font-weight: bold;
-    text-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
-    left: 50%;
-    transform: translateX(-50%);
-    white-space: nowrap;
-}
-
-.ivp-overlay-arrow-up .ivp-arrow-label {
-    top: -30px;
-}
-
-.ivp-overlay-arrow-down .ivp-arrow-label {
-    bottom: -30px;
 }
 
 /* CLICK-BLOCK OVERLAY for interactive video */
@@ -858,7 +805,7 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 }
 .ivp-choice-label-no,
 .ivp-choice-label-yes {
-    font-size: clamp(0.75rem, 4cqi, 1.25rem);
+    font-size: clamp(0.75rem, 7cqi, 1.25rem);
     font-weight: 700;
     color: #ffffff;
     text-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
@@ -870,12 +817,12 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     text-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
 }
 .ivp-choice-label-text {
-    font-size: clamp(0.55rem, 2.8cqi, 0.8rem);
+    font-size: clamp(0.55rem, 4.8cqi, 0.8rem);
     font-weight: 700;
     color: #ffffff;
     text-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
     letter-spacing: 0.05em;
-    white-space: nowrap;
+    /*white-space: nowrap;*/
 }
 
 /* =========================================
