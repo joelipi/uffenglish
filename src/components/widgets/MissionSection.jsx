@@ -14,9 +14,10 @@ export default function MissionSection({ stepType }) {
     const userData = useStore(appStore, (state) => state.userData);
     const successScreenVisible = useStore(appStore, (state) => state.successScreenVisible);
     const overlayVisible = useStore(appStore, (state) => state.overlayVisible);
+    const videoPlays = useStore(appStore, (state) => state.videoPlays);
 
     const lesson = configData?.lessons?.[currentLessonIndex];
-    if (!lesson || successScreenVisible || overlayVisible) return null;
+    if (!lesson || successScreenVisible || overlayVisible || (!overlayVisible && videoPlays === 1)) return null;
 
     const lang = userData?.native_language || 'en';
     const toggle = () => setExpanded((prev) => !prev);
