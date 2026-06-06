@@ -9,9 +9,10 @@ export default function MissionSection() {
     const currentLessonIndex = useStore(appStore, (state) => state.currentLessonIndex);
     const userData = useStore(appStore, (state) => state.userData);
     const successScreenVisible = useStore(appStore, (state) => state.successScreenVisible);
+    const overlayVisible = useStore(appStore, (state) => state.overlayVisible);
 
     const lesson = configData?.lessons?.[currentLessonIndex];
-    if (!lesson || successScreenVisible) return null;
+    if (!lesson || successScreenVisible || overlayVisible) return null;
 
     const lang = userData?.native_language || 'en';
     const toggle = () => setExpanded((prev) => !prev);
@@ -24,13 +25,13 @@ export default function MissionSection() {
             <div className="mission-row text-shadow">
                 <div className="d-flex align-items-baseline flex-grow-1 overflow-hidden">
                     <span className="mission-label">Mission</span>
-                    <span className="mission-text"><BilingualText translationData={lesson.mission} userLang={lang} spanPrefix="/ " /></span>
+                    <span className="mission-text"><BilingualText translationData={lesson.mission} userLang={lang} spanPrefix=" " /></span>
                     <span className="mission-label">Where</span>
-                    <span className="setting-text"><BilingualText translationData={lesson.setting} userLang={lang} spanPrefix="/ " /></span>
+                    <span className="setting-text"><BilingualText translationData={lesson.setting} userLang={lang} spanPrefix=" " /></span>
                     <span className="mission-label">You are</span>
-                    <span className="roleUser-text"><BilingualText translationData={lesson.roleUser} userLang={lang} spanPrefix="/ " /></span>
+                    <span className="roleUser-text"><BilingualText translationData={lesson.roleUser} userLang={lang} spanPrefix=" " /></span>
                     <span className="mission-label">Talking to</span>
-                    <span className="roleOther-text"><BilingualText translationData={lesson.roleOther} userLang={lang} spanPrefix="/ " /></span>
+                    <span className="roleOther-text"><BilingualText translationData={lesson.roleOther} userLang={lang} spanPrefix=" " /></span>
                 </div>
                 <div className="mission-toggle-icon">
                     <i className={'bi ' + (expanded ? 'bi-chevron-down' : 'bi-chevron-up')} id="mission-carat"></i>

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useStore } from 'zustand';
 import { appStore, setCurrentVideoPlayer } from '../modules/store/store.js';
 import { useInteractiveVideo } from '../hooks/useInteractiveVideo.js';
+import { getBilingual } from '../data/strings.js';
 
 // ---------------------------------------------------------------------------
 // Module-level constants
@@ -50,6 +51,13 @@ export default function InteractiveVideoPlayer() {
     // stays traceable and the value is always fresh in derived state.
     const isMicActive = useStore(appStore, (s) => s.isMicActive);
     const textInputVisible = useStore(appStore, (s) => s.textInputVisible);
+    const userData = useStore(appStore, (s) => s.userData);
+    const overlayLang = userData?.native_language || 'en';
+
+    const overlayBilingual = useMemo(
+        () => getBilingual('video_did_understand', overlayLang),
+        [overlayLang]
+    );
 
     const videoRef          = useRef(null);
     const posterCanvasRef   = useRef(null);
@@ -294,7 +302,7 @@ export default function InteractiveVideoPlayer() {
                     crossOrigin="anonymous"
                     src={config?.videoUrl}
                     poster={poster}
-                    style={isSlowMode ? { transform: 'scale(1.5)' } : undefined}
+                    style={{ ...(isSlowMode ? { transform: 'scale(1.5)' } : {}), ...(showOverlay ? { filter: 'grayscale(100%)' } : {}) }}
                     onLoadedData={handleVideoLoaded}
                     onCanPlay={handleVideoLoaded}
                     onPlay={onPlay}
@@ -312,14 +320,10 @@ export default function InteractiveVideoPlayer() {
                     <div className="ivp-overlay" style={{ display: 'flex' }}>
                         <div className="ivp-overlay-content">
                             <p className="ivp-overlay-text">
-                                Understand<br />100%?
+                                {overlayBilingual.localized ? (
+                                    <>{overlayBilingual.english}<br /><span lang={overlayBilingual.lang}><i>{overlayBilingual.localized}</i></span></>
+                                ) : overlayBilingual.english}
                             </p>
-                        </div>
-                        <div className="ivp-overlay-arrow ivp-overlay-arrow-up">
-                            <span className="ivp-arrow-label">NO</span>
-                        </div>
-                        <div className="ivp-overlay-arrow ivp-overlay-arrow-down">
-                            <span className="ivp-arrow-label">YES</span>
                         </div>
                     </div>
                 )}

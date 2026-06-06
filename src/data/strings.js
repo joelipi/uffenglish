@@ -856,6 +856,19 @@ const strings = {
     'auth_passwords_mismatch': {
         en: "Passwords do not match.",
         es: "Las contraseñas no coinciden."
+    },
+
+    'video_did_understand': {
+        en: "Did you understand completely?",
+        es: "¿Entendiste completamente?"
+    },
+    'video_ear_training': {
+        en: "TRAIN YOUR EAR",
+        es: "ENTRENA TU OÍDO"
+    },
+    'video_respond_now': {
+        en: "RESPOND NOW",
+        es: "RESPONDE AHORA"
     }
 };
 

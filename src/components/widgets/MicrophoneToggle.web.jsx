@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from 'zustand';
 import { appStore, getCurrentVideoPlayer } from '../../modules/store/store.js';
 import { getSpeechInputToggleCallback } from '../../modules/lesson/step-loader-callbacks.js';
+import { getBilingual } from '../../data/strings.js';
 
 export default function MicrophoneToggle() {
     const isMicActive = useStore(appStore, (state) => state.isMicActive);
@@ -10,6 +11,7 @@ export default function MicrophoneToggle() {
     const micBounceTrigger = useStore(appStore, (state) => state.micBounceTrigger);
     const overlayVisible = useStore(appStore, (state) => state.overlayVisible);
     const currentVideo = useStore(appStore, (state) => state.currentVideo);
+    const userData = useStore(appStore, (state) => state.userData);
     const [bouncing, setBouncing] = useState(false);
     const [hasSeenOverlay, setHasSeenOverlay] = useState(false);
     const [earBtnVisible, setEarBtnVisible] = useState(true);
@@ -114,6 +116,7 @@ export default function MicrophoneToggle() {
 
     const ringStyle = isMicActive ? { opacity: 0.7, pointerEvents: 'none' } : { opacity: 0, pointerEvents: 'none' };
     const shouldShowMic = bottomControlState === 'mic' && (overlayVisible || hasSeenOverlay);
+    const labelLang = userData?.native_language || 'en';
 
     if (!shouldShowMic) {
         return (
@@ -123,35 +126,62 @@ export default function MicrophoneToggle() {
 
     if (overlayVisible && earBtnVisible) {
         return (
-            <div className="mic-btn-wrapper" id="state-standard-mic" style={{ display: 'flex', width: '100%', position: 'relative' }}>
-                <button
-                    className="btn call-btn"
-                    id="earBtn"
-                    aria-label="Listen again"
-                    onClick={handleEarClick}
-                    style={{ position: 'absolute', left: 'calc(25vw - 16px)', transform: 'translateX(-50%)' }}
-                >
-                    <i className="bi bi-ear-fill"></i>
-                </button>
-                <button
-                    ref={micBtnRef}
-                    className={`btn call-btn ${isMicActive ? '' : 'toggled-off'} ${isTextMode ? 'd-none' : ''}`}
-                    id="micBtn"
-                    aria-label="Toggle Microphone"
-                    onClick={handleMicClick}
-                    style={{ position: 'absolute', right: 'calc(25vw - 16px)', transform: 'translateX(50%)' }}
-                >
-                    <i className={isMicActive ? "bi bi-mic-fill" : "bi bi-mic-mute-fill"}></i>
-                </button>
-                <button
-                    className={`btn call-btn ${isTextMode ? '' : 'd-none'}`}
-                    id="txtBtn"
-                    aria-label="Toggle Text Input"
-                    onClick={handleTxtClickOverlay}
-                    style={{ position: 'absolute', right: 'calc(25vw - 16px)', transform: 'translateX(50%)' }}
-                >
-                    <i className="bi bi-keyboard-fill"></i>
-                </button>
+            <div style={{ display: 'flex', justifyContent: 'space-around', width: '100%', gap: '8px' }}>
+                <div className="ivp-choice-col" style={{ flex: 1, minWidth: 0 }}>
+                    <div className="ivp-choice-label">
+                        <div className="ivp-choice-label-no">NO</div>
+                        <div className="ivp-choice-label-arrow">▼</div>
+                        <div className="ivp-choice-label-text">
+                            {(() => {
+                                const d = getBilingual('video_ear_training', labelLang);
+                                return d.localized ? (
+                                    <React.Fragment>{d.english}<br /><span lang={d.lang}><i>{d.localized}</i></span></React.Fragment>
+                                ) : d.english;
+                            })()}
+                        </div>
+                    </div>
+                    <button
+                        className="btn call-btn"
+                        id="earBtn"
+                        aria-label="Listen again"
+                        onClick={handleEarClick}
+                    >
+                        <i className="bi bi-ear-fill"></i>
+                    </button>
+                </div>
+                <div className="ivp-choice-col" style={{ flex: 1, minWidth: 0 }}>
+                    <div className="ivp-choice-label">
+                        <div className="ivp-choice-label-yes">YES</div>
+                        <div className="ivp-choice-label-arrow">▼</div>
+                        <div className="ivp-choice-label-text">
+                            {(() => {
+                                const d = getBilingual('video_respond_now', labelLang);
+                                return d.localized ? (
+                                    <React.Fragment>{d.english}<br /><span lang={d.lang}><i>{d.localized}</i></span></React.Fragment>
+                                ) : d.english;
+                            })()}
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                            ref={micBtnRef}
+                            className={`btn call-btn ${isMicActive ? '' : 'toggled-off'} ${isTextMode ? 'd-none' : ''}`}
+                            id="micBtn"
+                            aria-label="Toggle Microphone"
+                            onClick={handleMicClick}
+                        >
+                            <i className={isMicActive ? "bi bi-mic-fill" : "bi bi-mic-mute-fill"}></i>
+                        </button>
+                        <button
+                            className={`btn call-btn ${isTextMode ? '' : 'd-none'}`}
+                            id="txtBtn"
+                            aria-label="Toggle Text Input"
+                            onClick={handleTxtClickOverlay}
+                        >
+                            <i className="bi bi-keyboard-fill"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
         );
     }
