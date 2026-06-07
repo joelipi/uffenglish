@@ -38,7 +38,6 @@ export function cancelWarningClear() {
 export function handleStepCore(step) {
     Media.cleanupPreviousPlayers();
     appStore.getState().clearPlaybackBlob();
-    setCurrentVideoPlayer(null);
     appStore.getState().setCurrentVideo(null);
 
     appStore.getState().setStatsVisible((step.stepType === 'closedResponse' || step.stepType === 'openResponse') && step.videoUrl);
