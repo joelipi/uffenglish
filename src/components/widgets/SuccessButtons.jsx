@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
+import { trackEvent } from '../../modules/utils/logrocket.js';
 
 export function ContinueButton({ onLoadNextLesson }) {
   const button = useStore(appStore, state => state.successContinueButton);
@@ -9,6 +10,7 @@ export function ContinueButton({ onLoadNextLesson }) {
   if (!button.visible) return null;
 
   const handleClick = () => {
+    trackEvent('success_continue');
     setLoading(true);
     onLoadNextLesson();
   };
@@ -40,6 +42,7 @@ export function VideoButton({ canvasRef }) {
   if (!button.visible) return null;
 
   const handleProcess = async () => {
+    trackEvent('video_generation_started');
     setVideoState('processing');
     setCanvasVisible(true);
 
@@ -52,6 +55,7 @@ export function VideoButton({ canvasRef }) {
       const result = await processVideo(fluencyData, lessonId, canvas);
 
       if (result?.blob) {
+        trackEvent('video_generation_success');
         setCanvasVisible(false);
         setSuccessVideoBlob(result.blob);
         setVideoState('ready');
@@ -65,6 +69,7 @@ export function VideoButton({ canvasRef }) {
         };
       }
     } catch (err) {
+      trackEvent('video_generation_failed', { error: err.message });
       console.error('[Success] Video generation failed:', err);
       alert('Failed to generate video. Please try again.');
       setVideoState('idle');
@@ -72,6 +77,7 @@ export function VideoButton({ canvasRef }) {
   };
 
   const handleShare = () => {
+    trackEvent('video_shared');
     if (shareHandlerRef.current) {
       shareHandlerRef.current();
     }
@@ -118,7 +124,10 @@ export function RepeatButton({ lessonId, onRepeat }) {
 
   if (!button.visible || !lessonId || !onRepeat) return null;
 
-  const handleRepeat = () => onRepeat(lessonId);
+  const handleRepeat = () => {
+    trackEvent('success_repeat', { lesson_id: lessonId });
+    onRepeat(lessonId);
+  };
 
   return (
     <button

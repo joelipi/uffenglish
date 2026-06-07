@@ -8,6 +8,7 @@ import Strings from '../../data/strings.js';
 import { getLocalizedTranslation } from '../utils/utils.js';
 import { getCurrentStepIndex } from '../answer/answers.js';
 import { logInteraction } from '../answer/scoring.js';
+import { trackEvent } from '../utils/logrocket.js';
 import { handleTextStep, handleLessonComplete, handleUnitComplete, handleSuccessStep, clearWarningLater, cancelWarningClear } from './step-loader-logic.js';
 import { loadStepOrchestrate } from './step-loader-orchestrate.js';
 import { setTextInputSubmitCallback as setTextCb, setSpeechInputToggleCallback as setSpeechCb } from './step-loader-callbacks.js';
@@ -149,6 +150,7 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                     player: getCurrentVideoPlayer(),
                     uiHooks: {
                         onHesitation: (points) => {
+                            trackEvent('speech_hesitation', { points });
                             appStore.getState().triggerPointLoss('flow', points);
                         },
                         onPauseVideo: (player) => {
@@ -164,6 +166,7 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                         onMicDisable: () => {
                         },
                         onRecordingStart: (userData) => {
+                            trackEvent('recording_started');
                             cancelWarningClear();
                             appStore.getState().setMicActive(true);
                             const currentPlayer = getCurrentVideoPlayer();
@@ -189,6 +192,7 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                         onRecordingActive: () => {
                         },
                         onRecordingStop: (btn) => {
+                            trackEvent('recording_stopped');
                             appStore.getState().setMicActive(false);
                             appStore.getState().setMicStatus(null);
                             appStore.getState().setMediaVisible(false);
@@ -196,6 +200,7 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             appStore.getState().setMicStatus({ type: 'analyzing', text: 'Analyzing Speech...' });
                         },
                         onStopEarly: (userData) => {
+                            trackEvent('recording_stopped_early', { point_loss: 10 });
                             appStore.getState().setMicActive(false);
                             appStore.getState().deductSpeakingScore(10);
                             appStore.getState().incrementWhisperRejections();
@@ -206,6 +211,7 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             clearWarningLater(3000);
                         },
                         onGibberishDetected: () => {
+                            trackEvent('gibberish_detected', { point_loss: 10 });
                             appStore.getState().setMicActive(false);
                             appStore.getState().deductSpeakingScore(10);
                             appStore.getState().incrementWhisperRejections();
@@ -215,6 +221,7 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             clearWarningLater(3000);
                         },
                         onPreflightRejected: (msg) => {
+                            trackEvent('preflight_rejected', { point_loss: 10 });
                             appStore.getState().setMicActive(false);
                             appStore.getState().deductSpeakingScore(10);
                             appStore.getState().incrementWhisperRejections();
@@ -226,6 +233,7 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             clearWarningLater(4000);
                         },
                         onTranscriptRejected: (cue, transcript) => {
+                            trackEvent('transcript_rejected', { point_loss: 20 });
                             appStore.getState().setMicActive(false);
                             logInteraction(cue, transcript, "rej_usr", "User rejected Whisper transcription", null, appStore.getState().interactionLog);
                             appStore.getState().deductSpeakingScore(20);

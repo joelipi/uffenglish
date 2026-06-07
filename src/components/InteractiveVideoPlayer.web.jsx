@@ -87,6 +87,9 @@ export default function InteractiveVideoPlayer() {
         requestPlayRef.current = () => {
             const video = videoRef.current;
             if (!video || isMicActiveRef.current) return;
+            if (video.ended) {
+                video.currentTime = 0;
+            }
             if (video.paused) video.play().catch(() => {});
         };
         return () => { requestPlayRef.current = null; };

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { account, tablesDB, ID, APPWRITE_CONFIG } from '../../modules/api/appwrite.js';
 import { invalidateUserAndAuthCache } from '../../modules/api/api.js';
+import { identifyUser, trackEvent } from '../../modules/utils/logrocket.js';
 
 export function useSignupForm({ onSignupSuccess } = {}) {
     const [firstName, setFirstName] = useState('');
@@ -49,9 +50,21 @@ export function useSignupForm({ onSignupSuccess } = {}) {
                 }
             });
 
+            identifyUser(user.$id, {
+                email: user.email,
+                name: user.name,
+                signup_native_language: nativeLanguage,
+                signup_english_level: userLevel,
+            });
+            trackEvent('signup', {
+                native_language: nativeLanguage,
+                english_level: userLevel,
+            });
+
             invalidateUserAndAuthCache();
             onSignupSuccess?.();
         } catch (err) {
+            trackEvent('signup_failed', { error: err.message });
             setError(err.message);
         } finally {
             setLoading(false);

@@ -9,6 +9,7 @@ import { resolveCurrentLessonId } from '../modules/lesson/lesson-routing.js';
 import { saveLessonProgress } from '../modules/user/user-profile.js';
 import { loadLessonContent } from '../modules/lesson/lesson-loader.js';
 import Strings from '../data/strings.js';
+import { trackEvent } from '../modules/utils/logrocket.js';
 
 export function useInitializeLesson({ forceRestart = false } = {}) {
     const initializeLesson = useCallback(async (courseId, lessonId, configData, userData) => {
@@ -46,6 +47,11 @@ export function useInitializeLesson({ forceRestart = false } = {}) {
             return { success: true, lesson, lessonIndex };
         } catch (error) {
             console.error("initializeLesson error:", error);
+            trackEvent('lesson_init_error', {
+                course_id: courseId,
+                lesson_id: lessonId,
+                error: error.message,
+            });
             appStore.getState().setIsLoaded(true);
             appStore.getState().setCriticalErrorMessage(Strings.get('lesson_load_error', userData?.native_language));
             return { success: false, error };

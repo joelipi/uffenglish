@@ -14,6 +14,7 @@ import { saveLessonProgress } from '../user/user-profile.js';
 import { getCompressedLessonStats } from '../answer/scoring.js';
 import { calculateLessonAverage, detectFluencyTrend } from './success-lesson-logic.js';
 import { setTextInputSubmitCallback } from './step-loader-callbacks.js';
+import { trackEvent } from '../utils/logrocket.js';
 
 // --- Warning Clear Timer (no DOM) ---
 
@@ -87,6 +88,12 @@ export function handleUnitComplete(step) {
         loadVideoForStep(step, null, state.userData?.native_language);
     }
 
+    trackEvent('unit_complete', {
+        lesson_id: lessonId,
+        fluency_average: lessonAverage,
+        is_improving: isImproving,
+    });
+
     state.setSuccessScreen(lessonId, fluencyDataObj);
     state.setStatsVisible(false);
     state.setProgressPercent("100%");
@@ -104,6 +111,16 @@ export function handleSuccessStep(step, fluencyData) {
     state.setLastSuccessFluencyData(fluencyDataObj);
     state.setFluencyImproving(isImproving);
     state.setLastLessonFluencyAvg(lessonAverage);
+
+    trackEvent('lesson_complete', {
+        lesson_id: step.lessonId,
+        course_id: state.courseId,
+        fluency_average: lessonAverage,
+        is_improving: isImproving,
+        step_count: state.stepCount,
+        total_interactions: state.interactionLog?.length,
+        is_text_mode: state.isTextMode,
+    });
     
     if (isImproving) {
         console.log(`[Gamification] ✅ Fluency improving! Last-10 avg: ${state.recentFluencyAvgs?.reduce((a, b) => a + b, 0) / (state.recentFluencyAvgs?.length || 1)}% → Current: ${lessonAverage}%`);

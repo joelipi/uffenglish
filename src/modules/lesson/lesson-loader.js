@@ -1,6 +1,7 @@
 import { appStore, getAnswerPipelineDeps, getCurrentVideoPlayer } from '../store/store.js';
 import { clearSpeechRecordingsForLesson } from '../storage/storage.js';
 import { loadStep } from '../../components/step-loader.js';
+import { trackEvent } from '../utils/logrocket.js';
 
 export async function loadLessonContent(lesson, options = {}) {
     const { forceRestart = false } = options;
@@ -39,6 +40,17 @@ export async function loadLessonContent(lesson, options = {}) {
         lessonTitle: fullTitle,
         isLessonActive: true,
         stepsAnswered: startIndex
+    });
+
+    trackEvent('lesson_loaded', {
+        lesson_id: lesson.lessonId,
+        course_name: course,
+        course_level: courseLevel,
+        lesson_title: fullTitle,
+        force_restart: forceRestart,
+        start_index: startIndex,
+        resumed: startIndex > 0,
+        step_count: lesson.steps.length,
     });
 
     const stepDeps = getAnswerPipelineDeps();

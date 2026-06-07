@@ -4,6 +4,7 @@ import { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../modules/store/store.js';
 import { InteractiveVideoStateController } from '../modules/video/interactive-video-controller.js';
+import { trackEvent } from '../modules/utils/logrocket.js';
 
 export function useInteractiveVideo() {
     const currentVideo = useStore(appStore, (s) => s.currentVideo);
@@ -31,6 +32,7 @@ export function useInteractiveVideo() {
             ...currentVideo.config,
             videoUrl: currentVideo.url,
             onWordReveal: () => {
+                trackEvent('word_revealed');
                 appStore.getState().deductListeningScore(15);
                 appStore.getState().setPointLossAmount(15);
             },
@@ -97,6 +99,10 @@ export function useInteractiveVideo() {
             return;
         }
 
+        trackEvent('video_play', {
+            play_count: appStore.getState().videoPlays + 1,
+            step_type: appStore.getState().currentVideo?.stepType,
+        });
         controllerRef.current?.play();
 
         appStore.getState().incrementVideoPlays();
@@ -118,6 +124,10 @@ export function useInteractiveVideo() {
             return false;
         }
 
+        trackEvent('video_click', {
+            click_count: appStore.getState().videoClicks + 1,
+            step_type: appStore.getState().currentVideo?.stepType,
+        });
         appStore.getState().incrementVideoClicks();
         const stepType = appStore.getState().currentVideo?.stepType ?? '';
         if (

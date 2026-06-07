@@ -26,6 +26,7 @@ import { getBotIdentity } from '../user/bot-identity.js';
 import teacherAvatarUrl from '../../assets/img/teacherprofile.webp';
 import userAvatarUrl from '../../assets/img/userprofile.png';
 import aiAvatarUrl from '../../assets/img/ai.webp';
+import { trackEvent } from '../utils/logrocket.js';
 
 function mapSectionToMessage(section) {
     if (section.type === 'grammar') {
@@ -478,6 +479,10 @@ export function createAnswerPipeline(deps) {
     }
 
     function handleHint(stepIndex) {
+        trackEvent('hint_requested', {
+            step_type: appStore.getState().configData?.lessons?.[appStore.getState().currentLessonIndex]?.steps?.[stepIndex]?.stepType,
+            step_index: stepIndex,
+        });
         appStore.getState().setHintsVisible(true);
     }
 
@@ -497,6 +502,11 @@ export function createAnswerPipeline(deps) {
 
         if (!isValid) {
             const cueText = typeof cue === 'object' ? cue?.en : cue;
+            trackEvent('answer_rejected', {
+                reason: warningMessage,
+                is_text_mode: appStore.getState().isTextMode,
+                step_type: stepData.stepType,
+            });
             logInteraction(cueText, val, "rej_pre", warningMessage, null, appStore.getState().interactionLog);
             if (!appStore.getState().isTextMode) {
                 appStore.getState().deductSpeakingScore(10);
@@ -658,6 +668,18 @@ export function createAnswerPipeline(deps) {
                 const diffObj = result.explanations.find(e => e.type === 'grammar_diff');
                 if (diffObj && diffObj.correction) grammarCorrection = diffObj.correction;
             }
+
+            trackEvent('answer_submitted', {
+                is_correct: isCorrect,
+                step_type: stepData.stepType,
+                is_text_mode: appStore.getState().isTextMode,
+                word_count: cleanWordCount,
+                attempt_number: appStore.getState().incorrectAttempts + 1,
+                fluency_score: appStore.getState().fluencyScore,
+                course_level: configData?.courseLevel,
+                wpm: speechAnalytics?.wpm,
+                pause_count: stats.pauseCount,
+            });
 
             let status = isCorrect ? "ok" : "inc";
             let pragmaticDetails = result?.intentLabels?.length > 0 ? result.intentLabels : null;
@@ -859,6 +881,11 @@ export function createAnswerPipeline(deps) {
             appStore.getState().setHintsVisible(false);
             console.log('[showFeedbackAndProceed] stepType:', stepData.stepType, '| isLessonIntro:', stepData.stepType === "lessonIntro");
             const onContinue = () => {
+                trackEvent('continue_clicked', {
+                    step_type: stepData.stepType,
+                    is_correct: isCorrect,
+                    incorrect_attempts: appStore.getState().incorrectAttempts,
+                });
                 appStore.getState().triggerPauseAllVideos();
                 if (stepData.stepType === "lessonIntro") {
                     const initializeMedia = async () => {

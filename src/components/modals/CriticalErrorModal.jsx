@@ -6,6 +6,7 @@
 import React from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
+import { trackEvent } from '../../modules/utils/logrocket.js';
 
 export default function CriticalErrorModal() {
     const criticalErrorMessage = useStore(appStore, (state) => state.criticalErrorMessage);
@@ -22,7 +23,10 @@ export default function CriticalErrorModal() {
             <p id="criticalErrorMessage" className="text-secondary mb-4">
                 {criticalErrorMessage}
             </p>
-            <button className="btn btn-primary px-4 rounded-pill" onClick={() => appStore.getState().clearCriticalError()}>
+            <button className="btn btn-primary px-4 rounded-pill" onClick={() => {
+                trackEvent('critical_error_retry');
+                appStore.getState().clearCriticalError();
+            }}>
                 <i className="bi bi-arrow-clockwise"></i> Try Again
             </button>
         </div>

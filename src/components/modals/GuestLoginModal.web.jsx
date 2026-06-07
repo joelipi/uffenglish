@@ -8,6 +8,7 @@ import { useLocation, Link } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import Strings from '../../data/strings.js';
+import { trackEvent } from '../../modules/utils/logrocket.js';
 
 export default function GuestLoginModal() {
     const isGuestModalOpen = useStore(appStore, (state) => state.isGuestModalOpen);
@@ -37,6 +38,7 @@ export default function GuestLoginModal() {
     }, [isGuestModalOpen]);
 
     const handleClose = () => {
+        trackEvent('guest_modal_action', { action: 'continue_as_guest' });
         setGuestModalOpen(false);
         console.log('[GuestLoginModal] User chose to continue as guest');
     };
@@ -66,6 +68,7 @@ export default function GuestLoginModal() {
                                 to={`/login?redirect=${encodeURIComponent(currentUrl)}`}
                                 id="guestLoginBtn"
                                 className="btn btn-primary"
+                                onClick={() => trackEvent('guest_modal_action', { action: 'login' })}
                             >
                                 <i className="bi bi-box-arrow-in-right me-1"></i>
                                 <span id="guestLoginBtnText">
@@ -76,6 +79,7 @@ export default function GuestLoginModal() {
                                 to={`/signup?redirect=${encodeURIComponent(currentUrl)}`}
                                 id="guestSignupBtn"
                                 className="btn btn-secondary"
+                                onClick={() => trackEvent('guest_modal_action', { action: 'signup' })}
                             >
                                 <i className="bi bi-person-plus-fill me-1"></i>
                                 <span id="guestSignupBtnText">

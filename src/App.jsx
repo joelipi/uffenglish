@@ -3,9 +3,18 @@ import { RouterProvider } from 'react-router-dom';
 import { router } from './routes/router.js';
 import { initLocalVoiceAI } from './modules/speech/speech.js';
 import { idiomChecker } from './modules/utils/idiom-checker.js';
+import { identifyUser } from './modules/utils/logrocket.js';
 
 export default function App() {
     const isWorkerInitialized = useRef(false);
+    const hasIdentifiedGuest = useRef(false);
+
+    useEffect(() => {
+        if (!hasIdentifiedGuest.current) {
+            hasIdentifiedGuest.current = true;
+            identifyUser({ auth_method: 'guest' });
+        }
+    }, []);
 
     useEffect(() => {
         if (isWorkerInitialized.current) return;

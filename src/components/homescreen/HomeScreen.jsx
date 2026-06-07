@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { appStore } from '../../modules/store/store.js';
 import { useAuthStatus, signOut } from '../../modules/api/api.js';
 import Strings from '../../data/strings.js';
+import { trackEvent } from '../../modules/utils/logrocket.js';
 
 export default function HomeScreen() {
     const navigate = useNavigate();
@@ -30,6 +31,7 @@ export default function HomeScreen() {
 
     async function handleSignOut() {
         closeMenu();
+        trackEvent('sign_out');
         await signOut();
         navigate('/');
     }

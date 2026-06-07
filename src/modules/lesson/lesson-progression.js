@@ -8,6 +8,7 @@ import Strings from '../../data/strings.js';
 import teacherAvatar from '../../assets/img/teacherprofile.webp';
 import userAvatar from '../../assets/img/userprofile.png';
 import aiAvatar from '../../assets/img/ai.webp';
+import { trackEvent } from '../utils/logrocket.js';
 
 export function createProgression(deps) {
     const {
@@ -38,6 +39,11 @@ export function createProgression(deps) {
 
     function loadNextStep(currentStep, fluencyData, _deps = {}) {
         updateProgressBar();
+        trackEvent('step_completed', {
+            step_index: appStore.getState().currentStepIndex,
+            step_type: currentStep.stepType,
+            is_last_step: appStore.getState().currentStepIndex >= (appStore.getState().configData?.lessons?.[appStore.getState().currentLessonIndex]?.steps?.length || 0) - 1,
+        });
         appStore.getState().setStatsVisible(false);
         appStore.getState().resetForNextStep();
         appStore.getState().resetStepState();
@@ -61,6 +67,11 @@ export function createProgression(deps) {
         const currentLesson = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex];
         const nextLessonId = currentLesson.nextLessonId;
         console.log(`[Progression] loadNextLesson: ${currentLesson?.lessonId} → ${nextLessonId}`);
+        trackEvent('next_lesson_triggered', {
+            from_lesson_id: currentLesson?.lessonId,
+            to_lesson_id: nextLessonId,
+            has_next: !!nextLessonId,
+        });
 
         if (nextLessonId) {
             appStore.setState({ pendingLessonNavigation: nextLessonId });
@@ -106,6 +117,12 @@ export function createProgression(deps) {
             const aiWordCount = aiResponse.trim().split(/\s+/).length;
             appStore.getState().incrementAiTutorStats(aiWordCount);
 
+            trackEvent('tutor_chat', {
+                user_word_count: wordCount,
+                ai_word_count: aiWordCount,
+                success: true,
+            });
+
             appStore.getState().removeAiLoadingMessage();
 
             appStore.getState().addChatMessage({
@@ -116,6 +133,11 @@ export function createProgression(deps) {
                 avatarUrl: aiAvatar
             });
         } catch (error) {
+            trackEvent('tutor_chat', {
+                user_word_count: wordCount,
+                success: false,
+                error: error.message,
+            });
             console.error('[app] Error in askEnglishTutor:', error);
             appStore.getState().removeAiLoadingMessage();
         }
