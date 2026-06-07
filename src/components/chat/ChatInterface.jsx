@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useMemo } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import UserBubble from './UserBubble.jsx';
@@ -12,7 +12,6 @@ import VideoBubble from './VideoBubble.jsx';
 import ContinueWidgetBubble from './ContinueWidgetBubble.jsx';
 import TeacherFeedbackBubble from './TeacherFeedbackBubble.jsx';
 import PossibleAnswerBubble from './PossibleAnswerBubble.jsx';
-import PerfectStatHero from './PerfectStatHero.jsx';
 
 const SYSTEM_TYPE_COMPONENTS = {
     continueWidget: (msg) => <ContinueWidgetBubble key={msg.id} onClick={msg.onClick} />,
@@ -99,23 +98,9 @@ const SYSTEM_TYPE_COMPONENTS = {
 export default function ChatInterface() {
     const chatHistory = useStore(appStore, (state) => state.chatHistory);
     const containerRef = useRef(null);
-    const [heroCount, setHeroCount] = useState(0);
 
-    const { listItems, perfectItems } = useMemo(() => {
-        const list = [];
-        const perfect = [];
-        
-        for (const msg of chatHistory) {
-            const isPerfect = (msg.type === 'stat' || msg.type === 'grammarDiff') && msg.isPerfect;
-            const item = { msg, key: msg.id };
-            
-            if (isPerfect) {
-                perfect.push(item);
-            } else {
-                list.push(item);
-            }
-        }
-        return { listItems: list, perfectItems: perfect };
+    const perfectCount = useMemo(() => {
+        return chatHistory.filter(msg => (msg.type === 'stat' || msg.type === 'grammarDiff') && msg.isPerfect).length;
     }, [chatHistory]);
 
     useEffect(() => {
@@ -127,9 +112,7 @@ export default function ChatInterface() {
         }
     }, [chatHistory]);
 
-    const handleHeroComplete = () => {
-        setHeroCount(c => c + 1);
-    };
+    const firstUserMsg = useMemo(() => chatHistory.find(msg => msg.role === 'user'), [chatHistory]);
 
     return (
         <div
@@ -138,12 +121,13 @@ export default function ChatInterface() {
             className="card-body chat-message-list text-dark"
             style={{ overflowY: 'auto', position: 'relative' }}
         >
-            {listItems.map(({ msg, key }) => {
+            {chatHistory.map((msg) => {
+                const key = msg.id;
                 if (msg.role === 'user') {
-                    const isFirstUser = msg === listItems.find(i => i.msg.role === 'user')?.msg;
+                    const isFirstUser = msg === firstUserMsg;
                     let bubble;
                     if (msg.type === 'video') {
-                        bubble = <VideoBubble avatarUrl={msg.userAvatarUrl} userName={msg.userName} reactionCount={isFirstUser ? heroCount : 0} />;
+                        bubble = <VideoBubble avatarUrl={msg.userAvatarUrl} userName={msg.userName} reactionCount={isFirstUser ? perfectCount : 0} />;
                     } else {
                         bubble = (
                             <UserBubble
@@ -152,7 +136,7 @@ export default function ChatInterface() {
                                 translationLang={msg.translationLang}
                                 userName={msg.userName}
                                 userAvatarUrl={msg.userAvatarUrl}
-                                reactionCount={isFirstUser ? heroCount : 0}
+                                reactionCount={isFirstUser ? perfectCount : 0}
                             />
                         );
                     }
@@ -174,16 +158,6 @@ export default function ChatInterface() {
 
                 return null;
             })}
-            
-            {perfectItems.map(({ msg, key }) => (
-                <PerfectStatHero
-                    key={key}
-                    msg={msg}
-                    delay={150} 
-                    onHeroComplete={handleHeroComplete}
-                    onExitComplete={() => {}}
-                />
-            ))}
         </div>
     );
 }
