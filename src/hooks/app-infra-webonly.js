@@ -25,7 +25,7 @@ export async function setupAppInfra({ userData }) {
     if (userData) {
         appStore.getState().setCourseData({
             userData,
-            englishLevel: userData?.english_level || 'A0'
+            userLevel: userData?.english_level || 'A0'
         });
 
         const isGuest = userData.auth_method === 'guest' || userData.display_name === 'Guest User';

@@ -14,13 +14,13 @@ import Strings from '../../data/strings.js';
  * @param {Object} params.result - Output from processAnswerLogic()
  * @param {Object} params.stepData - The current step object
  * @param {string} params.lang - User's native language code
- * @param {string} params.englishLevel - CEFR level string (A0-C2)
+ * @param {string} params.courseLevel - CEFR level string (A0-C2)
  * @param {number} params.attemptNumber - 1-based attempt count
  * @param {number} params.repetitionCount - Number of video repetitions
  * @param {number} params.whisperRejections - Number of times whisper transcription was rejected
  * @returns {{ sections: Array<Object> }}
  */
-export function buildFeedbackData({ scoreData, speechAnalytics, result, stepData, lang, englishLevel, attemptNumber, repetitionCount, whisperRejections = 0 }) {
+export function buildFeedbackData({ scoreData, speechAnalytics, result, stepData, lang, courseLevel, attemptNumber, repetitionCount, whisperRejections = 0 }) {
     const sections = [];
 
     // 1. Pronunciation

@@ -25,8 +25,8 @@ export async function loadLessonContent(lesson, options = {}) {
 
     const configData = appStore.getState().configData;
     const course = configData?.courseName || "";
-    const englishLevel = configData?.languageLevel || 'A0';
-    const level = englishLevel ? ` (${englishLevel})` : "";
+    const courseLevel = configData?.courseLevel || 'A0';
+    const level = courseLevel ? ` (${courseLevel})` : "";
     const unit = (lesson.unit && String(lesson.unit).trim() !== "") ? `${lesson.unit}: ` : "";
     const titleText = (typeof lesson.title === 'object') ? (lesson.title.en || "") : (lesson.title || "");
     const fullTitle = `${course}${level}${course ? ': ' : ''}${unit}${titleText}`;

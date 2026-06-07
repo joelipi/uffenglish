@@ -25,7 +25,7 @@ describe('Answer Pipeline Integration', () => {
     beforeEach(() => {
         appStore.setState({
             configData: {
-                languageLevel: 'A1',
+                courseLevel: 'A1',
                 lessons: [{
                     lessonId: 'test-lesson',
                     steps: [

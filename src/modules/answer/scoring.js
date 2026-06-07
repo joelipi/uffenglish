@@ -34,7 +34,7 @@ export function calculateFluencyScore({
     hesitation,
     wordCount,
     idiomCount,
-    cefrLevel,
+    courseLevel,
     grammarErrorScore,
     complexityScore,
     labels,
@@ -72,11 +72,11 @@ export function calculateFluencyScore({
     // 4. Vocabulary (5%)
     let vocabScore = 100;
     let threshold = 0;
-    if (cefrLevel === 'B1') threshold = 1;
-    else if (cefrLevel === 'B2') threshold = 2;
-    else if (cefrLevel === 'C1' || cefrLevel === 'C2') threshold = 3;
+    if (courseLevel === 'B1') threshold = 1;
+    else if (courseLevel === 'B2') threshold = 2;
+    else if (courseLevel === 'C1' || courseLevel === 'C2') threshold = 3;
 
-    if (cefrLevel && idiomCount < threshold) {
+    if (courseLevel && idiomCount < threshold) {
         vocabScore = Math.max(0, 100 - ((threshold - idiomCount) * 25));
     }
     const vocabulary = vocabScore;
@@ -85,7 +85,7 @@ export function calculateFluencyScore({
     const diffScore = grammarErrorScore !== undefined ? grammarErrorScore : 100;
     let grammar;
 
-    if (['A0', 'A1', 'A2'].includes(cefrLevel)) {
+    if (['A0', 'A1', 'A2'].includes(courseLevel)) {
         grammar = diffScore;
     } else {
         grammar = ((diffScore * 2) + (complexityScore ?? 100)) / 3;

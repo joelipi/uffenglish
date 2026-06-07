@@ -68,9 +68,9 @@ export function createSpeechOrchestrator({
             setTimeout(() => toggleSpeechRecognition(params), 2500);
         };
 
-        const englishLevel = configData?.languageLevel || 'A0';
+        const courseLevel = configData?.courseLevel || 'A0';
         const { isValid, warningMessage } = await validateAnswerPrecheck(
-            transcriptToReview, step.cue, step, englishLevel, userData, appStore.getState().responsesGiven
+            transcriptToReview, step.cue, step, courseLevel, userData, appStore.getState().responsesGiven
         );
 
         if (!isValid) { rejectPreflight(warningMessage); return; }

@@ -171,7 +171,7 @@ export function createAnswerPipeline(deps) {
         warmUpSpeechCam,
     } = deps;
 
-    function handleCorrectFeedbackUI(stepIndex, stepData, button, cue, explanation, translation, userResponse, englishLevel, englishLevelDeduction, userData, configData, fluencyBubble = null) {
+    function handleCorrectFeedbackUI(stepIndex, stepData, button, cue, explanation, translation, userResponse, courseLevel, englishLevelDeduction, userData, configData, fluencyBubble = null) {
         const cueText = typeof cue === 'object' ? cue?.en : cue;
         const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
 
@@ -191,13 +191,13 @@ export function createAnswerPipeline(deps) {
         const feedbackText = (stepData.stepType === "openResponse" && englishLevelDeduction > 0)
             ? (() => {
                 const acceptable = Strings.getBilingual('ai_acceptable', lang);
-                const level = Strings.getBilingual('ai_language_level', lang);
+                const level = Strings.getBilingual('ai_course_level', lang);
                 const reduced = Strings.getBilingual('ai_fluency_reduced', lang);
                 const points = Strings.getBilingual('ai_percentage_points', lang);
-                const english = `${acceptable.english}. ${level.english} ${englishLevel}. ${reduced.english} ${englishLevelDeduction} ${points.english}.`;
+                const english = `${acceptable.english}. ${level.english} ${courseLevel}. ${reduced.english} ${englishLevelDeduction} ${points.english}.`;
                 const hasTrans = acceptable.localized && level.localized && reduced.localized && points.localized;
                 const translation = hasTrans
-                    ? `${acceptable.localized}. ${level.localized} ${englishLevel}. ${reduced.localized} ${englishLevelDeduction} ${points.localized}.`
+                    ? `${acceptable.localized}. ${level.localized} ${courseLevel}. ${reduced.localized} ${englishLevelDeduction} ${points.localized}.`
                     : undefined;
                 return { type: 'text', text: english, translation, translationLang: translation ? lang : undefined };
             })()
@@ -490,9 +490,9 @@ export function createAnswerPipeline(deps) {
     }
 
     async function submitAnswerPrecheck(val, cue, stepData, btn, explanation, translation, stats = { pauseCount: null, netDuration: null }, _deps = {}, userData = appStore.getState().userData, configData = appStore.getState().configData, courseId = appStore.getState().courseId) {
-        const englishLevel = configData?.languageLevel || 'A0';
+        const courseLevel = configData?.courseLevel || 'A0';
         const { isValid, warningMessage } = await validateAnswerPrecheck(
-            val, cue, stepData, englishLevel, userData, appStore.getState().responsesGiven
+            val, cue, stepData, courseLevel, userData, appStore.getState().responsesGiven
         );
 
         if (!isValid) {
@@ -573,7 +573,7 @@ export function createAnswerPipeline(deps) {
                 cleanWordCount = userResponse.replace(/[^\w\s]/g, '').trim().split(/\s+/).filter(Boolean).length;
 
                 if (stats && stats.netDuration !== null) {
-                    speechAnalytics = await analyzeSpeech(userResponse, stats.netDuration, stats.pauseCount, courseId ? courseId.substring(0, 2).toUpperCase() : 'A1', stepData.stepType);
+                    speechAnalytics = await analyzeSpeech(userResponse, stats.netDuration, stats.pauseCount, configData?.courseLevel || 'A1', stepData.stepType);
                     if (speechAnalytics && stats.hesitation !== undefined) {
                         speechAnalytics.hesitation = stats.hesitation;
                     }
@@ -618,7 +618,7 @@ export function createAnswerPipeline(deps) {
         let fluencyBubble = null;
 
         try {
-            const englishLevel = configData?.languageLevel || 'A0';
+            const courseLevel = configData?.courseLevel || 'A0';
             const lesson = (configData && configData.lessons) ? configData.lessons[appStore.getState().currentLessonIndex] : null;
             console.log('[pipeline] lesson ', lesson);
             if (!lesson) {
@@ -640,7 +640,7 @@ export function createAnswerPipeline(deps) {
                 result = await processAnswerLogic({
                     userResponse, cue, stepData,
                     lesson: lesson,
-                    english_level: englishLevel,
+                    courseLevel: courseLevel,
                     userData: userData,
                     apiRoot: null
                 });
@@ -691,7 +691,7 @@ export function createAnswerPipeline(deps) {
                     hesitation: speechAnalytics?.hesitation || 0,
                     wordCount: cleanWordCount,
                     idiomCount: speechAnalytics?.foundIdioms ? speechAnalytics.foundIdioms.length : 0,
-                    cefrLevel: englishLevel,
+                    courseLevel: courseLevel,
                     grammarErrorScore: grammarErrorScore,
                     complexityScore: speechAnalytics?.complexityScore || 100,
                     labels: result && result.intentLabels ? result.intentLabels : [],
@@ -705,7 +705,7 @@ export function createAnswerPipeline(deps) {
                     pauseCount: stats.pauseCount || 0,
                     hesitation: speechAnalytics?.hesitation || 0,
                     idiomCount: speechAnalytics?.foundIdioms ? speechAnalytics.foundIdioms.length : 0,
-                    cefrLevel: englishLevel,
+                    courseLevel: courseLevel,
                     grammarErrorScore,
                     complexityScore: speechAnalytics?.complexityScore || 100,
                     labels: result && result.intentLabels ? result.intentLabels : [],
@@ -735,7 +735,7 @@ export function createAnswerPipeline(deps) {
 
                 const feedbackData = buildFeedbackData({
                     scoreData, speechAnalytics, result, stepData,
-                    lang: userData?.native_language, englishLevel,
+                    lang: userData?.native_language, courseLevel,
                     attemptNumber: incorrectAttempts + 1,
                     repetitionCount: appStore.getState().videoPlays,
                     whisperRejections: whisperRejections
@@ -833,7 +833,7 @@ export function createAnswerPipeline(deps) {
                         appStore.getState().deductListeningScore(result.cefrLevelDeduction);
                     }
                 }
-                handleCorrectFeedbackUI(stepIndex, stepData, button, cue, structuredExplanations, translation, userResponse, result ? result.cefrLevel : undefined, result ? result.cefrLevelDeduction : undefined, userData, configData, fluencyBubble);
+                handleCorrectFeedbackUI(stepIndex, stepData, button, cue, structuredExplanations, translation, userResponse, courseLevel, result ? result.cefrLevelDeduction : undefined, userData, configData, fluencyBubble);
                 showFeedbackAndProceed(stepData, isCorrect, _deps);
             } else {
                 appStore.getState().clearPlaybackBlob();

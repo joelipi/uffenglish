@@ -499,7 +499,7 @@ const strings = {
         es: "🎯 Aceptable. Intenta usar un lenguaje más avanzado.",
         fr: "🎯 Acceptable. Essayez d'utiliser un langage plus avancé."
     },
-    'ai_language_level': {
+    'ai_course_level': {
         en: "Language level:",
         es: "Nivel de idioma:",
         fr: "Niveau de langue :"
@@ -659,7 +659,7 @@ const strings = {
         en: "Native Language",
         es: "Idioma Nativo"
     },
-    'profile_english_level': {
+    'profile_user_level': {
         en: "English Level",
         es: "Nivel de Inglés"
     },

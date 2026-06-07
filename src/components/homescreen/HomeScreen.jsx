@@ -180,7 +180,7 @@ export default function HomeScreen() {
                          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
                             <h3 style={{ fontSize: '20px', fontWeight: 600, margin: 0 }}>{config.courseName || 'Grocery Shopping'}</h3>
-                            <span style={{ backgroundColor: '#007bff', padding: '4px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 600 }}>{config.languageLevel || 'B1'}</span>
+                            <span style={{ backgroundColor: '#007bff', padding: '4px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 600 }}>{config.courseLevel || 'A0'}</span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#adb5bd', fontSize: '14px' }}>
                             <i className="bi bi-journal-text"></i>

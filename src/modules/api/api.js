@@ -337,9 +337,9 @@ export async function askEnglishTutor(conversationHistoryContext, newUserMessage
 
 const EVALUATION_SYSTEM_PROMPT = `You are a strict ESL evaluator. You receive a dialog (A and B) and a context string (CTX) containing the setting, roles, goals, and a minimum word count. Evaluate B's utterance only. Output ONLY one or more lines. Do not include markdown, preambles, explanations, JSON, arrays, extra formatting, or punctuation like commas or quotes. ### Rules 1. If flawless: Output \`OK\` 2. If unguessable: Output \`GIBBERISH\` 3. If errors exist: Output one line per item. * **For language errors**, write \`LABEL: Corrected text\` on one line. Each correction builds on the previous one (evaluate vocabulary on the grammar-corrected version). Maintain the minimum word count in your corrections. * **For flag labels** (no correction needed), write the label alone on one line. ### Correction Labels * **GRAMMAR:** Mechanical errors (tense, gender, number, modals, missing/misplaced prepositions). * **VOCAB:** Wrong word choice. Includes garbled idioms ("sound and safe" → "safe and sound"), wrong count form ("moneys" → "money"), or inappropriate connotation ("My dog is a lovely beast" → "…lovely animal"). * **UNNATURAL:** Correct and meaningful but sounds awkward, unidiomatic or not native (L1 calques, unnecessary complexity, unlikely collocations in everyday settings). "I see your sadness." → "You look sad."; "eat within a lapse of two hours" → "eat within two hours." * **TOO_FORMAL:** Diction too elevated for the context. "Purchase" → "buy"; "investigate" → "look into"; "if you would be so kind" → "please." * **TOO_INFORMAL:** If much lower register than A's utterance, or unfit for the setting. ### Flag Labels * **RUDE** / **INSENSITIVE** / **OFFENSIVE** * **PRAGMATIC_FAILURE:** B's utterance does not fit A's utterance or B's goal. --- ### EXAMPLES **SCENARIO 1** \`CTX: supermarket. A=employee, B=customer, goal: buy paper towels. Min_words: 4\` \`A: Can I help you find anything?\` * If B: "I'm looking for paper towels." **Output:** \`OK\` * If B: "Paper towels blue here on where." **Output:** \`GIBBERISH\` * If B: "I seek a paper towels." **Output:** \`GRAMMAR: I seek some paper towels.\` \`UNNATURAL: I'm looking for some paper towels.\` * If B: "I look for towels of paper." **Output:** \`GRAMMAR: I'm looking for towels of paper.\` \`VOCAB: I'm looking for paper towels.\` * If B: "Kindly direct me to the paper towels." **Output:** \`TOO_FORMAL: Could you tell me where the paper towels are?\` * If B: "It a beautiful day." **Output:** \`GRAMMAR: It's a beautiful day.\` \`PRAGMATIC_FAILURE\` **SCENARIO 2** \`CTX: the park. A=friend, B=friend.\` \`A: Do you like it here?\` * If B: "I'm really enjoying it." **Output:** \`OK\` * If B: "I adore it here." **Output:** \`VOCAB: I love it here.\` * If B: "It is a place of beauty." **Output:** \`UNNATURAL: It's a beautiful place.\` * If B: "I finding it delighting." **Output:** \`GRAMMAR: I find it delighting.\` \`VOCAB: I find it delightful.\` \`TOO_FORMAL: I think it's wonderful.\` * If B: "It's not park very impressive." **Output:** \`GRAMMAR: It's not a very impressive park.\` \`RUDE\` **Misc** * \`A: My friend died.\` | \`B: That's too bad.\` **Output:** \`INSENSITIVE\` * \`A: Should I keep going?\` | \`B: You is in for a pound, in for a penny.\` **Output:** \`GRAMMAR: You are in for a pound, in for a penny.\` \`VOCAB: You are in for a penny, in for a pound.\` \`UNNATURAL: You're in for a penny, in for a pound.\` * \`A: We want to sing and dance with you.\` | \`B: No way, old dudes! You're way too old to sing and dance with us.\` **Output:** \`OFFENSIVE\``;
 
-function deriveMinWords(englishLevel) {
-  if (!englishLevel) return 3;
-  const level = englishLevel.toUpperCase();
+function deriveMinWords(courseLevel) {
+  if (!courseLevel) return 3;
+  const level = courseLevel.toUpperCase();
   if (level === 'A0' || level === 'A1') return 3;
   if (level === 'A2') return 4;
   if (level === 'B1') return 5;
@@ -452,7 +452,7 @@ function parseEvaluationResult(rawText) {
 
 // Intentional raw fetch() — one-shot AI inference. Every input is unique so
 // caching via TanStack Query would be harmful (stale analysis for wrong answer).
-export async function evaluateWithAI(userResponse, stepData, lessonData, englishLevel) {
+export async function evaluateWithAI(userResponse, stepData, lessonData, courseLevel) {
   const aiEndpoint = 'https://deepseek-proxy.joel-1cb.workers.dev';
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 15000);
@@ -462,7 +462,7 @@ export async function evaluateWithAI(userResponse, stepData, lessonData, english
     const roleOther = getEnglish(lessonData.roleOther) || '';
     const roleUser = getEnglish(lessonData.roleUser) || '';
     const mission = getEnglish(lessonData.mission) || '';
-    const minWords = deriveMinWords(englishLevel);
+    const minWords = deriveMinWords(courseLevel);
 
     const ctx = `CTX: ${setting}. A=${roleOther}, B=${roleUser}, goal: ${mission}. Min_words: ${minWords}`;
     const userPrompt = `${ctx}\n\nA: ${cueText}\nB: ${userResponse}`;

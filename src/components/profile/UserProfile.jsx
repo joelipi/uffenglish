@@ -35,7 +35,7 @@ const NATIVE_LANGUAGES = [
     { value: 'UK', label: 'Ukrainian' },
 ];
 
-const ENGLISH_LEVELS = ['A0', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+const ENGLISH_LEVELS = ['A0', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'Native'];
 
 function Section({ title, children }) {
     return (
@@ -101,7 +101,7 @@ export default function UserProfile() {
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [nativeLanguage, setNativeLanguage] = useState('EN');
-    const [englishLevel, setEnglishLevel] = useState('A0');
+    const [userLevel, setUserLevel] = useState('A0');
     const [profileMsg, setProfileMsg] = useState(null);
 
     const [newEmail, setNewEmail] = useState('');
@@ -120,7 +120,7 @@ export default function UserProfile() {
             setFirstName(profile.firstName || '');
             setLastName(profile.lastName || '');
             setNativeLanguage(profile.native_language || 'EN');
-            setEnglishLevel(profile.english_level || 'A0');
+            setUserLevel(profile.english_level || 'A0');
         }
     }, [profile]);
 
@@ -133,7 +133,7 @@ export default function UserProfile() {
                     firstName,
                     lastName,
                     native_language: nativeLanguage,
-                    english_level: englishLevel,
+                    english_level: userLevel,
                 },
                 userId: profile.$id,
             });
@@ -324,8 +324,8 @@ export default function UserProfile() {
                         <FormField label={Strings.get('profile_native_language', lang)} id="nativeLanguage">
                             <Select id="nativeLanguage" value={nativeLanguage} onChange={e => setNativeLanguage(e.target.value)} options={NATIVE_LANGUAGES} />
                         </FormField>
-                        <FormField label={Strings.get('profile_english_level', lang)} id="englishLevel">
-                            <Select id="englishLevel" value={englishLevel} onChange={e => setEnglishLevel(e.target.value)} options={ENGLISH_LEVELS.map(l => ({ value: l, label: l }))} />
+                        <FormField label={Strings.get('profile_user_level', lang)} id="userLevel">
+                            <Select id="userLevel" value={userLevel} onChange={e => setUserLevel(e.target.value)} options={ENGLISH_LEVELS.map(l => ({ value: l, label: l }))} />
                         </FormField>
                         <button onClick={handleProfileSave} disabled={syncMutation.isPending}
                                 style={syncMutation.isPending ? btnPrimaryDisabled : btnPrimaryStyle}>

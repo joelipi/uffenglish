@@ -49,7 +49,7 @@ export function getCurrentStepIndex(stepData, configData, currentLessonIndex) {
 }
 
 export async function processAnswerLogic({
-    userResponse, cue, stepData, lesson, englishLevel, userData, apiRoot
+    userResponse, cue, stepData, lesson, courseLevel, userData, apiRoot
 }) {
     if (stepData.stepType === "openResponse") {
         const cueText = typeof cue === 'object' ? cue?.en : cue;
@@ -63,14 +63,14 @@ export async function processAnswerLogic({
             userResponse: userResponse,
             normalizeduserResponse: normalizeduserResponse,
             normalizedcue: normalizedcue,
-            cefrLevel: "",
+            courseLevel: courseLevel || 'A0',
             cefrLevelDeduction: 0,
             errorType: ""
         };
 
         let evaluation;
         try {
-            evaluation = await evaluateWithAI(userResponse, stepData, lesson, englishLevel);
+            evaluation = await evaluateWithAI(userResponse, stepData, lesson, courseLevel);
         } catch (apiError) {
             console.error('[processAnswerLogic] AI API error, returning api_error result:', apiError);
             result.errorType = 'api_error';
@@ -91,7 +91,7 @@ export async function processAnswerLogic({
         result.correction = evaluation.finalCorrectedText || evaluation.grammarCorrectedText || userResponse;
 
         if (result.isCorrect) {
-            result.cefrLevel = 'B1';
+            result.courseLevel = courseLevel || 'A0';
             result.cefrLevelDeduction = 0;
             result.errorType = 'correct';
         } else {
@@ -155,7 +155,7 @@ export async function processAnswerLogic({
     }
 }
 
-export async function validateAnswerPrecheck(val, cue, stepData, englishLevel, userData, responsesGiven) {
+export async function validateAnswerPrecheck(val, cue, stepData, courseLevel, userData, responsesGiven) {
     if (stepData.stepType !== "openResponse") return { isValid: true };
 
     const cueText = typeof cue === 'object' ? cue?.en : cue;
@@ -175,9 +175,9 @@ export async function validateAnswerPrecheck(val, cue, stepData, englishLevel, u
         warningMessage = Strings.get('no_repetition', userData?.native_language);
         isInvalid = true;
     } else {
-        if (englishLevel.toUpperCase() === 'A2') { minWordsRequired = 4; }
-        else if (englishLevel.toUpperCase() === 'B1') { minWordsRequired = 5; }
-        else if (englishLevel.toUpperCase() === 'B2' || englishLevel.toUpperCase() === 'C1' || englishLevel.toUpperCase() === 'C2') { minWordsRequired = 6; }
+        if (courseLevel.toUpperCase() === 'A2') { minWordsRequired = 4; }
+        else if (courseLevel.toUpperCase() === 'B1') { minWordsRequired = 5; }
+        else if (courseLevel.toUpperCase() === 'B2' || courseLevel.toUpperCase() === 'C1' || courseLevel.toUpperCase() === 'C2') { minWordsRequired = 6; }
 
         const isProfane = swearjar.profane(val);
 

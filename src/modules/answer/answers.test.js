@@ -206,7 +206,7 @@ describe('Answers Module', () => {
                 stepData: { stepType: 'closedResponse', explanation: 'explain' },
                 userResponse: 'hello there',
                 cue: 'hello there',
-                englishLevel: 'B1'
+                courseLevel: 'B1'
             });
             expect(result.isCorrect).toBe(true);
             expect(result.explanation).toBe('explain');
@@ -218,7 +218,7 @@ describe('Answers Module', () => {
                 stepData: { stepType: 'closedResponse', explanation: 'explain' },
                 userResponse: 'hello',
                 cue: 'goodbye',
-                englishLevel: 'B1'
+                courseLevel: 'B1'
             });
             expect(result.isCorrect).toBe(false);
         });

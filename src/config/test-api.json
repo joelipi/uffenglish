@@ -1,6 +1,6 @@
 {
   "courseId": "test-api",
-  "languageLevel": "A1",
+  "courseLevel": "A1",
   "lessons": [
     {
       "lessonId": "t",

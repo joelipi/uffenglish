@@ -8,7 +8,7 @@ export function useSignupForm({ onSignupSuccess } = {}) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [nativeLanguage, setNativeLanguage] = useState('');
-    const [englishLevel, setEnglishLevel] = useState('');
+    const [userLevel, setUserLevel] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -44,7 +44,7 @@ export function useSignupForm({ onSignupSuccess } = {}) {
                     joinDate: new Date().toISOString(),
                     accountStatus: 'active',
                     native_language: nativeLanguage,
-                    english_level: englishLevel,
+                    english_level: userLevel,
                     completed_dates: []
                 }
             });
@@ -69,8 +69,8 @@ export function useSignupForm({ onSignupSuccess } = {}) {
         setPassword,
         nativeLanguage,
         setNativeLanguage,
-        englishLevel,
-        setEnglishLevel,
+        userLevel,
+        setUserLevel,
         error,
         loading,
         handleSubmit,

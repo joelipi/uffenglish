@@ -26,9 +26,9 @@ export default function AppLayout() {
     useEffect(() => {
         if (fetchedConfig && !configData) {
             const userData = appStore.getState().userData;
-            const englishLevel = fetchedConfig.languageLevel || 'A0';
+            const courseLevel = fetchedConfig.courseLevel || 'A0';
             normalizeConfig(fetchedConfig, userData?.native_language);
-            appStore.getState().setCourseData({ courseId, configData: fetchedConfig, englishLevel });
+            appStore.getState().setCourseData({ courseId, configData: fetchedConfig, courseLevel });
         }
     }, [fetchedConfig]); // eslint-disable-line react-hooks/exhaustive-deps
 

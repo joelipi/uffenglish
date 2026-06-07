@@ -36,8 +36,8 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
         setPassword,
         nativeLanguage,
         setNativeLanguage,
-        englishLevel,
-        setEnglishLevel,
+        userLevel,
+        setUserLevel,
         error,
         loading,
         handleSubmit,
@@ -119,12 +119,12 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
                         </select>
                     </div>
                     <div className="col-6">
-                        <label htmlFor="englishLevel" className="form-label">{Strings.get('profile_english_level', lang)}</label>
+                        <label htmlFor="userLevel" className="form-label">{Strings.get('profile_user_level', lang)}</label>
                         <select
                             className="form-select"
-                            id="englishLevel"
-                            value={englishLevel}
-                            onChange={(e) => setEnglishLevel(e.target.value)}
+                            id="userLevel"
+                            value={userLevel}
+                            onChange={(e) => setUserLevel(e.target.value)}
                             required
                         >
                             {ENGLISH_LEVELS.map((level) => (
