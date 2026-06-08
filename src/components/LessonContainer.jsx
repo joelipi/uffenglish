@@ -47,6 +47,7 @@ export default function LessonContainer() {
     const statsVisible = useStore(appStore, (state) => state.statsVisible);
     const mediaVisible = useStore(appStore, (state) => state.mediaVisible);
     const chatModeActive = useStore(appStore, (state) => state.chatModeActive);
+    const textInputVisible = useStore(appStore, (state) => state.textInputVisible);
 
     const [lesson, setLesson] = useState(null);
 
@@ -139,9 +140,6 @@ export default function LessonContainer() {
                 </div>
             </div>
 
-            {/* Answer Input Area */}
-            <AnswerInput />
-
             {/* Controls */}
             <div className="lesson-body">
                 <CriticalErrorModal />
@@ -162,11 +160,14 @@ export default function LessonContainer() {
                 <MissionSection stepType={currentStep?.stepType} />
                 <div className="bottom-overlay-content">
                     <div className="controls-section">
-                        <div className="d-flex justify-content-center align-items-center w-100">
-                            <MicrophoneToggle />
-                            <IntroChoices />
-                            <SuccessScreen onLoadNextLesson={onLoadNextLesson} onRepeat={handleRepeat} canvasRef={successCanvasRef} />
-                        </div>
+                        <AnswerInput />
+                        {!textInputVisible && (
+                            <div className="d-flex justify-content-center align-items-center w-100">
+                                <MicrophoneToggle />
+                                <IntroChoices />
+                                <SuccessScreen onLoadNextLesson={onLoadNextLesson} onRepeat={handleRepeat} canvasRef={successCanvasRef} />
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

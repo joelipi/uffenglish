@@ -83,7 +83,7 @@ export default function AnswerInput() {
     if (!textInputVisible) return null;
 
     return (
-        <div ref={containerRef} className={`position-absolute w-100 p-3${scoreAnimating ? ' score-update' : ''}`} style={{ zIndex: 9999 }}>
+        <div ref={containerRef} className={`w-100${scoreAnimating ? ' score-update' : ''}`}>
             <div className="card bg-dark border-secondary shadow-lg">
                 <div className="card-body p-2 d-flex align-items-center gap-2">
                     <div className="flex-grow-1 d-flex flex-column">
