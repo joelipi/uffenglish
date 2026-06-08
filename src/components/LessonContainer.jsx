@@ -149,14 +149,14 @@ export default function LessonContainer() {
             <WebcamPreview />
 
             {/* Chat Window */}
-            <div id="chat-window-container" className={`chat-window-container ${chatModeActive ? '' : 'd-none'}`}>
+            <div id="chat-window-container" className={`chat-window-container ${chatModeActive ? '' : 'chat-hidden'}`}>
                 <ChatHeader />
                 <ChatInterface />
                 <TutorChatInput onSubmit={handleTutorChatSubmit} />
             </div>
 
             {/* Bottom Overlay */}
-            <div className={`bottom-overlay position-absolute bottom-0 start-0 w-100${chatModeActive ? ' d-none' : ' d-flex flex-column'}`}>
+            <div className={`bottom-overlay position-absolute bottom-0 start-0 w-100 ${chatModeActive ? 'overlay-hidden' : 'overlay-visible'}`}>
                 <MissionSection stepType={currentStep?.stepType} />
                 <div className="bottom-overlay-content">
                     <div className="controls-section">

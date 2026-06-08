@@ -28,7 +28,7 @@ export default function StatsBubble({
                     {headerContent}
                     {attemptLabel && attemptCount !== undefined && !(isPerfect && (sectionKey === 'pronunciation' || sectionKey === 'listening')) && ` · ${attemptLabel} ${attemptCount}`}
                 </div>
-                {parts.length > 0 && (
+                {parts.length > 0 && !(isPerfect && sectionKey === 'flow') && (
                     <div className="chat-message-content" style={{ marginTop: '5px' }}>
                         {/* Inline parts */}
                         {parts.some(p => p.display === 'inline') && (
