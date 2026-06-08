@@ -100,7 +100,10 @@ export default function InteractiveVideoPlayer() {
     // -------------------------------------------------------------------------
     useEffect(() => {
         if (!isActive) {
-            setCurrentVideoPlayer(null);
+            const currType = appStore.getState().currentVideo?.type;
+            if (currType !== 'simple' && currType !== 'intro') {
+                setCurrentVideoPlayer(null);
+            }
             return;
         }
 
@@ -148,7 +151,10 @@ export default function InteractiveVideoPlayer() {
 
         return () => {
             appStore.getState().setMediaVisible(false);
-            setCurrentVideoPlayer(null);
+            const currType = appStore.getState().currentVideo?.type;
+            if (currType !== 'simple' && currType !== 'intro') {
+                setCurrentVideoPlayer(null);
+            }
         };
     }, [isActive]);
 

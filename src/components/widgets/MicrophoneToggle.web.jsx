@@ -119,7 +119,8 @@ export default function MicrophoneToggle() {
     };
 
     const ringStyle = isMicActive ? { opacity: 0.7, pointerEvents: 'none' } : { opacity: 0, pointerEvents: 'none' };
-    const shouldShowMic = bottomControlState === 'mic' && (overlayVisible || hasSeenOverlay);
+    const isInteractiveVideo = currentVideo?.type === 'interactive';
+    const shouldShowMic = bottomControlState === 'mic' && (overlayVisible || hasSeenOverlay || !isInteractiveVideo);
     const labelLang = userData?.native_language || 'en';
 
     if (!shouldShowMic) {

@@ -28,7 +28,10 @@ export default function SimpleVideoPlayer() {
     // so the platform-agnostic answer pipeline can drive both uniformly.
     useEffect(() => {
         if (!isActive) {
-            setCurrentVideoPlayer(null);
+            const currType = appStore.getState().currentVideo?.type;
+            if (currType !== 'interactive') {
+                setCurrentVideoPlayer(null);
+            }
             return;
         }
         appStore.getState().setMediaVisible(true);
@@ -51,7 +54,10 @@ export default function SimpleVideoPlayer() {
         setCurrentVideoPlayer(player);
         return () => {
             appStore.getState().setMediaVisible(false);
-            setCurrentVideoPlayer(null);
+            const currType = appStore.getState().currentVideo?.type;
+            if (currType !== 'interactive') {
+                setCurrentVideoPlayer(null);
+            }
         };
     }, [isActive]);
 
