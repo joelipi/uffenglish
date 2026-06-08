@@ -777,6 +777,7 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     display: flex;
     flex-direction: column;
     align-items: center;
+    animation: riseThroughWater 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .ivp-overlay-text {
@@ -786,6 +787,7 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     font-weight: bold;
     text-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
     margin: 0;
+    animation: waterDrift 2s ease-in-out 0s forwards;
 }
 
 /* CLICK-BLOCK OVERLAY for interactive video */
@@ -802,6 +804,10 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     text-align: center;
     margin-bottom: 8px;
     width: 100%;
+    animation: riseThroughWater 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.ivp-choice-col:last-child .ivp-choice-label {
+    animation-delay: 0.35s;
 }
 .ivp-choice-label-no,
 .ivp-choice-label-yes {
@@ -823,6 +829,68 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     text-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
     letter-spacing: 0.05em;
     /*white-space: nowrap;*/
+}
+
+/* Buttons inside choice columns — white glow (pseudo-element avoids !important conflicts) */
+.ivp-choice-col .call-btn {
+    position: relative;
+    z-index: 0;
+    animation: floatBob 3.5s ease-in-out infinite;
+}
+.ivp-choice-col .call-btn::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: -1;
+    background: transparent;
+    box-shadow: 0 0 25px 8px rgba(255, 255, 255, 0.85);
+    animation: btnGlowPulse 2s ease-in-out infinite;
+}
+
+@keyframes riseThroughWater {
+    0% {
+        opacity: 0;
+        transform: translateY(30px) translateX(-8px) scale(0.97);
+    }
+    45% {
+        opacity: 1;
+        transform: translateY(-3px) translateX(2px) scale(1.01);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) translateX(0) scale(1);
+    }
+}
+
+@keyframes waterDrift {
+    0% {
+        transform: translateY(-14px);
+        opacity: 0.6;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes floatBob {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-3px);
+    }
+}
+
+@keyframes btnGlowPulse {
+    0%, 100% {
+        box-shadow: 0 0 25px 8px rgba(255, 255, 255, 0.85);
+    }
+    50% {
+        box-shadow: 0 0 45px 20px rgba(255, 255, 255, 1);
+    }
 }
 
 /* =========================================
