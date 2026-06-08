@@ -12,6 +12,7 @@ import { persist } from 'zustand/middleware';
 let _answerPipelineDeps = null;
 let _currentVideoPlayer = null;
 let _webcamStream = null;
+let _nextMsgId = 1;
 
 export function getAnswerPipelineDeps()    { return _answerPipelineDeps; }
 export function setAnswerPipelineDeps(v)   { _answerPipelineDeps = v; }
@@ -188,11 +189,11 @@ export const appStore = createStore(
 
             addChatMessage: (msg) => set((state) => {
                 const newMsg = {
-                    id: msg.id !== undefined ? msg.id : Date.now() + Math.random(),
+                    ...msg,
+                    id: msg.id ?? _nextMsgId++,
                     role: msg.role,
                     type: msg.type || 'standard',
                     content: msg.content,
-                    ...msg
                 };
                 return { chatHistory: [...state.chatHistory, newMsg] };
             }),
