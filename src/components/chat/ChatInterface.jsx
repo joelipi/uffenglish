@@ -114,6 +114,45 @@ export default function ChatInterface() {
 
     const firstUserMsg = useMemo(() => chatHistory.find(msg => msg.role === 'user'), [chatHistory]);
 
+    const sortedHistory = useMemo(() => {
+        const result = [];
+        let preStat = [];
+        let pendingPerfect = [];
+        let pendingNonPerfect = [];
+        let hasSeenStat = false;
+        for (const msg of chatHistory) {
+            if (msg.role === 'user') {
+                result.push(...preStat);
+                result.push(...pendingPerfect);
+                result.push(...pendingNonPerfect);
+                preStat = [];
+                pendingPerfect = [];
+                pendingNonPerfect = [];
+                hasSeenStat = false;
+                result.push(msg);
+            } else if ((msg.type === 'stat' || msg.type === 'grammarDiff')) {
+                hasSeenStat = true;
+                if (msg.isPerfect) {
+                    pendingPerfect.push(msg);
+                } else {
+                    pendingNonPerfect.push(msg);
+                }
+            } else if (hasSeenStat) {
+                result.push(...pendingPerfect);
+                result.push(...pendingNonPerfect);
+                pendingPerfect = [];
+                pendingNonPerfect = [];
+                result.push(msg);
+            } else {
+                preStat.push(msg);
+            }
+        }
+        result.push(...preStat);
+        result.push(...pendingPerfect);
+        result.push(...pendingNonPerfect);
+        return result;
+    }, [chatHistory]);
+
     return (
         <div
             id="chat-message-list"
@@ -121,7 +160,7 @@ export default function ChatInterface() {
             className="card-body chat-message-list text-dark"
             style={{ overflowY: 'auto', position: 'relative' }}
         >
-            {chatHistory.map((msg) => {
+            {sortedHistory.map((msg) => {
                 const key = msg.id;
                 if (msg.role === 'user') {
                     const isFirstUser = msg === firstUserMsg;

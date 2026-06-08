@@ -25,20 +25,24 @@ export default function TutorChatInput({ onSubmit }) {
     if (!tutorChatVisible) return null;
 
     return (
-        <div className="card-footer bg-white border-top-0 w-100">
-            <div className="input-group">
-                <textarea
-                    ref={textareaRef}
-                    className="form-control"
-                    rows="2"
-                    placeholder="Ask your tutor a question..."
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                />
-                <button className="btn btn-primary" type="button" onClick={handleSend}>
-                    <i className="bi bi-send-fill"></i>
-                </button>
+        <div className="w-100">
+            <div className="card bg-dark border-secondary shadow-lg">
+                <div className="card-body p-2 d-flex align-items-center gap-2">
+                    <div className="flex-grow-1 d-flex flex-column">
+                        <textarea
+                            ref={textareaRef}
+                            className="form-control bg-dark text-white border-secondary"
+                            rows="2"
+                            placeholder="Ask your tutor a question..."
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                        />
+                    </div>
+                    <button id="answer-submit-button" type="button" onClick={handleSend}>
+                        <i className="bi bi-send-fill"></i>
+                    </button>
+                </div>
             </div>
         </div>
     );
