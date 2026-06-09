@@ -322,6 +322,7 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 /* UI Overlays with gradients */
 .top-overlay {
     background: linear-gradient(to bottom, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0) 100%);
+    z-index: 35;
 }
 
 #closePage {
@@ -385,6 +386,22 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     border: 2px solid rgba(255, 255, 255, 0.3);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
     z-index: 2;
+    transition: top 0.25s ease-out, right 0.25s ease-out,
+                width 0.25s ease-out, height 0.25s ease-out,
+                border-radius 0.25s ease-out, border 0.25s ease-out,
+                box-shadow 0.25s ease-out, aspect-ratio 0.25s ease-out;
+}
+
+.pip-container--takeover {
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+    z-index: 30;
 }
 
 #webcam-preview {
@@ -782,7 +799,7 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     position: relative;
     background: linear-gradient(135deg, rgba(58, 143, 213, 0.88) 0%, rgba(0, 192, 216, 0.88) 100%);
 }
-.water-surface::after {
+.water-surface::before {
     content: '';
     position: absolute;
     inset: 0;
@@ -1104,22 +1121,22 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     width: 100%;
     height: 100%;
     border-radius: 12px;
-    box-shadow: 0 0 0 0 rgba(0, 242, 254, 0.6);
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.6);
     animation: pulse-ring-anim 2s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
     z-index: -1;
 }
 
 @keyframes pulse-ring-anim {
     0% {
-        box-shadow: 0 0 0 0 rgba(0, 242, 254, 0.6);
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.6);
     }
 
     70% {
-        box-shadow: 0 0 0 35px rgba(0, 242, 254, 0);
+        box-shadow: 0 0 0 35px rgba(255, 255, 255, 0);
     }
 
     100% {
-        box-shadow: 0 0 0 0 rgba(0, 242, 254, 0);
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
     }
 }
 

@@ -7,6 +7,7 @@ export default function WebcamPreview() {
     // then read the actual stream from the module-level getter.
     const webcamStreamKey = useStore(appStore, (state) => state._webcamStreamKey);
     const chatModeActive = useStore(appStore, (state) => state.chatModeActive);
+    const isMicActive = useStore(appStore, (state) => state.isMicActive);
     const videoRef = useRef(null);
     const wrapperRef = useRef(null);
 
@@ -33,8 +34,15 @@ export default function WebcamPreview() {
 
     const show = !!getWebcamStream() && !chatModeActive;
 
+    let className = 'pip-container';
+    if (show) {
+        className += isMicActive ? ' pip-container--takeover' : ' shadow';
+    } else {
+        className += ' d-none';
+    }
+
     return (
-        <div ref={wrapperRef} id="pip-wrapper" className={`pip-container shadow ${show ? '' : 'd-none'}`}>
+        <div ref={wrapperRef} id="pip-wrapper" className={className}>
             <video ref={videoRef} id="webcam-preview" autoPlay muted playsInline></video>
         </div>
     );

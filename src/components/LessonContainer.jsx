@@ -48,6 +48,7 @@ export default function LessonContainer() {
     const mediaVisible = useStore(appStore, (state) => state.mediaVisible);
     const chatModeActive = useStore(appStore, (state) => state.chatModeActive);
     const textInputVisible = useStore(appStore, (state) => state.textInputVisible);
+    const bottomOverlayVisible = useStore(appStore, (state) => state.bottomOverlayVisible);
 
     const [lesson, setLesson] = useState(null);
 
@@ -117,7 +118,7 @@ export default function LessonContainer() {
             <MicStatusText />
 
             {/* Top Overlay */}
-            <div className="top-overlay position-absolute top-0 start-0 w-100 px-3 py-2 z-1">
+            <div className="top-overlay position-absolute top-0 start-0 w-100 px-3 py-2">
                 <div className="w-100 text-shadow">
                     <div className="d-flex align-items-center w-100 mb-0">
                         {/* TODO: Replace with proper home route when one exists */}
@@ -156,7 +157,7 @@ export default function LessonContainer() {
             </div>
 
             {/* Bottom Overlay */}
-            <div className={`bottom-overlay position-absolute bottom-0 start-0 w-100 ${chatModeActive ? 'overlay-hidden' : 'overlay-visible'}`}>
+            <div className={`bottom-overlay position-absolute bottom-0 start-0 w-100 ${chatModeActive || !bottomOverlayVisible ? 'overlay-hidden' : 'overlay-visible'}`}>
                 <MissionSection stepType={currentStep?.stepType} />
                 <div className="bottom-overlay-content">
                     <div className="controls-section">

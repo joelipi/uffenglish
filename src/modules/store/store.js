@@ -81,6 +81,7 @@ export const appStore = createStore(
             mediaVisible: false,
             micBounceTrigger: 0,
             overlayVisible: false,
+            bottomOverlayVisible: true,
 
             // --- Whisper Review Overlay ---
             whisperReviewData: null,
@@ -234,6 +235,7 @@ export const appStore = createStore(
             setHangmanHintHTML: (html) => set({ hangmanHintHTML: html }),
             setHangmanOps: (ops) => set({ hangmanOps: ops }),
             setBottomControlState: (state) => set({ bottomControlState: state }),
+            setBottomOverlayVisible: (val) => set({ bottomOverlayVisible: val }),
             setOverlayVisible: (val) => set({ overlayVisible: val }),
             setChatModeActive: (val) => set({ chatModeActive: val }),
             setSubmitBtnDisabled: (val) => set({ submitBtnDisabled: val }),
@@ -372,6 +374,7 @@ export const appStore = createStore(
                 playbackAutoplay: false,
                 playbackSpeechCamChunks: [],
                 bottomControlState: 'mic',
+                bottomOverlayVisible: true,
                 praiseImageUrl: null,
                 youtubeVideoId: null,
                 whisperReviewData: null,
