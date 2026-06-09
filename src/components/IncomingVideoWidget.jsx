@@ -63,7 +63,7 @@ export default function IncomingVideoWidget() {
         <div id="intro-call-widget" className="intro-video-wrapper" onClick={handleClick}>
             <div className="pulse-ring-wrapper">
                 <div className="pulse-ring"></div>
-                <div className="intro-video-container ringing-animation">
+                <div className="intro-video-container">
                     <video ref={videoRef} className="intro-video" playsInline preload="auto" crossOrigin="anonymous" muted onLoadedData={onLoadedData} />
                     <div className="intro-notification-content">
                         <div className="intro-notification-top">

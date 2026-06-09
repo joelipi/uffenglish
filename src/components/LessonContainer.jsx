@@ -157,7 +157,7 @@ export default function LessonContainer() {
             </div>
 
             {/* Bottom Overlay */}
-            <div className={`bottom-overlay position-absolute bottom-0 start-0 w-100 ${chatModeActive || !bottomOverlayVisible ? 'overlay-hidden' : 'overlay-visible'}`}>
+            <div className={`bottom-overlay position-absolute bottom-0 start-0 w-100 ${chatModeActive || !bottomOverlayVisible ? 'overlay-hidden' : 'overlay-visible'}${!bottomOverlayVisible ? ' overlay-hidden-instant' : ''}`}>
                 <MissionSection stepType={currentStep?.stepType} />
                 <div className="bottom-overlay-content">
                     <div className="controls-section">

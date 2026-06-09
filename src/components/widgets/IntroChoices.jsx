@@ -13,6 +13,7 @@ export default function IntroChoices() {
         appStore.getState().setCameraOff(false);
         appStore.getState().setBottomControlState('mic');
         appStore.getState().setBottomOverlayVisible(false);
+        appStore.getState().setCurrentVideo(null);
         const cb = getIntroContinueHandler();
         if (cb) cb();
     };
@@ -22,6 +23,7 @@ export default function IntroChoices() {
         appStore.getState().setCameraOff(true);
         appStore.getState().setBottomControlState('mic');
         appStore.getState().setBottomOverlayVisible(false);
+        appStore.getState().setCurrentVideo(null);
         const cb = getIntroContinueHandler();
         if (cb) cb();
     };
@@ -31,6 +33,7 @@ export default function IntroChoices() {
         appStore.getState().setCameraOff(true);
         appStore.getState().setBottomControlState('mic');
         appStore.getState().setBottomOverlayVisible(false);
+        appStore.getState().setCurrentVideo(null);
         const cb = getIntroContinueHandler();
         if (cb) cb();
     };

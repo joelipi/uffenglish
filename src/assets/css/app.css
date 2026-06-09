@@ -617,12 +617,9 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     box-shadow: none !important;
 }
 
-.call-btn.toggled-off,
-.call-btn.toggled-off:hover,
-.call-btn.toggled-off:focus {
-    background-color: #f8f9fa !important;
-    color: #6c757d !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+/* Immediate hide for bottom overlay (bypass opacity transition) */
+.overlay-hidden-instant {
+    transition: none !important;
 }
 
 /* MIC BUTTON WRAPPER */
@@ -1122,7 +1119,7 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     height: 100%;
     border-radius: 12px;
     box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.6);
-    animation: pulse-ring-anim 2s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+    animation: pulse-ring-anim 1s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
     z-index: -1;
 }
 
