@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from 'zustand';
 import { appStore, getWebcamStream } from '../../modules/store/store.js';
 
@@ -10,6 +10,21 @@ export default function WebcamPreview() {
     const isMicActive = useStore(appStore, (state) => state.isMicActive);
     const videoRef = useRef(null);
     const wrapperRef = useRef(null);
+    const prevMicActive = useRef(isMicActive);
+    const [takeover, setTakeover] = useState(false);
+
+    // Keep webcam full-frame until overlay has time to render after mic deactivates
+    useEffect(() => {
+        if (isMicActive) {
+            setTakeover(true);
+        } else if (prevMicActive.current) {
+            const timer = setTimeout(() => setTakeover(false), 250);
+            return () => clearTimeout(timer);
+        } else {
+            setTakeover(false);
+        }
+        prevMicActive.current = isMicActive;
+    }, [isMicActive]);
 
     useEffect(() => {
         const stream = getWebcamStream();
@@ -36,7 +51,7 @@ export default function WebcamPreview() {
 
     let className = 'pip-container';
     if (show) {
-        className += isMicActive ? ' pip-container--takeover' : ' shadow';
+        className += takeover ? ' pip-container--takeover' : ' shadow';
     } else {
         className += ' d-none';
     }
