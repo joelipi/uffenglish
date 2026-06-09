@@ -129,6 +129,7 @@ export function handleSuccessStep(step, fluencyData) {
         loadVideoForStep(step, null, state.userData?.native_language);
     }
 
+    state.setMediaVisible(false);
     state.setSuccessScreen(step.lessonId, fluencyDataObj);
     state.setStatsVisible(false);
     state.setProgressPercent("100%");
