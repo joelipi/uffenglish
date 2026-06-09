@@ -856,6 +856,24 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     animation: btnGlowPulse 2s ease-in-out infinite;
 }
 
+/* Intro choice buttons — same styling as ivp-choice model */
+#state-intro-choices .call-btn {
+    position: relative;
+    z-index: 0;
+    animation: floatBob 3.5s ease-in-out infinite;
+}
+#state-intro-choices .call-btn::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: -1;
+    background: transparent;
+    box-shadow: 0 0 25px 8px rgba(255, 255, 255, 0.85);
+    animation: btnGlowPulse 2s ease-in-out infinite;
+}
+
 @keyframes riseThroughWater {
     0% {
         opacity: 0;

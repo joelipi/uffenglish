@@ -34,14 +34,14 @@ export default function IntroChoices() {
 
     return (
         <div className="d-flex gap-3 align-items-center" id="state-intro-choices">
-            <button className="btn call-icon" id="audioOnlyButton" aria-label="Audio Only" onClick={handleAudioClick}>
-                <i className="bi bi-telephone-fill text-white"></i>
+            <button className="btn call-btn" id="audioOnlyButton" aria-label="Audio Only" onClick={handleAudioClick}>
+                <i className="bi bi-telephone-fill"></i>
             </button>
-            <button className="btn call-btn btn-primary" id="continueButton" aria-label="Video Call" onClick={handleVideoClick}>
+            <button className="btn call-btn" id="continueButton" aria-label="Video Call" onClick={handleVideoClick}>
                 <i className="bi bi-camera-video-fill"></i>
             </button>
-            <button className="btn call-icon" id="textOnlyButton" aria-label="Text Only" onClick={handleTextClick}>
-                <i className="bi bi-keyboard text-white"></i>
+            <button className="btn call-btn" id="textOnlyButton" aria-label="Text Only" onClick={handleTextClick}>
+                <i className="bi bi-keyboard-fill"></i>
             </button>
         </div>
     );
