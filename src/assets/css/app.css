@@ -774,7 +774,28 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     justify-content: center;
     align-items: center;
     z-index: 20;
+    pointer-events: none;
+}
+
+/* Reusable water-surface background visual */
+.water-surface {
+    position: relative;
     background: linear-gradient(135deg, rgba(58, 143, 213, 0.88) 0%, rgba(0, 192, 216, 0.88) 100%);
+}
+.water-surface::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        110deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.07) 38%,
+        rgba(255, 255, 255, 0.15) 44%,
+        rgba(255, 255, 255, 0.07) 50%,
+        transparent 58%
+    );
+    background-size: 300% 100%;
+    animation: waterShimmer 7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
     pointer-events: none;
 }
 
@@ -785,6 +806,7 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     flex-direction: column;
     align-items: center;
     animation: riseThroughWater 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+    z-index: 1;
 }
 
 .ivp-overlay-text {
@@ -856,13 +878,13 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     animation: btnGlowPulse 2s ease-in-out infinite;
 }
 
-/* Intro choice buttons — same styling as ivp-choice model */
-#state-intro-choices .call-btn {
+/* Intro choice buttons — only the center video button gets the glow/float model */
+#state-intro-choices #continueButton {
     position: relative;
     z-index: 0;
     animation: floatBob 3.5s ease-in-out infinite;
 }
-#state-intro-choices .call-btn::before {
+#state-intro-choices #continueButton::before {
     content: '';
     position: absolute;
     inset: -4px;
@@ -916,6 +938,11 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     50% {
         box-shadow: 0 0 45px 20px rgba(255, 255, 255, 1);
     }
+}
+
+@keyframes waterShimmer {
+    0% { background-position: 300% 0; }
+    100% { background-position: -300% 0; }
 }
 
 /* =========================================

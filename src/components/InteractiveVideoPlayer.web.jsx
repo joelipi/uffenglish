@@ -326,7 +326,7 @@ export default function InteractiveVideoPlayer() {
                 {(showOverlay || isMicActive || textInputVisible) && <div className="ivp-click-block" />}
 
                 {showOverlay && (
-                    <div className="ivp-overlay" style={{ display: 'flex' }}>
+                    <div className="ivp-overlay water-surface" style={{ display: 'flex' }}>
                         <div className="ivp-overlay-content">
                             <p className="ivp-overlay-text">
                                 {overlayBilingual.localized ? (
