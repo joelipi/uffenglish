@@ -57,11 +57,11 @@ export function loadVideoForStep(step, _state, lang) {
             responseType: step.responseType,
             url: currentVideoUrl,
             config: {
-                title: Strings.get('incoming_video', lang) || 'INCOMING VIDEO',
-                subtitle: Strings.get('video_incoming', lang) || 'VIDEO ENTRANTE',
+                title: Strings.get('incoming_video', 'en') || 'INCOMING VIDEO',
+                subtitle: Strings.getBilingual('video_incoming', lang),
                 name: 'Joe Walsh',
-                role: Strings.get('english_coach', lang) || 'English Coach, UFF',
-                alertText: Strings.get('press_webcam', lang) || 'Press the webcam button below. Oprime el botón de cámara abajo.'
+                role: 'English Coach, UFF',
+                alertText: Strings.getBilingual('press_webcam', lang),
             }
         });
     }

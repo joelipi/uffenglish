@@ -12,6 +12,7 @@ export default function IncomingVideoWidget() {
 
     const show = currentVideo?.type === 'intro';
     const config = show ? currentVideo.config : null;
+    const subtitle = config?.subtitle;
 
     const onLoadedData = () => {
         const video = videoRef.current;
@@ -69,11 +70,13 @@ export default function IncomingVideoWidget() {
                         <div className="intro-notification-top">
                             <div className="intro-call-title">
                                 <i className="bi bi-camera-video-fill text-info"></i>
-                                <span>{config?.title || 'INCOMING VIDEO'}</span>
+                                <span lang="en">{config?.title || 'INCOMING VIDEO'}</span>
                             </div>
+                            {subtitle?.localized && (
                             <div className="intro-call-subtitle">
-                                <span lang="es"><i>{config?.subtitle || 'VIDEO ENTRANTE'}</i></span>
+                                <span lang={subtitle.lang}><i>{subtitle.localized}</i></span>
                             </div>
+                            )}
                         </div>
                         <div className="intro-notification-bottom">
                             <div className="intro-caller-name">{config?.name || 'Joe Walsh'}</div>

@@ -1074,18 +1074,20 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 .intro-video-wrapper {
     position: absolute;
     top: 15vh;
-    left: 0;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     width: 100%;
-    margin: 0 auto;
+    max-width: 50%;
     z-index: 5;
 }
 
 .intro-video-container {
-    width: min(90vw, 360px);
+    container-type: inline-size;
+    width: min(90vw, 360px, 50cqi);
     aspect-ratio: 3 / 4;
     position: relative;
     overflow: hidden;
@@ -1186,9 +1188,10 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 
 .intro-call-title {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 10px;
-    font-size: 1rem;
+    gap: 4px;
+    font-size: clamp(0.7rem, 3.5cqi, 1rem);
     font-weight: 700;
     margin: 8px;
     text-transform: uppercase;
@@ -1196,20 +1199,20 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 }
 
 .intro-call-subtitle {
-    font-size: 0.9rem;
+    font-size: clamp(0.65rem, 3cqi, 0.9rem);
     opacity: 0.9;
     font-style: italic;
 }
 
 .intro-caller-name {
-    font-size: 1rem;
+    font-size: clamp(0.7rem, 3.5cqi, 1rem);
     font-weight: 800;
     text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
     margin-bottom: 2px;
 }
 
 .intro-caller-title {
-    font-size: 1rem;
+    font-size: clamp(0.65rem, 3cqi, 0.9rem);
     opacity: 0.8;
 }
 

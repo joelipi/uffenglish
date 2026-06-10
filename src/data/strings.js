@@ -878,6 +878,26 @@ const strings = {
         en: "REPEAT NOW",
         es: "REPITE AHORA"
     },
+    'incoming_video': {
+        en: "INCOMING VIDEO",
+        es: "VIDEO ENTRANTE",
+        fr: "VIDÉO ENTRANTE"
+    },
+    'video_incoming': {
+        en: "INCOMING VIDEO",
+        es: "VIDEO ENTRANTE",
+        fr: "VIDÉO ENTRANTE"
+    },
+    'english_coach': {
+        en: "English Coach, UFF",
+        es: "English Coach, UFF",
+        fr: "Coach d'Anglais, UFF"
+    },
+    'press_webcam': {
+        en: "Press the webcam button below.",
+        es: "Oprime el botón de cámara abajo.",
+        fr: "Appuyez sur le bouton de la caméra ci-dessous."
+    },
 
     'whisper_re_record': {
         en: "RE-RECORD",
