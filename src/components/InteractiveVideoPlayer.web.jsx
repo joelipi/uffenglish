@@ -217,7 +217,7 @@ export default function InteractiveVideoPlayer() {
     // -------------------------------------------------------------------------
 
     // Reset the dedup guard whenever the video source changes.
-    useEffect(() => { loadHandledRef.current = false; }, [config?.videoUrl]);
+    useEffect(() => { loadHandledRef.current = false; }, [config?.interactiveVideoUrl]);
 
     const handleVideoLoaded = useCallback(() => {
         // Both onLoadedData and onCanPlay fire on a normal load; only run once.
@@ -309,7 +309,7 @@ export default function InteractiveVideoPlayer() {
                     disableRemotePlayback
                     preload={isIOS ? 'metadata' : 'auto'}
                     crossOrigin="anonymous"
-                    src={config?.videoUrl}
+                    src={config?.interactiveVideoUrl}
                     poster={poster}
                     style={{ ...(isSlowMode ? { transform: 'scale(1.5)' } : {}), ...(showOverlay ? { filter: 'grayscale(100%)' } : {}) }}
                     onLoadedData={handleVideoLoaded}

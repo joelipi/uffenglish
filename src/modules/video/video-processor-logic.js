@@ -144,7 +144,7 @@ export class VideoRenderPlanner {
         const lesson = this.configData.lessons.find(l => l.lessonId === rec.originalLessonId);
         if (!lesson?.steps?.[rec.originalStepIndex]) return null;
         const q = lesson.steps[rec.originalStepIndex];
-        return q.videoUrl || q.introBackgroundVideoUrl || null;
+        return q.interactiveVideoUrl || q.introBackgroundVideoUrl || null;
     }
 
     _getStepCue(rec) {

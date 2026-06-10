@@ -177,11 +177,11 @@ export function createAnswerPipeline(deps) {
         const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
 
         const currentFluencyScore = appStore.getState().fluencyScore;
-        if (stepData.stepType === "closedResponse" && stepData.videoUrl) {
+        if (stepData.stepType === "closedResponse" && stepData.interactiveVideoUrl) {
             appStore.setState({ repeatPointsHistory: [...appStore.getState().repeatPointsHistory, currentFluencyScore] });
             console.log('[scoring] append repeatPointsHistory', { currentFluencyScore, repeatPointsHistory: appStore.getState().repeatPointsHistory });
         }
-        if (stepData.stepType === "openResponse" && stepData.videoUrl) {
+        if (stepData.stepType === "openResponse" && stepData.interactiveVideoUrl) {
             appStore.setState({ rolePlayPointsHistory: [...appStore.getState().rolePlayPointsHistory, currentFluencyScore] });
             console.log('[scoring] append rolePlayPointsHistory', { currentFluencyScore, rolePlayPointsHistory: appStore.getState().rolePlayPointsHistory });
         }
@@ -326,7 +326,7 @@ export function createAnswerPipeline(deps) {
             }
         }
 
-        if ((stepData.stepType === "closedResponse" || stepData.stepType === "openResponse") && stepData.videoUrl) {
+        if ((stepData.stepType === "closedResponse" || stepData.stepType === "openResponse") && stepData.interactiveVideoUrl) {
             appStore.getState().deductListeningScore(25);
             appStore.getState().triggerPointLoss('listening', 25);
             if (appStore.getState().incorrectAttempts > 2) {
@@ -783,7 +783,7 @@ export function createAnswerPipeline(deps) {
                 clearChat();
                 setWebcamStream(null);
 
-                if (!stepData.videoUrl) {
+                if (!stepData.interactiveVideoUrl) {
                     const hangmanOps = generateHangmanOps(userResponse, cueText);
                     appStore.getState().setHangmanOps(hangmanOps);
                     appStore.getState().setHintsVisible(true);
@@ -873,7 +873,7 @@ export function createAnswerPipeline(deps) {
     function showFeedbackAndProceed(stepData, isCorrect, _deps = {}) {
         const { loadNextStep, callLoadStep } = _deps;
 
-        if ((stepData.stepType === "closedResponse" || stepData.stepType === "openResponse") && stepData.videoUrl) {
+        if ((stepData.stepType === "closedResponse" || stepData.stepType === "openResponse") && stepData.interactiveVideoUrl) {
             const gs = appStore.getState();
             gs.setStepCount(gs.stepCount + 1);
         }
@@ -928,9 +928,9 @@ export function createAnswerPipeline(deps) {
 
             if (isCorrect || appStore.getState().incorrectAttempts > 2) {
                 const nextStep = getNextStep(stepData, appStore.getState().configData, appStore.getState().currentLessonIndex);
-                if (nextStep && nextStep.videoUrl) {
-                    const videoUrl = `https://r2.ultrafastfluency.com/assets/videos/${nextStep.videoUrl}.mp4`;
-                    preloadVideo(videoUrl);
+                if (nextStep && nextStep.interactiveVideoUrl) {
+                    const interactiveVideoUrl = `https://r2.ultrafastfluency.com/assets/videos/${nextStep.interactiveVideoUrl}.mp4`;
+                    preloadVideo(interactiveVideoUrl);
                 }
             }
         } catch (error) {

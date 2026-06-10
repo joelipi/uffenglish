@@ -13,13 +13,13 @@ export default function MicrophoneToggle() {
     const overlayVisible = useStore(appStore, (state) => state.overlayVisible);
     const currentVideo = useStore(appStore, (state) => state.currentVideo);
     const userData = useStore(appStore, (state) => state.userData);
+    const hasSeenOverlay = useStore(appStore, (state) => state.micHasSeenOverlay);
+    const earBtnVisible = useStore(appStore, (state) => state.micEarBtnVisible);
     const [bouncing, setBouncing] = useState(false);
-    const [hasSeenOverlay, setHasSeenOverlay] = useState(false);
-    const [earBtnVisible, setEarBtnVisible] = useState(true);
     const ringRefs = useRef([null, null, null]);
     const micBtnRef = useRef(null);
     const animationRefs = useRef([]);
-    const videoUrlRef = useRef(null);
+    const interactiveVideoUrlRef = useRef(null);
 
     useEffect(() => {
         if (isMicActive) {
@@ -63,15 +63,15 @@ export default function MicrophoneToggle() {
     }, [micBounceTrigger]);
 
     useEffect(() => {
-        if (currentVideo?.url && currentVideo.url !== videoUrlRef.current) {
-            videoUrlRef.current = currentVideo.url;
-            setHasSeenOverlay(false);
-            setEarBtnVisible(true);
+        if (currentVideo?.url && currentVideo.url !== interactiveVideoUrlRef.current) {
+            interactiveVideoUrlRef.current = currentVideo.url;
+            appStore.getState().setMicHasSeenOverlay(false);
+            appStore.getState().setMicEarBtnVisible(true);
         }
     }, [currentVideo]);
 
     useEffect(() => {
-        if (overlayVisible) setHasSeenOverlay(true);
+        if (overlayVisible) appStore.getState().setMicHasSeenOverlay(true);
     }, [overlayVisible]);
 
     const handleClick = () => {
@@ -105,16 +105,16 @@ export default function MicrophoneToggle() {
 
     const handleEarClick = () => {
         getCurrentVideoPlayer()?.dismissOverlay?.();
-        setEarBtnVisible(false);
+        appStore.getState().setMicEarBtnVisible(false);
     };
     const handleMicClick = () => {
         getCurrentVideoPlayer()?.dismissOverlay?.({ replay: false });
-        setEarBtnVisible(false);
+        appStore.getState().setMicEarBtnVisible(false);
         handleClick();
     };
     const handleTxtClickOverlay = () => {
         getCurrentVideoPlayer()?.dismissOverlay?.({ replay: false });
-        setEarBtnVisible(false);
+        appStore.getState().setMicEarBtnVisible(false);
         handleTextClick();
     };
 

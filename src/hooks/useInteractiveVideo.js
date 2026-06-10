@@ -30,7 +30,7 @@ export function useInteractiveVideo() {
         if (!isActive) return null;
         return {
             ...currentVideo.config,
-            videoUrl: currentVideo.url,
+            interactiveVideoUrl: currentVideo.url,
             onWordReveal: () => {
                 trackEvent('word_revealed');
                 appStore.getState().deductListeningScore(15);

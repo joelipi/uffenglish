@@ -20,7 +20,7 @@ window.enabledLogs = {
     hesitation: false,
     success: false,
     scoring: false,
-    video: false,
+    video: true,
     router: false,
     pipeline: false,
     app: false,
@@ -30,7 +30,7 @@ window.enabledLogs = {
     store: false,
     pt: false,
     debug: true,
-    all: false
+    all: true
 };
 
 console.log = (msg, ...args) => {

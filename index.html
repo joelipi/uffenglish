@@ -120,7 +120,7 @@
         (function () {
             window.preloadedMedia = {};
 
-            window.preloadLessonAssets = function (lessonData, buildVideoUrlFn) {
+            window.preloadLessonAssets = function (lessonData, buildinteractiveVideoUrlFn) {
                 return new Promise(async (resolveApp) => {
                     let progress = 0;
                     const preloader = document.getElementById('appLoadingImageDiv');
@@ -136,7 +136,7 @@
                         // Pre-warm the first video
                         if (lessonData?.steps && lessonData.steps[0]) {
                             const firstStep = lessonData.steps[0];
-                            const slugToWarm = firstStep.videoUrl || firstStep.simpleVideoUrl || firstStep.introBackgroundVideoUrl;
+                            const slugToWarm = firstStep.interactiveVideoUrl || firstStep.simpleVideoUrl || firstStep.introBackgroundVideoUrl;
                             if (slugToWarm) fetch(buildVideoUrlFn(slugToWarm)).catch(() => { });
                         }
 

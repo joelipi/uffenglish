@@ -82,10 +82,13 @@ export const appStore = createStore(
             micBounceTrigger: 0,
             overlayVisible: false,
             bottomOverlayVisible: true,
+            micHasSeenOverlay: false,
+            micEarBtnVisible: true,
 
             // --- Whisper Review Overlay ---
             whisperReviewData: null,
             whisperReviewTimeLeft: null,
+            whisperReviewActive: false,
             successVideoBlob: null,
 
             // --- Success Screen State ---
@@ -237,6 +240,8 @@ export const appStore = createStore(
             setBottomControlState: (state) => set({ bottomControlState: state }),
             setBottomOverlayVisible: (val) => set({ bottomOverlayVisible: val }),
             setOverlayVisible: (val) => set({ overlayVisible: val }),
+            setMicHasSeenOverlay: (val) => set({ micHasSeenOverlay: val }),
+            setMicEarBtnVisible: (val) => set({ micEarBtnVisible: val }),
             setChatModeActive: (val) => set({ chatModeActive: val }),
             setSubmitBtnDisabled: (val) => set({ submitBtnDisabled: val }),
             setSubmitBtnIcon: (icon) => set({ submitBtnIcon: icon }),
@@ -379,6 +384,7 @@ export const appStore = createStore(
                 youtubeVideoId: null,
                 whisperReviewData: null,
                 whisperReviewTimeLeft: null,
+                whisperReviewActive: false,
                 successVideoBlob: null,
                 successScreenVisible: false,
                 successLessonId: null,
@@ -427,7 +433,7 @@ export const appStore = createStore(
             setMediaVisible: (visible) => set({ mediaVisible: visible }),
             setPointLossAmount: (amount) => set((state) => ({ pointLossAmount: amount, pointLossTrigger: state.pointLossTrigger + 1 })),
             // --- Whisper Review Actions ---
-            setWhisperReviewData: (data) => set({ whisperReviewData: data }),
+            setWhisperReviewData: (data) => set({ whisperReviewData: data, whisperReviewActive: !!data }),
             setWhisperReviewTimeLeft: (timeLeft) => set({ whisperReviewTimeLeft: timeLeft }),
             setSuccessVideoBlob: (blob) => set({ successVideoBlob: blob }),
             clearSuccessVideoBlob: () => set({ successVideoBlob: null }),

@@ -22,8 +22,8 @@ export function loadVideoForStep(step, _state, lang) {
     // Clear any previous video state before loading the new step
     appStore.getState().setCurrentVideo(null);
 
-    if (step.videoUrl) {
-        const currentVideoUrl = resolveVideoUrl(step.videoUrl);
+    if (step.interactiveVideoUrl) {
+        const currentVideoUrl = resolveVideoUrl(step.interactiveVideoUrl);
         appStore.getState().setCurrentVideo({
             type: 'interactive',
             stepType: step.stepType,

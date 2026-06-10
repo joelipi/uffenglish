@@ -64,7 +64,7 @@ describe('Answer Pipeline Integration', () => {
     });
 
     it('handleAnswer should accept _deps at position 7', async () => {
-        const stepData = { stepType: 'closedResponse', cue: 'hello', explanation: '', translation: null, videoUrl: null };
+        const stepData = { stepType: 'closedResponse', cue: 'hello', explanation: '', translation: null, interactiveVideoUrl: null };
         const _deps = { loadNextStep: vi.fn(), callLoadStep: vi.fn() };
         await expect(pipeline.handleAnswer('hello', 'hello', stepData, null, '', null, { pauseCount: 0, netDuration: 0 }, _deps, appStore.getState().userData, appStore.getState().configData, 'test-course')).resolves.not.toThrow();
     });

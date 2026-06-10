@@ -49,6 +49,8 @@ export default function LessonContainer() {
     const chatModeActive = useStore(appStore, (state) => state.chatModeActive);
     const textInputVisible = useStore(appStore, (state) => state.textInputVisible);
     const bottomOverlayVisible = useStore(appStore, (state) => state.bottomOverlayVisible);
+    const whisperReviewActive = useStore(appStore, (state) => state.whisperReviewActive);
+    const whisperReviewData = useStore(appStore, (state) => state.whisperReviewData);
 
     const [lesson, setLesson] = useState(null);
 
@@ -163,11 +165,35 @@ export default function LessonContainer() {
                     <div className="controls-section">
                         <AnswerInput />
                         {!textInputVisible && (
-                            <div className="d-flex justify-content-center align-items-center w-100">
-                                <MicrophoneToggle />
-                                <IntroChoices />
-                                <SuccessScreen onLoadNextLesson={onLoadNextLesson} onRepeat={handleRepeat} canvasRef={successCanvasRef} />
-                            </div>
+                            <>
+                            {whisperReviewActive && (
+                                <div className="d-flex justify-content-center gap-3 w-100">
+                                    <button className="btn call-btn" onClick={() => {
+                                        const reject = appStore.getState().whisperReviewData?.onReject;
+                                        appStore.getState().setWhisperReviewData(null);
+                                        appStore.getState().setWhisperReviewTimeLeft(null);
+                                        if (reject) reject();
+                                    }}>
+                                        <i className="bi bi-arrow-counterclockwise"></i>
+                                    </button>
+                                    <button className="btn call-btn" onClick={() => {
+                                        const accept = appStore.getState().whisperReviewData?.onAccept;
+                                        appStore.getState().setWhisperReviewData(null);
+                                        appStore.getState().setWhisperReviewTimeLeft(null);
+                                        if (accept) accept();
+                                    }}>
+                                        <i className="bi bi-check2"></i>
+                                    </button>
+                                </div>
+                            )}
+                            {!whisperReviewActive && (
+                                <div className="d-flex justify-content-center align-items-center w-100">
+                                    <MicrophoneToggle />
+                                    <IntroChoices />
+                                    <SuccessScreen onLoadNextLesson={onLoadNextLesson} onRepeat={handleRepeat} canvasRef={successCanvasRef} />
+                                </div>
+                            )}
+                            </>
                         )}
                     </div>
                 </div>
