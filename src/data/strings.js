@@ -877,6 +877,15 @@ const strings = {
     'video_repeat_now': {
         en: "REPEAT NOW",
         es: "REPITE AHORA"
+    },
+
+    'whisper_re_record': {
+        en: "RE-RECORD",
+        es: "REGRABAR"
+    },
+    'whisper_accept': {
+        en: "ACCEPT",
+        es: "ACEPTAR"
     }
 };
 

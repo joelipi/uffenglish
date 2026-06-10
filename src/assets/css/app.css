@@ -874,6 +874,24 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     /*white-space: nowrap;*/
 }
 
+/* Whisper review buttons — white glow + float */
+.review-buttons-container .call-btn {
+    position: relative;
+    z-index: 0;
+    animation: floatBob 3.5s ease-in-out infinite;
+}
+.review-buttons-container .call-btn::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: -1;
+    background: transparent;
+    box-shadow: 0 0 25px 8px rgba(255, 255, 255, 0.85);
+    animation: btnGlowPulse 2s ease-in-out infinite;
+}
+
 /* Buttons inside choice columns — white glow (pseudo-element avoids !important conflicts) */
 .ivp-choice-col .call-btn {
     position: relative;

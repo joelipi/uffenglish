@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { appStore, getAnswerPipelineDeps } from '../modules/store/store.js';
+import { getBilingual } from '../data/strings.js';
 import { useInitializeLesson } from '../hooks/use-initialize-lesson-webonly.js';
 
 import StepLoader from './StepLoader.jsx';
@@ -51,6 +52,7 @@ export default function LessonContainer() {
     const textInputVisible = useStore(appStore, (state) => state.textInputVisible);
     const bottomOverlayVisible = useStore(appStore, (state) => state.bottomOverlayVisible);
     const bottomState = useStore(appStore, (state) => state.bottomState);
+    const userData = useStore(appStore, (state) => state.userData);
 
     const [lesson, setLesson] = useState(null);
 
@@ -166,26 +168,49 @@ export default function LessonContainer() {
                         <AnswerInput />
                         {!textInputVisible && (
                             <>
-                            {bottomState === 'reviewButtons' && (
-                                <div className="d-flex justify-content-center gap-3 w-100">
-                                    <button className="btn call-btn" onClick={() => {
-                                        const reject = appStore.getState().phaseData?.onReject;
-                                        appStore.getState().setWhisperReviewData(null);
-                                        appStore.getState().setWhisperReviewTimeLeft(null);
-                                        if (reject) reject();
-                                    }}>
-                                        <i className="bi bi-arrow-counterclockwise"></i>
-                                    </button>
-                                    <button className="btn call-btn" onClick={() => {
-                                        const accept = appStore.getState().phaseData?.onAccept;
-                                        appStore.getState().setWhisperReviewData(null);
-                                        appStore.getState().setWhisperReviewTimeLeft(null);
-                                        if (accept) accept();
-                                    }}>
-                                        <i className="bi bi-check2"></i>
-                                    </button>
+                            {bottomState === 'reviewButtons' && (() => {
+                                const labelLang = userData?.native_language || 'en';
+                                const reRecord = getBilingual('whisper_re_record', labelLang);
+                                const acceptLabel = getBilingual('whisper_accept', labelLang);
+                                return (
+                                <div className="review-buttons-container d-flex justify-content-center gap-3 w-100">
+                                    <div className="ivp-choice-col" style={{ flex: 1, minWidth: 0 }}>
+                                        <div className="ivp-choice-label">
+                                            <div className="ivp-choice-label-text">
+                                                {reRecord.localized ? (
+                                                    <React.Fragment>{reRecord.english}<br /><span lang={reRecord.lang}><i>{reRecord.localized}</i></span></React.Fragment>
+                                                ) : reRecord.english}
+                                            </div>
+                                        </div>
+                                        <button className="btn call-btn" onClick={() => {
+                                            const reject = appStore.getState().phaseData?.onReject;
+                                            appStore.getState().setWhisperReviewData(null);
+                                            appStore.getState().setWhisperReviewTimeLeft(null);
+                                            if (reject) reject();
+                                        }}>
+                                            <i className="bi bi-arrow-counterclockwise"></i>
+                                        </button>
+                                    </div>
+                                    <div className="ivp-choice-col" style={{ flex: 1, minWidth: 0 }}>
+                                        <div className="ivp-choice-label">
+                                            <div className="ivp-choice-label-text">
+                                                {acceptLabel.localized ? (
+                                                    <React.Fragment>{acceptLabel.english}<br /><span lang={acceptLabel.lang}><i>{acceptLabel.localized}</i></span></React.Fragment>
+                                                ) : acceptLabel.english}
+                                            </div>
+                                        </div>
+                                        <button className="btn call-btn" onClick={() => {
+                                            const accept = appStore.getState().phaseData?.onAccept;
+                                            appStore.getState().setWhisperReviewData(null);
+                                            appStore.getState().setWhisperReviewTimeLeft(null);
+                                            if (accept) accept();
+                                        }}>
+                                            <i className="bi bi-check2"></i>
+                                        </button>
+                                    </div>
                                 </div>
-                            )}
+                                );
+                            })()}
                             {bottomState === 'decisionButtons' && (
                                 <DecisionButtons />
                             )}
