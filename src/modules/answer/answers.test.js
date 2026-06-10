@@ -50,6 +50,56 @@ describe('Answers Module', () => {
             expect(result.explanation).toBeUndefined();
         });
 
+        it('should discard no-op grammar correction when normalized text matches user response', async () => {
+            api.evaluateWithAI.mockResolvedValue({
+                labels: ['grammar'],
+                corrections: [{ label: 'grammar', correctedText: 'hello there' }],
+                grammarCorrectedText: 'hello there',
+                finalCorrectedText: 'hello there',
+                isCorrect: false,
+                isGibberish: false,
+                rawOutput: '["GRAMMAR: hello there"]'
+            });
+
+            const result = await processAnswerLogic({
+                stepData: { responseType: 'openResponse' },
+                userResponse: 'hello there',
+                cue: 'hello',
+                userData: { native_language: 'en' }
+            });
+
+            expect(result.isCorrect).toBe(true);
+            expect(result.errorType).toBe('correct');
+            expect(result.intentLabels).toEqual([]);
+        });
+
+        it('should discard no-op grammar but keep other non-grammar labels', async () => {
+            api.evaluateWithAI.mockResolvedValue({
+                labels: ['grammar', 'too_informal'],
+                corrections: [
+                    { label: 'grammar', correctedText: 'hello there' },
+                    { label: 'too_informal', correctedText: 'hello there buddy' }
+                ],
+                grammarCorrectedText: 'hello there',
+                finalCorrectedText: 'hello there buddy',
+                isCorrect: false,
+                isGibberish: false,
+                rawOutput: '["GRAMMAR: hello there","TOO_INFORMAL: hello there buddy"]'
+            });
+
+            const result = await processAnswerLogic({
+                stepData: { responseType: 'openResponse' },
+                userResponse: 'hello there',
+                cue: 'hello',
+                userData: { native_language: 'en' }
+            });
+
+            expect(result.isCorrect).toBe(false);
+            expect(result.errorType).toBe('formality_error');
+            expect(result.intentLabels).toEqual(['too_informal']);
+            expect(result.correction).toBe('hello there buddy');
+        });
+
         it('should handle grammar differences without grammar label', async () => {
             api.evaluateWithAI.mockResolvedValue({
                 labels: ['grammar'],

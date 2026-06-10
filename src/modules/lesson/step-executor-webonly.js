@@ -12,6 +12,7 @@ import { trackEvent } from '../utils/logrocket.js';
 import { handleTextStep, handleLessonComplete, handleUnitComplete, handleSuccessStep, clearWarningLater, cancelWarningClear } from './step-loader-logic.js';
 import { loadStepOrchestrate } from './step-loader-orchestrate.js';
 import { setTextInputSubmitCallback as setTextCb, setSpeechInputToggleCallback as setSpeechCb } from './step-loader-callbacks.js';
+import { getVideoUrl } from '../video/video-url.js';
 
 function resetUIForNewStep(step) {
     let phase;
@@ -97,10 +98,7 @@ export function createLoadStep(deps) {
             const nextStep = steps[nextIndex];
             const slug = nextStep.interactiveVideoUrl || nextStep.simpleVideoUrl || nextStep.introBackgroundVideoUrl;
             if (slug) {
-                const url = (typeof window !== 'undefined' && window.preloadedMedia && window.preloadedMedia[slug])
-                    ? window.preloadedMedia[slug]
-                    : `https://r2.ultrafastfluency.com/assets/videos/${slug}.mp4`;
-                fetch(url).catch(() => {});
+                fetch(getVideoUrl(slug)).catch(() => {});
             }
         }
     };

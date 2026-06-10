@@ -6,6 +6,7 @@ import { VideoRenderPlanner } from './video-processor-logic.js';
 import { shareVideo } from './video-share.js';
 import { appStore } from '../store/store.js';
 import headerImg from '../../assets/img/header.png';
+import { getVideoUrl } from './video-url.js';
 
 export { shareVideo };
 
@@ -450,8 +451,7 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
 // Utilities
 // ---------------------------------------------------------------------------
 async function resolveRemoteUrl(vUrl) {
-    if (window.preloadedMedia && window.preloadedMedia[vUrl]) return window.preloadedMedia[vUrl];
-    return `https://r2.ultrafastfluency.com/assets/videos/${vUrl}.mp4`;
+    return getVideoUrl(vUrl);
 }
 
 function getSupportedMimeType() {

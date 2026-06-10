@@ -10,6 +10,7 @@ import { saveLessonProgress } from '../modules/user/user-profile.js';
 import { loadLessonContent } from '../modules/lesson/lesson-loader.js';
 import Strings from '../data/strings.js';
 import { trackEvent } from '../modules/utils/logrocket.js';
+import { getVideoUrl } from '../modules/video/video-url.js';
 
 export function useInitializeLesson({ forceRestart = false } = {}) {
     const initializeLesson = useCallback(async (courseId, lessonId, configData, userData) => {
@@ -38,8 +39,7 @@ export function useInitializeLesson({ forceRestart = false } = {}) {
             // Intentional window.preloadLessonAssets — web asset preloading injected
             // by index.html inline script. Guarded: if undefined (RN), just skipped.
             if (typeof window !== 'undefined' && window.preloadLessonAssets) {
-                const constructFirebaseUrl = (slug) => `https://r2.ultrafastfluency.com/assets/videos/${slug}.mp4`;
-                await window.preloadLessonAssets(lesson, constructFirebaseUrl);
+                await window.preloadLessonAssets(lesson, getVideoUrl);
             }
 
             await loadLessonContent(lesson, { forceRestart });

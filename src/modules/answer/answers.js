@@ -79,6 +79,15 @@ export async function processAnswerLogic({
 
         let labels = evaluation.labels;
 
+        // Discard no-op grammar corrections that normalize to the same as user response
+        if (labels.includes('grammar') && evaluation.grammarCorrectedText) {
+            const normalizedGrammar = await normalize(evaluation.grammarCorrectedText.trim().toLowerCase());
+            if (normalizedGrammar === normalizeduserResponse) {
+                labels = labels.filter(l => l !== 'grammar');
+                evaluation.grammarCorrectedText = null;
+            }
+        }
+
         if (labels.length > 1 && labels.includes("correct")) {
             labels = labels.filter(label => label !== "correct");
         }

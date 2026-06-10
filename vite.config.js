@@ -35,6 +35,12 @@ export default defineConfig({
         },
     },
     server: {
+        proxy: {
+            '/assets/videos/': {
+                target: 'https://r2.ultrafastfluency.com',
+                changeOrigin: true,
+            },
+        },
         headers: {
             'Cross-Origin-Opener-Policy': 'same-origin',
             'Cross-Origin-Embedder-Policy': 'credentialless',

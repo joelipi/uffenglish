@@ -4,6 +4,7 @@
 // Deps: { loadNextStep, callLoadStep }
 
 import { appStore, getCurrentVideoPlayer, setWebcamStream } from '../store/store.js';
+import { getVideoUrl } from '../video/video-url.js';
 
 // Module-level ref for intro continue handler, avoiding store callback anti-pattern
 let _introContinueHandler = null;
@@ -917,9 +918,9 @@ export function createAnswerPipeline(deps) {
             if (isCorrect || appStore.getState().incorrectAttempts > 2) {
                 const nextStep = getNextStep(stepData, appStore.getState().configData, appStore.getState().currentLessonIndex);
                 if (nextStep) {
-                    const videoSlug = nextStep.interactiveVideoUrl || nextStep.simpleVideoUrl;
+                    const videoSlug = nextStep.interactiveVideoUrl || nextStep.simpleVideoUrl || nextStep.introBackgroundVideoUrl;
                     if (videoSlug) {
-                        nextStepVideoUrl = `https://r2.ultrafastfluency.com/assets/videos/${videoSlug}.mp4`;
+                        nextStepVideoUrl = getVideoUrl(videoSlug);
                         preloadVideo(nextStepVideoUrl);
                     }
                 }

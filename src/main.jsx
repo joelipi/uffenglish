@@ -6,9 +6,11 @@ import { createRoot } from 'react-dom/client';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './modules/api/api.js';
 import { initLogRocket } from './modules/utils/logrocket.js';
+import { initPostHog } from './modules/utils/posthog.js';
 import App from './App.jsx';
 
 console.log('[React Entry] Initializing React Entry Point');
+initPostHog();
 initLogRocket();
 
 const root = createRoot(document.getElementById('root'));

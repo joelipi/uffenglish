@@ -9,21 +9,14 @@
 import { appStore } from '../store/store.js';
 import Strings from '../../data/strings.js';
 import { getLocalizedTranslation } from '../utils/utils.js';
-
-const FIREBASE_BASE = 'https://r2.ultrafastfluency.com/assets/videos/';
-
-function resolveVideoUrl(slug) {
-    return (window.preloadedMedia && window.preloadedMedia[slug])
-        ? window.preloadedMedia[slug]
-        : `${FIREBASE_BASE}${slug}.mp4`;
-}
+import { getVideoUrl } from './video-url.js';
 
 export function loadVideoForStep(step, _state, lang) {
     // Clear any previous video state before loading the new step
     appStore.getState().setCurrentVideo(null);
 
     if (step.interactiveVideoUrl) {
-        const currentVideoUrl = resolveVideoUrl(step.interactiveVideoUrl);
+        const currentVideoUrl = getVideoUrl(step.interactiveVideoUrl);
         appStore.getState().setCurrentVideo({
             type: 'interactive',
             responseType: step.responseType,
@@ -37,7 +30,7 @@ export function loadVideoForStep(step, _state, lang) {
     }
 
     if (step.simpleVideoUrl) {
-        const currentVideoUrl = resolveVideoUrl(step.simpleVideoUrl);
+        const currentVideoUrl = getVideoUrl(step.simpleVideoUrl);
         appStore.getState().setCurrentVideo({
             type: 'simple',
             responseType: step.responseType,
@@ -51,7 +44,7 @@ export function loadVideoForStep(step, _state, lang) {
     }
 
     if (step.introBackgroundVideoUrl) {
-        const currentVideoUrl = resolveVideoUrl(step.introBackgroundVideoUrl);
+        const currentVideoUrl = getVideoUrl(step.introBackgroundVideoUrl);
         appStore.getState().setCurrentVideo({
             type: 'intro',
             responseType: step.responseType,

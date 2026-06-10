@@ -8,7 +8,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest",
-    "knip": "knip"
+    "knip": "knip",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name=uffenglish",
+    "deploy:prod": "npm run build && wrangler pages deploy dist --project-name=uffenglish --branch=production"
   },
   "keywords": [],
   "author": "",
@@ -40,6 +42,7 @@
     "howler": "^2.2.4",
     "jsdom": "^29.1.1",
     "logrocket": "^12.1.1",
+    "posthog-js": "^1.386.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.15.1",

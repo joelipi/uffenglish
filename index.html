@@ -133,11 +133,18 @@
                     }, 100);
 
                     try {
-                        // Pre-warm the first video
+                        // Pre-warm the first video — download as blob for instant playback
                         if (lessonData?.steps && lessonData.steps[0]) {
                             const firstStep = lessonData.steps[0];
                             const slugToWarm = firstStep.interactiveVideoUrl || firstStep.simpleVideoUrl || firstStep.introBackgroundVideoUrl;
-                            if (slugToWarm) fetch(buildVideoUrlFn(slugToWarm)).catch(() => { });
+                            if (slugToWarm) {
+                                fetch(buildVideoUrlFn(slugToWarm)).then(async (resp) => {
+                                    if (resp.ok) {
+                                        const blob = await resp.blob();
+                                        window.preloadedMedia[slugToWarm] = URL.createObjectURL(blob);
+                                    }
+                                }).catch(() => {});
+                            }
                         }
 
                         // Preload essential UI images

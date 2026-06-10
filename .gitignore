@@ -39,3 +39,4 @@ assets/videos/success.mp4
 /.opencode
 /.reasonix
 /docs
+.env
