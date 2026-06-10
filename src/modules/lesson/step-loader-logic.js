@@ -23,7 +23,7 @@ let _warningClearTimer = null;
 export function clearWarningLater(ms) {
     clearTimeout(_warningClearTimer);
     _warningClearTimer = setTimeout(() => {
-        appStore.getState().setMicStatus(null);
+        appStore.getState().setSystemMessage(null);
         _warningClearTimer = null;
     }, ms);
 }
@@ -46,7 +46,7 @@ export function handleStepCore(step) {
 
     loadVideoForStep(step, null, appStore.getState().userData?.native_language);
 
-    appStore.getState().setMicStatus({ type: 'info', text: step.step });
+    appStore.getState().setSystemMessage({ type: 'info', text: step.step });
 }
 
 // --- Text Step Handling ---
@@ -96,7 +96,7 @@ export function handleUnitComplete(step) {
     state.setSuccessScreen(lessonId, fluencyDataObj);
     state.setStatsVisible(false);
     state.setProgressPercent("100%");
-    state.setBottomControlState('lessonSuccess');
+    state.setAppPhase('lessonSuccess', { lessonId, fluencyData: fluencyDataObj });
 }
 
 // --- Success Step Rendering ---
@@ -133,7 +133,7 @@ export function handleSuccessStep(step, fluencyData) {
     state.setSuccessScreen(step.lessonId, fluencyDataObj);
     state.setStatsVisible(false);
     state.setProgressPercent("100%");
-    state.setBottomControlState('lessonSuccess');
+    state.setAppPhase('lessonSuccess', { lessonId: step.lessonId, fluencyData: fluencyDataObj });
 
     const currentLesson = state.configData.lessons[state.currentLessonIndex];
     const nextLessonId = currentLesson.nextLessonId;

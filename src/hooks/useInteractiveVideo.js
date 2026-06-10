@@ -25,6 +25,7 @@ export function useInteractiveVideo() {
         isSlowMode:     false,
         isPlaying:      false,
     });
+    const prevShowOverlayRef = useRef(false);
 
     const config = useMemo(() => {
         if (!isActive) return null;
@@ -49,6 +50,15 @@ export function useInteractiveVideo() {
             stateSnapshotRef.current = { ...state };
             appStore.getState().setOverlayVisible(state.showOverlay);
 
+            if (state.showOverlay && !prevShowOverlayRef.current) {
+                const responseType = currentVideo?.responseType;
+                const phase = responseType === 'closedResponse'
+                    ? 'interactiveVideo-decisionTime-closedResponse'
+                    : 'interactiveVideo-decisionTime-openResponse';
+                appStore.getState().setAppPhase(phase);
+            }
+            prevShowOverlayRef.current = state.showOverlay;
+
             if (state.isPlaying && requestPlayRef.current) {
                 requestPlayRef.current();
             }
@@ -61,6 +71,7 @@ export function useInteractiveVideo() {
             unsub();
             controller.destroy(); // Neutralize timers/callbacks
             controllerRef.current = null;
+            prevShowOverlayRef.current = false;
         };
     }, [config, forceUpdate]);
 

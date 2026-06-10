@@ -13,8 +13,26 @@ import { handleTextStep, handleLessonComplete, handleUnitComplete, handleSuccess
 import { loadStepOrchestrate } from './step-loader-orchestrate.js';
 import { setTextInputSubmitCallback as setTextCb, setSpeechInputToggleCallback as setSpeechCb } from './step-loader-callbacks.js';
 
-function resetUIForNewStep(isLessonIntro, hasUserData) {
-    appStore.getState().setBottomControlState('mic');
+function resetUIForNewStep(step) {
+    let phase;
+    const isRetry = appStore.getState().incorrectAttempts > 0;
+    if (step.responseType === 'lessonIntro') {
+        phase = 'lessonIntro';
+        appStore.getState().setBottomControlState('mic');
+    } else if (step.responseType === 'success') {
+        phase = 'lessonSuccess';
+        appStore.getState().setBottomControlState('success');
+    } else if (step.interactiveVideoUrl && !isRetry) {
+        phase = 'interactiveVideo+' + (step.responseType === 'openResponse' ? 'openResponse' : 'closedResponse');
+        appStore.getState().setBottomControlState('mic');
+    } else if (step.simpleVideoUrl) {
+        phase = 'simpleVideo';
+        appStore.getState().setBottomControlState('mic');
+    } else {
+        phase = 'recording/answering';
+        appStore.getState().setBottomControlState('mic');
+    }
+    appStore.getState().setAppPhase(phase);
 }
 
 export function createLoadStep(deps) {
@@ -49,7 +67,7 @@ export function createLoadStep(deps) {
     //    add an unnecessary render cycle delay with zero benefit.
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    resetUIForNewStep(step.responseType === 'lessonIntro', !!appStore.getState().userData);
+    resetUIForNewStep(step);
 
     // Platform-specific pre-dispatch: speech warmup, media rendering, UI setup
     const onStepLoaded = (step, lesson, fluencyData) => {
@@ -177,27 +195,28 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                                     currentPlayer.video.pause();
                                 }
                             }
-                            appStore.getState().setMicStatus({ type: 'speak-now', bilingual: Strings.getBilingual('status_speak', userData?.native_language) });
+                            appStore.getState().setSystemMessage({ type: 'speak-now', bilingual: Strings.getBilingual('status_speak', userData?.native_language) });
                         },
                         onEngineNotReady: (userData) => {
                             const errorMsg = Strings.get('error_engine_not_ready', userData?.native_language) || "Speech engine not ready. Please wait a moment.";
-                            appStore.getState().setMicStatus({ type: 'engine-error', text: errorMsg });
+                            appStore.getState().setSystemMessage({ type: 'engine-error', text: errorMsg });
                         },
                         onEngineReady: (btn) => {
                             if (btn) {
                                 btn.disabled = false;
                             }
-                            appStore.getState().setMicStatus({ type: 'engine-ready', text: 'Engine ready. Try speaking now!' });
+                            appStore.getState().setSystemMessage({ type: 'engine-ready', text: 'Engine ready. Try speaking now!' });
                         },
                         onRecordingActive: () => {
                         },
                         onRecordingStop: (btn) => {
                             trackEvent('recording_stopped');
                             appStore.getState().setMicActive(false);
-                            appStore.getState().setMicStatus(null);
+                            appStore.getState().setSystemMessage(null);
                             appStore.getState().setMediaVisible(false);
                             appStore.getState().setTextInputVisible(false);
-                            appStore.getState().setMicStatus({ type: 'analyzing', text: 'Analyzing Speech...' });
+                            appStore.getState().setSystemMessage({ type: 'analyzing', text: 'Analyzing Speech...' });
+                            appStore.getState().setAppPhase('processing/transcribing');
                         },
                         onStopEarly: (userData) => {
                             trackEvent('recording_stopped_early', { point_loss: 10 });
@@ -207,7 +226,7 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             appStore.getState().triggerPreflightRejected();
                             appStore.getState().setPointLossAmount(10);
                             appStore.getState().setMediaVisible(true);
-                            appStore.getState().setMicStatus({ type: 'stop-early', text: Strings.get('try_again_speech', userData?.native_language) });
+                            appStore.getState().setSystemMessage({ type: 'stop-early', text: Strings.get('try_again_speech', userData?.native_language) });
                             clearWarningLater(3000);
                         },
                         onGibberishDetected: () => {
@@ -217,7 +236,7 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             appStore.getState().incrementWhisperRejections();
                             appStore.getState().triggerPreflightRejected();
                             appStore.getState().setPointLossAmount(10);
-                            appStore.getState().setMicStatus({ type: 'gibberish', text: 'Audio unclear. Please try speaking clearly.' });
+                            appStore.getState().setSystemMessage({ type: 'gibberish', text: 'Audio unclear. Please try speaking clearly.' });
                             clearWarningLater(3000);
                         },
                         onPreflightRejected: (msg) => {
@@ -229,8 +248,11 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             setWebcamStream(null);
                             appStore.getState().triggerPreflightRejected();
                             appStore.getState().setPointLossAmount(10);
-                            appStore.getState().setMicStatus({ type: 'preflight-rejected', text: msg });
-                            clearWarningLater(4000);
+                            appStore.getState().setSystemMessage({ type: 'preflight-rejected', text: msg });
+                            appStore.getState().setAppPhase('transcription preflight-rejected');
+                            setTimeout(() => {
+                                appStore.getState().setAppPhase('recording/answering');
+                            }, 4000);
                         },
                         onTranscriptRejected: (cue, transcript) => {
                             trackEvent('transcript_rejected', { point_loss: 20 });
@@ -242,22 +264,23 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             setWebcamStream(null);
                             appStore.getState().triggerTranscriptRejected(cue, transcript);
                             appStore.getState().setPointLossAmount(20);
-                            appStore.getState().setMicStatus({ type: 'restarting', text: 'Restarting Mic...' });
+                            appStore.getState().setSystemMessage({ type: 'restarting', text: 'Restarting Mic...' });
+                            appStore.getState().setAppPhase('recording/answering');
                         },
                         onReviewStart: (transcript, timeLeft, acceptFn, rejectFn) => {
                             appStore.getState().setMicActive(false);
                             appStore.getState().removeAiLoadingMessage();
-                            appStore.getState().setMicStatus(null);
-                            appStore.getState().setWhisperReviewData({ transcript, timeLeft, onAccept: acceptFn, onReject: rejectFn });
-                            appStore.getState().setWhisperReviewTimeLeft(timeLeft);
+                            appStore.getState().setSystemMessage(null);
+                            appStore.getState().setAppPhase('review', { transcript, timeLeft, onAccept: acceptFn, onReject: rejectFn });
                         },
                         onReviewUpdate: (timeLeft) => {
-                            appStore.getState().setWhisperReviewTimeLeft(timeLeft);
+                            appStore.getState().setAppPhase('review', { ...appStore.getState().phaseData, timeLeft });
                         },
                         onReviewEnd: () => {
                             appStore.getState().setWhisperReviewData(null);
                             appStore.getState().setWhisperReviewTimeLeft(null);
-                            appStore.getState().setMicStatus(null);
+                            appStore.getState().setSystemMessage(null);
+                            appStore.getState().setAppPhase('loading');
                         }
                     }
                 });

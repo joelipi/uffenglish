@@ -11,7 +11,8 @@ import MicrophoneToggle from './widgets/MicrophoneToggle.js';
 import IntroChoices from './widgets/IntroChoices.jsx';
 import SuccessScreen from './widgets/SuccessScreen.jsx';
 import CriticalErrorModal from './modals/CriticalErrorModal.jsx';
-import MicStatusText from './widgets/MicStatusText.jsx';
+import SystemMessageOverlay from './widgets/MicStatusText.jsx';
+import DecisionButtons from './widgets/DecisionButtons.jsx';
 import AuthLink from './widgets/AuthLink.jsx';
 import MissionSection from './widgets/MissionSection.jsx';
 import Hints from './widgets/Hints.jsx';
@@ -49,8 +50,7 @@ export default function LessonContainer() {
     const chatModeActive = useStore(appStore, (state) => state.chatModeActive);
     const textInputVisible = useStore(appStore, (state) => state.textInputVisible);
     const bottomOverlayVisible = useStore(appStore, (state) => state.bottomOverlayVisible);
-    const whisperReviewActive = useStore(appStore, (state) => state.whisperReviewActive);
-    const whisperReviewData = useStore(appStore, (state) => state.whisperReviewData);
+    const bottomState = useStore(appStore, (state) => state.bottomState);
 
     const [lesson, setLesson] = useState(null);
 
@@ -117,12 +117,12 @@ export default function LessonContainer() {
 
     return (
         <>
-            <MicStatusText />
+            <SystemMessageOverlay />
 
             {/* Top Overlay */}
             <div className="top-overlay position-absolute top-0 start-0 w-100 px-3 py-2">
                 <div className="w-100 text-shadow">
-                    <div className="d-flex align-items-center w-100 mb-0">
+                    <div id="top-bar-primary" className="d-flex align-items-center w-100 mb-0">
                         {/* TODO: Replace with proper home route when one exists */}
                         <Link to="/" id="closePage"
                             className="d-flex align-items-center text-decoration-none flex-shrink-0" aria-label="Close">
@@ -166,10 +166,10 @@ export default function LessonContainer() {
                         <AnswerInput />
                         {!textInputVisible && (
                             <>
-                            {whisperReviewActive && (
+                            {bottomState === 'reviewButtons' && (
                                 <div className="d-flex justify-content-center gap-3 w-100">
                                     <button className="btn call-btn" onClick={() => {
-                                        const reject = appStore.getState().whisperReviewData?.onReject;
+                                        const reject = appStore.getState().phaseData?.onReject;
                                         appStore.getState().setWhisperReviewData(null);
                                         appStore.getState().setWhisperReviewTimeLeft(null);
                                         if (reject) reject();
@@ -177,7 +177,7 @@ export default function LessonContainer() {
                                         <i className="bi bi-arrow-counterclockwise"></i>
                                     </button>
                                     <button className="btn call-btn" onClick={() => {
-                                        const accept = appStore.getState().whisperReviewData?.onAccept;
+                                        const accept = appStore.getState().phaseData?.onAccept;
                                         appStore.getState().setWhisperReviewData(null);
                                         appStore.getState().setWhisperReviewTimeLeft(null);
                                         if (accept) accept();
@@ -186,7 +186,10 @@ export default function LessonContainer() {
                                     </button>
                                 </div>
                             )}
-                            {!whisperReviewActive && (
+                            {bottomState === 'decisionButtons' && (
+                                <DecisionButtons />
+                            )}
+                            {['controlIcon', 'introChoices', 'micActiveOrAnswerInput', 'lessonSuccess'].includes(bottomState) && (
                                 <div className="d-flex justify-content-center align-items-center w-100">
                                     <MicrophoneToggle />
                                     <IntroChoices />

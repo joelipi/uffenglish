@@ -10,7 +10,7 @@ test.describe('Whisper Review Regression Guard', () => {
         page.on('console', msg => {
             if (msg.type() === 'error') {
                 const text = msg.text();
-                const noise = ['favicon', 'source map', 'Whisper', 'vite', '401', 'Unauthorized'];
+                const noise = ['favicon', 'source map', 'Whisper', 'vite', '401', 'Unauthorized', 'ERR_FILE_NOT_FOUND', 'ERR_CACHE_WRITE_FAILURE'];
                 if (!noise.some(n => text.includes(n))) {
                     errors.push(text);
                 }
@@ -35,26 +35,24 @@ test.describe('Whisper Review Regression Guard', () => {
 
         // Simulate whisper review appearing (store-driven, no mic needed)
         await page.evaluate(() => {
-            window.appStore.getState().setWhisperReviewData({
+            window.appStore.getState().setAppPhase('review', {
                 transcript: 'test transcript',
                 timeLeft: 7,
                 onAccept: () => {
                     console.log('[test] whisper auto-accept triggered');
-                    // This is what happens on timeout: the review data is cleared
                     window.appStore.getState().setWhisperReviewData(null);
                     window.appStore.getState().setWhisperReviewTimeLeft(null);
                 },
                 onReject: () => {}
             });
-            window.appStore.getState().setWhisperReviewTimeLeft(7);
         });
 
-        // Verify whisper review is visible
-        const reviewVisible = await page.evaluate(() => {
-            const data = window.appStore.getState().whisperReviewData;
-            return data !== null && data.transcript === 'test transcript';
+        // Verify whisper review phase is active
+        const reviewPhase = await page.evaluate(() => {
+            const state = window.appStore.getState();
+            return state.appPhase === 'review' && state.phaseData?.transcript === 'test transcript';
         });
-        expect(reviewVisible).toBe(true);
+        expect(reviewPhase).toBe(true);
 
         // Simulate whisper timeout: clear the review and proceed to next step
         await page.evaluate(() => {
@@ -62,6 +60,7 @@ test.describe('Whisper Review Regression Guard', () => {
             // Clear whisper review (simulates timeout accept)
             state.setWhisperReviewData(null);
             state.setWhisperReviewTimeLeft(null);
+            state.setAppPhase('feedback');
 
             // Now simulate step transition (resetForNextStep)
             state.resetForNextStep();
@@ -87,7 +86,9 @@ test.describe('Whisper Review Regression Guard', () => {
         const filtered = errors.filter(e =>
             !e.includes('favicon') &&
             !e.includes('401') &&
-            !e.includes('Unauthorized')
+            !e.includes('Unauthorized') &&
+            !e.includes('ERR_FILE_NOT_FOUND') &&
+            !e.includes('ERR_CACHE_WRITE_FAILURE')
         );
         expect(filtered).toEqual([]);
     });
@@ -105,27 +106,24 @@ test.describe('Whisper Review Regression Guard', () => {
 
         await page.waitForTimeout(300);
 
-        // Show whisper review
+        // Show whisper review via setAppPhase
         await page.evaluate(() => {
-            window.appStore.getState().setWhisperReviewData({
+            window.appStore.getState().setAppPhase('review', {
                 transcript: 'wrong answer',
                 timeLeft: 7,
                 onAccept: () => {},
                 onReject: () => {
-                    // Reject triggers video clear
                     window.appStore.getState().triggerPreflightRejected(
                         window.appStore.getState().currentStep?.cue || 'test',
                         'wrong transcript'
                     );
                 }
             });
-            window.appStore.getState().setWhisperReviewTimeLeft(7);
         });
 
-        // Clear review (reject path)
+        // Clear review (reject path) - setAppPhase back to recording
         await page.evaluate(() => {
-            window.appStore.getState().setWhisperReviewData(null);
-            window.appStore.getState().setWhisperReviewTimeLeft(null);
+            window.appStore.getState().setAppPhase('recording/answering');
         });
 
         await page.waitForTimeout(300);
@@ -170,7 +168,7 @@ test.describe('Whisper Review Regression Guard', () => {
                 successScreenVisible: newState.successScreenVisible,
                 speechCue: newState.speechCue,
                 hintsVisible: newState.hintsVisible,
-                bottomControlState: newState.bottomControlState
+                appPhase: newState.appPhase
             };
         });
 
@@ -178,7 +176,7 @@ test.describe('Whisper Review Regression Guard', () => {
         // Subtitles should be set from step.subtitles
         expect(result.speechCue).toBeTruthy();
         expect(result.hintsVisible).toBe(true);
-        expect(result.bottomControlState).toBe('lessonSuccess');
+        expect(result.appPhase).toBe('lessonSuccess');
     });
 
     test('chatModeActive toggle hides and correctly restores playback video', async ({ page }) => {

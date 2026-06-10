@@ -27,7 +27,7 @@ test.describe('Success Screen Integration', () => {
         await page.evaluate(() => {
             const state = window.appStore.getState();
             state.setSuccessScreen('test-lesson-id', { total: 85 });
-            state.setBottomControlState('lessonSuccess');
+            state.setAppPhase('lessonSuccess', { lessonId: 'test-lesson-id', fluencyData: { total: 85 } });
         });
 
         // Success screen container should appear
@@ -63,7 +63,7 @@ test.describe('Success Screen Integration', () => {
         await page.evaluate(() => {
             const state = window.appStore.getState();
             state.setSuccessScreen('test-lesson-id', { total: 85 });
-            state.setBottomControlState('lessonSuccess');
+            state.setAppPhase('lessonSuccess', { lessonId: 'test-lesson-id', fluencyData: { total: 85 } });
         });
 
         // Initially hidden
@@ -84,7 +84,9 @@ test.describe('Success Screen Integration', () => {
         await page.waitForTimeout(1000);
 
         await page.evaluate(() => {
-            window.appStore.getState().setSuccessScreen('test-lesson-id', { total: 85 });
+            const state = window.appStore.getState();
+            state.setSuccessScreen('test-lesson-id', { total: 85 });
+            state.setAppPhase('lessonSuccess', { lessonId: 'test-lesson-id', fluencyData: { total: 85 } });
         });
 
         // Initially hidden
@@ -105,7 +107,9 @@ test.describe('Success Screen Integration', () => {
         await page.waitForTimeout(1000);
 
         await page.evaluate(() => {
-            window.appStore.getState().setSuccessScreen('test-lesson-id', { total: 85 });
+            const state = window.appStore.getState();
+            state.setSuccessScreen('test-lesson-id', { total: 85 });
+            state.setAppPhase('lessonSuccess', { lessonId: 'test-lesson-id', fluencyData: { total: 85 } });
         });
 
         await expect(page.locator('#state-lesson-success')).toBeVisible({ timeout: 3000 });

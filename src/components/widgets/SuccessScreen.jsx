@@ -5,10 +5,10 @@ import { ContinueButton, VideoButton, RepeatButton } from './SuccessButtons.jsx'
 import SuccessEffects from './SuccessEffects.jsx';
 
 export default function SuccessScreen({ onLoadNextLesson, onRepeat, canvasRef }) {
-  const visible = useStore(appStore, state => state.successScreenVisible);
+  const bottomState = useStore(appStore, state => state.bottomState);
   const lessonId = useStore(appStore, state => state.successLessonId);
 
-  if (!visible) return null;
+  if (bottomState !== 'lessonSuccess') return null;
 
   return (
     <>

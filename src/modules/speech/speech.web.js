@@ -132,7 +132,7 @@ export async function startSpeechCamRecording(micStatusText, userData) {
     } catch (err) {
         console.error('[Recording] startSpeechCamRecording FAILED:', err);
         alert(Strings.get('alert_media_error', userData?.native_language));
-        appStore.getState().setMicStatus({ type: 'alert', text: Strings.get('error_media_details', userData?.native_language) });
+        appStore.getState().setSystemMessage({ type: 'alert', text: Strings.get('error_media_details', userData?.native_language) });
         setWebcamStream(null);
         safelyStopStream();
         throw err; // re-throw so the orchestrator can abort cleanly

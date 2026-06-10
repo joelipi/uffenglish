@@ -82,13 +82,21 @@ export const appStore = createStore(
             micBounceTrigger: 0,
             overlayVisible: false,
             bottomOverlayVisible: true,
-            micHasSeenOverlay: false,
-            micEarBtnVisible: true,
+
+            // --- App Phase State Machine ---
+            appPhase: 'loading',
+            topState: 'hidden',
+            mediaState: 'preloader',
+            bottomState: 'hidden',
+            phaseData: {},
+
+            // --- System Message Overlay ---
+            systemMessage: null,
+            systemMessageText: null,
 
             // --- Whisper Review Overlay ---
             whisperReviewData: null,
             whisperReviewTimeLeft: null,
-            whisperReviewActive: false,
             successVideoBlob: null,
 
             // --- Success Screen State ---
@@ -231,8 +239,8 @@ export const appStore = createStore(
             // --- UI State Actions ---
             setProgressPercent: (percent) => set({ progressPercent: percent }),
             setStatsVisible: (visible) => set({ statsVisible: visible }),
-            setMicStatusText: (text) => set({ micStatusText: text }),
-            setMicStatus: (status) => set({ micStatus: status }),
+            setSystemMessageText: (text) => set({ systemMessageText: text }),
+            setSystemMessage: (status) => set({ systemMessage: status }),
             setIsLoaded: (loaded) => set({ isLoaded: loaded }),
             setHintsVisible: (visible) => set({ hintsVisible: visible }),
             setHangmanHintHTML: (html) => set({ hangmanHintHTML: html }),
@@ -240,8 +248,6 @@ export const appStore = createStore(
             setBottomControlState: (state) => set({ bottomControlState: state }),
             setBottomOverlayVisible: (val) => set({ bottomOverlayVisible: val }),
             setOverlayVisible: (val) => set({ overlayVisible: val }),
-            setMicHasSeenOverlay: (val) => set({ micHasSeenOverlay: val }),
-            setMicEarBtnVisible: (val) => set({ micEarBtnVisible: val }),
             setChatModeActive: (val) => set({ chatModeActive: val }),
             setSubmitBtnDisabled: (val) => set({ submitBtnDisabled: val }),
             setSubmitBtnIcon: (icon) => set({ submitBtnIcon: icon }),
@@ -255,6 +261,37 @@ export const appStore = createStore(
             triggerPreflightRejected: () => set((state) => ({ preflightRejectedTrigger: state.preflightRejectedTrigger + 1 })),
             triggerTranscriptRejected: (cue, transcript) => set((state) => ({ transcriptRejectedTrigger: state.transcriptRejectedTrigger + 1, transcriptRejectedCue: cue, transcriptRejectedTranscript: transcript })),
             triggerScoreUpdate: () => set((state) => ({ scoreUpdateTrigger: state.scoreUpdateTrigger + 1 })),
+            setAppPhase: (phase, data = {}) => set((state) => {
+                const mapping = {
+                    loading:                                     { topState: 'hidden',          mediaState: 'preloader',           bottomState: 'hidden' },
+                    lessonIntro:                                 { topState: 'topBarOnly',      mediaState: 'introCallWidget',     bottomState: 'introChoices' },
+                    simpleVideo:                                 { topState: 'topBarOnly',      mediaState: 'simpleVideo',         bottomState: 'controlIcon' },
+                    'interactiveVideo+closedResponse':           { topState: 'topBarWithStats', mediaState: 'interactiveVideo',    bottomState: 'hidden' },
+                    'interactiveVideo+openResponse':             { topState: 'topBarWithStats', mediaState: 'interactiveVideo',    bottomState: 'hidden' },
+                    'interactiveVideo-decisionTime-closedResponse': { topState: 'topBarWithStats', mediaState: 'decisionOverlay', bottomState: 'decisionButtons' },
+                    'interactiveVideo-decisionTime-openResponse':   { topState: 'topBarWithStats', mediaState: 'decisionOverlay', bottomState: 'decisionButtons' },
+                    'recording/answering':                       { topState: state.currentVideo?.type === 'interactive' ? 'topBarWithStats' : 'topBarOnly', mediaState: 'webcamOrAvatar', bottomState: 'micActiveOrAnswerInput' },
+                    'processing/transcribing':                   { topState: state.currentVideo?.type === 'interactive' ? 'topBarWithStats' : 'topBarOnly', mediaState: 'processingRecording', bottomState: 'hidden' },
+                    'transcription preflight-rejected':          { topState: state.currentVideo?.type === 'interactive' ? 'topBarWithStats' : 'topBarOnly', mediaState: 'preflightRejected', bottomState: 'hidden' },
+                    review:                                      { topState: state.currentVideo?.type === 'interactive' ? 'topBarWithStats' : 'topBarOnly', mediaState: 'whisperReview', bottomState: 'reviewButtons' },
+                    feedback:                                    { topState: 'topBarOnly',      mediaState: 'chat',                bottomState: 'continueButton' },
+                    lessonSuccess:                               { topState: 'topBarOnly',      mediaState: 'simpleVideo',         bottomState: 'lessonSuccess' },
+                    successVideoCreation:                        { topState: 'hidden',          mediaState: 'videoProcessor',      bottomState: 'hidden' },
+                    'successVideo/videoShare':                   { topState: 'hidden',          mediaState: 'videoProcessor',      bottomState: 'shareButtons' },
+                    error:                                       { topState: 'hidden',          mediaState: 'errorModal',          bottomState: 'hidden' },
+                };
+                const zoneStates = mapping[phase] || mapping.error;
+                const result = {
+                    appPhase: phase,
+                    phaseData: data,
+                    ...zoneStates,
+                };
+                if (phase === 'review') {
+                    result.whisperReviewData = data;
+                    result.whisperReviewTimeLeft = data?.timeLeft ?? null;
+                }
+                return result;
+            }),
             setPlaybackBlob: (blob, autoplay = false, speechCamChunks = []) => set({ playbackBlob: blob, playbackAutoplay: autoplay, playbackSpeechCamChunks: speechCamChunks }),
             clearPlaybackBlob: () => set({ playbackBlob: null, playbackAutoplay: false, playbackSpeechCamChunks: [] }),
             setCompletionMessage: (msg) => set({ completionMessage: msg }),
@@ -380,11 +417,15 @@ export const appStore = createStore(
                 playbackSpeechCamChunks: [],
                 bottomControlState: 'mic',
                 bottomOverlayVisible: true,
+                appPhase: 'loading',
+                topState: 'hidden',
+                mediaState: 'preloader',
+                bottomState: 'hidden',
+                phaseData: {},
                 praiseImageUrl: null,
                 youtubeVideoId: null,
                 whisperReviewData: null,
                 whisperReviewTimeLeft: null,
-                whisperReviewActive: false,
                 successVideoBlob: null,
                 successScreenVisible: false,
                 successLessonId: null,
@@ -433,7 +474,7 @@ export const appStore = createStore(
             setMediaVisible: (visible) => set({ mediaVisible: visible }),
             setPointLossAmount: (amount) => set((state) => ({ pointLossAmount: amount, pointLossTrigger: state.pointLossTrigger + 1 })),
             // --- Whisper Review Actions ---
-            setWhisperReviewData: (data) => set({ whisperReviewData: data, whisperReviewActive: !!data }),
+            setWhisperReviewData: (data) => set({ whisperReviewData: data }),
             setWhisperReviewTimeLeft: (timeLeft) => set({ whisperReviewTimeLeft: timeLeft }),
             setSuccessVideoBlob: (blob) => set({ successVideoBlob: blob }),
             clearSuccessVideoBlob: () => set({ successVideoBlob: null }),

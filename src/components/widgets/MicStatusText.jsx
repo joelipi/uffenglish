@@ -63,12 +63,12 @@ function renderBilingual(bilingual) {
     );
 }
 
-export default function MicStatusText() {
-    const micStatus = useStore(appStore, (state) => state.micStatus);
-    const micStatusText = useStore(appStore, (state) => state.micStatusText);
+export default function SystemMessageOverlay() {
+    const systemMessage = useStore(appStore, (state) => state.systemMessage);
+    const systemMessageText = useStore(appStore, (state) => state.systemMessageText);
 
-    if (micStatus) {
-        const { type, text, bilingual } = micStatus;
+    if (systemMessage) {
+        const { type, text, bilingual } = systemMessage;
         return (
             <div id="react-root-micstatus" className="d-flex justify-content-center align-items-center">
                 <div id="micStatusText" className={`text-center ${colorClass(type)}`}>
@@ -82,7 +82,7 @@ export default function MicStatusText() {
         );
     }
 
-    if (!micStatusText) return null;
+    if (!systemMessageText) return null;
 
     return (
         <div id="react-root-micstatus" className="d-flex justify-content-center align-items-center">

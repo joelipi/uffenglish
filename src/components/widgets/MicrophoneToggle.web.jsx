@@ -1,8 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from 'zustand';
-import { appStore, getCurrentVideoPlayer } from '../../modules/store/store.js';
+import { appStore } from '../../modules/store/store.js';
 import { getSpeechInputToggleCallback } from '../../modules/lesson/step-loader-callbacks.js';
-import { getBilingual } from '../../data/strings.js';
 import { trackEvent } from '../../modules/utils/logrocket.js';
 
 export default function MicrophoneToggle() {
@@ -10,16 +9,10 @@ export default function MicrophoneToggle() {
     const isTextMode = useStore(appStore, (state) => state.isTextMode);
     const bottomControlState = useStore(appStore, (state) => state.bottomControlState);
     const micBounceTrigger = useStore(appStore, (state) => state.micBounceTrigger);
-    const overlayVisible = useStore(appStore, (state) => state.overlayVisible);
-    const currentVideo = useStore(appStore, (state) => state.currentVideo);
-    const userData = useStore(appStore, (state) => state.userData);
-    const hasSeenOverlay = useStore(appStore, (state) => state.micHasSeenOverlay);
-    const earBtnVisible = useStore(appStore, (state) => state.micEarBtnVisible);
     const [bouncing, setBouncing] = useState(false);
     const ringRefs = useRef([null, null, null]);
     const micBtnRef = useRef(null);
     const animationRefs = useRef([]);
-    const interactiveVideoUrlRef = useRef(null);
 
     useEffect(() => {
         if (isMicActive) {
@@ -62,18 +55,6 @@ export default function MicrophoneToggle() {
         return () => clearTimeout(timer);
     }, [micBounceTrigger]);
 
-    useEffect(() => {
-        if (currentVideo?.url && currentVideo.url !== interactiveVideoUrlRef.current) {
-            interactiveVideoUrlRef.current = currentVideo.url;
-            appStore.getState().setMicHasSeenOverlay(false);
-            appStore.getState().setMicEarBtnVisible(true);
-        }
-    }, [currentVideo]);
-
-    useEffect(() => {
-        if (overlayVisible) appStore.getState().setMicHasSeenOverlay(true);
-    }, [overlayVisible]);
-
     const handleClick = () => {
         trackEvent('mic_toggled', { active: !appStore.getState().isMicActive });
         const cb = getSpeechInputToggleCallback();
@@ -91,7 +72,7 @@ export default function MicrophoneToggle() {
             trackEvent('text_mode_toggled', { active: false });
             appStore.getState().setTextInputVisible(false);
             appStore.getState().setMicActive(false);
-            const player = getCurrentVideoPlayer();
+            const player = appStore.getState().currentVideo?.player;
             if (player && player.play) {
                 player.play().catch(e => console.warn('[UI] Video resume failed:', e));
             }
@@ -103,91 +84,12 @@ export default function MicrophoneToggle() {
         }
     };
 
-    const handleEarClick = () => {
-        getCurrentVideoPlayer()?.dismissOverlay?.();
-        appStore.getState().setMicEarBtnVisible(false);
-    };
-    const handleMicClick = () => {
-        getCurrentVideoPlayer()?.dismissOverlay?.({ replay: false });
-        appStore.getState().setMicEarBtnVisible(false);
-        handleClick();
-    };
-    const handleTxtClickOverlay = () => {
-        getCurrentVideoPlayer()?.dismissOverlay?.({ replay: false });
-        appStore.getState().setMicEarBtnVisible(false);
-        handleTextClick();
-    };
-
     const ringStyle = isMicActive ? { opacity: 0.7, pointerEvents: 'none' } : { opacity: 0, pointerEvents: 'none' };
-    const isInteractiveVideo = currentVideo?.type === 'interactive';
-    const shouldShowMic = bottomControlState === 'mic' && (overlayVisible || hasSeenOverlay || !isInteractiveVideo);
-    const labelLang = userData?.native_language || 'en';
+    const shouldShowMic = bottomControlState === 'mic';
 
     if (!shouldShowMic) {
         return (
             <div className="mic-btn-wrapper d-none" id="state-standard-mic" style={{ display: 'flex' }} />
-        );
-    }
-
-    if (overlayVisible && earBtnVisible) {
-        return (
-            <div style={{ display: 'flex', justifyContent: 'space-around', width: '100%', gap: '8px' }}>
-                <div className="ivp-choice-col" style={{ flex: 1, minWidth: 0 }}>
-                    <div className="ivp-choice-label">
-                        <div className="ivp-choice-label-no">NO</div>
-                        <div className="ivp-choice-label-arrow">▼</div>
-                        <div className="ivp-choice-label-text">
-                            {(() => {
-                                const d = getBilingual('video_ear_training', labelLang);
-                                return d.localized ? (
-                                    <React.Fragment>{d.english}<br /><span lang={d.lang}><i>{d.localized}</i></span></React.Fragment>
-                                ) : d.english;
-                            })()}
-                        </div>
-                    </div>
-                    <button
-                        className="btn call-btn"
-                        id="earBtn"
-                        aria-label="Listen again"
-                        onClick={handleEarClick}
-                    >
-                        <i className="bi bi-ear-fill"></i>
-                    </button>
-                </div>
-                <div className="ivp-choice-col" style={{ flex: 1, minWidth: 0 }}>
-                    <div className="ivp-choice-label">
-                        <div className="ivp-choice-label-yes">YES</div>
-                        <div className="ivp-choice-label-arrow">▼</div>
-                        <div className="ivp-choice-label-text">
-                            {(() => {
-                                const d = getBilingual('video_respond_now', labelLang);
-                                return d.localized ? (
-                                    <React.Fragment>{d.english}<br /><span lang={d.lang}><i>{d.localized}</i></span></React.Fragment>
-                                ) : d.english;
-                            })()}
-                        </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
-                            ref={micBtnRef}
-                            className={`btn call-btn ${isMicActive ? '' : 'toggled-off'} ${isTextMode ? 'd-none' : ''}`}
-                            id="micBtn"
-                            aria-label="Toggle Microphone"
-                            onClick={handleMicClick}
-                        >
-                            <i className={isMicActive ? "bi bi-mic-fill" : "bi bi-mic-mute-fill"}></i>
-                        </button>
-                        <button
-                            className={`btn call-btn ${isTextMode ? '' : 'd-none'}`}
-                            id="txtBtn"
-                            aria-label="Toggle Text Input"
-                            onClick={handleTxtClickOverlay}
-                        >
-                            <i className="bi bi-keyboard-fill"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
         );
     }
 

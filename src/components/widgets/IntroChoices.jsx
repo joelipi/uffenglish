@@ -4,9 +4,9 @@ import { appStore } from '../../modules/store/store.js';
 import { getIntroContinueHandler } from '../../modules/answer/answer-pipeline.js';
 
 export default function IntroChoices() {
-    const bottomControlState = useStore(appStore, (state) => state.bottomControlState);
+    const bottomState = useStore(appStore, (state) => state.bottomState);
 
-    if (bottomControlState !== 'introChoices') return null;
+    if (bottomState !== 'introChoices') return null;
 
     const handleVideoClick = () => {
         appStore.getState().setTextMode(false);
