@@ -261,7 +261,7 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 
 /* LessonContainer layout classes */
 .progress-xs { height: 8px; }
-.chat-window-container { position: absolute; top: 60px; bottom: 80px; left: 0; right: 0; display: flex; flex-direction: column; transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+.chat-window-container { position: absolute; top: 60px; bottom: 0px; left: 0; right: 0; display: flex; flex-direction: column; transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
 .chat-hidden { opacity: 0; transform: translateY(24px); pointer-events: none; }
 
 #media-viewport { transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1), transform 0.35s cubic-bezier(0.4, 0, 0.2, 1); }
