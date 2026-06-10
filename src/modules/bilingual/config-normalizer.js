@@ -31,9 +31,9 @@ export function normalizeConfig(configData, lang = 'en') {
                     step.step = step.question;
                 }
 
-                // Map 'inputType' to 'stepType'
-                if (step.inputType !== undefined && step.stepType === undefined) {
-                    step.stepType = step.inputType;
+                // Map 'inputType' to 'responseType'
+                if (step.inputType !== undefined && step.responseType === undefined) {
+                    step.responseType = step.inputType;
                 }
 
 if (step.step) step.step = getLocalizedTranslation(step.step, userLang);

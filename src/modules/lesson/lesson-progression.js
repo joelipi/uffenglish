@@ -41,7 +41,7 @@ export function createProgression(deps) {
         updateProgressBar();
         trackEvent('step_completed', {
             step_index: appStore.getState().currentStepIndex,
-            step_type: currentStep.stepType,
+            step_type: currentStep.responseType,
             is_last_step: appStore.getState().currentStepIndex >= (appStore.getState().configData?.lessons?.[appStore.getState().currentLessonIndex]?.steps?.length || 0) - 1,
         });
         appStore.getState().setStatsVisible(false);

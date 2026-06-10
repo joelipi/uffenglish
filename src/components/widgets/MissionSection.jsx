@@ -3,12 +3,12 @@ import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { BilingualText } from '../BilingualText.jsx';
 
-export default function MissionSection({ stepType }) {
-    const [expanded, setExpanded] = useState(stepType === 'lessonIntro');
+export default function MissionSection({ responseType }) {
+    const [expanded, setExpanded] = useState(responseType === 'lessonIntro');
 
     useEffect(() => {
-        setExpanded(stepType === 'lessonIntro');
-    }, [stepType]);
+        setExpanded(responseType === 'lessonIntro');
+    }, [responseType]);
     const configData = useStore(appStore, (state) => state.configData);
     const currentLessonIndex = useStore(appStore, (state) => state.currentLessonIndex);
     const userData = useStore(appStore, (state) => state.userData);

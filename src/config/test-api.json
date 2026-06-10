@@ -7,7 +7,7 @@
       "setting": "the beach",
       "steps": [
         {
-          "stepType": "openResponse",
+          "responseType": "openResponse",
           "cue": "hi"
         }
       ]

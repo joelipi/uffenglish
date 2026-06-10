@@ -35,7 +35,7 @@ describe('normalizeConfig', () => {
         const configData = {
             lessons: [{
                 steps: [{
-                    stepType: 'speech',
+                    responseType: 'speech',
                     step: { en: 'Step', es: 'Step_es'},
                     explanation: { en: 'Exp', es: 'Exp_es' },
                     translation: { en: 'Trans', es: 'Trans_es' },
@@ -72,7 +72,7 @@ describe('normalizeConfig', () => {
         normalizeConfig(configData, 'es');
         const step = configData.lessons[0].steps[0];
         expect(step.step).toBe('Pregunta');
-        expect(step.stepType).toBe('speech');
+        expect(step.responseType).toBe('speech');
         expect(step.explanation).toBe('Exp_es');
         expect(step.translation).toBe('Trans_es');
         expect(step.subtitles).toBe('Sub_es');
@@ -84,7 +84,7 @@ describe('normalizeConfig', () => {
         const configData = {
             lessons: [{
                 steps: [{
-                    stepType: 'speech',
+                    responseType: 'speech',
                     step: { en: 'Custom Step', es: 'Paso Personalizado' }
                 }]
             }]

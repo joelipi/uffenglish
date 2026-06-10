@@ -67,15 +67,15 @@ export function loadStepOrchestrate(step, lesson, fluencyData, deps = {}) {
     onStepLoaded(step, lesson, fluencyData);
 
     // Step-type dispatch (platform-agnostic branching, platform-specific handlers)
-    if (step.stepType === 'closedResponse' || step.stepType === 'openResponse') {
+    if (step.responseType === 'closedResponse' || step.responseType === 'openResponse') {
         onResponseStep(step, lesson, { submitAnswerPrecheck, showFeedbackAndProceed, handleHint });
-    } else if (step.stepType === 'unitcomplete') {
+    } else if (step.responseType === 'unitcomplete') {
         onUnitComplete(step);
-    } else if (step.stepType === 'lessonIntro') {
+    } else if (step.responseType === 'lessonIntro') {
         onLessonIntro(step, lesson, { showFeedbackAndProceed });
-    } else if (step.stepType === 'present') {
+    } else if (step.responseType === 'present') {
         onPresent(step, lesson, { showFeedbackAndProceed });
-    } else if (step.stepType === 'success') {
+    } else if (step.responseType === 'success') {
         onSuccess(step, fluencyData);
     }
 }

@@ -13,7 +13,7 @@ export default function StepLoader({ step, lesson }) {
 
     return (
         <View>
-            <Text>StepLoader Native — stepType: {step.stepType}</Text>
+            <Text>StepLoader Native — responseType: {step.responseType}</Text>
         </View>
     );
 }

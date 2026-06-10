@@ -101,15 +101,15 @@ export function useInteractiveVideo() {
 
         trackEvent('video_play', {
             play_count: appStore.getState().videoPlays + 1,
-            step_type: appStore.getState().currentVideo?.stepType,
+            step_type: appStore.getState().currentVideo?.responseType,
         });
         controllerRef.current?.play();
 
         appStore.getState().incrementVideoPlays();
-        const stepType = appStore.getState().currentVideo?.stepType ?? '';
+        const responseType = appStore.getState().currentVideo?.responseType ?? '';
         if (
             appStore.getState().videoPlays > 1 &&
-            (stepType === 'closedResponse' || stepType === 'openResponse')
+            (responseType === 'closedResponse' || responseType === 'openResponse')
         ) {
             appStore.getState().deductListeningScore(10);
             appStore.getState().setPointLossAmount(10);
@@ -126,13 +126,13 @@ export function useInteractiveVideo() {
 
         trackEvent('video_click', {
             click_count: appStore.getState().videoClicks + 1,
-            step_type: appStore.getState().currentVideo?.stepType,
+            step_type: appStore.getState().currentVideo?.responseType,
         });
         appStore.getState().incrementVideoClicks();
-        const stepType = appStore.getState().currentVideo?.stepType ?? '';
+        const responseType = appStore.getState().currentVideo?.responseType ?? '';
         if (
             appStore.getState().videoClicks % 2 === 1 &&
-            (stepType === 'closedResponse' || stepType === 'openResponse')
+            (responseType === 'closedResponse' || responseType === 'openResponse')
         ) {
             clickTriggeredPlayRef.current = true;
             appStore.getState().deductListeningScore(15);

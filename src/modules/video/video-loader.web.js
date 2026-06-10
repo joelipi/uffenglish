@@ -26,7 +26,7 @@ export function loadVideoForStep(step, _state, lang) {
         const currentVideoUrl = resolveVideoUrl(step.interactiveVideoUrl);
         appStore.getState().setCurrentVideo({
             type: 'interactive',
-            stepType: step.stepType,
+            responseType: step.responseType,
             url: currentVideoUrl,
             config: {
                 cue: step.cue,
@@ -40,7 +40,7 @@ export function loadVideoForStep(step, _state, lang) {
         const currentVideoUrl = resolveVideoUrl(step.simpleVideoUrl);
         appStore.getState().setCurrentVideo({
             type: 'simple',
-            stepType: step.stepType,
+            responseType: step.responseType,
             url: currentVideoUrl,
             config: {
                 subtitles: getLocalizedTranslation(step.subtitles, lang),
@@ -54,7 +54,7 @@ export function loadVideoForStep(step, _state, lang) {
         const currentVideoUrl = resolveVideoUrl(step.introBackgroundVideoUrl);
         appStore.getState().setCurrentVideo({
             type: 'intro',
-            stepType: step.stepType,
+            responseType: step.responseType,
             url: currentVideoUrl,
             config: {
                 title: Strings.get('incoming_video', lang) || 'INCOMING VIDEO',

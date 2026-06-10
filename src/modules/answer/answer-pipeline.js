@@ -177,19 +177,19 @@ export function createAnswerPipeline(deps) {
         const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
 
         const currentFluencyScore = appStore.getState().fluencyScore;
-        if (stepData.stepType === "closedResponse" && stepData.interactiveVideoUrl) {
+        if (stepData.responseType === "closedResponse" && stepData.interactiveVideoUrl) {
             appStore.setState({ repeatPointsHistory: [...appStore.getState().repeatPointsHistory, currentFluencyScore] });
             console.log('[scoring] append repeatPointsHistory', { currentFluencyScore, repeatPointsHistory: appStore.getState().repeatPointsHistory });
         }
-        if (stepData.stepType === "openResponse" && stepData.interactiveVideoUrl) {
+        if (stepData.responseType === "openResponse" && stepData.interactiveVideoUrl) {
             appStore.setState({ rolePlayPointsHistory: [...appStore.getState().rolePlayPointsHistory, currentFluencyScore] });
             console.log('[scoring] append rolePlayPointsHistory', { currentFluencyScore, rolePlayPointsHistory: appStore.getState().rolePlayPointsHistory });
         }
 
         showChat();
 
-        const praiseResult = (stepData.stepType === "openResponse" || stepData.stepType === "closedResponse") ? getRandomPraise('general', lang) : "";
-        const feedbackText = (stepData.stepType === "openResponse" && englishLevelDeduction > 0)
+        const praiseResult = (stepData.responseType === "openResponse" || stepData.responseType === "closedResponse") ? getRandomPraise('general', lang) : "";
+        const feedbackText = (stepData.responseType === "openResponse" && englishLevelDeduction > 0)
             ? (() => {
                 const acceptable = Strings.getBilingual('ai_acceptable', lang);
                 const level = Strings.getBilingual('ai_course_level', lang);
@@ -204,7 +204,7 @@ export function createAnswerPipeline(deps) {
             })()
             : praiseResult;
 
-        if (stepData.stepType !== "openResponse" && stepData.stepType !== "closedResponse") {
+        if (stepData.responseType !== "openResponse" && stepData.responseType !== "closedResponse") {
             const localizedTrans = getLocalizedTranslation(translation, lang);
             const userName = appStore.getState().userData?.display_name?.split(' ')[0] || 'User';
             const userAvatarUrl = appStore.getState().userData?.profilepicurl || userAvatarUrl;
@@ -311,7 +311,7 @@ export function createAnswerPipeline(deps) {
         const cueText = typeof cue === 'object' ? cue?.en : cue;
         appStore.getState().incrementIncorrectAttempts();
 
-        if (!silent && !appStore.getState().isTextMode && (stepData.stepType === "lessonIntro" || stepData.stepType === "closedResponse" || stepData.stepType === "openResponse")) {
+        if (!silent && !appStore.getState().isTextMode && (stepData.responseType === "lessonIntro" || stepData.responseType === "closedResponse" || stepData.responseType === "openResponse")) {
             const storeState = appStore.getState();
             const hasVideoBubble = storeState.chatHistory.some(msg => msg.type === 'video');
             if (!hasVideoBubble) {
@@ -326,7 +326,7 @@ export function createAnswerPipeline(deps) {
             }
         }
 
-        if ((stepData.stepType === "closedResponse" || stepData.stepType === "openResponse") && stepData.interactiveVideoUrl) {
+        if ((stepData.responseType === "closedResponse" || stepData.responseType === "openResponse") && stepData.interactiveVideoUrl) {
             appStore.getState().deductListeningScore(25);
             appStore.getState().triggerPointLoss('listening', 25);
             if (appStore.getState().incorrectAttempts > 2) {
@@ -335,7 +335,7 @@ export function createAnswerPipeline(deps) {
             }
         }
 
-        const isSilentSpeechRetry = silent && stepData.stepType === "closedResponse";
+        const isSilentSpeechRetry = silent && stepData.responseType === "closedResponse";
 
         if (isSilentSpeechRetry) {
             return;
@@ -343,7 +343,7 @@ export function createAnswerPipeline(deps) {
 
         const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
 
-        if (stepData.stepType === "openResponse" && userResponse) {
+        if (stepData.responseType === "openResponse" && userResponse) {
             if (appStore.getState().incorrectAttempts > 2) {
                 appStore.getState().setListeningScore(0);
                 appStore.setState({ rolePlayPointsHistory: [...appStore.getState().rolePlayPointsHistory, appStore.getState().listeningScore] });
@@ -407,7 +407,7 @@ export function createAnswerPipeline(deps) {
             }
         }
 
-        if (stepData.stepType === "closedResponse" && userResponse) {
+        if (stepData.responseType === "closedResponse" && userResponse) {
             const selectedWords = [...new Set(normalizeduserResponse.split(/\s+/))];
             const correctWords = [...new Set(normalizedcue.split(/\s+/))];
             const correctWordSet = new Set(correctWords.map(w => w.toLowerCase()));
@@ -480,7 +480,7 @@ export function createAnswerPipeline(deps) {
 
     function handleHint(stepIndex) {
         trackEvent('hint_requested', {
-            step_type: appStore.getState().configData?.lessons?.[appStore.getState().currentLessonIndex]?.steps?.[stepIndex]?.stepType,
+            step_type: appStore.getState().configData?.lessons?.[appStore.getState().currentLessonIndex]?.steps?.[stepIndex]?.responseType,
             step_index: stepIndex,
         });
         appStore.getState().setHintsVisible(true);
@@ -505,7 +505,7 @@ export function createAnswerPipeline(deps) {
             trackEvent('answer_rejected', {
                 reason: warningMessage,
                 is_text_mode: appStore.getState().isTextMode,
-                step_type: stepData.stepType,
+                step_type: stepData.responseType,
             });
             logInteraction(cueText, val, "rej_pre", warningMessage, null, appStore.getState().interactionLog);
             if (!appStore.getState().isTextMode) {
@@ -539,7 +539,7 @@ export function createAnswerPipeline(deps) {
             });
 
             const player = getCurrentVideoPlayer();
-            if (stepData.stepType === "closedResponse" && player && typeof player.applySpeechResult === 'function') {
+            if (stepData.responseType === "closedResponse" && player && typeof player.applySpeechResult === 'function') {
                 applySpeechResultToPlayer(val, player);
             }
 
@@ -548,7 +548,7 @@ export function createAnswerPipeline(deps) {
         }
 
         const player = getCurrentVideoPlayer();
-        if (stepData.stepType === "closedResponse" && player && typeof player.applySpeechResult === 'function') {
+        if (stepData.responseType === "closedResponse" && player && typeof player.applySpeechResult === 'function') {
             applySpeechResultToPlayer(val, player);
         }
 
@@ -557,7 +557,7 @@ export function createAnswerPipeline(deps) {
 
     async function handleAnswer(userResponse, cue, stepData, button, explanation, translation, stats = { pauseCount: null, netDuration: null }, _deps = {}, userData = appStore.getState().userData, configData = appStore.getState().configData, courseId = appStore.getState().courseId) {
         const cueText = typeof cue === 'object' ? cue?.en : cue;
-        if (!appStore.getState().isTextMode && (stepData.stepType === "lessonIntro" || stepData.stepType === "closedResponse" || stepData.stepType === "openResponse")) {
+        if (!appStore.getState().isTextMode && (stepData.responseType === "lessonIntro" || stepData.responseType === "closedResponse" || stepData.responseType === "openResponse")) {
             const storeState = appStore.getState();
             const hasVideoBubble = storeState.chatHistory.some(msg => msg.type === 'video');
             if (!hasVideoBubble) {
@@ -579,11 +579,11 @@ export function createAnswerPipeline(deps) {
         try {
             const currentLessonId = (configData && configData.lessons && configData.lessons[appStore.getState().currentLessonIndex]) ? configData.lessons[appStore.getState().currentLessonIndex].lessonId : 'unknown_lesson';
 
-            if (stepData.stepType === "closedResponse" || stepData.stepType === "openResponse") {
+            if (stepData.responseType === "closedResponse" || stepData.responseType === "openResponse") {
                 cleanWordCount = userResponse.replace(/[^\w\s]/g, '').trim().split(/\s+/).filter(Boolean).length;
 
                 if (stats && stats.netDuration !== null) {
-                    speechAnalytics = await analyzeSpeech(userResponse, stats.netDuration, stats.pauseCount, configData?.courseLevel || 'A1', stepData.stepType);
+                    speechAnalytics = await analyzeSpeech(userResponse, stats.netDuration, stats.pauseCount, configData?.courseLevel || 'A1', stepData.responseType);
                     if (speechAnalytics && stats.hesitation !== undefined) {
                         speechAnalytics.hesitation = stats.hesitation;
                     }
@@ -646,7 +646,7 @@ export function createAnswerPipeline(deps) {
             }
 
             let result = null;
-            if (stepData.stepType === "closedResponse" || stepData.stepType === "openResponse") {
+            if (stepData.responseType === "closedResponse" || stepData.responseType === "openResponse") {
                 result = await processAnswerLogic({
                     userResponse, cue, stepData,
                     lesson: lesson,
@@ -671,7 +671,7 @@ export function createAnswerPipeline(deps) {
 
             trackEvent('answer_submitted', {
                 is_correct: isCorrect,
-                step_type: stepData.stepType,
+                step_type: stepData.responseType,
                 is_text_mode: appStore.getState().isTextMode,
                 word_count: cleanWordCount,
                 attempt_number: appStore.getState().incorrectAttempts + 1,
@@ -694,7 +694,7 @@ export function createAnswerPipeline(deps) {
 
             const { listeningScore, speakingScore, incorrectAttempts, whisperRejections } = appStore.getState();
 
-            if (stepData.stepType === "closedResponse" || stepData.stepType === "openResponse") {
+            if (stepData.responseType === "closedResponse" || stepData.responseType === "openResponse") {
                 const attemptNumber = incorrectAttempts + 1;
                 let grammarErrorScore = 100;
 
@@ -773,7 +773,7 @@ export function createAnswerPipeline(deps) {
                 }
             }
 
-            if (!isCorrect && stepData.stepType === "closedResponse" && incorrectAttempts < 2) {
+            if (!isCorrect && stepData.responseType === "closedResponse" && incorrectAttempts < 2) {
                 const explanationData = buildExplanationData(result.explanations || explanation, explanation);
                 const structuredExplanations = getExplanationMessages(explanationData);
 
@@ -800,7 +800,7 @@ export function createAnswerPipeline(deps) {
                 return;
             }
 
-            if (stepData.stepType === "openResponse" && userResponse) {
+            if (stepData.responseType === "openResponse" && userResponse) {
                 const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
                 console.log('[handleAnswer] openResponse lang:', lang, 'cue:', typeof cue, 'native_language:', userData?.native_language);
 
@@ -825,7 +825,7 @@ export function createAnswerPipeline(deps) {
                 });
 
                 if (immediateStatsMessages.length > 0) addAIFeedbackMessages(immediateStatsMessages);
-            } else if (stepData.stepType === "closedResponse" && userResponse) {
+            } else if (stepData.responseType === "closedResponse" && userResponse) {
                 const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
 
                 showChat();
@@ -849,7 +849,7 @@ export function createAnswerPipeline(deps) {
             appStore.getState().setTutorChatVisible(true);
 
             if (isCorrect) {
-                if (stepData.stepType === "openResponse") {
+                if (stepData.responseType === "openResponse") {
                     appStore.setState({ responsesGiven: [...appStore.getState().responsesGiven, result.normalizeduserResponse] });
                     if (result.cefrLevelDeduction > 0) {
                         appStore.getState().deductListeningScore(result.cefrLevelDeduction);
@@ -873,21 +873,21 @@ export function createAnswerPipeline(deps) {
     function showFeedbackAndProceed(stepData, isCorrect, _deps = {}) {
         const { loadNextStep, callLoadStep } = _deps;
 
-        if ((stepData.stepType === "closedResponse" || stepData.stepType === "openResponse") && stepData.interactiveVideoUrl) {
+        if ((stepData.responseType === "closedResponse" || stepData.responseType === "openResponse") && stepData.interactiveVideoUrl) {
             const gs = appStore.getState();
             gs.setStepCount(gs.stepCount + 1);
         }
         try {
             appStore.getState().setHintsVisible(false);
-            console.log('[showFeedbackAndProceed] stepType:', stepData.stepType, '| isLessonIntro:', stepData.stepType === "lessonIntro");
+            console.log('[showFeedbackAndProceed] responseType:', stepData.responseType, '| isLessonIntro:', stepData.responseType === "lessonIntro");
             const onContinue = () => {
                 trackEvent('continue_clicked', {
-                    step_type: stepData.stepType,
+                    step_type: stepData.responseType,
                     is_correct: isCorrect,
                     incorrect_attempts: appStore.getState().incorrectAttempts,
                 });
                 appStore.getState().triggerPauseAllVideos();
-                if (stepData.stepType === "lessonIntro") {
+                if (stepData.responseType === "lessonIntro") {
                     const initializeMedia = async () => {
                         await enableAudioSystem();
                         await warmUpSpeechCam();
@@ -897,7 +897,7 @@ export function createAnswerPipeline(deps) {
                 console.log('[showFeedbackAndProceed] continue clicked, restoring mic controls');
                 appStore.getState().setBottomControlState('mic');
                 appStore.getState().removeContinueWidget();
-                if (stepData.stepType === "lessonIntro") {
+                if (stepData.responseType === "lessonIntro") {
                     setTimeout(() => {
                         if (loadNextStep) loadNextStep(stepData);
                     }, 2000);
@@ -912,7 +912,7 @@ export function createAnswerPipeline(deps) {
                 }
             };
 
-            if (stepData.stepType === "lessonIntro") {
+            if (stepData.responseType === "lessonIntro") {
                 setIntroContinueHandler(onContinue);
                 appStore.getState().setBottomControlState('introChoices');
             } else {

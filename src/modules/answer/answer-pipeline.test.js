@@ -29,8 +29,8 @@ describe('Answer Pipeline Integration', () => {
                 lessons: [{
                     lessonId: 'test-lesson',
                     steps: [
-                        { stepType: 'lessonIntro', cue: 'Welcome' },
-                        { stepType: 'openResponse', cue: 'Hello' }
+                        { responseType: 'lessonIntro', cue: 'Welcome' },
+                        { responseType: 'openResponse', cue: 'Hello' }
                     ]
                 }]
             },
@@ -47,24 +47,24 @@ describe('Answer Pipeline Integration', () => {
 
     it('showFeedbackAndProceed should not throw ReferenceError (catches missing imports)', () => {
         const deps = { loadNextStep: vi.fn(), callLoadStep: vi.fn() };
-        const stepData = { stepType: 'closedResponse', cue: 'hello' };
+        const stepData = { responseType: 'closedResponse', cue: 'hello' };
         expect(() => pipeline.showFeedbackAndProceed(stepData, true, deps)).not.toThrow();
     });
 
     it('showFeedbackAndProceed should not throw for lessonIntro step', () => {
         const deps = { loadNextStep: vi.fn(), callLoadStep: vi.fn() };
-        const stepData = { stepType: 'lessonIntro', cue: 'Welcome' };
+        const stepData = { responseType: 'lessonIntro', cue: 'Welcome' };
         expect(() => pipeline.showFeedbackAndProceed(stepData, true, deps)).not.toThrow();
     });
 
     it('submitAnswerPrecheck should accept _deps at position 7', async () => {
-        const stepData = { stepType: 'closedResponse', cue: 'hello', explanation: '', translation: null };
+        const stepData = { responseType: 'closedResponse', cue: 'hello', explanation: '', translation: null };
         const _deps = { loadNextStep: vi.fn(), callLoadStep: vi.fn() };
         await expect(pipeline.submitAnswerPrecheck('hello', 'hello', stepData, null, '', null, { pauseCount: 0, netDuration: 0 }, _deps, appStore.getState().userData, appStore.getState().configData, 'test-course')).resolves.not.toThrow();
     });
 
     it('handleAnswer should accept _deps at position 7', async () => {
-        const stepData = { stepType: 'closedResponse', cue: 'hello', explanation: '', translation: null, interactiveVideoUrl: null };
+        const stepData = { responseType: 'closedResponse', cue: 'hello', explanation: '', translation: null, interactiveVideoUrl: null };
         const _deps = { loadNextStep: vi.fn(), callLoadStep: vi.fn() };
         await expect(pipeline.handleAnswer('hello', 'hello', stepData, null, '', null, { pauseCount: 0, netDuration: 0 }, _deps, appStore.getState().userData, appStore.getState().configData, 'test-course')).resolves.not.toThrow();
     });

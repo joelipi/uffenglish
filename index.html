@@ -120,7 +120,7 @@
         (function () {
             window.preloadedMedia = {};
 
-            window.preloadLessonAssets = function (lessonData, buildinteractiveVideoUrlFn) {
+            window.preloadLessonAssets = function (lessonData, buildVideoUrlFn) {
                 return new Promise(async (resolveApp) => {
                     let progress = 0;
                     const preloader = document.getElementById('appLoadingImageDiv');

@@ -2,10 +2,10 @@ import React from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../modules/store/store.js';
 
-function UnknownStepType({ stepType }) {
+function UnknownStepType({ responseType }) {
     return (
         <div className="unknown-step-type">
-            <p>Unknown step type: {stepType}</p>
+            <p>Unknown step type: {responseType}</p>
         </div>
     );
 }
@@ -68,7 +68,7 @@ export default function StepLoader({ step, lesson }) {
 
     if (!step) return null;
 
-    switch (step.stepType) {
+    switch (step.responseType) {
         case 'lessonIntro':
             return <LessonIntroStep step={step} lesson={lesson} />;
         case 'present':
@@ -88,6 +88,6 @@ export default function StepLoader({ step, lesson }) {
                 </div>
             );
         default:
-            return <UnknownStepType stepType={step.stepType} />;
+            return <UnknownStepType responseType={step.responseType} />;
     }
 }

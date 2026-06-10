@@ -40,7 +40,7 @@ export function handleStepCore(step) {
     appStore.getState().clearPlaybackBlob();
     appStore.getState().setCurrentVideo(null);
 
-    appStore.getState().setStatsVisible((step.stepType === 'closedResponse' || step.stepType === 'openResponse') && step.interactiveVideoUrl);
+    appStore.getState().setStatsVisible((step.responseType === 'closedResponse' || step.responseType === 'openResponse') && step.interactiveVideoUrl);
 
     appStore.getState().setMediaVisible(true);
 

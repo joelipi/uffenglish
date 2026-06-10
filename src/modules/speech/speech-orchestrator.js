@@ -280,7 +280,7 @@ export function createSpeechOrchestrator({
                         meta: {
                             lessonId: configData?.lessons?.[currentLessonIndex]?.lessonId || null,
                             stepIndex: currentStepIndex ?? null,
-                            stepType: step?.stepType || null,
+                            responseType: step?.responseType || null,
                             title: step?.step || null,
                         }
                     });

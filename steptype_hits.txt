@@ -1,0 +1,124 @@
+./src/components/LessonContainer.jsx:163:                <MissionSection stepType={currentStep?.stepType} />
+./src/components/StepLoader.jsx:5:function UnknownStepType({ stepType }) {
+./src/components/StepLoader.jsx:8:            <p>Unknown step type: {stepType}</p>
+./src/components/StepLoader.jsx:71:    switch (step.stepType) {
+./src/components/StepLoader.jsx:91:            return <UnknownStepType stepType={step.stepType} />;
+./src/components/StepLoader.native.jsx:16:            <Text>StepLoader Native — stepType: {step.stepType}</Text>
+./src/components/widgets/MissionSection.jsx:6:export default function MissionSection({ stepType }) {
+./src/components/widgets/MissionSection.jsx:7:    const [expanded, setExpanded] = useState(stepType === 'lessonIntro');
+./src/components/widgets/MissionSection.jsx:10:        setExpanded(stepType === 'lessonIntro');
+./src/components/widgets/MissionSection.jsx:11:    }, [stepType]);
+./src/config/model.json:37:          "stepType": "lessonIntro",
+./src/config/model.json:46:          "stepType": "closedResponse",
+./src/config/model.json:61:          "stepType": "openResponse",
+./src/config/model.json:71:          "stepType": "openResponse",
+./src/config/model.json:81:          "stepType": "openResponse",
+./src/config/model.json:88:          "stepType": "success"
+./src/config/model.json:124:          "stepType": "lessonIntro",
+./src/config/model.json:133:          "stepType": "openResponse",
+./src/config/model.json:143:          "stepType": "openResponse",
+./src/config/model.json:153:          "stepType": "openResponse",
+./src/config/model.json:160:          "stepType": "success"
+./src/config/model.json:196:          "stepType": "lessonIntro",
+./src/config/model.json:205:          "stepType": "closedResponse",
+./src/config/model.json:220:          "stepType": "openResponse",
+./src/config/model.json:229:          "stepType": "openResponse",
+./src/config/model.json:238:          "stepType": "openResponse",
+./src/config/model.json:244:          "stepType": "success"
+./src/config/model.json:280:          "stepType": "lessonIntro",
+./src/config/model.json:289:          "stepType": "closedResponse",
+./src/config/model.json:299:          "stepType": "closedResponse",
+./src/config/model.json:314:          "stepType": "openResponse",
+./src/config/model.json:325:          "stepType": "success"
+./src/config/model.json:340:          "stepType": "lessonIntro",
+./src/config/model.json:349:          "stepType": "openResponse",
+./src/config/model.json:358:          "stepType": "openResponse",
+./src/config/model.json:368:          "stepType": "success"
+./src/config/test-api.json:10:          "stepType": "openResponse",
+./src/hooks/useInteractiveVideo.js:104:            step_type: appStore.getState().currentVideo?.stepType,
+./src/hooks/useInteractiveVideo.js:109:        const stepType = appStore.getState().currentVideo?.stepType ?? '';
+./src/hooks/useInteractiveVideo.js:112:            (stepType === 'closedResponse' || stepType === 'openResponse')
+./src/hooks/useInteractiveVideo.js:129:            step_type: appStore.getState().currentVideo?.stepType,
+./src/hooks/useInteractiveVideo.js:132:        const stepType = appStore.getState().currentVideo?.stepType ?? '';
+./src/hooks/useInteractiveVideo.js:135:            (stepType === 'closedResponse' || stepType === 'openResponse')
+./src/modules/answer/answer-pipeline.js:180:        if (stepData.stepType === "closedResponse" && stepData.interactiveVideoUrl) {
+./src/modules/answer/answer-pipeline.js:184:        if (stepData.stepType === "openResponse" && stepData.interactiveVideoUrl) {
+./src/modules/answer/answer-pipeline.js:191:        const praiseResult = (stepData.stepType === "openResponse" || stepData.stepType === "closedResponse") ? getRandomPraise('general', lang) : "";
+./src/modules/answer/answer-pipeline.js:192:        const feedbackText = (stepData.stepType === "openResponse" && englishLevelDeduction > 0)
+./src/modules/answer/answer-pipeline.js:207:        if (stepData.stepType !== "openResponse" && stepData.stepType !== "closedResponse") {
+./src/modules/answer/answer-pipeline.js:314:        if (!silent && !appStore.getState().isTextMode && (stepData.stepType === "lessonIntro" || stepData.stepType === "closedResponse" || stepData.stepType === "openResponse")) {
+./src/modules/answer/answer-pipeline.js:329:        if ((stepData.stepType === "closedResponse" || stepData.stepType === "openResponse") && stepData.interactiveVideoUrl) {
+./src/modules/answer/answer-pipeline.js:338:        const isSilentSpeechRetry = silent && stepData.stepType === "closedResponse";
+./src/modules/answer/answer-pipeline.js:346:        if (stepData.stepType === "openResponse" && userResponse) {
+./src/modules/answer/answer-pipeline.js:410:        if (stepData.stepType === "closedResponse" && userResponse) {
+./src/modules/answer/answer-pipeline.js:483:            step_type: appStore.getState().configData?.lessons?.[appStore.getState().currentLessonIndex]?.steps?.[stepIndex]?.stepType,
+./src/modules/answer/answer-pipeline.js:508:                step_type: stepData.stepType,
+./src/modules/answer/answer-pipeline.js:542:            if (stepData.stepType === "closedResponse" && player && typeof player.applySpeechResult === 'function') {
+./src/modules/answer/answer-pipeline.js:551:        if (stepData.stepType === "closedResponse" && player && typeof player.applySpeechResult === 'function') {
+./src/modules/answer/answer-pipeline.js:560:        if (!appStore.getState().isTextMode && (stepData.stepType === "lessonIntro" || stepData.stepType === "closedResponse" || stepData.stepType === "openResponse")) {
+./src/modules/answer/answer-pipeline.js:582:            if (stepData.stepType === "closedResponse" || stepData.stepType === "openResponse") {
+./src/modules/answer/answer-pipeline.js:586:                    speechAnalytics = await analyzeSpeech(userResponse, stats.netDuration, stats.pauseCount, configData?.courseLevel || 'A1', stepData.stepType);
+./src/modules/answer/answer-pipeline.js:649:            if (stepData.stepType === "closedResponse" || stepData.stepType === "openResponse") {
+./src/modules/answer/answer-pipeline.js:674:                step_type: stepData.stepType,
+./src/modules/answer/answer-pipeline.js:697:            if (stepData.stepType === "closedResponse" || stepData.stepType === "openResponse") {
+./src/modules/answer/answer-pipeline.js:776:            if (!isCorrect && stepData.stepType === "closedResponse" && incorrectAttempts < 2) {
+./src/modules/answer/answer-pipeline.js:803:            if (stepData.stepType === "openResponse" && userResponse) {
+./src/modules/answer/answer-pipeline.js:828:            } else if (stepData.stepType === "closedResponse" && userResponse) {
+./src/modules/answer/answer-pipeline.js:852:                if (stepData.stepType === "openResponse") {
+./src/modules/answer/answer-pipeline.js:876:        if ((stepData.stepType === "closedResponse" || stepData.stepType === "openResponse") && stepData.interactiveVideoUrl) {
+./src/modules/answer/answer-pipeline.js:882:            console.log('[showFeedbackAndProceed] stepType:', stepData.stepType, '| isLessonIntro:', stepData.stepType === "lessonIntro");
+./src/modules/answer/answer-pipeline.js:885:                    step_type: stepData.stepType,
+./src/modules/answer/answer-pipeline.js:890:                if (stepData.stepType === "lessonIntro") {
+./src/modules/answer/answer-pipeline.js:900:                if (stepData.stepType === "lessonIntro") {
+./src/modules/answer/answer-pipeline.js:915:            if (stepData.stepType === "lessonIntro") {
+./src/modules/answer/answer-pipeline.test.js:32:                        { stepType: 'lessonIntro', cue: 'Welcome' },
+./src/modules/answer/answer-pipeline.test.js:33:                        { stepType: 'openResponse', cue: 'Hello' }
+./src/modules/answer/answer-pipeline.test.js:50:        const stepData = { stepType: 'closedResponse', cue: 'hello' };
+./src/modules/answer/answer-pipeline.test.js:56:        const stepData = { stepType: 'lessonIntro', cue: 'Welcome' };
+./src/modules/answer/answer-pipeline.test.js:61:        const stepData = { stepType: 'closedResponse', cue: 'hello', explanation: '', translation: null };
+./src/modules/answer/answer-pipeline.test.js:67:        const stepData = { stepType: 'closedResponse', cue: 'hello', explanation: '', translation: null, interactiveVideoUrl: null };
+./src/modules/answer/answers.js:54:    if (stepData.stepType === "openResponse") {
+./src/modules/answer/answers.js:139:    else if (stepData.stepType === "closedResponse") {
+./src/modules/answer/answers.js:159:    if (stepData.stepType !== "openResponse") return { isValid: true };
+./src/modules/answer/answers.test.js:65:                stepData: { stepType: 'openResponse' },
+./src/modules/answer/answers.test.js:79:                stepData: { stepType: 'unknown', explanation: 'default explain' },
+./src/modules/answer/answers.test.js:99:                stepData: { stepType: 'openResponse' },
+./src/modules/answer/answers.test.js:126:                stepData: { stepType: 'openResponse' },
+./src/modules/answer/answers.test.js:153:                stepData: { stepType: 'openResponse' },
+./src/modules/answer/answers.test.js:174:                stepData: { stepType: 'openResponse' },
+./src/modules/answer/answers.test.js:194:                stepData: { stepType: 'openResponse' },
+./src/modules/answer/answers.test.js:204:        it('should handle closedResponse stepType correctly', async () => {
+./src/modules/answer/answers.test.js:206:                stepData: { stepType: 'closedResponse', explanation: 'explain' },
+./src/modules/answer/answers.test.js:218:                stepData: { stepType: 'closedResponse', explanation: 'explain' },
+./src/modules/answer/answers.test.js:228:        const defaultArgs = ['cue', { stepType: 'openResponse' }, 'B1', {}, []];
+./src/modules/answer/answers.test.js:231:            const result = await validateAnswerPrecheck('val', 'cue', { stepType: 'closedResponse' }, 'B1', {}, []);
+./src/modules/answer/answers.test.js:236:            const result = await validateAnswerPrecheck('test answer', 'cue', { stepType: 'openResponse' }, 'B1', {}, ['test answer']);
+./src/modules/answer/answers.test.js:242:            const result = await validateAnswerPrecheck('this is a test cue', 'this is a test cue', { stepType: 'openResponse' }, 'B1', {}, []);
+./src/modules/answer/answers.test.js:248:            const result = await validateAnswerPrecheck('one two three four five', 'different cue', { stepType: 'openResponse' }, 'B1', {}, []);
+./src/modules/answer/answers.test.js:253:            const resultA2 = await validateAnswerPrecheck('one two three', 'different cue', { stepType: 'openResponse' }, 'A2', {}, []);
+./src/modules/answer/answers.test.js:256:            const resultB1 = await validateAnswerPrecheck('one two three four', 'different cue', { stepType: 'openResponse' }, 'B1', {}, []);
+./src/modules/answer/answers.test.js:259:            const resultB2 = await validateAnswerPrecheck('one two three four five', 'different cue', { stepType: 'openResponse' }, 'B2', {}, []);
+./src/modules/answer/answers.test.js:264:            const result = await validateAnswerPrecheck('one two three four five shit', 'different cue', { stepType: 'openResponse' }, 'B1', {}, []);
+./src/modules/answer/feedback-builder.js:66:    if (stepData.stepType === 'openResponse') {
+./src/modules/bilingual/config-normalizer.js:34:                // Map 'inputType' to 'stepType'
+./src/modules/bilingual/config-normalizer.js:35:                if (step.inputType !== undefined && step.stepType === undefined) {
+./src/modules/bilingual/config-normalizer.js:36:                    step.stepType = step.inputType;
+./src/modules/bilingual/config-normalizer.test.js:38:                    stepType: 'speech',
+./src/modules/bilingual/config-normalizer.test.js:75:        expect(step.stepType).toBe('speech');
+./src/modules/bilingual/config-normalizer.test.js:87:                    stepType: 'speech',
+./src/modules/lesson/lesson-progression.js:44:            step_type: currentStep.stepType,
+./src/modules/lesson/step-executor-webonly.js:52:    resetUIForNewStep(step.stepType === 'lessonIntro', !!appStore.getState().userData);
+./src/modules/lesson/step-executor-webonly.js:56:        if (step.stepType === 'closedResponse' || step.stepType === 'openResponse') {
+./src/modules/lesson/step-executor-webonly.js:126:    if (step.stepType !== "closedResponse") {
+./src/modules/lesson/step-loader-logic.js:43:    appStore.getState().setStatsVisible((step.stepType === 'closedResponse' || step.stepType === 'openResponse') && step.interactiveVideoUrl);
+./src/modules/lesson/step-loader-orchestrate.js:70:    if (step.stepType === 'closedResponse' || step.stepType === 'openResponse') {
+./src/modules/lesson/step-loader-orchestrate.js:72:    } else if (step.stepType === 'unitcomplete') {
+./src/modules/lesson/step-loader-orchestrate.js:74:    } else if (step.stepType === 'lessonIntro') {
+./src/modules/lesson/step-loader-orchestrate.js:76:    } else if (step.stepType === 'present') {
+./src/modules/lesson/step-loader-orchestrate.js:78:    } else if (step.stepType === 'success') {
+./src/modules/speech/speech-orchestrator.js:283:                            stepType: step?.stepType || null,
+./src/modules/utils/analytics.js:3:export async function analyzeSpeech(text, netDuration, pauseCount, courseLevel, stepType) {
+./src/modules/utils/analytics.js:16:    if (courseLevel.toUpperCase() !== 'A1' && stepType === 'openResponse') {
+./src/modules/video/video-loader.web.js:29:            stepType: step.stepType,
+./src/modules/video/video-loader.web.js:43:            stepType: step.stepType,
+./src/modules/video/video-loader.web.js:57:            stepType: step.stepType,

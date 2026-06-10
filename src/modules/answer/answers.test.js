@@ -62,7 +62,7 @@ describe('Answers Module', () => {
             });
 
             const result = await processAnswerLogic({
-                stepData: { stepType: 'openResponse' },
+                stepData: { responseType: 'openResponse' },
                 userResponse: 'hey',
                 cue: 'hello',
                 userData: { native_language: 'en' }
@@ -76,7 +76,7 @@ describe('Answers Module', () => {
 
         it('should return default fallback evaluation if not open/closed response', async () => {
             const result = await processAnswerLogic({
-                stepData: { stepType: 'unknown', explanation: 'default explain' },
+                stepData: { responseType: 'unknown', explanation: 'default explain' },
                 userResponse: 'hello',
                 cue: 'hello'
             });
@@ -96,7 +96,7 @@ describe('Answers Module', () => {
             });
 
             const result = await processAnswerLogic({
-                stepData: { stepType: 'openResponse' },
+                stepData: { responseType: 'openResponse' },
                 userResponse: 'hello',
                 cue: 'hello',
                 userData: { native_language: 'es' }
@@ -123,7 +123,7 @@ describe('Answers Module', () => {
             });
 
             const result = await processAnswerLogic({
-                stepData: { stepType: 'openResponse' },
+                stepData: { responseType: 'openResponse' },
                 userResponse: 'hey',
                 cue: 'hello',
                 userData: { native_language: 'en' }
@@ -150,7 +150,7 @@ describe('Answers Module', () => {
             });
 
             const result = await processAnswerLogic({
-                stepData: { stepType: 'openResponse' },
+                stepData: { responseType: 'openResponse' },
                 userResponse: 'hello',
                 cue: 'hello'
             });
@@ -171,7 +171,7 @@ describe('Answers Module', () => {
             });
 
             const result = await processAnswerLogic({
-                stepData: { stepType: 'openResponse' },
+                stepData: { responseType: 'openResponse' },
                 userResponse: 'hello',
                 cue: 'hello'
             });
@@ -191,7 +191,7 @@ describe('Answers Module', () => {
             });
 
             const result = await processAnswerLogic({
-                stepData: { stepType: 'openResponse' },
+                stepData: { responseType: 'openResponse' },
                 userResponse: 'asdf xyz',
                 cue: 'hello'
             });
@@ -201,9 +201,9 @@ describe('Answers Module', () => {
             expect(result.intentLabels).toEqual(['gibberish']);
         });
 
-        it('should handle closedResponse stepType correctly', async () => {
+        it('should handle closedResponse responseType correctly', async () => {
             const result = await processAnswerLogic({
-                stepData: { stepType: 'closedResponse', explanation: 'explain' },
+                stepData: { responseType: 'closedResponse', explanation: 'explain' },
                 userResponse: 'hello there',
                 cue: 'hello there',
                 courseLevel: 'B1'
@@ -215,7 +215,7 @@ describe('Answers Module', () => {
 
         it('should mark incorrect for low similarity closedResponse', async () => {
             const result = await processAnswerLogic({
-                stepData: { stepType: 'closedResponse', explanation: 'explain' },
+                stepData: { responseType: 'closedResponse', explanation: 'explain' },
                 userResponse: 'hello',
                 cue: 'goodbye',
                 courseLevel: 'B1'
@@ -225,43 +225,43 @@ describe('Answers Module', () => {
     });
 
     describe('validateAnswerPrecheck', () => {
-        const defaultArgs = ['cue', { stepType: 'openResponse' }, 'B1', {}, []];
+        const defaultArgs = ['cue', { responseType: 'openResponse' }, 'B1', {}, []];
 
         it('should return valid if not openResponse', async () => {
-            const result = await validateAnswerPrecheck('val', 'cue', { stepType: 'closedResponse' }, 'B1', {}, []);
+            const result = await validateAnswerPrecheck('val', 'cue', { responseType: 'closedResponse' }, 'B1', {}, []);
             expect(result.isValid).toBe(true);
         });
 
         it('should mark invalid if already used', async () => {
-            const result = await validateAnswerPrecheck('test answer', 'cue', { stepType: 'openResponse' }, 'B1', {}, ['test answer']);
+            const result = await validateAnswerPrecheck('test answer', 'cue', { responseType: 'openResponse' }, 'B1', {}, ['test answer']);
             expect(result.isValid).toBe(false);
             expect(result.warningMessage).toBeDefined();
         });
 
         it('should mark invalid if similarity with cue is high', async () => {
-            const result = await validateAnswerPrecheck('this is a test cue', 'this is a test cue', { stepType: 'openResponse' }, 'B1', {}, []);
+            const result = await validateAnswerPrecheck('this is a test cue', 'this is a test cue', { responseType: 'openResponse' }, 'B1', {}, []);
             expect(result.isValid).toBe(false);
             expect(result.warningMessage).toBeDefined();
         });
 
         it('should mark valid if word count meets requirements', async () => {
-            const result = await validateAnswerPrecheck('one two three four five', 'different cue', { stepType: 'openResponse' }, 'B1', {}, []);
+            const result = await validateAnswerPrecheck('one two three four five', 'different cue', { responseType: 'openResponse' }, 'B1', {}, []);
             expect(result.isValid).toBe(true);
         });
 
         it('should mark invalid if word count is too low for level', async () => {
-            const resultA2 = await validateAnswerPrecheck('one two three', 'different cue', { stepType: 'openResponse' }, 'A2', {}, []);
+            const resultA2 = await validateAnswerPrecheck('one two three', 'different cue', { responseType: 'openResponse' }, 'A2', {}, []);
             expect(resultA2.isValid).toBe(false);
 
-            const resultB1 = await validateAnswerPrecheck('one two three four', 'different cue', { stepType: 'openResponse' }, 'B1', {}, []);
+            const resultB1 = await validateAnswerPrecheck('one two three four', 'different cue', { responseType: 'openResponse' }, 'B1', {}, []);
             expect(resultB1.isValid).toBe(false);
 
-            const resultB2 = await validateAnswerPrecheck('one two three four five', 'different cue', { stepType: 'openResponse' }, 'B2', {}, []);
+            const resultB2 = await validateAnswerPrecheck('one two three four five', 'different cue', { responseType: 'openResponse' }, 'B2', {}, []);
             expect(resultB2.isValid).toBe(false);
         });
 
         it('should mark invalid if profane', async () => {
-            const result = await validateAnswerPrecheck('one two three four five shit', 'different cue', { stepType: 'openResponse' }, 'B1', {}, []);
+            const result = await validateAnswerPrecheck('one two three four five shit', 'different cue', { responseType: 'openResponse' }, 'B1', {}, []);
             expect(result.isValid).toBe(false);
             expect(result.warningMessage).toBeDefined();
         });

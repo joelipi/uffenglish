@@ -49,11 +49,11 @@ export function createLoadStep(deps) {
     //    add an unnecessary render cycle delay with zero benefit.
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    resetUIForNewStep(step.stepType === 'lessonIntro', !!appStore.getState().userData);
+    resetUIForNewStep(step.responseType === 'lessonIntro', !!appStore.getState().userData);
 
     // Platform-specific pre-dispatch: speech warmup, media rendering, UI setup
     const onStepLoaded = (step, lesson, fluencyData) => {
-        if (step.stepType === 'closedResponse' || step.stepType === 'openResponse') {
+        if (step.responseType === 'closedResponse' || step.responseType === 'openResponse') {
             if (!appStore.getState().isCameraOff && !appStore.getState().isTextMode) {
                 warmUpSpeechCam();
             } else if (appStore.getState().isTextMode) {
@@ -123,7 +123,7 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
     const { submitAnswerPrecheck, handleHint } = deps;
     appStore.getState().setHintsVisible(false);
 
-    if (step.stepType !== "closedResponse") {
+    if (step.responseType !== "closedResponse") {
         appStore.getState().setSpeechCue(step.cue);
         appStore.getState().setSpeechPossibleAnswer(step.possibleAnswer || null);
     }

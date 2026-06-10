@@ -51,7 +51,7 @@ export function getCurrentStepIndex(stepData, configData, currentLessonIndex) {
 export async function processAnswerLogic({
     userResponse, cue, stepData, lesson, courseLevel, userData, apiRoot
 }) {
-    if (stepData.stepType === "openResponse") {
+    if (stepData.responseType === "openResponse") {
         const cueText = typeof cue === 'object' ? cue?.en : cue;
         const normalizeduserResponse = await normalize(userResponse.trim().toLowerCase());
         const normalizedcue = await normalize(cueText.trim().toLowerCase());
@@ -136,7 +136,7 @@ export async function processAnswerLogic({
         }
         return result;
     }
-    else if (stepData.stepType === "closedResponse") {
+    else if (stepData.responseType === "closedResponse") {
         const cueText = typeof cue === 'object' ? cue?.en : cue;
         const normalizeduserResponse = await normalize(userResponse.trim().toLowerCase());
         const normalizedcue = await normalize(cueText.trim().toLowerCase());
@@ -156,7 +156,7 @@ export async function processAnswerLogic({
 }
 
 export async function validateAnswerPrecheck(val, cue, stepData, courseLevel, userData, responsesGiven) {
-    if (stepData.stepType !== "openResponse") return { isValid: true };
+    if (stepData.responseType !== "openResponse") return { isValid: true };
 
     const cueText = typeof cue === 'object' ? cue?.en : cue;
     const wordCount = val.trim().split(/\s+/).length;
