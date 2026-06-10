@@ -53,11 +53,16 @@ export default function InteractiveVideoPlayer() {
     const textInputVisible = useStore(appStore, (s) => s.textInputVisible);
     const pendingVideoPlayType = useStore(appStore, (s) => s.pendingVideoPlayType);
     const userData = useStore(appStore, (s) => s.userData);
+    const appPhase = useStore(appStore, (s) => s.appPhase);
     const overlayLang = userData?.native_language || 'en';
 
+    const overlayTextKey = appPhase === 'interactiveVideo-decisionTime-closedResponse'
+        ? 'video_repeat_exactly'
+        : 'video_did_understand';
+
     const overlayBilingual = useMemo(
-        () => getBilingual('video_did_understand', overlayLang),
-        [overlayLang]
+        () => getBilingual(overlayTextKey, overlayLang),
+        [overlayTextKey, overlayLang]
     );
 
     const videoRef          = useRef(null);

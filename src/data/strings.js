@@ -869,6 +869,14 @@ const strings = {
     'video_respond_now': {
         en: "RESPOND NOW",
         es: "RESPONDE AHORA"
+    },
+    'video_repeat_exactly': {
+        en: "Can you repeat that exactly?",
+        es: "¿Puedes repetir exactamente?"
+    },
+    'video_repeat_now': {
+        en: "REPEAT NOW",
+        es: "REPITE AHORA"
     }
 };
 

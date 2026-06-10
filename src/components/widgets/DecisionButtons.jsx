@@ -8,6 +8,11 @@ export default function DecisionButtons() {
     const isMicActive = useStore(appStore, (state) => state.isMicActive);
     const isTextMode = useStore(appStore, (state) => state.isTextMode);
     const userData = useStore(appStore, (state) => state.userData);
+    const appPhase = useStore(appStore, (state) => state.appPhase);
+
+    const respondNowKey = appPhase === 'interactiveVideo-decisionTime-closedResponse'
+        ? 'video_repeat_now'
+        : 'video_respond_now';
 
     const handleEarClick = () => {
         getCurrentVideoPlayer()?.dismissOverlay?.();
@@ -64,7 +69,7 @@ export default function DecisionButtons() {
                     <div className="ivp-choice-label-arrow">▼</div>
                     <div className="ivp-choice-label-text">
                         {(() => {
-                            const d = getBilingual('video_respond_now', labelLang);
+                            const d = getBilingual(respondNowKey, labelLang);
                             return d.localized ? (
                                 <React.Fragment>{d.english}<br /><span lang={d.lang}><i>{d.localized}</i></span></React.Fragment>
                             ) : d.english;
