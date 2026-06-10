@@ -51,6 +51,7 @@ export default function InteractiveVideoPlayer() {
     // stays traceable and the value is always fresh in derived state.
     const isMicActive = useStore(appStore, (s) => s.isMicActive);
     const textInputVisible = useStore(appStore, (s) => s.textInputVisible);
+    const pendingVideoPlayType = useStore(appStore, (s) => s.pendingVideoPlayType);
     const userData = useStore(appStore, (s) => s.userData);
     const overlayLang = userData?.native_language || 'en';
 
@@ -175,9 +176,15 @@ export default function InteractiveVideoPlayer() {
 
         const tryPlay = () => {
             videoRef.current?.play().catch(() => {
-                console.log('Unmuted autoplay blocked. Waiting for user interaction.');
+                console.log('[InteractiveVideo] Unmuted autoplay blocked. Waiting for user interaction.');
             });
         };
+
+        if (pendingVideoPlayType === 'interactive') {
+            appStore.getState().setPendingVideoPlayType(null);
+            tryPlay();
+            return;
+        }
 
         if (appStore.getState().reactReady) {
             tryPlay();
@@ -188,7 +195,7 @@ export default function InteractiveVideoPlayer() {
             if (state.reactReady) { unsub(); tryPlay(); }
         });
         return unsub;
-    }, [isActive]);
+    }, [isActive, pendingVideoPlayType]);
 
     // -------------------------------------------------------------------------
     // Sync playbackRate to the video element.

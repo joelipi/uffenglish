@@ -280,7 +280,7 @@
           "responseType": "lessonIntro",
           "introBackgroundVideoUrl": "do_you_have_dark_chocolate"
         },
-                {
+        {
           "cue": {
             "en": "Do you have dark chocolate?",
             "es": "¿Tienes chocolate oscuro?",
@@ -351,12 +351,13 @@
         },
         {
           "cue": {
-            "en": "Hey, if you had to spend a million dollars today, what would you buy?",
-            "es": "Oye, si tuvieras que gastar un millón de dólares hoy, ¿qué comprarías?",
-            "pt": "Oye, se você tivesse que gastar um milhão de dólares hoje, o que você compraria?"
+            "en": "Do you have dark chocolate?",
+            "es": "¿Tienes chocolate oscuro?",
+            "pt": "Você tem chocolate escuro?"
           },
-          "responseType": "openResponse",
-          "interactiveVideoUrl": "gtests-0-1-1"
+          "responseType": "closedResponse",
+          "interactiveVideoUrl": "do_you_have_dark_chocolate",
+          "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
         },
         {
           "simpleVideoUrl": "success",

@@ -13,6 +13,7 @@ const isAndroid = hasNavigator && /Android/.test(navigator.userAgent);
 export default function SimpleVideoPlayer() {
     const { isActive, config, subtitleText, isTimedSubtitles, scrollRatio, updateProgress } = useSimpleVideo();
     const mediaVisible = useStore(appStore, (s) => s.mediaVisible);
+    const pendingVideoPlayType = useStore(appStore, (s) => s.pendingVideoPlayType);
     const videoRef = useRef(null);
     const subtitleContainerRef = useRef(null);
     const subtitleDisplayRef = useRef(null);
@@ -181,6 +182,11 @@ export default function SimpleVideoPlayer() {
                 });
             }
         };
+        if (pendingVideoPlayType === 'simple') {
+            appStore.getState().setPendingVideoPlayType(null);
+            tryPlay();
+            return;
+        }
         if (appStore.getState().reactReady) {
             tryPlay();
         } else {
@@ -192,7 +198,7 @@ export default function SimpleVideoPlayer() {
             });
             return unsub;
         }
-    }, [isActive]);
+    }, [isActive, pendingVideoPlayType]);
 
     // Compute scroll offset for scrolling subtitles
     useLayoutEffect(() => {

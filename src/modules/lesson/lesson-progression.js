@@ -54,6 +54,14 @@ export function createProgression(deps) {
         const loadLessonContent = _deps.loadLessonContent;
 
         appStore.setState({ currentStepIndex: appStore.getState().currentStepIndex + 1 });
+        const nextStep = currentLesson.steps[appStore.getState().currentStepIndex];
+        if (nextStep) {
+            if (nextStep.interactiveVideoUrl) {
+                appStore.getState().setPendingVideoPlayType('interactive');
+            } else if (nextStep.simpleVideoUrl) {
+                appStore.getState().setPendingVideoPlayType('simple');
+            }
+        }
         if (appStore.getState().currentStepIndex < currentLesson.steps.length) {
             _deps.callLoadStep(currentLesson.steps[appStore.getState().currentStepIndex], currentLesson, fluencyData);
         } else {

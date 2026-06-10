@@ -46,6 +46,7 @@ export const appStore = createStore(
             currentVideo: null,
             pendingLessonNavigation: null,
             pauseAllVideosTrigger: 0,
+            pendingVideoPlayType: null,  // 'interactive' | 'simple' | 'success' | null
 
 // --- Session-scoped State (not persisted, reset per lesson) ---
             isAudioEnabled: false,
@@ -258,6 +259,7 @@ export const appStore = createStore(
             triggerVideoPlay: (muted) => set((state) => ({ videoPlayTrigger: state.videoPlayTrigger + 1, videoPlayMuted: muted })),
             triggerVideoClear: () => set((state) => ({ videoClearTrigger: state.videoClearTrigger + 1 })),
             triggerPauseAllVideos: () => set((state) => ({ pauseAllVideosTrigger: state.pauseAllVideosTrigger + 1 })),
+            setPendingVideoPlayType: (type) => set({ pendingVideoPlayType: type }),
             triggerPreflightRejected: () => set((state) => ({ preflightRejectedTrigger: state.preflightRejectedTrigger + 1 })),
             triggerTranscriptRejected: (cue, transcript) => set((state) => ({ transcriptRejectedTrigger: state.transcriptRejectedTrigger + 1, transcriptRejectedCue: cue, transcriptRejectedTranscript: transcript })),
             triggerScoreUpdate: () => set((state) => ({ scoreUpdateTrigger: state.scoreUpdateTrigger + 1 })),
@@ -440,6 +442,7 @@ export const appStore = createStore(
                 speechCue: null,
                 speechPossibleAnswer: null,
                 hangmanOps: null,
+                pendingVideoPlayType: null,
             }),
 
             // Reset all per-lesson metrics (called at lesson start)

@@ -89,6 +89,20 @@ export function createLoadStep(deps) {
         if (step.youtube) {
             appStore.getState().setYoutubeVideoId(step.youtube);
         }
+
+        const state = appStore.getState();
+        const steps = state.configData?.lessons?.[state.currentLessonIndex]?.steps;
+        const nextIndex = state.currentStepIndex + 1;
+        if (steps?.[nextIndex]) {
+            const nextStep = steps[nextIndex];
+            const slug = nextStep.interactiveVideoUrl || nextStep.simpleVideoUrl || nextStep.introBackgroundVideoUrl;
+            if (slug) {
+                const url = (typeof window !== 'undefined' && window.preloadedMedia && window.preloadedMedia[slug])
+                    ? window.preloadedMedia[slug]
+                    : `https://r2.ultrafastfluency.com/assets/videos/${slug}.mp4`;
+                fetch(url).catch(() => {});
+            }
+        }
     };
 
     // Platform-specific step type handlers
