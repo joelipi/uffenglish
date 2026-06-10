@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { DEFAULT_BOT_NAME, DEFAULT_AVATAR_URL } from '../../modules/user/tutor-config.js';
@@ -18,10 +18,18 @@ function BilingualLabel({ textKey, lang, fallback }) {
     );
 }
 
-export default function ContinueWidgetBubble({ onClick }) {
+export default function ContinueWidgetBubble({ onClick, nextStepVideoUrl }) {
     const isTextMode = useStore(appStore, (state) => state.isTextMode);
     const isCameraOff = useStore(appStore, (state) => state.isCameraOff);
     const lang = useStore(appStore, (state) => state.userData?.native_language) || 'en';
+    const videoRef = useRef(null);
+
+    useEffect(() => {
+        if (videoRef.current && nextStepVideoUrl) {
+            videoRef.current.muted = true;
+            videoRef.current.pause();
+        }
+    }, [nextStepVideoUrl]);
 
     let iconClass = 'bi-camera-video-fill';
     let actionTextKey = 'widget_action_video';
@@ -40,13 +48,23 @@ export default function ContinueWidgetBubble({ onClick }) {
                 <div className="chat-bubble-header">{DEFAULT_BOT_NAME}</div>
                 <div
                     id="lessonNextButton"
-                    className="incoming-video-widget ringing-animation"
+                    className={`incoming-video-widget${nextStepVideoUrl ? ' has-video-preview' : ''} ringing-animation`}
                     onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         if (onClick) onClick();
                     }}
                 >
+                    {nextStepVideoUrl && (
+                        <video
+                            ref={videoRef}
+                            className="continue-video-preview"
+                            src={nextStepVideoUrl}
+                            muted
+                            playsInline
+                            preload="auto"
+                        />
+                    )}
                     <div className="incoming-video-inner">
                         <div className="incoming-video-header">
                             <i className={`bi ${iconClass} text-info pulse-camera`}></i>
@@ -54,7 +72,6 @@ export default function ContinueWidgetBubble({ onClick }) {
                         </div>
                         <div className="incoming-video-caller">
                             <span className="caller-name">{DEFAULT_BOT_NAME}</span>
-                            <span className="caller-action"><BilingualLabel textKey={actionTextKey} lang={lang} fallback="Tap to answer..." /></span>
                         </div>
                         <div className="incoming-video-btn-wrapper">
                             <div className="btn-pulse-ring"></div>
@@ -64,6 +81,7 @@ export default function ContinueWidgetBubble({ onClick }) {
                         </div>
                     </div>
                 </div>
+                <span id="caller-action"><BilingualLabel textKey={actionTextKey} lang={lang} fallback="Tap to answer..." /></span>
             </div>
         </div>
     );

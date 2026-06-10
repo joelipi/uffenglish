@@ -913,6 +913,18 @@ export function createAnswerPipeline(deps) {
                 }
             };
 
+            let nextStepVideoUrl = null;
+            if (isCorrect || appStore.getState().incorrectAttempts > 2) {
+                const nextStep = getNextStep(stepData, appStore.getState().configData, appStore.getState().currentLessonIndex);
+                if (nextStep) {
+                    const videoSlug = nextStep.interactiveVideoUrl || nextStep.simpleVideoUrl;
+                    if (videoSlug) {
+                        nextStepVideoUrl = `https://r2.ultrafastfluency.com/assets/videos/${videoSlug}.mp4`;
+                        preloadVideo(nextStepVideoUrl);
+                    }
+                }
+            }
+
             if (stepData.responseType === "lessonIntro") {
                 setIntroContinueHandler(onContinue);
                 appStore.getState().setBottomControlState('introChoices');
@@ -922,16 +934,9 @@ export function createAnswerPipeline(deps) {
                     appStore.getState().addChatMessage({
                         role: 'system',
                         type: 'continueWidget',
-                        onClick: onContinue
+                        onClick: onContinue,
+                        nextStepVideoUrl
                     });
-                }
-            }
-
-            if (isCorrect || appStore.getState().incorrectAttempts > 2) {
-                const nextStep = getNextStep(stepData, appStore.getState().configData, appStore.getState().currentLessonIndex);
-                if (nextStep && nextStep.interactiveVideoUrl) {
-                    const interactiveVideoUrl = `https://r2.ultrafastfluency.com/assets/videos/${nextStep.interactiveVideoUrl}.mp4`;
-                    preloadVideo(interactiveVideoUrl);
                 }
             }
         } catch (error) {
@@ -942,7 +947,8 @@ export function createAnswerPipeline(deps) {
                     if (isCorrect || appStore.getState().incorrectAttempts > 2) {
                         if (loadNextStep) loadNextStep(stepData);
                     } else if (callLoadStep) callLoadStep(stepData, appStore.getState().configData.lessons[appStore.getState().currentLessonIndex]);
-                }
+                },
+                nextStepVideoUrl: null
             });
         }
     }

@@ -14,7 +14,7 @@ import TeacherFeedbackBubble from './TeacherFeedbackBubble.jsx';
 import PossibleAnswerBubble from './PossibleAnswerBubble.jsx';
 
 const SYSTEM_TYPE_COMPONENTS = {
-    continueWidget: (msg) => <ContinueWidgetBubble key={msg.id} onClick={msg.onClick} />,
+    continueWidget: (msg) => <ContinueWidgetBubble key={msg.id} onClick={msg.onClick} nextStepVideoUrl={msg.nextStepVideoUrl} />,
     grammarDiff: (msg) => (
         <GrammarDiffBubble
             key={msg.id}
