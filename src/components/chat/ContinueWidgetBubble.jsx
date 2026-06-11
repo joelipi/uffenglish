@@ -25,10 +25,15 @@ export default function ContinueWidgetBubble({ onClick, nextStepVideoUrl }) {
     const videoRef = useRef(null);
 
     useEffect(() => {
-        if (videoRef.current && nextStepVideoUrl) {
-            videoRef.current.muted = true;
-            videoRef.current.pause();
-        }
+        const video = videoRef.current;
+        if (!video || !nextStepVideoUrl) return;
+
+        video.muted = true;
+
+        const onFrameLoaded = () => video.pause();
+        video.addEventListener('loadeddata', onFrameLoaded);
+
+        return () => video.removeEventListener('loadeddata', onFrameLoaded);
     }, [nextStepVideoUrl]);
 
     let iconClass = 'bi-camera-video-fill';
