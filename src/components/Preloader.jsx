@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../modules/store/store.js';
+import { usePreloader } from '../hooks/usePreloader.js';
 import uffLogo from '../assets/img/u-f-f.png';
 
 const styles = {
@@ -51,10 +52,12 @@ const styles = {
 export default function Preloader() {
     const preloaderVisible = useStore(appStore, (state) => state.preloaderVisible);
     const preloaderProgress = useStore(appStore, (state) => state.preloaderProgress);
+    const { startProgressPulse } = usePreloader();
 
     useEffect(() => {
         appStore.getState().setReactReady(true);
-    }, []);
+        startProgressPulse();
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (!preloaderVisible) return null;
 

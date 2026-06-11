@@ -4,21 +4,14 @@ import { usePreloader } from '../hooks/usePreloader.js';
 import HomeScreen from '../components/homescreen/HomeScreen.jsx';
 
 export default function HomeRoute() {
-    const { ensurePreloader, startProgressPulse, finishPreloader } = usePreloader();
+    const { finishPreloader } = usePreloader();
     const finishedRef = useRef(false);
-    const bootedRef = useRef(false);
 
     useEffect(() => {
-        if (bootedRef.current) return;
-        bootedRef.current = true;
-
-        if (appStore.getState().isWhisperReady) return;
-
-        ensurePreloader();
-        startProgressPulse();
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-    useEffect(() => {
+        if (appStore.getState().isWhisperReady) {
+            finishPreloader();
+            return;
+        }
         const unsubscribe = appStore.subscribe((state) => {
             if (state.isWhisperReady && !finishedRef.current) {
                 finishedRef.current = true;

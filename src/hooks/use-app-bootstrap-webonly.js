@@ -16,7 +16,7 @@ export function useAppBootstrap({ courseId } = {}) {
     const [bootState, setBootState] = useState('loading');
     const [error, setError] = useState(null);
     const initStarted = useRef(false);
-    const { ensurePreloader, startProgressPulse, finishPreloader } = usePreloader();
+    const { finishPreloader } = usePreloader();
     const [searchParams] = useSearchParams();
 
     // ── Reactive queries (replaces imperative isUserLoggedIn / getUserProfile) ──
@@ -39,9 +39,6 @@ export function useAppBootstrap({ courseId } = {}) {
             };
         }
         appStore.getState().setIsLoaded(false);
-
-        ensurePreloader();
-        startProgressPulse();
 
         requestPersistentStorage();
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
