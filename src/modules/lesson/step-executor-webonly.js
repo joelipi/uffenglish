@@ -198,6 +198,9 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                         onRecordingStart: (userData) => {
                             trackEvent('recording_started');
                             cancelWarningClear();
+                            if (appStore.getState().appPhase === 'simpleVideo') {
+                                appStore.getState().setAppPhase('recording/answering');
+                            }
                             appStore.getState().setMicActive(true);
                             const currentPlayer = getCurrentVideoPlayer();
                             if (currentPlayer) {

@@ -12,12 +12,10 @@ export default function MissionSection({ responseType }) {
     const configData = useStore(appStore, (state) => state.configData);
     const currentLessonIndex = useStore(appStore, (state) => state.currentLessonIndex);
     const userData = useStore(appStore, (state) => state.userData);
-    const successScreenVisible = useStore(appStore, (state) => state.successScreenVisible);
-    const overlayVisible = useStore(appStore, (state) => state.overlayVisible);
-    const videoPlays = useStore(appStore, (state) => state.videoPlays);
+    const showMission = useStore(appStore, (state) => state.showMission);
 
     const lesson = configData?.lessons?.[currentLessonIndex];
-    if (!lesson || successScreenVisible || overlayVisible || (!overlayVisible && videoPlays === 1)) return null;
+    if (!lesson || !showMission) return null;
 
     const lang = userData?.native_language || 'en';
     const toggle = () => setExpanded((prev) => !prev);
