@@ -103,9 +103,9 @@ async function bootWhisperEngine() {
         };
 
         importScripts(
-            WHISPER_BASE_PATH + 'sherpa-onnx-vad.js',
-            WHISPER_BASE_PATH + 'sherpa-onnx-asr.js',
-            WHISPER_BASE_PATH + 'sherpa-onnx-wasm-main-vad-asr.js'
+            '/whisper/sherpa-onnx-vad.js',
+            '/whisper/sherpa-onnx-asr.js',
+            '/whisper/sherpa-onnx-wasm-main-vad-asr.js'
         );
 
     } catch (error) {

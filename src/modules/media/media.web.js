@@ -13,14 +13,18 @@ const AUDIO_URLS = {
 };
 
 const audioPlayers = {};
-for (const [id, url] of Object.entries(AUDIO_URLS)) {
-    audioPlayers[id] = new Howl({ src: [url], preload: true });
+
+function ensurePlayer(id) {
+    if (!audioPlayers[id]) {
+        audioPlayers[id] = new Howl({ src: [AUDIO_URLS[id]], preload: true });
+    }
+    return audioPlayers[id];
 }
 
 export const Media = {
     playSound(soundId) {
-        if (!audioPlayers[soundId] || !appStore.getState().isAudioEnabled) return;
-        audioPlayers[soundId].play();
+        if (!AUDIO_URLS[soundId] || !appStore.getState().isAudioEnabled) return;
+        ensurePlayer(soundId).play();
     },
 
     pauseVideoIfPlaying() {

@@ -84,6 +84,10 @@ export const appStore = createStore(
             overlayVisible: false,
             bottomOverlayVisible: true,
 
+            // --- Preloader State ---
+            preloaderVisible: true,
+            preloaderProgress: 0,
+
             // --- App Phase State Machine ---
             appPhase: 'loading',
             topState: 'hidden',

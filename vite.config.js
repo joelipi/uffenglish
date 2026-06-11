@@ -40,6 +40,10 @@ export default defineConfig({
                 target: 'https://r2.ultrafastfluency.com',
                 changeOrigin: true,
             },
+            '/whisper/': {
+                target: 'https://r2.ultrafastfluency.com',
+                changeOrigin: true,
+            },
         },
         headers: {
             'Cross-Origin-Opener-Policy': 'same-origin',
