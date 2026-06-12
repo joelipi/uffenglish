@@ -1,5 +1,5 @@
 import { resolve } from 'path'
-import { existsSync, mkdirSync, cpSync } from 'fs'
+import { existsSync, mkdirSync, cpSync, copyFileSync } from 'fs'
 import { defineConfig } from 'vite'
 import purgecss from 'vite-plugin-purgecss'
 
@@ -12,6 +12,20 @@ export default defineConfig({
                 if (!existsSync(distConfig)) mkdirSync(distConfig, { recursive: true })
                 cpSync(resolve(__dirname, 'src/config'), distConfig, { recursive: true })
                 console.log('[copy-config] Copied config JSONs to dist/src/config/')
+
+                // Ensure Cloudflare Pages _headers and _redirects are in build output.
+                // Vite copies public/ by default, but explicit copy is belt-and-suspenders
+                // — these files are critical for COOP/COEP headers in production.
+                for (const f of ['_headers', '_redirects']) {
+                    const src = resolve(__dirname, 'public', f)
+                    const dst = resolve(__dirname, 'dist', f)
+                    if (existsSync(src)) {
+                        copyFileSync(src, dst)
+                        console.log(`[copy-config] Copied ${f} to dist/`)
+                    } else {
+                        console.warn(`[copy-config] WARNING: public/${f} not found`)
+                    }
+                }
             }
         },
         purgecss({
