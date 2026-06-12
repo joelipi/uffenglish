@@ -1,10 +1,22 @@
 import { resolve } from 'path'
 import { existsSync, mkdirSync, cpSync, copyFileSync } from 'fs'
+import { execSync } from 'child_process'
 import { defineConfig } from 'vite'
 import purgecss from 'vite-plugin-purgecss'
 
+const commitHash = execSync('git rev-parse --short HEAD').toString().trim()
+
 export default defineConfig({
     plugins: [
+        {
+            name: 'inject-version',
+            transformIndexHtml(html) {
+                return html.replace(
+                    /<title>(.*?)<\/title>/,
+                    `<title>$1 (${commitHash})</title>`
+                )
+            }
+        },
         {
             name: 'copy-config',
             closeBundle() {
