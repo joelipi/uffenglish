@@ -29,11 +29,27 @@ export default function ContinueWidgetBubble({ onClick, nextStepVideoUrl }) {
         if (!video || !nextStepVideoUrl) return;
 
         video.muted = true;
+        video.playsInline = true;
 
-        const onFrameLoaded = () => video.pause();
+        const onFrameLoaded = () => {
+            video.pause();
+        };
         video.addEventListener('loadeddata', onFrameLoaded);
 
-        return () => video.removeEventListener('loadeddata', onFrameLoaded);
+        // Must call play() for the browser to decode a frame.
+        // Muted autoplay is allowed by all modern browsers.
+        video.play().catch((err) => {
+            console.log('Video background autoplay prevented:', err);
+        });
+
+        return () => {
+            video.removeEventListener('loadeddata', onFrameLoaded);
+            try {
+                video.pause();
+            } catch (e) {
+                /* ignore */
+            }
+        };
     }, [nextStepVideoUrl]);
 
     let iconClass = 'bi-camera-video-fill';

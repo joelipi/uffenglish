@@ -569,14 +569,14 @@ const strings = {
         fr: "ENTRANT"
     },
     'widget_action_video': {
-        en: "Tap to watch...",
-        es: "Toca para ver...",
-        fr: "Appuyez pour voir..."
+        en: "Tap to continue...",
+        es: "Toca para continuar...",
+        fr: "Appuyez pour continuer..."
     },
     'widget_action_audio': {
-        en: "Tap to listen...",
-        es: "Toca para escuchar...",
-        fr: "Appuyez pour écouter..."
+        en: "Tap to continue...",
+        es: "Toca para continuar...",
+        fr: "Appuyez pour continuer..."
     },
     'widget_action_text': {
         en: "Tap to continue...",
@@ -588,8 +588,8 @@ const strings = {
         es: "¡Bienvenido!"
     },
     'guest_modal_body': {
-        en: "You are currently not logged in. Log in or sign up to save your progress and access all features. Or, continue as a guest to try out the app.",
-        es: "Actualmente no has iniciado sesión. Inicia sesión o regístrate para guardar tu progreso y acceder a todas las funciones. O continúa como invitado para probar la aplicación."
+        en: "You are currently not logged in.",
+        es: "Actualmente no has iniciado sesión."
     },
     'guest_modal_login': {
         en: "Log In",
