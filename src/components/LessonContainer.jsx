@@ -236,7 +236,7 @@ export default function LessonContainer() {
             <PlaybackVideo />
 
             {/* Media Viewport cleanly houses the pure React players now */}
-            <div id="media-viewport" className={`position-absolute top-0 start-0 w-100 h-100${mediaVisible ? '' : ' media-viewport-hidden'}`}>
+            <div id="media-viewport" className={`position-absolute top-0 start-0 w-100 h-100${mediaVisible ? '' : ' media-viewport-hidden'}`} style={mediaState === 'processingRecording' || mediaState === 'preflightRejected' || mediaState === 'hidden' || mediaState === 'preloader' ? { display: 'none' } : undefined}>
                 <InteractiveVideoPlayer />
                 <SimpleVideoPlayer />
             </div>
