@@ -226,4 +226,74 @@ describe('Zustand App Store', () => {
         expect(history[1].id).toBe(12345);
         expect(history[1].type).toBe('grammarDiff');
     });
+
+    describe('transitionTo', () => {
+        beforeEach(() => {
+            appStore.setState({ appPhase: 'loading', phaseData: {}, currentVideo: null });
+        });
+
+        it('sets showMission according to phase mapping', () => {
+            appStore.getState().transitionTo('lessonIntro');
+            expect(appStore.getState().showMission).toBe(true);
+            appStore.getState().transitionTo('feedback');
+            expect(appStore.getState().showMission).toBe(false);
+        });
+
+        it('sets zone states correctly for feedback phase', () => {
+            appStore.getState().transitionTo('feedback');
+            expect(appStore.getState().topState).toBe('topBarOnly');
+            expect(appStore.getState().mediaState).toBe('chat');
+            expect(appStore.getState().bottomState).toBe('continueButton');
+        });
+
+        it('sets zone states correctly for lessonIntro phase', () => {
+            appStore.getState().transitionTo('lessonIntro');
+            expect(appStore.getState().topState).toBe('topBarOnly');
+            expect(appStore.getState().mediaState).toBe('introCallWidget');
+            expect(appStore.getState().bottomState).toBe('introChoices');
+        });
+
+        it('resolves conditional topState based on currentVideo', () => {
+            appStore.setState({ currentVideo: { type: 'interactive' } });
+            appStore.getState().transitionTo('recording/answering');
+            expect(appStore.getState().topState).toBe('topBarWithStats');
+
+            appStore.setState({ currentVideo: { type: 'simple' } });
+            appStore.getState().transitionTo('recording/answering');
+            expect(appStore.getState().topState).toBe('topBarOnly');
+        });
+
+        it('stores phaseData', () => {
+            appStore.getState().transitionTo('review', { transcript: 'hello' });
+            expect(appStore.getState().phaseData).toEqual({ transcript: 'hello' });
+        });
+
+        it('warns on unexpected answer-flow transitions', () => {
+            const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            appStore.getState().transitionTo('recording/answering', {}, { fromStepLoad: true });
+            appStore.getState().transitionTo('lessonIntro');
+            expect(warn).toHaveBeenCalled();
+            warn.mockRestore();
+        });
+
+        it('skips validation with fromStepLoad flag', () => {
+            const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            appStore.getState().transitionTo('lessonIntro', {}, { fromStepLoad: true });
+            expect(warn).not.toHaveBeenCalled();
+            warn.mockRestore();
+        });
+
+        it('sets whisperReviewData on review phase', () => {
+            appStore.getState().transitionTo('review', { transcript: 'hello', timeLeft: 5 });
+            expect(appStore.getState().whisperReviewData).toEqual({ transcript: 'hello', timeLeft: 5 });
+            expect(appStore.getState().whisperReviewTimeLeft).toBe(5);
+        });
+
+        it('falls back to error mapping for unknown phases', () => {
+            appStore.getState().transitionTo('unknown_phase');
+            expect(appStore.getState().topState).toBe('hidden');
+            expect(appStore.getState().mediaState).toBe('errorModal');
+            expect(appStore.getState().bottomState).toBe('hidden');
+        });
+    });
 });

@@ -96,7 +96,7 @@ export function handleUnitComplete(step) {
     state.setSuccessScreen(lessonId, fluencyDataObj);
     state.setStatsVisible(false);
     state.setProgressPercent("100%");
-    state.setAppPhase('lessonSuccess', { lessonId, fluencyData: fluencyDataObj });
+    state.transitionTo('lessonSuccess', { lessonId, fluencyData: fluencyDataObj }, { fromStepLoad: true });
 }
 
 // --- Success Step Rendering ---
@@ -133,7 +133,7 @@ export function handleSuccessStep(step, fluencyData) {
     state.setSuccessScreen(step.lessonId, fluencyDataObj);
     state.setStatsVisible(false);
     state.setProgressPercent("100%");
-    state.setAppPhase('lessonSuccess', { lessonId: step.lessonId, fluencyData: fluencyDataObj });
+    state.transitionTo('lessonSuccess', { lessonId: step.lessonId, fluencyData: fluencyDataObj }, { fromStepLoad: true });
 
     const currentLesson = state.configData.lessons[state.currentLessonIndex];
     const nextLessonId = currentLesson.nextLessonId;

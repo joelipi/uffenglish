@@ -21,6 +21,38 @@ export function setCurrentVideoPlayer(v)   { _currentVideoPlayer = v; }
 export function getWebcamStream()          { return _webcamStream; }
 export function setWebcamStream(v)         { _webcamStream = v; appStore.getState()._bumpWebcamStreamKey(); }
 
+const phaseMapping = {
+    loading:                                     { topState: 'hidden',          mediaState: 'preloader',           bottomState: 'hidden',               showMission: false },
+    lessonIntro:                                 { topState: 'topBarOnly',      mediaState: 'introCallWidget',     bottomState: 'introChoices',          showMission: true },
+    simpleVideo:                                 { topState: 'topBarOnly',      mediaState: 'simpleVideo',         bottomState: 'controlIcon',           showMission: true },
+    'interactiveVideo+closedResponse':           { topState: 'topBarWithStats', mediaState: 'interactiveVideo',    bottomState: 'hidden',                showMission: true },
+    'interactiveVideo+openResponse':             { topState: 'topBarWithStats', mediaState: 'interactiveVideo',    bottomState: 'hidden',                showMission: true },
+    'interactiveVideo-decisionTime-closedResponse': { topState: 'topBarWithStats', mediaState: 'decisionOverlay', bottomState: 'decisionButtons',      showMission: true },
+    'interactiveVideo-decisionTime-openResponse':   { topState: 'topBarWithStats', mediaState: 'decisionOverlay', bottomState: 'decisionButtons',      showMission: true },
+    'recording/answering':                       { topState: (s) => s.currentVideo?.type === 'interactive' ? 'topBarWithStats' : 'topBarOnly', mediaState: 'webcamOrAvatar', bottomState: 'micActiveOrAnswerInput', showMission: false },
+    'processing/transcribing':                   { topState: (s) => s.currentVideo?.type === 'interactive' ? 'topBarWithStats' : 'topBarOnly', mediaState: 'processingRecording', bottomState: 'hidden', showMission: false },
+    'transcription preflight-rejected':          { topState: (s) => s.currentVideo?.type === 'interactive' ? 'topBarWithStats' : 'topBarOnly', mediaState: 'preflightRejected', bottomState: 'hidden', showMission: false },
+    review:                                      { topState: (s) => s.currentVideo?.type === 'interactive' ? 'topBarWithStats' : 'topBarOnly', mediaState: 'whisperReview', bottomState: 'reviewButtons', showMission: false },
+    feedback:                                    { topState: 'topBarOnly',       mediaState: 'chat',                bottomState: 'continueButton',        showMission: false },
+    lessonSuccess:                               { topState: 'topBarOnly',       mediaState: 'simpleVideo',         bottomState: 'lessonSuccess',         showMission: false },
+    successVideoCreation:                        { topState: 'hidden',           mediaState: 'videoProcessor',      bottomState: 'hidden',               showMission: false },
+    'successVideo/videoShare':                   { topState: 'hidden',           mediaState: 'videoProcessor',      bottomState: 'shareButtons',          showMission: false },
+    error:                                       { topState: 'hidden',           mediaState: 'errorModal',          bottomState: 'hidden',               showMission: false },
+};
+
+const answerFlowTransitions = {
+    'simpleVideo':                               ['recording/answering'],
+    'interactiveVideo+closedResponse':           ['interactiveVideo-decisionTime-closedResponse'],
+    'interactiveVideo+openResponse':             ['interactiveVideo-decisionTime-openResponse'],
+    'interactiveVideo-decisionTime-closedResponse': ['recording/answering', 'interactiveVideo+closedResponse'],
+    'interactiveVideo-decisionTime-openResponse':   ['recording/answering', 'interactiveVideo+openResponse'],
+    'recording/answering':                       ['processing/transcribing', 'feedback'],
+    'processing/transcribing':                   ['review', 'transcription preflight-rejected', 'recording/answering', 'feedback'],
+    'transcription preflight-rejected':          ['recording/answering'],
+    review:                                      ['feedback', 'loading'],
+    feedback:                                    [],
+};
+
 export const appStore = createStore(
     persist(
         (set, get) => ({
@@ -94,7 +126,6 @@ export const appStore = createStore(
             mediaState: 'preloader',
             bottomState: 'hidden',
             phaseData: {},
-            showMission: false,
 
             // --- System Message Overlay ---
             systemMessage: null,
@@ -251,7 +282,6 @@ export const appStore = createStore(
             setHintsVisible: (visible) => set({ hintsVisible: visible }),
             setHangmanHintHTML: (html) => set({ hangmanHintHTML: html }),
             setHangmanOps: (ops) => set({ hangmanOps: ops }),
-            setBottomControlState: (state) => set({ bottomControlState: state }),
             setBottomOverlayVisible: (val) => set({ bottomOverlayVisible: val }),
             setOverlayVisible: (val) => set({ overlayVisible: val }),
             setChatModeActive: (val) => set({ chatModeActive: val }),
@@ -268,30 +298,26 @@ export const appStore = createStore(
             triggerPreflightRejected: () => set((state) => ({ preflightRejectedTrigger: state.preflightRejectedTrigger + 1 })),
             triggerTranscriptRejected: (cue, transcript) => set((state) => ({ transcriptRejectedTrigger: state.transcriptRejectedTrigger + 1, transcriptRejectedCue: cue, transcriptRejectedTranscript: transcript })),
             triggerScoreUpdate: () => set((state) => ({ scoreUpdateTrigger: state.scoreUpdateTrigger + 1 })),
-            setAppPhase: (phase, data = {}) => set((state) => {
-                const mapping = {
-                    loading:                                     { topState: 'hidden',          mediaState: 'preloader',           bottomState: 'hidden',               showMission: false },
-                    lessonIntro:                                 { topState: 'topBarOnly',      mediaState: 'introCallWidget',     bottomState: 'introChoices',          showMission: true },
-                    simpleVideo:                                 { topState: 'topBarOnly',      mediaState: 'simpleVideo',         bottomState: 'controlIcon',           showMission: true },
-                    'interactiveVideo+closedResponse':           { topState: 'topBarWithStats', mediaState: 'interactiveVideo',    bottomState: 'hidden',                showMission: true },
-                    'interactiveVideo+openResponse':             { topState: 'topBarWithStats', mediaState: 'interactiveVideo',    bottomState: 'hidden',                showMission: true },
-                    'interactiveVideo-decisionTime-closedResponse': { topState: 'topBarWithStats', mediaState: 'decisionOverlay', bottomState: 'decisionButtons',      showMission: true },
-                    'interactiveVideo-decisionTime-openResponse':   { topState: 'topBarWithStats', mediaState: 'decisionOverlay', bottomState: 'decisionButtons',      showMission: true },
-                    'recording/answering':                       { topState: state.currentVideo?.type === 'interactive' ? 'topBarWithStats' : 'topBarOnly', mediaState: 'webcamOrAvatar', bottomState: 'micActiveOrAnswerInput', showMission: false },
-                    'processing/transcribing':                   { topState: state.currentVideo?.type === 'interactive' ? 'topBarWithStats' : 'topBarOnly', mediaState: 'processingRecording', bottomState: 'hidden', showMission: false },
-                    'transcription preflight-rejected':          { topState: state.currentVideo?.type === 'interactive' ? 'topBarWithStats' : 'topBarOnly', mediaState: 'preflightRejected', bottomState: 'hidden', showMission: false },
-                    review:                                      { topState: state.currentVideo?.type === 'interactive' ? 'topBarWithStats' : 'topBarOnly', mediaState: 'whisperReview', bottomState: 'reviewButtons', showMission: false },
-                    feedback:                                    { topState: 'topBarOnly',      mediaState: 'chat',                bottomState: 'continueButton',        showMission: false },
-                    lessonSuccess:                               { topState: 'topBarOnly',      mediaState: 'simpleVideo',         bottomState: 'lessonSuccess',         showMission: false },
-                    successVideoCreation:                        { topState: 'hidden',          mediaState: 'videoProcessor',      bottomState: 'hidden',               showMission: false },
-                    'successVideo/videoShare':                   { topState: 'hidden',          mediaState: 'videoProcessor',      bottomState: 'shareButtons',          showMission: false },
-                    error:                                       { topState: 'hidden',          mediaState: 'errorModal',          bottomState: 'hidden',               showMission: false },
-                };
-                const zoneStates = mapping[phase] || mapping.error;
+            transitionTo: (phase, data = {}, opts = {}) => set((state) => {
+                if (!opts.fromStepLoad) {
+                    const allowed = answerFlowTransitions[state.appPhase];
+                    if (allowed && !allowed.includes(phase)) {
+                        console.warn(`[Phase] Unexpected transition: ${state.appPhase} → ${phase} (allowed: ${allowed.join(', ')})`);
+                    }
+                }
+
+                const zoneStates = phaseMapping[phase] || phaseMapping.error;
+
+                const resolved = Object.fromEntries(
+                    Object.entries(zoneStates).map(([k, v]) => [k, typeof v === 'function' ? v(state) : v])
+                );
+
+                console.log(`[Phase] ${state.appPhase} → ${phase}`, data);
+
                 const result = {
                     appPhase: phase,
                     phaseData: data,
-                    ...zoneStates,
+                    ...resolved,
                 };
                 if (phase === 'review') {
                     result.whisperReviewData = data;
@@ -422,14 +448,10 @@ export const appStore = createStore(
                 playbackBlob: null,
                 playbackAutoplay: false,
                 playbackSpeechCamChunks: [],
-                bottomControlState: 'mic',
                 bottomOverlayVisible: true,
                 appPhase: 'loading',
-                topState: 'hidden',
-                mediaState: 'preloader',
-                bottomState: 'hidden',
                 phaseData: {},
-                showMission: false,
+                ...phaseMapping.loading,
                 praiseImageUrl: null,
                 youtubeVideoId: null,
                 whisperReviewData: null,
@@ -538,7 +560,6 @@ export const appStore = createStore(
                 textInputVisible: false,
                 speechInputContent: null,
                 tutorChatVisible: false,
-                bottomControlState: 'mic',
                 submitBtnDisabled: false,
                 inputDisabled: false,
                 progressPercent: 0,

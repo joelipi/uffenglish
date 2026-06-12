@@ -797,7 +797,7 @@ export function createAnswerPipeline(deps) {
                 }
 
                 appStore.getState().setSystemMessage({ type: 'info', text: stepData.step || '' });
-                appStore.getState().setAppPhase('recording/answering');
+                appStore.getState().transitionTo('recording/answering');
                 resetButtonState(button);
                 return;
             }
@@ -817,6 +817,7 @@ export function createAnswerPipeline(deps) {
                 });
 
                 showChat();
+                appStore.getState().transitionTo('feedback');
 
                 appStore.getState().addChatMessage({
                     role: 'user',
@@ -831,6 +832,7 @@ export function createAnswerPipeline(deps) {
                 const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
 
                 showChat();
+                appStore.getState().transitionTo('feedback');
 
                 appStore.getState().addChatMessage({
                     role: 'user',
@@ -897,7 +899,6 @@ export function createAnswerPipeline(deps) {
                     initializeMedia();
                 }
                 console.log('[showFeedbackAndProceed] continue clicked, restoring mic controls');
-                appStore.getState().setBottomControlState('mic');
                 appStore.getState().removeContinueWidget();
                 if (stepData.responseType === "lessonIntro") {
                     setTimeout(() => {
@@ -928,7 +929,6 @@ export function createAnswerPipeline(deps) {
 
             if (stepData.responseType === "lessonIntro") {
                 setIntroContinueHandler(onContinue);
-                appStore.getState().setBottomControlState('introChoices');
             } else {
                 const hasWidget = appStore.getState().chatHistory.some(msg => msg.type === 'continueWidget');
                 if (!hasWidget) {

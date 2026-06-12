@@ -83,7 +83,7 @@ export function createSpeechOrchestrator({
             reviewActive = false;
             clearInterval(timerInterval);
 
-            if (uiHooks?.onReviewEnd) uiHooks.onReviewEnd();
+            if (uiHooks?.onReviewEnd) uiHooks.onReviewEnd('feedback');
 
             handleAnswer(
                 transcriptToReview,

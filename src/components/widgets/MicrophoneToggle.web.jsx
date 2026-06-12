@@ -7,7 +7,7 @@ import { trackEvent } from '../../modules/utils/logrocket.js';
 export default function MicrophoneToggle() {
     const isMicActive = useStore(appStore, (state) => state.isMicActive);
     const isTextMode = useStore(appStore, (state) => state.isTextMode);
-    const bottomControlState = useStore(appStore, (state) => state.bottomControlState);
+    const bottomState = useStore(appStore, (state) => state.bottomState);
     const micBounceTrigger = useStore(appStore, (state) => state.micBounceTrigger);
     const [bouncing, setBouncing] = useState(false);
     const ringRefs = useRef([null, null, null]);
@@ -85,7 +85,7 @@ export default function MicrophoneToggle() {
     };
 
     const ringStyle = isMicActive ? { opacity: 0.7, pointerEvents: 'none' } : { opacity: 0, pointerEvents: 'none' };
-    const shouldShowMic = bottomControlState === 'mic';
+    const shouldShowMic = bottomState === 'controlIcon' || bottomState === 'micActiveOrAnswerInput';
 
     if (!shouldShowMic) {
         return (

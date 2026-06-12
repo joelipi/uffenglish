@@ -19,21 +19,16 @@ function resetUIForNewStep(step) {
     const isRetry = appStore.getState().incorrectAttempts > 0;
     if (step.responseType === 'lessonIntro') {
         phase = 'lessonIntro';
-        appStore.getState().setBottomControlState('mic');
     } else if (step.responseType === 'success') {
         phase = 'lessonSuccess';
-        appStore.getState().setBottomControlState('success');
     } else if (step.interactiveVideoUrl && !isRetry) {
         phase = 'interactiveVideo+' + (step.responseType === 'openResponse' ? 'openResponse' : 'closedResponse');
-        appStore.getState().setBottomControlState('mic');
     } else if (step.simpleVideoUrl) {
         phase = 'simpleVideo';
-        appStore.getState().setBottomControlState('mic');
     } else {
         phase = 'recording/answering';
-        appStore.getState().setBottomControlState('mic');
     }
-    appStore.getState().setAppPhase(phase);
+    appStore.getState().transitionTo(phase, {}, { fromStepLoad: true });
 }
 
 export function createLoadStep(deps) {
@@ -199,7 +194,7 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             trackEvent('recording_started');
                             cancelWarningClear();
                             if (appStore.getState().appPhase === 'simpleVideo') {
-                                appStore.getState().setAppPhase('recording/answering');
+                                appStore.getState().transitionTo('recording/answering');
                             }
                             appStore.getState().setMicActive(true);
                             const currentPlayer = getCurrentVideoPlayer();
@@ -231,7 +226,7 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             appStore.getState().setMediaVisible(false);
                             appStore.getState().setTextInputVisible(false);
                             appStore.getState().setSystemMessage({ type: 'analyzing', text: 'Analyzing Speech...' });
-                            appStore.getState().setAppPhase('processing/transcribing');
+                            appStore.getState().transitionTo('processing/transcribing');
                         },
                         onStopEarly: (userData) => {
                             trackEvent('recording_stopped_early', { point_loss: 10 });
@@ -264,9 +259,9 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             appStore.getState().triggerPreflightRejected();
                             appStore.getState().setPointLossAmount(10);
                             appStore.getState().setSystemMessage({ type: 'preflight-rejected', text: msg });
-                            appStore.getState().setAppPhase('transcription preflight-rejected');
+                            appStore.getState().transitionTo('transcription preflight-rejected');
                             setTimeout(() => {
-                                appStore.getState().setAppPhase('recording/answering');
+                                appStore.getState().transitionTo('recording/answering');
                             }, 4000);
                         },
                         onTranscriptRejected: (cue, transcript) => {
@@ -280,22 +275,22 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             appStore.getState().triggerTranscriptRejected(cue, transcript);
                             appStore.getState().setPointLossAmount(20);
                             appStore.getState().setSystemMessage({ type: 'restarting', text: 'Restarting Mic...' });
-                            appStore.getState().setAppPhase('recording/answering');
+                            appStore.getState().transitionTo('recording/answering');
                         },
                         onReviewStart: (transcript, timeLeft, acceptFn, rejectFn) => {
                             appStore.getState().setMicActive(false);
                             appStore.getState().removeAiLoadingMessage();
                             appStore.getState().setSystemMessage(null);
-                            appStore.getState().setAppPhase('review', { transcript, timeLeft, onAccept: acceptFn, onReject: rejectFn });
+                            appStore.getState().transitionTo('review', { transcript, timeLeft, onAccept: acceptFn, onReject: rejectFn });
                         },
                         onReviewUpdate: (timeLeft) => {
-                            appStore.getState().setAppPhase('review', { ...appStore.getState().phaseData, timeLeft });
+                            appStore.getState().transitionTo('review', { ...appStore.getState().phaseData, timeLeft });
                         },
-                        onReviewEnd: () => {
+                        onReviewEnd: (phase = 'loading') => {
                             appStore.getState().setWhisperReviewData(null);
                             appStore.getState().setWhisperReviewTimeLeft(null);
                             appStore.getState().setSystemMessage(null);
-                            appStore.getState().setAppPhase('loading');
+                            appStore.getState().transitionTo(phase);
                         }
                     }
                 });

@@ -16,19 +16,19 @@ export default function DecisionButtons() {
 
     const handleEarClick = () => {
         getCurrentVideoPlayer()?.dismissOverlay?.();
-        appStore.getState().setAppPhase('recording/answering');
+        appStore.getState().transitionTo('recording/answering');
     };
 
     const handleMicClick = () => {
         getCurrentVideoPlayer()?.dismissOverlay?.({ replay: false });
-        appStore.getState().setAppPhase('recording/answering');
+        appStore.getState().transitionTo('recording/answering');
         const cb = getSpeechInputToggleCallback();
         if (typeof cb === 'function') cb();
     };
 
     const handleTxtClickOverlay = () => {
         getCurrentVideoPlayer()?.dismissOverlay?.({ replay: false });
-        appStore.getState().setAppPhase('recording/answering');
+        appStore.getState().transitionTo('recording/answering');
         const isTextInputVisible = appStore.getState().textInputVisible;
         if (isTextInputVisible) {
             appStore.getState().setTextInputVisible(false);

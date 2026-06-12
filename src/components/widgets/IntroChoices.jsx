@@ -11,7 +11,6 @@ export default function IntroChoices() {
     const handleVideoClick = () => {
         appStore.getState().setTextMode(false);
         appStore.getState().setCameraOff(false);
-        appStore.getState().setBottomControlState('mic');
         appStore.getState().setBottomOverlayVisible(false);
         appStore.getState().setCurrentVideo(null);
         const cb = getIntroContinueHandler();
@@ -21,7 +20,6 @@ export default function IntroChoices() {
     const handleAudioClick = () => {
         appStore.getState().setTextMode(false);
         appStore.getState().setCameraOff(true);
-        appStore.getState().setBottomControlState('mic');
         appStore.getState().setBottomOverlayVisible(false);
         appStore.getState().setCurrentVideo(null);
         const cb = getIntroContinueHandler();
@@ -31,7 +29,6 @@ export default function IntroChoices() {
     const handleTextClick = () => {
         appStore.getState().setTextMode(true);
         appStore.getState().setCameraOff(true);
-        appStore.getState().setBottomControlState('mic');
         appStore.getState().setBottomOverlayVisible(false);
         appStore.getState().setCurrentVideo(null);
         const cb = getIntroContinueHandler();

@@ -133,20 +133,20 @@ test.describe('Regression Guard — Store, DOM IDs, Module Imports', () => {
         expect(result.successVideoBlob).toBeNull();
     });
 
-    test('bottomControlState resets to mic on resetForNextStep', async ({ page }) => {
+    test('bottomState resets to hidden on resetForNextStep', async ({ page }) => {
         await page.goto('/course/gt2/lesson/a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
 
         await page.evaluate(() => {
-            window.appStore.getState().setBottomControlState('lessonSuccess');
+            window.appStore.getState().transitionTo('lessonSuccess');
         });
 
         await page.evaluate(() => {
             window.appStore.getState().resetForNextStep();
         });
 
-        const state = await page.evaluate(() => window.appStore.getState().bottomControlState);
-        expect(state).toBe('mic');
+        const state = await page.evaluate(() => window.appStore.getState().bottomState);
+        expect(state).toBe('hidden');
     });
 
     test('loadLessonContent is importable', async ({ page }) => {

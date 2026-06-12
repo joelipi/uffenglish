@@ -55,7 +55,7 @@ export function useInteractiveVideo() {
                 const phase = responseType === 'closedResponse'
                     ? 'interactiveVideo-decisionTime-closedResponse'
                     : 'interactiveVideo-decisionTime-openResponse';
-                appStore.getState().setAppPhase(phase);
+                appStore.getState().transitionTo(phase);
             }
             prevShowOverlayRef.current = state.showOverlay;
 
