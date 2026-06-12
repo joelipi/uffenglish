@@ -625,6 +625,34 @@ export function createAnswerPipeline(deps) {
         appStore.getState().setTextInputVisible(false);
         appStore.getState().setHintsVisible(false);
 
+        // Show user message + cue bubble immediately before API call returns.
+        // Stats bubbles (addAIFeedbackMessages) arrive later in the openResponse block.
+        if (stepData.responseType === "openResponse" && userResponse) {
+            const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
+            console.log('[handleAnswer] openResponse lang:', lang, 'cue:', typeof cue, 'native_language:', userData?.native_language);
+
+            appStore.getState().addChatMessage({
+                role: 'system',
+                type: 'standard',
+                content: cueText,
+                translation: getLocalizedTranslation(stepData.translation, lang),
+                translationLang: (getLocalizedTranslation(stepData.translation, lang) && lang !== 'en') ? lang : undefined,
+                botName: 'Joe Walsh',
+                avatarUrl: teacherAvatarUrl
+            });
+
+            showChat();
+            appStore.getState().transitionTo('feedback');
+
+            appStore.getState().addChatMessage({
+                role: 'user',
+                type: 'standard',
+                content: userResponse,
+                userName: userData?.display_name?.split(' ')[0] || 'User',
+                userAvatarUrl: userData?.profilepicurl || userAvatarUrl
+            });
+        }
+
         let immediateStatsMessages = [];
         let fluencyBubble = null;
 
@@ -803,30 +831,8 @@ export function createAnswerPipeline(deps) {
             }
 
             if (stepData.responseType === "openResponse" && userResponse) {
-                const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
-                console.log('[handleAnswer] openResponse lang:', lang, 'cue:', typeof cue, 'native_language:', userData?.native_language);
-
-                appStore.getState().addChatMessage({
-                    role: 'system',
-                    type: 'standard',
-                    content: cueText,
-                    translation: getLocalizedTranslation(stepData.translation, lang),
-                    translationLang: (getLocalizedTranslation(stepData.translation, lang) && lang !== 'en') ? lang : undefined,
-                    botName: 'Joe Walsh',
-                    avatarUrl: teacherAvatarUrl
-                });
-
-                showChat();
-                appStore.getState().transitionTo('feedback');
-
-                appStore.getState().addChatMessage({
-                    role: 'user',
-                    type: 'standard',
-                    content: userResponse,
-                    userName: userData?.display_name?.split(' ')[0] || 'User',
-                    userAvatarUrl: userData?.profilepicurl || userAvatarUrl
-                });
-
+                // User message + cue bubble were dispatched immediately before the API call.
+                // Now that scoring is complete, append the stats bubbles.
                 if (immediateStatsMessages.length > 0) addAIFeedbackMessages(immediateStatsMessages);
             } else if (stepData.responseType === "closedResponse" && userResponse) {
                 const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
