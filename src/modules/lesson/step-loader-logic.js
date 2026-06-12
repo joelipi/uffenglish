@@ -40,8 +40,6 @@ export function handleStepCore(step) {
     appStore.getState().clearPlaybackBlob();
     appStore.getState().setCurrentVideo(null);
 
-    appStore.getState().setStatsVisible((step.responseType === 'closedResponse' || step.responseType === 'openResponse') && step.interactiveVideoUrl);
-
     appStore.getState().setMediaVisible(true);
 
     loadVideoForStep(step, null, appStore.getState().userData?.native_language);
@@ -52,7 +50,6 @@ export function handleStepCore(step) {
 // --- Text Step Handling ---
 
 export function handleTextStep(step, submitAnswerPrecheck) {
-    appStore.getState().setStatsVisible(true);
     appStore.getState().setTextInputPlaceholder(
         Strings.get('placeholder_type_answer', appStore.getState().userData?.native_language) || 'Type your answer here...'
     );
@@ -64,7 +61,6 @@ export function handleTextStep(step, submitAnswerPrecheck) {
 // --- Lesson Complete ---
 
 export function handleLessonComplete(step, showFeedbackAndProceed) {
-    appStore.getState().setStatsVisible(false);
     appStore.getState().setProgressPercent("95%");
     showFeedbackAndProceed(step, true);
 }
@@ -94,7 +90,6 @@ export function handleUnitComplete(step) {
     });
 
     state.setSuccessScreen(lessonId, fluencyDataObj);
-    state.setStatsVisible(false);
     state.setProgressPercent("100%");
     state.transitionTo('lessonSuccess', { lessonId, fluencyData: fluencyDataObj }, { fromStepLoad: true });
 }
@@ -131,7 +126,6 @@ export function handleSuccessStep(step, fluencyData) {
         state.setMediaVisible(false);
     }
     state.setSuccessScreen(step.lessonId, fluencyDataObj);
-    state.setStatsVisible(false);
     state.setProgressPercent("100%");
     state.transitionTo('lessonSuccess', { lessonId: step.lessonId, fluencyData: fluencyDataObj }, { fromStepLoad: true });
 

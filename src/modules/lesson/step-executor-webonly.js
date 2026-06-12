@@ -156,7 +156,6 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
     const stepIndex = getCurrentStepIndex(step, appStore.getState().configData, appStore.getState().currentLessonIndex);
 
     if (appStore.getState().isTextMode) {
-        appStore.getState().setStatsVisible(true);
         const placeholder = Strings.get('placeholder_type_answer', appStore.getState().userData?.native_language) || 'Type your answer here...';
         appStore.getState().setTextInputPlaceholder(placeholder);
         setTextCb((val, btn) => {
@@ -303,8 +302,6 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
 }
 
 function _renderPresent(step, lesson, showFeedbackAndProceed, addAIFeedbackMessages) {
-    appStore.getState().setStatsVisible(false);
-
     if (!step.simpleVideoUrl) {
         const messages = [];
 
@@ -362,7 +359,6 @@ function _renderSuccess(step, fluencyData) {
 
 function _renderLessonIntro(step, lesson, deps) {
     const { showFeedbackAndProceed } = deps;
-    appStore.getState().setStatsVisible(false);
     appStore.setState({ repeatPointsHistory: [] });
     appStore.setState({ rolePlayPointsHistory: [] });
 

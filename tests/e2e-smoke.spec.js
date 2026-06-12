@@ -42,8 +42,7 @@ test.describe('End-to-End Smoke Test', () => {
         // Wait for all async init (lesson load, step load, clearChat) to complete.
         await page.waitForTimeout(3000);
         await page.evaluate(() => {
-            window.appStore.getState().setStatsVisible(true);
-            window.appStore.setState({ mediaState: 'chat' });
+            window.appStore.setState({ topState: 'topBarWithStats', mediaState: 'chat' });
         });
         await page.waitForTimeout(1000);
         await assertNoError();

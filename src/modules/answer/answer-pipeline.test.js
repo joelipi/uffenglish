@@ -40,7 +40,7 @@ describe('Answer Pipeline Integration', () => {
             courseId: 'test-course',
             activeLessonId: 'test-lesson',
             hintsVisible: false,
-            statsVisible: true
+            topState: 'topBarWithStats'
         });
         pipeline = createTestPipeline();
     });

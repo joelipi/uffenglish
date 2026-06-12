@@ -46,7 +46,7 @@ export default function LessonContainer() {
     const configData = useStore(appStore, (state) => state.configData);
     const currentLessonIndex = useStore(appStore, (state) => state.currentLessonIndex);
     const currentStepIndex = useStore(appStore, (state) => state.currentStepIndex);
-    const statsVisible = useStore(appStore, (state) => state.statsVisible);
+    const topState = useStore(appStore, (state) => state.topState);
     const mediaVisible = useStore(appStore, (state) => state.mediaVisible);
     const mediaState = useStore(appStore, (state) => state.mediaState);
     const textInputVisible = useStore(appStore, (state) => state.textInputVisible);
@@ -139,7 +139,7 @@ export default function LessonContainer() {
                             <ActivityStats />
                         </div>
                     </div>
-                    {statsVisible && mediaState !== 'chat' && (
+                    {topState === 'topBarWithStats' && mediaState !== 'chat' && (
                         <ScoreBoard />
                     )}
                 </div>

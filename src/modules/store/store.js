@@ -29,10 +29,10 @@ const phaseMapping = {
     'interactiveVideo+openResponse':             { topState: 'topBarWithStats', mediaState: 'interactiveVideo',    bottomState: 'hidden',                showMission: true },
     'interactiveVideo-decisionTime-closedResponse': { topState: 'topBarWithStats', mediaState: 'decisionOverlay', bottomState: 'decisionButtons',      showMission: true },
     'interactiveVideo-decisionTime-openResponse':   { topState: 'topBarWithStats', mediaState: 'decisionOverlay', bottomState: 'decisionButtons',      showMission: true },
-    'recording/answering':                       { topState: (s) => s.currentVideo?.type === 'interactive' ? 'topBarWithStats' : 'topBarOnly', mediaState: 'webcamOrAvatar', bottomState: 'micActiveOrAnswerInput', showMission: false },
-    'processing/transcribing':                   { topState: (s) => s.currentVideo?.type === 'interactive' ? 'topBarWithStats' : 'topBarOnly', mediaState: 'processingRecording', bottomState: 'hidden', showMission: false },
-    'transcription preflight-rejected':          { topState: (s) => s.currentVideo?.type === 'interactive' ? 'topBarWithStats' : 'topBarOnly', mediaState: 'preflightRejected', bottomState: 'hidden', showMission: false },
-    review:                                      { topState: (s) => s.currentVideo?.type === 'interactive' ? 'topBarWithStats' : 'topBarOnly', mediaState: 'whisperReview', bottomState: 'reviewButtons', showMission: false },
+    'recording/answering':                       { topState: (s) => s.currentVideo?.type === 'interactive' || s.isTextMode ? 'topBarWithStats' : 'topBarOnly', mediaState: 'webcamOrAvatar', bottomState: 'micActiveOrAnswerInput', showMission: false },
+    'processing/transcribing':                   { topState: (s) => s.currentVideo?.type === 'interactive' || s.isTextMode ? 'topBarWithStats' : 'topBarOnly', mediaState: 'processingRecording', bottomState: 'hidden', showMission: false },
+    'transcription preflight-rejected':          { topState: (s) => s.currentVideo?.type === 'interactive' || s.isTextMode ? 'topBarWithStats' : 'topBarOnly', mediaState: 'preflightRejected', bottomState: 'hidden', showMission: false },
+    review:                                      { topState: (s) => s.currentVideo?.type === 'interactive' || s.isTextMode ? 'topBarWithStats' : 'topBarOnly', mediaState: 'whisperReview', bottomState: 'reviewButtons', showMission: false },
     feedback:                                    { topState: 'topBarOnly',       mediaState: 'chat',                bottomState: 'continueButton',        showMission: false },
     lessonSuccess:                               { topState: 'topBarOnly',       mediaState: 'simpleVideo',         bottomState: 'lessonSuccess',         showMission: false },
     successVideoCreation:                        { topState: 'hidden',           mediaState: 'videoProcessor',      bottomState: 'hidden',               showMission: false },
@@ -275,7 +275,6 @@ export const appStore = createStore(
 
             // --- UI State Actions ---
             setProgressPercent: (percent) => set({ progressPercent: percent }),
-            setStatsVisible: (visible) => set({ statsVisible: visible }),
             setSystemMessageText: (text) => set({ systemMessageText: text }),
             setSystemMessage: (status) => set({ systemMessage: status }),
             setIsLoaded: (loaded) => set({ isLoaded: loaded }),

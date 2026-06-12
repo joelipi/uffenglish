@@ -44,7 +44,6 @@ export function createProgression(deps) {
             step_type: currentStep.responseType,
             is_last_step: appStore.getState().currentStepIndex >= (appStore.getState().configData?.lessons?.[appStore.getState().currentLessonIndex]?.steps?.length || 0) - 1,
         });
-        appStore.getState().setStatsVisible(false);
         appStore.getState().resetForNextStep();
         appStore.getState().resetStepState();
 
