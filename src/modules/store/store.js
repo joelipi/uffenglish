@@ -284,7 +284,6 @@ export const appStore = createStore(
             setHangmanOps: (ops) => set({ hangmanOps: ops }),
             setBottomOverlayVisible: (val) => set({ bottomOverlayVisible: val }),
             setOverlayVisible: (val) => set({ overlayVisible: val }),
-            setChatModeActive: (val) => set({ chatModeActive: val }),
             setSubmitBtnDisabled: (val) => set({ submitBtnDisabled: val }),
             setSubmitBtnIcon: (icon) => set({ submitBtnIcon: icon }),
             setSubmitBtnDanger: (val) => set({ submitBtnDanger: val }),

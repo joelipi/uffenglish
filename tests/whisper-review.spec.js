@@ -179,14 +179,14 @@ test.describe('Whisper Review Regression Guard', () => {
         expect(result.appPhase).toBe('lessonSuccess');
     });
 
-    test('chatModeActive toggle hides and correctly restores playback video', async ({ page }) => {
+    test('mediaState toggle hides and correctly restores playback video', async ({ page }) => {
         await page.goto('/course/gt2/lesson/a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         await page.waitForTimeout(1000);
 
         // Set playback blob with chat mode off
         await page.evaluate(() => {
-            window.appStore.getState().setChatModeActive(false);
+            window.appStore.setState({ mediaState: 'webcamOrAvatar' });
             const blob = new Blob(['fake'], { type: 'video/webm' });
             window.appStore.getState().setPlaybackBlob(blob, true);
         });
@@ -195,7 +195,7 @@ test.describe('Whisper Review Regression Guard', () => {
 
         // Activate chat mode — should hide video
         await page.evaluate(() => {
-            window.appStore.getState().setChatModeActive(true);
+            window.appStore.setState({ mediaState: 'chat' });
         });
 
         await page.waitForTimeout(300);
@@ -209,7 +209,7 @@ test.describe('Whisper Review Regression Guard', () => {
 
         // Deactivate chat mode WITH blob — should show video
         await page.evaluate(() => {
-            window.appStore.getState().setChatModeActive(false);
+            window.appStore.setState({ mediaState: 'webcamOrAvatar' });
         });
 
         await page.waitForTimeout(300);
@@ -233,11 +233,11 @@ test.describe('Whisper Review Regression Guard', () => {
 
         // Toggle chat mode on then off — video should NOT reappear (blob is null)
         await page.evaluate(() => {
-            window.appStore.getState().setChatModeActive(true);
+            window.appStore.setState({ mediaState: 'chat' });
         });
         await page.waitForTimeout(200);
         await page.evaluate(() => {
-            window.appStore.getState().setChatModeActive(false);
+            window.appStore.setState({ mediaState: 'webcamOrAvatar' });
         });
         await page.waitForTimeout(300);
 

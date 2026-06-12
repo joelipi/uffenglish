@@ -48,7 +48,7 @@ export default function LessonContainer() {
     const currentStepIndex = useStore(appStore, (state) => state.currentStepIndex);
     const statsVisible = useStore(appStore, (state) => state.statsVisible);
     const mediaVisible = useStore(appStore, (state) => state.mediaVisible);
-    const chatModeActive = useStore(appStore, (state) => state.chatModeActive);
+    const mediaState = useStore(appStore, (state) => state.mediaState);
     const textInputVisible = useStore(appStore, (state) => state.textInputVisible);
     const bottomOverlayVisible = useStore(appStore, (state) => state.bottomOverlayVisible);
     const bottomState = useStore(appStore, (state) => state.bottomState);
@@ -139,7 +139,7 @@ export default function LessonContainer() {
                             <ActivityStats />
                         </div>
                     </div>
-                    {statsVisible && !chatModeActive && (
+                    {statsVisible && mediaState !== 'chat' && (
                         <ScoreBoard />
                     )}
                 </div>
@@ -154,14 +154,14 @@ export default function LessonContainer() {
             <WebcamPreview />
 
             {/* Chat Window */}
-            <div id="chat-window-container" className={`chat-window-container ${chatModeActive ? '' : 'chat-hidden'}`}>
+            <div id="chat-window-container" className={`chat-window-container ${mediaState === 'chat' ? '' : 'chat-hidden'}`}>
                 <ChatHeader />
                 <ChatInterface />
                 <TutorChatInput onSubmit={handleTutorChatSubmit} />
             </div>
 
             {/* Bottom Overlay */}
-            <div className={`bottom-overlay position-absolute bottom-0 start-0 w-100 ${chatModeActive || !bottomOverlayVisible ? 'overlay-hidden' : 'overlay-visible'}${!bottomOverlayVisible ? ' overlay-hidden-instant' : ''}`}>
+            <div className={`bottom-overlay position-absolute bottom-0 start-0 w-100 ${mediaState === 'chat' || !bottomOverlayVisible ? 'overlay-hidden' : 'overlay-visible'}${!bottomOverlayVisible ? ' overlay-hidden-instant' : ''}`}>
                 <MissionSection responseType={currentStep?.responseType} />
                 <div className="bottom-overlay-content">
                     <div className="controls-section">

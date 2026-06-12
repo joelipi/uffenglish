@@ -43,14 +43,14 @@ test.describe('End-to-End Smoke Test', () => {
         await page.waitForTimeout(3000);
         await page.evaluate(() => {
             window.appStore.getState().setStatsVisible(true);
-            window.appStore.getState().setChatModeActive(true);
+            window.appStore.setState({ mediaState: 'chat' });
         });
         await page.waitForTimeout(1000);
         await assertNoError();
 
         // Verify key UI elements are visible
         await expect(page.locator('#chat-message-list')).toBeVisible({ timeout: 10000 });
-        // Note: #stats-container is hidden when chatModeActive is true, which is set above
+        // Note: #stats-container is hidden when mediaState is 'chat', which is set above
         // Verify it exists in DOM even if hidden
         await expect(page.locator('#stats-container')).toBeAttached();
         // media-viewport is vanilla-managed; remove d-none for test visibility

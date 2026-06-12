@@ -61,9 +61,8 @@ describe('UI Component functions', () => {
             appStore.setState({ chatHistory: [] });
         });
 
-        it('should execute showChat and update store', () => {
+        it('should execute showChat without error', () => {
             expect(() => showChat()).not.toThrow();
-            expect(appStore.getState().chatModeActive).toBe(true);
         });
 
         it('should add user chat message to store', () => {
@@ -106,7 +105,6 @@ describe('UI Component functions', () => {
         it('should test clearChat', () => {
              expect(() => clearChat()).not.toThrow();
              expect(appStore.getState().chatHistory.length).toBe(0);
-             expect(appStore.getState().chatModeActive).toBe(false);
         });
     });
 

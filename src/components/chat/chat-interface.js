@@ -3,7 +3,7 @@ import Strings from '../../data/strings.js';
 import { getBotIdentity } from '../../modules/user/bot-identity.js';
 
 export function showChat() {
-    appStore.getState().setChatModeActive(true);
+    // chat visibility is now driven by mediaState from the phase state machine
 }
 
 export function addAILoadingMessage(text) {
@@ -44,7 +44,6 @@ export function clearChat() {
     appStore.getState().clearChatHistory();
     appStore.getState().setTutorChatVisible(false);
     appStore.getState().setTextInputVisible(false);
-    appStore.getState().setChatModeActive(false);
 }
 
 export function getChatHistoryContext() {

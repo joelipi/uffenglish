@@ -34,7 +34,7 @@ test.describe('PlaybackVideo Visibility', () => {
         await page.waitForTimeout(1000);
 
         await page.evaluate(() => {
-            window.appStore.getState().setChatModeActive(false);
+            window.appStore.setState({ mediaState: 'webcamOrAvatar' });
         });
 
         // Create a minimal video blob
@@ -76,7 +76,7 @@ test.describe('PlaybackVideo Visibility', () => {
         expect(filtered).toEqual([]);
     });
 
-    test('playback-video-wrapper is hidden when chatModeActive is true', async ({ page }) => {
+    test('playback-video-wrapper is hidden when mediaState is chat', async ({ page }) => {
         await page.goto('/course/gt2/lesson/a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         await page.waitForTimeout(1000);
@@ -84,7 +84,7 @@ test.describe('PlaybackVideo Visibility', () => {
         await page.evaluate(() => {
             const blob = new Blob(['fake'], { type: 'video/webm' });
             window.appStore.getState().setPlaybackBlob(blob, true);
-            window.appStore.getState().setChatModeActive(true);
+            window.appStore.setState({ mediaState: 'chat' });
         });
 
         await page.waitForTimeout(300);
@@ -139,7 +139,7 @@ test.describe('PlaybackVideo Visibility', () => {
         await page.evaluate(() => {
             const blob = new Blob(['fake'], { type: 'video/webm' });
             window.appStore.getState().setPlaybackBlob(blob, true);
-            window.appStore.getState().setChatModeActive(false);
+            window.appStore.setState({ mediaState: 'webcamOrAvatar' });
         });
 
         await page.waitForTimeout(300);
@@ -165,7 +165,7 @@ test.describe('PlaybackVideo Visibility', () => {
         expect(blobState).toBeNull();
     });
 
-    test('playback-video-wrapper does not reappear when chatModeActive toggles back to false with no blob', async ({ page }) => {
+    test('playback-video-wrapper does not reappear when mediaState toggles back with no blob', async ({ page }) => {
         await page.goto('/course/gt2/lesson/a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         await page.waitForTimeout(1000);
@@ -174,7 +174,7 @@ test.describe('PlaybackVideo Visibility', () => {
         await page.evaluate(() => {
             const blob = new Blob(['fake'], { type: 'video/webm' });
             window.appStore.getState().setPlaybackBlob(blob, true);
-            window.appStore.getState().setChatModeActive(true);
+            window.appStore.setState({ mediaState: 'chat' });
         });
 
         await page.waitForTimeout(300);
@@ -188,7 +188,7 @@ test.describe('PlaybackVideo Visibility', () => {
 
         // Now deactivate chat mode — wrapper should NOT reappear because blob is null
         await page.evaluate(() => {
-            window.appStore.getState().setChatModeActive(false);
+            window.appStore.setState({ mediaState: 'webcamOrAvatar' });
         });
 
         await page.waitForTimeout(300);
@@ -231,7 +231,7 @@ test.describe('PlaybackVideo Visibility', () => {
 
         // Step 3: Activate chat mode — should hide wrapper
         await page.evaluate(() => {
-            window.appStore.getState().setChatModeActive(true);
+            window.appStore.setState({ mediaState: 'chat' });
         });
         await page.waitForTimeout(300);
 
@@ -242,7 +242,7 @@ test.describe('PlaybackVideo Visibility', () => {
         });
         expect(hiddenAfterChat).toBe(true);
 
-        // Step 4: Dispatch loadedmetadata again — onloadedmetadata must check chatModeActive
+        // Step 4: Dispatch loadedmetadata again — onloadedmetadata must check mediaState
         await page.evaluate(() => {
             const video = document.getElementById('playback-video');
             if (video) video.dispatchEvent(new Event('loadedmetadata'));

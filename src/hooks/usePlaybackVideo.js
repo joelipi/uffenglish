@@ -7,11 +7,11 @@ export function usePlaybackVideo() {
     const isMuted = useStore(appStore, (s) => s.isPlaybackMuted);
     const videoPlayTrigger = useStore(appStore, (s) => s.videoPlayTrigger);
     const videoClearTrigger = useStore(appStore, (s) => s.videoClearTrigger);
-    const chatModeActive = useStore(appStore, (s) => s.chatModeActive);
-    const visible = !!blob && !chatModeActive;
+    const mediaState = useStore(appStore, (s) => s.mediaState);
+    const visible = !!blob && mediaState !== 'chat';
 
     const toggleMute = () => appStore.getState().setPlaybackMuted(!isMuted);
     const clearVideo = () => appStore.getState().clearPlaybackBlob();
 
-    return { blob, autoplay, isMuted, visible, toggleMute, clearVideo, videoPlayTrigger, videoClearTrigger, chatModeActive };
+    return { blob, autoplay, isMuted, visible, toggleMute, clearVideo, videoPlayTrigger, videoClearTrigger, mediaState };
 }

@@ -6,7 +6,7 @@ export default function WebcamPreview() {
     // Subscribe to the key counter (bumped by setWebcamStream) for reactivity,
     // then read the actual stream from the module-level getter.
     const webcamStreamKey = useStore(appStore, (state) => state._webcamStreamKey);
-    const chatModeActive = useStore(appStore, (state) => state.chatModeActive);
+    const mediaState = useStore(appStore, (state) => state.mediaState);
     const isMicActive = useStore(appStore, (state) => state.isMicActive);
     const videoRef = useRef(null);
     const wrapperRef = useRef(null);
@@ -47,7 +47,7 @@ export default function WebcamPreview() {
         }
     }, [webcamStreamKey]);
 
-    const show = !!getWebcamStream() && !chatModeActive;
+    const show = !!getWebcamStream() && mediaState !== 'chat';
 
     let className = 'pip-container';
     if (show) {

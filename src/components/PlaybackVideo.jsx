@@ -7,7 +7,7 @@ import { usePlaybackVideo } from '../hooks/usePlaybackVideo.js';
 const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent) || (typeof navigator !== 'undefined' && navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
 export default function PlaybackVideo() {
-    const { blob, autoplay, isMuted, visible, clearVideo, videoPlayTrigger, videoClearTrigger, chatModeActive } = usePlaybackVideo();
+    const { blob, autoplay, isMuted, visible, clearVideo, videoPlayTrigger, videoClearTrigger, mediaState } = usePlaybackVideo();
 
     const videoRef = useRef(null);
     const observerRef = useRef(null);
@@ -26,7 +26,7 @@ export default function PlaybackVideo() {
     const handleLoadedMetadata = () => {
         const video = videoRef.current;
         if (!video) return;
-        if (!chatModeActive && autoplay) {
+        if (mediaState !== 'chat' && autoplay) {
             video.play().catch(e => {
                 if (e.name === 'NotAllowedError') {
                     appStore.getState().setPlaybackMuted(true);

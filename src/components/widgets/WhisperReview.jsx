@@ -5,9 +5,8 @@ import { appStore } from '../../modules/store/store.js';
 export default function WhisperReview() {
     const data = useStore(appStore, (s) => s.whisperReviewData);
     const timeLeft = useStore(appStore, (s) => s.whisperReviewTimeLeft);
-    const chatModeActive = useStore(appStore, (s) => s.chatModeActive);
 
-    if (!data || chatModeActive) return null;
+    if (!data) return null;
 
     return (
         <div className="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4 text-white text-center" style={{ zIndex: 1050, pointerEvents: 'none' }}>
