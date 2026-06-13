@@ -139,6 +139,7 @@ export default function LessonContainer() {
                             <ActivityStats />
                         </div>
                     </div>
+                    <MissionSection responseType={currentStep?.responseType} />
                     {topState === 'topBarWithStats' && mediaState !== 'chat' && (
                         <ScoreBoard />
                     )}
@@ -162,7 +163,6 @@ export default function LessonContainer() {
 
             {/* Bottom Overlay */}
             <div className={`bottom-overlay position-absolute bottom-0 start-0 w-100 ${mediaState === 'chat' || !bottomOverlayVisible ? 'overlay-hidden' : 'overlay-visible'}${!bottomOverlayVisible ? ' overlay-hidden-instant' : ''}`}>
-                <MissionSection responseType={currentStep?.responseType} />
                 <div className="bottom-overlay-content">
                     <div className="controls-section">
                         <AnswerInput />

@@ -37,7 +37,7 @@ export default function MissionSection({ responseType }) {
                     <span className="roleOther-text"><BilingualText translationData={lesson.roleOther} userLang={lang} spanPrefix=" " /></span>
                 </div>
                 <div className="mission-toggle-icon">
-                    <i className={'bi ' + (expanded ? 'bi-chevron-down' : 'bi-chevron-up')} id="mission-carat"></i>
+                    <i className={'bi ' + (expanded ? 'bi-chevron-up' : 'bi-chevron-down')} id="mission-carat"></i>
                 </div>
             </div>
         </div>
