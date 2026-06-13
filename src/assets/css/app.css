@@ -1861,24 +1861,16 @@ ul.incorrectWords li::before {
    PLAYBACK OVERLAYS
    ========================================= */
 .playback-video-container {
-    position: relative;
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 100%;
 }
 
 #playback-video {
-    border-radius: 8px;
-    width: auto !important;
-    height: auto;
-    max-height: 300px;
-}
-
-@media (min-width: 1200px) {
-    #playback-video {
-        max-height: 400px;
-    }
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background-color: #000;
 }
 
 /* =========================================

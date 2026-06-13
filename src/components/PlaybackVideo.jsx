@@ -110,8 +110,8 @@ export default function PlaybackVideo() {
 
     return (
         <div id="playback-video-wrapper"
-            className={`playback-video-container ${visible ? '' : 'd-none'}`}
-            style={{ position: 'absolute', top: '15%', left: 0, right: 0, zIndex: 10 }}>
+            className={`playback-video-container position-absolute top-0 start-0 w-100 h-100 ${visible ? '' : 'd-none'}`}
+            style={{ zIndex: 10 }}>
             <video ref={videoRef} id="playback-video" playsInline preload="auto" controls={isIOS} loop muted={isMuted} onError={handleVideoError} onLoadedData={() => {}} onLoadedMetadata={handleLoadedMetadata}
                 onClick={() => {
                     const video = videoRef.current;
