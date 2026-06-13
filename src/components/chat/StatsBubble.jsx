@@ -44,24 +44,10 @@ export default function StatsBubble({
                                 }
                             </div>
                         )}
-                        {/* Block parts */}
+                        {/* Block parts (non-idiom) */}
                         {parts
-                            .filter(p => p.display === 'block')
+                            .filter(p => p.display === 'block' && p.type !== 'idioms')
                             .map((p, idx) => {
-                                if (p.type === 'idioms') {
-                                    return (
-                                        <div key={idx} style={{ marginTop: '5px' }}>
-                                            <div>{p.count} idioms</div>
-                                            {p.items && p.items.length > 0 && (
-                                                <ul style={{ margin: '5px 0 0 15px', padding: 0 }}>
-                                                    {p.items.map((item, itemIdx) => (
-                                                        <li key={itemIdx}><em>{item}</em></li>
-                                                    ))}
-                                                </ul>
-                                            )}
-                                        </div>
-                                    );
-                                }
                                 if (p.type === 'notice') {
                                     return (
                                         <div key={idx} className="limitation-notice" style={{ marginTop: '5px' }}>
@@ -79,6 +65,22 @@ export default function StatsBubble({
                                     </div>
                                 );
                             })
+                        }
+                        {/* Idioms block parts (always after other stats) */}
+                        {parts
+                            .filter(p => p.display === 'block' && p.type === 'idioms')
+                            .map((p, idx) => (
+                                <div key={idx} style={{ marginTop: '5px' }}>
+                                    <div>{p.count} idiom{p.count !== 1 ? 's' : ''}</div>
+                                    {p.items && p.items.length > 0 && (
+                                        <ul style={{ margin: '5px 0 0 15px', padding: 0 }}>
+                                            {p.items.map((item, itemIdx) => (
+                                                <li key={itemIdx}><em>{item}</em></li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
+                            ))
                         }
                     </div>
                 )}

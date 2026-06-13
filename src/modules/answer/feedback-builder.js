@@ -64,18 +64,17 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, stepData
 
     // AI-only sections (4-9)
     if (stepData.responseType === 'openResponse') {
-        // 4. Vocabulary
+        // Build vocabulary data, push after other perfect stat bubbles
         const idiomCount = speechAnalytics.foundIdioms ? speechAnalytics.foundIdioms.length : 0;
-        // vocabParts: count + found list only (no threshold, no translated label)
         const vocabParts = [
             { idiomCount, idioms: idiomCount > 0 ? speechAnalytics.foundIdioms : null }
         ];
-        sections.push({
+        const vocabSection = {
             type: 'stat',
             key: 'vocabulary',
             score: scoreData.subScores.vocabulary,
             parts: vocabParts
-        });
+        };
 
         // 5. Grammar - errorCount from diff presence; complexityScore passed as a field
         const grammarDiffChunk = (result.explanations || []).find(e => e.type === 'grammar_diff');
@@ -133,6 +132,9 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, stepData
             parts: understandingParts
         });
 
+        // 4. Vocabulary (pushed last among perfect-score stat bubbles)
+        sections.push(vocabSection);
+
         // 9. Overall Fluency (prepended at top)
         sections.unshift({
             type: 'stat',
@@ -141,6 +143,18 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, stepData
             isOverall: true,
             parts: []
         });
+    }
+
+    // When vocabulary is perfect, move it after all other perfect-score sections
+    // so its idiom details don't break the visual line of simple 💯 bubbles.
+    const vocabIdx = sections.findIndex(s => s.key === 'vocabulary');
+    if (vocabIdx !== -1 && sections[vocabIdx]?.score === 100) {
+        const [vocabSection] = sections.splice(vocabIdx, 1);
+        let lastPerfectIdx = -1;
+        sections.forEach((s, i) => {
+            if (s.score === 100) lastPerfectIdx = i;
+        });
+        sections.splice(lastPerfectIdx + 1, 0, vocabSection);
     }
 
     return { sections };
