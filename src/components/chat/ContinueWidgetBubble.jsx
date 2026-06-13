@@ -84,6 +84,7 @@ export default function ContinueWidgetBubble({ onClick, nextStepVideoUrl }) {
                             muted
                             playsInline
                             preload="auto"
+                            crossOrigin="anonymous"
                         />
                     )}
                     <div className="incoming-video-inner">
