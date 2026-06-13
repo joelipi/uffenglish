@@ -9,6 +9,7 @@ import { useAppBootstrap } from '../hooks/use-app-bootstrap-webonly.js';
 export default function AppLayout() {
     const { courseId } = useParams();
     const configData = useStore(appStore, state => state.configData);
+    const userData = useStore(appStore, state => state.userData);
     const { bootState } = useAppBootstrap({ courseId });
 
     const { data: fetchedConfig, isError } = useQuery({
@@ -24,13 +25,12 @@ export default function AppLayout() {
 
     // Side effect: normalize and store config when fetched
     useEffect(() => {
-        if (fetchedConfig && !configData) {
-            const userData = appStore.getState().userData;
+        if (fetchedConfig && !configData && userData) {
             const courseLevel = fetchedConfig.courseLevel || 'A0';
             normalizeConfig(fetchedConfig, userData?.native_language);
             appStore.getState().setCourseData({ courseId, configData: fetchedConfig, courseLevel });
         }
-    }, [fetchedConfig]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [fetchedConfig, userData]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Side effect: handle config fetch error
     useEffect(() => {

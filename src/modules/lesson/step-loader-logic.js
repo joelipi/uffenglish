@@ -54,7 +54,7 @@ export function handleTextStep(step, submitAnswerPrecheck) {
         Strings.get('placeholder_type_answer', appStore.getState().userData?.native_language) || 'Type your answer here...'
     );
     setTextInputSubmitCallback(
-        (val, btn) => submitAnswerPrecheck(val, typeof step.cue === 'object' ? step.cue.en : step.cue, step, btn, step.explanation, step.translation, { pauseCount: null, netDuration: null })
+        (val, btn) => submitAnswerPrecheck(val, typeof step.cue === 'object' ? step.cue.en : step.cue, step, btn, step.explanation, { pauseCount: null, netDuration: null })
     );
 }
 

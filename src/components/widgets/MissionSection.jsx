@@ -26,14 +26,14 @@ export default function MissionSection({ responseType }) {
             onClick={toggle}
         >
             <div className="mission-row text-shadow">
-                <div className="d-flex align-items-baseline flex-grow-1 overflow-hidden">
-                    <span className="mission-label">Mission</span>
+                <div className="d-flex align-items-center flex-grow-1 overflow-hidden">
+                    <span className="mission-label"><i className="bi bi-bullseye"></i></span>
                     <span className="mission-text"><BilingualText translationData={lesson.mission} userLang={lang} spanPrefix=" " /></span>
-                    <span className="mission-label">Where</span>
+                    <span className="mission-label"><i className="bi bi-geo-alt"></i></span>
                     <span className="setting-text"><BilingualText translationData={lesson.setting} userLang={lang} spanPrefix=" " /></span>
-                    <span className="mission-label">You are</span>
+                    <span className="mission-label"><i className="bi bi-person"></i></span>
                     <span className="roleUser-text"><BilingualText translationData={lesson.roleUser} userLang={lang} spanPrefix=" " /></span>
-                    <span className="mission-label">Talking to</span>
+                    <span className="mission-label"><i className="bi bi-people"></i></span>
                     <span className="roleOther-text"><BilingualText translationData={lesson.roleOther} userLang={lang} spanPrefix=" " /></span>
                 </div>
                 <div className="mission-toggle-icon">

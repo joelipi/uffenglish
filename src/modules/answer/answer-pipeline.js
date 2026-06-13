@@ -173,7 +173,7 @@ export function createAnswerPipeline(deps) {
         warmUpSpeechCam,
     } = deps;
 
-    function handleCorrectFeedbackUI(stepIndex, stepData, button, cue, explanation, translation, userResponse, courseLevel, englishLevelDeduction, userData, configData, fluencyBubble = null) {
+    function handleCorrectFeedbackUI(stepIndex, stepData, button, cue, explanation, userResponse, courseLevel, englishLevelDeduction, userData, configData, fluencyBubble = null) {
         const cueText = typeof cue === 'object' ? cue?.en : cue;
         const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
 
@@ -206,7 +206,7 @@ export function createAnswerPipeline(deps) {
             : praiseResult;
 
         if (stepData.responseType !== "openResponse" && stepData.responseType !== "closedResponse") {
-            const localizedTrans = getLocalizedTranslation(translation, lang);
+            const localizedCue = getLocalizedTranslation(cue, lang);
             const userName = appStore.getState().userData?.display_name?.split(' ')[0] || 'User';
             const userAvatarUrl = appStore.getState().userData?.profilepicurl || userAvatarUrl;
 
@@ -214,8 +214,8 @@ export function createAnswerPipeline(deps) {
                 role: 'user',
                 type: 'standard',
                 content: cueText,
-                translation: localizedTrans,
-                translationLang: (localizedTrans && lang && lang !== 'en') ? lang : undefined,
+                translation: localizedCue,
+                translationLang: (localizedCue && lang && lang !== 'en') ? lang : undefined,
                 userName,
                 userAvatarUrl
             });
@@ -357,7 +357,7 @@ export function createAnswerPipeline(deps) {
                     : 'failed_continue_correct';
             const teacherBilingual = Strings.getBilingual(teacherKey, lang);
             const teacherTranslation = appStore.getState().incorrectAttempts > 2
-                ? getLocalizedTranslation(stepData.translation, lang)
+                ? getLocalizedTranslation(cue, lang)
                 : undefined;
 
             if (explanation && explanation.length > 0) {
@@ -431,10 +431,10 @@ export function createAnswerPipeline(deps) {
             let teacherTranslation = teacherBilingual.localized;
 
             if (appStore.getState().incorrectAttempts > 2) {
-                const translationText = getLocalizedTranslation(stepData.translation, lang);
+                const cueLocalized = getLocalizedTranslation(cue, lang);
                 teacherContent = teacherBilingual.english + ' ' + cueText;
                 teacherTranslation = teacherBilingual.localized
-                    ? teacherBilingual.localized + (translationText ? ' ' + translationText : '')
+                    ? teacherBilingual.localized + (cueLocalized ? ' ' + cueLocalized : '')
                     : null;
             }
 
@@ -495,7 +495,7 @@ export function createAnswerPipeline(deps) {
         appStore.getState().triggerInputFocus();
     }
 
-    async function submitAnswerPrecheck(val, cue, stepData, btn, explanation, translation, stats = { pauseCount: null, netDuration: null }, _deps = {}, userData = appStore.getState().userData, configData = appStore.getState().configData, courseId = appStore.getState().courseId) {
+    async function submitAnswerPrecheck(val, cue, stepData, btn, explanation, stats = { pauseCount: null, netDuration: null }, _deps = {}, userData = appStore.getState().userData, configData = appStore.getState().configData, courseId = appStore.getState().courseId) {
         const courseLevel = configData?.courseLevel || 'A0';
         const { isValid, warningMessage } = await validateAnswerPrecheck(
             val, cue, stepData, courseLevel, userData, appStore.getState().responsesGiven
@@ -553,10 +553,10 @@ export function createAnswerPipeline(deps) {
             applySpeechResultToPlayer(val, player);
         }
 
-        await handleAnswer(val, cue, stepData, btn, explanation, translation, stats, _deps, userData, configData, courseId);
+        await handleAnswer(val, cue, stepData, btn, explanation, stats, _deps, userData, configData, courseId);
     }
 
-    async function handleAnswer(userResponse, cue, stepData, button, explanation, translation, stats = { pauseCount: null, netDuration: null }, _deps = {}, userData = appStore.getState().userData, configData = appStore.getState().configData, courseId = appStore.getState().courseId) {
+    async function handleAnswer(userResponse, cue, stepData, button, explanation, stats = { pauseCount: null, netDuration: null }, _deps = {}, userData = appStore.getState().userData, configData = appStore.getState().configData, courseId = appStore.getState().courseId) {
         const cueText = typeof cue === 'object' ? cue?.en : cue;
         if (!appStore.getState().isTextMode && (stepData.responseType === "lessonIntro" || stepData.responseType === "closedResponse" || stepData.responseType === "openResponse")) {
             const storeState = appStore.getState();
@@ -635,8 +635,8 @@ export function createAnswerPipeline(deps) {
                 role: 'system',
                 type: 'standard',
                 content: cueText,
-                translation: getLocalizedTranslation(stepData.translation, lang),
-                translationLang: (getLocalizedTranslation(stepData.translation, lang) && lang !== 'en') ? lang : undefined,
+                translation: getLocalizedTranslation(cue, lang),
+                translationLang: (getLocalizedTranslation(cue, lang) && lang !== 'en') ? lang : undefined,
                 botName: 'Joe Walsh',
                 avatarUrl: teacherAvatarUrl
             });
@@ -844,8 +844,8 @@ export function createAnswerPipeline(deps) {
                     role: 'user',
                     type: 'standard',
                     content: cueText,
-                    translation: getLocalizedTranslation(stepData.translation, lang),
-                    translationLang: (getLocalizedTranslation(stepData.translation, lang) && lang !== 'en') ? lang : undefined,
+                    translation: getLocalizedTranslation(cue, lang),
+                    translationLang: (getLocalizedTranslation(cue, lang) && lang !== 'en') ? lang : undefined,
                     userName: userData?.display_name?.split(' ')[0] || 'User',
                     userAvatarUrl: userData?.profilepicurl || userAvatarUrl
                 });
@@ -865,7 +865,7 @@ export function createAnswerPipeline(deps) {
                         appStore.getState().deductListeningScore(result.cefrLevelDeduction);
                     }
                 }
-                handleCorrectFeedbackUI(stepIndex, stepData, button, cue, structuredExplanations, translation, userResponse, courseLevel, result ? result.cefrLevelDeduction : undefined, userData, configData, fluencyBubble);
+                handleCorrectFeedbackUI(stepIndex, stepData, button, cue, structuredExplanations, userResponse, courseLevel, result ? result.cefrLevelDeduction : undefined, userData, configData, fluencyBubble);
                 showFeedbackAndProceed(stepData, isCorrect, _deps);
             } else {
                 appStore.getState().clearPlaybackBlob();
@@ -875,7 +875,7 @@ export function createAnswerPipeline(deps) {
 
         } catch (error) {
             console.error("Error handling answer:", error);
-            handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userResponse, explanation, "", "", translation, false, userData, configData);
+            handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userResponse, explanation, "", "", stepData.step, false, userData, configData);
             showFeedbackAndProceed(stepData, false, _deps);
         }
     }

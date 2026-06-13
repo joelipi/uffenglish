@@ -91,7 +91,6 @@ export function createSpeechOrchestrator({
                 step,
                 button,
                 step.explanation,
-                step.translation,
                 timingMeta,
                 userData,
                 configData

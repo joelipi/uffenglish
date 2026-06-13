@@ -445,8 +445,8 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 }
 
 .mission-section {
-    padding: 10px 10px 0px;
-    height: 50px;
+    padding: 0;
+    height: 40px;
     overflow: hidden;
     cursor: pointer;
     transition: height 0.3s ease;
@@ -465,13 +465,13 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 }
 
 .mission-label {
-    font-size: 15px;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
+    font-size: 1.1rem;
+    line-height: 1;
     color: #ffffff;
     flex-shrink: 0;
-    margin-right: 8px;
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
 }
 
 .mission-text,
@@ -496,6 +496,10 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     display: block !important;
 }
 
+.mission-section:not(.expanded) .mission-row div.d-flex .mission-label {
+    margin-right: 6px;
+}
+
 .mission-section:not(.expanded) .mission-row div.d-flex>span:nth-child(n+3) {
     display: none !important;
 }
@@ -504,18 +508,17 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     white-space: normal;
     display: grid !important;
     grid-template-columns: max-content 1fr;
-    gap: 8px 16px;
-    align-items: baseline;
+    gap: 4px 8px;
+    align-items: center;
 }
 
-.mission-section.expanded .mission-label::after {
-    content: ":";
-}
+
 
 .mission-toggle-icon {
     color: #fff;
     font-size: 1.2rem;
     margin-left: 8px;
+    flex-shrink: 0;
     transition: transform 0.3s ease;
 }
 

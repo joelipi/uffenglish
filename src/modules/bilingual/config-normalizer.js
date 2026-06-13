@@ -38,7 +38,6 @@ export function normalizeConfig(configData, lang = 'en') {
 
 if (step.step) step.step = getLocalizedTranslation(step.step, userLang);
                 if (step.explanation) step.explanation = getLocalizedTranslation(step.explanation, userLang);
-                if (step.translation) step.translation = getLocalizedTranslation(step.translation, userLang);
                 if (step.subtitles) step.subtitles = getLocalizedTranslation(step.subtitles, userLang);
 
                 // Keep cue as multi-language object for bilingual display

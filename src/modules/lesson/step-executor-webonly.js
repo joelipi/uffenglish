@@ -5,7 +5,7 @@
 
 import { appStore, getCurrentVideoPlayer, setWebcamStream } from '../store/store.js';
 import Strings from '../../data/strings.js';
-import { getLocalizedTranslation } from '../utils/utils.js';
+
 import { getCurrentStepIndex } from '../answer/answers.js';
 import { logInteraction } from '../answer/scoring.js';
 import { trackEvent } from '../utils/logrocket.js';
@@ -159,7 +159,7 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
         const placeholder = Strings.get('placeholder_type_answer', appStore.getState().userData?.native_language) || 'Type your answer here...';
         appStore.getState().setTextInputPlaceholder(placeholder);
         setTextCb((val, btn) => {
-            submitAnswerPrecheck(val, step.cue, step, btn, step.explanation, step.translation, { pauseCount: 0, netDuration: 3 });
+            submitAnswerPrecheck(val, step.cue, step, btn, step.explanation, { pauseCount: 0, netDuration: 3 });
         });
     } else {
         setSpeechCb(async () => {
@@ -333,14 +333,10 @@ function _renderPresent(step, lesson, showFeedbackAndProceed, addAIFeedbackMessa
                 }
             });
         } else if (step.explanation) {
-            const lang = appStore.getState().userData?.native_language;
-            const expTrans = getLocalizedTranslation(step.translation, lang);
             messages.push({
                 role: 'system',
                 type: 'standard',
-                content: step.explanation,
-                translation: expTrans,
-                translationLang: (expTrans && lang && lang !== 'en') ? lang : undefined
+                content: step.explanation
             });
         }
 

@@ -38,7 +38,6 @@ describe('normalizeConfig', () => {
                     responseType: 'speech',
                     step: { en: 'Step', es: 'Step_es'},
                     explanation: { en: 'Exp', es: 'Exp_es' },
-                    translation: { en: 'Trans', es: 'Trans_es' },
                     subtitles: { en: 'Sub', es: 'Sub_es' },
                     cue: { en: 'Cue', es: 'Cue_es' }, // Kept as object for bilingual display
                     incues: [{ en: 'Incue1', es: 'Incue1_es' }, { en: 'Incue2', es: 'Incue2_es' }]
@@ -49,7 +48,6 @@ describe('normalizeConfig', () => {
         const step = configData.lessons[0].steps[0];
         expect(step.step).toBe('Step_es'); // Since default is retrieved via Strings.get
         expect(step.explanation).toBe('Exp_es');
-        expect(step.translation).toBe('Trans_es');
         expect(step.subtitles).toBe('Sub_es');
         expect(step.cue).toEqual({ en: 'Cue', es: 'Cue_es' }); // Kept as object for bilingual display
         expect(step.incues).toEqual(['Incue1_es', 'Incue2_es']);
@@ -62,7 +60,6 @@ describe('normalizeConfig', () => {
                     inputType: 'speech',
                     question: { en: 'Question', es: 'Pregunta' },
                     explanation: { en: 'Exp', es: 'Exp_es' },
-                    translation: { en: 'Trans', es: 'Trans_es' },
                     subtitles: { en: 'Sub', es: 'Sub_es' },
                     cue: { en: 'Cue', es: 'Cue_es' }, // Kept as object for bilingual display
                     incues: [{ en: 'Incue1', es: 'Incue1_es' }, { en: 'Incue2', es: 'Incue2_es' }]
@@ -74,7 +71,6 @@ describe('normalizeConfig', () => {
         expect(step.step).toBe('Pregunta');
         expect(step.responseType).toBe('speech');
         expect(step.explanation).toBe('Exp_es');
-        expect(step.translation).toBe('Trans_es');
         expect(step.subtitles).toBe('Sub_es');
         expect(step.cue).toEqual({ en: 'Cue', es: 'Cue_es' }); // Kept as object for bilingual display
         expect(step.incues).toEqual(['Incue1_es', 'Incue2_es']);

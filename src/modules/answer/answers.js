@@ -59,7 +59,6 @@ export async function processAnswerLogic({
         let result = {
             isCorrect: false,
             explanation: "",
-            translation: stepData.translation,
             userResponse: userResponse,
             normalizeduserResponse: normalizeduserResponse,
             normalizedcue: normalizedcue,
