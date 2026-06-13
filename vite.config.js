@@ -13,7 +13,7 @@ export default defineConfig({
             transformIndexHtml(html) {
                 return html.replace(
                     /<title>(.*?)<\/title>/,
-                    `<title>$1 (${commitHash})</title>`
+                    `<title>${commitHash} $1</title>`
                 )
             }
         },
