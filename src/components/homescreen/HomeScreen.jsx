@@ -57,7 +57,7 @@ export default function HomeScreen() {
     };
 
     const containerStyle = {
-        height: '100vh',
+        height: '100dvh',
         overflowY: 'auto',
         backgroundColor: '#0b1a2a',
         color: 'white',

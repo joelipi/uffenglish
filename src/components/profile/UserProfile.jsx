@@ -193,7 +193,7 @@ export default function UserProfile() {
     }
 
     const containerStyle = {
-        height: '100vh',
+        height: '100dvh',
         overflowY: 'auto',
         backgroundColor: '#0b1a2a',
         color: 'white',
@@ -247,7 +247,7 @@ export default function UserProfile() {
     if (isLoading) {
         return (
             <div style={containerStyle}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100dvh' }}>
                     <div className="spinner-border" role="status" style={{ width: '3rem', height: '3rem' }}>
                         <span className="visually-hidden">Loading...</span>
                     </div>
