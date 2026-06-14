@@ -85,6 +85,11 @@ async function tryBootPipeline(device) {
 
 async function bootWhisperEngine() {
     try {
+        env.backends.onnx.wasm.wasmPaths = '/wasm/';
+        const coi = typeof crossOriginIsolated !== 'undefined' ? crossOriginIsolated : 'undefined';
+        console.warn(`[whisper-demo] crossOriginIsolated: ${coi}`);
+        console.warn(`[whisper-demo] WASM paths: ${env.backends.onnx.wasm.wasmPaths}`);
+
         console.warn('[whisper-demo] Detecting WebGPU support...');
         const hasWebGPU = await detectWebGPUSupport();
         const devices = hasWebGPU ? ['webgpu', 'wasm'] : ['wasm'];

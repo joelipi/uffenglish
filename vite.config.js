@@ -50,6 +50,9 @@ export default defineConfig({
             ]
         })
     ],
+    optimizeDeps: {
+        include: ['@huggingface/transformers'],
+    },
     resolve: {
         extensions: ['.web.jsx', '.web.js', '.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json'],
     },

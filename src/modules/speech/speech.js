@@ -5,11 +5,17 @@ import { updateSpeechRecording } from '../storage/storage.js';
 import { createSpeechOrchestrator } from './speech-orchestrator.js';
 import { getIsDemoMode } from '../user/demo-mode-webonly.js';
 
+// Use Vite's ?worker suffix so the bundler inlines all dependencies
+// (including @huggingface/transformers) into a self-contained worker chunk.
+// This works in both dev and production, unlike `new Worker(new URL(...),
+// { type: 'module' })` which leaves bare specifiers unresolved in dev mode.
+import DemoWorker from '../../workers/whisper/whisper-worker-demo.js?worker';
+
 const isDemoMode = getIsDemoMode();
 console.warn(`[speech] demo mode ${isDemoMode ? 'ACTIVE (Transformers.js tiny.en)' : 'OFF (Sherpa-ONNX)'}`);
 
 const whisperWorker = isDemoMode
-    ? new Worker(new URL('../../workers/whisper/whisper-worker-demo.js', import.meta.url), { type: 'module' })
+    ? new DemoWorker()
     : new Worker(new URL('../../workers/whisper/whisper-worker-web.js', import.meta.url));
 
 whisperWorker.onerror = (err) => {

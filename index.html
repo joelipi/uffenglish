@@ -197,6 +197,18 @@
             </div>
     </main>
 
+    <!-- Eruda console (loaded only when ?demo is in the URL) -->
+    <script>
+        (function () {
+            if (new URLSearchParams(window.location.search).has('demo')) {
+                var script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/eruda';
+                script.onload = function () { eruda.init(); };
+                document.body.appendChild(script);
+            }
+        })();
+    </script>
+
     <!-- React Entry (sole entry point after full migration) -->
     <script type="module" src="/src/main.jsx"></script>
 </body>
