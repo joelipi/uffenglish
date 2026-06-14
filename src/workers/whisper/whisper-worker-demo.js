@@ -53,17 +53,13 @@ async function detectWebGPUSupport() {
     }
 }
 
-// Thread count: capped at 2 for stability (higher counts can hang the
-// ONNX WASM runtime on some platforms). Falls back to 1 without COOP/COEP.
-const deviceMemory = navigator.deviceMemory || 4;
-const safeThreadCount = deviceMemory < 4 ? 1 : Math.min(navigator.hardwareConcurrency || 2, 2);
-const hasSAB = typeof SharedArrayBuffer !== 'undefined' && typeof crossOriginIsolated !== 'undefined' && crossOriginIsolated;
-env.backends.onnx.wasm.numThreads = hasSAB ? safeThreadCount : 1;
+// Single-thread only: ONNX WASM multi-threading (>1) hangs the pipeline
+// on Cloudflare Pages. The 1-thread path is stable everywhere.
+env.backends.onnx.wasm.numThreads = 1;
 env.backends.onnx.wasm.proxy = false;
 
-console.warn(`[whisper-demo] Hardware Info: Memory=${deviceMemory}GB, Cores=${navigator.hardwareConcurrency}`);
-console.warn(`[whisper-demo] Transformers.js configured for ${env.backends.onnx.wasm.numThreads} thread(s).`);
-console.warn(`[whisper-demo] SharedArrayBuffer active: ${hasSAB}`);
+console.warn(`[whisper-demo] Hardware Info: Memory=${navigator.deviceMemory || '?'}GB, Cores=${navigator.hardwareConcurrency}`);
+console.warn(`[whisper-demo] Transformers.js configured for 1 thread (multi-threading hangs on CF).`);
 
 let transcriber = null;
 let selectedDevice = 'wasm';
