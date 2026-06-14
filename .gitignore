@@ -39,4 +39,4 @@ assets/videos/success.mp4
 /.opencode
 /.reasonix
 /docs
-.env
+# .env  # commented out — committed so CI picks up VITE_PUBLIC_POSTHOG_*
