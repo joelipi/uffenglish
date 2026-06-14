@@ -57,23 +57,26 @@ const deviceMemory = navigator.deviceMemory || 4;
 const safeThreadCount = deviceMemory < 4 ? 2 : Math.min(navigator.hardwareConcurrency || 4, 8);
 
 env.backends.onnx.wasm.numThreads = safeThreadCount;
+env.backends.onnx.wasm.wasmPaths = '/wasm/';
 
-console.log(`[whisper-demo] Hardware Info: Memory=${deviceMemory}GB, Cores=${navigator.hardwareConcurrency}`);
-console.log(`[whisper-demo] Transformers.js configured for ${env.backends.onnx.wasm.numThreads} threads.`);
-console.log(`[whisper-demo] SharedArrayBuffer active: ${typeof SharedArrayBuffer !== 'undefined'}`);
+console.warn(`[whisper-demo] Hardware Info: Memory=${deviceMemory}GB, Cores=${navigator.hardwareConcurrency}`);
+console.warn(`[whisper-demo] Transformers.js configured for ${env.backends.onnx.wasm.numThreads} threads.`);
+console.warn(`[whisper-demo] SharedArrayBuffer active: ${typeof SharedArrayBuffer !== 'undefined'}`);
+console.warn(`[whisper-demo] WASM paths: ${env.backends.onnx.wasm.wasmPaths}`);
 
 let transcriber = null;
 let selectedDevice = 'wasm';
 
 async function bootWhisperEngine() {
     try {
+        console.warn('[whisper-demo] Detecting WebGPU support...');
         const hasWebGPU = await detectWebGPUSupport();
         selectedDevice = hasWebGPU ? 'webgpu' : 'wasm';
-        console.log(`[whisper-demo] Device selected: ${selectedDevice}${hasWebGPU ? ' (GPU accelerated)' : ' (CPU fallback)'}`);
+        console.warn(`[whisper-demo] Device selected: ${selectedDevice}${hasWebGPU ? ' (GPU accelerated)' : ' (CPU fallback)'}`);
 
-        console.log(`[whisper-demo] Pre-caching ${DEMO_MODEL_FILES.length} ONNX files...`);
+        console.warn(`[whisper-demo] Pre-caching ${DEMO_MODEL_FILES.length} ONNX files...`);
         await Promise.all(DEMO_MODEL_FILES.map(loadAndCacheFile));
-        console.log('[whisper-demo] ONNX files cached, booting pipeline...');
+        console.warn('[whisper-demo] ONNX files cached, booting pipeline...');
 
         transcriber = await pipeline(
             'automatic-speech-recognition',
@@ -87,7 +90,7 @@ async function bootWhisperEngine() {
             }
         );
 
-        console.log(`[whisper-demo] Demo engine ready (${selectedDevice === 'webgpu' ? 'WebGPU' : 'WASM'} / VAD-free)`);
+        console.warn(`[whisper-demo] Demo engine ready (${selectedDevice === 'webgpu' ? 'WebGPU' : 'WASM'} / VAD-free)`);
         self.postMessage({ type: 'ready' });
 
     } catch (error) {
