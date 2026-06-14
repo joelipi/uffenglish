@@ -1,11 +1,7 @@
 import { pipeline, env } from '@huggingface/transformers';
 
-const SILENT_LOGS = true; 
-if (SILENT_LOGS) {
-    console.log = () => {};
-    console.time = () => {};
-    console.timeEnd = () => {};
-}
+// Temporarily enable logs to debug Cloudflare pipeline hang
+const SILENT_LOGS = false;
 
 env.allowLocalModels = false;
 env.useBrowserCache = true;
@@ -24,9 +20,9 @@ async function loadAndCacheFile(filePath) {
     let response = await cache.match(url);
 
     if (response) {
-        console.log(`[whisper-demo] CACHE HIT: ${filePath}`);
+        console.warn(`[whisper-demo] CACHE HIT: ${filePath}`);
     } else {
-        console.log(`[whisper-demo] CACHE MISS: Downloading ${filePath}...`);
+        console.warn(`[whisper-demo] CACHE MISS: Downloading ${filePath}...`);
         response = await fetch(url, { mode: 'cors' });
         if (!response.ok) throw new Error(`HTTP Error ${response.status} for ${filePath}`);
         const buffer = await response.arrayBuffer();
@@ -53,13 +49,14 @@ async function detectWebGPUSupport() {
     }
 }
 
-const deviceMemory = navigator.deviceMemory || 4;
-const safeThreadCount = deviceMemory < 4 ? 2 : Math.min(navigator.hardwareConcurrency || 4, 8);
+// Conservative ONNX WASM settings matching the working nlp-worker-web.js.
+// Multi-threading (>1) can cause instability on some platforms.
+env.backends.onnx.wasm.numThreads = 1;
+env.backends.onnx.wasm.simd = false;
+env.backends.onnx.wasm.proxy = false;
 
-env.backends.onnx.wasm.numThreads = safeThreadCount;
-
-console.warn(`[whisper-demo] Hardware Info: Memory=${deviceMemory}GB, Cores=${navigator.hardwareConcurrency}`);
-console.warn(`[whisper-demo] Transformers.js configured for ${env.backends.onnx.wasm.numThreads} threads.`);
+console.warn(`[whisper-demo] Hardware Info: Memory=${navigator.deviceMemory || '?'}GB, Cores=${navigator.hardwareConcurrency}`);
+console.warn(`[whisper-demo] Transformers.js configured for ${env.backends.onnx.wasm.numThreads} thread(s).`);
 console.warn(`[whisper-demo] SharedArrayBuffer active: ${typeof SharedArrayBuffer !== 'undefined'}`);
 
 let transcriber = null;
