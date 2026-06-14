@@ -40,41 +40,77 @@ async function loadAndCacheFile(filePath) {
     return response;
 }
 
-// 1. Calculate safe thread count (same logic you had before)
+async function detectWebGPUSupport() {
+    try {
+        if (!navigator.gpu) return false;
+        const adapter = await navigator.gpu.requestAdapter();
+        if (!adapter) return false;
+        const device = await adapter.requestDevice();
+        device.destroy();
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 const deviceMemory = navigator.deviceMemory || 4;
 const safeThreadCount = deviceMemory < 4 ? 2 : Math.min(navigator.hardwareConcurrency || 4, 8);
 
-// 2. Explicitly tell the ONNX WASM backend how many threads to use
 env.backends.onnx.wasm.numThreads = safeThreadCount;
 
-// 3. Log it!
-console.log(`[whisper-demo] 🛠️ Hardware Info: Memory=${deviceMemory}GB, Cores=${navigator.hardwareConcurrency}`);
-console.log(`[whisper-demo] ⚙️ Transformers.js configured for ${env.backends.onnx.wasm.numThreads} threads.`);
-console.log(`[whisper-demo] 🚦 SharedArrayBuffer active: ${typeof SharedArrayBuffer !== 'undefined'}`);
+console.warn(`[whisper-demo] Hardware Info: Memory=${deviceMemory}GB, Cores=${navigator.hardwareConcurrency}`);
+console.warn(`[whisper-demo] Transformers.js configured for ${env.backends.onnx.wasm.numThreads} threads.`);
+console.warn(`[whisper-demo] SharedArrayBuffer active: ${typeof SharedArrayBuffer !== 'undefined'}`);
 
 let transcriber = null;
+let selectedDevice = 'wasm';
+
+const PIPELINE_OPTIONS = {
+    dtype: {
+        encoder_model: 'q8',
+        decoder_model_merged: 'q8',
+    },
+};
+
+async function tryBootPipeline(device) {
+    console.warn(`[whisper-demo] Trying pipeline with device: ${device}...`);
+    const result = await pipeline(
+        'automatic-speech-recognition',
+        'onnx-community/whisper-tiny.en',
+        { device, ...PIPELINE_OPTIONS },
+    );
+    console.warn(`[whisper-demo] Pipeline created with device: ${device}`);
+    return result;
+}
 
 async function bootWhisperEngine() {
     try {
-        // Pre-cache ONNX model files for faster pipeline loading
-        console.log(`[whisper-demo] Pre-caching ${DEMO_MODEL_FILES.length} ONNX files...`);
+        console.warn('[whisper-demo] Detecting WebGPU support...');
+        const hasWebGPU = await detectWebGPUSupport();
+        const devices = hasWebGPU ? ['webgpu', 'wasm'] : ['wasm'];
+        console.warn(`[whisper-demo] Device priority: ${devices.join(' → ')}`);
+
+        console.warn(`[whisper-demo] Pre-caching ${DEMO_MODEL_FILES.length} ONNX files...`);
         await Promise.all(DEMO_MODEL_FILES.map(loadAndCacheFile));
-        console.log('[whisper-demo] ONNX files cached, booting pipeline...');
+        console.warn('[whisper-demo] ONNX files cached, booting pipeline...');
 
-        transcriber = await pipeline(
-            'automatic-speech-recognition',
-            'onnx-community/whisper-tiny.en',
-            {
-                device: 'wasm',
-                dtype: {
-                    encoder_model: 'q8',        // encoder_model_quantized.onnx  ~10MB
-                    decoder_model_merged: 'q8', // decoder_model_merged_int8.onnx ~31MB
-                },
+        let lastError = null;
+        for (const device of devices) {
+            try {
+                selectedDevice = device;
+                transcriber = await tryBootPipeline(device);
+                console.warn(`[whisper-demo] Demo engine ready (${device} / VAD-free)`);
+                self.postMessage({ type: 'ready' });
+                return;
+            } catch (error) {
+                console.warn(`[whisper-demo] ${device} failed:`, error.message);
+                lastError = error;
+                transcriber = null;
             }
-        );
+        }
 
-        console.log('[whisper] 🚀 Demo engine ready (Transformers.js / VAD-free)');
-        self.postMessage({ type: 'ready' });
+        console.error('[whisper-demo] All backends failed:', lastError);
+        self.postMessage({ type: 'error', message: lastError.message });
 
     } catch (error) {
         console.error('[whisper-demo] Fatal boot error:', error);
