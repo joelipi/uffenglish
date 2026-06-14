@@ -8,59 +8,55 @@ let activeTranscriptionResolve = null;
 let activeVadResolvers = new Map();
 let vadRequestIdCounter = 0;
 
-export function createWhisperAdapter({ workerUrl, workerOptions }) {
+export function createWhisperAdapter({ worker }) {
     let adapterIsEngineReady = false;
-    let adapterWhisperWorker = null;
+    let adapterWhisperWorker = worker;
+    let adapterReadyResolve = null;
     let adapterActiveTranscriptionResolve = null;
     let adapterActiveVadResolvers = new Map();
     let vadIdCounter = 0;
 
+    adapterWhisperWorker.onmessage = function (e) {
+        if (e.data.type === 'ready') {
+            adapterIsEngineReady = true;
+            isEngineReady = true;
+            appStore.getState().setWhisperReady(true);
+            console.log('[whisper] engine ready at', performance.now().toFixed(0), 'ms');
+            if (adapterReadyResolve) {
+                adapterReadyResolve();
+                adapterReadyResolve = null;
+            }
+        }
+        else if (e.data.type === 'result') {
+            if (adapterActiveTranscriptionResolve) {
+                adapterActiveTranscriptionResolve(e.data);
+                adapterActiveTranscriptionResolve = null;
+            }
+        }
+        else if (e.data.type === 'vad_result') {
+            const resolver = adapterActiveVadResolvers.get(e.data.id);
+            if (resolver) {
+                resolver(e.data);
+                adapterActiveVadResolvers.delete(e.data.id);
+            }
+        }
+    };
+
+    adapterWhisperWorker.onerror = (err) => {
+        console.error('[whisper] worker error:', err);
+        if (adapterReadyResolve) {
+            adapterReadyResolve();
+            adapterReadyResolve = null;
+        }
+    };
+
     function preloadWhisperEngine() {
-        return new Promise((resolve, reject) => {
-            if (adapterWhisperWorker) {
-                if (adapterIsEngineReady) {
-                    resolve();
-                } else {
-                    const interval = setInterval(() => {
-                        if (adapterIsEngineReady) {
-                            clearInterval(interval);
-                            resolve();
-                        }
-                    }, 50);
-                }
+        return new Promise((resolve) => {
+            if (adapterIsEngineReady) {
+                resolve();
                 return;
             }
-
-            console.log('[whisper] spawning worker at', performance.now().toFixed(0), 'ms');
-
-            adapterWhisperWorker = new Worker(workerUrl, workerOptions);
-            adapterWhisperWorker.onmessage = function (e) {
-                if (e.data.type === 'ready') {
-                    adapterIsEngineReady = true;
-                    isEngineReady = true;
-                    appStore.getState().setWhisperReady(true);
-                    console.log('[whisper] engine ready at', performance.now().toFixed(0), 'ms');
-                    resolve();
-                }
-                else if (e.data.type === 'result') {
-                    if (adapterActiveTranscriptionResolve) {
-                        adapterActiveTranscriptionResolve(e.data);
-                        adapterActiveTranscriptionResolve = null;
-                    }
-                }
-                else if (e.data.type === 'vad_result') {
-                    const resolver = adapterActiveVadResolvers.get(e.data.id);
-                    if (resolver) {
-                        resolver(e.data);
-                        adapterActiveVadResolvers.delete(e.data.id);
-                    }
-                }
-            };
-
-            adapterWhisperWorker.onerror = (err) => {
-                console.error('[whisper] worker error:', err);
-                reject(err);
-            };
+            adapterReadyResolve = resolve;
         });
     }
 

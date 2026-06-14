@@ -6,14 +6,12 @@ import { createSpeechOrchestrator } from './speech-orchestrator.js';
 import { getIsDemoMode } from '../user/demo-mode-webonly.js';
 
 const isDemoMode = getIsDemoMode();
+console.warn(`[speech] demo mode ${isDemoMode ? 'ACTIVE (Transformers.js tiny.en)' : 'OFF (Sherpa-ONNX)'}`);
 
 const whisperAdapter = createWhisperAdapter({
-    workerUrl: isDemoMode
-        ? new URL('../../workers/whisper/whisper-worker-demo.js', import.meta.url)
-        : new URL('../../workers/whisper/whisper-worker-web.js', import.meta.url),
-    workerOptions: isDemoMode
-        ? { type: 'module' }
-        : undefined,
+    worker: isDemoMode
+        ? new Worker(new URL('../../workers/whisper/whisper-worker-demo.js', import.meta.url), { type: 'module' })
+        : new Worker(new URL('../../workers/whisper/whisper-worker-web.js', import.meta.url)),
 });
 
 const { listeningState, initLocalVoiceAI, toggleSpeechRecognition } =

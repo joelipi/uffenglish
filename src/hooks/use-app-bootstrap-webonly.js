@@ -4,8 +4,8 @@
 // React Native provides its own bootstrap via a separate entry point.
 
 import { useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { appStore } from '../modules/store/store.js';
+import { getIsDemoMode } from '../modules/user/demo-mode-webonly.js';
 import { requestPersistentStorage } from '../modules/storage/storage-persistence-webonly.js';
 import { useAuthStatus, useUserProfile } from '../modules/api/api.js';
 import { setupAppInfra } from './app-infra-webonly.js';
@@ -17,7 +17,6 @@ export function useAppBootstrap({ courseId } = {}) {
     const [error, setError] = useState(null);
     const initStarted = useRef(false);
     const { finishPreloader } = usePreloader();
-    const [searchParams] = useSearchParams();
 
     // ── Reactive queries (replaces imperative isUserLoggedIn / getUserProfile) ──
     const { data: isLoggedIn, isLoading: authLoading } = useAuthStatus();
@@ -43,11 +42,10 @@ export function useAppBootstrap({ courseId } = {}) {
         requestPersistentStorage();
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // ── Demo mode from React Router search params ──
+    // ── Demo mode from URL search params or localStorage ──
     useEffect(() => {
-        const isDemoMode = searchParams.has('demo');
-        appStore.getState().setDemoMode(isDemoMode);
-    }, [searchParams]);
+        appStore.getState().setDemoMode(getIsDemoMode());
+    }, []);
 
     // ── Bootstrap once both queries resolve ──
     useEffect(() => {
