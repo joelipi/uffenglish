@@ -62,22 +62,8 @@ async function detectWebGPUSupport() {
 env.backends.onnx.wasm.numThreads = 1;
 env.backends.onnx.wasm.proxy = false;
 
-// Cap WASM memory to prevent 2 GB heap expansion on low-memory devices.
-try {
-    // Start small (16 MB) — let it grow as needed now that cache loading
-    // no longer wastes 300 MB of memory. Cap at 512 MB to prevent 2 GB spikes.
-    const wasmMem = new WebAssembly.Memory({
-        initial: 256,   // 16 MB (256 * 64 KB)
-        maximum: 8192,  // 512 MB cap
-    });
-    env.backends.onnx.wasm.wasmMemory = wasmMem;
-    postDiag('Custom WASM memory set: ' + wasmMem.buffer.byteLength + ' bytes initial, 512 MB cap');
-} catch (e) {
-    postDiag('Could not set custom WASM memory: ' + e.message);
-}
-
 postDiag('HW: mem=' + (navigator.deviceMemory || '?') + 'GB, cores=' + navigator.hardwareConcurrency);
-postDiag('Transformers.js: 1 thread, WASM memory capped at 512 MB');
+postDiag('Transformers.js: 1 thread');
 
 let transcriber = null;
 let selectedDevice = 'wasm';
@@ -89,12 +75,23 @@ const PIPELINE_OPTIONS = {
     },
 };
 
+const SESSION_OPTIONS = {
+    enableCpuMemArena: false,
+    enableMemPattern: false,
+    executionMode: 'sequential',
+    graphOptimizationLevel: 'basic',
+    freeDimensionOverrides: {
+        sequence_length: 1,
+        past_sequence_length: 0,
+    },
+};
+
 async function tryBootPipeline(device) {
     postDiag('Booting pipeline with device: ' + device + '...');
     const result = await pipeline(
         'automatic-speech-recognition',
         'onnx-community/whisper-tiny.en',
-        { device, ...PIPELINE_OPTIONS },
+        { device, ...PIPELINE_OPTIONS, session_options: SESSION_OPTIONS },
     );
     postDiag('Pipeline created with device: ' + device);
     return result;
