@@ -1,11 +1,8 @@
 import { pipeline, env } from '@huggingface/transformers';
 
-const SILENT_LOGS = true;
-if (SILENT_LOGS) {
-    console.log = () => {};
-    console.time = () => {};
-    console.timeEnd = () => {};
-}
+// Keep logs enabled: stubbing console.log / console.time breaks onnxruntime-web
+// internal profiling on some platforms (Android).
+const SILENT_LOGS = false;
 
 env.allowLocalModels = false;
 env.useBrowserCache = true;
