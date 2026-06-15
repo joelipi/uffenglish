@@ -1,16 +1,5 @@
 // whisper-worker-web.js v5 - Aggressive Parallelization
-
-// ═══════════════════════════════════════════════════════════════════════
-// WARNING — do NOT copy this SILENT_LOGS pattern to the demo worker.
-//
-// This (Sherpa-ONNX) worker is fine because Sherpa's JS bindings don't
-// rely on console.time/console.timeEnd internally.
-//
-// The demo worker (whisper-worker-demo.js) uses onnxruntime-web via
-// @huggingface/transformers, which CALLS console.time/console.timeEnd
-// during WASM initialization. Stubbing those to no-ops silently hangs
-// the pipeline on Android Chrome with zero error output.
-// ═══════════════════════════════════════════════════════════════════════
+// SILENCE LOGS FOR PRODUCTION/CLEAN CONSOLE
 const SILENT_LOGS = true; 
 if (SILENT_LOGS) {
     console.log = () => {};

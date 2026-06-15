@@ -1,16 +1,7 @@
 import { pipeline, env } from '@huggingface/transformers';
 
-// ═══════════════════════════════════════════════════════════════════════
-// DO NOT stub console.log / console.time / console.timeEnd
-//
-// onnxruntime-web (bundled inside @huggingface/transformers) calls
-// console.time/console.timeEnd internally during WASM initialization.
-// Stubbing them to no-ops SILENTLY BREAKS the pipeline on some
-// platforms (notably Android Chrome). The worker just hangs at
-// "Trying pipeline with device: wasm..." with no error message.
-//
-// This took ~4 hours of bisecting to find. Don't make that mistake.
-// ═══════════════════════════════════════════════════════════════════════
+// Keep logs enabled: stubbing console.log / console.time breaks onnxruntime-web
+// internal profiling on some platforms (Android).
 const SILENT_LOGS = false;
 
 env.allowLocalModels = false;
@@ -61,11 +52,7 @@ async function detectWebGPUSupport() {
 
 // Single-thread only: ONNX WASM multi-threading (>1) hangs the pipeline
 // on Cloudflare Pages. The 1-thread path is stable everywhere.
-// simd:false is REQUIRED on Android (transcription hangs without it)
-// but BREAKS transcription on Windows desktop. Detect and set accordingly.
-const isAndroid = /Android/i.test(navigator.userAgent);
 env.backends.onnx.wasm.numThreads = 1;
-if (isAndroid) env.backends.onnx.wasm.simd = false;
 env.backends.onnx.wasm.proxy = false;
 
 console.warn(`[whisper-demo] Hardware Info: Memory=${navigator.deviceMemory || '?'}GB, Cores=${navigator.hardwareConcurrency}`);
@@ -135,12 +122,7 @@ async function bootWhisperEngine() {
 bootWhisperEngine();
 
 self.onmessage = async function (e) {
-    if (e.data.type === 'transcribe') {
-        if (!transcriber) {
-            console.error('[whisper-demo] transcribe requested but transcriber is null — pipeline not ready');
-            self.postMessage({ type: 'result', text: null });
-            return;
-        }
+    if (e.data.type === 'transcribe' && transcriber) {
         try {
             const result = await transcriber(e.data.audio, {
                 sampling_rate: 16000,
