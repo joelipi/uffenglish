@@ -1,7 +1,7 @@
 // InteractiveVideoPlayer.web.jsx
 // Web-only component — uses navigator.userAgent for iOS detection.
 // React Native replaces this with InteractiveVideoPlayer.native.jsx.
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useStore } from 'zustand';
 import { appStore, setCurrentVideoPlayer } from '../modules/store/store.js';
 import { useInteractiveVideo } from '../hooks/useInteractiveVideo.js';
@@ -175,8 +175,10 @@ export default function InteractiveVideoPlayer() {
 
     // -------------------------------------------------------------------------
     // Initial autoplay gated on appStore.reactReady.
+    // useLayoutEffect fires synchronously during the React commit phase,
+    // preserving iOS transient activation from the continue-button click.
     // -------------------------------------------------------------------------
-    useEffect(() => {
+    useLayoutEffect(() => {
         if (!isActive || !videoRef.current) return;
 
         const tryPlay = () => {
