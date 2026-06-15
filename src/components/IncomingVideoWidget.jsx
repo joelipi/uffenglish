@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react';
 import { useSyncExternalStore } from 'react';
 import { appStore } from '../modules/store/store.js';
 
+const isIOS = typeof navigator !== 'undefined' && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+
 export default function IncomingVideoWidget() {
     const videoRef = useRef(null);
 
@@ -22,11 +24,22 @@ export default function IncomingVideoWidget() {
         }
     };
 
+    const handleError = () => {
+        const video = videoRef.current;
+        if (!video || !currentVideo?.url) return;
+        fetch(currentVideo.url).then(r => r.blob()).then(blob => {
+            const fixed = new Blob([blob], { type: 'video/mp4' });
+            video.src = URL.createObjectURL(fixed);
+            video.load();
+        }).catch(() => {});
+    };
+
     useEffect(() => {
         const video = videoRef.current;
         if (!show || !video || !currentVideo) return;
 
         video.src = currentVideo.url;
+        video.load();
 
         if (video.readyState >= 2) {
             onLoadedData();
@@ -65,7 +78,7 @@ export default function IncomingVideoWidget() {
             <div className="pulse-ring-wrapper">
                 <div className="pulse-ring"></div>
                 <div className="intro-video-container">
-                    <video ref={videoRef} className="intro-video" playsInline preload="auto" crossOrigin="anonymous" muted onLoadedData={onLoadedData} />
+                    <video ref={videoRef} className="intro-video" playsInline preload={isIOS ? 'metadata' : 'auto'} crossOrigin="anonymous" muted onLoadedData={onLoadedData} onError={handleError} />
                     <div className="intro-notification-content">
                         <div className="intro-notification-top">
                             <div className="intro-call-title">
