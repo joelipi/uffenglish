@@ -68,7 +68,24 @@ export function createWhisperAdapter({ worker }) {
                 return;
             }
 
-            adapterActiveTranscriptionResolve = resolve;
+            // Safety timeout: if the worker never responds (e.g. ONNX hangs),
+            // resolve with null after 15s so the UI doesn't get stuck on
+            // "Analyzing speech..." forever.
+            const TRANSCRIBE_TIMEOUT_MS = 15_000;
+            let timedOut = false;
+            const timer = setTimeout(() => {
+                timedOut = true;
+                console.error('[whisper] transcription timed out after', TRANSCRIBE_TIMEOUT_MS, 'ms');
+                adapterActiveTranscriptionResolve = null;
+                resolve(null);
+            }, TRANSCRIBE_TIMEOUT_MS);
+
+            adapterActiveTranscriptionResolve = function (data) {
+                if (timedOut) return;
+                clearTimeout(timer);
+                adapterActiveTranscriptionResolve = null;
+                resolve(data);
+            };
 
             adapterWhisperWorker.postMessage({
                 type: 'transcribe',
