@@ -50,8 +50,8 @@ async function bootWhisperEngine() {
         console.log('[whisper] Initiating pre-fetch...');
         // Load sequentially to avoid keeping both the 99 MB .data ArrayBuffer
         // and the 11 MB .wasm compilation live simultaneously on low-memory devices.
-        const wasmResponse = await loadAndCacheFile('sherpa-onnx-wasm-main-vad-asr.wasm', true);
-        const dataBuffer = await loadAndCacheFile('sherpa-onnx-wasm-main-vad-asr.data', false);
+        let wasmResponse = await loadAndCacheFile('sherpa-onnx-wasm-main-vad-asr.wasm', true);
+        let dataBuffer = await loadAndCacheFile('sherpa-onnx-wasm-main-vad-asr.data', false);
 
         self.Module.getPreloadedPackage = function () { return dataBuffer; };
 
