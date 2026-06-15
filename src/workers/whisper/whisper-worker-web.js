@@ -48,22 +48,45 @@ async function loadAndCacheFile(filename, isWasm) {
 async function bootWhisperEngine() {
     try {
         console.log('[whisper] Initiating pre-fetch...');
-        const [wasmResponse, dataBuffer] = await Promise.all([
-            loadAndCacheFile('sherpa-onnx-wasm-main-vad-asr.wasm', true),
-            loadAndCacheFile('sherpa-onnx-wasm-main-vad-asr.data', false)
-        ]);
+        // Load sequentially to avoid keeping both the 99 MB .data ArrayBuffer
+        // and the 11 MB .wasm compilation live simultaneously on low-memory devices.
+        const wasmResponse = await loadAndCacheFile('sherpa-onnx-wasm-main-vad-asr.wasm', true);
+        const dataBuffer = await loadAndCacheFile('sherpa-onnx-wasm-main-vad-asr.data', false);
 
         self.Module.getPreloadedPackage = function () { return dataBuffer; };
 
         self.Module.instantiateWasm = function (imports, successCallback) {
-            // Using instantiateStreaming is critical for SIMD/Multi-thread compiled WASM
             WebAssembly.instantiateStreaming(wasmResponse, imports)
-                .then(output => successCallback(output.instance, output.module))
+                .then(output => {
+                    // Cap WASM memory growth to prevent 2GB heap expansion
+                    // on memory-constrained devices (older iOS, low-RAM devices).
+                    // The Emscripten runtime's getHeapMax() allows up to 2GB,
+                    // which iOS browser tabs cannot satisfy.
+                    const memory = output.instance.exports.M;
+                    if (memory && typeof memory.grow === 'function') {
+                        const originalGrow = memory.grow.bind(memory);
+                        const MAX_WASM_PAGES = 8192; // 512 MB (8192 * 64 KB)
+                        memory.grow = function (pages) {
+                            const currentPages = memory.buffer.byteLength >>> 16;
+                            if (currentPages + pages > MAX_WASM_PAGES) {
+                                console.warn(`[whisper] WASM memory growth blocked: would exceed ${MAX_WASM_PAGES} pages (${(MAX_WASM_PAGES * 64 / 1024).toFixed(0)} MB)`);
+                                throw new RangeError('out of memory');
+                            }
+                            return originalGrow(pages);
+                        };
+                    }
+                    // Release the wasm Response body after compilation
+                    wasmResponse = null;
+                    successCallback(output.instance, output.module);
+                })
                 .catch(e => console.error('[whisper] WASM Compile Error:', e));
             return {};
         };
 
         self.Module.onRuntimeInitialized = function () {
+            // Free the JS data buffer (99.4 MB) now that WASM has consumed it
+            dataBuffer = null;
+
             console.time('[whisper] total init');
 
             // Use Device Memory API if available, assume 4GB if missing
@@ -80,8 +103,8 @@ async function bootWhisperEngine() {
             let config = {
                 modelConfig: {
                     debug: 1,
-                    num_threads: safeThreadCount, // 🚀 CORE OPTIMIZATION: Caps threads to prevent crashes
-                    provider: "cpu", // Ensures it uses the optimized CPU provider
+                    num_threads: safeThreadCount,
+                    provider: "cpu",
                     tokens: './tokens.txt',
                     whisper: {
                         encoder: './whisper-encoder.onnx',
