@@ -907,9 +907,7 @@ export function createAnswerPipeline(deps) {
                 console.log('[showFeedbackAndProceed] continue clicked, restoring mic controls');
                 appStore.getState().removeContinueWidget();
                 if (stepData.responseType === "lessonIntro") {
-                    setTimeout(() => {
-                        if (loadNextStep) loadNextStep(stepData);
-                    }, 2000);
+                    if (loadNextStep) loadNextStep(stepData);
                 } else {
                     if (isCorrect || appStore.getState().incorrectAttempts > 2) {
                         if (loadNextStep) loadNextStep(stepData);

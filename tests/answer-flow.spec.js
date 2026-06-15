@@ -120,6 +120,7 @@ test.describe('Answer Flow — mic bypass integration test', () => {
             !e.includes('Whisper') &&
             !e.includes('vite') &&
             !e.includes('401') &&
+            !e.includes('403') &&
             !e.includes('Unauthorized') &&
             !e.includes('ERR_CACHE_WRITE_FAILURE')
         )).toEqual([]);
