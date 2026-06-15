@@ -4,6 +4,12 @@ import { pipeline, env } from '@huggingface/transformers';
 // internal profiling on some platforms (Android).
 const SILENT_LOGS = false;
 
+// Workers' console output doesn't appear in Safari Web Inspector main-thread view.
+// Use postDiag() to relay diagnostics to the main thread.
+function postDiag(msg) {
+    self.postMessage({ type: 'diag', message: msg });
+}
+
 env.allowLocalModels = false;
 env.useBrowserCache = true;
 env.remoteHost = 'https://r2.ultrafastfluency.com';
@@ -65,13 +71,13 @@ try {
         maximum: 8192,  // 512 MB cap — prevents 2 GB growth attempt
     });
     env.backends.onnx.wasm.wasmMemory = wasmMem;
-    console.warn(`[whisper-demo] Custom WASM memory set: ${wasmMem.buffer.byteLength} bytes initial, 512 MB max`);
+    postDiag('Custom WASM memory set: ' + wasmMem.buffer.byteLength + ' bytes initial, 512 MB max');
 } catch (e) {
-    console.warn(`[whisper-demo] Could not set custom WASM memory:`, e.message);
+    postDiag('Could not set custom WASM memory: ' + e.message);
 }
 
-console.warn(`[whisper-demo] HW: Memory=${navigator.deviceMemory || '?'}GB, Cores=${navigator.hardwareConcurrency}`);
-console.warn(`[whisper-demo] Transformers.js: 1 thread, WASM memory capped at 512 MB`);
+postDiag('HW: mem=' + (navigator.deviceMemory || '?') + 'GB, cores=' + navigator.hardwareConcurrency);
+postDiag('Transformers.js: 1 thread, WASM memory capped at 512 MB');
 
 let transcriber = null;
 let selectedDevice = 'wasm';
@@ -84,13 +90,13 @@ const PIPELINE_OPTIONS = {
 };
 
 async function tryBootPipeline(device) {
-    console.warn(`[whisper-demo] Trying pipeline with device: ${device}...`);
+    postDiag('Booting pipeline with device: ' + device + '...');
     const result = await pipeline(
         'automatic-speech-recognition',
         'onnx-community/whisper-tiny.en',
         { device, ...PIPELINE_OPTIONS },
     );
-    console.warn(`[whisper-demo] Pipeline created with device: ${device}`);
+    postDiag('Pipeline created with device: ' + device);
     return result;
 }
 
@@ -98,41 +104,39 @@ async function bootWhisperEngine() {
     try {
         env.backends.onnx.wasm.wasmPaths = '/wasm/';
         const coi = typeof crossOriginIsolated !== 'undefined' ? crossOriginIsolated : 'undefined';
-        console.warn(`[whisper-demo] crossOriginIsolated: ${coi}`);
-        console.warn(`[whisper-demo] WASM paths: ${env.backends.onnx.wasm.wasmPaths}`);
+        postDiag('crossOriginIsolated: ' + coi);
+        postDiag('WASM paths: ' + env.backends.onnx.wasm.wasmPaths);
 
-        //WebGPU wasn't working on Android so I'm giving up for now
-        //console.warn('[whisper-demo] Detecting WebGPU support...');
-        //const hasWebGPU = await detectWebGPUSupport();
-        //const devices = hasWebGPU ? ['webgpu', 'wasm'] : ['wasm'];
-        //console.warn(`[whisper-demo] Device priority: ${devices.join(' → ')}`);
         const devices = ['wasm'];
 
-        console.warn(`[whisper-demo] Pre-caching ${DEMO_MODEL_FILES.length} ONNX files...`);
+        postDiag('Pre-caching ' + DEMO_MODEL_FILES.length + ' ONNX files...');
         await Promise.all(DEMO_MODEL_FILES.map(loadAndCacheFile));
-        console.warn('[whisper-demo] ONNX files cached, booting pipeline...');
+        postDiag('ONNX files cached, booting pipeline...');
 
         let lastError = null;
         for (const device of devices) {
             try {
                 selectedDevice = device;
                 transcriber = await tryBootPipeline(device);
-                console.warn(`[whisper-demo] Demo engine ready (${device} / VAD-free)`);
+                postDiag('Demo engine ready (' + device + ')');
                 self.postMessage({ type: 'ready' });
                 return;
             } catch (error) {
-                console.warn(`[whisper-demo] ${device} failed:`, error.name, error.message);
-                if (error.stack) console.warn(`[whisper-demo] Stack:`, error.stack.split('\n').slice(0, 3).join('\n'));
                 lastError = error;
                 transcriber = null;
+                postDiag(device + ' failed: ' + error.name + ' ' + error.message);
+                if (error.stack) {
+                    const lines = error.stack.split('\n');
+                    postDiag('Stack: ' + lines.slice(0, 3).join(' | '));
+                }
             }
         }
 
-        console.error('[whisper-demo] All backends failed:', lastError);
+        postDiag('All backends failed: ' + lastError.name + ': ' + lastError.message);
         self.postMessage({ type: 'error', message: lastError.name + ': ' + lastError.message });
 
     } catch (error) {
-        console.error('[whisper-demo] Fatal boot error:', error.name, error.message);
+        postDiag('Fatal boot error: ' + error.name + ': ' + error.message);
         self.postMessage({ type: 'error', message: error.name + ': ' + error.message });
     }
 }

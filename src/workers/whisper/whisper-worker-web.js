@@ -5,6 +5,12 @@ if (SILENT_LOGS) {
     console.log = () => {};
     console.time = () => {};
     console.timeEnd = () => {};
+    // Workers' console.warn/error don't appear in Safari Web Inspector
+    // main-thread view. Use postDiag() to relay diagnostics to main thread.
+}
+
+function postDiag(msg) {
+    self.postMessage({ type: 'diag', message: msg });
 }
 const WHISPER_BASE_PATH = 'https://r2.ultrafastfluency.com/whisper/';
 const MODEL_CACHE_NAME = 'uff-whisper-cache-v3';
@@ -59,11 +65,9 @@ async function bootWhisperEngine() {
             WebAssembly.instantiateStreaming(wasmResponse, imports)
                 .then(output => {
                     const memory = output.instance.exports.M;
-                    const initialMB = memory ? (memory.buffer.byteLength / 1048576).toFixed(1) : '?';
-                    console.warn(`[whisper] WASM compiled. Initial memory: ${initialMB} MB`);
-                    // Log but don't block growth — Emscripten's _emscripten_resize_heap
-                    // has built-in backoff logic (tries smaller sizes on failure).
-                    if (memory && typeof memory.grow === 'function') {
+                    if (memory) {
+                        const mb = (memory.buffer.byteLength / 1048576).toFixed(1);
+                        postDiag('WASM compiled. Initial memory: ' + mb + ' MB');
                         const originalGrow = memory.grow.bind(memory);
                         memory.grow = function (pages) {
                             const beforeMB = (memory.buffer.byteLength / 1048576).toFixed(1);
@@ -71,19 +75,21 @@ async function bootWhisperEngine() {
                             try {
                                 const result = originalGrow(pages);
                                 const afterMB = (memory.buffer.byteLength / 1048576).toFixed(1);
-                                console.warn(`[whisper] WASM memory grow: ${beforeMB} MB → ${afterMB} MB (+${growthMB} MB)`);
+                                postDiag('WASM grow: ' + beforeMB + ' MB -> ' + afterMB + ' MB (+' + growthMB + ' MB)');
                                 return result;
                             } catch (e) {
-                                console.warn(`[whisper] WASM memory grow FAILED: ${beforeMB} MB → +${growthMB} MB, error: ${e.message}`);
+                                postDiag('WASM grow FAILED: ' + beforeMB + ' MB -> +' + growthMB + ' MB, ' + e.message);
                                 return -1;
                             }
                         };
+                    } else {
+                        postDiag('WASM compiled, no memory export');
                     }
                     wasmResponse = null;
                     successCallback(output.instance, output.module);
                 })
                 .catch(e => {
-                    console.error('[whisper] WASM Compile Error:', e);
+                    postDiag('WASM Compile Error: ' + (e.message || e));
                     self.postMessage({ type: 'error', message: 'WASM compilation failed: ' + e.message });
                 });
             return {};
@@ -91,17 +97,16 @@ async function bootWhisperEngine() {
 
         self.Module.onRuntimeInitialized = function () {
             dataBuffer = null;
-            console.time('[whisper] total init');
-            const deviceMemory = navigator.deviceMemory || 4;
-            const safeThreadCount = deviceMemory < 4 
-                ? 2 
-                : Math.min(navigator.hardwareConcurrency || 4, 8);
-            console.warn(`[whisper] HW: Memory=${deviceMemory}GB, Cores=${navigator.hardwareConcurrency}, Threads=${safeThreadCount}, SAB=${typeof SharedArrayBuffer !== 'undefined'}`);
+            const dm = navigator.deviceMemory || '?';
+            const hc = navigator.hardwareConcurrency || '?';
+            const sab = typeof SharedArrayBuffer !== 'undefined' ? 'yes' : 'no';
+            const safeThreads = (dm < 4 || dm === '?') ? 2 : Math.min(hc || 4, 8);
+            postDiag('HW: mem=' + dm + 'GB, cores=' + hc + ', threads=' + safeThreads + ', SAB=' + sab);
             try {
                 let config = {
                     modelConfig: {
                         debug: 1,
-                        num_threads: safeThreadCount,
+                        num_threads: safeThreads,
                         provider: "cpu",
                         tokens: './tokens.txt',
                         whisper: {
@@ -115,18 +120,17 @@ async function bootWhisperEngine() {
                     }
                 };
                 recognizer = new OfflineRecognizer(config, self.Module);
-                console.warn('[whisper] OfflineRecognizer created');
+                postDiag('OfflineRecognizer created');
                 isReady = true;
-                console.timeEnd('[whisper] total init');
                 try {
                     vad = createVad(self.Module);
-                    console.warn('[whisper] VAD created');
+                    postDiag('VAD created');
                 } catch (vadErr) {
-                    console.warn('[whisper] VAD creation failed (continuing):', vadErr.message);
+                    postDiag('VAD failed (continuing): ' + vadErr.message);
                 }
                 self.postMessage({ type: 'ready' });
             } catch (initErr) {
-                console.error('[whisper] Engine init failed:', initErr);
+                postDiag('Engine init failed: ' + (initErr.message || initErr));
                 self.postMessage({ type: 'error', message: 'Engine init failed: ' + initErr.message });
             }
         };
@@ -138,7 +142,7 @@ async function bootWhisperEngine() {
         );
 
     } catch (error) {
-        console.error('[whisper] Fatal Boot Error:', error);
+        postDiag('Fatal Boot Error: ' + (error.message || error));
         self.postMessage({ type: 'error', message: error.message });
     }
 }
