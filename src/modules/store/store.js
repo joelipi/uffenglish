@@ -59,6 +59,7 @@ export const appStore = createStore(
             // --- Session Flags (Not Persisted) ---
             isDemoMode: false,
             isWhisperReady: false,
+            isWhisperEngineFailed: false,
             isMicActive: false,
             isTextMode: false,
             isPlaybackMuted: false,
@@ -169,6 +170,7 @@ export const appStore = createStore(
             // Set Session Flags
             setDemoMode: (val) => set({ isDemoMode: val }),
             setWhisperReady: (val) => set({ isWhisperReady: val }),
+            setWhisperEngineFailed: (val) => set({ isWhisperEngineFailed: val }),
             setMicActive: (val) => set({ isMicActive: val }),
             setTextMode: (val) => set({ isTextMode: val }),
             setPlaybackMuted: (val) => set({ isPlaybackMuted: val }),

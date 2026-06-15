@@ -21,7 +21,16 @@ export function createWhisperAdapter({ worker }) {
             adapterIsEngineReady = true;
             isEngineReady = true;
             appStore.getState().setWhisperReady(true);
+            appStore.getState().setWhisperEngineFailed(false);
             console.log('[whisper] engine ready at', performance.now().toFixed(0), 'ms');
+            if (adapterReadyResolve) {
+                adapterReadyResolve();
+                adapterReadyResolve = null;
+            }
+        }
+        else if (e.data.type === 'error') {
+            console.error('[whisper] Engine initialization error:', e.data.message);
+            appStore.getState().setWhisperEngineFailed(true);
             if (adapterReadyResolve) {
                 adapterReadyResolve();
                 adapterReadyResolve = null;
@@ -57,6 +66,14 @@ export function createWhisperAdapter({ worker }) {
                 return;
             }
             adapterReadyResolve = resolve;
+            setTimeout(() => {
+                if (adapterReadyResolve) {
+                    console.warn('[whisper] Engine preload timed out after 30s');
+                    appStore.getState().setWhisperEngineFailed(true);
+                    adapterReadyResolve();
+                    adapterReadyResolve = null;
+                }
+            }, 30000);
         });
     }
 

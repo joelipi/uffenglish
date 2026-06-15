@@ -207,7 +207,9 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             appStore.getState().setSystemMessage({ type: 'speak-now', bilingual: Strings.getBilingual('status_speak', userData?.native_language) });
                         },
                         onEngineNotReady: (userData) => {
-                            const errorMsg = Strings.get('error_engine_not_ready', userData?.native_language) || "Speech engine not ready. Please wait a moment.";
+                            const isFailed = appStore.getState().isWhisperEngineFailed;
+                            const key = isFailed ? 'error_engine_failed' : 'error_engine_not_ready';
+                            const errorMsg = Strings.get(key, userData?.native_language) || "Speech engine not ready.";
                             appStore.getState().setSystemMessage({ type: 'engine-error', text: errorMsg });
                         },
                         onEngineReady: (btn) => {

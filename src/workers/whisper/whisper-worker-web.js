@@ -110,6 +110,7 @@ async function bootWhisperEngine() {
 
     } catch (error) {
         console.error('[whisper] Fatal Boot Error:', error);
+        self.postMessage({ type: 'error', message: error.message });
     }
 }
 

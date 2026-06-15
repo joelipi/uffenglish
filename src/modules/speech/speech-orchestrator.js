@@ -172,9 +172,12 @@ export function createSpeechOrchestrator({
                     if (uiHooks?.onEngineNotReady) uiHooks.onEngineNotReady(userData);
 
                     const readyInterval = setInterval(() => {
-                        if (appStore.getState().isWhisperReady) {
+                        const state = appStore.getState();
+                        if (state.isWhisperReady) {
                             clearInterval(readyInterval);
                             if (uiHooks?.onEngineReady) uiHooks.onEngineReady(button);
+                        } else if (state.isWhisperEngineFailed) {
+                            clearInterval(readyInterval);
                         }
                     }, 1000);
                     return;
