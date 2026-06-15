@@ -37,6 +37,8 @@ async function loadAndCacheFile(filePath) {
     return response;
 }
 
+        //WebGPU wasn't working on Android so I'm giving up for now
+/*
 async function detectWebGPUSupport() {
     try {
         if (!navigator.gpu) return false;
@@ -49,6 +51,7 @@ async function detectWebGPUSupport() {
         return false;
     }
 }
+*/
 
 // Single-thread only: ONNX WASM multi-threading (>1) hangs the pipeline
 // on Cloudflare Pages. The 1-thread path is stable everywhere.
@@ -86,10 +89,12 @@ async function bootWhisperEngine() {
         console.warn(`[whisper-demo] crossOriginIsolated: ${coi}`);
         console.warn(`[whisper-demo] WASM paths: ${env.backends.onnx.wasm.wasmPaths}`);
 
-        console.warn('[whisper-demo] Detecting WebGPU support...');
-        const hasWebGPU = await detectWebGPUSupport();
-        const devices = hasWebGPU ? ['webgpu', 'wasm'] : ['wasm'];
-        console.warn(`[whisper-demo] Device priority: ${devices.join(' → ')}`);
+        //WebGPU wasn't working on Android so I'm giving up for now
+        //console.warn('[whisper-demo] Detecting WebGPU support...');
+        //const hasWebGPU = await detectWebGPUSupport();
+        //const devices = hasWebGPU ? ['webgpu', 'wasm'] : ['wasm'];
+        //console.warn(`[whisper-demo] Device priority: ${devices.join(' → ')}`);
+        const devices = ['wasm'];
 
         console.warn(`[whisper-demo] Pre-caching ${DEMO_MODEL_FILES.length} ONNX files...`);
         await Promise.all(DEMO_MODEL_FILES.map(loadAndCacheFile));
