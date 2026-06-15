@@ -58,71 +58,77 @@ async function bootWhisperEngine() {
         self.Module.instantiateWasm = function (imports, successCallback) {
             WebAssembly.instantiateStreaming(wasmResponse, imports)
                 .then(output => {
-                    // Cap WASM memory growth to prevent 2GB heap expansion
-                    // on memory-constrained devices (older iOS, low-RAM devices).
-                    // The Emscripten runtime's getHeapMax() allows up to 2GB,
-                    // which iOS browser tabs cannot satisfy.
                     const memory = output.instance.exports.M;
+                    const initialMB = memory ? (memory.buffer.byteLength / 1048576).toFixed(1) : '?';
+                    console.warn(`[whisper] WASM compiled. Initial memory: ${initialMB} MB`);
+                    // Log but don't block growth — Emscripten's _emscripten_resize_heap
+                    // has built-in backoff logic (tries smaller sizes on failure).
                     if (memory && typeof memory.grow === 'function') {
                         const originalGrow = memory.grow.bind(memory);
-                        const MAX_WASM_PAGES = 8192; // 512 MB (8192 * 64 KB)
                         memory.grow = function (pages) {
-                            const currentPages = memory.buffer.byteLength >>> 16;
-                            if (currentPages + pages > MAX_WASM_PAGES) {
-                                console.warn(`[whisper] WASM memory growth blocked: would exceed ${MAX_WASM_PAGES} pages (${(MAX_WASM_PAGES * 64 / 1024).toFixed(0)} MB)`);
-                                throw new RangeError('out of memory');
+                            const beforeMB = (memory.buffer.byteLength / 1048576).toFixed(1);
+                            const growthMB = (pages * 64 / 1024).toFixed(1);
+                            try {
+                                const result = originalGrow(pages);
+                                const afterMB = (memory.buffer.byteLength / 1048576).toFixed(1);
+                                console.warn(`[whisper] WASM memory grow: ${beforeMB} MB → ${afterMB} MB (+${growthMB} MB)`);
+                                return result;
+                            } catch (e) {
+                                console.warn(`[whisper] WASM memory grow FAILED: ${beforeMB} MB → +${growthMB} MB, error: ${e.message}`);
+                                return -1;
                             }
-                            return originalGrow(pages);
                         };
                     }
-                    // Release the wasm Response body after compilation
                     wasmResponse = null;
                     successCallback(output.instance, output.module);
                 })
-                .catch(e => console.error('[whisper] WASM Compile Error:', e));
+                .catch(e => {
+                    console.error('[whisper] WASM Compile Error:', e);
+                    self.postMessage({ type: 'error', message: 'WASM compilation failed: ' + e.message });
+                });
             return {};
         };
 
         self.Module.onRuntimeInitialized = function () {
-            // Free the JS data buffer (99.4 MB) now that WASM has consumed it
             dataBuffer = null;
-
             console.time('[whisper] total init');
-
-            // Use Device Memory API if available, assume 4GB if missing
             const deviceMemory = navigator.deviceMemory || 4;
-            
-            // If the device has low memory (< 4GB), aggressively cap to 2 threads to prevent OOM
-            // Otherwise, use available cores up to 8 (diminishing returns beyond 8 for ONNX WASM)
             const safeThreadCount = deviceMemory < 4 
                 ? 2 
                 : Math.min(navigator.hardwareConcurrency || 4, 8);
-
-            console.log(`[whisper] 🛠️ Hardware Info: Memory=${deviceMemory}GB, Cores=${navigator.hardwareConcurrency}, SelectedThreads=${safeThreadCount}, SharedArrayBuffer=${typeof SharedArrayBuffer !== 'undefined'}`);
-
-            let config = {
-                modelConfig: {
-                    debug: 1,
-                    num_threads: safeThreadCount,
-                    provider: "cpu",
-                    tokens: './tokens.txt',
-                    whisper: {
-                        encoder: './whisper-encoder.onnx',
-                        decoder: './whisper-decoder.onnx',
+            console.warn(`[whisper] HW: Memory=${deviceMemory}GB, Cores=${navigator.hardwareConcurrency}, Threads=${safeThreadCount}, SAB=${typeof SharedArrayBuffer !== 'undefined'}`);
+            try {
+                let config = {
+                    modelConfig: {
+                        debug: 1,
+                        num_threads: safeThreadCount,
+                        provider: "cpu",
+                        tokens: './tokens.txt',
+                        whisper: {
+                            encoder: './whisper-encoder.onnx',
+                            decoder: './whisper-decoder.onnx',
+                        }
+                    },
+                    decoderConfig: {
+                        method: "greedy_search",
+                        num_active_paths: 1
                     }
-                },
-                decoderConfig: {
-                    method: "greedy_search",
-                    num_active_paths: 1
+                };
+                recognizer = new OfflineRecognizer(config, self.Module);
+                console.warn('[whisper] OfflineRecognizer created');
+                isReady = true;
+                console.timeEnd('[whisper] total init');
+                try {
+                    vad = createVad(self.Module);
+                    console.warn('[whisper] VAD created');
+                } catch (vadErr) {
+                    console.warn('[whisper] VAD creation failed (continuing):', vadErr.message);
                 }
-            };
-
-            recognizer = new OfflineRecognizer(config, self.Module);
-            isReady = true;
-
-            console.timeEnd('[whisper] total init');
-            vad = createVad(self.Module);
-            self.postMessage({ type: 'ready' });
+                self.postMessage({ type: 'ready' });
+            } catch (initErr) {
+                console.error('[whisper] Engine init failed:', initErr);
+                self.postMessage({ type: 'error', message: 'Engine init failed: ' + initErr.message });
+            }
         };
 
         importScripts(

@@ -58,21 +58,20 @@ async function detectWebGPUSupport() {
 env.backends.onnx.wasm.numThreads = 1;
 env.backends.onnx.wasm.proxy = false;
 
-// Cap WASM memory growth to prevent 2 GB heap expansion on low-memory devices.
-// ONNX Runtime Web defaults to attempting up to 2 GB, which iOS browser tabs
-// cannot satisfy. Setting a custom wasmMemory with a 512 MB maximum prevents
-// the "out of memory" crash and routes the failure through the error handler.
+// Cap WASM memory to prevent 2 GB heap expansion on low-memory devices.
 try {
-    env.backends.onnx.wasm.wasmMemory = new WebAssembly.Memory({
-        initial: 512,   // 32 MB (512 * 64 KB) — enough for module init
-        maximum: 8192,  // 512 MB (8192 * 64 KB) — prevents 2 GB growth attempt
+    const wasmMem = new WebAssembly.Memory({
+        initial: 256,   // 16 MB (256 * 64 KB) — small initial, grows as needed
+        maximum: 8192,  // 512 MB cap — prevents 2 GB growth attempt
     });
+    env.backends.onnx.wasm.wasmMemory = wasmMem;
+    console.warn(`[whisper-demo] Custom WASM memory set: ${wasmMem.buffer.byteLength} bytes initial, 512 MB max`);
 } catch (e) {
     console.warn(`[whisper-demo] Could not set custom WASM memory:`, e.message);
 }
 
-console.warn(`[whisper-demo] Hardware Info: Memory=${navigator.deviceMemory || '?'}GB, Cores=${navigator.hardwareConcurrency}`);
-console.warn(`[whisper-demo] Transformers.js configured for 1 thread, WASM memory capped at 512 MB`);
+console.warn(`[whisper-demo] HW: Memory=${navigator.deviceMemory || '?'}GB, Cores=${navigator.hardwareConcurrency}`);
+console.warn(`[whisper-demo] Transformers.js: 1 thread, WASM memory capped at 512 MB`);
 
 let transcriber = null;
 let selectedDevice = 'wasm';
@@ -122,18 +121,19 @@ async function bootWhisperEngine() {
                 self.postMessage({ type: 'ready' });
                 return;
             } catch (error) {
-                console.warn(`[whisper-demo] ${device} failed:`, error.message);
+                console.warn(`[whisper-demo] ${device} failed:`, error.name, error.message);
+                if (error.stack) console.warn(`[whisper-demo] Stack:`, error.stack.split('\n').slice(0, 3).join('\n'));
                 lastError = error;
                 transcriber = null;
             }
         }
 
         console.error('[whisper-demo] All backends failed:', lastError);
-        self.postMessage({ type: 'error', message: lastError.message });
+        self.postMessage({ type: 'error', message: lastError.name + ': ' + lastError.message });
 
     } catch (error) {
-        console.error('[whisper-demo] Fatal boot error:', error);
-        self.postMessage({ type: 'error', message: error.message });
+        console.error('[whisper-demo] Fatal boot error:', error.name, error.message);
+        self.postMessage({ type: 'error', message: error.name + ': ' + error.message });
     }
 }
 

@@ -30,6 +30,7 @@ export function createWhisperAdapter({ worker }) {
         }
         else if (e.data.type === 'error') {
             console.error('[whisper] Engine initialization error:', e.data.message);
+            if (e.data.detail) console.error('[whisper] Error detail:', e.data.detail);
             appStore.getState().setWhisperEngineFailed(true);
             if (adapterReadyResolve) {
                 adapterReadyResolve();
