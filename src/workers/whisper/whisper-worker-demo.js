@@ -28,19 +28,17 @@ async function loadAndCacheFile(filePath) {
 
     if (response) {
         console.log(`[whisper-demo] CACHE HIT: ${filePath}`);
-    } else {
-        console.log(`[whisper-demo] CACHE MISS: Downloading ${filePath}...`);
-        response = await fetch(url, { mode: 'cors' });
-        if (!response.ok) throw new Error(`HTTP Error ${response.status} for ${filePath}`);
-        const buffer = await response.arrayBuffer();
-        try {
-            await cache.put(url, new Response(buffer.slice(0), { headers: response.headers }));
-        } catch (cacheError) {
-            console.warn(`[whisper-demo] Cache.put failed for ${filePath}:`, cacheError);
-        }
-        response = new Response(buffer, { headers: response.headers });
+        return response;
     }
-    return response;
+
+    console.log(`[whisper-demo] CACHE MISS: Downloading ${filePath}...`);
+    response = await fetch(url, { mode: 'cors' });
+    if (!response.ok) throw new Error(`HTTP Error ${response.status} for ${filePath}`);
+
+    const buffer = await response.arrayBuffer();
+    await cache.put(url, new Response(buffer, { headers: response.headers }));
+    // Re-read from cache instead of holding the buffer in memory
+    return await cache.match(url);
 }
 
         //WebGPU wasn't working on Android so I'm giving up for now
@@ -66,12 +64,14 @@ env.backends.onnx.wasm.proxy = false;
 
 // Cap WASM memory to prevent 2 GB heap expansion on low-memory devices.
 try {
+    // Start small (16 MB) — let it grow as needed now that cache loading
+    // no longer wastes 300 MB of memory. Cap at 512 MB to prevent 2 GB spikes.
     const wasmMem = new WebAssembly.Memory({
-        initial: 256,   // 16 MB (256 * 64 KB) — small initial, grows as needed
-        maximum: 8192,  // 512 MB cap — prevents 2 GB growth attempt
+        initial: 256,   // 16 MB (256 * 64 KB)
+        maximum: 8192,  // 512 MB cap
     });
     env.backends.onnx.wasm.wasmMemory = wasmMem;
-    postDiag('Custom WASM memory set: ' + wasmMem.buffer.byteLength + ' bytes initial, 512 MB max');
+    postDiag('Custom WASM memory set: ' + wasmMem.buffer.byteLength + ' bytes initial, 512 MB cap');
 } catch (e) {
     postDiag('Could not set custom WASM memory: ' + e.message);
 }
@@ -109,8 +109,10 @@ async function bootWhisperEngine() {
 
         const devices = ['wasm'];
 
-        postDiag('Pre-caching ' + DEMO_MODEL_FILES.length + ' ONNX files...');
-        await Promise.all(DEMO_MODEL_FILES.map(loadAndCacheFile));
+        postDiag('Pre-caching ' + DEMO_MODEL_FILES.length + ' ONNX files sequentially...');
+        for (const file of DEMO_MODEL_FILES) {
+            await loadAndCacheFile(file);
+        }
         postDiag('ONNX files cached, booting pipeline...');
 
         let lastError = null;
