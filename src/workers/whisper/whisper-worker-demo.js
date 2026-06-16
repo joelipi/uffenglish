@@ -12,6 +12,7 @@ function postDiag(msg) {
 
 env.allowLocalModels = false;
 env.useBrowserCache = true;
+env.useWasmCache = true;
 env.remoteHost = 'https://r2.ultrafastfluency.com';
 env.remotePathTemplate = 'whisper/{model}/';
 
