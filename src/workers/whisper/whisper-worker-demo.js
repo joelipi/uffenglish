@@ -64,14 +64,31 @@ async function detectWebGPUSupport() {
 env.backends.onnx.wasm.numThreads = 1;
 env.backends.onnx.wasm.proxy = false;
 
-// Cap WASM memory to prevent 2 GB heap reservation on iOS.
+// Cap WASM memory to prevent virtual address reservation OOM on older iOS devices.
 try {
     const wasmMem = new WebAssembly.Memory({
         initial: 256,   // 16 MB
-        maximum: 3072,  // 192 MB — tight cap avoids virtual address reservation OOM
+        maximum: 2048,  // 128 MB — avoids 2 GB reservation; 64 MB was too low
     });
+
+    let peakWasmMB = 0;
+    const originalGrow = wasmMem.grow.bind(wasmMem);
+    wasmMem.grow = function (pages) {
+        const beforeMB = (this.buffer.byteLength / 1048576).toFixed(1);
+        try {
+            const result = originalGrow(pages);
+            const afterMB = (this.buffer.byteLength / 1048576).toFixed(1);
+            peakWasmMB = Math.max(peakWasmMB, parseFloat(afterMB));
+            postDiag('WASM grow: ' + beforeMB + ' MB -> ' + afterMB + ' MB (peak ' + peakWasmMB + ' MB)');
+            return result;
+        } catch (e) {
+            postDiag('WASM grow FAILED: ' + beforeMB + ' MB -> +' + (pages * 64 / 1024).toFixed(1) + ' MB, ' + e.message);
+            return -1;
+        }
+    };
+
     env.backends.onnx.wasm.wasmMemory = wasmMem;
-    postDiag('wasmMemory set, max=192MB');
+    postDiag('wasmMemory set, max=128MB');
 } catch (e) {
     postDiag('wasmMemory failed: ' + e.message);
 }

@@ -774,7 +774,9 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 }
 
 .ivp-token-strikethrough {
-    text-decoration: line-through 2px red;
+    text-decoration: line-through;
+    text-decoration-color: red;
+    text-decoration-thickness: 2px;
 }
 
 .ivp-token-hidden {
