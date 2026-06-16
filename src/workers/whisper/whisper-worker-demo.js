@@ -1,5 +1,4 @@
 import { pipeline, env } from '@huggingface/transformers';
-import * as ort from 'onnxruntime-web';
 
 // Keep logs enabled: stubbing console.log / console.time breaks onnxruntime-web
 // internal profiling on some platforms (Android).
@@ -16,7 +15,7 @@ env.useBrowserCache = true;
 env.remoteHost = 'https://r2.ultrafastfluency.com';
 env.remotePathTemplate = 'whisper/{model}/';
 
-postDiag('Transformers.js version: 3.0.0');
+postDiag('Transformers.js version: 4.2.0');
 
 const DEMO_CACHE_NAME = 'uff-whisper-demo-cache-v1';
 const DEMO_MODEL_FILES = [
@@ -65,10 +64,6 @@ async function detectWebGPUSupport() {
 env.backends.onnx.wasm.numThreads = 1;
 env.backends.onnx.wasm.proxy = false;
 
-// Set ort env directly (bypasses Transformers.js passthrough)
-ort.env.wasm.numThreads = 1;
-ort.env.wasm.proxy = false;
-
 // Cap WASM memory to prevent 2 GB heap reservation on iOS.
 try {
     const wasmMem = new WebAssembly.Memory({
@@ -76,29 +71,10 @@ try {
         maximum: 3072,  // 192 MB — tight cap avoids virtual address reservation OOM
     });
     env.backends.onnx.wasm.wasmMemory = wasmMem;
-    ort.env.wasm.wasmMemory = wasmMem;
     postDiag('wasmMemory set, max=192MB');
 } catch (e) {
     postDiag('wasmMemory failed: ' + e.message);
 }
-
-// Monkey-patch ORT session creation so options cannot be silently dropped.
-const origCreate = ort.InferenceSession.create.bind(ort.InferenceSession);
-ort.InferenceSession.create = function (model, options = {}) {
-    const patched = {
-        ...options,
-        enableCpuMemArena: false,
-        enableMemPattern: false,
-        executionMode: 'sequential',
-        graphOptimizationLevel: 'basic',
-        freeDimensionOverrides: {
-            sequence_length: 1,
-            past_sequence_length: 0,
-        },
-    };
-    postDiag('ORT session create intercepted, arena disabled');
-    return origCreate(model, patched);
-};
 
 postDiag('HW: mem=' + (navigator.deviceMemory || '?') + 'GB, cores=' + navigator.hardwareConcurrency);
 
@@ -112,12 +88,23 @@ const PIPELINE_OPTIONS = {
     },
 };
 
+const SESSION_OPTIONS = {
+    enableCpuMemArena: false,
+    enableMemPattern: false,
+    executionMode: 'sequential',
+    graphOptimizationLevel: 'basic',
+    freeDimensionOverrides: {
+        sequence_length: 1,
+        past_sequence_length: 0,
+    },
+};
+
 async function tryBootPipeline(device) {
     postDiag('Booting pipeline with device: ' + device + '...');
     const result = await pipeline(
         'automatic-speech-recognition',
         'onnx-community/whisper-tiny.en',
-        { device, ...PIPELINE_OPTIONS },
+        { device, ...PIPELINE_OPTIONS, session_options: SESSION_OPTIONS },
     );
     postDiag('Pipeline created with device: ' + device);
     return result;
