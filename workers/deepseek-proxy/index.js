@@ -4,6 +4,7 @@ const ALLOWED_ORIGINS = [
   'http://localhost:3000',
   'http://localhost:5173',
   'https://ultrafastfluency.com',
+  'https://t.ultrafastfluency.com',
 ];
 
 function corsHeaders(origin) {

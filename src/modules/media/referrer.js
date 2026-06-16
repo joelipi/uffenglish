@@ -1,1 +1,1 @@
-export * from './referrer';
+export * from './referrer.web.js';

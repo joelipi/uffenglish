@@ -1,1 +1,1 @@
-export { default } from './SimpleVideoPlayer';
+export { default } from './SimpleVideoPlayer.web.jsx';
