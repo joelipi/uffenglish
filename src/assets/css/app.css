@@ -389,7 +389,7 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
    ========================================= */
 .pip-container {
     position: absolute;
-    top: 90px;
+    top: 10vh;
     right: 16px;
     width: 80px;
     aspect-ratio: 9 / 16;
@@ -402,7 +402,7 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     transition: top 0.25s ease-out, right 0.25s ease-out,
                 width 0.25s ease-out, height 0.25s ease-out,
                 border-radius 0.25s ease-out, border 0.25s ease-out,
-                box-shadow 0.25s ease-out, aspect-ratio 0.25s ease-out;
+                box-shadow 0.25s ease-out;
 }
 
 .pip-container--takeover {
