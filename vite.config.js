@@ -64,6 +64,7 @@ export default defineConfig({
         },
     },
     server: {
+        allowedHosts: ['t.ultrafastfluency.com'],
         proxy: {
             '/assets/videos/': {
                 target: 'https://r2.ultrafastfluency.com',

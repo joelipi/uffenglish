@@ -15,7 +15,7 @@ env.useBrowserCache = true;
 env.remoteHost = 'https://r2.ultrafastfluency.com';
 env.remotePathTemplate = 'whisper/{model}/';
 
-postDiag('Transformers.js version: 4.2.0');
+postDiag('Transformers.js version: 3.8.1');
 
 const DEMO_CACHE_NAME = 'uff-whisper-demo-cache-v1';
 const DEMO_MODEL_FILES = [
@@ -113,7 +113,10 @@ async function tryBootPipeline(device) {
 
 async function bootWhisperEngine() {
     try {
-        env.backends.onnx.wasm.wasmPaths = '/wasm/';
+        // Don't set wasmPaths — let ORT resolve relative to the module worker's
+        // own URL. Vite's dev server can then intercept the dynamic import of
+        // the .mjs glue file from onnxruntime-web's module graph.
+        // In production, Vite already bundles the glue into the worker chunk.
         const coi = typeof crossOriginIsolated !== 'undefined' ? crossOriginIsolated : 'undefined';
         postDiag('crossOriginIsolated: ' + coi);
         postDiag('WASM paths: ' + env.backends.onnx.wasm.wasmPaths);
