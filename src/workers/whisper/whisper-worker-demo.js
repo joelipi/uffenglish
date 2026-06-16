@@ -64,17 +64,13 @@ async function detectWebGPUSupport() {
 env.backends.onnx.wasm.numThreads = 1;
 env.backends.onnx.wasm.proxy = false;
 
-// Cap WASM memory to prevent 2 GB heap reservation on iOS.
-try {
-    const wasmMem = new WebAssembly.Memory({
-        initial: 256,   // 16 MB
-        maximum: 3072,  // 192 MB — tight cap avoids virtual address reservation OOM
-    });
-    env.backends.onnx.wasm.wasmMemory = wasmMem;
-    postDiag('wasmMemory set, max=192MB');
-} catch (e) {
-    postDiag('wasmMemory failed: ' + e.message);
-}
+// Point WASM paths to our hosted files, using the smaller non-asyncify variant
+// on iOS/Safari (12.9 MB vs 23.5 MB) to reduce memory pressure.
+env.backends.onnx.wasm.wasmPaths = {
+    mjs: '/wasm/ort-wasm-simd-threaded.mjs',
+    wasm: '/wasm/ort-wasm-simd-threaded.wasm'
+};
+postDiag('WASM paths set to non-asyncify variant');
 
 postDiag('HW: mem=' + (navigator.deviceMemory || '?') + 'GB, cores=' + navigator.hardwareConcurrency);
 
@@ -112,10 +108,8 @@ async function tryBootPipeline(device) {
 
 async function bootWhisperEngine() {
     try {
-        env.backends.onnx.wasm.wasmPaths = '/wasm/';
         const coi = typeof crossOriginIsolated !== 'undefined' ? crossOriginIsolated : 'undefined';
         postDiag('crossOriginIsolated: ' + coi);
-        postDiag('WASM paths: ' + env.backends.onnx.wasm.wasmPaths);
 
         const devices = ['wasm'];
 
