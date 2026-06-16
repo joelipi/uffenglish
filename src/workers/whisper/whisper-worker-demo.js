@@ -97,7 +97,6 @@ const SESSION_OPTIONS = {
 
 async function tryBootPipeline(device) {
     postDiag('Booting pipeline with device: ' + device + '...');
-    postDiag('Session options: ' + JSON.stringify(SESSION_OPTIONS));
     const result = await pipeline(
         'automatic-speech-recognition',
         'onnx-community/whisper-tiny.en',
