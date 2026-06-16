@@ -75,6 +75,10 @@ export function createLoadStep(deps) {
             } else {
                 warmUpSpeechCam();
             }
+        } else if (step.simpleVideoUrl || step.interactiveVideoUrl) {
+            if (!appStore.getState().isCameraOff) {
+                warmUpSpeechCam();
+            }
         } else {
             setWebcamStream(null);
         }

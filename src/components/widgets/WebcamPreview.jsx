@@ -47,7 +47,7 @@ export default function WebcamPreview() {
         }
     }, [webcamStreamKey]);
 
-    const show = !!getWebcamStream() && mediaState === 'webcamOrAvatar';
+    const show = !!getWebcamStream() && (mediaState === 'webcamOrAvatar' || mediaState === 'simpleVideo' || mediaState === 'interactiveVideo');
 
     let className = 'pip-container';
     if (show) {
