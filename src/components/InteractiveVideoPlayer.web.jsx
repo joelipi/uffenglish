@@ -182,9 +182,20 @@ export default function InteractiveVideoPlayer() {
         if (!isActive || !videoRef.current) return;
 
         const tryPlay = () => {
-            videoRef.current?.play().catch(() => {
-                console.log('[InteractiveVideo] Unmuted autoplay blocked. Waiting for user interaction.');
-            });
+            const video = videoRef.current;
+            if (!video) return;
+            const p = video.play();
+            if (p !== undefined) {
+                p.catch(() => {
+                    console.log('[InteractiveVideo] Unmuted autoplay blocked — retrying muted.');
+                    video.muted = true;
+                    video.play().then(() => {
+                        setTimeout(() => { video.muted = false; }, 100);
+                    }).catch(() => {
+                        console.log('[InteractiveVideo] Muted autoplay also blocked. Waiting for user interaction.');
+                    });
+                });
+            }
         };
 
         if (pendingVideoPlayType === 'interactive') {

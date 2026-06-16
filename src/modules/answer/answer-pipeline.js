@@ -900,7 +900,9 @@ export function createAnswerPipeline(deps) {
                 if (stepData.responseType === "lessonIntro") {
                     const initializeMedia = async () => {
                         await enableAudioSystem();
-                        await warmUpSpeechCam();
+                        if (!appStore.getState().isTextMode) {
+                            await warmUpSpeechCam();
+                        }
                     };
                     initializeMedia();
                 }

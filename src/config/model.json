@@ -4,6 +4,126 @@
   "courseName": "Grocery Shopping",
   "lessons": [
     {
+      "lessonId": "t",
+      "title": {
+        "en": "Grocery Shopping",
+        "es": "Compras de comestibles",
+        "pt": "Compras de mercado"
+      },
+      "unit": "Unit 1",
+      "mission": {
+        "en": "find items in the store",
+        "es": "encontrar artículos en la tienda",
+        "pt": "encontrar itens na loja"
+      },
+      "setting": {
+        "en": "Grocery store",
+        "es": "tienda de comestibles",
+        "pt": "mercado"
+      },
+      "roleOther": {
+        "en": "Store clerk",
+        "es": "empleado de tienda",
+        "pt": "funcionário de loja"
+      },
+      "roleUser": {
+        "en": "Customer",
+        "es": "cliente",
+        "pt": "cliente"
+      },
+      "steps": [
+        {
+          "cue": "",
+          "responseType": "lessonIntro",
+          "introBackgroundVideoUrl": "do_you_have_dark_chocolate"
+        },
+                {
+          "cue": {
+            "en": "Do you have rolls, too?",
+            "es": "¿Tienes panes de molde también?",
+            "pt": "Você tem rolls também?"
+          },
+          "responseType": "closedResponse",
+          "interactiveVideoUrl": "do_you_have_rolls_too",
+          "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
+        },
+                {
+          "cue": {
+            "en": "Do you have rolls, too?",
+            "es": "¿Tienes panes de molde también?",
+            "pt": "Você tem rolls também?"
+          },
+          "responseType": "closedResponse",
+          "simpleVideoUrl": "do_you_have_rolls_too",
+          "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
+        },
+        {
+          "cue": {
+            "en": "Do you have dark chocolate?",
+            "es": "¿Tienes chocolate oscuro?",
+            "pt": "Você tem chocolate escuro?"
+          },
+          "responseType": "closedResponse",
+          "interactiveVideoUrl": "do_you_have_dark_chocolate",
+          "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
+        },
+        {
+          "cue": {
+            "en": "Do you have rolls, too?",
+            "es": "¿Tienes panes de molde también?",
+            "pt": "Você tem rolls também?"
+          },
+          "responseType": "closedResponse",
+          "interactiveVideoUrl": "do_you_have_rolls_too",
+          "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
+        },
+        {
+          "cue": {
+            "en": "Do you have very bitter dark chocolate?",
+            "es": "¿Tienes chocolate oscuro muy amargo?",
+            "pt": "Você tem chocolate escuro muito amargo?"
+          },
+          "responseType": "closedResponse",
+          "interactiveVideoUrl": "do_you_have_very_bitter_dark_chocolate",
+          "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
+        },
+        {
+          "cue": {
+            "en": "Where is the bread aisle?",
+            "es": "¿Dónde está el pasillo del pan?",
+            "pt": "Onde fica o corredor do pão?"
+          },
+          "responseType": "closedResponse",
+          "interactiveVideoUrl": "where_is_the_bread_aisle",
+          "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
+        },
+                {
+          "cue": {
+            "en": "Hi, what would you like to drink?",
+            "es": "Hola, ¿qué quisieras para tomar?",
+            "pt": "Ola, o qué voce quer de beber?"
+          },
+          "responseType": "openResponse",
+          "interactiveVideoUrl": "gtests-1-1"
+        },
+        {
+          "cue": {
+            "en": "Sorry, we're all out of that today.",
+            "es": "Disculpe, eso se nos terminó para hoy.",
+            "pt": "Disculpe. Isso acabou para hoje."
+          },
+          "responseType": "openResponse",
+          "interactiveVideoUrl": "gtests-1-2"
+        },
+        {
+          "simpleVideoUrl": "success",
+          "subtitles": "Very good! ¡Muy bien! Oprime el botón para calcular tu calificación de fluidez (Fluency Score) para esta frase. Si tu calificación es menor a 80% te recomiendo repetir la lección.",
+          "responseType": "success"
+        }
+      ],
+      "nextLessonId": "a"
+    },
+    {
       "lessonId": "g",
       "title": {
         "en": "Grocery Shopping",
