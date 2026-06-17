@@ -170,6 +170,7 @@ export default function SimpleVideoPlayer() {
     // Delayed play after React mount
     useEffect(() => {
         if (!isActive || !videoRef.current) return;
+
         const tryPlay = () => {
             const video = videoRef.current;
             const p = video.play();
@@ -182,21 +183,54 @@ export default function SimpleVideoPlayer() {
                 });
             }
         };
+
+        let pendingCleanup = null;
+
+        const attemptAutoplay = () => {
+            const video = videoRef.current;
+            if (!video) return;
+            if (video.readyState >= 2) {
+                tryPlay();
+                return;
+            }
+            // readyState < 2: use 'canplay' (fires at readyState >= 2), not 'loadedmetadata'
+            // (fires at readyState >= 1). If readyState is already 1, loadedmetadata has
+            // already fired and won't fire again — canplay is the correct gate event.
+            const onReady = () => {
+                video.removeEventListener('canplay', onReady);
+                clearTimeout(timeoutId);
+                tryPlay();
+            };
+            const timeoutId = setTimeout(() => {
+                video.removeEventListener('canplay', onReady);
+                console.warn('[SimpleVideo] Video did not become ready within 10s.');
+            }, 10000);
+            video.addEventListener('canplay', onReady);
+            pendingCleanup = () => {
+                video.removeEventListener('canplay', onReady);
+                clearTimeout(timeoutId);
+            };
+        };
+
         if (pendingVideoPlayType === 'simple') {
             appStore.getState().setPendingVideoPlayType(null);
-            tryPlay();
-            return;
+            attemptAutoplay();
+            return () => pendingCleanup?.();
         }
         if (appStore.getState().reactReady) {
-            tryPlay();
+            attemptAutoplay();
+            return () => pendingCleanup?.();
         } else {
             const unsub = appStore.subscribe((state) => {
                 if (state.reactReady) {
                     unsub();
-                    tryPlay();
+                    attemptAutoplay();
                 }
             });
-            return unsub;
+            return () => {
+                unsub();
+                pendingCleanup?.();
+            };
         }
     }, [isActive, pendingVideoPlayType]);
 

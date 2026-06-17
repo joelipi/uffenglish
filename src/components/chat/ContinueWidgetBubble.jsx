@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { DEFAULT_BOT_NAME, DEFAULT_AVATAR_URL } from '../../modules/user/tutor-config.js';
@@ -23,32 +23,28 @@ export default function ContinueWidgetBubble({ onClick, nextStepVideoUrl }) {
     const isCameraOff = useStore(appStore, (state) => state.isCameraOff);
     const lang = useStore(appStore, (state) => state.userData?.native_language) || 'en';
     const videoRef = useRef(null);
+    const [isReady, setIsReady] = useState(false);
 
     useEffect(() => {
+        setIsReady(false);
         const video = videoRef.current;
         if (!video || !nextStepVideoUrl) return;
 
         video.muted = true;
         video.playsInline = true;
 
-        const onFrameLoaded = () => {
-            video.pause();
+        const onReady = () => {
+            setIsReady(true);
         };
-        video.addEventListener('loadeddata', onFrameLoaded);
+        video.addEventListener('loadeddata', onReady);
 
-        // Must call play() for the browser to decode a frame.
-        // Muted autoplay is allowed by all modern browsers.
-        video.play().catch((err) => {
-            console.log('Video background autoplay prevented:', err);
-        });
+        // If the video is already cached and ready, set isReady immediately
+        if (video.readyState >= 2) {
+            setIsReady(true);
+        }
 
         return () => {
-            video.removeEventListener('loadeddata', onFrameLoaded);
-            try {
-                video.pause();
-            } catch (e) {
-                /* ignore */
-            }
+            video.removeEventListener('loadeddata', onReady);
         };
     }, [nextStepVideoUrl]);
 
@@ -85,6 +81,7 @@ export default function ContinueWidgetBubble({ onClick, nextStepVideoUrl }) {
                             playsInline
                             preload="auto"
                             crossOrigin="anonymous"
+                            style={{ visibility: isReady ? 'visible' : 'hidden' }}
                         />
                     )}
                     <div className="incoming-video-inner">

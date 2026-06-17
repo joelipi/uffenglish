@@ -54,8 +54,10 @@ export const Media = {
         preloadOnly(url) {
             if (!url) return;
             // Intentional raw fetch() — browser cache-warming side effect, not data retrieval.
-            // The response is never read; TanStack Query would add overhead with zero benefit.
-            fetch(url, { method: 'HEAD', mode: 'no-cors' }).catch(() => {});
+            // Uses default CORS mode (not 'no-cors') so the cached response is usable
+            // by video elements with crossOrigin="anonymous". A no-cors opaque response
+            // cannot serve a subsequent CORS request.
+            fetch(url).catch(() => {});
         },
         destroy() {
             // fetch-based preloading needs no cleanup

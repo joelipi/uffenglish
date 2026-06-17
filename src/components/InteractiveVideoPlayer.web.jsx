@@ -198,21 +198,52 @@ export default function InteractiveVideoPlayer() {
             }
         };
 
+        let pendingCleanup = null;
+
+        const attemptAutoplay = () => {
+            const video = videoRef.current;
+            if (!video) return;
+            if (video.readyState >= 2) {
+                tryPlay();
+                return;
+            }
+            // readyState < 2: use 'canplay' (fires at readyState >= 2), not 'loadedmetadata'
+            // (fires at readyState >= 1). If readyState is already 1, loadedmetadata has
+            // already fired and won't fire again — canplay is the correct gate event.
+            const onReady = () => {
+                video.removeEventListener('canplay', onReady);
+                clearTimeout(timeoutId);
+                tryPlay();
+            };
+            const timeoutId = setTimeout(() => {
+                video.removeEventListener('canplay', onReady);
+                console.warn('[InteractiveVideo] Video did not become ready within 10s.');
+            }, 10000);
+            video.addEventListener('canplay', onReady);
+            pendingCleanup = () => {
+                video.removeEventListener('canplay', onReady);
+                clearTimeout(timeoutId);
+            };
+        };
+
         if (pendingVideoPlayType === 'interactive') {
             appStore.getState().setPendingVideoPlayType(null);
-            tryPlay();
-            return;
+            attemptAutoplay();
+            return () => pendingCleanup?.();
         }
 
         if (appStore.getState().reactReady) {
-            tryPlay();
-            return;
+            attemptAutoplay();
+            return () => pendingCleanup?.();
         }
 
         const unsub = appStore.subscribe((state) => {
-            if (state.reactReady) { unsub(); tryPlay(); }
+            if (state.reactReady) { unsub(); attemptAutoplay(); }
         });
-        return unsub;
+        return () => {
+            unsub();
+            pendingCleanup?.();
+        };
     }, [isActive, pendingVideoPlayType]);
 
     // -------------------------------------------------------------------------

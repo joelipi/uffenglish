@@ -1,5 +1,5 @@
 // --- modules/video-loader.web.js ---
-// Web-only module — reads window.preloadedMedia for cache-hit video URLs.
+// Web-only module — resolves video URLs and writes video config to the Zustand store.
 // React Native replaces this with video-loader.native.js.
 // This module resolves video URLs and writes video config to the Zustand store.
 // The actual player instantiation is handled by the React wrappers

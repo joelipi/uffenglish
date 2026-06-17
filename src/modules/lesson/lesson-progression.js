@@ -54,18 +54,22 @@ export function createProgression(deps) {
 
         appStore.setState({ currentStepIndex: appStore.getState().currentStepIndex + 1 });
         const nextStep = currentLesson.steps[appStore.getState().currentStepIndex];
+        // callLoadStep must run before setPendingVideoPlayType so the new video element
+        // is mounted before the video players' useLayoutEffect consumes the iOS transient
+        // user activation. See iOS video playback fix.
+        if (appStore.getState().currentStepIndex < currentLesson.steps.length) {
+            _deps.callLoadStep(currentLesson.steps[appStore.getState().currentStepIndex], currentLesson, fluencyData);
+        } else {
+            if (currentLesson.nextLessonId) loadNextLesson({ callLoadStep: _deps.callLoadStep, loadLessonContent });
+            else showCompletionMessage();
+        }
+
         if (nextStep) {
             if (nextStep.interactiveVideoUrl) {
                 appStore.getState().setPendingVideoPlayType('interactive');
             } else if (nextStep.simpleVideoUrl) {
                 appStore.getState().setPendingVideoPlayType('simple');
             }
-        }
-        if (appStore.getState().currentStepIndex < currentLesson.steps.length) {
-            _deps.callLoadStep(currentLesson.steps[appStore.getState().currentStepIndex], currentLesson, fluencyData);
-        } else {
-            if (currentLesson.nextLessonId) loadNextLesson({ callLoadStep: _deps.callLoadStep, loadLessonContent });
-            else showCompletionMessage();
         }
     }
 
