@@ -34,13 +34,19 @@ export default function ContinueWidgetBubble({ onClick, nextStepVideoUrl }) {
         video.playsInline = true;
 
         const onReady = () => {
-            setIsReady(true);
+            // Double rAF to ensure the first frame is painted before revealing.
+            // See comment in IncomingVideoWidget for rationale.
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => setIsReady(true));
+            });
         };
         video.addEventListener('loadeddata', onReady);
 
         // If the video is already cached and ready, set isReady immediately
         if (video.readyState >= 2) {
-            setIsReady(true);
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => setIsReady(true));
+            });
         }
 
         return () => {
@@ -81,7 +87,7 @@ export default function ContinueWidgetBubble({ onClick, nextStepVideoUrl }) {
                             playsInline
                             preload="auto"
                             crossOrigin="anonymous"
-                            style={{ visibility: isReady ? 'visible' : 'hidden' }}
+                            style={{ opacity: isReady ? 1 : 0, transition: 'opacity 0.15s ease-in' }}
                         />
                     )}
                     <div className="incoming-video-inner">

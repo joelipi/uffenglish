@@ -193,9 +193,10 @@ export default function SimpleVideoPlayer() {
                 tryPlay();
                 return;
             }
-            // readyState < 2: use 'canplay' (fires at readyState >= 2), not 'loadedmetadata'
-            // (fires at readyState >= 1). If readyState is already 1, loadedmetadata has
-            // already fired and won't fire again — canplay is the correct gate event.
+            // readyState < 2: call video.load() to resume buffering past metadata.
+            // With preload='metadata', the browser stops after readyState=1 and
+            // never fires canplay without an explicit load().
+            video.load();
             const onReady = () => {
                 video.removeEventListener('canplay', onReady);
                 clearTimeout(timeoutId);

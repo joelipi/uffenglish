@@ -14,6 +14,15 @@ export default function PlaybackVideo() {
     const prevClearTrigger = useRef(videoClearTrigger);
     const prevPlayTrigger = useRef(videoPlayTrigger);
 
+    const handleVideoEnded = () => {
+        const video = videoRef.current;
+        if (!video) return;
+        video.muted = true;
+        video.loop = true;
+        appStore.getState().setPlaybackMuted(true);
+        video.play().catch(e => console.warn('[playback] replay after mute failed:', e));
+    };
+
     const handleVideoError = () => {
         const video = videoRef.current;
         if (!video) return;
@@ -27,6 +36,8 @@ export default function PlaybackVideo() {
         const video = videoRef.current;
         if (!video) return;
         if (mediaState !== 'chat' && autoplay) {
+            video.muted = false;
+            appStore.getState().setPlaybackMuted(false);
             video.play().catch(e => {
                 if (e.name === 'NotAllowedError') {
                     appStore.getState().setPlaybackMuted(true);
@@ -112,7 +123,7 @@ export default function PlaybackVideo() {
         <div id="playback-video-wrapper"
             className={`playback-video-container position-absolute top-0 start-0 w-100 h-100 ${visible ? '' : 'd-none'}`}
             style={{ zIndex: 10 }}>
-            <video ref={videoRef} id="playback-video" playsInline preload="auto" controls={isIOS} loop muted={isMuted} onError={handleVideoError} onLoadedData={() => {}} onLoadedMetadata={handleLoadedMetadata}
+            <video ref={videoRef} id="playback-video" playsInline preload="auto" controls={isIOS} muted={isMuted} onEnded={handleVideoEnded} onError={handleVideoError} onLoadedData={() => {}} onLoadedMetadata={handleLoadedMetadata}
                 onClick={() => {
                     const video = videoRef.current;
                     if (!video) return;

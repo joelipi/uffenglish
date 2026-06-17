@@ -23,7 +23,12 @@ export default function IncomingVideoWidget() {
             video.currentTime = 0;
             video.pause();
         }
-        setIsReady(true);
+        // Double rAF to ensure the first frame is painted before revealing.
+        // Without this, the video element becomes visible (via opacity transition)
+        // before the decoded frame has been composited, causing a blank-frame flash.
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => setIsReady(true));
+        });
     };
 
     useEffect(() => {
@@ -70,7 +75,7 @@ export default function IncomingVideoWidget() {
             <div className="pulse-ring-wrapper">
                 <div className="pulse-ring"></div>
                 <div className="intro-video-container">
-                    <video ref={videoRef} className="intro-video" playsInline preload={isIOS ? 'metadata' : 'auto'} crossOrigin="anonymous" muted onLoadedData={onLoadedData} style={{ visibility: isReady ? 'visible' : 'hidden' }} />
+                    <video ref={videoRef} className="intro-video" playsInline preload={isIOS ? 'metadata' : 'auto'} crossOrigin="anonymous" muted onLoadedData={onLoadedData} style={{ opacity: isReady ? 1 : 0, transition: 'opacity 0.15s ease-in' }} />
                     <div className="intro-notification-content">
                         <div className="intro-notification-top">
                             <div className="intro-call-title">
