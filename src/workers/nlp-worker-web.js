@@ -1,6 +1,7 @@
 // nlp-worker-web.js
 
 import { pipeline, cos_sim, env } from '@huggingface/transformers';
+import { applyIOSWorkaround } from '../utils/iosWorkaround.js';
 import Tokenizer from 'wink-tokenizer';
 
 env.allowLocalModels = false;
@@ -9,6 +10,8 @@ env.backends.onnx.wasm.numThreads = 1;
 env.backends.onnx.wasm.simd = false;
 env.backends.onnx.wasm.proxy = false;
 env.backends.onnx.wasm.wasmPaths = '/wasm/';
+
+applyIOSWorkaround();
 
 const tokenizer = new Tokenizer();
 let zeroShotClassifier = null;

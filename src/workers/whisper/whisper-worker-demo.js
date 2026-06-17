@@ -1,21 +1,53 @@
-import { pipeline, env } from '@huggingface/transformers';
+// ── Step 1: Imports ────────────────────────────────────────────────────
+// On iOS, we load ORT 1.17.3 which has capped MAXIMUM_MEMORY (no OOM).
+// On all other platforms, we let transformers use its bundled ORT.
+import { isIOS } from '../../utils/detectIOS.js';
 
-// Keep logs enabled: stubbing console.log / console.time breaks onnxruntime-web
-// internal profiling on some platforms (Android).
 const SILENT_LOGS = false;
 
-// Workers' console output doesn't appear in Safari Web Inspector main-thread view.
-// Use postDiag() to relay diagnostics to the main thread.
 function postDiag(msg) {
     self.postMessage({ type: 'diag', message: msg });
 }
 
+postDiag('Worker started, platform=' + (navigator.platform || '?'));
+
+// ── Step 2: On iOS ONLY, load ORT 1.17.3 and set global symbol ─────────
+// transformers checks globalThis[Symbol.for('onnxruntime')] on startup.
+// If set, it uses that ORT instead of its bundled copy.
+let pipeline, env;
+
+if (isIOS()) {
+    postDiag('iOS detected — loading ORT 1.17.3 from CDN');
+    const ort = await import('onnxruntime-web');
+    ort.env.wasm.wasmPaths = 'https://cdnjs.cloudflare.com/ajax/libs/onnxruntime-web/1.17.3/';
+    ort.env.wasm.simd = false;
+    ort.env.wasm.numThreads = 1;
+    globalThis[Symbol.for('onnxruntime')] = ort;
+    postDiag('ORT 1.17.3 registered globally');
+} else {
+    // Non-iOS: single-thread for Cloudflare Pages, use default bundled ORT
+    postDiag('Non-iOS — using bundled ORT');
+}
+
+// ── Step 3: Import transformers (uses our ORT on iOS, bundled on others)
+const tf = await import('@huggingface/transformers');
+pipeline = tf.pipeline;
+env = tf.env;
+
+// ── Step 5: Configure transformers env ────────────────────────────────
 env.allowLocalModels = false;
 env.useBrowserCache = true;
 env.remoteHost = 'https://r2.ultrafastfluency.com';
 env.remotePathTemplate = 'whisper/{model}/';
 
-postDiag('Transformers.js version: 3.8.1');
+env.backends.onnx.wasm.numThreads = 1;
+env.backends.onnx.wasm.proxy = false;
+
+postDiag('Transformers.js version: ' + (env.version || '?'));
+postDiag('wasmPaths: ' + env.backends.onnx.wasm.wasmPaths);
+postDiag('numThreads: ' + env.backends.onnx.wasm.numThreads);
+
+// ── Step 6: Rest of worker (unchanged from here) ──────────────────────
 
 const DEMO_CACHE_NAME = 'uff-whisper-demo-cache-v1';
 const DEMO_MODEL_FILES = [
@@ -39,58 +71,7 @@ async function loadAndCacheFile(filePath) {
 
     const buffer = await response.arrayBuffer();
     await cache.put(url, new Response(buffer, { headers: response.headers }));
-    // Re-read from cache instead of holding the buffer in memory
     return await cache.match(url);
-}
-
-        //WebGPU wasn't working on Android so I'm giving up for now
-/*
-async function detectWebGPUSupport() {
-    try {
-        if (!navigator.gpu) return false;
-        const adapter = await navigator.gpu.requestAdapter();
-        if (!adapter) return false;
-        const device = await adapter.requestDevice();
-        device.destroy();
-        return true;
-    } catch {
-        return false;
-    }
-}
-*/
-
-// Single-thread only: ONNX WASM multi-threading (>1) hangs the pipeline
-// on Cloudflare Pages. The 1-thread path is stable everywhere.
-env.backends.onnx.wasm.numThreads = 1;
-env.backends.onnx.wasm.proxy = false;
-
-// Cap WASM memory to prevent virtual address reservation OOM on older iOS devices.
-try {
-    const wasmMem = new WebAssembly.Memory({
-        initial: 256,   // 16 MB
-        maximum: 2048,  // 128 MB — avoids 2 GB reservation; 64 MB was too low
-    });
-
-    let peakWasmMB = 0;
-    const originalGrow = wasmMem.grow.bind(wasmMem);
-    wasmMem.grow = function (pages) {
-        const beforeMB = (this.buffer.byteLength / 1048576).toFixed(1);
-        try {
-            const result = originalGrow(pages);
-            const afterMB = (this.buffer.byteLength / 1048576).toFixed(1);
-            peakWasmMB = Math.max(peakWasmMB, parseFloat(afterMB));
-            postDiag('WASM grow: ' + beforeMB + ' MB -> ' + afterMB + ' MB (peak ' + peakWasmMB + ' MB)');
-            return result;
-        } catch (e) {
-            postDiag('WASM grow FAILED: ' + beforeMB + ' MB -> +' + (pages * 64 / 1024).toFixed(1) + ' MB, ' + e.message);
-            return -1;
-        }
-    };
-
-    env.backends.onnx.wasm.wasmMemory = wasmMem;
-    postDiag('wasmMemory set, max=128MB');
-} catch (e) {
-    postDiag('wasmMemory failed: ' + e.message);
 }
 
 postDiag('HW: mem=' + (navigator.deviceMemory || '?') + 'GB, cores=' + navigator.hardwareConcurrency);
@@ -130,13 +111,8 @@ async function tryBootPipeline(device) {
 
 async function bootWhisperEngine() {
     try {
-        // Don't set wasmPaths — let ORT resolve relative to the module worker's
-        // own URL. Vite's dev server can then intercept the dynamic import of
-        // the .mjs glue file from onnxruntime-web's module graph.
-        // In production, Vite already bundles the glue into the worker chunk.
         const coi = typeof crossOriginIsolated !== 'undefined' ? crossOriginIsolated : 'undefined';
         postDiag('crossOriginIsolated: ' + coi);
-        postDiag('WASM paths: ' + env.backends.onnx.wasm.wasmPaths);
 
         const devices = ['wasm'];
 
@@ -193,25 +169,19 @@ self.onmessage = async function (e) {
             self.postMessage({ type: 'result', text: null });
         }
     } else if (e.data.type === 'vad_analyze') {
-        // The demo worker doesn't have the Sherpa-ONNX VAD engine, 
-        // so we perform a basic threshold-based analysis to provide flow metrics.
         try {
             const audio = e.data.audio;
             const threshold = e.data.options?.threshold || 0.02;
             const sampleRate = e.data.options?.sampleRate || 16000;
 
-            // 1. DC Offset Removal (Average out the first 50ms to remove hum)
             let dcOffset = 0;
             const dcWindow = Math.floor(0.05 * sampleRate);
             for (let i = 0; i < dcWindow && i < audio.length; i++) dcOffset += audio[i];
             dcOffset /= dcWindow;
             for (let i = 0; i < audio.length; i++) audio[i] -= dcOffset;
 
-            // 2. Sustained Speech Check with Hardware Pop Suppression
-            const minSpeechFrames = Math.floor(0.025 * sampleRate); // 25ms window
+            const minSpeechFrames = Math.floor(0.025 * sampleRate);
             let start = audio.length;
-
-            // Skip the first 100ms for onset detection to ignore mic connection pops
             let tempStart = Math.floor(0.1 * sampleRate);
 
             while (tempStart < audio.length) {
@@ -228,11 +198,9 @@ self.onmessage = async function (e) {
                 tempStart++;
             }
 
-            // If no speech found after the 100ms skip, check if it was actually in the first 100ms
-            // but only if it's extremely loud (likely a fast response, not a pop)
             if (start === audio.length) {
                 for (let i = 0; i < Math.floor(0.1 * sampleRate); i++) {
-                    if (Math.abs(audio[i]) > threshold * 3) { // 3x threshold
+                    if (Math.abs(audio[i]) > threshold * 3) {
                         start = i;
                         break;
                     }
@@ -255,7 +223,7 @@ self.onmessage = async function (e) {
                     speechStart: start / sampleRate,
                     speechEnd: end / sampleRate
                 },
-                trimmedAudio: audio // Pass full audio, no slicing
+                trimmedAudio: audio
             });
         } catch (error) {
             console.error('[whisper-demo] VAD analysis failed:', error);

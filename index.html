@@ -197,15 +197,13 @@
             </div>
     </main>
 
-    <!-- Eruda console (loaded only when ?demo is in the URL) -->
+    <!-- Eruda console (always loaded for debugging) -->
     <script>
         (function () {
-            if (new URLSearchParams(window.location.search).has('demo')) {
-                var script = document.createElement('script');
-                script.src = 'https://cdn.jsdelivr.net/npm/eruda';
-                script.onload = function () { eruda.init(); };
-                document.body.appendChild(script);
-            }
+            var script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/eruda';
+            script.onload = function () { eruda.init(); };
+            document.body.appendChild(script);
         })();
     </script>
 

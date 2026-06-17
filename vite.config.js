@@ -48,7 +48,7 @@ export default defineConfig({
                 'btn-bounce',
                 'expanded',
             ]
-        })
+        }),
     ],
     optimizeDeps: {
         include: ['@huggingface/transformers'],

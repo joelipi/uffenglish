@@ -1,4 +1,28 @@
 // whisper-worker-web.js v5 - Aggressive Parallelization
+
+// iOS detection (cannot use ES module imports in classic worker)
+function isIOSWorker() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
+    /iPad/i.test(navigator.platform);
+}
+
+// ── Startup diagnostics — must fire before anything else ───────────────
+// Post directly (postDiag not defined yet) so we can tell if the worker
+// even loads on iOS. Also catch unhandled errors.
+self.postMessage({ type: 'diag', message: 'Worker started, platform=' + (navigator.platform || '?') });
+
+self.onerror = function(e) {
+    self.postMessage({ type: 'diag', message: 'UNHANDLED ERROR: ' + (e.message || e) });
+};
+self.onunhandledrejection = function(e) {
+    self.postMessage({ type: 'diag', message: 'UNHANDLED REJECTION: ' + (e.reason?.message || e.reason || e) });
+};
+
+function postDiag(msg) {
+    self.postMessage({ type: 'diag', message: msg });
+}
+
 // SILENCE LOGS FOR PRODUCTION/CLEAN CONSOLE
 const SILENT_LOGS = true; 
 if (SILENT_LOGS) {
@@ -7,10 +31,6 @@ if (SILENT_LOGS) {
     console.timeEnd = () => {};
     // Workers' console.warn/error don't appear in Safari Web Inspector
     // main-thread view. Use postDiag() to relay diagnostics to main thread.
-}
-
-function postDiag(msg) {
-    self.postMessage({ type: 'diag', message: msg });
 }
 const WHISPER_BASE_PATH = 'https://r2.ultrafastfluency.com/whisper/';
 const MODEL_CACHE_NAME = 'uff-whisper-cache-v3';
@@ -100,7 +120,11 @@ async function bootWhisperEngine() {
             const dm = navigator.deviceMemory || '?';
             const hc = navigator.hardwareConcurrency || '?';
             const sab = typeof SharedArrayBuffer !== 'undefined' ? 'yes' : 'no';
-            const safeThreads = (dm < 4 || dm === '?') ? 2 : Math.min(hc || 4, 8);
+            let safeThreads = (dm < 4 || dm === '?') ? 2 : Math.min(hc || 4, 8);
+            if (isIOSWorker()) {
+                postDiag('iOS detected — forcing single-threaded to avoid WASM pthread hang');
+                safeThreads = 1;
+            }
             postDiag('HW: mem=' + dm + 'GB, cores=' + hc + ', threads=' + safeThreads + ', SAB=' + sab);
             try {
                 let config = {
