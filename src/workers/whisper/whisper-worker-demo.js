@@ -1,7 +1,6 @@
 // ── Step 1: Imports ────────────────────────────────────────────────────
-// On iOS, we load ORT 1.17.3 which has capped MAXIMUM_MEMORY (no OOM).
-// On all other platforms, we let transformers use its bundled ORT.
-import { isIOS } from '../../utils/detectIOS.js';
+// iOS workaround disabled — iOS now uses bundled ORT like all other platforms.
+// import { isIOS } from '../../utils/detectIOS.js';
 
 const SILENT_LOGS = false;
 
@@ -11,23 +10,13 @@ function postDiag(msg) {
 
 postDiag('Worker started, platform=' + (navigator.platform || '?'));
 
-// ── Step 2: On iOS ONLY, load ORT 1.17.3 and set global symbol ─────────
+// ── Step 2: iOS workaround disabled — all platforms use the same ORT path ──
 // transformers checks globalThis[Symbol.for('onnxruntime')] on startup.
 // If set, it uses that ORT instead of its bundled copy.
 let pipeline, env;
 
-if (isIOS()) {
-    postDiag('iOS detected — loading ORT 1.17.3 from CDN');
-    const ort = await import('onnxruntime-web');
-    ort.env.wasm.wasmPaths = 'https://cdnjs.cloudflare.com/ajax/libs/onnxruntime-web/1.17.3/';
-    ort.env.wasm.simd = false;
-    ort.env.wasm.numThreads = 1;
-    globalThis[Symbol.for('onnxruntime')] = ort;
-    postDiag('ORT 1.17.3 registered globally');
-} else {
-    // Non-iOS: single-thread for Cloudflare Pages, use default bundled ORT
-    postDiag('Non-iOS — using bundled ORT');
-}
+// iOS now uses the same bundled ORT as other devices
+postDiag('Using bundled ORT');
 
 // ── Step 3: Import transformers (uses our ORT on iOS, bundled on others)
 const tf = await import('@huggingface/transformers');

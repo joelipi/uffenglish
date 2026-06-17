@@ -7,7 +7,8 @@ import { appStore, setWebcamStream } from '../store/store.js';
 
 import { transcribeAudioBuffer, analyzeAudioBufferWithVAD, preloadWhisperEngine } from '../../workers/whisper/app-vad-asr-web.js';
 
-export const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+// iOS detection disabled — iOS now uses same path as other devices
+// export const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 export const isWindows = navigator.platform.indexOf('Win') > -1;
 
 
@@ -109,14 +110,10 @@ export async function startSpeechCamRecording(micStatusText, userData) {
         setWebcamStream(speechCamStream);
 
         let mimeType = '';
-        if (isIOS) {
-            if (MediaRecorder.isTypeSupported('video/mp4;codecs=avc1.42E01E')) mimeType = 'video/mp4;codecs=avc1.42E01E';
-            else if (MediaRecorder.isTypeSupported('video/mp4')) mimeType = 'video/mp4';
-        } else {
-            if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) mimeType = 'video/webm;codecs=vp9';
-            else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) mimeType = 'video/webm;codecs=vp8';
-            else mimeType = 'video/webm';
-        }
+        // iOS codec workaround disabled — iOS now uses same codec selection as other devices
+        if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) mimeType = 'video/webm;codecs=vp9';
+        else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) mimeType = 'video/webm;codecs=vp8';
+        else mimeType = 'video/webm';
 
         const options = mimeType ? { mimeType } : {};
         if (!mimeType) console.warn('[Recording] No preferred MIME type supported; using browser default');
@@ -144,7 +141,7 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
         if (speechCamRecorder && speechCamRecorder.state !== 'inactive') {
             const recorder = speechCamRecorder;
             const chunks = speechCamChunks;
-            const mime = recorder.mimeType || (isIOS ? 'video/mp4' : 'video/webm');
+            const mime = recorder.mimeType || 'video/webm';
 
             speechCamRecorder = null;
             // Moved clearing of chunks to the finally block below to prevent race conditions

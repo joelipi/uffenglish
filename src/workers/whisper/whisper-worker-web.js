@@ -1,11 +1,11 @@
 // whisper-worker-web.js v5 - Aggressive Parallelization
 
-// iOS detection (cannot use ES module imports in classic worker)
-function isIOSWorker() {
-  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
-    /iPad/i.test(navigator.platform);
-}
+// iOS detection — commented out so iOS uses the same path as other devices
+// function isIOSWorker() {
+//   return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+//     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
+//     /iPad/i.test(navigator.platform);
+// }
 
 // ── Startup diagnostics — must fire before anything else ───────────────
 // Post directly (postDiag not defined yet) so we can tell if the worker
@@ -121,10 +121,11 @@ async function bootWhisperEngine() {
             const hc = navigator.hardwareConcurrency || '?';
             const sab = typeof SharedArrayBuffer !== 'undefined' ? 'yes' : 'no';
             let safeThreads = (dm < 4 || dm === '?') ? 2 : Math.min(hc || 4, 8);
-            if (isIOSWorker()) {
-                postDiag('iOS detected — forcing single-threaded to avoid WASM pthread hang');
-                safeThreads = 1;
-            }
+            // iOS workaround disabled — iOS now uses the same thread count as other devices
+            // if (isIOSWorker()) {
+            //     postDiag('iOS detected — forcing single-threaded to avoid WASM pthread hang');
+            //     safeThreads = 1;
+            // }
             postDiag('HW: mem=' + dm + 'GB, cores=' + hc + ', threads=' + safeThreads + ', SAB=' + sab);
             try {
                 let config = {
