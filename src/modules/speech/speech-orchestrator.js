@@ -269,7 +269,7 @@ export function createSpeechOrchestrator({
 
                 let rawAudioData;
                 try {
-                    rawAudioData = stopLocalAudioTap();
+                    rawAudioData = await stopLocalAudioTap();
                 } catch (e) {
                     console.error('[DBUG] stopLocalAudioTap threw:', e);
                     stopListeningEarly(userData, player, uiHooks);

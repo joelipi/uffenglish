@@ -197,15 +197,44 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
 export async function startLocalAudioTap(stream, onSpeechDetected = null) {
     localRawAudioChunks = [];
 
-    if (!localAudioContext) {
-        localAudioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+    // ── Fresh AudioContext every cycle ──────────────────────────────────
+    //
+    // Previously we held a single AudioContext across recordings,
+    // suspending it between taps.  This caused a persistent bug on
+    // iOS Safari: WebKit's AudioWorkletProcessor silently degrades
+    // after repeated suspend/resume cycles, eventually returning
+    // corrupted PCM (all-zeros, wrong sample-rate data, or garbage).
+    // Whisper hallucinates text like "music" from that bad input and
+    // keeps doing so until the page is reloaded (which destroys the
+    // AudioContext).
+    //
+    // The fix is to close and discard the old AudioContext after every
+    // recording and create a brand-new one here.  This ensures the
+    // worklet thread starts with a clean clock, a fresh ring buffer,
+    // and no accumulated state.  The small latency cost of creating a
+    // new AudioContext is acceptable for the reliability gain.
+    //
+    if (localAudioContext) {
+        try {
+            await localAudioContext.close();
+        } catch (e) {
+            console.warn('[Speech] Error closing previous AudioContext:', e.message);
+        } finally {
+            localAudioContext = null;
+        }
     }
 
-    if (localAudioContext.state === 'suspended') {
-        await localAudioContext.resume();
-    }
+    // Create a new AudioContext at 16 kHz.  Note: on iOS Safari the
+    // hardware runs at 48 kHz and WebKit may silently resample; we
+    // log the actual sample rate so we can spot a mismatch in diags.
+    localAudioContext = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+    console.log('[Speech] AudioContext created, actual sampleRate:', localAudioContext.sampleRate);
 
-    // Load the worklet module if not already loaded
+    // ── AudioWorklet module ────────────────────────────────────────────
+    // Even if the same URL was loaded on a previous AudioContext, we
+    // must call addModule() again — the processor registration is
+    // per-context.  The browser may serve the module script from its
+    // internal cache so the second load is typically instant.
     try {
         const workletUrl = new URL('../../workers/whisper/audio-processor.js', import.meta.url);
         await localAudioContext.audioWorklet.addModule(workletUrl);
@@ -257,15 +286,41 @@ export async function startLocalAudioTap(stream, onSpeechDetected = null) {
     silentGain.connect(localAudioContext.destination);
 }
 
-export function stopLocalAudioTap() {
+export async function stopLocalAudioTap() {
+    // ── Tear down the worklet node ─────────────────────────────────────
+    // Disconnect before closing the AudioContext so the worklet's
+    // process() method is no longer called while we finalise audio.
     if (localAudioWorkletNode) {
         localAudioWorkletNode.disconnect();
         localAudioWorkletNode = null;
-        // We keep the AudioContext alive but suspended to save resources 
-        // and allow for faster re-initialization.
-        if (localAudioContext) localAudioContext.suspend();
     }
 
+    // ── Close (don't suspend) the AudioContext ─────────────────────────
+    // Previously we suspended the AudioContext to save creation cost on
+    // the next tap.  This caused iOS Safari's AudioWorkletProcessor to
+    // silently degrade after a few cycles (see startLocalAudioTap for
+    // the full explanation).  Closing it completely destroys the
+    // worklet thread and frees all associated memory, guaranteeing a
+    // clean slate when the next recording starts.
+    //
+    // AudioContext.close() is async per spec (returns a Promise).  We
+    // await it so the caller knows the context is fully torn down
+    // before proceeding.
+    //
+    // Capture the sampleRate *before* close() since we null the ref
+    // in the finally block and still want it for the diagnostic log.
+    const closedSampleRate = localAudioContext?.sampleRate;
+    if (localAudioContext) {
+        try {
+            await localAudioContext.close();
+        } catch (e) {
+            console.warn('[Speech] Error closing AudioContext:', e.message);
+        } finally {
+            localAudioContext = null;
+        }
+    }
+
+    // ── Flatten audio chunks into a single Float32Array for Whisper ────
     const totalLength = localRawAudioChunks.reduce((acc, chunk) => acc + chunk.length, 0);
     const flattenedAudio = new Float32Array(totalLength);
     let offset = 0;
@@ -273,6 +328,18 @@ export function stopLocalAudioTap() {
         flattenedAudio.set(chunk, offset);
         offset += chunk.length;
     }
+
+    // Diagnostic: log amplitude stats for the captured audio.
+    // If maxAmp stays near 0.0 it suggests the AudioWorklet produced
+    // silence or garbage (the iOS degradation symptom).  This lets us
+    // confirm the fix is working or detect new failures in the field
+    // without relying on user reports.
+    let maxAmp = 0;
+    for (let i = 0; i < flattenedAudio.length; i++) {
+        const abs = Math.abs(flattenedAudio[i]);
+        if (abs > maxAmp) maxAmp = abs;
+    }
+    console.log(`[Speech] Captured ${flattenedAudio.length} samples, max amplitude: ${maxAmp.toFixed(4)}, sampleRate: ${closedSampleRate ?? 'N/A'}`);
 
     localRawAudioChunks = [];
     return flattenedAudio;
