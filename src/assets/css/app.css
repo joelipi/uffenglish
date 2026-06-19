@@ -465,7 +465,7 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 }
 
 .mission-label {
-    font-size: 1.1rem;
+    font-size: 1rem;
     line-height: 1;
     color: #ffffff;
     flex-shrink: 0;
@@ -479,9 +479,10 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 .roleUser-text,
 .roleOther-text {
     color: #fff;
-    font-size: 15px;
+    font-size: 1rem;
     font-weight: 500;
-    flex-grow: 1;
+    line-height: 1;
+    flex-shrink: 1;
     min-width: 0;
     white-space: normal !important;
     word-break: break-word;
