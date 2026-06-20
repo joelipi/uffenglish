@@ -421,10 +421,16 @@ function parseEvaluationResult(rawText) {
   }
 
   // Newline-delimited parsing (primary format)
+  // Supports three formats per line:
+  //   1. LABEL: corrected text         (colon format)
+  //   2. [LABEL] corrected text        (bracket format)
+  //   3. LABEL                          (standalone label: OK, GIBBERISH, RUDE, etc.)
   const lines = text.split('\n');
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
+
+    // Try colon format: LABEL: text
     const colonIdx = trimmed.indexOf(':');
     if (colonIdx >= 0) {
       let label = trimmed.substring(0, colonIdx).trim().toLowerCase();
@@ -436,12 +442,40 @@ function parseEvaluationResult(rawText) {
         result.grammarCorrectedText = content;
       }
       result.finalCorrectedText = content;
-    } else {
-      const label = trimmed.toLowerCase();
-      if (label === 'ok') { result.labels.push('correct'); result.isCorrect = true; }
-      else if (label === 'gibberish') { result.labels.push('gibberish'); result.isGibberish = true; }
-      else { result.labels.push(label); }
+      continue;
     }
+
+    // Try bracket format: [LABEL] corrected text   or   [LABEL]
+    if (trimmed.startsWith('[')) {
+      const closeBracket = trimmed.indexOf(']');
+      if (closeBracket >= 0) {
+        let label = trimmed.substring(1, closeBracket).trim().toLowerCase();
+        const content = trimmed.substring(closeBracket + 1).trim();
+        if (label === 'natural') label = 'unnatural';
+        if (content) {
+          // Bracket format with correction text: [vocab] I don't want to lose my keys.
+          result.labels.push(label);
+          result.corrections.push({ label, correctedText: content });
+          if (label === 'grammar' && !result.grammarCorrectedText) {
+            result.grammarCorrectedText = content;
+          }
+          result.finalCorrectedText = content;
+        } else {
+          // Standalone bracket label: [RUDE], [PRAGMATIC_FAILURE], [OK], [GIBBERISH]
+          if (label === 'ok') { result.labels.push('correct'); result.isCorrect = true; }
+          else if (label === 'gibberish') { result.labels.push('gibberish'); result.isGibberish = true; }
+          else { result.labels.push(label); }
+        }
+        continue;
+      }
+      // Starts with [ but no closing bracket — fall through to raw label
+    }
+
+    // Raw label (no colon, not bracket-wrapped)
+    const label = trimmed.toLowerCase();
+    if (label === 'ok') { result.labels.push('correct'); result.isCorrect = true; }
+    else if (label === 'gibberish') { result.labels.push('gibberish'); result.isGibberish = true; }
+    else { result.labels.push(label); }
   }
 
   result.isCorrect = result.isCorrect || (result.labels.length === 1 && result.labels[0] === 'correct');

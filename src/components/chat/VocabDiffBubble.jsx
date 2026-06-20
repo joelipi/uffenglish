@@ -2,7 +2,7 @@ import React from 'react';
 import { computeGrammarDiff, isPunct } from '../../modules/utils/diff-utils.js';
 import { getBotIdentity } from '../../modules/user/bot-identity.js';
 
-export default function GrammarDiffBubble({
+export default function VocabDiffBubble({
     original,
     correction,
     score,
@@ -11,7 +11,8 @@ export default function GrammarDiffBubble({
     botName,
     avatarUrl
 }) {
-    const botInfo = getBotIdentity(sectionKey || 'grammar');
+    const botInfo = getBotIdentity(sectionKey || 'vocabulary');
+    // sectionKey is 'vocabulary' — matches BOT_IDENTITIES.vocabulary
     const displayBotName = botName || botInfo.name;
     const displayAvatar = avatarUrl || botInfo.avatar;
     const tokens = computeGrammarDiff(original || "", correction || "");
@@ -22,7 +23,7 @@ export default function GrammarDiffBubble({
     return (
         <div className="chat-message-row chat-message-row--system">
             <img src={displayAvatar} alt={displayBotName} className="chat-avatar-inline" />
-            <div className="chat-message-bubble chat-message-bubble--system" style={{ borderLeft: '4px solid #17a2b8' }}>
+            <div className="chat-message-bubble chat-message-bubble--system" style={{ borderLeft: '4px solid #6f42c1' }}>
                 <div className="chat-bubble-header">{displayBotName}</div>
                 {score !== undefined && (
                     <div>

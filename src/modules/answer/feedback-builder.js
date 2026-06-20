@@ -64,33 +64,54 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, stepData
 
     // AI-only sections (4-9)
     if (stepData.responseType === 'openResponse') {
-        // Build vocabulary data, push after other perfect stat bubbles
+        // Build vocabulary section — merges vocab diff + idiom display
         const idiomCount = speechAnalytics.foundIdioms ? speechAnalytics.foundIdioms.length : 0;
-        const vocabParts = [
-            { idiomCount, idioms: idiomCount > 0 ? speechAnalytics.foundIdioms : null }
-        ];
-        const vocabSection = {
-            type: 'stat',
-            key: 'vocabulary',
-            score: scoreData.subScores.vocabulary,
-            parts: vocabParts
-        };
+        const vocabDiffChunk = (result.explanations || []).find(e => e.type === 'vocab_diff');
+        const vocabScore = Math.round(scoreData.subScores.vocabulary);
+        const vocabParts = [];
+        if ((result.intentLabels || []).includes('gibberish')) {
+            vocabParts.push({ message: Strings.getBilingual('feedback_gibberish', lang).english });
+        }
+        if (idiomCount > 0) {
+            vocabParts.push({ idiomCount, idioms: speechAnalytics.foundIdioms });
+        }
+        const vocabSection = vocabDiffChunk
+            ? {
+                type: 'vocab',
+                key: 'vocabulary',
+                score: vocabScore,
+                errorCount: 1,
+                parts: vocabParts,
+                diff: { original: vocabDiffChunk.original, corrected: vocabDiffChunk.corrected }
+            }
+            : {
+                type: 'stat',
+                key: 'vocabulary',
+                score: vocabScore,
+                parts: vocabParts
+            };
 
-        // 5. Grammar - errorCount from diff presence; complexityScore passed as a field
+        // 5. Grammar — binary: diff present → error, no complexityScore
         const grammarDiffChunk = (result.explanations || []).find(e => e.type === 'grammar_diff');
-        const errorCount = grammarDiffChunk ? 1 : 0;
+        const grammarErrorCount = grammarDiffChunk ? 1 : 0;
+        const grammarParts = [];
+        if ((result.intentLabels || []).includes('gibberish')) {
+            grammarParts.push({ message: Strings.getBilingual('feedback_gibberish', lang).english });
+        }
         sections.push({
             type: 'grammar',
             key: 'grammar',
             score: Math.round(scoreData.subScores.grammar),
-            errorCount,
-            complexityScore: speechAnalytics.complexityScore,
+            errorCount: grammarErrorCount,
+            parts: grammarParts,
             diff: grammarDiffChunk ? { original: grammarDiffChunk.original, corrected: grammarDiffChunk.corrected } : null
         });
 
         // 6. Formality
         const formalityParts = [];
-        if ((result.intentLabels || []).includes('too_formal')) {
+        if ((result.intentLabels || []).includes('gibberish')) {
+            formalityParts.push({ message: Strings.getBilingual('feedback_gibberish', lang).english });
+        } else if ((result.intentLabels || []).includes('too_formal')) {
             formalityParts.push({ message: Strings.getBilingual('feedback_too_formal', lang).english });
         } else if ((result.intentLabels || []).includes('too_informal')) {
             formalityParts.push({ message: Strings.getBilingual('feedback_too_informal', lang).english });
@@ -104,7 +125,9 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, stepData
 
         // 7. Native-like
         const nativeLikeParts = [];
-        if ((result.intentLabels || []).includes('unnatural') || (result.intentLabels || []).includes('vocab')) {
+        if ((result.intentLabels || []).includes('gibberish')) {
+            nativeLikeParts.push({ message: Strings.getBilingual('feedback_gibberish', lang).english });
+        } else if ((result.intentLabels || []).includes('unnatural')) {
             nativeLikeParts.push({ message: Strings.getBilingual('feedback_unidiomatic', lang).english });
         }
         sections.push({
@@ -116,14 +139,18 @@ export function buildFeedbackData({ scoreData, speechAnalytics, result, stepData
 
         // 8. Understanding
         const understandingParts = [];
-        if ((result.intentLabels || []).includes('pragmatic_failure')) {
-            understandingParts.push({ message: Strings.getBilingual('feedback_pragmatic_failure', lang).english });
-        }
-        if ((result.intentLabels || []).includes('rude')) {
-            understandingParts.push({ message: Strings.getBilingual('feedback_rude', lang).english });
-        }
-        if ((result.intentLabels || []).includes('insensitive') || (result.intentLabels || []).includes('offensive')) {
-            understandingParts.push({ message: Strings.getBilingual('feedback_rude', lang).english });
+        if ((result.intentLabels || []).includes('gibberish')) {
+            understandingParts.push({ message: Strings.getBilingual('feedback_gibberish', lang).english });
+        } else {
+            if ((result.intentLabels || []).includes('pragmatic_failure')) {
+                understandingParts.push({ message: Strings.getBilingual('feedback_pragmatic_failure', lang).english });
+            }
+            if ((result.intentLabels || []).includes('rude')) {
+                understandingParts.push({ message: Strings.getBilingual('feedback_rude', lang).english });
+            }
+            if ((result.intentLabels || []).includes('insensitive') || (result.intentLabels || []).includes('offensive')) {
+                understandingParts.push({ message: Strings.getBilingual('feedback_rude', lang).english });
+            }
         }
         sections.push({
             type: 'stat',
@@ -174,7 +201,7 @@ export function buildExplanationData(explanations, fallbackExplanation) {
     }
 
     const chunks = explanations
-        .filter(chunk => chunk.type !== 'grammar_diff')
+        .filter(chunk => chunk.type !== 'grammar_diff' && chunk.type !== 'vocab_diff')
         .map(chunk => {
             if (typeof chunk === 'string') return { type: 'raw', content: chunk };
             switch (chunk.type) {

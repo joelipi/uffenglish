@@ -67,7 +67,6 @@ describe('scoring utilities', () => {
                 idiomCount: 1,
                 courseLevel: 'B1',
                 grammarErrorScore: 85,
-                complexityScore: 90,
                 labels: ['correct'],
                 attemptNumber: 1
             });
@@ -85,7 +84,6 @@ describe('scoring utilities', () => {
                 idiomCount: 1,
                 courseLevel: 'B1',
                 grammarErrorScore: 85,
-                complexityScore: 90,
                 labels: ['correct'],
                 attemptNumber: 2
             });
@@ -104,7 +102,6 @@ describe('scoring utilities', () => {
                 idiomCount: 1,
                 courseLevel: 'B1',
                 grammarErrorScore: 100,
-                complexityScore: 100,
                 labels: ['correct'],
                 attemptNumber: 1
             });

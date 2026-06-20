@@ -38,7 +38,18 @@ function mapSectionToMessage(section) {
             score: section.score,
             isPerfect: section.score === 100,
             errorCount: section.errorCount,
-            complexityScore: section.complexityScore,
+            original: section.diff?.original || '',
+            correction: section.diff?.corrected || ''
+        };
+    }
+    if (section.type === 'vocab') {
+        return {
+            role: 'system',
+            type: 'vocabDiff',
+            sectionKey: 'vocabulary',
+            score: section.score,
+            isPerfect: section.score === 100,
+            errorCount: section.errorCount,
             original: section.diff?.original || '',
             correction: section.diff?.corrected || ''
         };
@@ -728,8 +739,8 @@ export function createAnswerPipeline(deps) {
                 let grammarErrorScore = 100;
 
                 if (result && result.explanations) {
-                    const diffObj = result.explanations.find(e => e.type === 'grammar_diff');
-                    if (diffObj) {
+                    const grammarDiffObj = result.explanations.find(e => e.type === 'grammar_diff');
+                    if (grammarDiffObj) {
                         grammarErrorScore = 0;
                     }
                 }
@@ -744,7 +755,6 @@ export function createAnswerPipeline(deps) {
                     idiomCount: speechAnalytics?.foundIdioms ? speechAnalytics.foundIdioms.length : 0,
                     courseLevel: courseLevel,
                     grammarErrorScore: grammarErrorScore,
-                    complexityScore: speechAnalytics?.complexityScore || 100,
                     labels: result && result.intentLabels ? result.intentLabels : [],
                     attemptNumber: attemptNumber,
                     isTextMode: appStore.getState().isTextMode
@@ -758,7 +768,6 @@ export function createAnswerPipeline(deps) {
                     idiomCount: speechAnalytics?.foundIdioms ? speechAnalytics.foundIdioms.length : 0,
                     courseLevel: courseLevel,
                     grammarErrorScore,
-                    complexityScore: speechAnalytics?.complexityScore || 100,
                     labels: result && result.intentLabels ? result.intentLabels : [],
                     attemptNumber,
                     isTextMode: appStore.getState().isTextMode,

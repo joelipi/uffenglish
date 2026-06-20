@@ -18,6 +18,10 @@ const strings = {
         en: "GRAMMAR:",
         es: "GRAMÁTICA:"
     },
+    'stats_vocab_header': {
+        en: "VOCAB:",
+        es: "VOCABULARIO:"
+    },
     'stats_pragmatics_header': {
         en: "UNDERSTANDING:",
         es: "COMPRENSIÓN:"
@@ -361,6 +365,10 @@ const strings = {
     },
     'feedback_unidiomatic': {
         en: "That sounds a bit unnatural. Here is a more common way to say it."
+    },
+    'feedback_gibberish': {
+        en: "The system could not comprehend what you were trying to say.",
+        es: "El sistema no pudo comprender lo que intentabas decir."
     },
     'stats_repetitions_required': {
         en: "Repetitions:"

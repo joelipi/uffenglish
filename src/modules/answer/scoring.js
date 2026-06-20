@@ -36,7 +36,6 @@ export function calculateFluencyScore({
     idiomCount,
     courseLevel,
     grammarErrorScore,
-    complexityScore,
     labels,
     attemptNumber,
     isTextMode = false
@@ -70,36 +69,36 @@ export function calculateFluencyScore({
         }
     }
 
-    // 4. Vocabulary (5%)
-    let vocabScore = 100;
-    let threshold = 0;
-    if (courseLevel === 'B1') threshold = 1;
-    else if (courseLevel === 'B2') threshold = 2;
-    else if (courseLevel === 'C1' || courseLevel === 'C2') threshold = 3;
+    // 4. Vocabulary (5%) — binary: vocab label present → 0, else → 100
+    let vocabulary = labels.includes("vocab") ? 0 : 100;
+    // Idiom count is still computed for display but no longer factors into score
+    let idiomThreshold = 0;
+    if (courseLevel === 'B1') idiomThreshold = 1;
+    else if (courseLevel === 'B2') idiomThreshold = 2;
+    else if (courseLevel === 'C1' || courseLevel === 'C2') idiomThreshold = 3;
+    const idiomShortfall = (courseLevel && idiomCount < idiomThreshold) ? idiomThreshold - idiomCount : 0;
 
-    if (courseLevel && idiomCount < threshold) {
-        vocabScore = Math.max(0, 100 - ((threshold - idiomCount) * 25));
-    }
-    const vocabulary = vocabScore;
-
-    // 5. Grammar (5%)
-    const diffScore = grammarErrorScore !== undefined ? grammarErrorScore : 100;
-    let grammar;
-
-    if (['A0', 'A1', 'A2'].includes(courseLevel)) {
-        grammar = diffScore;
-    } else {
-        grammar = ((diffScore * 2) + (complexityScore ?? 100)) / 3;
-    }
+    // 5. Grammar (5%) — binary: error present → 0, else → 100
+    let grammar = grammarErrorScore !== undefined ? grammarErrorScore : 100;
 
     // 6. Formality (2.5%)
-    const formality = (labels.includes("too_formal") || labels.includes("too_informal")) ? 0 : 100;
+    let formality = (labels.includes("too_formal") || labels.includes("too_informal")) ? 0 : 100;
 
     // 7. Native-like (2.5%)
-    const nativeLike = (labels.includes("unnatural") || labels.includes("vocab")) ? 0 : 100;
+    let nativeLike = labels.includes("unnatural") ? 0 : 100;
 
     // 8. Understanding (35%)
-    const understanding = (labels.includes("pragmatic_failure") || labels.includes("rude") || labels.includes("insensitive") || labels.includes("offensive")) ? 0 : 100;
+    let understanding = (labels.includes("pragmatic_failure") || labels.includes("rude") || labels.includes("insensitive") || labels.includes("offensive")) ? 0 : 100;
+
+    // Gibberish overrides: zero out vocabulary, grammar, formality, nativeLike, understanding
+    // (Listening, Pronunciation, Flow are untouched)
+    if (labels.includes("gibberish")) {
+        vocabulary = 0;
+        grammar = 0;
+        formality = 0;
+        nativeLike = 0;
+        understanding = 0;
+    }
 
     let finalScore = 0;
 
@@ -163,11 +162,12 @@ export function calculateFluencyScore({
             hesitation: isTextMode ? null : hesitation,
             vocabulary,
             grammar,
-            diffScore,
             formality,
             nativeLike,
             understanding
-        }
+        },
+        // Display-only (not used in scoring)
+        idiomShortfall
     };
 }
 

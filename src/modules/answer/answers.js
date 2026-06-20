@@ -87,15 +87,36 @@ export async function processAnswerLogic({
             }
         }
 
+        // Discard no-op vocab corrections that normalize to the same as user response
+        if (labels.includes('vocab') && evaluation.finalCorrectedText) {
+            const normalizedVocab = await normalize(evaluation.finalCorrectedText.trim().toLowerCase());
+            if (normalizedVocab === normalizeduserResponse) {
+                labels = labels.filter(l => l !== 'vocab');
+            }
+        }
+
+        // Discard vocab when its correction is identical to grammar's correction
+        // (same error shouldn't deduct points twice)
+        if (labels.includes('grammar') && labels.includes('vocab') &&
+            evaluation.grammarCorrectedText && evaluation.finalCorrectedText) {
+            const normalizedGrammarCorrection = await normalize(evaluation.grammarCorrectedText.trim().toLowerCase());
+            const normalizedVocabCorrection = await normalize(evaluation.finalCorrectedText.trim().toLowerCase());
+            if (normalizedGrammarCorrection === normalizedVocabCorrection) {
+                labels = labels.filter(l => l !== 'vocab');
+            }
+        }
+
         if (labels.length > 1 && labels.includes("correct")) {
             labels = labels.filter(label => label !== "correct");
         }
 
-        const isGrammarCorrect = !labels.includes('grammar') && !labels.includes('gibberish');
+        const isGrammarCorrect = !labels.includes('grammar');
+        const isVocabCorrect = !labels.includes('vocab');
+        const isIntelligible = !labels.includes('gibberish');
         const isIntentCorrect = labels.length === 0 || (labels.length === 1 && labels.includes('correct'));
 
         result.intentLabels = labels;
-        result.isCorrect = isGrammarCorrect && isIntentCorrect;
+        result.isCorrect = isGrammarCorrect && isVocabCorrect && isIntelligible && isIntentCorrect;
         result.correction = evaluation.finalCorrectedText || evaluation.grammarCorrectedText || userResponse;
 
         if (result.isCorrect) {
@@ -106,7 +127,7 @@ export async function processAnswerLogic({
             let feedbackChunks = [];
             result.errorType = null;
 
-            if (labels.includes('grammar') || labels.includes('gibberish') || labels.includes('vocab')) {
+            if (labels.includes('grammar')) {
                 result.errorType = 'ungrammatical';
                 feedbackChunks.push({
                     type: 'grammar_diff',
@@ -116,13 +137,29 @@ export async function processAnswerLogic({
                 });
             }
 
+            if (labels.includes('vocab')) {
+                if (!result.errorType) {
+                    result.errorType = 'vocab_error';
+                }
+                feedbackChunks.push({
+                    type: 'vocab_diff',
+                    original: userResponse,
+                    corrected: evaluation.finalCorrectedText || userResponse,
+                    header: Strings.get('stats_vocab_header', userData?.native_language)
+                });
+            }
+
+            if (labels.includes('gibberish') && !result.errorType) {
+                result.errorType = 'gibberish';
+            }
+
             if (labels.includes('pragmatic_failure') && !result.errorType) {
                 result.errorType = 'pragmatic_failure';
             }
             if ((labels.includes('too_formal') || labels.includes('too_informal')) && !result.errorType) {
                 result.errorType = 'formality_error';
             }
-            if ((labels.includes('unnatural') || labels.includes('vocab')) && !result.errorType) {
+            if (labels.includes('unnatural') && !result.errorType) {
                 result.errorType = 'unidiomatic';
             }
 
@@ -130,7 +167,7 @@ export async function processAnswerLogic({
             const cleanCorrected = result.correction.replace(/[^\w\s]/g, '').trim().toLowerCase();
             const displayCorrection = (cleanOriginal === cleanCorrected) ? "" : result.correction;
 
-            const pragmaticsLabels = ['pragmatic_failure', 'too_formal', 'too_informal', 'unnatural', 'vocab', 'rude', 'insensitive', 'offensive'];
+            const pragmaticsLabels = ['pragmatic_failure', 'too_formal', 'too_informal', 'unnatural', 'rude', 'insensitive', 'offensive'];
             if (displayCorrection && cleanCorrected.length > 0 && labels.some(l => pragmaticsLabels.includes(l))) {
                 feedbackChunks.push({
                     type: 'pragmatics',

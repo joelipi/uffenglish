@@ -247,7 +247,7 @@ describe('Answers Module', () => {
             });
 
             expect(result.isCorrect).toBe(false);
-            expect(result.errorType).toBe('ungrammatical');
+            expect(result.errorType).toBe('gibberish');
             expect(result.intentLabels).toEqual(['gibberish']);
         });
 
@@ -271,6 +271,53 @@ describe('Answers Module', () => {
                 courseLevel: 'B1'
             });
             expect(result.isCorrect).toBe(false);
+        });
+
+        it('should return vocab_error for vocab-only input', async () => {
+            api.evaluateWithAI.mockResolvedValue({
+                labels: ['vocab'],
+                corrections: [{ label: 'vocab', correctedText: 'I love it here.' }],
+                grammarCorrectedText: null,
+                finalCorrectedText: 'I love it here.',
+                isCorrect: false,
+                isGibberish: false,
+                rawOutput: 'VOCAB: I love it here.'
+            });
+
+            const result = await processAnswerLogic({
+                stepData: { responseType: 'openResponse' },
+                userResponse: 'I adore it here.',
+                cue: 'hello'
+            });
+
+            expect(result.isCorrect).toBe(false);
+            expect(result.errorType).toBe('vocab_error');
+            expect(result.intentLabels).toEqual(['vocab']);
+            expect(result.explanations.length).toBeGreaterThan(0);
+            expect(result.explanations[0].type).toBe('vocab_diff');
+        });
+
+        it('should disregard no-op vocab correction that normalizes to same as user response', async () => {
+            // 'I love it here' normalizes to same as 'I love it here'
+            api.evaluateWithAI.mockResolvedValue({
+                labels: ['vocab'],
+                corrections: [{ label: 'vocab', correctedText: 'I love it here' }],
+                grammarCorrectedText: null,
+                finalCorrectedText: 'I love it here',
+                isCorrect: false,
+                isGibberish: false,
+                rawOutput: 'VOCAB: I love it here'
+            });
+
+            const result = await processAnswerLogic({
+                stepData: { responseType: 'openResponse' },
+                userResponse: 'I love it here',
+                cue: 'hello'
+            });
+
+            // Vocab label should have been removed because it's a no-op
+            expect(result.intentLabels).not.toContain('vocab');
+            expect(result.isCorrect).toBe(true);
         });
     });
 

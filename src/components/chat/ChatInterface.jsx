@@ -4,6 +4,7 @@ import { appStore } from '../../modules/store/store.js';
 import UserBubble from './UserBubble.jsx';
 import SystemBubble from './SystemBubble.jsx';
 import GrammarDiffBubble from './GrammarDiffBubble.jsx';
+import VocabDiffBubble from './VocabDiffBubble.jsx';
 import PragmaticsBubble from './PragmaticsBubble.jsx';
 import PraiseBubble from './PraiseBubble.jsx';
 import StatsBubble from './StatsBubble.jsx';
@@ -22,7 +23,18 @@ const SYSTEM_TYPE_COMPONENTS = {
             correction={msg.correction}
             score={msg.score}
             errorCount={msg.errorCount}
-            complexityScore={msg.complexityScore}
+            sectionKey={msg.sectionKey}
+            botName={msg.botName}
+            avatarUrl={msg.avatarUrl}
+        />
+    ),
+    vocabDiff: (msg) => (
+        <VocabDiffBubble
+            key={msg.id}
+            original={msg.original}
+            correction={msg.correction}
+            score={msg.score}
+            errorCount={msg.errorCount}
             sectionKey={msg.sectionKey}
             botName={msg.botName}
             avatarUrl={msg.avatarUrl}
