@@ -16,11 +16,12 @@ export { shareVideo };
 // and concurrent calls (though the UI prevents those via button state).
 // ---------------------------------------------------------------------------
 function createVideoProcessor() {
+    let animationId = null;
+    let fontReady = false;
     let audioContext = null;
     let audioSource = null;
     let audioDestination = null;
-    let animationId = null;
-    let fontReady = false;
+    let currentAudioSource = null;
 
     // The hidden video element is created and destroyed entirely within this
     // instance. Nothing is queried from the DOM by ID.
@@ -34,6 +35,11 @@ function createVideoProcessor() {
         if (animationId) {
             cancelAnimationFrame(animationId);
             animationId = null;
+        }
+
+        if (currentAudioSource) {
+            try { currentAudioSource.stop(); } catch (e) { /* ignore */ }
+            currentAudioSource = null;
         }
 
         if (audioContext) {
@@ -55,19 +61,6 @@ function createVideoProcessor() {
         }
     }
 
-    async function ensureFontsReady() {
-        if (fontReady || !document.fonts) return;
-        try {
-            await Promise.all([
-                document.fonts.load('700 24px "Orbitron"'),
-                document.fonts.load('bold 24px "Plus Jakarta Sans"'),
-            ]);
-            fontReady = true;
-        } catch (e) {
-            console.warn('[VideoProcessor] Font load failed:', e);
-        }
-    }
-
     function initAudio() {
         if (!audioContext) {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -79,6 +72,19 @@ function createVideoProcessor() {
             audioSource = audioContext.createMediaElementSource(originalVideo);
             audioSource.connect(audioDestination);
             audioSource.connect(audioContext.destination);
+        }
+    }
+
+    async function ensureFontsReady() {
+        if (fontReady || !document.fonts) return;
+        try {
+            await Promise.all([
+                document.fonts.load('700 24px "Orbitron"'),
+                document.fonts.load('bold 24px "Plus Jakarta Sans"'),
+            ]);
+            fontReady = true;
+        } catch (e) {
+            console.warn('[VideoProcessor] Font load failed:', e);
         }
     }
 
@@ -128,11 +134,34 @@ function createVideoProcessor() {
                     displayCanvas.height = dimensions.height;
                 }
 
+                await ensureFontsReady();
+
                 initAudio();
                 if (audioContext.state === 'suspended') await audioContext.resume();
 
-                await ensureFontsReady();
+                // Pre-decode audio from user recording blobs (Safari workaround:
+                // createMediaElementSource doesn't capture audio from blob URLs on Safari,
+                // so we decode and play the audio directly for webcam steps.)
+                const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+                    || /iPad|iPhone|iPod/.test(navigator.userAgent);
+                for (const step of plan) {
+                    if (step.type === 'webcam' && step.blob && !step.isTextMode && isSafari) {
+                        try {
+                            const buf = await step.blob.arrayBuffer();
+                            step.decodedAudio = await audioContext.decodeAudioData(buf);
+                        } catch (e) {
+                            console.warn('[VideoProcessor] Audio decode failed:', e);
+                            step.decodedAudio = null;
+                        }
+                    }
+                }
 
+                if (typeof videoCanvas.captureStream !== 'function') {
+                    throw new Error(
+                        '[VideoProcessor] canvas.captureStream is not supported in this browser. ' +
+                        'Ensure you are running a modern browser (Chrome 51+, Firefox 43+, Safari 11+, Edge 79+).'
+                    );
+                }
                 const canvasStream = videoCanvas.captureStream(30);
                 const combinedStream = new MediaStream([
                     ...canvasStream.getVideoTracks(),
@@ -159,7 +188,8 @@ function createVideoProcessor() {
                 await executeRenderLoop(
                     plan, originalVideo, videoCanvas, displayCanvas,
                     overlayImage, fluencyData,
-                    id => { animationId = id; }
+                    id => { animationId = id; },
+                    audioContext, audioDestination
                 );
 
                 recorder.stop();
@@ -188,9 +218,17 @@ export async function processVideo(fluencyData = {}, lessonId = null, displayCan
 // ---------------------------------------------------------------------------
 // Render loop — receives an animationId setter so the instance can cancel it
 // ---------------------------------------------------------------------------
-async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImage, fluencyData, setAnimationId) {
+async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImage, fluencyData, setAnimationId, audioContext, audioDestination) {
     const ctx = canvas.getContext('2d');
     const planner = new VideoRenderPlanner();
+    let currentAudioSource = null;
+
+    function stopDecodedAudio() {
+        if (currentAudioSource) {
+            try { currentAudioSource.stop(); } catch (e) { /* ignore */ }
+            currentAudioSource = null;
+        }
+    }
 
     return new Promise(async (resolve) => {
         let stepIndex = 0;
@@ -203,6 +241,8 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                 resolve();
                 return;
             }
+
+            stopDecodedAudio();
 
             const step = plan[stepIndex];
 
@@ -242,6 +282,23 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                     if (step.trim?.start) video.currentTime = step.trim.start;
                     try {
                         await video.play();
+
+                        // For webcam steps on Safari, play decoded audio as a buffer source
+                        // since createMediaElementSource doesn't capture audio from blob URLs.
+                        if (step.type === 'webcam' && step.decodedAudio && audioContext) {
+                            if (audioContext.state === 'suspended') await audioContext.resume();
+                            const source = audioContext.createBufferSource();
+                            source.buffer = step.decodedAudio;
+                            source.connect(audioDestination);
+                            // Also connect to speakers so the user can hear their recording.
+                            source.connect(audioContext.destination);
+                            const startOffset = step.trim?.start || 0;
+                            source.start(audioContext.currentTime, startOffset);
+                            currentAudioSource = source;
+                            video.muted = true;
+                        } else {
+                            video.muted = false;
+                        }
                     } catch (err) {
                         console.warn('[VideoProcessor] Browser blocked autoplay. Retrying muted.', err);
                         video.muted = true;
@@ -275,9 +332,14 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                 ctx.fillStyle = '#000';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(video, layout.x, layout.y, layout.width, layout.height);
+            } else if (lastFrameCanvas) {
+                // Video is buffering — show the last captured frame to avoid
+                // a black flash during the transition between segments.
+                ctx.fillStyle = '#111318';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(lastFrameCanvas, 0, 0);
             } else {
-                // Video is buffering — clear to black so the previous subtitle
-                // doesn't freeze on screen.
+                // Video is buffering and no freeze-frame is available yet.
                 ctx.fillStyle = '#000';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
@@ -312,6 +374,19 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
             }
 
             if (shouldAdvance) {
+                // Capture the last frame as a freeze-frame so the next
+                // segment shows something while its video loads.
+                if (video.readyState >= 2) {
+                    if (!lastFrameCanvas) {
+                        lastFrameCanvas = document.createElement('canvas');
+                        lastFrameCanvas.width = canvas.width;
+                        lastFrameCanvas.height = canvas.height;
+                    }
+                    lastFrameCanvas.getContext('2d').drawImage(
+                        video, 0, 0, lastFrameCanvas.width, lastFrameCanvas.height
+                    );
+                }
+                stopDecodedAudio();
                 stepIndex++;
                 nextStep();
             }

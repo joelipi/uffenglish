@@ -73,6 +73,12 @@ async function createPlaceholderStream() {
     }
 
     draw();
+    if (typeof canvas.captureStream !== 'function') {
+        throw new Error(
+            '[Speech] canvas.captureStream is not supported in this browser. ' +
+            'Ensure you are running a modern browser (Chrome 51+, Firefox 43+, Safari 11+, Edge 79+).'
+        );
+    }
     const mixedStream = new MediaStream([...canvas.captureStream(5).getVideoTracks(), ...audioStream.getAudioTracks()]);
     const interval = setInterval(() => { if (speechCamStream && isPlaceholderStream) draw(); else clearInterval(interval); }, 1000);
     return mixedStream;

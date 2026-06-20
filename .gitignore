@@ -40,3 +40,4 @@ assets/videos/success.mp4
 /.reasonix
 /docs
 # .env  # commented out — committed so CI picks up VITE_PUBLIC_POSTHOG_*
+plans/review-system.md

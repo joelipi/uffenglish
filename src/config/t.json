@@ -1,0 +1,198 @@
+{
+  "courseId": "test",
+  "courseLevel": "B1",
+  "courseName": "Ordering",
+  "lessons": [
+    {
+      "lessonId": "t",
+      "title": {
+        "en": "Soda 1",
+        "es": "Gaseosa 1",
+        "pt": "Gaseosa 1"
+      },
+      "unit": "Unit 1",
+      "mission": {
+        "en": "order a drink",
+        "es": "pedir una bebida",
+        "pt": "pedir uma bebida"
+      },
+      "setting": {
+        "en": "Fast food place",
+        "es": "lugar de comida rápida",
+        "pt": "lugar de fast food"
+      },
+      "roleOther": {
+        "en": "Fast food worker",
+        "es": "Trabajador de comida rápida",
+        "pt": "Trabalhador de fast food"
+      },
+      "roleUser": {
+        "en": "customer",
+        "es": "cliente",
+        "pt": "cliente"
+      },
+      "steps": [
+        {
+          "cue": "",
+          "responseType": "lessonIntro",
+          "introBackgroundVideoUrl": "gtests-1-0"
+        },
+        {
+          "cue": {
+            "en": "I love English!",
+            "es": "¡Amo el inglés!",
+            "pt": "Eu amo o inglês!"
+          },
+          "responseType": "closedResponse",
+          "simpleVideoUrl": "gtests-1-0",
+          "subtitles": {
+            "en": "1\n00:00:00,500 --> 00:00:03,000\nLet's do a role play ordering a drink.\n\n2\n00:00:03,500 --> 00:00:06,000\nYou'll be the customer. I'll sell you the drink.\n\n3\n00:00:06,500 --> 00:00:10,000\nFirst, let's warm up our microphones and our mouths. Say: I LOVE ENGLISH!",
+            "es": "1\n00:00:00,500 --> 00:00:03,000\nVamos a hacer un role play de pedir una bebida.\n\n2\n00:00:03,500 --> 00:00:06,000\nTú serás el cliente y yo te venderé la bebida.\n\n3\n00:00:06,500 --> 00:00:10,000\nPrimero vamos a calentar nuestros micrófonos y nuestras bocas. Di: I LOVE ENGLISH!",
+            "pt": "1\n00:00:00,500 --> 00:00:03,000\nVamos fazer um role play pidiendoo uma bebida...\n\n2\n00:00:03,500 --> 00:00:06,000\nVocê será o cliente e eu venderei a bebida.\n\n3\n00:00:06,500 --> 00:00:10,000\nPrimeiro vamos aquecer nossos microfones e bocas. Diga: I LOVE ENGLISH!"
+          },
+          "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
+        },
+        {
+          "cue": {
+            "en": "Hi, what would you like to drink?",
+            "es": "Hola, ¿qué quisieras para tomar?",
+            "pt": "Ola, o qué voce quer de beber?"
+          },
+          "responseType": "closedResponse",
+          "interactiveVideoUrl": "gtests-1-1"
+        },
+        {
+          "simpleVideoUrl": "success",
+          "subtitles": "Very good! ¡Muy bien! Oprime el botón para calcular tu calificación de fluidez (Fluency Score) para esta frase. Si tu calificación es menor a 80% te recomiendo repetir la lección.",
+          "responseType": "success"
+        }
+      ],
+      "nextLessonId": "test"
+    },
+    {
+      "lessonId": "test",
+      "title": {
+        "en": "Grocery Shopping",
+        "es": "Compras de comestibles",
+        "pt": "Compras de mercado"
+      },
+      "unit": "Unit 1",
+      "mission": {
+        "en": "find items in the store",
+        "es": "encontrar artículos en la tienda",
+        "pt": "encontrar itens na loja"
+      },
+      "setting": {
+        "en": "Grocery store",
+        "es": "tienda de comestibles",
+        "pt": "mercado"
+      },
+      "roleOther": {
+        "en": "Store clerk",
+        "es": "empleado de tienda",
+        "pt": "funcionário de loja"
+      },
+      "roleUser": {
+        "en": "customer",
+        "es": "cliente",
+        "pt": "cliente"
+      },
+      "steps": [
+        {
+          "cue": "",
+          "responseType": "lessonIntro",
+          "introBackgroundVideoUrl": "do_you_have_dark_chocolate"
+        },
+        {
+          "cue": {
+            "en": "Do you have dark chocolate?",
+            "es": "¿Tienes chocolate oscuro?",
+            "pt": "Você tem chocolate escuro?"
+          },
+          "responseType": "closedResponse",
+          "interactiveVideoUrl": "do_you_have_dark_chocolate",
+          "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
+        },
+        {
+          "cue": {
+            "en": "Do you have dark chocolate?",
+            "es": "¿Tienes chocolate oscuro?",
+            "pt": "Você tem chocolate escuro?"
+          },
+          "responseType": "closedResponse",
+          "simpleVideoUrl": "do_you_have_dark_chocolate",
+          "subtitles": {
+            "en": "1\n00:00:00,500 --> 00:00:03,000\nLet's practice asking about grocery items.\n\n2\n00:00:03,500 --> 00:00:06,000\nYou'll be the customer asking for items.\n\n3\n00:00:06,500 --> 00:00:10,000\nSay: Do you have dark chocolate?",
+            "es": "1\n00:00:00,500 --> 00:00:03,000\nVamos a practicar preguntar por artículos de comestibles.\n\n2\n00:00:03,500 --> 00:00:06,000\nTú serás el cliente pidiendo artículos.\n\n3\n00:00:06,500 --> 00:00:10,000\nDi: Do you have dark chocolate?",
+            "pt": "1\n00:00:00,500 --> 00:00:03,000\nVamos praticar a perguntar sobre itens de mercado.\n\n2\n00:00:03,500 --> 00:00:06,000\nVocê será o cliente pedindo itens.\n\n3\n00:00:06,500 --> 00:00:10,000\nDiga: Do you have dark chocolate?"
+          },
+          "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
+        },
+        {
+          "cue": {
+            "en": "Do you have rolls, too?",
+            "es": "¿Tienes panes de molde también?",
+            "pt": "Você tem rolls também?"
+          },
+          "responseType": "openResponse",
+          "interactiveVideoUrl": "do_you_have_rolls_too",
+          "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
+        },
+        {
+          "simpleVideoUrl": "success",
+          "subtitles": {
+            "en": "1\n00:00:00,500 --> 00:00:03,000\nVery good!\n\n2\n00:00:03,500 --> 00:00:06,000\nYou'll be the customer asking for items.\n\n3\n00:00:06,500 --> 00:00:10,000\nSay: Do you have dark chocolate?",
+            "es": "1\n00:00:00,500 --> 00:00:03,000\nMuy bien!\n\n2\n00:00:03,500 --> 00:00:06,000\nTú serás el cliente pidiendo artículos.\n\n3\n00:00:06,500 --> 00:00:10,000\nDi: Do you have dark chocolate?",
+            "pt": "1\n00:00:00,500 --> 00:00:03,000\nMuito bem!\n\n2\n00:00:03,500 --> 00:00:06,000\nVocê será o cliente pedindo itens.\n\n3\n00:00:06,500 --> 00:00:10,000\nDiga: Do you have dark chocolate?"
+          },
+          "responseType": "success"
+        }
+      ],
+      "nextLessonId": "x"
+    },
+    {
+      "lessonId": "x",
+      "title": "Success Test",
+      "unit": "Daily Challenge Unit",
+      "mission": "Answer intelligently.",
+      "setting": "A game show",
+      "roleOther": "Game show host",
+      "roleUser": "Contestant",
+      "steps": [
+        {
+          "responseType": "lessonIntro",
+          "introBackgroundVideoUrl": "gtests-0-1-1"
+        },
+        {
+          "cue": {
+            "en": "Hey, if you had to spend a million dollars today, what would you buy?",
+            "es": "Oye, si tuvieras que gastar un millón de dólares hoy, ¿qué comprarías?",
+            "pt": "Oye, se você tivesse que gastar um milhão de dólares hoje, o que você compraria?"
+          },
+          "responseType": "openResponse",
+          "interactiveVideoUrl": "gtests-0-1-1"
+        },
+        {
+          "cue": {
+            "en": "Do you have dark chocolate?",
+            "es": "¿Tienes chocolate oscuro?",
+            "pt": "Você tem chocolate escuro?"
+          },
+          "responseType": "closedResponse",
+          "interactiveVideoUrl": "do_you_have_dark_chocolate",
+          "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
+        },
+        {
+          "simpleVideoUrl": "success",
+          "subtitles": {
+            "en": "That's great!",
+            "es": "¡Eso es genial!",
+            "pt": "Ótimo!"
+          },
+          "responseType": "success"
+        }
+      ],
+      "nextLessonId": "a"
+    }
+  ]
+}
