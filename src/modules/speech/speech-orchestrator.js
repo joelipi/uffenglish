@@ -2,6 +2,8 @@
 import * as Core from './speech.core.js';
 import { validateAnswerPrecheck } from '../answer/answers.js';
 import { appStore } from '../store/store.js';
+import normalize from '../bilingual/normalize.js';
+import calculateSimilarity from '../answer/calculate-similarity.js';
 
 export function createSpeechOrchestrator({
     startSpeechCamRecording,
@@ -75,6 +77,29 @@ export function createSpeechOrchestrator({
 
         if (!isValid) { rejectPreflight(warningMessage); return; }
 
+        // ── closedResponse homophone / near-match check ────────────────
+        // Whisper often transcribes homophones (to/too, rules/roles) or
+        // near-identical words.  When the user's spoken response is close
+        // enough to the expected cue, show the cue itself for confirmation
+        // so the user isn't confused by a slightly-off transcription.
+        let displayTranscript = transcriptToReview;
+        if (step.responseType === 'closedResponse' && step.cue) {
+            try {
+                const cueText = typeof step.cue === 'object' ? step.cue?.en : step.cue;
+                const normalizedUser = await normalize(transcriptToReview.trim().toLowerCase());
+                const normalizedCue = await normalize(cueText.trim().toLowerCase());
+                const similarity = calculateSimilarity(normalizedUser, normalizedCue);
+                if (similarity >= 95) {
+                    displayTranscript = cueText;
+                    console.log('[PT] closedResponse homophone match — showing cue instead of transcript', {
+                        transcript: transcriptToReview, cue: cueText, similarity
+                    });
+                }
+            } catch (e) {
+                console.warn('[PT] closedResponse homophone check failed, using raw transcript:', e);
+            }
+        }
+
         let timeLeft = 7;
         let reviewActive = true;
 
@@ -114,8 +139,8 @@ export function createSpeechOrchestrator({
             setTimeout(() => toggleSpeechRecognition(params), 600);
         };
 
-        console.warn('[PT] CALLING onReviewStart', { transcriptToReview: transcriptToReview.substring(0, 30), timeLeft });
-        if (uiHooks?.onReviewStart) uiHooks.onReviewStart(transcriptToReview, timeLeft, acceptTranscript, rejectTranscript);
+        console.warn('[PT] CALLING onReviewStart', { displayTranscript: displayTranscript.substring(0, 30), transcriptToReview: transcriptToReview.substring(0, 30), timeLeft });
+        if (uiHooks?.onReviewStart) uiHooks.onReviewStart(displayTranscript, timeLeft, acceptTranscript, rejectTranscript);
 
         const timerInterval = setInterval(() => {
             if (!reviewActive) return clearInterval(timerInterval);

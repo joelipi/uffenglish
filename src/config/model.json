@@ -157,6 +157,16 @@
           "responseType": "lessonIntro",
           "introBackgroundVideoUrl": "do_you_have_dark_chocolate"
         },
+                {
+          "cue": {
+            "en": "Do you have rolls, too?",
+            "es": "¿Tienes panes de molde también?",
+            "pt": "Você tem rolls também?"
+          },
+          "responseType": "closedResponse",
+          "interactiveVideoUrl": "do_you_have_rolls_too",
+          "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
+        },
         {
           "cue": {
             "en": "Do you have dark chocolate?",
@@ -170,16 +180,6 @@
             "es": "1\n00:00:00,500 --> 00:00:03,000\nVamos a practicar preguntar por artículos de comestibles.\n\n2\n00:00:03,500 --> 00:00:06,000\nTú serás el cliente pidiendo artículos.\n\n3\n00:00:06,500 --> 00:00:10,000\nDi: Do you have dark chocolate?",
             "pt": "1\n00:00:00,500 --> 00:00:03,000\nVamos praticar a perguntar sobre itens de mercado.\n\n2\n00:00:03,500 --> 00:00:06,000\nVocê será o cliente pedindo itens.\n\n3\n00:00:06,500 --> 00:00:10,000\nDiga: Do you have dark chocolate?"
           },
-          "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
-        },
-        {
-          "cue": {
-            "en": "Do you have rolls, too?",
-            "es": "¿Tienes panes de molde también?",
-            "pt": "Você tem rolls também?"
-          },
-          "responseType": "openResponse",
-          "interactiveVideoUrl": "do_you_have_rolls_too",
           "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
         },
         {
