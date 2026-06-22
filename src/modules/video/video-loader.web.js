@@ -15,6 +15,10 @@ export function loadVideoForStep(step, _state, lang) {
     // Clear any previous video state before loading the new step
     appStore.getState().setCurrentVideo(null);
 
+    // Default: no intro video to wait for. Only set to false below when
+    // this step has an introBackgroundVideoUrl that must load first.
+    appStore.getState().setIntroVideoReady(true);
+
     if (step.interactiveVideoUrl) {
         const currentVideoUrl = getVideoUrl(step.interactiveVideoUrl);
         appStore.getState().setCurrentVideo({
@@ -45,6 +49,9 @@ export function loadVideoForStep(step, _state, lang) {
 
     if (step.introBackgroundVideoUrl) {
         const currentVideoUrl = getVideoUrl(step.introBackgroundVideoUrl);
+        // Keep the Preloader overlay until IncomingVideoWidget confirms the
+        // intro background video is decoded and painted (via onLoadedData).
+        appStore.getState().setIntroVideoReady(false);
         appStore.getState().setCurrentVideo({
             type: 'intro',
             responseType: step.responseType,

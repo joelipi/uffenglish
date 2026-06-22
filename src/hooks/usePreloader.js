@@ -3,6 +3,8 @@ import { appStore } from '../modules/store/store.js';
 
 // Module-level interval reference so Preloader and routes share the same pulse
 let _progressInterval = null;
+let _introVideoPollInterval = null;
+const INTRO_VIDEO_SAFETY_TIMEOUT_MS = 15_000; // safety timeout — hide Preloader even if intro video never loads
 
 export function usePreloader() {
     const ensurePreloader = useCallback(() => {
@@ -20,14 +22,42 @@ export function usePreloader() {
     }, []);
 
     const finishPreloader = useCallback(() => {
-        if (_progressInterval) {
-            clearInterval(_progressInterval);
-            _progressInterval = null;
+        // Helper: actually fade out and remove the Preloader.
+        const doFadeOut = () => {
+            if (_progressInterval) {
+                clearInterval(_progressInterval);
+                _progressInterval = null;
+            }
+            appStore.getState().setPreloaderProgress(100);
+            setTimeout(() => {
+                appStore.getState().setPreloaderVisible(false);
+            }, 550);
+        };
+
+        if (appStore.getState().introVideoReady) {
+            // No intro video to wait for — fade out immediately.
+            doFadeOut();
+            return;
         }
-        appStore.getState().setPreloaderProgress(100);
-        setTimeout(() => {
-            appStore.getState().setPreloaderVisible(false);
-        }, 550);
+
+        // introVideoReady is false — keep the Preloader fully visible (progress bar
+        // still pulsing) until the intro background video is loaded, then fade out.
+        // This avoids a black-screen gap (FoUC).
+        console.log('[Preloader] Waiting for introVideoReady before fading out…');
+        const startedAt = Date.now();
+        _introVideoPollInterval = setInterval(() => {
+            if (appStore.getState().introVideoReady) {
+                clearInterval(_introVideoPollInterval);
+                _introVideoPollInterval = null;
+                console.log('[Preloader] introVideoReady=true — fading out now');
+                doFadeOut();
+            } else if (Date.now() - startedAt >= INTRO_VIDEO_SAFETY_TIMEOUT_MS) {
+                clearInterval(_introVideoPollInterval);
+                _introVideoPollInterval = null;
+                console.warn('[Preloader] introVideoReady safety timeout reached — hiding Preloader');
+                doFadeOut();
+            }
+        }, 100);
     }, []);
 
     return { ensurePreloader, startProgressPulse, finishPreloader };

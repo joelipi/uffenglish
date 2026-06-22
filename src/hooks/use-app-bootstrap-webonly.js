@@ -72,6 +72,13 @@ export function useAppBootstrap({ courseId } = {}) {
 
                 await setupAppInfra({ userData });
 
+                // When loading a lesson course, keep the Preloader overlay in place
+                // until the introBackgroundVideo (IncomingVideoWidget) is fully loaded
+                // to avoid a Flash of Unloaded Content (FoUC).
+                if (courseId) {
+                    appStore.getState().setIntroVideoReady(false);
+                }
+
                 finishPreloader();
 
                 appStore.getState().setIsLoaded(true);

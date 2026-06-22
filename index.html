@@ -6,10 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>UFF English</title>
 
-    <!-- Google Fonts -->
+    <!-- Google Fonts (loaded non-blocking so the HTML preloader paints immediately) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
 
     <!-- Critical inline styles (preloader — must be available before external CSS loads) -->
     <style>
@@ -51,7 +52,9 @@
             padding: 0;
             width: 100%;
             height: 100%;
-            background-color: #000;
+            /* Match the Preloader gradient so any gap between the HTML preloader
+               hiding and the React Preloader painting shows blue, not black. */
+            background: linear-gradient(135deg, #3a8fd5 0%, #00c0d8 100%);
             overflow: hidden;
             font-family: 'Inter', sans-serif;
         }
@@ -60,7 +63,10 @@
             width: 100vw;
             height: 100vh;
             height: 100dvh;
-            background-color: #000;
+            /* Match Preloader gradient — prevents black flash between the HTML
+               preloader hiding and React painting. Overridden to #000 by the
+               .app-container rule in app.css once the external stylesheet loads. */
+            background: linear-gradient(135deg, #3a8fd5 0%, #00c0d8 100%);
         }
 
         #appLoadingImageDiv {

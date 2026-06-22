@@ -27,7 +27,12 @@ export default function IncomingVideoWidget() {
         // Without this, the video element becomes visible (via opacity transition)
         // before the decoded frame has been composited, causing a blank-frame flash.
         requestAnimationFrame(() => {
-            requestAnimationFrame(() => setIsReady(true));
+            requestAnimationFrame(() => {
+                setIsReady(true);
+                // Signal that the intro background video is fully loaded and painted.
+                // This unblocks the Preloader overlay removal, avoiding FoUC.
+                appStore.getState().setIntroVideoReady(true);
+            });
         });
     };
 
