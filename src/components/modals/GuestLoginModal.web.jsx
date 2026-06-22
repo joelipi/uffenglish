@@ -1,15 +1,14 @@
 /**
  * GuestLoginModal — modal dialog for guest login prompt.
- * Uses a native <dialog> with show() (NOT showModal) so native <select>
- * dropdowns work reliably across browsers — showModal's focus trap
- * interferes with select click-to-open on Chrome/Windows.
+ * Uses a native <dialog> with showModal() for proper centering, ::backdrop,
+ * and Escape-to-close behavior.
  *
  * Two-step flow:
- *   1. 'select-language' — user picks their native language from a dropdown
- *      (browser/device language pre-selected), or chooses "English only" /
- *      "not on this list".
- *   2. 'login-choice'     — Log In / Sign Up / Continue as Guest buttons,
- *      localized using the language the guest just picked.
+ *   1. 'select-language' — dropdown (browser language pre-selected) +
+ *      primary "Continue in [Language]" button + "English only" +
+ *      "not on this list".  UI re-translates as the dropdown changes.
+ *   2. 'login-choice'     — Log In / Sign Up / Continue as Guest,
+ *      localized using the language chosen in step 1.
  */
 
 import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react';
@@ -41,6 +40,13 @@ const GUEST_LANGUAGES = [
     { value: 'TH', label: 'ไทย (Thai)' },
 ];
 
+/** Map language code to the native name (first part of the label). */
+function nativeName(code) {
+    const entry = GUEST_LANGUAGES.find(l => l.value === code);
+    if (entry) return entry.label.split(' (')[0];
+    return code;
+}
+
 export default function GuestLoginModal() {
     const isGuestModalOpen = useStore(appStore, (state) => state.isGuestModalOpen);
     const guestModalStep = useStore(appStore, (state) => state.guestModalStep);
@@ -48,11 +54,10 @@ export default function GuestLoginModal() {
     const guestDetectedLang = useStore(appStore, (state) => state.guestDetectedLang);
     const dialogRef = useRef(null);
 
-    // ── Controlled select value so detected language is truly pre-selected ──
-    //    defaultValue is read-once at mount — it misses the async detectedLang.
+    // ── Controlled select — dropdown only updates local state ──
     const [selectedLang, setSelectedLang] = useState('');
 
-    // Sync the controlled value when the detected language arrives.
+    // Pre-select the detected language when the modal first opens.
     useEffect(() => {
         if (guestDetectedLang && guestModalStep === 'select-language') {
             setSelectedLang(guestDetectedLang);
@@ -60,9 +65,7 @@ export default function GuestLoginModal() {
         }
     }, [guestDetectedLang, guestModalStep]);
 
-    // ── Show / hide the native <dialog> ──
-    //    Using show() / close() instead of showModal() / close() avoids the
-    //    top-layer focus trap that breaks native <select> on Chrome/Windows.
+    // ── showModal / close ──
     useEffect(() => {
         const dialog = dialogRef.current;
         if (!dialog) return;
@@ -70,9 +73,9 @@ export default function GuestLoginModal() {
         if (isGuestModalOpen) {
             if (!dialog.open) {
                 try {
-                    dialog.show();
+                    dialog.showModal();
                 } catch (e) {
-                    console.warn('[GuestLoginModal] failed to show():', e);
+                    console.warn('[GuestLoginModal] failed to showModal:', e);
                 }
             }
         } else {
@@ -84,29 +87,20 @@ export default function GuestLoginModal() {
         }
     }, [isGuestModalOpen]);
 
-    // ── Escape key closes the dialog (showModal does this natively; show does not) ──
-    useEffect(() => {
-        if (!isGuestModalOpen) return;
-        const handleKeyDown = (e) => {
-            if (e.key === 'Escape') {
-                handleDialogClose();
-            }
-        };
-        document.addEventListener('keydown', handleKeyDown);
-        return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [isGuestModalOpen]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    // ── Derive the display language from the guest's choice ──
+    // ── Language used for UI strings on each step ──
     const location = useLocation();
-    // "OTHER" / missing / unrecognised all fall back to English.
-    const lang = (
+    const currentUrl = location.pathname + location.search;
+
+    // On step 1 the UI follows the dropdown selection.
+    const step1Lang = (selectedLang || guestDetectedLang || 'EN').toLowerCase();
+    // On step 2 the UI uses the confirmed choice (OTHER → fallback to detected/EN).
+    const step2Lang = (
         guestNativeLanguage && guestNativeLanguage !== 'OTHER'
             ? guestNativeLanguage
             : guestDetectedLang || 'EN'
     ).toLowerCase();
-    const currentUrl = location.pathname + location.search;
 
-    // ── Build the dropdown list, putting the detected language first ──
+    // ── Build the dropdown list, detected language first ──
     const languageOptions = useMemo(() => {
         const detected = guestDetectedLang;
         if (!detected) return GUEST_LANGUAGES;
@@ -116,7 +110,6 @@ export default function GuestLoginModal() {
             const match = GUEST_LANGUAGES.find(l => l.value === detected);
             return [match, ...rest];
         }
-        // Prepend the detected language (e.g. a lesser-known locale).
         let label = detected;
         try {
             if (typeof Intl !== 'undefined' && Intl.DisplayNames) {
@@ -128,175 +121,163 @@ export default function GuestLoginModal() {
 
     // ── Handlers ──
 
-    /**
-     * Atomically set both guestNativeLanguage AND guestModalStep in ONE
-     * Zustand set() so React never sees a frame where the step is
-     * 'login-choice' but the language is still null.
-     */
-    const advanceToLoginChoice = useCallback((chosenLang) => {
-        appStore.getState().setGuestLanguageAndAdvance(chosenLang);
-        trackEvent('guest_modal_action', { action: 'language_selected', language: chosenLang });
-        console.log('[GuestLoginModal] Guest selected native language:', chosenLang);
+    /** Only update local state — user must press the Continue button to confirm. */
+    const handleDropdownChange = useCallback((e) => {
+        setSelectedLang(e.target.value);
     }, []);
 
+    /** Confirm the selected language and advance to step 2. */
+    const handleContinueWithSelected = useCallback(() => {
+        const lang = selectedLang || guestDetectedLang || 'EN';
+        appStore.getState().setGuestLanguageAndAdvance(lang);
+        trackEvent('guest_modal_action', { action: 'language_selected', language: lang });
+        console.log('[GuestLoginModal] Guest confirmed native language:', lang);
+    }, [selectedLang, guestDetectedLang]);
+
     const handleEnglishOnly = useCallback(() => {
-        advanceToLoginChoice('EN');
-    }, [advanceToLoginChoice]);
+        appStore.getState().setGuestLanguageAndAdvance('EN');
+        trackEvent('guest_modal_action', { action: 'language_selected', language: 'EN' });
+        console.log('[GuestLoginModal] Guest chose English only');
+    }, []);
 
     const handleNotListed = useCallback(() => {
-        // Advance with 'OTHER' — the lang computation above falls back to EN.
         appStore.getState().setGuestLanguageAndAdvance('OTHER');
         trackEvent('guest_modal_action', { action: 'language_not_listed' });
         console.log('[GuestLoginModal] Guest chose "not on this list"');
     }, []);
 
-    const handleDropdownChange = useCallback((e) => {
-        const val = e.target.value;
-        if (!val) return; // placeholder — shouldn't happen with controlled value
-        advanceToLoginChoice(val);
-    }, [advanceToLoginChoice]);
-
     const handleDialogClose = useCallback(() => {
         trackEvent('guest_modal_action', { action: 'continue_as_guest' });
         appStore.getState().setGuestModalOpen(false);
-        console.log('[GuestLoginModal] User chose to continue as guest (dialog close)');
+        console.log('[GuestLoginModal] Dialog closed (continue as guest)');
     }, []);
 
     // ── Render ──
 
+    const chosenName = nativeName(selectedLang || guestDetectedLang || 'EN');
+
     return (
-        <>
-            {/* Manual backdrop — needed because we use show() not showModal() */}
-            {isGuestModalOpen && (
-                <div
-                    className="modal-backdrop fade show"
-                    style={{ zIndex: 1054, cursor: 'pointer' }}
-                    aria-hidden="true"
-                    onClick={handleDialogClose}
-                />
-            )}
+        <dialog ref={dialogRef} id="guestLoginModal" onClose={handleDialogClose}>
+            <div className="modal-dialog modal-dialog-centered">
+                <div className="modal-content bg-dark text-white border-light shadow-lg">
 
-            <dialog
-                ref={dialogRef}
-                id="guestLoginModal"
-                onClose={handleDialogClose}
-                style={{
-                    zIndex: 1055,
-                    border: 'none',
-                    borderRadius: '0.5rem',
-                    padding: 0,
-                    background: 'transparent',
-                }}
-            >
-                <div className="modal-dialog modal-dialog-centered">
-                    <div className="modal-content bg-dark text-white border-light shadow-lg">
-
-                        {guestModalStep === 'select-language' ? (
-                            <>
-                                <div className="modal-header border-secondary">
-                                    <h5 className="modal-title" id="guestLoginModalLabel">
-                                        <i className="bi bi-translate text-warning me-2"></i>
-                                        <span id="guestLoginModalTitleText">
-                                            {Strings.get('guest_language_title', lang) || "What language do you speak?"}
-                                        </span>
-                                    </h5>
-                                </div>
-                                <div className="modal-body">
-                                    <div className="mb-3">
-                                        <select
-                                            className="form-select form-select-lg bg-dark text-white border-secondary"
-                                            id="guestLanguageSelect"
-                                            value={selectedLang}
-                                            onChange={handleDropdownChange}
-                                        >
-                                            <option value="" disabled>
-                                                {Strings.get('guest_language_select', lang) || "Select your language..."}
+                    {guestModalStep === 'select-language' ? (
+                        <>
+                            <div className="modal-header border-secondary">
+                                <h5 className="modal-title" id="guestLoginModalLabel">
+                                    <i className="bi bi-translate text-warning me-2"></i>
+                                    <span id="guestLoginModalTitleText">
+                                        {Strings.get('guest_language_title', step1Lang) || "What language do you speak?"}
+                                    </span>
+                                </h5>
+                            </div>
+                            <div className="modal-body">
+                                <div className="mb-3">
+                                    <select
+                                        className="form-select form-select-lg bg-dark text-white border-secondary"
+                                        id="guestLanguageSelect"
+                                        value={selectedLang}
+                                        onChange={handleDropdownChange}
+                                    >
+                                        <option value="" disabled>
+                                            {Strings.get('guest_language_select', step1Lang) || "Select your language..."}
+                                        </option>
+                                        {languageOptions.map((opt) => (
+                                            <option key={opt.value} value={opt.value}>
+                                                {opt.label}
                                             </option>
-                                            {languageOptions.map((opt) => (
-                                                <option key={opt.value} value={opt.value}>
-                                                    {opt.label}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="d-grid gap-2 mt-3">
-                                        <button
-                                            type="button"
-                                            className="btn btn-outline-light"
-                                            id="guestEnglishOnlyBtn"
-                                            onClick={handleEnglishOnly}
-                                        >
-                                            <span id="guestEnglishOnlyBtnText">
-                                                {Strings.get('guest_language_english_only', lang) || "Continue in English only"}
-                                            </span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="btn btn-outline-secondary btn-sm"
-                                            id="guestNotListedBtn"
-                                            onClick={handleNotListed}
-                                        >
-                                            <span id="guestNotListedBtnText">
-                                                {Strings.get('guest_language_not_listed', lang) || "My language is not on this list"}
-                                            </span>
-                                        </button>
-                                    </div>
+                                        ))}
+                                    </select>
                                 </div>
-                            </>
-                        ) : (
-                            <>
-                                <div className="modal-header border-secondary">
-                                    <h5 className="modal-title" id="guestLoginModalLabel">
-                                        <i className="bi bi-shield-lock-fill text-warning me-2"></i>
-                                        <span id="guestLoginModalTitleText">
-                                            {Strings.get('guest_modal_title', lang) || "Welcome!"}
+                                <div className="d-grid gap-2 mt-3">
+                                    <button
+                                        type="button"
+                                        className="btn btn-primary btn-lg"
+                                        id="guestLanguageContinueBtn"
+                                        onClick={handleContinueWithSelected}
+                                        disabled={!selectedLang}
+                                    >
+                                        <i className="bi bi-arrow-right-circle me-2"></i>
+                                        <span id="guestLanguageContinueBtnText">
+                                            {chosenName}
                                         </span>
-                                    </h5>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline-light"
+                                        id="guestEnglishOnlyBtn"
+                                        onClick={handleEnglishOnly}
+                                    >
+                                        <span id="guestEnglishOnlyBtnText">
+                                            {Strings.get('guest_language_english_only', 'en') || "Continue in English only"}
+                                        </span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline-secondary btn-sm"
+                                        id="guestNotListedBtn"
+                                        onClick={handleNotListed}
+                                    >
+                                        <span id="guestNotListedBtnText">
+                                            {Strings.get('guest_language_not_listed', step1Lang) || "My language is not on this list"}
+                                        </span>
+                                    </button>
                                 </div>
-                                <div className="modal-body">
-                                    <p className="text-light" id="guestLoginModalBodyText">
-                                        {Strings.get('guest_modal_body', lang) || "You are currently not logged in. Log in or sign up to save your progress and access all features. Or, continue as a guest to try out the app."}
-                                    </p>
-                                    <div className="d-grid gap-2 mt-4">
-                                        <Link
-                                            to={`/login?redirect=${encodeURIComponent(currentUrl)}`}
-                                            id="guestLoginBtn"
-                                            className="btn btn-primary"
-                                            onClick={() => trackEvent('guest_modal_action', { action: 'login' })}
-                                        >
-                                            <i className="bi bi-box-arrow-in-right me-1"></i>
-                                            <span id="guestLoginBtnText">
-                                                {Strings.get('guest_modal_login', lang) || "Log In"}
-                                            </span>
-                                        </Link>
-                                        <Link
-                                            to={`/signup?redirect=${encodeURIComponent(currentUrl)}`}
-                                            id="guestSignupBtn"
-                                            className="btn btn-secondary"
-                                            onClick={() => trackEvent('guest_modal_action', { action: 'signup' })}
-                                        >
-                                            <i className="bi bi-person-plus-fill me-1"></i>
-                                            <span id="guestSignupBtnText">
-                                                {Strings.get('guest_modal_signup', lang) || "Sign Up"}
-                                            </span>
-                                        </Link>
-                                        <button
-                                            type="button"
-                                            className="btn btn-outline-light mt-2"
-                                            id="guestContinueBtn"
-                                            onClick={handleDialogClose}
-                                        >
-                                            <span id="guestContinueBtnText">
-                                                {Strings.get('guest_modal_continue', lang) || "Continue as Guest"}
-                                            </span>
-                                        </button>
-                                    </div>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <div className="modal-header border-secondary">
+                                <h5 className="modal-title" id="guestLoginModalLabel">
+                                    <i className="bi bi-shield-lock-fill text-warning me-2"></i>
+                                    <span id="guestLoginModalTitleText">
+                                        {Strings.get('guest_modal_title', step2Lang) || "Welcome!"}
+                                    </span>
+                                </h5>
+                            </div>
+                            <div className="modal-body">
+                                <p className="text-light" id="guestLoginModalBodyText">
+                                    {Strings.get('guest_modal_body', step2Lang) || "You are currently not logged in."}
+                                </p>
+                                <div className="d-grid gap-2 mt-4">
+                                    <Link
+                                        to={`/login?redirect=${encodeURIComponent(currentUrl)}`}
+                                        id="guestLoginBtn"
+                                        className="btn btn-primary"
+                                        onClick={() => trackEvent('guest_modal_action', { action: 'login' })}
+                                    >
+                                        <i className="bi bi-box-arrow-in-right me-1"></i>
+                                        <span id="guestLoginBtnText">
+                                            {Strings.get('guest_modal_login', step2Lang) || "Log In"}
+                                        </span>
+                                    </Link>
+                                    <Link
+                                        to={`/signup?redirect=${encodeURIComponent(currentUrl)}`}
+                                        id="guestSignupBtn"
+                                        className="btn btn-secondary"
+                                        onClick={() => trackEvent('guest_modal_action', { action: 'signup' })}
+                                    >
+                                        <i className="bi bi-person-plus-fill me-1"></i>
+                                        <span id="guestSignupBtnText">
+                                            {Strings.get('guest_modal_signup', step2Lang) || "Sign Up"}
+                                        </span>
+                                    </Link>
+                                    <button
+                                        type="button"
+                                        className="btn btn-outline-light mt-2"
+                                        id="guestContinueBtn"
+                                        onClick={handleDialogClose}
+                                    >
+                                        <span id="guestContinueBtnText">
+                                            {Strings.get('guest_modal_continue', step2Lang) || "Continue as Guest"}
+                                        </span>
+                                    </button>
                                 </div>
-                            </>
-                        )}
-                    </div>
+                            </div>
+                        </>
+                    )}
                 </div>
-            </dialog>
-        </>
+            </div>
+        </dialog>
     );
 }

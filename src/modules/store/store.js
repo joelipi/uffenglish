@@ -185,7 +185,15 @@ export const appStore = createStore(
             setGuestModalStep: (val) => set({ guestModalStep: val }),
             /** Atomically sets both guestNativeLanguage and guestModalStep in ONE set()
              *  so React never renders login-choice with a null language. */
-            setGuestLanguageAndAdvance: (lang) => set({ guestNativeLanguage: lang, guestModalStep: 'login-choice' }),
+            /** Also writes native_language into userData so the whole app (MissionSection,
+             *  DecisionButtons, Hints, etc.) uses the guest's language for translations. */
+            setGuestLanguageAndAdvance: (lang) => set((state) => ({
+                guestNativeLanguage: lang,
+                guestModalStep: 'login-choice',
+                userData: state.userData
+                    ? { ...state.userData, native_language: lang }
+                    : { native_language: lang },
+            })),
             setIsLoggedIn: (val) => set({ isLoggedIn: val }),
             setReactReady: (val) => set({ reactReady: val }),
             triggerMicBounce: () => set((state) => ({ micBounceTrigger: state.micBounceTrigger + 1 })),
