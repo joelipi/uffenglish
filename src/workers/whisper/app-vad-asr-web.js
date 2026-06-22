@@ -70,13 +70,18 @@ export function createWhisperAdapter({ worker }) {
             }
             adapterReadyResolve = resolve;
             setTimeout(() => {
-                if (adapterReadyResolve) {
-                    console.warn('[whisper] Engine preload timed out after 30s');
-                    appStore.getState().setWhisperEngineFailed(true);
+                if (!adapterReadyResolve) return;
+                if (adapterIsEngineReady) {
+                    // Engine became ready while the timer was pending — no failure.
                     adapterReadyResolve();
                     adapterReadyResolve = null;
+                    return;
                 }
-            }, 30000);
+                console.warn('[whisper] Engine preload timed out after 120s');
+                appStore.getState().setWhisperEngineFailed(true);
+                adapterReadyResolve();
+                adapterReadyResolve = null;
+            }, 120000);
         });
     }
 

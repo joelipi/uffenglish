@@ -617,12 +617,11 @@ const strings = {
         es: "Continuar como invitado"
     },
     'guest_language_title': {
-        en: "What language do you speak?",
-        es: "¿Qué idioma hablas?"
+        en: "Confirm Your Native Language",
+        es: "Confirmar Tu Idioma Nativo"
     },
     'guest_language_select': {
-        en: "Select your language...",
-        es: "Selecciona tu idioma..."
+        en: "Select your language..."
     },
     'guest_language_english_only': {
         en: "Continue in English only",

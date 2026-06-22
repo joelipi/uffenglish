@@ -167,14 +167,14 @@ export default function GuestLoginModal() {
                                 <h5 className="modal-title" id="guestLoginModalLabel">
                                     <i className="bi bi-translate text-warning me-2"></i>
                                     <span id="guestLoginModalTitleText">
-                                        {Strings.get('guest_language_title', step1Lang) || "What language do you speak?"}
+                                        {Strings.get('guest_language_title', step1Lang) || "Confirm Your Native Language"}
                                     </span>
                                 </h5>
                             </div>
                             <div className="modal-body">
                                 <div className="mb-3">
                                     <select
-                                        className="form-select form-select-lg bg-dark text-white border-secondary"
+                                        className="form-select form-select-xl bg-dark text-white border-secondary"
                                         id="guestLanguageSelect"
                                         value={selectedLang}
                                         onChange={handleDropdownChange}

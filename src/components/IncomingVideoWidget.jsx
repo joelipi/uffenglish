@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSyncExternalStore } from 'react';
 import { appStore } from '../modules/store/store.js';
+import { getIntroContinueHandler } from '../modules/answer/answer-pipeline.js';
 
 const isIOS = typeof navigator !== 'undefined' && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 
@@ -70,7 +71,8 @@ export default function IncomingVideoWidget() {
     }, []);
 
     const handleClick = () => {
-        appStore.getState().triggerMicBounce();
+        const cb = getIntroContinueHandler();
+        if (cb) cb();
     };
 
     if (!show) return null;
@@ -96,6 +98,9 @@ export default function IncomingVideoWidget() {
                         <div className="intro-notification-bottom">
                             <div className="intro-caller-name">{config?.name || 'Joe Walsh'}</div>
                             <div className="intro-caller-title">{config?.role || 'English Coach, UFF'}</div>
+                        </div>
+                        <div className="intro-tap-hint">
+                            <span className="intro-tap-hint-text">Tap to answer</span>
                         </div>
                     </div>
                 </div>

@@ -14,6 +14,23 @@ import { loadStepOrchestrate } from './step-loader-orchestrate.js';
 import { setTextInputSubmitCallback as setTextCb, setSpeechInputToggleCallback as setSpeechCb } from './step-loader-callbacks.js';
 import { getVideoUrl } from '../video/video-url.js';
 
+// Module-level ref for text-mode setup on the first response step.
+// The speech callback is set up normally during _renderResponseStep (which
+// runs during initial load – no deferral). Only text mode needs a second
+// pass because isTextMode defaults to false.
+let _storedTextSetupArgs = null;
+
+export function setupTextInputForStep() {
+    if (!_storedTextSetupArgs) return;
+    const { step, submitAnswerPrecheck } = _storedTextSetupArgs;
+    _storedTextSetupArgs = null;
+    const placeholder = Strings.get('placeholder_type_answer', appStore.getState().userData?.native_language) || 'Type your answer here...';
+    appStore.getState().setTextInputPlaceholder(placeholder);
+    setTextCb((val, btn) => {
+        submitAnswerPrecheck(val, step.cue, step, btn, step.explanation, { pauseCount: 0, netDuration: 3 });
+    });
+}
+
 function resetUIForNewStep(step) {
     let phase;
     const isRetry = appStore.getState().incorrectAttempts > 0;
@@ -21,6 +38,8 @@ function resetUIForNewStep(step) {
         phase = 'lessonIntro';
     } else if (step.responseType === 'success') {
         phase = 'lessonSuccess';
+    } else if ((step.responseType === 'closedResponse' || step.responseType === 'openResponse') && appStore.getState().currentStepIndex === 1 && !isRetry) {
+        phase = 'firstResponse';
     } else if (step.interactiveVideoUrl && !isRetry) {
         phase = 'interactiveVideo+' + (step.responseType === 'openResponse' ? 'openResponse' : 'closedResponse');
     } else if (step.simpleVideoUrl) {
@@ -73,10 +92,6 @@ export function createLoadStep(deps) {
             } else if (appStore.getState().isTextMode) {
                 console.log('[QuestionLoader] Text mode: bypassing hardware prompt');
             } else {
-                warmUpSpeechCam();
-            }
-        } else if (step.simpleVideoUrl || step.interactiveVideoUrl) {
-            if (!appStore.getState().isCameraOff) {
                 warmUpSpeechCam();
             }
         } else {
@@ -150,6 +165,13 @@ export function createLoadStep(deps) {
 
 function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
     const { submitAnswerPrecheck, handleHint } = deps;
+
+    // If we're in firstResponse phase, the speech callback is set up normally
+    // below (isTextMode defaults to false).  Stash the text-mode args in case
+    // the user picks text mode later — IntroChoices calls setupTextInputForStep().
+    if (appStore.getState().appPhase === 'firstResponse') {
+        _storedTextSetupArgs = { step, submitAnswerPrecheck };
+    }
     appStore.getState().setHintsVisible(false);
 
     if (step.responseType !== "closedResponse") {

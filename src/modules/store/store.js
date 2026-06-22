@@ -23,7 +23,8 @@ export function setWebcamStream(v)         { _webcamStream = v; appStore.getStat
 
 const phaseMapping = {
     loading:                                     { topState: 'hidden',          mediaState: 'preloader',           bottomState: 'hidden',               showMission: false },
-    lessonIntro:                                 { topState: 'topBarOnly',      mediaState: 'introCallWidget',     bottomState: 'introChoices',          showMission: true },
+    lessonIntro:                                 { topState: 'topBarOnly',      mediaState: 'introCallWidget',     bottomState: 'hidden',               showMission: true },
+    firstResponse:                               { topState: 'topBarOnly',      mediaState: 'webcamOrAvatar',      bottomState: 'introChoices',          showMission: true },
     simpleVideo:                                 { topState: 'topBarOnly',      mediaState: 'simpleVideo',         bottomState: 'controlIcon',           showMission: true },
     'interactiveVideo+closedResponse':           { topState: 'topBarWithStats', mediaState: 'interactiveVideo',    bottomState: 'hidden',                showMission: true },
     'interactiveVideo+openResponse':             { topState: 'topBarWithStats', mediaState: 'interactiveVideo',    bottomState: 'hidden',                showMission: true },
@@ -46,6 +47,7 @@ const answerFlowTransitions = {
     'interactiveVideo+openResponse':             ['interactiveVideo-decisionTime-openResponse'],
     'interactiveVideo-decisionTime-closedResponse': ['recording/answering', 'interactiveVideo+closedResponse'],
     'interactiveVideo-decisionTime-openResponse':   ['recording/answering', 'interactiveVideo+openResponse'],
+    'firstResponse':                             ['recording/answering'],
     'recording/answering':                       ['processing/transcribing', 'feedback'],
     'processing/transcribing':                   ['review', 'transcription preflight-rejected', 'recording/answering', 'feedback'],
     'transcription preflight-rejected':          ['recording/answering'],
