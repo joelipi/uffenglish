@@ -6,7 +6,7 @@
 import React from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
-import { trackEvent } from '../../modules/utils/logrocket.js';
+import { trackEvent } from '../../modules/utils/posthog.js';
 
 export default function CriticalErrorModal() {
     const criticalErrorMessage = useStore(appStore, (state) => state.criticalErrorMessage);

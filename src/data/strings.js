@@ -398,6 +398,11 @@ const strings = {
         es: "HABLA.",
         fr: "PARLEZ."
     },
+    'status_starting_camera': {
+        en: "Starting camera…",
+        es: "Iniciando cámara…",
+        fr: "Démarrage de la caméra…"
+    },
     'status_connecting': {
         en: "WAIT! Connecting...",
         es: "¡ESPEREMOS! Conectando...",

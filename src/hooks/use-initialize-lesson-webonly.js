@@ -9,7 +9,7 @@ import { resolveCurrentLessonId } from '../modules/lesson/lesson-routing.js';
 import { saveLessonProgress } from '../modules/user/user-profile.js';
 import { loadLessonContent } from '../modules/lesson/lesson-loader.js';
 import Strings from '../data/strings.js';
-import { trackEvent } from '../modules/utils/logrocket.js';
+import { trackEvent } from '../modules/utils/posthog.js';
 import { getVideoUrl } from '../modules/video/video-url.js';
 
 export function useInitializeLesson({ forceRestart = false } = {}) {

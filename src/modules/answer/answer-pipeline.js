@@ -27,7 +27,7 @@ import { getBotIdentity } from '../user/bot-identity.js';
 import teacherAvatarUrl from '../../assets/img/teacherprofile.webp';
 import userAvatarUrl from '../../assets/img/userprofile.png';
 import aiAvatarUrl from '../../assets/img/ai.webp';
-import { trackEvent } from '../utils/logrocket.js';
+import { trackEvent } from '../utils/posthog.js';
 
 function mapSectionToMessage(section) {
     if (section.type === 'grammar') {
@@ -491,10 +491,6 @@ export function createAnswerPipeline(deps) {
     }
 
     function handleHint(stepIndex) {
-        trackEvent('hint_requested', {
-            step_type: appStore.getState().configData?.lessons?.[appStore.getState().currentLessonIndex]?.steps?.[stepIndex]?.responseType,
-            step_index: stepIndex,
-        });
         appStore.getState().setHintsVisible(true);
     }
 
@@ -900,20 +896,9 @@ export function createAnswerPipeline(deps) {
             appStore.getState().setHintsVisible(false);
             console.log('[showFeedbackAndProceed] responseType:', stepData.responseType, '| isLessonIntro:', stepData.responseType === "lessonIntro");
             const onContinue = () => {
-                trackEvent('continue_clicked', {
-                    step_type: stepData.responseType,
-                    is_correct: isCorrect,
-                    incorrect_attempts: appStore.getState().incorrectAttempts,
-                });
                 appStore.getState().triggerPauseAllVideos();
                 if (stepData.responseType === "lessonIntro") {
-                    const initializeMedia = async () => {
-                        await enableAudioSystem();
-                        if (!appStore.getState().isTextMode) {
-                            await warmUpSpeechCam();
-                        }
-                    };
-                    initializeMedia();
+                    enableAudioSystem();
                 }
                 console.log('[showFeedbackAndProceed] continue clicked, restoring mic controls');
                 appStore.getState().removeContinueWidget();

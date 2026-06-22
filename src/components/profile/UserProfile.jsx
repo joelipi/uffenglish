@@ -5,7 +5,7 @@ import { useUserProfile, useSyncUserMetaData } from '../../modules/api/api.js';
 import { invalidateUserAndAuthCache } from '../../modules/api/api.js';
 import Strings from '../../data/strings.js';
 import defaultProfilePic from '../../assets/img/userprofile.png';
-import { trackEvent } from '../../modules/utils/logrocket.js';
+import { trackEvent } from '../../modules/utils/posthog.js';
 
 const NATIVE_LANGUAGES = [
     { value: 'EN', label: 'English' },
@@ -146,7 +146,6 @@ export default function UserProfile() {
             });
             setProfileMsg({ type: 'success', text: Strings.get('profile_updated', lang) });
         } catch (err) {
-            trackEvent('profile_save_failed', { error: err.message });
             setProfileMsg({ type: 'error', text: err.message || Strings.get('profile_update_failed', lang) });
         }
     }
@@ -159,12 +158,10 @@ export default function UserProfile() {
         try {
             await account.updateEmail(newEmail, emailPassword);
             invalidateUserAndAuthCache();
-            trackEvent('email_changed');
             setEmailMsg({ type: 'success', text: Strings.get('profile_email_verification_sent', lang) });
             setNewEmail('');
             setEmailPassword('');
         } catch (err) {
-            trackEvent('email_change_failed', { error: err.message });
             setEmailMsg({ type: 'error', text: err.message || Strings.get('profile_email_update_failed', lang) });
         } finally {
             setEmailLoading(false);
@@ -179,13 +176,11 @@ export default function UserProfile() {
         setPasswordLoading(true);
         try {
             await account.updatePassword(newPassword, curPassword);
-            trackEvent('password_changed');
             setPasswordMsg({ type: 'success', text: Strings.get('profile_password_updated', lang) });
             setCurPassword('');
             setNewPassword('');
             setConfirmPassword('');
         } catch (err) {
-            trackEvent('password_change_failed', { error: err.message });
             setPasswordMsg({ type: 'error', text: err.message || Strings.get('profile_password_update_failed', lang) });
         } finally {
             setPasswordLoading(false);

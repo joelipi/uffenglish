@@ -8,7 +8,7 @@ import Strings from '../../data/strings.js';
 import teacherAvatar from '../../assets/img/teacherprofile.webp';
 import userAvatar from '../../assets/img/userprofile.png';
 import aiAvatar from '../../assets/img/ai.webp';
-import { trackEvent } from '../utils/logrocket.js';
+import { trackEvent } from '../utils/posthog.js';
 
 export function createProgression(deps) {
     const {

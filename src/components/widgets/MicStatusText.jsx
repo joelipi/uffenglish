@@ -58,7 +58,8 @@ function renderBilingual(bilingual) {
     if (!bilingual.localized) return <span>{bilingual.english}</span>;
     return (
         <span>
-            {bilingual.english}<span lang={bilingual.lang}> / {bilingual.localized}</span>
+            {bilingual.english}<br />
+            <span lang={bilingual.lang}>{bilingual.localized}</span>
         </span>
     );
 }

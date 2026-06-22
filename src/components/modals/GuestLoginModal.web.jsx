@@ -16,7 +16,7 @@ import { useLocation, Link } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import Strings from '../../data/strings.js';
-import { trackEvent } from '../../modules/utils/logrocket.js';
+import { trackEvent } from '../../modules/utils/posthog.js';
 
 // ── Curated language list for the guest modal ──
 const GUEST_LANGUAGES = [

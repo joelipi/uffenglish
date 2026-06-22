@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
-import { trackEvent } from '../../modules/utils/logrocket.js';
+import { trackEvent } from '../../modules/utils/posthog.js';
 
 export function ContinueButton({ onLoadNextLesson }) {
   const button = useStore(appStore, state => state.successContinueButton);
@@ -10,7 +10,6 @@ export function ContinueButton({ onLoadNextLesson }) {
   if (!button.visible) return null;
 
   const handleClick = () => {
-    trackEvent('success_continue');
     setLoading(true);
     onLoadNextLesson();
   };
@@ -77,7 +76,6 @@ export function VideoButton({ canvasRef }) {
   };
 
   const handleShare = () => {
-    trackEvent('video_shared');
     if (shareHandlerRef.current) {
       shareHandlerRef.current();
     }

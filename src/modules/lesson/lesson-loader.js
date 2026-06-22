@@ -1,7 +1,7 @@
 import { appStore, getAnswerPipelineDeps, getCurrentVideoPlayer } from '../store/store.js';
 import { clearSpeechRecordingsForLesson } from '../storage/storage.js';
 import { loadStep } from '../../components/step-loader.js';
-import { trackEvent } from '../utils/logrocket.js';
+import { trackEvent } from '../utils/posthog.js';
 
 export async function loadLessonContent(lesson, options = {}) {
     const { forceRestart = false } = options;

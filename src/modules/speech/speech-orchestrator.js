@@ -2,6 +2,7 @@
 import * as Core from './speech.core.js';
 import { validateAnswerPrecheck } from '../answer/answers.js';
 import { appStore } from '../store/store.js';
+import Strings from '../../data/strings.js';
 import normalize from '../bilingual/normalize.js';
 import calculateSimilarity from '../answer/calculate-similarity.js';
 
@@ -169,17 +170,23 @@ export function createSpeechOrchestrator({
 
             if (!listeningState.active) {
                 listeningState.active = true;
-                appStore.getState().setMicActive(true);
-                appStore.getState().setHesitationMs(0);
-                if (uiHooks?.onRecordingStart) uiHooks.onRecordingStart(userData);
+
+                // Show warming-up state while camera stream initializes
+                appStore.getState().setSystemMessage({ type: 'analyzing', bilingual: Strings.getBilingual('status_starting_camera', userData?.native_language) });
 
                 try {
                     await startSpeechCamRecording(micStatusText, userData);
                 } catch (e) {
                     listeningState.active = false;
-                    appStore.getState().setMicActive(false);
+                    appStore.getState().setSystemMessage(null);
                     return;
                 }
+
+                // Stream is ready — activate mic UI
+                appStore.getState().setSystemMessage(null);
+                appStore.getState().setMicActive(true);
+                appStore.getState().setHesitationMs(0);
+                if (uiHooks?.onRecordingStart) uiHooks.onRecordingStart(userData);
 
                 if (uiHooks?.onMicDisable) uiHooks.onMicDisable(button);
 

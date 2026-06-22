@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { account, getCurrentUser } from '../../modules/api/appwrite.js';
 import { invalidateUserAndAuthCache } from '../../modules/api/api.js';
-import { identifyUser, trackEvent } from '../../modules/utils/logrocket.js';
+import { identifyUser, trackEvent } from '../../modules/utils/posthog.js';
 
 export function useLoginForm({ onLoginSuccess } = {}) {
     const [email, setEmail] = useState('');

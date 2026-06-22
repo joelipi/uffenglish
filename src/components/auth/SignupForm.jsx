@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { account, tablesDB, ID, APPWRITE_CONFIG } from '../../modules/api/appwrite.js';
 import { invalidateUserAndAuthCache } from '../../modules/api/api.js';
-import { identifyUser, trackEvent } from '../../modules/utils/logrocket.js';
+import { identifyUser, trackEvent } from '../../modules/utils/posthog.js';
 
 export function useSignupForm({ onSignupSuccess } = {}) {
     const [firstName, setFirstName] = useState('');

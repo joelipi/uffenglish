@@ -8,7 +8,7 @@ import Strings from '../../data/strings.js';
 
 import { getCurrentStepIndex } from '../answer/answers.js';
 import { logInteraction } from '../answer/scoring.js';
-import { trackEvent } from '../utils/logrocket.js';
+import { trackEvent } from '../utils/posthog.js';
 import { handleTextStep, handleLessonComplete, handleUnitComplete, handleSuccessStep, clearWarningLater, cancelWarningClear } from './step-loader-logic.js';
 import { loadStepOrchestrate } from './step-loader-orchestrate.js';
 import { setTextInputSubmitCallback as setTextCb, setSpeechInputToggleCallback as setSpeechCb } from './step-loader-callbacks.js';
@@ -86,8 +86,13 @@ export function createLoadStep(deps) {
 
     // Platform-specific pre-dispatch: speech warmup, media rendering, UI setup
     const onStepLoaded = (step, lesson, fluencyData) => {
+        const isFirstResponse = appStore.getState().appPhase === 'firstResponse';
         if (step.responseType === 'closedResponse' || step.responseType === 'openResponse') {
-            if (!appStore.getState().isCameraOff && !appStore.getState().isTextMode) {
+            if (isFirstResponse) {
+                // Defer warmup — IntroChoices hasn't appeared yet.
+                // The speech callback (wired by _renderResponseStep) will
+                // warm up the cam when the user picks voice/video mode.
+            } else if (!appStore.getState().isCameraOff && !appStore.getState().isTextMode) {
                 warmUpSpeechCam();
             } else if (appStore.getState().isTextMode) {
                 console.log('[QuestionLoader] Text mode: bypassing hardware prompt');
@@ -221,7 +226,7 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             if (appStore.getState().appPhase === 'simpleVideo') {
                                 appStore.getState().transitionTo('recording/answering');
                             }
-                            appStore.getState().setMicActive(true);
+                            // setMicActive is now handled by the orchestrator after startSpeechCamRecording succeeds
                             const currentPlayer = getCurrentVideoPlayer();
                             if (currentPlayer) {
                                 if (typeof currentPlayer.pause === 'function') {

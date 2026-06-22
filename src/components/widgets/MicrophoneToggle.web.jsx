@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { getSpeechInputToggleCallback } from '../../modules/lesson/step-loader-callbacks.js';
-import { trackEvent } from '../../modules/utils/logrocket.js';
+import { trackEvent } from '../../modules/utils/posthog.js';
 
 export default function MicrophoneToggle() {
     const isMicActive = useStore(appStore, (state) => state.isMicActive);
@@ -56,7 +56,6 @@ export default function MicrophoneToggle() {
     }, [micBounceTrigger]);
 
     const handleClick = () => {
-        trackEvent('mic_toggled', { active: !appStore.getState().isMicActive });
         const cb = getSpeechInputToggleCallback();
         if (typeof cb === 'function') {
             cb();
@@ -69,7 +68,6 @@ export default function MicrophoneToggle() {
         const isTextInputVisible = appStore.getState().textInputVisible;
 
         if (isTextInputVisible) {
-            trackEvent('text_mode_toggled', { active: false });
             appStore.getState().setTextInputVisible(false);
             appStore.getState().setMicActive(false);
             const player = appStore.getState().currentVideo?.player;
@@ -77,7 +75,6 @@ export default function MicrophoneToggle() {
                 player.play().catch(e => console.warn('[UI] Video resume failed:', e));
             }
         } else {
-            trackEvent('text_mode_toggled', { active: true });
             appStore.getState().setTextInputVisible(true);
             appStore.getState().setMicActive(true);
             appStore.getState().triggerPauseAllVideos();

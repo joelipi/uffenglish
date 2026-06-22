@@ -14,7 +14,7 @@ import { saveLessonProgress } from '../user/user-profile.js';
 import { getCompressedLessonStats } from '../answer/scoring.js';
 import { calculateLessonAverage, detectFluencyTrend } from './success-lesson-logic.js';
 import { setTextInputSubmitCallback } from './step-loader-callbacks.js';
-import { trackEvent } from '../utils/logrocket.js';
+import { trackEvent } from '../utils/posthog.js';
 
 // --- Warning Clear Timer (no DOM) ---
 
