@@ -60,12 +60,12 @@ export function calculateFluencyScore({
         // Subtracts 1000ms, ensures the value doesn't go below 0, then calculates the penalty
         hesitationScore = Math.max(0, 100 - Math.floor(Math.max(0, hesitation - 1000) / 100));
  
-        const isDemoMode = appStore.getState().isDemoMode;
-        if (isDemoMode) {
-            // Average of ONLY WPM and Hesitation
-            flow = Math.round((wpmScore + hesitationScore) / 2);
-        } else {
+        const isPWAMode = appStore.getState().isPWAMode;
+        if (isPWAMode) {
             flow = Math.round((wpmScore + pausesScore + hesitationScore) / 3);
+        } else {
+            // Average of ONLY WPM and Hesitation (no real VAD in default mode)
+            flow = Math.round((wpmScore + hesitationScore) / 2);
         }
     }
 

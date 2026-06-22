@@ -616,6 +616,22 @@ const strings = {
         en: "Continue as Guest",
         es: "Continuar como invitado"
     },
+    'guest_language_title': {
+        en: "What language do you speak?",
+        es: "¿Qué idioma hablas?"
+    },
+    'guest_language_select': {
+        en: "Select your language...",
+        es: "Selecciona tu idioma..."
+    },
+    'guest_language_english_only': {
+        en: "Continue in English only",
+        es: "Continuar solo en inglés"
+    },
+    'guest_language_not_listed': {
+        en: "My language is not on this list",
+        es: "Mi idioma no está en esta lista"
+    },
 
     // --- Home Screen ---
     'home_title': {

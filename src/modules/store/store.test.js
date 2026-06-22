@@ -5,7 +5,7 @@ describe('Zustand App Store', () => {
     beforeEach(() => {
         // Reset the store to default state before each test
         appStore.setState({
-            isDemoMode: false,
+            isPWAMode: false,
             isWhisperReady: false,
             chatHistory: [],
             userFirstName: null,
@@ -113,8 +113,8 @@ describe('Zustand App Store', () => {
     });
 
     it('should set session flags', () => {
-        appStore.getState().setDemoMode(true);
-        expect(appStore.getState().isDemoMode).toBe(true);
+        appStore.getState().setPWAMode(true);
+        expect(appStore.getState().isPWAMode).toBe(true);
 
         appStore.getState().setWhisperReady(true);
         expect(appStore.getState().isWhisperReady).toBe(true);

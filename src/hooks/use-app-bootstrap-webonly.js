@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { appStore } from '../modules/store/store.js';
-import { getIsDemoMode } from '../modules/user/demo-mode-webonly.js';
+import { getIsPWAMode } from '../modules/user/demo-mode-webonly.js';
 import { requestPersistentStorage } from '../modules/storage/storage-persistence-webonly.js';
 import { useAuthStatus, useUserProfile } from '../modules/api/api.js';
 import { setupAppInfra } from './app-infra-webonly.js';
@@ -42,9 +42,9 @@ export function useAppBootstrap({ courseId } = {}) {
         requestPersistentStorage();
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // ── Demo mode from URL search params or localStorage ──
+    // ── PWA mode from URL search params (?pwa) or localStorage ──
     useEffect(() => {
-        appStore.getState().setDemoMode(getIsDemoMode());
+        appStore.getState().setPWAMode(getIsPWAMode());
     }, []);
 
     // ── Bootstrap once both queries resolve ──

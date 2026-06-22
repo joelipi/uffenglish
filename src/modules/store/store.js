@@ -57,7 +57,7 @@ export const appStore = createStore(
     persist(
         (set, get) => ({
             // --- Session Flags (Not Persisted) ---
-            isDemoMode: false,
+            isPWAMode: false,
             isWhisperReady: false,
             isWhisperEngineFailed: false,
             isMicActive: false,
@@ -65,6 +65,9 @@ export const appStore = createStore(
             isPlaybackMuted: false,
             isCameraOff: false,
             isGuestModalOpen: false,
+            guestNativeLanguage: null,
+            guestDetectedLang: null,
+            guestModalStep: 'select-language',
             isLoggedIn: false,
             reactReady: false,
             criticalErrorMessage: null,
@@ -169,7 +172,7 @@ export const appStore = createStore(
             // --- Actions ---
 
             // Set Session Flags
-            setDemoMode: (val) => set({ isDemoMode: val }),
+            setPWAMode: (val) => set({ isPWAMode: val }),
             setWhisperReady: (val) => set({ isWhisperReady: val }),
             setWhisperEngineFailed: (val) => set({ isWhisperEngineFailed: val }),
             setMicActive: (val) => set({ isMicActive: val }),
@@ -177,6 +180,12 @@ export const appStore = createStore(
             setPlaybackMuted: (val) => set({ isPlaybackMuted: val }),
             setCameraOff: (val) => set({ isCameraOff: val }),
             setGuestModalOpen: (val) => set({ isGuestModalOpen: val }),
+            setGuestNativeLanguage: (val) => set({ guestNativeLanguage: val }),
+            setGuestDetectedLang: (val) => set({ guestDetectedLang: val }),
+            setGuestModalStep: (val) => set({ guestModalStep: val }),
+            /** Atomically sets both guestNativeLanguage and guestModalStep in ONE set()
+             *  so React never renders login-choice with a null language. */
+            setGuestLanguageAndAdvance: (lang) => set({ guestNativeLanguage: lang, guestModalStep: 'login-choice' }),
             setIsLoggedIn: (val) => set({ isLoggedIn: val }),
             setReactReady: (val) => set({ reactReady: val }),
             triggerMicBounce: () => set((state) => ({ micBounceTrigger: state.micBounceTrigger + 1 })),
@@ -590,7 +599,7 @@ export const appStore = createStore(
             name: 'uff-lesson-storage',
             partialize: (state) => ({
                 // Only these values are saved to localStorage. 
-                // isDemoMode and isWhisperReady are safely ignored.
+                // isPWAMode and isWhisperReady are safely ignored.
                 activeLessonId: state.activeLessonId,
                 currentLessonIndex: state.currentLessonIndex,
                 currentStepIndex: state.currentStepIndex,
