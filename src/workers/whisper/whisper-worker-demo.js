@@ -50,11 +50,11 @@ async function loadAndCacheFile(filePath) {
     let response = await cache.match(url);
 
     if (response) {
-        console.log(`[whisper-demo] CACHE HIT: ${filePath}`);
+        postDiag(`CACHE HIT: ${filePath}`);
         return response;
     }
 
-    console.log(`[whisper-demo] CACHE MISS: Downloading ${filePath}...`);
+    postDiag(`CACHE MISS: Downloading ${filePath}...`);
     response = await fetch(url, { mode: 'cors' });
     if (!response.ok) throw new Error(`HTTP Error ${response.status} for ${filePath}`);
 

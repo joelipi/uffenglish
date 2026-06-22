@@ -218,7 +218,8 @@ export default function InteractiveVideoPlayer() {
             };
             const timeoutId = setTimeout(() => {
                 video.removeEventListener('canplay', onReady);
-                console.warn('[InteractiveVideo] Video did not become ready within 10s.');
+                console.warn('[InteractiveVideo] Video did not become ready within 10s — trying to play anyway.');
+                tryPlay();
             }, 10000);
             video.addEventListener('canplay', onReady);
             pendingCleanup = () => {
@@ -245,7 +246,7 @@ export default function InteractiveVideoPlayer() {
             unsub();
             pendingCleanup?.();
         };
-    }, [isActive, pendingVideoPlayType]);
+    }, [isActive, pendingVideoPlayType, mediaVisible]);
 
     // -------------------------------------------------------------------------
     // Sync playbackRate to the video element.

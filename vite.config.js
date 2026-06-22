@@ -63,6 +63,9 @@ export default defineConfig({
             },
         },
     },
+    worker: {
+        format: 'es',
+    },
     server: {
         allowedHosts: ['t.ultrafastfluency.com'],
         proxy: {

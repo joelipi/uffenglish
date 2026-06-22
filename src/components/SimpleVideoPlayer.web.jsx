@@ -168,18 +168,29 @@ export default function SimpleVideoPlayer() {
     }, [updateProgress]);
 
     // Delayed play after React mount
-    useEffect(() => {
-        if (!isActive || !videoRef.current) return;
+    // useLayoutEffect fires synchronously during the React commit phase,
+    // preserving iOS transient activation from the continue-button click.
+    useLayoutEffect(() => {
+        console.log('[SimpleVideo] autoplay effect running. isActive:', isActive, 'hasVideoRef:', !!videoRef.current, 'mediaVisible:', mediaVisible, 'reactReady:', appStore.getState().reactReady, 'pendingVideoPlayType:', pendingVideoPlayType);
+        if (!isActive || !videoRef.current) {
+            console.log('[SimpleVideo] autoplay blocked — isActive:', isActive, 'videoRef:', !!videoRef.current);
+            return;
+        }
 
         const tryPlay = () => {
             const video = videoRef.current;
+            console.log('[SimpleVideo] tryPlay called. readyState:', video.readyState, 'paused:', video.paused, 'src:', video.src?.slice(-40));
             const p = video.play();
             if (p !== undefined) {
                 p.catch(() => {
+                    console.log('[SimpleVideo] Unmuted autoplay blocked — retrying muted.');
                     video.muted = true;
                     video.play().then(() => {
+                        console.log('[SimpleVideo] Muted autoplay succeeded — unmuting in 100ms.');
                         setTimeout(() => { video.muted = false; }, 100);
-                    }).catch(() => {});
+                    }).catch((e) => {
+                        console.log('[SimpleVideo] Muted autoplay also blocked:', e.message);
+                    });
                 });
             }
         };
@@ -189,6 +200,7 @@ export default function SimpleVideoPlayer() {
         const attemptAutoplay = () => {
             const video = videoRef.current;
             if (!video) return;
+            console.log('[SimpleVideo] attemptAutoplay. readyState:', video.readyState);
             if (video.readyState >= 2) {
                 tryPlay();
                 return;
@@ -204,7 +216,8 @@ export default function SimpleVideoPlayer() {
             };
             const timeoutId = setTimeout(() => {
                 video.removeEventListener('canplay', onReady);
-                console.warn('[SimpleVideo] Video did not become ready within 10s.');
+                console.warn('[SimpleVideo] Video did not become ready within 10s — trying to play anyway.');
+                tryPlay();
             }, 10000);
             video.addEventListener('canplay', onReady);
             pendingCleanup = () => {
@@ -233,7 +246,7 @@ export default function SimpleVideoPlayer() {
                 pendingCleanup?.();
             };
         }
-    }, [isActive, pendingVideoPlayType]);
+    }, [isActive, pendingVideoPlayType, mediaVisible]);
 
     // Compute scroll offset for scrolling subtitles
     useLayoutEffect(() => {

@@ -60,6 +60,7 @@ export function createLoadStep(deps) {
         listeningState,
         clearChat,
         addAIFeedbackMessages,
+        enableAudioSystem,
     } = deps;
 
     return function loadStep(step, lesson, fluencyData) {
@@ -99,6 +100,9 @@ export function createLoadStep(deps) {
             } else {
                 warmUpSpeechCam();
             }
+        } else if (step.responseType === 'lessonIntro') {
+            // Unlock AudioContext for iOS video autoplay without triggering camera permissions.
+            if (typeof enableAudioSystem === 'function') enableAudioSystem();
         } else {
             setWebcamStream(null);
         }

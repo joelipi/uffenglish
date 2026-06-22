@@ -52,14 +52,14 @@ async function loadAndCacheFile(filename, isWasm) {
     let response = await cache.match(url);
 
     if (response) {
-        console.log(`[whisper] ⚡ CACHE HIT: ${filename}`);
+        postDiag(`CACHE HIT: ${filename}`);
     } else {
-        console.log(`[whisper] ☁️ CACHE MISS: Downloading ${filename}...`);
+        postDiag(`CACHE MISS: Downloading ${filename}...`);
         response = await fetch(url, { mode: 'cors' });
         if (!response.ok) throw new Error(`HTTP Error ${response.status} for ${filename}`);
 
         const buffer = await response.arrayBuffer();
-        console.log(`[whisper] 💾 SAVING: Caching ${filename}`);
+        postDiag(`CACHE SAVING: ${filename}`);
         try {
             await cache.put(url, new Response(buffer.slice(0), { headers: response.headers }));
         } catch (cacheError) {

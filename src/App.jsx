@@ -22,6 +22,11 @@ export default function App() {
 
         console.log('[React] Booting background AI workers...');
         (async () => {
+            // Start idiom dictionary build immediately so it can run in parallel
+            // with Whisper initialization. It now runs in a Web Worker, so it no
+            // longer blocks the main thread or the first video from mounting.
+            const idiomInitPromise = idiomChecker.init();
+
             try {
                 let voiceInitFn = initLocalVoiceAI;
                 if (typeof voiceInitFn !== 'function') {
@@ -40,7 +45,7 @@ export default function App() {
             } finally {
                 try {
                     console.log("  Local NLP bypassed. Now fetching and building idiom dictionary...");
-                    await idiomChecker.init();
+                    await idiomInitPromise;
                     console.log("  Idiom checker ready!");
                 } catch (err) {
                     console.error("  Failed to initialize idiom checker:", err);
