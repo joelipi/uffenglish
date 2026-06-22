@@ -202,7 +202,7 @@ export default function InteractiveVideoPlayer() {
 
         const attemptAutoplay = () => {
             const video = videoRef.current;
-            if (!video) return;
+            if (!video || !mediaVisible) return;
             if (video.readyState >= 2) {
                 tryPlay();
                 return;
@@ -350,7 +350,7 @@ export default function InteractiveVideoPlayer() {
         }
     }, [handleWrapperTap]);
 
-    if (!isActive) return null;
+    if (!isActive || !mediaVisible) return null;
 
     return (
         <div
