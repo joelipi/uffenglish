@@ -112,8 +112,6 @@ export const appStore = createStore(
             textInputVisible: false,
             textInputPlaceholder: '',
             speechInputContent: null,
-            speechCue: null,
-            speechPossibleAnswer: null,
             tutorChatVisible: false,
 
             _webcamStreamKey: 0,
@@ -488,8 +486,6 @@ export const appStore = createStore(
                 playbackBlob: null,
                 playbackAutoplay: false,
                 playbackSpeechCamChunks: [],
-                speechCue: null,
-                speechPossibleAnswer: null,
                 hangmanOps: null,
                 pendingVideoPlayType: null,
             }),
@@ -518,8 +514,6 @@ export const appStore = createStore(
             setTextInputVisible: (visible) => set({ textInputVisible: visible }),
             setTextInputPlaceholder: (placeholder) => set({ textInputPlaceholder: placeholder }),
             setSpeechInputContent: (content) => set({ speechInputContent: content }),
-            setSpeechCue: (cue) => set({ speechCue: cue }),
-            setSpeechPossibleAnswer: (answer) => set({ speechPossibleAnswer: answer }),
             setTutorChatVisible: (visible) => set({ tutorChatVisible: visible }),
 
 
@@ -600,8 +594,6 @@ export const appStore = createStore(
                 textInputVisible: false,
                 textInputPlaceholder: '',
                 speechInputContent: null,
-                speechCue: null,
-                speechPossibleAnswer: null,
                 tutorChatVisible: false
             })
         }),

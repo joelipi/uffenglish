@@ -186,8 +186,6 @@ test.describe('Regression Guard — Store, DOM IDs, Module Imports', () => {
                 return {
                     successScreenVisible: newState.successScreenVisible,
                     successLessonId: newState.successLessonId,
-                    speechCue: newState.speechCue,
-                    hintsVisible: newState.hintsVisible,
                     error: undefined
                 };
             } catch (e) {
@@ -198,9 +196,6 @@ test.describe('Regression Guard — Store, DOM IDs, Module Imports', () => {
         expect(result.error).toBeUndefined();
         expect(result.successScreenVisible).toBe(true);
         expect(result.successLessonId).toBeTruthy();
-        if (result.speechCue) {
-            expect(result.hintsVisible).toBe(true);
-        }
     });
 
     test('old success-lesson.js module is not loadable', async ({ page }) => {

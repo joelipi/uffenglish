@@ -35,7 +35,6 @@ import {
  * @param {object} deps - Platform-specific dependencies
  * @param {Function} deps.submitAnswerPrecheck - Answer precheck handler
  * @param {Function} deps.showFeedbackAndProceed - Feedback and progression handler
- * @param {Function} deps.handleHint - Hint handler
  * @param {Function} [deps.onStepLoaded] - Called after core step logic, before step-type dispatch
  * @param {Function} [deps.onResponseStep] - Called for response-type steps (openResponse, closedResponse)
  * @param {Function} [deps.onTextStep] - Called for text-type steps
@@ -49,7 +48,6 @@ export function loadStepOrchestrate(step, lesson, fluencyData, deps = {}) {
     const {
         submitAnswerPrecheck,
         showFeedbackAndProceed,
-        handleHint,
         onStepLoaded = () => {},
         onResponseStep = () => {},
         onTextStep = () => {},
@@ -68,7 +66,7 @@ export function loadStepOrchestrate(step, lesson, fluencyData, deps = {}) {
 
     // Step-type dispatch (platform-agnostic branching, platform-specific handlers)
     if (step.responseType === 'closedResponse' || step.responseType === 'openResponse') {
-        onResponseStep(step, lesson, { submitAnswerPrecheck, showFeedbackAndProceed, handleHint });
+        onResponseStep(step, lesson, { submitAnswerPrecheck, showFeedbackAndProceed });
     } else if (step.responseType === 'unitcomplete') {
         onUnitComplete(step);
     } else if (step.responseType === 'lessonIntro') {

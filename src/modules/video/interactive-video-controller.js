@@ -67,7 +67,7 @@ export class InteractiveVideoStateController {
     }
 
     initTokens(cue) {
-        const cueText = typeof cue === 'object' ? cue?.en : cue;
+        const cueText = typeof cue === 'object' ? (cue?.en || '') : (cue || '');
         this.tokens = cueText.match(/\w+(?:['\u2019]\w+)*|[^\w\s]+/g) || [];
         this.punctuationMap = new Map();
         this.tokens.forEach((token, i) => {

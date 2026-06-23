@@ -6,10 +6,11 @@
  * for both rendering the final stitched video and sequential playback.
  */
 export class VideoRenderPlanner {
-    constructor(recordings, configData, fluencyData) {
+    constructor(recordings, configData, fluencyData, userLang = 'en') {
         this.recordings = recordings || [];
         this.configData = configData || {};
         this.fluencyData = fluencyData || { total: "NA" };
+        this.userLang = userLang || 'en';
     }
 
     generatePlan() {
@@ -51,7 +52,7 @@ export class VideoRenderPlanner {
                 blob: rec.blob,       // Used by web processor
                 uri: rec.uri,         // Used by native processor
                 trim: rec.meta?.trimTimestamps || null,
-                subtitle: userText,   // Passes the properly extracted text
+                subtitle: { en: userText, translation: null },   // Webcam responses have no translation
                 isFirst: plan.length === 0,
                 isTextMode: rec.isTextMode,
                 duration: rec.duration
@@ -153,8 +154,18 @@ export class VideoRenderPlanner {
         if (!lesson?.steps?.[rec.originalStepIndex]) return null;
         const q = lesson.steps[rec.originalStepIndex];
 
-        if (typeof q.cue === 'string') return q.cue;
-        if (q.cue && q.cue.en) return q.cue.en;
+        // Cue is a plain string — no translation available
+        if (typeof q.cue === 'string') return { en: q.cue, translation: null };
+
+        // Cue is a multi-language object (e.g. { en: "Hello", es: "Hola" })
+        if (q.cue && typeof q.cue === 'object') {
+            const en = q.cue.en || '';
+            // Only include translation when userLang is non-English and a translation exists
+            const lang = (this.userLang || 'en').toLowerCase();
+            const translation = (lang !== 'en' && q.cue[lang]) ? q.cue[lang] : null;
+            return { en, translation };
+        }
+
         return null;
     }
 }

@@ -54,7 +54,6 @@ export function createLoadStep(deps) {
     const {
         submitAnswerPrecheck,
         showFeedbackAndProceed,
-        handleHint,
         warmUpSpeechCam,
         toggleSpeechRecognition,
         listeningState,
@@ -159,7 +158,6 @@ export function createLoadStep(deps) {
     loadStepOrchestrate(step, lesson, fluencyData, {
         submitAnswerPrecheck,
         showFeedbackAndProceed,
-        handleHint,
         onStepLoaded,
         onResponseStep,
         onTextStep,
@@ -173,7 +171,7 @@ export function createLoadStep(deps) {
 }
 
 function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
-    const { submitAnswerPrecheck, handleHint } = deps;
+    const { submitAnswerPrecheck } = deps;
 
     // If we're in firstResponse phase, the speech callback is set up normally
     // below (isTextMode defaults to false).  Stash the text-mode args in case
@@ -182,11 +180,6 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
         _storedTextSetupArgs = { step, submitAnswerPrecheck };
     }
     appStore.getState().setHintsVisible(false);
-
-    if (step.responseType !== "closedResponse") {
-        appStore.getState().setSpeechCue(step.cue);
-        appStore.getState().setSpeechPossibleAnswer(step.possibleAnswer || null);
-    }
 
     const stepIndex = getCurrentStepIndex(step, appStore.getState().configData, appStore.getState().currentLessonIndex);
 

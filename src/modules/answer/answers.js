@@ -5,6 +5,131 @@ import swearjar from '../utils/swearjar.js';
 import { evaluateWithAI } from '../api/api.js';
 import Strings from '../../data/strings.js';
 import { appStore } from '../store/store.js';
+import { getCueText } from '../utils/utils.js';
+
+// ── ClosedResponse cue evaluation ──
+
+/**
+ * Detects cue shape and evaluates correctness for closedResponse.
+ * Supports: string, bilingual object, array of strings/objects,
+ *           template strings with [slot] placeholders + stepData.slots,
+ *           regex objects { pattern, type: "regex" }.
+ *
+ * Returns { isCorrect, explanation, normalizeduserResponse, normalizedcue }
+ * where normalizedcue is the best-matching candidate (used for hangman/feedback).
+ */
+async function evaluateClosedResponse(userResponse, cue, stepData) {
+    const normalizedUser = await normalize(userResponse.trim().toLowerCase());
+    const threshold = 95;
+
+    if (!cue) {
+        return {
+            isCorrect: false,
+            explanation: stepData.explanation,
+            normalizeduserResponse: normalizedUser,
+            normalizedcue: ''
+        };
+    }
+
+    // ── Regex cue: { pattern: "...", type: "regex" } ──
+    if (cue && typeof cue === 'object' && cue.type === 'regex' && cue.pattern) {
+        const regex = new RegExp(cue.pattern, 'i');
+        const isMatch = regex.test(normalizedUser);
+        return {
+            isCorrect: isMatch,
+            explanation: stepData.explanation,
+            normalizeduserResponse: normalizedUser,
+            normalizedcue: isMatch ? normalizedUser : ''
+        };
+    }
+
+    // ── Expand cue into candidate strings ──
+    let candidateStrings = [];
+
+    if (Array.isArray(cue)) {
+        // Array of cues: ["text1", "text2", { en: "text3" }]
+        candidateStrings = cue.map(item =>
+            typeof item === 'object' ? (item?.en || '') : String(item)
+        );
+    } else if (typeof cue === 'string' && cue.includes('[') && stepData.slots) {
+        // Template: "My favorite [thing] is [color]" + stepData.slots
+        candidateStrings = expandTemplate(cue, stepData.slots);
+    } else if (cue && typeof cue === 'object' && cue.en && typeof cue.en === 'string' && cue.en.includes('[') && (cue.slots || stepData.slots)) {
+        // Bilingual template object: { en: "My [thing]", slots: {...} }
+        const slots = cue.slots || stepData.slots;
+        candidateStrings = expandTemplate(cue.en, slots);
+    } else {
+        // Plain string or bilingual object
+        const text = typeof cue === 'object' ? (cue?.en || '') : String(cue);
+        candidateStrings = [text];
+    }
+
+    // ── Normalize all candidates ──
+    const normalizedCandidates = await Promise.all(
+        candidateStrings.map(c => normalize(c.trim().toLowerCase()))
+    );
+
+    // ── Find best match ──
+    let bestSimilarity = 0;
+    let bestMatch = '';
+    for (const candidate of normalizedCandidates) {
+        const sim = calculateSimilarity(normalizedUser, candidate);
+        if (sim > bestSimilarity) {
+            bestSimilarity = sim;
+            bestMatch = candidate;
+        }
+    }
+
+    return {
+        isCorrect: bestSimilarity >= threshold,
+        explanation: stepData.explanation,
+        normalizeduserResponse: normalizedUser,
+        normalizedcue: bestMatch || normalizedCandidates[0] || ''
+    };
+}
+
+/**
+ * Expands a template string like "I need [item] and [quantity] stuff"
+ * into all combinations using the supplied slot definitions.
+ *
+ * Slots shape: { item: ["bread", "milk"], quantity: ["some", "more"] }
+ */
+function expandTemplate(template, slots) {
+    const slotNames = Object.keys(slots || {});
+    if (slotNames.length === 0) {
+        // No slots defined — strip bracket syntax and return the plain string
+        return [template.replace(/\[[^\]]+\]/g, '').replace(/\s+/g, ' ').trim()];
+    }
+
+    const valuesPerSlot = slotNames.map(name => {
+        const vals = slots[name];
+        return Array.isArray(vals) ? vals.map(String) : [String(vals)];
+    });
+
+    const combinations = cartesianProduct(valuesPerSlot);
+
+    return combinations.map(values => {
+        let result = template;
+        slotNames.forEach((name, i) => {
+            // Replace both [name] and [name: inline, values]
+            result = result.replace(new RegExp(`\\[${name}(?::[^\\]]+)?\\]`, 'g'), values[i]);
+        });
+        return result;
+    });
+}
+
+function cartesianProduct(arrays) {
+    if (arrays.length === 0) return [[]];
+    return arrays.reduce((acc, curr) => {
+        const result = [];
+        for (const a of acc) {
+            for (const c of curr) {
+                result.push([...a, c]);
+            }
+        }
+        return result;
+    }, [[]]);
+}
 
 /**
  * Returns the position of stepData within the current lesson's steps array.
@@ -22,19 +147,19 @@ export function getCurrentStepIndex(stepData, configData, currentLessonIndex) {
     const storeIndex = appStore.getState().currentStepIndex;
     if (storeIndex >= 0 && storeIndex < currentLesson.steps.length) {
         const storedStep = currentLesson.steps[storeIndex];
-        const normCue1 = typeof stepData.cue === 'object' ? stepData.cue?.en : stepData.cue;
-        const normCue2 = typeof storedStep.cue === 'object' ? storedStep.cue?.en : storedStep.cue;
+        const normCue1 = getCueText(stepData.cue);
+        const normCue2 = getCueText(storedStep.cue);
         if (storedStep.step === stepData.step && normCue1 === normCue2) {
             return storeIndex;
         }
     }
 
     // ── Fallback: content-based findIndex ──
-    console.warn('[getCurrentStepIndex] Store index mismatch, falling back to content lookup. storeIndex:', storeIndex, 'stepData.step:', stepData.step, 'cue:', typeof stepData.cue === 'object' ? stepData.cue?.en : stepData.cue);
+    console.warn('[getCurrentStepIndex] Store index mismatch, falling back to content lookup. storeIndex:', storeIndex, 'stepData.step:', stepData.step, 'cue:', getCueText(stepData.cue));
 
-    const normalizedCue1 = typeof stepData.cue === 'object' ? stepData.cue?.en : stepData.cue;
+    const normalizedCue1 = getCueText(stepData.cue);
     return currentLesson.steps.findIndex(q => {
-        const normalizedCue2 = typeof q.cue === 'object' ? q.cue?.en : q.cue;
+        const normalizedCue2 = getCueText(q.cue);
         const sameStep = q.step === stepData.step &&
             q.explanation === stepData.explanation &&
             normalizedCue2 === normalizedCue1;
@@ -52,7 +177,7 @@ export async function processAnswerLogic({
     userResponse, cue, stepData, lesson, courseLevel, userData, apiRoot
 }) {
     if (stepData.responseType === "openResponse") {
-        const cueText = typeof cue === 'object' ? cue?.en : cue;
+        const cueText = getCueText(cue);
         const normalizeduserResponse = await normalize(userResponse.trim().toLowerCase());
         const normalizedcue = await normalize(cueText.trim().toLowerCase());
 
@@ -182,18 +307,7 @@ export async function processAnswerLogic({
         return result;
     }
     else if (stepData.responseType === "closedResponse") {
-        const cueText = typeof cue === 'object' ? cue?.en : cue;
-        const normalizeduserResponse = await normalize(userResponse.trim().toLowerCase());
-        const normalizedcue = await normalize(cueText.trim().toLowerCase());
-        const similarity = calculateSimilarity(normalizeduserResponse, normalizedcue);
-        const threshold = 95;
-        let result = {
-            isCorrect: similarity >= threshold,
-            explanation: stepData.explanation,
-            normalizeduserResponse,
-            normalizedcue
-        };
-        return result;
+        return evaluateClosedResponse(userResponse, cue, stepData);
     } else {
         let result = { isCorrect: false, explanation: stepData.explanation };
         return result;
@@ -203,7 +317,7 @@ export async function processAnswerLogic({
 export async function validateAnswerPrecheck(val, cue, stepData, courseLevel, userData, responsesGiven) {
     if (stepData.responseType !== "openResponse") return { isValid: true };
 
-    const cueText = typeof cue === 'object' ? cue?.en : cue;
+    const cueText = getCueText(cue);
     const wordCount = val.trim().split(/\s+/).length;
     let minWordsRequired = 3;
     let warningMessage = null;

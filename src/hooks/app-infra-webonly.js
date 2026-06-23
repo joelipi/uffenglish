@@ -68,12 +68,9 @@ export async function setupAppInfra({ userData }) {
     });
 
     const {
-        handleHint: handleHintImpl,
         submitAnswerPrecheck: submitAnswerPrecheckImpl,
         showFeedbackAndProceed: showFeedbackAndProceedImpl,
     } = pipeline;
-
-    const handleHint = (...args) => handleHintImpl(...args);
 
     let callLoadStepRef = null;
 
@@ -95,13 +92,12 @@ export async function setupAppInfra({ userData }) {
 
     const showFeedbackAndProceed = (...args) => showFeedbackAndProceedImpl(...args, answerDeps);
 
-    setAnswerPipelineDeps({ submitAnswerPrecheck, showFeedbackAndProceed, handleHint });
+    setAnswerPipelineDeps({ submitAnswerPrecheck, showFeedbackAndProceed });
 
     function callLoadStep(step, lesson, fluencyData) {
         loadStep(step, lesson, fluencyData, {
             submitAnswerPrecheck,
-            showFeedbackAndProceed,
-            handleHint
+            showFeedbackAndProceed
         });
     }
     callLoadStepRef = callLoadStep;

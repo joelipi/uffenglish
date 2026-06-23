@@ -17,7 +17,7 @@ import {
 } from './answers.js';
 import { logInteraction, calculateFluencyScore } from './scoring.js';
 import Strings from '../../data/strings.js';
-import { getLocalizedTranslation, generateHangmanOps } from '../utils/utils.js';
+import { getCueText, getLocalizedTranslation, generateHangmanOps } from '../utils/utils.js';
 import { analyzeSpeech } from '../utils/analytics.js';
 import { updateSpeechRecording } from '../storage/storage.js';
 import { buildFeedbackData, buildExplanationData } from './feedback-builder.js';
@@ -185,7 +185,7 @@ export function createAnswerPipeline(deps) {
     } = deps;
 
     function handleCorrectFeedbackUI(stepIndex, stepData, button, cue, explanation, userResponse, courseLevel, englishLevelDeduction, userData, configData, fluencyBubble = null) {
-        const cueText = typeof cue === 'object' ? cue?.en : cue;
+        const cueText = getCueText(cue);
         const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
 
         const currentFluencyScore = appStore.getState().fluencyScore;
@@ -320,7 +320,7 @@ export function createAnswerPipeline(deps) {
     }
 
     function handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userResponse, explanation, normalizeduserResponse, normalizedcue, step, silent = false, userData, configData, fluencyBubble = null) {
-        const cueText = typeof cue === 'object' ? cue?.en : cue;
+        const cueText = getCueText(cue);
         appStore.getState().incrementIncorrectAttempts();
 
         if (!silent && !appStore.getState().isTextMode && (stepData.responseType === "lessonIntro" || stepData.responseType === "closedResponse" || stepData.responseType === "openResponse")) {
@@ -490,10 +490,6 @@ export function createAnswerPipeline(deps) {
         }
     }
 
-    function handleHint(stepIndex) {
-        appStore.getState().setHintsVisible(true);
-    }
-
     function resetButtonState(button) {
         appStore.getState().setSubmitBtnDisabled(false);
         appStore.getState().setSubmitBtnIcon(appStore.getState().isTextMode ? 'send' : 'mic');
@@ -509,7 +505,7 @@ export function createAnswerPipeline(deps) {
         );
 
         if (!isValid) {
-            const cueText = typeof cue === 'object' ? cue?.en : cue;
+            const cueText = getCueText(cue);
             trackEvent('answer_rejected', {
                 reason: warningMessage,
                 is_text_mode: appStore.getState().isTextMode,
@@ -541,7 +537,7 @@ export function createAnswerPipeline(deps) {
             const stepIndex = getCurrentStepIndex(stepData, configData, appStore.getState().currentLessonIndex);
             await updateSpeechRecording(currentLessonId, stepIndex, {
                 userResponse: val,
-                cue: typeof cue === 'object' ? cue?.en : cue,
+                cue: getCueText(cue),
                 isTextMode: appStore.getState().isTextMode,
                 duration: appStore.getState().isTextMode ? 3 : null
             });
@@ -564,7 +560,7 @@ export function createAnswerPipeline(deps) {
     }
 
     async function handleAnswer(userResponse, cue, stepData, button, explanation, stats = { pauseCount: null, netDuration: null }, _deps = {}, userData = appStore.getState().userData, configData = appStore.getState().configData, courseId = appStore.getState().courseId) {
-        const cueText = typeof cue === 'object' ? cue?.en : cue;
+        const cueText = getCueText(cue);
         if (!appStore.getState().isTextMode && (stepData.responseType === "lessonIntro" || stepData.responseType === "closedResponse" || stepData.responseType === "openResponse")) {
             const storeState = appStore.getState();
             const hasVideoBubble = storeState.chatHistory.some(msg => msg.type === 'video');
@@ -818,7 +814,7 @@ export function createAnswerPipeline(deps) {
                 setWebcamStream(null);
 
                 if (!stepData.interactiveVideoUrl) {
-                    const hangmanOps = generateHangmanOps(userResponse, cueText);
+                    const hangmanOps = generateHangmanOps(userResponse, result.normalizedcue || cueText);
                     appStore.getState().setHangmanOps(hangmanOps);
                     appStore.getState().setHintsVisible(true);
                 }
@@ -954,5 +950,5 @@ export function createAnswerPipeline(deps) {
         }
     }
 
-    return { handleHint, submitAnswerPrecheck, handleAnswer, showFeedbackAndProceed };
+    return { submitAnswerPrecheck, handleAnswer, showFeedbackAndProceed };
 }

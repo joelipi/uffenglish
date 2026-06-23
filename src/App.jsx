@@ -10,10 +10,7 @@ export default function App() {
     const hasIdentifiedGuest = useRef(false);
 
     useEffect(() => {
-        // Load heavy CSS + analytics after first paint — not on the critical path.
-        // Inline styles in index.html cover the preloader during the gap.
-        import('./assets/css/app.css');
-        import('bootstrap-icons/font/bootstrap-icons.css');
+        // PostHog SDK loads after first paint — not on the critical path.
         import('./modules/utils/posthog-client.js').then(m => m.initPostHog());
     }, []);
 

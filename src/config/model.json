@@ -317,6 +317,38 @@
           "introBackgroundVideoUrl": "gtests-1-0"
         },
         {
+          "cue": [
+            { "en": "I love English", "es": "Amo el inglés", "pt": "Eu amo o inglês" },
+            { "en": "I like English", "es": "Me gusta el inglés", "pt": "Eu gosto do inglês" },
+            { "en": "I adore English", "es": "Adoro el inglés", "pt": "Eu adoro o inglês" }
+          ],
+          "responseType": "closedResponse",
+          "simpleVideoUrl": "gtests-1-0",
+          "headsUp": "Array cue — say any of the listed phrases."
+        },
+        {
+          "cue": {
+            "en": "I [feeling] English",
+            "es": "Yo [feeling] el inglés",
+            "pt": "Eu [feeling] o inglês",
+            "slots": {
+              "feeling": ["love", "like", "adore"]
+            }
+          },
+          "responseType": "closedResponse",
+          "simpleVideoUrl": "gtests-1-0",
+          "headsUp": "Slot cue — fill in the feeling word."
+        },
+        {
+          "cue": {
+            "pattern": "I (love|like|adore) English",
+            "type": "regex"
+          },
+          "responseType": "closedResponse",
+          "simpleVideoUrl": "gtests-1-0",
+          "headsUp": "Regex cue — match the pattern."
+        },
+        {
           "cue": {
             "en": "I love English!",
             "es": "¡Amo el inglés!",

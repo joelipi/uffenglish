@@ -35,10 +35,11 @@ export function VideoProcessor({
     configData,
     fluencyData = { total: 'NA' },
     lessonId,
+    userLang = 'en',
     onComplete
 }) {
     // --- Plan ---
-    const plannerRef = useRef(new VideoRenderPlanner(recordings, configData, fluencyData));
+    const plannerRef = useRef(new VideoRenderPlanner(recordings, configData, fluencyData, userLang));
     const renderPlan = useRef(plannerRef.current.generatePlan());
 
     // --- Playback state ---
@@ -325,7 +326,12 @@ export function VideoProcessor({
             />
             {subtitle ? (
                 <View style={styles.subtitleOverlay} pointerEvents="none">
-                    <Text style={styles.subtitleText}>{subtitle}</Text>
+                    <Text style={styles.subtitleText}>
+                        {typeof subtitle === 'string' ? subtitle : subtitle.en}
+                    </Text>
+                    {(typeof subtitle === 'object' && subtitle.translation) ? (
+                        <Text style={styles.subtitleTranslationText}>{subtitle.translation}</Text>
+                    ) : null}
                 </View>
             ) : null}
         </View>
@@ -369,6 +375,14 @@ const styles = StyleSheet.create({
         fontWeight: '500',
         textAlign: 'center',
         lineHeight: 24,
+    },
+    subtitleTranslationText: {
+        color: '#fff',
+        fontSize: 14,
+        fontStyle: 'italic',
+        textAlign: 'center',
+        lineHeight: 20,
+        marginTop: 4,
     },
     tailingWrapper: {
         width: '100%',

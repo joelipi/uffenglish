@@ -5,6 +5,7 @@ import { appStore } from '../store/store.js';
 import Strings from '../../data/strings.js';
 import normalize from '../bilingual/normalize.js';
 import calculateSimilarity from '../answer/calculate-similarity.js';
+import { getCueText } from '../utils/utils.js';
 
 export function createSpeechOrchestrator({
     startSpeechCamRecording,
@@ -86,7 +87,7 @@ export function createSpeechOrchestrator({
         let displayTranscript = transcriptToReview;
         if (step.responseType === 'closedResponse' && step.cue) {
             try {
-                const cueText = typeof step.cue === 'object' ? step.cue?.en : step.cue;
+                const cueText = getCueText(step.cue);
                 const normalizedUser = await normalize(transcriptToReview.trim().toLowerCase());
                 const normalizedCue = await normalize(cueText.trim().toLowerCase());
                 const similarity = calculateSimilarity(normalizedUser, normalizedCue);

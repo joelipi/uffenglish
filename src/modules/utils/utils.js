@@ -4,23 +4,47 @@
  * @param {string} lang - The user's native language code (e.g., 'es').
  * @returns {string} - The extracted string, defaulting to English if the target language is missing.
  */
+/**
+ * Extracts the displayable English cue text from any cue shape.
+ * String → the string.  Bilingual object → .en.  Array → first element's .en.
+ * Regex → .en || .pattern.  Template string → the string.
+ */
+export function getCueText(cue) {
+    if (!cue) return '';
+    if (typeof cue === 'string') return cue;
+    if (Array.isArray(cue)) return getCueText(cue[0]);
+    if (cue.type === 'regex') return cue.en || cue.pattern || '';
+    return cue.en || '';
+}
+
 export function getLocalizedTranslation(translationData, lang = 'en') {
     if (!translationData) return '';
+
+    // ── String: return as-is ──
     if (typeof translationData === 'string') return translationData;
-    
+
+    // ── Array: recurse into the first element ──
+    if (Array.isArray(translationData)) {
+        return getLocalizedTranslation(translationData[0], lang);
+    }
+
+    // ── Regex object: use .en, localized key, or pattern as fallback ──
+    if (translationData.type === 'regex') {
+        const targetLang = (lang || 'en').toLowerCase();
+        if (translationData[targetLang]) return translationData[targetLang];
+        if (translationData.en) return translationData.en;
+        return translationData.pattern || '';
+    }
+
     // Default to 'en' if lang is null or undefined
     const targetLang = (lang || 'en').toLowerCase();
-    
+
     // Try the target language
     if (translationData[targetLang]) return translationData[targetLang];
-    
+
     // Fallback to English
     if (translationData['en']) return translationData['en'];
-    
-    // Fallback to the first available language
-    const keys = Object.keys(translationData);
-    if (keys.length > 0) return translationData[keys[0]];
-    
+
     return '';
 }
 
@@ -31,7 +55,7 @@ export function getLocalizedTranslation(translationData, lang = 'en') {
  * @returns {Object} - { en: string, localized: string }
  */
 export function generateHangmanOps(userResponse, cue) {
-    const cueText = typeof cue === 'object' ? cue?.en : cue;
+    const cueText = getCueText(cue);
     const tokenize = str => str.trim().match(/[\p{L}\p{N}]+(?:'[\p{L}\p{N}]+)?|[^\p{L}\p{N}\s]+|\s+/gu) || [];
     const tokA = tokenize(userResponse || ""), tokB = tokenize(cueText || "");
     const m = tokA.length, n = tokB.length;

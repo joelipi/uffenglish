@@ -119,7 +119,8 @@ function createVideoProcessor() {
                 }
 
                 const configData = appStore.getState().configData || {};
-                const planner = new VideoRenderPlanner(recordings, configData, fluencyData);
+                const userLang = appStore.getState().userData?.native_language;
+                const planner = new VideoRenderPlanner(recordings, configData, fluencyData, userLang);
                 const plan = planner.generatePlan();
 
                 const dimensions = planner.getTargetDimensions(
@@ -404,6 +405,29 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
 // ---------------------------------------------------------------------------
 // Drawing
 // ---------------------------------------------------------------------------
+
+/**
+ * Word-wrap a string into lines that fit within maxWidth when rendered
+ * with the current font on the given context.
+ */
+function wrapText(context, text, maxWidth) {
+    const words = text.split(' ');
+    const lines = [];
+    let line = '';
+
+    for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        if (context.measureText(testLine).width > maxWidth && n > 0) {
+            lines.push(line.trim());
+            line = words[n] + ' ';
+        } else {
+            line = testLine;
+        }
+    }
+    lines.push(line.trim());
+    return lines;
+}
+
 function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart, fluencyData, isFirst, subtitleText) {
     const now = performance.now();
     const blinkOn = Math.floor(now / 500) % 2 === 0;
@@ -468,55 +492,87 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
         });
     }
 
-    if (typeof subtitleText === 'string' && subtitleText.trim() !== '') {
+    // Unpack subtitle — support legacy string and new { en, translation } object
+    let enText = '';
+    let translationText = null;
+    if (typeof subtitleText === 'string') {
+        enText = subtitleText;
+    } else if (subtitleText && typeof subtitleText === 'object') {
+        enText = subtitleText.en || '';
+        translationText = subtitleText.translation || null;
+    }
+
+    if (enText.trim() !== '') {
         context.textAlign = 'center';
         context.textBaseline = 'bottom';
         const centerX = Math.floor(canvasWidth / 2);
 
-        const subtitleFontSize = Math.max(16, Math.round(canvasWidth * 0.05));
+        const enFontSize = Math.max(16, Math.round(canvasWidth * 0.05));
         const maxSubtitleWidth = canvasWidth * 0.9;
 
-        context.font = `bold ${subtitleFontSize}px "Plus Jakarta Sans", sans-serif`;
+        // Word-wrap English text
+        context.font = `bold ${enFontSize}px "Plus Jakarta Sans", sans-serif`;
+        const enLines = wrapText(context, enText, maxSubtitleWidth);
 
-        const words = subtitleText.split(' ');
-        let line = '';
-        const lines = [];
-
-        for (let n = 0; n < words.length; n++) {
-            const testLine = line + words[n] + ' ';
-            if (context.measureText(testLine).width > maxSubtitleWidth && n > 0) {
-                lines.push(line.trim());
-                line = words[n] + ' ';
-            } else {
-                line = testLine;
-            }
+        // Word-wrap translation text (if present)
+        let trLines = [];
+        const trFontSize = Math.round(enFontSize * 0.85);
+        if (translationText && translationText.trim() !== '') {
+            context.font = `italic ${trFontSize}px "Plus Jakarta Sans", sans-serif`;
+            trLines = wrapText(context, translationText, maxSubtitleWidth);
         }
-        lines.push(line.trim());
 
-        const lineHeight = subtitleFontSize * 1.2;
-        const subtitleStartY = canvasHeight * 0.75;
-        const boxPadding = 10;
+        const enLineHeight = enFontSize * 1.2;
+        const trLineHeight = trFontSize * 1.3;
+        const gapBetween = Math.round(enFontSize * 0.15);
+        const totalEnHeight = enLines.length * enLineHeight;
+        const totalTrHeight = trLines.length > 0
+            ? gapBetween + trLines.length * trLineHeight
+            : 0;
+        const totalTextHeight = totalEnHeight + totalTrHeight;
+
+        // Measure longest line across both English and translation
         let longestLineWidth = 0;
-
-        lines.forEach(l => {
+        context.font = `bold ${enFontSize}px "Plus Jakarta Sans", sans-serif`;
+        enLines.forEach(l => {
             longestLineWidth = Math.max(longestLineWidth, context.measureText(l).width);
         });
+        if (trLines.length > 0) {
+            context.font = `italic ${trFontSize}px "Plus Jakarta Sans", sans-serif`;
+            trLines.forEach(l => {
+                longestLineWidth = Math.max(longestLineWidth, context.measureText(l).width);
+            });
+        }
 
+        const boxPadding = 10;
+        const subtitleStartY = canvasHeight * 0.75;
+
+        // Background box covering both English and translation lines
         context.fillStyle = 'rgba(0, 0, 0, 0.6)';
         context.fillRect(
             centerX - longestLineWidth / 2 - boxPadding,
-            subtitleStartY - lineHeight - boxPadding,
+            subtitleStartY - enLineHeight - boxPadding,
             longestLineWidth + boxPadding * 2,
-            lines.length * lineHeight + boxPadding * 2
+            totalTextHeight + boxPadding * 2
         );
 
+        // Draw English lines
         context.fillStyle = 'white';
         context.shadowColor = 'black';
         context.shadowBlur = 4;
-
-        lines.forEach((l, i) => {
-            context.fillText(l, centerX, subtitleStartY + i * lineHeight);
+        context.font = `bold ${enFontSize}px "Plus Jakarta Sans", sans-serif`;
+        enLines.forEach((l, i) => {
+            context.fillText(l, centerX, subtitleStartY + i * enLineHeight);
         });
+
+        // Draw translation lines (italic, slightly smaller)
+        if (trLines.length > 0) {
+            context.font = `italic ${trFontSize}px "Plus Jakarta Sans", sans-serif`;
+            const trStartY = subtitleStartY + totalEnHeight + gapBetween;
+            trLines.forEach((l, i) => {
+                context.fillText(l, centerX, trStartY + i * trLineHeight);
+            });
+        }
     }
 
     context.restore();

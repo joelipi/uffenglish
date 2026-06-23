@@ -273,6 +273,104 @@ describe('Answers Module', () => {
             expect(result.isCorrect).toBe(false);
         });
 
+        // ── ClosedResponse: new cue shapes ──
+
+        it('should match array cue when user says any accepted phrase', async () => {
+            const result = await processAnswerLogic({
+                stepData: { responseType: 'closedResponse', explanation: 'explain' },
+                userResponse: 'do you have dark chocolate',
+                cue: ['Do you have rolls, too?', 'Do you have dark chocolate?', 'Do you have very bitter dark chocolate?'],
+            });
+            expect(result.isCorrect).toBe(true);
+        });
+
+        it('should match array cue with closest candidate via similarity', async () => {
+            const result = await processAnswerLogic({
+                stepData: { responseType: 'closedResponse', explanation: 'explain' },
+                userResponse: 'do you have dark chocolate',  // slight mismatch — no question mark
+                cue: ['Do you have rolls, too?', 'Do you have dark chocolate?'],
+            });
+            // After normalization "do you have dark chocolate" vs "do you have dark chocolate" = 100% match
+            expect(result.isCorrect).toBe(true);
+        });
+
+        it('should mark incorrect for array cue when nothing matches', async () => {
+            const result = await processAnswerLogic({
+                stepData: { responseType: 'closedResponse', explanation: 'explain' },
+                userResponse: 'where is the milk aisle',
+                cue: ['Do you have rolls, too?', 'Do you have dark chocolate?'],
+            });
+            expect(result.isCorrect).toBe(false);
+        });
+
+        it('should match template cue with correct slot value', async () => {
+            const result = await processAnswerLogic({
+                stepData: {
+                    responseType: 'closedResponse',
+                    explanation: 'explain',
+                    slots: { color: ['blue', 'red', 'green'] }
+                },
+                userResponse: 'my favorite color is blue',
+                cue: 'My favorite color is [color].',
+            });
+            expect(result.isCorrect).toBe(true);
+        });
+
+        it('should mark incorrect for template cue with wrong slot value', async () => {
+            const result = await processAnswerLogic({
+                stepData: {
+                    responseType: 'closedResponse',
+                    explanation: 'explain',
+                    slots: { color: ['blue', 'red', 'green'] }
+                },
+                userResponse: 'my favorite color is yellow',
+                cue: 'My favorite color is [color].',
+            });
+            expect(result.isCorrect).toBe(false);
+        });
+
+        it('should match template cue with punctuation and capitalization in user response', async () => {
+            const result = await processAnswerLogic({
+                stepData: {
+                    responseType: 'closedResponse',
+                    explanation: 'explain',
+                    slots: { color: ['blue', 'red', 'green'] }
+                },
+                userResponse: 'My favorite color is RED!',
+                cue: 'My favorite color is [color].',
+            });
+            expect(result.isCorrect).toBe(true);
+            // normalizedcue should be the best-matching candidate
+            expect(result.normalizedcue).toBe('my favorite color is red');
+        });
+
+        it('should match regex cue', async () => {
+            const result = await processAnswerLogic({
+                stepData: { responseType: 'closedResponse', explanation: 'explain' },
+                userResponse: 'do you have dark chocolate',
+                cue: { pattern: 'do you have (?:rolls|dark chocolate|loaves of bread)', type: 'regex' },
+            });
+            expect(result.isCorrect).toBe(true);
+        });
+
+        it('should mark incorrect for regex cue when pattern does not match', async () => {
+            const result = await processAnswerLogic({
+                stepData: { responseType: 'closedResponse', explanation: 'explain' },
+                userResponse: 'where is the bread aisle',
+                cue: { pattern: 'do you have (?:rolls|dark chocolate)', type: 'regex' },
+            });
+            expect(result.isCorrect).toBe(false);
+        });
+
+        it('should still work with bilingual object cue (backward compat)', async () => {
+            const result = await processAnswerLogic({
+                stepData: { responseType: 'closedResponse', explanation: 'explain' },
+                userResponse: 'do you have rolls too',
+                cue: { en: 'Do you have rolls, too?', es: '¿Tienes panes de molde también?' },
+            });
+            expect(result.isCorrect).toBe(true);
+        });
+
         it('should return vocab_error for vocab-only input', async () => {
             api.evaluateWithAI.mockResolvedValue({
                 labels: ['vocab'],

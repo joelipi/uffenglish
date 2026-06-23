@@ -166,16 +166,11 @@ test.describe('Whisper Review Regression Guard', () => {
             const newState = window.appStore.getState();
             return {
                 successScreenVisible: newState.successScreenVisible,
-                speechCue: newState.speechCue,
-                hintsVisible: newState.hintsVisible,
                 appPhase: newState.appPhase
             };
         });
 
         expect(result.successScreenVisible).toBe(true);
-        // Subtitles should be set from step.subtitles
-        expect(result.speechCue).toBeTruthy();
-        expect(result.hintsVisible).toBe(true);
         expect(result.appPhase).toBe('lessonSuccess');
     });
 
