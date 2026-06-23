@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useStore } from 'zustand';
+import { appStore } from '../../modules/store/store.js';
 import { useSignupForm } from './SignupForm.jsx';
 import Strings from '../../data/strings.js';
 
@@ -25,6 +27,12 @@ const ENGLISH_LEVELS = [
 ];
 
 export default function SignupForm({ onSignupSuccess, onLoginLink }) {
+    const userData = useStore(appStore, (state) => state.userData);
+    const guestNativeLang = useStore(appStore, (state) => state.guestNativeLanguage);
+    const storedNativeLang = userData?.native_language || guestNativeLang || '';
+
+    const lang = (storedNativeLang || navigator.language || 'en').split('-')[0].toLowerCase();
+
     const {
         firstName,
         setFirstName,
@@ -43,7 +51,12 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
         handleSubmit,
     } = useSignupForm({ onSignupSuccess });
 
-    const lang = (navigator.language || 'en').split('-')[0].toLowerCase();
+    // Prepopulate native language from the user's already-set language selection
+    useEffect(() => {
+        if (storedNativeLang && !nativeLanguage) {
+            setNativeLanguage(storedNativeLang);
+        }
+    }, [storedNativeLang, nativeLanguage, setNativeLanguage]);
 
     return (
         <>

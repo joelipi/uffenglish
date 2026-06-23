@@ -1,11 +1,8 @@
 // modules/speech-orchestrator.js - Platform-agnostic speech orchestrator factory
 import * as Core from './speech.core.js';
-import { validateAnswerPrecheck } from '../answer/answers.js';
+import { validateAnswerPrecheck, findMatchingCueText } from '../answer/answers.js';
 import { appStore } from '../store/store.js';
 import Strings from '../../data/strings.js';
-import normalize from '../bilingual/normalize.js';
-import calculateSimilarity from '../answer/calculate-similarity.js';
-import { getCueText } from '../utils/utils.js';
 
 export function createSpeechOrchestrator({
     startSpeechCamRecording,
@@ -81,20 +78,18 @@ export function createSpeechOrchestrator({
 
         // ── closedResponse homophone / near-match check ────────────────
         // Whisper often transcribes homophones (to/too, rules/roles) or
-        // near-identical words.  When the user's spoken response is close
-        // enough to the expected cue, show the cue itself for confirmation
-        // so the user isn't confused by a slightly-off transcription.
+        // near-identical words.  When the user's spoken response matches a
+        // cue variant (plain string, array, template, or regex), show the
+        // canonical cue text for confirmation so the user isn't confused
+        // by a slightly-off transcription.
         let displayTranscript = transcriptToReview;
         if (step.responseType === 'closedResponse' && step.cue) {
             try {
-                const cueText = getCueText(step.cue);
-                const normalizedUser = await normalize(transcriptToReview.trim().toLowerCase());
-                const normalizedCue = await normalize(cueText.trim().toLowerCase());
-                const similarity = calculateSimilarity(normalizedUser, normalizedCue);
-                if (similarity >= 95) {
-                    displayTranscript = cueText;
+                const matchedCue = await findMatchingCueText(transcriptToReview, step.cue, step);
+                if (matchedCue) {
+                    displayTranscript = matchedCue;
                     console.log('[PT] closedResponse homophone match — showing cue instead of transcript', {
-                        transcript: transcriptToReview, cue: cueText, similarity
+                        transcript: transcriptToReview, cue: matchedCue
                     });
                 }
             } catch (e) {

@@ -13,7 +13,8 @@ export function getIntroContinueHandler() { return _introContinueHandler; }
 import {
     getCurrentStepIndex,
     processAnswerLogic,
-    validateAnswerPrecheck
+    validateAnswerPrecheck,
+    findMatchingCueText
 } from './answers.js';
 import { logInteraction, calculateFluencyScore } from './scoring.js';
 import Strings from '../../data/strings.js';
@@ -535,9 +536,16 @@ export function createAnswerPipeline(deps) {
                 || (configData?.lessons?.[appStore.getState().currentLessonIndex]?.lessonId)
                 || 'unknown_lesson';
             const stepIndex = getCurrentStepIndex(stepData, configData, appStore.getState().currentLessonIndex);
+
+            let matchedCue = null;
+            if (stepData.responseType === "closedResponse") {
+                matchedCue = await findMatchingCueText(val, cue, stepData);
+            }
+
             await updateSpeechRecording(currentLessonId, stepIndex, {
                 userResponse: val,
                 cue: getCueText(cue),
+                ...(matchedCue ? { matchedCue } : {}),
                 isTextMode: appStore.getState().isTextMode,
                 duration: appStore.getState().isTextMode ? 3 : null
             });
@@ -561,6 +569,7 @@ export function createAnswerPipeline(deps) {
 
     async function handleAnswer(userResponse, cue, stepData, button, explanation, stats = { pauseCount: null, netDuration: null }, _deps = {}, userData = appStore.getState().userData, configData = appStore.getState().configData, courseId = appStore.getState().courseId) {
         const cueText = getCueText(cue);
+        let matchedCue = null;
         if (!appStore.getState().isTextMode && (stepData.responseType === "lessonIntro" || stepData.responseType === "closedResponse" || stepData.responseType === "openResponse")) {
             const storeState = appStore.getState();
             const hasVideoBubble = storeState.chatHistory.some(msg => msg.type === 'video');
@@ -606,9 +615,17 @@ export function createAnswerPipeline(deps) {
                     console.log('[handleAnswer] Text mode: overridden speech metrics for scoring');
                 }
 
+                // For closedResponse, find which specific cue variant matches the user's speech
+                // so the canonical display text (not the raw template/pattern) can be used
+                // in the whisper review, chat bubble, and end-of-lesson video subtitles.
+                if (stepData.responseType === "closedResponse") {
+                    matchedCue = await findMatchingCueText(userResponse, cue, stepData);
+                }
+
                 await updateSpeechRecording(currentLessonId, stepIndex, {
                     userResponse,
                     cue: cueText,
+                    ...(matchedCue ? { matchedCue } : {}),
                     wpm: appStore.getState().isTextMode ? 0 : (speechAnalytics?.wpm || 0),
                     pauseCount: appStore.getState().isTextMode ? 0 : (speechAnalytics?.pauseCount || 0),
                     complexityScore: speechAnalytics?.complexityScore || 100,
@@ -844,7 +861,7 @@ export function createAnswerPipeline(deps) {
                 appStore.getState().addChatMessage({
                     role: 'user',
                     type: 'standard',
-                    content: cueText,
+                    content: matchedCue || cueText,
                     translation: getLocalizedTranslation(cue, lang),
                     translationLang: (getLocalizedTranslation(cue, lang) && lang !== 'en') ? lang : undefined,
                     userName: userData?.display_name?.split(' ')[0] || 'User',

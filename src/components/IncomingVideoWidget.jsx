@@ -14,7 +14,9 @@ const ANDROID_VIDEO_LOAD_TIMEOUT_MS = 3000;
 
 export default function IncomingVideoWidget() {
     const videoRef = useRef(null);
+    const posterCanvasRef = useRef(null);
     const [isReady, setIsReady] = useState(false);
+    const [poster, setPoster] = useState(null);
     // Guard so we only signal introVideoReady once (onLoadedData, onCanPlay,
     // and the safety timeout may all race).
     const readySignalledRef = useRef(false);
@@ -40,6 +42,22 @@ export default function IncomingVideoWidget() {
         if (video) {
             video.currentTime = 0;
             video.pause();
+
+            // Capture the first frame as a poster so the browser displays a
+            // static frame immediately when the video element becomes visible,
+            // even before the decoder has composited the first painted frame.
+            // Skip on iOS where canvas drawImage from video is unreliable.
+            if (!isIOS && posterCanvasRef.current && video.videoWidth > 0) {
+                try {
+                    const canvas = posterCanvasRef.current;
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    canvas.getContext('2d').drawImage(video, 0, 0);
+                    setPoster(canvas.toDataURL('image/jpeg', 0.8));
+                } catch (e) {
+                    console.warn('[IncomingVideoWidget] Poster capture failed', e);
+                }
+            }
         }
         // Double rAF to ensure the first frame is painted before revealing.
         // Without this, the video element becomes visible (via opacity transition)
@@ -94,15 +112,14 @@ export default function IncomingVideoWidget() {
             };
         }
 
-        // Android: call play() to coax the browser into actually fetching the
-        // video (preload="auto" is routinely ignored).  The promise will reject
-        // with NotAllowedError (no user gesture) but the load is kicked off.
-        if (isAndroid) {
-            video.play().catch(() => {
-                // Expected — play() without gesture is blocked.
-                // The video element is now loading though.
-            });
-        }
+        // Call play() (it will reject without a user gesture) to coax the
+        // browser into actually fetching video data.  With preload="metadata"
+        // on iOS, or with Android Chrome ignoring preload="auto" (data saver),
+        // the browser won't load actual frames without this kick.
+        video.play().catch(() => {
+            // Expected — play() without gesture is blocked.
+            // The video element is now loading though.
+        });
 
         // Safety timeout — if neither loadeddata nor canplay fire within the
         // window (Android data-saver, flaky CDN, etc.), signal ready anyway.
@@ -121,6 +138,7 @@ export default function IncomingVideoWidget() {
             }
             video.pause();
             video.src = '';
+            setPoster(null);
         };
     }, [show, currentVideo, signalReady]);
 
@@ -151,7 +169,8 @@ export default function IncomingVideoWidget() {
             <div className="pulse-ring-wrapper">
                 <div className="pulse-ring"></div>
                 <div className="intro-video-container">
-                    <video ref={videoRef} className="intro-video" playsInline preload={isIOS ? 'metadata' : 'auto'} crossOrigin="anonymous" muted onLoadedData={onLoadedData} onCanPlay={onCanPlay} onError={onError} style={{ opacity: isReady ? 1 : 0, transition: 'opacity 0.15s ease-in' }} />
+                    <video ref={videoRef} className="intro-video" playsInline preload={isIOS ? 'metadata' : 'auto'} crossOrigin="anonymous" muted poster={poster} onLoadedData={onLoadedData} onCanPlay={onCanPlay} onError={onError} style={{ opacity: isReady ? 1 : 0, transition: 'opacity 0.15s ease-in' }} />
+                    <canvas ref={posterCanvasRef} style={{ display: 'none' }} />
                     <div className="intro-notification-content">
                         <div className="intro-notification-top">
                             <div className="intro-call-title">

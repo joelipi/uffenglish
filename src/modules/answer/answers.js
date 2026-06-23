@@ -89,6 +89,80 @@ async function evaluateClosedResponse(userResponse, cue, stepData) {
 }
 
 /**
+ * Given a user response and a cue (string, array, template with slots, or regex),
+ * finds the specific variant the user said and returns its NON-normalized
+ * canonical display text.
+ *
+ * - Array / template: expands to all raw candidates, normalises each, finds the
+ *   best similarity match above the 95% threshold, returns the RAW form.
+ * - Regex: reconstructs canonical form from the pattern using $1..$N
+ *   backreferences — e.g. pattern "I (love|like|adore) English" + user
+ *   "i love english" → "I love English".
+ * - Plain string / bilingual object: returns getCueText(cue).
+ *
+ * Returns null when no candidate meets the threshold.
+ */
+export async function findMatchingCueText(userResponse, cue, stepData) {
+    if (!cue || !userResponse) return null;
+
+    const normalizedUser = await normalize(userResponse.trim().toLowerCase());
+    const threshold = 95;
+
+    // ── Regex cue: reconstruct canonical form from pattern + captured groups ──
+    if (cue && typeof cue === 'object' && cue.type === 'regex' && cue.pattern) {
+        const regex = new RegExp(cue.pattern, 'i');
+        const match = regex.exec(userResponse);
+        if (!match) return null;
+
+        // Transform each capture group (…) → $N so String.replace re-inserts captured text
+        let groupCount = 0;
+        const replacementTemplate = cue.pattern.replace(/\([^)]+\)/g, () => `$${++groupCount}`);
+
+        return userResponse.replace(regex, replacementTemplate);
+    }
+
+    // ── Expand cue into raw candidate strings ──
+    let rawCandidates = [];
+
+    if (Array.isArray(cue)) {
+        rawCandidates = cue.map(item =>
+            typeof item === 'object' ? (item?.en || '') : String(item)
+        ).filter(Boolean);
+    } else if (typeof cue === 'string' && cue.includes('[') && stepData?.slots) {
+        rawCandidates = expandTemplate(cue, stepData.slots);
+    } else if (cue && typeof cue === 'object' && cue.en && typeof cue.en === 'string' && cue.en.includes('[') && (cue.slots || stepData?.slots)) {
+        const slots = cue.slots || stepData.slots;
+        rawCandidates = expandTemplate(cue.en, slots);
+    } else {
+        const text = typeof cue === 'object' ? (cue?.en || '') : String(cue);
+        if (text) rawCandidates = [text];
+    }
+
+    if (rawCandidates.length === 0) return getCueText(cue) || null;
+
+    // ── Normalise all candidates, keeping raw form alongside ──
+    const candidates = await Promise.all(
+        rawCandidates.map(async raw => ({
+            raw,
+            normalized: await normalize(raw.trim().toLowerCase())
+        }))
+    );
+
+    // ── Find best raw match above threshold ──
+    let bestSimilarity = 0;
+    let bestRaw = null;
+    for (const { raw, normalized } of candidates) {
+        const sim = calculateSimilarity(normalizedUser, normalized);
+        if (sim > bestSimilarity) {
+            bestSimilarity = sim;
+            bestRaw = raw;
+        }
+    }
+
+    return bestSimilarity >= threshold ? bestRaw : null;
+}
+
+/**
  * Expands a template string like "I need [item] and [quantity] stuff"
  * into all combinations using the supplied slot definitions.
  *

@@ -149,6 +149,12 @@ export class VideoRenderPlanner {
     }
 
     _getStepCue(rec) {
+        // If a matchedCue was stored at answer-submission time, use it directly.
+        // This gives the canonical filled-in variant for arrays/templates/regex cues.
+        if (rec.matchedCue) {
+            return { en: rec.matchedCue, translation: null };
+        }
+
         if (!this.configData.lessons) return null;
         const lesson = this.configData.lessons.find(l => l.lessonId === rec.originalLessonId);
         if (!lesson?.steps?.[rec.originalStepIndex]) return null;
