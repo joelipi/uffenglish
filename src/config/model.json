@@ -324,7 +324,7 @@
           ],
           "responseType": "closedResponse",
           "simpleVideoUrl": "gtests-1-0",
-          "headsUp": "Array cue — say any of the listed phrases."
+          "headsUp": ""
         },
         {
           "cue": {
@@ -337,7 +337,7 @@
           },
           "responseType": "closedResponse",
           "simpleVideoUrl": "gtests-1-0",
-          "headsUp": "Slot cue — fill in the feeling word."
+          "headsUp": ""
         },
         {
           "cue": {
@@ -346,7 +346,7 @@
           },
           "responseType": "closedResponse",
           "simpleVideoUrl": "gtests-1-0",
-          "headsUp": "Regex cue — match the pattern."
+          "headsUp": ""
         },
         {
           "cue": {
