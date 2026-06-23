@@ -38,7 +38,7 @@ function resetUIForNewStep(step) {
         phase = 'lessonIntro';
     } else if (step.responseType === 'success') {
         phase = 'lessonSuccess';
-    } else if ((step.responseType === 'closedResponse' || step.responseType === 'openResponse') && appStore.getState().currentStepIndex === 1 && !isRetry) {
+    } else if ((step.responseType === 'closedResponse' || step.responseType === 'openResponse') && appStore.getState().isModeSelectionPending && !isRetry) {
         phase = 'firstResponse';
     } else if (step.interactiveVideoUrl && !isRetry) {
         phase = 'interactiveVideo+' + (step.responseType === 'openResponse' ? 'openResponse' : 'closedResponse');

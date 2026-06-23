@@ -49,6 +49,42 @@ export function getLocalizedTranslation(translationData, lang = 'en') {
 }
 
 /**
+ * Returns the localized translation for a specific matched cue variant.
+ *
+ * ✅ Array cues  – finds the matching element and localizes it specifically
+ * ❌ Templates    – suppressed (can't safely slot-replace across languages)
+ * ❌ Regex        – suppressed (pattern-based, no bilingual structure)
+ * ✅ Plain string / bilingual – delegates to getLocalizedTranslation(cue, lang)
+ *
+ * @param {*} cue         – raw cue (string, object, array, template object, regex object)
+ * @param {string|null} matchedCue  – the matched variant text (or null)
+ * @param {string} lang    – target language code
+ * @returns {string|undefined}
+ */
+export function getLocalizedCueTranslation(cue, matchedCue, lang) {
+    if (!matchedCue || !cue) return undefined;
+    if (!lang || lang === 'en') return undefined;
+
+    // ── Array: find the specific matching element ──
+    if (Array.isArray(cue)) {
+        const matchedElement = cue.find(item =>
+            (typeof item === 'object' ? item.en : String(item)) === matchedCue
+        );
+        if (matchedElement) {
+            return getLocalizedTranslation(matchedElement, lang);
+        }
+        return undefined;
+    }
+
+    // ── Template / regex: matchedCue differs from raw cue.en — can't localize ──
+    const plainEn = typeof cue === 'object' ? (cue?.en || '') : String(cue);
+    if (matchedCue !== plainEn) return undefined;
+
+    // ── Plain string or simple bilingual — delegate ──
+    return getLocalizedTranslation(cue, lang);
+}
+
+/**
  * Gets both English and localized versions of a cue translation object.
  * @param {Object|string} translationData - The translation object or string.
  * @param {string} lang - The user's native language code.

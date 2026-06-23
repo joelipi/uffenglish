@@ -66,6 +66,7 @@ export const appStore = createStore(
             isTextMode: false,
             isPlaybackMuted: false,
             isCameraOff: false,
+            isModeSelectionPending: true,
             isGuestModalOpen: false,
             guestNativeLanguage: null,
             guestDetectedLang: null,
@@ -179,6 +180,7 @@ export const appStore = createStore(
             setTextMode: (val) => set({ isTextMode: val }),
             setPlaybackMuted: (val) => set({ isPlaybackMuted: val }),
             setCameraOff: (val) => set({ isCameraOff: val }),
+            setModeSelectionPending: (val) => set({ isModeSelectionPending: val }),
             setGuestModalOpen: (val) => set({ isGuestModalOpen: val }),
             setGuestNativeLanguage: (val) => set({ guestNativeLanguage: val }),
             setGuestDetectedLang: (val) => set({ guestDetectedLang: val }),
@@ -507,7 +509,8 @@ export const appStore = createStore(
                 pointLossAmount: null,
                 pointLossTrigger: 0,
                 submitBtnDisabled: false,
-                inputDisabled: false
+                inputDisabled: false,
+                isModeSelectionPending: true,
             }),
 
             // --- Input UI Actions (Replaces renderSpeechInputUI/renderTextInputUI) ---

@@ -18,7 +18,7 @@ import {
 } from './answers.js';
 import { logInteraction, calculateFluencyScore } from './scoring.js';
 import Strings from '../../data/strings.js';
-import { getCueText, getLocalizedTranslation, generateHangmanOps } from '../utils/utils.js';
+import { getCueText, getLocalizedTranslation, getLocalizedCueTranslation, generateHangmanOps } from '../utils/utils.js';
 import { analyzeSpeech } from '../utils/analytics.js';
 import { updateSpeechRecording } from '../storage/storage.js';
 import { buildFeedbackData, buildExplanationData } from './feedback-builder.js';
@@ -320,7 +320,7 @@ export function createAnswerPipeline(deps) {
         playSound('correct-sound');
     }
 
-    function handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userResponse, explanation, normalizeduserResponse, normalizedcue, step, silent = false, userData, configData, fluencyBubble = null) {
+    function handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userResponse, explanation, normalizeduserResponse, normalizedcue, step, silent = false, userData, configData, matchedCue = null, fluencyBubble = null) {
         const cueText = getCueText(cue);
         appStore.getState().incrementIncorrectAttempts();
 
@@ -443,8 +443,9 @@ export function createAnswerPipeline(deps) {
             let teacherTranslation = teacherBilingual.localized;
 
             if (appStore.getState().incorrectAttempts > 2) {
-                const cueLocalized = getLocalizedTranslation(cue, lang);
-                teacherContent = teacherBilingual.english + ' ' + cueText;
+                const displayCue = matchedCue || cueText;
+                const cueLocalized = getLocalizedCueTranslation(cue, matchedCue, lang);
+                teacherContent = teacherBilingual.english + ' ' + displayCue;
                 teacherTranslation = teacherBilingual.localized
                     ? teacherBilingual.localized + (cueLocalized ? ' ' + cueLocalized : '')
                     : null;
@@ -824,7 +825,7 @@ export function createAnswerPipeline(deps) {
                 const explanationData = buildExplanationData(result.explanations || explanation, explanation);
                 const structuredExplanations = getExplanationMessages(explanationData);
 
-                handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userResponse, structuredExplanations, result.normalizeduserResponse, result.normalizedcue, stepData.step, true, userData, configData);
+                handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userResponse, structuredExplanations, result.normalizeduserResponse, result.normalizedcue, stepData.step, true, userData, configData, matchedCue);
                 appStore.getState().clearPlaybackBlob();
                 appStore.getState().triggerVideoClear();
                 clearChat();
@@ -858,12 +859,14 @@ export function createAnswerPipeline(deps) {
                 showChat();
                 appStore.getState().transitionTo('feedback');
 
+                const translation = getLocalizedCueTranslation(cue, matchedCue, lang);
+
                 appStore.getState().addChatMessage({
                     role: 'user',
                     type: 'standard',
                     content: matchedCue || cueText,
-                    translation: getLocalizedTranslation(cue, lang),
-                    translationLang: (getLocalizedTranslation(cue, lang) && lang !== 'en') ? lang : undefined,
+                    translation,
+                    translationLang: (translation && lang !== 'en') ? lang : undefined,
                     userName: userData?.display_name?.split(' ')[0] || 'User',
                     userAvatarUrl: userData?.profilepicurl || userAvatarUrl
                 });
@@ -887,7 +890,7 @@ export function createAnswerPipeline(deps) {
                 showFeedbackAndProceed(stepData, isCorrect, _deps);
             } else {
                 appStore.getState().clearPlaybackBlob();
-                handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userResponse, structuredExplanations, result ? result.normalizeduserResponse : "", result ? result.normalizedcue : "", stepData.step, false, userData, configData, fluencyBubble);
+                handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userResponse, structuredExplanations, result ? result.normalizeduserResponse : "", result ? result.normalizedcue : "", stepData.step, false, userData, configData, matchedCue, fluencyBubble);
                 showFeedbackAndProceed(stepData, isCorrect, _deps);
             }
 

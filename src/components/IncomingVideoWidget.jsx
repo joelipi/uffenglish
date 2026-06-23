@@ -37,21 +37,70 @@ export default function IncomingVideoWidget() {
             safetyTimeoutRef.current = null;
         }
         const video = videoRef.current;
-        if (video) {
-            video.currentTime = 0;
-            video.pause();
+        if (!video) {
+            // No video element mounted — reveal immediately so the Preloader
+            // can go away (onError / safety-timeout paths).
+            setIsReady(true);
+            appStore.getState().setIntroVideoReady(true);
+            return;
         }
-        // Double rAF to ensure the first frame is painted before revealing.
-        // Without this, the video element becomes visible (via opacity transition)
-        // before the decoded frame has been composited, causing a blank-frame flash.
-        requestAnimationFrame(() => {
+
+        // Helper: reveal after a double rAF so the composited frame is painted.
+        const reveal = () => {
             requestAnimationFrame(() => {
-                setIsReady(true);
-                // Signal that the intro background video is fully loaded and painted.
-                // This unblocks the Preloader overlay removal, avoiding FoUC.
-                appStore.getState().setIntroVideoReady(true);
+                requestAnimationFrame(() => {
+                    setIsReady(true);
+                    appStore.getState().setIntroVideoReady(true);
+                });
             });
-        });
+        };
+
+        // Wait for the browser to actually decode the first frame before
+        // revealing.  loadeddata / canplay only guarantee the *data* for
+        // the first frame is available, not that it's been decoded into a
+        // visible picture.  The 'seeked' event fires only after a seek
+        // completes — at that point the frame at the target position has
+        // been decoded and is ready to display.
+
+        // Fallback: if 'seeked' never fires (broken video, error path),
+        // reveal after 1 s so the Preloader doesn't hang.
+        let seekedFallback = setTimeout(() => {
+            video.removeEventListener('seeked', onSeekedToZero);
+            video.removeEventListener('seeked', onSeekedToOffset);
+            reveal();
+        }, 1000);
+
+        const onSeekedToZero = () => {
+            clearTimeout(seekedFallback);
+            video.removeEventListener('seeked', onSeekedToZero);
+            video.pause();
+            reveal();
+        };
+
+        const onSeekedToOffset = () => {
+            clearTimeout(seekedFallback);
+            video.removeEventListener('seeked', onSeekedToOffset);
+            // First frame decoded at offset — now seek to the true first frame.
+            // Give the second seek its own fallback.
+            seekedFallback = setTimeout(() => {
+                video.removeEventListener('seeked', onSeekedToZero);
+                reveal();
+            }, 1000);
+            video.addEventListener('seeked', onSeekedToZero);
+            video.currentTime = 0;
+        };
+
+        // If currentTime is already 0 (typical after loadeddata), setting it
+        // to 0 again won't fire 'seeked' on most browsers — the position
+        // hasn't changed.  Seek to a tiny offset first to force a real seek,
+        // then chain back to 0 so we get a confirmed decode of the first frame.
+        if (video.currentTime === 0) {
+            video.addEventListener('seeked', onSeekedToOffset);
+            video.currentTime = 0.001;
+        } else {
+            video.addEventListener('seeked', onSeekedToZero);
+            video.currentTime = 0;
+        }
     }, []);
 
     // Primary trigger: loadeddata (enough data for the first frame).
@@ -168,9 +217,7 @@ export default function IncomingVideoWidget() {
                             <div className="intro-caller-name">{config?.name || 'Joe Walsh'}</div>
                             <div className="intro-caller-title">{config?.role || 'English Coach, UFF'}</div>
                         </div>
-                        <div className="intro-tap-hint">
-                            <span className="intro-tap-hint-text">Tap to answer</span>
-                        </div>
+
                     </div>
                 </div>
             </div>
