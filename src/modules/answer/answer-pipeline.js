@@ -945,6 +945,9 @@ export function createAnswerPipeline(deps) {
 
             if (stepData.responseType === "lessonIntro") {
                 setIntroContinueHandler(onContinue);
+            } else if (stepData.responseType === 'viewAndContinue' && stepData.simpleVideoUrl) {
+                // Decision overlay's Continue button triggered this call — advance directly
+                onContinue();
             } else {
                 const hasWidget = appStore.getState().chatHistory.some(msg => msg.type === 'continueWidget');
                 if (!hasWidget) {

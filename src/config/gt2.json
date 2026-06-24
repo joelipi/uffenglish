@@ -170,7 +170,7 @@
         },
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": "",
           "explanation": "Context of this roleplay: <span lang='es'><i>Contexto de este roleplay:</i></span> <ul><li>You're ordering something to drink at a snack bar from the employee (the teacher).<br><span lang='es'><i>Estás pidiendo algo de tomar en un cafetín al trabajador (el profesor).</i></span>",
           "headsUp": "A continuación: MODO ROLEPLAY. Vas a responder a lo que acabas de esuchar y-- ¡la inteligencia artifical evaluará tu respuesta como si fuera tu tutor particular!<br><br>Debe tener al menos 5 palabras y ser una respuesta correcta, apropiada, completa y natural, como si fuera una conversación real y no un ejercicio.<br><br>¡Ojo! Tienes que demostrar tu comprensión. Nada de respuestas genéricas que se pudieran dar a cualquier frase, tipo, ME ALEGRA, o NO SÉ QUÉ DECIR. Tienes que responder plenamente a lo que escuchaste."
@@ -235,7 +235,7 @@
         {
           "question": "Continue",
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": "",
           "explanation": "Context of this role play: <span lang='es'><i>Contexto de este role play:</i></span> <ul><li>You're playing a game of asking fun hypothetical questions with a friend (the teacher). Listen as your friend asks you the first question...<br><span lang='es'><i>Estás jugando a hacer preguntas hipotéticas divertidas con un amigo (el profesor). Escucha mientras tu amigo te hace la primera pregunta...</i></span>",
           "headsUp": "Next: you'll listen to and repeat what the teacher says. <span lang='es'><i>A continuación, escucharás y repetirás lo que dice el profesor.</i></span>"
@@ -251,7 +251,7 @@
         {
           "question": "Continue",
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": "",
           "headsUp": "A continuación: MODO ROLEPLAY. Vas a responder a lo que acabas de esuchar y-- ¡la inteligencia artifical evaluará tu respuesta como si fuera tu tutor particular!<br><br>Debe tener al menos 5 palabras y ser una respuesta correcta, apropiada, completa y natural, como si fuera una conversación real y no un ejercicio.<br><br>¡Ojo! Tienes que demostrar tu comprensión. Nada de respuestas genéricas que se pudieran dar a cualquier frase, tipo, ME ALEGRA, o NO SÉ QUÉ DECIR. Tienes que responder plenamente a lo que escuchaste."
         },
@@ -296,7 +296,7 @@
         {
           "question": "Continue",
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": "",
           "explanation": "Context of this roleplay: <span lang='es'><i>Contexto de este roleplay:</i></span> <ul><li>You're ordering something to drink at a snack bar from the employee (the teacher).<br><span lang='es'><i>Estás pidiendo algo de tomar en un cafetín al trabajador (el profesor).</i></span>",
           "headsUp": "Next: REPEAT MODE. You'll listen to and repeat what the teacher says. <span lang='es'><i>A continuación, MODO REPETIR. Escucharás y repetirás lo que dice.</i></span>"
@@ -344,7 +344,7 @@
         {
           "question": "Continue",
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": "",
           "headsUp": "A continuación: MODO ROLEPLAY. Vas a responder a lo que acabas de esuchar y-- ¡la inteligencia artifical evaluará tu respuesta como si fuera tu tutor particular!<br><br>Debe tener al menos 5 palabras y ser una respuesta correcta, apropiada, completa y natural, como si fuera una conversación real y no un ejercicio.<br><br>¡Ojo! Tienes que demostrar tu comprensión. Nada de respuestas genéricas que se pudieran dar a cualquier frase, tipo, ME ALEGRA, o NO SÉ QUÉ DECIR. Tienes que responder plenamente a lo que escuchaste."
         },
@@ -399,14 +399,14 @@
         {
           "question": "Continue",
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": "",
           "explanation": "<ul><li>Formas comunes de preguntar sobre acciones propias con frustración o confusión con WHAT DID I--.</li><li>Respuestas útiles cuando alguien está desconcertado por sus propias acciones.</li></ul>"
         },
         {
           "question": "Continue",
           "cue": "The key word of this unit is: WORRIED. Listen. WORRIED. I'M WORRIED ABOUT. I'M WORRIED FOR.",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": "La palabra clave de esta unidad es: PREOCUPADO. Escucha. PREOCUPADO. ESTOY PREOCUPADO POR. ESTOY PREOCUPADO POR.",
           "simpleVideoUrl": "worried-UnitIntro"
         }
@@ -507,14 +507,14 @@
         {
           "question": "Continue",
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": "",
           "explanation": "<ul><li>Formas comunes de preguntar sobre acciones propias con frustración o confusión con WHAT DID I--.</li><li>Respuestas útiles cuando alguien está desconcertado por sus propias acciones.</li></ul>"
         },
         {
           "question": "Continue",
           "cue": "The key word of this unit is: WORRIED. Listen. WORRIED. I'M WORRIED ABOUT. I'M WORRIED FOR.",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": "La palabra clave de esta unidad es: PREOCUPADO. Escucha. PREOCUPADO. ESTOY PREOCUPADO POR. ESTOY PREOCUPADO POR.",
           "simpleVideoUrl": "worried-UnitIntro"
         }
@@ -657,7 +657,7 @@
         },
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "explanation": "Imagine: Context context context",
           "translation": "Imaginate contexto"
         },
@@ -720,7 +720,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -839,7 +839,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -958,7 +958,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -1158,14 +1158,14 @@
         {
           "question": "Continue",
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": "",
           "explanation": "<ul><li>Formas comunes de preguntar sobre opiniones y percepciones usando DO YOU THINK--.</li><li>Respuestas útiles para dar opiniones de manera educada.</li></ul>"
         },
         {
           "question": "Continue",
           "cue": "The key phrase of this unit is: DO YOU THINK. Listen to how the words combine. DO YOU THINK--- DOYATHINK-- DOYATHINK--",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": "La frase clave de esta unidad es: ¿PIENSAS? Escucha cómo se combinan las palabras. ¿PIENSAS? ¿PIENSAS? ¿PIENSAS? ¿PIENSAS?",
           "simpleVideoUrl": "do_you_think-UnitIntro"
         }
@@ -1185,7 +1185,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -1304,7 +1304,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -1423,7 +1423,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -1542,7 +1542,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -1661,7 +1661,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -1780,7 +1780,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "explanation": "Ahora a repasar. Vas a responder a las frases de esta unidad. Puedes responder como quieras."
         },
         {
@@ -1861,14 +1861,14 @@
         {
           "question": "Continue",
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": "",
           "explanation": "<ul><li>Formas comunes de usar FEW para expresar cantidades limitadas.</li><li>Respuestas útiles para situaciones donde se menciona escasez o limitación.</li></ul>"
         },
         {
           "question": "Continue",
           "cue": "The key word of this unit is: FEW. Listen. FEW. A FEW. FEW OF.",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": "Puede parecer que los estadounidenses y canadienses agradecen mucho, incluso cuando no hay nada que agradecer. Hay algunas maneras comunes e informales de decir gracias, y algunas formas sencillas de responder. ¡Vamos!",
           "simpleVideoUrl": "few-UnitIntro"
         }
@@ -1888,7 +1888,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -2007,7 +2007,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -2126,7 +2126,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -2245,7 +2245,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -2364,7 +2364,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -2483,7 +2483,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "explanation": "Ahora a repasar. Vas a responder a las frases de esta unidad. Puedes responder como quieras."
         },
         {
@@ -2564,14 +2564,14 @@
         {
           "question": "Continue",
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": "",
           "explanation": "<ul><li>Formas comunes de hacer sugerencias o comentarios usando HOW ABOUT.</li><li>Respuestas útiles para aceptar, rechazar o comentar sobre sugerencias.</li></ul>"
         },
         {
           "question": "Continue",
           "cue": "The key phrase of this unit is: HOW ABOUT. Listen to how the words combine. HOW ABOUT--- HOW'BOUT-- HOW'BOUT--",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": "La frase clave de esta unidad es: ¿QUÉ TAL? Escucha cómo se combinan las palabras. ¿QUÉ TAL...? ¿QUÉ TAL...? ¿QUÉ TAL...?",
           "simpleVideoUrl": "how_about-UnitIntro"
         }
@@ -2591,7 +2591,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -2710,7 +2710,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -2829,7 +2829,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -2948,7 +2948,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -3067,7 +3067,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -3186,7 +3186,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "explanation": "Ahora a repasar. Vas a responder a las frases de esta unidad. Puedes responder como quieras."
         },
         {
@@ -3267,14 +3267,14 @@
         {
           "question": "Continue",
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": "",
           "explanation": "<ul><li>Formas comunes de expresar negación condicional o hipotética usando WOULDN'T.</li><li>Respuestas útiles para situaciones de incertidumbre o desacuerdo.</li></ul>"
         },
         {
           "question": "Continue",
           "cue": "The key word of this unit is: WOULDN'T. Listen. WOULDN'T. WOULDN. WOULDN DO. WOULDN GO.",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": "La palabra clave de esta unidad es: NO LO HARÍA. Escucha. NO LO HARÍA. LO HARÍA. LO HARÍA. LO HARÍA.",
           "simpleVideoUrl": "wouldnt-UnitIntro"
         }
@@ -3294,7 +3294,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -3413,7 +3413,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -3532,7 +3532,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -3651,7 +3651,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -3770,7 +3770,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -3889,7 +3889,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "explanation": "Ahora a repasar. Vas a responder a las frases de esta unidad. Puedes responder como quieras."
         },
         {
@@ -3970,14 +3970,14 @@
         {
           "question": "Continue",
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": "",
           "explanation": "<ul><li>Preguntas comunes sobre experiencias con HAVE YOU.</li><li>Respuestas para hablar de cosas que sí/no has hecho.</li></ul>"
         },
         {
           "question": "Continue",
           "cue": "The key phrase is: HAVE YOU. Listen: HAVE YOU. HAVYU. HAVYA.",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": "La frase clave es: TIENES. Escucha: TIENES. HAVYU. HAVYA.",
           "simpleVideoUrl": "have_you-UnitIntro"
         }
@@ -3997,7 +3997,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -4116,7 +4116,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -4235,7 +4235,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -4354,7 +4354,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -4473,7 +4473,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -4592,7 +4592,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "explanation": "Ahora a repasar. Vas a responder a las frases de esta unidad. Puedes responder como quieras."
         },
         {
@@ -4673,14 +4673,14 @@
         {
           "question": "Continue",
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": "",
           "explanation": "<ul><li>Frases comunes con ALL RIGHT para confirmar, empezar acciones, o expresar aceptación.</li></ul>"
         },
         {
           "question": "Continue",
           "cue": "The key phrase is: ALL RIGHT. Listen: ALL RIGHT. AWRIGHT (informal). ALRIGHT (alternativa común).",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": "Puede parecer que los estadounidenses y canadienses agradecen mucho, incluso cuando no hay nada que agradecer. Hay algunas maneras comunes e informales de decir gracias, y algunas formas sencillas de responder. ¡Vamos!",
           "simpleVideoUrl": "all_right-UnitIntro"
         }
@@ -4700,7 +4700,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -4819,7 +4819,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -4938,7 +4938,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -5057,7 +5057,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -5176,7 +5176,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -5295,7 +5295,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "explanation": "Ahora a repasar. Vas a responder a las frases de esta unidad. Puedes responder como quieras."
         },
         {
@@ -5376,14 +5376,14 @@
         {
           "question": "Continue",
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": "",
           "explanation": "<ul><li>Frases que enfatizan negaciones o afirmaciones usando AT ALL.</li></ul>"
         },
         {
           "question": "Continue",
           "cue": "The key phrase is: AT ALL. Listen: AT ALL. ADALL. NOT AT ALL. NODADALL.",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": "La frase clave es: EN ABSOLUTO. Escucha: EN ABSOLUTO. EN ABSOLUTO. EN ABSOLUTO. EN ABSOLUTO.",
           "simpleVideoUrl": "at_all-UnitIntro"
         }
@@ -5403,7 +5403,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -5522,7 +5522,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -5641,7 +5641,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -5760,7 +5760,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -5879,7 +5879,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -5998,7 +5998,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "explanation": "Ahora a repasar. Vas a responder a las frases de esta unidad. Puedes responder como quieras."
         },
         {
@@ -6079,14 +6079,14 @@
         {
           "question": "Continue",
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": "",
           "explanation": "<ul><li>Frases informales con GONNA (going to) para planes o predicciones.</li></ul>"
         },
         {
           "question": "Continue",
           "cue": "The key word is: GONNA. Listen: GONNA. I'M GONNA. YOU'RE GONNA.",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": "La palabra clave es: VOY. Escucha: VOY. VOY. VAS.",
           "simpleVideoUrl": "gonna-UnitIntro"
         }
@@ -6106,7 +6106,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -6225,7 +6225,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -6344,7 +6344,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -6463,7 +6463,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -6582,7 +6582,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -6701,7 +6701,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "explanation": "Ahora a repasar. Vas a responder a las frases de esta unidad. Puedes responder como quieras."
         },
         {
@@ -6782,14 +6782,14 @@
         {
           "question": "Continue",
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": "",
           "explanation": "<ul><li>Formas comunes de hacer preguntas usando CAN I para pedir permiso o información.</li><li>Respuestas útiles para dar información y ayuda de manera educada.</li></ul>"
         },
         {
           "question": "Continue",
           "cue": "The key phrase of this unit is: CAN I. Listen to how the words combine. CAN I--- CANI-- KINI--",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": "La frase clave de esta unidad es: ¿PUEDO? Escuche cómo se combinan las palabras. ¿PUEDO?--- CANI-- KINI--",
           "simpleVideoUrl": "can_i-UnitIntro"
         }
@@ -6809,7 +6809,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -6928,7 +6928,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -7047,7 +7047,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -7166,7 +7166,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -7285,7 +7285,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "translation": ""
         },
         {
@@ -7404,7 +7404,7 @@
       "questions": [
         {
           "cue": "",
-          "inputType": "present",
+          "inputType": "viewAndContinue",
           "explanation": "Ahora a repasar. Vas a responder a las frases de esta unidad. Puedes responder como quieras."
         },
         {

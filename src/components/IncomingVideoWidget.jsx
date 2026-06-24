@@ -55,52 +55,47 @@ export default function IncomingVideoWidget() {
             });
         };
 
-        // Wait for the browser to actually decode the first frame before
-        // revealing.  loadeddata / canplay only guarantee the *data* for
-        // the first frame is available, not that it's been decoded into a
-        // visible picture.  The 'seeked' event fires only after a seek
-        // completes — at that point the frame at the target position has
-        // been decoded and is ready to display.
+        // Pause at the first frame so playback doesn't drift past it.
+        video.pause();
+        video.currentTime = 0;
 
-        // Fallback: if 'seeked' never fires (broken video, error path),
+        // Wait for the browser to actually present the first video frame
+        // before revealing.  loadeddata / canplay only guarantee that the
+        // *data* for the first frame is available — the browser may not
+        // have decoded or composited it yet.  A visible <video> element
+        // without a painted frame renders as a black rectangle regardless
+        // of CSS background, causing the "empty rectangle" flash.
+
+        // requestVideoFrameCallback fires when a new frame is presented
+        // to the compositor — the most reliable signal that the first
+        // frame is actually visible to the user.
+        const presentFrame = (fn) => {
+            if (video.requestVideoFrameCallback) {
+                video.requestVideoFrameCallback(fn);
+            } else {
+                // Fallback for Firefox and other browsers without rvfc:
+                // poll video dimensions via rAF.  videoWidth/videoHeight
+                // become nonzero once the first frame is decoded, and the
+                // rAF loop keeps us aligned with the paint cycle.
+                const poll = () => {
+                    if (video.videoWidth > 0 && video.videoHeight > 0) {
+                        fn();
+                    } else {
+                        requestAnimationFrame(poll);
+                    }
+                };
+                requestAnimationFrame(poll);
+            }
+        };
+
+        // Safety timeout: if the frame never presents (broken video, etc.)
         // reveal after 1 s so the Preloader doesn't hang.
-        let seekedFallback = setTimeout(() => {
-            video.removeEventListener('seeked', onSeekedToZero);
-            video.removeEventListener('seeked', onSeekedToOffset);
+        let frameTimeout = setTimeout(reveal, 1000);
+
+        presentFrame(() => {
+            clearTimeout(frameTimeout);
             reveal();
-        }, 1000);
-
-        const onSeekedToZero = () => {
-            clearTimeout(seekedFallback);
-            video.removeEventListener('seeked', onSeekedToZero);
-            video.pause();
-            reveal();
-        };
-
-        const onSeekedToOffset = () => {
-            clearTimeout(seekedFallback);
-            video.removeEventListener('seeked', onSeekedToOffset);
-            // First frame decoded at offset — now seek to the true first frame.
-            // Give the second seek its own fallback.
-            seekedFallback = setTimeout(() => {
-                video.removeEventListener('seeked', onSeekedToZero);
-                reveal();
-            }, 1000);
-            video.addEventListener('seeked', onSeekedToZero);
-            video.currentTime = 0;
-        };
-
-        // If currentTime is already 0 (typical after loadeddata), setting it
-        // to 0 again won't fire 'seeked' on most browsers — the position
-        // hasn't changed.  Seek to a tiny offset first to force a real seek,
-        // then chain back to 0 so we get a confirmed decode of the first frame.
-        if (video.currentTime === 0) {
-            video.addEventListener('seeked', onSeekedToOffset);
-            video.currentTime = 0.001;
-        } else {
-            video.addEventListener('seeked', onSeekedToZero);
-            video.currentTime = 0;
-        }
+        });
     }, []);
 
     // Primary trigger: loadeddata (enough data for the first frame).

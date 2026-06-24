@@ -14,6 +14,11 @@ import { loadStepOrchestrate } from './step-loader-orchestrate.js';
 import { setTextInputSubmitCallback as setTextCb, setSpeechInputToggleCallback as setSpeechCb } from './step-loader-callbacks.js';
 import { getVideoUrl } from '../video/video-url.js';
 
+// Module-level ref for viewAndContinue handler (decision overlay Continue button)
+let _viewAndContinueHandler = null;
+export function setViewAndContinueHandler(fn) { _viewAndContinueHandler = fn; }
+export function getViewAndContinueHandler() { return _viewAndContinueHandler; }
+
 // Module-level ref for text-mode setup on the first response step.
 // The speech callback is set up normally during _renderResponseStep (which
 // runs during initial load – no deferral). Only text mode needs a second
@@ -42,6 +47,8 @@ function resetUIForNewStep(step) {
         phase = 'firstResponse';
     } else if (step.interactiveVideoUrl && !isRetry) {
         phase = 'interactiveVideo+' + (step.responseType === 'openResponse' ? 'openResponse' : 'closedResponse');
+    } else if (step.responseType === 'viewAndContinue' && step.simpleVideoUrl) {
+        phase = 'viewAndContinueVideo';
     } else if (step.simpleVideoUrl) {
         phase = 'simpleVideo';
     } else {
@@ -146,8 +153,8 @@ export function createLoadStep(deps) {
         _renderLessonIntro(step, lesson, deps);
     };
 
-    const onPresent = (step, lesson, deps) => {
-        _renderPresent(step, lesson, deps.showFeedbackAndProceed, addAIFeedbackMessages);
+    const onViewAndContinue = (step, lesson, deps) => {
+        _renderViewAndContinue(step, lesson, deps.showFeedbackAndProceed, addAIFeedbackMessages);
     };
 
     const onSuccess = (step, fluencyData) => {
@@ -162,7 +169,7 @@ export function createLoadStep(deps) {
         onResponseStep,
         onTextStep,
         onLessonIntro,
-        onPresent,
+        onViewAndContinue,
         onSuccess,
         onLessonComplete,
         onUnitComplete
@@ -331,8 +338,9 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
     }
 }
 
-function _renderPresent(step, lesson, showFeedbackAndProceed, addAIFeedbackMessages) {
-    if (!step.simpleVideoUrl) {
+function _renderViewAndContinue(step, lesson, showFeedbackAndProceed, addAIFeedbackMessages) {
+    // Presentational text content (explanations, grammar diffs, etc.)
+    if (step.explanation || (step.explanations && step.explanations.length)) {
         const messages = [];
 
         if (step.explanations && Array.isArray(step.explanations)) {
@@ -374,7 +382,17 @@ function _renderPresent(step, lesson, showFeedbackAndProceed, addAIFeedbackMessa
             addAIFeedbackMessages(messages);
         }
     }
-    showFeedbackAndProceed(step, true);
+
+    if (step.simpleVideoUrl) {
+        // Video path: preload next step and store continue handler.
+        // The video plays; onEnded in SimpleVideoPlayer transitions to
+        // simpleVideo-decisionTime-viewAndContinue phase. The decision
+        // buttons use the stored handler for Continue.
+        setViewAndContinueHandler(() => showFeedbackAndProceed(step, true));
+    } else {
+        // No video: show continue button as before.
+        showFeedbackAndProceed(step, true);
+    }
 }
 
 function _renderSuccess(step, fluencyData) {

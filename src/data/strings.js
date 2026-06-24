@@ -911,6 +911,18 @@ const strings = {
         en: "REPEAT NOW",
         es: "REPITE AHORA"
     },
+    'video_replay': {
+        en: "REPLAY VIDEO",
+        es: "REPETIR VIDEO"
+    },
+    'start_lesson': {
+        en: "START LESSON",
+        es: "COMENZAR LECCIÓN"
+    },
+    'watch_tutorial': {
+        en: "WATCH TUTORIAL",
+        es: "VER TUTORIAL"
+    },
     'incoming_video': {
         en: "INCOMING VIDEO",
         es: "VIDEO ENTRANTE",

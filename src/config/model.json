@@ -37,23 +37,13 @@
           "responseType": "lessonIntro",
           "introBackgroundVideoUrl": "do_you_have_rolls_too"
         },
-                {
+        {
           "cue": {
             "en": "Do you have rolls, too?",
             "es": "¿Tienes panes de molde también?",
             "pt": "Você tem rolls também?"
           },
-          "responseType": "closedResponse",
-          "interactiveVideoUrl": "do_you_have_rolls_too",
-          "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
-        },
-                {
-          "cue": {
-            "en": "Do you have rolls, too?",
-            "es": "¿Tienes panes de molde también?",
-            "pt": "Você tem rolls também?"
-          },
-          "responseType": "closedResponse",
+          "responseType": "viewAndContinue",
           "simpleVideoUrl": "do_you_have_rolls_too",
           "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
         },
@@ -64,7 +54,7 @@
             "pt": "Você tem chocolate escuro?"
           },
           "responseType": "closedResponse",
-          "interactiveVideoUrl": "do_you_have_dark_chocolate",
+          "simpleVideoUrl": "do_you_have_dark_chocolate",
           "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
         },
         {

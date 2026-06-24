@@ -71,7 +71,7 @@ export default function StepLoader({ step, lesson }) {
     switch (step.responseType) {
         case 'lessonIntro':
             return <LessonIntroStep step={step} lesson={lesson} />;
-        case 'present':
+        case 'viewAndContinue':
             return <PresentStep step={step} lesson={lesson} />;
         case 'closedResponse':
         case 'openResponse':

@@ -39,7 +39,7 @@ import {
  * @param {Function} [deps.onResponseStep] - Called for response-type steps (openResponse, closedResponse)
  * @param {Function} [deps.onTextStep] - Called for text-type steps
  * @param {Function} [deps.onLessonIntro] - Called for lesson intro steps
- * @param {Function} [deps.onPresent] - Called for present steps
+ * @param {Function} [deps.onViewAndContinue] - Called for viewAndContinue steps
  * @param {Function} [deps.onSuccess] - Called for success steps
  * @param {Function} [deps.onLessonComplete] - Called for lesson complete steps
  * @param {Function} [deps.onUnitComplete] - Called for unit complete steps
@@ -52,7 +52,7 @@ export function loadStepOrchestrate(step, lesson, fluencyData, deps = {}) {
         onResponseStep = () => {},
         onTextStep = () => {},
         onLessonIntro = () => {},
-        onPresent = () => {},
+        onViewAndContinue = () => {},
         onSuccess = () => {},
         onLessonComplete = () => {},
         onUnitComplete = () => {}
@@ -71,8 +71,8 @@ export function loadStepOrchestrate(step, lesson, fluencyData, deps = {}) {
         onUnitComplete(step);
     } else if (step.responseType === 'lessonIntro') {
         onLessonIntro(step, lesson, { showFeedbackAndProceed });
-    } else if (step.responseType === 'present') {
-        onPresent(step, lesson, { showFeedbackAndProceed });
+    } else if (step.responseType === 'viewAndContinue') {
+        onViewAndContinue(step, lesson, { showFeedbackAndProceed });
     } else if (step.responseType === 'success') {
         onSuccess(step, fluencyData);
     }

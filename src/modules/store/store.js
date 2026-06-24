@@ -30,6 +30,8 @@ const phaseMapping = {
     'interactiveVideo+openResponse':             { topState: 'topBarWithStats', mediaState: 'interactiveVideo',    bottomState: 'hidden',                showMission: true },
     'interactiveVideo-decisionTime-closedResponse': { topState: 'topBarWithStats', mediaState: 'decisionOverlay', bottomState: 'decisionButtons',      showMission: true },
     'interactiveVideo-decisionTime-openResponse':   { topState: 'topBarWithStats', mediaState: 'decisionOverlay', bottomState: 'decisionButtons',      showMission: true },
+    'viewAndContinueVideo':                          { topState: 'topBarOnly',      mediaState: 'simpleVideo',         bottomState: 'hidden',               showMission: true },
+    'simpleVideo-decisionTime-viewAndContinue':     { topState: 'topBarOnly',      mediaState: 'decisionOverlay', bottomState: 'presentDecisionButtons', showMission: false },
     'recording/answering':                       { topState: (s) => s.currentVideo?.type === 'interactive' || s.isTextMode ? 'topBarWithStats' : 'topBarOnly', mediaState: 'webcamOrAvatar', bottomState: 'micActiveOrAnswerInput', showMission: false },
     'processing/transcribing':                   { topState: (s) => s.currentVideo?.type === 'interactive' || s.isTextMode ? 'topBarWithStats' : 'topBarOnly', mediaState: 'processingRecording', bottomState: 'hidden', showMission: false },
     'transcription preflight-rejected':          { topState: (s) => s.currentVideo?.type === 'interactive' || s.isTextMode ? 'topBarWithStats' : 'topBarOnly', mediaState: 'preflightRejected', bottomState: 'hidden', showMission: false },
@@ -52,6 +54,8 @@ const answerFlowTransitions = {
     'processing/transcribing':                   ['review', 'transcription preflight-rejected', 'recording/answering', 'feedback'],
     'transcription preflight-rejected':          ['recording/answering'],
     review:                                      ['feedback', 'loading'],
+    'simpleVideo-decisionTime-viewAndContinue':      ['simpleVideo', 'feedback'],
+    'viewAndContinueVideo':                           ['simpleVideo-decisionTime-viewAndContinue'],
     feedback:                                    [],
 };
 

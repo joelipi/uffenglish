@@ -24,6 +24,7 @@ export default function SimpleVideoPlayer() {
     const [loaded, setLoaded] = useState(false);
     const [poster, setPoster] = useState(null);
     const [scrollOffset, setScrollOffset] = useState(0);
+    const appPhase = useStore(appStore, (s) => s.appPhase);
     // Store player reference for external pause/play
     // Conforms to VideoPlayerHandle — same contract as InteractiveVideoPlayer
     // so the platform-agnostic answer pipeline can drive both uniformly.
@@ -154,6 +155,10 @@ export default function SimpleVideoPlayer() {
             try {
                 navigator.mediaSession.playbackState = 'none';
             } catch (e) { }
+        }
+        const cv = appStore.getState().currentVideo;
+        if (cv?.responseType === 'viewAndContinue') {
+            appStore.getState().transitionTo('simpleVideo-decisionTime-viewAndContinue', {}, { fromStepLoad: true });
         }
     }, []);
 
@@ -294,6 +299,16 @@ export default function SimpleVideoPlayer() {
                 />
                 <canvas ref={posterCanvasRef} style={{ display: 'none' }} />
                 <div className="ivp-blur-overlay" />
+                {appPhase === 'simpleVideo-decisionTime-viewAndContinue' && (
+                    <>
+                        <div className="ivp-click-block" onClick={(e) => e.stopPropagation()} />
+                        <div className="ivp-overlay water-surface" style={{ display: 'flex' }}>
+                            <div className="ivp-overlay-content">
+                                <p className="ivp-overlay-text">Continue</p>
+                            </div>
+                        </div>
+                    </>
+                )}
                 {subtitleText && (
                 <div ref={subtitleContainerRef} className={`ivp-subtitle-scroll-container${isTimedSubtitles ? ' timed-subtitles-container' : ''}`}>
                     <div ref={subtitleDisplayRef} className={`ivp-subtitles${isTimedSubtitles ? ' timed-subtitles' : ''}`}
@@ -304,7 +319,7 @@ export default function SimpleVideoPlayer() {
                     </div>
                 </div>
                 )}
-                {!playing && (
+                {!playing && appPhase !== 'simpleVideo-decisionTime-viewAndContinue' && (
                     <div className="ivp-play-overlay">
                         <div className="ivp-play-icon-container">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white">

@@ -917,6 +917,27 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     z-index: 0;
     animation: floatBob 3.5s ease-in-out infinite;
 }
+/* Replay and Tutorial buttons in viewAndContinue — same size as call-btn but no glow */
+#replayBtn::before,
+#tutorialBtn::before {
+    box-shadow: none !important;
+    animation: none !important;
+}
+.ivp-choice-col .call-icon {
+    position: relative;
+    z-index: 0;
+    animation: floatBob 3.5s ease-in-out infinite;
+}
+.ivp-choice-col .call-icon::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: -1;
+    background: transparent;
+    box-shadow: none;
+}
 .ivp-choice-col .call-btn::before {
     content: '';
     position: absolute;
