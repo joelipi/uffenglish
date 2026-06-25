@@ -27,14 +27,30 @@ export default function MissionSection({ responseType }) {
         >
             <div className="mission-row text-shadow">
                 <div className="d-flex align-items-center flex-grow-1 overflow-hidden">
-                    <span className="mission-label"><i className="bi bi-bullseye"></i></span>
-                    <span className="mission-text"><BilingualText translationData={lesson.mission} userLang={lang} spanPrefix=" " /></span>
-                    <span className="mission-label"><i className="bi bi-geo-alt"></i></span>
-                    <span className="setting-text"><BilingualText translationData={lesson.setting} userLang={lang} spanPrefix=" " /></span>
-                    <span className="mission-label"><i className="bi bi-person"></i></span>
-                    <span className="roleUser-text"><BilingualText translationData={lesson.roleUser} userLang={lang} spanPrefix=" " /></span>
-                    <span className="mission-label"><i className="bi bi-people"></i></span>
-                    <span className="roleOther-text"><BilingualText translationData={lesson.roleOther} userLang={lang} spanPrefix=" " /></span>
+                    {lesson.mission && (
+                        <>
+                            <span className="mission-label"><i className="bi bi-bullseye"></i></span>
+                            <span className="mission-text"><BilingualText translationData={lesson.mission} userLang={lang} spanPrefix=" " /></span>
+                        </>
+                    )}
+                    {lesson.setting && (
+                        <>
+                            <span className="mission-label"><i className="bi bi-geo-alt"></i></span>
+                            <span className="setting-text"><BilingualText translationData={lesson.setting} userLang={lang} spanPrefix=" " /></span>
+                        </>
+                    )}
+                    {lesson.roleUser && (
+                        <>
+                            <span className="mission-label"><i className="bi bi-person"></i></span>
+                            <span className="roleUser-text"><BilingualText translationData={lesson.roleUser} userLang={lang} spanPrefix=" " /></span>
+                        </>
+                    )}
+                    {lesson.roleOther && (
+                        <>
+                            <span className="mission-label"><i className="bi bi-people"></i></span>
+                            <span className="roleOther-text"><BilingualText translationData={lesson.roleOther} userLang={lang} spanPrefix=" " /></span>
+                        </>
+                    )}
                 </div>
                 <div className="mission-toggle-icon">
                     <i className={'bi ' + (expanded ? 'bi-chevron-up' : 'bi-chevron-down')} id="mission-carat"></i>

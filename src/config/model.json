@@ -16,21 +16,6 @@
         "es": "encontrar artículos en la tienda",
         "pt": "encontrar itens na loja"
       },
-      "setting": {
-        "en": "Grocery store",
-        "es": "tienda de comestibles",
-        "pt": "mercado"
-      },
-      "roleOther": {
-        "en": "Store clerk",
-        "es": "empleado de tienda",
-        "pt": "funcionário de loja"
-      },
-      "roleUser": {
-        "en": "Customer",
-        "es": "cliente",
-        "pt": "cliente"
-      },
       "steps": [
         {
           "cue": "",
