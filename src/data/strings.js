@@ -907,6 +907,10 @@ const strings = {
         en: "Can you repeat that exactly?",
         es: "¿Puedes repetir exactamente?"
     },
+    'video_continue': {
+        en: "Press a button below.",
+        es: "Toca un botón abajo."
+    },
     'video_repeat_now': {
         en: "REPEAT NOW",
         es: "REPITE AHORA"

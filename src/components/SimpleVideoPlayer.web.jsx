@@ -1,10 +1,11 @@
 // SimpleVideoPlayer.web.jsx
 // Web-only component — uses navigator.userAgent for iOS/Android detection.
 // React Native replaces this with SimpleVideoPlayer.native.jsx.
-import { useEffect, useRef, useState, useLayoutEffect, useCallback } from 'react';
+import { useEffect, useRef, useState, useLayoutEffect, useCallback, useMemo } from 'react';
 import { useStore } from 'zustand';
 import { appStore, setCurrentVideoPlayer } from '../modules/store/store.js';
 import { useSimpleVideo } from '../hooks/useSimpleVideo.js';
+import { getBilingual } from '../data/strings.js';
 
 const hasNavigator = typeof navigator !== 'undefined';
 const isIOS = hasNavigator && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
@@ -25,6 +26,13 @@ export default function SimpleVideoPlayer() {
     const [poster, setPoster] = useState(null);
     const [scrollOffset, setScrollOffset] = useState(0);
     const appPhase = useStore(appStore, (s) => s.appPhase);
+    const userData = useStore(appStore, (s) => s.userData);
+    const overlayLang = userData?.native_language || 'en';
+
+    const overlayBilingual = useMemo(
+        () => getBilingual('video_continue', overlayLang),
+        [overlayLang]
+    );
     // Store player reference for external pause/play
     // Conforms to VideoPlayerHandle — same contract as InteractiveVideoPlayer
     // so the platform-agnostic answer pipeline can drive both uniformly.
@@ -304,7 +312,11 @@ export default function SimpleVideoPlayer() {
                         <div className="ivp-click-block" onClick={(e) => e.stopPropagation()} />
                         <div className="ivp-overlay water-surface" style={{ display: 'flex' }}>
                             <div className="ivp-overlay-content">
-                                <p className="ivp-overlay-text">Continue</p>
+                                <p className="ivp-overlay-text">
+                                    {overlayBilingual.localized ? (
+                                        <>{overlayBilingual.english}<br /><span lang={overlayBilingual.lang}><i>{overlayBilingual.localized}</i></span></>
+                                    ) : overlayBilingual.english}
+                                </p>
                             </div>
                         </div>
                     </>
