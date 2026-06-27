@@ -524,14 +524,31 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     transition: transform 0.3s ease;
 }
 
+/*
+ * !!! WARNING — DO NOT REMOVE align-items: flex-end !!!
+ * Buttons inside this container and its children (AnswerInput,
+ * review-buttons-container) MUST stay anchored to the bottom edge
+ * so they remain vertically aligned when sibling labels contain
+ * different amounts of text.  Removing this will cause the
+ * recurring regression where buttons drift out of alignment.
+ */
 .controls-section {
     padding: 24px 16px calc(32px + env(safe-area-inset-bottom, 0px));
     background: transparent;
     overflow: visible;
     display: flex;
     justify-content: space-around;
+    align-items: flex-end;
 }
 
+/*
+ * !!! WARNING — DO NOT REMOVE justify-content: flex-end !!!
+ * Each column's button MUST sit at the bottom of the column while
+ * the label floats above it.  This guarantees buttons stay
+ * vertically aligned across columns when labels have different
+ * text lengths.  Removing this will cause the recurring regression
+ * where buttons drift out of alignment.
+ */
 /* The choice columns for interactive video overlay */
 .ivp-choice-col {
     display: flex;
@@ -540,6 +557,7 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     width: auto;
     flex: 1 1 0;
     min-width: 0;
+    justify-content: flex-end;
 }
 /*
 @container player (min-width: 420px) {

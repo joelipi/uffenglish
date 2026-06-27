@@ -14,6 +14,7 @@ const isAndroid = hasNavigator && /Android/.test(navigator.userAgent);
 export default function SimpleVideoPlayer() {
     const { isActive, config, subtitleText, isTimedSubtitles, scrollRatio, updateProgress } = useSimpleVideo();
     const mediaVisible = useStore(appStore, (s) => s.mediaVisible);
+    const mediaState = useStore(appStore, (s) => s.mediaState);
     const pendingVideoPlayType = useStore(appStore, (s) => s.pendingVideoPlayType);
     const videoRef = useRef(null);
     const subtitleContainerRef = useRef(null);
@@ -22,6 +23,12 @@ export default function SimpleVideoPlayer() {
     const msIntervalRef = useRef(null);
     const foucFallbackRef = useRef(null);
     const [playing, setPlaying] = useState(false);
+    // True while an autoplay attempt is in flight. The play icon is suppressed
+    // during this window so it never flashes in the async gap between the video
+    // becoming ready (loaded=true) and the play() promise resolving (onPlay
+    // fires, playing=true). Cleared on success (handlePlay) and on definitive
+    // failure (so the user can tap to play when autoplay is blocked).
+    const [autoplayPending, setAutoplayPending] = useState(false);
     const [loaded, setLoaded] = useState(false);
     const [poster, setPoster] = useState(null);
     const [scrollOffset, setScrollOffset] = useState(0);
@@ -127,6 +134,7 @@ export default function SimpleVideoPlayer() {
 
     const handlePlay = useCallback(() => {
         setPlaying(true);
+        setAutoplayPending(false);
         if (isAndroid) {
             try {
                 navigator.mediaSession.playbackState = 'none';
@@ -195,16 +203,26 @@ export default function SimpleVideoPlayer() {
             console.log('[SimpleVideo] tryPlay called. readyState:', video.readyState, 'paused:', video.paused, 'src:', video.src?.slice(-40));
             const p = video.play();
             if (p !== undefined) {
-                p.catch(() => {
+                p.then(() => {
+                    // Success — onPlay will fire and set playing=true; clear the
+                    // pending flag in case onPlay is delayed.
+                    setAutoplayPending(false);
+                }).catch(() => {
                     console.log('[SimpleVideo] Unmuted autoplay blocked — retrying muted.');
                     video.muted = true;
                     video.play().then(() => {
                         console.log('[SimpleVideo] Muted autoplay succeeded — unmuting in 100ms.');
+                        setAutoplayPending(false);
                         setTimeout(() => { video.muted = false; }, 100);
                     }).catch((e) => {
                         console.log('[SimpleVideo] Muted autoplay also blocked:', e.message);
+                        // Autoplay definitively blocked — allow the play icon
+                        // so the user can tap to start playback.
+                        setAutoplayPending(false);
                     });
                 });
+            } else {
+                setAutoplayPending(false);
             }
         };
 
@@ -214,6 +232,11 @@ export default function SimpleVideoPlayer() {
             const video = videoRef.current;
             if (!video) return;
             console.log('[SimpleVideo] attemptAutoplay. readyState:', video.readyState);
+            // Mark an autoplay attempt as in-flight for the entire window from
+            // now through the play() promise settling. This suppresses the play
+            // icon during the async gap where loaded=true but playing is still
+            // false (e.g. waiting for canplay after video.load()).
+            setAutoplayPending(true);
             if (video.readyState >= 2) {
                 tryPlay();
                 return;
@@ -331,7 +354,7 @@ export default function SimpleVideoPlayer() {
                     </div>
                 </div>
                 )}
-                {!playing && appPhase !== 'simpleVideo-decisionTime-viewAndContinue' && (
+                {!playing && !autoplayPending && mediaState === 'simpleVideo' && (
                     <div className="ivp-play-overlay">
                         <div className="ivp-play-icon-container">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white">
