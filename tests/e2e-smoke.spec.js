@@ -123,7 +123,7 @@ test.describe('End-to-End Smoke Test', () => {
                 type: 'standard',
                 content: 'Can you explain this more?',
                 userName: 'Test User',
-                userAvatarUrl: '/assets/img/userprofile.webp'
+                userAvatarUrl: '/assets/img/userprofile.png'
             });
             // In a real app, we'd wait for the API response. Here we verify the message was added.
         });

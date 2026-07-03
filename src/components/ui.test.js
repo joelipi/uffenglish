@@ -66,7 +66,7 @@ describe('UI Component functions', () => {
         });
 
         it('should add user chat message to store', () => {
-             appStore.setState({ userData: { display_name: 'Test User', profilepicurl: 'http://test.jpg' } });
+             appStore.setState({ userData: { display_name: 'Test User', profilePictureUrl: 'http://test.jpg' } });
 
              appStore.getState().addChatMessage({
                  role: 'user',

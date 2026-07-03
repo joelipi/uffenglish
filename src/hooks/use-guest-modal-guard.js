@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { appStore } from '../modules/store/store.js';
 import { checkAuth } from '../modules/api/auth-check.js';
+import { usePreloader } from './usePreloader.js';
 
 const AUTH_ROUTES = ['/login', '/signup', '/recover-password', '/reset-password'];
 
@@ -23,6 +24,7 @@ function detectBrowserLanguage() {
 export function useGuestModalGuard() {
     const location = useLocation();
     const initialCheckFired = useRef(false);
+    const { finishPreloader } = usePreloader();
 
     // ── Open modal on first guest visit to a non-auth route ──
     useEffect(() => {
@@ -46,17 +48,14 @@ export function useGuestModalGuard() {
         initialCheckFired.current = true;
     }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // ── Close modal + unblock preloader when navigating to an auth route ──
+    // ── Close modal + dismiss preloader when navigating to an auth route ──
     useEffect(() => {
         const path = location.pathname;
         const isAuthRoute = AUTH_ROUTES.some(route => path === route || path.startsWith(route + '/'));
         if (isAuthRoute) {
             appStore.getState().setGuestModalOpen(false);
-            // Unblock the preloader: the previous bootstrap may have called
-            // setIntroVideoReady(false) before finishPreloader(). On auth pages
-            // there's no intro video, so signal ready immediately to let the
-            // preloader fade out.
             appStore.getState().setIntroVideoReady(true);
+            finishPreloader();
         }
     }, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 }

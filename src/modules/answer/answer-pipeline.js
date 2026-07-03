@@ -220,7 +220,7 @@ export function createAnswerPipeline(deps) {
         if (stepData.responseType !== "openResponse" && stepData.responseType !== "closedResponse") {
             const localizedCue = getLocalizedTranslation(cue, lang);
             const userName = appStore.getState().userData?.display_name?.split(' ')[0] || 'User';
-            const userAvatarUrl = appStore.getState().userData?.profilepicurl || userAvatarUrl;
+            const localAvatarUrl = appStore.getState().userData?.profilePictureUrl || userAvatarUrl;
 
             appStore.getState().addChatMessage({
                 role: 'user',
@@ -229,7 +229,7 @@ export function createAnswerPipeline(deps) {
                 translation: localizedCue,
                 translationLang: (localizedCue && lang && lang !== 'en') ? lang : undefined,
                 userName,
-                userAvatarUrl
+                userAvatarUrl: localAvatarUrl
             });
 
             if (explanation && explanation.length > 0) {
@@ -332,7 +332,7 @@ export function createAnswerPipeline(deps) {
                     role: 'user',
                     type: 'video',
                     userName: storeState.userData?.display_name?.split(' ')[0] || 'User',
-                    userAvatarUrl: storeState.userData?.profilepicurl || userAvatarUrl
+                    userAvatarUrl: storeState.userData?.profilePictureUrl || userAvatarUrl
                 });
             } else {
                 appStore.getState().triggerVideoPlay(storeState.isPlaybackMuted);
@@ -579,7 +579,7 @@ export function createAnswerPipeline(deps) {
                     role: 'user',
                     type: 'video',
                     userName: storeState.userData?.display_name?.split(' ')[0] || 'User',
-                    userAvatarUrl: storeState.userData?.profilepicurl || userAvatarUrl
+                    userAvatarUrl: storeState.userData?.profilePictureUrl || userAvatarUrl
                 });
             } else {
                 appStore.getState().triggerVideoPlay(storeState.isPlaybackMuted);
@@ -670,7 +670,7 @@ export function createAnswerPipeline(deps) {
                 type: 'standard',
                 content: userResponse,
                 userName: userData?.display_name?.split(' ')[0] || 'User',
-                userAvatarUrl: userData?.profilepicurl || userAvatarUrl
+                userAvatarUrl: userData?.profilePictureUrl || userAvatarUrl
             });
         }
 
@@ -868,7 +868,7 @@ export function createAnswerPipeline(deps) {
                     translation,
                     translationLang: (translation && lang !== 'en') ? lang : undefined,
                     userName: userData?.display_name?.split(' ')[0] || 'User',
-                    userAvatarUrl: userData?.profilepicurl || userAvatarUrl
+                    userAvatarUrl: userData?.profilePictureUrl || userAvatarUrl
                 });
 
                 if (immediateStatsMessages.length > 0) addAIFeedbackMessages(immediateStatsMessages);

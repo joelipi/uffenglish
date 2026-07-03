@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { account, getCurrentUser } from '../../modules/api/appwrite.js';
-import { invalidateUserAndAuthCache } from '../../modules/api/api.js';
+import { queryClient, getUserProfile } from '../../modules/api/api.js';
 import { identifyUser, trackEvent } from '../../modules/utils/posthog.js';
 
 export function useLoginForm({ onLoginSuccess } = {}) {
@@ -36,7 +36,11 @@ export function useLoginForm({ onLoginSuccess } = {}) {
             }
 
             await account.createEmailPasswordSession(email, password);
-            invalidateUserAndAuthCache();
+
+            // Seed auth status immediately, then start pre-fetching the profile
+            // so /profile renders from cache without a slow loading spinner.
+            queryClient.setQueryData(['auth', 'status'], true);
+            getUserProfile().catch(err => console.warn('[Login] Profile pre-fetch failed:', err));
             identifyAfterLogin();
             onLoginSuccess?.();
         } catch (err) {

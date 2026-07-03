@@ -54,7 +54,7 @@ export async function getUserProfile(user) {
       english_level: 'A0',
       native_language: 'EN',
       completed_dates: [],
-      profilepicurl: defaultProfilePic,
+      profilePictureUrl: defaultProfilePic,
     };
     console.log('[auth-check] Guest profile:', guestData);
     return guestData;
@@ -77,11 +77,11 @@ export async function getUserProfile(user) {
           email: user.email,
           display_name: user.name,
           join_date: user.$createdAt,
-          auth_method: 'appwrite',
-          profilepicurl: defaultProfilePic,
-        };
-      }
-      throw new Error(`Profile fetch failed: ${res.status}`);
+      auth_method: 'appwrite',
+      profilePictureUrl: defaultProfilePic,
+    };
+  }
+  throw new Error(`Profile fetch failed: ${res.status}`);
     }
 
     const profileDoc = await res.json();
@@ -92,7 +92,7 @@ export async function getUserProfile(user) {
       join_date: user.$createdAt,
       auth_method: 'appwrite',
       ...profileDoc,
-      profilepicurl: profileDoc?.profilepicurl || defaultProfilePic,
+      profilePictureUrl: profileDoc?.profilePictureUrl || defaultProfilePic,
     };
     console.log('[auth-check] Merged profile:', mergedData);
     return mergedData;
@@ -105,7 +105,7 @@ export async function getUserProfile(user) {
       display_name: user.name,
       join_date: user.$createdAt,
       auth_method: 'appwrite',
-      profilepicurl: defaultProfilePic,
+      profilePictureUrl: defaultProfilePic,
     };
   }
 }

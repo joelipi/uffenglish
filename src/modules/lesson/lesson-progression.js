@@ -117,7 +117,7 @@ export function createProgression(deps) {
             type: 'standard',
             content: rawText,
             userName: appStore.getState().userData?.display_name?.split(' ')[0] || 'User',
-            userAvatarUrl: appStore.getState().userData?.profilepicurl || userAvatar
+            userAvatarUrl: appStore.getState().userData?.profilePictureUrl || userAvatar
         });
 
         addAILoadingMessage(Strings.get('ai_thinking', appStore.getState().userData?.native_language));

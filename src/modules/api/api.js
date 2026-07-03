@@ -64,7 +64,7 @@ export async function getUserProfile() {
             english_level: 'A0',
             native_language: 'EN',
             completed_dates: [],
-            profilepicurl: defaultProfilePic // Default fallback
+            profilePictureUrl: defaultProfilePic // Default fallback
           };
           console.log('[TanStack Query] Successfully fetched data for query: userProfileQuery', guestData);
           return guestData;
@@ -86,7 +86,7 @@ export async function getUserProfile() {
             join_date: user.$createdAt,
             auth_method: 'appwrite',
             ...profileDoc,
-            profilepicurl: profileDoc?.profilepicurl || defaultProfilePic
+            profilePictureUrl: profileDoc?.profilePictureUrl || defaultProfilePic
           };
           console.log('[TanStack Query] Successfully fetched data for query: userProfileQuery', mergedData);
           return mergedData;
@@ -98,7 +98,7 @@ export async function getUserProfile() {
             display_name: user.name,
             join_date: user.$createdAt,
             auth_method: 'appwrite',
-            profilepicurl: defaultProfilePic
+            profilePictureUrl: defaultProfilePic
           };
           console.log('[TanStack Query] Successfully fetched data for query: userProfileQuery', coreData);
           return coreData;
@@ -117,6 +117,7 @@ export function invalidateUserAndAuthCache() {
 
 export async function syncUserMetaDataMutation(metaToUpdate, userId) {
   try {
+    console.log('[syncUserMetaData] Updating profile metadata...', { userId, metaToUpdate });
     try {
       await tablesDB.updateRow({
         databaseId: APPWRITE_CONFIG.DATABASE_ID,
@@ -147,9 +148,11 @@ export async function syncUserMetaDataMutation(metaToUpdate, userId) {
     }
 
     // 🚀 Trigger cache bust globally after any successful profile write
+    console.log('[syncUserMetaData] Invalidating cache...');
     invalidateUserAndAuthCache();
   } catch (error) {
     console.error('🚨 Error syncing user meta data:', error);
+    throw error; // Re-throw so the mutation knows it failed
   }
 }
 
@@ -195,7 +198,7 @@ export function useUserProfile() {
             english_level: 'A0',
             native_language: 'EN',
             completed_dates: [],
-            profilepicurl: defaultProfilePic
+            profilePictureUrl: defaultProfilePic
           };
           console.log('[TanStack Query] Successfully fetched data for query: userProfileQuery', guestData);
           return guestData;
@@ -215,7 +218,7 @@ export function useUserProfile() {
             join_date: user.$createdAt,
             auth_method: 'appwrite',
             ...profileDoc,
-            profilepicurl: profileDoc?.profilepicurl || defaultProfilePic
+            profilePictureUrl: profileDoc?.profilePictureUrl || defaultProfilePic
           };
           console.log('[TanStack Query] Successfully fetched data for query: userProfileQuery', mergedData);
           return mergedData;
@@ -227,7 +230,7 @@ export function useUserProfile() {
             display_name: user.name,
             join_date: user.$createdAt,
             auth_method: 'appwrite',
-            profilepicurl: defaultProfilePic
+            profilePictureUrl: defaultProfilePic
           };
           console.log('[TanStack Query] Successfully fetched data for query: userProfileQuery', coreData);
           return coreData;

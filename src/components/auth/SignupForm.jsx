@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { account, tablesDB, ID, APPWRITE_CONFIG } from '../../modules/api/appwrite.js';
-import { invalidateUserAndAuthCache } from '../../modules/api/api.js';
+import { queryClient } from '../../modules/api/api.js';
 import { identifyUser, trackEvent } from '../../modules/utils/posthog.js';
+import defaultProfilePic from '../../assets/img/userprofile.png';
 
 export function useSignupForm({ onSignupSuccess } = {}) {
     const [firstName, setFirstName] = useState('');
@@ -61,7 +62,22 @@ export function useSignupForm({ onSignupSuccess } = {}) {
                 english_level: userLevel,
             });
 
-            invalidateUserAndAuthCache();
+            // Seed the TanStack Query caches with fresh data so the /profile
+            // page renders immediately without a slow re-fetch from Appwrite.
+            queryClient.setQueryData(['auth', 'status'], true);
+            queryClient.setQueryData(['user', 'profile'], {
+                $id: user.$id,
+                email: email,
+                display_name: fullName,
+                join_date: user.$createdAt,
+                auth_method: 'appwrite',
+                firstName: firstName.trim(),
+                lastName: lastName.trim(),
+                native_language: nativeLanguage,
+                english_level: userLevel,
+                completed_dates: [],
+                profilePictureUrl: defaultProfilePic,
+            });
             onSignupSuccess?.();
         } catch (err) {
             trackEvent('signup_failed', { error: err.message });

@@ -66,7 +66,7 @@ export default function ContinueWidgetBubble({ onClick, nextStepVideoUrl }) {
 
     return (
         <div className="chat-message-row chat-message-row--system" id="continueButtonRow">
-            <img src={DEFAULT_AVATAR_URL} alt={DEFAULT_BOT_NAME} className="chat-avatar-inline" />
+            <img src={DEFAULT_AVATAR_URL} alt={DEFAULT_BOT_NAME} className="chat-avatar-inline" onError={e => { e.currentTarget.src = DEFAULT_AVATAR_URL; }} />
             <div className="chat-message-bubble chat-message-bubble--system incoming-call-bubble">
                 <div className="chat-bubble-header">{DEFAULT_BOT_NAME}</div>
                 <div

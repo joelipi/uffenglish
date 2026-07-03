@@ -1962,6 +1962,79 @@ ul.incorrectWords li::before {
 }
 
 /* =========================================
+   AVATAR CROPPER
+   ========================================= */
+
+.avatar-cropper-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    background-color: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+.avatar-cropper-content {
+    background-color: #1a3a5a;
+    border-radius: 12px;
+    border: 1px solid #2a4a6a;
+    width: 100%;
+    max-width: 420px;
+    height: 90dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+}
+
+.avatar-cropper-header {
+    padding: 16px;
+    border-bottom: 1px solid #2a4a6a;
+    color: #fff;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.avatar-cropper-canvas {
+    position: relative;
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    background-color: #0b1a2a;
+}
+
+.avatar-cropper-controls {
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.avatar-cropper-label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 14px;
+    margin: 0;
+}
+
+.avatar-cropper-actions {
+    padding: 0 16px 16px;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.avatar-cropper-actions .btn {
+    flex: 1;
+}
+
+/* =========================================
    ANIMATIONS (SHARED / GENERIC)
    ========================================= */
 

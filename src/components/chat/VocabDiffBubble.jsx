@@ -22,7 +22,7 @@ export default function VocabDiffBubble({
 
     return (
         <div className="chat-message-row chat-message-row--system">
-            <img src={displayAvatar} alt={displayBotName} className="chat-avatar-inline" />
+            <img src={displayAvatar} alt={displayBotName} className="chat-avatar-inline" onError={e => { e.currentTarget.src = botInfo.avatar; }} />
             <div className="chat-message-bubble chat-message-bubble--system" style={{ borderLeft: '4px solid #6f42c1' }}>
                 <div className="chat-bubble-header">{displayBotName}</div>
                 {score !== undefined && (

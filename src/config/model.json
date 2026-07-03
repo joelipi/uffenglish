@@ -465,7 +465,17 @@
       "steps": [
         {
           "responseType": "lessonIntro",
-          "introBackgroundVideoUrl": "gtests-0-1-1"
+          "introBackgroundVideoUrl": "do_you_have_rolls_too"
+        },
+        {
+          "cue": {
+            "en": "Do you have rolls, too?",
+            "es": "¿Tienes panes de molde también?",
+            "pt": "Você tem rolls também?"
+          },
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "do_you_have_rolls_too",
+          "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
         },
         {
           "cue": {

@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { account } from '../../modules/api/appwrite.js';
-import { useUserProfile, useSyncUserMetaData } from '../../modules/api/api.js';
-import { invalidateUserAndAuthCache } from '../../modules/api/api.js';
+import { useUserProfile, useSyncUserMetaData, invalidateUserAndAuthCache, queryClient } from '../../modules/api/api.js';
+import { getAvatarBlobUrl, revokeAvatarBlobUrl } from '../../modules/avatar/avatar.service.js';
 import Strings from '../../data/strings.js';
 import defaultProfilePic from '../../assets/img/userprofile.png';
 import { trackEvent } from '../../modules/utils/posthog.js';
+import { useAvatarUpload } from '../../modules/avatar/use-avatar-upload.js';
+import AvatarCropper from '../widgets/AvatarCropper.jsx';
 
 const NATIVE_LANGUAGES = [
     { value: 'EN', label: 'English' },
@@ -89,13 +91,47 @@ export default function UserProfile() {
     const navigate = useNavigate();
     const { data: profile, isLoading, isError } = useUserProfile();
     const syncMutation = useSyncUserMetaData();
+    const avatarUploadMutation = useAvatarUpload();
+    const fileInputRef = useRef(null);
+
+    const [cropperImage, setCropperImage] = useState(null);
+    const [avatarMsg, setAvatarMsg] = useState(null);
+    const [avatarUrl, setAvatarUrl] = useState(null);
+
+    // Resolve Appwrite Storage URLs to downloadable blob URLs.
+    // The Appwrite session cookie may not be sent with cross-origin <img> requests,
+    // so we download the file via fetch() with credentials and create a local blob URL.
+    useEffect(() => {
+        let active = true;
+        const raw = profile?.profilePictureUrl;
+
+        if (!raw) {
+            setAvatarUrl(null);
+            return;
+        }
+
+        const isAppwriteUrl = typeof raw === 'string' && raw.includes('appwrite.io');
+        if (isAppwriteUrl) {
+            getAvatarBlobUrl(raw).then(blobUrl => {
+                if (active) setAvatarUrl(blobUrl);
+            });
+        } else {
+            // Local asset or data URL — use directly
+            setAvatarUrl(null);
+        }
+
+        return () => { active = false; };
+    }, [profile?.profilePictureUrl]);
 
     const lang = profile?.native_language?.toLowerCase() || 'en';
     const isGuest = profile?.$id === 'guest';
     const displayName = profile?.display_name || '';
     const email = profile?.email || '';
     const joinDate = profile?.join_date ? new Date(profile.join_date).toLocaleDateString() : '';
-    const profilePic = profile?.profilepicurl || defaultProfilePic;
+    // If it's an Appwrite URL, show the blob URL once ready, otherwise the placeholder
+    const rawPic = profile?.profilePictureUrl;
+    const isAppwriteRef = rawPic ? rawPic.includes('appwrite.io') : false;
+    const profilePic = isAppwriteRef ? (avatarUrl || defaultProfilePic) : (rawPic || defaultProfilePic);
     const completedDates = Array.isArray(profile?.completed_dates) ? profile.completed_dates : [];
     const lessonsCompleted = Number(profile?.lessons_completed || 0);
 
@@ -185,6 +221,89 @@ export default function UserProfile() {
         } finally {
             setPasswordLoading(false);
         }
+    }
+
+    function handleFileSelect(event) {
+        setAvatarMsg(null);
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            setAvatarMsg({ type: 'error', text: 'Please select an image file.' });
+            return;
+        }
+
+        const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+        if (file.size > MAX_SIZE_BYTES) {
+            setAvatarMsg({ type: 'error', text: 'Image must be under 10 MB.' });
+            event.target.value = '';
+            return;
+        }
+
+        const objectUrl = URL.createObjectURL(file);
+
+        // Validate minimum dimensions before opening cropper
+        const img = new Image();
+        const MIN_DIMENSION = 200;
+        img.onload = () => {
+            if (img.width < MIN_DIMENSION || img.height < MIN_DIMENSION) {
+                setAvatarMsg({ type: 'error', text: `Image must be at least ${MIN_DIMENSION}x${MIN_DIMENSION} pixels.` });
+                URL.revokeObjectURL(objectUrl);
+                event.target.value = '';
+                return;
+            }
+            console.log('[UserProfile] Selected image, opening cropper:', file.name);
+            setCropperImage(objectUrl);
+        };
+        img.onerror = () => {
+            setAvatarMsg({ type: 'error', text: 'Could not read image dimensions.' });
+            URL.revokeObjectURL(objectUrl);
+            event.target.value = '';
+        };
+        img.src = objectUrl;
+
+        // Reset the input so the same file can be selected again if needed.
+        event.target.value = '';
+    }
+
+    async function handleCropComplete(blob) {
+        if (!blob || !profile?.$id || isGuest) {
+            console.warn('[UserProfile] handleCropComplete: Missing blob, profile ID, or guest user', { blob, profileId: profile?.$id, isGuest });
+            return;
+        }
+
+        console.log('[UserProfile] Cropped avatar ready, uploading...', { blobSize: blob.size, userId: profile.$id });
+        setCropperImage(null);
+
+        try {
+            const avatarUrl = await avatarUploadMutation.mutateAsync({ blob, userId: profile.$id });
+            console.log('[UserProfile] Avatar upload succeeded, new URL:', avatarUrl);
+            
+            // Force immediate cache update
+            const currentProfile = queryClient.getQueryData(['user', 'profile']);
+            if (currentProfile) {
+                console.log('[UserProfile] Updating profile cache with new avatar URL');
+                queryClient.setQueryData(['user', 'profile'], {
+                    ...currentProfile,
+                    profilePictureUrl: avatarUrl
+                });
+            } else {
+                console.warn('[UserProfile] No profile data in cache to update');
+            }
+            
+            setAvatarMsg({ type: 'success', text: 'Profile photo updated.' });
+            trackEvent('profile_avatar_updated');
+        } catch (err) {
+            console.error('[UserProfile] Avatar upload failed:', err);
+            setAvatarMsg({ type: 'error', text: err.message || 'Failed to update profile photo.' });
+        }
+    }
+
+    function handleCropCancel() {
+        if (cropperImage) {
+            URL.revokeObjectURL(cropperImage);
+        }
+        setCropperImage(null);
     }
 
     const containerStyle = {
@@ -310,12 +429,50 @@ export default function UserProfile() {
             <div style={{ padding: '24px 16px', maxWidth: '640px', margin: '0 auto' }}>
 
                 <div style={{ ...cardStyle, textAlign: 'center', marginBottom: '24px' }}>
-                    <img src={profilePic} alt={Strings.get('profile_title', lang)} style={{ width: '96px', height: '96px', borderRadius: '50%', objectFit: 'cover', marginBottom: '12px' }}
-                         onError={e => { e.currentTarget.src = defaultProfilePic; }} />
-                    <h2 style={{ fontSize: '22px', marginBottom: '4px' }}>{displayName}</h2>
+                    <img 
+                        src={profilePic} 
+                        alt={Strings.get('profile_title', lang)} 
+                        style={{ width: '96px', height: '96px', borderRadius: '50%', objectFit: 'cover', marginBottom: '12px' }}
+                        onLoad={() => console.log('[UserProfile] Image loaded successfully:', profilePic)}
+                        onError={(e) => {
+                            console.error('[UserProfile] Image failed to load:', { attemptedSrc: profilePic, defaultPic: defaultProfilePic });
+                        }}
+                    />
+                    {!isGuest && (
+                        <>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                onChange={handleFileSelect}
+                                style={{ display: 'none' }}
+                            />
+                            <button
+                                className="btn btn-sm btn-outline-light"
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={avatarUploadMutation.isPending}
+                            >
+                                {avatarUploadMutation.isPending ? (
+                                    <span className="spinner-border spinner-border-sm" role="status"></span>
+                                ) : (
+                                    <><i className="bi bi-camera-fill me-1"></i> Change photo</>
+                                )}
+                            </button>
+                        </>
+                    )}
+                    <StatusMessage type={avatarMsg?.type} message={avatarMsg?.text} />
+                    <h2 style={{ fontSize: '22px', marginBottom: '4px', marginTop: '12px' }}>{displayName}</h2>
                     <p style={{ color: '#adb5bd', fontSize: '14px', marginBottom: '4px' }}>{email}</p>
                     {joinDate && <p style={{ color: '#6c757d', fontSize: '13px' }}>{Strings.get('profile_member_since', lang, { date: joinDate })}</p>}
                 </div>
+
+                {cropperImage && (
+                    <AvatarCropper
+                        imageSrc={cropperImage}
+                        onCropComplete={handleCropComplete}
+                        onCancel={handleCropCancel}
+                    />
+                )}
 
                 <Section title={Strings.get('profile_personal_info', lang)}>
                     <div style={cardStyle}>

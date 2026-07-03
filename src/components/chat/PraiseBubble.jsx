@@ -6,7 +6,7 @@ export default function PraiseBubble({ praiseData, botName = "Joe Walsh", avatar
 
     return (
         <div className="chat-message-row chat-message-row--system" style={{ marginTop: '6px' }}>
-            <img src={avatarUrl} alt={botName} className="chat-avatar-inline" />
+            <img src={avatarUrl} alt={botName} className="chat-avatar-inline" onError={e => { e.currentTarget.src = teacherAvatar; }} />
             <div className="chat-message-bubble chat-message-bubble--system">
                 <div className="chat-bubble-header">{botName}</div>
                 <img
