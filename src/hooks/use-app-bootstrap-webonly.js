@@ -56,6 +56,9 @@ export function useAppBootstrap({ courseId } = {}) {
         (async () => {
             try {
                 appStore.getState().setIsLoggedIn(!!isLoggedIn);
+                if (isLoggedIn) {
+                    appStore.getState().setGuestModalOpen(false);
+                }
                 appStore.getState().setCourseData({ userData });
 
                 if (!isLoggedIn) {
