@@ -8,12 +8,12 @@ export default function HomeRoute() {
     const finishedRef = useRef(false);
 
     useEffect(() => {
-        if (appStore.getState().isWhisperReady) {
+        if (appStore.getState().isWhisperReady || appStore.getState().isWhisperEngineFailed) {
             finishPreloader();
             return;
         }
         const unsubscribe = appStore.subscribe((state) => {
-            if (state.isWhisperReady && !finishedRef.current) {
+            if ((state.isWhisperReady || state.isWhisperEngineFailed) && !finishedRef.current) {
                 finishedRef.current = true;
                 finishPreloader();
             }
