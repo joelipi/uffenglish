@@ -33,12 +33,15 @@ export function useGuestModalGuard() {
         const path = location.pathname;
         const isAuthRoute = AUTH_ROUTES.some(route => path === route || path.startsWith(route + '/'));
         if (!isAuthRoute) {
+            const state = appStore.getState();
+            if (state.guestModalShownThisSession) return;
+
             const detectedCode = detectBrowserLanguage();
             console.log('[GuestModalGuard] Anonymous visitor on non-auth route. Detected language:', detectedCode, '. Opening guest modal.');
-            const state = appStore.getState();
             state.setGuestDetectedLang(detectedCode);
             state.setGuestModalStep('select-language');
             state.setGuestModalOpen(true);
+            state.setGuestModalShownThisSession(true);
         }
     }, [isLoading, isLoggedIn, location.pathname]);
 
