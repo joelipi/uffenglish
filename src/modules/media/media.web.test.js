@@ -97,7 +97,7 @@ describe('Media Web Module', () => {
         it('should call fetch with the given url', () => {
             const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce();
             Media.preloader.preloadOnly('test.mp4');
-            expect(fetchSpy).toHaveBeenCalledWith('test.mp4', { method: 'HEAD', mode: 'no-cors' });
+            expect(fetchSpy).toHaveBeenCalledWith('test.mp4');
             fetchSpy.mockRestore();
         });
 

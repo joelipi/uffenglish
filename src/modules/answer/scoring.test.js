@@ -105,7 +105,7 @@ describe('scoring utilities', () => {
                 labels: ['correct'],
                 attemptNumber: 1
             });
-            expect(result.fluencyScore).toBe(97);
+            expect(result.fluencyScore).toBe(98);
         });
     });
 

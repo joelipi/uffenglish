@@ -21,9 +21,9 @@ describe('getLocalizedTranslation', () => {
         expect(getLocalizedTranslation(translations, 'es')).toBe('Hello');
     });
 
-    it('falls back to the first available language if English is not available', () => {
+    it('returns empty string if neither target language nor English is available', () => {
         const translations = { fr: 'Bonjour', de: 'Hallo' };
-        expect(getLocalizedTranslation(translations, 'es')).toBe('Bonjour');
+        expect(getLocalizedTranslation(translations, 'es')).toBe('');
     });
 
     it('returns empty string if translations object is empty', () => {

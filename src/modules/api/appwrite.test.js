@@ -13,6 +13,9 @@ vi.mock('appwrite', () => {
             deleteSession = vi.fn();
         },
         TablesDB: class {},
+        Storage: class {},
+        Permission: {},
+        Role: {},
         ID: { unique: () => '123' }
     };
 });

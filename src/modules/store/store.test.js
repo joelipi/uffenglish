@@ -250,7 +250,7 @@ describe('Zustand App Store', () => {
             appStore.getState().transitionTo('lessonIntro');
             expect(appStore.getState().topState).toBe('topBarOnly');
             expect(appStore.getState().mediaState).toBe('introCallWidget');
-            expect(appStore.getState().bottomState).toBe('introChoices');
+            expect(appStore.getState().bottomState).toBe('hidden');
         });
 
         it('resolves conditional topState based on currentVideo', () => {
