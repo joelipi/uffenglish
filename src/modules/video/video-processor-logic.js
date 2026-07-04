@@ -1,5 +1,7 @@
 // --- modules/video-processor-logic.js ---
 
+export const TEXT_MODE_DURATION_MS = 3000;
+
 /**
  * Platform-Agnostic Video Render Planner
  * Analyzes recordings and generates a flat, step-by-step blueprint

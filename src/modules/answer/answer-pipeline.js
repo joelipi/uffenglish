@@ -20,7 +20,7 @@ import { logInteraction, calculateFluencyScore } from './scoring.js';
 import Strings from '../../data/strings.js';
 import { getCueText, getLocalizedTranslation, getLocalizedCueTranslation, generateHangmanOps } from '../utils/utils.js';
 import { analyzeSpeech } from '../utils/analytics.js';
-import { updateSpeechRecording } from '../storage/storage.js';
+import { saveSpeechRecording, updateSpeechRecording } from '../storage/storage.js';
 import { buildFeedbackData, buildExplanationData } from './feedback-builder.js';
 import { getNextStep } from '../lesson/lesson-routing.js';
 import getRandomPraise from '../../data/praise.js';
@@ -543,6 +543,18 @@ export function createAnswerPipeline(deps) {
                 matchedCue = await findMatchingCueText(val, cue, stepData);
             }
 
+            if (appStore.getState().isTextMode) {
+                await saveSpeechRecording(null, {
+                    lessonId: currentLessonId,
+                    stepIndex,
+                    userResponse: val,
+                    isTextMode: true,
+                    duration: 3,
+                    cue: getCueText(cue),
+                    ...(matchedCue ? { matchedCue } : {}),
+                });
+            }
+
             await updateSpeechRecording(currentLessonId, stepIndex, {
                 userResponse: val,
                 cue: getCueText(cue),
@@ -621,6 +633,18 @@ export function createAnswerPipeline(deps) {
                 // in the whisper review, chat bubble, and end-of-lesson video subtitles.
                 if (stepData.responseType === "closedResponse") {
                     matchedCue = await findMatchingCueText(userResponse, cue, stepData);
+                }
+
+                if (appStore.getState().isTextMode) {
+                    await saveSpeechRecording(null, {
+                        lessonId: currentLessonId,
+                        stepIndex,
+                        userResponse,
+                        isTextMode: true,
+                        duration: 3,
+                        cue: cueText,
+                        ...(matchedCue ? { matchedCue } : {}),
+                    });
                 }
 
                 await updateSpeechRecording(currentLessonId, stepIndex, {

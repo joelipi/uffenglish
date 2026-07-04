@@ -4,6 +4,7 @@
 import Strings from '../../data/strings.js';
 import { saveSpeechRecording } from '../storage/storage.js';
 import { appStore, setWebcamStream } from '../store/store.js';
+import { DEFAULT_USER_AVATAR_URL } from '../user/tutor-config.js';
 
 import { transcribeAudioBuffer, analyzeAudioBufferWithVAD, preloadWhisperEngine } from '../../workers/whisper/app-vad-asr-web.js';
 
@@ -55,21 +56,57 @@ async function createPlaceholderStream() {
     });
 
     const canvas = document.createElement('canvas');
-    if (isWindows) { canvas.width = 480; canvas.height = 854; }
-    else { canvas.width = 854; canvas.height = 480; }
-
+    canvas.width = 1080;
+    canvas.height = 1920;
     const ctx = canvas.getContext('2d');
 
+    // Load the user's profile picture (or default) for drawing on the canvas
+    const profileUrl = appStore.getState().userData?.profilePictureUrl || DEFAULT_USER_AVATAR_URL;
+    let profileImage = null;
+    try {
+        let src = profileUrl;
+        // Resolve Appwrite URLs by fetching with credentials
+        if (profileUrl.includes('appwrite.io')) {
+            const resp = await fetch(profileUrl, { credentials: 'include' });
+            if (resp.ok) {
+                const blob = await resp.blob();
+                src = URL.createObjectURL(blob);
+            }
+        }
+        const img = await new Promise((resolve, reject) => {
+            const i = new Image();
+            i.onload = () => resolve(i);
+            i.onerror = reject;
+            i.src = src;
+        });
+        profileImage = img;
+    } catch (e) {
+        console.warn('[Speech] Failed to load profile image for placeholder:', e);
+    }
+
     function draw() {
+        // Dark background
         ctx.fillStyle = '#1e1e1e';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        const centerX = canvas.width / 2, centerY = canvas.height / 2, baseSize = Math.min(canvas.width, canvas.height);
-        ctx.fillStyle = '#444444';
-        const headRadius = baseSize * 0.15;
-        ctx.beginPath(); ctx.arc(centerX, centerY - headRadius * 0.4, headRadius, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse(centerX, centerY + headRadius * 1.5, baseSize * 0.25, baseSize * 0.3, 0, Math.PI, 0); ctx.fill();
-        ctx.fillStyle = '#666666'; ctx.font = `bold ${Math.round(baseSize * 0.05)}px Arial`; ctx.textAlign = 'center';
-        ctx.fillText('WEBCAM OFF', centerX, canvas.height - (baseSize * 0.1));
+
+        if (profileImage) {
+            // Draw profile image cover-fill (center-crop to fill canvas)
+            const imgAspect = profileImage.width / profileImage.height;
+            const canvasAspect = canvas.width / canvas.height;
+            let sx, sy, sw, sh;
+            if (imgAspect > canvasAspect) {
+                sh = profileImage.height;
+                sw = profileImage.height * canvasAspect;
+                sx = (profileImage.width - sw) / 2;
+                sy = 0;
+            } else {
+                sw = profileImage.width;
+                sh = profileImage.width / canvasAspect;
+                sx = 0;
+                sy = (profileImage.height - sh) / 2;
+            }
+            ctx.drawImage(profileImage, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+        }
     }
 
     draw();

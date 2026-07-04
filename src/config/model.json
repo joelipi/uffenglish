@@ -479,21 +479,21 @@
         },
         {
           "cue": {
-            "en": "Hey, if you had to spend a million dollars today, what would you buy?",
+            "en": "Test the video.",
             "es": "Oye, si tuvieras que gastar un millón de dólares hoy, ¿qué comprarías?",
             "pt": "Oye, se você tivesse que gastar um milhão de dólares hoje, o que você compraria?"
           },
-          "responseType": "openResponse",
-          "interactiveVideoUrl": "gtests-0-1-1"
+          "responseType": "closedResponse",
+          "simpleVideoUrl": "gtests-0-1-1"
         },
         {
           "cue": {
-            "en": "Do you have dark chocolate?",
+            "en": "Test the video.",
             "es": "¿Tienes chocolate oscuro?",
             "pt": "Você tem chocolate escuro?"
           },
           "responseType": "closedResponse",
-          "interactiveVideoUrl": "do_you_have_dark_chocolate",
+          "interactiveVideoUrl": "gtests-0-1-1",
           "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
         },
         {

@@ -2,11 +2,14 @@
 // Web-only module — uses navigator.userAgent, window.preloadedMedia, MediaRecorder.
 // React Native replaces this with video-processor.native.js.
 import { getAllSpeechRecordingsForLesson } from '../storage/storage.js';
-import { VideoRenderPlanner } from './video-processor-logic.js';
 import { shareVideo } from './video-share.js';
 import { appStore } from '../store/store.js';
 import headerImg from '../../assets/img/header.png';
 import { getVideoUrl } from './video-url.js';
+import { VideoRenderPlanner, TEXT_MODE_DURATION_MS } from './video-processor-logic.js';
+import { DEFAULT_USER_AVATAR_URL } from '../user/tutor-config.js';
+import { getAvatarBlobUrl } from '../avatar/avatar.service.js';
+import { APPWRITE_CONFIG } from '../api/appwrite.js';
 
 export { shareVideo };
 
@@ -135,7 +138,10 @@ function createVideoProcessor() {
                     displayCanvas.height = dimensions.height;
                 }
 
-                await ensureFontsReady();
+                const [profileImage] = await Promise.all([
+                    loadProfileImage(),
+                    ensureFontsReady()
+                ]);
 
                 initAudio();
                 if (audioContext.state === 'suspended') await audioContext.resume();
@@ -188,7 +194,7 @@ function createVideoProcessor() {
 
                 await executeRenderLoop(
                     plan, originalVideo, videoCanvas, displayCanvas,
-                    overlayImage, fluencyData,
+                    overlayImage, profileImage, fluencyData,
                     id => { animationId = id; },
                     audioContext, audioDestination
                 );
@@ -217,9 +223,57 @@ export async function processVideo(fluencyData = {}, lessonId = null, displayCan
 }
 
 // ---------------------------------------------------------------------------
+// Profile-image helpers for text-mode steps
+// ---------------------------------------------------------------------------
+async function loadProfileImage() {
+    let src = appStore.getState().userData?.profilePictureUrl || DEFAULT_USER_AVATAR_URL;
+
+    if (src && APPWRITE_CONFIG?.ENDPOINT && src.includes(APPWRITE_CONFIG.ENDPOINT)) {
+        const blobUrl = await getAvatarBlobUrl(src);
+        if (blobUrl) src = blobUrl;
+    }
+
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = () => {
+            console.warn('[VideoProcessor] Failed to load profile image; falling back to black background');
+            resolve(null);
+        };
+        img.src = src;
+    });
+}
+
+function drawProfileBackground(ctx, image, w, h) {
+    ctx.fillStyle = '#111318';
+    ctx.fillRect(0, 0, w, h);
+
+    if (!image?.complete || image.naturalWidth <= 0) return;
+
+    const imgAspect = image.naturalWidth / image.naturalHeight;
+    const canvasAspect = w / h;
+    let sx, sy, sw, sh;
+
+    if (imgAspect > canvasAspect) {
+        sh = image.naturalHeight;
+        sw = sh * canvasAspect;
+        sx = (image.naturalWidth - sw) / 2;
+        sy = 0;
+    } else {
+        sw = image.naturalWidth;
+        sh = sw / canvasAspect;
+        sx = 0;
+        sy = (image.naturalHeight - sh) / 2;
+    }
+
+    ctx.drawImage(image, sx, sy, sw, sh, 0, 0, w, h);
+}
+
+// ---------------------------------------------------------------------------
 // Render loop — receives an animationId setter so the instance can cancel it
 // ---------------------------------------------------------------------------
-async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImage, fluencyData, setAnimationId, audioContext, audioDestination) {
+async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImage, profileImage, fluencyData, setAnimationId, audioContext, audioDestination) {
     const ctx = canvas.getContext('2d');
     const planner = new VideoRenderPlanner();
     let currentAudioSource = null;
@@ -324,8 +378,7 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(lastFrameCanvas, 0, 0);
             } else if (step.type === 'webcam' && (!step.blob || step.isTextMode)) {
-                ctx.fillStyle = '#111318';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                drawProfileBackground(ctx, profileImage, canvas.width, canvas.height);
             } else if (video.readyState >= 2) {
                 const layout = planner.calculateLayout(
                     video.videoWidth, video.videoHeight, canvas.width, canvas.height
@@ -367,7 +420,8 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
             } else {
                 if (step.isTextMode || (step.type === 'webcam' && !step.blob)) {
                     const elapsed = performance.now() - (step.textModeStartTime || performance.now());
-                    if (elapsed >= 3000) shouldAdvance = true;
+                    const holdMs = step.duration != null ? step.duration * 1000 : TEXT_MODE_DURATION_MS;
+                    if (elapsed >= holdMs) shouldAdvance = true;
                 } else {
                     const endTime = step.trim?.end || video.duration;
                     if (video.ended || video.currentTime >= endTime) shouldAdvance = true;
@@ -385,6 +439,16 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                     }
                     lastFrameCanvas.getContext('2d').drawImage(
                         video, 0, 0, lastFrameCanvas.width, lastFrameCanvas.height
+                    );
+                } else if (step.type === 'webcam' && step.isTextMode) {
+                    // Text-mode steps have no <video> frame; freeze the rendered canvas.
+                    if (!lastFrameCanvas) {
+                        lastFrameCanvas = document.createElement('canvas');
+                        lastFrameCanvas.width = canvas.width;
+                        lastFrameCanvas.height = canvas.height;
+                    }
+                    lastFrameCanvas.getContext('2d').drawImage(
+                        canvas, 0, 0, lastFrameCanvas.width, lastFrameCanvas.height
                     );
                 }
                 stopDecodedAudio();
