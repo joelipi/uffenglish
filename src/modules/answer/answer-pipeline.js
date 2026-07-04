@@ -543,6 +543,9 @@ export function createAnswerPipeline(deps) {
                 matchedCue = await findMatchingCueText(val, cue, stepData);
             }
 
+            const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
+            const translation = getLocalizedCueTranslation(cue, matchedCue, lang);
+
             if (appStore.getState().isTextMode) {
                 await saveSpeechRecording(null, {
                     lessonId: currentLessonId,
@@ -552,6 +555,7 @@ export function createAnswerPipeline(deps) {
                     duration: 3,
                     cue: getCueText(cue),
                     ...(matchedCue ? { matchedCue } : {}),
+                    ...(translation ? { translation } : {}),
                 });
             }
 
@@ -559,6 +563,7 @@ export function createAnswerPipeline(deps) {
                 userResponse: val,
                 cue: getCueText(cue),
                 ...(matchedCue ? { matchedCue } : {}),
+                ...(translation ? { translation } : {}),
                 isTextMode: appStore.getState().isTextMode,
                 duration: appStore.getState().isTextMode ? 3 : null
             });
@@ -635,6 +640,9 @@ export function createAnswerPipeline(deps) {
                     matchedCue = await findMatchingCueText(userResponse, cue, stepData);
                 }
 
+                const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
+                const translation = getLocalizedCueTranslation(cue, matchedCue, lang);
+
                 if (appStore.getState().isTextMode) {
                     await saveSpeechRecording(null, {
                         lessonId: currentLessonId,
@@ -644,6 +652,7 @@ export function createAnswerPipeline(deps) {
                         duration: 3,
                         cue: cueText,
                         ...(matchedCue ? { matchedCue } : {}),
+                        ...(translation ? { translation } : {}),
                     });
                 }
 
@@ -651,6 +660,7 @@ export function createAnswerPipeline(deps) {
                     userResponse,
                     cue: cueText,
                     ...(matchedCue ? { matchedCue } : {}),
+                    ...(translation ? { translation } : {}),
                     wpm: appStore.getState().isTextMode ? 0 : (speechAnalytics?.wpm || 0),
                     pauseCount: appStore.getState().isTextMode ? 0 : (speechAnalytics?.pauseCount || 0),
                     complexityScore: speechAnalytics?.complexityScore || 100,

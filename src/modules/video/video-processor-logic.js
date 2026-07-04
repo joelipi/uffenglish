@@ -54,7 +54,7 @@ export class VideoRenderPlanner {
                 blob: rec.blob,       // Used by web processor
                 uri: rec.uri,         // Used by native processor
                 trim: rec.meta?.trimTimestamps || null,
-                subtitle: { en: userText, translation: null },   // Webcam responses have no translation
+                subtitle: { en: userText, translation: rec.translation || null },
                 isFirst: plan.length === 0,
                 isTextMode: rec.isTextMode,
                 duration: rec.duration
@@ -154,7 +154,7 @@ export class VideoRenderPlanner {
         // If a matchedCue was stored at answer-submission time, use it directly.
         // This gives the canonical filled-in variant for arrays/templates/regex cues.
         if (rec.matchedCue) {
-            return { en: rec.matchedCue, translation: null };
+            return { en: rec.matchedCue, translation: rec.translation || null };
         }
 
         if (!this.configData.lessons) return null;
