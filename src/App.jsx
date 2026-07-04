@@ -3,6 +3,7 @@ import { RouterProvider } from 'react-router-dom';
 import { router } from './routes/router.js';
 import { initLocalVoiceAI } from './modules/speech/speech.js';
 import { idiomChecker } from './modules/utils/idiom-checker.js';
+import { getIsPWAMode } from './modules/user/demo-mode-webonly.js';
 import { identifyUser } from './modules/utils/posthog.js';
 
 export default function App() {
@@ -27,10 +28,15 @@ export default function App() {
 
         console.log('[React] Booting background AI workers...');
         (async () => {
+            const runIdiomChecker = getIsPWAMode() || typeof window === 'undefined';
+
             // Start idiom dictionary build immediately so it can run in parallel
             // with Whisper initialization. It now runs in a Web Worker, so it no
             // longer blocks the main thread or the first video from mounting.
-            const idiomInitPromise = idiomChecker.init();
+            // Only run for PWA web and React Native — skip casual web visitors.
+            const idiomInitPromise = runIdiomChecker
+                ? idiomChecker.init()
+                : Promise.resolve();
 
             try {
                 let voiceInitFn = initLocalVoiceAI;
@@ -48,12 +54,14 @@ export default function App() {
             } catch (err) {
                 console.error('Voice AI initialization error:', err);
             } finally {
-                try {
-                    console.log("  Local NLP bypassed. Now fetching and building idiom dictionary...");
-                    await idiomInitPromise;
-                    console.log("  Idiom checker ready!");
-                } catch (err) {
-                    console.error("  Failed to initialize idiom checker:", err);
+                if (runIdiomChecker) {
+                    try {
+                        console.log("  Local NLP bypassed. Now fetching and building idiom dictionary...");
+                        await idiomInitPromise;
+                        console.log("  Idiom checker ready!");
+                    } catch (err) {
+                        console.error("  Failed to initialize idiom checker:", err);
+                    }
                 }
             }
         })();

@@ -1,4 +1,5 @@
 import { idiomChecker } from './idiom-checker.js';
+import { getIsPWAMode } from '../user/demo-mode-webonly.js';
 
 export async function analyzeSpeech(text, netDuration, pauseCount, courseLevel, responseType) {
     let wpm = null;
@@ -25,10 +26,14 @@ export async function analyzeSpeech(text, netDuration, pauseCount, courseLevel, 
         let baseScore = 0.39 * (wordCount / sentenceCount) + 11.8 * (syllableCount / (wordCount || 1)) - 15.59;
         baseScore = Math.max(0, baseScore); // Prevent negative baseline
 
-        if (!idiomChecker.isReady) await idiomChecker.init();
-        const idiomResult = idiomChecker.count(text);
-        const idiomCount = typeof idiomResult === 'object' ? idiomResult.count : idiomResult;
-        foundIdioms = typeof idiomResult === 'object' ? idiomResult.foundIdioms : [];
+        let idiomCount = 0;
+        const detectIdioms = getIsPWAMode() || typeof window === 'undefined';
+        if (detectIdioms) {
+            if (!idiomChecker.isReady) await idiomChecker.init();
+            const idiomResult = idiomChecker.count(text);
+            idiomCount = typeof idiomResult === 'object' ? idiomResult.count : idiomResult;
+            foundIdioms = typeof idiomResult === 'object' ? idiomResult.foundIdioms : [];
+        }
 
         if (idiomCount === 1) {
             baseScore += 15;
