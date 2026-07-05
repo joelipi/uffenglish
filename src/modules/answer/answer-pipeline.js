@@ -861,6 +861,7 @@ export function createAnswerPipeline(deps) {
 
                 handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userResponse, structuredExplanations, result.normalizeduserResponse, result.normalizedcue, stepData.step, true, userData, configData, matchedCue);
                 appStore.getState().clearPlaybackBlob();
+                appStore.getState().clearRecordedAudioPeaks();
                 appStore.getState().triggerVideoClear();
                 clearChat();
                 setWebcamStream(null);
@@ -924,6 +925,7 @@ export function createAnswerPipeline(deps) {
                 showFeedbackAndProceed(stepData, isCorrect, _deps);
             } else {
                 appStore.getState().clearPlaybackBlob();
+                appStore.getState().clearRecordedAudioPeaks();
                 handleIncorrectFeedbackUI(stepIndex, stepData, button, cue, userResponse, structuredExplanations, result ? result.normalizeduserResponse : "", result ? result.normalizedcue : "", stepData.step, false, userData, configData, matchedCue, fluencyBubble);
                 showFeedbackAndProceed(stepData, isCorrect, _deps);
             }

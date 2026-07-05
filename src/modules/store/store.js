@@ -169,6 +169,9 @@ export const appStore = createStore(
             playbackAutoplay: false,
             playbackSpeechCamChunks: [],
 
+            // --- Recorded Audio Waveform ---
+            recordedAudioPeaks: null,
+
             // --- Tutor Engagement Metrics ---
             userMessagesToAi: 0,
             aIMessagesToUser: 0,
@@ -354,6 +357,8 @@ export const appStore = createStore(
             }),
             setPlaybackBlob: (blob, autoplay = false, speechCamChunks = []) => set({ playbackBlob: blob, playbackAutoplay: autoplay, playbackSpeechCamChunks: speechCamChunks }),
             clearPlaybackBlob: () => set({ playbackBlob: null, playbackAutoplay: false, playbackSpeechCamChunks: [] }),
+            setRecordedAudioPeaks: (peaks) => set({ recordedAudioPeaks: peaks }),
+            clearRecordedAudioPeaks: () => set({ recordedAudioPeaks: null }),
             setCompletionMessage: (msg) => set({ completionMessage: msg }),
             clearCompletionMessage: () => set({ completionMessage: null }),
 

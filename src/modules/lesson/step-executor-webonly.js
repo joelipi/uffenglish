@@ -261,7 +261,6 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             appStore.getState().setSystemMessage(null);
                             appStore.getState().setMediaVisible(false);
                             appStore.getState().setTextInputVisible(false);
-                            appStore.getState().setSystemMessage({ type: 'analyzing', text: 'Analyzing Speech...' });
                             appStore.getState().transitionTo('processing/transcribing');
                         },
                         onStopEarly: (userData) => {

@@ -128,6 +128,7 @@ export default function UserProfile() {
     const displayName = profile?.display_name || '';
     const email = profile?.email || '';
     const joinDate = profile?.join_date ? new Date(profile.join_date).toLocaleDateString() : '';
+    const shortCode = profile?.shortCode || '';
     // If it's an Appwrite URL, show the blob URL once ready, otherwise the placeholder
     const rawPic = profile?.profilePictureUrl;
     const isAppwriteRef = rawPic ? rawPic.includes('appwrite.io') : false;
@@ -439,7 +440,7 @@ export default function UserProfile() {
                         }}
                     />
                     {!isGuest && (
-                        <>
+                        <div style={{ textAlign: 'center', marginTop: '4px', marginBottom: '8px' }}>
                             <input
                                 ref={fileInputRef}
                                 type="file"
@@ -458,11 +459,12 @@ export default function UserProfile() {
                                     <><i className="bi bi-camera-fill me-1"></i> Change photo</>
                                 )}
                             </button>
-                        </>
+                        </div>
                     )}
                     <StatusMessage type={avatarMsg?.type} message={avatarMsg?.text} />
                     <h2 style={{ fontSize: '22px', marginBottom: '4px', marginTop: '12px' }}>{displayName}</h2>
                     <p style={{ color: '#adb5bd', fontSize: '14px', marginBottom: '4px' }}>{email}</p>
+                    {shortCode && <p style={{ color: '#6c757d', fontSize: '13px', marginBottom: '4px' }}>ID: {shortCode}</p>}
                     {joinDate && <p style={{ color: '#6c757d', fontSize: '13px' }}>{Strings.get('profile_member_since', lang, { date: joinDate })}</p>}
                 </div>
 

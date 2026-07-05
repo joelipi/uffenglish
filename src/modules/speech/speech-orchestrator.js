@@ -4,6 +4,22 @@ import { validateAnswerPrecheck, findMatchingCueText } from '../answer/answers.j
 import { appStore } from '../store/store.js';
 import Strings from '../../data/strings.js';
 
+function computeWaveformPeaks(audioData, numPeaks = 120) {
+    const blockSize = Math.max(1, Math.floor(audioData.length / numPeaks));
+    const peaks = new Float32Array(numPeaks);
+    for (let i = 0; i < numPeaks; i++) {
+        let max = 0;
+        const start = i * blockSize;
+        const end = Math.min(start + blockSize, audioData.length);
+        for (let j = start; j < end; j++) {
+            const abs = Math.abs(audioData[j]);
+            if (abs > max) max = abs;
+        }
+        peaks[i] = max;
+    }
+    return peaks;
+}
+
 export function createSpeechOrchestrator({
     startSpeechCamRecording,
     stopSpeechCamRecording,
@@ -58,6 +74,7 @@ export function createSpeechOrchestrator({
 
         const rejectPreflight = (warningMessage) => {
             appStore.getState().clearPlaybackBlob();
+            appStore.getState().clearRecordedAudioPeaks();
             if (uiHooks?.onPreflightRejected) uiHooks.onPreflightRejected(warningMessage);
 
             updateSpeechRecording(
@@ -124,6 +141,7 @@ export function createSpeechOrchestrator({
             reviewActive = false;
             clearInterval(timerInterval);
             appStore.getState().clearPlaybackBlob();
+            appStore.getState().clearRecordedAudioPeaks();
 
             if (uiHooks?.onTranscriptRejected) uiHooks.onTranscriptRejected(step?.cue, transcriptToReview);
 
@@ -166,6 +184,7 @@ export function createSpeechOrchestrator({
 
             if (!listeningState.active) {
                 listeningState.active = true;
+                appStore.getState().clearRecordedAudioPeaks();
 
                 // Show warming-up state while camera stream initializes
                 appStore.getState().setSystemMessage({ type: 'analyzing', bilingual: Strings.getBilingual('status_starting_camera', userData?.native_language) });
@@ -303,6 +322,13 @@ export function createSpeechOrchestrator({
                     stopListeningEarly(userData, player, uiHooks);
                     return;
                 }
+
+                if (rawAudioData && rawAudioData.length > 0) {
+                    const peaks = computeWaveformPeaks(rawAudioData, 120);
+                    const durationMs = Math.round((rawAudioData.length / 16000) * 1000);
+                    appStore.getState().setRecordedAudioPeaks({ peaks, durationMs });
+                }
+
                 let videoBlob;
                 try {
                     videoBlob = await stopSpeechCamRecording({

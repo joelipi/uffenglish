@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { account, tablesDB, ID, APPWRITE_CONFIG } from '../../modules/api/appwrite.js';
 import { queryClient } from '../../modules/api/api.js';
 import { identifyUser, trackEvent } from '../../modules/utils/posthog.js';
+import { toShortId } from '../../modules/utils/short-id.js';
 import defaultProfilePic from '../../assets/img/userprofile.png';
 
 export function useSignupForm({ onSignupSuccess } = {}) {
@@ -35,7 +36,7 @@ export function useSignupForm({ onSignupSuccess } = {}) {
                 console.error('[Signup] Failed to import collection module:', importError);
             }
 
-            await tablesDB.createRow({
+            const profileRow = await tablesDB.createRow({
                 databaseId: APPWRITE_CONFIG.DATABASE_ID,
                 tableId: APPWRITE_CONFIG.USER_PROFILES_TABLE_ID,
                 rowId: user.$id,
@@ -50,6 +51,19 @@ export function useSignupForm({ onSignupSuccess } = {}) {
                     completed_dates: []
                 }
             });
+
+            const shortCode = toShortId(profileRow.$sequence);
+            try {
+                await tablesDB.updateRow({
+                    databaseId: APPWRITE_CONFIG.DATABASE_ID,
+                    tableId: APPWRITE_CONFIG.USER_PROFILES_TABLE_ID,
+                    rowId: profileRow.$id,
+                    data: { shortCode }
+                });
+                console.log(`[Signup] shortCode ${shortCode} set for user ${profileRow.$id}`);
+            } catch (shortCodeError) {
+                console.error(`[Signup] Failed to set shortCode for user ${profileRow.$id}:`, shortCodeError);
+            }
 
             identifyUser(user.$id, {
                 email: user.email,
@@ -71,6 +85,7 @@ export function useSignupForm({ onSignupSuccess } = {}) {
                 display_name: fullName,
                 join_date: user.$createdAt,
                 auth_method: 'appwrite',
+                shortCode,
                 firstName: firstName.trim(),
                 lastName: lastName.trim(),
                 native_language: nativeLanguage,

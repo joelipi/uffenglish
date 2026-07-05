@@ -23,6 +23,7 @@ import WebcamPreview from './widgets/WebcamPreview.jsx';
 import WhisperReview from './widgets/WhisperReview.jsx';
 import MediaContent from './widgets/MediaContent.jsx';
 import SuccessVideo from './widgets/SuccessVideo.jsx';
+import WaveformCanvas from './widgets/WaveformCanvas.jsx';
 import SuccessVideoCanvas from './widgets/SuccessVideoCanvas.jsx';
 import ScoreBoard from './widgets/ScoreBoard.jsx';
 import ProgressBar from './widgets/ProgressBar.jsx';
@@ -240,6 +241,7 @@ export default function LessonContainer() {
             <SuccessVideo />
             <SuccessVideoCanvas canvasRef={successCanvasRef} />
             <PlaybackVideo />
+            {mediaState === 'processingRecording' && <WaveformCanvas />}
 
             {/* Media Viewport cleanly houses the pure React players now */}
             <div id="media-viewport" className={`position-absolute top-0 start-0 w-100 h-100${mediaVisible ? '' : ' media-viewport-hidden'}`} style={mediaState === 'processingRecording' || mediaState === 'preflightRejected' || mediaState === 'hidden' || mediaState === 'preloader' ? { display: 'none' } : undefined}>

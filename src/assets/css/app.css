@@ -1917,6 +1917,27 @@ ul.incorrectWords li::before {
 }
 
 /* =========================================
+   WAVEFORM CANVAS
+   ========================================= */
+.waveform-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 20;
+    width: 80%;
+    max-width: 500px;
+    pointer-events: none;
+}
+
+.waveform-canvas {
+    width: 100%;
+    height: 120px;
+    display: block;
+    border-radius: 8px;
+}
+
+/* =========================================
    WHISPER REVIEW
    ========================================= */
 .whisper-review-box {
