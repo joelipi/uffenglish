@@ -22,6 +22,7 @@ function computeWaveformPeaks(audioData, numPeaks = 120) {
 
 export function createSpeechOrchestrator({
     startSpeechCamRecording,
+    startDeferredSpeechCamRecording,
     stopSpeechCamRecording,
     getSpeechCamStream,
     safelyStopStream,
@@ -190,18 +191,13 @@ export function createSpeechOrchestrator({
                 appStore.getState().setSystemMessage({ type: 'analyzing', bilingual: Strings.getBilingual('status_starting_camera', userData?.native_language) });
 
                 try {
-                    await startSpeechCamRecording(micStatusText, userData);
+                    // Prepare MediaRecorder but defer actual start until audio tap is ready
+                    await startSpeechCamRecording(micStatusText, userData, { deferStart: true });
                 } catch (e) {
                     listeningState.active = false;
                     appStore.getState().setSystemMessage(null);
                     return;
                 }
-
-                // Stream is ready — activate mic UI
-                appStore.getState().setSystemMessage(null);
-                appStore.getState().setMicActive(true);
-                appStore.getState().setHesitationMs(0);
-                if (uiHooks?.onRecordingStart) uiHooks.onRecordingStart(userData);
 
                 if (uiHooks?.onMicDisable) uiHooks.onMicDisable(button);
 
@@ -302,6 +298,14 @@ export function createSpeechOrchestrator({
                             }
                         });
                     }
+
+                    // Audio tap is live — now start the MediaRecorder and show mic UI
+                    startDeferredSpeechCamRecording();
+
+                    appStore.getState().setSystemMessage(null);
+                    appStore.getState().setMicActive(true);
+                    appStore.getState().setHesitationMs(0);
+                    if (uiHooks?.onRecordingStart) uiHooks.onRecordingStart(userData);
                     if (uiHooks?.onRecordingActive) uiHooks.onRecordingActive(button);
                 }
             } else {
@@ -356,7 +360,7 @@ export function createSpeechOrchestrator({
 
                 try {
                     const extractionResult = Core.trimSilenceWithPadding(rawAudioData, {
-                        threshold: 0.03, preRoll: 0.3, postRoll: 0.3, sampleRate: 16000, initialIgnoreMs: 800
+                        threshold: 0.03, preRoll: 0.3, postRoll: 0.3, sampleRate: 16000, initialIgnoreMs: 300
                     });
                     console.warn('[PT] trimmed len=', extractionResult?.trimmed?.length);
                     const whisperResult = await transcribeAudioBuffer(extractionResult.trimmed);

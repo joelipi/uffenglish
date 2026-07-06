@@ -147,7 +147,7 @@ export async function warmUpSpeechCamStream() {
     }
 }
 
-export async function startSpeechCamRecording(micStatusText, userData) {
+export async function startSpeechCamRecording(micStatusText, userData, { deferStart = false } = {}) {
     try {
         await ensureSpeechCamStream();
         setWebcamStream(speechCamStream);
@@ -168,7 +168,9 @@ export async function startSpeechCamRecording(micStatusText, userData) {
             if (e.data && e.data.size > 0) speechCamChunks.push(e.data);
         };
 
-        speechCamRecorder.start();
+        if (!deferStart) {
+            speechCamRecorder.start();
+        }
     } catch (err) {
         console.error('[Recording] startSpeechCamRecording FAILED:', err);
         alert(Strings.get('alert_media_error', userData?.native_language));
@@ -176,6 +178,12 @@ export async function startSpeechCamRecording(micStatusText, userData) {
         setWebcamStream(null);
         safelyStopStream();
         throw err; // re-throw so the orchestrator can abort cleanly
+    }
+}
+
+export function startDeferredSpeechCamRecording() {
+    if (speechCamRecorder && speechCamRecorder.state === 'inactive') {
+        speechCamRecorder.start();
     }
 }
 
@@ -290,7 +298,7 @@ export async function startLocalAudioTap(stream, onSpeechDetected = null) {
 
     let consecutiveSpeechChunks = 0;
     const tapStartTime = Date.now();
-    const MIC_SETTLE_MS = 800; // ignore first 800ms to suppress mic pop/click
+    const MIC_SETTLE_MS = 300; // ignore first 300ms to suppress mic pop/click
 
     localAudioWorkletNode.port.onmessage = (event) => {
         const chunk = new Float32Array(event.data); 

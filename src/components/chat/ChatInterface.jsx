@@ -172,7 +172,7 @@ export default function ChatInterface() {
             className="card-body chat-message-list text-dark"
             style={{ overflowY: 'auto', position: 'relative' }}
         >
-            {sortedHistory.map((msg) => {
+            {sortedHistory.map((msg, index) => {
                 const key = msg.id;
                 if (msg.role === 'user') {
                     const isFirstUser = msg === firstUserMsg;
@@ -192,7 +192,7 @@ export default function ChatInterface() {
                         );
                     }
                     return (
-                        <div key={key} className="chat-message-row-wrapper">
+                        <div key={key} className="chat-message-row-wrapper" style={{ animationDelay: `${index * 0.08}s` }}>
                             {bubble}
                         </div>
                     );
@@ -201,7 +201,7 @@ export default function ChatInterface() {
                 if (msg.role === 'system') {
                     const componentFn = SYSTEM_TYPE_COMPONENTS[msg.type] || SYSTEM_TYPE_COMPONENTS.standard;
                     return (
-                        <div key={key} className="chat-message-row-wrapper">
+                        <div key={key} className="chat-message-row-wrapper" style={{ animationDelay: `${index * 0.08}s` }}>
                             {componentFn(msg)}
                         </div>
                     );

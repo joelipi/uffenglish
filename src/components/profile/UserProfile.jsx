@@ -123,11 +123,12 @@ export default function UserProfile() {
         return () => { active = false; };
     }, [profile?.profilePictureUrl]);
 
+    const LOCALE_MAP = { EN: 'en', ES: 'es', FR: 'fr', DE: 'de', IT: 'it', PT: 'pt', ZH: 'zh', JA: 'ja', KO: 'ko', RU: 'ru', AR: 'ar', HI: 'hi', NL: 'nl', PL: 'pl', TR: 'tr', VI: 'vi', TH: 'th', SV: 'sv' };
     const lang = profile?.native_language?.toLowerCase() || 'en';
     const isGuest = profile?.$id === 'guest';
     const displayName = profile?.display_name || '';
     const email = profile?.email || '';
-    const joinDate = profile?.join_date ? new Date(profile.join_date).toLocaleDateString() : '';
+    const joinDate = profile?.join_date ? new Date(profile.join_date).toLocaleDateString(LOCALE_MAP[profile.native_language] || 'en') : '';
     const shortCode = profile?.shortCode || '';
     // If it's an Appwrite URL, show the blob URL once ready, otherwise the placeholder
     const rawPic = profile?.profilePictureUrl;
