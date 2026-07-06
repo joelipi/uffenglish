@@ -9,6 +9,7 @@ import SignupRoute from './SignupRoute.jsx';
 import RecoverPasswordRoute from './RecoverPasswordRoute.jsx';
 import ResetPasswordRoute from './ResetPasswordRoute.jsx';
 import LessonContainer from '../components/LessonContainer.jsx';
+import PublicProfileRoute from './PublicProfileRoute.jsx';
 
 function LessonError() {
   return (
@@ -31,6 +32,7 @@ export const routes = [
       { path: '/reset-password', element: <AuthLayout />, children: [{ index: true, element: <ResetPasswordRoute /> }] },
       { path: '/profile', element: <ProfileRoute /> },
       { path: '/course/:courseId/lesson/:lessonId', element: <AppLayout />, errorElement: <LessonError />, children: [{ index: true, element: <LessonContainer /> }] },
+      { path: '/:shortCode', element: <PublicProfileRoute /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },

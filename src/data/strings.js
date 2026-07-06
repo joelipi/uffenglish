@@ -672,6 +672,14 @@ const strings = {
         en: "Profile",
         es: "Perfil"
     },
+    'public_profile_heading': {
+        en: "Practice Speaking English with Me",
+        es: "Practica Hablar Inglés Conmigo"
+    },
+    'public_profile_not_found': {
+        en: "User not found",
+        es: "Usuario no encontrado"
+    },
     'profile_member_since': {
         en: "Member since {date}",
         es: "Miembro desde {date}"

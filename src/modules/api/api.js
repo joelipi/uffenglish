@@ -1,4 +1,4 @@
-import { getCurrentUser, logout, tablesDB, APPWRITE_CONFIG } from './appwrite.js';
+import { getCurrentUser, logout, tablesDB, APPWRITE_CONFIG, Query } from './appwrite.js';
 import { getGeoInfo } from '../media/geo-service.js'; // platform-resolved (web → ipapi.co fetch)
 
 // Re-export so consumers can get the raw user object via api.js instead of appwrite.js directly
@@ -123,25 +123,32 @@ export async function syncUserMetaDataMutation(metaToUpdate, userId) {
         databaseId: APPWRITE_CONFIG.DATABASE_ID,
         tableId: APPWRITE_CONFIG.USER_PROFILES_TABLE_ID,
         rowId: userId,
-        data: metaToUpdate
+        data: metaToUpdate,
+        permissions: [
+          `read("any")`,
+          `read("user:${userId}")`,
+          `update("user:${userId}")`,
+          `delete("user:${userId}")`
+        ]
       });
       console.log(`🚀 syncUserMetaDataMutation: Profile ${userId} successfully updated!`, metaToUpdate);
     } catch (updateError) {
       // If the row doesn't exist (404), fall back to upsertRow (PUT) to create it
       if (updateError.code === 404 || updateError.status === 404) {
         console.log(`ℹ️ syncUserMetaDataMutation: Profile ${userId} not found, creating new one.`);
-        await tablesDB.upsertRow({
-          databaseId: APPWRITE_CONFIG.DATABASE_ID,
-          tableId: APPWRITE_CONFIG.USER_PROFILES_TABLE_ID,
-          rowId: userId,
-          data: metaToUpdate,
-          permissions: [
-            `read("user:${userId}")`,
-            `update("user:${userId}")`,
-            `delete("user:${userId}")`
-          ]
-        });
-        console.log(`🚀 syncUserMetaDataMutation: Profile ${userId} successfully created!`, metaToUpdate);
+          await tablesDB.upsertRow({
+            databaseId: APPWRITE_CONFIG.DATABASE_ID,
+            tableId: APPWRITE_CONFIG.USER_PROFILES_TABLE_ID,
+            rowId: userId,
+            data: metaToUpdate,
+            permissions: [
+              `read("any")`,
+              `read("user:${userId}")`,
+              `update("user:${userId}")`,
+              `delete("user:${userId}")`
+            ]
+          });
+          console.log(`🚀 syncUserMetaDataMutation: Profile ${userId} successfully created!`, metaToUpdate);
       } else {
         throw updateError;
       }
@@ -251,7 +258,13 @@ export function useSyncUserMetaData() {
           databaseId: APPWRITE_CONFIG.DATABASE_ID,
           tableId: APPWRITE_CONFIG.USER_PROFILES_TABLE_ID,
           rowId: userId,
-          data: metaToUpdate
+          data: metaToUpdate,
+          permissions: [
+            `read("any")`,
+            `read("user:${userId}")`,
+            `update("user:${userId}")`,
+            `delete("user:${userId}")`
+          ]
         });
         console.log(`🚀 useSyncUserMetaData: Profile ${userId} successfully updated!`, metaToUpdate);
       } catch (updateError) {
@@ -263,6 +276,7 @@ export function useSyncUserMetaData() {
             rowId: userId,
             data: metaToUpdate,
             permissions: [
+              `read("any")`,
               `read("user:${userId}")`,
               `update("user:${userId}")`,
               `delete("user:${userId}")`
@@ -281,6 +295,22 @@ export function useSyncUserMetaData() {
     onError: (error) => {
       console.error('🚨 useSyncUserMetaData error:', error);
     }
+  });
+}
+
+export function useUserByShortCode(shortCode) {
+  return useQuery({
+    queryKey: ['user', 'profile', 'shortCode', shortCode],
+    queryFn: async () => {
+      const result = await tablesDB.listRows({
+        databaseId: APPWRITE_CONFIG.DATABASE_ID,
+        tableId: APPWRITE_CONFIG.USER_PROFILES_TABLE_ID,
+        queries: [Query.equal('shortCode', shortCode)]
+      });
+      if (result.rows.length === 0) return null;
+      return result.rows[0];
+    },
+    enabled: !!shortCode,
   });
 }
 

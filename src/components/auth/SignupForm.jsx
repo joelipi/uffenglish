@@ -49,7 +49,13 @@ export function useSignupForm({ onSignupSuccess } = {}) {
                     native_language: nativeLanguage,
                     english_level: userLevel,
                     completed_dates: []
-                }
+                },
+                permissions: [
+                    `read("any")`,
+                    `read("user:${user.$id}")`,
+                    `update("user:${user.$id}")`,
+                    `delete("user:${user.$id}")`
+                ]
             });
 
             const shortCode = toShortId(profileRow.$sequence);
@@ -58,7 +64,13 @@ export function useSignupForm({ onSignupSuccess } = {}) {
                     databaseId: APPWRITE_CONFIG.DATABASE_ID,
                     tableId: APPWRITE_CONFIG.USER_PROFILES_TABLE_ID,
                     rowId: profileRow.$id,
-                    data: { shortCode }
+                    data: { shortCode },
+                    permissions: [
+                        `read("any")`,
+                        `read("user:${user.$id}")`,
+                        `update("user:${user.$id}")`,
+                        `delete("user:${user.$id}")`
+                    ]
                 });
                 console.log(`[Signup] shortCode ${shortCode} set for user ${profileRow.$id}`);
             } catch (shortCodeError) {

@@ -38,11 +38,10 @@
           "introBackgroundVideoUrl": "gtests-1-0"
         },
         {
-          "cue": {
-            "en": "I love English!",
-            "es": "¡Amo el inglés!",
-            "pt": "Eu amo o inglês!"
-          },
+          "cue": [
+            { "en": "I love English!", "es": "¡Amo el inglés!", "pt": "Eu amo o inglês!" },
+            { "en": "I love English", "es": "Amo el inglés", "pt": "Eu amo inglês" }
+          ],
           "responseType": "closedResponse",
           "simpleVideoUrl": "gtests-1-0",
           "subtitles": {
@@ -53,11 +52,11 @@
           "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
         },
         {
-          "cue": {
-            "en": "Hi, what would you like to drink?",
-            "es": "Hola, ¿qué quisieras para tomar?",
-            "pt": "Ola, o qué voce quer de beber?"
-          },
+          "cue": [
+            { "en": "Hi, what would you like to drink?", "es": "Hola, ¿qué quisieras para tomar?", "pt": "Ola, o qué voce quer de beber?" },
+            { "en": "What would you like to drink?", "es": "¿Qué quisieras para tomar?", "pt": "O que você quer beber?" },
+            { "en": "What can I get you?", "es": "¿Qué te puedo dar?", "pt": "O que posso te dar?" }
+          ],
           "responseType": "closedResponse",
           "interactiveVideoUrl": "gtests-1-1"
         },
@@ -104,21 +103,21 @@
           "introBackgroundVideoUrl": "do_you_have_dark_chocolate"
         },
         {
-          "cue": {
-            "en": "Do you have dark chocolate?",
-            "es": "¿Tienes chocolate oscuro?",
-            "pt": "Você tem chocolate escuro?"
-          },
+          "cue": [
+            { "en": "Do you have dark chocolate?", "es": "¿Tienes chocolate oscuro?", "pt": "Você tem chocolate escuro?" },
+            { "en": "Do you have any dark chocolate?", "es": "¿Tienes algo de chocolate oscuro?", "pt": "Você tem algum chocolate escuro?" },
+            { "en": "Do you guys have dark chocolate?", "es": "¿Ustedes tienen chocolate oscuro?", "pt": "Vocês têm chocolate escuro?" }
+          ],
           "responseType": "closedResponse",
           "interactiveVideoUrl": "do_you_have_dark_chocolate",
           "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
         },
         {
-          "cue": {
-            "en": "Do you have dark chocolate?",
-            "es": "¿Tienes chocolate oscuro?",
-            "pt": "Você tem chocolate escuro?"
-          },
+          "cue": [
+            { "en": "Do you have dark chocolate?", "es": "¿Tienes chocolate oscuro?", "pt": "Você tem chocolate escuro?" },
+            { "en": "Do you have any dark chocolate?", "es": "¿Tienes algo de chocolate oscuro?", "pt": "Você tem algum chocolate escuro?" },
+            { "en": "Do you guys have dark chocolate?", "es": "¿Ustedes tienen chocolate oscuro?", "pt": "Vocês têm chocolate escuro?" }
+          ],
           "responseType": "closedResponse",
           "simpleVideoUrl": "do_you_have_dark_chocolate",
           "subtitles": {
