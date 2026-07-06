@@ -40,7 +40,7 @@
         {
           "cue": [
             { "en": "I love English!", "es": "¡Amo el inglés!", "pt": "Eu amo o inglês!" },
-            { "en": "I love English", "es": "Amo el inglés", "pt": "Eu amo inglês" }
+            { "en": "I like English!", "es": "¡Me gusta el inglés!", "pt": "Eu gosto do inglês!" }
           ],
           "responseType": "closedResponse",
           "simpleVideoUrl": "gtests-1-0",
@@ -55,7 +55,7 @@
           "cue": [
             { "en": "Hi, what would you like to drink?", "es": "Hola, ¿qué quisieras para tomar?", "pt": "Ola, o qué voce quer de beber?" },
             { "en": "What would you like to drink?", "es": "¿Qué quisieras para tomar?", "pt": "O que você quer beber?" },
-            { "en": "What can I get you?", "es": "¿Qué te puedo dar?", "pt": "O que posso te dar?" }
+            { "en": "What can I get you to drink?", "es": "¿Qué te puedo dar?", "pt": "O que posso te dar?" }
           ],
           "responseType": "closedResponse",
           "interactiveVideoUrl": "gtests-1-1"
