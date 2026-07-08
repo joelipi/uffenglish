@@ -7,24 +7,29 @@ export default function WebcamPreview() {
     // then read the actual stream from the module-level getter.
     const webcamStreamKey = useStore(appStore, (state) => state._webcamStreamKey);
     const mediaState = useStore(appStore, (state) => state.mediaState);
-    const isMicActive = useStore(appStore, (state) => state.isMicActive);
     const videoRef = useRef(null);
     const wrapperRef = useRef(null);
-    const prevMicActive = useRef(isMicActive);
+    const prevShow = useRef(false);
     const [takeover, setTakeover] = useState(false);
 
-    // Keep webcam full-frame until overlay has time to render after mic deactivates
+    const show = !!getWebcamStream() && (mediaState === 'webcamOrAvatar' || mediaState === 'simpleVideo' || mediaState === 'interactiveVideo');
+
+    // Full-screen takeover only during the recording/answering phase
+    // (mediaState === 'webcamOrAvatar'). During normal video playback
+    // (simpleVideo/interactiveVideo) the preview stays a small PiP, not full-screen.
+    const fullScreen = show && mediaState === 'webcamOrAvatar';
+
     useEffect(() => {
-        if (isMicActive) {
+        if (fullScreen) {
             setTakeover(true);
-        } else if (prevMicActive.current) {
+        } else if (prevShow.current) {
             const timer = setTimeout(() => setTakeover(false), 250);
             return () => clearTimeout(timer);
         } else {
             setTakeover(false);
         }
-        prevMicActive.current = isMicActive;
-    }, [isMicActive]);
+        prevShow.current = fullScreen;
+    }, [fullScreen]);
 
     useEffect(() => {
         const stream = getWebcamStream();
@@ -35,19 +40,12 @@ export default function WebcamPreview() {
             if (video.srcObject !== stream) {
                 video.srcObject = stream;
             }
-            const timer = setTimeout(() => {
-                if (video.readyState >= 2 || video.paused) {
-                    video.play().catch(e => console.log('[Webcam] play failed:', e));
-                }
-            }, 100);
-            return () => clearTimeout(timer);
+            video.play().catch(e => console.log('[Webcam] play failed:', e));
         } else {
             video.pause();
             video.srcObject = null;
         }
     }, [webcamStreamKey]);
-
-    const show = !!getWebcamStream() && (mediaState === 'webcamOrAvatar' || mediaState === 'simpleVideo' || mediaState === 'interactiveVideo');
 
     let className = 'pip-container';
     if (show) {

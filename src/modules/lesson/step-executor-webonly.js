@@ -290,7 +290,6 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             appStore.getState().deductSpeakingScore(10);
                             appStore.getState().incrementWhisperRejections();
                             appStore.getState().triggerVideoClear();
-                            setWebcamStream(null);
                             appStore.getState().triggerPreflightRejected();
                             appStore.getState().setPointLossAmount(10);
                             appStore.getState().setSystemMessage({ type: 'preflight-rejected', text: msg });
@@ -306,10 +305,8 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             appStore.getState().deductSpeakingScore(20);
                             appStore.getState().incrementWhisperRejections();
                             appStore.getState().triggerVideoClear();
-                            setWebcamStream(null);
                             appStore.getState().triggerTranscriptRejected(cue, transcript);
                             appStore.getState().setPointLossAmount(20);
-                            appStore.getState().setSystemMessage({ type: 'restarting', text: 'Restarting Mic...' });
                             appStore.getState().transitionTo('recording/answering');
                         },
                         onReviewStart: (transcript, timeLeft, acceptFn, rejectFn) => {

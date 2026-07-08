@@ -23,8 +23,6 @@ function renderIcon(type) {
 
 function renderContent(type) {
     switch (type) {
-        case 'restarting':
-            return <div className="spinner-border spinner-border-sm" role="status" />;
         default:
             return null;
     }
@@ -39,9 +37,6 @@ function colorClass(type) {
             return 'text-danger';
         case 'engine-ready':
             return 'text-success';
-        case 'analyzing':
-        case 'restarting':
-            return 'text-warning';
         case 'gibberish':
             return 'mt-3';
         default:
@@ -73,7 +68,6 @@ export default function SystemMessageOverlay() {
             <div id="react-root-micstatus" className="d-flex justify-content-center align-items-center">
                 <div id="micStatusText" className={`text-center ${colorClass(type)}`}>
                     {renderContent(type)}
-                    {type === 'restarting' && ' '}
                     {renderIcon(type)}
                     {type === 'speak-now' && <br />}
                     {bilingual ? renderBilingual(bilingual) : renderText(text)}

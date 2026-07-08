@@ -83,8 +83,6 @@ export function createSpeechOrchestrator({
                 currentStepIndex,
                 { userResponse: transcriptToReview, cue: step?.cue }
             ).catch(e => console.error(e));
-
-            setTimeout(() => toggleSpeechRecognition(params), 2500);
         };
 
         const courseLevel = configData?.courseLevel || 'A0';
@@ -151,8 +149,6 @@ export function createSpeechOrchestrator({
                 currentStepIndex,
                 { userResponse: transcriptToReview, cue: step?.cue }
             ).catch(e => console.error(e));
-
-            setTimeout(() => toggleSpeechRecognition(params), 600);
         };
 
         console.warn('[PT] CALLING onReviewStart', { displayTranscript: displayTranscript.substring(0, 30), transcriptToReview: transcriptToReview.substring(0, 30), timeLeft });
@@ -186,9 +182,6 @@ export function createSpeechOrchestrator({
             if (!listeningState.active) {
                 listeningState.active = true;
                 appStore.getState().clearRecordedAudioPeaks();
-
-                // Show warming-up state while camera stream initializes
-                appStore.getState().setSystemMessage({ type: 'analyzing', bilingual: Strings.getBilingual('status_starting_camera', userData?.native_language) });
 
                 try {
                     // Prepare MediaRecorder but defer actual start until audio tap is ready
@@ -279,6 +272,14 @@ export function createSpeechOrchestrator({
                         }
                     }, 100);
 
+                    // Stream is ready — go full-screen immediately so the preview
+                    // paints without waiting for the VAD audio tap to arm.
+                    startDeferredSpeechCamRecording();
+                    appStore.getState().setMicActive(true);
+                    appStore.getState().setHesitationMs(0);
+                    if (uiHooks?.onRecordingStart) uiHooks.onRecordingStart(userData);
+                    if (uiHooks?.onRecordingActive) uiHooks.onRecordingActive(button);
+
                     const stream = getSpeechCamStream();
                     if (stream) {
                         await startLocalAudioTap(stream, () => {
@@ -298,15 +299,6 @@ export function createSpeechOrchestrator({
                             }
                         });
                     }
-
-                    // Audio tap is live — now start the MediaRecorder and show mic UI
-                    startDeferredSpeechCamRecording();
-
-                    appStore.getState().setSystemMessage(null);
-                    appStore.getState().setMicActive(true);
-                    appStore.getState().setHesitationMs(0);
-                    if (uiHooks?.onRecordingStart) uiHooks.onRecordingStart(userData);
-                    if (uiHooks?.onRecordingActive) uiHooks.onRecordingActive(button);
                 }
             } else {
                 listeningState.active = false;
