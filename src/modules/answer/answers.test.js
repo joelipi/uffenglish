@@ -344,6 +344,28 @@ describe('Answers Module', () => {
             expect(result.normalizedcue).toBe('my favorite color is red');
         });
 
+        it('should select the array element the user was closest to as rawCue (original casing)', async () => {
+            const result = await processAnswerLogic({
+                stepData: { responseType: 'closedResponse', explanation: 'explain' },
+                userResponse: 'do you have dark choclate',
+                cue: ['Do you have rolls, too?', 'Do you have dark chocolate?'],
+            });
+            expect(result.isCorrect).toBe(false);
+            // rawCue must be the matched element (not cue[0]) with its original casing
+            expect(result.rawCue).toBe('Do you have dark chocolate?');
+            expect(result.normalizedcue).toBe('do you have dark chocolate?');
+        });
+
+        it('should fall back to cue[0] casing when no clear match (rawCue)', async () => {
+            const result = await processAnswerLogic({
+                stepData: { responseType: 'closedResponse', explanation: 'explain' },
+                userResponse: 'completely unrelated utterance',
+                cue: ['Do you have rolls, too?', 'Do you have dark chocolate?'],
+            });
+            expect(result.isCorrect).toBe(false);
+            expect(result.rawCue).toBe('Do you have rolls, too?');
+        });
+
         it('should match regex cue', async () => {
             const result = await processAnswerLogic({
                 stepData: { responseType: 'closedResponse', explanation: 'explain' },

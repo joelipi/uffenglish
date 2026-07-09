@@ -876,7 +876,7 @@ export function createAnswerPipeline(deps) {
                 setWebcamStream(null);
 
                 if (!stepData.interactiveVideoUrl) {
-                    const hangmanOps = generateHangmanOps(userResponse, result.normalizedcue || cueText);
+                    const hangmanOps = generateHangmanOps(userResponse, result.rawCue || result.normalizedcue || cueText);
                     appStore.getState().setHangmanOps(hangmanOps);
                     appStore.getState().setHintsVisible(true);
                 }

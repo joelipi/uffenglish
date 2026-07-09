@@ -69,14 +69,16 @@ async function evaluateClosedResponse(userResponse, cue, stepData) {
         candidateStrings.map(c => normalize(c.trim().toLowerCase()))
     );
 
-    // ── Find best match ──
+    // ── Find best match (track the original-cased raw candidate alongside) ──
     let bestSimilarity = 0;
     let bestMatch = '';
-    for (const candidate of normalizedCandidates) {
-        const sim = calculateSimilarity(normalizedUser, candidate);
+    let bestRaw = '';
+    for (let k = 0; k < normalizedCandidates.length; k++) {
+        const sim = calculateSimilarity(normalizedUser, normalizedCandidates[k]);
         if (sim > bestSimilarity) {
             bestSimilarity = sim;
-            bestMatch = candidate;
+            bestMatch = normalizedCandidates[k];
+            bestRaw = candidateStrings[k];
         }
     }
 
@@ -84,7 +86,8 @@ async function evaluateClosedResponse(userResponse, cue, stepData) {
         isCorrect: bestSimilarity >= threshold,
         explanation: stepData.explanation,
         normalizeduserResponse: normalizedUser,
-        normalizedcue: bestMatch || normalizedCandidates[0] || ''
+        normalizedcue: bestMatch || normalizedCandidates[0] || '',
+        rawCue: bestRaw || candidateStrings[0] || ''
     };
 }
 
