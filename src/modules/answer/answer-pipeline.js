@@ -864,7 +864,7 @@ export function createAnswerPipeline(deps) {
             // friendClosedResponse: no scoring — skip calculateFluencyScore, setFluencyMetrics,
             // and buildFeedbackData entirely. immediateStatsMessages stays empty.
 
-            if (!isCorrect && (stepData.responseType === "closedResponse" || stepData.responseType === "friendClosedResponse") && incorrectAttempts < 2) {
+            if (!isCorrect && ((stepData.responseType === "closedResponse" && incorrectAttempts < 2) || stepData.responseType === "friendClosedResponse")) {
                 const explanationData = buildExplanationData(result.explanations || explanation, explanation);
                 const structuredExplanations = getExplanationMessages(explanationData);
 
