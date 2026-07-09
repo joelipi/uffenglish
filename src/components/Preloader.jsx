@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../modules/store/store.js';
 import { usePreloader } from '../hooks/usePreloader.js';
-import uffLogo from '../assets/img/u-f-f.png';
+const uffLogo = '/logo.png';
 
 const styles = {
     overlay: {
@@ -19,13 +19,14 @@ const styles = {
         opacity: 1,
         transition: 'opacity 0.3s ease-out'
     },
-    image: {
-        width: '80vw',
-        height: '80vh',
-        maxWidth: '800px',
-        maxHeight: '800px',
-        background: `url(${uffLogo}) no-repeat center center`,
-        backgroundSize: 'contain'
+    logo: {
+        position: 'absolute',
+        top: 'calc(40% - 120px)',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: '160px',
+        height: 'auto',
+        zIndex: 1000000
     },
     progressContainer: {
         position: 'absolute',
@@ -39,6 +40,19 @@ const styles = {
         borderRadius: '10px',
         overflow: 'hidden',
         zIndex: 1000000
+    },
+    loadingLabel: {
+        position: 'absolute',
+        top: 'calc(40% - 28px)',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        color: '#ffffff',
+        fontSize: '18px',
+        fontWeight: 600,
+        letterSpacing: '0.5px',
+        zIndex: 1000000,
+        textAlign: 'center',
+        width: '100%'
     },
     progressBar: {
         width: '0%',
@@ -65,7 +79,8 @@ export default function Preloader() {
 
     return (
         <div style={{ ...styles.overlay, opacity: fadeOut ? 0 : 1, pointerEvents: fadeOut ? 'none' : 'auto' }}>
-            <div style={styles.image}></div>
+            <img src={uffLogo} alt="UFF" style={styles.logo} />
+            <div style={styles.loadingLabel}>Loading...</div>
             <div style={styles.progressContainer}>
                 <div style={{ ...styles.progressBar, width: `${Math.round(preloaderProgress)}%` }}></div>
             </div>
