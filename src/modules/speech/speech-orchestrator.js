@@ -99,7 +99,7 @@ export function createSpeechOrchestrator({
         // canonical cue text for confirmation so the user isn't confused
         // by a slightly-off transcription.
         let displayTranscript = transcriptToReview;
-        if (step.responseType === 'closedResponse' && step.cue) {
+        if ((step.responseType === 'closedResponse' || step.responseType === 'friendClosedResponse') && step.cue) {
             try {
                 const matchedCue = await findMatchingCueText(transcriptToReview, step.cue, step);
                 if (matchedCue) {
@@ -236,6 +236,7 @@ export function createSpeechOrchestrator({
                     listeningState.hesitationTimer = setInterval(() => {
                         hesitationTick++;
                         const currentActive = listeningState.active;
+                        const isFirstResponse = appStore.getState().appPhase === 'firstResponse';
                         console.log(`[Hesitation] Tick #${hesitationTick} | active=${currentActive} | speechDetected=${speechDetected} | time=${Date.now()}`);
                         if (!speechDetected && currentActive && hesitationTick === GRACE_TICKS + 1) {
                             console.log('[Hesitation] Grace period ended - starting deductions');
@@ -243,14 +244,18 @@ export function createSpeechOrchestrator({
                         if (!speechDetected && currentActive && hesitationTick > GRACE_TICKS) {
                             liveHesitationMs = (hesitationTick - GRACE_TICKS) * 100;
                             appStore.getState().setHesitationMs(liveHesitationMs);
-                            console.log(`[Hesitation] SILENCE DETECTED (after grace) \u2192 deducting 1pt, liveHesitationMs=${liveHesitationMs}`);
-                            if (typeof appStore.getState().deductFlowScore === 'function') {
-                                const before = appStore.getState().flowScore;
-                                appStore.getState().deductFlowScore(1);
-                                const after = appStore.getState().flowScore;
-                                console.log(`[Hesitation] flowScore: ${before} \u2192 ${after}`);
+                            if (isFirstResponse) {
+                                console.log(`[Hesitation] firstResponse phase - suppressing 1pt deduction, liveHesitationMs=${liveHesitationMs}`);
+                            } else {
+                                console.log(`[Hesitation] SILENCE DETECTED (after grace) \u2192 deducting 1pt, liveHesitationMs=${liveHesitationMs}`);
+                                if (typeof appStore.getState().deductFlowScore === 'function') {
+                                    const before = appStore.getState().flowScore;
+                                    appStore.getState().deductFlowScore(1);
+                                    const after = appStore.getState().flowScore;
+                                    console.log(`[Hesitation] flowScore: ${before} \u2192 ${after}`);
+                                }
+                                if (uiHooks?.onHesitation) uiHooks.onHesitation(++totalHesitationPoints);
                             }
-                            if (uiHooks?.onHesitation) uiHooks.onHesitation(++totalHesitationPoints);
                         }
 
                         if (speechStarted && Date.now() - lastSpeechTime > 1000) {
@@ -263,11 +268,15 @@ export function createSpeechOrchestrator({
                                 console.log('[Hesitation] Mid-speech pause >1s detected - resuming deductions');
                             }
                             if (pauseTick > PAUSE_GRACE_TICKS) {
-                                console.log(`[Hesitation] MID-SPEECH PAUSE - deducting 1pt`);
-                                if (typeof appStore.getState().deductFlowScore === 'function') {
-                                    appStore.getState().deductFlowScore(1);
+                                if (isFirstResponse) {
+                                    console.log(`[Hesitation] MID-SPEECH PAUSE (firstResponse) - suppressing 1pt deduction`);
+                                } else {
+                                    console.log(`[Hesitation] MID-SPEECH PAUSE - deducting 1pt`);
+                                    if (typeof appStore.getState().deductFlowScore === 'function') {
+                                        appStore.getState().deductFlowScore(1);
+                                    }
+                                    if (uiHooks?.onHesitation) uiHooks.onHesitation(++totalHesitationPoints);
                                 }
-                                if (uiHooks?.onHesitation) uiHooks.onHesitation(++totalHesitationPoints);
                             }
                         }
                     }, 100);

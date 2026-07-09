@@ -51,7 +51,7 @@ export function useInteractiveVideo() {
 
             if (state.showOverlay && !prevShowOverlayRef.current) {
                 const responseType = currentVideo?.responseType;
-                const phase = responseType === 'closedResponse'
+                const phase = (responseType === 'closedResponse' || responseType === 'friendClosedResponse')
                     ? 'interactiveVideo-decisionTime-closedResponse'
                     : 'interactiveVideo-decisionTime-openResponse';
                 appStore.getState().transitionTo(phase);
@@ -115,7 +115,7 @@ export function useInteractiveVideo() {
         const responseType = appStore.getState().currentVideo?.responseType ?? '';
         if (
             appStore.getState().videoPlays > 1 &&
-            (responseType === 'closedResponse' || responseType === 'openResponse')
+            (responseType === 'closedResponse' || responseType === 'openResponse' || responseType === 'friendClosedResponse')
         ) {
             appStore.getState().deductListeningScore(10);
             appStore.getState().setPointLossAmount(10);
@@ -134,7 +134,7 @@ export function useInteractiveVideo() {
         const responseType = appStore.getState().currentVideo?.responseType ?? '';
         if (
             appStore.getState().videoClicks % 2 === 1 &&
-            (responseType === 'closedResponse' || responseType === 'openResponse')
+            (responseType === 'closedResponse' || responseType === 'openResponse' || responseType === 'friendClosedResponse')
         ) {
             clickTriggeredPlayRef.current = true;
             appStore.getState().deductListeningScore(15);

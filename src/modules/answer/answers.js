@@ -380,7 +380,7 @@ export async function processAnswerLogic({
         }
         return result;
     }
-    else if (stepData.responseType === "closedResponse") {
+     else if (stepData.responseType === "closedResponse" || stepData.responseType === "friendClosedResponse") {
         return evaluateClosedResponse(userResponse, cue, stepData);
     } else {
         let result = { isCorrect: false, explanation: stepData.explanation };
