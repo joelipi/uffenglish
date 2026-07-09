@@ -194,6 +194,7 @@ export function createAnswerPipeline(deps) {
             appStore.setState({ repeatPointsHistory: [...appStore.getState().repeatPointsHistory, currentFluencyScore] });
             console.log('[scoring] append repeatPointsHistory', { currentFluencyScore, repeatPointsHistory: appStore.getState().repeatPointsHistory });
         }
+        // friendClosedResponse: no scoring — omit repeatPointsHistory append.
         if (stepData.responseType === "openResponse" && stepData.interactiveVideoUrl) {
             appStore.setState({ rolePlayPointsHistory: [...appStore.getState().rolePlayPointsHistory, currentFluencyScore] });
             console.log('[scoring] append rolePlayPointsHistory', { currentFluencyScore, rolePlayPointsHistory: appStore.getState().rolePlayPointsHistory });
@@ -201,7 +202,7 @@ export function createAnswerPipeline(deps) {
 
         showChat();
 
-        const praiseResult = (stepData.responseType === "openResponse" || stepData.responseType === "closedResponse") ? getRandomPraise('general', lang) : "";
+        const praiseResult = (stepData.responseType === "openResponse" || stepData.responseType === "closedResponse" || stepData.responseType === "friendClosedResponse") ? getRandomPraise('general', lang) : "";
         const feedbackText = (stepData.responseType === "openResponse" && englishLevelDeduction > 0)
             ? (() => {
                 const acceptable = Strings.getBilingual('ai_acceptable', lang);
@@ -217,7 +218,7 @@ export function createAnswerPipeline(deps) {
             })()
             : praiseResult;
 
-        if (stepData.responseType !== "openResponse" && stepData.responseType !== "closedResponse") {
+        if (stepData.responseType !== "openResponse" && stepData.responseType !== "closedResponse" && stepData.responseType !== "friendClosedResponse") {
             const localizedCue = getLocalizedTranslation(cue, lang);
             const userName = appStore.getState().userData?.display_name?.split(' ')[0] || 'User';
             const localAvatarUrl = appStore.getState().userData?.profilePictureUrl || userAvatarUrl;
@@ -324,7 +325,7 @@ export function createAnswerPipeline(deps) {
         const cueText = getCueText(cue);
         appStore.getState().incrementIncorrectAttempts();
 
-        if (!silent && !appStore.getState().isTextMode && (stepData.responseType === "lessonIntro" || stepData.responseType === "closedResponse" || stepData.responseType === "openResponse")) {
+        if (!silent && !appStore.getState().isTextMode && (stepData.responseType === "lessonIntro" || stepData.responseType === "closedResponse" || stepData.responseType === "openResponse" || stepData.responseType === "friendClosedResponse")) {
             const storeState = appStore.getState();
             const hasVideoBubble = storeState.chatHistory.some(msg => msg.type === 'video');
             if (!hasVideoBubble) {
@@ -347,6 +348,7 @@ export function createAnswerPipeline(deps) {
                 appStore.setState({ rolePlayPointsHistory: [...appStore.getState().rolePlayPointsHistory, appStore.getState().listeningScore] });
             }
         }
+        // friendClosedResponse: no scoring — omit the listening point deductions above.
 
         const isSilentSpeechRetry = silent && stepData.responseType === "closedResponse";
 
@@ -420,7 +422,7 @@ export function createAnswerPipeline(deps) {
             }
         }
 
-        if (stepData.responseType === "closedResponse" && userResponse) {
+        if ((stepData.responseType === "closedResponse" || stepData.responseType === "friendClosedResponse") && userResponse) {
             const selectedWords = [...new Set(normalizeduserResponse.split(/\s+/))];
             const correctWords = [...new Set(normalizedcue.split(/\s+/))];
             const correctWordSet = new Set(correctWords.map(w => w.toLowerCase()));
@@ -539,7 +541,7 @@ export function createAnswerPipeline(deps) {
             const stepIndex = getCurrentStepIndex(stepData, configData, appStore.getState().currentLessonIndex);
 
             let matchedCue = null;
-            if (stepData.responseType === "closedResponse") {
+            if (stepData.responseType === "closedResponse" || stepData.responseType === "friendClosedResponse") {
                 matchedCue = await findMatchingCueText(val, cue, stepData);
             }
 
@@ -569,7 +571,7 @@ export function createAnswerPipeline(deps) {
             });
 
             const player = getCurrentVideoPlayer();
-            if (stepData.responseType === "closedResponse" && player && typeof player.applySpeechResult === 'function') {
+            if ((stepData.responseType === "closedResponse" || stepData.responseType === "friendClosedResponse") && player && typeof player.applySpeechResult === 'function') {
                 applySpeechResultToPlayer(val, player);
             }
 
@@ -578,7 +580,7 @@ export function createAnswerPipeline(deps) {
         }
 
         const player = getCurrentVideoPlayer();
-        if (stepData.responseType === "closedResponse" && player && typeof player.applySpeechResult === 'function') {
+        if ((stepData.responseType === "closedResponse" || stepData.responseType === "friendClosedResponse") && player && typeof player.applySpeechResult === 'function') {
             applySpeechResultToPlayer(val, player);
         }
 
@@ -588,7 +590,7 @@ export function createAnswerPipeline(deps) {
     async function handleAnswer(userResponse, cue, stepData, button, explanation, stats = { pauseCount: null, netDuration: null }, _deps = {}, userData = appStore.getState().userData, configData = appStore.getState().configData, courseId = appStore.getState().courseId) {
         const cueText = getCueText(cue);
         let matchedCue = null;
-        if (!appStore.getState().isTextMode && (stepData.responseType === "lessonIntro" || stepData.responseType === "closedResponse" || stepData.responseType === "openResponse")) {
+        if (!appStore.getState().isTextMode && (stepData.responseType === "lessonIntro" || stepData.responseType === "closedResponse" || stepData.responseType === "openResponse" || stepData.responseType === "friendClosedResponse")) {
             const storeState = appStore.getState();
             const hasVideoBubble = storeState.chatHistory.some(msg => msg.type === 'video');
             if (!hasVideoBubble) {
@@ -610,7 +612,7 @@ export function createAnswerPipeline(deps) {
         try {
             const currentLessonId = (configData && configData.lessons && configData.lessons[appStore.getState().currentLessonIndex]) ? configData.lessons[appStore.getState().currentLessonIndex].lessonId : 'unknown_lesson';
 
-            if (stepData.responseType === "closedResponse" || stepData.responseType === "openResponse") {
+            if (stepData.responseType === "closedResponse" || stepData.responseType === "openResponse" || stepData.responseType === "friendClosedResponse") {
                 cleanWordCount = userResponse.replace(/[^\w\s]/g, '').trim().split(/\s+/).filter(Boolean).length;
 
                 if (stats && stats.netDuration !== null) {
@@ -636,7 +638,7 @@ export function createAnswerPipeline(deps) {
                 // For closedResponse, find which specific cue variant matches the user's speech
                 // so the canonical display text (not the raw template/pattern) can be used
                 // in the whisper review, chat bubble, and end-of-lesson video subtitles.
-                if (stepData.responseType === "closedResponse") {
+                if (stepData.responseType === "closedResponse" || stepData.responseType === "friendClosedResponse") {
                     matchedCue = await findMatchingCueText(userResponse, cue, stepData);
                 }
 
@@ -699,13 +701,18 @@ export function createAnswerPipeline(deps) {
             showChat();
             appStore.getState().transitionTo('feedback');
 
-            appStore.getState().addChatMessage({
-                role: 'user',
-                type: 'standard',
-                content: userResponse,
-                userName: userData?.display_name?.split(' ')[0] || 'User',
-                userAvatarUrl: userData?.profilePictureUrl || userAvatarUrl
-            });
+            const hasUserTextBubble = appStore.getState().chatHistory.some(
+                msg => msg.role === 'user' && msg.type === 'standard'
+            );
+            if (!hasUserTextBubble) {
+                appStore.getState().addChatMessage({
+                    role: 'user',
+                    type: 'standard',
+                    content: userResponse,
+                    userName: userData?.display_name?.split(' ')[0] || 'User',
+                    userAvatarUrl: userData?.profilePictureUrl || userAvatarUrl
+                });
+            }
         }
 
         let immediateStatsMessages = [];
@@ -730,7 +737,7 @@ export function createAnswerPipeline(deps) {
             }
 
             let result = null;
-            if (stepData.responseType === "closedResponse" || stepData.responseType === "openResponse") {
+            if (stepData.responseType === "closedResponse" || stepData.responseType === "openResponse" || stepData.responseType === "friendClosedResponse") {
                 result = await processAnswerLogic({
                     userResponse, cue, stepData,
                     lesson: lesson,
@@ -778,7 +785,7 @@ export function createAnswerPipeline(deps) {
 
             const { listeningScore, speakingScore, incorrectAttempts, whisperRejections } = appStore.getState();
 
-            if (stepData.responseType === "closedResponse" || stepData.responseType === "openResponse") {
+            if ((stepData.responseType === "closedResponse" || stepData.responseType === "openResponse") && stepData.responseType !== "friendClosedResponse") {
                 const attemptNumber = incorrectAttempts + 1;
                 let grammarErrorScore = 100;
 
@@ -854,8 +861,10 @@ export function createAnswerPipeline(deps) {
                     immediateStatsMessages = allFeedbackMessages;
                 }
             }
+            // friendClosedResponse: no scoring — skip calculateFluencyScore, setFluencyMetrics,
+            // and buildFeedbackData entirely. immediateStatsMessages stays empty.
 
-            if (!isCorrect && stepData.responseType === "closedResponse" && incorrectAttempts < 2) {
+            if (!isCorrect && (stepData.responseType === "closedResponse" || stepData.responseType === "friendClosedResponse") && incorrectAttempts < 2) {
                 const explanationData = buildExplanationData(result.explanations || explanation, explanation);
                 const structuredExplanations = getExplanationMessages(explanationData);
 
@@ -888,23 +897,28 @@ export function createAnswerPipeline(deps) {
                 // User message + cue bubble were dispatched immediately before the API call.
                 // Now that scoring is complete, append the stats bubbles.
                 if (immediateStatsMessages.length > 0) addAIFeedbackMessages(immediateStatsMessages);
-            } else if (stepData.responseType === "closedResponse" && userResponse) {
+            } else if ((stepData.responseType === "closedResponse" || stepData.responseType === "friendClosedResponse") && userResponse) {
                 const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
 
                 showChat();
                 appStore.getState().transitionTo('feedback');
 
                 const translation = getLocalizedCueTranslation(cue, matchedCue, lang);
-
-                appStore.getState().addChatMessage({
-                    role: 'user',
-                    type: 'standard',
-                    content: matchedCue || cueText,
-                    translation,
-                    translationLang: (translation && lang !== 'en') ? lang : undefined,
-                    userName: userData?.display_name?.split(' ')[0] || 'User',
-                    userAvatarUrl: userData?.profilePictureUrl || userAvatarUrl
-                });
+                const userTextContent = matchedCue || cueText;
+                const hasUserTextBubble = appStore.getState().chatHistory.some(
+                    msg => msg.role === 'user' && msg.type === 'standard'
+                );
+                if (!hasUserTextBubble) {
+                    appStore.getState().addChatMessage({
+                        role: 'user',
+                        type: 'standard',
+                        content: userTextContent,
+                        translation,
+                        translationLang: (translation && lang !== 'en') ? lang : undefined,
+                        userName: userData?.display_name?.split(' ')[0] || 'User',
+                        userAvatarUrl: userData?.profilePictureUrl || userAvatarUrl
+                    });
+                }
 
                 if (immediateStatsMessages.length > 0) addAIFeedbackMessages(immediateStatsMessages);
             }
@@ -940,7 +954,7 @@ export function createAnswerPipeline(deps) {
     function showFeedbackAndProceed(stepData, isCorrect, _deps = {}) {
         const { loadNextStep, callLoadStep } = _deps;
 
-        if ((stepData.responseType === "closedResponse" || stepData.responseType === "openResponse") && stepData.interactiveVideoUrl) {
+        if ((stepData.responseType === "closedResponse" || stepData.responseType === "openResponse" || stepData.responseType === "friendClosedResponse") && stepData.interactiveVideoUrl) {
             const gs = appStore.getState();
             gs.setStepCount(gs.stepCount + 1);
         }

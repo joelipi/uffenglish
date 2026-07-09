@@ -43,10 +43,10 @@ function resetUIForNewStep(step) {
         phase = 'lessonIntro';
     } else if (step.responseType === 'success') {
         phase = 'lessonSuccess';
-    } else if ((step.responseType === 'closedResponse' || step.responseType === 'openResponse') && appStore.getState().isModeSelectionPending && !isRetry) {
+    } else if ((step.responseType === 'closedResponse' || step.responseType === 'openResponse' || step.responseType === 'friendClosedResponse') && appStore.getState().isModeSelectionPending && !isRetry) {
         phase = 'firstResponse';
     } else if (step.interactiveVideoUrl && !isRetry) {
-        phase = 'interactiveVideo+' + (step.responseType === 'openResponse' ? 'openResponse' : 'closedResponse');
+        phase = 'interactiveVideo+' + (step.responseType === 'openResponse' ? 'openResponse' : (step.responseType === 'friendClosedResponse' ? 'friendClosedResponse' : 'closedResponse'));
     } else if (step.responseType === 'viewAndContinue' && step.simpleVideoUrl) {
         phase = 'viewAndContinueVideo';
     } else if (step.simpleVideoUrl) {
@@ -94,7 +94,7 @@ export function createLoadStep(deps) {
     // Platform-specific pre-dispatch: speech warmup, media rendering, UI setup
     const onStepLoaded = (step, lesson, fluencyData) => {
         const isFirstResponse = appStore.getState().appPhase === 'firstResponse';
-        if (step.responseType === 'closedResponse' || step.responseType === 'openResponse') {
+        if (step.responseType === 'closedResponse' || step.responseType === 'openResponse' || step.responseType === 'friendClosedResponse') {
             if (isFirstResponse) {
                 // Defer warmup — IntroChoices hasn't appeared yet.
                 // The speech callback (wired by _renderResponseStep) will
@@ -209,8 +209,11 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                     player: getCurrentVideoPlayer(),
                     uiHooks: {
                         onHesitation: (points) => {
+                            if (appStore.getState().appPhase === 'firstResponse') return;
                             trackEvent('speech_hesitation', { points });
-                            appStore.getState().triggerPointLoss('flow', points);
+                            if (step.responseType !== 'friendClosedResponse') {
+                                appStore.getState().triggerPointLoss('flow', points);
+                            }
                         },
                         onPauseVideo: (player) => {
                             try {
@@ -266,10 +269,12 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                         onStopEarly: (userData) => {
                             trackEvent('recording_stopped_early', { point_loss: 10 });
                             appStore.getState().setMicActive(false);
-                            appStore.getState().deductSpeakingScore(10);
+                            if (step.responseType !== 'friendClosedResponse') {
+                                appStore.getState().deductSpeakingScore(10);
+                                appStore.getState().setPointLossAmount(10);
+                            }
                             appStore.getState().incrementWhisperRejections();
                             appStore.getState().triggerPreflightRejected();
-                            appStore.getState().setPointLossAmount(10);
                             appStore.getState().setMediaVisible(true);
                             appStore.getState().setSystemMessage({ type: 'stop-early', text: Strings.get('try_again_speech', userData?.native_language) });
                             clearWarningLater(3000);
@@ -277,21 +282,25 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                         onGibberishDetected: () => {
                             trackEvent('gibberish_detected', { point_loss: 10 });
                             appStore.getState().setMicActive(false);
-                            appStore.getState().deductSpeakingScore(10);
+                            if (step.responseType !== 'friendClosedResponse') {
+                                appStore.getState().deductSpeakingScore(10);
+                                appStore.getState().setPointLossAmount(10);
+                            }
                             appStore.getState().incrementWhisperRejections();
                             appStore.getState().triggerPreflightRejected();
-                            appStore.getState().setPointLossAmount(10);
                             appStore.getState().setSystemMessage({ type: 'gibberish', text: 'Audio unclear. Please try speaking clearly.' });
                             clearWarningLater(3000);
                         },
                         onPreflightRejected: (msg) => {
                             trackEvent('preflight_rejected', { point_loss: 10 });
                             appStore.getState().setMicActive(false);
-                            appStore.getState().deductSpeakingScore(10);
+                            if (step.responseType !== 'friendClosedResponse') {
+                                appStore.getState().deductSpeakingScore(10);
+                                appStore.getState().setPointLossAmount(10);
+                            }
                             appStore.getState().incrementWhisperRejections();
                             appStore.getState().triggerVideoClear();
                             appStore.getState().triggerPreflightRejected();
-                            appStore.getState().setPointLossAmount(10);
                             appStore.getState().setSystemMessage({ type: 'preflight-rejected', text: msg });
                             appStore.getState().transitionTo('transcription preflight-rejected');
                             setTimeout(() => {
@@ -302,11 +311,13 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             trackEvent('transcript_rejected', { point_loss: 20 });
                             appStore.getState().setMicActive(false);
                             logInteraction(cue, transcript, "rej_usr", "User rejected Whisper transcription", null, appStore.getState().interactionLog);
-                            appStore.getState().deductSpeakingScore(20);
+                            if (step.responseType !== 'friendClosedResponse') {
+                                appStore.getState().deductSpeakingScore(20);
+                                appStore.getState().setPointLossAmount(20);
+                            }
                             appStore.getState().incrementWhisperRejections();
                             appStore.getState().triggerVideoClear();
                             appStore.getState().triggerTranscriptRejected(cue, transcript);
-                            appStore.getState().setPointLossAmount(20);
                             appStore.getState().transitionTo('recording/answering');
                         },
                         onReviewStart: (transcript, timeLeft, acceptFn, rejectFn) => {

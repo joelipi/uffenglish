@@ -75,6 +75,7 @@ export default function StepLoader({ step, lesson }) {
             return <PresentStep step={step} lesson={lesson} />;
         case 'closedResponse':
         case 'openResponse':
+        case 'friendClosedResponse':
             return <ResponseStep step={step} />;
         case 'text':
             return <TextStep step={step} />;

@@ -36,7 +36,7 @@ import {
  * @param {Function} deps.submitAnswerPrecheck - Answer precheck handler
  * @param {Function} deps.showFeedbackAndProceed - Feedback and progression handler
  * @param {Function} [deps.onStepLoaded] - Called after core step logic, before step-type dispatch
- * @param {Function} [deps.onResponseStep] - Called for response-type steps (openResponse, closedResponse)
+     * @param {Function} [deps.onResponseStep] - Called for response-type steps (openResponse, closedResponse, friendClosedResponse)
  * @param {Function} [deps.onTextStep] - Called for text-type steps
  * @param {Function} [deps.onLessonIntro] - Called for lesson intro steps
  * @param {Function} [deps.onViewAndContinue] - Called for viewAndContinue steps
@@ -65,7 +65,7 @@ export function loadStepOrchestrate(step, lesson, fluencyData, deps = {}) {
     onStepLoaded(step, lesson, fluencyData);
 
     // Step-type dispatch (platform-agnostic branching, platform-specific handlers)
-    if (step.responseType === 'closedResponse' || step.responseType === 'openResponse') {
+    if (step.responseType === 'closedResponse' || step.responseType === 'openResponse' || step.responseType === 'friendClosedResponse') {
         onResponseStep(step, lesson, { submitAnswerPrecheck, showFeedbackAndProceed });
     } else if (step.responseType === 'unitcomplete') {
         onUnitComplete(step);
