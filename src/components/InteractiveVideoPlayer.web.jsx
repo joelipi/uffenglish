@@ -150,6 +150,7 @@ export default function InteractiveVideoPlayer() {
             // latest hook state regardless of when this effect last ran,
             // without needing ivh in the dependency array.
             get applySpeechResult() { return ivhRef.current.applySpeechResult; },
+            setCueText: (cueText) => ivhRef.current?.setCueText?.(cueText),
             get dismissOverlay()    { return ivhRef.current.dismissOverlay; },
             get tokens()            { return ivhRef.current.tokens; },
             get punctuationMap()    { return ivhRef.current.punctuationMap; },

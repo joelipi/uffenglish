@@ -1,5 +1,7 @@
 // modules/interactive-video-controller.js
 
+import { getCueText } from '../utils/utils.js';
+
 export class InteractiveVideoStateController {
     constructor(config = {}) {
         this.config = {
@@ -67,13 +69,21 @@ export class InteractiveVideoStateController {
     }
 
     initTokens(cue) {
-        const cueText = typeof cue === 'object' ? (cue?.en || '') : (cue || '');
+        const cueText = getCueText(cue);
         this.tokens = cueText.match(/\w+(?:['\u2019]\w+)*|[^\w\s]+/g) || [];
         this.punctuationMap = new Map();
         this.tokens.forEach((token, i) => {
             this.punctuationMap.set(i, /^[^\w]+$/.test(token));
         });
         this._resetRevealState();
+    }
+
+    // Re-tokenize the controller to a specific cue text (e.g. the best-matching
+    // variant of an array cue, chosen once the user has spoken). Clears prior
+    // reveal/speech state and refreshes the rendered subtitle tokens.
+    setCueText(cueText) {
+        this.initTokens(cueText);
+        this.setState({ subtitleTokens: this._computeSubtitleTokens() });
     }
 
     _resetRevealState() {

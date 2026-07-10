@@ -4,6 +4,7 @@ import { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../modules/store/store.js';
 import { InteractiveVideoStateController } from '../modules/video/interactive-video-controller.js';
+import { getCueText } from '../modules/utils/utils.js';
 import { trackEvent } from '../modules/utils/posthog.js';
 
 export function useInteractiveVideo() {
@@ -38,7 +39,7 @@ export function useInteractiveVideo() {
             },
         };
 // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isActive, currentVideo?.url, typeof currentVideo?.config?.cue === 'object' ? currentVideo?.config?.cue?.en : currentVideo?.config?.cue]);
+    }, [isActive, currentVideo?.url, getCueText(currentVideo?.config?.cue)]);
     useEffect(() => {
         if (!config) return;
 

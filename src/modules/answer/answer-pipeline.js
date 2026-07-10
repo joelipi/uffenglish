@@ -138,7 +138,28 @@ function getExplanationMessages(explanationData) {
     }).filter(Boolean);
 }
 
-function applySpeechResultToPlayer(val, player) {
+function applySpeechResultToPlayer(val, player, cue) {
+    // For array cues, re-tokenize the controller to the variant the user was
+    // closest to, so the diff marks the correct words for THAT variant.
+    if (Array.isArray(cue) && player && typeof player.setCueText === 'function') {
+        const userWordSet = new Set(
+            val.toLowerCase().replace(/[^\w\s']/g, '').split(/\s+/).filter(Boolean)
+        );
+        let best = null;
+        let bestScore = -1;
+        for (const variant of cue) {
+            const vText = getCueText(variant);
+            const vWords = vText.toLowerCase().replace(/[^\w\s']/g, '').split(/\s+/).filter(Boolean);
+            let overlap = 0;
+            vWords.forEach(w => { if (userWordSet.has(w)) overlap++; });
+            if (overlap > bestScore) {
+                bestScore = overlap;
+                best = vText;
+            }
+        }
+        if (best) player.setCueText(best);
+    }
+
     const cueTokens = [];
     player.tokens.forEach((token, idx) => {
         if (player.punctuationMap.get(idx)) return;
@@ -572,7 +593,7 @@ export function createAnswerPipeline(deps) {
 
             const player = getCurrentVideoPlayer();
             if ((stepData.responseType === "closedResponse" || stepData.responseType === "friendClosedResponse") && player && typeof player.applySpeechResult === 'function') {
-                applySpeechResultToPlayer(val, player);
+                applySpeechResultToPlayer(val, player, cue);
             }
 
             appStore.getState().setSubmitBtnDisabled(false);
@@ -581,7 +602,7 @@ export function createAnswerPipeline(deps) {
 
         const player = getCurrentVideoPlayer();
         if ((stepData.responseType === "closedResponse" || stepData.responseType === "friendClosedResponse") && player && typeof player.applySpeechResult === 'function') {
-            applySpeechResultToPlayer(val, player);
+            applySpeechResultToPlayer(val, player, cue);
         }
 
         await handleAnswer(val, cue, stepData, btn, explanation, stats, _deps, userData, configData, courseId);

@@ -42,7 +42,7 @@
             { "en": "I love English!", "es": "¡Amo el inglés!", "pt": "Eu amo o inglês!" },
             { "en": "I like English!", "es": "¡Me gusta el inglés!", "pt": "Eu gosto do inglês!" }
           ],
-          "responseType": "friendClosedResponse",
+          "responseType": "closedResponse",
           "simpleVideoUrl": "gtests-1-0",
           "subtitles": {
             "en": "1\n00:00:00,500 --> 00:00:03,000\nLet's do a role play ordering a drink.\n\n2\n00:00:03,500 --> 00:00:06,000\nYou'll be the customer. I'll sell you the drink.\n\n3\n00:00:06,500 --> 00:00:10,000\nFirst, let's warm up our microphones and our mouths. Say: I LOVE ENGLISH!",
@@ -57,7 +57,16 @@
             { "en": "What would you like to drink?", "es": "¿Qué quisieras para tomar?", "pt": "O que você quer beber?" },
             { "en": "What can I get you to drink?", "es": "¿Qué te puedo dar?", "pt": "O que posso te dar?" }
           ],
-          "responseType": "friendClosedResponse",
+          "responseType": "closedResponse",
+          "interactiveVideoUrl": "gtests-1-1"
+        },
+        {
+          "cue": [
+            { "en": "Hi, what would you like to drink?", "es": "Hola, ¿qué quisieras para tomar?", "pt": "Ola, o qué voce quer de beber?" },
+            { "en": "What would you like to drink?", "es": "¿Qué quisieras para tomar?", "pt": "O que você quer beber?" },
+            { "en": "What can I get you to drink?", "es": "¿Qué te puedo dar?", "pt": "O que posso te dar?" }
+          ],
+          "responseType": "closedResponse",
           "interactiveVideoUrl": "gtests-1-1"
         },
         {
