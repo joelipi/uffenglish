@@ -958,6 +958,19 @@ const strings = {
     'whisper_accept': {
         en: "ACCEPT",
         es: "ACEPTAR"
+    },
+
+    'hangman_try_again': {
+        en: "Try again.",
+        es: "Inténtalo de nuevo."
+    },
+    'hangman_meant_to_say': {
+        en: "You probably meant to say:",
+        es: "Probablemente quisiste decir:"
+    },
+    'hangman_you_said': {
+        en: "You said:",
+        es: "Dijiste:"
     }
 };
 

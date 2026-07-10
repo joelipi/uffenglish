@@ -317,6 +317,7 @@ export const appStore = createStore(
             setHintsVisible: (visible) => set({ hintsVisible: visible }),
             setHangmanHintHTML: (html) => set({ hangmanHintHTML: html }),
             setHangmanOps: (ops) => set({ hangmanOps: ops }),
+            setHangmanCue: (cue) => set({ hangmanCue: cue }),
             setBottomOverlayVisible: (val) => set({ bottomOverlayVisible: val }),
             setOverlayVisible: (val) => set({ overlayVisible: val }),
             setSubmitBtnDisabled: (val) => set({ submitBtnDisabled: val }),
@@ -504,6 +505,7 @@ export const appStore = createStore(
                 playbackAutoplay: false,
                 playbackSpeechCamChunks: [],
                 hangmanOps: null,
+                hangmanCue: null,
                 pendingVideoPlayType: null,
             }),
 

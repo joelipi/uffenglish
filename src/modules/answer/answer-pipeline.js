@@ -878,6 +878,12 @@ export function createAnswerPipeline(deps) {
                 if (!stepData.interactiveVideoUrl) {
                     const hangmanOps = generateHangmanOps(userResponse, result.rawCue || result.normalizedcue || cueText);
                     appStore.getState().setHangmanOps(hangmanOps);
+                    // Full correct cue + ✅ is shown above the hangman ONLY for friendClosedResponse.
+                    appStore.getState().setHangmanCue(
+                        stepData.responseType === "friendClosedResponse"
+                            ? (result.rawCue || result.normalizedcue || cueText)
+                            : null
+                    );
                     appStore.getState().setHintsVisible(true);
                 }
                 appStore.getState().setMediaVisible(true);
