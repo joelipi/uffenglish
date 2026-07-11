@@ -1,5 +1,30 @@
 import Strings from '../../data/strings.js';
 import { getLocalizedTranslation } from '../utils/utils.js';
+import { appStore } from '../store/store.js';
+
+const FRIEND_CODE_REGEX = /\{friendCode\}-?/g;
+
+function resolveFriendCode(value, friendCode) {
+    if (typeof value !== 'string' || !value.includes('{friendCode}')) return value;
+    const code = friendCode && friendCode.trim() ? friendCode.trim().toLowerCase() : '';
+    return value.replace(FRIEND_CODE_REGEX, () => (code ? code + '-' : ''));
+}
+
+function applyFriendCodeWildcards(node, friendCode) {
+    if (Array.isArray(node)) {
+        for (let i = 0; i < node.length; i++) {
+            node[i] = applyFriendCodeWildcards(node[i], friendCode);
+        }
+        return node;
+    }
+    if (node && typeof node === 'object') {
+        for (const key of Object.keys(node)) {
+            node[key] = applyFriendCodeWildcards(node[key], friendCode);
+        }
+        return node;
+    }
+    return resolveFriendCode(node, friendCode);
+}
 
 /**
  * Mutates configData in place, normalizing all localized object fields to plain strings
@@ -13,6 +38,8 @@ export function normalizeConfig(configData, lang = 'en') {
     if (!configData || !configData.lessons) return;
 
     const userLang = lang || 'en';
+
+    applyFriendCodeWildcards(configData, appStore.getState().friendCode);
 
     configData.lessons.forEach(lesson => {
         lesson.title = getLocalizedTranslation(lesson.title, userLang);
