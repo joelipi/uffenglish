@@ -1108,6 +1108,47 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     transform: scale(1.1);
 }
 
+/* =========================================
+   IVP SCRUBBER (controlsVideoUrl)
+   Positioned inside the video wrapper, raised above the bottom
+   mic controls (.bottom-overlay z-index:1050, bottom ~92px) and
+   below the subtitles (bottom:150px). Sits over the bottom blur
+   gradient for contrast.
+   ========================================= */
+.ivp-scrubber {
+    position: absolute;
+    left: 24px;
+    right: 24px;
+    bottom: calc(110px + env(safe-area-inset-bottom, 0px));
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    pointer-events: auto;
+    background: rgba(0, 0, 0, 0.35);
+    padding: 8px 14px;
+    border-radius: 9999px;
+}
+
+.ivp-scrubber-time {
+    color: #fff;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+    min-width: 36px;
+    text-align: center;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.ivp-scrubber-range {
+    flex: 1 1 auto;
+    width: 100%;
+    accent-color: #ffffff;
+    cursor: pointer;
+    height: 4px;
+    margin: 0;
+}
+
 .timed-subtitles-container {
     overflow: hidden;
 }
