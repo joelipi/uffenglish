@@ -1,3 +1,14 @@
 name = "uffenglish"
 pages_build_output_dir = "dist"
 compatibility_date = "2026-06-10"
+
+# R2 bucket for per-segment webcam video uploads (UGC practice-prompt library).
+# Lifecycle: auto-delete objects under `videos/` 48 hours (2 days) after upload.
+[[r2_buckets]]
+binding = "UFF_R2"
+bucket_name = "uff"
+
+  [[r2_buckets.lifecycle]]
+  id = "expire-videos-48h"
+  conditions = { prefix = "videos/" }
+  delete_within_days = 2

@@ -2,8 +2,8 @@
 // Web-only module — uses navigator.share / navigator.canShare + XMLHttpRequest to Cloudinary.
 // React Native replaces this with video-share.native.js.
 import Strings from '../../data/strings.js';
-const CLOUDINARY_CLOUD_NAME = 'dnolem9if';
-const CLOUDINARY_UPLOAD_PRESET = 'default';
+export const CLOUDINARY_CLOUD_NAME = 'dnolem9if';
+export const CLOUDINARY_UPLOAD_PRESET = 'default';
 
 export async function shareVideo(blob, filename, fileExtension) {
     try {
@@ -82,7 +82,7 @@ function deleteFromCloudinary(deleteToken) {
     }
 }
 
-function uploadWithXHR(url, fileOrBlob, preset, filename) {
+export function uploadWithXHR(url, fileOrBlob, preset, filename) {
     return new Promise((resolve, reject) => {
         try {
             const xhr = new XMLHttpRequest();
@@ -111,7 +111,7 @@ function uploadWithXHR(url, fileOrBlob, preset, filename) {
     });
 }
 
-function toMp4DeliveryUrl(secureUrl) {
+export function toMp4DeliveryUrl(secureUrl) {
     try {
         const url = new URL(secureUrl);
         url.pathname = url.pathname.replace('/upload/', '/upload/f_mp4/');
