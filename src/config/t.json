@@ -58,7 +58,7 @@
             { "en": "What can I get you to drink?", "es": "¿Qué te puedo dar?", "pt": "O que posso te dar?" }
           ],
           "responseType": "closedResponse",
-          "interactiveVideoUrl": "gtests-1-1"
+          "simpleVideoUrl": "gtests-1-1"
         },
         {
           "cue": [

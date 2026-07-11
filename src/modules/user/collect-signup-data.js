@@ -5,6 +5,7 @@
  */
 import { fetchGeoInfo, getCurrentUser, syncUserMetaDataMutation } from '../api/api.js';
 import { getReferrer }      from '../media/referrer.js';           // resolves to .web or .native
+import { appStore }         from '../store/store.js';
 
 /**
  * Collects IP geolocation and referrer, syncs to Appwrite if authenticated.
@@ -14,8 +15,9 @@ export async function collectSignupGeoAndReferrer() {
   try {
     console.log('[CollectSignup] Starting silent geo & referrer collection...');
     const geo     = await fetchGeoInfo();
-    const ref     = getReferrer();
-    console.log('[CollectSignup] Raw data:', { geo, ref });
+    const friendCode = appStore.getState().friendCode;
+    const ref     = friendCode || getReferrer();
+    console.log('[CollectSignup] Raw data:', { geo, ref, friendCode });
 
     // Build metadata only with non‑empty values
     const meta = {};

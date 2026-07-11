@@ -32,6 +32,8 @@ export default function SimpleVideoPlayer() {
     const [loaded, setLoaded] = useState(false);
     const [poster, setPoster] = useState(null);
     const [scrollOffset, setScrollOffset] = useState(0);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [duration, setDuration] = useState(0);
     const appPhase = useStore(appStore, (s) => s.appPhase);
     const userData = useStore(appStore, (s) => s.userData);
     const overlayLang = userData?.native_language || 'en';
@@ -180,13 +182,37 @@ export default function SimpleVideoPlayer() {
 
     const handleTimeUpdate = useCallback(() => {
         const v = videoRef.current;
-        if (v) updateProgress(v.currentTime, v.duration);
+        if (v) {
+            updateProgress(v.currentTime, v.duration);
+            setCurrentTime(v.currentTime);
+        }
     }, [updateProgress]);
 
     const handleSeeked = useCallback(() => {
         const v = videoRef.current;
-        if (v) updateProgress(v.currentTime, v.duration);
+        if (v) {
+            updateProgress(v.currentTime, v.duration);
+            setCurrentTime(v.currentTime);
+        }
     }, [updateProgress]);
+
+    const handleLoadedMetadata = useCallback(() => {
+        const v = videoRef.current;
+        if (v && v.duration) setDuration(v.duration);
+    }, []);
+
+    const onScrub = useCallback((e) => {
+        const t = Number(e.target.value);
+        setCurrentTime(t);
+        if (videoRef.current) videoRef.current.currentTime = t;
+    }, []);
+
+    const formatTime = useCallback((s) => {
+        if (!s || isNaN(s)) return '0:00';
+        const m = Math.floor(s / 60);
+        const sec = Math.floor(s % 60);
+        return `${m}:${sec.toString().padStart(2, '0')}`;
+    }, []);
 
     // Delayed play after React mount
     // useLayoutEffect fires synchronously during the React commit phase,
@@ -322,6 +348,7 @@ export default function SimpleVideoPlayer() {
                     {...(isAndroid ? { 'data-ambient': 'true' } : {})}
                     onLoadedData={handleVideoLoaded}
                     onCanPlay={handleVideoLoaded}
+                    onLoadedMetadata={handleLoadedMetadata}
                     onPlay={handlePlay}
                     onPause={handlePause}
                     onEnded={handleEnded}
@@ -353,6 +380,26 @@ export default function SimpleVideoPlayer() {
                         ))}
                     </div>
                 </div>
+                )}
+                {duration > 0 && (
+                    <div
+                        className="ivp-scrubber"
+                        onClick={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => e.stopPropagation()}
+                    >
+                        <span className="ivp-scrubber-time">{formatTime(currentTime)}</span>
+                        <input
+                            type="range"
+                            className="ivp-scrubber-range"
+                            min={0}
+                            max={duration || 0}
+                            step="any"
+                            value={currentTime}
+                            onChange={onScrub}
+                            aria-label="Scrub video"
+                        />
+                        <span className="ivp-scrubber-time">{formatTime(duration)}</span>
+                    </div>
                 )}
                 {!playing && !autoplayPending && mediaState === 'simpleVideo' && (
                     <div className="ivp-play-overlay">

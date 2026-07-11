@@ -87,6 +87,7 @@ export const appStore = createStore(
             userFirstName: null,
             userData: null,
             configData: null,
+            friendCode: null,   // captured from ?friend= URL param (lowercased), persisted
             courseId: null,
             currentLessonTimestamp: null,
             lessonScores: '{}',
@@ -198,6 +199,7 @@ export const appStore = createStore(
             setGuestNativeLanguage: (val) => set({ guestNativeLanguage: val }),
             setGuestDetectedLang: (val) => set({ guestDetectedLang: val }),
             setGuestModalStep: (val) => set({ guestModalStep: val }),
+            setFriendCode: (code) => set({ friendCode: code }),
             /** Atomically sets both guestNativeLanguage and guestModalStep in ONE set()
              *  so React never renders login-choice with a null language. */
             /** Also writes native_language into userData so the whole app (MissionSection,
@@ -643,6 +645,7 @@ export const appStore = createStore(
                 userMessagesToAiWordCount: state.userMessagesToAiWordCount,
                 aIMessagesToUserWordCount: state.aIMessagesToUserWordCount,
                 courseId: state.courseId,
+                friendCode: state.friendCode,
                 currentLessonTimestamp: state.currentLessonTimestamp,
                 lessonScores: state.lessonScores
             })

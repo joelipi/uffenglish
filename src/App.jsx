@@ -5,6 +5,8 @@ import { initLocalVoiceAI } from './modules/speech/speech.js';
 import { idiomChecker } from './modules/utils/idiom-checker.js';
 import { getIsPWAMode } from './modules/user/demo-mode-webonly.js';
 import { identifyUser } from './modules/utils/posthog.js';
+import { getUrlParam } from './modules/utils/url-params.js';
+import { appStore } from './modules/store/store.js';
 
 export default function App() {
     const isWorkerInitialized = useRef(false);
@@ -13,6 +15,19 @@ export default function App() {
     useEffect(() => {
         // PostHog SDK loads after first paint — not on the critical path.
         import('./modules/utils/posthog-client.js').then(m => m.initPostHog());
+    }, []);
+
+    useEffect(() => {
+        try {
+            const raw = getUrlParam('friend');
+            if (raw && raw.trim()) {
+                const friendCode = raw.trim().toLowerCase();
+                appStore.getState().setFriendCode(friendCode);
+                console.log('[React] Captured friend param:', friendCode);
+            }
+        } catch (err) {
+            console.error('[React] Failed to capture friend param:', err);
+        }
     }, []);
 
     useEffect(() => {
