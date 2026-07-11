@@ -153,10 +153,20 @@ export async function startSpeechCamRecording(micStatusText, userData, { deferSt
         setWebcamStream(speechCamStream);
 
         let mimeType = '';
-        // iOS codec workaround disabled — iOS now uses same codec selection as other devices
-        if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) mimeType = 'video/webm;codecs=vp9';
-        else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) mimeType = 'video/webm;codecs=vp8';
-        else mimeType = 'video/webm';
+        // Prefer mp4 (H.264/AAC) on platforms whose MediaRecorder supports it
+        // (Windows + iOS). Android and Firefox still record webm reliably, so they
+        // fall through to the webm chain below — this keeps transcoding cheap for
+        // the per-segment R2 publish (Step 6) without breaking those browsers.
+        const mp4Preferred = isWindows || /iPad|iPhone|iPod/.test(navigator.userAgent);
+        if (mp4Preferred) {
+            if (MediaRecorder.isTypeSupported('video/mp4;codecs=h264,aac')) mimeType = 'video/mp4;codecs=h264,aac';
+            else if (MediaRecorder.isTypeSupported('video/mp4')) mimeType = 'video/mp4';
+        }
+        if (!mimeType) {
+            if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) mimeType = 'video/webm;codecs=vp9';
+            else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) mimeType = 'video/webm;codecs=vp8';
+            else mimeType = 'video/webm';
+        }
 
         const options = mimeType ? { mimeType } : {};
         if (!mimeType) console.warn('[Recording] No preferred MIME type supported; using browser default');
