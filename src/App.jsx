@@ -5,7 +5,6 @@ import { initLocalVoiceAI } from './modules/speech/speech.js';
 import { idiomChecker } from './modules/utils/idiom-checker.js';
 import { getIsPWAMode } from './modules/user/demo-mode-webonly.js';
 import { identifyUser } from './modules/utils/posthog.js';
-import { getUrlParam } from './modules/utils/url-params.js';
 import { appStore } from './modules/store/store.js';
 
 export default function App() {
@@ -19,14 +18,21 @@ export default function App() {
 
     useEffect(() => {
         try {
-            const raw = getUrlParam('friend');
-            if (raw && raw.trim()) {
-                const friendCode = raw.trim().toLowerCase();
+            const params = new URLSearchParams(window.location.search);
+            let shareCodeValue = null;
+            for (const [key, value] of params) {
+                if (key.toLowerCase() === 'sharecode') {
+                    shareCodeValue = value;
+                    break;
+                }
+            }
+            if (shareCodeValue && shareCodeValue.trim()) {
+                const friendCode = shareCodeValue.trim().toLowerCase();
                 appStore.getState().setFriendCode(friendCode);
-                console.log('[React] Captured friend param:', friendCode);
+                console.log('[React] Captured sharecode param:', friendCode);
             }
         } catch (err) {
-            console.error('[React] Failed to capture friend param:', err);
+            console.error('[React] Failed to capture sharecode param:', err);
         }
     }, []);
 

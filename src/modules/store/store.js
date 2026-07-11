@@ -87,7 +87,7 @@ export const appStore = createStore(
             userFirstName: null,
             userData: null,
             configData: null,
-            friendCode: null,   // captured from ?friend= URL param (lowercased), persisted
+            friendCode: null,   // captured from ?sharecode= URL param (case-insensitive, lowercased), persisted
             courseId: null,
             currentLessonTimestamp: null,
             lessonScores: '{}',

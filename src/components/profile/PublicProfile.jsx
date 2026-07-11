@@ -86,7 +86,7 @@ export default function PublicProfile({ shareCode }) {
                         style={{ width: '96px', height: '96px', borderRadius: '50%', objectFit: 'cover', marginBottom: '12px' }}
                     />
                     <h2 style={{ fontSize: '22px', marginBottom: '4px', marginTop: '12px' }}>{displayName}</h2>
-                    <p style={{ color: '#6c757d', fontSize: '13px', marginBottom: '4px' }}>ID: {shareCode}</p>
+                    <p style={{ color: '#6c757d', fontSize: '13px', marginBottom: '4px' }}>Share Code: {shareCode}</p>
                     {joinDate && <p style={{ color: '#6c757d', fontSize: '13px' }}>{Strings.get('profile_member_since', lang, { date: joinDate })}</p>}
                 </div>
 

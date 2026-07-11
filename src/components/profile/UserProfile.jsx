@@ -465,7 +465,7 @@ export default function UserProfile() {
                     <StatusMessage type={avatarMsg?.type} message={avatarMsg?.text} />
                     <h2 style={{ fontSize: '22px', marginBottom: '4px', marginTop: '12px' }}>{displayName}</h2>
                     <p style={{ color: '#adb5bd', fontSize: '14px', marginBottom: '4px' }}>{email}</p>
-                    {shareCode && <p style={{ color: '#6c757d', fontSize: '13px', marginBottom: '4px' }}>ID: {shareCode}</p>}
+                    {shareCode && <p style={{ color: '#6c757d', fontSize: '13px', marginBottom: '4px' }}>Share Code: {shareCode}</p>}
                     {joinDate && <p style={{ color: '#6c757d', fontSize: '13px' }}>{Strings.get('profile_member_since', lang, { date: joinDate })}</p>}
                 </div>
 
