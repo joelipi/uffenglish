@@ -147,7 +147,10 @@ export class VideoRenderPlanner {
         const lesson = this.configData.lessons.find(l => l.lessonId === rec.originalLessonId);
         if (!lesson?.steps?.[rec.originalStepIndex]) return null;
         const q = lesson.steps[rec.originalStepIndex];
-        return q.interactiveVideoUrl || q.introBackgroundVideoUrl || null;
+        // Include simpleVideoUrl as a fallback so steps whose prompt is the
+        // model-answer clip (not an interactive/intro video) still get a remote
+        // prompt segment in the generated recap. Order: interactive > intro > simple.
+        return q.interactiveVideoUrl || q.introBackgroundVideoUrl || q.simpleVideoUrl || null;
     }
 
     _getStepCue(rec) {

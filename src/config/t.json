@@ -177,18 +177,17 @@
             "es": "Oye, si tuvieras que gastar un millón de dólares hoy, ¿qué comprarías?",
             "pt": "Oye, se você tivesse que gastar um milhão de dólares hoje, o que você compraria?"
           },
-          "responseType": "openResponse",
+          "responseType": "closedResponse",
           "interactiveVideoUrl": "gtests-0-1-1"
         },
         {
-          "cue": {
-            "en": "Do you have dark chocolate?",
-            "es": "¿Tienes chocolate oscuro?",
-            "pt": "Você tem chocolate escuro?"
-          },
+          "cue": [
+            { "en": "Hi, what would you like to drink?", "es": "Hola, ¿qué quisieras para tomar?", "pt": "Ola, o qué voce quer de beber?" },
+            { "en": "What would you like to drink?", "es": "¿Qué quisieras para tomar?", "pt": "O que você quer beber?" },
+            { "en": "What can I get you to drink?", "es": "¿Qué te puedo dar?", "pt": "O que posso te dar?" }
+          ],
           "responseType": "closedResponse",
-          "interactiveVideoUrl": "do_you_have_dark_chocolate",
-          "headsUp": "A continuación: vas a ver el contexto del role play que vamos a hacer."
+          "simpleVideoUrl": "gtests-1-1"
         },
         {
           "simpleVideoUrl": "success",

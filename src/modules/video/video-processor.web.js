@@ -31,8 +31,16 @@ function createVideoProcessor() {
     const originalVideo = document.createElement('video');
     originalVideo.crossOrigin = 'anonymous';
     originalVideo.playsInline = true;
+    // iPad/Safari require the legacy attribute in addition to the property to
+    // permit inline (non-fullscreen) autoplay without a user gesture.
+    originalVideo.setAttribute('webkit-playsinline', '');
+    originalVideo.setAttribute('playsinline', '');
     originalVideo.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;';
     document.body.appendChild(originalVideo);
+
+    // Hidden render canvas — attached to the DOM (see process()) so iOS
+    // captureStream can read its frames. Declared here so cleanup() can remove it.
+    let videoCanvas = null;
 
     function cleanup() {
         if (animationId) {
@@ -61,6 +69,11 @@ function createVideoProcessor() {
         originalVideo.load();
         if (originalVideo.parentNode) {
             originalVideo.parentNode.removeChild(originalVideo);
+        }
+
+        // Remove the hidden render canvas added in process().
+        if (videoCanvas && videoCanvas.parentNode) {
+            videoCanvas.parentNode.removeChild(videoCanvas);
         }
     }
 
@@ -96,6 +109,21 @@ function createVideoProcessor() {
             try {
                 console.log('[VideoProcessor] Starting live processing on screen...');
 
+                // Resume the AudioContext as early as possible — ideally within
+                // the user-gesture task that triggered generation. On iOS/Safari
+                // the context (and therefore any unmuted playback) only unlocks
+                // if resume() happens close to the tap; deferring it behind async
+                // font/audio work can make the FIRST segment play silently.
+                // Await it so the context is guaranteed running before playback.
+                initAudio();
+                if (audioContext.state === 'suspended') {
+                    try {
+                        await audioContext.resume();
+                    } catch (e) {
+                        console.warn('[VideoProcessor] AudioContext resume failed:', e);
+                    }
+                }
+
                 const recordings = await getAllSpeechRecordingsForLesson(lessonId) || [];
                 console.log('[VideoProcessor] processVideo called', {
                     lessonId,
@@ -107,7 +135,12 @@ function createVideoProcessor() {
                     console.warn('[VideoProcessor] No recordings found. Proceeding with text-mode/summary generation.');
                 }
 
-                const videoCanvas = document.createElement('canvas');
+                videoCanvas = document.createElement('canvas');
+                // iOS Safari only captures frames from a canvas that is part of
+                // the rendered DOM tree; an offscreen canvas.captureStream() yields
+                // a blank (gray) video track. Keep it in the DOM but hidden.
+                videoCanvas.style.cssText = 'position:fixed;top:0;left:0;width:2px;height:4px;opacity:0.01;pointer-events:none;';
+                document.body.appendChild(videoCanvas);
                 const overlayImage = new Image();
                 overlayImage.src = headerImg;
 
@@ -143,25 +176,11 @@ function createVideoProcessor() {
                     ensureFontsReady()
                 ]);
 
-                initAudio();
-                if (audioContext.state === 'suspended') await audioContext.resume();
-
-                // Pre-decode audio from user recording blobs (Safari workaround:
-                // createMediaElementSource doesn't capture audio from blob URLs on Safari,
-                // so we decode and play the audio directly for webcam steps.)
-                const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
-                    || /iPad|iPhone|iPod/.test(navigator.userAgent);
-                for (const step of plan) {
-                    if (step.type === 'webcam' && step.blob && !step.isTextMode && isSafari) {
-                        try {
-                            const buf = await step.blob.arrayBuffer();
-                            step.decodedAudio = await audioContext.decodeAudioData(buf);
-                        } catch (e) {
-                            console.warn('[VideoProcessor] Audio decode failed:', e);
-                            step.decodedAudio = null;
-                        }
-                    }
-                }
+                // NOTE: webcam audio is no longer pre-decoded here. Decoding is
+                // done lazily per-step inside the render loop (see executeRenderLoop)
+                // so the first unmuted play happens as early as possible on iOS,
+                // where a long async preamble before play() makes the OS treat the
+                // first segment as autoplay-blocked and fall back to silent.
 
                 if (typeof videoCanvas.captureStream !== 'function') {
                     throw new Error(
@@ -290,6 +309,20 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
         let isTailing = false;
         let tailStart = 0;
         let lastFrameCanvas = null;
+        // Wall-clock start of the current video step, used as a safety net so a
+        // stalled video can never permanently hang the generator on iPad/Safari.
+        let stepPlayStart = 0;
+        // True only once the current step's video has actually begun playback.
+        // Guards the resume logic so it cannot fire during a source swap
+        // between steps (where the previous frame is still buffered and the
+        // element is momentarily paused), which would restart the wrong segment.
+        let stepStartedPlaying = false;
+
+        // Safari/iPadOS can't capture audio from blob-URL <video> via
+        // createMediaElementSource, so webcam audio is decoded and played
+        // directly as a buffer source. Detect once.
+        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+            || /iPad|iPhone|iPod/.test(navigator.userAgent);
 
         const nextStep = async () => {
             if (stepIndex >= plan.length) {
@@ -326,6 +359,10 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
             }
 
             video.crossOrigin = 'anonymous';
+            // Reset per-step playback health tracking before (re)starting.
+            step.resumeAttempted = false;
+            stepStartedPlaying = false;
+            stepPlayStart = 0;
             const sourceUrl = step.type === 'remote'
                 ? await resolveRemoteUrl(step.targetId)
                 : URL.createObjectURL(step.blob);
@@ -335,30 +372,81 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
             await new Promise(res => {
                 video.onloadedmetadata = async () => {
                     if (step.trim?.start) video.currentTime = step.trim.start;
-                    try {
-                        await video.play();
 
-                        // For webcam steps on Safari, play decoded audio as a buffer source
-                        // since createMediaElementSource doesn't capture audio from blob URLs.
-                        if (step.type === 'webcam' && step.decodedAudio && audioContext) {
-                            if (audioContext.state === 'suspended') await audioContext.resume();
+                    // On Safari/iPadOS, createMediaElementSource delivers no audio
+                    // from a <video>, AND playing a clip unmuted through the element
+                    // double-outputs (element + graph). So ALL clips are decoded and
+                    // played via a buffer source with the element muted — a single,
+                    // reliable audio path. Decoding is lazy per step.
+                    const needsDecodedAudio = isSafari && (
+                        (step.type === 'webcam' && step.blob && !step.isTextMode) ||
+                        step.type === 'remote'
+                    );
+                    if (needsDecodedAudio && !step.decodedAudio) {
+                        try {
+                            let buf;
+                            if (step.type === 'webcam') {
+                                buf = await step.blob.arrayBuffer();
+                            } else {
+                                const url = await resolveRemoteUrl(step.targetId);
+                                const resp = await fetch(url);
+                                buf = await resp.arrayBuffer();
+                            }
+                            step.decodedAudio = await audioContext.decodeAudioData(buf);
+                        } catch (e) {
+                            console.warn('[VideoProcessor] Audio decode failed:', e);
+                            step.decodedAudio = null;
+                        }
+                    }
+
+                    // Start the decoded-audio buffer source. Must run on BOTH the
+                    // normal and the autoplay-blocked (muted retry) paths, or a
+                    // blocked step would play with no audio. Audio begins exactly
+                    // when the <video> fires 'playing' so it stays locked to the
+                    // picture (no lead/lag).
+                    const startDecodedAudio = () => {
+                        if (currentAudioSource || !step.decodedAudio || !audioContext) return;
+                        const begin = () => {
+                            if (currentAudioSource) return;
+                            if (audioContext.state === 'suspended') audioContext.resume();
                             const source = audioContext.createBufferSource();
                             source.buffer = step.decodedAudio;
                             source.connect(audioDestination);
-                            // Also connect to speakers so the user can hear their recording.
+                            // Also connect to speakers so the user hears the clip.
                             source.connect(audioContext.destination);
-                            const startOffset = step.trim?.start || 0;
-                            source.start(audioContext.currentTime, startOffset);
+                            const offset = Math.max(0, (video.currentTime || 0) - (step.trim?.start || 0));
+                            source.start(audioContext.currentTime, offset);
                             currentAudioSource = source;
+                        };
+                        if (video.paused) video.addEventListener('playing', begin, { once: true });
+                        else begin();
+                    };
+
+                    try {
+                        await video.play();
+
+                        // Element is muted; audio comes from the buffer source so
+                        // there is exactly one audio path (no iOS double-output).
+                        if (step.decodedAudio && audioContext) {
                             video.muted = true;
+                            startDecodedAudio();
                         } else {
                             video.muted = false;
                         }
+                        // Record when playback actually (re)started so the draw
+                        // loop can detect stalls and apply a wall-clock fallback.
+                        stepStartedPlaying = true;
+                        stepPlayStart = performance.now();
                     } catch (err) {
                         console.warn('[VideoProcessor] Browser blocked autoplay. Retrying muted.', err);
                         video.muted = true;
                         try {
                             await video.play();
+                            // Even on the muted-retry path, start decoded audio so
+                            // the clip is not silent.
+                            startDecodedAudio();
+                            stepStartedPlaying = true;
+                            stepPlayStart = performance.now();
                         } catch (fatalErr) {
                             console.error('[VideoProcessor] Fatal play error', fatalErr);
                         }
@@ -424,7 +512,34 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                     if (elapsed >= holdMs) shouldAdvance = true;
                 } else {
                     const endTime = step.trim?.end || video.duration;
-                    if (video.ended || video.currentTime >= endTime) shouldAdvance = true;
+
+                    // On iPad/Safari the OS can silently pause inline video
+                    // (autoplay/interruption). If that happens, resume it so the
+                    // video does not freeze and the step can still complete.
+                    if (stepStartedPlaying && video.paused && !video.ended && video.readyState >= 2) {
+                        if (!step.resumeAttempted) {
+                            step.resumeAttempted = true;
+                            console.warn('[VideoProcessor] Video paused by OS; resuming playback.');
+                            video.play().catch(retryErr => {
+                                console.warn('[VideoProcessor] Resume blocked; retrying muted.', retryErr);
+                                video.muted = true;
+                                video.play().catch(fatalErr =>
+                                    console.error('[VideoProcessor] Resume fatal error', fatalErr)
+                                );
+                            });
+                        }
+                    }
+
+                    // Advance on natural end, or on a wall-clock fallback. The
+                    // fallback guarantees a stalled/non-ending video can never
+                    // leave the generator stuck on "Generating" indefinitely.
+                    const plannedMs = (endTime - (step.trim?.start || 0)) * 1000;
+                    const stalledTimeout =
+                        stepStartedPlaying && stepPlayStart && plannedMs > 0 &&
+                        performance.now() - stepPlayStart > plannedMs + 2000;
+                    if (video.ended || video.currentTime >= endTime || stalledTimeout) {
+                        shouldAdvance = true;
+                    }
                 }
             }
 
