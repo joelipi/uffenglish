@@ -298,19 +298,19 @@ export function useSyncUserMetaData() {
   });
 }
 
-export function useUserByShortCode(shortCode) {
+export function useUserByShareCode(shareCode) {
   return useQuery({
-    queryKey: ['user', 'profile', 'shortCode', shortCode],
+    queryKey: ['user', 'profile', 'shareCode', shareCode],
     queryFn: async () => {
       const result = await tablesDB.listRows({
         databaseId: APPWRITE_CONFIG.DATABASE_ID,
         tableId: APPWRITE_CONFIG.USER_PROFILES_TABLE_ID,
-        queries: [Query.equal('shortCode', shortCode)]
+        queries: [Query.equal('shareCode', shareCode)]
       });
       if (result.rows.length === 0) return null;
       return result.rows[0];
     },
-    enabled: !!shortCode,
+    enabled: !!shareCode,
   });
 }
 

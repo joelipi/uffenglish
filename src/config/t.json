@@ -177,7 +177,7 @@
             "es": "Oye, si tuvieras que gastar un millón de dólares hoy, ¿qué comprarías?",
             "pt": "Oye, se você tivesse que gastar um milhão de dólares hoje, o que você compraria?"
           },
-          "responseType": "closedResponse",
+          "responseType": "friendClosedResponse",
           "interactiveVideoUrl": "gtests-0-1-1"
         },
         {
@@ -186,7 +186,7 @@
             { "en": "What would you like to drink?", "es": "¿Qué quisieras para tomar?", "pt": "O que você quer beber?" },
             { "en": "What can I get you to drink?", "es": "¿Qué te puedo dar?", "pt": "O que posso te dar?" }
           ],
-          "responseType": "closedResponse",
+          "responseType": "friendClosedResponse",
           "simpleVideoUrl": "gtests-1-1"
         },
         {

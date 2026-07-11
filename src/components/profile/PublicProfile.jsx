@@ -1,11 +1,11 @@
 import { useNavigate } from 'react-router-dom';
-import { useUserByShortCode } from '../../modules/api/api.js';
+import { useUserByShareCode } from '../../modules/api/api.js';
 import Strings from '../../data/strings.js';
 import defaultProfilePic from '../../assets/img/userprofile.png';
 
-export default function PublicProfile({ shortCode }) {
+export default function PublicProfile({ shareCode }) {
     const navigate = useNavigate();
-    const { data: profile, isLoading } = useUserByShortCode(shortCode);
+    const { data: profile, isLoading } = useUserByShareCode(shareCode);
 
     const containerStyle = {
         height: '100dvh',
@@ -86,7 +86,7 @@ export default function PublicProfile({ shortCode }) {
                         style={{ width: '96px', height: '96px', borderRadius: '50%', objectFit: 'cover', marginBottom: '12px' }}
                     />
                     <h2 style={{ fontSize: '22px', marginBottom: '4px', marginTop: '12px' }}>{displayName}</h2>
-                    <p style={{ color: '#6c757d', fontSize: '13px', marginBottom: '4px' }}>ID: {shortCode}</p>
+                    <p style={{ color: '#6c757d', fontSize: '13px', marginBottom: '4px' }}>ID: {shareCode}</p>
                     {joinDate && <p style={{ color: '#6c757d', fontSize: '13px' }}>{Strings.get('profile_member_since', lang, { date: joinDate })}</p>}
                 </div>
 

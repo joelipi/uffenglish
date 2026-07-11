@@ -58,13 +58,13 @@ export function useSignupForm({ onSignupSuccess } = {}) {
                 ]
             });
 
-            const shortCode = toShortId(profileRow.$sequence);
+            const shareCode = toShortId(profileRow.$sequence);
             try {
                 await tablesDB.updateRow({
                     databaseId: APPWRITE_CONFIG.DATABASE_ID,
                     tableId: APPWRITE_CONFIG.USER_PROFILES_TABLE_ID,
                     rowId: profileRow.$id,
-                    data: { shortCode },
+                    data: { shareCode },
                     permissions: [
                         `read("any")`,
                         `read("user:${user.$id}")`,
@@ -72,9 +72,9 @@ export function useSignupForm({ onSignupSuccess } = {}) {
                         `delete("user:${user.$id}")`
                     ]
                 });
-                console.log(`[Signup] shortCode ${shortCode} set for user ${profileRow.$id}`);
-            } catch (shortCodeError) {
-                console.error(`[Signup] Failed to set shortCode for user ${profileRow.$id}:`, shortCodeError);
+                console.log(`[Signup] shareCode ${shareCode} set for user ${profileRow.$id}`);
+            } catch (shareCodeError) {
+                console.error(`[Signup] Failed to set shareCode for user ${profileRow.$id}:`, shareCodeError);
             }
 
             identifyUser(user.$id, {
@@ -97,7 +97,7 @@ export function useSignupForm({ onSignupSuccess } = {}) {
                 display_name: fullName,
                 join_date: user.$createdAt,
                 auth_method: 'appwrite',
-                shortCode,
+                shareCode,
                 firstName: firstName.trim(),
                 lastName: lastName.trim(),
                 native_language: nativeLanguage,

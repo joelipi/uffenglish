@@ -4,8 +4,8 @@ import { usePreloader } from '../hooks/usePreloader.js';
 import { useEffect } from 'react';
 
 export default function PublicProfileRoute() {
-    const { shortCode } = useParams();
+    const { shareCode } = useParams();
     const { finishPreloader } = usePreloader();
     useEffect(() => { finishPreloader(); }, []);
-    return <PublicProfile shortCode={shortCode} />;
+    return <PublicProfile shareCode={shareCode} />;
 }

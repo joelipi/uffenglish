@@ -32,7 +32,7 @@ export const routes = [
       { path: '/reset-password', element: <AuthLayout />, children: [{ index: true, element: <ResetPasswordRoute /> }] },
       { path: '/profile', element: <ProfileRoute /> },
       { path: '/course/:courseId/lesson/:lessonId', element: <AppLayout />, errorElement: <LessonError />, children: [{ index: true, element: <LessonContainer /> }] },
-      { path: '/:shortCode', element: <PublicProfileRoute /> },
+      { path: '/:shareCode', element: <PublicProfileRoute /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },
