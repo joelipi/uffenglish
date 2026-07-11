@@ -18,7 +18,6 @@ export default function IntroChoices() {
     const finishModeSelection = (isTextMode, isCameraOff) => {
         appStore.getState().setTextMode(isTextMode);
         appStore.getState().setCameraOff(isCameraOff);
-        appStore.getState().setModeSelectionPending(false);
         appStore.getState().transitionTo('recording/answering');
         if (isTextMode) {
             setupTextInputForStep();

@@ -39,11 +39,18 @@ export function setupTextInputForStep() {
 function resetUIForNewStep(step) {
     let phase;
     const isRetry = appStore.getState().incorrectAttempts > 0;
+    const steps = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex].steps;
+    const firstResponseIndex = steps.findIndex(s =>
+        s.responseType === 'closedResponse' ||
+        s.responseType === 'openResponse' ||
+        s.responseType === 'friendClosedResponse'
+    );
+    const isFirstResponseStep = appStore.getState().currentStepIndex === firstResponseIndex;
     if (step.responseType === 'lessonIntro') {
         phase = 'lessonIntro';
     } else if (step.responseType === 'success') {
         phase = 'lessonSuccess';
-    } else if ((step.responseType === 'closedResponse' || step.responseType === 'openResponse' || step.responseType === 'friendClosedResponse') && appStore.getState().isModeSelectionPending && !isRetry) {
+    } else if ((step.responseType === 'closedResponse' || step.responseType === 'openResponse' || step.responseType === 'friendClosedResponse') && isFirstResponseStep && !isRetry) {
         phase = 'firstResponse';
     } else if (step.interactiveVideoUrl && !isRetry) {
         phase = 'interactiveVideo+' + (step.responseType === 'openResponse' ? 'openResponse' : (step.responseType === 'friendClosedResponse' ? 'friendClosedResponse' : 'closedResponse'));
