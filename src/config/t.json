@@ -162,7 +162,7 @@
       "lessonId": "x",
       "title": "Success Test",
       "unit": "Daily Challenge Unit",
-      "mission": "Answer intelligently.",
+      "mission": "{friendCode} Answer intelligently.",
       "setting": "A game show",
       "roleOther": "Game show host",
       "roleUser": "Contestant",

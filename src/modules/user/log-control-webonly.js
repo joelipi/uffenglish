@@ -27,7 +27,7 @@ window.enabledLogs = {
     storage: false,
     gamification: false,
     pointlossoverlay: false,
-    store: false,
+    store: true,
     pt: false,
     debug: true,
     all: true

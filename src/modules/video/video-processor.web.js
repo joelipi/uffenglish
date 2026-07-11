@@ -494,7 +494,7 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
             drawTextOverlay(
                 ctx, canvas.width, canvas.height,
                 isTailing, tailStart, fluencyData,
-                step.isFirst, step.subtitle
+                step.isFirst, step.subtitle, displayCanvas
             );
 
             if (displayCanvas) {
@@ -607,7 +607,7 @@ function wrapText(context, text, maxWidth) {
     return lines;
 }
 
-function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart, fluencyData, isFirst, subtitleText) {
+function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart, fluencyData, isFirst, subtitleText, displayCanvas) {
     const now = performance.now();
     const blinkOn = Math.floor(now / 500) % 2 === 0;
     context.save();
@@ -724,33 +724,56 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
         }
 
         const boxPadding = 10;
-        const subtitleStartY = canvasHeight * 0.75;
+
+        // Match SimpleVideoPlayer's `bottom: 150px` clearance in real on-screen
+        // pixels. The export canvas is scaled to the display canvas via CSS
+        // (objectFit: contain), so `150` screen px must be converted into canvas
+        // px using the actual draw scale. Without this, the margin shrinks with
+        // the on-screen scale and the subtitles collide with the bottom buttons.
+        const BOTTOM_OFFSET_PX = 150;
+        let bottomMargin;
+        if (displayCanvas && displayCanvas.getBoundingClientRect) {
+            const rect = displayCanvas.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+                const scale = Math.min(rect.width / canvasWidth, rect.height / canvasHeight);
+                const drawnHeight = canvasHeight * scale; // on-screen bitmap height
+                bottomMargin = BOTTOM_OFFSET_PX * (canvasHeight / drawnHeight);
+            }
+        }
+        if (bottomMargin == null) {
+            // Fallback (no display canvas measured yet): assume a 1920-tall frame.
+            bottomMargin = canvasHeight * (BOTTOM_OFFSET_PX / 1920);
+        }
+        const blockBottomY = canvasHeight - bottomMargin;
 
         // Background box covering both English and translation lines
         context.fillStyle = 'rgba(0, 0, 0, 0.6)';
         context.fillRect(
             centerX - longestLineWidth / 2 - boxPadding,
-            subtitleStartY - enLineHeight - boxPadding,
+            blockBottomY - totalTextHeight - boxPadding,
             longestLineWidth + boxPadding * 2,
             totalTextHeight + boxPadding * 2
         );
 
-        // Draw English lines
         context.fillStyle = 'white';
         context.shadowColor = 'black';
         context.shadowBlur = 4;
-        context.font = `bold ${enFontSize}px "Plus Jakarta Sans", sans-serif`;
-        enLines.forEach((l, i) => {
-            context.fillText(l, centerX, subtitleStartY + i * enLineHeight);
-        });
 
-        // Draw translation lines (italic, slightly smaller)
+        // Draw from the bottom up so the block extends toward the top (matching
+        // the SimpleVideoPlayer overlay, which grows upward from its anchor).
+        let lineY = blockBottomY;
         if (trLines.length > 0) {
             context.font = `italic ${trFontSize}px "Plus Jakarta Sans", sans-serif`;
-            const trStartY = subtitleStartY + totalEnHeight + gapBetween;
-            trLines.forEach((l, i) => {
-                context.fillText(l, centerX, trStartY + i * trLineHeight);
-            });
+            for (let i = trLines.length - 1; i >= 0; i--) {
+                context.fillText(trLines[i], centerX, lineY);
+                lineY -= trLineHeight;
+            }
+            lineY -= gapBetween;
+        }
+        context.font = `bold ${enFontSize}px "Plus Jakarta Sans", sans-serif`;
+        for (let i = enLines.length - 1; i >= 0; i--) {
+            context.fillText(enLines[i], centerX, lineY);
+            lineY -= enLineHeight;
         }
     }
 
