@@ -156,10 +156,10 @@
           "responseType": "success"
         }
       ],
-      "nextLessonId": "x"
+      "nextLessonId": "z"
     },
     {
-      "lessonId": "x",
+      "lessonId": "y",
       "title": "Success Test",
       "unit": "Daily Challenge Unit",
       "mission": "{friendCode} Answer intelligently.",

@@ -113,6 +113,7 @@ export const appStore = createStore(
             videoRole: null,
             stepCount: 0,
             stepsAnswered: 0,
+            currentStepIndexLessonId: '',
             wordsRevealed: 0,
             videoPlays: 0,
             videoClicks: 0,
@@ -536,6 +537,9 @@ export const appStore = createStore(
                 stepsAnswered: 0,
                 isTextMode: false,
                 isCameraOff: false,
+                successVideoBlob: null,
+                successVideoButton: { visible: false, loading: false, state: 'idle' },
+                successCanvasVisible: false,
             }),
 
             // --- Input UI Actions (Replaces renderSpeechInputUI/renderTextInputUI) ---
@@ -637,6 +641,7 @@ export const appStore = createStore(
                 activeLessonId: state.activeLessonId,
                 currentLessonIndex: state.currentLessonIndex,
                 currentStepIndex: state.currentStepIndex,
+                currentStepIndexLessonId: state.currentStepIndexLessonId,
                 isTextMode: state.isTextMode,
                 isCameraOff: state.isCameraOff,
                 fluencyScore: state.fluencyScore,

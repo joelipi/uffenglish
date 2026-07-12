@@ -25,6 +25,10 @@ export async function updateSpeechRecording(lessonId, stepIndex, updates = {}) {
     return null;
 }
 
+export function clearInMemoryRecordingsForLesson(lessonId) {
+    console.warn('[storage.native] clearInMemoryRecordingsForLesson not yet implemented');
+}
+
 export async function restoreRecordingsForLesson(lessonId) {
     console.warn('[storage.native] restoreRecordingsForLesson not yet implemented');
 }

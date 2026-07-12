@@ -24,3 +24,119 @@ AggregateError [ECONNREFUSED]:
 AggregateError [ECONNREFUSED]: 
     at internalConnectMultiple (node:net:1193:18)
     at afterConnectMultiple (node:net:1783:7)
+[2m6:23:18 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m6:39:06 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m6:39:10 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m6:39:15 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m6:39:18 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m6:40:11 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m6:40:15 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m6:45:21 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m6:45:25 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m7:01:38 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m7:01:43 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m7:01:47 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m7:01:50 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m7:03:11 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m7:03:15 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m7:03:20 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m7:03:22 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m7:12:09 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m7:12:12 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m7:12:17 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m7:12:20 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m7:20:32 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m7:20:38 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m7:20:42 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m7:20:47 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m7:32:44 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m7:32:48 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m7:32:54 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)
+[2m7:32:57 PM[22m [31m[1m[vite][22m[39m [31mhttp proxy error: /api/upload-segment[39m
+AggregateError [ECONNREFUSED]: 
+    at internalConnectMultiple (node:net:1193:18)
+    at afterConnectMultiple (node:net:1783:7)

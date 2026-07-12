@@ -1,11 +1,16 @@
 import { appStore, getAnswerPipelineDeps, getCurrentVideoPlayer } from '../store/store.js';
-import { clearSpeechRecordingsForLesson, restoreRecordingsForLesson } from '../storage/storage.js';
+import { clearInMemoryRecordingsForLesson, clearSpeechRecordingsForLesson, restoreRecordingsForLesson } from '../storage/storage.js';
 import { deleteRecordsExceptLesson } from '../storage/recordingDb.js';
 import { loadStep } from '../../components/step-loader.js';
 import { trackEvent } from '../utils/posthog.js';
 
 export async function loadLessonContent(lesson, options = {}) {
     const { forceRestart = false } = options;
+
+    // Clear in-memory Map entries for this lesson so old recordings from
+    // a previous SPA navigation don't accumulate and pollute the video.
+    // forceRestart additionally clears IndexedDB (see below).
+    clearInMemoryRecordingsForLesson(lesson.lessonId);
 
     // Reclaim IndexedDB space from other lessons. There is no cross-lesson
     // replay, so recordings from lessons the user navigated away from are
@@ -51,6 +56,13 @@ export async function loadLessonContent(lesson, options = {}) {
     appStore.getState().setRoleUser(lesson.roleUser || "");
     appStore.getState().setUserRole(lesson.userRole || "");
     appStore.getState().setVideoRole(lesson.videoRole || "");
+
+    // If navigating to a different lesson than the one whose step index
+    // was persisted, reset to step 0 instead of resuming the old position.
+    const prevStepLessonId = appStore.getState().currentStepIndexLessonId;
+    if (lesson.lessonId !== prevStepLessonId) {
+        appStore.setState({ currentStepIndex: 0, currentStepIndexLessonId: lesson.lessonId });
+    }
 
     const configData = appStore.getState().configData;
     const course = configData?.courseName || "";
