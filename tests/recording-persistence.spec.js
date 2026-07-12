@@ -20,6 +20,11 @@ test.describe('Recording Persistence', () => {
     test('text-mode recordings survive a full page reload', async ({ page }) => {
         test.setTimeout(60000);
 
+        const diagLogs = [];
+        page.on('console', msg => {
+            if (msg.text().includes('[DIAG]')) diagLogs.push(msg.text());
+        });
+
         // Phase 1: navigate, set text mode, save a recording.
         await page.goto('/course/model/lesson/g');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
@@ -61,8 +66,21 @@ test.describe('Recording Persistence', () => {
         await page.waitForTimeout(500); // Small buffer for async restore to settle.
 
         const restored = await page.evaluate(async (lid) => {
-            const { getAllSpeechRecordingsForLesson } = await import('/src/modules/storage/storage.js');
+            const mod = await import('/src/modules/storage/storage.js');
+            const { getAllSpeechRecordingsForLesson } = mod;
             const recordings = await getAllSpeechRecordingsForLesson(lid);
+            console.log('[DIAG] getAll returned', recordings.length, 'recordings for lesson', lid);
+            console.log('[DIAG] recordings:', JSON.stringify(recordings.map(r => ({ id: r.id, stepIndex: r.originalStepIndex, createdAt: r.createdAt, userResponse: r.userResponse }))));
+            // Also check total Map entries
+            const { listRecordsForLesson } = await import('/src/modules/storage/recordingDb.js');
+            const idbRecords = await listRecordsForLesson(lid);
+            console.log('[DIAG] IDB records for lesson', lid, ':', idbRecords.length);
+            console.log('[DIAG] IDB record IDs:', JSON.stringify(idbRecords.map(r => r.id)));
+            // Check if restoreRecordingsForLesson was called by trying to restore now
+            const { restoreRecordingsForLesson } = mod;
+            await restoreRecordingsForLesson(lid);
+            const afterRestore = await getAllSpeechRecordingsForLesson(lid);
+            console.log('[DIAG] after manual restore, getAll =', afterRestore.length);
             return recordings.map(r => ({
                 stepIndex: r.originalStepIndex,
                 userResponse: r.userResponse,
@@ -75,6 +93,9 @@ test.describe('Recording Persistence', () => {
             }));
         }, lessonId);
 
+        if (restored.length === 0) {
+            console.error('=== DIAG LOGS ===\n' + diagLogs.join('\n'));
+        }
         expect(restored.length).toBe(1);
         expect(restored[0].userResponse).toBe('Persistence test answer');
         expect(restored[0].isTextMode).toBe(true);

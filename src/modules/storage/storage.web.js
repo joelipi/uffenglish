@@ -96,10 +96,26 @@ export async function getAllSpeechRecordingsForLesson(lessonId) {
   const byStep = new Map(); // stepIndex -> record
   for (const record of recordingsMap.values()) {
     if (record.originalLessonId === lessonId) {
-      // A later in-memory entry for the same step is fresher — keep the latest.
       const existing = byStep.get(record.originalStepIndex);
-      if (!existing || (record.createdAt ?? 0) >= (existing.createdAt ?? 0)) {
+      if (!existing) {
         byStep.set(record.originalStepIndex, record);
+      } else {
+        // Prefer a fresh (non-restored) entry over a restored one so that
+        // per-step video blobs recorded in the current session always beat
+        // recordings restored from IndexedDB — even if the restored record's
+        // createdAt is later (device clock drift between sessions).
+        const recordIsRestored = typeof record.id === 'string' && record.id.startsWith('restored_');
+        const existingIsRestored = typeof existing.id === 'string' && existing.id.startsWith('restored_');
+        if (recordIsRestored === existingIsRestored) {
+          // Same provenance: keep the one with the later timestamp.
+          if ((record.createdAt ?? 0) >= (existing.createdAt ?? 0)) {
+            byStep.set(record.originalStepIndex, record);
+          }
+        } else if (!recordIsRestored && existingIsRestored) {
+          // Fresh beats restored.
+          byStep.set(record.originalStepIndex, record);
+        }
+        // Restored never beats fresh — keep existing.
       }
     }
   }
@@ -152,13 +168,31 @@ export async function restoreRecordingsForLesson(lessonId) {
     const restored = {
       ...rec,
       blob,
-      id: rec.id || `restored_${lessonId}_${rec.originalStepIndex}`,
+      id: `restored_${lessonId}_${rec.originalStepIndex}`,
       arrayBuffer: undefined,
     };
     recordingsMap.set(restored.id, restored);
     console.log('[Storage] restoreRecordingsForLesson restored from IndexedDB', { lessonId, stepIndex: rec.originalStepIndex, hasBlob: !!blob });
   }
   console.log('[Storage] restoreRecordingsForLesson done', { lessonId, restoredCount: persisted.filter(r => !inMemorySteps.has(r.originalStepIndex)).length });
+}
+
+/**
+ * Clear in-memory recording entries for a lesson without touching IndexedDB.
+ * Called on every lesson load (including SPA navigation) so that old in-memory
+ * entries from previous sessions don't persist across lesson boundaries.
+ */
+export function clearInMemoryRecordingsForLesson(lessonId) {
+  const toDelete = [];
+  for (const [key, record] of recordingsMap) {
+    if (record.originalLessonId === lessonId) {
+      toDelete.push(key);
+    }
+  }
+  for (const key of toDelete) {
+    recordingsMap.delete(key);
+  }
+  console.log('[Storage] clearInMemoryRecordingsForLesson', { lessonId, deletedCount: toDelete.length });
 }
 
 export async function clearSpeechRecordingsForLesson(lessonId) {

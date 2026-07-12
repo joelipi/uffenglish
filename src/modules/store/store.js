@@ -537,6 +537,9 @@ export const appStore = createStore(
                 stepsAnswered: 0,
                 isTextMode: false,
                 isCameraOff: false,
+                successVideoBlob: null,
+                successVideoButton: { visible: false, loading: false, state: 'idle' },
+                successCanvasVisible: false,
             }),
 
             // --- Input UI Actions (Replaces renderSpeechInputUI/renderTextInputUI) ---
