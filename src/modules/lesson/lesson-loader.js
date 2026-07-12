@@ -52,6 +52,13 @@ export async function loadLessonContent(lesson, options = {}) {
     appStore.getState().setUserRole(lesson.userRole || "");
     appStore.getState().setVideoRole(lesson.videoRole || "");
 
+    // If navigating to a different lesson than the one whose step index
+    // was persisted, reset to step 0 instead of resuming the old position.
+    const prevStepLessonId = appStore.getState().currentStepIndexLessonId;
+    if (lesson.lessonId !== prevStepLessonId) {
+        appStore.setState({ currentStepIndex: 0, currentStepIndexLessonId: lesson.lessonId });
+    }
+
     const configData = appStore.getState().configData;
     const course = configData?.courseName || "";
     const courseLevel = configData?.courseLevel || 'A0';
