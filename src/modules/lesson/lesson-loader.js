@@ -1,10 +1,22 @@
 import { appStore, getAnswerPipelineDeps, getCurrentVideoPlayer } from '../store/store.js';
-import { clearSpeechRecordingsForLesson } from '../storage/storage.js';
+import { clearSpeechRecordingsForLesson, restoreRecordingsForLesson } from '../storage/storage.js';
+import { deleteRecordsExceptLesson } from '../storage/recordingDb.js';
 import { loadStep } from '../../components/step-loader.js';
 import { trackEvent } from '../utils/posthog.js';
 
 export async function loadLessonContent(lesson, options = {}) {
     const { forceRestart = false } = options;
+
+    // Reclaim IndexedDB space from other lessons. There is no cross-lesson
+    // replay, so recordings from lessons the user navigated away from are
+    // safe to delete. This is independent from forceRestart, which clears the
+    // CURRENT lesson's recordings (Repeat button).
+    try {
+        await deleteRecordsExceptLesson(lesson.lessonId);
+        console.log('[LessonLoader] cleared IndexedDB recordings for other lessons');
+    } catch (e) {
+        console.warn('[LessonLoader] failed to clear other lessons recordings', e);
+    }
 
     // Only clear recordings on explicit restart (Repeat button).
     // Normal re-mounts (page reload, signup redirect) preserve recordings
@@ -15,6 +27,16 @@ export async function loadLessonContent(lesson, options = {}) {
             await clearSpeechRecordingsForLesson(lesson.lessonId);
         } catch (e) {
             console.error(e);
+        }
+    } else {
+        // Restore persisted recordings from IndexedDB into the in-memory Map.
+        // This runs once during lesson load so that getAllSpeechRecordingsForLesson
+        // can remain a pure in-memory read (instant) on the video processor's
+        // critical path — no IDB access during video generation.
+        try {
+            await restoreRecordingsForLesson(lesson.lessonId);
+        } catch (e) {
+            console.warn('[LessonLoader] failed to restore recordings from IndexedDB', e);
         }
     }
 

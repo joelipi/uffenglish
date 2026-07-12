@@ -1,0 +1,10 @@
+[2m1:08:23 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m Failed to load source map for C:/Users/joelg/.local/share/opencode/worktree/7c5915ed5a2d6fd89a6a22ff1e261cbcd404250c/g3-parallel-3-opencode-hy3-free/src/modules/utils/swearjar.js.
+Error: An error occurred while trying to read the map file at /sm/5dfed46eb7c576d5dd193af5fe8f942997992f80c9980f4f6a8f0112e3371bed.map
+Error: ENOENT: no such file or directory, open 'C:\sm\5dfed46eb7c576d5dd193af5fe8f942997992f80c9980f4f6a8f0112e3371bed.map'
+    at Object.readFileSync (node:fs:441:20)
+    at file:///C:/Users/joelg/.local/share/opencode/worktree/7c5915ed5a2d6fd89a6a22ff1e261cbcd404250c/g3-parallel-3-opencode-hy3-free/node_modules/vite/dist/node/chunks/node.js:20079:13
+    at readFromFileMap (file:///C:/Users/joelg/.local/share/opencode/worktree/7c5915ed5a2d6fd89a6a22ff1e261cbcd404250c/g3-parallel-3-opencode-hy3-free/node_modules/vite/dist/node/chunks/node.js:19858:13)
+    at exports.fromMapFileComment (file:///C:/Users/joelg/.local/share/opencode/worktree/7c5915ed5a2d6fd89a6a22ff1e261cbcd404250c/g3-parallel-3-opencode-hy3-free/node_modules/vite/dist/node/chunks/node.js:19952:12)
+    at exports.fromMapFileSource (file:///C:/Users/joelg/.local/share/opencode/worktree/7c5915ed5a2d6fd89a6a22ff1e261cbcd404250c/g3-parallel-3-opencode-hy3-free/node_modules/vite/dist/node/chunks/node.js:19963:22)
+    at extractSourcemapFromFile (file:///C:/Users/joelg/.local/share/opencode/worktree/7c5915ed5a2d6fd89a6a22ff1e261cbcd404250c/g3-parallel-3-opencode-hy3-free/node_modules/vite/dist/node/chunks/node.js:20065:87)
+    at loadAndTransform (file:///C:/Users/joelg/.local/share/opencode/worktree/7c5915ed5a2d6fd89a6a22ff1e261cbcd404250c/g3-parallel-3-opencode-hy3-free/node_modules/vite/dist/node/chunks/node.js:24478:22)

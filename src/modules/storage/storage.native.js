@@ -24,3 +24,7 @@ export async function updateSpeechRecording(lessonId, stepIndex, updates = {}) {
     console.warn('[storage.native] updateSpeechRecording not yet implemented');
     return null;
 }
+
+export async function restoreRecordingsForLesson(lessonId) {
+    console.warn('[storage.native] restoreRecordingsForLesson not yet implemented');
+}

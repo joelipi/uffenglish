@@ -9,7 +9,7 @@ export default function SignupRoute() {
     return (
         <SignupForm
             onSignupSuccess={() => navigate(redirect)}
-            onLoginLink={() => navigate('/login')}
+            onLoginLink={() => navigate(redirect !== '/' ? `/login?redirect=${encodeURIComponent(redirect)}` : '/login')}
         />
     );
 }
