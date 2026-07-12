@@ -452,3 +452,10 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
 });
+
+// --- exportSegmentsToR2 (native stub) ---
+// React Native doesn't publish segments to R2; the import name resolves but
+// the function is a no-op so accidental calls are harmless.
+export async function exportSegmentsToR2() {
+    // no-op on native
+}

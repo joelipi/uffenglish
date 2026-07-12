@@ -1,31 +1,34 @@
-// app-vad-asr-web.js v2
+// app-vad-asr-web.js v3 - Lifecycle-managed adapter
 
 import { appStore } from '../../modules/store/store.js';
 
 export let isEngineReady = false;
-let whisperWorker = null;
-let activeTranscriptionResolve = null;
-let activeVadResolvers = new Map();
-let vadRequestIdCounter = 0;
 
 export function createWhisperAdapter({ worker }) {
-    let adapterIsEngineReady = false;
-    let adapterWhisperWorker = worker;
-    let adapterReadyResolve = null;
-    let adapterActiveTranscriptionResolve = null;
-    let adapterActiveVadResolvers = new Map();
-    let vadIdCounter = 0;
+    const state = {
+        isReady: false,
+        worker,
+        readyResolve: null,
+        transcriptionResolve: null,
+        vadResolvers: new Map(),
+        vadIdCounter: 0,
+        preloadTimer: null,
+    };
 
-    adapterWhisperWorker.onmessage = function (e) {
+    const messageHandler = function (e) {
         if (e.data.type === 'ready') {
-            adapterIsEngineReady = true;
+            state.isReady = true;
             isEngineReady = true;
             appStore.getState().setWhisperReady(true);
             appStore.getState().setWhisperEngineFailed(false);
             console.log('[whisper] engine ready at', performance.now().toFixed(0), 'ms');
-            if (adapterReadyResolve) {
-                adapterReadyResolve();
-                adapterReadyResolve = null;
+            if (state.preloadTimer) {
+                clearTimeout(state.preloadTimer);
+                state.preloadTimer = null;
+            }
+            if (state.readyResolve) {
+                state.readyResolve();
+                state.readyResolve = null;
             }
         }
         else if (e.data.type === 'diag') {
@@ -34,68 +37,76 @@ export function createWhisperAdapter({ worker }) {
         else if (e.data.type === 'error') {
             console.error('[whisper] Engine initialization error:', e.data.message);
             appStore.getState().setWhisperEngineFailed(true);
-            if (adapterReadyResolve) {
-                adapterReadyResolve();
-                adapterReadyResolve = null;
+            if (state.preloadTimer) {
+                clearTimeout(state.preloadTimer);
+                state.preloadTimer = null;
+            }
+            if (state.readyResolve) {
+                state.readyResolve();
+                state.readyResolve = null;
             }
         }
         else if (e.data.type === 'result') {
-            if (adapterActiveTranscriptionResolve) {
-                adapterActiveTranscriptionResolve(e.data);
-                adapterActiveTranscriptionResolve = null;
+            if (state.transcriptionResolve) {
+                state.transcriptionResolve(e.data);
+                state.transcriptionResolve = null;
             }
         }
         else if (e.data.type === 'vad_result') {
-            const resolver = adapterActiveVadResolvers.get(e.data.id);
+            const resolver = state.vadResolvers.get(e.data.id);
             if (resolver) {
                 resolver(e.data);
-                adapterActiveVadResolvers.delete(e.data.id);
+                state.vadResolvers.delete(e.data.id);
             }
         }
     };
 
-    adapterWhisperWorker.onerror = (err) => {
+    const errorHandler = (err) => {
         console.error('[whisper] worker error:', err);
-        if (adapterReadyResolve) {
-            adapterReadyResolve();
-            adapterReadyResolve = null;
+        if (state.preloadTimer) {
+            clearTimeout(state.preloadTimer);
+            state.preloadTimer = null;
+        }
+        if (state.readyResolve) {
+            state.readyResolve();
+            state.readyResolve = null;
         }
     };
+
+    state.worker.onmessage = messageHandler;
+    state.worker.onerror = errorHandler;
 
     function preloadWhisperEngine() {
         return new Promise((resolve) => {
-            if (adapterIsEngineReady) {
+            if (state.isReady) {
                 resolve();
                 return;
             }
-            adapterReadyResolve = resolve;
-            setTimeout(() => {
-                if (!adapterReadyResolve) return;
-                if (adapterIsEngineReady) {
-                    // Engine became ready while the timer was pending — no failure.
-                    adapterReadyResolve();
-                    adapterReadyResolve = null;
+            state.readyResolve = resolve;
+            state.preloadTimer = setTimeout(() => {
+                if (!state.readyResolve) return;
+                if (state.isReady) {
+                    state.readyResolve();
+                    state.readyResolve = null;
                     return;
                 }
                 console.warn('[whisper] Engine preload timed out after 120s');
                 appStore.getState().setWhisperEngineFailed(true);
-                adapterReadyResolve();
-                adapterReadyResolve = null;
+                state.readyResolve();
+                state.readyResolve = null;
             }, 120000);
         });
     }
 
     function transcribeAudioBuffer(float32Array) {
         return new Promise((resolve) => {
-            if (!adapterIsEngineReady || !adapterWhisperWorker) {
+            if (!state.isReady || !state.worker) {
                 console.error('[whisper] engine not ready.');
                 resolve(null);
                 return;
             }
-
-            adapterActiveTranscriptionResolve = resolve;
-
-            adapterWhisperWorker.postMessage({
+            state.transcriptionResolve = resolve;
+            state.worker.postMessage({
                 type: 'transcribe',
                 audio: float32Array
             }, [float32Array.buffer]);
@@ -104,16 +115,14 @@ export function createWhisperAdapter({ worker }) {
 
     function analyzeAudioBufferWithVAD(float32Array, options = {}) {
         return new Promise((resolve) => {
-            if (!adapterIsEngineReady || !adapterWhisperWorker) {
+            if (!state.isReady || !state.worker) {
                 console.error('[whisper] engine not ready for VAD.');
                 resolve(null);
                 return;
             }
-
-            const id = vadIdCounter++;
-            adapterActiveVadResolvers.set(id, resolve);
-
-            adapterWhisperWorker.postMessage({
+            const id = state.vadIdCounter++;
+            state.vadResolvers.set(id, resolve);
+            state.worker.postMessage({
                 type: 'vad_analyze',
                 id: id,
                 audio: float32Array,
@@ -122,13 +131,52 @@ export function createWhisperAdapter({ worker }) {
         });
     }
 
-    return { preloadWhisperEngine, transcribeAudioBuffer, analyzeAudioBufferWithVAD };
+    function terminate() {
+        if (state.worker) {
+            try {
+                state.worker.terminate();
+            } catch (e) {
+                console.warn('[whisper] terminate error (worker may already be dead):', e);
+            }
+            state.worker = null;
+        }
+        state.isReady = false;
+        isEngineReady = false;
+        appStore.getState().setWhisperReady(false);
+        appStore.getState().setWhisperEngineFailed(false);
+        if (state.preloadTimer) {
+            clearTimeout(state.preloadTimer);
+            state.preloadTimer = null;
+        }
+        if (state.readyResolve) {
+            state.readyResolve();
+            state.readyResolve = null;
+        }
+        if (state.transcriptionResolve) {
+            state.transcriptionResolve({ text: null });
+            state.transcriptionResolve = null;
+        }
+        if (state.vadResolvers && state.vadResolvers.size > 0) {
+            state.vadResolvers.forEach((r) => r({ trimmedAudio: null, stats: null }));
+            state.vadResolvers.clear();
+        }
+        state.vadIdCounter = 0;
+    }
+
+    function rebindWorker(newWorker) {
+        terminate();
+        state.worker = newWorker;
+        state.worker.onmessage = messageHandler;
+        state.worker.onerror = errorHandler;
+        state.isReady = false;
+        isEngineReady = false;
+    }
+
+    return {
+        preloadWhisperEngine,
+        transcribeAudioBuffer,
+        analyzeAudioBufferWithVAD,
+        terminate,
+        rebindWorker,
+    };
 }
-
-// Legacy named exports (kept for backward compat with speech.web.js unused import)
-export function preloadWhisperEngine() { return Promise.resolve(); }
-export function transcribeAudioBuffer() { return Promise.resolve(null); }
-export function analyzeAudioBufferWithVAD() { return Promise.resolve(null); }
-
-export async function startWhisperEngine(options) { return false; }
-export function stopWhisperEngine() { }

@@ -18,7 +18,7 @@ import {
     canEncodeAudio,
 } from 'mediabunny';
 
-import { uploadWithXHR, toMp4DeliveryUrl, CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET } from './video-share.js';
+import { uploadWithXHR, toMp4DeliveryUrl, deleteFromCloudinary, CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET } from './video-share.js';
 
 // ---- Tunables ---------------------------------------------------------------
 
@@ -125,6 +125,9 @@ export async function transcodeToMp4(blob) {
  * This is the *fallback* path used when WebCodecs cannot encode H.264/AAC
  * (e.g. some Linux Chromium builds, older Safari). It costs money, so it
  * should only be hit on the fallback branch.
+ *
+ * The temporary Cloudinary upload is deleted (fire-and-forget) after the
+ * mp4 bytes are fetched, so Cloudinary storage doesn't accumulate.
  */
 export async function uploadWebmToCloudinary(blob) {
     const publicId = await uploadWithXHR(
@@ -139,5 +142,10 @@ export async function uploadWebmToCloudinary(blob) {
     const deliveryUrl = toMp4DeliveryUrl(publicId.data.secure_url);
     const resp = await fetch(deliveryUrl);
     if (!resp.ok) throw new Error(`Cloudinary fetch failed: HTTP ${resp.status}`);
-    return new Blob([await resp.arrayBuffer()], { type: 'video/mp4' });
+    const mp4Blob = new Blob([await resp.arrayBuffer()], { type: 'video/mp4' });
+    // Fire-and-forget cleanup of the temporary Cloudinary upload.
+    if (publicId.data?.delete_token) {
+        deleteFromCloudinary(publicId.data.delete_token);
+    }
+    return mp4Blob;
 }

@@ -6,8 +6,6 @@ import { saveSpeechRecording } from '../storage/storage.js';
 import { appStore, setWebcamStream } from '../store/store.js';
 import { DEFAULT_USER_AVATAR_URL } from '../user/tutor-config.js';
 
-import { transcribeAudioBuffer, analyzeAudioBufferWithVAD, preloadWhisperEngine } from '../../workers/whisper/app-vad-asr-web.js';
-
 // iOS detection disabled — iOS now uses same path as other devices
 // export const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 export const isWindows = navigator.platform.indexOf('Win') > -1;
@@ -153,11 +151,13 @@ export async function startSpeechCamRecording(micStatusText, userData, { deferSt
         setWebcamStream(speechCamStream);
 
         let mimeType = '';
-        // Prefer mp4 (H.264/AAC) on platforms whose MediaRecorder supports it
-        // (Windows + iOS). Android and Firefox still record webm reliably, so they
-        // fall through to the webm chain below — this keeps transcoding cheap for
-        // the per-segment R2 publish (Step 6) without breaking those browsers.
-        const mp4Preferred = isWindows || /iPad|iPhone|iPod/.test(navigator.userAgent);
+        // Prefer mp4 (H.264/AAC) on Windows only. iOS Safari's MediaRecorder
+        // produces mp4s with a known track-alignment bug (audio echo/desync
+        // at the start), and iOS was already working fine via the original
+        // webm fallthrough (browser default) — DO NOT change iOS behavior.
+        // Android and Firefox still record webm reliably and fall through to
+        // the webm chain below.
+        const mp4Preferred = isWindows;
         if (mp4Preferred) {
             if (MediaRecorder.isTypeSupported('video/mp4;codecs=h264,aac')) mimeType = 'video/mp4;codecs=h264,aac';
             else if (MediaRecorder.isTypeSupported('video/mp4')) mimeType = 'video/mp4';

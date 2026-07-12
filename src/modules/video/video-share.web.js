@@ -2,6 +2,7 @@
 // Web-only module — uses navigator.share / navigator.canShare + XMLHttpRequest to Cloudinary.
 // React Native replaces this with video-share.native.js.
 import Strings from '../../data/strings.js';
+import { transcodeToMp4, verifyMp4, uploadWebmToCloudinary } from './transcode.js';
 export const CLOUDINARY_CLOUD_NAME = 'dnolem9if';
 export const CLOUDINARY_UPLOAD_PRESET = 'default';
 
@@ -12,57 +13,47 @@ export async function shareVideo(blob, filename, fileExtension) {
             return;
         }
 
+        let mp4Blob = blob;
+        let mp4Name = filename;
+
         if (fileExtension === 'mp4') {
-            console.log('[VideoShare] Sharing native MP4 directly.');
-            const mp4File = new File([blob], filename, { type: 'video/mp4' });
-            if (navigator.canShare && navigator.canShare({ files: [mp4File] })) {
-                await navigator.share({
-                    title: Strings.get('share_title'),
-                    text: Strings.get('share_text'),
-                    files: [mp4File]
-                });
-            } else {
-                console.warn('[VideoShare] navigator.share not available.');
-            }
+            // Already mp4 — share directly, no transcode needed.
+            if (!mp4Name) mp4Name = 'uffenglish.mp4';
         } else {
-            console.warn('[VideoShare] Native MP4 not supported. Falling back to Cloudinary for transcoding...');
-            if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
-                console.warn('[VideoShare] Cloudinary not configured.');
-                return;
+            // Webm (or other non-mp4): transcode in-browser via WebCodecs.
+            // If WebCodecs can't encode H.264/AAC, fall back to Cloudinary
+            // server-side re-encode. The result is an mp4 for local sharing
+            // only — this is NEVER uploaded to R2.
+            try {
+                const transcoded = await transcodeToMp4(blob);
+                if (transcoded && await verifyMp4(transcoded)) {
+                    mp4Blob = transcoded;
+                    console.log('[VideoShare] Transcoded to mp4 via WebCodecs.');
+                } else {
+                    throw new Error('verify-failed');
+                }
+            } catch (e) {
+                if (e?.message !== 'webcodecs-unavailable' && e?.message !== 'verify-failed') {
+                    console.warn('[VideoShare] WebCodecs transcode error, falling back to Cloudinary:', e?.message);
+                } else {
+                    console.warn('[VideoShare] WebCodecs unavailable, falling back to Cloudinary.');
+                }
+                mp4Blob = await uploadWebmToCloudinary(blob);
+                console.log('[VideoShare] Transcoded to mp4 via Cloudinary.');
             }
+            if (!mp4Name) mp4Name = 'uffenglish.webm';
+            mp4Name = mp4Name.replace(/\.webm$/i, '.mp4');
+        }
 
-            const mp4Name = (filename || 'uffenglish.webm').replace(/\.webm$/i, '.mp4');
-            const uploadUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/video/upload`;
-            const response = await uploadWithXHR(uploadUrl, blob, CLOUDINARY_UPLOAD_PRESET, filename || 'uffenglish.webm');
-
-            if (!response.ok) {
-                throw new Error(response.error || 'Upload failed');
-            }
-
-            const mp4Url = toMp4DeliveryUrl(response.data.secure_url);
-            const deleteToken = response.data.delete_token;
-
-            const fileResp = await fetch(mp4Url);
-            if (!fileResp.ok) throw new Error(`Unable to fetch MP4: ${fileResp.status}`);
-
-            console.log('[VideoShare] Successfully transcoded via Cloudinary.');
-
-            const mp4Blob = await fileResp.blob();
-            const mp4File = new File([mp4Blob], mp4Name, { type: 'video/mp4' });
-
-            if (navigator.canShare && navigator.canShare({ files: [mp4File] })) {
-                await navigator.share({
-                    title: Strings.get('share_title'),
-                    text: Strings.get('share_text'),
-                    files: [mp4File]
-                });
-            } else {
-                console.warn('[VideoShare] navigator.share not available.');
-            }
-
-            if (deleteToken) {
-                deleteFromCloudinary(deleteToken);
-            }
+        const mp4File = new File([mp4Blob], mp4Name, { type: 'video/mp4' });
+        if (navigator.canShare && navigator.canShare({ files: [mp4File] })) {
+            await navigator.share({
+                title: Strings.get('share_title'),
+                text: Strings.get('share_text'),
+                files: [mp4File]
+            });
+        } else {
+            console.warn('[VideoShare] navigator.share not available.');
         }
     } catch (e) {
         console.error('[VideoShare] Error:', e.message);
@@ -70,7 +61,7 @@ export async function shareVideo(blob, filename, fileExtension) {
     }
 }
 
-function deleteFromCloudinary(deleteToken) {
+export function deleteFromCloudinary(deleteToken) {
     try {
         const xhr = new XMLHttpRequest();
         const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/delete_by_token`;

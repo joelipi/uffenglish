@@ -77,6 +77,10 @@ export default defineConfig({
                 target: 'https://r2.ultrafastfluency.com',
                 changeOrigin: true,
             },
+            '/api': {
+                target: 'http://localhost:8788',
+                changeOrigin: true,
+            },
         },
         headers: {
             'Cross-Origin-Opener-Policy': 'same-origin',

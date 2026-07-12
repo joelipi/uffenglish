@@ -12,3 +12,12 @@ bucket_name = "uff"
   id = "expire-videos-48h"
   conditions = { prefix = "videos/" }
   delete_within_days = 2
+
+# Appwrite config (used by functions/api/upload-segment.js).
+# APPWRITE_API_KEY (server-side API key with read access to user profiles)
+# is set via `wrangler secret put APPWRITE_API_KEY` and NOT committed.
+[vars]
+APPWRITE_ENDPOINT = "https://cloud.appwrite.io/v1"
+APPWRITE_PROJECT = "your-project-id"
+APPWRITE_DATABASE = "your-database-id"
+APPWRITE_USER_PROFILES_TABLE = "userprofilestable"

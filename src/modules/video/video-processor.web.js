@@ -9,7 +9,10 @@ import { getVideoUrl } from './video-url.js';
 import { VideoRenderPlanner, TEXT_MODE_DURATION_MS } from './video-processor-logic.js';
 import { DEFAULT_USER_AVATAR_URL } from '../user/tutor-config.js';
 import { getAvatarBlobUrl } from '../avatar/avatar.service.js';
-import { APPWRITE_CONFIG } from '../api/appwrite.js';
+import { account, APPWRITE_CONFIG } from '../api/appwrite.js';
+import { transcodeToMp4, verifyMp4, uploadWebmToCloudinary } from './transcode.js';
+import { uploadSegmentToR2 } from './r2-upload.js';
+import { trackEvent } from '../utils/posthog.js';
 
 export { shareVideo };
 
@@ -292,7 +295,7 @@ function drawProfileBackground(ctx, image, w, h) {
 // ---------------------------------------------------------------------------
 // Render loop — receives an animationId setter so the instance can cancel it
 // ---------------------------------------------------------------------------
-async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImage, profileImage, fluencyData, setAnimationId, audioContext, audioDestination) {
+async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImage, profileImage, fluencyData, setAnimationId, audioContext, audioDestination, { silent = false } = {}) {
     const ctx = canvas.getContext('2d');
     const planner = new VideoRenderPlanner();
     let currentAudioSource = null;
@@ -412,8 +415,10 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                             const source = audioContext.createBufferSource();
                             source.buffer = step.decodedAudio;
                             source.connect(audioDestination);
-                            // Also connect to speakers so the user hears the clip.
-                            source.connect(audioContext.destination);
+                            // Also connect to speakers so the user hears the clip —
+                            // unless `silent` is true (background export, which
+                            // would blast every clip through the speakers).
+                            if (!silent) source.connect(audioContext.destination);
                             const offset = Math.max(0, (video.currentTime || 0) - (step.trim?.start || 0));
                             source.start(audioContext.currentTime, offset);
                             currentAudioSource = source;
@@ -808,4 +813,207 @@ function getSupportedMimeType() {
           ];
 
     return types.find(t => MediaRecorder.isTypeSupported(t)) || '';
+}
+
+
+// ---------------------------------------------------------------------------
+// Per-segment R2 export pipeline (background, fire-and-forget)
+//
+// Reuses the module-level executeRenderLoop (with isFirst:false per step and
+// the new `silent` flag) to render each publishable segment, transcodes to
+// mp4 via the transcode layer, and uploads to R2. Login-gated; shareCode is
+// read from the store. All work is non-blocking — the caller (SuccessButtons)
+// does NOT await this.
+// ---------------------------------------------------------------------------
+
+// Module-level singletons reused across all export runs in the session.
+// The AudioContext MUST be created+resumed inside a user gesture; the
+// recap "Generate" click IS that gesture, so lazy-creating on the first
+// export call is correct. It is intentionally never closed.
+let exportAudioContext = null;
+let exportVideoCanvas = null;
+let exportVideoElement = null;
+
+function getOrCreateExportAudioContext() {
+    if (!exportAudioContext) {
+        exportAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (exportAudioContext.state === 'suspended') {
+        exportAudioContext.resume().catch(() => {});
+    }
+    return exportAudioContext;
+}
+
+function getOrCreateExportVideoCanvas(width, height) {
+    if (!exportVideoCanvas) {
+        exportVideoCanvas = document.createElement('canvas');
+        // iOS Safari only captures frames from a canvas that is part of
+        // the rendered DOM tree; an offscreen canvas.captureStream() yields
+        // a blank (gray) video track. Keep it in the DOM but hidden.
+        exportVideoCanvas.style.cssText = 'position:fixed;top:0;left:0;width:2px;height:4px;opacity:0.01;pointer-events:none;';
+        document.body.appendChild(exportVideoCanvas);
+    }
+    exportVideoCanvas.width = width;
+    exportVideoCanvas.height = height;
+    return exportVideoCanvas;
+}
+
+function getOrCreateExportVideoElement() {
+    if (!exportVideoElement) {
+        exportVideoElement = document.createElement('video');
+        exportVideoElement.crossOrigin = 'anonymous';
+        exportVideoElement.playsInline = true;
+        exportVideoElement.setAttribute('webkit-playsinline', '');
+        exportVideoElement.setAttribute('playsinline', '');
+        exportVideoElement.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;';
+        document.body.appendChild(exportVideoElement);
+    }
+    return exportVideoElement;
+}
+
+// Render a single plan step into a per-segment Blob by reusing executeRenderLoop
+// with a single-step plan (isFirst:false) and the silent flag.
+async function renderStepToBlob({ step, video, canvas, overlayImage, profileImage, fluencyData, audioContext }) {
+    const audioDestination = audioContext.createMediaStreamDestination();
+    const canvasStream = canvas.captureStream(30);
+    const combinedStream = new MediaStream([
+        ...canvasStream.getVideoTracks(),
+        ...audioDestination.stream.getAudioTracks(),
+    ]);
+    const mimeType = getSupportedMimeType();
+    const recorder = new MediaRecorder(combinedStream, mimeType ? { mimeType } : {});
+    const chunks = [];
+    recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunks.push(e.data);
+    };
+
+    const blob = await new Promise((resolve, reject) => {
+        recorder.onstop = () => resolve(new Blob(chunks, { type: mimeType || 'video/webm' }));
+        recorder.onerror = (e) => reject(e.error || new Error('MediaRecorder error'));
+        recorder.start(1000);
+        executeRenderLoop(
+            [{ ...step, isFirst: false }],
+            video, canvas, null,
+            overlayImage, profileImage, fluencyData,
+            () => {},
+            audioContext, audioDestination,
+            { silent: true }
+        ).then(() => recorder.stop()).catch((e) => {
+            try { recorder.stop(); } catch {}
+            reject(e);
+        });
+    });
+    const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+    return { blob, ext };
+}
+
+export async function exportSegmentsToR2(lessonId) {
+    if (!appStore.getState().isLoggedIn) {
+        console.warn('[ExportSegments] Not logged in, aborting R2 publish');
+        return;
+    }
+
+    const shareCode = appStore.getState().userData?.shareCode;
+    if (!shareCode) {
+        console.warn('[ExportSegments] No shareCode, aborting R2 publish');
+        return;
+    }
+
+    trackEvent('publish_clips_batch_start', { lessonId });
+
+    const recordings = await getAllSpeechRecordingsForLesson(lessonId) || [];
+    const configData = appStore.getState().configData || {};
+    const fluencyData = appStore.getState().successFluencyData;
+    const userLang = appStore.getState().userData?.native_language;
+
+    const planner = new VideoRenderPlanner(recordings, configData, fluencyData, userLang);
+    const fullPlan = planner.generatePlan();
+    const publishable = fullPlan.filter(s =>
+        (s.type === 'webcam' && s.blob && !s.isTextMode) ||
+        s.type === 'remote'
+    );
+
+    if (publishable.length === 0) {
+        console.log('[ExportSegments] No publishable segments');
+        trackEvent('publish_clips_batch_done', { lessonId, count: 0, succeeded: 0 });
+        return;
+    }
+
+    const audioContext = getOrCreateExportAudioContext();
+    const video = getOrCreateExportVideoElement();
+    const profileImage = await loadProfileImage();
+    const overlayImage = new Image();
+    overlayImage.src = headerImg;
+
+    // Probe dimensions from the first webcam step (mirrors processVideo).
+    const probeStep = publishable.find(s => s.type === 'webcam' && s.blob);
+    if (probeStep) {
+        video.src = URL.createObjectURL(probeStep.blob);
+        await new Promise((res) => {
+            video.onloadedmetadata = res;
+            setTimeout(res, 2000);
+        });
+    }
+    const dims = planner.getTargetDimensions(video.videoWidth || 1080, video.videoHeight || 1920);
+    const videoCanvas = getOrCreateExportVideoCanvas(dims.width, dims.height);
+
+    let succeeded = 0;
+    for (let i = 0; i < publishable.length; i++) {
+        const step = publishable[i];
+
+        // 1) Render the step to a per-segment blob.
+        let segBlob;
+        try {
+            const result = await renderStepToBlob({
+                step, video, canvas: videoCanvas, overlayImage, profileImage, fluencyData, audioContext,
+            });
+            segBlob = result.blob;
+        } catch (e) {
+            console.error('[ExportSegments] renderStepToBlob failed:', e);
+            trackEvent('publish_clips_segment_failed', { lessonId, index: i, error: 'render' });
+            continue;
+        }
+
+        // 2) Transcode to mp4 (WebCodecs primary, Cloudinary fallback).
+        let mp4 = null;
+        let path = null;
+        try {
+            mp4 = await transcodeToMp4(segBlob);
+            if (!await verifyMp4(mp4)) throw new Error('verify-failed');
+            path = 'webcodecs';
+        } catch (e) {
+            if (e?.message === 'webcodecs-unavailable' || e?.message === 'verify-failed') {
+                try {
+                    mp4 = await uploadWebmToCloudinary(segBlob);
+                    path = 'cloudinary';
+                } catch (ce) {
+                    console.error('[ExportSegments] Cloudinary fallback failed:', ce);
+                }
+            } else {
+                console.error('[ExportSegments] transcodeToMp4 error:', e);
+            }
+        }
+
+        if (!mp4) {
+            trackEvent('publish_clips_segment_failed', { lessonId, index: i, error: 'transcode' });
+            continue;
+        }
+
+        // 3) Upload to R2.
+        const key = `videos/${shareCode}-${lessonId}-response-${String(i + 1).padStart(2, '0')}.mp4`;
+        try {
+            const jwt = (await account.createJWT()).jwt;
+            const { url } = await uploadSegmentToR2({ blob: mp4, key, jwt, shareCode });
+            trackEvent('publish_clips_segment_success', { lessonId, index: i, path, url });
+            succeeded++;
+        } catch (e) {
+            console.error('[ExportSegments] R2 upload failed:', e);
+            trackEvent('publish_clips_segment_failed', { lessonId, index: i, error: 'upload' });
+        }
+    }
+
+    trackEvent('publish_clips_batch_done', { lessonId, count: publishable.length, succeeded });
+
+    // Clear the post-login pending publish so a refresh doesn't re-trigger.
+    appStore.getState().setPendingPublishLessonId?.(null);
 }

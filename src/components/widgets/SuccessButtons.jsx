@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { trackEvent } from '../../modules/utils/posthog.js';
@@ -16,6 +16,7 @@ export function ContinueButton({ onLoadNextLesson }) {
 
   return (
     <button
+      type="button"
       id="continueButtonSuccess"
       className="btn btn-primary text-white flex-fill"
       onClick={handleClick}
@@ -38,18 +39,30 @@ export function VideoButton({ canvasRef }) {
   const setContinueVisible = useStore(appStore, state => state.setSuccessContinueVisible);
   const shareHandlerRef = useRef(null);
 
-  if (!button.visible) return null;
+  // Show SaveClipsModal immediately for guests when the success screen
+  // appears, blocking the processBtn behind the dialog's backdrop.
+  useEffect(() => {
+    if (button.visible) {
+      const { isLoggedIn, userData, setSaveClipsModalOpen, setPendingPublishLessonId } = appStore.getState();
+      const isUserLoggedIn =
+        !!isLoggedIn &&
+        userData?.auth_method === 'appwrite' &&
+        userData?.$id && userData.$id !== 'guest';
+      if (!isUserLoggedIn) {
+        setPendingPublishLessonId(lessonId);
+        setSaveClipsModalOpen(true);
+      }
+    }
+  }, [button.visible, lessonId]);
 
-  const handleProcess = async () => {
-    trackEvent('video_generation_started');
-    setVideoState('processing');
-    setCanvasVisible(true);
-
+  // Shared processing logic — runs immediately on processBtn click.
+  // For logged-in users, also publishes segments to R2.
+  const runProcessing = useCallback(async ({ publishSegments }) => {
     try {
       appStore.getState().triggerPauseAllVideos();
       appStore.getState().setCurrentVideo(null);
 
-      const { processVideo, shareVideo } = await import('../../modules/video/video-processor.js');
+      const { processVideo, shareVideo, exportSegmentsToR2 } = await import('../../modules/video/video-processor.js');
       const canvas = canvasRef?.current;
       const result = await processVideo(fluencyData, lessonId, canvas);
 
@@ -66,6 +79,10 @@ export function VideoButton({ canvasRef }) {
           const filename = `${generateVideoFilename(lessonId)}.${result.ext || 'webm'}`;
           await shareVideo(result.blob, filename, result.ext || 'webm');
         };
+
+        if (publishSegments) {
+          exportSegmentsToR2(lessonId);
+        }
       }
     } catch (err) {
       trackEvent('video_generation_failed', { error: err.message });
@@ -73,6 +90,22 @@ export function VideoButton({ canvasRef }) {
       alert('Failed to generate video. Please try again.');
       setVideoState('idle');
     }
+  }, [canvasRef, fluencyData, lessonId, setCanvasVisible, setSuccessVideoBlob, setVideoState, setRepeatVisible, setContinueVisible]);
+
+  if (!button.visible) return null;
+
+  const handleProcess = async () => {
+    trackEvent('video_generation_started');
+    setVideoState('processing');
+    setCanvasVisible(true);
+
+    const { isLoggedIn, userData } = appStore.getState();
+    const isUserLoggedIn =
+      !!isLoggedIn &&
+      userData?.auth_method === 'appwrite' &&
+      userData?.$id && userData.$id !== 'guest';
+
+    await runProcessing({ publishSegments: isUserLoggedIn });
   };
 
   const handleShare = () => {
@@ -84,6 +117,7 @@ export function VideoButton({ canvasRef }) {
   if (button.state === 'idle') {
     return (
       <button
+        type="button"
         id="processBtn"
         className="btn btn-outline-primary w-100"
         onClick={handleProcess}
@@ -95,7 +129,7 @@ export function VideoButton({ canvasRef }) {
 
   if (button.state === 'processing') {
     return (
-      <button className="btn btn-outline-primary w-100" disabled>
+      <button type="button" className="btn btn-outline-primary w-100" disabled>
         <span className="spinner-border spinner-border-sm me-2" />
         Generating...
       </button>
@@ -105,6 +139,7 @@ export function VideoButton({ canvasRef }) {
   if (button.state === 'ready') {
     return (
       <button
+        type="button"
         id="createVideoButton"
         className="btn btn-success flex-fill"
         onClick={handleShare}
@@ -129,6 +164,7 @@ export function RepeatButton({ lessonId, onRepeat }) {
 
   return (
     <button
+      type="button"
       id="repeatButtonSuccess"
       className="btn btn-primary text-white flex-fill repeat-btn"
       onClick={handleRepeat}

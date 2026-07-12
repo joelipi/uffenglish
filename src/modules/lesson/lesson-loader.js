@@ -6,10 +6,16 @@ import { trackEvent } from '../utils/posthog.js';
 export async function loadLessonContent(lesson, options = {}) {
     const { forceRestart = false } = options;
 
-    try {
-        await clearSpeechRecordingsForLesson(lesson.lessonId);
-    } catch (e) {
-        console.error(e);
+    // Only clear recordings on explicit restart (Repeat button).
+    // Normal re-mounts (page reload, signup redirect) preserve recordings
+    // in the in-memory Map — they survive SPA navigation but are lost on
+    // a full page reload (which is a Browser limitation, not a code bug).
+    if (forceRestart) {
+        try {
+            await clearSpeechRecordingsForLesson(lesson.lessonId);
+        } catch (e) {
+            console.error(e);
+        }
     }
 
     const player = getCurrentVideoPlayer();

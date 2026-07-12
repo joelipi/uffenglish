@@ -160,6 +160,12 @@ export const appStore = createStore(
             successVideoButton: { visible: false, loading: false, state: 'idle' },
             successRepeatButton: { visible: false },
             successCanvasVisible: false,
+
+            // --- Save-clips modal (guest R2 publish prompt) ---
+            saveClipsModalOpen: false,
+            // Captured at modal-open so the post-login effect can recover
+            // the recap's lessonId even if the success screen unmounts.
+            pendingPublishLessonId: null,
             pointLossAmount: null,
             pointLossTrigger: 0,
 
@@ -566,6 +572,8 @@ export const appStore = createStore(
                 successRepeatButton: { visible: false },
                 successCanvasVisible: false,
                 successVideoBlob: null,
+                saveClipsModalOpen: false,
+                pendingPublishLessonId: null,
             }),
             setSuccessContinueLoading: (loading) => set(state => ({
                 successContinueButton: { ...state.successContinueButton, loading }
@@ -580,6 +588,8 @@ export const appStore = createStore(
             setSuccessContinueVisible: (visible) => set(state => ({
                 successContinueButton: { ...state.successContinueButton, visible }
             })),
+            setSaveClipsModalOpen: (open) => set({ saveClipsModalOpen: open }),
+            setPendingPublishLessonId: (lessonId) => set({ pendingPublishLessonId: lessonId }),
 
             // --- Media Viewport Actions ---
             setPraiseImageUrl: (url) => set({ praiseImageUrl: url }),
