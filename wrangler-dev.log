@@ -45,3 +45,54 @@ but you've requested "2026-06-10". Falling back to "2026-03-17"...
 Features enabled by your requested compatibility date may not be available.
 Upgrade to `wrangler@4.110.0` to remove this warning.
 [wrangler:info] Ready on http://127.0.0.1:8788
+✨ Compiled Worker successfully
+⎔ Reloading local server...
+⎔ Local server updated and ready
+✨ Compiled Worker successfully
+⎔ Reloading local server...
+⎔ Local server updated and ready
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProcessing wrangler.toml configuration:[0m
+
+    - Unexpected fields found in r2_buckets[0] field: "lifecycle"
+
+
+There is a newer version of Wrangler available (current: 4.77.0, latest: 4.110.0). Try upgrading, as it might support this configuration option.
+Using secrets defined in .env
+Your Worker has access to the following bindings:
+Binding                                                                            Resource                  Mode
+env.UFF_R2 (uff)                                                                   R2 Bucket                 local
+env.CF_PAGES ("1")                                                                 Environment Variable      local
+env.CF_PAGES_BRANCH ("g3/parallel-3/opencode-hy3-free")                            Environment Variable      local
+env.CF_PAGES_COMMIT_SHA ("ba19ae6fb4e90e730396dd49554b833f64f78...")               Environment Variable      local
+env.CF_PAGES_URL ("https://ba19ae6.uffenglish.pages.dev")                          Environment Variable      local
+env.APPWRITE_ENDPOINT ("https://nyc.cloud.appwrite.io/v1")                         Environment Variable      local
+env.APPWRITE_PROJECT ("69e6faf4001ff72b2ac3")                                      Environment Variable      local
+env.APPWRITE_DATABASE ("69e6fc160026cb28cf02")                                     Environment Variable      local
+env.APPWRITE_USER_PROFILES_TABLE ("userprofilestable")                             Environment Variable      local
+env.VITE_PUBLIC_POSTHOG_KEY ("(hidden)")                                           Environment Variable      local
+env.VITE_PUBLIC_POSTHOG_HOST ("(hidden)")                                          Environment Variable      local
+
+⎔ Reloading local server...
+⎔ Local server updated and ready
+_headers modified. Re-evaluating...
+✨ Parsed 0 valid redirect rules.
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mFound 1 invalid redirect rule:[0m
+
+  ▶︎ Infinite loop detected in this rule and has been ignored. This will cause a redirect to strip `.html` or `/index` and end up triggering this rule again. Please fix or remove this rule to silence this warning.
+      at dist\_redirects:1 | /*    /index.html   200
+  
+  
+
+
+✨ Parsed 2 valid header rules.
+_headers modified. Re-evaluating...
+✨ Parsed 0 valid redirect rules.
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mFound 1 invalid redirect rule:[0m
+
+  ▶︎ Infinite loop detected in this rule and has been ignored. This will cause a redirect to strip `.html` or `/index` and end up triggering this rule again. Please fix or remove this rule to silence this warning.
+      at dist\_redirects:1 | /*    /index.html   200
+  
+  
+
+
+✨ Parsed 2 valid header rules.
