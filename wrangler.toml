@@ -17,7 +17,7 @@ bucket_name = "uff"
 # APPWRITE_API_KEY (server-side API key with read access to user profiles)
 # is set via `wrangler secret put APPWRITE_API_KEY` and NOT committed.
 [vars]
-APPWRITE_ENDPOINT = "https://cloud.appwrite.io/v1"
-APPWRITE_PROJECT = "your-project-id"
-APPWRITE_DATABASE = "your-database-id"
+APPWRITE_ENDPOINT = "https://nyc.cloud.appwrite.io/v1"
+APPWRITE_PROJECT = "69e6faf4001ff72b2ac3"
+APPWRITE_DATABASE = "69e6fc160026cb28cf02"
 APPWRITE_USER_PROFILES_TABLE = "userprofilestable"
