@@ -91,7 +91,7 @@ export default function SaveClipsModal() {
                                 id="saveClipsLoginBtn"
                                 className="btn btn-primary"
                                 onClick={() => {
-                                    appStore.getState().setPendingRecapProcessing(null);
+                                    appStore.getState().setPendingPublishLessonId(null);
                                     appStore.getState().setSaveClipsModalOpen(false);
                                     trackEvent('publish_clips_modal_action', { action: 'login' });
                                 }}
@@ -104,7 +104,7 @@ export default function SaveClipsModal() {
                                 id="saveClipsSignupBtn"
                                 className="btn btn-secondary"
                                 onClick={() => {
-                                    appStore.getState().setPendingRecapProcessing(null);
+                                    appStore.getState().setPendingPublishLessonId(null);
                                     appStore.getState().setSaveClipsModalOpen(false);
                                     trackEvent('publish_clips_modal_action', { action: 'signup' });
                                 }}

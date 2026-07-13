@@ -833,6 +833,7 @@ function getSupportedMimeType() {
 let exportAudioContext = null;
 let exportVideoCanvas = null;
 let exportVideoElement = null;
+let exportAudioSource = null;
 
 function getOrCreateExportAudioContext() {
     if (!exportAudioContext) {
@@ -875,6 +876,19 @@ function getOrCreateExportVideoElement() {
 // with a single-step plan (isFirst:false) and the silent flag.
 async function renderStepToBlob({ step, video, canvas, overlayImage, profileImage, fluencyData, audioContext }) {
     const audioDestination = audioContext.createMediaStreamDestination();
+
+    // Route the webcam <video> element's audio into the recording graph. On
+    // non-Safari browsers executeRenderLoop does NOT decode audio (it relies on
+    // this createMediaElementSource path, exactly like the main process() path
+    // via initAudio). Without it the recorded segment is silent. We connect only
+    // to audioDestination (not speakers) because this is a background export and
+    // `silent` is true. createMediaElementSource can be called only once per
+    // element, so lazily create and cache it on the export video element.
+    if (!exportAudioSource) {
+        exportAudioSource = audioContext.createMediaElementSource(video);
+    }
+    exportAudioSource.connect(audioDestination);
+
     const canvasStream = canvas.captureStream(30);
     const combinedStream = new MediaStream([
         ...canvasStream.getVideoTracks(),
@@ -928,9 +942,11 @@ export async function exportSegmentsToR2(lessonId) {
 
     const planner = new VideoRenderPlanner(recordings, configData, fluencyData, userLang);
     const fullPlan = planner.generatePlan();
+    // Only publish the user's own webcam responses. The `remote` steps are
+    // system/model prompt clips — never user-generated, so we must not upload
+    // them to the user's R2 namespace.
     const publishable = fullPlan.filter(s =>
-        (s.type === 'webcam' && s.blob && !s.isTextMode) ||
-        s.type === 'remote'
+        s.type === 'webcam' && s.blob && !s.isTextMode
     );
 
     if (publishable.length === 0) {
@@ -999,8 +1015,10 @@ export async function exportSegmentsToR2(lessonId) {
             continue;
         }
 
-        // 3) Upload to R2.
-        const key = `videos/${shareCode}-${lessonId}-response-${String(i + 1).padStart(2, '0')}.mp4`;
+        // 3) Upload to R2. Key includes the course id so each course's clips
+        // are namespaced and won't collide across courses for the same user.
+        const courseId = appStore.getState().courseId;
+        const key = `videos/${shareCode}-${courseId}-${lessonId}-response-${String(i + 1).padStart(2, '0')}.mp4`;
         try {
             const jwt = (await account.createJWT()).jwt;
             const { url } = await uploadSegmentToR2({ blob: mp4, key, jwt, shareCode });
