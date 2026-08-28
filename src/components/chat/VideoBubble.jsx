@@ -10,15 +10,7 @@ export default function VideoBubble({ avatarUrl, userName, reactionCount }) {
     const [muted, setMuted] = useState(true);
     const [resolvedAvatar, setResolvedAvatar] = useState(null);
 
-    useEffect(() => {
-        let active = true;
-        if (avatarUrl && typeof avatarUrl === 'string' && avatarUrl.includes('appwrite.io')) {
-            getAvatarBlobUrl(avatarUrl).then(url => { if (active) setResolvedAvatar(url); });
-        } else {
-            setResolvedAvatar(null);
-        }
-        return () => { active = false; };
-    }, [avatarUrl]);
+    useEffect(() => { setResolvedAvatar(null); }, [avatarUrl]);
 
     const toggleMute = () => {
         const video = videoRef.current;

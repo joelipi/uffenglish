@@ -13,12 +13,6 @@ bucket_name = "uff"
   conditions = { prefix = "videos/" }
   delete_within_days = 2
 
-# Appwrite config (NOT used by the current Function — it makes no Appwrite
-# calls — but kept for future Functions and parity with the SPA's runtime
-# config). APPWRITE_API_KEY is no longer required; if set via
-# `wrangler secret put APPWRITE_API_KEY` it is simply ignored.
+# Supabase config (public values, also in .env for SPA)
 [vars]
-APPWRITE_ENDPOINT = "https://nyc.cloud.appwrite.io/v1"
-APPWRITE_PROJECT = "69e6faf4001ff72b2ac3"
-APPWRITE_DATABASE = "69e6fc160026cb28cf02"
-APPWRITE_USER_PROFILES_TABLE = "userprofilestable"
+SUPABASE_URL = "https://jbrbmbmupjfangqvaevx.supabase.co"

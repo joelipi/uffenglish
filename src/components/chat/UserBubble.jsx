@@ -5,15 +5,7 @@ import { getAvatarBlobUrl } from '../../modules/avatar/avatar.service.js';
 export default function UserBubble({ text, translation, translationLang, userName, userAvatarUrl, reactionCount }) {
     const [resolvedUrl, setResolvedUrl] = useState(null);
 
-    useEffect(() => {
-        let active = true;
-        if (userAvatarUrl && typeof userAvatarUrl === 'string' && userAvatarUrl.includes('appwrite.io')) {
-            getAvatarBlobUrl(userAvatarUrl).then(url => { if (active) setResolvedUrl(url); });
-        } else {
-            setResolvedUrl(null);
-        }
-        return () => { active = false; };
-    }, [userAvatarUrl]);
+    useEffect(() => { setResolvedUrl(null); }, [userAvatarUrl]);
 
     const src = resolvedUrl || userAvatarUrl || DEFAULT_USER_AVATAR_URL;
 

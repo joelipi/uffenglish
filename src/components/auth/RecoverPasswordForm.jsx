@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { account } from '../../modules/api/appwrite.js';
+import { supabase } from '../../modules/api/supabase.js';
 import { getAppOrigin } from '../../modules/utils/url-params.js';
 
 export function useRecoverPasswordForm({ onBackToLogin } = {}) {
@@ -16,7 +16,8 @@ export function useRecoverPasswordForm({ onBackToLogin } = {}) {
 
         try {
             const resetUrl = `${getAppOrigin()}/reset-password`;
-            await account.createRecovery(email, resetUrl);
+            const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: resetUrl });
+            if (error) throw error;
             setSuccess(true);
         } catch (err) {
             setError(err.message);

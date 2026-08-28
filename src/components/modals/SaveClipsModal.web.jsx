@@ -41,15 +41,15 @@ export default function SaveClipsModal() {
 
     // Post-login effect: when the user completes login and lands back on
     // the success page, userData transitions from the synthetic guest object
-    // to a real Appwrite profile (auth_method === 'appwrite'), while
+    // to a real Supabase profile (auth_method === 'supabase'), while
     // pendingPublishLessonId is still set. Clear the pending state and close
     // the modal — the user clicks processBtn again (now logged-in) which
     // runs the recap AND the segment publish together.
-    // CRITICAL: must check auth_method === 'appwrite' — the guest synthetic
+    // CRITICAL: must check auth_method === 'supabase' — the guest synthetic
     // userData object ({ $id: 'guest', auth_method: 'guest' }) is truthy and
     // would otherwise clear the state on mount.
     useEffect(() => {
-        if (userData?.auth_method === 'appwrite' && pendingPublishLessonId) {
+        if (userData?.auth_method === 'supabase' && pendingPublishLessonId) {
             appStore.getState().setPendingPublishLessonId(null);
             appStore.getState().setSaveClipsModalOpen(false);
         }

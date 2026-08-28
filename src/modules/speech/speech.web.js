@@ -58,19 +58,10 @@ async function createPlaceholderStream() {
     canvas.height = 1920;
     const ctx = canvas.getContext('2d');
 
-    // Load the user's profile picture (or default) for drawing on the canvas
     const profileUrl = appStore.getState().userData?.profilePictureUrl || DEFAULT_USER_AVATAR_URL;
     let profileImage = null;
     try {
         let src = profileUrl;
-        // Resolve Appwrite URLs by fetching with credentials
-        if (profileUrl.includes('appwrite.io')) {
-            const resp = await fetch(profileUrl, { credentials: 'include' });
-            if (resp.ok) {
-                const blob = await resp.blob();
-                src = URL.createObjectURL(blob);
-            }
-        }
         const img = await new Promise((resolve, reject) => {
             const i = new Image();
             i.onload = () => resolve(i);

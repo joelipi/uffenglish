@@ -46,7 +46,7 @@ export function VideoButton({ canvasRef }) {
       const { isLoggedIn, userData, setSaveClipsModalOpen, setPendingPublishLessonId } = appStore.getState();
       const isUserLoggedIn =
         !!isLoggedIn &&
-        userData?.auth_method === 'appwrite' &&
+        userData?.auth_method === 'supabase' &&
         userData?.$id && userData.$id !== 'guest';
       if (!isUserLoggedIn) {
         setPendingPublishLessonId(lessonId);
@@ -102,7 +102,7 @@ export function VideoButton({ canvasRef }) {
     const { isLoggedIn, userData } = appStore.getState();
     const isUserLoggedIn =
       !!isLoggedIn &&
-      userData?.auth_method === 'appwrite' &&
+      userData?.auth_method === 'supabase' &&
       userData?.$id && userData.$id !== 'guest';
 
     await runProcessing({ publishSegments: isUserLoggedIn });

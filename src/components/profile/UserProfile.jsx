@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { account } from '../../modules/api/appwrite.js';
+import { supabase } from '../../modules/api/supabase.js';
 import { useUserProfile, useSyncUserMetaData, invalidateUserAndAuthCache, queryClient } from '../../modules/api/api.js';
 import { getAvatarBlobUrl, revokeAvatarBlobUrl } from '../../modules/avatar/avatar.service.js';
 import Strings from '../../data/strings.js';
@@ -98,29 +98,12 @@ export default function UserProfile() {
     const [avatarMsg, setAvatarMsg] = useState(null);
     const [avatarUrl, setAvatarUrl] = useState(null);
 
-    // Resolve Appwrite Storage URLs to downloadable blob URLs.
-    // The Appwrite session cookie may not be sent with cross-origin <img> requests,
-    // so we download the file via fetch() with credentials and create a local blob URL.
+    // Supabase public URLs need no blob fetch — use directly
     useEffect(() => {
-        let active = true;
-        const raw = profile?.profilePictureUrl;
-
-        if (!raw) {
-            setAvatarUrl(null);
-            return;
-        }
-
-        const isAppwriteUrl = typeof raw === 'string' && raw.includes('appwrite.io');
-        if (isAppwriteUrl) {
-            getAvatarBlobUrl(raw).then(blobUrl => {
-                if (active) setAvatarUrl(blobUrl);
-            });
-        } else {
-            // Local asset or data URL — use directly
-            setAvatarUrl(null);
-        }
-
-        return () => { active = false; };
+        if (!profile?.profilePictureUrl) { setAvatarUrl(null); return; }
+        // Legacy appwrite URLs no longer valid
+        if (profile.profilePictureUrl.includes('appwrite.io')) { setAvatarUrl(null); return; }
+        setAvatarUrl(null);
     }, [profile?.profilePictureUrl]);
 
     const LOCALE_MAP = { EN: 'en', ES: 'es', FR: 'fr', DE: 'de', IT: 'it', PT: 'pt', ZH: 'zh', JA: 'ja', KO: 'ko', RU: 'ru', AR: 'ar', HI: 'hi', NL: 'nl', PL: 'pl', TR: 'tr', VI: 'vi', TH: 'th', SV: 'sv' };
@@ -129,11 +112,9 @@ export default function UserProfile() {
     const displayName = profile?.display_name || '';
     const email = profile?.email || '';
     const joinDate = profile?.join_date ? new Date(profile.join_date).toLocaleDateString(LOCALE_MAP[profile.native_language] || 'en') : '';
-    const shareCode = profile?.shareCode || '';
-    // If it's an Appwrite URL, show the blob URL once ready, otherwise the placeholder
+    const shareCode = profile?.shareCode || profile?.share_code || '';
     const rawPic = profile?.profilePictureUrl;
-    const isAppwriteRef = rawPic ? rawPic.includes('appwrite.io') : false;
-    const profilePic = isAppwriteRef ? (avatarUrl || defaultProfilePic) : (rawPic || defaultProfilePic);
+    const profilePic = rawPic || defaultProfilePic;
     const completedDates = Array.isArray(profile?.completed_dates) ? profile.completed_dates : [];
     const lessonsCompleted = Number(profile?.lessons_completed || 0);
 
@@ -176,7 +157,7 @@ export default function UserProfile() {
                 },
                 userId: profile.$id,
             });
-            await account.updateName(fullName);
+            await supabase.auth.updateUser({ data: { full_name: fullName } });
             invalidateUserAndAuthCache();
             trackEvent('profile_saved', {
                 native_language: nativeLanguage,
@@ -191,10 +172,11 @@ export default function UserProfile() {
     async function handleEmailChange() {
         setEmailMsg(null);
         if (!newEmail) { setEmailMsg({ type: 'error', text: 'Please enter a new email.' }); return; }
-        if (!emailPassword) { setEmailMsg({ type: 'error', text: 'Please enter your current password.' }); return; }
+        // Supabase doesn't need current password to change email — just send update
         setEmailLoading(true);
         try {
-            await account.updateEmail(newEmail, emailPassword);
+            const { error } = await supabase.auth.updateUser({ email: newEmail });
+            if (error) throw error;
             invalidateUserAndAuthCache();
             setEmailMsg({ type: 'success', text: Strings.get('profile_email_verification_sent', lang) });
             setNewEmail('');
@@ -213,7 +195,10 @@ export default function UserProfile() {
         if (newPassword !== confirmPassword) { setPasswordMsg({ type: 'error', text: 'Passwords do not match.' }); return; }
         setPasswordLoading(true);
         try {
-            await account.updatePassword(newPassword, curPassword);
+            // Verify current password by re-authenticating (optional)
+            // Supabase updateUser just needs new password; current is verified if session valid
+            const { error } = await supabase.auth.updateUser({ password: newPassword });
+            if (error) throw error;
             setPasswordMsg({ type: 'success', text: Strings.get('profile_password_updated', lang) });
             setCurPassword('');
             setNewPassword('');

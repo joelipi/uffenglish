@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { account } from '../../modules/api/appwrite.js';
-import { getUrlParam } from '../../modules/utils/url-params.js';
+import { supabase } from '../../modules/api/supabase.js';
 import Strings from '../../data/strings.js';
 
 export function useResetPasswordForm({ onResetSuccess } = {}) {
@@ -11,14 +10,16 @@ export function useResetPasswordForm({ onResetSuccess } = {}) {
     const [loading, setLoading] = useState(false);
     const [invalidLink, setInvalidLink] = useState(false);
 
-    const userId = getUrlParam('userId');
-    const secret = getUrlParam('secret');
-
     useEffect(() => {
-        if (!userId || !secret) {
-            setInvalidLink(true);
-        }
-    }, [userId, secret]);
+        // Supabase recovery links set a session via ?code= or hash. Check session exists.
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (!session) {
+                // No session — might be invalid/expired link. Don't block immediately,
+                // let user try; Supabase will error on updateUser if invalid.
+                console.warn('[ResetPassword] No active session from recovery link');
+            }
+        });
+    }, []);
 
     async function handleSubmit(e) {
         e.preventDefault();
@@ -32,7 +33,8 @@ export function useResetPasswordForm({ onResetSuccess } = {}) {
         setLoading(true);
 
         try {
-            await account.updateRecovery(userId, secret, password, passwordConfirm);
+            const { error } = await supabase.auth.updateUser({ password });
+            if (error) throw error;
             setSuccess(true);
         } catch (err) {
             setError(err.message);

@@ -9,7 +9,7 @@ import { getVideoUrl } from './video-url.js';
 import { VideoRenderPlanner, TEXT_MODE_DURATION_MS } from './video-processor-logic.js';
 import { DEFAULT_USER_AVATAR_URL } from '../user/tutor-config.js';
 import { getAvatarBlobUrl } from '../avatar/avatar.service.js';
-import { account, APPWRITE_CONFIG } from '../api/appwrite.js';
+import { supabase, getAccessToken } from '../api/supabase.js';
 import { transcodeToMp4, verifyMp4, uploadWebmToCloudinary } from './transcode.js';
 import { uploadSegmentToR2 } from './r2-upload.js';
 import { trackEvent } from '../utils/posthog.js';
@@ -249,11 +249,6 @@ export async function processVideo(fluencyData = {}, lessonId = null, displayCan
 // ---------------------------------------------------------------------------
 async function loadProfileImage() {
     let src = appStore.getState().userData?.profilePictureUrl || DEFAULT_USER_AVATAR_URL;
-
-    if (src && APPWRITE_CONFIG?.ENDPOINT && src.includes(APPWRITE_CONFIG.ENDPOINT)) {
-        const blobUrl = await getAvatarBlobUrl(src);
-        if (blobUrl) src = blobUrl;
-    }
 
     return new Promise((resolve) => {
         const img = new Image();
@@ -1020,7 +1015,7 @@ export async function exportSegmentsToR2(lessonId) {
         const courseId = appStore.getState().courseId;
         const key = `videos/${shareCode}-${courseId}-${lessonId}-response-${String(i + 1).padStart(2, '0')}.mp4`;
         try {
-            const jwt = (await account.createJWT()).jwt;
+            const jwt = (await getAccessToken()) || '';
             const { url } = await uploadSegmentToR2({ blob: mp4, key, jwt, shareCode });
             trackEvent('publish_clips_segment_success', { lessonId, index: i, path, url });
             succeeded++;
