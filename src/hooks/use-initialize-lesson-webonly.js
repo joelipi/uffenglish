@@ -10,7 +10,7 @@ import { saveLessonProgress } from '../modules/user/user-profile.js';
 import { loadLessonContent } from '../modules/lesson/lesson-loader.js';
 import Strings from '../data/strings.js';
 import { trackEvent } from '../modules/utils/posthog.js';
-import { getVideoUrl } from '../modules/video/video-url.js';
+import { getVideoUrl, getPosterUrl } from '../modules/video/video-url.js';
 
 export function useInitializeLesson({ forceRestart = false } = {}) {
     const initializeLesson = useCallback(async (courseId, lessonId, configData, userData) => {
@@ -39,7 +39,7 @@ export function useInitializeLesson({ forceRestart = false } = {}) {
             // Intentional window.preloadLessonAssets — web asset preloading injected
             // by index.html inline script. Guarded: if undefined (RN), just skipped.
             if (typeof window !== 'undefined' && window.preloadLessonAssets) {
-                await window.preloadLessonAssets(lesson, getVideoUrl);
+                await window.preloadLessonAssets(lesson, getVideoUrl, getPosterUrl);
             }
 
             await loadLessonContent(lesson, { forceRestart });

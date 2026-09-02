@@ -5,6 +5,7 @@ import Strings from '../../data/strings.js';
 import { saveSpeechRecording } from '../storage/storage.js';
 import { appStore, setWebcamStream } from '../store/store.js';
 import { DEFAULT_USER_AVATAR_URL } from '../user/tutor-config.js';
+import { generateThumbFromBlob } from '../video/thumbnail.js';
 
 // iOS detection disabled — iOS now uses same path as other devices
 // export const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -217,7 +218,13 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
                             document.body.appendChild(a); a.click(); a.remove();
                             setTimeout(() => URL.revokeObjectURL(url), 10000);
                         } else if (persist && blob.size > 0) {
-                            await saveSpeechRecording(blob, meta);
+                            let thumb = null;
+                            try {
+                                thumb = await generateThumbFromBlob(blob, { atSeconds: 0.2, width: 320, quality: 0.7 });
+                            } catch (e) {
+                                console.warn('[Thumbnail] raw webcam thumb failed:', e?.message || e);
+                            }
+                            await saveSpeechRecording(blob, meta, thumb);
                         }
                     } catch (error) {
                         console.error('[Recording] Error in onstop handler:', error);

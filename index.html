@@ -124,7 +124,7 @@
 
     <!-- RESTORED: App Loading & Pre-caching Script -->
     <script>
-        window.preloadLessonAssets = async function (lessonData, buildVideoUrlFn) {
+        window.preloadLessonAssets = async function (lessonData, buildVideoUrlFn, buildPosterUrlFn) {
             const progressBar = document.getElementById('ui-progress-bar');
             let progress = 0;
             const progressInterval = setInterval(() => {
@@ -145,6 +145,28 @@
                         const slug = step.interactiveVideoUrl || step.simpleVideoUrl || step.introBackgroundVideoUrl;
                         if (slug) fetch(buildVideoUrlFn(slug)).catch(() => {});
                     });
+                }
+
+                // High-priority poster preload for lesson intro — ensures the
+                // intro rectangle is never empty (LQIP already prevents black).
+                // Uses fetch + Image.decode() so the browser caches + decodes it.
+                if (lessonData?.lessonId && typeof buildPosterUrlFn === 'function') {
+                    try {
+                        const posterUrl = buildPosterUrlFn(lessonData.lessonId);
+                        if (posterUrl) {
+                            fetch(posterUrl, { priority: 'high' }).catch(() => {});
+                            const pImg = new Image();
+                            pImg.decoding = 'async';
+                            pImg.fetchPriority = 'high';
+                            pImg.src = posterUrl;
+                            if (pImg.decode) {
+                                await Promise.race([
+                                    pImg.decode().catch(() => {}),
+                                    new Promise(r => setTimeout(r, 1200))
+                                ]);
+                            }
+                        }
+                    } catch (e) {}
                 }
 
                 // Preload essential UI images

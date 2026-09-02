@@ -34,27 +34,29 @@ export function usePreloader() {
             }, 550);
         };
 
-        if (appStore.getState().introVideoReady) {
-            // No intro video to wait for — fade out immediately.
+        // Gate on poster (LQIP + jpg) for zero-ms rectangle. Video warms behind poster.
+        const needsPoster = !appStore.getState().introPosterReady;
+        if (!needsPoster) {
+            // No intro poster to wait for — fade out immediately (also covers non-intro steps).
             doFadeOut();
             return;
         }
 
-        // introVideoReady is false — keep the Preloader fully visible (progress bar
-        // still pulsing) until the intro background video is loaded, then fade out.
-        // This avoids a black-screen gap (FoUC).
-        console.log('[Preloader] Waiting for introVideoReady before fading out…');
+        // introPosterReady is false — keep the Preloader fully visible (progress bar
+        // still pulsing) until the intro poster is decoded/painted, then fade out.
+        // This guarantees the rectangle is never empty (LQIP/gradient already painted).
+        console.log('[Preloader] Waiting for introPosterReady before fading out…');
         const startedAt = Date.now();
         _introVideoPollInterval = setInterval(() => {
-            if (appStore.getState().introVideoReady) {
+            if (appStore.getState().introPosterReady) {
                 clearInterval(_introVideoPollInterval);
                 _introVideoPollInterval = null;
-                console.log('[Preloader] introVideoReady=true — fading out now');
+                console.log('[Preloader] introPosterReady=true — fading out now');
                 doFadeOut();
             } else if (Date.now() - startedAt >= INTRO_VIDEO_SAFETY_TIMEOUT_MS) {
                 clearInterval(_introVideoPollInterval);
                 _introVideoPollInterval = null;
-                console.warn('[Preloader] introVideoReady safety timeout reached — hiding Preloader');
+                console.warn('[Preloader] introPosterReady safety timeout reached — hiding Preloader');
                 doFadeOut();
             }
         }, 100);

@@ -10,12 +10,16 @@ export async function onRequestPost({ request, env }) {
     if (!shareCode || !key) {
         return new Response('Bad Request: missing x-share-code or x-r2-key', { status: 400 });
     }
-    if (!key.startsWith(`videos/${shareCode}-`) || !key.endsWith('.mp4')) {
+    const isVideo = key.endsWith('.mp4');
+    const isThumb = key.endsWith('.jpg') || key.endsWith('.jpeg');
+    if (!key.startsWith(`videos/${shareCode}-`) || !(isVideo || isThumb)) {
         return new Response('Forbidden: key does not match shareCode namespace', { status: 403 });
     }
 
     const bytes = await request.arrayBuffer();
-    await env.UFF_R2.put(key, bytes, { contentType: 'video/mp4' });
+    const reqCt = request.headers.get('Content-Type');
+    const contentType = reqCt || (isThumb ? 'image/jpeg' : 'video/mp4');
+    await env.UFF_R2.put(key, bytes, { contentType });
 
     return new Response(
         JSON.stringify({ ok: true, url: `https://r2.ultrafastfluency.com/${key}` }),

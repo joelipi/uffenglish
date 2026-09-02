@@ -22,19 +22,20 @@ const UPLOAD_PATH = '/api/upload-segment';
  * @returns {Promise<{url: string}>} The public URL of the uploaded object.
  * @throws On non-2xx response, with a message that includes the status code.
  */
-export async function uploadSegmentToR2({ blob, key, jwt, shareCode }) {
+export async function uploadSegmentToR2({ blob, key, jwt, shareCode, contentType }) {
     if (!blob) throw new Error('[R2Upload] blob is required');
     if (!key) throw new Error('[R2Upload] key is required');
     if (!jwt) throw new Error('[R2Upload] jwt is required');
     if (!shareCode) throw new Error('[R2Upload] shareCode is required');
 
+    const ct = contentType || (key.endsWith('.jpg') || key.endsWith('.jpeg') ? 'image/jpeg' : 'video/mp4');
     const resp = await fetch(UPLOAD_PATH, {
         method: 'POST',
         headers: {
             'Authorization': `Bearer ${jwt}`,
             'x-share-code': shareCode,
             'x-r2-key': key,
-            'Content-Type': 'video/mp4',
+            'Content-Type': ct,
         },
         body: blob,
     });

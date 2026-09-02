@@ -134,7 +134,8 @@ export const appStore = createStore(
             // --- Preloader State ---
             preloaderVisible: true,
             preloaderProgress: 0,
-            introVideoReady: true,  // becomes false when a lesson intro video is loading; gates Preloader removal
+            introVideoReady: true,  // becomes false when a lesson intro video is loading; gates Preloader removal (legacy)
+            introPosterReady: true, // becomes false when an intro poster (lessonId jpg) is loading; gates Preloader removal — zero-ms rectangle guarantee
 
             // --- App Phase State Machine ---
             appPhase: 'loading',
@@ -315,6 +316,7 @@ export const appStore = createStore(
             setPreloaderProgress: (val) => set({ preloaderProgress: val }),
             setPreloaderVisible: (val) => set({ preloaderVisible: val }),
             setIntroVideoReady: (val) => set({ introVideoReady: val }),
+            setIntroPosterReady: (val) => set({ introPosterReady: val }),
 
             // --- UI State Actions ---
             setProgressPercent: (percent) => set({ progressPercent: percent }),

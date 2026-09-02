@@ -15,9 +15,11 @@ export function loadVideoForStep(step, _state, lang) {
     // Clear any previous video state before loading the new step
     appStore.getState().setCurrentVideo(null);
 
-    // Default: no intro video to wait for. Only set to false below when
-    // this step has an introBackgroundVideoUrl that must load first.
+    // Default: no intro poster/video to wait for. Gate Preloader on poster
+    // (lessonId jpg + LQIP) for zero-ms rectangle guarantee; video warms
+    // hidden behind poster for next step.
     appStore.getState().setIntroVideoReady(true);
+    appStore.getState().setIntroPosterReady(true);
 
     if (step.interactiveVideoUrl) {
         const currentVideoUrl = getVideoUrl(step.interactiveVideoUrl);
@@ -49,8 +51,9 @@ export function loadVideoForStep(step, _state, lang) {
 
     if (step.introBackgroundVideoUrl) {
         const currentVideoUrl = getVideoUrl(step.introBackgroundVideoUrl);
-        // Keep the Preloader overlay until IncomingVideoWidget confirms the
-        // intro background video is decoded and painted (via onLoadedData).
+        // Gate Preloader on poster (LQIP + jpg) for zero-ms guarantee.
+        // Video still warms hidden behind poster for next step.
+        appStore.getState().setIntroPosterReady(false);
         appStore.getState().setIntroVideoReady(false);
         appStore.getState().setCurrentVideo({
             type: 'intro',

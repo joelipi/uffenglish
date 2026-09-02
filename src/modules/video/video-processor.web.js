@@ -5,7 +5,7 @@ import { getAllSpeechRecordingsForLesson } from '../storage/storage.js';
 import { shareVideo } from './video-share.js';
 import { appStore } from '../store/store.js';
 import headerImg from '../../assets/img/header.png';
-import { getVideoUrl } from './video-url.js';
+import { getVideoUrl, getUgcThumbKey } from './video-url.js';
 import { VideoRenderPlanner, TEXT_MODE_DURATION_MS } from './video-processor-logic.js';
 import { DEFAULT_USER_AVATAR_URL } from '../user/tutor-config.js';
 import { getAvatarBlobUrl } from '../avatar/avatar.service.js';
@@ -1012,12 +1012,28 @@ export async function exportSegmentsToR2(lessonId) {
 
         // 3) Upload to R2. Key includes the course id so each course's clips
         // are namespaced and won't collide across courses for the same user.
+        // Also upload sibling jpg thumb derived from raw webcam blob (LQIP mandatory).
         const courseId = appStore.getState().courseId;
         const key = `videos/${shareCode}-${courseId}-${lessonId}-response-${String(i + 1).padStart(2, '0')}.mp4`;
+        const thumbKey = getUgcThumbKey(key);
+        let thumbBlob = step.thumbBlob || null;
+        // thumb may be stored as ArrayBuffer sibling if restored from IDB; handle fallback
+        if (!thumbBlob && step.thumbArrayBuffer) {
+            try { thumbBlob = new Blob([step.thumbArrayBuffer], { type: 'image/jpeg' }); } catch {}
+        }
         try {
             const jwt = (await getAccessToken()) || '';
-            const { url } = await uploadSegmentToR2({ blob: mp4, key, jwt, shareCode });
-            trackEvent('publish_clips_segment_success', { lessonId, index: i, path, url });
+            const results = await Promise.allSettled([
+                uploadSegmentToR2({ blob: mp4, key, jwt, shareCode, contentType: 'video/mp4' }),
+                thumbBlob ? uploadSegmentToR2({ blob: thumbBlob, key: thumbKey, jwt, shareCode, contentType: 'image/jpeg' }) : Promise.resolve({ url: null }),
+            ]);
+            const videoRes = results[0];
+            const thumbRes = results[1];
+            if (videoRes.status === 'rejected') throw videoRes.reason;
+            if (thumbRes.status === 'rejected') {
+                console.warn('[ExportSegments] thumb upload failed (non-fatal):', thumbRes.reason);
+            }
+            trackEvent('publish_clips_segment_success', { lessonId, index: i, path, url: videoRes.value?.url });
             succeeded++;
         } catch (e) {
             console.error('[ExportSegments] R2 upload failed:', e);

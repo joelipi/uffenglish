@@ -38,7 +38,7 @@ function arrayBufferToBlob(arrayBuffer, mimeType) {
 // Map key to per-step (instead of per-timestamp) would fix it. The merge-by-
 // step logic in getAllSpeechRecordingsForLesson mitigates at read time.
 
-export async function saveSpeechRecording(blob, meta = {}) {
+export async function saveSpeechRecording(blob, meta = {}, thumb = null) {
   const storeState = appStore.getState();
   const lessonId = meta.lessonId
     ?? storeState.activeLessonId
@@ -49,12 +49,16 @@ export async function saveSpeechRecording(blob, meta = {}) {
   const seq = _nextRecordingSeq++;
   const videoKey = `uffvideo_${lessonId}_${stepIndex}_${timestamp}_${seq}`;
 
+  // thumb: { jpgBlob, lqip } from thumbnail.web.js — raw webcam blob thumb, LQIP mandatory
   const record = {
     id: videoKey,
     createdAt: timestamp,
     mimeType: blob ? blob.type : 'video/webm',
     size: blob ? blob.size : 0,
     blob,
+    thumbBlob: thumb?.jpgBlob || null,
+    thumbLqip: thumb?.lqip || null,
+    thumbMimeType: thumb?.jpgBlob ? 'image/jpeg' : null,
     ...meta,
     originalLessonId: lessonId,
     originalStepIndex: stepIndex,
@@ -68,16 +72,17 @@ export async function saveSpeechRecording(blob, meta = {}) {
   // resolves immediately (matching the pre-IDB sync timing that the answer
   // pipeline depends on). The in-memory Map is the authoritative hot cache
   // for the current session; IDB only needs to be ready before a reload.
-  console.log('[Storage] IDB save: queued fire-and-forget for', { lessonId, stepIndex, blobSize: blob?.size || 0 });
+  console.log('[Storage] IDB save: queued fire-and-forget for', { lessonId, stepIndex, blobSize: blob?.size || 0, hasThumb: !!thumb?.jpgBlob });
   (async () => {
     try {
       console.log('[Storage] IDB save: starting blobToArrayBuffer', { lessonId, stepIndex, blobSize: blob?.size || 0 });
       const arrayBuffer = blob ? await blobToArrayBuffer(blob) : null;
-      console.log('[Storage] IDB save: blobToArrayBuffer done', { lessonId, stepIndex, arrayBufferBytes: arrayBuffer?.byteLength || 0 });
-      const { blob: _omit, ...serializable } = record;
+      const thumbArrayBuffer = thumb?.jpgBlob ? await blobToArrayBuffer(thumb.jpgBlob) : null;
+      console.log('[Storage] IDB save: blobToArrayBuffer done', { lessonId, stepIndex, arrayBufferBytes: arrayBuffer?.byteLength || 0, thumbBytes: thumbArrayBuffer?.byteLength || 0 });
+      const { blob: _omit, thumbBlob: _omit2, ...serializable } = record;
       console.log('[Storage] IDB save: calling putRecord', { lessonId, stepIndex, serializableKeys: Object.keys(serializable) });
-      await putRecord(lessonId, stepIndex, { ...serializable, arrayBuffer });
-      console.log('[Storage] saveSpeechRecording persisted to IndexedDB', { lessonId, stepIndex, hasBlob: !!blob });
+      await putRecord(lessonId, stepIndex, { ...serializable, arrayBuffer, thumbArrayBuffer });
+      console.log('[Storage] saveSpeechRecording persisted to IndexedDB', { lessonId, stepIndex, hasBlob: !!blob, hasThumb: !!thumb?.jpgBlob });
     } catch (err) {
       // IndexedDB write failed (quota, private mode, hang timeout, etc.). The
       // in-memory entry still covers the current session — recordings will
@@ -165,14 +170,17 @@ export async function restoreRecordingsForLesson(lessonId) {
     if (inMemorySteps.has(rec.originalStepIndex)) continue;
 
     const blob = rec.arrayBuffer ? arrayBufferToBlob(rec.arrayBuffer, rec.mimeType) : null;
+    const thumbBlob = rec.thumbArrayBuffer ? arrayBufferToBlob(rec.thumbArrayBuffer, rec.thumbMimeType || 'image/jpeg') : null;
     const restored = {
       ...rec,
       blob,
+      thumbBlob,
       id: `restored_${lessonId}_${rec.originalStepIndex}`,
       arrayBuffer: undefined,
+      thumbArrayBuffer: undefined,
     };
     recordingsMap.set(restored.id, restored);
-    console.log('[Storage] restoreRecordingsForLesson restored from IndexedDB', { lessonId, stepIndex: rec.originalStepIndex, hasBlob: !!blob });
+    console.log('[Storage] restoreRecordingsForLesson restored from IndexedDB', { lessonId, stepIndex: rec.originalStepIndex, hasBlob: !!blob, hasThumb: !!thumbBlob });
   }
   console.log('[Storage] restoreRecordingsForLesson done', { lessonId, restoredCount: persisted.filter(r => !inMemorySteps.has(r.originalStepIndex)).length });
 }
@@ -259,12 +267,18 @@ export async function updateSpeechRecording(lessonId, stepIndex, updates = {}) {
         console.log('[Storage] IDB update: self-heal — serializing blob to arrayBuffer', { lessonId: resolvedLessonId, stepIndex: resolvedStepIndex, blobSize: updatedRecord.blob.size });
         arrayBuffer = await blobToArrayBuffer(updatedRecord.blob);
       }
+      let thumbArrayBuffer = existing?.thumbArrayBuffer ?? null;
+      if (!thumbArrayBuffer && updatedRecord.thumbBlob) {
+        console.log('[Storage] IDB update: self-heal — serializing thumb to arrayBuffer', { lessonId: resolvedLessonId, stepIndex: resolvedStepIndex, thumbSize: updatedRecord.thumbBlob.size });
+        thumbArrayBuffer = await blobToArrayBuffer(updatedRecord.thumbBlob);
+      }
 
-      const { blob: _omit, ...serializable } = updatedRecord;
+      const { blob: _omit, thumbBlob: _omit2, ...serializable } = updatedRecord;
       console.log('[Storage] IDB update: calling putRecord', { lessonId: resolvedLessonId, stepIndex: resolvedStepIndex, serializableKeys: Object.keys(serializable) });
       await putRecord(resolvedLessonId, resolvedStepIndex, {
         ...serializable,
         arrayBuffer,
+        thumbArrayBuffer,
       });
       console.log('[Storage] updateSpeechRecording persisted to IndexedDB', { lessonId: resolvedLessonId, stepIndex: resolvedStepIndex, keys: Object.keys(updates) });
     } catch (err) {
