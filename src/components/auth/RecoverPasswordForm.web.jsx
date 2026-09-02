@@ -36,7 +36,7 @@ export default function RecoverPasswordForm({ onBackToLogin }) {
                         required
                     />
                 </div>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
+                <button type="submit" className="btn btn-primary w-100" disabled={loading}>
                     {loading ? Strings.get('auth_sending', lang) : Strings.get('auth_send_recovery', lang)}
                 </button>
             </form>

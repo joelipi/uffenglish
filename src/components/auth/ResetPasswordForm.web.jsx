@@ -68,7 +68,7 @@ export default function ResetPasswordForm({ onResetSuccess }) {
                             minLength={8}
                         />
                     </div>
-                    <button type="submit" className="btn btn-primary" disabled={loading}>
+                    <button type="submit" className="btn btn-primary w-100" disabled={loading}>
                         {loading ? Strings.get('auth_updating', lang) : Strings.get('profile_update_password', lang)}
                     </button>
                 </form>

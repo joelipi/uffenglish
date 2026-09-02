@@ -45,7 +45,7 @@ export default function LoginForm({ onLoginSuccess, onSignupLink, onForgotPasswo
                         required
                     />
                 </div>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
+                <button type="submit" className="btn btn-primary w-100" disabled={loading}>
                     {loading ? Strings.get('auth_logging_in', lang) : Strings.get('auth_log_in', lang)}
                 </button>
             </form>

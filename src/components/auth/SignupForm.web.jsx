@@ -114,42 +114,40 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
                     />
                 </div>
 
-                <div className="row mb-3">
-                    <div className="col-6">
-                        <label htmlFor="nativeLanguage" className="form-label">{Strings.get('profile_native_language', lang)}</label>
-                        <select
-                            className="form-select"
-                            id="nativeLanguage"
-                            value={nativeLanguage}
-                            onChange={(e) => setNativeLanguage(e.target.value)}
-                            required
-                        >
-                            {NATIVE_LANGUAGES.map((lang) => (
-                                <option key={lang.value} value={lang.value} disabled={lang.disabled}>
-                                    {lang.label}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="col-6">
-                        <label htmlFor="userLevel" className="form-label">{Strings.get('profile_user_level', lang)}</label>
-                        <select
-                            className="form-select"
-                            id="userLevel"
-                            value={userLevel}
-                            onChange={(e) => setUserLevel(e.target.value)}
-                            required
-                        >
-                            {ENGLISH_LEVELS.map((level) => (
-                                <option key={level.value} value={level.value} disabled={level.disabled}>
-                                    {level.label}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+                <div className="mb-3">
+                    <label htmlFor="nativeLanguage" className="form-label">{Strings.get('profile_native_language', lang)}</label>
+                    <select
+                        className="form-select w-100"
+                        id="nativeLanguage"
+                        value={nativeLanguage}
+                        onChange={(e) => setNativeLanguage(e.target.value)}
+                        required
+                    >
+                        {NATIVE_LANGUAGES.map((lang) => (
+                            <option key={lang.value} value={lang.value} disabled={lang.disabled}>
+                                {lang.label}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                <div className="mb-3">
+                    <label htmlFor="userLevel" className="form-label">{Strings.get('profile_user_level', lang)}</label>
+                    <select
+                        className="form-select w-100"
+                        id="userLevel"
+                        value={userLevel}
+                        onChange={(e) => setUserLevel(e.target.value)}
+                        required
+                    >
+                        {ENGLISH_LEVELS.map((level) => (
+                            <option key={level.value} value={level.value} disabled={level.disabled}>
+                                {level.label}
+                            </option>
+                        ))}
+                    </select>
                 </div>
 
-                <button type="submit" className="btn btn-primary" disabled={loading}>
+                <button type="submit" className="btn btn-primary w-100" disabled={loading}>
                     {loading ? Strings.get('auth_creating_account', lang) : Strings.get('auth_signup_title', lang)}
                 </button>
             </form>

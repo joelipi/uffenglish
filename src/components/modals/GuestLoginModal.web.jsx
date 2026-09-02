@@ -174,7 +174,7 @@ export default function GuestLoginModal() {
                             <div className="modal-body">
                                 <div className="mb-3">
                                     <select
-                                        className="form-select form-select-xl bg-dark text-white border-secondary"
+                                        className="form-select form-select-xl bg-dark text-white border-secondary w-100"
                                         id="guestLanguageSelect"
                                         value={selectedLang}
                                         onChange={handleDropdownChange}
