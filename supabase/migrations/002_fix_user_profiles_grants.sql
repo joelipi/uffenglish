@@ -1,19 +1,14 @@
 -- 002_fix_user_profiles_grants.sql
--- Fixes 42501 "permission denied for table user_profiles" on signup.
--- RLS policies were created in 001 but no table GRANTs were issued.
--- In Postgres, RLS + GRANT are both required: policy = row filter, grant = capability.
--- Without GRANT INSERT TO authenticated, supabase.from('user_profiles').insert()
--- at src/components/auth/SignupForm.jsx:45 fails even though
--- "owner insert" WITH CHECK (auth.uid() = id) would otherwise pass.
--- Also fixes anon SELECT for public profile lookups (share_code) at src/modules/api/api.js:293.
+-- Fix 42501 permission denied after 001 — with "Automatically expose new tables = OFF"
+-- (your Dashboard setting), Data API roles get no table privileges by default.
+-- Policies in 001 are not enough; GRANTs are required for anon/authenticated to hit the API.
 
--- Ensure schema usage (idempotent; typically already granted by Supabase)
+-- Schema usage
 grant usage on schema public to anon, authenticated;
 
--- Authenticated users: need full DML — insert on signup, upsert for geo/referrer
--- (src/modules/user/collect-signup-data.js:39 -> api.js:178/275), update/delete for profile edits
-grant select, insert, update, delete on public.user_profiles to authenticated;
+-- Table privileges: public read (for shareCode anon lookup) + authenticated full
+grant select on table public.user_profiles to anon, authenticated;
+grant insert, update, delete on table public.user_profiles to authenticated;
 
--- Anon: needs SELECT only, because "public read" policy (001:69-72, using(true))
--- is used for unauthenticated share_code lookups (useUserByShareCode)
-grant select on public.user_profiles to anon;
+-- Ensure sequences / serials if any (future share_code generation) usable
+-- No sequence for user_profiles PK (uuid), so nothing else needed.
