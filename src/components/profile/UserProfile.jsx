@@ -101,7 +101,6 @@ export default function UserProfile() {
     // Supabase public URLs need no blob fetch — use directly
     useEffect(() => {
         if (!profile?.profilePictureUrl) { setAvatarUrl(null); return; }
-        // Legacy appwrite URLs no longer valid
         if (profile.profilePictureUrl.includes('appwrite.io')) { setAvatarUrl(null); return; }
         setAvatarUrl(null);
     }, [profile?.profilePictureUrl]);

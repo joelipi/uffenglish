@@ -26,8 +26,8 @@ UFF is built as a highly responsive, static frontend application with a decouple
 *   **Direct-Mutation State Management:** The application manages global state via a centralized `State` object (`js/modules/state.js`).
 
 ### Backend & Authentication
-*   **Appwrite (v24):** Used for user authentication, session management, and database synchronization (`js/modules/appwrite.js`).
-*   **Local Storage Sync:** Guest and offline progress is stored locally and synced to Appwrite upon login (`js/modules/user-profile.js`).
+*   **Supabase:** Used for user authentication, session management, and database synchronization (`src/modules/api/supabase.js`, `supabase/migrations/`).
+*   **Local Storage Sync:** Guest and offline progress is stored locally and synced to Supabase upon login (`src/modules/user/user-profile.js`).
 
 ### AI & NLP Pipeline
 *   **Speech-to-Text:** Integrated with Deepgram and Whisper for highly accurate, fast transcription.
@@ -50,10 +50,10 @@ UFF is built as a highly responsive, static frontend application with a decouple
     ├── data/               # Static lesson data and dictionaries
     ├── components/         # Visual rendering and DOM manipulation (e.g., ui.js)
     ├── modules/            # Modularized logic (State, API, Scoring)
-    │   ├── api.js          # API calls (AI evaluation, deepgram tokens)
-    │   ├── appwrite.js     # Appwrite backend client setup
-    │   ├── state.js        # Global application state object
-    │   ├── user-profile.js # Local storage and user progress syncing
+     │   ├── api.js          # API calls (AI evaluation, deepgram tokens)
+     │   ├── supabase.js     # Supabase backend client setup
+     │   ├── state.js        # Global application state object
+     │   ├── user-profile.js # Local storage and user progress syncing
     │   └── ...
     ├── workers/            # Web workers for background processes
     │   └── nlp-worker-web.js # Background thread for heavy language processing
