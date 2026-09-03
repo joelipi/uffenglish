@@ -1,10 +1,18 @@
 #!/usr/bin/env node
-// Generates lessonId posters (640w jpg + LQIP) from introBackgroundVideoUrl mp4s at 0.2s.
-// Usage: node scripts/generate-thumbnails.mjs [--check] [--out <dir>]
-// Requires ffmpeg + ffprobe on PATH. For ci --check exits non-zero if any poster missing.
+// Generates lessonId posters (640w jpg + LQIP) from the introBackgroundVideoUrl
+// mp4 at 0.2s. Source videos are downloaded from R2 (the authoring CDN) into a
+// temp cache, so no local video files are required.
+//
+// Usage:
+//   node scripts/generate-thumbnails.mjs [--check] [--upload] [--video-dir <dir>]
+//
+// Requires ffmpeg on PATH. --check exits non-zero if any poster is missing
+// locally. --upload uploads generated posters to R2 via wrangler (requires
+// authenticated wrangler + a CLOUDFLARE_API_TOKEN).
 
 import { execFile } from 'node:child_process';
 import { promises as fs } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -13,6 +21,7 @@ const ROOT = path.resolve(__dirname, '..');
 const MODEL_PATH = path.join(ROOT, 'src/config/model.json');
 const POSTERS_DIR = path.join(ROOT, 'public/assets/posters');
 const GENERATED_PATH = path.join(ROOT, 'src/generated/poster-lqips.js');
+const CDN_VIDEO_BASE = 'https://r2.ultrafastfluency.com/assets/videos/';
 
 function run(bin, args) {
   return new Promise((resolve, reject) => {
@@ -24,58 +33,63 @@ function run(bin, args) {
 }
 
 async function loadModel() {
-  const raw = await fs.readFile(MODEL_PATH, 'utf8');
-  return JSON.parse(raw);
+  return JSON.parse(await fs.readFile(MODEL_PATH, 'utf8'));
 }
 
-function getLessons(model) { return model.lessons || []; }
-
-async function ensureDirs() {
-  await fs.mkdir(POSTERS_DIR, { recursive: true });
-  await fs.mkdir(path.dirname(GENERATED_PATH), { recursive: true });
-}
-
-async function resolveSource(slug) {
-  // Prefer local public/assets/videos/<slug>.mp4 if present, else use CDN? For now require local file.
-  const local = path.join(ROOT, 'public/assets/videos', `${slug}.mp4`);
-  try { await fs.stat(local); return local; } catch {}
-  // Also try temp_loaves.mp4 fallback search or user-provided path via env VIDEO_SRC_DIR
-  const altDir = process.env.VIDEO_SRC_DIR;
-  if (altDir) {
-    const alt = path.join(altDir, `${slug}.mp4`);
-    try { await fs.stat(alt); return alt; } catch {}
+async function resolveSource(slug, videoDir) {
+  // 1) Local dir if provided/committed
+  if (videoDir) {
+    const local = path.join(videoDir, `${slug}.mp4`);
+    try { await fs.stat(local); return local; } catch {}
   }
-  return null;
+  const repoLocal = path.join(ROOT, 'public/assets/videos', `${slug}.mp4`);
+  try { await fs.stat(repoLocal); return repoLocal; } catch {}
+
+  // 2) Download from R2 (source of truth)
+  const cacheDir = path.join(os.tmpdir(), 'uff-posters-cache');
+  await fs.mkdir(cacheDir, { recursive: true });
+  const cached = path.join(cacheDir, `${slug}.mp4`);
+  try {
+    await fs.stat(cached);
+    console.log(`CACHE hit ${slug}.mp4`);
+    return cached;
+  } catch {}
+
+  console.log(`DOWNLOAD ${slug}.mp4 from R2…`);
+  const res = await fetch(`${CDN_VIDEO_BASE}${slug}.mp4`);
+  if (!res.ok) throw new Error(`download failed HTTP ${res.status}`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  await fs.writeFile(cached, buf);
+  return cached;
 }
 
-async function generateOne(lessonId, slug) {
-  const src = await resolveSource(slug);
-  if (!src) {
-    console.warn(`SKIP ${lessonId}: source ${slug}.mp4 not found (VIDEO_SRC_DIR=${process.env.VIDEO_SRC_DIR || ''})`);
-    return null;
-  }
+async function generateOne(lessonId, slug, videoDir) {
+  const src = await resolveSource(slug, videoDir);
   const outJpg = path.join(POSTERS_DIR, `${lessonId}.jpg`);
+  const lqipPath = path.join(POSTERS_DIR, `${lessonId}.lqip.jpg`);
+
   const srcStat = await fs.stat(src);
   let outStat = null;
   try { outStat = await fs.stat(outJpg); } catch {}
+
+  // Skip re-extract if poster is newer than source.
   if (outStat && outStat.mtimeMs > srcStat.mtimeMs) {
     console.log(`SKIP ${lessonId} (up-to-date)`);
   } else {
     console.log(`GEN ${lessonId}: ${slug}.mp4 @0.2s -> ${lessonId}.jpg`);
-    await run('ffmpeg', ['-y', '-ss', '0.2', '-i', src, '-vframes', '1', '-vf', 'scale=640:-2', '-q:v', '4', outJpg]);
+    await run('ffmpeg', ['-y', '-loglevel', 'error', '-ss', '0.2', '-i', src, '-vframes', '1', '-vf', 'scale=640:-2', '-q:v', '4', outJpg]);
   }
-  // LQIP
-  const lqipPath = path.join(POSTERS_DIR, `${lessonId}.lqip.jpg`); // temp
-  await run('ffmpeg', ['-y', '-ss', '0.2', '-i', src, '-vframes', '1', '-vf', 'scale=32:-2', '-q:v', '15', lqipPath]);
-  const lqipBuf = await fs.readFile(lqipPath);
-  const b64 = lqipBuf.toString('base64');
-  const dataUri = `data:image/jpeg;base64,${b64}`;
+
+  await run('ffmpeg', ['-y', '-loglevel', 'error', '-ss', '0.2', '-i', src, '-vframes', '1', '-vf', 'scale=32:-2', '-q:v', '15', lqipPath]);
+  const b64 = (await fs.readFile(lqipPath)).toString('base64');
   await fs.unlink(lqipPath).catch(() => {});
-  return { lessonId, dataUri };
+  return { lessonId, dataUri: `data:image/jpeg;base64,${b64}` };
 }
 
 async function writeGenerated(lqips) {
-  const entries = Object.entries(lqips).map(([k, v]) => `    ${JSON.stringify(k)}: ${JSON.stringify(v)},`).join('\n');
+  const entries = Object.entries(lqips)
+    .map(([k, v]) => `    ${JSON.stringify(k)}: ${JSON.stringify(v)},`)
+    .join('\n');
   const content = `// Auto-generated by scripts/generate-thumbnails.mjs — do not hand-edit.
 export const POSTER_LQIPS = {
 ${entries}
@@ -91,35 +105,54 @@ export function getPosterLqip(lessonId) {
 
 async function main() {
   const check = process.argv.includes('--check');
+  const upload = process.argv.includes('--upload');
+  const videoDirArg = process.argv.find(a => a.startsWith('--video-dir'));
+  const videoDir = videoDirArg ? videoDirArg.split('=')[1] : undefined;
+
   const model = await loadModel();
-  const lessons = getLessons(model);
+  const lessons = model.lessons || [];
+
   if (check) {
     let missing = 0;
     for (const l of lessons) {
-      const jp = path.join(POSTERS_DIR, `${l.lessonId}.jpg`);
-      try { await fs.stat(jp); } catch { console.error(`MISSING poster for lesson ${l.lessonId}`); missing++; }
+      try { await fs.stat(path.join(POSTERS_DIR, `${l.lessonId}.jpg`)); }
+      catch { console.error(`MISSING poster for lesson ${l.lessonId}`); missing++; }
     }
+    try { await fs.stat(GENERATED_PATH); } catch { console.error('Missing src/generated/poster-lqips.js'); missing++; }
     if (missing) { console.error(`--check failed: ${missing} missing`); process.exit(1); }
     console.log(`--check OK: ${lessons.length} posters present`);
-    // also check generated file
-    try { await fs.stat(GENERATED_PATH); } catch { console.error('Missing generated poster-lqips.js'); process.exit(1); }
     return;
   }
-  await ensureDirs();
+
+  await fs.mkdir(POSTERS_DIR, { recursive: true });
+  await fs.mkdir(path.dirname(GENERATED_PATH), { recursive: true });
   const lqips = {};
   for (const lesson of lessons) {
     const slug = lesson.steps?.[0]?.introBackgroundVideoUrl;
     if (!slug) { console.log(`SKIP ${lesson.lessonId}: no introBackgroundVideoUrl`); continue; }
     try {
-      const res = await generateOne(lesson.lessonId, slug);
+      const res = await generateOne(lesson.lessonId, slug, videoDir);
       if (res) lqips[res.lessonId] = res.dataUri;
     } catch (e) {
       console.error(`ERROR ${lesson.lessonId}:`, e.message);
-      if (e.stderr) console.error(e.stderr.slice(0, 400));
     }
   }
   await writeGenerated(lqips);
-  console.log('Done. Upload with: wrangler r2 object put uff/assets/posters/<lessonId>.jpg --file=public/assets/posters/<lessonId>.jpg --content-type image/jpeg');
+
+  if (upload) {
+    console.log('Uploading posters to R2…');
+    for (const l of lessons) {
+      const file = path.join(POSTERS_DIR, `${l.lessonId}.jpg`);
+      try {
+        await run('npx', ['wrangler', 'r2', 'object', 'put', `uff/assets/posters/${l.lessonId}.jpg`, '--file', file, '--content-type', 'image/jpeg']);
+        console.log(`UPLOAD ${l.lessonId}.jpg`);
+      } catch (e) {
+        console.error(`UPLOAD FAIL ${l.lessonId}:`, e.message);
+      }
+    }
+  } else {
+    console.log('\nPosters ready. To publish to R2 (production), run with --upload or:\n  wrangler r2 object put uff/assets/posters/<lessonId>.jpg --file=public/assets/posters/<lessonId>.jpg --content-type image/jpeg');
+  }
 }
 
 main().catch(e => { console.error(e); process.exit(1); });

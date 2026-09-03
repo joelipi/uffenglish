@@ -73,10 +73,6 @@ export default defineConfig({
                 target: 'https://r2.ultrafastfluency.com',
                 changeOrigin: true,
             },
-            '/assets/posters/': {
-                target: 'https://r2.ultrafastfluency.com',
-                changeOrigin: true,
-            },
             '/whisper/': {
                 target: 'https://r2.ultrafastfluency.com',
                 changeOrigin: true,

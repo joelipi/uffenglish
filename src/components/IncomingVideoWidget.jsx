@@ -19,6 +19,9 @@ export default function IncomingVideoWidget() {
     const posterRef = useRef(null);
     const [isReady, setIsReady] = useState(false);
     const [posterReady, setPosterReady] = useState(false);
+    // True once the remote poster failed to load — the <img> must be removed
+    // entirely (a broken-image icon is worse than the LQIP/gradient fallback).
+    const [posterFailed, setPosterFailed] = useState(false);
     // Guard so we only signal introVideoReady once (onLoadedData, onCanPlay,
     // and the safety timeout may all race).
     const readySignalledRef = useRef(false);
@@ -63,7 +66,10 @@ export default function IncomingVideoWidget() {
     }, [signalPosterReady]);
 
     const onPosterError = useCallback(() => {
-        // LQIP/gradient fallback is already painted — unblock preloader.
+        // Remove the <img> so a broken-image icon never renders. LQIP/gradient
+        // is already painted behind it, so the rectangle stays non-empty.
+        setPosterFailed(true);
+        setPosterReady(false);
         console.warn('[IncomingVideoWidget] Poster load error — falling back to LQIP/gradient');
         signalPosterReady();
     }, [signalPosterReady]);
@@ -160,12 +166,14 @@ export default function IncomingVideoWidget() {
             readySignalledRef.current = false;
             posterSignalledRef.current = false;
             setPosterReady(false);
+            setPosterFailed(false);
             setIsReady(false);
             return;
         }
         // Reset guards when poster url changes.
         posterSignalledRef.current = false;
         setPosterReady(false);
+        setPosterFailed(false);
         // Safety timeout for poster — LQIP/gradient already painted, so 3s is fine.
         const posterTimeout = setTimeout(() => {
             if (!posterSignalledRef.current) {
@@ -261,7 +269,7 @@ export default function IncomingVideoWidget() {
                 <div className="pulse-ring"></div>
                 <div className="intro-video-container" style={{ background: containerBg, backgroundSize: 'cover', backgroundPosition: 'center' }}>
                     {/* Poster — paints synchronously via LQIP + jpg; gates preloader. Hidden video warms cache behind it. */}
-                    {posterUrl && (
+                    {posterUrl && !posterFailed && (
                         <img
                             ref={posterRef}
                             src={posterUrl}
