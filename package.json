@@ -9,6 +9,10 @@
     "preview": "vite preview",
     "test": "vitest",
     "knip": "knip",
+    "posters": "node scripts/generate-thumbnails.mjs",
+    "posters:upload": "node scripts/generate-thumbnails.mjs --upload",
+    "posters:check": "node scripts/verify-thumbnails.mjs",
+    "predeploy": "node scripts/generate-thumbnails.mjs && node scripts/generate-thumbnails.mjs --upload && node scripts/verify-thumbnails.mjs",
     "deploy": "npm run build && wrangler pages deploy dist --project-name=uffenglish",
     "deploy:prod": "npm run build && wrangler pages deploy dist --project-name=uffenglish --branch=production"
   },
@@ -24,7 +28,8 @@
     "onnxruntime-web": "^1.17.3",
     "vite": "^8.0.10",
     "vite-plugin-purgecss": "^0.2.13",
-    "vitest": "^4.1.6"
+    "vitest": "^4.1.6",
+    "wrangler": "^4.128.0"
   },
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",

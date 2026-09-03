@@ -4,11 +4,18 @@
 // temp cache, so no local video files are required.
 //
 // Usage:
-//   node scripts/generate-thumbnails.mjs [--check] [--upload] [--video-dir <dir>]
+//   node scripts/generate-thumbnails.mjs                # generate + write LQIP module
+//   node scripts/generate-thumbnails.mjs --upload       # upload existing posters to R2 (no generate)
+//   node scripts/generate-thumbnails.mjs --check        # exit non-zero if any poster missing
+//   node scripts/generate-thumbnails.mjs --video-dir=X  # prefer local mp4s over R2 download
 //
-// Requires ffmpeg on PATH. --check exits non-zero if any poster is missing
-// locally. --upload uploads generated posters to R2 via wrangler (requires
-// authenticated wrangler + a CLOUDFLARE_API_TOKEN).
+// Requires ffmpeg on PATH for generation. --upload uses wrangler r2 object put
+// (needs authenticated wrangler or CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID env).
+//
+// New-video flow: upload the intro mp4 to R2 assets/videos/<slug>.mp4 and add a
+// lesson referencing it in src/config/model.json. Then either run this script
+// (generate + --upload) or just push — deploy.yml runs generate/upload/verify
+// automatically before build.
 
 import { execFile } from 'node:child_process';
 import { promises as fs } from 'node:fs';
@@ -34,6 +41,21 @@ function run(bin, args) {
 
 async function loadModel() {
   return JSON.parse(await fs.readFile(MODEL_PATH, 'utf8'));
+}
+
+// Lessons that need a poster — only those whose first step is a lesson intro.
+function introLessons(lessons) {
+  return lessons.filter(l => l.steps?.[0]?.introBackgroundVideoUrl);
+}
+
+async function ensureFfmpeg() {
+  try {
+    await run('ffmpeg', ['-version']);
+    await run('ffprobe', ['-version']);
+  } catch {
+    console.error('ERROR: ffmpeg and ffprobe are required on PATH.\n  Install:  sudo apt-get install -y ffmpeg   (macOS: brew install ffmpeg)');
+    process.exit(1);
+  }
 }
 
 async function resolveSource(slug, videoDir) {
@@ -103,6 +125,30 @@ export function getPosterLqip(lessonId) {
   console.log(`Wrote ${GENERATED_PATH} (${Object.keys(lqips).length} entries)`);
 }
 
+async function uploadAll(lessons) {
+  const targets = introLessons(lessons);
+  if (!process.env.CLOUDFLARE_API_TOKEN) {
+    console.warn('WARN: CLOUDFLARE_API_TOKEN not set — upload will likely fail (run `wrangler login` or export the token).');
+  }
+  console.log(`Uploading ${targets.length} poster(s) to R2…`);
+  let failed = 0;
+  for (const l of targets) {
+    const file = path.join(POSTERS_DIR, `${l.lessonId}.jpg`);
+    try { await fs.stat(file); } catch {
+      console.error(`UPLOAD FAIL ${l.lessonId}: ${l.lessonId}.jpg not generated yet — run generate first`);
+      failed++; continue;
+    }
+    try {
+      await run('npx', ['wrangler', 'r2', 'object', 'put', '--remote', `uff/assets/posters/${l.lessonId}.jpg`, '--file', file, '--content-type', 'image/jpeg']);
+      console.log(`UPLOAD ${l.lessonId}.jpg`);
+    } catch (e) {
+      console.error(`UPLOAD FAIL ${l.lessonId}:`, e.message);
+      failed++;
+    }
+  }
+  if (failed) { console.error(`--upload finished with ${failed} failure(s)`); process.exit(1); }
+}
+
 async function main() {
   const check = process.argv.includes('--check');
   const upload = process.argv.includes('--upload');
@@ -111,48 +157,40 @@ async function main() {
 
   const model = await loadModel();
   const lessons = model.lessons || [];
+  const introLessonsList = introLessons(lessons);
 
-  if (check) {
-    let missing = 0;
-    for (const l of lessons) {
-      try { await fs.stat(path.join(POSTERS_DIR, `${l.lessonId}.jpg`)); }
-      catch { console.error(`MISSING poster for lesson ${l.lessonId}`); missing++; }
-    }
-    try { await fs.stat(GENERATED_PATH); } catch { console.error('Missing src/generated/poster-lqips.js'); missing++; }
-    if (missing) { console.error(`--check failed: ${missing} missing`); process.exit(1); }
-    console.log(`--check OK: ${lessons.length} posters present`);
+  if (upload) {
+    await uploadAll(lessons);
     return;
   }
 
+  if (check) {
+    let missing = 0;
+    for (const l of introLessonsList) {
+      try { await fs.stat(path.join(POSTERS_DIR, `${l.lessonId}.jpg`)); }
+      catch { console.error(`MISSING poster for lesson ${l.lessonId} (intro: ${l.steps[0].introBackgroundVideoUrl})`); missing++; }
+    }
+    try { await fs.stat(GENERATED_PATH); } catch { console.error('Missing src/generated/poster-lqips.js'); missing++; }
+    if (missing) { console.error(`--check failed: ${missing} missing. Run \`node scripts/generate-thumbnails.mjs\` to generate.`); process.exit(1); }
+    console.log(`--check OK: ${introLessonsList.length} intro lessons have posters`);
+    return;
+  }
+
+  await ensureFfmpeg();
   await fs.mkdir(POSTERS_DIR, { recursive: true });
   await fs.mkdir(path.dirname(GENERATED_PATH), { recursive: true });
   const lqips = {};
-  for (const lesson of lessons) {
-    const slug = lesson.steps?.[0]?.introBackgroundVideoUrl;
-    if (!slug) { console.log(`SKIP ${lesson.lessonId}: no introBackgroundVideoUrl`); continue; }
+  for (const lesson of introLessonsList) {
+    const slug = lesson.steps[0].introBackgroundVideoUrl;
     try {
       const res = await generateOne(lesson.lessonId, slug, videoDir);
       if (res) lqips[res.lessonId] = res.dataUri;
     } catch (e) {
-      console.error(`ERROR ${lesson.lessonId}:`, e.message);
+      console.error(`ERROR ${lesson.lessonId} (${slug}):`, e.message, '\n  Ensure the video is uploaded to R2 as assets/videos/<slug>.mp4');
     }
   }
   await writeGenerated(lqips);
-
-  if (upload) {
-    console.log('Uploading posters to R2…');
-    for (const l of lessons) {
-      const file = path.join(POSTERS_DIR, `${l.lessonId}.jpg`);
-      try {
-        await run('npx', ['wrangler', 'r2', 'object', 'put', `uff/assets/posters/${l.lessonId}.jpg`, '--file', file, '--content-type', 'image/jpeg']);
-        console.log(`UPLOAD ${l.lessonId}.jpg`);
-      } catch (e) {
-        console.error(`UPLOAD FAIL ${l.lessonId}:`, e.message);
-      }
-    }
-  } else {
-    console.log('\nPosters ready. To publish to R2 (production), run with --upload or:\n  wrangler r2 object put uff/assets/posters/<lessonId>.jpg --file=public/assets/posters/<lessonId>.jpg --content-type image/jpeg');
-  }
+  console.log('\nPosters ready. Publish to R2 with: node scripts/generate-thumbnails.mjs --upload');
 }
 
 main().catch(e => { console.error(e); process.exit(1); });
