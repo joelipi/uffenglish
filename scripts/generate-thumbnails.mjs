@@ -163,7 +163,15 @@ async function uploadAll(lessons) {
       failed++;
     }
   }
-  if (failed) { console.error(`--upload finished with ${failed} failure(s)`); process.exit(1); }
+  // Non-fatal: a poster-upload failure must NOT block the app deploy. The
+  // app degrades gracefully (LQIP -> video frame reveal) when a poster is
+  // missing on R2, and the separate verify step still gates the build on
+  // locally generated posters.
+  if (failed) {
+    console.warn(`--upload: ${failed}/${targets.length} poster uploads failed. ` +
+      'The app still works (LQIP/gradient fallback). Check the R2 permission on your ' +
+      'CLOUDFLARE_API_TOKEN (needs Account > Workers R2 Storage > Edit).');
+  }
 }
 
 async function main() {
