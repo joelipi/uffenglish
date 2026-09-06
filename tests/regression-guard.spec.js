@@ -155,7 +155,7 @@ test.describe('Regression Guard — Store, DOM IDs, Module Imports', () => {
 
         const result = await page.evaluate(async () => {
             try {
-                const { loadLessonContent } = await import('/js/modules/lesson/lesson-loader.js');
+                const { loadLessonContent } = await import('/src/modules/lesson/lesson-loader.js');
                 return { ok: true, type: typeof loadLessonContent };
             } catch (e) {
                 return { ok: false, error: e.message };
@@ -171,7 +171,7 @@ test.describe('Regression Guard — Store, DOM IDs, Module Imports', () => {
         await page.waitForTimeout(2000);
 
         const result = await page.evaluate(async () => {
-            const { handleSuccessStep } = await import('/js/modules/lesson/step-loader-logic.js');
+            const { handleSuccessStep } = await import('/src/modules/lesson/step-loader-logic.js');
             const state = window.appStore.getState();
             const step = {
                 lessonId: state.configData.lessons[state.currentLessonIndex]?.lessonId || 'test',

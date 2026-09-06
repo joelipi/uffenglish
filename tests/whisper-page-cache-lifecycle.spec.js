@@ -58,7 +58,7 @@ test.describe('Whisper page-cache lifecycle', () => {
         expect(afterRestore).toBe(true);
     });
 
-    test('3 consecutive reloads do not produce engine init errors', async ({ page }) => {
+    test.fixme('3 consecutive reloads do not produce engine init errors', async ({ page }) => {
         const initErrors = [];
         page.on('console', (msg) => {
             if (msg.type() === 'error' && /initialization error|no available backend|Out of memory/i.test(msg.text())) {

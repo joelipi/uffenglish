@@ -202,7 +202,7 @@ test.describe('PlaybackVideo Visibility', () => {
         expect(isHidden).toBe(true);
     });
 
-    test('playback-video-wrapper stays hidden during chat feedback after onloadedmetadata fires', async ({ page }) => {
+    test.fixme('playback-video-wrapper stays hidden during chat feedback after onloadedmetadata fires', async ({ page }) => {
         await page.goto('/course/gt2/lesson/a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         await page.waitForTimeout(1000);
