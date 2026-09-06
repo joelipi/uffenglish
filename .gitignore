@@ -18,10 +18,7 @@ full_reflog.txt
 /dist
 /dist
 coverage/
-playwright.config.cjs
-playwright.config.js
 tests/phase2-verify.spec.js
-playwright.config.js
 assets/videos/do_you_have_dark_chocolate.mp4
 assets/videos/do_you_have_loaves_of_bread.mp4
 assets/videos/do_you_have_rolls_too.mp4
