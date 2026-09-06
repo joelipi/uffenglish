@@ -125,12 +125,26 @@ export function getPosterLqip(lessonId) {
   console.log(`Wrote ${GENERATED_PATH} (${Object.keys(lqips).length} entries)`);
 }
 
+async function wranglerMajor() {
+  try {
+    const out = await run('npx', ['wrangler', '--version']);
+    const m = /(?:wrangler\s+)?(\d+)\./.exec(out);
+    return m ? parseInt(m[1], 10) : 0;
+  } catch {
+    return 0;
+  }
+}
+
 async function uploadAll(lessons) {
   const targets = introLessons(lessons);
   if (!process.env.CLOUDFLARE_API_TOKEN) {
     console.warn('WARN: CLOUDFLARE_API_TOKEN not set — upload will likely fail (run `wrangler login` or export the token).');
   }
-  console.log(`Uploading ${targets.length} poster(s) to R2…`);
+  // wrangler >=4 targets the LOCAL R2 emulator by default and needs --remote;
+  // wrangler 3.x is remote-only and rejects the --remote flag.
+  const major = await wranglerMajor();
+  const remoteArg = major >= 4 ? '--remote' : null;
+  console.log(`Uploading ${targets.length} poster(s) to R2 (wrangler ${major || '?'})…`);
   let failed = 0;
   for (const l of targets) {
     const file = path.join(POSTERS_DIR, `${l.lessonId}.jpg`);
@@ -139,7 +153,10 @@ async function uploadAll(lessons) {
       failed++; continue;
     }
     try {
-      await run('npx', ['wrangler', 'r2', 'object', 'put', '--remote', `uff/assets/posters/${l.lessonId}.jpg`, '--file', file, '--content-type', 'image/jpeg']);
+      const args = ['wrangler', 'r2', 'object', 'put'];
+      if (remoteArg) args.push(remoteArg);
+      args.push(`uff/assets/posters/${l.lessonId}.jpg`, '--file', file, '--content-type', 'image/jpeg');
+      await run('npx', args);
       console.log(`UPLOAD ${l.lessonId}.jpg`);
     } catch (e) {
       console.error(`UPLOAD FAIL ${l.lessonId}:`, e.message);
