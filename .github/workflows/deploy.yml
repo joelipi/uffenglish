@@ -21,6 +21,21 @@ jobs:
 
       - run: npm ci
 
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Generate posters
+        run: node scripts/generate-thumbnails.mjs
+
+      - name: Upload posters to R2
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: node scripts/generate-thumbnails.mjs --upload
+
+      - name: Verify posters present
+        run: node scripts/verify-thumbnails.mjs
+
       - run: npm run build
 
       - name: Deploy to Cloudflare Pages
