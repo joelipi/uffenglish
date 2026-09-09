@@ -1,18 +1,15 @@
 name = "uffenglish"
 pages_build_output_dir = "dist"
-compatibility_date = "2026-06-10"
+compatibility_date = "2026-03-17"
 
-# R2 bucket for per-segment webcam video uploads (UGC practice-prompt library).
-# Lifecycle: auto-delete objects under `videos/` 48 hours (2 days) after upload.
 [[r2_buckets]]
 binding = "UFF_R2"
 bucket_name = "uff"
-
-  [[r2_buckets.lifecycle]]
-  id = "expire-videos-48h"
-  conditions = { prefix = "videos/" }
-  delete_within_days = 2
+# NOTE: R2 lifecycle (48h TTL for videos/ prefix) must be set via the
+# Cloudflare dashboard or `wrangler r2 bucket lifecycle put uff` — the
+# `r2_buckets.lifecycle` key is NOT valid in wrangler.toml for Pages.
 
 # Supabase config (public values, also in .env for SPA)
 [vars]
 SUPABASE_URL = "https://jbrbmbmupjfangqvaevx.supabase.co"
+SUPABASE_ANON_KEY = "sb_publishable_xd9bYag0bVG7m74CemthjQ_sJEbQG9S"

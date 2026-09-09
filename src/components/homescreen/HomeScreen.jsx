@@ -13,7 +13,9 @@ export default function HomeScreen() {
     const courseId = useStore(appStore, state => state.courseId);
     const activeLessonId = useStore(appStore, state => state.activeLessonId);
     const canContinue = !!courseId && !!activeLessonId;
-    const lang = 'en';
+    const guestLang = useStore(appStore, state => state.guestNativeLanguage);
+    const userDataLang = useStore(appStore, state => state.userData?.native_language);
+    const lang = guestLang || userDataLang || 'en';
 
     const { data: isLoggedIn } = useAuthStatus();
 

@@ -1,8 +1,12 @@
 // functions/api/upload-segment.js
 // Cloudflare Pages Function — receives a per-segment mp4 Blob from the SPA
-// and writes it to the R2 bucket. Auth scoping is enforced via a
-// shareCode-scoped key prefix; the SPA gates the call behind isLoggedIn
-// before invoking, and the shareCode is the user's own id.
+// and writes it to the R2 bucket. Pilot hardening: requires a valid
+// Supabase JWT (Authorization: Bearer <access_token>) and verifies the
+// caller owns the shareCode namespace before writing.
+// R2 lifecycle (48h TTL for videos/ prefix) is configured in the dashboard
+// — not via wrangler.toml.
+
+const MAX_BYTES = 20 * 1024 * 1024; // 20 MB per segment
 
 export async function onRequestPost({ request, env }) {
     const shareCode = request.headers.get('x-share-code');
@@ -16,7 +20,63 @@ export async function onRequestPost({ request, env }) {
         return new Response('Forbidden: key does not match shareCode namespace', { status: 403 });
     }
 
+    // ---- Auth: require valid Supabase JWT ----
+    const auth = request.headers.get('Authorization') || '';
+    const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
+    if (!token) {
+        return new Response('Unauthorized: missing Authorization Bearer token', { status: 401 });
+    }
+    if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
+        return new Response('Server misconfigured: SUPABASE_URL/ANON_KEY missing', { status: 500 });
+    }
+    try {
+        const userRes = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+            headers: {
+                apikey: env.SUPABASE_ANON_KEY,
+                Authorization: `Bearer ${token}`,
+            },
+        });
+        if (!userRes.ok) {
+            return new Response('Unauthorized: invalid token', { status: 401 });
+        }
+        const user = await userRes.json();
+        if (!user?.id) return new Response('Unauthorized: invalid token payload', { status: 401 });
+
+        // Verify the caller owns this shareCode (prevents token reuse across users).
+        // PostgREST query against user_profiles (RLS allows owner read).
+        const profileRes = await fetch(
+            `${env.SUPABASE_URL}/rest/v1/user_profiles?select=share_code&id=eq.${user.id}`,
+            {
+                headers: {
+                    apikey: env.SUPABASE_ANON_KEY,
+                    Authorization: `Bearer ${token}`,
+                    Accept: 'application/json',
+                },
+            }
+        );
+        if (profileRes.ok) {
+            const rows = await profileRes.json();
+            const ownedShareCode = rows?.[0]?.share_code;
+            // If profile has a share_code and caller is trying to write under a
+            // different code, reject. If no share_code yet (new user), allow —
+            // the client will have just created it.
+            if (ownedShareCode && ownedShareCode.toLowerCase() !== shareCode.toLowerCase()) {
+                return new Response('Forbidden: shareCode does not belong to authenticated user', { status: 403 });
+            }
+        }
+    } catch (e) {
+        return new Response('Unauthorized: token verification failed', { status: 401 });
+    }
+
+    // ---- Size cap ----
+    const lenHeader = request.headers.get('content-length');
+    if (lenHeader && Number(lenHeader) > MAX_BYTES) {
+        return new Response('Payload Too Large', { status: 413 });
+    }
     const bytes = await request.arrayBuffer();
+    if (bytes.byteLength > MAX_BYTES) {
+        return new Response('Payload Too Large', { status: 413 });
+    }
     const reqCt = request.headers.get('Content-Type');
     const contentType = reqCt || (isThumb ? 'image/jpeg' : 'video/mp4');
     await env.UFF_R2.put(key, bytes, { contentType });

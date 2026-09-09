@@ -18,6 +18,7 @@ function createWhisperWorker() {
         );
     w.onerror = (err) => {
         console.error(`[speech] Worker failed to load (${isPWAMode ? 'pwa' : 'default'}):`, err);
+        try { import('../utils/posthog.js').then(m => m.captureException?.(err instanceof Error ? err : new Error(String(err)), { source: 'whisper-worker-onerror' })); } catch {}
     };
     return w;
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../modules/api/supabase.js';
+import { appStore } from '../../modules/store/store.js';
 import Strings from '../../data/strings.js';
 
 export function useResetPasswordForm({ onResetSuccess } = {}) {
@@ -26,7 +27,8 @@ export function useResetPasswordForm({ onResetSuccess } = {}) {
         setError('');
 
         if (password !== passwordConfirm) {
-            setError(Strings.get('auth_passwords_mismatch', 'en'));
+            const lang = appStore.getState().guestNativeLanguage || appStore.getState().userData?.native_language || 'en';
+            setError(Strings.get('auth_passwords_mismatch', lang));
             return;
         }
 

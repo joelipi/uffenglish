@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useUserByShareCode } from '../../modules/api/api.js';
+import { appStore } from '../../modules/store/store.js';
 import Strings from '../../data/strings.js';
 import defaultProfilePic from '../../assets/img/userprofile.png';
 
@@ -44,17 +45,18 @@ export default function PublicProfile({ shareCode }) {
     }
 
     if (!profile) {
+        const viewerLang = appStore.getState().guestNativeLanguage || appStore.getState().userData?.native_language || 'en';
         return (
             <div style={containerStyle}>
                 <div style={headerStyle}>
                     <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}>
                         <i className="bi bi-arrow-left"></i>
                     </button>
-                    <span style={{ fontSize: '18px', fontWeight: 600 }}>{Strings.get('public_profile_heading', 'en')}</span>
+                    <span style={{ fontSize: '18px', fontWeight: 600 }}>{Strings.get('public_profile_heading', viewerLang)}</span>
                 </div>
                 <div style={{ padding: '24px 16px', textAlign: 'center', color: '#ff6b6b' }}>
                     <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: '32px', display: 'block', marginBottom: '12px' }}></i>
-                    <p>{Strings.get('public_profile_not_found', 'en')}</p>
+                    <p>{Strings.get('public_profile_not_found', viewerLang)}</p>
                 </div>
             </div>
         );

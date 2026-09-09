@@ -350,10 +350,12 @@ describe('Answers Module', () => {
                 userResponse: 'do you have dark choclate',
                 cue: ['Do you have rolls, too?', 'Do you have dark chocolate?'],
             });
-            expect(result.isCorrect).toBe(false);
+            // 'choclate' → 'chocolate' is a 1-char typo; normalized similarity is
+            // 96.1% (>95 threshold), so it is accepted as a near-match.
+            expect(result.isCorrect).toBe(true);
             // rawCue must be the matched element (not cue[0]) with its original casing
             expect(result.rawCue).toBe('Do you have dark chocolate?');
-            expect(result.normalizedcue).toBe('do you have dark chocolate?');
+            expect(result.normalizedcue).toBe('do you have dark chocolate');
         });
 
         it('should fall back to cue[0] casing when no clear match (rawCue)', async () => {

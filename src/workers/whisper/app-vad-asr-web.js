@@ -36,6 +36,7 @@ export function createWhisperAdapter({ worker }) {
         }
         else if (e.data.type === 'error') {
             console.error('[whisper] Engine initialization error:', e.data.message);
+            try { import('../../modules/utils/posthog.js').then(m => m.captureException?.(new Error(e.data.message || 'whisper init error'), { source: 'whisper-init' })); } catch {}
             appStore.getState().setWhisperEngineFailed(true);
             if (state.preloadTimer) {
                 clearTimeout(state.preloadTimer);
@@ -63,6 +64,7 @@ export function createWhisperAdapter({ worker }) {
 
     const errorHandler = (err) => {
         console.error('[whisper] worker error:', err);
+        try { import('../../modules/utils/posthog.js').then(m => m.captureException?.(err instanceof Error ? err : new Error(String(err?.message || err)), { source: 'whisper-worker' })); } catch {}
         if (state.preloadTimer) {
             clearTimeout(state.preloadTimer);
             state.preloadTimer = null;

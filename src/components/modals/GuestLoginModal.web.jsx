@@ -209,7 +209,7 @@ export default function GuestLoginModal() {
                                         onClick={handleEnglishOnly}
                                     >
                                         <span id="guestEnglishOnlyBtnText">
-                                            {Strings.get('guest_language_english_only', 'en') || "Continue in English only"}
+                                            {Strings.get('guest_language_english_only', step1Lang) || "Continue in English only"}
                                         </span>
                                     </button>
                                     <button

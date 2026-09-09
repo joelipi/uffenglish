@@ -60,7 +60,7 @@ export function loadVideoForStep(step, _state, lang) {
             responseType: step.responseType,
             url: currentVideoUrl,
             config: {
-                title: Strings.get('incoming_video', 'en') || 'INCOMING VIDEO',
+                title: Strings.get('incoming_video', lang) || 'INCOMING VIDEO',
                 subtitle: Strings.getBilingual('video_incoming', lang),
                 name: 'Joe Walsh',
                 role: 'English Coach, UFF',

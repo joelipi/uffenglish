@@ -50,9 +50,11 @@ function runHealthCheck() {
         });
 }
 
-// Run the health check as soon as this module is imported. This appears in
-// eruda before any recordings are made, confirming whether IDB works at all.
-runHealthCheck();
+// Run the health check as soon as this module is imported (only if IndexedDB
+// is available — jsdom and some test environments lack it).
+if (typeof indexedDB !== 'undefined') {
+    runHealthCheck();
+}
 
 /**
  * Persist (or overwrite) a recording record for a given lesson + step.

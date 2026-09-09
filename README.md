@@ -1,92 +1,122 @@
-# UFF - Ultra Fast Fluency
+# UFF — Ultra Fast Fluency
 
 ![UFF Loading](assets/img/u-f-f.png)
 
 ## Overview
 
-**UFF (Ultra Fast Fluency)** is a revolutionary web-based English language learning platform designed to fundamentally change how students learn to speak English. Unlike traditional methods or popular apps that focus heavily on reading, writing, and multiple-choice questions (often featuring unnatural, synthesized voices), UFF is strictly focused on **speaking and listening** in real-world scenarios.
+**UFF (Ultra Fast Fluency)** is a web app for English fluency through speaking and listening. Native-speaker video, voice-first answers, AI evaluation of intent/grammar, and a fluency score (0–100).
 
-The core philosophy of UFF is that fluency is achieved by listening to native speakers speak at normal speeds and responding naturally with your own voice. The technology evaluates your verbal responses in real-time, focusing not just on grammar, but on semantic intent and pragmatics.
+## Tech Stack
 
-## Key Features
+- **Frontend:** React 19 + React Router 7 + Vite 8 + Zustand (persisted `appStore` in `src/modules/store/store.js`) + TanStack Query + Bootstrap 5
+- **Backend:** Supabase (auth + `user_profiles` + `avatars` bucket, `supabase/migrations/`) — anon key is publishable, service role never in client
+- **Speech:** Whisper via Transformers.js / WASM workers (`src/workers/whisper/`) + VAD + speech-cam MediaRecorder
+- **Storage:** localStorage (lesson progress) + IndexedDB via `idb-keyval` for per-segment recordings (`src/modules/storage/recordingDb.js`) — ArrayBuffer only, never Blob (WebKit object-store bug)
+- **Media:** R2 `https://r2.ultrafastfluency.com` for lesson videos/posters (`/assets/videos/`, `/whisper/` proxied in `vite.config.js`), per-segment UGC to `videos/` via `functions/api/upload-segment.js` (JWT-gated)
+- **Analytics:** PostHog — session replay + exception capture (`src/modules/utils/posthog-client.js`), `maskInputOptions: {password,email}` so lesson text answers replay unmasked while credentials stay masked
+- **Deploy:** Cloudflare Pages (`dist/`), `wrangler.toml`, poster pipeline `scripts/generate-thumbnails.mjs` + ffmpeg
 
-*   **100% Real-World Media:** UFF exclusively uses video clips of native speakers (from movies, series, and YouTube) speaking naturally. There are zero synthesized voices, "teacher English," or unnaturally slow speech.
-*   **Voice-First Interaction:** You answer by speaking. The platform uses speech-to-text to capture your response, meaning no multiple-choice questions.
-*   **AI-Powered Evaluation:** Instead of rigid "exact match" grading, UFF uses AI to evaluate if your response makes sense in the context of the conversation (Intent) and if it is grammatically correct.
-*   **The UFF FluenScore™:** A proprietary metric (from 0% to 100%) that measures your actual ability to communicate in real-life situations, rather than just your theoretical CEFR level. It evaluates comprehension, response appropriateness, and speed.
-*   **Offline/Guest Mode Support:** The app supports a lazy login/guest mode, keeping users engaged before they even create an account. Data synchronizes once an account is established.
+## Directory
 
-## Architecture & Tech Stack
-
-UFF is built as a highly responsive, static frontend application with a decoupled BaaS (Backend-as-a-Service) architecture.
-
-### Frontend
-*   **HTML/CSS/Vanilla JS:** No heavy framework is used, ensuring blazing fast load times and straightforward DOM manipulation.
-*   **Styling & UI:** Built with **Bootstrap 5**, Bootstrap Icons, and Animate.css for standard, smooth UI animations.
-*   **Direct-Mutation State Management:** The application manages global state via a centralized `State` object (`js/modules/state.js`).
-
-### Backend & Authentication
-*   **Supabase:** Used for user authentication, session management, and database synchronization (`src/modules/api/supabase.js`, `supabase/migrations/`).
-*   **Local Storage Sync:** Guest and offline progress is stored locally and synced to Supabase upon login (`src/modules/user/user-profile.js`).
-
-### AI & NLP Pipeline
-*   **Speech-to-Text:** Integrated with Deepgram and Whisper for highly accurate, fast transcription.
-*   **Background NLP Worker:** Heavy NLP tasks (like local Hugging Face model inferences and text normalization) are offloaded to a Web Worker (`js/workers/nlp-worker-web.js`) so the main UI thread never freezes.
-*   **Grammar & Intent Checking:** External APIs and proxy workers (e.g., Cloudflare Workers interacting with AI models) are queried to evaluate semantic correctness (`js/modules/api.js`).
-
-## Directory Structure
-
-```text
-.
-├── README.md               # This file
-├── index.html               # Main entry point
-├── style.css               # Global application styles
-├── assets/                 # Images, icons, and audio/video fallbacks
-│   ├── img/
-│   ├── sounds/
-│   └── ...
-└── js/                     # Application logic
-    ├── config/             # JSON configuration files (e.g., courses)
-    ├── data/               # Static lesson data and dictionaries
-    ├── components/         # Visual rendering and DOM manipulation (e.g., ui.js)
-    ├── modules/            # Modularized logic (State, API, Scoring)
-     │   ├── api.js          # API calls (AI evaluation, deepgram tokens)
-     │   ├── supabase.js     # Supabase backend client setup
-     │   ├── state.js        # Global application state object
-     │   ├── user-profile.js # Local storage and user progress syncing
-    │   └── ...
-    ├── workers/            # Web workers for background processes
-    │   └── nlp-worker-web.js # Background thread for heavy language processing
-    └── app.js              # Main application bootstrapping
+```
+src/
+  App.jsx, main.jsx, routes/
+  components/        # React views (LessonContainer, HomeScreen, Profile, auth modals)
+  modules/
+    api/             # supabase.js, api.js, ai.js
+    store/           # Zustand store (persisted keys: courseId, friendCode, guestNativeLanguage…)
+    storage/         # storage.web.js + recordingDb.js (IndexedDB)
+    speech/          # speech.web.js + speech-orchestrator
+    bilingual/       # strings + config normalizer
+    answer/          # closed/open response evaluation
+    video/           # video-loader, video-processor, r2-upload
+    utils/           # posthog, utils, swearjar
+  workers/whisper/
+  config/            # model.json, gt2.json, t.json
+  data/              # strings.js, idioms.json
+public/
+  _headers           # COOP/COEP (SharedArrayBuffer), _redirects (SPA fallback)
+functions/api/upload-segment.js   # Pages Function → R2 (requires Supabase JWT)
 ```
 
-## Local Development Setup
+## Prerequisites
 
-Because UFF is designed as a static frontend, setting it up for local development is extremely simple. No build step (like Webpack or Vite) is strictly required for the core app, though you need a local server to avoid CORS issues with ES Modules and Web Workers.
+- Node 20+ (`setup-node@v4` in CI)
+- `ffmpeg` for poster generation (`sudo apt-get install -y ffmpeg` — CI does this)
+- Cloudflare creds only for poster upload / Pages deploy: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
+- Supabase project `jbrbmbmupjfangqvaevx` (vars in `.env` + `wrangler.toml [vars]`)
 
-### Prerequisites
-*   A basic HTTP server (e.g., Python, Node `http-server`, or Live Server in VS Code).
+## Setup
 
-### Running the App
-1. Clone the repository to your local machine.
-2. Open a terminal in the root directory of the project.
-3. Start a local HTTP server using serve (or any equivalent):
-   ```bash
-   npx serve .
-   ```
-4. Open your browser and navigate to `http://localhost:3000/`.
+```bash
+npm ci
+cp .env.example .env   # fill VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_PUBLIC_POSTHOG_*
+```
 
-### Testing Media & Speech locally
-To properly test the microphone and speech recognition features (especially in automated tests like Playwright), you may need to bypass standard browser security prompts for local environments.
-If launching Chromium via Playwright, pass these arguments:
-`['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream']`
-and explicitly grant `['microphone']` permissions in the browser context.
+Optional for R2 poster upload:
 
-## Contact & Support
+```bash
+export CLOUDFLARE_API_TOKEN=…  CLOUDFLARE_ACCOUNT_ID=…
+```
 
-**Created by Joe Walsh**
-*The first technology designed specifically for English fluency. Transform your speaking ability in days, not years.*
+## Running
 
-*   **Support Email:** support@uff.com
-*   **Phone (WhatsApp):** +1 (617) 903-0597
-*   **Location:** Boston, USA
+Two processes for local UGC upload (R2):
+
+```bash
+# terminal 1 — Vite dev server (port 3000, also proxies /assets/videos/ + /whisper/ → R2)
+npm run dev
+
+# terminal 2 — Pages Functions dev server (port 8788, serves /api/upload-segment → R2)
+npx wrangler pages dev dist --port 8788
+# or: npx wrangler pages dev --port 8788  (when vite.config.js proxies /api → localhost:8788)
+```
+
+Open `http://localhost:3000/`. For device testing against real mic/cam over HTTPS, fix the existing Cloudflare tunnel on `t.ultrafastfluency.com` (currently returns HTTP 530 — no origin connected; restart `cloudflared` with the saved tunnel config). `vite.config.js` already allowlists `t.ultrafastfluency.com`.
+
+Deep link with friend code: `http://localhost:3000/?sharecode=abc123` → persisted in `appStore.friendCode`.
+
+Debug console: Eruda is gated — append `?eruda=1` or `localStorage.setItem('eruda','1')` to load it. It is not loaded for real users by default.
+
+Staging: `s.ultrafastfluency.com` (Pages custom domain — add in Cloudflare dashboard, TLS auto). Production deploys on push to `main`.
+
+## Build & Deploy
+
+```bash
+npm test -- --run          # unit tests (14 files, jsdom) — must be green before push
+npm run build              # vite build → dist/ (+ copy src/config + _headers/_redirects)
+node scripts/verify-thumbnails.mjs   # poster check
+npm run deploy             # build + wrangler pages deploy dist --project-name=uffenglish
+```
+
+CI (`deploy.yml` on push to `main`): `npm ci` → unit tests → ffmpeg → `generate-thumbnails` → `--upload` (R2, non-fatal) → `verify` → `build` → `pages deploy`. Production branch is `main`; `s.` binds to the Pages project.
+
+R2 lifecycle (48h TTL for `videos/` UGC) is set in the Cloudflare dashboard (`R2 → uff → Lifecycle`), not in `wrangler.toml`.
+
+## Testing Media & Speech
+
+For Playwright mic/camera tests:
+
+```js
+['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream']
+// and grant ['microphone'] in the browser context
+```
+
+`playwright.config.js` scopes `testDir: tests/` and proxies video/whisper to R2. `vitest.config.js` excludes `tests/` + `*.spec.js`.
+
+## i18n
+
+UI strings in `src/data/strings.js` (`get`/`getBilingual`), lesson content `{en,es,pt}` in `src/config/*.json` normalized by `config-normalizer.js`. Guest language flows through `appStore.guestNativeLanguage` (now persisted) → components use `guestNativeLanguage || userData.native_language || 'en'`. Missing translations fall back to English gracefully.
+
+## Supabase
+
+```bash
+supabase start           # local stack on 54321/54322/54323 (optional)
+supabase db push         # apply supabase/migrations/ (001 init, 002 grants, 003 hardening)
+```
+
+Migration `003_harden_public_read_and_view.sql` scopes anon `SELECT` on `user_profiles` to safe display columns and adds view `public.public_profiles`. `useUserByShareCode` queries the view. Apply locally first, then to production — verify `/:shareCode` public profile still renders.
+
+## Contact
+
+**Joe Walsh** — Boston, USA — Support: mrjoewalsh1@gmail.com — Phone: +1 617 657 5018

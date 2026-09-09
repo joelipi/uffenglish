@@ -215,13 +215,18 @@
             </div>
     </main>
 
-    <!-- Eruda console (always loaded for debugging) -->
+    <!-- Eruda console (gated: ?eruda=1 or localStorage.eruda=1; not loaded for real users) -->
     <script>
         (function () {
-            var script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/eruda';
-            script.onload = function () { eruda.init(); };
-            document.body.appendChild(script);
+            try {
+                var params = new URLSearchParams(window.location.search);
+                var enabled = params.has('eruda') || (function(){ try { return window.localStorage.getItem('eruda') === '1'; } catch(e){ return false; } })();
+                if (!enabled) return;
+                var script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/eruda';
+                script.onload = function () { eruda.init(); };
+                document.body.appendChild(script);
+            } catch (e) {}
         })();
     </script>
 

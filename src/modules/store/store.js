@@ -665,6 +665,7 @@ export const appStore = createStore(
                 aIMessagesToUserWordCount: state.aIMessagesToUserWordCount,
                 courseId: state.courseId,
                 friendCode: state.friendCode,
+                guestNativeLanguage: state.guestNativeLanguage,
                 currentLessonTimestamp: state.currentLessonTimestamp,
                 lessonScores: state.lessonScores
             })

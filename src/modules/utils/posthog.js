@@ -15,6 +15,17 @@ export function trackEvent(eventName, properties = {}) {
     console.log('[PostHog] Tracked event:', eventName, properties);
 }
 
+export function captureException(err, context = {}) {
+    if (!_posthog) return;
+    try {
+        if (typeof _posthog.captureException === 'function') {
+            _posthog.captureException(err, context);
+        } else {
+            _posthog.capture('$exception', { $exception_message: err?.message || String(err), ...context });
+        }
+    } catch {}
+}
+
 export function identifyUser(uidOrTraits, traits) {
     if (!_posthog) return;
     if (typeof uidOrTraits === 'string') {
