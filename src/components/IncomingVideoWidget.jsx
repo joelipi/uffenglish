@@ -155,8 +155,15 @@ export default function IncomingVideoWidget() {
     }, [signalReady]);
 
     // If the video load fails entirely, don't leave the user stuck —
-    // signal ready so the preloader can go away.
+    // signal ready so the preloader can go away. If it was a CORS/CORP
+    // block (crossOrigin="anonymous" without CORP), retry once without
+    // crossOrigin so at least the first frame paints (intro doesn't need canvas taint).
     const onError = useCallback(() => {
+        const v = videoRef.current;
+        if (v?.crossOrigin) {
+            console.warn('[IncomingVideoWidget] Video load error with crossOrigin, retrying without CORS');
+            try { v.removeAttribute('crossorigin'); v.load(); return; } catch {}
+        }
         console.warn('[IncomingVideoWidget] Video load error — signalling ready to unblock preloader');
         signalReady();
     }, [signalReady]);
