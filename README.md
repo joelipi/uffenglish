@@ -91,6 +91,10 @@ npm run deploy             # build + wrangler pages deploy dist --project-name=u
 
 CI (`deploy.yml` on push to `main`): `npm ci` → unit tests → ffmpeg → `generate-thumbnails` → `--upload` (R2, non-fatal) → `verify` → `build` → `pages deploy`. Production branch is `main`; `s.` binds to the Pages project.
 
+**Infra / operations docs:** `docs/cloudflare-video-cors.md` — Cloudflare Transform-Rule config that makes R2 videos/Whisper work on `s.` (COEP `credentialless` + ACAO/CORP on 206 range responses). If videos fail on `s.` but not localhost, read it first.
+
+**Mock lesson videos:** `node scripts/generate-mock-videos.mjs` generates placeholder H.264+AAC mp4s (color + TTS text) for the `model.json` slugs into `public/assets/videos/` — no real teacher content needed for local/staging testing. `--slug=X --text="..."` for one-off, `--upload` to push to R2.
+
 R2 lifecycle (48h TTL for `videos/` UGC) is set in the Cloudflare dashboard (`R2 → uff → Lifecycle`), not in `wrangler.toml`.
 
 ## Testing Media & Speech

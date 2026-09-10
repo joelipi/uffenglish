@@ -507,6 +507,110 @@
         }
       ],
       "nextLessonId": "a"
+    },
+    {
+      "lessonId": "w",
+      "title": {
+        "en": "Would You Rather?",
+        "es": "¿Qué Preferirías?",
+        "pt": "O Que Você Prefere?"
+      },
+      "unit": "Friend Challenge",
+      "mission": {
+        "en": "ask your friends 3 Would-you-rather questions and answer each one",
+        "es": "haz a tus amigos 3 preguntas de ¿qué preferirías? y responde cada una",
+        "pt": "faça aos seus amigos 3 perguntas do tipo preferiria e responda cada uma"
+      },
+      "setting": {
+        "en": "With friends",
+        "es": "Con amigos",
+        "pt": "Com amigos"
+      },
+      "roleOther": {
+        "en": "Friend",
+        "es": "Amigo",
+        "pt": "Amigo"
+      },
+      "roleUser": {
+        "en": "You",
+        "es": "Tú",
+        "pt": "Você"
+      },
+      "steps": [
+        {
+          "cue": "",
+          "responseType": "lessonIntro",
+          "introBackgroundVideoUrl": "testvideo01"
+        },
+        {
+          "cue": {
+            "en": "Would you rather have a million dollars or live five years longer?",
+            "es": "¿Preferirías tener un millón de dólares o vivir cinco años más?",
+            "pt": "Você preferiria ter um milhão de dólares ou viver cinco anos a mais?"
+          },
+          "responseType": "closedResponse",
+          "interactiveVideoUrl": "testvideo02",
+          "headsUp": "Repite la pregunta exactamente."
+        },
+        {
+          "cue": {
+            "en": "Would you rather have a meal with great food or a meal with great conversation?",
+            "es": "¿Preferirías una comida con excelente comida o una comida con excelente conversación?",
+            "pt": "Você preferiria uma refeição com ótima comida ou uma refeição com ótima conversa?"
+          },
+          "responseType": "closedResponse",
+          "interactiveVideoUrl": "testvideo03",
+          "headsUp": "Repite la pregunta exactamente."
+        },
+        {
+          "cue": {
+            "en": "Would you rather travel to the beach, the mountains, or the countryside?",
+            "es": "¿Preferirías viajar a la playa, las montañas o el campo?",
+            "pt": "Você preferiria viajar para a praia, as montanhas ou o campo?"
+          },
+          "responseType": "closedResponse",
+          "interactiveVideoUrl": "testvideo04",
+          "headsUp": "Repite la pregunta exactamente."
+        },
+        {
+          "cue": [
+            { "en": "I would rather have a million dollars.", "es": "Preferiría tener un millón de dólares.", "pt": "Eu preferiria ter um milhão de dólares." },
+            { "en": "I would rather live five years longer.", "es": "Preferiría vivir cinco años más.", "pt": "Eu preferiria viver cinco anos a mais." }
+          ],
+          "responseType": "closedResponse",
+          "interactiveVideoUrl": "testvideo05",
+          "headsUp": "Elige una opción y respóndela."
+        },
+        {
+          "cue": [
+            { "en": "I would rather have a meal with great conversation.", "es": "Preferiría una comida con excelente conversación.", "pt": "Eu preferiria uma refeição com ótima conversa." },
+            { "en": "I would rather have a meal with great food.", "es": "Preferiría una comida con excelente comida.", "pt": "Eu preferiria uma refeição com ótima comida." }
+          ],
+          "responseType": "closedResponse",
+          "interactiveVideoUrl": "testvideo06",
+          "headsUp": "Elige una opción y respóndela."
+        },
+        {
+          "cue": [
+            { "en": "I would rather travel to the beach.", "es": "Preferiría viajar a la playa.", "pt": "Eu preferiria viajar para a praia." },
+            { "en": "I would rather travel to the mountains.", "es": "Preferiría viajar a las montañas.", "pt": "Eu preferiria viajar para as montanhas." },
+            { "en": "I would rather travel to the countryside.", "es": "Preferiría viajar al campo.", "pt": "Eu preferiria viajar para o campo." }
+          ],
+          "responseType": "closedResponse",
+          "interactiveVideoUrl": "testvideo07",
+          "headsUp": "Elige una opción y respóndela."
+        },
+        {
+          "simpleVideoUrl": "testvideo08",
+          "subtitles": {
+            "en": "Great! Now share your link with friends or family so they can practice with you free. They have 48 hours to respond.",
+            "es": "¡Genial! Ahora comparte tu enlace con amigos o familiares para que practiquen contigo gratis. Tienen 48 horas para responder.",
+            "pt": "Ótimo! Agora compartilhe seu link com amigos ou familiares para que pratiquem com você gratuitamente. Eles têm 48 horas para responder."
+          },
+          "responseType": "success"
+        }
+      ],
+      "nextLessonId": "a"
     }
   ]
 }

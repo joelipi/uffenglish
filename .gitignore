@@ -30,6 +30,9 @@ assets/videos/gtests-1-1.mp4
 assets/videos/gtests-1-2.mp4
 assets/videos/gtests-1-3.mp4
 assets/videos/success.mp4
+
+# Generated mock lesson videos (scripts/generate-mock-videos.mjs) — not source
+public/assets/videos/*.mp4
 /.reasonix
 /tidy
 /.tokencount
