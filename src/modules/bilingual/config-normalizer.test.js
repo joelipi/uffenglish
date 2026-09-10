@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { normalizeConfig } from './config-normalizer.js';
+import { appStore } from '../store/store.js';
 
 describe('normalizeConfig', () => {
     it('returns immediately if configData is null or undefined or missing lessons', () => {
@@ -97,5 +98,35 @@ describe('normalizeConfig', () => {
         };
         normalizeConfig(configData, null);
         expect(configData.lessons[0].title).toBe('Title');
+    });
+
+    it('substitutes {friendCode} wildcards in video URLs (friend-concat answers lesson)', () => {
+        appStore.getState().setFriendCode('alice42');
+        const configData = {
+            lessons: [{
+                steps: [
+                    { responseType: 'friendClosedResponse', interactiveVideoUrl: '{friendCode}model-w-response-01' },
+                    { responseType: 'friendClosedResponse', interactiveVideoUrl: '{friendCode}model-w-response-02' },
+                    { responseType: 'viewAndContinue', simpleVideoUrl: 'testvideo05' },
+                ]
+            }]
+        };
+        normalizeConfig(configData, 'en');
+        expect(configData.lessons[0].steps[0].interactiveVideoUrl).toBe('alice42-model-w-response-01');
+        expect(configData.lessons[0].steps[1].interactiveVideoUrl).toBe('alice42-model-w-response-02');
+        // Non-friend steps untouched
+        expect(configData.lessons[0].steps[2].simpleVideoUrl).toBe('testvideo05');
+        appStore.getState().setFriendCode(null);
+    });
+
+    it('strips {friendCode} wildcard when no friendCode set', () => {
+        appStore.getState().setFriendCode(null);
+        const configData = {
+            lessons: [{
+                steps: [{ responseType: 'friendClosedResponse', interactiveVideoUrl: '{friendCode}model-w-response-01' }]
+            }]
+        };
+        normalizeConfig(configData, 'en');
+        expect(configData.lessons[0].steps[0].interactiveVideoUrl).toBe('model-w-response-01');
     });
 });

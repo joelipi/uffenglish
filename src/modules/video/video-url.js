@@ -4,8 +4,20 @@
 
 const CDN_BASE = 'https://r2.ultrafastfluency.com/assets/videos/';
 const POSTER_BASE = 'https://r2.ultrafastfluency.com/assets/posters/';
+// UGC friend recordings live under /videos/ (48h TTL, see exportSegmentsToR2 key
+// "videos/{shareCode}-{courseId}-{lessonId}-response-0N.mp4"). Teacher/system
+// media lives under /assets/videos/.
+const UGC_BASE = 'https://r2.ultrafastfluency.com/videos/';
 
 export function getVideoUrl(slug) {
+    if (!slug) return '';
+    // A slug ending in "-response-NN" is a friend's UGC question recording —
+    // resolve it to the /videos/ namespace (always full URL; the Vite proxy only
+    // covers /assets/videos/, and these only exist cross-origin on R2 anyway).
+    const isUgc = /-response-\d+$/i.test(slug);
+    if (isUgc) {
+        return `${UGC_BASE}${slug}.mp4`;
+    }
     if (import.meta.env.DEV) {
         return `/assets/videos/${slug}.mp4`;
     }

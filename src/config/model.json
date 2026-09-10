@@ -511,15 +511,15 @@
     {
       "lessonId": "w",
       "title": {
-        "en": "Would You Rather?",
-        "es": "¿Qué Preferirías?",
-        "pt": "O Que Você Prefere?"
+        "en": "Would You Rather? — Ask",
+        "es": "¿Qué Preferirías? — Pregunta",
+        "pt": "O Que Você Prefere? — Pergunte"
       },
       "unit": "Friend Challenge",
       "mission": {
-        "en": "ask your friends 3 Would-you-rather questions and answer each one",
-        "es": "haz a tus amigos 3 preguntas de ¿qué preferirías? y responde cada una",
-        "pt": "faça aos seus amigos 3 perguntas do tipo preferiria e responda cada uma"
+        "en": "record yourself asking your friends 3 Would-you-rather questions",
+        "es": "grábate preguntando a tus amigos 3 preguntas de ¿qué preferirías?",
+        "pt": "grave-se perguntando aos seus amigos 3 perguntas do tipo preferiria"
       },
       "setting": {
         "en": "With friends",
@@ -573,22 +573,86 @@
           "headsUp": "Repite la pregunta exactamente."
         },
         {
+          "simpleVideoUrl": "testvideo08",
+          "subtitles": {
+            "en": "Great! Now share your link with friends or family so they can practice with you free. They have 48 hours to respond.",
+            "es": "¡Genial! Ahora comparte tu enlace con amigos o familiares para que practiquen contigo gratis. Tienen 48 horas para responder.",
+            "pt": "Ótimo! Agora compartilhe seu link com amigos ou familiares para que pratiquem com você gratuitamente. Eles têm 48 horas para responder."
+          },
+          "responseType": "success"
+        }
+      ],
+      "nextLessonId": "wa"
+    },
+    {
+      "lessonId": "wa",
+      "title": {
+        "en": "Would You Rather? — Answer",
+        "es": "¿Qué Preferirías? — Responde",
+        "pt": "O Que Você Prefere? — Responda"
+      },
+      "unit": "Friend Challenge",
+      "mission": {
+        "en": "answer your friend's 3 Would-you-rather questions",
+        "es": "responde las 3 preguntas de ¿qué preferirías? de tu amigo",
+        "pt": "responda as 3 perguntas do tipo preferiria do seu amigo"
+      },
+      "setting": {
+        "en": "With friends",
+        "es": "Con amigos",
+        "pt": "Com amigos"
+      },
+      "roleOther": {
+        "en": "Friend",
+        "es": "Amigo",
+        "pt": "Amigo"
+      },
+      "roleUser": {
+        "en": "You",
+        "es": "Tú",
+        "pt": "Você"
+      },
+      "steps": [
+        {
+          "cue": "",
+          "responseType": "lessonIntro",
+          "introBackgroundVideoUrl": "testvideo01"
+        },
+        {
           "cue": [
             { "en": "I would rather have a million dollars.", "es": "Preferiría tener un millón de dólares.", "pt": "Eu preferiria ter um milhão de dólares." },
             { "en": "I would rather live five years longer.", "es": "Preferiría vivir cinco años más.", "pt": "Eu preferiria viver cinco anos a mais." }
           ],
-          "responseType": "closedResponse",
-          "interactiveVideoUrl": "testvideo05",
-          "headsUp": "Elige una opción y respóndela."
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "testvideo05",
+          "headsUp": "Así puedes responder."
+        },
+        {
+          "cue": [
+            { "en": "I would rather have a million dollars.", "es": "Preferiría tener un millón de dólares.", "pt": "Eu preferiria ter um milhão de dólares." },
+            { "en": "I would rather live five years longer.", "es": "Preferiría vivir cinco años más.", "pt": "Eu preferiria viver cinco anos a mais." }
+          ],
+          "responseType": "friendClosedResponse",
+          "interactiveVideoUrl": "{friendCode}model-w-response-01",
+          "headsUp": "Escucha la pregunta de tu amigo y respóndela."
         },
         {
           "cue": [
             { "en": "I would rather have a meal with great conversation.", "es": "Preferiría una comida con excelente conversación.", "pt": "Eu preferiria uma refeição com ótima conversa." },
             { "en": "I would rather have a meal with great food.", "es": "Preferiría una comida con excelente comida.", "pt": "Eu preferiria uma refeição com ótima comida." }
           ],
-          "responseType": "closedResponse",
-          "interactiveVideoUrl": "testvideo06",
-          "headsUp": "Elige una opción y respóndela."
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "testvideo06",
+          "headsUp": "Así puedes responder."
+        },
+        {
+          "cue": [
+            { "en": "I would rather have a meal with great conversation.", "es": "Preferiría una comida con excelente conversación.", "pt": "Eu preferiria uma refeição com ótima conversa." },
+            { "en": "I would rather have a meal with great food.", "es": "Preferiría una comida con excelente comida.", "pt": "Eu preferiria uma refeição com ótima comida." }
+          ],
+          "responseType": "friendClosedResponse",
+          "interactiveVideoUrl": "{friendCode}model-w-response-02",
+          "headsUp": "Escucha la pregunta de tu amigo y respóndela."
         },
         {
           "cue": [
@@ -596,16 +660,26 @@
             { "en": "I would rather travel to the mountains.", "es": "Preferiría viajar a las montañas.", "pt": "Eu preferiria viajar para as montanhas." },
             { "en": "I would rather travel to the countryside.", "es": "Preferiría viajar al campo.", "pt": "Eu preferiria viajar para o campo." }
           ],
-          "responseType": "closedResponse",
-          "interactiveVideoUrl": "testvideo07",
-          "headsUp": "Elige una opción y respóndela."
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "testvideo07",
+          "headsUp": "Así puedes responder."
+        },
+        {
+          "cue": [
+            { "en": "I would rather travel to the beach.", "es": "Preferiría viajar a la playa.", "pt": "Eu preferiria viajar para a praia." },
+            { "en": "I would rather travel to the mountains.", "es": "Preferiría viajar a las montañas.", "pt": "Eu preferiria viajar para as montanhas." },
+            { "en": "I would rather travel to the countryside.", "es": "Preferiría viajar al campo.", "pt": "Eu preferiria viajar para o campo." }
+          ],
+          "responseType": "friendClosedResponse",
+          "interactiveVideoUrl": "{friendCode}model-w-response-03",
+          "headsUp": "Escucha la pregunta de tu amigo y respóndela."
         },
         {
           "simpleVideoUrl": "testvideo08",
           "subtitles": {
-            "en": "Great! Now share your link with friends or family so they can practice with you free. They have 48 hours to respond.",
-            "es": "¡Genial! Ahora comparte tu enlace con amigos o familiares para que practiquen contigo gratis. Tienen 48 horas para responder.",
-            "pt": "Ótimo! Agora compartilhe seu link com amigos ou familiares para que pratiquem com você gratuitamente. Eles têm 48 horas para responder."
+            "en": "Great! Your combined video with your friend is ready. Share it!",
+            "es": "¡Genial! Tu video combinado con tu amigo está listo. ¡Compártelo!",
+            "pt": "Ótimo! Seu vídeo combinado com seu amigo está pronto. Compartilhe!"
           },
           "responseType": "success"
         }
