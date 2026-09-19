@@ -14,6 +14,8 @@ function renderIcon(type) {
             return <i className="bi bi-exclamation-triangle-fill" style={{ color: 'red', fontSize: 'large' }} />;
         case 'gibberish':
             return <i className="bi bi-ear-x" style={{ color: '#ff9800', fontSize: 'large' }} />;
+        case 'media-error':
+            return <i className="bi bi-mic-mute-fill" style={{ color: '#ff9800', fontSize: 'large' }} />;
         case 'alert':
             return <i className="bi bi-exclamation-diamond" />;
         default:
@@ -35,6 +37,8 @@ function colorClass(type) {
         case 'danger':
         case 'preflight-rejected':
             return 'text-danger';
+        case 'media-error':
+            return 'text-warning';
         case 'engine-ready':
             return 'text-success';
         case 'gibberish':

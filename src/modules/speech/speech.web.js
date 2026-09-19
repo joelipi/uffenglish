@@ -1,7 +1,6 @@
 // modules/speech.web.js
 // Web-only module — uses navigator.userAgent, navigator.platform, navigator.mediaDevices.
 // React Native replaces this with speech.native.js via platform-specific file resolution.
-import Strings from '../../data/strings.js';
 import { saveSpeechRecording } from '../storage/storage.js';
 import { appStore, setWebcamStream } from '../store/store.js';
 import { DEFAULT_USER_AVATAR_URL } from '../user/tutor-config.js';
@@ -175,11 +174,12 @@ export async function startSpeechCamRecording(micStatusText, userData, { deferSt
         }
     } catch (err) {
         console.error('[Recording] startSpeechCamRecording FAILED:', err);
-        alert(Strings.get('alert_media_error', userData?.native_language));
-        appStore.getState().setSystemMessage({ type: 'alert', text: Strings.get('error_media_details', userData?.native_language) });
+        // Recovery guidance is owned by the orchestrator/uiHooks so it can be
+        // localized and kept on-screen. A blocking native alert here would
+        // dead-end the user with no way back to the mode chooser.
         setWebcamStream(null);
         safelyStopStream();
-        throw err; // re-throw so the orchestrator can abort cleanly
+        throw err; // re-throw so the orchestrator can surface guidance cleanly
     }
 }
 

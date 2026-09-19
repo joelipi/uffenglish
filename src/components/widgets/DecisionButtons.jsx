@@ -21,7 +21,9 @@ export default function DecisionButtons() {
 
     const handleMicClick = () => {
         getCurrentVideoPlayer()?.dismissOverlay?.({ replay: false });
-        appStore.getState().transitionTo('recording/answering');
+        // Do NOT enter recording/answering here. onRecordingStart transitions
+        // once the mic stream is actually live, so a getUserMedia failure keeps
+        // these decision buttons mounted with actionable guidance.
         const cb = getSpeechInputToggleCallback();
         if (typeof cb === 'function') cb();
     };

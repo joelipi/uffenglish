@@ -453,6 +453,78 @@ const strings = {
         es: "El motor de voz no pudo cargarse en este dispositivo. Intenta usar el texto.",
         fr: "Le moteur vocal n'a pas pu être chargé sur cet appareil. Essayez d'utiliser le texte."
     },
+    'action_preparing_voice': {
+        en: "Getting your microphone ready…",
+        es: "Preparando tu micrófono…",
+        pt: "Preparando seu microfone…",
+        fr: "Préparation de votre micro…"
+    },
+    'error_engine_loading_hint': {
+        en: "This usually takes a few seconds. Keep this tab open.",
+        es: "Normalmente tarda unos segundos. Mantén esta pestaña abierta.",
+        pt: "Normalmente leva alguns segundos. Mantenha esta aba aberta.",
+        fr: "Cela prend quelques secondes. Gardez cet onglet ouvert."
+    },
+    'error_engine_slow_title': {
+        en: "Still getting speech recognition ready…",
+        es: "Todavía preparando el reconocimiento de voz…",
+        pt: "Ainda preparando o reconhecimento de voz…",
+        fr: "Préparation de la reconnaissance vocale…"
+    },
+    'error_engine_slow_hint': {
+        en: "This is taking longer than usual. Check your internet connection, then try again.",
+        es: "Está tardando más de lo normal. Revisa tu conexión a internet y vuelve a intentar.",
+        pt: "Está demorando mais que o normal. Verifique sua conexão e tente novamente.",
+        fr: "Cela prend plus de temps que d'habitude. Vérifiez votre connexion internet, puis réessayez."
+    },
+    'error_engine_failed_title': {
+        en: "Speech recognition couldn't load",
+        es: "No se pudo cargar el reconocimiento de voz",
+        pt: "Não foi possível carregar o reconhecimento de voz",
+        fr: "Impossible de charger la reconnaissance vocale"
+    },
+    'error_engine_failed_steps': {
+        en: "Check your internet connection. Turn off any VPN or ad blocker for this site, then try again.",
+        es: "Revisa tu conexión a internet. Desactiva cualquier VPN o bloqueador de anuncios para este sitio y vuelve a intentar.",
+        pt: "Verifique sua conexão. Desative VPN ou bloqueador de anúncios para este site e tente novamente.",
+        fr: "Vérifiez votre connexion internet. Désactivez tout VPN ou bloqueur de publicités pour ce site, puis réessayez."
+    },
+    'action_try_again': {
+        en: "Try Again",
+        es: "Reintentar",
+        pt: "Tentar novamente",
+        fr: "Réessayer"
+    },
+    'action_use_text_fallback': {
+        en: "I can't use my voice — use text instead",
+        es: "No puedo usar mi voz — usar texto",
+        pt: "Não posso usar minha voz — usar texto",
+        fr: "Je ne peux pas utiliser ma voix — utiliser le texte"
+    },
+    'error_media_not_found': {
+        en: "No microphone or camera found. Connect one, then try again.",
+        es: "No se encontró micrófono ni cámara. Conecta uno y vuelve a intentar.",
+        pt: "Nenhum microfone ou câmera encontrado. Conecte um e tente novamente.",
+        fr: "Aucun micro ni caméra détecté. Connectez-en un, puis réessayez."
+    },
+    'error_media_denied': {
+        en: "Microphone access is blocked. Allow mic & camera in your browser settings, then try again.",
+        es: "El acceso al micrófono está bloqueado. Permite micrófono y cámara en tu navegador y vuelve a intentar.",
+        pt: "O acesso ao microfone está bloqueado. Permita microfone e câmera no navegador e tente novamente.",
+        fr: "L'accès au micro est bloqué. Autorisez le micro et la caméra dans votre navigateur, puis réessayez."
+    },
+    'error_media_busy': {
+        en: "Couldn't start your microphone. Close any other app using it, then try again.",
+        es: "No se pudo iniciar tu micrófono. Cierra cualquier otra app que lo use y vuelve a intentar.",
+        pt: "Não foi possível iniciar seu microfone. Feche qualquer outro app que o use e tente novamente.",
+        fr: "Impossible de démarrer votre micro. Fermez toute autre application qui l'utilise, puis réessayez."
+    },
+    'error_media_generic': {
+        en: "Couldn't start your microphone or camera. Check your settings and try again.",
+        es: "No se pudo iniciar tu micrófono o cámara. Revisa tu configuración y vuelve a intentar.",
+        pt: "Não foi possível iniciar seu microfone ou câmera. Verifique as configurações e tente novamente.",
+        fr: "Impossible de démarrer votre micro ou caméra. Vérifiez vos paramètres, puis réessayez."
+    },
     'demo_vad_limitation_notice': {
         en: "The web version can't detect pauses during speech, only hesitation at the beginning. Add us to homescreen to get the full version with more accurate speech recognition.",
         es: "La versión web no puede detectar pausas al hablar, solo la duda al inicio. Agrega nuestra app a la pantalla de inicio para obtener la versión completa con reconocimiento de voz más preciso."

@@ -12,6 +12,7 @@ import { trackEvent } from '../utils/posthog.js';
 import { handleTextStep, handleLessonComplete, handleUnitComplete, handleSuccessStep, clearWarningLater, cancelWarningClear } from './step-loader-logic.js';
 import { loadStepOrchestrate } from './step-loader-orchestrate.js';
 import { setTextInputSubmitCallback as setTextCb, setSpeechInputToggleCallback as setSpeechCb } from './step-loader-callbacks.js';
+import { getMediaErrorStringKey, classifyMediaError } from '../speech/speech-ui-state.js';
 import { getVideoUrl } from '../video/video-url.js';
 
 // Module-level ref for viewAndContinue handler (decision overlay Continue button)
@@ -237,7 +238,19 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                         onRecordingStart: (userData) => {
                             trackEvent('recording_started');
                             cancelWarningClear();
-                            if (appStore.getState().appPhase === 'simpleVideo') {
+                            // Enter the recording UI only once the mic/cam stream is
+                            // actually live. IntroChoices/DecisionButtons no longer
+                            // pre-transition, so a getUserMedia failure keeps the
+                            // chooser mounted and recoverable.
+                            const phaseNow = appStore.getState().appPhase;
+                            const RECORDABLE_PHASES = [
+                                'simpleVideo',
+                                'firstResponse',
+                                'interactiveVideo-decisionTime-closedResponse',
+                                'interactiveVideo-decisionTime-openResponse',
+                                'interactiveVideo-decisionTime-friendClosedResponse',
+                            ];
+                            if (RECORDABLE_PHASES.includes(phaseNow)) {
                                 appStore.getState().transitionTo('recording/answering');
                             }
                             // setMicActive is now handled by the orchestrator after startSpeechCamRecording succeeds
@@ -262,6 +275,21 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                                 btn.disabled = false;
                             }
                             appStore.getState().setSystemMessage({ type: 'engine-ready', text: 'Engine ready. Try speaking now!' });
+                        },
+                        onMediaError: (error) => {
+                            // Mic/cam could not start. Stay on the mode chooser
+                            // (we never entered recording/answering) and show
+                            // localized, actionable recovery guidance.
+                            const key = getMediaErrorStringKey(error);
+                            const nativeLang = appStore.getState().userData?.native_language;
+                            const msg = Strings.get(key, nativeLang)
+                                || Strings.get('error_media_generic', nativeLang)
+                                || "Couldn't start your microphone or camera. Check your settings and try again.";
+                            console.warn('[QuestionLoader] Media error:', error?.name, '→', key);
+                            trackEvent('media_error', { name: error?.name || 'unknown', reason: classifyMediaError(error) });
+                            appStore.getState().setMicActive(false);
+                            appStore.getState().setMediaVisible(true);
+                            appStore.getState().setSystemMessage({ type: 'media-error', text: msg });
                         },
                         onRecordingActive: () => {
                         },

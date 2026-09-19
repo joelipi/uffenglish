@@ -19,9 +19,13 @@ import { loadStep } from '../components/step-loader.js';
 import { createAnswerPipeline } from '../modules/answer/answer-pipeline.js';
 import { showChat, addAILoadingMessage, addAIFeedbackMessages, clearChat, getChatHistoryContext } from '../components/chat/chat-interface.js';
 import { askEnglishTutor } from '../modules/api/api.js';
-import { warmUpSpeechCamStream, toggleSpeechRecognition, listeningState } from '../modules/speech/speech.js';
+import { warmUpSpeechCamStream, toggleSpeechRecognition, listeningState, retryWhisperEngine } from '../modules/speech/speech.js';
+import { setSpeechEngineRetryCallback } from '../modules/lesson/step-loader-callbacks.js';
 
 export async function setupAppInfra({ userData }) {
+    // Let the mode chooser's "Try Again" reboot the Whisper engine.
+    setSpeechEngineRetryCallback(retryWhisperEngine);
+
     if (userData) {
         appStore.getState().setCourseData({
             userData,

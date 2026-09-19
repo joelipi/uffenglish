@@ -95,3 +95,20 @@ if (typeof window !== 'undefined') {
 
 export { listeningState, initLocalVoiceAI, toggleSpeechRecognition };
 export * from './speech.web.js';
+
+/**
+ * Tear down the current Whisper worker and boot a fresh one. Used by the
+ * mode chooser's "Try Again" button after the engine failed to initialize
+ * (e.g. a flaky download), so the user can recover without a full reload.
+ */
+export function retryWhisperEngine() {
+    try {
+        whisperWorker = createWhisperWorker();
+        whisperAdapter.rebindWorker(whisperWorker);
+        return whisperAdapter.preloadWhisperEngine();
+    } catch (e) {
+        console.error('[speech] retryWhisperEngine failed:', e);
+        appStore.getState().setWhisperEngineFailed(true);
+        return Promise.resolve();
+    }
+}
