@@ -1,4 +1,13 @@
 // --- modules/video-processor-native.jsx ---
+// PLACEHOLDER — not wired into any build. There is no React Native app in this
+// repo (no react-native/expo dependency, no importer, and Vite does not resolve
+// .native.jsx). This file is a reference implementation for a future RN port.
+//
+// It does NOT implement the webcamOnly/shareCta tailing variant: it always
+// renders the fluency card (see the tailing segment at :113-117 and the tailing
+// overlay at :308-315). The shared CTA domain logic it would need
+// (resolveOverlayElements, buildShareUrl, buildShareDeadline) already lives in
+// video-processor-logic.js, so a real port only needs the drawing.
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
     View, Text, StyleSheet, TouchableWithoutFeedback,

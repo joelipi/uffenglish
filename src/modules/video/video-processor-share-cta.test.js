@@ -6,7 +6,7 @@ import {
     buildShareUrl,
     buildShareDeadline,
     resolveOverlayElements,
-} from './video-processor.web.js';
+} from './video-processor-logic.js';
 
 const LANGS = ['en', 'es', 'pt', 'fr', 'hi', 'bn'];
 

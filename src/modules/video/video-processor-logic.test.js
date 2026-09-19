@@ -118,11 +118,21 @@ describe('VideoRenderPlanner.generatePlan — webcamOnly', () => {
 });
 
 describe('video-processor-logic.js platform-agnostic guard', () => {
-    it('contains no window reference and builds no URL', () => {
+    it('references no browser globals', () => {
         const source = readFileSync(LOGIC_PATH, 'utf8');
 
-        expect(source).not.toMatch(/\bwindow\b/);
-        expect(source).not.toContain('example.com');
-        expect(source).not.toMatch(/https?:\/\//);
+        // Strip comments so prose (e.g. "share window") can't trip the guard.
+        const code = source.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
+
+        expect(code).not.toMatch(/\bwindow\b/);
+        expect(code).not.toMatch(/\bdocument\b/);
+        expect(code).not.toMatch(/\bnavigator\b/);
+    });
+
+    it('builds no absolute URL (the share URL is a bare host/path)', () => {
+        const source = readFileSync(LOGIC_PATH, 'utf8');
+        const code = source.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
+
+        expect(code).not.toMatch(/https?:\/\//);
     });
 });

@@ -8,7 +8,7 @@ Lessons `w` and `wf` in `src/config/model.json` are the "friend challenge — As
 
 - Making text-mode answers publishable. Text-mode recordings are saved with `blob = null` (`src/modules/answer/answer-pipeline.js:669-681`) and are filtered out of the R2 export (`video-processor.web.js:943-945`), so a text-mode asker's friend gets a 404 lesson. The CTA still renders over their avatar-card recap. Documented, not fixed.
 - Extending `hi`/`bn` localization beyond the two new strings keys — the rest of `src/data/strings.js` has no Hindi/Bengali; those users fall back to English elsewhere.
-- React Native rendering of the CTA. The plan changes are additive fields; native keeps its own fluency tailing UI (`video-processor.native.jsx:311-313`) and native export is already disabled (`r2-upload.native.jsx` throws).
+- React Native rendering of the CTA. `video-processor.native.jsx` is a placeholder — there is no RN app in this repo (no `react-native`/`expo` dependency, no importer, Vite does not resolve `.native.jsx`). It does not handle the `variant` field and still renders the fluency card; a header comment documents this. The shared CTA domain logic (`resolveOverlayElements`, `buildShareUrl`, `buildShareDeadline`, `SHARE_WINDOW_HOURS`) lives in `video-processor-logic.js` so a future port only needs the drawing.
 - Replacing the `example.com` placeholder domain with the real URL-shortener domain.
 - Changing the friend-facing per-segment R2 clips (they keep today's subtitle-only overlay) or lessons `wa`/`wfa` in any way.
 - Changing the freeze-frame tailing background (`video-processor.web.js:335-350`, `:464-467`) or the 4s tailing duration.

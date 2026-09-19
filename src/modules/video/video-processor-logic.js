@@ -2,6 +2,69 @@
 
 export const TEXT_MODE_DURATION_MS = 3000;
 
+// ---------------------------------------------------------------------------
+// Share CTA (webcamOnly lesson recaps) — platform-agnostic domain logic.
+// Both the web and native renderers consume these; only the drawing differs.
+// ---------------------------------------------------------------------------
+
+// Placeholder domain — will later become the URL-shortener domain.
+// Deliberately no scheme: the displayed URL is a bare host/path, single line,
+// because viewers must type it in manually from the video.
+export const SHARE_URL_BASE = 'example.com';
+
+// The share window matches the R2 UGC lifecycle: videos/ objects expire after
+// 48h (README.md:98, Cloudflare dashboard R2 → uff → Lifecycle). The friend
+// must answer before the clips vanish.
+export const SHARE_WINDOW_HOURS = 48;
+
+// Locale map for the CTA deadline. Mirrors the LOCALE_MAP pattern in
+// UserProfile.jsx:113 but covers this feature's six languages (adds BN).
+const CTA_LOCALE_MAP = { EN: 'en', ES: 'es', PT: 'pt', FR: 'fr', HI: 'hi', BN: 'bn' };
+
+function ctaLocale(nativeLanguage) {
+    const code = String(nativeLanguage || 'en').split('-')[0].toUpperCase();
+    return CTA_LOCALE_MAP[code] || 'en';
+}
+
+export function buildShareUrl(shareCode) {
+    return `${SHARE_URL_BASE}/${shareCode}`;
+}
+
+export function buildShareDeadline(nowMs, nativeLanguage) {
+    const deadline = new Date(nowMs + SHARE_WINDOW_HOURS * 60 * 60 * 1000);
+    return deadline.toLocaleString(ctaLocale(nativeLanguage), {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+    });
+}
+
+/**
+ * Pure decision table for the overlay cards. Keeps the rendering rules
+ * unit-testable without a canvas 2D context, and shared across platforms.
+ *
+ * - fluencyCard: the legacy CALCULATING FLUENCY / FLUENCY SCORE card
+ * - headlineBlock: the 2-line share headline shown for the whole recap
+ * - tailingCard: the 3-line CTA card shown during the tailing freeze-frame
+ */
+export function resolveOverlayElements({ webcamOnly = false, hasShareCta = false, isFirst = false, tailing = false } = {}) {
+    if (webcamOnly) {
+        return {
+            fluencyCard: false,
+            headlineBlock: hasShareCta,
+            tailingCard: hasShareCta && tailing
+        };
+    }
+    return {
+        fluencyCard: isFirst || tailing,
+        headlineBlock: false,
+        tailingCard: false
+    };
+}
+
 /**
  * Platform-Agnostic Video Render Planner
  * Analyzes recordings and generates a flat, step-by-step blueprint
@@ -164,8 +227,7 @@ export class VideoRenderPlanner {
     }
 
     _getRemoteTarget(rec) {
-        if (!this.configData.lessons) return null;
-        const lesson = this.configData.lessons.find(l => l.lessonId === rec.originalLessonId);
+        const lesson = this._getLesson(rec);
         if (!lesson?.steps?.[rec.originalStepIndex]) return null;
         const q = lesson.steps[rec.originalStepIndex];
         // Include simpleVideoUrl as a fallback so steps whose prompt is the
@@ -181,8 +243,7 @@ export class VideoRenderPlanner {
             return { en: rec.matchedCue, translation: rec.translation || null };
         }
 
-        if (!this.configData.lessons) return null;
-        const lesson = this.configData.lessons.find(l => l.lessonId === rec.originalLessonId);
+        const lesson = this._getLesson(rec);
         if (!lesson?.steps?.[rec.originalStepIndex]) return null;
         const q = lesson.steps[rec.originalStepIndex];
 
