@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { setupTextInputForStep } from '../../modules/lesson/step-executor-webonly.js';
@@ -14,18 +14,19 @@ export default function IntroChoices() {
     const nativeLang = useStore(appStore, (state) => state.userData?.native_language);
 
     // Track how long the engine has been loading so we can escalate from a
-    // quiet "preparing" note to explicit troubleshooting guidance. `retryNonce`
-    // resets the clock so "Try Again" gives immediate, visible feedback (the
-    // slow notice drops back to the loading notice) instead of appearing dead.
+    // quiet "preparing" note to explicit troubleshooting guidance. The interval
+    // reads the ref each tick, so "Try Again" can restart the clock instantly
+    // (slow notice drops back to the loading notice) without re-running the
+    // effect or appearing dead.
     const [loadingMs, setLoadingMs] = useState(0);
-    const [retryNonce, setRetryNonce] = useState(0);
+    const loadingStartedAtRef = useRef(Date.now());
     useEffect(() => {
         if (bottomState !== 'introChoices' || isWhisperReady || isWhisperEngineFailed) return undefined;
-        const startedAt = Date.now();
+        loadingStartedAtRef.current = Date.now();
         setLoadingMs(0);
-        const timer = setInterval(() => setLoadingMs(Date.now() - startedAt), 1000);
+        const timer = setInterval(() => setLoadingMs(Date.now() - loadingStartedAtRef.current), 1000);
         return () => clearInterval(timer);
-    }, [bottomState, isWhisperReady, isWhisperEngineFailed, retryNonce]);
+    }, [bottomState, isWhisperReady, isWhisperEngineFailed]);
 
     if (bottomState !== 'introChoices') return null;
 
@@ -59,8 +60,8 @@ export default function IntroChoices() {
     };
     const handleRetry = () => {
         trackEvent('speech_engine_retry');
+        loadingStartedAtRef.current = Date.now();
         setLoadingMs(0);
-        setRetryNonce((n) => n + 1);
         const retry = getSpeechEngineRetryCallback();
         if (typeof retry === 'function') retry();
     };

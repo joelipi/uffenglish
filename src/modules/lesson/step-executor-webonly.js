@@ -253,10 +253,13 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             // actually live. IntroChoices/DecisionButtons no longer
                             // pre-transition, so a getUserMedia failure keeps the
                             // chooser mounted and recoverable.
-                            if (RECORDABLE_PHASES.includes(appStore.getState().appPhase)) {
+                            const phaseNow = appStore.getState().appPhase;
+                            if (phaseNow === 'recording/answering') {
+                                // Already recording (retry within the same step) — no-op.
+                            } else if (RECORDABLE_PHASES.includes(phaseNow)) {
                                 appStore.getState().transitionTo('recording/answering');
                             } else {
-                                console.warn('[QuestionLoader] onRecordingStart from unexpected phase; not transitioning:', appStore.getState().appPhase);
+                                console.warn('[QuestionLoader] onRecordingStart from unexpected phase; not transitioning:', phaseNow);
                             }
                             // setMicActive is now handled by the orchestrator after startSpeechCamRecording succeeds
                             const currentPlayer = getCurrentVideoPlayer();
@@ -287,9 +290,9 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             // localized, actionable recovery guidance.
                             const key = getMediaErrorStringKey(error);
                             const nativeLang = appStore.getState().userData?.native_language;
-                            const msg = Strings.get(key, nativeLang)
-                                || Strings.get('error_media_generic', nativeLang)
-                                || "Couldn't start your microphone or camera. Check your settings and try again.";
+                            // Strings.get falls back to the key itself if missing,
+                            // then to the English entry if the locale is untranslated.
+                            const msg = Strings.get(key, nativeLang);
                             console.warn('[QuestionLoader] Media error:', error?.name, '→', key);
                             trackEvent('media_error', { name: error?.name || 'unknown', reason: classifyMediaError(error) });
                             appStore.getState().setMicActive(false);

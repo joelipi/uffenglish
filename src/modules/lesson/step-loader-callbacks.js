@@ -25,8 +25,10 @@ export function getSpeechInputToggleCallback() {
 }
 
 export function setSpeechEngineRetryCallback(cb) {
+    // Deliberately does NOT bump _callbackVersion: that version signals
+    // "new step loaded, clear the answer input", and re-registering the
+    // retry handler mid-lesson must not wipe what the user typed.
     _speechEngineRetryCallback = cb;
-    _callbackVersion++;
 }
 
 export function getSpeechEngineRetryCallback() {

@@ -84,7 +84,7 @@ export default function SystemMessageOverlay() {
 
     return (
         <div id="react-root-micstatus" className="d-flex justify-content-center align-items-center">
-            <div id="micStatusText">{micStatusText}</div>
+            <div id="micStatusText">{systemMessageText}</div>
         </div>
     );
 }

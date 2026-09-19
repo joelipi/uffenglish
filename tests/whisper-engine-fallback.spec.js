@@ -138,4 +138,30 @@ test.describe('speech engine chooser fallback', () => {
         await page.locator('#textFallbackLink').click({ force: true });
         await expect.poll(async () => (await state(page)).isTextMode).toBe(true);
     });
+
+    test('ear ("listen again") does not pre-enter the recording UI without media', async ({ page }) => {
+        test.setTimeout(60000);
+        await page.goto(LESSON_URL, { waitUntil: 'domcontentloaded' });
+        await page.waitForFunction(() => window.appStore?.getState()?.configData, null, { timeout: 20000 });
+        await dismissGuestModal(page);
+
+        // Force the decision-time phase so DecisionButtons mounts deterministically.
+        await page.evaluate(() => {
+            window.appStore.getState().transitionTo(
+                'interactiveVideo-decisionTime-closedResponse',
+                {},
+                { fromStepLoad: true }
+            );
+        });
+        await expect(page.locator('#earBtn')).toBeVisible({ timeout: 10000 });
+
+        await page.locator('#earBtn').click({ force: true });
+        await page.waitForTimeout(500);
+
+        // Must stay on the decision UI (no media acquired) — this is the path
+        // that previously stranded a mic-denied user in recording/answering.
+        const s = await state(page);
+        expect(s.appPhase).toBe('interactiveVideo-decisionTime-closedResponse');
+        expect(s.bottomState).toBe('decisionButtons');
+    });
 });

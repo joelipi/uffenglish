@@ -194,7 +194,14 @@ export function createSpeechOrchestrator({
                     // because we no longer enter recording/answering until media is
                     // acquired. Surface actionable recovery guidance and let the
                     // user retry — do NOT wipe the message or strand them.
-                    if (uiHooks?.onMediaError) uiHooks.onMediaError(e);
+                    if (uiHooks?.onMediaError) {
+                        uiHooks.onMediaError(e);
+                    } else {
+                        appStore.getState().setSystemMessage({
+                            type: 'media-error',
+                            text: Strings.get('error_media_generic', appStore.getState().userData?.native_language) || String(e?.message || e),
+                        });
+                    }
                     return;
                 }
 
