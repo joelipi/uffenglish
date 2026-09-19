@@ -727,7 +727,12 @@
             "pt": "Você preferiria ter um milhão de dólares ou viver cinco anos a mais?"
           },
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "testvideo02"
+          "simpleVideoUrl": "testvideo02",
+          "subtitles": {
+            "en": "Would you rather have a million dollars or live five years longer?",
+            "es": "¿Preferirías tener un millón de dólares o vivir cinco años más?",
+            "pt": "Você preferiria ter um milhão de dólares ou viver cinco anos a mais?"
+          }
         },
         {
           "cue": {
@@ -736,7 +741,12 @@
             "pt": "Você preferiria uma refeição com ótima comida ou uma refeição com ótima conversa?"
           },
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "testvideo03"
+          "simpleVideoUrl": "testvideo03",
+          "subtitles": {
+            "en": "Would you rather have a meal with great food or a meal with great conversation?",
+            "es": "¿Preferirías una comida con excelente comida o una comida con excelente conversación?",
+            "pt": "Você preferiria uma refeição com ótima comida ou uma refeição com ótima conversa?"
+          }
         },
         {
           "cue": {
@@ -745,7 +755,12 @@
             "pt": "Você preferiria viajar para a praia, as montanhas ou o campo?"
           },
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "testvideo04"
+          "simpleVideoUrl": "testvideo04",
+          "subtitles": {
+            "en": "Would you rather travel to the beach, the mountains, or the countryside?",
+            "es": "¿Preferirías viajar a la playa, las montañas o el campo?",
+            "pt": "Você preferiria viajar para a praia, as montanhas ou o campo?"
+          }
         },
         {
           "simpleVideoUrl": "testvideo08",
