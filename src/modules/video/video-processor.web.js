@@ -17,10 +17,6 @@ import Strings from '../../data/strings.js';
 
 export { shareVideo };
 
-// Re-exported for existing consumers/tests; the implementation is shared with
-// the native renderer in video-processor-logic.js.
-export { SHARE_URL_BASE, SHARE_WINDOW_HOURS, buildShareUrl, buildShareDeadline, resolveOverlayElements } from './video-processor-logic.js';
-
 // ---------------------------------------------------------------------------
 // Instance factory — each processVideo call owns its own context.
 // No module-level mutable state. Safe under HMR, Strict Mode double-invoke,

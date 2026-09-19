@@ -118,11 +118,13 @@ describe('VideoRenderPlanner.generatePlan — webcamOnly', () => {
 });
 
 describe('video-processor-logic.js platform-agnostic guard', () => {
-    it('references no browser globals', () => {
-        const source = readFileSync(LOGIC_PATH, 'utf8');
+    // Strip comments so prose (e.g. "share window") can't trip the globals check.
+    // NOTE: not used for the URL check — this stripper treats the "//" in
+    // "https://" as a comment start and would erase the very thing we assert on.
+    const stripComments = (src) => src.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
 
-        // Strip comments so prose (e.g. "share window") can't trip the guard.
-        const code = source.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
+    it('references no browser globals', () => {
+        const code = stripComments(readFileSync(LOGIC_PATH, 'utf8'));
 
         expect(code).not.toMatch(/\bwindow\b/);
         expect(code).not.toMatch(/\bdocument\b/);
@@ -130,9 +132,11 @@ describe('video-processor-logic.js platform-agnostic guard', () => {
     });
 
     it('builds no absolute URL (the share URL is a bare host/path)', () => {
+        // Assert against the raw source: a scheme in a string/regex literal is
+        // exactly what this guard exists to catch, and comment-stripping would
+        // delete it. No comment in this file contains a scheme.
         const source = readFileSync(LOGIC_PATH, 'utf8');
-        const code = source.replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
 
-        expect(code).not.toMatch(/https?:\/\//);
+        expect(source).not.toMatch(/https?:\/\//);
     });
 });
