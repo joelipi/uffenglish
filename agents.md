@@ -12,7 +12,7 @@ Keep logic in the module where it conceptually belongs. Do not co-locate unrelat
 Minimize external operations. All data fetching and mutations must go through TanStack Query and Zustand — never call Appwrite or any external service directly from components or hooks. Prefer in-browser, client-side model operations over external LLM API calls to reduce cost and lay groundwork for offline mode. Balance local-first execution against device CPU/memory constraints.
 
 **Version Control**
-Primary branch is `main`.
+Primary branch is `main`. Commits land on `main` directly, so once committed `main..HEAD` is empty — review ranges must use the remote default (`origin/main..HEAD`). This repo is a `blob:none` partial clone: `git log`/`git diff` between local refs work, but `git show <older-sha>` can fail with an auth error for blobs the promisor has not fetched.
 
 ---
 
@@ -67,6 +67,14 @@ The short version:
 
 **Speech-to-Text / Microphone**
 You cannot use a microphone. Bypass it using built-in testing functions, or invoke `handleAnswer` (or equivalent) directly to simulate audio input.
+
+**Voice-first, text last (product rule).** Mic/webcam are the primary path; text mode is a last-resort fallback for people who truly cannot speak or whose device cannot run voice. Never render a text-only option while the speech engine is still loading — if it is the only button, users click it and never use voice. Never let a recoverable failure (no mic, blocked permission, engine error) strand the user on a muted-mic screen: keep the voice mode chooser mounted, show descriptive actionable recovery guidance, and offer Retry. Expose text only after the engine has definitively failed, or behind a small de-emphasized link.
+
+Headless recipe (local dev on `:3000`):
+- Dismiss the guest modal: click `#guestEnglishOnlyBtn`, then `#guestContinueBtn`.
+- Advance past the intro: click `#intro-call-widget`.
+- Simulate engine loading/failure by routing `**r2.ultrafastfluency.com/whisper/**` (and `**cdn.jsdelivr.net/**`) to hang or abort; call `window.appStore.getState().setWhisperReady(true)` to reach the mic path without a full model download.
+- Headless Chromium has no media devices, so `getUserMedia` rejects — use this for the no-mic recovery path.
 
 **Authentication**
 Do not log in unless the task explicitly requires it — login interferes with guest-user testing.
