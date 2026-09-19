@@ -14,14 +14,18 @@ export default function IntroChoices() {
     const nativeLang = useStore(appStore, (state) => state.userData?.native_language);
 
     // Track how long the engine has been loading so we can escalate from a
-    // quiet "preparing" note to explicit troubleshooting guidance.
+    // quiet "preparing" note to explicit troubleshooting guidance. `retryNonce`
+    // resets the clock so "Try Again" gives immediate, visible feedback (the
+    // slow notice drops back to the loading notice) instead of appearing dead.
     const [loadingMs, setLoadingMs] = useState(0);
+    const [retryNonce, setRetryNonce] = useState(0);
     useEffect(() => {
-        if (isWhisperReady || isWhisperEngineFailed) return undefined;
+        if (bottomState !== 'introChoices' || isWhisperReady || isWhisperEngineFailed) return undefined;
         const startedAt = Date.now();
+        setLoadingMs(0);
         const timer = setInterval(() => setLoadingMs(Date.now() - startedAt), 1000);
         return () => clearInterval(timer);
-    }, [isWhisperReady, isWhisperEngineFailed]);
+    }, [bottomState, isWhisperReady, isWhisperEngineFailed, retryNonce]);
 
     if (bottomState !== 'introChoices') return null;
 
@@ -55,6 +59,8 @@ export default function IntroChoices() {
     };
     const handleRetry = () => {
         trackEvent('speech_engine_retry');
+        setLoadingMs(0);
+        setRetryNonce((n) => n + 1);
         const retry = getSpeechEngineRetryCallback();
         if (typeof retry === 'function') retry();
     };

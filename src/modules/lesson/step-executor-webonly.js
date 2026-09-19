@@ -20,6 +20,17 @@ let _viewAndContinueHandler = null;
 export function setViewAndContinueHandler(fn) { _viewAndContinueHandler = fn; }
 export function getViewAndContinueHandler() { return _viewAndContinueHandler; }
 
+// Phases that mount a mic-initiating control. Recording may only enter
+// recording/answering from these; onRecordingStart fires after the mic stream
+// is live, so any other phase (or a failed getUserMedia) must be left intact.
+const RECORDABLE_PHASES = [
+    'simpleVideo',
+    'firstResponse',
+    'interactiveVideo-decisionTime-closedResponse',
+    'interactiveVideo-decisionTime-openResponse',
+    'interactiveVideo-decisionTime-friendClosedResponse',
+];
+
 // Module-level ref for text-mode setup on the first response step.
 // The speech callback is set up normally during _renderResponseStep (which
 // runs during initial load – no deferral). Only text mode needs a second
@@ -242,15 +253,7 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             // actually live. IntroChoices/DecisionButtons no longer
                             // pre-transition, so a getUserMedia failure keeps the
                             // chooser mounted and recoverable.
-                            const phaseNow = appStore.getState().appPhase;
-                            const RECORDABLE_PHASES = [
-                                'simpleVideo',
-                                'firstResponse',
-                                'interactiveVideo-decisionTime-closedResponse',
-                                'interactiveVideo-decisionTime-openResponse',
-                                'interactiveVideo-decisionTime-friendClosedResponse',
-                            ];
-                            if (RECORDABLE_PHASES.includes(phaseNow)) {
+                            if (RECORDABLE_PHASES.includes(appStore.getState().appPhase)) {
                                 appStore.getState().transitionTo('recording/answering');
                             }
                             // setMicActive is now handled by the orchestrator after startSpeechCamRecording succeeds
