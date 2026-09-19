@@ -120,6 +120,11 @@ test.describe('speech engine chooser fallback', () => {
         expect(s.bottomState).toBe('introChoices');
         expect(s.systemMessage.text).toMatch(/microphone|camera/i);
 
+        // The historical bug was state-only: the message was set then wiped, so
+        // nothing rendered. Assert the guidance is actually on screen.
+        await expect(page.locator('#micStatusText')).toBeVisible();
+        await expect(page.locator('#micStatusText')).toContainText(/microphone|camera/i);
+
         // The chooser is intact and the user can retry voice or fall back.
         await expect(page.locator('#state-intro-choices')).toBeVisible();
         await expect(page.locator('#continueButton')).toBeEnabled();

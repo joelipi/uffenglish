@@ -255,6 +255,8 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             // chooser mounted and recoverable.
                             if (RECORDABLE_PHASES.includes(appStore.getState().appPhase)) {
                                 appStore.getState().transitionTo('recording/answering');
+                            } else {
+                                console.warn('[QuestionLoader] onRecordingStart from unexpected phase; not transitioning:', appStore.getState().appPhase);
                             }
                             // setMicActive is now handled by the orchestrator after startSpeechCamRecording succeeds
                             const currentPlayer = getCurrentVideoPlayer();

@@ -408,16 +408,6 @@ const strings = {
         es: "La lección se reseteará si te vas.",
         fr: "La leçon sera réinitialisée si vous partez."
     },
-    'alert_media_error': {
-        en: "Error. Check mic & cam settings & internet.",
-        es: "Error. Revisa ajustes de micrófono y cámara, e internet.",
-        fr: "Erreur. Vérifiez les paramètres du micro, de la caméra et d'internet."
-    },
-    'error_media_details': {
-        en: "ERROR. Check mic & cam settings & internet.",
-        es: "ERROR. Revisa ajustes de micrófono y cámara, e internet.",
-        fr: "ERREUR. Vérifiez les paramètres du micro, de la caméra et d'internet."
-    },
     'alert_speech_connect_error': {
         en: "Failed to connect to speech service. Please refresh and try again.",
         es: "Fallo al conectar con el servicio de voz. Por favor, actualiza y vuelve a intentar.",
