@@ -13,8 +13,71 @@ import { supabase, getAccessToken } from '../api/supabase.js';
 import { transcodeToMp4, verifyMp4, uploadWebmToCloudinary } from './transcode.js';
 import { uploadSegmentToR2 } from './r2-upload.js';
 import { trackEvent } from '../utils/posthog.js';
+import Strings from '../../data/strings.js';
 
 export { shareVideo };
+
+// ---------------------------------------------------------------------------
+// Share CTA (webcamOnly lesson recaps)
+// ---------------------------------------------------------------------------
+
+// Placeholder domain — will later become the URL-shortener domain.
+// Deliberately no scheme: the displayed URL is a bare host/path, single line,
+// because viewers must type it in manually from the video.
+export const SHARE_URL_BASE = 'example.com';
+
+// The share window matches the R2 UGC lifecycle: videos/ objects expire after
+// 48h (README.md:98, Cloudflare dashboard R2 → uff → Lifecycle). The friend
+// must answer before the clips vanish.
+export const SHARE_WINDOW_HOURS = 48;
+
+// Locale map for the CTA deadline. Mirrors the LOCALE_MAP pattern in
+// UserProfile.jsx:113 but covers this feature's six languages (adds BN).
+const CTA_LOCALE_MAP = { EN: 'en', ES: 'es', PT: 'pt', FR: 'fr', HI: 'hi', BN: 'bn' };
+
+function ctaLocale(nativeLanguage) {
+    const code = String(nativeLanguage || 'en').split('-')[0].toUpperCase();
+    return CTA_LOCALE_MAP[code] || 'en';
+}
+
+export function buildShareUrl(shareCode) {
+    return `${SHARE_URL_BASE}/${shareCode}`;
+}
+
+export function buildShareDeadline(nowMs, nativeLanguage) {
+    const deadline = new Date(nowMs + SHARE_WINDOW_HOURS * 60 * 60 * 1000);
+    return deadline.toLocaleString(ctaLocale(nativeLanguage), {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+    });
+}
+
+/**
+ * Pure decision table for the overlay cards. Keeps the rendering rules
+ * unit-testable without a canvas 2D context.
+ *
+ * - fluencyCard: the legacy CALCULATING FLUENCY / FLUENCY SCORE card
+ * - headlineBlock: the 2-line share headline shown for the whole recap
+ * - tailingCard: the 3-line CTA card shown during the tailing freeze-frame
+ */
+export function resolveOverlayElements({ webcamOnly = false, hasShareCta = false, isFirst = false, tailing = false } = {}) {
+    if (webcamOnly) {
+        return {
+            fluencyCard: false,
+            headlineBlock: hasShareCta,
+            tailingCard: hasShareCta && tailing
+        };
+    }
+    return {
+        fluencyCard: isFirst || tailing,
+        headlineBlock: false,
+        tailingCard: false
+    };
+}
 
 // ---------------------------------------------------------------------------
 // Instance factory — each processVideo call owns its own context.
@@ -159,8 +222,22 @@ function createVideoProcessor() {
 
                 const configData = appStore.getState().configData || {};
                 const userLang = appStore.getState().userData?.native_language;
-                const planner = new VideoRenderPlanner(recordings, configData, fluencyData, userLang);
+                const shareCode = appStore.getState().userData?.shareCode || null;
+                const planner = new VideoRenderPlanner(recordings, configData, fluencyData, userLang, shareCode);
                 const plan = planner.generatePlan();
+
+                // webcamOnly recaps carry a share CTA instead of a fluency card.
+                // No shareCode → no CTA at all (no fluency fallback either).
+                const tailingStep = plan.find(s => s.type === 'tailing');
+                const webcamOnly = tailingStep?.variant === 'shareCta';
+                const shareCta = (webcamOnly && shareCode)
+                    ? {
+                        headline: Strings.get('share_cta_headline', userLang),
+                        deadlinePrefix: Strings.get('share_cta_deadline', userLang),
+                        deadline: buildShareDeadline(Date.now(), userLang),
+                        url: buildShareUrl(shareCode),
+                    }
+                    : null;
 
                 const dimensions = planner.getTargetDimensions(
                     originalVideo.videoWidth || 1080,
@@ -218,7 +295,8 @@ function createVideoProcessor() {
                     plan, originalVideo, videoCanvas, displayCanvas,
                     overlayImage, profileImage, fluencyData,
                     id => { animationId = id; },
-                    audioContext, audioDestination
+                    audioContext, audioDestination,
+                    { webcamOnly, shareCta }
                 );
 
                 recorder.stop();
@@ -290,7 +368,7 @@ function drawProfileBackground(ctx, image, w, h) {
 // ---------------------------------------------------------------------------
 // Render loop — receives an animationId setter so the instance can cancel it
 // ---------------------------------------------------------------------------
-async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImage, profileImage, fluencyData, setAnimationId, audioContext, audioDestination, { silent = false } = {}) {
+async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImage, profileImage, fluencyData, setAnimationId, audioContext, audioDestination, { silent = false, webcamOnly = false, shareCta = null } = {}) {
     const ctx = canvas.getContext('2d');
     const planner = new VideoRenderPlanner();
     let currentAudioSource = null;
@@ -494,7 +572,8 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
             drawTextOverlay(
                 ctx, canvas.width, canvas.height,
                 isTailing, tailStart, fluencyData,
-                step.isFirst, step.subtitle, displayCanvas
+                step.isFirst, step.subtitle, displayCanvas,
+                webcamOnly, shareCta
             );
 
             if (displayCanvas) {
@@ -607,12 +686,39 @@ function wrapText(context, text, maxWidth) {
     return lines;
 }
 
-function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart, fluencyData, isFirst, subtitleText, displayCanvas) {
+/**
+ * Draws a single line of text, shrinking the font until it fits within
+ * maxWidth. Never wraps — used for the share URL and deadline, which must stay
+ * on one line.
+ */
+function drawFittedLine(context, text, centerX, y, { fontFamily, maxWidth, baseSize, minSize = 18, color = 'white' }) {
+    let size = baseSize;
+    context.font = `700 ${size}px ${fontFamily}`;
+    while (size > minSize && context.measureText(text).width > maxWidth) {
+        size -= 1;
+        context.font = `700 ${size}px ${fontFamily}`;
+    }
+    context.fillStyle = color;
+    context.strokeStyle = 'rgba(0,0,0,0.8)';
+    context.lineWidth = Math.max(6, Math.round(size * 0.18));
+    context.strokeText(text, centerX, y);
+    context.fillText(text, centerX, y);
+    return size;
+}
+
+function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart, fluencyData, isFirst, subtitleText, displayCanvas, webcamOnly = false, shareCta = null) {
     const now = performance.now();
     const blinkOn = Math.floor(now / 500) % 2 === 0;
     context.save();
 
-    if (isFirst || tailing) {
+    const { fluencyCard, headlineBlock, tailingCard } = resolveOverlayElements({
+        webcamOnly,
+        hasShareCta: !!shareCta,
+        isFirst,
+        tailing
+    });
+
+    if (fluencyCard) {
         const yFromBottom = canvasHeight * 0.20;
         const baseY = canvasHeight - yFromBottom;
         const lineGap = Math.max(5, Math.round(canvasHeight * 0.03));
@@ -669,6 +775,46 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
             }
             y += heights[i] + lineGap;
         });
+    }
+
+    // Share CTA — headline block in the top 25% for the whole recap, plus the
+    // 3-line CTA card over the tailing freeze-frame. The URL is drawn with
+    // drawFittedLine (never wrapText) so it always stays on one line.
+    if (headlineBlock || tailingCard) {
+        const centerX = Math.floor(canvasWidth / 2);
+        const maxWidth = canvasWidth * 0.9;
+        const fontFamily = '"Plus Jakarta Sans", sans-serif';
+
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.shadowColor = 'rgba(0, 0, 0, 0.8)';
+        context.shadowBlur = Math.max(8, Math.round(canvasWidth * 0.012));
+
+        if (headlineBlock) {
+            // Vertically centered within the top 25% band.
+            const bandCenterY = canvasHeight * 0.125;
+            const lineGap = Math.round(canvasHeight * 0.045);
+            const headlineSize = drawFittedLine(context, shareCta.headline, centerX, bandCenterY - lineGap / 2, {
+                fontFamily, maxWidth, baseSize: Math.round(canvasWidth * 0.055), color: 'white'
+            });
+            drawFittedLine(context, shareCta.url, centerX, bandCenterY + lineGap / 2, {
+                fontFamily, maxWidth, baseSize: Math.round(headlineSize * 0.9), color: 'yellow'
+            });
+        }
+
+        if (tailingCard) {
+            const lineGap = Math.round(canvasHeight * 0.06);
+            const centerY = canvasHeight * 0.5;
+            const prefixSize = drawFittedLine(context, shareCta.deadlinePrefix, centerX, centerY - lineGap, {
+                fontFamily, maxWidth, baseSize: Math.round(canvasWidth * 0.06), color: 'white'
+            });
+            drawFittedLine(context, shareCta.deadline, centerX, centerY, {
+                fontFamily, maxWidth, baseSize: Math.round(prefixSize * 0.85), color: 'white'
+            });
+            drawFittedLine(context, shareCta.url, centerX, centerY + lineGap, {
+                fontFamily, maxWidth, baseSize: Math.round(prefixSize * 0.95), color: 'yellow'
+            });
+        }
     }
 
     // Unpack subtitle — support legacy string and new { en, translation } object
@@ -935,7 +1081,7 @@ export async function exportSegmentsToR2(lessonId) {
     const fluencyData = appStore.getState().successFluencyData;
     const userLang = appStore.getState().userData?.native_language;
 
-    const planner = new VideoRenderPlanner(recordings, configData, fluencyData, userLang);
+    const planner = new VideoRenderPlanner(recordings, configData, fluencyData, userLang, shareCode);
     const fullPlan = planner.generatePlan();
     // Only publish the user's own webcam responses. The `remote` steps are
     // system/model prompt clips — never user-generated, so we must not upload

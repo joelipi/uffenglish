@@ -1033,6 +1033,26 @@ const strings = {
     'hangman_you_said': {
         en: "You said:",
         es: "Dijiste:"
+    },
+
+    // Share CTA overlay for webcamOnly lesson recaps (friend-challenge "Ask").
+    // share_cta_deadline is a prefix line — the formatted date follows on the
+    // next line, hence the trailing prepositions in es/fr.
+    'share_cta_headline': {
+        en: "Practice English with me free",
+        es: "Practica inglés conmigo gratis",
+        pt: "Pratique inglês comigo de graça",
+        fr: "Pratique l'anglais avec moi gratuitement",
+        hi: "मेरे साथ मुफ़्त अंग्रेज़ी प्रैक्टिस करें",
+        bn: "আমার সাথে ফ্রি ইংরেজি প্র্যাকটিস করুন"
+    },
+    'share_cta_deadline': {
+        en: "Practice English with me free before",
+        es: "Practica inglés conmigo gratis antes del",
+        pt: "Pratique inglês comigo de graça antes de",
+        fr: "Pratique l'anglais avec moi gratuitement avant le",
+        hi: "मेरे साथ मुफ़्त अंग्रेज़ी प्रैक्टिस करें — अंतिम तिथि:",
+        bn: "আমার সাথে ফ্রি ইংরেজি প্র্যাকটিস করুন — শেষ তারিখ:"
     }
 };
 

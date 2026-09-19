@@ -8,11 +8,22 @@ export const TEXT_MODE_DURATION_MS = 3000;
  * for both rendering the final stitched video and sequential playback.
  */
 export class VideoRenderPlanner {
-    constructor(recordings, configData, fluencyData, userLang = 'en') {
+    constructor(recordings, configData, fluencyData, userLang = 'en', shareCode = null) {
         this.recordings = recordings || [];
         this.configData = configData || {};
         this.fluencyData = fluencyData || { total: "NA" };
         this.userLang = userLang || 'en';
+        this.shareCode = shareCode || null;
+    }
+
+    /**
+     * Resolves the lesson config for a recording. All recordings in a plan share
+     * one originalLessonId (storage filters by it), so any recording identifies
+     * the lesson.
+     */
+    _getLesson(rec) {
+        if (!this.configData.lessons) return null;
+        return this.configData.lessons.find(l => l.lessonId === rec.originalLessonId) || null;
     }
 
     generatePlan() {
@@ -25,7 +36,11 @@ export class VideoRenderPlanner {
             // Skip remote prompt if this is a retry of the same step
             const needsRemote = !(prevRec && rec.originalStepIndex === prevRec.originalStepIndex);
 
-            if (needsRemote) {
+            // webcamOnly lessons (friend-challenge "Ask" recaps) are shareable
+            // ads: only the user's own recordings, never the model prompt videos.
+            const lesson = this._getLesson(rec);
+
+            if (needsRemote && !lesson?.webcamOnly) {
                 const remoteUrl = this._getRemoteTarget(rec);
                 if (remoteUrl) {
                     plan.push({
@@ -61,11 +76,17 @@ export class VideoRenderPlanner {
             });
         }
 
-        // Final tailing phase — fluency score display
+        // Final tailing phase — fluency score display, or the share CTA for
+        // webcamOnly lessons. All recordings in a plan share one
+        // originalLessonId, so the first recording identifies the lesson. Empty
+        // recordings → no lesson resolvable → safe default 'fluency'.
+        const tailingLesson = this.recordings.length ? this._getLesson(this.recordings[0]) : null;
         plan.push({
             type: 'tailing',
             durationMs: 4000,
-            fluencyData: this.fluencyData
+            fluencyData: this.fluencyData,
+            variant: tailingLesson?.webcamOnly ? 'shareCta' : 'fluency',
+            shareCode: this.shareCode
         });
 
         return plan;
