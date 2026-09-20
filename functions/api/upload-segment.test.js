@@ -5,10 +5,10 @@
 // Request/fetch needed. globalThis.fetch is stubbed to simulate Supabase.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { onRequestPost } from './upload-segment.js';
+import { onRequestPost, DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_ANON_KEY } from './upload-segment.js';
 
-const FALLBACK_URL = 'https://jbrbmbmupjfangqvaevx.supabase.co';
-const FALLBACK_ANON_KEY = 'sb_publishable_xd9bYag0bVG7m74CemthjQ_sJEbQG9S';
+const FALLBACK_URL = DEFAULT_SUPABASE_URL;
+const FALLBACK_ANON_KEY = DEFAULT_SUPABASE_ANON_KEY;
 const MAX_BYTES = 20 * 1024 * 1024;
 
 function makeRequest({
@@ -150,6 +150,16 @@ describe('onRequestPost — upload-segment Function', () => {
         const env = makeEnv();
         const res = await onRequestPost({
             request: makeRequest({ contentLength: MAX_BYTES + 1 }),
+            env,
+        });
+        expect(res.status).toBe(413);
+        expect(env.UFF_R2.put).not.toHaveBeenCalled();
+    });
+
+    it('rejects with 413 when the body exceeds the 20 MB cap without a content-length header', async () => {
+        const env = makeEnv();
+        const res = await onRequestPost({
+            request: makeRequest({ contentLength: null, bytes: new ArrayBuffer(MAX_BYTES + 1) }),
             env,
         });
         expect(res.status).toBe(413);

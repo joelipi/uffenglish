@@ -12,8 +12,8 @@ const MAX_BYTES = 20 * 1024 * 1024; // 20 MB per segment
 // The anon key is public by design (it ships in the client bundle), so these
 // fallbacks let the Function verify JWTs even when SUPABASE_URL/SUPABASE_ANON_KEY
 // are not set in the Pages environment (dashboard vars are optional, not required).
-const DEFAULT_SUPABASE_URL = 'https://jbrbmbmupjfangqvaevx.supabase.co';
-const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_xd9bYag0bVG7m74CemthjQ_sJEbQG9S';
+export const DEFAULT_SUPABASE_URL = 'https://jbrbmbmupjfangqvaevx.supabase.co';
+export const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_xd9bYag0bVG7m74CemthjQ_sJEbQG9S';
 
 export async function onRequestPost({ request, env }) {
     const shareCode = request.headers.get('x-share-code');
