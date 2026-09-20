@@ -10,7 +10,9 @@ bucket_name = "uff"
 # `r2_buckets.lifecycle` key is NOT valid in wrangler.toml for Pages.
 
 # Supabase config (public values, also in .env for SPA)
-# SUPABASE_ANON_KEY is set in the Cloudflare Pages dashboard (Settings → Variables)
-# — not here — to avoid "Binding already in use" on deploy.
+# SUPABASE_ANON_KEY is NOT set here — it lives in the Cloudflare Pages dashboard
+# (Settings → Variables) to avoid "Binding already in use" on deploy. The
+# dashboard var is now optional: /api/upload-segment falls back to the
+# publishable defaults in functions/api/upload-segment.js.
 [vars]
 SUPABASE_URL = "https://jbrbmbmupjfangqvaevx.supabase.co"
