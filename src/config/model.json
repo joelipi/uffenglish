@@ -510,6 +510,7 @@
     },
     {
       "lessonId": "w",
+      "webcamOnly": true,
       "title": {
         "en": "Would You Rather? — Ask",
         "es": "¿Qué Preferirías? — Pregunta",
@@ -688,6 +689,7 @@
     },
     {
       "lessonId": "wf",
+      "webcamOnly": true,
       "title": {
         "en": "Would You Rather? — Ask",
         "es": "¿Qué Preferirías? — Pregunta",
