@@ -780,8 +780,7 @@
           },
           "responseType": "success"
         }
-      ],
-      "nextLessonId": "wfa"
+      ]
     },
     {
       "lessonId": "wfa",

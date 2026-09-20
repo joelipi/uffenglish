@@ -10,6 +10,7 @@
 - No changes to `wf`'s `lessonIntro`, its three `friendClosedResponse` steps, or its `success` step beyond index shift.
 - No changes to player components, store/phase logic, `scripts/generate-mock-videos.mjs`, or video assets. `testvideo01` is reused as-is — no new media and no R2 upload.
 - No `cue` or `headsUp` is added; this is a presentation-only step.
+- The only other `wf` change is removing its `nextLessonId` (product decision — see Implementation approach).
 
 ## Implementation approach
 
@@ -34,6 +35,7 @@ Rules and decisions:
 - `subtitles` must be an `{en,es,pt}` object. `video-loader.web.js` calls `getLocalizedTranslation(step.subtitles, lang)`, which selects the user's native language and falls back to `en`.
 - The `en` value must be verbatim the `testvideo01` spoken script in `scripts/generate-mock-videos.mjs` (line 47). `es` and `pt` are new copy authored in this story (see Notes).
 - No `cue`/`headsUp`: for `viewAndContinue`, `_renderViewAndContinue` only reads `explanation` and `simpleVideoUrl`, and the visible text comes solely from `subtitles`.
+- `wf`'s `nextLessonId` is removed (product decision): `wf` is a terminal test lesson and must not auto-advance to `wfa`. All consumers (`lesson-progression.js`, `step-loader-logic.js`) guard with `if (nextLessonId)`, so an absent value is safe — the success screen simply offers no next lesson.
 
 ## Tasks
 
@@ -47,6 +49,7 @@ Rules and decisions:
   - → `wf.steps[1].subtitles.en === "Now you will record yourself asking your friends 3 questions using the phrase Would you rather... You will repeat each question exactly. Press the button below to continue."`
   - → the first `wf` step whose `responseType` is `closedResponse`, `openResponse`, or `friendClosedResponse` is at index 2, has `responseType === "friendClosedResponse"`, and `simpleVideoUrl === "testvideo02"`
   - → `wf.steps.length === 6`
+  - → `wf.nextLessonId` is `undefined` (no auto-advance to `wfa`)
 - the whole `model.json` is read and compared to the pre-change step lists
   - → every lesson other than `wf` has an unchanged sequence of `{responseType, simpleVideoUrl, interactiveVideoUrl, introBackgroundVideoUrl}` values
   - → `wf`'s remaining steps (indices 0, 2, 3, 4, 5) keep their pre-change values

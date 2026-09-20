@@ -147,9 +147,19 @@ describe('model.json — WF post-intro viewAndContinue step', () => {
         expect(wf.steps.length).toBe(6);
     });
 
+    it('removes wf.nextLessonId so wf does not auto-advance to wfa', () => {
+        expect(wf.nextLessonId).toBeUndefined();
+    });
+
     it('leaves every lesson step sequence unchanged except the wf insertion', () => {
         for (const lesson of model.lessons) {
             expect(lesson.steps.map(stepSequence)).toEqual(EXPECTED_SEQUENCES[lesson.lessonId]);
         }
+    });
+
+    it('keeps EXPECTED_SEQUENCES in sync with the lessons in model.json', () => {
+        // Reverse completeness check: a stale entry (lesson removed from the
+        // config) or a missing entry (lesson added) must fail loudly here.
+        expect(Object.keys(EXPECTED_SEQUENCES)).toEqual(model.lessons.map((l) => l.lessonId));
     });
 });
