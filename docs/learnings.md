@@ -80,3 +80,27 @@ src/modules/api/supabase.js` in `functions/api/upload-segment.js`). The Read too
 **Takeaway**: To bypass a localhost check in vitest jsdom, shadow the location with `Object.defineProperty(window, 'location', { value: { hostname: '...' }, configurable: true })` and `delete window.location` in afterEach — do not use `history.replaceState` across origins.
 
 ---
+
+## Story branches branch from the current branch — `main..HEAD` includes parent-story commits
+**Date**: 2026-09-20
+**Area**: workflow
+**What happened**: `peck story create` branched `005-skip-friend-feedback` from `004-fix-r2-upload-config` (the branch I was on), not from `main`. The code-reviewer range `main..HEAD` therefore included the 004 story's commits, and its review flagged 004's code (Supabase constant duplication, an unused test binding) as part of the Fail — I had to fix the parent story's code to get a Pass.
+**Takeaway**: Before creating a story, note which branch you're on — `peck story create` branches from it. When a story branch is based on another story branch, expect `DEFAULT_BRANCH..HEAD` to include the parent story's commits; the code-reviewer will review (and may fail on) that code too. Either base stories on `main`, or be ready to fix parent-story findings.
+
+---
+
+## Pages Functions can import from `src/` — verify with `wrangler pages functions build`
+**Date**: 2026-09-20
+**Area**: build | architecture
+**What happened**: To dedupe Supabase fallback constants between the SPA (`src/modules/api/supabase.js`) and the Pages Function (`functions/api/upload-segment.js`), I extracted `src/modules/api/supabase-constants.js` and imported it from the Function via `../../src/...`. `wrangler pages functions build --outdir=...` compiled successfully and the constants were bundled into the output.
+**Takeaway**: A constants-only module in `src/` can be imported by a Pages Function as long as it has no `import.meta.env` (which the Function bundle can't resolve). Verify any cross-directory Function import with `npx wrangler pages functions build --outdir=/tmp/...` and grep the output for the expected value.
+
+---
+
+## Auto-advance paths must replicate `showFeedbackAndProceed`'s `stepCount` increment exactly once
+**Date**: 2026-09-20
+**Area**: architecture
+**What happened**: The friendClosedResponse auto-advance branch in `handleAnswer` incremented `stepCount` before the `_deps.loadNextStep` guard, so the fall-through path (missing deps) incremented it again inside `showFeedbackAndProceed` — a double increment that corrupted the `step_count` reported to the backend. The code reviewer caught it.
+**Takeaway**: `showFeedbackAndProceed` increments `stepCount` for interactive-video response steps (`answer-pipeline.js:984-987`). Any new path that bypasses it (e.g. direct `loadNextStep` calls) must replicate that increment exactly once — put it inside the same guard that decides between auto-advance and fall-through, and assert `stepCount` in the fallback test.
+
+---
