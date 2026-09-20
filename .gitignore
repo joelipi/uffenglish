@@ -38,6 +38,9 @@ public/assets/videos/*.mp4
 /.tokencount
 /.opencode
 /.reasonix
-# .env  # commented out — committed so CI picks up VITE_PUBLIC_POSTHOG_*
+# .env is local-only (contains sandpod-managed secrets). VITE_PUBLIC_POSTHOG_*
+# are optional at build time — posthog-client.js falls back to publishable
+# defaults, mirroring the Supabase pattern in src/modules/api/supabase.js.
 plans/review-system.md
 supabase/.temp/
+.env

@@ -8,6 +8,13 @@
 
 const MAX_BYTES = 20 * 1024 * 1024; // 20 MB per segment
 
+// Publishable Supabase project defaults — mirror src/modules/api/supabase.js.
+// The anon key is public by design (it ships in the client bundle), so these
+// fallbacks let the Function verify JWTs even when SUPABASE_URL/SUPABASE_ANON_KEY
+// are not set in the Pages environment (dashboard vars are optional, not required).
+export const DEFAULT_SUPABASE_URL = 'https://jbrbmbmupjfangqvaevx.supabase.co';
+export const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_xd9bYag0bVG7m74CemthjQ_sJEbQG9S';
+
 export async function onRequestPost({ request, env }) {
     const shareCode = request.headers.get('x-share-code');
     const key = request.headers.get('x-r2-key');
@@ -24,15 +31,14 @@ export async function onRequestPost({ request, env }) {
     const auth = request.headers.get('Authorization') || '';
     const token = auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
     if (!token) {
-        return new Response('Unauthorized: missing Authorization Bearer token', { status: 401 });
+        return new Response('Unauthorized: missing Authorization Bearer JWT', { status: 401 });
     }
-    if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) {
-        return new Response('Server misconfigured: SUPABASE_URL/ANON_KEY missing', { status: 500 });
-    }
+    const supabaseUrl = env.SUPABASE_URL || DEFAULT_SUPABASE_URL;
+    const supabaseAnonKey = env.SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
     try {
-        const userRes = await fetch(`${env.SUPABASE_URL}/auth/v1/user`, {
+        const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
             headers: {
-                apikey: env.SUPABASE_ANON_KEY,
+                apikey: supabaseAnonKey,
                 Authorization: `Bearer ${token}`,
             },
         });
@@ -45,10 +51,10 @@ export async function onRequestPost({ request, env }) {
         // Verify the caller owns this shareCode (prevents token reuse across users).
         // PostgREST query against user_profiles (RLS allows owner read).
         const profileRes = await fetch(
-            `${env.SUPABASE_URL}/rest/v1/user_profiles?select=share_code&id=eq.${user.id}`,
+            `${supabaseUrl}/rest/v1/user_profiles?select=share_code&id=eq.${user.id}`,
             {
                 headers: {
-                    apikey: env.SUPABASE_ANON_KEY,
+                    apikey: supabaseAnonKey,
                     Authorization: `Bearer ${token}`,
                     Accept: 'application/json',
                 },
