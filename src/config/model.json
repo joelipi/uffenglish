@@ -721,6 +721,15 @@
           "introBackgroundVideoUrl": "testvideo01"
         },
         {
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "testvideo01",
+          "subtitles": {
+            "en": "Now you will record yourself asking your friends 3 questions using the phrase Would you rather... You will repeat each question exactly. Press the button below to continue.",
+            "es": "Ahora te grabarás preguntando a tus amigos 3 preguntas usando la frase Would you rather... Repetirás cada pregunta exactamente. Oprime el botón de abajo para continuar.",
+            "pt": "Agora você vai se gravar perguntando aos seus amigos 3 perguntas usando a frase Would you rather... Você repetirá cada pergunta exatamente. Pressione o botão abaixo para continuar."
+          }
+        },
+        {
           "cue": {
             "en": "Would you rather have a million dollars or live five years longer?",
             "es": "¿Preferirías tener un millón de dólares o vivir cinco años más?",
