@@ -19,6 +19,13 @@ jobs:
       run: node scripts/verify-thumbnails.mjs
     - name: Run unit tests
       run: npm test -- --run
+    - name: Cache Playwright browsers
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/ms-playwright
+        key: ${{ runner.os }}-playwright-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-playwright-
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
     - name: Run Playwright tests
