@@ -12,12 +12,24 @@ import { trackEvent } from '../utils/posthog.js';
 import { handleTextStep, handleLessonComplete, handleUnitComplete, handleSuccessStep, clearWarningLater, cancelWarningClear } from './step-loader-logic.js';
 import { loadStepOrchestrate } from './step-loader-orchestrate.js';
 import { setTextInputSubmitCallback as setTextCb, setSpeechInputToggleCallback as setSpeechCb } from './step-loader-callbacks.js';
+import { getMediaErrorStringKey, classifyMediaError } from '../speech/speech-ui-state.js';
 import { getVideoUrl } from '../video/video-url.js';
 
 // Module-level ref for viewAndContinue handler (decision overlay Continue button)
 let _viewAndContinueHandler = null;
 export function setViewAndContinueHandler(fn) { _viewAndContinueHandler = fn; }
 export function getViewAndContinueHandler() { return _viewAndContinueHandler; }
+
+// Phases that mount a mic-initiating control. Recording may only enter
+// recording/answering from these; onRecordingStart fires after the mic stream
+// is live, so any other phase (or a failed getUserMedia) must be left intact.
+const RECORDABLE_PHASES = [
+    'simpleVideo',
+    'firstResponse',
+    'interactiveVideo-decisionTime-closedResponse',
+    'interactiveVideo-decisionTime-openResponse',
+    'interactiveVideo-decisionTime-friendClosedResponse',
+];
 
 // Module-level ref for text-mode setup on the first response step.
 // The speech callback is set up normally during _renderResponseStep (which
@@ -237,8 +249,17 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                         onRecordingStart: (userData) => {
                             trackEvent('recording_started');
                             cancelWarningClear();
-                            if (appStore.getState().appPhase === 'simpleVideo') {
+                            // Enter the recording UI only once the mic/cam stream is
+                            // actually live. IntroChoices/DecisionButtons no longer
+                            // pre-transition, so a getUserMedia failure keeps the
+                            // chooser mounted and recoverable.
+                            const phaseNow = appStore.getState().appPhase;
+                            if (phaseNow === 'recording/answering') {
+                                // Already recording (retry within the same step) — no-op.
+                            } else if (RECORDABLE_PHASES.includes(phaseNow)) {
                                 appStore.getState().transitionTo('recording/answering');
+                            } else {
+                                console.warn('[QuestionLoader] onRecordingStart from unexpected phase; not transitioning:', phaseNow);
                             }
                             // setMicActive is now handled by the orchestrator after startSpeechCamRecording succeeds
                             const currentPlayer = getCurrentVideoPlayer();
@@ -262,6 +283,21 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                                 btn.disabled = false;
                             }
                             appStore.getState().setSystemMessage({ type: 'engine-ready', text: 'Engine ready. Try speaking now!' });
+                        },
+                        onMediaError: (error) => {
+                            // Mic/cam could not start. Stay on the mode chooser
+                            // (we never entered recording/answering) and show
+                            // localized, actionable recovery guidance.
+                            const key = getMediaErrorStringKey(error);
+                            const nativeLang = appStore.getState().userData?.native_language;
+                            // Strings.get falls back to the key itself if missing,
+                            // then to the English entry if the locale is untranslated.
+                            const msg = Strings.get(key, nativeLang);
+                            console.warn('[QuestionLoader] Media error:', error?.name, '→', key);
+                            trackEvent('media_error', { name: error?.name || 'unknown', reason: classifyMediaError(error) });
+                            appStore.getState().setMicActive(false);
+                            appStore.getState().setMediaVisible(true);
+                            appStore.getState().setSystemMessage({ type: 'media-error', text: msg });
                         },
                         onRecordingActive: () => {
                         },

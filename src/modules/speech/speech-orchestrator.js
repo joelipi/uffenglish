@@ -187,8 +187,21 @@ export function createSpeechOrchestrator({
                     // Prepare MediaRecorder but defer actual start until audio tap is ready
                     await startSpeechCamRecording(micStatusText, userData, { deferStart: true });
                 } catch (e) {
+                    console.error('[Speech] Could not start mic/cam — staying on mode chooser:', e);
                     listeningState.active = false;
-                    appStore.getState().setSystemMessage(null);
+                    appStore.getState().setMicActive(false);
+                    // The chooser (IntroChoices / DecisionButtons) is still mounted
+                    // because we no longer enter recording/answering until media is
+                    // acquired. Surface actionable recovery guidance and let the
+                    // user retry — do NOT wipe the message or strand them.
+                    if (uiHooks?.onMediaError) {
+                        uiHooks.onMediaError(e);
+                    } else {
+                        appStore.getState().setSystemMessage({
+                            type: 'media-error',
+                            text: Strings.get('error_media_generic', appStore.getState().userData?.native_language) || String(e?.message || e),
+                        });
+                    }
                     return;
                 }
 

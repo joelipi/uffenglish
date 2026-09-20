@@ -1,69 +1,145 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { setupTextInputForStep } from '../../modules/lesson/step-executor-webonly.js';
-import { getSpeechInputToggleCallback } from '../../modules/lesson/step-loader-callbacks.js';
+import { getSpeechInputToggleCallback, getSpeechEngineRetryCallback } from '../../modules/lesson/step-loader-callbacks.js';
+import { getSpeechUiState } from '../../modules/speech/speech-ui-state.js';
+import Strings from '../../data/strings.js';
+import { trackEvent } from '../../modules/utils/posthog.js';
 
 export default function IntroChoices() {
     const bottomState = useStore(appStore, (state) => state.bottomState);
     const isWhisperReady = useStore(appStore, (state) => state.isWhisperReady);
     const isWhisperEngineFailed = useStore(appStore, (state) => state.isWhisperEngineFailed);
+    const nativeLang = useStore(appStore, (state) => state.userData?.native_language);
+
+    // Track how long the engine has been loading so we can escalate from a
+    // quiet "preparing" note to explicit troubleshooting guidance. The interval
+    // reads the ref each tick, so "Try Again" can restart the clock instantly
+    // (slow notice drops back to the loading notice) without re-running the
+    // effect or appearing dead.
+    const [loadingMs, setLoadingMs] = useState(0);
+    const loadingStartedAtRef = useRef(Date.now());
+    useEffect(() => {
+        if (bottomState !== 'introChoices' || isWhisperReady || isWhisperEngineFailed) return undefined;
+        loadingStartedAtRef.current = Date.now();
+        setLoadingMs(0);
+        const timer = setInterval(() => setLoadingMs(Date.now() - loadingStartedAtRef.current), 1000);
+        return () => clearInterval(timer);
+    }, [bottomState, isWhisperReady, isWhisperEngineFailed]);
 
     if (bottomState !== 'introChoices') return null;
 
+    const t = (key) => Strings.get(key, nativeLang) || key;
+
     // Speech callback is already wired by _renderResponseStep during initial
-    // step load (isTextMode defaults to false).  For voice/video modes we
-    // set flags, transition, and invoke the callback to auto-activate the mic.
-    // Only text mode needs a second pass to swap in the text-input callback.
+    // step load (isTextMode defaults to false).  For voice/video modes we set
+    // flags and invoke the callback.  The recording/answering phase is entered
+    // later, by onRecordingStart, only after the mic/cam stream is actually
+    // acquired — so a failed getUserMedia leaves the user here with guidance
+    // instead of a stranded muted-mic screen.
     const finishModeSelection = (isTextMode, isCameraOff) => {
         appStore.getState().setTextMode(isTextMode);
         appStore.getState().setCameraOff(isCameraOff);
-        appStore.getState().transitionTo('recording/answering');
         if (isTextMode) {
+            // Text mode needs no hardware — enter the answering phase directly.
+            appStore.getState().setSystemMessage(null);
+            appStore.getState().transitionTo('recording/answering');
             setupTextInputForStep();
-        } else {
-            const cb = getSpeechInputToggleCallback();
-            if (typeof cb === 'function') cb();
+            return;
         }
+        const cb = getSpeechInputToggleCallback();
+        if (typeof cb === 'function') cb();
     };
 
     const handleVideoClick = () => finishModeSelection(false, false);
     const handleAudioClick = () => finishModeSelection(false, true);
-    const handleTextClick = () => finishModeSelection(true, true);
+    const handleTextClick = () => {
+        trackEvent('text_mode_fallback_selected');
+        finishModeSelection(true, true);
+    };
+    const handleRetry = () => {
+        trackEvent('speech_engine_retry');
+        loadingStartedAtRef.current = Date.now();
+        setLoadingMs(0);
+        const retry = getSpeechEngineRetryCallback();
+        if (typeof retry === 'function') retry();
+    };
 
-    // ── Text-only button (always available — doesn't need whisper) ──
-    const textOnlyBtn = (
-        <button className="btn call-icon" id="textOnlyButton" aria-label="Text Only" onClick={handleTextClick}>
-            <i className="bi bi-keyboard-fill text-white"></i>
+    const voiceButtons = (disabled) => (
+        <div className="d-flex gap-3 align-items-center">
+            <button className="btn call-icon" id="audioOnlyButton" aria-label="Audio Only" onClick={handleAudioClick} disabled={disabled}>
+                <i className="bi bi-telephone-fill text-white"></i>
+            </button>
+            <button className="btn call-btn" id="continueButton" aria-label="Video Call" onClick={handleVideoClick} disabled={disabled}>
+                <i className="bi bi-camera-video-fill"></i>
+            </button>
+        </div>
+    );
+
+    // Text is deliberately de-emphasized: last resort for people who truly
+    // cannot speak or whose device cannot run voice at all. Never shown while
+    // the engine is still loading, so it can't become the path of least
+    // resistance.
+    const textFallback = (
+        <button
+            type="button"
+            className="btn btn-link btn-sm text-secondary text-decoration-underline"
+            id="textFallbackLink"
+            onClick={handleTextClick}
+        >
+            {t('action_use_text_fallback')}
         </button>
     );
 
-    // Whisper still loading — show nothing until the engine reports ready or failed.
-    if (!isWhisperReady && !isWhisperEngineFailed) {
-        return null;
-    }
+    const uiState = getSpeechUiState({
+        isReady: isWhisperReady,
+        isFailed: isWhisperEngineFailed,
+        loadingMs,
+    });
 
-    // Whisper failed to load — only text mode is available.
-    if (isWhisperEngineFailed) {
+    // ── Engine still loading — voice-first, no text option ──
+    if (uiState === 'loading' || uiState === 'slow') {
         return (
             <div className="d-flex flex-column gap-2 align-items-center" id="state-intro-choices">
-                <button className="btn call-btn" id="continueButton" aria-label="Continue in Text Mode" onClick={handleTextClick}>
-                    <i className="bi bi-keyboard-fill me-2"></i>
-                </button>
+                {voiceButtons(true)}
+                <div className="text-center small text-white-50" id="speechEngineStatusText" role="status" aria-live="polite">
+                    <span className="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                    {uiState === 'slow' ? t('error_engine_slow_title') : t('action_preparing_voice')}
+                </div>
+                <div className="text-center small text-white-50">
+                    {uiState === 'slow' ? t('error_engine_slow_hint') : t('error_engine_loading_hint')}
+                </div>
+                {uiState === 'slow' && (
+                    <button type="button" className="btn btn-outline-light btn-sm" id="retryEngineButton" onClick={handleRetry}>
+                        {t('action_try_again')}
+                    </button>
+                )}
             </div>
         );
     }
 
-    // Whisper ready — show all three mode buttons.
+    // ── Engine gave up — descriptive, actionable recovery, then text ──
+    if (uiState === 'failed') {
+        return (
+            <div className="d-flex flex-column gap-2 align-items-center" id="state-intro-choices">
+                <div className="text-center" id="speechEngineFailedText" role="alert">
+                    <div className="text-danger fw-semibold">{t('error_engine_failed_title')}</div>
+                    <div className="small text-white-50 mt-1">{t('error_engine_failed_steps')}</div>
+                </div>
+                <button type="button" className="btn btn-primary" id="retryEngineButton" onClick={handleRetry}>
+                    {t('action_try_again')}
+                </button>
+                {textFallback}
+            </div>
+        );
+    }
+
+    // ── Engine ready — encourage voice; text is a small last-resort link ──
     return (
-        <div className="d-flex gap-3 align-items-center" id="state-intro-choices">
-            <button className="btn call-icon" id="audioOnlyButton" aria-label="Audio Only" onClick={handleAudioClick}>
-                <i className="bi bi-telephone-fill text-white"></i>
-            </button>
-            <button className="btn call-btn" id="continueButton" aria-label="Video Call" onClick={handleVideoClick}>
-                <i className="bi bi-camera-video-fill"></i>
-            </button>
-            {textOnlyBtn}
+        <div className="d-flex flex-column gap-2 align-items-center" id="state-intro-choices">
+            {voiceButtons(false)}
+            {textFallback}
         </div>
     );
 }
