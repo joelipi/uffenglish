@@ -920,6 +920,19 @@ export function createAnswerPipeline(deps) {
                 return;
             }
 
+            // friendClosedResponse: on a correct answer, auto-advance to the next step
+            // without the feedback step (no praise message, no continue widget).
+            if (stepData.responseType === "friendClosedResponse" && isCorrect) {
+                if (_deps.loadNextStep) {
+                    if (stepData.interactiveVideoUrl) {
+                        appStore.getState().setStepCount(appStore.getState().stepCount + 1);
+                    }
+                    _deps.loadNextStep(stepData);
+                    return;
+                }
+                // Fall through to the standard feedback path if progression deps are missing.
+            }
+
             if (stepData.responseType === "openResponse" && userResponse) {
                 // User message + cue bubble were dispatched immediately before the API call.
                 // Now that scoring is complete, append the stats bubbles.

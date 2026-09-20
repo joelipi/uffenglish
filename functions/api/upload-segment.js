@@ -6,14 +6,15 @@
 // R2 lifecycle (48h TTL for videos/ prefix) is configured in the dashboard
 // — not via wrangler.toml.
 
-const MAX_BYTES = 20 * 1024 * 1024; // 20 MB per segment
+// Publishable Supabase project defaults — shared with the SPA client via
+// src/modules/api/supabase-constants.js. The anon key is public by design (it
+// ships in the client bundle), so these fallbacks let the Function verify JWTs
+// even when SUPABASE_URL/SUPABASE_ANON_KEY are not set in the Pages environment
+// (dashboard vars are optional, not required).
+import { DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_ANON_KEY } from '../../src/modules/api/supabase-constants.js';
+export { DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_ANON_KEY };
 
-// Publishable Supabase project defaults — mirror src/modules/api/supabase.js.
-// The anon key is public by design (it ships in the client bundle), so these
-// fallbacks let the Function verify JWTs even when SUPABASE_URL/SUPABASE_ANON_KEY
-// are not set in the Pages environment (dashboard vars are optional, not required).
-export const DEFAULT_SUPABASE_URL = 'https://jbrbmbmupjfangqvaevx.supabase.co';
-export const DEFAULT_SUPABASE_ANON_KEY = 'sb_publishable_xd9bYag0bVG7m74CemthjQ_sJEbQG9S';
+const MAX_BYTES = 20 * 1024 * 1024; // 20 MB per segment
 
 export async function onRequestPost({ request, env }) {
     const shareCode = request.headers.get('x-share-code');

@@ -1,9 +1,10 @@
 // modules/supabase.js — Supabase client singleton (replaces appwrite.js)
 import { createClient } from '@supabase/supabase-js';
+import { DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_ANON_KEY } from './supabase-constants.js';
 
 export const SUPABASE_CONFIG = {
-  URL: import.meta.env.VITE_SUPABASE_URL || 'https://jbrbmbmupjfangqvaevx.supabase.co',
-  ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_xd9bYag0bVG7m74CemthjQ_sJEbQG9S',
+  URL: import.meta.env.VITE_SUPABASE_URL || DEFAULT_SUPABASE_URL,
+  ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY,
 };
 
 // Keep APPWRITE_CONFIG as deprecated alias so any missed import doesn't crash
