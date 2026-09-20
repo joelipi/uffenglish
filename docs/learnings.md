@@ -8,11 +8,11 @@
 
 ---
 
-## `.env` is tracked but carries an uncommitted sandpod-managed token block — never stage it
+## `.env` is untracked and carries sandpod-managed secrets — never stage it; VITE_* needs fallbacks for CI
 **Date**: 2026-09-20
-**Area**: workflow | security
-**What happened**: The working-tree `.env` contains a sandpod-managed block (`EXPO_TOKEN`, `GH_TOKEN`, `GH_NEW_TOKEN`) that is uncommitted; the committed `.env` only holds public `VITE_*` keys. A reviewer flagged the token as a credential risk.
-**Takeaway**: Never `git add .env`. If you must change it, edit only the committed `VITE_*` keys. The sandpod block is overwritten by the environment and must not be committed.
+**Area**: workflow | security | build
+**What happened**: `.env` was removed from git tracking (7d9d7cf) and now holds a sandpod-managed block (`EXPO_TOKEN`, `GH_TOKEN`, `GH_NEW_TOKEN`) plus public `VITE_*` keys. A code review flagged that CI builds (which no longer read a committed `.env`) silently lose `VITE_PUBLIC_POSTHOG_*` — `posthog-client.js` called `posthog.init(undefined, ...)` with no guard.
+**Takeaway**: Never `git add .env`. Any `VITE_*` value consumed at build time must have a publishable fallback in source (mirror `src/modules/api/supabase.js` and `src/modules/utils/posthog-client.js`) or be provided in the CI workflow, because CI builds do not read a committed `.env`.
 
 ---
 
@@ -45,5 +45,38 @@
 **Area**: architecture
 **What happened**: Determining how to make a lesson record without scoring or feedback took several wrong turns. `simpleVideoUrl` does not suppress feedback (it only changes which media renders); `closedResponse` always emits praise/teacher feedback even without `interactiveVideoUrl`. Only `friendClosedResponse` skips scoring and feedback, and it records fine with `simpleVideoUrl` (phase `simpleVideo` is in `RECORDABLE_PHASES`).
 **Takeaway**: For "record, no score, no feedback" use `friendClosedResponse` + `simpleVideoUrl`. Note `simpleVideoUrl` renders text only from `step.subtitles` (not `cue`), so add `subtitles` or the prompt is audio-only. `webcamOnly: true` on a lesson makes its recap contain only the user's own clips and swaps the fluency card for the share CTA.
+
+---
+
+## Verification gate is `npm test -- --run` — eslint and knip are not runnable
+**Date**: 2026-09-20
+**Area**: build | testing
+**What happened**: ESLint 10 requires flat config but the repo ships legacy `.eslintrc.json`, so `npx eslint` fails to start; knip's config targets an old `js/**` layout that no longer matches `src/`/`functions/`. CI (`deploy.yml`) only runs `npm test -- --run`.
+**Takeaway**: Use `npm test -- --run` as the verification gate. Don't run eslint/knip as gates — they are not configured for the current layout.
+
+---
+
+## Read tool redacts `🔒...🔓` placeholder strings — verify edits with `git diff`
+**Date**: 2026-09-20
+**Area**: workflow
+**What happened**: The repo contains literal secret-redaction placeholders (e.g. `Bearer
+src/modules/api/supabase.js` in `functions/api/upload-segment.js`). The Read tool output redacts these, and an edit whose oldString used a different string still matched, mangling indentation.
+**Takeaway**: After editing a file that contains `🔒...🔓` placeholders, verify the result with `git diff` (actual bytes), not the Read tool (redacted display). Treat `🔒...🔓` strings as literal file content.
+
+---
+
+## Branch can switch underneath you — check `git branch --show-current` before committing
+**Date**: 2026-09-20
+**Area**: workflow
+**What happened**: While implementing story 004, a parallel process created story 005 and switched the branch; a commit landed on `005-skip-friend-feedback` instead of `004-fix-r2-upload-config` and had to be cherry-picked back.
+**Takeaway**: Before `git commit`, confirm `git branch --show-current` matches the story branch. If a commit lands on the wrong branch, `git cherry-pick` it onto the correct one.
+
+---
+
+## jsdom: `history.replaceState` to a different host throws SecurityError
+**Date**: 2026-09-20
+**Area**: testing
+**What happened**: Testing `initPostHog` (which skips on `window.location.hostname === 'localhost'`) failed with `SecurityError: replaceState() cannot update history` when changing the jsdom URL to a non-local host.
+**Takeaway**: To bypass a localhost check in vitest jsdom, shadow the location with `Object.defineProperty(window, 'location', { value: { hostname: '...' }, configurable: true })` and `delete window.location` in afterEach — do not use `history.replaceState` across origins.
 
 ---
