@@ -923,10 +923,10 @@ export function createAnswerPipeline(deps) {
             // friendClosedResponse: on a correct answer, auto-advance to the next step
             // without the feedback step (no praise message, no continue widget).
             if (stepData.responseType === "friendClosedResponse" && isCorrect) {
-                if (stepData.interactiveVideoUrl) {
-                    appStore.getState().setStepCount(appStore.getState().stepCount + 1);
-                }
                 if (_deps.loadNextStep) {
+                    if (stepData.interactiveVideoUrl) {
+                        appStore.getState().setStepCount(appStore.getState().stepCount + 1);
+                    }
                     _deps.loadNextStep(stepData);
                     return;
                 }

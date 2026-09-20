@@ -18,7 +18,7 @@ vi.mock('./posthog.js', () => ({
     _setPostHog: mockSetPostHog,
 }));
 
-import { initPostHog, DEFAULT_POSTHOG_KEY, DEFAULT_POSTHOG_HOST } from './posthog-client.js';
+import { DEFAULT_POSTHOG_KEY, DEFAULT_POSTHOG_HOST } from './posthog-client.js';
 
 describe('initPostHog', () => {
     beforeEach(() => {

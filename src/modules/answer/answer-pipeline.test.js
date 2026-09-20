@@ -59,13 +59,13 @@ describe('Answer Pipeline Integration', () => {
     it('submitAnswerPrecheck should accept _deps at position 7', async () => {
         const stepData = { responseType: 'closedResponse', cue: 'hello', explanation: '', translation: null };
         const _deps = { loadNextStep: vi.fn(), callLoadStep: vi.fn() };
-        await expect(pipeline.submitAnswerPrecheck('hello', 'hello', stepData, null, '', null, { pauseCount: 0, netDuration: 0 }, _deps, appStore.getState().userData, appStore.getState().configData, 'test-course')).resolves.not.toThrow();
+        await expect(pipeline.submitAnswerPrecheck('hello', 'hello', stepData, null, '', { pauseCount: 0, netDuration: 0 }, _deps, appStore.getState().userData, appStore.getState().configData, 'test-course')).resolves.not.toThrow();
     });
 
     it('handleAnswer should accept _deps at position 7', async () => {
         const stepData = { responseType: 'closedResponse', cue: 'hello', explanation: '', translation: null, interactiveVideoUrl: null };
         const _deps = { loadNextStep: vi.fn(), callLoadStep: vi.fn() };
-        await expect(pipeline.handleAnswer('hello', 'hello', stepData, null, '', null, { pauseCount: 0, netDuration: 0 }, _deps, appStore.getState().userData, appStore.getState().configData, 'test-course')).resolves.not.toThrow();
+        await expect(pipeline.handleAnswer('hello', 'hello', stepData, null, '', { pauseCount: 0, netDuration: 0 }, _deps, appStore.getState().userData, appStore.getState().configData, 'test-course')).resolves.not.toThrow();
     });
 
 });
@@ -205,6 +205,8 @@ describe('friendClosedResponse auto-advance', () => {
 
         expect(appStore.getState().appPhase).toBe('feedback');
         expect(appStore.getState().chatHistory.some(m => m.type === 'continueWidget')).toBe(true);
+        // showFeedbackAndProceed performs the single increment on the fallback path.
+        expect(appStore.getState().stepCount).toBe(1);
     });
 
 });
