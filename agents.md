@@ -8,6 +8,9 @@ This codebase is moving strictly to React patterns. Never use `document.querySel
 **Modular Structure**
 Keep logic in the module where it conceptually belongs. Do not co-locate unrelated concerns.
 
+**Lesson content vs UI copy**
+Lesson content (cues, subtitles, transcripts, step config) lives in `src/config/*.json`; the spoken text for mock videos is in `scripts/generate-mock-videos.mjs`. `src/data/strings.js` is UI copy only — never search it for lesson content. For config-only changes, derive the pattern from the earlier lessons in the same config file; don't explore player/store code unless the change touches it.
+
 **Resource & Cost Optimization**
 Minimize external operations. All data fetching and mutations must go through TanStack Query and Zustand — never call Appwrite or any external service directly from components or hooks. Prefer in-browser, client-side model operations over external LLM API calls to reduce cost and lay groundwork for offline mode. Balance local-first execution against device CPU/memory constraints.
 
@@ -42,6 +45,8 @@ Execute small, incremental changes and routine bug fixes immediately without ask
 ```
 tests/answer-flow.spec.js
 ```
+
+**Config-only changes: unit test the config, skip E2E.** When a change only edits `src/config/*.json`, a vitest unit test importing the JSON (e.g. `src/config/model.test.js`) is sufficient coverage when the rendering path is already exercised by existing lessons. Don't add a Playwright spec for a config-only change.
 
 **Test URL:** `http://localhost:3000/course/model/lesson/g`
 Lessons require a full URL where `course` and `model` map to valid JSON files and `lesson` is a valid key within that JSON, unless lesson data is already in memory.
