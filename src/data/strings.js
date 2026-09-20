@@ -485,12 +485,6 @@ const strings = {
         pt: "Tentar novamente",
         fr: "Réessayer"
     },
-    'action_use_text_fallback': {
-        en: "I can't use my voice — use text instead",
-        es: "No puedo usar mi voz — usar texto",
-        pt: "Não posso usar minha voz — usar texto",
-        fr: "Je ne peux pas utiliser ma voix — utiliser le texte"
-    },
     'error_media_not_found': {
         en: "No microphone or camera found. Connect one, then try again.",
         es: "No se encontró micrófono ni cámara. Conecta uno y vuelve a intentar.",

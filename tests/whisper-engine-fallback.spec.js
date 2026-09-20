@@ -1,11 +1,11 @@
 // Regression coverage for the speech-engine mode chooser.
 //
-// Voice is the product's priority, so text mode must never be the path of
-// least resistance. These specs lock in:
-//   1. While the engine is loading: voice buttons shown disabled, NO text
-//      fallback offered.
-//   2. When the engine fails: descriptive recovery steps + retry + a small,
-//      de-emphasized text fallback.
+// Voice is the product's priority, but text is always available via the
+// keyboard icon (it does not depend on the speech engine). These specs lock in:
+//   1. While the engine is loading: voice buttons shown disabled, keyboard
+//      icon still available.
+//   2. When the engine fails: descriptive recovery steps + retry + keyboard
+//      icon.
 //   3. When getUserMedia fails (no mic): the user stays on the chooser with
 //      actionable guidance instead of a stranded muted-mic screen, and can
 //      retry or fall back to text.
@@ -64,11 +64,11 @@ test.describe('speech engine chooser fallback', () => {
         await expect(page.locator('#speechEngineStatusText')).toBeVisible();
         await expect(page.locator('#audioOnlyButton')).toBeDisabled();
         await expect(page.locator('#continueButton')).toBeDisabled();
-        // The text trap: it must not be offered while voice is still coming up.
-        await expect(page.locator('#textFallbackLink')).toHaveCount(0);
+        // Text is always available via the keyboard icon, even while voice loads.
+        await expect(page.locator('#textOnlyButton')).toBeVisible();
     });
 
-    test('when the engine fails: recovery steps, retry, and only a small text fallback', async ({ page }) => {
+    test('when the engine fails: recovery steps, retry, and keyboard icon', async ({ page }) => {
         test.setTimeout(60000);
         await page.route('**r2.ultrafastfluency.com/whisper/**', r => r.abort('failed'));
         await page.route('**cdn.jsdelivr.net/**', r => r.abort('failed'));
@@ -82,7 +82,7 @@ test.describe('speech engine chooser fallback', () => {
         await expect(page.locator('#speechEngineFailedText')).toBeVisible();
         await expect(page.locator('#retryEngineButton')).toBeVisible();
         await expect(page.locator('#retryEngineButton')).toHaveText(/Try Again/i);
-        await expect(page.locator('#textFallbackLink')).toBeVisible();
+        await expect(page.locator('#textOnlyButton')).toBeVisible();
     });
 
     test('when getUserMedia fails: stays on chooser with guidance, not a dead-end', async ({ page }) => {
@@ -103,9 +103,9 @@ test.describe('speech engine chooser fallback', () => {
         await dismissGuestModal(page);
         await advanceToChooser(page);
 
-        // Engine ready → voice buttons available, text fallback de-emphasized.
+        // Engine ready → voice buttons available, keyboard icon available.
         await expect(page.locator('#continueButton')).toBeEnabled();
-        await expect(page.locator('#textFallbackLink')).toBeVisible();
+        await expect(page.locator('#textOnlyButton')).toBeVisible();
 
         // No media devices exist in this environment → getUserMedia rejects.
         await page.locator('#continueButton').click({ force: true });
@@ -128,14 +128,14 @@ test.describe('speech engine chooser fallback', () => {
         // The chooser is intact and the user can retry voice or fall back.
         await expect(page.locator('#state-intro-choices')).toBeVisible();
         await expect(page.locator('#continueButton')).toBeEnabled();
-        await expect(page.locator('#textFallbackLink')).toBeVisible();
+        await expect(page.locator('#textOnlyButton')).toBeVisible();
 
         // The old failure mode showed a blocking native alert and wiped the
         // message; neither should happen.
         expect(dialogs, `unexpected dialogs: ${dialogs.join('; ')}`).toEqual([]);
 
         // Falling back to text works and leaves the chooser.
-        await page.locator('#textFallbackLink').click({ force: true });
+        await page.locator('#textOnlyButton').click({ force: true });
         await expect.poll(async () => (await state(page)).isTextMode).toBe(true);
     });
 

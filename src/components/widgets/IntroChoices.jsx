@@ -77,18 +77,13 @@ export default function IntroChoices() {
         </div>
     );
 
-    // Text is deliberately de-emphasized: last resort for people who truly
-    // cannot speak or whose device cannot run voice at all. Never shown while
-    // the engine is still loading, so it can't become the path of least
-    // resistance.
-    const textFallback = (
-        <button
-            type="button"
-            className="btn btn-link btn-sm text-secondary text-decoration-underline"
-            id="textFallbackLink"
-            onClick={handleTextClick}
-        >
-            {t('action_use_text_fallback')}
+    // Text mode is always available via the keyboard icon (product decision):
+    // voice remains the primary path, but the text option is never hidden —
+    // it does not depend on the speech engine, so it stays usable while the
+    // engine loads or fails.
+    const textOnlyBtn = (
+        <button className="btn call-icon" id="textOnlyButton" aria-label="Text Only" onClick={handleTextClick}>
+            <i className="bi bi-keyboard-fill text-white"></i>
         </button>
     );
 
@@ -98,11 +93,12 @@ export default function IntroChoices() {
         loadingMs,
     });
 
-    // ── Engine still loading — voice-first, no text option ──
+    // ── Engine still loading — voice-first, keyboard icon always available ──
     if (uiState === 'loading' || uiState === 'slow') {
         return (
             <div className="d-flex flex-column gap-2 align-items-center" id="state-intro-choices">
                 {voiceButtons(true)}
+                {textOnlyBtn}
                 <div className="text-center small text-white-50" id="speechEngineStatusText" role="status" aria-live="polite">
                     <span className="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
                     {uiState === 'slow' ? t('error_engine_slow_title') : t('action_preparing_voice')}
@@ -130,16 +126,16 @@ export default function IntroChoices() {
                 <button type="button" className="btn btn-primary" id="retryEngineButton" onClick={handleRetry}>
                     {t('action_try_again')}
                 </button>
-                {textFallback}
+                {textOnlyBtn}
             </div>
         );
     }
 
-    // ── Engine ready — encourage voice; text is a small last-resort link ──
+    // ── Engine ready — encourage voice; keyboard icon always available ──
     return (
         <div className="d-flex flex-column gap-2 align-items-center" id="state-intro-choices">
             {voiceButtons(false)}
-            {textFallback}
+            {textOnlyBtn}
         </div>
     );
 }

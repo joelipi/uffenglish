@@ -73,7 +73,7 @@ The short version:
 **Speech-to-Text / Microphone**
 You cannot use a microphone. Bypass it using built-in testing functions, or invoke `handleAnswer` (or equivalent) directly to simulate audio input.
 
-**Voice-first, text last (product rule).** Mic/webcam are the primary path; text mode is a last-resort fallback for people who truly cannot speak or whose device cannot run voice. Never render a text-only option while the speech engine is still loading — if it is the only button, users click it and never use voice. Never let a recoverable failure (no mic, blocked permission, engine error) strand the user on a muted-mic screen: keep the voice mode chooser mounted, show descriptive actionable recovery guidance, and offer Retry. Expose text only after the engine has definitively failed, or behind a small de-emphasized link.
+**Voice-first, text available (product rule).** Mic/webcam are the primary path; text mode is a fallback for people who cannot speak or whose device cannot run voice. The keyboard icon in the mode chooser is always visible and usable — it does not depend on the speech engine, so text is never hidden while the engine loads or fails. Never let a recoverable failure (no mic, blocked permission, engine error) strand the user on a muted-mic screen: keep the voice mode chooser mounted, show descriptive actionable recovery guidance, and offer Retry.
 
 Headless recipe (local dev on `:3000`):
 - Dismiss the guest modal: click `#guestEnglishOnlyBtn`, then `#guestContinueBtn`.
