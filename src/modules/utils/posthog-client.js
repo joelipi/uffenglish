@@ -8,8 +8,8 @@ import { _setPostHog } from './posthog.js';
 // ships in the client bundle), so these fallbacks keep analytics working even
 // when VITE_PUBLIC_POSTHOG_* are not provided at build time (e.g. CI builds
 // that no longer read a committed .env).
-const DEFAULT_POSTHOG_KEY = 'phc_qrpnnzkDtNhbaCrKDycWvJkGHSLEwzyFWjg8cwTDrYQG';
-const DEFAULT_POSTHOG_HOST = 'https://us.i.posthog.com';
+export const DEFAULT_POSTHOG_KEY = 'phc_qrpnnzkDtNhbaCrKDycWvJkGHSLEwzyFWjg8cwTDrYQG';
+export const DEFAULT_POSTHOG_HOST = 'https://us.i.posthog.com';
 
 let _initialized = false;
 

@@ -5,24 +5,27 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-const { mockInit } = vi.hoisted(() => ({ mockInit: vi.fn() }));
+const { mockInit, mockSetPostHog } = vi.hoisted(() => ({
+    mockInit: vi.fn(),
+    mockSetPostHog: vi.fn(),
+}));
 
 vi.mock('posthog-js', () => ({
     default: { init: mockInit },
 }));
 
 vi.mock('./posthog.js', () => ({
-    _setPostHog: vi.fn(),
+    _setPostHog: mockSetPostHog,
 }));
 
-const FALLBACK_KEY = 'phc_qrpnnzkDtNhbaCrKDycWvJkGHSLEwzyFWjg8cwTDrYQG';
-const FALLBACK_HOST = 'https://us.i.posthog.com';
+import { initPostHog, DEFAULT_POSTHOG_KEY, DEFAULT_POSTHOG_HOST } from './posthog-client.js';
 
 describe('initPostHog', () => {
     beforeEach(() => {
         // _initialized is module-level state; re-import fresh per test.
         vi.resetModules();
         mockInit.mockClear();
+        mockSetPostHog.mockClear();
         // jsdom defaults to localhost, which initPostHog skips — shadow the
         // location with a non-local host so the init path actually runs.
         Object.defineProperty(window, 'location', {
@@ -32,6 +35,7 @@ describe('initPostHog', () => {
     });
 
     afterEach(() => {
+        delete window.location;
         vi.unstubAllEnvs();
     });
 
@@ -43,9 +47,11 @@ describe('initPostHog', () => {
         initPostHog();
 
         expect(mockInit).toHaveBeenCalledWith(
-            FALLBACK_KEY,
-            expect.objectContaining({ api_host: FALLBACK_HOST })
+            DEFAULT_POSTHOG_KEY,
+            expect.objectContaining({ api_host: DEFAULT_POSTHOG_HOST })
         );
+        // Wiring the SDK into the proxy is what makes trackEvent work.
+        expect(mockSetPostHog).toHaveBeenCalledWith(expect.objectContaining({ init: mockInit }));
     });
 
     it('uses the env values when provided', async () => {

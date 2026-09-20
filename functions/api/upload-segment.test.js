@@ -105,6 +105,12 @@ describe('onRequestPost — upload-segment Function', () => {
             'https://custom.supabase.co/rest/v1/user_profiles?select=share_code&id=eq.user-1',
             expect.objectContaining({ headers: expect.objectContaining({ apikey: 'custom-anon-key' }) })
         );
+        expect(env.UFF_R2.put).toHaveBeenCalledTimes(1);
+        expect(env.UFF_R2.put).toHaveBeenCalledWith(
+            'videos/ab12-model-w-response-01.mp4',
+            expect.any(ArrayBuffer),
+            { contentType: 'video/mp4' }
+        );
     });
 
     it('rejects with 400 when x-share-code or x-r2-key is missing', async () => {
@@ -164,18 +170,5 @@ describe('onRequestPost — upload-segment Function', () => {
         });
         expect(res.status).toBe(413);
         expect(env.UFF_R2.put).not.toHaveBeenCalled();
-    });
-
-    it('uploads successfully on the happy path with env vars present', async () => {
-        const env = makeEnv({ url: 'https://custom.supabase.co', anonKey: 'custom-anon-key' });
-        const res = await onRequestPost({ request: makeRequest(), env });
-
-        expect(res.status).toBe(200);
-        expect(env.UFF_R2.put).toHaveBeenCalledTimes(1);
-        expect(env.UFF_R2.put).toHaveBeenCalledWith(
-            'videos/ab12-model-w-response-01.mp4',
-            expect.any(ArrayBuffer),
-            { contentType: 'video/mp4' }
-        );
     });
 });
