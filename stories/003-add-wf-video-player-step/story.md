@@ -51,27 +51,23 @@ Rules and decisions:
   - → every lesson other than `wf` has an unchanged sequence of `{responseType, simpleVideoUrl, interactiveVideoUrl, introBackgroundVideoUrl}` values
   - → `wf`'s remaining steps (indices 0, 2, 3, 4, 5) keep their pre-change values
 
-### Task 2 — Automated coverage for the config and the rendered step
+### Task 2 — Automated coverage for the config
 
 - `npm test -- --run` (vitest, jsdom) is executed
   - → `src/config/model.test.js` exists, imports `model.json`, and every assertion listed in Task 1 passes
   - → the suite fails if the new step is deleted, reordered, given a different `simpleVideoUrl`, or if any subtitle locale is missing/empty
-- the dev server serves `/course/model/lesson/wf` and the English-only guest path is taken
-  - → `tests/wf-video-step.spec.js` passes: after dismissing the guest modal and advancing past the intro, `appStore.getState().appPhase === "viewAndContinueVideo"`, `currentVideo.type === "simple"`, `currentVideo.responseType === "viewAndContinue"`, and the rendered subtitle text contains `Now you will record yourself`
-  - → the spec asserts store/DOM state only and does not require any video file to download or play
 
 ## Technical Context
 
 - Stack: React 19, Vite 8, Zustand (`appStore` in `src/modules/store/store.js`). Lesson content is plain JSON; `src/config/model.json` is the `model` course (`courseId: "model"`).
 - `viewAndContinue` path: `src/components/StepLoader.jsx` (`PresentStep`), phase mapping in `src/modules/lesson/step-executor-webonly.js` (`resetUIForNewStep`), simple-video rendering in `src/components/SimpleVideoPlayer.web.jsx`, subtitle localization in `src/modules/utils/utils.js` (`getLocalizedTranslation`).
 - Unit test command: `npm test -- --run`. Vitest `include` defaults to `**/*.{test,spec}.?(c|m)[jt]s?(x)`, but `vitest.config.js` excludes `**/tests/**` and `**/*.spec.js`, so the unit test belongs at `src/config/model.test.js`. JSON files can be imported directly (Vite/esbuild JSON support).
-- E2E command: `npx playwright test` (`playwright.config.js`, `testDir: tests/`, dev server `npx vite --port 5173`, `baseURL: http://localhost:5173`).
-- Headless guest recipe (from `agents.md`): click `#guestEnglishOnlyBtn`, then `#guestContinueBtn`; advance past the intro with `#intro-call-widget`. Assert the `en` subtitle because the English-only guest path uses native language `en`.
 - No new packages or versions are introduced; there is no Bootstrap section because no app, service, or package is created.
 
 ## Notes
 
 - The `es`/`pt` subtitle strings are new copy authored for this story; product review may reword them. Only the `en` value is verbatim from `scripts/generate-mock-videos.mjs:47`.
-- `wf` is a friend-challenge test lesson. `testvideo01` is a mock clip produced by `scripts/generate-mock-videos.mjs` into `public/assets/videos/` (gitignored) and R2. The automated assertions deliberately depend on config, phase, and DOM text — not on media bytes — so they pass without a local video file.
+- `wf` is a friend-challenge test lesson. `testvideo01` is a mock clip produced by `scripts/generate-mock-videos.mjs` into `public/assets/videos/` (gitignored) and R2.
+- No E2E spec is added for this change: the `viewAndContinue` → `SimpleVideoPlayer` rendering path is already exercised by the existing lessons `t`, `x`, `wa`, and `wfa`, and this change is config-only. The unit test pins the config; an E2E would re-test unchanged code and add flakiness (no `wf` poster jpg, mock video on R2, guest-modal timing).
 - Keep `model.json`'s existing 2-space indentation when inserting the object to keep the diff minimal.
 - Inserting the step shifts the subsequent `wf` step indices; nothing keys off a fixed index (`resetUIForNewStep` recomputes the first-response index via `findIndex`), so no code change is required.
