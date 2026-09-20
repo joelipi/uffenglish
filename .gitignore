@@ -41,3 +41,4 @@ public/assets/videos/*.mp4
 # .env  # commented out — committed so CI picks up VITE_PUBLIC_POSTHOG_*
 plans/review-system.md
 supabase/.temp/
+.env
