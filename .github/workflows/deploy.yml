@@ -2,7 +2,7 @@ name: Deploy to Cloudflare Pages
 
 on:
   push:
-    branches: [main]
+    branches: ['**']
   workflow_dispatch:
 
 jobs:
@@ -31,6 +31,11 @@ jobs:
         run: node scripts/generate-thumbnails.mjs
 
       - name: Upload posters to R2
+        # Runs on all branches: preview deployments serve posters from R2
+        # (getPosterUrl uses POSTER_BASE outside DEV), so a branch that skips
+        # this shows gradient fallbacks instead of posters. Poster output is
+        # deterministic per lessonId, so a branch upload is safe; main
+        # re-uploads on merge.
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -46,4 +51,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=uffenglish
+          # --branch makes non-main pushes create a preview deployment at
+          # <branch>.uffenglish.pages.dev instead of overwriting production.
+          # Branch names are lowercased and non-alphanumerics become '-'.
+          command: pages deploy dist --project-name=uffenglish --branch=${{ github.ref_name }}
