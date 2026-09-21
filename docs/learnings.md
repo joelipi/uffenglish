@@ -112,3 +112,13 @@ src/modules/api/supabase.js` in `functions/api/upload-segment.js`). The Read too
 **Takeaway**: All agent models should be `opencode-go/deepseek-v4-flash` (the working model). If a reviewer subagent cannot launch due to an infrastructure error, do the review manually following the agent's rubric and commit it with `peck code-review commit` / `peck acceptance-review commit` (piped from stdin) — that is exactly what the `on_complete` hook runs. Verify the report was committed via `git log`; the commit subject is `review: <verdict>` / `review(acceptance): <verdict>`.
 
 ---
+
+## Worktree OpenCode instances ignore the worktree's `.opencode/agents` — custom agents must be global
+**Date**: 2026-09-21
+**Area**: tooling | testing
+**What happened**: A new OpenChamber worktree session failed immediately with `UnknownError at SessionPrompt.createUserMessage`. Reproduced via the OpenCode API: `POST /session/<id>/message` with `agent:"planner"` returned HTTP 500 in the worktree and HTTP 200 in the repo root. `GET /agent?directory=<worktree>` listed only built-in agents (`build`, `plan`, `explore`, …) — the worktree's own `.opencode/agents/*.md` (and its `opencode.jsonc` plugin/disable config) were not loaded, even though the files were present and identical to the root's. OpenCode only discovers project `.opencode` from the directory its server was started in.
+**Takeaway**: Custom agents and the `opencode-subagent-completion-hook` plugin must live in the **global** OpenCode config (`~/.config/opencode/agents/*.md` and the global plugin list) for worktree sessions to use them; the worktree setup copies the repo's agents there. Instances already created keep the empty agent list cached, so a fix requires a fresh worktree (or an OpenCode restart). See `docs/openchamber-workflow.md`.
+
+---
+
+---

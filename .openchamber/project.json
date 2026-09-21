@@ -1,8 +1,13 @@
 {
   "version": 1,
   "setupWorktree": [
+    "if [ ! -d \"$ROOT_PROJECT_PATH/node_modules\" ]; then (cd \"$ROOT_PROJECT_PATH\" && npm install) || exit 1; fi",
     "ln -sfn \"$ROOT_PROJECT_PATH/node_modules\" node_modules",
-    "if [ -f \"$ROOT_PROJECT_PATH/.env\" ]; then cp \"$ROOT_PROJECT_PATH/.env\" .env; fi"
+    "if [ -f \"$ROOT_PROJECT_PATH/.env\" ]; then cp \"$ROOT_PROJECT_PATH/.env\" .env; fi",
+    "mkdir -p .opencode",
+    "(cd \"$ROOT_PROJECT_PATH/.opencode\" && tar cf - --exclude=node_modules .) | (cd .opencode && tar xf -)",
+    "if [ -d \"$ROOT_PROJECT_PATH/.opencode/node_modules\" ]; then ln -sfn \"$ROOT_PROJECT_PATH/.opencode/node_modules\" .opencode/node_modules; fi",
+    "node \"$ROOT_PROJECT_PATH/scripts/openchamber-worktree-setup.mjs\" \"$ROOT_PROJECT_PATH\""
   ],
   "setupWorktreeWait": true
 }
