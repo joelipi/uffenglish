@@ -234,7 +234,7 @@ npm test -- --run                           # verification gate
 - `onnxruntime-node@1.21.0` — transitive dependency of `transformers@3.8.1` (present in `package-lock.json`), so no new install. `whisper-base.en` was chosen over the existing `whisper-tiny.en` because tiny mis-transcribed "role play" as "robot play" on the planning fixture, whereas base.en produced a closer transcription of the same clip.
 - ffmpeg 6.1.1 — CI installs it in `deploy.yml`; the caption workflow installs it the same way. `-f f32le` output is read directly into `Float32Array`.
 - DeepSeek — endpoint `https://api.deepseek.com/v1/chat/completions`, model `deepseek-v4-flash` (the default in `workers/deepseek-proxy/index.js:57`; `.github/scripts/generate_spec.js` uses the `deepseek-v4-pro` variant). Requires the `DEEPSEEK_API_KEY` Actions secret.
-- Confirmed Actions secrets (`gh secret list -R joelipi/uffenglish`, 2026-09-21): `DEEPSEEK_API_KEY`, `GROQ_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN` are set. `GH_NEW_TOKEN` is not set and must be added (see Notes). The DeepSeek dependency is therefore current, not historical.
+- Confirmed Actions secrets (`gh secret list -R joelipi/uffenglish`, 2026-09-21): `DEEPSEEK_API_KEY`, `GROQ_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, and `GH_NEW_TOKEN` are all set. The DeepSeek dependency is current, not historical.
 - R2 media base `https://r2.ultrafastfluency.com/assets/videos/` — matches `src/modules/video/video-url.js:5`; `scripts/generate-thumbnails.mjs:31` is the precedent for hardcoding it in a CI script.
 - Subtitle SRT shape and parsing — `src/modules/video/simple-video-controller.js` `_timeToSeconds`/`initSubtitles` (times split on `[,.]`, blocks split on blank lines, `-->` marks timed cues).
 - Six-language convention — `src/modules/video/video-processor-logic.js:22` `CTA_LOCALE_MAP` (`EN, ES, PT, FR, HI, BN`), asserted in `src/modules/video/video-processor-share-cta.test.js`.
@@ -243,7 +243,7 @@ npm test -- --run                           # verification gate
 
 ## Notes
 
-- The `GH_NEW_TOKEN` PAT is not yet stored as an Actions secret (confirmed via `gh secret list` on 2026-09-21). It must be added before the workflow can push: `gh secret set GH_NEW_TOKEN -R joelipi/uffenglish --body "<value from .env>"`. The PAT needs contents-write; the same token already authenticates `gh` locally.
+- `GH_NEW_TOKEN` is stored as an Actions secret (added 2026-09-21, verified with `gh secret list`). The PAT has Actions-secrets read+write and contents=write — both verified via non-destructive `gh api` permission probes (`X-Accepted-Github-Permissions: secrets=write`; a create-ref attempt returned 422 "already exists", not 403) — so the workflow's checkout and push will work.
 - The default `GITHUB_TOKEN` is not used for the push because it does not currently work for this repo; the PAT is the writer. `permissions: contents: read` is sufficient for everything else.
 - Branch protection that rejects direct pushes to `main` would make the commit step fail; no such protection is evident (commits land on `main` directly per `agents.md`), but this is the one environment assumption.
 - Machine-generated captions are committed without human review, per the "no PR" decision. Local `whisper-base.en` accuracy is below cloud `whisper-large-v3`, and DeepSeek translations for `hi`/`bn` are unreviewed; a bad cue can reach the app. The SRT-shape validation only guarantees timing/text alignment, not translation quality.
