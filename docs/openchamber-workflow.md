@@ -35,19 +35,34 @@ worktree session on the **existing branch** instead.
 
 When a worktree is created, the setup commands run inside it:
 
+- run `npm install` in the root if `node_modules` is missing;
 - symlink `node_modules` from the root (avoids a 1.4 GB copy per worktree);
 - copy `.env`;
-- copy the gitignored `.opencode/` config — `peck.json`, the agent definitions,
-  and the OpenCode project config — and symlink its `node_modules`;
-- install the custom agents into the **global** OpenCode config
-  (`~/.config/opencode/agents/`), and keep the subagent-completion plugin in the
-  global plugin list. Worktree instances do **not** discover the worktree's own
-  `.opencode/agents`, so the agents must be global or worktree chats crash (see
-  below).
+- copy the `.opencode/` config — `peck.json`, the agent definitions, and the
+  OpenCode project config — and symlink its `node_modules`;
+- run `scripts/openchamber-worktree-setup.mjs`, which installs the custom agents
+  into the **global** OpenCode config (`~/.config/opencode/agents/`) and adds
+  the subagent-completion plugin to the global plugin list. Worktree instances
+  do **not** discover the worktree's own `.opencode/agents`, so the agents must
+  be global or worktree chats crash (see below).
 
 Setup lives in two places: `.openchamber/project.json` (committed, for anyone
 who clones) and your personal OpenChamber project settings. Your personal copy
 uses `replace` mode, so it applies no matter what branch the root is on.
+
+## New machine / fresh install
+
+`.opencode/agents/`, `.opencode/peck.json`, `.opencode/opencode.jsonc`, and
+`scripts/openchamber-worktree-setup.mjs` are committed, so a clone has
+everything the worktrees need. The first worktree bootstraps the rest:
+`npm install` runs in the root, then the setup script installs the global agents
+and plugin.
+
+The one thing that cannot be committed: create `.env` in the repo root with the
+Supabase/PostHog keys (`.env.example` is a template). It is gitignored, and the
+setup copies it into each worktree. The OpenCode provider key lives in the
+machine-global `~/.config/opencode/opencode.jsonc`, so set that up too (or run
+OpenChamber's provider login).
 
 ## Rules of thumb
 

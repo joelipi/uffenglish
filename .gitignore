@@ -24,7 +24,6 @@ public/assets/videos/*.mp4
 /.reasonix
 /tidy
 /.tokencount
-/.opencode
 /.reasonix
 # .env is local-only (contains sandpod-managed secrets). VITE_PUBLIC_POSTHOG_*
 # are optional at build time — posthog-client.js falls back to publishable
