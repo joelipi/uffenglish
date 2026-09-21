@@ -26,6 +26,10 @@ export function isUsableBaseSha(sha) {
  * overwrite": existing uncaptioned slugs are in the before set, and authored
  * subtitles are skipped.
  *
+ * Slugs containing the `{friendCode}` template placeholder are always
+ * skipped: they are resolved per-user at runtime (config-normalizer.js) and
+ * are not literal R2 filenames, so they can never be downloaded or captioned.
+ *
  * @param {object|null} beforeConfig parsed before revision (null = new file)
  * @param {object} afterConfig parsed after revision
  * @returns {Array<{slug: string, lessonIndex: number, stepKey: 'steps'|'questions', stepIndex: number}>}
@@ -50,6 +54,7 @@ export function findNewSimpleVideoTargets(beforeConfig, afterConfig) {
                 const list = lesson[stepKey] || [];
                 list.forEach((step, stepIndex) => {
                     if (!step.simpleVideoUrl) return;
+                    if (step.simpleVideoUrl.includes('{friendCode}')) return;
                     if (beforeSlugs.has(step.simpleVideoUrl)) return;
                     if (step.subtitles !== undefined) return;
                     targets.push({ slug: step.simpleVideoUrl, lessonIndex, stepKey, stepIndex });

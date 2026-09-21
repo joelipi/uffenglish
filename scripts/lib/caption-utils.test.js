@@ -64,6 +64,24 @@ describe('findNewSimpleVideoTargets', () => {
         expect(findNewSimpleVideoTargets(before, after)).toEqual([]);
     });
 
+    it('never captions {friendCode} template slugs (runtime-resolved, not literal R2 files)', () => {
+        const before = { lessons: [{ steps: [] }] };
+        const after = {
+            lessons: [
+                {
+                    steps: [
+                        { simpleVideoUrl: '{friendCode}model-wf-response-01' },
+                        { simpleVideoUrl: '{friendCode}model-wf-response-02' },
+                        { simpleVideoUrl: 'regular-new-video' },
+                    ],
+                },
+            ],
+        };
+        expect(findNewSimpleVideoTargets(before, after)).toEqual([
+            { slug: 'regular-new-video', lessonIndex: 0, stepKey: 'steps', stepIndex: 2 },
+        ]);
+    });
+
     it('targets legacy questions arrays with stepKey questions', () => {
         const before = { lessons: [{ questions: [] }] };
         const after = { lessons: [{ questions: [{ simpleVideoUrl: 'new' }] }] };
