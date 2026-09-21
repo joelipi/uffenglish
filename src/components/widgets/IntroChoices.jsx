@@ -66,15 +66,18 @@ export default function IntroChoices() {
         if (typeof retry === 'function') retry();
     };
 
+    // Fragment (not a wrapping div) so the two voice buttons become direct
+    // children of whatever row they are placed in — keeping all three mode
+    // icons on a single line with even gap-3 spacing.
     const voiceButtons = (disabled) => (
-        <div className="d-flex gap-3 align-items-center">
+        <>
             <button className="btn call-icon" id="audioOnlyButton" aria-label="Audio Only" onClick={handleAudioClick} disabled={disabled}>
                 <i className="bi bi-telephone-fill text-white"></i>
             </button>
             <button className="btn call-btn" id="continueButton" aria-label="Video Call" onClick={handleVideoClick} disabled={disabled}>
                 <i className="bi bi-camera-video-fill"></i>
             </button>
-        </div>
+        </>
     );
 
     // Text mode is always available via the keyboard icon (product decision):
@@ -97,8 +100,10 @@ export default function IntroChoices() {
     if (uiState === 'loading' || uiState === 'slow') {
         return (
             <div className="d-flex flex-column gap-2 align-items-center" id="state-intro-choices">
-                {voiceButtons(true)}
-                {textOnlyBtn}
+                <div className="d-flex gap-3 align-items-center">
+                    {voiceButtons(true)}
+                    {textOnlyBtn}
+                </div>
                 <div className="text-center small text-white-50" id="speechEngineStatusText" role="status" aria-live="polite">
                     <span className="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
                     {uiState === 'slow' ? t('error_engine_slow_title') : t('action_preparing_voice')}
@@ -133,7 +138,7 @@ export default function IntroChoices() {
 
     // ── Engine ready — encourage voice; keyboard icon always available ──
     return (
-        <div className="d-flex flex-column gap-2 align-items-center" id="state-intro-choices">
+        <div className="d-flex gap-3 align-items-center" id="state-intro-choices">
             {voiceButtons(false)}
             {textOnlyBtn}
         </div>
