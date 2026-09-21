@@ -96,6 +96,21 @@ describe('mock video generator removal', () => {
         expect(mp4Lines).toEqual(['public/assets/videos/*.mp4']);
     });
 
+    it('documents the real-media workflow in README.md', () => {
+        const readme = fs.readFileSync(path.join(REPO_ROOT, 'README.md'), 'utf8');
+        expect(readme).not.toContain('generate-mock-videos');
+        expect(readme).toContain('assets/videos/<slug>.mp4');
+        expect(readme).toContain('r2.ultrafastfluency.com');
+    });
+
+    it('documents the real-media workflow in agents.md', () => {
+        const agents = fs.readFileSync(path.join(REPO_ROOT, 'agents.md'), 'utf8');
+        expect(agents).not.toContain('generate-mock-videos');
+        expect(agents).not.toContain('Mock lesson videos');
+        expect(agents).toContain('assets/videos/<slug>.mp4');
+        expect(agents).toContain('manually');
+    });
+
     it('tracks no video files (media lives on R2)', () => {
         expect(listTrackedFiles(REPO_ROOT).filter((f) => /\.mp4$/i.test(f))).toEqual([]);
     });
