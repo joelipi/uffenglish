@@ -163,7 +163,7 @@
             }
           ],
           "responseType": "friendClosedResponse",
-          "interactiveVideoUrl": "{friendCode}model-wf-response-01"
+          "simpleVideoUrl": "{friendCode}model-wf-response-01"
         },
         {
           "cue": [
@@ -195,7 +195,7 @@
             }
           ],
           "responseType": "friendClosedResponse",
-          "interactiveVideoUrl": "{friendCode}model-wf-response-02"
+          "simpleVideoUrl": "{friendCode}model-wf-response-02"
         },
         {
           "cue": [
@@ -237,7 +237,7 @@
             }
           ],
           "responseType": "friendClosedResponse",
-          "interactiveVideoUrl": "{friendCode}model-wf-response-03"
+          "simpleVideoUrl": "{friendCode}model-wf-response-03"
         },
         {
           "simpleVideoUrl": "testvideo08",
