@@ -46,8 +46,38 @@ const state = (page) => page.evaluate(() => {
     };
 });
 
+// Read the mode-chooser buttons' layout geometry via offset metrics. offsetTop
+// / offsetLeft are unaffected by CSS transforms, so the floatBob animation on
+// #continueButton cannot make the row assertions flaky (getBoundingClientRect
+// would include the transform and is not safe here).
+async function readChooserGeometry(page) {
+    return page.evaluate(() => {
+        const ids = ['#audioOnlyButton', '#continueButton', '#textOnlyButton'];
+        const buttons = ids.map((sel) => document.querySelector(sel));
+        const parent = buttons[0]?.parentElement ?? null;
+        const parentStyle = parent ? getComputedStyle(parent) : null;
+        return {
+            buttons: buttons.map((el) => el && {
+                offsetTop: el.offsetTop,
+                offsetLeft: el.offsetLeft,
+                offsetWidth: el.offsetWidth,
+                offsetHeight: el.offsetHeight,
+            }),
+            parent: parent && {
+                display: parentStyle.display,
+                flexDirection: parentStyle.flexDirection,
+            },
+            sameParent: buttons.every((el) => el && el.parentElement === parent),
+            statusText: (() => {
+                const el = document.querySelector('#speechEngineStatusText');
+                return el ? { offsetTop: el.offsetTop } : null;
+            })(),
+        };
+    });
+}
+
 test.describe('speech engine chooser fallback', () => {
-    test('while the engine loads: voice shown disabled, no text fallback', async ({ page }) => {
+    test('while the engine loads: voice shown disabled, keyboard icon available', async ({ page }) => {
         test.setTimeout(60000);
         // Hang the model download so the engine stays in the loading state.
         await page.route('**r2.ultrafastfluency.com/whisper/onnx-community/**', HANG);
@@ -66,6 +96,76 @@ test.describe('speech engine chooser fallback', () => {
         await expect(page.locator('#continueButton')).toBeDisabled();
         // Text is always available via the keyboard icon, even while voice loads.
         await expect(page.locator('#textOnlyButton')).toBeVisible();
+    });
+
+    test('ready state: phone, camera, keyboard sit in one flex row with even geometry', async ({ page }) => {
+        test.setTimeout(60000);
+        // Hang the model download so the engine never flips to failed/ready
+        // underneath us, then mark it ready to reach the ready-state chooser
+        // deterministically.
+        await page.route('**r2.ultrafastfluency.com/whisper/onnx-community/**', HANG);
+
+        await page.goto(LESSON_URL, { waitUntil: 'domcontentloaded' });
+        await page.waitForFunction(() => window.appStore?.getState()?.configData, null, { timeout: 20000 });
+        await page.evaluate(() => {
+            window.appStore.getState().setWhisperReady(true);
+            window.appStore.getState().setWhisperEngineFailed(false);
+        });
+
+        await dismissGuestModal(page);
+        await advanceToChooser(page);
+
+        const geo = await readChooserGeometry(page);
+        expect(geo.buttons.every(Boolean)).toBe(true);
+        expect(geo.sameParent).toBe(true);
+        expect(geo.parent.display).toBe('flex');
+        expect(geo.parent.flexDirection).toBe('row');
+
+        const offsetTops = geo.buttons.map((b) => b.offsetTop);
+        const offsetLefts = geo.buttons.map((b) => b.offsetLeft);
+        expect(new Set(offsetTops).size).toBe(1);
+        expect(offsetLefts[0]).toBeLessThan(offsetLefts[1]);
+        expect(offsetLefts[1]).toBeLessThan(offsetLefts[2]);
+        for (const b of geo.buttons) {
+            expect(b.offsetWidth).toBe(60);
+            expect(b.offsetHeight).toBe(60);
+        }
+    });
+
+    test('loading state: icons stay in one row, voice disabled, status text below', async ({ page }) => {
+        test.setTimeout(60000);
+        // Hang the model download so the engine stays in the loading state.
+        await page.route('**r2.ultrafastfluency.com/whisper/onnx-community/**', HANG);
+
+        await page.goto(LESSON_URL, { waitUntil: 'domcontentloaded' });
+        await page.waitForFunction(() => window.appStore?.getState()?.configData, null, { timeout: 20000 });
+        await dismissGuestModal(page);
+        await advanceToChooser(page);
+
+        await expect(page.locator('#speechEngineStatusText')).toBeVisible();
+        await expect(page.locator('#audioOnlyButton')).toBeDisabled();
+        await expect(page.locator('#continueButton')).toBeDisabled();
+        await expect(page.locator('#textOnlyButton')).toBeEnabled();
+
+        const geo = await readChooserGeometry(page);
+        expect(geo.buttons.every(Boolean)).toBe(true);
+        expect(geo.sameParent).toBe(true);
+        expect(geo.parent.display).toBe('flex');
+        expect(geo.parent.flexDirection).toBe('row');
+
+        const offsetTops = geo.buttons.map((b) => b.offsetTop);
+        const offsetLefts = geo.buttons.map((b) => b.offsetLeft);
+        expect(new Set(offsetTops).size).toBe(1);
+        expect(offsetLefts[0]).toBeLessThan(offsetLefts[1]);
+        expect(offsetLefts[1]).toBeLessThan(offsetLefts[2]);
+        for (const b of geo.buttons) {
+            expect(b.offsetWidth).toBe(60);
+            expect(b.offsetHeight).toBe(60);
+        }
+
+        // Status text renders below the icon row.
+        expect(geo.statusText).not.toBeNull();
+        expect(geo.statusText.offsetTop).toBeGreaterThan(Math.max(...offsetTops));
     });
 
     test('when the engine fails: recovery steps, retry, and keyboard icon', async ({ page }) => {
