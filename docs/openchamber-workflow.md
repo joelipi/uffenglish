@@ -38,7 +38,12 @@ When a worktree is created, the setup commands run inside it:
 - symlink `node_modules` from the root (avoids a 1.4 GB copy per worktree);
 - copy `.env`;
 - copy the gitignored `.opencode/` config — `peck.json`, the agent definitions,
-  and the OpenCode project config — and symlink its `node_modules`.
+  and the OpenCode project config — and symlink its `node_modules`;
+- install the custom agents into the **global** OpenCode config
+  (`~/.config/opencode/agents/`), and keep the subagent-completion plugin in the
+  global plugin list. Worktree instances do **not** discover the worktree's own
+  `.opencode/agents`, so the agents must be global or worktree chats crash (see
+  below).
 
 Setup lives in two places: `.openchamber/project.json` (committed, for anyone
 who clones) and your personal OpenChamber project settings. Your personal copy
@@ -65,3 +70,12 @@ uses `replace` mode, so it applies no matter what branch the root is on.
   root checkout, not in a worktree.
 - **Worktree flagged as detached / missing** — see the OpenChamber
   Worktrees & Git troubleshooting page.
+- **A worktree chat stops immediately with `UnknownError` /
+  `SessionPrompt.createUserMessage`** — the custom agents are not visible to
+  that worktree's OpenCode instance. OpenCode only loads project `.opencode`
+  from the directory the server was started in, so a worktree's own
+  `.opencode/agents` is ignored. Confirm `~/.config/opencode/agents/` contains
+  `planner.md`, `implementer.md`, `code-reviewer.md`, `acceptance-reviewer.md`
+  and that `opencode-subagent-completion-hook` is in the global plugin list in
+  `~/.config/opencode/opencode.jsonc`. Then restart OpenCode or create a fresh
+  worktree — instances created before the fix keep the empty agent list cached.
