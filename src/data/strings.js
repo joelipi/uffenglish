@@ -978,9 +978,9 @@ const strings = {
         en: "REPLAY VIDEO",
         es: "REPETIR VIDEO"
     },
-    'start_lesson': {
-        en: "START LESSON",
-        es: "COMENZAR LECCIÓN"
+    'continue': {
+        en: "CONTINUE",
+        es: "CONTINUAR"
     },
     'watch_tutorial': {
         en: "WATCH TUTORIAL",

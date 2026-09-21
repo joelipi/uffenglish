@@ -32,7 +32,7 @@ export default function ViewAndContinueButtons() {
     };
 
     const replayLabel = getBilingual('video_replay', labelLang);
-    const continueLabel = getBilingual('start_lesson', labelLang);
+    const continueLabel = getBilingual('continue', labelLang);
     const tutorialLabel = getBilingual('watch_tutorial', labelLang);
 
     return (
