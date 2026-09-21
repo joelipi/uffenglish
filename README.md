@@ -93,7 +93,7 @@ CI (`deploy.yml` on push to `main`): `npm ci` → unit tests → ffmpeg → `gen
 
 **Infra / operations docs:** `docs/cloudflare-video-cors.md` — Cloudflare Transform-Rule config that makes R2 videos/Whisper work on `s.` (COEP `credentialless` + ACAO/CORP on 206 range responses). If videos fail on `s.` but not localhost, read it first.
 
-**Mock lesson videos:** `node scripts/generate-mock-videos.mjs` generates placeholder H.264+AAC mp4s (color + TTS text) for the `model.json` slugs into `public/assets/videos/` — no real teacher content needed for local/staging testing. `--slug=X --text="..."` for one-off, `--upload` to push to R2.
+**Lesson videos:** real recordings live on Cloudflare R2 at `https://r2.ultrafastfluency.com/assets/videos/<slug>.mp4` (in dev, Vite serves `/assets/videos/<slug>.mp4` through the proxy — `vite.config.js`). Video files are gitignored and never committed (too large). Upload recordings to R2 manually and reference the `<slug>` in `src/config/*.json` (`interactiveVideoUrl`, `simpleVideoUrl`, `introBackgroundVideoUrl`). There is no video generator.
 
 R2 lifecycle (48h TTL for `videos/` UGC) is set in the Cloudflare dashboard (`R2 → uff → Lifecycle`), not in `wrangler.toml`.
 

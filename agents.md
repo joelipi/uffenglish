@@ -9,7 +9,7 @@ This codebase is moving strictly to React patterns. Never use `document.querySel
 Keep logic in the module where it conceptually belongs. Do not co-locate unrelated concerns.
 
 **Lesson content vs UI copy**
-Lesson content (cues, subtitles, transcripts, step config) lives in `src/config/*.json`; the spoken text for mock videos is in `scripts/generate-mock-videos.mjs`. `src/data/strings.js` is UI copy only — never search it for lesson content. For config-only changes, derive the pattern from the earlier lessons in the same config file; don't explore player/store code unless the change touches it.
+Lesson content (cues, subtitles, transcripts, step config) lives in `src/config/*.json`. `src/data/strings.js` is UI copy only — never search it for lesson content. For config-only changes, derive the pattern from the earlier lessons in the same config file; don't explore player/store code unless the change touches it.
 
 **Resource & Cost Optimization**
 Minimize external operations. All data fetching and mutations must go through TanStack Query and Zustand — never call Appwrite or any external service directly from components or hooks. Prefer in-browser, client-side model operations over external LLM API calls to reduce cost and lay groundwork for offline mode. Balance local-first execution against device CPU/memory constraints.
@@ -51,7 +51,7 @@ tests/answer-flow.spec.js
 **Test URL:** `http://localhost:3000/course/model/lesson/g`
 Lessons require a full URL where `course` and `model` map to valid JSON files and `lesson` is a valid key within that JSON, unless lesson data is already in memory.
 
-**Mock lesson videos (no real teacher content needed):** `node scripts/generate-mock-videos.mjs` creates H.264+AAC mock mp4s (solid color + spoken-text TTS via ffmpeg `flite`) for every slug in `src/config/model.json`, into `public/assets/videos/`. Generated files are gitignored. `--slug=X --text="..."` for one-off slugs; `--upload` pushes to R2 (needs `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`). After generating, Vite serves `/assets/videos/<slug>.mp4` locally; upload to R2 for staging/prod.
+**Lesson media (real recordings only):** every video slug in `src/config/*.json` resolves to a real file on R2 at `assets/videos/<slug>.mp4` (`src/modules/video/video-url.js`). Video files are never committed (too large) and are gitignored. Upload recordings to R2 manually, e.g. `npx wrangler r2 object put uff/assets/videos/<slug>.mp4 --file <path> --content-type video/mp4`, then reference the slug in the config. Do not add a placeholder/mock video generator.
 
 ---
 

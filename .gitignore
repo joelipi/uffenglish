@@ -19,19 +19,7 @@ full_reflog.txt
 /dist
 coverage/
 tests/phase2-verify.spec.js
-assets/videos/do_you_have_dark_chocolate.mp4
-assets/videos/do_you_have_loaves_of_bread.mp4
-assets/videos/do_you_have_rolls_too.mp4
-assets/videos/do_you_have_very_bitter_dark_chocolate.mp4
-assets/videos/where_is_the_bread_aisle.mp4
-assets/videos/gtests-0-1-1.mp4
-assets/videos/gtests-1-0.mp4
-assets/videos/gtests-1-1.mp4
-assets/videos/gtests-1-2.mp4
-assets/videos/gtests-1-3.mp4
-assets/videos/success.mp4
-
-# Generated mock lesson videos (scripts/generate-mock-videos.mjs) — not source
+# Lesson media lives on Cloudflare R2 (assets/videos/<slug>.mp4) — never commit local video files
 public/assets/videos/*.mp4
 /.reasonix
 /tidy
