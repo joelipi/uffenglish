@@ -33,8 +33,11 @@ used by `.github/scripts/generate_spec.js` (`https://api.deepseek.com/v1/chat/co
 
 **1. Trigger and workflow — `.github/workflows/captions.yml`.**
 Runs on `push` to any branch. A per-ref concurrency group serialises runs so two quick pushes cannot race
-their commits. `permissions: contents: write` is required to push the caption commit. The job is skipped
-when `github.actor == 'github-actions[bot]'` or the head commit message contains `[skip captions]`.
+their commits. The caption commit is pushed with the `GH_NEW_TOKEN` PAT (`secrets.GH_NEW_TOKEN`, passed to
+`actions/checkout`), not the default `GITHUB_TOKEN`, so the push retriggers `deploy.yml` and the deployed
+build includes the captions. The job is skipped when `github.actor == 'github-actions[bot]'` or the head
+commit message contains `[skip captions]`; the `[skip captions]` marker is what stops the PAT-authored
+commit from looping back into this workflow.
 
 Base resolution: use `${{ github.event.before }}` when it matches `/^[0-9a-f]{40}$/`, is not all zeros, and
 `git cat-file -e <sha>^{commit}` succeeds; otherwise (new branch, `before == 000…0`) fetch the default branch
@@ -48,7 +51,7 @@ on:
   push:
     branches: ['**']
 permissions:
-  contents: write
+  contents: read
 concurrency:
   group: captions-${{ github.ref }}
   cancel-in-progress: false
@@ -58,7 +61,9 @@ jobs:
     if: github.actor != 'github-actions[bot]' && !contains(github.event.head_commit.message, '[skip captions]')
     steps:
       - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_NEW_TOKEN }}
       - uses: actions/setup-node@v4
         with: { node-version: 20, cache: npm }
       - run: npm ci
@@ -133,9 +138,11 @@ languages })` performs steps 2/4/5/6 using injected `transcribe(slug) -> chunks`
 real git/R2/ffmpeg/Whisper/DeepSeek implementations and writes the file. All network and process work lives
 behind the injected functions, so the whole pipeline is unit-tested with fakes.
 
-**8. Commit semantics note.** `GITHUB_TOKEN`-authored pushes do not trigger further workflow runs, so the
-caption commit neither loops nor auto-redeploys: captions become live on the next human push (or a manual
-`deploy.yml` dispatch). This is the accepted trade-off of "commit back, no PR."
+**8. Commit semantics note.** The push uses the `GH_NEW_TOKEN` PAT, and PAT-authored pushes DO trigger
+further workflow runs: the caption commit retriggers `deploy.yml`, so captions ship in that deployment.
+`captions.yml` also re-runs on the same push but its `[skip captions]` guard skips the job, so there is no
+loop. This is why `secrets.GH_NEW_TOKEN` is used instead of the default `GITHUB_TOKEN`, whose pushes do not
+retrigger workflows.
 
 ## Tasks
 
@@ -195,7 +202,7 @@ caption commit neither loops nor auto-redeploys: captions become live on the nex
 - `scripts/generate-captions.mjs` invoked with `--help`
   - → exits 0 and prints the supported flags
 - `.github/workflows/captions.yml`
-  - → exists and contains `push`, `contents: write`, `fetch-depth: 0`, `DEEPSEEK_API_KEY`, `ffmpeg`, `node scripts/generate-captions.mjs`, and `git push`
+  - → exists and contains `push`, `secrets.GH_NEW_TOKEN`, `fetch-depth: 0`, `DEEPSEEK_API_KEY`, `ffmpeg`, `node scripts/generate-captions.mjs`, and `git push`
   - → contains no `gh pr create` and no `pull_request` trigger (commit-back requirement)
 - `.github/scripts/captions-changed.sh`
   - → exists and contains `merge-base` and `src/config` (base fallback + pathspec)
@@ -226,7 +233,8 @@ npm test -- --run                           # verification gate
 - `@huggingface/transformers@3.8.1` — already a direct dependency (`package.json`). Node ASR pipeline verified during planning against `onnx-community/whisper-base.en` with `dtype { encoder_model: 'q8', decoder_model_merged: 'q8' }` and `return_timestamps: true`; no new model-hosting work is required (the model is fetched from Hugging Face and disk-cached).
 - `onnxruntime-node@1.21.0` — transitive dependency of `transformers@3.8.1` (present in `package-lock.json`), so no new install. `whisper-base.en` was chosen over the existing `whisper-tiny.en` because tiny mis-transcribed "role play" as "robot play" on the planning fixture, whereas base.en produced a closer transcription of the same clip.
 - ffmpeg 6.1.1 — CI installs it in `deploy.yml`; the caption workflow installs it the same way. `-f f32le` output is read directly into `Float32Array`.
-- DeepSeek — endpoint `https://api.deepseek.com/v1/chat/completions`, model `deepseek-v4-flash` (the default in `workers/deepseek-proxy/index.js:57`; `.github/scripts/generate_spec.js` uses the `deepseek-v4-pro` variant). Requires the `DEEPSEEK_API_KEY` Actions secret, which `.github/scripts/generate_spec.js` already references — the implementer must confirm the secret value exists before relying on it.
+- DeepSeek — endpoint `https://api.deepseek.com/v1/chat/completions`, model `deepseek-v4-flash` (the default in `workers/deepseek-proxy/index.js:57`; `.github/scripts/generate_spec.js` uses the `deepseek-v4-pro` variant). Requires the `DEEPSEEK_API_KEY` Actions secret.
+- Confirmed Actions secrets (`gh secret list -R joelipi/uffenglish`, 2026-09-21): `DEEPSEEK_API_KEY`, `GROQ_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, and `GH_NEW_TOKEN` are all set. The DeepSeek dependency is current, not historical.
 - R2 media base `https://r2.ultrafastfluency.com/assets/videos/` — matches `src/modules/video/video-url.js:5`; `scripts/generate-thumbnails.mjs:31` is the precedent for hardcoding it in a CI script.
 - Subtitle SRT shape and parsing — `src/modules/video/simple-video-controller.js` `_timeToSeconds`/`initSubtitles` (times split on `[,.]`, blocks split on blank lines, `-->` marks timed cues).
 - Six-language convention — `src/modules/video/video-processor-logic.js:22` `CTA_LOCALE_MAP` (`EN, ES, PT, FR, HI, BN`), asserted in `src/modules/video/video-processor-share-cta.test.js`.
@@ -235,8 +243,9 @@ npm test -- --run                           # verification gate
 
 ## Notes
 
-- `GITHUB_TOKEN` pushes do not retrigger workflows, so the caption commit will not loop and will not immediately redeploy; captions ship on the next push unless a `workflow_dispatch` of `deploy.yml` is added later (deliberately out of scope).
-- Branch protection that rejects direct bot pushes to `main` would make the commit step fail; no such protection is evident (commits land on `main` directly per `agents.md`), but this is the one environment assumption.
+- `GH_NEW_TOKEN` is stored as an Actions secret (added 2026-09-21, verified with `gh secret list`). The PAT has Actions-secrets read+write and contents=write — both verified via non-destructive `gh api` permission probes (`X-Accepted-Github-Permissions: secrets=write`; a create-ref attempt returned 422 "already exists", not 403) — so the workflow's checkout and push will work.
+- The default `GITHUB_TOKEN` is not used for the push because it does not currently work for this repo; the PAT is the writer. `permissions: contents: read` is sufficient for everything else.
+- Branch protection that rejects direct pushes to `main` would make the commit step fail; no such protection is evident (commits land on `main` directly per `agents.md`), but this is the one environment assumption.
 - Machine-generated captions are committed without human review, per the "no PR" decision. Local `whisper-base.en` accuracy is below cloud `whisper-large-v3`, and DeepSeek translations for `hi`/`bn` are unreviewed; a bad cue can reach the app. The SRT-shape validation only guarantees timing/text alignment, not translation quality.
 - A slug reused from another config inside a newly added file is treated as new for that file (the before revision for that file is empty), so it gets its own inline captions. Authored `subtitles` are never replaced.
 - The Whisper model cache is ~76 MB of ONNX files for `base.en` (22 MB q8 encoder + 51 MB q8 decoder + tokenizer); `actions/cache` is keyed statically (`uff-whisper-base-en`) because the model id is a constant.

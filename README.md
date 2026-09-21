@@ -91,6 +91,8 @@ npm run deploy             # build + wrangler pages deploy dist --project-name=u
 
 CI (`deploy.yml` on push to `main`): `npm ci` → unit tests → ffmpeg → `generate-thumbnails` → `--upload` (R2, non-fatal) → `verify` → `build` → `pages deploy`. Production branch is `main`; `s.` binds to the Pages project.
 
+**Auto captions for simple videos:** `scripts/generate-captions.mjs` (run by `.github/workflows/captions.yml` on every push) transcribes newly added `simpleVideoUrl` videos with local Whisper and translates the SRT to es/pt/fr/hi/bn via DeepSeek (`DEEPSEEK_API_KEY` secret), committing the captions back to the pushed branch. See `stories/009-auto-caption-simple-videos/story.md`.
+
 **Infra / operations docs:** `docs/cloudflare-video-cors.md` — Cloudflare Transform-Rule config that makes R2 videos/Whisper work on `s.` (COEP `credentialless` + ACAO/CORP on 206 range responses). If videos fail on `s.` but not localhost, read it first.
 
 **Lesson videos:** real recordings live on Cloudflare R2 at `https://r2.ultrafastfluency.com/assets/videos/<slug>.mp4` (in dev, Vite serves `/assets/videos/<slug>.mp4` through the proxy — `vite.config.js`). Video files are gitignored and never committed (too large). Upload recordings to R2 manually and reference the `<slug>` in `src/config/*.json` (`interactiveVideoUrl`, `simpleVideoUrl`, `introBackgroundVideoUrl`). There is no video generator.

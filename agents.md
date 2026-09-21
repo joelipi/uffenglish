@@ -11,6 +11,9 @@ Keep logic in the module where it conceptually belongs. Do not co-locate unrelat
 **Lesson content vs UI copy**
 Lesson content (cues, subtitles, transcripts, step config) lives in `src/config/*.json`. `src/data/strings.js` is UI copy only — never search it for lesson content. For config-only changes, derive the pattern from the earlier lessons in the same config file; don't explore player/store code unless the change touches it.
 
+**Auto captions for simple videos**
+New `simpleVideoUrl` steps get captions automatically on push (six languages: en/es/pt/fr/hi/bn) via `.github/workflows/captions.yml` (local Whisper + DeepSeek, `scripts/generate-captions.mjs`). Do not hand-backfill captions for existing videos — the pipeline only touches newly added slugs and never overwrites authored `subtitles`.
+
 **Resource & Cost Optimization**
 Minimize external operations. All data fetching and mutations must go through TanStack Query and Zustand — never call Appwrite or any external service directly from components or hooks. Prefer in-browser, client-side model operations over external LLM API calls to reduce cost and lay groundwork for offline mode. Balance local-first execution against device CPU/memory constraints.
 
