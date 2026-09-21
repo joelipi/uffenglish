@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "setupWorktree": [
+    "ln -sfn \"$ROOT_PROJECT_PATH/node_modules\" node_modules",
+    "if [ -f \"$ROOT_PROJECT_PATH/.env\" ]; then cp \"$ROOT_PROJECT_PATH/.env\" .env; fi"
+  ],
+  "setupWorktreeWait": true
+}
