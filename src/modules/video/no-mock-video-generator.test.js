@@ -108,11 +108,11 @@ describe('mock video generator removal', () => {
         expect(agents).not.toContain('generate-mock-videos');
         expect(agents).not.toContain('Mock lesson videos');
         expect(agents).toContain('assets/videos/<slug>.mp4');
-        expect(agents).toContain('manually');
+        expect(agents).toContain('wrangler r2 object put');
     });
 
     it('tracks no video files (media lives on R2)', () => {
-        expect(listTrackedFiles(REPO_ROOT).filter((f) => /\.mp4$/i.test(f))).toEqual([]);
+        expect(listTrackedFiles(REPO_ROOT).filter((f) => /\.(mp4|webm|mov|mkv|avi)$/i.test(f))).toEqual([]);
     });
 
     it('has no mock npm script', () => {
