@@ -104,3 +104,11 @@ src/modules/api/supabase.js` in `functions/api/upload-segment.js`). The Read too
 **Takeaway**: `showFeedbackAndProceed` increments `stepCount` for interactive-video response steps (`answer-pipeline.js:984-987`). Any new path that bypasses it (e.g. direct `loadNextStep` calls) must replicate that increment exactly once — put it inside the same guard that decides between auto-advance and fall-through, and assert `stepCount` in the fallback test.
 
 ---
+
+## Reviewer subagents can fail to launch — fall back to `peck <type>-review commit` with a manual report
+**Date**: 2026-09-21
+**Area**: workflow
+**What happened**: The `@code-reviewer` subagent repeatedly failed to launch with `Upstream request failed: [invalid_request_error] Extra inputs are not permitted, field: 'on_complete'`. Root cause: the agent configs (`~/.config/opencode/agents/*.md` and `.opencode/agents/*.md`) were provisioned with models that reject the `on_complete` option (`glm-5.1`), and the running session caches agent configs at startup — editing the files mid-session has no effect until restart. The `opencode-subagent-completion-hook` plugin that normally strips `on_complete` and commits reports was also not loaded, so neither reviewer's report was auto-committed.
+**Takeaway**: All agent models should be `opencode-go/deepseek-v4-flash` (the working model). If a reviewer subagent cannot launch due to an infrastructure error, do the review manually following the agent's rubric and commit it with `peck code-review commit` / `peck acceptance-review commit` (piped from stdin) — that is exactly what the `on_complete` hook runs. Verify the report was committed via `git log`; the commit subject is `review: <verdict>` / `review(acceptance): <verdict>`.
+
+---
