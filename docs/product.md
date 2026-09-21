@@ -6,6 +6,7 @@
 
 - **Voice-first role-play lessons** — native-speaker video sets the context, the learner answers by voice, and speech-to-text plus AI feedback scores each response ([answer-flow](tests/answer-flow.spec.js)).
 - **Bilingual overlays** — cues and subtitles localized to the learner's L1 (en/es/pt/fr, plus targeted hi/bn keys).
+- **Auto-generated simple-video captions** — new `simpleVideoUrl` videos get English SRT from local Whisper plus DeepSeek translations to es/pt/fr/hi/bn, committed to the branch on push ([story](stories/009-auto-caption-simple-videos/story.md)).
 - **Lesson recap video** — client-side stitched end-of-lesson recap (model prompts + own recordings) with a fluency score card, generated via canvas + MediaRecorder.
 - **Friend Challenge lessons** — `w`/`wf` let a learner record "Would you rather?" questions, share a link, and `wa`/`wfa` let a friend answer; the two clips are concatenated. The asker's 3 question clips publish to R2 (48h TTL) and friends answer them via a `?sharecode=` URL.
 - **Auto-advancing friend answers** — answering a friend's question correctly advances straight to the next step with no feedback pause; incorrect answers retry via the hangman hint until correct ([story](stories/005-skip-friend-feedback/story.md)).
