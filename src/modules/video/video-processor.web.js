@@ -192,7 +192,6 @@ function createVideoProcessor() {
                 // A dropped friend prompt may have been the planned first
                 // segment; re-mark the first renderable step so the fluency card
                 // still opens the recap on non-shareCta lessons.
-                plan.forEach(s => { s.isFirst = false; });
                 markFirstRenderable(plan, 0);
 
                 const dimensions = planner.getTargetDimensions(
@@ -383,6 +382,11 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
 
             const step = plan[stepIndex];
 
+            // True once the loop has advanced past this step (e.g. the 3s
+            // metadata timeout won the race) — late async media handlers must
+            // not touch the element, which then holds the next step's clip.
+            const stale = () => plan[stepIndex] !== step;
+
             if (step.type === 'tailing') {
                 isTailing = true;
                 tailStart = performance.now();
@@ -507,14 +511,14 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                     // If the loop already advanced (e.g. the 3s timeout won the
                     // race while this async body was decoding/awaiting play), do
                     // not touch the element — it now holds the next step's clip.
-                    if (plan[stepIndex] !== step) {
+                    if (stale()) {
                         res();
                         return;
                     }
 
                     try {
                         await video.play();
-                        if (plan[stepIndex] !== step) {
+                        if (stale()) {
                             res();
                             return;
                         }
@@ -533,14 +537,14 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                         stepPlayStart = performance.now();
                     } catch (err) {
                         console.warn('[VideoProcessor] Browser blocked autoplay. Retrying muted.', err);
-                        if (plan[stepIndex] !== step) {
+                        if (stale()) {
                             res();
                             return;
                         }
                         video.muted = true;
                         try {
                             await video.play();
-                            if (plan[stepIndex] !== step) {
+                            if (stale()) {
                                 res();
                                 return;
                             }
@@ -552,6 +556,9 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                         } catch (fatalErr) {
                             console.error('[VideoProcessor] Fatal play error', fatalErr);
                             step.playFatal = true;
+                            // Draw reads loadFailed every frame, so this still
+                            // advances even if the 3s timeout already resolved.
+                            step.loadFailed = true;
                         }
                     }
                     res();
@@ -560,9 +567,15 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
             });
 
             // Metadata never arrived, or playback failed on both attempts →
-            // advance instead of waiting forever. A clip still buffering is left
-            // to the draw loop's stall guard.
-            if (!metadataLoaded || step.playFatal) step.loadFailed = true;
+            // advance instead of waiting forever. A clip that loaded but is still
+            // buffering is not dropped; instead arm the wall clock from here so a
+            // silent stall (play() never settles) still advances via the draw
+            // loop's stalledTimeout.
+            if (!metadataLoaded || step.playFatal) {
+                step.loadFailed = true;
+            } else if (!stepStartedPlaying) {
+                stepPlayStart = performance.now();
+            }
         };
 
         const draw = () => {
@@ -650,7 +663,7 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                     // leave the generator stuck on "Generating" indefinitely.
                     const plannedMs = (endTime - (step.trim?.start || 0)) * 1000;
                     const stalledTimeout =
-                        stepStartedPlaying && stepPlayStart && plannedMs > 0 &&
+                        stepPlayStart && plannedMs > 0 &&
                         performance.now() - stepPlayStart > plannedMs + 2000;
                     if (video.ended || video.currentTime >= endTime || stalledTimeout) {
                         shouldAdvance = true;

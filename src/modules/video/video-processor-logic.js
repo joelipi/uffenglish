@@ -128,6 +128,7 @@ export function isDroppedStep(step) {
  * tailing step and not a dropped remote prompt. Returns its index, or -1.
  */
 export function markFirstRenderable(plan, fromIndex = 0) {
+    plan.forEach(s => { s.isFirst = false; });
     for (let i = fromIndex; i < plan.length; i++) {
         const step = plan[i];
         if (step.type === 'tailing' || isDroppedStep(step)) continue;

@@ -44,6 +44,6 @@ describe('video-processor.web.js recap wiring guard', () => {
         // metadata handler must not mutate the next step's element.
         expect(source).toMatch(/metadataLoaded/);
         expect(source).toMatch(/step\.playFatal/);
-        expect(source).toMatch(/plan\[stepIndex\] !== step/);
+        expect(source).toMatch(/const stale = \(\) => plan\[stepIndex\] !== step/);
     });
 });

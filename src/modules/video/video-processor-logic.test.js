@@ -270,9 +270,11 @@ describe('isDroppedStep / markFirstRenderable', () => {
     });
 
     it('honours fromIndex when passing "first" past a failed opening step', () => {
-        const plan = [{ type: 'webcam' }, { type: 'remote', remoteFailed: true }, { type: 'webcam' }, { type: 'tailing' }];
+        const plan = [{ type: 'webcam', isFirst: true }, { type: 'remote', remoteFailed: true }, { type: 'webcam' }, { type: 'tailing' }];
         expect(markFirstRenderable(plan, 2)).toBe(2);
         expect(plan[2].isFirst).toBe(true);
+        // The helper clears any previous "first" so only one step carries it.
+        expect(plan[0].isFirst).toBe(false);
     });
 });
 
