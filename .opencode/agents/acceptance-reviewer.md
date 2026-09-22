@@ -7,7 +7,7 @@ description: >
   Output: Pass or Fail verdict. Passes only when lint and tests pass and all ACs have automated test coverage.
 mode: subagent
 temperature: 0
-model: opencode-go/qwen3.6-plus
+model: opencode-go/deepseek-v4-flash
 variant: low
 tools:
   edit: false
