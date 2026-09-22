@@ -16,14 +16,6 @@
 
 ---
 
-## Playwright browser revision mismatch in this sandbox
-**Date**: 2026-09-19
-**Area**: testing
-**What happened**: `npx playwright test` failed to launch with `Executable doesn't exist at .../chromium_headless_shell-1223/...` because `@playwright/test` 1.60.0 expects Chromium build 1223 while the sandbox cache only had build 1243.
-**Takeaway**: Run `npx playwright install chromium` to fetch the expected build, or symlink `~/.cache/ms-playwright/chromium-1223 -> chromium-1243` and `chromium_headless_shell-1223 -> chromium_headless_shell-1243`. For one-off scripts, pass `executablePath` to `chromium.launch` instead. CI installs its own browsers, so this is sandbox-only — do not hardcode paths in the repo.
-
----
-
 ## Comment-stripping regexes silently disable source-guard tests
 **Date**: 2026-09-19
 **Area**: testing
@@ -40,11 +32,11 @@
 
 ---
 
-## `webcamOnly` + `friendClosedResponse` is the ungraded friend-challenge combination
+## `friendClosedResponse` is the ungraded friend-challenge combination
 **Date**: 2026-09-19
 **Area**: architecture
 **What happened**: Determining how to make a lesson record without scoring or feedback took several wrong turns. `simpleVideoUrl` does not suppress feedback (it only changes which media renders); `closedResponse` always emits praise/teacher feedback even without `interactiveVideoUrl`. Only `friendClosedResponse` skips scoring and feedback, and it records fine with `simpleVideoUrl` (phase `simpleVideo` is in `RECORDABLE_PHASES`).
-**Takeaway**: For "record, no score, no feedback" use `friendClosedResponse` + `simpleVideoUrl`. Note `simpleVideoUrl` renders text only from `step.subtitles` (not `cue`), so add `subtitles` or the prompt is audio-only. `webcamOnly: true` on a lesson makes its recap contain only the user's own clips and swaps the fluency card for the share CTA.
+**Takeaway**: For "record, no score, no feedback" use `friendClosedResponse` + `simpleVideoUrl`. Note `simpleVideoUrl` renders text only from `step.subtitles` (not `cue`), so add `subtitles` or the prompt is audio-only. Recap composition is driven by two lesson flags that replaced `webcamOnly` (story 010): `recapSources` (`system`/`friend`/`none`) picks which prompt clips concatenate, `recapOverlay` (`fluency`/`shareCta`/`none`) picks the card.
 
 ---
 
@@ -62,22 +54,6 @@
 **What happened**: The repo contains literal secret-redaction placeholders (e.g. `Bearer
 src/modules/api/supabase.js` in `functions/api/upload-segment.js`). The Read tool output redacts these, and an edit whose oldString used a different string still matched, mangling indentation.
 **Takeaway**: After editing a file that contains `🔒...🔓` placeholders, verify the result with `git diff` (actual bytes), not the Read tool (redacted display). Treat `🔒...🔓` strings as literal file content.
-
----
-
-## Branch can switch underneath you — check `git branch --show-current` before committing
-**Date**: 2026-09-20
-**Area**: workflow
-**What happened**: While implementing story 004, a parallel process created story 005 and switched the branch; a commit landed on `005-skip-friend-feedback` instead of `004-fix-r2-upload-config` and had to be cherry-picked back.
-**Takeaway**: Before `git commit`, confirm `git branch --show-current` matches the story branch. If a commit lands on the wrong branch, `git cherry-pick` it onto the correct one.
-
----
-
-## jsdom: `history.replaceState` to a different host throws SecurityError
-**Date**: 2026-09-20
-**Area**: testing
-**What happened**: Testing `initPostHog` (which skips on `window.location.hostname === 'localhost'`) failed with `SecurityError: replaceState() cannot update history` when changing the jsdom URL to a non-local host.
-**Takeaway**: To bypass a localhost check in vitest jsdom, shadow the location with `Object.defineProperty(window, 'location', { value: { hostname: '...' }, configurable: true })` and `delete window.location` in afterEach — do not use `history.replaceState` across origins.
 
 ---
 
@@ -121,4 +97,24 @@ src/modules/api/supabase.js` in `functions/api/upload-segment.js`). The Read too
 
 ---
 
+## Reviewer reports are empty commits — move them with `git cherry-pick --allow-empty`
+**Date**: 2026-09-22
+**Area**: workflow
+**What happened**: The acceptance/code reviewers commit their verdicts as empty commits with the full report in the commit message body (`git show <sha> --format=%B -s`). When a report landed on the wrong branch (branch-switch incident, now in `agents.md` §Version Control), a plain `git cherry-pick <sha>` failed as empty until `--allow-empty` was added.
+**Takeaway**: To relocate a reviewer report to the correct branch: `git cherry-pick --allow-empty <sha>`. Confirm a report commit is empty with `git show <sha> --name-only --format=""` (no files listed).
+
 ---
+
+## Friend/UGC videos are detected by the `-response-NN` slug suffix, not the `{friendCode}` wildcard
+**Date**: 2026-09-22
+**Area**: architecture
+**What happened**: `normalizeConfig` substitutes `{friendCode}` in place when a course loads (`config-normalizer.js`), so the recap planner only ever sees resolved slugs (`ab12-model-w-response-01`). Detecting "friend video" by the wildcard at plan time is impossible.
+**Takeaway**: Classify friend vs system by the `-response-NN` suffix — the same rule `getVideoUrl` uses to route UGC to the `/videos/` namespace. It survives substitution (including the empty-friendCode case). The classifier lives in `src/modules/video/video-source.js` (`isFriendVideoSlug`/`remoteSource`).
+
+---
+
+## Course configs are fetched by courseId — guard tests must glob `src/config/*.json`
+**Date**: 2026-09-22
+**Area**: testing
+**What happened**: `AppLayout.jsx` fetches `/src/config/${courseId}.json`, so any JSON in `src/config/` can be a live course. A config-invariant test that hardcoded `['model.json', 'friend.json']` would silently miss a future course config with friend slugs but no `recapSources: 'friend'` flag.
+**Takeaway**: For config-invariant guards (e.g. "every friend-slug step lives in a `recapSources: 'friend'` lesson"), glob all `src/config/*.json` with `readdirSync` instead of hardcoding file names.
