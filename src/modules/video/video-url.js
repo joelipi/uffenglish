@@ -1,6 +1,7 @@
 // Shared video URL resolution — used by all modules that construct R2 video URLs.
 // In dev (Vite proxy), uses a relative path to avoid CORS on localhost.
 // In production, uses the full R2 URL.
+import { isFriendVideoSlug } from './video-source.js';
 
 const CDN_BASE = 'https://r2.ultrafastfluency.com/assets/videos/';
 const POSTER_BASE = 'https://r2.ultrafastfluency.com/assets/posters/';
@@ -14,8 +15,7 @@ export function getVideoUrl(slug) {
     // A slug ending in "-response-NN" is a friend's UGC question recording —
     // resolve it to the /videos/ namespace (always full URL; the Vite proxy only
     // covers /assets/videos/, and these only exist cross-origin on R2 anyway).
-    const isUgc = /-response-\d+$/i.test(slug);
-    if (isUgc) {
+    if (isFriendVideoSlug(slug)) {
         return `${UGC_BASE}${slug}.mp4`;
     }
     if (import.meta.env.DEV) {

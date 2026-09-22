@@ -6,7 +6,7 @@ import { shareVideo } from './video-share.js';
 import { appStore } from '../store/store.js';
 import headerImg from '../../assets/img/header.png';
 import { getVideoUrl, getUgcThumbKey } from './video-url.js';
-import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, buildShareUrl, buildShareDeadline, resolveOverlayElements } from './video-processor-logic.js';
+import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, buildShareUrl, buildShareDeadline, resolveOverlayElements, isShareCtaEnabled } from './video-processor-logic.js';
 import { DEFAULT_USER_AVATAR_URL } from '../user/tutor-config.js';
 import { getAvatarBlobUrl } from '../avatar/avatar.service.js';
 import { supabase, getAccessToken } from '../api/supabase.js';
@@ -164,11 +164,12 @@ function createVideoProcessor() {
                 const planner = new VideoRenderPlanner(recordings, configData, fluencyData, userLang, shareCode);
                 const plan = planner.generatePlan();
 
-                // webcamOnly recaps carry a share CTA instead of a fluency card.
+                // The lesson's recapOverlay mode decides the card: shareCta
+                // recaps carry a share CTA instead of a fluency card.
                 // No shareCode → no CTA at all (no fluency fallback either).
                 const tailingStep = plan.find(s => s.type === 'tailing');
-                const webcamOnly = tailingStep?.variant === 'shareCta';
-                const shareCta = (webcamOnly && shareCode)
+                const overlayVariant = tailingStep?.variant || 'fluency';
+                const shareCta = isShareCtaEnabled(overlayVariant, shareCode)
                     ? {
                         headline: Strings.get('share_cta_headline', userLang),
                         deadlinePrefix: Strings.get('share_cta_deadline', userLang),
@@ -234,7 +235,7 @@ function createVideoProcessor() {
                     overlayImage, profileImage, fluencyData,
                     id => { animationId = id; },
                     audioContext, audioDestination,
-                    { webcamOnly, shareCta }
+                    { overlayVariant, shareCta }
                 );
 
                 recorder.stop();
@@ -306,7 +307,7 @@ function drawProfileBackground(ctx, image, w, h) {
 // ---------------------------------------------------------------------------
 // Render loop — receives an animationId setter so the instance can cancel it
 // ---------------------------------------------------------------------------
-async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImage, profileImage, fluencyData, setAnimationId, audioContext, audioDestination, { silent = false, webcamOnly = false, shareCta = null } = {}) {
+async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImage, profileImage, fluencyData, setAnimationId, audioContext, audioDestination, { silent = false, overlayVariant = 'fluency', shareCta = null } = {}) {
     const ctx = canvas.getContext('2d');
     const planner = new VideoRenderPlanner();
     let currentAudioSource = null;
@@ -511,7 +512,7 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                 ctx, canvas.width, canvas.height,
                 isTailing, tailStart, fluencyData,
                 step.isFirst, step.subtitle, displayCanvas,
-                webcamOnly, shareCta
+                overlayVariant, shareCta
             );
 
             if (displayCanvas) {
@@ -644,13 +645,13 @@ function drawFittedLine(context, text, centerX, y, { fontFamily, maxWidth, baseS
     return size;
 }
 
-function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart, fluencyData, isFirst, subtitleText, displayCanvas, webcamOnly = false, shareCta = null) {
+function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart, fluencyData, isFirst, subtitleText, displayCanvas, overlayVariant = 'fluency', shareCta = null) {
     const now = performance.now();
     const blinkOn = Math.floor(now / 500) % 2 === 0;
     context.save();
 
     const { fluencyCard, headlineBlock, tailingCard } = resolveOverlayElements({
-        webcamOnly,
+        variant: overlayVariant,
         hasShareCta: !!shareCta,
         isFirst,
         tailing

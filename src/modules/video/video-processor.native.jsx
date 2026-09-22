@@ -3,13 +3,14 @@
 // repo (no react-native/expo dependency, no importer, and Vite does not resolve
 // .native.jsx). This file is a reference implementation for a future RN port.
 //
-// It does NOT implement the webcamOnly/shareCta tailing variant: it always
+// It does NOT implement the recapOverlay/recapSources recap variants: it always
 // renders the fluency card (see the tailing segment in resolveSegments and the
-// tailing overlay in the render section below). The shared CTA domain logic it
-// would need (resolveOverlayElements, buildShareUrl, buildShareDeadline) already
-// lives in video-processor-logic.js, so a real port mainly needs the drawing —
-// but validate buildShareDeadline's Intl/toLocaleString output on the target
-// Hermes version, where locale/option support is only partial.
+// tailing overlay in the render section below). The shared recap domain logic it
+// would need (resolveOverlayElements, resolveRecapOverlay, resolveRecapSources,
+// buildShareUrl, buildShareDeadline) already lives in video-processor-logic.js,
+// so a real port mainly needs the drawing — but validate buildShareDeadline's
+// Intl/toLocaleString output on the target Hermes version, where locale/option
+// support is only partial.
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
     View, Text, StyleSheet, TouchableWithoutFeedback,

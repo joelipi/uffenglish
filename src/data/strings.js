@@ -1029,7 +1029,7 @@ const strings = {
         es: "Dijiste:"
     },
 
-    // Share CTA overlay for webcamOnly lesson recaps (friend-challenge "Ask").
+    // Share CTA overlay for shareCta recap lessons (friend-challenge "Ask").
     // share_cta_deadline is a prefix line — the formatted date follows on the
     // next line, hence the trailing prepositions in es/fr.
     'share_cta_headline': {

@@ -2,23 +2,34 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { VideoRenderPlanner } from './video-processor-logic.js';
+import { VideoRenderPlanner, resolveRecapOverlay, resolveRecapSources } from './video-processor-logic.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const LOGIC_PATH = path.join(__dirname, 'video-processor-logic.js');
 
-function makeConfig({ webcamOnly = false } = {}) {
+const SYSTEM_STEPS = [
+    { responseType: 'lessonIntro', introBackgroundVideoUrl: 'testvideo01' },
+    { responseType: 'closedResponse', interactiveVideoUrl: 'testvideo02', cue: 'Q1' },
+    { responseType: 'closedResponse', interactiveVideoUrl: 'testvideo03', cue: 'Q2' },
+    { responseType: 'closedResponse', interactiveVideoUrl: 'testvideo04', cue: 'Q3' },
+];
+
+const FRIEND_STEPS = [
+    { responseType: 'lessonIntro', introBackgroundVideoUrl: 'testvideo01' },
+    { responseType: 'friendClosedResponse', interactiveVideoUrl: 'ab12-model-w-response-01', cue: 'Q1' },
+    { responseType: 'friendClosedResponse', interactiveVideoUrl: 'ab12-model-w-response-02', cue: 'Q2' },
+    { responseType: 'friendClosedResponse', interactiveVideoUrl: 'ab12-model-w-response-03', cue: 'Q3' },
+];
+
+function makeConfig({ recapSources, recapOverlay, webcamOnly = false, steps = SYSTEM_STEPS } = {}) {
     return {
         lessons: [
             {
                 lessonId: 'w',
+                ...(recapSources ? { recapSources } : {}),
+                ...(recapOverlay ? { recapOverlay } : {}),
                 ...(webcamOnly ? { webcamOnly: true } : {}),
-                steps: [
-                    { responseType: 'lessonIntro', introBackgroundVideoUrl: 'testvideo01' },
-                    { responseType: 'closedResponse', interactiveVideoUrl: 'testvideo02', cue: 'Q1' },
-                    { responseType: 'closedResponse', interactiveVideoUrl: 'testvideo03', cue: 'Q2' },
-                    { responseType: 'closedResponse', interactiveVideoUrl: 'testvideo04', cue: 'Q3' },
-                ],
+                steps,
             },
         ],
     };
@@ -33,23 +44,149 @@ function makeRecordings(count = 3) {
     }));
 }
 
-describe('VideoRenderPlanner.generatePlan — webcamOnly', () => {
-    it('skips all remote segments and keeps webcam steps in order', () => {
+describe('resolveRecapSources', () => {
+    it('passes through valid values', () => {
+        expect(resolveRecapSources({ recapSources: 'system' })).toBe('system');
+        expect(resolveRecapSources({ recapSources: 'friend' })).toBe('friend');
+        expect(resolveRecapSources({ recapSources: 'none' })).toBe('none');
+    });
+
+    it('defaults to system for absent, empty, or unrecognized values', () => {
+        expect(resolveRecapSources({})).toBe('system');
+        expect(resolveRecapSources(null)).toBe('system');
+        expect(resolveRecapSources(undefined)).toBe('system');
+        expect(resolveRecapSources({ recapSources: 'bogus' })).toBe('system');
+        expect(resolveRecapSources({ recapSources: '' })).toBe('system');
+        expect(resolveRecapSources({ recapSources: true })).toBe('system');
+    });
+});
+
+describe('resolveRecapOverlay', () => {
+    it('passes through valid values', () => {
+        expect(resolveRecapOverlay({ recapOverlay: 'fluency' })).toBe('fluency');
+        expect(resolveRecapOverlay({ recapOverlay: 'shareCta' })).toBe('shareCta');
+        expect(resolveRecapOverlay({ recapOverlay: 'none' })).toBe('none');
+    });
+
+    it('defaults to fluency for absent, empty, or unrecognized values', () => {
+        expect(resolveRecapOverlay({})).toBe('fluency');
+        expect(resolveRecapOverlay(null)).toBe('fluency');
+        expect(resolveRecapOverlay(undefined)).toBe('fluency');
+        expect(resolveRecapOverlay({ recapOverlay: 'bogus' })).toBe('fluency');
+        expect(resolveRecapOverlay({ recapOverlay: '' })).toBe('fluency');
+        expect(resolveRecapOverlay({ recapOverlay: true })).toBe('fluency');
+    });
+});
+
+describe('VideoRenderPlanner.generatePlan — recapSources clip selection', () => {
+    it('interleaves system prompts when recapSources is system (default)', () => {
         const planner = new VideoRenderPlanner(
-            makeRecordings(3), makeConfig({ webcamOnly: true }), { total: 80 }, 'en', 'ab12'
+            makeRecordings(3), makeConfig({ recapSources: 'system' }), { total: 80 }, 'en', 'ab12'
+        );
+        const plan = planner.generatePlan();
+
+        expect(plan.map(s => s.type)).toEqual([
+            'remote', 'webcam', 'remote', 'webcam', 'remote', 'webcam', 'tailing',
+        ]);
+        expect(plan.filter(s => s.type === 'remote').map(s => s.targetId)).toEqual([
+            'testvideo02', 'testvideo03', 'testvideo04',
+        ]);
+    });
+
+    it('interleaves only friend prompts when recapSources is friend', () => {
+        const planner = new VideoRenderPlanner(
+            makeRecordings(3), makeConfig({ recapSources: 'friend', steps: FRIEND_STEPS }), { total: 80 }, 'en', 'ab12'
+        );
+        const plan = planner.generatePlan();
+
+        expect(plan.map(s => s.type)).toEqual([
+            'remote', 'webcam', 'remote', 'webcam', 'remote', 'webcam', 'tailing',
+        ]);
+        const remotes = plan.filter(s => s.type === 'remote').map(s => s.targetId);
+        expect(remotes).toEqual([
+            'ab12-model-w-response-01',
+            'ab12-model-w-response-02',
+            'ab12-model-w-response-03',
+        ]);
+    });
+
+    it('drops system prompts in a friend lesson (mixed steps)', () => {
+        const steps = [
+            { responseType: 'lessonIntro', introBackgroundVideoUrl: 'testvideo01' },
+            { responseType: 'friendClosedResponse', interactiveVideoUrl: 'ab12-model-w-response-01', cue: 'Q1' },
+            { responseType: 'closedResponse', interactiveVideoUrl: 'testvideo02', cue: 'Q2' },
+        ];
+        const recordings = [
+            { originalLessonId: 'w', originalStepIndex: 1, blob: { size: 1 }, userResponse: 'a' },
+            { originalLessonId: 'w', originalStepIndex: 2, blob: { size: 1 }, userResponse: 'b' },
+        ];
+        const planner = new VideoRenderPlanner(
+            recordings, makeConfig({ recapSources: 'friend', steps }), { total: 80 }, 'en', 'ab12'
+        );
+        const plan = planner.generatePlan();
+
+        const remotes = plan.filter(s => s.type === 'remote');
+        expect(remotes).toHaveLength(1);
+        expect(remotes[0].targetId).toBe('ab12-model-w-response-01');
+        expect(plan.map(s => s.type)).toEqual(['remote', 'webcam', 'webcam', 'tailing']);
+    });
+
+    it('emits zero remote steps when recapSources is none', () => {
+        const planner = new VideoRenderPlanner(
+            makeRecordings(3), makeConfig({ recapSources: 'none' }), { total: 80 }, 'en', 'ab12'
         );
         const plan = planner.generatePlan();
 
         expect(plan.filter(s => s.type === 'remote')).toHaveLength(0);
-        expect(plan.filter(s => s.type === 'webcam')).toHaveLength(3);
-        expect(plan.filter(s => s.type === 'tailing')).toHaveLength(1);
         expect(plan.map(s => s.type)).toEqual(['webcam', 'webcam', 'webcam', 'tailing']);
     });
 
+    it('concatenates friend prompts regardless of other lesson flags', () => {
+        // A stale webcamOnly flag must not suppress friend prompts.
+        const planner = new VideoRenderPlanner(
+            makeRecordings(3), makeConfig({ recapSources: 'friend', webcamOnly: true, steps: FRIEND_STEPS }), { total: 80 }, 'en', 'ab12'
+        );
+        const plan = planner.generatePlan();
+
+        expect(plan.filter(s => s.type === 'remote')).toHaveLength(3);
+        expect(plan.filter(s => s.type === 'remote').map(s => s.targetId)).toEqual([
+            'ab12-model-w-response-01',
+            'ab12-model-w-response-02',
+            'ab12-model-w-response-03',
+        ]);
+    });
+
+    it('dedupes the friend prompt for a retry pair', () => {
+        const recordings = [
+            { originalLessonId: 'w', originalStepIndex: 1, blob: { size: 1 }, userResponse: 'a' },
+            { originalLessonId: 'w', originalStepIndex: 1, blob: { size: 1 }, userResponse: 'b' },
+        ];
+        const planner = new VideoRenderPlanner(
+            recordings, makeConfig({ recapSources: 'friend', steps: FRIEND_STEPS }), { total: 80 }, 'en', 'ab12'
+        );
+        const plan = planner.generatePlan();
+
+        expect(plan.filter(s => s.type === 'remote')).toHaveLength(1);
+        expect(plan.map(s => s.type)).toEqual(['remote', 'webcam', 'webcam', 'tailing']);
+    });
+
+    it('falls back to a fluency tailing step when there are no recordings', () => {
+        const planner = new VideoRenderPlanner(
+            [], makeConfig({ recapSources: 'friend', steps: FRIEND_STEPS }), { total: 80 }, 'en', 'ab12'
+        );
+        const plan = planner.generatePlan();
+
+        expect(plan).toHaveLength(1);
+        expect(plan[0].type).toBe('tailing');
+        expect(plan[0].variant).toBe('fluency');
+    });
+});
+
+describe('VideoRenderPlanner.generatePlan — recapOverlay tailing variant', () => {
     it('tags the tailing step as shareCta with duration, fluencyData and shareCode', () => {
         const fluencyData = { total: 80 };
         const planner = new VideoRenderPlanner(
-            makeRecordings(3), makeConfig({ webcamOnly: true }), fluencyData, 'en', 'ab12'
+            makeRecordings(3), makeConfig({ recapOverlay: 'shareCta' }), fluencyData, 'en', 'ab12'
         );
         const tailing = planner.generatePlan().find(s => s.type === 'tailing');
 
@@ -59,57 +196,36 @@ describe('VideoRenderPlanner.generatePlan — webcamOnly', () => {
         expect(tailing.shareCode).toBe('ab12');
     });
 
-    it('interleaves remote prompts and tags fluency when webcamOnly is absent', () => {
+    it('tags the tailing step as none when recapOverlay is none', () => {
         const planner = new VideoRenderPlanner(
-            makeRecordings(3), makeConfig({ webcamOnly: false }), { total: 80 }, 'en', 'ab12'
+            makeRecordings(3), makeConfig({ recapOverlay: 'none' }), { total: 80 }, 'en', 'ab12'
         );
-        const plan = planner.generatePlan();
+        const tailing = planner.generatePlan().find(s => s.type === 'tailing');
 
-        expect(plan.map(s => s.type)).toEqual([
-            'remote', 'webcam', 'remote', 'webcam', 'remote', 'webcam', 'tailing',
-        ]);
-        expect(plan.find(s => s.type === 'tailing').variant).toBe('fluency');
+        expect(tailing.variant).toBe('none');
     });
 
-    it('dedupes the remote prompt for a retry pair (non-webcamOnly)', () => {
-        const recordings = [
-            { originalLessonId: 'w', originalStepIndex: 1, blob: { size: 1 }, userResponse: 'a' },
-            { originalLessonId: 'w', originalStepIndex: 1, blob: { size: 1 }, userResponse: 'b' },
-        ];
-        const planner = new VideoRenderPlanner(recordings, makeConfig(), { total: 80 }, 'en', 'ab12');
-        const plan = planner.generatePlan();
+    it('tags the tailing step as fluency when recapOverlay is absent', () => {
+        const planner = new VideoRenderPlanner(
+            makeRecordings(3), makeConfig(), { total: 80 }, 'en', 'ab12'
+        );
+        const tailing = planner.generatePlan().find(s => s.type === 'tailing');
 
-        expect(plan.filter(s => s.type === 'remote')).toHaveLength(1);
-        expect(plan.filter(s => s.type === 'webcam')).toHaveLength(2);
+        expect(tailing.variant).toBe('fluency');
     });
 
-    it('still emits zero remote steps for a retry pair on a webcamOnly lesson', () => {
-        const recordings = [
-            { originalLessonId: 'w', originalStepIndex: 1, blob: { size: 1 }, userResponse: 'a' },
-            { originalLessonId: 'w', originalStepIndex: 1, blob: { size: 1 }, userResponse: 'b' },
-        ];
+    it('does not derive the overlay from webcamOnly', () => {
         const planner = new VideoRenderPlanner(
-            recordings, makeConfig({ webcamOnly: true }), { total: 80 }, 'en', 'ab12'
+            makeRecordings(3), makeConfig({ webcamOnly: true }), { total: 80 }, 'en', 'ab12'
         );
-        const plan = planner.generatePlan();
+        const tailing = planner.generatePlan().find(s => s.type === 'tailing');
 
-        expect(plan.filter(s => s.type === 'remote')).toHaveLength(0);
-    });
-
-    it('falls back to the fluency variant when there are no recordings', () => {
-        const planner = new VideoRenderPlanner(
-            [], makeConfig({ webcamOnly: true }), { total: 80 }, 'en', 'ab12'
-        );
-        const plan = planner.generatePlan();
-
-        expect(plan).toHaveLength(1);
-        expect(plan[0].type).toBe('tailing');
-        expect(plan[0].variant).toBe('fluency');
+        expect(tailing.variant).toBe('fluency');
     });
 
     it('defaults shareCode to null when the constructor is called with 4 args', () => {
         const planner = new VideoRenderPlanner(
-            makeRecordings(3), makeConfig({ webcamOnly: true }), { total: 80 }, 'en'
+            makeRecordings(3), makeConfig({ recapOverlay: 'shareCta' }), { total: 80 }, 'en'
         );
         const tailing = planner.generatePlan().find(s => s.type === 'tailing');
 
