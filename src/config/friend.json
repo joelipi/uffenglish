@@ -101,6 +101,7 @@
     },
     {
       "lessonId": "b",
+      "webcamOnly": true,
       "title": {
         "en": "Would You Rather? — Respond",
         "es": "¿Qué Preferirías? — Responde",
