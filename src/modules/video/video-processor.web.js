@@ -550,6 +550,10 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                             // Even on the muted-retry path, start decoded audio so
                             // the clip is not silent.
                             startDecodedAudio();
+                            // Non-Safari relies on the element's own audio, so
+                            // restore it after a blocked-autoplay mute — otherwise
+                            // every remaining step records silence.
+                            if (!useDecodedAudio) video.muted = false;
                             stepStartedPlaying = true;
                             stepPlayStart = performance.now();
                         } catch (fatalErr) {
@@ -694,6 +698,10 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                     );
                 }
                 stopDecodedAudio();
+                // Release per-step media so peak memory stays bounded on iPad
+                // (jetsam-prone) rather than holding every clip's PCM + blob.
+                step.decodedAudio = null;
+                step.remoteBlob = null;
                 stepIndex++;
                 nextStep();
             }

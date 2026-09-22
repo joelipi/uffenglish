@@ -49,8 +49,9 @@ describe('video-processor.web.js recap wiring guard', () => {
 
     it('mutes the element before play and pre-decodes friend audio on Safari', () => {
         // Muting after play lets the element's audio overlap the decoded buffer
-        // (echo) on iPad; the mute must land before play().
-        expect(source).toMatch(/video\.muted = useDecodedAudio/);
+        // (echo) on iPad, so assert the ORDER: the mute assignment must precede
+        // the first await video.play().
+        expect(source).toMatch(/video\.muted = useDecodedAudio;[\s\S]{0,120}?await video\.play\(\)/);
         expect(source).toMatch(/detectSafari/);
         expect(source).toMatch(/Remote clip audio pre-decode/);
     });
