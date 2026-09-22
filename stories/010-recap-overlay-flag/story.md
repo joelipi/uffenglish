@@ -75,7 +75,7 @@ A `remote` prompt is a *friend video* iff its resolved target slug ends in `-res
 ### 4. `src/modules/video/video-processor-logic.js` (stays platform-agnostic)
 
 - Import `remoteSource` from `./video-source.js`.
-- Add and export `resolveRecapOverlay(lesson)` and `resolveRecapSources(lesson)` (the resolver predicates above; keep the allowed-value lists internal).
+- Add and export `resolveRecapOverlay(lesson)` and `resolveRecapSources(lesson)` (the resolver predicates above), plus the canonical `RECAP_OVERLAYS`/`RECAP_SOURCES` lists so config tests share them.
 - `generatePlan()` remote gate becomes category-aware and no longer reads `webcamOnly`:
   ```js
   const sources = resolveRecapSources(lesson);          // 'system' default (lesson may be null)

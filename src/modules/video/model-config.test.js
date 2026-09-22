@@ -2,12 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { RECAP_SOURCES, RECAP_OVERLAYS } from './video-processor-logic.js';
+import { FRIEND_VIDEO_REGEX } from './video-source.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG_DIR = path.join(__dirname, '../../config');
-
-const RECAP_SOURCES = ['system', 'friend', 'none'];
-const RECAP_OVERLAYS = ['fluency', 'shareCta', 'none'];
 
 function loadConfig(name) {
     return JSON.parse(readFileSync(path.join(CONFIG_DIR, name), 'utf8'));
@@ -89,6 +88,27 @@ describe('recap flag values are valid', () => {
             for (const lesson of config.lessons) {
                 if (lesson.recapOverlay !== undefined) {
                     expect(RECAP_OVERLAYS).toContain(lesson.recapOverlay);
+                }
+            }
+        }
+    });
+});
+
+describe('friend-slug invariant', () => {
+    // Any step whose prompt video is a friend/UGC slug (-response-NN) must
+    // belong to a lesson flagged recapSources: 'friend'. Otherwise the planner
+    // would silently drop the friend's clips from that lesson's recap.
+    const VIDEO_FIELDS = ['interactiveVideoUrl', 'introBackgroundVideoUrl', 'simpleVideoUrl'];
+
+    it('every friend-slug step lives in a recapSources: friend lesson', () => {
+        for (const name of ['model.json', 'friend.json']) {
+            const config = loadConfig(name);
+            for (const lesson of config.lessons) {
+                const hasFriendSlug = (lesson.steps || []).some(step =>
+                    VIDEO_FIELDS.some(field => FRIEND_VIDEO_REGEX.test(step[field] || ''))
+                );
+                if (hasFriendSlug) {
+                    expect(lesson.recapSources, `${name} lesson ${lesson.lessonId}`).toBe('friend');
                 }
             }
         }

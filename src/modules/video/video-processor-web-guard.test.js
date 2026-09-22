@@ -23,7 +23,9 @@ describe('video-processor.web.js recap wiring guard', () => {
     });
 
     it('keeps renderStepToBlob overlay-free (silent only)', () => {
-        const renderStepBlob = source.slice(source.indexOf('async function renderStepToBlob'));
+        const start = source.indexOf('async function renderStepToBlob');
+        const end = source.indexOf('export async function exportSegmentsToR2');
+        const renderStepBlob = source.slice(start, end);
         expect(renderStepBlob).toMatch(/\{ silent: true \}/);
         expect(renderStepBlob).not.toMatch(/overlayVariant/);
         expect(renderStepBlob).not.toMatch(/shareCta/);

@@ -78,9 +78,10 @@ export function resolveOverlayElements({ variant = 'fluency', hasShareCta = fals
 }
 
 // Allowed values for the lesson-level recap flags. Unknown/absent values
-// resolve to the defaults below ('fluency' / 'system').
-const RECAP_OVERLAYS = ['fluency', 'shareCta', 'none'];
-const RECAP_SOURCES = ['system', 'friend', 'none'];
+// resolve to the defaults below ('fluency' / 'system'). Exported so config
+// tests share the canonical lists instead of duplicating them.
+export const RECAP_OVERLAYS = ['fluency', 'shareCta', 'none'];
+export const RECAP_SOURCES = ['system', 'friend', 'none'];
 
 /**
  * Resolves the lesson's recap overlay mode. Absent, empty, or unrecognized
@@ -152,11 +153,11 @@ export class VideoRenderPlanner {
             const sources = resolveRecapSources(lesson);
 
             if (needsRemote) {
-                const remoteUrl = this._getRemoteTarget(rec);
-                if (remoteUrl && remoteSource(remoteUrl) === sources) {
+                const remoteSlug = this._getRemoteTarget(rec);
+                if (remoteSlug && remoteSource(remoteSlug) === sources) {
                     plan.push({
                         type: 'remote',
-                        targetId: remoteUrl,
+                        targetId: remoteSlug,
                         subtitle: this._getStepCue(rec),
                         isFirst: plan.length === 0
                     });
