@@ -7,7 +7,7 @@ description: >
   Output: committed story file with acceptance criteria and implementation approach.
 mode: all
 temperature: 0.2
-model: opencode-go/deepseek-v4-flash
+model: opencode-go/deepseek-v4.1-flash
 tools:
   task: true
   grep: false

@@ -7,7 +7,7 @@ description: >
   Output: completion report with reviewer SHA verdicts.
 mode: all
 temperature: 0.2
-model: opencode-go/deepseek-v4-flash
+model: opencode-go/deepseek-v4.1-flash
 tools:
   question: false
   task: true
