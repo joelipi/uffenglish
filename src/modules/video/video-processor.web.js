@@ -342,6 +342,16 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
 
     return new Promise(async (resolve) => {
         let stepIndex = 0;
+        // Object URL of the clip currently loaded into `video`; revoked when the
+        // next step loads (or on finish) so blobs are not pinned for the page life.
+        let currentObjectUrl = null;
+        const finish = () => {
+            if (currentObjectUrl) {
+                URL.revokeObjectURL(currentObjectUrl);
+                currentObjectUrl = null;
+            }
+            resolve();
+        };
         let isTailing = false;
         let tailStart = 0;
         let lastFrameCanvas = null;
@@ -367,7 +377,7 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                 stepIndex++;
             }
             if (stepIndex >= plan.length) {
-                resolve();
+                finish();
                 return;
             }
 
@@ -404,9 +414,18 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
             step.resumeAttempted = false;
             stepStartedPlaying = false;
             stepPlayStart = 0;
-            const sourceUrl = step.type === 'remote'
-                ? (step.remoteBlob ? URL.createObjectURL(step.remoteBlob) : await resolveRemoteUrl(step.targetId))
-                : URL.createObjectURL(step.blob);
+            if (currentObjectUrl) {
+                URL.revokeObjectURL(currentObjectUrl);
+                currentObjectUrl = null;
+            }
+            let sourceUrl;
+            if (step.type === 'remote') {
+                sourceUrl = step.remoteBlob
+                    ? (currentObjectUrl = URL.createObjectURL(step.remoteBlob))
+                    : await resolveRemoteUrl(step.targetId);
+            } else {
+                sourceUrl = currentObjectUrl = URL.createObjectURL(step.blob);
+            }
             video.src = sourceUrl;
             video.load();
 
@@ -555,10 +574,20 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
 
             let shouldAdvance = false;
             if (isTailing) {
-                if (performance.now() - tailStart > 4000) resolve();
+                if (performance.now() - tailStart > 4000) finish();
             } else if (step.loadFailed) {
                 // The clip never loaded — advance instead of waiting forever.
                 shouldAdvance = true;
+                if (step.isFirst) {
+                    // Pass "first" to the next renderable step so the fluency
+                    // card still opens the recap.
+                    for (let j = stepIndex + 1; j < plan.length; j++) {
+                        if (plan[j].type !== 'tailing' && !plan[j].remoteFailed) {
+                            plan[j].isFirst = true;
+                            break;
+                        }
+                    }
+                }
             } else {
                 if (step.isTextMode || (step.type === 'webcam' && !step.blob)) {
                     const elapsed = performance.now() - (step.textModeStartTime || performance.now());
