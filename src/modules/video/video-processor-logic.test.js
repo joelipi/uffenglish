@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { VideoRenderPlanner, resolveRecapOverlay, resolveRecapSources } from './video-processor-logic.js';
+import { VideoRenderPlanner, resolveRecapOverlay, resolveRecapSources, isDroppedStep, markFirstRenderable } from './video-processor-logic.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const LOGIC_PATH = path.join(__dirname, 'video-processor-logic.js');
@@ -230,6 +230,51 @@ describe('VideoRenderPlanner.generatePlan — recapOverlay tailing variant', () 
         const tailing = planner.generatePlan().find(s => s.type === 'tailing');
 
         expect(tailing.shareCode).toBeNull();
+    });
+});
+
+describe('isDroppedStep / markFirstRenderable', () => {
+    it('treats only failed remote prompts as dropped', () => {
+        expect(isDroppedStep({ type: 'remote', remoteFailed: true })).toBe(true);
+        expect(isDroppedStep({ type: 'remote', loadFailed: true })).toBe(true);
+        expect(isDroppedStep({ type: 'remote' })).toBe(false);
+        expect(isDroppedStep({ type: 'webcam', remoteFailed: true })).toBe(false);
+        expect(isDroppedStep({ type: 'tailing', remoteFailed: true })).toBe(false);
+        expect(isDroppedStep(null)).toBe(false);
+        expect(isDroppedStep(undefined)).toBe(false);
+    });
+
+    it('marks the first renderable step, skipping dropped remotes and the tail', () => {
+        const plan = [
+            { type: 'remote', remoteFailed: true },
+            { type: 'webcam', isFirst: false },
+            { type: 'tailing' },
+        ];
+        expect(markFirstRenderable(plan, 0)).toBe(1);
+        expect(plan[1].isFirst).toBe(true);
+    });
+
+    it('marks the first step when nothing is dropped', () => {
+        const plan = [{ type: 'remote' }, { type: 'webcam' }, { type: 'tailing' }];
+        expect(markFirstRenderable(plan, 0)).toBe(0);
+        expect(plan[0].isFirst).toBe(true);
+    });
+
+    it('returns -1 when every renderable step is dropped or only the tail remains', () => {
+        expect(markFirstRenderable([{ type: 'tailing' }], 0)).toBe(-1);
+        expect(markFirstRenderable([
+            { type: 'remote', remoteFailed: true },
+            { type: 'remote', loadFailed: true },
+            { type: 'tailing' },
+        ], 0)).toBe(-1);
+    });
+
+    it('honours fromIndex when passing "first" past a failed opening step', () => {
+        const plan = [{ type: 'webcam', isFirst: true }, { type: 'remote', remoteFailed: true }, { type: 'webcam' }, { type: 'tailing' }];
+        expect(markFirstRenderable(plan, 2)).toBe(2);
+        expect(plan[2].isFirst).toBe(true);
+        // The helper clears any previous "first" so only one step carries it.
+        expect(plan[0].isFirst).toBe(false);
     });
 });
 

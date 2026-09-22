@@ -30,4 +30,20 @@ describe('video-processor.web.js recap wiring guard', () => {
         expect(renderStepBlob).not.toMatch(/overlayVariant/);
         expect(renderStepBlob).not.toMatch(/shareCta/);
     });
+
+    it('uses the shared dropped-step helpers and revokes clip object URLs', () => {
+        // The "first renderable step" rule lives in video-processor-logic.js
+        // (unit-tested); the web layer must consume the helpers, not re-inline it.
+        expect(source).toMatch(/isDroppedStep/);
+        expect(source).toMatch(/markFirstRenderable/);
+        expect(source).toMatch(/URL\.revokeObjectURL/);
+    });
+
+    it('distinguishes a never-loaded clip from one that is still buffering', () => {
+        // A timeout must not drop a healthy but slow-to-play clip, and a late
+        // metadata handler must not mutate the next step's element.
+        expect(source).toMatch(/metadataLoaded/);
+        expect(source).toMatch(/step\.playFatal/);
+        expect(source).toMatch(/const stale = \(\) => plan\[stepIndex\] !== step/);
+    });
 });

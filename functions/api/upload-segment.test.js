@@ -79,7 +79,7 @@ describe('onRequestPost — upload-segment Function', () => {
         expect(env.UFF_R2.put).toHaveBeenCalledWith(
             'videos/ab12-model-w-response-01.mp4',
             expect.any(ArrayBuffer),
-            { contentType: 'video/mp4' }
+            { httpMetadata: { contentType: 'video/mp4', cacheControl: 'public, max-age=3600' } }
         );
         // Both Supabase calls used the publishable fallbacks.
         expect(fetchStub).toHaveBeenCalledWith(
@@ -109,7 +109,7 @@ describe('onRequestPost — upload-segment Function', () => {
         expect(env.UFF_R2.put).toHaveBeenCalledWith(
             'videos/ab12-model-w-response-01.mp4',
             expect.any(ArrayBuffer),
-            { contentType: 'video/mp4' }
+            { httpMetadata: { contentType: 'video/mp4', cacheControl: 'public, max-age=3600' } }
         );
     });
 

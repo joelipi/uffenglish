@@ -6,7 +6,8 @@ import { shareVideo } from './video-share.js';
 import { appStore } from '../store/store.js';
 import headerImg from '../../assets/img/header.png';
 import { getVideoUrl, getUgcThumbKey } from './video-url.js';
-import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, buildShareUrl, buildShareDeadline, resolveOverlayElements, isShareCtaEnabled } from './video-processor-logic.js';
+import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, buildShareUrl, buildShareDeadline, resolveOverlayElements, isShareCtaEnabled, isDroppedStep, markFirstRenderable } from './video-processor-logic.js';
+import { remoteSource } from './video-source.js';
 import { DEFAULT_USER_AVATAR_URL } from '../user/tutor-config.js';
 import { getAvatarBlobUrl } from '../avatar/avatar.service.js';
 import { supabase, getAccessToken } from '../api/supabase.js';
@@ -165,11 +166,11 @@ function createVideoProcessor() {
                 const plan = planner.generatePlan();
 
                 // The lesson's recapOverlay mode decides the card: shareCta
-                // recaps carry a share CTA instead of a fluency card.
-                // No shareCode → no CTA at all (no fluency fallback either).
+                // recaps carry a share CTA instead of a fluency card. With no
+                // shareCode the CTA still renders, using the bare host as the URL.
                 const tailingStep = plan.find(s => s.type === 'tailing');
                 const overlayVariant = tailingStep?.variant || 'fluency';
-                const shareCta = isShareCtaEnabled(overlayVariant, shareCode)
+                const shareCta = isShareCtaEnabled(overlayVariant)
                     ? {
                         headline: Strings.get('share_cta_headline', userLang),
                         deadlinePrefix: Strings.get('share_cta_deadline', userLang),
@@ -177,6 +178,21 @@ function createVideoProcessor() {
                         url: buildShareUrl(shareCode),
                     }
                     : null;
+
+                // Preload remote prompt clips (friend UGC) as local blobs BEFORE
+                // rendering. R2 serves these without Cache-Control (and the edge
+                // is DYNAMIC), so pointing a <video> at the URL per step re-fetches
+                // over the network and stalls the canvas. Fetching once here — in
+                // parallel, reusing the lesson's HTTP-cache entry when present —
+                // lets the render loop play them from memory with zero per-step
+                // network delay. A clip that cannot be fetched is dropped from the
+                // plan rather than hanging the generator.
+                await prefetchRemoteClips(plan);
+
+                // A dropped friend prompt may have been the planned first
+                // segment; re-mark the first renderable step so the fluency card
+                // still opens the recap on non-shareCta lessons.
+                markFirstRenderable(plan, 0);
 
                 const dimensions = planner.getTargetDimensions(
                     originalVideo.videoWidth || 1080,
@@ -321,6 +337,18 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
 
     return new Promise(async (resolve) => {
         let stepIndex = 0;
+        // Object URL of the clip currently loaded into `video`; revoked when the
+        // next step loads (or on finish) so blobs are not pinned for the page life.
+        let currentObjectUrl = null;
+        const finish = () => {
+            if (currentObjectUrl) {
+                URL.revokeObjectURL(currentObjectUrl);
+                currentObjectUrl = null;
+            }
+            video.onerror = null;
+            video.onloadedmetadata = null;
+            resolve();
+        };
         let isTailing = false;
         let tailStart = 0;
         let lastFrameCanvas = null;
@@ -340,14 +368,24 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
             || /iPad|iPhone|iPod/.test(navigator.userAgent);
 
         const nextStep = async () => {
+            // Drop any remote clip that could not be prefetched or that failed to
+            // load (missing/expired friend UGC) rather than stalling on it.
+            while (stepIndex < plan.length && isDroppedStep(plan[stepIndex])) {
+                stepIndex++;
+            }
             if (stepIndex >= plan.length) {
-                resolve();
+                finish();
                 return;
             }
 
             stopDecodedAudio();
 
             const step = plan[stepIndex];
+
+            // True once the loop has advanced past this step (e.g. the 3s
+            // metadata timeout won the race) — late async media handlers must
+            // not touch the element, which then holds the next step's clip.
+            const stale = () => plan[stepIndex] !== step;
 
             if (step.type === 'tailing') {
                 isTailing = true;
@@ -378,14 +416,43 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
             step.resumeAttempted = false;
             stepStartedPlaying = false;
             stepPlayStart = 0;
-            const sourceUrl = step.type === 'remote'
-                ? await resolveRemoteUrl(step.targetId)
-                : URL.createObjectURL(step.blob);
+            step.loadFailed = false;
+            step.playFatal = false;
+            if (currentObjectUrl) {
+                URL.revokeObjectURL(currentObjectUrl);
+                currentObjectUrl = null;
+            }
+            let sourceUrl;
+            try {
+                if (step.type === 'remote') {
+                    sourceUrl = step.remoteBlob
+                        ? (currentObjectUrl = URL.createObjectURL(step.remoteBlob))
+                        : await resolveRemoteUrl(step.targetId);
+                } else {
+                    sourceUrl = currentObjectUrl = URL.createObjectURL(step.blob);
+                }
+            } catch (e) {
+                // Could not resolve the clip source at all — drop the step rather
+                // than leaving the draw loop waiting on a clip that never loads.
+                console.warn('[VideoProcessor] Clip source resolution failed; dropping step:', e);
+                step.loadFailed = true;
+                return;
+            }
             video.src = sourceUrl;
             video.load();
 
+            // `metadataLoaded` flips synchronously when metadata arrives. A step
+            // whose metadata never arrives (3s timeout) or whose playback fails
+            // fatally is dropped; a clip that loaded but is still buffering is NOT
+            // dropped — the draw loop's stall guard covers that case.
+            let metadataLoaded = false;
             await new Promise(res => {
+                video.onerror = () => {
+                    step.loadFailed = true;
+                    res();
+                };
                 video.onloadedmetadata = async () => {
+                    metadataLoaded = true;
                     if (step.trim?.start) video.currentTime = step.trim.start;
 
                     // On Safari/iPadOS, createMediaElementSource delivers no audio
@@ -402,6 +469,8 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                             let buf;
                             if (step.type === 'webcam') {
                                 buf = await step.blob.arrayBuffer();
+                            } else if (step.remoteBlob) {
+                                buf = await step.remoteBlob.arrayBuffer();
                             } else {
                                 const url = await resolveRemoteUrl(step.targetId);
                                 const resp = await fetch(url);
@@ -439,8 +508,20 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                         else begin();
                     };
 
+                    // If the loop already advanced (e.g. the 3s timeout won the
+                    // race while this async body was decoding/awaiting play), do
+                    // not touch the element — it now holds the next step's clip.
+                    if (stale()) {
+                        res();
+                        return;
+                    }
+
                     try {
                         await video.play();
+                        if (stale()) {
+                            res();
+                            return;
+                        }
 
                         // Element is muted; audio comes from the buffer source so
                         // there is exactly one audio path (no iOS double-output).
@@ -456,9 +537,17 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                         stepPlayStart = performance.now();
                     } catch (err) {
                         console.warn('[VideoProcessor] Browser blocked autoplay. Retrying muted.', err);
+                        if (stale()) {
+                            res();
+                            return;
+                        }
                         video.muted = true;
                         try {
                             await video.play();
+                            if (stale()) {
+                                res();
+                                return;
+                            }
                             // Even on the muted-retry path, start decoded audio so
                             // the clip is not silent.
                             startDecodedAudio();
@@ -466,12 +555,27 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                             stepPlayStart = performance.now();
                         } catch (fatalErr) {
                             console.error('[VideoProcessor] Fatal play error', fatalErr);
+                            step.playFatal = true;
+                            // Draw reads loadFailed every frame, so this still
+                            // advances even if the 3s timeout already resolved.
+                            step.loadFailed = true;
                         }
                     }
                     res();
                 };
                 setTimeout(res, 3000);
             });
+
+            // Metadata never arrived, or playback failed on both attempts →
+            // advance instead of waiting forever. A clip that loaded but is still
+            // buffering is not dropped; instead arm the wall clock from here so a
+            // silent stall (play() never settles) still advances via the draw
+            // loop's stalledTimeout.
+            if (!metadataLoaded || step.playFatal) {
+                step.loadFailed = true;
+            } else if (!stepStartedPlaying) {
+                stepPlayStart = performance.now();
+            }
         };
 
         const draw = () => {
@@ -522,7 +626,13 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
 
             let shouldAdvance = false;
             if (isTailing) {
-                if (performance.now() - tailStart > 4000) resolve();
+                if (performance.now() - tailStart > 4000) finish();
+            } else if (step.loadFailed) {
+                // The clip never loaded — advance instead of waiting forever.
+                shouldAdvance = true;
+                // If the opening step failed, pass "first" to the next
+                // renderable step so the fluency card still opens the recap.
+                if (step.isFirst) markFirstRenderable(plan, stepIndex + 1);
             } else {
                 if (step.isTextMode || (step.type === 'webcam' && !step.blob)) {
                     const elapsed = performance.now() - (step.textModeStartTime || performance.now());
@@ -553,7 +663,7 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                     // leave the generator stuck on "Generating" indefinitely.
                     const plannedMs = (endTime - (step.trim?.start || 0)) * 1000;
                     const stalledTimeout =
-                        stepStartedPlaying && stepPlayStart && plannedMs > 0 &&
+                        stepPlayStart && plannedMs > 0 &&
                         performance.now() - stepPlayStart > plannedMs + 2000;
                     if (video.ended || video.currentTime >= endTime || stalledTimeout) {
                         shouldAdvance = true;
@@ -652,7 +762,6 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
 
     const { fluencyCard, headlineBlock, tailingCard } = resolveOverlayElements({
         variant: overlayVariant,
-        hasShareCta: !!shareCta,
         isFirst,
         tailing
     });
@@ -870,6 +979,29 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
 // ---------------------------------------------------------------------------
 async function resolveRemoteUrl(vUrl) {
     return getVideoUrl(vUrl);
+}
+
+// Fetch every friend (UGC) prompt clip into memory before the canvas render
+// loop starts. R2 serves these without Cache-Control and the edge cache is
+// DYNAMIC, so a per-step <video src=url> re-downloads over the network and
+// stalls. Fetching once here — in parallel, and reusing the lesson's HTTP-cache
+// entry when the upload carries Cache-Control — means the loop plays from a
+// local blob with no network wait. Clips that fail are marked so the loop skips
+// them instead of hanging. Scoped to friend slugs (not system prompts) to bound
+// memory, since a lesson's friend clips are the ones that stall the recap.
+async function prefetchRemoteClips(plan) {
+    const remoteSteps = plan.filter(s => s.type === 'remote' && remoteSource(s.targetId) === 'friend');
+    await Promise.all(remoteSteps.map(async (step) => {
+        try {
+            const url = await resolveRemoteUrl(step.targetId);
+            const resp = await fetch(url);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            step.remoteBlob = await resp.blob();
+        } catch (e) {
+            console.warn('[VideoProcessor] Remote clip prefetch failed; dropping step:', step.targetId, e);
+            step.remoteFailed = true;
+        }
+    }));
 }
 
 function getSupportedMimeType() {

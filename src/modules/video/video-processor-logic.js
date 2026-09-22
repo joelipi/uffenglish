@@ -28,8 +28,10 @@ function ctaLocale(nativeLanguage) {
     return CTA_LOCALE_MAP[code] || 'en';
 }
 
+// Fallback when the session has no shareCode: point viewers at the bare host
+// (the app) rather than a personalised invite link.
 export function buildShareUrl(shareCode) {
-    return `${SHARE_URL_BASE}/${shareCode}`;
+    return shareCode ? `${SHARE_URL_BASE}/${shareCode}` : SHARE_URL_BASE;
 }
 
 export function buildShareDeadline(nowMs, nativeLanguage) {
@@ -55,12 +57,12 @@ export function buildShareDeadline(nowMs, nativeLanguage) {
  * `variant` is the lesson's resolved `recapOverlay` ('fluency' | 'shareCta' |
  * 'none'); unknown values fall through to the fluency branch.
  */
-export function resolveOverlayElements({ variant = 'fluency', hasShareCta = false, isFirst = false, tailing = false } = {}) {
+export function resolveOverlayElements({ variant = 'fluency', isFirst = false, tailing = false } = {}) {
     if (variant === 'shareCta') {
         return {
             fluencyCard: false,
-            headlineBlock: hasShareCta,
-            tailingCard: hasShareCta && tailing
+            headlineBlock: true,
+            tailingCard: !!tailing
         };
     }
     if (variant === 'none') {
@@ -103,11 +105,37 @@ export function resolveRecapSources(lesson) {
 }
 
 /**
- * A share CTA renders only for a 'shareCta' recap that has a shareCode.
- * A 'shareCta' recap without one renders nothing — no fluency fallback.
+ * A share CTA renders for any 'shareCta' recap. When the session has no
+ * shareCode, `buildShareUrl` falls back to the bare host so the CTA still
+ * renders (headline + tailing card) instead of nothing.
  */
-export function isShareCtaEnabled(variant, shareCode) {
-    return variant === 'shareCta' && !!shareCode;
+export function isShareCtaEnabled(variant) {
+    return variant === 'shareCta';
+}
+
+/**
+ * A remote prompt step that has been dropped because its clip could not be
+ * fetched (`remoteFailed`) or decoded/played (`loadFailed`). The render loop
+ * skips dropped steps and ignores them when picking the recap's opening step.
+ */
+export function isDroppedStep(step) {
+    return step?.type === 'remote' && (step.remoteFailed === true || step.loadFailed === true);
+}
+
+/**
+ * Marks the first renderable step at/after `fromIndex` as `isFirst` (the flag
+ * that draws the fluency card on the opening segment). Renderable = not the
+ * tailing step and not a dropped remote prompt. Returns its index, or -1.
+ */
+export function markFirstRenderable(plan, fromIndex = 0) {
+    plan.forEach(s => { s.isFirst = false; });
+    for (let i = fromIndex; i < plan.length; i++) {
+        const step = plan[i];
+        if (step.type === 'tailing' || isDroppedStep(step)) continue;
+        step.isFirst = true;
+        return i;
+    }
+    return -1;
 }
 
 /**
