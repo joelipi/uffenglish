@@ -6,7 +6,7 @@ import { shareVideo } from './video-share.js';
 import { appStore } from '../store/store.js';
 import headerImg from '../../assets/img/header.png';
 import { getVideoUrl, getUgcThumbKey } from './video-url.js';
-import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, buildShareUrl, buildShareDeadline, resolveOverlayElements, isShareCtaEnabled } from './video-processor-logic.js';
+import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, buildShareUrl, buildShareDeadline, resolveOverlayElements, isShareCtaEnabled, isDroppedStep, markFirstRenderable } from './video-processor-logic.js';
 import { remoteSource } from './video-source.js';
 import { DEFAULT_USER_AVATAR_URL } from '../user/tutor-config.js';
 import { getAvatarBlobUrl } from '../avatar/avatar.service.js';
@@ -192,12 +192,8 @@ function createVideoProcessor() {
                 // A dropped friend prompt may have been the planned first
                 // segment; re-mark the first renderable step so the fluency card
                 // still opens the recap on non-shareCta lessons.
-                let firstSeen = false;
-                for (const s of plan) {
-                    if (s.type === 'tailing' || s.remoteFailed) continue;
-                    s.isFirst = !firstSeen;
-                    firstSeen = true;
-                }
+                plan.forEach(s => { s.isFirst = false; });
+                markFirstRenderable(plan, 0);
 
                 const dimensions = planner.getTargetDimensions(
                     originalVideo.videoWidth || 1080,
@@ -350,6 +346,8 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                 URL.revokeObjectURL(currentObjectUrl);
                 currentObjectUrl = null;
             }
+            video.onerror = null;
+            video.onloadedmetadata = null;
             resolve();
         };
         let isTailing = false;
@@ -371,9 +369,9 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
             || /iPad|iPhone|iPod/.test(navigator.userAgent);
 
         const nextStep = async () => {
-            // Drop any remote clip that could not be prefetched (missing/expired
-            // friend UGC) rather than stalling the generator on it.
-            while (stepIndex < plan.length && plan[stepIndex].type === 'remote' && plan[stepIndex].remoteFailed) {
+            // Drop any remote clip that could not be prefetched or that failed to
+            // load (missing/expired friend UGC) rather than stalling on it.
+            while (stepIndex < plan.length && isDroppedStep(plan[stepIndex])) {
                 stepIndex++;
             }
             if (stepIndex >= plan.length) {
@@ -524,6 +522,11 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                 };
                 setTimeout(res, 3000);
             });
+
+            // If playback never actually started (metadata timeout or a stalled
+            // clip), mark the step failed so the draw loop advances instead of
+            // waiting forever.
+            if (!stepStartedPlaying) step.loadFailed = true;
         };
 
         const draw = () => {
@@ -578,16 +581,9 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
             } else if (step.loadFailed) {
                 // The clip never loaded — advance instead of waiting forever.
                 shouldAdvance = true;
-                if (step.isFirst) {
-                    // Pass "first" to the next renderable step so the fluency
-                    // card still opens the recap.
-                    for (let j = stepIndex + 1; j < plan.length; j++) {
-                        if (plan[j].type !== 'tailing' && !plan[j].remoteFailed) {
-                            plan[j].isFirst = true;
-                            break;
-                        }
-                    }
-                }
+                // If the opening step failed, pass "first" to the next
+                // renderable step so the fluency card still opens the recap.
+                if (step.isFirst) markFirstRenderable(plan, stepIndex + 1);
             } else {
                 if (step.isTextMode || (step.type === 'webcam' && !step.blob)) {
                     const elapsed = performance.now() - (step.textModeStartTime || performance.now());

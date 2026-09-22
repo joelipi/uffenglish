@@ -114,6 +114,30 @@ export function isShareCtaEnabled(variant) {
 }
 
 /**
+ * A remote prompt step that has been dropped because its clip could not be
+ * fetched (`remoteFailed`) or decoded/played (`loadFailed`). The render loop
+ * skips dropped steps and ignores them when picking the recap's opening step.
+ */
+export function isDroppedStep(step) {
+    return step?.type === 'remote' && (step.remoteFailed === true || step.loadFailed === true);
+}
+
+/**
+ * Marks the first renderable step at/after `fromIndex` as `isFirst` (the flag
+ * that draws the fluency card on the opening segment). Renderable = not the
+ * tailing step and not a dropped remote prompt. Returns its index, or -1.
+ */
+export function markFirstRenderable(plan, fromIndex = 0) {
+    for (let i = fromIndex; i < plan.length; i++) {
+        const step = plan[i];
+        if (step.type === 'tailing' || isDroppedStep(step)) continue;
+        step.isFirst = true;
+        return i;
+    }
+    return -1;
+}
+
+/**
  * Platform-Agnostic Video Render Planner
  * Analyzes recordings and generates a flat, step-by-step blueprint
  * for both rendering the final stitched video and sequential playback.
