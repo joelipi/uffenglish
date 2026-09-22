@@ -16,29 +16,8 @@ import { useLocation, Link } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import Strings from '../../data/strings.js';
+import { GUEST_LANGUAGES } from '../../data/languages.js';
 import { trackEvent } from '../../modules/utils/posthog.js';
-
-// ── Curated language list for the guest modal ──
-const GUEST_LANGUAGES = [
-    { value: 'EN', label: 'English' },
-    { value: 'ES', label: 'Español (Spanish)' },
-    { value: 'PT', label: 'Português (Portuguese)' },
-    { value: 'FR', label: 'Français (French)' },
-    { value: 'DE', label: 'Deutsch (German)' },
-    { value: 'IT', label: 'Italiano (Italian)' },
-    { value: 'JA', label: '日本語 (Japanese)' },
-    { value: 'KO', label: '한국어 (Korean)' },
-    { value: 'ZH', label: '中文 (Chinese)' },
-    { value: 'RU', label: 'Русский (Russian)' },
-    { value: 'AR', label: 'العربية (Arabic)' },
-    { value: 'HI', label: 'हिन्दी (Hindi)' },
-    { value: 'VI', label: 'Tiếng Việt (Vietnamese)' },
-    { value: 'TR', label: 'Türkçe (Turkish)' },
-    { value: 'NL', label: 'Nederlands (Dutch)' },
-    { value: 'PL', label: 'Polski (Polish)' },
-    { value: 'SV', label: 'Svenska (Swedish)' },
-    { value: 'TH', label: 'ไทย (Thai)' },
-];
 
 /** Map language code to the native name (first part of the label). */
 function nativeName(code) {

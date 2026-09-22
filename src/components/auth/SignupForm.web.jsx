@@ -3,16 +3,7 @@ import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { useSignupForm } from './SignupForm.jsx';
 import Strings from '../../data/strings.js';
-
-const NATIVE_LANGUAGES = [
-    { value: '', label: 'Select...', disabled: true },
-    { value: 'EN', label: 'English' },
-    { value: 'ES', label: 'Español (Spanish)' },
-    { value: 'PT', label: 'Português (Portuguese)' },
-    { value: 'FR', label: 'Français (French)' },
-    { value: 'DE', label: 'Deutsch (German)' },
-    { value: 'KO', label: '한국어 (Korean)' },
-];
+import { SIGNUP_LANGUAGES } from '../../data/languages.js';
 
 const ENGLISH_LEVELS = [
     { value: '', label: 'Select...', disabled: true },
@@ -123,7 +114,7 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
                         onChange={(e) => setNativeLanguage(e.target.value)}
                         required
                     >
-                        {NATIVE_LANGUAGES.map((lang) => (
+                        {SIGNUP_LANGUAGES.map((lang) => (
                             <option key={lang.value} value={lang.value} disabled={lang.disabled}>
                                 {lang.label}
                             </option>

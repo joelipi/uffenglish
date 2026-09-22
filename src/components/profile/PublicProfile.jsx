@@ -62,7 +62,7 @@ export default function PublicProfile({ shareCode }) {
         );
     }
 
-    const LOCALE_MAP = { EN: 'en', ES: 'es', FR: 'fr', DE: 'de', IT: 'it', PT: 'pt', ZH: 'zh', JA: 'ja', KO: 'ko', RU: 'ru', AR: 'ar', HI: 'hi', NL: 'nl', PL: 'pl', TR: 'tr', VI: 'vi', TH: 'th', SV: 'sv' };
+    const LOCALE_MAP = { EN: 'en', ES: 'es', FR: 'fr', DE: 'de', IT: 'it', PT: 'pt', ZH: 'zh', JA: 'ja', KO: 'ko', RU: 'ru', AR: 'ar', HI: 'hi', BN: 'bn', NL: 'nl', PL: 'pl', TR: 'tr', VI: 'vi', TH: 'th', SV: 'sv' };
     const lang = profile.native_language?.toLowerCase() || 'en';
     const displayName = profile.display_name || [profile.firstName, profile.lastName].filter(Boolean).join(' ') || '';
     const joinDate = profile.joinDate ? new Date(profile.joinDate).toLocaleDateString(LOCALE_MAP[profile.native_language] || 'en') : '';
