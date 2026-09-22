@@ -63,4 +63,11 @@ describe('video-processor.web.js recap wiring guard', () => {
         expect(source).toMatch(/step\.resolvingDuration/);
         expect(source).toMatch(/Number\.isFinite\(rawDuration\)/);
     });
+
+    it('never nulls shared plan blobs (would drop clips from the recap/export)', () => {
+        // draw() runs every frame and the plan objects are shared with the
+        // concurrent R2 export, so nulling remoteBlob/decodedAudio drops clips.
+        expect(source).not.toMatch(/step\.remoteBlob = null/);
+        expect(source).not.toMatch(/step\.decodedAudio = null;\s*\n\s*step\.remoteBlob/);
+    });
 });

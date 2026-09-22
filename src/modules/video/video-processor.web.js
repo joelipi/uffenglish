@@ -715,10 +715,11 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                     );
                 }
                 stopDecodedAudio();
-                // Release per-step media so peak memory stays bounded on iPad
-                // (jetsam-prone) rather than holding every clip's PCM + blob.
-                step.decodedAudio = null;
-                step.remoteBlob = null;
+                // NOTE: do NOT null step.remoteBlob/decodedAudio here. `draw`
+                // runs every frame and `shouldAdvance` stays true until
+                // nextStep() swaps the element, and the same plan objects are
+                // shared with the concurrent R2 export (renderStepToBlob spreads
+                // the step). Mutating them drops clips from the recap/export.
                 stepIndex++;
                 nextStep();
             }
