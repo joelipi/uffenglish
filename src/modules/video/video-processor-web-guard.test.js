@@ -55,4 +55,12 @@ describe('video-processor.web.js recap wiring guard', () => {
         expect(source).toMatch(/detectSafari/);
         expect(source).toMatch(/Remote clip audio pre-decode/);
     });
+
+    it('handles non-finite MediaRecorder blob durations (iPad WebM freeze)', () => {
+        // iOS records WebM, whose blobs report duration Infinity; without this
+        // the advance check never fires and the segment freezes.
+        expect(source).toMatch(/forceVideoDuration/);
+        expect(source).toMatch(/step\.resolvingDuration/);
+        expect(source).toMatch(/Number\.isFinite\(rawDuration\)/);
+    });
 });

@@ -452,6 +452,15 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                 };
                 video.onloadedmetadata = async () => {
                     metadataLoaded = true;
+
+                    // A MediaRecorder blob (iOS WebM) can report a non-finite
+                    // duration; force it before anything relies on it, or the
+                    // draw loop's advance check can never fire.
+                    if (!Number.isFinite(video.duration)) {
+                        step.resolvingDuration = true;
+                        await forceVideoDuration(video);
+                        step.resolvingDuration = false;
+                    }
                     if (step.trim?.start) video.currentTime = step.trim.start;
 
                     // On Safari/iPadOS, createMediaElementSource delivers no audio
@@ -637,12 +646,20 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                 // renderable step so the fluency card still opens the recap.
                 if (step.isFirst) markFirstRenderable(plan, stepIndex + 1);
             } else {
-                if (step.isTextMode || (step.type === 'webcam' && !step.blob)) {
+                if (step.resolvingDuration) {
+                    // Duration is still being resolved (MediaRecorder blob);
+                    // hold this frame rather than risk a premature advance.
+                } else if (step.isTextMode || (step.type === 'webcam' && !step.blob)) {
                     const elapsed = performance.now() - (step.textModeStartTime || performance.now());
                     const holdMs = step.duration != null ? step.duration * 1000 : TEXT_MODE_DURATION_MS;
                     if (elapsed >= holdMs) shouldAdvance = true;
                 } else {
-                    const endTime = step.trim?.end || video.duration;
+                    const rawDuration = video.duration;
+                    // A non-finite duration would disable both the end check and
+                    // the stall fallback; fall back to the recorded clip length,
+                    // or a hard cap, so the segment can never freeze forever.
+                    const endTime = step.trim?.end
+                        || (Number.isFinite(rawDuration) ? rawDuration : (step.duration || 60));
 
                     // On iPad/Safari the OS can silently pause inline video
                     // (autoplay/interruption). If that happens, resume it so the
@@ -1006,6 +1023,35 @@ async function resolveRemoteUrl(vUrl) {
 function detectSafari() {
     return /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
         || /iPad|iPhone|iPod/.test(navigator.userAgent);
+}
+
+// MediaRecorder blobs — iOS WebM in particular — report a non-finite `duration`
+// until the browser has read to the end of the file. The draw loop advances on
+// `currentTime >= duration`, so a non-finite duration freezes the segment
+// forever. Seeking past the end forces the browser to compute it.
+function forceVideoDuration(video) {
+    return new Promise((resolve) => {
+        if (Number.isFinite(video.duration)) {
+            resolve();
+            return;
+        }
+        let settled = false;
+        const done = () => {
+            if (settled) return;
+            settled = true;
+            video.removeEventListener('durationchange', done);
+            video.removeEventListener('timeupdate', done);
+            resolve();
+        };
+        video.addEventListener('durationchange', done);
+        video.addEventListener('timeupdate', done);
+        setTimeout(done, 2000);
+        try {
+            video.currentTime = 1e7;
+        } catch (e) {
+            done();
+        }
+    });
 }
 
 // Fetch every friend (UGC) prompt clip into memory before the canvas render
