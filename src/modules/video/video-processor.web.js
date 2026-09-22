@@ -187,7 +187,7 @@ function createVideoProcessor() {
                 // lets the render loop play them from memory with zero per-step
                 // network delay. A clip that cannot be fetched is dropped from the
                 // plan rather than hanging the generator.
-                await prefetchRemoteClips(plan);
+                await prefetchRemoteClips(plan, { audioContext, isSafari: detectSafari() });
 
                 // A dropped friend prompt may have been the planned first
                 // segment; re-mark the first renderable step so the fluency card
@@ -364,8 +364,7 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
         // Safari/iPadOS can't capture audio from blob-URL <video> via
         // createMediaElementSource, so webcam audio is decoded and played
         // directly as a buffer source. Detect once.
-        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
-            || /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const isSafari = detectSafari();
 
         const nextStep = async () => {
             // Drop any remote clip that could not be prefetched or that failed to
@@ -453,6 +452,15 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                 };
                 video.onloadedmetadata = async () => {
                     metadataLoaded = true;
+
+                    // A MediaRecorder blob (iOS WebM) can report a non-finite
+                    // duration; force it before anything relies on it, or the
+                    // draw loop's advance check can never fire.
+                    if (!Number.isFinite(video.duration)) {
+                        step.resolvingDuration = true;
+                        await forceVideoDuration(video);
+                        step.resolvingDuration = false;
+                    }
                     if (step.trim?.start) video.currentTime = step.trim.start;
 
                     // On Safari/iPadOS, createMediaElementSource delivers no audio
@@ -516,21 +524,21 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                         return;
                     }
 
+                    // Decide the audio path BEFORE play. On iPad an unmuted
+                    // element routed through createMediaElementSource
+                    // double-outputs into the recording (echo) until the mute
+                    // lands, so mute up front and let the decoded buffer be the
+                    // single audio source.
+                    const useDecodedAudio = !!(step.decodedAudio && audioContext);
+                    video.muted = useDecodedAudio;
+
                     try {
                         await video.play();
                         if (stale()) {
                             res();
                             return;
                         }
-
-                        // Element is muted; audio comes from the buffer source so
-                        // there is exactly one audio path (no iOS double-output).
-                        if (step.decodedAudio && audioContext) {
-                            video.muted = true;
-                            startDecodedAudio();
-                        } else {
-                            video.muted = false;
-                        }
+                        if (useDecodedAudio) startDecodedAudio();
                         // Record when playback actually (re)started so the draw
                         // loop can detect stalls and apply a wall-clock fallback.
                         stepStartedPlaying = true;
@@ -551,6 +559,10 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                             // Even on the muted-retry path, start decoded audio so
                             // the clip is not silent.
                             startDecodedAudio();
+                            // Non-Safari relies on the element's own audio, so
+                            // restore it after a blocked-autoplay mute — otherwise
+                            // every remaining step records silence.
+                            if (!useDecodedAudio) video.muted = false;
                             stepStartedPlaying = true;
                             stepPlayStart = performance.now();
                         } catch (fatalErr) {
@@ -634,12 +646,20 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                 // renderable step so the fluency card still opens the recap.
                 if (step.isFirst) markFirstRenderable(plan, stepIndex + 1);
             } else {
-                if (step.isTextMode || (step.type === 'webcam' && !step.blob)) {
+                if (step.resolvingDuration) {
+                    // Duration is still being resolved (MediaRecorder blob);
+                    // hold this frame rather than risk a premature advance.
+                } else if (step.isTextMode || (step.type === 'webcam' && !step.blob)) {
                     const elapsed = performance.now() - (step.textModeStartTime || performance.now());
                     const holdMs = step.duration != null ? step.duration * 1000 : TEXT_MODE_DURATION_MS;
                     if (elapsed >= holdMs) shouldAdvance = true;
                 } else {
-                    const endTime = step.trim?.end || video.duration;
+                    const rawDuration = video.duration;
+                    // A non-finite duration would disable both the end check and
+                    // the stall fallback; fall back to the recorded clip length,
+                    // or a hard cap, so the segment can never freeze forever.
+                    const endTime = step.trim?.end
+                        || (Number.isFinite(rawDuration) ? rawDuration : (step.duration || 60));
 
                     // On iPad/Safari the OS can silently pause inline video
                     // (autoplay/interruption). If that happens, resume it so the
@@ -695,6 +715,10 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                     );
                 }
                 stopDecodedAudio();
+                // Release per-step media so peak memory stays bounded on iPad
+                // (jetsam-prone) rather than holding every clip's PCM + blob.
+                step.decodedAudio = null;
+                step.remoteBlob = null;
                 stepIndex++;
                 nextStep();
             }
@@ -743,7 +767,17 @@ function wrapText(context, text, maxWidth) {
 function drawFittedLine(context, text, centerX, y, { fontFamily, maxWidth, baseSize, minSize = 18, color = 'white' }) {
     let size = baseSize;
     context.font = `700 ${size}px ${fontFamily}`;
-    while (size > minSize && context.measureText(text).width > maxWidth) {
+    // Measure the ink extent, not just the advance width: complex scripts
+    // (e.g. Bengali) rendered through a fallback font can extend past the
+    // reported advance, so a width-only fit under-shrinks and overflows the
+    // frame. Take the larger of advance and bounding box.
+    const inkWidth = (t) => {
+        const m = context.measureText(t);
+        const left = Math.abs(m.actualBoundingBoxLeft || 0);
+        const right = Math.abs(m.actualBoundingBoxRight || 0);
+        return Math.max(m.width || 0, left + right);
+    };
+    while (size > minSize && inkWidth(text) > maxWidth) {
         size -= 1;
         context.font = `700 ${size}px ${fontFamily}`;
     }
@@ -831,7 +865,9 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
     if (headlineBlock || tailingCard) {
         const centerX = Math.floor(canvasWidth / 2);
         const maxWidth = canvasWidth * 0.9;
-        const fontFamily = '"Plus Jakarta Sans", sans-serif';
+        // Include Bengali-capable families so Bengali copy does not fall through
+        // to an arbitrary system font with different metrics.
+        const fontFamily = '"Plus Jakarta Sans", "Noto Sans Bengali", "Bangla Sangam MN", "Nirmala UI", sans-serif';
 
         context.textAlign = 'center';
         context.textBaseline = 'middle';
@@ -981,6 +1017,43 @@ async function resolveRemoteUrl(vUrl) {
     return getVideoUrl(vUrl);
 }
 
+// iPadOS/Safari cannot play a <video>'s audio through createMediaElementSource
+// (it delivers nothing), and an unmuted element double-outputs (element + graph).
+// The recap therefore mutes the element and plays a decoded buffer instead.
+function detectSafari() {
+    return /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+        || /iPad|iPhone|iPod/.test(navigator.userAgent);
+}
+
+// MediaRecorder blobs — iOS WebM in particular — report a non-finite `duration`
+// until the browser has read to the end of the file. The draw loop advances on
+// `currentTime >= duration`, so a non-finite duration freezes the segment
+// forever. Seeking past the end forces the browser to compute it.
+function forceVideoDuration(video) {
+    return new Promise((resolve) => {
+        if (Number.isFinite(video.duration)) {
+            resolve();
+            return;
+        }
+        let settled = false;
+        const done = () => {
+            if (settled) return;
+            settled = true;
+            video.removeEventListener('durationchange', done);
+            video.removeEventListener('timeupdate', done);
+            resolve();
+        };
+        video.addEventListener('durationchange', done);
+        video.addEventListener('timeupdate', done);
+        setTimeout(done, 2000);
+        try {
+            video.currentTime = 1e7;
+        } catch (e) {
+            done();
+        }
+    });
+}
+
 // Fetch every friend (UGC) prompt clip into memory before the canvas render
 // loop starts. R2 serves these without Cache-Control and the edge cache is
 // DYNAMIC, so a per-step <video src=url> re-downloads over the network and
@@ -989,7 +1062,9 @@ async function resolveRemoteUrl(vUrl) {
 // local blob with no network wait. Clips that fail are marked so the loop skips
 // them instead of hanging. Scoped to friend slugs (not system prompts) to bound
 // memory, since a lesson's friend clips are the ones that stall the recap.
-async function prefetchRemoteClips(plan) {
+// On Safari the clip's audio is also decoded here, so the render loop never
+// blocks on decodeAudioData mid-segment.
+async function prefetchRemoteClips(plan, { audioContext, isSafari } = {}) {
     const remoteSteps = plan.filter(s => s.type === 'remote' && remoteSource(s.targetId) === 'friend');
     await Promise.all(remoteSteps.map(async (step) => {
         try {
@@ -997,6 +1072,14 @@ async function prefetchRemoteClips(plan) {
             const resp = await fetch(url);
             if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
             step.remoteBlob = await resp.blob();
+            if (isSafari && audioContext) {
+                try {
+                    step.decodedAudio = await audioContext.decodeAudioData(await step.remoteBlob.arrayBuffer());
+                } catch (e) {
+                    console.warn('[VideoProcessor] Remote clip audio pre-decode failed:', step.targetId, e);
+                    step.decodedAudio = null;
+                }
+            }
         } catch (e) {
             console.warn('[VideoProcessor] Remote clip prefetch failed; dropping step:', step.targetId, e);
             step.remoteFailed = true;
