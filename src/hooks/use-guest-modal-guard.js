@@ -8,10 +8,11 @@ const AUTH_ROUTES = ['/login', '/signup', '/recover-password', '/reset-password'
 
 /**
  * Detect the user's browser/device language and return a two-letter
- * uppercase language code (e.g. 'EN', 'ES', 'KO').
+ * uppercase language code (e.g. 'EN', 'ES', 'HI', 'BN').
  * Works in browsers via navigator.language; falls back to 'EN'.
+ * Exported for unit tests.
  */
-function detectBrowserLanguage() {
+export function detectBrowserLanguage() {
     try {
         const raw = (typeof navigator !== 'undefined' && navigator.language) || 'en';
         const code = raw.split('-')[0].toUpperCase();

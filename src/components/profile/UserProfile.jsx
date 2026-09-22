@@ -8,35 +8,7 @@ import defaultProfilePic from '../../assets/img/userprofile.png';
 import { trackEvent } from '../../modules/utils/posthog.js';
 import { useAvatarUpload } from '../../modules/avatar/use-avatar-upload.js';
 import AvatarCropper from '../widgets/AvatarCropper.jsx';
-
-const NATIVE_LANGUAGES = [
-    { value: 'EN', label: 'English' },
-    { value: 'ES', label: 'Spanish' },
-    { value: 'FR', label: 'French' },
-    { value: 'DE', label: 'German' },
-    { value: 'IT', label: 'Italian' },
-    { value: 'PT', label: 'Portuguese' },
-    { value: 'ZH', label: 'Chinese' },
-    { value: 'JA', label: 'Japanese' },
-    { value: 'KO', label: 'Korean' },
-    { value: 'RU', label: 'Russian' },
-    { value: 'AR', label: 'Arabic' },
-    { value: 'HI', label: 'Hindi' },
-    { value: 'NL', label: 'Dutch' },
-    { value: 'PL', label: 'Polish' },
-    { value: 'TR', label: 'Turkish' },
-    { value: 'VI', label: 'Vietnamese' },
-    { value: 'TH', label: 'Thai' },
-    { value: 'SV', label: 'Swedish' },
-    { value: 'DA', label: 'Danish' },
-    { value: 'NB', label: 'Norwegian' },
-    { value: 'FI', label: 'Finnish' },
-    { value: 'EL', label: 'Greek' },
-    { value: 'CS', label: 'Czech' },
-    { value: 'HU', label: 'Hungarian' },
-    { value: 'RO', label: 'Romanian' },
-    { value: 'UK', label: 'Ukrainian' },
-];
+import { PROFILE_LANGUAGES, LOCALE_MAP } from '../../data/languages.js';
 
 const ENGLISH_LEVELS = ['A0', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'Native'];
 
@@ -105,7 +77,6 @@ export default function UserProfile() {
         setAvatarUrl(null);
     }, [profile?.profilePictureUrl]);
 
-    const LOCALE_MAP = { EN: 'en', ES: 'es', FR: 'fr', DE: 'de', IT: 'it', PT: 'pt', ZH: 'zh', JA: 'ja', KO: 'ko', RU: 'ru', AR: 'ar', HI: 'hi', NL: 'nl', PL: 'pl', TR: 'tr', VI: 'vi', TH: 'th', SV: 'sv' };
     const lang = profile?.native_language?.toLowerCase() || 'en';
     const isGuest = profile?.$id === 'guest';
     const displayName = profile?.display_name || '';
@@ -471,7 +442,7 @@ export default function UserProfile() {
                             <Input id="lastName" value={lastName} onChange={e => setLastName(e.target.value)} />
                         </FormField>
                         <FormField label={Strings.get('profile_native_language', lang)} id="nativeLanguage">
-                            <Select id="nativeLanguage" value={nativeLanguage} onChange={e => setNativeLanguage(e.target.value)} options={NATIVE_LANGUAGES} />
+                            <Select id="nativeLanguage" value={nativeLanguage} onChange={e => setNativeLanguage(e.target.value)} options={PROFILE_LANGUAGES} />
                         </FormField>
                         <FormField label={Strings.get('profile_user_level', lang)} id="userLevel">
                             <Select id="userLevel" value={userLevel} onChange={e => setUserLevel(e.target.value)} options={ENGLISH_LEVELS.map(l => ({ value: l, label: l }))} />

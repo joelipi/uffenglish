@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useUserByShareCode } from '../../modules/api/api.js';
 import { appStore } from '../../modules/store/store.js';
 import Strings from '../../data/strings.js';
+import { LOCALE_MAP } from '../../data/languages.js';
 import defaultProfilePic from '../../assets/img/userprofile.png';
 
 export default function PublicProfile({ shareCode }) {
@@ -62,7 +63,6 @@ export default function PublicProfile({ shareCode }) {
         );
     }
 
-    const LOCALE_MAP = { EN: 'en', ES: 'es', FR: 'fr', DE: 'de', IT: 'it', PT: 'pt', ZH: 'zh', JA: 'ja', KO: 'ko', RU: 'ru', AR: 'ar', HI: 'hi', NL: 'nl', PL: 'pl', TR: 'tr', VI: 'vi', TH: 'th', SV: 'sv' };
     const lang = profile.native_language?.toLowerCase() || 'en';
     const displayName = profile.display_name || [profile.firstName, profile.lastName].filter(Boolean).join(' ') || '';
     const joinDate = profile.joinDate ? new Date(profile.joinDate).toLocaleDateString(LOCALE_MAP[profile.native_language] || 'en') : '';
