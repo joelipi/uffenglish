@@ -39,7 +39,11 @@ describe('video-processor.web.js recap wiring guard', () => {
         expect(source).toMatch(/URL\.revokeObjectURL/);
     });
 
-    it('marks a clip failed when playback never starts (no hang)', () => {
-        expect(source).toMatch(/if \(!stepStartedPlaying\) step\.loadFailed = true/);
+    it('distinguishes a never-loaded clip from one that is still buffering', () => {
+        // A timeout must not drop a healthy but slow-to-play clip, and a late
+        // metadata handler must not mutate the next step's element.
+        expect(source).toMatch(/metadataLoaded/);
+        expect(source).toMatch(/step\.playFatal/);
+        expect(source).toMatch(/plan\[stepIndex\] !== step/);
     });
 });

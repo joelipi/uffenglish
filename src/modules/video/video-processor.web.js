@@ -412,28 +412,43 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
             step.resumeAttempted = false;
             stepStartedPlaying = false;
             stepPlayStart = 0;
+            step.loadFailed = false;
+            step.playFatal = false;
             if (currentObjectUrl) {
                 URL.revokeObjectURL(currentObjectUrl);
                 currentObjectUrl = null;
             }
             let sourceUrl;
-            if (step.type === 'remote') {
-                sourceUrl = step.remoteBlob
-                    ? (currentObjectUrl = URL.createObjectURL(step.remoteBlob))
-                    : await resolveRemoteUrl(step.targetId);
-            } else {
-                sourceUrl = currentObjectUrl = URL.createObjectURL(step.blob);
+            try {
+                if (step.type === 'remote') {
+                    sourceUrl = step.remoteBlob
+                        ? (currentObjectUrl = URL.createObjectURL(step.remoteBlob))
+                        : await resolveRemoteUrl(step.targetId);
+                } else {
+                    sourceUrl = currentObjectUrl = URL.createObjectURL(step.blob);
+                }
+            } catch (e) {
+                // Could not resolve the clip source at all — drop the step rather
+                // than leaving the draw loop waiting on a clip that never loads.
+                console.warn('[VideoProcessor] Clip source resolution failed; dropping step:', e);
+                step.loadFailed = true;
+                return;
             }
             video.src = sourceUrl;
             video.load();
 
-            step.loadFailed = false;
+            // `metadataLoaded` flips synchronously when metadata arrives. A step
+            // whose metadata never arrives (3s timeout) or whose playback fails
+            // fatally is dropped; a clip that loaded but is still buffering is NOT
+            // dropped — the draw loop's stall guard covers that case.
+            let metadataLoaded = false;
             await new Promise(res => {
                 video.onerror = () => {
                     step.loadFailed = true;
                     res();
                 };
                 video.onloadedmetadata = async () => {
+                    metadataLoaded = true;
                     if (step.trim?.start) video.currentTime = step.trim.start;
 
                     // On Safari/iPadOS, createMediaElementSource delivers no audio
@@ -489,8 +504,20 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                         else begin();
                     };
 
+                    // If the loop already advanced (e.g. the 3s timeout won the
+                    // race while this async body was decoding/awaiting play), do
+                    // not touch the element — it now holds the next step's clip.
+                    if (plan[stepIndex] !== step) {
+                        res();
+                        return;
+                    }
+
                     try {
                         await video.play();
+                        if (plan[stepIndex] !== step) {
+                            res();
+                            return;
+                        }
 
                         // Element is muted; audio comes from the buffer source so
                         // there is exactly one audio path (no iOS double-output).
@@ -506,9 +533,17 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                         stepPlayStart = performance.now();
                     } catch (err) {
                         console.warn('[VideoProcessor] Browser blocked autoplay. Retrying muted.', err);
+                        if (plan[stepIndex] !== step) {
+                            res();
+                            return;
+                        }
                         video.muted = true;
                         try {
                             await video.play();
+                            if (plan[stepIndex] !== step) {
+                                res();
+                                return;
+                            }
                             // Even on the muted-retry path, start decoded audio so
                             // the clip is not silent.
                             startDecodedAudio();
@@ -516,6 +551,7 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                             stepPlayStart = performance.now();
                         } catch (fatalErr) {
                             console.error('[VideoProcessor] Fatal play error', fatalErr);
+                            step.playFatal = true;
                         }
                     }
                     res();
@@ -523,10 +559,10 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                 setTimeout(res, 3000);
             });
 
-            // If playback never actually started (metadata timeout or a stalled
-            // clip), mark the step failed so the draw loop advances instead of
-            // waiting forever.
-            if (!stepStartedPlaying) step.loadFailed = true;
+            // Metadata never arrived, or playback failed on both attempts →
+            // advance instead of waiting forever. A clip still buffering is left
+            // to the draw loop's stall guard.
+            if (!metadataLoaded || step.playFatal) step.loadFailed = true;
         };
 
         const draw = () => {
