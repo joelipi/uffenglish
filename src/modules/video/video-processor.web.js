@@ -459,6 +459,15 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                     if (!Number.isFinite(video.duration)) {
                         step.resolvingDuration = true;
                         await forceVideoDuration(video);
+                        // The seek used to force the duration parks the element
+                        // at the end (and can leave it `ended`), which would make
+                        // the draw loop skip the clip instantly. Rewind to the
+                        // trim start before playback.
+                        try {
+                            video.currentTime = step.trim?.start || 0;
+                        } catch (e) {
+                            console.warn('[VideoProcessor] Rewind after duration probe failed:', e);
+                        }
                         step.resolvingDuration = false;
                     }
                     if (step.trim?.start) video.currentTime = step.trim.start;
@@ -685,7 +694,12 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                     const stalledTimeout =
                         stepPlayStart && plannedMs > 0 &&
                         performance.now() - stepPlayStart > plannedMs + 2000;
-                    if (video.ended || video.currentTime >= endTime || stalledTimeout) {
+                    // `video.ended` is only meaningful once this step has actually
+                    // played — the duration probe seeks to the end and can leave
+                    // the element `ended` before playback starts, which would skip
+                    // the clip entirely.
+                    const endedNaturally = stepStartedPlaying && video.ended;
+                    if (endedNaturally || video.currentTime >= endTime || stalledTimeout) {
                         shouldAdvance = true;
                     }
                 }
