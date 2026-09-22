@@ -122,3 +122,11 @@ src/modules/api/supabase.js` in `functions/api/upload-segment.js`). The Read too
 ---
 
 ---
+
+## i18n structure: strings.js + languages.js + derived LOCALE_MAP
+**Date**: 2026-09-22
+**Area**: architecture
+**What happened**: Adding Hindi/Bengali required touching every UI string plus three separate language dropdowns; the profile components each carried a hand-maintained `LOCALE_MAP` that had already drifted from the language list by 8 languages, and the code reviewer flagged the duplication.
+**Takeaway**: UI copy lives in `src/data/strings.js` (every key must carry `hi`/`bn` — verify with a Devanagari/Bengali script regex over the exported `strings` table). Language dropdowns read `GUEST_LANGUAGES`/`PROFILE_LANGUAGES`/`SIGNUP_LANGUAGES` from `src/data/languages.js`; `LOCALE_MAP` is derived from `PROFILE_LANGUAGES` (`Object.fromEntries(...)`) so it cannot drift. When adding a language, update all three lists + every strings.js key; never hand-edit a locale map.
+
+---
