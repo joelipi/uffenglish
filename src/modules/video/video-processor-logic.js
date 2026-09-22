@@ -28,8 +28,10 @@ function ctaLocale(nativeLanguage) {
     return CTA_LOCALE_MAP[code] || 'en';
 }
 
+// Fallback when the session has no shareCode: point viewers at the bare host
+// (the app) rather than a personalised invite link.
 export function buildShareUrl(shareCode) {
-    return `${SHARE_URL_BASE}/${shareCode}`;
+    return shareCode ? `${SHARE_URL_BASE}/${shareCode}` : SHARE_URL_BASE;
 }
 
 export function buildShareDeadline(nowMs, nativeLanguage) {
@@ -55,12 +57,12 @@ export function buildShareDeadline(nowMs, nativeLanguage) {
  * `variant` is the lesson's resolved `recapOverlay` ('fluency' | 'shareCta' |
  * 'none'); unknown values fall through to the fluency branch.
  */
-export function resolveOverlayElements({ variant = 'fluency', hasShareCta = false, isFirst = false, tailing = false } = {}) {
+export function resolveOverlayElements({ variant = 'fluency', isFirst = false, tailing = false } = {}) {
     if (variant === 'shareCta') {
         return {
             fluencyCard: false,
-            headlineBlock: hasShareCta,
-            tailingCard: hasShareCta && tailing
+            headlineBlock: true,
+            tailingCard: !!tailing
         };
     }
     if (variant === 'none') {
@@ -103,11 +105,12 @@ export function resolveRecapSources(lesson) {
 }
 
 /**
- * A share CTA renders only for a 'shareCta' recap that has a shareCode.
- * A 'shareCta' recap without one renders nothing — no fluency fallback.
+ * A share CTA renders for any 'shareCta' recap. When the session has no
+ * shareCode, `buildShareUrl` falls back to the bare host so the CTA still
+ * renders (headline + tailing card) instead of nothing.
  */
-export function isShareCtaEnabled(variant, shareCode) {
-    return variant === 'shareCta' && !!shareCode;
+export function isShareCtaEnabled(variant) {
+    return variant === 'shareCta';
 }
 
 /**

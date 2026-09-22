@@ -165,11 +165,11 @@ function createVideoProcessor() {
                 const plan = planner.generatePlan();
 
                 // The lesson's recapOverlay mode decides the card: shareCta
-                // recaps carry a share CTA instead of a fluency card.
-                // No shareCode → no CTA at all (no fluency fallback either).
+                // recaps carry a share CTA instead of a fluency card. With no
+                // shareCode the CTA still renders, using the bare host as the URL.
                 const tailingStep = plan.find(s => s.type === 'tailing');
                 const overlayVariant = tailingStep?.variant || 'fluency';
-                const shareCta = isShareCtaEnabled(overlayVariant, shareCode)
+                const shareCta = isShareCtaEnabled(overlayVariant)
                     ? {
                         headline: Strings.get('share_cta_headline', userLang),
                         deadlinePrefix: Strings.get('share_cta_deadline', userLang),
@@ -177,6 +177,16 @@ function createVideoProcessor() {
                         url: buildShareUrl(shareCode),
                     }
                     : null;
+
+                // Preload remote prompt clips (friend UGC) as local blobs BEFORE
+                // rendering. R2 serves these without Cache-Control (and the edge
+                // is DYNAMIC), so pointing a <video> at the URL per step re-fetches
+                // over the network and stalls the canvas. Fetching once here — in
+                // parallel, reusing the lesson's HTTP-cache entry when present —
+                // lets the render loop play them from memory with zero per-step
+                // network delay. A clip that cannot be fetched is dropped from the
+                // plan rather than hanging the generator.
+                await prefetchRemoteClips(plan);
 
                 const dimensions = planner.getTargetDimensions(
                     originalVideo.videoWidth || 1080,
@@ -340,6 +350,11 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
             || /iPad|iPhone|iPod/.test(navigator.userAgent);
 
         const nextStep = async () => {
+            // Drop any remote clip that could not be prefetched (missing/expired
+            // friend UGC) rather than stalling the generator on it.
+            while (stepIndex < plan.length && plan[stepIndex].type === 'remote' && plan[stepIndex].remoteFailed) {
+                stepIndex++;
+            }
             if (stepIndex >= plan.length) {
                 resolve();
                 return;
@@ -379,12 +394,17 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
             stepStartedPlaying = false;
             stepPlayStart = 0;
             const sourceUrl = step.type === 'remote'
-                ? await resolveRemoteUrl(step.targetId)
+                ? (step.remoteBlob ? URL.createObjectURL(step.remoteBlob) : await resolveRemoteUrl(step.targetId))
                 : URL.createObjectURL(step.blob);
             video.src = sourceUrl;
             video.load();
 
+            step.loadFailed = false;
             await new Promise(res => {
+                video.onerror = () => {
+                    step.loadFailed = true;
+                    res();
+                };
                 video.onloadedmetadata = async () => {
                     if (step.trim?.start) video.currentTime = step.trim.start;
 
@@ -402,6 +422,8 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                             let buf;
                             if (step.type === 'webcam') {
                                 buf = await step.blob.arrayBuffer();
+                            } else if (step.remoteBlob) {
+                                buf = await step.remoteBlob.arrayBuffer();
                             } else {
                                 const url = await resolveRemoteUrl(step.targetId);
                                 const resp = await fetch(url);
@@ -523,6 +545,9 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
             let shouldAdvance = false;
             if (isTailing) {
                 if (performance.now() - tailStart > 4000) resolve();
+            } else if (step.loadFailed) {
+                // The clip never loaded — advance instead of waiting forever.
+                shouldAdvance = true;
             } else {
                 if (step.isTextMode || (step.type === 'webcam' && !step.blob)) {
                     const elapsed = performance.now() - (step.textModeStartTime || performance.now());
@@ -652,7 +677,6 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
 
     const { fluencyCard, headlineBlock, tailingCard } = resolveOverlayElements({
         variant: overlayVariant,
-        hasShareCta: !!shareCta,
         isFirst,
         tailing
     });
@@ -870,6 +894,28 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
 // ---------------------------------------------------------------------------
 async function resolveRemoteUrl(vUrl) {
     return getVideoUrl(vUrl);
+}
+
+// Fetch every remote (friend UGC) prompt clip into memory before the canvas
+// render loop starts. R2 serves these without Cache-Control and the edge cache
+// is DYNAMIC, so a per-step <video src=url> re-downloads over the network and
+// stalls. Fetching once here — in parallel, and reusing the lesson's HTTP-cache
+// entry when the upload carries Cache-Control — means the loop plays from a
+// local blob with no network wait. Clips that fail are marked so the loop skips
+// them instead of hanging.
+async function prefetchRemoteClips(plan) {
+    const remoteSteps = plan.filter(s => s.type === 'remote');
+    await Promise.all(remoteSteps.map(async (step) => {
+        try {
+            const url = await resolveRemoteUrl(step.targetId);
+            const resp = await fetch(url);
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            step.remoteBlob = await resp.blob();
+        } catch (e) {
+            console.warn('[VideoProcessor] Remote clip prefetch failed; dropping step:', step.targetId, e);
+            step.remoteFailed = true;
+        }
+    }));
 }
 
 function getSupportedMimeType() {

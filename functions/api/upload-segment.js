@@ -86,7 +86,16 @@ export async function onRequestPost({ request, env }) {
     }
     const reqCt = request.headers.get('Content-Type');
     const contentType = reqCt || (isThumb ? 'image/jpeg' : 'video/mp4');
-    await env.UFF_R2.put(key, bytes, { contentType });
+    // Cache-Control lets the browser keep a durable local copy of the clip.
+    // Without it (and with the R2 edge cache DYNAMIC) the end-of-lesson recap
+    // re-downloads each friend clip when it stitches the video. 1h is well
+    // inside the 48h UGC lifecycle and covers the lesson → recap window.
+    await env.UFF_R2.put(key, bytes, {
+        httpMetadata: {
+            contentType,
+            cacheControl: 'public, max-age=3600',
+        },
+    });
 
     return new Response(
         JSON.stringify({ ok: true, url: `https://r2.ultrafastfluency.com/${key}` }),

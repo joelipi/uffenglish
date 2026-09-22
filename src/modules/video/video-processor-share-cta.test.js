@@ -68,6 +68,13 @@ describe('buildShareUrl', () => {
     it('uses the placeholder domain constant', () => {
         expect(SHARE_URL_BASE).toBe('example.com');
     });
+
+    it('falls back to the bare host when there is no shareCode', () => {
+        expect(buildShareUrl(null)).toBe(SHARE_URL_BASE);
+        expect(buildShareUrl(undefined)).toBe(SHARE_URL_BASE);
+        expect(buildShareUrl('')).toBe(SHARE_URL_BASE);
+        expect(buildShareUrl('ab12')).toBe(`${SHARE_URL_BASE}/ab12`);
+    });
 });
 
 describe('buildShareDeadline', () => {
@@ -133,39 +140,33 @@ describe('resolveOverlayElements', () => {
     });
 
     it('shows the headline block every frame and the tailing card during tailing for shareCta', () => {
-        expect(resolveOverlayElements({ variant: 'shareCta', hasShareCta: true, isFirst: true })).toEqual({
+        expect(resolveOverlayElements({ variant: 'shareCta', isFirst: true })).toEqual({
             fluencyCard: false, headlineBlock: true, tailingCard: false,
         });
-        expect(resolveOverlayElements({ variant: 'shareCta', hasShareCta: true, tailing: true })).toEqual({
+        expect(resolveOverlayElements({ variant: 'shareCta', tailing: true })).toEqual({
             fluencyCard: false, headlineBlock: true, tailingCard: true,
         });
-    });
-
-    it('renders nothing when a shareCta recap has no shareCode', () => {
-        expect(resolveOverlayElements({ variant: 'shareCta', hasShareCta: false, isFirst: true })).toEqual({
-            fluencyCard: false, headlineBlock: false, tailingCard: false,
-        });
-        expect(resolveOverlayElements({ variant: 'shareCta', hasShareCta: false, tailing: true })).toEqual({
-            fluencyCard: false, headlineBlock: false, tailingCard: false,
+        // No shareCode is no longer a reason to render nothing — the CTA always
+        // renders for a shareCta recap (the URL falls back to the bare host).
+        expect(resolveOverlayElements({ variant: 'shareCta' })).toEqual({
+            fluencyCard: false, headlineBlock: true, tailingCard: false,
         });
     });
 
-    it('renders nothing for the none variant regardless of shareCode', () => {
-        expect(resolveOverlayElements({ variant: 'none', hasShareCta: true, isFirst: true })).toEqual({
+    it('renders nothing for the none variant', () => {
+        expect(resolveOverlayElements({ variant: 'none', isFirst: true })).toEqual({
             fluencyCard: false, headlineBlock: false, tailingCard: false,
         });
-        expect(resolveOverlayElements({ variant: 'none', hasShareCta: true, tailing: true })).toEqual({
+        expect(resolveOverlayElements({ variant: 'none', tailing: true })).toEqual({
             fluencyCard: false, headlineBlock: false, tailingCard: false,
         });
     });
 });
 
 describe('isShareCtaEnabled', () => {
-    it('enables the CTA only for shareCta with a shareCode', () => {
-        expect(isShareCtaEnabled('shareCta', 'ab12')).toBe(true);
-        expect(isShareCtaEnabled('shareCta', '')).toBe(false);
-        expect(isShareCtaEnabled('shareCta', null)).toBe(false);
-        expect(isShareCtaEnabled('fluency', 'ab12')).toBe(false);
-        expect(isShareCtaEnabled('none', 'ab12')).toBe(false);
+    it('enables the CTA for the shareCta variant regardless of shareCode', () => {
+        expect(isShareCtaEnabled('shareCta')).toBe(true);
+        expect(isShareCtaEnabled('fluency')).toBe(false);
+        expect(isShareCtaEnabled('none')).toBe(false);
     });
 });
