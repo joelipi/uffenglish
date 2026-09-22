@@ -187,7 +187,7 @@ function createVideoProcessor() {
                 // lets the render loop play them from memory with zero per-step
                 // network delay. A clip that cannot be fetched is dropped from the
                 // plan rather than hanging the generator.
-                await prefetchRemoteClips(plan);
+                await prefetchRemoteClips(plan, { audioContext, isSafari: detectSafari() });
 
                 // A dropped friend prompt may have been the planned first
                 // segment; re-mark the first renderable step so the fluency card
@@ -364,8 +364,7 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
         // Safari/iPadOS can't capture audio from blob-URL <video> via
         // createMediaElementSource, so webcam audio is decoded and played
         // directly as a buffer source. Detect once.
-        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
-            || /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const isSafari = detectSafari();
 
         const nextStep = async () => {
             // Drop any remote clip that could not be prefetched or that failed to
@@ -516,21 +515,21 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                         return;
                     }
 
+                    // Decide the audio path BEFORE play. On iPad an unmuted
+                    // element routed through createMediaElementSource
+                    // double-outputs into the recording (echo) until the mute
+                    // lands, so mute up front and let the decoded buffer be the
+                    // single audio source.
+                    const useDecodedAudio = !!(step.decodedAudio && audioContext);
+                    video.muted = useDecodedAudio;
+
                     try {
                         await video.play();
                         if (stale()) {
                             res();
                             return;
                         }
-
-                        // Element is muted; audio comes from the buffer source so
-                        // there is exactly one audio path (no iOS double-output).
-                        if (step.decodedAudio && audioContext) {
-                            video.muted = true;
-                            startDecodedAudio();
-                        } else {
-                            video.muted = false;
-                        }
+                        if (useDecodedAudio) startDecodedAudio();
                         // Record when playback actually (re)started so the draw
                         // loop can detect stalls and apply a wall-clock fallback.
                         stepStartedPlaying = true;
@@ -743,7 +742,17 @@ function wrapText(context, text, maxWidth) {
 function drawFittedLine(context, text, centerX, y, { fontFamily, maxWidth, baseSize, minSize = 18, color = 'white' }) {
     let size = baseSize;
     context.font = `700 ${size}px ${fontFamily}`;
-    while (size > minSize && context.measureText(text).width > maxWidth) {
+    // Measure the ink extent, not just the advance width: complex scripts
+    // (e.g. Bengali) rendered through a fallback font can extend past the
+    // reported advance, so a width-only fit under-shrinks and overflows the
+    // frame. Take the larger of advance and bounding box.
+    const inkWidth = (t) => {
+        const m = context.measureText(t);
+        const left = Math.abs(m.actualBoundingBoxLeft || 0);
+        const right = Math.abs(m.actualBoundingBoxRight || 0);
+        return Math.max(m.width || 0, left + right);
+    };
+    while (size > minSize && inkWidth(text) > maxWidth) {
         size -= 1;
         context.font = `700 ${size}px ${fontFamily}`;
     }
@@ -831,7 +840,9 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
     if (headlineBlock || tailingCard) {
         const centerX = Math.floor(canvasWidth / 2);
         const maxWidth = canvasWidth * 0.9;
-        const fontFamily = '"Plus Jakarta Sans", sans-serif';
+        // Include Bengali-capable families so Bengali copy does not fall through
+        // to an arbitrary system font with different metrics.
+        const fontFamily = '"Plus Jakarta Sans", "Noto Sans Bengali", "Bangla Sangam MN", "Nirmala UI", sans-serif';
 
         context.textAlign = 'center';
         context.textBaseline = 'middle';
@@ -981,6 +992,14 @@ async function resolveRemoteUrl(vUrl) {
     return getVideoUrl(vUrl);
 }
 
+// iPadOS/Safari cannot play a <video>'s audio through createMediaElementSource
+// (it delivers nothing), and an unmuted element double-outputs (element + graph).
+// The recap therefore mutes the element and plays a decoded buffer instead.
+function detectSafari() {
+    return /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+        || /iPad|iPhone|iPod/.test(navigator.userAgent);
+}
+
 // Fetch every friend (UGC) prompt clip into memory before the canvas render
 // loop starts. R2 serves these without Cache-Control and the edge cache is
 // DYNAMIC, so a per-step <video src=url> re-downloads over the network and
@@ -989,7 +1008,9 @@ async function resolveRemoteUrl(vUrl) {
 // local blob with no network wait. Clips that fail are marked so the loop skips
 // them instead of hanging. Scoped to friend slugs (not system prompts) to bound
 // memory, since a lesson's friend clips are the ones that stall the recap.
-async function prefetchRemoteClips(plan) {
+// On Safari the clip's audio is also decoded here, so the render loop never
+// blocks on decodeAudioData mid-segment.
+async function prefetchRemoteClips(plan, { audioContext, isSafari } = {}) {
     const remoteSteps = plan.filter(s => s.type === 'remote' && remoteSource(s.targetId) === 'friend');
     await Promise.all(remoteSteps.map(async (step) => {
         try {
@@ -997,6 +1018,14 @@ async function prefetchRemoteClips(plan) {
             const resp = await fetch(url);
             if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
             step.remoteBlob = await resp.blob();
+            if (isSafari && audioContext) {
+                try {
+                    step.decodedAudio = await audioContext.decodeAudioData(await step.remoteBlob.arrayBuffer());
+                } catch (e) {
+                    console.warn('[VideoProcessor] Remote clip audio pre-decode failed:', step.targetId, e);
+                    step.decodedAudio = null;
+                }
+            }
         } catch (e) {
             console.warn('[VideoProcessor] Remote clip prefetch failed; dropping step:', step.targetId, e);
             step.remoteFailed = true;

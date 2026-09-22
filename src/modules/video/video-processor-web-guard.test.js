@@ -46,4 +46,12 @@ describe('video-processor.web.js recap wiring guard', () => {
         expect(source).toMatch(/step\.playFatal/);
         expect(source).toMatch(/const stale = \(\) => plan\[stepIndex\] !== step/);
     });
+
+    it('mutes the element before play and pre-decodes friend audio on Safari', () => {
+        // Muting after play lets the element's audio overlap the decoded buffer
+        // (echo) on iPad; the mute must land before play().
+        expect(source).toMatch(/video\.muted = useDecodedAudio/);
+        expect(source).toMatch(/detectSafari/);
+        expect(source).toMatch(/Remote clip audio pre-decode/);
+    });
 });
