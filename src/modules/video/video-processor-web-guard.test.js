@@ -70,4 +70,11 @@ describe('video-processor.web.js recap wiring guard', () => {
         expect(source).not.toMatch(/step\.remoteBlob = null/);
         expect(source).not.toMatch(/step\.decodedAudio = null;\s*\n\s*step\.remoteBlob/);
     });
+
+    it('rewinds after the duration probe and ignores a stale ended state', () => {
+        // forceVideoDuration seeks to the end; without a rewind + an
+        // ended-only-after-playback guard the first clip is skipped.
+        expect(source).toMatch(/Rewind after duration probe failed/);
+        expect(source).toMatch(/const endedNaturally = stepStartedPlaying && video\.ended/);
+    });
 });
