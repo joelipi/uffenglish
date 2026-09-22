@@ -6,6 +6,7 @@ import {
     buildShareUrl,
     buildShareDeadline,
     resolveOverlayElements,
+    isShareCtaEnabled,
 } from './video-processor-logic.js';
 
 const LANGS = ['en', 'es', 'pt', 'fr', 'hi', 'bn'];
@@ -104,33 +105,67 @@ describe('buildShareDeadline', () => {
 });
 
 describe('resolveOverlayElements', () => {
-    it('keeps the fluency card for non-webcamOnly lessons', () => {
-        expect(resolveOverlayElements({ isFirst: true })).toEqual({
+    it('keeps the fluency card for fluency/default variants', () => {
+        expect(resolveOverlayElements({ variant: 'fluency', isFirst: true })).toEqual({
             fluencyCard: true, headlineBlock: false, tailingCard: false,
         });
-        expect(resolveOverlayElements({ tailing: true })).toEqual({
+        expect(resolveOverlayElements({ variant: 'fluency', tailing: true })).toEqual({
             fluencyCard: true, headlineBlock: false, tailingCard: false,
+        });
+        expect(resolveOverlayElements({ variant: 'fluency' })).toEqual({
+            fluencyCard: false, headlineBlock: false, tailingCard: false,
         });
         expect(resolveOverlayElements({})).toEqual({
             fluencyCard: false, headlineBlock: false, tailingCard: false,
         });
     });
 
-    it('shows the headline block every frame and the tailing card during tailing', () => {
-        expect(resolveOverlayElements({ webcamOnly: true, hasShareCta: true, isFirst: true })).toEqual({
+    it('falls through to fluency for unknown variants', () => {
+        expect(resolveOverlayElements({ variant: 'bogus', isFirst: true })).toEqual({
+            fluencyCard: true, headlineBlock: false, tailingCard: false,
+        });
+    });
+
+    it('ignores the removed webcamOnly key (decoupling locked)', () => {
+        expect(resolveOverlayElements({ webcamOnly: true, isFirst: true })).toEqual({
+            fluencyCard: true, headlineBlock: false, tailingCard: false,
+        });
+    });
+
+    it('shows the headline block every frame and the tailing card during tailing for shareCta', () => {
+        expect(resolveOverlayElements({ variant: 'shareCta', hasShareCta: true, isFirst: true })).toEqual({
             fluencyCard: false, headlineBlock: true, tailingCard: false,
         });
-        expect(resolveOverlayElements({ webcamOnly: true, hasShareCta: true, tailing: true })).toEqual({
+        expect(resolveOverlayElements({ variant: 'shareCta', hasShareCta: true, tailing: true })).toEqual({
             fluencyCard: false, headlineBlock: true, tailingCard: true,
         });
     });
 
-    it('renders nothing when a webcamOnly lesson has no shareCode', () => {
-        expect(resolveOverlayElements({ webcamOnly: true, hasShareCta: false, isFirst: true })).toEqual({
+    it('renders nothing when a shareCta recap has no shareCode', () => {
+        expect(resolveOverlayElements({ variant: 'shareCta', hasShareCta: false, isFirst: true })).toEqual({
             fluencyCard: false, headlineBlock: false, tailingCard: false,
         });
-        expect(resolveOverlayElements({ webcamOnly: true, hasShareCta: false, tailing: true })).toEqual({
+        expect(resolveOverlayElements({ variant: 'shareCta', hasShareCta: false, tailing: true })).toEqual({
             fluencyCard: false, headlineBlock: false, tailingCard: false,
         });
+    });
+
+    it('renders nothing for the none variant regardless of shareCode', () => {
+        expect(resolveOverlayElements({ variant: 'none', hasShareCta: true, isFirst: true })).toEqual({
+            fluencyCard: false, headlineBlock: false, tailingCard: false,
+        });
+        expect(resolveOverlayElements({ variant: 'none', hasShareCta: true, tailing: true })).toEqual({
+            fluencyCard: false, headlineBlock: false, tailingCard: false,
+        });
+    });
+});
+
+describe('isShareCtaEnabled', () => {
+    it('enables the CTA only for shareCta with a shareCode', () => {
+        expect(isShareCtaEnabled('shareCta', 'ab12')).toBe(true);
+        expect(isShareCtaEnabled('shareCta', '')).toBe(false);
+        expect(isShareCtaEnabled('shareCta', null)).toBe(false);
+        expect(isShareCtaEnabled('fluency', 'ab12')).toBe(false);
+        expect(isShareCtaEnabled('none', 'ab12')).toBe(false);
     });
 });

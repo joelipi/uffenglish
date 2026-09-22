@@ -510,7 +510,8 @@
     },
     {
       "lessonId": "w",
-      "webcamOnly": true,
+      "recapSources": "none",
+      "recapOverlay": "shareCta",
       "title": {
         "en": "Would You Rather? — Ask",
         "es": "¿Qué Preferirías? — Pregunta",
@@ -587,6 +588,8 @@
     },
     {
       "lessonId": "wa",
+      "recapSources": "friend",
+      "recapOverlay": "shareCta",
       "title": {
         "en": "Would You Rather? — Answer",
         "es": "¿Qué Preferirías? — Responde",
@@ -689,7 +692,8 @@
     },
     {
       "lessonId": "wf",
-      "webcamOnly": true,
+      "recapSources": "none",
+      "recapOverlay": "shareCta",
       "title": {
         "en": "Would You Rather? — Ask",
         "es": "¿Qué Preferirías? — Pregunta",
@@ -786,6 +790,8 @@
     },
     {
       "lessonId": "wfa",
+      "recapSources": "friend",
+      "recapOverlay": "shareCta",
       "title": {
         "en": "Would You Rather? — Answer",
         "es": "¿Qué Preferirías? — Responde",

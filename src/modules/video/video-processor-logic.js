@@ -1,9 +1,11 @@
 // --- modules/video-processor-logic.js ---
 
+import { remoteSource } from './video-source.js';
+
 export const TEXT_MODE_DURATION_MS = 3000;
 
 // ---------------------------------------------------------------------------
-// Share CTA (webcamOnly lesson recaps) — platform-agnostic domain logic.
+// Share CTA (shareCta recap overlays) — platform-agnostic domain logic.
 // Both the web and native renderers consume these; only the drawing differs.
 // ---------------------------------------------------------------------------
 
@@ -49,20 +51,62 @@ export function buildShareDeadline(nowMs, nativeLanguage) {
  * - fluencyCard: the legacy CALCULATING FLUENCY / FLUENCY SCORE card
  * - headlineBlock: the 2-line share headline shown for the whole recap
  * - tailingCard: the 3-line CTA card shown during the tailing freeze-frame
+ *
+ * `variant` is the lesson's resolved `recapOverlay` ('fluency' | 'shareCta' |
+ * 'none'); unknown values fall through to the fluency branch.
  */
-export function resolveOverlayElements({ webcamOnly = false, hasShareCta = false, isFirst = false, tailing = false } = {}) {
-    if (webcamOnly) {
+export function resolveOverlayElements({ variant = 'fluency', hasShareCta = false, isFirst = false, tailing = false } = {}) {
+    if (variant === 'shareCta') {
         return {
             fluencyCard: false,
             headlineBlock: hasShareCta,
             tailingCard: hasShareCta && tailing
         };
     }
+    if (variant === 'none') {
+        return {
+            fluencyCard: false,
+            headlineBlock: false,
+            tailingCard: false
+        };
+    }
     return {
-        fluencyCard: isFirst || tailing,
+        fluencyCard: !!isFirst || !!tailing,
         headlineBlock: false,
         tailingCard: false
     };
+}
+
+// Allowed values for the lesson-level recap flags. Unknown/absent values
+// resolve to the defaults below ('fluency' / 'system').
+const RECAP_OVERLAYS = ['fluency', 'shareCta', 'none'];
+const RECAP_SOURCES = ['system', 'friend', 'none'];
+
+/**
+ * Resolves the lesson's recap overlay mode. Absent, empty, or unrecognized
+ * values default to 'fluency' so unflagged lessons keep today's behaviour.
+ */
+export function resolveRecapOverlay(lesson) {
+    const value = lesson?.recapOverlay;
+    return RECAP_OVERLAYS.includes(value) ? value : 'fluency';
+}
+
+/**
+ * Resolves the lesson's recap prompt-source mode. Absent, empty, or
+ * unrecognized values default to 'system' so unflagged lessons keep today's
+ * behaviour (system prompt videos interleaved with the user's webcam clips).
+ */
+export function resolveRecapSources(lesson) {
+    const value = lesson?.recapSources;
+    return RECAP_SOURCES.includes(value) ? value : 'system';
+}
+
+/**
+ * A share CTA renders only for a 'shareCta' recap that has a shareCode.
+ * A 'shareCta' recap without one renders nothing — no fluency fallback.
+ */
+export function isShareCtaEnabled(variant, shareCode) {
+    return variant === 'shareCta' && !!shareCode;
 }
 
 /**
@@ -99,13 +143,17 @@ export class VideoRenderPlanner {
             // Skip remote prompt if this is a retry of the same step
             const needsRemote = !(prevRec && rec.originalStepIndex === prevRec.originalStepIndex);
 
-            // webcamOnly lessons (friend-challenge "Ask" recaps) are shareable
-            // ads: only the user's own recordings, never the model prompt videos.
+            // The lesson's recapSources mode decides which prompt-video
+            // category is concatenated ('system' | 'friend' | 'none'). The
+            // user's own webcam clips are always included. With 'friend',
+            // every friend prompt is concatenated regardless of any other
+            // lesson flag, and system prompts never appear.
             const lesson = this._getLesson(rec);
+            const sources = resolveRecapSources(lesson);
 
-            if (needsRemote && !lesson?.webcamOnly) {
+            if (needsRemote) {
                 const remoteUrl = this._getRemoteTarget(rec);
-                if (remoteUrl) {
+                if (remoteUrl && remoteSource(remoteUrl) === sources) {
                     plan.push({
                         type: 'remote',
                         targetId: remoteUrl,
@@ -140,7 +188,7 @@ export class VideoRenderPlanner {
         }
 
         // Final tailing phase — fluency score display, or the share CTA for
-        // webcamOnly lessons. All recordings in a plan share one
+        // shareCta recaps. All recordings in a plan share one
         // originalLessonId, so the first recording identifies the lesson. Empty
         // recordings → no lesson resolvable → safe default 'fluency'.
         const tailingLesson = this.recordings.length ? this._getLesson(this.recordings[0]) : null;
@@ -148,7 +196,7 @@ export class VideoRenderPlanner {
             type: 'tailing',
             durationMs: 4000,
             fluencyData: this.fluencyData,
-            variant: tailingLesson?.webcamOnly ? 'shareCta' : 'fluency',
+            variant: resolveRecapOverlay(tailingLesson),
             shareCode: this.shareCode
         });
 

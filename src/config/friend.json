@@ -4,7 +4,8 @@
   "lessons": [
     {
       "lessonId": "a",
-      "webcamOnly": true,
+      "recapSources": "none",
+      "recapOverlay": "shareCta",
       "title": {
         "en": "Would You Rather? — Ask",
         "es": "¿Qué Preferirías? — Pregunta",
@@ -101,7 +102,8 @@
     },
     {
       "lessonId": "b",
-      "webcamOnly": true,
+      "recapSources": "friend",
+      "recapOverlay": "shareCta",
       "title": {
         "en": "Would You Rather? — Respond",
         "es": "¿Qué Preferirías? — Responde",
