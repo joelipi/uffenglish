@@ -59,8 +59,9 @@ export const PROFILE_LANGUAGES = [
 ];
 
 // Compact list for the signup form (native-name labels).
+// The disabled "Select..." placeholder is prepended at the call site
+// (SignupForm.web.jsx) so this list stays pure data.
 export const SIGNUP_LANGUAGES = [
-    { value: '', label: 'Select...', disabled: true },
     { value: 'EN', label: 'English' },
     { value: 'ES', label: 'Español (Spanish)' },
     { value: 'PT', label: 'Português (Portuguese)' },
@@ -70,3 +71,10 @@ export const SIGNUP_LANGUAGES = [
     { value: 'HI', label: 'हिन्दी (Hindi)' },
     { value: 'BN', label: 'বাংলা (Bengali)' },
 ];
+
+// Maps the uppercase language codes above to BCP-47 locale tags for Intl
+// date formatting (toLocaleDateString). Derived from PROFILE_LANGUAGES so
+// the two can never drift apart.
+export const LOCALE_MAP = Object.fromEntries(
+    PROFILE_LANGUAGES.map(({ value }) => [value, value.toLowerCase()])
+);

@@ -114,7 +114,7 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
                         onChange={(e) => setNativeLanguage(e.target.value)}
                         required
                     >
-                        {SIGNUP_LANGUAGES.map((lang) => (
+                        {[{ value: '', label: 'Select...', disabled: true }, ...SIGNUP_LANGUAGES].map((lang) => (
                             <option key={lang.value} value={lang.value} disabled={lang.disabled}>
                                 {lang.label}
                             </option>
