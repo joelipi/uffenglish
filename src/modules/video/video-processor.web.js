@@ -7,6 +7,7 @@ import { appStore } from '../store/store.js';
 import headerImg from '../../assets/img/header.png';
 import { getVideoUrl, getUgcThumbKey } from './video-url.js';
 import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, buildShareUrl, buildShareDeadline, resolveOverlayElements, isShareCtaEnabled } from './video-processor-logic.js';
+import { remoteSource } from './video-source.js';
 import { DEFAULT_USER_AVATAR_URL } from '../user/tutor-config.js';
 import { getAvatarBlobUrl } from '../avatar/avatar.service.js';
 import { supabase, getAccessToken } from '../api/supabase.js';
@@ -187,6 +188,16 @@ function createVideoProcessor() {
                 // network delay. A clip that cannot be fetched is dropped from the
                 // plan rather than hanging the generator.
                 await prefetchRemoteClips(plan);
+
+                // A dropped friend prompt may have been the planned first
+                // segment; re-mark the first renderable step so the fluency card
+                // still opens the recap on non-shareCta lessons.
+                let firstSeen = false;
+                for (const s of plan) {
+                    if (s.type === 'tailing' || s.remoteFailed) continue;
+                    s.isFirst = !firstSeen;
+                    firstSeen = true;
+                }
 
                 const dimensions = planner.getTargetDimensions(
                     originalVideo.videoWidth || 1080,
@@ -896,15 +907,16 @@ async function resolveRemoteUrl(vUrl) {
     return getVideoUrl(vUrl);
 }
 
-// Fetch every remote (friend UGC) prompt clip into memory before the canvas
-// render loop starts. R2 serves these without Cache-Control and the edge cache
-// is DYNAMIC, so a per-step <video src=url> re-downloads over the network and
+// Fetch every friend (UGC) prompt clip into memory before the canvas render
+// loop starts. R2 serves these without Cache-Control and the edge cache is
+// DYNAMIC, so a per-step <video src=url> re-downloads over the network and
 // stalls. Fetching once here — in parallel, and reusing the lesson's HTTP-cache
 // entry when the upload carries Cache-Control — means the loop plays from a
 // local blob with no network wait. Clips that fail are marked so the loop skips
-// them instead of hanging.
+// them instead of hanging. Scoped to friend slugs (not system prompts) to bound
+// memory, since a lesson's friend clips are the ones that stall the recap.
 async function prefetchRemoteClips(plan) {
-    const remoteSteps = plan.filter(s => s.type === 'remote');
+    const remoteSteps = plan.filter(s => s.type === 'remote' && remoteSource(s.targetId) === 'friend');
     await Promise.all(remoteSteps.map(async (step) => {
         try {
             const url = await resolveRemoteUrl(step.targetId);
