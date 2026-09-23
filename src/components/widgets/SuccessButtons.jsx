@@ -119,9 +119,14 @@ export function VideoButton({ canvasRef }) {
   };
 
   if (button.state === 'idle') {
-    // Keep the concat button hidden while the short success clip plays so it
-    // lands like every earlier step's glowing call button. If the step has no
-    // success clip at all (no pending success video), reveal it immediately.
+    // Two signals gate the reveal:
+    //  - appPhase === 'lessonSuccess-decisionTime' is set by SimpleVideoPlayer
+    //    when the success clip fires `ended`, and drives the water overlay.
+    //  - currentVideo?.responseType === 'success' tells us a success clip is
+    //    actually pending. A success step with no clip intentionally stays in
+    //    'lessonSuccess' (there is no overlay to show), so it reveals at once.
+    // Keep the button hidden while the clip plays so it lands like every
+    // earlier step's glowing call button.
     const successVideoPending = currentVideo?.responseType === 'success';
     const revealed = appPhase === 'lessonSuccess-decisionTime' || !successVideoPending;
     if (!revealed) return null;

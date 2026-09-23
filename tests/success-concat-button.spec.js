@@ -210,11 +210,14 @@ test.describe('Success screen — concat button reveal', () => {
     });
 
     test('clicking the revealed button starts processing', async ({ page }) => {
+        // Stub the processor so no real canvas/MediaRecorder work runs. The
+        // stubbed module sets window flags so the test can prove it was hit
+        // (otherwise the test would pass even if the route were ignored).
         await page.route('**/video-processor.js*', route => route.fulfill({
             status: 200,
             contentType: 'application/javascript',
             body: [
-                'export async function processVideo() { return { blob: null }; }',
+                'export async function processVideo() { window.__processorStubbed = true; return { blob: null }; }',
                 'export async function shareVideo() {}',
                 'export async function exportSegmentsToR2() {}',
             ].join('\n'),
@@ -229,6 +232,8 @@ test.describe('Success screen — concat button reveal', () => {
         await page.locator('#processBtn').click({ force: true });
         await expect.poll(() => page.evaluate(() => window.appStore.getState().successVideoButton.state)).toBe('processing');
         await expect.poll(() => page.evaluate(() => window.appStore.getState().successCanvasVisible)).toBe(true);
+        // The stub sets this flag, proving the real processor was not invoked.
+        await expect.poll(() => page.evaluate(() => window.__processorStubbed === true)).toBe(true);
 
         expect(errors).toEqual([]);
     });
