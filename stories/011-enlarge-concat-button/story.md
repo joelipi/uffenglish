@@ -13,7 +13,7 @@ At the end of a lesson the learner lands on `SuccessScreen` (`src/components/wid
 
 Clicking it runs `handleProcess` → `processVideo(...)` + `exportSegmentsToR2(...)` (`SuccessButtons.jsx:60-109`). It is the only action on the screen, yet it is visually the least prominent control in the app. Every earlier decision point trains the learner to press a large, glowing circular `.call-btn` with a bilingual label above it that appears over the video after the clip finishes: the view-and-continue flow transitions on video end (`SimpleVideoPlayer.web.jsx:167-181` → `simpleVideo-decisionTime-viewAndContinue`), the water overlay renders at `SimpleVideoPlayer.web.jsx:360-373`, and the buttons + labels glow/rise via `.ivp-choice-col .call-btn` and `.ivp-choice-label` in `src/assets/css/app.css:885-915,936-972,1027-1034`. `ViewAndContinueButtons.jsx:56-67` is the canonical markup: an `.ivp-choice-col` containing an `.ivp-choice-label` ("CONTINUE") and a `.call-btn`.
 
-The success step already carries a short "you're almost done, press the button below" clip: every `responseType: "success"` step in `src/config/*.json` has `simpleVideoUrl: "success"` (e.g. `src/config/model.json:93-97`, whose subtitles read "Oprime el botón para calcular tu calificación de fluidez"). Today that video plays and simply stops — no overlay, no glow, no state change (`handleEnded` only reacts to `viewAndContinue`). This story makes the final step behave exactly like the earlier ones: when the success video ends, the water overlay appears with copy that explains the learner is about to create a shareable video, and the concat button is revealed as a large, glowing `.call-btn` labelled **CONTINUE**.
+The success step already carries a short "you're almost done, press the button below" clip: every `responseType: "success"` step in `src/config/*.json` has `simpleVideoUrl: "success"` (e.g. `src/config/model.json:93-97`, whose subtitles read "Oprime el botón para calcular tu calificación de fluidez"). Today that video plays and simply stops — no overlay, no glow, no state change (`handleEnded` only reacts to `viewAndContinue`). This story makes the final step behave exactly like the earlier ones: when the success video ends, the water overlay appears with copy that invites the learner to create and share their video, and the concat button is revealed as a large, glowing `.call-btn` labelled **CONTINUE**.
 
 ## Out of Scope
 
@@ -68,12 +68,12 @@ Add to `src/data/strings.js` next to `video_continue` (`:1397-1402`). Proposed c
 
 ```js
 'video_continue_create': {
-    en: "Continue to create a video you can share",
-    es: "Continúa para crear un video que puedas compartir",
-    pt: "Continue para criar um vídeo que você possa compartilhar",
-    fr: "Continuez pour créer une vidéo que vous pourrez partager",
-    hi: "एक ऐसा वीडियो बनाने के लिए जारी रखें जिसे आप साझा कर सकें",
-    bn: "এমন একটি ভিডিও তৈরি করতে চালিয়ে যান যা আপনি শেয়ার করতে পারেন"
+    en: "Continue to create and share your video",
+    es: "Continúa para crear y compartir tu video",
+    pt: "Continue para criar e compartilhar seu vídeo",
+    fr: "Continuez pour créer et partager votre vidéo",
+    hi: "अपना वीडियो बनाने और साझा करने के लिए जारी रखें",
+    bn: "আপনার ভিডিও তৈরি করতে এবং শেয়ার করতে চালিয়ে যান"
 },
 ```
 
@@ -149,7 +149,7 @@ Wrapping the button in `.ivp-choice-col` means the existing `.ivp-choice-col .ca
   - → no `.ivp-overlay.water-surface` in the DOM
 - phase `lessonSuccess-decisionTime`
   - → `.ivp-overlay.water-surface` is visible over the video
-  - → `.ivp-overlay-text` reads "Continue to create a video you can share" (en)
+  - → `.ivp-overlay-text` reads "Continue to create and share your video" (en)
   - → `.ivp-overlay-text` does not contain "Press a button below."
 - phase `viewAndContinueVideo`, `currentVideo.responseType === 'viewAndContinue'` + `ended`
   - → `appPhase === 'simpleVideo-decisionTime-viewAndContinue'`
@@ -201,7 +201,7 @@ Wrapping the button in `.ivp-choice-col` means the existing `.ivp-choice-col .ca
 1. The "great, you're almost done, just press the button below" clip is the existing `simpleVideoUrl: "success"` step (`src/config/model.json:93-97`; also referenced by `t.json` and `friend.json`). No new video is added.
 2. "Get big" means the button is revealed on video end as the standard 60 px `.call-btn`, not that a previously-visible small button grows in place. This matches the earlier steps, where the bottom action is hidden while the clip plays. If an always-visible button is preferred instead, the reveal gate in Task 3 is the only thing to change.
 3. The button label is the existing `continue` string ("CONTINUE"), placed above the button in the same `.ivp-choice-label` structure as `ViewAndContinueButtons`.
-4. The overlay copy is a **new** key `video_continue_create`, proposed as "Continue to create a video you can share" (plus es/pt/fr/hi/bn). The exact wording is the user's call and does not affect any AC except the string assertion in Task 2 — adjust the `en` value and update that one assertion together.
+4. The overlay copy is a **new** key `video_continue_create`, confirmed as "Continue to create and share your video" (plus proposed es/pt/fr/hi/bn). The exact wording does not affect any AC except the string assertion in Task 2 — if the `en` value changes, update that one assertion together.
 
 **Test harness details (Playwright):**
 
@@ -220,7 +220,7 @@ Wrapping the button in `.ivp-choice-col` means the existing `.ivp-choice-col .ca
 
 1. `npm run dev`, open `/course/model/lesson/g`, reach the success step (or drive `window.appStore` as the spec does).
 2. While the `success` clip plays: no bottom button, no overlay.
-3. When it ends: the blue water overlay appears reading "Continue to create a video you can share", and the film button is a large white glowing circle with a "CONTINUE" label above it, matching earlier steps.
+3. When it ends: the blue water overlay appears reading "Continue to create and share your video", and the film button is a large white glowing circle with a "CONTINUE" label above it, matching earlier steps.
 4. Press it: the `Generating...` state and the recap generation proceed exactly as before; the Share/Repeat/Continue buttons are unchanged.
 
 **Review checklist:**
