@@ -1,93 +1,95 @@
-# Auto-generate intro/UGC video posters on `npm run dev` and at publish time
+# Uniform video posters (`<video>.jpg`) for teacher + UGC, auto-generated on `npm run dev` and at publish time
 
 ## Context
 
-Every video shown in the app is addressed by a **slug**:
-`getVideoUrl(slug)` resolves teacher media to `assets/videos/<slug>.mp4` and
-friend/UGC media to `videos/<...-response-NN>.mp4` (`video-url.js:13-25`,
-`video-source.js:10-16`). A poster is a still frame of that media, so posters
-must share the same key.
+Every video in the app is addressed by a **slug**, and a poster is a still frame
+of that video, so a poster must be the video's URL with `.mp4` → `.jpg`:
+
+- Teacher media: `getVideoUrl(slug)` → `/assets/videos/<slug>.mp4` (dev, proxied)
+  or `https://r2.ultrafastfluency.com/assets/videos/<slug>.mp4`
+  (`video-url.js:13-25`).
+- Friend/UGC media: `getVideoUrl(...-response-NN)` →
+  `https://r2.ultrafastfluency.com/videos/<...-response-NN>.mp4`
+  (`video-url.js:13-25`, `video-source.js:10-16`).
+
+`getUgcThumbUrl` / `getUgcThumbKey` (`video-url.js:33-40`) already implement the
+`.mp4` → `.jpg` sibling rule. This story makes **all** posters follow it, so
+there is exactly one convention.
 
 ### A. Teacher/lesson-intro posters (config-driven)
 
-The lesson-intro poster is currently keyed by `lessonId`:
-`getPosterUrl(lessonId)` → `/assets/posters/<lessonId>.jpg` in dev or
-`https://r2.ultrafastfluency.com/assets/posters/<lessonId>.jpg` in production
-(`video-url.js:27-31`), paired with `getPosterLqip(lessonId)`
-(`IncomingVideoWidget.jsx:43-44`). The source is the slug in
-`lessons[].steps[0].introBackgroundVideoUrl`. Two defects:
+Today teacher posters live in a separate prefix keyed by `lessonId`:
+`getPosterUrl(lessonId)` → `/assets/posters/<lessonId>.jpg` (dev, served from
+`public/`) or `https://r2.ultrafastfluency.com/assets/posters/<lessonId>.jpg`,
+paired with `getPosterLqip(lessonId)` (`IncomingVideoWidget.jsx:43-44`). The
+source is the slug in `lessons[].steps[0].introBackgroundVideoUrl`. Three
+defects:
 
-1. **One config file per course, but only `model.json` is scanned.** There are
-   five configs in `src/config/` (`friend.json`, `gt2.json`, `model.json`,
-   `t.json`, `test-api.json`); `AppLayout.jsx` loads whichever the
-   `/course/:courseId` route names (`fetch('/src/config/${courseId}.json')`).
-   The generator/verifier hardcode `src/config/model.json`, so intro videos in
-   every other course can never get a poster.
-2. **`lessonId` is not unique across configs.** Evidence: `t` →
+1. **Wrong prefix (not a sibling).** Teacher posters are `assets/posters/<lessonId>.jpg`
+   while UGC posters are `videos/<key>.jpg`; the requested uniform rule is
+   `assets/videos/<slug>.jpg`.
+2. **One config file per course, but only `model.json` is scanned.** Five configs
+   exist in `src/config/`; `AppLayout.jsx` loads whichever the `/course/:courseId`
+   route names (`fetch('/src/config/${courseId}.json')`), yet the
+   generator/verifier hardcode `src/config/model.json`.
+3. **`lessonId` is not unique across configs.** Evidence: `t` →
    `do_you_have_rolls_too` in `model.json` but `gtests-1-0` in `t.json`; `a` →
    `gtests-1-0` in `model.json` but `testvideo01` in `friend.json`. A
-   `lessonId`-keyed poster is therefore wrong for one of every colliding pair.
+   `lessonId`-keyed poster is wrong for one of every colliding pair.
 
 The full first-step intro slug set across all configs is `testvideo01`,
 `do_you_have_rolls_too`, `do_you_have_dark_chocolate`, `gtests-1-0`,
 `gtests-0-1-1` (5 slugs; `gt2.json`'s 6 `introBackgroundVideoUrl` occurrences are
 non-first-step replays needing no poster). All 5 mp4s are live on R2
-(`HEAD` → `200`). The current generator also re-downloads every mp4 on every run
+(`HEAD` → `200`). The current generator re-downloads every mp4 on every run
 (`generateOne()` resolves the source before checking freshness,
 `generate-thumbnails.mjs:88-103`), and nothing poster-related runs on
 `npm run dev` (`package.json` has no `predev`).
 
 ### B. User-generated (UGC) friend posters — generated but never uploaded
 
-The friend-challenge flow already has all the poster machinery **except one
-link in the chain**:
+The friend-challenge flow has all the machinery **except one link**:
 
-- Recorded webcam clips get a JPEG thumb + LQIP via
-  `generateThumbFromBlob` (`thumbnail.web.js:17`), called in
-  `speech.web.js:223` and passed to `saveSpeechRecording`.
-- `storage.web.js:59-84,173-183` persists it (`thumbBlob` / `thumbArrayBuffer`
-  in IndexedDB) and restores it.
+- `generateThumbFromBlob` (`thumbnail.web.js:17`) makes a JPEG thumb from the
+  recorded webcam blob; `speech.web.js:223` passes it to `saveSpeechRecording`.
+- `storage.web.js:59-84,173-183` persists (`thumbBlob`/`thumbArrayBuffer`) and
+  restores it.
 - `video-processor.web.js:1332-1352` (`exportSegmentsToR2`) intends to upload a
-  **sibling** `videos/<shareCode>-<courseId>-<lessonId>-response-NN.jpg`
-  alongside the `.mp4`, via `getUgcThumbKey(key)`.
-- `functions/api/upload-segment.js:25-27,88` already accepts `.jpg`/`.jpeg` keys
-  under the `videos/${shareCode}-` namespace.
-- `video-url.js:33-40` defines `getUgcThumbUrl` / `getUgcThumbKey` (`.mp4` →
-  `.jpg`).
+  **sibling** `videos/<shareCode>-<courseId>-<lessonId>-response-NN.jpg` via
+  `getUgcThumbKey(key)`.
+- `functions/api/upload-segment.js:25-27,88` already accepts `.jpg`/`.jpeg` under
+  the `videos/${shareCode}-` namespace.
 
 **The bug:** `VideoRenderPlanner.generatePlan()`
-(`video-processor-logic.js:200-213`) builds the webcam plan step with
-`blob: rec.blob` but **drops `rec.thumbBlob`/`rec.thumbArrayBuffer`**. So
-`exportSegmentsToR2`'s `step.thumbBlob` is always `undefined`, the thumb-upload
-branch is a silent no-op (`Promise.resolve({url:null})`), and no UGC `.jpg` is
-ever uploaded. `getUgcThumbUrl` has zero callers, so nothing consumes a UGC
-poster either. This is exactly the user's concern.
+(`video-processor-logic.js:200-213`) builds the webcam step with
+`blob: rec.blob` but **drops `rec.thumbBlob`/`rec.thumbArrayBuffer`**, so
+`step.thumbBlob` is always `undefined`, the thumb-upload branch silently no-ops,
+and no UGC `.jpg` is ever uploaded. `getUgcThumbUrl` then has no consumer.
 
-**Trigger reality check.** The auto-caption pipeline is *not* triggered by
-`npm run dev`; new `simpleVideoUrl` slugs are captioned by
-`.github/workflows/captions.yml` on push. Teacher posters already run on that
-same push via `.github/workflows/deploy.yml`
-(`generate-thumbnails` → `--upload` → `verify`). The cloud/push half is covered;
-this story adds the local `npm run dev` trigger, a config-agnostic scan, and the
-missing UGC thumb link.
+**Trigger reality check.** Captions are not triggered by `npm run dev`; they are
+generated by `.github/workflows/captions.yml` on push. Teacher posters already
+run on that same push via `.github/workflows/deploy.yml`. This story adds the
+local `npm run dev` trigger, the config-agnostic scan, the uniform key, and the
+missing UGC upload link.
 
 ## Out of Scope
 
-- **No change to the caption pipeline.** `scripts/generate-captions.mjs`,
-  `.github/scripts/captions-changed.sh`, and `captions.yml` are untouched.
-- **No changes to `.github/workflows/*`.** `deploy.yml` keeps generating,
-  uploading, and verifying.
-- **No deletion of old R2 poster objects.** The old `assets/posters/<lessonId>.jpg`
-  objects are orphaned after the key change; removing them is manual Cloudflare
-  cleanup and not required for correctness.
-- **No `courseId` in the poster key.** The slug already disambiguates courses;
-  `courseId` would reintroduce the config-file-name-vs-`config.courseId` mismatch
-  (`friend.json` has `courseId: "20260921"` while the route uses `friend`).
-- **No new player rendering of UGC thumbs.** The players already build a canvas
-  FOUC poster after `loadeddata` (`SimpleVideoPlayer.web.jsx:117-130`). Wiring
-  the uploaded UGC thumb in as the player's initial `poster` is a UI change left
-  for a follow-up; this story makes the thumb exist and resolve
-  (`getUgcThumbUrl`), and `getPosterUrl` already returns it for UGC slugs.
+- **No change to the caption pipeline** (`generate-captions.mjs`,
+  `captions-changed.sh`, `captions.yml`).
+- **No changes to `.github/workflows/*`.** `deploy.yml` keeps driving generation,
+  upload, and verification.
+- **No deletion of old R2 objects.** `assets/posters/<lessonId>.jpg` (teacher) and
+  any prior objects become orphaned; R2 cleanup is manual and not required.
+- **No rendering of posters inside `SimpleVideoPlayer` / `InteractiveVideoPlayer`
+  video elements.** Those players set `<video poster>` only *after* the video's
+  first frame is decoded, using a canvas snapshot
+  (`SimpleVideoPlayer.web.jsx:117-130,347`,
+  `InteractiveVideoPlayer.web.jsx:169-...`). Using the uploaded `.jpg` as the
+  player's initial `poster` (so a remote UGC clip shows a frame before download)
+  is a separate UI change; this story only makes that `.jpg` exist and resolve.
+- **No `courseId` in the poster key.** The slug disambiguates; `courseId` would
+  reintroduce the config-filename-vs-`config.courseId` mismatch (`friend.json` has
+  `"20260921"`, the route uses `friend`).
 - **No new npm packages, no headless-browser screenshot.** Frame grabs stay
   ffmpeg (server) and canvas (`thumbnail.web.js`, client).
 - **No backfill beyond the current 5 teacher slugs.** Default generation is
@@ -96,8 +98,7 @@ missing UGC thumb link.
 ## Implementation approach
 
 **1. New pure module `scripts/lib/poster-utils.js`** (mirrors
-`scripts/lib/caption-utils.js`). Config-agnostic — it takes parsed configs, not a
-path:
+`scripts/lib/caption-utils.js`). Config-agnostic — takes parsed configs:
 
 ```js
 export const FRAME_AT_SECONDS = 0.2; // avoid the black frame at t=0
@@ -108,6 +109,7 @@ export const LQIP_WIDTH = 32;
 // A lesson contributes iff steps[0].introBackgroundVideoUrl is truthy.
 export function introTargets(configs) { … }        // -> [{ slug }]
 
+// <slug>.jpg — the sibling name shared by teacher and UGC posters.
 export function posterFilename(slug) { return `${slug}.jpg`; }
 
 // Pure run planner (fs/network stay in the CLI via the injected predicate).
@@ -117,46 +119,55 @@ export function planPosterRun({ configs, posterExists, moduleText }) { … }
 export function formatLqipModule(lqipsBySlug) { … }
 ```
 
-`planPosterRun` rules:
+`planPosterRun` rules: `targets` = `introTargets(configs)` whose
+`posterExists(slug)` is false (discovery order preserved); `rebuild: true` when
+`moduleText == null`, when some slug is not found as `"<slug>"`/`'<slug>'` in
+`moduleText`, or when `targets.length > 0`; otherwise `{ targets: [], rebuild: false }`.
 
-- `targets` = `introTargets(configs)` whose `posterExists(slug)` is false,
-  preserving discovery order.
-- `moduleText == null` → `rebuild: true`.
-- Some slug not found as `"<slug>"` or `'<slug>'` in `moduleText` → `rebuild: true`.
-- `targets.length > 0` → `rebuild: true`.
-- Otherwise `{ targets: [], rebuild: false }` (idempotent no-op).
+**2. One uniform poster rule.** Poster for any slug =
+`getVideoUrl(slug)` with `.mp4` → `.jpg`:
 
-**2. Teacher poster key becomes the slug.** Files
-`public/assets/posters/<slug>.jpg`; R2 `assets/posters/<slug>.jpg`;
-`getPosterUrl(slug)` / `getPosterLqip(slug)`;
-`POSTER_LQIPS = { "<slug>": "data:image/jpeg;base64,…" }`. Same key videos use,
-removing the `t`/`a` collisions.
+- Teacher: `assets/videos/<slug>.jpg` (dev `/assets/videos/<slug>.jpg`, served
+  locally; prod `https://r2.ultrafastfluency.com/assets/videos/<slug>.jpg`).
+- UGC: `https://r2.ultrafastfluency.com/videos/<key>.jpg`.
+- `getPosterUrl(slug)` returns `getUgcThumbUrl(getVideoUrl(slug))`; `null` for a
+  falsy slug. The `POSTER_BASE` constant and the `public/assets/posters/`
+  directory are removed.
 
-**3. Teacher runtime wiring (4 edits).**
+**3. Runtime wiring (4 edits).**
 
-- `video-url.js`: `getPosterUrl(slug)`; for a friend/UGC slug
-  (`isFriendVideoSlug`), return `getUgcThumbUrl(getVideoUrl(slug))` — the
-  sibling `.jpg`; otherwise the `assets/posters/<slug>.jpg` base. `null` for a
-  falsy slug.
-- `video-loader.web.js:58-69`: add `posterSlug: step.introBackgroundVideoUrl`
-  to the intro `currentVideo.config`.
+- `video-url.js`: replace `getPosterUrl(lessonId)` with the uniform
+  `getPosterUrl(slug)` above (uses the already-imported `isFriendVideoSlug` via
+  `getVideoUrl`). `getPosterLqip(slug)` stays slug-keyed.
+- `video-loader.web.js:58-69`: add `posterSlug: step.introBackgroundVideoUrl` to
+  the intro `currentVideo.config`.
 - `IncomingVideoWidget.jsx`: use
   `const posterSlug = show ? currentVideo.config?.posterSlug : null;` for both
   `getPosterUrl` / `getPosterLqip` (replaces `activeLessonId`).
 - `index.html:153-155`: preload calls
   `buildPosterUrlFn(lessonData?.steps?.[0]?.introBackgroundVideoUrl)` (the
   existing guard skips a null result).
+- `vite.config.js:72-75`: the `/assets/videos/` proxy must not swallow local
+  posters. Vite registers the proxy middleware **before** public static serving
+  (`node_modules/vite/dist/node/chunks/node.js:26277` vs `:26285`), so add a
+  `bypass` that serves `.jpg`/`.jpeg` from `public/` and proxies `.mp4`:
+  ```js
+  bypass(req) { if (/\.jpe?g(\?.*)?$/i.test(req.url)) return req.url; }
+  ```
+  (Verified: a string return from `bypass` sets `req.url` and calls `next()`, so
+  `servePublicMiddleware` serves the local file.)
 
 **4. `scripts/generate-thumbnails.mjs` rework.** Loads every
-`src/config/*.json` and generates slug-keyed teacher posters. Flags:
+`src/config/*.json` and writes slug-keyed teacher posters to
+`public/assets/videos/<slug>.jpg`. Flags:
 
 | flag | behavior |
 | --- | --- |
 | *(none)* | Missing-only: generate `targets`; rebuild the LQIP module only when `planPosterRun().rebuild`. Exit non-zero **only** if ffmpeg is required but absent. |
-| `--dev` | Same as default but **always exits 0** (logs `WARN`); its exit-0 guarantee wins even combined with `--force`. Called by `predev`. |
+| `--dev` | Same as default but **always exits 0** (logs `WARN`); wins even combined with `--force`. Called by `predev`. |
 | `--force` | Ignore existing posters; re-render every intro slug. |
-| `--upload` | `wrangler r2 object put` each poster as `uff/assets/posters/<slug>.jpg` (version-aware `--remote`). |
-| `--check` | Non-zero if any intro slug lacks a poster or LQIP entry. |
+| `--upload` | `wrangler r2 object put` each poster as `uff/assets/videos/<slug>.jpg` (version-aware `--remote`). |
+| `--check` | Non-zero if any intro slug lacks `public/assets/videos/<slug>.jpg` or its LQIP entry. |
 | `--help` | Prints flags, exits 0. |
 
 Per target: source `--video-dir/<slug>.mp4` → `public/assets/videos/<slug>.mp4` →
@@ -164,33 +175,29 @@ download `https://r2.ultrafastfluency.com/assets/videos/<slug>.mp4` into
 `os.tmpdir()/uff-posters-cache/`; poster
 `ffmpeg -y -loglevel error -ss 0.2 -i <src> -vframes 1 -vf scale=640:-2 -q:v 4 <slug>.jpg`.
 
-**5. LQIP is derived from the poster, not the video.** For every intro slug with
-a poster file, run `ffmpeg -i <slug>.jpg -vframes 1 -vf scale=32:-2 -q:v 15 <tmp>`,
+**5. LQIP derived from the poster, not the video.** For every intro slug with a
+poster, run `ffmpeg -i <slug>.jpg -vframes 1 -vf scale=32:-2 -q:v 15 <tmp>`,
 base64 it, and write `formatLqipModule(...)` to
-`src/generated/poster-lqips.js`. Removes the second video extraction; module is
-rewritten only when `rebuild` is true (no-op runs stay byte-identical).
+`src/generated/poster-lqips.js`. Module is rewritten only when `rebuild` is true
+(no-op runs stay byte-identical).
 
 **6. UGC poster: carry the thumb into the publish plan.** Add
 `thumbBlob: rec.thumbBlob || null` and
 `thumbArrayBuffer: rec.thumbArrayBuffer || null` to the webcam step in
 `video-processor-logic.js:200-213`. `exportSegmentsToR2` then uploads the sibling
-`.jpg` via the existing `getUgcThumbKey` branch (non-fatal, already coded). This
-is the only production-code fix needed for UGC; generation
-(`speech.web.js`/`thumbnail.web.js`), persistence (`storage.web.js`), the
-Function (`upload-segment.js`), and the URL helpers already exist. The key is
-the video key with `.mp4` → `.jpg`, so UGC posters are "named the same way" as
-their video.
+`.jpg` via the existing `getUgcThumbKey` branch. No other UGC code changes:
+generation, persistence, the Function, and the URL helper already exist.
 
-**7. Migration + trigger + verification.**
-`node scripts/generate-thumbnails.mjs --force` produces the 5
-`public/assets/posters/<slug>.jpg`; delete the old `lessonId` files
-(`a.jpg g.jpg h.jpg t.jpg test.jpg w.jpg wa.jpg wf.jpg wfa.jpg x.jpg`);
-regenerate `poster-lqips.js`; update `tests/poster-check.spec.js:11` to
-`/assets/posters/do_you_have_rolls_too.jpg`. `package.json` gains
+**7. Migration + trigger + verification.** `node scripts/generate-thumbnails.mjs
+--force` writes the 5 `public/assets/videos/<slug>.jpg`; delete
+`public/assets/posters/` (the 10 old `lessonId` files); regenerate
+`poster-lqips.js`; update `tests/poster-check.spec.js:11` to
+`/assets/videos/do_you_have_rolls_too.jpg`. `package.json` gains
 `"predev": "node scripts/generate-thumbnails.mjs --dev"`. `verify-thumbnails.mjs`
-imports `introTargets`, scans all configs, and checks each slug's poster + LQIP
-entry (and R2 with `--remote`); it remains the gate in `playwright.yml` and
-`deploy.yml`.
+imports `introTargets`, scans all configs, and checks local
+`public/assets/videos/<slug>.jpg` + LQIP (and R2
+`assets/videos/<slug>.jpg` with `--remote`); it remains the gate in
+`playwright.yml` and `deploy.yml`.
 
 ## Tasks
 
@@ -232,27 +239,30 @@ entry (and R2 with `--remote`); it remains the gate in `playwright.yml` and
 - default run (`node scripts/generate-thumbnails.mjs`) in this repo after migration
   - → exits 0
   - → `src/generated/poster-lqips.js` is byte-identical before and after
-  - → no poster file changes size/content
+  - → no file in `public/assets/videos/` changes size/content
 - `node scripts/generate-thumbnails.mjs --dev` in this repo → exits 0
 - `node scripts/generate-thumbnails.mjs --check` in this repo → exits 0
 - `--force` + no ffmpeg on PATH (spawn with a PATH lacking ffmpeg)
   - → exits non-zero with a message naming ffmpeg
 - `--force --dev` + no ffmpeg on PATH → exits 0 (`--dev` override wins)
-- committed `public/assets/posters/` after this change
+- committed `public/assets/videos/` after this change
   - → contains `testvideo01.jpg`, `do_you_have_rolls_too.jpg`, `do_you_have_dark_chocolate.jpg`, `gtests-1-0.jpg`, `gtests-0-1-1.jpg`
-  - → contains none of `a.jpg`, `g.jpg`, `h.jpg`, `t.jpg`, `test.jpg`, `w.jpg`, `wa.jpg`, `wf.jpg`, `wfa.jpg`, `x.jpg`
+  - → the `public/assets/posters/` directory no longer exists
 - `src/generated/poster-lqips.js` after this change
   - → every `POSTER_LQIPS` key is one of the 5 slugs (no `lessonId` keys)
 
-### Task 3 - Slug-keyed runtime contract (teacher + UGC-aware)
+### Task 3 - Uniform slug-keyed runtime contract (teacher + UGC)
 
 - `src/modules/video/video-url.js` via vitest
-  - → `getPosterUrl('do_you_have_rolls_too')` matches `/assets\/posters\/do_you_have_rolls_too\.jpg$/`
-  - → `getPosterUrl('ab12-model-w-response-01')` equals `https://r2.ultrafastfluency.com/videos/ab12-model-w-response-01.jpg` (UGC sibling)
+  - → `getPosterUrl('do_you_have_rolls_too')` matches `/assets\/videos\/do_you_have_rolls_too\.jpg$/`
+  - → `getPosterUrl('ab12-model-w-response-01')` equals `https://r2.ultrafastfluency.com/videos/ab12-model-w-response-01.jpg`
   - → `getPosterUrl('')` and `getPosterUrl(undefined)` return `null`
+  - → `getPosterUrl` no longer references a `POSTER_BASE` / `assets/posters` prefix
 - `src/generated/poster-lqips.js` via vitest
   - → `getPosterLqip('do_you_have_rolls_too')` returns a `data:image/jpeg;base64,` string
   - → `getPosterLqip('t')` returns `null` (old `lessonId` keys are gone)
+- `vite.config.js` source
+  - → the `/assets/videos/` proxy has a `bypass` that returns the request URL for `.jpg`/`.jpeg` and leaves `.mp4` proxied
 - `src/modules/video/video-loader.web.js` source
   - → the intro `currentVideo.config` includes `posterSlug: step.introBackgroundVideoUrl`
 - `src/components/IncomingVideoWidget.jsx` source
@@ -260,7 +270,7 @@ entry (and R2 with `--remote`); it remains the gate in `playwright.yml` and
 - `index.html` source
   - → the poster preload passes a slug from `steps` / `introBackgroundVideoUrl` to `buildPosterUrlFn`, not `lessonData.lessonId`
 - `tests/poster-check.spec.js` source
-  - → the expected poster path is `/assets/posters/do_you_have_rolls_too.jpg`
+  - → the expected poster path is `/assets/videos/do_you_have_rolls_too.jpg`
 
 ### Task 4 - UGC poster upload (friend recordings)
 
@@ -286,36 +296,40 @@ entry (and R2 with `--remote`); it remains the gate in `playwright.yml` and
   - → existing `posters`, `posters:upload`, `posters:check`, `predeploy` entries are unchanged
 - `scripts/verify-thumbnails.mjs` source read
   - → imports `introTargets` from `./lib/poster-utils.js`
-  - → no private `introLessons` / `model.json`-only read remains
+  - → no private `introLessons` / `model.json`-only read remains; checks `public/assets/videos/<slug>.jpg`
 - `node scripts/verify-thumbnails.mjs` in this repo → exits 0 and reports 5 intro slugs
 - `README.md` read
-  - → documents `npm run dev` teacher-poster generation (all courses, slug-keyed), the UGC sibling `.jpg`, and `--force`
+  - → documents uniform `<video>.jpg` posters, `npm run dev` generation, and `--force`
 - `agents.md` read
   - → states first-step intro posters auto-generate on `npm run dev` for every course and must not be hand-created
 - `docs/product.md` read
-  - → Features contains a bullet describing `npm run dev` slug-keyed poster generation and UGC sibling posters, linking to `stories/011-auto-intro-poster/story.md`
+  - → Features contains a bullet describing uniform slug-sibling posters (`<video>.jpg`) for teacher and UGC, linking to `stories/011-auto-intro-poster/story.md`
 
 ## Technical Context
 
 - **No new packages.** Zero `dependencies`/`devDependencies` added.
-- **ffmpeg 6.1.1** — already required by the poster/caption pipelines (`deploy.yml`,
-  `captions.yml`); confirmed locally.
-- **All 5 teacher intro slugs verified live on R2** (`curl -I` → `200`), so a full
-  `--force` re-render works locally without Cloudflare creds (downloads are public).
+- **ffmpeg 6.1.1** — already required by the poster/caption pipelines; confirmed
+  locally. All 5 teacher intro slugs are live on R2 (`HEAD` → `200`).
 - **Node 20+** (CI `setup-node@v4`, local v22.23.2); global `fetch` available.
+- **Vite proxy beats public static.** In Vite 8.0.10 the proxy middleware is
+  registered before `servePublicMiddleware` (`chunks/node.js:26277` vs `:26285`),
+  so the `bypass` is required for local `public/assets/videos/*.jpg` to win over
+  the R2 proxy. Verified `bypass` returning a string sets `req.url` and calls
+  `next()` (`chunks/node.js:17880-17888`).
 - **vitest** — `vitest.config.js` has no `include`, so `**/*.test.js` runs;
-  `**/tests/**` and `**/*.spec.js` are excluded. Relevant existing tests:
+  `**/tests/**` and `**/*.spec.js` excluded. Existing tests to extend:
   `src/modules/video/video-url.test.js` (getVideoUrl routing),
-  `src/modules/video/video-processor-logic.test.js` (generatePlan). `npm test --
-  --run` is the gate (eslint/knip not runnable — `docs/learnings.md`).
+  `src/modules/video/video-processor-logic.test.js` (generatePlan). Gate:
+  `npm test -- --run` (eslint/knip not runnable — `docs/learnings.md`).
 - **Poster contract call sites (all updated here):**
   `video-url.js:27-40`; `video-loader.web.js:52-70`;
-  `IncomingVideoWidget.jsx:5-6,43-44,268-299`; `index.html:153-155`.
-- **UGC poster chain:** generation `thumbnail.web.js:17` +
-  `speech.web.js:223`; persistence `storage.web.js:59-84,173-183`; plan
+  `IncomingVideoWidget.jsx:5-6,43-44,268-299`; `index.html:153-155`;
+  `vite.config.js:71-84`.
+- **UGC poster chain:** generation `thumbnail.web.js:17` + `speech.web.js:223`;
+  persistence `storage.web.js:59-84,173-183`; plan
   `video-processor-logic.js:200-213`; upload `video-processor.web.js:1332-1352`;
-  client `r2-upload.web.js:25-51`; Function `functions/api/upload-segment.js:25-27,88`;
-  URL helpers `video-url.js:33-40`.
+  client `r2-upload.web.js:25-51`; Function
+  `functions/api/upload-segment.js:25-27,88`; URL helpers `video-url.js:33-40`.
 - **CI gates already present:** `.github/workflows/deploy.yml` (generate →
   `--upload` → `verify`) and `.github/workflows/playwright.yml`
   (`node scripts/verify-thumbnails.mjs`).
@@ -325,41 +339,35 @@ entry (and R2 with `--remote`); it remains the gate in `playwright.yml` and
 - **Trigger assumption (confirm before implementing).** The user says
   translations are created "when we do `npm run dev`"; in fact they are created
   by `.github/workflows/captions.yml` on push. This story takes the user at their
-  literal word and adds the missing **`predev`** trigger, leaving the existing
-  push pipeline (which already generates posters) in place. The alternative —
-  hooking posters into `.github/scripts/captions-changed.sh` — would replace
-  Task 5's `predev` wiring; say so before implementing.
-- **UGC scope decision.** The user asked whether UGC videos can get a poster
-  created and uploaded at the same time, "called the same way". Investigation
-  showed generation, persistence, the R2 Function, and the naming helper all
-  already exist — the only missing link is that `generatePlan()` drops the thumb,
-  so nothing uploads. Task 4 therefore fixes one field-passing bug plus tests;
-  it does not build a new pipeline. Rendering the UGC thumb inside the players is
-  intentionally out of scope (they already have a canvas FOUC poster).
-- **Why the key changed (not just the scan).** `lessonId` collides across configs
-  with different slugs (`t`, `a`), so a `lessonId`-keyed poster is wrong for one
-  of every colliding pair. Slug keying matches `getVideoUrl(slug)` and is
-  collision-free; UGC posters use the same slug convention (`.mp4` → sibling
-  `.jpg`).
-- **Dedup is intended.** `testvideo01` (4 lessons), `do_you_have_dark_chocolate`
-  (3), and `gtests-1-0` (2) share one poster each because they are the same
-  media; UGC clips each get their own.
+  literal word and adds the **`predev`** trigger, leaving the existing push
+  pipeline in place. The alternative — hooking posters into
+  `.github/scripts/captions-changed.sh` — would replace Task 5's `predev` wiring.
+- **Uniformity decision.** Teacher posters move from `assets/posters/<slug>.jpg`
+  to the sibling `assets/videos/<slug>.jpg` so both teacher and UGC posters are
+  addressed by `getVideoUrl(slug).replace('.mp4', '.jpg')`. The LQIP map
+  (`POSTER_LQIPS`) is unchanged in shape (base64 keyed by slug) — only the R2/dev
+  path and file location change.
+- **UGC scope.** The user asked whether UGC videos get a poster created and
+  uploaded "at the same time, called the same way". Generation, persistence, the
+  Function, and the naming helper already exist; the only missing link is that
+  `generatePlan()` drops the thumb, so nothing uploads. Task 4 fixes one
+  field-passing bug plus tests. Rendering the UGC thumb as the player's initial
+  `<video poster>` is intentionally out of scope (see Out of Scope).
 - **`predev` is non-fatal by design.** Missing ffmpeg or an unreachable R2 cannot
   block `npm run dev`; it logs `WARN` and leaves the gradient fallback.
-  `verify-thumbnails.mjs` (and CI) is where a missing teacher poster fails loudly.
-- **Frame time.** `FRAME_AT_SECONDS = 0.2` is retained (not `0`) because the
-  first frame of these mp4s is frequently black; the user's "first screen" maps
-  to this constant. The UGC thumb already uses the same 0.2s
+- **Frame time.** `FRAME_AT_SECONDS = 0.2` retained (not `0`) because the first
+  frame of these mp4s is frequently black; the UGC thumb already uses 0.2
   (`speech.web.js:223`).
-- **UGC auth.** `upload-segment.js` verifies the Supabase JWT and that the key
-  starts with `videos/${shareCode}-` before writing; the sibling `.jpg` rides the
-  same namespace, so no Function change is needed.
-- **One-time generation step (implementer):**
-  `node scripts/generate-thumbnails.mjs --force`, then remove the old
-  `lessonId`-named poster files. `--upload` (needs Cloudflare creds) is prod-only.
+- **UGC auth.** `upload-segment.js` verifies the Supabase JWT and the
+  `videos/${shareCode}-` prefix; the sibling `.jpg` rides the same namespace, so
+  no Function change is needed.
+- **One-time migration (implementer):**
+  `node scripts/generate-thumbnails.mjs --force`, then
+  `git rm -r public/assets/posters`. `--upload` (needs Cloudflare creds) is
+  prod-only.
 - **Manual end-to-end check:** load `http://localhost:3000/course/model/lesson/t`
-  (poster renders, no broken icon) and `/course/t/lesson/y` (a slug that only
-  existed after this change). Publish a friend lesson and confirm a sibling
-  `.jpg` appears on R2 next to each `-response-NN.mp4`.
+  (poster renders from `/assets/videos/do_you_have_rolls_too.jpg`, no broken icon)
+  and `/course/t/lesson/y`. Publish a friend lesson and confirm a sibling `.jpg`
+  appears on R2 next to each `-response-NN.mp4`.
 - **`docs/product.md`** is updated in this planning commit; the implementer adds
   the README/`agents.md` notes described in Task 5.
