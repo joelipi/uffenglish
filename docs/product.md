@@ -33,6 +33,7 @@
 - Speech recognition runs Whisper in-browser and requires COOP/COEP and cross-origin headers; videos and Whisper fail on staging without the Cloudflare Transform Rules (`docs/cloudflare-video-cors.md`).
 - Mic/camera cannot be exercised headlessly; many flows require the documented test bypasses (`agents.md`).
 - Lesson media is hosted on Cloudflare R2 (`assets/videos/<slug>.mp4`); video files are gitignored (too large for the repository) and uploaded out of band, so lesson video playback depends on R2 availability and on the real recordings having been uploaded.
+- Lesson-intro posters follow the same `<video>.jpg` sibling rule and are R2-only (`assets/videos/<slug>.jpg` for teacher intros, `videos/<…>.jpg` for UGC); teacher posters are generated/uploaded on push for every course and UGC posters at publish, so nothing is committed or served locally and a poster is only as available as R2 ([story](stories/011-auto-intro-poster/story.md)).
 - Playwright's bundled Chromium lacks H.264/AAC codecs; video specs must run real Chrome (`agents.md` §5).
 - The R2 UGC 48h TTL is configured in the Cloudflare dashboard, not in `wrangler.toml` (`README.md:98`).
 - Classroom/staging testing depends on R2 availability; video playback cannot be fully verified offline.

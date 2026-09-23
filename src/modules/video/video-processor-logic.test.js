@@ -278,6 +278,48 @@ describe('isDroppedStep / markFirstRenderable', () => {
     });
 });
 
+describe('VideoRenderPlanner.generatePlan — UGC poster thumb carry-through', () => {
+    it('carries rec.thumbBlob into the webcam step', () => {
+        const thumb = { size: 42, type: 'image/jpeg' };
+        const recordings = [{
+            originalLessonId: 'w', originalStepIndex: 1, blob: { size: 1 },
+            userResponse: 'a', thumbBlob: thumb,
+        }];
+        const planner = new VideoRenderPlanner(
+            recordings, makeConfig(), { total: 80 }, 'en', 'ab12'
+        );
+        const webcam = planner.generatePlan().find(s => s.type === 'webcam');
+
+        expect(webcam.thumbBlob).toBe(thumb);
+        expect(webcam.thumbArrayBuffer).toBeNull();
+    });
+
+    it('carries rec.thumbArrayBuffer (IndexedDB-restored) into the webcam step', () => {
+        const buffer = new ArrayBuffer(8);
+        const recordings = [{
+            originalLessonId: 'w', originalStepIndex: 1, blob: { size: 1 },
+            userResponse: 'a', thumbArrayBuffer: buffer,
+        }];
+        const planner = new VideoRenderPlanner(
+            recordings, makeConfig(), { total: 80 }, 'en', 'ab12'
+        );
+        const webcam = planner.generatePlan().find(s => s.type === 'webcam');
+
+        expect(webcam.thumbArrayBuffer).toBe(buffer);
+        expect(webcam.thumbBlob).toBeNull();
+    });
+
+    it('defaults both thumb fields to null when there is no thumb', () => {
+        const planner = new VideoRenderPlanner(
+            makeRecordings(1), makeConfig(), { total: 80 }, 'en', 'ab12'
+        );
+        const webcam = planner.generatePlan().find(s => s.type === 'webcam');
+
+        expect(webcam.thumbBlob).toBeNull();
+        expect(webcam.thumbArrayBuffer).toBeNull();
+    });
+});
+
 describe('video-processor-logic.js platform-agnostic guard', () => {
     // Strip comments so prose (e.g. "share window") can't trip the globals check.
     // NOTE: not used for the URL check — this stripper treats the "//" in

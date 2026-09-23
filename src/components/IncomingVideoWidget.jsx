@@ -32,16 +32,15 @@ export default function IncomingVideoWidget() {
         appStore.subscribe,
         () => appStore.getState().currentVideo
     );
-    const activeLessonId = useSyncExternalStore(
-        appStore.subscribe,
-        () => appStore.getState().activeLessonId
-    );
 
     const show = currentVideo?.type === 'intro';
     const config = show ? currentVideo.config : null;
     const subtitle = config?.subtitle;
-    const posterUrl = show ? getPosterUrl(activeLessonId) : null;
-    const posterLqip = show ? getPosterLqip(activeLessonId) : null;
+    // Poster is keyed by the video slug (set by video-loader.web.js), not the
+    // lessonId — a lessonId is not unique across course configs.
+    const posterSlug = show ? currentVideo.config?.posterSlug : null;
+    const posterUrl = posterSlug ? getPosterUrl(posterSlug) : null;
+    const posterLqip = posterSlug ? getPosterLqip(posterSlug) : null;
 
     const signalPosterReady = useCallback(() => {
         if (posterSignalledRef.current) return;

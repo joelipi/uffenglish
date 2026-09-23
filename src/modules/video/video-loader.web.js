@@ -65,6 +65,9 @@ export function loadVideoForStep(step, _state, lang) {
                 name: 'Joe Walsh',
                 role: 'English Coach, UFF',
                 alertText: Strings.getBilingual('press_webcam', lang),
+                // Slug-keyed R2 poster (assets/videos/<slug>.jpg); the widget
+                // resolves it via getPosterUrl/getPosterLqip.
+                posterSlug: step.introBackgroundVideoUrl,
             }
         });
     }

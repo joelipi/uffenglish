@@ -4,7 +4,6 @@
 import { isFriendVideoSlug } from './video-source.js';
 
 const CDN_BASE = 'https://r2.ultrafastfluency.com/assets/videos/';
-const POSTER_BASE = 'https://r2.ultrafastfluency.com/assets/posters/';
 // UGC friend recordings live under /videos/ (48h TTL, see exportSegmentsToR2 key
 // "videos/{shareCode}-{courseId}-{lessonId}-response-0N.mp4"). Teacher/system
 // media lives under /assets/videos/.
@@ -24,10 +23,13 @@ export function getVideoUrl(slug) {
     return `${CDN_BASE}${slug}.mp4`;
 }
 
-export function getPosterUrl(lessonId) {
-    if (!lessonId) return null;
-    const base = import.meta.env.DEV ? '/assets/posters/' : POSTER_BASE;
-    return `${base}${lessonId}.jpg`;
+// Uniform poster rule: a poster is a still of its video, so it is the video URL
+// with .mp4 -> .jpg. Teacher intros resolve to /assets/videos/<slug>.jpg (dev
+// relative, proxied to R2; prod absolute), UGC to /videos/<key>.jpg. Posters are
+// never served locally.
+export function getPosterUrl(slug) {
+    if (!slug) return null;
+    return getUgcThumbUrl(getVideoUrl(slug));
 }
 
 export function getUgcThumbUrl(r2VideoUrl) {
