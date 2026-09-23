@@ -4,10 +4,11 @@ import { test, expect } from '@playwright/test';
 // Lesson g carries a responseType:"success" step with simpleVideoUrl:"success".
 const LESSON_URL = '/course/model/lesson/g';
 
-// Invalid (but codec-independent) media source. We never let it autoplay or
-// end on its own, so the pre-reveal state is deterministic and the spec does
-// not depend on H.264 decoding (Playwright's bundled Chromium lacks it).
-const SENTINEL_SRC = 'data:video/mp4;base64,AAAA';
+// A tiny valid VP9/WebM clip (616 bytes, generated with ffmpeg). Bundled
+// Chromium decodes WebM natively, unlike H.264, so the video loads and does not
+// fire `error`; autoplay is blocked below so `ended` only fires when we dispatch
+// it. This keeps the pre-reveal state deterministic without codec flakiness.
+const SENTINEL_SRC = 'data:video/webm;base64,GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQJChYECGFOAZwEAAAAAAAI4EU2bdLpNu4tTq4QVSalmU6yBoU27i1OrhBZUrmtTrIHYTbuMU6uEElTDZ1OsggEeTbuMU6uEHFO7a1OsggIi7AEAAAAAAABZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVSalmsirXsYMPQkBNgI1MYXZmNjAuMTYuMTAwV0GNTGF2ZjYwLjE2LjEwMESJiEBpAAAAAAAAFlSua8GuAQAAAAAAADjXgQFzxYjcq/RnP6WRk5yBACK1nIN1bmSIgQCGhVZfVlA5g4EBI+ODhAJiWgDgibCBELqBEJqBAhJUw2dAgHNzoGPAgGfImkWjh0VOQ09ERVJEh41MYXZmNjAuMTYuMTAwc3PaY8CLY8WI3Kv0Zz+lkZNnyKVFo4dFTkNPREVSRIeYTGF2YzYwLjMxLjEwMiBsaWJ2cHgtdnA5Z8ihRaOIRFVSQVRJT05Eh5MwMDowMDowMC4yMDAwMDAwMDAAH0O2dfnngQCjoIEAAICCSYNCAADwAPYAOCQcGEoAADBgAAAQv//9SIwAo5OBACgAhgBAkpwAUAAAAyAAAEJAo5OBAFAAhgBAkpwATuAAAyAAAEJAo5OBAHgAhgBAkpwAUAAAAyAAAEJAo5OBAKAAhgBAkpwATUAAAyAAAEJAHFO7a5G7j7OBALeK94EB8YIBpPCBAw==';
 
 const NOISE = ['favicon', 'source map', 'Whisper', 'vite', '401', 'Unauthorized', 'ERR_CACHE_WRITE_FAILURE'];
 
@@ -41,7 +42,7 @@ test.describe('Success screen — concat button reveal', () => {
         await page.addInitScript(() => {
             const origPlay = HTMLMediaElement.prototype.play;
             HTMLMediaElement.prototype.play = function () {
-                if (typeof this.src === 'string' && this.src.startsWith('data:video/mp4')) {
+                if (typeof this.src === 'string' && this.src.startsWith('data:video/webm')) {
                     return Promise.reject(new DOMException('autoplay disabled for test', 'NotAllowedError'));
                 }
                 return origPlay.apply(this, arguments);
@@ -53,10 +54,8 @@ test.describe('Success screen — concat button reveal', () => {
     async function waitForLessonReady(page) {
         await page.waitForFunction(() => {
             const s = window.appStore?.getState();
-            return s?.activeLessonId === 'g' && s?.currentVideo?.type === 'intro';
+            return s?.activeLessonId === 'g' && s?.currentVideo?.type === 'intro' && s?.appPhase === 'lessonIntro';
         }, null, { timeout: 25000 });
-        // Let any remaining post-load microtasks settle before overriding state.
-        await page.waitForTimeout(500);
     }
 
     /** Load lesson g, close the guest modal, and mount a pending success video. */
@@ -170,6 +169,25 @@ test.describe('Success screen — concat button reveal', () => {
         await expect(page.locator('#state-lesson-success .ivp-choice-label-text')).toHaveText('CONTINUE');
 
         expect(errors).toEqual([]);
+    });
+
+    test('reveals the button when the success video fails to load', async ({ page }) => {
+        await setupSuccessScreen(page);
+        await waitForVideoWrapper(page);
+        await expect(page.locator('#processBtn')).toHaveCount(0);
+
+        // Simulate a broken/undecodable clip: `ended` never fires, so the
+        // onError fallback must reveal the button instead of stranding the user.
+        await page.evaluate(() => {
+            document.querySelector('.ivp-video')?.dispatchEvent(new Event('error'));
+        });
+
+        await expect(page.locator('#processBtn')).toBeVisible();
+        await page.waitForFunction(
+            () => window.appStore.getState().appPhase === 'lessonSuccess-decisionTime',
+            null,
+            { timeout: 5000 }
+        );
     });
 
     test('reveals the button immediately when the success step has no video', async ({ page }) => {

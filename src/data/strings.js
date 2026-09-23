@@ -1425,6 +1425,8 @@ const strings = {
     'continue': {
         en: "CONTINUE",
         es: "CONTINUAR",
+        pt: "CONTINUAR",
+        fr: "CONTINUER",
         hi: "जारी रखें",
         bn: "চালিয়ে যান"
     },

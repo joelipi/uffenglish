@@ -20,7 +20,7 @@ The success step already carries a short "you're almost done, press the button b
 - Adding or re-recording the "almost done" video. The existing `success` slug is used as-is.
 - Changing the concat/processing behavior, `processVideo`, `exportSegmentsToR2`, the `Generating...` spinner state, or the post-generation `Share`/`Repeat`/`Continue` buttons.
 - The guest `SaveClipsModal` flow (`SaveClipsModal.web.jsx`) and its timing.
-- The button's film icon (kept) and any change to the existing `video_continue` / `continue` strings (only a new key is added).
+- The button's film icon (kept) and the existing `video_continue` overlay string (the success step uses its own new key).
 - `SimpleVideoPlayer.native.jsx` (dead-code reference implementation; it has no `handleEnded`).
 - Any change to `src/config/*.json`.
 
@@ -49,6 +49,20 @@ Extend `handleEnded` (`:167-181`) with a success branch plus a success log (`age
     console.log('[SimpleVideo] Success video ended → revealing concat button');
     appStore.getState().transitionTo('lessonSuccess-decisionTime', {}, { fromStepLoad: true });
 }
+```
+
+Also add an `onError` fallback so a broken/undecodable clip (where `ended` never fires) cannot strand the learner on the success screen:
+
+```js
+const handleError = useCallback(() => {
+    const cv = appStore.getState().currentVideo;
+    if (cv?.responseType === 'success') {
+        console.warn('[SimpleVideo] Success video failed to load → revealing concat button');
+        appStore.getState().transitionTo('lessonSuccess-decisionTime', {}, { fromStepLoad: true });
+    }
+}, []);
+// ...
+<video ... onEnded={handleEnded} onError={handleError} ... />
 ```
 
 Generalise the overlay condition (`:360`) to render for both decision phases, and select the copy by phase. The existing `video_continue` ("Press a button below.") stays for the earlier steps; the new `video_continue_create` key explains the outcome for the success step:
@@ -112,7 +126,7 @@ if (button.state === 'idle') {
 }
 ```
 
-- The label reuses the existing `continue` string (`strings.js:1415-1420`: "CONTINUE" / "CONTINUAR" / "जारी रखें" / "চালিয়ে যান"), exactly as `ViewAndContinueButtons` does. No new label copy.
+- The label reuses the existing `continue` string, exactly as `ViewAndContinueButtons` does. Because this story makes the label visible (previously the button was icon-only), add the missing `pt` ("CONTINUAR") and `fr` ("CONTINUER") entries so Portuguese/French learners do not see an English label.
 - `!successVideoPending` is the no-video fallback (e.g. a `unitcomplete` step with no `simpleVideoUrl`, where `handleUnitComplete` still enters `lessonSuccess`): with no clip to wait for, the button is revealed immediately rather than stranding the learner.
 - Drop `text-white` from the icon: `.call-btn` forces `color: #1a1a1a !important` (`app.css:610-614`); every other call button uses a bare `<i>` for the same reason.
 - The guest-modal `useEffect` is unaffected: it runs on `button.visible`, not on whether the idle button renders.
@@ -127,7 +141,7 @@ Wrapping the button in `.ivp-choice-col` means the existing `.ivp-choice-col .ca
 - `viewAndContinue` video end → unchanged (`simpleVideo-decisionTime-viewAndContinue`, overlay still `video_continue`).
 - Guest: the modal still opens at success-screen appearance; after dismissal the video/overlay/button behave the same.
 - Video cannot autoplay (blocked/muted) → the existing tap-to-play icon still starts it; the button is revealed on `ended`.
-- Video file missing → the button stays hidden, the same accepted R2 dependency as every other step (product Known Limitations).
+- Video file missing or undecodable → the `onError` handler transitions to `lessonSuccess-decisionTime`, revealing the button instead of stranding the learner. (The water overlay is only visible while the video wrapper is; the button lives in the bottom overlay, so it still appears.)
 - Non-en learner → the label shows the English word plus the localized line, and the overlay shows the English copy plus the localized line, matching the bilingual treatment of every other overlay.
 
 ## Tasks
@@ -145,6 +159,9 @@ Wrapping the button in `.ivp-choice-col` means the existing `.ivp-choice-col .ca
 
 - phase `lessonSuccess`, `currentVideo.responseType === 'success'`, video wrapper visible + native `ended` event dispatched on `.ivp-video`
   - → `appPhase === 'lessonSuccess-decisionTime'`
+- phase `lessonSuccess`, `currentVideo.responseType === 'success'`, native `error` event dispatched on `.ivp-video` (clip never ends)
+  - → `appPhase === 'lessonSuccess-decisionTime'`
+  - → `#processBtn` is visible
 - phase `lessonSuccess` before `ended`
   - → no `.ivp-overlay.water-surface` in the DOM
 - phase `lessonSuccess-decisionTime`
@@ -191,7 +208,7 @@ Wrapping the button in `.ivp-choice-col` means the existing `.ivp-choice-col .ca
 - React 19.2.0 + Zustand 5.0.13: `useStore(appStore, selector)` subscriptions are the established pattern. The new phase is pure data added to `phaseMapping`, covered by the existing `store.test.js` `transitionTo` suite.
 - `src/data/strings.test.js:16-31` auto-iterates `Object.keys(strings)` and requires `hi` (Devanagari, `/[\u0900-\u097F]/`) and `bn` (Bengali, `/[\u0980-\u09FF]/`) for **every** key, so the new overlay string must ship those two scripts or `npm test` fails.
 - `agents.md` §1 forbids DOM APIs in app code; the new logic uses React state and CSS classes only. The spec's `page.evaluate` / `dispatchEvent` / `page.route` calls are test-harness code, not app code.
-- `agents.md` §5: Playwright's bundled Chromium cannot decode H.264/AAC, so the spec must not depend on the `success.mp4` actually decoding. It uses a `data:video/mp4` sentinel source and relies on the existing 3 s FOUC fallback (`SimpleVideoPlayer.web.jsx:104-106`) to make the video wrapper visible, so the spec is offline-capable and codec-independent.
+- `agents.md` §5: Playwright's bundled Chromium cannot decode H.264/AAC, so the spec must not depend on the `success.mp4` actually decoding. It uses a tiny valid VP9/WebM data URI (which bundled Chromium decodes) and blocks autoplay, so the spec is offline-capable and codec-independent. The success step's `onError` fallback is exercised by dispatching a native `error` event.
 - `playwright.config.js` `testIgnore` already excludes the stale `tests/success-screen.spec.js`; the new spec is not ignored and runs under the default `chromium` project.
 
 ## Notes
@@ -206,7 +223,7 @@ Wrapping the button in `.ivp-choice-col` means the existing `.ivp-choice-col .ca
 **Test harness details (Playwright):**
 
 - Prevent the success clip from autoplaying/ending on its own so the pre-reveal state is deterministic: `page.addInitScript` overrides `HTMLMediaElement.prototype.play` to reject only when `this.src` starts with `data:video/mp4`, then the test dispatches `new Event('ended')` on `.ivp-video`. React 19 attaches media listeners directly to the element, so the native dispatch invokes `onEnded`.
-- Use a `data:video/mp4;base64,AAAA` sentinel as `currentVideo.url` (set via `setCurrentVideo`) so there is no network request and no codec dependency; wait for `.ivp-main-wrapper` to become visible (the 3 s FOUC fallback) before asserting.
+- Use a tiny valid VP9/WebM data URI (616 bytes, generated with ffmpeg) as `currentVideo.url` (set via `setCurrentVideo`). Bundled Chromium decodes WebM natively (unlike H.264), so the clip loads without firing `error`; block autoplay via the init script and dispatch `ended` explicitly. This also removes the dependency on the 3 s FOUC fallback.
 - Stub the processor in the click test with `page.route('**/video-processor.js*', ...)` returning `export async function processVideo(){ return { blob: null }; }` plus no-op `shareVideo`/`exportSegmentsToR2`, so no real canvas/MediaRecorder work runs and no `alert` fires.
 - Set `isLoggedIn: true` and `userData: { native_language: 'en', auth_method: 'supabase', $id: 'test-user' }` before `setSuccessScreen` so the guest `SaveClipsModal` does not open (it would make the page inert and block the button click) and the overlay/label copy is pinned to English.
 
@@ -214,7 +231,7 @@ Wrapping the button in `.ivp-choice-col` means the existing `.ivp-choice-col .ca
 
 1. If dispatching a native `ended` event does not invoke React's `onEnded` in the runner, trigger the handler through the element's React props (test-only): read the `__reactProps$...` key off the `<video>` node and call its `onEnded()`. The app code and the phase transition are unchanged either way.
 2. If `page.route('**/video-processor.js*')` fails to intercept the Vite-transformed module URL, assert only the synchronous state change (`successVideoButton.state === 'processing'` immediately after click) and add `[Success] Video generation failed` to the expected-noise list, since real canvas/MediaRecorder work cannot succeed headlessly.
-3. If the invalid `data:video/mp4` sentinel produces a console error, add the sentinel (`data:video/mp4`) to the expected-noise list — it is intentional and unrelated to the feature.
+3. If a runner cannot decode the VP9/WebM fixture, the video wrapper stays hidden and the overlay assertion times out. Fall back to waiting out the FOUC timeout (`.ivp-main-wrapper` becomes visible after ~3 s) and assert the button reveal independently, since it lives in the bottom overlay.
 
 **Manual verification:**
 

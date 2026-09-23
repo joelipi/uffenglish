@@ -188,6 +188,16 @@ export default function SimpleVideoPlayer() {
         }
     }, []);
 
+    const handleError = useCallback(() => {
+        // A broken/undecodable success clip must not strand the learner: reveal
+        // the concat button even though `ended` never fired.
+        const cv = appStore.getState().currentVideo;
+        if (cv?.responseType === 'success') {
+            console.warn('[SimpleVideo] Success video failed to load → revealing concat button');
+            appStore.getState().transitionTo('lessonSuccess-decisionTime', {}, { fromStepLoad: true });
+        }
+    }, []);
+
     const handleTimeUpdate = useCallback(() => {
         const v = videoRef.current;
         if (v) {
@@ -360,6 +370,7 @@ export default function SimpleVideoPlayer() {
                     onPlay={handlePlay}
                     onPause={handlePause}
                     onEnded={handleEnded}
+                    onError={handleError}
                     onTimeUpdate={handleTimeUpdate}
                     onSeeked={handleSeeked}
                 />
