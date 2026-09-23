@@ -1,4 +1,4 @@
-# Fix Bengali recap overlay horizontal centering (canvas ink vs. advance)
+# Fix recap overlay centering when the font has no true italic face (language-agnostic)
 
 ## Context
 
@@ -13,27 +13,31 @@ symmetric about the advance midpoint the rendered glyphs sit visibly off-centre 
 mathematically centred.
 
 **Verified trigger (reproduced during planning, Chromium):** the subtitle translation line is drawn in
-`italic` (`video-processor.web.js:945, 965, 1011`). Bengali has no true italic face in the fallback font
-(and `Noto Sans Bengali` has none either), so the browser applies synthetic oblique. That shear pushes the
-glyph ink to the right of the advance centre:
+`italic` (`video-processor.web.js:945, 965, 1011`). When the resolved font has no true italic face, the browser
+applies synthetic oblique, and that shear pushes the glyph ink to the right of the advance centre:
 
-| text (80px, subtitle stack) | actualBoundingBoxLeft | actualBoundingBoxRight | rendered ink centre − canvas centre |
-|---|---|---|---|
-| `italic` `বাংলা` | 55.0 | 76.0 | **+10.0 px** |
-| `italic` `আমার সাথে ফ্রি` | 177.2 | 198.2 | **+10.0 px** |
-| `italic` long Bengali CTA copy | 470.1 | 492.1 | **+10.5 px** |
-| `italic` `Hello` (Latin) | 89.2 | 88.7 | −0.5 px (real italic face → symmetric) |
+| `italic` text (80px, subtitle stack) | actualBoundingBoxLeft | actualBoundingBoxRight | ink offset (old) | ink offset (fixed) |
+|---|---|---|---|---|
+| `Hello` (Latin) | 89.2 | 88.7 | −0.5 px | −0.5 px |
+| `বাংলা` (Bengali) | 55.0 | 76.0 | **+10.0 px** | 0 px |
+| `हिन्दी` (Hindi) | 64.0 | 84.0 | **+9.0 px** | −1.0 px |
+| `日本語` (Japanese) | 111.0 | 129.0 | **+8.5 px** | −0.5 px |
+| `தமிழ்` (Tamil) | 87.0 | 96.0 | **+3.5 px** | −0.5 px |
 
-The same Bengali strings without `italic` are centred (−0.5 px). Latin has a real italic face, which is why
-Spanish looks centred while Bengali does not — exactly the report. The offset scales with font size
-(≈12–13 % of the font size; ~6 px at the subtitle's ~46 px on a 1080-wide canvas), so short Bengali
-translations are visibly off-centre inside their (centred) background box.
+The same strings without `italic` are centred (±0.5 px). Latin ships a real italic face, which is why Spanish
+looks centred while Bengali does not — exactly the report.
 
-**Font loading is NOT the cause.** Loading `Noto Sans Bengali` and re-measuring `italic` Bengali at 80px
-still yields `L=338, R=361` and a **+11 px** ink offset — synthetic oblique is applied regardless of which
-Bengali family wins, and the app loads no web font at all today (`ensureFontsReady()` lines 99-110 names
-`Orbitron`/`Plus Jakarta Sans`, which are never declared anywhere in the React app; only `public/landing.html`
-imports them). So the fix must be in the anchor, not the font.
+**This is not a Bengali (or hi/bn) bug — it is the general rule for any font without a true italic face**, and
+the app will keep adding languages whose fallback fonts may or may not have one. The fix must therefore be
+language- and script-agnostic: it must measure the actual rendered ink and anchor on that, with no per-language
+branching, font list, or feature detection. That also rules out the tempting alternative of conditionally
+applying `italic` based on script/font support.
+
+**Font loading is NOT the cause.** Loading `Noto Sans Bengali` and re-measuring `italic` Bengali at 80px still
+yields `L=338, R=361` and a **+11 px** ink offset — synthetic oblique is applied regardless of which family
+wins, and the app loads no web font at all today (`ensureFontsReady()` lines 99-110 names `Orbitron`/`Plus
+Jakarta Sans`, which are never declared anywhere in the React app; only `public/landing.html` imports them). So
+the fix must be in the anchor, not the font.
 
 The non-italic share-CTA path (`drawFittedLine`, lines 782-805) currently measures
 `actualBoundingBoxLeft/Right` only to shrink the font (`inkWidth`, lines 789-798) and still draws at the raw
@@ -46,10 +50,17 @@ Bengali CTA font stack to stop Bengali overflow, but did not change the drawing 
 
 ## Out of Scope
 
+- Any language- or script-specific logic in the fix: no language parameter, no script detection, no
+  per-language font list, no "does this font have italics" feature test. Future languages are covered by
+  construction.
+- Adding Bengali families (or any language's families) to the subtitle font stack. The centering fix is
+  font-agnostic, and the existing `"Plus Jakarta Sans", sans-serif` stack already lets the browser fall back to
+  a script-capable font for any language. (The pre-existing CTA stack at line 885 still lists Bengali families;
+  it is left untouched — it is not part of this fix.)
 - Loading a Bengali web font (e.g. `Noto Sans Bengali`) or wiring fonts into `ensureFontsReady()` /
-  `index.html`. Decision and rationale in "Font decision". Verified not to affect the reported shift.
-- Removing or changing the `italic` translation style. It is a deliberate design distinction between the
-  English cue and its translation; the fix keeps it and centres the skewed ink.
+  `index.html`. Verified not to affect the reported shift.
+- Removing or conditionally applying the `italic` translation style. It is a deliberate design distinction
+  between the English cue and its translation; the fix keeps it and centres the skewed ink for every language.
 - The native renderer `src/modules/video/video-processor.native.jsx`: its recap text is React Native
   `<Text textAlign: 'center'>` (lines 388, 395, 464), which the platform centres on ink, and it has no
   importer / RN dependency. Not the reported path.
@@ -74,8 +85,11 @@ advance midpoint, so relative to the draw anchor `x`:
 - ink centre `= x + (actualBoundingBoxRight - actualBoundingBoxLeft) / 2`
 
 To put the ink centre on `centerX`, draw at `x = centerX - (actualBoundingBoxRight - actualBoundingBoxLeft) / 2`.
-When the ink is symmetric (`left === right`) this is exactly `centerX`, so Latin output is unchanged.
-Verified: applying this to `italic` Bengali moves the measured ink offset from +10 px to −0.5 px.
+When the ink is symmetric (`left === right`) this is exactly `centerX`, so Latin output is unchanged. Verified:
+applying this to `italic` text moves the measured ink offset to ≈0 for Bengali, Hindi, Japanese and Tamil.
+
+This is language-agnostic by construction: the helpers receive only `TextMetrics` values, so they cannot (and do
+not) branch on language or script.
 
 ### 2. Pure helpers in `src/modules/video/video-processor-logic.js`
 
@@ -88,7 +102,8 @@ object / measure callback, so they are unit-testable in jsdom without a canvas.
 // context.textAlign. With textAlign='center' that point is the advance-width
 // midpoint; actualBoundingBoxLeft/Right describe where the glyph ink actually
 // is (positive = that direction). Falls back to advance-only when a browser
-// omits the ink fields.
+// omits the ink fields. Deliberately takes no language/script argument: it
+// works for every writing system, including fonts with no true italic face.
 export function inkBounds(metrics) {
     const left = Number.isFinite(metrics?.actualBoundingBoxLeft) ? metrics.actualBoundingBoxLeft : 0;
     const right = Number.isFinite(metrics?.actualBoundingBoxRight) ? metrics.actualBoundingBoxRight : 0;
@@ -140,43 +155,29 @@ export function layoutCenteredInkBlock(entries, centerX, padding = 0) {
 }
 ```
 
-### 3. Shared font families
+### 3. Font decision — no font changes
 
-Export the family strings so the CTA and subtitle paths share one definition and the Bengali families are
-asserted by a test:
-
-```js
-// Bengali-capable families, matching the CTA stack added in 8074a42. These are
-// OS families (not web-loaded); ink centering above makes positioning
-// independent of which family wins.
-export const BENGALI_FONT_FAMILIES = '"Noto Sans Bengali", "Bangla Sangam MN", "Nirmala UI"';
-export const CTA_FONT_FAMILY = `"Plus Jakarta Sans", ${BENGALI_FONT_FAMILIES}, sans-serif`;
-export const SUBTITLE_FONT_FAMILY = `"Plus Jakarta Sans", ${BENGALI_FONT_FAMILIES}, sans-serif`;
-```
-
-### 4. Font decision — do NOT load a web font
-
-Decision: this story does not add `Noto Sans Bengali` (or any font) to `ensureFontsReady()` or `index.html`.
-Rationale, in priority order:
+Decision: no web font is added to `ensureFontsReady()` / `index.html`, and no language-specific families are
+added to the subtitle stack. Rationale:
 
 1. Verified: loading `Noto Sans Bengali` does not change the synthetic-oblique shift — `italic` Bengali still
    measured a +11 px ink offset with the family loaded. No Bengali family ships a true italic face, so the
-   browser synthesises the shear either way. Font loading cannot fix the report.
-2. The fix measures the actual ink at draw time, so it centres correctly on any family; no font load is needed.
-3. No web font is declared anywhere in the React app today, so `ensureFontsReady()` is effectively a no-op and
-   every overlay already renders in an OS font. Adding one is a new external runtime dependency for a bug fix,
-   and (because `"Plus Jakarta Sans"` is not loaded) `"Noto Sans Bengali"` would also capture Latin glyphs and
-   change the already-correct Latin/Spanish rendering.
-4. Bengali OS fallbacks exist on the target platforms and are already named by the CTA stack; the subtitle
-   stack is brought to parity in Task 3.
+   browser synthesises the shear either way.
+2. The fix measures the actual ink at draw time, so it centres correctly on any family, in any language. No
+   font load and no per-language font list are needed.
+3. The existing `"Plus Jakarta Sans", sans-serif` stack already ends in a generic family, so the browser picks a
+   script-capable font for any language the app adds later.
+4. Adding a web font is a new external runtime dependency for a bug fix, and (because `"Plus Jakarta Sans"` is
+   not loaded) `"Noto Sans Bengali"` would also capture Latin glyphs and change the already-correct
+   Latin/Spanish rendering.
 
-Assumption (explicit): if deterministic cross-OS glyph shapes or avoiding synthetic oblique are later wanted,
-self-hosting a Bengali-only `@font-face` (or removing the italic style) is a separate rendering-quality story.
+Assumption (explicit): if deterministic cross-OS glyph shapes, avoiding synthetic oblique, or per-language font
+preferences are later wanted, that is a separate rendering-quality story.
 
-### 5. Web wiring — `src/modules/video/video-processor.web.js`
+### 4. Web wiring — `src/modules/video/video-processor.web.js`
 
-Add `fitAndCenterLine`, `layoutCenteredInkBlock`, `CTA_FONT_FAMILY`, `SUBTITLE_FONT_FAMILY` to the existing
-`./video-processor-logic.js` import (line 9).
+Add `fitAndCenterLine`, `layoutCenteredInkBlock` to the existing `./video-processor-logic.js` import (line 9).
+No font strings change.
 
 CTA (`drawFittedLine`, lines 782-805): replace the inline `inkWidth` closure and the raw-`centerX` draw with the
 pure helper. `textAlign` stays `'center'` (set by the caller at line 887); the anchor is shifted by the ink
@@ -199,18 +200,16 @@ function drawFittedLine(context, text, centerX, y, { fontFamily, maxWidth, baseS
 }
 ```
 
-CTA font stack (line 885): replace the inline string with `const fontFamily = CTA_FONT_FAMILY;`.
-
-Subtitles (lines 929-1023): use `SUBTITLE_FONT_FAMILY` at all six font assignments and compute the box plus
-per-line anchors from `layoutCenteredInkBlock`:
+Subtitles (lines 929-1023): keep the existing font strings (`bold`/`italic` + `"Plus Jakarta Sans", sans-serif`)
+and compute the box plus per-line anchors from `layoutCenteredInkBlock`:
 
 ```js
 const measureWith = (font) => (text) => {
     context.font = font;
     return context.measureText(text);
 };
-const enEntries = enLines.map(text => ({ text, measure: measureWith(`bold ${enFontSize}px ${SUBTITLE_FONT_FAMILY}`) }));
-const trEntries = trLines.map(text => ({ text, measure: measureWith(`italic ${trFontSize}px ${SUBTITLE_FONT_FAMILY}`) }));
+const enEntries = enLines.map(text => ({ text, measure: measureWith(`bold ${enFontSize}px "Plus Jakarta Sans", sans-serif`) }));
+const trEntries = trLines.map(text => ({ text, measure: measureWith(`italic ${trFontSize}px "Plus Jakarta Sans", sans-serif`) }));
 const { anchors, boxX, boxWidth } = layoutCenteredInkBlock([...enEntries, ...trEntries], centerX, boxPadding);
 const enAnchors = anchors.slice(0, enLines.length);
 const trAnchors = anchors.slice(enLines.length);
@@ -222,14 +221,14 @@ const trAnchors = anchors.slice(enLines.length);
   `context.fillText(trLines[i], trAnchors[i], lineY)` and English lines with
   `context.fillText(enLines[i], enAnchors[i], lineY)` (bottom-up order and y stepping unchanged).
 
-### 6. Edge cases
+### 5. Edge cases
 
 - Metrics missing / NaN ink fields (older engines): `inkBounds` falls back to advance width and zero offset →
   identical to today's behaviour.
 - Symmetric ink (Latin/Spanish, real italic face): `inkCenterOffset === 0` → draws at `centerX`, no visual
   change.
-- Synthetic oblique on a complex script (the reported case): asymmetric `left`/`right` shift the anchor left to
-  centre the ink.
+- Synthetic oblique on any script (the reported case): asymmetric `left`/`right` shift the anchor left to centre
+  the ink — no language check involved.
 - Ink narrower than advance (normal): `inkWidth` stays the advance, so fitting is not loosened.
 - Ink wider than advance (italic overhang / complex script): `inkWidth = left + right`; fit shrinks until the
   ink fits and the anchor centres it.
@@ -239,12 +238,12 @@ const trAnchors = anchors.slice(enLines.length);
   entries return `anchors: []` and a padding-only box.
 - `baseSize <= minSize`: `fitAndCenterLine` still measures once and centres; the loop guard is `size > minSize`
   exactly as today.
-- Mixed en + bn lines in one subtitle block: the box half-width is the max across all lines' ink; each line is
-  centred on its own ink.
+- Mixed English + translation lines in one subtitle block: the box half-width is the max across all lines' ink;
+  each line is centred on its own ink.
 
 ## Tasks
 
-### Task 1 - Ink-centering helpers + font constants (`video-processor-logic.js`, `video-processor-logic.test.js`)
+### Task 1 - Language-agnostic ink-centering helpers (`video-processor-logic.js`, `video-processor-logic.test.js`)
 
 - `inkBounds` called with `{ width: 100, actualBoundingBoxLeft: 48, actualBoundingBoxRight: 48 }`
   - → `{ left: 48, right: 48, advance: 100, inkWidth: 100 }`
@@ -260,6 +259,8 @@ const trAnchors = anchors.slice(enLines.length);
   - → `0`
 - `inkCenterOffset` called with the measured `italic` Bengali metrics `{ actualBoundingBoxLeft: 177.2, actualBoundingBoxRight: 198.2 }`
   - → `10.5` (the reported offset; the anchor must shift 10.5 px left)
+- `inkCenterOffset` called with the measured `italic` Hindi metrics `{ actualBoundingBoxLeft: 64, actualBoundingBoxRight: 84 }`
+  - → `10`
 - `inkCenterOffset` called with `{ actualBoundingBoxLeft: 80, actualBoundingBoxRight: 40 }`
   - → `-20`
 - `inkCenterOffset` called with `{}` / `null`
@@ -284,35 +285,31 @@ const trAnchors = anchors.slice(enLines.length);
   - → `boxX === 430` and `boxWidth === 140` (symmetric about 500, spans all ink)
 - `layoutCenteredInkBlock` called with `[]`, `centerX: 500`, `padding: 10`
   - → `{ anchors: [], halfWidth: 0, boxX: 490, boxWidth: 20 }`
-- `BENGALI_FONT_FAMILIES` inspected
-  - → contains `"Noto Sans Bengali"`, `"Bangla Sangam MN"`, `"Nirmala UI"`
-- `CTA_FONT_FAMILY` and `SUBTITLE_FONT_FAMILY` inspected
-  - → each contains `"Plus Jakarta Sans"` and all three `BENGALI_FONT_FAMILIES`
-  - → each ends with `sans-serif`
 - `video-processor-logic.js` read as source text
+  - → the new helper signatures take only metrics / a measure callback / coordinates, with no language or script
+    argument (regex on `inkBounds(metrics)`, `inkCenterOffset(metrics)`, `centeredInkX(centerX, metrics)`,
+    `fitAndCenterLine(measureAtSize, text, centerX, {`, `layoutCenteredInkBlock(entries, centerX, padding = 0)`)
   - → still references no `window` / `document` / `navigator` and no URL scheme (existing guard passes)
 
 ### Task 2 - Ink-centre the CTA fitted lines (`video-processor.web.js`, `video-processor-web-guard.test.js`)
 
 - `video-processor.web.js` read as source text
-  - → imports `fitAndCenterLine` and `CTA_FONT_FAMILY` from `./video-processor-logic.js`
+  - → imports `fitAndCenterLine` from `./video-processor-logic.js`
   - → `drawFittedLine` no longer calls `strokeText(text, centerX` or `fillText(text, centerX`
   - → `drawFittedLine` draws at the anchor returned by `fitAndCenterLine` (source references `fitAndCenterLine`)
-  - → the CTA block no longer hardcodes the font-family string (uses `CTA_FONT_FAMILY`)
 - `fitAndCenterLine` unit cases in Task 1
   - → CTA headline / deadline / URL anchors are ink-centred (behaviour covered there)
 
-### Task 3 - Ink-centre subtitles + ink-sized box + Bengali stack (`video-processor.web.js`, `video-processor-web-guard.test.js`)
+### Task 3 - Ink-centre subtitles + ink-sized box (`video-processor.web.js`, `video-processor-web-guard.test.js`)
 
 - `video-processor.web.js` read as source text
-  - → imports `layoutCenteredInkBlock` and `SUBTITLE_FONT_FAMILY` from `./video-processor-logic.js`
+  - → imports `layoutCenteredInkBlock` from `./video-processor-logic.js`
   - → the subtitle block calls `layoutCenteredInkBlock(`
   - → subtitle translation lines are drawn with `fillText(trLines[i], trAnchors[i], ...)` and English lines with
     `fillText(enLines[i], enAnchors[i], ...)` (no `fillText(..., centerX` in the subtitle block)
   - → the subtitle background box is drawn from `boxX` / `boxWidth` (no `longestLineWidth` remains)
-  - → no hardcoded `"Plus Jakarta Sans", sans-serif` remains anywhere in the file
-  - → every subtitle font assignment uses `SUBTITLE_FONT_FAMILY`
   - → the translation font assignment still contains `italic` (the design distinction is preserved)
+  - → no language/script identifier or per-language font list is introduced by this change
 - `layoutCenteredInkBlock` unit cases in Task 1
   - → the subtitle box is symmetric about `centerX` and covers every line's ink (behaviour covered there)
 
@@ -329,12 +326,12 @@ const trAnchors = anchors.slice(enLines.length);
 - `video-processor.web.js` must not be imported by a unit test: it pulls in Supabase / PostHog / storage modules
   and browser-only globals at module scope, and `vitest.config.js` does not register the `.web.js` resolve
   extension. The existing guard test deliberately reads it as text rather than importing it.
-- Root cause reproduced during planning with Playwright Chromium (the only browser that can run the canvas
-  pixel check here). `italic` Bengali at 80px: `actualBoundingBoxLeft=177.2`, `actualBoundingBoxRight=198.2`
-  (asymmetric) vs. non-italic `187.2/187.2`; the drawn ink centre sat +10 px right of the canvas centre. With
-  `Noto Sans Bengali` loaded, `italic` Bengali measured `338/361` → still +11 px, proving font loading is not
-  the cause. Applying `centeredInkX` moved the offset to −0.5 px. WebKit 26.4 (Playwright 1.60) was also
-  checked: non-italic Bengali is centred there.
+- Root cause reproduced during planning with Playwright Chromium (the only browser that can run the canvas pixel
+  check here). `italic` at 80px with the subtitle stack: Latin `Hello` `L=89.2, R=88.7` (offset 0), Bengali
+  `বাংলা` `L=55, R=76` (+10), Hindi `हिन्दी` `L=64, R=84` (+9), Japanese `日本語` `L=111, R=129` (+8.5), Tamil
+  `தமிழ்` `L=87, R=96` (+3.5). Applying `centeredInkX` moved every offset to ≤1 px. With `Noto Sans Bengali`
+  loaded, `italic` Bengali measured `338/361` → still +11 px, proving font loading is not the cause. WebKit 26.4
+  (Playwright 1.60) was also checked: non-italic complex text is centred there.
 - Canvas semantics confirmed from MDN: `TextMetrics.actualBoundingBoxLeft/Right` are measured from the
   `textAlign` alignment point (positive = that direction), and `textAlign = 'center'` places the text's left edge
   at `x - measureText(text).width / 2` (advance width, not ink).
@@ -348,19 +345,21 @@ const trAnchors = anchors.slice(enLines.length);
 **Manual verification (canvas pixels cannot be asserted in jsdom; Tasks 1-3 cover the math and wiring):**
 
 1. `npm run dev`, open `/course/model/lesson/wf` (or any `shareCta` lesson), complete the steps, and choose a
-   Bengali native language before generating the recap.
-2. In the generated final video, the Bengali subtitle translation (drawn in italic under the English cue) should
-   sit visually centred inside its background box — not shifted right as today.
-3. Repeat in Spanish (`Practica inglés conmigo gratis`) and confirm it looks unchanged (offset is `0` for a real
-   italic face).
-4. Confirm the subtitle background box still fully covers the Bengali translation text.
+   native language whose font has no true italic face (Bengali or Hindi both reproduce).
+2. In the generated final video, the translated subtitle (drawn in italic under the English cue) should sit
+   visually centred inside its background box — not shifted right as today.
+3. Repeat with Spanish (`Practica inglés conmigo gratis`) and confirm it looks unchanged (offset is `0` for a
+   real italic face).
+4. Confirm the subtitle background box still fully covers the translated text.
 
 **Non-automatable / structural checks:**
 
 - The offset is exactly `0` when `actualBoundingBoxLeft === actualBoundingBoxRight`, so Latin/Spanish output must
   be visually identical to before.
+- The centering helpers must contain no language/script identifiers, no `italic` handling, and no font list;
+  they operate on measured metrics only. Adding a future language must require no change to them.
 - Preserve the `italic` translation style; do not "fix" the skew by removing it.
 - Preserve existing comments and `console.log` statements per `agents.md`; update the `drawFittedLine` comment to
   describe the new anchor behaviour (the old "Take the larger of advance and bounding box" note moves to
   `inkBounds`).
-- Do not touch `ensureFontsReady()`, `index.html`, or the native renderer in this story.
+- Do not touch `ensureFontsReady()`, `index.html`, the subtitle font stack, or the native renderer in this story.
