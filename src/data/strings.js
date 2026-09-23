@@ -1400,6 +1400,16 @@ const strings = {
         hi: "नीचे एक बटन दबाएँ।",
         bn: "নিচে একটি বোতাম চাপুন।"
     },
+    // Shown over the lesson-success video once it ends, so the learner knows
+    // the revealed button creates the recap video they can share.
+    'video_continue_create': {
+        en: "Continue to create and share your video",
+        es: "Continúa para crear y compartir tu video",
+        pt: "Continue para criar e compartilhar seu vídeo",
+        fr: "Continuez pour créer et partager votre vidéo",
+        hi: "अपना वीडियो बनाने और साझा करने के लिए जारी रखें",
+        bn: "আপনার ভিডিও তৈরি করতে এবং শেয়ার করতে চালিয়ে যান"
+    },
     'video_repeat_now': {
         en: "REPEAT NOW",
         es: "REPITE AHORA",

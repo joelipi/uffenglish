@@ -40,6 +40,11 @@ const phaseMapping = {
     review:                                      { topState: (s) => s.currentVideo?.type === 'interactive' || s.isTextMode ? 'topBarWithStats' : 'topBarOnly', mediaState: 'whisperReview', bottomState: 'reviewButtons', showMission: false },
     feedback:                                    { topState: 'topBarOnly',       mediaState: 'chat',                bottomState: 'continueButton',        showMission: false },
     lessonSuccess:                               { topState: 'topBarOnly',       mediaState: 'simpleVideo',         bottomState: 'lessonSuccess',         showMission: false },
+    // Success video finished: keep the success screen mounted (so the guest
+    // modal effect still runs) but switch to the decision overlay so the
+    // tap-to-play icon is suppressed while the water overlay + concat button
+    // are revealed — mirrors 'simpleVideo-decisionTime-viewAndContinue'.
+    'lessonSuccess-decisionTime':                { topState: 'topBarOnly',       mediaState: 'decisionOverlay',     bottomState: 'lessonSuccess',         showMission: false },
     successVideoCreation:                        { topState: 'hidden',           mediaState: 'videoProcessor',      bottomState: 'hidden',               showMission: false },
     'successVideo/videoShare':                   { topState: 'hidden',           mediaState: 'videoProcessor',      bottomState: 'shareButtons',          showMission: false },
     error:                                       { topState: 'hidden',           mediaState: 'errorModal',          bottomState: 'hidden',               showMission: false },

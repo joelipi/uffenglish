@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useCallback } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { trackEvent } from '../../modules/utils/posthog.js';
+import { getBilingual } from '../../data/strings.js';
 
 export function ContinueButton({ onLoadNextLesson }) {
   const button = useStore(appStore, state => state.successContinueButton);
@@ -32,6 +33,9 @@ export function VideoButton({ canvasRef }) {
   const button = useStore(appStore, state => state.successVideoButton);
   const lessonId = useStore(appStore, state => state.successLessonId);
   const fluencyData = useStore(appStore, state => state.successFluencyData);
+  const appPhase = useStore(appStore, state => state.appPhase);
+  const currentVideo = useStore(appStore, state => state.currentVideo);
+  const userData = useStore(appStore, state => state.userData);
   const setVideoState = useStore(appStore, state => state.setSuccessVideoState);
   const setCanvasVisible = useStore(appStore, state => state.setSuccessCanvasVisible);
   const setRepeatVisible = useStore(appStore, state => state.setSuccessRepeatButtonVisible);
@@ -115,15 +119,34 @@ export function VideoButton({ canvasRef }) {
   };
 
   if (button.state === 'idle') {
+    // Keep the concat button hidden while the short success clip plays so it
+    // lands like every earlier step's glowing call button. If the step has no
+    // success clip at all (no pending success video), reveal it immediately.
+    const successVideoPending = currentVideo?.responseType === 'success';
+    const revealed = appPhase === 'lessonSuccess-decisionTime' || !successVideoPending;
+    if (!revealed) return null;
+
+    const continueLabel = getBilingual('continue', userData?.native_language || 'en');
+
     return (
-      <button
-        type="button"
-        id="processBtn"
-        className="btn btn-outline-primary w-100"
-        onClick={handleProcess}
-      >
-        <i className="bi bi-film text-white" />
-      </button>
+      <div className="ivp-choice-col" style={{ flex: '0 0 auto', minWidth: 0 }}>
+        <div className="ivp-choice-label">
+          <div className="ivp-choice-label-text">
+            {continueLabel.localized ? (
+              <React.Fragment>{continueLabel.english}<br /><span lang={continueLabel.lang}><i>{continueLabel.localized}</i></span></React.Fragment>
+            ) : continueLabel.english}
+          </div>
+        </div>
+        <button
+          type="button"
+          id="processBtn"
+          className="btn call-btn"
+          onClick={handleProcess}
+          aria-label="Continue"
+        >
+          <i className="bi bi-film" />
+        </button>
+      </div>
     );
   }
 
