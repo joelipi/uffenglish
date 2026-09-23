@@ -3,7 +3,7 @@
 // (stories/011-auto-intro-poster, Task 2).
 import { describe, it, expect } from 'vitest';
 import { execFile, execFileSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -99,6 +99,9 @@ integration('generate-thumbnails.mjs --force integration', () => {
             for (const slug of INTRO_SLUGS) {
                 expect(stdout).toContain(slug);
                 expect(existsSync(path.join(scratch, `${slug}.jpg`))).toBe(true);
+                // Nothing leaks into the repo root or public/.
+                expect(existsSync(path.join(ROOT, `${slug}.jpg`))).toBe(false);
+                expect(existsSync(path.join(ROOT, 'public', `${slug}.jpg`))).toBe(false);
             }
             // LQIP module written to the scratch seam, not the repo.
             expect(existsSync(lqipPath)).toBe(true);
