@@ -288,15 +288,25 @@ async function main() {
 
     if (plan.rebuild) {
         const lqips = {};
+        let lqipMissing = 0;
         for (const { slug } of allTargets) {
             try {
                 const dataUri = await lqipFor(slug, outDir);
                 if (dataUri) lqips[slug] = dataUri;
+                else lqipMissing++;
             } catch (e) {
                 console.error(`ERROR LQIP ${slug}:`, e.message);
+                lqipMissing++;
             }
         }
-        await writeGenerated(lqips);
+        // Never rewrite the committed module with a partial map: a transient R2
+        // failure would otherwise drop entries while the process still exits 0.
+        if (lqipMissing) {
+            failed += lqipMissing;
+            console.error(`ERROR: ${lqipMissing} LQIP(s) unavailable — leaving ${GENERATED_PATH} unchanged. Re-run with R2 access (or --force).`);
+        } else {
+            await writeGenerated(lqips);
+        }
     } else {
         console.log('Posters up to date; LQIP module unchanged.');
     }

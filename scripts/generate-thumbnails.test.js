@@ -105,10 +105,10 @@ describe('generate-thumbnails.mjs CLI', () => {
     });
 });
 
-// ffmpeg + network required. CI installs ffmpeg AFTER `npm test`, so this is
-// skipped there and exercised locally / by the acceptance reviewer.
+// ffmpeg + network required. deploy.yml installs ffmpeg before `npm test` so
+// this suite runs in CI; it skips only when ffmpeg is genuinely unavailable.
 const integration = hasFfmpeg() ? describe : describe.skip;
-integration('generate-thumbnails.mjs --force integration', () => {
+integration('generate-thumbnails.mjs integration (ffmpeg + R2)', () => {
     it('writes <scratch>/<slug>.jpg for all five slugs and nothing into the repo', async () => {
         const scratch = mkdtempSync(path.join(os.tmpdir(), 'uff-posters-test-'));
         const lqipPath = path.join(scratch, 'poster-lqips.js');

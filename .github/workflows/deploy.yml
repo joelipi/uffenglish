@@ -20,12 +20,15 @@ jobs:
           cache: npm
 
       - run: npm ci
-      - name: Run unit tests
-        run: npm test -- --run
-
 
       - name: Install ffmpeg
+        # Installed before the unit tests so the ffmpeg-backed poster-generator
+        # integration tests actually execute in CI (they skip when ffmpeg is
+        # absent). The poster pipeline below also needs it.
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Run unit tests
+        run: npm test -- --run
 
       - name: Generate posters
         run: node scripts/generate-thumbnails.mjs
