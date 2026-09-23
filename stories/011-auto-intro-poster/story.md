@@ -16,6 +16,19 @@ of that video, so a poster must be the video's URL with `.mp4` → `.jpg`:
 `.mp4` → `.jpg` sibling rule. This story makes **all** posters follow it, so
 there is exactly one convention.
 
+**Local vs R2 (important).** Teacher video files are **never** in the repo —
+there are zero `.mp4` files under version control. `assets/videos/` is the R2
+object-key prefix *and* the dev URL path: in dev `getVideoUrl` returns the
+relative `/assets/videos/<slug>.mp4` and Vite proxies `/assets/videos/` to
+`https://r2.ultrafastfluency.com` (`vite.config.js:72-75`). The repo's `public/`
+directory is only the static root for small committed assets (`public/assets/img`,
+`public/assets/posters`, `public/wasm`, `public/whisper`); `.gitignore` excludes
+`public/assets/videos/*.mp4` so a local mp4 override (or the generator's optional
+local source) is never committed. Under this story the committed local posters
+move to `public/assets/videos/<slug>.jpg` so the dev URL
+(`/assets/videos/<slug>.jpg`) matches production and R2 — i.e. that local
+directory will hold `.jpg` posters only, no videos.
+
 ### A. Teacher/lesson-intro posters (config-driven)
 
 Today teacher posters live in a separate prefix keyed by `lessonId`:
