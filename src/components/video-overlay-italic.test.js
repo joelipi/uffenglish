@@ -51,6 +51,7 @@ describe('video overlay text is upright (no synthetic italic)', () => {
     describe('CSS keeps video overlay [lang] text upright', () => {
         it('the .intro-call-subtitle block has no italic', () => {
             const block = blockFor(APP_CSS, '.intro-call-subtitle');
+            expect(block).not.toBe('');
             expect(block).not.toMatch(/font-style:\s*italic/);
         });
 
