@@ -92,27 +92,40 @@ describe('poster naming', () => {
 describe('planPosterRun', () => {
     const configs = [{ lessons: [{ steps: [{ introBackgroundVideoUrl: 'a' }] }, { steps: [{ introBackgroundVideoUrl: 'b' }] }] }];
 
-    it('targets only slugs whose poster is absent; rebuild when there is work', () => {
+    it('targets only slugs whose poster is absent; rebuild when there is work', async () => {
         const moduleText = 'export const POSTER_LQIPS = { "a": "x", "b": "y" };';
-        const plan = planPosterRun({ configs, posterExists: (s) => s !== 'a', moduleText });
+        const plan = await planPosterRun({ configs, posterExists: (s) => s !== 'a', moduleText });
         expect(plan.targets).toEqual([{ slug: 'a' }]);
         expect(plan.rebuild).toBe(true);
     });
 
-    it('all posters present + complete module -> no targets, no rebuild', () => {
+    it('awaits an async posterExists predicate (the real R2 HEAD is a Promise)', async () => {
         const moduleText = 'export const POSTER_LQIPS = { "a": "x", "b": "y" };';
-        expect(planPosterRun({ configs, posterExists: () => true, moduleText }))
+        // A Promise is always truthy; if the planner does not await, targets
+        // would be empty even though 'a' is missing.
+        const plan = await planPosterRun({
+            configs,
+            posterExists: async (s) => s !== 'a',
+            moduleText,
+        });
+        expect(plan.targets).toEqual([{ slug: 'a' }]);
+        expect(plan.rebuild).toBe(true);
+    });
+
+    it('all posters present + complete module -> no targets, no rebuild', async () => {
+        const moduleText = 'export const POSTER_LQIPS = { "a": "x", "b": "y" };';
+        expect(await planPosterRun({ configs, posterExists: () => true, moduleText }))
             .toEqual({ targets: [], rebuild: false });
     });
 
-    it('all posters present + null module -> rebuild', () => {
-        expect(planPosterRun({ configs, posterExists: () => true, moduleText: null }))
+    it('all posters present + null module -> rebuild', async () => {
+        expect(await planPosterRun({ configs, posterExists: () => true, moduleText: null }))
             .toEqual({ targets: [], rebuild: true });
     });
 
-    it('all posters present + module omits a slug -> rebuild', () => {
+    it('all posters present + module omits a slug -> rebuild', async () => {
         const moduleText = 'export const POSTER_LQIPS = { "a": "x" };';
-        const plan = planPosterRun({ configs, posterExists: () => true, moduleText });
+        const plan = await planPosterRun({ configs, posterExists: () => true, moduleText });
         expect(plan.targets).toEqual([]);
         expect(plan.rebuild).toBe(true);
     });

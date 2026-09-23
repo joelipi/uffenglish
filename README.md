@@ -85,7 +85,7 @@ Staging: `s.ultrafastfluency.com` (Pages custom domain — add in Cloudflare das
 ```bash
 npm test -- --run          # unit tests (14 files, jsdom) — must be green before push
 npm run build              # vite build → dist/ (+ copy src/config + _headers/_redirects)
-node scripts/verify-thumbnails.mjs   # poster check (R2 state; --remote to gate)
+node scripts/verify-thumbnails.mjs   # poster gate (fails if any R2 poster is missing)
 npm run deploy             # build + wrangler pages deploy dist --project-name=uffenglish
 ```
 

@@ -48,7 +48,9 @@ const CONFIG_DIR = path.join(ROOT, 'src/config');
 const GENERATED_PATH = process.env.POSTER_LQIP_PATH
     ? path.resolve(process.env.POSTER_LQIP_PATH)
     : path.join(ROOT, 'src/generated/poster-lqips.js');
-const CDN_POSTER_BASE = 'https://r2.ultrafastfluency.com/assets/videos/';
+// POSTER_CDN_BASE is a test seam; production always uses the R2 CDN.
+const CDN_POSTER_BASE =
+    process.env.POSTER_CDN_BASE || 'https://r2.ultrafastfluency.com/assets/videos/';
 
 const HELP = `Generate slug-keyed posters for every course's first-step intro video.
 
@@ -268,7 +270,7 @@ async function main() {
 
     let moduleText = null;
     try { moduleText = await fs.readFile(GENERATED_PATH, 'utf8'); } catch {}
-    const plan = planPosterRun({
+    const plan = await planPosterRun({
         configs,
         posterExists: force ? () => false : r2PosterExists,
         moduleText,

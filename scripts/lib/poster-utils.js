@@ -105,7 +105,8 @@ export function posterSourceUrl(slug) {
 
 /**
  * Pure run planner. The CLI injects `posterExists(slug)` (an R2 HEAD) so this
- * stays testable without network access.
+ * stays testable without network access. `posterExists` may be synchronous or
+ * asynchronous (the real R2 HEAD is async), so the planner always awaits it.
  *
  * - `targets`: intro slugs whose poster does not yet exist, discovery order.
  * - `rebuild`: true when the LQIP module is absent (`moduleText == null`), when
@@ -113,13 +114,14 @@ export function posterSourceUrl(slug) {
  *
  * @param {object} opts
  * @param {Array<object>} opts.configs parsed course configs
- * @param {(slug: string) => boolean} opts.posterExists
+ * @param {(slug: string) => boolean | Promise<boolean>} opts.posterExists
  * @param {string|null} opts.moduleText committed poster-lqips.js text (null = absent)
- * @returns {{targets: Array<{slug: string}>, rebuild: boolean}}
+ * @returns {Promise<{targets: Array<{slug: string}>, rebuild: boolean}>}
  */
-export function planPosterRun({ configs, posterExists, moduleText }) {
+export async function planPosterRun({ configs, posterExists, moduleText }) {
     const all = introTargets(configs);
-    const targets = all.filter((t) => !posterExists(t.slug));
+    const exists = await Promise.all(all.map((t) => posterExists(t.slug)));
+    const targets = all.filter((_, i) => !exists[i]);
     const moduleMissing =
         moduleText == null ||
         all.some(

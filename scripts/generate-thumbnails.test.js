@@ -4,6 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import { execFile, execFileSync } from 'node:child_process';
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { createServer } from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -36,6 +37,26 @@ function hasFfmpeg() {
     } catch {
         return false;
     }
+}
+
+// Serve a fake R2 so the default (non --force) existence check is deterministic.
+function withFakeR2(status, fn) {
+    return new Promise((resolve, reject) => {
+        const server = createServer((_req, res) => {
+            res.writeHead(status, { 'content-type': 'image/jpeg' });
+            res.end(status === 200 ? 'jpeg' : '');
+        });
+        server.listen(0, '127.0.0.1', async () => {
+            const base = `http://127.0.0.1:${server.address().port}/assets/videos/`;
+            try {
+                resolve(await fn(base));
+            } catch (e) {
+                reject(e);
+            } finally {
+                server.close();
+            }
+        });
+    });
 }
 
 describe('generate-thumbnails.mjs source', () => {
@@ -106,6 +127,28 @@ integration('generate-thumbnails.mjs --force integration', () => {
             }
             // LQIP module written to the scratch seam, not the repo.
             expect(existsSync(lqipPath)).toBe(true);
+        } finally {
+            rmSync(scratch, { recursive: true, force: true });
+        }
+    }, 300000);
+
+    it('missing-only mode (no --force) targets slugs absent on R2 via the async HEAD', async () => {
+        const scratch = mkdtempSync(path.join(os.tmpdir(), 'uff-posters-test-'));
+        const lqipPath = path.join(scratch, 'poster-lqips.js');
+        try {
+            // Fake R2 has no posters: every intro slug must be targeted.
+            await withFakeR2(404, async (base) => {
+                const { code } = await runCli([], {
+                    POSTER_OUT_DIR: scratch,
+                    POSTER_LQIP_PATH: lqipPath,
+                    POSTER_CDN_BASE: base,
+                });
+                expect(code).toBe(0);
+                for (const slug of INTRO_SLUGS) {
+                    expect(existsSync(path.join(scratch, `${slug}.jpg`))).toBe(true);
+                }
+                expect(existsSync(lqipPath)).toBe(true);
+            });
         } finally {
             rmSync(scratch, { recursive: true, force: true });
         }
