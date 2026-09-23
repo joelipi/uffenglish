@@ -942,7 +942,7 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
         let trLines = [];
         const trFontSize = Math.round(enFontSize * 0.85);
         if (translationText && translationText.trim() !== '') {
-            context.font = `italic ${trFontSize}px "Plus Jakarta Sans", sans-serif`;
+            context.font = `${trFontSize}px "Plus Jakarta Sans", sans-serif`;
             trLines = wrapText(context, translationText, maxSubtitleWidth);
         }
 
@@ -962,7 +962,7 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
             longestLineWidth = Math.max(longestLineWidth, context.measureText(l).width);
         });
         if (trLines.length > 0) {
-            context.font = `italic ${trFontSize}px "Plus Jakarta Sans", sans-serif`;
+            context.font = `${trFontSize}px "Plus Jakarta Sans", sans-serif`;
             trLines.forEach(l => {
                 longestLineWidth = Math.max(longestLineWidth, context.measureText(l).width);
             });
@@ -1008,7 +1008,7 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
         // the SimpleVideoPlayer overlay, which grows upward from its anchor).
         let lineY = blockBottomY;
         if (trLines.length > 0) {
-            context.font = `italic ${trFontSize}px "Plus Jakarta Sans", sans-serif`;
+            context.font = `${trFontSize}px "Plus Jakarta Sans", sans-serif`;
             for (let i = trLines.length - 1; i >= 0; i--) {
                 context.fillText(trLines[i], centerX, lineY);
                 lineY -= trLineHeight;

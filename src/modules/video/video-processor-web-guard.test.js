@@ -77,4 +77,13 @@ describe('video-processor.web.js recap wiring guard', () => {
         expect(source).toMatch(/Rewind after duration probe failed/);
         expect(source).toMatch(/const endedNaturally = stepStartedPlaying && video\.ended/);
     });
+
+    it('draws the translated subtitle in the normal face, never italic', () => {
+        // italic triggers synthetic oblique in fonts without a true italic
+        // face, which shifts complex-script ink off the centre. The
+        // translation stays distinct via its smaller size.
+        expect(source).not.toMatch(/italic/i);
+        expect(source.match(/\$\{trFontSize\}px "Plus Jakarta Sans", sans-serif/g)).toHaveLength(3);
+        expect(source).toMatch(/bold \$\{enFontSize\}px "Plus Jakarta Sans", sans-serif/);
+    });
 });

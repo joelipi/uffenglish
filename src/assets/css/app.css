@@ -306,6 +306,15 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     font-style: italic;
 }
 
+/* Video overlay text stays upright: synthetic oblique (used when a font has no
+   true italic face) shifts complex-script glyphs and breaks centring in the
+   canvas recap export. Scoped to video overlays; the global [lang] italic rule
+   for the rest of the app is unchanged. */
+.ivp-overlay-text [lang],
+.intro-call-subtitle [lang] {
+    font-style: normal !important;
+}
+
 .text-shadow {
     text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.9);
 }
@@ -1303,7 +1312,6 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 .intro-call-subtitle {
     font-size: clamp(0.65rem, 3cqi, 0.9rem);
     opacity: 0.9;
-    font-style: italic;
 }
 
 .intro-caller-name {

@@ -389,7 +389,7 @@ export default function InteractiveVideoPlayer() {
                         <div className="ivp-overlay-content">
                             <p className="ivp-overlay-text">
                                 {overlayBilingual.localized ? (
-                                    <>{overlayBilingual.english}<br /><span lang={overlayBilingual.lang}><i>{overlayBilingual.localized}</i></span></>
+                                    <>{overlayBilingual.english}<br /><span lang={overlayBilingual.lang}>{overlayBilingual.localized}</span></>
                                 ) : overlayBilingual.english}
                             </p>
                         </div>
