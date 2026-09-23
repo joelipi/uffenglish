@@ -1,0 +1,24 @@
+{
+  "agent": {
+    "code-reviewer": {
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "options": {},
+      "permission": {}
+    },
+    "acceptance-reviewer": {
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "options": {},
+      "permission": {}
+    },
+    "implementer": {
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "options": {},
+      "permission": {}
+    },
+    "planner": {
+      "model": "opencode-go/deepseek-v4.1-flash",
+      "options": {},
+      "permission": {}
+    }
+  }
+}
