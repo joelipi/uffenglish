@@ -26,11 +26,13 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
     FRAME_AT_SECONDS,
+    POSTER_WIDTH,
     POSTER_QUALITY,
     POSTER_MAX_BYTES,
     LQIP_WIDTH,
     exceedsPosterBudget,
     introTargets,
+    loadConfigs,
     planPosterRun,
     posterFilename,
     posterR2Key,
@@ -83,21 +85,6 @@ function resolveOutDir() {
         throw new Error(`POSTER_OUT_DIR must be outside the repo root (got ${outDir})`);
     }
     return outDir;
-}
-
-async function loadConfigs() {
-    const files = (await fs.readdir(CONFIG_DIR))
-        .filter((f) => f.endsWith('.json'))
-        .sort();
-    const configs = [];
-    for (const file of files) {
-        try {
-            configs.push(JSON.parse(await fs.readFile(path.join(CONFIG_DIR, file), 'utf8')));
-        } catch (e) {
-            console.warn(`WARN: could not parse src/config/${file}: ${e.message}`);
-        }
-    }
-    return configs;
 }
 
 async function ensureFfmpeg() {
@@ -158,7 +145,7 @@ async function generateOne(slug, videoDir, outDir) {
         '-ss', String(FRAME_AT_SECONDS),
         '-i', src,
         '-vframes', '1',
-        '-vf', 'scale=640:-2',
+        '-vf', `scale=${POSTER_WIDTH}:-2`,
         '-q:v', String(POSTER_QUALITY),
         outJpg,
     ]);
@@ -266,7 +253,9 @@ async function main() {
     const videoDir = videoDirArg ? videoDirArg.split('=')[1] : undefined;
 
     const outDir = resolveOutDir();
-    const configs = await loadConfigs();
+    const configs = await loadConfigs(CONFIG_DIR, {
+        onParseError: (file, e) => console.error(`ERROR parsing src/config/${file}: ${e.message}`),
+    });
     const allTargets = introTargets(configs);
 
     if (upload) {

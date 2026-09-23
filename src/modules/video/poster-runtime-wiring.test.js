@@ -66,7 +66,9 @@ describe('video-processor.web.js UGC poster upload', () => {
     it('derives the sibling jpg key and uploads it when a thumb is present', () => {
         expect(source).toMatch(/getUgcThumbKey\(key\)/);
         expect(source).toMatch(/step\.thumbBlob/);
-        expect(source).toMatch(/step\.thumbArrayBuffer/);
+        // Storage converts a restored thumb ArrayBuffer back to a Blob before
+        // the planner runs, so the web upload must not read an ArrayBuffer field.
+        expect(source).not.toMatch(/thumbArrayBuffer/);
         expect(source).toMatch(/contentType:\s*'image\/jpeg'/);
     });
 });

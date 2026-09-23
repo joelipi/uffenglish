@@ -1,7 +1,8 @@
 // scripts/lib/poster-utils.test.js
-// Pure poster-generation utilities (stories/011-auto-intro-poster, Task 1).
+// Poster-generation utilities (stories/011-auto-intro-poster, Task 1).
 import { describe, it, expect } from 'vitest';
-import { readFileSync, readdirSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import {
@@ -12,6 +13,7 @@ import {
     LQIP_WIDTH,
     exceedsPosterBudget,
     introTargets,
+    loadConfigs,
     posterFilename,
     posterR2Key,
     posterSourceUrl,
@@ -129,6 +131,60 @@ describe('constants and budget', () => {
         expect(exceedsPosterBudget(32768)).toBe(false);
         expect(exceedsPosterBudget(32769)).toBe(true);
         expect(exceedsPosterBudget(19653)).toBe(false);
+    });
+});
+
+describe('loadConfigs', () => {
+    function withConfigDir(build) {
+        const dir = mkdtempSync(path.join(os.tmpdir(), 'uff-configs-test-'));
+        try {
+            build(dir);
+        } catch (e) {
+            rmSync(dir, { recursive: true, force: true });
+            throw e;
+        }
+        return dir;
+    }
+
+    it('reads every *.json in the directory (sorted) and ignores other files', async () => {
+        const dir = withConfigDir((d) => {
+            writeFileSync(path.join(d, 'b.json'), JSON.stringify({ courseId: 'b' }));
+            writeFileSync(path.join(d, 'a.json'), JSON.stringify({ courseId: 'a' }));
+            writeFileSync(path.join(d, 'notes.txt'), 'ignore me');
+        });
+        try {
+            const configs = await loadConfigs(dir);
+            expect(configs.map((c) => c.courseId)).toEqual(['a', 'b']);
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
+    });
+
+    it('treats a malformed config as fatal (never silently shrinks the set)', async () => {
+        const dir = withConfigDir((d) => {
+            writeFileSync(path.join(d, 'good.json'), JSON.stringify({ courseId: 'good' }));
+            writeFileSync(path.join(d, 'bad.json'), '{ not: json');
+        });
+        try {
+            await expect(loadConfigs(dir)).rejects.toThrow(/bad\.json/);
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
+    });
+
+    it('invokes onParseError for the failing file before throwing', async () => {
+        const dir = withConfigDir((d) => {
+            writeFileSync(path.join(d, 'bad.json'), '{ not: json');
+        });
+        const seen = [];
+        try {
+            await expect(
+                loadConfigs(dir, { onParseError: (file) => seen.push(file) }),
+            ).rejects.toThrow(/bad\.json/);
+            expect(seen).toEqual(['bad.json']);
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
     });
 });
 

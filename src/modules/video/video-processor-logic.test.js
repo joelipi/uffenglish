@@ -291,32 +291,19 @@ describe('VideoRenderPlanner.generatePlan — UGC poster thumb carry-through', (
         const webcam = planner.generatePlan().find(s => s.type === 'webcam');
 
         expect(webcam.thumbBlob).toBe(thumb);
-        expect(webcam.thumbArrayBuffer).toBeNull();
+        // Storage never surfaces the raw ArrayBuffer to the planner; restored
+        // records carry a Blob (storage.web.js).
+        expect(webcam).not.toHaveProperty('thumbArrayBuffer');
     });
 
-    it('carries rec.thumbArrayBuffer (IndexedDB-restored) into the webcam step', () => {
-        const buffer = new ArrayBuffer(8);
-        const recordings = [{
-            originalLessonId: 'w', originalStepIndex: 1, blob: { size: 1 },
-            userResponse: 'a', thumbArrayBuffer: buffer,
-        }];
-        const planner = new VideoRenderPlanner(
-            recordings, makeConfig(), { total: 80 }, 'en', 'ab12'
-        );
-        const webcam = planner.generatePlan().find(s => s.type === 'webcam');
-
-        expect(webcam.thumbArrayBuffer).toBe(buffer);
-        expect(webcam.thumbBlob).toBeNull();
-    });
-
-    it('defaults both thumb fields to null when there is no thumb', () => {
+    it('defaults thumbBlob to null when there is no thumb', () => {
         const planner = new VideoRenderPlanner(
             makeRecordings(1), makeConfig(), { total: 80 }, 'en', 'ab12'
         );
         const webcam = planner.generatePlan().find(s => s.type === 'webcam');
 
         expect(webcam.thumbBlob).toBeNull();
-        expect(webcam.thumbArrayBuffer).toBeNull();
+        expect(webcam).not.toHaveProperty('thumbArrayBuffer');
     });
 });
 

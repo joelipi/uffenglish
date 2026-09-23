@@ -1,14 +1,19 @@
 // scripts/lib/poster-utils.js
-// Pure poster-generation utilities for the uniform R2-only poster pipeline
+// Poster-generation utilities for the uniform R2-only poster pipeline
 // (stories/011-auto-intro-poster). Mirrors scripts/lib/caption-utils.js: all
-// process/network work (ffmpeg, R2 HEAD, config reads) lives in the CLI
+// process/network work (ffmpeg, R2 HEAD) lives in the CLI
 // (scripts/generate-thumbnails.mjs, scripts/verify-thumbnails.mjs), so the
-// planning logic here is unit-testable with fakes.
+// planning logic here is unit-testable with fakes. `loadConfigs` is the one I/O
+// helper shared by both CLIs so the "read every src/config/*.json" contract and
+// its parse-error policy cannot drift between them.
 //
 // One rule: a poster is a still of its video, so its name is the video's slug
 // with `.mp4` → `.jpg` (sibling on R2 under assets/videos/ for teacher intros,
 // videos/ for UGC). Nothing is committed to the repo and nothing is served
 // locally.
+
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
 
 // Avoid the black frame at t=0 (UGC thumbs also sample 0.2s, speech.web.js).
 export const FRAME_AT_SECONDS = 0.2;
@@ -24,6 +29,40 @@ export const LQIP_WIDTH = 32;
 // encoder variance must not fail the pipeline.
 export function exceedsPosterBudget(bytes) {
     return bytes > POSTER_MAX_BYTES;
+}
+
+/**
+ * Read and parse every `<dir>/*.json` course config, sorted by filename. Shared
+ * by the generator and the verifier so both see the same config set.
+ *
+ * Parse errors are ALWAYS fatal: a malformed config would otherwise silently
+ * shrink the target set (the generator would rewrite the LQIP module without
+ * that course's entries and still exit 0). The optional `onParseError` hook
+ * lets a caller report the failing file before the throw; it does not make the
+ * error recoverable.
+ *
+ * @param {string} dir directory containing course configs
+ * @param {{ onParseError?: (file: string, error: Error) => void }} [opts]
+ * @returns {Promise<Array<object>>}
+ */
+export async function loadConfigs(dir, { onParseError } = {}) {
+    const files = (await fs.readdir(dir))
+        .filter((f) => f.endsWith('.json'))
+        .sort();
+    const configs = [];
+    const errors = [];
+    for (const file of files) {
+        try {
+            configs.push(JSON.parse(await fs.readFile(path.join(dir, file), 'utf8')));
+        } catch (e) {
+            if (onParseError) onParseError(file, e);
+            errors.push(`${file}: ${e.message}`);
+        }
+    }
+    if (errors.length) {
+        throw new Error(`could not parse config file(s): ${errors.join('; ')}`);
+    }
+    return configs;
 }
 
 /**

@@ -32,10 +32,10 @@ jobs:
 
       - name: Upload posters to R2
         # Runs on all branches: preview deployments serve posters from R2
-        # (getPosterUrl uses POSTER_BASE outside DEV), so a branch that skips
-        # this shows gradient fallbacks instead of posters. Poster output is
-        # deterministic per lessonId, so a branch upload is safe; main
-        # re-uploads on merge.
+        # (getPosterUrl resolves the slug sibling assets/videos/<slug>.jpg), so a
+        # branch that skips this shows gradient/LQIP fallbacks instead of
+        # posters. Posters are slug-keyed and only ever live on R2, so a branch
+        # upload is safe; main re-uploads on merge.
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

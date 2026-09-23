@@ -209,11 +209,13 @@ export class VideoRenderPlanner {
                 blob: rec.blob,       // Used by web processor
                 uri: rec.uri,         // Used by native processor
                 // Carry the generated webcam thumb into the publish plan so
-                // exportSegmentsToR2 uploads the sibling .jpg. rec.thumbBlob is
-                // the live Blob; rec.thumbArrayBuffer is the IndexedDB-restored
-                // form (storage.web.js).
+                // exportSegmentsToR2 uploads the sibling .jpg. Storage only ever
+                // exposes the thumb as a Blob on the record (`thumbBlob`);
+                // a record restored from IndexedDB has its ArrayBuffer form
+                // converted back to `thumbBlob` before it reaches the planner
+                // (storage.web.js restoreRecordingsForLesson), so there is no
+                // separate ArrayBuffer field to carry.
                 thumbBlob: rec.thumbBlob || null,
-                thumbArrayBuffer: rec.thumbArrayBuffer || null,
                 trim: rec.meta?.trimTimestamps || null,
                 subtitle: { en: userText, translation: rec.translation || null },
                 isFirst: plan.length === 0,

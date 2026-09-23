@@ -3,6 +3,7 @@
 import { describe, it, expect } from 'vitest';
 import { execFile } from 'node:child_process';
 import { readFileSync } from 'node:fs';
+import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -11,10 +12,31 @@ const ROOT = path.resolve(__dirname, '..');
 const SCRIPT = path.join(ROOT, 'scripts/verify-thumbnails.mjs');
 const SOURCE = readFileSync(SCRIPT, 'utf8');
 
-function runCli(args = []) {
+function runCli(args = [], env = {}) {
     return new Promise((resolve) => {
-        execFile('node', [SCRIPT, ...args], { cwd: ROOT }, (err, stdout, stderr) => {
+        execFile('node', [SCRIPT, ...args], { cwd: ROOT, env: { ...process.env, ...env } }, (err, stdout, stderr) => {
             resolve({ code: err ? err.code : 0, stdout, stderr });
+        });
+    });
+}
+
+// Serve a fake R2 so the verifier's run is deterministic (no live network) and
+// so strict-miss behaviour can actually be exercised.
+function withFakeR2(status, fn) {
+    return new Promise((resolve, reject) => {
+        const server = createServer((_req, res) => {
+            res.writeHead(status, { 'content-type': 'image/jpeg' });
+            res.end(status === 200 ? 'jpeg' : '');
+        });
+        server.listen(0, '127.0.0.1', async () => {
+            const base = `http://127.0.0.1:${server.address().port}/assets/videos/`;
+            try {
+                resolve(await fn(base));
+            } catch (e) {
+                reject(e);
+            } finally {
+                server.close();
+            }
         });
     });
 }
@@ -34,13 +56,27 @@ describe('verify-thumbnails.mjs source', () => {
     it('no longer reads local public/assets/posters', () => {
         expect(SOURCE).not.toMatch(/public\/assets\/posters/);
     });
+
+    it('treats a missing R2 poster as fatal (gate, not advisory)', () => {
+        expect(SOURCE).not.toMatch(/non-fatal/);
+        expect(SOURCE).toMatch(/R2 missing/);
+        expect(SOURCE).toMatch(/process\.exit\(1\)/);
+    });
 });
 
 describe('verify-thumbnails.mjs run', () => {
-    it('exits 0 and reports the five intro slugs', async () => {
-        const { code, stdout } = await runCli();
+    it('exits 0 and reports the five intro slugs when every poster is present', async () => {
+        const { code, stdout } = await withFakeR2(200, (base) =>
+            runCli([], { POSTER_CDN_BASE: base }));
         expect(code).toBe(0);
         expect(stdout).toContain('5 intro slugs');
+    }, 120000);
+
+    it('exits non-zero when an R2 poster is missing', async () => {
+        const { code, stderr } = await withFakeR2(404, (base) =>
+            runCli([], { POSTER_CDN_BASE: base }));
+        expect(code).toBe(1);
+        expect(stderr).toMatch(/R2 missing/);
     }, 120000);
 });
 

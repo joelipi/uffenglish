@@ -45,9 +45,9 @@ describe('generate-thumbnails.mjs source', () => {
         expect(SOURCE).toContain('planPosterRun');
     });
 
-    it('scans every src/config/*.json (no model.json-only read)', () => {
+    it('scans every src/config/*.json via the shared loader (no model.json-only read)', () => {
         expect(SOURCE).toMatch(/CONFIG_DIR/);
-        expect(SOURCE).toMatch(/readdir/);
+        expect(SOURCE).toContain('loadConfigs');
         expect(SOURCE).not.toMatch(/MODEL_PATH/);
     });
 
@@ -63,7 +63,8 @@ describe('generate-thumbnails.mjs source', () => {
     });
 
     it('encodes with the tuned filter/quality and checks the byte budget', () => {
-        expect(SOURCE).toContain('scale=640');
+        expect(SOURCE).toContain('POSTER_WIDTH');
+        expect(SOURCE).toMatch(/scale=\$\{POSTER_WIDTH\}:-2/);
         expect(SOURCE).toContain('POSTER_QUALITY');
         expect(SOURCE).toContain('exceedsPosterBudget');
     });
