@@ -151,12 +151,16 @@ oblique is never requested anywhere in the video overlay.
 - `IncomingVideoWidget.jsx` read as source text
   - → the `intro-call-subtitle` localized span has no `<i>` child and retains `lang`
 - `app.css` read as source text
-  - → the `.intro-call-subtitle` block no longer contains `font-style: italic`
+  - → the `.intro-call-subtitle` rule is found (non-empty block) and no longer contains
+    `font-style: italic`
   - → a rule exists that sets `font-style: normal` for `.ivp-overlay-text [lang]` and
     `.intro-call-subtitle [lang]`
 - `src/components/video-overlay-italic.test.js` (new, vitest)
   - → asserts the three JSX files contain no `<i>` inside the video-overlay localized spans
-  - → asserts the `.intro-call-subtitle` rule has no italic and the overlay `[lang]` override exists
+  - → asserts the `.intro-call-subtitle` block was found (`expect(block).not.toBe('')`) before
+    asserting it has no italic, so a deleted/renamed rule fails the test instead of passing
+    vacuously (repo convention: a guard test must be able to fail — `docs/learnings.md`)
+  - → asserts the overlay `[lang]` override exists
 
 ### Task 3 - Scope guards: global rule and non-video UI unchanged (`app.css`, components, `video-overlay-italic.test.js`)
 
@@ -218,3 +222,7 @@ that residual matters.
 - No language/script identifier, script detection, or per-language font list is introduced.
 - Preserve existing comments and `console.log` statements per `agents.md`.
 - Do not touch `ensureFontsReady()`, `index.html`, the subtitle font stack, or the native renderer.
+- The CSS guard must be able to fail: `blockFor()` returning `''` for a missing selector would make
+  `expect(block).not.toMatch(/font-style:\s*italic/)` pass vacuously. Assert the block exists first
+  (see `docs/learnings.md`: "Always prove a guard test can fail by temporarily injecting the thing it
+  forbids").
