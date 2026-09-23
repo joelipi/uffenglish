@@ -13,7 +13,7 @@ symmetric about the advance midpoint the rendered glyphs sit visibly off-centre 
 mathematically centred.
 
 **Verified trigger (reproduced during planning, Chromium):** the subtitle translation line is drawn in
-`italic` (`video-processor.web.js:945, 1011, 1018`). Bengali has no true italic face in the fallback font
+`italic` (`video-processor.web.js:945, 965, 1011`). Bengali has no true italic face in the fallback font
 (and `Noto Sans Bengali` has none either), so the browser applies synthetic oblique. That shear pushes the
 glyph ink to the right of the advance centre:
 
