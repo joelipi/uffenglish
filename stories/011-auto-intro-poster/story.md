@@ -103,8 +103,13 @@ are created at record/publish time on the client.
 
 ```js
 export const FRAME_AT_SECONDS = 0.2; // avoid the black frame at t=0
-export const POSTER_WIDTH = 640;
+export const POSTER_WIDTH = 640;     // 1.78x the 360px display width
+export const POSTER_QUALITY = 8;     // ffmpeg -q:v (was 4); ~31% smaller, SSIM 0.993
+export const POSTER_MAX_BYTES = 32768; // 32 KiB guard against regressions
 export const LQIP_WIDTH = 32;
+
+// Warn (never fail) when a generated JPEG blows the byte budget.
+export function exceedsPosterBudget(bytes) { return bytes > POSTER_MAX_BYTES; }
 
 // Every first-step intro slug across all configs, deduped, first-seen order.
 // A lesson contributes iff steps[0].introBackgroundVideoUrl is truthy.
@@ -174,8 +179,11 @@ existing rule, which is exactly the desired "always fetch from R2" behavior.
 
 Per target: source `--video-dir/<slug>.mp4` → `public/assets/videos/<slug>.mp4` →
 download `https://r2.ultrafastfluency.com/assets/videos/<slug>.mp4` into the work
-dir; poster `ffmpeg -y -loglevel error -ss 0.2 -i <src> -vframes 1 -vf scale=640:-2 -q:v 4 <workdir>/<slug>.jpg`.
-`--check` is dropped (R2 verification lives in `verify-thumbnails.mjs`).
+dir; poster
+`ffmpeg -y -loglevel error -ss 0.2 -i <src> -vframes 1 -vf scale=640:-2 -q:v 8 <workdir>/<slug>.jpg`
+(i.e. `-q:v ${POSTER_QUALITY}`). After each encode, stat the file and `WARN` if
+`exceedsPosterBudget(size)`. `--check` is dropped (R2 verification lives in
+`verify-thumbnails.mjs`).
 
 **5. LQIP module stays committed.** `src/generated/poster-lqips.js` is not a
 poster file — it is a small JS module of base64 low-res placeholders imported by
@@ -223,7 +231,9 @@ steps already run this pipeline on every push.
 - `planPosterRun` where every poster exists and `moduleText` omits one slug
   - → `rebuild === true`
 - module constants
-  - → `FRAME_AT_SECONDS === 0.2`, `POSTER_WIDTH === 640`, `LQIP_WIDTH === 32`
+  - → `FRAME_AT_SECONDS === 0.2`, `POSTER_WIDTH === 640`, `POSTER_QUALITY === 8`, `POSTER_MAX_BYTES === 32768`, `LQIP_WIDTH === 32`
+- `exceedsPosterBudget(32768)` / `exceedsPosterBudget(32769)` / `exceedsPosterBudget(19653)`
+  - → `false` / `true` / `false`
 - `formatLqipModule({ do_you_have_rolls_too: 'data:image/jpeg;base64,AAA' })`
   - → contains `POSTER_LQIPS`, `getPosterLqip`, `"do_you_have_rolls_too"`, and the data URI; output is valid JS
 - `formatLqipModule({})`
@@ -236,7 +246,8 @@ steps already run this pipeline on every push.
   - → scans all `src/config/*.json` (no hardcoded `model.json`-only read)
   - → resolves its output directory under `os.tmpdir()` (honours `POSTER_OUT_DIR`) and never writes under the repo root or `public/`
   - → determines existing posters via an R2 `HEAD` (`https://r2.ultrafastfluency.com/assets/videos/<slug>.jpg`)
-  - → contains the poster ffmpeg filter `scale=640`
+  - → contains the poster ffmpeg filter `scale=640` and encodes with `POSTER_QUALITY` (8)
+  - → calls `exceedsPosterBudget` on each generated file size
 - `node scripts/generate-thumbnails.mjs --help`
   - → exits 0 and prints `--force`, `--upload`
 - `node scripts/generate-thumbnails.mjs --force` run against a scratch `POSTER_OUT_DIR`
@@ -305,6 +316,14 @@ steps already run this pipeline on every push.
 - **No new packages.** Zero `dependencies`/`devDependencies` added.
 - **ffmpeg 6.1.1** — already required by `deploy.yml`/`captions.yml`; confirmed
   locally. All 5 teacher intro slugs are live on R2 (`HEAD` → `200`).
+- **Poster size/quality (measured).** The display is at most 360 CSS px wide
+  (`.intro-video-container`: `width: min(90vw, 360px, 50cqi)`, `aspect-ratio: 3/4`,
+  `app.css:1190-1198`) and sits under a `rgba(0,0,0,0.5)` overlay
+  (`app.css:1200-1210`), so 640w is 1.78x coverage. Measured JPEG sizes:
+  640w/`-q:v 4` = 7.5 KB (simple) to 28.6 KB (detailed); 640w/`-q:v 8` = 6.5–19.7 KB;
+  480w/`-q:v 8` = 4.1–13.5 KB. 640w/`-q:v 8` scores SSIM 0.993 vs a `-q:v 2`
+  reference, so it is the recommended setting. LQIP at 32w/`-q:v 15` is ~287 B
+  (384 base64 chars).
 - **R2-only serving needs no Vite change.** The existing `/assets/videos/` proxy
   (`vite.config.js:72-75`) already forwards `/assets/videos/<slug>.jpg` to R2 in
   dev; prod uses the absolute R2 URL.
@@ -348,6 +367,13 @@ steps already run this pipeline on every push.
 - **Frame time.** `FRAME_AT_SECONDS = 0.2` retained (not `0`) because the first
   frame of these mp4s is frequently black; the UGC thumb already uses 0.2
   (`speech.web.js:223`).
+- **Poster optimization.** `POSTER_QUALITY` moves from ffmpeg `-q:v 4` to `8`,
+  cutting the detailed poster 28.6 KB → 19.7 KB and the simple one 7.5 KB → 6.5 KB
+  at SSIM 0.993 (invisible under the 50% overlay). If more aggressive loading is
+  wanted, dropping `POSTER_WIDTH` to 480 gives 4.1–13.5 KB at a slight softness on
+  2x displays; 640 was chosen to keep 1.78x coverage. A 32 KiB `POSTER_MAX_BYTES`
+  budget only logs a `WARN` (network/encode variance must not fail the build).
+  The JPEG format is kept (not WebP/AVIF) so the uniform `.mp4`→`.jpg` rule holds.
 - **R2 verification.** Because there are no local posters, `verify-thumbnails.mjs`
   now reports on R2 state; run it after `--upload`. `deploy.yml`'s upload step is
   non-fatal, so a credentials/R2 failure surfaces at the verify step.
