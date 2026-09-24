@@ -13,7 +13,9 @@ export default function SuccessVideo() {
     const endedRef = useRef(false);
 
     const markEnded = useCallback(() => {
+        if (endedRef.current) return;
         endedRef.current = true;
+        console.log('[SuccessVideo] markEnded → showing overlay');
         setPlaying(false);
         setEnded(true);
     }, []);
