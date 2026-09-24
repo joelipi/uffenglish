@@ -417,6 +417,7 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
             stepPlayStart = 0;
             step.loadFailed = false;
             step.playFatal = false;
+            step.mediaDurationSec = undefined;
             if (currentObjectUrl) {
                 URL.revokeObjectURL(currentObjectUrl);
                 currentObjectUrl = null;
@@ -472,11 +473,14 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                         // MediaRecorder WebM), read the real container duration
                         // directly. The segment then advances on its actual
                         // length rather than its net speaking time.
+                        //
+                        // Await the probe directly — no timeout race. The
+                        // step.resolvingDuration hold keeps the draw loop on
+                        // this frame, and the probe always settles (finite
+                        // in-memory Blob + skipLiveWait, errors caught), so a
+                        // short race would only risk truncating a valid clip.
                         if (!Number.isFinite(video.duration)) {
-                            step.mediaDurationSec = await Promise.race([
-                                probeClipDurationSec(step.blob || step.remoteBlob),
-                                new Promise(res => setTimeout(() => res(null), 2000)),
-                            ]);
+                            step.mediaDurationSec = await probeClipDurationSec(step.blob || step.remoteBlob);
                             console.log('[VideoProcessor] Probed clip duration:', step.mediaDurationSec, 'step', stepIndex);
                         }
                         step.resolvingDuration = false;

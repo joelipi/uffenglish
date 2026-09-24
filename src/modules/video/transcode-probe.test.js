@@ -26,7 +26,11 @@ describe('probeClipDurationSec', () => {
         const web = readFileSync(WEB_PATH, 'utf8');
         expect(web).toMatch(/export async function probeClipDurationSec\(blob\)/);
         expect(web).toMatch(/new BlobSource\(blob\)/);
+        expect(web).toMatch(/getDurationFromMetadata\(undefined, \{ skipLiveWait: true \}\)/);
         expect(web).toMatch(/computeDuration\(undefined, \{ skipLiveWait: true \}\)/);
         expect(web).toMatch(/input\?\.dispose\(\)/);
+        // Metadata-first: the cheap header read must precede the packet scan.
+        expect(web.indexOf('getDurationFromMetadata')).toBeGreaterThanOrEqual(0);
+        expect(web.indexOf('getDurationFromMetadata')).toBeLessThan(web.indexOf('computeDuration'));
     });
 });

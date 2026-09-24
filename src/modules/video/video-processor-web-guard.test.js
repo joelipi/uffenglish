@@ -73,7 +73,13 @@ describe('video-processor.web.js recap wiring guard', () => {
         expect(source).toMatch(/probeClipDurationSec\s*\}\s*from '\.\/transcode\.js'/);
         expect(source).toMatch(/resolveSegmentBounds, STALL_GRACE_MS\s*\}\s*from '\.\/video-processor-logic\.js'/);
         expect(source).toMatch(/fallbackDurationSec: step\.mediaDurationSec/);
-        expect(source).toMatch(/probeClipDurationSec\(step\.blob \|\| step\.remoteBlob\)/);
+        expect(source).toMatch(/await probeClipDurationSec\(step\.blob \|\| step\.remoteBlob\)/);
+        // The probe must not be raced against a timeout that resolves null: a
+        // slow-but-valid read would otherwise be truncated by the 15 s cap.
+        expect(source).not.toMatch(/Promise\.race\(\[\s*probeClipDurationSec/);
+        // A stale probe must not leak across steps: it is reset alongside the
+        // other per-step playback health fields.
+        expect(source).toMatch(/step\.loadFailed = false;\s*step\.playFatal = false;\s*step\.mediaDurationSec = undefined;/);
     });
 
     it('no longer derives a media length from net speaking time', () => {

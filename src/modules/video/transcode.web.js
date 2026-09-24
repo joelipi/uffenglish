@@ -77,9 +77,15 @@ export async function probeClipDurationSec(blob) {
     let input = null;
     try {
         input = new Input({ source: new BlobSource(blob), formats: ALL_FORMATS });
-        // Precise container duration, independent of the <video> element's
-        // lazy/absent duration. skipLiveWait prevents a MediaRecorder blob
-        // flagged as "live" from blocking on a stream that has already ended.
+        // Cheap path first: the duration stored in the container header
+        // (WebM Segment Info / MP4 mvhd), no packet scan. Usually a few ms.
+        // skipLiveWait prevents a MediaRecorder blob flagged as "live" from
+        // blocking on a stream that has already ended.
+        const fromMetadata = await input.getDurationFromMetadata(undefined, { skipLiveWait: true });
+        if (Number.isFinite(fromMetadata) && fromMetadata > 0) return fromMetadata;
+        // Accurate path: scan to the last packet. Bounded because the source is
+        // a finite, in-memory Blob and `skipLiveWait` avoids waiting for a live
+        // stream that has already ended.
         const duration = await input.computeDuration(undefined, { skipLiveWait: true });
         return Number.isFinite(duration) && duration > 0 ? duration : null;
     } catch (e) {
