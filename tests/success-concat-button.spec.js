@@ -156,6 +156,23 @@ test.describe('Success screen — concat button reveal', () => {
         await expect(page.locator('.ivp-overlay.water-surface')).toHaveCount(0);
     });
 
+    test('reveals the overlay when the success video never plays (blocked autoplay)', async ({ page }) => {
+        // Mirrors returning from the signup/login redirect: the clip is present
+        // but cannot start, so `ended` never fires.
+        await setupSuccessScreen(page);
+        await waitForVideoWrapper(page);
+        await expect(page.locator('.ivp-overlay.water-surface')).toHaveCount(0);
+
+        await page.waitForFunction(
+            () => window.appStore.getState().appPhase === 'lessonSuccess-decisionTime',
+            null,
+            { timeout: 8000 }
+        );
+        await expect(page.locator('.ivp-overlay.water-surface')).toBeVisible();
+        const glow = await page.locator('#processBtn').evaluate(el => getComputedStyle(el, '::before').animationName);
+        expect(glow).toContain('btnGlowPulse');
+    });
+
     test('success video end reveals overlay copy and the big glowing CONTINUE button', async ({ page }) => {
         await setupSuccessScreen(page);
         await waitForVideoWrapper(page);

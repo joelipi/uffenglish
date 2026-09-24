@@ -328,6 +328,26 @@ export default function SimpleVideoPlayer() {
         }
     }, [isActive, pendingVideoPlayType, mediaVisible]);
 
+    // Success clip fallback: if it never starts playing — e.g. the learner
+    // returns from the signup/login redirect with no user activation, where iOS
+    // blocks autoplay and can pause the clip when it unmutes — reveal the
+    // overlay + concat button rather than waiting for an `ended` that will never
+    // fire. A clip that starts playing clears this; a clip that ends is handled
+    // by handleEnded.
+    useEffect(() => {
+        if (!isActive || playing) return;
+        if (appStore.getState().currentVideo?.responseType !== 'success') return;
+        const t = setTimeout(() => {
+            if (appStore.getState().currentVideo?.responseType !== 'success') return;
+            if (appStore.getState().appPhase === 'lessonSuccess-decisionTime') return;
+            const v = videoRef.current;
+            if (v && !v.paused && !v.ended) return;
+            console.warn('[SimpleVideo] Success video did not play → revealing concat button');
+            appStore.getState().transitionTo('lessonSuccess-decisionTime', {}, { fromStepLoad: true });
+        }, 3000);
+        return () => clearTimeout(t);
+    }, [isActive, playing]);
+
     // Compute scroll offset for scrolling subtitles
     useLayoutEffect(() => {
         const container = subtitleContainerRef.current;
