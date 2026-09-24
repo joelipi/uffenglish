@@ -38,11 +38,21 @@ Today teacher posters violate all of the above:
   but `testvideo01` in `friend.json`. A `lessonId`-keyed poster is wrong for one
   of every colliding pair.
 
-The full first-step intro slug set across all configs is `testvideo01`,
-`do_you_have_rolls_too`, `do_you_have_dark_chocolate`, `gtests-1-0`,
-`gtests-0-1-1` (5 slugs; `gt2.json`'s 6 `introBackgroundVideoUrl` occurrences are
-non-first-step replays needing no poster). All 5 mp4s are live on R2
+The full first-step intro slug set across the `steps`-shaped configs is
+`testvideo01`, `do_you_have_rolls_too`, `do_you_have_dark_chocolate`,
+`gtests-1-0`, `gtests-0-1-1` (5 slugs). All 5 mp4s are live on R2
 (`HEAD` → `200`).
+
+**`questions`-shaped configs are vestigial and explicitly out of scope.**
+`gt2.json` (139 lessons) stores its steps under `questions`, and the runtime
+normalizes `questions` → `steps` (`config-normalizer.js:50-52`), so its first
+`questions[0].introBackgroundVideoUrl` values would request posters
+(`gtests-1-0`, `gtests-0-1-1`, `gtests-1-2`, `gtests-0-1intro`,
+`worried-UnitIntro`). These intro entries are vestigial: the pipeline must **not**
+normalize `questions` and must ignore them (the user confirmed they should be
+deleted from `gt2.json` in a separate cleanup). Two of those slugs
+(`gtests-0-1intro`, `worried-UnitIntro`) do not even have a source mp4 on R2
+(`HEAD` → `404`), which is why they must not become generation targets.
 
 ### B. User-generated (UGC) friend posters — generated but never uploaded
 
@@ -84,6 +94,9 @@ are created at record/publish time on the client.
   credentials on every dev machine and would duplicate CI. (Flagged in Notes.)
 - **No change to the caption pipeline** (`generate-captions.mjs`,
   `captions-changed.sh`, `captions.yml`).
+- **No support for `questions`-shaped intros.** `gt2.json`'s first-step
+  `questions` intros are vestigial and ignored (no `questions` → `steps`
+  normalization); deleting them from `gt2.json` is a separate cleanup. See Notes.
 - **No deletion of old R2 objects.** The orphaned `assets/posters/<lessonId>.jpg`
   objects are manual Cloudflare cleanup.
 - **No rendering of posters inside `SimpleVideoPlayer` / `InteractiveVideoPlayer`.**
@@ -111,8 +124,10 @@ export const LQIP_WIDTH = 32;
 // Warn (never fail) when a generated JPEG blows the byte budget.
 export function exceedsPosterBudget(bytes) { return bytes > POSTER_MAX_BYTES; }
 
-// Every first-step intro slug across all configs, deduped, first-seen order.
-// A lesson contributes iff steps[0].introBackgroundVideoUrl is truthy.
+// Every first-step intro slug across all `steps`-shaped configs, deduped,
+// first-seen order. A lesson contributes iff steps[0].introBackgroundVideoUrl is
+// truthy. Deliberately does NOT normalize `questions` -> `steps`: `questions`-
+// shaped configs (gt2.json) hold vestigial intros and are out of scope.
 export function introTargets(configs) { … }        // -> [{ slug }]
 
 // <slug>.jpg — the sibling name shared by teacher and UGC posters.
@@ -219,6 +234,9 @@ steps already run this pipeline on every push.
   - → `[]`
 - `introTargets` over every parsed `src/config/*.json`
   - → slug set is exactly `testvideo01`, `do_you_have_rolls_too`, `do_you_have_dark_chocolate`, `gtests-1-0`, `gtests-0-1-1`
+  - → `gtests-1-2`, `gtests-0-1intro`, and `worried-UnitIntro` are NOT returned (they live only under `gt2.json`'s `questions`)
+- `introTargets` given a lesson whose only first-step intro is under `questions` (no `steps`)
+  - → returns `[]` (no `questions` normalization; vestigial)
 - `posterFilename('do_you_have_rolls_too')` / `posterR2Key('do_you_have_rolls_too')`
   - → `do_you_have_rolls_too.jpg` / `assets/videos/do_you_have_rolls_too.jpg`
 - `posterSourceUrl('testvideo01')` → `https://r2.ultrafastfluency.com/assets/videos/testvideo01.mp4`
@@ -348,6 +366,19 @@ steps already run this pipeline on every push.
 
 ## Notes
 
+- **`questions`-shaped intros are vestigial (confirmed by the user).** `gt2.json`
+  stores steps under `questions`; the runtime normalizes `questions` → `steps`
+  (`config-normalizer.js:50-52`), so loading a gt2 lesson would request posters
+  for `gtests-1-2`, `gtests-0-1intro`, and `worried-UnitIntro`. The user confirmed
+  these intro entries are vestigial and should be ignored (and deleted from
+  `gt2.json` in a separate cleanup). `introTargets` therefore reads `steps[0]`
+  from the raw config and does **not** normalize `questions`; the verifier only
+  requires the 5 `steps`-shaped slugs. Two of the ignored slugs
+  (`gtests-0-1intro`, `worried-UnitIntro`) have no source mp4 on R2 (`404`), so
+  they could not be generated even if wanted. A gt2 lesson that still references
+  one will fall back to the LQIP/gradient (poster 404), which is acceptable for
+  vestigial data. Follow-up (out of scope): delete the vestigial
+  `introBackgroundVideoUrl` fields from `gt2.json`.
 - **No dev-time trigger (changed from earlier plan).** The original request tied
   poster creation to `npm run dev`, which assumed posters were served locally.
   With posters R2-only, a local generation shows nothing, and the push pipeline
