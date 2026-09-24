@@ -20,6 +20,8 @@ Minimize external operations. All data fetching and mutations must go through Ta
 **Version Control**
 Primary branch is `main`. Commits land on `main` directly, so once committed `main..HEAD` is empty — review ranges must use the remote default (`origin/main..HEAD`). This repo is a `blob:none` partial clone: `git log`/`git diff` between local refs work, but `git show <older-sha>` can fail with an auth error for blobs the promisor has not fetched.
 
+**Rebase if `origin/main` has advanced.** `peck story create` branches from the current commit, but parallel work keeps merging to `main`. If `git log --oneline HEAD..origin/main` is non-empty when you reach the verify step, `git rebase origin/main` before running reviewers. Otherwise `origin/main..HEAD` contains the *inverse* of every upstream commit your branch lacks, and the code reviewer will Fail on those apparent reverts (e.g. a later branch's i18n/CSS fix) even though your feature is fine.
+
 **Branch can switch underneath you.** Parallel processes (peck story create, openchamber worktrees) create story branches and check them out while you work. Before every `git commit`, run `git branch --show-current` and confirm it matches the story branch. If a commit or reviewer report lands on the wrong branch, `git cherry-pick` it onto the correct one. If file contents suddenly don't match your edits, check `git branch --show-current` + `git status` before debugging — the working tree may be a different branch's state.
 
 ---
