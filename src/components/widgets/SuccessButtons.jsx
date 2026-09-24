@@ -119,22 +119,22 @@ export function VideoButton({ canvasRef }) {
   };
 
   if (button.state === 'idle') {
-    // Two signals gate the reveal:
+    // The button must never be missing: gating its *existence* on the success
+    // clip firing `ended` stranded learners when autoplay was blocked or the
+    // clip stalled. So the big call button is always rendered, and what
+    // "reveals" when the clip finishes (or there is no clip to wait for) is the
+    // glow + the water overlay:
     //  - appPhase === 'lessonSuccess-decisionTime' is set by SimpleVideoPlayer
-    //    when the success clip fires `ended`, and drives the water overlay.
+    //    on `ended`/`error`, and drives the water overlay.
     //  - currentVideo?.responseType === 'success' tells us a success clip is
-    //    actually pending. A success step with no clip intentionally stays in
-    //    'lessonSuccess' (there is no overlay to show), so it reveals at once.
-    // Keep the button hidden while the clip plays so it lands like every
-    // earlier step's glowing call button.
+    //    pending; a success step with no clip reveals (glows) immediately.
     const successVideoPending = currentVideo?.responseType === 'success';
     const revealed = appPhase === 'lessonSuccess-decisionTime' || !successVideoPending;
-    if (!revealed) return null;
 
     const continueLabel = getBilingual('continue', userData?.native_language || 'en');
 
     return (
-      <div className="ivp-choice-col" style={{ flex: '0 0 auto', minWidth: 0 }}>
+      <div className={revealed ? 'ivp-choice-col' : undefined} style={{ flex: '0 0 auto', minWidth: 0 }}>
         <div className="ivp-choice-label">
           <div className="ivp-choice-label-text">
             {continueLabel.localized ? (
@@ -149,7 +149,7 @@ export function VideoButton({ canvasRef }) {
           onClick={handleProcess}
           aria-label="Continue"
         >
-          <i className="bi bi-film" />
+          <i className="bi bi-play-fill" />
         </button>
       </div>
     );

@@ -130,18 +130,28 @@ test.describe('Success screen — concat button reveal', () => {
         expect(transitionWarnings).toEqual([]);
     });
 
-    test('concat button stays hidden while the success video plays', async ({ page }) => {
+    test('concat button is always present; it only glows after the success video ends', async ({ page }) => {
         await setupSuccessScreen(page);
         await waitForVideoWrapper(page);
 
-        await expect(page.locator('#processBtn')).toHaveCount(0);
+        // Present and pressable the whole time — never hidden (a blocked or
+        // stalled clip must not strand the learner with no button).
+        await expect(page.locator('#processBtn')).toBeVisible();
+        await expect(page.locator('#state-lesson-success .ivp-choice-label-text')).toHaveText('CONTINUE');
+
+        // Not glowing yet, and no overlay.
+        const glowBefore = await page.locator('#processBtn').evaluate(el => getComputedStyle(el, '::before').animationName);
+        expect(glowBefore).toBe('none');
         await expect(page.locator('.ivp-overlay.water-surface')).toHaveCount(0);
     });
 
     test('success video end reveals overlay copy and the big glowing CONTINUE button', async ({ page }) => {
         await setupSuccessScreen(page);
         await waitForVideoWrapper(page);
-        await expect(page.locator('#processBtn')).toHaveCount(0);
+        // Present but not glowing before the clip ends.
+        await expect(page.locator('#processBtn')).toBeVisible();
+        const beforeGlow = await page.locator('#processBtn').evaluate(el => getComputedStyle(el, '::before').animationName);
+        expect(beforeGlow).toBe('none');
 
         await endSuccessVideo(page);
 
@@ -171,30 +181,33 @@ test.describe('Success screen — concat button reveal', () => {
         expect(errors).toEqual([]);
     });
 
-    test('reveals the button when the success video fails to load', async ({ page }) => {
+    test('reveals the glow when the success video fails to load', async ({ page }) => {
         await setupSuccessScreen(page);
         await waitForVideoWrapper(page);
-        await expect(page.locator('#processBtn')).toHaveCount(0);
+        await expect(page.locator('#processBtn')).toBeVisible();
 
         // Simulate a broken/undecodable clip: `ended` never fires, so the
-        // onError fallback must reveal the button instead of stranding the user.
+        // onError fallback must reveal the glow instead of leaving it dim.
         await page.evaluate(() => {
             document.querySelector('.ivp-video')?.dispatchEvent(new Event('error'));
         });
 
-        await expect(page.locator('#processBtn')).toBeVisible();
         await page.waitForFunction(
             () => window.appStore.getState().appPhase === 'lessonSuccess-decisionTime',
             null,
             { timeout: 5000 }
         );
+        const glow = await page.locator('#processBtn').evaluate(el => getComputedStyle(el, '::before').animationName);
+        expect(glow).toContain('btnGlowPulse');
     });
 
-    test('reveals the button immediately when the success step has no video', async ({ page }) => {
+    test('reveals the button (glowing) immediately when the success step has no video', async ({ page }) => {
         await setupSuccessScreen(page, { withVideo: false });
 
         await expect(page.locator('#processBtn')).toBeVisible();
         await expect(page.locator('#state-lesson-success .ivp-choice-label-text')).toHaveText('CONTINUE');
+        const glow = await page.locator('#processBtn').evaluate(el => getComputedStyle(el, '::before').animationName);
+        expect(glow).toContain('btnGlowPulse');
     });
 
     test('view-and-continue video end keeps the earlier overlay copy', async ({ page }) => {
