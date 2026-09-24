@@ -4,6 +4,45 @@ import { remoteSource } from './video-source.js';
 
 export const TEXT_MODE_DURATION_MS = 3000;
 
+// Anti-freeze bound for a segment whose media length could not be resolved by
+// either the <video> element or the container probe. A corrupt/unreadable blob
+// should not occur for a valid MediaRecorder recording, so this is only a last
+// resort; 15 s is a short cap rather than the previous 60 s hang.
+export const UNRESOLVED_SEGMENT_CAP_MS = 15000;
+
+// Extra wall-clock grace added to a segment's wall-clock cap before the draw
+// loop declares a stall (covers decode/buffer hiccups).
+export const STALL_GRACE_MS = 2000;
+
+/**
+ * Pure decision for when a non-tailing segment should stop advancing. Returns
+ * the timestamp `endTime` the draw loop compares against `video.currentTime`,
+ * and `wallClockCapMs` — the wall-clock budget derived from the resolved media
+ * length, after which the stall guard forces an advance.
+ *
+ * Rule, in priority order (first match wins):
+ *   1. explicit `trimEnd`          → exact trim end
+ *   2. finite `rawDuration`        → the <video> element's real media length
+ *   3. finite positive fallback    → probed container duration
+ *   4. otherwise                   → no timestamp end (Infinity); only the
+ *      wall-clock cap (UNRESOLVED_SEGMENT_CAP_MS) can advance.
+ *
+ * `step.duration` (net speaking time) is deliberately never consulted.
+ */
+export function resolveSegmentBounds({ trimEnd, rawDuration, fallbackDurationSec, start = 0 } = {}) {
+    const safeStart = Number.isFinite(start) ? start : 0;
+    if (trimEnd) {
+        return { endTime: trimEnd, wallClockCapMs: Math.max(0, (trimEnd - safeStart) * 1000) };
+    }
+    if (Number.isFinite(rawDuration)) {
+        return { endTime: rawDuration, wallClockCapMs: Math.max(0, (rawDuration - safeStart) * 1000) };
+    }
+    if (Number.isFinite(fallbackDurationSec) && fallbackDurationSec > 0) {
+        return { endTime: fallbackDurationSec, wallClockCapMs: Math.max(0, (fallbackDurationSec - safeStart) * 1000) };
+    }
+    return { endTime: Infinity, wallClockCapMs: UNRESOLVED_SEGMENT_CAP_MS };
+}
+
 // ---------------------------------------------------------------------------
 // Share CTA (shareCta recap overlays) — platform-agnostic domain logic.
 // Both the web and native renderers consume these; only the drawing differs.

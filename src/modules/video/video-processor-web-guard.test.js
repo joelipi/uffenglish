@@ -58,10 +58,13 @@ describe('video-processor.web.js recap wiring guard', () => {
 
     it('handles non-finite MediaRecorder blob durations (iPad WebM freeze)', () => {
         // iOS records WebM, whose blobs report duration Infinity; without this
-        // the advance check never fires and the segment freezes.
+        // the advance check never fires and the segment freezes. The end
+        // decision now comes from the pure rule plus a container probe.
         expect(source).toMatch(/forceVideoDuration/);
         expect(source).toMatch(/step\.resolvingDuration/);
-        expect(source).toMatch(/Number\.isFinite\(rawDuration\)/);
+        expect(source).toMatch(/probeClipDurationSec/);
+        expect(source).toMatch(/step\.mediaDurationSec/);
+        expect(source).toMatch(/resolveSegmentBounds/);
     });
 
     it('never nulls shared plan blobs (would drop clips from the recap/export)', () => {

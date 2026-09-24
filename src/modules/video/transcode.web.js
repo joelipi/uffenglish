@@ -11,6 +11,7 @@ import {
     Output,
     Conversion,
     BufferSource,
+    BlobSource,
     BufferTarget,
     Mp4OutputFormat,
     ALL_FORMATS,
@@ -57,6 +58,35 @@ export async function verifyMp4(blob) {
         );
     } catch {
         return false;
+    }
+}
+
+// ---- Container duration probe (recap fallback) ------------------------------
+
+/**
+ * Reads a clip's true container duration in seconds via Mediabunny, without
+ * decoding. Used by the recap renderer when the `<video>` element's
+ * `duration` stays non-finite (e.g. an iPad MediaRecorder WebM blob) so the
+ * segment can advance on its real length instead of its net speaking time.
+ *
+ * Returns a positive finite number of seconds, or `null` if the blob is
+ * missing or its container cannot be read. Never throws.
+ */
+export async function probeClipDurationSec(blob) {
+    if (!blob) return null;
+    let input = null;
+    try {
+        input = new Input({ source: new BlobSource(blob), formats: ALL_FORMATS });
+        // Precise container duration, independent of the <video> element's
+        // lazy/absent duration. skipLiveWait prevents a MediaRecorder blob
+        // flagged as "live" from blocking on a stream that has already ended.
+        const duration = await input.computeDuration(undefined, { skipLiveWait: true });
+        return Number.isFinite(duration) && duration > 0 ? duration : null;
+    } catch (e) {
+        console.warn('[Transcode] probeClipDurationSec failed:', e?.message || e);
+        return null;
+    } finally {
+        input?.dispose();
     }
 }
 
