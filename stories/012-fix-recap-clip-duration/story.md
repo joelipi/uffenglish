@@ -5,9 +5,10 @@
 In the concatenated end-of-lesson recap, a user-recorded segment can be cut down
 to well under its real length (a friend-lesson report saw the 2nd of 3 clips
 present for "less than a second"). The user's own webcam segments advance on
-`video.currentTime >= endTime` in the render loop (`src/modules/video/video-processor.web.js:665-705`).
+`video.currentTime >= endTime` in the render loop (`src/modules/video/video-processor.web.js`).
 
-`endTime` is computed at `video-processor.web.js:670-671` as:
+`endTime` is computed in the draw loop from, in order: the explicit trim, the
+`<video>` element's `video.duration`, or a probed container duration:
 
 ```js
 const endTime = step.trim?.end
@@ -15,33 +16,37 @@ const endTime = step.trim?.end
 ```
 
 `rawDuration` is `video.duration` — the clip's real media length. When a
-MediaRecorder WebM blob reports a non-finite `video.duration`, the code falls
-back to `step.duration`. But `step.duration` is **not** the clip length:
+MediaRecorder WebM blob reports a non-finite `video.duration`, the previous code
+fell back to `step.duration`. But `step.duration` is **not** the clip length:
 
-- `video-processor-logic.js:215` sets `duration: rec.duration`.
-- `answer-pipeline.js:691` writes `duration: ... speechAnalytics?.netDuration || null`.
+- `video-processor-logic.js` sets `duration: rec.duration`.
+- `answer-pipeline.js` writes `duration: ... speechAnalytics?.netDuration || null`.
 - `netDuration` is the **net speaking time** (speech minus trailing/pause
-  silence, `speech.core.js:97`), so any clip with pauses or a short utterance is
+  silence, `speech.core.js`), so any clip with pauses or a short utterance is
   truncated to its net speech when the duration probe fails.
 
-The non-finite branch is reachable: `forceVideoDuration()`
-(`video-processor.web.js:1043-1069`) seeks to `1e7` and gives up after a 2000 ms
-timeout; an iPad MediaRecorder WebM blob can still report a non-finite
-`video.duration` afterwards. The branch was introduced by commit `1a79e18`
-("resolve non-finite clip duration"), whose intent was only to prevent an
-infinite freeze — the net-speaking fallback is an unintended truncation.
-
-A 60 s hard cap (the `|| 60` fallback) is not an acceptable failure mode: it
-turns an unresolved duration into a ~62 s hang, i.e. an effectively failed
-recap. The real fix is to **resolve the clip's actual duration** rather than
-bound the unknown.
+A 60 s hard cap (the `|| 60` fallback) is also not acceptable: it turns an
+unresolved duration into a ~62 s hang, i.e. an effectively failed recap. The
+real fix is to **resolve the clip's actual duration** rather than bound the
+unknown.
 
 `mediabunny` is already a project dependency (used by
-`src/modules/video/transcode.web.js`; exact version 1.50.8) and can read the
-container duration directly with `Input.computeDuration()` — no decoding, works
-in all browsers, and independent of the `<video>` element's lazy/absent
-`duration`. Use it as the fallback. Extract the advance decision into
-`video-processor-logic.js` so it is unit-testable.
+`src/modules/video/transcode.web.js`; installed version 1.50.8, `package.json`
+`^1.50.8`) and can read the container duration directly — no decoding, works in all browsers, and
+independent of the `<video>` element's lazy/absent `duration`. Use it as the
+fallback. Extract the advance decision into `video-processor-logic.js` so it is
+unit-testable.
+
+The container probe must be the reliable last word on a clip's length. An
+earlier revision raced it against a fixed 2000 ms bound and resolved `null`
+when the timeout won, which sent the draw loop down the unresolved branch
+(`endTime: Infinity`, `UNRESOLVED_SEGMENT_CAP_MS = 15000`). A valid clip longer
+than 15 s whose container read exceeds 2 s (large blob / slow device) is then
+truncated at 15 s+grace — the exact bug this story removes, just moved into the
+probe. Mediabunny documents `Input.computeDuration()` as "potentially
+expensive… must check all tracks" and offers the cheaper
+`Input.getDurationFromMetadata()`. The probe must use the cheap path first and
+must not silently downgrade a slow-but-successful read.
 
 ## Out of Scope
 
@@ -52,11 +57,13 @@ in all browsers, and independent of the `<video>` element's lazy/absent
   for its seekability/rewind side effects; mediabunny is only consulted if it
   leaves `video.duration` non-finite.
 - Persisting a capture-time recording length (the audio-tap `durationMs` at
-  `speech-orchestrator.js:346`) onto the recording. Not needed once the
-  container can be read; noted as a possible belt-and-suspenders follow-up.
+  `speech-orchestrator.js`) onto the recording. Not needed once the container
+  can be read; noted as a possible belt-and-suspenders follow-up.
 - The net-speaking `rec.duration` value itself: it stays in the record for
   scoring; it is simply no longer used as a media length.
 - Text-mode hold behaviour and the existing stall/buffer safety bounds.
+- Reworking the three-branch shape of `resolveSegmentBounds` into a single
+  expression: the explicit branches mirror the documented priority order.
 
 ## Implementation approach
 
@@ -72,9 +79,14 @@ export async function probeClipDurationSec(blob) {
     let input = null;
     try {
         input = new Input({ source: new BlobSource(blob), formats: ALL_FORMATS });
-        // Precise container duration, independent of the <video> element's
-        // lazy/absent duration. skipLiveWait prevents a MediaRecorder blob
-        // flagged as "live" from blocking on a stream that has already ended.
+        // Cheap path first: the duration stored in the container header
+        // (WebM Segment Info / MP4 mvhd), no packet scan. Usually a few ms.
+        const fromMetadata = await input.getDurationFromMetadata(undefined, { skipLiveWait: true });
+        if (Number.isFinite(fromMetadata) && fromMetadata > 0) return fromMetadata;
+        // Accurate path: scan to the last packet. Bounded because the source is
+        // a finite, in-memory Blob and `skipLiveWait` avoids waiting for a live
+        // stream that has already ended. skipLiveWait also prevents a
+        // MediaRecorder blob flagged as "live" from blocking forever.
         const duration = await input.computeDuration(undefined, { skipLiveWait: true });
         return Number.isFinite(duration) && duration > 0 ? duration : null;
     } catch (e) {
@@ -99,6 +111,11 @@ export async function probeClipDurationSec() {
 `./transcode.js` re-exports `./transcode.web.js`, and `vite.config.js` resolves
 `.web.js` first (`resolve.extensions`), so `video-processor.web.js` gets the
 real implementation.
+
+`getDurationFromMetadata()` may return `0` for a container whose header has no
+usable duration and `null` when it cannot be determined at all; both fall
+through to `computeDuration()`. `computeDuration()` may return `0` when no
+decodable track exists; that too resolves to `null` (unreadable).
 
 ### Step 2 - Pure advance decision (`video-processor-logic.js`)
 
@@ -141,32 +158,46 @@ Notes on the table:
 - `endTime: Infinity` makes `video.currentTime >= endTime` always false, so the
   unresolved branch can only advance on the natural `ended` event or the
   wall-clock cap. `step.duration` (net speaking) is never consulted.
-- The last-resort cap (15000 ms) is only reachable if **both** the element and
-  the container reader fail on a webcam blob, which should not happen for a
-  valid MediaRecorder blob; the cap value is intentionally adjustable.
+- The last-resort cap (15000 ms) is only reachable when **both** the element and
+  the container reader cannot report a length at all (a corrupt/unreadable
+  blob). A valid MediaRecorder blob is read by `computeDuration`, so the cap is
+  not reachable for valid recordings; the cap value is intentionally adjustable.
 
 ### Step 3 - Wire it into the render loop (`video-processor.web.js`)
 
 In `onloadedmetadata`, after `forceVideoDuration` and the rewind, if
-`video.duration` is still non-finite, probe the blob (bounded, mirroring
-`forceVideoDuration`'s 2000 ms budget):
+`video.duration` is still non-finite, probe the blob **and await it directly**
+— no `Promise.race`, no timeout branch that resolves `null`:
 
 ```js
 if (!Number.isFinite(video.duration)) {
-    step.mediaDurationSec = await Promise.race([
-        probeClipDurationSec(step.blob || step.remoteBlob),
-        new Promise(res => setTimeout(() => res(null), 2000)),
-    ]);
+    step.mediaDurationSec = await probeClipDurationSec(step.blob || step.remoteBlob);
     console.log('[VideoProcessor] Probed clip duration:', step.mediaDurationSec, 'step', stepIndex);
 }
 ```
 
-Import `probeClipDurationSec` from `./transcode.js` alongside the existing
-transcode imports (`video-processor.web.js:14`).
+The `step.resolvingDuration` hold (set before `forceVideoDuration`, cleared after
+the probe) already keeps the draw loop on this frame, so awaiting the probe
+cannot advance the segment early. The probe always settles: the source is a
+finite in-memory `Blob`, `skipLiveWait` avoids the only documented blocking case
+(live streams), and `probeClipDurationSec` catches its own errors. Removing the
+short race is what guarantees a valid clip is never truncated by a slow read.
 
-In the draw loop (`video-processor.web.js:665-705`), replace the
-`endTime`/`plannedMs` computation with `resolveSegmentBounds`, importing it from
-`./video-processor-logic.js`:
+Import `probeClipDurationSec` from `./transcode.js` alongside the existing
+transcode imports. Reset the probed value with the other per-step playback
+health fields so a stale probe can never leak across steps:
+
+```js
+step.resumeAttempted = false;
+stepStartedPlaying = false;
+stepPlayStart = 0;
+step.loadFailed = false;
+step.playFatal = false;
+step.mediaDurationSec = undefined;
+```
+
+In the draw loop, resolve the segment's end with `resolveSegmentBounds`,
+importing it from `./video-processor-logic.js`:
 
 ```js
 const { endTime, wallClockCapMs } = resolveSegmentBounds({
@@ -190,14 +221,14 @@ new rule), the iPad resume block, and the `endedNaturally` guard comment. The
 `step.resolvingDuration` hold branch and the text-mode hold branch
 (`step.isTextMode || (step.type === 'webcam' && !step.blob)`,
 `TEXT_MODE_DURATION_MS`) are unchanged. `probeClipDurationSec` only reads
-`step.blob`; it must not null any shared plan field.
+`step.blob || step.remoteBlob`; it must not null any shared plan field.
 
 ## Tasks
 
 ### Task 1 - Add and test the container duration probe
 
 - `probeClipDurationSec` added to `transcode.web.js` + `transcode.native.jsx`
-  - → `transcode.web.js` imports `BlobSource` from `mediabunny` and calls `input.computeDuration(undefined, { skipLiveWait: true })`
+  - → `transcode.web.js` imports `BlobSource` from `mediabunny`, wraps the blob in `new BlobSource(blob)`, and calls `input.getDurationFromMetadata(undefined, { skipLiveWait: true })` before `input.computeDuration(undefined, { skipLiveWait: true })` (source guard: `indexOf('getDurationFromMetadata') < indexOf('computeDuration')`)
   - → `transcode.web.js` disposes the `Input` (`input.dispose()` in a `finally`)
   - → `transcode.native.jsx` exports `probeClipDurationSec` returning `null`
 - `probeClipDurationSec(null)` and `probeClipDurationSec(undefined)` called
@@ -239,9 +270,11 @@ new rule), the iPad resume block, and the `endedNaturally` guard comment. The
   - → imports `probeClipDurationSec` from `./transcode.js`
   - → imports `resolveSegmentBounds` from `./video-processor-logic.js`
   - → source matches `fallbackDurationSec: step\.mediaDurationSec`
-  - → source matches `probeClipDurationSec\(step\.blob \|\| step\.remoteBlob\)`
+  - → source matches `await probeClipDurationSec\(step\.blob \|\| step\.remoteBlob\)`
+  - → source does **not** wrap the probe in `Promise.race` (does not match `/Promise\.race\(\[\s*probeClipDurationSec/`)
   - → source does **not** match `/Number\.isFinite\(rawDuration\)\s*\?\s*rawDuration\s*:\s*\(step\.duration/` (buggy fallback removed)
   - → source does **not** match `step.duration || 60`
+  - → source resets `step.mediaDurationSec = undefined` alongside `step.playFatal = false` and `step.loadFailed = false`
   - → source matches `const endedNaturally = stepStartedPlaying && video\.ended`
   - → source matches `stalledTimeout` and `STALL_GRACE_MS`
 - text-mode + unresolved-duration paths read as source
@@ -259,28 +292,43 @@ new rule), the iPad resume block, and the `endedNaturally` guard comment. The
 ## Notes
 
 - **Assumption (last-resort cap).** `UNRESOLVED_SEGMENT_CAP_MS = 15000` applies
-  only when both `video.duration` and the mediabunny container probe fail on a
-  webcam clip. That is a corrupt/unreadable blob, which should not occur for a
-  valid MediaRecorder recording; the cap is a short anti-freeze bound rather
-  than the previous 60 s hang. It is a documented constant, easy to change. If a
-  measurement-based residual is preferred, persist the audio-tap `durationMs`
-  (`speech-orchestrator.js:346`) on the record and pass it as a second fallback
-  — tracked as out of scope.
-- **Dependency.** No new dependency: `mediabunny` (1.50.8) is already used by
-  `transcode.web.js`, and `video-processor.web.js` already imports `./transcode.js`
-  (line 14), so there is no bundle-size change.
+  only when both `video.duration` and the mediabunny container probe cannot
+  report a length at all (corrupt/unreadable blob). Once the probe is awaited
+  rather than raced to `null`, that is unreachable for a valid MediaRecorder
+  recording; the cap is a short anti-freeze bound rather than the previous 60 s
+  hang. It is a documented constant, easy to change. If a measurement-based
+  residual is preferred, persist the audio-tap `durationMs`
+  (`speech-orchestrator.js`) on the record and pass it as a second fallback —
+  tracked as out of scope.
+- **Why metadata-first.** Mediabunny's own `conversion.js:590` resolves a clip's
+  length as `(await track.getDurationFromMetadata()) ?? (await track.computeDuration())`,
+  and the API docs call `computeDuration()` "potentially expensive… must check
+  all tracks" while `getDurationFromMetadata()` reads the container header
+  (WebM Segment Info / MP4 `mvhd`) without a packet scan. Following the
+  library's own pattern keeps the probe fast whenever the header carries a
+  duration. Most blobs that reach this probe (a non-finite `video.duration`)
+  have no header duration, so `computeDuration()` still runs; that is bounded
+  by the finite Blob (below).
+- **Why no probe timeout.** A watchdog that resolves `null` on expiry is exactly
+  the failure this story fixes: it converts a slow-but-valid read into the 15 s
+  truncation. The probe cannot block indefinitely because the source is a
+  finite `Blob` and `skipLiveWait` avoids waiting on a live stream; errors are
+  caught and return `null`, which routes to the documented anti-freeze cap.
+- **Dependency.** No new dependency: `mediabunny` (installed 1.50.8) is already used by
+  `transcode.web.js`, and `video-processor.web.js` already imports
+  `./transcode.js`, so there is no bundle-size change.
 - **Why not just rely on `video.ended`.** For a MediaRecorder blob whose
   `duration` stays non-finite, the element can treat the stream as endless and
-  never fire `ended` (the freeze that `1a79e18` addressed); `computeDuration`
-  reads the container instead, so the segment ends at its real length and the
-  cap is effectively unreachable.
+  never fire `ended` (the freeze that a prior commit addressed);
+  `computeDuration` reads the container instead, so the segment ends at its real
+  length and the cap is effectively unreachable.
 - `step.duration` is retained for the text-mode hold path only (text mode stores
   `duration: 3`). It must not be used as a media length anywhere else.
 - Testing level: the render loop uses a real `<video>` element and canvas, and
   mic/camera cannot be exercised headlessly (`agents.md` §6), so coverage is
   vitest unit tests on the pure rule, a unit test on the probe's failure/guard
-  paths, and source guards on the web wiring — the same convention used by
-  commit `1a79e18`. No new Playwright spec is added.
+  paths, and source guards on the web wiring — the same convention used by the
+  prior non-finite-duration fix. No new Playwright spec is added.
 - Preserve existing comments and `console.log`/`console.warn` statements
   (`agents.md` §2). New success/failure logs are added around the probe.
 - Run `npx vitest run` (or `npm test`) before committing.
