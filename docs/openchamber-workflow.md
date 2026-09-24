@@ -94,3 +94,11 @@ OpenChamber's provider login).
   and that `opencode-subagent-completion-hook` is in the global plugin list in
   `~/.config/opencode/opencode.jsonc`. Then restart OpenCode or create a fresh
   worktree — instances created before the fix keep the empty agent list cached.
+- **Two Playwright specs fail in a worktree but pass in CI** —
+  `tests/playback-video.spec.js` and `tests/regression-guard.spec.js` can fail on
+  a console `403 (Forbidden)` for
+  `bootstrap-icons/font/fonts/bootstrap-icons.woff2`. Because the worktree's
+  `node_modules` is a symlink to the root's, the font lives outside Vite's
+  `server.fs.allow`, and Vite's `@fs` request is refused. CI runs `npm ci` with a
+  real local `node_modules`, so it is unaffected. Treat these as environmental —
+  don't debug the story code for them.
