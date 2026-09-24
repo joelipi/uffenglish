@@ -119,6 +119,10 @@ export const appStore = createStore(
             stepCount: 0,
             stepsAnswered: 0,
             currentStepIndexLessonId: '',
+            // True when the current step was loaded directly by loadLessonContent
+            // (page load / reload / signup redirect) rather than advanced to via
+            // loadNextStep. Drives the success screen's immediate reveal.
+            stepLoadedFromRestore: false,
             wordsRevealed: 0,
             videoPlays: 0,
             videoClicks: 0,
@@ -207,6 +211,7 @@ export const appStore = createStore(
             setCameraOff: (val) => set({ isCameraOff: val }),
             setGuestModalOpen: (val) => set({ isGuestModalOpen: val }),
             setGuestModalShownThisSession: (val) => set({ guestModalShownThisSession: val }),
+            setStepLoadedFromRestore: (val) => set({ stepLoadedFromRestore: val }),
             setGuestNativeLanguage: (val) => set({ guestNativeLanguage: val }),
             setGuestDetectedLang: (val) => set({ guestDetectedLang: val }),
             setGuestModalStep: (val) => set({ guestModalStep: val }),

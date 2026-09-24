@@ -65,25 +65,14 @@ const handleError = useCallback(() => {
 <video ... onEnded={handleEnded} onError={handleError} ... />
 ```
 
-Add a second fallback for when the success clip is present but never starts playing — e.g. the learner returns from the signup/login redirect with no user activation, where iOS blocks autoplay (and can pause the clip when it unmutes). A grace timer transitions to `lessonSuccess-decisionTime` if the clip is still not playing, so the overlay + glow appear instead of waiting for an `ended` that never comes:
+Also handle the learner landing on the success step directly — a page load, reload, or the signup/login redirect — where there is no user gesture, so the clip cannot autoplay and `ended` never fires. Detect the load source rather than guessing with a timer: `loadLessonContent` (the direct/restored path, `lesson-loader.js:98`) sets `stepLoadedFromRestore = true`, while `loadNextStep` (the in-app advance path, `lesson-progression.js:61`) sets it `false`. `handleSuccessStep` then chooses the phase:
 
 ```js
-useEffect(() => {
-    if (!isActive || playing) return;
-    if (appStore.getState().currentVideo?.responseType !== 'success') return;
-    const t = setTimeout(() => {
-        if (appStore.getState().currentVideo?.responseType !== 'success') return;
-        if (appStore.getState().appPhase === 'lessonSuccess-decisionTime') return;
-        const v = videoRef.current;
-        if (v && !v.paused && !v.ended) return;
-        console.warn('[SimpleVideo] Success video did not play → revealing concat button');
-        appStore.getState().transitionTo('lessonSuccess-decisionTime', {}, { fromStepLoad: true });
-    }, 3000);
-    return () => clearTimeout(t);
-}, [isActive, playing]);
+const successPhase = state.stepLoadedFromRestore ? 'lessonSuccess-decisionTime' : 'lessonSuccess';
+state.transitionTo(successPhase, { lessonId: step.lessonId, fluencyData: fluencyDataObj }, { fromStepLoad: true });
 ```
 
-A clip that starts playing clears the timer (the effect re-runs on `playing`); a clip that ends is handled by `handleEnded`.
+A direct/restored load reveals the overlay + glow immediately (there is nothing to wait for — the clip cannot autoplay); an in-app advance stays on `lessonSuccess` and waits for the clip to play and end.
 
 Generalise the overlay condition (`:360`) to render for both decision phases, and select the copy by phase. The existing `video_continue` ("Press a button below.") stays for the earlier steps; the new `video_continue_create` key explains the outcome for the success step:
 
@@ -175,7 +164,7 @@ Do not drop the `.ivp-choice-col` class to hide the glow: that also removes the 
 - Success step with no `simpleVideoUrl` (`currentVideo` null) → button + CONTINUE label present and glowing immediately (predicate above).
 - `viewAndContinue` video end → unchanged (`simpleVideo-decisionTime-viewAndContinue`, overlay still `video_continue`).
 - Guest: the modal still opens at success-screen appearance; after dismissal the video/overlay/button behave the same.
-- Video cannot autoplay (blocked/muted) or stalls → the button is still present, and after the grace window the overlay + glow reveal too (covers returning from the signup/login redirect, where iOS blocks autoplay). Tapping the video within the grace window still plays it normally.
+- Returning from the signup/login redirect (direct/restored load, no user gesture) → the overlay + glow reveal immediately; the clip cannot autoplay there anyway. An in-app advance still waits for the clip to play and end.
 - Video file missing or undecodable → the `onError` handler transitions to `lessonSuccess-decisionTime`, revealing the glow (and the overlay where the wrapper is visible) instead of leaving the button dim. (The button lives in the bottom overlay, so it is present regardless.)
 - Non-en learner → the label shows the English word plus the localized line, and the overlay shows the English copy plus the localized line, matching the bilingual treatment of every other overlay.
 
@@ -197,10 +186,12 @@ Do not drop the `.ivp-choice-col` class to hide the glow: that also removes the 
 - phase `lessonSuccess`, `currentVideo.responseType === 'success'`, native `error` event dispatched on `.ivp-video` (clip never ends)
   - → `appPhase === 'lessonSuccess-decisionTime'`
   - → `#processBtn` is visible
-- phase `lessonSuccess`, success clip present but blocked from autoplaying (never fires `ended`, e.g. returning from the signup redirect)
-  - → after the grace window, `appPhase === 'lessonSuccess-decisionTime'`
+- success step loaded via the restore path (`stepLoadedFromRestore === true`, e.g. returning from the signup redirect) + `handleSuccessStep`
+  - → `appPhase === 'lessonSuccess-decisionTime'` immediately (does not wait on the clip)
   - → `.ivp-overlay.water-surface` is visible
   - → `#processBtn` glows
+- success step advanced to in-app (`stepLoadedFromRestore === false`) + `handleSuccessStep`
+  - → `appPhase === 'lessonSuccess'` (waits for the clip to play and end)
 - phase `lessonSuccess` before `ended`
   - → no `.ivp-overlay.water-surface` in the DOM
 - phase `lessonSuccess-decisionTime`

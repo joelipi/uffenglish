@@ -131,7 +131,13 @@ export function handleSuccessStep(step, fluencyData) {
     }
     state.setSuccessScreen(step.lessonId, fluencyDataObj);
     state.setProgressPercent("100%");
-    state.transitionTo('lessonSuccess', { lessonId: step.lessonId, fluencyData: fluencyDataObj }, { fromStepLoad: true });
+    // Landing on the success step directly (page load / reload / the signup
+    // redirect) has no user gesture, so the success clip cannot autoplay and
+    // `ended` never fires. Reveal the overlay + button immediately in that case.
+    // When the step was advanced to in-app, the clip plays and handleEnded
+    // reveals on completion.
+    const successPhase = state.stepLoadedFromRestore ? 'lessonSuccess-decisionTime' : 'lessonSuccess';
+    state.transitionTo(successPhase, { lessonId: step.lessonId, fluencyData: fluencyDataObj }, { fromStepLoad: true });
 
     const currentLesson = state.configData.lessons[state.currentLessonIndex];
     const nextLessonId = currentLesson.nextLessonId;

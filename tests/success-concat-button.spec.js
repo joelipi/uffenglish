@@ -156,19 +156,36 @@ test.describe('Success screen — concat button reveal', () => {
         await expect(page.locator('.ivp-overlay.water-surface')).toHaveCount(0);
     });
 
-    test('reveals the overlay when the success video never plays (blocked autoplay)', async ({ page }) => {
-        // Mirrors returning from the signup/login redirect: the clip is present
-        // but cannot start, so `ended` never fires.
-        await setupSuccessScreen(page);
-        await waitForVideoWrapper(page);
-        await expect(page.locator('.ivp-overlay.water-surface')).toHaveCount(0);
+    test('restoring directly to the success step reveals the overlay without waiting for the clip', async ({ page }) => {
+        await page.goto(LESSON_URL);
+        await page.waitForFunction(() => window.appStore?.getState()?.configData, null, { timeout: 20000 });
+        await waitForLessonReady(page);
 
-        await page.waitForFunction(
-            () => window.appStore.getState().appPhase === 'lessonSuccess-decisionTime',
-            null,
-            { timeout: 8000 }
-        );
-        await expect(page.locator('.ivp-overlay.water-surface')).toBeVisible();
+        const phases = await page.evaluate(async (webm) => {
+            const { handleSuccessStep } = await import('/src/modules/lesson/step-loader-logic.js');
+            const s = window.appStore.getState();
+            s.setGuestModalOpen(false);
+            s.setGuestModalShownThisSession(true);
+            window.appStore.setState({ isLoggedIn: true, userData: { native_language: 'en', auth_method: 'supabase', $id: 't' } });
+            s.setCurrentVideo({ type: 'simple', responseType: 'success', url: webm, config: { subtitles: '' } });
+            s.setMediaVisible(true);
+            const step = { lessonId: 'g', simpleVideoUrl: 'success', responseType: 'success' };
+            // Advanced in-app → stays on lessonSuccess (waits for the clip to end).
+            s.setStepLoadedFromRestore(false);
+            handleSuccessStep(step, { total: 85 });
+            const advanced = window.appStore.getState().appPhase;
+            // Loaded directly (page load / signup redirect) → reveals at once.
+            s.setStepLoadedFromRestore(true);
+            handleSuccessStep(step, { total: 85 });
+            const restored = window.appStore.getState().appPhase;
+            return { advanced, restored };
+        }, SENTINEL_SRC);
+
+        expect(phases.advanced).toBe('lessonSuccess');
+        expect(phases.restored).toBe('lessonSuccess-decisionTime');
+
+        // The restored phase drives the water overlay + glowing button at once.
+        await expect(page.locator('.ivp-overlay.water-surface')).toBeVisible({ timeout: 3000 });
         const glow = await page.locator('#processBtn').evaluate(el => getComputedStyle(el, '::before').animationName);
         expect(glow).toContain('btnGlowPulse');
     });
