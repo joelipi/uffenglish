@@ -332,4 +332,39 @@ test.describe('Success screen — concat button reveal', () => {
         await expect(page.locator('.ivp-overlay.water-surface')).toBeVisible();
         await expect(page.locator('.ivp-overlay-text')).toHaveText('Share the video with friends so they can practice English with you');
     });
+
+    test('recap overlay also shows from timeupdate when the clip never fires ended', async ({ page }) => {
+        // MediaRecorder blobs (iOS WebM) can have a non-finite duration and
+        // freeze at the end without firing `ended`. Block playback so the clip
+        // never ends on its own, then drive the near-end timeupdate fallback.
+        await page.addInitScript(() => {
+            const origPlay = HTMLMediaElement.prototype.play;
+            HTMLMediaElement.prototype.play = function () {
+                if (typeof this.src === 'string' && this.src.startsWith('blob:')) {
+                    return Promise.reject(new Error('blocked for test'));
+                }
+                return origPlay.apply(this, arguments);
+            };
+        });
+        await setupSuccessScreen(page);
+
+        await page.evaluate(async (webm) => {
+            const blob = await (await fetch(webm)).blob();
+            window.appStore.getState().setSuccessVideoBlob(blob);
+        }, SENTINEL_SRC);
+        await expect(page.locator('#resultVideo')).toBeVisible();
+        await page.waitForFunction(() => {
+            const v = document.querySelector('#resultVideo');
+            return v && v.readyState >= 1 && v.duration > 0;
+        });
+        await expect(page.locator('.ivp-overlay.water-surface')).toHaveCount(0);
+
+        await page.evaluate(() => {
+            const v = document.querySelector('#resultVideo');
+            v.currentTime = v.duration;
+            v.dispatchEvent(new Event('timeupdate'));
+        });
+
+        await expect(page.locator('.ivp-overlay.water-surface')).toBeVisible();
+    });
 });

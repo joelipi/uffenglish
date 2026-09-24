@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { getBilingual } from '../../data/strings.js';
@@ -24,6 +24,43 @@ export default function SuccessVideo() {
         };
     }, [blob]);
 
+    const markEnded = useCallback(() => {
+        setPlaying(false);
+        setEnded(true);
+    }, []);
+
+    const handleLoadedMetadata = useCallback(() => {
+        const video = videoRef.current;
+        if (!video) return;
+        console.log('[SuccessVideo] loadedmetadata duration:', video.duration, 'seekable:', video.seekable?.length ?? 0);
+    }, []);
+
+    // MediaRecorder blobs (iOS WebM in particular) can report a non-finite
+    // `duration`; the element then freezes at the end and never fires `ended`,
+    // so the overlay would never show. The seekable range still ends at the real
+    // clip end, so use it as a fallback end check alongside `ended`.
+    const handleTimeUpdate = useCallback(() => {
+        const video = videoRef.current;
+        if (!video) return;
+        const seekableEnd = (video.seekable && video.seekable.length)
+            ? video.seekable.end(video.seekable.length - 1)
+            : video.duration;
+        const end = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : seekableEnd;
+        if (Number.isFinite(end) && end > 0 && video.currentTime >= end - 0.25) {
+            console.log('[SuccessVideo] near end detected via timeupdate', { currentTime: video.currentTime, end });
+            markEnded();
+        }
+    }, [markEnded]);
+
+    const handleEnded = useCallback(() => {
+        console.log('[SuccessVideo] ended');
+        markEnded();
+    }, [markEnded]);
+
+    const handleError = useCallback(() => {
+        console.warn('[SuccessVideo] error', videoRef.current?.error?.code);
+    }, []);
+
     const handleToggle = () => {
         const video = videoRef.current;
         if (!video) return;
@@ -42,9 +79,12 @@ export default function SuccessVideo() {
         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 20 }}>
             <video ref={videoRef} id="resultVideo" playsInline
                 onClick={handleToggle}
+                onLoadedMetadata={handleLoadedMetadata}
+                onTimeUpdate={handleTimeUpdate}
                 onPlay={() => { setPlaying(true); setEnded(false); }}
                 onPause={() => setPlaying(false)}
-                onEnded={() => { setPlaying(false); setEnded(true); }}
+                onEnded={handleEnded}
+                onError={handleError}
                 style={{
                     width: '100%',
                     height: '100%',
