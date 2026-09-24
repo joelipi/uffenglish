@@ -69,9 +69,11 @@ The friend-challenge flow is already R2-only and mostly complete:
 
 **The bug:** `VideoRenderPlanner.generatePlan()`
 (`video-processor-logic.js:200-213`) builds the webcam step with
-`blob: rec.blob` but **drops `rec.thumbBlob`/`rec.thumbArrayBuffer`**, so
-`step.thumbBlob` is always `undefined`, the thumb-upload branch silently no-ops,
-and no UGC `.jpg` is ever uploaded.
+`blob: rec.blob` but **drops `rec.thumbBlob`**, so `step.thumbBlob` is always
+`undefined`, the thumb-upload branch silently no-ops, and no UGC `.jpg` is ever
+uploaded. Storage exposes the thumb as a Blob only: a record restored from
+IndexedDB has its `thumbArrayBuffer` converted back to `thumbBlob` (and the
+ArrayBuffer cleared) before the planner sees it (`storage.web.js:173-180`).
 
 ### Trigger
 
@@ -208,10 +210,12 @@ derived artifact that remains in git. (If zero poster data in the repo is
 wanted, drop LQIP and rely on the gradient fallback — see Notes.)
 
 **6. UGC poster: carry the thumb into the publish plan.** Add
-`thumbBlob: rec.thumbBlob || null` and
-`thumbArrayBuffer: rec.thumbArrayBuffer || null` to the webcam step in
+`thumbBlob: rec.thumbBlob || null` to the webcam step in
 `video-processor-logic.js:200-213`; `exportSegmentsToR2` then uploads the sibling
-`.jpg` via the existing branch. No other UGC code changes.
+`.jpg` via the existing branch. Do **not** add a `thumbArrayBuffer` field:
+storage rehydrates a restored thumb as `thumbBlob` (`storage.web.js:173-180`), so
+the ArrayBuffer form never reaches the planner (carrying it would be dead code).
+No other UGC code changes.
 
 **7. Migration + verification.** `git rm -r public/assets/posters` (the 10
 `lessonId` JPEGs); ensure no `.jpg` is tracked under `public/`. Update
@@ -302,10 +306,12 @@ steps already run this pipeline on every push.
 
 - `VideoRenderPlanner.generatePlan()` with a recording carrying `thumbBlob`
   - → the `webcam` plan step includes `thumbBlob` equal to that recording's thumb
-- a recording carrying `thumbArrayBuffer` (IndexedDB-restored) + `generatePlan()`
-  - → the `webcam` plan step includes that `thumbArrayBuffer`
+- a recording whose thumb was restored from IndexedDB (where `storage.web.js`
+  rehydrates the `thumbArrayBuffer` into `thumbBlob`)
+  - → the `webcam` plan step carries that `thumbBlob` and does not carry a
+    `thumbArrayBuffer` field (the ArrayBuffer form never reaches the planner)
 - a recording with no thumb + `generatePlan()`
-  - → the `webcam` step's `thumbBlob`/`thumbArrayBuffer` are null and no error is thrown
+  - → the `webcam` step's `thumbBlob` is `null` and no error is thrown
 - `getUgcThumbKey('videos/ab12-model-w-response-01.mp4')` / `(undefined)`
   - → `videos/ab12-model-w-response-01.jpg` / `null`
 - `getUgcThumbUrl('https://r2.ultrafastfluency.com/videos/ab12-model-w-response-01.mp4')`
