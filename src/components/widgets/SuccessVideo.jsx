@@ -52,8 +52,20 @@ export default function SuccessVideo() {
             ? video.seekable.end(video.seekable.length - 1)
             : video.duration;
         const end = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : seekableEnd;
-        if (Number.isFinite(end) && end > 0 && video.currentTime >= end - 0.25) {
+        if (Number.isFinite(end) && end > 0 && video.currentTime >= end - 1) {
             console.log('[SuccessVideo] near end detected via timeupdate', { currentTime: video.currentTime, end });
+            markEnded();
+        }
+    }, [markEnded]);
+
+    const handlePause = useCallback(() => {
+        const video = videoRef.current;
+        console.log('[SuccessVideo] pause', { currentTime: video?.currentTime, duration: video?.duration });
+        setPlaying(false);
+        // iOS sometimes parks a finished clip as "paused" without firing `ended`;
+        // treat a pause at the very end as completion too.
+        if (video && Number.isFinite(video.duration) && video.duration > 0 && video.currentTime >= video.duration - 1) {
+            console.log('[SuccessVideo] paused at end → marking ended');
             markEnded();
         }
     }, [markEnded]);
@@ -88,7 +100,7 @@ export default function SuccessVideo() {
                 onLoadedMetadata={handleLoadedMetadata}
                 onTimeUpdate={handleTimeUpdate}
                 onPlay={() => { console.log('[SuccessVideo] play'); setPlaying(true); setEnded(false); }}
-                onPause={() => { console.log('[SuccessVideo] pause'); setPlaying(false); }}
+                onPause={handlePause}
                 onEnded={handleEnded}
                 onError={handleError}
                 style={{
