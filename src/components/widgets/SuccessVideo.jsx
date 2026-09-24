@@ -10,38 +10,48 @@ export default function SuccessVideo() {
     const [playing, setPlaying] = useState(false);
     const [ended, setEnded] = useState(false);
     const lastProgressLogRef = useRef(-1);
+    const endedRef = useRef(false);
+
+    const markEnded = useCallback(() => {
+        endedRef.current = true;
+        setPlaying(false);
+        setEnded(true);
+    }, []);
 
     useEffect(() => {
         const video = videoRef.current;
         if (!video || !blob) return;
 
+        endedRef.current = false;
         setEnded(false);
         const url = URL.createObjectURL(blob);
         video.src = url;
         video.play().then(() => {
             console.log('[SuccessVideo] play() resolved');
         }).catch((e) => {
-            // iOS blocks unmuted autoplay without a fresh user gesture (the
-            // generation delay outlasts the tap). Retry muted like SimpleVideoPlayer.
-            console.log('[SuccessVideo] unmuted play blocked, retrying muted:', e?.name);
-            video.muted = true;
-            video.play().then(() => {
-                console.log('[SuccessVideo] muted play resolved');
-                setTimeout(() => { video.muted = false; }, 100);
-            }).catch((e2) => {
-                console.warn('[SuccessVideo] muted play blocked:', e2?.name);
-            });
+            // iOS blocks unmuted autoplay without a fresh gesture; leave it for
+            // the user to start (the ▶ overlay) rather than muting the recap.
+            console.log('[SuccessVideo] play() blocked (awaiting user tap):', e?.name);
         });
+
+        // Event-independent safety net: some iOS builds finish a clip without
+        // firing `ended` (and sometimes without a near-end `timeupdate`), so poll
+        // the element position too. This only reads state; it never delays UI.
+        const endPoll = setInterval(() => {
+            if (endedRef.current) return;
+            const v = videoRef.current;
+            if (!v || !Number.isFinite(v.duration) || v.duration <= 0) return;
+            if (v.ended || v.currentTime >= v.duration - 0.5) {
+                console.log('[SuccessVideo] end detected via poll', { currentTime: v.currentTime, duration: v.duration, ended: v.ended });
+                markEnded();
+            }
+        }, 500);
 
         return () => {
             URL.revokeObjectURL(url);
+            clearInterval(endPoll);
         };
-    }, [blob]);
-
-    const markEnded = useCallback(() => {
-        setPlaying(false);
-        setEnded(true);
-    }, []);
+    }, [blob, markEnded]);
 
     const handleLoadedMetadata = useCallback(() => {
         const video = videoRef.current;
