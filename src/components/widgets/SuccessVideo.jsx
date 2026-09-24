@@ -9,6 +9,7 @@ export default function SuccessVideo() {
     const userData = useStore(appStore, (state) => state.userData);
     const [playing, setPlaying] = useState(false);
     const [ended, setEnded] = useState(false);
+    const lastProgressLogRef = useRef(-1);
 
     useEffect(() => {
         const video = videoRef.current;
@@ -42,6 +43,11 @@ export default function SuccessVideo() {
     const handleTimeUpdate = useCallback(() => {
         const video = videoRef.current;
         if (!video) return;
+        const whole = Math.floor(video.currentTime);
+        if (whole !== lastProgressLogRef.current && whole % 3 === 0) {
+            lastProgressLogRef.current = whole;
+            console.log('[SuccessVideo] timeupdate', { currentTime: video.currentTime, duration: video.duration, paused: video.paused });
+        }
         const seekableEnd = (video.seekable && video.seekable.length)
             ? video.seekable.end(video.seekable.length - 1)
             : video.duration;
@@ -81,8 +87,8 @@ export default function SuccessVideo() {
                 onClick={handleToggle}
                 onLoadedMetadata={handleLoadedMetadata}
                 onTimeUpdate={handleTimeUpdate}
-                onPlay={() => { setPlaying(true); setEnded(false); }}
-                onPause={() => setPlaying(false)}
+                onPlay={() => { console.log('[SuccessVideo] play'); setPlaying(true); setEnded(false); }}
+                onPause={() => { console.log('[SuccessVideo] pause'); setPlaying(false); }}
                 onEnded={handleEnded}
                 onError={handleError}
                 style={{
