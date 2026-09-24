@@ -308,7 +308,12 @@ new rule), the iPad resume block, and the `endedNaturally` guard comment. The
   library's own pattern keeps the probe fast whenever the header carries a
   duration. Most blobs that reach this probe (a non-finite `video.duration`)
   have no header duration, so `computeDuration()` still runs; that is bounded
-  by the finite Blob (below).
+  by the finite Blob (below). For the WebM/MP4 containers this path handles the
+  stored header duration is exact; `getDurationFromMetadata()` is only used
+  when it yields a positive finite value, otherwise the precise
+  `computeDuration()` is authoritative. If a future format reports only an
+  approximate header duration, drop the metadata shortcut for that format
+  rather than risk an early `endTime`.
 - **Why no probe timeout.** A watchdog that resolves `null` on expiry is exactly
   the failure this story fixes: it converts a slow-but-valid read into the 15 s
   truncation. The probe cannot block indefinitely because the source is a
