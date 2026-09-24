@@ -67,6 +67,29 @@ describe('video-processor.web.js recap wiring guard', () => {
         expect(source).toMatch(/resolveSegmentBounds/);
     });
 
+    it('wires the container probe and the bounds rule from their modules', () => {
+        // The probe comes from the web transcode module; the pure rule from
+        // the platform-agnostic logic module.
+        expect(source).toMatch(/probeClipDurationSec\s*\}\s*from '\.\/transcode\.js'/);
+        expect(source).toMatch(/resolveSegmentBounds, STALL_GRACE_MS\s*\}\s*from '\.\/video-processor-logic\.js'/);
+        expect(source).toMatch(/fallbackDurationSec: step\.mediaDurationSec/);
+        expect(source).toMatch(/probeClipDurationSec\(step\.blob \|\| step\.remoteBlob\)/);
+    });
+
+    it('no longer derives a media length from net speaking time', () => {
+        // The old fallback truncated a clip to its net speech duration; the
+        // `|| 60` hard cap turned an unresolved duration into a 60 s hang.
+        expect(source).not.toMatch(/Number\.isFinite\(rawDuration\)\s*\?\s*rawDuration\s*:\s*\(step\.duration/);
+        expect(source).not.toMatch(/step\.duration \|\| 60/);
+    });
+
+    it('keeps the stall guard and the text-mode/unresolved-duration holds', () => {
+        expect(source).toMatch(/stalledTimeout/);
+        expect(source).toMatch(/STALL_GRACE_MS/);
+        expect(source).toMatch(/step\.isTextMode \|\| \(step\.type === 'webcam' && !step\.blob\)/);
+        expect(source).toMatch(/TEXT_MODE_DURATION_MS/);
+    });
+
     it('never nulls shared plan blobs (would drop clips from the recap/export)', () => {
         // draw() runs every frame and the plan objects are shared with the
         // concurrent R2 export, so nulling remoteBlob/decodedAudio drops clips.
