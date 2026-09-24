@@ -139,6 +139,17 @@ test.describe('Success screen — concat button reveal', () => {
         await expect(page.locator('#processBtn')).toBeVisible();
         await expect(page.locator('#state-lesson-success .ivp-choice-label-text')).toHaveText('CONTINUE');
 
+        // The call-btn column layout is kept even before the glow, so the
+        // button stays centred under its label (regression guard).
+        const wrap = page.locator('#processBtn').locator('..');
+        await expect(wrap).toHaveClass(/\bivp-choice-col\b/);
+        await expect(wrap).toHaveClass(/\bprocess-btn-pending\b/);
+        const centerOffset = await page.locator('#processBtn').evaluate(el => {
+            const r = el.getBoundingClientRect();
+            return Math.abs(r.x + r.width / 2 - innerWidth / 2);
+        });
+        expect(centerOffset).toBeLessThanOrEqual(2);
+
         // Not glowing yet, and no overlay.
         const glowBefore = await page.locator('#processBtn').evaluate(el => getComputedStyle(el, '::before').animationName);
         expect(glowBefore).toBe('none');

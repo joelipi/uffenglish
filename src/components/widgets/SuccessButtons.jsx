@@ -134,7 +134,7 @@ export function VideoButton({ canvasRef }) {
     const continueLabel = getBilingual('continue', userData?.native_language || 'en');
 
     return (
-      <div className={revealed ? 'ivp-choice-col' : undefined} style={{ flex: '0 0 auto', minWidth: 0 }}>
+      <div className={`ivp-choice-col${revealed ? '' : ' process-btn-pending'}`} style={{ flex: '0 0 auto', minWidth: 0 }}>
         <div className="ivp-choice-label">
           <div className="ivp-choice-label-text">
             {continueLabel.localized ? (

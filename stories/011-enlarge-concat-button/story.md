@@ -110,7 +110,7 @@ if (button.state === 'idle') {
   const revealed = appPhase === 'lessonSuccess-decisionTime' || !successVideoPending;
   const continueLabel = getBilingual('continue', userData?.native_language || 'en');
   return (
-    <div className={revealed ? 'ivp-choice-col' : undefined} style={{ flex: '0 0 auto', minWidth: 0 }}>
+    <div className={`ivp-choice-col${revealed ? '' : ' process-btn-pending'}`} style={{ flex: '0 0 auto', minWidth: 0 }}>
       <div className="ivp-choice-label">
         <div className="ivp-choice-label-text">
           {continueLabel.localized ? (
@@ -134,9 +134,21 @@ if (button.state === 'idle') {
 - Drop `text-white` from the icon: `.call-btn` forces `color: #1a1a1a !important` (`app.css:610-614`); every other call button uses a bare `<i>` for the same reason.
 - The guest-modal `useEffect` is unaffected: it runs on `button.visible`, not on whether the idle button renders.
 
-### 4. No new CSS
+### 4. One small CSS override
 
-Wrapping the button in `.ivp-choice-col` means the existing `.ivp-choice-col .call-btn` float (`app.css:936-940`) and `.ivp-choice-col .call-btn::before` glow (`app.css:962-972` → `@keyframes btnGlowPulse`, `app.css:1027-1034`) apply unchanged. The glow is conditional because the `.ivp-choice-col` wrapper class is only applied once revealed. Do not add a `#processBtn`-specific glow rule; reuse is the point of this story.
+The button always carries the `.ivp-choice-col` wrapper class so it keeps that column's `align-items: center` (the button stays centred under its label) and inherits the `.ivp-choice-col .call-btn` float (`app.css:936-940`) and `.ivp-choice-col .call-btn::before` glow (`app.css:962-972` → `@keyframes btnGlowPulse`, `app.css:1027-1034`). When the clip has not finished yet, a `process-btn-pending` class suppresses only the glow:
+
+```css
+#state-lesson-success .process-btn-pending .call-btn,
+#state-lesson-success .process-btn-pending .call-btn::before {
+    animation: none !important;
+}
+#state-lesson-success .process-btn-pending .call-btn::before {
+    box-shadow: none !important;
+}
+```
+
+Do not drop the `.ivp-choice-col` class to hide the glow: that also removes the centering and left-aligns the button under a wider label.
 
 ### 5. Edge cases
 
@@ -179,13 +191,14 @@ Wrapping the button in `.ivp-choice-col` means the existing `.ivp-choice-col .ca
 
 - phase `lessonSuccess`, success video still pending
   - → `#processBtn` is visible (always present — never hidden)
-  - → its wrapper does not have class `ivp-choice-col` (not glowing yet)
+  - → its wrapper has classes `ivp-choice-col` and `process-btn-pending` (centred, not glowing yet)
+  - → the button centre is within 2 px of the viewport centre
   - → `getComputedStyle(el, '::before').animationName` is `none`
   - → no `.ivp-overlay.water-surface`
 - phase `lessonSuccess-decisionTime`
   - → `#processBtn` is visible
   - → has class `call-btn`
-  - → its wrapper has class `ivp-choice-col` (glow applied)
+  - → its wrapper has class `ivp-choice-col` and does **not** have `process-btn-pending` (glow applied)
   - → bounding box is ≈60×60 px (between 56 and 64)
   - → `getComputedStyle(el, '::before').animationName` contains `btnGlowPulse`
   - → `getComputedStyle(el, '::before').boxShadow` is not `none`
@@ -252,6 +265,6 @@ Wrapping the button in `.ivp-choice-col` means the existing `.ivp-choice-col .ca
 
 - `#processBtn` keeps its id (the guest-modal comments and any external tooling reference it) and its `onClick={handleProcess}`.
 - The view-and-continue overlay text and buttons are unchanged.
-- No new CSS was added — the label and glow come from the existing `.ivp-choice-col` / `.call-btn` rules.
+- The only new CSS is the small `process-btn-pending` glow override; layout, label, and glow otherwise reuse the existing `.ivp-choice-col` / `.call-btn` rules.
 - Existing comments and `console.log` statements are preserved; the new success log is added (`agents.md` §2).
 - No `document`/`window` API added to app code (`agents.md` §1).
