@@ -9,6 +9,7 @@ export default function SuccessVideo() {
     const userData = useStore(appStore, (state) => state.userData);
     const [playing, setPlaying] = useState(false);
     const [ended, setEnded] = useState(false);
+    const [diag, setDiag] = useState(null);
     const lastProgressLogRef = useRef(-1);
     const endedRef = useRef(false);
 
@@ -40,9 +41,11 @@ export default function SuccessVideo() {
         // firing `ended` (and sometimes without a near-end `timeupdate`), so poll
         // the element position too. This only reads state; it never delays UI.
         const endPoll = setInterval(() => {
-            if (endedRef.current) return;
             const v = videoRef.current;
-            if (!v || !Number.isFinite(v.duration) || v.duration <= 0) return;
+            if (!v) return;
+            setDiag({ t: v.currentTime, d: v.duration, paused: v.paused, ended: v.ended, rs: v.readyState });
+            if (endedRef.current) return;
+            if (!Number.isFinite(v.duration) || v.duration <= 0) return;
             if (v.ended || v.currentTime >= v.duration - 0.5) {
                 console.log('[SuccessVideo] end detected via poll', { currentTime: v.currentTime, duration: v.duration, ended: v.ended });
                 markEnded();
@@ -170,6 +173,16 @@ export default function SuccessVideo() {
                         </div>
                     </div>
                 </>
+            )}
+            {diag && (
+                <div style={{
+                    position: 'absolute', top: 6, left: 6, zIndex: 60,
+                    background: 'rgba(0,0,0,0.8)', color: '#6f6',
+                    fontFamily: 'monospace', fontSize: 12, padding: '3px 6px',
+                    borderRadius: 4, pointerEvents: 'none', whiteSpace: 'nowrap'
+                }}>
+                    t={Number.isFinite(diag.t) ? diag.t.toFixed(2) : String(diag.t)} d={Number.isFinite(diag.d) ? diag.d.toFixed(2) : String(diag.d)} paused={String(diag.paused)} ended={String(diag.ended)} rs={diag.rs}
+                </div>
             )}
         </div>
     );
