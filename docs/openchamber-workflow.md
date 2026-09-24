@@ -79,17 +79,6 @@ OpenChamber's provider login).
 
 - **`peck config not found`** — the worktree is missing `.opencode`, so setup
   did not run. Check Settings → Projects → worktree setup commands.
-- **Implementer can't launch `@code-reviewer` / `@acceptance-reviewer` —
-  `Subagent depth limit reached (1)`** — OpenCode's `subagent_depth` defaults
-  to 1, so a subagent (the implementer, depth 1) cannot spawn the reviewers
-  (depth 2). Run them as top-level primary agents instead: register them in the
-  **global** config's top-level `mode` map
-  (`"mode": { "code-reviewer": {}, "acceptance-reviewer": {} }`, plus
-  `"subagent_depth": 2` if the implementer itself needs to nest), then
-  `opencode run --agent code-reviewer --auto "BASE..HEAD"` (acceptance takes the
-  story directory). A running server caches config at startup, so use
-  `opencode run` (fresh instance), and restore the global config afterwards.
-  Editing the worktree's `.opencode/opencode.jsonc` does not help.
 - **Stale worktrees** — `git worktree list` to see them; archive the session in
   OpenChamber, or `git worktree remove <path>`.
 - **A branch changed under an agent** — that agent was running in the shared

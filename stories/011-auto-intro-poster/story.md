@@ -327,7 +327,10 @@ steps already run this pipeline on every push.
   - → imports `introTargets` from `./lib/poster-utils.js`
   - → checks `https://r2.ultrafastfluency.com/assets/videos/<slug>.jpg` for every intro slug
   - → no local `public/assets/posters` read remains
-- `node scripts/verify-thumbnails.mjs` in this repo → exits 0 and reports 5 intro slugs
+  - → honours a `POSTER_CDN_BASE` override (hermetic test seam)
+- `scripts/verify-thumbnails.mjs` run against a fake R2 (`POSTER_CDN_BASE`) where all 5 slugs return 200 → exits 0 and reports 5 intro slugs
+- the same run where one slug returns 404 → exits non-zero and names the missing slug
+- against the **real** R2 the script is the deploy gate: it exits 0 only after `--upload` has published the 5 posters. This is an operational deploy step (requires Cloudflare credentials), not an in-repo acceptance criterion.
 - `README.md` read
   - → documents uniform R2-only `<video>.jpg` posters (teacher pushed by `deploy.yml`, UGC uploaded at publish), and that no posters are committed or served locally
 - `agents.md` read
@@ -414,7 +417,16 @@ steps already run this pipeline on every push.
 - **R2 verification.** Because there are no local posters, `verify-thumbnails.mjs`
   now reports on R2 state; run it after `--upload`. `deploy.yml`'s upload step is
   non-fatal, so a credentials/R2 failure surfaces at the verify step.
-- **Migration (implementer):** `git rm -r public/assets/posters`; run
+- **The 5 teacher posters are not yet on R2.** As of this story the migration
+  upload has not run (this environment has no Cloudflare credentials;
+  `wrangler whoami` → not authenticated). Until `--upload` runs once, the live
+  `node scripts/verify-thumbnails.mjs` exits non-zero (correct gate behaviour)
+  and the app falls back to the LQIP/gradient for teacher intros. The automated
+  acceptance contract is therefore the hermetic fake-R2 test
+  (`POSTER_CDN_BASE`), not the live check; publishing is the one-time
+  operational step below. The `.mp4` sources are all `200`, so only the `.jpg`
+  uploads are pending.
+- **Migration (implementer/operator):** `git rm -r public/assets/posters`; run
   `POSTER_OUT_DIR=/tmp/uff-posters node scripts/generate-thumbnails.mjs --force`
   then `--upload` (needs Cloudflare creds) once to publish
   `assets/videos/<slug>.jpg` for the 5 slugs; delete the old
