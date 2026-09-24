@@ -59,6 +59,13 @@ test.describe('public-profile friend-challenge link', () => {
         const fontSize = await link.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
         expect(fontSize).toBeGreaterThanOrEqual(24);
 
+        const style = await link.evaluate((el) => {
+            const s = getComputedStyle(el);
+            return { color: s.color, decoration: s.textDecorationLine };
+        });
+        expect(style.color).toBe('rgb(255, 255, 255)');
+        expect(style.decoration).toContain('underline');
+
         await expect(page.getByTestId('friend-lesson-link-countdown'))
             .toHaveText('Available for 47h 0m');
     });

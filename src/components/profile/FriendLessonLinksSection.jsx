@@ -32,7 +32,7 @@ function FriendLessonLink({ entry, lang, now }) {
             <a
                 data-testid="friend-lesson-link"
                 href={toFriendLessonHref(url)}
-                style={{ fontSize: '32px', fontWeight: 800, color: '#4da3ff', textDecoration: 'none', lineHeight: 1.2, display: 'inline-block' }}
+                style={{ fontSize: '32px', fontWeight: 800, color: '#ffffff', textDecoration: 'underline', lineHeight: 1.2, display: 'inline-block' }}
             >
                 {Strings.get('profile_friend_lesson_link', lang)}
             </a>
