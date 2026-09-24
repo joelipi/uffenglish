@@ -84,26 +84,27 @@ export function VideoButton({ canvasRef }) {
         };
 
         if (publishSegments) {
-          const exportResult = await exportSegmentsToR2(lessonId);
-          const { configData, courseId, userData } = appStore.getState();
-          const payload = resolveFriendLessonLink({
-            configData,
-            lessonId,
-            courseId,
-            shareCode: userData?.shareCode,
-            succeeded: exportResult?.succeeded,
-          });
-          if (payload) {
-            try {
+          // Publishing to R2 (and recording the friend link) must never fail the
+          // video-generation flow: the stitched video is already ready above.
+          try {
+            const exportResult = await exportSegmentsToR2(lessonId);
+            const { configData, courseId, userData } = appStore.getState();
+            const payload = resolveFriendLessonLink({
+              configData,
+              lessonId,
+              courseId,
+              shareCode: userData?.shareCode,
+              succeeded: exportResult?.succeeded,
+            });
+            if (payload) {
               await friendLinkMutation.mutateAsync({
                 userId: userData.$id,
                 entry: { ...payload, addedAt: new Date().toISOString() },
               });
               trackEvent('friend_lesson_link_created', payload);
-            } catch (e) {
-              // Non-fatal: the exported video is still valid without the link.
-              console.error('[Success] friend lesson link save failed:', e);
             }
+          } catch (e) {
+            console.error('[Success] R2 publish / friend link failed (non-fatal):', e);
           }
         }
       }

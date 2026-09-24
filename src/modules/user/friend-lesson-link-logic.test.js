@@ -190,6 +190,15 @@ describe('resolveFriendLessonLink', () => {
         })).toBeNull();
     });
 
+    it('returns null without a courseId', () => {
+        expect(resolveFriendLessonLink({
+            configData: configWithB, lessonId: 'a', courseId: '', shareCode: 'ab12', succeeded: 3,
+        })).toBeNull();
+        expect(resolveFriendLessonLink({
+            configData: configWithB, lessonId: 'a', courseId: undefined, shareCode: 'ab12', succeeded: 3,
+        })).toBeNull();
+    });
+
     it('returns null for missing configData', () => {
         expect(resolveFriendLessonLink({
             configData: null, lessonId: 'a', courseId: 'friend', shareCode: 'ab12', succeeded: 3,

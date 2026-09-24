@@ -60,7 +60,7 @@ export function listActiveFriendLinks(friendLinks, nowMs) {
  * - a real export (succeeded > 0) and a shareCode are required
  */
 export function resolveFriendLessonLink({ configData, lessonId, courseId, shareCode, succeeded }) {
-    if (!succeeded || !shareCode || !configData?.lessons) return null;
+    if (!succeeded || !shareCode || !courseId || !configData?.lessons) return null;
     if (lessonId !== ASK_LESSON_ID) return null;
     if (!configData.lessons.some((l) => l.lessonId === ANSWER_LESSON_ID)) return null;
     return { courseId, shareCode };

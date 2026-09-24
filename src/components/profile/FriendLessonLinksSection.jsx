@@ -20,7 +20,6 @@ const cardStyle = {
 // clock so the link disappears the moment the 48h window passes.
 function FriendLessonLink({ entry, lang, now }) {
     const remainingMs = getFriendLinkRemainingMs(new Date(entry.addedAt).getTime(), now);
-    if (!(remainingMs > 0)) return null;
 
     const url = buildFriendLessonLink({
         courseId: entry.courseId,
@@ -47,20 +46,18 @@ function FriendLessonLink({ entry, lang, now }) {
 // Public-profile section listing the friend-challenge answer-lesson links that
 // are still inside the 48h R2 clip window. Renders nothing when none are active.
 export default function FriendLessonLinksSection({ friendLinks, lang = 'en' }) {
-    const hasCandidates = !!friendLinks
-        && typeof friendLinks === 'object'
-        && !Array.isArray(friendLinks)
-        && Object.keys(friendLinks).length > 0;
     const [now, setNow] = useState(() => Date.now());
+    const active = listActiveFriendLinks(friendLinks, now);
+    const isTicking = active.length > 0;
 
-    // Only tick while there is something that could expire.
+    // Tick only while at least one link is still live; once the last one
+    // expires the effect stops and the section renders nothing.
     useEffect(() => {
-        if (!hasCandidates) return undefined;
+        if (!isTicking) return undefined;
         const timer = setInterval(() => setNow(Date.now()), 1000);
         return () => clearInterval(timer);
-    }, [hasCandidates]);
+    }, [isTicking]);
 
-    const active = hasCandidates ? listActiveFriendLinks(friendLinks, now) : [];
     if (active.length === 0) return null;
 
     return (
