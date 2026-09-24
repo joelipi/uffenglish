@@ -76,6 +76,26 @@ describe('introTargets', () => {
             ['do_you_have_dark_chocolate', 'do_you_have_rolls_too', 'gtests-0-1-1', 'gtests-1-0', 'testvideo01'],
         );
     });
+
+    it('does NOT return the vestigial questions-shaped gt2 intros', () => {
+        // These live only under gt2.json's `questions`; the pipeline must not
+        // normalize questions -> steps, so they are out of scope.
+        const slugs = introTargets(loadAllConfigs()).map((t) => t.slug);
+        for (const excluded of ['gtests-1-2', 'gtests-0-1intro', 'worried-UnitIntro']) {
+            expect(slugs).not.toContain(excluded);
+        }
+    });
+
+    it('ignores a lesson whose only first-step intro is under `questions` (no `steps`)', () => {
+        const configs = [
+            {
+                lessons: [
+                    { lessonId: 'legacy', questions: [{ inputType: 'lessonIntro', introBackgroundVideoUrl: 'questions-only' }] },
+                ],
+            },
+        ];
+        expect(introTargets(configs)).toEqual([]);
+    });
 });
 
 describe('poster naming', () => {
