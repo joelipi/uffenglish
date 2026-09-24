@@ -9,17 +9,18 @@ import friend from './friend.json';
 
 const LOCALES = ['en', 'es', 'pt', 'bn'];
 
-// Walks the config and returns every translation leaf: a plain object whose
-// keys are all strings and include 'en'. Arrays (cue/subtitles lists) are
-// traversed so their elements are checked too.
+// Walks the config and returns every translation leaf: an object carrying a
+// string `en` reference. Detection keys off `en` alone — not "every value is a
+// string" — so a malformed locale value (e.g. `bn: null`) is still collected
+// and fails the bn assertion instead of being silently skipped. Arrays
+// (cue/subtitles lists) are traversed so their elements are checked too.
 function collectTranslationObjects(node, path = '$', out = []) {
     if (Array.isArray(node)) {
         node.forEach((child, i) => collectTranslationObjects(child, `${path}[${i}]`, out));
         return out;
     }
     if (node && typeof node === 'object') {
-        const keys = Object.keys(node);
-        const isTranslation = keys.includes('en') && keys.every((k) => typeof node[k] === 'string');
+        const isTranslation = typeof node.en === 'string';
         if (isTranslation) {
             out.push({ path, value: node });
         } else {
@@ -48,13 +49,15 @@ describe('friend.json Bengali (bn) localization', () => {
 
     it('uses the same locale keys on every translation object', () => {
         for (const { path, value } of translations) {
-            expect(Object.keys(value), `${path} locale keys`).toEqual(LOCALES);
+            expect([...Object.keys(value)].sort(), `${path} locale keys`).toEqual([...LOCALES].sort());
         }
     });
 
-    it('does not fall back to the English string for bn', () => {
+    it('does not fall back to another locale for bn', () => {
         for (const { path, value } of translations) {
-            expect(value.bn, `${path} bn duplicates en`).not.toBe(value.en);
+            for (const other of ['en', 'es', 'pt']) {
+                expect(value.bn, `${path} bn duplicates ${other}`).not.toBe(value[other]);
+            }
         }
     });
 });
