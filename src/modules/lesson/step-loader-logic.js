@@ -121,9 +121,12 @@ export function handleSuccessStep(step, fluencyData) {
         console.log(`[Gamification] ✅ Fluency improving! Last-10 avg: ${state.recentFluencyAvgs?.reduce((a, b) => a + b, 0) / (state.recentFluencyAvgs?.length || 1)}% → Current: ${lessonAverage}%`);
     }
 
-    if (step.simpleVideoUrl) {
-        loadVideoForStep(step, null, state.userData?.native_language);
-    } else {
+    // The success clip is already mounted by handleStepCore, which runs before
+    // this handler (loadStepOrchestrate: handleStepCore → onSuccess). Reloading
+    // it here sets currentVideo(null) → the video a second time and can remount
+    // the <video>, which drops the iOS autoplay attempt (and the transient
+    // activation it depends on). Only hide the media area when there is no clip.
+    if (!step.simpleVideoUrl) {
         state.setMediaVisible(false);
     }
     state.setSuccessScreen(step.lessonId, fluencyDataObj);
