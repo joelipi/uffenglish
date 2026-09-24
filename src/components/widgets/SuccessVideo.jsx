@@ -18,7 +18,20 @@ export default function SuccessVideo() {
         setEnded(false);
         const url = URL.createObjectURL(blob);
         video.src = url;
-        video.play().catch(() => {});
+        video.play().then(() => {
+            console.log('[SuccessVideo] play() resolved');
+        }).catch((e) => {
+            // iOS blocks unmuted autoplay without a fresh user gesture (the
+            // generation delay outlasts the tap). Retry muted like SimpleVideoPlayer.
+            console.log('[SuccessVideo] unmuted play blocked, retrying muted:', e?.name);
+            video.muted = true;
+            video.play().then(() => {
+                console.log('[SuccessVideo] muted play resolved');
+                setTimeout(() => { video.muted = false; }, 100);
+            }).catch((e2) => {
+                console.warn('[SuccessVideo] muted play blocked:', e2?.name);
+            });
+        });
 
         return () => {
             URL.revokeObjectURL(url);
@@ -60,7 +73,14 @@ export default function SuccessVideo() {
 
     const handlePause = useCallback(() => {
         const video = videoRef.current;
-        console.log('[SuccessVideo] pause', { currentTime: video?.currentTime, duration: video?.duration });
+        console.log('[SuccessVideo] pause', {
+            currentTime: video?.currentTime,
+            duration: video?.duration,
+            readyState: video?.readyState,
+            muted: video?.muted,
+            error: video?.error?.code,
+            visibility: typeof document !== 'undefined' ? document.visibilityState : 'n/a',
+        });
         setPlaying(false);
         // iOS sometimes parks a finished clip as "paused" without firing `ended`;
         // treat a pause at the very end as completion too.
