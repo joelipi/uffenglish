@@ -1,5 +1,6 @@
 import { getCurrentUser, logout, supabase } from './supabase.js';
 import { getGeoInfo } from '../media/geo-service.js';
+import { upsertFriendLinkMap } from '../user/friend-lesson-link-logic.js';
 
 export { getCurrentUser };
 import defaultProfilePic from '../../assets/img/userprofile.png';
@@ -60,6 +61,7 @@ function fromDbRow(row) {
     lastName: row.last_name,
     friendCode: row.friend_code,
     shareCode: row.share_code,
+    friendLinks: row.friend_links,
     joinDate: row.join_date,
     completed_dates: row.completed_dates || [],
     recent_fluency_avgs: row.recent_fluency_avgs || [],
@@ -293,7 +295,7 @@ export function useUserByShareCode(shareCode) {
       // Pilot hardening (003): anon column grant is restricted. Query the safe
       // view when unauthenticated, full table when logged-in. Fall back to the
       // legacy table if the view does not yet exist (pre-migration deploy).
-      const SAFE_COLS = 'id,first_name,last_name,native_language,english_level,join_date,share_code,profile_picture_url,completed_dates,lessons_completed,counted_lessons,total_fluency_sum,recent_fluency_avgs,created_at,account_status';
+      const SAFE_COLS = 'id,first_name,last_name,native_language,english_level,join_date,share_code,profile_picture_url,completed_dates,lessons_completed,counted_lessons,total_fluency_sum,recent_fluency_avgs,created_at,account_status,friend_links';
       async function queryPublicProfiles() {
         const { data, error } = await supabase.from('public_profiles').select('*').eq('share_code', shareCode).limit(1);
         if (error) throw error;
@@ -313,6 +315,33 @@ export function useUserByShareCode(shareCode) {
       }
     },
     enabled: !!shareCode,
+  });
+}
+
+// Records a friend-challenge answer-lesson link in the owner's profile. Reads
+// the current friend_links map, merges the new entry (one per course), and
+// persists the whole map. Expiry is render-time only; nothing is deleted here.
+export function useAddFriendLinkMutation() {
+  const queryClientHook = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ userId, entry }) => {
+      const { data: row, error: readError } = await supabase
+        .from('user_profiles').select('friend_links').eq('id', userId).single();
+      if (readError) throw readError;
+      const merged = upsertFriendLinkMap(row?.friend_links, entry);
+      const { error } = await supabase
+        .from('user_profiles').update({ friend_links: merged }).eq('id', userId);
+      if (error) throw error;
+      console.log('[friendLessonLink] saved', entry);
+      return merged;
+    },
+    onSuccess: () => {
+      // Prefix-matches both ['user','profile'] and ['user','profile','shareCode', code].
+      queryClientHook.invalidateQueries({ queryKey: ['user', 'profile'] });
+    },
+    onError: (error) => {
+      console.error('🚨 useAddFriendLinkMutation error:', error);
+    },
   });
 }
 

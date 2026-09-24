@@ -1234,13 +1234,13 @@ async function renderStepToBlob({ step, video, canvas, overlayImage, profileImag
 export async function exportSegmentsToR2(lessonId) {
     if (!appStore.getState().isLoggedIn) {
         console.warn('[ExportSegments] Not logged in, aborting R2 publish');
-        return;
+        return { count: 0, succeeded: 0 };
     }
 
     const shareCode = appStore.getState().userData?.shareCode;
     if (!shareCode) {
         console.warn('[ExportSegments] No shareCode, aborting R2 publish');
-        return;
+        return { count: 0, succeeded: 0 };
     }
 
     trackEvent('publish_clips_batch_start', { lessonId });
@@ -1264,7 +1264,7 @@ export async function exportSegmentsToR2(lessonId) {
     if (publishable.length === 0) {
         console.log('[ExportSegments] No publishable segments');
         trackEvent('publish_clips_batch_done', { lessonId, count: 0, succeeded: 0 });
-        return;
+        return { count: 0, succeeded: 0 };
     }
 
     const audioContext = getOrCreateExportAudioContext();
@@ -1362,4 +1362,6 @@ export async function exportSegmentsToR2(lessonId) {
 
     // Clear the post-login pending publish so a refresh doesn't re-trigger.
     appStore.getState().setPendingPublishLessonId?.(null);
+
+    return { count: publishable.length, succeeded };
 }

@@ -1163,6 +1163,24 @@ const strings = {
         hi: "अपनी प्रगति सहेजने और अपनी प्रोफ़ाइल तक पहुँचने के लिए साइन अप करें।",
         bn: "আপনার অগ্রগতি সংরক্ষণ ও প্রোফাইল অ্যাক্সেস করতে সাইন আপ করুন।"
     },
+    // Friend-challenge answer-lesson link on the public profile. The link is
+    // shown while it is within the 48h R2 clip window; {time} is the countdown.
+    'profile_friend_lesson_link': {
+        en: "Practice English with Me",
+        es: "Practica inglés conmigo",
+        pt: "Pratique inglês comigo",
+        fr: "Pratique l'anglais avec moi",
+        hi: "मेरे साथ अंग्रेज़ी का अभ्यास करें",
+        bn: "আমার সাথে ইংরেজি চর্চা করুন"
+    },
+    'profile_friend_link_available': {
+        en: "Available for {time}",
+        es: "Disponible por {time}",
+        pt: "Disponível por {time}",
+        fr: "Disponible pendant {time}",
+        hi: "{time} तक उपलब्ध",
+        bn: "{time} পর্যন্ত উপলব্ধ"
+    },
     'profile_updated': {
         en: "Profile updated successfully.",
         es: "Perfil actualizado correctamente.",
