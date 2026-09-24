@@ -313,4 +313,23 @@ test.describe('Success screen — concat button reveal', () => {
 
         expect(errors).toEqual([]);
     });
+
+    test('recap video end shows the share overlay', async ({ page }) => {
+        await setupSuccessScreen(page);
+
+        // Mount the generated recap video (SuccessVideo renders on a blob).
+        await page.evaluate(() => {
+            window.appStore.getState().setSuccessVideoBlob(new Blob(['fake'], { type: 'video/webm' }));
+        });
+        await expect(page.locator('#resultVideo')).toBeVisible();
+        await expect(page.locator('.ivp-overlay.water-surface')).toHaveCount(0);
+
+        // The recap finishes playing.
+        await page.evaluate(() => {
+            document.querySelector('#resultVideo')?.dispatchEvent(new Event('ended'));
+        });
+
+        await expect(page.locator('.ivp-overlay.water-surface')).toBeVisible();
+        await expect(page.locator('.ivp-overlay-text')).toHaveText('Share the video with friends so they can practice English with you');
+    });
 });

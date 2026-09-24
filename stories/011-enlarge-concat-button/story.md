@@ -18,7 +18,7 @@ The success step already carries a short "you're almost done, press the button b
 ## Out of Scope
 
 - Adding or re-recording the "almost done" video. The existing `success` slug is used as-is.
-- Changing the concat/processing behavior, `processVideo`, `exportSegmentsToR2`, the `Generating...` spinner state, or the post-generation `Share`/`Repeat`/`Continue` buttons.
+- Changing the concat/processing behavior, `processVideo`, `exportSegmentsToR2`, the `Generating...` spinner state, or the behavior of the post-generation `Share`/`Repeat`/`Continue` buttons (this story only adds a recap-finished overlay that points at them).
 - The guest `SaveClipsModal` flow (`SaveClipsModal.web.jsx`) and its timing.
 - The existing `video_continue` overlay string (the success step uses its own new key).
 - `SimpleVideoPlayer.native.jsx` (dead-code reference implementation; it has no `handleEnded`).
@@ -168,6 +168,14 @@ Do not drop the `.ivp-choice-col` class to hide the glow: that also removes the 
 - Video file missing or undecodable → the `onError` handler transitions to `lessonSuccess-decisionTime`, revealing the glow (and the overlay where the wrapper is visible) instead of leaving the button dim. (The button lives in the bottom overlay, so it is present regardless.)
 - Non-en learner → the label shows the English word plus the localized line, and the overlay shows the English copy plus the localized line, matching the bilingual treatment of every other overlay.
 
+### 6. Recap-finished overlay (`src/components/widgets/SuccessVideo.jsx`)
+
+After generation, `SuccessVideo` renders the stitched recap (`#resultVideo`). When it finishes, show the same water overlay to draw attention to the share/redo buttons below (they stay above the overlay at `z-index: 1050`):
+
+- Track `ended` locally in `SuccessVideo`; `onEnded` sets it true, `onPlay` clears it (replay hides the overlay), and a new blob resets it.
+- Render `.ivp-click-block` + `.ivp-overlay.water-surface` + `.ivp-overlay-text` over the video when `ended`, and suppress the play triangle while `ended`.
+- Copy is the new `video_share_friends` key: "Share the video with friends so they can practice English with you" (es/pt/fr/hi/bn), rendered with `<span lang>` (no `<i>`), matching the de-italicised `.ivp-overlay-text` treatment.
+
 ## Tasks
 
 ### Task 1 - Phase + transition plumbing
@@ -236,6 +244,16 @@ Do not drop the `.ivp-choice-col` class to hide the glow: that also removes the 
 - full reveal flow (`lessonSuccess` → `ended` → `lessonSuccess-decisionTime`)
   - → no `pageerror`
   - → no console error outside the documented noise list (favicon, source map, Whisper, vite, 401/Unauthorized)
+
+### Task 6 - Recap-finished overlay
+
+- generated recap mounted (`successVideoBlob` set), before it ends
+  - → no `.ivp-overlay.water-surface` from `SuccessVideo`
+- recap video fires `ended`
+  - → `.ivp-overlay.water-surface` is visible over `#resultVideo`
+  - → `.ivp-overlay-text` reads "Share the video with friends so they can practice English with you" (en)
+- recap replayed (`play` after ending)
+  - → the overlay hides again
 
 ## Technical Context
 
