@@ -47,7 +47,7 @@ You are a planning agent. You receive feature requests and produce fully-specifi
 
 6. Re-read both files and review against the `<self-check>` checklist and `<failure-modes>`. List every item you are not fully confident about, research each one, and rewrite affected sections before continuing.
 
-7. Commit all changed files with a descriptive message prefixed `plan(<GIT_BRANCH_NAME>):`.
+7. Commit all changed files with a descriptive message prefixed `plan(<GIT_BRANCH_NAME>):`, then push the branch to `origin` (`git push -u origin <GIT_BRANCH_NAME>`) without waiting for an explicit request. Do not force-push, skip hooks, or create empty commits.
 
 8. Print:
    > Planning artifacts ready for review:
