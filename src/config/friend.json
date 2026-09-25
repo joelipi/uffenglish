@@ -134,7 +134,7 @@
         {
           "cue": "",
           "responseType": "lessonIntro",
-          "introBackgroundVideoUrl": "testvideo01"
+          "introBackgroundVideoUrl": "{friendCode}friend-a-response-01"
         },
         {
           "subtitles": [
