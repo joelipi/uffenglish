@@ -14,6 +14,7 @@
 - **Share-CTA recap** — ask-only lessons render a webcam-only "ad" recap with a localized headline, 48h deadline, and single-line share URL ([story](stories/001-webcam-only-share-cta/story.md)).
 - **Per-lesson recap controls** — each lesson's recap overlay (`recapOverlay`: `fluency` / `shareCta` / `none`) and concatenated prompt sources (`recapSources`: `system` / `friend` / `none`) are configured per lesson and are independent; the former `webcamOnly` flag is retired ([story](stories/010-recap-overlay-flag/story.md)).
 - **Static intro-video step** — `wf` replays the intro clip as a non-interactive step with localized subtitles before the first recording step ([story](stories/003-add-wf-video-player-step/story.md)).
+- **Uniform R2-only video posters** — every poster is a 0.2s still of its video and is the video's URL with `.mp4`→`.jpg` (`getPosterUrl(slug) = getVideoUrl(slug).replace('.mp4','.jpg')`); teacher/lesson-intro posters for every `src/config/*.json` course are generated and uploaded on push by `deploy.yml`, and user-generated friend clips upload a sibling `.jpg` at publish time. No posters are committed to the repo or served locally ([story](stories/011-auto-intro-poster/story.md)).
 - **Text-mode fallback** — last-resort typed answers render avatar-card segments in the recap; text is only offered after the speech engine definitively fails (voice-first product rule).
 - **Guest mode** — learners can start a lesson without logging in; UI strings and lesson content fall back to English when a translation is missing. Supabase accounts get a shareCode, profile, and R2 publish rights.
 
@@ -33,6 +34,8 @@
 - Speech recognition runs Whisper in-browser and requires COOP/COEP and cross-origin headers; videos and Whisper fail on staging without the Cloudflare Transform Rules (`docs/cloudflare-video-cors.md`).
 - Mic/camera cannot be exercised headlessly; many flows require the documented test bypasses (`agents.md`).
 - Lesson media is hosted on Cloudflare R2 (`assets/videos/<slug>.mp4`); video files are gitignored (too large for the repository) and uploaded out of band, so lesson video playback depends on R2 availability and on the real recordings having been uploaded.
+- Lesson-intro posters follow the same `<video>.jpg` sibling rule and are R2-only (`assets/videos/<slug>.jpg` for teacher intros, `videos/<…>.jpg` for UGC); teacher posters are generated/uploaded on push for every course and UGC posters at publish, so nothing is committed or served locally and a poster is only as available as R2 ([story](stories/011-auto-intro-poster/story.md)).
+- The lesson-intro overlay no longer shows a caller name/title — the hardcoded "Joe Walsh / English Coach, UFF" was removed because it is wrong for friend/UGC intros. Surfacing the friend's own name (from their profile, via the share code) is deferred ([story](stories/013-remove-intro-caller-name/story.md)).
 - Playwright's bundled Chromium lacks H.264/AAC codecs; video specs must run real Chrome (`agents.md` §5).
 - The R2 UGC 48h TTL is configured in the Cloudflare dashboard, not in `wrangler.toml` (`README.md:98`).
 - Classroom/staging testing depends on R2 availability; video playback cannot be fully verified offline.

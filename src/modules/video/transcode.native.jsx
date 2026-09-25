@@ -12,3 +12,6 @@ export async function uploadWebmToCloudinary() {
 export async function verifyMp4() {
     throw new Error('verifyMp4 not supported on native');
 }
+export async function probeClipDurationSec() {
+    return null;
+}

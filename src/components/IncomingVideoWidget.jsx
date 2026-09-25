@@ -32,16 +32,15 @@ export default function IncomingVideoWidget() {
         appStore.subscribe,
         () => appStore.getState().currentVideo
     );
-    const activeLessonId = useSyncExternalStore(
-        appStore.subscribe,
-        () => appStore.getState().activeLessonId
-    );
 
     const show = currentVideo?.type === 'intro';
     const config = show ? currentVideo.config : null;
     const subtitle = config?.subtitle;
-    const posterUrl = show ? getPosterUrl(activeLessonId) : null;
-    const posterLqip = show ? getPosterLqip(activeLessonId) : null;
+    // Poster is keyed by the video slug (set by video-loader.web.js), not the
+    // lessonId — a lessonId is not unique across course configs.
+    const posterSlug = show ? currentVideo.config?.posterSlug : null;
+    const posterUrl = posterSlug ? getPosterUrl(posterSlug) : null;
+    const posterLqip = posterSlug ? getPosterLqip(posterSlug) : null;
 
     const signalPosterReady = useCallback(() => {
         if (posterSignalledRef.current) return;
@@ -311,10 +310,18 @@ export default function IncomingVideoWidget() {
                             </div>
                             )}
                         </div>
+                        {/*
+                        Caller name/title removed (story 013): the hardcoded
+                        "Joe Walsh / English Coach, UFF" is wrong for friend/UGC
+                        intros. Surfacing the friend's own name (from their
+                        profile, keyed by share code) is deferred; re-enable this
+                        block then. Original markup kept for reference:
+
                         <div className="intro-notification-bottom">
                             <div className="intro-caller-name">{config?.name || 'Joe Walsh'}</div>
                             <div className="intro-caller-title">{config?.role || 'English Coach, UFF'}</div>
                         </div>
+                        */}
 
                     </div>
                 </div>
