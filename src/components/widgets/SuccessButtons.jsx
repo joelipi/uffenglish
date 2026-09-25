@@ -152,13 +152,7 @@ export function VideoButton({ canvasRef }) {
 
     return (
       <div className={`ivp-choice-col${revealed ? '' : ' process-btn-pending'}`} style={{ flex: '0 0 auto', minWidth: 0 }}>
-        <div className="ivp-choice-label">
-          <div className="ivp-choice-label-text">
-            {continueLabel.localized ? (
-              <React.Fragment>{continueLabel.english}<br /><span lang={continueLabel.lang}><i>{continueLabel.localized}</i></span></React.Fragment>
-            ) : continueLabel.english}
-          </div>
-        </div>
+        <ChoiceLabel text={continueLabel} />
         <button
           type="button"
           id="processBtn"

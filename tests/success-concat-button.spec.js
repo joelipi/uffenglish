@@ -349,6 +349,12 @@ test.describe('Success screen — concat button reveal', () => {
         const labels = page.locator('#state-lesson-success .ivp-choice-label-text');
         await expect(labels).toHaveCount(3);
 
+        // Only Share glows; Replay and Continue have the glow suppressed.
+        const glow = (sel) => page.locator(sel).evaluate(el => getComputedStyle(el, '::before').animationName);
+        expect(await glow('#createVideoButton')).toContain('btnGlowPulse');
+        expect(await glow('#repeatButtonSuccess')).toBe('none');
+        expect(await glow('#continueButtonSuccess')).toBe('none');
+
         // Share is the primary action — bigger than Replay and Continue.
         const share = await page.locator('#createVideoButton').boundingBox();
         const replay = await page.locator('#repeatButtonSuccess').boundingBox();

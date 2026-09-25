@@ -1010,9 +1010,9 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 }
 
 /* Success screen actions. Column layout: an optional call to action above the
-   action row. Flex properties live in CSS rather than utility classes because
-   `justify-content-around` / `align-items-end` are not part of this app's
-   Bootstrap subset. */
+   action row. Flex properties live here rather than on utility classes because
+   this app's Bootstrap subset only defines `justify-content-center` /
+   `align-items-center` (not `justify-content-around` / `align-items-end`). */
 #state-lesson-success {
     display: flex;
     flex-direction: column;
