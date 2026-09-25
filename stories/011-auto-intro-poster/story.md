@@ -440,14 +440,13 @@ steps already run this pipeline on every push.
   and renders with no broken icon; `/course/t/lesson/y` covers a slug that only
   existed after this change. Publish a friend lesson and confirm a sibling `.jpg`
   on R2 next to each `-response-NN.mp4`.
-- **UGC-poster verification aid (temporary).** To exercise the UGC branch of
-  `getPosterUrl` in the running app, `src/config/friend.json` lesson `b`'s first
-  step has `introBackgroundVideoUrl: "{friendCode}friend-a-response-01"` (the
-  friend's own UGC clip, resolved from the `?sharecode=`) instead of the system
-  `testvideo01`. This is a manual test aid, not a product change — revert it
-  before merging if the friend course should keep the system intro. It relies on
-  `introTargets` skipping `{friendCode}` templates (which is why that skip is
-  part of the feature, not the aid). To see a poster, the friend's clip must
-  exist on R2 with a sibling `.jpg` (publish lesson `a` from this build first).
+- **UGC poster verified, aid reverted.** The UGC branch of `getPosterUrl` was
+  confirmed in the running app by temporarily pointing `src/config/friend.json`
+  lesson `b`'s first step at the friend's own UGC clip
+  (`introBackgroundVideoUrl: "{friendCode}friend-a-response-01"`) and publishing
+  a fresh friend challenge so a sibling `.jpg` existed on R2. The intro rendered
+  the UGC poster correctly; the aid was then reverted so lesson `b` keeps the
+  system `testvideo01` intro. The `{friendCode}`-skip in `introTargets` (which
+  makes such an intro safe for the pipeline) stays.
 - **`docs/product.md`** is updated in this planning commit; the implementer adds
   the README/`agents.md` notes described in Task 5.
