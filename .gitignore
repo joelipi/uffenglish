@@ -1,4 +1,7 @@
 node_modules/
+# The worktree `node_modules` is a symlink, which the trailing-slash rule above
+# does not match; a plain entry stops `git add -A` from tracking it.
+node_modules
 .wrangler/
 
 # Playwright
