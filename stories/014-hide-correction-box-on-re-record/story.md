@@ -31,6 +31,7 @@ Edge cases:
 - If `hintsVisible` is already `false` (no correction card), calling `setHintsVisible(false)` is a no-op — safe.
 - The ✕ close button and the existing clear sites remain unchanged; this adds one more clear site.
 - The text-mode toggle button (`#txtBtn`, `handleTextClick`) is out of scope and must not clear the card.
+- Reappearance is preserved: the incorrect-answer branch (`answer-pipeline.js:888-921`) unconditionally calls `setHintsVisible(true)` (line 908) and regenerates `hangmanOps` from the new response (line 901) on every incorrect attempt, so a later different mistake re-shows the card. This branch is untouched by the change. Note the pre-existing gate `incorrectAttempts < 2` for `closedResponse` (line 888) — the card reappears only while that holds; `friendClosedResponse` always reappears. This gate is existing behavior and is not modified.
 
 ## Tasks
 
@@ -44,6 +45,9 @@ Edge cases:
   - → the registered speech toggle callback is still invoked exactly once
 - correction card visible + user presses `#txtBtn` (text-mode toggle)
   - → `hintsVisible` is unchanged (still `true`)
+- card hidden by a mic press + user submits another incorrect answer on the same step
+  - → `hintsVisible` becomes `true` again
+  - → `hangmanOps` reflects the new (different) user response, not the previous one
 
 ## Technical Context
 
@@ -53,6 +57,7 @@ Edge cases:
 - `hintsVisible` is not declared in the store's initial state object (`store.js:69-192`), so it starts `undefined` (falsy). `Hints.jsx:12` treats falsy as hidden. Tests should set it explicitly.
 - Existing test patterns: `src/modules/answer/answer-pipeline.test.js` uses `appStore.setState({...})` in `beforeEach` and asserts store state. `src/components/video-overlay-italic.test.js` asserts against source text. No existing test renders a React component, and `@testing-library/react` is **not** installed.
 - Test approach for Task 1 (no new dependencies): create `src/components/widgets/MicrophoneToggle.test.jsx` and render the component with `react-dom/client` (`createRoot`) inside `React.act` (both available: `react-dom` 19.2.0, `React.act` is a function). Set `bottomState: 'micActiveOrAnswerInput'` and `hintsVisible: true` via `appStore.setState`, register a mock callback with `setSpeechInputToggleCallback(vi.fn())`, query `#micBtn`, dispatch a click, and assert `appStore.getState().hintsVisible === false` and the mock callback was called once. For the text-button case, query `#txtBtn` and assert `hintsVisible` is unchanged. Wrap state updates and clicks in `act` to flush React. Clean up the root in `afterEach`.
+- Reappearance test approach: extend `src/modules/answer/answer-pipeline.test.js` using its existing `setupStore(friendStep)` harness. Call `pipeline.handleAnswer` with an incorrect response, assert `hintsVisible === true` and capture `hangmanOps`; then `appStore.setState({ hintsVisible: false })` (simulating the mic press), call `pipeline.handleAnswer` again with a *different* incorrect response, and assert `hintsVisible === true` and `hangmanOps` differs from the first capture. `friendClosedResponse` is used because it has no `incorrectAttempts < 2` gate.
 
 ## Notes
 
