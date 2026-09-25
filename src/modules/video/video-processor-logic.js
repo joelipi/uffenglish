@@ -13,7 +13,7 @@ export const TEXT_MODE_DURATION_MS = 3000;
 // Deliberately no scheme: the displayed URL is a bare host/path, single line,
 // because viewers must type it in manually from the video. The public-profile
 // link adds the https scheme via toFriendLessonHref.
-export const SHARE_URL_BASE = 's.ultrafastfluency.com';
+export const SHARE_URL_BASE = 'ultrafastfluency.com';
 
 // The share window matches the R2 UGC lifecycle: videos/ objects expire after
 // 48h (README.md:98, Cloudflare dashboard R2 → uff → Lifecycle). The friend

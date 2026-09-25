@@ -2,7 +2,7 @@
 
 ## Context
 
-When a learner finishes friend-challenge **ask** lesson `a` (`src/config/friend.json`) and exports the video, their recorded question clips are published to R2 under `videos/{shareCode}-{courseId}-{lessonId}-response-NN.mp4` (`src/modules/video/video-processor.web.js:1234-1365`). A friend can then open the asker's share URL (`s.ultrafastfluency.com/<shareCode>`) and answer the questions in the matching **answer** lesson `b`. Today the public profile page (`/:shareCode` → `src/components/profile/PublicProfile.jsx`) shows only name, share code, and lesson stats — nothing points a friend at lesson `b`, and the R2 clips silently expire after 48h (Cloudflare lifecycle, `README.md:100`; `SHARE_WINDOW_HOURS = 48`, `src/modules/video/video-processor-logic.js:20`) with no visible deadline.
+When a learner finishes friend-challenge **ask** lesson `a` (`src/config/friend.json`) and exports the video, their recorded question clips are published to R2 under `videos/{shareCode}-{courseId}-{lessonId}-response-NN.mp4` (`src/modules/video/video-processor.web.js:1234-1365`). A friend can then open the asker's share URL (`ultrafastfluency.com/<shareCode>`) and answer the questions in the matching **answer** lesson `b`. Today the public profile page (`/:shareCode` → `src/components/profile/PublicProfile.jsx`) shows only name, share code, and lesson stats — nothing points a friend at lesson `b`, and the R2 clips silently expire after 48h (Cloudflare lifecycle, `README.md:100`; `SHARE_WINDOW_HOURS = 48`, `src/modules/video/video-processor-logic.js:20`) with no visible deadline.
 
 This story adds, on the **publicly facing** profile, one prominent link per exported lesson-`a` video. The mapping is **fixed and deterministic**: ask lesson `a` → answer lesson `b` in the same course. There is no config field and no lookup. The link targets:
 
@@ -19,7 +19,7 @@ The link text is "Practice English with Me" (large), and the link is rendered on
 - **The owner's own `/profile` page.** `src/components/profile/UserProfile.jsx` is not changed. The link renders only on the public profile (`PublicProfile.jsx`, route `/:shareCode`).
 - **Any cleanup job, cron, or row/field deletion.** Expiry is a **render-time** rule: an entry is shown while `addedAt + 48h > now`. Expired entries remain in the column but are never surfaced.
 - **Courses without a lesson `b`.** `src/config/model.json` and `src/config/gt2.json` each have a lesson `a` but no `b`; completing/exporing their lesson `a` correctly produces no link (guard below).
-- **Changing R2 lifecycle, `SHARE_WINDOW_HOURS`, `buildShareUrl`, `buildShareDeadline`, or the `share_cta_*` strings.** This story reuses `SHARE_URL_BASE` — now set to the real share host `s.ultrafastfluency.com` (the `example.com` placeholder is retired) — and `SHARE_WINDOW_HOURS`; it does not introduce a second constant or a second window.
+- **Changing R2 lifecycle, `SHARE_WINDOW_HOURS`, `buildShareUrl`, `buildShareDeadline`, or the `share_cta_*` strings.** This story reuses `SHARE_URL_BASE` — now set to the real share host `ultrafastfluency.com` (the `example.com` placeholder is retired) — and `SHARE_WINDOW_HOURS`; it does not introduce a second constant or a second window.
 - **Backfilling links for videos exported before this ships.** Only exports performed after the change create an entry.
 - **The native processor** (`src/modules/video/video-processor.native.jsx`, dead-code reference) beyond keeping the `exportSegmentsToR2` return contract consistent.
 - **Changing what counts as a publishable clip.** The existing `succeeded` count in `exportSegmentsToR2` (one per successfully uploaded webcam segment) is the sole "video was exported" signal.
@@ -266,11 +266,11 @@ A self-contained **presentational** section (no new dependency, pure React, no D
 - `src/config/gt2.json` parsed
   - → contains a lesson `'a'` and no lesson `'b'` (guard would suppress)
 - `buildFriendLessonLink({ courseId: 'friend', lessonId: 'b', shareCode: 'ab12' })`
-  - → `'s.ultrafastfluency.com/course/friend/lesson/b?shareCode=ab12'`
+  - → `'ultrafastfluency.com/course/friend/lesson/b?shareCode=ab12'`
 - `buildFriendLessonLink` called with an explicit `base`
   - → the returned string uses that base and still contains `/course/<courseId>/lesson/<lessonId>?shareCode=<shareCode>`
-- `toFriendLessonHref('s.ultrafastfluency.com/course/friend/lesson/b?shareCode=ab12')`
-  - → `'https://s.ultrafastfluency.com/course/friend/lesson/b?shareCode=ab12'`
+- `toFriendLessonHref('ultrafastfluency.com/course/friend/lesson/b?shareCode=ab12')`
+  - → `'https://ultrafastfluency.com/course/friend/lesson/b?shareCode=ab12'`
 - `toFriendLessonHref('https://x/y')` and `toFriendLessonHref('http://x/y')`
   - → returned unchanged
 - `getFriendLinkRemainingMs(addedAt, addedAt)` / `(addedAt, addedAt + 48h)` / `(addedAt, addedAt + 49h)`
@@ -350,7 +350,7 @@ A self-contained **presentational** section (no new dependency, pure React, no D
   - → an element `[data-testid="friend-lesson-link"]` is visible
   - → its text is `Practice English with Me`
   - → its computed `font-size` is at least `24px`
-  - → its `href` is `https://s.ultrafastfluency.com/course/friend/lesson/b?shareCode=friendtest1`
+  - → its `href` is `https://ultrafastfluency.com/course/friend/lesson/b?shareCode=friendtest1`
   - → `[data-testid="friend-lesson-link-countdown"]` is visible and reads `Available for 47h 0m`
 - `/friendtest1` loaded + a `friend` entry whose `addedAt` is exactly 48h before the fixed clock injected
   - → `[data-testid="friend-lesson-link"]` has count `0` (link removed)
@@ -364,7 +364,7 @@ A self-contained **presentational** section (no new dependency, pure React, no D
 ## Technical Context
 
 - **No new dependencies.** Reuses React 19.2.0, `@tanstack/react-query` 5.100.14, `zustand` 5.0.13, `@supabase/supabase-js` 2.112.4, `react-router-dom` 7.15.1. Unit tests: vitest 4.1.6 + jsdom 29.1.1 (colocated `*.test.js`; `vitest.config.js` excludes `tests/**` and `*.spec.js`). Browser tests: `@playwright/test` 1.60.0 (`tests/*.spec.js`, `playwright.config.js`, `webServer: npx vite --port 5173`).
-- **`SHARE_URL_BASE` is scheme-less** (`'s.ultrafastfluency.com'`, `video-processor-logic.js:15`) by design — the recap CTA shows a bare host/path to be typed manually. For a clickable public-profile anchor the component prepends `https://` via `toFriendLessonHref`; the canonical link value returned by `buildFriendLessonLink` matches the brief exactly (`s.ultrafastfluency.com/course/...`).
+- **`SHARE_URL_BASE` is scheme-less** (`'ultrafastfluency.com'`, `video-processor-logic.js:15`) by design — the recap CTA shows a bare host/path to be typed manually. For a clickable public-profile anchor the component prepends `https://` via `toFriendLessonHref`; the canonical link value returned by `buildFriendLessonLink` matches the brief exactly (`ultrafastfluency.com/course/...`).
 - **`courseId` source of truth:** use `appStore.getState().courseId` (route param / config filename: `friend`, `model`) — **not** `configData.courseId` (`friend.json`'s is `"20260921"`). `AppLayout.jsx:31` sets the store course id from `useParams`, and `exportSegmentsToR2` already uses it for the R2 key (`video-processor.web.js:1333`).
 - **Guard data:** only `friend.json` contains both `a` and `b`; `model.json` and `gt2.json` have `a` but no `b` (`grep '"lessonId": "b"' src/config/*.json` → only `friend.json:117`). The `configData.lessons.some(l => l.lessonId === 'b')` guard therefore suppresses those courses.
 - **Public read path:** `useUserByShareCode` (`api.js:289-317`) queries the `public_profiles` view with `select('*')` when unauthenticated and falls back to `user_profiles` with `SAFE_COLS` on pre-migration deploys. Adding `friend_links` to the view + anon grant + `SAFE_COLS` keeps both branches working. `fromDbRow` (`api.js:52`) provides the `friendLinks` camelCase alias.
@@ -375,7 +375,7 @@ A self-contained **presentational** section (no new dependency, pure React, no D
 
 ## Notes
 
-- **Assumption (stated, not guessed silently):** the anchor `href` prepends `https://` because `SHARE_URL_BASE` is intentionally scheme-less; the link **text** is the localized "Practice English with Me" (the URL is never displayed). If the desired `href` must be the bare `s.ultrafastfluency.com/...` string, only `toFriendLessonHref` and its two unit assertions change.
+- **Assumption (stated, not guessed silently):** the anchor `href` prepends `https://` because `SHARE_URL_BASE` is intentionally scheme-less; the link **text** is the localized "Practice English with Me" (the URL is never displayed). If the desired `href` must be the bare `ultrafastfluency.com/...` string, only `toFriendLessonHref` and its two unit assertions change.
 - **Assumption:** the `friend_links` map is keyed by `courseId` (one ask lesson `a` per course), so at most one entry per course; re-exporting lesson `a` resets that course's entry. Each entry stores `{ courseId, shareCode, addedAt }`; the target lesson is the fixed `ANSWER_LESSON_ID` constant, not stored. If more than one entry per course is ever needed, only `upsertFriendLinkMap` and its assertions change.
 - **Assumption:** the countdown label is a localized string with a `{time}` placeholder rendered as `47h 0m` (minute granularity), and `lang` is the profile owner's `native_language`, matching how `PublicProfile.jsx` already localizes all its copy. If a different granularity or the viewer's language is wanted, only `formatFriendLinkRemaining` / the section's `lang` prop change.
 - **Manual verification** (Supabase RLS + real export cannot be exercised headlessly; the logic is covered by Tasks 1-4):

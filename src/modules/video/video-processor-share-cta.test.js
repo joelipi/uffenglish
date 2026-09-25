@@ -60,13 +60,13 @@ describe('buildShareUrl', () => {
     it('returns a bare host/path with no scheme and no whitespace', () => {
         const url = buildShareUrl('ab12');
 
-        expect(url).toBe('s.ultrafastfluency.com/ab12');
+        expect(url).toBe('ultrafastfluency.com/ab12');
         expect(url).not.toMatch(/^https?:/);
         expect(url).not.toMatch(/\s/);
     });
 
     it('uses the production share host constant', () => {
-        expect(SHARE_URL_BASE).toBe('s.ultrafastfluency.com');
+        expect(SHARE_URL_BASE).toBe('ultrafastfluency.com');
     });
 
     it('falls back to the bare host when there is no shareCode', () => {
