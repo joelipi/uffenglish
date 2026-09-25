@@ -1400,6 +1400,16 @@ const strings = {
         hi: "नीचे एक बटन दबाएँ।",
         bn: "নিচে একটি বোতাম চাপুন।"
     },
+    // Shown over the lesson-success video once it ends, so the learner knows
+    // the revealed button creates the recap video they can share.
+    'video_continue_create': {
+        en: "Continue to create and share your video",
+        es: "Continúa para crear y compartir tu video",
+        pt: "Continue para criar e compartilhar seu vídeo",
+        fr: "Continuez pour créer et partager votre vidéo",
+        hi: "अपना वीडियो बनाने और साझा करने के लिए जारी रखें",
+        bn: "আপনার ভিডিও তৈরি করতে এবং শেয়ার করতে চালিয়ে যান"
+    },
     'video_repeat_now': {
         en: "REPEAT NOW",
         es: "REPITE AHORA",
@@ -1415,8 +1425,27 @@ const strings = {
     'continue': {
         en: "CONTINUE",
         es: "CONTINUAR",
+        pt: "CONTINUAR",
+        fr: "CONTINUER",
         hi: "जारी रखें",
         bn: "চালিয়ে যান"
+    },
+    // Post-generation success actions (Replay / Share / Continue row).
+    'replay': {
+        en: "REPLAY",
+        es: "REPETIR",
+        pt: "REPETIR",
+        fr: "REJOUER",
+        hi: "फिर से चलाएँ",
+        bn: "আবার চালান"
+    },
+    'share': {
+        en: "SHARE",
+        es: "COMPARTIR",
+        pt: "COMPARTILHAR",
+        fr: "PARTAGER",
+        hi: "साझा करें",
+        bn: "শেয়ার করুন"
     },
     'watch_tutorial': {
         en: "WATCH TUTORIAL",
@@ -1503,6 +1532,16 @@ const strings = {
         fr: "Pratique l'anglais avec moi gratuitement avant le",
         hi: "मेरे साथ मुफ़्त अंग्रेज़ी प्रैक्टिस करें — अंतिम तिथि:",
         bn: "আমার সাথে ফ্রি ইংরেজি প্র্যাকটিস করুন — শেষ তারিখ:"
+    },
+    // Call to action shown on the success screen for friend-challenge lessons,
+    // where only the Share button is offered.
+    'share_cta_success': {
+        en: "Share this video with friends, family, and colleagues so they can practice with you. They have 48 hours to respond.",
+        es: "Comparte este video con amigos, familiares y colegas para que practiquen contigo. Tienen 48 horas para responder.",
+        pt: "Compartilhe este vídeo com amigos, familiares e colegas para que pratiquem com você. Eles têm 48 horas para responder.",
+        fr: "Partagez cette vidéo avec des amis, votre famille et vos collègues pour qu'ils pratiquent avec vous. Ils ont 48 heures pour répondre.",
+        hi: "इस वीडियो को दोस्तों, परिवार और सहकर्मियों के साथ साझा करें ताकि वे आपके साथ अभ्यास कर सकें। उनके पास जवाब देने के लिए 48 घंटे हैं।",
+        bn: "এই ভিডিওটি বন্ধু, পরিবার ও সহকর্মীদের সাথে শেয়ার করুন যাতে তারা আপনার সাথে অনুশীলন করতে পারে। তাদের উত্তর দেওয়ার জন্য 48 ঘন্টা রয়েছে।"
     }
 };
 

@@ -39,8 +39,11 @@ export default function SimpleVideoPlayer() {
     const overlayLang = userData?.native_language || 'en';
 
     const overlayBilingual = useMemo(
-        () => getBilingual('video_continue', overlayLang),
-        [overlayLang]
+        () => getBilingual(
+            appPhase === 'lessonSuccess-decisionTime' ? 'video_continue_create' : 'video_continue',
+            overlayLang
+        ),
+        [appPhase, overlayLang]
     );
     // Store player reference for external pause/play
     // Conforms to VideoPlayerHandle — same contract as InteractiveVideoPlayer
@@ -177,6 +180,21 @@ export default function SimpleVideoPlayer() {
         const cv = appStore.getState().currentVideo;
         if (cv?.responseType === 'viewAndContinue') {
             appStore.getState().transitionTo('simpleVideo-decisionTime-viewAndContinue', {}, { fromStepLoad: true });
+        } else if (cv?.responseType === 'success') {
+            // Success video finished: reveal the concat button and the
+            // "create and share your video" overlay, same pattern as earlier steps.
+            console.log('[SimpleVideo] Success video ended → revealing concat button');
+            appStore.getState().transitionTo('lessonSuccess-decisionTime', {}, { fromStepLoad: true });
+        }
+    }, []);
+
+    const handleError = useCallback(() => {
+        // A broken/undecodable success clip must not strand the learner: reveal
+        // the concat button even though `ended` never fired.
+        const cv = appStore.getState().currentVideo;
+        if (cv?.responseType === 'success') {
+            console.warn('[SimpleVideo] Success video failed to load → revealing concat button');
+            appStore.getState().transitionTo('lessonSuccess-decisionTime', {}, { fromStepLoad: true });
         }
     }, []);
 
@@ -352,12 +370,13 @@ export default function SimpleVideoPlayer() {
                     onPlay={handlePlay}
                     onPause={handlePause}
                     onEnded={handleEnded}
+                    onError={handleError}
                     onTimeUpdate={handleTimeUpdate}
                     onSeeked={handleSeeked}
                 />
                 <canvas ref={posterCanvasRef} style={{ display: 'none' }} />
                 <div className="ivp-blur-overlay" />
-                {appPhase === 'simpleVideo-decisionTime-viewAndContinue' && (
+                {(appPhase === 'simpleVideo-decisionTime-viewAndContinue' || appPhase === 'lessonSuccess-decisionTime') && (
                     <>
                         <div className="ivp-click-block" onClick={(e) => e.stopPropagation()} />
                         <div className="ivp-overlay water-surface" style={{ display: 'flex' }}>

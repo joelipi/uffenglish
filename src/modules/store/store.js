@@ -40,6 +40,11 @@ const phaseMapping = {
     review:                                      { topState: (s) => s.currentVideo?.type === 'interactive' || s.isTextMode ? 'topBarWithStats' : 'topBarOnly', mediaState: 'whisperReview', bottomState: 'reviewButtons', showMission: false },
     feedback:                                    { topState: 'topBarOnly',       mediaState: 'chat',                bottomState: 'continueButton',        showMission: false },
     lessonSuccess:                               { topState: 'topBarOnly',       mediaState: 'simpleVideo',         bottomState: 'lessonSuccess',         showMission: false },
+    // Success video finished: keep the success screen mounted (so the guest
+    // modal effect still runs) but switch to the decision overlay so the
+    // tap-to-play icon is suppressed while the water overlay + concat button
+    // are revealed — mirrors 'simpleVideo-decisionTime-viewAndContinue'.
+    'lessonSuccess-decisionTime':                { topState: 'topBarOnly',       mediaState: 'decisionOverlay',     bottomState: 'lessonSuccess',         showMission: false },
     successVideoCreation:                        { topState: 'hidden',           mediaState: 'videoProcessor',      bottomState: 'hidden',               showMission: false },
     'successVideo/videoShare':                   { topState: 'hidden',           mediaState: 'videoProcessor',      bottomState: 'shareButtons',          showMission: false },
     error:                                       { topState: 'hidden',           mediaState: 'errorModal',          bottomState: 'hidden',               showMission: false },
@@ -114,6 +119,10 @@ export const appStore = createStore(
             stepCount: 0,
             stepsAnswered: 0,
             currentStepIndexLessonId: '',
+            // True when the current step was loaded directly by loadLessonContent
+            // (page load / reload / signup redirect) rather than advanced to via
+            // loadNextStep. Drives the success screen's immediate reveal.
+            stepLoadedFromRestore: false,
             wordsRevealed: 0,
             videoPlays: 0,
             videoClicks: 0,
@@ -202,6 +211,7 @@ export const appStore = createStore(
             setCameraOff: (val) => set({ isCameraOff: val }),
             setGuestModalOpen: (val) => set({ isGuestModalOpen: val }),
             setGuestModalShownThisSession: (val) => set({ guestModalShownThisSession: val }),
+            setStepLoadedFromRestore: (val) => set({ stepLoadedFromRestore: val }),
             setGuestNativeLanguage: (val) => set({ guestNativeLanguage: val }),
             setGuestDetectedLang: (val) => set({ guestDetectedLang: val }),
             setGuestModalStep: (val) => set({ guestModalStep: val }),

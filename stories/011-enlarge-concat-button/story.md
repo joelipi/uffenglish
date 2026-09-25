@@ -1,0 +1,315 @@
+# Big, glowing concatenate button on the lesson success screen
+
+## Context
+
+At the end of a lesson the learner lands on `SuccessScreen` (`src/components/widgets/SuccessScreen.jsx:19`), which renders the video-concatenation trigger as a small outline button:
+
+```jsx
+// src/components/widgets/SuccessButtons.jsx:117-128
+<button id="processBtn" className="btn btn-outline-primary w-100" onClick={handleProcess}>
+  <i className="bi bi-film text-white" />
+</button>
+```
+
+Clicking it runs `handleProcess` → `processVideo(...)` + `exportSegmentsToR2(...)` (`SuccessButtons.jsx:60-109`). It is the only action on the screen, yet it is visually the least prominent control in the app. Every earlier decision point trains the learner to press a large, glowing circular `.call-btn` with a bilingual label above it that appears over the video after the clip finishes: the view-and-continue flow transitions on video end (`SimpleVideoPlayer.web.jsx:167-181` → `simpleVideo-decisionTime-viewAndContinue`), the water overlay renders at `SimpleVideoPlayer.web.jsx:360-373`, and the buttons + labels glow/rise via `.ivp-choice-col .call-btn` and `.ivp-choice-label` in `src/assets/css/app.css:885-915,936-972,1027-1034`. `ViewAndContinueButtons.jsx:56-67` is the canonical markup: an `.ivp-choice-col` containing an `.ivp-choice-label` ("CONTINUE") and a `.call-btn`.
+
+The success step already carries a short "you're almost done, press the button below" clip: every `responseType: "success"` step in `src/config/*.json` has `simpleVideoUrl: "success"` (e.g. `src/config/model.json:93-97`, whose subtitles read "Oprime el botón para calcular tu calificación de fluidez"). Today that video plays and simply stops — no overlay, no glow, no state change (`handleEnded` only reacts to `viewAndContinue`). This story makes the final step behave like the earlier ones without ever hiding the button: the concat button is always present as a large `.call-btn` labelled **CONTINUE**, and when the success video ends the water overlay appears with copy that invites the learner to create and share their video, and the button gains the glow.
+
+## Out of Scope
+
+- Adding or re-recording the "almost done" video. The existing `success` slug is used as-is.
+- Changing the concat/processing behavior, `processVideo`, `exportSegmentsToR2`, the `Generating...` spinner state, or the behavior of the post-generation `Share`/`Repeat`/`Continue` buttons (this story only adds a recap-finished overlay that points at them).
+- The guest `SaveClipsModal` flow (`SaveClipsModal.web.jsx`) and its timing.
+- The existing `video_continue` overlay string (the success step uses its own new key).
+- `SimpleVideoPlayer.native.jsx` (dead-code reference implementation; it has no `handleEnded`).
+- Any change to `src/config/*.json`.
+
+## Implementation approach
+
+All Task ACs are covered by the new Playwright spec `tests/success-concat-button.spec.js` (the repo's UI test runner per `agents.md` §4) plus the existing vitest string-coverage suite (`src/data/strings.test.js`), which runs automatically.
+
+### 1. New phase `lessonSuccess-decisionTime` (`src/modules/store/store.js`)
+
+Add one entry to `phaseMapping` (immediately after `lessonSuccess`, `store.js:42`), mirroring the view-and-continue decision phase (`store.js:36`):
+
+```js
+'lessonSuccess-decisionTime': { topState: 'topBarOnly', mediaState: 'decisionOverlay', bottomState: 'lessonSuccess', showMission: false },
+```
+
+- `bottomState: 'lessonSuccess'` keeps `SuccessScreen` mounted, so the guest-modal `useEffect` in `VideoButton` (`SuccessButtons.jsx:44-56`) still fires when the success screen appears.
+- `mediaState: 'decisionOverlay'` suppresses `SimpleVideoPlayer`'s tap-to-play icon (`SimpleVideoPlayer.web.jsx:404`) and the webcam, exactly like the earlier decision phase. The video stays mounted because `SimpleVideoPlayer` gates only on `currentVideo.type === 'simple'` + `mediaVisible` (`SimpleVideoPlayer.web.jsx:338`); neither this phase nor its mapping changes those.
+- No `answerFlowTransitions` entry is needed: `handleEnded` calls `transitionTo(..., { fromStepLoad: true })`, which skips answer-flow validation (`store.js:345-351`).
+
+### 2. Reveal on video end + descriptive overlay copy (`src/components/SimpleVideoPlayer.web.jsx`, `src/data/strings.js`)
+
+Extend `handleEnded` (`:167-181`) with a success branch plus a success log (`agents.md` §2):
+
+```js
+} else if (cv?.responseType === 'success') {
+    console.log('[SimpleVideo] Success video ended → revealing concat button');
+    appStore.getState().transitionTo('lessonSuccess-decisionTime', {}, { fromStepLoad: true });
+}
+```
+
+Also add an `onError` fallback so a broken/undecodable clip (where `ended` never fires) cannot strand the learner on the success screen:
+
+```js
+const handleError = useCallback(() => {
+    const cv = appStore.getState().currentVideo;
+    if (cv?.responseType === 'success') {
+        console.warn('[SimpleVideo] Success video failed to load → revealing concat button');
+        appStore.getState().transitionTo('lessonSuccess-decisionTime', {}, { fromStepLoad: true });
+    }
+}, []);
+// ...
+<video ... onEnded={handleEnded} onError={handleError} ... />
+```
+
+Also handle the learner landing on the success step directly — a page load, reload, or the signup/login redirect — where there is no user gesture, so the clip cannot autoplay and `ended` never fires. Detect the load source rather than guessing with a timer: `loadLessonContent` (the direct/restored path, `lesson-loader.js:98`) sets `stepLoadedFromRestore = true`, while `loadNextStep` (the in-app advance path, `lesson-progression.js:61`) sets it `false`. `handleSuccessStep` then chooses the phase:
+
+```js
+const successPhase = state.stepLoadedFromRestore ? 'lessonSuccess-decisionTime' : 'lessonSuccess';
+state.transitionTo(successPhase, { lessonId: step.lessonId, fluencyData: fluencyDataObj }, { fromStepLoad: true });
+```
+
+A direct/restored load reveals the overlay + glow immediately (there is nothing to wait for — the clip cannot autoplay); an in-app advance stays on `lessonSuccess` and waits for the clip to play and end.
+
+Generalise the overlay condition (`:360`) to render for both decision phases, and select the copy by phase. The existing `video_continue` ("Press a button below.") stays for the earlier steps; the new `video_continue_create` key explains the outcome for the success step:
+
+```jsx
+const overlayBilingual = useMemo(
+    () => getBilingual(appPhase === 'lessonSuccess-decisionTime' ? 'video_continue_create' : 'video_continue', overlayLang),
+    [appPhase, overlayLang]
+);
+// ...
+{(appPhase === 'simpleVideo-decisionTime-viewAndContinue' || appPhase === 'lessonSuccess-decisionTime') && (
+    <> {/* unchanged click-block + .ivp-overlay.water-surface markup */} </>
+)}
+```
+
+Add to `src/data/strings.js` next to `video_continue` (`:1397-1402`). Proposed copy (review/adjust freely — the exact wording is not load-bearing for the feature):
+
+```js
+'video_continue_create': {
+    en: "Continue to create and share your video",
+    es: "Continúa para crear y compartir tu video",
+    pt: "Continue para criar e compartilhar seu vídeo",
+    fr: "Continuez pour créer et partager votre vidéo",
+    hi: "अपना वीडियो बनाने और साझा करने के लिए जारी रखें",
+    bn: "আপনার ভিডিও তৈরি করতে এবং শেয়ার করতে চালিয়ে যান"
+},
+```
+
+The `hi`/`bn` values are mandatory: `src/data/strings.test.js:16-31` iterates every key and asserts a Devanagari / Bengali match.
+
+### 3. Big glowing button with a CONTINUE label (`src/components/widgets/SuccessButtons.jsx`)
+
+In `VideoButton`, subscribe to `appPhase`, `currentVideo`, and `userData`; import `getBilingual` (`src/data/strings.js`); and replace the `button.state === 'idle'` block (`:117-128`) with the same `.ivp-choice-col` + `.ivp-choice-label` + `.call-btn` structure the earlier steps use (`ViewAndContinueButtons.jsx:56-67`), so both the label and the glow are inherited from existing CSS:
+
+```jsx
+import { getBilingual } from '../../data/strings.js';
+// inside VideoButton:
+const appPhase = useStore(appStore, state => state.appPhase);
+const currentVideo = useStore(appStore, state => state.currentVideo);
+const userData = useStore(appStore, state => state.userData);
+// ...
+if (button.state === 'idle') {
+  // Always render the button; only the glow/overlay reveal on `ended`.
+  const successVideoPending = currentVideo?.responseType === 'success';
+  const revealed = appPhase === 'lessonSuccess-decisionTime' || !successVideoPending;
+  const continueLabel = getBilingual('continue', userData?.native_language || 'en');
+  return (
+    <div className={`ivp-choice-col${revealed ? '' : ' process-btn-pending'}`} style={{ flex: '0 0 auto', minWidth: 0 }}>
+      <div className="ivp-choice-label">
+        <div className="ivp-choice-label-text">
+          {continueLabel.localized ? (
+            <React.Fragment>{continueLabel.english}<br /><span lang={continueLabel.lang}><i>{continueLabel.localized}</i></span></React.Fragment>
+          ) : continueLabel.english}
+        </div>
+      </div>
+      <button type="button" id="processBtn" className="btn call-btn" onClick={handleProcess} aria-label="Continue">
+        <i className="bi bi-play-fill" />
+      </button>
+    </div>
+  );
+}
+```
+
+- The icon is the same `bi-play-fill` used by the earlier continue button (`ViewAndContinueButtons.jsx:65`), so the final action reads identically to the steps the learner was trained on.
+
+- The button is **always rendered** — gating its existence on `ended` stranded learners when autoplay was blocked or the clip stalled. `revealed` only controls whether the `.ivp-choice-col` wrapper (and therefore the glow) is applied; the water overlay is driven by the phase.
+- The label reuses the existing `continue` string, exactly as `ViewAndContinueButtons` does. Because this story makes the label visible (previously the button was icon-only), add the missing `pt` ("CONTINUAR") and `fr` ("CONTINUER") entries so Portuguese/French learners do not see an English label.
+- `!successVideoPending` makes a no-video success step (e.g. a `unitcomplete` step with no `simpleVideoUrl`, where `handleUnitComplete` still enters `lessonSuccess`) glow immediately.
+- Drop `text-white` from the icon: `.call-btn` forces `color: #1a1a1a !important` (`app.css:610-614`); every other call button uses a bare `<i>` for the same reason.
+- The guest-modal `useEffect` is unaffected: it runs on `button.visible`, not on whether the idle button renders.
+
+### 4. One small CSS override
+
+The button always carries the `.ivp-choice-col` wrapper class so it keeps that column's `align-items: center` (the button stays centred under its label) and inherits the `.ivp-choice-col .call-btn` float (`app.css:936-940`) and `.ivp-choice-col .call-btn::before` glow (`app.css:962-972` → `@keyframes btnGlowPulse`, `app.css:1027-1034`). When the clip has not finished yet, a `process-btn-pending` class suppresses only the glow:
+
+```css
+#state-lesson-success .process-btn-pending .call-btn,
+#state-lesson-success .process-btn-pending .call-btn::before {
+    animation: none !important;
+}
+#state-lesson-success .process-btn-pending .call-btn::before {
+    box-shadow: none !important;
+}
+```
+
+Do not drop the `.ivp-choice-col` class to hide the glow: that also removes the centering and left-aligns the button under a wider label.
+
+### 5. Edge cases
+
+- Success step with no `simpleVideoUrl` (`currentVideo` null) → button + CONTINUE label present and glowing immediately (predicate above).
+- `viewAndContinue` video end → unchanged (`simpleVideo-decisionTime-viewAndContinue`, overlay still `video_continue`).
+- Guest: the modal still opens at success-screen appearance; after dismissal the video/overlay/button behave the same.
+- Returning from the signup/login redirect (direct/restored load, no user gesture) → the overlay + glow reveal immediately; the clip cannot autoplay there anyway. An in-app advance still waits for the clip to play and end.
+- Video file missing or undecodable → the `onError` handler transitions to `lessonSuccess-decisionTime`, revealing the glow (and the overlay where the wrapper is visible) instead of leaving the button dim. (The button lives in the bottom overlay, so it is present regardless.)
+- Non-en learner → the label shows the English word plus the localized line, and the overlay shows the English copy plus the localized line, matching the bilingual treatment of every other overlay.
+
+### 6. Post-generation action band (`SuccessScreen.jsx`, `SuccessButtons.jsx`, `app.css`)
+
+A full-screen overlay timed to the recap finishing was tried and **rejected**: mobile browsers give no reliable end signal (the element resets `currentTime` to 0 and clears `ended`), and an overlay that fires at the wrong moment covers the replay. So the recap video (`SuccessVideo.jsx`) stays a plain, replayable video with **no overlay**, and the attention is moved to the action buttons instead.
+
+Once the recap is generated (`successVideoButton.state === 'ready'`), `SuccessScreen` adds `success-actions water-surface` to `#state-lesson-success`, giving the Replay / Share / Continue row the same water-surface background as the overlays — but only across the bottom ~27% of the viewport:
+
+- `SuccessButtons.jsx`: each action becomes an `.ivp-choice-col` with an `.ivp-choice-label` (bilingual, from `replay` / `share` / `continue`) above a circular `.call-btn` with its icon, matching the earlier steps.
+- `app.css`: `#state-lesson-success.success-actions` is `min-height: 27vh`, full-bleed (`margin: 0 -16px`); `#state-lesson-success .call-btn-primary .call-btn` is 76 px so **Share** is visibly the primary action (Replay/Continue stay 60 px).
+- The band appears only in the ready state; the initial process (CONTINUE) button keeps its existing glow/overlay treatment.
+- **Friend-challenge lessons** (identified by `resolveRecapOverlay(lesson) === 'shareCta'`, i.e. `recapOverlay: "shareCta"` on `w`/`wf`/`wa`/`wfa` in `model.json` and `a`/`b` in `friend.json`) show **only the Share button**, with the new `share_cta_success` call to action above it ("Share this video with friends, family, and colleagues so they can practice with you. They have 48 hours to respond."). Other lessons keep the full Replay / Share / Continue row.
+- No new dependencies; the `share`, `replay`, and `share_cta_success` keys are the only new UI strings.
+
+## Tasks
+
+### Task 1 - Phase + transition plumbing
+
+- success `simple` `currentVideo` present in phase `lessonSuccess` + `transitionTo('lessonSuccess-decisionTime', {}, { fromStepLoad: true })`
+  - → `appPhase === 'lessonSuccess-decisionTime'`
+  - → `bottomState === 'lessonSuccess'` (SuccessScreen still mounted)
+  - → `mediaState === 'decisionOverlay'`
+  - → `showMission === false`
+  - → no `console.warn` about an unexpected transition
+
+### Task 2 - Success video end reveals the overlay with descriptive copy
+
+- phase `lessonSuccess`, `currentVideo.responseType === 'success'`, video wrapper visible + native `ended` event dispatched on `.ivp-video`
+  - → `appPhase === 'lessonSuccess-decisionTime'`
+- phase `lessonSuccess`, `currentVideo.responseType === 'success'`, native `error` event dispatched on `.ivp-video` (clip never ends)
+  - → `appPhase === 'lessonSuccess-decisionTime'`
+  - → `#processBtn` is visible
+- success step loaded via the restore path (`stepLoadedFromRestore === true`, e.g. returning from the signup redirect) + `handleSuccessStep`
+  - → `appPhase === 'lessonSuccess-decisionTime'` immediately (does not wait on the clip)
+  - → `.ivp-overlay.water-surface` is visible
+  - → `#processBtn` glows
+- success step advanced to in-app (`stepLoadedFromRestore === false`) + `handleSuccessStep`
+  - → `appPhase === 'lessonSuccess'` (waits for the clip to play and end)
+- phase `lessonSuccess` before `ended`
+  - → no `.ivp-overlay.water-surface` in the DOM
+- phase `lessonSuccess-decisionTime`
+  - → `.ivp-overlay.water-surface` is visible over the video
+  - → `.ivp-overlay-text` reads "Continue to create and share your video" (en)
+  - → `.ivp-overlay-text` does not contain "Press a button below."
+- phase `viewAndContinueVideo`, `currentVideo.responseType === 'viewAndContinue'` + `ended`
+  - → `appPhase === 'simpleVideo-decisionTime-viewAndContinue'`
+  - → `.ivp-overlay-text` still reads "Press a button below."
+
+### Task 3 - Big, glowing button with a CONTINUE label
+
+- phase `lessonSuccess`, success video still pending
+  - → `#processBtn` is visible (always present — never hidden)
+  - → its wrapper has classes `ivp-choice-col` and `process-btn-pending` (centred, not glowing yet)
+  - → the button centre is within 2 px of the viewport centre
+  - → `getComputedStyle(el, '::before').animationName` is `none`
+  - → no `.ivp-overlay.water-surface`
+- phase `lessonSuccess-decisionTime`
+  - → `#processBtn` is visible
+  - → has class `call-btn`
+  - → its wrapper has class `ivp-choice-col` and does **not** have `process-btn-pending` (glow applied)
+  - → bounding box is ≈60×60 px (between 56 and 64)
+  - → `getComputedStyle(el, '::before').animationName` contains `btnGlowPulse`
+  - → `getComputedStyle(el, '::before').boxShadow` is not `none`
+  - → the button's `.ivp-choice-col` ancestor contains `.ivp-choice-label-text` reading "CONTINUE" (en)
+- phase `lessonSuccess` with `currentVideo === null` (no success clip)
+  - → `#processBtn` and its CONTINUE label are visible and glowing immediately
+  - → `getComputedStyle(el, '::before').animationName` contains `btnGlowPulse`
+- `#processBtn` clicked after reveal, with `src/modules/video/video-processor.js` stubbed
+  - → `successVideoButton.state === 'processing'`
+  - → `successCanvasVisible === true`
+
+### Task 4 - String coverage
+
+- `npm test -- --run` (vitest)
+  - → `src/data/strings.test.js` passes: the new `video_continue_create` key has non-empty `hi` matching Devanagari and `bn` matching Bengali
+  - → no existing key regresses
+
+### Task 5 - No unexpected console output
+
+- full reveal flow (`lessonSuccess` → `ended` → `lessonSuccess-decisionTime`)
+  - → no `pageerror`
+  - → no console error outside the documented noise list (favicon, source map, Whisper, vite, 401/Unauthorized)
+
+### Task 6 - Post-generation action band
+
+- generated recap mounted (`successVideoBlob` set), video fires `ended`
+  - → no `.ivp-overlay.water-surface` covers `#resultVideo` (it stays replayable)
+- `successVideoButton.state === 'ready'` on a non-friend lesson
+  - → `#state-lesson-success` has classes `success-actions` and `water-surface` (the bottom band)
+  - → `#repeatButtonSuccess`, `#createVideoButton`, `#continueButtonSuccess` each have class `call-btn`
+  - → there are exactly 3 `.ivp-choice-label-text` labels (Replay / Share / Continue)
+  - → only `#createVideoButton` glows (Replay/Continue `::before` animation is `none`)
+  - → the `#createVideoButton` box is more than 5 px wider than `#repeatButtonSuccess` and `#continueButtonSuccess` (Share is primary)
+- `successVideoButton.state === 'ready'` on a friend-challenge lesson (`recapOverlay: 'shareCta'`)
+  - → `#createVideoButton` is rendered
+  - → `#repeatButtonSuccess` and `#continueButtonSuccess` are not rendered (0 elements)
+  - → exactly 1 `.ivp-choice-label-text` (Share)
+  - → `.success-share-cta` is visible and contains "They have 48 hours to respond"
+- before generation (`state !== 'ready'`)
+  - → `#state-lesson-success` does not have `success-actions`
+
+## Technical Context
+
+- No new dependencies. The spec uses the existing `@playwright/test` 1.60.0 (`package.json:23`); `playwright.config.js` runs `npx vite --port 5173` with `baseURL: http://localhost:5173` and `testDir: tests/`, so the spec lives at `tests/success-concat-button.spec.js` and uses the relative lesson path `/course/model/lesson/g` (the `agents.md` §4 pattern; its port 3000 is the `npm run dev` port, while Playwright serves 5173).
+- `window.appStore` is the Playwright bridge (`src/hooks/use-app-bootstrap-webonly.js:26-31`); tests drive `setSuccessScreen`, `setCurrentVideo`, `transitionTo`, and read `appPhase` / `successVideoButton` / `successCanvasVisible` through it.
+- React 19.2.0 + Zustand 5.0.13: `useStore(appStore, selector)` subscriptions are the established pattern. The new phase is pure data added to `phaseMapping`, covered by the existing `store.test.js` `transitionTo` suite.
+- `src/data/strings.test.js:16-31` auto-iterates `Object.keys(strings)` and requires `hi` (Devanagari, `/[\u0900-\u097F]/`) and `bn` (Bengali, `/[\u0980-\u09FF]/`) for **every** key, so the new overlay string must ship those two scripts or `npm test` fails.
+- `agents.md` §1 forbids DOM APIs in app code; the new logic uses React state and CSS classes only. The spec's `page.evaluate` / `dispatchEvent` / `page.route` calls are test-harness code, not app code.
+- `agents.md` §5: Playwright's bundled Chromium cannot decode H.264/AAC, so the spec must not depend on the `success.mp4` actually decoding. It uses a tiny valid VP9/WebM data URI (which bundled Chromium decodes) and blocks autoplay, so the spec is offline-capable and codec-independent. The success step's `onError` fallback is exercised by dispatching a native `error` event.
+- `playwright.config.js` `testIgnore` already excludes the stale `tests/success-screen.spec.js`; the new spec is not ignored and runs under the default `chromium` project.
+
+## Notes
+
+**Assumptions (state explicitly, revise if wrong):**
+
+1. The "great, you're almost done, just press the button below" clip is the existing `simpleVideoUrl: "success"` step (`src/config/model.json:93-97`; also referenced by `t.json` and `friend.json`). No new video is added.
+2. The button is **always present** (never hidden): this is the fix for a reported regression where gating its existence on the clip's `ended` event left the success screen with no button at all when autoplay was blocked. It is the standard 60 px `.call-btn` from the start; what changes on video end is the glow (and the water overlay). A hidden-until-`ended` variant was tried and rejected.
+3. The button label is the existing `continue` string ("CONTINUE"), placed above the button in the same `.ivp-choice-label` structure as `ViewAndContinueButtons`.
+4. The overlay copy is a **new** key `video_continue_create`, confirmed as "Continue to create and share your video" (plus proposed es/pt/fr/hi/bn). The exact wording does not affect any AC except the string assertion in Task 2 — if the `en` value changes, update that one assertion together.
+
+**Test harness details (Playwright):**
+
+- Prevent the success clip from autoplaying/ending on its own so the pre-reveal state is deterministic: `page.addInitScript` overrides `HTMLMediaElement.prototype.play` to reject only when `this.src` starts with `data:video/webm`, then the test dispatches `new Event('ended')` on `.ivp-video`. React 19 attaches media listeners directly to the element, so the native dispatch invokes `onEnded`.
+- Use a tiny valid VP9/WebM data URI (616 bytes, generated with ffmpeg) as `currentVideo.url` (set via `setCurrentVideo`). Bundled Chromium decodes WebM natively (unlike H.264), so the clip loads without firing `error`; block autoplay via the init script and dispatch `ended` explicitly. This also removes the dependency on the 3 s FOUC fallback.
+- Stub the processor in the click test with `page.route('**/video-processor.js*', ...)` returning `export async function processVideo(){ return { blob: null }; }` plus no-op `shareVideo`/`exportSegmentsToR2`, so no real canvas/MediaRecorder work runs and no `alert` fires.
+- Set `isLoggedIn: true` and `userData: { native_language: 'en', auth_method: 'supabase', $id: 'test-user' }` before `setSuccessScreen` so the guest `SaveClipsModal` does not open (it would make the page inert and block the button click) and the overlay/label copy is pinned to English.
+
+**Known implementation risks (fallbacks if the primary harness proves flaky):**
+
+1. If dispatching a native `ended` event does not invoke React's `onEnded` in the runner, trigger the handler through the element's React props (test-only): read the `__reactProps$...` key off the `<video>` node and call its `onEnded()`. The app code and the phase transition are unchanged either way.
+2. If `page.route('**/video-processor.js*')` fails to intercept the Vite-transformed module URL, assert only the synchronous state change (`successVideoButton.state === 'processing'` immediately after click) and add `[Success] Video generation failed` to the expected-noise list, since real canvas/MediaRecorder work cannot succeed headlessly.
+3. If a runner cannot decode the VP9/WebM fixture, the video wrapper stays hidden and the overlay assertion times out. Fall back to waiting out the FOUC timeout (`.ivp-main-wrapper` becomes visible after ~3 s) and assert the button reveal independently, since it lives in the bottom overlay.
+
+**Manual verification:**
+
+1. `npm run dev`, open `/course/model/lesson/g`, reach the success step (or drive `window.appStore` as the spec does).
+2. While the `success` clip plays: the big CONTINUE button is already present (not yet glowing) and there is no overlay — so a blocked clip can never leave the screen buttonless.
+3. When it ends: the blue water overlay appears reading "Continue to create and share your video", and the button gains the white glow (large circle, "CONTINUE" label above it), matching earlier steps.
+4. Press it: the `Generating...` state and the recap generation proceed exactly as before; the Share/Repeat/Continue buttons are unchanged.
+
+**Review checklist:**
+
+- `#processBtn` keeps its id (the guest-modal comments and any external tooling reference it) and its `onClick={handleProcess}`.
+- The view-and-continue overlay text and buttons are unchanged.
+- The only new CSS is the small `process-btn-pending` glow override; layout, label, and glow otherwise reuse the existing `.ivp-choice-col` / `.call-btn` rules.
+- Existing comments and `console.log` statements are preserved; the new success log is added (`agents.md` §2).
+- No `document`/`window` API added to app code (`agents.md` §1).

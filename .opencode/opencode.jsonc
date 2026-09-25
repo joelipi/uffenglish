@@ -5,6 +5,8 @@
   ],
   "agent": {
     "plan": { "disable": true },
-    "build": { "disable": true }
+    "build": { "disable": true },
+    "acceptance-reviewer": { "mode": "primary" },
+    "code-reviewer": { "mode": "primary" }
   }
 }

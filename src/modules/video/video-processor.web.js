@@ -1347,15 +1347,11 @@ export async function exportSegmentsToR2(lessonId) {
 
         // 3) Upload to R2. Key includes the course id so each course's clips
         // are namespaced and won't collide across courses for the same user.
-        // Also upload sibling jpg thumb derived from raw webcam blob (LQIP mandatory).
+        // Also upload the sibling jpg thumb generated from the raw webcam blob.
         const courseId = appStore.getState().courseId;
         const key = `videos/${shareCode}-${courseId}-${lessonId}-response-${String(i + 1).padStart(2, '0')}.mp4`;
         const thumbKey = getUgcThumbKey(key);
-        let thumbBlob = step.thumbBlob || null;
-        // thumb may be stored as ArrayBuffer sibling if restored from IDB; handle fallback
-        if (!thumbBlob && step.thumbArrayBuffer) {
-            try { thumbBlob = new Blob([step.thumbArrayBuffer], { type: 'image/jpeg' }); } catch {}
-        }
+        const thumbBlob = step.thumbBlob || null;
         try {
             const jwt = (await getAccessToken()) || '';
             const results = await Promise.allSettled([

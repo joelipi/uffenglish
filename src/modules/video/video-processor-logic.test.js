@@ -278,6 +278,35 @@ describe('isDroppedStep / markFirstRenderable', () => {
     });
 });
 
+describe('VideoRenderPlanner.generatePlan — UGC poster thumb carry-through', () => {
+    it('carries rec.thumbBlob into the webcam step', () => {
+        const thumb = { size: 42, type: 'image/jpeg' };
+        const recordings = [{
+            originalLessonId: 'w', originalStepIndex: 1, blob: { size: 1 },
+            userResponse: 'a', thumbBlob: thumb,
+        }];
+        const planner = new VideoRenderPlanner(
+            recordings, makeConfig(), { total: 80 }, 'en', 'ab12'
+        );
+        const webcam = planner.generatePlan().find(s => s.type === 'webcam');
+
+        expect(webcam.thumbBlob).toBe(thumb);
+        // Storage never surfaces the raw ArrayBuffer to the planner; restored
+        // records carry a Blob (storage.web.js).
+        expect(webcam).not.toHaveProperty('thumbArrayBuffer');
+    });
+
+    it('defaults thumbBlob to null when there is no thumb', () => {
+        const planner = new VideoRenderPlanner(
+            makeRecordings(1), makeConfig(), { total: 80 }, 'en', 'ab12'
+        );
+        const webcam = planner.generatePlan().find(s => s.type === 'webcam');
+
+        expect(webcam.thumbBlob).toBeNull();
+        expect(webcam).not.toHaveProperty('thumbArrayBuffer');
+    });
+});
+
 describe('resolveSegmentBounds', () => {
     it('prefers an explicit trim end', () => {
         expect(resolveSegmentBounds({ trimEnd: 4, rawDuration: 10, start: 1 }))

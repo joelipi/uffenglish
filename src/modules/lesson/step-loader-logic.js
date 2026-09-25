@@ -121,14 +121,23 @@ export function handleSuccessStep(step, fluencyData) {
         console.log(`[Gamification] ✅ Fluency improving! Last-10 avg: ${state.recentFluencyAvgs?.reduce((a, b) => a + b, 0) / (state.recentFluencyAvgs?.length || 1)}% → Current: ${lessonAverage}%`);
     }
 
-    if (step.simpleVideoUrl) {
-        loadVideoForStep(step, null, state.userData?.native_language);
-    } else {
+    // The success clip is already mounted by handleStepCore, which runs before
+    // this handler (loadStepOrchestrate: handleStepCore → onSuccess). Reloading
+    // it here sets currentVideo(null) → the video a second time and can remount
+    // the <video>, which drops the iOS autoplay attempt (and the transient
+    // activation it depends on). Only hide the media area when there is no clip.
+    if (!step.simpleVideoUrl) {
         state.setMediaVisible(false);
     }
     state.setSuccessScreen(step.lessonId, fluencyDataObj);
     state.setProgressPercent("100%");
-    state.transitionTo('lessonSuccess', { lessonId: step.lessonId, fluencyData: fluencyDataObj }, { fromStepLoad: true });
+    // Landing on the success step directly (page load / reload / the signup
+    // redirect) has no user gesture, so the success clip cannot autoplay and
+    // `ended` never fires. Reveal the overlay + button immediately in that case.
+    // When the step was advanced to in-app, the clip plays and handleEnded
+    // reveals on completion.
+    const successPhase = state.stepLoadedFromRestore ? 'lessonSuccess-decisionTime' : 'lessonSuccess';
+    state.transitionTo(successPhase, { lessonId: step.lessonId, fluencyData: fluencyDataObj }, { fromStepLoad: true });
 
     const currentLesson = state.configData.lessons[state.currentLessonIndex];
     const nextLessonId = currentLesson.nextLessonId;
