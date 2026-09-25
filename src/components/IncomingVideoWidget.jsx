@@ -310,10 +310,18 @@ export default function IncomingVideoWidget() {
                             </div>
                             )}
                         </div>
+                        {/*
+                        Caller name/title removed (story 013): the hardcoded
+                        "Joe Walsh / English Coach, UFF" is wrong for friend/UGC
+                        intros. Surfacing the friend's own name (from their
+                        profile, keyed by share code) is deferred; re-enable this
+                        block then. Original markup kept for reference:
+
                         <div className="intro-notification-bottom">
                             <div className="intro-caller-name">{config?.name || 'Joe Walsh'}</div>
                             <div className="intro-caller-title">{config?.role || 'English Coach, UFF'}</div>
                         </div>
+                        */}
 
                     </div>
                 </div>

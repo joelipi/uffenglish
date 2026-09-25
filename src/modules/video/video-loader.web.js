@@ -62,8 +62,10 @@ export function loadVideoForStep(step, _state, lang) {
             config: {
                 title: Strings.get('incoming_video', lang) || 'INCOMING VIDEO',
                 subtitle: Strings.getBilingual('video_incoming', lang),
-                name: 'Joe Walsh',
-                role: 'English Coach, UFF',
+                // Caller name/title removed from the intro overlay (story 013):
+                // wrong for friend/UGC intros. Surfacing the friend's name from
+                // their profile (keyed by share code) is deferred — add `name`
+                // here and re-enable the overlay block at that point.
                 alertText: Strings.getBilingual('press_webcam', lang),
                 // Slug-keyed R2 poster (assets/videos/<slug>.jpg); the widget
                 // resolves it via getPosterUrl/getPosterLqip.
