@@ -69,7 +69,9 @@ export async function loadConfigs(dir, { onParseError } = {}) {
  * Every first-step intro slug across all course configs, deduped in
  * first-seen order. A lesson contributes iff its first step carries a truthy
  * `introBackgroundVideoUrl`; a lesson with no `steps` or an intro only on a
- * later step contributes nothing.
+ * later step contributes nothing. Slugs containing the `{friendCode}` template
+ * placeholder are skipped: they are resolved per-user at runtime
+ * (config-normalizer.js) and are not literal R2 filenames.
  *
  * @param {Array<object>} configs parsed course configs
  * @returns {Array<{slug: string}>}
@@ -80,7 +82,12 @@ export function introTargets(configs) {
     for (const config of configs || []) {
         for (const lesson of config?.lessons || []) {
             const slug = lesson?.steps?.[0]?.introBackgroundVideoUrl;
-            if (!slug || seen.has(slug)) continue;
+            // Runtime-resolved `{friendCode}` templates are not literal R2
+            // filenames (config-normalizer substitutes the share code at
+            // runtime), so they can never be generated or verified as teacher
+            // posters. Same rule as findNewSimpleVideoTargets in
+            // scripts/lib/caption-utils.js.
+            if (!slug || slug.includes('{friendCode}') || seen.has(slug)) continue;
             seen.add(slug);
             targets.push({ slug });
         }

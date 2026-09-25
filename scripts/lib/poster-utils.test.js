@@ -96,6 +96,21 @@ describe('introTargets', () => {
         ];
         expect(introTargets(configs)).toEqual([]);
     });
+
+    it('skips runtime-resolved {friendCode} template slugs', () => {
+        // A UGC intro (e.g. friend.json lesson b) resolves {friendCode} to the
+        // share code at runtime, so it is not a literal R2 filename and must
+        // never become a generation/verification target.
+        const configs = [
+            {
+                lessons: [
+                    { lessonId: 'a', steps: [{ introBackgroundVideoUrl: '{friendCode}friend-a-response-01' }] },
+                    { lessonId: 'b', steps: [{ introBackgroundVideoUrl: 'literal-slug' }] },
+                ],
+            },
+        ];
+        expect(introTargets(configs)).toEqual([{ slug: 'literal-slug' }]);
+    });
 });
 
 describe('poster naming', () => {

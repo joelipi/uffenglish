@@ -128,8 +128,10 @@ export function exceedsPosterBudget(bytes) { return bytes > POSTER_MAX_BYTES; }
 
 // Every first-step intro slug across all `steps`-shaped configs, deduped,
 // first-seen order. A lesson contributes iff steps[0].introBackgroundVideoUrl is
-// truthy. Deliberately does NOT normalize `questions` -> `steps`: `questions`-
-// shaped configs (gt2.json) hold vestigial intros and are out of scope.
+// truthy. Deliberately does NOT normalize `questions` -> `steps` (gt2.json's
+// questions-shaped intros are vestigial) and SKIPS `{friendCode}` templates
+// (runtime-resolved share-code slugs, never literal R2 filenames — same rule as
+// scripts/lib/caption-utils.js).
 export function introTargets(configs) { … }        // -> [{ slug }]
 
 // <slug>.jpg — the sibling name shared by teacher and UGC posters.
@@ -241,6 +243,8 @@ steps already run this pipeline on every push.
   - → `gtests-1-2`, `gtests-0-1intro`, and `worried-UnitIntro` are NOT returned (they live only under `gt2.json`'s `questions`)
 - `introTargets` given a lesson whose only first-step intro is under `questions` (no `steps`)
   - → returns `[]` (no `questions` normalization; vestigial)
+- `introTargets` given a lesson whose first-step intro is a `{friendCode}` template (e.g. `{friendCode}friend-a-response-01`) plus one with a literal slug
+  - → returns only the literal slug (runtime-resolved templates are never generation/verification targets)
 - `posterFilename('do_you_have_rolls_too')` / `posterR2Key('do_you_have_rolls_too')`
   - → `do_you_have_rolls_too.jpg` / `assets/videos/do_you_have_rolls_too.jpg`
 - `posterSourceUrl('testvideo01')` → `https://r2.ultrafastfluency.com/assets/videos/testvideo01.mp4`
@@ -436,5 +440,14 @@ steps already run this pipeline on every push.
   and renders with no broken icon; `/course/t/lesson/y` covers a slug that only
   existed after this change. Publish a friend lesson and confirm a sibling `.jpg`
   on R2 next to each `-response-NN.mp4`.
+- **UGC-poster verification aid (temporary).** To exercise the UGC branch of
+  `getPosterUrl` in the running app, `src/config/friend.json` lesson `b`'s first
+  step has `introBackgroundVideoUrl: "{friendCode}friend-a-response-01"` (the
+  friend's own UGC clip, resolved from the `?sharecode=`) instead of the system
+  `testvideo01`. This is a manual test aid, not a product change — revert it
+  before merging if the friend course should keep the system intro. It relies on
+  `introTargets` skipping `{friendCode}` templates (which is why that skip is
+  part of the feature, not the aid). To see a poster, the friend's clip must
+  exist on R2 with a sibling `.jpg` (publish lesson `a` from this build first).
 - **`docs/product.md`** is updated in this planning commit; the implementer adds
   the README/`agents.md` notes described in Task 5.
