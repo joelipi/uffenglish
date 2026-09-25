@@ -65,7 +65,7 @@ test('lesson g — video will not play diagnostic (local)', async ({ page }) => 
   if (posterCount > 0) {
     const src = await posterImg.getAttribute('src');
     console.log('[diag] poster src', src);
-    expect(src).toMatch(/assets\/posters\/g\.jpg/);
+    expect(src).toMatch(/assets\/videos\/do_you_have_dark_chocolate\.jpg/);
     const bg = await page.locator('.intro-video-container').evaluate(el => getComputedStyle(el).backgroundImage);
     expect(bg).not.toBe('none');
   }
