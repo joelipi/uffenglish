@@ -21,7 +21,7 @@ export default function SuccessScreen({ onLoadNextLesson, onRepeat, canvasRef })
 
       <div
         id="state-lesson-success"
-        className={`d-flex align-items-end justify-content-around gap-2${showActions ? ' success-actions water-surface' : ''}`}
+        className={`d-flex gap-2${showActions ? ' success-actions water-surface' : ''}`}
       >
         <RepeatButton lessonId={lessonId} onRepeat={onRepeat} />
         <VideoButton canvasRef={canvasRef} />

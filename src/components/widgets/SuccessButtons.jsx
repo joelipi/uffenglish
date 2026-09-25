@@ -30,7 +30,7 @@ export function ContinueButton({ onLoadNextLesson }) {
   };
 
   return (
-    <div className="ivp-choice-col" style={{ flex: '0 0 auto', minWidth: 0 }}>
+    <div className="ivp-choice-col" style={{ flex: '1 1 0', minWidth: 0 }}>
       <ChoiceLabel text={getBilingual('continue', userData?.native_language || 'en')} />
       <button
         type="button"
@@ -183,7 +183,7 @@ export function VideoButton({ canvasRef }) {
 
   if (button.state === 'ready') {
     return (
-      <div className="ivp-choice-col call-btn-primary" style={{ flex: '0 0 auto', minWidth: 0 }}>
+      <div className="ivp-choice-col call-btn-primary" style={{ flex: '1 1 0', minWidth: 0 }}>
         <ChoiceLabel text={getBilingual('share', userData?.native_language || 'en')} />
         <button
           type="button"
@@ -213,7 +213,7 @@ export function RepeatButton({ lessonId, onRepeat }) {
   };
 
   return (
-    <div className="ivp-choice-col" style={{ flex: '0 0 auto', minWidth: 0 }}>
+    <div className="ivp-choice-col" style={{ flex: '1 1 0', minWidth: 0 }}>
       <ChoiceLabel text={getBilingual('replay', userData?.native_language || 'en')} />
       <button
         type="button"
