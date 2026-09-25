@@ -56,6 +56,9 @@ export default function MicrophoneToggle() {
     }, [micBounceTrigger]);
 
     const handleClick = () => {
+        // Dismiss the "Try again" correction card as soon as the learner
+        // starts re-recording, so it is not visible while they speak.
+        appStore.getState().setHintsVisible(false);
         const cb = getSpeechInputToggleCallback();
         if (typeof cb === 'function') {
             cb();

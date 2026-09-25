@@ -164,6 +164,58 @@ describe('friendClosedResponse auto-advance', () => {
         expect(appStore.getState().appPhase).toBe('recording/answering');
     });
 
+    it('re-shows the correction card with a new diff after a mic-press dismissal and another mistake', async () => {
+        // No interactiveVideoUrl → the hangman correction card branch runs.
+        const hangmanStep = {
+            step: 'friend-hangman',
+            responseType: 'friendClosedResponse',
+            cue: 'I would rather have a million dollars.',
+            interactiveVideoUrl: null,
+            explanation: '',
+            translation: null,
+        };
+        setupStore(hangmanStep);
+        const _deps = { loadNextStep: vi.fn(), callLoadStep: vi.fn() };
+
+        await pipeline.handleAnswer(
+            'I would rather eat pizza',
+            hangmanStep.cue,
+            hangmanStep,
+            null,
+            '',
+            { pauseCount: 0, netDuration: 0 },
+            _deps,
+            appStore.getState().userData,
+            appStore.getState().configData,
+            'test-course'
+        );
+
+        expect(appStore.getState().hintsVisible).toBe(true);
+        const firstOps = appStore.getState().hangmanOps;
+        expect(firstOps).toBeTruthy();
+
+        // Simulate the learner pressing the mic button to re-record.
+        appStore.setState({ hintsVisible: false });
+        expect(appStore.getState().hintsVisible).toBe(false);
+
+        await pipeline.handleAnswer(
+            'I would rather fly a kite',
+            hangmanStep.cue,
+            hangmanStep,
+            null,
+            '',
+            { pauseCount: 0, netDuration: 0 },
+            _deps,
+            appStore.getState().userData,
+            appStore.getState().configData,
+            'test-course'
+        );
+
+        expect(appStore.getState().hintsVisible).toBe(true);
+        expect(appStore.getState().hangmanOps).toBeTruthy();
+        expect(appStore.getState().hangmanOps).not.toEqual(firstOps);
+    });
+
     it('keeps the feedback step for a correct closedResponse answer (regression)', async () => {
         setupStore(closedStep);
         const loadNextStep = vi.fn();
