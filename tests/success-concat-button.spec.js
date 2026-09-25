@@ -314,57 +314,46 @@ test.describe('Success screen — concat button reveal', () => {
         expect(errors).toEqual([]);
     });
 
-    test('recap video end shows the share overlay', async ({ page }) => {
+    test('recap video has no full-screen overlay (stays replayable)', async ({ page }) => {
         await setupSuccessScreen(page);
-
-        // Mount the generated recap video (SuccessVideo renders on a blob).
         await page.evaluate(() => {
             window.appStore.getState().setSuccessVideoBlob(new Blob(['fake'], { type: 'video/webm' }));
         });
         await expect(page.locator('#resultVideo')).toBeVisible();
-        await expect(page.locator('.ivp-overlay.water-surface')).toHaveCount(0);
 
-        // The recap finishes playing.
+        // Even after it ends there is no covering overlay blocking the replay.
         await page.evaluate(() => {
             document.querySelector('#resultVideo')?.dispatchEvent(new Event('ended'));
         });
-
-        await expect(page.locator('.ivp-overlay.water-surface')).toBeVisible();
-        await expect(page.locator('.ivp-overlay-text')).toHaveText('Share the video with friends so they can practice English with you');
+        await expect(page.locator('.ivp-overlay.water-surface')).toHaveCount(0);
+        await expect(page.locator('#resultVideo')).toBeVisible();
     });
 
-    test('recap overlay also shows from timeupdate when the clip never fires ended', async ({ page }) => {
-        // MediaRecorder blobs (iOS WebM) can have a non-finite duration and
-        // freeze at the end without firing `ended`. Block playback so the clip
-        // never ends on its own, then drive the near-end timeupdate fallback.
-        await page.addInitScript(() => {
-            const origPlay = HTMLMediaElement.prototype.play;
-            HTMLMediaElement.prototype.play = function () {
-                if (typeof this.src === 'string' && this.src.startsWith('blob:')) {
-                    return Promise.reject(new Error('blocked for test'));
-                }
-                return origPlay.apply(this, arguments);
-            };
-        });
+    test('generated recap shows the Replay/Share/Continue band with a bigger Share', async ({ page }) => {
         await setupSuccessScreen(page);
-
-        await page.evaluate(async (webm) => {
-            const blob = await (await fetch(webm)).blob();
-            window.appStore.getState().setSuccessVideoBlob(blob);
-        }, SENTINEL_SRC);
-        await expect(page.locator('#resultVideo')).toBeVisible();
-        await page.waitForFunction(() => {
-            const v = document.querySelector('#resultVideo');
-            return v && v.readyState >= 1 && v.duration > 0;
-        });
-        await expect(page.locator('.ivp-overlay.water-surface')).toHaveCount(0);
-
         await page.evaluate(() => {
-            const v = document.querySelector('#resultVideo');
-            v.currentTime = v.duration;
-            v.dispatchEvent(new Event('timeupdate'));
+            const s = window.appStore.getState();
+            s.setSuccessVideoBlob(new Blob(['fake'], { type: 'video/webm' }));
+            s.setSuccessVideoState('ready');
+            s.setSuccessRepeatButtonVisible(true);
+            s.setSuccessContinueVisible(true);
         });
 
-        await expect(page.locator('.ivp-overlay.water-surface')).toBeVisible();
+        // Water band only when the three big action buttons are shown.
+        await expect(page.locator('#state-lesson-success.success-actions.water-surface')).toBeVisible();
+
+        // Circular call buttons with bilingual labels above each (icon + label).
+        await expect(page.locator('#repeatButtonSuccess')).toHaveClass(/\bcall-btn\b/);
+        await expect(page.locator('#createVideoButton')).toHaveClass(/\bcall-btn\b/);
+        await expect(page.locator('#continueButtonSuccess')).toHaveClass(/\bcall-btn\b/);
+        const labels = page.locator('#state-lesson-success .ivp-choice-label-text');
+        await expect(labels).toHaveCount(3);
+
+        // Share is the primary action — bigger than Replay and Continue.
+        const share = await page.locator('#createVideoButton').boundingBox();
+        const replay = await page.locator('#repeatButtonSuccess').boundingBox();
+        const cont = await page.locator('#continueButtonSuccess').boundingBox();
+        expect(share.width).toBeGreaterThan(replay.width + 5);
+        expect(share.width).toBeGreaterThan(cont.width + 5);
     });
 });

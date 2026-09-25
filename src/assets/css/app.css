@@ -1009,6 +1009,27 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     box-shadow: none !important;
 }
 
+/* Success screen — post-generation action band. Once the recap is generated the
+   Replay / Share / Continue buttons sit on the same water surface as the other
+   overlays, but only across the bottom ~27% of the viewport. */
+#state-lesson-success.success-actions {
+    position: relative;
+    z-index: 0;
+    flex: 1 1 100%;
+    margin: 0 -16px;
+    min-height: 27vh;
+    padding: 12px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Share is the primary action — bigger than Replay and Continue. */
+#state-lesson-success .call-btn-primary .call-btn {
+    width: 76px;
+    height: 76px;
+}
+#state-lesson-success .call-btn-primary .call-btn i {
+    font-size: 2rem !important;
+}
+
 @keyframes riseThroughWater {
     0% {
         opacity: 0;

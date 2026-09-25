@@ -168,13 +168,16 @@ Do not drop the `.ivp-choice-col` class to hide the glow: that also removes the 
 - Video file missing or undecodable → the `onError` handler transitions to `lessonSuccess-decisionTime`, revealing the glow (and the overlay where the wrapper is visible) instead of leaving the button dim. (The button lives in the bottom overlay, so it is present regardless.)
 - Non-en learner → the label shows the English word plus the localized line, and the overlay shows the English copy plus the localized line, matching the bilingual treatment of every other overlay.
 
-### 6. Recap-finished overlay (`src/components/widgets/SuccessVideo.jsx`)
+### 6. Post-generation action band (`SuccessScreen.jsx`, `SuccessButtons.jsx`, `app.css`)
 
-After generation, `SuccessVideo` renders the stitched recap (`#resultVideo`). When it finishes, show the same water overlay to draw attention to the share/redo buttons below (they stay above the overlay at `z-index: 1050`):
+A full-screen overlay timed to the recap finishing was tried and **rejected**: mobile browsers give no reliable end signal (the element resets `currentTime` to 0 and clears `ended`), and an overlay that fires at the wrong moment covers the replay. So the recap video (`SuccessVideo.jsx`) stays a plain, replayable video with **no overlay**, and the attention is moved to the action buttons instead.
 
-- Track `ended` locally in `SuccessVideo`; `onEnded` sets it true, `onPlay` clears it (replay hides the overlay), and a new blob resets it.
-- Render `.ivp-click-block` + `.ivp-overlay.water-surface` + `.ivp-overlay-text` over the video when `ended`, and suppress the play triangle while `ended`.
-- Copy is the new `video_share_friends` key: "Share the video with friends so they can practice English with you" (es/pt/fr/hi/bn), rendered with `<span lang>` (no `<i>`), matching the de-italicised `.ivp-overlay-text` treatment.
+Once the recap is generated (`successVideoButton.state === 'ready'`), `SuccessScreen` adds `success-actions water-surface` to `#state-lesson-success`, giving the Replay / Share / Continue row the same water-surface background as the overlays — but only across the bottom ~27% of the viewport:
+
+- `SuccessButtons.jsx`: each action becomes an `.ivp-choice-col` with an `.ivp-choice-label` (bilingual, from `replay` / `share` / `continue`) above a circular `.call-btn` with its icon, matching the earlier steps.
+- `app.css`: `#state-lesson-success.success-actions` is `min-height: 27vh`, full-bleed (`margin: 0 -16px`); `#state-lesson-success .call-btn-primary .call-btn` is 76 px so **Share** is visibly the primary action (Replay/Continue stay 60 px).
+- The band appears only in the ready state; the initial process (CONTINUE) button keeps its existing glow/overlay treatment.
+- No new dependencies; the `share` and `replay` keys are the only new UI strings.
 
 ## Tasks
 
@@ -247,13 +250,15 @@ After generation, `SuccessVideo` renders the stitched recap (`#resultVideo`). Wh
 
 ### Task 6 - Recap-finished overlay
 
-- generated recap mounted (`successVideoBlob` set), before it ends
-  - → no `.ivp-overlay.water-surface` from `SuccessVideo`
-- recap video fires `ended`
-  - → `.ivp-overlay.water-surface` is visible over `#resultVideo`
-  - → `.ivp-overlay-text` reads "Share the video with friends so they can practice English with you" (en)
-- recap replayed (`play` after ending)
-  - → the overlay hides again
+- generated recap mounted (`successVideoBlob` set), video fires `ended`
+  - → no `.ivp-overlay.water-surface` covers `#resultVideo` (it stays replayable)
+- `successVideoButton.state === 'ready'` (recap generated)
+  - → `#state-lesson-success` has classes `success-actions` and `water-surface` (the bottom band)
+  - → `#repeatButtonSuccess`, `#createVideoButton`, `#continueButtonSuccess` each have class `call-btn`
+  - → there are exactly 3 `.ivp-choice-label-text` labels (Replay / Share / Continue)
+  - → the `#createVideoButton` box is more than 5 px wider than `#repeatButtonSuccess` and `#continueButtonSuccess` (Share is primary)
+- before generation (`state !== 'ready'`)
+  - → `#state-lesson-success` does not have `success-actions`
 
 ## Technical Context
 

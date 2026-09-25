@@ -1410,16 +1410,6 @@ const strings = {
         hi: "अपना वीडियो बनाने और साझा करने के लिए जारी रखें",
         bn: "আপনার ভিডিও তৈরি করতে এবং শেয়ার করতে চালিয়ে যান"
     },
-    // Shown over the generated recap video once it finishes, drawing attention
-    // to the share/redo buttons below.
-    'video_share_friends': {
-        en: "Share the video with friends so they can practice English with you",
-        es: "Comparte el video con amigos para que practiquen inglés contigo",
-        pt: "Compartilhe o vídeo com amigos para que eles pratiquem inglês com você",
-        fr: "Partagez la vidéo avec des amis pour qu'ils pratiquent l'anglais avec vous",
-        hi: "दोस्तों के साथ वीडियो साझा करें ताकि वे आपके साथ अंग्रेज़ी का अभ्यास कर सकें",
-        bn: "বন্ধুদের সাথে ভিডিও শেয়ার করুন যাতে তারা আপনার সাথে ইংরেজি অনুশীলন করতে পারে"
-    },
     'video_repeat_now': {
         en: "REPEAT NOW",
         es: "REPITE AHORA",
@@ -1439,6 +1429,23 @@ const strings = {
         fr: "CONTINUER",
         hi: "जारी रखें",
         bn: "চালিয়ে যান"
+    },
+    // Post-generation success actions (Replay / Share / Continue row).
+    'replay': {
+        en: "REPLAY",
+        es: "REPETIR",
+        pt: "REPETIR",
+        fr: "REJOUER",
+        hi: "फिर से चलाएँ",
+        bn: "আবার চালান"
+    },
+    'share': {
+        en: "SHARE",
+        es: "COMPARTIR",
+        pt: "COMPARTILHAR",
+        fr: "PARTAGER",
+        hi: "साझा करें",
+        bn: "শেয়ার করুন"
     },
     'watch_tutorial': {
         en: "WATCH TUTORIAL",

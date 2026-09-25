@@ -4,8 +4,22 @@ import { appStore } from '../../modules/store/store.js';
 import { trackEvent } from '../../modules/utils/posthog.js';
 import { getBilingual } from '../../data/strings.js';
 
+// Bilingual label above a circular call-btn, matching the earlier steps.
+function ChoiceLabel({ text }) {
+  return (
+    <div className="ivp-choice-label">
+      <div className="ivp-choice-label-text">
+        {text.localized ? (
+          <React.Fragment>{text.english}<br /><span lang={text.lang}><i>{text.localized}</i></span></React.Fragment>
+        ) : text.english}
+      </div>
+    </div>
+  );
+}
+
 export function ContinueButton({ onLoadNextLesson }) {
   const button = useStore(appStore, state => state.successContinueButton);
+  const userData = useStore(appStore, state => state.userData);
   const setLoading = useStore(appStore, state => state.setSuccessContinueLoading);
 
   if (!button.visible) return null;
@@ -16,16 +30,19 @@ export function ContinueButton({ onLoadNextLesson }) {
   };
 
   return (
-    <button
-      type="button"
-      id="continueButtonSuccess"
-      className="btn btn-primary text-white flex-fill"
-      onClick={handleClick}
-      disabled={button.loading}
-      style={{ display: 'inline-block' }}
-    >
-      <i className="bi bi-chevron-right text-white" style={{ fontSize: '24px', fontWeight: 900 }} />
-    </button>
+    <div className="ivp-choice-col" style={{ flex: '0 0 auto', minWidth: 0 }}>
+      <ChoiceLabel text={getBilingual('continue', userData?.native_language || 'en')} />
+      <button
+        type="button"
+        id="continueButtonSuccess"
+        className="btn call-btn"
+        onClick={handleClick}
+        disabled={button.loading}
+        aria-label="Continue"
+      >
+        <i className="bi bi-chevron-right" />
+      </button>
+    </div>
   );
 }
 
@@ -166,14 +183,18 @@ export function VideoButton({ canvasRef }) {
 
   if (button.state === 'ready') {
     return (
-      <button
-        type="button"
-        id="createVideoButton"
-        className="btn btn-success flex-fill"
-        onClick={handleShare}
-      >
-        <i className="bi bi-share-fill text-white" /> Share
-      </button>
+      <div className="ivp-choice-col call-btn-primary" style={{ flex: '0 0 auto', minWidth: 0 }}>
+        <ChoiceLabel text={getBilingual('share', userData?.native_language || 'en')} />
+        <button
+          type="button"
+          id="createVideoButton"
+          className="btn call-btn"
+          onClick={handleShare}
+          aria-label="Share"
+        >
+          <i className="bi bi-share-fill" />
+        </button>
+      </div>
     );
   }
 
@@ -182,6 +203,7 @@ export function VideoButton({ canvasRef }) {
 
 export function RepeatButton({ lessonId, onRepeat }) {
   const button = useStore(appStore, state => state.successRepeatButton);
+  const userData = useStore(appStore, state => state.userData);
 
   if (!button.visible || !lessonId || !onRepeat) return null;
 
@@ -191,14 +213,18 @@ export function RepeatButton({ lessonId, onRepeat }) {
   };
 
   return (
-    <button
-      type="button"
-      id="repeatButtonSuccess"
-      className="btn btn-primary text-white flex-fill repeat-btn"
-      onClick={handleRepeat}
-      title="Repeat this lesson / Repetir esta lección"
-    >
-      <i className="bi bi-arrow-counterclockwise text-white" style={{ fontSize: '24px', fontWeight: 900 }} />
-    </button>
+    <div className="ivp-choice-col" style={{ flex: '0 0 auto', minWidth: 0 }}>
+      <ChoiceLabel text={getBilingual('replay', userData?.native_language || 'en')} />
+      <button
+        type="button"
+        id="repeatButtonSuccess"
+        className="btn call-btn"
+        onClick={handleRepeat}
+        title="Repeat this lesson / Repetir esta lección"
+        aria-label="Replay"
+      >
+        <i className="bi bi-arrow-counterclockwise" />
+      </button>
+    </div>
   );
 }
