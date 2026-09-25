@@ -58,10 +58,42 @@ describe('video-processor.web.js recap wiring guard', () => {
 
     it('handles non-finite MediaRecorder blob durations (iPad WebM freeze)', () => {
         // iOS records WebM, whose blobs report duration Infinity; without this
-        // the advance check never fires and the segment freezes.
+        // the advance check never fires and the segment freezes. The end
+        // decision now comes from the pure rule plus a container probe.
         expect(source).toMatch(/forceVideoDuration/);
         expect(source).toMatch(/step\.resolvingDuration/);
-        expect(source).toMatch(/Number\.isFinite\(rawDuration\)/);
+        expect(source).toMatch(/probeClipDurationSec/);
+        expect(source).toMatch(/step\.mediaDurationSec/);
+        expect(source).toMatch(/resolveSegmentBounds/);
+    });
+
+    it('wires the container probe and the bounds rule from their modules', () => {
+        // The probe comes from the web transcode module; the pure rule from
+        // the platform-agnostic logic module.
+        expect(source).toMatch(/probeClipDurationSec\s*\}\s*from '\.\/transcode\.js'/);
+        expect(source).toMatch(/resolveSegmentBounds, STALL_GRACE_MS\s*\}\s*from '\.\/video-processor-logic\.js'/);
+        expect(source).toMatch(/fallbackDurationSec: step\.mediaDurationSec/);
+        expect(source).toMatch(/await probeClipDurationSec\(step\.blob \|\| step\.remoteBlob\)/);
+        // The probe must not be raced against a timeout that resolves null: a
+        // slow-but-valid read would otherwise be truncated by the 15 s cap.
+        expect(source).not.toMatch(/Promise\.race\(\[\s*probeClipDurationSec/);
+        // A stale probe must not leak across steps: it is reset alongside the
+        // other per-step playback health fields.
+        expect(source).toMatch(/step\.loadFailed = false;\s*step\.playFatal = false;\s*step\.mediaDurationSec = undefined;/);
+    });
+
+    it('no longer derives a media length from net speaking time', () => {
+        // The old fallback truncated a clip to its net speech duration; the
+        // `|| 60` hard cap turned an unresolved duration into a 60 s hang.
+        expect(source).not.toMatch(/Number\.isFinite\(rawDuration\)\s*\?\s*rawDuration\s*:\s*\(step\.duration/);
+        expect(source).not.toMatch(/step\.duration \|\| 60/);
+    });
+
+    it('keeps the stall guard and the text-mode/unresolved-duration holds', () => {
+        expect(source).toMatch(/stalledTimeout/);
+        expect(source).toMatch(/STALL_GRACE_MS/);
+        expect(source).toMatch(/step\.isTextMode \|\| \(step\.type === 'webcam' && !step\.blob\)/);
+        expect(source).toMatch(/TEXT_MODE_DURATION_MS/);
     });
 
     it('never nulls shared plan blobs (would drop clips from the recap/export)', () => {
@@ -76,5 +108,14 @@ describe('video-processor.web.js recap wiring guard', () => {
         // ended-only-after-playback guard the first clip is skipped.
         expect(source).toMatch(/Rewind after duration probe failed/);
         expect(source).toMatch(/const endedNaturally = stepStartedPlaying && video\.ended/);
+    });
+
+    it('draws the translated subtitle in the normal face, never italic', () => {
+        // italic triggers synthetic oblique in fonts without a true italic
+        // face, which shifts complex-script ink off the centre. The
+        // translation stays distinct via its smaller size.
+        expect(source).not.toMatch(/italic/i);
+        expect(source.match(/\$\{trFontSize\}px "Plus Jakarta Sans", sans-serif/g)).toHaveLength(3);
+        expect(source).toMatch(/bold \$\{enFontSize\}px "Plus Jakarta Sans", sans-serif/);
     });
 });

@@ -6,12 +6,12 @@ import { shareVideo } from './video-share.js';
 import { appStore } from '../store/store.js';
 import headerImg from '../../assets/img/header.png';
 import { getVideoUrl, getUgcThumbKey } from './video-url.js';
-import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, buildShareUrl, buildShareDeadline, resolveOverlayElements, isShareCtaEnabled, isDroppedStep, markFirstRenderable } from './video-processor-logic.js';
+import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, buildShareUrl, buildShareDeadline, resolveOverlayElements, isShareCtaEnabled, isDroppedStep, markFirstRenderable, resolveSegmentBounds, STALL_GRACE_MS } from './video-processor-logic.js';
 import { remoteSource } from './video-source.js';
 import { DEFAULT_USER_AVATAR_URL } from '../user/tutor-config.js';
 import { getAvatarBlobUrl } from '../avatar/avatar.service.js';
 import { supabase, getAccessToken } from '../api/supabase.js';
-import { transcodeToMp4, verifyMp4, uploadWebmToCloudinary } from './transcode.js';
+import { transcodeToMp4, verifyMp4, uploadWebmToCloudinary, probeClipDurationSec } from './transcode.js';
 import { uploadSegmentToR2 } from './r2-upload.js';
 import { trackEvent } from '../utils/posthog.js';
 import Strings from '../../data/strings.js';
@@ -417,6 +417,7 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
             stepPlayStart = 0;
             step.loadFailed = false;
             step.playFatal = false;
+            step.mediaDurationSec = undefined;
             if (currentObjectUrl) {
                 URL.revokeObjectURL(currentObjectUrl);
                 currentObjectUrl = null;
@@ -467,6 +468,20 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                             video.currentTime = step.trim?.start || 0;
                         } catch (e) {
                             console.warn('[VideoProcessor] Rewind after duration probe failed:', e);
+                        }
+                        // If the element still cannot report a length (iPad
+                        // MediaRecorder WebM), read the real container duration
+                        // directly. The segment then advances on its actual
+                        // length rather than its net speaking time.
+                        //
+                        // Await the probe directly — no timeout race. The
+                        // step.resolvingDuration hold keeps the draw loop on
+                        // this frame, and the probe always settles (finite
+                        // in-memory Blob + skipLiveWait, errors caught), so a
+                        // short race would only risk truncating a valid clip.
+                        if (!Number.isFinite(video.duration)) {
+                            step.mediaDurationSec = await probeClipDurationSec(step.blob || step.remoteBlob);
+                            console.log('[VideoProcessor] Probed clip duration:', step.mediaDurationSec, 'step', stepIndex);
                         }
                         step.resolvingDuration = false;
                     }
@@ -663,12 +678,16 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                     const holdMs = step.duration != null ? step.duration * 1000 : TEXT_MODE_DURATION_MS;
                     if (elapsed >= holdMs) shouldAdvance = true;
                 } else {
-                    const rawDuration = video.duration;
-                    // A non-finite duration would disable both the end check and
-                    // the stall fallback; fall back to the recorded clip length,
-                    // or a hard cap, so the segment can never freeze forever.
-                    const endTime = step.trim?.end
-                        || (Number.isFinite(rawDuration) ? rawDuration : (step.duration || 60));
+                    // Resolve the segment's end from, in order: the explicit
+                    // trim, the element's real media length, or the probed
+                    // container duration. Net speaking time is never a media
+                    // length, so it is not consulted.
+                    const { endTime, wallClockCapMs } = resolveSegmentBounds({
+                        trimEnd: step.trim?.end,
+                        rawDuration: video.duration,
+                        fallbackDurationSec: step.mediaDurationSec,
+                        start: step.trim?.start || 0,
+                    });
 
                     // On iPad/Safari the OS can silently pause inline video
                     // (autoplay/interruption). If that happens, resume it so the
@@ -690,10 +709,9 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                     // Advance on natural end, or on a wall-clock fallback. The
                     // fallback guarantees a stalled/non-ending video can never
                     // leave the generator stuck on "Generating" indefinitely.
-                    const plannedMs = (endTime - (step.trim?.start || 0)) * 1000;
                     const stalledTimeout =
-                        stepPlayStart && plannedMs > 0 &&
-                        performance.now() - stepPlayStart > plannedMs + 2000;
+                        stepPlayStart && wallClockCapMs > 0 &&
+                        performance.now() - stepPlayStart > wallClockCapMs + STALL_GRACE_MS;
                     // `video.ended` is only meaningful once this step has actually
                     // played — the duration probe seeks to the end and can leave
                     // the element `ended` before playback starts, which would skip
@@ -942,7 +960,7 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
         let trLines = [];
         const trFontSize = Math.round(enFontSize * 0.85);
         if (translationText && translationText.trim() !== '') {
-            context.font = `italic ${trFontSize}px "Plus Jakarta Sans", sans-serif`;
+            context.font = `${trFontSize}px "Plus Jakarta Sans", sans-serif`;
             trLines = wrapText(context, translationText, maxSubtitleWidth);
         }
 
@@ -962,7 +980,7 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
             longestLineWidth = Math.max(longestLineWidth, context.measureText(l).width);
         });
         if (trLines.length > 0) {
-            context.font = `italic ${trFontSize}px "Plus Jakarta Sans", sans-serif`;
+            context.font = `${trFontSize}px "Plus Jakarta Sans", sans-serif`;
             trLines.forEach(l => {
                 longestLineWidth = Math.max(longestLineWidth, context.measureText(l).width);
             });
@@ -1008,7 +1026,7 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
         // the SimpleVideoPlayer overlay, which grows upward from its anchor).
         let lineY = blockBottomY;
         if (trLines.length > 0) {
-            context.font = `italic ${trFontSize}px "Plus Jakarta Sans", sans-serif`;
+            context.font = `${trFontSize}px "Plus Jakarta Sans", sans-serif`;
             for (let i = trLines.length - 1; i >= 0; i--) {
                 context.fillText(trLines[i], centerX, lineY);
                 lineY -= trLineHeight;

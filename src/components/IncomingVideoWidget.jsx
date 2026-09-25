@@ -306,7 +306,7 @@ export default function IncomingVideoWidget() {
                             </div>
                             {subtitle?.localized && (
                             <div className="intro-call-subtitle">
-                                <span lang={subtitle.lang}><i>{subtitle.localized}</i></span>
+                                <span lang={subtitle.lang}>{subtitle.localized}</span>
                             </div>
                             )}
                         </div>
