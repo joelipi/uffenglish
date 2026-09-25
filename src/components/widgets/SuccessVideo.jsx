@@ -48,8 +48,8 @@ export default function SuccessVideo() {
         const endPoll = setInterval(() => {
             const v = videoRef.current;
             if (!v) return;
-            setDiag({ t: v.currentTime, d: v.duration, paused: v.paused, ended: v.ended, rs: v.readyState });
             if (v.currentTime > 0.5) hasProgressedRef.current = true;
+            setDiag({ t: v.currentTime, d: v.duration, paused: v.paused, ended: v.ended, rs: v.readyState, hp: hasProgressedRef.current, mk: endedRef.current });
             if (endedRef.current) return;
             if (!Number.isFinite(v.duration) || v.duration <= 0) return;
             if (v.ended || (v.currentTime > 0 && v.currentTime >= v.duration - 0.5)) {
@@ -57,8 +57,9 @@ export default function SuccessVideo() {
                 markEnded();
                 return;
             }
-            // Finished clips that reset to 0 (see hasProgressedRef).
-            if (hasProgressedRef.current && v.paused && v.currentTime < 1 && !v.ended) {
+            // Finished clips that reset to 0 (see hasProgressedRef). Once the
+            // clip has played, any pause means it stopped — show the overlay.
+            if (hasProgressedRef.current && v.paused && !v.ended) {
                 console.log('[SuccessVideo] end detected via reset-to-0 after playback');
                 markEnded();
             }
@@ -117,7 +118,7 @@ export default function SuccessVideo() {
             return;
         }
         // Or the clip finished and the browser reset currentTime to 0.
-        if (video && hasProgressedRef.current && video.currentTime < 1 && !video.ended) {
+        if (video && hasProgressedRef.current && !video.ended) {
             console.log('[SuccessVideo] paused at 0 after playback → marking ended');
             markEnded();
         }
@@ -199,7 +200,7 @@ export default function SuccessVideo() {
                     fontFamily: 'monospace', fontSize: 12, padding: '3px 6px',
                     borderRadius: 4, pointerEvents: 'none', whiteSpace: 'nowrap'
                 }}>
-                    t={Number.isFinite(diag.t) ? diag.t.toFixed(2) : String(diag.t)} d={Number.isFinite(diag.d) ? diag.d.toFixed(2) : String(diag.d)} paused={String(diag.paused)} ended={String(diag.ended)} rs={diag.rs}
+                    t={Number.isFinite(diag.t) ? diag.t.toFixed(2) : String(diag.t)} d={Number.isFinite(diag.d) ? diag.d.toFixed(2) : String(diag.d)} paused={String(diag.paused)} ended={String(diag.ended)} rs={diag.rs} hp={String(diag.hp)} mk={String(diag.mk)}
                 </div>
             )}
         </div>
