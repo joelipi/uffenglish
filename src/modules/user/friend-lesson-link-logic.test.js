@@ -34,7 +34,7 @@ describe('fixed mapping constants', () => {
 describe('buildFriendLessonLink', () => {
     it('builds the bare host/path link', () => {
         expect(buildFriendLessonLink({ courseId: 'friend', lessonId: 'b', shareCode: 'ab12' }))
-            .toBe('example.com/course/friend/lesson/b?shareCode=ab12');
+            .toBe('s.ultrafastfluency.com/course/friend/lesson/b?shareCode=ab12');
     });
 
     it('uses an explicit base when provided', () => {
@@ -46,8 +46,8 @@ describe('buildFriendLessonLink', () => {
 
 describe('toFriendLessonHref', () => {
     it('prepends https:// to a scheme-less url', () => {
-        expect(toFriendLessonHref('example.com/course/friend/lesson/b?shareCode=ab12'))
-            .toBe('https://example.com/course/friend/lesson/b?shareCode=ab12');
+        expect(toFriendLessonHref('s.ultrafastfluency.com/course/friend/lesson/b?shareCode=ab12'))
+            .toBe('https://s.ultrafastfluency.com/course/friend/lesson/b?shareCode=ab12');
     });
 
     it('leaves already-schemed urls unchanged', () => {

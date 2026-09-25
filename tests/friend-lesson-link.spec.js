@@ -53,7 +53,7 @@ test.describe('public-profile friend-challenge link', () => {
         await expect(link).toHaveText('Practice English with Me');
         await expect(link).toHaveAttribute(
             'href',
-            'https://example.com/course/friend/lesson/b?shareCode=friendtest1'
+            'https://s.ultrafastfluency.com/course/friend/lesson/b?shareCode=friendtest1'
         );
 
         const fontSize = await link.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
