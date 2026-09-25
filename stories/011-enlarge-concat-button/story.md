@@ -177,7 +177,8 @@ Once the recap is generated (`successVideoButton.state === 'ready'`), `SuccessSc
 - `SuccessButtons.jsx`: each action becomes an `.ivp-choice-col` with an `.ivp-choice-label` (bilingual, from `replay` / `share` / `continue`) above a circular `.call-btn` with its icon, matching the earlier steps.
 - `app.css`: `#state-lesson-success.success-actions` is `min-height: 27vh`, full-bleed (`margin: 0 -16px`); `#state-lesson-success .call-btn-primary .call-btn` is 76 px so **Share** is visibly the primary action (Replay/Continue stay 60 px).
 - The band appears only in the ready state; the initial process (CONTINUE) button keeps its existing glow/overlay treatment.
-- No new dependencies; the `share` and `replay` keys are the only new UI strings.
+- **Friend-challenge lessons** (identified by `resolveRecapOverlay(lesson) === 'shareCta'`, i.e. `recapOverlay: "shareCta"` on `w`/`wf`/`wa`/`wfa` in `model.json` and `a`/`b` in `friend.json`) show **only the Share button**, with the new `share_cta_success` call to action above it ("Share this video with friends, family, and colleagues so they can practice with you. They have 48 hours to respond."). Other lessons keep the full Replay / Share / Continue row.
+- No new dependencies; the `share`, `replay`, and `share_cta_success` keys are the only new UI strings.
 
 ## Tasks
 
@@ -248,15 +249,21 @@ Once the recap is generated (`successVideoButton.state === 'ready'`), `SuccessSc
   - → no `pageerror`
   - → no console error outside the documented noise list (favicon, source map, Whisper, vite, 401/Unauthorized)
 
-### Task 6 - Recap-finished overlay
+### Task 6 - Post-generation action band
 
 - generated recap mounted (`successVideoBlob` set), video fires `ended`
   - → no `.ivp-overlay.water-surface` covers `#resultVideo` (it stays replayable)
-- `successVideoButton.state === 'ready'` (recap generated)
+- `successVideoButton.state === 'ready'` on a non-friend lesson
   - → `#state-lesson-success` has classes `success-actions` and `water-surface` (the bottom band)
   - → `#repeatButtonSuccess`, `#createVideoButton`, `#continueButtonSuccess` each have class `call-btn`
   - → there are exactly 3 `.ivp-choice-label-text` labels (Replay / Share / Continue)
+  - → only `#createVideoButton` glows (Replay/Continue `::before` animation is `none`)
   - → the `#createVideoButton` box is more than 5 px wider than `#repeatButtonSuccess` and `#continueButtonSuccess` (Share is primary)
+- `successVideoButton.state === 'ready'` on a friend-challenge lesson (`recapOverlay: 'shareCta'`)
+  - → `#createVideoButton` is rendered
+  - → `#repeatButtonSuccess` and `#continueButtonSuccess` are not rendered (0 elements)
+  - → exactly 1 `.ivp-choice-label-text` (Share)
+  - → `.success-share-cta` is visible and contains "They have 48 hours to respond"
 - before generation (`state !== 'ready'`)
   - → `#state-lesson-success` does not have `success-actions`
 

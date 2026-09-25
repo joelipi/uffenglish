@@ -1532,6 +1532,16 @@ const strings = {
         fr: "Pratique l'anglais avec moi gratuitement avant le",
         hi: "मेरे साथ मुफ़्त अंग्रेज़ी प्रैक्टिस करें — अंतिम तिथि:",
         bn: "আমার সাথে ফ্রি ইংরেজি প্র্যাকটিস করুন — শেষ তারিখ:"
+    },
+    // Call to action shown on the success screen for friend-challenge lessons,
+    // where only the Share button is offered.
+    'share_cta_success': {
+        en: "Share this video with friends, family, and colleagues so they can practice with you. They have 48 hours to respond.",
+        es: "Comparte este video con amigos, familiares y colegas para que practiquen contigo. Tienen 48 horas para responder.",
+        pt: "Compartilhe este vídeo com amigos, familiares e colegas para que pratiquem com você. Eles têm 48 horas para responder.",
+        fr: "Partagez cette vidéo avec des amis, votre famille et vos collègues pour qu'ils pratiquent avec vous. Ils ont 48 heures pour répondre.",
+        hi: "इस वीडियो को दोस्तों, परिवार और सहकर्मियों के साथ साझा करें ताकि वे आपके साथ अभ्यास कर सकें। उनके पास जवाब देने के लिए 48 घंटे हैं।",
+        bn: "এই ভিডিওটি বন্ধু, পরিবার ও সহকর্মীদের সাথে শেয়ার করুন যাতে তারা আপনার সাথে অনুশীলন করতে পারে। তাদের উত্তর দেওয়ার জন্য 48 ঘন্টা রয়েছে।"
     }
 };
 

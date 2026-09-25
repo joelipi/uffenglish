@@ -356,4 +356,30 @@ test.describe('Success screen — concat button reveal', () => {
         expect(share.width).toBeGreaterThan(replay.width + 5);
         expect(share.width).toBeGreaterThan(cont.width + 5);
     });
+
+    test('friend-challenge lesson shows only Share with the 48h call to action', async ({ page }) => {
+        await setupSuccessScreen(page);
+        await page.evaluate(() => {
+            const s = window.appStore.getState();
+            // A friend-challenge lesson is one whose recapOverlay is 'shareCta'.
+            const idx = s.configData.lessons.findIndex(l => l.recapOverlay === 'shareCta');
+            window.appStore.setState({ currentLessonIndex: idx });
+            s.setSuccessVideoBlob(new Blob(['fake'], { type: 'video/webm' }));
+            s.setSuccessVideoState('ready');
+            s.setSuccessRepeatButtonVisible(true);
+            s.setSuccessContinueVisible(true);
+        });
+
+        // Only the Share button; Replay and Continue are not rendered.
+        await expect(page.locator('#createVideoButton')).toBeVisible();
+        await expect(page.locator('#repeatButtonSuccess')).toHaveCount(0);
+        await expect(page.locator('#continueButtonSuccess')).toHaveCount(0);
+        await expect(page.locator('#state-lesson-success .ivp-choice-label-text')).toHaveCount(1);
+
+        // Call to action with the 48h response window.
+        const cta = page.locator('#state-lesson-success .success-share-cta');
+        await expect(cta).toBeVisible();
+        await expect(cta).toContainText('Share this video with friends, family, and colleagues');
+        await expect(cta).toContainText('They have 48 hours to respond');
+    });
 });
