@@ -53,6 +53,9 @@ Edge cases:
 
 - React 19.2.0, Zustand 5.0.13, Vitest 4.1.6, jsdom 29.1.1 — all already in `package.json`; no new dependencies.
 - `MicrophoneToggle.web.jsx` is the web implementation; `MicrophoneToggle.js` re-exports it and `MicrophoneToggle.native.jsx` is a stub. Only the web file needs changing.
+- Platform split is by file suffix: Vite resolves `.web.jsx` before `.jsx` (`vite.config.js:57`), and React Native's Metro bundler resolves `.native.jsx`. The change therefore lives only in the web file and cannot leak into a native build. `MicrophoneToggle.native.jsx` is a separate stub that already imports `appStore` (line 6) but does not yet implement the mic flow.
+- Separation of concerns is preserved: calling store actions directly from a component is the established convention in this codebase, not a layering violation. `MicrophoneToggle.web.jsx` already calls `appStore.getState().setTextInputVisible/setMicActive/triggerPauseAllVideos` in `handleTextClick` (lines 68-80), and `DecisionButtons.jsx` (lines 35-45) and `IntroChoices.jsx` (lines 42-47) do the same. Adding `setHintsVisible(false)` follows the identical pattern.
+- The store (`src/modules/store/store.js`) is platform-agnostic plain Zustand with no DOM dependencies, so `hintsVisible` and `setHintsVisible` are shared across web and native. No new platform-specific logic is introduced.
 - `appStore` is a Zustand vanilla store (`createStore` + `persist`) exported from `src/modules/store/store.js`; components read it via `useStore(appStore, selector)` and mutate via `appStore.getState().<action>()`.
 - `hintsVisible` is not declared in the store's initial state object (`store.js:69-192`), so it starts `undefined` (falsy). `Hints.jsx:12` treats falsy as hidden. Tests should set it explicitly.
 - Existing test patterns: `src/modules/answer/answer-pipeline.test.js` uses `appStore.setState({...})` in `beforeEach` and asserts store state. `src/components/video-overlay-italic.test.js` asserts against source text. No existing test renders a React component, and `@testing-library/react` is **not** installed.
@@ -64,3 +67,4 @@ Edge cases:
 - The correction card is `#hint-hangman-card` in `Hints.jsx`; the store flag is `hintsVisible`. Do not confuse it with the chat correction bubbles (`GrammarDiffBubble`/`VocabDiffBubble`/`PragmaticsBubble`), which are out of scope.
 - `setHintsVisible(false)` is already called at `answer-pipeline.js:704`, `answer-pipeline.js:1002`, and `step-executor-webonly.js:208`; this story adds the mic-press site only.
 - No new strings, no localization changes.
+- React Native migration: the behavior is implemented only in `MicrophoneToggle.web.jsx`. When the RN mic flow is implemented in `MicrophoneToggle.native.jsx`, it should also call `setHintsVisible(false)` on mic press to keep parity. This is a future task, not part of this story; the shared store flag makes it a one-line addition.
