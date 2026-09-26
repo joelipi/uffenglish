@@ -178,6 +178,37 @@ export function markFirstRenderable(plan, fromIndex = 0) {
     return -1;
 }
 
+// ---------------------------------------------------------------------------
+// Publishing targets — which lesson a recorded step's clip publishes under.
+// The R2 key is normally generated from the lesson being exported, but a step
+// may override it (e.g. ask-question steps embedded in answer lesson 'b' must
+// publish under ask lesson 'a' so a friend's 'b' lesson can fetch them).
+// ---------------------------------------------------------------------------
+
+// The lesson a step's clip publishes under. Absent/empty `publishLessonId`
+// falls back to the lesson being exported (today's behaviour).
+export function resolvePublishLessonId(step, defaultLessonId) {
+    return (step && step.publishLessonId) || defaultLessonId;
+}
+
+// Assigns each publishable segment its { lessonId, index } — index is 1-based
+// and restarts per target lesson, in input order. Position-based, so a segment
+// that fails to upload leaves a gap rather than renumbering the ones after it.
+export function assignSegmentTargets(publishable, defaultLessonId) {
+    const counts = {};
+    return (publishable || []).map((step) => {
+        const lessonId = resolvePublishLessonId(step, defaultLessonId);
+        const index = (counts[lessonId] || 0) + 1;
+        counts[lessonId] = index;
+        return { lessonId, index };
+    });
+}
+
+// The R2 key for a user-generated segment.
+export function buildUgcSegmentKey({ shareCode, courseId, lessonId, index }) {
+    return `videos/${shareCode}-${courseId}-${lessonId}-response-${String(index).padStart(2, '0')}.mp4`;
+}
+
 /**
  * Platform-Agnostic Video Render Planner
  * Analyzes recordings and generates a flat, step-by-step blueprint
@@ -200,6 +231,17 @@ export class VideoRenderPlanner {
     _getLesson(rec) {
         if (!this.configData.lessons) return null;
         return this.configData.lessons.find(l => l.lessonId === rec.originalLessonId) || null;
+    }
+
+    /**
+     * The lesson this recording should publish under, from the step's optional
+     * `publishLessonId` (null → the lesson being exported). Carried onto the
+     * webcam plan step so the exporter can group segments by target.
+     */
+    _getPublishLessonId(rec) {
+        const lesson = this._getLesson(rec);
+        const step = lesson?.steps?.[rec.originalStepIndex];
+        return step?.publishLessonId || null;
     }
 
     generatePlan() {
@@ -260,7 +302,9 @@ export class VideoRenderPlanner {
                 subtitle: { en: userText, translation: rec.translation || null },
                 isFirst: plan.length === 0,
                 isTextMode: rec.isTextMode,
-                duration: rec.duration
+                duration: rec.duration,
+                // Lesson this clip publishes under (null → the exported lesson).
+                publishLessonId: this._getPublishLessonId(rec)
             });
         }
 

@@ -207,4 +207,37 @@ describe('resolveFriendLessonLink', () => {
             configData: undefined, lessonId: 'a', courseId: 'friend', shareCode: 'ab12', succeeded: 3,
         })).toBeNull();
     });
+
+    it('returns the payload for a b export that published ask clips (askPublished)', () => {
+        expect(resolveFriendLessonLink({
+            configData: configWithB, lessonId: 'b', courseId: 'friend', shareCode: 'ab12', succeeded: 3, askPublished: true,
+        })).toEqual({ courseId: 'friend', shareCode: 'ab12' });
+    });
+
+    it('returns null for a b export that published no ask clips', () => {
+        expect(resolveFriendLessonLink({
+            configData: configWithB, lessonId: 'b', courseId: 'friend', shareCode: 'ab12', succeeded: 3, askPublished: false,
+        })).toBeNull();
+        expect(resolveFriendLessonLink({
+            configData: configWithB, lessonId: 'b', courseId: 'friend', shareCode: 'ab12', succeeded: 3,
+        })).toBeNull();
+    });
+
+    it('keeps the lesson-b guard even when askPublished is true', () => {
+        expect(resolveFriendLessonLink({
+            configData: configWithoutB, lessonId: 'b', courseId: 'model', shareCode: 'ab12', succeeded: 3, askPublished: true,
+        })).toBeNull();
+    });
+
+    it('returns null for a b+askPublished export without a real export/shareCode/courseId', () => {
+        expect(resolveFriendLessonLink({
+            configData: configWithB, lessonId: 'b', courseId: 'friend', shareCode: 'ab12', succeeded: 0, askPublished: true,
+        })).toBeNull();
+        expect(resolveFriendLessonLink({
+            configData: configWithB, lessonId: 'b', courseId: 'friend', shareCode: '', succeeded: 3, askPublished: true,
+        })).toBeNull();
+        expect(resolveFriendLessonLink({
+            configData: configWithB, lessonId: 'b', courseId: '', shareCode: 'ab12', succeeded: 3, askPublished: true,
+        })).toBeNull();
+    });
 });

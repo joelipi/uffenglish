@@ -55,13 +55,15 @@ export function listActiveFriendLinks(friendLinks, nowMs) {
 
 /**
  * Gate + payload for recording a link at export time. Pure; no store/Supabase.
- * - only lesson 'a' exports create a link
+ * - a link is created when the exported lesson is the ask lesson 'a', OR when
+ *   the export published ask clips embedded in another lesson (`askPublished`,
+ *   e.g. the ask questions appended to answer lesson 'b')
  * - the course config must actually contain lesson 'b' (never link to nothing)
  * - a real export (succeeded > 0) and a shareCode are required
  */
-export function resolveFriendLessonLink({ configData, lessonId, courseId, shareCode, succeeded }) {
+export function resolveFriendLessonLink({ configData, lessonId, courseId, shareCode, succeeded, askPublished = false }) {
     if (!succeeded || !shareCode || !courseId || !configData?.lessons) return null;
-    if (lessonId !== ASK_LESSON_ID) return null;
+    if (lessonId !== ASK_LESSON_ID && !askPublished) return null;
     if (!configData.lessons.some((l) => l.lessonId === ANSWER_LESSON_ID)) return null;
     return { courseId, shareCode };
 }
