@@ -275,6 +275,67 @@
           "simpleVideoUrl": "{friendCode}friend-a-response-03"
         },
         {
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "testvideo01",
+          "subtitles": {
+            "en": "Now record yourself asking your friends these same 3 questions. You will repeat each question exactly. Press the button below to continue.",
+            "es": "Ahora grábate preguntando a tus amigos estas mismas 3 preguntas. Repetirás cada pregunta exactamente. Oprime el botón de abajo para continuar.",
+            "pt": "Agora grave-se perguntando aos seus amigos estas mesmas 3 perguntas. Você repetirá cada pergunta exatamente. Pressione o botão abaixo para continuar.",
+            "bn": "এখন আপনার বন্ধুদের এই একই ৩টি প্রশ্ন করতে নিজেকে রেকর্ড করুন। আপনি প্রতিটি প্রশ্ন হুবহু পুনরাবৃত্তি করবেন। চালিয়ে যেতে নিচের বোতামটি চাপুন।"
+          }
+        },
+        {
+          "cue": {
+            "en": "Would you rather have a million dollars or live five years longer?",
+            "es": "¿Preferirías tener un millón de dólares o vivir cinco años más?",
+            "pt": "Você preferiria ter um milhão de dólares ou viver cinco anos a mais?",
+            "bn": "আপনি কি দশ লাখ ডলার পেতে চান নাকি আরও পাঁচ বছর বাঁচতে চান?"
+          },
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "testvideo02",
+          "publishLessonId": "a",
+          "subtitles": {
+            "en": "Would you rather have a million dollars or live five years longer?",
+            "es": "¿Preferirías tener un millón de dólares o vivir cinco años más?",
+            "pt": "Você preferiria ter um milhão de dólares ou viver cinco anos a mais?",
+            "bn": "আপনি কি দশ লাখ ডলার পেতে চান নাকি আরও পাঁচ বছর বাঁচতে চান?"
+          }
+        },
+        {
+          "cue": {
+            "en": "Would you rather have a meal with great food or a meal with great conversation?",
+            "es": "¿Preferirías una comida con excelente comida o una comida con excelente conversación?",
+            "pt": "Você preferiria uma refeição com ótima comida ou uma refeição com ótima conversa?",
+            "bn": "আপনি কি দুর্দান্ত খাবারসহ একটি ভোজ চান নাকি দুর্দান্ত আলাপসহ একটি ভোজ চান?"
+          },
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "testvideo03",
+          "publishLessonId": "a",
+          "subtitles": {
+            "en": "Would you rather have a meal with great food or a meal with great conversation?",
+            "es": "¿Preferirías una comida con excelente comida o una comida con excelente conversación?",
+            "pt": "Você preferiria uma refeição com ótima comida ou uma refeição com ótima conversa?",
+            "bn": "আপনি কি দুর্দান্ত খাবারসহ একটি ভোজ চান নাকি দুর্দান্ত আলাপসহ একটি ভোজ চান?"
+          }
+        },
+        {
+          "cue": {
+            "en": "Would you rather travel to the beach, the mountains, or the countryside?",
+            "es": "¿Preferirías viajar a la playa, las montañas o el campo?",
+            "pt": "Você preferiria viajar para a praia, as montanhas ou o campo?",
+            "bn": "আপনি কি সমুদ্র সৈকতে, পাহাড়ে, নাকি গ্রামে ভ্রমণ করতে চান?"
+          },
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "testvideo04",
+          "publishLessonId": "a",
+          "subtitles": {
+            "en": "Would you rather travel to the beach, the mountains, or the countryside?",
+            "es": "¿Preferirías viajar a la playa, las montañas o el campo?",
+            "pt": "Você preferiria viajar para a praia, as montanhas ou o campo?",
+            "bn": "আপনি কি সমুদ্র সৈকতে, পাহাড়ে, নাকি গ্রামে ভ্রমণ করতে চান?"
+          }
+        },
+        {
           "simpleVideoUrl": "testvideo08",
           "subtitles": {
             "en": "Great! Your combined video with your friend is ready. Share it!",

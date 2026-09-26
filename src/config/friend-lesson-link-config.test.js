@@ -31,3 +31,36 @@ describe('fixed a -> b mapping premise', () => {
         expect(ids).not.toContain('b');
     });
 });
+
+describe('friend.json lesson b embeds the ask questions', () => {
+    const b = friend.lessons.find((l) => l.lessonId === 'b');
+    const askSteps = b.steps.filter((s) => s.publishLessonId === 'a');
+
+    it('has exactly 3 embedded ask recording steps, all publishing under lesson a', () => {
+        expect(askSteps).toHaveLength(3);
+        for (const step of askSteps) {
+            expect(step.responseType).toBe('friendClosedResponse');
+            // Embedded ask prompts are system prompts, never friend-response slugs,
+            // so the recapSources: 'friend' invariant still holds for lesson b.
+            expect(step.simpleVideoUrl).not.toMatch(/-response-\d+/);
+        }
+    });
+
+    it('keeps the three friend-answer steps intact', () => {
+        const answerSlugs = b.steps
+            .map((s) => s.simpleVideoUrl)
+            .filter((u) => typeof u === 'string' && u.startsWith('{friendCode}'));
+        expect(answerSlugs).toEqual([
+            '{friendCode}friend-a-response-01',
+            '{friendCode}friend-a-response-02',
+            '{friendCode}friend-a-response-03',
+        ]);
+    });
+
+    it('tags no step outside lesson b with publishLessonId', () => {
+        const taggedLessons = friend.lessons.flatMap((l) =>
+            l.steps.filter((s) => s.publishLessonId !== undefined).map(() => l.lessonId)
+        );
+        expect([...new Set(taggedLessons)]).toEqual(['b']);
+    });
+});
