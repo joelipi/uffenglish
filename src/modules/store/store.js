@@ -84,6 +84,9 @@ export const appStore = createStore(
             guestNativeLanguage: null,
             guestDetectedLang: null,
             guestModalStep: 'select-language',
+            // True when the current guest modal was opened for a friend lesson:
+            // step 1 (language) still renders, but step 2 (login choice) never does.
+            guestModalFriendMode: false,
             isLoggedIn: false,
             reactReady: false,
             criticalErrorMessage: null,
@@ -215,18 +218,32 @@ export const appStore = createStore(
             setGuestNativeLanguage: (val) => set({ guestNativeLanguage: val }),
             setGuestDetectedLang: (val) => set({ guestDetectedLang: val }),
             setGuestModalStep: (val) => set({ guestModalStep: val }),
+            setGuestModalFriendMode: (val) => set({ guestModalFriendMode: val }),
             setFriendCode: (code) => set({ friendCode: code }),
-            /** Atomically sets both guestNativeLanguage and guestModalStep in ONE set()
-             *  so React never renders login-choice with a null language. */
+            /** Adopts a language without opening the modal or changing the step.
+             *  Used for friend lessons with a non-English browser language. */
             /** Also writes native_language into userData so the whole app (MissionSection,
              *  DecisionButtons, Hints, etc.) uses the guest's language for translations. */
-            setGuestLanguageAndAdvance: (lang) => set((state) => ({
+            setGuestLanguageSilent: (lang) => set((state) => ({
                 guestNativeLanguage: lang,
-                guestModalStep: 'login-choice',
                 userData: state.userData
                     ? { ...state.userData, native_language: lang }
                     : { native_language: lang },
             })),
+            /** Atomically sets both guestNativeLanguage and guestModalStep in ONE set()
+             *  so React never renders login-choice with a null language. */
+            /** Also writes native_language into userData so the whole app (MissionSection,
+             *  DecisionButtons, Hints, etc.) uses the guest's language for translations. */
+            /** In friend mode it closes the modal instead of advancing to login-choice. */
+            confirmGuestLanguage: (lang) => set((state) => {
+                const userData = state.userData
+                    ? { ...state.userData, native_language: lang }
+                    : { native_language: lang };
+                if (state.guestModalFriendMode) {
+                    return { guestNativeLanguage: lang, userData, isGuestModalOpen: false };
+                }
+                return { guestNativeLanguage: lang, userData, guestModalStep: 'login-choice' };
+            }),
             setIsLoggedIn: (val) => set({ isLoggedIn: val }),
             setReactReady: (val) => set({ reactReady: val }),
             triggerMicBounce: () => set((state) => ({ micBounceTrigger: state.micBounceTrigger + 1 })),
