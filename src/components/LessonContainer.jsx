@@ -13,6 +13,7 @@ import IntroChoices from './widgets/IntroChoices.jsx';
 import SuccessScreen from './widgets/SuccessScreen.jsx';
 import CriticalErrorModal from './modals/CriticalErrorModal.jsx';
 import SystemMessageOverlay from './widgets/MicStatusText.jsx';
+import LandscapeWarning from './widgets/LandscapeWarning';
 import DecisionButtons from './widgets/DecisionButtons.jsx';
 import ViewAndContinueButtons from './widgets/ViewAndContinueButtons.jsx';
 import AuthLink from './widgets/AuthLink.jsx';
@@ -122,6 +123,7 @@ export default function LessonContainer() {
     return (
         <>
             <SystemMessageOverlay />
+            <LandscapeWarning />
 
             {/* Top Overlay */}
             <div className="top-overlay position-absolute top-0 start-0 w-100 px-3 py-2">

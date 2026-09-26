@@ -8,7 +8,7 @@
 - **Bilingual overlays** — cues and subtitles localized to the learner's L1 (en/es/pt/fr, plus targeted hi/bn keys).
 - **Auto-generated simple-video captions** — new `simpleVideoUrl` videos get English SRT from local Whisper plus DeepSeek translations to es/pt/fr/hi/bn, committed to the branch on push ([story](stories/009-auto-caption-simple-videos/story.md)).
 - **Lesson recap video** — client-side stitched end-of-lesson recap (model prompts + own recordings) with a fluency score card, generated via canvas + MediaRecorder.
-- **Landscape recording warning** — on iOS/Android, a full-screen prompt asks the learner to rotate the device to portrait while it is held landscape, so recorded clips keep the intended 9:16 framing ([story](stories/015-warn-landscape-recording/story.md)).
+- **Landscape recording warning** — on iOS/Android, a dismissible banner tells the learner to rotate the device to portrait while it is held landscape, so recorded clips keep the intended 9:16 framing ([story](stories/015-warn-landscape-recording/story.md)).
 - **Friend Challenge lessons** — `w`/`wf` let a learner record "Would you rather?" questions, share a link, and `wa`/`wfa` let a friend answer; the two clips are concatenated. The asker's 3 question clips publish to R2 (48h TTL) and friends answer them via a `?sharecode=` URL.
 - **Auto-advancing friend answers** — answering a friend's question correctly advances straight to the next step with no feedback pause; incorrect answers retry via the hangman hint until correct ([story](stories/005-skip-friend-feedback/story.md)).
 - **Share-CTA recap** — ask-only lessons render a webcam-only "ad" recap with a localized headline, 48h deadline, and single-line share URL ([story](stories/001-webcam-only-share-cta/story.md)).
