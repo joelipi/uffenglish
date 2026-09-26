@@ -49,7 +49,11 @@ test.describe('friend lesson + Spanish browser', () => {
         await waitForGuardRun(page);
 
         // Stub the auth query logged-in through the app's own singleton, mark
-        // the bootstrap store flag, and clear the anonymous guard traces.
+        // the bootstrap store flag, and seed a sentinel guest language. The
+        // Spanish browser would silently adopt 'ES' for a friend lesson, so a
+        // sentinel that survives proves the adoption did not run (unlike a
+        // vacuous `null === null` check, which would pass even if the guard
+        // never ran at all).
         await page.evaluate(async () => {
             const { queryClient } = await import('/src/modules/api/api.js');
             queryClient.setQueryData(['auth', 'status'], true);
@@ -57,7 +61,7 @@ test.describe('friend lesson + Spanish browser', () => {
             window.appStore.setState({
                 isGuestModalOpen: false,
                 guestModalShownThisSession: false,
-                guestNativeLanguage: null,
+                guestNativeLanguage: 'XX',
             });
         });
 
@@ -67,13 +71,14 @@ test.describe('friend lesson + Spanish browser', () => {
             router.navigate(url);
         }, FRIEND_URL);
 
+        // Deterministic sync: wait for the destination lesson route to boot
+        // (LessonContainer sets activeLessonId) instead of a fixed timeout, so
+        // the guard/bootstrap effects have actually run.
         await page.waitForFunction(
-            () => window.location.pathname === '/course/friend/lesson/b',
+            () => window.appStore.getState().activeLessonId === 'b',
             null,
-            { timeout: 10000 }
+            { timeout: 15000 }
         );
-        // Give the guard/modal effects a beat to run against the new location.
-        await page.waitForTimeout(500);
 
         const state = await page.evaluate(() => ({
             isLoggedIn: window.appStore.getState().isLoggedIn,
@@ -82,8 +87,9 @@ test.describe('friend lesson + Spanish browser', () => {
         }));
         expect(state.isLoggedIn).toBe(true);
         expect(state.isGuestModalOpen).toBe(false);
-        // Friend logic did not run: no silent adoption of the Spanish browser language.
-        expect(state.guestNativeLanguage).toBeNull();
+        // Friend logic did not run: the sentinel is intact (the Spanish browser
+        // language 'ES' did not overwrite it).
+        expect(state.guestNativeLanguage).toBe('XX');
 
         const dialogOpen = await page.locator('#guestLoginModal').evaluate((el) => el.open);
         expect(dialogOpen).toBe(false);
