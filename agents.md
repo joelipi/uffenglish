@@ -61,6 +61,13 @@ tests/answer-flow.spec.js
 **Test URL:** `http://localhost:3000/course/model/lesson/g`
 Lessons require a full URL where `course` and `model` map to valid JSON files and `lesson` is a valid key within that JSON, unless lesson data is already in memory.
 
+**Testing data-driven pages (profile, share-code views):** don't mock Supabase or log in. Load the route, wait for its initial query to settle, then inject fixtures into the app's own query cache from `page.evaluate`:
+```js
+const { queryClient } = await import('/src/modules/api/api.js');
+queryClient.setQueryData(['user', 'profile', 'shareCode', code], fixture);
+```
+`main.jsx` passes that same singleton to `QueryClientProvider`, and `staleTime: Infinity` keeps the injected data from refetching. For time-dependent UI (countdowns, expiry), fix the clock first with `await page.clock.setFixedTime(new Date('2026-09-24T12:00:00Z'))` so the rendered values are deterministic. See `tests/friend-lesson-link.spec.js`.
+
 **Lesson media (real recordings only):** every video slug in `src/config/*.json` resolves to a real file on R2 at `assets/videos/<slug>.mp4` (`src/modules/video/video-url.js`). Video files are never committed (too large) and are gitignored. Upload recordings to R2 manually, e.g. `npx wrangler r2 object put uff/assets/videos/<slug>.mp4 --file <path> --content-type video/mp4`, then reference the slug in the config. Do not add a placeholder/mock video generator.
 
 ---

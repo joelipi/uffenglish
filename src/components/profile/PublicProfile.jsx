@@ -4,6 +4,7 @@ import { appStore } from '../../modules/store/store.js';
 import Strings from '../../data/strings.js';
 import { LOCALE_MAP } from '../../data/languages.js';
 import defaultProfilePic from '../../assets/img/userprofile.png';
+import FriendLessonLinksSection from './FriendLessonLinksSection.jsx';
 
 export default function PublicProfile({ shareCode }) {
     const navigate = useNavigate();
@@ -70,6 +71,7 @@ export default function PublicProfile({ shareCode }) {
     const profilePic = rawPic || defaultProfilePic;
     const completedDates = Array.isArray(profile.completed_dates) ? profile.completed_dates : [];
     const lessonsCompleted = Number(profile.lessons_completed || 0);
+    const friendLinks = profile.friendLinks;
 
     return (
         <div style={containerStyle}>
@@ -91,6 +93,8 @@ export default function PublicProfile({ shareCode }) {
                     <p style={{ color: '#6c757d', fontSize: '13px', marginBottom: '4px' }}>Share Code: {shareCode}</p>
                     {joinDate && <p style={{ color: '#6c757d', fontSize: '13px' }}>{Strings.get('profile_member_since', lang, { date: joinDate })}</p>}
                 </div>
+
+                <FriendLessonLinksSection friendLinks={friendLinks} lang={lang} />
 
                 <div style={cardStyle}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>

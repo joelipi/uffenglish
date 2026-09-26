@@ -2,6 +2,8 @@ import React, { useRef, useEffect, useCallback } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { trackEvent } from '../../modules/utils/posthog.js';
+import { useAddFriendLinkMutation } from '../../modules/api/api.js';
+import { resolveFriendLessonLink } from '../../modules/user/friend-lesson-link-logic.js';
 import { getBilingual } from '../../data/strings.js';
 
 // Bilingual label above a circular call-btn, matching the earlier steps.
@@ -59,6 +61,7 @@ export function VideoButton({ canvasRef }) {
   const setSuccessVideoBlob = useStore(appStore, state => state.setSuccessVideoBlob);
   const setContinueVisible = useStore(appStore, state => state.setSuccessContinueVisible);
   const shareHandlerRef = useRef(null);
+  const friendLinkMutation = useAddFriendLinkMutation();
 
   // Show SaveClipsModal immediately for guests when the success screen
   // appears, blocking the processBtn behind the dialog's backdrop.
@@ -102,7 +105,28 @@ export function VideoButton({ canvasRef }) {
         };
 
         if (publishSegments) {
-          exportSegmentsToR2(lessonId);
+          // Publishing to R2 (and recording the friend link) must never fail the
+          // video-generation flow: the stitched video is already ready above.
+          try {
+            const exportResult = await exportSegmentsToR2(lessonId);
+            const { configData, courseId, userData } = appStore.getState();
+            const payload = resolveFriendLessonLink({
+              configData,
+              lessonId,
+              courseId,
+              shareCode: userData?.shareCode,
+              succeeded: exportResult?.succeeded,
+            });
+            if (payload) {
+              await friendLinkMutation.mutateAsync({
+                userId: userData.$id,
+                entry: { ...payload, addedAt: new Date().toISOString() },
+              });
+              trackEvent('friend_lesson_link_created', payload);
+            }
+          } catch (e) {
+            console.error('[Success] R2 publish / friend link failed (non-fatal):', e);
+          }
         }
       }
     } catch (err) {
@@ -111,7 +135,7 @@ export function VideoButton({ canvasRef }) {
       alert('Failed to generate video. Please try again.');
       setVideoState('idle');
     }
-  }, [canvasRef, fluencyData, lessonId, setCanvasVisible, setSuccessVideoBlob, setVideoState, setRepeatVisible, setContinueVisible]);
+  }, [canvasRef, fluencyData, lessonId, setCanvasVisible, setSuccessVideoBlob, setVideoState, setRepeatVisible, setContinueVisible, friendLinkMutation]);
 
   if (!button.visible) return null;
 
