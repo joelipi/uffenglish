@@ -19,7 +19,7 @@ This story makes the export honor a per-step **publish target**, so the ask step
 ## Out of Scope
 
 - **Chaining `b` → `a`.** Rejected: the share hand-off loses the user. The ask recording happens inside `b`.
-- **Editing lesson config.** The lesson author adds the A question steps to `b` (see the template in Notes); this story implements the code that honors them. No `src/config/*.json` change is part of this story.
+- **Converting other courses.** The code is course-agnostic. `friend.json` lesson `b` is converted in this story (Task 5); any other course that gains `a`/`b` is converted the same way.
 - **A new R2 namespace, table, endpoint, or prompt source.** The clips still land in `videos/` under the existing key scheme.
 - **Changing the link target, CTA copy/URL, or the friend success screen.** The link still points at lesson `b`; the recap CTA still shows `ultrafastfluency.com/<shareCode>`; friend lessons still show only the Share button.
 - **Recording-flow changes.** `handleStepCore`, scoring, and the answer pipeline are untouched; the appended steps are ordinary `friendClosedResponse` recordings.
@@ -28,9 +28,9 @@ This story makes the export honor a per-step **publish target**, so the ask step
 
 ## Implementation approach
 
-### 1. Config contract (author-owned) — a per-step `publishLessonId`
+### 1. Config contract — a per-step `publishLessonId`
 
-A step may declare `publishLessonId`: the lesson namespace its recording publishes under. Absent/empty → the lesson being exported (today's behavior). The lesson author appends the ask steps to `b` tagged `"publishLessonId": "a"` (template in Notes).
+A step may declare `publishLessonId`: the lesson namespace its recording publishes under. Absent/empty → the lesson being exported (today's behavior). Lesson `b` includes the ask steps tagged `"publishLessonId": "a"` (Task 5; template in Notes).
 
 The recorder, scoring, and recap are unaffected: the step is a normal `friendClosedResponse`, and because its `simpleVideoUrl` prompt is a system prompt (not `-response-NN`), the `recapSources: "friend"` recap still only concatenates the friend's prompt clips — the responder's own webcam recordings (answers **and** questions) are all included as `webcam` segments automatically.
 
@@ -156,6 +156,17 @@ export function buildUgcSegmentKey({ shareCode, courseId, lessonId, index }) {
 - `resolveFriendLessonLink` with `lessonId: 'b'`, `askPublished: true`, but `succeeded: 0` / `shareCode: ''` / `courseId: ''`
   - → `null` for each
 
+### Task 5 - Convert `friend.json` lesson `b` (`src/config/friend-lesson-link-config.test.js`)
+
+- `src/config/friend.json` parsed + lesson `b` steps filtered by `publishLessonId === 'a'`
+  - → exactly 3 such steps
+  - → each is `responseType: 'friendClosedResponse'`
+  - → none has a `-response-\d+` `simpleVideoUrl` (they are system prompts, so lesson `b`'s `recapSources: 'friend'` invariant still holds)
+- `src/config/friend.json` parsed + lesson `b` steps whose `simpleVideoUrl` starts with `{friendCode}`
+  - → exactly `['{friendCode}friend-a-response-01', '{friendCode}friend-a-response-02', '{friendCode}friend-a-response-03']` (answers intact)
+- Every config file in `src/config/` parsed + every step inspected for `publishLessonId`
+  - → only `friend.json` lesson `b` tags steps, only with `'a'`
+
 ## Technical Context
 
 - **No new dependencies.** Reuses React 19.2.0, `@tanstack/react-query` 5.100.14, `zustand` 5.0.13, `@supabase/supabase-js` 2.112.4. Unit tests: vitest 4.1.6 + jsdom 29.1.1 (colocated `*.test.js`; `vitest.config.js` excludes `tests/**` and `*.spec.js`).
@@ -164,12 +175,12 @@ export function buildUgcSegmentKey({ shareCode, courseId, lessonId, index }) {
 - **Read path:** a friend's `b` lesson fetches the asker's clips via the literal slug `{friendCode}-<courseId>-a-response-NN` (e.g. `friend.json:191`); `{friendCode}` is substituted by `normalizeConfig` from the `?sharecode=` param. Nothing on the read side changes.
 - **Link logic** (`friend-lesson-link-logic.js`): `ASK_LESSON_ID = 'a'`, `ANSWER_LESSON_ID = 'b'`, one `friend_links` entry per course, 48h render-time expiry. Story 012 / migration 004.
 - **Platform-agnostic guard:** `video-processor-logic.test.js` asserts the source contains no `window`/`document`/`navigator` and no `http(s)://`; the new helpers must not introduce either (keys are `videos/...`, no scheme).
-- **`friend.json` `b` steps today** run answer-only; the author will append the ask steps. `SuccessScreen.jsx` classifies a friend lesson as `recapOverlay === 'shareCta'` and shows only Share — unchanged.
+- **`friend.json` `b` steps** now include the ask question steps (Task 5). `SuccessScreen.jsx` classifies a friend lesson as `recapOverlay === 'shareCta'` and shows only Share — unchanged.
 - **Existing tests that will need updating:** `friend-lesson-link-wiring.test.js` (return shape + `askPublished`), because `exportSegmentsToR2`'s contract changes. `video-processor-share-cta.test.js`, `model-config.test.js`, and the Playwright spec are unaffected.
 
 ## Notes
 
-**Config template (author task, not part of this code change).** In every course that has lessons `a` and `b`, append these to lesson `b` immediately before its `success` step — the ask lesson's question steps, each tagged `publishLessonId: "a"`. Use the course's own ask prompts and localized cue/subtitles (copy the shape from lesson `a`):
+**Config template (applied to `friend.json` lesson `b` in Task 5; use the same shape for any other course that has `a`/`b`).** Append these to lesson `b` immediately before its `success` step — the ask lesson's question steps, each tagged `publishLessonId: "a"`. Use the course's own ask prompts and localized cue/subtitles (copy the shape from lesson `a`):
 
 ```json
 {
@@ -186,9 +197,9 @@ export function buildUgcSegmentKey({ shareCode, courseId, lessonId, index }) {
 
 Repeat for the remaining two questions (`testvideo03`/`testvideo04`, or the course's equivalents). The `publishLessonId: "a"` is the only non-obvious field; without it the clips upload as `...-b-response-NN` and friends' `b` lessons will 404 them.
 
-**Manual verification** (the R2/MediaRecorder path can't run in vitest; the mapping logic is covered by Tasks 1-4, but the end-to-end needs the author's config):
+**Manual verification** (the R2/MediaRecorder path can't run in vitest; the mapping logic is covered by Tasks 1-5, but the end-to-end needs a real export):
 
-1. Add the ask steps to `friend.json` lesson `b` with `publishLessonId: "a"` (or any course with `a` and `b`).
+1. `friend.json` lesson `b` already contains the ask question steps (`publishLessonId: "a"`, Task 5).
 2. `npm run dev`, log in, open `/course/friend/lesson/b?sharecode=<a friend's code>` — complete the answers **and** the appended questions, then Generate.
 3. Confirm R2 now has `videos/<yourCode>-friend-b-response-01..03.mp4` **and** `videos/<yourCode>-friend-a-response-01..03.mp4`.
 4. Open `/<yourCode>` — the "Practice English with Me" link appears (created from the `b` export because ask clips published).
