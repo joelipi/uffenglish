@@ -42,6 +42,11 @@ describe('getLessonIdFromPathname', () => {
         expect(getLessonIdFromPathname('/course/model/lesson/g/extra')).toBeNull();
         expect(getLessonIdFromPathname(null)).toBeNull();
     });
+
+    it('does not throw on malformed percent-encoding', () => {
+        expect(() => getLessonIdFromPathname('/course/model/lesson/%')).not.toThrow();
+        expect(getLessonIdFromPathname('/course/model/lesson/%')).toBe('%');
+    });
 });
 
 describe('isFriendLesson', () => {

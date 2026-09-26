@@ -27,7 +27,13 @@ export function getShareCodeFromSearch(search) {
 export function getLessonIdFromPathname(pathname) {
     if (typeof pathname !== 'string' || pathname === '') return null;
     const match = /^\/course\/[^/]+\/lesson\/([^/]+)\/?$/.exec(pathname);
-    return match ? decodeURIComponent(match[1]) : null;
+    if (!match) return null;
+    try {
+        return decodeURIComponent(match[1]);
+    } catch {
+        // Malformed percent-encoding (e.g. a bare '%') — fall back to the raw segment.
+        return match[1];
+    }
 }
 
 // A friend lesson is opened via a friend share link (?shareCode=) or is a

@@ -47,6 +47,13 @@ describe('useGuestModalGuard wiring', () => {
         expect(guard).toContain('silentLangRef');
         expect(guard).toContain('setGuestLanguageSilent(lang)');
     });
+
+    it('forgets the silent language once the user logs in', () => {
+        const drop = guard.indexOf('silentLangRef.current = null;');
+        const reapply = guard.indexOf('setGuestLanguageSilent(lang)');
+        expect(drop).toBeGreaterThanOrEqual(0);
+        expect(drop).toBeLessThan(reapply);
+    });
 });
 
 describe('GuestLoginModal wiring', () => {

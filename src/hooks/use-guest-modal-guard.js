@@ -72,11 +72,18 @@ export function useGuestModalGuard() {
 
     // ── Re-apply the silently adopted language after a later userData write ──
     useEffect(() => {
+        // A logged-in user must never be touched by the friend-lesson adoption.
+        // Login can happen without a reload (RootLayout stays mounted), so drop
+        // the remembered language as soon as auth reports a user.
+        if (isLoggedIn) {
+            silentLangRef.current = null;
+            return;
+        }
         const lang = silentLangRef.current;
         if (!lang) return;
         if (storeUserData?.native_language === lang) return;
         appStore.getState().setGuestLanguageSilent(lang);
-    }, [storeUserData]);
+    }, [storeUserData, isLoggedIn]);
 
     // ── Close modal + dismiss preloader when navigating to an auth route ──
     useEffect(() => {
