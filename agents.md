@@ -82,6 +82,7 @@ You cannot use a microphone. Bypass it using built-in testing functions, or invo
 
 Headless recipe (local dev on `:3000`):
 - Dismiss the guest modal: click `#guestEnglishOnlyBtn`, then `#guestContinueBtn`.
+- The guest modal is a native `<dialog>` (`#guestLoginModal`). While it is open it sits in the browser top layer, above *any* `z-index` (e.g. it intercepts clicks on `#landscape-warning`, z-index 2000). Dismiss it before clicking any overlay control, or use `locator.dispatchEvent('click')`.
 - Advance past the intro: click `#intro-call-widget`.
 - Simulate engine loading/failure by routing `**r2.ultrafastfluency.com/whisper/**` (and `**cdn.jsdelivr.net/**`) to hang or abort; call `window.appStore.getState().setWhisperReady(true)` to reach the mic path without a full model download.
 - Headless Chromium has no media devices, so `getUserMedia` rejects — use this for the no-mic recovery path.
