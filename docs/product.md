@@ -44,3 +44,4 @@
 - The R2 UGC 48h TTL is configured in the Cloudflare dashboard, not in `wrangler.toml` (`README.md:98`).
 - Classroom/staging testing depends on R2 availability; video playback cannot be fully verified offline.
 - "Friend lesson" detection is route-based (`?shareCode=` in the URL, or a lesson whose id is `a`/`b`) and does not include the course id, because course ids are open-ended. As a result the ordinary lessons `a` in `model.json` and `gt2.json` are also treated as friend lessons and skip the automatic guest login/language prompt ([story](stories/016-friend-lesson-modals/story.md)).
+- A guest who silently adopts a browser language on a friend lesson and then logs in within the same SPA session can keep that adopted language in memory until the next full page load; a page load while already logged in uses the profile language and skips all friend-lesson logic ([story](stories/016-friend-lesson-modals/story.md)).

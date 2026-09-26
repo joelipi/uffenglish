@@ -29,9 +29,12 @@ A "friend lesson" is detected synchronously from the route alone so nothing can 
 New module `src/modules/user/friend-lesson-detection.js`:
 
 ```js
-// Friend-challenge lessons use the ids 'a' (ask) and 'b' (answer). Course ids
-// are open-ended, so they are deliberately not part of the predicate.
-export const FRIEND_LESSON_IDS = ['a', 'b'];
+import { ASK_LESSON_ID, ANSWER_LESSON_ID } from './friend-lesson-link-logic.js';
+
+// Single source of truth for the friend-challenge lesson ids; do not re-literal
+// them here. Course ids are open-ended, so they are deliberately not part of the
+// predicate.
+export const FRIEND_LESSON_IDS = [ASK_LESSON_ID, ANSWER_LESSON_ID];
 
 // Case-insensitive ?shareCode= in a URL search string (with or without '?').
 // Returns the trimmed, lowercased code, or null.
@@ -78,10 +81,11 @@ export const ENGLISH_LANG = 'EN';
 // - non-friend lesson                   -> the existing two-step flow
 export function resolveGuestModalPlan({ isFriendLesson, detectedLang } = {}) {
     const lang = (typeof detectedLang === 'string' && detectedLang) ? detectedLang : ENGLISH_LANG;
-    if (isFriendLesson && lang !== ENGLISH_LANG) {
-        return { action: 'adopt-silently', language: lang };
+    const friendMode = !!isFriendLesson;
+    if (friendMode && lang !== ENGLISH_LANG) {
+        return { action: 'adopt-silently', language: lang, friendMode: true };
     }
-    return { action: 'open-language', friendMode: !!isFriendLesson };
+    return { action: 'open-language', friendMode };
 }
 
 // What the guard's silent-adoption re-apply effect should do after a later
@@ -133,7 +137,7 @@ The existing first line of the effect — `if (isLoading || isLoggedIn) return;`
 In the open effect, replace the unconditional open with the plan:
 
 - Compute `const friendLesson = isFriendLesson({ search: location.search, pathname: path })` and `const plan = resolveGuestModalPlan({ isFriendLesson: friendLesson, detectedLang: detectBrowserLanguage() })`.
-- Always set `setGuestDetectedLang`, `setGuestModalShownThisSession(true)`, and `setGuestModalFriendMode(friendLesson)`.
+- Always set `setGuestDetectedLang`, `setGuestModalShownThisSession(true)`, and `setGuestModalFriendMode(plan.friendMode)` (the plan is the single source for friend mode — do not set the flag from the raw `friendLesson` boolean).
 - `plan.action === 'adopt-silently'` → store `plan.language` in a ref, call `setGuestLanguageSilent(plan.language)`, ensure `setGuestModalOpen(false)`, log, and return. The modal is never opened, so there is no flash.
 - Otherwise → `setGuestModalStep('select-language')` and `setGuestModalOpen(true)` (unchanged non-friend behavior; friend + English also lands here but with `guestModalFriendMode` true so step 2 never renders).
 - Add `location.search` to the effect deps.
@@ -191,8 +195,10 @@ Replace the three `setGuestLanguageAndAdvance(...)` calls (`handleContinueWithSe
   - → `true` for each (share code wins regardless of lesson id)
 - `isFriendLesson({ pathname: '/course/model/lesson/g' })`, `({ pathname: '/course/model/lesson/wa' })`, `({ pathname: '/' })`, `({})`, `()`
   - → `false` for each
+- `FRIEND_LESSON_IDS` imported from `friend-lesson-detection.js` compared with `[ASK_LESSON_ID, ANSWER_LESSON_ID]` imported from `friend-lesson-link-logic.js`
+  - → equal (ids are single-sourced, not re-literal'd)
 - `resolveGuestModalPlan({ isFriendLesson: true, detectedLang: 'ES' })`
-  - → `{ action: 'adopt-silently', language: 'ES' }`
+  - → `{ action: 'adopt-silently', language: 'ES', friendMode: true }`
 - `resolveGuestModalPlan({ isFriendLesson: true, detectedLang: 'EN' })`
   - → `{ action: 'open-language', friendMode: true }`
 - `resolveGuestModalPlan({ isFriendLesson: false, detectedLang: 'ES' })` and `({ isFriendLesson: false, detectedLang: 'EN' })`
@@ -265,6 +271,9 @@ No source-text/wiring tests are used: the guard, the React modal, and the store 
 - **Confirmed product rule (user answer):** for a friend lesson with a non-English browser, adopt the detected language even when UFF has no translation for it (content falls back to English), matching existing guest-mode behavior.
 - **Confirmed product rule (user answer):** if the user is already logged in, none of the friend-lesson behavior applies — they are simply treated as a logged-in user. This is enforced by keeping `if (isLoading || isLoggedIn) return;` as the first statement of the open effect, so friend detection, silent adoption, and friend mode are all skipped. The re-apply effect independently enforces it via `resolveSilentLanguageReapply` (`isLoggedIn` → `forget`).
 - **No source-text wiring tests.** This story deliberately does **not** add a `readFileSync`/`toContain` wiring test (an earlier draft did). The guard/modal/store wiring is asserted by the Task 3 browser tests against the real components, and the decisions by the Task 1 pure tests; a string-match test would only give false confidence and is rejected by code review. Do not "restore" a static wiring test, and do not treat the pre-existing `src/modules/user/friend-lesson-link-wiring.test.js` as a precedent to copy.
+- **Known limitation (mid-session login).** "Logged-in users are unaffected" is guaranteed for a user who is logged in when a friend lesson loads, and the `resolveSilentLanguageReapply` `forget` branch stops the re-apply. But if a *guest* silently adopts a language on a friend lesson and then logs in **within the same SPA session**, `useAppBootstrap` does not rewrite `userData` (its `initStarted` guard), so the adopted `native_language` can persist in the store until the next full page load. This staleness is pre-existing (the store's `userData` is not refreshed after an in-session login, regardless of this feature); a fresh load while logged in uses the profile language and runs none of the friend logic. Do not add a profile re-fetch to the guard just for this — it would add a network request on every route. Add a code comment in the `forget` branch pointing at this note.
+- **Singleton constants:** `FRIEND_LESSON_IDS` must be derived from `ASK_LESSON_ID`/`ANSWER_LESSON_ID` (`friend-lesson-link-logic.js`); never re-literal `'a'`/`'b'` in the detection module.
+- **`resolveGuestModalPlan` owns friend mode:** return `friendMode` in both branches and have the guard call `setGuestModalFriendMode(plan.friendMode)`. Do not leave a `friendMode` field that no caller reads.
 - **Ordering fix rationale:** `useAppBootstrap` (`src/hooks/use-app-bootstrap-webonly.js:62`) writes `userData` from the guest profile (`native_language: 'EN'`) asynchronously; the guard can run first. The `silentLangRef` + `useStore(userData)` re-apply effect ensures the silently-adopted language survives that write without touching the bootstrap hook.
 - **Preserved behavior:** for non-friend lessons the two-step modal is byte-for-byte unchanged in UI and strings; only the action name behind the three step-1 buttons changes (`setGuestLanguageAndAdvance` → `confirmGuestLanguage`), and `confirmGuestLanguage` reproduces the non-friend result exactly.
 - **Logging (`agents.md` §2):** keep the existing `[GuestModalGuard]` logs, add a success log for the silent-adopt path, and add the friend flag to the open log. Do not remove existing logs.
