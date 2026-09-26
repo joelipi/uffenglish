@@ -4,7 +4,7 @@ import { ENGLISH_LANG, resolveGuestModalPlan, resolveSilentLanguageReapply } fro
 describe('resolveGuestModalPlan', () => {
     it('adopts a non-English browser language silently for a friend lesson', () => {
         expect(resolveGuestModalPlan({ isFriendLesson: true, detectedLang: 'ES' }))
-            .toEqual({ action: 'adopt-silently', language: 'ES' });
+            .toEqual({ action: 'adopt-silently', language: 'ES', friendMode: true });
     });
 
     it('opens only the language step for a friend lesson in English', () => {

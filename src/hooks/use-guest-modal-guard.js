@@ -54,7 +54,8 @@ export function useGuestModalGuard() {
 
             state.setGuestDetectedLang(detectedCode);
             state.setGuestModalShownThisSession(true);
-            state.setGuestModalFriendMode(friendLesson);
+            // The plan is the single source for friend mode — never the raw boolean.
+            state.setGuestModalFriendMode(plan.friendMode);
 
             if (plan.action === 'adopt-silently') {
                 silentLangRef.current = plan.language;
@@ -80,6 +81,11 @@ export function useGuestModalGuard() {
             currentUserLang: storeUserData?.native_language,
         });
         if (decision.action === 'forget') {
+            // Known limitation (mid-session login): dropping the ref stops future
+            // re-applies, but a language already adopted earlier in this SPA
+            // session can persist, because useAppBootstrap (initStarted guard)
+            // does not rewrite userData until a full reload. Do not add a profile
+            // re-fetch here — a fresh load while logged in uses the profile.
             silentLangRef.current = null;
             return;
         }

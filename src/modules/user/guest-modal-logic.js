@@ -10,10 +10,11 @@ export const ENGLISH_LANG = 'EN';
 // - non-friend lesson                   -> the existing two-step flow
 export function resolveGuestModalPlan({ isFriendLesson, detectedLang } = {}) {
     const lang = (typeof detectedLang === 'string' && detectedLang) ? detectedLang : ENGLISH_LANG;
-    if (isFriendLesson && lang !== ENGLISH_LANG) {
-        return { action: 'adopt-silently', language: lang };
+    const friendMode = !!isFriendLesson;
+    if (friendMode && lang !== ENGLISH_LANG) {
+        return { action: 'adopt-silently', language: lang, friendMode: true };
     }
-    return { action: 'open-language', friendMode: !!isFriendLesson };
+    return { action: 'open-language', friendMode };
 }
 
 // What the guard's silent-adoption re-apply effect should do after a later

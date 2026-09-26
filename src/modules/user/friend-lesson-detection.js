@@ -5,9 +5,12 @@
 // No DOM, no browser globals beyond URLSearchParams/decodeURIComponent — fully
 // unit-testable and safe to call during render (nothing can flash).
 
-// Friend-challenge lessons use the ids 'a' (ask) and 'b' (answer). Course ids
-// are open-ended, so they are deliberately not part of the predicate.
-export const FRIEND_LESSON_IDS = ['a', 'b'];
+import { ASK_LESSON_ID, ANSWER_LESSON_ID } from './friend-lesson-link-logic.js';
+
+// Single source of truth for the friend-challenge lesson ids; do not re-literal
+// them here. Course ids are open-ended, so they are deliberately not part of the
+// predicate.
+export const FRIEND_LESSON_IDS = [ASK_LESSON_ID, ANSWER_LESSON_ID];
 
 // Case-insensitive ?shareCode= in a URL search string (with or without '?').
 // Returns the trimmed, lowercased code, or null.

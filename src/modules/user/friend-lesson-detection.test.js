@@ -5,10 +5,11 @@ import {
     getLessonIdFromPathname,
     isFriendLesson,
 } from './friend-lesson-detection.js';
+import { ASK_LESSON_ID, ANSWER_LESSON_ID } from './friend-lesson-link-logic.js';
 
 describe('FRIEND_LESSON_IDS', () => {
-    it('pins the ask/answer lesson ids', () => {
-        expect(FRIEND_LESSON_IDS).toEqual(['a', 'b']);
+    it('is single-sourced from the friend-challenge ask/answer lesson ids', () => {
+        expect(FRIEND_LESSON_IDS).toEqual([ASK_LESSON_ID, ANSWER_LESSON_ID]);
     });
 });
 
