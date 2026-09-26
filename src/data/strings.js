@@ -1560,6 +1560,22 @@ const strings = {
         fr: "Partagez cette vidéo avec des amis, votre famille et vos collègues pour qu'ils pratiquent avec vous. Ils ont 48 heures pour répondre.",
         hi: "इस वीडियो को दोस्तों, परिवार और सहकर्मियों के साथ साझा करें ताकि वे आपके साथ अभ्यास कर सकें। उनके पास जवाब देने के लिए 48 घंटे हैं।",
         bn: "এই ভিডিওটি বন্ধু, পরিবার ও সহকর্মীদের সাথে শেয়ার করুন যাতে তারা আপনার সাথে অনুশীলন করতে পারে। তাদের উত্তর দেওয়ার জন্য 48 ঘন্টা রয়েছে।"
+    },
+    'rotate_device_portrait': {
+        en: "Recording in landscape will mess up your video. Rotate your device to portrait before you record.",
+        es: "Grabar en horizontal arruinará tu video. Gira tu dispositivo a vertical antes de grabar.",
+        pt: "Gravar na horizontal vai estragar seu vídeo. Gire o dispositivo para vertical antes de gravar.",
+        fr: "Enregistrer en paysage gâchera votre vidéo. Tournez votre appareil en mode portrait avant d'enregistrer.",
+        hi: "लैंडस्केप में रिकॉर्ड करने से आपका वीडियो खराब हो जाएगा। रिकॉर्ड करने से पहले अपने डिवाइस को पोर्ट्रेट में घुमाएँ।",
+        bn: "ল্যান্ডস্কেপে রেকর্ড করলে আপনার ভিডিও নষ্ট হয়ে যাবে। রেকর্ড করার আগে আপনার ডিভাইসটি পোর্ট্রেটে ঘোরান।"
+    },
+    'dismiss': {
+        en: "Dismiss",
+        es: "Descartar",
+        pt: "Dispensar",
+        fr: "Ignorer",
+        hi: "खारिज करें",
+        bn: "খারিজ করুন"
     }
 };
 
