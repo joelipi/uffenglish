@@ -27,8 +27,8 @@ is explicitly out of scope for this story.
   canvas — this story only warns; it does not change what is recorded.
 - Desktop/laptop browsers: they are never warned (no OS rotation; a landscape
   webcam is expected there).
-- Blocking or pausing the lesson/recording — the warning is informational but
-  full-screen while landscape.
+- Blocking the lesson or recording — the warning is dismissible; the learner may
+  keep going in landscape after dismissing it.
 - Native (`*.native.jsx`) rendering beyond a no-op stub.
 
 ## Implementation approach
@@ -75,14 +75,26 @@ platform-extension convention — see `InteractiveVideoPlayer`). It:
   through `isMobileUserAgent`,
 - subscribes to `resize` and `orientationchange` on `window`, updating React
   state (no direct DOM manipulation; `agents.md` §1),
-- renders, only when `shouldWarnLandscape(...)` is true:
+- keeps a `dismissed` React state. Clicking the dismiss control sets it `true`.
+  When the viewport returns to portrait, `dismissed` resets to `false`, so a
+  later re-entry into landscape warns again,
+- renders, only when `shouldWarnLandscape(...) && !dismissed`:
 
 ```jsx
 <div id="landscape-warning" role="alert" className="landscape-warning">
-    <div className="landscape-warning-content">
-        <i className="bi bi-phone" aria-hidden="true"></i>
-        <p>{Strings.get('rotate_device_portrait', userData?.native_language || 'en')}</p>
-    </div>
+    <i className="bi bi-exclamation-triangle-fill landscape-warning-icon" aria-hidden="true"></i>
+    <p className="landscape-warning-text">
+        {Strings.get('rotate_device_portrait', userData?.native_language || 'en')}
+    </p>
+    <button
+        id="landscape-warning-dismiss"
+        type="button"
+        className="landscape-warning-dismiss"
+        aria-label={Strings.get('dismiss', userData?.native_language || 'en')}
+        onClick={() => setDismissed(true)}
+    >
+        <i className="bi bi-x-lg" aria-hidden="true"></i>
+    </button>
 </div>
 ```
 
@@ -93,47 +105,71 @@ native resolves `.native.jsx`).
 
 ### Styles
 
-Add a full-screen overlay to `src/assets/css/app.css`, above the lesson
-overlays (`top-overlay` z 35, `bottom-overlay` z 1050):
+Add a prominent, dismissible warning banner to `src/assets/css/app.css`, above
+the lesson overlays (`top-overlay` z 35, `bottom-overlay` z 1050):
 
 ```css
 .landscape-warning {
     position: fixed;
-    inset: 0;
+    top: 0;
+    left: 0;
+    right: 0;
     z-index: 2000;
     display: flex;
     align-items: center;
-    justify-content: center;
-    padding: 24px;
-    background: rgba(0, 0, 0, 0.92);
+    gap: 12px;
+    padding: 14px 16px;
+    background: #b3261e;
     color: #fff;
-    text-align: center;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
 }
-.landscape-warning-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 16px;
+.landscape-warning-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
 }
-.landscape-warning i {
-    font-size: 3rem;
+.landscape-warning-text {
+    flex: 1;
+    margin: 0;
+    font-weight: 600;
+}
+.landscape-warning-dismiss {
+    flex-shrink: 0;
+    background: transparent;
+    border: 0;
+    color: inherit;
+    font-size: 1.25rem;
+    padding: 4px;
+    line-height: 1;
 }
 ```
 
 ### String
 
-Add key `rotate_device_portrait` to the table in `src/data/strings.js`. Every
-key must carry Devanagari `hi` and Bengali `bn` copy
-(`src/data/strings.test.js:16-31`):
+Add two keys to the table in `src/data/strings.js`. Every key must carry
+Devanagari `hi` and Bengali `bn` copy (`src/data/strings.test.js:16-31`).
+
+`rotate_device_portrait` — deliberate, explicit that the recording will be
+spoiled:
 
 | Lang | Value |
 | --- | --- |
-| en | Rotate your device to portrait to record properly. |
-| es | Gira tu dispositivo a vertical para grabar correctamente. |
-| pt | Gire o dispositivo para vertical para gravar corretamente. |
-| fr | Tournez votre appareil en mode portrait pour enregistrer correctement. |
-| hi | ठीक से रिकॉर्ड करने के लिए अपने डिवाइस को पोर्ट्रेट में घुमाएँ। |
-| bn | সঠিকভাবে রেকর্ড করতে আপনার ডিভাইসটি পোর্ট্রেটে ঘোরান। |
+| en | Recording in landscape will mess up your video. Rotate your device to portrait before you record. |
+| es | Grabar en horizontal arruinará tu video. Gira tu dispositivo a vertical antes de grabar. |
+| pt | Gravar na horizontal vai estragar seu vídeo. Gire o dispositivo para vertical antes de gravar. |
+| fr | Enregistrer en paysage gâchera votre vidéo. Tournez votre appareil en mode portrait avant d'enregistrer. |
+| hi | लैंडस्केप में रिकॉर्ड करने से आपका वीडियो खराब हो जाएगा। रिकॉर्ड करने से पहले अपने डिवाइस को पोर्ट्रेट में घुमाएँ। |
+| bn | ল্যান্ডস্কেপে রেকর্ড করলে আপনার ভিডিও নষ্ট হয়ে যাবে। রেকর্ড করার আগে আপনার ডিভাইসটি পোর্ট্রেটে ঘোরান। |
+
+`dismiss` — the dismiss button's accessible name:
+
+| Lang | Value |
+| --- | --- |
+| en | Dismiss |
+| es | Descartar |
+| pt | Dispensar |
+| fr | Ignorer |
+| hi | खारिज करें |
+| bn | খারিজ করুন |
 
 ## Tasks
 
@@ -174,8 +210,10 @@ key must carry Devanagari `hi` and Bengali `bn` copy
   - → imports and calls `shouldWarnLandscape`, `isLandscape`, `isMobileUserAgent`
   - → reads `window.innerWidth` and `window.innerHeight`
   - → adds and removes both `resize` and `orientationchange` window listeners
-  - → renders an element with `id="landscape-warning"` and `role="alert"`
-  - → calls `Strings.get('rotate_device_portrait', ...)`
+  - → renders, gated on `shouldWarnLandscape(...) && !dismissed`, an element with `id="landscape-warning"` and `role="alert"`
+  - → calls `Strings.get('rotate_device_portrait', ...)` for the message
+  - → renders a dismiss button `id="landscape-warning-dismiss"` that calls `setDismissed(true)`
+  - → resets `dismissed` to `false` when the viewport is no longer landscape
 - `LandscapeWarning.native.jsx` read as source
   - → exports a component that returns `null`
 - `LessonContainer.jsx` read as source
@@ -183,11 +221,14 @@ key must carry Devanagari `hi` and Bengali `bn` copy
   - → renders `<LandscapeWarning />`
 - `src/assets/css/app.css` read as source
   - → contains a `.landscape-warning` rule with `position: fixed` and a `z-index` greater than `1050`
-  - → contains a `.landscape-warning-content` rule
+  - → contains `.landscape-warning-text` and `.landscape-warning-dismiss` rules
 - `src/data/strings.js` string coverage
+  - → `get('rotate_device_portrait', 'en')` contains both "landscape" and "portrait" and warns the video is affected
   - → `get('rotate_device_portrait', 'hi')` matches Devanagari
   - → `get('rotate_device_portrait', 'bn')` matches Bengali
-  - → the existing `strings.test.js` suite passes with the new key
+  - → `get('dismiss', 'hi')` matches Devanagari
+  - → `get('dismiss', 'bn')` matches Bengali
+  - → the existing `strings.test.js` suite passes with both new keys
 
 ### Task 3 - Browser behavior (Playwright)
 
@@ -197,13 +238,15 @@ descriptor (avoids `defaultBrowserType` leaking into `test.use`): an iPhone UA
 landscape/portrait `viewport`. Test URL `/course/model/lesson/g`.
 
 - iPhone UA + landscape viewport (`844x390`) + `/course/model/lesson/g` loaded
-  - → `#landscape-warning` is visible
+  - → `#landscape-warning` is visible and its text matches the localized `rotate_device_portrait` value
+- iPhone UA + landscape, then `#landscape-warning-dismiss` clicked
+  - → `#landscape-warning` is hidden
+- iPhone UA + landscape, dismissed, then viewport resized to portrait (`390x844`) and back to landscape (`844x390`)
+  - → `#landscape-warning` is visible again
 - iPhone UA + portrait viewport (`390x844`) + `/course/model/lesson/g` loaded
   - → `#landscape-warning` is not attached/visible
 - desktop UA (default) + landscape viewport (`1280x720`) + `/course/model/lesson/g` loaded
   - → `#landscape-warning` is not attached/visible
-- iPhone UA + landscape, then viewport resized to portrait
-  - → `#landscape-warning` becomes hidden
 
 ## Notes
 
@@ -211,9 +254,10 @@ landscape/portrait `viewport`. Test URL `/course/model/lesson/g`.
   mobile while landscape, not only during the recording sub-phase. This matches
   "at the time of the lesson" and avoids coupling to store phase state; it can
   be narrowed to `mediaState === 'webcamOrAvatar'` later if it proves noisy.
-- **Assumption (blocking).** The overlay is full-screen and non-dismissible while
-  landscape, so the learner must rotate to continue. If a dismissible banner is
-  preferred, keep the same predicate but drop the full-screen styles.
+- **Dismissible.** The learner can dismiss the banner and keep going in
+  landscape; the copy must make the consequence unambiguous ("will mess up your
+  video"). Dismissal lasts for that landscape session and resets when the device
+  returns to portrait, so re-entering landscape warns again.
 - **Not a fix by itself.** This warns; it does not make a landscape recording
   portrait. If a laptop/desktop learner records in landscape, the recap stays
   landscape — that is accepted here and is why the warning is mobile-only.
