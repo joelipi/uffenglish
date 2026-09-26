@@ -108,19 +108,19 @@ export default function GuestLoginModal() {
     /** Confirm the selected language and advance to step 2. */
     const handleContinueWithSelected = useCallback(() => {
         const lang = selectedLang || guestDetectedLang || 'EN';
-        appStore.getState().setGuestLanguageAndAdvance(lang);
+        appStore.getState().confirmGuestLanguage(lang);
         trackEvent('guest_modal_action', { action: 'language_selected', language: lang });
         console.log('[GuestLoginModal] Guest confirmed native language:', lang);
     }, [selectedLang, guestDetectedLang]);
 
     const handleEnglishOnly = useCallback(() => {
-        appStore.getState().setGuestLanguageAndAdvance('EN');
+        appStore.getState().confirmGuestLanguage('EN');
         trackEvent('guest_modal_action', { action: 'language_selected', language: 'EN' });
         console.log('[GuestLoginModal] Guest chose English only');
     }, []);
 
     const handleNotListed = useCallback(() => {
-        appStore.getState().setGuestLanguageAndAdvance('OTHER');
+        appStore.getState().confirmGuestLanguage('OTHER');
         trackEvent('guest_modal_action', { action: 'language_not_listed' });
         console.log('[GuestLoginModal] Guest chose "not on this list"');
     }, []);
