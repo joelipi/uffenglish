@@ -83,6 +83,17 @@ export function resolveGuestModalPlan({ isFriendLesson, detectedLang } = {}) {
     }
     return { action: 'open-language', friendMode: !!isFriendLesson };
 }
+
+// What the guard's silent-adoption re-apply effect should do after a later
+// `userData` write. A logged-in user always wins: their profile must never be
+// overwritten by a language a friend lesson adopted earlier.
+// Returns { action: 'forget' | 'noop' | 'apply', language? }.
+export function resolveSilentLanguageReapply({ isLoggedIn, silentLang, currentUserLang } = {}) {
+    if (isLoggedIn) return { action: 'forget' };
+    if (!silentLang) return { action: 'noop' };
+    if (currentUserLang === silentLang) return { action: 'noop' };
+    return { action: 'apply', language: silentLang };
+}
 ```
 
 `detectedLang` is produced by the existing `detectBrowserLanguage()` (uppercase base code). Any non-`EN` value — supported or not — is adopted silently; unsupported codes fall back to English content exactly as existing guest mode does.
@@ -126,18 +137,26 @@ In the open effect, replace the unconditional open with the plan:
 - `plan.action === 'adopt-silently'` → store `plan.language` in a ref, call `setGuestLanguageSilent(plan.language)`, ensure `setGuestModalOpen(false)`, log, and return. The modal is never opened, so there is no flash.
 - Otherwise → `setGuestModalStep('select-language')` and `setGuestModalOpen(true)` (unchanged non-friend behavior; friend + English also lands here but with `guestModalFriendMode` true so step 2 never renders).
 - Add `location.search` to the effect deps.
-- Add a second effect (deps on the store's `userData` via `useStore`) that re-applies the silent language if a later bootstrap write replaces `userData`:
+- Add a second effect (deps on the store's `userData` via `useStore`, plus `isLoggedIn`) that delegates to `resolveSilentLanguageReapply` and re-applies the silent language if a later bootstrap write replaces `userData`:
 
 ```js
 useEffect(() => {
-    const lang = silentLangRef.current;
-    if (!lang) return;
-    if (storeUserData?.native_language === lang) return;
-    appStore.getState().setGuestLanguageSilent(lang);
-}, [storeUserData]);
+    const decision = resolveSilentLanguageReapply({
+        isLoggedIn,
+        silentLang: silentLangRef.current,
+        currentUserLang: storeUserData?.native_language,
+    });
+    if (decision.action === 'forget') {
+        silentLangRef.current = null;
+        return;
+    }
+    if (decision.action === 'apply') {
+        appStore.getState().setGuestLanguageSilent(decision.language);
+    }
+}, [storeUserData, isLoggedIn]);
 ```
 
-This closes the one race this story introduces: `useAppBootstrap` calls `setCourseData({ userData })` with the guest profile (default `native_language: 'EN'`) asynchronously, and the guard effect can fire before it. The ref + store subscription guarantees the adopted language sticks.
+This closes the one race this story introduces: `useAppBootstrap` calls `setCourseData({ userData })` with the guest profile (default `native_language: 'EN'`) asynchronously, and the guard effect can fire before it. The ref + store subscription guarantees the adopted language sticks — **unless the user is logged in, in which case the decision is `forget` and the ref is dropped so a logged-in profile is never overwritten.**
 
 ### 5. Modal (`src/components/modals/GuestLoginModal.web.jsx`)
 
@@ -182,6 +201,14 @@ Replace the three `setGuestLanguageAndAdvance(...)` calls (`handleContinueWithSe
   - → `{ action: 'open-language', friendMode: true }` for each (missing language falls back to EN)
 - `resolveGuestModalPlan()`
   - → `{ action: 'open-language', friendMode: false }`
+- `resolveSilentLanguageReapply({ isLoggedIn: true, silentLang: 'ES', currentUserLang: 'EN' })`, `({ isLoggedIn: true, silentLang: 'ES', currentUserLang: null })`, `({ isLoggedIn: true })`
+  - → `{ action: 'forget' }` for each (a logged-in profile is never overwritten)
+- `resolveSilentLanguageReapply({ silentLang: null, currentUserLang: 'EN' })` and `({})`
+  - → `{ action: 'noop' }` for each
+- `resolveSilentLanguageReapply({ silentLang: 'ES', currentUserLang: 'ES' })`
+  - → `{ action: 'noop' }`
+- `resolveSilentLanguageReapply({ silentLang: 'ES', currentUserLang: 'EN' })` and `({ silentLang: 'ES' })`
+  - → `{ action: 'apply', language: 'ES' }` for each
 
 ### Task 2 - Store actions (`src/modules/store/guest-modal-store.test.js`, new)
 
@@ -198,23 +225,9 @@ Replace the three `setGuestLanguageAndAdvance(...)` calls (`handleContinueWithSe
 - `guestModalFriendMode: true` + `confirmGuestLanguage('OTHER')`
   - → `isGuestModalOpen === false`, `guestNativeLanguage === 'OTHER'`, `userData.native_language === 'OTHER'`
 
-### Task 3 - Guard + modal wiring (`src/modules/user/friend-lesson-modals-wiring.test.js`, new)
+### Task 3 - Browser behavior (`tests/friend-lesson-modals.spec.js`, new Playwright)
 
-- `src/hooks/use-guest-modal-guard.js` read as text
-  - → contains the `if (isLoading || isLoggedIn) return;` early return, and its index is before the first `isFriendLesson(` occurrence (friend logic unreachable when logged in)
-  - → imports `isFriendLesson` from `friend-lesson-detection.js` and `resolveGuestModalPlan` from `guest-modal-logic.js`
-  - → calls `isFriendLesson({` with both `search` and `pathname`
-  - → calls `resolveGuestModalPlan({`
-  - → contains the `plan.action === 'adopt-silently'` branch and calls `setGuestLanguageSilent(plan.language)` inside it
-  - → subscribes to store `userData` via `useStore(appStore` and re-applies `setGuestLanguageSilent` for the remembered language
-- `src/components/modals/GuestLoginModal.web.jsx` read as text
-  - → calls `confirmGuestLanguage`
-  - → contains no `setGuestLanguageAndAdvance`
-- `src/modules/store/store.js` read as text
-  - → contains `guestModalFriendMode`, `setGuestModalFriendMode:`, `setGuestLanguageSilent:` and `confirmGuestLanguage:`
-  - → contains no `setGuestLanguageAndAdvance:`
-
-### Task 4 - Browser behavior (`tests/friend-lesson-modals.spec.js`, new Playwright)
+No source-text/wiring tests are used: the guard, the React modal, and the store actions are exercised end-to-end here, and the pure decision logic is covered in Task 1, so the behavior is asserted rather than string-matched.
 
 - locale `es-ES` + `/course/friend/lesson/b?shareCode=friendtest1` loaded and app booted
   - → `window.appStore.getState().isGuestModalOpen === false`
@@ -227,10 +240,10 @@ Replace the three `setGuestLanguageAndAdvance(...)` calls (`handleContinueWithSe
 - locale `en-US` + `/course/model/lesson/g` loaded and app booted
   - → `#guestLanguageSelect` is visible
   - → after clicking `#guestEnglishOnlyBtn`, `#guestLoginBtn` becomes visible (non-friend flow unchanged)
-- locale `es-ES` + auth query stubbed logged-in, then client-side navigation (`router.navigate`, `src/routes/router.js`) to `/course/friend/lesson/b?shareCode=friendtest1`
+- locale `es-ES` + auth query stubbed logged-in + `guestNativeLanguage` seeded to a sentinel (`'XX'`) before client-side navigation (`router.navigate`, `src/routes/router.js`) to `/course/friend/lesson/b?shareCode=friendtest1`, then waiting for the lesson to boot (`configData` set)
   - → `window.appStore.getState().isLoggedIn === true`
   - → `window.appStore.getState().isGuestModalOpen === false`
-  - → `window.appStore.getState().guestNativeLanguage === null` (friend logic did not run / no silent adoption)
+  - → `window.appStore.getState().guestNativeLanguage === 'XX'` (the friend silent-adopt did **not** overwrite it with the Spanish browser language — a vacuous `null === null` assertion is not used)
   - → the `#guestLoginModal` dialog's `.open` property is `false`
 
 ## Technical Context
@@ -242,7 +255,7 @@ Replace the three `setGuestLanguageAndAdvance(...)` calls (`handleContinueWithSe
 - **`guestModalStep`/`guestModalFriendMode`/`isGuestModalOpen` are not persisted** (not in the store's `partialize`); `guestNativeLanguage` and `friendCode` are persisted. Each Playwright test gets a fresh browser context, so localStorage starts clean.
 - **The modal is closed by default** (`isGuestModalOpen: false`), so skipping the open is inherently flash-free; no pre-paint/DOM workaround is needed.
 - **Store reset in tests:** `appStore.setState({...})` is the established pattern (`src/modules/store/store.test.js:7`).
-- **Stubbing "logged in" in the browser test:** the guard reads `useAuthStatus()`, whose query key is `['auth','status']` (`src/modules/api/api.js:199`). Inject it through the app's own singleton (`queryClient.setQueryData(['auth','status'], true)`, same pattern as `tests/friend-lesson-link.spec.js`) after the initial query settles, then navigate client-side with `const { router } = await import('/src/routes/router.js'); router.navigate(url)`. `setQueryData` marks the query fresh (no refetch), and a full-page `goto` is deliberately avoided because it would discard the injected cache.
+- **Stubbing "logged in" in the browser test:** the guard reads `useAuthStatus()`, whose query key is `['auth','status']` (`src/modules/api/api.js:199`). Boot on a non-friend lesson (so `window.appStore` exists and a real anonymous guard run has happened), then inject the auth query through the app's own singleton (`queryClient.setQueryData(['auth','status'], true)`, same pattern as `tests/friend-lesson-link.spec.js`) plus `setIsLoggedIn(true)`, seed `guestNativeLanguage` to the `'XX'` sentinel, and navigate client-side with `const { router } = await import('/src/routes/router.js'); router.navigate(url)`. `setQueryData` marks the query fresh (no refetch), and a full-page `goto` is deliberately avoided because it would discard the injected cache. Determinism comes from waiting for the destination lesson to boot (`configData`), **not** a fixed `waitForTimeout`.
 - **Query keys:** `['auth','status']` (`useAuthStatus`) and `['user','profile']` (`useUserProfile`); `queryClient` is exported from `src/modules/api/api.js` and passed to `QueryClientProvider` in `src/main.jsx`.
 
 ## Notes
@@ -250,7 +263,8 @@ Replace the three `setGuestLanguageAndAdvance(...)` calls (`handleContinueWithSe
 - **Confirmed product rule (user answer):** a friend lesson is `?shareCode=` in the URL **or** lesson id `a`/`b`, in any course. Because `src/config/model.json:261` and `src/config/gt2.json:7` also define a lesson `a` ("Soda 1"), those two *normal* lessons are now treated as friend lessons and will skip the guest login/language prompt. This is an accepted, explicit trade-off — course id is not used because course ids are open-ended.
 - **Confirmed product rule (user answer):** friends are not blocked from logging in. The success-screen `SaveClipsModal` (after recording) and the HomeScreen menu `Sign In` remain the login paths; this story only suppresses the automatic prompt.
 - **Confirmed product rule (user answer):** for a friend lesson with a non-English browser, adopt the detected language even when UFF has no translation for it (content falls back to English), matching existing guest-mode behavior.
-- **Confirmed product rule (user answer):** if the user is already logged in, none of the friend-lesson behavior applies — they are simply treated as a logged-in user. This is enforced by keeping `if (isLoading || isLoggedIn) return;` as the first statement of the open effect, so friend detection, silent adoption, and friend mode are all skipped.
+- **Confirmed product rule (user answer):** if the user is already logged in, none of the friend-lesson behavior applies — they are simply treated as a logged-in user. This is enforced by keeping `if (isLoading || isLoggedIn) return;` as the first statement of the open effect, so friend detection, silent adoption, and friend mode are all skipped. The re-apply effect independently enforces it via `resolveSilentLanguageReapply` (`isLoggedIn` → `forget`).
+- **No source-text wiring tests.** This story deliberately does **not** add a `readFileSync`/`toContain` wiring test (an earlier draft did). The guard/modal/store wiring is asserted by the Task 3 browser tests against the real components, and the decisions by the Task 1 pure tests; a string-match test would only give false confidence and is rejected by code review. Do not "restore" a static wiring test, and do not treat the pre-existing `src/modules/user/friend-lesson-link-wiring.test.js` as a precedent to copy.
 - **Ordering fix rationale:** `useAppBootstrap` (`src/hooks/use-app-bootstrap-webonly.js:62`) writes `userData` from the guest profile (`native_language: 'EN'`) asynchronously; the guard can run first. The `silentLangRef` + `useStore(userData)` re-apply effect ensures the silently-adopted language survives that write without touching the bootstrap hook.
 - **Preserved behavior:** for non-friend lessons the two-step modal is byte-for-byte unchanged in UI and strings; only the action name behind the three step-1 buttons changes (`setGuestLanguageAndAdvance` → `confirmGuestLanguage`), and `confirmGuestLanguage` reproduces the non-friend result exactly.
 - **Logging (`agents.md` §2):** keep the existing `[GuestModalGuard]` logs, add a success log for the silent-adopt path, and add the friend flag to the open log. Do not remove existing logs.
