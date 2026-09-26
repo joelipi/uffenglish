@@ -180,6 +180,160 @@ describe('VideoRenderPlanner.generatePlan — recapSources clip selection', () =
         expect(plan[0].type).toBe('tailing');
         expect(plan[0].variant).toBe('fluency');
     });
+
+    it('borrows the preceding click-through friend clip for a system response step', () => {
+        const steps = [
+            { responseType: 'lessonIntro', introBackgroundVideoUrl: 'testvideo01' },
+            { responseType: 'viewAndContinue', simpleVideoUrl: 'ab12-model-w-response-01' },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'testvideo05', cue: 'Q1' },
+        ];
+        const recordings = [
+            { originalLessonId: 'w', originalStepIndex: 2, blob: { size: 1 }, userResponse: 'a' },
+        ];
+        const planner = new VideoRenderPlanner(
+            recordings, makeConfig({ recapSources: 'friend', steps }), { total: 80 }, 'en', 'ab12'
+        );
+        const plan = planner.generatePlan();
+
+        expect(plan.map(s => s.type)).toEqual(['remote', 'webcam', 'tailing']);
+        const remote = plan.find(s => s.type === 'remote');
+        expect(remote.targetId).toBe('ab12-model-w-response-01');
+        // Cue still comes from the recorded response step, not the friend clip.
+        expect(remote.subtitle.en).toBe('Q1');
+    });
+
+    it('pairs each click-through friend clip with its own response question', () => {
+        const steps = [
+            { responseType: 'lessonIntro', introBackgroundVideoUrl: 'testvideo01' },
+            { responseType: 'viewAndContinue', simpleVideoUrl: 'ab12-model-w-response-01' },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'testvideo05', cue: 'Q1' },
+            { responseType: 'viewAndContinue', simpleVideoUrl: 'ab12-model-w-response-02' },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'testvideo06', cue: 'Q2' },
+            { responseType: 'viewAndContinue', simpleVideoUrl: 'ab12-model-w-response-03' },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'testvideo07', cue: 'Q3' },
+        ];
+        const recordings = [2, 4, 6].map(i => ({
+            originalLessonId: 'w', originalStepIndex: i, blob: { size: 1 }, userResponse: `a${i}`,
+        }));
+        const planner = new VideoRenderPlanner(
+            recordings, makeConfig({ recapSources: 'friend', steps }), { total: 80 }, 'en', 'ab12'
+        );
+        const plan = planner.generatePlan();
+
+        expect(plan.map(s => s.type)).toEqual([
+            'remote', 'webcam', 'remote', 'webcam', 'remote', 'webcam', 'tailing',
+        ]);
+        expect(plan.filter(s => s.type === 'remote').map(s => s.targetId)).toEqual([
+            'ab12-model-w-response-01',
+            'ab12-model-w-response-02',
+            'ab12-model-w-response-03',
+        ]);
+    });
+
+    it('keeps the recorded step’s own friend clip when it already has one', () => {
+        const steps = [
+            { responseType: 'lessonIntro', introBackgroundVideoUrl: 'testvideo01' },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'ab12-model-w-response-09', cue: 'Q1' },
+        ];
+        const recordings = [
+            { originalLessonId: 'w', originalStepIndex: 1, blob: { size: 1 }, userResponse: 'a' },
+        ];
+        const planner = new VideoRenderPlanner(
+            recordings, makeConfig({ recapSources: 'friend', steps }), { total: 80 }, 'en', 'ab12'
+        );
+        const remote = planner.generatePlan().find(s => s.type === 'remote');
+
+        expect(remote.targetId).toBe('ab12-model-w-response-09');
+    });
+
+    it('does not borrow a friend clip in a system lesson', () => {
+        const steps = [
+            { responseType: 'lessonIntro', introBackgroundVideoUrl: 'testvideo01' },
+            { responseType: 'viewAndContinue', simpleVideoUrl: 'ab12-model-w-response-01' },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'testvideo05', cue: 'Q1' },
+        ];
+        const recordings = [
+            { originalLessonId: 'w', originalStepIndex: 2, blob: { size: 1 }, userResponse: 'a' },
+        ];
+        const planner = new VideoRenderPlanner(
+            recordings, makeConfig({ recapSources: 'system', steps }), { total: 80 }, 'en', 'ab12'
+        );
+        const remote = planner.generatePlan().find(s => s.type === 'remote');
+
+        expect(remote.targetId).toBe('testvideo05');
+    });
+
+    it('emits no remote step in a none lesson with a friend clip present', () => {
+        const steps = [
+            { responseType: 'lessonIntro', introBackgroundVideoUrl: 'testvideo01' },
+            { responseType: 'viewAndContinue', simpleVideoUrl: 'ab12-model-w-response-01' },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'testvideo05', cue: 'Q1' },
+        ];
+        const recordings = [
+            { originalLessonId: 'w', originalStepIndex: 2, blob: { size: 1 }, userResponse: 'a' },
+        ];
+        const planner = new VideoRenderPlanner(
+            recordings, makeConfig({ recapSources: 'none', steps }), { total: 80 }, 'en', 'ab12'
+        );
+        const plan = planner.generatePlan();
+
+        expect(plan.filter(s => s.type === 'remote')).toHaveLength(0);
+    });
+
+    it('finds no fallback when no friend clip precedes the response step', () => {
+        const steps = [
+            { responseType: 'lessonIntro', introBackgroundVideoUrl: 'testvideo01' },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'testvideo05', cue: 'Q1' },
+        ];
+        const recordings = [
+            { originalLessonId: 'w', originalStepIndex: 1, blob: { size: 1 }, userResponse: 'a' },
+        ];
+        const planner = new VideoRenderPlanner(
+            recordings, makeConfig({ recapSources: 'friend', steps }), { total: 80 }, 'en', 'ab12'
+        );
+        const plan = planner.generatePlan();
+
+        expect(plan.filter(s => s.type === 'remote')).toHaveLength(0);
+    });
+
+    it('stops the fallback scan at a response-step boundary', () => {
+        const steps = [
+            { responseType: 'viewAndContinue', simpleVideoUrl: 'ab12-model-w-response-01' },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'testvideo05', cue: 'Q1' },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'testvideo06', cue: 'Q2' },
+        ];
+        const recordings = [
+            { originalLessonId: 'w', originalStepIndex: 1, blob: { size: 1 }, userResponse: 'a' },
+            { originalLessonId: 'w', originalStepIndex: 2, blob: { size: 1 }, userResponse: 'b' },
+        ];
+        const planner = new VideoRenderPlanner(
+            recordings, makeConfig({ recapSources: 'friend', steps }), { total: 80 }, 'en', 'ab12'
+        );
+        const remotes = planner.generatePlan().filter(s => s.type === 'remote');
+
+        // Only the index-1 recording borrows friend-01; the index-2 recording
+        // must not reuse it across the response boundary.
+        expect(remotes).toHaveLength(1);
+        expect(remotes[0].targetId).toBe('ab12-model-w-response-01');
+    });
+
+    it('borrows the friend clip once for a retry pair at the same response step', () => {
+        const steps = [
+            { responseType: 'viewAndContinue', simpleVideoUrl: 'ab12-model-w-response-01' },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'testvideo05', cue: 'Q1' },
+        ];
+        const recordings = [
+            { originalLessonId: 'w', originalStepIndex: 1, blob: { size: 1 }, userResponse: 'a' },
+            { originalLessonId: 'w', originalStepIndex: 1, blob: { size: 1 }, userResponse: 'b' },
+        ];
+        const planner = new VideoRenderPlanner(
+            recordings, makeConfig({ recapSources: 'friend', steps }), { total: 80 }, 'en', 'ab12'
+        );
+        const plan = planner.generatePlan();
+
+        expect(plan.filter(s => s.type === 'remote')).toHaveLength(1);
+        expect(plan.map(s => s.type)).toEqual(['remote', 'webcam', 'webcam', 'tailing']);
+    });
 });
 
 describe('VideoRenderPlanner.generatePlan — recapOverlay tailing variant', () => {
