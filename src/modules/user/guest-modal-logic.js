@@ -15,3 +15,14 @@ export function resolveGuestModalPlan({ isFriendLesson, detectedLang } = {}) {
     }
     return { action: 'open-language', friendMode: !!isFriendLesson };
 }
+
+// What the guard's silent-adoption re-apply effect should do after a later
+// `userData` write. A logged-in user always wins: their profile must never be
+// overwritten by a language a friend lesson adopted earlier.
+// Returns { action: 'forget' | 'noop' | 'apply', language? }.
+export function resolveSilentLanguageReapply({ isLoggedIn, silentLang, currentUserLang } = {}) {
+    if (isLoggedIn) return { action: 'forget' };
+    if (!silentLang) return { action: 'noop' };
+    if (currentUserLang === silentLang) return { action: 'noop' };
+    return { action: 'apply', language: silentLang };
+}

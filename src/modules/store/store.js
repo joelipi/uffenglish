@@ -220,21 +220,20 @@ export const appStore = createStore(
             setGuestModalStep: (val) => set({ guestModalStep: val }),
             setGuestModalFriendMode: (val) => set({ guestModalFriendMode: val }),
             setFriendCode: (code) => set({ friendCode: code }),
-            /** Adopts a language without opening the modal or changing the step.
-             *  Used for friend lessons with a non-English browser language. */
-            /** Also writes native_language into userData so the whole app (MissionSection,
-             *  DecisionButtons, Hints, etc.) uses the guest's language for translations. */
+            /** Adopts `lang` without opening the modal or changing the step (friend
+             *  lessons with a non-English browser language). Also writes
+             *  userData.native_language so the whole app (MissionSection,
+             *  DecisionButtons, Hints, etc.) translates to the guest's language. */
             setGuestLanguageSilent: (lang) => set((state) => ({
                 guestNativeLanguage: lang,
                 userData: state.userData
                     ? { ...state.userData, native_language: lang }
                     : { native_language: lang },
             })),
-            /** Atomically sets both guestNativeLanguage and guestModalStep in ONE set()
-             *  so React never renders login-choice with a null language. */
-            /** Also writes native_language into userData so the whole app (MissionSection,
-             *  DecisionButtons, Hints, etc.) uses the guest's language for translations. */
-            /** In friend mode it closes the modal instead of advancing to login-choice. */
+            /** Sets guestNativeLanguage + userData.native_language and, in non-friend
+             *  mode, the guestModalStep, all in ONE set() so React never renders
+             *  login-choice with a null language. In friend mode it closes the modal
+             *  instead, so step 2 (login choice) never renders. */
             confirmGuestLanguage: (lang) => set((state) => {
                 const userData = state.userData
                     ? { ...state.userData, native_language: lang }

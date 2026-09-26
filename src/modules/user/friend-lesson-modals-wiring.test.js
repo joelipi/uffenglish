@@ -45,14 +45,14 @@ describe('useGuestModalGuard wiring', () => {
     it('subscribes to store userData and re-applies the remembered language', () => {
         expect(guard).toContain('useStore(appStore');
         expect(guard).toContain('silentLangRef');
-        expect(guard).toContain('setGuestLanguageSilent(lang)');
+        expect(guard).toContain('setGuestLanguageSilent(decision.language)');
     });
 
-    it('forgets the silent language once the user logs in', () => {
-        const drop = guard.indexOf('silentLangRef.current = null;');
-        const reapply = guard.indexOf('setGuestLanguageSilent(lang)');
-        expect(drop).toBeGreaterThanOrEqual(0);
-        expect(drop).toBeLessThan(reapply);
+    // Structural guard only: the forget/apply behavior itself is unit-tested in
+    // guest-modal-logic.test.js via resolveSilentLanguageReapply.
+    it('delegates the re-apply decision to the shared pure helper', () => {
+        expect(guard).toContain('resolveSilentLanguageReapply');
+        expect(guard).toContain('silentLangRef.current = null;');
     });
 });
 

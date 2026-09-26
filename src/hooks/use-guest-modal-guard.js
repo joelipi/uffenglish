@@ -5,7 +5,7 @@ import { appStore } from '../modules/store/store.js';
 import { useAuthStatus } from '../modules/api/api.js';
 import { usePreloader } from './usePreloader.js';
 import { isFriendLesson } from '../modules/user/friend-lesson-detection.js';
-import { resolveGuestModalPlan } from '../modules/user/guest-modal-logic.js';
+import { resolveGuestModalPlan, resolveSilentLanguageReapply } from '../modules/user/guest-modal-logic.js';
 
 const AUTH_ROUTES = ['/login', '/signup', '/recover-password', '/reset-password'];
 
@@ -72,17 +72,20 @@ export function useGuestModalGuard() {
 
     // ── Re-apply the silently adopted language after a later userData write ──
     useEffect(() => {
-        // A logged-in user must never be touched by the friend-lesson adoption.
-        // Login can happen without a reload (RootLayout stays mounted), so drop
-        // the remembered language as soon as auth reports a user.
-        if (isLoggedIn) {
+        // The decision (logged-in users always win, forget the ref) lives in the
+        // pure helper so it is unit-tested instead of only asserted as source text.
+        const decision = resolveSilentLanguageReapply({
+            isLoggedIn,
+            silentLang: silentLangRef.current,
+            currentUserLang: storeUserData?.native_language,
+        });
+        if (decision.action === 'forget') {
             silentLangRef.current = null;
             return;
         }
-        const lang = silentLangRef.current;
-        if (!lang) return;
-        if (storeUserData?.native_language === lang) return;
-        appStore.getState().setGuestLanguageSilent(lang);
+        if (decision.action === 'apply') {
+            appStore.getState().setGuestLanguageSilent(decision.language);
+        }
     }, [storeUserData, isLoggedIn]);
 
     // ── Close modal + dismiss preloader when navigating to an auth route ──

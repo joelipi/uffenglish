@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ENGLISH_LANG, resolveGuestModalPlan } from './guest-modal-logic.js';
+import { ENGLISH_LANG, resolveGuestModalPlan, resolveSilentLanguageReapply } from './guest-modal-logic.js';
 
 describe('resolveGuestModalPlan', () => {
     it('adopts a non-English browser language silently for a friend lesson', () => {
@@ -34,5 +34,37 @@ describe('resolveGuestModalPlan', () => {
 
     it('pins the English language constant', () => {
         expect(ENGLISH_LANG).toBe('EN');
+    });
+});
+
+describe('resolveSilentLanguageReapply', () => {
+    it('forgets the adopted language once the user is logged in', () => {
+        // Even though the current profile language (EN) differs from the
+        // adopted one (ES), a logged-in user must never be overwritten.
+        expect(resolveSilentLanguageReapply({ isLoggedIn: true, silentLang: 'ES', currentUserLang: 'EN' }))
+            .toEqual({ action: 'forget' });
+        expect(resolveSilentLanguageReapply({ isLoggedIn: true, silentLang: 'ES', currentUserLang: null }))
+            .toEqual({ action: 'forget' });
+        expect(resolveSilentLanguageReapply({ isLoggedIn: true }))
+            .toEqual({ action: 'forget' });
+    });
+
+    it('does nothing when no language was adopted', () => {
+        expect(resolveSilentLanguageReapply({ silentLang: null, currentUserLang: 'EN' }))
+            .toEqual({ action: 'noop' });
+        expect(resolveSilentLanguageReapply({}))
+            .toEqual({ action: 'noop' });
+    });
+
+    it('does nothing when the profile already has the adopted language', () => {
+        expect(resolveSilentLanguageReapply({ silentLang: 'ES', currentUserLang: 'ES' }))
+            .toEqual({ action: 'noop' });
+    });
+
+    it('re-applies the adopted language when a later write replaced it', () => {
+        expect(resolveSilentLanguageReapply({ silentLang: 'ES', currentUserLang: 'EN' }))
+            .toEqual({ action: 'apply', language: 'ES' });
+        expect(resolveSilentLanguageReapply({ silentLang: 'ES' }))
+            .toEqual({ action: 'apply', language: 'ES' });
     });
 });
