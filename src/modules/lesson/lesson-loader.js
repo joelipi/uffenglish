@@ -95,6 +95,10 @@ export async function loadLessonContent(lesson, options = {}) {
 
     const stepDeps = getAnswerPipelineDeps();
     if (stepDeps) {
+        // Mark this as a direct/restored load (page load, reload, or the signup
+        // redirect). The success step uses this to reveal immediately instead of
+        // waiting for a success clip that cannot autoplay without a user gesture.
+        appStore.getState().setStepLoadedFromRestore(true);
         loadStep(lesson.steps[startIndex], lesson, null, stepDeps);
     }
 }

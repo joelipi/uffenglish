@@ -150,9 +150,12 @@
                 // High-priority poster preload for lesson intro — ensures the
                 // intro rectangle is never empty (LQIP already prevents black).
                 // Uses fetch + Image.decode() so the browser caches + decodes it.
-                if (lessonData?.lessonId && typeof buildPosterUrlFn === 'function') {
+                // The poster is keyed by the first step's video slug, not the
+                // lessonId (lessonIds are not unique across course configs).
+                const posterSlug = lessonData?.steps?.[0]?.introBackgroundVideoUrl;
+                if (posterSlug && typeof buildPosterUrlFn === 'function') {
                     try {
-                        const posterUrl = buildPosterUrlFn(lessonData.lessonId);
+                        const posterUrl = buildPosterUrlFn(posterSlug);
                         if (posterUrl) {
                             fetch(posterUrl, { priority: 'high' }).catch(() => {});
                             const pImg = new Image();

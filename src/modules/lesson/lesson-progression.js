@@ -54,6 +54,9 @@ export function createProgression(deps) {
 
         appStore.setState({ currentStepIndex: appStore.getState().currentStepIndex + 1 });
         const nextStep = currentLesson.steps[appStore.getState().currentStepIndex];
+        // Advancing in-app (not a page load) — the success step waits for its
+        // clip to play and end before revealing the overlay.
+        appStore.getState().setStepLoadedFromRestore(false);
         // callLoadStep must run before setPendingVideoPlayType so the new video element
         // is mounted before the video players' useLayoutEffect consumes the iOS transient
         // user activation. See iOS video playback fix.

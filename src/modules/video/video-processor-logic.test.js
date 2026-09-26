@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { VideoRenderPlanner, resolveRecapOverlay, resolveRecapSources, isDroppedStep, markFirstRenderable } from './video-processor-logic.js';
+import { VideoRenderPlanner, resolveRecapOverlay, resolveRecapSources, isDroppedStep, markFirstRenderable, resolveSegmentBounds, UNRESOLVED_SEGMENT_CAP_MS, STALL_GRACE_MS } from './video-processor-logic.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const LOGIC_PATH = path.join(__dirname, 'video-processor-logic.js');
@@ -278,6 +278,76 @@ describe('isDroppedStep / markFirstRenderable', () => {
     });
 });
 
+describe('VideoRenderPlanner.generatePlan — UGC poster thumb carry-through', () => {
+    it('carries rec.thumbBlob into the webcam step', () => {
+        const thumb = { size: 42, type: 'image/jpeg' };
+        const recordings = [{
+            originalLessonId: 'w', originalStepIndex: 1, blob: { size: 1 },
+            userResponse: 'a', thumbBlob: thumb,
+        }];
+        const planner = new VideoRenderPlanner(
+            recordings, makeConfig(), { total: 80 }, 'en', 'ab12'
+        );
+        const webcam = planner.generatePlan().find(s => s.type === 'webcam');
+
+        expect(webcam.thumbBlob).toBe(thumb);
+        // Storage never surfaces the raw ArrayBuffer to the planner; restored
+        // records carry a Blob (storage.web.js).
+        expect(webcam).not.toHaveProperty('thumbArrayBuffer');
+    });
+
+    it('defaults thumbBlob to null when there is no thumb', () => {
+        const planner = new VideoRenderPlanner(
+            makeRecordings(1), makeConfig(), { total: 80 }, 'en', 'ab12'
+        );
+        const webcam = planner.generatePlan().find(s => s.type === 'webcam');
+
+        expect(webcam.thumbBlob).toBeNull();
+        expect(webcam).not.toHaveProperty('thumbArrayBuffer');
+    });
+});
+
+describe('resolveSegmentBounds', () => {
+    it('prefers an explicit trim end', () => {
+        expect(resolveSegmentBounds({ trimEnd: 4, rawDuration: 10, start: 1 }))
+            .toEqual({ endTime: 4, wallClockCapMs: 3000 });
+    });
+
+    it('treats a falsy trim end as absent (preserves step.trim?.end || ...)', () => {
+        expect(resolveSegmentBounds({ trimEnd: 0, rawDuration: 12, start: 0 }))
+            .toEqual({ endTime: 12, wallClockCapMs: 12000 });
+    });
+
+    it('uses the element media duration and subtracts the start offset', () => {
+        expect(resolveSegmentBounds({ rawDuration: 12, start: 2 }))
+            .toEqual({ endTime: 12, wallClockCapMs: 10000 });
+    });
+
+    it('falls back to the probed container duration when the element duration is non-finite', () => {
+        expect(resolveSegmentBounds({ rawDuration: Infinity, fallbackDurationSec: 8 }))
+            .toEqual({ endTime: 8, wallClockCapMs: 8000 });
+        expect(resolveSegmentBounds({ rawDuration: Infinity, fallbackDurationSec: 8, start: 3 }))
+            .toEqual({ endTime: 8, wallClockCapMs: 5000 });
+    });
+
+    it('returns an Infinity end and the anti-freeze cap when nothing resolves', () => {
+        const unresolved = { endTime: Infinity, wallClockCapMs: UNRESOLVED_SEGMENT_CAP_MS };
+        expect(resolveSegmentBounds({ rawDuration: NaN, fallbackDurationSec: null })).toEqual(unresolved);
+        expect(resolveSegmentBounds({ rawDuration: undefined })).toEqual(unresolved);
+        expect(resolveSegmentBounds()).toEqual(unresolved);
+    });
+
+    it('ignores a non-positive probe result', () => {
+        expect(resolveSegmentBounds({ rawDuration: Infinity, fallbackDurationSec: 0 }))
+            .toEqual({ endTime: Infinity, wallClockCapMs: UNRESOLVED_SEGMENT_CAP_MS });
+    });
+
+    it('defaults a non-finite start to 0', () => {
+        expect(resolveSegmentBounds({ rawDuration: 8, start: NaN }))
+            .toEqual({ endTime: 8, wallClockCapMs: 8000 });
+    });
+});
+
 describe('video-processor-logic.js platform-agnostic guard', () => {
     // Strip comments so prose (e.g. "share window") can't trip the globals check.
     // NOTE: not used for the URL check — this stripper treats the "//" in
@@ -299,5 +369,18 @@ describe('video-processor-logic.js platform-agnostic guard', () => {
         const source = readFileSync(LOGIC_PATH, 'utf8');
 
         expect(source).not.toMatch(/https?:\/\//);
+    });
+
+    it('resolves the segment end without net speaking time', () => {
+        const source = readFileSync(LOGIC_PATH, 'utf8');
+        expect(source).toMatch(/export const UNRESOLVED_SEGMENT_CAP_MS = 15000/);
+        expect(source).toMatch(/export const STALL_GRACE_MS = 2000/);
+
+        const start = source.indexOf('export function resolveSegmentBounds');
+        const body = source.slice(start, source.indexOf('\n}', start));
+        // The draw loop must never derive a media length from the recorded
+        // net speaking time.
+        expect(body).not.toMatch(/step\.duration/);
+        expect(body).not.toMatch(/netDuration/);
     });
 });

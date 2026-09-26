@@ -998,6 +998,81 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     animation: btnGlowPulse 2s ease-in-out infinite;
 }
 
+/* Success screen concat button — keep the call-btn column layout (so the
+   button stays centred under its label) at all times; only glow once the
+   success clip has finished (phase lessonSuccess-decisionTime). */
+#state-lesson-success .process-btn-pending .call-btn,
+#state-lesson-success .process-btn-pending .call-btn::before {
+    animation: none !important;
+}
+#state-lesson-success .process-btn-pending .call-btn::before {
+    box-shadow: none !important;
+}
+
+/* Success screen actions. Column layout: an optional call to action above the
+   action row. Flex properties live here rather than on utility classes because
+   this app's Bootstrap subset only defines `justify-content-center` /
+   `align-items-center` (not `justify-content-around` / `align-items-end`). */
+#state-lesson-success {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    width: 100%;
+}
+
+/* Post-generation water band across the bottom ~27% of the viewport. */
+#state-lesson-success.success-actions {
+    position: relative;
+    z-index: 0;
+    margin: 0 -16px;
+    min-height: 27vh;
+    padding: 12px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+}
+
+#state-lesson-success .success-actions-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 28px;
+    width: 100%;
+}
+
+/* Friend-challenge lessons: call to action above the single Share button. */
+#state-lesson-success .success-share-cta {
+    margin: 0;
+    max-width: 520px;
+    text-align: center;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 0.95rem;
+    line-height: 1.35;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
+}
+
+/* Only Share glows — Replay and Continue stay flat so the primary action stands
+   out (same idea as the disabled glow on #replayBtn / #tutorialBtn). */
+#state-lesson-success #repeatButtonSuccess,
+#state-lesson-success #repeatButtonSuccess::before,
+#state-lesson-success #continueButtonSuccess,
+#state-lesson-success #continueButtonSuccess::before {
+    animation: none !important;
+}
+#state-lesson-success #repeatButtonSuccess::before,
+#state-lesson-success #continueButtonSuccess::before {
+    box-shadow: none !important;
+}
+
+/* Share is the primary action — bigger than Replay and Continue. */
+#state-lesson-success .call-btn-primary .call-btn {
+    width: 76px;
+    height: 76px;
+}
+#state-lesson-success .call-btn-primary .call-btn i {
+    font-size: 2rem !important;
+}
+
 @keyframes riseThroughWater {
     0% {
         opacity: 0;

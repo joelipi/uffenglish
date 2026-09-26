@@ -28,6 +28,7 @@ When given a story number, run `peck story load <id>` first. It checks out the c
 - A reviewer `Fail` is always blocking — treat it as a hard requirement. Fix it or escalate with evidence.
 - Story work: both @acceptance-reviewer and @code-reviewer must pass. Ad-hoc: only @code-reviewer.
 - Always pass @code-reviewer the full range `DEFAULT_BRANCH..HEAD` (e.g. `master..HEAD`); passing a single commit SHA or bare `HEAD` is wrong — it misses earlier commits on the branch.
+- Push habitually: after committing, push the branch to `origin` (`git push -u origin <branch>`) without waiting for an explicit request. Do not force-push, skip hooks, or create empty commits.
 </rules>
 
 <verify>
