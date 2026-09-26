@@ -210,7 +210,15 @@
             }
           ],
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "testvideo06"
+          "simpleVideoUrl": "testvideo06",
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:06,000\nSay: I would rather have a meal with great conversation, or I would rather have a meal with great food.",
+            "es": "1\n00:00:00,000 --> 00:00:06,000\nDi: I would rather have a meal with great conversation, or I would rather have a meal with great food.",
+            "pt": "1\n00:00:00,000 --> 00:00:06,000\nDiga: I would rather have a meal with great conversation, or I would rather have a meal with great food.",
+            "fr": "1\n00:00:00,000 --> 00:00:06,000\nDites : I would rather have a meal with great conversation, or I would rather have a meal with great food.",
+            "hi": "1\n00:00:00,000 --> 00:00:06,000\nकहें: I would rather have a meal with great conversation, or I would rather have a meal with great food.",
+            "bn": "1\n00:00:00,000 --> 00:00:06,000\nবলুন: I would rather have a meal with great conversation, or I would rather have a meal with great food."
+          }
         },
         {
           "responseType": "viewAndContinue",
@@ -238,7 +246,15 @@
             }
           ],
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "testvideo07"
+          "simpleVideoUrl": "testvideo07",
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:08,000\nSay: I would rather travel to the beach, or I would rather travel to the mountains, or I would rather travel to the countryside.",
+            "es": "1\n00:00:00,000 --> 00:00:08,000\nDi: I would rather travel to the beach, or I would rather travel to the mountains, or I would rather travel to the countryside.",
+            "pt": "1\n00:00:00,000 --> 00:00:08,000\nDiga: I would rather travel to the beach, or I would rather travel to the mountains, or I would rather travel to the countryside.",
+            "fr": "1\n00:00:00,000 --> 00:00:08,000\nDites : I would rather travel to the beach, or I would rather travel to the mountains, or I would rather travel to the countryside.",
+            "hi": "1\n00:00:00,000 --> 00:00:08,000\nकहें: I would rather travel to the beach, or I would rather travel to the mountains, or I would rather travel to the countryside.",
+            "bn": "1\n00:00:00,000 --> 00:00:08,000\nবলুন: I would rather travel to the beach, or I would rather travel to the mountains, or I would rather travel to the countryside."
+          }
         },
         {
           "simpleVideoUrl": "testvideo08",
