@@ -61,7 +61,7 @@
             "bn": "আপনি কি দশ লাখ ডলার পেতে চান নাকি আরও পাঁচ বছর বাঁচতে চান?"
           },
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "testvideo01",
+          "simpleVideoUrl": "testvideoa01",
           "subtitles": {
             "en": "Would you rather have a million dollars or live five years longer?",
             "es": "¿Preferirías tener un millón de dólares o vivir cinco años más?",
@@ -77,7 +77,7 @@
             "bn": "আপনি কি দুর্দান্ত খাবারসহ একটি ভোজ চান নাকি দুর্দান্ত আলাপসহ একটি ভোজ চান?"
           },
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "testvideo02",
+          "simpleVideoUrl": "testvideoa02",
           "subtitles": {
             "en": "Would you rather have a meal with great food or a meal with great conversation?",
             "es": "¿Preferirías una comida con excelente comida o una comida con excelente conversación?",
@@ -93,7 +93,7 @@
             "bn": "আপনি কি সমুদ্র সৈকতে ছুটি কাটাতে চান নাকি পাহাড়ে ছুটি কাটাতে চান?"
           },
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "testvideo03",
+          "simpleVideoUrl": "testvideoa03",
           "subtitles": {
             "en": "Would you rather have a beach vacation or a mountain vacation?",
             "es": "¿Preferirías unas vacaciones en la playa o unas vacaciones en la montaña?",
