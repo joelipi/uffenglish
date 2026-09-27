@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../../modules/api/supabase.js';
 import { queryClient } from '../../modules/api/api.js';
+import { appStore } from '../../modules/store/store.js';
 import { identifyUser, trackEvent } from '../../modules/utils/posthog.js';
 import { toShortId } from '../../modules/utils/short-id.js';
 import defaultProfilePic from '../../assets/img/userprofile.png';
@@ -72,7 +73,7 @@ export function useSignupForm({ onSignupSuccess, nativeLanguage: initialNativeLa
             });
 
             queryClient.setQueryData(['auth', 'status'], true);
-            queryClient.setQueryData(['user', 'profile'], {
+            const profile = {
                 $id: user.id,
                 email: email,
                 display_name: fullName,
@@ -86,7 +87,14 @@ export function useSignupForm({ onSignupSuccess, nativeLanguage: initialNativeLa
                 english_level: userLevel,
                 completed_dates: [],
                 profilePictureUrl: defaultProfilePic,
-            });
+            };
+            queryClient.setQueryData(['user', 'profile'], profile);
+            // Sync the Zustand store too: useAppBootstrap only writes isLoggedIn /
+            // userData once (initStarted guard), so an inline signup that only
+            // updates the React Query cache would leave the app thinking it is
+            // still a guest (no share code, no R2 publish).
+            appStore.getState().setIsLoggedIn(true);
+            appStore.getState().setCourseData({ userData: profile });
             onSignupSuccess?.();
         } catch (err) {
             trackEvent('signup_failed', { error: err.message });
