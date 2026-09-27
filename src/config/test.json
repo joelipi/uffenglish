@@ -14,11 +14,7 @@
       },
       "unit": "Friend Challenge",
       "mission": {
-        "en": "record yourself asking your friends 3 Would-you-rather questions",
-        "es": "grábate preguntando a tus amigos 3 preguntas de ¿qué preferirías?",
-        "pt": "grave-se perguntando aos seus amigos 3 perguntas do tipo preferiria",
-        "bn": "নিজেকে রেকর্ড করুন আপনার বন্ধুদের ৩টি 'আপনি কোনটি পছন্দ করবেন' প্রশ্ন করতে"
-      },
+        "en": "Questions with WOULD YOU RATHER"      },
       "setting": {
         "en": "With friends",
         "es": "Con amigos",
@@ -41,17 +37,11 @@
         {
           "cue": "",
           "responseType": "lessonIntro",
-          "introBackgroundVideoUrl": "testvideo01"
+          "introBackgroundVideoUrl": "testvideointro"
         },
         {
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "testvideo01",
-          "subtitles": {
-            "en": "Now you will record yourself asking your friends 3 questions using the phrase Would you rather... You will repeat each question exactly. Press the button below to continue.",
-            "es": "Ahora te grabarás preguntando a tus amigos 3 preguntas usando la frase Would you rather... Repetirás cada pregunta exactamente. Oprime el botón de abajo para continuar.",
-            "pt": "Agora você vai se gravar perguntando aos seus amigos 3 perguntas usando a frase Would you rather... Você repetirá cada pergunta exatamente. Pressione o botão abaixo para continuar.",
-            "bn": "এখন আপনি Would you rather... বাক্যটি ব্যবহার করে আপনার বন্ধুদের ৩টি প্রশ্ন করতে নিজেকে রেকর্ড করবেন। আপনি প্রতিটি প্রশ্ন হুবহু পুনরাবৃত্তি করবেন। চালিয়ে যেতে নিচের বোতামটি চাপুন।"
-          }
+          "simpleVideoUrl": "testvideointro"
         },
         {
           "cue": {
@@ -59,50 +49,50 @@
             "es": "¿Preferirías tener un millón de dólares o vivir cinco años más?",
             "pt": "Você preferiria ter um milhão de dólares ou viver cinco anos a mais?",
             "bn": "আপনি কি দশ লাখ ডলার পেতে চান নাকি আরও পাঁচ বছর বাঁচতে চান?"
+          },
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "testvideo01",
+          "subtitles": {
+            "en": "Would you rather have a million dollars or live five years longer?",
+            "es": "¿Preferirías tener un millón de dólares o vivir cinco años más?",
+            "pt": "Você preferiria ter um milhão de dólares ou viver cinco anos a mais?",
+            "bn": "আপনি কি দশ লাখ ডলার পেতে চান নাকি আরও পাঁচ বছর বাঁচতে চান?"
+          }
+        },
+        {
+          "cue": {
+            "en": "Would you rather have a meal with great food or a meal with great conversation?",
+            "es": "¿Preferirías una comida con excelente comida o una comida con excelente conversación?",
+            "pt": "Você preferiria uma refeição com ótima comida ou uma refeição com ótima conversa?",
+            "bn": "আপনি কি দুর্দান্ত খাবারসহ একটি ভোজ চান নাকি দুর্দান্ত আলাপসহ একটি ভোজ চান?"
           },
           "responseType": "friendClosedResponse",
           "simpleVideoUrl": "testvideo02",
           "subtitles": {
-            "en": "Would you rather have a million dollars or live five years longer?",
-            "es": "¿Preferirías tener un millón de dólares o vivir cinco años más?",
-            "pt": "Você preferiria ter um milhão de dólares ou viver cinco anos a mais?",
-            "bn": "আপনি কি দশ লাখ ডলার পেতে চান নাকি আরও পাঁচ বছর বাঁচতে চান?"
-          }
-        },
-        {
-          "cue": {
             "en": "Would you rather have a meal with great food or a meal with great conversation?",
             "es": "¿Preferirías una comida con excelente comida o una comida con excelente conversación?",
             "pt": "Você preferiria uma refeição com ótima comida ou uma refeição com ótima conversa?",
             "bn": "আপনি কি দুর্দান্ত খাবারসহ একটি ভোজ চান নাকি দুর্দান্ত আলাপসহ একটি ভোজ চান?"
+          }
+        },
+        {
+          "cue": {
+            "en": "Would you rather have a beach vacation or a mountain vacation?",
+            "es": "¿Preferirías viajar a la playa, las montañas o el campo?",
+            "pt": "Você preferiria viajar para a praia, as montanhas ou o campo?",
+            "bn": "আপনি কি সমুদ্র সৈকতে, পাহাড়ে, নাকি গ্রামে ভ্রমণ করতে চান?"
           },
           "responseType": "friendClosedResponse",
           "simpleVideoUrl": "testvideo03",
           "subtitles": {
-            "en": "Would you rather have a meal with great food or a meal with great conversation?",
-            "es": "¿Preferirías una comida con excelente comida o una comida con excelente conversación?",
-            "pt": "Você preferiria uma refeição com ótima comida ou uma refeição com ótima conversa?",
-            "bn": "আপনি কি দুর্দান্ত খাবারসহ একটি ভোজ চান নাকি দুর্দান্ত আলাপসহ একটি ভোজ চান?"
-          }
-        },
-        {
-          "cue": {
-            "en": "Would you rather travel to the beach, the mountains, or the countryside?",
-            "es": "¿Preferirías viajar a la playa, las montañas o el campo?",
-            "pt": "Você preferiria viajar para a praia, as montanhas ou o campo?",
-            "bn": "আপনি কি সমুদ্র সৈকতে, পাহাড়ে, নাকি গ্রামে ভ্রমণ করতে চান?"
-          },
-          "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "testvideo04",
-          "subtitles": {
-            "en": "Would you rather travel to the beach, the mountains, or the countryside?",
+            "en": "Would you rather have a beach vacation or a mountain vacation?",
             "es": "¿Preferirías viajar a la playa, las montañas o el campo?",
             "pt": "Você preferiria viajar para a praia, as montanhas ou o campo?",
             "bn": "আপনি কি সমুদ্র সৈকতে, পাহাড়ে, নাকি গ্রামে ভ্রমণ করতে চান?"
           }
         },
         {
-          "simpleVideoUrl": "testvideo08",
+          "simpleVideoUrl": "enda",
           "subtitles": {
             "en": "Great! Now share your link with friends or family so they can practice with you free. They have 48 hours to respond.",
             "es": "¡Genial! Ahora comparte tu enlace con amigos o familiares para que practiquen contigo gratis. Tienen 48 horas para responder.",
