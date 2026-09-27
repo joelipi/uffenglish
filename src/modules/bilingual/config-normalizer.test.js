@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeConfig } from './config-normalizer.js';
+import { normalizeConfig, resolveConfigLanguage } from './config-normalizer.js';
 import { appStore } from '../store/store.js';
 
 describe('normalizeConfig', () => {
@@ -128,5 +128,57 @@ describe('normalizeConfig', () => {
         };
         normalizeConfig(configData, 'en');
         expect(configData.lessons[0].steps[0].interactiveVideoUrl).toBe('model-w-response-01');
+    });
+});
+
+describe('resolveConfigLanguage', () => {
+    // Guest language must win over the profile language: a friend lesson adopts
+    // the browser language silently (useGuestModalGuard) and can write it after
+    // the config fetch resolves. Without guest-first precedence, subtitles get
+    // flattened to English for a Spanish guest.
+    it('prefers the guest language over the profile language', () => {
+        expect(resolveConfigLanguage('ES', 'EN')).toBe('ES');
+    });
+
+    it('falls back to the profile language when there is no guest language', () => {
+        expect(resolveConfigLanguage(null, 'ES')).toBe('ES');
+        expect(resolveConfigLanguage(undefined, 'PT')).toBe('PT');
+        expect(resolveConfigLanguage('', 'BN')).toBe('BN');
+    });
+
+    it('defaults to en when neither is set', () => {
+        expect(resolveConfigLanguage(null, null)).toBe('en');
+        expect(resolveConfigLanguage(undefined, undefined)).toBe('en');
+        expect(resolveConfigLanguage('', '')).toBe('en');
+    });
+});
+
+describe('normalizeConfig localizes subtitles to the resolved language', () => {
+    it('flattens subtitles to the guest language, not the profile language', () => {
+        const configData = {
+            lessons: [{
+                steps: [{
+                    responseType: 'viewAndContinue',
+                    simpleVideoUrl: 'testvideointro',
+                    subtitles: { en: 'English sub', es: 'Subtítulo español', pt: 'Legenda', bn: 'বাংলা' },
+                }]
+            }]
+        };
+        normalizeConfig(configData, resolveConfigLanguage('ES', 'EN'));
+        expect(configData.lessons[0].steps[0].subtitles).toBe('Subtítulo español');
+    });
+
+    it('falls back to English when the resolved language has no translation', () => {
+        const configData = {
+            lessons: [{
+                steps: [{
+                    responseType: 'viewAndContinue',
+                    simpleVideoUrl: 'testvideointro',
+                    subtitles: { en: 'English sub', es: 'Subtítulo español' },
+                }]
+            }]
+        };
+        normalizeConfig(configData, resolveConfigLanguage('FR', 'EN'));
+        expect(configData.lessons[0].steps[0].subtitles).toBe('English sub');
     });
 });

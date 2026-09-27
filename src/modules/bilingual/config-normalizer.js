@@ -4,6 +4,22 @@ import { appStore } from '../store/store.js';
 
 const FRIEND_CODE_REGEX = /\{friendCode\}-?/g;
 
+/**
+ * Resolves the language used to normalize a course config. Guest language wins
+ * over the profile language, matching the rest of the app
+ * (`guestNativeLanguage || userData.native_language || 'en'`). This matters for
+ * friend lessons, where useGuestModalGuard adopts the browser language silently
+ * and can write it after the config fetch has already resolved; without the
+ * guest-first precedence the subtitles would be flattened to English.
+ *
+ * @param {string|null|undefined} guestLang - appStore.guestNativeLanguage
+ * @param {string|null|undefined} profileLang - userData.native_language
+ * @returns {string} a language code, defaulting to 'en'
+ */
+export function resolveConfigLanguage(guestLang, profileLang) {
+    return guestLang || profileLang || 'en';
+}
+
 function resolveFriendCode(value, friendCode) {
     if (typeof value !== 'string' || !value.includes('{friendCode}')) return value;
     const code = friendCode && friendCode.trim() ? friendCode.trim().toLowerCase() : '';
