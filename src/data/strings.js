@@ -1309,6 +1309,32 @@ const strings = {
         hi: "लॉग इन करें",
         bn: "লগ ইন করুন"
     },
+    // Save-clips modal: shown when a guest presses create-video. They must sign
+    // up (or log in) to get a share code before the video is created.
+    'save_clips_title': {
+        en: "Sign up to share your video",
+        es: "Regístrate para compartir tu video",
+        pt: "Cadastre-se para compartilhar seu vídeo",
+        fr: "Inscrivez-vous pour partager votre vidéo",
+        hi: "अपना वीडियो साझा करने के लिए साइन अप करें",
+        bn: "আপনার ভিডিও শেয়ার করতে সাইন আপ করুন"
+    },
+    'save_clips_body': {
+        en: "Create a free account to get your share link. Your friends will use it to practice English with you.",
+        es: "Crea una cuenta gratis para obtener tu enlace para compartir. Tus amigos lo usarán para practicar inglés contigo.",
+        pt: "Crie uma conta gratuita para obter seu link de compartilhamento. Seus amigos vão usá-lo para praticar inglês com você.",
+        fr: "Créez un compte gratuit pour obtenir votre lien de partage. Vos amis l'utiliseront pour pratiquer l'anglais avec vous.",
+        hi: "अपना शेयर लिंक पाने के लिए मुफ़्त खाता बनाएँ। आपके दोस्त इसका उपयोग आपके साथ अंग्रेज़ी प्रैक्टिस करने के लिए करेंगे।",
+        bn: "আপনার শেয়ার লিংক পেতে একটি ফ্রি অ্যাকাউন্ট তৈরি করুন। আপনার বন্ধুরা এটি ব্যবহার করে আপনার সাথে ইংরেজি প্র্যাকটিস করবে।"
+    },
+    'save_clips_signup_cta': {
+        en: "Sign up & create my video",
+        es: "Registrarme y crear mi video",
+        pt: "Cadastrar e criar meu vídeo",
+        fr: "S'inscrire et créer ma vidéo",
+        hi: "साइन अप करें और मेरा वीडियो बनाएँ",
+        bn: "সাইন আপ করুন এবং আমার ভিডিও তৈরি করুন"
+    },
     'auth_recover_title': {
         en: "Recover Password",
         es: "Recuperar Contraseña",

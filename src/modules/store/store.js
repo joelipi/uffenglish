@@ -180,6 +180,10 @@ export const appStore = createStore(
             // Captured at modal-open so the post-login effect can recover
             // the recap's lessonId even if the success screen unmounts.
             pendingPublishLessonId: null,
+            // True when the guest pressed the create-video button and the modal
+            // is gating video generation. Cleared on login or "Not now"; the
+            // success screen resumes generation when it flips false.
+            pendingVideoCreation: false,
             pointLossAmount: null,
             pointLossTrigger: 0,
 
@@ -606,6 +610,7 @@ export const appStore = createStore(
                 successVideoBlob: null,
                 saveClipsModalOpen: false,
                 pendingPublishLessonId: null,
+                pendingVideoCreation: false,
             }),
             setSuccessContinueLoading: (loading) => set(state => ({
                 successContinueButton: { ...state.successContinueButton, loading }
@@ -622,6 +627,7 @@ export const appStore = createStore(
             })),
             setSaveClipsModalOpen: (open) => set({ saveClipsModalOpen: open }),
             setPendingPublishLessonId: (lessonId) => set({ pendingPublishLessonId: lessonId }),
+            setPendingVideoCreation: (pending) => set({ pendingVideoCreation: pending }),
 
             // --- Media Viewport Actions ---
             setPraiseImageUrl: (url) => set({ praiseImageUrl: url }),

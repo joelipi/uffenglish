@@ -62,22 +62,8 @@ export function VideoButton({ canvasRef }) {
   const setContinueVisible = useStore(appStore, state => state.setSuccessContinueVisible);
   const shareHandlerRef = useRef(null);
   const friendLinkMutation = useAddFriendLinkMutation();
-
-  // Show SaveClipsModal immediately for guests when the success screen
-  // appears, blocking the processBtn behind the dialog's backdrop.
-  useEffect(() => {
-    if (button.visible) {
-      const { isLoggedIn, userData, setSaveClipsModalOpen, setPendingPublishLessonId } = appStore.getState();
-      const isUserLoggedIn =
-        !!isLoggedIn &&
-        userData?.auth_method === 'supabase' &&
-        userData?.$id && userData.$id !== 'guest';
-      if (!isUserLoggedIn) {
-        setPendingPublishLessonId(lessonId);
-        setSaveClipsModalOpen(true);
-      }
-    }
-  }, [button.visible, lessonId]);
+  const pendingVideoCreation = useStore(appStore, state => state.pendingVideoCreation);
+  const saveClipsModalOpen = useStore(appStore, state => state.saveClipsModalOpen);
 
   // Shared processing logic — runs immediately on processBtn click.
   // For logged-in users, also publishes segments to R2.
@@ -139,19 +125,46 @@ export function VideoButton({ canvasRef }) {
 
   if (!button.visible) return null;
 
-  const handleProcess = async () => {
-    trackEvent('video_generation_started');
-    setVideoState('processing');
-    setCanvasVisible(true);
-
+  const isUserLoggedIn = () => {
     const { isLoggedIn, userData } = appStore.getState();
-    const isUserLoggedIn =
+    return (
       !!isLoggedIn &&
       userData?.auth_method === 'supabase' &&
-      userData?.$id && userData.$id !== 'guest';
-
-    await runProcessing({ publishSegments: isUserLoggedIn });
+      userData?.$id && userData.$id !== 'guest'
+    );
   };
+
+  const handleProcess = async () => {
+    trackEvent('video_generation_started');
+
+    // Guests must log in (or dismiss) before the video is created: they need a
+    // share code for the shared link. Show the modal and defer generation until
+    // the modal closes (login success or "Not now").
+    if (!isUserLoggedIn()) {
+      appStore.getState().setPendingPublishLessonId(lessonId);
+      appStore.getState().setPendingVideoCreation(true);
+      appStore.getState().setSaveClipsModalOpen(true);
+      return;
+    }
+
+    setVideoState('processing');
+    setCanvasVisible(true);
+    await runProcessing({ publishSegments: true });
+  };
+
+  // Resume generation once the guest has resolved the modal (logged in or
+  // dismissed). pendingVideoCreation is set by handleProcess; the modal closing
+  // (saveClipsModalOpen -> false) is the trigger to run the deferred
+  // generation. Depends on saveClipsModalOpen too, because "Not now" closes the
+  // modal without clearing pendingVideoCreation.
+  useEffect(() => {
+    if (!pendingVideoCreation) return;
+    if (saveClipsModalOpen) return;
+    appStore.getState().setPendingVideoCreation(false);
+    setVideoState('processing');
+    setCanvasVisible(true);
+    runProcessing({ publishSegments: isUserLoggedIn() });
+  }, [pendingVideoCreation, saveClipsModalOpen, runProcessing, setVideoState, setCanvasVisible]);
 
   const handleShare = () => {
     if (shareHandlerRef.current) {

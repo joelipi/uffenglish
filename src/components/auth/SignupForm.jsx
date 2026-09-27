@@ -5,12 +5,12 @@ import { identifyUser, trackEvent } from '../../modules/utils/posthog.js';
 import { toShortId } from '../../modules/utils/short-id.js';
 import defaultProfilePic from '../../assets/img/userprofile.png';
 
-export function useSignupForm({ onSignupSuccess } = {}) {
+export function useSignupForm({ onSignupSuccess, nativeLanguage: initialNativeLanguage = '' } = {}) {
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [nativeLanguage, setNativeLanguage] = useState('');
+    const [nativeLanguage, setNativeLanguage] = useState(initialNativeLanguage);
     const [userLevel, setUserLevel] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);

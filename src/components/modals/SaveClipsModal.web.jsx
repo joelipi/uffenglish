@@ -1,26 +1,33 @@
-// SaveClipsModal — prompts guest users to log in so their webcam segments
-// can be published to the R2 practice-prompt library. Single-step (no
-// language selection — that's handled by GuestLoginModal). On successful
-// login, the post-login effect clears the pending state; the user then
-// clicks processBtn again (now logged-in) which runs the recap AND the
-// segment publish together (§6.1 / §9.3 of the plan).
+// SaveClipsModal — shown when a guest presses the create-video button on the
+// success screen. The guest must sign up (or log in) to get a share code before
+// the video is created, so the modal gates generation: it opens on the button
+// press, and generation resumes once the modal closes (signup/login success or
+// "Not now").
+//
+// The signup form is rendered inline (SaveClipsSignupForm) — no navigation to
+// /signup. Log In still navigates to /login with a redirect back here.
 //
 // The lessonId is captured by the caller (SuccessButtons) into
 // `pendingPublishLessonId` at modal-open time, so it survives the login
 // navigation (Zustand state persists across route changes in the session).
 import React, { useEffect, useRef } from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { trackEvent } from '../../modules/utils/posthog.js';
+import Strings from '../../data/strings.js';
+import SaveClipsSignupForm from './SaveClipsSignupForm.jsx';
 
 export default function SaveClipsModal() {
     const isOpen = useStore(appStore, (state) => state.saveClipsModalOpen);
     const pendingPublishLessonId = useStore(appStore, (state) => state.pendingPublishLessonId);
     const userData = useStore(appStore, (state) => state.userData);
+    const guestNativeLang = useStore(appStore, (state) => state.guestNativeLanguage);
     const dialogRef = useRef(null);
     const location = useLocation();
+    const navigate = useNavigate();
     const currentUrl = location.pathname + location.search;
+    const lang = (guestNativeLang || userData?.native_language || 'en').split('-')[0].toLowerCase();
 
     // Open/close the native <dialog> in sync with `saveClipsModalOpen`.
     useEffect(() => {
@@ -43,8 +50,7 @@ export default function SaveClipsModal() {
     // the success page, userData transitions from the synthetic guest object
     // to a real Supabase profile (auth_method === 'supabase'), while
     // pendingPublishLessonId is still set. Clear the pending state and close
-    // the modal — the user clicks processBtn again (now logged-in) which
-    // runs the recap AND the segment publish together.
+    // the modal — the success screen then resumes video generation.
     // CRITICAL: must check auth_method === 'supabase' — the guest synthetic
     // userData object ({ $id: 'guest', auth_method: 'guest' }) is truthy and
     // would otherwise clear the state on mount.
@@ -69,6 +75,12 @@ export default function SaveClipsModal() {
         }
     };
 
+    const handleLoginLink = () => {
+        trackEvent('publish_clips_modal_action', { action: 'login' });
+        appStore.getState().setSaveClipsModalOpen(false);
+        navigate(`/login?redirect=${encodeURIComponent(currentUrl)}`);
+    };
+
     return (
         <dialog ref={dialogRef} id="saveClipsModal" onClose={handleDialogClose}>
             <div className="modal-dialog modal-dialog-centered">
@@ -77,50 +89,29 @@ export default function SaveClipsModal() {
                         <h5 className="modal-title" id="saveClipsModalLabel">
                             <i className="bi bi-cloud-upload text-warning me-2"></i>
                             <span id="saveClipsModalTitleText">
-                                Log in to add your clips
+                                {Strings.get('save_clips_title', lang)}
                             </span>
                         </h5>
                     </div>
                     <div className="modal-body">
                         <p className="text-light" id="saveClipsModalBodyText">
-                            Log in to add your clips so your friends can make videos responding to you.
+                            {Strings.get('save_clips_body', lang)}
                         </p>
-                        <div className="d-grid gap-2 mt-4">
-                            <Link
-                                to={`/login?redirect=${encodeURIComponent(currentUrl)}`}
-                                id="saveClipsLoginBtn"
-                                className="btn btn-primary"
-                                onClick={() => {
-                                    appStore.getState().setPendingPublishLessonId(null);
-                                    appStore.getState().setSaveClipsModalOpen(false);
-                                    trackEvent('publish_clips_modal_action', { action: 'login' });
-                                }}
-                            >
-                                <i className="bi bi-box-arrow-in-right me-1"></i>
-                                <span id="saveClipsLoginBtnText">Log In</span>
-                            </Link>
-                            <Link
-                                to={`/signup?redirect=${encodeURIComponent(currentUrl)}`}
-                                id="saveClipsSignupBtn"
-                                className="btn btn-secondary"
-                                onClick={() => {
-                                    appStore.getState().setPendingPublishLessonId(null);
-                                    appStore.getState().setSaveClipsModalOpen(false);
-                                    trackEvent('publish_clips_modal_action', { action: 'signup' });
-                                }}
-                            >
-                                <i className="bi bi-person-plus-fill me-1"></i>
-                                <span id="saveClipsSignupBtnText">Sign Up</span>
-                            </Link>
-                            <button
-                                type="button"
-                                className="btn btn-outline-light mt-2"
-                                id="saveClipsNotNowBtn"
-                                onClick={handleNotNow}
-                            >
-                                <span id="saveClipsNotNowBtnText">Not now</span>
-                            </button>
-                        </div>
+                        <SaveClipsSignupForm
+                            onSignupSuccess={() => {
+                                appStore.getState().setPendingPublishLessonId(null);
+                                appStore.getState().setSaveClipsModalOpen(false);
+                            }}
+                            onLoginLink={handleLoginLink}
+                        />
+                        <button
+                            type="button"
+                            className="btn btn-outline-light w-100 mt-3"
+                            id="saveClipsNotNowBtn"
+                            onClick={handleNotNow}
+                        >
+                            <span id="saveClipsNotNowBtnText">Not now</span>
+                        </button>
                     </div>
                 </div>
             </div>
