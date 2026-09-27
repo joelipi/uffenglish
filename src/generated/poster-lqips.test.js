@@ -9,6 +9,7 @@ const INTRO_SLUGS = [
     'do_you_have_dark_chocolate',
     'gtests-1-0',
     'gtests-0-1-1',
+    'testvideointro',
 ];
 
 describe('poster-lqips module', () => {
@@ -20,7 +21,7 @@ describe('poster-lqips module', () => {
         expect(getPosterLqip('t')).toBeNull();
     });
 
-    it('keys every entry by one of the five intro slugs', () => {
+    it('keys every entry by one of the six intro slugs', () => {
         for (const key of Object.keys(POSTER_LQIPS)) {
             expect(INTRO_SLUGS).toContain(key);
         }
