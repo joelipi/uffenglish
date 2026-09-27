@@ -170,3 +170,34 @@ describe('isShareCtaEnabled', () => {
         expect(isShareCtaEnabled('none')).toBe(false);
     });
 });
+
+describe('share_message (recap share text)', () => {
+    // The message attached when sharing the recap video must carry the learner's
+    // personal share link, localized to their language.
+    const EXPECTED = {
+        en: 'Practice English with me free here: {url}',
+        es: 'Practica inglés conmigo gratis aquí: {url}',
+        pt: 'Pratique inglês comigo de graça aqui: {url}',
+        fr: "Pratique l'anglais avec moi gratuitement ici : {url}",
+        hi: 'मेरे साथ यहाँ मुफ़्त अंग्रेज़ी प्रैक्टिस करें: {url}',
+        bn: 'এখানে আমার সাথে ফ্রি ইংরেজি প্র্যাকটিস করুন: {url}',
+    };
+
+    it.each(LANGS)('has a %s translation with the {url} placeholder', (lang) => {
+        expect(Strings.get('share_message', lang)).toBe(EXPECTED[lang]);
+    });
+
+    it('interpolates the share URL into the message', () => {
+        const url = buildShareUrl('abc123');
+        expect(Strings.get('share_message', 'en', { url }))
+            .toBe('Practice English with me free here: ultrafastfluency.com/abc123');
+        expect(Strings.get('share_message', 'es', { url }))
+            .toBe('Practica inglés conmigo gratis aquí: ultrafastfluency.com/abc123');
+    });
+
+    it('falls back to the bare host when there is no share code', () => {
+        const url = buildShareUrl(null);
+        expect(Strings.get('share_message', 'en', { url }))
+            .toBe('Practice English with me free here: ultrafastfluency.com');
+    });
+});

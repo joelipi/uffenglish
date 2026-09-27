@@ -1561,6 +1561,16 @@ const strings = {
         hi: "इस वीडियो को दोस्तों, परिवार और सहकर्मियों के साथ साझा करें ताकि वे आपके साथ अभ्यास कर सकें। उनके पास जवाब देने के लिए 48 घंटे हैं।",
         bn: "এই ভিডিওটি বন্ধু, পরিবার ও সহকর্মীদের সাথে শেয়ার করুন যাতে তারা আপনার সাথে অনুশীলন করতে পারে। তাদের উত্তর দেওয়ার জন্য 48 ঘন্টা রয়েছে।"
     },
+    // Message text attached when the learner shares their recap video. {url} is
+    // replaced with the learner's personal share link (host + share code).
+    'share_message': {
+        en: "Practice English with me free here: {url}",
+        es: "Practica inglés conmigo gratis aquí: {url}",
+        pt: "Pratique inglês comigo de graça aqui: {url}",
+        fr: "Pratique l'anglais avec moi gratuitement ici : {url}",
+        hi: "मेरे साथ यहाँ मुफ़्त अंग्रेज़ी प्रैक्टिस करें: {url}",
+        bn: "এখানে আমার সাথে ফ্রি ইংরেজি প্র্যাকটিস করুন: {url}"
+    },
     'rotate_device_portrait': {
         en: "Recording in landscape will mess up your video. Rotate your device to portrait before you record.",
         es: "Grabar en horizontal arruinará tu video. Gira tu dispositivo a vertical antes de grabar.",

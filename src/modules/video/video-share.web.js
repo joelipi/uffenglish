@@ -2,9 +2,23 @@
 // Web-only module — uses navigator.share / navigator.canShare + XMLHttpRequest to Cloudinary.
 // React Native replaces this with video-share.native.js.
 import Strings from '../../data/strings.js';
+import { appStore } from '../store/store.js';
+import { buildShareUrl } from './video-processor-logic.js';
 import { transcodeToMp4, verifyMp4, uploadWebmToCloudinary } from './transcode.js';
 export const CLOUDINARY_CLOUD_NAME = 'dnolem9if';
 export const CLOUDINARY_UPLOAD_PRESET = 'default';
+
+/**
+ * The message attached when sharing a recap video: a localized call to action
+ * with the learner's personal share link (host + share code). Falls back to the
+ * bare host when the session has no share code.
+ */
+export function buildShareMessage() {
+    const { userData, guestNativeLanguage } = appStore.getState();
+    const lang = guestNativeLanguage || userData?.native_language || 'en';
+    const url = buildShareUrl(userData?.shareCode);
+    return Strings.get('share_message', lang, { url });
+}
 
 export async function shareVideo(blob, filename, fileExtension) {
     try {
@@ -49,7 +63,7 @@ export async function shareVideo(blob, filename, fileExtension) {
         if (navigator.canShare && navigator.canShare({ files: [mp4File] })) {
             await navigator.share({
                 title: Strings.get('share_title'),
-                text: Strings.get('share_text'),
+                text: buildShareMessage(),
                 files: [mp4File]
             });
         } else {
