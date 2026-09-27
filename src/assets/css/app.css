@@ -880,10 +880,20 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     pointer-events: none;
 }
 
-/* Reusable water-surface background visual */
+/* Reusable water-surface background visual.
+   Bottom-heavy: transparent at the top so the video stays visible, ramping to
+   near-opaque over the bottom ~25% where the video's own subtitles/lower-third
+   text and the overlaid buttons tend to sit. A uniform alpha let that text show
+   through the overlay. */
 .water-surface {
     position: relative;
-    background: linear-gradient(135deg, rgba(58, 143, 213, 0.88) 0%, rgba(0, 192, 216, 0.88) 100%);
+    background: linear-gradient(
+        to bottom,
+        rgba(58, 143, 213, 0.35) 0%,
+        rgba(58, 143, 213, 0.55) 55%,
+        rgba(58, 143, 213, 0.92) 75%,
+        rgba(0, 192, 216, 0.98) 100%
+    );
 }
 .water-surface::before {
     content: '';

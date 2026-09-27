@@ -4,6 +4,7 @@
 import Strings from '../../data/strings.js';
 import { appStore } from '../store/store.js';
 import { buildShareUrl } from './video-processor-logic.js';
+import { toFriendLessonHref } from '../user/friend-lesson-link-logic.js';
 import { transcodeToMp4, verifyMp4, uploadWebmToCloudinary } from './transcode.js';
 export const CLOUDINARY_CLOUD_NAME = 'dnolem9if';
 export const CLOUDINARY_UPLOAD_PRESET = 'default';
@@ -12,11 +13,15 @@ export const CLOUDINARY_UPLOAD_PRESET = 'default';
  * The message attached when sharing a recap video: a localized call to action
  * with the learner's personal share link (host + share code). Falls back to the
  * bare host when the session has no share code.
+ *
+ * The URL is scheme-qualified (https://) so it is clickable in the shared
+ * message — buildShareUrl is deliberately scheme-less because the recap CTA
+ * displays it for manual typing.
  */
 export function buildShareMessage() {
     const { userData, guestNativeLanguage } = appStore.getState();
     const lang = guestNativeLanguage || userData?.native_language || 'en';
-    const url = buildShareUrl(userData?.shareCode);
+    const url = toFriendLessonHref(buildShareUrl(userData?.shareCode));
     return Strings.get('share_message', lang, { url });
 }
 
