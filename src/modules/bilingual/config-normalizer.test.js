@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normalizeConfig, resolveConfigLanguage } from './config-normalizer.js';
+import { normalizeConfig, resolveConfigLanguage, isConfigLanguageSettled } from './config-normalizer.js';
 import { appStore } from '../store/store.js';
 
 describe('normalizeConfig', () => {
@@ -153,6 +153,32 @@ describe('resolveConfigLanguage', () => {
     });
 });
 
+describe('isConfigLanguageSettled', () => {
+    // The guest modal opens AFTER the config fetch resolves, so the config must
+    // not be normalized until the language is settled — otherwise subtitles are
+    // flattened to English before the guest picks a language.
+    it('is settled for a logged-in user (profile language is authoritative)', () => {
+        expect(isConfigLanguageSettled({ isLoggedIn: true, guestLang: null })).toBe(true);
+        expect(isConfigLanguageSettled({ isLoggedIn: true, guestLang: 'ES' })).toBe(true);
+    });
+
+    it('is settled for a guest once a language is chosen', () => {
+        expect(isConfigLanguageSettled({ isLoggedIn: false, guestLang: 'ES' })).toBe(true);
+        expect(isConfigLanguageSettled({ isLoggedIn: false, guestLang: 'EN' })).toBe(true);
+    });
+
+    it('is NOT settled for a guest with no language yet', () => {
+        expect(isConfigLanguageSettled({ isLoggedIn: false, guestLang: null })).toBe(false);
+        expect(isConfigLanguageSettled({ isLoggedIn: false, guestLang: undefined })).toBe(false);
+        expect(isConfigLanguageSettled({ isLoggedIn: false, guestLang: '' })).toBe(false);
+    });
+
+    it('is NOT settled when called with no arguments', () => {
+        expect(isConfigLanguageSettled()).toBe(false);
+        expect(isConfigLanguageSettled({})).toBe(false);
+    });
+});
+
 describe('normalizeConfig localizes subtitles to the resolved language', () => {
     it('flattens subtitles to the guest language, not the profile language', () => {
         const configData = {
@@ -180,5 +206,36 @@ describe('normalizeConfig localizes subtitles to the resolved language', () => {
         };
         normalizeConfig(configData, resolveConfigLanguage('FR', 'EN'));
         expect(configData.lessons[0].steps[0].subtitles).toBe('English sub');
+    });
+
+    it('re-localizes from a pristine clone after the language changes', () => {
+        // Reproduces the real flow: the config is fetched and normalized to
+        // English BEFORE the guest picks Spanish in the modal. normalizeConfig
+        // mutates in place and getLocalizedTranslation returns flattened strings
+        // as-is, so re-normalizing the SAME object stays English. AppLayout keeps
+        // a pristine copy and re-normalizes a clone; this locks that contract.
+        const raw = {
+            lessons: [{
+                steps: [{
+                    responseType: 'viewAndContinue',
+                    simpleVideoUrl: 'testvideointro',
+                    subtitles: { en: 'English sub', es: 'Subtítulo español' },
+                }]
+            }]
+        };
+
+        // First pass: English (guest language not yet chosen).
+        const first = structuredClone(raw);
+        normalizeConfig(first, resolveConfigLanguage(null, 'EN'));
+        expect(first.lessons[0].steps[0].subtitles).toBe('English sub');
+
+        // Re-normalizing the already-flattened object is a no-op (the bug).
+        normalizeConfig(first, 'ES');
+        expect(first.lessons[0].steps[0].subtitles).toBe('English sub');
+
+        // Second pass from the pristine clone: Spanish.
+        const second = structuredClone(raw);
+        normalizeConfig(second, resolveConfigLanguage('ES', 'EN'));
+        expect(second.lessons[0].steps[0].subtitles).toBe('Subtítulo español');
     });
 });

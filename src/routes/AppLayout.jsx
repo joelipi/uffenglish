@@ -3,7 +3,7 @@ import { Outlet, useParams } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { useQuery } from '@tanstack/react-query';
 import { appStore } from '../modules/store/store.js';
-import { normalizeConfig, resolveConfigLanguage } from '../modules/bilingual/config-normalizer.js';
+import { normalizeConfig, resolveConfigLanguage, isConfigLanguageSettled } from '../modules/bilingual/config-normalizer.js';
 import { useAppBootstrap } from '../hooks/use-app-bootstrap-webonly.js';
 
 export default function AppLayout() {
@@ -11,6 +11,7 @@ export default function AppLayout() {
     const configData = useStore(appStore, state => state.configData);
     const userData = useStore(appStore, state => state.userData);
     const guestLang = useStore(appStore, state => state.guestNativeLanguage);
+    const isLoggedIn = useStore(appStore, state => state.isLoggedIn);
     const { bootState } = useAppBootstrap({ courseId });
 
     const { data: fetchedConfig, isError } = useQuery({
@@ -24,19 +25,20 @@ export default function AppLayout() {
         enabled: !!courseId && !configData,
     });
 
-    // Side effect: normalize and store config when fetched
+    // Side effect: normalize and store config once the language is settled.
+    // The guest modal opens AFTER the fetch resolves, so normalizing on fetch
+    // would flatten subtitles to English before the guest picks a language.
+    // Waiting for the language to settle normalizes exactly once, with the right
+    // language, and never re-normalizes (which would restart the lesson).
+    // Guest language wins over the profile language, matching the rest of the
+    // app (guestNativeLanguage || userData.native_language || 'en').
     useEffect(() => {
-        if (fetchedConfig && !configData && userData) {
-            const courseLevel = fetchedConfig.courseLevel || 'A0';
-            // Guest language wins over the profile language, matching the rest of
-            // the app (guestNativeLanguage || userData.native_language || 'en').
-            // A friend lesson adopts the browser language silently in
-            // useGuestModalGuard, which can land after this effect first runs; the
-            // guestLang dependency re-normalizes when that happens.
-            normalizeConfig(fetchedConfig, resolveConfigLanguage(guestLang, userData?.native_language));
-            appStore.getState().setCourseData({ courseId, configData: fetchedConfig, courseLevel });
-        }
-    }, [fetchedConfig, userData, guestLang]); // eslint-disable-line react-hooks/exhaustive-deps
+        if (!fetchedConfig || !userData || configData) return;
+        if (!isConfigLanguageSettled({ isLoggedIn, guestLang })) return;
+        const courseLevel = fetchedConfig.courseLevel || 'A0';
+        normalizeConfig(fetchedConfig, resolveConfigLanguage(guestLang, userData?.native_language));
+        appStore.getState().setCourseData({ courseId, configData: fetchedConfig, courseLevel });
+    }, [fetchedConfig, userData, guestLang, isLoggedIn]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Side effect: handle config fetch error
     useEffect(() => {
@@ -46,7 +48,11 @@ export default function AppLayout() {
         }
     }, [isError]);
 
-    const isReady = bootState === 'ready' && (!!configData || !!fetchedConfig || isError);
+    // Hold the lesson until the language is settled so it initializes with the
+    // right language. The guest modal lives in RootLayout, so it still renders
+    // while this Outlet is withheld.
+    const languageSettled = isConfigLanguageSettled({ isLoggedIn, guestLang });
+    const isReady = bootState === 'ready' && (!!configData || (!!fetchedConfig && languageSettled) || isError);
 
     return (
         <>

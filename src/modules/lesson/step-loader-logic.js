@@ -9,6 +9,7 @@
 import { appStore, setCurrentVideoPlayer } from '../store/store.js';
 import Strings from '../../data/strings.js';
 import { loadVideoForStep } from '../video/video-loader.js';
+import { resolveConfigLanguage } from '../bilingual/config-normalizer.js';
 import { Media } from '../media/media.js';
 import { saveLessonProgress } from '../user/user-profile.js';
 import { getCompressedLessonStats } from '../answer/scoring.js';
@@ -43,7 +44,7 @@ export function handleStepCore(step) {
 
     appStore.getState().setMediaVisible(true);
 
-    loadVideoForStep(step, null, appStore.getState().userData?.native_language);
+    loadVideoForStep(step, null, resolveConfigLanguage(appStore.getState().guestNativeLanguage, appStore.getState().userData?.native_language));
 
     appStore.getState().setSystemMessage({ type: 'info', text: step.step });
 }
@@ -81,7 +82,7 @@ export function handleUnitComplete(step) {
     state.setLastLessonFluencyAvg(lessonAverage);
 
     if (step.simpleVideoUrl) {
-        loadVideoForStep(step, null, state.userData?.native_language);
+        loadVideoForStep(step, null, resolveConfigLanguage(state.guestNativeLanguage, state.userData?.native_language));
     }
 
     trackEvent('unit_complete', {

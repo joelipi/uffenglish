@@ -20,6 +20,27 @@ export function resolveConfigLanguage(guestLang, profileLang) {
     return guestLang || profileLang || 'en';
 }
 
+/**
+ * Whether the guest language is settled enough to normalize a course config.
+ * The guest modal opens AFTER the config fetch resolves, so normalizing on
+ * fetch would flatten subtitles to English before the guest picks a language.
+ * Waiting for the language to settle means the config is normalized exactly
+ * once, with the right language, and never re-normalized (which would restart
+ * the lesson).
+ *
+ * Settled when:
+ * - the user is logged in (their profile language is authoritative), or
+ * - a guest language has been chosen (modal answered or silently adopted).
+ *
+ * @param {object} opts
+ * @param {boolean} opts.isLoggedIn
+ * @param {string|null|undefined} opts.guestLang - appStore.guestNativeLanguage
+ * @returns {boolean}
+ */
+export function isConfigLanguageSettled({ isLoggedIn, guestLang } = {}) {
+    return !!isLoggedIn || !!guestLang;
+}
+
 function resolveFriendCode(value, friendCode) {
     if (typeof value !== 'string' || !value.includes('{friendCode}')) return value;
     const code = friendCode && friendCode.trim() ? friendCode.trim().toLowerCase() : '';
