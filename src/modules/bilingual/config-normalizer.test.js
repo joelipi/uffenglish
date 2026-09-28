@@ -238,4 +238,22 @@ describe('normalizeConfig localizes subtitles to the resolved language', () => {
         normalizeConfig(second, resolveConfigLanguage('ES', 'EN'));
         expect(second.lessons[0].steps[0].subtitles).toBe('Subtítulo español');
     });
+
+    it('localizes config content for region-tagged codes (bn-BD → bn)', () => {
+        // A profile/browser language of 'bn-BD' localizes the UI via
+        // Strings.get (which strips the region) and must localize config
+        // content the same way; otherwise Bengali shows a Bengali UI but
+        // English lesson subtitles.
+        const configData = {
+            lessons: [{
+                steps: [{
+                    responseType: 'viewAndContinue',
+                    simpleVideoUrl: 'testvideointro',
+                    subtitles: { en: 'English sub', bn: 'বাংলা সাবটাইটেল', es: 'Subtítulo español' },
+                }]
+            }]
+        };
+        normalizeConfig(configData, 'bn-BD');
+        expect(configData.lessons[0].steps[0].subtitles).toBe('বাংলা সাবটাইটেল');
+    });
 });

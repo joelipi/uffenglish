@@ -17,6 +17,18 @@ export function getCueText(cue) {
     return cue.en || '';
 }
 
+/**
+ * Normalizes a language code to its bare, lowercase primary subtag, e.g.
+ * 'BN' → 'bn', 'bn-BD' → 'bn', 'es-ES' → 'es'. Matches Strings.get /
+ * getBilingual (strings.js) so localized config content (subtitles, cues,
+ * step text) resolves for the same codes the UI does. Without this, a
+ * region-tagged code (e.g. a Bengali profile of 'bn-BD') localizes the UI but
+ * silently falls back to English for all lesson content.
+ */
+export function normalizeLanguageCode(lang) {
+    return (typeof lang === 'string' && lang) ? lang.split('-')[0].toLowerCase() : 'en';
+}
+
 export function getLocalizedTranslation(translationData, lang = 'en') {
     if (!translationData) return '';
 
@@ -28,16 +40,14 @@ export function getLocalizedTranslation(translationData, lang = 'en') {
         return getLocalizedTranslation(translationData[0], lang);
     }
 
+    const targetLang = normalizeLanguageCode(lang);
+
     // ── Regex object: use .en, localized key, or pattern as fallback ──
     if (translationData.type === 'regex') {
-        const targetLang = (lang || 'en').toLowerCase();
         if (translationData[targetLang]) return translationData[targetLang];
         if (translationData.en) return translationData.en;
         return translationData.pattern || '';
     }
-
-    // Default to 'en' if lang is null or undefined
-    const targetLang = (lang || 'en').toLowerCase();
 
     // Try the target language
     if (translationData[targetLang]) return translationData[targetLang];
@@ -63,7 +73,7 @@ export function getLocalizedTranslation(translationData, lang = 'en') {
  */
 export function getLocalizedCueTranslation(cue, matchedCue, lang) {
     if (!matchedCue || !cue) return undefined;
-    if (!lang || lang === 'en') return undefined;
+    if (!lang || normalizeLanguageCode(lang) === 'en') return undefined;
 
     // ── Array: find the specific matching element ──
     if (Array.isArray(cue)) {

@@ -451,8 +451,10 @@ export class VideoRenderPlanner {
         // Cue is a multi-language object (e.g. { en: "Hello", es: "Hola" })
         if (q.cue && typeof q.cue === 'object') {
             const en = q.cue.en || '';
-            // Only include translation when userLang is non-English and a translation exists
-            const lang = (this.userLang || 'en').toLowerCase();
+            // Only include translation when userLang is non-English and a
+            // translation exists. Strip any region subtag ('BN', 'bn-BD' → 'bn')
+            // so a region-tagged profile language still resolves the cue.
+            const lang = (this.userLang || 'en').split('-')[0].toLowerCase();
             const translation = (lang !== 'en' && q.cue[lang]) ? q.cue[lang] : null;
             return { en, translation };
         }

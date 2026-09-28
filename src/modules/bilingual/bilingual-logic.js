@@ -5,6 +5,8 @@
  * No HTML formatting - just string extraction.
  */
 
+import { normalizeLanguageCode } from '../utils/utils.js';
+
 /**
  * Extract English text from a translation field.
  * @param {string|object} translationData
@@ -23,9 +25,9 @@ export function getEnglish(translationData) {
  * @returns {string}
  */
 export function getLocalizedString(translationData, lang) {
-    if (!translationData || !lang || lang === 'en') return '';
+    if (!translationData || !lang || normalizeLanguageCode(lang) === 'en') return '';
     if (typeof translationData === 'string') return '';
-    return translationData[lang] || '';
+    return translationData[normalizeLanguageCode(lang)] || '';
 }
 
 /**
@@ -39,7 +41,7 @@ export function shouldShowLocalized(english, localized, lang) {
     return (
         !!english
         && !!lang
-        && lang !== 'en'
+        && normalizeLanguageCode(lang) !== 'en'
         && !!localized
         && localized !== english
     );
