@@ -13,6 +13,10 @@ const read = (rel) => readFileSync(path.join(__dirname, rel), 'utf8');
 const api = read('../api/api.js');
 const successButtons = read('../../components/widgets/SuccessButtons.jsx');
 const nativeProcessor = read('../video/video-processor.native.jsx');
+const notificationLogic = read('./notification-logic.js');
+const notificationList = read('../../components/homescreen/NotificationList.web.jsx');
+const notificationsBell = read('../../components/homescreen/NotificationsBell.web.jsx');
+const homeScreen = read('../../components/homescreen/HomeScreen.jsx');
 
 describe('api.js notification plumbing', () => {
     it('defines the inbox query scoped to the recipient', () => {
@@ -54,5 +58,46 @@ describe('SuccessButtons export trigger wiring', () => {
 describe('native export contract untouched', () => {
     it('keeps the exportSegmentsToR2 stub returning the unchanged shape', () => {
         expect(nativeProcessor).toContain('return { count: 0, succeeded: 0 };');
+    });
+});
+
+// Platform separation (React Native–portable): rules must stay in the pure
+// logic module; the web list must not reach the data layer; the container wires
+// hooks to the view; HomeScreen only mounts the bell for a registered user.
+describe('logic / presentation separation', () => {
+    it('keeps notification-logic.js free of React / React Native / DOM imports', () => {
+        expect(notificationLogic).not.toMatch(/from ['"]react['"]/);
+        expect(notificationLogic).not.toMatch(/from ['"]react-native['"]/);
+        expect(notificationLogic).not.toMatch(/\bwindow\./);
+        expect(notificationLogic).not.toMatch(/\bdocument\./);
+    });
+
+    it('routes NotificationList.web rules through notification-logic and imports no data layer', () => {
+        expect(notificationList).toContain("from '../../modules/notifications/notification-logic.js'");
+        expect(notificationList).not.toContain('modules/api/api.js');
+        expect(notificationList).not.toContain('supabase');
+        for (const fn of [
+            'listNotifications',
+            'buildProfileHref',
+            'formatNotificationDate',
+            'getNotificationActorName',
+            'getNotificationActorShareCode',
+        ]) {
+            expect(notificationList).toContain(fn);
+        }
+    });
+
+    it('wires the data hooks to the view only in the bell container', () => {
+        expect(notificationsBell).toContain("from '../../modules/api/api.js'");
+        expect(notificationsBell).toContain("from './NotificationList.web.jsx'");
+        expect(notificationsBell).toContain('useNotifications(userId)');
+        expect(notificationsBell).toContain('useMarkNotificationsRead()');
+    });
+
+    it('mounts the bell in HomeScreen only for a registered user', () => {
+        expect(homeScreen).toContain("from './NotificationsBell.web.jsx'");
+        expect(homeScreen).toContain('<NotificationsBell userId={viewerId} lang={lang} />');
+        expect(homeScreen).toContain("viewerId !== 'guest'");
+        expect(homeScreen).toContain("width: '44px'");
     });
 });
