@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
-import { useStore } from 'zustand';
 import { appStore, getCurrentVideoPlayer } from '../../modules/store/store.js';
 import { getViewAndContinueHandler } from '../../modules/lesson/step-executor-webonly.js';
 import { getBilingual } from '../../data/strings.js';
 import TutorialModal from './TutorialModal.jsx';
+import { useNativeLanguage } from '../../hooks/use-native-language.js';
 
 export default function ViewAndContinueButtons() {
-    const userData = useStore(appStore, (state) => state.userData);
     const [showTutorial, setShowTutorial] = useState(false);
 
-    const labelLang = userData?.native_language || 'en';
+    const labelLang = useNativeLanguage();
 
     const handleReplay = () => {
         // Go back to viewAndContinueVideo phase to replay the video (no mic button)

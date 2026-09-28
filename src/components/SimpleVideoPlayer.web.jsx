@@ -6,6 +6,7 @@ import { useStore } from 'zustand';
 import { appStore, setCurrentVideoPlayer } from '../modules/store/store.js';
 import { useSimpleVideo } from '../hooks/useSimpleVideo.js';
 import { getBilingual } from '../data/strings.js';
+import { useNativeLanguage } from '../hooks/use-native-language.js';
 
 const hasNavigator = typeof navigator !== 'undefined';
 const isIOS = hasNavigator && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
@@ -35,8 +36,7 @@ export default function SimpleVideoPlayer() {
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const appPhase = useStore(appStore, (s) => s.appPhase);
-    const userData = useStore(appStore, (s) => s.userData);
-    const overlayLang = userData?.native_language || 'en';
+    const overlayLang = useNativeLanguage();
 
     const overlayBilingual = useMemo(
         () => getBilingual(

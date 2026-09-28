@@ -3,11 +3,11 @@ import { useStore } from 'zustand';
 import { appStore, getCurrentVideoPlayer } from '../../modules/store/store.js';
 import { getSpeechInputToggleCallback } from '../../modules/lesson/step-loader-callbacks.js';
 import { getBilingual } from '../../data/strings.js';
+import { useNativeLanguage } from '../../hooks/use-native-language.js';
 
 export default function DecisionButtons() {
     const isMicActive = useStore(appStore, (state) => state.isMicActive);
     const isTextMode = useStore(appStore, (state) => state.isTextMode);
-    const userData = useStore(appStore, (state) => state.userData);
     const appPhase = useStore(appStore, (state) => state.appPhase);
 
     const respondNowKey = appPhase === 'interactiveVideo-decisionTime-closedResponse'
@@ -46,7 +46,7 @@ export default function DecisionButtons() {
         }
     };
 
-    const labelLang = userData?.native_language || 'en';
+    const labelLang = useNativeLanguage();
 
     return (
         <div style={{ display: 'flex', justifyContent: 'space-around', width: '100%', gap: '8px' }}>

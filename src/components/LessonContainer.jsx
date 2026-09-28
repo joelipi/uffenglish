@@ -6,6 +6,7 @@ import { useStore } from 'zustand';
 import { appStore, getAnswerPipelineDeps } from '../modules/store/store.js';
 import { getBilingual } from '../data/strings.js';
 import { useInitializeLesson } from '../hooks/use-initialize-lesson-webonly.js';
+import { useNativeLanguage } from '../hooks/use-native-language.js';
 
 import StepLoader from './StepLoader.jsx';
 import MicrophoneToggle from './widgets/MicrophoneToggle.js';
@@ -55,7 +56,7 @@ export default function LessonContainer() {
     const textInputVisible = useStore(appStore, (state) => state.textInputVisible);
     const bottomOverlayVisible = useStore(appStore, (state) => state.bottomOverlayVisible);
     const bottomState = useStore(appStore, (state) => state.bottomState);
-    const userData = useStore(appStore, (state) => state.userData);
+    const labelLang = useNativeLanguage();
 
     const [lesson, setLesson] = useState(null);
 
@@ -173,7 +174,6 @@ export default function LessonContainer() {
                         {!textInputVisible && (
                             <>
                             {bottomState === 'reviewButtons' && (() => {
-                                const labelLang = userData?.native_language || 'en';
                                 const reRecord = getBilingual('whisper_re_record', labelLang);
                                 const acceptLabel = getBilingual('whisper_accept', labelLang);
                                 return (

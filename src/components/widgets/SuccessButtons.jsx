@@ -6,6 +6,7 @@ import { useAddFriendLinkMutation, useRecordFriendResponseMutation } from '../..
 import { resolveFriendLessonLink } from '../../modules/user/friend-lesson-link-logic.js';
 import { resolveFriendResponseNotification } from '../../modules/notifications/notification-logic.js';
 import { getBilingual } from '../../data/strings.js';
+import { useNativeLanguage } from '../../hooks/use-native-language.js';
 
 // Bilingual label above a circular call-btn, matching the earlier steps.
 function ChoiceLabel({ text }) {
@@ -22,7 +23,7 @@ function ChoiceLabel({ text }) {
 
 export function ContinueButton({ onLoadNextLesson }) {
   const button = useStore(appStore, state => state.successContinueButton);
-  const userData = useStore(appStore, state => state.userData);
+  const lang = useNativeLanguage();
   const setLoading = useStore(appStore, state => state.setSuccessContinueLoading);
 
   if (!button.visible) return null;
@@ -34,7 +35,7 @@ export function ContinueButton({ onLoadNextLesson }) {
 
   return (
     <div className="ivp-choice-col" style={{ flex: '1 1 0', minWidth: 0 }}>
-      <ChoiceLabel text={getBilingual('continue', userData?.native_language || 'en')} />
+      <ChoiceLabel text={getBilingual('continue', lang)} />
       <button
         type="button"
         id="continueButtonSuccess"
@@ -61,6 +62,7 @@ export function VideoButton({ canvasRef }) {
   const setRepeatVisible = useStore(appStore, state => state.setSuccessRepeatButtonVisible);
   const setSuccessVideoBlob = useStore(appStore, state => state.setSuccessVideoBlob);
   const setContinueVisible = useStore(appStore, state => state.setSuccessContinueVisible);
+  const lang = useNativeLanguage();
   const shareHandlerRef = useRef(null);
   const friendLinkMutation = useAddFriendLinkMutation();
   const friendResponseMutation = useRecordFriendResponseMutation();
@@ -208,7 +210,7 @@ export function VideoButton({ canvasRef }) {
     const successVideoPending = currentVideo?.responseType === 'success';
     const revealed = appPhase === 'lessonSuccess-decisionTime' || !successVideoPending;
 
-    const continueLabel = getBilingual('continue', userData?.native_language || 'en');
+    const continueLabel = getBilingual('continue', lang);
 
     return (
       <div className={`ivp-choice-col${revealed ? '' : ' process-btn-pending'}`} style={{ flex: '0 0 auto', minWidth: 0 }}>
@@ -238,7 +240,7 @@ export function VideoButton({ canvasRef }) {
   if (button.state === 'ready') {
     return (
       <div className="ivp-choice-col call-btn-primary" style={{ flex: '1 1 0', minWidth: 0 }}>
-        <ChoiceLabel text={getBilingual('share', userData?.native_language || 'en')} />
+        <ChoiceLabel text={getBilingual('share', lang)} />
         <button
           type="button"
           id="createVideoButton"
@@ -257,7 +259,7 @@ export function VideoButton({ canvasRef }) {
 
 export function RepeatButton({ lessonId, onRepeat }) {
   const button = useStore(appStore, state => state.successRepeatButton);
-  const userData = useStore(appStore, state => state.userData);
+  const lang = useNativeLanguage();
 
   if (!button.visible || !lessonId || !onRepeat) return null;
 
@@ -268,7 +270,7 @@ export function RepeatButton({ lessonId, onRepeat }) {
 
   return (
     <div className="ivp-choice-col" style={{ flex: '1 1 0', minWidth: 0 }}>
-      <ChoiceLabel text={getBilingual('replay', userData?.native_language || 'en')} />
+      <ChoiceLabel text={getBilingual('replay', lang)} />
       <button
         type="button"
         id="repeatButtonSuccess"

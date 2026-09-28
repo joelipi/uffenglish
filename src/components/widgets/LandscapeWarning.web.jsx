@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import Strings from '../../data/strings.js';
 import { isLandscape, isMobileUserAgent, shouldWarnLandscape } from '../../modules/utils/orientation.js';
+import { useNativeLanguage } from '../../hooks/use-native-language.js';
 
 // Read the current viewport + navigator synchronously so the first paint is
 // already correct (no landscape->warning flash).
@@ -22,7 +22,6 @@ function readOrientation() {
 }
 
 export default function LandscapeWarning() {
-    const userData = useStore(appStore, (state) => state.userData);
     const [orientation, setOrientation] = useState(readOrientation);
     const [dismissed, setDismissed] = useState(false);
 
@@ -46,7 +45,7 @@ export default function LandscapeWarning() {
         };
     }, []);
 
-    const lang = userData?.native_language || 'en';
+    const lang = useNativeLanguage();
     const warningVisible =
         shouldWarnLandscape({ isMobile: orientation.isMobile, landscape: orientation.landscape }) &&
         !dismissed;

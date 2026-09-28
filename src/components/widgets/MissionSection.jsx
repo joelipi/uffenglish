@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { BilingualText } from '../BilingualText.jsx';
+import { useNativeLanguage } from '../../hooks/use-native-language.js';
 
 export default function MissionSection({ responseType }) {
     const [expanded, setExpanded] = useState(responseType === 'lessonIntro');
@@ -11,13 +12,12 @@ export default function MissionSection({ responseType }) {
     }, [responseType]);
     const configData = useStore(appStore, (state) => state.configData);
     const currentLessonIndex = useStore(appStore, (state) => state.currentLessonIndex);
-    const userData = useStore(appStore, (state) => state.userData);
     const showMission = useStore(appStore, (state) => state.showMission);
+    const lang = useNativeLanguage();
 
     const lesson = configData?.lessons?.[currentLessonIndex];
     if (!lesson || !showMission) return null;
 
-    const lang = userData?.native_language || 'en';
     const toggle = () => setExpanded((prev) => !prev);
 
     return (

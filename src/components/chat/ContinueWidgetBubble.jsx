@@ -3,6 +3,7 @@ import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { DEFAULT_BOT_NAME, DEFAULT_AVATAR_URL } from '../../modules/user/tutor-config.js';
 import { getBilingual } from '../../data/strings.js';
+import { useNativeLanguage } from '../../hooks/use-native-language.js';
 
 function BilingualLabel({ textKey, lang, fallback }) {
     const data = getBilingual(textKey, lang);
@@ -21,7 +22,7 @@ function BilingualLabel({ textKey, lang, fallback }) {
 export default function ContinueWidgetBubble({ onClick, nextStepVideoUrl }) {
     const isTextMode = useStore(appStore, (state) => state.isTextMode);
     const isCameraOff = useStore(appStore, (state) => state.isCameraOff);
-    const lang = useStore(appStore, (state) => state.userData?.native_language) || 'en';
+    const lang = useNativeLanguage();
     const videoRef = useRef(null);
     const [isReady, setIsReady] = useState(false);
 

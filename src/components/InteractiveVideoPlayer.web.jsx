@@ -6,6 +6,7 @@ import { useStore } from 'zustand';
 import { appStore, setCurrentVideoPlayer } from '../modules/store/store.js';
 import { useInteractiveVideo } from '../hooks/useInteractiveVideo.js';
 import { getBilingual } from '../data/strings.js';
+import { useNativeLanguage } from '../hooks/use-native-language.js';
 
 // ---------------------------------------------------------------------------
 // Module-level constants
@@ -52,9 +53,8 @@ export default function InteractiveVideoPlayer() {
     const isMicActive = useStore(appStore, (s) => s.isMicActive);
     const textInputVisible = useStore(appStore, (s) => s.textInputVisible);
     const pendingVideoPlayType = useStore(appStore, (s) => s.pendingVideoPlayType);
-    const userData = useStore(appStore, (s) => s.userData);
     const appPhase = useStore(appStore, (s) => s.appPhase);
-    const overlayLang = userData?.native_language || 'en';
+    const overlayLang = useNativeLanguage();
 
     const overlayTextKey = appPhase === 'interactiveVideo-decisionTime-closedResponse'
         ? 'video_repeat_exactly'
