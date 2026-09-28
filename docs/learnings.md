@@ -24,6 +24,14 @@
 
 ---
 
+## Source guards that slice "to end of file" break when a new function is appended
+**Date**: 2026-09-28
+**Area**: testing
+**What happened**: `poster-avatar-wiring.test.js` sliced `video-processor.web.js` from `export async function exportSegmentsToR2` to EOF, relying on it being the last function. Story 021 appended `uploadCompleteVideoToR2` after it, so the slice silently grew to include the new function — the guard could then pass on strings that were not in `exportSegmentsToR2`. The code reviewer caught it.
+**Takeaway**: When a source guard slices a function body, end the slice at the next top-level marker (`indexOf('export const …')` / the next `export async function …`), never at EOF. Before appending a function to a file that has such a guard, check for `slice(source.indexOf(...))` patterns and update them.
+
+---
+
 ## `video-processor.native.jsx` is an unwired placeholder, not a live renderer
 **Date**: 2026-09-19
 **Area**: architecture
