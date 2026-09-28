@@ -1,5 +1,13 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
+import {
+    SENTINEL_SRC,
+    collectConsole,
+    blockSentinelAutoplay,
+    confirmGuestLanguage,
+    waitForLessonReady,
+    waitForVideoWrapper,
+} from './helpers/lesson-e2e.js';
 
 // Simple-video response steps (closedResponse / openResponse /
 // friendClosedResponse carrying a plain clip) raise a Replay / Answer /
@@ -8,81 +16,19 @@ import { test, expect } from '@playwright/test';
 // response step itself is injected directly below.
 const LESSON_URL = '/course/model/lesson/g';
 
-// A tiny valid VP9/WebM clip (616 bytes, generated with ffmpeg). Bundled
-// Chromium decodes WebM natively, unlike H.264, so the video loads and does not
-// fire `error`; autoplay is blocked below so `ended` only fires when we dispatch
-// it. This keeps the pre-overlay state deterministic without codec flakiness.
-const SENTINEL_SRC = 'data:video/webm;base64,GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQJChYECGFOAZwEAAAAAAAI4EU2bdLpNu4tTq4QVSalmU6yBoU27i1OrhBZUrmtTrIHYTbuMU6uEElTDZ1OsggEeTbuMU6uEHFO7a1OsggIi7AEAAAAAAABZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAVSalmsirXsYMPQkBNgI1MYXZmNjAuMTYuMTAwV0GNTGF2ZjYwLjE2LjEwMESJiEBpAAAAAAAAFlSua8GuAQAAAAAAADjXgQFzxYjcq/RnP6WRk5yBACK1nIN1bmSIgQCGhVZfVlA5g4EBI+ODhAJiWgDgibCBELqBEJqBAhJUw2dAgHNzoGPAgGfImkWjh0VOQ09ERVJEh41MYXZmNjAuMTYuMTAwc3PaY8CLY8WI3Kv0Zz+lkZNnyKVFo4dFTkNPREVSRIeYTGF2YzYwLjMxLjEwMiBsaWJ2cHgtdnA5Z8ihRaOIRFVSQVRJT05Eh5MwMDowMDowMC4yMDAwMDAwMDAAH0O2dfnngQCjoIEAAICCSYNCAADwAPYAOCQcGEoAADBgAAAQv//9SIwAo5OBACgAhgBAkpwAUAAAAyAAAEJAo5OBAFAAhgBAkpwATuAAAyAAAEJAo5OBAHgAhgBAkpwAUAAAAyAAAEJAo5OBAKAAhgBAkpwATUAAAyAAAEJAHFO7a5G7j7OBALeK94EB8YIBpPCBAw==';
-
-const NOISE = ['favicon', 'source map', 'Whisper', 'vite', '401', 'Unauthorized', 'ERR_CACHE_WRITE_FAILURE'];
-
 test.describe('simple-video response decision overlay', () => {
-    let errors = [];
-    let transitionWarnings = [];
+    let observed = { errors: [], transitionWarnings: [] };
 
     test.beforeEach(async ({ page }) => {
-        errors = [];
-        transitionWarnings = [];
-
-        page.on('pageerror', e => errors.push(e.message));
-        page.on('console', msg => {
-            const text = msg.text();
-            const loc = msg.location()?.url || '';
-            if (msg.type() === 'error') {
-                if (!NOISE.some(n => text.includes(n)) && !loc.includes('bootstrap-icons')) {
-                    errors.push(text);
-                }
-            }
-            if (msg.type() === 'warning' && text.includes('Unexpected transition')) {
-                transitionWarnings.push(text);
-            }
-        });
-        page.on('dialog', d => d.dismiss());
-
-        // Reject play() only for the sentinel video so it can never autoplay
-        // or fire `ended` on its own. Every other video plays normally.
-        await page.addInitScript(() => {
-            const origPlay = HTMLMediaElement.prototype.play;
-            HTMLMediaElement.prototype.play = function () {
-                if (typeof this.src === 'string' && this.src.startsWith('data:video/webm')) {
-                    return Promise.reject(new DOMException('autoplay disabled for test', 'NotAllowedError'));
-                }
-                return origPlay.apply(this, arguments);
-            };
-        });
+        observed = collectConsole(page);
+        await blockSentinelAutoplay(page);
     });
-
-    /** Wait until the async lesson bootstrap has loaded lesson g's intro step. */
-    async function waitForLessonReady(page) {
-        await page.waitForFunction(() => {
-            const s = window.appStore?.getState();
-            return s?.activeLessonId === 'g' && s?.currentVideo?.type === 'intro' && s?.appPhase === 'lessonIntro';
-        }, null, { timeout: 25000 });
-    }
-
-    // The guest language modal gates config normalisation: an anonymous visitor
-    // must confirm a language before `configData` is set (config-normalizer.js
-    // isConfigLanguageSettled). Lesson g is a non-friend lesson, so English-only
-    // leads to the login-choice step, which is then dismissed to unpin the page.
-    async function confirmGuestLanguage(page) {
-        await page.waitForFunction(
-            () => window.appStore?.getState()?.configData || document.querySelector('#guestEnglishOnlyBtn'),
-            null,
-            { timeout: 30000 }
-        );
-        if (await page.locator('#guestEnglishOnlyBtn').count()) {
-            await page.click('#guestEnglishOnlyBtn').catch(() => {});
-            const continueBtn = page.locator('#guestContinueBtn');
-            await continueBtn.waitFor({ state: 'visible', timeout: 3000 }).then(() => continueBtn.click()).catch(() => {});
-        }
-        await page.waitForFunction(() => window.appStore?.getState()?.configData, null, { timeout: 20000 });
-    }
 
     /** Load the app, dismiss the guest modal, and mount a simple response clip. */
     async function setupSimpleResponseStep(page, responseType) {
         await page.goto(LESSON_URL);
         await confirmGuestLanguage(page);
-        await waitForLessonReady(page);
+        await waitForLessonReady(page, 'g');
         await page.evaluate(({ sentinel, responseType }) => {
             const s = window.appStore.getState();
             s.setGuestModalOpen(false);
@@ -103,11 +49,6 @@ test.describe('simple-video response decision overlay', () => {
     }
 
     /** Wait out the 3s FOUC fallback that makes the video wrapper visible. */
-    async function waitForVideoWrapper(page) {
-        await page.waitForSelector('.ivp-video', { state: 'attached', timeout: 5000 });
-        await expect(page.locator('.ivp-main-wrapper')).toBeVisible({ timeout: 6000 });
-    }
-
     async function endVideo(page) {
         await page.evaluate(() => {
             document.querySelector('.ivp-video')?.dispatchEvent(new Event('ended'));
@@ -137,7 +78,7 @@ test.describe('simple-video response decision overlay', () => {
 
         // No decision overlay yet.
         await expect(page.locator('.ivp-overlay.water-surface')).toHaveCount(0);
-        expect(errors).toEqual([]);
+        expect(observed.errors).toEqual([]);
     });
 
     test('a friendClosedResponse clip raises the repeat-exactly overlay on end', async ({ page }) => {
@@ -148,8 +89,8 @@ test.describe('simple-video response decision overlay', () => {
 
         await expect(page.locator('.ivp-overlay.water-surface')).toBeVisible({ timeout: 5000 });
         await expect(page.locator('.ivp-overlay-text')).toHaveText('Can you repeat that exactly?');
-        expect(transitionWarnings).toEqual([]);
-        expect(errors).toEqual([]);
+        expect(observed.transitionWarnings).toEqual([]);
+        expect(observed.errors).toEqual([]);
     });
 
     test('an openResponse clip uses the did-you-understand copy and respond-now label', async ({ page }) => {
@@ -278,7 +219,7 @@ test.describe('simple-video response decision overlay', () => {
         );
         expect(await page.evaluate(() => window.appStore.getState().textInputVisible)).toBe(true);
 
-        expect(transitionWarnings).toEqual([]);
-        expect(errors).toEqual([]);
+        expect(observed.transitionWarnings).toEqual([]);
+        expect(observed.errors).toEqual([]);
     });
 });

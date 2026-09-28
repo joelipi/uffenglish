@@ -24,8 +24,8 @@ export function resolveStepPhase({ step, isFirstResponseStep = false, isRetry = 
     if (responseType === 'lessonIntro') return 'lessonIntro';
     if (responseType === 'success') return 'lessonSuccess';
     if (RESPONSE_TYPES.includes(responseType) && isFirstResponseStep && !isRetry && !isFriendLesson) return 'firstResponse';
-    if (step.interactiveVideoUrl && !isRetry) return interactivePhase(responseType);
-    if (responseType === 'viewAndContinue' && step.simpleVideoUrl) return 'viewAndContinueVideo';
-    if (step.simpleVideoUrl) return 'simpleVideo';
+    if (step?.interactiveVideoUrl && !isRetry) return interactivePhase(responseType);
+    if (responseType === 'viewAndContinue' && step?.simpleVideoUrl) return 'viewAndContinueVideo';
+    if (step?.simpleVideoUrl) return 'simpleVideo';
     return 'recording/answering';
 }
