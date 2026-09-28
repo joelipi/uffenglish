@@ -90,6 +90,38 @@ describe('recap flag values are valid', () => {
     });
 });
 
+describe('test.json click-through friend prompts', () => {
+    const testConfig = loadConfig('test.json');
+    const lesson = testConfig.lessons.find(l => l.lessonId === 'b');
+    // The teacher's explanatory clips that follow each friend question.
+    const RESPONSE_CLIPS = ['testvideo05', 'testvideo06', 'testvideo07'];
+
+    it('flags lesson b as a friend recap', () => {
+        expect(lesson, 'test.json lesson b should exist').toBeDefined();
+        expect(lesson.recapSources).toBe('friend');
+    });
+
+    it('presents each friend question as a click-through clip with no cue or subtitles', () => {
+        const viewSteps = lesson.steps.filter(s => s.responseType === 'viewAndContinue');
+        expect(viewSteps.length).toBeGreaterThan(0);
+        for (const step of viewSteps) {
+            expect(step.simpleVideoUrl).toMatch(FRIEND_VIDEO_REGEX);
+            expect(step.cue).toBeUndefined();
+            expect(step.subtitles).toBeUndefined();
+        }
+    });
+
+    it('follows each friend clip with an explanatory recorded response step', () => {
+        lesson.steps.forEach((step, i) => {
+            if (step.responseType !== 'viewAndContinue') return;
+            const next = lesson.steps[i + 1];
+            expect(next?.responseType).toBe('friendClosedResponse');
+            expect(RESPONSE_CLIPS).toContain(next?.simpleVideoUrl);
+            expect(next?.cue).toBeDefined();
+        });
+    });
+});
+
 describe('friend-slug invariant', () => {
     // Any step whose prompt video is a friend/UGC slug (-response-NN) must
     // belong to a lesson flagged recapSources: 'friend'. Otherwise the planner
