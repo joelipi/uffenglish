@@ -61,8 +61,8 @@ describe('Hindi and Bengali spot checks', () => {
 
 describe('placeholder interpolation in hi/bn', () => {
     it.each(PLACEHOLDER_KEYS)('replaces {placeholders} in %s for hi and bn', (key) => {
-        const hi = get(key, 'hi', { score: 88, date: 'Jan 1', bad_intent: 'angry', time: '47h 0m', url: 'ultrafastfluency.com/abc123' });
-        const bn = get(key, 'bn', { score: 88, date: 'Jan 1', bad_intent: 'angry', time: '47h 0m', url: 'ultrafastfluency.com/abc123' });
+        const hi = get(key, 'hi', { score: 88, date: 'Jan 1', bad_intent: 'angry', time: '47h 0m', url: 'ultrafastfluency.com/abc123', name: 'Sam' });
+        const bn = get(key, 'bn', { score: 88, date: 'Jan 1', bad_intent: 'angry', time: '47h 0m', url: 'ultrafastfluency.com/abc123', name: 'Sam' });
         expect(hi).not.toContain('{');
         expect(bn).not.toContain('{');
         expect(hi).toMatch(DEVANAGARI);
@@ -130,6 +130,63 @@ describe('friend-challenge profile link strings', () => {
     it('leaves no placeholder behind in any language', () => {
         for (const lang of ['en', 'es', 'pt', 'fr', 'hi', 'bn']) {
             expect(get('profile_friend_link_available', lang, { time: '47h 0m' })).not.toContain('{');
+        }
+    });
+});
+
+describe('friend-response notification strings', () => {
+    const DEADLINE = {
+        en: 'You only have 48 hours to respond',
+        es: 'Solo tienes 48 horas para responder',
+        pt: 'Você só tem 48 horas para responder',
+        fr: "Vous n'avez que 48 heures pour répondre",
+        hi: 'आपके पास जवाब देने के लिए केवल 48 घंटे हैं',
+        bn: 'আপনার কাছে উত্তর দেওয়ার জন্য মাত্র 48 ঘণ্টা আছে',
+    };
+    const MESSAGE = {
+        en: 'Sam created a video with your questions',
+        es: 'Sam creó un video con tus preguntas',
+        pt: 'Sam criou um vídeo com as suas perguntas',
+        fr: 'Sam a créé une vidéo avec vos questions',
+        hi: 'Sam ने आपके सवालों के साथ एक वीडियो बनाया',
+        bn: 'Sam আপনার প্রশ্নগুলো নিয়ে একটি ভিডিও তৈরি করেছে',
+    };
+    // notifications_friend_response carries {name}, so it is covered by the
+    // interpolation test below rather than the no-placeholder exact-copy table.
+    const KEYS = {
+        notifications_title: {
+            en: 'Notifications', es: 'Notificaciones', pt: 'Notificações',
+            fr: 'Notifications', hi: 'सूचनाएँ', bn: 'বিজ্ঞপ্তি',
+        },
+        notifications_empty: {
+            en: 'No notifications yet', es: 'Aún no hay notificaciones',
+            pt: 'Ainda não há notificações', fr: "Aucune notification pour l'instant",
+            hi: 'अभी कोई सूचना नहीं', bn: 'এখনও কোনো বিজ্ঞপ্তি নেই',
+        },
+        notifications_respond_deadline: DEADLINE,
+        notifications_someone: {
+            en: 'A friend', es: 'Un amigo', pt: 'Um amigo',
+            fr: 'Un ami', hi: 'एक मित्र', bn: 'একজন বন্ধু',
+        },
+    };
+
+    it.each(Object.entries(KEYS))('%s returns the exact copy per language', (key, copy) => {
+        for (const [lang, expected] of Object.entries(copy)) {
+            expect(get(key, lang)).toBe(expected);
+        }
+    });
+
+    it('interpolates {name} and leaves no placeholder behind', () => {
+        for (const [lang, expected] of Object.entries(MESSAGE)) {
+            const out = get('notifications_friend_response', lang, { name: 'Sam' });
+            expect(out).toBe(expected);
+            expect(out).not.toContain('{');
+        }
+    });
+
+    it('keeps the 48 in the deadline for every language', () => {
+        for (const lang of ['en', 'es', 'pt', 'fr', 'hi', 'bn']) {
+            expect(get('notifications_respond_deadline', lang)).toContain('48');
         }
     });
 });

@@ -2,8 +2,9 @@ import React, { useRef, useEffect, useCallback } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { trackEvent } from '../../modules/utils/posthog.js';
-import { useAddFriendLinkMutation } from '../../modules/api/api.js';
+import { useAddFriendLinkMutation, useRecordFriendResponseMutation } from '../../modules/api/api.js';
 import { resolveFriendLessonLink } from '../../modules/user/friend-lesson-link-logic.js';
+import { resolveFriendResponseNotification } from '../../modules/notifications/notification-logic.js';
 import { getBilingual } from '../../data/strings.js';
 
 // Bilingual label above a circular call-btn, matching the earlier steps.
@@ -62,6 +63,7 @@ export function VideoButton({ canvasRef }) {
   const setContinueVisible = useStore(appStore, state => state.setSuccessContinueVisible);
   const shareHandlerRef = useRef(null);
   const friendLinkMutation = useAddFriendLinkMutation();
+  const friendResponseMutation = useRecordFriendResponseMutation();
   const pendingVideoCreation = useStore(appStore, state => state.pendingVideoCreation);
   const saveClipsModalOpen = useStore(appStore, state => state.saveClipsModalOpen);
 
@@ -110,6 +112,21 @@ export function VideoButton({ canvasRef }) {
               });
               trackEvent('friend_lesson_link_created', payload);
             }
+
+            // Notify the asker whose share link this friend opened. Uses the
+            // share code captured from the URL (?shareCode=) in App.jsx.
+            const responsePayload = resolveFriendResponseNotification({
+              configData,
+              lessonId,
+              courseId,
+              recipientShareCode: appStore.getState().friendCode,
+              actorShareCode: userData?.shareCode,
+              succeeded: exportResult?.succeeded,
+            });
+            if (responsePayload) {
+              await friendResponseMutation.mutateAsync(responsePayload);
+              trackEvent('friend_response_notified', { courseId, lessonId });
+            }
           } catch (e) {
             console.error('[Success] R2 publish / friend link failed (non-fatal):', e);
           }
@@ -121,7 +138,7 @@ export function VideoButton({ canvasRef }) {
       alert('Failed to generate video. Please try again.');
       setVideoState('idle');
     }
-  }, [canvasRef, fluencyData, lessonId, setCanvasVisible, setSuccessVideoBlob, setVideoState, setRepeatVisible, setContinueVisible, friendLinkMutation]);
+  }, [canvasRef, fluencyData, lessonId, setCanvasVisible, setSuccessVideoBlob, setVideoState, setRepeatVisible, setContinueVisible, friendLinkMutation, friendResponseMutation]);
 
   if (!button.visible) return null;
 
