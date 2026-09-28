@@ -3,7 +3,7 @@
 // (stories/011-auto-intro-poster, Task 2).
 import { describe, it, expect } from 'vitest';
 import { execFile, execFileSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { createServer } from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
@@ -21,6 +21,7 @@ const INTRO_SLUGS = [
     'gtests-1-0',
     'gtests-0-1-1',
 ];
+const ALL_INTRO_SLUGS = [...INTRO_SLUGS, 'testvideointro'];
 
 function runCli(args, env = {}) {
     return new Promise((resolve) => {
@@ -50,6 +51,41 @@ function withFakeR2(status, fn) {
             const base = `http://127.0.0.1:${server.address().port}/assets/videos/`;
             try {
                 resolve(await fn(base));
+            } catch (e) {
+                reject(e);
+            } finally {
+                server.close();
+            }
+        });
+    });
+}
+
+// Fake R2 that serves a valid JPEG for every poster with per-slug Last-Modified
+// headers, so one slug is provably stale (video newer than poster) and the rest
+// are fresh. Records every request so the HEAD cache can be asserted.
+function withFreshnessR2(staleSlug, jpegBody, fn) {
+    return new Promise((resolve, reject) => {
+        const seen = [];
+        const server = createServer((req, res) => {
+            seen.push(`${req.method} ${req.url}`);
+            const pathname = req.url.split('?')[0];
+            const isVideo = pathname.endsWith('.mp4');
+            const slug = pathname.split('/').pop().replace(/\.(mp4|jpg)$/, '');
+            const stale = slug === staleSlug;
+            const lastModified = isVideo
+                ? (stale ? 'Mon, 28 Sep 2026 02:27:08 GMT' : 'Sat, 20 Sep 2026 00:00:00 GMT')
+                : (stale ? 'Sun, 27 Sep 2026 22:11:43 GMT' : 'Mon, 21 Sep 2026 00:00:00 GMT');
+            res.writeHead(200, {
+                'content-type': isVideo ? 'video/mp4' : 'image/jpeg',
+                'last-modified': lastModified,
+            });
+            if (req.method === 'HEAD') { res.end(); return; }
+            res.end(jpegBody);
+        });
+        server.listen(0, '127.0.0.1', async () => {
+            const base = `http://127.0.0.1:${server.address().port}/assets/videos/`;
+            try {
+                resolve(await fn(base, seen));
             } catch (e) {
                 reject(e);
             } finally {
@@ -93,6 +129,21 @@ describe('generate-thumbnails.mjs source', () => {
     it('uploads to the slug sibling R2 key', () => {
         expect(SOURCE).toContain('posterR2Key');
         expect(SOURCE).toMatch(/r2',\s*'object',\s*'put'/);
+    });
+
+    it('derives freshness from the .mp4 and .jpg Last-Modified headers', () => {
+        expect(SOURCE).toContain('headObject');
+        expect(SOURCE).toMatch(/last-modified/i);
+        expect(SOURCE).toContain('isPosterStale');
+        expect(SOURCE).toContain('r2PosterStale');
+        // Both HEADs go through the overridable CDN base, and the video HEAD
+        // reuses the canonical source URL rather than a second path definition.
+        expect(SOURCE).toContain('CDN_POSTER_BASE');
+        expect(SOURCE).toContain('posterSourceUrl(slug, CDN_POSTER_BASE)');
+    });
+
+    it('passes the staleness predicate into planPosterRun', () => {
+        expect(SOURCE).toContain('posterStale: r2PosterStale');
     });
 });
 
@@ -151,6 +202,49 @@ integration('generate-thumbnails.mjs integration (ffmpeg + R2)', () => {
             });
         } finally {
             rmSync(scratch, { recursive: true, force: true });
+        }
+    }, 300000);
+
+    it('regenerates only the stale poster and rewrites the LQIP module (fake R2 + local video)', async () => {
+        const staleSlug = 'testvideo01';
+        const work = mkdtempSync(path.join(os.tmpdir(), 'uff-stale-test-'));
+        const videoDir = path.join(work, 'videos');
+        const outDir = path.join(work, 'posters');
+        mkdirSync(videoDir, { recursive: true });
+        mkdirSync(outDir, { recursive: true });
+        const freshJpeg = path.join(work, 'poster.jpg');
+        const lqipPath = path.join(work, 'poster-lqips.js');
+        try {
+            execFileSync('ffmpeg', ['-y', '-loglevel', 'error',
+                '-f', 'lavfi', '-i', 'color=c=red:s=320x240:d=1',
+                '-pix_fmt', 'yuv420p', path.join(videoDir, `${staleSlug}.mp4`)]);
+            execFileSync('ffmpeg', ['-y', '-loglevel', 'error',
+                '-f', 'lavfi', '-i', 'color=c=blue:s=320x240:d=1',
+                '-vframes', '1', freshJpeg]);
+            const jpegBody = readFileSync(freshJpeg);
+
+            await withFreshnessR2(staleSlug, jpegBody, async (base, seen) => {
+                const { code, stdout } = await runCli([`--video-dir=${videoDir}`], {
+                    POSTER_OUT_DIR: outDir,
+                    POSTER_LQIP_PATH: lqipPath,
+                    POSTER_CDN_BASE: base,
+                });
+                expect(code).toBe(0);
+                // Only the stale slug is regenerated. stdout is the reliable
+                // signal: the LQIP step downloads every other poster into the
+                // work dir too, so file presence alone would be misleading.
+                expect(stdout).toContain(`STALE ${staleSlug}`);
+                expect(stdout).toContain(`GEN ${staleSlug}`);
+                for (const slug of ALL_INTRO_SLUGS.filter((s) => s !== staleSlug)) {
+                    expect(stdout).not.toContain(`GEN ${slug}`);
+                }
+                expect(existsSync(path.join(outDir, `${staleSlug}.jpg`))).toBe(true);
+                expect(existsSync(lqipPath)).toBe(true);
+                // The HEAD cache means no method+path is requested twice.
+                expect(new Set(seen).size).toBe(seen.length);
+            });
+        } finally {
+            rmSync(work, { recursive: true, force: true });
         }
     }, 300000);
 });

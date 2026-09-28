@@ -31,6 +31,33 @@ export function exceedsPosterBudget(bytes) {
     return bytes > POSTER_MAX_BYTES;
 }
 
+// Parse a Last-Modified value (Date | string | number) to epoch ms, or null
+// when it is missing/unparseable. Null is the "unknown" signal: the caller
+// must then fall back to the safe default (treat the poster as current).
+function toTimestamp(value) {
+    if (value === null || value === undefined) return null;
+    const ms = value instanceof Date ? value.getTime() : new Date(value).getTime();
+    return Number.isFinite(ms) ? ms : null;
+}
+
+/**
+ * Whether an existing poster must be regenerated because its source video is
+ * newer. The freshness rule is deliberately conservative: a missing or invalid
+ * timestamp on either side means "not stale" (never churn a poster we cannot
+ * prove is behind), and equality is not staleness — only a strictly newer
+ * video triggers a rebuild. Absence of the poster itself is handled by
+ * `planPosterRun` via `posterExists`, not here.
+ *
+ * @param {{ videoLastModified?: Date|string|number, posterLastModified?: Date|string|number }} [timestamps]
+ * @returns {boolean}
+ */
+export function isPosterStale({ videoLastModified, posterLastModified } = {}) {
+    const video = toTimestamp(videoLastModified);
+    const poster = toTimestamp(posterLastModified);
+    if (video === null || poster === null) return false;
+    return video > poster;
+}
+
 /**
  * Read and parse every `<dir>/*.json` course config, sorted by filename. Shared
  * by the generator and the verifier so both see the same config set.
@@ -105,9 +132,11 @@ export function posterR2Key(slug) {
     return `assets/videos/${slug}.jpg`;
 }
 
-// Download path for the built-in ffmpeg frame grab.
-export function posterSourceUrl(slug) {
-    return `https://r2.ultrafastfluency.com/assets/videos/${slug}.mp4`;
+// Source-video URL (the video whose still is the poster). The base is
+// overridable so callers that only HEAD metadata can point it at a test seam
+// (`POSTER_CDN_BASE`) without re-deriving the `<slug>.mp4` path.
+export function posterSourceUrl(slug, base = 'https://r2.ultrafastfluency.com/assets/videos/') {
+    return `${base}${slug}.mp4`;
 }
 
 /**
@@ -115,20 +144,28 @@ export function posterSourceUrl(slug) {
  * stays testable without network access. `posterExists` may be synchronous or
  * asynchronous (the real R2 HEAD is async), so the planner always awaits it.
  *
- * - `targets`: intro slugs whose poster does not yet exist, discovery order.
+ * - `targets`: intro slugs whose poster does not yet exist, or whose existing
+ *   poster is stale (its source video is newer), in discovery order.
  * - `rebuild`: true when the LQIP module is absent (`moduleText == null`), when
  *   any intro slug is missing from it, or when there is work to do.
+ *
+ * `posterStale` is optional (defaults to never stale) and awaited like
+ * `posterExists`; it is only consulted for slugs whose poster exists, so the
+ * common "poster absent" path issues no extra freshness checks and behaviour
+ * is byte-identical when the predicate is omitted.
  *
  * @param {object} opts
  * @param {Array<object>} opts.configs parsed course configs
  * @param {(slug: string) => boolean | Promise<boolean>} opts.posterExists
+ * @param {(slug: string) => boolean | Promise<boolean>} [opts.posterStale]
  * @param {string|null} opts.moduleText committed poster-lqips.js text (null = absent)
  * @returns {Promise<{targets: Array<{slug: string}>, rebuild: boolean}>}
  */
-export async function planPosterRun({ configs, posterExists, moduleText }) {
+export async function planPosterRun({ configs, posterExists, posterStale = () => false, moduleText }) {
     const all = introTargets(configs);
     const exists = await Promise.all(all.map((t) => posterExists(t.slug)));
-    const targets = all.filter((_, i) => !exists[i]);
+    const stale = await Promise.all(all.map((t, i) => (exists[i] ? posterStale(t.slug) : false)));
+    const targets = all.filter((_, i) => !exists[i] || stale[i]);
     const moduleMissing =
         moduleText == null ||
         all.some(
