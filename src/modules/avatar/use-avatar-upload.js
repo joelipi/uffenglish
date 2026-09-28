@@ -2,10 +2,11 @@
 // TanStack Query mutation for uploading a cropped avatar.
 // Auth path: Appwrite Storage -> profilePictureUrl row update.
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 import { uploadAvatarToStorage, deleteAvatarFromStorage } from './avatar.service.js';
 import { syncUserMetaDataMutation } from '../api/api.js';
 import { appStore } from '../store/store.js';
+import { syncAvatarUrlToClientStores } from './avatar-client-store.js';
 
 /**
  * Hook that uploads a cropped avatar blob to Appwrite Storage and writes the
@@ -15,7 +16,6 @@ import { appStore } from '../store/store.js';
  * @returns {UseMutationResult<string, Error, { blob: Blob, userId: string }>}
  */
 export function useAvatarUpload() {
-    const queryClient = useQueryClient();
     return useMutation({
         mutationFn: async ({ blob, userId }) => {
             console.log('[useAvatarUpload] Starting upload mutation for user:', userId);
@@ -53,22 +53,9 @@ export function useAvatarUpload() {
             return avatarUrl;
         },
         onSuccess: (avatarUrl) => {
-            // Update TanStack Query cache immediately
-            const currentData = queryClient.getQueryData(['user', 'profile']);
-            if (currentData) {
-                queryClient.setQueryData(['user', 'profile'], {
-                    ...currentData,
-                    profilePictureUrl: avatarUrl
-                });
-            }
-
-            // Sync the zustand store so chat message pipeline uses the new URL
-            const currentUserData = appStore.getState().userData;
-            if (currentUserData) {
-                appStore.getState().setCourseData({
-                    userData: { ...currentUserData, profilePictureUrl: avatarUrl }
-                });
-            }
+            // Update the TanStack Query cache + Zustand store so the chat/recap
+            // pipelines use the new URL (shared with the poster→avatar path).
+            syncAvatarUrlToClientStores(avatarUrl);
 
             console.log('[useAvatarUpload] Mutation succeeded:', avatarUrl);
         },

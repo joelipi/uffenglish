@@ -10,6 +10,7 @@ import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, buildShareUrl, buildShareDea
 import { remoteSource } from './video-source.js';
 import { DEFAULT_USER_AVATAR_URL } from '../user/tutor-config.js';
 import { getAvatarBlobUrl } from '../avatar/avatar.service.js';
+import { maybeAssignPosterAvatar } from '../avatar/poster-avatar.js';
 import { supabase, getAccessToken } from '../api/supabase.js';
 import { transcodeToMp4, verifyMp4, uploadWebmToCloudinary, probeClipDurationSec } from './transcode.js';
 import { uploadSegmentToR2 } from './r2-upload.js';
@@ -1371,6 +1372,16 @@ export async function exportSegmentsToR2(lessonId) {
             trackEvent('publish_clips_segment_failed', { lessonId, index: i, error: 'upload' });
         }
     }
+
+    // Assign the lesson poster as the profile picture when the user has none.
+    // The same bytes as the R2 sibling .jpg, copied into the persistent avatars
+    // bucket (R2 videos/ has a 48h TTL). Fire-and-forget: a slow or failed
+    // avatar upload must never delay or fail the publish.
+    maybeAssignPosterAvatar({
+        publishable,
+        succeeded,
+        userData: appStore.getState().userData,
+    }).catch((e) => console.error('[ExportSegments] poster→avatar failed (non-fatal):', e));
 
     trackEvent('publish_clips_batch_done', { lessonId, count: publishable.length, succeeded });
 

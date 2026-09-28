@@ -108,6 +108,14 @@ src/modules/api/supabase.js` in `functions/api/upload-segment.js`). The Read too
 
 ---
 
+## A reviewer-approved refactor can invalidate the story's ACs — amend the story, don't revert the code
+**Date**: 2026-09-28
+**Area**: workflow
+**What happened**: The code reviewer required extracting the publish-flow gating into a testable `maybeAssignPosterAvatar` and moving the cache/store sync into a shared `avatar-client-store.js`. After that fix the code reviewer passed, but the acceptance reviewer then failed Task 3 because the story's ACs still named the old call site (`applyPosterAsProfilePictureIfMissing`/`pickAvatarThumb` inline, `setQueryData`/`setCourseData` inside `poster-avatar.js`). The implementation was correct; only the story was stale.
+**Takeaway**: When a reviewer-driven refactor changes the shape the story's ACs describe, amend the story to match the reviewed implementation (update the Implementation approach + the affected Task ACs), commit it, and re-run the acceptance reviewer — do not revert working, code-reviewer-approved code to satisfy stale ACs. The acceptance reviewer's own "Story Gaps" section usually states this explicitly.
+
+---
+
 ## Friend/UGC videos are detected by the `-response-NN` slug suffix, not the `{friendCode}` wildcard
 **Date**: 2026-09-22
 **Area**: architecture
