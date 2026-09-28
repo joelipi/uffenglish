@@ -27,6 +27,8 @@ Primary branch is `main`. Commits land on `main` directly, so once committed `ma
 
 **Branch can switch underneath you.** Parallel processes (peck story create, openchamber worktrees) create story branches and check them out while you work. Before every `git commit`, run `git branch --show-current` and confirm it matches the story branch. If a commit or reviewer report lands on the wrong branch, `git cherry-pick` it onto the correct one. If file contents suddenly don't match your edits, check `git branch --show-current` + `git status` before debugging — the working tree may be a different branch's state.
 
+**Push the story branch when the work is verified.** A local-only branch cannot be tested or deployed, so once both reviewers pass, push it: `git push -u origin <story-branch>`. Do this for every story unless the user says otherwise — do not leave verified work unpushed. Merging into `main` is a separate, explicit step (only when the user asks); pushing the branch is the default end state of a completed story.
+
 ---
 
 ## 2. Comments & Logging
