@@ -161,12 +161,13 @@ function createVideoProcessor() {
                     });
                 }
 
-                const { configData = {}, guestNativeLanguage, userData: recapUser } = appStore.getState();
+                const snapshot = appStore.getState();
+                const configData = snapshot.configData || {};
                 // Guest language wins over the profile language, exactly like
                 // normalizeConfig (config-normalizer.js) and the rest of the app;
                 // otherwise a guest who chose a language gets an English recap.
-                const userLang = resolveConfigLanguage(guestNativeLanguage, recapUser?.native_language);
-                const shareCode = recapUser?.shareCode || null;
+                const userLang = resolveConfigLanguage(snapshot.guestNativeLanguage, snapshot.userData?.native_language);
+                const shareCode = snapshot.userData?.shareCode || null;
                 const planner = new VideoRenderPlanner(recordings, configData, fluencyData, userLang, shareCode);
                 const plan = planner.generatePlan();
 
@@ -1295,12 +1296,12 @@ export async function exportSegmentsToR2(lessonId) {
     trackEvent('publish_clips_batch_start', { lessonId });
 
     const recordings = await getAllSpeechRecordingsForLesson(lessonId) || [];
-    const configData = appStore.getState().configData || {};
-    const fluencyData = appStore.getState().successFluencyData;
-    const { guestNativeLanguage, userData: exportUser } = appStore.getState();
+    const snapshot = appStore.getState();
+    const configData = snapshot.configData || {};
+    const fluencyData = snapshot.successFluencyData;
     // Same guest-first precedence as process() and normalizeConfig, so the
     // published cue translations match the recap CTA language.
-    const userLang = resolveConfigLanguage(guestNativeLanguage, exportUser?.native_language);
+    const userLang = resolveConfigLanguage(snapshot.guestNativeLanguage, snapshot.userData?.native_language);
 
     // No shareCode passed: only the tailing step consumes it, and tailing is
     // filtered out of the publishable set below.

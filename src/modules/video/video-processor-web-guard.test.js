@@ -117,7 +117,11 @@ describe('video-processor.web.js recap wiring guard', () => {
         expect(source).toMatch(
             /import \{ resolveConfigLanguage \} from '\.\.\/bilingual\/config-normalizer\.js'/
         );
-        const uses = source.match(/const userLang = resolveConfigLanguage\(/g) || [];
+        // Assert the argument ORDER (guest first, profile second); a swap would
+        // silently restore the exact regression this fix prevents.
+        const uses = source.match(
+            /const userLang = resolveConfigLanguage\(snapshot\.guestNativeLanguage, snapshot\.userData\?\.native_language\)/g
+        ) || [];
         expect(uses).toHaveLength(2);
         expect(source).not.toMatch(
             /const userLang = appStore\.getState\(\)\.userData\?\.native_language/
