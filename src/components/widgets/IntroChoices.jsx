@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
+import { isFriendLesson } from '../../modules/user/friend-lesson-detection.js';
 import { setupTextInputForStep } from '../../modules/lesson/step-executor-webonly.js';
 import { getSpeechInputToggleCallback, getSpeechEngineRetryCallback } from '../../modules/lesson/step-loader-callbacks.js';
 import { getSpeechUiState } from '../../modules/speech/speech-ui-state.js';
@@ -12,6 +14,11 @@ export default function IntroChoices() {
     const isWhisperReady = useStore(appStore, (state) => state.isWhisperReady);
     const isWhisperEngineFailed = useStore(appStore, (state) => state.isWhisperEngineFailed);
     const nativeLang = useStore(appStore, (state) => state.userData?.native_language);
+    const location = useLocation();
+    // Friend-challenge lessons exist to produce a shared video, so their mode
+    // chooser offers only video. Detection is route-only (share link or the
+    // 'a'/'b' lesson ids) and re-renders on navigation via useLocation.
+    const friendLesson = isFriendLesson({ search: location.search, pathname: location.pathname });
 
     // Track how long the engine has been loading so we can escalate from a
     // quiet "preparing" note to explicit troubleshooting guidance. The interval
@@ -71,9 +78,11 @@ export default function IntroChoices() {
     // icons on a single line with even gap-3 spacing.
     const voiceButtons = (disabled) => (
         <>
-            <button className="btn call-icon" id="audioOnlyButton" aria-label="Audio Only" onClick={handleAudioClick} disabled={disabled}>
-                <i className="bi bi-telephone-fill text-white"></i>
-            </button>
+            {!friendLesson && (
+                <button className="btn call-icon" id="audioOnlyButton" aria-label="Audio Only" onClick={handleAudioClick} disabled={disabled}>
+                    <i className="bi bi-telephone-fill text-white"></i>
+                </button>
+            )}
             <button className="btn call-btn" id="continueButton" aria-label="Video Call" onClick={handleVideoClick} disabled={disabled}>
                 <i className="bi bi-camera-video-fill"></i>
             </button>
@@ -83,8 +92,9 @@ export default function IntroChoices() {
     // Text mode is always available via the keyboard icon (product decision):
     // voice remains the primary path, but the text option is never hidden —
     // it does not depend on the speech engine, so it stays usable while the
-    // engine loads or fails.
-    const textOnlyBtn = (
+    // engine loads or fails. Friend-challenge lessons are the one exception:
+    // they exist to produce a shared video, so text-only is withheld there.
+    const textOnlyBtn = friendLesson ? null : (
         <button className="btn call-icon" id="textOnlyButton" aria-label="Text Only" onClick={handleTextClick}>
             <i className="bi bi-keyboard-fill text-white"></i>
         </button>
