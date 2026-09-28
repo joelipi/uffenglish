@@ -5,7 +5,7 @@ import { getAllSpeechRecordingsForLesson } from '../storage/storage.js';
 import { shareVideo } from './video-share.js';
 import { appStore } from '../store/store.js';
 import headerImg from '../../assets/img/header.png';
-import { getVideoUrl, getUgcThumbKey } from './video-url.js';
+import { getVideoUrl, getUgcThumbKey, getCompleteVideoKey } from './video-url.js';
 import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, buildShareUrl, buildShareDeadline, resolveOverlayElements, isShareCtaEnabled, isDroppedStep, markFirstRenderable, resolveSegmentBounds, STALL_GRACE_MS } from './video-processor-logic.js';
 import { remoteSource } from './video-source.js';
 import { DEFAULT_USER_AVATAR_URL } from '../user/tutor-config.js';
@@ -1389,4 +1389,70 @@ export async function exportSegmentsToR2(lessonId) {
     appStore.getState().setPendingPublishLessonId?.(null);
 
     return { count: publishable.length, succeeded };
+}
+
+// Mirrors MAX_BYTES in functions/api/upload-segment.js. The Function rejects any
+// object over this size with a 413, so the client checks first and skips the
+// request rather than sending one that is guaranteed to fail.
+export const MAX_R2_UPLOAD_BYTES = 20 * 1024 * 1024;
+
+// Uploads the concatenated end-of-lesson recap to R2 under the same `videos/`
+// namespace as the per-segment clips, so it inherits the 48h lifecycle. Key:
+// videos/${shareCode}-${courseId}-${lessonId}-complete.mp4 (never "concatenated").
+//
+// Best-effort: never throws, and skips the request when the transcoded blob
+// exceeds the Function's 20 MB cap. A failure here must never fail the publish
+// or the recap UI.
+export async function uploadCompleteVideoToR2(blob, lessonId) {
+    if (!blob) {
+        console.log('[CompleteVideo] skipped — no blob');
+        return { uploaded: false, reason: 'no-blob' };
+    }
+    if (!appStore.getState().isLoggedIn) {
+        console.warn('[CompleteVideo] Not logged in, skipping complete-video upload');
+        return { uploaded: false, reason: 'not-logged-in' };
+    }
+
+    const { userData, courseId } = appStore.getState();
+    const shareCode = userData?.shareCode;
+    const key = getCompleteVideoKey({ shareCode, courseId, lessonId });
+    if (!key) {
+        console.warn('[CompleteVideo] Missing shareCode/courseId/lessonId, skipping upload');
+        return { uploaded: false, reason: 'missing-key-parts' };
+    }
+
+    // Uploads an already-mp4 blob under the complete key, after the size gate.
+    const uploadMp4 = async (mp4) => {
+        if (mp4.size > MAX_R2_UPLOAD_BYTES) {
+            console.warn('[CompleteVideo] over 20 MB cap, skipping upload:', mp4.size);
+            trackEvent('publish_complete_video_skipped', { lessonId, bytes: mp4.size });
+            return { uploaded: false, reason: 'too-large' };
+        }
+        const jwt = (await getAccessToken()) || '';
+        const { url } = await uploadSegmentToR2({ blob: mp4, key, jwt, shareCode, contentType: 'video/mp4' });
+        trackEvent('publish_complete_video_success', { lessonId, url });
+        console.log('[CompleteVideo] uploaded', key, '→', url);
+        return { uploaded: true, url };
+    };
+
+    try {
+        // The recap may be WebM (iOS/older browsers); R2 only accepts .mp4.
+        const mp4 = await transcodeToMp4(blob);
+        if (!await verifyMp4(mp4)) throw new Error('verify-failed');
+        return await uploadMp4(mp4);
+    } catch (e) {
+        // Cloudinary fallback mirrors exportSegmentsToR2's transcode path.
+        if (e?.message === 'webcodecs-unavailable' || e?.message === 'verify-failed') {
+            try {
+                const mp4 = await uploadWebmToCloudinary(blob);
+                return await uploadMp4(mp4);
+            } catch (ce) {
+                console.error('[CompleteVideo] Cloudinary fallback failed (non-fatal):', ce);
+            }
+        } else {
+            console.error('[CompleteVideo] upload failed (non-fatal):', e);
+        }
+        trackEvent('publish_complete_video_failed', { lessonId });
+        return { uploaded: false, reason: 'error' };
+    }
 }

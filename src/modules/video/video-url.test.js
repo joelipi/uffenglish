@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { getVideoUrl, getPosterUrl, getUgcThumbUrl, getUgcThumbKey } from './video-url.js';
+import { getVideoUrl, getPosterUrl, getUgcThumbUrl, getUgcThumbKey, getCompleteVideoKey } from './video-url.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SOURCE = readFileSync(path.join(__dirname, 'video-url.js'), 'utf8');
@@ -58,5 +58,41 @@ describe('UGC thumb helpers (sibling .jpg)', () => {
     it('getUgcThumbUrl maps an mp4 URL to its jpg sibling', () => {
         expect(getUgcThumbUrl('https://r2.ultrafastfluency.com/videos/ab12-model-w-response-01.mp4'))
             .toBe('https://r2.ultrafastfluency.com/videos/ab12-model-w-response-01.jpg');
+    });
+});
+
+describe('getCompleteVideoKey — concatenated recap key', () => {
+    it('builds the shareCode-courseId-lessonId-complete key', () => {
+        expect(getCompleteVideoKey({ shareCode: 'ab12', courseId: 'model', lessonId: 'w' }))
+            .toBe('videos/ab12-model-w-complete.mp4');
+    });
+
+    it('covers both friend lessons a and b', () => {
+        expect(getCompleteVideoKey({ shareCode: 'ab12', courseId: 'friend', lessonId: 'a' }))
+            .toBe('videos/ab12-friend-a-complete.mp4');
+        expect(getCompleteVideoKey({ shareCode: 'ab12', courseId: 'friend', lessonId: 'b' }))
+            .toBe('videos/ab12-friend-b-complete.mp4');
+    });
+
+    it('never contains "concatenated" and stays in the shareCode namespace', () => {
+        const key = getCompleteVideoKey({ shareCode: 'ab12', courseId: 'model', lessonId: 'w' });
+        expect(key.toLowerCase()).not.toContain('concatenated');
+        expect(key.startsWith('videos/ab12-')).toBe(true);
+        expect(key.endsWith('.mp4')).toBe(true);
+    });
+
+    it('returns null when any part is missing', () => {
+        expect(getCompleteVideoKey({ shareCode: null, courseId: 'model', lessonId: 'w' })).toBeNull();
+        expect(getCompleteVideoKey({ shareCode: 'ab12', courseId: null, lessonId: 'w' })).toBeNull();
+        expect(getCompleteVideoKey({ shareCode: 'ab12', courseId: 'model', lessonId: null })).toBeNull();
+        expect(getCompleteVideoKey({})).toBeNull();
+        expect(getCompleteVideoKey()).toBeNull();
+    });
+
+    it('cannot collide with a segment key or its poster key', () => {
+        const complete = getCompleteVideoKey({ shareCode: 'ab12', courseId: 'model', lessonId: 'w' });
+        const segment = 'videos/ab12-model-w-response-01.mp4';
+        expect(complete).not.toBe(segment);
+        expect(complete).not.toBe(getUgcThumbKey(segment));
     });
 });

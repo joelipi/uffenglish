@@ -41,3 +41,12 @@ export function getUgcThumbKey(r2Key) {
     if (!r2Key || typeof r2Key !== 'string') return null;
     return r2Key.replace(/\.mp4$/i, '.jpg');
 }
+
+// Key for the concatenated end-of-lesson recap. Same `videos/` namespace as the
+// per-segment clips, so it inherits the 48h lifecycle. Never contains
+// "concatenated"; the suffix is `complete`. Returns null when any part is
+// missing so callers can skip cleanly.
+export function getCompleteVideoKey({ shareCode, courseId, lessonId } = {}) {
+    if (!shareCode || !courseId || !lessonId) return null;
+    return `videos/${shareCode}-${courseId}-${lessonId}-complete.mp4`;
+}

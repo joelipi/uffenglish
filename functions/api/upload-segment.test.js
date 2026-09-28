@@ -171,4 +171,43 @@ describe('onRequestPost — upload-segment Function', () => {
         expect(res.status).toBe(413);
         expect(env.UFF_R2.put).not.toHaveBeenCalled();
     });
+
+    it('accepts the concatenated recap key (videos/<shareCode>-<courseId>-<lessonId>-complete.mp4)', async () => {
+        const env = makeEnv();
+        const res = await onRequestPost({
+            request: makeRequest({ key: 'videos/ab12-model-w-complete.mp4' }),
+            env,
+        });
+
+        expect(res.status).toBe(200);
+        expect(await res.json()).toEqual({
+            ok: true,
+            url: 'https://r2.ultrafastfluency.com/videos/ab12-model-w-complete.mp4',
+        });
+        expect(env.UFF_R2.put).toHaveBeenCalledWith(
+            'videos/ab12-model-w-complete.mp4',
+            expect.any(ArrayBuffer),
+            { httpMetadata: { contentType: 'video/mp4', cacheControl: 'public, max-age=3600' } }
+        );
+    });
+
+    it('rejects a complete key outside the shareCode namespace', async () => {
+        const env = makeEnv();
+        const res = await onRequestPost({
+            request: makeRequest({ key: 'videos/other-model-w-complete.mp4' }),
+            env,
+        });
+        expect(res.status).toBe(403);
+        expect(env.UFF_R2.put).not.toHaveBeenCalled();
+    });
+
+    it('rejects a complete key with a non-mp4 extension', async () => {
+        const env = makeEnv();
+        const res = await onRequestPost({
+            request: makeRequest({ key: 'videos/ab12-model-w-complete.webm' }),
+            env,
+        });
+        expect(res.status).toBe(403);
+        expect(env.UFF_R2.put).not.toHaveBeenCalled();
+    });
 });

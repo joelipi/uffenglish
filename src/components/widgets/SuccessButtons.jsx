@@ -72,7 +72,7 @@ export function VideoButton({ canvasRef }) {
       appStore.getState().triggerPauseAllVideos();
       appStore.getState().setCurrentVideo(null);
 
-      const { processVideo, shareVideo, exportSegmentsToR2 } = await import('../../modules/video/video-processor.js');
+      const { processVideo, shareVideo, exportSegmentsToR2, uploadCompleteVideoToR2 } = await import('../../modules/video/video-processor.js');
       const canvas = canvasRef?.current;
       const result = await processVideo(fluencyData, lessonId, canvas);
 
@@ -95,6 +95,11 @@ export function VideoButton({ canvasRef }) {
           // video-generation flow: the stitched video is already ready above.
           try {
             const exportResult = await exportSegmentsToR2(lessonId);
+            // Best-effort: also publish the concatenated recap to R2 (same
+            // videos/ namespace, 48h TTL). Fire-and-forget so a slow or failed
+            // complete upload never delays the friend link or the UI.
+            uploadCompleteVideoToR2(result.blob, lessonId)
+              .catch((e) => console.error('[Success] complete-video upload failed (non-fatal):', e));
             const { configData, courseId, userData } = appStore.getState();
             const payload = resolveFriendLessonLink({
               configData,
