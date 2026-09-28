@@ -77,9 +77,10 @@ export async function planPosterRun({ configs, posterExists, posterStale = () =>
 - Add `headObject(url)` returning `{ ok, lastModified }`; `lastModified` is `res.headers.get('last-modified')`, and any thrown/network error resolves to `{ ok: false, lastModified: null }`.
 - Refactor `r2PosterExists(slug)` to `return (await headCached(posterHeadUrl(slug))).ok` — same signature and same true/false semantics as today.
 - A tiny module-level `headCache` (`Map<url, Promise<{ok,lastModified}>>`) backs both the existence check and the staleness check so the poster URL is HEADed once per run.
-- Both the source-video HEAD and the poster HEAD use `CDN_POSTER_BASE` (the existing `POSTER_CDN_BASE` env seam, default `https://r2.ultrafastfluency.com/assets/videos/`): video = `${CDN_POSTER_BASE}${slug}.mp4`, poster = `${CDN_POSTER_BASE}${posterFilename(slug)}`. The download path (`resolveSource` → `posterSourceUrl`) is unchanged.
+- Both the source-video HEAD and the poster HEAD use `CDN_POSTER_BASE` (the existing `POSTER_CDN_BASE` env seam, default `https://r2.ultrafastfluency.com/assets/videos/`). `posterSourceUrl(slug)` gains an optional `base` argument (default unchanged), so the video HEAD is `posterSourceUrl(slug, CDN_POSTER_BASE)` — one definition of the `<slug>.mp4` path shared with the download — and the poster HEAD is `${CDN_POSTER_BASE}${posterFilename(slug)}`. `resolveSource` still downloads via `posterSourceUrl(slug)`.
 - `r2PosterStale(slug)` HEADs both URLs (via the cache), calls `isPosterStale({ videoLastModified, posterLastModified })`, and logs `STALE <slug>: <slug>.mp4 is newer than <slug>.jpg` when true. The log fires during planning, i.e. before the `GEN <slug>` line it triggers, so both are greppable in CI output.
-- `main` passes `posterStale` into `planPosterRun` on the normal (non-`--force`) path; under `--force` `posterExists` is `() => false` so every slug is targeted and no staleness is consulted.
+- `main` always passes `posterStale: r2PosterStale` into `planPosterRun`; under `--force` `posterExists` is `() => false` so every slug is targeted and the staleness predicate is never consulted (it only runs for slugs whose poster exists).
+- When a staleness HEAD yields no `Last-Modified` (transient R2/DNS failure), the rule stays fail-safe (`false`) but logs `WARN <slug>: missing Last-Modified … — freshness not checked` so a skipped refresh is visible.
 
 ### LQIP module
 
@@ -137,7 +138,7 @@ export async function planPosterRun({ configs, posterExists, posterStale = () =>
 - `--force` + run
   - → every intro slug is a target regardless of existence/staleness (unchanged semantics).
 - source uses `CDN_POSTER_BASE` for both HEADs (`.mp4` and `.jpg`).
-  - → test asserts the source references `CDN_POSTER_BASE` and builds the `....mp4` URL from it.
+  - → test asserts the source references `CDN_POSTER_BASE` and builds the video URL via `posterSourceUrl(slug, CDN_POSTER_BASE)` (one `<slug>.mp4` definition shared with the download path, not a divergent literal).
 - hermetic CLI integration test (fake R2 via `POSTER_CDN_BASE`, local `--video-dir` mp4 generated with ffmpeg, fresh-poster GET body a tiny valid JPEG) with one stale slug and the rest fresh
   - → exit code `0`.
   - → stdout contains `STALE <slug>` and `GEN <slug>` for the stale slug, and no `GEN <other-slug>` for any fresh slug (stdout is the generation signal: the LQIP step downloads every fresh poster into the work dir, so file presence there is not a generation signal).

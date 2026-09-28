@@ -136,13 +136,14 @@ describe('generate-thumbnails.mjs source', () => {
         expect(SOURCE).toMatch(/last-modified/i);
         expect(SOURCE).toContain('isPosterStale');
         expect(SOURCE).toContain('r2PosterStale');
-        // Both HEADs go through the overridable CDN base.
+        // Both HEADs go through the overridable CDN base, and the video HEAD
+        // reuses the canonical source URL rather than a second path definition.
         expect(SOURCE).toContain('CDN_POSTER_BASE');
-        expect(SOURCE).toMatch(/\$\{CDN_POSTER_BASE\}\$\{slug\}\.mp4/);
+        expect(SOURCE).toContain('posterSourceUrl(slug, CDN_POSTER_BASE)');
     });
 
     it('passes the staleness predicate into planPosterRun', () => {
-        expect(SOURCE).toMatch(/posterStale:\s*force\s*\?\s*\(\)\s*=>\s*false\s*:\s*r2PosterStale/);
+        expect(SOURCE).toContain('posterStale: r2PosterStale');
     });
 });
 

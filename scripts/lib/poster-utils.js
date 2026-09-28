@@ -132,9 +132,11 @@ export function posterR2Key(slug) {
     return `assets/videos/${slug}.jpg`;
 }
 
-// Download path for the built-in ffmpeg frame grab.
-export function posterSourceUrl(slug) {
-    return `https://r2.ultrafastfluency.com/assets/videos/${slug}.mp4`;
+// Source-video URL (the video whose still is the poster). The base is
+// overridable so callers that only HEAD metadata can point it at a test seam
+// (`POSTER_CDN_BASE`) without re-deriving the `<slug>.mp4` path.
+export function posterSourceUrl(slug, base = 'https://r2.ultrafastfluency.com/assets/videos/') {
+    return `${base}${slug}.mp4`;
 }
 
 /**

@@ -110,7 +110,8 @@ function posterHeadUrl(slug) {
 }
 
 function videoHeadUrl(slug) {
-    return `${CDN_POSTER_BASE}${slug}.mp4`;
+    // Single source of truth for the video path (shared with the download).
+    return posterSourceUrl(slug, CDN_POSTER_BASE);
 }
 
 // HEAD an R2 object once per run. Returns `{ ok, lastModified }`; a network
@@ -146,6 +147,11 @@ async function r2PosterStale(slug) {
     const stale = isPosterStale({ videoLastModified, posterLastModified });
     if (stale) {
         console.log(`STALE ${slug}: ${slug}.mp4 is newer than ${posterFilename(slug)}`);
+    } else if (!videoLastModified || !posterLastModified) {
+        // A transient R2/DNS failure yields no Last-Modified, which is treated
+        // as "not stale" (fail safe). Surface it so a flaky deploy that skips a
+        // real refresh is visible instead of silent.
+        console.warn(`WARN ${slug}: missing Last-Modified (video=${videoLastModified}, poster=${posterLastModified}) — freshness not checked`);
     }
     return stale;
 }
@@ -313,10 +319,10 @@ async function main() {
     try { moduleText = await fs.readFile(GENERATED_PATH, 'utf8'); } catch {}
     const plan = await planPosterRun({
         configs,
-        // --force targets every slug, so `posterExists` is always false and
-        // staleness is never consulted.
+        // --force targets every slug (posterExists is always false), so the
+        // staleness predicate is never consulted under --force.
         posterExists: force ? () => false : r2PosterExists,
-        posterStale: force ? () => false : r2PosterStale,
+        posterStale: r2PosterStale,
         moduleText,
     });
 
