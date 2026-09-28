@@ -144,6 +144,17 @@ export function resolveRecapSources(lesson) {
     return RECAP_SOURCES.includes(value) ? value : 'system';
 }
 
+// Response steps that begin a new question. A friend-prompt fallback lookup
+// must never scan past one of these: every friend clip belongs to exactly the
+// question that immediately follows it.
+const RECAP_RESPONSE_BOUNDARY_TYPES = new Set(['closedResponse', 'openResponse', 'friendClosedResponse']);
+
+// Resolves a step's prompt video with the same precedence as the recorded
+// step's own target: interactive > intro background > simple.
+function stepTarget(step) {
+    return step?.interactiveVideoUrl || step?.introBackgroundVideoUrl || step?.simpleVideoUrl || null;
+}
+
 /**
  * A share CTA renders for any 'shareCta' recap. When the session has no
  * shareCode, `buildShareUrl` falls back to the bare host so the CTA still
@@ -358,7 +369,25 @@ export class VideoRenderPlanner {
         // Include simpleVideoUrl as a fallback so steps whose prompt is the
         // model-answer clip (not an interactive/intro video) still get a remote
         // prompt segment in the generated recap. Order: interactive > intro > simple.
-        return q.interactiveVideoUrl || q.introBackgroundVideoUrl || q.simpleVideoUrl || null;
+        const own = stepTarget(q);
+        if (own && remoteSource(own) === 'friend') return own;
+
+        // Friend-challenge lessons may present the friend's question as a
+        // click-through `viewAndContinue` step immediately before the recorded
+        // response step, whose own prompt is the teacher's system clip. Borrow
+        // that preceding friend clip so the recap keeps the friend's half of
+        // the conversation. Scan back only to the previous response boundary so
+        // a question never reuses an earlier question's clip.
+        if (resolveRecapSources(lesson) === 'friend') {
+            for (let i = rec.originalStepIndex - 1; i >= 0; i--) {
+                const step = lesson.steps[i];
+                if (RECAP_RESPONSE_BOUNDARY_TYPES.has(step?.responseType)) break;
+                const target = stepTarget(step);
+                if (target && remoteSource(target) === 'friend') return target;
+            }
+        }
+
+        return own;
     }
 
     _getStepCue(rec) {
