@@ -136,4 +136,17 @@ describe('video-processor.web.js recap wiring guard', () => {
         expect(source.match(/\$\{trFontSize\}px "Plus Jakarta Sans", sans-serif/g)).toHaveLength(3);
         expect(source).toMatch(/bold \$\{enFontSize\}px "Plus Jakarta Sans", sans-serif/);
     });
+
+    it('measures overlay text through the DOM, not only canvas measureText', () => {
+        // WebKit canvas measureText under-reports (sometimes ~0) complex-script
+        // glyphs supplied by a fallback font, so the share-CTA headline/deadline
+        // and subtitles neither shrink-to-fit nor centre (Bengali overflows the
+        // right edge). Overlay layout must consult a hidden <span> with the same
+        // font, which WebKit lays out correctly.
+        expect(source).toMatch(/function measureTextWidthDom\(/);
+        expect(source).toMatch(/function measureTextWidth\(/);
+        expect(source).toMatch(/function drawCenteredLine\(/);
+        // drawFittedLine must not rely on textAlign='center' for its origin.
+        expect(source).toMatch(/context\.textAlign = 'left'/);
+    });
 });

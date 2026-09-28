@@ -58,7 +58,7 @@ export default function DecisionButtons() {
                         {(() => {
                             const d = getBilingual('video_ear_training', labelLang);
                             return d.localized ? (
-                                <React.Fragment>{d.english}<br /><span lang={d.lang}><i>{d.localized}</i></span></React.Fragment>
+                                <React.Fragment>{d.english}<br /><span lang={d.lang}>{d.localized}</span></React.Fragment>
                             ) : d.english;
                         })()}
                     </div>
@@ -75,7 +75,7 @@ export default function DecisionButtons() {
                         {(() => {
                             const d = getBilingual(respondNowKey, labelLang);
                             return d.localized ? (
-                                <React.Fragment>{d.english}<br /><span lang={d.lang}><i>{d.localized}</i></span></React.Fragment>
+                                <React.Fragment>{d.english}<br /><span lang={d.lang}>{d.localized}</span></React.Fragment>
                             ) : d.english;
                         })()}
                     </div>

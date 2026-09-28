@@ -182,7 +182,7 @@ export default function LessonContainer() {
                                         <div className="ivp-choice-label">
                                             <div className="ivp-choice-label-text">
                                                 {reRecord.localized ? (
-                                                    <React.Fragment>{reRecord.english}<br /><span lang={reRecord.lang}><i>{reRecord.localized}</i></span></React.Fragment>
+                                                    <React.Fragment>{reRecord.english}<br /><span lang={reRecord.lang}>{reRecord.localized}</span></React.Fragment>
                                                 ) : reRecord.english}
                                             </div>
                                         </div>
@@ -199,7 +199,7 @@ export default function LessonContainer() {
                                         <div className="ivp-choice-label">
                                             <div className="ivp-choice-label-text">
                                                 {acceptLabel.localized ? (
-                                                    <React.Fragment>{acceptLabel.english}<br /><span lang={acceptLabel.lang}><i>{acceptLabel.localized}</i></span></React.Fragment>
+                                                    <React.Fragment>{acceptLabel.english}<br /><span lang={acceptLabel.lang}>{acceptLabel.localized}</span></React.Fragment>
                                                 ) : acceptLabel.english}
                                             </div>
                                         </div>

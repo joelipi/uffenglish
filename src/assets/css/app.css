@@ -306,23 +306,17 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     font-style: italic;
 }
 
-/* Video overlay text stays upright: synthetic oblique (used when a font has no
+/* Video-overlay text stays upright: synthetic oblique (used when a font has no
    true italic face) shifts complex-script glyphs and breaks centring in the
-   canvas recap export. Scoped to video overlays; the global [lang] italic rule
-   for the rest of the app is unchanged. */
+   canvas recap export and in the on-screen overlays. Every translated string
+   that renders on top of a video is listed here; the global [lang] italic rule
+   for the rest of the app (chat, standalone cards) is unchanged. */
 .ivp-overlay-text [lang],
-.intro-call-subtitle [lang] {
-    font-style: normal !important;
-}
-
-/* The end-of-lesson recap overlay (share CTA headline and the Replay/Share/
-   Continue labels) sits on top of the concatenated recap video, so it is a
-   video overlay too. Keep its localized text upright for the same reason:
-   fonts without a true italic face (e.g. Bengali) get synthetic oblique,
-   which shifts complex-script ink. Scoped to #state-lesson-success so the
-   non-video choice labels elsewhere keep the app-wide italic. */
-#state-lesson-success .success-share-cta [lang],
-#state-lesson-success .ivp-choice-label-text [lang] {
+.intro-call-subtitle [lang],
+.ivp-choice-label-text [lang],
+.success-share-cta [lang],
+.mission-section [lang],
+#hint-hangman-card [lang] {
     font-style: normal !important;
 }
 

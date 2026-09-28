@@ -43,7 +43,7 @@ export default function ViewAndContinueButtons() {
                     <div className="ivp-choice-label">
                         <div className="ivp-choice-label-text">
                             {replayLabel.localized ? (
-                                <React.Fragment>{replayLabel.english}<br /><span lang={replayLabel.lang}><i>{replayLabel.localized}</i></span></React.Fragment>
+                                <React.Fragment>{replayLabel.english}<br /><span lang={replayLabel.lang}>{replayLabel.localized}</span></React.Fragment>
                             ) : replayLabel.english}
                         </div>
                     </div>
@@ -57,7 +57,7 @@ export default function ViewAndContinueButtons() {
                     <div className="ivp-choice-label">
                         <div className="ivp-choice-label-text">
                             {continueLabel.localized ? (
-                                <React.Fragment>{continueLabel.english}<br /><span lang={continueLabel.lang}><i>{continueLabel.localized}</i></span></React.Fragment>
+                                <React.Fragment>{continueLabel.english}<br /><span lang={continueLabel.lang}>{continueLabel.localized}</span></React.Fragment>
                             ) : continueLabel.english}
                         </div>
                     </div>
@@ -71,7 +71,7 @@ export default function ViewAndContinueButtons() {
                     <div className="ivp-choice-label">
                         <div className="ivp-choice-label-text">
                             {tutorialLabel.localized ? (
-                                <React.Fragment>{tutorialLabel.english}<br /><span lang={tutorialLabel.lang}><i>{tutorialLabel.localized}</i></span></React.Fragment>
+                                <React.Fragment>{tutorialLabel.english}<br /><span lang={tutorialLabel.lang}>{tutorialLabel.localized}</span></React.Fragment>
                             ) : tutorialLabel.english}
                         </div>
                     </div>

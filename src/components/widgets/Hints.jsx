@@ -16,7 +16,7 @@ export default function Hints() {
     const Bilingual = ({ k }) => {
         const d = getBilingual(k, lang);
         return d.localized ? (
-            <>{d.english}<br /><span lang={d.lang}><i>{d.localized}</i></span></>
+            <>{d.english}<br /><span lang={d.lang}>{d.localized}</span></>
         ) : (
             <>{d.english}</>
         );
