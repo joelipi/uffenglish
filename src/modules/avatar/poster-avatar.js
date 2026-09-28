@@ -7,13 +7,14 @@
 // into the persistent Supabase `avatars` bucket instead.
 import defaultProfilePic from '../../assets/img/userprofile.png';
 import { supabase } from '../api/supabase.js';
-import { queryClient } from '../api/api.js';
-import { appStore } from '../store/store.js';
 import { uploadAvatarToStorage, deleteAvatarFromStorage } from './avatar.service.js';
+import { syncAvatarUrlToClientStores } from './avatar-client-store.js';
 
 // "No profile picture" == falsy, or exactly the bundled placeholder that every
 // profile read substitutes for a NULL profile_picture_url (api.js:146).
 // Any other non-empty string is a real picture and must never be replaced.
+// NOTE: an expiring R2 `videos/` URL is deliberately treated as "has a picture"
+// (a legacy non-null-but-broken cleanup is out of scope, story 019).
 export function isMissingProfilePicture(url) {
     return !url || url === defaultProfilePic;
 }
@@ -39,8 +40,9 @@ export async function applyPosterAsProfilePictureIfMissing({ thumbBlob, userId, 
         return { updated: false, reason: 'has-picture' };
     }
 
+    let url = null;
     try {
-        const url = await uploadAvatarToStorage(thumbBlob, userId);
+        url = await uploadAvatarToStorage(thumbBlob, userId);
 
         // Atomic guard: only fill the slot if the DB row still has no picture,
         // so an avatar set on another device is never clobbered by a stale client.
@@ -60,26 +62,38 @@ export async function applyPosterAsProfilePictureIfMissing({ thumbBlob, userId, 
             return { updated: false, reason: 'has-picture-db' };
         }
 
-        // Keep the React Query cache and the Zustand store in sync, mirroring
-        // useAvatarUpload.onSuccess so the chat/recap pipelines use the new URL.
-        const currentData = queryClient.getQueryData(['user', 'profile']);
-        if (currentData) {
-            queryClient.setQueryData(['user', 'profile'], {
-                ...currentData,
-                profilePictureUrl: url,
-            });
-        }
-        const currentUserData = appStore.getState().userData;
-        if (currentUserData) {
-            appStore.getState().setCourseData({
-                userData: { ...currentUserData, profilePictureUrl: url },
-            });
-        }
+        syncAvatarUrlToClientStores(url);
 
         console.log('[PosterAvatar] profile picture set from lesson poster:', url);
         return { updated: true, url };
     } catch (e) {
+        // The DB claim failed, so the upload is an orphan — remove it (the R2
+        // upload path is deterministic per segment, so nothing else owns it).
+        if (url) {
+            await deleteAvatarFromStorage(url);
+        }
         console.error('[PosterAvatar] failed (non-fatal):', e);
         return { updated: false, reason: 'error' };
     }
+}
+
+// Publish-flow entry point: assigns the first published webcam poster as the
+// profile picture when the user has none. Returns early (without uploading) when
+// the publish produced no segment (`succeeded <= 0`) or no poster blob exists,
+// so the gating is unit-testable without the browser-only export path.
+export async function maybeAssignPosterAvatar({ publishable, succeeded, userData } = {}) {
+    if (!succeeded || succeeded <= 0) {
+        console.log('[PosterAvatar] skipped — no published segment');
+        return { updated: false, reason: 'not-published' };
+    }
+    const thumbBlob = pickAvatarThumb(publishable);
+    if (!thumbBlob) {
+        console.log('[PosterAvatar] skipped — no poster blob on any published step');
+        return { updated: false, reason: 'no-poster' };
+    }
+    return applyPosterAsProfilePictureIfMissing({
+        thumbBlob,
+        userId: userData?.$id,
+        currentUrl: userData?.profilePictureUrl,
+    });
 }

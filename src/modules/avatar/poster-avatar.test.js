@@ -24,6 +24,7 @@ import {
     isMissingProfilePicture,
     pickAvatarThumb,
     applyPosterAsProfilePictureIfMissing,
+    maybeAssignPosterAvatar,
 } from './poster-avatar.js';
 
 const BLOB = new Blob(['poster'], { type: 'image/jpeg' });
@@ -169,7 +170,7 @@ describe('applyPosterAsProfilePictureIfMissing', () => {
         expect(setCourseData).not.toHaveBeenCalled();
     });
 
-    it('returns a non-fatal error result when the DB update fails', async () => {
+    it('returns a non-fatal error result when the DB update fails and removes the orphan upload', async () => {
         mockUpdateChain({ data: null, error: new Error('rls') });
         const setCourseData = vi.fn();
         appStore.getState.mockReturnValue({ userData: { $id: 'u1' }, setCourseData });
@@ -177,7 +178,54 @@ describe('applyPosterAsProfilePictureIfMissing', () => {
         const result = await applyPosterAsProfilePictureIfMissing({ thumbBlob: BLOB, userId: 'u1', currentUrl: defaultProfilePic });
 
         expect(result).toEqual({ updated: false, reason: 'error' });
-        expect(deleteAvatarFromStorage).not.toHaveBeenCalled();
+        expect(deleteAvatarFromStorage).toHaveBeenCalledTimes(1);
+        expect(deleteAvatarFromStorage).toHaveBeenCalledWith(UPLOADED_URL);
         expect(setCourseData).not.toHaveBeenCalled();
+    });
+});
+
+describe('maybeAssignPosterAvatar', () => {
+    it('skips without uploading when no segment was published', async () => {
+        const result = await maybeAssignPosterAvatar({
+            publishable: [{ type: 'webcam', thumbBlob: BLOB }],
+            succeeded: 0,
+            userData: { $id: 'u1', profilePictureUrl: defaultProfilePic },
+        });
+        expect(result).toEqual({ updated: false, reason: 'not-published' });
+        expect(uploadAvatarToStorage).not.toHaveBeenCalled();
+    });
+
+    it('skips without uploading when no published step has a poster blob', async () => {
+        const result = await maybeAssignPosterAvatar({
+            publishable: [{ type: 'webcam', thumbBlob: null }],
+            succeeded: 1,
+            userData: { $id: 'u1', profilePictureUrl: defaultProfilePic },
+        });
+        expect(result).toEqual({ updated: false, reason: 'no-poster' });
+        expect(uploadAvatarToStorage).not.toHaveBeenCalled();
+    });
+
+    it('assigns the first poster when a segment published and the user has no picture', async () => {
+        mockUpdateChain({ data: [{ id: 'u1' }], error: null });
+        appStore.getState.mockReturnValue({ userData: { $id: 'u1' }, setCourseData: vi.fn() });
+
+        const result = await maybeAssignPosterAvatar({
+            publishable: [{ type: 'webcam', thumbBlob: null }, { type: 'webcam', thumbBlob: BLOB }],
+            succeeded: 2,
+            userData: { $id: 'u1', profilePictureUrl: defaultProfilePic },
+        });
+
+        expect(result).toEqual({ updated: true, url: UPLOADED_URL });
+        expect(uploadAvatarToStorage).toHaveBeenCalledWith(BLOB, 'u1');
+    });
+
+    it('does not upload when the user already has a custom picture', async () => {
+        const result = await maybeAssignPosterAvatar({
+            publishable: [{ type: 'webcam', thumbBlob: BLOB }],
+            succeeded: 1,
+            userData: { $id: 'u1', profilePictureUrl: CUSTOM_URL },
+        });
+        expect(result).toEqual({ updated: false, reason: 'has-picture' });
+        expect(uploadAvatarToStorage).not.toHaveBeenCalled();
     });
 });
