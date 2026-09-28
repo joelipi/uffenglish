@@ -3,6 +3,11 @@
 // (stories/021-upload-concatenated-videos-to-r2). The full runProcessing path
 // needs MediaRecorder/canvas/WebCodecs and cannot run headlessly, so the call
 // site is asserted as text (comments stripped), like poster-avatar-wiring.test.js.
+//
+// This guard proves presence/shape only (the call exists, is inside the publish
+// block, and is not awaited). The "never fails the publish" guarantee rests on
+// the unit tests' never-throws contract in complete-video-upload.test.js, not on
+// this text guard.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';

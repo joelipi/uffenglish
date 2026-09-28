@@ -21,8 +21,12 @@ function stripComments(source) {
 
 describe('video-processor.web.js poster→avatar wiring', () => {
     const source = stripComments(readFileSync(path.join(ROOT, 'src/modules/video/video-processor.web.js'), 'utf8'));
-    // exportSegmentsToR2 is the last function in the module.
-    const fnBody = source.slice(source.indexOf('export async function exportSegmentsToR2'));
+    // Slice to the next top-level export so the guard cannot pass on strings in
+    // a later function (uploadCompleteVideoToR2 is appended after this one).
+    const fnBody = source.slice(
+        source.indexOf('export async function exportSegmentsToR2'),
+        source.indexOf('export const MAX_R2_UPLOAD_BYTES'),
+    );
 
     it('imports and calls maybeAssignPosterAvatar inside exportSegmentsToR2', () => {
         expect(source).toContain("from '../avatar/poster-avatar.js'");

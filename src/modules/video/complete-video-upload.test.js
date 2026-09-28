@@ -115,6 +115,15 @@ describe('uploadCompleteVideoToR2', () => {
         expect(uploadSegmentToR2).toHaveBeenCalledWith(expect.objectContaining({ key: 'videos/ab12-model-w-complete.mp4' }));
     });
 
+    it('falls back to Cloudinary when the WebCodecs result fails the mp4 check', async () => {
+        verifyMp4.mockResolvedValue(false);
+
+        const result = await uploadCompleteVideoToR2(BLOB, 'w');
+
+        expect(result).toEqual({ uploaded: true, url: UPLOADED_URL });
+        expect(uploadWebmToCloudinary).toHaveBeenCalledWith(BLOB);
+    });
+
     it('returns a non-fatal error when both transcode paths fail', async () => {
         transcodeToMp4.mockRejectedValue(new Error('webcodecs-unavailable'));
         uploadWebmToCloudinary.mockRejectedValue(new Error('cloudinary down'));

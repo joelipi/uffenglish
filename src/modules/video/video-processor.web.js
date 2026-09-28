@@ -1201,6 +1201,32 @@ function getOrCreateExportVideoElement() {
     return exportVideoElement;
 }
 
+// Transcode a blob to mp4 with the shared fallback contract: WebCodecs first,
+// then Cloudinary when the browser cannot encode H.264/AAC (or the result fails
+// the mp4 shape check). Returns { mp4, path } where path is 'webcodecs' |
+// 'cloudinary', or { mp4: null, path: null } when both paths fail. Never throws.
+// Single source of truth for the fallback chain used by both the per-segment
+// export and the concatenated-recap upload.
+async function transcodeToMp4WithFallback(blob) {
+    try {
+        const mp4 = await transcodeToMp4(blob);
+        if (!await verifyMp4(mp4)) throw new Error('verify-failed');
+        return { mp4, path: 'webcodecs' };
+    } catch (e) {
+        if (e?.message === 'webcodecs-unavailable' || e?.message === 'verify-failed') {
+            try {
+                const mp4 = await uploadWebmToCloudinary(blob);
+                return { mp4, path: 'cloudinary' };
+            } catch (ce) {
+                console.error('[Transcode] Cloudinary fallback failed:', ce);
+            }
+        } else {
+            console.error('[Transcode] transcodeToMp4 error:', e);
+        }
+        return { mp4: null, path: null };
+    }
+}
+
 // Render a single plan step into a per-segment Blob by reusing executeRenderLoop
 // with a single-step plan (isFirst:false) and the silent flag.
 async function renderStepToBlob({ step, video, canvas, overlayImage, profileImage, fluencyData, audioContext }) {
@@ -1322,24 +1348,7 @@ export async function exportSegmentsToR2(lessonId) {
         }
 
         // 2) Transcode to mp4 (WebCodecs primary, Cloudinary fallback).
-        let mp4 = null;
-        let path = null;
-        try {
-            mp4 = await transcodeToMp4(segBlob);
-            if (!await verifyMp4(mp4)) throw new Error('verify-failed');
-            path = 'webcodecs';
-        } catch (e) {
-            if (e?.message === 'webcodecs-unavailable' || e?.message === 'verify-failed') {
-                try {
-                    mp4 = await uploadWebmToCloudinary(segBlob);
-                    path = 'cloudinary';
-                } catch (ce) {
-                    console.error('[ExportSegments] Cloudinary fallback failed:', ce);
-                }
-            } else {
-                console.error('[ExportSegments] transcodeToMp4 error:', e);
-            }
-        }
+        const { mp4, path } = await transcodeToMp4WithFallback(segBlob);
 
         if (!mp4) {
             trackEvent('publish_clips_segment_failed', { lessonId, index: i, error: 'transcode' });
@@ -1437,21 +1446,15 @@ export async function uploadCompleteVideoToR2(blob, lessonId) {
 
     try {
         // The recap may be WebM (iOS/older browsers); R2 only accepts .mp4.
-        const mp4 = await transcodeToMp4(blob);
-        if (!await verifyMp4(mp4)) throw new Error('verify-failed');
+        // Shared WebCodecs → Cloudinary fallback (same as the per-segment path).
+        const { mp4 } = await transcodeToMp4WithFallback(blob);
+        if (!mp4) {
+            trackEvent('publish_complete_video_failed', { lessonId });
+            return { uploaded: false, reason: 'error' };
+        }
         return await uploadMp4(mp4);
     } catch (e) {
-        // Cloudinary fallback mirrors exportSegmentsToR2's transcode path.
-        if (e?.message === 'webcodecs-unavailable' || e?.message === 'verify-failed') {
-            try {
-                const mp4 = await uploadWebmToCloudinary(blob);
-                return await uploadMp4(mp4);
-            } catch (ce) {
-                console.error('[CompleteVideo] Cloudinary fallback failed (non-fatal):', ce);
-            }
-        } else {
-            console.error('[CompleteVideo] upload failed (non-fatal):', e);
-        }
+        console.error('[CompleteVideo] upload failed (non-fatal):', e);
         trackEvent('publish_complete_video_failed', { lessonId });
         return { uploaded: false, reason: 'error' };
     }
