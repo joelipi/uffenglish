@@ -110,6 +110,20 @@ describe('video-processor.web.js recap wiring guard', () => {
         expect(source).toMatch(/const endedNaturally = stepStartedPlaying && video\.ended/);
     });
 
+    it('resolves the recap language guest-first in both process and export', () => {
+        // A guest who chose Spanish must get a Spanish recap even when
+        // userData.native_language is stale; the precedence is shared with
+        // normalizeConfig (single-sourced via resolveConfigLanguage).
+        expect(source).toMatch(
+            /import \{ resolveConfigLanguage \} from '\.\.\/bilingual\/config-normalizer\.js'/
+        );
+        const uses = source.match(/const userLang = resolveConfigLanguage\(/g) || [];
+        expect(uses).toHaveLength(2);
+        expect(source).not.toMatch(
+            /const userLang = appStore\.getState\(\)\.userData\?\.native_language/
+        );
+    });
+
     it('draws the translated subtitle in the normal face, never italic', () => {
         // italic triggers synthetic oblique in fonts without a true italic
         // face, which shifts complex-script ink off the centre. The
