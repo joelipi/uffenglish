@@ -15,6 +15,8 @@ import { setTextInputSubmitCallback as setTextCb, setSpeechInputToggleCallback a
 import { getMediaErrorStringKey, classifyMediaError } from '../speech/speech-ui-state.js';
 import { getVideoUrl } from '../video/video-url.js';
 import { isRecordablePhase } from './recordable-phases.js';
+import { isFriendLesson } from '../user/friend-lesson-detection.js';
+import { resolveStepPhase } from './step-phase-logic.js';
 
 // Module-level ref for viewAndContinue handler (decision overlay Continue button)
 let _viewAndContinueHandler = null;
@@ -39,7 +41,6 @@ export function setupTextInputForStep() {
 }
 
 function resetUIForNewStep(step) {
-    let phase;
     const isRetry = appStore.getState().incorrectAttempts > 0;
     const steps = appStore.getState().configData.lessons[appStore.getState().currentLessonIndex].steps;
     const firstResponseIndex = steps.findIndex(s =>
@@ -48,21 +49,12 @@ function resetUIForNewStep(step) {
         s.responseType === 'friendClosedResponse'
     );
     const isFirstResponseStep = appStore.getState().currentStepIndex === firstResponseIndex;
-    if (step.responseType === 'lessonIntro') {
-        phase = 'lessonIntro';
-    } else if (step.responseType === 'success') {
-        phase = 'lessonSuccess';
-    } else if ((step.responseType === 'closedResponse' || step.responseType === 'openResponse' || step.responseType === 'friendClosedResponse') && isFirstResponseStep && !isRetry) {
-        phase = 'firstResponse';
-    } else if (step.interactiveVideoUrl && !isRetry) {
-        phase = 'interactiveVideo+' + (step.responseType === 'openResponse' ? 'openResponse' : (step.responseType === 'friendClosedResponse' ? 'friendClosedResponse' : 'closedResponse'));
-    } else if (step.responseType === 'viewAndContinue' && step.simpleVideoUrl) {
-        phase = 'viewAndContinueVideo';
-    } else if (step.simpleVideoUrl) {
-        phase = 'simpleVideo';
-    } else {
-        phase = 'recording/answering';
-    }
+    // A friend lesson (share code or lesson id a/b) skips the one-button mode
+    // chooser on its first response step and uses its normal per-video flow.
+    const friendLesson = typeof window !== 'undefined'
+        ? isFriendLesson({ search: window.location.search, pathname: window.location.pathname })
+        : false;
+    const phase = resolveStepPhase({ step, isFirstResponseStep, isRetry, isFriendLesson: friendLesson });
     appStore.getState().transitionTo(phase, {}, { fromStepLoad: true });
 }
 
