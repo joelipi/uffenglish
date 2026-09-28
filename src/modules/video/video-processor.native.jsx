@@ -391,7 +391,6 @@ const styles = StyleSheet.create({
     subtitleTranslationText: {
         color: '#fff',
         fontSize: 14,
-        fontStyle: 'italic',
         textAlign: 'center',
         lineHeight: 20,
         marginTop: 4,
