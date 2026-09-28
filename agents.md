@@ -8,6 +8,9 @@ This codebase is moving strictly to React patterns. Never use `document.querySel
 **Modular Structure**
 Keep logic in the module where it conceptually belongs. Do not co-locate unrelated concerns.
 
+**Guest language is authoritative; `userData.native_language` is its mirror**
+Resolve the active language guest-first everywhere — `guestNativeLanguage || userData?.native_language || 'en'` (`config-normalizer.js`, `video-share.web.js`, `HomeScreen.jsx`). A logged-in profile always wins. `userData.native_language` is kept in sync only so components that read it directly stay correct; the store's `setCourseData` must never let the async bootstrap's fetched profile revert a guest's chosen language (`applyGuestLanguagePreference`). If you add a component that localizes by language, use the guest-first expression, not `userData.native_language` alone.
+
 **Lesson content vs UI copy**
 Lesson content (cues, subtitles, transcripts, step config) lives in `src/config/*.json`. `src/data/strings.js` is UI copy only — never search it for lesson content. For config-only changes, derive the pattern from the earlier lessons in the same config file; don't explore player/store code unless the change touches it.
 
