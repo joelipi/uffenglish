@@ -8,6 +8,9 @@ This codebase is moving strictly to React patterns. Never use `document.querySel
 **Modular Structure**
 Keep logic in the module where it conceptually belongs. Do not co-locate unrelated concerns.
 
+**Logic / presentation separation (React Native–portable)**
+Keep domain rules (gates, mappings, URL/path building, formatting, scoring) in pure `*-logic.js` modules with no React, no DOM, and no React Native imports; keep data access in `src/modules/api/`; keep rendering in components. Platform-specific rendering must use the bundler-resolved extension convention: `vite.config.js` resolves `.web.jsx`/`.web.js` before `.jsx`, and Metro resolves `.native.jsx`/`.native.js` — so a component that needs a native counterpart is written as `<Name>.web.jsx` (imported explicitly, like `GuestLoginModal.web.jsx`) and later paired with `<Name>.native.jsx` implementing the same props/`data-testid`s. Split containers (hooks + data) from presentational views so a native view only re-implements rendering. Do not add speculative `.native.*` code — the repo treats unwired native files as reference (`docs/learnings.md`).
+
 **Lesson content vs UI copy**
 Lesson content (cues, subtitles, transcripts, step config) lives in `src/config/*.json`. `src/data/strings.js` is UI copy only — never search it for lesson content. For config-only changes, derive the pattern from the earlier lessons in the same config file; don't explore player/store code unless the change touches it.
 
