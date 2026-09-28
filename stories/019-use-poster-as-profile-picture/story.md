@@ -68,35 +68,32 @@ const { data, error } = await supabase
 
    - `error` → throw into the catch below.
    - `data.length === 0` (row already has a picture) → delete the just-uploaded file (`deleteAvatarFromStorage(url)`, non-fatal) and return `{ updated: false, reason: 'has-picture-db' }`.
-5. Success → mirror `useAvatarUpload.onSuccess`: patch the React Query `['user', 'profile']` cache and the Zustand `userData` (`appStore.getState().setCourseData({ userData: { ...currentUserData, profilePictureUrl: url } })`), then return `{ updated: true, url }`.
-6. Any thrown error → `console.error('[PosterAvatar] ...')` and return `{ updated: false, reason: 'error' }`. **The action never throws**, so a poster→avatar failure can never fail the lesson publish.
+5. Success → sync the client stores via the shared `syncAvatarUrlToClientStores(url)` helper (new `src/modules/avatar/avatar-client-store.js`), which patches the React Query `['user', 'profile']` cache and the Zustand `userData` (`appStore.getState().setCourseData({ userData: { ...currentUserData, profilePictureUrl: url } })`). The same helper is now used by `useAvatarUpload.onSuccess`, so the two avatar paths cannot drift. Then return `{ updated: true, url }`.
+6. Any thrown error → if the upload already happened (`url` set) delete the orphan file (`deleteAvatarFromStorage(url)`, non-fatal), `console.error('[PosterAvatar] ...')`, and return `{ updated: false, reason: 'error' }`. **The action never throws**, so a poster→avatar failure can never fail the lesson publish.
 
 Log on every branch (`agents.md` §2): a success log on update, `console.warn`/`console.log` on each skip.
 
 ### 2. Wire into the publish flow (`src/modules/video/video-processor.web.js`)
 
-Import `{ applyPosterAsProfilePictureIfMissing, pickAvatarThumb }` from `../avatar/poster-avatar.js`. In `exportSegmentsToR2`, after the per-segment loop and before `trackEvent('publish_clips_batch_done', ...)`:
+Import `{ maybeAssignPosterAvatar }` from `../avatar/poster-avatar.js`. In `exportSegmentsToR2`, after the per-segment loop and before `trackEvent('publish_clips_batch_done', ...)`:
 
 ```js
 // Assign the lesson poster as the profile picture when the user has none.
-// Same bytes as the R2 sibling .jpg, copied into the persistent avatars
-// bucket (R2 videos/ has a 48h TTL). Never fatal to the publish.
-if (succeeded > 0) {
-    const thumbBlob = pickAvatarThumb(publishable);
-    if (thumbBlob) {
-        const { userData } = appStore.getState();
-        await applyPosterAsProfilePictureIfMissing({
-            thumbBlob,
-            userId: userData?.$id,
-            currentUrl: userData?.profilePictureUrl,
-        });
-    }
-}
+// The same bytes as the R2 sibling .jpg, copied into the persistent avatars
+// bucket (R2 videos/ has a 48h TTL). Fire-and-forget: a slow or failed
+// avatar upload must never delay or fail the publish.
+maybeAssignPosterAvatar({
+    publishable,
+    succeeded,
+    userData: appStore.getState().userData,
+}).catch((e) => console.error('[ExportSegments] poster→avatar failed (non-fatal):', e));
 ```
+
+`maybeAssignPosterAvatar({ publishable, succeeded, userData })` is the testable publish-flow entry point (in `poster-avatar.js`). It returns early without uploading when `succeeded <= 0` (`reason: 'not-published'`) or when no published step has a poster blob (`reason: 'no-poster'`), otherwise delegates to `applyPosterAsProfilePictureIfMissing` with `userId: userData?.$id` and `currentUrl: userData?.profilePictureUrl`. Keeping the gating in this pure-ish function (rather than inline in the browser-only export path) is what makes it unit-testable.
 
 - Gating on `succeeded > 0` means the picture is only assigned when the poster/video publish actually happened ("finishes a lesson and a poster image is uploaded").
 - Guest publishes never reach here: `exportSegmentsToR2` returns early when not logged in (`video-processor.web.js:1253-1256`), and the inline signup has already run before generation resumes (`SuccessButtons.jsx:160-167`), so `userData.$id` is a real Supabase id.
-- The original order is preserved: publish, then (non-fatally) assign the picture, then `trackEvent`/clear pending state.
+- The original order is preserved: publish, then (non-blocking) assign the picture, then `trackEvent`/clear pending state. The call is fire-and-forget so a hung avatar upload cannot delay `publish_clips_batch_done` or the pending-publish clear.
 
 ### 3. Ensure the persistent URL renders in the recap
 
@@ -145,18 +142,17 @@ Collaborators mocked with `vi.mock`: `./avatar.service.js` (`uploadAvatarToStora
 
 ### Task 3 - Publish-flow wiring (`src/modules/video/poster-avatar-wiring.test.js`, new source guard)
 
-The full `exportSegmentsToR2` path cannot run headlessly (MediaRecorder/canvas/WebCodecs — `agents.md` §4/§6), so the call-site is guarded the same way as the existing UGC poster wiring (`src/modules/video/poster-runtime-wiring.test.js:63-74`). Behavior and selection are covered by Tasks 1-2.
+The full `exportSegmentsToR2` path cannot run headlessly (MediaRecorder/canvas/WebCodecs — `agents.md` §4/§6), so the call-site is guarded the same way as the existing UGC poster wiring (`src/modules/video/poster-runtime-wiring.test.js:63-74`). The gating and assignment behavior is covered by Tasks 1-2; this guard only proves the browser-only export path actually invokes the entry point.
 
-- `src/modules/video/video-processor.web.js` source read as text
-  - → contains both `applyPosterAsProfilePictureIfMissing` and `pickAvatarThumb`, and `from '../avatar/poster-avatar.js'`
-  - → contains `pickAvatarThumb(publishable)` and `applyPosterAsProfilePictureIfMissing({`
-  - → those calls sit inside the `exportSegmentsToR2` body (the substring from `export async function exportSegmentsToR2` to end of file — it is the last function in the module)
-  - → the call is guarded by `succeeded > 0`
-  - → passes `userId: userData?.$id` and `currentUrl: userData?.profilePictureUrl`
-- `src/modules/avatar/poster-avatar.js` source read as text
-  - → contains `.is('profile_picture_url', null)` (the conditional claim)
-  - → contains `deleteAvatarFromStorage(` (orphan cleanup)
-  - → contains `setQueryData` and `setCourseData` (cache/store sync)
+- `src/modules/video/video-processor.web.js` source read as text, comments stripped
+  - → contains `from '../avatar/poster-avatar.js'`
+  - → contains `maybeAssignPosterAvatar({` inside the `exportSegmentsToR2` body (the substring from `export async function exportSegmentsToR2` to end of file — it is the last function in the module)
+  - → the call passes `publishable` and `succeeded`
+- `maybeAssignPosterAvatar` behavior (`src/modules/avatar/poster-avatar.test.js`)
+  - → `succeeded: 0` → `{ updated: false, reason: 'not-published' }`, no upload
+  - → `succeeded: 1` with no step carrying a `thumbBlob` → `{ updated: false, reason: 'no-poster' }`, no upload
+  - → `succeeded: 2` with a later step carrying a blob → `{ updated: true, url }`, upload called with that blob and the user id
+  - → `succeeded: 1` with a custom `profilePictureUrl` → `{ updated: false, reason: 'has-picture' }`, no upload
 - `npm test -- --run` includes and passes this guard
 
 ## Technical Context
@@ -165,7 +161,7 @@ The full `exportSegmentsToR2` path cannot run headlessly (MediaRecorder/canvas/W
 - **Existing poster blob is the same image uploaded to R2.** `publishable` steps carry `thumbBlob` from the recording (`video-processor-logic.js:258`); the R2 sibling `.jpg` upload at `video-processor.web.js:1353-1359` uses exactly that blob, so no extra rendering/fetching is required.
 - **Persistent avatar storage:** `uploadAvatarToStorage(blob, userId)` uploads to `avatars/<userId>/avatar-<ts>.jpg` and returns the public URL (`avatar.service.js:82-100`); `deleteAvatarFromStorage(url)` extracts the path from a Supabase URL and removes it (`avatar.service.js:121-141`) — used to clean up an orphan upload when the DB slot was already taken.
 - **Column mapping:** use the snake_case column directly (`profile_picture_url`); `toDbColumns` is only needed for the camelCase alias used by `syncUserMetaDataMutation` (`api.js:11-51`). The conditional claim uses the raw Supabase client, matching `useAddFriendLinkMutation` (`api.js:324-346`).
-- **Cache/store sync precedent:** `useAvatarUpload.onSuccess` patches `['user','profile']` and calls `setCourseData({ userData: { ...currentUserData, profilePictureUrl } })` (`use-avatar-upload.js:55-71`); `setCourseData` merges only the keys supplied (`store.js:330-335`).
+- **Cache/store sync precedent:** `useAvatarUpload.onSuccess` patches `['user','profile']` and calls `setCourseData({ userData: { ...currentUserData, profilePictureUrl } })` (`use-avatar-upload.js:55-71`); `setCourseData` merges only the keys supplied (`store.js:330-335`). This logic is extracted to `syncAvatarUrlToClientStores` (`src/modules/avatar/avatar-client-store.js`) and shared by both avatar paths.
 - **`defaultProfilePic` identity:** every profile read imports the same asset module (`api.js:6`, `auth-check.js:2`), so `url === defaultProfilePic` holds for the substituted placeholder in both dev and build.
 - **R2 TTL:** `wrangler.toml` documents a 48h lifecycle for the `videos/` prefix (dashboard-managed), so R2 poster URLs are not durable; this is why the image is copied to Supabase Storage.
 - **`$id` availability:** `exportSegmentsToR2` already reads `userData?.shareCode` (`video-processor.web.js:1258`) and requires a logged-in Supabase user; `$id` is set by bootstrap/signup (`SignupForm.jsx:77`).
