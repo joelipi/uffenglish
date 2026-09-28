@@ -16,10 +16,14 @@ create table if not exists public.user_notifications (
   constraint user_notifications_no_self check (recipient_id <> actor_id)
 );
 
--- One notification per (recipient, actor, type, course, lesson); a re-answer
--- refreshes the existing row instead of stacking duplicates.
+-- One notification per (recipient, actor, type); a re-answer refreshes the
+-- existing row instead of stacking duplicates. Deliberately NOT keyed on
+-- course_id/lesson_id: those are caller-supplied, so including them would let any
+-- authenticated caller flood a victim's inbox with one row per made-up course.
+-- The unique key therefore contains no attacker-controlled text. course_id and
+-- lesson_id are stored as context only; the UI does not render them.
 create unique index if not exists uq_user_notifications_dedupe
-  on public.user_notifications (recipient_id, actor_id, type, course_id, lesson_id);
+  on public.user_notifications (recipient_id, actor_id, type);
 
 -- Inbox query: recipient's rows, newest first.
 create index if not exists idx_user_notifications_recipient_created
@@ -93,8 +97,13 @@ begin
        'actorShareCode', coalesce(v_actor_code, ''),
        'actorName', coalesce(v_actor_name, '')
      ))
-  on conflict (recipient_id, actor_id, type, course_id, lesson_id)
-  do update set created_at = now(), read_at = null, payload = excluded.payload;
+  on conflict (recipient_id, actor_id, type)
+  do update set
+    created_at = now(),
+    read_at = null,
+    course_id = excluded.course_id,
+    lesson_id = excluded.lesson_id,
+    payload = excluded.payload;
 end;
 $$;
 

@@ -41,9 +41,12 @@ describe('005_add_user_notifications.sql', () => {
         expect(sql).not.toMatch(/for\s+insert/i);
     });
 
-    it('dedupes on recipient/actor/type/course/lesson', () => {
+    it('dedupes on recipient/actor/type and excludes attacker-controlled course/lesson', () => {
         expect(sql).toContain('uq_user_notifications_dedupe');
-        expect(sql).toContain('(recipient_id, actor_id, type, course_id, lesson_id)');
+        expect(sql).toContain('on public.user_notifications (recipient_id, actor_id, type)');
+        // The unique key must not include caller-supplied context, or an
+        // authenticated caller could flood a victim's inbox with fake courses.
+        expect(sql).not.toContain('(recipient_id, actor_id, type, course_id, lesson_id)');
     });
 
     it('defines the SECURITY DEFINER RPC and locks it down to authenticated', () => {
@@ -51,7 +54,7 @@ describe('005_add_user_notifications.sql', () => {
         expect(sql).toContain('security definer');
         expect(sql).toContain("set search_path = ''");
         expect(sql).toContain('v_actor uuid := auth.uid()');
-        expect(sql).toContain('on conflict (recipient_id, actor_id, type, course_id, lesson_id)');
+        expect(sql).toContain('on conflict (recipient_id, actor_id, type)');
         expect(sql).toContain('grant execute on function public.record_friend_response(text, text, text) to authenticated');
         expect(sql).toContain('revoke all on function public.record_friend_response(text, text, text) from public, anon');
     });

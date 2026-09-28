@@ -56,10 +56,13 @@ create table if not exists public.user_notifications (
   constraint user_notifications_no_self check (recipient_id <> actor_id)
 );
 
--- One notification per (recipient, actor, type, course, lesson); a re-answer
--- refreshes the existing row instead of stacking duplicates.
+-- One notification per (recipient, actor, type); a re-answer refreshes the
+-- existing row instead of stacking duplicates. Deliberately NOT keyed on
+-- course_id/lesson_id: those are caller-supplied, so including them would let
+-- any authenticated caller flood a victim's inbox with one row per made-up
+-- course. The unique key contains no attacker-controlled text.
 create unique index if not exists uq_user_notifications_dedupe
-  on public.user_notifications (recipient_id, actor_id, type, course_id, lesson_id);
+  on public.user_notifications (recipient_id, actor_id, type);
 
 -- Inbox query: recipient's rows, newest first.
 create index if not exists idx_user_notifications_recipient_created
@@ -133,8 +136,13 @@ begin
        'actorShareCode', coalesce(v_actor_code, ''),
        'actorName', coalesce(v_actor_name, '')
      ))
-  on conflict (recipient_id, actor_id, type, course_id, lesson_id)
-  do update set created_at = now(), read_at = null, payload = excluded.payload;
+  on conflict (recipient_id, actor_id, type)
+  do update set
+    created_at = now(),
+    read_at = null,
+    course_id = excluded.course_id,
+    lesson_id = excluded.lesson_id,
+    payload = excluded.payload;
 end;
 $$;
 
@@ -379,8 +387,8 @@ Platform-tagged presentation, split from the container and from all rules:
 - **`friendCode` missing** (`B` opened lesson `b` without a share link): `recipientShareCode` empty → `null`.
 - **`B` reshares their own code** (`recipientShareCode === actorShareCode`): `null` (client) and a no-op in the RPC (server self-check).
 - **Recipient share code unknown to the DB**: RPC no-ops; no error surfaced.
-- **Same `B` re-answers the same course+lesson**: the unique index + `do update` refreshes `created_at`, clears `read_at`, and updates the name snapshot — one row, no duplicates.
-- **Different course/lesson**: separate rows (unique key includes `course_id`/`lesson_id`).
+- **Same `B` answers the same asker again (any course/lesson)**: the unique key `(recipient_id, actor_id, type)` + `do update` refreshes `created_at`, clears `read_at`, and updates the name/context snapshot — one row per friend, no duplicates and no flood.
+- **Attacker supplies an arbitrary `course_id`/`lesson_id`**: those columns are stored as untrusted context only and are **not** part of the unique key, so repeated calls with made-up courses all collapse onto the same single row instead of creating unlimited unread notifications.
 - **`payload.actorName` empty**: UI falls back to `notifications_someone`.
 - **`payload.actorShareCode` empty/malformed**: item renders as non-link text, no anchor.
 - **Any notification age** (minutes or weeks old): the deadline line is always rendered — it is static text, not a countdown; the timestamp lets the user judge elapsed time themselves.
@@ -474,12 +482,13 @@ Platform-tagged presentation, split from the container and from all rules:
   - → contains `alter table public.user_notifications enable row level security`
   - → the `"recipient read"` policy contains `auth.uid() = recipient_id`
   - → the `"recipient update"` policy contains `with check (auth.uid() = recipient_id)`
-  - → contains a unique index on `(recipient_id, actor_id, type, course_id, lesson_id)`
+  - → contains a unique index on `(recipient_id, actor_id, type)` (no `course_id`/`lesson_id`, which are caller-supplied)
+  - → does not contain `(recipient_id, actor_id, type, course_id, lesson_id)`
   - → contains `create or replace function public.record_friend_response`
   - → contains `security definer`
   - → contains `set search_path = ''`
   - → contains `v_actor uuid := auth.uid()`
-  - → contains `on conflict (recipient_id, actor_id, type, course_id, lesson_id)`
+  - → contains `on conflict (recipient_id, actor_id, type)`
   - → contains `grant execute on function public.record_friend_response(text, text, text) to authenticated`
   - → contains `revoke all on function public.record_friend_response(text, text, text) from public, anon`
   - → contains `grant update (read_at) on table public.user_notifications to authenticated`
@@ -579,7 +588,7 @@ Fixtures: `['notifications','u1'] = [<unread from 'Sam'/'sam123', created_at '20
 - **Confirmed product decisions (user answers):** in-app only; bell in the HomeScreen top bar; persistent with read/unread (no expiry, no delete); notify on the actual export/publish only; skip guest `B`; message links to `/<B.shareCode>`; localized copy in the app's six languages; Supabase only (no new dependency); keep a seam for a future third-party provider; every friend-response notification shows a timestamp and a static "You only have 48 hours to respond" line; strict logic/presentation separation for a future React Native monorepo.
 - **Lifecycle definition:** notifications never expire and are never deleted by this feature. "Read" (`read_at`) is the only state; opening the bell panel marks the visible unread rows read, which clears the badge. This is intentionally different from the 48h `friend_links` render-time expiry because the notification is an inbox record, not a live clip link.
 - **48h deadline line is static, not computed:** `notifications_respond_deadline` is always rendered for `friend_response` items; there is no countdown and no `isResponseWindowOpen`/window helper. The per-item **timestamp** (`formatNotificationDate(created_at, lang)`) is what lets a user who returns after 48 hours see for themselves that the time elapsed — the app never hides or rewrites the text. This is a deliberate product decision (user answer); do not "improve" it into a countdown or a conditional without confirming.
-- **Dedupe/refresh semantics:** the unique key is `(recipient_id, actor_id, type, course_id, lesson_id)`. A repeat answer by the same friend refreshes the row (`created_at = now()`, `read_at = null`, name snapshot updated) rather than adding a second notification.
+- **Dedupe/refresh semantics:** the unique key is `(recipient_id, actor_id, type)` — one notification per friend per type. It deliberately excludes the caller-supplied `course_id`/`lesson_id`; these are stored as context only (the UI does not render them), so an authenticated caller cannot bypass dedupe by inventing course ids to flood a victim's inbox. A repeat answer by the same friend (any course/lesson) refreshes the row (`created_at = now()`, `read_at = null`, context/name snapshot updated) rather than adding another notification.
 - **Self-notification prevention is enforced in two places:** the pure resolver rejects `recipient === actor` (case-insensitive), and the RPC returns early when the resolved recipient is the caller. Both are cheap; neither is trusted alone.
 - **Security posture:** clients can `SELECT` only their own rows and `UPDATE` only the `read_at` column; there is no insert grant/policy, so all creation goes through the `SECURITY DEFINER` RPC, which derives `actor_id`/`actorName` from the JWT/profile. The recipient is resolved from the supplied share code, so a caller cannot target an arbitrary user id. The function sets `search_path = ''` and fully qualifies identifiers.
 - **Third-party provider seam (not implemented):** add a Supabase Database Webhook or `AFTER INSERT` trigger on `public.user_notifications` routed by `type` (`friend_response`) to an Edge Function/queue that calls the provider (Resend/OneSignal/FCM/etc.). Because the RPC inserts one normalized row, the webhook receives the full `payload` (`actorShareCode`, `actorName`) with no feature change. Do not add a provider SDK or client-side dispatcher in this story.

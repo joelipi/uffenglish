@@ -3,7 +3,7 @@
 // createRoot + act (pattern from src/components/intro-caller-name.test.js);
 // this imports only the presentational component, so no Supabase/api graph is
 // pulled into vitest.
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import NotificationList from './NotificationList.web.jsx';
@@ -30,6 +30,13 @@ describe('NotificationList.web', () => {
     let root;
 
     const render = (notifications, { lang = 'en', onSelect } = {}) => {
+        // Tear down any previous render so repeated render() calls in one test
+        // do not leak containers attached to document.body.
+        if (root) act(() => root.unmount());
+        if (container) container.remove();
+        root = null;
+        container = null;
+
         container = document.createElement('div');
         document.body.appendChild(container);
         root = createRoot(container);
@@ -39,10 +46,6 @@ describe('NotificationList.web', () => {
             );
         });
     };
-
-    beforeEach(() => {
-        vi.clearAllMocks();
-    });
 
     afterEach(() => {
         if (root) act(() => root.unmount());
