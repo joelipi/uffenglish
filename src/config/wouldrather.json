@@ -60,7 +60,7 @@
             "pt": "Você preferiria ter um milhão de dólares ou viver cinco anos a mais?",
             "bn": "আপনি কি দশ লাখ ডলার পেতে চান নাকি আরও পাঁচ বছর বাঁচতে চান?"
           },
-          "responseType": "friendClosedResponse",
+          "responseType": "closedResponse",
           "simpleVideoUrl": "testvideoa01",
           "subtitles": {
             "en": "Would you rather have a million dollars or live five years longer?",
