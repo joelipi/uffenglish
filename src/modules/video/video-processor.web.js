@@ -6,7 +6,7 @@ import { shareVideo } from './video-share.js';
 import { appStore } from '../store/store.js';
 import headerImg from '../../assets/img/header.png';
 import { getVideoUrl, getUgcThumbKey, getCompleteVideoKey } from './video-url.js';
-import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, buildShareUrl, buildShareDeadline, resolveOverlayElements, isShareCtaEnabled, isDroppedStep, markFirstRenderable, resolveSegmentBounds, STALL_GRACE_MS } from './video-processor-logic.js';
+import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, buildShareUrl, buildShareDeadline, resolveOverlayElements, isShareCtaEnabled, isDroppedStep, markFirstRenderable, resolveSegmentBounds, STALL_GRACE_MS, assignSegmentTargets, buildUgcSegmentKey } from './video-processor-logic.js';
 import { remoteSource } from './video-source.js';
 import { DEFAULT_USER_AVATAR_URL } from '../user/tutor-config.js';
 import { getAvatarBlobUrl } from '../avatar/avatar.service.js';
@@ -1285,13 +1285,13 @@ async function renderStepToBlob({ step, video, canvas, overlayImage, profileImag
 export async function exportSegmentsToR2(lessonId) {
     if (!appStore.getState().isLoggedIn) {
         console.warn('[ExportSegments] Not logged in, aborting R2 publish');
-        return { count: 0, succeeded: 0 };
+        return { count: 0, succeeded: 0, askPublished: false };
     }
 
     const shareCode = appStore.getState().userData?.shareCode;
     if (!shareCode) {
         console.warn('[ExportSegments] No shareCode, aborting R2 publish');
-        return { count: 0, succeeded: 0 };
+        return { count: 0, succeeded: 0, askPublished: false };
     }
 
     trackEvent('publish_clips_batch_start', { lessonId });
@@ -1318,7 +1318,7 @@ export async function exportSegmentsToR2(lessonId) {
     if (publishable.length === 0) {
         console.log('[ExportSegments] No publishable segments');
         trackEvent('publish_clips_batch_done', { lessonId, count: 0, succeeded: 0 });
-        return { count: 0, succeeded: 0 };
+        return { count: 0, succeeded: 0, askPublished: false };
     }
 
     const audioContext = getOrCreateExportAudioContext();
@@ -1339,6 +1339,12 @@ export async function exportSegmentsToR2(lessonId) {
     const dims = planner.getTargetDimensions(video.videoWidth || 1080, video.videoHeight || 1920);
     const videoCanvas = getOrCreateExportVideoCanvas(dims.width, dims.height);
 
+    // Which lesson each segment publishes under, numbered per target. Ask steps
+    // embedded in an answer lesson carry `publishLessonId` so their clips land
+    // under the ask lesson (where a friend's 'b' lesson fetches them).
+    const courseId = appStore.getState().courseId;
+    const targets = assignSegmentTargets(publishable, lessonId);
+    let askPublished = false;
     let succeeded = 0;
     for (let i = 0; i < publishable.length; i++) {
         const step = publishable[i];
@@ -1364,11 +1370,12 @@ export async function exportSegmentsToR2(lessonId) {
             continue;
         }
 
-        // 3) Upload to R2. Key includes the course id so each course's clips
-        // are namespaced and won't collide across courses for the same user.
-        // Also upload the sibling jpg thumb generated from the raw webcam blob.
-        const courseId = appStore.getState().courseId;
-        const key = `videos/${shareCode}-${courseId}-${lessonId}-response-${String(i + 1).padStart(2, '0')}.mp4`;
+        // 3) Upload to R2. The key's lesson id is the step's publish target
+        // (`publishLessonId` or the exported lesson) and the number restarts per
+        // target, so clips land where a friend's lesson looks for them. Also
+        // upload the sibling jpg thumb generated from the raw webcam blob.
+        const { lessonId: targetLessonId, index: segmentIndex } = targets[i];
+        const key = buildUgcSegmentKey({ shareCode, courseId, lessonId: targetLessonId, index: segmentIndex });
         const thumbKey = getUgcThumbKey(key);
         const thumbBlob = step.thumbBlob || null;
         try {
@@ -1383,7 +1390,8 @@ export async function exportSegmentsToR2(lessonId) {
             if (thumbRes.status === 'rejected') {
                 console.warn('[ExportSegments] thumb upload failed (non-fatal):', thumbRes.reason);
             }
-            trackEvent('publish_clips_segment_success', { lessonId, index: i, path, url: videoRes.value?.url });
+            trackEvent('publish_clips_segment_success', { lessonId, targetLessonId, index: segmentIndex, path, url: videoRes.value?.url });
+            if (targetLessonId !== lessonId) askPublished = true;
             succeeded++;
         } catch (e) {
             console.error('[ExportSegments] R2 upload failed:', e);
@@ -1401,12 +1409,12 @@ export async function exportSegmentsToR2(lessonId) {
         userData: appStore.getState().userData,
     }).catch((e) => console.error('[ExportSegments] poster→avatar failed (non-fatal):', e));
 
-    trackEvent('publish_clips_batch_done', { lessonId, count: publishable.length, succeeded });
+    trackEvent('publish_clips_batch_done', { lessonId, count: publishable.length, succeeded, askPublished });
 
     // Clear the post-login pending publish so a refresh doesn't re-trigger.
     appStore.getState().setPendingPublishLessonId?.(null);
 
-    return { count: publishable.length, succeeded };
+    return { count: publishable.length, succeeded, askPublished };
 }
 
 // Shared with functions/api/upload-segment.js (single source of truth). The

@@ -16,21 +16,34 @@ const successButtons = read('../../components/widgets/SuccessButtons.jsx');
 const api = read('../api/api.js');
 
 describe('exportSegmentsToR2 return contract', () => {
-    it('returns { count, succeeded } from every early return and the final return', () => {
-        const early = webProcessor.match(/return \{ count: 0, succeeded: 0 \};/g) || [];
+    it('returns { count, succeeded, askPublished } from every early return and the final return', () => {
+        const early = webProcessor.match(/return \{ count: 0, succeeded: 0, askPublished: false \};/g) || [];
         expect(early.length).toBeGreaterThanOrEqual(3);
-        expect(webProcessor).toContain('return { count: publishable.length, succeeded };');
+        expect(webProcessor).toContain('return { count: publishable.length, succeeded, askPublished };');
     });
 
     it('keeps the native stub contract consistent', () => {
-        expect(nativeProcessor).toContain('return { count: 0, succeeded: 0 };');
+        expect(nativeProcessor).toContain('return { count: 0, succeeded: 0, askPublished: false };');
+    });
+});
+
+describe('exportSegmentsToR2 publish targets', () => {
+    it('groups segments by target lesson via the pure helpers (no inline key template)', () => {
+        expect(webProcessor).toContain('assignSegmentTargets(publishable, lessonId)');
+        expect(webProcessor).toContain('buildUgcSegmentKey({ shareCode, courseId, lessonId: targetLessonId, index: segmentIndex })');
+        expect(webProcessor).not.toContain('videos/${shareCode}');
+    });
+
+    it('sets askPublished when a clip publishes under a lesson other than the exported one', () => {
+        expect(webProcessor).toContain('if (targetLessonId !== lessonId) askPublished = true;');
     });
 });
 
 describe('SuccessButtons wiring', () => {
-    it('awaits the export and gates on its succeeded count', () => {
+    it('awaits the export and gates on its succeeded + askPublished flags', () => {
         expect(successButtons).toContain('await exportSegmentsToR2(lessonId)');
         expect(successButtons).toContain('succeeded: exportResult?.succeeded');
+        expect(successButtons).toContain('askPublished: exportResult?.askPublished');
     });
 
     it('records the link only through the resolver + mutation', () => {

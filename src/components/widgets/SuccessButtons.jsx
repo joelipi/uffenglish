@@ -109,6 +109,7 @@ export function VideoButton({ canvasRef }) {
               courseId,
               shareCode: userData?.shareCode,
               succeeded: exportResult?.succeeded,
+              askPublished: exportResult?.askPublished,
             });
             if (payload) {
               await friendLinkMutation.mutateAsync({

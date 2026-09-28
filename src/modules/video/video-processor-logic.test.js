@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { VideoRenderPlanner, resolveRecapOverlay, resolveRecapSources, isDroppedStep, markFirstRenderable, resolveSegmentBounds, UNRESOLVED_SEGMENT_CAP_MS, STALL_GRACE_MS } from './video-processor-logic.js';
+import { VideoRenderPlanner, resolveRecapOverlay, resolveRecapSources, isDroppedStep, markFirstRenderable, resolveSegmentBounds, UNRESOLVED_SEGMENT_CAP_MS, STALL_GRACE_MS, resolvePublishLessonId, assignSegmentTargets, buildUgcSegmentKey } from './video-processor-logic.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const LOGIC_PATH = path.join(__dirname, 'video-processor-logic.js');
@@ -499,6 +499,101 @@ describe('resolveSegmentBounds', () => {
     it('defaults a non-finite start to 0', () => {
         expect(resolveSegmentBounds({ rawDuration: 8, start: NaN }))
             .toEqual({ endTime: 8, wallClockCapMs: 8000 });
+    });
+});
+
+describe('resolvePublishLessonId', () => {
+    it('uses a step publishLessonId when set', () => {
+        expect(resolvePublishLessonId({ publishLessonId: 'a' }, 'b')).toBe('a');
+    });
+
+    it('falls back to the default lesson for absent/empty/non-object', () => {
+        expect(resolvePublishLessonId({}, 'b')).toBe('b');
+        expect(resolvePublishLessonId(null, 'b')).toBe('b');
+        expect(resolvePublishLessonId(undefined, 'b')).toBe('b');
+        expect(resolvePublishLessonId({ publishLessonId: '' }, 'b')).toBe('b');
+        expect(resolvePublishLessonId({ publishLessonId: null }, 'b')).toBe('b');
+    });
+});
+
+describe('assignSegmentTargets', () => {
+    it('numbers per target lesson, restarting for each target', () => {
+        expect(assignSegmentTargets([{}, { publishLessonId: 'a' }, { publishLessonId: 'a' }], 'b'))
+            .toEqual([
+                { lessonId: 'b', index: 1 },
+                { lessonId: 'a', index: 1 },
+                { lessonId: 'a', index: 2 },
+            ]);
+    });
+
+    it('restarts the default lesson numbering when interleaved', () => {
+        expect(assignSegmentTargets([{ publishLessonId: 'a' }, { publishLessonId: 'a' }, {}], 'b'))
+            .toEqual([
+                { lessonId: 'a', index: 1 },
+                { lessonId: 'a', index: 2 },
+                { lessonId: 'b', index: 1 },
+            ]);
+    });
+
+    it('handles empty / missing input', () => {
+        expect(assignSegmentTargets([], 'b')).toEqual([]);
+        expect(assignSegmentTargets(null, 'b')).toEqual([]);
+        expect(assignSegmentTargets(undefined, 'b')).toEqual([]);
+    });
+
+    it('keeps counting past 9', () => {
+        const steps = Array.from({ length: 12 }, () => ({}));
+        const targets = assignSegmentTargets(steps, 'b');
+        expect(targets[9]).toEqual({ lessonId: 'b', index: 10 });
+        expect(targets[11]).toEqual({ lessonId: 'b', index: 12 });
+    });
+});
+
+describe('buildUgcSegmentKey', () => {
+    it('builds the videos/ key with a 2-digit index', () => {
+        expect(buildUgcSegmentKey({ shareCode: 'ab12', courseId: 'friend', lessonId: 'a', index: 1 }))
+            .toBe('videos/ab12-friend-a-response-01.mp4');
+    });
+
+    it('does not truncate indices above 9', () => {
+        expect(buildUgcSegmentKey({ shareCode: 'ab12', courseId: 'model', lessonId: 'b', index: 12 }))
+            .toBe('videos/ab12-model-b-response-12.mp4');
+    });
+});
+
+describe('VideoRenderPlanner.generatePlan — publishLessonId carry-through', () => {
+    function makeConfigWithSteps(steps) {
+        return { lessons: [{ lessonId: 'b', recapSources: 'friend', recapOverlay: 'shareCta', steps }] };
+    }
+    function makeRecs(indexes) {
+        return indexes.map((idx) => ({
+            originalLessonId: 'b',
+            originalStepIndex: idx,
+            blob: { size: 100 },
+            userResponse: `r${idx}`,
+        }));
+    }
+
+    it('carries the step publishLessonId onto the webcam plan step', () => {
+        const steps = [
+            { responseType: 'friendClosedResponse', cue: 'answer' },
+            { responseType: 'friendClosedResponse', cue: 'ask', publishLessonId: 'a' },
+        ];
+        const plan = new VideoRenderPlanner(makeRecs([0, 1]), makeConfigWithSteps(steps)).generatePlan();
+        const webcams = plan.filter(s => s.type === 'webcam');
+        expect(webcams[0].publishLessonId).toBeNull();
+        expect(webcams[1].publishLessonId).toBe('a');
+    });
+
+    it('is null when the recording references a missing step', () => {
+        const steps = [{ responseType: 'friendClosedResponse', cue: 'only' }];
+        const plan = new VideoRenderPlanner(makeRecs([5]), makeConfigWithSteps(steps)).generatePlan();
+        expect(plan.find(s => s.type === 'webcam').publishLessonId).toBeNull();
+    });
+
+    it('is null when there is no configData', () => {
+        const plan = new VideoRenderPlanner(makeRecs([0]), {}, { total: 80 }).generatePlan();
+        expect(plan.find(s => s.type === 'webcam').publishLessonId).toBeNull();
     });
 });
 

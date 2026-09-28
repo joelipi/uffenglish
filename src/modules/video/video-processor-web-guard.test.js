@@ -71,7 +71,7 @@ describe('video-processor.web.js recap wiring guard', () => {
         // The probe comes from the web transcode module; the pure rule from
         // the platform-agnostic logic module.
         expect(source).toMatch(/probeClipDurationSec\s*\}\s*from '\.\/transcode\.js'/);
-        expect(source).toMatch(/resolveSegmentBounds, STALL_GRACE_MS\s*\}\s*from '\.\/video-processor-logic\.js'/);
+        expect(source).toMatch(/import \{[^}]*resolveSegmentBounds[^}]*STALL_GRACE_MS[^}]*\} from '\.\/video-processor-logic\.js'/);
         expect(source).toMatch(/fallbackDurationSec: step\.mediaDurationSec/);
         expect(source).toMatch(/await probeClipDurationSec\(step\.blob \|\| step\.remoteBlob\)/);
         // The probe must not be raced against a timeout that resolves null: a

@@ -470,5 +470,5 @@ const styles = StyleSheet.create({
 // the function is a no-op so accidental calls are harmless.
 export async function exportSegmentsToR2() {
     // no-op on native
-    return { count: 0, succeeded: 0 };
+    return { count: 0, succeeded: 0, askPublished: false };
 }
