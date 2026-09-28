@@ -5,6 +5,7 @@ import path from 'node:path';
 import { VideoRenderPlanner, resolveRecapOverlay, resolveRecapSources, isDroppedStep, markFirstRenderable, resolveSegmentBounds, UNRESOLVED_SEGMENT_CAP_MS, STALL_GRACE_MS, resolvePublishLessonId, assignSegmentTargets, buildUgcSegmentKey } from './video-processor-logic.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const ROOT = path.resolve(__dirname, '../../..');
 const LOGIC_PATH = path.join(__dirname, 'video-processor-logic.js');
 
 const SYSTEM_STEPS = [
@@ -42,6 +43,38 @@ function makeRecordings(count = 3) {
         blob: { size: 100 },
         userResponse: `answer ${i + 1}`,
     }));
+}
+
+// Named step builders for the response-subtitle rules. Each carries an explicit
+// `responseType` so the planner's classification is unambiguous (reusing
+// SYSTEM_STEPS would hide the type under generic steps).
+function closedResponseStep(cue) {
+    return { responseType: 'closedResponse', interactiveVideoUrl: 'testvideo02', cue };
+}
+
+function friendClosedResponseStep(cue) {
+    return { responseType: 'friendClosedResponse', interactiveVideoUrl: 'testvideo02', cue };
+}
+
+function openResponseStep(cue) {
+    return { responseType: 'openResponse', interactiveVideoUrl: 'testvideo02', cue };
+}
+
+// A single-recording plan whose recorded step is `step` at the recording's
+// originalStepIndex 0. `configData` overrides the default single-step lesson.
+function planForStep(step, rec = {}, { userLang = 'en', configData } = {}) {
+    const recordings = [{
+        originalLessonId: 'w',
+        originalStepIndex: 0,
+        blob: { size: 1 },
+        ...rec,
+    }];
+    const config = configData ?? { lessons: [{ lessonId: 'w', steps: [step] }] };
+    return new VideoRenderPlanner(recordings, config, { total: 80 }, userLang, 'ab12').generatePlan();
+}
+
+function webcamSubtitle(step, rec = {}, opts) {
+    return planForStep(step, rec, opts).find(s => s.type === 'webcam').subtitle;
 }
 
 describe('resolveRecapSources', () => {
@@ -594,6 +627,170 @@ describe('VideoRenderPlanner.generatePlan — publishLessonId carry-through', ()
     it('is null when there is no configData', () => {
         const plan = new VideoRenderPlanner(makeRecs([0]), {}, { total: 80 }).generatePlan();
         expect(plan.find(s => s.type === 'webcam').publishLessonId).toBeNull();
+    });
+});
+
+describe('VideoRenderPlanner.generatePlan — webcam subtitle (matched cue)', () => {
+    it('burns the matched cue and its translation, never the transcript', () => {
+        const subtitle = webcamSubtitle(closedResponseStep('I like English'), {
+            matchedCue: 'I like English',
+            userResponse: 'i like inglish',
+            translation: 'Me gusta el inglés',
+        });
+
+        expect(subtitle.en).toBe('I like English');
+        expect(subtitle.translation).toBe('Me gusta el inglés');
+        expect(subtitle.en).not.toBe('i like inglish');
+    });
+
+    it('burns the matched variant for a template cue, not the raw template', () => {
+        const subtitle = webcamSubtitle(
+            closedResponseStep({ en: 'I [feeling] English', slots: { feeling: ['love', 'like'] } }),
+            { matchedCue: 'I like English' }
+        );
+
+        expect(subtitle.en).toBe('I like English');
+        expect(subtitle.en).not.toBe('I [feeling] English');
+    });
+
+    it('burns the matched variant for an array cue regardless of cue shape', () => {
+        const subtitle = webcamSubtitle(
+            closedResponseStep(['I love English', 'I like English']),
+            { matchedCue: 'I like English' }
+        );
+
+        expect(subtitle.en).toBe('I like English');
+    });
+
+    it('leaves translation null when the recording has none', () => {
+        const subtitle = webcamSubtitle(closedResponseStep('I like English'), {
+            matchedCue: 'I like English',
+        });
+
+        expect(subtitle.translation).toBeNull();
+    });
+
+    it('burns no subtitle for a closed response with no match (never the configured cue)', () => {
+        const subtitle = webcamSubtitle(
+            closedResponseStep({ en: 'I love English', es: 'Amo el inglés' }),
+            { userResponse: 'i love inglish' },
+            { userLang: 'es' }
+        );
+
+        expect(subtitle).toBeNull();
+    });
+
+    it('burns no subtitle for a plain-string cue with no match', () => {
+        const subtitle = webcamSubtitle(closedResponseStep('Q1'), { userResponse: 'answer 1' });
+
+        expect(subtitle).toBeNull();
+        expect(subtitle).not.toBe('answer 1');
+        expect(subtitle).not.toBe('Q1');
+    });
+
+    it('burns no subtitle for an array cue with no match', () => {
+        const subtitle = webcamSubtitle(
+            closedResponseStep(['I love English', 'I like English']),
+            { userResponse: 'answer 1' }
+        );
+
+        expect(subtitle).toBeNull();
+    });
+
+    it('burns no subtitle for a template cue with no match', () => {
+        const subtitle = webcamSubtitle(
+            closedResponseStep({ en: 'I [feeling] English', slots: { feeling: ['love'] } }),
+            { userResponse: 'answer 1' }
+        );
+
+        expect(subtitle).toBeNull();
+    });
+
+    it('treats an empty-string matchedCue as no match', () => {
+        const subtitle = webcamSubtitle(closedResponseStep('Q1'), {
+            matchedCue: '',
+            userResponse: 'answer 1',
+        });
+
+        expect(subtitle).toBeNull();
+    });
+
+    it('burns no empty-string subtitle object when there is no answer', () => {
+        const subtitle = webcamSubtitle(closedResponseStep('Q1'), { userResponse: '' });
+
+        expect(subtitle).toBeNull();
+    });
+
+    it('burns the matched cue for a text-mode recording', () => {
+        const subtitle = webcamSubtitle(closedResponseStep('Q1'), {
+            matchedCue: 'Correct cue',
+            isTextMode: true,
+            userResponse: 'typed answer',
+        });
+
+        expect(subtitle.en).toBe('Correct cue');
+    });
+
+    it('applies the cue rule to friendClosedResponse steps too', () => {
+        const subtitle = webcamSubtitle(friendClosedResponseStep('Q1'), {
+            matchedCue: 'Correct cue',
+            userResponse: 'wrong',
+        });
+
+        expect(subtitle.en).toBe('Correct cue');
+    });
+
+    it('keeps burning the transcript for an open response (no cue to match)', () => {
+        const subtitle = webcamSubtitle(openResponseStep('a sample cue'), {
+            userResponse: 'my open answer',
+        });
+
+        expect(subtitle.en).toBe('my open answer');
+    });
+
+    it('keeps the transcript fallback when no step can be resolved (empty configData)', () => {
+        const subtitle = webcamSubtitle(undefined, { userResponse: 'answer 1' }, { configData: {} });
+
+        expect(subtitle.en).toBe('answer 1');
+    });
+
+    it('keeps the transcript fallback when originalStepIndex has no step', () => {
+        const subtitle = webcamSubtitle(closedResponseStep('Q1'), {
+            originalStepIndex: 5,
+            userResponse: 'answer 1',
+        });
+
+        expect(subtitle.en).toBe('answer 1');
+    });
+
+    it('leaves the remote prompt subtitle on the existing _getStepCue semantics', () => {
+        const plan = planForStep(closedResponseStep('Q1'), { userResponse: 'answer 1' });
+
+        expect(plan.find(s => s.type === 'remote').subtitle.en).toBe('Q1');
+        expect(plan.find(s => s.type === 'webcam').subtitle).toBeNull();
+    });
+});
+
+describe('recap subtitle docs', () => {
+    const product = readFileSync(path.join(ROOT, 'docs/product.md'), 'utf8');
+    const features = product.slice(product.indexOf('## Features'), product.indexOf('## Non-Goals'));
+    const limitations = product.slice(product.indexOf('## Known Limitations'));
+
+    it('links the story and names the matched cue', () => {
+        expect(product).toContain('stories/028-burn-cue-not-transcription/story.md');
+        expect(product).toContain('matched cue');
+    });
+
+    it('states the closed-response rule in a Features bullet', () => {
+        expect(features).toMatch(
+            /closed-response step is subtitled with the matched cue variant[\s\S]*?no subtitle when none matched[\s\S]*?never the raw speech-to-text transcript/i
+        );
+    });
+
+    it('states the open-response exception in Known Limitations', () => {
+        expect(limitations).toMatch(
+            /an open-response answer has no canonical cue to match and still burns the transcript/i
+        );
     });
 });
 
