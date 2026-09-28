@@ -670,49 +670,44 @@ describe('VideoRenderPlanner.generatePlan — webcam subtitle (matched cue)', ()
         expect(subtitle.translation).toBeNull();
     });
 
-    it('burns no subtitle for a closed response with no match (never the configured cue)', () => {
-        const subtitle = webcamSubtitle(
-            closedResponseStep({ en: 'I love English', es: 'Amo el inglés' }),
-            { userResponse: 'i love inglish' },
-            { userLang: 'es' }
-        );
+    it.each([
+        {
+            label: 'a localized object cue',
+            cue: { en: 'I love English', es: 'Amo el inglés' },
+            rec: { userResponse: 'i love inglish' },
+            opts: { userLang: 'es' },
+            forbidden: ['i love inglish', 'I love English', 'Amo el inglés'],
+        },
+        {
+            label: 'a plain-string cue',
+            cue: 'Q1',
+            rec: { userResponse: 'answer 1' },
+            forbidden: ['answer 1', 'Q1'],
+        },
+        {
+            label: 'an array cue',
+            cue: ['I love English', 'I like English'],
+            rec: { userResponse: 'answer 1' },
+            forbidden: ['answer 1', 'I like English'],
+        },
+        {
+            label: 'a template cue',
+            cue: { en: 'I [feeling] English', slots: { feeling: ['love'] } },
+            rec: { userResponse: 'answer 1' },
+            forbidden: ['answer 1', 'I [feeling] English'],
+        },
+        {
+            label: 'an empty-string matchedCue',
+            cue: 'Q1',
+            rec: { matchedCue: '', userResponse: 'answer 1' },
+            forbidden: ['answer 1', 'Q1'],
+        },
+    ])('burns no subtitle for a closed response with no match ($label)', ({ cue, rec, opts, forbidden }) => {
+        const subtitle = webcamSubtitle(closedResponseStep(cue), rec, opts);
 
         expect(subtitle).toBeNull();
-    });
-
-    it('burns no subtitle for a plain-string cue with no match', () => {
-        const subtitle = webcamSubtitle(closedResponseStep('Q1'), { userResponse: 'answer 1' });
-
-        expect(subtitle).toBeNull();
-        expect(subtitle).not.toBe('answer 1');
-        expect(subtitle).not.toBe('Q1');
-    });
-
-    it('burns no subtitle for an array cue with no match', () => {
-        const subtitle = webcamSubtitle(
-            closedResponseStep(['I love English', 'I like English']),
-            { userResponse: 'answer 1' }
-        );
-
-        expect(subtitle).toBeNull();
-    });
-
-    it('burns no subtitle for a template cue with no match', () => {
-        const subtitle = webcamSubtitle(
-            closedResponseStep({ en: 'I [feeling] English', slots: { feeling: ['love'] } }),
-            { userResponse: 'answer 1' }
-        );
-
-        expect(subtitle).toBeNull();
-    });
-
-    it('treats an empty-string matchedCue as no match', () => {
-        const subtitle = webcamSubtitle(closedResponseStep('Q1'), {
-            matchedCue: '',
-            userResponse: 'answer 1',
-        });
-
-        expect(subtitle).toBeNull();
+        // Never the transcript and never the configured cue.
+        for (const value of forbidden) expect(subtitle).not.toBe(value);
     });
 
     it('burns no empty-string subtitle object when there is no answer', () => {
@@ -777,6 +772,11 @@ describe('recap subtitle docs', () => {
     const limitations = product.slice(product.indexOf('## Known Limitations'));
 
     it('links the story and names the matched cue', () => {
+        // Assert the section headings first so a renamed heading fails loudly
+        // rather than silently shrinking the slices above.
+        expect(product).toContain('## Features');
+        expect(product).toContain('## Non-Goals');
+        expect(product).toContain('## Known Limitations');
         expect(product).toContain('stories/028-burn-cue-not-transcription/story.md');
         expect(product).toContain('matched cue');
     });
