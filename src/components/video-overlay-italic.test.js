@@ -9,6 +9,8 @@ const read = (...segments) => readFileSync(path.join(__dirname, ...segments), 'u
 const SIMPLE_PLAYER = read('SimpleVideoPlayer.web.jsx');
 const INTERACTIVE_PLAYER = read('InteractiveVideoPlayer.web.jsx');
 const INCOMING_WIDGET = read('IncomingVideoWidget.jsx');
+const SUCCESS_SCREEN = read('widgets', 'SuccessScreen.jsx');
+const SUCCESS_BUTTONS = read('widgets', 'SuccessButtons.jsx');
 const APP_CSS = read('..', 'assets', 'css', 'app.css');
 
 const blockFor = (source, selector) => {
@@ -46,6 +48,25 @@ describe('video overlay text is upright (no synthetic italic)', () => {
                 '<span lang={subtitle.lang}><i>{subtitle.localized}</i></span>'
             );
         });
+
+        it('SuccessScreen.jsx share-CTA keeps lang and drops the <i> child', () => {
+            // The share CTA sits on top of the concatenated recap video.
+            expect(SUCCESS_SCREEN).toContain(
+                '<span lang={cta.lang}>{cta.localized}</span>'
+            );
+            expect(SUCCESS_SCREEN).not.toContain(
+                '<span lang={cta.lang}><i>{cta.localized}</i></span>'
+            );
+        });
+
+        it('SuccessButtons.jsx ChoiceLabel keeps lang and drops the <i> child', () => {
+            expect(SUCCESS_BUTTONS).toContain(
+                '<span lang={text.lang}>{text.localized}</span>'
+            );
+            expect(SUCCESS_BUTTONS).not.toContain(
+                '<span lang={text.lang}><i>{text.localized}</i></span>'
+            );
+        });
     });
 
     describe('CSS keeps video overlay [lang] text upright', () => {
@@ -58,6 +79,15 @@ describe('video overlay text is upright (no synthetic italic)', () => {
         it('an overlay-scoped override sets font-style: normal for both overlays', () => {
             expect(APP_CSS).toMatch(
                 /\.ivp-overlay-text \[lang\],\s*\.intro-call-subtitle \[lang\] \{\s*font-style: normal !important;\s*\}/
+            );
+        });
+
+        it('the recap success overlay is de-italicized too (headline + action labels)', () => {
+            // The share CTA headline and Replay/Share/Continue labels render on
+            // top of the concatenated recap video, so they must stay upright for
+            // fonts without a true italic face (e.g. Bengali synthetic oblique).
+            expect(APP_CSS).toMatch(
+                /#state-lesson-success \.success-share-cta \[lang\],\s*#state-lesson-success \.ivp-choice-label-text \[lang\] \{\s*font-style: normal !important;\s*\}/
             );
         });
     });

@@ -37,7 +37,7 @@ export default function SuccessScreen({ onLoadNextLesson, onRepeat, canvasRef })
         {showActions && isFriendLesson && (
           <p className="success-share-cta">
             {cta.localized ? (
-              <React.Fragment>{cta.english}<br /><span lang={cta.lang}><i>{cta.localized}</i></span></React.Fragment>
+              <React.Fragment>{cta.english}<br /><span lang={cta.lang}>{cta.localized}</span></React.Fragment>
             ) : cta.english}
           </p>
         )}

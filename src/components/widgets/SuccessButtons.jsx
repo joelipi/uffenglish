@@ -13,7 +13,7 @@ function ChoiceLabel({ text }) {
     <div className="ivp-choice-label">
       <div className="ivp-choice-label-text">
         {text.localized ? (
-          <React.Fragment>{text.english}<br /><span lang={text.lang}><i>{text.localized}</i></span></React.Fragment>
+          <React.Fragment>{text.english}<br /><span lang={text.lang}>{text.localized}</span></React.Fragment>
         ) : text.english}
       </div>
     </div>
