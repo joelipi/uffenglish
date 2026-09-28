@@ -27,3 +27,19 @@ export function resolveSilentLanguageReapply({ isLoggedIn, silentLang, currentUs
     if (currentUserLang === silentLang) return { action: 'noop' };
     return { action: 'apply', language: silentLang };
 }
+
+/**
+ * Applies the guest's chosen language over a profile object. A guest's
+ * `guestNativeLanguage` is authoritative: the async bootstrap writes the
+ * fetched guest profile (`native_language: 'EN'`) and must not revert a
+ * language the guest already confirmed. Logged-in users are untouched (their
+ * profile language wins). Returns the SAME reference when nothing changes, so
+ * callers/React do not re-render for no reason.
+ */
+export function applyGuestLanguagePreference({ userData, guestLang, isLoggedIn } = {}) {
+    if (isLoggedIn) return userData;
+    if (!guestLang) return userData;
+    if (!userData || typeof userData !== 'object') return userData;
+    if (userData.native_language === guestLang) return userData;
+    return { ...userData, native_language: guestLang };
+}
