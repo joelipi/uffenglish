@@ -5,6 +5,7 @@ import { getSpeechInputToggleCallback } from '../../modules/lesson/step-loader-c
 import { getResponseAnswerLabelKey } from '../../modules/video/response-decision-logic.js';
 import { getBilingual } from '../../data/strings.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
+import ChoiceColumn from './ChoiceColumn.jsx';
 import TutorialModal from './TutorialModal.jsx';
 
 export default function ResponseDecisionButtons() {
@@ -34,53 +35,25 @@ export default function ResponseDecisionButtons() {
 
     const handleTxtClick = () => {
         appStore.getState().transitionTo('recording/answering');
-        const isTextInputVisible = appStore.getState().textInputVisible;
-        if (isTextInputVisible) {
-            appStore.getState().setTextInputVisible(false);
-            appStore.getState().setMicActive(false);
-            const player = getCurrentVideoPlayer();
-            if (player && player.play) player.play().catch(e => console.warn('[UI] Video resume failed:', e));
-        } else {
-            appStore.getState().setTextInputVisible(true);
-            appStore.getState().setMicActive(true);
-            appStore.getState().triggerPauseAllVideos();
-        }
+        appStore.getState().setTextInputVisible(true);
+        appStore.getState().setMicActive(true);
+        appStore.getState().triggerPauseAllVideos();
     };
 
     const handleTutorial = () => {
         setShowTutorial(true);
     };
 
-    const replayLabel = getBilingual('video_replay', labelLang);
-    const answerLabel = getBilingual(getResponseAnswerLabelKey(currentVideo?.responseType), labelLang);
-    const tutorialLabel = getBilingual('watch_tutorial', labelLang);
-
     return (
         <>
             <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'flex-end', width: '100%', gap: '8px' }}>
-                {/* Replay Video */}
-                <div className="ivp-choice-col" style={{ flex: 1, minWidth: 0 }}>
-                    <div className="ivp-choice-label">
-                        <div className="ivp-choice-label-text">
-                            {replayLabel.localized ? (
-                                <React.Fragment>{replayLabel.english}<br /><span lang={replayLabel.lang}>{replayLabel.localized}</span></React.Fragment>
-                            ) : replayLabel.english}
-                        </div>
-                    </div>
+                <ChoiceColumn label={getBilingual('video_replay', labelLang)}>
                     <button className="btn call-btn" id="responseReplayBtn" aria-label="Replay Video" onClick={handleReplay}>
                         <i className="bi bi-arrow-repeat"></i>
                     </button>
-                </div>
+                </ChoiceColumn>
 
-                {/* Answer (center, primary action) */}
-                <div className="ivp-choice-col" style={{ flex: 1, minWidth: 0 }}>
-                    <div className="ivp-choice-label">
-                        <div className="ivp-choice-label-text">
-                            {answerLabel.localized ? (
-                                <React.Fragment>{answerLabel.english}<br /><span lang={answerLabel.lang}>{answerLabel.localized}</span></React.Fragment>
-                            ) : answerLabel.english}
-                        </div>
-                    </div>
+                <ChoiceColumn label={getBilingual(getResponseAnswerLabelKey(currentVideo?.responseType), labelLang)}>
                     <div style={{ display: 'flex', gap: '8px' }}>
                         <button
                             className={`btn call-btn ${isTextMode ? 'd-none' : ''}`}
@@ -99,21 +72,13 @@ export default function ResponseDecisionButtons() {
                             <i className="bi bi-keyboard-fill"></i>
                         </button>
                     </div>
-                </div>
+                </ChoiceColumn>
 
-                {/* Watch Tutorial */}
-                <div className="ivp-choice-col" style={{ flex: 1, minWidth: 0 }}>
-                    <div className="ivp-choice-label">
-                        <div className="ivp-choice-label-text">
-                            {tutorialLabel.localized ? (
-                                <React.Fragment>{tutorialLabel.english}<br /><span lang={tutorialLabel.lang}>{tutorialLabel.localized}</span></React.Fragment>
-                            ) : tutorialLabel.english}
-                        </div>
-                    </div>
+                <ChoiceColumn label={getBilingual('watch_tutorial', labelLang)}>
                     <button className="btn call-btn" id="responseTutorialBtn" aria-label="Watch Tutorial" onClick={handleTutorial}>
                         <i className="bi bi-book-fill"></i>
                     </button>
-                </div>
+                </ChoiceColumn>
             </div>
 
             {showTutorial && (

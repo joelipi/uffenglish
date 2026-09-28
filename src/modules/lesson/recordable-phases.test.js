@@ -39,11 +39,12 @@ describe('recordable-phases', () => {
 describe('step-executor-webonly.js onRecordingStart gate', () => {
     const source = read('src/modules/lesson/step-executor-webonly.js');
 
-    it('does not inline the recordable-phase list', () => {
-        expect(source).not.toContain('RECORDABLE_PHASES.includes(');
+    it('imports the shared helper instead of defining the list inline', () => {
+        expect(source).toMatch(/import\s*\{\s*isRecordablePhase\s*\}\s*from\s*['"]\.\/recordable-phases\.js['"]/);
+        expect(source).not.toContain('RECORDABLE_PHASES');
     });
 
-    it('uses the single-sourced isRecordablePhase helper', () => {
-        expect(source).toContain('isRecordablePhase(');
+    it('calls the helper at the onRecordingStart gate', () => {
+        expect(source).toMatch(/isRecordablePhase\(phaseNow\)/);
     });
 });
