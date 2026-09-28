@@ -1004,7 +1004,9 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 }
 /* Replay and Tutorial buttons in viewAndContinue — same size as call-btn but no glow */
 #replayBtn::before,
-#tutorialBtn::before {
+#tutorialBtn::before,
+#responseReplayBtn::before,
+#responseTutorialBtn::before {
     box-shadow: none !important;
     animation: none !important;
 }
@@ -1201,6 +1203,14 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     max-height: calc(60% - 150px) !important;
     overflow: hidden;
     z-index: 2;
+}
+
+/* Simple-video response step, pre-overlay: the mic control is hidden, so the
+   subtitles use the bottom band it used to reserve. Reverts to the 150px band
+   as soon as the decision phase or a recording phase begins. */
+.ivp-subtitle-scroll-container.subtitles-at-bottom {
+    bottom: 0 !important;
+    max-height: 60% !important;
 }
 
 .ivp-subtitle-scroll-container .ivp-subtitles {

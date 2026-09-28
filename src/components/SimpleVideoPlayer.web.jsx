@@ -7,6 +7,7 @@ import { appStore, setCurrentVideoPlayer } from '../modules/store/store.js';
 import { useSimpleVideo } from '../hooks/useSimpleVideo.js';
 import { getBilingual } from '../data/strings.js';
 import { useNativeLanguage } from '../hooks/use-native-language.js';
+import { getResponseOverlayTextKey } from '../modules/video/response-decision-logic.js';
 
 const hasNavigator = typeof navigator !== 'undefined';
 const isIOS = hasNavigator && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
@@ -36,14 +37,15 @@ export default function SimpleVideoPlayer() {
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const appPhase = useStore(appStore, (s) => s.appPhase);
+    const currentVideo = useStore(appStore, (s) => s.currentVideo);
     const overlayLang = useNativeLanguage();
 
+    const overlayTextKey = appPhase === 'simpleVideo-decisionTime-response'
+        ? getResponseOverlayTextKey(currentVideo?.responseType)
+        : (appPhase === 'lessonSuccess-decisionTime' ? 'video_continue_create' : 'video_continue');
     const overlayBilingual = useMemo(
-        () => getBilingual(
-            appPhase === 'lessonSuccess-decisionTime' ? 'video_continue_create' : 'video_continue',
-            overlayLang
-        ),
-        [appPhase, overlayLang]
+        () => getBilingual(overlayTextKey, overlayLang),
+        [overlayTextKey, overlayLang]
     );
     // Store player reference for external pause/play
     // Conforms to VideoPlayerHandle — same contract as InteractiveVideoPlayer
@@ -185,6 +187,12 @@ export default function SimpleVideoPlayer() {
             // "create and share your video" overlay, same pattern as earlier steps.
             console.log('[SimpleVideo] Success video ended → revealing concat button');
             appStore.getState().transitionTo('lessonSuccess-decisionTime', {}, { fromStepLoad: true });
+        } else if (appStore.getState().appPhase === 'simpleVideo') {
+            // Simple-video response step: the clip has played, so raise the
+            // Replay / Answer / Tutorial decision overlay. Keyed to the phase,
+            // not a hardcoded response type, so any response step carrying a
+            // simple clip is covered.
+            appStore.getState().transitionTo('simpleVideo-decisionTime-response', {}, { fromStepLoad: true });
         }
     }, []);
 
@@ -195,6 +203,12 @@ export default function SimpleVideoPlayer() {
         if (cv?.responseType === 'success') {
             console.warn('[SimpleVideo] Success video failed to load → revealing concat button');
             appStore.getState().transitionTo('lessonSuccess-decisionTime', {}, { fromStepLoad: true });
+        } else if (appStore.getState().appPhase === 'simpleVideo') {
+            // Same rationale for a simple-video response clip: the mic is
+            // hidden while it plays, so a failed load must still surface the
+            // decision buttons instead of stranding the learner.
+            console.warn('[SimpleVideo] Response video failed to load → revealing decision buttons');
+            appStore.getState().transitionTo('simpleVideo-decisionTime-response', {}, { fromStepLoad: true });
         }
     }, []);
 
@@ -376,7 +390,7 @@ export default function SimpleVideoPlayer() {
                 />
                 <canvas ref={posterCanvasRef} style={{ display: 'none' }} />
                 <div className="ivp-blur-overlay" />
-                {(appPhase === 'simpleVideo-decisionTime-viewAndContinue' || appPhase === 'lessonSuccess-decisionTime') && (
+                {(appPhase === 'simpleVideo-decisionTime-viewAndContinue' || appPhase === 'lessonSuccess-decisionTime' || appPhase === 'simpleVideo-decisionTime-response') && (
                     <>
                         <div className="ivp-click-block" onClick={(e) => e.stopPropagation()} />
                         <div className="ivp-overlay water-surface" style={{ display: 'flex' }}>
@@ -391,7 +405,7 @@ export default function SimpleVideoPlayer() {
                     </>
                 )}
                 {subtitleText && (
-                <div ref={subtitleContainerRef} className={`ivp-subtitle-scroll-container${isTimedSubtitles ? ' timed-subtitles-container' : ''}`}>
+                <div ref={subtitleContainerRef} className={`ivp-subtitle-scroll-container${isTimedSubtitles ? ' timed-subtitles-container' : ''}${appPhase === 'simpleVideo' ? ' subtitles-at-bottom' : ''}`}>
                     <div ref={subtitleDisplayRef} className={`ivp-subtitles${isTimedSubtitles ? ' timed-subtitles' : ''}`}
                         style={!isTimedSubtitles ? { transform: `translateY(-${scrollOffset}px)`, transition: 'transform 0.1s linear' } : {}}>
                         {subtitleLines.map((line, i) => (

@@ -17,6 +17,7 @@ import SystemMessageOverlay from './widgets/MicStatusText.jsx';
 import LandscapeWarning from './widgets/LandscapeWarning';
 import DecisionButtons from './widgets/DecisionButtons.jsx';
 import ViewAndContinueButtons from './widgets/ViewAndContinueButtons.jsx';
+import ResponseDecisionButtons from './widgets/ResponseDecisionButtons.jsx';
 import AuthLink from './widgets/AuthLink.jsx';
 import MissionSection from './widgets/MissionSection.jsx';
 import Hints from './widgets/Hints.jsx';
@@ -221,6 +222,11 @@ export default function LessonContainer() {
                             {bottomState === 'presentDecisionButtons' && (
                                 <div className="d-flex justify-content-center align-items-center w-100">
                                     <ViewAndContinueButtons />
+                                </div>
+                            )}
+                            {bottomState === 'responseDecisionButtons' && (
+                                <div className="d-flex justify-content-center align-items-center w-100">
+                                    <ResponseDecisionButtons />
                                 </div>
                             )}
                             {['controlIcon', 'introChoices', 'micActiveOrAnswerInput', 'lessonSuccess'].includes(bottomState) && (
