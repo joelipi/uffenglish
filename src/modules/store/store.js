@@ -26,7 +26,8 @@ const phaseMapping = {
     loading:                                     { topState: 'hidden',          mediaState: 'preloader',           bottomState: 'hidden',               showMission: false },
     lessonIntro:                                 { topState: 'topBarOnly',      mediaState: 'introCallWidget',     bottomState: 'hidden',               showMission: true },
     firstResponse:                               { topState: 'topBarOnly',      mediaState: 'webcamOrAvatar',      bottomState: 'introChoices',          showMission: true },
-    simpleVideo:                                 { topState: 'topBarOnly',      mediaState: 'simpleVideo',         bottomState: 'controlIcon',           showMission: true },
+    simpleVideo:                                 { topState: 'topBarOnly',      mediaState: 'simpleVideo',         bottomState: 'hidden',               showMission: true },
+    'simpleVideo-decisionTime-response':         { topState: 'topBarOnly',      mediaState: 'decisionOverlay',     bottomState: 'responseDecisionButtons', showMission: true },
     'interactiveVideo+closedResponse':           { topState: 'topBarWithStats', mediaState: 'interactiveVideo',    bottomState: 'hidden',                showMission: true },
     'interactiveVideo+openResponse':             { topState: 'topBarWithStats', mediaState: 'interactiveVideo',    bottomState: 'hidden',                showMission: true },
     'interactiveVideo+friendClosedResponse':     { topState: 'topBarWithStats', mediaState: 'interactiveVideo',    bottomState: 'hidden',                showMission: true },
@@ -52,7 +53,7 @@ const phaseMapping = {
 };
 
 const answerFlowTransitions = {
-    'simpleVideo':                               ['recording/answering'],
+    'simpleVideo':                               ['recording/answering', 'simpleVideo-decisionTime-response'],
     'interactiveVideo+closedResponse':           ['interactiveVideo-decisionTime-closedResponse'],
     'interactiveVideo+openResponse':             ['interactiveVideo-decisionTime-openResponse'],
     'interactiveVideo+friendClosedResponse':     ['interactiveVideo-decisionTime-friendClosedResponse'],
@@ -65,6 +66,7 @@ const answerFlowTransitions = {
     'transcription preflight-rejected':          ['recording/answering'],
     review:                                      ['feedback', 'loading'],
     'simpleVideo-decisionTime-viewAndContinue':      ['simpleVideo', 'feedback'],
+    'simpleVideo-decisionTime-response':             ['simpleVideo', 'recording/answering'],
     'viewAndContinueVideo':                           ['simpleVideo-decisionTime-viewAndContinue'],
     feedback:                                    [],
 };

@@ -15,6 +15,15 @@ const LESSON_URL = '/course/model/lesson/w';
 const HANG = () => { /* intentionally never fulfill — keeps the request pending */ };
 
 async function dismissGuestModal(page) {
+    // The guest language modal gates config normalisation: configData is only
+    // set once a language is confirmed (config-normalizer.js
+    // isConfigLanguageSettled). Wait for either signal, then confirm English
+    // (which leads to the login-choice step) and dismiss.
+    await page.waitForFunction(
+        () => window.appStore?.getState()?.configData || document.querySelector('#guestEnglishOnlyBtn'),
+        null,
+        { timeout: 30000 }
+    );
     if (await page.locator('#guestEnglishOnlyBtn').count()) {
         await page.click('#guestEnglishOnlyBtn').catch(() => {});
         await page.waitForTimeout(200);
@@ -23,6 +32,7 @@ async function dismissGuestModal(page) {
         await page.click('#guestContinueBtn').catch(() => {});
         await page.waitForTimeout(200);
     }
+    await page.waitForFunction(() => window.appStore?.getState()?.configData, null, { timeout: 20000 });
 }
 
 async function advanceToChooser(page) {
@@ -83,7 +93,6 @@ test.describe('speech engine chooser fallback', () => {
         await page.route('**r2.ultrafastfluency.com/whisper/onnx-community/**', HANG);
 
         await page.goto(LESSON_URL, { waitUntil: 'domcontentloaded' });
-        await page.waitForFunction(() => window.appStore?.getState()?.configData, null, { timeout: 20000 });
         await dismissGuestModal(page);
         await advanceToChooser(page);
 
@@ -106,7 +115,6 @@ test.describe('speech engine chooser fallback', () => {
         await page.route('**r2.ultrafastfluency.com/whisper/onnx-community/**', HANG);
 
         await page.goto(LESSON_URL, { waitUntil: 'domcontentloaded' });
-        await page.waitForFunction(() => window.appStore?.getState()?.configData, null, { timeout: 20000 });
         await page.evaluate(() => {
             window.appStore.getState().setWhisperReady(true);
             window.appStore.getState().setWhisperEngineFailed(false);
@@ -138,7 +146,6 @@ test.describe('speech engine chooser fallback', () => {
         await page.route('**r2.ultrafastfluency.com/whisper/onnx-community/**', HANG);
 
         await page.goto(LESSON_URL, { waitUntil: 'domcontentloaded' });
-        await page.waitForFunction(() => window.appStore?.getState()?.configData, null, { timeout: 20000 });
         await dismissGuestModal(page);
         await advanceToChooser(page);
 
@@ -174,7 +181,6 @@ test.describe('speech engine chooser fallback', () => {
         await page.route('**cdn.jsdelivr.net/**', r => r.abort('failed'));
 
         await page.goto(LESSON_URL, { waitUntil: 'domcontentloaded' });
-        await page.waitForFunction(() => window.appStore?.getState()?.configData, null, { timeout: 20000 });
         await page.waitForFunction(() => window.appStore?.getState()?.isWhisperEngineFailed === true, null, { timeout: 30000 });
         await dismissGuestModal(page);
         await advanceToChooser(page);
@@ -194,7 +200,6 @@ test.describe('speech engine chooser fallback', () => {
         await page.route('**r2.ultrafastfluency.com/whisper/onnx-community/**', HANG);
 
         await page.goto(LESSON_URL, { waitUntil: 'domcontentloaded' });
-        await page.waitForFunction(() => window.appStore?.getState()?.configData, null, { timeout: 20000 });
         await page.evaluate(() => {
             window.appStore.getState().setWhisperReady(true);
             window.appStore.getState().setWhisperEngineFailed(false);
@@ -242,7 +247,6 @@ test.describe('speech engine chooser fallback', () => {
     test('ear ("listen again") does not pre-enter the recording UI without media', async ({ page }) => {
         test.setTimeout(60000);
         await page.goto(LESSON_URL, { waitUntil: 'domcontentloaded' });
-        await page.waitForFunction(() => window.appStore?.getState()?.configData, null, { timeout: 20000 });
         await dismissGuestModal(page);
 
         // Force the decision-time phase so DecisionButtons mounts deterministically.

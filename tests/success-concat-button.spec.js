@@ -58,10 +58,28 @@ test.describe('Success screen — concat button reveal', () => {
         }, null, { timeout: 25000 });
     }
 
+    // The guest language modal gates config normalisation: an anonymous visitor
+    // must confirm a language before `configData` is set (config-normalizer.js
+    // isConfigLanguageSettled). Lesson g is non-friend, so English-only leads to
+    // the login-choice step, which is dismissed to unpin the page.
+    async function confirmGuestLanguage(page) {
+        await page.waitForFunction(
+            () => window.appStore?.getState()?.configData || document.querySelector('#guestEnglishOnlyBtn'),
+            null,
+            { timeout: 30000 }
+        );
+        if (await page.locator('#guestEnglishOnlyBtn').count()) {
+            await page.click('#guestEnglishOnlyBtn').catch(() => {});
+            const continueBtn = page.locator('#guestContinueBtn');
+            await continueBtn.waitFor({ state: 'visible', timeout: 3000 }).then(() => continueBtn.click()).catch(() => {});
+        }
+        await page.waitForFunction(() => window.appStore?.getState()?.configData, null, { timeout: 20000 });
+    }
+
     /** Load lesson g, close the guest modal, and mount a pending success video. */
     async function setupSuccessScreen(page, { withVideo = true } = {}) {
         await page.goto(LESSON_URL);
-        await page.waitForFunction(() => window.appStore?.getState()?.configData, null, { timeout: 20000 });
+        await confirmGuestLanguage(page);
         await waitForLessonReady(page);
         await page.evaluate(({ sentinel, withVideo }) => {
             const s = window.appStore.getState();
@@ -107,7 +125,7 @@ test.describe('Success screen — concat button reveal', () => {
 
     test('lessonSuccess-decisionTime maps the success screen zones', async ({ page }) => {
         await page.goto(LESSON_URL);
-        await page.waitForFunction(() => window.appStore?.getState()?.configData, null, { timeout: 20000 });
+        await confirmGuestLanguage(page);
         await waitForLessonReady(page);
 
         const state = await page.evaluate(() => {
@@ -158,7 +176,7 @@ test.describe('Success screen — concat button reveal', () => {
 
     test('restoring directly to the success step reveals the overlay without waiting for the clip', async ({ page }) => {
         await page.goto(LESSON_URL);
-        await page.waitForFunction(() => window.appStore?.getState()?.configData, null, { timeout: 20000 });
+        await confirmGuestLanguage(page);
         await waitForLessonReady(page);
 
         const phases = await page.evaluate(async (webm) => {
@@ -257,7 +275,7 @@ test.describe('Success screen — concat button reveal', () => {
 
     test('view-and-continue video end keeps the earlier overlay copy', async ({ page }) => {
         await page.goto(LESSON_URL);
-        await page.waitForFunction(() => window.appStore?.getState()?.configData, null, { timeout: 20000 });
+        await confirmGuestLanguage(page);
         await waitForLessonReady(page);
         await page.evaluate((sentinel) => {
             const s = window.appStore.getState();

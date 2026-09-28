@@ -14,22 +14,12 @@ import { loadStepOrchestrate } from './step-loader-orchestrate.js';
 import { setTextInputSubmitCallback as setTextCb, setSpeechInputToggleCallback as setSpeechCb } from './step-loader-callbacks.js';
 import { getMediaErrorStringKey, classifyMediaError } from '../speech/speech-ui-state.js';
 import { getVideoUrl } from '../video/video-url.js';
+import { isRecordablePhase } from './recordable-phases.js';
 
 // Module-level ref for viewAndContinue handler (decision overlay Continue button)
 let _viewAndContinueHandler = null;
 export function setViewAndContinueHandler(fn) { _viewAndContinueHandler = fn; }
 export function getViewAndContinueHandler() { return _viewAndContinueHandler; }
-
-// Phases that mount a mic-initiating control. Recording may only enter
-// recording/answering from these; onRecordingStart fires after the mic stream
-// is live, so any other phase (or a failed getUserMedia) must be left intact.
-const RECORDABLE_PHASES = [
-    'simpleVideo',
-    'firstResponse',
-    'interactiveVideo-decisionTime-closedResponse',
-    'interactiveVideo-decisionTime-openResponse',
-    'interactiveVideo-decisionTime-friendClosedResponse',
-];
 
 // Module-level ref for text-mode setup on the first response step.
 // The speech callback is set up normally during _renderResponseStep (which
@@ -256,7 +246,7 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
                             const phaseNow = appStore.getState().appPhase;
                             if (phaseNow === 'recording/answering') {
                                 // Already recording (retry within the same step) — no-op.
-                            } else if (RECORDABLE_PHASES.includes(phaseNow)) {
+                            } else if (isRecordablePhase(phaseNow)) {
                                 appStore.getState().transitionTo('recording/answering');
                             } else {
                                 console.warn('[QuestionLoader] onRecordingStart from unexpected phase; not transitioning:', phaseNow);
