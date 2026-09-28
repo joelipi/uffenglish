@@ -6,12 +6,13 @@ The end-of-lesson recap video and the per-segment R2 clips render a subtitle ove
 
 For a `closedResponse`/`friendClosedResponse` step the transcript is matched against the step's cue at answer time. `findMatchingCueText` (`src/modules/answer/answers.js:108`) returns the canonical cue variant the learner's speech best matched, and the answer pipeline stores it on the recording as `matchedCue` (plus the matching localized `translation`) via `updateSpeechRecording` (`src/modules/answer/answer-pipeline.js:663,682-692`). The in-lesson whisper review already displays that canonical text (`src/modules/speech/speech-orchestrator.js:104-108`), and the IndexedDB persistence design explicitly lists `matchedCue` as a field the video planner reads (`plans/persist-recordings-idb.md:18,321`).
 
-The recap path never uses it, so a correct answer whose transcript had a recognition error burns the misspelled transcript into the exported video. The subtitle must instead burn `rec.matchedCue` when one exists.
+The recap path never uses it, so a correct answer whose transcript had a recognition error burns the misspelled transcript into the exported video. A closed-response subtitle must always be the cue the learner was meant to say — the matched variant when one exists, otherwise the step's configured cue — and never the transcript.
 
 ## Out of Scope
 
 - No change to the cue-matching algorithm, its threshold, or `answers.js`. `rec.matchedCue` as currently computed is authoritative.
-- No change to the remote/prompt segment subtitle, which already uses `_getStepCue(rec)` (`video-processor-logic.js:282`).
+- No change to `_getStepCue` itself or to the remote/prompt segment subtitle, which keeps using it (`video-processor-logic.js:282`).
+- No change to `openResponse` subtitles: with no canonical cue to match, those keep burning the transcript.
 - No change to subtitle styling, wrapping, translation rendering, or the `drawTextOverlay` signature (`video-processor.web.js`).
 - No change to `answer-pipeline.js` writing of `matchedCue`/`translation`, and no backfill of already-recorded clips.
 - No new dependency.
@@ -20,24 +21,39 @@ The recap path never uses it, so a correct answer whose transcript had a recogni
 
 All changes are in the platform-agnostic planner `src/modules/video/video-processor-logic.js`, so both consumers pick them up unchanged: the concatenated recap (`video-processor.web.js:172-173`), the per-segment R2 export (`video-processor.web.js:1371-1372`), and the native recap (`video-processor.native.jsx:54-55`) all call `generatePlan()`.
 
-Add one private method to `VideoRenderPlanner` and call it from the `webcam` plan step:
+Add one private method to `VideoRenderPlanner` and call it from the `webcam` plan step. The step's `responseType` comes from the lesson config via the existing `_getLesson(rec)` / `rec.originalStepIndex` lookup, the same way `_getStepCue` resolves prompts:
 
 ```js
 /**
- * Subtitle for a learner's recorded (webcam) segment. Prefers the specific cue
- * variant their transcript matched at answer time (`rec.matchedCue`) so the
- * burned text is the canonical, correctly-spelled cue rather than the
- * error-prone transcript. Falls back to the transcript when no cue was matched
- * (open-response steps, and closed responses that never reached the threshold).
- * Mirrors the `rec.matchedCue` branch of `_getStepCue`, but a prompt segment
- * falls back to the lesson cue while a recorded segment falls back to the
- * transcript.
+ * Subtitle for a learner's recorded (webcam) segment. A closed-response step
+ * always burns the cue the learner was meant to say — never the transcript:
+ * the specific variant their speech matched (`rec.matchedCue`, with its
+ * localized `rec.translation`) when present, otherwise the step's configured
+ * cue. A non-cue step (open response) keeps burning the transcript.
  */
 _getResponseSubtitle(rec, userText) {
+    const step = this._getLesson(rec)?.steps?.[rec.originalStepIndex];
+    const isClosedResponse =
+        step?.responseType === 'closedResponse' ||
+        step?.responseType === 'friendClosedResponse';
+
+    if (!isClosedResponse) {
+        return { en: userText, translation: rec.translation || null };
+    }
+
     if (typeof rec.matchedCue === 'string' && rec.matchedCue.length > 0) {
         return { en: rec.matchedCue, translation: rec.translation || null };
     }
-    return { en: userText, translation: rec.translation || null };
+
+    // No matched variant (unreachable for a completed closed response, which
+    // always matches). Fall back to the step's configured cue, resolved exactly
+    // like a prompt's. A cue that is empty or still holds a [slot] placeholder
+    // is not displayable, so emit no subtitle rather than the transcript.
+    const cue = this._getStepCue(rec);
+    if (!cue || typeof cue.en !== 'string' || cue.en.length === 0 || /\[[^\]]+\]/.test(cue.en)) {
+        return null;
+    }
+    return cue;
 }
 ```
 
@@ -47,16 +63,18 @@ Then replace `subtitle: { en: userText, translation: rec.translation || null }` 
 
 For a `webcam` plan step, the subtitle is:
 
-| Condition | `subtitle.en` | `subtitle.translation` |
+| Step `responseType` | `rec.matchedCue` | Result |
 | --- | --- | --- |
-| `rec.matchedCue` is a non-empty string | `rec.matchedCue` | `rec.translation \|\| null` |
-| otherwise | `userText` (existing fallback chain, `video-processor-logic.js:291-295`) | `rec.translation \|\| null` |
+| `closedResponse` / `friendClosedResponse` | non-empty string | `{ en: rec.matchedCue, translation: rec.translation \|\| null }` |
+| `closedResponse` / `friendClosedResponse` | absent/empty | step's configured cue via `_getStepCue(rec)` when it is a non-empty, placeholder-free string; otherwise `null` (no subtitle) |
+| anything else (e.g. `openResponse`, missing step) | n/a | `{ en: userText, translation: rec.translation \|\| null }` (existing fallback chain, `video-processor-logic.js:291-295`) |
 
 Consequences, all intentional:
 
-- Correct/matched closed responses burn the cue (plain, array variant, template-expanded, or regex-reconstructed) — the bug being fixed.
+- A closed response never burns the transcript, not even a wrong/unmatched attempt — the reported bug is fixed at the source.
+- Matched variants burn the specific cue (plain, array variant, template-expanded, or regex-reconstructed) with its localized translation.
+- The unmatched fallback reuses `_getStepCue`, which resolves a plain-string or bilingual-object cue and its localization; for an array cue it yields an empty `en`, and for a template it yields the `[slot]` text, so those collapse to no subtitle via the guard. It is reachable when a learner advances after more than two incorrect attempts (`answer-pipeline.js:1014,1025`); the configured cue is the right thing to show there, and no subtitle beats the wrong transcript when it cannot be resolved.
 - `openResponse` steps never compute `matchedCue`, so they keep burning the transcript.
-- A closed response that never reached the similarity threshold (`matchedCue` null/absent) keeps burning the transcript. There is no corresponding cue in that case; this is the one judgement call, recorded so a reviewer can veto it.
 - Text-mode recordings also carry `matchedCue` when applicable, so their avatar-card segments burn the cue too.
 - A recording restored from IndexedDB spreads `...rec`, so `matchedCue` survives the round-trip (`plans/persist-recordings-idb.md:252`; asserted in `tests/recording-persistence.spec.js`).
 
@@ -64,27 +82,35 @@ Consequences, all intentional:
 
 ## Tasks
 
-### Task 1 - Prefer `rec.matchedCue` for recorded-segment subtitles
+### Task 1 - Closed responses always burn the cue, never the transcript
 
-- a recording with `matchedCue: 'I like English'`, `userResponse: 'i like inglish'`, `translation: 'Me gusta el inglés'`, referencing a step whose cue is the array `['I love English', 'I like English', 'I adore English']` + `generatePlan()`
+Write the tests in `src/modules/video/video-processor-logic.test.js`. Each fixture needs a lesson step with an explicit `responseType` at the recording's `originalStepIndex`; add named step builders rather than reusing `SYSTEM_STEPS` so the response type is unambiguous.
+
+- a `closedResponse` step + recording `{ matchedCue: 'I like English', userResponse: 'i like inglish', translation: 'Me gusta el inglés' }` + `generatePlan()`
   - → the `webcam` step's `subtitle.en` is `'I like English'`.
   - → the `webcam` step's `subtitle.translation` is `'Me gusta el inglés'`.
   - → `subtitle.en` is not the transcript `'i like inglish'`.
-- a recording with `matchedCue` referencing a template step (cue `{ en: 'I [feeling] English', slots: { feeling: ['love', 'like'] } }`) + `generatePlan()`
-  - → `subtitle.en` is the matched expanded variant (`'I like English'`), never the raw `'I [feeling] English'`.
-- a recording with `matchedCue` and no `translation` + `generatePlan()`
+- a `closedResponse` step whose cue is a template `{ en: 'I [feeling] English', slots: { feeling: ['love', 'like'] } }` + recording with `matchedCue: 'I like English'` + `generatePlan()`
+  - → `subtitle.en` is `'I like English'`, never the raw `'I [feeling] English'`.
+- a `closedResponse` step + recording with `matchedCue` and no `translation` + `generatePlan()`
   - → `subtitle.translation` is `null`.
-- a recording with `matchedCue` absent and `userResponse: 'answer 1'` + `generatePlan()`
-  - → `subtitle.en` is `'answer 1'` (fallback unchanged).
-  - → `subtitle.translation` is `null`.
-- a recording with `matchedCue: ''` and `userResponse: 'answer 1'` + `generatePlan()`
-  - → `subtitle.en` is `'answer 1'` (empty string is treated as no match).
-- a recording with `matchedCue: 'Correct cue'`, `isTextMode: true`, `userResponse: 'typed answer'` + `generatePlan()`
+- a `closedResponse` step whose cue is `{ en: 'I love English', es: 'Amo el inglés' }` + recording with `matchedCue` absent, `userResponse: 'i love inglish'`, planner `userLang` `'es'` + `generatePlan()`
+  - → `subtitle.en` is `'I love English'` (the configured cue, not the transcript).
+  - → `subtitle.translation` is `'Amo el inglés'`.
+- a `closedResponse` step whose cue is the plain string `'Q1'` + recording with `matchedCue` absent, `userResponse: 'answer 1'` + `generatePlan()`
+  - → `subtitle.en` is `'Q1'`; it is never `'answer 1'`.
+- a `closedResponse` step whose cue is the array `['I love English', 'I like English']` + recording with `matchedCue` absent, `userResponse: 'answer 1'` + `generatePlan()`
+  - → the `webcam` step's `subtitle` is `null` (no displayable cue; the transcript is not substituted).
+- a `closedResponse` step whose cue is a template `{ en: 'I [feeling] English', slots: { feeling: ['love'] } }` + recording with `matchedCue` absent + `generatePlan()`
+  - → the `webcam` step's `subtitle` is `null` (the `[slot]` placeholder is suppressed; the transcript is not substituted).
+- a `closedResponse` step + recording with `matchedCue: ''`, `userResponse: 'answer 1'` + `generatePlan()`
+  - → behaves exactly like `matchedCue` absent (configured cue or `null`), never `'answer 1'`.
+- a `closedResponse` step + recording `{ matchedCue: 'Correct cue', isTextMode: true, userResponse: 'typed answer' }` + `generatePlan()`
   - → the `webcam` step's `subtitle.en` is `'Correct cue'`.
-- an `openResponse` recording (no `matchedCue`) with `userResponse: 'my open answer'` + `generatePlan()`
-  - → `subtitle.en` is `'my open answer'`.
-- a recording whose only response text is in `rec.meta.userResponse` (no top-level `userResponse`) and no `matchedCue` + `generatePlan()`
-  - → `subtitle.en` is the `meta.userResponse` value (fallback chain unchanged).
+- an `openResponse` step + recording (no `matchedCue`) `userResponse: 'my open answer'` + `generatePlan()`
+  - → `subtitle.en` is `'my open answer'` (transcript fallback preserved).
+- a recording that references no resolvable step (empty `configData`, or an `originalStepIndex` with no step) + `userResponse: 'answer 1'` + `generatePlan()`
+  - → `subtitle.en` is `'answer 1'` (cannot be classified as a cue step, so the transcript fallback applies).
 - any of the above + `generatePlan()`
   - → `remote` step subtitles are unchanged (`_getStepCue` semantics), including the existing case at `video-processor-logic.test.js:184-203`.
 - full suite `npm test -- --run`
@@ -97,8 +123,8 @@ Add a `describe('recap subtitle docs')` to `src/modules/video/video-processor-lo
 - test reading `docs/product.md`
   - → it contains the link `stories/028-burn-cue-not-transcription/story.md`.
   - → it contains the phrase `matched cue`.
-  - → a Features bullet states the recorded-clip subtitle is the matched cue rather than the raw speech-to-text transcript.
-  - → the Known Limitations list states that an answer with no matched cue (open response, or one below the similarity threshold) still burns the transcript.
+  - → a Features bullet states a closed-response recorded-clip subtitle is always the cue, never the raw speech-to-text transcript.
+  - → the Known Limitations list states that open-response answers (which have no cue to match) still burn the transcript.
 
 ## Technical Context
 
@@ -106,12 +132,13 @@ Add a `describe('recap subtitle docs')` to `src/modules/video/video-processor-lo
 - `video-processor-logic.js` is deliberately platform-agnostic: a guard test asserts it references no `window`/`document`/`navigator` and no `http(s)://` literal (`video-processor-logic.test.js:600-621`). The new method is a pure object mapping and must stay that way.
 - `generatePlan()` is the single source of both the recap overlay and the per-segment R2 clips, so the fix requires no wiring changes.
 - The recording shape carrying `matchedCue` is produced by `saveSpeechRecording` (`storage.web.js:41-65`) + `updateSpeechRecording` (`storage.web.js:225-249`) and documented in `plans/persist-recordings-idb.md:18,252,321`.
-- The planner's webcam config-derived fallback is intentionally absent: unlike `_getStepCue`, it does not read `q.cue` from the lesson config, because a template/array cue's raw config text (`I [feeling] English`, an array object) is not displayable; only the matched variant is.
+- The unmatched fallback reuses `_getStepCue(rec)`, which already resolves a plain-string or bilingual-object cue plus its localization; array cues resolve to an empty `en` and template cues to their `[slot]` text, both rejected by the displayability guard. The guard is `typeof cue.en === 'string' && cue.en.length > 0 && !/\[[^\]]+\]/.test(cue.en)`.
 - Docs convention: feature/docs wiring is asserted by unit tests elsewhere in the repo (e.g. `scripts/generate-captions.test.js:72-75`, `scripts/verify-thumbnails.test.js:99-101`), which is why Task 2 includes an automated assertion.
 
 ## Notes
 
 - Scope is the `webcam` step's `subtitle` only. `remote` prompt subtitles keep `_getStepCue(rec)`, whose matched-cue branch already produces the same `{ en: rec.matchedCue, translation: rec.translation || null }` shape.
-- The fallback choice — keep burning the transcript when `matchedCue` is absent — is an explicit assumption, not a stated requirement: the learner asked for "the corresponding cue", and no cue corresponds to an answer that never matched within threshold. If the desired behavior is "always burn the config cue for closed responses", that would additionally require handling template/array/regex cues without a match and is a follow-up decision.
+- The unmatched closed-response case is reachable: `showFeedbackAndProceed` lets a learner advance after more than two incorrect attempts (`answer-pipeline.js:1014,1025`), and `getAllSpeechRecordingsForLesson` keeps only the newest record per step (`storage.web.js:97-129`), so their last wrong attempt reaches the planner. That is exactly the case the configured-cue fallback serves; when even that is not displayable (array/template/regex), the step gets no subtitle rather than the wrong transcript.
+- A correct regex answer can also lack `matchedCue`: `evaluateClosedResponse` tests the normalized transcript (`answers.js:35-43`) while `findMatchingCueText` execs the raw one (`answers.js:115-125`). The only regex cue (`model.json:317-321`) has no `.en`, so it falls to no subtitle rather than a wrong one; fixing that mismatch is out of scope.
 - Text-mode segments become the cue too when a cue matched; this follows from text-mode answers going through the same `findMatchingCueText` call and is consistent with the goal (typed typos should not be burned either).
 - No manual verification is possible for the actual pixels; the contract is the plan object (`subtitle.en` / `subtitle.translation`), which is exactly what both renderers consume (`video-processor.web.js:661`, `video-processor.native.jsx:219`).
