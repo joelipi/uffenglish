@@ -1400,17 +1400,18 @@ export async function exportSegmentsToR2(lessonId) {
     return { count: publishable.length, succeeded };
 }
 
-// Mirrors MAX_BYTES in functions/api/upload-segment.js. The Function rejects any
-// object over this size with a 413, so the client checks first and skips the
-// request rather than sending one that is guaranteed to fail.
-export const MAX_R2_UPLOAD_BYTES = 20 * 1024 * 1024;
+// Shared with functions/api/upload-segment.js (single source of truth). The
+// Function rejects any object over this size with a 413, so the client checks
+// first and skips the request rather than sending one that is guaranteed to fail.
+import { MAX_R2_UPLOAD_BYTES } from './r2-upload-limits.js';
+export { MAX_R2_UPLOAD_BYTES };
 
 // Uploads the concatenated end-of-lesson recap to R2 under the same `videos/`
 // namespace as the per-segment clips, so it inherits the 48h lifecycle. Key:
 // videos/${shareCode}-${courseId}-${lessonId}-complete.mp4 (never "concatenated").
 //
 // Best-effort: never throws, and skips the request when the transcoded blob
-// exceeds the Function's 20 MB cap. A failure here must never fail the publish
+// exceeds the Function's 50 MB cap. A failure here must never fail the publish
 // or the recap UI.
 export async function uploadCompleteVideoToR2(blob, lessonId) {
     if (!blob) {
@@ -1433,7 +1434,7 @@ export async function uploadCompleteVideoToR2(blob, lessonId) {
     // Uploads an already-mp4 blob under the complete key, after the size gate.
     const uploadMp4 = async (mp4) => {
         if (mp4.size > MAX_R2_UPLOAD_BYTES) {
-            console.warn('[CompleteVideo] over 20 MB cap, skipping upload:', mp4.size);
+            console.warn('[CompleteVideo] over 50 MB cap, skipping upload:', mp4.size);
             trackEvent('publish_complete_video_skipped', { lessonId, bytes: mp4.size });
             return { uploaded: false, reason: 'too-large' };
         }

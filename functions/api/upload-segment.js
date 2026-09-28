@@ -12,9 +12,10 @@
 // even when SUPABASE_URL/SUPABASE_ANON_KEY are not set in the Pages environment
 // (dashboard vars are optional, not required).
 import { DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_ANON_KEY } from '../../src/modules/api/supabase-constants.js';
+import { MAX_R2_UPLOAD_BYTES } from '../../src/modules/video/r2-upload-limits.js';
 export { DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_ANON_KEY };
 
-const MAX_BYTES = 20 * 1024 * 1024; // 20 MB per segment
+const MAX_BYTES = MAX_R2_UPLOAD_BYTES; // 50 MB per object
 
 export async function onRequestPost({ request, env }) {
     const shareCode = request.headers.get('x-share-code');

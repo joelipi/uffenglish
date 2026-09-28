@@ -94,7 +94,7 @@ describe('uploadCompleteVideoToR2', () => {
         expect(trackEvent).toHaveBeenCalledWith('publish_complete_video_success', expect.objectContaining({ lessonId: 'w' }));
     });
 
-    it('skips the upload when the transcoded blob exceeds the 20 MB cap', async () => {
+    it('skips the upload when the transcoded blob exceeds the 50 MB cap', async () => {
         const big = new Blob([new Uint8Array(MAX_R2_UPLOAD_BYTES + 1)], { type: 'video/mp4' });
         transcodeToMp4.mockResolvedValue(big);
 
@@ -103,6 +103,16 @@ describe('uploadCompleteVideoToR2', () => {
         expect(result).toEqual({ uploaded: false, reason: 'too-large' });
         expect(uploadSegmentToR2).not.toHaveBeenCalled();
         expect(trackEvent).toHaveBeenCalledWith('publish_complete_video_skipped', expect.objectContaining({ lessonId: 'w' }));
+    });
+
+    it('uploads a blob exactly at the 50 MB cap (boundary is inclusive)', async () => {
+        const atCap = new Blob([new Uint8Array(MAX_R2_UPLOAD_BYTES)], { type: 'video/mp4' });
+        transcodeToMp4.mockResolvedValue(atCap);
+
+        const result = await uploadCompleteVideoToR2(BLOB, 'w');
+
+        expect(result).toEqual({ uploaded: true, url: UPLOADED_URL });
+        expect(uploadSegmentToR2).toHaveBeenCalledWith(expect.objectContaining({ blob: atCap }));
     });
 
     it('falls back to Cloudinary when WebCodecs is unavailable', async () => {

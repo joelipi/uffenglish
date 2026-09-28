@@ -6,10 +6,11 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { onRequestPost, DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_ANON_KEY } from './upload-segment.js';
+import { MAX_R2_UPLOAD_BYTES } from '../../src/modules/video/r2-upload-limits.js';
 
 const FALLBACK_URL = DEFAULT_SUPABASE_URL;
 const FALLBACK_ANON_KEY = DEFAULT_SUPABASE_ANON_KEY;
-const MAX_BYTES = 20 * 1024 * 1024;
+const MAX_BYTES = MAX_R2_UPLOAD_BYTES;
 
 function makeRequest({
     shareCode = 'ab12',
@@ -152,7 +153,7 @@ describe('onRequestPost — upload-segment Function', () => {
         expect(res.status).toBe(403);
     });
 
-    it('rejects with 413 when content-length exceeds the 20 MB cap', async () => {
+    it('rejects with 413 when content-length exceeds the 50 MB cap', async () => {
         const env = makeEnv();
         const res = await onRequestPost({
             request: makeRequest({ contentLength: MAX_BYTES + 1 }),
@@ -162,7 +163,7 @@ describe('onRequestPost — upload-segment Function', () => {
         expect(env.UFF_R2.put).not.toHaveBeenCalled();
     });
 
-    it('rejects with 413 when the body exceeds the 20 MB cap without a content-length header', async () => {
+    it('rejects with 413 when the body exceeds the 50 MB cap without a content-length header', async () => {
         const env = makeEnv();
         const res = await onRequestPost({
             request: makeRequest({ contentLength: null, bytes: new ArrayBuffer(MAX_BYTES + 1) }),
@@ -170,6 +171,26 @@ describe('onRequestPost — upload-segment Function', () => {
         });
         expect(res.status).toBe(413);
         expect(env.UFF_R2.put).not.toHaveBeenCalled();
+    });
+
+    it('accepts a body exactly at the 50 MB cap (boundary is inclusive)', async () => {
+        const env = makeEnv();
+        const res = await onRequestPost({
+            request: makeRequest({ contentLength: MAX_BYTES, bytes: new ArrayBuffer(MAX_BYTES) }),
+            env,
+        });
+        expect(res.status).toBe(200);
+        expect(env.UFF_R2.put).toHaveBeenCalledTimes(1);
+    });
+
+    it('accepts a body exactly at the cap without a content-length header', async () => {
+        const env = makeEnv();
+        const res = await onRequestPost({
+            request: makeRequest({ contentLength: null, bytes: new ArrayBuffer(MAX_BYTES) }),
+            env,
+        });
+        expect(res.status).toBe(200);
+        expect(env.UFF_R2.put).toHaveBeenCalledTimes(1);
     });
 
     it('accepts the concatenated recap key (videos/<shareCode>-<courseId>-<lessonId>-complete.mp4)', async () => {

@@ -50,7 +50,7 @@ describe('video-processor.web.js complete-video export', () => {
 
     it('exports the upload function and the size cap', () => {
         expect(source).toContain('export async function uploadCompleteVideoToR2');
-        expect(source).toContain('export const MAX_R2_UPLOAD_BYTES');
+        expect(source).toContain('export { MAX_R2_UPLOAD_BYTES };');
     });
 
     it('is defined after exportSegmentsToR2 (preserves the renderStepToBlob slice guard)', () => {

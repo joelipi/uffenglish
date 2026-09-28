@@ -25,7 +25,7 @@ describe('video-processor.web.js poster→avatar wiring', () => {
     // a later function (uploadCompleteVideoToR2 is appended after this one).
     const fnBody = source.slice(
         source.indexOf('export async function exportSegmentsToR2'),
-        source.indexOf('export const MAX_R2_UPLOAD_BYTES'),
+        source.indexOf('export { MAX_R2_UPLOAD_BYTES };'),
     );
 
     it('imports and calls maybeAssignPosterAvatar inside exportSegmentsToR2', () => {
