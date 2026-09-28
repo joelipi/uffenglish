@@ -28,6 +28,8 @@ Primary branch is `main`. Commits land on `main` directly, so once committed `ma
 
 **Rebase if `origin/main` has advanced.** `peck story create` branches from the current commit, but parallel work keeps merging to `main`. If `git log --oneline HEAD..origin/main` is non-empty when you reach the verify step, `git rebase origin/main` before running reviewers. Otherwise `origin/main..HEAD` contains the *inverse* of every upstream commit your branch lacks, and the code reviewer will Fail on those apparent reverts (e.g. a later branch's i18n/CSS fix) even though your feature is fine.
 
+**If the story branch is already pushed, merge instead of rebasing.** Rebasing rewrites commits that are already on `origin/<branch>`, which forces a push the rules forbid. To get the same clean `origin/main..HEAD` without force-pushing: `git reset --hard origin/<branch>` (the pushed tip), then `git merge origin/main`. The merge commit makes `origin/main` an ancestor, so `git push` is a fast-forward, and the review range again contains only your commits + the merge. Resolve any `agents.md`/`docs/product.md` conflicts by keeping both changes.
+
 **Branch can switch underneath you.** Parallel processes (peck story create, openchamber worktrees) create story branches and check them out while you work. Before every `git commit`, run `git branch --show-current` and confirm it matches the story branch. If a commit or reviewer report lands on the wrong branch, `git cherry-pick` it onto the correct one. If file contents suddenly don't match your edits, check `git branch --show-current` + `git status` before debugging — the working tree may be a different branch's state.
 
 ---
@@ -60,6 +62,8 @@ tests/answer-flow.spec.js
 ```
 
 **Config-only changes: unit test the config, skip E2E.** When a change only edits `src/config/*.json`, a vitest unit test importing the JSON (e.g. `src/config/model.test.js`) is sufficient coverage when the rendering path is already exercised by existing lessons. Don't add a Playwright spec for a config-only change.
+
+**`source inspected → …` ACs need a real static-guard test.** When a story lists an acceptance criterion as `[file] source inspected → contains/does not contain …` (purity constraints, required imports, wiring contract), the implementer must add an automated `readFileSync` guard for it. The `@acceptance-reviewer` treats every AC as requiring a passing test and will Fail the task if such ACs have no guard, even when the runtime behavior is covered. Put guards beside the feature (e.g. `notification-wiring.test.js`) and assert only on raw source, never comment-stripped source (`docs/learnings.md`).
 
 **Test URL:** `http://localhost:3000/course/model/lesson/g`
 Lessons require a full URL where `course` and `model` map to valid JSON files and `lesson` is a valid key within that JSON, unless lesson data is already in memory.
