@@ -146,10 +146,6 @@ grant execute on function public.record_friend_response(text, text, text) to aut
 { "actorShareCode": "sam123", "actorName": "Sam Lee" }
 ```
 
-### 2b. 48h expiry is a render-time rule (no cleanup job, no cron)
-
-The notification is tied to the R2 UGC clips, which expire 48h after upload (`SHARE_WINDOW_HOURS`, `video-processor-logic.js`). A notification is **live only while `created_at + 48h > now`**; `listNotifications`/`getUnreadCount` drop expired rows, so the badge and panel stop showing them at the 48h mark. Expired rows stay in the table — this feature never deletes rows and adds no scheduled job, exactly like `friend_links` (story 012). A repeat answer refreshes `created_at`, which restarts the 48h window (see §9). The profile URL itself never expires; only the notification that surfaces it does.
-
 ### 3. Pure logic — `src/modules/notifications/notification-logic.js` (new)
 
 No DOM, no data access; single-sources lesson id and share host from existing modules.
@@ -159,12 +155,21 @@ No DOM, no data access; single-sources lesson id and share host from existing mo
 // Pure domain logic for friend-response notifications. No DOM, no data access.
 
 import { ANSWER_LESSON_ID } from '../user/friend-lesson-link-logic.js';
-import { SHARE_WINDOW_HOURS, buildShareUrl } from '../video/video-processor-logic.js';
+import { buildShareUrl, SHARE_WINDOW_HOURS } from '../video/video-processor-logic.js';
 
 export const NOTIFICATION_TYPE_FRIEND_RESPONSE = 'friend_response';
 
-// Reuses the single share window (R2 UGC lifecycle, 48h). Do not add a second.
-export const NOTIFICATION_WINDOW_MS = SHARE_WINDOW_HOURS * 60 * 60 * 1000;
+// Same 48h window as the R2 UGC clip lifecycle (single-sourced, not a second
+// literal); the asker can respond while the friend's clips still exist.
+export const RESPONSE_WINDOW_MS = SHARE_WINDOW_HOURS * 60 * 60 * 1000;
+
+// True while a notification is inside its response window. Invalid/missing
+// dates are false.
+export function isResponseWindowOpen(createdAt, nowMs) {
+    const t = new Date(createdAt).getTime();
+    if (!Number.isFinite(t)) return false;
+    return t + RESPONSE_WINDOW_MS > nowMs;
+}
 
 // Trim + lowercase; '' and non-strings become null.
 export function normalizeShareCode(code) {
@@ -179,35 +184,16 @@ export function buildProfileHref(shareCode) {
     return /^https?:\/\//i.test(url) ? url : `https://${url}`;
 }
 
-// Clamped at 0; a notification is live only while remaining > 0.
-export function getNotificationRemainingMs(createdAtMs, nowMs) {
-    return Math.max(0, createdAtMs + NOTIFICATION_WINDOW_MS - nowMs);
-}
-
-export function isNotificationActive(createdAtMs, nowMs) {
-    return getNotificationRemainingMs(createdAtMs, nowMs) > 0;
-}
-
-// Unread AND still inside the 48h window.
-export function getUnreadCount(notifications, nowMs = Date.now()) {
+export function getUnreadCount(notifications) {
     if (!Array.isArray(notifications)) return 0;
-    return notifications.reduce((count, n) => {
-        if (!n || n.read_at) return count;
-        const created = new Date(n.created_at).getTime();
-        return count + (Number.isFinite(created) && isNotificationActive(created, nowMs) ? 1 : 0);
-    }, 0);
+    return notifications.reduce((count, n) => count + (n && !n.read_at ? 1 : 0), 0);
 }
 
-// Active notifications, newest first; non-array / junk / expired entries are
-// ignored (expiry is render-time only — rows are never deleted).
-export function listNotifications(notifications, nowMs = Date.now()) {
+// Newest first; non-array / junk entries are ignored.
+export function listNotifications(notifications) {
     if (!Array.isArray(notifications)) return [];
     return notifications
-        .filter((n) => {
-            if (!n || typeof n !== 'object' || !n.id) return false;
-            const created = new Date(n.created_at).getTime();
-            return Number.isFinite(created) && isNotificationActive(created, nowMs);
-        })
+        .filter((n) => n && typeof n === 'object' && n.id)
         .slice()
         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 }
@@ -329,26 +315,27 @@ if (responsePayload) {
 
 The whole block stays inside the existing `try/catch`, so a notification failure is logged as non-fatal and never fails video generation. Guests never reach it (`publishSegments` is false), and a logged-in user without a `shareCode` gets `{ count: 0, succeeded: 0 }` from the export.
 
-### 6. UI copy — `src/data/strings.js` (4 new keys, six languages)
+### 6. UI copy — `src/data/strings.js` (5 new keys, six languages)
 
 | key | en | es | pt | fr | hi | bn |
 |---|---|---|---|---|---|---|
 | `notifications_title` | `Notifications` | `Notificaciones` | `Notificações` | `Notifications` | `सूचनाएँ` | `বিজ্ঞপ্তি` |
 | `notifications_empty` | `No notifications yet` | `Aún no hay notificaciones` | `Ainda não há notificações` | `Aucune notification pour l'instant` | `अभी कोई सूचना नहीं` | `এখনও কোনো বিজ্ঞপ্তি নেই` |
 | `notifications_friend_response` | `{name} created a video with your questions` | `{name} creó un video con tus preguntas` | `{name} criou um vídeo com as suas perguntas` | `{name} a créé une vidéo avec vos questions` | `{name} ने आपके सवालों के साथ एक वीडियो बनाया` | `{name} আপনার প্রশ্নগুলো নিয়ে একটি ভিডিও তৈরি করেছে` |
+| `notifications_respond_deadline` | `You only have 48 hours to respond` | `Solo tienes 48 horas para responder` | `Você só tem 48 horas para responder` | `Vous n'avez que 48 heures pour répondre` | `आपके पास जवाब देने के लिए केवल 48 घंटे हैं` | `আপনার কাছে উত্তর দেওয়ার জন্য মাত্র 48 ঘণ্টা আছে` |
 | `notifications_someone` | `A friend` | `Un amigo` | `Um amigo` | `Un ami` | `एक मित्र` | `একজন বন্ধু` |
 
-`notifications_friend_response` carries `{name}`; `src/data/strings.test.js`'s placeholder map (line 64) must add `name: 'Sam'` so the auto-derived hi/bn interpolation test passes. The existing "every key carries hi/bn" test then covers the four new keys automatically.
+`notifications_friend_response` carries `{name}`; `src/data/strings.test.js`'s placeholder map (line 64) must add `name: 'Sam'` so the auto-derived hi/bn interpolation test passes. The existing "every key carries hi/bn" test then covers all five new keys automatically. `notifications_respond_deadline` carries no placeholder and is a static line (window gating is done in the component, not the string).
 
 ### 7. Bell UI — `NotificationList.jsx` + `NotificationsBell.jsx` (both new) + `HomeScreen.jsx`
 
 Split presentational from container so the list can be unit-tested in jsdom without pulling the Supabase/`api.js` graph into vitest. Both are pure React, no DOM APIs.
 
 - `src/components/homescreen/NotificationList.jsx` (default export, presentational; imports only `Strings` + `notification-logic.js`):
-  - `NotificationList({ notifications, lang, now, onSelect })`: `listNotifications(notifications, now)`; empty → `<p data-testid="notification-empty">` + no items; otherwise a list of items.
-  - Each item (`<div data-testid="notification-item">`): message `Strings.get('notifications_friend_response', lang, { name: getNotificationActorName(n) || Strings.get('notifications_someone', lang) })`. When `getNotificationActorShareCode(n)` is truthy, wrap in `<a data-testid="notification-link" href={buildProfileHref(code)}>` and call `onSelect(n)` on click; when it is empty, render the message in a `<span>` with no anchor.
+  - `NotificationList({ notifications, lang, onSelect, now = Date.now() })`: `listNotifications(...)`; empty → `<p data-testid="notification-empty">` + no items; otherwise a list of items. `now` is injected so the window check is deterministic in tests.
+  - Each item (`<div data-testid="notification-item">`): message `Strings.get('notifications_friend_response', lang, { name: getNotificationActorName(n) || Strings.get('notifications_someone', lang) })`. When `getNotificationActorShareCode(n)` is truthy, wrap in `<a data-testid="notification-link" href={buildProfileHref(code)}>` and call `onSelect(n)` on click; when it is empty, render the message in a `<span>` with no anchor. Under the message, render `<p data-testid="notification-deadline">{Strings.get('notifications_respond_deadline', lang)}</p>` **only when** `isResponseWindowOpen(n.created_at, now)` — so the "48 hours" line is shown while the friend's 48h clip window is still open and hidden once it has passed (never a stale claim).
 - `src/components/homescreen/NotificationsBell.jsx` (default export, container; imports `NotificationList` + `api.js`):
-  - `NotificationsBell({ userId, lang })`: owns `open` state and calls `useNotifications(userId)` + `useMarkNotificationsRead()`. Holds `now` in state (mirroring `FriendLessonLinksSection`) and ticks every 1000ms while at least one notification is active, so an open panel/badge drops an item live at the 48h mark. Computes `active = listNotifications(notifications, now)` and `unread = getUnreadCount(notifications, now)`. Renders a button `data-testid="notification-bell"` with `<i className="bi bi-bell-fill" />` and, when `unread > 0`, a badge `data-testid="notification-badge"` showing the count. Opening the panel renders `data-testid="notification-panel"` with a heading `Strings.get('notifications_title', lang)` and `<NotificationList notifications={notifications} lang={lang} now={now} />`; on open with unread active rows it fires `markRead.mutate({ userId, ids: <unread active ids> })`. Reuses the HomeScreen dark palette (`#0b1a2a`/`#1a3a5a`/`#2a4a6a`).
+  - `NotificationsBell({ userId, lang })`: owns `open` state and calls `useNotifications(userId)` + `useMarkNotificationsRead()`. Renders a button `data-testid="notification-bell"` with `<i className="bi bi-bell-fill" />` and, when `getUnreadCount(notifications) > 0`, a badge `data-testid="notification-badge"` showing the count. Opening the panel renders `data-testid="notification-panel"` with a heading `Strings.get('notifications_title', lang)` and `NotificationList`; on open with unread rows it fires `markRead.mutate({ userId, ids: <unread ids> })`. A `now` state ticks every 60s (`setInterval`, cleared on unmount, as in `FriendLessonLinksSection`) and is passed to `NotificationList` so the deadline line clears at the 48h boundary while the panel stays open. Reuses the HomeScreen dark palette (`#0b1a2a`/`#1a3a5a`/`#2a4a6a`).
 
 `HomeScreen.jsx`:
 
@@ -375,15 +362,13 @@ Split presentational from container so the list can be unit-tested in jsdom with
 - **`friendCode` missing** (`B` opened lesson `b` without a share link): `recipientShareCode` empty → `null`.
 - **`B` reshares their own code** (`recipientShareCode === actorShareCode`): `null` (client) and a no-op in the RPC (server self-check).
 - **Recipient share code unknown to the DB**: RPC no-ops; no error surfaced.
-- **Same `B` re-answers the same course+lesson**: the unique index + `do update` refreshes `created_at` (restarting the 48h window), clears `read_at`, and updates the name snapshot — one row, no duplicates.
+- **Same `B` re-answers the same course+lesson**: the unique index + `do update` refreshes `created_at`, clears `read_at`, and updates the name snapshot — one row, no duplicates.
 - **Different course/lesson**: separate rows (unique key includes `course_id`/`lesson_id`).
-- **Notification exactly 48h old or older**: `getNotificationRemainingMs === 0` → inactive → excluded from the list and unread count (removal boundary inclusive at 48h).
-- **Sub-minute remaining**: still active until `remaining === 0`.
-- **Expired row**: remains in `user_notifications` (no cleanup job); it is filtered out at render and never surfaces again (unless a re-answer refreshes it).
-- **`created_at` missing / unparseable**: the row is excluded (never treated as active).
-- **Unread notification that has expired**: not counted in the badge.
 - **`payload.actorName` empty**: UI falls back to `notifications_someone`.
 - **`payload.actorShareCode` empty/malformed**: item renders as non-link text, no anchor.
+- **Response window still open** (`created_at + RESPONSE_WINDOW_MS > now`): the `notifications_respond_deadline` line is shown.
+- **Response window closed** (`created_at` at or older than 48h): the deadline line is hidden; the notification row itself remains in the inbox.
+- **`created_at` missing/invalid**: `isResponseWindowOpen` is `false` → no deadline line (the item still renders).
 - **Inbox fetch failure / non-array data**: `getUnreadCount` → `0`, `listNotifications` → `[]` (badge hidden, empty state).
 - **Unread count 0**: no badge.
 - **A publish or RPC failure**: caught in the existing success block; logged, non-fatal.
@@ -402,24 +387,14 @@ Split presentational from container so the list can be unit-tested in jsdom with
   - → `'https://ultrafastfluency.com'` for each (falls back to the bare host, never throws)
 - `buildProfileHref('https://x/y')`
   - → returned unchanged (no double scheme)
-- `NOTIFICATION_WINDOW_MS`
-  - → `SHARE_WINDOW_HOURS * 60 * 60 * 1000` (`172800000`)
-- `getNotificationRemainingMs(created, created)` / `(created, created + 47h)` / `(created, created + 48h)` / `(created, created + 49h)`
-  - → `172800000` / `3600000` / `0` / `0` (clamped, never negative)
-- `isNotificationActive(created, created + 48h - 1)` / `(created, created + 48h)`
-  - → `true` / `false`
-- `getUnreadCount(rows, now)` where the fixed `now` is `2026-09-24T12:00:00Z` and `rows` = [unread created `2026-09-24T11:00:00Z`, read created `2026-09-24T11:00:00Z` (read_at set), unread created `2026-09-22T11:00:00Z` (49h ago)]
-  - → `1` (the read row and the expired row are both excluded)
+- `getUnreadCount([{read_at:null},{read_at:'2026-01-01T00:00:00Z'},{read_at:null}])`
+  - → `2`
 - `getUnreadCount([])` / `(null)` / `(undefined)` / `('x')`
   - → `0` for each
-- `listNotifications([expired created 49h ago, active older created 2h ago, active newer created 1h ago], now)`
-  - → exactly `[active newer, active older]` (newest first; expired dropped)
-- `listNotifications` with a row whose `created_at` is missing/invalid, and with `[null, 0, {}]`
-  - → those entries are excluded
-- `listNotifications(null)` / `(undefined)` / `('x')`
+- `listNotifications` with a row created later and one created earlier
+  - → newer row first
+- `listNotifications(null)` / `(undefined)` / `('x')` / `([null, 0, {}])`
   - → `[]` for each
-- `listNotifications([row], now)` where `now` is `created + 48h`
-  - → `[]` (inclusive 48h boundary)
 - `listNotifications` called with an input array
   - → the input array order is not mutated
 - `getNotificationActorName({ payload: { actorName: ' Sam ' } })`
@@ -448,6 +423,14 @@ Split presentational from container so the list can be unit-tested in jsdom with
   - → `null`
 - `NOTIFICATION_TYPE_FRIEND_RESPONSE`
   - → `'friend_response'`
+- `RESPONSE_WINDOW_MS`
+  - → `172800000` (48h, single-sourced from `SHARE_WINDOW_HOURS`)
+- `isResponseWindowOpen(addedAt, addedAt)` / `(addedAt, addedAt + 48h - 1)`
+  - → `true` for each
+- `isResponseWindowOpen(addedAt, addedAt + 48h)` / `(addedAt, addedAt + 49h)`
+  - → `false` for each (inclusive boundary)
+- `isResponseWindowOpen(null, now)` / `('x', now)` / `(undefined, now)`
+  - → `false` for each
 
 ### Task 2 - UI strings (`src/data/strings.test.js` updated)
 
@@ -457,6 +440,8 @@ Split presentational from container so the list can be unit-tested in jsdom with
   - → the localized label with `{name}` replaced and no `{`/`}` remaining
 - `Strings.get('notifications_friend_response', 'hi')` / `('bn')`
   - → matches Devanagari / Bengali script
+- `Strings.get('notifications_respond_deadline', lang)` for `lang` in `en/es/pt/fr/hi/bn`
+  - → the exact copy from the §6 table, containing `48`
 - `src/data/strings.test.js` placeholder map includes `name`
   - → the auto-derived placeholder test passes for `notifications_friend_response` in hi and bn
 - the whole-table hi/bn coverage test
@@ -501,25 +486,25 @@ Split presentational from container so the list can be unit-tested in jsdom with
 
 The test imports only `NotificationList.jsx` (presentational, no `api.js`/Supabase graph) and renders with `createRoot` + `act` (pattern from `src/components/intro-caller-name.test.js`); no network.
 
-Fixtures: fixed `now = new Date('2026-09-24T12:00:00.000Z').getTime()`; active rows `created_at` 1h/2h before `now`; expired row `created_at` 49h before `now`; each row has a stable `id`.
-
-- `NotificationList` with two active `friend_response` rows (newest first) rendered at `lang='en'`, `now`
+- `NotificationList` with two `friend_response` rows (newest first; the newer `created_at` 1h before a fixed `now`, the older 50h before `now`) rendered at `lang='en'` with `now`
   - → `[data-testid="notification-item"]` count is `2`
   - → the first item's text contains `Sam created a video with your questions`
   - → the first item's `[data-testid="notification-link"]` `href` is `https://ultrafastfluency.com/sam123`
-- `NotificationList` rendered at `lang='es'`, `now`
-  - → the rendered text contains the Spanish template for the same row
+  - → the first item shows `[data-testid="notification-deadline"]` with text `You only have 48 hours to respond`
+  - → the second item (window closed) has `[data-testid="notification-deadline"]` count `0`
+- `NotificationList` rendered at `lang='es'` with the same fixed `now`
+  - → the rendered text contains the Spanish template for the message and the Spanish deadline line
+- a `friend_response` row whose `created_at` is exactly 48h before `now`
+  - → that item's `[data-testid="notification-deadline"]` count is `0`
+- a `friend_response` row whose `created_at` is missing/invalid
+  - → that item renders but `[data-testid="notification-deadline"]` count is `0`
 - the first item's `[data-testid="notification-link"]` clicked
   - → the `onSelect` spy is called once with that notification
-- `NotificationList` with one active row + one expired (49h) row, `now`
-  - → `[data-testid="notification-item"]` count is `1` (the expired row is not rendered)
-- `NotificationList` with only an expired row, `now`
+- `NotificationList` with `[]` / `null`
   - → `[data-testid="notification-empty"]` is present and `[data-testid="notification-item"]` count is `0`
-- `NotificationList` with `[]` / `null`, `now`
-  - → `[data-testid="notification-empty"]` is present and `[data-testid="notification-item"]` count is `0`
-- `NotificationList` with an active row whose `payload.actorName` is missing, `now`
+- `NotificationList` with a row whose `payload.actorName` is missing
   - → the rendered text contains the English fallback `A friend`
-- `NotificationList` with an active row whose `payload.actorShareCode` is missing, `now`
+- `NotificationList` with a row whose `payload.actorShareCode` is missing
   - → that item renders but `[data-testid="notification-link"]` count is `0`
 - `HomeScreen.jsx` source inspected
   - → imports `NotificationsBell`
@@ -528,22 +513,20 @@ Fixtures: fixed `now = new Date('2026-09-24T12:00:00.000Z').getTime()`; active r
 
 ### Task 6 - Browser behavior (`tests/notifications.spec.js`, new Playwright)
 
-Boots `/` with a fixed clock (`page.clock.setFixedTime(new Date('2026-09-24T12:00:00.000Z'))` before `goto`, per `tests/friend-lesson-link.spec.js`), then injects fixtures into the app's own `queryClient` singleton. Stub all Supabase traffic in `beforeEach` so nothing escapes: `page.route('**/auth/v1/**', ...)` → `401`, and a **stateful** `page.route('**/rest/v1/**', ...)` (not a constant `[]`): GET `user_notifications` returns the current in-memory rows; PATCH `user_notifications` sets `read_at` on every row then returns `200`; `user_profiles`/other REST requests return `[]`. The statefulness matters — the mark-read invalidation triggers a refetch, and a constant `[]` stub would empty the panel mid-assertion (flaky).
+Fix the clock in `beforeEach` (`page.clock.setFixedTime(new Date('2026-09-24T12:00:00Z'))`) so the 48h deadline line is deterministic. Boot `/`, then inject fixtures into the app's own `queryClient` singleton (pattern from `tests/friend-lesson-link.spec.js`). Stub all Supabase traffic in `beforeEach` so nothing escapes: `page.route('**/auth/v1/**', ...)` → `401`, and a **stateful** `page.route('**/rest/v1/**', ...)` (not a constant `[]`): GET `user_notifications` returns the current in-memory rows; PATCH `user_notifications` sets `read_at` on every row then returns `200`; `user_profiles`/other REST requests return `[]`. The statefulness matters — the mark-read invalidation triggers a refetch, and a constant `[]` stub would empty the panel mid-assertion (flaky).
 
-Fixture rows (relative to the fixed clock): Sam unread `created_at` `2026-09-24T11:00:00Z`; a read row `created_at` `2026-09-24T10:00:00Z`; an expired unread row `created_at` `2026-09-22T11:00:00Z` (49h old).
+Fixtures: `['notifications','u1'] = [<unread from 'Sam'/'sam123', created_at '2026-09-24T11:00:00Z'>, <read row, created_at '2026-09-22T00:00:00Z'>]`.
 
-- `/` loaded, then `['auth','status'] = true`, `['user','profile'] = { $id:'u1', shareCode:'me123', native_language:'EN' }`, `['notifications','u1'] = [Sam unread, read row, expired unread]` injected
+- `/` loaded, then `['auth','status'] = true`, `['user','profile'] = { $id:'u1', shareCode:'me123', native_language:'EN' }` and the fixture above injected
   - → `[data-testid="notification-bell"]` is visible
-  - → `[data-testid="notification-badge"]` has text `1` (the expired row is excluded from the count)
+  - → `[data-testid="notification-badge"]` has text `1`
 - the same fixture, then `[data-testid="notification-bell"]` clicked
   - → `[data-testid="notification-panel"]` is visible
-  - → `[data-testid="notification-item"]` count is `2` (the expired row is not rendered)
+  - → `[data-testid="notification-item"]` count is `2`
   - → the Sam item's `[data-testid="notification-link"]` has `href` `https://ultrafastfluency.com/sam123`
+  - → `[data-testid="notification-deadline"]` is visible with text `You only have 48 hours to respond` for the fresh item, while the older (window-closed) item has none
   - → `[data-testid="notification-badge"]` has count `0` (all rows read after the mark-read mutation + stateful refetch)
   - → `[data-testid="notification-item"]` count is still `2` (the refetch returns the read rows, it does not clear them)
-- `/` loaded with only an unread **expired** row injected and auth/profile as above
-  - → `[data-testid="notification-badge"]` has count `0`
-  - → after `[data-testid="notification-bell"]` is clicked, `[data-testid="notification-empty"]` is visible and `[data-testid="notification-item"]` count is `0`
 - `/` loaded with `['notifications','u1'] = []` injected and auth/profile as above
   - → `[data-testid="notification-bell"]` is visible and `[data-testid="notification-badge"]` has count `0`
 - `/` loaded as a logged-out guest (no auth/profile injection; `**/auth/v1/**` stubbed `401`)
@@ -554,7 +537,6 @@ Fixture rows (relative to the fixed clock): Sam unread `created_at` `2026-09-24T
 - **No new dependencies.** Reuses React 19.2.0, `@tanstack/react-query` 5.100.14, `zustand` 5.0.13, `@supabase/supabase-js` 2.112.4, `react-router-dom` 7.15.1. Unit tests: vitest 4.1.6 + jsdom 29.1.1 (colocated `*.test.js`; `vitest.config.js` excludes `tests/**` and `*.spec.js`). Browser tests: `@playwright/test` 1.60.0 (`tests/*.spec.js`, `playwright.config.js`, `webServer: npx vite --port 5173`).
 - **Verification gate:** `npm test -- --run` (docs/learnings.md:43-47). eslint/knip are not runnable in this repo; do not gate on them. The Playwright spec is a supplementary artifact outside the vitest gate.
 - **Trigger evidence chain:** `SuccessButtons.jsx:93-116` already awaits `exportSegmentsToR2(lessonId)` and gates on `exportResult?.succeeded`; `video-processor.web.js:1252-1381` returns `{ count, succeeded }` and requires a logged-in `shareCode`; `App.jsx:19-37` stores the URL's `?shareCode` (case-insensitive) as `appStore.friendCode`; lesson `b` in `src/config/friend.json`/`newtest.json`/`test.json` has `recapSources:"friend"`. Only these courses contain lesson `b` (`model.json`/`gt2.json`/`t.json`/`test-api.json` do not), so the config guard suppresses them.
-- **Single share window:** `NOTIFICATION_WINDOW_MS` is derived from the existing `SHARE_WINDOW_HOURS` (`video-processor-logic.js`), the same 48h constant story 012 reuses (`FRIEND_LINK_WINDOW_MS`). No second constant is introduced. Expiry is filtered client-side in `listNotifications`/`getUnreadCount` rather than with a SQL `created_at` cutoff, so the render-time rule has one source and stays consistent with the friend-link section; the hook's `.limit(50)` bounds the payload.
 - **Profile-link reuse:** `buildShareUrl(shareCode)` (`video-processor-logic.js`) already returns `<SHARE_URL_BASE>/<shareCode>` — that *is* the public profile URL (`routes.jsx:35`). `buildProfileHref` only adds the `https://` scheme for an anchor, mirroring `toFriendLessonHref`.
 - **Recipient resolution is server-side:** `public_profiles`/`user_profiles` expose `share_code`; the RPC matches case-insensitively with `lower(...)`. No client-side user-id lookup is needed.
 - **RLS precedent:** `001`/`002`/`003` (grants + policies) and `004` (migration guarded by a static test in `src/modules/api/friend-links-migration.test.js`). Supabase SQL cannot run in vitest, so Task 3 locks the security-relevant shape as source text, mirroring `004`'s guard. Because it is a new table + policy + definer function (not an `add column`), this is a genuine static guard, not a rubber stamp.
@@ -567,9 +549,10 @@ Fixture rows (relative to the fixed clock): Sam unread `created_at` `2026-09-24T
 
 ## Notes
 
-- **Confirmed product decisions (user answers):** in-app only; bell in the HomeScreen top bar; 48h expiry matching the R2 clip window (no delete); notify on the actual export/publish only; skip guest `B`; message links to `/<B.shareCode>`; localized copy in the app's six languages; Supabase only (no new dependency); keep a seam for a future third-party provider.
-- **Lifecycle definition:** a notification is live for **48 hours** from `created_at` (the same window as the R2 UGC clips, `SHARE_WINDOW_HOURS`), then it disappears from the badge and panel. Expiry is **render-time only**: rows are never deleted and no scheduled job/cron is added (same posture as `friend_links`, story 012). "Read" (`read_at`) is the other state; opening the bell panel marks the visible unread rows read, clearing the badge. The linked profile URL never expires — only the notification that surfaces it.
-- **Dedupe/refresh semantics:** the unique key is `(recipient_id, actor_id, type, course_id, lesson_id)`. A repeat answer by the same friend refreshes the row (`created_at = now()` — restarting the 48h window — `read_at = null`, name snapshot updated) rather than adding a second notification.
+- **Confirmed product decisions (user answers):** in-app only; bell in the HomeScreen top bar; persistent with read/unread (no expiry, no delete); notify on the actual export/publish only; skip guest `B`; message links to `/<B.shareCode>`; localized copy in the app's six languages; Supabase only (no new dependency); keep a seam for a future third-party provider; each friend-response notification includes the "You only have 48 hours to respond" line.
+- **Lifecycle definition:** notifications never expire and are never deleted by this feature. "Read" (`read_at`) is the only state; opening the bell panel marks the visible unread rows read, which clears the badge. This is intentionally different from the 48h `friend_links` render-time expiry because the notification is an inbox record, not a live clip link.
+- **48h deadline line:** the `notifications_respond_deadline` line is rendered only while `isResponseWindowOpen(created_at, now)` (reusing the same `SHARE_WINDOW_HOURS` the R2 clips use). The notification row persists indefinitely per the lifecycle decision, but the "48 hours" claim is hidden once the window closes so it is never stale. `now` is injected (`NotificationList` prop, ticked by the bell every 60s) so the rendering is deterministic in tests. If the product later wants an always-visible static line or a live "47h 12m left" countdown, only the deadline block and its three component assertions change (the pure window helper stays).
+- **Dedupe/refresh semantics:** the unique key is `(recipient_id, actor_id, type, course_id, lesson_id)`. A repeat answer by the same friend refreshes the row (`created_at = now()`, `read_at = null`, name snapshot updated) rather than adding a second notification.
 - **Self-notification prevention is enforced in two places:** the pure resolver rejects `recipient === actor` (case-insensitive), and the RPC returns early when the resolved recipient is the caller. Both are cheap; neither is trusted alone.
 - **Security posture:** clients can `SELECT` only their own rows and `UPDATE` only the `read_at` column; there is no insert grant/policy, so all creation goes through the `SECURITY DEFINER` RPC, which derives `actor_id`/`actorName` from the JWT/profile. The recipient is resolved from the supplied share code, so a caller cannot target an arbitrary user id. The function sets `search_path = ''` and fully qualifies identifiers.
 - **Third-party provider seam (not implemented):** add a Supabase Database Webhook or `AFTER INSERT` trigger on `public.user_notifications` routed by `type` (`friend_response`) to an Edge Function/queue that calls the provider (Resend/OneSignal/FCM/etc.). Because the RPC inserts one normalized row, the webhook receives the full `payload` (`actorShareCode`, `actorName`) with no feature change. Do not add a provider SDK or client-side dispatcher in this story.
@@ -577,9 +560,8 @@ Fixture rows (relative to the fixed clock): Sam unread `created_at` `2026-09-24T
   1. Apply `005_add_user_notifications.sql` to the Supabase project (or local stack).
   2. `npm run dev`, log in as `B`, open `/course/friend/lesson/b?shareCode=<A>` (B's browser must have captured the share code), complete the lesson, and click the generate button (confirm the answer clips upload).
   3. Confirm a `user_notifications` row exists with `recipient_id = A`, `actor_id = B`, `type = 'friend_response'`, and a `payload` carrying B's `shareCode`/name.
-  4. Log in as `A`, open `/`: the bell shows a `1` badge; opening it lists "B… created a video with your questions" and the link opens B's public profile.
-  5. Re-answer as `B`: the same row is refreshed (unread again, 48h window restarted), not duplicated.
+  4. Log in as `A`, open `/`: the bell shows a `1` badge; opening it lists "B… created a video with your questions" with the "You only have 48 hours to respond" line, and the link opens B's public profile. A notification older than 48h shows no deadline line.
+  5. Re-answer as `B`: the same row is refreshed (unread again), not duplicated.
   6. Export `/course/friend/lesson/a` as `A`: no new notification (only the friend link is recorded).
   7. As a guest, generate a lesson-b video and decline login: no notification row.
-  8. After 48h (or by setting the row's `created_at` back 49h): the notification disappears from the badge and panel while the row remains in the table.
 - **Logging (`agents.md` §2):** keep all existing logs; the new success paths log (`[notifications] fetched`, `[notifications] marked read`, `[notifications] friend response recorded`, `trackEvent('friend_response_notified')`) and failures log via `console.error` in the mutation `onError` handlers and the retained non-fatal success-screen catch.
