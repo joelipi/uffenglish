@@ -14,6 +14,7 @@ import { maybeAssignPosterAvatar } from '../avatar/poster-avatar.js';
 import { supabase, getAccessToken } from '../api/supabase.js';
 import { transcodeToMp4, verifyMp4, uploadWebmToCloudinary, probeClipDurationSec } from './transcode.js';
 import { uploadSegmentToR2 } from './r2-upload.js';
+import { MAX_R2_UPLOAD_BYTES } from './r2-upload-limits.js';
 import { trackEvent } from '../utils/posthog.js';
 import Strings from '../../data/strings.js';
 
@@ -1403,7 +1404,6 @@ export async function exportSegmentsToR2(lessonId) {
 // Shared with functions/api/upload-segment.js (single source of truth). The
 // Function rejects any object over this size with a 413, so the client checks
 // first and skips the request rather than sending one that is guaranteed to fail.
-import { MAX_R2_UPLOAD_BYTES } from './r2-upload-limits.js';
 export { MAX_R2_UPLOAD_BYTES };
 
 // Uploads the concatenated end-of-lesson recap to R2 under the same `videos/`
