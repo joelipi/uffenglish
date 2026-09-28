@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../modules/store/store.js';
 import { usePreloader } from '../hooks/usePreloader.js';
-const uffLogo = '/logo.png';
+import uffLogo from '../assets/img/u-f-f.png';
 
 const styles = {
     overlay: {
