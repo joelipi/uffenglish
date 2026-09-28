@@ -5,6 +5,7 @@
 
 import { createStore } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { applyGuestLanguagePreference } from '../user/guest-modal-logic.js';
 
 // ── Module-level mutable refs (not reactive) ──
 // These hold instances that don't belong in Zustand's reactive state.
@@ -327,12 +328,23 @@ export const appStore = createStore(
                 chatHistory: state.chatHistory.filter(msg => msg.type !== 'continueWidget')
             })),
             setUserFirstName: (val) => set({ userFirstName: val }),
-            setCourseData: (data) => set((state) => ({
-                userData: data.userData !== undefined ? data.userData : state.userData,
-                configData: data.configData !== undefined ? data.configData : state.configData,
-                courseId: data.courseId !== undefined ? data.courseId : state.courseId,
-                userLevel: data.userLevel !== undefined ? data.userLevel : state.userLevel,
-            })),
+            setCourseData: (data) => set((state) => {
+                const incomingUserData = data.userData !== undefined ? data.userData : state.userData;
+                return {
+                    // A guest's chosen language is authoritative: the async
+                    // bootstrap writes the fetched guest profile (native_language
+                    // 'EN') and must not revert a language the guest already
+                    // confirmed. See applyGuestLanguagePreference.
+                    userData: applyGuestLanguagePreference({
+                        userData: incomingUserData,
+                        guestLang: state.guestNativeLanguage,
+                        isLoggedIn: state.isLoggedIn,
+                    }),
+                    configData: data.configData !== undefined ? data.configData : state.configData,
+                    courseId: data.courseId !== undefined ? data.courseId : state.courseId,
+                    userLevel: data.userLevel !== undefined ? data.userLevel : state.userLevel,
+                };
+            }),
             setCourseId: (val) => set({ courseId: val }),
             setCurrentLessonTimestamp: (val) => set({ currentLessonTimestamp: val }),
             setLessonScores: (val) => set({ lessonScores: val }),

@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { ENGLISH_LANG, resolveGuestModalPlan, resolveSilentLanguageReapply } from './guest-modal-logic.js';
+import {
+    ENGLISH_LANG,
+    resolveGuestModalPlan,
+    resolveSilentLanguageReapply,
+    applyGuestLanguagePreference,
+} from './guest-modal-logic.js';
 
 describe('resolveGuestModalPlan', () => {
     it('adopts a non-English browser language silently for a friend lesson', () => {
@@ -66,5 +71,61 @@ describe('resolveSilentLanguageReapply', () => {
             .toEqual({ action: 'apply', language: 'ES' });
         expect(resolveSilentLanguageReapply({ silentLang: 'ES' }))
             .toEqual({ action: 'apply', language: 'ES' });
+    });
+});
+
+describe('applyGuestLanguagePreference', () => {
+    it('applies the chosen guest language over the profile language', () => {
+        const userData = { $id: 'guest', native_language: 'EN', shareCode: null };
+        const out = applyGuestLanguagePreference({ userData, guestLang: 'ES', isLoggedIn: false });
+
+        expect(out.native_language).toBe('ES');
+        expect(out.$id).toBe('guest');
+        expect(out.shareCode).toBeNull();
+        expect(out).not.toBe(userData);
+    });
+
+    it('returns the same reference when the language already matches', () => {
+        const userData = { native_language: 'ES' };
+        expect(applyGuestLanguagePreference({ userData, guestLang: 'ES', isLoggedIn: false }))
+            .toBe(userData);
+    });
+
+    it('leaves a guest with no chosen language untouched', () => {
+        const userData = { native_language: 'EN' };
+        expect(applyGuestLanguagePreference({ userData, guestLang: null, isLoggedIn: false }))
+            .toBe(userData);
+        expect(applyGuestLanguagePreference({ userData, guestLang: undefined, isLoggedIn: false }))
+            .toBe(userData);
+        expect(applyGuestLanguagePreference({ userData, guestLang: '', isLoggedIn: false }))
+            .toBe(userData);
+    });
+
+    it('never overrides a logged-in profile language', () => {
+        const userData = { native_language: 'EN' };
+        expect(applyGuestLanguagePreference({ userData, guestLang: 'ES', isLoggedIn: true }))
+            .toBe(userData);
+    });
+
+    it('passes through null / non-object userData unchanged', () => {
+        expect(applyGuestLanguagePreference({ userData: null, guestLang: 'ES', isLoggedIn: false }))
+            .toBeNull();
+        expect(applyGuestLanguagePreference({ userData: undefined, guestLang: 'ES', isLoggedIn: false }))
+            .toBeUndefined();
+        expect(applyGuestLanguagePreference({ userData: 'x', guestLang: 'ES', isLoggedIn: false }))
+            .toBe('x');
+    });
+
+    it('accepts an unsupported guest language (OTHER) as authoritative', () => {
+        const out = applyGuestLanguagePreference({
+            userData: { native_language: 'EN' },
+            guestLang: 'OTHER',
+            isLoggedIn: false,
+        });
+        expect(out.native_language).toBe('OTHER');
+    });
+
+    it('returns undefined with no arguments', () => {
+        expect(applyGuestLanguagePreference()).toBeUndefined();
     });
 });
