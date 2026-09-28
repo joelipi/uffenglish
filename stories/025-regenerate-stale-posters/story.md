@@ -78,9 +78,8 @@ export async function planPosterRun({ configs, posterExists, posterStale = () =>
 - Refactor `r2PosterExists(slug)` to `return (await headCached(posterHeadUrl(slug))).ok` — same signature and same true/false semantics as today.
 - A tiny module-level `headCache` (`Map<url, Promise<{ok,lastModified}>>`) backs both the existence check and the staleness check so the poster URL is HEADed once per run.
 - Both the source-video HEAD and the poster HEAD use `CDN_POSTER_BASE` (the existing `POSTER_CDN_BASE` env seam, default `https://r2.ultrafastfluency.com/assets/videos/`): video = `${CDN_POSTER_BASE}${slug}.mp4`, poster = `${CDN_POSTER_BASE}${posterFilename(slug)}`. The download path (`resolveSource` → `posterSourceUrl`) is unchanged.
-- `r2PosterStale(slug)` HEADs both URLs (via the cache), calls `isPosterStale({ videoLastModified, posterLastModified })`, and records the slug in a `staleSlugs` Set when true.
+- `r2PosterStale(slug)` HEADs both URLs (via the cache), calls `isPosterStale({ videoLastModified, posterLastModified })`, and logs `STALE <slug>: <slug>.mp4 is newer than <slug>.jpg` when true. The log fires during planning, i.e. before the `GEN <slug>` line it triggers, so both are greppable in CI output.
 - `main` passes `posterStale` into `planPosterRun` on the normal (non-`--force`) path; under `--force` `posterExists` is `() => false` so every slug is targeted and no staleness is consulted.
-- Before `generateOne(slug)`, log `STALE <slug>` for slugs in `staleSlugs` (i.e. regenerated because the video is newer), in addition to the existing `GEN <slug>` line.
 
 ### LQIP module
 
@@ -141,7 +140,8 @@ export async function planPosterRun({ configs, posterExists, posterStale = () =>
   - → test asserts the source references `CDN_POSTER_BASE` and builds the `....mp4` URL from it.
 - hermetic CLI integration test (fake R2 via `POSTER_CDN_BASE`, local `--video-dir` mp4 generated with ffmpeg, fresh-poster GET body a tiny valid JPEG) with one stale slug and the rest fresh
   - → exit code `0`.
-  - → stale slug's `<slug>.jpg` exists in `POSTER_OUT_DIR`, fresh slugs' `.jpg` do not.
+  - → stdout contains `STALE <slug>` and `GEN <slug>` for the stale slug, and no `GEN <other-slug>` for any fresh slug (stdout is the generation signal: the LQIP step downloads every fresh poster into the work dir, so file presence there is not a generation signal).
+  - → the stale slug's `<slug>.jpg` is written to `POSTER_OUT_DIR`.
   - → the LQIP module at `POSTER_LQIP_PATH` is written.
   - → the fake server records each `(method, path)` at most once (proves the HEAD cache avoids duplicate poster HEADs).
 - full unit suite + `npm test -- --run`
@@ -181,5 +181,6 @@ export async function planPosterRun({ configs, posterExists, posterStale = () =>
 
 - `isPosterStale` must never be consulted for a missing poster; existence is the target signal. This keeps the common first-run path (all posters absent, e.g. the existing fake-R2-404 integration test) from issuing extra video/poster HEADs.
 - The stale log is intentionally `STALE <slug>` (uppercase prefix, matching `GEN`/`UPLOAD`) so it is greppable in CI output.
+- `lqipFor` downloads each non-regenerated poster into the work dir before downscaling it, so after any run with work the work dir contains every poster and the following `--upload` re-uploads all of them (pre-existing behaviour, idempotent). The integration test therefore asserts generation via the `GEN` stdout line, not by file presence in the work dir.
 - `verify-thumbnails.mjs` is deliberately left existence-only: it runs after `--upload`, so a regenerated-and-uploaded poster already satisfies it; adding its own staleness gate would fail the pipeline whenever R2 clock/headers are unavailable.
 - The one real `node scripts/generate-thumbnails.mjs` run in Task 4 is the only step that must reach R2 and cannot be replaced by a unit test; its outcome is checked with `git diff`.

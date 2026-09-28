@@ -13,6 +13,7 @@ import {
     LQIP_WIDTH,
     exceedsPosterBudget,
     introTargets,
+    isPosterStale,
     loadConfigs,
     posterFilename,
     posterR2Key,
@@ -124,8 +125,112 @@ describe('poster naming', () => {
     });
 });
 
+describe('isPosterStale', () => {
+    it('returns true only when the video is strictly newer than the poster', () => {
+        expect(isPosterStale({
+            videoLastModified: '2026-09-28T02:27:08Z',
+            posterLastModified: '2026-09-27T22:11:43Z',
+        })).toBe(true);
+    });
+
+    it('returns false when the video is older than the poster', () => {
+        expect(isPosterStale({
+            videoLastModified: '2026-09-27T22:11:43Z',
+            posterLastModified: '2026-09-28T02:27:08Z',
+        })).toBe(false);
+    });
+
+    it('treats equal timestamps as not stale (strict comparison)', () => {
+        const t = '2026-09-28T02:27:08Z';
+        expect(isPosterStale({ videoLastModified: t, posterLastModified: t })).toBe(false);
+    });
+
+    it('returns false when either timestamp is missing', () => {
+        expect(isPosterStale({ videoLastModified: null, posterLastModified: '2026-09-28T00:00:00Z' })).toBe(false);
+        expect(isPosterStale({ videoLastModified: '2026-09-28T00:00:00Z', posterLastModified: null })).toBe(false);
+        expect(isPosterStale({ videoLastModified: undefined, posterLastModified: undefined })).toBe(false);
+        expect(isPosterStale({})).toBe(false);
+        expect(isPosterStale()).toBe(false);
+    });
+
+    it('returns false for unparseable timestamps', () => {
+        expect(isPosterStale({ videoLastModified: 'not-a-date', posterLastModified: '2026-09-27T22:11:43Z' })).toBe(false);
+        expect(isPosterStale({ videoLastModified: '2026-09-28T00:00:00Z', posterLastModified: new Date('nope') })).toBe(false);
+        expect(isPosterStale({ videoLastModified: NaN, posterLastModified: 1 })).toBe(false);
+    });
+
+    it('accepts Date objects and epoch-millisecond numbers', () => {
+        const newer = new Date('2026-09-28T02:27:08Z');
+        const older = new Date('2026-09-27T22:11:43Z');
+        expect(isPosterStale({ videoLastModified: newer, posterLastModified: older })).toBe(true);
+        expect(isPosterStale({ videoLastModified: newer.getTime(), posterLastModified: older.getTime() })).toBe(true);
+        expect(isPosterStale({ videoLastModified: older, posterLastModified: newer })).toBe(false);
+    });
+});
+
 describe('planPosterRun', () => {
     const configs = [{ lessons: [{ steps: [{ introBackgroundVideoUrl: 'a' }] }, { steps: [{ introBackgroundVideoUrl: 'b' }] }] }];
+
+    it('targets an existing slug whose poster is stale', async () => {
+        const moduleText = 'export const POSTER_LQIPS = { "a": "x", "b": "y" };';
+        const plan = await planPosterRun({
+            configs,
+            posterExists: () => true,
+            posterStale: (s) => s === 'a',
+            moduleText,
+        });
+        expect(plan.targets).toEqual([{ slug: 'a' }]);
+        expect(plan.rebuild).toBe(true);
+    });
+
+    it('targets nothing when every existing poster is fresh', async () => {
+        const moduleText = 'export const POSTER_LQIPS = { "a": "x", "b": "y" };';
+        expect(await planPosterRun({
+            configs,
+            posterExists: () => true,
+            posterStale: () => false,
+            moduleText,
+        })).toEqual({ targets: [], rebuild: false });
+    });
+
+    it('preserves existence-only behaviour when posterStale is omitted', async () => {
+        const moduleText = 'export const POSTER_LQIPS = { "a": "x", "b": "y" };';
+        expect(await planPosterRun({ configs, posterExists: () => true, moduleText }))
+            .toEqual({ targets: [], rebuild: false });
+    });
+
+    it('never stale-checks an absent poster and still targets it', async () => {
+        const moduleText = 'export const POSTER_LQIPS = { "a": "x", "b": "y" };';
+        const checked = [];
+        const plan = await planPosterRun({
+            configs,
+            posterExists: (s) => s !== 'a',
+            posterStale: (s) => { checked.push(s); return false; },
+            moduleText,
+        });
+        expect(plan.targets).toEqual([{ slug: 'a' }]);
+        expect(checked).toEqual(['b']);
+    });
+
+    it('awaits an async posterStale predicate', async () => {
+        const moduleText = 'export const POSTER_LQIPS = { "a": "x", "b": "y" };';
+        const plan = await planPosterRun({
+            configs,
+            posterExists: () => true,
+            posterStale: async (s) => s === 'a',
+            moduleText,
+        });
+        expect(plan.targets).toEqual([{ slug: 'a' }]);
+        expect(plan.rebuild).toBe(true);
+    });
+
+    it('keeps the module-missing rebuild rule when nothing is stale', async () => {
+        expect(await planPosterRun({ configs, posterExists: () => true, posterStale: () => false, moduleText: null }))
+            .toEqual({ targets: [], rebuild: true });
+        const moduleText = 'export const POSTER_LQIPS = { "a": "x" };';
+        expect(await planPosterRun({ configs, posterExists: () => true, posterStale: () => false, moduleText }))
+            .toEqual({ targets: [], rebuild: true });
+    });
 
     it('targets only slugs whose poster is absent; rebuild when there is work', async () => {
         const moduleText = 'export const POSTER_LQIPS = { "a": "x", "b": "y" };';

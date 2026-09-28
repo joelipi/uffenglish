@@ -6,7 +6,7 @@
 // R2 (the authoring CDN) into a temp cache, so no local video files are needed.
 //
 // Usage:
-//   node scripts/generate-thumbnails.mjs                # missing-only: generate targets absent on R2
+//   node scripts/generate-thumbnails.mjs                # generate targets absent OR stale on R2
 //   node scripts/generate-thumbnails.mjs --force        # re-render every intro slug
 //   node scripts/generate-thumbnails.mjs --upload       # upload work-dir posters to R2
 //   node scripts/generate-thumbnails.mjs --video-dir=X  # prefer local mp4s over R2 download
@@ -32,6 +32,7 @@ import {
     LQIP_WIDTH,
     exceedsPosterBudget,
     introTargets,
+    isPosterStale,
     loadConfigs,
     planPosterRun,
     posterFilename,
@@ -58,10 +59,13 @@ Usage:
   node scripts/generate-thumbnails.mjs [--force] [--upload] [--video-dir=DIR]
 
 Flags:
-  --force          Ignore R2 existence; re-render every intro slug
+  --force          Ignore R2 existence/freshness; re-render every intro slug
   --upload         Upload the work-dir posters to R2 (uff/assets/videos/<slug>.jpg)
   --video-dir=DIR  Prefer <DIR>/<slug>.mp4 over downloading from R2
   --help, -h       Show this help
+
+Without --force, a slug is (re)generated when its poster is absent from R2 OR
+when its source .mp4 has a newer Last-Modified than the published .jpg.
 
 Posters are written to os.tmpdir()/uff-posters (override POSTER_OUT_DIR) and
 never into the repo. Requires ffmpeg on PATH; --upload needs Cloudflare creds.`;
@@ -99,14 +103,51 @@ async function ensureFfmpeg() {
     }
 }
 
+// Poster and source-video URLs under the (overridable) R2 CDN base. The poster
+// HEAD and the staleness HEAD share the same base, so a test can fake both.
+function posterHeadUrl(slug) {
+    return `${CDN_POSTER_BASE}${posterFilename(slug)}`;
+}
+
+function videoHeadUrl(slug) {
+    return `${CDN_POSTER_BASE}${slug}.mp4`;
+}
+
+// HEAD an R2 object once per run. Returns `{ ok, lastModified }`; a network
+// error is a miss (`ok: false`), matching the old existence check. The cache is
+// what lets the existence check and the staleness check share one poster HEAD.
+const headCache = new Map();
+async function headObject(url) {
+    if (!headCache.has(url)) {
+        headCache.set(url, (async () => {
+            try {
+                const res = await fetch(url, { method: 'HEAD' });
+                return { ok: res.ok, lastModified: res.headers.get('last-modified') };
+            } catch {
+                return { ok: false, lastModified: null };
+            }
+        })());
+    }
+    return headCache.get(url);
+}
+
 // R2 HEAD existence check — the source of truth for "poster already published".
 async function r2PosterExists(slug) {
-    try {
-        const res = await fetch(`${CDN_POSTER_BASE}${posterFilename(slug)}`, { method: 'HEAD' });
-        return res.ok;
-    } catch {
-        return false;
+    const { ok } = await headObject(posterHeadUrl(slug));
+    return ok;
+}
+
+// A published poster is stale when its source .mp4 was modified after it. Only
+// consulted for slugs whose poster already exists (see planPosterRun), so this
+// logs `STALE <slug>` during planning, before the GEN line it triggers.
+async function r2PosterStale(slug) {
+    const [{ lastModified: videoLastModified }, { lastModified: posterLastModified }] =
+        await Promise.all([headObject(videoHeadUrl(slug)), headObject(posterHeadUrl(slug))]);
+    const stale = isPosterStale({ videoLastModified, posterLastModified });
+    if (stale) {
+        console.log(`STALE ${slug}: ${slug}.mp4 is newer than ${posterFilename(slug)}`);
     }
+    return stale;
 }
 
 async function resolveSource(slug, videoDir) {
@@ -272,7 +313,10 @@ async function main() {
     try { moduleText = await fs.readFile(GENERATED_PATH, 'utf8'); } catch {}
     const plan = await planPosterRun({
         configs,
+        // --force targets every slug, so `posterExists` is always false and
+        // staleness is never consulted.
         posterExists: force ? () => false : r2PosterExists,
+        posterStale: force ? () => false : r2PosterStale,
         moduleText,
     });
 
