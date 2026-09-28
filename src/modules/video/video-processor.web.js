@@ -1424,7 +1424,7 @@ export { MAX_R2_UPLOAD_BYTES };
 
 // Uploads the concatenated end-of-lesson recap to R2 under the same `videos/`
 // namespace as the per-segment clips, so it inherits the 48h lifecycle. Key:
-// videos/${shareCode}-${courseId}-${lessonId}-complete.mp4 (never "concatenated").
+// the complete-video key from video-url.js (never "concatenated").
 //
 // Best-effort: never throws, and skips the request when the transcoded blob
 // exceeds the Function's 50 MB cap. A failure here must never fail the publish

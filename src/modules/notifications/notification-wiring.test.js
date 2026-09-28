@@ -55,9 +55,9 @@ describe('SuccessButtons export trigger wiring', () => {
     });
 });
 
-describe('native export contract untouched', () => {
-    it('keeps the exportSegmentsToR2 stub returning the unchanged shape', () => {
-        expect(nativeProcessor).toContain('return { count: 0, succeeded: 0 };');
+describe('native export contract', () => {
+    it('keeps the exportSegmentsToR2 stub returning the current shape', () => {
+        expect(nativeProcessor).toContain('return { count: 0, succeeded: 0, askPublished: false };');
     });
 });
 
