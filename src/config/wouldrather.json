@@ -1,0 +1,278 @@
+{
+  "courseId": "newtest",
+  "courseName": "Friend Challenge",
+  "lessons": [
+    {
+      "lessonId": "a",
+      "recapSources": "none",
+      "recapOverlay": "shareCta",
+      "title": {
+        "en": "Would You Rather? — Ask",
+        "es": "¿Qué Preferirías? — Pregunta",
+        "pt": "O Que Você Prefere? — Pergunte",
+        "bn": "আপনি কোনটি পছন্দ করবেন? — জিজ্ঞাসা করুন"
+      },
+      "unit": "Friend Challenge",
+      "mission": {
+        "en": "would rather",
+        "es": "would rather",
+        "pt": "would rather",
+        "bn": "would rather"
+      },
+      "setting": {
+        "en": "With friends",
+        "es": "Con amigos",
+        "pt": "Com amigos",
+        "bn": "বন্ধুদের সাথে"
+      },
+      "roleOther": {
+        "en": "Friend",
+        "es": "Amigo",
+        "pt": "Amigo",
+        "bn": "বন্ধু"
+      },
+      "roleUser": {
+        "en": "You",
+        "es": "Tú",
+        "pt": "Você",
+        "bn": "আপনি"
+      },
+      "steps": [
+        {
+          "cue": "",
+          "responseType": "lessonIntro",
+          "introBackgroundVideoUrl": "testvideointro"
+        },
+        {
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "testvideointro"
+        },
+        {
+          "cue": {
+            "en": "Would you rather have a million dollars or live five years longer?",
+            "es": "¿Preferirías tener un millón de dólares o vivir cinco años más?",
+            "pt": "Você preferiria ter um milhão de dólares ou viver cinco anos a mais?",
+            "bn": "আপনি কি দশ লাখ ডলার পেতে চান নাকি আরও পাঁচ বছর বাঁচতে চান?"
+          },
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "testvideoa01",
+          "subtitles": {
+            "en": "Would you rather have a million dollars or live five years longer?",
+            "es": "¿Preferirías tener un millón de dólares o vivir cinco años más?",
+            "pt": "Você preferiria ter um milhão de dólares ou viver cinco anos a mais?",
+            "bn": "আপনি কি দশ লাখ ডলার পেতে চান নাকি আরও পাঁচ বছর বাঁচতে চান?"
+          }
+        },
+        {
+          "cue": {
+            "en": "Would you rather have a meal with great food or a meal with great conversation?",
+            "es": "¿Preferirías una comida con excelente comida o una comida con excelente conversación?",
+            "pt": "Você preferiria uma refeição com ótima comida ou uma refeição com ótima conversa?",
+            "bn": "আপনি কি দুর্দান্ত খাবারসহ একটি ভোজ চান নাকি দুর্দান্ত আলাপসহ একটি ভোজ চান?"
+          },
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "testvideoa02",
+          "subtitles": {
+            "en": "Would you rather have a meal with great food or a meal with great conversation?",
+            "es": "¿Preferirías una comida con excelente comida o una comida con excelente conversación?",
+            "pt": "Você preferiria uma refeição com ótima comida ou uma refeição com ótima conversa?",
+            "bn": "আপনি কি দুর্দান্ত খাবারসহ একটি ভোজ চান নাকি দুর্দান্ত আলাপসহ একটি ভোজ চান?"
+          }
+        },
+        {
+          "cue": {
+            "en": "Would you rather have a beach vacation or a mountain vacation?",
+            "es": "¿Preferirías unas vacaciones en la playa o unas vacaciones en la montaña?",
+            "pt": "Você preferiria férias na praia ou férias na montanha?",
+            "bn": "আপনি কি সমুদ্র সৈকতে ছুটি কাটাতে চান নাকি পাহাড়ে ছুটি কাটাতে চান?"
+          },
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "testvideoa03",
+          "subtitles": {
+            "en": "Would you rather have a beach vacation or a mountain vacation?",
+            "es": "¿Preferirías unas vacaciones en la playa o unas vacaciones en la montaña?",
+            "pt": "Você preferiria férias na praia ou férias na montanha?",
+            "bn": "আপনি কি সমুদ্র সৈকতে ছুটি কাটাতে চান নাকি পাহাড়ে ছুটি কাটাতে চান?"
+          }
+        },
+        {
+          "simpleVideoUrl": "enda",
+          "responseType": "success"
+        }
+      ]
+    },
+    {
+      "lessonId": "b",
+      "recapSources": "friend",
+      "recapOverlay": "shareCta",
+      "title": {
+        "en": "Would You Rather? — Respond",
+        "es": "¿Qué Preferirías? — Responde",
+        "pt": "O Que Você Prefere? — Responda",
+        "bn": "আপনি কোনটি পছন্দ করবেন? — উত্তর দিন"
+      },
+      "unit": "Friend Challenge",
+      "mission": {
+        "en": "answer your friend's 3 Would-you-rather questions",
+        "es": "responde las 3 preguntas de ¿qué preferirías? de tu amigo",
+        "pt": "responda as 3 perguntas do tipo preferiria do seu amigo",
+        "bn": "আপনার বন্ধুর ৩টি 'আপনি কোনটি পছন্দ করবেন' প্রশ্নের উত্তর দিন"
+      },
+      "setting": {
+        "en": "With friends",
+        "es": "Con amigos",
+        "pt": "Com amigos",
+        "bn": "বন্ধুদের সাথে"
+      },
+      "roleOther": {
+        "en": "Friend",
+        "es": "Amigo",
+        "pt": "Amigo",
+        "bn": "বন্ধু"
+      },
+      "roleUser": {
+        "en": "You",
+        "es": "Tú",
+        "pt": "Você",
+        "bn": "আপনি"
+      },
+      "steps": [
+        {
+          "cue": "",
+          "responseType": "lessonIntro",
+          "introBackgroundVideoUrl": "testvideo01"
+        },
+        {
+          "subtitles": [
+            {
+              "en": "I would rather have a million dollars.",
+              "es": "Preferiría tener un millón de dólares.",
+              "pt": "Eu preferiria ter um milhão de dólares.",
+              "bn": "আমি বরং দশ লাখ ডলার পেতে চাই।"
+            },
+            {
+              "en": "I would rather live five years longer.",
+              "es": "Preferiría vivir cinco años más.",
+              "pt": "Eu preferiria viver cinco anos a mais.",
+              "bn": "আমি বরং আরও পাঁচ বছর বাঁচতে চাই।"
+            }
+          ],
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "testvideo05"
+        },
+        {
+          "cue": [
+            {
+              "en": "I would rather have a million dollars.",
+              "es": "Preferiría tener un millón de dólares.",
+              "pt": "Eu preferiria ter um milhão de dólares.",
+              "bn": "আমি বরং দশ লাখ ডলার পেতে চাই।"
+            },
+            {
+              "en": "I would rather live five years longer.",
+              "es": "Preferiría vivir cinco años más.",
+              "pt": "Eu preferiria viver cinco anos a mais.",
+              "bn": "আমি বরং আরও পাঁচ বছর বাঁচতে চাই।"
+            }
+          ],
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "{friendCode}friend-a-response-01"
+        },
+        {
+          "cue": [
+            {
+              "en": "I would rather have a meal with great conversation.",
+              "es": "Preferiría una comida con excelente conversación.",
+              "pt": "Eu preferiria uma refeição com ótima conversa.",
+              "bn": "আমি বরং দুর্দান্ত আলাপসহ একটি ভোজ চাই।"
+            },
+            {
+              "en": "I would rather have a meal with great food.",
+              "es": "Preferiría una comida con excelente comida.",
+              "pt": "Eu preferiria uma refeição com ótima comida.",
+              "bn": "আমি বরং দুর্দান্ত খাবারসহ একটি ভোজ চাই।"
+            }
+          ],
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "testvideo06"
+        },
+        {
+          "cue": [
+            {
+              "en": "I would rather have a meal with great conversation.",
+              "es": "Preferiría una comida con excelente conversación.",
+              "pt": "Eu preferiria uma refeição com ótima conversa.",
+              "bn": "আমি বরং দুর্দান্ত আলাপসহ একটি ভোজ চাই।"
+            },
+            {
+              "en": "I would rather have a meal with great food.",
+              "es": "Preferiría una comida con excelente comida.",
+              "pt": "Eu preferiria uma refeição com ótima comida.",
+              "bn": "আমি বরং দুর্দান্ত খাবারসহ একটি ভোজ চাই।"
+            }
+          ],
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "{friendCode}friend-a-response-02"
+        },
+        {
+          "cue": [
+            {
+              "en": "I would rather travel to the beach.",
+              "es": "Preferiría viajar a la playa.",
+              "pt": "Eu preferiria viajar para a praia.",
+              "bn": "আমি বরং সমুদ্র সৈকতে ভ্রমণ করতে চাই।"
+            },
+            {
+              "en": "I would rather travel to the mountains.",
+              "es": "Preferiría viajar a las montañas.",
+              "pt": "Eu preferiria viajar para as montanhas.",
+              "bn": "আমি বরং পাহাড়ে ভ্রমণ করতে চাই।"
+            },
+            {
+              "en": "I would rather travel to the countryside.",
+              "es": "Preferiría viajar al campo.",
+              "pt": "Eu preferiria viajar para o campo.",
+              "bn": "আমি বরং গ্রামে ভ্রমণ করতে চাই।"
+            }
+          ],
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "testvideo07"
+        },
+        {
+          "cue": [
+            {
+              "en": "I would rather travel to the beach.",
+              "es": "Preferiría viajar a la playa.",
+              "pt": "Eu preferiria viajar para a praia.",
+              "bn": "আমি বরং সমুদ্র সৈকতে ভ্রমণ করতে চাই।"
+            },
+            {
+              "en": "I would rather travel to the mountains.",
+              "es": "Preferiría viajar a las montañas.",
+              "pt": "Eu preferiria viajar para as montanhas.",
+              "bn": "আমি বরং পাহাড়ে ভ্রমণ করতে চাই।"
+            },
+            {
+              "en": "I would rather travel to the countryside.",
+              "es": "Preferiría viajar al campo.",
+              "pt": "Eu preferiria viajar para o campo.",
+              "bn": "আমি বরং গ্রামে ভ্রমণ করতে চাই।"
+            }
+          ],
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "{friendCode}friend-a-response-03"
+        },
+        {
+          "simpleVideoUrl": "testvideo08",
+          "subtitles": {
+            "en": "Great! Your combined video with your friend is ready. Share it!",
+            "es": "¡Genial! Tu video combinado con tu amigo está listo. ¡Compártelo!",
+            "pt": "Ótimo! Seu vídeo combinado com seu amigo está pronto. Compartilhe!",
+            "bn": "দুর্দান্ত! আপনার বন্ধুর সাথে আপনার মিলিত ভিডিওটি প্রস্তুত। এটি শেয়ার করুন!"
+          },
+          "responseType": "success"
+        }
+      ]
+    }
+  ]
+}
