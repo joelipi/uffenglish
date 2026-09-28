@@ -7,6 +7,7 @@ import { resolveFriendLessonLink } from '../../modules/user/friend-lesson-link-l
 import { resolveFriendResponseNotification } from '../../modules/notifications/notification-logic.js';
 import { getBilingual } from '../../data/strings.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
+import { isStaleChunkReloadPending } from '../../modules/utils/stale-chunk-reload.js';
 
 // Bilingual label above a circular call-btn, matching the earlier steps.
 function ChoiceLabel({ text }) {
@@ -141,6 +142,9 @@ export function VideoButton({ canvasRef }) {
         }
       }
     } catch (err) {
+      // A stale deploy has already triggered a bounded reload; suppress the
+      // failure UI so the learner does not see an alert mid-navigation.
+      if (isStaleChunkReloadPending()) return;
       trackEvent('video_generation_failed', { error: err.message });
       console.error('[Success] Video generation failed:', err);
       alert('Failed to generate video. Please try again.');
