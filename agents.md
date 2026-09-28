@@ -11,6 +11,9 @@ Keep logic in the module where it conceptually belongs. Do not co-locate unrelat
 **Guest language is authoritative; `userData.native_language` is its mirror**
 Resolve the active language guest-first everywhere — `guestNativeLanguage || userData?.native_language || 'en'` (`config-normalizer.js`, `video-share.web.js`, `HomeScreen.jsx`). A logged-in profile always wins. `userData.native_language` is kept in sync only so components that read it directly stay correct; the store's `setCourseData` must never let the async bootstrap's fetched profile revert a guest's chosen language (`applyGuestLanguagePreference`). If you add a component that localizes by language, use the guest-first expression, not `userData.native_language` alone.
 
+**Logic / presentation separation (React Native–portable)**
+Keep domain rules (gates, mappings, URL/path building, formatting, scoring) in pure `*-logic.js` modules with no React, no DOM, and no React Native imports; keep data access in `src/modules/api/`; keep rendering in components. Platform-specific rendering must use the bundler-resolved extension convention: `vite.config.js` resolves `.web.jsx`/`.web.js` before `.jsx`, and Metro resolves `.native.jsx`/`.native.js` — so a component that needs a native counterpart is written as `<Name>.web.jsx` (imported explicitly, like `GuestLoginModal.web.jsx`) and later paired with `<Name>.native.jsx` implementing the same props/`data-testid`s. Split containers (hooks + data) from presentational views so a native view only re-implements rendering. Do not add speculative `.native.*` code — the repo treats unwired native files as reference (`docs/learnings.md`).
+
 **Lesson content vs UI copy**
 Lesson content (cues, subtitles, transcripts, step config) lives in `src/config/*.json`. `src/data/strings.js` is UI copy only — never search it for lesson content. For config-only changes, derive the pattern from the earlier lessons in the same config file; don't explore player/store code unless the change touches it.
 
@@ -27,6 +30,8 @@ Minimize external operations. All data fetching and mutations must go through Ta
 Primary branch is `main`. Commits land on `main` directly, so once committed `main..HEAD` is empty — review ranges must use the remote default (`origin/main..HEAD`). This repo is a `blob:none` partial clone: `git log`/`git diff` between local refs work, but `git show <older-sha>` can fail with an auth error for blobs the promisor has not fetched.
 
 **Rebase if `origin/main` has advanced.** `peck story create` branches from the current commit, but parallel work keeps merging to `main`. If `git log --oneline HEAD..origin/main` is non-empty when you reach the verify step, `git rebase origin/main` before running reviewers. Otherwise `origin/main..HEAD` contains the *inverse* of every upstream commit your branch lacks, and the code reviewer will Fail on those apparent reverts (e.g. a later branch's i18n/CSS fix) even though your feature is fine.
+
+**If the story branch is already pushed, merge instead of rebasing.** Rebasing rewrites commits that are already on `origin/<branch>`, which forces a push the rules forbid. To get the same clean `origin/main..HEAD` without force-pushing: `git reset --hard origin/<branch>` (the pushed tip), then `git merge origin/main`. The merge commit makes `origin/main` an ancestor, so `git push` is a fast-forward, and the review range again contains only your commits + the merge. Resolve any `agents.md`/`docs/product.md` conflicts by keeping both changes.
 
 **Branch can switch underneath you.** Parallel processes (peck story create, openchamber worktrees) create story branches and check them out while you work. Before every `git commit`, run `git branch --show-current` and confirm it matches the story branch. If a commit or reviewer report lands on the wrong branch, `git cherry-pick` it onto the correct one. If file contents suddenly don't match your edits, check `git branch --show-current` + `git status` before debugging — the working tree may be a different branch's state.
 
@@ -62,6 +67,8 @@ tests/answer-flow.spec.js
 ```
 
 **Config-only changes: unit test the config, skip E2E.** When a change only edits `src/config/*.json`, a vitest unit test importing the JSON (e.g. `src/config/model.test.js`) is sufficient coverage when the rendering path is already exercised by existing lessons. Don't add a Playwright spec for a config-only change.
+
+**`source inspected → …` ACs need a real static-guard test.** When a story lists an acceptance criterion as `[file] source inspected → contains/does not contain …` (purity constraints, required imports, wiring contract), the implementer must add an automated `readFileSync` guard for it. The `@acceptance-reviewer` treats every AC as requiring a passing test and will Fail the task if such ACs have no guard, even when the runtime behavior is covered. Put guards beside the feature (e.g. `notification-wiring.test.js`) and assert only on raw source, never comment-stripped source (`docs/learnings.md`).
 
 **Test URL:** `http://localhost:3000/course/model/lesson/g`
 Lessons require a full URL where `course` and `model` map to valid JSON files and `lesson` is a valid key within that JSON, unless lesson data is already in memory.

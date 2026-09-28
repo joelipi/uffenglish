@@ -3,9 +3,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { useQuery } from '@tanstack/react-query';
 import { appStore } from '../../modules/store/store.js';
-import { useAuthStatus, signOut } from '../../modules/api/api.js';
+import { useAuthStatus, useUserProfile, signOut } from '../../modules/api/api.js';
 import Strings from '../../data/strings.js';
 import { trackEvent } from '../../modules/utils/posthog.js';
+import NotificationsBell from './NotificationsBell.web.jsx';
 
 export default function HomeScreen() {
     const navigate = useNavigate();
@@ -18,6 +19,8 @@ export default function HomeScreen() {
     const lang = guestLang || userDataLang || 'en';
 
     const { data: isLoggedIn } = useAuthStatus();
+    const { data: profile } = useUserProfile();
+    const viewerId = profile?.$id;
 
     const { data: config, isLoading, isError } = useQuery({
         queryKey: ['config', 'model'],
@@ -123,7 +126,9 @@ export default function HomeScreen() {
                     <i className="bi bi-list"></i>
                 </button>
                 <span style={{ fontSize: '18px', fontWeight: 600 }}>{Strings.get('home_title', lang)}</span>
-                <div style={{ width: '44px' }} />
+                {isLoggedIn && viewerId && viewerId !== 'guest'
+                    ? <NotificationsBell userId={viewerId} lang={lang} />
+                    : <div style={{ width: '44px' }} />}
             </div>
 
             {menuOpen && (

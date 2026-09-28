@@ -1181,6 +1181,49 @@ const strings = {
         hi: "{time} तक उपलब्ध",
         bn: "{time} পর্যন্ত উপলব্ধ"
     },
+    // Friend-response in-app notifications (bell menu on the home screen).
+    // The deadline line is static: the timestamp lets the user judge elapsed
+    // time themselves.
+    'notifications_title': {
+        en: "Notifications",
+        es: "Notificaciones",
+        pt: "Notificações",
+        fr: "Notifications",
+        hi: "सूचनाएँ",
+        bn: "বিজ্ঞপ্তি"
+    },
+    'notifications_empty': {
+        en: "No notifications yet",
+        es: "Aún no hay notificaciones",
+        pt: "Ainda não há notificações",
+        fr: "Aucune notification pour l'instant",
+        hi: "अभी कोई सूचना नहीं",
+        bn: "এখনও কোনো বিজ্ঞপ্তি নেই"
+    },
+    'notifications_friend_response': {
+        en: "{name} created a video with your questions",
+        es: "{name} creó un video con tus preguntas",
+        pt: "{name} criou um vídeo com as suas perguntas",
+        fr: "{name} a créé une vidéo avec vos questions",
+        hi: "{name} ने आपके सवालों के साथ एक वीडियो बनाया",
+        bn: "{name} আপনার প্রশ্নগুলো নিয়ে একটি ভিডিও তৈরি করেছে"
+    },
+    'notifications_respond_deadline': {
+        en: "You only have 48 hours to respond",
+        es: "Solo tienes 48 horas para responder",
+        pt: "Você só tem 48 horas para responder",
+        fr: "Vous n'avez que 48 heures pour répondre",
+        hi: "आपके पास जवाब देने के लिए केवल 48 घंटे हैं",
+        bn: "আপনার কাছে উত্তর দেওয়ার জন্য মাত্র 48 ঘণ্টা আছে"
+    },
+    'notifications_someone': {
+        en: "A friend",
+        es: "Un amigo",
+        pt: "Um amigo",
+        fr: "Un ami",
+        hi: "एक मित्र",
+        bn: "একজন বন্ধু"
+    },
     'profile_updated': {
         en: "Profile updated successfully.",
         es: "Perfil actualizado correctamente.",

@@ -345,5 +345,68 @@ export function useAddFriendLinkMutation() {
   });
 }
 
+// ── Notifications ──────────────────────────────────────────────────
+// Friend-response inbox. Rows are created server-side by the
+// record_friend_response RPC; the recipient reads and marks-read their own rows
+// through RLS-scoped queries. No client-side provider SDK — a future delivery
+// channel subscribes to inserts on the table (see story 019).
+export function useNotifications(userId) {
+  return useQuery({
+    queryKey: ['notifications', userId],
+    enabled: !!userId && userId !== 'guest',
+    staleTime: 30 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('user_notifications')
+        .select('id,type,course_id,lesson_id,payload,created_at,read_at')
+        .eq('recipient_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      console.log('[notifications] fetched', data?.length ?? 0);
+      return data || [];
+    },
+  });
+}
+
+export function useMarkNotificationsRead() {
+  const queryClientHook = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ userId, ids }) => {
+      let query = supabase
+        .from('user_notifications')
+        .update({ read_at: new Date().toISOString() })
+        .eq('recipient_id', userId);
+      query = ids && ids.length ? query.in('id', ids) : query.is('read_at', null);
+      const { error } = await query;
+      if (error) throw error;
+      console.log('[notifications] marked read', ids?.length ?? 'all');
+    },
+    onSuccess: (_data, variables) => {
+      queryClientHook.invalidateQueries({ queryKey: ['notifications', variables.userId] });
+    },
+    onError: (error) => {
+      console.error('🚨 useMarkNotificationsRead error:', error);
+    },
+  });
+}
+
+export function useRecordFriendResponseMutation() {
+  return useMutation({
+    mutationFn: async ({ recipientShareCode, courseId, lessonId }) => {
+      const { error } = await supabase.rpc('record_friend_response', {
+        p_recipient_share_code: recipientShareCode,
+        p_course_id: courseId,
+        p_lesson_id: lessonId,
+      });
+      if (error) throw error;
+      console.log('[notifications] friend response recorded for', recipientShareCode);
+    },
+    onError: (error) => {
+      console.error('🚨 useRecordFriendResponseMutation error:', error);
+    },
+  });
+}
+
 // AI functions moved to ai.js but keep re-export for compat
 export { askEnglishTutor, evaluateWithAI } from './ai.js';
