@@ -121,6 +121,22 @@ describe('FriendLessonLinksSection', () => {
         expect(links()).toHaveLength(1);
     });
 
+    it('remounts and re-probes when the same entry is re-exported with a newer addedAt', async () => {
+        fetchMock.mockResolvedValue({ ok: false });
+        await render({ 'friend:a': entryA() });
+        expect(videos()).toHaveLength(0);
+
+        // Same course/lesson/other, newer addedAt -> new card key -> remount + re-probe.
+        fetchMock.mockResolvedValue({ ok: true });
+        const newer = { ...entryA(), addedAt: iso(Date.now()) };
+        await act(async () => {
+            root.render(React.createElement(FriendLessonLinksSection, { friendLinks: { 'friend:a': newer }, lang: 'en' }));
+        });
+
+        expect(videos()).toHaveLength(1);
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
     it('renders a legacy entry with no lessonId as link-only and never probes', async () => {
         await render({ friend: { courseId: 'friend', shareCode: 'ab12', addedAt: iso(Date.now() - HOUR) } });
 

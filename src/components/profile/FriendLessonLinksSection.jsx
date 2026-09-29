@@ -109,7 +109,7 @@ export default function FriendLessonLinksSection({ friendLinks, lang = 'en' }) {
             style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}
         >
             {active.map((entry) => (
-                <FriendLessonLink key={friendLinkEntryKey(entry)} entry={entry} lang={lang} now={now} />
+                <FriendLessonLink key={`${friendLinkEntryKey(entry)}:${entry.addedAt}`} entry={entry} lang={lang} now={now} />
             ))}
         </div>
     );
