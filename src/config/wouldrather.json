@@ -14,28 +14,10 @@
       },
       "unit": "Friend Challenge",
       "mission": {
-        "en": "would rather",
-        "es": "would rather",
-        "pt": "would rather",
-        "bn": "would rather"
-      },
-      "setting": {
-        "en": "With friends",
-        "es": "Con amigos",
-        "pt": "Com amigos",
-        "bn": "বন্ধুদের সাথে"
-      },
-      "roleOther": {
-        "en": "Friend",
-        "es": "Amigo",
-        "pt": "Amigo",
-        "bn": "বন্ধু"
-      },
-      "roleUser": {
-        "en": "You",
-        "es": "Tú",
-        "pt": "Você",
-        "bn": "আপনি"
+        "en": "Talk about preferences with WOULD RATHER.",
+        "es": "Hablar de preferencias con WOULD RATHER",
+        "pt": "Falar de preferencias com WOULD RATHER",
+        "bn": "WOULD RATHER ব্যবহার করে নিজের পছন্দ বা অগ্রাধিকার প্রকাশ করা।"
       },
       "steps": [
         {
@@ -125,52 +107,20 @@
       },
       "unit": "Friend Challenge",
       "mission": {
-        "en": "answer your friend's 3 Would-you-rather questions",
-        "es": "responde las 3 preguntas de ¿qué preferirías? de tu amigo",
-        "pt": "responda as 3 perguntas do tipo preferiria do seu amigo",
-        "bn": "আপনার বন্ধুর ৩টি 'আপনি কোনটি পছন্দ করবেন' প্রশ্নের উত্তর দিন"
-      },
-      "setting": {
-        "en": "With friends",
-        "es": "Con amigos",
-        "pt": "Com amigos",
-        "bn": "বন্ধুদের সাথে"
-      },
-      "roleOther": {
-        "en": "Friend",
-        "es": "Amigo",
-        "pt": "Amigo",
-        "bn": "বন্ধু"
-      },
-      "roleUser": {
-        "en": "You",
-        "es": "Tú",
-        "pt": "Você",
-        "bn": "আপনি"
+        "en": "Talk about preferences with WOULD RATHER.",
+        "es": "Hablar de preferencias con WOULD RATHER",
+        "pt": "Falar de preferencias com WOULD RATHER",
+        "bn": "WOULD RATHER ব্যবহার করে নিজের পছন্দ বা অগ্রাধিকার প্রকাশ করা।"
       },
       "steps": [
         {
           "cue": "",
           "responseType": "lessonIntro",
-          "introBackgroundVideoUrl": "testvideo01"
+          "introBackgroundVideoUrl": "{friendCode}wouldrather-a-response-01"
         },
         {
-          "subtitles": [
-            {
-              "en": "I would rather have a million dollars.",
-              "es": "Preferiría tener un millón de dólares.",
-              "pt": "Eu preferiria ter um milhão de dólares.",
-              "bn": "আমি বরং দশ লাখ ডলার পেতে চাই।"
-            },
-            {
-              "en": "I would rather live five years longer.",
-              "es": "Preferiría vivir cinco años más.",
-              "pt": "Eu preferiria viver cinco anos a mais.",
-              "bn": "আমি বরং আরও পাঁচ বছর বাঁচতে চাই।"
-            }
-          ],
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "testvideo05"
+          "simpleVideoUrl": "{friendCode}wouldrather-a-response-01"
         },
         {
           "cue": [
@@ -188,25 +138,11 @@
             }
           ],
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "{friendCode}friend-a-response-01"
+          "simpleVideoUrl": "wouldratherb01"
         },
         {
-          "cue": [
-            {
-              "en": "I would rather have a meal with great conversation.",
-              "es": "Preferiría una comida con excelente conversación.",
-              "pt": "Eu preferiria uma refeição com ótima conversa.",
-              "bn": "আমি বরং দুর্দান্ত আলাপসহ একটি ভোজ চাই।"
-            },
-            {
-              "en": "I would rather have a meal with great food.",
-              "es": "Preferiría una comida con excelente comida.",
-              "pt": "Eu preferiria uma refeição com ótima comida.",
-              "bn": "আমি বরং দুর্দান্ত খাবারসহ একটি ভোজ চাই।"
-            }
-          ],
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "testvideo06"
+          "simpleVideoUrl": "{friendCode}wouldrather-a-response-02"
         },
         {
           "cue": [
@@ -224,63 +160,27 @@
             }
           ],
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "{friendCode}friend-a-response-02"
+          "simpleVideoUrl": "wouldratherb02"
         },
         {
-          "cue": [
-            {
-              "en": "I would rather travel to the beach.",
-              "es": "Preferiría viajar a la playa.",
-              "pt": "Eu preferiria viajar para a praia.",
-              "bn": "আমি বরং সমুদ্র সৈকতে ভ্রমণ করতে চাই।"
-            },
-            {
-              "en": "I would rather travel to the mountains.",
-              "es": "Preferiría viajar a las montañas.",
-              "pt": "Eu preferiria viajar para as montanhas.",
-              "bn": "আমি বরং পাহাড়ে ভ্রমণ করতে চাই।"
-            },
-            {
-              "en": "I would rather travel to the countryside.",
-              "es": "Preferiría viajar al campo.",
-              "pt": "Eu preferiria viajar para o campo.",
-              "bn": "আমি বরং গ্রামে ভ্রমণ করতে চাই।"
-            }
-          ],
           "responseType": "viewAndContinue",
-          "simpleVideoUrl": "testvideo07"
+          "simpleVideoUrl": "{friendCode}wouldrather-a-response-03"
         },
         {
           "cue": [
-            {
-              "en": "I would rather travel to the beach.",
-              "es": "Preferiría viajar a la playa.",
-              "pt": "Eu preferiria viajar para a praia.",
-              "bn": "আমি বরং সমুদ্র সৈকতে ভ্রমণ করতে চাই।"
-            },
-            {
-              "en": "I would rather travel to the mountains.",
-              "es": "Preferiría viajar a las montañas.",
-              "pt": "Eu preferiria viajar para as montanhas.",
-              "bn": "আমি বরং পাহাড়ে ভ্রমণ করতে চাই।"
-            },
-            {
-              "en": "I would rather travel to the countryside.",
-              "es": "Preferiría viajar al campo.",
-              "pt": "Eu preferiria viajar para o campo.",
-              "bn": "আমি বরং গ্রামে ভ্রমণ করতে চাই।"
-            }
+        { "en" : "I would rather a beach vacation." , "es" : "Preferiría unas vacaciones en la playa." , "pt" : "Eu preferiria férias na praia." , "bn" : "আমি বরং সমুদ্র সৈকতে ছুটি কাটাতে চাই।" },
+        { "en" : "I would rather a mountain vacation." , "es" : "Preferiría unas vacaciones en la montaña." , "pt" : "Eu preferiria férias na montanha." , "bn" : "আমি বরং পাহাড়ে ছুটি কাটাতে চাই।" }
           ],
           "responseType": "friendClosedResponse",
-          "simpleVideoUrl": "{friendCode}friend-a-response-03"
+          "simpleVideoUrl": "wouldratherb03"
         },
         {
-          "simpleVideoUrl": "testvideo08",
+          "simpleVideoUrl": "enda",
           "subtitles": {
-            "en": "Great! Your combined video with your friend is ready. Share it!",
-            "es": "¡Genial! Tu video combinado con tu amigo está listo. ¡Compártelo!",
-            "pt": "Ótimo! Seu vídeo combinado com seu amigo está pronto. Compartilhe!",
-            "bn": "দুর্দান্ত! আপনার বন্ধুর সাথে আপনার মিলিত ভিডিওটি প্রস্তুত। এটি শেয়ার করুন!"
+            "en": "1\n00:00:00,000 --> 00:00:06,180\nGreat, you're almost done. Now your shareable video is going to be magically\n\n2\n00:00:06,180 --> 00:00:11,300\ncreated right in front of your eyes. Just wait for the video to finish then\n\n3\n00:00:11,300 --> 00:00:14,880\nshare it with your friends, family and colleagues so they can reply to you.\n\n4\n00:00:14,880 --> 00:00:20,580\nThey'll also be able to prompt you to speak. Remember to share with a lot of\n\n5\n00:00:20,580 --> 00:00:25,480\npeople to get more chances to practice the next 48 hours before the video is deleted.\n\n6\n00:00:25,480 --> 00:00:31,320\nSo press the button below to create the video, wait for it to finish, then share.",
+            "es": "1\n00:00:00,000 --> 00:00:06,180\nGenial, ya casi terminas. Ahora tu video para compartir se creará mágicamente\n\n2\n00:00:06,180 --> 00:00:11,300\njusto delante de tus ojos. Solo espera a que el video termine y luego\n\n3\n00:00:11,300 --> 00:00:14,880\ncompártelo con tus amigos, familiares y colegas para que puedan responderte.\n\n4\n00:00:14,880 --> 00:00:20,580\nTambién podrán animarte a hablar. Recuerda compartir con muchas\n\n5\n00:00:20,580 --> 00:00:25,480\npersonas para tener más oportunidades de practicar durante las próximas 48 horas antes de que el video se elimine.\n\n6\n00:00:25,480 --> 00:00:31,320\nAsí que oprime el botón de abajo para crear el video, espera a que termine y luego compártelo.",
+            "pt": "1\n00:00:00,000 --> 00:00:06,180\nÓtimo, você está quase terminando. Agora seu vídeo para compartilhar será criado magicamente\n\n2\n00:00:06,180 --> 00:00:11,300\nbem diante dos seus olhos. Apenas espere o vídeo terminar e então\n\n3\n00:00:11,300 --> 00:00:14,880\ncompartilhe-o com seus amigos, familiares e colegas para que eles possam responder a você.\n\n4\n00:00:14,880 --> 00:00:20,580\nEles também poderão incentivar você a falar. Lembre-se de compartilhar com muitas\n\n5\n00:00:20,580 --> 00:00:25,480\npessoas para ter mais chances de praticar nas próximas 48 horas antes que o vídeo seja excluído.\n\n6\n00:00:25,480 --> 00:00:31,320\nEntão pressione o botão abaixo para criar o vídeo, espere ele terminar e depois compartilhe.",
+            "bn": "1\n00:00:00,000 --> 00:00:06,180\nদুর্দান্ত, আপনি প্রায় শেষ। এখন আপনার শেয়ারযোগ্য ভিডিওটি জাদুর মতো তৈরি হবে\n\n2\n00:00:06,180 --> 00:00:11,300\nআপনার চোখের সামনেই। শুধু ভিডিওটি শেষ হওয়ার জন্য অপেক্ষা করুন তারপর\n\n3\n00:00:11,300 --> 00:00:14,880\nএটি আপনার বন্ধু, পরিবার এবং সহকর্মীদের সাথে শেয়ার করুন যাতে তারা আপনাকে উত্তর দিতে পারে।\n\n4\n00:00:14,880 --> 00:00:20,580\nতারা আপনাকে কথা বলতে উৎসাহিতও করতে পারবে। অনেকের সাথে শেয়ার করতে মনে রাখবেন\n\n5\n00:00:20,580 --> 00:00:25,480\nযাতে ভিডিওটি মুছে ফেলার আগে পরবর্তী ৪৮ ঘণ্টায় অনুশীলনের আরও সুযোগ পায়।\n\n6\n00:00:25,480 --> 00:00:31,320\nতাই ভিডিও তৈরি করতে নিচের বোতামটি চাপুন, এটি শেষ হওয়ার জন্য অপেক্ষা করুন, তারপর শেয়ার করুন।"
           },
           "responseType": "success"
         }
