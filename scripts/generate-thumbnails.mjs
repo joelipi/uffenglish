@@ -19,11 +19,18 @@
 // (generate + --upload) or just push — deploy.yml runs generate/upload/verify
 // automatically before build. No poster is ever committed.
 
-import { execFile } from 'node:child_process';
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+    ensureFfmpeg,
+    flagValue,
+    resolveDirOutsideRepo,
+    run,
+    uploadObjectToR2,
+    wranglerMajor,
+} from './lib/cli-utils.js';
 import {
     FRAME_AT_SECONDS,
     POSTER_WIDTH,
@@ -70,37 +77,15 @@ when its source .mp4 has a newer Last-Modified than the published .jpg.
 Posters are written to os.tmpdir()/uff-posters (override POSTER_OUT_DIR) and
 never into the repo. Requires ffmpeg on PATH; --upload needs Cloudflare creds.`;
 
-function run(bin, args) {
-    return new Promise((resolve, reject) => {
-        execFile(bin, args, { maxBuffer: 64 * 1024 * 1024 }, (err, stdout, stderr) => {
-            if (err) { err.stderr = stderr; return reject(err); }
-            resolve(stdout);
-        });
-    });
-}
-
 // Work dir for generated posters. Never inside the repo: the app always fetches
 // posters from R2 (in dev via the existing /assets/videos/ Vite proxy), so a
 // local copy has no purpose.
 function resolveOutDir() {
-    const outDir = process.env.POSTER_OUT_DIR
-        ? path.resolve(process.env.POSTER_OUT_DIR)
-        : path.join(os.tmpdir(), 'uff-posters');
-    const rel = path.relative(ROOT, outDir);
-    if (rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel))) {
-        throw new Error(`POSTER_OUT_DIR must be outside the repo root (got ${outDir})`);
-    }
-    return outDir;
-}
-
-async function ensureFfmpeg() {
-    try {
-        await run('ffmpeg', ['-version']);
-        await run('ffprobe', ['-version']);
-    } catch {
-        console.error('ERROR: ffmpeg and ffprobe are required on PATH.\n  Install:  sudo apt-get install -y ffmpeg   (macOS: brew install ffmpeg)');
-        process.exit(1);
-    }
+    return resolveDirOutsideRepo(ROOT, {
+        envValue: process.env.POSTER_OUT_DIR,
+        defaultDir: path.join(os.tmpdir(), 'uff-posters'),
+        label: 'POSTER_OUT_DIR',
+    });
 }
 
 // Poster and source-video URLs under the (overridable) R2 CDN base. The poster
@@ -243,16 +228,6 @@ async function writeGenerated(lqips) {
     console.log(`Wrote ${GENERATED_PATH} (${Object.keys(lqips).length} entries)`);
 }
 
-async function wranglerMajor() {
-    try {
-        const out = await run('npx', ['wrangler', '--version']);
-        const m = /(?:wrangler\s+)?(\d+)\./.exec(out);
-        return m ? parseInt(m[1], 10) : 0;
-    } catch {
-        return 0;
-    }
-}
-
 async function uploadAll(targets, outDir) {
     if (!process.env.CLOUDFLARE_API_TOKEN) {
         console.warn('WARN: CLOUDFLARE_API_TOKEN not set — upload will likely fail (run `wrangler login` or export the token).');
@@ -270,10 +245,12 @@ async function uploadAll(targets, outDir) {
             continue;
         }
         try {
-            const args = ['wrangler', 'r2', 'object', 'put'];
-            if (remoteArg) args.push(remoteArg);
-            args.push(`uff/${posterR2Key(slug)}`, '--file', file, '--content-type', 'image/jpeg');
-            await run('npx', args);
+            await uploadObjectToR2({
+                r2Key: `uff/${posterR2Key(slug)}`,
+                file,
+                contentType: 'image/jpeg',
+                remoteArg,
+            });
             console.log(`UPLOAD ${posterR2Key(slug)}`);
         } catch (e) {
             console.error(`UPLOAD FAIL ${slug}:`, e.message);
@@ -298,8 +275,7 @@ async function main() {
     }
     const force = args.includes('--force');
     const upload = args.includes('--upload');
-    const videoDirArg = args.find((a) => a.startsWith('--video-dir'));
-    const videoDir = videoDirArg ? videoDirArg.split('=')[1] : undefined;
+    const videoDir = flagValue(args, '--video-dir');
 
     const outDir = resolveOutDir();
     const configs = await loadConfigs(CONFIG_DIR, {

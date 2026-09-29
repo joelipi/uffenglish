@@ -116,6 +116,28 @@ export function reencodeArgs({ src, out, maxWidth = MAX_VIDEO_WIDTH })
 The comma inside `min(...)` is escaped (`\,`) because `-vf` uses commas to
 separate filtergraph steps; `:-2` keeps the height even and preserves aspect.
 
+### Shared CLI helpers `scripts/lib/cli-utils.js`
+
+The process/network plumbing that `generate-thumbnails.mjs` already owned is
+extracted and imported by both scripts so ffmpeg detection, work-dir safety,
+argument parsing, and the wrangler invocation cannot drift:
+
+- `run(bin, args)` — promisified `execFile`.
+- `resolveDirOutsideRepo(repoRoot, { envValue, defaultDir, label })` — resolves a
+  work/cache dir and rejects paths inside the repo with
+  `${label} must be outside the repo root`.
+- `flagValue(args, name)` — exact `--name=value`; absent → `undefined`, present
+  without a value → throws.
+- `wranglerMajor()` — parses `npx wrangler --version` (0 on failure).
+- `uploadObjectToR2({ r2Key, file, contentType, remoteArg })` — runs
+  `npx wrangler r2 object put …, --content-type <type>` (adds `--remote` on
+  wrangler ≥4).
+- `ensureFfmpeg()` — exits with the install hint when ffmpeg/ffprobe are absent.
+
+`generate-thumbnails.mjs` is refactored to import these (its `run`,
+`resolveOutDir`, `ensureFfmpeg`, `wranglerMajor`, and upload argv construction are
+deleted), so its behaviour and CLI are unchanged.
+
 ### Naming / URL helpers (pure)
 
 - `videoFilename(slug)` → `${slug}.mp4`
@@ -226,17 +248,17 @@ New `scripts/optimize-videos.mjs` and `scripts/optimize-videos.test.js`.
   - → stdout contains `MISS missing`, exit 0
 - `--slug=a --video-dir=<tmp>` with no `--upload`, `<tmp>/a.mp4` present
   - → ffmpeg output `<VIDEO_OUT_DIR>/a.mp4` exists
-  - → no `wrangler` process is spawned (assert via a `PATH` shim or a
-    `WRANGLER_BIN` seam recorded by the test)
-- source inspected (`scripts/optimize-videos.mjs`)
-  - → imports `collectVideoTargets`, `planVideoOptimize`, `remuxArgs`,
-    `reencodeArgs`, `isFaststart` from `'./lib/video-optimize-utils.js'`
-  - → contains `wrangler r2 object put` and `--upload`
-  - → default `VIDEO_OUT_DIR` resolves under `os.tmpdir()` and rejects paths
-    inside the repo root
+  - → no `wrangler` process is spawned (a PATH `npx` shim records nothing)
+- `--slug=a --video-dir=<tmp> --upload` with a PATH `npx` shim that records argv
+  - → the shim records `r2 object put uff/assets/videos/a.mp4 … --content-type video/mp4`
+  - → stdout contains `UPLOAD assets/videos/a.mp4`
+- `VIDEO_OUT_DIR` and `VIDEO_CACHE_DIR` set inside the repo root
+  - → exit non-zero, stderr contains `outside the repo root`, no directory created
+- bare `--slug` (no value)
+  - → exit non-zero, stderr contains `--slug requires a value`
 - ffmpeg integration (this case is `describe.skip` when `ffmpeg` is absent,
-  following `generate-thumbnails.test.js`): generate a non-faststart fixture with
-  `ffmpeg -movflags +faststart` omitted, run the CLI, and read the output head
+  following `generate-thumbnails.test.js`): generate a non-faststart wide fixture
+  with ffmpeg, run the CLI, and read the output head
   - → `isFaststart(output)` is `true`
   - → the output plays at the capped width (≤ `MAX_VIDEO_WIDTH` via `ffprobe`)
 
@@ -262,6 +284,11 @@ New `scripts/optimize-videos.mjs` and `scripts/optimize-videos.test.js`.
 - Config discovery reuses the `loadConfigs` contract from
   `scripts/lib/poster-utils.js` (`read every src/config/*.json`, parse errors
   fatal). `introTargets` is not reused because it only looks at `steps[0]`.
+- `scripts/lib/cli-utils.js` is shared with `generate-thumbnails.mjs`, so a
+  change there affects both CLIs. Its `generate-thumbnails.test.js` upload guard
+  now asserts delegation (`uploadObjectToR2`) instead of the inline wrangler
+  argv, because the argv moved into the shared helper and is exercised
+  behaviourally by the optimizer's `--upload` argv-recording test.
 - `ffprobe` JSON shape used: `format.bit_rate` (string bps, may be absent) and
   the video stream's `width`. Missing values become `null` and never trigger
   `reencode`.

@@ -22,12 +22,19 @@
 //
 // Env seams: VIDEO_CDN_BASE, VIDEO_OUT_DIR, VIDEO_CACHE_DIR.
 
-import { execFile } from 'node:child_process';
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadConfigs } from './lib/poster-utils.js';
+import {
+    ensureFfmpeg,
+    flagValue,
+    resolveDirOutsideRepo,
+    run,
+    uploadObjectToR2,
+    wranglerMajor,
+} from './lib/cli-utils.js';
 import {
     collectVideoTargets,
     planVideoOptimize,
@@ -39,6 +46,8 @@ import {
     videoSourceUrl,
     FASTSTART_HEAD_BYTES,
     DEFAULT_CDN_BASE,
+    MAX_VIDEO_WIDTH,
+    MAX_TOTAL_BITRATE_BPS,
 } from './lib/video-optimize-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -62,43 +71,6 @@ Options:
 Without --slug, every distinct video slug in src/config/*.json is targeted.
 Optimized files land in os.tmpdir()/uff-videos (override VIDEO_OUT_DIR).
 Requires ffmpeg + ffprobe; --upload needs Cloudflare creds.`;
-
-function run(bin, args) {
-    return new Promise((resolve, reject) => {
-        execFile(bin, args, { maxBuffer: 64 * 1024 * 1024 }, (err, stdout, stderr) => {
-            if (err) { err.stderr = stderr; return reject(err); }
-            resolve(stdout);
-        });
-    });
-}
-
-// Work dir for optimized files. Never inside the repo: nothing here is committed.
-function resolveOutDir() {
-    const outDir = process.env.VIDEO_OUT_DIR
-        ? path.resolve(process.env.VIDEO_OUT_DIR)
-        : path.join(os.tmpdir(), 'uff-videos');
-    const rel = path.relative(ROOT, outDir);
-    if (rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel))) {
-        throw new Error(`VIDEO_OUT_DIR must be outside the repo root (got ${outDir})`);
-    }
-    return outDir;
-}
-
-function resolveCacheDir() {
-    return process.env.VIDEO_CACHE_DIR
-        ? path.resolve(process.env.VIDEO_CACHE_DIR)
-        : path.join(os.tmpdir(), 'uff-videos-cache');
-}
-
-async function ensureFfmpeg() {
-    try {
-        await run('ffmpeg', ['-version']);
-        await run('ffprobe', ['-version']);
-    } catch {
-        console.error('ERROR: ffmpeg and ffprobe are required on PATH.\n  Install:  sudo apt-get install -y ffmpeg   (macOS: brew install ffmpeg)');
-        process.exit(1);
-    }
-}
 
 async function readHead(file) {
     const fh = await fs.open(file, 'r');
@@ -130,6 +102,9 @@ async function probeFile(file) {
 async function download(url, dest) {
     const res = await fetch(url);
     if (!res.ok) throw new Error(`download failed HTTP ${res.status} for ${url}`);
+    // Lesson clips are small after optimization; buffering the (possibly large)
+    // source keeps the implementation simple. Switch to a stream pipe if a
+    // single source ever becomes big enough to spike memory.
     const buf = Buffer.from(await res.arrayBuffer());
     await fs.writeFile(dest, buf);
     return dest;
@@ -157,44 +132,27 @@ async function resolveSource(slug, videoDir, cacheDir) {
     return download(url, cached);
 }
 
-async function wranglerMajor() {
-    try {
-        const out = await run('npx', ['wrangler', '--version']);
-        const m = /(?:wrangler\s+)?(\d+)\./.exec(out);
-        return m ? parseInt(m[1], 10) : 0;
-    } catch {
-        return 0;
-    }
-}
-
-async function uploadOne(slug, outDir, remoteArg) {
-    const file = path.join(outDir, videoFilename(slug));
-    try { await fs.stat(file); } catch {
-        console.warn(`SKIP upload ${slug}: ${videoFilename(slug)} not in work dir`);
-        return false;
-    }
-    const args = ['wrangler', 'r2', 'object', 'put'];
-    if (remoteArg) args.push(remoteArg);
-    args.push(`uff/${videoR2Key(slug)}`, '--file', file, '--content-type', 'video/mp4');
-    try {
-        await run('npx', args);
-        console.log(`UPLOAD ${videoR2Key(slug)}`);
-        return true;
-    } catch (e) {
-        console.error(`UPLOAD FAIL ${slug}:`, e.message);
-        return false;
-    }
-}
-
 function reasonFor(action, probe) {
     if (action === 'reencode') {
         const bits = [];
-        if (probe.width != null && probe.width > 720) bits.push(`width ${probe.width}`);
-        if (probe.totalBitrateBps != null && probe.totalBitrateBps > 1_500_000) bits.push(`bitrate ${probe.totalBitrateBps}`);
+        if (probe.width != null && probe.width > MAX_VIDEO_WIDTH) bits.push(`width ${probe.width}`);
+        if (probe.totalBitrateBps != null && probe.totalBitrateBps > MAX_TOTAL_BITRATE_BPS) {
+            bits.push(`bitrate ${probe.totalBitrateBps}`);
+        }
         return bits.length ? bits.join(', ') : 'over budget';
     }
-    if (action === 'remux') return 'not faststart';
+    if (action === 'remux') return probe.faststart === true ? 'forced' : 'not faststart';
     return 'already optimized';
+}
+
+function parseTargets(args) {
+    const slugsValue = flagValue(args, '--slug');
+    if (slugsValue !== undefined) {
+        const slugs = [...new Set(slugsValue.split(',').map((s) => s.trim()).filter(Boolean))];
+        if (!slugs.length) throw new Error('--slug requires at least one slug');
+        return slugs.map((slug) => ({ slug }));
+    }
+    return null; // caller falls back to config discovery
 }
 
 async function main() {
@@ -206,19 +164,22 @@ async function main() {
     const upload = args.includes('--upload');
     const force = args.includes('--force');
     const dryRun = args.includes('--dry-run');
-    const slugsArg = args.find((a) => a.startsWith('--slug'));
-    const videoDirArg = args.find((a) => a.startsWith('--video-dir'));
-    const videoDir = videoDirArg ? videoDirArg.split('=')[1] : undefined;
+    const videoDir = flagValue(args, '--video-dir');
 
-    const outDir = resolveOutDir();
-    const cacheDir = resolveCacheDir();
+    const outDir = resolveDirOutsideRepo(ROOT, {
+        envValue: process.env.VIDEO_OUT_DIR,
+        defaultDir: path.join(os.tmpdir(), 'uff-videos'),
+        label: 'VIDEO_OUT_DIR',
+    });
+    const cacheDir = resolveDirOutsideRepo(ROOT, {
+        envValue: process.env.VIDEO_CACHE_DIR,
+        defaultDir: path.join(os.tmpdir(), 'uff-videos-cache'),
+        label: 'VIDEO_CACHE_DIR',
+    });
     await ensureFfmpeg();
 
-    let targets;
-    if (slugsArg) {
-        const slugs = slugsArg.split('=')[1] ? slugsArg.split('=')[1].split(',').map((s) => s.trim()).filter(Boolean) : [];
-        targets = [...new Set(slugs)].map((slug) => ({ slug }));
-    } else {
+    let targets = parseTargets(args);
+    if (!targets) {
         const configs = await loadConfigs(CONFIG_DIR, {
             onParseError: (file, e) => console.error(`ERROR parsing src/config/${file}: ${e.message}`),
         });
@@ -227,11 +188,8 @@ async function main() {
 
     if (!dryRun) await fs.mkdir(outDir, { recursive: true });
 
-    const remoteArg = upload ? ((await wranglerMajor()) >= 4 ? '--remote' : null) : null;
-    let optimized = 0;
-    let skipped = 0;
-    let missing = 0;
-    let uploaded = 0;
+    const remoteArg = upload && (await wranglerMajor()) >= 4 ? '--remote' : null;
+    const counts = { optimized: 0, skipped: 0, missing: 0, failed: 0, uploaded: 0 };
 
     for (const { slug } of targets) {
         let src;
@@ -239,7 +197,7 @@ async function main() {
             src = await resolveSource(slug, videoDir, cacheDir);
         } catch (e) {
             console.log(`MISS ${slug}: ${e.message}`);
-            missing++;
+            counts.missing++;
             continue;
         }
 
@@ -250,15 +208,15 @@ async function main() {
             const { width, totalBitrateBps } = await probeFile(src);
             probe = { slug, faststart, width, totalBitrateBps };
         } catch (e) {
-            console.log(`MISS ${slug}: probe failed (${e.message})`);
-            missing++;
+            console.log(`FAIL ${slug}: probe failed (${e.message})`);
+            counts.failed++;
             continue;
         }
 
         const [{ action }] = planVideoOptimize({ probes: [probe], force });
         if (action === 'skip') {
             console.log(`SKIP ${slug} already optimized`);
-            skipped++;
+            counts.skipped++;
             continue;
         }
         console.log(`OPT ${slug} ${action} (${reasonFor(action, probe)})`);
@@ -271,19 +229,32 @@ async function main() {
                 : reencodeArgs({ src, out });
             await run('ffmpeg', ffmpegArgs);
         } catch (e) {
-            console.error(`OPT FAIL ${slug}:`, e.message);
-            missing++;
+            console.error(`FAIL ${slug}: ffmpeg ${action} failed:`, e.message);
+            counts.failed++;
             continue;
         }
-        optimized++;
+        counts.optimized++;
         if (upload) {
-            if (await uploadOne(slug, outDir, remoteArg)) uploaded++;
+            try {
+                await uploadObjectToR2({
+                    r2Key: `uff/${videoR2Key(slug)}`,
+                    file: out,
+                    contentType: 'video/mp4',
+                    remoteArg,
+                });
+                console.log(`UPLOAD ${videoR2Key(slug)}`);
+                counts.uploaded++;
+            } catch (e) {
+                console.error(`FAIL ${slug}: upload failed:`, e.message);
+                counts.failed++;
+            }
         }
     }
 
     console.log(
-        `Done: ${optimized} optimized, ${skipped} skipped, ${missing} missing` +
-        (upload ? `, ${uploaded} uploaded` : '') +
+        `Done: ${counts.optimized} optimized, ${counts.skipped} skipped, ` +
+        `${counts.missing} missing, ${counts.failed} failed` +
+        (upload ? `, ${counts.uploaded} uploaded` : '') +
         (dryRun ? ' (dry run)' : '')
     );
 }

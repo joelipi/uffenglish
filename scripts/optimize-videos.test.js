@@ -2,7 +2,7 @@
 // Story 032: CLI flag/planning coverage for the R2 lesson-video optimizer.
 import { describe, it, expect } from 'vitest';
 import { execFile, execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync, chmodSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync, chmodSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,7 +11,6 @@ import { isFaststart, MAX_VIDEO_WIDTH } from './lib/video-optimize-utils.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const SCRIPT = path.join(ROOT, 'scripts/optimize-videos.mjs');
-const SOURCE = readFileSync(SCRIPT, 'utf8');
 const BAD_CDN = 'http://127.0.0.1:1/assets/videos/';
 
 function runCli(args, env = {}) {
@@ -39,7 +38,7 @@ const ffmpegIt = hasFfmpeg() ? it : it.skip;
 function makeFixture(dir, slug, { faststart = false, wide = false } = {}) {
     const out = path.join(dir, `${slug}.mp4`);
     const size = wide ? '1280x720' : '320x240';
-    const args = [
+    execFileSync('ffmpeg', [
         '-y', '-loglevel', 'error',
         '-f', 'lavfi', '-i', `testsrc=size=${size}:rate=10`,
         '-f', 'lavfi', '-i', 'sine=frequency=440',
@@ -48,16 +47,31 @@ function makeFixture(dir, slug, { faststart = false, wide = false } = {}) {
         '-c:a', 'aac',
         ...(faststart ? ['-movflags', '+faststart'] : []),
         out,
-    ];
-    execFileSync('ffmpeg', args);
+    ]);
     return out;
+}
+
+// An `npx` shim placed first on PATH that records its argv. `versionLine` lets a
+// test make `wrangler --version` report a specific major.
+function makeNpxShim({ versionLine = null } = {}) {
+    const binDir = mkdtempSync(path.join(os.tmpdir(), 'uff-opt-bin-'));
+    const marker = path.join(binDir, 'npx-args');
+    const versionBlock = versionLine ? `if [ "$1" = wrangler ] && [ "$2" = --version ]; then echo "${versionLine}"; exit 0; fi\n` : '';
+    const shim = path.join(binDir, 'npx');
+    writeFileSync(shim, `#!/bin/sh\n${versionBlock}echo "$@" >> "${marker}"\nexit 0\n`);
+    chmodSync(shim, 0o755);
+    return { binDir, marker };
 }
 
 function tmpDir() {
     return mkdtempSync(path.join(os.tmpdir(), 'uff-opt-test-'));
 }
 
-describe('optimize-videos CLI', () => {
+function cleanup(...dirs) {
+    for (const d of dirs) rmSync(d, { recursive: true, force: true });
+}
+
+describe('optimize-videos CLI — flags and guards', () => {
     it('--help documents the flags', async () => {
         const { code, stdout } = await runCli(['--help']);
         expect(code).toBe(0);
@@ -74,15 +88,18 @@ describe('optimize-videos CLI', () => {
         expect(existsSync(inside)).toBe(false);
     });
 
-    it('source guards: imports the utils and keeps upload/out-dir contracts', () => {
-        expect(SOURCE).toContain("from './lib/video-optimize-utils.js'");
-        for (const name of ['collectVideoTargets', 'planVideoOptimize', 'remuxArgs', 'reencodeArgs', 'isFaststart']) {
-            expect(SOURCE).toContain(name);
-        }
-        expect(SOURCE).toContain("'r2', 'object', 'put'");
-        expect(SOURCE).toContain('--upload');
-        expect(SOURCE).toContain("path.join(os.tmpdir(), 'uff-videos')");
-        expect(SOURCE).toContain('outside the repo root');
+    it('rejects a VIDEO_CACHE_DIR inside the repo root', async () => {
+        const inside = path.join(ROOT, 'scripts', '__tmp_opt_cache__');
+        const { code, stderr } = await runCli(['--slug=x', '--dry-run'], { VIDEO_CACHE_DIR: inside });
+        expect(code).not.toBe(0);
+        expect(stderr).toContain('outside the repo root');
+        expect(existsSync(inside)).toBe(false);
+    });
+
+    it('rejects a bare --slug with no value', async () => {
+        const { code, stderr } = await runCli(['--slug']);
+        expect(code).not.toBe(0);
+        expect(stderr).toContain('--slug requires a value');
     });
 });
 
@@ -100,8 +117,7 @@ describe('optimize-videos CLI — planning', () => {
             expect(stdout).toContain('OPT testvideointro remux');
             expect(existsSync(path.join(outDir, 'testvideointro.mp4'))).toBe(false);
         } finally {
-            rmSync(srcDir, { recursive: true, force: true });
-            rmSync(outDir, { recursive: true, force: true });
+            cleanup(srcDir, outDir);
         }
     });
 
@@ -117,8 +133,7 @@ describe('optimize-videos CLI — planning', () => {
             expect(code).toBe(0);
             expect(stdout).toContain('SKIP testvideointro');
         } finally {
-            rmSync(srcDir, { recursive: true, force: true });
-            rmSync(outDir, { recursive: true, force: true });
+            cleanup(srcDir, outDir);
         }
     });
 
@@ -133,8 +148,7 @@ describe('optimize-videos CLI — planning', () => {
             expect(code).toBe(0);
             expect(stdout).toContain('MISS missing-clip');
         } finally {
-            rmSync(srcDir, { recursive: true, force: true });
-            rmSync(outDir, { recursive: true, force: true });
+            cleanup(srcDir, outDir);
         }
     });
 });
@@ -164,34 +178,46 @@ describe('optimize-videos CLI — ffmpeg integration', () => {
             );
             expect(width).toBeLessThanOrEqual(MAX_VIDEO_WIDTH);
         } finally {
-            rmSync(srcDir, { recursive: true, force: true });
-            rmSync(outDir, { recursive: true, force: true });
+            cleanup(srcDir, outDir);
         }
     });
 
     ffmpegIt('does not spawn wrangler without --upload', async () => {
         const srcDir = tmpDir();
         const outDir = tmpDir();
-        const binDir = tmpDir();
-        const marker = path.join(binDir, 'wrangler-called');
+        const { binDir, marker } = makeNpxShim();
         makeFixture(srcDir, 'noclip', { faststart: false });
-        const shim = path.join(binDir, 'npx');
-        writeFileSync(shim, `#!/bin/sh\necho "$@" >> "${marker}"\nexit 0\n`);
-        chmodSync(shim, 0o755);
         try {
             const { code } = await runCli(
                 ['--slug=noclip', `--video-dir=${srcDir}`],
-                {
-                    VIDEO_OUT_DIR: outDir,
-                    PATH: `${binDir}${path.delimiter}${process.env.PATH}`,
-                }
+                { VIDEO_OUT_DIR: outDir, PATH: `${binDir}${path.delimiter}${process.env.PATH}` }
             );
             expect(code).toBe(0);
             expect(existsSync(marker)).toBe(false);
         } finally {
-            rmSync(srcDir, { recursive: true, force: true });
-            rmSync(outDir, { recursive: true, force: true });
-            rmSync(binDir, { recursive: true, force: true });
+            cleanup(srcDir, outDir, binDir);
+        }
+    });
+
+    ffmpegIt('--upload records the wrangler r2 object put invocation', async () => {
+        const srcDir = tmpDir();
+        const outDir = tmpDir();
+        const { binDir, marker } = makeNpxShim({ versionLine: 'wrangler 3.114.17' });
+        makeFixture(srcDir, 'upclip', { faststart: false });
+        try {
+            const { code, stdout } = await runCli(
+                ['--slug=upclip', `--video-dir=${srcDir}`, '--upload'],
+                { VIDEO_OUT_DIR: outDir, PATH: `${binDir}${path.delimiter}${process.env.PATH}` }
+            );
+            expect(code).toBe(0);
+            expect(stdout).toContain('UPLOAD assets/videos/upclip.mp4');
+
+            const recorded = readFileSync(marker, 'utf8');
+            expect(recorded).toContain('r2 object put');
+            expect(recorded).toContain('uff/assets/videos/upclip.mp4');
+            expect(recorded).toContain('--content-type video/mp4');
+        } finally {
+            cleanup(srcDir, outDir, binDir);
         }
     });
 });
