@@ -166,6 +166,10 @@ async function main() {
     const dryRun = args.includes('--dry-run');
     const videoDir = flagValue(args, '--video-dir');
 
+    // Validate flags before probing the environment so a bad invocation fails
+    // with the flag error, not an ffmpeg-missing message.
+    let targets = parseTargets(args);
+
     const outDir = resolveDirOutsideRepo(ROOT, {
         envValue: process.env.VIDEO_OUT_DIR,
         defaultDir: path.join(os.tmpdir(), 'uff-videos'),
@@ -178,7 +182,6 @@ async function main() {
     });
     await ensureFfmpeg();
 
-    let targets = parseTargets(args);
     if (!targets) {
         const configs = await loadConfigs(CONFIG_DIR, {
             onParseError: (file, e) => console.error(`ERROR parsing src/config/${file}: ${e.message}`),
