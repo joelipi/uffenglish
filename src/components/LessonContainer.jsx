@@ -6,6 +6,7 @@ import { useStore } from 'zustand';
 import { appStore, getAnswerPipelineDeps } from '../modules/store/store.js';
 import { getBilingual } from '../data/strings.js';
 import { useInitializeLesson } from '../hooks/use-initialize-lesson-webonly.js';
+import { useNativeLanguage } from '../hooks/use-native-language.js';
 
 import StepLoader from './StepLoader.jsx';
 import MicrophoneToggle from './widgets/MicrophoneToggle.js';
@@ -16,6 +17,7 @@ import SystemMessageOverlay from './widgets/MicStatusText.jsx';
 import LandscapeWarning from './widgets/LandscapeWarning';
 import DecisionButtons from './widgets/DecisionButtons.jsx';
 import ViewAndContinueButtons from './widgets/ViewAndContinueButtons.jsx';
+import ResponseDecisionButtons from './widgets/ResponseDecisionButtons.jsx';
 import AuthLink from './widgets/AuthLink.jsx';
 import MissionSection from './widgets/MissionSection.jsx';
 import Hints from './widgets/Hints.jsx';
@@ -55,7 +57,7 @@ export default function LessonContainer() {
     const textInputVisible = useStore(appStore, (state) => state.textInputVisible);
     const bottomOverlayVisible = useStore(appStore, (state) => state.bottomOverlayVisible);
     const bottomState = useStore(appStore, (state) => state.bottomState);
-    const userData = useStore(appStore, (state) => state.userData);
+    const labelLang = useNativeLanguage();
 
     const [lesson, setLesson] = useState(null);
 
@@ -173,7 +175,6 @@ export default function LessonContainer() {
                         {!textInputVisible && (
                             <>
                             {bottomState === 'reviewButtons' && (() => {
-                                const labelLang = userData?.native_language || 'en';
                                 const reRecord = getBilingual('whisper_re_record', labelLang);
                                 const acceptLabel = getBilingual('whisper_accept', labelLang);
                                 return (
@@ -182,7 +183,7 @@ export default function LessonContainer() {
                                         <div className="ivp-choice-label">
                                             <div className="ivp-choice-label-text">
                                                 {reRecord.localized ? (
-                                                    <React.Fragment>{reRecord.english}<br /><span lang={reRecord.lang}><i>{reRecord.localized}</i></span></React.Fragment>
+                                                    <React.Fragment>{reRecord.english}<br /><span lang={reRecord.lang}>{reRecord.localized}</span></React.Fragment>
                                                 ) : reRecord.english}
                                             </div>
                                         </div>
@@ -199,7 +200,7 @@ export default function LessonContainer() {
                                         <div className="ivp-choice-label">
                                             <div className="ivp-choice-label-text">
                                                 {acceptLabel.localized ? (
-                                                    <React.Fragment>{acceptLabel.english}<br /><span lang={acceptLabel.lang}><i>{acceptLabel.localized}</i></span></React.Fragment>
+                                                    <React.Fragment>{acceptLabel.english}<br /><span lang={acceptLabel.lang}>{acceptLabel.localized}</span></React.Fragment>
                                                 ) : acceptLabel.english}
                                             </div>
                                         </div>
@@ -221,6 +222,11 @@ export default function LessonContainer() {
                             {bottomState === 'presentDecisionButtons' && (
                                 <div className="d-flex justify-content-center align-items-center w-100">
                                     <ViewAndContinueButtons />
+                                </div>
+                            )}
+                            {bottomState === 'responseDecisionButtons' && (
+                                <div className="d-flex justify-content-center align-items-center w-100">
+                                    <ResponseDecisionButtons />
                                 </div>
                             )}
                             {['controlIcon', 'introChoices', 'micActiveOrAnswerInput', 'lessonSuccess'].includes(bottomState) && (

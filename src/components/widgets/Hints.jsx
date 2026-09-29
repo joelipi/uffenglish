@@ -2,12 +2,13 @@ import React from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { getBilingual } from '../../data/strings.js';
+import { useNativeLanguage } from '../../hooks/use-native-language.js';
 
 export default function Hints() {
     const hintsVisible = useStore(appStore, (state) => state.hintsVisible);
     const hangmanOps = useStore(appStore, (state) => state.hangmanOps);
     const hangmanCue = useStore(appStore, (state) => state.hangmanCue);
-    const lang = useStore(appStore, (state) => state.userData?.native_language) || 'en';
+    const lang = useNativeLanguage();
 
     if (!hintsVisible || !hangmanOps) {
         return null;
@@ -16,7 +17,7 @@ export default function Hints() {
     const Bilingual = ({ k }) => {
         const d = getBilingual(k, lang);
         return d.localized ? (
-            <>{d.english}<br /><span lang={d.lang}><i>{d.localized}</i></span></>
+            <>{d.english}<br /><span lang={d.lang}>{d.localized}</span></>
         ) : (
             <>{d.english}</>
         );

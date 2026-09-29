@@ -310,7 +310,7 @@ export class VideoRenderPlanner {
                 // separate ArrayBuffer field to carry.
                 thumbBlob: rec.thumbBlob || null,
                 trim: rec.meta?.trimTimestamps || null,
-                subtitle: { en: userText, translation: rec.translation || null },
+                subtitle: this._getResponseSubtitle(rec, userText),
                 isFirst: plan.length === 0,
                 isTextMode: rec.isTextMode,
                 duration: rec.duration,
@@ -432,6 +432,31 @@ export class VideoRenderPlanner {
         }
 
         return own;
+    }
+
+    /**
+     * Subtitle for a learner's recorded (webcam) segment. A closed-response step
+     * burns the specific cue variant the transcript matched (`rec.matchedCue`, with
+     * its localized `rec.translation`) and nothing when there was no match — a
+     * no-match means the answer was wrong, so neither the transcript nor a guessed
+     * cue belongs on the video. A non-cue step (open response) keeps burning the
+     * transcript.
+     */
+    _getResponseSubtitle(rec, userText) {
+        const step = this._getLesson(rec)?.steps?.[rec.originalStepIndex];
+        const isClosedResponse =
+            step?.responseType === 'closedResponse' ||
+            step?.responseType === 'friendClosedResponse';
+
+        if (!isClosedResponse) {
+            return { en: userText, translation: rec.translation || null };
+        }
+
+        if (typeof rec.matchedCue === 'string' && rec.matchedCue.length > 0) {
+            return { en: rec.matchedCue, translation: rec.translation || null };
+        }
+
+        return null; // wrong answer: no subtitle
     }
 
     _getStepCue(rec) {

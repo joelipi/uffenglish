@@ -76,19 +76,25 @@ describe('video overlay text is upright (no synthetic italic)', () => {
             expect(block).not.toMatch(/font-style:\s*italic/);
         });
 
-        it('an overlay-scoped override sets font-style: normal for both overlays', () => {
+        it('a video-overlay-scoped override sets font-style: normal for every overlay surface', () => {
+            // Player overlay, intro overlay, bottom-overlay choice labels, recap
+            // success CTA/labels, mission row, hints card — all render on top of
+            // a video, so none may inherit the global [lang] italic.
             expect(APP_CSS).toMatch(
-                /\.ivp-overlay-text \[lang\],\s*\.intro-call-subtitle \[lang\] \{\s*font-style: normal !important;\s*\}/
+                /\.ivp-overlay-text \[lang\],\s*\.intro-call-subtitle \[lang\],\s*\.ivp-choice-label-text \[lang\],\s*\.success-share-cta \[lang\],\s*\.mission-section \[lang\],\s*#hint-hangman-card \[lang\] \{\s*font-style: normal !important;\s*\}/
             );
         });
+    });
 
-        it('the recap success overlay is de-italicized too (headline + action labels)', () => {
-            // The share CTA headline and Replay/Share/Continue labels render on
-            // top of the concatenated recap video, so they must stay upright for
-            // fonts without a true italic face (e.g. Bengali synthetic oblique).
-            expect(APP_CSS).toMatch(
-                /#state-lesson-success \.success-share-cta \[lang\],\s*#state-lesson-success \.ivp-choice-label-text \[lang\] \{\s*font-style: normal !important;\s*\}/
-            );
+    describe('video-overlay widgets drop the <i> child', () => {
+        it.each([
+            ['widgets', 'DecisionButtons.jsx'],
+            ['widgets', 'Hints.jsx'],
+            ['widgets', 'ViewAndContinueButtons.jsx'],
+            ['widgets', 'SuccessButtons.jsx'],
+        ])('%s/%s has no <i> around localized text', (...segments) => {
+            const source = read(...segments);
+            expect(source).not.toMatch(/<span lang=\{[^}]+\}><i>/);
         });
     });
 
@@ -99,15 +105,16 @@ describe('video overlay text is upright (no synthetic italic)', () => {
             );
         });
 
-        it('non-video localized UI still uses the <i> pattern', () => {
+        it('chat localized UI still uses the <i> pattern', () => {
             const widgets = [
-                read('widgets', 'DecisionButtons.jsx'),
-                read('widgets', 'Hints.jsx'),
-                read('widgets', 'ViewAndContinueButtons.jsx'),
                 read('chat', 'ContinueWidgetBubble.jsx'),
+                read('chat', 'UserBubble.jsx'),
+                read('chat', 'SystemBubble.jsx'),
+                read('chat', 'TeacherFeedbackBubble.jsx'),
+                read('chat', 'PossibleAnswerBubble.jsx'),
             ];
             for (const source of widgets) {
-                expect(source).toMatch(/<span lang=\{\w+\.lang\}><i>\{\w+\.localized\}<\/i><\/span>/);
+                expect(source).toMatch(/<i>\{[^}]+\}<\/i>/);
             }
         });
 

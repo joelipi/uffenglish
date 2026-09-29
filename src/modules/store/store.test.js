@@ -253,6 +253,50 @@ describe('Zustand App Store', () => {
             expect(appStore.getState().bottomState).toBe('hidden');
         });
 
+        it('maps the simpleVideo phase with the mic control hidden', () => {
+            appStore.getState().transitionTo('simpleVideo', {}, { fromStepLoad: true });
+            const state = appStore.getState();
+            expect(state.appPhase).toBe('simpleVideo');
+            expect(state.mediaState).toBe('simpleVideo');
+            expect(state.bottomState).toBe('hidden');
+            expect(state.topState).toBe('topBarOnly');
+        });
+
+        it('maps the simpleVideo response decision phase to the response buttons', () => {
+            appStore.getState().transitionTo('simpleVideo-decisionTime-response', {}, { fromStepLoad: true });
+            expect(appStore.getState()).toMatchObject({
+                appPhase: 'simpleVideo-decisionTime-response',
+                mediaState: 'decisionOverlay',
+                bottomState: 'responseDecisionButtons',
+                topState: 'topBarOnly',
+                showMission: true,
+            });
+        });
+
+        it('allows simpleVideo → simpleVideo-decisionTime-response', () => {
+            const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            appStore.getState().transitionTo('simpleVideo', {}, { fromStepLoad: true });
+            appStore.getState().transitionTo('simpleVideo-decisionTime-response');
+            expect(warn.mock.calls.some(([msg]) => String(msg).includes('Unexpected transition'))).toBe(false);
+            warn.mockRestore();
+        });
+
+        it('allows simpleVideo-decisionTime-response → simpleVideo', () => {
+            const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            appStore.getState().transitionTo('simpleVideo-decisionTime-response', {}, { fromStepLoad: true });
+            appStore.getState().transitionTo('simpleVideo');
+            expect(warn.mock.calls.some(([msg]) => String(msg).includes('Unexpected transition'))).toBe(false);
+            warn.mockRestore();
+        });
+
+        it('allows simpleVideo-decisionTime-response → recording/answering', () => {
+            const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            appStore.getState().transitionTo('simpleVideo-decisionTime-response', {}, { fromStepLoad: true });
+            appStore.getState().transitionTo('recording/answering');
+            expect(warn.mock.calls.some(([msg]) => String(msg).includes('Unexpected transition'))).toBe(false);
+            warn.mockRestore();
+        });
+
         it('resolves conditional topState based on currentVideo', () => {
             appStore.setState({ currentVideo: { type: 'interactive' } });
             appStore.getState().transitionTo('recording/answering');

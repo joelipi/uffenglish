@@ -781,6 +781,57 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
  * Word-wrap a string into lines that fit within maxWidth when rendered
  * with the current font on the given context.
  */
+// ---------------------------------------------------------------------------
+// Complex-script text measurement
+//
+// Canvas 2D `measureText` is unreliable for complex scripts on WebKit: when a
+// glyph is supplied by a fallback font (any Bengali/Hindi text, since the
+// primary family has no such glyphs), iPadOS Safari can under-report — or
+// return ~0 for — the advance. `drawFittedLine` then never shrinks and
+// `textAlign='center'` centres on the ~0 advance, so the text is drawn at full
+// size from the centre outward and overflows the frame (the recap share-CTA
+// headline/deadline bug). The DOM lays complex scripts out correctly, so
+// measure through a hidden <span> with the same font and take the larger of the
+// two. Results are cached per (font, text) so the per-frame render loop does no
+// repeated layout work.
+// ---------------------------------------------------------------------------
+const textMeasureCache = new Map();
+
+function measureTextWidthDom(text, font) {
+    if (typeof document === 'undefined' || !text) return 0;
+    const key = `${font}\u0000${text}`;
+    const cached = textMeasureCache.get(key);
+    if (cached !== undefined) return cached;
+
+    let width = 0;
+    try {
+        const span = document.createElement('span');
+        span.textContent = text;
+        span.style.cssText =
+            `position:absolute;left:-9999px;top:-9999px;visibility:hidden;white-space:pre;font:${font};`;
+        document.body.appendChild(span);
+        width = span.getBoundingClientRect().width;
+        span.remove();
+    } catch (e) {
+        width = 0;
+    }
+
+    // Bound the cache; a long session with many cues should not grow unbounded.
+    if (textMeasureCache.size > 4000) textMeasureCache.clear();
+    textMeasureCache.set(key, width);
+    return width;
+}
+
+/** The widest of the canvas advance, the canvas ink box, and the DOM layout. */
+function measureTextWidth(context, text) {
+    const m = context.measureText(text);
+    const canvasInk = Math.max(
+        m.width || 0,
+        Math.abs(m.actualBoundingBoxLeft || 0) + Math.abs(m.actualBoundingBoxRight || 0)
+    );
+    return Math.max(canvasInk, measureTextWidthDom(text, context.font));
+}
+
 function wrapText(context, text, maxWidth) {
     const words = text.split(' ');
     const lines = [];
@@ -788,7 +839,7 @@ function wrapText(context, text, maxWidth) {
 
     for (let n = 0; n < words.length; n++) {
         const testLine = line + words[n] + ' ';
-        if (context.measureText(testLine).width > maxWidth && n > 0) {
+        if (measureTextWidth(context, testLine) > maxWidth && n > 0) {
             lines.push(line.trim());
             line = words[n] + ' ';
         } else {
@@ -807,26 +858,37 @@ function wrapText(context, text, maxWidth) {
 function drawFittedLine(context, text, centerX, y, { fontFamily, maxWidth, baseSize, minSize = 18, color = 'white' }) {
     let size = baseSize;
     context.font = `700 ${size}px ${fontFamily}`;
-    // Measure the ink extent, not just the advance width: complex scripts
-    // (e.g. Bengali) rendered through a fallback font can extend past the
-    // reported advance, so a width-only fit under-shrinks and overflows the
-    // frame. Take the larger of advance and bounding box.
-    const inkWidth = (t) => {
-        const m = context.measureText(t);
-        const left = Math.abs(m.actualBoundingBoxLeft || 0);
-        const right = Math.abs(m.actualBoundingBoxRight || 0);
-        return Math.max(m.width || 0, left + right);
-    };
-    while (size > minSize && inkWidth(text) > maxWidth) {
+    while (size > minSize && measureTextWidth(context, text) > maxWidth) {
         size -= 1;
         context.font = `700 ${size}px ${fontFamily}`;
     }
+    // Draw left-aligned from an explicitly centred origin. `textAlign='center'`
+    // aligns on the canvas advance width, which WebKit under-reports for
+    // complex scripts, so the ink is pushed to the right; the DOM-measured
+    // width used here is correct for the same font.
+    const width = measureTextWidth(context, text);
     context.fillStyle = color;
     context.strokeStyle = 'rgba(0,0,0,0.8)';
     context.lineWidth = Math.max(6, Math.round(size * 0.18));
-    context.strokeText(text, centerX, y);
-    context.fillText(text, centerX, y);
+    const prevAlign = context.textAlign;
+    context.textAlign = 'left';
+    context.strokeText(text, centerX - width / 2, y);
+    context.fillText(text, centerX - width / 2, y);
+    context.textAlign = prevAlign;
     return size;
+}
+
+/**
+ * Draws a single line of already-positioned text horizontally centred on
+ * `centerX`, using the DOM-measured width so complex scripts centre correctly
+ * (see measureTextWidth). Assumes context.fillStyle/font are already set.
+ */
+function drawCenteredLine(context, text, centerX, y) {
+    const width = measureTextWidth(context, text);
+    const prevAlign = context.textAlign;
+    context.textAlign = 'left';
+    context.fillText(text, centerX - width / 2, y);
+    context.textAlign = prevAlign;
 }
 
 function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart, fluencyData, isFirst, subtitleText, displayCanvas, overlayVariant = 'fluency', shareCta = null) {
@@ -984,12 +1046,12 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
         let longestLineWidth = 0;
         context.font = `bold ${enFontSize}px "Plus Jakarta Sans", sans-serif`;
         enLines.forEach(l => {
-            longestLineWidth = Math.max(longestLineWidth, context.measureText(l).width);
+            longestLineWidth = Math.max(longestLineWidth, measureTextWidth(context, l));
         });
         if (trLines.length > 0) {
             context.font = `${trFontSize}px "Plus Jakarta Sans", sans-serif`;
             trLines.forEach(l => {
-                longestLineWidth = Math.max(longestLineWidth, context.measureText(l).width);
+                longestLineWidth = Math.max(longestLineWidth, measureTextWidth(context, l));
             });
         }
 
@@ -1035,14 +1097,14 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
         if (trLines.length > 0) {
             context.font = `${trFontSize}px "Plus Jakarta Sans", sans-serif`;
             for (let i = trLines.length - 1; i >= 0; i--) {
-                context.fillText(trLines[i], centerX, lineY);
+                drawCenteredLine(context, trLines[i], centerX, lineY);
                 lineY -= trLineHeight;
             }
             lineY -= gapBetween;
         }
         context.font = `bold ${enFontSize}px "Plus Jakarta Sans", sans-serif`;
         for (let i = enLines.length - 1; i >= 0; i--) {
-            context.fillText(enLines[i], centerX, lineY);
+            drawCenteredLine(context, enLines[i], centerX, lineY);
             lineY -= enLineHeight;
         }
     }

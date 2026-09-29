@@ -5,6 +5,7 @@ import { ContinueButton, VideoButton, RepeatButton } from './SuccessButtons.jsx'
 import SuccessEffects from './SuccessEffects.jsx';
 import { getBilingual } from '../../data/strings.js';
 import { resolveRecapOverlay } from '../../modules/video/video-processor-logic.js';
+import { useNativeLanguage } from '../../hooks/use-native-language.js';
 
 export default function SuccessScreen({ onLoadNextLesson, onRepeat, canvasRef }) {
   const bottomState = useStore(appStore, state => state.bottomState);
@@ -12,7 +13,7 @@ export default function SuccessScreen({ onLoadNextLesson, onRepeat, canvasRef })
   const videoButton = useStore(appStore, state => state.successVideoButton);
   const configData = useStore(appStore, state => state.configData);
   const currentLessonIndex = useStore(appStore, state => state.currentLessonIndex);
-  const userData = useStore(appStore, state => state.userData);
+  const lang = useNativeLanguage();
 
   if (bottomState !== 'lessonSuccess') return null;
 
@@ -24,7 +25,7 @@ export default function SuccessScreen({ onLoadNextLesson, onRepeat, canvasRef })
   // call to action; other lessons keep the Replay / Share / Continue row.
   const currentLesson = configData?.lessons?.[currentLessonIndex];
   const isFriendLesson = resolveRecapOverlay(currentLesson) === 'shareCta';
-  const cta = getBilingual('share_cta_success', userData?.native_language || 'en');
+  const cta = getBilingual('share_cta_success', lang);
 
   return (
     <>
