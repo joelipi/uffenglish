@@ -2,7 +2,16 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { getVideoUrl, getPosterUrl, getUgcThumbUrl, getUgcThumbKey, getCompleteVideoKey } from './video-url.js';
+import {
+    getVideoUrl,
+    getPosterUrl,
+    getUgcThumbUrl,
+    getUgcThumbKey,
+    getUgcVideoUrl,
+    getCompleteVideoKey,
+    getCompleteVideoUrl,
+    getSegmentPosterUrl,
+} from './video-url.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SOURCE = readFileSync(path.join(__dirname, 'video-url.js'), 'utf8');
@@ -94,5 +103,74 @@ describe('getCompleteVideoKey — concatenated recap key', () => {
         const segment = 'videos/ab12-model-w-response-01.mp4';
         expect(complete).not.toBe(segment);
         expect(complete).not.toBe(getUgcThumbKey(segment));
+    });
+});
+
+describe('getCompleteVideoKey — co-authored (B) key', () => {
+    it('embeds the other participant after the creator for a co-authored answer recap', () => {
+        expect(getCompleteVideoKey({ shareCode: 'ab12', courseId: 'friend', lessonId: 'b', otherShareCode: 'cd34' }))
+            .toBe('videos/ab12-cd34-friend-b-complete.mp4');
+    });
+
+    it('reproduces the single-code key when otherShareCode is empty / undefined / null', () => {
+        for (const otherShareCode of ['', undefined, null]) {
+            expect(getCompleteVideoKey({ shareCode: 'ab12', courseId: 'friend', lessonId: 'b', otherShareCode }))
+                .toBe('videos/ab12-friend-b-complete.mp4');
+        }
+    });
+
+    it('starts in the creator namespace and never contains "concatenated"', () => {
+        const key = getCompleteVideoKey({ shareCode: 'ab12', courseId: 'friend', lessonId: 'b', otherShareCode: 'cd34' });
+        expect(key.startsWith('videos/ab12-')).toBe(true);
+        expect(key.endsWith('.mp4')).toBe(true);
+        expect(key).not.toContain('concatenated');
+    });
+
+    it('returns null when a required part is missing even with otherShareCode present', () => {
+        expect(getCompleteVideoKey({ shareCode: null, courseId: 'friend', lessonId: 'b', otherShareCode: 'cd34' })).toBeNull();
+        expect(getCompleteVideoKey({ shareCode: 'ab12', courseId: null, lessonId: 'b', otherShareCode: 'cd34' })).toBeNull();
+        expect(getCompleteVideoKey({ shareCode: 'ab12', courseId: 'friend', lessonId: null, otherShareCode: 'cd34' })).toBeNull();
+    });
+});
+
+describe('getUgcVideoUrl — full public URL for a videos/ key', () => {
+    it('prefixes the R2 base to a key', () => {
+        expect(getUgcVideoUrl('videos/ab12-friend-a-complete.mp4'))
+            .toBe('https://r2.ultrafastfluency.com/videos/ab12-friend-a-complete.mp4');
+    });
+
+    it('returns null for missing / empty / non-string keys', () => {
+        expect(getUgcVideoUrl(null)).toBeNull();
+        expect(getUgcVideoUrl('')).toBeNull();
+        expect(getUgcVideoUrl(undefined)).toBeNull();
+        expect(getUgcVideoUrl(42)).toBeNull();
+    });
+});
+
+describe('getCompleteVideoUrl', () => {
+    it('builds the absolute URL for a co-authored B key', () => {
+        expect(getCompleteVideoUrl({ shareCode: 'ab12', courseId: 'friend', lessonId: 'b', otherShareCode: 'cd34' }))
+            .toBe('https://r2.ultrafastfluency.com/videos/ab12-cd34-friend-b-complete.mp4');
+    });
+
+    it('returns null for missing parts / {} / no arg', () => {
+        expect(getCompleteVideoUrl({ shareCode: 'ab12', courseId: 'friend' })).toBeNull();
+        expect(getCompleteVideoUrl({})).toBeNull();
+        expect(getCompleteVideoUrl()).toBeNull();
+    });
+});
+
+describe('getSegmentPosterUrl', () => {
+    it('maps to the sibling .jpg of the first segment', () => {
+        expect(getSegmentPosterUrl({ shareCode: 'ab12', courseId: 'friend', lessonId: 'a' }))
+            .toBe('https://r2.ultrafastfluency.com/videos/ab12-friend-a-response-01.jpg');
+        expect(getSegmentPosterUrl({ shareCode: 'cd34', courseId: 'friend', lessonId: 'a' }))
+            .toBe('https://r2.ultrafastfluency.com/videos/cd34-friend-a-response-01.jpg');
+    });
+
+    it('returns null for missing parts / {} / no arg', () => {
+        expect(getSegmentPosterUrl({ shareCode: 'ab12', courseId: 'friend' })).toBeNull();
+        expect(getSegmentPosterUrl({})).toBeNull();
+        expect(getSegmentPosterUrl()).toBeNull();
     });
 });

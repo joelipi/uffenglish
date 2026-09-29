@@ -35,13 +35,14 @@ describe('SuccessButtons complete-video wiring', () => {
         expect(raw).toContain("await import('../../modules/video/video-processor.js')");
     });
 
-    it('calls it with the recap blob inside the publishSegments block', () => {
-        expect(publishBlock).toContain('uploadCompleteVideoToR2(result.blob, lessonId)');
+    it('calls it with the recap blob and co-participant inside the publishSegments block', () => {
+        expect(publishBlock).toContain('uploadCompleteVideoToR2(result.blob, lessonId, otherShareCode)');
+        expect(publishBlock).toContain('const otherShareCode = exportResult?.askPublished ? appStore.getState().friendCode : null;');
     });
 
     it('is fire-and-forget (not awaited)', () => {
         expect(publishBlock).not.toMatch(/await\s+uploadCompleteVideoToR2/);
-        expect(publishBlock).toMatch(/uploadCompleteVideoToR2\(result\.blob, lessonId\)\s*\.catch\(/);
+        expect(publishBlock).toMatch(/uploadCompleteVideoToR2\(result\.blob, lessonId, otherShareCode\)\s*\.catch\(/);
     });
 });
 

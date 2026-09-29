@@ -212,6 +212,35 @@ describe('onRequestPost — upload-segment Function', () => {
         );
     });
 
+    it('accepts a co-authored B complete key (videos/<creator>-<other>-<course>-<lesson>-complete.mp4)', async () => {
+        const env = makeEnv();
+        const res = await onRequestPost({
+            request: makeRequest({ key: 'videos/ab12-cd34-friend-b-complete.mp4' }),
+            env,
+        });
+
+        expect(res.status).toBe(200);
+        expect(await res.json()).toEqual({
+            ok: true,
+            url: 'https://r2.ultrafastfluency.com/videos/ab12-cd34-friend-b-complete.mp4',
+        });
+        expect(env.UFF_R2.put).toHaveBeenCalledWith(
+            'videos/ab12-cd34-friend-b-complete.mp4',
+            expect.any(ArrayBuffer),
+            { httpMetadata: { contentType: 'video/mp4', cacheControl: 'public, max-age=3600' } }
+        );
+    });
+
+    it('rejects a co-authored complete key whose creator prefix does not match', async () => {
+        const env = makeEnv();
+        const res = await onRequestPost({
+            request: makeRequest({ key: 'videos/other-cd34-friend-b-complete.mp4' }),
+            env,
+        });
+        expect(res.status).toBe(403);
+        expect(env.UFF_R2.put).not.toHaveBeenCalled();
+    });
+
     it('rejects a complete key outside the shareCode namespace', async () => {
         const env = makeEnv();
         const res = await onRequestPost({

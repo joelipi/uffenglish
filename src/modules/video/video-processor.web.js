@@ -1424,12 +1424,14 @@ export { MAX_R2_UPLOAD_BYTES };
 
 // Uploads the concatenated end-of-lesson recap to R2 under the same `videos/`
 // namespace as the per-segment clips, so it inherits the 48h lifecycle. Key:
-// the complete-video key from video-url.js (never "concatenated").
+// the complete-video key from video-url.js (never "concatenated"). A co-authored
+// answer recap passes the other participant's share code so two B sessions with
+// two friends do not overwrite each other.
 //
 // Best-effort: never throws, and skips the request when the transcoded blob
 // exceeds the Function's 50 MB cap. A failure here must never fail the publish
 // or the recap UI.
-export async function uploadCompleteVideoToR2(blob, lessonId) {
+export async function uploadCompleteVideoToR2(blob, lessonId, otherShareCode = null) {
     if (!blob) {
         console.log('[CompleteVideo] skipped — no blob');
         return { uploaded: false, reason: 'no-blob' };
@@ -1441,7 +1443,7 @@ export async function uploadCompleteVideoToR2(blob, lessonId) {
 
     const { userData, courseId } = appStore.getState();
     const shareCode = userData?.shareCode;
-    const key = getCompleteVideoKey({ shareCode, courseId, lessonId });
+    const key = getCompleteVideoKey({ shareCode, courseId, lessonId, otherShareCode });
     if (!key) {
         console.warn('[CompleteVideo] Missing shareCode/courseId/lessonId, skipping upload');
         return { uploaded: false, reason: 'missing-key-parts' };

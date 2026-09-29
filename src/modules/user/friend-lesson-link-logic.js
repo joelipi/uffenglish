@@ -38,11 +38,34 @@ export function formatFriendLinkRemaining(remainingMs) {
     return `${totalMinutes}m`;
 }
 
-// Immutable merge for the `friend_links` jsonb column. One entry per course
-// (the ask lesson is always 'a'), so the course id is the map key.
+// One entry per (course, lesson) — plus the co-participant for a co-authored
+// answer recap, so the same user answering friend 1 and friend 2 keeps two.
+export function friendLinkEntryKey(entry) {
+    const lesson = entry?.lessonId || 'legacy';
+    const other = entry?.otherShareCode ? `:${entry.otherShareCode}` : '';
+    return `${entry?.courseId}:${lesson}${other}`;
+}
+
+// Immutable merge for the `friend_links` jsonb column. The new entry replaces
+// any existing entry for the same key; a legacy story-012 course-keyed entry
+// (no `lessonId`) is dropped for the same course so the export migrates rather
+// than duplicates.
 export function upsertFriendLinkMap(existing, entry) {
-    const map = (existing && typeof existing === 'object' && !Array.isArray(existing)) ? existing : {};
-    return { ...map, [entry.courseId]: entry };
+    const map = (existing && typeof existing === 'object' && !Array.isArray(existing)) ? { ...existing } : {};
+    if (map[entry.courseId] && !map[entry.courseId].lessonId) delete map[entry.courseId];
+    return { ...map, [friendLinkEntryKey(entry)]: entry };
+}
+
+// The recap's actual first clip — its poster. An ask recap opens with the
+// creator's own questions; a co-authored answer recap opens with the other
+// participant's question clips (recapSources 'friend'); an answer recap with no
+// other participant opens with the creator's own answers. Pure; null when a
+// required part is missing.
+export function resolveRecapFirstClip({ shareCode, courseId, lessonId, otherShareCode } = {}) {
+    if (!shareCode || !courseId || !lessonId) return null;
+    if (lessonId === ASK_LESSON_ID) return { shareCode, courseId, lessonId: ASK_LESSON_ID };
+    if (otherShareCode) return { shareCode: otherShareCode, courseId, lessonId: ASK_LESSON_ID };
+    return { shareCode, courseId, lessonId: ANSWER_LESSON_ID };
 }
 
 // Entries still inside the 48h window, newest first.
@@ -61,9 +84,11 @@ export function listActiveFriendLinks(friendLinks, nowMs) {
  * - the course config must actually contain lesson 'b' (never link to nothing)
  * - a real export (succeeded > 0) and a shareCode are required
  */
-export function resolveFriendLessonLink({ configData, lessonId, courseId, shareCode, succeeded, askPublished = false }) {
+export function resolveFriendLessonLink({ configData, lessonId, courseId, shareCode, succeeded, askPublished = false, otherShareCode = '' }) {
     if (!succeeded || !shareCode || !courseId || !configData?.lessons) return null;
     if (lessonId !== ASK_LESSON_ID && !askPublished) return null;
     if (!configData.lessons.some((l) => l.lessonId === ANSWER_LESSON_ID)) return null;
-    return { courseId, shareCode };
+    // Only a co-authored answer export carries the other participant's code.
+    const other = (askPublished && lessonId !== ASK_LESSON_ID) ? String(otherShareCode || '') : '';
+    return { courseId, lessonId, shareCode, otherShareCode: other };
 }

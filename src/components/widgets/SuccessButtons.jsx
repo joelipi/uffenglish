@@ -97,12 +97,14 @@ export function VideoButton({ canvasRef }) {
           // video-generation flow: the stitched video is already ready above.
           try {
             const exportResult = await exportSegmentsToR2(lessonId);
+            const { configData, courseId, userData } = appStore.getState();
+            // A co-authored B recap carries the other participant's code into its key.
+            const otherShareCode = exportResult?.askPublished ? appStore.getState().friendCode : null;
             // Best-effort: also publish the concatenated recap to R2 (same
             // videos/ namespace, 48h TTL). Fire-and-forget so a slow or failed
             // complete upload never delays the friend link or the UI.
-            uploadCompleteVideoToR2(result.blob, lessonId)
+            uploadCompleteVideoToR2(result.blob, lessonId, otherShareCode)
               .catch((e) => console.error('[Success] complete-video upload failed (non-fatal):', e));
-            const { configData, courseId, userData } = appStore.getState();
             const payload = resolveFriendLessonLink({
               configData,
               lessonId,
@@ -110,6 +112,7 @@ export function VideoButton({ canvasRef }) {
               shareCode: userData?.shareCode,
               succeeded: exportResult?.succeeded,
               askPublished: exportResult?.askPublished,
+              otherShareCode,
             });
             if (payload) {
               await friendLinkMutation.mutateAsync({

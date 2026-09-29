@@ -1,11 +1,13 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
 
-// Public-profile friend-challenge link. The profile is loaded through
-// useUserByShareCode; we settle its initial (empty) query, then inject the
-// fixture through the app's own queryClient singleton (same pattern as
-// answer-flow.spec.js importing app modules). page.clock fixes "now" so the
-// 48h countdown is deterministic.
+// Public-profile friend-challenge card (story 026): an embedded concatenated
+// recap above the "Practice English with Me" link, multiple co-authored
+// entries, legacy link-only entries, and the video-unavailable fallback.
+// The profile is loaded through useUserByShareCode; we settle its initial
+// (empty) query, then inject the fixture through the app's own queryClient
+// singleton (same pattern as answer-flow.spec.js importing app modules).
+// page.clock fixes "now" so the 48h countdown is deterministic.
 
 const FIXED_NOW = '2026-09-24T12:00:00.000Z';
 const SHARE_CODE = 'friendtest1';
@@ -23,7 +25,11 @@ const PROFILE = {
     lessons_completed: 3,
 };
 
-const entry = (courseId, addedAt) => ({ courseId, shareCode: SHARE_CODE, addedAt });
+// New (story 026) keyed entries carry lessonId + otherShareCode.
+const entryA = (addedAt) => ({ courseId: 'friend', lessonId: 'a', shareCode: SHARE_CODE, otherShareCode: '', addedAt: addedAt || '2026-09-24T11:00:00.000Z' });
+const entryB = (otherShareCode, addedAt) => ({ courseId: 'friend', lessonId: 'b', shareCode: SHARE_CODE, otherShareCode, addedAt: addedAt || '2026-09-24T11:00:00.000Z' });
+// Legacy (story 012) shape: no lessonId / otherShareCode.
+const legacyEntry = (courseId, addedAt) => ({ courseId, shareCode: SHARE_CODE, addedAt });
 
 async function seedProfile(page, friendLinks) {
     await page.goto(`/${SHARE_CODE}`);
@@ -36,17 +42,20 @@ async function seedProfile(page, friendLinks) {
     }, { key: SHARE_CODE, profile: { ...PROFILE, friendLinks } });
 }
 
-test.describe('public-profile friend-challenge link', () => {
+test.describe('public-profile friend-challenge card', () => {
     test.beforeEach(async ({ page }) => {
         await page.clock.setFixedTime(new Date(FIXED_NOW));
         // Deterministic Supabase: the public_profiles lookup resolves to empty.
         await page.route('**/rest/v1/**', (route) =>
             route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
         );
+        // No real R2 traffic: preload="none" never fetches the video, and a
+        // failed poster does not fire the video's error event.
+        await page.route('**r2.ultrafastfluency.com/**', (route) => route.abort());
     });
 
-    test('renders the large link and countdown for an active entry', async ({ page }) => {
-        await seedProfile(page, { friend: entry('friend', '2026-09-24T11:00:00.000Z') });
+    test('renders the embedded A recap above the large link and countdown', async ({ page }) => {
+        await seedProfile(page, { 'friend:a': entryA() });
 
         const link = page.getByTestId('friend-lesson-link');
         await expect(link).toBeVisible();
@@ -68,12 +77,63 @@ test.describe('public-profile friend-challenge link', () => {
 
         await expect(page.getByTestId('friend-lesson-link-countdown'))
             .toHaveText('Available for 47h 0m');
+
+        const video = page.getByTestId('friend-lesson-video');
+        await expect(video).toBeVisible();
+        await expect(video).toHaveAttribute('src', 'https://r2.ultrafastfluency.com/videos/friendtest1-friend-a-complete.mp4');
+        await expect(video).toHaveAttribute('poster', 'https://r2.ultrafastfluency.com/videos/friendtest1-friend-a-response-01.jpg');
+
+        // Video precedes the anchor in document order.
+        const ordered = page.locator('[data-testid="friend-lesson-video"], [data-testid="friend-lesson-link"]');
+        await expect(ordered.first()).toHaveAttribute('data-testid', 'friend-lesson-video');
     });
 
-    test('removes the link once the 48h window has passed', async ({ page }) => {
-        // Exactly 48h before the fixed clock -> inactive (inclusive boundary).
-        await seedProfile(page, { friend: entry('friend', '2026-09-22T12:00:00.000Z') });
+    test('renders a co-authored B recap keyed by the co-participant, link still the creator', async ({ page }) => {
+        await seedProfile(page, { 'friend:b:cd34': entryB('cd34') });
 
+        const video = page.getByTestId('friend-lesson-video');
+        await expect(video).toHaveAttribute('src', 'https://r2.ultrafastfluency.com/videos/friendtest1-cd34-friend-b-complete.mp4');
+        await expect(video).toHaveAttribute('poster', 'https://r2.ultrafastfluency.com/videos/cd34-friend-a-response-01.jpg');
+
+        await expect(page.getByTestId('friend-lesson-link')).toHaveAttribute(
+            'href',
+            'https://ultrafastfluency.com/course/friend/lesson/b?shareCode=friendtest1'
+        );
+    });
+
+    test('renders two B cards for two friends', async ({ page }) => {
+        await seedProfile(page, {
+            'friend:b:cd34': entryB('cd34'),
+            'friend:b:ef56': entryB('ef56'),
+        });
+
+        await expect(page.getByTestId('friend-lesson-video')).toHaveCount(2);
+        await expect(page.getByTestId('friend-lesson-link')).toHaveCount(2);
+    });
+
+    test('renders a legacy entry as link-only', async ({ page }) => {
+        await seedProfile(page, { friend: legacyEntry('friend', '2026-09-24T11:00:00.000Z') });
+
+        await expect(page.getByTestId('friend-lesson-video')).toHaveCount(0);
+        await expect(page.getByTestId('friend-lesson-link')).toBeVisible();
+    });
+
+    test('hides the video but keeps the link when the video errors', async ({ page }) => {
+        await seedProfile(page, { 'friend:a': entryA() });
+
+        const video = page.getByTestId('friend-lesson-video');
+        await expect(video).toBeVisible();
+        await video.dispatchEvent('error');
+
+        await expect(page.getByTestId('friend-lesson-video')).toHaveCount(0);
+        await expect(page.getByTestId('friend-lesson-link')).toBeVisible();
+    });
+
+    test('removes the whole card once the 48h window has passed', async ({ page }) => {
+        // Exactly 48h before the fixed clock -> inactive (inclusive boundary).
+        await seedProfile(page, { 'friend:a': entryA('2026-09-22T12:00:00.000Z') });
+
+        await expect(page.getByTestId('friend-lesson-video')).toHaveCount(0);
         await expect(page.getByTestId('friend-lesson-link')).toHaveCount(0);
         await expect(page.getByTestId('friend-lesson-links')).toHaveCount(0);
     });
@@ -93,8 +153,8 @@ test.describe('public-profile friend-challenge link', () => {
 
     test('renders one link per active course', async ({ page }) => {
         await seedProfile(page, {
-            friend: entry('friend', '2026-09-24T11:00:00.000Z'),
-            other: entry('other', '2026-09-24T10:00:00.000Z'),
+            friend: legacyEntry('friend', '2026-09-24T11:00:00.000Z'),
+            other: legacyEntry('other', '2026-09-24T10:00:00.000Z'),
         });
 
         await expect(page.getByTestId('friend-lesson-link')).toHaveCount(2);

@@ -6,8 +6,11 @@ import {
     toFriendLessonHref,
     getFriendLinkRemainingMs,
     formatFriendLinkRemaining,
+    friendLinkEntryKey,
     listActiveFriendLinks,
+    resolveRecapFirstClip,
 } from '../../modules/user/friend-lesson-link-logic.js';
+import { getCompleteVideoUrl, getSegmentPosterUrl } from '../../modules/video/video-url.js';
 
 const cardStyle = {
     backgroundColor: '#1a3a5a',
@@ -16,9 +19,12 @@ const cardStyle = {
     border: '1px solid #2a4a6a',
 };
 
-// One link. Purely presentational; `now` is supplied by the section's ticking
-// clock so the link disappears the moment the 48h window passes.
+// One card. Purely presentational; `now` is supplied by the section's ticking
+// clock so the card disappears the moment the 48h window passes. The embedded
+// recap sits above the link; `videoFailed` hides it (link kept) when the R2
+// object is missing/expired/never uploaded.
 function FriendLessonLink({ entry, lang, now }) {
+    const [videoFailed, setVideoFailed] = useState(false);
     const remainingMs = getFriendLinkRemainingMs(new Date(entry.addedAt).getTime(), now);
 
     const url = buildFriendLessonLink({
@@ -27,8 +33,32 @@ function FriendLessonLink({ entry, lang, now }) {
         shareCode: entry.shareCode,
     });
 
+    const videoUrl = entry.lessonId
+        ? getCompleteVideoUrl({
+            shareCode: entry.shareCode,
+            courseId: entry.courseId,
+            lessonId: entry.lessonId,
+            otherShareCode: entry.otherShareCode,
+        })
+        : null;
+
+    const firstClip = resolveRecapFirstClip(entry);
+    const posterUrl = firstClip ? getSegmentPosterUrl(firstClip) : null;
+
     return (
         <div style={cardStyle}>
+            {videoUrl && !videoFailed && (
+                <video
+                    data-testid="friend-lesson-video"
+                    src={videoUrl}
+                    poster={posterUrl || undefined}
+                    controls
+                    playsInline
+                    preload="none"
+                    onError={() => setVideoFailed(true)}
+                    style={{ display: 'block', width: '100%', maxHeight: '70vh', objectFit: 'contain', backgroundColor: '#000', borderRadius: '8px', marginBottom: '12px' }}
+                />
+            )}
             <a
                 data-testid="friend-lesson-link"
                 href={toFriendLessonHref(url)}
@@ -66,7 +96,7 @@ export default function FriendLessonLinksSection({ friendLinks, lang = 'en' }) {
             style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}
         >
             {active.map((entry) => (
-                <FriendLessonLink key={entry.courseId} entry={entry} lang={lang} now={now} />
+                <FriendLessonLink key={friendLinkEntryKey(entry)} entry={entry} lang={lang} now={now} />
             ))}
         </div>
     );

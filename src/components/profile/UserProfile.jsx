@@ -8,6 +8,7 @@ import defaultProfilePic from '../../assets/img/userprofile.png';
 import { trackEvent } from '../../modules/utils/posthog.js';
 import { useAvatarUpload } from '../../modules/avatar/use-avatar-upload.js';
 import AvatarCropper from '../widgets/AvatarCropper.jsx';
+import FriendLessonLinksSection from './FriendLessonLinksSection.jsx';
 import { PROFILE_LANGUAGES, LOCALE_MAP } from '../../data/languages.js';
 
 const ENGLISH_LEVELS = ['A0', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'Native'];
@@ -431,6 +432,8 @@ export default function UserProfile() {
                         onCancel={handleCropCancel}
                     />
                 )}
+
+                <FriendLessonLinksSection friendLinks={profile?.friendLinks} lang={lang} />
 
                 <Section title={Strings.get('profile_personal_info', lang)}>
                     <div style={cardStyle}>

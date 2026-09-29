@@ -14,6 +14,7 @@ const webProcessor = read('../video/video-processor.web.js');
 const nativeProcessor = read('../video/video-processor.native.jsx');
 const successButtons = read('../../components/widgets/SuccessButtons.jsx');
 const api = read('../api/api.js');
+const logic = read('./friend-lesson-link-logic.js');
 
 describe('exportSegmentsToR2 return contract', () => {
     it('returns { count, succeeded, askPublished } from every early return and the final return', () => {
@@ -49,6 +50,15 @@ describe('SuccessButtons wiring', () => {
     it('records the link only through the resolver + mutation', () => {
         expect(successButtons).toContain('resolveFriendLessonLink({');
         expect(successButtons).toContain('friendLinkMutation.mutateAsync({');
+    });
+
+    it('passes the co-participant to the resolver and stores it via the payload spread', () => {
+        expect(successButtons).toContain('otherShareCode,');
+        expect(successButtons).toContain('entry: { ...payload, addedAt');
+    });
+
+    it('resolves lessonId and otherShareCode into the stored entry', () => {
+        expect(logic).toContain('return { courseId, lessonId, shareCode, otherShareCode: other };');
     });
 
     it('treats a publish/link failure as non-fatal', () => {

@@ -94,6 +94,26 @@ describe('uploadCompleteVideoToR2', () => {
         expect(trackEvent).toHaveBeenCalledWith('publish_complete_video_success', expect.objectContaining({ lessonId: 'w' }));
     });
 
+    it('carries the co-participant code into a co-authored B key', async () => {
+        appStore.getState.mockReturnValue(loggedInState({ courseId: 'friend' }));
+
+        const result = await uploadCompleteVideoToR2(BLOB, 'b', 'cd34');
+
+        expect(result).toEqual({ uploaded: true, url: UPLOADED_URL });
+        expect(uploadSegmentToR2).toHaveBeenCalledTimes(1);
+        expect(uploadSegmentToR2).toHaveBeenCalledWith(expect.objectContaining({
+            key: 'videos/ab12-cd34-friend-b-complete.mp4',
+        }));
+    });
+
+    it('defaults otherShareCode to null and keeps the single-code key (2-arg unchanged)', async () => {
+        await uploadCompleteVideoToR2(BLOB, 'w');
+
+        expect(uploadSegmentToR2).toHaveBeenCalledWith(expect.objectContaining({
+            key: 'videos/ab12-model-w-complete.mp4',
+        }));
+    });
+
     it('skips the upload when the transcoded blob exceeds the 50 MB cap', async () => {
         const big = new Blob([new Uint8Array(MAX_R2_UPLOAD_BYTES + 1)], { type: 'video/mp4' });
         transcodeToMp4.mockResolvedValue(big);
