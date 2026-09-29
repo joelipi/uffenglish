@@ -173,7 +173,7 @@ The payload spread already carries `lessonId`/`otherShareCode` into the stored e
 
 ### 5. Video + link card — `src/components/profile/FriendLessonLinksSection.jsx` (extend)
 
-`FriendLessonLink` gains a `videoFailed` state and renders the video above the anchor (no new strings, no data fetching; `video-url.js` is pure):
+`FriendLessonLink` gains a `videoFailed` state and renders the video above the anchor (no new strings; the only network call is the bodyless `HEAD` availability probe):
 
 ```jsx
 function FriendLessonLink({ entry, lang, now }) {
@@ -185,6 +185,20 @@ function FriendLessonLink({ entry, lang, now }) {
         : null;
     const firstClip = resolveRecapFirstClip(entry);
     const posterUrl = firstClip ? getSegmentPosterUrl(firstClip) : null;
+
+    // Lightweight availability probe. `preload="none"` fetches no video bytes,
+    // but then a missing/expired object would only surface after the user
+    // pressed play. A HEAD request (no body) lets us hide the player up front
+    // while the link + countdown stay. A network/CORS failure also hides it.
+    useEffect(() => {
+        if (!videoUrl) return undefined;
+        let cancelled = false;
+        fetch(videoUrl, { method: 'HEAD' })
+            .then((res) => { if (!cancelled && !res.ok) setVideoFailed(true); })
+            .catch(() => { if (!cancelled) setVideoFailed(true); });
+        return () => { cancelled = true; };
+    }, [videoUrl]);
+
     return (
         <div style={cardStyle}>
             {videoUrl && !videoFailed && (
@@ -212,7 +226,7 @@ function FriendLessonLink({ entry, lang, now }) {
 
 The section's list key becomes `key={friendLinkEntryKey(entry)}` (unique per entry). Everything else (the ticking clock, `listActiveFriendLinks`, `null` when empty) is unchanged.
 
-**Decision (bandwidth + unavailability):** `preload="none"` means no video bytes are fetched until the user presses play; the poster (the recap's first clip `.jpg`) is the visible thumbnail. If the object is missing/expired/never uploaded (>50 MB), the browser fires `error` on interaction, `videoFailed` hides the `<video>`, and the link + countdown remain. A legacy entry with no `lessonId` never renders a video.
+**Decision (bandwidth + unavailability):** `preload="none"` means no video bytes are fetched until the user presses play; the poster (the recap's first clip `.jpg`) is the visible thumbnail. Because the user requires the link to remain but the video to be hidden when the object is unavailable, a mount-time **HEAD probe** (no body, no video bytes) detects a missing/expired/never-uploaded object (>50 MB, upload failure, 404, or a CORS/network failure) and hides the `<video>` while the link + countdown stay. The on-play `onError` handler is retained as a second guard. A legacy entry with no `lessonId` never renders a video and never probes. The probe result is per-mount; the card's React key includes `addedAt`, so a refreshed entry re-probes.
 
 ### 6. Surfaces
 
@@ -223,7 +237,7 @@ The section's list key becomes `key={friendLinkEntryKey(entry)}` (unique per ent
 
 ### 7. Edge cases
 
-- **Video object missing** (>50 MB skip, upload failure, or expired): `onError` hides the `<video>`; the link + countdown still render.
+- **Video object missing** (>50 MB skip, upload failure, or expired): the mount-time HEAD probe returns non-2xx (or the request rejects) → `videoFailed` hides the `<video>`; the link + countdown still render. If the object disappears after mount, the on-play `onError` handler hides it too.
 - **Same user answers two friends in lesson `b`**: keys `friend:b:<friendA>` and `friend:b:<friendB>` → two entries, two videos (both survive 48h).
 - **Same user answers the same friend twice**: same key → the entry refreshes (`addedAt` reset), the complete key is overwritten — one card.
 - **A export shared with many friends**: one question set, one entry (`friend:a`), one card; all friends answer the same clips.
@@ -318,25 +332,33 @@ The section's list key becomes `key={friendLinkEntryKey(entry)}` (unique per ent
 
 ### Task 3 - Video + link card (`src/components/profile/FriendLessonLinksSection.jsx`; new `src/components/profile/FriendLessonLinksSection.test.js`)
 
-Rendered with `createRoot` + `act` (pattern from `src/components/intro-caller-name.test.js`), `globalThis.IS_REACT_ACT_ENVIRONMENT = true`; no network; entries use `new Date().toISOString()`.
+Rendered with `createRoot` + `act` (pattern from `src/components/intro-caller-name.test.js`), `globalThis.IS_REACT_ACT_ENVIRONMENT = true`; `globalThis.fetch` is stubbed with `vi.stubGlobal('fetch', vi.fn())` so the HEAD availability probe is deterministic (default resolves `{ ok: true }`); entries use `new Date().toISOString()`.
 
-- an A entry `{ courseId: 'friend', lessonId: 'a', shareCode: 'ab12', otherShareCode: '', addedAt: now }`
+- an A entry `{ courseId: 'friend', lessonId: 'a', shareCode: 'ab12', otherShareCode: '', addedAt: now }` with the probe resolving `{ ok: true }`
   - → `[data-testid="friend-lesson-video"]` count is `1`
   - → its `src` is `'https://r2.ultrafastfluency.com/videos/ab12-friend-a-complete.mp4'`
   - → its `poster` is `'https://r2.ultrafastfluency.com/videos/ab12-friend-a-response-01.jpg'`
   - → it has `controls`, `playsInline`, and `preload="none"`
   - → the video precedes `[data-testid="friend-lesson-link"]` in document order
   - → the link's `href` is `'https://ultrafastfluency.com/course/friend/lesson/b?shareCode=ab12'` (target stays lesson `b`)
+  - → `fetch` was called once with the video URL and `{ method: 'HEAD' }`
 - a co-authored B entry `{ courseId: 'friend', lessonId: 'b', shareCode: 'ab12', otherShareCode: 'cd34', addedAt: now }`
   - → its `src` is `'https://r2.ultrafastfluency.com/videos/ab12-cd34-friend-b-complete.mp4'`
   - → its `poster` is `'https://r2.ultrafastfluency.com/videos/cd34-friend-a-response-01.jpg'`
   - → the link's `href` still uses `shareCode=ab12`
+- an entry with `lessonId` where the probe resolves `{ ok: false }` (404)
+  - → `[data-testid="friend-lesson-video"]` count is `0`
+  - → `[data-testid="friend-lesson-link"]` count is `1` (link kept)
+- an entry with `lessonId` where the probe promise rejects
+  - → `[data-testid="friend-lesson-video"]` count is `0`
+  - → `[data-testid="friend-lesson-link"]` count is `1`
+- an entry with `lessonId`, probe resolved `{ ok: true }`, then an `error` event dispatched on `[data-testid="friend-lesson-video"]` (play-time guard)
+  - → `[data-testid="friend-lesson-video"]` count is `0`
+  - → `[data-testid="friend-lesson-link"]` count is `1`
 - an entry with no `lessonId` (legacy)
   - → `[data-testid="friend-lesson-video"]` count is `0`
   - → `[data-testid="friend-lesson-link"]` count is `1`
-- an entry with `lessonId` after dispatching an `error` event on `[data-testid="friend-lesson-video"]`
-  - → `[data-testid="friend-lesson-video"]` count is `0`
-  - → `[data-testid="friend-lesson-link"]` count is `1` (link kept)
+  - → `fetch` was not called
 - two co-authored B entries (`cd34` and `ef56`), both active
   - → `[data-testid="friend-lesson-video"]` count is `2`
   - → `[data-testid="friend-lesson-link"]` count is `2`
@@ -382,20 +404,23 @@ The Function is unchanged; this locks the two-code scheme into its contract.
 
 ### Task 7 - Browser behavior (`tests/friend-lesson-link.spec.js`, update existing Playwright)
 
-Fixtures include `lessonId`/`otherShareCode`. `beforeEach` also routes `'**r2.ultrafastfluency.com/**'` to `route.abort()` (no real R2 traffic; a failed poster does not fire the video's `error`, and `preload="none"` never fetches the video).
+Fixtures include `lessonId`/`otherShareCode`. `beforeEach` routes `'**r2.ultrafastfluency.com/**'` to a handler that reads a mutable `headStatus` (default `200`): a `HEAD` request (the availability probe) is fulfilled with that status, and any other R2 request (the poster image) is `route.abort()` (a failed poster does not fire the video's `error`, and `preload="none"` never fetches video bytes). Individual tests set `headStatus = 404` to exercise the missing-video path.
 
-- `/friendtest1` loaded with an A entry (`lessonId: 'a'`) added 1h ago
+- `/friendtest1` loaded with an A entry (`lessonId: 'a'`) added 1h ago and `headStatus` `200`
   - → `[data-testid="friend-lesson-video"]` is visible with `src` `'https://r2.ultrafastfluency.com/videos/friendtest1-friend-a-complete.mp4'` and `poster` `'.../friendtest1-friend-a-response-01.jpg'`
   - → it precedes `[data-testid="friend-lesson-link"]` in the DOM
+  - → a `HEAD` request to that URL was issued
   - → the existing link/countdown assertions still pass
-- `/friendtest1` loaded with a co-authored B entry (`lessonId: 'b'`, `otherShareCode: 'cd34'`)
+- `/friendtest1` loaded with a co-authored B entry (`lessonId: 'b'`, `otherShareCode: 'cd34'`) and `headStatus` `200`
   - → the video's `src` is `'https://r2.ultrafastfluency.com/videos/friendtest1-cd34-friend-b-complete.mp4'`
   - → its `poster` is `'https://r2.ultrafastfluency.com/videos/cd34-friend-a-response-01.jpg'`
-- `/friendtest1` loaded with two co-authored B entries (`cd34`, `ef56`)
+- `/friendtest1` loaded with an A entry and `headStatus` `404`
+  - → `[data-testid="friend-lesson-video"]` count is `0` (hidden up front)
+  - → `[data-testid="friend-lesson-link"]` is visible (link kept)
+  - → the countdown is visible
+- `/friendtest1` loaded with two co-authored B entries (`cd34`, `ef56`) and `headStatus` `200`
   - → `[data-testid="friend-lesson-video"]` count is `2` and `[data-testid="friend-lesson-link"]` count is `2`
 - `/friendtest1` loaded with a legacy entry (no `lessonId`)
-  - → `[data-testid="friend-lesson-video"]` count is `0`, link visible
-- `/friendtest1` loaded with an A entry, then an `error` event dispatched on the video
   - → `[data-testid="friend-lesson-video"]` count is `0`, link visible
 - existing expiry / empty / unresolved-profile cases
   - → still pass
@@ -406,6 +431,7 @@ Fixtures include `lessonId`/`otherShareCode`. `beforeEach` also routes `'**r2.ul
 - **Upload auth accepts the two-code key:** `functions/api/upload-segment.js:28` requires `key.startsWith('videos/' + shareCode + '-')` and a `.mp4`/`.jpg` extension; putting the creator's code first preserves it. The same file enforces the 50 MB cap.
 - **Co-participant source:** `appStore.friendCode` (`App.jsx:19-37`) is the `?shareCode=` param, trimmed + lowercased (`App.jsx:30`), persisted (`store.js:98/227`), and already used for friend-response notifications. `exportResult.askPublished` (`video-processor.web.js:1394`) distinguishes a co-authored B export.
 - **R2 URL routing (`video-url.js`):** `isFriendVideoSlug` matches `-response-\d+$` only, so `-complete` keys must use `getUgcVideoUrl`. `videos/` is not proxied in dev (`README.md:15`), so UGC URLs are always absolute.
+- **Availability probe:** the card issues a cross-origin `HEAD` to the R2 `-complete.mp4` (a CORS-safelisted method, no preflight). R2 must return `Access-Control-Allow-Origin` on that response, which the existing Transform Rules already provide for R2 media (`agents.md:92`); a non-2xx, CORS, or network failure hides the video. `preload="none"` ensures the body is never fetched until play.
 - **Poster availability:** `exportSegmentsToR2` uploads each segment's `thumbBlob` as `<segment-key>.jpg` (`video-processor.web.js:1379-1385`). The first clip of an A recap is the creator's `a-response-01`, and of a co-authored B recap is the co-participant's `a-response-01` (recapSources `friend`) — both have sibling `.jpg`s. If a thumb was never uploaded the poster 404s silently (video still plays).
 - **Data access:** `fromDbRow` already aliases `friendLinks: row.friend_links` (`api.js:64`); `useUserByShareCode`'s `SAFE_COLS` already includes `friend_links` (`api.js:298`); `useAddFriendLinkMutation` already merges via `upsertFriendLinkMap` (`api.js:324-346`). The anon `public_profiles` view exposes `otherShareCode`, which is already public (it is the other user's profile URL). No grant change.
 - **Entry shape is app-side jsonb only:** migration `004` is unchanged, and its static guard (`src/modules/api/friend-links-migration.test.js`) stays green.
@@ -417,7 +443,7 @@ Fixtures include `lessonId`/`otherShareCode`. `beforeEach` also routes `'**r2.ul
 - **Confirmed product decisions (user answers):** (1) embed the complete recap from the same export; (2) support multiple concurrent (video, link) entries; (3) show the link but not the video when the video is unavailable; (4) show on both the public and private profile; (5) show a poster rather than eagerly loading the video; (6) a B video is co-authored and its key carries both share codes (A stays single-code); (7) each card's link keeps pointing at the creator's own questions; (8) the co-authored video is surfaced only on the creator's profile (cross-linking is a separate story).
 - **Decision (evidence):** the co-participant code is placed after the creator's in the B key (`videos/<creator>-<other>-<course>-b-complete.mp4`) so the Cloudflare Function's `videos/<creator>-` namespace check still authorizes the write, while two B sessions with two friends no longer collide. Entries are keyed `<course>:<lesson>[:<other>]`; re-exporting the same key replaces that entry, because the underlying R2 objects are deterministic.
 - **Decision:** the embedded video is the exported lesson's complete recap. A legacy story-012 entry has no `lessonId`/`otherShareCode`, so its link renders without a video until the next export; backfilling an inferred value was rejected as a guess.
-- **Decision:** `preload="none"` + the recap's first-clip poster keeps the profile light (no video bytes until play) and makes the Playwright test deterministic; unavailability is detected on play via `onError`, which hides the video and keeps the link.
+- **Decision (amended after code review):** `preload="none"` + the recap's first-clip poster keeps the profile light (no video bytes until play), and a mount-time HEAD probe makes "hide the video, keep the link" proactive rather than play-time-only. The probe costs one bodyless request per card and is fully mockable in jsdom (`vi.stubGlobal('fetch')`) and Playwright (route `HEAD` to 200/404), so the tests exercise real behavior instead of a synthetic `error` dispatch. The on-play `onError` guard is retained for the object-disappears-after-mount case. This resolves the code reviewer's blocking finding while still honoring the user's "link yes, video no" requirement.
 - **Known cosmetic limit:** the responder's own `b` segment keys and the `-response-01` poster for a plain (no-friend) B entry are shared across B runs; only the co-authored complete video is per-participant. Per-participant `b` segments are out of scope because nothing fetches them (the recap is stitched client-side), so the extra key churn is not justified.
 - **No new strings:** the card reuses `profile_friend_lesson_link` and `profile_friend_link_available`; the `<video>` is unlabeled. `src/data/strings.test.js` is unaffected.
 - **Documentation (non-automatable):** update `docs/product.md` — extend the "Friend-challenge practice link" feature bullet to mention the embedded concatenated video, multiple per-(course, lesson, co-participant) entries with independent 48h removal on both profiles, and that co-authored B videos carry both share codes; add a Known Limitation that the video is best-effort (hidden, while the link persists, when the R2 object is missing/expired/over 50 MB) and that pre-existing entries without a `lessonId` show no video. Optionally note the new `getUgcVideoUrl`/`getCompleteVideoUrl`/`getSegmentPosterUrl` helpers in `agents.md`'s concatenated-recap paragraph.
