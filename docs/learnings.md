@@ -83,11 +83,11 @@ src/modules/api/supabase.js` in `functions/api/upload-segment.js`). The Read too
 
 ---
 
-## `appStore.friendCode` is persisted and never cleared — it can be stale
+## `appStore.friendCode` is URL-authoritative and not persisted (was stale)
 **Date**: 2026-09-29
 **Area**: architecture
-**What happened**: Story 026 used `appStore.friendCode` as the co-participant share code for a co-authored B recap. The code reviewer flagged that `friendCode` is set from `?shareCode=` (`App.jsx:29-31`) and persisted (`store.js:711`) but never cleared, so a B export in a browser that previously opened a friend link attaches the previous friend's code. The story's edge case assumed `friendCode` is null when no friend link is present.
-**Takeaway**: Treat `appStore.friendCode` as session-sticky, not per-lesson. Any feature that derives identity from it (the B lesson's `{friendCode}` clip resolution, friend-response notifications, story 026's `otherShareCode`) inherits the staleness. If a feature needs the *current* URL's share code, read it from the URL or clear/scope `friendCode` on lesson entry — don't assume it is null.
+**What happened**: Story 026 used `appStore.friendCode` as the co-participant share code for a co-authored B recap. The code reviewer flagged that `friendCode` was set once from `?shareCode=` (`App.jsx:29-31`, mount-only) and persisted (`store.js:711`) but never cleared, so a B export in a browser that previously opened a friend link attached the previous friend's code. Story 033 fixed it: `RootLayout` mirrors `location.search` into the store via the shared `getShareCodeFromSearch` parser on every query change, the duplicate `App.jsx` capture is gone, and the persist config bumps to `version: 1` with a `migrate` that strips any legacy persisted value.
+**Takeaway**: `appStore.friendCode` is a live mirror of the current URL, set by `RootLayout`; read it from the store, but never assume it is persisted. Any feature that derives identity from it (the B lesson's `{friendCode}` clip resolution, friend-response notifications, story 026's `otherShareCode`, signup attribution) now always sees the current URL's code — a shareCode-less visit yields `null`.
 
 ---
 

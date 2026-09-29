@@ -95,7 +95,7 @@ export const appStore = createStore(
             userFirstName: null,
             userData: null,
             configData: null,
-            friendCode: null,   // captured from ?sharecode= URL param (case-insensitive, lowercased), persisted
+            friendCode: null,   // live mirror of ?sharecode= URL param (case-insensitive, lowercased); not persisted
             courseId: null,
             currentLessonTimestamp: null,
             lessonScores: '{}',
@@ -681,6 +681,16 @@ export const appStore = createStore(
         }),
         {
             name: 'uff-lesson-storage',
+            // friendCode is a live mirror of the current URL (?shareCode=), set
+            // by RootLayout; it must never hydrate from localStorage. Bump the
+            // version and strip any legacy persisted value so a stale code
+            // cannot survive the first load after this ships.
+            version: 1,
+            migrate: (persistedState) => {
+                if (!persistedState || typeof persistedState !== 'object') return persistedState;
+                const { friendCode, ...rest } = persistedState;
+                return rest;
+            },
             partialize: (state) => ({
                 // Only these values are saved to localStorage. 
                 // isPWAMode and isWhisperReady are safely ignored.
@@ -708,7 +718,6 @@ export const appStore = createStore(
                 userMessagesToAiWordCount: state.userMessagesToAiWordCount,
                 aIMessagesToUserWordCount: state.aIMessagesToUserWordCount,
                 courseId: state.courseId,
-                friendCode: state.friendCode,
                 guestNativeLanguage: state.guestNativeLanguage,
                 currentLessonTimestamp: state.currentLessonTimestamp,
                 lessonScores: state.lessonScores
