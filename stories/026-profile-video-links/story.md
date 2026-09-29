@@ -224,7 +224,7 @@ function FriendLessonLink({ entry, lang, now }) {
 }
 ```
 
-The section's list key becomes `key={friendLinkEntryKey(entry)}` (unique per entry). Everything else (the ticking clock, `listActiveFriendLinks`, `null` when empty) is unchanged.
+The section's list key becomes `` key={`${friendLinkEntryKey(entry)}:${entry.addedAt}`} `` — unique per entry **and** changing on a re-export, so a refreshed entry remounts, resets `videoFailed`, and re-probes (a re-export writes a new `addedAt`; without it React would reuse the hidden card). Everything else (the ticking clock, `listActiveFriendLinks`, `null` when empty) is unchanged.
 
 **Decision (bandwidth + unavailability):** `preload="none"` means no video bytes are fetched until the user presses play; the poster (the recap's first clip `.jpg`) is the visible thumbnail. Because the user requires the link to remain but the video to be hidden when the object is unavailable, a mount-time **HEAD probe** (no body, no video bytes) detects a missing/expired/never-uploaded object (>50 MB, upload failure, 404, or a CORS/network failure) and hides the `<video>` while the link + countdown stay. The on-play `onError` handler is retained as a second guard. A legacy entry with no `lessonId` never renders a video and never probes. The probe result is per-mount; the card's React key includes `addedAt`, so a refreshed entry re-probes.
 
@@ -241,7 +241,10 @@ The section's list key becomes `key={friendLinkEntryKey(entry)}` (unique per ent
 - **Same user answers two friends in lesson `b`**: keys `friend:b:<friendA>` and `friend:b:<friendB>` → two entries, two videos (both survive 48h).
 - **Same user answers the same friend twice**: same key → the entry refreshes (`addedAt` reset), the complete key is overwritten — one card.
 - **A export shared with many friends**: one question set, one entry (`friend:a`), one card; all friends answer the same clips.
-- **B+ask export with no friend link present** (`friendCode` null): `otherShareCode: ''` → single-code key, one card.
+- **B+ask export with no friend code ever captured**: `otherShareCode: ''` → single-code key, one card.
+- **B+ask export in a browser that previously opened a friend link**: `otherShareCode` mirrors the persisted `appStore.friendCode`, exactly as the B lesson's `{friendCode}` clip resolution and the friend-response notification recipient already do. It is not re-derived from the current URL; see the Known Limitation.
+- **Re-export of the same key**: the new `addedAt` changes the card key → the card remounts, `videoFailed` resets, and the probe re-runs, so a previously-hidden (404-too-early) video can come back.
+- **Profile opened before the fire-and-forget complete upload lands**: the probe can 404 and hide the video for that view; a reload (or the next export) re-probes.
 - **Legacy entry without `lessonId`/`otherShareCode`**: link renders, no video.
 - **Legacy migration**: the next export for that course deletes the course-keyed entry and writes a keyed entry.
 - **Exactly 48h old**: `remainingMs === 0` → inactive → entry removed (boundary unchanged).
@@ -362,6 +365,8 @@ Rendered with `createRoot` + `act` (pattern from `src/components/intro-caller-na
 - two co-authored B entries (`cd34` and `ef56`), both active
   - → `[data-testid="friend-lesson-video"]` count is `2`
   - → `[data-testid="friend-lesson-link"]` count is `2`
+- an active A entry rendered with the probe `{ ok: false }`, then re-rendered with the same `courseId`/`lessonId`/`otherShareCode` but a newer `addedAt` and the probe `{ ok: true }`
+  - → after the re-render `[data-testid="friend-lesson-video"]` count is `1` (the card remounted on the new key and re-probed)
 - one active entry and one entry exactly 48h old
   - → video count `1` and link count `1`
 - `friendLinks` `{}` / `null` / `[]` / `'x'`
@@ -445,6 +450,8 @@ Fixtures include `lessonId`/`otherShareCode`. `beforeEach` routes `'**r2.ultrafa
 - **Decision:** the embedded video is the exported lesson's complete recap. A legacy story-012 entry has no `lessonId`/`otherShareCode`, so its link renders without a video until the next export; backfilling an inferred value was rejected as a guess.
 - **Decision (amended after code review):** `preload="none"` + the recap's first-clip poster keeps the profile light (no video bytes until play), and a mount-time HEAD probe makes "hide the video, keep the link" proactive rather than play-time-only. The probe costs one bodyless request per card and is fully mockable in jsdom (`vi.stubGlobal('fetch')`) and Playwright (route `HEAD` to 200/404), so the tests exercise real behavior instead of a synthetic `error` dispatch. The on-play `onError` guard is retained for the object-disappears-after-mount case. This resolves the code reviewer's blocking finding while still honoring the user's "link yes, video no" requirement.
 - **Known cosmetic limit:** the responder's own `b` segment keys and the `-response-01` poster for a plain (no-friend) B entry are shared across B runs; only the co-authored complete video is per-participant. Per-participant `b` segments are out of scope because nothing fetches them (the recap is stitched client-side), so the extra key churn is not justified.
+- **Known limitation (pre-existing, out of scope):** `appStore.friendCode` is set from `?shareCode=` and persisted (`store.js:711`) but never cleared, so it can be stale within a long-lived session or after a reload. This story's `otherShareCode` follows it — consistent with the B lesson's existing `{friendCode}` clip resolution (`config-normalizer.js`) and the friend-response notification recipient. Correcting the `friendCode` lifecycle (scope/clear per lesson) is a separate change touching shared state; not attempted here.
+- **Known limitation (race):** the complete-video upload is fire-and-forget, so opening a profile in the moment before it lands can hide the video via the probe. A reload or the next export re-probes (the card key includes `addedAt`). A retry/backoff probe is out of scope.
 - **No new strings:** the card reuses `profile_friend_lesson_link` and `profile_friend_link_available`; the `<video>` is unlabeled. `src/data/strings.test.js` is unaffected.
 - **Documentation (non-automatable):** update `docs/product.md` — extend the "Friend-challenge practice link" feature bullet to mention the embedded concatenated video, multiple per-(course, lesson, co-participant) entries with independent 48h removal on both profiles, and that co-authored B videos carry both share codes; add a Known Limitation that the video is best-effort (hidden, while the link persists, when the R2 object is missing/expired/over 50 MB) and that pre-existing entries without a `lessonId` show no video. Optionally note the new `getUgcVideoUrl`/`getCompleteVideoUrl`/`getSegmentPosterUrl` helpers in `agents.md`'s concatenated-recap paragraph.
 - **Manual verification** (R2/MediaRecorder and Supabase cannot be exercised headlessly; logic/UI are covered by Tasks 1-6):
