@@ -402,7 +402,7 @@ Fixtures include `lessonId`/`otherShareCode`. `beforeEach` also routes `'**r2.ul
 
 ## Technical Context
 
-- **No new dependencies.** Reuses React 19.2.0, `@tanstack/react-query` 5.100.14, `zustand` 5.0.13, `@supabase/supabase-js` 2.112.4, `react-router-dom` 7.15.1. Unit tests: vitest 4.1.6 + jsdom 29.1.1 (colocated `*.test.js`; `vitest.config.js` excludes `tests/**` and `*.spec.js`). Browser tests: `@playwright/test` 1.60.0. Gate: `npm test -- --run`; the Playwright spec is supplementary (outside the vitest gate).
+- **No new dependencies.** Reuses React 19.2.6, `@tanstack/react-query` 5.100.14, `zustand` 5.0.13, `@supabase/supabase-js` 2.112.4, `react-router-dom` 7.15.1. Unit tests: vitest 4.1.6 + jsdom 29.1.1 (colocated `*.test.js`; `vitest.config.js` excludes `tests/**` and `*.spec.js`). Browser tests: `@playwright/test` 1.60.0. Gate: `npm test -- --run`; the Playwright spec is supplementary (outside the vitest gate).
 - **Upload auth accepts the two-code key:** `functions/api/upload-segment.js:28` requires `key.startsWith('videos/' + shareCode + '-')` and a `.mp4`/`.jpg` extension; putting the creator's code first preserves it. The same file enforces the 50 MB cap.
 - **Co-participant source:** `appStore.friendCode` (`App.jsx:19-37`) is the `?shareCode=` param, trimmed + lowercased (`App.jsx:30`), persisted (`store.js:98/227`), and already used for friend-response notifications. `exportResult.askPublished` (`video-processor.web.js:1394`) distinguishes a co-authored B export.
 - **R2 URL routing (`video-url.js`):** `isFriendVideoSlug` matches `-response-\d+$` only, so `-complete` keys must use `getUgcVideoUrl`. `videos/` is not proxied in dev (`README.md:15`), so UGC URLs are always absolute.
