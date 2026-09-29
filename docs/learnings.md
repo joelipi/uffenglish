@@ -73,6 +73,8 @@ src/modules/api/supabase.js` in `functions/api/upload-segment.js`). The Read too
 
 **Behind-main variant (2026-09-29)**: When a story branch is cut before other stories land on `main`, `main..HEAD` also shows main-only work as *deletions* (story 026's branch predated stories 028/029/030, so the reviewer saw ~50 unrelated files as removed). The reviewer still reviewed the branch's own commits correctly, but the range is misleading. Use the merge-base range (`git merge-base main HEAD..HEAD`) or rebase onto `main` before review.
 
+**Resolve by merging, not just re-ranging (2026-09-29, story 033)**: Passing `origin/main..HEAD` while behind main is not reliable — the code-reviewer subagent read it literally and returned **Fail** on the stale-base diff (it saw main's guest-first-language fix, complex-script text measurement, and stale-chunk reload as deletions authored by the branch), plus the branch's own 026 lost-update issue. Since force-push is forbidden (so no rebase), the fix is an ordinary merge: `git merge --no-ff origin/main`, resolve the (in this case trivial, docs-only) conflict, confirm `git merge-base origin/main HEAD == origin/main`, then re-run the reviewers against `origin/main..HEAD`. That makes the range the branch's real diff and pulls main's fixes back in so they can't appear as reversions.
+
 ---
 
 ## Pages Functions can import from `src/` — verify with `wrangler pages functions build`
