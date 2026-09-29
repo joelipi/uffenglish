@@ -1,9 +1,10 @@
 // src/components/profile/FriendLessonLinksSection.test.js
 // Presentational unit tests for the profile friend-challenge card (story 026):
-// the embedded concatenated recap above the link, multiple co-authored entries,
-// legacy entries without a video, and the video-unavailable fallback.
+// the embedded concatenated recap above the link, the mount-time HEAD
+// availability probe, multiple co-authored entries, legacy entries without a
+// video, and the play-time error fallback.
 // Rendered with createRoot + act (pattern from src/components/intro-caller-name.test.js).
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import FriendLessonLinksSection from './FriendLessonLinksSection.jsx';
@@ -23,8 +24,22 @@ const entryB = (otherShareCode) => ({
 describe('FriendLessonLinksSection', () => {
     let container;
     let root;
+    let fetchMock;
 
-    const render = (friendLinks) => {
+    beforeEach(() => {
+        fetchMock = vi.fn().mockResolvedValue({ ok: true });
+        vi.stubGlobal('fetch', fetchMock);
+    });
+
+    afterEach(() => {
+        if (root) act(() => root.unmount());
+        if (container) container.remove();
+        root = null;
+        container = null;
+        vi.unstubAllGlobals();
+    });
+
+    const render = async (friendLinks) => {
         if (root) act(() => root.unmount());
         if (container) container.remove();
         root = null;
@@ -33,23 +48,16 @@ describe('FriendLessonLinksSection', () => {
         container = document.createElement('div');
         document.body.appendChild(container);
         root = createRoot(container);
-        act(() => {
+        await act(async () => {
             root.render(React.createElement(FriendLessonLinksSection, { friendLinks, lang: 'en' }));
         });
     };
 
-    afterEach(() => {
-        if (root) act(() => root.unmount());
-        if (container) container.remove();
-        root = null;
-        container = null;
-    });
-
     const videos = () => container.querySelectorAll('[data-testid="friend-lesson-video"]');
     const links = () => container.querySelectorAll('[data-testid="friend-lesson-link"]');
 
-    it('renders the A recap video with the first-segment poster, above the link', () => {
-        render({ 'friend:a': entryA() });
+    it('renders the A recap video with the first-segment poster, above the link, and probes it', async () => {
+        await render({ 'friend:a': entryA() });
 
         expect(videos()).toHaveLength(1);
         const video = videos()[0];
@@ -66,10 +74,16 @@ describe('FriendLessonLinksSection', () => {
         const ordered = container.querySelectorAll('[data-testid="friend-lesson-video"], [data-testid="friend-lesson-link"]');
         expect(ordered[0].getAttribute('data-testid')).toBe('friend-lesson-video');
         expect(ordered[1].getAttribute('data-testid')).toBe('friend-lesson-link');
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(fetchMock).toHaveBeenCalledWith(
+            'https://r2.ultrafastfluency.com/videos/ab12-friend-a-complete.mp4',
+            { method: 'HEAD' }
+        );
     });
 
-    it('renders a co-authored B recap keyed and poster-ed by the co-participant, link still the creator', () => {
-        render({ 'friend:b:cd34': entryB('cd34') });
+    it('renders a co-authored B recap keyed and poster-ed by the co-participant, link still the creator', async () => {
+        await render({ 'friend:b:cd34': entryB('cd34') });
 
         expect(videos()).toHaveLength(1);
         const video = videos()[0];
@@ -79,16 +93,24 @@ describe('FriendLessonLinksSection', () => {
         expect(links()[0].getAttribute('href')).toBe('https://ultrafastfluency.com/course/friend/lesson/b?shareCode=ab12');
     });
 
-    it('renders a legacy entry with no lessonId as link-only', () => {
-        render({ friend: { courseId: 'friend', shareCode: 'ab12', addedAt: iso(Date.now() - HOUR) } });
+    it('hides the video but keeps the link when the probe returns a non-ok response', async () => {
+        fetchMock.mockResolvedValue({ ok: false });
+        await render({ 'friend:a': entryA() });
 
         expect(videos()).toHaveLength(0);
         expect(links()).toHaveLength(1);
-        expect(container.querySelector('[data-testid="friend-lesson-links"]')).not.toBeNull();
     });
 
-    it('hides the video but keeps the link when the video errors', () => {
-        render({ 'friend:a': entryA() });
+    it('hides the video but keeps the link when the probe rejects', async () => {
+        fetchMock.mockRejectedValue(new Error('network down'));
+        await render({ 'friend:a': entryA() });
+
+        expect(videos()).toHaveLength(0);
+        expect(links()).toHaveLength(1);
+    });
+
+    it('hides the video but keeps the link when the video errors after a successful probe', async () => {
+        await render({ 'friend:a': entryA() });
 
         const video = videos()[0];
         act(() => {
@@ -99,8 +121,17 @@ describe('FriendLessonLinksSection', () => {
         expect(links()).toHaveLength(1);
     });
 
-    it('renders two cards for two co-authored B entries with two friends', () => {
-        render({
+    it('renders a legacy entry with no lessonId as link-only and never probes', async () => {
+        await render({ friend: { courseId: 'friend', shareCode: 'ab12', addedAt: iso(Date.now() - HOUR) } });
+
+        expect(videos()).toHaveLength(0);
+        expect(links()).toHaveLength(1);
+        expect(container.querySelector('[data-testid="friend-lesson-links"]')).not.toBeNull();
+        expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it('renders two cards for two co-authored B entries with two friends', async () => {
+        await render({
             'friend:b:cd34': entryB('cd34'),
             'friend:b:ef56': entryB('ef56'),
         });
@@ -109,8 +140,8 @@ describe('FriendLessonLinksSection', () => {
         expect(links()).toHaveLength(2);
     });
 
-    it('drops a card whose 48h window has elapsed', () => {
-        render({
+    it('drops a card whose 48h window has elapsed', async () => {
+        await render({
             'friend:a': entryA(),
             'friend:b:cd34': { ...entryB('cd34'), addedAt: iso(Date.now() - 48 * HOUR) },
         });
@@ -119,9 +150,9 @@ describe('FriendLessonLinksSection', () => {
         expect(links()).toHaveLength(1);
     });
 
-    it('renders nothing for empty / malformed friendLinks', () => {
+    it('renders nothing for empty / malformed friendLinks', async () => {
         for (const friendLinks of [{}, null, [], 'x', undefined]) {
-            render(friendLinks);
+            await render(friendLinks);
             expect(container.querySelector('[data-testid="friend-lesson-links"]')).toBeNull();
             expect(videos()).toHaveLength(0);
             expect(links()).toHaveLength(0);

@@ -2,8 +2,9 @@
 import { test, expect } from '@playwright/test';
 
 // Public-profile friend-challenge card (story 026): an embedded concatenated
-// recap above the "Practice English with Me" link, multiple co-authored
-// entries, legacy link-only entries, and the video-unavailable fallback.
+// recap above the "Practice English with Me" link, a mount-time HEAD
+// availability probe, multiple co-authored entries, legacy link-only entries,
+// and the missing-video fallback.
 // The profile is loaded through useUserByShareCode; we settle its initial
 // (empty) query, then inject the fixture through the app's own queryClient
 // singleton (same pattern as answer-flow.spec.js importing app modules).
@@ -43,15 +44,28 @@ async function seedProfile(page, friendLinks) {
 }
 
 test.describe('public-profile friend-challenge card', () => {
+    // Mutable per-test status for the HEAD availability probe.
+    let headStatus;
+    let headRequests;
+
     test.beforeEach(async ({ page }) => {
+        headStatus = 200;
+        headRequests = [];
         await page.clock.setFixedTime(new Date(FIXED_NOW));
         // Deterministic Supabase: the public_profiles lookup resolves to empty.
         await page.route('**/rest/v1/**', (route) =>
             route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
         );
-        // No real R2 traffic: preload="none" never fetches the video, and a
-        // failed poster does not fire the video's error event.
-        await page.route('**r2.ultrafastfluency.com/**', (route) => route.abort());
+        // The availability probe is a HEAD request; fulfill it with headStatus.
+        // Any other R2 request (the poster image) is aborted — a failed poster
+        // does not fire the video's error, and preload="none" never fetches bytes.
+        await page.route('**r2.ultrafastfluency.com/**', (route) => {
+            if (route.request().method() === 'HEAD') {
+                headRequests.push(route.request().url());
+                return route.fulfill({ status: headStatus });
+            }
+            return route.abort();
+        });
     });
 
     test('renders the embedded A recap above the large link and countdown', async ({ page }) => {
@@ -86,6 +100,9 @@ test.describe('public-profile friend-challenge card', () => {
         // Video precedes the anchor in document order.
         const ordered = page.locator('[data-testid="friend-lesson-video"], [data-testid="friend-lesson-link"]');
         await expect(ordered.first()).toHaveAttribute('data-testid', 'friend-lesson-video');
+
+        // The availability probe was issued for the complete video.
+        expect(headRequests).toContain('https://r2.ultrafastfluency.com/videos/friendtest1-friend-a-complete.mp4');
     });
 
     test('renders a co-authored B recap keyed by the co-participant, link still the creator', async ({ page }) => {
@@ -101,6 +118,15 @@ test.describe('public-profile friend-challenge card', () => {
         );
     });
 
+    test('hides the video up front but keeps the link and countdown when the probe 404s', async ({ page }) => {
+        headStatus = 404;
+        await seedProfile(page, { 'friend:a': entryA() });
+
+        await expect(page.getByTestId('friend-lesson-video')).toHaveCount(0);
+        await expect(page.getByTestId('friend-lesson-link')).toBeVisible();
+        await expect(page.getByTestId('friend-lesson-link-countdown')).toBeVisible();
+    });
+
     test('renders two B cards for two friends', async ({ page }) => {
         await seedProfile(page, {
             'friend:b:cd34': entryB('cd34'),
@@ -113,17 +139,6 @@ test.describe('public-profile friend-challenge card', () => {
 
     test('renders a legacy entry as link-only', async ({ page }) => {
         await seedProfile(page, { friend: legacyEntry('friend', '2026-09-24T11:00:00.000Z') });
-
-        await expect(page.getByTestId('friend-lesson-video')).toHaveCount(0);
-        await expect(page.getByTestId('friend-lesson-link')).toBeVisible();
-    });
-
-    test('hides the video but keeps the link when the video errors', async ({ page }) => {
-        await seedProfile(page, { 'friend:a': entryA() });
-
-        const video = page.getByTestId('friend-lesson-video');
-        await expect(video).toBeVisible();
-        await video.dispatchEvent('error');
 
         await expect(page.getByTestId('friend-lesson-video')).toHaveCount(0);
         await expect(page.getByTestId('friend-lesson-link')).toBeVisible();

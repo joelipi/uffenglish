@@ -45,6 +45,19 @@ function FriendLessonLink({ entry, lang, now }) {
     const firstClip = resolveRecapFirstClip(entry);
     const posterUrl = firstClip ? getSegmentPosterUrl(firstClip) : null;
 
+    // Lightweight availability probe. `preload="none"` fetches no video bytes,
+    // but then a missing/expired object would only surface after the user
+    // pressed play. A HEAD request (no body) lets us hide the player up front
+    // while the link + countdown stay. A network/CORS failure also hides it.
+    useEffect(() => {
+        if (!videoUrl) return undefined;
+        let cancelled = false;
+        fetch(videoUrl, { method: 'HEAD' })
+            .then((res) => { if (!cancelled && !res.ok) setVideoFailed(true); })
+            .catch(() => { if (!cancelled) setVideoFailed(true); });
+        return () => { cancelled = true; };
+    }, [videoUrl]);
+
     return (
         <div style={cardStyle}>
             {videoUrl && !videoFailed && (
