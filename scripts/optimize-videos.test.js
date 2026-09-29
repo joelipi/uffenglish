@@ -221,3 +221,22 @@ describe('optimize-videos CLI — ffmpeg integration', () => {
         }
     });
 });
+
+describe('optimize-videos — package/scripts/docs wiring', () => {
+    it('package.json exposes both optimizer scripts pointing at the CLI', () => {
+        const pkg = JSON.parse(readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+        expect(pkg.scripts['videos:optimize']).toBe('node scripts/optimize-videos.mjs');
+        expect(pkg.scripts['videos:optimize:upload']).toBe('node scripts/optimize-videos.mjs --upload');
+    });
+
+    it('README documents the optimizer commands', () => {
+        const readme = readFileSync(path.join(ROOT, 'README.md'), 'utf8');
+        expect(readme).toContain('videos:optimize');
+        expect(readme).toContain('videos:optimize:upload');
+    });
+
+    it('docs/product.md links this story from the Features list', () => {
+        const product = readFileSync(path.join(ROOT, 'docs/product.md'), 'utf8');
+        expect(product).toContain('stories/032-optimize-r2-videos/story.md');
+    });
+});
