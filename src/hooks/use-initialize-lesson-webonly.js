@@ -11,6 +11,7 @@ import { loadLessonContent } from '../modules/lesson/lesson-loader.js';
 import Strings from '../data/strings.js';
 import { trackEvent } from '../modules/utils/posthog.js';
 import { getVideoUrl, getPosterUrl } from '../modules/video/video-url.js';
+import { planLessonPreload, preloadLessonVideos } from '../modules/video/lesson-preload.js';
 
 export function useInitializeLesson({ forceRestart = false } = {}) {
     const initializeLesson = useCallback(async (courseId, lessonId, configData, userData) => {
@@ -41,6 +42,11 @@ export function useInitializeLesson({ forceRestart = false } = {}) {
             if (typeof window !== 'undefined' && window.preloadLessonAssets) {
                 await window.preloadLessonAssets(lesson, getVideoUrl, getPosterUrl);
             }
+
+            // Prefetch the lesson's first video at high priority, and defer the
+            // rest until idle at low priority, so bulk prefetch cannot starve
+            // the video the learner sees first (story 031).
+            preloadLessonVideos(planLessonPreload(lesson, getVideoUrl));
 
             await loadLessonContent(lesson, { forceRestart });
 

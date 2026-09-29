@@ -133,20 +133,6 @@
             }, 100);
 
             try {
-                // Cache-warm ALL lesson videos via fetch() (no blob) — responses
-                // stream directly to the browser HTTP disk cache, not JS heap.
-                // When each <video> element later requests the same URL with
-                // crossOrigin="anonymous", the browser serves it from cache
-                // instantly with zero network delay, eliminating FOUC on every
-                // video transition throughout the lesson.
-                // Fire-and-forget: parallel fetches do not block the loading bar.
-                if (lessonData?.steps) {
-                    lessonData.steps.forEach(step => {
-                        const slug = step.interactiveVideoUrl || step.simpleVideoUrl || step.introBackgroundVideoUrl;
-                        if (slug) fetch(buildVideoUrlFn(slug)).catch(() => {});
-                    });
-                }
-
                 // High-priority poster preload for lesson intro — ensures the
                 // intro rectangle is never empty (LQIP already prevents black).
                 // Uses fetch + Image.decode() so the browser caches + decodes it.
