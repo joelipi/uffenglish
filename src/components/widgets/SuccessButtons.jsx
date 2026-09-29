@@ -123,7 +123,7 @@ export function VideoButton({ canvasRef }) {
             }
 
             // Notify the asker whose share link this friend opened. Uses the
-            // share code captured from the URL (?shareCode=) in App.jsx.
+            // share code mirrored from the URL (?shareCode=) by RootLayout.
             const responsePayload = resolveFriendResponseNotification({
               configData,
               lessonId,
