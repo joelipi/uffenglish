@@ -71,6 +71,8 @@ src/modules/api/supabase.js` in `functions/api/upload-segment.js`). The Read too
 **What happened**: `peck story create` branched `005-skip-friend-feedback` from `004-fix-r2-upload-config` (the branch I was on), not from `main`. The code-reviewer range `main..HEAD` therefore included the 004 story's commits, and its review flagged 004's code (Supabase constant duplication, an unused test binding) as part of the Fail — I had to fix the parent story's code to get a Pass.
 **Takeaway**: Before creating a story, note which branch you're on — `peck story create` branches from it. When a story branch is based on another story branch, expect `DEFAULT_BRANCH..HEAD` to include the parent story's commits; the code-reviewer will review (and may fail on) that code too. Either base stories on `main`, or be ready to fix parent-story findings.
 
+**Behind-main variant (2026-09-29)**: When a story branch is cut before other stories land on `main`, `main..HEAD` also shows main-only work as *deletions* (story 026's branch predated stories 028/029/030, so the reviewer saw ~50 unrelated files as removed). The reviewer still reviewed the branch's own commits correctly, but the range is misleading. Use the merge-base range (`git merge-base main HEAD..HEAD`) or rebase onto `main` before review.
+
 ---
 
 ## Pages Functions can import from `src/` — verify with `wrangler pages functions build`
@@ -81,11 +83,11 @@ src/modules/api/supabase.js` in `functions/api/upload-segment.js`). The Read too
 
 ---
 
-## Auto-advance paths must replicate `showFeedbackAndProceed`'s `stepCount` increment exactly once
-**Date**: 2026-09-20
+## `appStore.friendCode` is persisted and never cleared — it can be stale
+**Date**: 2026-09-29
 **Area**: architecture
-**What happened**: The friendClosedResponse auto-advance branch in `handleAnswer` incremented `stepCount` before the `_deps.loadNextStep` guard, so the fall-through path (missing deps) incremented it again inside `showFeedbackAndProceed` — a double increment that corrupted the `step_count` reported to the backend. The code reviewer caught it.
-**Takeaway**: `showFeedbackAndProceed` increments `stepCount` for interactive-video response steps (`answer-pipeline.js:984-987`). Any new path that bypasses it (e.g. direct `loadNextStep` calls) must replicate that increment exactly once — put it inside the same guard that decides between auto-advance and fall-through, and assert `stepCount` in the fallback test.
+**What happened**: Story 026 used `appStore.friendCode` as the co-participant share code for a co-authored B recap. The code reviewer flagged that `friendCode` is set from `?shareCode=` (`App.jsx:29-31`) and persisted (`store.js:711`) but never cleared, so a B export in a browser that previously opened a friend link attaches the previous friend's code. The story's edge case assumed `friendCode` is null when no friend link is present.
+**Takeaway**: Treat `appStore.friendCode` as session-sticky, not per-lesson. Any feature that derives identity from it (the B lesson's `{friendCode}` clip resolution, friend-response notifications, story 026's `otherShareCode`) inherits the staleness. If a feature needs the *current* URL's share code, read it from the URL or clear/scope `friendCode` on lesson entry — don't assume it is null.
 
 ---
 
