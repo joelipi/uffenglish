@@ -12,6 +12,8 @@
     "posters": "node scripts/generate-thumbnails.mjs",
     "posters:upload": "node scripts/generate-thumbnails.mjs --upload",
     "posters:check": "node scripts/verify-thumbnails.mjs",
+    "videos:optimize": "node scripts/optimize-videos.mjs",
+    "videos:optimize:upload": "node scripts/optimize-videos.mjs --upload",
     "predeploy": "node scripts/generate-thumbnails.mjs && node scripts/generate-thumbnails.mjs --upload && node scripts/verify-thumbnails.mjs",
     "deploy": "npm run build && wrangler pages deploy dist --project-name=uffenglish",
     "deploy:prod": "npm run build && wrangler pages deploy dist --project-name=uffenglish --branch=production"
