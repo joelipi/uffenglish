@@ -6,7 +6,6 @@ import { getPosterUrl } from '../modules/video/video-url.js';
 import { getPosterLqip } from '../generated/poster-lqips.js';
 
 const hasNavigator = typeof navigator !== 'undefined';
-const isIOS = hasNavigator && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 const isAndroid = hasNavigator && /Android/.test(navigator.userAgent);
 
 // Android Chrome frequently ignores preload="auto" (data saver, mobile
@@ -212,16 +211,6 @@ export default function IncomingVideoWidget() {
             };
         }
 
-        // Android: call play() to coax the browser into actually fetching the
-        // video (preload="auto" is routinely ignored).  The promise will reject
-        // with NotAllowedError (no user gesture) but the load is kicked off.
-        if (isAndroid) {
-            video.play().catch(() => {
-                // Expected — play() without gesture is blocked.
-                // The video element is now loading though.
-            });
-        }
-
         // Safety timeout — if neither loadeddata nor canplay fire within the
         // window (Android data-saver, flaky CDN, etc.), signal ready anyway.
         // Poster already unblocks preloader; this only marks video warm.
@@ -297,7 +286,7 @@ export default function IncomingVideoWidget() {
                             }}
                         />
                     )}
-                    <video ref={videoRef} className="intro-video" playsInline preload={isIOS ? 'metadata' : 'auto'} crossOrigin="anonymous" muted onLoadedData={onLoadedData} onCanPlay={onCanPlay} onError={onError} style={{ opacity: isReady ? 1 : 0, transition: 'opacity 0.15s ease-in', zIndex: 0 }} />
+                    <video ref={videoRef} className="intro-video" playsInline preload="metadata" crossOrigin="anonymous" muted onLoadedMetadata={signalReady} onLoadedData={onLoadedData} onCanPlay={onCanPlay} onError={onError} style={{ opacity: isReady ? 1 : 0, transition: 'opacity 0.15s ease-in', zIndex: 0 }} />
                     <div className="intro-notification-content">
                         <div className="intro-notification-top">
                             <div className="intro-call-title">

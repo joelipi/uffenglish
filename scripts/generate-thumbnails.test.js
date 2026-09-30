@@ -128,7 +128,10 @@ describe('generate-thumbnails.mjs source', () => {
 
     it('uploads to the slug sibling R2 key', () => {
         expect(SOURCE).toContain('posterR2Key');
-        expect(SOURCE).toMatch(/r2',\s*'object',\s*'put'/);
+        // The wrangler `r2 object put` invocation is shared (scripts/lib/cli-utils.js)
+        // so the poster and video uploaders cannot drift; the sibling key is what
+        // this script owns.
+        expect(SOURCE).toContain('uploadObjectToR2');
     });
 
     it('derives freshness from the .mp4 and .jpg Last-Modified headers', () => {
