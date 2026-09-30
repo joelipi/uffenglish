@@ -41,7 +41,7 @@ describe('exportSegmentsToR2 publish targets', () => {
 
 describe('SuccessButtons wiring', () => {
     it('awaits the export and gates on its succeeded + askPublished flags', () => {
-        expect(successButtons).toContain('await exportSegmentsToR2(lessonId)');
+        expect(successButtons).toContain('await exportSegmentsToR2(lessonId, result.segments, result.blob)');
         expect(successButtons).toContain('succeeded: exportResult?.succeeded');
         expect(successButtons).toContain('askPublished: exportResult?.askPublished');
     });

@@ -151,6 +151,58 @@ export async function transcodeToMp4(blob) {
     return await reencodeToMp4(blob);
 }
 
+// ---- Trim a time range out of a recording (per-segment R2 clips) -------------
+
+/**
+ * Cuts `[startSec, endSec)` out of `sourceBlob` and re-encodes it to an mp4
+ * Blob, using Mediabunny's `Conversion` trim. The per-segment R2 clips are
+ * produced from the single stitched lesson recording this way, so no second
+ * render/playback pass is needed.
+ *
+ * Uses `BlobSource` (not `BufferSource(await blob.arrayBuffer())`) so the whole
+ * source recording is not copied into memory. Throws `webcodecs-unavailable`
+ * when the browser cannot encode H.264/AAC — the caller falls back to the
+ * re-render path. Never returns a non-mp4 blob.
+ */
+export async function transcodeRangeToMp4(sourceBlob, startSec, endSec) {
+    if (!sourceBlob) throw new Error('no-source-blob');
+    if (!(Number.isFinite(startSec) && Number.isFinite(endSec) && endSec > startSec)) {
+        throw new Error('invalid-range');
+    }
+    if (!hasWebCodecs()) throw new Error('webcodecs-unavailable');
+
+    const input = new Input({ source: new BlobSource(sourceBlob), formats: ALL_FORMATS });
+    try {
+        const videoTrack = await input.getPrimaryVideoTrack();
+        const audioTrack = await input.getPrimaryAudioTrack();
+
+        const width = videoTrack ? await videoTrack.getCodedWidth() : 0;
+        const height = videoTrack ? await videoTrack.getCodedHeight() : 0;
+        const numberOfChannels = audioTrack ? await audioTrack.getNumberOfChannels() : 0;
+        const sampleRate = audioTrack ? await audioTrack.getSampleRate() : 0;
+
+        const okVideo = videoTrack
+            ? await canEncodeVideo('avc', { width, height, bitrate: VIDEO_BITRATE })
+            : true;
+        const okAudio = audioTrack
+            ? await canEncodeAudio('aac', { numberOfChannels, sampleRate })
+            : true;
+        if (!okVideo || !okAudio) throw new Error('webcodecs-unavailable');
+
+        const outputFormat = new Mp4OutputFormat();
+        const output = new Output({ format: outputFormat, target: new BufferTarget() });
+        const conversion = await Conversion.init({
+            input,
+            output,
+            trim: { start: startSec, end: endSec },
+        });
+        await conversion.execute();
+        return new Blob([output.target.buffer], { type: 'video/mp4' });
+    } finally {
+        input.dispose();
+    }
+}
+
 // ---- Cloudinary `f_mp4` fallback --------------------------------------------
 
 /**

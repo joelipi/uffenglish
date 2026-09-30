@@ -22,13 +22,18 @@ describe('video-processor.web.js recap wiring guard', () => {
         expect(source).toMatch(/resolveOverlayElements\(\{\s*variant: overlayVariant/);
     });
 
-    it('keeps renderStepToBlob overlay-free (silent only)', () => {
-        const start = source.indexOf('async function renderStepToBlob');
-        const end = source.indexOf('export async function exportSegmentsToR2');
-        const renderStepBlob = source.slice(start, end);
-        expect(renderStepBlob).toMatch(/\{ silent: true \}/);
-        expect(renderStepBlob).not.toMatch(/overlayVariant/);
-        expect(renderStepBlob).not.toMatch(/shareCta/);
+    it('trims the stitched recording and passes the recap overlay to the fallback', () => {
+        const start = source.indexOf('export async function exportSegmentsToR2');
+        const end = source.indexOf('export { MAX_R2_UPLOAD_BYTES };');
+        const exportFn = source.slice(start, end);
+        // Primary path: cut the segment out of the stitched recording.
+        expect(exportFn).toMatch(/transcodeRangeToMp4\(/);
+        // Fallback path: re-render with the recap's overlay options.
+        expect(exportFn).toMatch(/renderStepToBlob\(/);
+        expect(exportFn).toMatch(/overlayVariant/);
+        expect(exportFn).toMatch(/shareCta/);
+        // The primary path must not be canvas/rAF bound.
+        expect(exportFn).not.toMatch(/requestAnimationFrame/);
     });
 
     it('uses the shared dropped-step helpers and revokes clip object URLs', () => {
@@ -110,10 +115,12 @@ describe('video-processor.web.js recap wiring guard', () => {
         expect(source).toMatch(/const endedNaturally = stepStartedPlaying && video\.ended/);
     });
 
-    it('resolves the recap language guest-first in both process and export', () => {
+    it('resolves the recap language guest-first in process', () => {
         // A guest who chose Spanish must get a Spanish recap even when
         // userData.native_language is stale; the precedence is shared with
-        // normalizeConfig (single-sourced via resolveConfigLanguage).
+        // normalizeConfig (single-sourced via resolveConfigLanguage). The
+        // per-segment export consumes ranges captured by process(), so it no
+        // longer resolves the language itself.
         expect(source).toMatch(
             /import \{ resolveConfigLanguage \} from '\.\.\/bilingual\/config-normalizer\.js'/
         );
@@ -122,7 +129,7 @@ describe('video-processor.web.js recap wiring guard', () => {
         const uses = source.match(
             /const userLang = resolveConfigLanguage\(snapshot\.guestNativeLanguage, snapshot\.userData\?\.native_language\)/g
         ) || [];
-        expect(uses).toHaveLength(2);
+        expect(uses).toHaveLength(1);
         expect(source).not.toMatch(
             /const userLang = appStore\.getState\(\)\.userData\?\.native_language/
         );

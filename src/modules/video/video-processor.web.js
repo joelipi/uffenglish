@@ -6,13 +6,13 @@ import { shareVideo } from './video-share.js';
 import { appStore } from '../store/store.js';
 import headerImg from '../../assets/img/header.png';
 import { getVideoUrl, getUgcThumbKey, getCompleteVideoKey } from './video-url.js';
-import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, buildShareUrl, buildShareDeadline, resolveOverlayElements, isShareCtaEnabled, isDroppedStep, markFirstRenderable, resolveSegmentBounds, STALL_GRACE_MS, assignSegmentTargets, buildUgcSegmentKey } from './video-processor-logic.js';
+import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, buildShareUrl, buildShareDeadline, resolveOverlayElements, isShareCtaEnabled, isDroppedStep, markFirstRenderable, resolveSegmentBounds, STALL_GRACE_MS, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges } from './video-processor-logic.js';
 import { remoteSource } from './video-source.js';
 import { DEFAULT_USER_AVATAR_URL } from '../user/tutor-config.js';
 import { getAvatarBlobUrl } from '../avatar/avatar.service.js';
 import { maybeAssignPosterAvatar } from '../avatar/poster-avatar.js';
 import { supabase, getAccessToken } from '../api/supabase.js';
-import { transcodeToMp4, verifyMp4, uploadWebmToCloudinary, probeClipDurationSec } from './transcode.js';
+import { transcodeToMp4, verifyMp4, uploadWebmToCloudinary, transcodeRangeToMp4, probeClipDurationSec } from './transcode.js';
 import { uploadSegmentToR2 } from './r2-upload.js';
 import { MAX_R2_UPLOAD_BYTES } from './r2-upload-limits.js';
 import { trackEvent } from '../utils/posthog.js';
@@ -240,17 +240,52 @@ function createVideoProcessor() {
                 const recorder = new MediaRecorder(combinedStream, { mimeType });
                 const chunks = [];
 
+                // Per-segment publish: track each publishable step's wall-clock
+                // range within this recording so exportSegmentsToR2 can trim the
+                // clips out of the stitched blob (no second render pass).
+                const rawRanges = [];
+                let activeRange = null;
+                let recordingStartAt = 0;
+                const onStepStart = (step) => {
+                    if (!isPublishableClip(step)) return;
+                    activeRange = { step, startMs: performance.now() - recordingStartAt };
+                };
+                const onStepEnd = (step) => {
+                    if (!activeRange || activeRange.step !== step) return;
+                    rawRanges.push({ step, startMs: activeRange.startMs, endMs: performance.now() - recordingStartAt });
+                    activeRange = null;
+                };
+
                 recorder.ondataavailable = e => {
                     if (e.data.size > 0) chunks.push(e.data);
                 };
 
-                recorder.onstop = () => {
+                recorder.onstop = async () => {
                     const blob = new Blob(chunks, { type: mimeType });
                     const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+                    let segments = [];
+                    try {
+                        const elapsedMs = performance.now() - recordingStartAt;
+                        if (activeRange) {
+                            rawRanges.push({ step: activeRange.step, startMs: activeRange.startMs, endMs: elapsedMs });
+                            activeRange = null;
+                        }
+                        let probedDurationSec = null;
+                        try { probedDurationSec = await probeClipDurationSec(blob); } catch (e) { /* probe is best-effort */ }
+                        segments = calibrateSegmentRanges(rawRanges, elapsedMs, probedDurationSec);
+                    } catch (e) {
+                        console.warn('[VideoProcessor] Segment range calibration failed:', e);
+                        segments = [];
+                    }
+                    // Ride the overlay options along so the export fallback can
+                    // match the recap's overlay when the trim path is unavailable.
+                    segments.overlayVariant = overlayVariant;
+                    segments.shareCta = shareCta;
                     cleanup();
-                    resolve({ blob, ext });
+                    resolve({ blob, ext, segments });
                 };
 
+                recordingStartAt = performance.now();
                 recorder.start(1000);
 
                 await executeRenderLoop(
@@ -258,7 +293,7 @@ function createVideoProcessor() {
                     overlayImage, profileImage, fluencyData,
                     id => { animationId = id; },
                     audioContext, audioDestination,
-                    { overlayVariant, shareCta }
+                    { overlayVariant, shareCta, onStepStart, onStepEnd }
                 );
 
                 recorder.stop();
@@ -330,7 +365,7 @@ function drawProfileBackground(ctx, image, w, h) {
 // ---------------------------------------------------------------------------
 // Render loop — receives an animationId setter so the instance can cancel it
 // ---------------------------------------------------------------------------
-async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImage, profileImage, fluencyData, setAnimationId, audioContext, audioDestination, { silent = false, overlayVariant = 'fluency', shareCta = null } = {}) {
+async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImage, profileImage, fluencyData, setAnimationId, audioContext, audioDestination, { silent = false, overlayVariant = 'fluency', shareCta = null, onStepStart = null, onStepEnd = null } = {}) {
     const ctx = canvas.getContext('2d');
     const planner = new VideoRenderPlanner();
     let currentAudioSource = null;
@@ -348,6 +383,9 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
         // next step loads (or on finish) so blobs are not pinned for the page life.
         let currentObjectUrl = null;
         const finish = () => {
+            // Close any still-open step range (a publishable clip that never
+            // advanced, e.g. the loop ended on its last step).
+            onStepEnd?.(plan[stepIndex]);
             if (currentObjectUrl) {
                 URL.revokeObjectURL(currentObjectUrl);
                 currentObjectUrl = null;
@@ -574,6 +612,7 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                         // loop can detect stalls and apply a wall-clock fallback.
                         stepStartedPlaying = true;
                         stepPlayStart = performance.now();
+                        onStepStart?.(step);
                     } catch (err) {
                         console.warn('[VideoProcessor] Browser blocked autoplay. Retrying muted.', err);
                         if (stale()) {
@@ -756,9 +795,10 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                 stopDecodedAudio();
                 // NOTE: do NOT null step.remoteBlob/decodedAudio here. `draw`
                 // runs every frame and `shouldAdvance` stays true until
-                // nextStep() swaps the element, and the same plan objects are
-                // shared with the concurrent R2 export (renderStepToBlob spreads
-                // the step). Mutating them drops clips from the recap/export.
+                // nextStep() swaps the element; the plan objects are reused by
+                // the per-segment export fallback (renderStepToBlob spreads the
+                // step), so mutating them can drop clips.
+                onStepEnd?.(step);
                 stepIndex++;
                 nextStep();
             }
@@ -1296,8 +1336,10 @@ async function transcodeToMp4WithFallback(blob) {
 }
 
 // Render a single plan step into a per-segment Blob by reusing executeRenderLoop
-// with a single-step plan (isFirst:false) and the silent flag.
-async function renderStepToBlob({ step, video, canvas, overlayImage, profileImage, fluencyData, audioContext }) {
+// with a single-step plan (isFirst:false) and the silent flag. This is the
+// fallback used only when the primary trim path cannot run (no WebCodecs); the
+// step is rendered with the recap's overlay so the clip matches the trimmed one.
+async function renderStepToBlob({ step, video, canvas, overlayImage, profileImage, fluencyData, audioContext, overlayVariant = 'fluency', shareCta = null }) {
     const audioDestination = audioContext.createMediaStreamDestination();
 
     // Route the webcam <video> element's audio into the recording graph. On
@@ -1334,7 +1376,7 @@ async function renderStepToBlob({ step, video, canvas, overlayImage, profileImag
             overlayImage, profileImage, fluencyData,
             () => {},
             audioContext, audioDestination,
-            { silent: true }
+            { silent: true, overlayVariant, shareCta }
         ).then(() => recorder.stop()).catch((e) => {
             try { recorder.stop(); } catch {}
             reject(e);
@@ -1344,7 +1386,7 @@ async function renderStepToBlob({ step, video, canvas, overlayImage, profileImag
     return { blob, ext };
 }
 
-export async function exportSegmentsToR2(lessonId) {
+export async function exportSegmentsToR2(lessonId, segments = [], stitchedBlob = null) {
     if (!appStore.getState().isLoggedIn) {
         console.warn('[ExportSegments] Not logged in, aborting R2 publish');
         return { count: 0, succeeded: 0, askPublished: false };
@@ -1356,26 +1398,17 @@ export async function exportSegmentsToR2(lessonId) {
         return { count: 0, succeeded: 0, askPublished: false };
     }
 
-    trackEvent('publish_clips_batch_start', { lessonId });
+    // `segments` is the range list captured by processVideo; the recap's overlay
+    // options ride along as array properties so the re-render fallback can match
+    // the trimmed clips when the trim path is unavailable.
+    const overlayVariant = segments?.overlayVariant || 'fluency';
+    const shareCta = segments?.shareCta || null;
 
-    const recordings = await getAllSpeechRecordingsForLesson(lessonId) || [];
-    const snapshot = appStore.getState();
-    const configData = snapshot.configData || {};
-    const fluencyData = snapshot.successFluencyData;
-    // Same guest-first precedence as process() and normalizeConfig, so the
-    // published cue translations match the recap CTA language.
-    const userLang = resolveConfigLanguage(snapshot.guestNativeLanguage, snapshot.userData?.native_language);
-
-    // No shareCode passed: only the tailing step consumes it, and tailing is
-    // filtered out of the publishable set below.
-    const planner = new VideoRenderPlanner(recordings, configData, fluencyData, userLang);
-    const fullPlan = planner.generatePlan();
-    // Only publish the user's own webcam responses. The `remote` steps are
-    // system/model prompt clips — never user-generated, so we must not upload
-    // them to the user's R2 namespace.
-    const publishable = fullPlan.filter(s =>
-        s.type === 'webcam' && s.blob && !s.isTextMode
-    );
+    // Only publish the user's own webcam responses. `remote` steps are
+    // system/model prompt clips — never user-generated.
+    const publishable = (segments || [])
+        .filter(({ step }) => isPublishableClip(step))
+        .map(({ step, startSec, endSec }) => ({ ...step, rangeStartSec: startSec, rangeEndSec: endSec }));
 
     if (publishable.length === 0) {
         console.log('[ExportSegments] No publishable segments');
@@ -1383,49 +1416,77 @@ export async function exportSegmentsToR2(lessonId) {
         return { count: 0, succeeded: 0, askPublished: false };
     }
 
-    const audioContext = getOrCreateExportAudioContext();
-    const video = getOrCreateExportVideoElement();
-    const profileImage = await loadProfileImage();
-    const overlayImage = new Image();
-    overlayImage.src = headerImg;
+    trackEvent('publish_clips_batch_start', { lessonId });
 
-    // Probe dimensions from the first webcam step (mirrors processVideo).
-    const probeStep = publishable.find(s => s.type === 'webcam' && s.blob);
-    if (probeStep) {
-        video.src = URL.createObjectURL(probeStep.blob);
-        await new Promise((res) => {
-            video.onloadedmetadata = res;
-            setTimeout(res, 2000);
-        });
-    }
-    const dims = planner.getTargetDimensions(video.videoWidth || 1080, video.videoHeight || 1920);
-    const videoCanvas = getOrCreateExportVideoCanvas(dims.width, dims.height);
+    const snapshot = appStore.getState();
+    const courseId = snapshot.courseId;
+    const fluencyData = snapshot.successFluencyData;
 
     // Which lesson each segment publishes under, numbered per target. Ask steps
     // embedded in an answer lesson carry `publishLessonId` so their clips land
     // under the ask lesson (where a friend's 'b' lesson fetches them).
-    const courseId = appStore.getState().courseId;
     const targets = assignSegmentTargets(publishable, lessonId);
+
+    // Lazy fallback context — only built if a trim fails (no WebCodecs, or an
+    // unreadable source range). The re-render path is the pre-existing one.
+    let fallback = null;
+    const getFallback = async () => {
+        if (fallback) return fallback;
+        const audioContext = getOrCreateExportAudioContext();
+        const video = getOrCreateExportVideoElement();
+        const profileImage = await loadProfileImage();
+        const overlayImage = new Image();
+        overlayImage.src = headerImg;
+        fallback = { audioContext, video, profileImage, overlayImage };
+        return fallback;
+    };
+
+    const renderFallbackSegment = async (step) => {
+        const { audioContext, video, profileImage, overlayImage } = await getFallback();
+        const url = URL.createObjectURL(step.blob);
+        video.src = url;
+        await new Promise((res) => {
+            video.onloadedmetadata = res;
+            setTimeout(res, 2000);
+        });
+        const dims = new VideoRenderPlanner().getTargetDimensions(
+            video.videoWidth || 1080, video.videoHeight || 1920
+        );
+        const canvas = getOrCreateExportVideoCanvas(dims.width, dims.height);
+        URL.revokeObjectURL(url);
+        const rendered = await renderStepToBlob({
+            step, video, canvas, overlayImage, profileImage, fluencyData, audioContext,
+            overlayVariant, shareCta,
+        });
+        return transcodeToMp4WithFallback(rendered.blob);
+    };
+
     let askPublished = false;
     let succeeded = 0;
     for (let i = 0; i < publishable.length; i++) {
         const step = publishable[i];
 
-        // 1) Render the step to a per-segment blob.
-        let segBlob;
-        try {
-            const result = await renderStepToBlob({
-                step, video, canvas: videoCanvas, overlayImage, profileImage, fluencyData, audioContext,
-            });
-            segBlob = result.blob;
-        } catch (e) {
-            console.error('[ExportSegments] renderStepToBlob failed:', e);
-            trackEvent('publish_clips_segment_failed', { lessonId, index: i, error: 'render' });
-            continue;
+        // 1) Primary: trim the step's range out of the stitched recording.
+        // 2) Fallback: re-render the step (no WebCodecs, or trim failure).
+        let mp4 = null;
+        let path = null;
+        if (stitchedBlob) {
+            try {
+                mp4 = await transcodeRangeToMp4(stitchedBlob, step.rangeStartSec, step.rangeEndSec);
+                path = 'trim';
+            } catch (e) {
+                console.warn('[ExportSegments] trim failed; falling back to re-render:', e?.message || e);
+            }
         }
-
-        // 2) Transcode to mp4 (WebCodecs primary, Cloudinary fallback).
-        const { mp4, path } = await transcodeToMp4WithFallback(segBlob);
+        if (!mp4) {
+            try {
+                const rendered = await renderFallbackSegment(step);
+                mp4 = rendered.mp4;
+                path = rendered.path;
+            } catch (e) {
+                console.error('[ExportSegments] fallback render failed:', e);
+            }
+        }
 
         if (!mp4) {
             trackEvent('publish_clips_segment_failed', { lessonId, index: i, error: 'transcode' });

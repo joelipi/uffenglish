@@ -220,6 +220,61 @@ export function buildUgcSegmentKey({ shareCode, courseId, lessonId, index }) {
     return `videos/${shareCode}-${courseId}-${lessonId}-response-${String(index).padStart(2, '0')}.mp4`;
 }
 
+// ---------------------------------------------------------------------------
+// Per-segment publish — clip selection and range calibration.
+//
+// The whole lesson is rendered once into a single stitched recording; the
+// per-segment clips are trimmed out of that recording. Which plan steps have a
+// clip, and where each clip sits on the recording timeline, are pure decisions.
+// ---------------------------------------------------------------------------
+
+// A publishable clip is the user's own webcam answer with a real blob. Remote
+// (model/friend) prompt clips and text-mode avatar cards are never published.
+export function isPublishableClip(step) {
+    return !!step && step.type === 'webcam' && !!step.blob && !step.isTextMode;
+}
+
+// Shorter than this and the "clip" is a failed-load artifact (a step that never
+// played), not a real answer.
+export const MIN_SEGMENT_SECONDS = 0.4;
+
+/**
+ * Converts wall-clock step ranges (ms since `recorder.start()`) into trimmed
+ * ranges in seconds against the recording's own timeline.
+ *
+ * The recorder can begin a little after `recorder.start()`, so the raw offsets
+ * are shifted earlier by whatever the recording is shorter than the elapsed
+ * wall-clock (`elapsedMs/1000 - probedDurationSec`). When the duration probe is
+ * unavailable, the ranges are converted to seconds without shifting or
+ * clamping. Sub-floor ranges are always dropped.
+ *
+ * @param {Array<{step: object, startMs: number, endMs: number}>} rawRanges
+ * @param {number} elapsedMs wall-clock from `recorder.start()` to the end
+ * @param {number|null} probedDurationSec the recording's real duration
+ * @returns {Array<{step: object, startSec: number, endSec: number}>}
+ */
+export function calibrateSegmentRanges(rawRanges, elapsedMs, probedDurationSec) {
+    const ranges = Array.isArray(rawRanges) ? rawRanges : [];
+    const hasProbe = Number.isFinite(probedDurationSec) && probedDurationSec > 0;
+    const elapsedSec = Number.isFinite(elapsedMs) ? elapsedMs / 1000 : 0;
+    const offsetSec = hasProbe ? elapsedSec - probedDurationSec : 0;
+
+    const calibrated = [];
+    for (const range of ranges) {
+        if (!range || !range.step) continue;
+        if (!Number.isFinite(range.startMs) || !Number.isFinite(range.endMs)) continue;
+        let startSec = range.startMs / 1000 - offsetSec;
+        let endSec = range.endMs / 1000 - offsetSec;
+        if (hasProbe) {
+            startSec = Math.max(0, Math.min(startSec, probedDurationSec));
+            endSec = Math.max(0, Math.min(endSec, probedDurationSec));
+        }
+        if (endSec - startSec < MIN_SEGMENT_SECONDS) continue;
+        calibrated.push({ step: range.step, startSec, endSec });
+    }
+    return calibrated;
+}
+
 /**
  * Platform-Agnostic Video Render Planner
  * Analyzes recordings and generates a flat, step-by-step blueprint

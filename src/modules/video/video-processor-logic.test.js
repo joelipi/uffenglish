@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { VideoRenderPlanner, resolveRecapOverlay, resolveRecapSources, isDroppedStep, markFirstRenderable, resolveSegmentBounds, UNRESOLVED_SEGMENT_CAP_MS, STALL_GRACE_MS, resolvePublishLessonId, assignSegmentTargets, buildUgcSegmentKey } from './video-processor-logic.js';
+import { VideoRenderPlanner, resolveRecapOverlay, resolveRecapSources, isDroppedStep, markFirstRenderable, resolveSegmentBounds, UNRESOLVED_SEGMENT_CAP_MS, STALL_GRACE_MS, resolvePublishLessonId, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges, MIN_SEGMENT_SECONDS } from './video-processor-logic.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '../../..');
@@ -591,6 +591,64 @@ describe('buildUgcSegmentKey', () => {
     it('does not truncate indices above 9', () => {
         expect(buildUgcSegmentKey({ shareCode: 'ab12', courseId: 'model', lessonId: 'b', index: 12 }))
             .toBe('videos/ab12-model-b-response-12.mp4');
+    });
+});
+
+describe('isPublishableClip', () => {
+    it('accepts a webcam step with a blob that is not text-mode', () => {
+        expect(isPublishableClip({ type: 'webcam', blob: { size: 1 } })).toBe(true);
+    });
+
+    it('rejects text-mode, blobless, remote and tailing steps', () => {
+        expect(isPublishableClip({ type: 'webcam', blob: { size: 1 }, isTextMode: true })).toBe(false);
+        expect(isPublishableClip({ type: 'webcam', blob: null })).toBe(false);
+        expect(isPublishableClip({ type: 'remote', blob: { size: 1 } })).toBe(false);
+        expect(isPublishableClip({ type: 'tailing' })).toBe(false);
+    });
+
+    it('rejects null / undefined', () => {
+        expect(isPublishableClip(null)).toBe(false);
+        expect(isPublishableClip(undefined)).toBe(false);
+    });
+});
+
+describe('calibrateSegmentRanges', () => {
+    const stepA = { type: 'webcam', blob: { size: 1 } };
+    const stepB = { type: 'webcam', blob: { size: 1 } };
+
+    it('converts to seconds unchanged when the duration probe is unavailable', () => {
+        const raw = [{ step: stepA, startMs: 1000, endMs: 5000 }];
+        expect(calibrateSegmentRanges(raw, 12000, null)).toEqual([{ step: stepA, startSec: 1, endSec: 5 }]);
+        expect(calibrateSegmentRanges(raw, 12000, 0)).toEqual([{ step: stepA, startSec: 1, endSec: 5 }]);
+    });
+
+    it('shifts ranges earlier by the recorder start offset', () => {
+        // 12 s elapsed but the recording is only 11.5 s → started 0.5 s late.
+        const raw = [{ step: stepA, startMs: 2000, endMs: 6000 }, { step: stepB, startMs: 7000, endMs: 9000 }];
+        expect(calibrateSegmentRanges(raw, 12000, 11.5)).toEqual([
+            { step: stepA, startSec: 1.5, endSec: 5.5 },
+            { step: stepB, startSec: 6.5, endSec: 8.5 },
+        ]);
+    });
+
+    it('clamps a shifted start to 0 and an end to the probed duration', () => {
+        const raw = [{ step: stepA, startMs: 200, endMs: 60000 }];
+        expect(calibrateSegmentRanges(raw, 60000, 59.5)).toEqual([
+            { step: stepA, startSec: 0, endSec: 59.5 },
+        ]);
+    });
+
+    it('drops sub-floor ranges', () => {
+        expect(MIN_SEGMENT_SECONDS).toBeGreaterThan(0);
+        const raw = [{ step: stepA, startMs: 1000, endMs: 1100 }];
+        expect(calibrateSegmentRanges(raw, 5000, 5)).toEqual([]);
+    });
+
+    it('handles empty / malformed input', () => {
+        expect(calibrateSegmentRanges(null, 5000, 5)).toEqual([]);
+        expect(calibrateSegmentRanges([], 5000, 5)).toEqual([]);
+        expect(calibrateSegmentRanges([{ step: stepA, startMs: NaN, endMs: 5 }], 5000, 5)).toEqual([]);
+        expect(calibrateSegmentRanges([{ startMs: 0, endMs: 5000 }], 5000, 5)).toEqual([]);
     });
 });
 

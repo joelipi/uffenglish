@@ -99,7 +99,7 @@ export function VideoButton({ canvasRef }) {
           // Publishing to R2 (and recording the friend link) must never fail the
           // video-generation flow: the stitched video is already ready above.
           try {
-            const exportResult = await exportSegmentsToR2(lessonId);
+            const exportResult = await exportSegmentsToR2(lessonId, result.segments, result.blob);
             // Best-effort: also publish the concatenated recap to R2 (same
             // videos/ namespace, 48h TTL). Fire-and-forget so a slow or failed
             // complete upload never delays the friend link or the UI.
