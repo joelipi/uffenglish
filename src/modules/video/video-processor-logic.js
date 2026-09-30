@@ -276,10 +276,17 @@ export class VideoRenderPlanner {
             if (needsRemote) {
                 const remoteSlug = this._getRemoteTarget(rec);
                 if (remoteSlug && remoteSource(remoteSlug) === sources) {
+                    // Friend (UGC) clips are already captioned: they are
+                    // published per-segment with their own speaker's cue burned
+                    // in (exportSegmentsToR2 -> renderStepToBlob). Drawing the
+                    // response step's cue here would stamp the current user's
+                    // answer onto the friend's question video, so a friend
+                    // prompt gets no recap subtitle.
+                    const isFriendClip = remoteSource(remoteSlug) === 'friend';
                     plan.push({
                         type: 'remote',
                         targetId: remoteSlug,
-                        subtitle: this._getStepCue(rec),
+                        subtitle: isFriendClip ? null : this._getStepCue(rec),
                         isFirst: plan.length === 0
                     });
                 }

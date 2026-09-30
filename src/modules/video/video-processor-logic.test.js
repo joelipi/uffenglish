@@ -231,8 +231,9 @@ describe('VideoRenderPlanner.generatePlan — recapSources clip selection', () =
         expect(plan.map(s => s.type)).toEqual(['remote', 'webcam', 'tailing']);
         const remote = plan.find(s => s.type === 'remote');
         expect(remote.targetId).toBe('ab12-model-w-response-01');
-        // Cue still comes from the recorded response step, not the friend clip.
-        expect(remote.subtitle.en).toBe('Q1');
+        // The friend clip already carries its own burned-in caption, so the
+        // recap draws no subtitle over it (not the response step's cue).
+        expect(remote.subtitle).toBeNull();
     });
 
     it('pairs each click-through friend clip with its own response question', () => {
@@ -366,6 +367,125 @@ describe('VideoRenderPlanner.generatePlan — recapSources clip selection', () =
 
         expect(plan.filter(s => s.type === 'remote')).toHaveLength(1);
         expect(plan.map(s => s.type)).toEqual(['remote', 'webcam', 'webcam', 'tailing']);
+    });
+});
+
+describe('VideoRenderPlanner.generatePlan — friend remote subtitle', () => {
+    // A friend (UGC) clip is published per-segment with its own speaker's cue
+    // burned in, so the recap must not draw the response step's cue over it.
+    it('draws no subtitle over a recorded step’s own friend clip', () => {
+        const steps = [
+            { responseType: 'lessonIntro', introBackgroundVideoUrl: 'testvideo01' },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'ab12-model-w-response-09', cue: 'Q1' },
+        ];
+        const recordings = [{
+            originalLessonId: 'w',
+            originalStepIndex: 1,
+            blob: { size: 1 },
+            matchedCue: 'I would rather have a million dollars.',
+            userResponse: 'i would rather have a million dollars',
+        }];
+        const plan = new VideoRenderPlanner(
+            recordings, makeConfig({ recapSources: 'friend', steps }), { total: 80 }, 'en', 'ab12'
+        ).generatePlan();
+
+        const remote = plan.find(s => s.type === 'remote');
+        expect(remote.targetId).toBe('ab12-model-w-response-09');
+        expect(remote.subtitle).toBeNull();
+        // The webcam (current user) rule is unchanged.
+        expect(plan.find(s => s.type === 'webcam').subtitle.en).toBe('I would rather have a million dollars.');
+    });
+
+    it('draws no subtitle over a borrowed click-through friend clip', () => {
+        const steps = [
+            { responseType: 'lessonIntro', introBackgroundVideoUrl: 'testvideo01' },
+            { responseType: 'viewAndContinue', simpleVideoUrl: 'ab12-model-w-response-01' },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'testvideo05', cue: 'Q1' },
+        ];
+        const recordings = [{
+            originalLessonId: 'w',
+            originalStepIndex: 2,
+            blob: { size: 1 },
+            matchedCue: 'Q1 matched',
+            userResponse: 'q1 matched',
+        }];
+        const plan = new VideoRenderPlanner(
+            recordings, makeConfig({ recapSources: 'friend', steps }), { total: 80 }, 'en', 'ab12'
+        ).generatePlan();
+
+        const remote = plan.find(s => s.type === 'remote');
+        expect(remote.targetId).toBe('ab12-model-w-response-01');
+        expect(remote.subtitle).toBeNull();
+        expect(plan.find(s => s.type === 'webcam').subtitle.en).toBe('Q1 matched');
+    });
+
+    it('does not fall back to the configured cue when the friend clip has no match', () => {
+        const steps = [
+            { responseType: 'lessonIntro', introBackgroundVideoUrl: 'testvideo01' },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'ab12-model-w-response-09', cue: 'Q1' },
+        ];
+        const recordings = [{
+            originalLessonId: 'w',
+            originalStepIndex: 1,
+            blob: { size: 1 },
+            userResponse: 'answer 1',
+        }];
+        const remote = new VideoRenderPlanner(
+            recordings, makeConfig({ recapSources: 'friend', steps }), { total: 80 }, 'en', 'ab12'
+        ).generatePlan().find(s => s.type === 'remote');
+
+        expect(remote.subtitle).toBeNull();
+    });
+
+    it('draws no subtitle over any of three interleaved friend clips', () => {
+        const steps = [
+            { responseType: 'lessonIntro', introBackgroundVideoUrl: 'testvideo01' },
+            { responseType: 'viewAndContinue', simpleVideoUrl: 'ab12-model-w-response-01' },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'testvideo05', cue: 'Q1' },
+            { responseType: 'viewAndContinue', simpleVideoUrl: 'ab12-model-w-response-02' },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'testvideo06', cue: 'Q2' },
+            { responseType: 'viewAndContinue', simpleVideoUrl: 'ab12-model-w-response-03' },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'testvideo07', cue: 'Q3' },
+        ];
+        const recordings = [2, 4, 6].map((i) => ({
+            originalLessonId: 'w',
+            originalStepIndex: i,
+            blob: { size: 1 },
+            matchedCue: `Q${i / 2}`,
+            userResponse: `a${i}`,
+        }));
+        const plan = new VideoRenderPlanner(
+            recordings, makeConfig({ recapSources: 'friend', steps }), { total: 80 }, 'en', 'ab12'
+        ).generatePlan();
+
+        expect(plan.map(s => s.type)).toEqual([
+            'remote', 'webcam', 'remote', 'webcam', 'remote', 'webcam', 'tailing',
+        ]);
+        const remotes = plan.filter(s => s.type === 'remote');
+        expect(remotes.map(s => s.targetId)).toEqual([
+            'ab12-model-w-response-01',
+            'ab12-model-w-response-02',
+            'ab12-model-w-response-03',
+        ]);
+        for (const remote of remotes) expect(remote.subtitle).toBeNull();
+    });
+
+    it('keeps the cue subtitle on a system prompt remote', () => {
+        const steps = [
+            { responseType: 'lessonIntro', introBackgroundVideoUrl: 'testvideo01' },
+            { responseType: 'closedResponse', interactiveVideoUrl: 'testvideo02', cue: 'Q1' },
+        ];
+        const recordings = [{
+            originalLessonId: 'w',
+            originalStepIndex: 1,
+            blob: { size: 1 },
+            userResponse: 'answer 1',
+        }];
+        const remote = new VideoRenderPlanner(
+            recordings, makeConfig({ recapSources: 'system', steps }), { total: 80 }, 'en', 'ab12'
+        ).generatePlan().find(s => s.type === 'remote');
+
+        expect(remote.subtitle.en).toBe('Q1');
     });
 });
 
@@ -791,6 +911,16 @@ describe('recap subtitle docs', () => {
         expect(limitations).toMatch(
             /an open-response answer has no canonical cue to match and still burns the transcript/i
         );
+    });
+
+    it('states the friend-clip no-overlay rule in the docs', () => {
+        expect(product).toContain('stories/036-fix-friend-lesson-subtitles/story.md');
+        expect(features).toContain('Friend clips keep their own caption in the recap');
+        expect(features).toContain('gets no subtitle from the recap');
+        expect(features).toContain("already carries its own speaker's caption burned in");
+        expect(limitations).toContain('no burned-in caption');
+        expect(limitations).toContain('shows no subtitle');
+        expect(limitations).toContain('never used as a fallback');
     });
 });
 
