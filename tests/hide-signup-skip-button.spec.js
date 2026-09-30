@@ -2,12 +2,14 @@
 // Story 034 — hide the pre-video signup modal's "Not now" button and align the
 // first/last name fields with the other fields.
 //
-// Two layers of coverage:
-//   1. Real-app: open SaveClipsModal and assert the "Not now" button is present
-//      in the DOM but not visible, while the signup/login actions remain.
-//   2. Stylesheet-injected: render the signup markup with the real app.css and
-//      assert the rendered geometry (name inputs line up with the email input).
-//   3. Source guards: the CSS rules and the JSX element/handler still exist.
+// Coverage is against the REAL components (not hand-copied markup):
+//   1. Real-app modal: open SaveClipsModal and assert the "Not now" button is
+//      present in the DOM but not visible, while the signup/login actions
+//      remain; measure the real name/email inputs for alignment.
+//   2. Real-app standalone signup page: navigate to /signup and measure the
+//      real name/email inputs.
+//   3. Source guards: the CSS rules exist, and the real component files still
+//      carry the grid classes / button element the tests depend on.
 import { test, expect } from '@playwright/test';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -15,61 +17,15 @@ import path from 'node:path';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, '..');
-const APP_CSS = readFileSync(path.join(ROOT, 'src', 'assets', 'css', 'app.css'), 'utf8');
-const SAVE_CLIPS_MODAL_SRC = readFileSync(
-    path.join(ROOT, 'src', 'components', 'modals', 'SaveClipsModal.web.jsx'),
-    'utf8'
-);
+const read = (...segments) => readFileSync(path.join(ROOT, ...segments), 'utf8');
+
+const APP_CSS = read('src', 'assets', 'css', 'app.css');
+const SAVE_CLIPS_MODAL_SRC = read('src', 'components', 'modals', 'SaveClipsModal.web.jsx');
+const SAVE_CLIPS_FORM_SRC = read('src', 'components', 'modals', 'SaveClipsSignupForm.jsx');
+const SIGNUP_FORM_SRC = read('src', 'components', 'auth', 'SignupForm.web.jsx');
 
 const LESSON_URL = '/course/model/lesson/g';
-
-// Markup mirroring SaveClipsSignupForm (col-6 name row + full-width email).
-const MODAL_FORM_MARKUP = `
-  <div id="saveClipsModal">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-body">
-          <form>
-            <div class="row mb-3">
-              <div class="col-6">
-                <label class="form-label" for="save-clips-first-name">First</label>
-                <input type="text" class="form-control" id="save-clips-first-name" />
-              </div>
-              <div class="col-6">
-                <label class="form-label" for="save-clips-last-name">Last</label>
-                <input type="text" class="form-control" id="save-clips-last-name" />
-              </div>
-            </div>
-            <div class="mb-3">
-              <label class="form-label" for="save-clips-email">Email</label>
-              <input type="email" class="form-control" id="save-clips-email" />
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>`;
-
-// Markup mirroring SignupForm.web.jsx (col-md-6 name row + full-width email).
-const SIGNUP_PAGE_MARKUP = `
-  <div style="width: 420px">
-    <form>
-      <div class="row mb-3">
-        <div class="col-md-6">
-          <label class="form-label" for="first-name">First</label>
-          <input type="text" class="form-control" id="first-name" />
-        </div>
-        <div class="col-md-6 mt-3 mt-md-0">
-          <label class="form-label" for="last-name">Last</label>
-          <input type="text" class="form-control" id="last-name" />
-        </div>
-      </div>
-      <div class="mb-3">
-        <label class="form-label" for="email">Email</label>
-        <input type="email" class="form-control" id="email" />
-      </div>
-    </form>
-  </div>`;
+const SIGNUP_URL = '/signup';
 
 /** Edge geometry of an element, in viewport coordinates. */
 async function edges(page, selector) {
@@ -79,26 +35,34 @@ async function edges(page, selector) {
     });
 }
 
-test.describe('Story 034 — pre-video signup modal', () => {
-    test('"Not now" is present but hidden; signup and login actions remain', async ({ page }) => {
-        await page.goto(LESSON_URL);
-        // Clear the guest-language gate so the app boots.
-        await page.waitForFunction(
-            () => window.appStore?.getState()?.configData || document.querySelector('#guestEnglishOnlyBtn'),
-            null,
-            { timeout: 30000 }
-        );
-        if (await page.locator('#guestEnglishOnlyBtn').count()) {
-            await page.click('#guestEnglishOnlyBtn').catch(() => {});
-            const cont = page.locator('#guestContinueBtn');
-            await cont.waitFor({ state: 'visible', timeout: 3000 }).then(() => cont.click()).catch(() => {});
-        }
-        await page.waitForFunction(() => window.appStore?.getState()?.configData, null, { timeout: 20000 });
+/** Boot the app on a lesson and clear the guest-language gate. */
+async function bootApp(page) {
+    await page.goto(LESSON_URL);
+    await page.waitForFunction(
+        () => window.appStore?.getState()?.configData || document.querySelector('#guestEnglishOnlyBtn'),
+        null,
+        { timeout: 30000 }
+    );
+    if (await page.locator('#guestEnglishOnlyBtn').count()) {
+        await page.click('#guestEnglishOnlyBtn').catch(() => {});
+        const cont = page.locator('#guestContinueBtn');
+        await cont.waitFor({ state: 'visible', timeout: 3000 }).then(() => cont.click()).catch(() => {});
+    }
+    await page.waitForFunction(() => window.appStore?.getState()?.configData, null, { timeout: 20000 });
+}
 
-        // Open the pre-video signup modal directly.
-        await page.evaluate(() => {
-            window.appStore.getState().setSaveClipsModalOpen(true);
-        });
+/** Open the real pre-video signup modal. */
+async function openSaveClipsModal(page) {
+    await page.evaluate(() => {
+        window.appStore.getState().setSaveClipsModalOpen(true);
+    });
+    await expect(page.locator('#saveClipsModal')).toBeVisible();
+}
+
+test.describe('Story 034 — pre-video signup modal (real component)', () => {
+    test('"Not now" is present but hidden; signup and login actions remain', async ({ page }) => {
+        await bootApp(page);
+        await openSaveClipsModal(page);
 
         const notNow = page.locator('#saveClipsNotNowBtn');
         // Present in the DOM (hidden, not removed).
@@ -111,9 +75,10 @@ test.describe('Story 034 — pre-video signup modal', () => {
         await expect(page.locator('#saveClipsLoginLink')).toBeVisible();
     });
 
-    test('modal name fields align with the email field at >=768px', async ({ page }) => {
+    test('real name fields align with the email field at >=768px', async ({ page }) => {
         await page.setViewportSize({ width: 900, height: 900 });
-        await page.setContent(`<style>${APP_CSS}</style>${MODAL_FORM_MARKUP}`);
+        await bootApp(page);
+        await openSaveClipsModal(page);
 
         const first = await edges(page, '#save-clips-first-name');
         const last = await edges(page, '#save-clips-last-name');
@@ -125,9 +90,10 @@ test.describe('Story 034 — pre-video signup modal', () => {
         expect(Math.abs(first.top - last.top)).toBeLessThanOrEqual(1);
     });
 
-    test('modal name fields stay side by side below 768px (col-6 applies at all widths)', async ({ page }) => {
+    test('real name fields stay side by side below 768px (col-6 applies at all widths)', async ({ page }) => {
         await page.setViewportSize({ width: 375, height: 800 });
-        await page.setContent(`<style>${APP_CSS}</style>${MODAL_FORM_MARKUP}`);
+        await bootApp(page);
+        await openSaveClipsModal(page);
 
         const first = await edges(page, '#save-clips-first-name');
         const last = await edges(page, '#save-clips-last-name');
@@ -138,10 +104,11 @@ test.describe('Story 034 — pre-video signup modal', () => {
     });
 });
 
-test.describe('Story 034 — standalone signup page', () => {
-    test('name fields align with the email field at >=768px', async ({ page }) => {
+test.describe('Story 034 — standalone signup page (real component)', () => {
+    test('real name fields align with the email field at >=768px', async ({ page }) => {
         await page.setViewportSize({ width: 900, height: 900 });
-        await page.setContent(`<style>${APP_CSS}</style>${SIGNUP_PAGE_MARKUP}`);
+        await page.goto(SIGNUP_URL);
+        await expect(page.locator('#first-name')).toBeVisible();
 
         const first = await edges(page, '#first-name');
         const last = await edges(page, '#last-name');
@@ -154,15 +121,20 @@ test.describe('Story 034 — standalone signup page', () => {
         expect(Math.abs(first.top - last.top)).toBeLessThanOrEqual(1);
     });
 
-    test('name fields stack below 768px with a top margin on the last name', async ({ page }) => {
+    test('real name fields stack full-width below 768px with a top margin on the last name', async ({ page }) => {
         await page.setViewportSize({ width: 375, height: 800 });
-        await page.setContent(`<style>${APP_CSS}</style>${SIGNUP_PAGE_MARKUP}`);
+        await page.goto(SIGNUP_URL);
+        await expect(page.locator('#first-name')).toBeVisible();
 
         const first = await edges(page, '#first-name');
         const last = await edges(page, '#last-name');
+        const email = await edges(page, '#email');
 
         // Stacked: last name is below the first name.
-        expect(last.top).toBeGreaterThan(first.top + first.width * 0 + 1);
+        expect(last.top).toBeGreaterThan(first.top + 1);
+        // Full width: each name input spans the same width as the email input.
+        expect(Math.abs(first.width - email.width)).toBeLessThanOrEqual(1);
+        expect(Math.abs(last.width - email.width)).toBeLessThanOrEqual(1);
         // mt-3 applies below 768px.
         const marginTop = await page.locator('#last-name').evaluate((el) => {
             const col = el.closest('.col-md-6');
@@ -175,13 +147,25 @@ test.describe('Story 034 — standalone signup page', () => {
 test.describe('Story 034 — source guards', () => {
     test('app.css hides #saveClipsNotNowBtn and defines the grid classes', () => {
         expect(APP_CSS).toMatch(/#saveClipsNotNowBtn\s*\{[^}]*display:\s*none/);
+        expect(APP_CSS).toMatch(/\.row\s*>\s*\*\s*\{[^}]*width:\s*100%/);
         expect(APP_CSS).toMatch(/\.col-6\s*\{[^}]*width:\s*50%/);
         expect(APP_CSS).toMatch(/\.col-md-6\s*\{[^}]*width:\s*50%/);
         expect(APP_CSS).toMatch(/\.mt-md-0\s*\{[^}]*margin-top:\s*0/);
     });
 
-    test('SaveClipsModal still renders the button and keeps handleNotNow', () => {
-        expect(SAVE_CLIPS_MODAL_SRC).toContain('saveClipsNotNowBtn');
-        expect(SAVE_CLIPS_MODAL_SRC).toContain('handleNotNow');
+    test('SaveClipsModal still renders the button wired to handleNotNow', () => {
+        // Structural: the button element with the id and its onClick handler.
+        expect(SAVE_CLIPS_MODAL_SRC).toMatch(
+            /id="saveClipsNotNowBtn"[\s\S]*?onClick=\{handleNotNow\}/
+        );
+        expect(SAVE_CLIPS_MODAL_SRC).toMatch(/const handleNotNow\s*=/);
+    });
+
+    test('the real signup forms still carry the grid classes the tests measure', () => {
+        // SaveClipsSignupForm uses col-6 for both name columns.
+        expect(SAVE_CLIPS_FORM_SRC).toMatch(/className="col-6"/);
+        // SignupForm.web.jsx uses col-md-6 + mt-3 mt-md-0.
+        expect(SIGNUP_FORM_SRC).toMatch(/className="col-md-6"/);
+        expect(SIGNUP_FORM_SRC).toMatch(/className="col-md-6 mt-3 mt-md-0"/);
     });
 });

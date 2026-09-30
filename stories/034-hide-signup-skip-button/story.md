@@ -32,6 +32,9 @@ Add a rule to `src/assets/css/app.css` in the existing modal section (near the `
 The root cause is the missing grid column classes. Add the missing classes to `src/assets/css/app.css` beside the existing `.col-4` rule (line 245), mirroring Bootstrap 5's grid semantics so the existing JSX class names become effective:
 
 ```css
+/* Bootstrap's base grid rule: every direct row child is full-width until a
+   column class overrides it at its breakpoint. */
+.row > * { flex-shrink: 0; width: 100%; max-width: 100%; padding-right: calc(var(--bs-gutter-x, 1.5rem) * 0.5); padding-left: calc(var(--bs-gutter-x, 1.5rem) * 0.5); }
 .col-6 { flex: 0 0 auto; width: 50%; }
 @media (min-width: 768px) {
     .col-md-6 { flex: 0 0 auto; width: 50%; }
@@ -39,18 +42,13 @@ The root cause is the missing grid column classes. Add the missing classes to `s
 }
 ```
 
+- `.row > *` is Bootstrap's base grid rule. Without it, a bare `.col-md-6` below 768px has no width class and shrinks to content width instead of stacking full width. It also carries the gutter padding that cancels the `.row` negative margins, so the name inputs' outer edges line up with the full-width email/password fields. `ScoreBoard`'s `.col-4` children already carry `px-2` (`padding: 0.5rem !important`, app.css:90), which overrides this padding, so `ScoreBoard` is unaffected; `.col-4`'s `width: 33.33%` also wins over `.row > *`'s `width: 100%` by source order (equal specificity, `.col-4` later).
 - `.col-6` is used by `SaveClipsSignupForm.jsx` (lines 38, 51) and applies at all widths.
-- `.col-md-6` is used by `SignupForm.web.jsx` (lines 61, 72) and applies at ≥768px; below that the columns stack full-width, which is the intended mobile behavior.
+- `.col-md-6` is used by `SignupForm.web.jsx` (lines 61, 72) and applies at ≥768px; below that the columns stack full-width via `.row > *`, which is the intended mobile behavior.
 - `.mt-md-0` is used by `SignupForm.web.jsx` line 72 (`col-md-6 mt-3 mt-md-0`) to cancel the mobile top margin once the columns sit side by side. `.mt-3` already exists (app.css:70); `.mt-md-0` does not.
-- The `.row` wrapper's negative horizontal margins (`-0.5 * 1.5rem` each side, app.css:244) are cancelled by the columns' own padding only if the columns carry horizontal padding. Bootstrap columns normally carry `padding-right/left: calc(var(--bs-gutter-x) * .5)`. To keep the name row's outer edges flush with the full-width `.mb-3` fields (which have no negative margin), add the matching gutter padding to the new column classes:
+- The existing `.col-4` rule is left untouched (out of scope; changing it would affect `ScoreBoard`).
 
-```css
-.col-6, .col-md-6 { padding-right: calc(var(--bs-gutter-x, 1.5rem) * 0.5); padding-left: calc(var(--bs-gutter-x, 1.5rem) * 0.5); }
-```
-
-  This makes the left edge of the first-name column and the right edge of the last-name column line up with the email/password inputs, and the gutter between the two name columns equal the row gutter. The existing `.col-4` rule is left untouched (out of scope; changing it would affect `ScoreBoard`).
-
-**Alignment verification rule (explicit):** after the fix, in a viewport ≥768px, the left edge of `#save-clips-first-name` and the left edge of `#save-clips-email` must differ by ≤1px, and the right edge of `#save-clips-last-name` and the right edge of `#save-clips-email` must differ by ≤1px. The same holds for `#first-name` / `#email` on the standalone signup page.
+**Alignment verification rule (explicit):** after the fix, in a viewport ≥768px, the left edge of `#save-clips-first-name` and the left edge of `#save-clips-email` must differ by ≤1px, and the right edge of `#save-clips-last-name` and the right edge of `#save-clips-email` must differ by ≤1px. The same holds for `#first-name` / `#email` on the standalone signup page. Below 768px, the standalone page's name inputs stack full-width (each within 1px of the email input's width).
 
 ## Tasks
 
@@ -77,7 +75,8 @@ The root cause is the missing grid column classes. Add the missing classes to `s
   - → `#first-name` and `#last-name` have equal widths (within 1px)
   - → top edge of `#first-name` is within 1px of the top edge of `#last-name` (`mt-md-0` cancels `mt-3`)
 - Standalone signup page at viewport width <768px + form rendered
-  - → `#first-name` and `#last-name` stack vertically (each full width)
+  - → `#first-name` and `#last-name` stack vertically
+  - → each name input is full width (within 1px of `#email`'s width)
   - → `#last-name` has a non-zero top margin (`mt-3` applies; `mt-md-0` does not)
 - Pre-video signup modal (`SaveClipsModal`) at viewport width ≥768px + form rendered
   - → left edge of `#save-clips-first-name` is within 1px of the left edge of `#save-clips-email`
@@ -87,8 +86,11 @@ The root cause is the missing grid column classes. Add the missing classes to `s
 - Pre-video signup modal at viewport width <768px + form rendered
   - → `#save-clips-first-name` and `#save-clips-last-name` remain side by side at ~50% width each (`col-6` applies at all widths; the modal form does not stack)
 - `src/assets/css/app.css` source inspected
+  - → contains a `.row > *` base rule with `width: 100%`
   - → contains `.col-6` and `.col-md-6` rules with `width: 50%`
   - → contains an `.mt-md-0` rule with `margin-top: 0`
+- `src/components/modals/SaveClipsSignupForm.jsx` and `src/components/auth/SignupForm.web.jsx` source inspected
+  - → still carry the `col-6` / `col-md-6` / `mt-md-0` classes the layout tests measure
 
 ## Technical Context
 
