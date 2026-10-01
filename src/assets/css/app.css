@@ -242,7 +242,20 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 
 /* --- Grid Row --- */
 .row { --bs-gutter-x: 1.5rem; --bs-gutter-y: 0; display: flex; flex-wrap: wrap; margin-top: calc(-1 * var(--bs-gutter-y)); margin-right: calc(-0.5 * var(--bs-gutter-x)); margin-left: calc(-0.5 * var(--bs-gutter-x)); }
+/* Bootstrap's base grid rule: every direct row child is full-width until a
+   column class overrides it at its breakpoint. Without this, a bare
+   `.col-md-6` shrinks to content width below 768px instead of stacking full
+   width. */
+.row > * { flex-shrink: 0; width: 100%; max-width: 100%; padding-right: calc(var(--bs-gutter-x, 1.5rem) * 0.5); padding-left: calc(var(--bs-gutter-x, 1.5rem) * 0.5); }
 .col-4 { flex: 0 0 auto; width: 33.33333333%; }
+/* Half-width columns used by the signup forms' first/last name row. The
+   gutter padding cancels the .row negative margins so the name inputs' outer
+   edges line up with the full-width email/password fields. */
+.col-6 { flex: 0 0 auto; width: 50%; }
+@media (min-width: 768px) {
+    .col-md-6 { flex: 0 0 auto; width: 50%; }
+    .mt-md-0 { margin-top: 0 !important; }
+}
 
 /* --- Containers --- */
 .container { width: 100%; margin-right: auto; margin-left: auto; }
@@ -2251,6 +2264,16 @@ ul.incorrectWords li::before {
 
 #guestLoginModal .modal-body {
     padding: 0;
+}
+
+/* =========================================
+   SAVE CLIPS MODAL (pre-video signup gate)
+   ========================================= */
+/* Hide the "Not now" escape hatch so the modal reads as a signup gate. The
+   element stays in the DOM (React still mounts it; handleNotNow still exists);
+   only its visibility changes. Escape/backdrop still close the dialog. */
+#saveClipsNotNowBtn {
+    display: none;
 }
 
 /* =========================================

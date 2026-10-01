@@ -17,6 +17,9 @@ Keep domain rules (gates, mappings, URL/path building, formatting, scoring) in p
 **Lesson content vs UI copy**
 Lesson content (cues, subtitles, transcripts, step config) lives in `src/config/*.json`. `src/data/strings.js` is UI copy only — never search it for lesson content. For config-only changes, derive the pattern from the earlier lessons in the same config file; don't explore player/store code unless the change touches it.
 
+**`app.css` is a hand-written Bootstrap subset — Bootstrap classes in JSX may be dead**
+`src/assets/css/app.css` is not Bootstrap's stylesheet; Bootstrap's CSS is never imported (`src/main.jsx` imports only `bootstrap-icons/font/bootstrap-icons.css`). Only the utility/grid classes actually defined in `app.css` exist — e.g. `.col-4` is defined but `.col-6`/`.col-md-6`/`.mt-md-0` were not, so JSX using them silently collapsed to content width. Before relying on any Bootstrap class, grep `app.css` for it; if missing, add the rule (mirror Bootstrap 5 semantics, including the `.row > *` base rule that makes a bare `.col-md-6` stack full-width below its breakpoint). Note `.row > *` also matches `ScoreBoard`'s `.col-4` children, which are protected only by their `px-2 !important` padding.
+
 **Auto captions for simple videos**
 New `simpleVideoUrl` steps get captions automatically on push (six languages: en/es/pt/fr/hi/bn) via `.github/workflows/captions.yml` (local Whisper + DeepSeek, `scripts/generate-captions.mjs`). Do not hand-backfill captions for existing videos — the pipeline only touches newly added slugs and never overwrites authored `subtitles`.
 
