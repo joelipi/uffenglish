@@ -128,7 +128,8 @@ export default function GuestLoginModal() {
     // ── Render ──
 
     const chosenName = selectedLang ? nativeName(selectedLang) : '';
-    const titleText = Strings.get('guest_language_title', step1Lang) || 'Confirm Your Native Language';
+    const titleText = Strings.get('guest_language_title', step1Lang)
+        || "Practice English with Us Free!\nSelect your language for translations";
     const titleLines = titleText.split('\n');
 
     return (

@@ -2,6 +2,9 @@
 // practicing English, drop English from the dropdown, start English browsers
 // unselected, and relabel the two non-translation exits.
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
@@ -10,6 +13,8 @@ import { appStore } from '../../modules/store/store.js';
 import GuestLoginModal from './GuestLoginModal.web.jsx';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function renderModal(container, { detectedLang }) {
     appStore.setState({
@@ -71,6 +76,15 @@ describe('GuestLoginModal language step', () => {
         expect(title.textContent).toContain('Practice English with Us Free!');
         expect(title.textContent).toContain('Select your language for translations');
         expect(title.querySelector('br')).not.toBeNull();
+    });
+
+    it('keeps the heading fallback literal in sync with the English copy', () => {
+        // The `||` fallback only fires when the strings key resolves falsy, so it
+        // is not reachable through the render. Guard the source directly (the
+        // repo's source-guard pattern) so the stale old title cannot return.
+        const source = readFileSync(path.join(__dirname, 'GuestLoginModal.web.jsx'), 'utf8');
+        expect(source).toContain('Practice English with Us Free!\\nSelect your language for translations');
+        expect(source).not.toContain('Confirm Your Native Language');
     });
 
     it('relabels the two non-translation exits', () => {
