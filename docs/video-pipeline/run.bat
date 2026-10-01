@@ -7,7 +7,7 @@ echo ===============================
 echo.
 
 echo Installing/updating required packages...
-python -m pip install --disable-pip-version-check -q -r requirements.txt
+python -m pip install --disable-pip-version-check -q "moviepy>=2,<3" html2image pandas opencv-python pydub modal
 if errorlevel 1 (
   echo.
   echo ERROR: pip install failed. See the messages above.
