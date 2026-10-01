@@ -345,4 +345,18 @@ test.describe('Success screen — concat button reveal', () => {
         await expect(cta).toContainText('Share this video with friends, family, and colleagues');
         await expect(cta).toContainText('They have 48 hours to respond');
     });
+
+    test('warns not to close the tab while clips are publishing', async ({ page }) => {
+        await setupSuccessScreen(page);
+
+        // No warning until publishing starts.
+        await expect(page.locator('#clipsUploadingWarning')).toHaveCount(0);
+
+        await page.evaluate(() => window.appStore.getState().setClipsPublishing(true));
+        await expect(page.locator('#clipsUploadingWarning')).toBeVisible();
+        await expect(page.locator('#clipsUploadingWarning')).toContainText('Keep this tab open');
+
+        await page.evaluate(() => window.appStore.getState().setClipsPublishing(false));
+        await expect(page.locator('#clipsUploadingWarning')).toHaveCount(0);
+    });
 });

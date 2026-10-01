@@ -119,6 +119,23 @@ Segments trimmed from the recording inherit the recap overlay: the share headlin
 - `npx playwright test tests/success-concat-button.spec.js tests/success-screen.spec.js` with real Chrome (`channel: 'chrome'`, `agents.md` §5)
   - → passes; the stubbed-processor flows are unaffected
 
+### Task 7 - Warn while clips are publishing
+
+- `src/modules/store/store.js` source inspected
+  - → defines `clipsPublishing: false` and `setClipsPublishing(publishing)`
+- `setClipsPublishing` + success-screen reset (`store.test.js`)
+  - → `setClipsPublishing(true/false)` toggles `clipsPublishing`
+  - → `setSuccessScreen(...)` resets `clipsPublishing` to `false`
+- `src/components/widgets/SuccessButtons.jsx` source inspected
+  - → sets `setClipsPublishing(true)` before `await exportSegmentsToR2(` and clears it in a `finally`
+- `src/components/widgets/SuccessScreen.jsx` source inspected
+  - → renders `#clipsUploadingWarning` while `clipsPublishing` is true
+  - → registers a `beforeunload` guard while publishing and removes it afterwards
+- `tests/success-concat-button.spec.js` (Playwright)
+  - → `setClipsPublishing(true)` shows `#clipsUploadingWarning`; `false` removes it
+- `src/data/strings.js` source inspected
+  - → `clips_uploading_warning` carries `en`, `hi` and `bn`
+
 ## Technical Context
 
 - Browser-only; the file is `src/modules/video/video-processor.web.js` (via `video-processor.js` → `export * from './video-processor.web.js'`; Vite resolves `.web.js`, `vite.config.js:57`).
@@ -126,6 +143,7 @@ Segments trimmed from the recording inherit the recap overlay: the share headlin
 - `executeRenderLoop` (`:333-774`): playback start is `stepStartedPlaying = true` (`:575-598`); the advance branch is `:733-764`; `finish()` is `:350-358`; the terminal `requestAnimationFrame(draw)` is `:766-768`.
 - `probeClipDurationSec` already exists in `transcode.web.js:75-97` and is imported by `video-processor.web.js` (`:73-76`); `reencodeToMp4` (`:101-134`) is the template for the trim function. `Conversion.init({ input, output })` is already used at `:131`.
 - `mediabunny.d.ts` declares `ConversionOptions.trim?: { start?: number; end?: number }` (seconds) at `:1042-1057`; mediabunny uses an unthrottled-timer Web Worker for `MediaStream` sources (so timer throttling does not stall it) and drives `BufferSource`/`BlobSource` conversions through `WebCodecs`, not `requestAnimationFrame`.
+- `clipsPublishing` (store) is set around `exportSegmentsToR2` and drives `#clipsUploadingWarning` + a `beforeunload` prompt on `SuccessScreen`; it is informational only and gates nothing.
 - Plan steps come from `VideoRenderPlanner.generatePlan` (`video-processor-logic.js:258-333`); webcam steps carry `blob`, `thumbBlob`, `trim`, `isTextMode`, `isFirst`, `publishLessonId`.
 - Existing upload primitives unchanged: `uploadSegmentToR2` (`r2-upload.web.js:25-52`), `buildUgcSegmentKey` (`video-processor-logic.js:219-221`), `getUgcThumbKey` (`video-url.js:40-43`), `maybeAssignPosterAvatar` (`../avatar/poster-avatar.js`), `MAX_R2_UPLOAD_BYTES` (`r2-upload-limits.js`).
 - Tests that constrain this refactor: `video-processor-web-guard.test.js`, `friend-lesson-link-wiring.test.js`, `poster-avatar-wiring.test.js` (slices `exportSegmentsToR2` → `export { MAX_R2_UPLOAD_BYTES };`), `poster-runtime-wiring.test.js`, `complete-video-wiring.test.js`, `notification-wiring.test.js`.

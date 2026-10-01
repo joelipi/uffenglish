@@ -341,3 +341,21 @@ describe('Zustand App Store', () => {
         });
     });
 });
+
+describe('clips publishing flag', () => {
+    beforeEach(() => appStore.setState({ clipsPublishing: false }));
+
+    it('toggles via setClipsPublishing', () => {
+        expect(appStore.getState().clipsPublishing).toBe(false);
+        appStore.getState().setClipsPublishing(true);
+        expect(appStore.getState().clipsPublishing).toBe(true);
+        appStore.getState().setClipsPublishing(false);
+        expect(appStore.getState().clipsPublishing).toBe(false);
+    });
+
+    it('is reset when a new success screen starts', () => {
+        appStore.getState().setClipsPublishing(true);
+        appStore.getState().setSuccessScreen('g', { total: 85 });
+        expect(appStore.getState().clipsPublishing).toBe(false);
+    });
+});

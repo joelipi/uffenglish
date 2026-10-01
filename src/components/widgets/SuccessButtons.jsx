@@ -98,6 +98,9 @@ export function VideoButton({ canvasRef }) {
         if (publishSegments) {
           // Publishing to R2 (and recording the friend link) must never fail the
           // video-generation flow: the stitched video is already ready above.
+          // Flag it so the success screen can warn the user not to close the tab
+          // while the clips are still uploading.
+          appStore.getState().setClipsPublishing(true);
           try {
             const exportResult = await exportSegmentsToR2(lessonId, result.segments, result.blob);
             // Best-effort: also publish the concatenated recap to R2 (same
@@ -138,6 +141,8 @@ export function VideoButton({ canvasRef }) {
             }
           } catch (e) {
             console.error('[Success] R2 publish / friend link failed (non-fatal):', e);
+          } finally {
+            appStore.getState().setClipsPublishing(false);
           }
         }
       }

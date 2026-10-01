@@ -177,6 +177,10 @@ export const appStore = createStore(
             successVideoButton: { visible: false, loading: false, state: 'idle' },
             successRepeatButton: { visible: false },
             successCanvasVisible: false,
+            // True while the per-segment clips are being published after the
+            // recap is ready. The success screen warns the user not to close
+            // the tab until it flips back to false.
+            clipsPublishing: false,
 
             // --- Save-clips modal (guest R2 publish prompt) ---
             saveClipsModalOpen: false,
@@ -554,6 +558,7 @@ export const appStore = createStore(
                 successVideoButton: { visible: false, loading: false, state: 'idle' },
                 successRepeatButton: { visible: false },
                 successCanvasVisible: false,
+                clipsPublishing: false,
                 playbackBlob: null,
                 playbackAutoplay: false,
                 playbackSpeechCamChunks: [],
@@ -586,6 +591,7 @@ export const appStore = createStore(
                 successVideoBlob: null,
                 successVideoButton: { visible: false, loading: false, state: 'idle' },
                 successCanvasVisible: false,
+                clipsPublishing: false,
             }),
 
             // --- Input UI Actions (Replaces renderSpeechInputUI/renderTextInputUI) ---
@@ -602,6 +608,7 @@ export const appStore = createStore(
             setWhisperReviewTimeLeft: (timeLeft) => set({ whisperReviewTimeLeft: timeLeft }),
             setSuccessVideoBlob: (blob) => set({ successVideoBlob: blob }),
             clearSuccessVideoBlob: () => set({ successVideoBlob: null }),
+            setClipsPublishing: (publishing) => set({ clipsPublishing: publishing }),
 
             // --- Success Screen Actions ---
             setSuccessScreen: (lessonId, fluencyData) => set({
@@ -612,6 +619,7 @@ export const appStore = createStore(
                 successVideoButton: { visible: true, loading: false, state: 'idle' },
                 successRepeatButton: { visible: false },
                 successCanvasVisible: false,
+                clipsPublishing: false,
             }),
             hideSuccessScreen: () => set({
                 successScreenVisible: false,
@@ -621,6 +629,7 @@ export const appStore = createStore(
                 successVideoButton: { visible: false, loading: false, state: 'idle' },
                 successRepeatButton: { visible: false },
                 successCanvasVisible: false,
+                clipsPublishing: false,
                 successVideoBlob: null,
                 saveClipsModalOpen: false,
                 pendingPublishLessonId: null,

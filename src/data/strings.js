@@ -1378,6 +1378,16 @@ const strings = {
         hi: "साइन अप करें और मेरा वीडियो बनाएँ",
         bn: "সাইন আপ করুন এবং আমার ভিডিও তৈরি করুন"
     },
+    // Success screen: shown while the per-segment clips are uploaded after the
+    // recap is ready. Closing the tab aborts the upload.
+    'clips_uploading_warning': {
+        en: "Keep this tab open — your clips are still uploading…",
+        es: "Mantén esta pestaña abierta: tus clips todavía se están subiendo…",
+        pt: "Mantenha esta aba aberta — seus clipes ainda estão sendo enviados…",
+        fr: "Gardez cet onglet ouvert — vos clips sont encore en cours d'envoi…",
+        hi: "इस टैब को खुला रखें — आपकी क्लिप अभी भी अपलोड हो रही हैं…",
+        bn: "এই ট্যাবটি খোলা রাখুন — আপনার ক্লিপগুলি এখনও আপলোড হচ্ছে…"
+    },
     'auth_recover_title': {
         en: "Recover Password",
         es: "Recuperar Contraseña",

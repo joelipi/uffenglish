@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { ContinueButton, VideoButton, RepeatButton } from './SuccessButtons.jsx';
@@ -13,7 +13,20 @@ export default function SuccessScreen({ onLoadNextLesson, onRepeat, canvasRef })
   const videoButton = useStore(appStore, state => state.successVideoButton);
   const configData = useStore(appStore, state => state.configData);
   const currentLessonIndex = useStore(appStore, state => state.currentLessonIndex);
+  const clipsPublishing = useStore(appStore, state => state.clipsPublishing);
   const lang = useNativeLanguage();
+
+  // Closing or navigating away while the per-segment clips are still uploading
+  // aborts them (they are not retried on the next visit), so prompt first.
+  useEffect(() => {
+    if (!clipsPublishing) return undefined;
+    const handler = (event) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [clipsPublishing]);
 
   if (bottomState !== 'lessonSuccess') return null;
 
@@ -26,6 +39,7 @@ export default function SuccessScreen({ onLoadNextLesson, onRepeat, canvasRef })
   const currentLesson = configData?.lessons?.[currentLessonIndex];
   const isFriendLesson = resolveRecapOverlay(currentLesson) === 'shareCta';
   const cta = getBilingual('share_cta_success', lang);
+  const uploadingWarning = getBilingual('clips_uploading_warning', lang);
 
   return (
     <>
@@ -35,6 +49,18 @@ export default function SuccessScreen({ onLoadNextLesson, onRepeat, canvasRef })
         id="state-lesson-success"
         className={showActions ? 'success-actions water-surface' : undefined}
       >
+        {clipsPublishing && (
+          <p
+            id="clipsUploadingWarning"
+            className="success-clips-warning"
+            style={{ color: '#ffd54f', fontSize: '0.85rem', textAlign: 'center', margin: '0 0 0.25rem' }}
+          >
+            {uploadingWarning.localized ? (
+              <React.Fragment>{uploadingWarning.english}<br /><span lang={uploadingWarning.lang}>{uploadingWarning.localized}</span></React.Fragment>
+            ) : uploadingWarning.english}
+          </p>
+        )}
+
         {showActions && isFriendLesson && (
           <p className="success-share-cta">
             {cta.localized ? (
