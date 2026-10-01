@@ -30,7 +30,10 @@ describe('clips-uploading warning wiring', () => {
     it('renders the warning from the flag and guards beforeunload', () => {
         expect(screen).toMatch(/clipsPublishing/);
         expect(screen).toMatch(/id="clipsUploadingWarning"/);
-        expect(screen).toMatch(/clips_uploading_warning/);
+        // A real alert (background + role), localized to a single language.
+        expect(screen).toMatch(/role="alert"/);
+        expect(screen).toMatch(/background: '#ffc107'/);
+        expect(screen).toMatch(/Strings\.get\('clips_uploading_warning'/);
         expect(screen).toMatch(/window\.addEventListener\('beforeunload'/);
         expect(screen).toMatch(/window\.removeEventListener\('beforeunload'/);
     });

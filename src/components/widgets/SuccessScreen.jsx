@@ -4,6 +4,7 @@ import { appStore } from '../../modules/store/store.js';
 import { ContinueButton, VideoButton, RepeatButton } from './SuccessButtons.jsx';
 import SuccessEffects from './SuccessEffects.jsx';
 import { getBilingual } from '../../data/strings.js';
+import Strings from '../../data/strings.js';
 import { resolveRecapOverlay } from '../../modules/video/video-processor-logic.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
 
@@ -39,7 +40,7 @@ export default function SuccessScreen({ onLoadNextLesson, onRepeat, canvasRef })
   const currentLesson = configData?.lessons?.[currentLessonIndex];
   const isFriendLesson = resolveRecapOverlay(currentLesson) === 'shareCta';
   const cta = getBilingual('share_cta_success', lang);
-  const uploadingWarning = getBilingual('clips_uploading_warning', lang);
+  const uploadingWarning = Strings.get('clips_uploading_warning', lang);
 
   return (
     <>
@@ -50,15 +51,24 @@ export default function SuccessScreen({ onLoadNextLesson, onRepeat, canvasRef })
         className={showActions ? 'success-actions water-surface' : undefined}
       >
         {clipsPublishing && (
-          <p
+          <div
             id="clipsUploadingWarning"
-            className="success-clips-warning"
-            style={{ color: '#ffd54f', fontSize: '0.85rem', textAlign: 'center', margin: '0 0 0.25rem' }}
+            role="alert"
+            style={{
+              background: '#ffc107',
+              color: '#111',
+              fontWeight: 700,
+              fontSize: '0.9rem',
+              lineHeight: 1.3,
+              textAlign: 'center',
+              borderRadius: '0.5rem',
+              padding: '0.5rem 0.75rem',
+              margin: '0 0 0.5rem',
+              boxShadow: '0 2px 10px rgba(0, 0, 0, 0.45)'
+            }}
           >
-            {uploadingWarning.localized ? (
-              <React.Fragment>{uploadingWarning.english}<br /><span lang={uploadingWarning.lang}>{uploadingWarning.localized}</span></React.Fragment>
-            ) : uploadingWarning.english}
-          </p>
+            {uploadingWarning}
+          </div>
         )}
 
         {showActions && isFriendLesson && (

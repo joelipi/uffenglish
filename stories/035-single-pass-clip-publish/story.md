@@ -130,9 +130,10 @@ Segments trimmed from the recording inherit the recap overlay: the share headlin
   - → sets `setClipsPublishing(true)` before `await exportSegmentsToR2(` and clears it in a `finally`
 - `src/components/widgets/SuccessScreen.jsx` source inspected
   - → renders `#clipsUploadingWarning` while `clipsPublishing` is true
+  - → the warning is a real alert: `role="alert"` with a solid background, using the single localized `Strings.get('clips_uploading_warning', lang)` string
   - → registers a `beforeunload` guard while publishing and removes it afterwards
 - `tests/success-concat-button.spec.js` (Playwright)
-  - → `setClipsPublishing(true)` shows `#clipsUploadingWarning`; `false` removes it
+  - → `setClipsPublishing(true)` shows `#clipsUploadingWarning` with `role="alert"` and the localized copy; `false` removes it
 - `src/data/strings.js` source inspected
   - → `clips_uploading_warning` carries `en`, `hi` and `bn`
 

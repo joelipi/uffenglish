@@ -1381,12 +1381,12 @@ const strings = {
     // Success screen: shown while the per-segment clips are uploaded after the
     // recap is ready. Closing the tab aborts the upload.
     'clips_uploading_warning': {
-        en: "Keep this tab open — your clips are still uploading…",
-        es: "Mantén esta pestaña abierta: tus clips todavía se están subiendo…",
-        pt: "Mantenha esta aba aberta — seus clipes ainda estão sendo enviados…",
-        fr: "Gardez cet onglet ouvert — vos clips sont encore en cours d'envoi…",
-        hi: "इस टैब को खुला रखें — आपकी क्लिप अभी भी अपलोड हो रही हैं…",
-        bn: "এই ট্যাবটি খোলা রাখুন — আপনার ক্লিপগুলি এখনও আপলোড হচ্ছে…"
+        en: "Do not close this tab yet — it is safe to navigate away to share the video, just don't close the tab yet.",
+        es: "No cierres esta pestaña todavía — puedes salir para compartir el video, solo no cierres la pestaña todavía.",
+        pt: "Não feche esta aba ainda — é seguro sair para compartilhar o vídeo, só não feche a aba ainda.",
+        fr: "Ne fermez pas encore cet onglet — vous pouvez naviguer ailleurs pour partager la vidéo, ne fermez simplement pas l'onglet.",
+        hi: "अभी यह टैब बंद न करें — वीडियो शेयर करने के लिए कहीं और जाना सुरक्षित है, बस अभी टैब बंद न करें।",
+        bn: "এখনও এই ট্যাবটি বন্ধ করবেন না — ভিডিও শেয়ার করতে অন্যত্র যাওয়া নিরাপদ, শুধু এখনও ট্যাবটি বন্ধ করবেন না।"
     },
     'auth_recover_title': {
         en: "Recover Password",

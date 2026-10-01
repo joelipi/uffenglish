@@ -354,7 +354,8 @@ test.describe('Success screen — concat button reveal', () => {
 
         await page.evaluate(() => window.appStore.getState().setClipsPublishing(true));
         await expect(page.locator('#clipsUploadingWarning')).toBeVisible();
-        await expect(page.locator('#clipsUploadingWarning')).toContainText('Keep this tab open');
+        await expect(page.locator('#clipsUploadingWarning')).toHaveAttribute('role', 'alert');
+        await expect(page.locator('#clipsUploadingWarning')).toContainText('Do not close this tab yet');
 
         await page.evaluate(() => window.appStore.getState().setClipsPublishing(false));
         await expect(page.locator('#clipsUploadingWarning')).toHaveCount(0);
