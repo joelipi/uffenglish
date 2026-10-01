@@ -1068,8 +1068,8 @@ mark {{
 aside {{
     position: fixed;
     top: {video_height * 0.28}px;
-    left: {video_width * 0.06}px;
-    width: {video_width * 0.56}px;
+    left: {video_width * 0.02}px;
+    width: {video_width * 0.70}px;
     background: rgba(255, 255, 255, 0.85);
     color: #111111;
     font-family: '{SUBTITLE_FONT}', sans-serif;
@@ -1079,7 +1079,7 @@ aside {{
     text-align: left;
     -webkit-text-stroke: 0;
     text-shadow: none;
-    padding: {base_font_size * 1.2}px {base_font_size * 1.4}px;
+    padding: {base_font_size * 0.5}px {base_font_size * 0.6}px;
     border-radius: {base_font_size * 0.8}px;
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
 }}
