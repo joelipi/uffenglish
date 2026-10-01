@@ -44,12 +44,22 @@ stays near-lossless.
 ## Install & run
 
 ```bash
-pip install moviepy==2.* html2image pandas opencv-python pydub modal
-ffmpeg -version   # ffmpeg + ffprobe must be on PATH
+python -m pip install -r requirements.txt   # moviepy, html2image, pandas, opencv-python, pydub, modal
+ffmpeg -version                             # ffmpeg + ffprobe must be on PATH
 
 python video_pipeline.py                 # full pipeline
 python video_pipeline.py --skip-background
 python video_pipeline.py --render-only   # Stage 3 only (outputs already exist)
+```
+
+On Windows, double-click **`run.bat`**: it installs the requirements, verifies
+them, then runs the pipeline.
+
+`opencv-python` (`cv2`) is required — the zoom effect uses it. If you hit
+`ModuleNotFoundError: No module named 'cv2'`:
+
+```bash
+python -m pip install opencv-python
 ```
 
 Inputs: `video_data.csv` (filename, background, mirror, title_text,

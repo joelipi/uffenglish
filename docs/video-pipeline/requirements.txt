@@ -1,0 +1,11 @@
+# Local Python dependencies for video_pipeline.py
+# (Stage 2's model runs remotely in Modal; those deps are in the Modal image.)
+#
+#   python -m pip install -r requirements.txt
+
+moviepy>=2.0,<3
+html2image
+pandas
+opencv-python
+pydub
+modal
