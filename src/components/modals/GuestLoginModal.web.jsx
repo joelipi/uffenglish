@@ -4,9 +4,10 @@
  * and Escape-to-close behavior.
  *
  * Two-step flow:
- *   1. 'select-language' — dropdown (browser language pre-selected) +
- *      primary "Continue in [Language]" button + "English only" +
- *      "not on this list".  UI re-translates as the dropdown changes.
+ *   1. 'select-language' — dropdown (browser language pre-selected unless it
+ *      is English) + primary "Continue in [Language]" button + "No
+ *      translations (not recommended)" + "my language is not on this list".
+ *      UI re-translates as the dropdown changes.
  *   2. 'login-choice'     — Log In / Sign Up / Continue as Guest,
  *      localized using the language chosen in step 1.
  */
@@ -17,6 +18,10 @@ import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import Strings from '../../data/strings.js';
 import { GUEST_LANGUAGES } from '../../data/languages.js';
+import {
+    buildGuestLanguageOptions,
+    resolveInitialGuestSelection,
+} from '../../modules/user/guest-modal-logic.js';
 import { trackEvent } from '../../modules/utils/posthog.js';
 
 /** Map language code to the native name (first part of the label). */
@@ -36,11 +41,13 @@ export default function GuestLoginModal() {
     // ── Controlled select — dropdown only updates local state ──
     const [selectedLang, setSelectedLang] = useState('');
 
-    // Pre-select the detected language when the modal first opens.
+    // Pre-select the detected language when the modal first opens. An English
+    // browser stays unselected so the learner must choose a translation language.
     useEffect(() => {
-        if (guestDetectedLang && guestModalStep === 'select-language') {
-            setSelectedLang(guestDetectedLang);
-            console.log('[GuestLoginModal] Pre-selected detected language:', guestDetectedLang);
+        if (guestModalStep === 'select-language') {
+            const initial = resolveInitialGuestSelection({ detectedLang: guestDetectedLang });
+            setSelectedLang(initial);
+            console.log('[GuestLoginModal] Initial language selection:', initial || '(none)');
         }
     }, [guestDetectedLang, guestModalStep]);
 
@@ -80,23 +87,10 @@ export default function GuestLoginModal() {
     ).toLowerCase();
 
     // ── Build the dropdown list, detected language first ──
-    const languageOptions = useMemo(() => {
-        const detected = guestDetectedLang;
-        if (!detected) return GUEST_LANGUAGES;
-        const alreadyInList = GUEST_LANGUAGES.some(l => l.value === detected);
-        if (alreadyInList) {
-            const rest = GUEST_LANGUAGES.filter(l => l.value !== detected);
-            const match = GUEST_LANGUAGES.find(l => l.value === detected);
-            return [match, ...rest];
-        }
-        let label = detected;
-        try {
-            if (typeof Intl !== 'undefined' && Intl.DisplayNames) {
-                label = new Intl.DisplayNames([detected], { type: 'language' }).of(detected) || detected;
-            }
-        } catch { /* ignore */ }
-        return [{ value: detected, label }, ...GUEST_LANGUAGES];
-    }, [guestDetectedLang]);
+    const languageOptions = useMemo(
+        () => buildGuestLanguageOptions({ detectedLang: guestDetectedLang, languages: GUEST_LANGUAGES }),
+        [guestDetectedLang],
+    );
 
     // ── Handlers ──
 
@@ -133,7 +127,10 @@ export default function GuestLoginModal() {
 
     // ── Render ──
 
-    const chosenName = nativeName(selectedLang || guestDetectedLang || 'EN');
+    const chosenName = selectedLang ? nativeName(selectedLang) : '';
+    const titleText = Strings.get('guest_language_title', step1Lang)
+        || "Practice English with Us Free!\nSelect your language for translations";
+    const titleLines = titleText.split('\n');
 
     return (
         <dialog ref={dialogRef} id="guestLoginModal" onClose={handleDialogClose}>
@@ -146,7 +143,12 @@ export default function GuestLoginModal() {
                                 <h5 className="modal-title" id="guestLoginModalLabel">
                                     <i className="bi bi-translate text-warning me-2"></i>
                                     <span id="guestLoginModalTitleText">
-                                        {Strings.get('guest_language_title', step1Lang) || "Confirm Your Native Language"}
+                                        {titleLines.map((line, i) => (
+                                            <React.Fragment key={i}>
+                                                {i > 0 && <br />}
+                                                {line}
+                                            </React.Fragment>
+                                        ))}
                                     </span>
                                 </h5>
                             </div>
@@ -188,7 +190,7 @@ export default function GuestLoginModal() {
                                         onClick={handleEnglishOnly}
                                     >
                                         <span id="guestEnglishOnlyBtnText">
-                                            {Strings.get('guest_language_english_only', step1Lang) || "Continue in English only"}
+                                            {Strings.get('guest_language_english_only', step1Lang) || "No translations (not recommended)"}
                                         </span>
                                     </button>
                                     <button
@@ -198,7 +200,7 @@ export default function GuestLoginModal() {
                                         onClick={handleNotListed}
                                     >
                                         <span id="guestNotListedBtnText">
-                                            {Strings.get('guest_language_not_listed', step1Lang) || "My language is not on this list"}
+                                            {Strings.get('guest_language_not_listed', step1Lang) || "My language is not on this list (continue without translations)"}
                                         </span>
                                     </button>
                                 </div>
