@@ -6,7 +6,6 @@
 
 // Curated list for the guest login modal (native-name labels).
 export const GUEST_LANGUAGES = [
-    { value: 'EN', label: 'English' },
     { value: 'ES', label: 'Español (Spanish)' },
     { value: 'PT', label: 'Português (Portuguese)' },
     { value: 'FR', label: 'Français (French)' },

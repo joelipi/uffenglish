@@ -28,6 +28,33 @@ export function resolveSilentLanguageReapply({ isLoggedIn, silentLang, currentUs
     return { action: 'apply', language: silentLang };
 }
 
+// Build the guest dropdown options. The detected browser language is surfaced
+// first when it is a real option; otherwise it is prepended as a synthetic
+// entry. English is deliberately never added: an English browser starts with
+// nothing selected so the learner must actively choose a translation language.
+export function buildGuestLanguageOptions({ detectedLang, languages } = {}) {
+    const list = languages || [];
+    if (!detectedLang || detectedLang === ENGLISH_LANG) return list;
+
+    const match = list.find((l) => l.value === detectedLang);
+    if (match) return [match, ...list.filter((l) => l.value !== detectedLang)];
+
+    let label = detectedLang;
+    try {
+        if (typeof Intl !== 'undefined' && Intl.DisplayNames) {
+            label = new Intl.DisplayNames([detectedLang], { type: 'language' }).of(detectedLang) || detectedLang;
+        }
+    } catch { /* ignore */ }
+    return [{ value: detectedLang, label }, ...list];
+}
+
+// Initial dropdown selection: an English browser (or no detected language)
+// starts unselected; every other detected language is pre-selected.
+export function resolveInitialGuestSelection({ detectedLang } = {}) {
+    if (!detectedLang || detectedLang === ENGLISH_LANG) return '';
+    return detectedLang;
+}
+
 /**
  * Applies the guest's chosen language over a profile object. A guest's
  * `guestNativeLanguage` is authoritative: the async bootstrap writes the

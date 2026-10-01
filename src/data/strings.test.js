@@ -46,6 +46,17 @@ describe('Hindi and Bengali spot checks', () => {
         expect(get('guest_modal_continue', 'bn')).toBe('অতিথি হিসেবে চালিয়ে যান');
     });
 
+    it('leads the guest language step with the two-line English heading', () => {
+        expect(get('guest_language_title', 'en'))
+            .toBe('Practice English with Us Free!\nSelect your language for translations');
+    });
+
+    it('relabels the two non-translation exits in English', () => {
+        expect(get('guest_language_english_only', 'en')).toBe('No translations (not recommended)');
+        expect(get('guest_language_not_listed', 'en'))
+            .toBe('My language is not on this list (continue without translations)');
+    });
+
     it('translates profile and auth strings', () => {
         expect(get('profile_native_language', 'hi')).toBe('मातृभाषा');
         expect(get('profile_native_language', 'bn')).toBe('মাতৃভাষা');

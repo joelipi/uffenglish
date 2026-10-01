@@ -957,7 +957,7 @@ const strings = {
         bn: "অতিথি হিসেবে চালিয়ে যান"
     },
     'guest_language_title': {
-        en: "Confirm Your Native Language",
+        en: "Practice English with Us Free!\nSelect your language for translations",
         es: "Confirmar Tu Idioma Nativo",
         hi: "अपनी मातृभाषा की पुष्टि करें",
         bn: "আপনার মাতৃভাষা নিশ্চিত করুন"
@@ -968,13 +968,13 @@ const strings = {
         bn: "আপনার ভাষা নির্বাচন করুন..."
     },
     'guest_language_english_only': {
-        en: "Continue in English only",
+        en: "No translations (not recommended)",
         es: "Continuar solo en inglés",
         hi: "केवल अंग्रेज़ी में जारी रखें",
         bn: "শুধুমাত্র ইংরেজিতে চালিয়ে যান"
     },
     'guest_language_not_listed': {
-        en: "My language is not on this list",
+        en: "My language is not on this list (continue without translations)",
         es: "Mi idioma no está en esta lista",
         hi: "मेरी भाषा इस सूची में नहीं है",
         bn: "আমার ভাষা এই তালিকায় নেই"

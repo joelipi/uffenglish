@@ -28,6 +28,19 @@ describe('language selection lists', () => {
         expect(SIGNUP_LANGUAGES.find((l) => l.value === 'BN').label).toBe('বাংলা (Bengali)');
         expect(PROFILE_LANGUAGES.find((l) => l.value === 'BN').label).toBe('Bengali');
     });
+
+    it('removes English from the guest dropdown only', () => {
+        expect(GUEST_LANGUAGES.some((l) => l.value === 'EN')).toBe(false);
+        expect(GUEST_LANGUAGES.some((l) => l.label === 'English')).toBe(false);
+        expect(PROFILE_LANGUAGES.some((l) => l.value === 'EN')).toBe(true);
+        expect(SIGNUP_LANGUAGES.some((l) => l.value === 'EN')).toBe(true);
+    });
+
+    it('keeps the other guest options', () => {
+        for (const code of ['ES', 'HI', 'BN']) {
+            expect(GUEST_LANGUAGES.some((l) => l.value === code), `missing ${code}`).toBe(true);
+        }
+    });
 });
 
 describe('LOCALE_MAP', () => {
