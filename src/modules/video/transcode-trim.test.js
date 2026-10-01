@@ -33,4 +33,10 @@ describe('transcode.web.js range trim', () => {
         expect(fn).toMatch(/Mp4OutputFormat/);
         expect(fn).toMatch(/type: 'video\/mp4'/);
     });
+
+    it('can force an accurate duration scan (bogus MediaRecorder mp4 metadata)', () => {
+        expect(source).toMatch(/probeClipDurationSec\(blob, \{ accurate = false \} = \{\}\)/);
+        expect(source).toMatch(/if \(!accurate && Number\.isFinite\(fromMetadata\)/);
+        expect(source).toMatch(/computeDuration\(/);
+    });
 });

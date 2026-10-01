@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { VideoRenderPlanner, resolveRecapOverlay, resolveRecapSources, isDroppedStep, markFirstRenderable, resolveSegmentBounds, UNRESOLVED_SEGMENT_CAP_MS, STALL_GRACE_MS, resolvePublishLessonId, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges, MIN_SEGMENT_SECONDS } from './video-processor-logic.js';
+import { VideoRenderPlanner, resolveRecapOverlay, resolveRecapSources, isDroppedStep, markFirstRenderable, resolveSegmentBounds, UNRESOLVED_SEGMENT_CAP_MS, STALL_GRACE_MS, resolvePublishLessonId, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges, MIN_SEGMENT_SECONDS, MAX_CALIBRATION_OFFSET_SEC } from './video-processor-logic.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '../../..');
@@ -636,6 +636,17 @@ describe('calibrateSegmentRanges', () => {
         const raw = [{ step: stepA, startMs: 200, endMs: 60000 }];
         expect(calibrateSegmentRanges(raw, 60000, 59.5)).toEqual([
             { step: stepA, startSec: 0, endSec: 59.5 },
+        ]);
+    });
+
+    it('falls back to raw offsets when the probe is inconsistent', () => {
+        // Regression: a MediaRecorder mp4 can report a bogus tiny metadata
+        // duration (e.g. 0.115 s for a 4 s recording). Trusting it would shift
+        // every range out of bounds and drop all clips.
+        expect(MAX_CALIBRATION_OFFSET_SEC).toBeGreaterThan(0);
+        const raw = [{ step: stepA, startMs: 2000, endMs: 6000 }];
+        expect(calibrateSegmentRanges(raw, 4000, 0.1153)).toEqual([
+            { step: stepA, startSec: 2, endSec: 6 },
         ]);
     });
 

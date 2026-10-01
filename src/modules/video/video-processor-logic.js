@@ -238,26 +238,36 @@ export function isPublishableClip(step) {
 // played), not a real answer.
 export const MIN_SEGMENT_SECONDS = 0.4;
 
+// The recorder can start a little after `recorder.start()`, so the probe-derived
+// offset is normally sub-second. If the probed duration disagrees with the
+// wall-clock recording length by more than this, the probe is unreliable (a
+// MediaRecorder mp4 can report a bogus tiny duration) and is ignored.
+export const MAX_CALIBRATION_OFFSET_SEC = 2;
+
 /**
  * Converts wall-clock step ranges (ms since `recorder.start()`) into trimmed
  * ranges in seconds against the recording's own timeline.
  *
  * The recorder can begin a little after `recorder.start()`, so the raw offsets
  * are shifted earlier by whatever the recording is shorter than the elapsed
- * wall-clock (`elapsedMs/1000 - probedDurationSec`). When the duration probe is
- * unavailable, the ranges are converted to seconds without shifting or
- * clamping. Sub-floor ranges are always dropped.
+ * wall-clock (`elapsedMs/1000 - probedDurationSec`). The probe is only trusted
+ * when it agrees with the wall clock within `MAX_CALIBRATION_OFFSET_SEC`;
+ * otherwise the raw wall-clock offsets are used unshifted (still within the
+ * recorder start-lag error) so a bogus probe cannot push every range out of
+ * bounds. Sub-floor ranges are always dropped.
  *
  * @param {Array<{step: object, startMs: number, endMs: number}>} rawRanges
  * @param {number} elapsedMs wall-clock from `recorder.start()` to the end
- * @param {number|null} probedDurationSec the recording's real duration
+ * @param {number|null} probedDurationSec the recording's reported duration
  * @returns {Array<{step: object, startSec: number, endSec: number}>}
  */
 export function calibrateSegmentRanges(rawRanges, elapsedMs, probedDurationSec) {
     const ranges = Array.isArray(rawRanges) ? rawRanges : [];
-    const hasProbe = Number.isFinite(probedDurationSec) && probedDurationSec > 0;
     const elapsedSec = Number.isFinite(elapsedMs) ? elapsedMs / 1000 : 0;
-    const offsetSec = hasProbe ? elapsedSec - probedDurationSec : 0;
+    const probeDuration = Number.isFinite(probedDurationSec) && probedDurationSec > 0 ? probedDurationSec : null;
+    const rawOffsetSec = probeDuration === null ? 0 : elapsedSec - probeDuration;
+    const probeUsable = probeDuration !== null && Math.abs(rawOffsetSec) <= MAX_CALIBRATION_OFFSET_SEC;
+    const offsetSec = probeUsable ? rawOffsetSec : 0;
 
     const calibrated = [];
     for (const range of ranges) {
@@ -265,9 +275,9 @@ export function calibrateSegmentRanges(rawRanges, elapsedMs, probedDurationSec) 
         if (!Number.isFinite(range.startMs) || !Number.isFinite(range.endMs)) continue;
         let startSec = range.startMs / 1000 - offsetSec;
         let endSec = range.endMs / 1000 - offsetSec;
-        if (hasProbe) {
-            startSec = Math.max(0, Math.min(startSec, probedDurationSec));
-            endSec = Math.max(0, Math.min(endSec, probedDurationSec));
+        if (probeUsable) {
+            startSec = Math.max(0, Math.min(startSec, probeDuration));
+            endSec = Math.max(0, Math.min(endSec, probeDuration));
         }
         if (endSec - startSec < MIN_SEGMENT_SECONDS) continue;
         calibrated.push({ step: range.step, startSec, endSec });

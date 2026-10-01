@@ -271,7 +271,7 @@ function createVideoProcessor() {
                             activeRange = null;
                         }
                         let probedDurationSec = null;
-                        try { probedDurationSec = await probeClipDurationSec(blob); } catch (e) { /* probe is best-effort */ }
+                        try { probedDurationSec = await probeClipDurationSec(blob, { accurate: true }); } catch (e) { /* probe is best-effort */ }
                         segments = calibrateSegmentRanges(rawRanges, elapsedMs, probedDurationSec);
                     } catch (e) {
                         console.warn('[VideoProcessor] Segment range calibration failed:', e);

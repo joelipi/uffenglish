@@ -72,7 +72,7 @@ export async function verifyMp4(blob) {
  * Returns a positive finite number of seconds, or `null` if the blob is
  * missing or its container cannot be read. Never throws.
  */
-export async function probeClipDurationSec(blob) {
+export async function probeClipDurationSec(blob, { accurate = false } = {}) {
     if (!blob) return null;
     let input = null;
     try {
@@ -82,12 +82,16 @@ export async function probeClipDurationSec(blob) {
         // skipLiveWait prevents a MediaRecorder blob flagged as "live" from
         // blocking on a stream that has already ended.
         const fromMetadata = await input.getDurationFromMetadata(undefined, { skipLiveWait: true });
-        if (Number.isFinite(fromMetadata) && fromMetadata > 0) return fromMetadata;
+        // A MediaRecorder mp4 can carry a bogus tiny metadata duration (e.g.
+        // 0.12 s for a 4 s clip); callers that need the real length pass
+        // `accurate: true` to force the packet scan.
+        if (!accurate && Number.isFinite(fromMetadata) && fromMetadata > 0) return fromMetadata;
         // Accurate path: scan to the last packet. Bounded because the source is
         // a finite, in-memory Blob and `skipLiveWait` avoids waiting for a live
         // stream that has already ended.
         const duration = await input.computeDuration(undefined, { skipLiveWait: true });
-        return Number.isFinite(duration) && duration > 0 ? duration : null;
+        if (Number.isFinite(duration) && duration > 0) return duration;
+        return Number.isFinite(fromMetadata) && fromMetadata > 0 ? fromMetadata : null;
     } catch (e) {
         console.warn('[Transcode] probeClipDurationSec failed:', e?.message || e);
         return null;
