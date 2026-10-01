@@ -1084,6 +1084,21 @@ aside {{
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
 }}
 
+/* <strong> is used for highlighting (in the callout box and subtitles).
+   Overrides the inherited subtitle text-shadow/stroke so the highlight reads
+   as clean dark text on yellow. */
+strong {{
+    background: #ffe600;
+    color: #111111;
+    font-weight: 800;
+    -webkit-text-stroke: 0;
+    text-shadow: none;
+    padding: 0 0.15em;
+    border-radius: 6px;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+}}
+
 .title {{
     position: absolute;
     top: {video_height * 0.07}px;

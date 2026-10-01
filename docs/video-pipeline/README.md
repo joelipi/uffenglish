@@ -71,6 +71,8 @@ foreground, endSoundEffect), `rawvideos/`, `backgrounds/`, `audio/`,
 - `<mark>…</mark>` — existing marker style (handwriting font, floats at 35%).
 - `<aside>…</aside>` — the translucent callout box (sans font, left-anchored,
   rounded, padded). A separate tag so `mark` keeps its own styling.
+- `<strong>…</strong>` — yellow highlighter (dark text on `#ffe600`), usable
+  inside the box or the subtitle.
 
 Outputs:
 - `output/social/processed_<name>.mp4` + `output/web/processed_<name>.mp4`
