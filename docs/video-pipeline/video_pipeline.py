@@ -985,6 +985,9 @@ def apply_zoom_effect(clip, zoom_type):
 def create_overlay_html(row, video_width, video_height):
     base_font_size = video_height * 0.025
     horizontal_margin = video_width * 0.025
+    # Subtitles get a wider side gutter than the title/footer so lines never run
+    # edge-to-edge (2.5% was near the screen border; 8% gives readable margins).
+    subtitle_horizontal_margin = video_width * 0.08
 
     font_variable_path = f"file:///{os.path.abspath(os.path.join(FONT_DIRECTORY, FONT_FILE_VARIABLE)).replace(chr(92), '/')}"
     font_marker_path = f"file:///{os.path.abspath(os.path.join(FONT_DIRECTORY, FONT_FILE_MARKER)).replace(chr(92), '/')}"
@@ -1000,8 +1003,8 @@ html, body{{background:transparent!important; width:{video_width}px; height:{vid
     position:absolute;
     top:{video_height * 0.50}px;
     bottom:{video_height * 0.30}px;
-    left:{horizontal_margin}px;
-    right:{horizontal_margin}px;
+    left:{subtitle_horizontal_margin}px;
+    right:{subtitle_horizontal_margin}px;
     display: flex;
     flex-direction: column;
     justify-content: center;
