@@ -1062,6 +1062,28 @@ mark {{
     line-height: 1.3;
 }}
 
+/* Callout box: a translucent panel anchored on the left. Author it with
+   <aside>...</aside> inside subtitle_text. Deliberately a different tag from
+   <mark> so the existing mark styling above is preserved. */
+aside {{
+    position: fixed;
+    top: {video_height * 0.28}px;
+    left: {video_width * 0.06}px;
+    width: {video_width * 0.56}px;
+    background: rgba(255, 255, 255, 0.85);
+    color: #111111;
+    font-family: '{SUBTITLE_FONT}', sans-serif;
+    font-size: {base_font_size * 1.5}px;
+    font-weight: 800;
+    line-height: 1.5;
+    text-align: left;
+    -webkit-text-stroke: 0;
+    text-shadow: none;
+    padding: {base_font_size * 1.2}px {base_font_size * 1.4}px;
+    border-radius: {base_font_size * 0.8}px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+}}
+
 .title {{
     position: absolute;
     top: {video_height * 0.07}px;

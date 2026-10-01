@@ -67,6 +67,11 @@ subtitle_text, footer_text, effect, dutch_tilt, bgSound, bgMusic, overlay,
 foreground, endSoundEffect), `rawvideos/`, `backgrounds/`, `audio/`,
 `overlays/`, `fonts/`. A sample CSV is created on first run if none exists.
 
+**Overlay markup in `subtitle_text`:**
+- `<mark>…</mark>` — existing marker style (handwriting font, floats at 35%).
+- `<aside>…</aside>` — the translucent callout box (sans font, left-anchored,
+  rounded, padded). A separate tag so `mark` keeps its own styling.
+
 Outputs:
 - `output/social/processed_<name>.mp4` + `output/web/processed_<name>.mp4`
 - `output/social/<prefix>_full_no_silence_bg_removed.mp4` + the web twin
