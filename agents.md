@@ -99,6 +99,7 @@ The short version:
 - To verify with an automated browser, **use real Chrome** (`npx playwright install chrome`, `channel: 'chrome'`) — Playwright's bundled Chromium lacks H.264/AAC codecs and falsely reports `Format error` on valid mp4s.
 - Don't trust bare `curl -I` for R2 videos — it returns `200` (has ACAO). Send `-H "Range: bytes=0-1023"` to reproduce the real `206` behavior.
 - **`wrangler pages deploy` fails with `Binding name 'SUPABASE_ANON_KEY' already in use`** if the key is in both `wrangler.toml [vars]` and the Pages dashboard. Keep it only in the dashboard.
+- **`MediaRecorder` MP4 duration metadata is unreliable.** A browser-recorded mp4 (the platform `getSupportedMimeType()` prefers `video/mp4`) can declare a bogus tiny duration in its container header (measured: **0.12 s for a 4 s clip**). `probeClipDurationSec(blob)` is metadata-first and returns it, so anything that trusts it (e.g. calibrating step time ranges against the recording length) breaks. Pass `{ accurate: true }` to force the `computeDuration` packet scan, and treat the probe as unusable whenever it disagrees with wall-clock recording time by more than a second. `computeDuration` on the same blob correctly returned 3.95 s. The bundled-Chromium test harness cannot validate the trim path — it lacks H.264 and fails with `undecodable_source_codec`; use real Chrome.
 
 ---
 
