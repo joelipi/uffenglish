@@ -24,7 +24,7 @@ describe('probeClipDurationSec', () => {
         expect(native).toMatch(/export async function probeClipDurationSec\(\)\s*\{\s*return null;\s*\}/);
 
         const web = readFileSync(WEB_PATH, 'utf8');
-        expect(web).toMatch(/export async function probeClipDurationSec\(blob, \{ accurate = false \} = \{\}\)/);
+        expect(web).toMatch(/export async function probeClipDurationSec\(blob, \{ scan = true \} = \{\}\)/);
         expect(web).toMatch(/new BlobSource\(blob\)/);
         expect(web).toMatch(/getDurationFromMetadata\(undefined, \{ skipLiveWait: true \}\)/);
         expect(web).toMatch(/computeDuration\(undefined, \{ skipLiveWait: true \}\)/);
