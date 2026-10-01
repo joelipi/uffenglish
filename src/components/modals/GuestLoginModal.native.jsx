@@ -3,7 +3,8 @@
 //
 // Two-step flow (mirrors GuestLoginModal.web.jsx):
 //   1. 'select-language' — language dropdown with browser/device detection,
-//      "Continue in English only", and "My language is not on this list".
+//      "No translations (not recommended)", and "My language is not on this
+//      list (continue without translations)".
 //   2. 'login-choice'     — Log In / Sign Up / Continue as Guest buttons,
 //      localized using the language chosen in step 1.
 export default function GuestLoginModal() {

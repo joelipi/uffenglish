@@ -4,7 +4,10 @@ import {
     resolveGuestModalPlan,
     resolveSilentLanguageReapply,
     applyGuestLanguagePreference,
+    buildGuestLanguageOptions,
+    resolveInitialGuestSelection,
 } from './guest-modal-logic.js';
+import { GUEST_LANGUAGES } from '../../data/languages.js';
 
 describe('resolveGuestModalPlan', () => {
     it('adopts a non-English browser language silently for a friend lesson', () => {
@@ -127,5 +130,47 @@ describe('applyGuestLanguagePreference', () => {
 
     it('returns undefined with no arguments', () => {
         expect(applyGuestLanguagePreference()).toBeUndefined();
+    });
+});
+
+describe('buildGuestLanguageOptions', () => {
+    it('never surfaces English, even for an English browser', () => {
+        const options = buildGuestLanguageOptions({ detectedLang: 'EN', languages: GUEST_LANGUAGES });
+        expect(options.some((o) => o.value === 'EN')).toBe(false);
+        expect(options).toHaveLength(GUEST_LANGUAGES.length);
+    });
+
+    it('moves an already-listed detected language to the front without duplicating it', () => {
+        const options = buildGuestLanguageOptions({ detectedLang: 'ES', languages: GUEST_LANGUAGES });
+        expect(options[0].value).toBe('ES');
+        expect(options).toHaveLength(GUEST_LANGUAGES.length);
+        const values = options.map((o) => o.value);
+        expect(new Set(values).size).toBe(values.length);
+    });
+
+    it('prepends a synthetic entry for a detected language not in the list', () => {
+        const options = buildGuestLanguageOptions({ detectedLang: 'DA', languages: GUEST_LANGUAGES });
+        expect(options[0].value).toBe('DA');
+        expect(options[0].label).toBeTruthy();
+        expect(options.slice(1)).toEqual(GUEST_LANGUAGES);
+    });
+
+    it('returns the list unchanged when no language was detected', () => {
+        expect(buildGuestLanguageOptions({ detectedLang: undefined, languages: GUEST_LANGUAGES }))
+            .toBe(GUEST_LANGUAGES);
+    });
+});
+
+describe('resolveInitialGuestSelection', () => {
+    it('starts an English browser unselected', () => {
+        expect(resolveInitialGuestSelection({ detectedLang: 'EN' })).toBe('');
+    });
+
+    it('pre-selects a non-English detected language', () => {
+        expect(resolveInitialGuestSelection({ detectedLang: 'ES' })).toBe('ES');
+    });
+
+    it('starts unselected when no language was detected', () => {
+        expect(resolveInitialGuestSelection({ detectedLang: undefined })).toBe('');
     });
 });
