@@ -162,7 +162,7 @@ export async function transcodeToMp4(blob) {
  * Uses `BlobSource` (not `BufferSource(await blob.arrayBuffer())`) so the whole
  * source recording is not copied into memory. Throws `webcodecs-unavailable`
  * when the browser cannot encode H.264/AAC — the caller falls back to the
- * re-render path. Never returns a non-mp4 blob.
+ * re-render path. Output is an mp4 Blob (`Mp4OutputFormat`).
  */
 export async function transcodeRangeToMp4(sourceBlob, startSec, endSec) {
     if (!sourceBlob) throw new Error('no-source-blob');

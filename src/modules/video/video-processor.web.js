@@ -281,7 +281,7 @@ function createVideoProcessor() {
                     // match the recap's overlay when the trim path is unavailable.
                     segments.overlayVariant = overlayVariant;
                     segments.shareCta = shareCta;
-                    cleanup();
+                    try { cleanup(); } catch (e) { console.warn('[VideoProcessor] cleanup failed:', e); }
                     resolve({ blob, ext, segments });
                 };
 
@@ -635,6 +635,7 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                             if (!useDecodedAudio) video.muted = false;
                             stepStartedPlaying = true;
                             stepPlayStart = performance.now();
+                            onStepStart?.(step);
                         } catch (fatalErr) {
                             console.error('[VideoProcessor] Fatal play error', fatalErr);
                             step.playFatal = true;

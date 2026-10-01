@@ -602,6 +602,7 @@ describe('isPublishableClip', () => {
     it('rejects text-mode, blobless, remote and tailing steps', () => {
         expect(isPublishableClip({ type: 'webcam', blob: { size: 1 }, isTextMode: true })).toBe(false);
         expect(isPublishableClip({ type: 'webcam', blob: null })).toBe(false);
+        expect(isPublishableClip({ type: 'webcam', blob: undefined })).toBe(false);
         expect(isPublishableClip({ type: 'remote', blob: { size: 1 } })).toBe(false);
         expect(isPublishableClip({ type: 'tailing' })).toBe(false);
     });

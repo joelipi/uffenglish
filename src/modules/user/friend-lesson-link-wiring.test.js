@@ -46,6 +46,14 @@ describe('SuccessButtons wiring', () => {
         expect(successButtons).toContain('askPublished: exportResult?.askPublished');
     });
 
+    it('keeps ready before the export (no publish gate is added)', () => {
+        const readyAt = successButtons.indexOf("setVideoState('ready')");
+        const exportAt = successButtons.indexOf('await exportSegmentsToR2(');
+        expect(readyAt).toBeGreaterThan(-1);
+        expect(exportAt).toBeGreaterThan(-1);
+        expect(readyAt).toBeLessThan(exportAt);
+    });
+
     it('records the link only through the resolver + mutation', () => {
         expect(successButtons).toContain('resolveFriendLessonLink({');
         expect(successButtons).toContain('friendLinkMutation.mutateAsync({');

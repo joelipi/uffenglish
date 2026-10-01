@@ -30,10 +30,40 @@ describe('video-processor.web.js recap wiring guard', () => {
         expect(exportFn).toMatch(/transcodeRangeToMp4\(/);
         // Fallback path: re-render with the recap's overlay options.
         expect(exportFn).toMatch(/renderStepToBlob\(/);
+        expect(exportFn).toMatch(/transcodeToMp4WithFallback\(/);
         expect(exportFn).toMatch(/overlayVariant/);
         expect(exportFn).toMatch(/shareCta/);
+        // Thumbnail sibling upload is preserved.
+        expect(exportFn).toMatch(/getUgcThumbKey\(key\)/);
+        expect(exportFn).toMatch(/step\.thumbBlob/);
+        expect(exportFn).toMatch(/contentType: 'image\/jpeg'/);
         // The primary path must not be canvas/rAF bound.
         expect(exportFn).not.toMatch(/requestAnimationFrame/);
+    });
+
+    it('wires per-step range hooks into executeRenderLoop on both play paths', () => {
+        expect(source).toMatch(/onStepStart = null, onStepEnd = null/);
+        // onStepStart must fire on the primary AND the muted-retry success
+        // paths; missing the retry path silently drops publishable clips.
+        expect((source.match(/onStepStart\?\.\(step\)/g) || []).length).toBe(2);
+        expect(source).toMatch(/onStepEnd\?\.\(step\)/);
+        expect(source).toMatch(/onStepEnd\?\.\(plan\[stepIndex\]\)/);
+    });
+
+    it('captures calibrated publishable ranges during the recap pass', () => {
+        const start = source.indexOf('const rawRanges = [];');
+        const end = source.indexOf('recorder.start(1000);');
+        expect(start).toBeGreaterThan(-1);
+        const capture = source.slice(start, end);
+        expect(capture).toMatch(/isPublishableClip\(step\)/);
+        expect(capture).toMatch(/recordingStartAt = performance\.now\(\)/);
+        expect(capture).toMatch(/calibrateSegmentRanges\(rawRanges, elapsedMs, probedDurationSec\)/);
+        expect(capture).toMatch(/resolve\(\{ blob, ext, segments \}\)/);
+    });
+
+    it('renders the recap exactly once and keeps the re-render fallback', () => {
+        expect((source.match(/await executeRenderLoop\(/g) || []).length).toBe(1);
+        expect(source).toMatch(/async function renderStepToBlob\(/);
     });
 
     it('uses the shared dropped-step helpers and revokes clip object URLs', () => {
