@@ -1074,7 +1074,7 @@ aside {{
     color: #111111;
     font-family: '{SUBTITLE_FONT}', sans-serif;
     font-size: {base_font_size * 1.5}px;
-    font-weight: 800;
+    font-weight: 400;
     line-height: 1.5;
     text-align: left;
     -webkit-text-stroke: 0;
