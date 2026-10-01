@@ -271,18 +271,12 @@ function createVideoProcessor() {
                             rawRanges.push({ step: activeRange.step, startMs: activeRange.startMs, endMs: elapsedMs });
                             activeRange = null;
                         }
-                        // Header-only probe, hard-bounded. A packet scan (or a
-                        // stalled metadata read) here would strand the recap's
-                        // "Generating" state; on timeout the ranges fall back to
-                        // raw wall-clock offsets. The bogus MediaRecorder-mp4
-                        // metadata case is handled by calibrateSegmentRanges.
+                        // Header-only probe. A packet scan here would strand the
+                        // recap's "Generating" state on long recordings (seen on
+                        // iOS); the bogus MediaRecorder-mp4 metadata case is
+                        // handled by calibrateSegmentRanges' offset sanity check.
                         let probedDurationSec = null;
-                        try {
-                            probedDurationSec = await Promise.race([
-                                probeClipDurationSec(blob, { scan: false }),
-                                new Promise((resolve) => setTimeout(() => resolve(null), 2500)),
-                            ]);
-                        } catch (e) { /* probe is best-effort */ }
+                        try { probedDurationSec = await probeClipDurationSec(blob, { scan: false }); } catch (e) { /* probe is best-effort */ }
                         segments = calibrateSegmentRanges(rawRanges, elapsedMs, probedDurationSec);
                         console.log('[VideoProcessor] segment ranges:', { raw: rawRanges.length, probedDurationSec, kept: segments.length });
                     } catch (e) {
