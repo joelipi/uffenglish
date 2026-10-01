@@ -60,6 +60,8 @@ Execute small, incremental changes and routine bug fixes immediately without ask
 
 **Automated browser testing** via Playwright unless the user says they will test manually.
 
+**Check `playwright.config.js` `testIgnore` before citing a spec.** Stale specs (`e2e-smoke`, `recording-persistence`, `success-screen`, `whisper-review`) are silently skipped, so `npx playwright test <them>` "passes" without running a single assertion. Don't name an ignored spec as a passing AC; cite only specs the config actually runs.
+
 **Console discipline — treat these as bugs:**
 - Any unexpected or relevant console error or warning
 - Any expected debug/success log that does not appear (silent failures must be investigated)

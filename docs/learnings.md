@@ -156,6 +156,14 @@ src/modules/api/supabase.js` in `functions/api/upload-segment.js`). The Read too
 
 ---
 
+## `executeRenderLoop` has two playback-success paths — per-step hooks must fire on both
+**Date**: 2026-10-01
+**Area**: architecture | testing
+**What happened**: Wiring the per-segment range capture, `onStepStart?.(step)` was added with a `replaceAll` whose oldString had the primary path's indentation. The muted-retry success block (`catch (err)` → muted `video.play()`) is indented deeper, so it did not match. Webcam answers that needed the autoplay-blocked muted retry — the common iOS/Safari case this code explicitly supports — never set their range and were silently excluded from the published clips. The code reviewer caught it.
+**Takeaway**: `executeRenderLoop` sets `stepStartedPlaying = true` in two places (primary and muted-retry). Any per-step instrumentation must run on both — factor the shared "step is playing" work or assert the hook fires once per path. After a `replaceAll` edit, grep the match count; structurally identical blocks can differ in indentation and the pattern will silently match fewer times than expected.
+
+---
+
 ## Playwright success-screen tests: wait for lesson bootstrap, use a WebM sentinel, force clicks on animated buttons
 **Date**: 2026-09-24
 **Area**: testing
