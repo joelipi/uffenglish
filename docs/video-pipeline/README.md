@@ -62,10 +62,42 @@ then runs the pipeline.
 python -m pip install opencv-python
 ```
 
-Inputs: `video_data.csv` (filename, background, mirror, title_text,
+Inputs: `video_data.csv` (filename, background, mirror, join, title_text,
 subtitle_text, footer_text, effect, dutch_tilt, bgSound, bgMusic, overlay,
 foreground, endSoundEffect), `rawvideos/`, `backgrounds/`, `audio/`,
 `overlays/`, `fonts/`. A sample CSV is created on first run if none exists.
+
+### Joining finished videos (`join` column)
+
+Groups are formed by the text before the first digit in `filename` (e.g.
+`lesson_01`, `lesson_02` → group `lesson` → `lesson_full_…`). To splice several
+of those finished `_full` videos into one longer video:
+
+- Put the **same value** in the `join` column on the rows of each group you want
+  joined. The output is named after that value.
+- Order is **CSV row order** (first-seen group order); any number of parts.
+- Result (both profiles, same as everything else):
+  `output/social/<joinValue>_joined_no_silence_bg_removed.mp4` +
+  `output/web/<joinValue>_joined_no_silence_bg_removed.mp4`
+- The per-part `_full` videos are **kept**.
+- Music is **not** baked into parts that participate in a join; instead the
+  join's `bgMusic` (first non-empty among its rows) is applied once over the
+  whole joined video.
+- All parts must share resolution/fps/codec (they do when produced by this
+  pipeline). Parts are stream-copied together (lossless, fast), with an
+  automatic re-encode fallback.
+
+Example:
+
+```csv
+filename,join,bgMusic,subtitle_text
+lesson_01,lessonFinal,musicA,"<aside>…part 1…</aside>"
+lesson_02,lessonFinal,,<aside>…part 1…</aside>
+other_01,lessonFinal,,<aside>…part 2…</aside>
+other_02,lessonFinal,,<aside>…part 2…</aside>
+```
+→ `lesson_full_…` + `other_full_…` are rendered, then joined into
+`lessonFinal_joined_…`. Rows with no `join` value behave exactly as before.
 
 **Overlay markup in `subtitle_text`:**
 - `<mark>…</mark>` — existing marker style (handwriting font, floats at 35%).

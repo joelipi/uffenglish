@@ -345,6 +345,7 @@ def create_sample_csv():
         'filename': ['video_01'],
         'background': [''],
         'mirror': [''],
+        'join': [''],
         'title_text': ['Marker Demo'],
         'subtitle_text': ['Standard text and <mark>whiteboard marker text</mark> mixed.'],
         'footer_text': ['Footer text'],
@@ -863,6 +864,64 @@ def get_background_music_from_csv(csv_file, prefix):
     return None
 
 
+def group_prefix_for_filename(filename):
+    """The same group prefix `group_videos_by_prefix` derives from a processed
+    file, computed from a CSV `filename` value (so a join plan can be built
+    before/independently of the rendered files)."""
+    base = str(filename)
+    if not base.endswith(VIDEO_EXTENSION):
+        base += VIDEO_EXTENSION
+    name_without_ext = os.path.splitext(base)[0]        # e.g. video_01_no_silence_bg_removed
+    match = re.match(r'^([^\d]*)', name_without_ext)
+    prefix = match.group(1).rstrip('_- ') if match else name_without_ext
+    return prefix or name_without_ext
+
+
+def load_join_plan(csv_file):
+    """Read the optional `join` column.
+
+    Returns `(join_plan, joined_prefixes)`:
+      - join_plan: {join_value: [prefix, ...]} in CSV row order (first-seen prefix
+        order within each join value, deduped).
+      - joined_prefixes: every prefix that participates in any join (so its part
+        is rendered without per-part music; music is applied once to the join).
+    """
+    join_plan = {}
+    joined_prefixes = set()
+    try:
+        df = pd.read_csv(csv_file, dtype=str).fillna('')
+    except Exception as e:
+        print(f"⚠️ Could not read {csv_file} for join plan: {e}")
+        return join_plan, joined_prefixes
+
+    for _, row in df.iterrows():
+        join_value = safe_get_value(row, 'join')
+        if not join_value:
+            continue
+        prefix = group_prefix_for_filename(safe_get_value(row, 'filename'))
+        if not prefix:
+            continue
+        joined_prefixes.add(prefix)
+        join_plan.setdefault(join_value, [])
+        if prefix not in join_plan[join_value]:
+            join_plan[join_value].append(prefix)
+    return join_plan, joined_prefixes
+
+
+def get_join_music_from_csv(csv_file, join_value):
+    """First non-empty `bgMusic` among rows whose `join` equals `join_value`."""
+    try:
+        df = pd.read_csv(csv_file, dtype=str).fillna('')
+        for _, row in df.iterrows():
+            if safe_get_value(row, 'join') == join_value:
+                bg_music = safe_get_value(row, 'bgMusic')
+                if bg_music:
+                    return bg_music
+    except Exception:
+        pass
+    return None
+
+
 def apply_dutch_tilt(clip, tilt_degrees):
     if not tilt_degrees or pd.isna(tilt_degrees) or str(tilt_degrees).strip() == '':
         return clip
@@ -1321,7 +1380,7 @@ def process_video_batch(csv_file, max_workers=1):
         return False
 
 
-def concatenate_video_group(prefix, filenames, input_dir=None):
+def concatenate_video_group(prefix, filenames, input_dir=None, skip_music=False):
     if input_dir is None:
         input_dir = str(SOCIAL_DIR)
     if not filenames:
@@ -1364,12 +1423,15 @@ def concatenate_video_group(prefix, filenames, input_dir=None):
             print(f"❌ Error concatenating {prefix}: {str(e)}")
             return None
 
-    music_path = resolve_music_path(get_background_music_from_csv(CSV_FILE, prefix))
-    if music_path:
-        try:
-            duck_master(master, music_path)
-        except Exception as e:
-            print(f"⚠️ Background-music mixing failed for {prefix}: {e}")
+    # Per-part music is skipped for groups that participate in a join; the
+    # joined video gets one music mix applied over the whole thing instead.
+    if not skip_music:
+        music_path = resolve_music_path(get_background_music_from_csv(CSV_FILE, prefix))
+        if music_path:
+            try:
+                duck_master(master, music_path)
+            except Exception as e:
+                print(f"⚠️ Background-music mixing failed for {prefix}: {e}")
 
     try:
         write_web_from_master(master, web)
@@ -1379,13 +1441,103 @@ def concatenate_video_group(prefix, filenames, input_dir=None):
     return master
 
 
-def concatenate_all_processed_videos():
+def _concat_video_files(parts, out):
+    """Join already-encoded mp4 parts into `out`.
+
+    Stream-copies when the parts share codec parameters (they do — same
+    pipeline), which is lossless and fast; falls back to a re-encode otherwise.
+    """
+    with tempfile.TemporaryDirectory() as temp_dir:
+        list_file = os.path.join(temp_dir, "concat_list.txt")
+        with open(list_file, 'w', encoding='utf-8') as f:
+            for part in parts:
+                f.write("file '%s'\n" % os.path.abspath(part).replace('\\', '/'))
+
+        copy_cmd = [
+            'ffmpeg', '-y', '-loglevel', 'error',
+            '-f', 'concat', '-safe', '0', '-i', list_file,
+            '-c', 'copy', '-movflags', '+faststart', out,
+        ]
+        if subprocess.run(copy_cmd, capture_output=True, text=True).returncode == 0:
+            return out
+
+        print("  stream-copy concat failed; re-encoding the joined video...")
+        reencode_cmd = [
+            'ffmpeg', '-y', '-loglevel', 'error',
+            '-f', 'concat', '-safe', '0', '-i', list_file,
+            '-c:v', 'libx264', '-preset', SOCIAL_PRESET, '-crf', str(SOCIAL_CRF),
+            '-pix_fmt', 'yuv420p',
+            '-c:a', 'aac', '-b:a', SOCIAL_AUDIO_BITRATE,
+            '-movflags', '+faststart', out,
+        ]
+        subprocess.run(reencode_cmd, capture_output=True, text=True, check=True)
+        return out
+
+
+def concatenate_joined_videos(join_plan):
+    """Concatenate the `_full` videos of each join group into
+    output/social|web/<joinValue>_joined<VIDEO_EXTENSION>."""
+    if not join_plan:
+        return {}
+    ensure_dirs()
+    results = {}
+    for join_value, prefixes in join_plan.items():
+        if len(prefixes) < 2:
+            print(f"⚠️ join '{join_value}': needs at least 2 parts (got {len(prefixes)}), skipping")
+            continue
+
+        parts = []
+        for prefix in prefixes:
+            part = social_path(f"{prefix}_full{VIDEO_EXTENSION}")
+            if os.path.exists(part):
+                parts.append(part)
+            else:
+                print(f"⚠️ join '{join_value}': missing part '{prefix}_full{VIDEO_EXTENSION}'")
+        if len(parts) < 2:
+            print(f"⚠️ join '{join_value}': fewer than 2 parts available, skipping")
+            continue
+
+        output_filename = f"{join_value}_joined{VIDEO_EXTENSION}"
+        master = social_path(output_filename)
+        web = web_path(output_filename)
+        if os.path.exists(master) and os.path.exists(web):
+            print(f"↩️  {output_filename} already exists, skipping.")
+            results[join_value] = master
+            continue
+
+        print(f"🔗 Joining {len(parts)} videos for '{join_value}' (CSV order)...")
+        try:
+            _concat_video_files(parts, master)
+        except Exception as e:
+            print(f"❌ Join failed for '{join_value}': {e}")
+            continue
+
+        # Music: re-applied once across the whole joined video.
+        music_path = resolve_music_path(get_join_music_from_csv(CSV_FILE, join_value))
+        if music_path:
+            try:
+                duck_master(master, music_path)
+            except Exception as e:
+                print(f"⚠️ Background-music mixing failed for join '{join_value}': {e}")
+
+        try:
+            write_web_from_master(master, web)
+        except Exception as e:
+            print(f"❌ Web encode failed for join '{join_value}': {e}")
+
+        results[join_value] = master
+    return results
+
+
+def concatenate_all_processed_videos(joined_prefixes=None):
+    joined_prefixes = joined_prefixes or set()
     grouped_videos = group_videos_by_prefix(str(SOCIAL_DIR))
     if not grouped_videos:
         return {}
     results = {}
     for prefix, filenames in grouped_videos.items():
-        output_path = concatenate_video_group(prefix, filenames)
+        output_path = concatenate_video_group(
+            prefix, filenames, skip_music=(prefix in joined_prefixes))
         if output_path:
             results[prefix] = output_path
     return results
@@ -1438,7 +1590,11 @@ def main():
     if not args.skip_render:
         print(f"\n{'='*60}\nSTAGE 3: RENDER (social + web)\n{'='*60}")
         process_video_batch(csv_file, max_workers=args.workers)
-        concatenate_all_processed_videos()
+        join_plan, joined_prefixes = load_join_plan(csv_file)
+        concatenate_all_processed_videos(joined_prefixes)
+        if join_plan:
+            print(f"\n{'='*60}\nJOIN: concatenating related videos\n{'='*60}")
+            concatenate_joined_videos(join_plan)
 
     print(f"\n✅ Done. Deliverables in: {SOCIAL_DIR}/ and {WEB_DIR}/")
 
