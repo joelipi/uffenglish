@@ -32,7 +32,14 @@ export function createSpeechOrchestrator({
     preloadWhisperEngine,
     updateSpeechRecording,
 }) {
-    const listeningState = { active: false, hesitationTimer: null, transitioning: false };
+    const listeningState = { active: false, hesitationTimer: null, readyPoll: null, transitioning: false };
+
+    function clearReadyPoll() {
+        if (listeningState.readyPoll) {
+            clearInterval(listeningState.readyPoll);
+            listeningState.readyPoll = null;
+        }
+    }
 
     function initLocalVoiceAI() {
         return preloadWhisperEngine();
@@ -169,6 +176,8 @@ export function createSpeechOrchestrator({
         }
         listeningState.transitioning = true;
         try {
+            clearReadyPoll();
+
             if (listeningState.hesitationTimer) {
                 console.log('[Hesitation] Top-level cleanup: killing existing timer');
                 clearInterval(listeningState.hesitationTimer);
@@ -220,13 +229,13 @@ export function createSpeechOrchestrator({
 
                     if (uiHooks?.onEngineNotReady) uiHooks.onEngineNotReady(userData);
 
-                    const readyInterval = setInterval(() => {
+                    listeningState.readyPoll = setInterval(() => {
                         const state = appStore.getState();
                         if (state.isWhisperReady) {
-                            clearInterval(readyInterval);
+                            clearReadyPoll();
                             if (uiHooks?.onEngineReady) uiHooks.onEngineReady(button);
                         } else if (state.isWhisperEngineFailed) {
-                            clearInterval(readyInterval);
+                            clearReadyPoll();
                         }
                     }, 1000);
                     return;

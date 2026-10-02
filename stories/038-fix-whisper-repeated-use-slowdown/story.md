@@ -48,7 +48,7 @@ Cover in `src/modules/store/store.test.js` (extend the existing file).
   - → `playbackBlob` is `null`, `playbackAutoplay` is `false`
 - `resetForNextStep()` and `resetForNewLesson()` after `setPlaybackBlob(blob)`
   - → `playbackBlob` is `null`
-- (source guard) `grep -r "playbackSpeechCamChunks" src/` returns 0 matches, and `src/modules/speech/speech.web.js` calls `setPlaybackBlob(blob, autoplay)` with exactly two arguments
+- (source guard) `playbackSpeechCamChunks` appears in no non-test file under `src/` (only `store.test.js` may reference it), and `src/modules/speech/speech.web.js` calls `setPlaybackBlob(blob, autoplay)` with exactly two arguments
 
 ### Task 2 - At most one Whisper readiness poll is live
 

@@ -80,6 +80,10 @@ export function createLoadStep(deps) {
             clearInterval(listeningState.hesitationTimer);
             listeningState.hesitationTimer = null;
         }
+        if (listeningState.readyPoll) {
+            clearInterval(listeningState.readyPoll);
+            listeningState.readyPoll = null;
+        }
     }
 
     clearChat();

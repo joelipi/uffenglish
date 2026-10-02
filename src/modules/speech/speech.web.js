@@ -209,7 +209,7 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
                         blobToReturn = blob;
                         console.warn('[DBUG] blob created, size:', blob.size, 'playback:', playback);
 
-                        if (playback && blob.size > 0) appStore.getState().setPlaybackBlob(blob, autoplay, chunks);
+                        if (playback && blob.size > 0) appStore.getState().setPlaybackBlob(blob, autoplay);
 
                         if (download && blob.size > 0) {
                             const url = URL.createObjectURL(blob);
