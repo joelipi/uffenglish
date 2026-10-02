@@ -164,6 +164,14 @@ src/modules/api/supabase.js` in `functions/api/upload-segment.js`). The Read too
 
 ---
 
+## CSS/whole-file `toContain` guards pass even when the guarded rule is deleted
+**Date**: 2026-10-02
+**Area**: testing
+**What happened**: A new test asserted `expect(appCss).toContain('prefers-reduced-motion')` to guard the reduced-motion override added next to the new `.waveform-transcribing-label` rule. `app.css` already had an unrelated `@media (prefers-reduced-motion)` block at ~line 1619, so deleting the new override — or its `animation: none` — left the test green. The code reviewer caught it (same failure shape as the "comment-stripping regexes" entry above).
+**Takeaway**: A `toContain` guard over an entire stylesheet/source file is only valid for tokens that appear exactly once. Scope it to the specific block (`slice(indexOf(selector), indexOf(selector) + N)`), and assert every property in that block (e.g. both `prefers-reduced-motion` and `animation: none`), so removing the override actually fails the test.
+
+---
+
 ## Playwright success-screen tests: wait for lesson bootstrap, use a WebM sentinel, force clicks on animated buttons
 **Date**: 2026-09-24
 **Area**: testing
