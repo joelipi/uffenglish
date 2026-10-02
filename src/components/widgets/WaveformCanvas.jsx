@@ -1,6 +1,8 @@
 import React, { useRef, useEffect } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
+import { getBilingual } from '../../data/strings.js';
+import { useNativeLanguage } from '../../hooks/use-native-language.js';
 
 const BAR_COLOR_UNPLAYED = 'rgba(255, 255, 255, 0.2)';
 const PLAYHEAD_COLOR = '#ffffff';
@@ -9,6 +11,7 @@ const GRADIENT_BOTTOM = '#00c0d8';
 
 export default function WaveformCanvas() {
     const recordedAudioPeaks = useStore(appStore, (s) => s.recordedAudioPeaks);
+    const labelLang = useNativeLanguage();
     const canvasRef = useRef(null);
     const rafRef = useRef(null);
 
@@ -91,8 +94,18 @@ export default function WaveformCanvas() {
 
     if (!recordedAudioPeaks) return null;
 
+    const transcribing = getBilingual('whisper_transcribing', labelLang);
+
     return (
         <div className="waveform-container">
+            <div className="waveform-transcribing-label">
+                <span>{transcribing.english}</span>
+                {transcribing.localized && (
+                    <span className="waveform-transcribing-localized" lang={transcribing.lang}>
+                        {transcribing.localized}
+                    </span>
+                )}
+            </div>
             <canvas ref={canvasRef} className="waveform-canvas" />
         </div>
     );

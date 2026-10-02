@@ -1591,6 +1591,14 @@ const strings = {
         hi: "स्वीकार करें",
         bn: "গ্রহণ করুন"
     },
+    'whisper_transcribing': {
+        en: "Transcribing",
+        es: "Transcribiendo",
+        pt: "Transcrevendo",
+        fr: "Transcription en cours",
+        hi: "ट्रांसक्राइब हो रहा है",
+        bn: "ট্রান্সক্রাইব হচ্ছে"
+    },
 
     'hangman_try_again': {
         en: "Try again.",
