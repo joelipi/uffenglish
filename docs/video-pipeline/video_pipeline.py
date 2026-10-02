@@ -1476,7 +1476,7 @@ def _concat_video_files(parts, out):
 
 def concatenate_joined_videos(join_plan):
     """Concatenate the `_full` videos of each join group into
-    output/social|web/<joinValue>_joined<VIDEO_EXTENSION>."""
+    output/social|web/<joinValue>.mp4."""
     if not join_plan:
         return {}
     ensure_dirs()
@@ -1497,7 +1497,7 @@ def concatenate_joined_videos(join_plan):
             print(f"⚠️ join '{join_value}': fewer than 2 parts available, skipping")
             continue
 
-        output_filename = f"{join_value}_joined{VIDEO_EXTENSION}"
+        output_filename = f"{join_value}.mp4"
         master = social_path(output_filename)
         web = web_path(output_filename)
         if os.path.exists(master) and os.path.exists(web):

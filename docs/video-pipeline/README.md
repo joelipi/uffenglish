@@ -77,8 +77,7 @@ of those finished `_full` videos into one longer video:
   joined. The output is named after that value.
 - Order is **CSV row order** (first-seen group order); any number of parts.
 - Result (both profiles, same as everything else):
-  `output/social/<joinValue>_joined_no_silence_bg_removed.mp4` +
-  `output/web/<joinValue>_joined_no_silence_bg_removed.mp4`
+  `output/social/<joinValue>.mp4` + `output/web/<joinValue>.mp4`
 - The per-part `_full` videos are **kept**.
 - Music is **not** baked into parts that participate in a join; instead the
   join's `bgMusic` (first non-empty among its rows) is applied once over the
@@ -97,7 +96,7 @@ other_01,lessonFinal,,<aside>…part 2…</aside>
 other_02,lessonFinal,,<aside>…part 2…</aside>
 ```
 → `lesson_full_…` + `other_full_…` are rendered, then joined into
-`lessonFinal_joined_…`. Rows with no `join` value behave exactly as before.
+`lessonFinal.mp4`. Rows with no `join` value behave exactly as before.
 
 **Overlay markup in `subtitle_text`:**
 - `<mark>…</mark>` — existing marker style (handwriting font, floats at 35%).
