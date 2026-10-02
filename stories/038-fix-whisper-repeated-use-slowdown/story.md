@@ -29,7 +29,7 @@ This story bounds those two, so a long lesson no longer grows its retained footp
 
 ## Implementation approach
 
-- **Drop the dead chunk copy.** Remove `playbackSpeechCamChunks` everywhere it appears: initial state (`store.js:205`), `setPlaybackBlob` (`:420`), `clearPlaybackBlob` (`:421`), `resetForNextStep` (`:544`), `resetForNewLesson` (`:564`). Change `setPlaybackBlob` to `(blob, autoplay = false)` and update the single caller `speech.web.js:212` to `setPlaybackBlob(blob, autoplay)`. Keep `playbackBlob` and `playbackAutoplay`. Do not touch `recordingsMap` or `saveSpeechRecording`'s recording key.
+- **Drop the dead chunk copy.** Remove `playbackSpeechCamChunks` everywhere it appears: initial state (`store.js:205`), `setPlaybackBlob` (`:420`), `clearPlaybackBlob` (`:421`), and the two occurrences in `resetForNextStep` (`:544`, `:564`). Change `setPlaybackBlob` to `(blob, autoplay = false)` and update the single caller `speech.web.js:212` to `setPlaybackBlob(blob, autoplay)`. Keep `playbackBlob` and `playbackAutoplay` and do not change reset semantics — `resetForNewLesson` never reset playback state and must not start doing so. Do not touch `recordingsMap` or `saveSpeechRecording`'s recording key.
 - **Track the readiness poll.** Add `readyPoll: null` to `listeningState` (`speech-orchestrator.js:35`). Replace the inline `setInterval` at `:223-231` with a `startReadyPoll(button, uiHooks)` that first calls `clearReadyPoll()` then stores the new interval in `listeningState.readyPoll`; `clearReadyPoll()` does `clearInterval(listeningState.readyPoll)` and nulls it. Call `clearReadyPoll()` at the top of `toggleSpeechRecognition` (next to the existing `hesitationTimer` cleanup at `:172-176`) and have the step reset in `step-executor-webonly.js:76-83` also clear `listeningState.readyPoll`. The poll still clears itself on `isWhisperReady` / `isWhisperEngineFailed`, and must null `listeningState.readyPoll` when it does.
 - **No new dependencies.** All tests are Vitest (jsdom); the orchestrator is a factory with injected deps, so no module mocking is needed.
 
@@ -46,7 +46,7 @@ Cover in `src/modules/store/store.test.js` (extend the existing file).
   - → store has no own property `playbackSpeechCamChunks`
 - `clearPlaybackBlob()` after `setPlaybackBlob(blob)`
   - → `playbackBlob` is `null`, `playbackAutoplay` is `false`
-- `resetForNextStep()` and `resetForNewLesson()` after `setPlaybackBlob(blob)`
+- `resetForNextStep()` after `setPlaybackBlob(blob)`
   - → `playbackBlob` is `null`
 - (source guard) `playbackSpeechCamChunks` appears in no non-test file under `src/` (only `store.test.js` may reference it), and `src/modules/speech/speech.web.js` calls `setPlaybackBlob(blob, autoplay)` with exactly two arguments
 
