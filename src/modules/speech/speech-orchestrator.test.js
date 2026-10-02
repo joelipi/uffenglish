@@ -62,7 +62,17 @@ describe('speech orchestrator — readiness poll', () => {
         await orchestrator.toggleSpeechRecognition(baseParams({ onEngineNotReady }));
 
         expect(onEngineNotReady).toHaveBeenCalledTimes(1);
+        // `readyPoll` must be a live interval id, not null/undefined.
         expect(orchestrator.listeningState.readyPoll).not.toBeNull();
+        expect(orchestrator.listeningState.readyPoll).toBeDefined();
+
+        // Exactly one poll tick per second: the orchestrator must not have
+        // scheduled a second live poll on a single toggle.
+        const getStateSpy = vi.spyOn(appStore, 'getState');
+        const before = getStateSpy.mock.calls.length;
+        await vi.advanceTimersByTimeAsync(1000);
+        expect(getStateSpy.mock.calls.length - before).toBe(1);
+        getStateSpy.mockRestore();
     });
 
     it('replaces the previous poll when the mic is tapped again', async () => {
