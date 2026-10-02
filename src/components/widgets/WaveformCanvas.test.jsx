@@ -11,8 +11,6 @@ import { createRoot } from 'react-dom/client';
 import { appStore } from '../../modules/store/store.js';
 import WaveformCanvas from './WaveformCanvas.jsx';
 
-globalThis.IS_REACT_ACT_ENVIRONMENT = true;
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const appCss = readFileSync(path.join(__dirname, '../../assets/css/app.css'), 'utf8');
 
@@ -31,6 +29,7 @@ describe('WaveformCanvas transcribing caption', () => {
     let root;
 
     beforeAll(() => {
+        globalThis.IS_REACT_ACT_ENVIRONMENT = true;
         const gradient = { addColorStop: vi.fn() };
         const ctx = {
             clearRect: vi.fn(),
@@ -52,6 +51,7 @@ describe('WaveformCanvas transcribing caption', () => {
     afterAll(() => {
         vi.restoreAllMocks();
         vi.unstubAllGlobals();
+        delete globalThis.IS_REACT_ACT_ENVIRONMENT;
     });
 
     beforeEach(() => {
@@ -119,6 +119,9 @@ describe('WaveformCanvas transcribing caption', () => {
         );
         expect(block).toContain('animation: blink-text');
         expect(appCss).toContain('@keyframes blink-text');
-        expect(appCss).toContain('prefers-reduced-motion');
+        // The reduced-motion override must live in THIS block, not merely
+        // anywhere in the stylesheet (app.css has an unrelated one at ~line 1619).
+        expect(block).toContain('prefers-reduced-motion');
+        expect(block).toContain('animation: none');
     });
 });

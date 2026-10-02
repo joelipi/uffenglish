@@ -2232,7 +2232,6 @@ ul.incorrectWords li::before {
     color: #ffffff;
     font-size: 15px;
     font-weight: 600;
-    text-align: center;
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
     animation: blink-text 2.5s ease-in-out infinite;
 }
