@@ -62,9 +62,9 @@ then runs the pipeline.
 python -m pip install opencv-python
 ```
 
-Inputs: `video_data.csv` (filename, background, mirror, join, title_text,
+Inputs: `video_data.csv` (filename, phrase, background, mirror, join, title_text,
 subtitle_text, footer_text, effect, dutch_tilt, bgSound, bgMusic, overlay,
-foreground, endSoundEffect), `rawvideos/`, `backgrounds/`, `audio/`,
+foreground, endSoundEffect, srt), `rawvideos/`, `backgrounds/`, `audio/`,
 `overlays/`, `fonts/`. A sample CSV is created on first run if none exists.
 
 ### Joining finished videos (`join` column)
@@ -104,6 +104,22 @@ other_02,lessonFinal,,<aside>…part 2…</aside>
   rounded, padded). A separate tag so `mark` keeps its own styling.
 - `<strong>…</strong>` — yellow highlighter (dark text on `#ffe600`), usable
   inside the box or the subtitle.
+
+### Subtitles (`phrase` → `srt` column)
+
+Each CSV row can carry a `phrase`. After the per-group concatenation, the script
+writes an SRT for each concatenated `_full` video into the **`srt` column**, in
+the same format the app configs use (`model.json` style: `1\n00:00:00,000 -->
+00:00:03,500\ntext\n\n2\n…`, JSON-escaped so it can be pasted straight into
+`"subtitles": "…"`).
+
+- Timing is derived from each segment's **actual post-processing duration**
+  (multi-clip groups trim 0.15 s per clip; a single-clip group is untrimmed), in
+  concatenation order, starting at `00:00:00,000`.
+- An empty `phrase` row leaves a **gap** (no cue) but the clock still advances.
+- English only, one SRT per concatenated video; the value is written on every
+  row of that group.
+- Not generated for the second-level `join` outputs, and no `.srt` files.
 
 Outputs:
 - `output/social/processed_<name>.mp4` + `output/web/processed_<name>.mp4`

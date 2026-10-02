@@ -343,6 +343,7 @@ def resolve_csv_file() -> str | None:
 def create_sample_csv():
     data = {
         'filename': ['video_01'],
+        'phrase': ['Hello and welcome.'],
         'background': [''],
         'mirror': [''],
         'join': [''],
@@ -356,6 +357,7 @@ def create_sample_csv():
         'overlay': [''],
         'foreground': [''],
         'endSoundEffect': [''],
+        'srt': [''],
     }
     pd.DataFrame(data).to_csv(CSV_FILE, index=False)
 
@@ -1380,24 +1382,108 @@ def process_video_batch(csv_file, max_workers=1):
         return False
 
 
-def concatenate_video_group(prefix, filenames, input_dir=None, skip_music=False):
+def processed_to_original(processed_name):
+    """`processed_<filename><VIDEO_EXTENSION>` -> `<filename>`."""
+    stem = str(processed_name)
+    if stem.startswith('processed_'):
+        stem = stem[len('processed_'):]
+    if stem.endswith(VIDEO_EXTENSION):
+        stem = stem[:-len(VIDEO_EXTENSION)]
+    return stem
+
+
+def load_phrase_map(csv_file):
+    """CSV `filename` -> `phrase` text."""
+    phrases = {}
+    try:
+        df = pd.read_csv(csv_file, dtype=str).fillna('')
+    except Exception as e:
+        print(f"⚠️ Could not read {csv_file} for phrase subtitles: {e}")
+        return phrases
+    for _, row in df.iterrows():
+        filename = safe_get_value(row, 'filename')
+        if filename:
+            phrases[filename] = safe_get_value(row, 'phrase')
+    return phrases
+
+
+def format_srt_time(seconds):
+    """Seconds -> HH:MM:SS,mmm (SRT)."""
+    try:
+        seconds = max(0.0, float(seconds))
+    except (TypeError, ValueError):
+        seconds = 0.0
+    total_ms = int(round(seconds * 1000))
+    hours = total_ms // 3600000
+    minutes = (total_ms % 3600000) // 60000
+    secs = (total_ms % 60000) // 1000
+    millis = total_ms % 1000
+    return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
+
+
+def _segment_duration(clip, single):
+    """Duration this clip contributes to the concatenated output, mirroring
+    concatenate_video_group: a single-clip group is copied untrimmed; each clip
+    in a multi-clip group has 0.15 s trimmed off the end."""
+    if single:
+        return clip.duration
+    valid = clip.duration
+    if clip.audio:
+        valid = min(clip.duration, clip.audio.duration)
+    safe = valid - 0.15
+    return safe if safe > 0 else clip.duration
+
+
+def build_group_srt(filenames, input_dir, phrase_map, single):
+    """SRT (config format) for a concatenated group, or None if it has no
+    phrases. Cue timing matches the concatenated video."""
+    if not phrase_map:
+        return None
+    blocks = []
+    cursor = 0.0
+    index = 0
+    for f in filenames:
+        original = processed_to_original(f)
+        try:
+            clip = VideoFileClip(os.path.join(input_dir, f))
+            duration = _segment_duration(clip, single)
+            clip.close()
+        except Exception as e:
+            print(f"⚠️ Could not read duration for {f}: {e}")
+            continue
+        phrase = (phrase_map.get(original) or '').strip()
+        if phrase:
+            index += 1
+            blocks.append(
+                f"{index}\n{format_srt_time(cursor)} --> {format_srt_time(cursor + duration)}\n{phrase}"
+            )
+        cursor += duration  # empty phrase -> no cue, but time still advances
+    return "\n\n".join(blocks) if blocks else None
+
+
+def concatenate_video_group(prefix, filenames, input_dir=None, skip_music=False, phrase_map=None):
     if input_dir is None:
         input_dir = str(SOCIAL_DIR)
     if not filenames:
-        return None
+        return None, None
 
     output_filename = f"{prefix}_full{VIDEO_EXTENSION}"
     master = social_path(output_filename)
     web = web_path(output_filename)
     ensure_dirs()
 
-    if len(filenames) == 1:
+    single = len(filenames) == 1
+    # SRT is derived from the per-segment durations, independent of rendering,
+    # so it is produced even when the video already exists.
+    srt = build_group_srt(filenames, input_dir, phrase_map, single)
+
+    if single:
         print(f"⏩ Single video detected for '{prefix}'. Bypassing concatenation...")
         shutil.copy2(os.path.join(input_dir, filenames[0]), master)
     else:
         if os.path.exists(master) and os.path.exists(web):
             print(f"↩️  {output_filename} already exists, skipping.")
-            return master
+            return master, srt
         try:
             print(f"🔗 Concatenating {len(filenames)} clips for '{prefix}' (Safe-Sync Mode)...")
             clips = []
@@ -1421,7 +1507,7 @@ def concatenate_video_group(prefix, filenames, input_dir=None, skip_music=False)
             final_clip.close()
         except Exception as e:
             print(f"❌ Error concatenating {prefix}: {str(e)}")
-            return None
+            return None, None
 
     # Per-part music is skipped for groups that participate in a join; the
     # joined video gets one music mix applied over the whole thing instead.
@@ -1438,7 +1524,32 @@ def concatenate_video_group(prefix, filenames, input_dir=None, skip_music=False)
     except Exception as e:
         print(f"❌ Web encode failed for {prefix}: {e}")
 
-    return master
+    return master, srt
+
+
+def to_json_subtitle_string(srt_text):
+    """Escape an SRT block for direct pasting into the config JSON's
+    `"subtitles": "..."` value (matches the `\\n` form used in src/config)."""
+    return srt_text.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
+
+
+def write_srt_column(csv_file, srt_by_prefix):
+    """Write each group's SRT into the CSV `srt` column (same value on every
+    row of that group), in the config (JSON-escaped) format."""
+    if not srt_by_prefix:
+        return
+    try:
+        df = pd.read_csv(csv_file, dtype=str).fillna('')
+    except Exception as e:
+        print(f"⚠️ Could not read {csv_file} to write srt column: {e}")
+        return
+    df['srt'] = ''
+    for i, row in df.iterrows():
+        prefix = group_prefix_for_filename(safe_get_value(row, 'filename'))
+        if prefix in srt_by_prefix:
+            df.at[i, 'srt'] = to_json_subtitle_string(srt_by_prefix[prefix])
+    df.to_csv(csv_file, index=False)
+    print(f"📝 Wrote 'srt' for {len(srt_by_prefix)} concatenated video(s) to '{csv_file}'")
 
 
 def _concat_video_files(parts, out):
@@ -1529,18 +1640,24 @@ def concatenate_joined_videos(join_plan):
     return results
 
 
-def concatenate_all_processed_videos(joined_prefixes=None):
+def concatenate_all_processed_videos(joined_prefixes=None, phrase_map=None):
     joined_prefixes = joined_prefixes or set()
     grouped_videos = group_videos_by_prefix(str(SOCIAL_DIR))
     if not grouped_videos:
-        return {}
+        return {}, {}
     results = {}
+    srt_by_prefix = {}
     for prefix, filenames in grouped_videos.items():
-        output_path = concatenate_video_group(
-            prefix, filenames, skip_music=(prefix in joined_prefixes))
+        output_path, srt = concatenate_video_group(
+            prefix, filenames,
+            skip_music=(prefix in joined_prefixes),
+            phrase_map=phrase_map,
+        )
         if output_path:
             results[prefix] = output_path
-    return results
+        if srt:
+            srt_by_prefix[prefix] = srt
+    return results, srt_by_prefix
 
 # =============================================================================
 # Entry point
@@ -1591,7 +1708,9 @@ def main():
         print(f"\n{'='*60}\nSTAGE 3: RENDER (social + web)\n{'='*60}")
         process_video_batch(csv_file, max_workers=args.workers)
         join_plan, joined_prefixes = load_join_plan(csv_file)
-        concatenate_all_processed_videos(joined_prefixes)
+        phrase_map = load_phrase_map(csv_file)
+        _, srt_by_prefix = concatenate_all_processed_videos(joined_prefixes, phrase_map)
+        write_srt_column(csv_file, srt_by_prefix)
         if join_plan:
             print(f"\n{'='*60}\nJOIN: concatenating related videos\n{'='*60}")
             concatenate_joined_videos(join_plan)
