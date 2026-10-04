@@ -96,8 +96,8 @@
 
 ---
 
-## Sandbox has no ffmpeg/ffprobe — one optimize-videos test fails for that reason and is pre-existing
+## A diagnostic path must not require the toolchain — optimize-videos defers its ffmpeg check
 **Date**: 2026-10-04
 **Area**: testing
-**What happened**: `npm test -- --run` reports `scripts/optimize-videos.test.js > optimize-videos CLI — planning > reports a missing source without aborting` failing with `expected 1 to be +0`. That case is not gated by the file's `ffmpegIt` skip helper, and the CLI exits non-zero because `ffmpeg`/`ffprobe` are absent. It fails identically on `origin/main` before any change.
-**Takeaway**: Treat that single failure as environmental, not a regression. Confirm with `which ffmpeg ffprobe` (both missing) and by running the file against a pre-change commit; don't chase it while reviewing a merge. The other `optimize-videos` cases are correctly skipped when ffmpeg is absent.
+**What happened**: `scripts/optimize-videos.test.js > optimize-videos CLI — planning > reports a missing source without aborting` failed (`expected 1 to be +0`) wherever `ffmpeg`/`ffprobe` were absent, because the CLI called `ensureFfmpeg()` before the target loop and exited 1 on the install hint before it could ever report `MISS <slug>`.
+**Takeaway**: `scripts/optimize-videos.mjs` now resolves each source first and calls `ensureFfmpeg()` only once a real source needs probing/encoding, so an all-missing run reports `MISS <slug>` and exits 0 without the toolchain (story 032 AC) while real work still errors with the install hint (after the first source is resolved/cached, not before). Don't assume a CLI's global preconditions can't be deferred past a purely diagnostic path.

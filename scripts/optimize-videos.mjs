@@ -180,8 +180,6 @@ async function main() {
         defaultDir: path.join(os.tmpdir(), 'uff-videos-cache'),
         label: 'VIDEO_CACHE_DIR',
     });
-    await ensureFfmpeg();
-
     if (!targets) {
         const configs = await loadConfigs(CONFIG_DIR, {
             onParseError: (file, e) => console.error(`ERROR parsing src/config/${file}: ${e.message}`),
@@ -193,6 +191,7 @@ async function main() {
 
     const remoteArg = upload && (await wranglerMajor()) >= 4 ? '--remote' : null;
     const counts = { optimized: 0, skipped: 0, missing: 0, failed: 0, uploaded: 0 };
+    let ffmpegReady = false;
 
     for (const { slug } of targets) {
         let src;
@@ -202,6 +201,14 @@ async function main() {
             console.log(`MISS ${slug}: ${e.message}`);
             counts.missing++;
             continue;
+        }
+
+        // Defer the ffmpeg requirement until there is real work to do: a run
+        // whose targets are all missing needs no encoder, so it still reports
+        // `MISS <slug>` and exits 0 without ffmpeg installed (story 032 AC).
+        if (!ffmpegReady) {
+            await ensureFfmpeg();
+            ffmpegReady = true;
         }
 
         let probe;
