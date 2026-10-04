@@ -62,6 +62,9 @@ describe('FriendLessonLinksSection', () => {
         const labels = Array.from(anchors).map((a) => a.textContent);
         expect(labels.some((l) => l.includes('Respond'))).toBe(true);
         expect(labels.some((l) => l.includes('Follow Up'))).toBe(true);
+
+        // Each link carries its own countdown element.
+        expect(container.querySelectorAll('[data-testid="friend-lesson-link-countdown"]')).toHaveLength(2);
     });
 
     it('falls back to the untitled string when lessonTitle is empty', () => {
