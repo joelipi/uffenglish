@@ -202,7 +202,6 @@ export const appStore = createStore(
             // --- Playback Video State ---
             playbackBlob: null,
             playbackAutoplay: false,
-            playbackSpeechCamChunks: [],
 
             // --- Recorded Audio Waveform ---
             recordedAudioPeaks: null,
@@ -417,8 +416,8 @@ export const appStore = createStore(
                 }
                 return result;
             }),
-            setPlaybackBlob: (blob, autoplay = false, speechCamChunks = []) => set({ playbackBlob: blob, playbackAutoplay: autoplay, playbackSpeechCamChunks: speechCamChunks }),
-            clearPlaybackBlob: () => set({ playbackBlob: null, playbackAutoplay: false, playbackSpeechCamChunks: [] }),
+            setPlaybackBlob: (blob, autoplay = false) => set({ playbackBlob: blob, playbackAutoplay: autoplay }),
+            clearPlaybackBlob: () => set({ playbackBlob: null, playbackAutoplay: false }),
             setRecordedAudioPeaks: (peaks) => set({ recordedAudioPeaks: peaks }),
             clearRecordedAudioPeaks: () => set({ recordedAudioPeaks: null }),
             setCompletionMessage: (msg) => set({ completionMessage: msg }),
@@ -541,7 +540,6 @@ export const appStore = createStore(
                 isPlaybackMuted: false,
                 playbackBlob: null,
                 playbackAutoplay: false,
-                playbackSpeechCamChunks: [],
                 bottomOverlayVisible: true,
                 appPhase: 'loading',
                 phaseData: {},
@@ -561,7 +559,6 @@ export const appStore = createStore(
                 clipsPublishing: false,
                 playbackBlob: null,
                 playbackAutoplay: false,
-                playbackSpeechCamChunks: [],
                 hangmanOps: null,
                 hangmanCue: null,
                 pendingVideoPlayType: null,

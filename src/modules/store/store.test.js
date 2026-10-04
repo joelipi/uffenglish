@@ -123,6 +123,37 @@ describe('Zustand App Store', () => {
         expect(appStore.getState().userFirstName).toBe('Jules');
     });
 
+    it('does not retain playbackSpeechCamChunks', () => {
+        expect(Object.prototype.hasOwnProperty.call(appStore.getState(), 'playbackSpeechCamChunks')).toBe(false);
+
+        const blob = new Blob(['video'], { type: 'video/webm' });
+        appStore.getState().setPlaybackBlob(blob, true);
+
+        const state = appStore.getState();
+        expect(state.playbackBlob).toBe(blob);
+        expect(state.playbackAutoplay).toBe(true);
+        expect(Object.prototype.hasOwnProperty.call(state, 'playbackSpeechCamChunks')).toBe(false);
+    });
+
+    it('clears playbackBlob on clearPlaybackBlob', () => {
+        const blob = new Blob(['video'], { type: 'video/webm' });
+        appStore.getState().setPlaybackBlob(blob);
+        expect(appStore.getState().playbackBlob).toBe(blob);
+
+        appStore.getState().clearPlaybackBlob();
+        expect(appStore.getState().playbackBlob).toBeNull();
+        expect(appStore.getState().playbackAutoplay).toBe(false);
+    });
+
+    it('clears playbackBlob on resetForNextStep', () => {
+        const blob = new Blob(['video'], { type: 'video/webm' });
+
+        appStore.getState().setPlaybackBlob(blob);
+        appStore.getState().resetForNextStep();
+        expect(appStore.getState().playbackBlob).toBeNull();
+        expect(appStore.getState().playbackAutoplay).toBe(false);
+    });
+
     it('should reset lesson history', () => {
         appStore.setState({
             responsesGiven: ['response1'],
