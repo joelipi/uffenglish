@@ -1,16 +1,41 @@
 // modules/user/friend-lesson-link-logic.js
 // Pure domain logic for the friend-challenge answer-lesson link shown on the
-// public profile. The mapping is fixed and deterministic: ask lesson 'a' ->
-// answer lesson 'b' in the same course. There is no config field and no lookup.
+// public profile. A friend challenge is a ping-pong chain of `recapOverlay:
+// "shareCta"` lessons in `configData.lessons` order; finishing a lesson records
+// a link that points at the next shareCta lesson. There is no fixed a/b pair.
 // No DOM, no browser globals, no data access — fully unit-testable.
 
 import { SHARE_URL_BASE, SHARE_WINDOW_HOURS } from '../video/video-processor-logic.js';
 
-export const ASK_LESSON_ID = 'a';
-export const ANSWER_LESSON_ID = 'b';
-
 // Reuses the single share window (R2 UGC lifecycle, 48h). Do not add a second.
 export const FRIEND_LINK_WINDOW_MS = SHARE_WINDOW_HOURS * 60 * 60 * 1000;
+
+// The next lesson after `lessonId` in a friend course: the first later entry in
+// configData.lessons whose recapOverlay is 'shareCta'. null when lessonId is not
+// a shareCta lesson or no shareCta lesson follows it.
+export function nextFriendLessonId(configData, lessonId) {
+    const lessons = configData?.lessons;
+    if (!Array.isArray(lessons)) return null;
+    const index = lessons.findIndex((l) => l?.lessonId === lessonId);
+    if (index === -1 || lessons[index]?.recapOverlay !== 'shareCta') return null;
+    for (let i = index + 1; i < lessons.length; i++) {
+        if (lessons[i]?.recapOverlay === 'shareCta') return lessons[i].lessonId;
+    }
+    return null;
+}
+
+// True when a shareCta lesson appears before `lessonId` in config order. The
+// answer ("response") side of a chain is any chain lesson except the first.
+export function hasEarlierShareCtaLesson(configData, lessonId) {
+    const lessons = configData?.lessons;
+    if (!Array.isArray(lessons)) return false;
+    const index = lessons.findIndex((l) => l?.lessonId === lessonId);
+    if (index === -1) return false;
+    for (let i = 0; i < index; i++) {
+        if (lessons[i]?.recapOverlay === 'shareCta') return true;
+    }
+    return false;
+}
 
 // Bare host/path, matching buildShareUrl's scheme-less convention.
 export function buildFriendLessonLink({ courseId, lessonId, shareCode, base = SHARE_URL_BASE }) {
@@ -38,32 +63,40 @@ export function formatFriendLinkRemaining(remainingMs) {
     return `${totalMinutes}m`;
 }
 
-// Immutable merge for the `friend_links` jsonb column. One entry per course
-// (the ask lesson is always 'a'), so the course id is the map key.
+// Immutable merge for the `friend_links` jsonb column. One entry per
+// course+lesson (a player can be mid-chain with several people at once), so the
+// map key is `courseId:lessonId`; entries without a lessonId fall back to the
+// course id, so an in-flight legacy entry survives until it expires.
 export function upsertFriendLinkMap(existing, entry) {
     const map = (existing && typeof existing === 'object' && !Array.isArray(existing)) ? existing : {};
-    return { ...map, [entry.courseId]: entry };
+    const key = entry.lessonId ? `${entry.courseId}:${entry.lessonId}` : entry.courseId;
+    return { ...map, [key]: entry };
 }
 
-// Entries still inside the 48h window, newest first.
+// Entries still inside the 48h window, newest first. Entries without a
+// lessonId (legacy) or shareCode (unusable) are dropped.
 export function listActiveFriendLinks(friendLinks, nowMs) {
     if (!friendLinks || typeof friendLinks !== 'object' || Array.isArray(friendLinks)) return [];
     return Object.values(friendLinks)
-        .filter((e) => e && e.addedAt && isFriendLinkActive(new Date(e.addedAt).getTime(), nowMs))
+        .filter((e) => e && typeof e.lessonId === 'string' && e.lessonId !== ''
+            && typeof e.shareCode === 'string' && e.shareCode !== ''
+            && e.addedAt && isFriendLinkActive(new Date(e.addedAt).getTime(), nowMs))
         .sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime());
 }
 
 /**
  * Gate + payload for recording a link at export time. Pure; no store/Supabase.
- * - a link is created when the exported lesson is the ask lesson 'a', OR when
- *   the export published ask clips embedded in another lesson (`askPublished`,
- *   e.g. the ask questions appended to answer lesson 'b')
- * - the course config must actually contain lesson 'b' (never link to nothing)
+ * - a link is created when the exported lesson is a shareCta lesson with a
+ *   later shareCta lesson after it (the next ping-pong turn)
  * - a real export (succeeded > 0) and a shareCode are required
+ * - the returned lessonTitle is captured at export time (a string), so the
+ *   profile can label the link in the exporter's language
  */
-export function resolveFriendLessonLink({ configData, lessonId, courseId, shareCode, succeeded, askPublished = false }) {
-    if (!succeeded || !shareCode || !courseId || !configData?.lessons) return null;
-    if (lessonId !== ASK_LESSON_ID && !askPublished) return null;
-    if (!configData.lessons.some((l) => l.lessonId === ANSWER_LESSON_ID)) return null;
-    return { courseId, shareCode };
+export function resolveFriendLessonLink({ configData, lessonId, courseId, shareCode, succeeded } = {}) {
+    if (!succeeded || !shareCode || !courseId) return null;
+    const nextId = nextFriendLessonId(configData, lessonId);
+    if (!nextId) return null;
+    const next = configData.lessons.find((l) => l.lessonId === nextId);
+    const lessonTitle = typeof next?.title === 'string' ? next.title : '';
+    return { courseId, lessonId: nextId, shareCode, lessonTitle };
 }

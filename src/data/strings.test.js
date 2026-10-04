@@ -72,8 +72,8 @@ describe('Hindi and Bengali spot checks', () => {
 
 describe('placeholder interpolation in hi/bn', () => {
     it.each(PLACEHOLDER_KEYS)('replaces {placeholders} in %s for hi and bn', (key) => {
-        const hi = get(key, 'hi', { score: 88, date: 'Jan 1', bad_intent: 'angry', time: '47h 0m', url: 'ultrafastfluency.com/abc123', name: 'Sam' });
-        const bn = get(key, 'bn', { score: 88, date: 'Jan 1', bad_intent: 'angry', time: '47h 0m', url: 'ultrafastfluency.com/abc123', name: 'Sam' });
+        const hi = get(key, 'hi', { score: 88, date: 'Jan 1', bad_intent: 'angry', time: '47h 0m', url: 'ultrafastfluency.com/abc123', name: 'Sam', title: 'Respond' });
+        const bn = get(key, 'bn', { score: 88, date: 'Jan 1', bad_intent: 'angry', time: '47h 0m', url: 'ultrafastfluency.com/abc123', name: 'Sam', title: 'Respond' });
         expect(hi).not.toContain('{');
         expect(bn).not.toContain('{');
         expect(hi).toMatch(DEVANAGARI);
@@ -129,9 +129,27 @@ describe('friend-challenge profile link strings', () => {
         hi: '47h 0m तक उपलब्ध',
         bn: '47h 0m পর্যন্ত উপলব্ধ',
     };
+    const TITLED = {
+        en: 'Practice English with Me — Respond',
+        es: 'Practica inglés conmigo — Respond',
+        pt: 'Pratique inglês comigo — Respond',
+        fr: "Pratique l'anglais avec moi — Respond",
+        hi: 'मेरे साथ अंग्रेज़ी का अभ्यास करें — Respond',
+        bn: 'আমার সাথে ইংরেজি চর্চা করুন — Respond',
+    };
 
     it.each(Object.entries(LINK_TEXT))('returns the exact link copy for %s', (lang, expected) => {
         expect(get('profile_friend_lesson_link', lang)).toBe(expected);
+    });
+
+    it.each(Object.entries(TITLED))('interpolates the lesson title for %s', (lang, expected) => {
+        expect(get('profile_friend_lesson_link_titled', lang, { title: 'Respond' })).toBe(expected);
+    });
+
+    it('leaves no {title} placeholder behind in any language', () => {
+        for (const lang of ['en', 'es', 'pt', 'fr', 'hi', 'bn']) {
+            expect(get('profile_friend_lesson_link_titled', lang, { title: 'Respond' })).not.toContain('{');
+        }
     });
 
     it.each(Object.entries(AVAILABLE))('returns the exact countdown copy for %s', (lang, expected) => {

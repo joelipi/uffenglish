@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Strings from '../../data/strings.js';
 import {
-    ANSWER_LESSON_ID,
     buildFriendLessonLink,
     toFriendLessonHref,
     getFriendLinkRemainingMs,
@@ -23,9 +22,16 @@ function FriendLessonLink({ entry, lang, now }) {
 
     const url = buildFriendLessonLink({
         courseId: entry.courseId,
-        lessonId: ANSWER_LESSON_ID,
+        lessonId: entry.lessonId,
         shareCode: entry.shareCode,
     });
+
+    // Label with the next lesson's title when we have one; the title was
+    // captured at export time, so it is already in the exporter's language.
+    const hasTitle = typeof entry.lessonTitle === 'string' && entry.lessonTitle !== '';
+    const label = hasTitle
+        ? Strings.get('profile_friend_lesson_link_titled', lang, { title: entry.lessonTitle })
+        : Strings.get('profile_friend_lesson_link', lang);
 
     return (
         <div style={cardStyle}>
@@ -34,7 +40,7 @@ function FriendLessonLink({ entry, lang, now }) {
                 href={toFriendLessonHref(url)}
                 style={{ fontSize: '32px', fontWeight: 800, color: '#ffffff', textDecoration: 'underline', lineHeight: 1.2, display: 'inline-block' }}
             >
-                {Strings.get('profile_friend_lesson_link', lang)}
+                {label}
             </a>
             <p data-testid="friend-lesson-link-countdown" style={{ color: '#adb5bd', fontSize: '14px', margin: '8px 0 0' }}>
                 {Strings.get('profile_friend_link_available', lang, { time: formatFriendLinkRemaining(remainingMs) })}
@@ -66,7 +72,7 @@ export default function FriendLessonLinksSection({ friendLinks, lang = 'en' }) {
             style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}
         >
             {active.map((entry) => (
-                <FriendLessonLink key={entry.courseId} entry={entry} lang={lang} now={now} />
+                <FriendLessonLink key={`${entry.courseId}:${entry.lessonId}`} entry={entry} lang={lang} now={now} />
             ))}
         </div>
     );

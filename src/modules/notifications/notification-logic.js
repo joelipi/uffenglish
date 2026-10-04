@@ -4,7 +4,7 @@
 // Presentation lives in the platform-tagged components under
 // src/components/homescreen/ (NotificationList.web.jsx / NotificationsBell.web.jsx).
 
-import { ANSWER_LESSON_ID } from '../user/friend-lesson-link-logic.js';
+import { hasEarlierShareCtaLesson } from '../user/friend-lesson-link-logic.js';
 import { buildShareUrl } from '../video/video-processor-logic.js';
 import { LOCALE_MAP } from '../../data/languages.js';
 
@@ -73,7 +73,8 @@ export function getNotificationActorShareCode(notification) {
 
 /**
  * Gate + RPC payload for recording a friend-response notification. Pure.
- * Fires only when a real publish happened for the ANSWER lesson, in a course
+ * Fires only when a real publish happened for a chain lesson that has an
+ * earlier shareCta lesson (i.e. the answer side of the ping-pong), in a course
  * that actually contains that lesson, with a recipient code that is not the
  * actor's own. Returns null otherwise.
  */
@@ -86,8 +87,8 @@ export function resolveFriendResponseNotification({
     succeeded,
 } = {}) {
     if (!succeeded || !courseId) return null;
-    if (lessonId !== ANSWER_LESSON_ID) return null;
-    if (!configData?.lessons?.some((l) => l?.lessonId === ANSWER_LESSON_ID)) return null;
+    if (!configData?.lessons?.some((l) => l?.lessonId === lessonId)) return null;
+    if (!hasEarlierShareCtaLesson(configData, lessonId)) return null;
     const recipient = normalizeShareCode(recipientShareCode);
     const actor = normalizeShareCode(actorShareCode);
     if (!recipient || !actor || recipient === actor) return null;
