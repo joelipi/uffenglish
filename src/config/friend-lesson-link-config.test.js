@@ -6,6 +6,7 @@ import wouldrather from './wouldrather.json';
 import friendchain from './friendchain.json';
 import t from './t.json';
 import testApi from './test-api.json';
+import testConfig from './test.json';
 import { nextFriendLessonId } from '../modules/user/friend-lesson-link-logic.js';
 
 // The friend-challenge chain is the sequence of `recapOverlay: "shareCta"`
@@ -81,7 +82,7 @@ describe('model.json shareCta lessons chain in config order', () => {
 // exported lesson id (buildUgcSegmentKey). A lesson rename that misses a
 // reference would silently 404 the friend's clip (regression: model w -> m-w).
 describe('{friendCode} references resolve to a real lesson', () => {
-    const CONFIGS = { friend, model, gt2, wouldrather, friendchain, t, testApi };
+    const CONFIGS = { friend, model, gt2, wouldrather, friendchain, t, testApi, test: testConfig };
     const VIDEO_FIELDS = ['interactiveVideoUrl', 'introBackgroundVideoUrl', 'simpleVideoUrl'];
 
     it('every friend-slug lesson component exists in the same config', () => {
