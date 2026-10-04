@@ -10,26 +10,35 @@ import { SHARE_URL_BASE, SHARE_WINDOW_HOURS } from '../video/video-processor-log
 // Reuses the single share window (R2 UGC lifecycle, 48h). Do not add a second.
 export const FRIEND_LINK_WINDOW_MS = SHARE_WINDOW_HOURS * 60 * 60 * 1000;
 
+// Index of `lessonId` in `configData.lessons`, or -1. Shared by the chain
+// predicates so the rule (a chain lesson is a shareCta lesson) lives in one place.
+function chainIndex(configData, lessonId) {
+    const lessons = configData?.lessons;
+    if (!Array.isArray(lessons)) return -1;
+    const index = lessons.findIndex((l) => l?.lessonId === lessonId);
+    if (index === -1 || lessons[index]?.recapOverlay !== 'shareCta') return -1;
+    return index;
+}
+
 // The next lesson after `lessonId` in a friend course: the first later entry in
 // configData.lessons whose recapOverlay is 'shareCta'. null when lessonId is not
 // a shareCta lesson or no shareCta lesson follows it.
 export function nextFriendLessonId(configData, lessonId) {
     const lessons = configData?.lessons;
-    if (!Array.isArray(lessons)) return null;
-    const index = lessons.findIndex((l) => l?.lessonId === lessonId);
-    if (index === -1 || lessons[index]?.recapOverlay !== 'shareCta') return null;
+    const index = chainIndex(configData, lessonId);
+    if (index === -1) return null;
     for (let i = index + 1; i < lessons.length; i++) {
         if (lessons[i]?.recapOverlay === 'shareCta') return lessons[i].lessonId;
     }
     return null;
 }
 
-// True when a shareCta lesson appears before `lessonId` in config order. The
-// answer ("response") side of a chain is any chain lesson except the first.
+// True when `lessonId` is itself a shareCta chain lesson and a shareCta lesson
+// appears before it in config order. The answer ("response") side of a chain is
+// any chain lesson except the first; a non-chain lesson is never the answer side.
 export function hasEarlierShareCtaLesson(configData, lessonId) {
     const lessons = configData?.lessons;
-    if (!Array.isArray(lessons)) return false;
-    const index = lessons.findIndex((l) => l?.lessonId === lessonId);
+    const index = chainIndex(configData, lessonId);
     if (index === -1) return false;
     for (let i = 0; i < index; i++) {
         if (lessons[i]?.recapOverlay === 'shareCta') return true;
@@ -66,7 +75,8 @@ export function formatFriendLinkRemaining(remainingMs) {
 // Immutable merge for the `friend_links` jsonb column. One entry per
 // course+lesson (a player can be mid-chain with several people at once), so the
 // map key is `courseId:lessonId`; entries without a lessonId fall back to the
-// course id, so an in-flight legacy entry survives until it expires.
+// course key so a concurrent write cannot clobber a legacy row (listActiveFriendLinks
+// still filters legacy entries off the profile).
 export function upsertFriendLinkMap(existing, entry) {
     const map = (existing && typeof existing === 'object' && !Array.isArray(existing)) ? existing : {};
     const key = entry.lessonId ? `${entry.courseId}:${entry.lessonId}` : entry.courseId;

@@ -88,6 +88,16 @@ describe('hasEarlierShareCtaLesson', () => {
         expect(hasEarlierShareCtaLesson(undefined, 'a')).toBe(false);
         expect(hasEarlierShareCtaLesson({}, 'a')).toBe(false);
     });
+
+    it('is false for a non-shareCta lesson even when a shareCta lesson precedes it', () => {
+        const gapped = {
+            lessons: [
+                { lessonId: 'a', recapOverlay: 'shareCta' },
+                { lessonId: 'x', recapOverlay: 'videoOnly' },
+            ],
+        };
+        expect(hasEarlierShareCtaLesson(gapped, 'x')).toBe(false);
+    });
 });
 
 describe('buildFriendLessonLink', () => {

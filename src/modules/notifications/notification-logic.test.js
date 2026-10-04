@@ -175,6 +175,18 @@ describe('resolveFriendResponseNotification', () => {
         expect(resolveFriendResponseNotification({ ...base, lessonId: 'a' })).toBeNull();
     });
 
+    it('rejects a non-shareCta lesson that merely follows a shareCta lesson', () => {
+        const config = {
+            lessons: [
+                { lessonId: 'a', recapOverlay: 'shareCta' },
+                { lessonId: 'x', recapOverlay: 'videoOnly' },
+            ],
+        };
+        expect(resolveFriendResponseNotification({
+            ...base, configData: config, lessonId: 'x',
+        })).toBeNull();
+    });
+
     it('rejects a lesson with no earlier shareCta lesson', () => {
         const noEarlier = {
             lessons: [

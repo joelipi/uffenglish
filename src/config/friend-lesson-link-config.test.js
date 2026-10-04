@@ -35,9 +35,12 @@ describe('shareCta-order chain premise', () => {
     });
 
     it('a config with no shareCta lessons yields no next', () => {
-        expect(nextFriendLessonId(model, 'm-w')).toBe('wa');
         // gt2 has no shareCta lessons at all.
         expect(nextFriendLessonId(gt2, 'g-a')).toBeNull();
+    });
+
+    it('model.json chains only its shareCta lessons', () => {
+        expect(nextFriendLessonId(model, 'm-w')).toBe('wa');
     });
 
     it('model.json has no single-letter friend lesson ids', () => {
