@@ -1,29 +1,5 @@
 # Learnings
 
-## Comment-stripping regexes silently disable source-guard tests
-**Date**: 2026-09-19
-**Area**: testing
-**What happened**: A platform-purity guard test stripped comments with `/\/\/.*$/gm` before asserting the source contained no `https://`. The stripper treats the `//` inside `https://` as a comment start, so it erased the URL before the assertion ran — the guard could never fail. The code reviewer caught it; injecting a scheme confirmed the test stayed green.
-**Takeaway**: Never run a URL/scheme assertion against comment-stripped source. Assert on the raw source for scheme checks, and use the stripped source only for bare-identifier checks (e.g. `window`/`document`). Always prove a guard test can fail by temporarily injecting the thing it forbids.
-
----
-
-## CSS/whole-file `toContain` guards pass even when the guarded rule is deleted
-**Date**: 2026-10-02
-**Area**: testing
-**What happened**: A new test asserted `expect(appCss).toContain('prefers-reduced-motion')` to guard the reduced-motion override added next to the new `.waveform-transcribing-label` rule. `app.css` already had an unrelated `@media (prefers-reduced-motion)` block at ~line 1619, so deleting the new override — or its `animation: none` — left the test green. The code reviewer caught it (same failure shape as the "comment-stripping regexes" entry above).
-**Takeaway**: A `toContain` guard over an entire stylesheet/source file is only valid for tokens that appear exactly once. Scope it to the specific block (`slice(indexOf(selector), indexOf(selector) + N)`), and assert every property in that block (e.g. both `prefers-reduced-motion` and `animation: none`), so removing the override actually fails the test.
-
----
-
-## Source guards that slice "to end of file" break when a new function is appended
-**Date**: 2026-09-28
-**Area**: testing
-**What happened**: `poster-avatar-wiring.test.js` sliced `video-processor.web.js` from `export async function exportSegmentsToR2` to EOF, relying on it being the last function. Story 021 appended `uploadCompleteVideoToR2` after it, so the slice silently grew to include the new function — the guard could then pass on strings that were not in `exportSegmentsToR2`. The code reviewer caught it.
-**Takeaway**: When a source guard slices a function body, end the slice at the next top-level marker (`indexOf('export const …')` / the next `export async function …`), never at EOF. Before appending a function to a file that has such a guard, check for `slice(source.indexOf(...))` patterns and update them.
-
----
-
 ## `video-processor.native.jsx` is an unwired placeholder, not a live renderer
 **Date**: 2026-09-19
 **Area**: architecture
@@ -109,3 +85,19 @@
 **Area**: testing
 **What happened**: The first `tests/success-concat-button.spec.js` run failed 4/6 because the test overrode `currentVideo`/`appPhase` right after `waitForFunction(configData)` resolved — but `initializeLesson` loads the intro step asynchronously afterwards and clobbered the override, leaving the video wrapper hidden. Two further gotchas: an invalid `data:video/mp4` source fires `onError` (which now reveals the button), so a valid clip is required to test the "hidden until ended" state; and `.ivp-choice-col .call-btn` runs a continuous `floatBob` animation, so Playwright's stability check never settles and `click()` times out. Separately, since commit `0495461`, `configData` is not set at all until the guest language is settled (`isConfigLanguageSettled`), so any spec that `await page.waitForFunction(() => window.appStore.getState().configData)` without first dismissing the guest modal hangs until timeout — this silently broke most lesson-loading specs (`regression-guard`, `playback-video`, `whisper-review`, …).
 **Takeaway**: Before overriding lesson state in a Playwright spec, wait for bootstrap to finish (`activeLessonId` + `currentVideo.type === 'intro'` + `appPhase === 'lessonIntro'`), not just `configData`. Confirm the guest language first (`#guestEnglishOnlyBtn`, then `#guestContinueBtn` on non-friend lessons) before awaiting `configData`; model it on `tests/friend-video-only.spec.js#confirmGuestLanguage`. For codec-independent video tests use a tiny valid VP9/WebM data URI (bundled Chromium decodes WebM, not H.264) and block autoplay via an init script; an invalid source triggers `onError` paths. Click intentionally-animated buttons with `{ force: true }`. Also, `bootstrap-icons` fonts 403 from the symlinked `node_modules` in worktrees (outside Vite's serve allow-list) — filter `bootstrap-icons` console errors instead of chasing them; they also fail `playback-video.spec.js`/`regression-guard.spec.js` pre-existing.
+
+---
+
+## This workspace clone is single-branch — remote feature branches are invisible locally
+**Date**: 2026-10-04
+**Area**: workflow
+**What happened**: `git branch -r` and `git branch --no-merged` reported no unmerged work, but the clone's fetch refspec is only `+refs/heads/main:refs/remotes/origin/main`, so none of the remote's feature branches (`035-…`, `038-…`, etc.) existed locally. A story believed already merged (and another believed unmerged) could not be judged from the local clone at all; the local view even implied `main` was current while feature-branch work was missing.
+**Takeaway**: Before judging branch/merge status, fetch every head once with `git fetch origin '+refs/heads/*:refs/remotes/origin/*'`, or inspect the remote directly with `git ls-remote --heads origin`. Then use `git branch -r --no-merged origin/main` to see what is genuinely unmerged.
+
+---
+
+## Sandbox has no ffmpeg/ffprobe — one optimize-videos test fails for that reason and is pre-existing
+**Date**: 2026-10-04
+**Area**: testing
+**What happened**: `npm test -- --run` reports `scripts/optimize-videos.test.js > optimize-videos CLI — planning > reports a missing source without aborting` failing with `expected 1 to be +0`. That case is not gated by the file's `ffmpegIt` skip helper, and the CLI exits non-zero because `ffmpeg`/`ffprobe` are absent. It fails identically on `origin/main` before any change.
+**Takeaway**: Treat that single failure as environmental, not a regression. Confirm with `which ffmpeg ffprobe` (both missing) and by running the file against a pre-change commit; don't chase it while reviewing a merge. The other `optimize-videos` cases are correctly skipped when ffmpeg is absent.
