@@ -10,7 +10,7 @@ import {
 } from './helpers/lesson-e2e.js';
 
 // Lesson g carries a responseType:"success" step with simpleVideoUrl:"success".
-const LESSON_URL = '/course/model/lesson/g';
+const LESSON_URL = '/course/model/lesson/m-g';
 
 test.describe('Success screen — concat button reveal', () => {
     let observed = { errors: [], transitionWarnings: [] };
@@ -46,7 +46,7 @@ test.describe('Success screen — concat button reveal', () => {
             } else {
                 s.setCurrentVideo(null);
             }
-            s.transitionTo('lessonSuccess', { lessonId: 'g', fluencyData: { total: 85 } }, { fromStepLoad: true });
+            s.transitionTo('lessonSuccess', { lessonId: 'm-g', fluencyData: { total: 85 } }, { fromStepLoad: true });
         }, { sentinel: SENTINEL_SRC, withVideo });
     }
 
@@ -126,7 +126,7 @@ test.describe('Success screen — concat button reveal', () => {
             window.appStore.setState({ isLoggedIn: true, userData: { native_language: 'en', auth_method: 'supabase', $id: 't' } });
             s.setCurrentVideo({ type: 'simple', responseType: 'success', url: webm, config: { subtitles: '' } });
             s.setMediaVisible(true);
-            const step = { lessonId: 'g', simpleVideoUrl: 'success', responseType: 'success' };
+            const step = { lessonId: 'm-g', simpleVideoUrl: 'success', responseType: 'success' };
             // Advanced in-app → stays on lessonSuccess (waits for the clip to end).
             s.setStepLoadedFromRestore(false);
             handleSuccessStep(step, { total: 85 });

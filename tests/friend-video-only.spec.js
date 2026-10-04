@@ -104,7 +104,7 @@ test.describe('friend lessons: video-recording mode only', () => {
         test.setTimeout(60000);
         await page.route('**r2.ultrafastfluency.com/whisper/onnx-community/**', HANG);
 
-        await bootstrap(page, '/course/model/lesson/g?shareCode=friendtest1');
+        await bootstrap(page, '/course/model/lesson/m-g?shareCode=friendtest1');
         await page.evaluate(() => {
             window.appStore.getState().setWhisperReady(true);
             window.appStore.getState().setWhisperEngineFailed(false);
@@ -120,7 +120,7 @@ test.describe('friend lessons: video-recording mode only', () => {
         test.setTimeout(60000);
         await page.route('**r2.ultrafastfluency.com/whisper/onnx-community/**', HANG);
 
-        await bootstrap(page, '/course/model/lesson/w');
+        await bootstrap(page, '/course/model/lesson/m-w');
         await page.evaluate(() => {
             window.appStore.getState().setWhisperReady(true);
             window.appStore.getState().setWhisperEngineFailed(false);

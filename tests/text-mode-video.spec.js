@@ -34,7 +34,7 @@ test.describe('Text-Mode Video', () => {
     test.fixme('processVideo generates a blob for text-mode answers', async ({ page }) => {
         test.setTimeout(90000);
 
-        await page.goto('/course/model/lesson/g');
+        await page.goto('/course/model/lesson/m-g');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
 
         const result = await page.evaluate(async () => {

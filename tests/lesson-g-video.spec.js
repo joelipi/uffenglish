@@ -1,7 +1,7 @@
 // Diagnostic E2E for lesson g — why video will not play
 import { test, expect } from '@playwright/test';
 
-const LESSON_G = '/course/model/lesson/g';
+const LESSON_G = '/course/model/lesson/m-g';
 const SLUGS_G = [
   'do_you_have_dark_chocolate', // intro 0
   'do_you_have_rolls_too', // step 1 interactive closed

@@ -19,7 +19,7 @@ test.describe('Whisper Review Regression Guard', () => {
     });
 
     test('whisper review timeout auto-accept: playback video stays hidden on next step', async ({ page }) => {
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         await page.waitForTimeout(2000);
 
@@ -94,7 +94,7 @@ test.describe('Whisper Review Regression Guard', () => {
     });
 
     test('whisper review reject: playback video cleared', async ({ page }) => {
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         await page.waitForTimeout(2000);
 
@@ -145,7 +145,7 @@ test.describe('Whisper Review Regression Guard', () => {
     });
 
     test('success screen appears after handleSuccessStep and sets subtitles', async ({ page }) => {
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         await page.waitForTimeout(2000);
 
@@ -175,7 +175,7 @@ test.describe('Whisper Review Regression Guard', () => {
     });
 
     test('mediaState toggle hides and correctly restores playback video', async ({ page }) => {
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         await page.waitForTimeout(1000);
 

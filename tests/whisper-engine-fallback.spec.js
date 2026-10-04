@@ -11,7 +11,7 @@
 //      retry or fall back to text.
 import { test, expect } from '@playwright/test';
 
-const LESSON_URL = '/course/model/lesson/w';
+const LESSON_URL = '/course/model/lesson/m-w';
 const HANG = () => { /* intentionally never fulfill — keeps the request pending */ };
 
 async function dismissGuestModal(page) {

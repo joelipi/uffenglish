@@ -19,15 +19,15 @@ describe('fixed a -> b mapping premise', () => {
         expect(ids).toContain('b');
     });
 
-    it('model.json has lesson a but no lesson b (guard suppresses)', () => {
+    it('model.json has no lesson a (single-user course; guard suppresses)', () => {
         const ids = lessonIds(model);
-        expect(ids).toContain('a');
+        expect(ids).not.toContain('a');
         expect(ids).not.toContain('b');
     });
 
-    it('gt2.json has lesson a but no lesson b (guard suppresses)', () => {
+    it('gt2.json has no lesson a (single-user course; guard suppresses)', () => {
         const ids = lessonIds(gt2);
-        expect(ids).toContain('a');
+        expect(ids).not.toContain('a');
         expect(ids).not.toContain('b');
     });
 });

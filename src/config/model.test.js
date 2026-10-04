@@ -10,7 +10,7 @@ const RESPONSE_TYPES = ['closedResponse', 'openResponse', 'friendClosedResponse'
 // introBackgroundVideoUrl) for every lesson. Guards against collateral edits:
 // only `wf` may change, and only by inserting the post-intro viewAndContinue step.
 const EXPECTED_SEQUENCES = {
-    t: [
+    'm-t': [
         ['lessonIntro', null, null, 'do_you_have_rolls_too'],
         ['viewAndContinue', 'do_you_have_rolls_too', null, null],
         ['closedResponse', 'do_you_have_dark_chocolate', null, null],
@@ -21,7 +21,7 @@ const EXPECTED_SEQUENCES = {
         ['openResponse', null, 'gtests-1-2', null],
         ['success', 'success', null, null],
     ],
-    g: [
+    'm-g': [
         ['lessonIntro', null, null, 'do_you_have_dark_chocolate'],
         ['closedResponse', null, 'do_you_have_rolls_too', null],
         ['closedResponse', 'do_you_have_dark_chocolate', null, null],
@@ -29,14 +29,14 @@ const EXPECTED_SEQUENCES = {
         ['openResponse', null, 'where_is_the_bread_aisle', null],
         ['success', 'success', null, null],
     ],
-    h: [
+    'm-h': [
         ['lessonIntro', null, null, 'do_you_have_dark_chocolate'],
         ['openResponse', null, 'do_you_have_rolls_too', null],
         ['openResponse', null, 'do_you_have_very_bitter_dark_chocolate', null],
         ['openResponse', null, 'where_is_the_bread_aisle', null],
         ['success', 'success', null, null],
     ],
-    a: [
+    'm-a': [
         ['lessonIntro', null, null, 'gtests-1-0'],
         ['closedResponse', 'gtests-1-0', null, null],
         ['closedResponse', 'gtests-1-0', null, null],
@@ -54,14 +54,14 @@ const EXPECTED_SEQUENCES = {
         ['openResponse', null, 'do_you_have_rolls_too', null],
         ['success', 'success', null, null],
     ],
-    x: [
+    'm-x': [
         ['lessonIntro', null, null, 'do_you_have_rolls_too'],
         ['viewAndContinue', 'do_you_have_rolls_too', null, null],
         ['closedResponse', 'gtests-0-1-1', null, null],
         ['closedResponse', null, 'gtests-0-1-1', null],
         ['success', 'success', null, null],
     ],
-    w: [
+    'm-w': [
         ['lessonIntro', null, null, 'testvideo01'],
         ['closedResponse', null, 'testvideo02', null],
         ['closedResponse', null, 'testvideo03', null],

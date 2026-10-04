@@ -6,7 +6,7 @@ import { test, expect } from '@playwright/test';
 // the real guard + store + modal with a real browser locale.
 
 const FRIEND_URL = '/course/friend/lesson/b?shareCode=friendtest1';
-const NON_FRIEND_URL = '/course/model/lesson/g';
+const NON_FRIEND_URL = '/course/model/lesson/m-g';
 
 async function waitForGuardRun(page) {
     await page.waitForFunction(

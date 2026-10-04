@@ -19,7 +19,7 @@ test.describe('Success Screen Integration', () => {
     });
 
     test('triggers success screen via store and renders buttons, hides mission', async ({ page }) => {
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         await page.waitForTimeout(1000);
 
@@ -56,7 +56,7 @@ test.describe('Success Screen Integration', () => {
     });
 
     test('continue button appears after video state set to ready', async ({ page }) => {
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         await page.waitForTimeout(1000);
 
@@ -79,7 +79,7 @@ test.describe('Success Screen Integration', () => {
     });
 
     test('repeat button appears after video ready', async ({ page }) => {
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         await page.waitForTimeout(1000);
 
@@ -102,7 +102,7 @@ test.describe('Success Screen Integration', () => {
     });
 
     test('success screen hides when resetForNextStep runs', async ({ page }) => {
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         await page.waitForTimeout(1000);
 
@@ -123,7 +123,7 @@ test.describe('Success Screen Integration', () => {
     });
 
     test('success video blob renders SuccessVideo component', async ({ page }) => {
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         await page.waitForTimeout(1000);
 
@@ -150,7 +150,7 @@ test.describe('Success Screen Integration', () => {
     });
 
     test('chatHistory is initialized as array (no crash)', async ({ page }) => {
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
 
         const chatHistoryType = await page.evaluate(() => {

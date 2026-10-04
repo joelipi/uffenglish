@@ -4,7 +4,7 @@
   "courseName": "Ordering a Drink",
   "lessons": [
     {
-      "lessonId": "a",
+      "lessonId": "g-a",
       "title": {
         "en": "Soda 1",
         "es": "Gaseosa 1",
@@ -86,7 +86,7 @@
       "nextLessonId": "2-2s"
     },
     {
-      "lessonId": "x",
+      "lessonId": "g-x",
       "title": "Success Test",
       "unit": "Daily Challenge Unit",
       "mission": "Answer intelligently.",
@@ -117,10 +117,10 @@
           "inputType": "success"
         }
       ],
-      "nextLessonId": "x"
+      "nextLessonId": "g-x"
     },
     {
-      "lessonId": "s",
+      "lessonId": "g-s",
       "title": "Success Test",
       "unit": "Daily Challenge Unit",
       "questions": [
@@ -449,7 +449,7 @@
       "videoRole": ""
     },
     {
-      "lessonId": "t",
+      "lessonId": "g-t",
       "title": "2025.09.08",
       "unit": "Daily Challenge",
       "questions": [

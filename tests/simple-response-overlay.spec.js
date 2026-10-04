@@ -14,7 +14,7 @@ import {
 // Tutorial decision overlay once the clip ends, mirroring the interactive
 // decision path. Lesson g is used only for a mounted app + configData; the
 // response step itself is injected directly below.
-const LESSON_URL = '/course/model/lesson/g';
+const LESSON_URL = '/course/model/lesson/m-g';
 
 test.describe('simple-video response decision overlay', () => {
     let observed = { errors: [], transitionWarnings: [] };

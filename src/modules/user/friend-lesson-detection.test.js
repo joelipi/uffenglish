@@ -40,7 +40,7 @@ describe('getLessonIdFromPathname', () => {
         expect(getLessonIdFromPathname('/')).toBeNull();
         expect(getLessonIdFromPathname('/profile')).toBeNull();
         expect(getLessonIdFromPathname('/course/model/lesson')).toBeNull();
-        expect(getLessonIdFromPathname('/course/model/lesson/g/extra')).toBeNull();
+        expect(getLessonIdFromPathname('/course/model/lesson/m-g/extra')).toBeNull();
         expect(getLessonIdFromPathname(null)).toBeNull();
     });
 
@@ -53,8 +53,12 @@ describe('getLessonIdFromPathname', () => {
 describe('isFriendLesson', () => {
     it('is true for friend-challenge lesson ids in any course', () => {
         expect(isFriendLesson({ pathname: '/course/friend/lesson/b' })).toBe(true);
-        expect(isFriendLesson({ pathname: '/course/model/lesson/a' })).toBe(true);
-        expect(isFriendLesson({ pathname: '/course/gt2/lesson/a' })).toBe(true);
+        expect(isFriendLesson({ pathname: '/course/wouldrather/lesson/a' })).toBe(true);
+    });
+
+    it('is false for renamed single-user lessons that were never friend lessons', () => {
+        expect(isFriendLesson({ pathname: '/course/model/lesson/m-a' })).toBe(false);
+        expect(isFriendLesson({ pathname: '/course/gt2/lesson/g-a' })).toBe(false);
     });
 
     it('is true when a shareCode is present, regardless of lesson id', () => {
@@ -63,7 +67,7 @@ describe('isFriendLesson', () => {
     });
 
     it('is false for ordinary lessons and missing input', () => {
-        expect(isFriendLesson({ pathname: '/course/model/lesson/g' })).toBe(false);
+        expect(isFriendLesson({ pathname: '/course/model/lesson/m-g' })).toBe(false);
         expect(isFriendLesson({ pathname: '/course/model/lesson/wa' })).toBe(false);
         expect(isFriendLesson({ pathname: '/' })).toBe(false);
         expect(isFriendLesson({})).toBe(false);

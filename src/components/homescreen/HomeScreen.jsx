@@ -187,7 +187,7 @@ export default function HomeScreen() {
                 )}
 
                 {config && (
-                    <div onClick={() => navigate('/course/model/lesson/g')}
+                    <div onClick={() => navigate('/course/model/lesson/m-g')}
                          style={courseCardStyle}
                          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(58, 143, 213, 0.3)'; }}
                          onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>

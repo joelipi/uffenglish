@@ -35,7 +35,7 @@ test.describe('End-to-End Smoke Test', () => {
 
     test('Full User Journey: Load -> Mode Selection -> Interaction -> Tutor Chat', async ({ page }) => {
         // 1. Initial Loading
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         
         // Force the chat interface to be visible for the smoke test.

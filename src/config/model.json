@@ -4,7 +4,7 @@
   "courseName": "Grocery Shopping",
   "lessons": [
     {
-      "lessonId": "t",
+      "lessonId": "m-t",
       "title": {
         "en": "Grocery Shopping",
         "es": "Compras de comestibles",
@@ -96,10 +96,10 @@
           "responseType": "success"
         }
       ],
-      "nextLessonId": "a"
+      "nextLessonId": "m-a"
     },
     {
-      "lessonId": "g",
+      "lessonId": "m-g",
       "title": {
         "en": "Grocery Shopping",
         "es": "Compras de comestibles",
@@ -183,10 +183,10 @@
           "responseType": "success"
         }
       ],
-      "nextLessonId": "a"
+      "nextLessonId": "m-a"
     },
     {
-      "lessonId": "h",
+      "lessonId": "m-h",
       "title": {
         "en": "Grocery Shopping",
         "es": "Compras de comestibles",
@@ -255,10 +255,10 @@
           "responseType": "success"
         }
       ],
-      "nextLessonId": "a"
+      "nextLessonId": "m-a"
     },
     {
-      "lessonId": "a",
+      "lessonId": "m-a",
       "title": {
         "en": "Soda 1",
         "es": "Gaseosa 1",
@@ -452,10 +452,10 @@
           "responseType": "success"
         }
       ],
-      "nextLessonId": "x"
+      "nextLessonId": "m-x"
     },
     {
-      "lessonId": "x",
+      "lessonId": "m-x",
       "title": "Success Test",
       "unit": "Daily Challenge Unit",
       "mission": "Answer intelligently.",
@@ -506,10 +506,10 @@
           "responseType": "success"
         }
       ],
-      "nextLessonId": "a"
+      "nextLessonId": "m-a"
     },
     {
-      "lessonId": "w",
+      "lessonId": "m-w",
       "recapSources": "none",
       "recapOverlay": "shareCta",
       "title": {
@@ -688,7 +688,7 @@
           "responseType": "success"
         }
       ],
-      "nextLessonId": "a"
+      "nextLessonId": "m-a"
     },
     {
       "lessonId": "wf",
@@ -884,7 +884,7 @@
           "responseType": "success"
         }
       ],
-      "nextLessonId": "a"
+      "nextLessonId": "m-a"
     }
   ]
 }

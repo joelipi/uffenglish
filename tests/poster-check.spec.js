@@ -3,7 +3,7 @@
 import { test, expect } from '@playwright/test';
 
 test('intro poster renders (no broken icon)', async ({ page }) => {
-  await page.goto('/course/model/lesson/t');
+  await page.goto('/course/model/lesson/m-t');
   await page.waitForSelector('#intro-call-widget', { timeout: 20000 });
   const img = page.locator('#intro-call-widget .intro-video-container img');
   await img.waitFor({ state: 'visible', timeout: 15000 });
@@ -19,7 +19,7 @@ test('intro poster renders (no broken icon)', async ({ page }) => {
 
 test('poster 404 -> LQIP/gradient, no broken icon', async ({ page }) => {
   await page.route('**/assets/videos/*.jpg', r => r.fulfill({ status: 404, body: 'not found' }));
-  await page.goto('/course/model/lesson/t');
+  await page.goto('/course/model/lesson/m-t');
   await page.waitForSelector('#intro-call-widget', { timeout: 20000 });
   await page.waitForTimeout(1500);
   const imgCount = await page.locator('#intro-call-widget .intro-video-container img').count();

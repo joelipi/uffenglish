@@ -21,7 +21,7 @@ describe('model.json recap flags', () => {
 
     it('sets recapSources/recapOverlay on the friend-challenge lessons', () => {
         const expected = {
-            w: { recapSources: 'none', recapOverlay: 'shareCta' },
+            'm-w': { recapSources: 'none', recapOverlay: 'shareCta' },
             wf: { recapSources: 'none', recapOverlay: 'shareCta' },
             wa: { recapSources: 'friend', recapOverlay: 'shareCta' },
             wfa: { recapSources: 'friend', recapOverlay: 'shareCta' },
@@ -39,7 +39,7 @@ describe('model.json recap flags', () => {
             .filter(l => l.recapSources !== undefined || l.recapOverlay !== undefined)
             .map(l => l.lessonId);
 
-        expect(flagged.sort()).toEqual(['w', 'wa', 'wf', 'wfa']);
+        expect(flagged.sort()).toEqual(['m-w', 'wa', 'wf', 'wfa']);
     });
 
     it('removes webcamOnly from every lesson', () => {
