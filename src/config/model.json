@@ -637,7 +637,7 @@
             { "en": "I would rather live five years longer.", "es": "Preferiría vivir cinco años más.", "pt": "Eu preferiria viver cinco anos a mais." }
           ],
           "responseType": "friendClosedResponse",
-          "interactiveVideoUrl": "{friendCode}model-w-response-01",
+          "interactiveVideoUrl": "{friendCode}model-m-w-response-01",
           "headsUp": "Escucha la pregunta de tu amigo y respóndela."
         },
         {
@@ -655,7 +655,7 @@
             { "en": "I would rather have a meal with great food.", "es": "Preferiría una comida con excelente comida.", "pt": "Eu preferiria uma refeição com ótima comida." }
           ],
           "responseType": "friendClosedResponse",
-          "interactiveVideoUrl": "{friendCode}model-w-response-02",
+          "interactiveVideoUrl": "{friendCode}model-m-w-response-02",
           "headsUp": "Escucha la pregunta de tu amigo y respóndela."
         },
         {
@@ -675,7 +675,7 @@
             { "en": "I would rather travel to the countryside.", "es": "Preferiría viajar al campo.", "pt": "Eu preferiria viajar para o campo." }
           ],
           "responseType": "friendClosedResponse",
-          "interactiveVideoUrl": "{friendCode}model-w-response-03",
+          "interactiveVideoUrl": "{friendCode}model-m-w-response-03",
           "headsUp": "Escucha la pregunta de tu amigo y respóndela."
         },
         {

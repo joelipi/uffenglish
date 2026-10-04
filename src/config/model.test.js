@@ -71,11 +71,11 @@ const EXPECTED_SEQUENCES = {
     wa: [
         ['lessonIntro', null, null, 'testvideo01'],
         ['viewAndContinue', 'testvideo05', null, null],
-        ['friendClosedResponse', null, '{friendCode}model-w-response-01', null],
+        ['friendClosedResponse', null, '{friendCode}model-m-w-response-01', null],
         ['viewAndContinue', 'testvideo06', null, null],
-        ['friendClosedResponse', null, '{friendCode}model-w-response-02', null],
+        ['friendClosedResponse', null, '{friendCode}model-m-w-response-02', null],
         ['viewAndContinue', 'testvideo07', null, null],
-        ['friendClosedResponse', null, '{friendCode}model-w-response-03', null],
+        ['friendClosedResponse', null, '{friendCode}model-m-w-response-03', null],
         ['success', 'testvideo08', null, null],
     ],
     wf: [

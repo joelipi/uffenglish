@@ -39,10 +39,6 @@ describe('shareCta-order chain premise', () => {
         expect(nextFriendLessonId(gt2, 'g-a')).toBeNull();
     });
 
-    it('model.json chains only its shareCta lessons', () => {
-        expect(nextFriendLessonId(model, 'm-w')).toBe('wa');
-    });
-
     it('model.json has no single-letter friend lesson ids', () => {
         const ids = lessonIds(model);
         expect(ids).not.toContain('a');
@@ -64,5 +60,32 @@ describe('model.json shareCta lessons chain in config order', () => {
         expect(nextFriendLessonId(model, 'wa')).toBe('wf');
         expect(nextFriendLessonId(model, 'wf')).toBe('wfa');
         expect(nextFriendLessonId(model, 'wfa')).toBeNull();
+    });
+});
+
+// A `{friendCode}<courseId>-<lessonId>-response-NN` reference must point at a
+// lesson that exists in the same course, because clips publish under the
+// exported lesson id (buildUgcSegmentKey). A lesson rename that misses a
+// reference would silently 404 the friend's clip (regression: model w -> m-w).
+describe('{friendCode} references resolve to a real lesson', () => {
+    const CONFIGS = { friend, model, gt2, wouldrather, friendchain };
+    const VIDEO_FIELDS = ['interactiveVideoUrl', 'introBackgroundVideoUrl', 'simpleVideoUrl'];
+
+    it('every friend-slug lesson component exists in the same config', () => {
+        for (const [name, config] of Object.entries(CONFIGS)) {
+            const ids = new Set(lessonIds(config));
+            for (const lesson of config.lessons) {
+                for (const step of lesson.steps || []) {
+                    for (const field of VIDEO_FIELDS) {
+                        const value = step[field];
+                        if (typeof value !== 'string' || !value.includes('{friendCode}')) continue;
+                        const match = /-([a-z0-9-]+)-response-\d+$/.exec(value.replace('{friendCode}', ''));
+                        expect(match, `${name} ${lesson.lessonId}: unparseable friend slug ${value}`).not.toBeNull();
+                        expect(ids, `${name} ${lesson.lessonId}: ${value} points at missing lesson ${match[1]}`)
+                            .toContain(match[1]);
+                    }
+                }
+            }
+        }
     });
 });
