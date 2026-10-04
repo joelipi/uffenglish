@@ -3,7 +3,7 @@
 // Text Only. Non-friend lessons keep all three options.
 //
 // A friend lesson is detected from the route alone (`isFriendLesson`):
-// `?shareCode=` present, or the lesson id is 'a'/'b' in any course.
+// `?shareCode=` present, or the lesson id is a single letter 'a'–'z' in any course.
 //
 // The chooser is forced deterministically with transitionTo('firstResponse')
 // and the engine state is pinned the same way as tests/whisper-engine-fallback

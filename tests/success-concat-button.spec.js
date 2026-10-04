@@ -9,7 +9,7 @@ import {
     waitForVideoWrapper,
 } from './helpers/lesson-e2e.js';
 
-// Lesson g carries a responseType:"success" step with simpleVideoUrl:"success".
+// Lesson m-g carries a responseType:"success" step with simpleVideoUrl:"success".
 const LESSON_URL = '/course/model/lesson/m-g';
 
 test.describe('Success screen — concat button reveal', () => {
