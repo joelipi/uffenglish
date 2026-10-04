@@ -3,6 +3,9 @@
   Cross-Origin-Embedder-Policy: credentialless
   Cache-Control: no-cache
 
+/recorder
+  X-Robots-Tag: noindex, nofollow
+
 /recorder.html
   X-Robots-Tag: noindex, nofollow
 

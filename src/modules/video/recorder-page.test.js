@@ -1,9 +1,10 @@
 // Guard: the operator-only recording studio (public/recorder.html) is vendored
 // static HTML kept deliberately unlinked from the React app so end users never
 // reach it. This test proves the page is present and self-contained, that it
-// declares noindex, and that nothing on the end-user app surface (src/** and
-// index.html) references it. If someone later wires it into the app UI, this
-// fails on purpose — the studio is meant to stay reachable only by its URL.
+// declares noindex on the path Cloudflare actually serves, and that nothing on
+// the end-user app surface (src/** and index.html) references it. If someone
+// later wires it into the app UI, this fails on purpose — the studio is meant
+// to stay reachable only by its URL.
 
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
@@ -14,68 +15,89 @@ import { fileURLToPath } from 'node:url';
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const PAGE_REL = 'public/recorder.html';
 const PAGE_PATH = path.join(REPO_ROOT, PAGE_REL);
-const PAGE_URL_PATH = '/recorder.html'; // public/ is served from the site root
+// Cloudflare Pages 308-redirects /recorder.html to the extensionless /recorder,
+// which is the URL that actually serves the page — so both forms are "the link".
+const PAGE_URL_PATH = '/recorder';
+const PAGE_URL_PATH_HTML = '/recorder.html';
 const HEADERS_PATH = path.join(REPO_ROOT, 'public/_headers');
 const INDEX_PATH = path.join(REPO_ROOT, 'index.html');
 const SELF = fileURLToPath(import.meta.url);
-const TOKEN = 'recorder.html';
+
+// Matches a link/redirect to the studio in either URL form, without matching the
+// unrelated bare word "recorder" (e.g. `MediaRecorder`) or `/recorders`.
+const REFERENCE_PATTERN = /\/recorder(?![\w.-])|recorder\.html/;
 
 const TEXT_EXTENSIONS = new Set(['.js', '.jsx', '.mjs', '.cjs', '.ts', '.tsx', '.html', '.json']);
 
-function scanDirForToken(dir, token, exclude = new Set()) {
+function scanDirForPattern(root, pattern, exclude = new Set()) {
+    let scanned = 0;
     const hits = [];
-    const walk = (current) => {
-        let entries;
-        try { entries = fs.readdirSync(current, { withFileTypes: true }); } catch { return; }
+    const walk = (dir) => {
+        // Deliberately not swallowed: an unreadable tree must fail the guard
+        // rather than make "no references" pass vacuously.
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
         for (const entry of entries) {
-            const full = path.join(current, entry.name);
+            const full = path.join(dir, entry.name);
             if (entry.isDirectory()) { walk(full); continue; }
             if (!TEXT_EXTENSIONS.has(path.extname(entry.name)) || exclude.has(full)) continue;
-            let content;
-            try { content = fs.readFileSync(full, 'utf8'); } catch { continue; }
-            if (content.includes(token)) hits.push(full);
+            scanned++;
+            if (pattern.test(fs.readFileSync(full, 'utf8'))) hits.push(full);
         }
     };
-    walk(dir);
-    return hits;
+    walk(root);
+    return { hits, scanned };
+}
+
+function headerRule(content, selector) {
+    return content
+        .split(/\n\s*\n/)
+        .find((block) => block.split('\n')[0].trim() === selector) || '';
 }
 
 describe('operator-only recorder page stays hidden', () => {
-    it('detects a link in the app surface (guard is functional)', () => {
+    it('detects both link forms but ignores a bare "Recorder" word (guard is functional)', () => {
         const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'uff-recorder-guard-'));
         const nested = path.join(tmp, 'components');
         fs.mkdirSync(nested, { recursive: true });
-        const linked = path.join(nested, 'nav.jsx');
-        fs.writeFileSync(linked, '<a href="/recorder.html">Studio</a>');
+        const extensionless = path.join(nested, 'nav.jsx');
+        const withHtml = path.join(nested, 'footer.jsx');
+        const negative = path.join(nested, 'recorder-hook.js');
+        fs.writeFileSync(extensionless, '<a href="/recorder">Studio</a>');
+        fs.writeFileSync(withHtml, "window.location = '/recorder.html';");
+        fs.writeFileSync(negative, 'const r = new MediaRecorder(stream);');
         try {
-            expect(scanDirForToken(tmp, TOKEN)).toContain(linked);
+            const { hits } = scanDirForPattern(tmp, REFERENCE_PATTERN);
+            expect(hits).toContain(extensionless);
+            expect(hits).toContain(withHtml);
+            expect(hits).not.toContain(negative);
         } finally {
             fs.rmSync(tmp, { recursive: true, force: true });
         }
     });
 
-    it('ships the recorder as a self-contained static page', () => {
+    it('ships the recorder as a fully self-contained page', () => {
         const page = fs.readFileSync(PAGE_PATH, 'utf8');
         expect(page).toContain('id="dom-btn-record"');
         expect(page).toContain('new MediaRecorder(');
         expect(page).toContain('navigator.mediaDevices.getUserMedia(');
+        expect(page).not.toMatch(/<script[^>]+src=/i);
+        expect(page).not.toMatch(/<link[^>]+href=/i);
     });
 
-    it('declares noindex on the page and in deploy headers', () => {
+    it('declares noindex on the page and on the served path', () => {
         expect(fs.readFileSync(PAGE_PATH, 'utf8')).toContain(
             '<meta name="robots" content="noindex, nofollow">'
         );
 
         const headers = fs.readFileSync(HEADERS_PATH, 'utf8');
-        const start = headers.indexOf(PAGE_URL_PATH);
-        expect(start).toBeGreaterThanOrEqual(0);
-        const nextRule = headers.indexOf('\n\n', start);
-        const block = headers.slice(start, nextRule === -1 ? headers.length : nextRule);
-        expect(block).toContain('X-Robots-Tag: noindex, nofollow');
+        expect(headerRule(headers, PAGE_URL_PATH)).toContain('X-Robots-Tag: noindex, nofollow');
+        expect(headerRule(headers, PAGE_URL_PATH_HTML)).toContain('X-Robots-Tag: noindex, nofollow');
     });
 
     it('is not referenced anywhere on the end-user app surface', () => {
-        expect(scanDirForToken(path.join(REPO_ROOT, 'src'), TOKEN, new Set([SELF]))).toEqual([]);
-        expect(fs.readFileSync(INDEX_PATH, 'utf8')).not.toContain(TOKEN);
+        const src = scanDirForPattern(path.join(REPO_ROOT, 'src'), REFERENCE_PATTERN, new Set([SELF]));
+        expect(src.scanned).toBeGreaterThan(0);
+        expect(src.hits).toEqual([]);
+        expect(fs.readFileSync(INDEX_PATH, 'utf8')).not.toMatch(REFERENCE_PATTERN);
     });
 });
