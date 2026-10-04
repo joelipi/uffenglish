@@ -26,7 +26,8 @@ creation, so the root's branch stops mattering.
    branch and the `stories/NNN-.../story.md` scaffold.
 4. Plan, implement, and review — all in that one chat.
 5. When it is done: **Git view → Integrate** to land the commits on `main`, then
-   archive/delete the session to remove the worktree.
+   archive/delete the session to remove the worktree, and delete the merged
+   remote branch: `git push origin --delete <NNN-story-name>`.
 
 For a story that is already planned (the branch already exists), create the
 worktree session on the **existing branch** instead.
@@ -68,6 +69,10 @@ OpenChamber's provider login).
 
 - One branch = one worktree; one active chat per worktree.
 - Do not reuse a worktree for a different story.
+- **Merged branches are not kept.** Once a story is on `main`, delete its remote
+  branch: `git push origin --delete <NNN-story-name>`. Confirm it is fully merged
+  first with `git merge-base --is-ancestor <branch> origin/main`, then
+  `git fetch --prune` to drop the local remote-tracking ref.
 - Do not worry about the root's branch — worktree sessions choose their start
   point themselves.
 - Give parallel worktrees different dev ports: `npm run dev` defaults to 3000
