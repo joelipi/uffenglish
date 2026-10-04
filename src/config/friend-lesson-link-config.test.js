@@ -4,6 +4,8 @@ import model from './model.json';
 import gt2 from './gt2.json';
 import wouldrather from './wouldrather.json';
 import friendchain from './friendchain.json';
+import t from './t.json';
+import testApi from './test-api.json';
 import { nextFriendLessonId } from '../modules/user/friend-lesson-link-logic.js';
 
 // The friend-challenge chain is the sequence of `recapOverlay: "shareCta"`
@@ -50,6 +52,17 @@ describe('shareCta-order chain premise', () => {
         expect(ids).not.toContain('a');
         expect(ids).not.toContain('b');
     });
+
+    it('single-user configs have no bare single-letter lesson ids', () => {
+        // A single-letter id (a-z) is route-detected as a friend lesson, so
+        // non-friend courses must not use them (model/gt2/t/test-api renamed).
+        const singleLetter = /^[a-z]$/;
+        for (const [name, config] of Object.entries({ model, gt2, t, testApi })) {
+            for (const id of lessonIds(config)) {
+                expect(singleLetter.test(id), `${name} lesson id ${id} looks like a friend lesson`).toBe(false);
+            }
+        }
+    });
 });
 
 describe('model.json shareCta lessons chain in config order', () => {
@@ -68,7 +81,7 @@ describe('model.json shareCta lessons chain in config order', () => {
 // exported lesson id (buildUgcSegmentKey). A lesson rename that misses a
 // reference would silently 404 the friend's clip (regression: model w -> m-w).
 describe('{friendCode} references resolve to a real lesson', () => {
-    const CONFIGS = { friend, model, gt2, wouldrather, friendchain };
+    const CONFIGS = { friend, model, gt2, wouldrather, friendchain, t, testApi };
     const VIDEO_FIELDS = ['interactiveVideoUrl', 'introBackgroundVideoUrl', 'simpleVideoUrl'];
 
     it('every friend-slug lesson component exists in the same config', () => {
@@ -87,5 +100,20 @@ describe('{friendCode} references resolve to a real lesson', () => {
                 }
             }
         }
+    });
+});
+
+// The legacy friend.json `b` still embeds three ask-recording steps tagged
+// `publishLessonId: "a"`. Preserve this invariant while the file exists.
+describe('friend.json b embedded ask steps', () => {
+    const b = friend.lessons.find((l) => l.lessonId === 'b');
+
+    it('tags exactly three steps with publishLessonId a, and no other lesson', () => {
+        const askSteps = b.steps.filter((s) => s.publishLessonId === 'a');
+        expect(askSteps).toHaveLength(3);
+        const taggedLessons = friend.lessons.flatMap((l) =>
+            l.steps.filter((s) => s.publishLessonId !== undefined).map(() => l.lessonId)
+        );
+        expect([...new Set(taggedLessons)]).toEqual(['b']);
     });
 });
