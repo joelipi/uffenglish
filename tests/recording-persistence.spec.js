@@ -29,9 +29,9 @@ test.describe('Recording Persistence', () => {
         await page.goto('/course/model/lesson/m-g');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         // Wait for LessonContainer to set activeLessonId from the URL param.
-        await page.waitForFunction(() => window.appStore?.getState()?.activeLessonId === 'g', { timeout: 20000 });
+        await page.waitForFunction(() => window.appStore?.getState()?.activeLessonId === 'm-g', { timeout: 20000 });
 
-        const lessonId = 'g';
+        const lessonId = 'm-g';
 
         await page.evaluate(async (lid) => {
             const state = window.appStore.getState();
@@ -120,9 +120,9 @@ test.describe('Recording Persistence', () => {
         await page.goto('/course/model/lesson/m-g');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         // Wait for LessonContainer to set activeLessonId from the URL param.
-        await page.waitForFunction(() => window.appStore?.getState()?.activeLessonId === 'g', { timeout: 20000 });
+        await page.waitForFunction(() => window.appStore?.getState()?.activeLessonId === 'm-g', { timeout: 20000 });
 
-        const lessonId = 'g';
+        const lessonId = 'm-g';
 
         await page.evaluate(async (lid) => {
             const state = window.appStore.getState();

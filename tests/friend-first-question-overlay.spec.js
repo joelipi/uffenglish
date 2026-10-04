@@ -125,7 +125,7 @@ test.describe('friend lessons: first question skips the mode chooser', () => {
         await page.route(/\.mp4(\?.*)?$/, HANG);
         await page.goto('/course/model/lesson/m-w');
         await confirmGuestLanguage(page);
-        await waitForLessonReady(page, 'w');
+        await waitForLessonReady(page, 'm-w');
 
         const snap = await loadStepIndex(page, 1);
         expect(snap.appPhase).toBe('firstResponse');

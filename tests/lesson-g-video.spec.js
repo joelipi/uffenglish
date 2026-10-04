@@ -36,7 +36,7 @@ test('lesson g — video will not play diagnostic (local)', async ({ page }) => 
 
   // bootstrap waits — lesson g needs configData + activeLessonId + currentVideo intro (async preloadLessonAssets + loadLessonContent)
   await page.waitForFunction(() => window.appStore?.getState()?.configData, null, { timeout: 20000 });
-  await page.waitForFunction(() => window.appStore?.getState()?.activeLessonId === 'g', null, { timeout: 20000 });
+  await page.waitForFunction(() => window.appStore?.getState()?.activeLessonId === 'm-g', null, { timeout: 20000 });
   await page.waitForFunction(() => window.appStore?.getState()?.currentVideo?.type === 'intro', null, { timeout: 25000 });
   // preloader is gated on poster + LQIP; wait a bit for it to hide
   await page.waitForFunction(() => window.appStore?.getState()?.preloaderVisible === false, null, { timeout: 25000 }).catch(() => console.log('[diag] preloader still visible after 25s'));

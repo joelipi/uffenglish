@@ -192,8 +192,8 @@ export function markFirstRenderable(plan, fromIndex = 0) {
 // ---------------------------------------------------------------------------
 // Publishing targets — which lesson a recorded step's clip publishes under.
 // The R2 key is normally generated from the lesson being exported, but a step
-// may override it (e.g. ask-question steps embedded in answer lesson 'b' must
-// publish under ask lesson 'a' so a friend's 'b' lesson can fetch them).
+// may override it (e.g. ask-question steps embedded in an answer lesson publish
+// under the ask lesson so a friend's answer lesson can fetch them).
 // ---------------------------------------------------------------------------
 
 // The lesson a step's clip publishes under. Absent/empty `publishLessonId`

@@ -87,7 +87,7 @@ export function resolveFriendResponseNotification({
     succeeded,
 } = {}) {
     if (!succeeded || !courseId) return null;
-    if (!configData?.lessons?.some((l) => l?.lessonId === lessonId)) return null;
+    // `hasEarlierShareCtaLesson` itself rejects a lessonId absent from the config.
     if (!hasEarlierShareCtaLesson(configData, lessonId)) return null;
     const recipient = normalizeShareCode(recipientShareCode);
     const actor = normalizeShareCode(actorShareCode);

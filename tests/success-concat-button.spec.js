@@ -24,7 +24,7 @@ test.describe('Success screen — concat button reveal', () => {
     async function setupSuccessScreen(page, { withVideo = true } = {}) {
         await page.goto(LESSON_URL);
         await confirmGuestLanguage(page);
-        await waitForLessonReady(page, 'g');
+        await waitForLessonReady(page, 'm-g');
         await page.evaluate(({ sentinel, withVideo }) => {
             const s = window.appStore.getState();
             // Keep the guest dialog from making the page inert; treat as logged
@@ -65,7 +65,7 @@ test.describe('Success screen — concat button reveal', () => {
     test('lessonSuccess-decisionTime maps the success screen zones', async ({ page }) => {
         await page.goto(LESSON_URL);
         await confirmGuestLanguage(page);
-        await waitForLessonReady(page, 'g');
+        await waitForLessonReady(page, 'm-g');
 
         const state = await page.evaluate(() => {
             window.appStore.getState().transitionTo('lessonSuccess-decisionTime', {}, { fromStepLoad: true });
@@ -116,7 +116,7 @@ test.describe('Success screen — concat button reveal', () => {
     test('restoring directly to the success step reveals the overlay without waiting for the clip', async ({ page }) => {
         await page.goto(LESSON_URL);
         await confirmGuestLanguage(page);
-        await waitForLessonReady(page, 'g');
+        await waitForLessonReady(page, 'm-g');
 
         const phases = await page.evaluate(async (webm) => {
             const { handleSuccessStep } = await import('/src/modules/lesson/step-loader-logic.js');
@@ -215,7 +215,7 @@ test.describe('Success screen — concat button reveal', () => {
     test('view-and-continue video end keeps the earlier overlay copy', async ({ page }) => {
         await page.goto(LESSON_URL);
         await confirmGuestLanguage(page);
-        await waitForLessonReady(page, 'g');
+        await waitForLessonReady(page, 'm-g');
         await page.evaluate((sentinel) => {
             const s = window.appStore.getState();
             s.setGuestModalOpen(false);
