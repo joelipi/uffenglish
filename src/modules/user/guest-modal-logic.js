@@ -5,11 +5,16 @@
 export const ENGLISH_LANG = 'EN';
 
 // Routes that are public to everyone and must never open the guest modal: the
-// public homepage's only job is the friend-challenge entry.
-export const PUBLIC_ROUTES = ['/'];
+// public homepage's only job is the friend-challenge entry, and the legal pages
+// must stay readable for anonymous visitors arriving from the footer.
+export const PUBLIC_ROUTES = ['/', '/privacy', '/terms'];
 
 export function isPublicHomeRoute(pathname) {
-    return typeof pathname === 'string' && PUBLIC_ROUTES.includes(pathname);
+    if (typeof pathname !== 'string' || pathname === '') return false;
+    // React Router matches paths case-insensitively and tolerates trailing
+    // slashes, so normalize to the canonical form before the exact-match lookup.
+    const normalized = (pathname.replace(/\/+$/, '') || '/').toLowerCase();
+    return PUBLIC_ROUTES.includes(normalized);
 }
 
 // - friend lesson + non-English browser -> adopt the browser language silently

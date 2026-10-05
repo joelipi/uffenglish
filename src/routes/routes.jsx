@@ -11,6 +11,8 @@ import RecoverPasswordRoute from './RecoverPasswordRoute.jsx';
 import ResetPasswordRoute from './ResetPasswordRoute.jsx';
 import LessonContainer from '../components/LessonContainer.jsx';
 import PublicProfileRoute from './PublicProfileRoute.jsx';
+import PrivacyRoute from './PrivacyRoute.jsx';
+import TermsRoute from './TermsRoute.jsx';
 
 function LessonError() {
   return (
@@ -33,6 +35,9 @@ export const routes = [
       { path: '/recover-password', element: <AuthLayout />, children: [{ index: true, element: <RecoverPasswordRoute /> }] },
       { path: '/reset-password', element: <AuthLayout />, children: [{ index: true, element: <ResetPasswordRoute /> }] },
       { path: '/profile', element: <ProfileRoute /> },
+      // Legal pages must precede the single-segment /:shareCode catch-all.
+      { path: '/privacy', element: <PrivacyRoute /> },
+      { path: '/terms', element: <TermsRoute /> },
       { path: '/course/:courseId/lesson/:lessonId', element: <AppLayout />, errorElement: <LessonError />, children: [{ index: true, element: <LessonContainer /> }] },
       { path: '/:shareCode', element: <PublicProfileRoute /> },
       { path: '*', element: <Navigate to="/" replace /> },

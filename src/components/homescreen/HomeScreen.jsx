@@ -7,6 +7,7 @@ import { useAuthStatus, useUserProfile, signOut } from '../../modules/api/api.js
 import Strings from '../../data/strings.js';
 import { trackEvent } from '../../modules/utils/posthog.js';
 import NotificationsBell from './NotificationsBell.web.jsx';
+import LegalFooter from '../legal/LegalFooter.jsx';
 
 export default function HomeScreen() {
     const navigate = useNavigate();
@@ -153,6 +154,16 @@ export default function HomeScreen() {
                                   onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderLeftColor = 'transparent'; }}>
                                 <i className="bi bi-person-fill"></i> {Strings.get('home_profile', lang)}
                             </Link>
+                            <Link to="/privacy" onClick={closeMenu} style={{ ...linkStyle, borderLeft: '3px solid transparent' }}
+                                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#1a3a5a'; e.currentTarget.style.borderLeftColor = '#00c0d8'; }}
+                                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderLeftColor = 'transparent'; }}>
+                                <i className="bi bi-shield-lock"></i> {Strings.get('legal_privacy', lang)}
+                            </Link>
+                            <Link to="/terms" onClick={closeMenu} style={{ ...linkStyle, borderLeft: '3px solid transparent' }}
+                                  onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#1a3a5a'; e.currentTarget.style.borderLeftColor = '#00c0d8'; }}
+                                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderLeftColor = 'transparent'; }}>
+                                <i className="bi bi-file-earmark-text"></i> {Strings.get('legal_terms', lang)}
+                            </Link>
                         </nav>
                         <div style={{ flex: 1 }} />
                         {isLoggedIn ? (
@@ -212,6 +223,8 @@ export default function HomeScreen() {
                     </button>
                 </div>
             )}
+
+            <LegalFooter lang={lang} />
         </div>
     );
 }

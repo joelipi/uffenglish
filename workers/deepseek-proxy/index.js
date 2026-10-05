@@ -4,6 +4,9 @@ const ALLOWED_ORIGINS = [
   'http://localhost:3000',
   'http://localhost:5173',
   'https://ultrafastfluency.com',
+  // Staging — s.ultrafastfluency.com serves a non-production branch deployment
+  // (see docs/deploy-environments.md), so the AI proxy must accept its origin.
+  'https://s.ultrafastfluency.com',
   'https://t.ultrafastfluency.com',
 ];
 
