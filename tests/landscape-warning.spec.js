@@ -4,7 +4,7 @@
 // `defaultBrowserType` never leaks into `test.use`.
 import { test, expect, devices } from '@playwright/test';
 
-const LESSON_G = '/course/model/lesson/g';
+const LESSON_G = '/course/model/lesson/m-g';
 const IPHONE_UA = devices['iPhone 13'].userAgent;
 const LANDSCAPE = { width: 844, height: 390 };
 const PORTRAIT = { width: 390, height: 844 };

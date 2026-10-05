@@ -16,7 +16,7 @@
 
 import { test, expect } from '@playwright/test';
 
-const LESSON_URL = '/course/gt2/lesson/a';
+const LESSON_URL = '/course/gt2/lesson/g-a';
 
 test.describe('Whisper page-cache lifecycle', () => {
     test('setWhisperReady toggles store state correctly', async ({ page }) => {

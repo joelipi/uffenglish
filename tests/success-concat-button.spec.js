@@ -9,8 +9,8 @@ import {
     waitForVideoWrapper,
 } from './helpers/lesson-e2e.js';
 
-// Lesson g carries a responseType:"success" step with simpleVideoUrl:"success".
-const LESSON_URL = '/course/model/lesson/g';
+// Lesson m-g carries a responseType:"success" step with simpleVideoUrl:"success".
+const LESSON_URL = '/course/model/lesson/m-g';
 
 test.describe('Success screen — concat button reveal', () => {
     let observed = { errors: [], transitionWarnings: [] };
@@ -24,7 +24,7 @@ test.describe('Success screen — concat button reveal', () => {
     async function setupSuccessScreen(page, { withVideo = true } = {}) {
         await page.goto(LESSON_URL);
         await confirmGuestLanguage(page);
-        await waitForLessonReady(page, 'g');
+        await waitForLessonReady(page, 'm-g');
         await page.evaluate(({ sentinel, withVideo }) => {
             const s = window.appStore.getState();
             // Keep the guest dialog from making the page inert; treat as logged
@@ -46,7 +46,7 @@ test.describe('Success screen — concat button reveal', () => {
             } else {
                 s.setCurrentVideo(null);
             }
-            s.transitionTo('lessonSuccess', { lessonId: 'g', fluencyData: { total: 85 } }, { fromStepLoad: true });
+            s.transitionTo('lessonSuccess', { lessonId: 'm-g', fluencyData: { total: 85 } }, { fromStepLoad: true });
         }, { sentinel: SENTINEL_SRC, withVideo });
     }
 
@@ -65,7 +65,7 @@ test.describe('Success screen — concat button reveal', () => {
     test('lessonSuccess-decisionTime maps the success screen zones', async ({ page }) => {
         await page.goto(LESSON_URL);
         await confirmGuestLanguage(page);
-        await waitForLessonReady(page, 'g');
+        await waitForLessonReady(page, 'm-g');
 
         const state = await page.evaluate(() => {
             window.appStore.getState().transitionTo('lessonSuccess-decisionTime', {}, { fromStepLoad: true });
@@ -116,7 +116,7 @@ test.describe('Success screen — concat button reveal', () => {
     test('restoring directly to the success step reveals the overlay without waiting for the clip', async ({ page }) => {
         await page.goto(LESSON_URL);
         await confirmGuestLanguage(page);
-        await waitForLessonReady(page, 'g');
+        await waitForLessonReady(page, 'm-g');
 
         const phases = await page.evaluate(async (webm) => {
             const { handleSuccessStep } = await import('/src/modules/lesson/step-loader-logic.js');
@@ -126,7 +126,7 @@ test.describe('Success screen — concat button reveal', () => {
             window.appStore.setState({ isLoggedIn: true, userData: { native_language: 'en', auth_method: 'supabase', $id: 't' } });
             s.setCurrentVideo({ type: 'simple', responseType: 'success', url: webm, config: { subtitles: '' } });
             s.setMediaVisible(true);
-            const step = { lessonId: 'g', simpleVideoUrl: 'success', responseType: 'success' };
+            const step = { lessonId: 'm-g', simpleVideoUrl: 'success', responseType: 'success' };
             // Advanced in-app → stays on lessonSuccess (waits for the clip to end).
             s.setStepLoadedFromRestore(false);
             handleSuccessStep(step, { total: 85 });
@@ -215,7 +215,7 @@ test.describe('Success screen — concat button reveal', () => {
     test('view-and-continue video end keeps the earlier overlay copy', async ({ page }) => {
         await page.goto(LESSON_URL);
         await confirmGuestLanguage(page);
-        await waitForLessonReady(page, 'g');
+        await waitForLessonReady(page, 'm-g');
         await page.evaluate((sentinel) => {
             const s = window.appStore.getState();
             s.setGuestModalOpen(false);

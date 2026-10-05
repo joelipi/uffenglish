@@ -97,11 +97,11 @@ test.describe('friend lessons: first question skips the mode chooser', () => {
         expect(observed.errors).toEqual([]);
     });
 
-    test('friend lesson via ?shareCode= on wa: first response step goes interactive', async ({ page }) => {
+    test('friend lesson via ?shareCode= on b: first response step goes interactive', async ({ page }) => {
         await page.route(/\.mp4(\?.*)?$/, HANG);
-        await page.goto('/course/model/lesson/wa?shareCode=friendtest1');
+        await page.goto('/course/wouldrather/lesson/b?shareCode=friendtest1');
         await confirmGuestLanguage(page);
-        await waitForLessonReady(page, 'wa');
+        await waitForLessonReady(page, 'b');
 
         const snap = await loadStepIndex(page, 2);
         expect(snap.appPhase).toBe('interactiveVideo+friendClosedResponse');
@@ -111,9 +111,9 @@ test.describe('friend lessons: first question skips the mode chooser', () => {
 
     test('friend lesson via ?shareCode= on g: closed response goes interactive+closedResponse', async ({ page }) => {
         await page.route(/\.mp4(\?.*)?$/, HANG);
-        await page.goto('/course/model/lesson/g?shareCode=friendtest1');
+        await page.goto('/course/model/lesson/m-g?shareCode=friendtest1');
         await confirmGuestLanguage(page);
-        await waitForLessonReady(page, 'g');
+        await waitForLessonReady(page, 'm-g');
 
         const snap = await loadStepIndex(page, 1);
         expect(snap.appPhase).toBe('interactiveVideo+closedResponse');
@@ -121,11 +121,11 @@ test.describe('friend lessons: first question skips the mode chooser', () => {
         expect(observed.transitionWarnings).toEqual([]);
     });
 
-    test('non-friend lesson w keeps the firstResponse chooser', async ({ page }) => {
+    test('non-friend lesson m-g keeps the firstResponse chooser', async ({ page }) => {
         await page.route(/\.mp4(\?.*)?$/, HANG);
-        await page.goto('/course/model/lesson/w');
+        await page.goto('/course/model/lesson/m-g');
         await confirmGuestLanguage(page);
-        await waitForLessonReady(page, 'w');
+        await waitForLessonReady(page, 'm-g');
 
         const snap = await loadStepIndex(page, 1);
         expect(snap.appPhase).toBe('firstResponse');
@@ -133,11 +133,11 @@ test.describe('friend lessons: first question skips the mode chooser', () => {
         expect(observed.transitionWarnings).toEqual([]);
     });
 
-    test('non-friend lesson wa (no share code) keeps the firstResponse chooser', async ({ page }) => {
+    test('non-friend lesson m-t (no share code) keeps the firstResponse chooser', async ({ page }) => {
         await page.route(/\.mp4(\?.*)?$/, HANG);
-        await page.goto('/course/model/lesson/wa');
+        await page.goto('/course/model/lesson/m-t');
         await confirmGuestLanguage(page);
-        await waitForLessonReady(page, 'wa');
+        await waitForLessonReady(page, 'm-t');
 
         const snap = await loadStepIndex(page, 2);
         expect(snap.appPhase).toBe('firstResponse');

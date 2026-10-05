@@ -25,7 +25,7 @@ test.describe('Answer Flow — mic bypass integration test', () => {
             if (msg.type() === 'error') errors.push(msg.text());
         });
 
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
 
         // Wait for lesson to fully initialize
         await page.waitForFunction(() => {

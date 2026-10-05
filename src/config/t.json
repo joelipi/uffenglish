@@ -4,7 +4,7 @@
   "courseName": "Ordering",
   "lessons": [
     {
-      "lessonId": "t",
+      "lessonId": "t-t",
       "title": {
         "en": "Soda 1",
         "es": "Gaseosa 1",
@@ -159,7 +159,7 @@
       "nextLessonId": "z"
     },
     {
-      "lessonId": "y",
+      "lessonId": "t-y",
       "title": "Success Test",
       "unit": "Daily Challenge Unit",
       "mission": "{friendCode} Answer intelligently.",

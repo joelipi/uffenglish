@@ -1173,6 +1173,16 @@ const strings = {
         hi: "मेरे साथ अंग्रेज़ी का अभ्यास करें",
         bn: "আমার সাথে ইংরেজি চর্চা করুন"
     },
+    // Same link, labelled with the next lesson's title (captured at export
+    // time, so it is already in the exporter's language).
+    'profile_friend_lesson_link_titled': {
+        en: "Practice English with Me — {title}",
+        es: "Practica inglés conmigo — {title}",
+        pt: "Pratique inglês comigo — {title}",
+        fr: "Pratique l'anglais avec moi — {title}",
+        hi: "मेरे साथ अंग्रेज़ी का अभ्यास करें — {title}",
+        bn: "আমার সাথে ইংরেজি চর্চা করুন — {title}"
+    },
     'profile_friend_link_available': {
         en: "Available for {time}",
         es: "Disponible por {time}",

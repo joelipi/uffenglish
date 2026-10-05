@@ -19,7 +19,7 @@ test.describe('PlaybackVideo Visibility', () => {
     });
 
     test('playback-video-wrapper is hidden when no blob', async ({ page }) => {
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         await page.waitForTimeout(1000);
 
@@ -29,7 +29,7 @@ test.describe('PlaybackVideo Visibility', () => {
     });
 
     test('playback-video-wrapper shows when blob is set and chat mode is off', async ({ page }) => {
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         await page.waitForTimeout(1000);
 
@@ -77,7 +77,7 @@ test.describe('PlaybackVideo Visibility', () => {
     });
 
     test('playback-video-wrapper is hidden when mediaState is chat', async ({ page }) => {
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         await page.waitForTimeout(1000);
 
@@ -100,7 +100,7 @@ test.describe('PlaybackVideo Visibility', () => {
     });
 
     test('playback-video-wrapper is hidden after clearPlaybackBlob', async ({ page }) => {
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         await page.waitForTimeout(1000);
 
@@ -131,7 +131,7 @@ test.describe('PlaybackVideo Visibility', () => {
     });
 
     test('playback-video-wrapper stays hidden after resetForNextStep', async ({ page }) => {
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         await page.waitForTimeout(1000);
 
@@ -166,7 +166,7 @@ test.describe('PlaybackVideo Visibility', () => {
     });
 
     test('playback-video-wrapper does not reappear when mediaState toggles back with no blob', async ({ page }) => {
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         await page.waitForTimeout(1000);
 
@@ -203,7 +203,7 @@ test.describe('PlaybackVideo Visibility', () => {
     });
 
     test.fixme('playback-video-wrapper stays hidden during chat feedback after onloadedmetadata fires', async ({ page }) => {
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         await page.waitForTimeout(1000);
 

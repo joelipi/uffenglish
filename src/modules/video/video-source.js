@@ -4,7 +4,7 @@
 // No browser globals, no URL construction — safe for any platform.
 
 // A friend/UGC clip is identified by its slug ending in "-response-NN"
-// (e.g. "{shareCode}-model-w-response-01" after {friendCode} substitution).
+// (e.g. "{shareCode}-model-m-w-response-01" after {friendCode} substitution).
 // This is the same convention getVideoUrl uses to route UGC to the /videos/
 // namespace (48h TTL) instead of the teacher /assets/videos/ namespace.
 export const FRIEND_VIDEO_REGEX = /-response-\d+$/i;

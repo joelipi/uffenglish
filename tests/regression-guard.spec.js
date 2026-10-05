@@ -19,7 +19,7 @@ test.describe('Regression Guard — Store, DOM IDs, Module Imports', () => {
     });
 
     test('app loads without console errors', async ({ page }) => {
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         await page.waitForTimeout(2000);
 
@@ -32,7 +32,7 @@ test.describe('Regression Guard — Store, DOM IDs, Module Imports', () => {
     });
 
     test('no duplicate DOM IDs for resultVideo', async ({ page }) => {
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         await page.waitForTimeout(1000);
 
@@ -44,7 +44,7 @@ test.describe('Regression Guard — Store, DOM IDs, Module Imports', () => {
     });
 
     test('no duplicate DOM IDs for displayCanvas', async ({ page }) => {
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         await page.waitForTimeout(1000);
 
@@ -55,7 +55,7 @@ test.describe('Regression Guard — Store, DOM IDs, Module Imports', () => {
     });
 
     test('no duplicate DOM IDs for state-lesson-success', async ({ page }) => {
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         await page.waitForTimeout(1000);
 
@@ -66,7 +66,7 @@ test.describe('Regression Guard — Store, DOM IDs, Module Imports', () => {
     });
 
     test('successHandler is no longer in store', async ({ page }) => {
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
 
         const hasHandler = await page.evaluate(() => {
@@ -76,7 +76,7 @@ test.describe('Regression Guard — Store, DOM IDs, Module Imports', () => {
     });
 
     test('chatHistory is array and not undefined', async ({ page }) => {
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
 
         const result = await page.evaluate(() => {
@@ -91,7 +91,7 @@ test.describe('Regression Guard — Store, DOM IDs, Module Imports', () => {
     });
 
     test('resetForNextStep resets all success screen state', async ({ page }) => {
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
 
         // Set success screen state
@@ -134,7 +134,7 @@ test.describe('Regression Guard — Store, DOM IDs, Module Imports', () => {
     });
 
     test('bottomState resets to hidden on resetForNextStep', async ({ page }) => {
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
 
         await page.evaluate(() => {
@@ -150,7 +150,7 @@ test.describe('Regression Guard — Store, DOM IDs, Module Imports', () => {
     });
 
     test('loadLessonContent is importable', async ({ page }) => {
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
 
         const result = await page.evaluate(async () => {
@@ -166,7 +166,7 @@ test.describe('Regression Guard — Store, DOM IDs, Module Imports', () => {
     });
 
     test('handleSuccessStep uses store (no successHandler)', async ({ page }) => {
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         await page.waitForTimeout(2000);
 
@@ -199,7 +199,7 @@ test.describe('Regression Guard — Store, DOM IDs, Module Imports', () => {
     });
 
     test('old success-lesson.js module is not loadable', async ({ page }) => {
-        await page.goto('/course/gt2/lesson/a');
+        await page.goto('/course/gt2/lesson/g-a');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
 
         // Attempting to import the old module should fail

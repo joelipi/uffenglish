@@ -40,10 +40,10 @@ describe('exportSegmentsToR2 publish targets', () => {
 });
 
 describe('SuccessButtons wiring', () => {
-    it('awaits the export and gates on its succeeded + askPublished flags', () => {
+    it('awaits the export and gates on its succeeded flag', () => {
         expect(successButtons).toContain('await exportSegmentsToR2(lessonId, result.segments, result.blob)');
         expect(successButtons).toContain('succeeded: exportResult?.succeeded');
-        expect(successButtons).toContain('askPublished: exportResult?.askPublished');
+        expect(successButtons).not.toContain('askPublished: exportResult?.askPublished');
     });
 
     it('keeps ready before the export (no publish gate is added)', () => {
@@ -57,6 +57,20 @@ describe('SuccessButtons wiring', () => {
     it('records the link only through the resolver + mutation', () => {
         expect(successButtons).toContain('resolveFriendLessonLink({');
         expect(successButtons).toContain('friendLinkMutation.mutateAsync({');
+    });
+
+    it('calls the resolver with the chain payload shape (no askPublished)', () => {
+        const start = successButtons.indexOf('resolveFriendLessonLink({');
+        expect(start).toBeGreaterThan(-1);
+        const end = successButtons.indexOf('});', start);
+        expect(end).toBeGreaterThan(start);
+        const block = successButtons.slice(start, end + 3);
+        expect(block).toContain('configData');
+        expect(block).toContain('lessonId');
+        expect(block).toContain('courseId');
+        expect(block).toContain('shareCode: userData?.shareCode');
+        expect(block).toContain('succeeded: exportResult?.succeeded');
+        expect(block).not.toContain('askPublished');
     });
 
     it('treats a publish/link failure as non-fatal', () => {

@@ -1,16 +1,14 @@
 // modules/user/friend-lesson-detection.js
 // Synchronous detection of a friend-challenge lesson from the route alone.
 // A friend lesson is opened either via a friend share link (?shareCode=) or is
-// one of the friend-challenge lesson ids ('a' ask / 'b' answer), in any course.
-// No DOM, no browser globals beyond URLSearchParams/decodeURIComponent — fully
-// unit-testable and safe to call during render (nothing can flash).
+// a single-letter friend-challenge lesson id (the ping-pong chain runs a..z), in
+// any course. No DOM, no browser globals beyond URLSearchParams/
+// decodeURIComponent — fully unit-testable and safe to call during render
+// (nothing can flash).
 
-import { ASK_LESSON_ID, ANSWER_LESSON_ID } from './friend-lesson-link-logic.js';
-
-// Single source of truth for the friend-challenge lesson ids; do not re-literal
-// them here. Course ids are open-ended, so they are deliberately not part of the
-// predicate.
-export const FRIEND_LESSON_IDS = [ASK_LESSON_ID, ANSWER_LESSON_ID];
+// The friend chain runs from lesson 'a' through 'z'. Course ids are open-ended,
+// so they are deliberately not part of the predicate.
+export const FRIEND_LESSON_IDS = [...'abcdefghijklmnopqrstuvwxyz'];
 
 // Case-insensitive ?shareCode= in a URL search string (with or without '?').
 // Returns the trimmed, lowercased code, or null.
@@ -40,7 +38,7 @@ export function getLessonIdFromPathname(pathname) {
 }
 
 // A friend lesson is opened via a friend share link (?shareCode=) or is a
-// friend-challenge lesson id ('a'/'b'), in any course.
+// single-letter friend-challenge lesson id (a..z), in any course.
 export function isFriendLesson({ search, pathname } = {}) {
     if (getShareCodeFromSearch(search)) return true;
     const lessonId = getLessonIdFromPathname(pathname);

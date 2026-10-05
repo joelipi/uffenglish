@@ -139,27 +139,64 @@ describe('formatNotificationDate', () => {
 });
 
 describe('resolveFriendResponseNotification', () => {
+    const chain = {
+        lessons: [
+            { lessonId: 'a', recapOverlay: 'shareCta' },
+            { lessonId: 'b', recapOverlay: 'shareCta' },
+            { lessonId: 'c', recapOverlay: 'shareCta' },
+        ],
+    };
     const base = {
-        configData: { lessons: [{ lessonId: 'b' }] },
-        lessonId: 'b',
-        courseId: 'friend',
+        configData: chain,
+        lessonId: 'c',
+        courseId: 'friendchain',
         recipientShareCode: 'A1',
         actorShareCode: 'B2',
         succeeded: 3,
     };
 
-    it('returns the normalized RPC payload for a valid answer export', () => {
+    it('returns the normalized RPC payload for a chain lesson with an earlier shareCta lesson', () => {
         expect(resolveFriendResponseNotification(base)).toEqual({
             recipientShareCode: 'a1',
-            courseId: 'friend',
+            courseId: 'friendchain',
+            lessonId: 'c',
+        });
+    });
+
+    it('fires for any answer-side chain lesson, not just the second', () => {
+        expect(resolveFriendResponseNotification({ ...base, lessonId: 'b' })).toEqual({
+            recipientShareCode: 'a1',
+            courseId: 'friendchain',
             lessonId: 'b',
         });
     });
 
-    it('rejects non-answer lessons', () => {
+    it('rejects the first chain lesson (no earlier shareCta)', () => {
         expect(resolveFriendResponseNotification({ ...base, lessonId: 'a' })).toBeNull();
-        expect(resolveFriendResponseNotification({ ...base, lessonId: 'w' })).toBeNull();
-        expect(resolveFriendResponseNotification({ ...base, lessonId: '' })).toBeNull();
+    });
+
+    it('rejects a non-shareCta lesson that merely follows a shareCta lesson', () => {
+        const config = {
+            lessons: [
+                { lessonId: 'a', recapOverlay: 'shareCta' },
+                { lessonId: 'x', recapOverlay: 'videoOnly' },
+            ],
+        };
+        expect(resolveFriendResponseNotification({
+            ...base, configData: config, lessonId: 'x',
+        })).toBeNull();
+    });
+
+    it('rejects a lesson with no earlier shareCta lesson', () => {
+        const noEarlier = {
+            lessons: [
+                { lessonId: 'x', recapOverlay: 'videoOnly' },
+                { lessonId: 'a', recapOverlay: 'shareCta' },
+            ],
+        };
+        expect(resolveFriendResponseNotification({
+            ...base, configData: noEarlier, lessonId: 'a',
+        })).toBeNull();
     });
 
     it('requires a real export', () => {
@@ -184,16 +221,20 @@ describe('resolveFriendResponseNotification', () => {
         expect(resolveFriendResponseNotification({ ...base, courseId: undefined })).toBeNull();
     });
 
-    it('requires the course config to contain the answer lesson', () => {
+    it('requires the course config to contain the lesson', () => {
         expect(resolveFriendResponseNotification({
             ...base,
-            configData: { lessons: [{ lessonId: 'a' }] },
+            lessonId: 'zz',
         })).toBeNull();
     });
 
     it('handles a missing config', () => {
         expect(resolveFriendResponseNotification({ ...base, configData: null })).toBeNull();
         expect(resolveFriendResponseNotification({ ...base, configData: undefined })).toBeNull();
+    });
+
+    it('normalizes the recipient in the returned payload', () => {
+        expect(resolveFriendResponseNotification({ ...base, recipientShareCode: ' A1 ' }).recipientShareCode).toBe('a1');
     });
 
     it('exposes the friend_response type constant', () => {

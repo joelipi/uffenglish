@@ -26,12 +26,12 @@ test.describe('Recording Persistence', () => {
         });
 
         // Phase 1: navigate, set text mode, save a recording.
-        await page.goto('/course/model/lesson/g');
+        await page.goto('/course/model/lesson/m-g');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         // Wait for LessonContainer to set activeLessonId from the URL param.
-        await page.waitForFunction(() => window.appStore?.getState()?.activeLessonId === 'g', { timeout: 20000 });
+        await page.waitForFunction(() => window.appStore?.getState()?.activeLessonId === 'm-g', { timeout: 20000 });
 
-        const lessonId = 'g';
+        const lessonId = 'm-g';
 
         await page.evaluate(async (lid) => {
             const state = window.appStore.getState();
@@ -117,12 +117,12 @@ test.describe('Recording Persistence', () => {
     test('multiple steps survive reload and merge with fresh in-memory recordings', async ({ page }) => {
         test.setTimeout(60000);
 
-        await page.goto('/course/model/lesson/g');
+        await page.goto('/course/model/lesson/m-g');
         await page.waitForFunction(() => window.appStore?.getState()?.configData, { timeout: 20000 });
         // Wait for LessonContainer to set activeLessonId from the URL param.
-        await page.waitForFunction(() => window.appStore?.getState()?.activeLessonId === 'g', { timeout: 20000 });
+        await page.waitForFunction(() => window.appStore?.getState()?.activeLessonId === 'm-g', { timeout: 20000 });
 
-        const lessonId = 'g';
+        const lessonId = 'm-g';
 
         await page.evaluate(async (lid) => {
             const state = window.appStore.getState();

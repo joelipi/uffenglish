@@ -3,7 +3,7 @@
 // Text Only. Non-friend lessons keep all three options.
 //
 // A friend lesson is detected from the route alone (`isFriendLesson`):
-// `?shareCode=` present, or the lesson id is 'a'/'b' in any course.
+// `?shareCode=` present, or the lesson id is a single letter 'a'–'z' in any course.
 //
 // The chooser is forced deterministically with transitionTo('firstResponse')
 // and the engine state is pinned the same way as tests/whisper-engine-fallback
@@ -104,7 +104,7 @@ test.describe('friend lessons: video-recording mode only', () => {
         test.setTimeout(60000);
         await page.route('**r2.ultrafastfluency.com/whisper/onnx-community/**', HANG);
 
-        await bootstrap(page, '/course/model/lesson/g?shareCode=friendtest1');
+        await bootstrap(page, '/course/model/lesson/m-g?shareCode=friendtest1');
         await page.evaluate(() => {
             window.appStore.getState().setWhisperReady(true);
             window.appStore.getState().setWhisperEngineFailed(false);
@@ -120,7 +120,7 @@ test.describe('friend lessons: video-recording mode only', () => {
         test.setTimeout(60000);
         await page.route('**r2.ultrafastfluency.com/whisper/onnx-community/**', HANG);
 
-        await bootstrap(page, '/course/model/lesson/w');
+        await bootstrap(page, '/course/model/lesson/m-g');
         await page.evaluate(() => {
             window.appStore.getState().setWhisperReady(true);
             window.appStore.getState().setWhisperEngineFailed(false);

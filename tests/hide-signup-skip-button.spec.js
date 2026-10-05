@@ -24,7 +24,7 @@ const SAVE_CLIPS_MODAL_SRC = read('src', 'components', 'modals', 'SaveClipsModal
 const SAVE_CLIPS_FORM_SRC = read('src', 'components', 'modals', 'SaveClipsSignupForm.jsx');
 const SIGNUP_FORM_SRC = read('src', 'components', 'auth', 'SignupForm.web.jsx');
 
-const LESSON_URL = '/course/model/lesson/g';
+const LESSON_URL = '/course/model/lesson/m-g';
 const SIGNUP_URL = '/signup';
 
 /** Edge geometry of an element, in viewport coordinates. */

@@ -1,7 +1,7 @@
 // Diagnostic E2E for lesson g — why video will not play
 import { test, expect } from '@playwright/test';
 
-const LESSON_G = '/course/model/lesson/g';
+const LESSON_G = '/course/model/lesson/m-g';
 const SLUGS_G = [
   'do_you_have_dark_chocolate', // intro 0
   'do_you_have_rolls_too', // step 1 interactive closed
@@ -36,7 +36,7 @@ test('lesson g — video will not play diagnostic (local)', async ({ page }) => 
 
   // bootstrap waits — lesson g needs configData + activeLessonId + currentVideo intro (async preloadLessonAssets + loadLessonContent)
   await page.waitForFunction(() => window.appStore?.getState()?.configData, null, { timeout: 20000 });
-  await page.waitForFunction(() => window.appStore?.getState()?.activeLessonId === 'g', null, { timeout: 20000 });
+  await page.waitForFunction(() => window.appStore?.getState()?.activeLessonId === 'm-g', null, { timeout: 20000 });
   await page.waitForFunction(() => window.appStore?.getState()?.currentVideo?.type === 'intro', null, { timeout: 25000 });
   // preloader is gated on poster + LQIP; wait a bit for it to hide
   await page.waitForFunction(() => window.appStore?.getState()?.preloaderVisible === false, null, { timeout: 25000 }).catch(() => console.log('[diag] preloader still visible after 25s'));

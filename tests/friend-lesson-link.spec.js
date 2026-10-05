@@ -1,7 +1,7 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
 
-// Public-profile friend-challenge link. The profile is loaded through
+// Public-profile friend-challenge links. The profile is loaded through
 // useUserByShareCode; we settle its initial (empty) query, then inject the
 // fixture through the app's own queryClient singleton (same pattern as
 // answer-flow.spec.js importing app modules). page.clock fixes "now" so the
@@ -23,7 +23,9 @@ const PROFILE = {
     lessons_completed: 3,
 };
 
-const entry = (courseId, addedAt) => ({ courseId, shareCode: SHARE_CODE, addedAt });
+const entry = (courseId, lessonId, lessonTitle, addedAt) => ({
+    courseId, lessonId, lessonTitle, shareCode: SHARE_CODE, addedAt,
+});
 
 async function seedProfile(page, friendLinks) {
     await page.goto(`/${SHARE_CODE}`);
@@ -36,7 +38,7 @@ async function seedProfile(page, friendLinks) {
     }, { key: SHARE_CODE, profile: { ...PROFILE, friendLinks } });
 }
 
-test.describe('public-profile friend-challenge link', () => {
+test.describe('public-profile friend-challenge links', () => {
     test.beforeEach(async ({ page }) => {
         await page.clock.setFixedTime(new Date(FIXED_NOW));
         // Deterministic Supabase: the public_profiles lookup resolves to empty.
@@ -45,12 +47,14 @@ test.describe('public-profile friend-challenge link', () => {
         );
     });
 
-    test('renders the large link and countdown for an active entry', async ({ page }) => {
-        await seedProfile(page, { friend: entry('friend', '2026-09-24T11:00:00.000Z') });
+    test('renders the large titled link and countdown for an active entry', async ({ page }) => {
+        await seedProfile(page, {
+            'friend:b': entry('friend', 'b', 'Respond', '2026-09-24T11:00:00.000Z'),
+        });
 
         const link = page.getByTestId('friend-lesson-link');
         await expect(link).toBeVisible();
-        await expect(link).toHaveText('Practice English with Me');
+        await expect(link).toHaveText('Practice English with Me — Respond');
         await expect(link).toHaveAttribute(
             'href',
             'https://ultrafastfluency.com/course/friend/lesson/b?shareCode=friendtest1'
@@ -70,9 +74,31 @@ test.describe('public-profile friend-challenge link', () => {
             .toHaveText('Available for 47h 0m');
     });
 
+    test('renders one labelled link per active lesson', async ({ page }) => {
+        await seedProfile(page, {
+            'friendchain:b': entry('friendchain', 'b', 'Respond', '2026-09-24T11:00:00.000Z'),
+            'friendchain:c': entry('friendchain', 'c', 'Follow Up', '2026-09-24T10:00:00.000Z'),
+        });
+
+        const links = page.getByTestId('friend-lesson-link');
+        await expect(links).toHaveCount(2);
+        await expect(links.nth(0)).toHaveAttribute(
+            'href',
+            'https://ultrafastfluency.com/course/friendchain/lesson/b?shareCode=friendtest1'
+        );
+        await expect(links.nth(1)).toHaveAttribute(
+            'href',
+            'https://ultrafastfluency.com/course/friendchain/lesson/c?shareCode=friendtest1'
+        );
+        await expect(links.nth(0)).toContainText('Respond');
+        await expect(links.nth(1)).toContainText('Follow Up');
+    });
+
     test('removes the link once the 48h window has passed', async ({ page }) => {
         // Exactly 48h before the fixed clock -> inactive (inclusive boundary).
-        await seedProfile(page, { friend: entry('friend', '2026-09-22T12:00:00.000Z') });
+        await seedProfile(page, {
+            'friend:b': entry('friend', 'b', 'Respond', '2026-09-22T12:00:00.000Z'),
+        });
 
         await expect(page.getByTestId('friend-lesson-link')).toHaveCount(0);
         await expect(page.getByTestId('friend-lesson-links')).toHaveCount(0);
@@ -89,14 +115,5 @@ test.describe('public-profile friend-challenge link', () => {
         await page.goto(`/${SHARE_CODE}`);
 
         await expect(page.getByTestId('friend-lesson-link')).toHaveCount(0);
-    });
-
-    test('renders one link per active course', async ({ page }) => {
-        await seedProfile(page, {
-            friend: entry('friend', '2026-09-24T11:00:00.000Z'),
-            other: entry('other', '2026-09-24T10:00:00.000Z'),
-        });
-
-        await expect(page.getByTestId('friend-lesson-link')).toHaveCount(2);
     });
 });
