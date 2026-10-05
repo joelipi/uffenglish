@@ -14,21 +14,36 @@ export default function LegalPage({ markdown, titleKey }) {
     const lang = guestLang || userLang || 'en';
 
     const containerStyle = {
-        minHeight: '100dvh',
+        height: '100dvh',
+        display: 'flex',
+        flexDirection: 'column',
+        // body/html are overflow:hidden in index.html (full-screen app shell),
+        // so the page owns its scrolling through the region below.
+        overflow: 'hidden',
         backgroundColor: '#0b1a2a',
         color: 'white',
         fontFamily: "'Inter', 'Plus Jakarta Sans', sans-serif",
     };
 
     const topBarStyle = {
-        position: 'sticky',
-        top: 0,
-        zIndex: 10,
+        flexShrink: 0,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '16px',
         background: 'linear-gradient(135deg, #3a8fd5 0%, #00c0d8 100%)',
+    };
+
+    const scrollStyle = {
+        flex: 1,
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
+    };
+
+    const articleStyle = {
+        maxWidth: '760px',
+        margin: '0 auto',
+        padding: '24px 20px 64px',
     };
 
     return (
@@ -46,12 +61,14 @@ export default function LegalPage({ markdown, titleKey }) {
                 <div style={{ width: '40px' }} />
             </div>
 
-            <article
-                data-testid="legal-document"
-                style={{ maxWidth: '760px', margin: '0 auto', padding: '24px 20px 64px' }}
-            >
-                <LegalDocument markdown={markdown} />
-            </article>
+            <div data-testid="legal-scroll" style={scrollStyle}>
+                <article
+                    data-testid="legal-document"
+                    style={articleStyle}
+                >
+                    <LegalDocument markdown={markdown} />
+                </article>
+            </div>
         </div>
     );
 }
