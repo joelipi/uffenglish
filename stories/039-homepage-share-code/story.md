@@ -1,20 +1,21 @@
-# Homepage share-code entry
+# Public homepage + user home split with share-code entry
 
 ## Context
 
-Today the root route `/` renders `HomeScreen` (`src/components/homescreen/HomeScreen.jsx`, mounted by `src/routes/HomeRoute.jsx:10`), which shows the menu top bar, a hardcoded Grocery Shopping course card (`HomeScreen.jsx:190` navigates to `/course/model/lesson/g`), the notification bell, and a Continue button. An anonymous visitor to `/` gets the same screen and is then interrupted by the guest language/login modal (`useGuestModalGuard`, `src/hooks/use-guest-modal-guard.js`), which opens for every anonymous visitor on a non-auth route.
+Today the root route `/` renders `HomeScreen` (`src/components/homescreen/HomeScreen.jsx`, mounted by `src/routes/HomeRoute.jsx:10`): the menu top bar, a hardcoded Grocery Shopping course card (`HomeScreen.jsx:190`), the notification bell, and a Continue button. That same URL is therefore both the public base domain and the logged-in user's dashboard, and anonymous visitors land on it and are then interrupted by the guest language/login modal (`useGuestModalGuard`, `src/hooks/use-guest-modal-guard.js:42-72` opens for every anonymous visitor on a non-auth route).
 
-There is currently no way for a visitor to act on the core friend-challenge loop from the homepage: a friend who received a share code/link out of band has to be told the `/` + `?sharecode=` convention, and the profile-URL route `/:shareCode` (`src/routes/routes.jsx:35`) is undiscoverable. This story gives anonymous visitors a homepage whose only job is the friend loop: enter a friend's share code to open that friend's public profile, or, if they have no code, jump straight into the Would You Rather ask lesson to create their own.
+This story splits the two: `/` becomes a public homepage whose only job is the friend-challenge loop (enter a friend's share code to open their public profile, or, with no code, jump into the Would You Rather ask lesson), and the existing `HomeScreen` moves to `/home`. The split is the prerequisite for the share-code entry; it is also long overdue — `src/components/LessonContainer.jsx:134` already carries the comment `TODO: Replace with proper home route when one exists` on its `<Link to="/">` close button.
 
 The entry lookup reuses the existing public-profile query (`useUserByShareCode`, `src/modules/api/api.js:291`), which reads `public.public_profiles` with a `user_profiles` fallback. Share codes are generated lowercase-only from the alphabet `abcdefghijkmnpqrstuvwxyz23456789` (`src/modules/utils/short-id.js:1`), and both existing entry points normalize them with `trim().toLowerCase()` (`getShareCodeFromSearch` in `src/modules/user/friend-lesson-detection.js:17`, and `App.jsx:30`). The Supabase lookup itself is case-sensitive (`api.js:300/306`), so the homepage must normalize too.
 
 ## Out of Scope
 
-- The guest language/login modal and `useGuestModalGuard` — the modal still opens for anonymous visitors on `/`, unchanged.
-- `HomeScreen` and the logged-in homepage. Logged-in users keep the existing screen (menu, course card, notification bell, Continue).
-- `PublicProfile` and its own not-found state (`PublicProfile.jsx:49-65`). A direct deep link to a bad `/:shareCode` is unchanged.
+- Redesigning `HomeScreen`; it is only re-mounted at `/home`, not changed visually or behaviorally (aside from its menu Home link).
+- Guarding `/home` (an anonymous visitor may still open it and get the guest dashboard, exactly as `/` behaved before).
+- The `PublicProfile` page and its own not-found state (`PublicProfile.jsx:49-65`); a direct bad `/:shareCode` link is unchanged.
 - The `?sharecode=` deep link captured in `App.jsx:19-37`.
-- Accepting a pasted full URL (e.g. `https://ultrafastfluency.com/abc123`) in the input — the field accepts a bare share code only.
+- Accepting a pasted full URL (e.g. `https://ultrafastfluency.com/abc123`) — the field accepts a bare share code only.
+- Forced redirect of logged-in users away from `/`; the public homepage stays reachable to everyone.
 - Backend/Supabase schema, migrations, RLS, and the `public_profiles` view.
 - R2, video, speech/Whisper, and recap behavior.
 - Native stubs (`*.native.jsx`).
@@ -24,12 +25,65 @@ The entry lookup reuses the existing public-profile query (`useUserByShareCode`,
 
 ### Decisions
 
-- The new landing is shown **only to anonymous visitors**. Logged-in users keep `HomeScreen`. This matches the request's "the visitor" and avoids regressing the notification bell (story 019) and the course/Continue entry points. The choice is carried by `HomeRoute`, gated on `useAuthStatus`.
-- "I don't have a share code" navigates to `/course/wouldrather/lesson/a`. Evidence: `src/config/wouldrather.json` is the Would You Rather course (lesson `a` is "Would You Rather? — Ask", `wouldrather.json:6-9`); `AppLayout.jsx:20` fetches a course by route param, so the filename `wouldrather` is the route course id. Lesson id `a` is a friend-challenge lesson (`friend-lesson-detection.js:13`), so the guest guard treats this target as a friend lesson (low friction). `wouldrather.json` has two lessons (`a`, `b`, `src/config/wouldrather.test.js:19`), so the destination exists.
-- Share code normalization is `raw.trim().toLowerCase()`; no format validation. Invalid/unknown codes fall through to a "not found" result from the lookup rather than a format error, so a typo and a non-existent code produce the same, accurate message.
-- "Go" looks the code up **before** navigating. Only a resolved profile navigates to `/<code>`; a null result or a failed lookup shows an inline error on the landing (not the profile page's not-found state).
+- `/` → new `PublicHomeRoute` → `HomeLandingContainer` (public homepage, everyone).
+- `/home` → existing `HomeRoute` → `HomeScreen` (the user's dashboard).
+- `useGuestModalGuard` does not open the modal on `/` (the public homepage must not be gated by a language/login dialog). It must not set `guestModalShownThisSession` on `/`, so the modal still opens on the next non-auth route the visitor reaches (e.g. the Would You Rather lesson or a `/:shareCode` profile).
+- Post-login / post-signup with no explicit `redirect` lands on `/home`, not `/`.
+- The public homepage's top bar adapts: logged out shows a Sign In link to `/login`; logged in shows a Home link to `/home`. No forced redirect.
+- "I don't have a share code" navigates to `/course/wouldrather/lesson/a`. Evidence: `src/config/wouldrather.json` is the Would You Rather course (lesson `a` is "Would You Rather? — Ask", `wouldrather.json:6-9`); `AppLayout.jsx:20` fetches a course by route param, so the filename `wouldrather` is the route course id. Lesson id `a` is a friend-challenge lesson (`friend-lesson-detection.js:13`), so the guest guard treats this target as a friend lesson (low friction). `wouldrather.json` has lessons `a` and `b` (`src/config/wouldrather.test.js:19`), so the destination exists.
+- Share code normalization is `raw.trim().toLowerCase()`; no format validation. A typo and a non-existent code both resolve to "not found".
+- "Go" looks the code up **before** navigating. Only a resolved profile navigates to `/<code>`; a null result or a failed lookup shows an inline error on the homepage.
 - The lookup is a plain async function, not a hook, so the submit handler can await it. `useUserByShareCode` is refactored to delegate to it (single source of truth), preserving the existing query key and cache for `PublicProfile`.
-- New UI copy is added to `src/data/strings.js` with `en/es/pt/fr/hi/bn` values. `src/data/strings.test.js` requires every key to carry Devanagari (hi) and Bengali (bn) copy, so these are mandatory.
+
+### Route table (`src/routes/routes.jsx`)
+
+```jsx
+{ path: '/', element: <PublicHomeRoute /> },
+{ path: '/home', element: <HomeRoute /> },
+// ...existing auth/profile/lesson routes...
+{ path: '/:shareCode', element: <PublicProfileRoute /> },
+{ path: '*', element: <Navigate to="/" replace /> },
+```
+
+`/home` must be registered before `/:shareCode`, otherwise `home` is captured as a share code.
+
+- `src/routes/PublicHomeRoute.jsx` (new): `usePreloader().finishPreloader()` on mount; renders `HomeLandingContainer`.
+- `src/routes/HomeRoute.jsx` (existing): unchanged except it now mounts at `/home`; renders `HomeScreen` and finishes the preloader on mount (its original behavior).
+
+### Home navigation call sites
+
+| File | Current | New | Why |
+| --- | --- | --- | --- |
+| `src/routes/routes.jsx` | `/` → `HomeRoute` | `/` → `PublicHomeRoute`, `/home` → `HomeRoute` | split |
+| `src/routes/LoginRoute.jsx:8` | `redirect ... || '/'` | `|| '/home'` | post-login dashboard |
+| `src/routes/SignupRoute.jsx:8` | `redirect ... || '/'` | `|| '/home'` | post-signup dashboard |
+| `src/components/homescreen/HomeScreen.jsx:146` | `<Link to="/">` (menu Home) | `<Link to="/home">` | dashboard menu |
+| `src/components/LessonContainer.jsx:135` | `<Link to="/">` | `<Link to="/home">` | fulfills the TODO |
+| `src/components/profile/UserProfile.jsx:334,351,380` | `navigate('/')` | `navigate('/home')` | logged-in profile back |
+| `src/components/homescreen/HomeScreen.jsx:41` | `navigate('/')` (sign out) | unchanged | public homepage after sign out |
+| `src/components/profile/PublicProfile.jsx:54,79` | `navigate('/')` | unchanged | public profile back |
+| `src/routes/routes.jsx:19,36` | `/` | unchanged | lesson error + catch-all → public homepage |
+| `tests/notifications.spec.js:63` | `page.goto('/')` | `page.goto('/home')` | the bell is on the dashboard |
+
+### Guest modal skip
+
+In `src/modules/user/guest-modal-logic.js` add a pure predicate:
+
+```js
+export const PUBLIC_ROUTES = ['/'];
+export function isPublicHomeRoute(pathname) {
+  return typeof pathname === 'string' && PUBLIC_ROUTES.includes(pathname);
+}
+```
+
+In `src/hooks/use-guest-modal-guard.js`, inside the existing `if (!isAuthRoute)` block, return early before `setGuestModalShownThisSession(true)` when `isPublicHomeRoute(path)`:
+
+```js
+if (isPublicHomeRoute(path)) {
+  console.log('[GuestModalGuard] Public homepage — not opening the guest modal.');
+  return;
+}
+```
 
 ### New module: `src/modules/user/share-code-entry-logic.js`
 
@@ -88,20 +142,22 @@ export function useUserByShareCode(shareCode) {
 
 ### Presentational: `src/components/homescreen/HomeLanding.jsx`
 
-Owns the input value locally. Props: `{ lang = 'en', error = null, loading = false, onSubmitCode, onNoCode, onInputChange }`.
+Owns the input value locally. Props: `{ lang = 'en', isLoggedIn = false, error = null, loading = false, onSubmitCode, onNoCode, onInputChange }`.
 
-- Renders headline `data-testid="share-code-headline"` (`home_landing_headline`), subheadline `data-testid="share-code-subheadline"` (`home_landing_subheadline`).
-- A `<form>` whose submit (`e.preventDefault()`) calls `onSubmitCode(code)` with the raw field value; the Go button is `type="submit"`, `data-testid="share-code-go"`, label `home_landing_go`, and `disabled={loading}`.
+- Top bar: a `data-testid="landing-account-link"` `Link to={isLoggedIn ? '/home' : '/login'}` labelled `home_home` when logged in, `sign_in` otherwise (both existing keys).
+- Headline `data-testid="share-code-headline"` (`home_landing_headline`), subheadline `data-testid="share-code-subheadline"` (`home_landing_subheadline`).
+- A `<form>` whose submit (`e.preventDefault()`) calls `onSubmitCode(code)` with the raw field value; the Go button is `type="submit"`, `data-testid="share-code-go"`, label `home_landing_go`, `disabled={loading}`.
 - Input `data-testid="share-code-input"`, placeholder `home_landing_code_placeholder`, `autoCapitalize="none"`, `autoCorrect="off"`, `spellCheck={false}`; `onChange` sets local state and calls `onInputChange?.()`.
-- When `error` is non-null, renders `data-testid="share-code-error"` with `role="alert"` and the string; nothing when null.
+- When `error` is non-null, renders `data-testid="share-code-error"` with `role="alert"`; nothing when null.
 - A second button `data-testid="no-code"`, label `home_landing_no_code`, `onClick={onNoCode}`.
 - Reuses the HomeScreen dark palette (`#0b1a2a` page, `#1a3a5a` card, `#2a4a6a` border) and brand gradient `linear-gradient(135deg, #3a8fd5 0%, #00c0d8 100%)`; inline styles, matching the existing components.
-- A minimal top bar shows the UFF title (`home_title`) and a `Link to="/login"` labelled `sign_in` (both existing keys), so a visitor keeps a login entry point without HomeScreen's menu. No new string is needed. Because the component imports `Link`, its test renders it inside a `MemoryRouter` (or mocks `react-router-dom`).
+- Because the component imports `Link`, its test renders it inside a `MemoryRouter` (or mocks `react-router-dom`).
 
 ### Container: `src/components/homescreen/HomeLandingContainer.jsx`
 
 ```js
 const navigate = useNavigate();
+const { data: isLoggedIn } = useAuthStatus();
 const guestLang = useStore(appStore, s => s.guestNativeLanguage);
 const userLang = useStore(appStore, s => s.userData?.native_language);
 const lang = guestLang || userLang || 'en';
@@ -127,24 +183,13 @@ async function handleSubmit(rawCode) {
 function handleNoCode() { navigate(GO_LESSON_PATH); }
 function handleInputChange() { setError(null); }
 
-return <HomeLanding lang={lang} error={error ? Strings.get(error, lang) : null}
+return <HomeLanding lang={lang} isLoggedIn={!!isLoggedIn}
+                    error={error ? Strings.get(error, lang) : null}
                     loading={loading} onSubmitCode={handleSubmit}
                     onNoCode={handleNoCode} onInputChange={handleInputChange} />;
 ```
 
 `error` holds a string key while in the container and is resolved with `Strings.get(error, lang)` at render.
-
-### Route gate: `src/routes/HomeRoute.jsx`
-
-```js
-const { finishPreloader } = usePreloader();
-const { data: isLoggedIn, isLoading } = useAuthStatus();
-useEffect(() => { if (!isLoading) finishPreloader(); }, [isLoading, finishPreloader]);
-if (isLoading) return null;            // branded Preloader stays up until auth settles
-return isLoggedIn ? <HomeScreen /> : <HomeLandingContainer />;
-```
-
-Deferring `finishPreloader` until auth resolves avoids flashing one screen and then the other.
 
 ### New strings (`src/data/strings.js`)
 
@@ -159,20 +204,72 @@ Deferring `finishPreloader` until auth resolves avoids flashing one screen and t
 | `home_landing_code_not_found` | We couldn't find a friend with that share code. Check it and try again. | No encontramos a un amigo con ese código. Verifícalo e inténtalo de nuevo. | Não encontramos um amigo com esse código. Verifique e tente novamente. | Nous n'avons trouvé aucun ami avec ce code. Vérifiez-le et réessayez. | उस शेयर कोड वाला कोई दोस्त नहीं मिला। जाँच कर फिर से कोशिश करें। | সেই শেয়ার কোডে কোনো বন্ধুকে পাওয়া যায়নি। যাচাই করে আবার চেষ্টা করুন। |
 | `home_landing_lookup_error` | Something went wrong. Please try again. | Algo salió mal. Inténtalo de nuevo. | Algo deu errado. Tente novamente. | Une erreur s'est produite. Veuillez réessayer. | कुछ गलत हो गया। कृपया फिर से प्रयास करें। | কিছু ভুল হয়েছে। আবার চেষ্টা করুন। |
 
-None of these keys contain `{placeholders}`.
+None of these keys contain `{placeholders}`. The top bar reuses existing `home_title`, `home_home`, and `sign_in`.
 
 ### Test plan
 
-- Pure logic: `src/modules/user/share-code-entry-logic.test.js`.
-- Presentational: `src/components/homescreen/HomeLanding.test.jsx` — `createRoot` + `act`, `globalThis.IS_REACT_ACT_ENVIRONMENT = true` (pattern: `src/components/homescreen/NotificationList.web.test.js`), wrapped in `MemoryRouter` because the component imports `Link`.
-- Container: `src/components/homescreen/HomeLandingContainer.test.jsx` — `vi.mock('react-router-dom')` supplying **both** `useNavigate` (a `vi.fn()`) and a passthrough `Link` stub (the rendered `HomeLanding` uses `Link`), `vi.mock('../../modules/api/api.js')` for `fetchUserByShareCode`, and drive the real `HomeLanding` DOM; set language via `appStore.setState({ guestNativeLanguage: 'en' })`.
-- Route: `src/routes/HomeRoute.test.jsx` — `vi.mock` `../modules/api/api.js` (`useAuthStatus`), `../components/homescreen/HomeScreen.jsx`, `../components/homescreen/HomeLandingContainer.jsx`, `../hooks/usePreloader.js`; assert which child renders per auth state.
+- Pure logic: `src/modules/user/share-code-entry-logic.test.js` and `guest-modal-logic` additions in `src/modules/user/guest-modal-logic.test.js`.
+- Route components: `src/routes/PublicHomeRoute.test.jsx`, `src/routes/HomeRoute.test.jsx` — `createRoot` + `act`, `globalThis.IS_REACT_ACT_ENVIRONMENT = true`, with `vi.mock` for `../hooks/usePreloader.js` and the rendered child.
+- Presentational: `src/components/homescreen/HomeLanding.test.jsx` — `createRoot` + `act`, wrapped in `MemoryRouter` because the component imports `Link`.
+- Container: `src/components/homescreen/HomeLandingContainer.test.jsx` — `vi.mock('react-router-dom')` supplying **both** `useNavigate` (a `vi.fn()`) and a passthrough `Link` stub, `vi.mock('../../modules/api/api.js')` for `fetchUserByShareCode`/`useAuthStatus`, and drive the real `HomeLanding` DOM; set language via `appStore.setState({ guestNativeLanguage: 'en' })`.
 - Strings: extend `src/data/strings.test.js` with an exact-copy table for the new keys and a no-placeholder assertion.
-- If any wiring is asserted by reading source text, follow `AGENTS.md`: scope the slice to the target block, assert every token, assert on raw source for scheme/URL checks, and prove the guard can fail by temporarily injecting the forbidden string.
+- Route table and call-site wiring are asserted by scoped source guards, following `AGENTS.md`: slice to the specific block (e.g. `indexOf('id="closePage"')`), assert on raw source, and prove each guard can fail by temporarily injecting the forbidden value.
 
 ## Tasks
 
-### Task 1 - Share-code entry pure logic
+### Task 1 - Split the routes
+
+Create `src/routes/PublicHomeRoute.jsx`, `src/routes/PublicHomeRoute.test.jsx`, `src/routes/HomeRoute.test.jsx`; modify `src/routes/routes.jsx`.
+
+- `src/routes/routes.jsx` read raw
+  - → contains `{ path: '/', element: <PublicHomeRoute /> }`
+  - → contains `{ path: '/home', element: <HomeRoute /> }`
+  - → the index of `path: '/home'` is less than the index of `path: '/:shareCode'`
+  - → still contains the catch-all `{ path: '*', element: <Navigate to="/" replace /> }`
+- `PublicHomeRoute` rendered with a mocked `usePreloader` and a stubbed `HomeLandingContainer`
+  - → the `HomeLandingContainer` stub is rendered
+  - → `finishPreloader` is called once
+  - → `HomeScreen` is not rendered
+- `HomeRoute` rendered with a mocked `usePreloader` and a stubbed `HomeScreen`
+  - → the `HomeScreen` stub is rendered
+  - → `finishPreloader` is called once
+  - → `HomeLandingContainer` is not rendered
+
+### Task 2 - Update home navigation and the notifications E2E
+
+Modify `src/routes/LoginRoute.jsx`, `src/routes/SignupRoute.jsx`, `src/components/homescreen/HomeScreen.jsx`, `src/components/LessonContainer.jsx`, `src/components/profile/UserProfile.jsx`, `tests/notifications.spec.js`.
+
+- `src/routes/LoginRoute.jsx` and `src/routes/SignupRoute.jsx` read raw
+  - → each contains `searchParams.get('redirect') || '/home'`
+  - → neither contains `searchParams.get('redirect') || '/'`
+- the `HomeScreen.jsx` menu block (the slice around `Strings.get('home_home'`) + read raw
+  - → contains `<Link to="/home"`
+- `HomeScreen.jsx` `handleSignOut` block (the slice around `async function handleSignOut`) + read raw
+  - → still contains `navigate('/')` (sign-out returns to the public homepage)
+- the `LessonContainer.jsx` close-link block (the slice around `id="closePage"`) + read raw
+  - → contains `to="/home"`
+  - → does not contain `to="/"` in that slice
+- `src/components/profile/UserProfile.jsx` read raw
+  - → does not contain `navigate('/')`
+  - → contains `navigate('/home')`
+- `src/components/profile/PublicProfile.jsx` read raw
+  - → still contains `navigate('/')` (public back behavior unchanged)
+- `tests/notifications.spec.js` read raw
+  - → `bootAndSettle` contains `page.goto('/home')`
+  - → the file contains no `page.goto('/')`
+
+### Task 3 - Public homepage skips the guest modal
+
+Modify `src/modules/user/guest-modal-logic.js`, `src/modules/user/guest-modal-logic.test.js`, `src/hooks/use-guest-modal-guard.js`.
+
+- `isPublicHomeRoute('/')` → `true`
+- `isPublicHomeRoute('/home')`, `isPublicHomeRoute('/login')`, `isPublicHomeRoute('/course/model/lesson/g')`, `isPublicHomeRoute('/abc123')`, `isPublicHomeRoute('')`, `isPublicHomeRoute(undefined)` → `false`
+- the `useGuestModalGuard` source slice (from `if (!isAuthRoute) {` to the end of that block), read raw
+  - → contains `isPublicHomeRoute(path)`
+  - → the `isPublicHomeRoute(path)` early-return appears before `state.setGuestModalShownThisSession(true)`
+  - → the early return does not call `setGuestModalShownThisSession` (the flag is only set on routes that are not public)
+
+### Task 4 - Share-code entry pure logic
 
 Create `src/modules/user/share-code-entry-logic.js` and `src/modules/user/share-code-entry-logic.test.js`.
 
@@ -200,15 +297,18 @@ Create `src/modules/user/share-code-entry-logic.js` and `src/modules/user/share-
   - → `'lookup_failed'` → `'home_landing_lookup_error'`
   - → an unknown reason → `'home_landing_lookup_error'`
 
-### Task 2 - Presentational landing component
+### Task 5 - Presentational landing component
 
 Create `src/components/homescreen/HomeLanding.jsx` and `src/components/homescreen/HomeLanding.test.jsx`.
 
-- default lang (`en`) + render
+- default lang (`en`), `isLoggedIn={false}` + render
   - → `[data-testid="share-code-headline"]` text is `Practice English with your friends for free.`
   - → `[data-testid="share-code-subheadline"]` text is `Enter your friend's share code`
   - → `[data-testid="share-code-go"]` text is `Go`
   - → `[data-testid="no-code"]` text is `I don't have a share code`
+  - → `[data-testid="landing-account-link"]` has `href="/login"` and text `Sign In`
+- `isLoggedIn={true}` + render
+  - → `[data-testid="landing-account-link"]` has `href="/home"` and text `Home`
 - `lang="es"` + render
   - → headline text is `Practica inglés con tus amigos gratis.`
   - → Go button text is `Ir`
@@ -231,7 +331,7 @@ Create `src/components/homescreen/HomeLanding.jsx` and `src/components/homescree
   - → `onNoCode` is called exactly once
   - → `onSubmitCode` is not called
 
-### Task 3 - Container wiring and lookup extraction
+### Task 6 - Landing container
 
 Modify `src/modules/api/api.js`; create `src/components/homescreen/HomeLandingContainer.jsx` and `src/components/homescreen/HomeLandingContainer.test.jsx`.
 
@@ -243,6 +343,10 @@ Modify `src/modules/api/api.js`; create `src/components/homescreen/HomeLandingCo
   - → contains `enabled: !!shareCode`
 - the `fetchUserByShareCode` source slice
   - → calls `queryPublicProfiles()` and falls back to `queryLegacy()` inside a `catch`
+- `useAuthStatus` resolves `false` + render
+  - → `[data-testid="landing-account-link"]` has `href="/login"`
+- `useAuthStatus` resolves `true` + render
+  - → `[data-testid="landing-account-link"]` has `href="/home"`
 - `fetchUserByShareCode` resolves a profile + non-empty code submitted
   - → `navigate` is called once with `/<normalized code>`
   - → no error element is rendered
@@ -264,24 +368,7 @@ Modify `src/modules/api/api.js`; create `src/components/homescreen/HomeLandingCo
 - `[data-testid="no-code"]` clicked
   - → `navigate` is called once with `/course/wouldrather/lesson/a`
 
-### Task 4 - Home route branch
-
-Modify `src/routes/HomeRoute.jsx`; create `src/routes/HomeRoute.test.jsx`.
-
-- `useAuthStatus` returns `{ isLoading: true }` + render
-  - → neither `HomeLandingContainer` nor `HomeScreen` is rendered
-- `useAuthStatus` returns `{ data: false, isLoading: false }` + render
-  - → `HomeLandingContainer` is rendered
-  - → `HomeScreen` is not rendered
-- `useAuthStatus` returns `{ data: true, isLoading: false }` + render
-  - → `HomeScreen` is rendered
-  - → `HomeLandingContainer` is not rendered
-- `isLoading` true + render
-  - → `finishPreloader` is not called
-- `isLoading` false + render
-  - → `finishPreloader` is called once
-
-### Task 5 - Landing strings
+### Task 7 - Landing strings
 
 Modify `src/data/strings.js` and `src/data/strings.test.js`.
 
@@ -294,21 +381,20 @@ Modify `src/data/strings.js` and `src/data/strings.test.js`.
 
 ## Technical Context
 
-- No new dependencies. Stack already present: React `19.2.6`, React DOM `19.2.6`, `react-router-dom` `7.15.1`, `@tanstack/react-query` `5.100.14`, Zustand `5.0.13`, Vitest `4.1.6`. Tests run under jsdom (`vitest.config.js`), so no browser APIs beyond `createRoot`/`act` are needed.
+- No new dependencies. Stack already present: React `19.2.6`, React DOM `19.2.6`, `react-router-dom` `7.15.1`, `@tanstack/react-query` `5.100.14`, Zustand `5.0.13`, Vitest `4.1.6`. Tests run under jsdom (`vitest.config.js`).
+- Route resolution: `src/routes/router.web.jsx` builds a `createBrowserRouter(routes)`; route order in `routes.jsx` determines precedence, so `/home` must precede `/:shareCode`.
 - Existing public-profile lookup: `useUserByShareCode` (`src/modules/api/api.js:291`) already implements the `public_profiles` → `user_profiles` fallback; this story only extracts its query body into `fetchUserByShareCode` and delegates.
 - Existing normalization precedent: `App.jsx:29-31` and `getShareCodeFromSearch` (`src/modules/user/friend-lesson-detection.js:17-27`) both `trim().toLowerCase()`.
 - Route/course resolution: `AppLayout.jsx:20` fetches `/src/config/${courseId}.json`, so `/course/wouldrather/lesson/a` loads `src/config/wouldrather.json`; Vite copies every `src/config/*.json` into `dist/src/config/` (`vite.config.js:21-26`).
-- Anonymous-visitor behavior on `/` is governed by `useGuestModalGuard` (`src/hooks/use-guest-modal-guard.js:42-72`) and is intentionally unchanged.
-- `HomeScreen` reads its language the same way the new container will: `guestNativeLanguage || userData?.native_language || 'en'` (`HomeScreen.jsx:17-19`).
+- `HomeScreen` reads its language with `guestNativeLanguage || userData?.native_language || 'en'` (`HomeScreen.jsx:17-19`); the new landing container uses the same rule.
+- CI: `.github/workflows/deploy.yml` runs `npm test -- --run` on every push; `.github/workflows/playwright.yml` runs the `tests/` E2E suite on `main`/PRs, so `tests/notifications.spec.js` must be updated to keep `main` green.
 
 ## Notes
 
-- Product decisions that should be confirmed before implementation:
-  1. The landing is shown to anonymous visitors only; logged-in users keep `HomeScreen`. If the intent is to replace the homepage for everyone, the course/Continue/notification entry points need a new home.
-  2. The no-code destination is `/course/wouldrather/lesson/a` (the Would You Rather ask lesson).
-  3. The exact English copy — headline `Practice English with your friends for free.`, subheadline `Enter your friend's share code`, `Go`, `I don't have a share code`, and the not-found/required/lookup error sentences — plus the es/pt/fr/hi/bn translations in the table, which were authored for this story and need a copy review.
-  4. The lookup happens before navigation (inline error), rather than navigating to `/:shareCode` and letting `PublicProfile` show its own not-found state.
-- `useGuestModalGuard` still opens the guest language/login modal for an anonymous visitor on `/`. The landing therefore appears after the visitor confirms a language and chooses "Continue as Guest". Changing this is out of scope; if low-friction entry is wanted, treat `/` like a friend lesson in the guard in a separate story.
+- The change is mostly routing/wiring, not new UI logic. The one behavioral risk is the guest modal on `/`: without the Task 3 skip, a "traditional homepage" is immediately covered by the language/login dialog.
+- Decisions worth confirming: `/` is public for everyone with no forced redirect for logged-in users (the top bar links to `/home`); `/home` is not access-guarded (a guest can still open the dashboard, exactly as `/` behaved before); after login/signup with no `redirect` the user lands on `/home`.
+- The public homepage shows English to an anonymous visitor whose language is not chosen yet (the guest modal no longer runs on `/`); copy falls back to `guestNativeLanguage || userData.native_language || 'en'`. Browser-language auto-detection on `/` is deliberately out of scope.
+- `PublicProfile`'s back button and the sign-out handler keep pointing at `/` (the public homepage), not `/home`; this preserves their existing meaning.
 - A parallel branch `039-extend-friend-lesson-chain` (not an ancestor of this branch; base `cea8993`) generalizes the friend-challenge lessons from the `a`/`b` pair to a shareCta chain and renames single-letter lesson ids. If that branch lands first, `GO_LESSON_PATH` must be re-verified against the renamed Would You Rather ask lesson.
 - Known limitation (unchanged): text-mode users publish no clips (`docs/product.md:53`), so a profile entered here may have no answer lesson yet; the landing only resolves the profile, which is the requested behavior.
-- Source-guard rules apply to any wiring assertion (`AGENTS.md`): slice to the target block, assert every property, and prove the guard can fail by temporarily injecting the forbidden value.
+- Source-guard rules apply to every wiring assertion (`AGENTS.md`): scope the slice to the target block, assert every property, and prove the guard can fail by temporarily injecting the forbidden value.
