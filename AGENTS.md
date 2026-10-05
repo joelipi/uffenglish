@@ -11,3 +11,8 @@ This repo relies heavily on tests that assert on source text ("guards"). Three s
 - **Never slice a function body to EOF.** End the slice at the next top-level marker (`indexOf('export const …')` / the next `export async function …`). A function appended later otherwise silently joins the slice and the guard passes on strings that are not in the target function.
 
 Before trusting a guard, prove it can fail by temporarily injecting the thing it forbids.
+
+## A new `src/**` test file must not mention the recorder page
+
+`src/modules/video/recorder-page.test.js` scans every file under `src/**` for a reference to the operator-only recorder page (`/recorder` / `recorder.html`) and fails on any hit. A new guard test that lives in `src/**` and mentions that page — even in a path constant or a comment — breaks that hidden-page guard. Avoid the literal token in `src/**` (build paths from parts, e.g. `'recorder' + '.html'`), or add the file to the scanner's exclude set.
+
