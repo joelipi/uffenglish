@@ -25,7 +25,8 @@ import { FRIEND_VIDEO_REGEX } from '../modules/video/video-source.js';
 import { parseCsv, buildCourseConfig } from '../../scripts/lib/sheet-config-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const CONFIG_DIR = path.join(__dirname, '../../config');
+// This test lives in src/config, so the config directory IS __dirname.
+const CONFIG_DIR = __dirname;
 const ALLOWLIST = path.join(__dirname, '../../scripts/lib/generated-configs.json');
 
 const VIDEO_FIELDS = ['interactiveVideoUrl', 'introBackgroundVideoUrl', 'simpleVideoUrl'];
