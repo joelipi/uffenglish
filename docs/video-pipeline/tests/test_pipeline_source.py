@@ -43,6 +43,21 @@ class WorkdirGuardTest(unittest.TestCase):
             self.assertIn(name, block, name)
             self.assertIn("WORK_DIR", block.split(name, 1)[1].split("\n", 1)[0], name)
 
+    def test_output_dirs_derive_from_work_dir(self):
+        text = read()
+        block = slice_between(text, "OUTPUT_ROOT =", "def ")
+        for name in ("SOCIAL_DIR", "WEB_DIR"):
+            self.assertIn(name, block, name)
+            self.assertIn("OUTPUT_ROOT", block.split(name, 1)[1].split("\n", 1)[0], name)
+        self.assertIn("WORK_DIR", block.split("OUTPUT_ROOT =", 1)[1].split("\n", 1)[0])
+
+    def test_background_removal_always_returns_seconds(self):
+        # The early-exit and normal paths must both return a number so the
+        # orchestrator's estimate_cost never receives None.
+        body = slice_between(read(), "def run_background_removal(", "def group_videos_by_prefix")
+        self.assertIn("return 0.0", body)
+        self.assertIn("return gpu_seconds", body)
+
     def test_no_getcwd(self):
         self.assertNotIn("os.getcwd()", read())
 

@@ -122,7 +122,11 @@ class StorageGuardTest(unittest.TestCase):
     def test_read_json_only_swallows_missing(self):
         text = read(STORAGE)
         start = text.index("def read_json(")
-        body = text[start:]
+        rest = text[start:]
+        # End the slice at the next top-level def so a function appended later
+        # cannot quietly join the region (AGENTS.md guard rule).
+        next_def = rest.find("\ndef ", 1)
+        body = rest if next_def == -1 else rest[:next_def]
         # Missing objects return None; real failures must propagate.
         self.assertIn("ClientError", body)
         self.assertIn("return None", body)

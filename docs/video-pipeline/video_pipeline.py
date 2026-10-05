@@ -281,9 +281,6 @@ def setup_environment() -> bool:
         print("Please run: pip install moviepy html2image pandas opencv-python pydub modal")
         return False
 
-    font_path = os.path.join(FONT_DIRECTORY, FONT_FILE_VARIABLE)
-    marker_path = os.path.join(FONT_DIRECTORY, FONT_FILE_MARKER)
-
     # Required fonts must be present before Stage 3 renders overlays; a missing
     # font silently degrades the composited text. Fail the run rather than
     # printing a warning nobody sees in a Modal container's logs.
@@ -819,7 +816,7 @@ def run_background_removal(background_mapping, mirror_mapping, only=None):
     ]
     if not silence_removed_files:
         print("WARNING: No *_no_silence.mp4 files found matching CSV entries")
-        return
+        return 0.0
 
     print(f"\nFound {len(silence_removed_files)} silence-removed video(s) to process")
     gpu_seconds = 0.0
