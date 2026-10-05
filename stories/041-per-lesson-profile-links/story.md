@@ -60,7 +60,7 @@ export function groupActiveFriendLinks(friendLinks, nowMs) {
     const byCourse = new Map();
     for (const entry of active) {
         if (!byCourse.has(entry.courseId)) {
-            const group = { courseId: entry.courseId, courseName: entry.courseName || '', entries: [] };
+            const group = { courseId: entry.courseId, courseName: entry.courseName || entry.courseId, entries: [] };
             byCourse.set(entry.courseId, group);
             groups.push(group);
         }
@@ -80,7 +80,7 @@ Line 82: `lesson.title = getLocalizedTranslation(lesson.title, userLang)` → `g
 - Render, per group: a heading with the **course name** (`courseName`), then one link per entry.
 - Each link label = `entry.lessonTitle` (English, from the recorded lesson). **No** `Strings.get` titled wrapper — the title is already the label. Keep the `profile_friend_link_available` countdown line per link.
 - Each link `href` = `buildFriendLessonLink({ courseId: entry.courseId, lessonId: entry.lessonId, shareCode: entry.shareCode })` (unchanged builder; targets the follow-on lesson).
-- Remove the now-unused `profile_friend_lesson_link_titled` string usage; the section no longer falls back to `profile_friend_lesson_link` for a title (an entry with an empty `lessonTitle` renders with an empty/omitted label — see Task 4).
+- Remove the now-unused `profile_friend_lesson_link_titled` string usage. The label is `entry.lessonTitle`; an entry with an empty non-string `lessonTitle` falls back to the generic `profile_friend_lesson_link` copy so the anchor keeps a visible, clickable label (see Task 4).
 
 ### 5. Snapshot the course name at export (`SuccessButtons.jsx`)
 
@@ -107,7 +107,7 @@ Replace `src/config/wouldrather.json` with the reviewed `a`–`f` English-title 
 - `upsertFriendLinkMap` on `{}` with an entry `{courseId:'wouldrather', recordedLessonId:'a', lessonId:'b', ...}` → key `'wouldrather:a'`; a second entry `recordedLessonId:'c'` → both keys present.
 - An entry with the same `courseId:recordedLessonId` replaces the prior one; a legacy entry with no `recordedLessonId` falls back to `${courseId}:${lessonId}`.
 - Input map is not mutated; non-object input treated as `{}`.
-- `groupActiveFriendLinks`: two active entries in the same course → one group with two entries, order newest-first; entries in two courses → two groups in first-seen order of `listActiveFriendLinks`; course name is the group's `courseName`.
+- `groupActiveFriendLinks`: two active entries in the same course → one group with two entries, order newest-first; entries in two courses → two groups in first-seen order of `listActiveFriendLinks`; the group's `courseName` is the entry's `courseName`, defaulting to the `courseId` when absent (so a legacy entry without `courseName` still yields a non-empty heading).
 - Expired-only / no entries / junk input → `[]`.
 - Groups for two different `courseId`s that share a display `courseName` stay separate (keyed by `courseId`).
 
@@ -120,8 +120,8 @@ Replace `src/config/wouldrather.json` with the reviewed `a`–`f` English-title 
 ### Task 4 - Profile render (`FriendLessonLinksSection.jsx` + `.test.jsx`)
 
 - Given a profile with two active entries (same course, distinct `lessonTitle`/`recordedLessonId`, targets `b` and `d`), the section renders a course-name heading and two `friend-lesson-link` anchors; each `href` points at its own target lesson (`/course/<courseId>/lesson/<lessonId>?shareCode=<shareCode>`) and each label equals its own `lessonTitle`.
-- Given entries across two courses, two headings render (grouped, not interleaved).
-- Given an entry with an empty `lessonTitle`, its anchor renders with no visible label text (and still links correctly) — it does not fall back to a localized string.
+- Given entries across two courses, two headings render (grouped, not interleaved); a group whose entries lack `courseName` shows the `courseId` as its heading (never blank).
+- Given an entry with an empty `lessonTitle`, its anchor falls back to the generic `profile_friend_lesson_link` copy (a visible, clickable label) and still links correctly — it never renders an empty/zero-width anchor.
 - Only-expired entries → section renders nothing (`friend-lesson-links` absent); no entries → `null`.
 - Each link still renders its own `profile_friend_link_available` countdown from `addedAt`.
 - Update the existing `FriendLessonLinksSection.test.jsx` (story 039) to the grouped, per-lesson shape; update `tests/friend-lesson-link.spec.js` fixtures to include `recordedLessonId`/`courseName` and assert the grouped render (Playwright run is environment-gated, see Notes).

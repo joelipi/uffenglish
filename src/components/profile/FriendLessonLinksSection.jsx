@@ -85,7 +85,7 @@ export default function FriendLessonLinksSection({ friendLinks, lang = 'en' }) {
                         data-testid="friend-lesson-link-group-heading"
                         style={{ color: '#adb5bd', fontSize: '16px', fontWeight: 600, margin: 0 }}
                     >
-                        {group.courseName || group.courseId}
+                        {group.courseName}
                     </h3>
                     {group.entries.map((entry) => (
                         <FriendLessonLink

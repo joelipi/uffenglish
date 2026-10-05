@@ -77,9 +77,10 @@ export function formatFriendLinkRemaining(remainingMs) {
 // Immutable merge for the `friend_links` jsonb column. One entry per recorded
 // lesson (a player can be mid-chain with several people at once, and a profile
 // shows one link per lesson they recorded), so the map key is
-// `courseId:recordedLessonId`. Entries without a recordedLessonId fall back to
-// `${courseId}:${lessonId}`, then the bare courseId, so a concurrent write
-// cannot clobber a legacy (039-era) row.
+// `courseId:recordedLessonId`. The `${courseId}:${lessonId}` / bare-`courseId`
+// fallbacks are purely defensive for callers that pass an entry without a
+// recordedLessonId (the current resolver always sets it); they only affect the
+// key chosen for such a write and do not guarantee a 039-era row survives.
 export function upsertFriendLinkMap(existing, entry) {
     const map = (existing && typeof existing === 'object' && !Array.isArray(existing)) ? existing : {};
     const key = entry.recordedLessonId
@@ -109,7 +110,7 @@ export function groupActiveFriendLinks(friendLinks, nowMs) {
     const byCourse = new Map();
     for (const entry of active) {
         if (!byCourse.has(entry.courseId)) {
-            const group = { courseId: entry.courseId, courseName: entry.courseName || '', entries: [] };
+            const group = { courseId: entry.courseId, courseName: entry.courseName || entry.courseId, entries: [] };
             byCourse.set(entry.courseId, group);
             groups.push(group);
         }

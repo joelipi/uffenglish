@@ -285,11 +285,11 @@ describe('groupActiveFriendLinks', () => {
         expect(groups.map((g) => g.courseId).sort()).toEqual(['one', 'two']);
     });
 
-    it('defaults a missing courseName to the empty string', () => {
+    it('defaults a missing courseName to the courseId', () => {
         const groups = groupActiveFriendLinks({
             'friendchain:a': { courseId: 'friendchain', recordedLessonId: 'a', lessonId: 'b', shareCode: 'x', addedAt: iso(NOW - HOUR) },
         }, NOW);
-        expect(groups[0].courseName).toBe('');
+        expect(groups[0].courseName).toBe('friendchain');
     });
 
     it('returns [] for expired-only / no entries / junk input', () => {
