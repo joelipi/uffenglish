@@ -7,12 +7,16 @@ environment (supplied by the Modal ``uff-r2`` secret) — never hardcoded here.
 Two buckets (story 041): public CDN media (``assets/videos/``, ``videos/``) in
 R2_BUCKET (default ``uff``) and private objects (``raw/``, ``raw/status/``,
 ``pipeline-assets/``) in R2_PRIVATE_BUCKET. Every helper routes by
-``pipeline_lib.bucket_for_key`` so a raw key can never land in the public
-bucket. ``R2_PRIVATE_BUCKET`` unset falls back to the public bucket, keeping a
-single-bucket local run working; the Modal secret always sets it.
+``pipeline_lib.bucket_for_key`` so a raw key can never land in the public bucket.
+
+The private routing FAILS CLOSED: a private key with ``R2_PRIVATE_BUCKET`` unset
+raises rather than falling back to the public bucket, because that fallback would
+silently re-expose unpublished takes on the public CDN. A local single-bucket run
+must set ``R2_PRIVATE_BUCKET`` (to the same name as ``R2_BUCKET`` if it really
+wants one bucket).
 
 Env: R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET (default
-``uff``), R2_PRIVATE_BUCKET (default ``R2_BUCKET``).
+``uff``), R2_PRIVATE_BUCKET (required whenever a private key is used).
 """
 
 from __future__ import annotations
@@ -31,13 +35,17 @@ def public_bucket_name(environ=None) -> str:
 
 
 def private_bucket_name(environ=None) -> str:
-    """R2_PRIVATE_BUCKET when set, else the public bucket (single-bucket run)."""
+    """R2_PRIVATE_BUCKET. Raises when unset so private writes never fall back to
+    the public bucket (fail closed)."""
     env = os.environ if environ is None else environ
-    return env.get("R2_PRIVATE_BUCKET") or public_bucket_name(env)
-
-
-def bucket_name(environ=None) -> str:
-    return public_bucket_name(environ)
+    name = env.get("R2_PRIVATE_BUCKET")
+    if not name:
+        raise RuntimeError(
+            "R2_PRIVATE_BUCKET is unset; refusing to route a private object to "
+            "the public bucket. Set R2_PRIVATE_BUCKET (the same value as "
+            "R2_BUCKET for a deliberate single-bucket run)."
+        )
+    return name
 
 
 def _bucket_for(r2_key: str, environ=None) -> str:
@@ -83,18 +91,22 @@ def download_to(r2_key: str, dest_path) -> str:
 
 
 def upload_file(local_path, r2_key: str, content_type: str | None = None) -> str:
-    """Upload a local file, returning its (CDN) URL."""
+    """Upload a local file. Returns the public CDN URL only for a public key;
+    private keys (no custom domain) return the key, not a misleading 404 URL."""
     extra = {"ContentType": content_type} if content_type else None
     with r2_client() as client:
         client.upload_file(
             str(local_path), _bucket_for(r2_key), r2_key,
             ExtraArgs=extra or {},
         )
+    if bucket_for_key(r2_key) == "private":
+        return r2_key
     return f"https://r2.ultrafastfluency.com/{r2_key}"
 
 
 def upload_json(r2_key: str, payload: str, content_type: str = "application/json") -> str:
-    """Put a UTF-8 JSON/text body under ``r2_key``."""
+    """Put a UTF-8 JSON/text body under ``r2_key``. Returns the public CDN URL
+    only for a public key; private keys return the key."""
     with r2_client() as client:
         client.put_object(
             Bucket=_bucket_for(r2_key),
@@ -102,11 +114,24 @@ def upload_json(r2_key: str, payload: str, content_type: str = "application/json
             Body=payload.encode("utf-8"),
             ContentType=content_type,
         )
+    if bucket_for_key(r2_key) == "private":
+        return r2_key
     return f"https://r2.ultrafastfluency.com/{r2_key}"
 
 
 def list_keys(prefix: str) -> list:
-    """Every object key under ``prefix`` (recursively), sorted."""
+    """Every object key under ``prefix`` (recursively), sorted.
+
+    ``prefix`` must itself resolve under one namespace (it is passed to
+    ``_bucket_for``), so a leading private prefix lists the private bucket and a
+    public prefix lists the public bucket; an ambiguous prefix raises rather than
+    silently returning an empty list from the wrong bucket.
+    """
+    if not (prefix.startswith("raw/") or prefix.startswith("pipeline-assets/")
+            or prefix.startswith("assets/videos/") or prefix.startswith("videos/")):
+        raise ValueError(
+            f"list_keys prefix {prefix!r} does not resolve to a known bucket namespace"
+        )
     keys = []
     with r2_client() as client:
         paginator = client.get_paginator("list_objects_v2")

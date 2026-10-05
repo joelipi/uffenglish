@@ -129,12 +129,14 @@ bucket_name = "uff-private"
 
 ```python
 def public_bucket_name(environ=None)  -> env R2_BUCKET         or "uff"
-def private_bucket_name(environ=None) -> env R2_PRIVATE_BUCKET or public_bucket_name(environ)
+def private_bucket_name(environ=None) -> env R2_PRIVATE_BUCKET (raises when unset)
 ```
 
-- `private_bucket_name()` falls back to the public bucket only when
-  `R2_PRIVATE_BUCKET` is unset, preserving a single-bucket local/Windows run.
-  The Modal secret always sets it, so the fallback never applies in the cloud.
+- `private_bucket_name()` FAILS CLOSED: an unset `R2_PRIVATE_BUCKET` raises
+  rather than falling back to the public bucket, because that fallback would
+  silently re-expose raw takes on the public CDN. A deliberate single-bucket local
+  run sets `R2_PRIVATE_BUCKET` to the same name as `R2_BUCKET`. The Modal secret
+  always sets it, so the cloud path never hits the error.
 - `download_to`, `upload_file`, `upload_json`, `list_keys`, `read_json` compute
   the bucket from their key. `download_to`/`list_keys`/`upload_json` for
   `raw/`, `raw/status/`, `pipeline-assets/` therefore hit the private bucket;
@@ -431,12 +433,13 @@ npm run deploy
   `pipeline-assets/<subdir>/<file>` (+ `pipeline-assets/video_data.csv`). Public:
   `assets/videos/<slug>.mp4|.jpg` and `videos/<ugc>`. `PRIVATE_KEY_PREFIXES`
   is `("raw/", "pipeline-assets/")`; `raw/` also covers the status prefix.
-- **Single-bucket local run.** `private_bucket_name()` falls back to
-  `public_bucket_name()` when `R2_PRIVATE_BUCKET` is unset, so a local run with
-  one bucket name still works; the Modal secret always sets the private name in
-  the cloud, so the fallback never applies there. The local Windows flow
-  (`python video_pipeline.py`, no R2 env, local `rawvideos/`) does not use
-  `storage.py` at all and is unchanged.
+- **Single-bucket local run.** `private_bucket_name()` FAILS CLOSED: it raises
+  when `R2_PRIVATE_BUCKET` is unset rather than falling back to the public bucket,
+  so a private key can never be written to the public bucket by omission. A local
+  run that genuinely wants one bucket must set `R2_PRIVATE_BUCKET` to the same
+  value as `R2_BUCKET`. The Modal secret always sets it, so the cloud path is
+  unaffected. The local Windows flow (`python video_pipeline.py`, no R2 env, local
+  `rawvideos/`) does not use `storage.py` at all and is unchanged.
 - **Lifecycle CLI.** `npx wrangler r2 bucket lifecycle add <BUCKET> <NAME>
   [--prefix <PREFIX>] --expire-days <N>`
   (`developers.cloudflare.com/r2/reference/wrangler-commands`). The lifecycle key

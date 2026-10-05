@@ -3,6 +3,7 @@ Task 9). Stdlib only so they run in the Python pretest hook.
 """
 
 import os
+import re
 import unittest
 from pathlib import Path
 
@@ -59,6 +60,23 @@ class WranglerGuardTest(unittest.TestCase):
         )
         self.assertIn('--prefix "raw/"', text)
         self.assertIn("--expire-days 7", text)
+        # The public videos/ 48h rule stays on the public bucket.
+        self.assertIn("videos/", text)
+
+    def test_private_bucket_name_is_consistent_across_layers(self):
+        # The Pages binding, the Node uploader and the docs must name the same
+        # private bucket; if one drifts, objects are written to a bucket the
+        # orchestrator never reads.
+        binding = re.search(r'binding = "PIPELINE_R2"\s*\n\s*bucket_name = "([^"]+)"', read(WRANGLER))
+        self.assertIsNotNone(binding)
+        name = binding.group(1)
+
+        uploader = read(REPO_ROOT / "scripts" / "upload-pipeline-assets.mjs")
+        default = re.search(r'DEFAULT_PRIVATE_BUCKET = \'([^\']+)\'', uploader)
+        self.assertIsNotNone(default)
+        self.assertEqual(default.group(1), name)
+
+        self.assertIn(name, read(README))
 
 
 class ProductGuardTest(unittest.TestCase):

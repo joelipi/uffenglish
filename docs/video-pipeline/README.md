@@ -174,8 +174,10 @@ trigger only (Workers cannot run moviepy/ffmpeg/Chromium); the runner is Modal.
 - **Secret.** `modal secret create uff-r2` with `R2_ACCOUNT_ID`,
   `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` (`uff`) and
   `R2_PRIVATE_BUCKET` (`uff-private`). It is attached to the orchestrator only.
-  `private_bucket_name()` falls back to `R2_BUCKET` when `R2_PRIVATE_BUCKET` is
-  unset, so a single-bucket local run still works.
+  Private routing **fails closed**: a `raw/`/`pipeline-assets/` key with
+  `R2_PRIVATE_BUCKET` unset raises rather than writing to the public bucket, so a
+  single-bucket local run must set `R2_PRIVATE_BUCKET` explicitly (to `R2_BUCKET`'s
+  value if it really wants one bucket).
 - **Deploy.** `modal deploy docs/video-pipeline/modal_app.py` ships both the CPU
   orchestrator and the existing T4 BiRefNet function (they share one app). Run it
   from the repo root — the image adds `docs/video-pipeline` as a local dir.

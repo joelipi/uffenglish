@@ -119,9 +119,34 @@ class StorageGuardTest(unittest.TestCase):
         public = slice_between(text, "def public_bucket_name(", "def private_bucket_name(")
         self.assertIn("R2_BUCKET", public)
         self.assertIn("DEFAULT_BUCKET", public)
-        private = slice_between(text, "def private_bucket_name(", "def bucket_name(")
+        private = slice_between(text, "def private_bucket_name(", "def _bucket_for(")
         self.assertIn("R2_PRIVATE_BUCKET", private)
-        self.assertIn("public_bucket_name(", private)
+
+    def test_private_routing_fails_closed(self):
+        # A private key must never fall back to the public bucket: an unset
+        # R2_PRIVATE_BUCKET raises instead of re-exposing raw takes.
+        text = read(STORAGE)
+        private = slice_between(text, "def private_bucket_name(", "def _bucket_for(")
+        self.assertIn("raise", private)
+        self.assertNotIn("public_bucket_name(", private)
+
+    def test_bucket_name_alias_is_gone(self):
+        self.assertNotIn("def bucket_name(", read(STORAGE))
+
+    def test_list_keys_rejects_an_unknown_prefix(self):
+        # An ambiguous prefix must raise, not silently list the wrong bucket.
+        text = read(STORAGE)
+        body = slice_between(text, "def list_keys(", "def read_json(")
+        self.assertIn("raise", body)
+        self.assertIn("prefix", body)
+
+    def test_private_uploads_do_not_return_a_public_url(self):
+        # upload_file/upload_json must not hand back a CDN URL for a private key
+        # (the private bucket has no custom domain; such a URL is a 404).
+        text = read(STORAGE)
+        for fn in ("def upload_file(", "def upload_json("):
+            body = slice_between(text, fn, "def list_keys(")
+            self.assertIn('bucket_for_key(r2_key) == "private"', body, fn)
 
     def test_imports_and_routes_by_bucket_for_key(self):
         text = read(STORAGE)

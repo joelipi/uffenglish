@@ -116,15 +116,15 @@ class PrivateKeyParityTest(unittest.TestCase):
             "assets/videos/x.mp4", "videos/x.mp4", ""]
 
     def _js_is_private(self, value: str) -> bool:
-        source = read_js_string_array(PIPELINE_KEYS, "PRIVATE_KEY_PREFIXES")
-        prefixes = _normalize_pairs(source)
-        js = (
-            "(value) => { const prefixes = " + repr(prefixes) + ";"
-            " return typeof value === 'string' && prefixes.some((p) => value.startsWith(p)); }"
-        )
+        # Call the REAL exported isPrivateKey (not a re-implementation), so a
+        # change to its body is caught here, not silently ignored.
         import subprocess
+        script = (
+            "import(" + repr(PIPELINE_KEYS.as_uri()) + ").then((m) => "
+            "process.stdout.write(String(m.isPrivateKey(" + repr(value) + "))))"
+        )
         result = subprocess.run(
-            ["node", "-e", f"const f = {js}; process.stdout.write(String(f({value!r})))"],
+            ["node", "--input-type=module", "-e", script],
             capture_output=True, text=True, check=True,
         )
         return result.stdout.strip() == "true"
