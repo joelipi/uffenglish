@@ -5,7 +5,7 @@ import {
     toFriendLessonHref,
     getFriendLinkRemainingMs,
     formatFriendLinkRemaining,
-    listActiveFriendLinks,
+    groupActiveFriendLinks,
 } from '../../modules/user/friend-lesson-link-logic.js';
 
 const cardStyle = {
@@ -16,7 +16,10 @@ const cardStyle = {
 };
 
 // One link. Purely presentational; `now` is supplied by the section's ticking
-// clock so the link disappears the moment the 48h window passes.
+// clock so the link disappears the moment the 48h window passes. The label is
+// the English title of the lesson the profile owner recorded (already
+// normalized to English at export time), so a visitor can pick the set they
+// remember.
 function FriendLessonLink({ entry, lang, now }) {
     const remainingMs = getFriendLinkRemainingMs(new Date(entry.addedAt).getTime(), now);
 
@@ -26,12 +29,9 @@ function FriendLessonLink({ entry, lang, now }) {
         shareCode: entry.shareCode,
     });
 
-    // Label with the next lesson's title when we have one; the title was
-    // captured at export time, so it is already in the exporter's language.
-    const hasTitle = typeof entry.lessonTitle === 'string' && entry.lessonTitle !== '';
-    const label = hasTitle
-        ? Strings.get('profile_friend_lesson_link_titled', lang, { title: entry.lessonTitle })
-        : Strings.get('profile_friend_lesson_link', lang);
+    // An entry with no recorded title renders no visible label; it never falls
+    // back to a localized generic string.
+    const label = typeof entry.lessonTitle === 'string' ? entry.lessonTitle : '';
 
     return (
         <div style={cardStyle}>
@@ -50,11 +50,12 @@ function FriendLessonLink({ entry, lang, now }) {
 }
 
 // Public-profile section listing the friend-challenge answer-lesson links that
-// are still inside the 48h R2 clip window. Renders nothing when none are active.
+// are still inside the 48h R2 clip window, grouped by course. Renders nothing
+// when none are active.
 export default function FriendLessonLinksSection({ friendLinks, lang = 'en' }) {
     const [now, setNow] = useState(() => Date.now());
-    const active = listActiveFriendLinks(friendLinks, now);
-    const isTicking = active.length > 0;
+    const groups = groupActiveFriendLinks(friendLinks, now);
+    const isTicking = groups.length > 0;
 
     // Tick only while at least one link is still live; once the last one
     // expires the effect stops and the section renders nothing.
@@ -64,15 +65,34 @@ export default function FriendLessonLinksSection({ friendLinks, lang = 'en' }) {
         return () => clearInterval(timer);
     }, [isTicking]);
 
-    if (active.length === 0) return null;
+    if (groups.length === 0) return null;
 
     return (
         <div
             data-testid="friend-lesson-links"
-            style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}
+            style={{ display: 'flex', flexDirection: 'column', gap: '24px', marginBottom: '24px' }}
         >
-            {active.map((entry) => (
-                <FriendLessonLink key={`${entry.courseId}:${entry.lessonId}`} entry={entry} lang={lang} now={now} />
+            {groups.map((group) => (
+                <div
+                    key={group.courseId}
+                    data-testid="friend-lesson-link-group"
+                    style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
+                >
+                    <h3
+                        data-testid="friend-lesson-link-group-heading"
+                        style={{ color: '#adb5bd', fontSize: '16px', fontWeight: 600, margin: 0 }}
+                    >
+                        {group.courseName}
+                    </h3>
+                    {group.entries.map((entry) => (
+                        <FriendLessonLink
+                            key={`${entry.courseId}:${entry.recordedLessonId || entry.lessonId}`}
+                            entry={entry}
+                            lang={lang}
+                            now={now}
+                        />
+                    ))}
+                </div>
             ))}
         </div>
     );

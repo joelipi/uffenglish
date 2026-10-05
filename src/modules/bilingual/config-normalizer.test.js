@@ -24,12 +24,26 @@ describe('normalizeConfig', () => {
             }]
         };
         normalizeConfig(configData, 'es');
-        expect(configData.lessons[0].title).toBe('Titulo');
+        // Lesson titles are curriculum labels, normalized to English regardless
+        // of the user's language.
+        expect(configData.lessons[0].title).toBe('Title');
         // mission/setting/roleOther/roleUser kept as objects for bilingual display
         expect(configData.lessons[0].mission).toEqual({ en: 'Mission', es: 'Mision' });
         expect(configData.lessons[0].setting).toEqual({ en: 'Setting', es: 'Config' });
         expect(configData.lessons[0].roleOther).toEqual({ en: 'Other', es: 'Otro' });
         expect(configData.lessons[0].roleUser).toEqual({ en: 'User', es: 'Usuario' });
+    });
+
+    it('resolves an object lesson title to English even for a non-English user', () => {
+        const configData = { lessons: [{ title: { en: 'A', es: 'B' } }] };
+        normalizeConfig(configData, 'es');
+        expect(configData.lessons[0].title).toBe('A');
+    });
+
+    it('leaves a plain-string lesson title unchanged', () => {
+        const configData = { lessons: [{ title: 'Make 3 questions…' }] };
+        normalizeConfig(configData, 'es');
+        expect(configData.lessons[0].title).toBe('Make 3 questions…');
     });
 
     it('normalizes step fields and applies default speech step', () => {

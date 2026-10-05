@@ -1,11 +1,10 @@
-// Story 039: the profile renders one labelled link per active friend-chain
-// lesson. Rendered with react-dom/client createRoot + act (the repo convention;
-// no testing-library is installed).
+// Story 041: the profile renders one labelled link per lesson the owner
+// recorded, grouped under its course. Rendered with react-dom/client createRoot
+// + act (the repo convention; no testing-library is installed).
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import Strings from '../../data/strings.js';
 import FriendLessonLinksSection from './FriendLessonLinksSection.jsx';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
@@ -39,52 +38,81 @@ describe('FriendLessonLinksSection', () => {
         container = null;
     });
 
-    it('renders one labelled anchor per active entry, each pointing at its own lesson', () => {
+    it('renders a course heading and one labelled anchor per recorded lesson', () => {
         const links = {
-            'friendchain:b': {
-                courseId: 'friendchain', lessonId: 'b', shareCode: 'code1',
-                addedAt: iso(NOW - HOUR), lessonTitle: 'Respond',
+            'friendchain:a': {
+                courseId: 'friendchain', courseName: 'Friend Chain',
+                recordedLessonId: 'a', lessonId: 'b', shareCode: 'code1',
+                addedAt: iso(NOW - HOUR), lessonTitle: 'Make 3 questions',
             },
             'friendchain:c': {
-                courseId: 'friendchain', lessonId: 'c', shareCode: 'code1',
+                courseId: 'friendchain', courseName: 'Friend Chain',
+                recordedLessonId: 'c', lessonId: 'd', shareCode: 'code1',
                 addedAt: iso(NOW - 2 * HOUR), lessonTitle: 'Follow Up',
             },
         };
         root = renderSection(container, { friendLinks: links, lang: 'en' });
 
+        const heading = container.querySelector('[data-testid="friend-lesson-link-group-heading"]');
+        expect(heading.textContent).toBe('Friend Chain');
+
         const anchors = container.querySelectorAll('[data-testid="friend-lesson-link"]');
         expect(anchors).toHaveLength(2);
-
         const hrefs = Array.from(anchors).map((a) => a.getAttribute('href'));
         expect(hrefs).toContain('https://ultrafastfluency.com/course/friendchain/lesson/b?shareCode=code1');
-        expect(hrefs).toContain('https://ultrafastfluency.com/course/friendchain/lesson/c?shareCode=code1');
+        expect(hrefs).toContain('https://ultrafastfluency.com/course/friendchain/lesson/d?shareCode=code1');
 
         const labels = Array.from(anchors).map((a) => a.textContent);
-        expect(labels.some((l) => l.includes('Respond'))).toBe(true);
-        expect(labels.some((l) => l.includes('Follow Up'))).toBe(true);
+        expect(labels).toContain('Make 3 questions');
+        expect(labels).toContain('Follow Up');
 
         // Each link carries its own countdown element.
         expect(container.querySelectorAll('[data-testid="friend-lesson-link-countdown"]')).toHaveLength(2);
     });
 
-    it('falls back to the untitled string when lessonTitle is empty', () => {
+    it('renders one heading per course, grouped not interleaved', () => {
         const links = {
-            'friendchain:b': {
-                courseId: 'friendchain', lessonId: 'b', shareCode: 'code1',
+            'friendchain:a': {
+                courseId: 'friendchain', courseName: 'Friend Chain',
+                recordedLessonId: 'a', lessonId: 'b', shareCode: 'code1',
+                addedAt: iso(NOW - HOUR), lessonTitle: 'Ask',
+            },
+            'other:a': {
+                courseId: 'other', courseName: 'Other Course',
+                recordedLessonId: 'a', lessonId: 'b', shareCode: 'code2',
+                addedAt: iso(NOW - 2 * HOUR), lessonTitle: 'Other Ask',
+            },
+        };
+        root = renderSection(container, { friendLinks: links, lang: 'en' });
+
+        const headings = Array.from(container.querySelectorAll('[data-testid="friend-lesson-link-group-heading"]'))
+            .map((h) => h.textContent);
+        expect(headings).toEqual(['Friend Chain', 'Other Course']);
+        expect(container.querySelectorAll('[data-testid="friend-lesson-link-group"]')).toHaveLength(2);
+    });
+
+    it('renders no visible label text when lessonTitle is empty (no fallback)', () => {
+        const links = {
+            'friendchain:a': {
+                courseId: 'friendchain', courseName: 'Friend Chain',
+                recordedLessonId: 'a', lessonId: 'b', shareCode: 'code1',
                 addedAt: iso(NOW - HOUR), lessonTitle: '',
             },
         };
         root = renderSection(container, { friendLinks: links, lang: 'en' });
 
         const anchor = container.querySelector('[data-testid="friend-lesson-link"]');
-        expect(anchor.textContent).toBe(Strings.get('profile_friend_lesson_link', 'en'));
+        expect(anchor.textContent).toBe('');
+        expect(anchor.getAttribute('href'))
+            .toBe('https://ultrafastfluency.com/course/friendchain/lesson/b?shareCode=code1');
     });
 
     it('renders its own countdown per link', () => {
         const links = {
-            'friendchain:b': {
-                courseId: 'friendchain', lessonId: 'b', shareCode: 'code1',
-                addedAt: iso(NOW - HOUR), lessonTitle: 'Respond',
+            'friendchain:a': {
+                courseId: 'friendchain', courseName: 'Friend Chain',
+                recordedLessonId: 'a', lessonId: 'b', shareCode: 'code1',
+                addedAt: iso(NOW - HOUR), lessonTitle: 'Ask',
             },
         };
         root = renderSection(container, { friendLinks: links, lang: 'en' });
@@ -96,9 +124,10 @@ describe('FriendLessonLinksSection', () => {
 
     it('renders nothing when every entry is expired', () => {
         const links = {
-            'friendchain:b': {
-                courseId: 'friendchain', lessonId: 'b', shareCode: 'code1',
-                addedAt: iso(NOW - 48 * HOUR), lessonTitle: 'Respond',
+            'friendchain:a': {
+                courseId: 'friendchain', courseName: 'Friend Chain',
+                recordedLessonId: 'a', lessonId: 'b', shareCode: 'code1',
+                addedAt: iso(NOW - 48 * HOUR), lessonTitle: 'Ask',
             },
         };
         root = renderSection(container, { friendLinks: links, lang: 'en' });

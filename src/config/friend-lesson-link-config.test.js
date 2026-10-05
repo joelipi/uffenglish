@@ -25,9 +25,13 @@ describe('shareCta-order chain premise', () => {
         expect(nextFriendLessonId(friend, 'b')).toBeNull();
     });
 
-    it('wouldrather.json chains a -> b -> (null)', () => {
+    it('wouldrather.json chains a -> b -> ... -> f -> (null)', () => {
         expect(nextFriendLessonId(wouldrather, 'a')).toBe('b');
-        expect(nextFriendLessonId(wouldrather, 'b')).toBeNull();
+        expect(nextFriendLessonId(wouldrather, 'b')).toBe('c');
+        expect(nextFriendLessonId(wouldrather, 'c')).toBe('d');
+        expect(nextFriendLessonId(wouldrather, 'd')).toBe('e');
+        expect(nextFriendLessonId(wouldrather, 'e')).toBe('f');
+        expect(nextFriendLessonId(wouldrather, 'f')).toBeNull();
     });
 
     it('friendchain.json chains a -> b -> ... -> h -> (null)', () => {
@@ -72,6 +76,29 @@ describe('model.json has no friend-challenge chain', () => {
         expect(nextFriendLessonId(model, 'm-t')).toBeNull();
         expect(nextFriendLessonId(model, 'm-x')).toBeNull();
         expect(model.lessons.some((l) => l.recapOverlay === 'shareCta')).toBe(false);
+    });
+});
+
+// Story 041: the canonical wouldrather config is the a-f chain promoted from
+// the reviewed exercise config. Its lesson titles are plain English strings
+// (curriculum labels), so normalizeConfig round-trips them unchanged.
+describe('wouldrather.json canonical a-f chain', () => {
+    it('has lessons a..f in order, all shareCta with the right recap sources', () => {
+        expect(lessonIds(wouldrather)).toEqual(['a', 'b', 'c', 'd', 'e', 'f']);
+        for (const lesson of wouldrather.lessons) {
+            expect(lesson.recapOverlay, `${lesson.lessonId} recapOverlay`).toBe('shareCta');
+        }
+        expect(wouldrather.lessons.find((l) => l.lessonId === 'a').recapSources).toBe('none');
+        for (const id of ['b', 'c', 'd', 'e', 'f']) {
+            expect(wouldrather.lessons.find((l) => l.lessonId === id).recapSources, `${id} recapSources`).toBe('friend');
+        }
+    });
+
+    it('gives every lesson a plain English string title', () => {
+        for (const lesson of wouldrather.lessons) {
+            expect(typeof lesson.title, `${lesson.lessonId} title`).toBe('string');
+            expect(lesson.title.length, `${lesson.lessonId} title`).toBeGreaterThan(0);
+        }
     });
 });
 

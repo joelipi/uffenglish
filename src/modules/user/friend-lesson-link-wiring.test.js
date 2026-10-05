@@ -68,6 +68,7 @@ describe('SuccessButtons wiring', () => {
         expect(block).toContain('configData');
         expect(block).toContain('lessonId');
         expect(block).toContain('courseId');
+        expect(block).toContain('courseName: configData?.courseName');
         expect(block).toContain('shareCode: userData?.shareCode');
         expect(block).toContain('succeeded: exportResult?.succeeded');
         expect(block).not.toContain('askPublished');

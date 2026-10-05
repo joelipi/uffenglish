@@ -10,6 +10,7 @@ import {
     formatFriendLinkRemaining,
     upsertFriendLinkMap,
     listActiveFriendLinks,
+    groupActiveFriendLinks,
     resolveFriendLessonLink,
 } from './friend-lesson-link-logic.js';
 
@@ -17,8 +18,8 @@ const HOUR = 60 * 60 * 1000;
 const NOW = Date.UTC(2026, 8, 24, 12, 0, 0); // 2026-09-24T12:00:00Z
 const iso = (ms) => new Date(ms).toISOString();
 
-const entryFriend = { courseId: 'friend', lessonId: 'b', shareCode: 'ab12', addedAt: iso(NOW - HOUR) };
-const entryOther = { courseId: 'other', lessonId: 'b', shareCode: 'cd34', addedAt: iso(NOW - 2 * HOUR) };
+const entryFriend = { courseId: 'friend', recordedLessonId: 'a', lessonId: 'b', shareCode: 'ab12', addedAt: iso(NOW - HOUR) };
+const entryOther = { courseId: 'other', recordedLessonId: 'a', lessonId: 'b', shareCode: 'cd34', addedAt: iso(NOW - 2 * HOUR) };
 
 describe('FRIEND_LINK_WINDOW_MS', () => {
     it('reuses the 48h share window', () => {
@@ -162,45 +163,50 @@ describe('formatFriendLinkRemaining', () => {
 
 describe('upsertFriendLinkMap', () => {
     it('treats null and {} as an empty map', () => {
-        expect(upsertFriendLinkMap(null, entryFriend)).toEqual({ 'friend:b': entryFriend });
-        expect(upsertFriendLinkMap({}, entryFriend)).toEqual({ 'friend:b': entryFriend });
+        expect(upsertFriendLinkMap(null, entryFriend)).toEqual({ 'friend:a': entryFriend });
+        expect(upsertFriendLinkMap({}, entryFriend)).toEqual({ 'friend:a': entryFriend });
     });
 
-    it('keys by courseId:lessonId, so different lessons both survive', () => {
-        const b = { ...entryFriend, lessonId: 'b' };
-        const c = { ...entryFriend, lessonId: 'c' };
-        const merged = upsertFriendLinkMap({ 'friend:b': b }, c);
-        expect(Object.keys(merged).sort()).toEqual(['friend:b', 'friend:c']);
+    it('keys by courseId:recordedLessonId, so different recorded lessons both survive', () => {
+        const a = { ...entryFriend, recordedLessonId: 'a', lessonId: 'b' };
+        const c = { ...entryFriend, recordedLessonId: 'c', lessonId: 'd' };
+        const merged = upsertFriendLinkMap({ 'friend:a': a }, c);
+        expect(Object.keys(merged).sort()).toEqual(['friend:a', 'friend:c']);
         expect(merged['friend:c']).toEqual(c);
     });
 
-    it('replaces the entry for the same course+lesson (addedAt reset)', () => {
+    it('replaces the entry for the same course+recorded lesson (addedAt reset)', () => {
         const oldEntry = { ...entryFriend, addedAt: iso(NOW - 5 * HOUR) };
         const newEntry = { ...entryFriend, addedAt: iso(NOW) };
-        const merged = upsertFriendLinkMap({ 'friend:b': oldEntry }, newEntry);
-        expect(merged['friend:b']).toEqual(newEntry);
+        const merged = upsertFriendLinkMap({ 'friend:a': oldEntry }, newEntry);
+        expect(merged['friend:a']).toEqual(newEntry);
     });
 
-    it('falls back to the course id when lessonId is absent (legacy entry)', () => {
-        const legacy = { courseId: 'friend', shareCode: 'ab12', addedAt: iso(NOW) };
-        expect(upsertFriendLinkMap({}, legacy)).toEqual({ friend: legacy });
+    it('falls back to ${courseId}:${lessonId} for a legacy entry without recordedLessonId', () => {
+        const legacy = { courseId: 'friend', lessonId: 'b', shareCode: 'ab12', addedAt: iso(NOW) };
+        expect(upsertFriendLinkMap({}, legacy)).toEqual({ 'friend:b': legacy });
     });
 
-    it('keeps distinct courses for the same lesson id', () => {
-        const merged = upsertFriendLinkMap({ 'friend:b': entryFriend }, entryOther);
-        expect(Object.keys(merged).sort()).toEqual(['friend:b', 'other:b']);
-        expect(merged['other:b']).toEqual(entryOther);
+    it('falls back to the course id when neither recordedLessonId nor lessonId is present', () => {
+        const noLesson = { courseId: 'friend', shareCode: 'ab12', addedAt: iso(NOW) };
+        expect(upsertFriendLinkMap({}, noLesson)).toEqual({ friend: noLesson });
+    });
+
+    it('keeps distinct courses for the same recorded lesson id', () => {
+        const merged = upsertFriendLinkMap({ 'friend:a': entryFriend }, entryOther);
+        expect(Object.keys(merged).sort()).toEqual(['friend:a', 'other:a']);
+        expect(merged['other:a']).toEqual(entryOther);
     });
 
     it('does not mutate the input map', () => {
-        const input = { 'friend:b': entryFriend };
+        const input = { 'friend:a': entryFriend };
         upsertFriendLinkMap(input, entryOther);
-        expect(input).toEqual({ 'friend:b': entryFriend });
+        expect(input).toEqual({ 'friend:a': entryFriend });
     });
 
     it('ignores non-object input', () => {
-        expect(upsertFriendLinkMap('x', entryFriend)).toEqual({ 'friend:b': entryFriend });
-        expect(upsertFriendLinkMap([entryFriend], entryFriend)).toEqual({ 'friend:b': entryFriend });
+        expect(upsertFriendLinkMap('x', entryFriend)).toEqual({ 'friend:a': entryFriend });
+        expect(upsertFriendLinkMap([entryFriend], entryFriend)).toEqual({ 'friend:a': entryFriend });
     });
 });
 
@@ -249,36 +255,109 @@ describe('listActiveFriendLinks', () => {
     });
 });
 
+describe('groupActiveFriendLinks', () => {
+    it('groups active entries in the same course, order newest-first within a group', () => {
+        const groups = groupActiveFriendLinks({
+            'friendchain:a': { courseId: 'friendchain', courseName: 'Friend Chain', recordedLessonId: 'a', lessonId: 'b', shareCode: 'x', addedAt: iso(NOW - 3 * HOUR) },
+            'friendchain:c': { courseId: 'friendchain', courseName: 'Friend Chain', recordedLessonId: 'c', lessonId: 'd', shareCode: 'x', addedAt: iso(NOW - 1 * HOUR) },
+        }, NOW);
+        expect(groups).toHaveLength(1);
+        expect(groups[0].courseId).toBe('friendchain');
+        expect(groups[0].courseName).toBe('Friend Chain');
+        expect(groups[0].entries.map((e) => e.recordedLessonId)).toEqual(['c', 'a']);
+    });
+
+    it('groups entries in two courses in first-seen order of listActiveFriendLinks', () => {
+        const groups = groupActiveFriendLinks({
+            'a:a': { courseId: 'a', courseName: 'Course A', recordedLessonId: 'a', lessonId: 'b', shareCode: 'x', addedAt: iso(NOW - 3 * HOUR) },
+            'b:a': { courseId: 'b', courseName: 'Course B', recordedLessonId: 'a', lessonId: 'b', shareCode: 'y', addedAt: iso(NOW - 1 * HOUR) },
+        }, NOW);
+        expect(groups.map((g) => g.courseId)).toEqual(['b', 'a']);
+        expect(groups.map((g) => g.courseName)).toEqual(['Course B', 'Course A']);
+    });
+
+    it('keeps same-name courses with different courseIds in separate groups', () => {
+        const groups = groupActiveFriendLinks({
+            'one:a': { courseId: 'one', courseName: 'Same Name', recordedLessonId: 'a', lessonId: 'b', shareCode: 'x', addedAt: iso(NOW - 3 * HOUR) },
+            'two:a': { courseId: 'two', courseName: 'Same Name', recordedLessonId: 'a', lessonId: 'b', shareCode: 'y', addedAt: iso(NOW - 1 * HOUR) },
+        }, NOW);
+        expect(groups).toHaveLength(2);
+        expect(groups.map((g) => g.courseId).sort()).toEqual(['one', 'two']);
+    });
+
+    it('defaults a missing courseName to the empty string', () => {
+        const groups = groupActiveFriendLinks({
+            'friendchain:a': { courseId: 'friendchain', recordedLessonId: 'a', lessonId: 'b', shareCode: 'x', addedAt: iso(NOW - HOUR) },
+        }, NOW);
+        expect(groups[0].courseName).toBe('');
+    });
+
+    it('returns [] for expired-only / no entries / junk input', () => {
+        expect(groupActiveFriendLinks({
+            'friendchain:a': { courseId: 'friendchain', recordedLessonId: 'a', lessonId: 'b', shareCode: 'x', addedAt: iso(NOW - 48 * HOUR) },
+        }, NOW)).toEqual([]);
+        expect(groupActiveFriendLinks({}, NOW)).toEqual([]);
+        expect(groupActiveFriendLinks(null, NOW)).toEqual([]);
+        expect(groupActiveFriendLinks('x', NOW)).toEqual([]);
+        expect(groupActiveFriendLinks([entryFriend], NOW)).toEqual([]);
+    });
+});
+
 describe('resolveFriendLessonLink', () => {
     const chain = {
         lessons: [
-            { lessonId: 'a', recapOverlay: 'shareCta', title: { en: 'Ask' } },
+            { lessonId: 'a', recapOverlay: 'shareCta', title: 'Make 3 questions' },
             { lessonId: 'b', recapOverlay: 'shareCta', title: 'Answer' },
             { lessonId: 'c', recapOverlay: 'shareCta', title: 'Follow Up' },
             { lessonId: 'd', recapOverlay: 'shareCta', title: 'Last' },
         ],
     };
 
-    it('returns the next lesson payload with the next lesson title', () => {
+    it('records the exported lesson and targets the next lesson', () => {
         expect(resolveFriendLessonLink({
-            configData: chain, lessonId: 'b', courseId: 'friendchain', shareCode: 'ab12', succeeded: 3,
-        })).toEqual({ courseId: 'friendchain', lessonId: 'c', shareCode: 'ab12', lessonTitle: 'Follow Up' });
+            configData: chain, lessonId: 'a', courseId: 'friendchain', courseName: 'Friend Chain', shareCode: 'ab12', succeeded: 3,
+        })).toEqual({
+            courseId: 'friendchain', courseName: 'Friend Chain', recordedLessonId: 'a',
+            lessonId: 'b', shareCode: 'ab12', lessonTitle: 'Make 3 questions',
+        });
     });
 
-    it('treats a non-string title as an empty lessonTitle', () => {
+    it('labels with the RECORDED lesson title, not the target lesson title', () => {
+        const payload = resolveFriendLessonLink({
+            configData: chain, lessonId: 'b', courseId: 'friendchain', courseName: 'Friend Chain', shareCode: 'ab12', succeeded: 3,
+        });
+        expect(payload.lessonTitle).toBe('Answer');
+        expect(payload.lessonId).toBe('c');
+        expect(payload.recordedLessonId).toBe('b');
+    });
+
+    it('treats a non-string recorded title as an empty lessonTitle', () => {
+        const noTitle = { lessons: [
+            { lessonId: 'a', recapOverlay: 'shareCta', title: { en: 'x' } },
+            { lessonId: 'b', recapOverlay: 'shareCta', title: 'y' },
+        ] };
         expect(resolveFriendLessonLink({
+            configData: noTitle, lessonId: 'a', courseId: 'c', courseName: 'C', shareCode: 'ab12', succeeded: 3,
+        })).toEqual({
+            courseId: 'c', courseName: 'C', recordedLessonId: 'a',
+            lessonId: 'b', shareCode: 'ab12', lessonTitle: '',
+        });
+    });
+
+    it('defaults courseName to an empty string when omitted or non-string', () => {
+        const omitted = resolveFriendLessonLink({
             configData: chain, lessonId: 'a', courseId: 'friendchain', shareCode: 'ab12', succeeded: 3,
-        })).toEqual({ courseId: 'friendchain', lessonId: 'b', shareCode: 'ab12', lessonTitle: 'Answer' });
-        // c -> d, d title is a string; use a config where the next title is not a string.
-        const noTitle = { lessons: [{ lessonId: 'a', recapOverlay: 'shareCta' }, { lessonId: 'b', recapOverlay: 'shareCta', title: { en: 'x' } }] };
-        expect(resolveFriendLessonLink({
-            configData: noTitle, lessonId: 'a', courseId: 'c', shareCode: 'ab12', succeeded: 3,
-        })).toEqual({ courseId: 'c', lessonId: 'b', shareCode: 'ab12', lessonTitle: '' });
+        });
+        expect(omitted.courseName).toBe('');
+        const nonString = resolveFriendLessonLink({
+            configData: chain, lessonId: 'a', courseId: 'friendchain', courseName: 42, shareCode: 'ab12', succeeded: 3,
+        });
+        expect(nonString.courseName).toBe('');
     });
 
-    it('returns null when the lesson has no next (last chain lesson)', () => {
+    it('returns null when the recorded lesson has no next (last chain lesson)', () => {
         expect(resolveFriendLessonLink({
-            configData: chain, lessonId: 'd', courseId: 'friendchain', shareCode: 'ab12', succeeded: 3,
+            configData: chain, lessonId: 'd', courseId: 'friendchain', courseName: 'Friend Chain', shareCode: 'ab12', succeeded: 3,
         })).toBeNull();
     });
 

@@ -23,8 +23,8 @@ const PROFILE = {
     lessons_completed: 3,
 };
 
-const entry = (courseId, lessonId, lessonTitle, addedAt) => ({
-    courseId, lessonId, lessonTitle, shareCode: SHARE_CODE, addedAt,
+const entry = (courseId, courseName, recordedLessonId, lessonId, lessonTitle, addedAt) => ({
+    courseId, courseName, recordedLessonId, lessonId, lessonTitle, shareCode: SHARE_CODE, addedAt,
 });
 
 async function seedProfile(page, friendLinks) {
@@ -47,14 +47,14 @@ test.describe('public-profile friend-challenge links', () => {
         );
     });
 
-    test('renders the large titled link and countdown for an active entry', async ({ page }) => {
+    test('renders the recorded-lesson label and countdown for an active entry', async ({ page }) => {
         await seedProfile(page, {
-            'friend:b': entry('friend', 'b', 'Respond', '2026-09-24T11:00:00.000Z'),
+            'friend:a': entry('friend', 'Friend Challenge', 'a', 'b', 'Make 3 questions', '2026-09-24T11:00:00.000Z'),
         });
 
         const link = page.getByTestId('friend-lesson-link');
         await expect(link).toBeVisible();
-        await expect(link).toHaveText('Practice English with Me — Respond');
+        await expect(link).toHaveText('Make 3 questions');
         await expect(link).toHaveAttribute(
             'href',
             'https://ultrafastfluency.com/course/friend/lesson/b?shareCode=friendtest1'
@@ -74,11 +74,13 @@ test.describe('public-profile friend-challenge links', () => {
             .toHaveText('Available for 47h 0m');
     });
 
-    test('renders one labelled link per active lesson', async ({ page }) => {
+    test('renders one labelled link per recorded lesson, under a course heading', async ({ page }) => {
         await seedProfile(page, {
-            'friendchain:b': entry('friendchain', 'b', 'Respond', '2026-09-24T11:00:00.000Z'),
-            'friendchain:c': entry('friendchain', 'c', 'Follow Up', '2026-09-24T10:00:00.000Z'),
+            'friendchain:a': entry('friendchain', 'Friend Chain', 'a', 'b', 'Ask', '2026-09-24T11:00:00.000Z'),
+            'friendchain:c': entry('friendchain', 'Friend Chain', 'c', 'd', 'Follow Up', '2026-09-24T10:00:00.000Z'),
         });
+
+        await expect(page.getByTestId('friend-lesson-link-group-heading')).toHaveText('Friend Chain');
 
         const links = page.getByTestId('friend-lesson-link');
         await expect(links).toHaveCount(2);
@@ -88,16 +90,16 @@ test.describe('public-profile friend-challenge links', () => {
         );
         await expect(links.nth(1)).toHaveAttribute(
             'href',
-            'https://ultrafastfluency.com/course/friendchain/lesson/c?shareCode=friendtest1'
+            'https://ultrafastfluency.com/course/friendchain/lesson/d?shareCode=friendtest1'
         );
-        await expect(links.nth(0)).toContainText('Respond');
-        await expect(links.nth(1)).toContainText('Follow Up');
+        await expect(links.nth(0)).toHaveText('Ask');
+        await expect(links.nth(1)).toHaveText('Follow Up');
     });
 
     test('removes the link once the 48h window has passed', async ({ page }) => {
         // Exactly 48h before the fixed clock -> inactive (inclusive boundary).
         await seedProfile(page, {
-            'friend:b': entry('friend', 'b', 'Respond', '2026-09-22T12:00:00.000Z'),
+            'friend:a': entry('friend', 'Friend Challenge', 'a', 'b', 'Make 3 questions', '2026-09-22T12:00:00.000Z'),
         });
 
         await expect(page.getByTestId('friend-lesson-link')).toHaveCount(0);
