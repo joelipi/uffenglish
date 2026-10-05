@@ -102,14 +102,7 @@
 
 ---
 
-## `peck story load <number>` is ambiguous when two stories share a numeric prefix
-**Date**: 2026-10-05
-**Area**: workflow
-**What happened**: `peck story load 039` silently returned `039-extend-friend-lesson-chain` even though the requested story was `039-homepage-share-code`, and `peck story load 039-homepage-share-code` / `peck story load stories/039-homepage-share-code` both returned "Story not found". The worktree was left on the wrong branch; the right story directory only existed on the `039-homepage-share-code` branch, so `cat stories/039-homepage-share-code/story.md` failed until the branch was checked out manually.
-**Takeaway**: `peck story load` matches loosely by number and is unreliable when two stories share a numeric prefix (this repo has both a `039-*` and a `040-*` pair). To load a specific story: `git checkout <full-branch-slug>` then read it with `git show <branch>:stories/<slug>/story.md`. Verify `git branch --show-current` matches the story slug before editing anything.
-
----
-
+## A diagnostic path must not require the toolchain — optimize-videos defers its ffmpeg check
 **Date**: 2026-10-04
 **Area**: testing
 **What happened**: `scripts/optimize-videos.test.js > optimize-videos CLI — planning > reports a missing source without aborting` failed (`expected 1 to be +0`) wherever `ffmpeg`/`ffprobe` were absent, because the CLI called `ensureFfmpeg()` before the target loop and exited 1 on the install hint before it could ever report `MISS <slug>`.
