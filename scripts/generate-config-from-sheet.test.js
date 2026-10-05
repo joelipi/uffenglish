@@ -1,9 +1,10 @@
 // scripts/generate-config-from-sheet.test.js
-// Story 046 (extends 042): multi-course generation, per-file never-overwrite,
+// Story 047 (extends 046/042): multi-course generation, overwrite-on-re-run,
+// best-effort skips, and the no---force overwrite source guard.
 // per-course allow-list, best-effort skips, and the URL source guard.
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { execFile } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, existsSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, existsSync, writeFileSync, readdirSync } from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
@@ -66,9 +67,10 @@ describe('generate-config-from-sheet CLI', () => {
     it('--help exits 0 and documents the flags', async () => {
         const { code, stdout } = await runCli(['--help']);
         expect(code).toBe(0);
-        for (const flag of ['--sheet-url', '--course', '--out', '--dry-run', '--check', '--force']) {
+        for (const flag of ['--sheet-url', '--course', '--out', '--dry-run', '--check']) {
             expect(stdout).toContain(flag);
         }
+        expect(stdout).not.toContain('--force');
     });
 
     it('a bare --course errors', async () => {
@@ -89,31 +91,32 @@ describe('generate-config-from-sheet CLI', () => {
         } finally { rmSync(dir, { recursive: true, force: true }); }
     });
 
-    it('refuses to overwrite without --force (all files byte-identical)', async () => {
+    it('overwrites existing files on a no-flag re-run (content updated)', async () => {
         const dir = tmpDir();
         try {
             await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`]);
-            const beforeA = readFileSync(path.join(dir, 'alpha.json'), 'utf8');
-            const beforeB = readFileSync(path.join(dir, 'beta.json'), 'utf8');
-            const second = await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`]);
-            expect(second.code).not.toBe(0);
-            expect(second.stderr).toContain('refusing to overwrite');
-            expect(readFileSync(path.join(dir, 'alpha.json'), 'utf8')).toBe(beforeA);
-            expect(readFileSync(path.join(dir, 'beta.json'), 'utf8')).toBe(beforeB);
-        } finally { rmSync(dir, { recursive: true, force: true }); }
-    });
-
-    it('--force replaces existing configs', async () => {
-        const dir = tmpDir();
-        try {
-            await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`]);
-            // Corrupt both, then --force must rewrite both.
+            // Corrupt both, then a plain re-run (no --force) must rewrite both.
             writeFileSync(path.join(dir, 'alpha.json'), '{"stale":true}');
             writeFileSync(path.join(dir, 'beta.json'), '{"stale":true}');
-            const { code } = await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`, '--force']);
+            const { code } = await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`]);
             expect(code).toBe(0);
             expect(JSON.parse(readFileSync(path.join(dir, 'alpha.json'), 'utf8')).courseId).toBe('alpha');
             expect(JSON.parse(readFileSync(path.join(dir, 'beta.json'), 'utf8')).courseId).toBe('beta');
+            // No temp file left beside the configs.
+            expect(readdirSync(dir).some((f) => f.includes('.tmp-'))).toBe(false);
+        } finally { rmSync(dir, { recursive: true, force: true }); }
+    });
+
+    it('CI path: --check over already-present configs exits 0 and rewrites', async () => {
+        const dir = tmpDir();
+        try {
+            await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`]);
+            // Corrupt, then the exact configs.yml invocation (--check, no --force).
+            writeFileSync(path.join(dir, 'alpha.json'), '{"stale":true}');
+            const { code, stdout } = await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`, '--check']);
+            expect(code).toBe(0);
+            expect(JSON.parse(readFileSync(path.join(dir, 'alpha.json'), 'utf8')).courseId).toBe('alpha');
+            expect(stdout).toContain('SKIPPED 0 course(s), WROTE 2');
         } finally { rmSync(dir, { recursive: true, force: true }); }
     });
 
@@ -220,6 +223,35 @@ describe('generate-config-from-sheet CLI', () => {
             expect(stdout).toContain('alpha.json');
             expect(stdout).toContain('beta.json');
             expect(existsSync(path.join(dir, 'alpha.json'))).toBe(false);
+            expect(existsSync(path.join(dir, 'beta.json'))).toBe(false);
+            expect(readdirSync(dir).length).toBe(0);
+        } finally { rmSync(dir, { recursive: true, force: true }); }
+    });
+
+    it('writes 2-space JSON with exactly one trailing newline, idempotently', async () => {
+        const dir = tmpDir();
+        try {
+            await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`]);
+            const first = readFileSync(path.join(dir, 'alpha.json'), 'utf8');
+            expect(first.endsWith('}\n')).toBe(true);
+            expect(first.endsWith('}\n\n')).toBe(false);
+            expect(first).toContain('\n  "courseId"');
+            await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`]);
+            expect(readFileSync(path.join(dir, 'alpha.json'), 'utf8')).toBe(first);
+        } finally { rmSync(dir, { recursive: true, force: true }); }
+    });
+
+    it('surfaces a write failure instead of silently skipping', async () => {
+        const dir = tmpDir();
+        try {
+            // Make alpha.json a directory so the rename fails.
+            const { mkdirSync } = await import('node:fs');
+            mkdirSync(path.join(dir, 'alpha.json'));
+            const { code, stderr } = await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`, '--check']);
+            expect(code).not.toBe(0);
+            expect(stderr).toContain('ERROR:');
+            // The failed write's temp file was cleaned up (no stray *.tmp-*).
+            expect(readdirSync(dir).some((f) => f.includes('.tmp-'))).toBe(false);
         } finally { rmSync(dir, { recursive: true, force: true }); }
     });
 
@@ -230,5 +262,35 @@ describe('generate-config-from-sheet CLI', () => {
         const url = /https:\/\/docs\.google\.com\/spreadsheets\/[^'"]+/.exec(cli);
         expect(url).not.toBeNull();
         expect(recorder).toContain(url[0]);
+    });
+});
+
+// Story 047: the CLI overwrites unconditionally and has no --force. Guards read
+// the raw source (it contains `https://` so no comment-stripping), and each is
+// proven failable by mutating the real text.
+describe('generate-config-from-sheet — overwrite source guard', () => {
+    const read = () => readFileSync(SCRIPT, 'utf8');
+
+    const assertOverwriteContract = (text) => {
+        expect(text).not.toContain('refusing to overwrite');
+        expect(text).not.toContain('--force');
+        expect(text).toContain('await fs.rename(');
+        expect(text).not.toContain('fs.access(');
+    };
+
+    it('the CLI no longer refuses to overwrite and has no --force', () => {
+        expect(() => assertOverwriteContract(read())).not.toThrow();
+    });
+
+    it('the guard can fail on each mutation', () => {
+        const good = read();
+        const mutations = [
+            good + '\n// refusing to overwrite\n',
+            good + '\n// --force\n',
+            good.replace('await fs.rename(', 'await fs.access('),
+        ];
+        for (const mutated of mutations) {
+            expect(() => assertOverwriteContract(mutated)).toThrow();
+        }
     });
 });

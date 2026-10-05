@@ -46,7 +46,8 @@ describe('configs.yml source guard', () => {
         expect(text).toContain('tee /tmp/configs.log');
         expect(text).toContain('GITHUB_STEP_SUMMARY');
         expect(text).toContain('::error::');
-        // Only missing-column skips are errors (overwrite-refusals are expected).
+        // Only missing-column skips are errors; overwrite is unconditional now
+        // (story 047), so there is no "already exists" skip to exclude.
         expect(text).toContain("grep 'missing required column'");
     });
 
