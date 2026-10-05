@@ -1,5 +1,6 @@
 // scripts/generate-config-from-sheet.test.js
-// Story 042: CLI surface, never-overwrite, and the URL source guard.
+// Story 046 (extends 042): multi-course generation, per-file never-overwrite,
+// per-course allow-list, best-effort skips, and the URL source guard.
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { execFile } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, existsSync, writeFileSync } from 'node:fs';
@@ -12,15 +13,26 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const SCRIPT = path.join(ROOT, 'scripts/generate-config-from-sheet.mjs');
 
+const HEADER = 'course_id,course_name,lesson_id,lesson_title,response_type,video_file,filename,order,recap_sources,subtitle_text';
+// Two complete courses.
 const FIXTURE_CSV = [
-    'course_id,course_name,lesson_id,lesson_title,recap_sources,recap_overlay,response_type,video_file,filename,order,cue,cue_alt,subtitle_text,srt',
-    'demo,Demo Course,a,Lesson A,none,shareCta,lessonIntro,demo-intro,demo-intro01,1,,,,',
-    'demo,Demo Course,a,Lesson A,none,shareCta,viewAndContinue,demo-v1,demo-v101,2,,,,Welcome.',
+    HEADER,
+    'alpha,Alpha,a,Lesson A,viewAndContinue,alpha-v1,alpha-v101,1,none,Hi.',
+    'beta,Beta,b,Lesson B,friendClosedResponse,ab-model-w-response-01,ab1,1,friend,Q?',
 ].join('\n');
 
+// Course A missing lesson_title; course B complete.
+const MIXED_CSV = [
+    HEADER,
+    'alpha,Alpha,a,,viewAndContinue,alpha-v1,alpha-v101,1,none,Hi.',
+    'beta,Beta,b,Lesson B,viewAndContinue,beta-v1,beta-v101,1,none,Bye.',
+].join('\n');
+
+// Course with an unknown response_type (structural error).
 const BAD_CSV = [
-    'course_id,course_name,lesson_id,lesson_title,response_type,video_file,filename,order',
-    'demo,Demo Course,a,Lesson A,bogus,demo-v,demo-v1,1',
+    HEADER,
+    'bad,Bad,a,Lesson A,bogus,bad-v1,bad-v101,1,none,X.',
+    'beta,Beta,b,Lesson B,viewAndContinue,beta-v1,beta-v101,1,none,Bye.',
 ].join('\n');
 
 let server;
@@ -28,6 +40,7 @@ let baseUrl;
 
 beforeAll(async () => {
     server = http.createServer((req, res) => {
+        if (req.url.includes('mixed')) { res.writeHead(200); res.end(MIXED_CSV); return; }
         if (req.url.includes('bad')) { res.writeHead(200); res.end(BAD_CSV); return; }
         res.writeHead(200); res.end(FIXTURE_CSV);
     });
@@ -53,7 +66,7 @@ describe('generate-config-from-sheet CLI', () => {
     it('--help exits 0 and documents the flags', async () => {
         const { code, stdout } = await runCli(['--help']);
         expect(code).toBe(0);
-        for (const flag of ['--sheet-url', '--course', '--out', '--dry-run', '--force']) {
+        for (const flag of ['--sheet-url', '--course', '--out', '--dry-run', '--check', '--force']) {
             expect(stdout).toContain(flag);
         }
     });
@@ -64,53 +77,149 @@ describe('generate-config-from-sheet CLI', () => {
         expect(stderr).toContain('--course requires a value');
     });
 
-    it('--dry-run prints the target and writes nothing', async () => {
+    it('writes one config per course', async () => {
         const dir = tmpDir();
-        const out = path.join(dir, 'demo.json');
         try {
-            const { code, stdout } = await runCli([`--sheet-url=${baseUrl}`, `--out=${out}`, '--dry-run']);
+            const { code, stdout } = await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`]);
             expect(code).toBe(0);
-            expect(stdout).toContain(out);
-            expect(existsSync(out)).toBe(false);
+            expect(JSON.parse(readFileSync(path.join(dir, 'alpha.json'), 'utf8')).courseId).toBe('alpha');
+            expect(JSON.parse(readFileSync(path.join(dir, 'beta.json'), 'utf8')).courseId).toBe('beta');
+            expect(stdout).toContain(`WROTE ${path.join(dir, 'alpha.json')}`);
+            expect(stdout).toContain(`WROTE ${path.join(dir, 'beta.json')}`);
         } finally { rmSync(dir, { recursive: true, force: true }); }
     });
 
-    it('writes a new config and refuses to overwrite without --force', async () => {
+    it('refuses to overwrite without --force (all files byte-identical)', async () => {
         const dir = tmpDir();
-        const out = path.join(dir, 'demo.json');
         try {
-            const first = await runCli([`--sheet-url=${baseUrl}`, `--out=${out}`]);
-            expect(first.code).toBe(0);
-            expect(existsSync(out)).toBe(true);
-            const bytes = readFileSync(out, 'utf8');
-            expect(JSON.parse(bytes).courseId).toBe('demo');
-
-            const second = await runCli([`--sheet-url=${baseUrl}`, `--out=${out}`]);
+            await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`]);
+            const beforeA = readFileSync(path.join(dir, 'alpha.json'), 'utf8');
+            const beforeB = readFileSync(path.join(dir, 'beta.json'), 'utf8');
+            const second = await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`]);
             expect(second.code).not.toBe(0);
             expect(second.stderr).toContain('refusing to overwrite');
-            expect(readFileSync(out, 'utf8')).toBe(bytes);
+            expect(readFileSync(path.join(dir, 'alpha.json'), 'utf8')).toBe(beforeA);
+            expect(readFileSync(path.join(dir, 'beta.json'), 'utf8')).toBe(beforeB);
         } finally { rmSync(dir, { recursive: true, force: true }); }
     });
 
-    it('--force replaces an existing config', async () => {
+    it('--force replaces existing configs', async () => {
         const dir = tmpDir();
-        const out = path.join(dir, 'demo.json');
         try {
-            writeFileSync(out, '{"stale":true}\n');
-            const { code } = await runCli([`--sheet-url=${baseUrl}`, `--out=${out}`, '--force']);
+            await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`]);
+            // Corrupt both, then --force must rewrite both.
+            writeFileSync(path.join(dir, 'alpha.json'), '{"stale":true}');
+            writeFileSync(path.join(dir, 'beta.json'), '{"stale":true}');
+            const { code } = await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`, '--force']);
             expect(code).toBe(0);
-            expect(JSON.parse(readFileSync(out, 'utf8')).courseId).toBe('demo');
+            expect(JSON.parse(readFileSync(path.join(dir, 'alpha.json'), 'utf8')).courseId).toBe('alpha');
+            expect(JSON.parse(readFileSync(path.join(dir, 'beta.json'), 'utf8')).courseId).toBe('beta');
         } finally { rmSync(dir, { recursive: true, force: true }); }
     });
 
-    it('exits non-zero on an unknown response_type and writes nothing', async () => {
+    it('reports skips, writes the rest, and exits non-zero without --check', async () => {
         const dir = tmpDir();
-        const out = path.join(dir, 'bad.json');
         try {
-            const { code, stderr } = await runCli([`--sheet-url=${baseUrl}/bad`, `--out=${out}`]);
+            const { code, stderr } = await runCli([`--sheet-url=${baseUrl}/mixed`, `--out=${dir}`]);
+            expect(code).toBe(1);
+            expect(stderr).toContain('SKIP course "alpha": missing required column(s): lesson_title (lesson "a")');
+            expect(existsSync(path.join(dir, 'alpha.json'))).toBe(false);
+            expect(existsSync(path.join(dir, 'beta.json'))).toBe(true);
+            expect(stderr).toContain('ERROR: 1 course(s) skipped');
+        } finally { rmSync(dir, { recursive: true, force: true }); }
+    });
+
+    it('--check exits 0 on skips and prints a summary', async () => {
+        const dir = tmpDir();
+        try {
+            const { code, stdout, stderr } = await runCli([`--sheet-url=${baseUrl}/mixed`, `--out=${dir}`, '--check']);
+            expect(code).toBe(0);
+            expect(existsSync(path.join(dir, 'beta.json'))).toBe(true);
+            expect(existsSync(path.join(dir, 'alpha.json'))).toBe(false);
+            expect(stderr).toContain('SKIP course "alpha"');
+            expect(stdout).toContain('SKIPPED 1 course(s), WROTE 1');
+        } finally { rmSync(dir, { recursive: true, force: true }); }
+    });
+
+    it('--check reports a structural error and still writes the valid course', async () => {
+        const dir = tmpDir();
+        try {
+            const { code, stderr } = await runCli([`--sheet-url=${baseUrl}/bad`, `--out=${dir}`, '--check']);
+            expect(code).toBe(0);
+            expect(existsSync(path.join(dir, 'beta.json'))).toBe(true);
+            expect(stderr).toContain('SKIP course "bad":');
+            expect(stderr).not.toContain('missing required column(s)');
+        } finally { rmSync(dir, { recursive: true, force: true }); }
+    });
+
+    it('registers both courseIds in the allow-list for a default-path run', async () => {
+        const dir = tmpDir();
+        const listPath = path.join(dir, 'allow.json');
+        try {
+            const { code } = await runCli(
+                [`--sheet-url=${baseUrl}`],
+                { GENERATED_CONFIGS_ALLOWLIST: listPath, CONFIG_OUT_DIR: dir }
+            );
+            expect(code).toBe(0);
+            expect(JSON.parse(readFileSync(listPath, 'utf8'))).toEqual(['alpha', 'beta']);
+        } finally { rmSync(dir, { recursive: true, force: true }); }
+    });
+
+    it('--out does not touch the tracked allow-list', async () => {
+        const dir = tmpDir();
+        const listPath = path.join(ROOT, 'scripts/lib/generated-configs.json');
+        const before = readFileSync(listPath, 'utf8');
+        try {
+            await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`]);
+            expect(readFileSync(listPath, 'utf8')).toBe(before);
+        } finally { rmSync(dir, { recursive: true, force: true }); }
+    });
+
+    it('--course filters to one course', async () => {
+        const dir = tmpDir();
+        try {
+            const { code, stdout } = await runCli([`--sheet-url=${baseUrl}`, '--course=beta', `--out=${dir}`]);
+            expect(code).toBe(0);
+            expect(existsSync(path.join(dir, 'beta.json'))).toBe(true);
+            expect(existsSync(path.join(dir, 'alpha.json'))).toBe(false);
+            expect(stdout).not.toContain('alpha.json');
+        } finally { rmSync(dir, { recursive: true, force: true }); }
+    });
+
+    it('--course with an unknown id writes nothing and errors', async () => {
+        const dir = tmpDir();
+        try {
+            const { code, stderr } = await runCli([`--sheet-url=${baseUrl}`, '--course=missing', `--out=${dir}`]);
             expect(code).not.toBe(0);
-            expect(stderr).toContain('bogus');
-            expect(existsSync(out)).toBe(false);
+            expect(stderr).toContain('no course "missing" in the sheet');
+            expect(existsSync(path.join(dir, 'missing.json'))).toBe(false);
+        } finally { rmSync(dir, { recursive: true, force: true }); }
+    });
+
+    it('rejects an unsafe sheet courseId without writing outside the dir', async () => {
+        const dir = tmpDir();
+        try {
+            const csv = [HEADER, '../evil,Evil,a,L,viewAndContinue,evil-v1,evil-v101,1,none,X.'].join('\n');
+            const badServer = http.createServer((_, res) => { res.writeHead(200); res.end(csv); });
+            await new Promise((r) => badServer.listen(0, '127.0.0.1', r));
+            const url = `http://127.0.0.1:${badServer.address().port}/s`;
+            // Default mode: the invalid courseId is a skip -> non-zero exit.
+            const { code, stderr } = await runCli([`--sheet-url=${url}`, `--out=${dir}`]);
+            expect(code).not.toBe(0);
+            expect(stderr).toContain('invalid courseId');
+            expect(existsSync(path.join(dir, '..', 'evil.json'))).toBe(false);
+            badServer.close();
+        } finally { rmSync(dir, { recursive: true, force: true }); }
+    });
+
+    it('--dry-run prints both would-be paths and writes neither', async () => {
+        const dir = tmpDir();
+        try {
+            const { code, stdout } = await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`, '--dry-run']);
+            expect(code).toBe(0);
+            expect(stdout).toContain('alpha.json');
+            expect(stdout).toContain('beta.json');
+            expect(existsSync(path.join(dir, 'alpha.json'))).toBe(false);
         } finally { rmSync(dir, { recursive: true, force: true }); }
     });
 
@@ -121,50 +230,5 @@ describe('generate-config-from-sheet CLI', () => {
         const url = /https:\/\/docs\.google\.com\/spreadsheets\/[^'"]+/.exec(cli);
         expect(url).not.toBeNull();
         expect(recorder).toContain(url[0]);
-    });
-
-    it('--course overrides the sheet course_id and the output filename', async () => {
-        const dir = tmpDir();
-        try {
-            const { code, stdout } = await runCli([`--sheet-url=${baseUrl}`, `--course=custom`, `--out=${path.join(dir, 'custom.json')}`]);
-            expect(code).toBe(0);
-            expect(stdout).toContain('custom.json');
-            expect(JSON.parse(readFileSync(path.join(dir, 'custom.json'), 'utf8')).courseId).toBe('custom');
-        } finally { rmSync(dir, { recursive: true, force: true }); }
-    });
-
-    it('rejects an unsafe courseId (path traversal) without writing', async () => {
-        const dir = tmpDir();
-        try {
-            const out = path.join(dir, 'x.json');
-            const { code, stderr } = await runCli([`--sheet-url=${baseUrl}`, '--course=../evil', `--out=${out}`]);
-            expect(code).not.toBe(0);
-            expect(stderr).toContain('invalid courseId');
-            expect(existsSync(out)).toBe(false);
-        } finally { rmSync(dir, { recursive: true, force: true }); }
-    });
-
-    it('does not touch the tracked allow-list when writing via --out', async () => {
-        const dir = tmpDir();
-        const listPath = path.join(ROOT, 'scripts/lib/generated-configs.json');
-        const before = readFileSync(listPath, 'utf8');
-        try {
-            const { code } = await runCli([`--sheet-url=${baseUrl}`, `--out=${path.join(dir, 'demo.json')}`]);
-            expect(code).toBe(0);
-            expect(readFileSync(listPath, 'utf8')).toBe(before);
-        } finally { rmSync(dir, { recursive: true, force: true }); }
-    });
-
-    it('registers the course in the allow-list when writing the default path', async () => {
-        const dir = tmpDir();
-        const listPath = path.join(dir, 'allow.json');
-        try {
-            const { code } = await runCli(
-                [`--sheet-url=${baseUrl}`, '--course=regtest'],
-                { GENERATED_CONFIGS_ALLOWLIST: listPath, CONFIG_OUT_DIR: dir }
-            );
-            expect(code).toBe(0);
-            expect(JSON.parse(readFileSync(listPath, 'utf8'))).toContain('regtest');
-        } finally { rmSync(dir, { recursive: true, force: true }); }
     });
 });

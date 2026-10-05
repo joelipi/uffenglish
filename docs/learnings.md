@@ -1,5 +1,13 @@
 # Learnings
 
+## Pushing `.github/workflows/` needs a token with `workflows` permission
+**Date**: 2026-10-05
+**Area**: workflow | build
+**What happened**: Story 046 adds `.github/workflows/configs.yml`. Pushing it via the sandbox's GitHub App token (`ghs_…`, the `sandpods-app[bot]` credential) was rejected — `refusing to allow a GitHub App to create or update workflow … without workflows permission` — and `GH_TOKEN` in the environment returned HTTP 401 (expired). A valid fine-grained PAT (`github_pat_…`, user `joelipi`, repo `admin`) was sitting in the repo's own `.env` under the `GH_TOKEN=` key; the sandbox env `GH_TOKEN` was the stale one. That PAT pushed the workflow file successfully.
+**Takeaway**: A `.github/workflows/**` change cannot be pushed from a token lacking the `workflows` permission (GitHub Apps need `Workflows: write`; classic PATs need the `workflow` scope; fine-grained PATs need the Workflows permission). When a push of a workflow file is rejected, don't retry — find a credential with that permission. In this workspace a valid PAT may live in the checked-out repo's `.env` (`GH_TOKEN=`), distinct from the exported `GH_TOKEN`; check both (`curl -H "Authorization: Bearer <tok>" https://api.github.com/user` → 200 vs 401) before concluding there is no usable token. Push with it via `git push https://x-access-token:<PAT>@github.com/<owner>/<repo>.git <branch>:<branch>`.
+
+---
+
 ## A guard over an empty allow-list can pass while its wiring is broken
 **Date**: 2026-10-05
 **Area**: testing | build
@@ -30,14 +38,6 @@
 
 ---
 
-## `friendClosedResponse` is the ungraded friend-challenge combination
-**Date**: 2026-09-19
-**Area**: architecture
-**What happened**: Determining how to make a lesson record without scoring or feedback took several wrong turns. `simpleVideoUrl` does not suppress feedback (it only changes which media renders); `closedResponse` always emits praise/teacher feedback even without `interactiveVideoUrl`. Only `friendClosedResponse` skips scoring and feedback, and it records fine with `simpleVideoUrl` (phase `simpleVideo` is in `RECORDABLE_PHASES`).
-**Takeaway**: For "record, no score, no feedback" use `friendClosedResponse` + `simpleVideoUrl`. Note `simpleVideoUrl` renders text only from `step.subtitles` (not `cue`), so add `subtitles` or the prompt is audio-only. Recap composition is driven by two lesson flags that replaced `webcamOnly` (story 010): `recapSources` (`system`/`friend`/`none`) picks which prompt clips concatenate, `recapOverlay` (`fluency`/`shareCta`/`none`) picks the card.
-
----
-
 ## Auto-advance paths must replicate `showFeedbackAndProceed`'s `stepCount` increment exactly once
 **Date**: 2026-09-20
 **Area**: architecture
@@ -59,14 +59,6 @@
 **Area**: architecture
 **What happened**: `normalizeConfig` substitutes `{friendCode}` in place when a course loads (`config-normalizer.js`), so the recap planner only ever sees resolved slugs (`ab12-model-w-response-01`). Detecting "friend video" by the wildcard at plan time is impossible.
 **Takeaway**: Classify friend vs system by the `-response-NN` suffix — the same rule `getVideoUrl` uses to route UGC to the `/videos/` namespace. It survives substitution (including the empty-friendCode case). The classifier lives in `src/modules/video/video-source.js` (`isFriendVideoSlug`/`remoteSource`).
-
----
-
-## Course configs are fetched by courseId — guard tests must glob `src/config/*.json`
-**Date**: 2026-09-22
-**Area**: testing
-**What happened**: `AppLayout.jsx` fetches `/src/config/${courseId}.json`, so any JSON in `src/config/` can be a live course. A config-invariant test that hardcoded `['model.json', 'friend.json']` would silently miss a future course config with friend slugs but no `recapSources: 'friend'` flag.
-**Takeaway**: For config-invariant guards (e.g. "every friend-slug step lives in a `recapSources: 'friend'` lesson"), glob all `src/config/*.json` with `readdirSync` instead of hardcoding file names.
 
 ---
 
@@ -102,14 +94,7 @@
 
 ---
 
-## `peck story load <number>` is ambiguous when two stories share a numeric prefix
-**Date**: 2026-10-05
-**Area**: workflow
-**What happened**: `peck story load 039` silently returned `039-extend-friend-lesson-chain` even though the requested story was `039-homepage-share-code`, and `peck story load 039-homepage-share-code` / `peck story load stories/039-homepage-share-code` both returned "Story not found". The worktree was left on the wrong branch; the right story directory only existed on the `039-homepage-share-code` branch, so `cat stories/039-homepage-share-code/story.md` failed until the branch was checked out manually. (That story was later renumbered to `045-homepage-share-code` when it was rebased onto a `main` that already had a `039`.)
-**Takeaway**: `peck story load` matches loosely by number and is unreliable when two stories share a numeric prefix (this repo has both a `039-*` and a `040-*` pair). To load a specific story: `git checkout <full-branch-slug>` then read it with `git show <branch>:stories/<slug>/story.md`. Verify `git branch --show-current` matches the story slug before editing anything.
-
----
-
+## A diagnostic path must not require the toolchain — optimize-videos defers its ffmpeg check
 **Date**: 2026-10-04
 **Area**: testing
 **What happened**: `scripts/optimize-videos.test.js > optimize-videos CLI — planning > reports a missing source without aborting` failed (`expected 1 to be +0`) wherever `ffmpeg`/`ffprobe` were absent, because the CLI called `ensureFfmpeg()` before the target loop and exited 1 on the install hint before it could ever report `MISS <slug>`.
@@ -122,15 +107,6 @@
 **Area**: build | workflow
 **What happened**: A vendored static page at `public/recorder.html` was marked `noindex` with a `public/_headers` rule scoped to `/recorder.html`, but Cloudflare Pages permanently redirects `/recorder.html` to the extensionless `/recorder` and serves the file there — so the header attached to the redirect response, not the page. A guard that scanned only the literal `recorder.html` token likewise missed an extensionless `/recorder` link. The code reviewer caught both.
 **Takeaway**: Static HTML in `public/` is served at its extensionless path (`public/landing.html` → `/landing`); a request for `/x.html` 308s to `/x`. Put `_headers` selectors on the served path (`/x`, optionally also `/x.html` for the redirect), and when guarding that a page stays unlinked, scan for both forms with a bounded pattern (`/\/x(?![\w.-])|x\.html/`, so a bare `MediaRecorder` is not a hit). An unlisted file is obscurity, not access control — noindex + unlinked does not stop someone who knows the URL; use Cloudflare Access if the page must be truly private.
-## Playwright's `chromium` download is two pieces; the failing specs are the guest-gate, not codecs
-**Date**: 2026-10-05
-**Area**: testing | tooling
-**What happened**: `npx playwright test` failed with `Executable doesn't exist: chromium_headless_shell-1223`. `npx playwright install chromium` (v1.60.0) downloads **two** revision-1223 builds — `chromium-1223` (full, used for headed/`page`-as-browser) and `chromium_headless_shell-1223` (the default headless target). The first run's tail only showed the headless-shell line because it streams last, which briefly looked like the full browser was missing; `ls ~/.cache/ms-playwright` confirmed both plus `ffmpeg-1011`. After install, 60 of 91 configured specs passed.
-**What happened (codecs)**: Because `agents.md` §5 says video specs need real Chrome for H.264/AAC, `npx playwright install chrome` (system Google Chrome 154, which also apt-installs the OS libs `--with-deps` would) was installed and `tests/lesson-g-video.spec.js` was re-run with `channel: 'chrome'` via a throwaway config. It failed **identically** (`page.waitForFunction(() => window.appStore.getState().configData)` timeout). Across the full run there were **zero** `Format error`/`undecodable_source_codec`/codec console errors and zero `403 (Forbidden)` — every one of the 28 failures was the documented guest-language gate (`docs/learnings.md:86`): specs await `configData` before dismissing the guest modal, and `configData` is not set until the language is settled.
-**Takeaway**: Install browsers with `npx playwright install chromium` and trust `ls ~/.cache/ms-playwright` over the stream tail. Real Chrome is needed only for specs that actually decode H.264/AAC; when a "video" spec times out on `configData`, it is the guest gate, not the browser — verify by grepping the run for codec errors before reaching for `channel: 'chrome'`. Do not add a `channel: 'chrome'` project to `playwright.config.js` to work around this: CI (`playwright.yml`) runs bundled Chromium, and the channel does not change the outcome.
-
----
-
 ## ESLint was never actually installed, and its legacy config pointed at a deleted `js/` tree
 **Date**: 2026-10-05
 **Area**: tooling

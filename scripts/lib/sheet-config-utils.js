@@ -26,6 +26,15 @@ export const RESPONSE_TYPES = [
 export const RECAP_SOURCES = ['system', 'friend', 'none'];
 export const RECAP_OVERLAYS = ['fluency', 'shareCta', 'none'];
 
+// Columns a generated config cannot do without. Anything else (recap_sources,
+// recap_overlay, unit, mission, cue, cue_alt, subtitle_text, srt) is optional
+// and never reported missing. Add a column here AND to the sheet header when a
+// new required field is introduced.
+export const REQUIRED_COLUMNS = [
+    'course_id', 'course_name', 'lesson_id', 'lesson_title',
+    'response_type', 'video_file', 'order',
+];
+
 // A courseId becomes a filename, so it must be a safe single path segment: no
 // separators, no traversal, no leading dot/underscore. Matches the app's config
 // filenames.
@@ -310,4 +319,126 @@ export function buildCourseConfig(rows) {
     });
 
     return { courseId, courseName, lessons };
+}
+
+/**
+ * The required columns that are blank for one course's selected rows, as a
+ * deduplicated, deterministically ordered list of `{ column, where }`. Pure and
+ * non-throwing — it never builds a config, it only reports what a build would
+ * need. `course_id`/`course_name` are course-wide; `lesson_id`/`lesson_title`
+ * per lesson; `response_type`/`video_file`/`order` per row/group.
+ *
+ * @param {Array<Record<string,string>>} rows one course's video rows
+ * @returns {Array<{column: string, where: string}>}
+ */
+export function findMissingColumns(rows) {
+    const videoRows = (rows || []).filter(isVideoRow);
+    const missing = [];
+    const add = (column, where) => missing.push({ column, where });
+
+    if (videoRows.length === 0) return [];
+
+    // Existence (first non-blank) — deliberately NOT `singleValue`, which throws
+    // on conflicts. This detector must never throw: a conflict is a structural
+    // error that `buildCourseConfig` reports per-course, and the detector must
+    // not abort the whole multi-course run.
+    const firstNonBlank = (rs, name) => {
+        for (const r of rs) if (cell(r, name).trim()) return cell(r, name).trim();
+        return '';
+    };
+
+    // Course-wide: blank on EVERY row.
+    if (!firstNonBlank(videoRows, 'course_id')) add('course_id', 'course');
+    if (!firstNonBlank(videoRows, 'course_name')) add('course_name', 'course');
+
+    // Per row: lesson_id and video_file must each be present.
+    for (const row of videoRows) {
+        if (!cell(row, 'lesson_id').trim()) add('lesson_id', `row "${cell(row, 'filename')}"`);
+        if (!cell(row, 'video_file').trim()) add('video_file', `row "${cell(row, 'filename')}"`);
+    }
+
+    // Grouping mirrors buildSteps EXACTLY: lessons partition by lesson_id, then
+    // video_file groups WITHIN each lesson (buildSteps only ever sees one
+    // lesson's rows). Grouping video_file across the whole course would merge
+    // same-named videos in different lessons and disagree with the builder.
+    const lessonOrder = [];
+    const lessonRows = new Map();
+    for (const row of videoRows) {
+        const lessonId = cell(row, 'lesson_id').trim();
+        if (!lessonId) continue;
+        if (!lessonRows.has(lessonId)) { lessonRows.set(lessonId, []); lessonOrder.push(lessonId); }
+        lessonRows.get(lessonId).push(row);
+    }
+
+    for (const lessonId of lessonOrder) {
+        const rowsForLesson = lessonRows.get(lessonId);
+        // lesson_title: present on at least one row of the lesson.
+        if (!firstNonBlank(rowsForLesson, 'lesson_title')) add('lesson_title', `lesson "${lessonId}"`);
+
+        const groupOrder = [];
+        const groups = new Map();
+        for (const row of rowsForLesson) {
+            const videoFile = cell(row, 'video_file').trim();
+            if (!videoFile) continue;
+            if (!groups.has(videoFile)) { groups.set(videoFile, []); groupOrder.push(videoFile); }
+            groups.get(videoFile).push(row);
+        }
+        for (const videoFile of groupOrder) {
+            const groupRows = groups.get(videoFile);
+            if (!firstNonBlank(groupRows, 'response_type')) {
+                add('response_type', `video_file "${videoFile}"`);
+            }
+            for (const row of groupRows) {
+                if (!/^-?\d+$/.test(cell(row, 'order').trim())) {
+                    add('order', `video_file "${videoFile}" row "${cell(row, 'filename')}"`);
+                }
+            }
+        }
+    }
+
+    // Deterministic: REQUIRED_COLUMNS order, then `where`; deduplicated.
+    const rank = new Map(REQUIRED_COLUMNS.map((c, i) => [c, i]));
+    const seen = new Set();
+    return missing
+        .filter((m) => {
+            const key = `${m.column}\u0000${m.where}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        })
+        .sort((a, b) => (rank.get(a.column) - rank.get(b.column)) || (a.where < b.where ? -1 : a.where > b.where ? 1 : 0));
+}
+
+/**
+ * Assemble every course the sheet defines. Partitions the video rows by the
+ * `course_id` column value (first-seen order), then builds each independently:
+ * a course with any missing required column is skipped whole (all-or-nothing),
+ * and a structural error in one course never blocks another.
+ *
+ * @param {Array<Record<string,string>>} rows parsed rows
+ * @returns {Array<{courseId: string, config?: object, error?: {kind: 'missing-columns', missing: Array<{column,where}>} | {kind: 'error', message: string}}>}
+ */
+export function buildCourseConfigs(rows) {
+    const videoRows = (rows || []).filter(isVideoRow);
+
+    const order = [];
+    const partitions = new Map();
+    for (const row of videoRows) {
+        const courseId = cell(row, 'course_id').trim();
+        if (!partitions.has(courseId)) { partitions.set(courseId, []); order.push(courseId); }
+        partitions.get(courseId).push(row);
+    }
+
+    return order.map((courseId) => {
+        const partitionRows = partitions.get(courseId);
+        const missing = findMissingColumns(partitionRows);
+        if (missing.length > 0) {
+            return { courseId, error: { kind: 'missing-columns', missing } };
+        }
+        try {
+            return { courseId, config: buildCourseConfig(partitionRows) };
+        } catch (e) {
+            return { courseId, error: { kind: 'error', message: e.message } };
+        }
+    });
 }

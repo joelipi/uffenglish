@@ -9,6 +9,8 @@ import {
     unescapeSrt,
     buildSteps,
     buildCourseConfig,
+    buildCourseConfigs,
+    findMissingColumns,
     isValidCourseId,
     RESPONSE_TYPES,
     RECAP_SOURCES,
@@ -313,5 +315,179 @@ describe('canonical vocabulary parity with the browser modules', () => {
         const re = new RegExp(m[1], 'i');
         expect(re.test('ab-model-w-response-01')).toBe(true);
         expect(re.test('testvideoa01')).toBe(false);
+    });
+});
+
+const COURSE = { course_id: 'c', course_name: 'C', lesson_id: 'a', lesson_title: 'L' };
+
+describe('findMissingColumns', () => {
+    it('reports course_name missing on every row as a course-wide miss', () => {
+        const rows = [
+            { ...COURSE, course_name: '', video_file: 'v', filename: 'f1', order: '1', response_type: 'viewAndContinue' },
+        ];
+        expect(findMissingColumns(rows)).toEqual([{ column: 'course_name', where: 'course' }]);
+    });
+
+    it('reports lesson_id missing on the offending row', () => {
+        const rows = [
+            { ...COURSE, lesson_id: '', video_file: 'v', filename: 'f9', order: '1', response_type: 'viewAndContinue' },
+        ];
+        expect(findMissingColumns(rows)).toContainEqual({ column: 'lesson_id', where: 'row "f9"' });
+    });
+
+    it('reports lesson_title missing per lesson', () => {
+        const rows = [{ ...COURSE, lesson_title: '', video_file: 'v', filename: 'f1', order: '1', response_type: 'viewAndContinue' }];
+        expect(findMissingColumns(rows)).toContainEqual({ column: 'lesson_title', where: 'lesson "a"' });
+    });
+
+    it('reports response_type missing per video_file group', () => {
+        const rows = [{ ...COURSE, video_file: 'v', filename: 'f1', order: '1', response_type: '' }];
+        expect(findMissingColumns(rows)).toContainEqual({ column: 'response_type', where: 'video_file "v"' });
+    });
+
+    it('reports a blank/non-numeric order', () => {
+        const rows = [{ ...COURSE, video_file: 'v', filename: 'f1', order: 'x', response_type: 'viewAndContinue' }];
+        expect(findMissingColumns(rows)).toContainEqual({ column: 'order', where: 'video_file "v" row "f1"' });
+    });
+
+    it('reports a row with no video_file', () => {
+        const rows = [{ ...COURSE, video_file: '', filename: 'f1', order: '1', response_type: 'viewAndContinue' }];
+        expect(findMissingColumns(rows)).toContainEqual({ column: 'video_file', where: 'row "f1"' });
+    });
+
+    it('ignores blank optional columns', () => {
+        const rows = [{ ...COURSE, video_file: 'v', filename: 'f1', order: '1', response_type: 'viewAndContinue', recap_sources: '', mission: '', cue: '' }];
+        expect(findMissingColumns(rows)).toEqual([]);
+    });
+
+    it('returns [] for a fully-populated valid course and for []', () => {
+        expect(findMissingColumns([{ ...COURSE, video_file: 'v', filename: 'f1', order: '1', response_type: 'viewAndContinue' }])).toEqual([]);
+        expect(findMissingColumns([])).toEqual([]);
+    });
+
+    it('is deterministic regardless of row order', () => {
+        const a = { ...COURSE, course_id: 'c', video_file: 'v', filename: 'a', order: '1', response_type: '' };
+        const b = { ...COURSE, course_id: 'c', lesson_id: '', video_file: 'w', filename: 'b', order: '1', response_type: 'viewAndContinue' };
+        const forward = findMissingColumns([a, b]);
+        const reverse = findMissingColumns([b, a]);
+        expect(forward).toEqual(reverse);
+        expect(forward).toEqual([...forward].sort((x, y) => x.where.localeCompare(y.where) || 0));
+    });
+
+    it('does not throw on conflicting values (never aborts the run)', () => {
+        // Two rows in one course disagree on course_name -> the detector must not
+        // throw (it reports existence, not agreement); the builder reports the
+        // conflict per-course.
+        const rows = [
+            { ...COURSE, course_name: 'A', video_file: 'v', filename: 'f1', order: '1', response_type: 'viewAndContinue' },
+            { ...COURSE, course_name: 'B', video_file: 'w', filename: 'f2', order: '1', response_type: 'viewAndContinue' },
+        ];
+        expect(() => findMissingColumns(rows)).not.toThrow();
+        expect(findMissingColumns(rows)).toEqual([]);
+    });
+
+    it('groups video_file within a lesson, not across the course', () => {
+        // Same video_file in two lessons with different response_type: valid for
+        // buildSteps (independent steps), so the detector must NOT merge them.
+        const rows = [
+            { ...COURSE, lesson_id: 'a', video_file: 'dup', filename: 'a1', order: '1', response_type: 'viewAndContinue' },
+            { ...COURSE, lesson_id: 'b', video_file: 'dup', filename: 'b1', order: '1', response_type: 'friendClosedResponse' },
+        ];
+        expect(findMissingColumns(rows)).toEqual([]);
+    });
+});
+
+describe('buildCourseConfigs', () => {
+    const twoCourseCsv = [
+        'course_id,course_name,lesson_id,lesson_title,response_type,video_file,filename,order,recap_sources',
+        'alpha,Alpha,a,Lesson A,viewAndContinue,alpha-v1,alpha1,1,none',
+        'beta,Beta,b,Lesson B,viewAndContinue,beta-v1,beta1,1,friend',
+    ].join('\n');
+
+    it('returns one entry per course in first-seen order', () => {
+        const { rows } = parseCsv(twoCourseCsv);
+        const results = buildCourseConfigs(rows);
+        expect(results.map((r) => r.courseId)).toEqual(['alpha', 'beta']);
+        for (const r of results) expect(r.config.courseId).toBe(r.courseId);
+    });
+
+    it('does not cross-contaminate lessons between courses', () => {
+        const { rows } = parseCsv(twoCourseCsv);
+        const [alpha, beta] = buildCourseConfigs(rows);
+        expect(alpha.config.lessons.map((l) => l.lessonId)).toEqual(['a']);
+        expect(beta.config.lessons.map((l) => l.lessonId)).toEqual(['b']);
+    });
+
+    it('skips a course with a missing required column but keeps the valid one', () => {
+        const csv = [
+            'course_id,course_name,lesson_id,lesson_title,response_type,video_file,filename,order',
+            'alpha,Alpha,a,,viewAndContinue,alpha-v1,alpha1,1',
+            'beta,Beta,b,Lesson B,viewAndContinue,beta-v1,beta1,1',
+        ].join('\n');
+        const results = buildCourseConfigs(parseCsv(csv).rows);
+        const alpha = results.find((r) => r.courseId === 'alpha');
+        const beta = results.find((r) => r.courseId === 'beta');
+        expect(alpha.error.kind).toBe('missing-columns');
+        expect(alpha.error.missing).toContainEqual({ column: 'lesson_title', where: 'lesson "a"' });
+        expect('config' in alpha).toBe(false);
+        expect(beta.config).toBeDefined();
+    });
+
+    it('isolates a structural error to its own course', () => {
+        const csv = [
+            'course_id,course_name,lesson_id,lesson_title,response_type,video_file,filename,order',
+            'bad,Bad,a,Lesson A,wat,bad-v1,bad1,1',
+            'beta,Beta,b,Lesson B,viewAndContinue,beta-v1,beta1,1',
+        ].join('\n');
+        const results = buildCourseConfigs(parseCsv(csv).rows);
+        const bad = results.find((r) => r.courseId === 'bad');
+        const beta = results.find((r) => r.courseId === 'beta');
+        expect(bad.error.kind).toBe('error');
+        expect(bad.error.message).toContain('wat');
+        expect(beta.config).toBeDefined();
+    });
+
+    it('isolates a conflicting field in one course and still builds the other', () => {
+        // Course alpha has two disagreeing course_name values (a structural
+        // error); course beta is complete. The detector must not throw, and the
+        // conflict must not abort beta.
+        const csv = [
+            'course_id,course_name,lesson_id,lesson_title,response_type,video_file,filename,order',
+            'alpha,Alpha,a,Lesson A,viewAndContinue,a1,f1,1',
+            'alpha,ALPHA-RENAMED,a,Lesson A,viewAndContinue,a2,f2,2',
+            'beta,Beta,b,Lesson B,viewAndContinue,b1,g1,1',
+        ].join('\n');
+        let results;
+        expect(() => { results = buildCourseConfigs(parseCsv(csv).rows); }).not.toThrow();
+        const alpha = results.find((r) => r.courseId === 'alpha');
+        const beta = results.find((r) => r.courseId === 'beta');
+        expect(alpha.error.kind).toBe('error');
+        expect(beta.config).toBeDefined();
+    });
+
+    it('partitions blank course_id rows and reports course_id missing', () => {
+        const csv = [
+            'course_id,course_name,lesson_id,lesson_title,response_type,video_file,filename,order',
+            ',Noname,a,Lesson A,viewAndContinue,v1,f1,1',
+        ].join('\n');
+        const [only] = buildCourseConfigs(parseCsv(csv).rows);
+        expect(only.courseId).toBe('');
+        expect(only.error.kind).toBe('missing-columns');
+        expect(only.error.missing).toContainEqual({ column: 'course_id', where: 'course' });
+    });
+
+    it('matches the single-course primitive on one course', () => {
+        const csv = [
+            'course_id,course_name,lesson_id,lesson_title,response_type,video_file,filename,order',
+            'solo,Solo,a,Lesson A,viewAndContinue,solo-v1,solo1,1',
+        ].join('\n');
+        const { rows } = parseCsv(csv);
+        const [entry] = buildCourseConfigs(rows);
+        expect(entry.config).toEqual(buildCourseConfig(rows));
+    });
+
+    it('returns [] when every row is a blank spacer row', () => {
+        const { rows } = parseCsv('course_id,course_name\n,\n,\n');
+        expect(buildCourseConfigs(rows)).toEqual([]);
     });
 });
