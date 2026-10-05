@@ -1,0 +1,63 @@
+name: Generate Course Configs
+
+# Best-effort: generate one src/config/<courseId>.json per course the published
+# sheet defines and commit them. A course with any missing required column is
+# skipped whole and REPORTED (annotation + job summary); the job stays green so
+# nothing downstream is blocked. The video render is a separate path (Modal), so
+# a skip here never affects it.
+#
+# Trigger: the manual "Run workflow" button now. `repository_dispatch`
+# (render-complete) is accepted but nothing sends it yet — wiring the Modal
+# render to fire it is a deliberate later addition (a Modal-held GitHub token is
+# an invisible-failure/rotation risk).
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [render-complete]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: configs-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  configs:
+    runs-on: ubuntu-latest
+    # Null-safe across all events: only `push` has head_commit, and the guard
+    # must also skip the bot's own commit (loop guard).
+    if: github.actor != 'github-actions[bot]' && !contains(github.event.head_commit.message || '', '[skip configs]')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_NEW_TOKEN }}
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - name: Generate configs
+        run: |
+          set -o pipefail
+          node scripts/generate-config-from-sheet.mjs --check 2>&1 | tee /tmp/configs.log
+      - name: Report skips
+        if: always()
+        run: |
+          {
+            echo "## Config generation"
+            grep '^SKIP course ' /tmp/configs.log || echo "No skipped courses."
+          } >> "$GITHUB_STEP_SUMMARY"
+          grep '^SKIP course ' /tmp/configs.log | while IFS= read -r line; do
+            echo "::error::$line"
+          done
+      - name: Commit configs
+        run: |
+          git config user.name "uff-configs-bot"
+          git config user.email "11131426+joelipi@users.noreply.github.com"
+          git add src/config scripts/lib/generated-configs.json
+          if git diff --cached --quiet; then
+            echo "no config changes"
+          else
+            git commit -m "chore(configs): regenerate course configs from the sheet [skip configs]"
+            git push origin "HEAD:${{ github.ref_name }}"
+          fi

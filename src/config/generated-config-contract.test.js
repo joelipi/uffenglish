@@ -22,7 +22,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { RECAP_SOURCES, RECAP_OVERLAYS } from '../modules/video/video-processor-logic.js';
 import { FRIEND_VIDEO_REGEX } from '../modules/video/video-source.js';
-import { parseCsv, buildCourseConfig } from '../../scripts/lib/sheet-config-utils.js';
+import { parseCsv, buildCourseConfig, buildCourseConfigs } from '../../scripts/lib/sheet-config-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // This test lives in src/config, so the config directory IS __dirname.
@@ -122,5 +122,26 @@ describe('generated English-only config contract', () => {
             const config = JSON.parse(readFileSync(file, 'utf8'));
             assertGeneratedConfigContract(config, courseId);
         }
+    });
+
+    // Story 046: the contract must hold for N generated files, not just one, and
+    // the multi-course transform must feed it correctly (a guard over a
+    // one-element set is under-tested — docs/learnings.md).
+    const TWO_COURSE_CSV = [
+        'course_id,course_name,lesson_id,lesson_title,recap_sources,recap_overlay,response_type,video_file,filename,order,subtitle_text',
+        'alpha,Alpha,a,Lesson A,none,shareCta,viewAndContinue,alpha-v1,alpha1,1,Hi.',
+        'beta,Beta,b,Lesson B,friend,shareCta,viewAndContinue,ab-model-w-response-01,ab1,1,Hey.',
+    ].join('\n');
+
+    it('holds for every course in a multi-course fixture (N > 1)', () => {
+        const results = buildCourseConfigs(parseCsv(TWO_COURSE_CSV).rows);
+        expect(results).toHaveLength(2);
+        for (const r of results) assertGeneratedConfigContract(r.config, r.courseId);
+    });
+
+    it('can fail on the second course, not just the first', () => {
+        const results = buildCourseConfigs(parseCsv(TWO_COURSE_CSV).rows);
+        results[1].config.lessons[0].title.es = 'Lección';
+        expect(() => results.forEach((r) => assertGeneratedConfigContract(r.config, r.courseId))).toThrow();
     });
 });

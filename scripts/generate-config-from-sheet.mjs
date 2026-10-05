@@ -1,15 +1,18 @@
 #!/usr/bin/env node
 // scripts/generate-config-from-sheet.mjs
-// Fetch the published Google-Sheet CSV and write a NEW English-only
-// `src/config/<courseId>.json` (stories/042-generate-config-from-sheet). The
-// sheet is the source of truth for both videos and configs. This is an
-// operator-invoked, manual tool (like posters / videos:optimize): it fetches
-// the network and is not run in CI.
+// Fetch the published Google-Sheet CSV and write one NEW English-only
+// `src/config/<courseId>.json` per course the sheet defines
+// (stories/042-generate-config-from-sheet, multi-course story 046). The sheet is
+// the source of truth for both videos and configs. This is an operator-invoked
+// tool (also run by .github/workflows/configs.yml).
 //
-// It NEVER overwrites an existing config unless `--force` is passed.
+// Best-effort: a course whose required columns are incomplete is SKIPPED WHOLE
+// (no partial config) with a report of exactly which columns are missing; other
+// courses are unaffected. Existing configs are never overwritten without
+// --force.
 //
 // Usage:
-//   node scripts/generate-config-from-sheet.mjs [--course=<courseId>] [--out=<path>] [--sheet-url=<url>] [--dry-run] [--force]
+//   node scripts/generate-config-from-sheet.mjs [--course=<id>] [--out=<dir>] [--sheet-url=<url>] [--dry-run] [--check] [--force]
 //
 // The default sheet URL is the same published CSV the recorder reads
 // (public/recorder.html); a source guard pins the two literals together.
@@ -18,86 +21,124 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { flagValue } from './lib/cli-utils.js';
-import { parseCsv, buildCourseConfig, isValidCourseId } from './lib/sheet-config-utils.js';
+import { parseCsv, buildCourseConfigs, isValidCourseId } from './lib/sheet-config-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
-// Default output directory for the generated config (test seam).
+// Default output directory for generated configs (test seam).
 const CONFIG_DIR = process.env.CONFIG_OUT_DIR || path.join(ROOT, 'src', 'config');
 
 // Keep in sync with public/recorder.html (source-guarded).
 export const SHEET_URL =
     'https://docs.google.com/spreadsheets/d/e/2PACX-1vSDgWLQRezvKde57LsHzm6YPrwanYJgCBOXkz_1r6GxEilauIudDxsg5IUjiQ7F7CP4OwZQg82LSbfT/pub?gid=289451687&single=true&output=csv';
 
-const HELP = `Generate an English-only src/config/<courseId>.json from the published sheet.
+const HELP = `Generate an English-only src/config/<courseId>.json per sheet course.
 
 Usage:
   node scripts/generate-config-from-sheet.mjs [options]
 
 Options:
-  --course=<courseId>   Override the course_id from the sheet (sets the filename)
-  --out=<path>          Output path (default src/config/<courseId>.json)
+  --course=<courseId>   Only this course (from the sheet's course_id column)
+  --out=<dir>           Output DIRECTORY (default src/config)
   --sheet-url=<url>     Override the published CSV URL (default: the recorder's)
   --dry-run             Print the plan; write nothing
-  --force               Overwrite an existing config (otherwise refused)
+  --check               CI mode: skips are non-fatal (exit 0); still writes the rest
+  --force               Overwrite an existing config (otherwise refused per file)
   --help, -h            Show this help
 
-Groups sheet rows by the video_file column value; English only. Existing
-configs are never overwritten without --force.`;
+A course with any missing required column is skipped whole (no partial config),
+reported on stderr, and does not block the other courses.`;
+
+function missingReport(missing) {
+    return missing.map((m) => `${m.column} (${m.where})`).join(', ');
+}
 
 async function main() {
     const args = process.argv.slice(2);
     if (args.includes('--help') || args.includes('-h')) { console.log(HELP); return; }
 
     // Flag validation first so a bad invocation fails with the flag error.
-    const courseOverride = flagValue(args, '--course');
+    const courseFilter = flagValue(args, '--course');
     const outOverride = flagValue(args, '--out');
     const sheetUrl = flagValue(args, '--sheet-url') || SHEET_URL;
     const dryRun = args.includes('--dry-run');
+    const check = args.includes('--check');
     const force = args.includes('--force');
+
+    const outDir = outOverride ? path.resolve(outOverride) : CONFIG_DIR;
 
     const res = await fetch(sheetUrl);
     if (!res.ok) throw new Error(`sheet fetch failed HTTP ${res.status}`);
     const csv = await res.text();
 
     const { rows } = parseCsv(csv);
-    const config = buildCourseConfig(rows);
-    const courseId = courseOverride || config.courseId;
-    if (!courseId) throw new Error('no course_id column value and no --course given');
-    // A remote-controlled courseId becomes a filename, so reject anything that
-    // could escape src/config (traversal, separators, leading dot).
-    if (!isValidCourseId(courseId)) {
-        throw new Error(`invalid courseId "${courseId}": expected [A-Za-z0-9][A-Za-z0-9_-]*`);
-    }
-    config.courseId = courseId;
+    let results = buildCourseConfigs(rows);
+    if (results.length === 0) throw new Error('no video rows found in the sheet');
 
-    const outPath = outOverride
-        ? path.resolve(outOverride)
-        : path.join(CONFIG_DIR, `${courseId}.json`);
-
-    const exists = await fs.access(outPath).then(() => true, () => false);
-    if (exists && !force) {
-        throw new Error(`${outPath} already exists; refusing to overwrite (use --force to replace)`);
+    if (courseFilter) {
+        const match = results.find((r) => r.courseId === courseFilter);
+        if (!match) throw new Error(`no course "${courseFilter}" in the sheet`);
+        results = [match];
     }
 
-    const serialized = JSON.stringify(config, null, 2) + '\n';
-    if (dryRun) {
-        console.log(`[dry-run] would write ${outPath}`);
-        console.log(`[dry-run] courseId=${config.courseId} lessons=${config.lessons.length}`);
-        return;
+    let wrote = 0;
+    let skipped = 0;
+
+    for (const result of results) {
+        const { courseId } = result;
+
+        if (result.error) {
+            skipped++;
+            if (result.error.kind === 'missing-columns') {
+                console.error(`SKIP course "${courseId}": missing required column(s): ${missingReport(result.error.missing)}`);
+            } else {
+                console.error(`SKIP course "${courseId}": ${result.error.message}`);
+            }
+            continue;
+        }
+
+        // A remote-controlled courseId becomes a filename.
+        if (!isValidCourseId(courseId)) {
+            skipped++;
+            console.error(`SKIP course "${courseId}": invalid courseId: expected [A-Za-z0-9][A-Za-z0-9_-]*`);
+            continue;
+        }
+
+        const outPath = path.join(outDir, `${courseId}.json`);
+
+        if (dryRun) {
+            console.log(`[dry-run] would write ${outPath} (courseId=${courseId} lessons=${result.config.lessons.length})`);
+            continue;
+        }
+
+        const exists = await fs.access(outPath).then(() => true, () => false);
+        if (exists && !force) {
+            skipped++;
+            console.error(`SKIP course "${courseId}": ${outPath} already exists; refusing to overwrite (use --force to replace)`);
+            continue;
+        }
+
+        await fs.mkdir(path.dirname(outPath), { recursive: true });
+        await fs.writeFile(outPath, JSON.stringify(result.config, null, 2) + '\n');
+        console.log(`WROTE ${outPath}`);
+        wrote++;
+
+        // Register in the allow-list the contract guard reads, only for the real
+        // src/config output — a --out/test run must not touch the tracked file.
+        if (!outOverride) await registerGeneratedCourse(courseId);
     }
 
-    await fs.mkdir(path.dirname(outPath), { recursive: true });
-    await fs.writeFile(outPath, serialized);
-    console.log(`WROTE ${outPath}`);
+    if (dryRun) return;
 
-    // Register the course in the allow-list the English-only contract guard
-    // reads, so a generated config is covered automatically. Only for the real
-    // src/config output — a test/`--out` run must not touch the tracked file.
-    if (!outOverride) await registerGeneratedCourse(courseId);
+    if (check) {
+        console.log(`SKIPPED ${skipped} course(s), WROTE ${wrote}`);
+    } else if (skipped > 0) {
+        console.error(`ERROR: ${skipped} course(s) skipped`);
+        process.exit(1);
+    }
 }
 
-/** Append `courseId` to scripts/lib/generated-configs.json (idempotent). */
+/** Append `courseId` to the generated-configs allow-list (idempotent). */
 async function registerGeneratedCourse(courseId) {
     const listPath = process.env.GENERATED_CONFIGS_ALLOWLIST
         || path.join(ROOT, 'scripts', 'lib', 'generated-configs.json');
