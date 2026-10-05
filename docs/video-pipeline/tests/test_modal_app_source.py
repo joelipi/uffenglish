@@ -111,6 +111,77 @@ class StorageGuardTest(unittest.TestCase):
         for fn in ("def upload_json(", "def read_json(", "def download_to(", "def upload_file("):
             self.assertIn(fn, text, fn)
 
+    # Story 041, Task 4: two-bucket routing driven by the shared key rule.
+    def test_defines_public_and_private_bucket_names(self):
+        text = read(STORAGE)
+        self.assertIn("def public_bucket_name(", text)
+        self.assertIn("def private_bucket_name(", text)
+        public = slice_between(text, "def public_bucket_name(", "def private_bucket_name(")
+        self.assertIn("R2_BUCKET", public)
+        self.assertIn("DEFAULT_BUCKET", public)
+        private = slice_between(text, "def private_bucket_name(", "def _bucket_for(")
+        self.assertIn("R2_PRIVATE_BUCKET", private)
+
+    def test_private_routing_fails_closed(self):
+        # A private key must never fall back to the public bucket: an unset
+        # R2_PRIVATE_BUCKET raises instead of re-exposing raw takes.
+        text = read(STORAGE)
+        private = slice_between(text, "def private_bucket_name(", "def _bucket_for(")
+        self.assertIn("raise", private)
+        self.assertNotIn("public_bucket_name(", private)
+
+    def test_private_bucket_name_raises_behaviorally(self):
+        # storage.py imports without boto3 (it is lazy), so exercise the real
+        # function: unset -> raises; set -> returns the name; public routes are
+        # unaffected by an unset private name.
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("pipeline_storage", STORAGE)
+        storage = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(storage)
+
+        with self.assertRaises(RuntimeError):
+            storage.private_bucket_name({})
+        self.assertEqual(storage.private_bucket_name({"R2_PRIVATE_BUCKET": "uff-private"}),
+                         "uff-private")
+        self.assertEqual(storage._bucket_for("assets/videos/x.mp4", {}), "uff")
+        with self.assertRaises(RuntimeError):
+            storage._bucket_for("raw/x.mp4", {})
+
+    def test_bucket_name_alias_is_gone(self):
+        self.assertNotIn("def bucket_name(", read(STORAGE))
+
+    def test_list_keys_rejects_an_unknown_prefix(self):
+        # An ambiguous prefix must raise, not silently list the wrong bucket.
+        text = read(STORAGE)
+        body = slice_between(text, "def list_keys(", "def read_json(")
+        self.assertIn("raise", body)
+        self.assertIn("prefix", body)
+
+    def test_private_uploads_do_not_return_a_public_url(self):
+        # upload_file/upload_json must not hand back a CDN URL for a private key
+        # (the private bucket has no custom domain; such a URL is a 404).
+        text = read(STORAGE)
+        for fn in ("def upload_file(", "def upload_json("):
+            body = slice_between(text, fn, "def list_keys(")
+            self.assertIn('bucket_for_key(r2_key) == "private"', body, fn)
+
+    def test_imports_and_routes_by_bucket_for_key(self):
+        text = read(STORAGE)
+        self.assertIn("from pipeline_lib import (", text)
+        self.assertIn("bucket_for_key", text)
+        self.assertIn("def _bucket_for(", text)
+        # Every helper selects the bucket through the shared rule, never a
+        # hardcoded name.
+        for fn in ("def download_to(", "def upload_file(", "def upload_json(",
+                   "def list_keys(", "def read_json("):
+            start = text.index(fn)
+            rest = text[start:]
+            next_def = rest.find("\ndef ", 1)
+            body = rest if next_def == -1 else rest[:next_def]
+            self.assertIn("_bucket_for(", body, fn)
+        self.assertIn("bucket_for_key(r2_key)", text)
+
     def test_no_hardcoded_credentials(self):
         for path in (APP, STORAGE):
             text = read(path)
@@ -118,6 +189,16 @@ class StorageGuardTest(unittest.TestCase):
             self.assertNotIn("R2_SECRET_ACCESS_KEY =", text)
             # No literal AWS-style key assignment.
             self.assertIsNone(re.search(r"['\"]AKIA[0-9A-Z]{16}['\"]", text))
+
+    def test_modal_app_never_names_a_bucket(self):
+        # Bucket selection is storage.py's single responsibility: the
+        # orchestrator passes keys only, so it cannot pick the wrong bucket.
+        text = read(APP)
+        self.assertNotIn("R2_PRIVATE_BUCKET", text)
+        self.assertNotIn("R2_BUCKET", text)
+        for call in ("storage.download_to(", "storage.upload_file(",
+                     "storage.upload_json(", "storage.list_keys("):
+            self.assertIn(call, text, call)
 
     def test_read_json_only_swallows_missing(self):
         text = read(STORAGE)

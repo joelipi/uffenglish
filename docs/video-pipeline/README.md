@@ -156,22 +156,35 @@ trigger only (Workers cannot run moviepy/ffmpeg/Chromium); the runner is Modal.
   markers at `raw/status/<jobId>.json`, operator inputs under
   `pipeline-assets/<subdir>/…` plus `pipeline-assets/video_data.csv`. Published
   media keeps the app's existing `assets/videos/<slug>.mp4` + `assets/videos/<slug>.jpg`.
-  `raw/` and `pipeline-assets/` deliberately avoid the 48h `videos/` lifecycle;
-  clean them up manually (retention is not automated here).
-- **Raw-take visibility.** `raw/<slug>.mp4` is in the public `uff` bucket under a
-  deterministic key with no expiry, so an unpublished/rejected take is
-  world-readable by anyone who knows the slug — the operator key gates the write,
-  not the read. Keep that in mind before uploading an unreleased lesson; move
-  `raw/` to a private bucket/prefix (or add an R2 lifecycle rule) if it matters.
+- **Raw-take visibility.** Raw takes, status markers and pipeline assets live in
+  a separate, non-public R2 bucket (default `uff-private`) bound to Pages as
+  `PIPELINE_R2`. It has no public custom domain and no `r2.dev` subdomain, so
+  `r2.ultrafastfluency.com` **cannot** serve `raw/<slug>.mp4`,
+  `raw/status/<jobId>.json` or `pipeline-assets/…` — there is no public URL for
+  an unpublished take. The public `uff` bucket (bound as `UFF_R2`) keeps only
+  published `assets/videos/...` and learner/UGC `videos/...`.
+- **Private bucket config.** The Node asset uploader reads
+  `PIPELINE_PRIVATE_BUCKET` (default `uff-private`); the Modal `uff-r2` secret
+  carries `R2_PRIVATE_BUCKET` alongside `R2_BUCKET` (`uff`). Both must name the
+  same bucket the `PIPELINE_R2` binding points at.
+- **Raw lifecycle.** Set the private bucket's retention out of band; `raw/`
+  covers both takes and status markers (`pipeline-assets/` persists):
+  `npx wrangler r2 bucket lifecycle add uff-private raw-takes-7d --prefix "raw/" --expire-days 7`.
+  The `videos/` 48h rule stays on the public `uff` bucket.
 - **Secret.** `modal secret create uff-r2` with `R2_ACCOUNT_ID`,
-  `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` (`uff`). It is
-  attached to the orchestrator only.
+  `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` (`uff`) and
+  `R2_PRIVATE_BUCKET` (`uff-private`). It is attached to the orchestrator only.
+  Private routing **fails closed**: a `raw/`/`pipeline-assets/` key with
+  `R2_PRIVATE_BUCKET` unset raises rather than writing to the public bucket, so a
+  single-bucket local run must set `R2_PRIVATE_BUCKET` explicitly (to `R2_BUCKET`'s
+  value if it really wants one bucket).
 - **Deploy.** `modal deploy docs/video-pipeline/modal_app.py` ships both the CPU
   orchestrator and the existing T4 BiRefNet function (they share one app). Run it
   from the repo root — the image adds `docs/video-pipeline` as a local dir.
 - **Upload assets.** `npm run pipeline:upload-assets:dry` previews, then
-  `npm run pipeline:upload-assets` pushes each file to `pipeline-assets/` with
-  `wrangler r2 object put`. Content changes need no `modal deploy`.
+  `npm run pipeline:upload-assets` pushes each file to the private
+  `uff-private/pipeline-assets/` with `wrangler r2 object put`. Content changes
+  need no `modal deploy`.
 - **Recorder operator key.** `public/recorder.html` (served at `/recorder`) has a
   password input; the key is stored in `sessionStorage` and sent as
   `x-operator-key` to the same-origin Pages Functions (`/api/pipeline/upload-raw`,

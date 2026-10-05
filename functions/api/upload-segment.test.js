@@ -5,12 +5,17 @@
 // Request/fetch needed. globalThis.fetch is stubbed to simulate Supabase.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import path from 'node:path';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { onRequestPost, DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_ANON_KEY } from './upload-segment.js';
 import { MAX_R2_UPLOAD_BYTES } from '../../src/modules/video/r2-upload-limits.js';
 
 const FALLBACK_URL = DEFAULT_SUPABASE_URL;
 const FALLBACK_ANON_KEY = DEFAULT_SUPABASE_ANON_KEY;
 const MAX_BYTES = MAX_R2_UPLOAD_BYTES;
+const SELF_DIR = path.dirname(fileURLToPath(import.meta.url));
+const SOURCE_PATH = path.join(SELF_DIR, 'upload-segment.js');
 
 function makeRequest({
     shareCode = 'ab12',
@@ -230,5 +235,21 @@ describe('onRequestPost — upload-segment Function', () => {
         });
         expect(res.status).toBe(403);
         expect(env.UFF_R2.put).not.toHaveBeenCalled();
+    });
+
+    // Story 041, Task 3: the public learner/recap path must keep writing to the
+    // public `uff` bucket and returning the public CDN URL — only raw/ and
+    // pipeline-assets/ moved to the private bucket.
+    it('uses the public UFF_R2 binding and never PIPELINE_R2 (source)', () => {
+        const src = fs.readFileSync(SOURCE_PATH, 'utf8');
+        expect(src).toContain('env.UFF_R2');
+        expect(src).not.toContain('PIPELINE_R2');
+    });
+
+    it('returns the public r2.ultrafastfluency.com URL for videos/ keys (source)', () => {
+        const src = fs.readFileSync(SOURCE_PATH, 'utf8');
+        expect(src).toContain('https://r2.ultrafastfluency.com/${key}');
+        // The public path must never build a raw/ URL.
+        expect(src).not.toMatch(/r2\.ultrafastfluency\.com\/raw/);
     });
 });

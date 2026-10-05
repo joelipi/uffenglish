@@ -55,3 +55,15 @@ export function pipelineAssetKey(relPath) {
         .replace(/^\/+/, '');
     return `pipeline-assets/${normalized}`;
 }
+
+// Keys that must never be served by the public CDN (r2.ultrafastfluency.com):
+// raw phone takes, their stage-level status markers (covered by `raw/`), and
+// operator pipeline inputs. These live in the private bucket bound as
+// PIPELINE_R2; everything else (assets/videos/…, videos/…) stays public in
+// `uff`. The list is mirrored in docs/video-pipeline/pipeline_lib.py and pinned
+// by docs/video-pipeline/tests/test_pipeline_parity.py.
+export const PRIVATE_KEY_PREFIXES = ['raw/', 'pipeline-assets/'];
+
+export function isPrivateKey(key) {
+    return typeof key === 'string' && PRIVATE_KEY_PREFIXES.some((prefix) => key.startsWith(prefix));
+}

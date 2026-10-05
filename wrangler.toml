@@ -9,6 +9,18 @@ bucket_name = "uff"
 # Cloudflare dashboard or `wrangler r2 bucket lifecycle put uff` — the
 # `r2_buckets.lifecycle` key is NOT valid in wrangler.toml for Pages.
 
+# Private pipeline bucket (story 041): raw takes, raw/status markers and
+# pipeline-assets inputs. It deliberately has NO public custom domain and no
+# r2.dev subdomain, so r2.ultrafastfluency.com (attached to `uff` only) cannot
+# serve an unpublished take. Do NOT attach r2.ultrafastfluency.com (or any
+# public domain) to this bucket. Lifecycle for raw/ is set out of band:
+#   npx wrangler r2 bucket lifecycle add uff-private raw-takes-7d \
+#     --prefix "raw/" --expire-days 7
+# The videos/ 48h rule stays on the public `uff` bucket.
+[[r2_buckets]]
+binding = "PIPELINE_R2"
+bucket_name = "uff-private"
+
 # Supabase config (public values, also in .env for SPA)
 # SUPABASE_ANON_KEY is NOT set here — it lives in the Cloudflare Pages dashboard
 # (Settings → Variables) to avoid "Binding already in use" on deploy. The

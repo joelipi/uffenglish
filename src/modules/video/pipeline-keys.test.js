@@ -13,6 +13,8 @@ import {
     publishedVideoKey,
     publishedPosterKey,
     pipelineAssetKey,
+    PRIVATE_KEY_PREFIXES,
+    isPrivateKey,
 } from './pipeline-keys.js';
 
 describe('pipeline-keys — slug validation', () => {
@@ -76,5 +78,34 @@ describe('pipeline-keys — object keys', () => {
     it('exposes the job-id pattern used by the render/status Functions', () => {
         expect(PIPELINE_JOB_ID_PATTERN.test('job-abc12345')).toBe(true);
         expect(PIPELINE_JOB_ID_PATTERN.test('bad/id')).toBe(false);
+    });
+});
+
+// Story 041: raw takes/status markers/pipeline assets must route to the private
+// bucket, so a key's prefix decides its reachability.
+describe('pipeline-keys — private key rule', () => {
+    it('classifies raw takes, status markers and pipeline assets as private', () => {
+        expect(isPrivateKey('raw/lesson_01.mp4')).toBe(true);
+        expect(isPrivateKey('raw/status/job-abc12345.json')).toBe(true);
+        expect(isPrivateKey('pipeline-assets/fonts/Kalam-Bold.ttf')).toBe(true);
+    });
+
+    it('classifies published media and app UGC as public', () => {
+        expect(isPrivateKey('assets/videos/lesson_01.mp4')).toBe(false);
+        expect(isPrivateKey('videos/ab-model-w-response-01.mp4')).toBe(false);
+    });
+
+    it('treats empty/non-string keys as not private', () => {
+        expect(isPrivateKey('')).toBe(false);
+        expect(isPrivateKey(null)).toBe(false);
+        expect(isPrivateKey(undefined)).toBe(false);
+    });
+
+    it('pins PRIVATE_KEY_PREFIXES to raw/ and pipeline-assets/ only', () => {
+        expect(PRIVATE_KEY_PREFIXES).toEqual(['raw/', 'pipeline-assets/']);
+        for (const prefix of PRIVATE_KEY_PREFIXES) {
+            expect(prefix.startsWith('videos/')).toBe(false);
+            expect(prefix.startsWith('assets/')).toBe(false);
+        }
     });
 });

@@ -29,9 +29,15 @@ PROCESSED_PREFIX = "processed_"
 VIDEO_EXTENSION = "_no_silence_bg_removed.mp4"
 
 PUBLISHED_VIDEO_PREFIX = "assets/videos/"
+UGC_PREFIX = "videos/"  # learner/recap clips (48h lifecycle), public bucket
 RAW_PREFIX = "raw/"
 STATUS_PREFIX = "raw/status/"
 PIPELINE_ASSET_PREFIX = "pipeline-assets/"
+
+# Keys that must never be served by the public CDN: raw takes, their status
+# markers (covered by RAW_PREFIX) and operator pipeline inputs. Mirrors
+# PRIVATE_KEY_PREFIXES in src/modules/video/pipeline-keys.js.
+PRIVATE_KEY_PREFIXES = (RAW_PREFIX, PIPELINE_ASSET_PREFIX)
 
 
 def is_valid_slug(name) -> bool:
@@ -62,6 +68,16 @@ def published_poster_key(slug):
 def pipeline_asset_key(rel_path) -> str:
     normalized = str(rel_path or "").replace("\\", "/").lstrip("/")
     return f"{PIPELINE_ASSET_PREFIX}{normalized}"
+
+
+def is_private_key(key) -> bool:
+    """True when ``key`` belongs in the private bucket, not the public CDN."""
+    return isinstance(key, str) and key.startswith(PRIVATE_KEY_PREFIXES)
+
+
+def bucket_for_key(key) -> str:
+    """``"private"`` for raw/assets keys, ``"public"`` for CDN media."""
+    return "private" if is_private_key(key) else "public"
 
 
 def processed_web_name(filename: str) -> str:
