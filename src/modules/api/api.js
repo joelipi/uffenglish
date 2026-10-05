@@ -319,9 +319,9 @@ export function useUserByShareCode(shareCode) {
 }
 
 // Records a friend-challenge follow-up link in the owner's profile. Reads the
-// current friend_links map, merges the new entry (keyed per course+lesson, see
-// upsertFriendLinkMap), and persists the whole map. Expiry is render-time only;
-// nothing is deleted here.
+// current friend_links map, merges the new entry (keyed per recorded lesson,
+// `courseId:recordedLessonId`, see upsertFriendLinkMap), and persists the whole
+// map. Expiry is render-time only; nothing is deleted here.
 export function useAddFriendLinkMutation() {
   const queryClientHook = useQueryClient();
   return useMutation({

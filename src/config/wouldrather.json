@@ -6,12 +6,7 @@
       "lessonId": "a",
       "recapSources": "none",
       "recapOverlay": "shareCta",
-      "title": {
-        "en": "Would You Rather? — Ask",
-        "es": "¿Qué Preferirías? — Pregunta",
-        "pt": "O Que Você Prefere? — Pergunte",
-        "bn": "আপনি কোনটি পছন্দ করবেন? — জিজ্ঞাসা করুন"
-      },
+      "title": "Make 3 questions: money vs. time, food vs. talk, beach vs. mountains",
       "unit": "Friend Challenge",
       "mission": {
         "en": "Talk about preferences with WOULD RATHER.",
@@ -99,12 +94,7 @@
       "lessonId": "b",
       "recapSources": "friend",
       "recapOverlay": "shareCta",
-      "title": {
-        "en": "Would You Rather? — Respond",
-        "es": "¿Qué Preferirías? — Responde",
-        "pt": "O Que Você Prefere? — Responda",
-        "bn": "আপনি কোনটি পছন্দ করবেন? — উত্তর দিন"
-      },
+      "title": "Answer: money vs. time, food vs. talk, beach vs. mountains",
       "unit": "Friend Challenge",
       "mission": {
         "en": "Talk about preferences with WOULD RATHER.",
@@ -168,20 +158,616 @@
         },
         {
           "cue": [
-        { "en" : "I would rather a beach vacation." , "es" : "Preferiría unas vacaciones en la playa." , "pt" : "Eu preferiria férias na praia." , "bn" : "আমি বরং সমুদ্র সৈকতে ছুটি কাটাতে চাই।" },
-        { "en" : "I would rather a mountain vacation." , "es" : "Preferiría unas vacaciones en la montaña." , "pt" : "Eu preferiria férias na montanha." , "bn" : "আমি বরং পাহাড়ে ছুটি কাটাতে চাই।" }
+            {
+              "en": "I would rather have a beach vacation.",
+              "es": "Preferiría unas vacaciones en la playa.",
+              "pt": "Eu preferiria férias na praia.",
+              "bn": "আমি বরং সমুদ্র সৈকতে ছুটি কাটাতে চাই।"
+            },
+            {
+              "en": "I would rather have a mountain vacation.",
+              "es": "Preferiría unas vacaciones en la montaña.",
+              "pt": "Eu preferiria férias na montanha.",
+              "bn": "আমি বরং পাহাড়ে ছুটি কাটাতে চাই।"
+            }
           ],
           "responseType": "friendClosedResponse",
           "simpleVideoUrl": "wouldratherb03"
         },
         {
-          "simpleVideoUrl": "enda",
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "testvideointro",
           "subtitles": {
-            "en": "1\n00:00:00,000 --> 00:00:06,180\nGreat, you're almost done. Now your shareable video is going to be magically\n\n2\n00:00:06,180 --> 00:00:11,300\ncreated right in front of your eyes. Just wait for the video to finish then\n\n3\n00:00:11,300 --> 00:00:14,880\nshare it with your friends, family and colleagues so they can reply to you.\n\n4\n00:00:14,880 --> 00:00:20,580\nThey'll also be able to prompt you to speak. Remember to share with a lot of\n\n5\n00:00:20,580 --> 00:00:25,480\npeople to get more chances to practice the next 48 hours before the video is deleted.\n\n6\n00:00:25,480 --> 00:00:31,320\nSo press the button below to create the video, wait for it to finish, then share.",
-            "es": "1\n00:00:00,000 --> 00:00:06,180\nGenial, ya casi terminas. Ahora tu video para compartir se creará mágicamente\n\n2\n00:00:06,180 --> 00:00:11,300\njusto delante de tus ojos. Solo espera a que el video termine y luego\n\n3\n00:00:11,300 --> 00:00:14,880\ncompártelo con tus amigos, familiares y colegas para que puedan responderte.\n\n4\n00:00:14,880 --> 00:00:20,580\nTambién podrán animarte a hablar. Recuerda compartir con muchas\n\n5\n00:00:20,580 --> 00:00:25,480\npersonas para tener más oportunidades de practicar durante las próximas 48 horas antes de que el video se elimine.\n\n6\n00:00:25,480 --> 00:00:31,320\nAsí que oprime el botón de abajo para crear el video, espera a que termine y luego compártelo.",
-            "pt": "1\n00:00:00,000 --> 00:00:06,180\nÓtimo, você está quase terminando. Agora seu vídeo para compartilhar será criado magicamente\n\n2\n00:00:06,180 --> 00:00:11,300\nbem diante dos seus olhos. Apenas espere o vídeo terminar e então\n\n3\n00:00:11,300 --> 00:00:14,880\ncompartilhe-o com seus amigos, familiares e colegas para que eles possam responder a você.\n\n4\n00:00:14,880 --> 00:00:20,580\nEles também poderão incentivar você a falar. Lembre-se de compartilhar com muitas\n\n5\n00:00:20,580 --> 00:00:25,480\npessoas para ter mais chances de praticar nas próximas 48 horas antes que o vídeo seja excluído.\n\n6\n00:00:25,480 --> 00:00:31,320\nEntão pressione o botão abaixo para criar o vídeo, espere ele terminar e depois compartilhe.",
-            "bn": "1\n00:00:00,000 --> 00:00:06,180\nদুর্দান্ত, আপনি প্রায় শেষ। এখন আপনার শেয়ারযোগ্য ভিডিওটি জাদুর মতো তৈরি হবে\n\n2\n00:00:06,180 --> 00:00:11,300\nআপনার চোখের সামনেই। শুধু ভিডিওটি শেষ হওয়ার জন্য অপেক্ষা করুন তারপর\n\n3\n00:00:11,300 --> 00:00:14,880\nএটি আপনার বন্ধু, পরিবার এবং সহকর্মীদের সাথে শেয়ার করুন যাতে তারা আপনাকে উত্তর দিতে পারে।\n\n4\n00:00:14,880 --> 00:00:20,580\nতারা আপনাকে কথা বলতে উৎসাহিতও করতে পারবে। অনেকের সাথে শেয়ার করতে মনে রাখবেন\n\n5\n00:00:20,580 --> 00:00:25,480\nযাতে ভিডিওটি মুছে ফেলার আগে পরবর্তী ৪৮ ঘণ্টায় অনুশীলনের আরও সুযোগ পায়।\n\n6\n00:00:25,480 --> 00:00:31,320\nতাই ভিডিও তৈরি করতে নিচের বোতামটি চাপুন, এটি শেষ হওয়ার জন্য অপেক্ষা করুন, তারপর শেয়ার করুন।"
+            "en": "Now record yourself asking the next 3 questions for your friend to answer. You will repeat each question exactly. Press the button below to continue.",
+            "es": "Ahora grábate preguntando las siguientes 3 preguntas para que tu amigo responda. Repetirás cada pregunta exactamente. Oprime el botón de abajo para continuar.",
+            "pt": "Agora grave-se perguntando as próximas 3 perguntas para o seu amigo responder. Você repetirá cada pergunta exatamente. Pressione o botão abaixo para continuar.",
+            "bn": "এখন আপনার বন্ধুর উত্তর দেওয়ার জন্য পরবর্তী ৩টি প্রশ্ন করতে নিজেকে রেকর্ড করুন। আপনি প্রতিটি প্রশ্ন হুবহু পুনরাবৃত্তি করবেন। চালিয়ে যেতে নিচের বোতামটি চাপুন।"
+          }
+        },
+        {
+          "cue": {
+            "en": "Would you rather be rich but work every day or comfortable but free every day?",
+            "es": "¿Preferirías ser rico pero trabajar todos los días o estar cómodo pero libre todos los días?",
+            "pt": "Você preferiria ser rico mas trabalhar todos os dias ou estar confortável mas livre todos os dias?",
+            "bn": "আপনি কি ধনী হয়ে প্রতিদিন কাজ করতে চান নাকি সচ্ছল হয়ে প্রতিদিন মুক্ত থাকতে চান?"
           },
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "testvideoa04",
+          "subtitles": {
+            "en": "Would you rather be rich but work every day or comfortable but free every day?",
+            "es": "¿Preferirías ser rico pero trabajar todos los días o estar cómodo pero libre todos los días?",
+            "pt": "Você preferiria ser rico mas trabalhar todos os dias ou estar confortável mas livre todos os dias?",
+            "bn": "আপনি কি ধনী হয়ে প্রতিদিন কাজ করতে চান নাকি সচ্ছল হয়ে প্রতিদিন মুক্ত থাকতে চান?"
+          }
+        },
+        {
+          "cue": {
+            "en": "Would you rather cook a great meal or eat at a great restaurant?",
+            "es": "¿Preferirías cocinar una gran comida o comer en un gran restaurante?",
+            "pt": "Você preferiria cozinhar uma ótima refeição ou comer em um ótimo restaurante?",
+            "bn": "আপনি কি দুর্দান্ত খাবার রান্না করতে চান নাকি দুর্দান্ত রেস্টুরেন্টে খেতে চান?"
+          },
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "testvideoa05",
+          "subtitles": {
+            "en": "Would you rather cook a great meal or eat at a great restaurant?",
+            "es": "¿Preferirías cocinar una gran comida o comer en un gran restaurante?",
+            "pt": "Você preferiria cozinhar uma ótima refeição ou comer em um ótimo restaurante?",
+            "bn": "আপনি কি দুর্দান্ত খাবার রান্না করতে চান নাকি দুর্দান্ত রেস্টুরেন্টে খেতে চান?"
+          }
+        },
+        {
+          "cue": {
+            "en": "Would you rather travel alone or travel with friends?",
+            "es": "¿Preferirías viajar solo o viajar con amigos?",
+            "pt": "Você preferiria viajar sozinho ou viajar com amigos?",
+            "bn": "আপনি কি একা ভ্রমণ করতে চান নাকি বন্ধুদের সাথে ভ্রমণ করতে চান?"
+          },
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "testvideoa06",
+          "subtitles": {
+            "en": "Would you rather travel alone or travel with friends?",
+            "es": "¿Preferirías viajar solo o viajar con amigos?",
+            "pt": "Você preferiria viajar sozinho ou viajar com amigos?",
+            "bn": "আপনি কি একা ভ্রমণ করতে চান নাকি বন্ধুদের সাথে ভ্রমণ করতে চান?"
+          }
+        },
+        {
+          "simpleVideoUrl": "enda",
+          "responseType": "success"
+        }
+      ]
+    },
+    {
+      "lessonId": "c",
+      "recapSources": "friend",
+      "recapOverlay": "shareCta",
+      "title": "Answer: rich vs. free, cook vs. restaurant, alone vs. friends",
+      "unit": "Friend Challenge",
+      "mission": {
+        "en": "Talk about preferences with WOULD RATHER.",
+        "es": "Hablar de preferencias con WOULD RATHER",
+        "pt": "Falar de preferencias com WOULD RATHER",
+        "bn": "WOULD RATHER ব্যবহার করে নিজের পছন্দ বা অগ্রাধিকার প্রকাশ করা।"
+      },
+      "steps": [
+        {
+          "cue": "",
+          "responseType": "lessonIntro",
+          "introBackgroundVideoUrl": "{friendCode}wouldrather-b-response-04"
+        },
+        {
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "{friendCode}wouldrather-b-response-04"
+        },
+        {
+          "cue": [
+            {
+              "en": "I would rather be comfortable and free every day.",
+              "es": "Preferiría estar cómodo y libre todos los días.",
+              "pt": "Eu preferiria estar confortável e livre todos os dias.",
+              "bn": "আমি বরং সচ্ছল এবং প্রতিদিন মুক্ত থাকতে চাই।"
+            },
+            {
+              "en": "I would rather be rich but work every day.",
+              "es": "Preferiría ser rico pero trabajar todos los días.",
+              "pt": "Eu preferiria ser rico mas trabalhar todos os dias.",
+              "bn": "আমি বরং ধনী হয়ে প্রতিদিন কাজ করতে চাই।"
+            }
+          ],
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldratherc01"
+        },
+        {
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "{friendCode}wouldrather-b-response-05"
+        },
+        {
+          "cue": [
+            {
+              "en": "I would rather eat at a great restaurant.",
+              "es": "Preferiría comer en un gran restaurante.",
+              "pt": "Eu preferiria comer em um ótimo restaurante.",
+              "bn": "আমি বরং দুর্দান্ত রেস্টুরেন্টে খেতে চাই।"
+            },
+            {
+              "en": "I would rather cook a great meal.",
+              "es": "Preferiría cocinar una gran comida.",
+              "pt": "Eu preferiria cozinhar uma ótima refeição.",
+              "bn": "আমি বরং দুর্দান্ত খাবার রান্না করতে চাই।"
+            }
+          ],
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldratherc02"
+        },
+        {
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "{friendCode}wouldrather-b-response-06"
+        },
+        {
+          "cue": [
+            {
+              "en": "I would rather travel with friends.",
+              "es": "Preferiría viajar con amigos.",
+              "pt": "Eu preferiria viajar com amigos.",
+              "bn": "আমি বরং বন্ধুদের সাথে ভ্রমণ করতে চাই।"
+            },
+            {
+              "en": "I would rather travel alone.",
+              "es": "Preferiría viajar solo.",
+              "pt": "Eu preferiria viajar sozinho.",
+              "bn": "আমি বরং একা ভ্রমণ করতে চাই।"
+            }
+          ],
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldratherc03"
+        },
+        {
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "testvideointro",
+          "subtitles": {
+            "en": "Now record yourself asking the next 3 questions for your friend to answer. You will repeat each question exactly. Press the button below to continue.",
+            "es": "Ahora grábate preguntando las siguientes 3 preguntas para que tu amigo responda. Repetirás cada pregunta exactamente. Oprime el botón de abajo para continuar.",
+            "pt": "Agora grave-se perguntando as próximas 3 perguntas para o seu amigo responder. Você repetirá cada pergunta exatamente. Pressione o botão abaixo para continuar.",
+            "bn": "এখন আপনার বন্ধুর উত্তর দেওয়ার জন্য পরবর্তী ৩টি প্রশ্ন করতে নিজেকে রেকর্ড করুন। আপনি প্রতিটি প্রশ্ন হুবহু পুনরাবৃত্তি করবেন। চালিয়ে যেতে নিচের বোতামটি চাপুন।"
+          }
+        },
+        {
+          "cue": {
+            "en": "Would you rather have more time or more money?",
+            "es": "¿Preferirías tener más tiempo o más dinero?",
+            "pt": "Você preferiria ter mais tempo ou mais dinheiro?",
+            "bn": "আপনি কি বেশি সময় চান নাকি বেশি টাকা চান?"
+          },
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "testvideoa07",
+          "subtitles": {
+            "en": "Would you rather have more time or more money?",
+            "es": "¿Preferirías tener más tiempo o más dinero?",
+            "pt": "Você preferiria ter mais tempo ou mais dinheiro?",
+            "bn": "আপনি কি বেশি সময় চান নাকি বেশি টাকা চান?"
+          }
+        },
+        {
+          "cue": {
+            "en": "Would you rather eat sweet or eat salty?",
+            "es": "¿Preferirías comer dulce o comer salado?",
+            "pt": "Você preferiria comer doce ou comer salgado?",
+            "bn": "আপনি কি মিষ্টি খেতে চান নাকি নোনতা খেতে চান?"
+          },
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "testvideoa08",
+          "subtitles": {
+            "en": "Would you rather eat sweet or eat salty?",
+            "es": "¿Preferirías comer dulce o comer salado?",
+            "pt": "Você preferiria comer doce ou comer salgado?",
+            "bn": "আপনি কি মিষ্টি খেতে চান নাকি নোনতা খেতে চান?"
+          }
+        },
+        {
+          "cue": {
+            "en": "Would you rather stay home or go out?",
+            "es": "¿Preferirías quedarte en casa o salir?",
+            "pt": "Você preferiria ficar em casa ou sair?",
+            "bn": "আপনি কি বাড়িতে থাকতে চান নাকি বাইরে যেতে চান?"
+          },
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "testvideoa09",
+          "subtitles": {
+            "en": "Would you rather stay home or go out?",
+            "es": "¿Preferirías quedarte en casa o salir?",
+            "pt": "Você preferiria ficar em casa ou sair?",
+            "bn": "আপনি কি বাড়িতে থাকতে চান নাকি বাইরে যেতে চান?"
+          }
+        },
+        {
+          "simpleVideoUrl": "enda",
+          "responseType": "success"
+        }
+      ]
+    },
+    {
+      "lessonId": "d",
+      "recapSources": "friend",
+      "recapOverlay": "shareCta",
+      "title": "Answer: time vs. money, sweet vs. salty, home vs. out",
+      "unit": "Friend Challenge",
+      "mission": {
+        "en": "Talk about preferences with WOULD RATHER.",
+        "es": "Hablar de preferencias con WOULD RATHER",
+        "pt": "Falar de preferencias com WOULD RATHER",
+        "bn": "WOULD RATHER ব্যবহার করে নিজের পছন্দ বা অগ্রাধিকার প্রকাশ করা।"
+      },
+      "steps": [
+        {
+          "cue": "",
+          "responseType": "lessonIntro",
+          "introBackgroundVideoUrl": "{friendCode}wouldrather-c-response-04"
+        },
+        {
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "{friendCode}wouldrather-c-response-04"
+        },
+        {
+          "cue": [
+            {
+              "en": "I would rather have more time.",
+              "es": "Preferiría tener más tiempo.",
+              "pt": "Eu preferiria ter mais tempo.",
+              "bn": "আমি বরং বেশি সময় চাই।"
+            },
+            {
+              "en": "I would rather have more money.",
+              "es": "Preferiría tener más dinero.",
+              "pt": "Eu preferiria ter mais dinheiro.",
+              "bn": "আমি বরং বেশি টাকা চাই।"
+            }
+          ],
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldratherd01"
+        },
+        {
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "{friendCode}wouldrather-c-response-05"
+        },
+        {
+          "cue": [
+            {
+              "en": "I would rather eat sweet.",
+              "es": "Preferiría comer dulce.",
+              "pt": "Eu preferiria comer doce.",
+              "bn": "আমি বরং মিষ্টি খেতে চাই।"
+            },
+            {
+              "en": "I would rather eat salty.",
+              "es": "Preferiría comer salado.",
+              "pt": "Eu preferiria comer salgado.",
+              "bn": "আমি বরং নোনতা খেতে চাই।"
+            }
+          ],
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldratherd02"
+        },
+        {
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "{friendCode}wouldrather-c-response-06"
+        },
+        {
+          "cue": [
+            {
+              "en": "I would rather stay home.",
+              "es": "Preferiría quedarme en casa.",
+              "pt": "Eu preferiria ficar em casa.",
+              "bn": "আমি বরং বাড়িতে থাকতে চাই।"
+            },
+            {
+              "en": "I would rather go out.",
+              "es": "Preferiría salir.",
+              "pt": "Eu preferiria sair.",
+              "bn": "আমি বরং বাইরে যেতে চাই।"
+            }
+          ],
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldratherd03"
+        },
+        {
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "testvideointro",
+          "subtitles": {
+            "en": "Now record yourself asking the next 3 questions for your friend to answer. You will repeat each question exactly. Press the button below to continue.",
+            "es": "Ahora grábate preguntando las siguientes 3 preguntas para que tu amigo responda. Repetirás cada pregunta exactamente. Oprime el botón de abajo para continuar.",
+            "pt": "Agora grave-se perguntando as próximas 3 perguntas para o seu amigo responder. Você repetirá cada pergunta exatamente. Pressione o botão abaixo para continuar.",
+            "bn": "এখন আপনার বন্ধুর উত্তর দেওয়ার জন্য পরবর্তী ৩টি প্রশ্ন করতে নিজেকে রেকর্ড করুন। আপনি প্রতিটি প্রশ্ন হুবহু পুনরাবৃত্তি করবেন। চালিয়ে যেতে নিচের বোতামটি চাপুন।"
+          }
+        },
+        {
+          "cue": {
+            "en": "Would you rather be a famous singer or a famous actor?",
+            "es": "¿Preferirías ser un cantante famoso o un actor famoso?",
+            "pt": "Você preferiria ser um cantor famoso ou um ator famoso?",
+            "bn": "আপনি কি একজন বিখ্যাত গায়ক হতে চান নাকি একজন বিখ্যাত অভিনেতা?"
+          },
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "testvideoa10",
+          "subtitles": {
+            "en": "Would you rather be a famous singer or a famous actor?",
+            "es": "¿Preferirías ser un cantante famoso o un actor famoso?",
+            "pt": "Você preferiria ser um cantor famoso ou um ator famoso?",
+            "bn": "আপনি কি একজন বিখ্যাত গায়ক হতে চান নাকি একজন বিখ্যাত অভিনেতা?"
+          }
+        },
+        {
+          "cue": {
+            "en": "Would you rather read a book or watch a movie?",
+            "es": "¿Preferirías leer un libro o ver una película?",
+            "pt": "Você preferiria ler um livro ou assistir a um filme?",
+            "bn": "আপনি কি একটি বই পড়তে চান নাকি একটি সিনেমা দেখতে চান?"
+          },
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "testvideoa11",
+          "subtitles": {
+            "en": "Would you rather read a book or watch a movie?",
+            "es": "¿Preferirías leer un libro o ver una película?",
+            "pt": "Você preferiria ler um livro ou assistir a um filme?",
+            "bn": "আপনি কি একটি বই পড়তে চান নাকি একটি সিনেমা দেখতে চান?"
+          }
+        },
+        {
+          "cue": {
+            "en": "Would you rather be early or be late?",
+            "es": "¿Preferirías llegar temprano o llegar tarde?",
+            "pt": "Você preferiria chegar cedo ou chegar tarde?",
+            "bn": "আপনি কি আগে পৌঁছাতে চান নাকি দেরি করে পৌঁছাতে চান?"
+          },
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "testvideoa12",
+          "subtitles": {
+            "en": "Would you rather be early or be late?",
+            "es": "¿Preferirías llegar temprano o llegar tarde?",
+            "pt": "Você preferiria chegar cedo ou chegar tarde?",
+            "bn": "আপনি কি আগে পৌঁছাতে চান নাকি দেরি করে পৌঁছাতে চান?"
+          }
+        },
+        {
+          "simpleVideoUrl": "enda",
+          "responseType": "success"
+        }
+      ]
+    },
+    {
+      "lessonId": "e",
+      "recapSources": "friend",
+      "recapOverlay": "shareCta",
+      "title": "Answer: singer vs. actor, book vs. movie, early vs. late",
+      "unit": "Friend Challenge",
+      "mission": {
+        "en": "Talk about preferences with WOULD RATHER.",
+        "es": "Hablar de preferencias con WOULD RATHER",
+        "pt": "Falar de preferencias com WOULD RATHER",
+        "bn": "WOULD RATHER ব্যবহার করে নিজের পছন্দ বা অগ্রাধিকার প্রকাশ করা।"
+      },
+      "steps": [
+        {
+          "cue": "",
+          "responseType": "lessonIntro",
+          "introBackgroundVideoUrl": "{friendCode}wouldrather-d-response-04"
+        },
+        {
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "{friendCode}wouldrather-d-response-04"
+        },
+        {
+          "cue": [
+            {
+              "en": "I would rather be a famous singer.",
+              "es": "Preferiría ser un cantante famoso.",
+              "pt": "Eu preferiria ser um cantor famoso.",
+              "bn": "আমি বরং একজন বিখ্যাত গায়ক হতে চাই।"
+            },
+            {
+              "en": "I would rather be a famous actor.",
+              "es": "Preferiría ser un actor famoso.",
+              "pt": "Eu preferiria ser um ator famoso.",
+              "bn": "আমি বরং একজন বিখ্যাত অভিনেতা হতে চাই।"
+            }
+          ],
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldrathere01"
+        },
+        {
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "{friendCode}wouldrather-d-response-05"
+        },
+        {
+          "cue": [
+            {
+              "en": "I would rather read a book.",
+              "es": "Preferiría leer un libro.",
+              "pt": "Eu preferiria ler um livro.",
+              "bn": "আমি বরং একটি বই পড়তে চাই।"
+            },
+            {
+              "en": "I would rather watch a movie.",
+              "es": "Preferiría ver una película.",
+              "pt": "Eu preferiria assistir a um filme.",
+              "bn": "আমি বরং একটি সিনেমা দেখতে চাই।"
+            }
+          ],
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldrathere02"
+        },
+        {
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "{friendCode}wouldrather-d-response-06"
+        },
+        {
+          "cue": [
+            {
+              "en": "I would rather be early.",
+              "es": "Preferiría llegar temprano.",
+              "pt": "Eu preferiria chegar cedo.",
+              "bn": "আমি বরং আগে পৌঁছাতে চাই।"
+            },
+            {
+              "en": "I would rather be late.",
+              "es": "Preferiría llegar tarde.",
+              "pt": "Eu preferiria chegar tarde.",
+              "bn": "আমি বরং দেরি করে পৌঁছাতে চাই।"
+            }
+          ],
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldrathere03"
+        },
+        {
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "testvideointro",
+          "subtitles": {
+            "en": "Now record yourself asking the next 3 questions for your friend to answer. You will repeat each question exactly. Press the button below to continue.",
+            "es": "Ahora grábate preguntando las siguientes 3 preguntas para que tu amigo responda. Repetirás cada pregunta exactamente. Oprime el botón de abajo para continuar.",
+            "pt": "Agora grave-se perguntando as próximas 3 perguntas para o seu amigo responder. Você repetirá cada pergunta exatamente. Pressione o botão abaixo para continuar.",
+            "bn": "এখন আপনার বন্ধুর উত্তর দেওয়ার জন্য পরবর্তী ৩টি প্রশ্ন করতে নিজেকে রেকর্ড করুন। আপনি প্রতিটি প্রশ্ন হুবহু পুনরাবৃত্তি করবেন। চালিয়ে যেতে নিচের বোতামটি চাপুন।"
+          }
+        },
+        {
+          "cue": {
+            "en": "Would you rather win the lottery or find true love?",
+            "es": "¿Preferirías ganar la lotería o encontrar el amor verdadero?",
+            "pt": "Você preferiria ganhar na loteria ou encontrar o amor verdadeiro?",
+            "bn": "আপনি কি লটারি জিততে চান নাকি প্রকৃত ভালোবাসা খুঁজে পেতে চান?"
+          },
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "testvideoa13",
+          "subtitles": {
+            "en": "Would you rather win the lottery or find true love?",
+            "es": "¿Preferirías ganar la lotería o encontrar el amor verdadero?",
+            "pt": "Você preferiria ganhar na loteria ou encontrar o amor verdadeiro?",
+            "bn": "আপনি কি লটারি জিততে চান নাকি প্রকৃত ভালোবাসা খুঁজে পেতে চান?"
+          }
+        },
+        {
+          "cue": {
+            "en": "Would you rather be smart or be kind?",
+            "es": "¿Preferirías ser inteligente o ser amable?",
+            "pt": "Você preferiria ser inteligente ou ser gentil?",
+            "bn": "আপনি কি বুদ্ধিমান হতে চান নাকি দয়ালু হতে চান?"
+          },
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "testvideoa14",
+          "subtitles": {
+            "en": "Would you rather be smart or be kind?",
+            "es": "¿Preferirías ser inteligente o ser amable?",
+            "pt": "Você preferiria ser inteligente ou ser gentil?",
+            "bn": "আপনি কি বুদ্ধিমান হতে চান নাকি দয়ালু হতে চান?"
+          }
+        },
+        {
+          "cue": {
+            "en": "Would you rather live in the city or in the country?",
+            "es": "¿Preferirías vivir en la ciudad o en el campo?",
+            "pt": "Você preferiria viver na cidade ou no campo?",
+            "bn": "আপনি কি শহরে বাস করতে চান নাকি গ্রামে?"
+          },
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "testvideoa15",
+          "subtitles": {
+            "en": "Would you rather live in the city or in the country?",
+            "es": "¿Preferirías vivir en la ciudad o en el campo?",
+            "pt": "Você preferiria viver na cidade ou no campo?",
+            "bn": "আপনি কি শহরে বাস করতে চান নাকি গ্রামে?"
+          }
+        },
+        {
+          "simpleVideoUrl": "enda",
+          "responseType": "success"
+        }
+      ]
+    },
+    {
+      "lessonId": "f",
+      "recapSources": "friend",
+      "recapOverlay": "shareCta",
+      "title": "Answer: lottery vs. love, smart vs. kind, city vs. country",
+      "unit": "Friend Challenge",
+      "mission": {
+        "en": "Talk about preferences with WOULD RATHER.",
+        "es": "Hablar de preferencias con WOULD RATHER",
+        "pt": "Falar de preferencias com WOULD RATHER",
+        "bn": "WOULD RATHER ব্যবহার করে নিজের পছন্দ বা অগ্রাধিকার প্রকাশ করা।"
+      },
+      "steps": [
+        {
+          "cue": "",
+          "responseType": "lessonIntro",
+          "introBackgroundVideoUrl": "{friendCode}wouldrather-e-response-04"
+        },
+        {
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "{friendCode}wouldrather-e-response-04"
+        },
+        {
+          "cue": [
+            {
+              "en": "I would rather find true love.",
+              "es": "Preferiría encontrar el amor verdadero.",
+              "pt": "Eu preferiria encontrar o amor verdadeiro.",
+              "bn": "আমি বরং প্রকৃত ভালোবাসা খুঁজে পেতে চাই।"
+            },
+            {
+              "en": "I would rather win the lottery.",
+              "es": "Preferiría ganar la lotería.",
+              "pt": "Eu preferiria ganhar na loteria.",
+              "bn": "আমি বরং লটারি জিততে চাই।"
+            }
+          ],
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldratherf01"
+        },
+        {
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "{friendCode}wouldrather-e-response-05"
+        },
+        {
+          "cue": [
+            {
+              "en": "I would rather be kind.",
+              "es": "Preferiría ser amable.",
+              "pt": "Eu preferiria ser gentil.",
+              "bn": "আমি বরং দয়ালু হতে চাই।"
+            },
+            {
+              "en": "I would rather be smart.",
+              "es": "Preferiría ser inteligente.",
+              "pt": "Eu preferiria ser inteligente.",
+              "bn": "আমি বরং বুদ্ধিমান হতে চাই।"
+            }
+          ],
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldratherf02"
+        },
+        {
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "{friendCode}wouldrather-e-response-06"
+        },
+        {
+          "cue": [
+            {
+              "en": "I would rather live in the country.",
+              "es": "Preferiría vivir en el campo.",
+              "pt": "Eu preferiria viver no campo.",
+              "bn": "আমি বরং গ্রামে বাস করতে চাই।"
+            },
+            {
+              "en": "I would rather live in the city.",
+              "es": "Preferiría vivir en la ciudad.",
+              "pt": "Eu preferiria viver na cidade.",
+              "bn": "আমি বরং শহরে বাস করতে চাই।"
+            }
+          ],
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldratherf03"
+        },
+        {
+          "simpleVideoUrl": "enda",
           "responseType": "success"
         }
       ]

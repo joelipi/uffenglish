@@ -1163,8 +1163,9 @@ const strings = {
         hi: "अपनी प्रगति सहेजने और अपनी प्रोफ़ाइल तक पहुँचने के लिए साइन अप करें।",
         bn: "আপনার অগ্রগতি সংরক্ষণ ও প্রোফাইল অ্যাক্সেস করতে সাইন আপ করুন।"
     },
-    // Friend-challenge answer-lesson link on the public profile. The link is
-    // shown while it is within the 48h R2 clip window; {time} is the countdown.
+    // Friend-challenge answer-lesson link on the public profile. Shown while it
+    // is within the 48h R2 clip window; {time} is the countdown. Also used as
+    // the visible fallback label when an entry carries no recorded lesson title.
     'profile_friend_lesson_link': {
         en: "Practice English with Me",
         es: "Practica inglés conmigo",
@@ -1172,16 +1173,6 @@ const strings = {
         fr: "Pratique l'anglais avec moi",
         hi: "मेरे साथ अंग्रेज़ी का अभ्यास करें",
         bn: "আমার সাথে ইংরেজি চর্চা করুন"
-    },
-    // Same link, labelled with the next lesson's title (captured at export
-    // time, so it is already in the exporter's language).
-    'profile_friend_lesson_link_titled': {
-        en: "Practice English with Me — {title}",
-        es: "Practica inglés conmigo — {title}",
-        pt: "Pratique inglês comigo — {title}",
-        fr: "Pratique l'anglais avec moi — {title}",
-        hi: "मेरे साथ अंग्रेज़ी का अभ्यास करें — {title}",
-        bn: "আমার সাথে ইংরেজি চর্চা করুন — {title}"
     },
     'profile_friend_link_available': {
         en: "Available for {time}",

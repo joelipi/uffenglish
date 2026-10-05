@@ -113,6 +113,7 @@ export function VideoButton({ canvasRef }) {
               configData,
               lessonId,
               courseId,
+              courseName: configData?.courseName,
               shareCode: userData?.shareCode,
               succeeded: exportResult?.succeeded,
             });

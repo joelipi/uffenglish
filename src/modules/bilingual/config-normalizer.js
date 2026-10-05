@@ -79,7 +79,10 @@ export function normalizeConfig(configData, lang = 'en') {
     applyFriendCodeWildcards(configData, appStore.getState().friendCode);
 
     configData.lessons.forEach(lesson => {
-        lesson.title = getLocalizedTranslation(lesson.title, userLang);
+        // Lesson titles are curriculum labels, not learner-facing copy, so they
+        // are normalized to English regardless of the user's language. A plain
+        // string title round-trips unchanged; an object resolves to its `.en`.
+        lesson.title = getLocalizedTranslation(lesson.title, 'en');
         // Keep mission/setting/roleUser/roleOther as multi-language objects for bilingual display
         // (same approach as cue below)
 

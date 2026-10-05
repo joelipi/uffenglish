@@ -2,7 +2,9 @@
 // Pure domain logic for the friend-challenge answer-lesson link shown on the
 // public profile. A friend challenge is a ping-pong chain of `recapOverlay:
 // "shareCta"` lessons in `configData.lessons` order; finishing a lesson records
-// a link that points at the next shareCta lesson. There is no fixed a/b pair.
+// a link that points at the next shareCta lesson. The profile shows one link
+// per lesson the owner recorded, labelled with the recorded lesson's title and
+// grouped under its course. There is no fixed a/b pair.
 // No DOM, no browser globals, no data access — fully unit-testable.
 
 import { SHARE_URL_BASE, SHARE_WINDOW_HOURS } from '../video/video-processor-logic.js';
@@ -72,14 +74,18 @@ export function formatFriendLinkRemaining(remainingMs) {
     return `${totalMinutes}m`;
 }
 
-// Immutable merge for the `friend_links` jsonb column. One entry per
-// course+lesson (a player can be mid-chain with several people at once), so the
-// map key is `courseId:lessonId`; entries without a lessonId fall back to the
-// course key so a concurrent write cannot clobber a legacy row (listActiveFriendLinks
-// still filters legacy entries off the profile).
+// Immutable merge for the `friend_links` jsonb column. One entry per recorded
+// lesson (a player can be mid-chain with several people at once, and a profile
+// shows one link per lesson they recorded), so the map key is
+// `courseId:recordedLessonId`. The `${courseId}:${lessonId}` / bare-`courseId`
+// fallbacks are purely defensive for callers that pass an entry without a
+// recordedLessonId (the current resolver always sets it); they only affect the
+// key chosen for such a write and do not guarantee a 039-era row survives.
 export function upsertFriendLinkMap(existing, entry) {
     const map = (existing && typeof existing === 'object' && !Array.isArray(existing)) ? existing : {};
-    const key = entry.lessonId ? `${entry.courseId}:${entry.lessonId}` : entry.courseId;
+    const key = entry.recordedLessonId
+        ? `${entry.courseId}:${entry.recordedLessonId}`
+        : (entry.lessonId ? `${entry.courseId}:${entry.lessonId}` : entry.courseId);
     return { ...map, [key]: entry };
 }
 
@@ -94,19 +100,47 @@ export function listActiveFriendLinks(friendLinks, nowMs) {
         .sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime());
 }
 
+// Ordered groups of active entries by course. Groups are keyed by courseId
+// (two courses may share a display name) and carry the first entry's courseName
+// as the heading; entries within a group keep listActiveFriendLinks order
+// (newest first). Empty → [].
+export function groupActiveFriendLinks(friendLinks, nowMs) {
+    const active = listActiveFriendLinks(friendLinks, nowMs);
+    const groups = [];
+    const byCourse = new Map();
+    for (const entry of active) {
+        if (!byCourse.has(entry.courseId)) {
+            const group = { courseId: entry.courseId, courseName: entry.courseName || entry.courseId, entries: [] };
+            byCourse.set(entry.courseId, group);
+            groups.push(group);
+        }
+        byCourse.get(entry.courseId).entries.push(entry);
+    }
+    return groups;
+}
+
 /**
  * Gate + payload for recording a link at export time. Pure; no store/Supabase.
  * - a link is created when the exported lesson is a shareCta lesson with a
  *   later shareCta lesson after it (the next ping-pong turn)
  * - a real export (succeeded > 0) and a shareCode are required
- * - the returned lessonTitle is captured at export time (a string), so the
- *   profile can label the link in the exporter's language
+ * - `recordedLessonId` is the exported lesson (map key + profile label source);
+ *   `lessonId` is the follow-on lesson the visitor records in (href target)
+ * - the returned lessonTitle is the RECORDED lesson's English title (a string,
+ *   normalized before export), so the profile can label the link
  */
-export function resolveFriendLessonLink({ configData, lessonId, courseId, shareCode, succeeded } = {}) {
+export function resolveFriendLessonLink({ configData, lessonId, courseId, courseName, shareCode, succeeded } = {}) {
     if (!succeeded || !shareCode || !courseId) return null;
     const nextId = nextFriendLessonId(configData, lessonId);
     if (!nextId) return null;
-    const next = configData.lessons.find((l) => l.lessonId === nextId);
-    const lessonTitle = typeof next?.title === 'string' ? next.title : '';
-    return { courseId, lessonId: nextId, shareCode, lessonTitle };
+    const recorded = configData.lessons.find((l) => l.lessonId === lessonId);
+    const lessonTitle = typeof recorded?.title === 'string' ? recorded.title : '';
+    return {
+        courseId,
+        courseName: typeof courseName === 'string' ? courseName : '',
+        recordedLessonId: lessonId,
+        lessonId: nextId,
+        shareCode,
+        lessonTitle,
+    };
 }
