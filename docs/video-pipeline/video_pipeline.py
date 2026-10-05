@@ -71,19 +71,30 @@ from PIL import Image
 from pydub import AudioSegment
 from pydub.silence import detect_nonsilent
 
+from pipeline_lib import (
+    chrome_flags,
+    missing_required_fonts,
+    resolve_web_profile,
+    resolve_work_dir,
+    select_rows,
+)
+
 # =============================================================================
 # Configuration
 # =============================================================================
 
-VIDEO_DIRECTORY = 'no_silence_bg_removed'
-NO_SILENCE_DIRECTORY = 'no_silence'
-AUDIO_DIRECTORY = 'audio'
-FONT_DIRECTORY = 'fonts'
-BACKGROUNDS_DIRECTORY = 'backgrounds'
-RAWVIDEOS_DIRECTORY = 'rawvideos'
-OVERLAYS_DIRECTORY = 'overlays'
-OVERLAYS_TEMP_DIRECTORY = 'overlays_temp'
-CSV_FILE = 'video_data.csv'
+# Everything is rooted at PIPELINE_WORKDIR when set (the Modal container), else
+# the current working directory (the local Windows flow keeps working).
+WORK_DIR = resolve_work_dir(os.environ)
+VIDEO_DIRECTORY = str(WORK_DIR / 'no_silence_bg_removed')
+NO_SILENCE_DIRECTORY = str(WORK_DIR / 'no_silence')
+AUDIO_DIRECTORY = str(WORK_DIR / 'audio')
+FONT_DIRECTORY = str(WORK_DIR / 'fonts')
+BACKGROUNDS_DIRECTORY = str(WORK_DIR / 'backgrounds')
+RAWVIDEOS_DIRECTORY = str(WORK_DIR / 'rawvideos')
+OVERLAYS_DIRECTORY = str(WORK_DIR / 'overlays')
+OVERLAYS_TEMP_DIRECTORY = str(WORK_DIR / 'overlays_temp')
+CSV_FILE = str(WORK_DIR / 'video_data.csv')
 
 VIDEO_EXTENSION = '_no_silence_bg_removed.mp4'
 AUDIO_EXTENSION = '.mp3'
@@ -108,14 +119,15 @@ SOCIAL_PRESET = "slow"
 SOCIAL_AUDIO_BITRATE = "256k"
 
 # ---- Web profile (Stage 3) --------------------------------------------------
-WEB_TARGET_LONG_EDGE = 1280
+# The container sets PIPELINE_WEB_TARGET_LONG_EDGE=720 / ..._AUDIO_BITRATE=96k to
+# hit the 032 web budget without changing the PC default.
+WEB_TARGET_LONG_EDGE, WEB_AUDIO_BITRATE = resolve_web_profile(os.environ)
 WEB_CRF = 26
 WEB_PRESET = "medium"
 WEB_MAXRATE = "1.5M"
 WEB_BUFSIZE = "3M"
-WEB_AUDIO_BITRATE = "128k"
 
-OUTPUT_ROOT = Path("output")
+OUTPUT_ROOT = WORK_DIR / "output"
 SOCIAL_DIR = OUTPUT_ROOT / "social"
 WEB_DIR = OUTPUT_ROOT / "web"
 
@@ -135,7 +147,7 @@ def ensure_dirs() -> None:
         RAWVIDEOS_DIRECTORY,
         BACKGROUNDS_DIRECTORY,
     ):
-        Path(directory).mkdir(exist_ok=True)
+        Path(directory).mkdir(parents=True, exist_ok=True)
     SOCIAL_DIR.mkdir(parents=True, exist_ok=True)
     WEB_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -272,6 +284,14 @@ def setup_environment() -> bool:
     font_path = os.path.join(FONT_DIRECTORY, FONT_FILE_VARIABLE)
     marker_path = os.path.join(FONT_DIRECTORY, FONT_FILE_MARKER)
 
+    # Required fonts must be present before Stage 3 renders overlays; a missing
+    # font silently degrades the composited text, so fail loudly here.
+    missing_fonts = missing_required_fonts(FONT_DIRECTORY)
+    if missing_fonts:
+        print(f"⚠️ Missing required font file(s): {', '.join(missing_fonts)}")
+    else:
+        print(f"✅ Required font files present in '{FONT_DIRECTORY}'")
+
     if not os.path.exists(font_path):
         print(f"⚠️ Font file not found: {font_path}")
         print(f"💡 Please download Atkinson Hyperlegible Next fonts and place them in the '{FONT_DIRECTORY}' folder")
@@ -329,15 +349,15 @@ def safe_get_value(row, column_name, default=''):
 
 
 def resolve_csv_file() -> str | None:
-    """Prefer video_data.csv; otherwise the first *.csv in the working dir."""
+    """Prefer video_data.csv; otherwise the first *.csv in the work dir."""
     if os.path.exists(CSV_FILE):
         return CSV_FILE
-    csvs = [f for f in os.listdir('.') if f.endswith('.csv')]
+    csvs = [f for f in os.listdir(WORK_DIR) if f.endswith('.csv')]
     if not csvs:
         return None
     if len(csvs) > 1:
         print(f"WARNING: Multiple CSV files found, using: {csvs[0]}")
-    return csvs[0]
+    return str(WORK_DIR / csvs[0])
 
 
 def create_sample_csv():
@@ -542,11 +562,15 @@ def check_audio_sync(video_path):
     return not ("timestamp" in result.stderr.lower() or "sync" in result.stderr.lower())
 
 
-def run_silence_removal(args, background_mapping, mirror_mapping):
+def run_silence_removal(args, background_mapping, mirror_mapping, only=None):
     print(f"{'='*60}\nSTAGE 1: SILENCE REMOVAL\n{'='*60}")
 
-    rawvideos_dir = os.path.join(os.getcwd(), RAWVIDEOS_DIRECTORY)
-    files_to_process = [f"{filename}.mp4" for filename in background_mapping.keys()]
+    rawvideos_dir = RAWVIDEOS_DIRECTORY
+    allowed = None if only is None else set(only)
+    files_to_process = [
+        f"{filename}.mp4" for filename in background_mapping.keys()
+        if allowed is None or filename in allowed
+    ]
     mp4_files = [f for f in files_to_process if os.path.exists(os.path.join(rawvideos_dir, f))]
 
     if not mp4_files:
@@ -624,7 +648,7 @@ def run_silence_removal(args, background_mapping, mirror_mapping):
 # Stage 2 — background removal (Modal)
 # =============================================================================
 
-app = modal.App("video-background-removal")
+app = modal.App("uff-lesson-video")
 
 image = (
     modal.Image.debian_slim(python_version="3.11")
@@ -764,7 +788,15 @@ def process_video_background(input_video_path, background_path, output_path):
     is_video_bg = os.path.splitext(background_path)[1].lower() in ['.mp4', '.avi', '.mov', '.mkv', '.webm']
     try:
         print("Sending to Modal for processing...")
-        with app.run():
+        # Locally the CLI must open an app run context; inside a Modal container
+        # the function is already running, so `.remote()` is called directly.
+        if modal.is_local():
+            with app.run():
+                output_bytes = process_video_background_modal.remote(
+                    input_video_bytes, background_bytes, is_video_bg,
+                    fps=0, fast_mode=True, max_workers=10,
+                )
+        else:
             output_bytes = process_video_background_modal.remote(
                 input_video_bytes, background_bytes, is_video_bg,
                 fps=0, fast_mode=True, max_workers=10,
@@ -784,10 +816,15 @@ def get_original_filename(processed_filename, suffix='_no_silence'):
     return processed_filename.replace(suffix, '').replace('.mp4', '')
 
 
-def run_background_removal(background_mapping, mirror_mapping):
+def run_background_removal(background_mapping, mirror_mapping, only=None):
     print(f"\n{'='*60}\nSTAGE 2: BACKGROUND REMOVAL (Using Modal)\n{'='*60}")
+    allowed = None if only is None else set(only)
     all_silence_removed = [f for f in os.listdir(NO_SILENCE_DIRECTORY) if f.endswith('_no_silence.mp4')]
-    silence_removed_files = [f for f in all_silence_removed if get_original_filename(f) in background_mapping]
+    silence_removed_files = [
+        f for f in all_silence_removed
+        if get_original_filename(f) in background_mapping
+        and (allowed is None or get_original_filename(f) in allowed)
+    ]
     if not silence_removed_files:
         print("WARNING: No *_no_silence.mp4 files found matching CSV entries")
         return
@@ -813,7 +850,7 @@ def run_background_removal(background_mapping, mirror_mapping):
                 print(f"✗ Failed to copy video: {e}")
             continue
 
-        background_path = os.path.join(os.getcwd(), BACKGROUNDS_DIRECTORY, background_file)
+        background_path = os.path.join(BACKGROUNDS_DIRECTORY, background_file)
         if not os.path.exists(background_path):
             print(f"ERROR: Background file not found: {background_file}")
             continue
@@ -1326,8 +1363,7 @@ def process_single_video(row):
             safe_name = base_filename.replace(VIDEO_EXTENSION, '').replace('.', '_')
             overlay_path = os.path.join(OVERLAYS_TEMP_DIRECTORY, f"overlay_{safe_name}.png")
             hti = Html2Image(size=(video_width, video_height), output_path=OVERLAYS_TEMP_DIRECTORY,
-                             custom_flags=['--headless', '--hide-scrollbars', '--disable-gpu',
-                                           '--default-background-color=00000000'])
+                             custom_flags=chrome_flags(os.environ))
             hti.screenshot(html_str=create_overlay_html(row, video_width, video_height),
                            save_as=os.path.basename(overlay_path))
             if os.path.exists(overlay_path):
@@ -1359,10 +1395,21 @@ def process_single_video(row):
                 pass
 
 
-def process_video_batch(csv_file, max_workers=1):
+def load_csv_rows(csv_file):
+    """The CSV as a list of dict rows (for the orchestrator's publish plan)."""
     try:
         df = pd.read_csv(csv_file, dtype=str).fillna('')
-        rows_to_process = [row for _, row in df.iterrows()]
+    except Exception as e:
+        print(f"⚠️ Could not read {csv_file} for publish plan: {e}")
+        return []
+    return [row for _, row in df.iterrows()]
+
+
+def process_video_batch(csv_file, max_workers=1, only=None):
+    try:
+        df = pd.read_csv(csv_file, dtype=str).fillna('')
+        all_rows = [row for _, row in df.iterrows()]
+        rows_to_process = select_rows(all_rows, only=only)
         completed_count = 0
         total_count = len(rows_to_process)
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -1678,6 +1725,8 @@ def parse_args():
     parser.add_argument('--skip-background', action='store_true', help='Skip Stage 2')
     parser.add_argument('--skip-render', action='store_true', help='Skip Stage 3')
     parser.add_argument('--render-only', action='store_true', help='Alias for --skip-silence --skip-background')
+    parser.add_argument('--only', type=str, default=None,
+                        help='Comma-separated filename set; restrict Stage 1/2/3 to these rows')
     return parser.parse_args()
 
 
@@ -1686,6 +1735,10 @@ def main():
     if args.render_only:
         args.skip_silence = True
         args.skip_background = True
+
+    only = None
+    if args.only:
+        only = [s.strip() for s in args.only.split(',') if s.strip()]
 
     if not setup_environment():
         sys.exit(1)
@@ -1699,14 +1752,14 @@ def main():
     background_mapping, mirror_mapping = load_background_mapping(csv_file)
 
     if not args.skip_silence:
-        run_silence_removal(args, background_mapping, mirror_mapping)
+        run_silence_removal(args, background_mapping, mirror_mapping, only=only)
 
     if not args.skip_background:
-        run_background_removal(background_mapping, mirror_mapping)
+        run_background_removal(background_mapping, mirror_mapping, only=only)
 
     if not args.skip_render:
         print(f"\n{'='*60}\nSTAGE 3: RENDER (social + web)\n{'='*60}")
-        process_video_batch(csv_file, max_workers=args.workers)
+        process_video_batch(csv_file, max_workers=args.workers, only=only)
         join_plan, joined_prefixes = load_join_plan(csv_file)
         phrase_map = load_phrase_map(csv_file)
         _, srt_by_prefix = concatenate_all_processed_videos(joined_prefixes, phrase_map)

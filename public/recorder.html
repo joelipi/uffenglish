@@ -484,7 +484,10 @@
                 🗑️ REJECT / RETRY
             </button>
             <button id="dom-btn-accept" class="btn-universal btn-state-accept">
-                ✅ ACCEPT & SAVE
+                ☁️ ACCEPT & UPLOAD
+            </button>
+            <button id="dom-btn-download" class="btn-universal btn-state-retry">
+                ⬇️ SAVE TO DEVICE
             </button>
         </div>
 
@@ -519,6 +522,15 @@
                 <label for="dom-check-auto" style="font-weight: bold; cursor: pointer;">Auto-start next line after Accept</label>
             </div>
 
+            <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                <input type="password" id="dom-operator-key" class="setup-select"
+                       placeholder="Operator key" autocomplete="off"
+                       style="flex-grow: 1; padding: 8px;">
+                <button id="dom-btn-render" class="btn-universal btn-state-record">🎬 START RENDER</button>
+            </div>
+
+            <div id="dom-render-status" class="status-indicator-bar status-init">RENDER: NOT STARTED</div>
+
             <div id="dom-debug-log" class="debug-output-window"></div>
         </div>
 
@@ -541,6 +553,8 @@
         var global_record_duration_timer = null;
         var global_is_paused_logic = false;
         var global_last_blob_url = null;
+        var global_last_final_blob = null;
+        var global_render_poll_timer = null;
 
         /**
          * ==========================================
@@ -555,6 +569,10 @@
         var node_btn_pause = document.getElementById('dom-btn-pause');
         var node_btn_accept = document.getElementById('dom-btn-accept');
         var node_btn_reject = document.getElementById('dom-btn-reject');
+        var node_btn_download = document.getElementById('dom-btn-download');
+        var node_btn_render = document.getElementById('dom-btn-render');
+        var node_operator_key = document.getElementById('dom-operator-key');
+        var node_render_status = document.getElementById('dom-render-status');
         
         var node_select_mic = document.getElementById('dom-select-mic');
         var node_select_jump = document.getElementById('dom-select-jump');
@@ -771,6 +789,7 @@ node_video_preview.play(); // Explicitly restart playback
 
         function generateFinalVideoBuffer() {
             var final_video_blob = new Blob(global_data_chunks, { type: 'video/mp4' });
+            global_last_final_blob = final_video_blob;
             
             if (global_last_blob_url) {
                 URL.revokeObjectURL(global_last_blob_url);
@@ -959,17 +978,24 @@ node_video_preview.play(); // Explicitly restart playback
             }
         };
 
-        node_btn_accept.onclick = function() {
-            var current_line_meta = global_script_phrases[global_current_index];
-            var generated_filename = (current_line_meta.filename || "take_" + global_current_index) + ".mp4";
-            
-            var hidden_link = document.createElement('a');
-            hidden_link.href = global_last_blob_url;
-            hidden_link.download = generated_filename;
-            hidden_link.click();
-            
-            appCoreLog("File saved to device: " + generated_filename);
-            
+        function getOperatorKey() {
+            if (!node_operator_key) { return ""; }
+            var value = (node_operator_key.value || "").trim();
+            if (!value) {
+                value = (sessionStorage.getItem('uff_operator_key') || "").trim();
+            }
+            return value;
+        }
+
+        function saveOperatorKey() {
+            if (!node_operator_key) { return; }
+            var value = (node_operator_key.value || "").trim();
+            if (value) {
+                sessionStorage.setItem('uff_operator_key', value);
+            }
+        }
+
+        function advanceAfterAccept() {
             // Advance Script Line
             global_current_index = global_current_index + 1;
             
@@ -992,7 +1018,129 @@ node_video_preview.play(); // Explicitly restart playback
                     setTimeout(startPreRollSequence, 1000);
                 }
             }
+        }
+
+        node_btn_accept.onclick = function() {
+            var current_line_meta = global_script_phrases[global_current_index];
+            var bare_filename = current_line_meta.filename || ("take_" + global_current_index);
+            var operator_key = getOperatorKey();
+            if (!operator_key) {
+                appCoreLog("UPLOAD FAILED: no operator key entered.");
+                node_status_bar.textContent = "UPLOAD FAILED • ENTER OPERATOR KEY";
+                node_status_bar.className = "status-indicator-bar status-error";
+                return; // keep the take available
+            }
+            if (!global_last_final_blob) {
+                appCoreLog("UPLOAD FAILED: no recorded take in memory.");
+                return;
+            }
+            saveOperatorKey();
+            node_btn_accept.disabled = true;
+            appCoreLog("Uploading take to R2: " + bare_filename + ".mp4");
+            fetch('/api/pipeline/upload-raw', {
+                method: 'POST',
+                headers: {
+                    'x-operator-key': operator_key,
+                    'x-filename': bare_filename,
+                    'Content-Type': 'video/mp4'
+                },
+                body: global_last_final_blob
+            }).then(function(response) {
+                if (!response.ok) {
+                    throw new Error("HTTP " + response.status);
+                }
+                appCoreLog("Upload complete: " + bare_filename + ".mp4");
+                node_btn_accept.disabled = false;
+                advanceAfterAccept();
+            }).catch(function(err) {
+                appCoreLog("UPLOAD FAILED: " + err.message + " (take kept for retry)");
+                node_status_bar.textContent = "UPLOAD FAILED • TAKE KEPT";
+                node_status_bar.className = "status-indicator-bar status-error";
+                node_btn_accept.disabled = false;
+            });
         };
+
+        // Fallback: save the last take to the device (works with no network).
+        node_btn_download.onclick = function() {
+            if (!global_last_blob_url) {
+                appCoreLog("Nothing to download yet.");
+                return;
+            }
+            var current_line_meta = global_script_phrases[global_current_index];
+            var generated_filename = (current_line_meta.filename || "take_" + global_current_index) + ".mp4";
+            
+            var hidden_link = document.createElement('a');
+            hidden_link.href = global_last_blob_url;
+            hidden_link.download = generated_filename;
+            hidden_link.click();
+            
+            appCoreLog("File saved to device: " + generated_filename);
+        };
+
+        node_btn_render.onclick = function() {
+            var operator_key = getOperatorKey();
+            if (!operator_key) {
+                appCoreLog("RENDER FAILED: no operator key entered.");
+                return;
+            }
+            saveOperatorKey();
+            var files = [];
+            for (var i = 0; i < global_script_phrases.length; i++) {
+                var fn = global_script_phrases[i].filename;
+                if (fn) { files.push(fn); }
+            }
+            if (files.length === 0) {
+                appCoreLog("RENDER FAILED: no CSV filenames loaded.");
+                return;
+            }
+            node_render_status.textContent = "RENDER: STARTING...";
+            appCoreLog("Starting render for " + files.length + " file(s)...");
+            fetch('/api/pipeline/render', {
+                method: 'POST',
+                headers: {
+                    'x-operator-key': operator_key,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ files: files })
+            }).then(function(response) {
+                if (!response.ok) {
+                    throw new Error("HTTP " + response.status);
+                }
+                return response.json();
+            }).then(function(data) {
+                appCoreLog("Render job started: " + data.jobId);
+                node_render_status.textContent = "RENDER: " + data.jobId;
+                pollRenderStatus(data.jobId);
+            }).catch(function(err) {
+                appCoreLog("RENDER FAILED: " + err.message);
+                node_render_status.textContent = "RENDER: FAILED (" + err.message + ")";
+            });
+        };
+
+        function pollRenderStatus(job_id) {
+            if (global_render_poll_timer) {
+                clearInterval(global_render_poll_timer);
+            }
+            global_render_poll_timer = setInterval(function() {
+                fetch('/api/pipeline/status' + '?id=' + encodeURIComponent(job_id), {
+                    headers: { 'x-operator-key': getOperatorKey() }
+                }).then(function(response) {
+                    if (!response.ok) {
+                        throw new Error("HTTP " + response.status);
+                    }
+                    return response.json();
+                }).then(function(status) {
+                    node_render_status.textContent = "RENDER: " + status.status + " / " + (status.stage || "-");
+                    appCoreLog("Render status: " + status.status + " (" + (status.stage || "-") + ")");
+                    if (status.status === 'done' || status.status === 'error') {
+                        clearInterval(global_render_poll_timer);
+                        global_render_poll_timer = null;
+                    }
+                }).catch(function(err) {
+                    appCoreLog("STATUS POLL FAILED: " + err.message);
+                });
+            }, 5000);
+        }
 
         node_btn_reject.onclick = function() {
             appCoreLog("Recording discarded by user.");

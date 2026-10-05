@@ -101,3 +101,60 @@ describe('operator-only recorder page stays hidden', () => {
         expect(fs.readFileSync(INDEX_PATH, 'utf8')).not.toMatch(REFERENCE_PATTERN);
     });
 });
+
+// Story 040, Task 6: the recorder uploads takes, triggers a cloud render and
+// polls its status, all through the operator-key-protected pipeline Functions.
+describe('recorder page — cloud pipeline controls', () => {
+    const page = () => fs.readFileSync(PAGE_PATH, 'utf8');
+
+    it('references every pipeline endpoint and the operator-key plumbing', () => {
+        const html = page();
+        for (const token of [
+            "'/api/pipeline/upload-raw'",
+            "'/api/pipeline/render'",
+            "'/api/pipeline/status'",
+            "'x-operator-key'",
+            'id="dom-operator-key"',
+            'global_last_final_blob',
+        ]) {
+            expect(html, token).toContain(token);
+        }
+    });
+
+    it('stores the recorded Blob, not just the object URL', () => {
+        const html = page();
+        expect(html).toMatch(/global_last_final_blob\s*=\s*final_video_blob/);
+    });
+
+    it('uploads on Accept and only advances on success', () => {
+        const html = page();
+        // The upload fetch is inside the Accept handler and advanceAfterAccept is
+        // called from the success path, not before the request.
+        const accept = html.slice(html.indexOf('node_btn_accept.onclick'));
+        expect(accept.indexOf("fetch('/api/pipeline/upload-raw'")).toBeGreaterThan(-1);
+        expect(accept.indexOf('advanceAfterAccept();')).toBeGreaterThan(
+            accept.indexOf("fetch('/api/pipeline/upload-raw'")
+        );
+        // The failure path keeps the take (`return` without advancing).
+        expect(accept).toContain('take kept for retry');
+    });
+
+    it('keeps a save-to-device fallback via <a download>', () => {
+        const html = page();
+        expect(html).toContain('id="dom-btn-download"');
+        expect(html).toMatch(/hidden_link\.download\s*=/);
+    });
+
+    it('starts a render and polls status until done/error', () => {
+        const html = page();
+        const render = html.slice(html.indexOf("fetch('/api/pipeline/render'"));
+        expect(render).toContain("pollRenderStatus(");
+        expect(render).toMatch(/status\.status === 'done' \|\| status\.status === 'error'/);
+        expect(render).toContain("'/api/pipeline/status'");
+    });
+
+    it('never hardcodes a literal operator key', () => {
+        // Fails if the page ships something like `operator_key: 'abc123'`.
+        expect(page()).not.toMatch(/(operator[_-]?key)\s*[:=]\s*['"][^'"]+['"]/i);
+    });
+});

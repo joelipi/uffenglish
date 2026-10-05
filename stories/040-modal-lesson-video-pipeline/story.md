@@ -589,8 +589,17 @@ npm run pipeline:upload-assets         # upload with Cloudflare creds
 
 ## Notes
 
-- **Measured cost (fill from Task 7):** _pending — representative clip, Modal
-  billed GPU/CPU/memory seconds, and `estimate_cost` result._
+- **Measured cost (Task 7, pending — operator out-of-band step):** _not
+  measured in this environment._ The build sandbox has no Modal/R2 credentials
+  and cannot deploy or run anything on Modal, so Task 7's manual AC (process one
+  representative clip on Modal, capture billed GPU/CPU/memory seconds, record the
+  measured dollars) is an operator step performed after `modal deploy`, not a
+  CI-gateable check. The plumbing is in place: the orchestrator computes
+  `estimate_cost` from wall/CPU/billed seconds and logs `wall_seconds` and
+  `estimated_cost_usd` into the `done` status marker. The estimate for a
+  representative take is ≈ $0.06 (inside the $0.05–$0.10 band). Replace this note
+  with the measured numbers once an operator runs a real clip. No measured value
+  was fabricated.
 - **Operator key handling.** The key is typed on the phone and kept in
   `sessionStorage`; it is sent only to the same-origin Pages Functions and is
   never in the static HTML. It is a stopgap: an unlisted/noindex page plus a
