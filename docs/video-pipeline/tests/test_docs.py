@@ -53,10 +53,17 @@ class LearningsGuardTest(unittest.TestCase):
 
 
 class StoryNotesGuardTest(unittest.TestCase):
-    def test_measured_cost_note_is_recorded(self):
+    def test_measured_cost_note_is_truthful(self):
+        # The measurement is an operator out-of-band step (no Modal/R2 creds in
+        # CI). This guard pins the note to a truthful state: it must say what
+        # feeds the estimate and must not claim a measured number it does not
+        # have. It deliberately does NOT pass/fail on the presence of a dollar
+        # value, which CI cannot produce.
         text = read(STORY)
         self.assertIn("Measured cost", text)
-        # The note must not remain the bare `_pending` placeholder.
+        self.assertIn("gpu_seconds", text)
+        self.assertIn("operator", text.lower())
+        # No fabricated dollar figure while the run is still pending.
         self.assertNotIn("_pending — representative clip", text)
 
 

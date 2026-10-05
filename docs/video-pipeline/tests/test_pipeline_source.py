@@ -26,6 +26,57 @@ def slice_between(text: str, start: str, end: str) -> str:
     return text[i:j]
 
 
+def module_defined_names(tree: ast.AST) -> set:
+    """Every top-level name the module binds: imports, defs, assignments."""
+    names = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                names.add((alias.asname or alias.name).split(".")[0])
+        elif isinstance(node, ast.ImportFrom):
+            for alias in node.names:
+                names.add(alias.asname or alias.name)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            names.add(node.name)
+        elif isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+            names.add(node.id)
+        elif isinstance(node, ast.arg):
+            names.add(node.arg)
+        elif isinstance(node, ast.ExceptHandler) and node.name:
+            names.add(node.name)
+    return names
+
+
+def module_attribute_roots(tree: ast.AST) -> set:
+    """Names used as `X.attr` (e.g. `time` in `time.time()`)."""
+    roots = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
+            roots.add(node.value.id)
+    return roots
+
+
+class UndefinedImportGuardTest(unittest.TestCase):
+    def test_every_attribute_root_is_bound(self):
+        # `time.time()` with no `import time` is a NameError the string guards
+        # cannot see (CI cannot import this module). Assert every `X.attr` root
+        # is a name the module binds.
+        tree = ast.parse(read())
+        defined = module_defined_names(tree)
+        builtins = set(dir(__builtins__)) if not isinstance(__builtins__, dict) else set(__builtins__)
+        undefined = sorted(
+            root for root in module_attribute_roots(tree)
+            if root not in defined and root not in builtins
+        )
+        self.assertEqual(undefined, [])
+
+    def test_guard_can_fail(self):
+        bad = ast.parse("import os\nos.path.join('a', time.time())\n")
+        defined = module_defined_names(bad)
+        undefined = [r for r in module_attribute_roots(bad) if r not in defined]
+        self.assertIn("time", undefined)
+
+
 class WorkdirGuardTest(unittest.TestCase):
     def test_imports_pure_decisions_from_pipeline_lib(self):
         text = read()

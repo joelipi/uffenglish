@@ -451,10 +451,15 @@ add `docs/video-pipeline/tests/test_modal_app_source.py`.
   or secret
 - (source guard) the orchestrator writes a status object after each stage
   (`serialize_status` calls for at least `running`, `done` and `error`)
-- (manual) process one representative clip end-to-end on Modal with `modal run`
-  or a deployed trigger, capture the Modal-reported billed GPU seconds, CPU-core
-  seconds and memory GiB-seconds, compute it with `estimate_cost`, and record the
-  measured dollars and the clip used in this story's Notes
+- (manual, operator out-of-band — NOT CI-gateable) process one representative
+  clip end-to-end on Modal with `modal run` or a deployed trigger, capture the
+  Modal-reported billed GPU seconds, CPU-core seconds and memory GiB-seconds,
+  compute it with `estimate_cost`, and record the measured dollars and the clip
+  used in this story's Notes. This step requires Modal/R2 credentials and a real
+  deploy, so it cannot run in CI; the code deliverable (stage-2 wall time feeding
+  `estimate_cost` and the `gpu_seconds`/`estimated_cost_usd` status fields) is
+  covered by source guards, and the note stays explicitly marked pending until an
+  operator performs it. Do not fabricate a value.
 
 ### Task 8 - Operator asset and CSV uploader
 
@@ -497,7 +502,11 @@ New `scripts/lib/pipeline-assets-utils.js`,
     model, the R2 prefix/TTL constraint, and the Chrome `--no-sandbox`/workdir
     requirements
 - Notes section of this story
-  - → contains the measured Modal cost from Task 7 and the representative clip
+  - → (operator out-of-band, not CI-gateable) contains the measured Modal cost
+    from Task 7 and the representative clip once an operator runs the step;
+    until then it is explicitly marked pending with the reason, and a source
+    guard pins that truthful state (it does not fabricate or require a number CI
+    cannot produce)
 
 ## Bootstrap
 
