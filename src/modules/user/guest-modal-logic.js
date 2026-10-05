@@ -10,7 +10,11 @@ export const ENGLISH_LANG = 'EN';
 export const PUBLIC_ROUTES = ['/', '/privacy', '/terms'];
 
 export function isPublicHomeRoute(pathname) {
-    return typeof pathname === 'string' && PUBLIC_ROUTES.includes(pathname);
+    if (typeof pathname !== 'string' || pathname === '') return false;
+    // React Router matches paths case-insensitively and tolerates trailing
+    // slashes, so normalize to the canonical form before the exact-match lookup.
+    const normalized = (pathname.replace(/\/+$/, '') || '/').toLowerCase();
+    return PUBLIC_ROUTES.includes(normalized);
 }
 
 // - friend lesson + non-English browser -> adopt the browser language silently

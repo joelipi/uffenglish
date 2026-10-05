@@ -54,6 +54,14 @@ describe('isPublicHomeRoute', () => {
         expect(isPublicHomeRoute('/terms')).toBe(true);
     });
 
+    it('matches the same non-canonical URLs the router resolves (case + trailing slash)', () => {
+        expect(isPublicHomeRoute('/privacy/')).toBe(true);
+        expect(isPublicHomeRoute('/Privacy')).toBe(true);
+        expect(isPublicHomeRoute('/Privacy/')).toBe(true);
+        expect(isPublicHomeRoute('/terms/')).toBe(true);
+        expect(isPublicHomeRoute('/Terms')).toBe(true);
+    });
+
     it('is false for the dashboard, auth, lesson, profile and share-code routes', () => {
         expect(isPublicHomeRoute('/home')).toBe(false);
         expect(isPublicHomeRoute('/login')).toBe(false);
