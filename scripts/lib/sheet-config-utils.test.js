@@ -365,6 +365,14 @@ describe('buildCourseConfig localization columns', () => {
         expect(step.cue).toEqual([{ en: 'A', es: 'A-es' }, { en: 'B', es: 'B-es' }]);
     });
 
+    it('pairs cue_alt translations per row so a mid-group blank cell does not shift a later row', () => {
+        const [step] = buildSteps([
+            { video_file: 'q', filename: 'q1', order: '1', response_type: 'friendClosedResponse', cue_alt: 'A', cue_alt_es: '' },
+            { video_file: 'q', filename: 'q2', order: '1', response_type: 'friendClosedResponse', cue_alt: 'B', cue_alt_es: 'B-es' },
+        ]);
+        expect(step.cue).toEqual([{ en: 'A' }, { en: 'B', es: 'B-es' }]);
+    });
+
     it('never reports the optional language columns missing', () => {
         expect(findMissingColumns([
             { ...COURSE, video_file: 'v', filename: 'f1', order: '1', response_type: 'viewAndContinue' },

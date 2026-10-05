@@ -227,21 +227,26 @@ function cueFor(groupRows, videoFile) {
         throw new Error(`video_file "${videoFile}": cue and cue_alt are mutually exclusive`);
     }
     if (alts.length) {
-        // English alternatives, one per non-blank line across the group's rows.
-        const enLines = groupRows.flatMap((row) => groupCueAltLines(cell(row, cueAltField)));
-        // Per-language lines, paired to the English lines by index. A shorter or
-        // blank language simply omits that language for the extra elements.
-        const langLines = {};
-        for (const lang of SHEET_LANGUAGES) {
-            langLines[lang] = groupRows.flatMap((row) => groupCueAltLines(cell(row, localizedColumn('cue_alt', lang))));
-        }
-        return enLines.map((en, i) => {
-            const obj = { en };
+        // Pair each row's English cue_alt lines with that same row's
+        // cue_alt_<lang> lines (by index within the row), then concatenate the
+        // rows in group order. Pairing per row matters when an earlier row's
+        // language cell is blank: a global flatMap would compact a later row's
+        // translation upward onto the wrong English alternative. A blank or
+        // out-of-range language line simply omits that language for the element.
+        return groupRows.flatMap((row) => {
+            const enLines = groupCueAltLines(cell(row, cueAltField));
+            const langLines = {};
             for (const lang of SHEET_LANGUAGES) {
-                const t = langLines[lang][i];
-                if (t) obj[lang] = t;
+                langLines[lang] = groupCueAltLines(cell(row, localizedColumn('cue_alt', lang)));
             }
-            return obj;
+            return enLines.map((en, i) => {
+                const obj = { en };
+                for (const lang of SHEET_LANGUAGES) {
+                    const t = langLines[lang][i];
+                    if (t) obj[lang] = t;
+                }
+                return obj;
+            });
         });
     }
     if (singles.length) {

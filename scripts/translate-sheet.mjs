@@ -138,6 +138,16 @@ export async function runTranslateSheet({
     const plan = planSheetTranslations({ rows, headers, sheetRows, languages, force });
     const already = countPresentTranslations({ rows, headers, languages });
 
+    // Fail fast before any DeepSeek call or write if the sheet is missing a
+    // target column the plan needs (e.g. the localization columns were never
+    // added). `headers` from rowsFromValues are already trimmed + lower-cased.
+    const headerSet = new Set(headers.map((h) => String(h).trim().toLowerCase()));
+    const missingColumns = [...new Set(plan.map((p) => p.column))]
+        .filter((column) => !headerSet.has(column));
+    if (missingColumns.length > 0) {
+        throw new Error(`sheet is missing target column(s): ${missingColumns.join(', ')}`);
+    }
+
     if (plan.length === 0) {
         for (const lang of languages) log(`${lang}: 0 filled, ${already[lang] || 0} already present`);
         log('no cells to fill');

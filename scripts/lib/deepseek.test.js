@@ -54,6 +54,22 @@ describe('deepseekJson transport', () => {
         await expect(deepseekJson({ apiKey: 'k', system: 's', user: 'u', fetchImpl }))
             .rejects.toThrow(/DeepSeek HTTP 429/);
     });
+
+    it('throws with context when the response body is not JSON', async () => {
+        const fetchImpl = vi.fn(async () => ({ ok: true, status: 200, text: async () => '<html>oops</html>' }));
+        await expect(deepseekJson({ apiKey: 'k', system: 's', user: 'u', fetchImpl }))
+            .rejects.toThrow(/DeepSeek returned non-JSON response/);
+    });
+
+    it('throws with context when the model content is not JSON', async () => {
+        const fetchImpl = vi.fn(async () => ({
+            ok: true,
+            status: 200,
+            text: async () => JSON.stringify({ choices: [{ message: { content: 'not json' } }] }),
+        }));
+        await expect(deepseekJson({ apiKey: 'k', system: 's', user: 'u', fetchImpl }))
+            .rejects.toThrow(/DeepSeek returned non-JSON content/);
+    });
 });
 
 describe('translateText', () => {

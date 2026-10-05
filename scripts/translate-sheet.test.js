@@ -203,6 +203,17 @@ describe('runTranslateSheet', () => {
         })).rejects.toThrow(/cue_alt line count/);
         expect(client.batchUpdate).not.toHaveBeenCalled();
     });
+
+    it('fails fast when the sheet lacks the target columns, before any translation', async () => {
+        const values = [['lesson_title'], ['Hello']]; // no lesson_title_es
+        const client = makeClient(values);
+        const translateText = vi.fn(async (t) => t);
+        await expect(runTranslateSheet({
+            sheetId: 'S', tab: 'Sheet1', languages: ['es'], ...client, translateText, log: () => {},
+        })).rejects.toThrow(/missing target column\(s\): lesson_title_es/);
+        expect(translateText).not.toHaveBeenCalled();
+        expect(client.batchUpdate).not.toHaveBeenCalled();
+    });
 });
 
 describe('parseLanguages', () => {

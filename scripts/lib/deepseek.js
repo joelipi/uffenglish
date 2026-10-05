@@ -44,10 +44,19 @@ export async function deepseekJson({ apiKey, system, user, fetchImpl = fetch }) 
     });
     const text = await res.text();
     if (!res.ok) throw new Error(`DeepSeek HTTP ${res.status}: ${text.slice(0, 300)}`);
-    const data = JSON.parse(text);
+    let data;
+    try {
+        data = JSON.parse(text);
+    } catch {
+        throw new Error(`DeepSeek returned non-JSON response: ${text.slice(0, 300)}`);
+    }
     const content = data.choices?.[0]?.message?.content;
     if (!content) throw new Error(`DeepSeek returned no content: ${text.slice(0, 300)}`);
-    return JSON.parse(content);
+    try {
+        return JSON.parse(content);
+    } catch {
+        throw new Error(`DeepSeek returned non-JSON content: ${content.slice(0, 300)}`);
+    }
 }
 
 function resolveApiKey(explicit) {
