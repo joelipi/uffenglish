@@ -1,5 +1,13 @@
 # Learnings
 
+## A guard over an empty allow-list can pass while its wiring is broken
+**Date**: 2026-10-05
+**Area**: testing | build
+**What happened**: Story 042's generated-config contract guard read `CONFIG_DIR = path.join(__dirname, '../../config')` from `src/config` — one level too high, resolving to `<root>/config`. It passed because the allow-list (`scripts/lib/generated-configs.json`) started empty, so the loop ran zero times; the moment the generator registered a course it would have thrown `ENOENT` instead of validating. Two review rounds found it only when reasoning about the first real registration, not from the green suite.
+**Takeaway**: (1) A guard that iterates a data set (allow-list, glob, config list) is untested while that set is empty — exercise it against a fixture/registered entry, or assert the set is non-empty, so the file-reading plumbing is proven. (2) `path.join(__dirname, …)` from a deep source dir is easy to get one level wrong; when a test reads a sibling directory another module writes, prove the writer's path and the reader's path agree (the fix was `CONFIG_DIR = __dirname`). Mirror that in the generator (same `CONFIG_DIR` source), and prove the round trip: register → read → inject a violation → guard goes red.
+
+---
+
 ## Security routing must fail closed, and string guards can't see a missing import
 **Date**: 2026-10-05
 **Area**: security | testing
@@ -59,14 +67,6 @@
 **Area**: testing
 **What happened**: `AppLayout.jsx` fetches `/src/config/${courseId}.json`, so any JSON in `src/config/` can be a live course. A config-invariant test that hardcoded `['model.json', 'friend.json']` would silently miss a future course config with friend slugs but no `recapSources: 'friend'` flag.
 **Takeaway**: For config-invariant guards (e.g. "every friend-slug step lives in a `recapSources: 'friend'` lesson"), glob all `src/config/*.json` with `readdirSync` instead of hardcoding file names.
-
----
-
-## i18n structure: strings.js + languages.js + derived LOCALE_MAP
-**Date**: 2026-09-22
-**Area**: architecture
-**What happened**: Adding Hindi/Bengali required touching every UI string plus three separate language dropdowns; the profile components each carried a hand-maintained `LOCALE_MAP` that had already drifted from the language list by 8 languages, and the code reviewer flagged the duplication.
-**Takeaway**: UI copy lives in `src/data/strings.js` (every key must carry `hi`/`bn` — verify with a Devanagari/Bengali script regex over the exported `strings` table). Language dropdowns read `GUEST_LANGUAGES`/`PROFILE_LANGUAGES`/`SIGNUP_LANGUAGES` from `src/data/languages.js`; `LOCALE_MAP` is derived from `PROFILE_LANGUAGES` (`Object.fromEntries(...)`) so it cannot drift. When adding a language, update all three lists + every strings.js key; never hand-edit a locale map.
 
 ---
 
