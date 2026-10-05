@@ -1,0 +1,72 @@
+// Unit tests for the pure asset-upload planning (story 040, Task 8). A fake
+// fs-like module records the temp tree so no real filesystem is touched.
+
+import { describe, it, expect } from 'vitest';
+import path from 'node:path';
+import {
+    KNOWN_ASSET_DIRS,
+    KNOWN_ASSET_FILES,
+    collectAssetTargets,
+    contentTypeForAsset,
+    pipelineAssetKey,
+} from './pipeline-assets-utils.js';
+
+// Minimal in-memory fs: a map of abs path -> 'file' | child names.
+function makeFakeFs(tree) {
+    const dirs = new Set(Object.keys(tree));
+    const children = new Set();
+    for (const [dir, entries] of Object.entries(tree)) {
+        for (const name of entries) children.add(path.join(dir, name));
+    }
+    return {
+        readdirSync: (dir) => tree[dir] || [],
+        statSync: (p) => {
+            if (dirs.has(p)) return { isDirectory: () => true, isFile: () => false };
+            if (children.has(p)) return { isDirectory: () => false, isFile: () => true };
+            throw new Error(`ENOENT ${p}`);
+        },
+    };
+}
+
+const ROOT = '/assets';
+
+describe('pipeline-assets-utils', () => {
+    it('collects known asset files, skips dotfiles, sorts, keys under pipeline-assets/', () => {
+        const tree = {
+            [ROOT]: ['fonts', 'backgrounds', 'audio', 'overlays', 'video_data.csv', '.DS_Store'],
+            [path.join(ROOT, 'fonts')]: ['Kalam-Bold.ttf', '.DS_Store'],
+            [path.join(ROOT, 'backgrounds')]: ['bg.mp4'],
+            [path.join(ROOT, 'audio')]: ['track.mp3'],
+            [path.join(ROOT, 'overlays')]: ['lower.png'],
+        };
+        const targets = collectAssetTargets(makeFakeFs(tree), ROOT);
+        const keys = targets.map((t) => t.r2Key);
+        expect(keys).toEqual([
+            'pipeline-assets/audio/track.mp3',
+            'pipeline-assets/backgrounds/bg.mp4',
+            'pipeline-assets/fonts/Kalam-Bold.ttf',
+            'pipeline-assets/overlays/lower.png',
+            'pipeline-assets/video_data.csv',
+        ]);
+        expect(keys.some((k) => k.includes('.DS_Store'))).toBe(false);
+        expect(keys.every((k) => k.startsWith('pipeline-assets/'))).toBe(true);
+    });
+
+    it('maps content types and falls back to octet-stream', () => {
+        expect(contentTypeForAsset('Kalam-Bold.ttf')).toBe('font/ttf');
+        expect(contentTypeForAsset('bg.mp4')).toBe('video/mp4');
+        expect(contentTypeForAsset('track.mp3')).toBe('audio/mpeg');
+        expect(contentTypeForAsset('lower.png')).toBe('image/png');
+        expect(contentTypeForAsset('video_data.csv')).toBe('text/csv');
+        expect(contentTypeForAsset('mystery.xyz')).toBe('application/octet-stream');
+    });
+
+    it('normalizes Windows separators in pipelineAssetKey', () => {
+        expect(pipelineAssetKey('fonts\\Kalam-Bold.ttf')).toBe('pipeline-assets/fonts/Kalam-Bold.ttf');
+    });
+
+    it('exposes the known dirs/files', () => {
+        expect(KNOWN_ASSET_DIRS).toEqual(['fonts', 'backgrounds', 'audio', 'overlays']);
+        expect(KNOWN_ASSET_FILES).toEqual(['video_data.csv']);
+    });
+});

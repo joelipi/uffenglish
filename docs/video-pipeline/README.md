@@ -146,6 +146,43 @@ into one file, and inlined the previously separate encode-profile helper.
 - Added `--skip-silence`, `--skip-background`, `--skip-render`, `--render-only`,
   `--workers`.
 
+## Cloud pipeline (Modal + R2 + Cloudflare Pages Functions)
+
+The same pipeline also runs in the cloud so the phone can upload takes straight
+to R2 and a Modal app does the render (story 040). Cloudflare is storage +
+trigger only (Workers cannot run moviepy/ffmpeg/Chromium); the runner is Modal.
+
+- **Prefixes.** Raw phone takes live at `raw/<slug>.mp4`, stage-level status
+  markers at `raw/status/<jobId>.json`, operator inputs under
+  `pipeline-assets/<subdir>/…` plus `pipeline-assets/video_data.csv`. Published
+  media keeps the app's existing `assets/videos/<slug>.mp4` + `assets/videos/<slug>.jpg`.
+  `raw/` and `pipeline-assets/` deliberately avoid the 48h `videos/` lifecycle;
+  clean them up manually (retention is not automated here).
+- **Raw-take visibility.** `raw/<slug>.mp4` is in the public `uff` bucket under a
+  deterministic key with no expiry, so an unpublished/rejected take is
+  world-readable by anyone who knows the slug — the operator key gates the write,
+  not the read. Keep that in mind before uploading an unreleased lesson; move
+  `raw/` to a private bucket/prefix (or add an R2 lifecycle rule) if it matters.
+- **Secret.** `modal secret create uff-r2` with `R2_ACCOUNT_ID`,
+  `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` (`uff`). It is
+  attached to the orchestrator only.
+- **Deploy.** `modal deploy docs/video-pipeline/modal_app.py` ships both the CPU
+  orchestrator and the existing T4 BiRefNet function (they share one app). Run it
+  from the repo root — the image adds `docs/video-pipeline` as a local dir.
+- **Upload assets.** `npm run pipeline:upload-assets:dry` previews, then
+  `npm run pipeline:upload-assets` pushes each file to `pipeline-assets/` with
+  `wrangler r2 object put`. Content changes need no `modal deploy`.
+- **Recorder operator key.** `public/recorder.html` (served at `/recorder`) has a
+  password input; the key is stored in `sessionStorage` and sent as
+  `x-operator-key` to the same-origin Pages Functions (`/api/pipeline/upload-raw`,
+  `/api/pipeline/render`, `/api/pipeline/status`). The key is never in the static
+  HTML. This is a stopgap — Cloudflare Access is the documented next step.
+
+The web profile also honours `PIPELINE_WORKDIR` (container work dir),
+`PIPELINE_WEB_TARGET_LONG_EDGE` / `PIPELINE_WEB_AUDIO_BITRATE` (cloud web
+target) and `PIPELINE_CHROME_NO_SANDBOX` (root Chromium). Unset, the local
+Windows flow behaves exactly as before.
+
 ## Note
 
 Written from the two scripts you provided. This environment has no
