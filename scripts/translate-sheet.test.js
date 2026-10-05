@@ -47,13 +47,13 @@ describe('runTranslateSheet', () => {
         expect(request.spreadsheetId).toBe('SHEET');
         expect(request.requestBody.valueInputOption).toBe('RAW');
         expect(request.requestBody.data).toEqual([
-            { range: 'Sheet1!B2', values: [['es:Hello']] },
-            { range: 'Sheet1!D2', values: [['es:Q']] },
+            { range: "'Sheet1'!B2", values: [['es:Hello']] },
+            { range: "'Sheet1'!D2", values: [['es:Q']] },
         ]);
         expect(translateText).toHaveBeenCalledTimes(2);
         expect(res.written).toBe(2);
         expect(messages.join('\n')).toContain('es: 2 filled, 0 already present');
-        expect(messages.join('\n')).toContain('FILLED Sheet1!B2');
+        expect(messages.join('\n')).toContain("FILLED 'Sheet1'!B2");
     });
 
     it('is idempotent: a filled target plans zero cells and issues no batchUpdate', async () => {
@@ -86,8 +86,8 @@ describe('runTranslateSheet', () => {
 
         expect(client.batchUpdate).not.toHaveBeenCalled();
         expect(res.written).toBe(0);
-        expect(messages.join('\n')).toContain('[dry-run] would fill Sheet1!B2');
-        expect(messages.join('\n')).toContain('[dry-run] would fill Sheet1!D2');
+        expect(messages.join('\n')).toContain("[dry-run] would fill 'Sheet1'!B2");
+        expect(messages.join('\n')).toContain("[dry-run] would fill 'Sheet1'!D2");
     });
 
     it('--languages=es only plans _es cells (never _pt)', async () => {
@@ -99,7 +99,7 @@ describe('runTranslateSheet', () => {
             sheetId: 'S', tab: 'Sheet1', languages: ['es'], ...client, translateText: vi.fn(async (t) => t), log,
         });
         expect(res.plan.map((p) => p.column)).toEqual(['lesson_title_es']);
-        expect(client.batchUpdate.mock.calls[0][0].requestBody.data.map((d) => d.range)).toEqual(['Sheet1!B2']);
+        expect(client.batchUpdate.mock.calls[0][0].requestBody.data.map((d) => d.range)).toEqual(["'Sheet1'!B2"]);
     });
 
     it('--force retranslates a filled target', async () => {
@@ -121,7 +121,54 @@ describe('runTranslateSheet', () => {
             translateText: vi.fn(async (t) => t), log: () => {},
         });
         expect(client.getSpreadsheet).toHaveBeenCalledWith({ spreadsheetId: 'S' });
-        expect(client.batchUpdate.mock.calls[0][0].requestBody.data[0].range).toBe('Sheet1!B2');
+        expect(client.batchUpdate.mock.calls[0][0].requestBody.data[0].range).toBe("'Sheet1'!B2");
+    });
+
+    it('targets the physical sheet row when the sheet has an interior blank row', async () => {
+        const values = [
+            ['lesson_title', 'lesson_title_es'],
+            ['First', ''],
+            ['', ''], // physical row 3: blank spacer
+            ['Second', ''], // physical row 4
+        ];
+        const client = makeClient(values);
+        const res = await runTranslateSheet({
+            sheetId: 'S', tab: 'Sheet1', languages: ['es'], ...client,
+            translateText: vi.fn(async (t) => `T:${t}`), log: () => {},
+        });
+        expect(res.plan.map((p) => p.sheetRow)).toEqual([2, 4]);
+        expect(client.batchUpdate.mock.calls[0][0].requestBody.data.map((d) => d.range))
+            .toEqual(["'Sheet1'!B2", "'Sheet1'!B4"]);
+    });
+
+    it('translates a repeated lesson value once, on the first row of its lesson', async () => {
+        const values = [
+            ['lesson_id', 'video_file', 'lesson_title', 'lesson_title_es'],
+            ['a', 'v1', 'Lesson', ''],
+            ['a', 'v2', 'Lesson', ''],
+            ['a', 'v3', 'Lesson', ''],
+        ];
+        const client = makeClient(values);
+        const translateText = vi.fn(async (t, l) => `${l}:${t}`);
+        const res = await runTranslateSheet({
+            sheetId: 'S', tab: 'Sheet1', languages: ['es'], ...client, translateText, log: () => {},
+        });
+        expect(res.plan).toHaveLength(1);
+        expect(res.plan[0]).toMatchObject({ sheetRow: 2, column: 'lesson_title_es' });
+        expect(translateText).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects a cue_alt translation whose line count changed, writing nothing', async () => {
+        const values = [
+            ['cue_alt', 'cue_alt_es'],
+            ['A\nB', ''],
+        ];
+        const client = makeClient(values);
+        await expect(runTranslateSheet({
+            sheetId: 'S', tab: 'Sheet1', languages: ['es'], ...client,
+            translateText: vi.fn(async () => 'collapsed to one line'), log: () => {},
+        })).rejects.toThrow(/cue_alt line count/);
+        expect(client.batchUpdate).not.toHaveBeenCalled();
     });
 });
 

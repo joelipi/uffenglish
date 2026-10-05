@@ -6,8 +6,7 @@
 //
 // Lives under scripts/ so the src/** recorder-page scanner is unaffected.
 import { describe, it, expect } from 'vitest';
-import { readFileSync, mkdtempSync, readdirSync, rmSync } from 'node:fs';
-import os from 'node:os';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runTranslateSheet } from './translate-sheet.mjs';
@@ -100,28 +99,21 @@ describe('service-account key is never written to disk', () => {
     });
 
     it('a fake Google client records only in-memory params across a dry-run and a real run', async () => {
-        const dir = mkdtempSync(path.join(os.tmpdir(), 'uff-xlate-key-'));
-        try {
-            const opened = [];
-            const client = {
-                getValues: async () => ({ values: [['lesson_title', 'lesson_title_es'], ['Hi', '']] }),
-                getSpreadsheet: async () => ({ sheets: [{ properties: { sheetId: 289451687, title: 'Sheet1' } }] }),
-                batchUpdate: (params) => { opened.push(params); return Promise.resolve({ data: {} }); },
-                translateText: async (t) => t,
-                log: () => {},
-            };
-            // Dry-run reads but never authenticates a write.
-            await runTranslateSheet({ sheetId: 'S', tab: 'Sheet1', languages: ['es'], dryRun: true, ...client });
-            expect(opened).toHaveLength(0);
-            // Real run: one authenticated write, in-memory params only.
-            await runTranslateSheet({ sheetId: 'S', tab: 'Sheet1', languages: ['es'], ...client });
-            expect(opened).toHaveLength(1);
-            expect(opened[0].spreadsheetId).toBe('S');
-            expect(String(opened[0].requestBody)).not.toContain('.json');
-            // No key file materialised in a fresh directory.
-            expect(readdirSync(dir).filter((f) => f.endsWith('.json'))).toEqual([]);
-        } finally {
-            rmSync(dir, { recursive: true, force: true });
-        }
+        const opened = [];
+        const client = {
+            getValues: async () => ({ values: [['lesson_title', 'lesson_title_es'], ['Hi', '']] }),
+            getSpreadsheet: async () => ({ sheets: [{ properties: { sheetId: 289451687, title: 'Sheet1' } }] }),
+            batchUpdate: (params) => { opened.push(params); return Promise.resolve({ data: {} }); },
+            translateText: async (t) => t,
+            log: () => {},
+        };
+        // Dry-run reads but never authenticates a write.
+        await runTranslateSheet({ sheetId: 'S', tab: 'Sheet1', languages: ['es'], dryRun: true, ...client });
+        expect(opened).toHaveLength(0);
+        // Real run: one authenticated write, in-memory params only.
+        await runTranslateSheet({ sheetId: 'S', tab: 'Sheet1', languages: ['es'], ...client });
+        expect(opened).toHaveLength(1);
+        expect(opened[0].spreadsheetId).toBe('S');
+        expect(String(opened[0].requestBody)).not.toContain('.json');
     });
 });

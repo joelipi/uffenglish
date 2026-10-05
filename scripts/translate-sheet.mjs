@@ -24,7 +24,9 @@ import {
     SHEET_LANGUAGES,
     TRANSLATABLE_FIELDS,
     localizedColumn,
+    groupCueAltLines,
     planSheetTranslations,
+    quoteSheetTitle,
     buildBatchUpdatePayload,
     rowsFromValues,
 } from './lib/sheet-translate-utils.js';
@@ -146,10 +148,10 @@ export async function runTranslateSheet({
         sheetTitle = resolveTabFromGid(meta, PUBLISHED_GID);
     }
 
-    const data = await getValues({ spreadsheetId: sheetId, range: `${sheetTitle}!A1:ZZ` });
-    const { headers, rows } = rowsFromValues(data?.values || []);
+    const data = await getValues({ spreadsheetId: sheetId, range: `${quoteSheetTitle(sheetTitle)}!A1:ZZ` });
+    const { headers, rows, sheetRows } = rowsFromValues(data?.values || []);
 
-    const plan = planSheetTranslations({ rows, languages, force });
+    const plan = planSheetTranslations({ rows, headers, sheetRows, languages, force });
     const already = alreadyPresentCounts(rows, languages);
 
     if (plan.length === 0) {
@@ -172,7 +174,23 @@ export async function runTranslateSheet({
     }
 
     const translations = [];
-    for (const item of plan) translations.push(await translate(item.sourceText, item.lang));
+    for (const item of plan) {
+        const translated = await translate(item.sourceText, item.lang);
+        // `cue_alt` is one multi-line cell paired with the English lines by index
+        // by the generator; a model that collapses/expands lines would silently
+        // drop translations, so reject the cell before anything is written.
+        if (item.field === 'cue_alt') {
+            const expected = groupCueAltLines(item.sourceText).length;
+            const got = groupCueAltLines(translated).length;
+            if (got !== expected) {
+                throw new Error(
+                    `translation for ${item.column} (${item.lang}) changed the cue_alt line count: ` +
+                    `expected ${expected}, got ${got}`
+                );
+            }
+        }
+        translations.push(translated);
+    }
     const payload = buildBatchUpdatePayload({ plan, headers, sheetTitle, translations });
     await batchUpdate({ spreadsheetId: sheetId, requestBody: payload });
 
