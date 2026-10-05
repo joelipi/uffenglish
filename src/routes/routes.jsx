@@ -3,6 +3,7 @@ import RootLayout from './RootLayout.jsx';
 import AppLayout from './AppLayout.jsx';
 import AuthLayout from './AuthLayout.jsx';
 import HomeRoute from './HomeRoute.jsx';
+import PublicHomeRoute from './PublicHomeRoute.jsx';
 import ProfileRoute from './ProfileRoute.jsx';
 import LoginRoute from './LoginRoute.jsx';
 import SignupRoute from './SignupRoute.jsx';
@@ -16,7 +17,7 @@ function LessonError() {
     <div className="d-flex flex-column align-items-center justify-content-center vh-100">
       <h2>Lesson not found</h2>
       <p>The course or lesson you requested does not exist.</p>
-      <Link to="/" className="btn btn-primary">Go Home</Link>
+      <Link to="/home" className="btn btn-primary">Go Home</Link>
     </div>
   );
 }
@@ -25,7 +26,8 @@ export const routes = [
   {
     element: <RootLayout />,
     children: [
-      { path: '/', element: <HomeRoute /> },
+      { path: '/', element: <PublicHomeRoute /> },
+      { path: '/home', element: <HomeRoute /> },
       { path: '/login', element: <AuthLayout />, children: [{ index: true, element: <LoginRoute /> }] },
       { path: '/signup', element: <AuthLayout />, children: [{ index: true, element: <SignupRoute /> }] },
       { path: '/recover-password', element: <AuthLayout />, children: [{ index: true, element: <RecoverPasswordRoute /> }] },

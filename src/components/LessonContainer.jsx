@@ -131,8 +131,7 @@ export default function LessonContainer() {
             <div className="top-overlay position-absolute top-0 start-0 w-100 px-3 py-2">
                 <div className="w-100 text-shadow">
                     <div id="top-bar-primary" className="d-flex align-items-center w-100 mb-0">
-                        {/* TODO: Replace with proper home route when one exists */}
-                        <Link to="/" id="closePage"
+                        <Link to="/home" id="closePage"
                             className="d-flex align-items-center text-decoration-none flex-shrink-0" aria-label="Close">
                             <i className="bi bi-x-lg"></i>
                         </Link>

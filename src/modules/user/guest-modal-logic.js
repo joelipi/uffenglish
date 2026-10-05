@@ -4,6 +4,14 @@
 
 export const ENGLISH_LANG = 'EN';
 
+// Routes that are public to everyone and must never open the guest modal: the
+// public homepage's only job is the friend-challenge entry.
+export const PUBLIC_ROUTES = ['/'];
+
+export function isPublicHomeRoute(pathname) {
+    return typeof pathname === 'string' && PUBLIC_ROUTES.includes(pathname);
+}
+
 // - friend lesson + non-English browser -> adopt the browser language silently
 //   (no modal at all)
 // - friend lesson + English browser     -> language step only

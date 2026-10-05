@@ -99,6 +99,78 @@ describe('language code normalization for hi/bn', () => {
     });
 });
 
+describe('public homepage share-code strings', () => {
+    const KEYS = {
+        home_landing_headline: {
+            en: 'Practice English with your friends for free.',
+            es: 'Practica inglés con tus amigos gratis.',
+            pt: 'Pratique inglês com seus amigos de graça.',
+            fr: "Pratiquez l'anglais avec vos amis gratuitement.",
+            hi: 'अपने दोस्तों के साथ मुफ़्त में अंग्रेज़ी का अभ्यास करें।',
+            bn: 'বন্ধুদের সাথে বিনামূল্যে ইংরেজি চর্চা করুন।',
+        },
+        home_landing_subheadline: {
+            en: "Enter your friend's share code",
+            es: 'Ingresa el código de tu amigo',
+            pt: 'Digite o código do seu amigo',
+            fr: 'Entrez le code de partage de votre ami',
+            hi: 'अपने दोस्त का शेयर कोड दर्ज करें',
+            bn: 'আপনার বন্ধুর শেয়ার কোড লিখুন',
+        },
+        home_landing_code_placeholder: {
+            en: 'Share code', es: 'Código', pt: 'Código', fr: 'Code',
+            hi: 'शेयर कोड', bn: 'শেয়ার কোড',
+        },
+        home_landing_go: {
+            en: 'Go', es: 'Ir', pt: 'Ir', fr: 'Aller',
+            hi: 'जाएँ', bn: 'যান',
+        },
+        home_landing_no_code: {
+            en: "I don't have a share code",
+            es: 'No tengo un código', pt: 'Não tenho um código', fr: "Je n'ai pas de code",
+            hi: 'मेरे पास शेयर कोड नहीं है', bn: 'আমার কাছে শেয়ার কোড নেই',
+        },
+        home_landing_code_required: {
+            en: 'Enter a share code to continue.',
+            es: 'Ingresa un código para continuar.',
+            pt: 'Digite um código para continuar.',
+            fr: 'Entrez un code pour continuer.',
+            hi: 'जारी रखने के लिए शेयर कोड दर्ज करें।',
+            bn: 'চালিয়ে যেতে একটি শেয়ার কোড লিখুন।',
+        },
+        home_landing_code_not_found: {
+            en: "We couldn't find a friend with that share code. Check it and try again.",
+            es: 'No encontramos a un amigo con ese código. Verifícalo e inténtalo de nuevo.',
+            pt: 'Não encontramos um amigo com esse código. Verifique e tente novamente.',
+            fr: "Nous n'avons trouvé aucun ami avec ce code. Vérifiez-le et réessayez.",
+            hi: 'उस शेयर कोड वाला कोई दोस्त नहीं मिला। जाँच कर फिर से कोशिश करें।',
+            bn: 'সেই শেয়ার কোডে কোনো বন্ধুকে পাওয়া যায়নি। যাচাই করে আবার চেষ্টা করুন।',
+        },
+        home_landing_lookup_error: {
+            en: 'Something went wrong. Please try again.',
+            es: 'Algo salió mal. Inténtalo de nuevo.',
+            pt: 'Algo deu errado. Tente novamente.',
+            fr: "Une erreur s'est produite. Veuillez réessayer.",
+            hi: 'कुछ गलत हो गया। कृपया फिर से प्रयास करें।',
+            bn: 'কিছু ভুল হয়েছে। আবার চেষ্টা করুন।',
+        },
+    };
+
+    it.each(Object.entries(KEYS))('%s returns the exact copy per language', (key, copy) => {
+        for (const [lang, expected] of Object.entries(copy)) {
+            expect(get(key, lang)).toBe(expected);
+        }
+    });
+
+    it('leaves no placeholder behind in any language', () => {
+        for (const key of Object.keys(KEYS)) {
+            for (const lang of ['en', 'es', 'pt', 'fr', 'hi', 'bn']) {
+                expect(get(key, lang), `${key}/${lang}`).not.toContain('{');
+            }
+        }
+    });
+});
+
 describe('getBilingual for hi/bn', () => {
     it('returns structured bilingual data', () => {
         const hi = getBilingual('status_speak', 'hi');

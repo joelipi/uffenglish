@@ -5,7 +5,7 @@ import LoginForm from '../components/auth/LoginForm.web.jsx';
 export default function LoginRoute() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const redirect = searchParams.get('redirect') || '/';
+    const redirect = searchParams.get('redirect') || '/home';
     return (
         <LoginForm
             onLoginSuccess={() => navigate(redirect)}

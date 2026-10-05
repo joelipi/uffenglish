@@ -331,7 +331,7 @@ export default function UserProfile() {
         return (
             <div style={containerStyle}>
                 <div style={headerStyle}>
-                    <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}>
+                    <button onClick={() => navigate('/home')} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}>
                         <i className="bi bi-arrow-left"></i>
                     </button>
                     <span style={{ fontSize: '18px', fontWeight: 600 }}>{Strings.get('profile_title', lang)}</span>
@@ -348,7 +348,7 @@ export default function UserProfile() {
         return (
             <div style={containerStyle}>
                 <div style={headerStyle}>
-                    <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}>
+                    <button onClick={() => navigate('/home')} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}>
                         <i className="bi bi-arrow-left"></i>
                     </button>
                     <span style={{ fontSize: '18px', fontWeight: 600 }}>{Strings.get('profile_title', lang)}</span>
@@ -377,7 +377,7 @@ export default function UserProfile() {
     return (
         <div style={containerStyle}>
             <div style={headerStyle}>
-                <button onClick={() => navigate('/')} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}>
+                <button onClick={() => navigate('/home')} style={{ background: 'none', border: 'none', color: 'white', fontSize: '20px', cursor: 'pointer' }}>
                     <i className="bi bi-arrow-left"></i>
                 </button>
                 <span style={{ fontSize: '18px', fontWeight: 600 }}>{Strings.get('profile_title', lang)}</span>

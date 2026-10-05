@@ -5,7 +5,7 @@ import { appStore } from '../modules/store/store.js';
 import { useAuthStatus } from '../modules/api/api.js';
 import { usePreloader } from './usePreloader.js';
 import { isFriendLesson } from '../modules/user/friend-lesson-detection.js';
-import { resolveGuestModalPlan, resolveSilentLanguageReapply } from '../modules/user/guest-modal-logic.js';
+import { resolveGuestModalPlan, resolveSilentLanguageReapply, isPublicHomeRoute } from '../modules/user/guest-modal-logic.js';
 
 const AUTH_ROUTES = ['/login', '/signup', '/recover-password', '/reset-password'];
 
@@ -47,6 +47,11 @@ export function useGuestModalGuard() {
         if (!isAuthRoute) {
             const state = appStore.getState();
             if (state.guestModalShownThisSession) return;
+
+            if (isPublicHomeRoute(path)) {
+                console.log('[GuestModalGuard] Public homepage — not opening the guest modal.');
+                return;
+            }
 
             const detectedCode = detectBrowserLanguage();
             const friendLesson = isFriendLesson({ search: location.search, pathname: path });
