@@ -24,7 +24,12 @@ from __future__ import annotations
 import os
 from contextlib import contextmanager
 
-from pipeline_lib import bucket_for_key
+from pipeline_lib import (
+    PUBLISHED_VIDEO_PREFIX,
+    UGC_PREFIX,
+    bucket_for_key,
+    is_private_key,
+)
 
 DEFAULT_BUCKET = "uff"
 
@@ -127,8 +132,8 @@ def list_keys(prefix: str) -> list:
     public prefix lists the public bucket; an ambiguous prefix raises rather than
     silently returning an empty list from the wrong bucket.
     """
-    if not (prefix.startswith("raw/") or prefix.startswith("pipeline-assets/")
-            or prefix.startswith("assets/videos/") or prefix.startswith("videos/")):
+    if not (is_private_key(prefix)
+            or prefix.startswith((PUBLISHED_VIDEO_PREFIX, UGC_PREFIX))):
         raise ValueError(
             f"list_keys prefix {prefix!r} does not resolve to a known bucket namespace"
         )

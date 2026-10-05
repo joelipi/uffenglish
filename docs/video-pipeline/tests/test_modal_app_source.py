@@ -130,6 +130,24 @@ class StorageGuardTest(unittest.TestCase):
         self.assertIn("raise", private)
         self.assertNotIn("public_bucket_name(", private)
 
+    def test_private_bucket_name_raises_behaviorally(self):
+        # storage.py imports without boto3 (it is lazy), so exercise the real
+        # function: unset -> raises; set -> returns the name; public routes are
+        # unaffected by an unset private name.
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("pipeline_storage", STORAGE)
+        storage = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(storage)
+
+        with self.assertRaises(RuntimeError):
+            storage.private_bucket_name({})
+        self.assertEqual(storage.private_bucket_name({"R2_PRIVATE_BUCKET": "uff-private"}),
+                         "uff-private")
+        self.assertEqual(storage._bucket_for("assets/videos/x.mp4", {}), "uff")
+        with self.assertRaises(RuntimeError):
+            storage._bucket_for("raw/x.mp4", {})
+
     def test_bucket_name_alias_is_gone(self):
         self.assertNotIn("def bucket_name(", read(STORAGE))
 
@@ -150,7 +168,8 @@ class StorageGuardTest(unittest.TestCase):
 
     def test_imports_and_routes_by_bucket_for_key(self):
         text = read(STORAGE)
-        self.assertIn("from pipeline_lib import bucket_for_key", text)
+        self.assertIn("from pipeline_lib import (", text)
+        self.assertIn("bucket_for_key", text)
         self.assertIn("def _bucket_for(", text)
         # Every helper selects the bucket through the shared rule, never a
         # hardcoded name.

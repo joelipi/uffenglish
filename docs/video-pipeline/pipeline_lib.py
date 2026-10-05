@@ -29,6 +29,7 @@ PROCESSED_PREFIX = "processed_"
 VIDEO_EXTENSION = "_no_silence_bg_removed.mp4"
 
 PUBLISHED_VIDEO_PREFIX = "assets/videos/"
+UGC_PREFIX = "videos/"  # learner/recap clips (48h lifecycle), public bucket
 RAW_PREFIX = "raw/"
 STATUS_PREFIX = "raw/status/"
 PIPELINE_ASSET_PREFIX = "pipeline-assets/"
