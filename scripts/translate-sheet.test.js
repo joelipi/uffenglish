@@ -143,10 +143,10 @@ describe('runTranslateSheet', () => {
 
     it('translates a repeated lesson value once, on the first row of its lesson', async () => {
         const values = [
-            ['lesson_id', 'video_file', 'lesson_title', 'lesson_title_es'],
-            ['a', 'v1', 'Lesson', ''],
-            ['a', 'v2', 'Lesson', ''],
-            ['a', 'v3', 'Lesson', ''],
+            ['course_id', 'lesson_id', 'video_file', 'lesson_title', 'lesson_title_es'],
+            ['c', 'a', 'v1', 'Lesson', ''],
+            ['c', 'a', 'v2', 'Lesson', ''],
+            ['c', 'a', 'v3', 'Lesson', ''],
         ];
         const client = makeClient(values);
         const translateText = vi.fn(async (t, l) => `${l}:${t}`);
@@ -156,6 +156,39 @@ describe('runTranslateSheet', () => {
         expect(res.plan).toHaveLength(1);
         expect(res.plan[0]).toMatchObject({ sheetRow: 2, column: 'lesson_title_es' });
         expect(translateText).toHaveBeenCalledTimes(1);
+    });
+
+    it('plans each course separately when two courses reuse a lesson id', async () => {
+        const values = [
+            ['course_id', 'lesson_id', 'video_file', 'lesson_title', 'lesson_title_es'],
+            ['alpha', 'a', 'v1', 'Lesson', ''],
+            ['alpha', 'a', 'v2', 'Lesson', ''],
+            ['beta', 'a', 'v1', 'Lesson', ''],
+            ['beta', 'a', 'v2', 'Lesson', ''],
+        ];
+        const client = makeClient(values);
+        const translateText = vi.fn(async (t, l) => `${l}:${t}`);
+        const res = await runTranslateSheet({
+            sheetId: 'S', tab: 'Sheet1', languages: ['es'], ...client, translateText, log: () => {},
+        });
+        expect(res.plan.map((p) => p.sheetRow)).toEqual([2, 4]);
+        expect(client.batchUpdate.mock.calls[0][0].requestBody.data.map((d) => d.range))
+            .toEqual(["'Sheet1'!E2", "'Sheet1'!E4"]);
+    });
+
+    it('emits one cue_alt item per source-bearing row of a step group', async () => {
+        const values = [
+            ['course_id', 'lesson_id', 'video_file', 'cue_alt', 'cue_alt_es'],
+            ['c', 'a', 'v', 'A\nB', ''],
+            ['c', 'a', 'v', 'C', ''],
+        ];
+        const client = makeClient(values);
+        const translateText = vi.fn(async (t, l) => `${l}:${t}`);
+        const res = await runTranslateSheet({
+            sheetId: 'S', tab: 'Sheet1', languages: ['es'], ...client, translateText, log: () => {},
+        });
+        expect(res.plan.map((p) => p.sheetRow)).toEqual([2, 3]);
+        expect(translateText).toHaveBeenCalledTimes(2);
     });
 
     it('rejects a cue_alt translation whose line count changed, writing nothing', async () => {

@@ -85,20 +85,68 @@ function cell(row, name) {
     return v === undefined || v === null ? '' : String(v);
 }
 
+function headerSetOf(headers) {
+    return new Set((headers || []).map((h) => String(h).trim().toLowerCase()));
+}
+
+/**
+ * Row-index groups for one translatable field. Group-scoped only when the key
+ * columns for the field's level are present in `headers`; otherwise every row is
+ * its own group (per-row fallback, so simple fixtures keep working).
+ *
+ * Lesson-level fields group by `course_id` + `lesson_id`; step-level fields by
+ * `course_id` + `lesson_id` + `video_file`. `course_id` is part of the key
+ * because `lesson_id` is only unique within a course — the generator partitions
+ * by `course_id` first, so two courses may reuse `intro`/`a`/…. Blank spacer
+ * rows (missing any required key) are dropped so they cannot create plans.
+ */
+function groupsForField(rows, headerSet, level) {
+    const hasCourseId = headerSet.has('course_id');
+    const hasLessonId = headerSet.has('lesson_id');
+    const hasVideoFile = headerSet.has('video_file');
+    const canGroup = level === 'lesson'
+        ? (hasCourseId && hasLessonId)
+        : (hasCourseId && hasLessonId && hasVideoFile);
+
+    const groups = new Map();
+    rows.forEach((row, rowIndex) => {
+        let key;
+        if (canGroup) {
+            const courseId = cell(row, 'course_id').trim();
+            const lessonId = cell(row, 'lesson_id').trim();
+            const videoFile = cell(row, 'video_file').trim();
+            if (level === 'lesson') {
+                if (!courseId || !lessonId) return; // blank spacer row
+                key = `lesson|${courseId}|${lessonId}`;
+            } else {
+                if (!courseId || !lessonId || !videoFile) return; // blank spacer row
+                key = `step|${courseId}|${lessonId}|${videoFile}`;
+            }
+        } else {
+            key = `row|${rowIndex}`; // per-row fallback
+        }
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(rowIndex);
+    });
+    return groups;
+}
+
+/** The group's `srt` column wins over `subtitle_text`, so its text is not translated. */
+function groupUsesSrt(rows, indices) {
+    return indices.some((i) => cell(rows[i], 'srt').trim());
+}
+
 /**
  * The diff plan for a sheet: for every (group, field, lang) whose English
  * source is non-blank and whose target cell is blank across the group (or, with
- * `force`, present), emit exactly one item targeting the first source-bearing
- * row of the group. Deterministic and idempotent: a non-blank target anywhere in
- * the group is skipped unless `force`. Never throws on a blank source.
+ * `force`, present), emit the item(s) to fill. Deterministic and idempotent: a
+ * non-blank target anywhere in the group is skipped unless `force`. Never throws
+ * on a blank source.
  *
- * Planning is group-scoped (story 049 §2): lesson-level fields (`lesson_title`,
- * `mission`) group by `lesson_id`; step-level fields (`cue`, `cue_alt`,
- * `subtitle_text`) group by `lesson_id` + `video_file`. This translates a
- * repeated lesson value once, on the first row of the lesson, rather than on
- * every row. When the required key columns are absent from `headers`, planning
- * falls back to one group per row (so simple fixtures still work). Blank spacer
- * rows (missing `lesson_id`/`video_file`) never create spurious plans.
+ * `cue_alt` is flattened across the group's rows by the generator, so it emits
+ * one item per source-bearing row; every other field is one value written once
+ * on the group's first source-bearing row. `subtitle_text` groups shadowed by a
+ * non-blank `srt` are skipped (the generator gives `srt` precedence).
  *
  * @param {object} opts
  * @param {Array<Record<string,string>>} opts.rows parsed rows (header-keyed)
@@ -114,55 +162,66 @@ export function planSheetTranslations({
 } = {}) {
     const plan = [];
     const rowsList = rows || [];
-    const headerSet = new Set((headers || []).map((h) => String(h).trim().toLowerCase()));
-    const hasLessonId = headerSet.has('lesson_id');
-    const hasVideoFile = headerSet.has('video_file');
+    const headerSet = headerSetOf(headers);
 
     for (const { field, source, level } of TRANSLATABLE_FIELDS) {
-        // Group-scope only when the key columns for this level are present;
-        // otherwise fall back to one group per row.
-        const canGroup = level === 'lesson' ? hasLessonId : (hasLessonId && hasVideoFile);
-
-        const groups = new Map();
-        rowsList.forEach((row, rowIndex) => {
-            let key;
-            if (canGroup) {
-                const lessonId = cell(row, 'lesson_id').trim();
-                const videoFile = cell(row, 'video_file').trim();
-                if (level === 'lesson') {
-                    if (!lessonId) return; // blank spacer row
-                    key = `lesson|${lessonId}`;
-                } else {
-                    if (!lessonId || !videoFile) return; // blank spacer row
-                    key = `step|${lessonId}|${videoFile}`;
-                }
-            } else {
-                key = `row|${rowIndex}`;
-            }
-            if (!groups.has(key)) groups.set(key, []);
-            groups.get(key).push(rowIndex);
-        });
-
+        const groups = groupsForField(rowsList, headerSet, level);
         for (const indices of groups.values()) {
-            const firstSource = indices.find((i) => cell(rowsList[i], source).trim());
-            if (firstSource === undefined) continue;
+            const sourceIndices = indices.filter((i) => cell(rowsList[i], source).trim());
+            if (sourceIndices.length === 0) continue;
+            if (field === 'subtitle_text' && groupUsesSrt(rowsList, indices)) continue;
             for (const lang of languages) {
                 const target = localizedColumn(field, lang);
                 const groupHasTarget = indices.some((i) => cell(rowsList[i], target).trim());
                 if (groupHasTarget && !force) continue; // already translated -> idempotent
-                plan.push({
-                    row: firstSource,
-                    sheetRow: sheetRows ? sheetRows[firstSource] : firstSource + 2,
-                    column: target,
-                    sourceColumn: source,
-                    sourceText: cell(rowsList[firstSource], source).trim(),
-                    lang,
-                    field,
-                });
+                const targetRows = field === 'cue_alt' ? sourceIndices : [sourceIndices[0]];
+                for (const rowIndex of targetRows) {
+                    plan.push({
+                        row: rowIndex,
+                        sheetRow: sheetRows ? sheetRows[rowIndex] : rowIndex + 2,
+                        column: target,
+                        sourceColumn: source,
+                        sourceText: cell(rowsList[rowIndex], source).trim(),
+                        lang,
+                        field,
+                    });
+                }
             }
         }
     }
     return plan;
+}
+
+/**
+ * Group-scoped count of translations already present, matching the planner's
+ * notion of a group: a (field, lang) counts once per group that has any
+ * non-blank target. `subtitle_text` groups shadowed by `srt` are not counted.
+ * Used only for the CLI report.
+ *
+ * @param {object} opts
+ * @param {Array<Record<string,string>>} [opts.rows]
+ * @param {string[]} [opts.headers]
+ * @param {string[]} [opts.languages]
+ * @returns {Record<string, number>} counts keyed by language
+ */
+export function countPresentTranslations({ rows, headers, languages = SHEET_LANGUAGES } = {}) {
+    const rowsList = rows || [];
+    const headerSet = headerSetOf(headers);
+    const counts = {};
+    for (const lang of languages) counts[lang] = 0;
+
+    for (const { field, source, level } of TRANSLATABLE_FIELDS) {
+        const groups = groupsForField(rowsList, headerSet, level);
+        for (const indices of groups.values()) {
+            if (!indices.some((i) => cell(rowsList[i], source).trim())) continue;
+            if (field === 'subtitle_text' && groupUsesSrt(rowsList, indices)) continue;
+            for (const lang of languages) {
+                const target = localizedColumn(field, lang);
+                if (indices.some((i) => cell(rowsList[i], target).trim())) counts[lang] += 1;
+            }
+        }
+    }
+    return counts;
 }
 
 /** A 0-based column index -> A1 column letters (0 -> A, 26 -> AA). */

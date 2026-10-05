@@ -22,10 +22,9 @@ import { google } from 'googleapis';
 import { flagValue } from './lib/cli-utils.js';
 import {
     SHEET_LANGUAGES,
-    TRANSLATABLE_FIELDS,
-    localizedColumn,
     groupCueAltLines,
     planSheetTranslations,
+    countPresentTranslations,
     quoteSheetTitle,
     buildBatchUpdatePayload,
     rowsFromValues,
@@ -105,21 +104,6 @@ export function createSheetsSeams(env = process.env) {
     };
 }
 
-/** Per-language count of source-bearing cells that already have a translation. */
-function alreadyPresentCounts(rows, languages) {
-    const counts = {};
-    for (const row of rows) {
-        for (const { field, source } of TRANSLATABLE_FIELDS) {
-            if (!String(row?.[source] ?? '').trim()) continue;
-            for (const lang of languages) {
-                const target = String(row?.[localizedColumn(field, lang)] ?? '').trim();
-                if (target) counts[lang] = (counts[lang] || 0) + 1;
-            }
-        }
-    }
-    return counts;
-}
-
 /**
  * Core, dependency-injected translation pass. `getValues`/`getSpreadsheet`/
  * `batchUpdate`/`translateText` are seams so tests run with fakes and no live
@@ -152,7 +136,7 @@ export async function runTranslateSheet({
     const { headers, rows, sheetRows } = rowsFromValues(data?.values || []);
 
     const plan = planSheetTranslations({ rows, headers, sheetRows, languages, force });
-    const already = alreadyPresentCounts(rows, languages);
+    const already = countPresentTranslations({ rows, headers, languages });
 
     if (plan.length === 0) {
         for (const lang of languages) log(`${lang}: 0 filled, ${already[lang] || 0} already present`);

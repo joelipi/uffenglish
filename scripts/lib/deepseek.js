@@ -68,12 +68,14 @@ export async function translateText(text, lang, { fetchImpl, apiKey } = {}) {
         `You translate English text into ${lang}. ` +
         'Return ONLY a JSON object of the form {"translation": "<translated text>"}. ' +
         'Translate only the text; do not add commentary. ' +
+        "Preserve the input's line breaks exactly (keep the same number of lines). " +
         TAUGHT_PHRASE_INSTRUCTION;
     const parsed = await deepseekJson({ apiKey: resolveApiKey(apiKey), system, user: text, fetchImpl });
     if (typeof parsed.translation !== 'string' || parsed.translation.trim() === '') {
         throw new Error('DeepSeek response missing "translation" key');
     }
-    return parsed.translation;
+    // Trim stray surrounding whitespace so it never lands in a sheet cell.
+    return parsed.translation.trim();
 }
 
 /**

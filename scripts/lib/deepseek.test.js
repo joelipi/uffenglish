@@ -67,7 +67,13 @@ describe('translateText', () => {
         expect(system).toContain('Di:');
         expect(system).toContain('Diga:');
         expect(system).toContain('in English');
+        expect(system).toMatch(/line breaks/i);
         expect(body.messages[1].content).toBe('Hello');
+    });
+
+    it('trims stray surrounding whitespace from the returned translation', async () => {
+        const { fetchImpl } = stubFetch({ translation: '  Hola  ' });
+        expect(await translateText('Hello', 'es', { fetchImpl, apiKey: 'k' })).toBe('Hola');
     });
 
     it('throws when the response omits the translation key', async () => {

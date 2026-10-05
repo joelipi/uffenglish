@@ -6,6 +6,7 @@ import {
     localizedColumn,
     groupCueAltLines,
     planSheetTranslations,
+    countPresentTranslations,
     columnLetter,
     quoteSheetTitle,
     buildBatchUpdatePayload,
@@ -85,44 +86,88 @@ describe('planSheetTranslations', () => {
     });
 
     it('plans a repeated lesson-level field once per language, on the first row of the lesson', () => {
-        const headers = ['lesson_id', 'lesson_title', 'lesson_title_es', 'lesson_title_pt'];
+        const headers = ['course_id', 'lesson_id', 'lesson_title', 'lesson_title_es', 'lesson_title_pt'];
         const repeated = [
-            { lesson_id: 'a', lesson_title: 'L', lesson_title_es: '', lesson_title_pt: '' },
-            { lesson_id: 'a', lesson_title: 'L', lesson_title_es: '', lesson_title_pt: '' },
-            { lesson_id: 'a', lesson_title: 'L', lesson_title_es: '', lesson_title_pt: '' },
+            { course_id: 'c', lesson_id: 'a', lesson_title: 'L', lesson_title_es: '', lesson_title_pt: '' },
+            { course_id: 'c', lesson_id: 'a', lesson_title: 'L', lesson_title_es: '', lesson_title_pt: '' },
+            { course_id: 'c', lesson_id: 'a', lesson_title: 'L', lesson_title_es: '', lesson_title_pt: '' },
         ];
         const plan = planSheetTranslations({ rows: repeated, headers, languages: ['es', 'pt'] });
         expect(plan.map((p) => `${p.row}:${p.column}`)).toEqual(['0:lesson_title_es', '0:lesson_title_pt']);
     });
 
-    it('plans a step-level field once per lesson_id + video_file group', () => {
-        const headers = ['lesson_id', 'video_file', 'cue', 'cue_es'];
+    it('plans a step-level field once per course_id + lesson_id + video_file group', () => {
+        const headers = ['course_id', 'lesson_id', 'video_file', 'cue', 'cue_es'];
         const group = [
-            { lesson_id: 'a', video_file: 'v', cue: 'Q', cue_es: '' },
-            { lesson_id: 'a', video_file: 'v', cue: 'Q', cue_es: '' },
-            { lesson_id: 'a', video_file: 'w', cue: 'R', cue_es: '' },
+            { course_id: 'c', lesson_id: 'a', video_file: 'v', cue: 'Q', cue_es: '' },
+            { course_id: 'c', lesson_id: 'a', video_file: 'v', cue: 'Q', cue_es: '' },
+            { course_id: 'c', lesson_id: 'a', video_file: 'w', cue: 'R', cue_es: '' },
         ];
         const plan = planSheetTranslations({ rows: group, headers, languages: ['es'] });
         expect(plan.map((p) => `${p.row}:${p.column}`)).toEqual(['0:cue_es', '2:cue_es']);
     });
 
-    it('skips a group whose translation is hand-edited on a later row', () => {
+    it('keys groups by course_id so two courses reusing a lesson id do not merge', () => {
+        const headers = ['course_id', 'lesson_id', 'lesson_title', 'lesson_title_es'];
+        const rowsTwoCourses = [
+            { course_id: 'alpha', lesson_id: 'a', lesson_title: 'L', lesson_title_es: '' },
+            { course_id: 'alpha', lesson_id: 'a', lesson_title: 'L', lesson_title_es: '' },
+            { course_id: 'beta', lesson_id: 'a', lesson_title: 'L', lesson_title_es: '' },
+            { course_id: 'beta', lesson_id: 'a', lesson_title: 'L', lesson_title_es: '' },
+        ];
+        const plan = planSheetTranslations({ rows: rowsTwoCourses, headers, languages: ['es'] });
+        expect(plan.map((p) => `${p.row}:${p.column}`)).toEqual(['0:lesson_title_es', '2:lesson_title_es']);
+    });
+
+    it('falls back to per-row groups when course_id is absent from the header', () => {
         const headers = ['lesson_id', 'lesson_title', 'lesson_title_es'];
-        const rowsWithEdit = [
+        const rows = [
             { lesson_id: 'a', lesson_title: 'L', lesson_title_es: '' },
-            { lesson_id: 'a', lesson_title: 'L', lesson_title_es: 'Lección' },
+            { lesson_id: 'a', lesson_title: 'L', lesson_title_es: '' },
+        ];
+        const plan = planSheetTranslations({ rows, headers, languages: ['es'] });
+        expect(plan.map((p) => `${p.row}:${p.column}`)).toEqual(['0:lesson_title_es', '1:lesson_title_es']);
+    });
+
+    it('skips a group whose translation is hand-edited on a later row', () => {
+        const headers = ['course_id', 'lesson_id', 'lesson_title', 'lesson_title_es'];
+        const rowsWithEdit = [
+            { course_id: 'c', lesson_id: 'a', lesson_title: 'L', lesson_title_es: '' },
+            { course_id: 'c', lesson_id: 'a', lesson_title: 'L', lesson_title_es: 'Lección' },
         ];
         expect(planSheetTranslations({ rows: rowsWithEdit, headers, languages: ['es'] })).toEqual([]);
     });
 
     it('does not plan spurious cells for blank spacer rows', () => {
-        const headers = ['lesson_id', 'video_file', 'lesson_title', 'cue', 'lesson_title_es', 'cue_es'];
+        const headers = ['course_id', 'lesson_id', 'video_file', 'lesson_title', 'cue', 'lesson_title_es', 'cue_es'];
         const withSpacer = [
-            { lesson_id: 'a', video_file: 'v', lesson_title: 'L', cue: 'Q', lesson_title_es: '', cue_es: '' },
-            { lesson_id: '', video_file: '', lesson_title: 'STRAY', cue: 'STRAYQ', lesson_title_es: '', cue_es: '' },
+            { course_id: 'c', lesson_id: 'a', video_file: 'v', lesson_title: 'L', cue: 'Q', lesson_title_es: '', cue_es: '' },
+            { course_id: '', lesson_id: '', video_file: '', lesson_title: 'STRAY', cue: 'STRAYQ', lesson_title_es: '', cue_es: '' },
         ];
         const plan = planSheetTranslations({ rows: withSpacer, headers, languages: ['es'] });
         expect(plan.map((p) => `${p.row}:${p.column}`)).toEqual(['0:lesson_title_es', '0:cue_es']);
+    });
+
+    it('does not plan subtitle_text when the group has srt (srt wins)', () => {
+        const headers = ['course_id', 'lesson_id', 'video_file', 'subtitle_text', 'subtitle_text_es', 'srt'];
+        const rows = [{
+            course_id: 'c', lesson_id: 'a', video_file: 'v',
+            subtitle_text: 'Hi', subtitle_text_es: '', srt: '1\\n00:00 --> 00:01\\nHi',
+        }];
+        expect(planSheetTranslations({ rows, headers, languages: ['es'] })).toEqual([]);
+    });
+
+    it('emits one cue_alt item per source-bearing row of the group', () => {
+        const headers = ['course_id', 'lesson_id', 'video_file', 'cue_alt', 'cue_alt_es'];
+        const rows = [
+            { course_id: 'c', lesson_id: 'a', video_file: 'v', cue_alt: 'A\nB', cue_alt_es: '' },
+            { course_id: 'c', lesson_id: 'a', video_file: 'v', cue_alt: 'C', cue_alt_es: '' },
+        ];
+        const plan = planSheetTranslations({ rows, headers, languages: ['es'] });
+        expect(plan.map((p) => `${p.row}:${p.column}:${p.sourceText}`)).toEqual([
+            '0:cue_alt_es:A\nB',
+            '1:cue_alt_es:C',
+        ]);
     });
 
     it('carries the physical sheet row through the plan', () => {
@@ -132,6 +177,27 @@ describe('planSheetTranslations', () => {
             languages: ['es'],
         });
         expect(plan[0].sheetRow).toBe(7);
+    });
+});
+
+describe('countPresentTranslations', () => {
+    it('counts a repeated lesson value once per group, not per row', () => {
+        const headers = ['course_id', 'lesson_id', 'lesson_title', 'lesson_title_es'];
+        const rows = [
+            { course_id: 'c', lesson_id: 'a', lesson_title: 'L', lesson_title_es: 'Lección' },
+            { course_id: 'c', lesson_id: 'a', lesson_title: 'L', lesson_title_es: '' },
+            { course_id: 'c', lesson_id: 'a', lesson_title: 'L', lesson_title_es: '' },
+        ];
+        expect(countPresentTranslations({ rows, headers, languages: ['es'] })).toEqual({ es: 1 });
+    });
+
+    it('does not count a subtitle_text group shadowed by srt', () => {
+        const headers = ['course_id', 'lesson_id', 'video_file', 'subtitle_text', 'subtitle_text_es', 'srt'];
+        const rows = [{
+            course_id: 'c', lesson_id: 'a', video_file: 'v',
+            subtitle_text: 'Hi', subtitle_text_es: 'Hola', srt: '1\\n00:00 --> 00:01\\nHi',
+        }];
+        expect(countPresentTranslations({ rows, headers, languages: ['es'] })).toEqual({ es: 0 });
     });
 });
 

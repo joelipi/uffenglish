@@ -19,9 +19,22 @@
 
 import {
     SHEET_LANGUAGES,
+    TRANSLATABLE_FIELDS,
     localizedColumn,
     groupCueAltLines,
 } from './sheet-translate-utils.js';
+
+// English source columns are looked up in the shared field map, so a field
+// removed or renamed in sheet-translate-utils.js fails loudly here instead of
+// being silently dropped from generated configs.
+const FIELD_SOURCES = new Map(TRANSLATABLE_FIELDS.map((f) => [f.field, f.source]));
+
+/** The English source column for a shared translatable field. */
+function sourceOf(field) {
+    const source = FIELD_SOURCES.get(field);
+    if (!source) throw new Error(`sheet-config-utils: unknown translatable field "${field}"`);
+    return source;
+}
 
 // Canonical vocabulary (mirrors the app; a guard pins these to the browser
 // module).
@@ -170,6 +183,7 @@ function firstLocalized(groupRows, field, lang) {
 
 /** English value plus each present language, e.g. `{ en, es, pt }` (blanks omitted). */
 function localizedObject(rows, field, enValue) {
+    sourceOf(field); // validate the field exists in the shared map
     const obj = { en: enValue };
     for (const lang of SHEET_LANGUAGES) {
         const v = firstLocalized(rows, field, lang);
@@ -193,7 +207,7 @@ function subtitlesFor(groupRows) {
         if (srt) return { en: unescapeSrt(srt) };
     }
     for (const row of groupRows) {
-        const text = cell(row, 'subtitle_text');
+        const text = cell(row, sourceOf('subtitle_text'));
         if (text.trim()) return localizedObject(groupRows, 'subtitle_text', text);
     }
     return undefined;
@@ -201,18 +215,20 @@ function subtitlesFor(groupRows) {
 
 /** Group's `cue`: `cue` (single) or `cue_alt` (newline-separated alternatives). */
 function cueFor(groupRows, videoFile) {
+    const cueField = sourceOf('cue');
+    const cueAltField = sourceOf('cue_alt');
     const singles = [];
     const alts = [];
     for (const row of groupRows) {
-        if (cell(row, 'cue').trim()) singles.push(cell(row, 'cue').trim());
-        if (cell(row, 'cue_alt').trim()) alts.push(cell(row, 'cue_alt'));
+        if (cell(row, cueField).trim()) singles.push(cell(row, cueField).trim());
+        if (cell(row, cueAltField).trim()) alts.push(cell(row, cueAltField));
     }
     if (singles.length && alts.length) {
         throw new Error(`video_file "${videoFile}": cue and cue_alt are mutually exclusive`);
     }
     if (alts.length) {
         // English alternatives, one per non-blank line across the group's rows.
-        const enLines = groupRows.flatMap((row) => groupCueAltLines(cell(row, 'cue_alt')));
+        const enLines = groupRows.flatMap((row) => groupCueAltLines(cell(row, cueAltField)));
         // Per-language lines, paired to the English lines by index. A shorter or
         // blank language simply omits that language for the extra elements.
         const langLines = {};
@@ -345,7 +361,7 @@ export function buildCourseConfig(rows) {
 
     const lessons = lessonOrder.map((lessonId) => {
         const rowsForLesson = lessonRows.get(lessonId);
-        const title = singleValue(rowsForLesson, 'lesson_title', `lesson "${lessonId}"`);
+        const title = singleValue(rowsForLesson, sourceOf('lesson_title'), `lesson "${lessonId}"`);
         if (!title) throw new Error(`lesson "${lessonId}": missing lesson_title`);
 
         const recapSources = singleValue(rowsForLesson, 'recap_sources', `lesson "${lessonId}"`) || 'none';
@@ -364,7 +380,7 @@ export function buildCourseConfig(rows) {
 
         const unit = singleValue(rowsForLesson, 'unit', `lesson "${lessonId}"`);
         if (unit) lesson.unit = unit;
-        const mission = singleValue(rowsForLesson, 'mission', `lesson "${lessonId}"`);
+        const mission = singleValue(rowsForLesson, sourceOf('mission'), `lesson "${lessonId}"`);
         if (mission) lesson.mission = localizedObject(rowsForLesson, 'mission', mission);
 
         lesson.steps = buildSteps(rowsForLesson);

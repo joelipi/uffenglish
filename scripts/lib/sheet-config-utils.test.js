@@ -372,6 +372,39 @@ describe('buildCourseConfig localization columns', () => {
     });
 });
 
+// Story 049: the generator's English source reads are derived from
+// TRANSLATABLE_FIELDS (sourceOf), so this pins that every shared field is
+// consumed and none is silently dropped.
+describe('shared translatable-field parity', () => {
+    it('consumes every field in TRANSLATABLE_FIELDS', () => {
+        const es = (field) => localizedColumn(field, 'es');
+        const rows = [
+            {
+                course_id: 'c', course_name: 'C', lesson_id: 'a', lesson_title: 'L', mission: 'M',
+                video_file: 'v1', filename: 'f1', order: '1', response_type: 'closedResponse',
+                cue: 'Q', subtitle_text: 'S',
+                [es('lesson_title')]: 'L-es', [es('mission')]: 'M-es',
+                [es('cue')]: 'Q-es', [es('subtitle_text')]: 'S-es',
+            },
+            {
+                course_id: 'c', course_name: 'C', lesson_id: 'a', lesson_title: 'L', mission: 'M',
+                video_file: 'v2', filename: 'f2', order: '2', response_type: 'closedResponse',
+                cue_alt: 'A\nB', [es('cue_alt')]: 'A-es\nB-es',
+            },
+        ];
+        const lesson = buildCourseConfig(rows).lessons[0];
+        expect(lesson.title.es).toBe('L-es');
+        expect(lesson.mission.es).toBe('M-es');
+        expect(lesson.steps[0].cue.es).toBe('Q-es');
+        expect(lesson.steps[0].subtitles.es).toBe('S-es');
+        expect(lesson.steps[1].cue[0].es).toBe('A-es');
+        // The generator's consumed field set is exactly the shared set.
+        expect(TRANSLATABLE_FIELDS.map((f) => f.field).sort()).toEqual([
+            'cue', 'cue_alt', 'lesson_title', 'mission', 'subtitle_text',
+        ]);
+    });
+});
+
 // The browser modules import runtime deps and cannot be imported here, so the
 // canonical literals are pinned by parsing their source text.
 describe('isValidCourseId', () => {
