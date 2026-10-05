@@ -9,7 +9,7 @@ Friend Challenge courses are ping-pong conversations: one participant records pr
 - `src/modules/notifications/notification-logic.js` — the friend-response notification only fires for `b`.
 - `src/modules/user/friend-lesson-detection.js` — `FRIEND_LESSON_IDS = ['a','b']`.
 
-`src/config/wouldrather.json` is the canonical friend config (route course id `wouldrather` — `AppLayout.jsx:20` fetches `/src/config/${routeCourseId}.json` and `appStore.courseId` is the route param, so clips are `{friendCode}wouldrather-<lessonId>-response-NN`; the file's internal `"courseId": "newtest"` is stale, unused metadata).
+`src/config/wouldrather.json` is the canonical friend config (route course id `wouldrather` — `AppLayout.jsx:20` fetches `/src/config/${routeCourseId}.json` and `appStore.courseId` is the route param, so clips are `{friendCode}wouldrather-<lessonId>-response-NN`).
 
 **Friend mode must never auto-advance.** Lesson X+1 depends on the other participant's clips from X, which do not exist yet, so `nextLessonId` (single-user auto-advance, `lesson-progression.js:79`) is off-limits for the chain. The follow-up is the profile **share link** only: finishing lesson X records a link that points at lesson X+1. A player can be mid-chain with several people at once, at different lessons, so the profile must hold one link per lesson, each labelled with that lesson's title.
 
@@ -107,7 +107,7 @@ Entry shape: `{ courseId, lessonId, shareCode, addedAt, lessonTitle }`.
 
 - `FRIEND_LESSON_IDS` equals `['a','b','c',…,'z']`.
 - `isFriendLesson({ pathname: '/course/wouldrather/lesson/c' })` → `true`; `…/lesson/h` → `true`; `…/lesson/z` → `true`.
-- `isFriendLesson({ pathname: '/course/model/lesson/wa' })` → `false` (multi-char id).
+- `isFriendLesson({ pathname: '/course/model/lesson/test' })` → `false` (multi-char id).
 - `isFriendLesson({ search: '?shareCode=x', pathname: '/course/anything/lesson/zz' })` → `true`.
 - `isFriendLesson` for `/`, `{}`, and `undefined` → `false`.
 
@@ -155,7 +155,7 @@ Publish indices (position-based, `assignSegmentTargets`): a lesson's recorded cl
 
 ## Notes
 
-- **Chain rule relies on `recapOverlay: "shareCta"`.** Every friend lesson in the canonical configs already carries it (`wouldrather`, `friend`, `newtest`, `test`: 2 each; `model`: `w`/`wa`/`wf`/`wfa`). A friend lesson without it will not chain; document this in the config contract.
+- **Chain rule relies on `recapOverlay: "shareCta"`.** Every friend lesson in the canonical configs already carries it (`wouldrather`, `friendchain`, `friend`, `test`: 2 each). A friend lesson without it will not chain; document this in the config contract.
 - **`lessonTitle` is captured at export time (a string).** `normalizeConfig` collapses `lesson.title` to a string in the exporter's language, and `PublicProfile` renders with the profile owner's language, so storing the string keeps the label in the right language without a per-link config fetch.
 - **Detection is intentionally route-only** (product decision). Extending `FRIEND_LESSON_IDS` to `a`–`z` widens the existing false positive: single-letter lessons in other courses (`gt2` `a`/`x`/`s`/`t`, `t` `t`/`y`) are now treated as friend lessons (video-only, low-friction guest flow). Add this to `docs/product.md` Known Limitations.
 - **Legacy `friend_links` entries** (no `lessonId`) disappear from the profile and expire within 48h; no migration is written.

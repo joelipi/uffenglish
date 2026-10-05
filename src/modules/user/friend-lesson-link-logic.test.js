@@ -107,9 +107,9 @@ describe('buildFriendLessonLink', () => {
     });
 
     it('uses an explicit base when provided', () => {
-        const url = buildFriendLessonLink({ courseId: 'model', lessonId: 'wa', shareCode: 'zz9', base: 'uff.test' });
-        expect(url).toBe('uff.test/course/model/lesson/wa?shareCode=zz9');
-        expect(url).toContain('/course/model/lesson/wa?shareCode=zz9');
+        const url = buildFriendLessonLink({ courseId: 'model', lessonId: 'm-a', shareCode: 'zz9', base: 'uff.test' });
+        expect(url).toBe('uff.test/course/model/lesson/m-a?shareCode=zz9');
+        expect(url).toContain('/course/model/lesson/m-a?shareCode=zz9');
     });
 });
 

@@ -19,27 +19,12 @@ function loadConfig(name) {
 describe('model.json recap flags', () => {
     const model = loadConfig('model.json');
 
-    it('sets recapSources/recapOverlay on the friend-challenge lessons', () => {
-        const expected = {
-            'm-w': { recapSources: 'none', recapOverlay: 'shareCta' },
-            wf: { recapSources: 'none', recapOverlay: 'shareCta' },
-            wa: { recapSources: 'friend', recapOverlay: 'shareCta' },
-            wfa: { recapSources: 'friend', recapOverlay: 'shareCta' },
-        };
-        for (const [lessonId, flags] of Object.entries(expected)) {
-            const lesson = model.lessons.find(l => l.lessonId === lessonId);
-            expect(lesson, `lesson ${lessonId} should exist`).toBeDefined();
-            expect(lesson.recapSources).toBe(flags.recapSources);
-            expect(lesson.recapOverlay).toBe(flags.recapOverlay);
-        }
-    });
-
-    it('leaves recapSources/recapOverlay unset on every other lesson', () => {
+    it('has no friend-challenge lessons (shareCta flags removed)', () => {
         const flagged = model.lessons
             .filter(l => l.recapSources !== undefined || l.recapOverlay !== undefined)
             .map(l => l.lessonId);
 
-        expect(flagged.sort()).toEqual(['m-w', 'wa', 'wf', 'wfa']);
+        expect(flagged).toEqual([]);
     });
 
     it('removes webcamOnly from every lesson', () => {

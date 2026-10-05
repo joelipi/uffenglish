@@ -66,14 +66,12 @@ describe('shareCta-order chain premise', () => {
     });
 });
 
-describe('model.json shareCta lessons chain in config order', () => {
-    it('orders w -> wa -> wf -> wfa', () => {
-        // model.json contains four shareCta lessons; the generic rule orders
-        // them by their position in configData.lessons.
-        expect(nextFriendLessonId(model, 'm-w')).toBe('wa');
-        expect(nextFriendLessonId(model, 'wa')).toBe('wf');
-        expect(nextFriendLessonId(model, 'wf')).toBe('wfa');
-        expect(nextFriendLessonId(model, 'wfa')).toBeNull();
+describe('model.json has no friend-challenge chain', () => {
+    it('contains no shareCta lessons, so nextFriendLessonId is always null', () => {
+        // model.json is single-user; its early friend lessons were removed.
+        expect(nextFriendLessonId(model, 'm-t')).toBeNull();
+        expect(nextFriendLessonId(model, 'm-x')).toBeNull();
+        expect(model.lessons.some((l) => l.recapOverlay === 'shareCta')).toBe(false);
     });
 });
 
