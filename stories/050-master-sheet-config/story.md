@@ -84,7 +84,7 @@ The existing source guards that pin `SHEET_URL` (against `public/recorder.html`)
 
 ### 8. Pre-filled CSV (decision)
 
-Because the sandbox has no Google credentials, the operator uploads the columns/values by hand. Provide `scripts/seed-master-columns.mjs` that fetches the published master CSV, appends the new config columns, and pre-fills: `success_video = enda` and `success_srt` = the standard friend-lesson success SRT (identical in `wouldrather.json` and `friendchain.json`), plus `intro_video` following the friend-chain `{friendCode}` pattern. It writes a CSV the operator imports; it performs no sheet write. Other config columns are emitted blank for the operator to fill.
+Because the sandbox has no Google credentials, the operator uploads the columns/values by hand. Provide `scripts/seed-master-columns.mjs` that fetches the published master CSV, appends the new config columns, and pre-fills: `success_video = success` and `success_srt` = the standard friend-lesson success SRT (identical in `wouldrather.json` and `friendchain.json`), plus `intro_video` following the friend-chain `{friendCode}` pattern (with the first lesson's intro a plain `intro` slug). It writes a CSV the operator imports; it performs no sheet write. Other config columns are emitted blank for the operator to fill.
 
 ## Tasks
 
@@ -134,7 +134,7 @@ Because the sandbox has no Google credentials, the operator uploads the columns/
 
 - run against the published master CSV
   - → output header contains every new config column
-  - → every row has `success_video = enda` and a non-blank `success_srt` equal to the `wouldrather.json` success `subtitles.en`
+  - → every row has `success_video = success` and a non-blank `success_srt` equal to the `wouldrather.json` success `subtitles.en`
   - → each lesson's rows carry the `intro_video` value for that lesson
   - → `course_id`/`course_name`/`lesson_id`/`lesson_title`/`response_type` cells are present (blank where not pre-filled)
 - the emitted CSV parsed by `parseCsv` + `buildCourseConfig`
@@ -181,7 +181,7 @@ Because the sandbox has no Google credentials, the operator uploads the columns/
 
 ## Notes
 
-- **Pre-fill assumptions for review:** `success_video = enda` and `success_srt` = the `wouldrather.json` success `subtitles.en`. `intro_video` follows the friend-chain pattern adapted from `wouldrather`: `a → testvideointro`, `b → {friendCode}wouldyourather-a-response-01`, `c → {friendCode}wouldyourather-b-response-04`, `d → {friendCode}wouldyourather-c-response-04`, `e → {friendCode}wouldyourather-d-response-04`, `f → {friendCode}wouldyourather-e-response-04`. These are a starting point the operator edits in the sheet; the story only requires that `intro_video`/`success_video`/`success_srt` are explicit columns and are pre-filled.
+- **Pre-fill assumptions for review:** `success_video = success` and `success_srt` = the `wouldrather.json` success `subtitles.en`. `intro_video` follows the friend-chain pattern adapted from `wouldrather`, with the first lesson's intro a plain conventional slug: `a → intro`, `b → {friendCode}wouldyourather-a-response-01`, `c → {friendCode}wouldyourather-b-response-04`, `d → {friendCode}wouldyourather-c-response-04`, `e → {friendCode}wouldyourather-d-response-04`, `f → {friendCode}wouldyourather-e-response-04`. These are a starting point the operator edits in the sheet; the story only requires that `intro_video`/`success_video`/`success_srt` are explicit columns and are pre-filled.
 - **The operator fills the required config columns once** (`course_id`, `course_name`, `lesson_id`, `lesson_title`, `response_type`); the generator reads them first-non-blank, so they are not repeated per take. `recap_sources`/`recap_overlay` default as today.
 - **`subtitle_text` is overloaded** (overlay markup on the master vs app subtitles on the authoring sheet); the format detection in §1 is what prevents cross-contamination, and master subtitles come only from `srt`.
 - **The published CSV lags an API write** (Google re-publishes after a Sheets API update), so a config run immediately after the SRT write may read a stale `srt`; the write-back is for record-keeping and the next run picks it up.
