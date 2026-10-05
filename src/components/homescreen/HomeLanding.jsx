@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Strings from '../../data/strings.js';
+import LegalFooter from '../legal/LegalFooter.jsx';
 
 // Public homepage: the friend-challenge entry. The only job is to accept a
 // friend's share code (or send the visitor into the Would You Rather ask
@@ -142,6 +143,8 @@ export default function HomeLanding({
                     </div>
                 </div>
             </div>
+
+            <LegalFooter lang={lang} />
         </div>
     );
 }

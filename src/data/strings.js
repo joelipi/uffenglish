@@ -893,6 +893,27 @@ const strings = {
         hi: "साइन इन",
         bn: "সাইন ইন"
     },
+    'legal_privacy': {
+        en: "Privacy Policy",
+        es: "Política de Privacidad",
+        fr: "Politique de confidentialité",
+        hi: "गोपनीयता नीति",
+        bn: "গোপনীয়তা নীতি"
+    },
+    'legal_terms': {
+        en: "Terms of Service",
+        es: "Términos del Servicio",
+        fr: "Conditions d'utilisation",
+        hi: "सेवा की शर्तें",
+        bn: "সেবার শর্তাবলী"
+    },
+    'legal_back': {
+        en: "Back",
+        es: "Volver",
+        fr: "Retour",
+        hi: "वापस",
+        bn: "ফিরে যান"
+    },
     'intent_specific_fail': {
         en: "❌ It seems like you're {bad_intent}, but this indicates you didn't understand what was said.",
         hi: "❌ ऐसा लगता है कि आप {bad_intent} हैं, लेकिन यह दर्शाता है कि आपने समझा नहीं कि क्या कहा गया।",
