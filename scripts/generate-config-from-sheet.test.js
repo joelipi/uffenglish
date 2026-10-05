@@ -3,7 +3,7 @@
 // per-course allow-list, best-effort skips, and the URL source guard.
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { execFile } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, existsSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, existsSync, writeFileSync } from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
@@ -84,8 +84,8 @@ describe('generate-config-from-sheet CLI', () => {
             expect(code).toBe(0);
             expect(JSON.parse(readFileSync(path.join(dir, 'alpha.json'), 'utf8')).courseId).toBe('alpha');
             expect(JSON.parse(readFileSync(path.join(dir, 'beta.json'), 'utf8')).courseId).toBe('beta');
-            expect(stdout).toContain('alpha.json');
-            expect(stdout).toContain('beta.json');
+            expect(stdout).toContain(`WROTE ${path.join(dir, 'alpha.json')}`);
+            expect(stdout).toContain(`WROTE ${path.join(dir, 'beta.json')}`);
         } finally { rmSync(dir, { recursive: true, force: true }); }
     });
 
@@ -93,11 +93,13 @@ describe('generate-config-from-sheet CLI', () => {
         const dir = tmpDir();
         try {
             await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`]);
-            const before = readFileSync(path.join(dir, 'alpha.json'), 'utf8');
+            const beforeA = readFileSync(path.join(dir, 'alpha.json'), 'utf8');
+            const beforeB = readFileSync(path.join(dir, 'beta.json'), 'utf8');
             const second = await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`]);
             expect(second.code).not.toBe(0);
             expect(second.stderr).toContain('refusing to overwrite');
-            expect(readFileSync(path.join(dir, 'alpha.json'), 'utf8')).toBe(before);
+            expect(readFileSync(path.join(dir, 'alpha.json'), 'utf8')).toBe(beforeA);
+            expect(readFileSync(path.join(dir, 'beta.json'), 'utf8')).toBe(beforeB);
         } finally { rmSync(dir, { recursive: true, force: true }); }
     });
 
@@ -105,9 +107,13 @@ describe('generate-config-from-sheet CLI', () => {
         const dir = tmpDir();
         try {
             await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`]);
+            // Corrupt both, then --force must rewrite both.
+            writeFileSync(path.join(dir, 'alpha.json'), '{"stale":true}');
+            writeFileSync(path.join(dir, 'beta.json'), '{"stale":true}');
             const { code } = await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`, '--force']);
             expect(code).toBe(0);
             expect(JSON.parse(readFileSync(path.join(dir, 'alpha.json'), 'utf8')).courseId).toBe('alpha');
+            expect(JSON.parse(readFileSync(path.join(dir, 'beta.json'), 'utf8')).courseId).toBe('beta');
         } finally { rmSync(dir, { recursive: true, force: true }); }
     });
 
@@ -186,6 +192,7 @@ describe('generate-config-from-sheet CLI', () => {
             const { code, stderr } = await runCli([`--sheet-url=${baseUrl}`, '--course=missing', `--out=${dir}`]);
             expect(code).not.toBe(0);
             expect(stderr).toContain('no course "missing" in the sheet');
+            expect(existsSync(path.join(dir, 'missing.json'))).toBe(false);
         } finally { rmSync(dir, { recursive: true, force: true }); }
     });
 
@@ -196,8 +203,9 @@ describe('generate-config-from-sheet CLI', () => {
             const badServer = http.createServer((_, res) => { res.writeHead(200); res.end(csv); });
             await new Promise((r) => badServer.listen(0, '127.0.0.1', r));
             const url = `http://127.0.0.1:${badServer.address().port}/s`;
-            const { code, stderr } = await runCli([`--sheet-url=${url}`, `--out=${dir}`, '--check']);
-            expect(code).toBe(0);
+            // Default mode: the invalid courseId is a skip -> non-zero exit.
+            const { code, stderr } = await runCli([`--sheet-url=${url}`, `--out=${dir}`]);
+            expect(code).not.toBe(0);
             expect(stderr).toContain('invalid courseId');
             expect(existsSync(path.join(dir, '..', 'evil.json'))).toBe(false);
             badServer.close();

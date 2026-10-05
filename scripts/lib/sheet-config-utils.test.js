@@ -374,13 +374,26 @@ describe('findMissingColumns', () => {
         expect(forward).toEqual([...forward].sort((x, y) => x.where.localeCompare(y.where) || 0));
     });
 
-    it('deduplicates identical {column, where} pairs', () => {
+    it('does not throw on conflicting values (never aborts the run)', () => {
+        // Two rows in one course disagree on course_name -> the detector must not
+        // throw (it reports existence, not agreement); the builder reports the
+        // conflict per-course.
         const rows = [
-            { ...COURSE, video_file: 'v', filename: 'f1', order: '', response_type: 'viewAndContinue' },
-            { ...COURSE, video_file: 'v', filename: 'f2', order: '', response_type: 'viewAndContinue' },
+            { ...COURSE, course_name: 'A', video_file: 'v', filename: 'f1', order: '1', response_type: 'viewAndContinue' },
+            { ...COURSE, course_name: 'B', video_file: 'w', filename: 'f2', order: '1', response_type: 'viewAndContinue' },
         ];
-        const miss = findMissingColumns(rows).filter((m) => m.column === 'order' && m.where === 'video_file "v" row "f1"');
-        expect(miss).toHaveLength(1);
+        expect(() => findMissingColumns(rows)).not.toThrow();
+        expect(findMissingColumns(rows)).toEqual([]);
+    });
+
+    it('groups video_file within a lesson, not across the course', () => {
+        // Same video_file in two lessons with different response_type: valid for
+        // buildSteps (independent steps), so the detector must NOT merge them.
+        const rows = [
+            { ...COURSE, lesson_id: 'a', video_file: 'dup', filename: 'a1', order: '1', response_type: 'viewAndContinue' },
+            { ...COURSE, lesson_id: 'b', video_file: 'dup', filename: 'b1', order: '1', response_type: 'friendClosedResponse' },
+        ];
+        expect(findMissingColumns(rows)).toEqual([]);
     });
 });
 
@@ -431,6 +444,24 @@ describe('buildCourseConfigs', () => {
         const beta = results.find((r) => r.courseId === 'beta');
         expect(bad.error.kind).toBe('error');
         expect(bad.error.message).toContain('wat');
+        expect(beta.config).toBeDefined();
+    });
+
+    it('isolates a conflicting field in one course and still builds the other', () => {
+        // Course alpha has two disagreeing course_name values (a structural
+        // error); course beta is complete. The detector must not throw, and the
+        // conflict must not abort beta.
+        const csv = [
+            'course_id,course_name,lesson_id,lesson_title,response_type,video_file,filename,order',
+            'alpha,Alpha,a,Lesson A,viewAndContinue,a1,f1,1',
+            'alpha,ALPHA-RENAMED,a,Lesson A,viewAndContinue,a2,f2,2',
+            'beta,Beta,b,Lesson B,viewAndContinue,b1,g1,1',
+        ].join('\n');
+        let results;
+        expect(() => { results = buildCourseConfigs(parseCsv(csv).rows); }).not.toThrow();
+        const alpha = results.find((r) => r.courseId === 'alpha');
+        const beta = results.find((r) => r.courseId === 'beta');
+        expect(alpha.error.kind).toBe('error');
         expect(beta.config).toBeDefined();
     });
 

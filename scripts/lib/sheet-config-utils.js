@@ -338,11 +338,18 @@ export function findMissingColumns(rows) {
 
     if (videoRows.length === 0) return [];
 
+    // Existence (first non-blank) — deliberately NOT `singleValue`, which throws
+    // on conflicts. This detector must never throw: a conflict is a structural
+    // error that `buildCourseConfig` reports per-course, and the detector must
+    // not abort the whole multi-course run.
+    const firstNonBlank = (rs, name) => {
+        for (const r of rs) if (cell(r, name).trim()) return cell(r, name).trim();
+        return '';
+    };
+
     // Course-wide: blank on EVERY row.
-    const courseId = singleValue(videoRows, 'course_id', 'course');
-    if (!courseId) add('course_id', 'course');
-    const courseName = singleValue(videoRows, 'course_name', 'course');
-    if (!courseName) add('course_name', 'course');
+    if (!firstNonBlank(videoRows, 'course_id')) add('course_id', 'course');
+    if (!firstNonBlank(videoRows, 'course_name')) add('course_name', 'course');
 
     // Per row: lesson_id and video_file must each be present.
     for (const row of videoRows) {
@@ -350,7 +357,10 @@ export function findMissingColumns(rows) {
         if (!cell(row, 'video_file').trim()) add('video_file', `row "${cell(row, 'filename')}"`);
     }
 
-    // Per lesson: lesson_title must be present on at least one row.
+    // Grouping mirrors buildSteps EXACTLY: lessons partition by lesson_id, then
+    // video_file groups WITHIN each lesson (buildSteps only ever sees one
+    // lesson's rows). Grouping video_file across the whole course would merge
+    // same-named videos in different lessons and disagree with the builder.
     const lessonOrder = [];
     const lessonRows = new Map();
     for (const row of videoRows) {
@@ -359,27 +369,29 @@ export function findMissingColumns(rows) {
         if (!lessonRows.has(lessonId)) { lessonRows.set(lessonId, []); lessonOrder.push(lessonId); }
         lessonRows.get(lessonId).push(row);
     }
-    for (const lessonId of lessonOrder) {
-        const title = singleValue(lessonRows.get(lessonId), 'lesson_title', `lesson "${lessonId}"`);
-        if (!title) add('lesson_title', `lesson "${lessonId}"`);
-    }
 
-    // Per video_file group: response_type and a numeric order must be present.
-    const groupOrder = [];
-    const groups = new Map();
-    for (const row of videoRows) {
-        const videoFile = cell(row, 'video_file').trim();
-        if (!videoFile) continue;
-        if (!groups.has(videoFile)) { groups.set(videoFile, []); groupOrder.push(videoFile); }
-        groups.get(videoFile).push(row);
-    }
-    for (const videoFile of groupOrder) {
-        const groupRows = groups.get(videoFile);
-        const responseType = singleValue(groupRows, 'response_type', `video_file "${videoFile}"`);
-        if (!responseType) add('response_type', `video_file "${videoFile}"`);
-        for (const row of groupRows) {
-            if (!/^-?\d+$/.test(cell(row, 'order').trim())) {
-                add('order', `video_file "${videoFile}" row "${cell(row, 'filename')}"`);
+    for (const lessonId of lessonOrder) {
+        const rowsForLesson = lessonRows.get(lessonId);
+        // lesson_title: present on at least one row of the lesson.
+        if (!firstNonBlank(rowsForLesson, 'lesson_title')) add('lesson_title', `lesson "${lessonId}"`);
+
+        const groupOrder = [];
+        const groups = new Map();
+        for (const row of rowsForLesson) {
+            const videoFile = cell(row, 'video_file').trim();
+            if (!videoFile) continue;
+            if (!groups.has(videoFile)) { groups.set(videoFile, []); groupOrder.push(videoFile); }
+            groups.get(videoFile).push(row);
+        }
+        for (const videoFile of groupOrder) {
+            const groupRows = groups.get(videoFile);
+            if (!firstNonBlank(groupRows, 'response_type')) {
+                add('response_type', `video_file "${videoFile}"`);
+            }
+            for (const row of groupRows) {
+                if (!/^-?\d+$/.test(cell(row, 'order').trim())) {
+                    add('order', `video_file "${videoFile}" row "${cell(row, 'filename')}"`);
+                }
             }
         }
     }
@@ -394,7 +406,7 @@ export function findMissingColumns(rows) {
             seen.add(key);
             return true;
         })
-        .sort((a, b) => (rank.get(a.column) - rank.get(b.column)) || a.where.localeCompare(b.where));
+        .sort((a, b) => (rank.get(a.column) - rank.get(b.column)) || (a.where < b.where ? -1 : a.where > b.where ? 1 : 0));
 }
 
 /**

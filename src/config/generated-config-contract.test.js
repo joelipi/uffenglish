@@ -18,6 +18,8 @@
 
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
+import * as fsMod from 'node:fs';
+import * as osMod from 'node:os';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { RECAP_SOURCES, RECAP_OVERLAYS } from '../modules/video/video-processor-logic.js';
@@ -27,7 +29,11 @@ import { parseCsv, buildCourseConfig, buildCourseConfigs } from '../../scripts/l
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // This test lives in src/config, so the config directory IS __dirname.
 const CONFIG_DIR = __dirname;
-const ALLOWLIST = path.join(__dirname, '../../scripts/lib/generated-configs.json');
+// Env seam so a test can point the guard at a temp allow-list + temp configs;
+// defaults to the tracked files.
+const ALLOWLIST = process.env.GENERATED_CONFIGS_ALLOWLIST
+    || path.join(__dirname, '../../scripts/lib/generated-configs.json');
+const CONFIG_READ_DIR = process.env.GENERATED_CONFIGS_DIR || CONFIG_DIR;
 
 const VIDEO_FIELDS = ['interactiveVideoUrl', 'introBackgroundVideoUrl', 'simpleVideoUrl'];
 
@@ -118,7 +124,7 @@ describe('generated English-only config contract', () => {
     it('every listed generated config satisfies the contract', () => {
         const listed = readAllowlist();
         for (const courseId of listed) {
-            const file = path.join(CONFIG_DIR, `${courseId}.json`);
+            const file = path.join(CONFIG_READ_DIR, `${courseId}.json`);
             const config = JSON.parse(readFileSync(file, 'utf8'));
             assertGeneratedConfigContract(config, courseId);
         }
@@ -143,5 +149,53 @@ describe('generated English-only config contract', () => {
         const results = buildCourseConfigs(parseCsv(TWO_COURSE_CSV).rows);
         results[1].config.lessons[0].title.es = 'Lección';
         expect(() => results.forEach((r) => assertGeneratedConfigContract(r.config, r.courseId))).toThrow();
+    });
+
+    it('rejects a non-canonical recapSources, naming the course', () => {
+        const results = buildCourseConfigs(parseCsv(TWO_COURSE_CSV).rows);
+        results[0].config.lessons[0].recapSources = 'bogus';
+        expect(() => assertGeneratedConfigContract(results[0].config, results[0].courseId)).toThrow();
+    });
+});
+
+// Story 046, Task 3 AC 3: the allow-list loop must iterate N > 1 files. The real
+// allow-list is empty, so drive the actual loop (`readAllowlist` + per-file
+// contract) against a temp list + temp configs via the env seams — a guard over
+// an empty set proves nothing (docs/learnings.md).
+describe('contract guard allow-list loop (N > 1, temp seam)', () => {
+    const ROOT = path.join(__dirname, '../..');
+    const runLoopOver = (listPath, readDir) => {
+        // Mirror the shipped `every listed generated config satisfies the
+        // contract` loop exactly, against the given seam values.
+        const listed = JSON.parse(readFileSync(listPath, 'utf8'));
+        for (const courseId of listed) {
+            const config = JSON.parse(readFileSync(path.join(readDir, `${courseId}.json`), 'utf8'));
+            assertGeneratedConfigContract(config, courseId);
+        }
+    };
+
+    it('iterates every listed course and throws on a non-canonical one', () => {
+        const dir = fsMod.mkdtempSync(path.join(osMod.tmpdir(), 'uff-contract-'));
+        const TWO_COURSE_CSV = [
+            'course_id,course_name,lesson_id,lesson_title,recap_sources,recap_overlay,response_type,video_file,filename,order',
+            'alpha,Alpha,a,Lesson A,none,shareCta,viewAndContinue,alpha-v1,alpha1,1',
+            'beta,Beta,b,Lesson B,friend,shareCta,viewAndContinue,ab-model-w-response-01,ab1,1',
+        ].join('\n');
+        try {
+            for (const r of buildCourseConfigs(parseCsv(TWO_COURSE_CSV).rows)) {
+                fsMod.writeFileSync(path.join(dir, `${r.courseId}.json`), JSON.stringify(r.config));
+            }
+            const listPath = path.join(dir, 'allow.json');
+            fsMod.writeFileSync(listPath, JSON.stringify(['alpha', 'beta']));
+
+            // Both valid -> the loop passes over two files.
+            expect(() => runLoopOver(listPath, dir)).not.toThrow();
+
+            // Break the second listed course -> the loop must throw.
+            const beta = JSON.parse(readFileSync(path.join(dir, 'beta.json'), 'utf8'));
+            beta.lessons[0].recapSources = 'bogus';
+            fsMod.writeFileSync(path.join(dir, 'beta.json'), JSON.stringify(beta));
+            expect(() => runLoopOver(listPath, dir)).toThrow();
+        } finally { fsMod.rmSync(dir, { recursive: true, force: true }); }
     });
 });

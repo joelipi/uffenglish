@@ -46,6 +46,8 @@ describe('configs.yml source guard', () => {
         expect(text).toContain('tee /tmp/configs.log');
         expect(text).toContain('GITHUB_STEP_SUMMARY');
         expect(text).toContain('::error::');
+        // Only missing-column skips are errors (overwrite-refusals are expected).
+        expect(text).toContain("grep 'missing required column'");
     });
 
     it('commits configs + the allow-list only on a diff', () => {
@@ -60,10 +62,23 @@ describe('configs.yml source guard', () => {
     });
 
     it('the guard can fail (mutating a pinned token is detected)', () => {
-        // Prove the assertions are real by checking a mutated copy against the
-        // same expectations.
-        const mutated = read().replace('node scripts/generate-config-from-sheet.mjs --check', 'node scripts/generate-config-from-sheet.mjs');
-        expect(mutated).not.toContain('node scripts/generate-config-from-sheet.mjs --check');
-        expect(() => expect(mutated).toContain('node scripts/generate-config-from-sheet.mjs --check')).toThrow();
+        // Render the guard's assertions against a mutated copy of the file — not
+        // just an in-memory string — so we prove the pinned tokens are the real
+        // detection surface.
+        const assertRequired = (text) => {
+            expect(text).toContain('workflow_dispatch:');
+            expect(text).toContain('secrets.GH_NEW_TOKEN');
+            expect(text).toContain('[skip configs]');
+            expect(text).toContain('node scripts/generate-config-from-sheet.mjs --check');
+            expect(text).toContain('git push origin "HEAD:${{ github.ref_name }}"');
+        };
+        const good = read();
+        expect(() => assertRequired(good)).not.toThrow();
+
+        for (const token of ['secrets.GH_NEW_TOKEN', '[skip configs]', 'node scripts/generate-config-from-sheet.mjs --check']) {
+            const mutated = good.split(token).join('SENTINEL_REMOVED');
+            expect(mutated, token).not.toContain(token);
+            expect(() => assertRequired(mutated), token).toThrow();
+        }
     });
 });
