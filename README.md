@@ -78,7 +78,7 @@ Deep link with friend code: `http://localhost:3000/?sharecode=abc123` → persis
 
 Debug console: Eruda is gated — append `?eruda=1` or `localStorage.setItem('eruda','1')` to load it. It is not loaded for real users by default.
 
-Staging: `s.ultrafastfluency.com` (Pages custom domain — add in Cloudflare dashboard, TLS auto). Production deploys on push to `main`.
+Staging: `s.ultrafastfluency.com` (Pages custom domain — add in Cloudflare dashboard, TLS auto). Production deploys on push to `main` and is intended to be served on `ultrafastfluency.com`; to serve `s.` from a non-production `staging` branch and keep the apex for production, see `docs/deploy-environments.md`.
 
 ## Build & Deploy
 
