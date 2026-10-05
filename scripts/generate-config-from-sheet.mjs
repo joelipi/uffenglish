@@ -8,11 +8,11 @@
 //
 // Best-effort: a course whose required columns are incomplete is SKIPPED WHOLE
 // (no partial config) with a report of exactly which columns are missing; other
-// courses are unaffected. Existing configs are never overwritten without
-// --force.
+// courses are unaffected. The sheet is authoritative: the generator OVERWRITES
+// src/config/<courseId>.json (stories/047-overwrite-configs).
 //
 // Usage:
-//   node scripts/generate-config-from-sheet.mjs [--course=<id>] [--out=<dir>] [--sheet-url=<url>] [--dry-run] [--check] [--force]
+//   node scripts/generate-config-from-sheet.mjs [--course=<id>] [--out=<dir>] [--sheet-url=<url>] [--dry-run] [--check]
 //
 // The default sheet URL is the same published CSV the recorder reads
 // (public/recorder.html); a source guard pins the two literals together.
@@ -43,11 +43,11 @@ Options:
   --sheet-url=<url>     Override the published CSV URL (default: the recorder's)
   --dry-run             Print the plan; write nothing
   --check               CI mode: skips are non-fatal (exit 0); still writes the rest
-  --force               Overwrite an existing config (otherwise refused per file)
   --help, -h            Show this help
 
-A course with any missing required column is skipped whole (no partial config),
-reported on stderr, and does not block the other courses.`;
+The sheet is the source of truth: an existing src/config/<courseId>.json is
+OVERWRITTEN. A course with any missing required column is skipped whole (no
+partial config), reported on stderr, and does not block the other courses.`;
 
 function missingReport(missing) {
     return missing.map((m) => `${m.column} (${m.where})`).join(', ');
@@ -63,7 +63,6 @@ async function main() {
     const sheetUrl = flagValue(args, '--sheet-url') || SHEET_URL;
     const dryRun = args.includes('--dry-run');
     const check = args.includes('--check');
-    const force = args.includes('--force');
 
     const outDir = outOverride ? path.resolve(outOverride) : CONFIG_DIR;
 
@@ -111,15 +110,19 @@ async function main() {
             continue;
         }
 
-        const exists = await fs.access(outPath).then(() => true, () => false);
-        if (exists && !force) {
-            skipped++;
-            console.error(`SKIP course "${courseId}": ${outPath} already exists; refusing to overwrite (use --force to replace)`);
-            continue;
-        }
-
+        // The sheet is authoritative: overwrite unconditionally. Write to a
+        // same-directory temp file then rename (atomic on POSIX), so a reader or
+        // a killed process never sees a partial config; remove the temp on
+        // failure so a stray *.tmp file is never staged by `git add src/config`.
         await fs.mkdir(path.dirname(outPath), { recursive: true });
-        await fs.writeFile(outPath, JSON.stringify(result.config, null, 2) + '\n');
+        const tmpPath = `${outPath}.tmp-${process.pid}`;
+        try {
+            await fs.writeFile(tmpPath, JSON.stringify(result.config, null, 2) + '\n');
+            await fs.rename(tmpPath, outPath);
+        } catch (err) {
+            await fs.rm(tmpPath, { force: true });
+            throw err;
+        }
         console.log(`WROTE ${outPath}`);
         wrote++;
 

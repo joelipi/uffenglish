@@ -1,5 +1,7 @@
 # Auto-generate course configs from the sheet, committed to git by a GitHub Action
 
+> Superseded in part by [047-overwrite-configs](../047-overwrite-configs/story.md): the generator now **overwrites** existing configs unconditionally. The "never overwrite without `--force`" rule, the `--force` flag, and the "existing-course update gap" note below no longer apply.
+
 ## Context
 
 Story 042 shipped `scripts/generate-config-from-sheet.mjs`: an **operator-invoked, manual** Node CLI that fetches the published Google Sheet CSV and writes one English-only `src/config/<courseId>.json` (grouping rows by `video_file`, consuming the pipeline's `srt` column, registering the `courseId` in `scripts/lib/generated-configs.json`, and refusing to overwrite without `--force`). It is deliberately wired to nothing — it is not in any workflow.

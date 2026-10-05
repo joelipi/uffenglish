@@ -47,9 +47,10 @@ jobs:
             echo "## Config generation"
             grep '^SKIP course ' /tmp/configs.log || echo "No skipped courses."
           } >> "$GITHUB_STEP_SUMMARY"
-          # Missing-column skips are real problems (the sheet needs fixing) ->
-          # annotate as errors. An "already exists; refusing to overwrite" skip is
-          # expected on every run after the first, so it is NOT an error.
+          # Missing-column skips are the only real problems (the sheet needs
+          # fixing) -> annotate as errors. Structural/invalid-courseId skips are
+          # summarized but not annotated. Overwrite is unconditional now (story
+          # 047), so there is no "already exists" skip.
           grep '^SKIP course ' /tmp/configs.log | grep 'missing required column' | while IFS= read -r line; do
             echo "::error::$line"
           done
