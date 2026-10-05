@@ -268,7 +268,9 @@ a fake `UFF_R2.put`, mirroring `functions/api/upload-segment.test.js`.
 - valid request (`x-filename: lesson_01`, `Content-Type: video/mp4`)
   - → `UFF_R2.put` called with `raw/lesson_01.mp4`, the body bytes, and
     `{ httpMetadata: { contentType: 'video/mp4', cacheControl: 'no-store' } }`
-  - → 200 body has `url: 'https://r2.ultrafastfluency.com/raw/lesson_01.mp4'`
+  - → 200 body is `{ ok: true, key: 'raw/lesson_01.mp4' }` — deliberately no
+    public `url`, because `raw/<slug>.mp4` is world-readable under a guessable
+    key and must not be advertised (see the "Raw-take visibility" note below)
 - two valid requests for the same `x-filename`
   - → `UFF_R2.put` called twice with the same key (idempotent overwrite)
 - `env.OPERATOR_KEY` unset
