@@ -29,18 +29,28 @@ import { parseCsv, buildCourseConfig, buildCourseConfigs } from '../../scripts/l
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // This test lives in src/config, so the config directory IS __dirname.
 const CONFIG_DIR = __dirname;
-// Env seam so a test can point the guard at a temp allow-list + temp configs;
-// defaults to the tracked files.
-const ALLOWLIST = process.env.GENERATED_CONFIGS_ALLOWLIST
-    || path.join(__dirname, '../../scripts/lib/generated-configs.json');
-const CONFIG_READ_DIR = process.env.GENERATED_CONFIGS_DIR || CONFIG_DIR;
+const ALLOWLIST = path.join(__dirname, '../../scripts/lib/generated-configs.json');
 
 const VIDEO_FIELDS = ['interactiveVideoUrl', 'introBackgroundVideoUrl', 'simpleVideoUrl'];
 
-function readAllowlist() {
-    const raw = JSON.parse(readFileSync(ALLOWLIST, 'utf8'));
+function readAllowlist(listPath = ALLOWLIST) {
+    const raw = JSON.parse(readFileSync(listPath, 'utf8'));
     if (!Array.isArray(raw)) throw new Error('generated-configs.json must be an array of courseIds');
     return raw;
+}
+
+// The shipped "every listed generated config satisfies the contract" loop, as a
+// function of the allow-list path + config directory so a test can point it at a
+// temp set (and the real test can call it with the tracked defaults). Requires
+// N > 1 to be meaningful — a loop over an empty/singleton set proves nothing.
+function assertListedConfigs({ listPath = ALLOWLIST, readDir = CONFIG_DIR } = {}) {
+    const listed = readAllowlist(listPath);
+    for (const courseId of listed) {
+        const file = path.join(readDir, `${courseId}.json`);
+        const config = JSON.parse(readFileSync(file, 'utf8'));
+        assertGeneratedConfigContract(config, courseId);
+    }
+    return listed.length;
 }
 
 // Every translation slot in a course config, walked structurally (NOT keyed on
@@ -122,12 +132,7 @@ describe('generated English-only config contract', () => {
     });
 
     it('every listed generated config satisfies the contract', () => {
-        const listed = readAllowlist();
-        for (const courseId of listed) {
-            const file = path.join(CONFIG_READ_DIR, `${courseId}.json`);
-            const config = JSON.parse(readFileSync(file, 'utf8'));
-            assertGeneratedConfigContract(config, courseId);
-        }
+        assertListedConfigs();
     });
 
     // Story 046: the contract must hold for N generated files, not just one, and
@@ -154,26 +159,15 @@ describe('generated English-only config contract', () => {
     it('rejects a non-canonical recapSources, naming the course', () => {
         const results = buildCourseConfigs(parseCsv(TWO_COURSE_CSV).rows);
         results[0].config.lessons[0].recapSources = 'bogus';
-        expect(() => assertGeneratedConfigContract(results[0].config, results[0].courseId)).toThrow();
+        expect(() => assertGeneratedConfigContract(results[0].config, results[0].courseId)).toThrow(/alpha/);
     });
 });
 
-// Story 046, Task 3 AC 3: the allow-list loop must iterate N > 1 files. The real
-// allow-list is empty, so drive the actual loop (`readAllowlist` + per-file
-// contract) against a temp list + temp configs via the env seams — a guard over
-// an empty set proves nothing (docs/learnings.md).
+// Story 046, Task 3 AC 3: the shipped allow-list loop must iterate N > 1 files.
+// The real allow-list is empty, so this drives the SAME `assertListedConfigs`
+// function the shipped test calls, pointed at a temp list + temp configs (a
+// guard over an empty set proves nothing — docs/learnings.md).
 describe('contract guard allow-list loop (N > 1, temp seam)', () => {
-    const ROOT = path.join(__dirname, '../..');
-    const runLoopOver = (listPath, readDir) => {
-        // Mirror the shipped `every listed generated config satisfies the
-        // contract` loop exactly, against the given seam values.
-        const listed = JSON.parse(readFileSync(listPath, 'utf8'));
-        for (const courseId of listed) {
-            const config = JSON.parse(readFileSync(path.join(readDir, `${courseId}.json`), 'utf8'));
-            assertGeneratedConfigContract(config, courseId);
-        }
-    };
-
     it('iterates every listed course and throws on a non-canonical one', () => {
         const dir = fsMod.mkdtempSync(path.join(osMod.tmpdir(), 'uff-contract-'));
         const TWO_COURSE_CSV = [
@@ -188,14 +182,15 @@ describe('contract guard allow-list loop (N > 1, temp seam)', () => {
             const listPath = path.join(dir, 'allow.json');
             fsMod.writeFileSync(listPath, JSON.stringify(['alpha', 'beta']));
 
-            // Both valid -> the loop passes over two files.
-            expect(() => runLoopOver(listPath, dir)).not.toThrow();
+            // The real loop iterates both valid files.
+            expect(assertListedConfigs({ listPath, readDir: dir })).toBe(2);
 
-            // Break the second listed course -> the loop must throw.
+            // Break the second listed course -> the real loop must throw,
+            // naming that course.
             const beta = JSON.parse(readFileSync(path.join(dir, 'beta.json'), 'utf8'));
             beta.lessons[0].recapSources = 'bogus';
             fsMod.writeFileSync(path.join(dir, 'beta.json'), JSON.stringify(beta));
-            expect(() => runLoopOver(listPath, dir)).toThrow();
+            expect(() => assertListedConfigs({ listPath, readDir: dir })).toThrow(/beta/);
         } finally { fsMod.rmSync(dir, { recursive: true, force: true }); }
     });
 });
