@@ -25,6 +25,7 @@ export default function HomeLandingContainer() {
     const [loading, setLoading] = useState(false);
 
     async function handleSubmit(rawCode) {
+        if (loading) return;
         const code = normalizeShareCode(rawCode);
         if (!code) {
             setError(shareCodeErrorStringKey('empty'));

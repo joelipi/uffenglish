@@ -45,10 +45,16 @@ describe('HomeScreen dashboard menu Home link', () => {
 
 describe('HomeScreen sign-out', () => {
     const signOutAt = homeScreen.indexOf('async function handleSignOut');
-    const signOutBlock = homeScreen.slice(signOutAt, homeScreen.indexOf('useEffect', signOutAt));
+    // End at the next guaranteed top-level marker (the `const brandGradient`
+    // declaration that follows the useEffect), never at EOF (AGENTS.md).
+    const brandAt = homeScreen.indexOf('const brandGradient', signOutAt);
+    const signOutBlock = homeScreen.slice(signOutAt, brandAt);
 
     it('returns to the public homepage after sign out', () => {
+        expect(signOutAt).toBeGreaterThan(-1);
+        expect(brandAt).toBeGreaterThan(signOutAt);
         expect(signOutBlock).toContain("navigate('/')");
+        expect(signOutBlock).toContain('async function handleSignOut');
     });
 });
 

@@ -154,4 +154,24 @@ describe('HomeLandingContainer', () => {
         expect(navigate).toHaveBeenCalledTimes(1);
         expect(navigate).toHaveBeenCalledWith('/course/wouldrather/lesson/a');
     });
+
+    it('ignores a second submit while the first lookup is still in flight', async () => {
+        let resolveLookup;
+        fetchUserByShareCode.mockReturnValue(new Promise((resolve) => { resolveLookup = resolve; }));
+        await render();
+        await typeCode('abc');
+
+        // Second submit fires while the first lookup has not settled.
+        await submit();
+        await submit();
+        expect(fetchUserByShareCode).toHaveBeenCalledTimes(1);
+
+        await act(async () => {
+            resolveLookup({ id: 'u1' });
+        });
+
+        expect(fetchUserByShareCode).toHaveBeenCalledTimes(1);
+        expect(navigate).toHaveBeenCalledTimes(1);
+        expect(navigate).toHaveBeenCalledWith('/abc');
+    });
 });

@@ -30,4 +30,12 @@ describe('routes.jsx homepage split', () => {
     it('keeps the catch-all pointing at the public homepage', () => {
         expect(src).toContain("{ path: '*', element: <Navigate to=\"/\" replace /> }");
     });
+
+    it('sends the LessonError Go Home link to the dashboard at /home', () => {
+        const errorAt = src.indexOf('function LessonError()');
+        const errorBlock = src.slice(errorAt, src.indexOf('export const routes', errorAt));
+        expect(errorAt).toBeGreaterThan(-1);
+        expect(errorBlock).toContain('to="/home"');
+        expect(errorBlock).not.toContain('to="/"');
+    });
 });
