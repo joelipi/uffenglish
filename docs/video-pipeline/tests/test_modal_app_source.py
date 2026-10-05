@@ -94,6 +94,21 @@ class TriggerGuardTest(unittest.TestCase):
         self.assertIn("gpu_seconds = pipeline.run_background_removal(", body)
         self.assertIn('"gpu_seconds": gpu_seconds', body)
 
+    def test_persists_the_updated_video_data_csv_to_r2(self):
+        # Story 050, Task 5: the orchestrator writes the computed srt column into
+        # the CSV (mirroring video_pipeline.main) and uploads the updated CSV back
+        # to R2 so the sync-srt Action can read the `srt` column.
+        text = read(APP)
+        body = slice_between(text, "def orchestrator(spec: dict):", "def _publish(")
+        self.assertIn("write_srt_column", body)
+        self.assertIn('pipeline_asset_key("video_data.csv")', body)
+        self.assertIn("storage.upload_file(csv_file", body)
+        # Order: concatenate -> write_srt_column -> upload, after concatenation.
+        self.assertLess(body.index("concatenate_all_processed_videos"),
+                        body.index("write_srt_column"))
+        self.assertLess(body.index("write_srt_column"),
+                        body.index('pipeline_asset_key("video_data.csv")'))
+
     def test_asset_fetch_rejects_path_traversal(self):
         text = read(APP)
         fetch = slice_between(text, "def _fetch_assets(", "def _write_status(")

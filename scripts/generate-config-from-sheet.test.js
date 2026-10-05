@@ -36,11 +36,32 @@ const BAD_CSV = [
     'beta,Beta,b,Lesson B,viewAndContinue,beta-v1,beta-v101,1,none,Bye.',
 ].join('\n');
 
+// Story 050: an overlay-master CSV with the config columns filled.
+const MASTER_HEADER = [
+    'title_text', 'Order', 'phrase', 'subtitle_text', 'filename', 'join', 'video_file',
+    'course_id', 'course_name', 'lesson_id', 'lesson_title', 'response_type',
+    'recap_sources', 'recap_overlay', 'intro_video', 'success_video', 'success_srt', 'srt',
+].join(',');
+const MASTER_CSV = [
+    MASTER_HEADER,
+    'Would you rather,01,Q1,<aside>x</aside>,m1,,master-a01,wvr,WVR,a,Lesson A,friendClosedResponse,none,shareCta,intro,success,The end.,',
+    'Would you rather,02,Q2,,m2,,master-a01,wvr,WVR,a,Lesson A,friendClosedResponse,none,shareCta,,,',
+    'Would you rather,03,O1,,m3,wvr-b01,master-b01_i,wvr,WVR,b,Lesson B,friendClosedResponse,friend,shareCta,,,',
+    'Would you rather,04,O2,,m4,wvr-b01,master-b01_ii,wvr,WVR,b,Lesson B,friendClosedResponse,friend,shareCta,,,',
+].join('\n');
+// Same master shape, but lesson a has no lesson_title (a required config column).
+const MASTER_MISSING_CSV = [
+    MASTER_HEADER,
+    'Would you rather,01,Q1,,m1,,master-a01,wvr,WVR,a,,friendClosedResponse,none,shareCta,,,',
+].join('\n');
+
 let server;
 let baseUrl;
 
 beforeAll(async () => {
     server = http.createServer((req, res) => {
+        if (req.url.includes('master-missing')) { res.writeHead(200); res.end(MASTER_MISSING_CSV); return; }
+        if (req.url.includes('master')) { res.writeHead(200); res.end(MASTER_CSV); return; }
         if (req.url.includes('mixed')) { res.writeHead(200); res.end(MIXED_CSV); return; }
         if (req.url.includes('bad')) { res.writeHead(200); res.end(BAD_CSV); return; }
         res.writeHead(200); res.end(FIXTURE_CSV);
@@ -262,6 +283,90 @@ describe('generate-config-from-sheet CLI', () => {
         const url = /https:\/\/docs\.google\.com\/spreadsheets\/[^'"]+/.exec(cli);
         expect(url).not.toBeNull();
         expect(recorder).toContain(url[0]);
+    });
+});
+
+// Story 050, Task 2: the generator reads the overlay master (a `phrase` header).
+describe('generate-config-from-sheet master format', () => {
+    it('writes a valid config whose lessons/steps match a master fixture', async () => {
+        const dir = tmpDir();
+        try {
+            const { code } = await runCli([`--sheet-url=${baseUrl}/master`, `--out=${dir}`]);
+            expect(code).toBe(0);
+            const config = JSON.parse(readFileSync(path.join(dir, 'wvr.json'), 'utf8'));
+            expect(config).toEqual({
+                courseId: 'wvr',
+                courseName: 'WVR',
+                lessons: [
+                    {
+                        lessonId: 'a', recapSources: 'none', recapOverlay: 'shareCta',
+                        title: { en: 'Lesson A' },
+                        steps: [
+                            { cue: '', responseType: 'lessonIntro', introBackgroundVideoUrl: 'intro' },
+                            { responseType: 'friendClosedResponse', simpleVideoUrl: 'master-a01', cue: [{ en: 'Q1' }, { en: 'Q2' }] },
+                            { responseType: 'success', simpleVideoUrl: 'success', subtitles: { en: 'The end.' } },
+                        ],
+                    },
+                    {
+                        lessonId: 'b', recapSources: 'friend', recapOverlay: 'shareCta',
+                        title: { en: 'Lesson B' },
+                        steps: [
+                            { responseType: 'friendClosedResponse', simpleVideoUrl: 'wvr-b01', cue: [{ en: 'O1' }, { en: 'O2' }] },
+                        ],
+                    },
+                ],
+            });
+        } finally { rmSync(dir, { recursive: true, force: true }); }
+    });
+
+    it('skips a master course missing a required config column and reports it', async () => {
+        const dir = tmpDir();
+        try {
+            const { code, stderr } = await runCli([`--sheet-url=${baseUrl}/master-missing`, `--out=${dir}`, '--check']);
+            expect(code).toBe(0);
+            expect(stderr).toContain('SKIP course "wvr": missing required column(s): lesson_title (lesson "a")');
+            expect(existsSync(path.join(dir, 'wvr.json'))).toBe(false);
+        } finally { rmSync(dir, { recursive: true, force: true }); }
+    });
+});
+
+// Story 050, Task 3: all three consumers point at the live master (gid 242913338),
+// and SHEET_URL stays byte-identical to the recorder URL. Guards read raw source
+// (URLs contain `//`, so no comment-stripping) and are proven failable.
+describe('published master URL (story 050, Task 3)', () => {
+    const MASTER_PUBLISHED_ID = '2PACX-1vQZ7jFMJNnmylDoHxaqb1W8VyXi0OV4pSubCbqMGYkRgGimqWx3cs74n43-cFxqfue4KCiqWlhzvPkK';
+    const readRecorder = () => readFileSync(path.join(ROOT, 'public/recorder.html'), 'utf8');
+    const readTranslator = () => readFileSync(path.join(ROOT, 'scripts/translate-sheet.mjs'), 'utf8');
+
+    const assertLiveMaster = ({ recorder, cli, translator }) => {
+        expect(recorder).toContain(MASTER_PUBLISHED_ID);
+        expect(recorder).toContain('gid=242913338');
+        const url = /https:\/\/docs\.google\.com\/spreadsheets\/[^'"]+/.exec(cli);
+        expect(url).not.toBeNull();
+        expect(recorder).toContain(url[0]);
+        expect(url[0]).toContain('gid=242913338');
+        expect(translator).toContain('PUBLISHED_GID = 242913338');
+    };
+
+    it('SHEET_URL, the recorder URL, and PUBLISHED_GID all pin the live master', () => {
+        expect(() => assertLiveMaster({
+            recorder: readRecorder(), cli: readFileSync(SCRIPT, 'utf8'), translator: readTranslator(),
+        })).not.toThrow();
+    });
+
+    it('the guard can fail on each mutation', () => {
+        const recorder = readRecorder();
+        const cli = readFileSync(SCRIPT, 'utf8');
+        const translator = readTranslator();
+        expect(() => assertLiveMaster({
+            recorder: recorder.replace('gid=242913338', 'gid=289451687'), cli, translator,
+        })).toThrow();
+        expect(() => assertLiveMaster({
+            recorder: recorder.replace(MASTER_PUBLISHED_ID, 'OLD-ID'), cli, translator,
+        })).toThrow();
+        expect(() => assertLiveMaster({
+            recorder, cli, translator: translator.replace('PUBLISHED_GID = 242913338', 'PUBLISHED_GID = 289451687'),
+        })).toThrow();
     });
 });
 

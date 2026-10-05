@@ -18,19 +18,26 @@ describe('column contract', () => {
         expect(SHEET_LANGUAGES).toEqual(['es', 'pt', 'bn']);
     });
 
-    it('maps exactly the five translatable sources (15 columns)', () => {
+    it('maps exactly the six translatable sources (18 columns)', () => {
         expect(TRANSLATABLE_FIELDS.map((f) => f.source)).toEqual([
-            'lesson_title', 'mission', 'cue', 'cue_alt', 'subtitle_text',
+            'lesson_title', 'mission', 'cue', 'cue_alt', 'subtitle_text', 'phrase',
         ]);
         const cols = TRANSLATABLE_FIELDS.flatMap((f) =>
             SHEET_LANGUAGES.map((l) => localizedColumn(f.field, l)));
-        expect(cols).toHaveLength(15);
+        expect(cols).toHaveLength(18);
         expect(cols).toContain('cue_pt');
         expect(cols).toContain('subtitle_text_bn');
+        expect(cols).toContain('phrase_es');
+    });
+
+    it('marks phrase as a per-row step field', () => {
+        const phrase = TRANSLATABLE_FIELDS.find((f) => f.field === 'phrase');
+        expect(phrase).toMatchObject({ source: 'phrase', level: 'step', perRow: true });
     });
 
     it('localizedColumn builds field_lang', () => {
         expect(localizedColumn('cue', 'pt')).toBe('cue_pt');
+        expect(localizedColumn('phrase', 'es')).toBe('phrase_es');
     });
 });
 
@@ -177,6 +184,47 @@ describe('planSheetTranslations', () => {
             languages: ['es'],
         });
         expect(plan[0].sheetRow).toBe(7);
+    });
+});
+
+// Story 050, Task 6: the overlay master's `phrase` is a per-row step field (one
+// cue element per row), and the master's subtitle_text (burnt-in overlay markup)
+// is never translated.
+describe('phrase and master-format planning', () => {
+    const masterHeaders = ['course_id', 'lesson_id', 'video_file', 'phrase', 'phrase_es', 'phrase_pt', 'phrase_bn', 'subtitle_text', 'subtitle_text_es'];
+    const masterRows = [
+        { course_id: 'c', lesson_id: 'a', video_file: 'v', phrase: 'Q1', phrase_es: '', phrase_pt: '', phrase_bn: '', subtitle_text: '<aside>x</aside>', subtitle_text_es: '' },
+        { course_id: 'c', lesson_id: 'a', video_file: 'v', phrase: 'Q2', phrase_es: '', phrase_pt: '', phrase_bn: '', subtitle_text: '', subtitle_text_es: '' },
+    ];
+
+    it('plans phrase_<lang> for every row with a non-blank phrase (per row, not per group)', () => {
+        const plan = planSheetTranslations({ rows: masterRows, headers: masterHeaders, languages: ['es'] });
+        expect(plan.map((p) => `${p.row}:${p.column}`)).toEqual(['0:phrase_es', '1:phrase_es']);
+        expect(plan.every((p) => p.field === 'phrase' && p.sourceColumn === 'phrase')).toBe(true);
+    });
+
+    it('skips a filled phrase_<lang> per row (blanks-only), unless force', () => {
+        const rows = [
+            { ...masterRows[0], phrase_es: 'Q1-es' },
+            masterRows[1],
+        ];
+        const skipped = planSheetTranslations({ rows, headers: masterHeaders, languages: ['es'] });
+        expect(skipped.map((p) => `${p.row}:${p.column}`)).toEqual(['1:phrase_es']);
+        const forced = planSheetTranslations({ rows, headers: masterHeaders, languages: ['es'], force: true });
+        expect(forced.map((p) => `${p.row}:${p.column}`)).toEqual(['0:phrase_es', '1:phrase_es']);
+    });
+
+    it('never plans subtitle_text_<lang> on a master sheet', () => {
+        const plan = planSheetTranslations({ rows: masterRows, headers: masterHeaders, languages: ['es', 'pt', 'bn'] });
+        expect(plan.map((p) => p.column)).not.toContain('subtitle_text_es');
+        expect(plan.some((p) => p.field === 'subtitle_text')).toBe(false);
+    });
+
+    it('still plans subtitle_text on an authoring sheet (no phrase header)', () => {
+        const headers = ['course_id', 'lesson_id', 'video_file', 'subtitle_text', 'subtitle_text_es'];
+        const rows = [{ course_id: 'c', lesson_id: 'a', video_file: 'v', subtitle_text: 'Hi', subtitle_text_es: '' }];
+        const plan = planSheetTranslations({ rows, headers, languages: ['es'] });
+        expect(plan.map((p) => p.column)).toEqual(['subtitle_text_es']);
     });
 });
 

@@ -36,7 +36,7 @@ import { translateText as realTranslateText } from './lib/deepseek.js';
 export const SHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
 // The published CSV URL pins this tab's gid (scripts/generate-config-from-sheet.mjs);
 // the default `--tab` resolves whichever tab carries it.
-export const PUBLISHED_GID = 289451687;
+export const PUBLISHED_GID = 242913338;
 
 const HELP = `Translate the authoring sheet's English columns into the blank
 per-language columns and write them back (fills blanks only).

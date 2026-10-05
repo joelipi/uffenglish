@@ -214,6 +214,40 @@ describe('runTranslateSheet', () => {
         expect(translateText).not.toHaveBeenCalled();
         expect(client.batchUpdate).not.toHaveBeenCalled();
     });
+
+    // Story 050, Task 6: a master sheet translates `phrase` (per row) and never
+    // touches the overlay `subtitle_text`.
+    it('writes phrase_<lang> for a master sheet and leaves subtitle_text untouched', async () => {
+        const values = [
+            ['course_id', 'lesson_id', 'video_file', 'phrase', 'phrase_es', 'phrase_pt', 'phrase_bn', 'subtitle_text', 'subtitle_text_es'],
+            ['c', 'a', 'v', 'Q1', '', '', '', '<aside>x</aside>', ''],
+            ['c', 'a', 'v', 'Q2', '', '', '', '', ''],
+        ];
+        const client = makeClient(values);
+        const translateText = vi.fn(async (t, l) => `${l}:${t}`);
+        const res = await runTranslateSheet({
+            sheetId: 'S', tab: 'Sheet1', languages: ['es', 'pt', 'bn'], ...client, translateText, log: () => {},
+        });
+        expect(res.plan.map((p) => p.column)).toEqual([
+            'phrase_es', 'phrase_pt', 'phrase_bn',
+            'phrase_es', 'phrase_pt', 'phrase_bn',
+        ]);
+        expect(res.plan.some((p) => p.field === 'subtitle_text')).toBe(false);
+        const ranges = client.batchUpdate.mock.calls[0][0].requestBody.data.map((d) => d.range);
+        expect(ranges).toEqual(["'Sheet1'!E2", "'Sheet1'!F2", "'Sheet1'!G2", "'Sheet1'!E3", "'Sheet1'!F3", "'Sheet1'!G3"]);
+        // The overlay source column (H) and its language neighbour (I) are untouched.
+        expect(ranges.some((r) => /[HI]\d/.test(r))).toBe(false);
+    });
+
+    it('plans no phrase cells for an authoring sheet (no phrase column)', async () => {
+        const values = [['lesson_title', 'lesson_title_es'], ['Hi', '']];
+        const client = makeClient(values);
+        const res = await runTranslateSheet({
+            sheetId: 'S', tab: 'Sheet1', languages: ['es'], ...client,
+            translateText: vi.fn(async (t) => t), log: () => {},
+        });
+        expect(res.plan.map((p) => p.field)).not.toContain('phrase');
+    });
 });
 
 describe('parseLanguages', () => {

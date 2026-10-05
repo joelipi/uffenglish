@@ -140,10 +140,35 @@ export function isVideoRow(row) {
     return VIDEO_COLUMNS.some((col) => String(row?.[col] ?? '').trim() !== '');
 }
 
+/**
+ * Whether a sheet header is the overlay-master shape. The master carries a
+ * `phrase` column (one phrase per take); the authoring sheet carries `cue` /
+ * `cue_alt` instead. Header names are normalized, so `Phrase` also matches.
+ */
+export function isMasterFormat(headers) {
+    return (headers || []).some((h) => String(h).trim().toLowerCase() === 'phrase');
+}
+
+/** Every header key present across the rows (parseCsv gives each row all keys). */
+function headerKeys(rows) {
+    const keys = new Set();
+    for (const row of rows || []) for (const key of Object.keys(row || {})) keys.add(key);
+    return [...keys];
+}
+
 /** Trim a cell to a string (missing -> ""). */
 function cell(row, name) {
     const v = row?.[name];
     return v === undefined || v === null ? '' : String(v);
+}
+
+/** First non-blank value of a column across `rows`, else "" (never throws). */
+function firstNonBlank(rows, name) {
+    for (const row of rows || []) {
+        const v = cell(row, name).trim();
+        if (v) return v;
+    }
+    return '';
 }
 
 /**
@@ -279,11 +304,120 @@ function singleValue(groupRows, name, context) {
 }
 
 /**
- * Build the ordered step list for one lesson's groups. Steps are ordered by the
- * numeric `Order` column (ascending), ties by first-seen CSV order.
+ * Master step grouping: a step is one video, keyed by the `join` value when
+ * non-blank, else `video_file`. Returns the step groups in first-seen order,
+ * each with its `video_file` sub-groups in first-seen order (a joined step
+ * concatenates two option videos, so its cue array spans both sub-groups).
+ */
+function masterStepGroups(lessonRows) {
+    const order = [];
+    const byKey = new Map();
+    for (const row of lessonRows) {
+        const join = cell(row, 'join').trim();
+        const videoFile = cell(row, 'video_file').trim();
+        const key = join || videoFile;
+        if (!key) throw new Error(`row "${cell(row, 'filename')}" is missing video_file/join`);
+        if (!byKey.has(key)) { byKey.set(key, { subOrder: [], subs: new Map() }); order.push(key); }
+        const group = byKey.get(key);
+        if (!group.subs.has(videoFile)) { group.subs.set(videoFile, []); group.subOrder.push(videoFile); }
+        group.subs.get(videoFile).push(row);
+    }
+    return order.map((key) => {
+        const group = byKey.get(key);
+        return {
+            key,
+            subgroups: group.subOrder.map((videoFile) => ({ videoFile, rows: group.subs.get(videoFile) })),
+        };
+    });
+}
+
+/** Rows sorted by numeric `Order` ascending, ties by first-seen (stable). */
+function sortByOrder(rows) {
+    return rows
+        .map((row, index) => ({ row, index, order: Number(cell(row, 'order').trim()) }))
+        .sort((a, b) => (a.order - b.order) || (a.index - b.index))
+        .map((entry) => entry.row);
+}
+
+/**
+ * The master step's `cue`: an ordered array of `{en, es?, pt?, bn?}`, one
+ * element per non-blank `phrase` row, ordered by `Order` within each
+ * `video_file` sub-group and concatenated in sub-group first-seen order.
+ */
+function masterCueFor(subgroups) {
+    const phraseField = sourceOf('phrase');
+    const cue = [];
+    for (const { rows } of subgroups) {
+        for (const row of sortByOrder(rows)) {
+            const en = cell(row, phraseField).trim();
+            if (!en) continue;
+            const obj = { en };
+            for (const lang of SHEET_LANGUAGES) {
+                const v = cell(row, localizedColumn('phrase', lang)).trim();
+                if (v) obj[lang] = v;
+            }
+            cue.push(obj);
+        }
+    }
+    return cue.length ? cue : undefined;
+}
+
+/**
+ * Master app subtitles: from `srt` only (the master's `subtitle_text` is
+ * burnt-in overlay markup, never app subtitles). `srt_<lang>` localizes it.
+ * Blank -> undefined (the key is omitted).
+ */
+function masterSubtitlesFor(groupRows) {
+    const en = firstNonBlank(groupRows, 'srt');
+    if (!en) return undefined;
+    const obj = { en: unescapeSrt(en) };
+    for (const lang of SHEET_LANGUAGES) {
+        const v = firstNonBlank(groupRows, localizedColumn('srt', lang));
+        if (v) obj[lang] = unescapeSrt(v);
+    }
+    return obj;
+}
+
+/** Build steps from the overlay master (steps in first-seen group order). */
+function buildMasterSteps(lessonRows) {
+    const steps = [];
+    for (const { key, subgroups } of masterStepGroups(lessonRows)) {
+        const stepRows = subgroups.flatMap((group) => group.rows);
+        const responseType = firstNonBlank(stepRows, 'response_type');
+        if (!responseType) throw new Error(`video_file "${key}": missing response_type`);
+        if (!RESPONSE_TYPES.includes(responseType)) {
+            throw new Error(`video_file "${key}": unknown response_type "${responseType}"`);
+        }
+        for (const row of stepRows) {
+            if (!/^-?\d+$/.test(cell(row, 'order').trim())) {
+                throw new Error(
+                    `video_file "${key}" row "${cell(row, 'filename')}": missing/non-numeric Order`
+                );
+            }
+        }
+        const step = { responseType, simpleVideoUrl: key };
+        const cue = masterCueFor(subgroups);
+        if (cue !== undefined) step.cue = cue;
+        const subtitles = masterSubtitlesFor(stepRows);
+        if (subtitles !== undefined) step.subtitles = subtitles;
+        steps.push(step);
+    }
+    return steps;
+}
+
+/**
+ * Build the ordered step list for one lesson's groups. In master format
+ * (`phrase` present) steps follow the master rules (join grouping, cue array);
+ * otherwise the authoring-sheet rules apply and steps are ordered by the numeric
+ * `Order` column (ascending), ties by first-seen CSV order.
  * @returns {Array<object>} step objects
  */
-export function buildSteps(lessonRows) {
+export function buildSteps(lessonRows, options = {}) {
+    const master = options.master ?? headerKeys(lessonRows).includes('phrase');
+    return master ? buildMasterSteps(lessonRows) : buildAuthoringSteps(lessonRows);
+}
+
+function buildAuthoringSteps(lessonRows) {
     // Group rows by video_file value (order of first appearance preserved).
     const groups = new Map();
     for (const row of lessonRows) {
@@ -346,6 +480,7 @@ export function buildSteps(lessonRows) {
  */
 export function buildCourseConfig(rows) {
     const videoRows = (rows || []).filter(isVideoRow);
+    if (isMasterFormat(headerKeys(videoRows))) return buildMasterCourseConfig(videoRows);
 
     // Course-level scalars must agree across every non-skipped row ("first
     // non-empty wins, disagreement errors").
@@ -396,17 +531,174 @@ export function buildCourseConfig(rows) {
 }
 
 /**
+ * The synthesized `success` step's subtitles from the course-scoped
+ * `success_srt`/`success_srt_<lang>` columns (first non-blank). The value is
+ * taken verbatim (unlike the pipeline's JSON-escaped `srt` column), matching the
+ * canonical config the seed writes. Blank English -> undefined.
+ */
+function successSubtitlesFor(rows) {
+    const en = firstNonBlank(rows, 'success_srt');
+    if (!en) return undefined;
+    const obj = { en };
+    for (const lang of SHEET_LANGUAGES) {
+        const v = firstNonBlank(rows, localizedColumn('success_srt', lang));
+        if (v) obj[lang] = v;
+    }
+    return obj;
+}
+
+/**
+ * Assemble a course config from overlay-master rows: course/lesson scalars are
+ * first-non-blank across the course/lesson, steps come from `buildMasterSteps`
+ * (`join`/`video_file` grouping, `phrase` cue array), and the `lessonIntro` /
+ * `success` steps are synthesized from `intro_video` / `success_video` when
+ * present.
+ */
+function buildMasterCourseConfig(videoRows) {
+    const courseId = firstNonBlank(videoRows, 'course_id');
+    const courseName = firstNonBlank(videoRows, 'course_name');
+    if (!courseId) throw new Error('missing course_id column value');
+    if (!courseName) throw new Error('missing course_name column value');
+
+    const lessonOrder = [];
+    const lessonRows = new Map();
+    for (const row of videoRows) {
+        const lessonId = cell(row, 'lesson_id').trim();
+        if (!lessonId) throw new Error(`row "${cell(row, 'filename')}" is missing lesson_id`);
+        if (!lessonRows.has(lessonId)) { lessonRows.set(lessonId, []); lessonOrder.push(lessonId); }
+        lessonRows.get(lessonId).push(row);
+    }
+
+    const lessons = lessonOrder.map((lessonId) => {
+        const rowsForLesson = lessonRows.get(lessonId);
+        const title = firstNonBlank(rowsForLesson, 'lesson_title');
+        if (!title) throw new Error(`lesson "${lessonId}": missing lesson_title`);
+
+        const recapSources = firstNonBlank(rowsForLesson, 'recap_sources') || 'none';
+        if (!RECAP_SOURCES.includes(recapSources)) {
+            throw new Error(`lesson "${lessonId}": invalid recap_sources "${recapSources}"`);
+        }
+        const recapOverlay = firstNonBlank(rowsForLesson, 'recap_overlay') || 'shareCta';
+        if (!RECAP_OVERLAYS.includes(recapOverlay)) {
+            throw new Error(`lesson "${lessonId}": invalid recap_overlay "${recapOverlay}"`);
+        }
+
+        const lesson = {
+            lessonId, recapSources, recapOverlay,
+            title: localizedObject(rowsForLesson, 'lesson_title', title),
+        };
+
+        const unit = firstNonBlank(rowsForLesson, 'unit');
+        if (unit) lesson.unit = unit;
+        const mission = firstNonBlank(rowsForLesson, sourceOf('mission'));
+        if (mission) lesson.mission = localizedObject(rowsForLesson, 'mission', mission);
+
+        lesson.steps = buildMasterSteps(rowsForLesson);
+
+        const introVideo = firstNonBlank(rowsForLesson, 'intro_video');
+        if (introVideo) {
+            lesson.steps.unshift({ cue: '', responseType: 'lessonIntro', introBackgroundVideoUrl: introVideo });
+        }
+        const successVideo = firstNonBlank(rowsForLesson, 'success_video');
+        if (successVideo) {
+            const successStep = { responseType: 'success', simpleVideoUrl: successVideo };
+            const subtitles = successSubtitlesFor(rowsForLesson);
+            if (subtitles !== undefined) successStep.subtitles = subtitles;
+            lesson.steps.push(successStep);
+        }
+        return lesson;
+    });
+
+    return { courseId, courseName, lessons };
+}
+
+/** Deterministically order + dedupe a missing-columns list, as `findMissingColumns` reports it. */
+function sortMissing(missing) {
+    const rank = new Map(REQUIRED_COLUMNS.map((c, i) => [c, i]));
+    const seen = new Set();
+    return missing
+        .filter((m) => {
+            const key = `${m.column}\u0000${m.where}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        })
+        .sort((a, b) => (rank.get(a.column) - rank.get(b.column)) || (a.where < b.where ? -1 : a.where > b.where ? 1 : 0));
+}
+
+/**
+ * Master-format missing-column detector. Mirrors `buildMasterSteps` grouping
+ * EXACTLY: a step is `join` (when non-blank) else `video_file`, grouped within a
+ * lesson, so a joined step is validated as one step.
+ */
+function findMissingMasterColumns(videoRows) {
+    const missing = [];
+    const add = (column, where) => missing.push({ column, where });
+    if (videoRows.length === 0) return [];
+
+    if (!firstNonBlank(videoRows, 'course_id')) add('course_id', 'course');
+    if (!firstNonBlank(videoRows, 'course_name')) add('course_name', 'course');
+
+    for (const row of videoRows) {
+        if (!cell(row, 'lesson_id').trim()) add('lesson_id', `row "${cell(row, 'filename')}"`);
+        if (!cell(row, 'video_file').trim() && !cell(row, 'join').trim()) {
+            add('video_file', `row "${cell(row, 'filename')}"`);
+        }
+    }
+
+    const lessonOrder = [];
+    const lessonRows = new Map();
+    for (const row of videoRows) {
+        const lessonId = cell(row, 'lesson_id').trim();
+        if (!lessonId) continue;
+        if (!lessonRows.has(lessonId)) { lessonRows.set(lessonId, []); lessonOrder.push(lessonId); }
+        lessonRows.get(lessonId).push(row);
+    }
+
+    for (const lessonId of lessonOrder) {
+        const rowsForLesson = lessonRows.get(lessonId);
+        if (!firstNonBlank(rowsForLesson, 'lesson_title')) add('lesson_title', `lesson "${lessonId}"`);
+
+        // Group by `join` else `video_file`, skipping keyless rows (this detector
+        // must never throw) — mirrors buildMasterSteps.
+        const groupOrder = [];
+        const groups = new Map();
+        for (const row of rowsForLesson) {
+            const key = cell(row, 'join').trim() || cell(row, 'video_file').trim();
+            if (!key) continue;
+            if (!groups.has(key)) { groups.set(key, []); groupOrder.push(key); }
+            groups.get(key).push(row);
+        }
+        for (const key of groupOrder) {
+            const groupRows = groups.get(key);
+            if (!firstNonBlank(groupRows, 'response_type')) {
+                add('response_type', `video_file "${key}"`);
+            }
+            for (const row of groupRows) {
+                if (!/^-?\d+$/.test(cell(row, 'order').trim())) {
+                    add('order', `video_file "${key}" row "${cell(row, 'filename')}"`);
+                }
+            }
+        }
+    }
+
+    return sortMissing(missing);
+}
+
+/**
  * The required columns that are blank for one course's selected rows, as a
  * deduplicated, deterministically ordered list of `{ column, where }`. Pure and
  * non-throwing — it never builds a config, it only reports what a build would
  * need. `course_id`/`course_name` are course-wide; `lesson_id`/`lesson_title`
- * per lesson; `response_type`/`video_file`/`order` per row/group.
+ * per lesson; `response_type`/`video_file`/`order` per row/group. In master
+ * format the grouping follows `join`/`video_file` (`buildMasterSteps`).
  *
  * @param {Array<Record<string,string>>} rows one course's video rows
  * @returns {Array<{column: string, where: string}>}
  */
 export function findMissingColumns(rows) {
     const videoRows = (rows || []).filter(isVideoRow);
+    if (isMasterFormat(headerKeys(videoRows))) return findMissingMasterColumns(videoRows);
     const missing = [];
     const add = (column, where) => missing.push({ column, where });
 
@@ -416,10 +708,6 @@ export function findMissingColumns(rows) {
     // on conflicts. This detector must never throw: a conflict is a structural
     // error that `buildCourseConfig` reports per-course, and the detector must
     // not abort the whole multi-course run.
-    const firstNonBlank = (rs, name) => {
-        for (const r of rs) if (cell(r, name).trim()) return cell(r, name).trim();
-        return '';
-    };
 
     // Course-wide: blank on EVERY row.
     if (!firstNonBlank(videoRows, 'course_id')) add('course_id', 'course');
@@ -470,17 +758,7 @@ export function findMissingColumns(rows) {
         }
     }
 
-    // Deterministic: REQUIRED_COLUMNS order, then `where`; deduplicated.
-    const rank = new Map(REQUIRED_COLUMNS.map((c, i) => [c, i]));
-    const seen = new Set();
-    return missing
-        .filter((m) => {
-            const key = `${m.column}\u0000${m.where}`;
-            if (seen.has(key)) return false;
-            seen.add(key);
-            return true;
-        })
-        .sort((a, b) => (rank.get(a.column) - rank.get(b.column)) || (a.where < b.where ? -1 : a.where > b.where ? 1 : 0));
+    return sortMissing(missing);
 }
 
 /**

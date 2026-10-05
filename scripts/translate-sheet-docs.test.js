@@ -20,10 +20,11 @@ const PRODUCT = path.join(ROOT, 'docs/product.md');
 const read = (p) => readFileSync(p, 'utf8');
 
 // The docs contract: the authoring guide documents every one of the 15
-// localization columns and the service-account share step, and the product
-// feature list carries the round-trip entry.
+// authoring localization columns (`phrase` is master-only, not in this guide)
+// and the service-account share step, and the product feature list carries the
+// round-trip entry.
 function assertDocsContract({ authoring, product }) {
-    for (const field of TRANSLATABLE_FIELDS) {
+    for (const field of TRANSLATABLE_FIELDS.filter((f) => f.field !== 'phrase')) {
         for (const lang of SHEET_LANGUAGES) {
             const column = localizedColumn(field.field, lang);
             expect(authoring, column).toContain(column);

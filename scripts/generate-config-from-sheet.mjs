@@ -19,7 +19,7 @@
 
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { flagValue } from './lib/cli-utils.js';
 import { parseCsv, buildCourseConfigs, isValidCourseId } from './lib/sheet-config-utils.js';
 
@@ -30,7 +30,7 @@ const CONFIG_DIR = process.env.CONFIG_OUT_DIR || path.join(ROOT, 'src', 'config'
 
 // Keep in sync with public/recorder.html (source-guarded).
 export const SHEET_URL =
-    'https://docs.google.com/spreadsheets/d/e/2PACX-1vSDgWLQRezvKde57LsHzm6YPrwanYJgCBOXkz_1r6GxEilauIudDxsg5IUjiQ7F7CP4OwZQg82LSbfT/pub?gid=289451687&single=true&output=csv';
+    'https://docs.google.com/spreadsheets/d/e/2PACX-1vQZ7jFMJNnmylDoHxaqb1W8VyXi0OV4pSubCbqMGYkRgGimqWx3cs74n43-cFxqfue4KCiqWlhzvPkK/pub?gid=242913338&single=true&output=csv';
 
 const HELP = `Generate an English-only src/config/<courseId>.json per sheet course.
 
@@ -158,7 +158,11 @@ async function registerGeneratedCourse(courseId) {
     }
 }
 
-main().catch((e) => {
-    console.error('ERROR:', e.message);
-    process.exit(1);
-});
+const invokedDirectly = process.argv[1]
+    && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (invokedDirectly) {
+    main().catch((e) => {
+        console.error('ERROR:', e.message);
+        process.exit(1);
+    });
+}

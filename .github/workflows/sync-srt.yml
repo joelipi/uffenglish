@@ -1,0 +1,43 @@
+name: Sync SRT to Master Sheet
+
+# Manual only (plus a `repository_dispatch (render-complete)` trigger for a later
+# wiring, mirroring configs.yml). The Modal render persists the pipeline-computed
+# `srt` column to R2; this Action downloads that CSV and writes the column back
+# into the operator's master sheet for record-keeping. The sheet -- not the repo
+# -- is the output, so there is no commit step and no push-capable bot token.
+on:
+  workflow_dispatch:
+  repository_dispatch:
+    types: [render-complete]
+
+permissions:
+  contents: read
+
+# One global group: this mutates the single shared remote sheet, so two
+# concurrent runs could race the same cells.
+concurrency:
+  group: sync-srt
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - name: Download video_data.csv from R2
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          R2_PRIVATE_BUCKET: ${{ vars.R2_PRIVATE_BUCKET || secrets.R2_PRIVATE_BUCKET }}
+        run: |
+          set -euo pipefail
+          npx wrangler r2 object get "$R2_PRIVATE_BUCKET/pipeline-assets/video_data.csv" \
+            --file=/tmp/video_data.csv
+      - name: Write srt into the master sheet
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          GOOGLE_SHEET_ID: ${{ vars.GOOGLE_SHEET_ID || secrets.GOOGLE_SHEET_ID }}
+        run: node scripts/write-srt-to-sheet.mjs --csv=/tmp/video_data.csv

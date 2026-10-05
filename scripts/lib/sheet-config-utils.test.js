@@ -12,6 +12,7 @@ import {
     buildCourseConfigs,
     findMissingColumns,
     isValidCourseId,
+    isMasterFormat,
     RESPONSE_TYPES,
     RECAP_SOURCES,
     RECAP_OVERLAYS,
@@ -408,8 +409,15 @@ describe('shared translatable-field parity', () => {
         expect(lesson.steps[1].cue[0].es).toBe('A-es');
         // The generator's consumed field set is exactly the shared set.
         expect(TRANSLATABLE_FIELDS.map((f) => f.field).sort()).toEqual([
-            'cue', 'cue_alt', 'lesson_title', 'mission', 'subtitle_text',
+            'cue', 'cue_alt', 'lesson_title', 'mission', 'phrase', 'subtitle_text',
         ]);
+        // `phrase` is consumed by the master path (one cue element per row).
+        const master = buildCourseConfig([{
+            course_id: 'c', course_name: 'C', lesson_id: 'a', lesson_title: 'L',
+            response_type: 'friendClosedResponse', video_file: 'v', filename: 'f',
+            order: '1', phrase: 'Q', phrase_es: 'Q-es',
+        }]);
+        expect(master.lessons[0].steps[0].cue).toEqual([{ en: 'Q', es: 'Q-es' }]);
     });
 });
 
@@ -627,16 +635,158 @@ describe('buildCourseConfigs', () => {
 
 // Story 049: the sample sheet gains the 15 localization columns (blank cells)
 // and must still round-trip through parseCsv + buildCourseConfig.
+// Story 050, Task 1: the overlay master (a `phrase` header) is a second sheet
+// shape. Steps group by `join` (else `video_file`), the cue is an ordered array
+// built from per-row `phrase`, subtitles come from `srt` only, and the
+// lessonIntro/success steps are synthesized from the config columns.
+describe('master format (overlay master)', () => {
+    const base = {
+        course_id: 'wouldyourather', course_name: 'Friend Challenge',
+        lesson_id: 'a', lesson_title: 'Ask', response_type: 'friendClosedResponse',
+    };
+    const steps = (rows) => buildCourseConfig(rows).lessons[0].steps;
+
+    it('isMasterFormat detects a phrase header (case-insensitive)', () => {
+        expect(isMasterFormat(['title_text', 'Order', 'phrase', 'video_file'])).toBe(true);
+        expect(isMasterFormat(['Phrase'])).toBe(true);
+        expect(isMasterFormat(['cue', 'cue_alt', 'video_file'])).toBe(false);
+        expect(isMasterFormat([])).toBe(false);
+    });
+
+    it('builds the cue as an array of {en} in Order order', () => {
+        const rows = [1, 2, 3, 4].map((n) => ({
+            ...base, video_file: 'v', filename: `f${n}`, order: String(n), phrase: `Q${n}`,
+        }));
+        expect(steps(rows)[0].cue).toEqual([{ en: 'Q1' }, { en: 'Q2' }, { en: 'Q3' }, { en: 'Q4' }]);
+    });
+
+    it('the cue array length varies with the row count (1, 4, 8)', () => {
+        const one = steps([{ ...base, video_file: 'v', filename: 'f', order: '1', phrase: 'Q' }]);
+        expect(one[0].cue).toHaveLength(1);
+
+        const four = Array.from({ length: 4 }, (_, i) => ({
+            ...base, video_file: 'v', filename: `f${i}`, order: String(i + 1), phrase: `Q${i}`,
+        }));
+        expect(steps(four)[0].cue).toHaveLength(4);
+
+        const joined = [];
+        for (let i = 0; i < 4; i++) {
+            joined.push({ ...base, video_file: 'vA', filename: `a${i}`, order: String(i + 1), phrase: `A${i}`, join: 'joined' });
+            joined.push({ ...base, video_file: 'vB', filename: `b${i}`, order: String(i + 1), phrase: `B${i}`, join: 'joined' });
+        }
+        const [step] = steps(joined);
+        expect(step.cue).toHaveLength(8);
+        expect(step.simpleVideoUrl).toBe('joined');
+    });
+
+    it('localizes each cue element and omits a blank language key', () => {
+        const rows = [
+            { ...base, video_file: 'v', filename: 'f1', order: '1', phrase: 'Q1', phrase_es: 'Q1-es' },
+            { ...base, video_file: 'v', filename: 'f2', order: '2', phrase: 'Q2', phrase_bn: 'Q2-bn' },
+        ];
+        expect(steps(rows)[0].cue).toEqual([
+            { en: 'Q1', es: 'Q1-es' },
+            { en: 'Q2', bn: 'Q2-bn' },
+        ]);
+    });
+
+    it('groups by join when set: one step spanning both video_files in first-seen order', () => {
+        const rows = [
+            { ...base, video_file: 'wouldyourather_b01_i', filename: 'b1', order: '1', phrase: 'O1', join: 'wouldyourather_b01' },
+            { ...base, video_file: 'wouldyourather_b01_ii', filename: 'b2', order: '1', phrase: 'O2', join: 'wouldyourather_b01' },
+        ];
+        const all = steps(rows);
+        expect(all).toHaveLength(1);
+        expect(all[0].simpleVideoUrl).toBe('wouldyourather_b01');
+        expect(all[0].cue).toEqual([{ en: 'O1' }, { en: 'O2' }]);
+    });
+
+    it('builds subtitles from the JSON-escaped srt column', () => {
+        const rows = [{ ...base, video_file: 'v', filename: 'f', order: '1', phrase: 'Q', srt: '1\\n00:00 --> 00:01\\nHi' }];
+        expect(steps(rows)[0].subtitles).toEqual({ en: '1\n00:00 --> 00:01\nHi' });
+    });
+
+    it('never uses the overlay subtitle_text when there is no srt', () => {
+        const rows = [{ ...base, video_file: 'v', filename: 'f', order: '1', phrase: 'Q', subtitle_text: '<aside>🅰1️⃣</aside>' }];
+        expect('subtitles' in steps(rows)[0]).toBe(false);
+    });
+
+    it('prepends a synthesized lessonIntro from intro_video', () => {
+        const rows = [
+            { ...base, video_file: 'v', filename: 'f1', order: '1', phrase: 'Q' },
+            { ...base, video_file: 'v', filename: 'f2', order: '2', phrase: 'Q2', intro_video: 'intro' },
+        ];
+        expect(steps(rows)[0]).toEqual({ cue: '', responseType: 'lessonIntro', introBackgroundVideoUrl: 'intro' });
+    });
+
+    it('appends a synthesized success step from success_video + success_srt', () => {
+        const rows = [{
+            ...base, video_file: 'v', filename: 'f', order: '1', phrase: 'Q',
+            success_video: 'success', success_srt: 'the end', success_srt_es: 'el fin',
+        }];
+        const all = steps(rows);
+        expect(all[all.length - 1]).toEqual({
+            responseType: 'success', simpleVideoUrl: 'success', subtitles: { en: 'the end', es: 'el fin' },
+        });
+    });
+
+    it('omits a synthesized step when its video column is blank', () => {
+        const rows = [{ ...base, video_file: 'v', filename: 'f', order: '1', phrase: 'Q', intro_video: '', success_video: '' }];
+        const all = steps(rows);
+        expect(all).toHaveLength(1);
+        expect(all.some((s) => s.responseType === 'lessonIntro' || s.responseType === 'success')).toBe(false);
+    });
+
+    it('findMissingColumns reports required config columns and never the optional new ones', () => {
+        const rows = [{
+            course_id: '', course_name: 'C', lesson_id: 'a', lesson_title: 'L',
+            response_type: '', video_file: 'v', filename: 'f', order: '1', phrase: 'Q',
+            intro_video: '', success_video: '', success_srt: '', recap_sources: '',
+        }];
+        expect(findMissingColumns(rows)).toContainEqual({ column: 'course_id', where: 'course' });
+        expect(findMissingColumns(rows)).toContainEqual({ column: 'response_type', where: 'video_file "v"' });
+        expect(findMissingColumns(rows)).not.toContainEqual(expect.objectContaining({ column: 'intro_video' }));
+    });
+
+    it('findMissingColumns validates a joined step as one group', () => {
+        const rows = [
+            { course_id: 'c', course_name: 'C', lesson_id: 'a', lesson_title: 'L', response_type: '', video_file: 'v1', filename: 'f1', order: '1', phrase: 'Q1', join: 'J' },
+            { course_id: 'c', course_name: 'C', lesson_id: 'a', lesson_title: 'L', response_type: '', video_file: 'v2', filename: 'f2', order: '1', phrase: 'Q2', join: 'J' },
+        ];
+        expect(findMissingColumns(rows).filter((m) => m.column === 'response_type'))
+            .toEqual([{ column: 'response_type', where: 'video_file "J"' }]);
+    });
+
+    it('findMissingColumns never throws on a master row with no step key', () => {
+        const rows = [{
+            course_id: 'c', course_name: 'C', lesson_id: 'a', lesson_title: 'L',
+            response_type: 'friendClosedResponse', video_file: '', filename: 'f', order: '1', phrase: 'Q',
+        }];
+        expect(() => findMissingColumns(rows)).not.toThrow();
+        expect(findMissingColumns(rows)).toContainEqual({ column: 'video_file', where: 'row "f"' });
+    });
+
+    it('an authoring header (no phrase) still takes the authoring path', () => {
+        const authoring = [{
+            course_id: 'c', course_name: 'C', lesson_id: 'a', lesson_title: 'L',
+            response_type: 'friendClosedResponse', video_file: 'v', filename: 'f', order: '1', cue: 'Q?',
+        }];
+        expect(buildCourseConfig(authoring).lessons[0].steps[0].cue).toEqual({ en: 'Q?' });
+    });
+});
+
 describe('docs/video-pipeline/sample-sheet.csv round-trip', () => {
     const samplePath = path.join(__dirname, '../../docs/video-pipeline/sample-sheet.csv');
     const csv = readFileSync(samplePath, 'utf8');
 
-    it('headers include all 15 localization columns', () => {
+    it('headers include all 15 authoring localization columns (phrase is master-only)', () => {
         const { headers } = parseCsv(csv);
-        const expected = TRANSLATABLE_FIELDS.flatMap((f) =>
+        const authoringFields = TRANSLATABLE_FIELDS.filter((f) => f.field !== 'phrase');
+        const expected = authoringFields.flatMap((f) =>
             SHEET_LANGUAGES.map((l) => localizedColumn(f.field, l)));
         expect(expected).toHaveLength(15);
         for (const col of expected) expect(headers).toContain(col);
+        expect(headers).not.toContain('phrase_es');
     });
 
     it('still parses and generates a valid English-only config', () => {
