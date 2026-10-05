@@ -1,5 +1,6 @@
 // scripts/generate-config-from-sheet.test.js
-// Story 046 (extends 042): multi-course generation, per-file never-overwrite,
+// Story 047 (extends 046/042): multi-course generation, overwrite-on-re-run,
+// best-effort skips, and the no---force overwrite source guard.
 // per-course allow-list, best-effort skips, and the URL source guard.
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { execFile } from 'node:child_process';
@@ -249,6 +250,8 @@ describe('generate-config-from-sheet CLI', () => {
             const { code, stderr } = await runCli([`--sheet-url=${baseUrl}`, `--out=${dir}`, '--check']);
             expect(code).not.toBe(0);
             expect(stderr).toContain('ERROR:');
+            // The failed write's temp file was cleaned up (no stray *.tmp-*).
+            expect(readdirSync(dir).some((f) => f.includes('.tmp-'))).toBe(false);
         } finally { rmSync(dir, { recursive: true, force: true }); }
     });
 
