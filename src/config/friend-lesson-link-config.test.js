@@ -100,6 +100,29 @@ describe('wouldrather.json canonical a-f chain', () => {
             expect(lesson.title.length, `${lesson.lessonId} title`).toBeGreaterThan(0);
         }
     });
+
+    it('wires the ping-pong view clips in chain order', () => {
+        const friendSlug = (lessonId, n) => `{friendCode}wouldrather-${lessonId}-response-0${n}`;
+        const viewSlugs = (lesson) => (lesson.steps || [])
+            .filter((s) => s.responseType === 'viewAndContinue')
+            .map((s) => s.simpleVideoUrl)
+            .filter((u) => typeof u === 'string' && u.includes('{friendCode}'));
+
+        const byId = Object.fromEntries(wouldrather.lessons.map((l) => [l.lessonId, l]));
+
+        // b plays a's first-recorded ask set (-01..03); c..f play the previous
+        // lesson's newly-recorded asks (-04..06).
+        expect(viewSlugs(byId.b)).toEqual([friendSlug('a', 1), friendSlug('a', 2), friendSlug('a', 3)]);
+        for (const [id, prev] of [['c', 'b'], ['d', 'c'], ['e', 'd'], ['f', 'e']]) {
+            expect(viewSlugs(byId[id]), `${id} view slugs`)
+                .toEqual([friendSlug(prev, 4), friendSlug(prev, 5), friendSlug(prev, 6)]);
+        }
+
+        // f is terminal: it plays the previous friend's asks but records no new
+        // ask set of its own (its only response steps are the 3 answers).
+        const fResponseSteps = byId.f.steps.filter((s) => s.responseType === 'friendClosedResponse');
+        expect(fResponseSteps).toHaveLength(3);
+    });
 });
 
 // A `{friendCode}<courseId>-<lessonId>-response-NN` reference must point at a

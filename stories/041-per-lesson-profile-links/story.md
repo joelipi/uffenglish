@@ -133,7 +133,7 @@ Replace `src/config/wouldrather.json` with the reviewed `a`–`f` English-title 
 ### Task 6 - Promote the canonical config
 
 - `src/config/wouldrather.json` = the reviewed `a`–`f` chain: lessons `['a'..'f']` in order, every lesson `recapOverlay:'shareCta'`, `a` `recapSources:'none'` and `b`–`f` `'friend'`, all `title`s plain English strings.
-- Each `b`–`e` plays `{friendCode}wouldrather-<prev>-response-04..06` as `viewAndContinue` and records its own answers `<lessonId>-01..03` then new asks `-04..06`; `a` records asks `-01..03`; `f` is terminal.
+- Each `c`–`e` plays `{friendCode}wouldrather-<prev>-response-04..06` as `viewAndContinue` and records its own answers `<lessonId>-01..03` then new asks `-04..06`; `b` plays the first ask set `{friendCode}wouldrather-a-response-01..03`; `a` records asks `-01..03`; `f` plays `{friendCode}wouldrather-e-response-04..06` and is terminal (no new asks).
 - Lesson `a`'s `viewAndContinue` (`testvideointro`) and `success` (`enda`) steps each carry **all four locales** (`en`,`es`,`pt`,`bn`) of non-empty timed SRT (contains `-->`), so the existing `wouldrather.test.js` caption assertions pass unchanged. (The reviewed exercise config was missing `pt`/`bn` on `testvideointro` — restore them.)
 - `src/config/wouldrather-exercise.json` is deleted.
 - Update `friend-lesson-link-config.test.js`'s `wouldrather` case to expect the chain over `a..f`: `nextFriendLessonId(a)='b'` … `nextFriendLessonId(e)='f'`, `nextFriendLessonId(f)=null`.

@@ -56,15 +56,14 @@ describe('FriendLessonLinksSection', () => {
         const heading = container.querySelector('[data-testid="friend-lesson-link-group-heading"]');
         expect(heading.textContent).toBe('Friend Chain');
 
-        const anchors = container.querySelectorAll('[data-testid="friend-lesson-link"]');
+        const anchors = Array.from(container.querySelectorAll('[data-testid="friend-lesson-link"]'));
         expect(anchors).toHaveLength(2);
-        const hrefs = Array.from(anchors).map((a) => a.getAttribute('href'));
-        expect(hrefs).toContain('https://ultrafastfluency.com/course/friendchain/lesson/b?shareCode=code1');
-        expect(hrefs).toContain('https://ultrafastfluency.com/course/friendchain/lesson/d?shareCode=code1');
-
-        const labels = Array.from(anchors).map((a) => a.textContent);
-        expect(labels).toContain('Make 3 questions');
-        expect(labels).toContain('Follow Up');
+        const byLabel = Object.fromEntries(anchors.map((a) => [a.textContent, a.getAttribute('href')]));
+        // Each label is paired with its OWN target lesson (b for the 'a' entry, d for the 'c' entry).
+        expect(byLabel['Make 3 questions'])
+            .toBe('https://ultrafastfluency.com/course/friendchain/lesson/b?shareCode=code1');
+        expect(byLabel['Follow Up'])
+            .toBe('https://ultrafastfluency.com/course/friendchain/lesson/d?shareCode=code1');
 
         // Each link carries its own countdown element.
         expect(container.querySelectorAll('[data-testid="friend-lesson-link-countdown"]')).toHaveLength(2);
@@ -91,7 +90,26 @@ describe('FriendLessonLinksSection', () => {
         expect(container.querySelectorAll('[data-testid="friend-lesson-link-group"]')).toHaveLength(2);
     });
 
-    it('renders no visible label text when lessonTitle is empty (no fallback)', () => {
+    it('keeps two courses with the same display name as separate groups', () => {
+        const links = {
+            'course1:a': {
+                courseId: 'course1', courseName: 'Friend Challenge',
+                recordedLessonId: 'a', lessonId: 'b', shareCode: 'code1',
+                addedAt: iso(NOW - HOUR), lessonTitle: 'Ask One',
+            },
+            'course2:a': {
+                courseId: 'course2', courseName: 'Friend Challenge',
+                recordedLessonId: 'a', lessonId: 'b', shareCode: 'code2',
+                addedAt: iso(NOW - 2 * HOUR), lessonTitle: 'Ask Two',
+            },
+        };
+        root = renderSection(container, { friendLinks: links, lang: 'en' });
+
+        expect(container.querySelectorAll('[data-testid="friend-lesson-link-group"]')).toHaveLength(2);
+        expect(container.querySelectorAll('[data-testid="friend-lesson-link"]')).toHaveLength(2);
+    });
+
+    it('falls back to the generic link copy and stays clickable when lessonTitle is empty', () => {
         const links = {
             'friendchain:a': {
                 courseId: 'friendchain', courseName: 'Friend Chain',
@@ -102,7 +120,7 @@ describe('FriendLessonLinksSection', () => {
         root = renderSection(container, { friendLinks: links, lang: 'en' });
 
         const anchor = container.querySelector('[data-testid="friend-lesson-link"]');
-        expect(anchor.textContent).toBe('');
+        expect(anchor.textContent).toBe('Practice English with Me');
         expect(anchor.getAttribute('href'))
             .toBe('https://ultrafastfluency.com/course/friendchain/lesson/b?shareCode=code1');
     });

@@ -29,9 +29,12 @@ function FriendLessonLink({ entry, lang, now }) {
         shareCode: entry.shareCode,
     });
 
-    // An entry with no recorded title renders no visible label; it never falls
-    // back to a localized generic string.
-    const label = typeof entry.lessonTitle === 'string' ? entry.lessonTitle : '';
+    // The label is the English title of the recorded lesson. If an entry has no
+    // title (malformed/legacy data), fall back to the generic link copy so the
+    // anchor keeps a visible, clickable label.
+    const label = (typeof entry.lessonTitle === 'string' && entry.lessonTitle !== '')
+        ? entry.lessonTitle
+        : Strings.get('profile_friend_lesson_link', lang);
 
     return (
         <div style={cardStyle}>
@@ -82,7 +85,7 @@ export default function FriendLessonLinksSection({ friendLinks, lang = 'en' }) {
                         data-testid="friend-lesson-link-group-heading"
                         style={{ color: '#adb5bd', fontSize: '16px', fontWeight: 600, margin: 0 }}
                     >
-                        {group.courseName}
+                        {group.courseName || group.courseId}
                     </h3>
                     {group.entries.map((entry) => (
                         <FriendLessonLink
