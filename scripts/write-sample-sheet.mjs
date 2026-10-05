@@ -13,6 +13,14 @@ const HEADER = [
     'course_id', 'course_name', 'lesson_id', 'lesson_title', 'unit', 'mission',
     'response_type', 'video_file', 'filename', 'order', 'cue', 'cue_alt',
     'subtitle_text', 'srt', 'recap_sources', 'recap_overlay',
+    // Story 049 localization targets (one column per language per field). Blank
+    // in the sample: a fresh import shows the operator where translations land,
+    // and `translate-sheet.mjs` fills them.
+    'lesson_title_es', 'lesson_title_pt', 'lesson_title_bn',
+    'mission_es', 'mission_pt', 'mission_bn',
+    'cue_es', 'cue_pt', 'cue_bn',
+    'cue_alt_es', 'cue_alt_pt', 'cue_alt_bn',
+    'subtitle_text_es', 'subtitle_text_pt', 'subtitle_text_bn',
 ];
 
 const MISSION = 'Ask and answer with WOULD YOU RATHER.';

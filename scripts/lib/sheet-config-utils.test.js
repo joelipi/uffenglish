@@ -16,6 +16,11 @@ import {
     RECAP_SOURCES,
     RECAP_OVERLAYS,
 } from './sheet-config-utils.js';
+import {
+    SHEET_LANGUAGES,
+    TRANSLATABLE_FIELDS,
+    localizedColumn,
+} from './sheet-translate-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -280,6 +285,93 @@ describe('buildCourseConfig', () => {
     });
 });
 
+// Story 049, Task 4: the language columns are consumed into the existing
+// `{en,es,pt,bn}` objects, additively (back-compat: no columns -> `{en}`).
+describe('buildCourseConfig localization columns', () => {
+    const base = {
+        course_id: 'c', course_name: 'C', lesson_id: 'a', lesson_title: 'Lesson A',
+    };
+
+    it('builds lesson.title from lesson_title + language columns (blank key omitted)', () => {
+        const config = buildCourseConfig([
+            {
+                ...base, lesson_title_es: 'Lección A', lesson_title_pt: 'Lição A', lesson_title_bn: '',
+                video_file: 'v', filename: 'v1', order: '1', response_type: 'viewAndContinue',
+            },
+        ]);
+        expect(config.lessons[0].title).toEqual({ en: 'Lesson A', es: 'Lección A', pt: 'Lição A' });
+    });
+
+    it('uses the first non-blank language value across the lesson rows (no conflict throw)', () => {
+        const config = buildCourseConfig([
+            { ...base, lesson_title_es: '', video_file: 'v', filename: 'v1', order: '1', response_type: 'viewAndContinue' },
+            { ...base, lesson_title_es: 'Lección', video_file: 'w', filename: 'w1', order: '2', response_type: 'viewAndContinue' },
+        ]);
+        expect(config.lessons[0].title.es).toBe('Lección');
+    });
+
+    it('adds mission languages', () => {
+        const config = buildCourseConfig([
+            { ...base, mission: 'Talk', mission_pt: 'Falar', video_file: 'v', filename: 'v1', order: '1', response_type: 'viewAndContinue' },
+        ]);
+        expect(config.lessons[0].mission).toEqual({ en: 'Talk', pt: 'Falar' });
+    });
+
+    it('builds a single cue as {en,es,bn}', () => {
+        const [step] = buildSteps([
+            { video_file: 'q', filename: 'q1', order: '1', response_type: 'friendClosedResponse', cue: 'Q?', cue_es: '¿Q?', cue_bn: 'প্র?' },
+        ]);
+        expect(step.cue).toEqual({ en: 'Q?', es: '¿Q?', bn: 'প্র?' });
+    });
+
+    it('pairs cue_alt_<lang> lines by index and omits unpaired languages', () => {
+        const [step] = buildSteps([
+            {
+                video_file: 'q', filename: 'q1', order: '1', response_type: 'friendClosedResponse',
+                cue_alt: 'A\nB', cue_alt_es: 'A-es\nB-es', cue_alt_bn: 'A-bn',
+            },
+        ]);
+        expect(step.cue).toEqual([
+            { en: 'A', es: 'A-es', bn: 'A-bn' },
+            { en: 'B', es: 'B-es' },
+        ]);
+    });
+
+    it('builds subtitle_text as {en,es}', () => {
+        const [step] = buildSteps([
+            { video_file: 'v', filename: 'v1', order: '1', response_type: 'viewAndContinue', subtitle_text: 'Hi.', subtitle_text_es: 'Hola.' },
+        ]);
+        expect(step.subtitles).toEqual({ en: 'Hi.', es: 'Hola.' });
+    });
+
+    it('keeps the srt branch {en} even when subtitle_text_es is present', () => {
+        const [step] = buildSteps([
+            { video_file: 'v', filename: 'v1', order: '1', response_type: 'viewAndContinue', srt: '1\\n00:00 --> 00:01\\nHi', subtitle_text: 'Hi.', subtitle_text_es: 'Hola.' },
+        ]);
+        expect(Object.keys(step.subtitles)).toEqual(['en']);
+    });
+
+    it('ignores a stray cue_alt_es on a single-cue step', () => {
+        const [step] = buildSteps([
+            { video_file: 'q', filename: 'q1', order: '1', response_type: 'friendClosedResponse', cue: 'Q', cue_es: 'Q-es', cue_alt_es: 'stray' },
+        ]);
+        expect(step.cue).toEqual({ en: 'Q', es: 'Q-es' });
+    });
+
+    it('ignores a stray cue_es on a cue_alt step', () => {
+        const [step] = buildSteps([
+            { video_file: 'q', filename: 'q1', order: '1', response_type: 'friendClosedResponse', cue_alt: 'A\nB', cue_alt_es: 'A-es\nB-es', cue_es: 'stray' },
+        ]);
+        expect(step.cue).toEqual([{ en: 'A', es: 'A-es' }, { en: 'B', es: 'B-es' }]);
+    });
+
+    it('never reports the optional language columns missing', () => {
+        expect(findMissingColumns([
+            { ...COURSE, video_file: 'v', filename: 'f1', order: '1', response_type: 'viewAndContinue' },
+        ])).toEqual([]);
+    });
+});
+
 // The browser modules import runtime deps and cannot be imported here, so the
 // canonical literals are pinned by parsing their source text.
 describe('isValidCourseId', () => {
@@ -489,5 +581,30 @@ describe('buildCourseConfigs', () => {
     it('returns [] when every row is a blank spacer row', () => {
         const { rows } = parseCsv('course_id,course_name\n,\n,\n');
         expect(buildCourseConfigs(rows)).toEqual([]);
+    });
+});
+
+// Story 049: the sample sheet gains the 15 localization columns (blank cells)
+// and must still round-trip through parseCsv + buildCourseConfig.
+describe('docs/video-pipeline/sample-sheet.csv round-trip', () => {
+    const samplePath = path.join(__dirname, '../../docs/video-pipeline/sample-sheet.csv');
+    const csv = readFileSync(samplePath, 'utf8');
+
+    it('headers include all 15 localization columns', () => {
+        const { headers } = parseCsv(csv);
+        const expected = TRANSLATABLE_FIELDS.flatMap((f) =>
+            SHEET_LANGUAGES.map((l) => localizedColumn(f.field, l)));
+        expect(expected).toHaveLength(15);
+        for (const col of expected) expect(headers).toContain(col);
+    });
+
+    it('still parses and generates a valid English-only config', () => {
+        const { rows } = parseCsv(csv);
+        expect(rows.length).toBeGreaterThan(0);
+        const config = buildCourseConfig(rows);
+        expect(config.courseId).toBe('demo');
+        expect(config.lessons.length).toBeGreaterThan(0);
+        // All language cells are blank in the sample -> `{en}` (back-compat).
+        expect(config.lessons[0].title).toEqual({ en: 'Lesson Intro' });
     });
 });

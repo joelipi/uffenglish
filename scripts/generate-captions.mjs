@@ -23,9 +23,9 @@ import { pipeline, env } from '@huggingface/transformers';
 import {
     buildCaptionEdits,
     WHISPER_MODEL,
-    DEEPSEEK_MODEL,
     CAPTION_LANGUAGES,
 } from './lib/caption-utils.js';
+import { translateSrt } from './lib/deepseek.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -33,7 +33,6 @@ const ROOT = path.resolve(__dirname, '..');
 // because video-url.js reads import.meta.env (same precedent as
 // scripts/generate-thumbnails.mjs:31).
 const CDN_VIDEO_BASE = 'https://r2.ultrafastfluency.com/assets/videos/';
-const DEEPSEEK_URL = 'https://api.deepseek.com/v1/chat/completions';
 
 const HELP = `Generate six-language SRT captions for newly added simpleVideoUrl steps.
 
@@ -117,38 +116,6 @@ async function transcribeReal(slug) {
     return result.chunks || [];
 }
 
-async function translateReal(englishSrt, lang) {
-    const apiKey = process.env.DEEPSEEK_API_KEY;
-    if (!apiKey) throw new Error('DEEPSEEK_API_KEY is not set');
-    const res = await fetch(DEEPSEEK_URL, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-            model: DEEPSEEK_MODEL,
-            response_format: { type: 'json_object' },
-            messages: [
-                {
-                    role: 'system',
-                    content:
-                        `You translate English subtitle (SRT) files into ${lang}. ` +
-                        'Return ONLY a JSON object of the form {"srt": "<translated SRT>"}. ' +
-                        'Preserve cue numbers and timestamps exactly; translate only the subtitle text. ' +
-                        'Keep the taught English target phrase (e.g. after "Say:", "Di:", "Diga:") in English.',
-                },
-                { role: 'user', content: englishSrt },
-            ],
-        }),
-    });
-    const text = await res.text();
-    if (!res.ok) throw new Error(`DeepSeek HTTP ${res.status}: ${text.slice(0, 300)}`);
-    const data = JSON.parse(text);
-    const content = data.choices?.[0]?.message?.content;
-    if (!content) throw new Error(`DeepSeek returned no content: ${text.slice(0, 300)}`);
-    const parsed = JSON.parse(content);
-    if (!parsed.srt) throw new Error(`DeepSeek response missing "srt" key: ${content.slice(0, 300)}`);
-    return parsed.srt;
-}
-
 function argValue(args, name) {
     const idx = args.indexOf(name);
     return idx === -1 ? undefined : args[idx + 1];
@@ -183,7 +150,7 @@ async function main() {
             beforeText,
             afterText,
             transcribe: transcribeReal,
-            translate: translateReal,
+            translate: translateSrt,
             languages: CAPTION_LANGUAGES,
         });
         if (dryRun) {

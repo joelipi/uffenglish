@@ -1,36 +1,36 @@
-course_id,course_name,lesson_id,lesson_title,unit,mission,response_type,video_file,filename,order,cue,cue_alt,subtitle_text,srt,recap_sources,recap_overlay
-demo,Demo Course,intro,Lesson Intro,Getting Started,Ask and answer with WOULD YOU RATHER.,lessonIntro,demo-intro,demo-intro01,1,,,,,,shareCta
+course_id,course_name,lesson_id,lesson_title,unit,mission,response_type,video_file,filename,order,cue,cue_alt,subtitle_text,srt,recap_sources,recap_overlay,lesson_title_es,lesson_title_pt,lesson_title_bn,mission_es,mission_pt,mission_bn,cue_es,cue_pt,cue_bn,cue_alt_es,cue_alt_pt,cue_alt_bn,subtitle_text_es,subtitle_text_pt,subtitle_text_bn
+demo,Demo Course,intro,Lesson Intro,Getting Started,Ask and answer with WOULD YOU RATHER.,lessonIntro,demo-intro,demo-intro01,1,,,,,,shareCta,,,,,,,,,,,,,,,
 demo,Demo Course,intro,Lesson Intro,Getting Started,Ask and answer with WOULD YOU RATHER.,viewAndContinue,demo-intro-instructions,demo-intro02,2,,,,"1
 00:00:00,000 --> 00:00:04,040
 Welcome. Let us begin.
 
 2
 00:00:04,040 --> 00:00:09,080
-Repeat after me.",,shareCta
-demo,Demo Course,a,Lesson A,Asking,Ask and answer with WOULD YOU RATHER.,friendClosedResponse,demo-a01,demo-a0101,1,Would you rather have a million dollars or live five years longer?,,,,none,shareCta
-demo,Demo Course,a,Lesson A,Asking,Ask and answer with WOULD YOU RATHER.,friendClosedResponse,demo-a02,demo-a0201,2,Would you rather have great food or great conversation?,,,,none,shareCta
+Repeat after me.",,shareCta,,,,,,,,,,,,,,,
+demo,Demo Course,a,Lesson A,Asking,Ask and answer with WOULD YOU RATHER.,friendClosedResponse,demo-a01,demo-a0101,1,Would you rather have a million dollars or live five years longer?,,,,none,shareCta,,,,,,,,,,,,,,,
+demo,Demo Course,a,Lesson A,Asking,Ask and answer with WOULD YOU RATHER.,friendClosedResponse,demo-a02,demo-a0201,2,Would you rather have great food or great conversation?,,,,none,shareCta,,,,,,,,,,,,,,,
 demo,Demo Course,a,Lesson A,Asking,Ask and answer with WOULD YOU RATHER.,friendClosedResponse,demo-a03,demo-a0301,3,,"Would you rather a beach vacation?
-Would you rather a mountain vacation?",,,none,shareCta
+Would you rather a mountain vacation?",,,none,shareCta,,,,,,,,,,,,,,,
 demo,Demo Course,a,Lesson A,Asking,Ask and answer with WOULD YOU RATHER.,success,demo-enda,demo-enda01,4,,,,"1
 00:00:00,000 --> 00:00:06,180
 Great, you are almost done.
 
 2
 00:00:06,180 --> 00:00:11,300
-Now create and share your video.",none,shareCta
-demo,Demo Course,b,Lesson B,Responding,Ask and answer with WOULD YOU RATHER.,lessonIntro,demo-b-intro,demo-b-intro01,1,,,,,friend,shareCta
+Now create and share your video.",none,shareCta,,,,,,,,,,,,,,,
+demo,Demo Course,b,Lesson B,Responding,Ask and answer with WOULD YOU RATHER.,lessonIntro,demo-b-intro,demo-b-intro01,1,,,,,friend,shareCta,,,,,,,,,,,,,,,
 demo,Demo Course,b,Lesson B,Responding,Ask and answer with WOULD YOU RATHER.,viewAndContinue,demo-b-resp,demo-b-resp01,2,,,,"1
 00:00:00,000 --> 00:00:04,040
 Welcome. Let us begin.
 
 2
 00:00:04,040 --> 00:00:09,080
-Repeat after me.",friend,shareCta
-demo,Demo Course,b,Lesson B,Responding,Ask and answer with WOULD YOU RATHER.,friendClosedResponse,demo-b01,demo-b0101,3,I would rather live five years longer.,,,,friend,shareCta
+Repeat after me.",friend,shareCta,,,,,,,,,,,,,,,
+demo,Demo Course,b,Lesson B,Responding,Ask and answer with WOULD YOU RATHER.,friendClosedResponse,demo-b01,demo-b0101,3,I would rather live five years longer.,,,,friend,shareCta,,,,,,,,,,,,,,,
 demo,Demo Course,b,Lesson B,Responding,Ask and answer with WOULD YOU RATHER.,success,demo-enda-b,demo-enda02,4,,,,"1
 00:00:00,000 --> 00:00:06,180
 Great, you are almost done.
 
 2
 00:00:06,180 --> 00:00:11,300
-Now create and share your video.",friend,shareCta
+Now create and share your video.",friend,shareCta,,,,,,,,,,,,,,,

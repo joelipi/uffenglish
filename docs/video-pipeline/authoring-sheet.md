@@ -43,6 +43,57 @@ columns reported):
 - Any step whose slug ends in `-response-NN` must live in a lesson with
   `recap_sources=friend`.
 
+## Localization columns
+
+The sheet can carry translations alongside the English source. `scripts/translate-sheet.mjs`
+reads the English columns, translates with DeepSeek (`deepseek-v4-flash`, via the shared
+client in `scripts/lib/deepseek.js`), and writes the results back into the per-language
+columns below. The config generator then reads those columns into the `{en,es,pt,bn}`
+objects the app localizes from. Run the Action from the Actions UI ("Translate Authoring
+Sheet" → Run workflow; it takes optional `dry_run` and `languages` inputs).
+
+| English source | New columns (`lang` ∈ `es`, `pt`, `bn`) | Config output |
+|---|---|---|
+| `lesson_title` | `lesson_title_es`, `lesson_title_pt`, `lesson_title_bn` | `lesson.title[lang]` |
+| `mission` | `mission_es`, `mission_pt`, `mission_bn` | `lesson.mission[lang]` |
+| `cue` (single) | `cue_es`, `cue_pt`, `cue_bn` | `step.cue[lang]` |
+| `cue_alt` | `cue_alt_es`, `cue_alt_pt`, `cue_alt_bn` | `step.cue[i][lang]` (one cell per alternative line) |
+| `subtitle_text` | `subtitle_text_es`, `subtitle_text_pt`, `subtitle_text_bn` | `step.subtitles[lang]` (only when `srt` is blank) |
+
+That is 15 columns (5 fields × 3 languages). `srt` is **not** translated: SRT timings are
+the caption pipeline's job, so a step with `srt` keeps `subtitles = {en: <srt>}`.
+
+**Rules:**
+
+- **Translation fills blanks only.** A cell that already has a translation is left alone, so
+  editing a translation cell by hand is respected — the next config generation uses your
+  text. To force a machine retranslation, clear the cell and run the Action again (or run
+  the CLI with `--force`, which the Action never passes).
+- **`cue_alt` pairs lines by index.** Write the same number of newline-separated lines in
+  `cue_alt_<lang>` as in `cue_alt`; line *i* translates English line *i*. A shorter or blank
+  language list simply omits that language for the extra English lines (which stay
+  English-only).
+- **`cue` and `cue_alt` are mutually exclusive**, and each language column pairs only with
+  its own shape (`cue_es` with `cue`, `cue_alt_es` with `cue_alt`). The generator ignores a
+  stray language column on the wrong shape.
+- **The English source is never overwritten** and a sheet with none of these columns
+  generates English-only output exactly as before.
+
+**One-time setup (operator):** the Action writes with a Google **service account**.
+
+1. Create a Cloud service account and download its JSON key.
+2. Store the raw JSON as the Actions secret **`GOOGLE_SERVICE_ACCOUNT_JSON`** (raw JSON, not
+   base64 — it is parsed in memory and never written to disk).
+3. Open the sheet → **Share** → paste the service-account email
+   (`<name>@<project>.iam.gserviceaccount.com`) → grant **Editor**; do not enable "Notify
+   people".
+4. Store the spreadsheet id (`docs.google.com/spreadsheets/d/<ID>/edit`) as the repo
+   **variable** **`GOOGLE_SHEET_ID`** (a secret of the same name also works). The existing
+   **`DEEPSEEK_API_KEY`** secret is reused for the translations.
+
+The scope requested is exactly `https://www.googleapis.com/auth/spreadsheets`. The published
+CSV read path is separate and unaffected.
+
 ## Not using Google Sheets
 
 The generator only needs a **URL that returns CSV**. Anything that serves a

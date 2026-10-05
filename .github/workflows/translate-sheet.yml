@@ -1,0 +1,51 @@
+name: Translate Authoring Sheet
+
+# Manual only. Unlike captions.yml/configs.yml (which run on push and commit to
+# the repo), this Action writes translations back into the operator's Google
+# Sheet. The sheet -- not the repo -- is the output, so there is no commit step
+# and no push-capable bot token here.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Print the plan without writing to the sheet
+        type: boolean
+        default: false
+      languages:
+        description: Comma-separated target languages
+        type: string
+        default: es,pt,bn
+
+permissions:
+  contents: read
+
+# One global group: this mutates a single shared remote sheet regardless of
+# branch, so two concurrent runs could read the same blanks and double-translate.
+# cancel-in-progress: false so a queued run is not silently dropped.
+concurrency:
+  group: translate-sheet
+  cancel-in-progress: false
+
+jobs:
+  translate:
+    runs-on: ubuntu-latest
+    # No secret-presence skip: a missing secret must be a loud red run, not a
+    # silent green one (dry-run still needs all secrets because it reads the
+    # sheet).
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - name: Translate sheet
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          GOOGLE_SHEET_ID: ${{ vars.GOOGLE_SHEET_ID || secrets.GOOGLE_SHEET_ID }}
+          LANGUAGES: ${{ inputs.languages }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          DRY_RUN_FLAG=""
+          if [ "$DRY_RUN" = "true" ]; then DRY_RUN_FLAG="--dry-run"; fi
+          node scripts/translate-sheet.mjs --sheet-id="$GOOGLE_SHEET_ID" --languages="$LANGUAGES" $DRY_RUN_FLAG

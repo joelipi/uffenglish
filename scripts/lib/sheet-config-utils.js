@@ -10,8 +10,18 @@
 // `video_file` (the step's simpleVideoUrl). Grouping is by COLUMN VALUE, never
 // by row position, so rows may be sorted freely.
 //
-// English-only for now. es/pt/bn localization is a later pass (the DeepSeek
-// translateReal path in scripts/generate-captions.mjs).
+// English is always emitted. When the sheet also carries the per-language
+// columns (`lesson_title_es`, `mission_pt`, `cue_es`, `cue_alt_es`,
+// `subtitle_text_bn`, … — the 15 columns the story-049 translate-sheet Action
+// fills), they are consumed into the existing `{en,es,pt,bn}` objects. The
+// language columns are optional: a sheet with none of them still generates
+// English-only output.
+
+import {
+    SHEET_LANGUAGES,
+    localizedColumn,
+    groupCueAltLines,
+} from './sheet-translate-utils.js';
 
 // Canonical vocabulary (mirrors the app; a guard pins these to the browser
 // module).
@@ -146,9 +156,36 @@ export function unescapeSrt(value) {
 }
 
 /**
+ * First non-blank `<field>_<lang>` value across the group's rows ("" if none).
+ * Language columns are not conflict-guarded: a translation may legitimately
+ * appear on only one row of a lesson/step, and first-seen wins.
+ */
+function firstLocalized(groupRows, field, lang) {
+    for (const row of groupRows) {
+        const v = cell(row, localizedColumn(field, lang)).trim();
+        if (v) return v;
+    }
+    return '';
+}
+
+/** English value plus each present language, e.g. `{ en, es, pt }` (blanks omitted). */
+function localizedObject(rows, field, enValue) {
+    const obj = { en: enValue };
+    for (const lang of SHEET_LANGUAGES) {
+        const v = firstLocalized(rows, field, lang);
+        if (v) obj[lang] = v;
+    }
+    return obj;
+}
+
+/**
  * The subtitles for a group: `srt` (JSON-escaped) wins, else `subtitle_text`
  * verbatim; both blank -> undefined (the key is omitted). First non-empty
  * value across the group's rows wins.
+ *
+ * `srt` is NOT translated (the caption pipeline owns SRT timings), so the
+ * `srt` branch stays `{en}`. The `subtitle_text` branch picks up the
+ * `subtitle_text_<lang>` columns.
  */
 function subtitlesFor(groupRows) {
     for (const row of groupRows) {
@@ -157,7 +194,7 @@ function subtitlesFor(groupRows) {
     }
     for (const row of groupRows) {
         const text = cell(row, 'subtitle_text');
-        if (text.trim()) return { en: text };
+        if (text.trim()) return localizedObject(groupRows, 'subtitle_text', text);
     }
     return undefined;
 }
@@ -174,11 +211,22 @@ function cueFor(groupRows, videoFile) {
         throw new Error(`video_file "${videoFile}": cue and cue_alt are mutually exclusive`);
     }
     if (alts.length) {
-        const lines = alts
-            .flatMap((v) => String(v).split('\n'))
-            .map((l) => l.trim())
-            .filter(Boolean);
-        return lines.map((en) => ({ en }));
+        // English alternatives, one per non-blank line across the group's rows.
+        const enLines = groupRows.flatMap((row) => groupCueAltLines(cell(row, 'cue_alt')));
+        // Per-language lines, paired to the English lines by index. A shorter or
+        // blank language simply omits that language for the extra elements.
+        const langLines = {};
+        for (const lang of SHEET_LANGUAGES) {
+            langLines[lang] = groupRows.flatMap((row) => groupCueAltLines(cell(row, localizedColumn('cue_alt', lang))));
+        }
+        return enLines.map((en, i) => {
+            const obj = { en };
+            for (const lang of SHEET_LANGUAGES) {
+                const t = langLines[lang][i];
+                if (t) obj[lang] = t;
+            }
+            return obj;
+        });
     }
     if (singles.length) {
         // A group is one step, so all its rows must agree on the single cue.
@@ -188,7 +236,9 @@ function cueFor(groupRows, videoFile) {
                 `video_file "${videoFile}": conflicting cue values ("${unique[0]}" vs "${unique[1]}")`
             );
         }
-        return { en: unique[0] };
+        // `cue_<lang>` is read only here (never for a `cue_alt` step), so a stray
+        // language column on the wrong shape is ignored.
+        return localizedObject(groupRows, 'cue', unique[0]);
     }
     return undefined;
 }
@@ -271,7 +321,7 @@ export function buildSteps(lessonRows) {
  * a message naming the offending row/group/lesson on any structural error.
  *
  * @param {Array<Record<string,string>>} rows parsed rows (header-keyed)
- * @returns {object} the course config (English-only)
+ * @returns {object} the course config (`{en}` unless the language columns are present)
  */
 export function buildCourseConfig(rows) {
     const videoRows = (rows || []).filter(isVideoRow);
@@ -307,12 +357,15 @@ export function buildCourseConfig(rows) {
             throw new Error(`lesson "${lessonId}": invalid recap_overlay "${recapOverlay}"`);
         }
 
-        const lesson = { lessonId, recapSources, recapOverlay, title: { en: title } };
+        const lesson = {
+            lessonId, recapSources, recapOverlay,
+            title: localizedObject(rowsForLesson, 'lesson_title', title),
+        };
 
         const unit = singleValue(rowsForLesson, 'unit', `lesson "${lessonId}"`);
         if (unit) lesson.unit = unit;
         const mission = singleValue(rowsForLesson, 'mission', `lesson "${lessonId}"`);
-        if (mission) lesson.mission = { en: mission };
+        if (mission) lesson.mission = localizedObject(rowsForLesson, 'mission', mission);
 
         lesson.steps = buildSteps(rowsForLesson);
         return lesson;

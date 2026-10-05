@@ -8,7 +8,9 @@
 import { modify, applyEdits, parse } from 'jsonc-parser';
 
 export const WHISPER_MODEL = 'onnx-community/whisper-base.en';
-export const DEEPSEEK_MODEL = 'deepseek-v4-flash';
+// The DeepSeek model/transport now lives in the shared client (story 049);
+// re-exported here so existing importers keep one definition.
+export { DEEPSEEK_MODEL } from './deepseek.js';
 // Matches the six-language CTA_LOCALE_MAP convention in
 // src/modules/video/video-processor-logic.js (EN, ES, PT, FR, HI, BN).
 export const CAPTION_LANGUAGES = ['en', 'es', 'pt', 'fr', 'hi', 'bn'];

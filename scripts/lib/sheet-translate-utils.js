@@ -40,6 +40,31 @@ export function groupCueAltLines(text) {
         .filter(Boolean);
 }
 
+/**
+ * Convert Google-Sheets `values.get` rows (an array of arrays) into the same
+ * `{ headers, rows }` shape `parseCsv` produces. Header keys are trimmed and
+ * lower-cased and a short row resolves every missing header to "", so both the
+ * CSV read path and the API read path agree on the row shape.
+ *
+ * @param {Array<Array<unknown>>} values
+ * @returns {{ headers: string[], rows: Array<Record<string,string>> }}
+ */
+export function rowsFromValues(values) {
+    const nonBlank = (values || [])
+        .filter((r) => Array.isArray(r) && r.some((c) => String(c).trim() !== ''));
+    if (nonBlank.length === 0) return { headers: [], rows: [] };
+
+    const headers = nonBlank[0].map((h) => String(h).trim().toLowerCase());
+    const rows = nonBlank.slice(1).map((raw) => {
+        const row = {};
+        for (let i = 0; i < headers.length; i++) {
+            row[headers[i]] = raw[i] === undefined ? '' : String(raw[i]);
+        }
+        return row;
+    });
+    return { headers, rows };
+}
+
 function cell(row, name) {
     const v = row?.[name];
     return v === undefined || v === null ? '' : String(v);

@@ -1,11 +1,18 @@
 // src/config/generated-config-contract.test.js
-// Contract guard for sheet-generated, English-only configs (story 042).
+// Contract guard for sheet-generated configs (stories 042, 049).
 //
-// The generator (scripts/generate-config-from-sheet.mjs) writes NEW configs that
-// carry only `en` in every translation object. This test pins that contract for
-// the courseIds listed in scripts/lib/generated-configs.json (the allow-list the
-// generator appends to). Existing hand-authored configs (with es/pt/bn) are
-// deliberately NOT in the list, so their locale guards stay authoritative.
+// The generator (scripts/generate-config-from-sheet.mjs) writes NEW configs whose
+// translation objects are localized-allowed: every object always carries a
+// non-empty `en`, and may additionally carry only the app's generated-config
+// locales (es/pt/bn). No unknown locale key and no extra key is allowed, and
+// every present locale is a non-empty string. A sheet with no language columns
+// still produces `{en}`, so this guard keeps its English-only strictness while
+// allowing the story-049 round-trip to add es/pt/bn.
+//
+// This test pins that contract for the courseIds listed in
+// scripts/lib/generated-configs.json (the allow-list the generator appends to).
+// Existing hand-authored configs (with es/pt/bn) are deliberately NOT in the
+// list, so their locale guards stay authoritative.
 //
 // It also pins the two invariants that model-config.test.js enforces over every
 // src/config/*.json, so a generated file can never break it: canonical
@@ -32,6 +39,10 @@ const CONFIG_DIR = __dirname;
 const ALLOWLIST = path.join(__dirname, '../../scripts/lib/generated-configs.json');
 
 const VIDEO_FIELDS = ['interactiveVideoUrl', 'introBackgroundVideoUrl', 'simpleVideoUrl'];
+
+// The only locale keys a generated translation object may carry. Anything else
+// (a stray fr/hi, a typo) is a contract violation.
+const ALLOWED_LOCALES = ['en', 'es', 'pt', 'bn'];
 
 function readAllowlist(listPath = ALLOWLIST) {
     const raw = JSON.parse(readFileSync(listPath, 'utf8'));
@@ -78,9 +89,19 @@ function collectTranslationObjects(node, found = []) {
 // the first violation.
 function assertGeneratedConfigContract(config, label) {
     for (const obj of collectTranslationObjects(config)) {
-        expect(Object.keys(obj), `${label}: translation object has only en`).toEqual(['en']);
+        const keys = Object.keys(obj);
+        // No unknown/extra locale key.
+        for (const key of keys) {
+            expect(ALLOWED_LOCALES, `${label}: unknown locale key "${key}"`).toContain(key);
+        }
+        // `en` is always present and a non-empty string.
         expect(typeof obj.en, `${label}: en is a string`).toBe('string');
         expect(obj.en.length, `${label}: en is non-empty`).toBeGreaterThan(0);
+        // Every present locale value is a non-empty string.
+        for (const key of keys) {
+            expect(typeof obj[key], `${label}: ${key} is a string`).toBe('string');
+            expect(obj[key].length, `${label}: ${key} is non-empty`).toBeGreaterThan(0);
+        }
     }
     for (const lesson of config.lessons) {
         if (lesson.recapSources !== undefined) {
@@ -104,23 +125,67 @@ const FIXTURE_CSV = [
     'gen,Generated,b,Lesson B,friend,shareCta,viewAndContinue,ab-model-w-response-01,ab1,1,Hello.',
 ].join('\n');
 
-describe('generated English-only config contract', () => {
+// A sheet with the story-049 language columns, so the generated object carries
+// es/pt/bn and the localized-allowed contract must accept it.
+const LOCALIZED_CSV = [
+    'course_id,course_name,lesson_id,lesson_title,lesson_title_es,lesson_title_pt,lesson_title_bn,mission,mission_es,response_type,video_file,filename,order,cue,cue_es,subtitle_text,subtitle_text_es',
+    'loc,Localized,a,Lesson A,Lección A,Llição A,পাঠ এ,Talk,Falar,viewAndContinue,loc-v1,loc1,1,,,Hi.,Hola.',
+    'loc,Localized,a,Lesson A,,,,,,friendClosedResponse,loc-q,locq1,2,Question?,¿Pregunta?,,',
+].join('\n');
+
+describe('generated config contract (localized allowed)', () => {
     it('passes for a well-formed fixture (can also fail — see below)', () => {
         const { rows } = parseCsv(FIXTURE_CSV);
         assertGeneratedConfigContract(buildCourseConfig(rows), 'fixture');
     });
 
-    it('fails when a translation object carries a non-en key', () => {
+    it('passes for {en}', () => {
         const { rows } = parseCsv(FIXTURE_CSV);
         const config = buildCourseConfig(rows);
-        config.lessons[0].title.es = 'Lección';
-        expect(() => assertGeneratedConfigContract(config, 'mutated')).toThrow();
+        expect(config.lessons[0].title).toEqual({ en: 'Lesson A' });
+        assertGeneratedConfigContract(config, 'en-only');
+    });
+
+    it('passes for {en,es}', () => {
+        const { rows } = parseCsv(FIXTURE_CSV);
+        const config = buildCourseConfig(rows);
+        config.lessons[0].title.es = 'Lección A';
+        assertGeneratedConfigContract(config, 'en-es');
+    });
+
+    it('passes for {en,es,pt,bn} built from the language columns', () => {
+        const { rows } = parseCsv(LOCALIZED_CSV);
+        const config = buildCourseConfig(rows);
+        expect(config.lessons[0].title).toEqual({ en: 'Lesson A', es: 'Lección A', pt: 'Llição A', bn: 'পাঠ এ' });
+        expect(config.lessons[0].mission).toEqual({ en: 'Talk', es: 'Falar' });
+        assertGeneratedConfigContract(config, 'localized');
+    });
+
+    it('fails when a translation object carries an unknown locale key', () => {
+        const { rows } = parseCsv(FIXTURE_CSV);
+        const config = buildCourseConfig(rows);
+        config.lessons[0].title.fr = 'Leçon';
+        expect(() => assertGeneratedConfigContract(config, 'mutated')).toThrow(/unknown locale key/);
     });
 
     it('fails when a translation slot omits en entirely', () => {
         const { rows } = parseCsv(FIXTURE_CSV);
         const config = buildCourseConfig(rows);
         config.lessons[0].title = { es: 'Lección' };
+        expect(() => assertGeneratedConfigContract(config, 'mutated')).toThrow();
+    });
+
+    it('fails when a locale value is an empty string', () => {
+        const { rows } = parseCsv(FIXTURE_CSV);
+        const config = buildCourseConfig(rows);
+        config.lessons[0].title.es = '';
+        expect(() => assertGeneratedConfigContract(config, 'mutated')).toThrow();
+    });
+
+    it('fails when a locale value is not a string', () => {
+        const { rows } = parseCsv(FIXTURE_CSV);
+        const config = buildCourseConfig(rows);
+        config.lessons[0].title.es = 42;
         expect(() => assertGeneratedConfigContract(config, 'mutated')).toThrow();
     });
 
@@ -152,7 +217,7 @@ describe('generated English-only config contract', () => {
 
     it('can fail on the second course, not just the first', () => {
         const results = buildCourseConfigs(parseCsv(TWO_COURSE_CSV).rows);
-        results[1].config.lessons[0].title.es = 'Lección';
+        results[1].config.lessons[0].title.fr = 'Leçon';
         expect(() => results.forEach((r) => assertGeneratedConfigContract(r.config, r.courseId))).toThrow();
     });
 
