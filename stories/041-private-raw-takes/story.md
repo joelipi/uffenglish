@@ -280,9 +280,12 @@ Edit `docs/video-pipeline/storage.py`; add guards to
 `docs/video-pipeline/tests/test_modal_app_source.py`. `modal_app.py` call sites
 are unchanged (keys drive the bucket).
 
-- (source guard) `storage.py` defines `public_bucket_name` reading `R2_BUCKET`
-  (default `uff`) and `private_bucket_name` reading `R2_PRIVATE_BUCKET`
-  (falling back to `public_bucket_name` when unset)
+- (source guard + behavioral test) `storage.py` defines `public_bucket_name`
+  reading `R2_BUCKET` (default `uff`) and `private_bucket_name` reading
+  `R2_PRIVATE_BUCKET`, which RAISES when unset (fail closed) rather than falling
+  back to the public bucket; `test_private_bucket_name_raises_behaviorally`
+  exercises the real function (unset → RuntimeError; set → name; a public key with
+  unset private still routes to `uff`)
 - (source guard) `storage.py` imports `bucket_for_key` from `pipeline_lib` and
   every helper (`download_to`, `upload_file`, `upload_json`, `list_keys`,
   `read_json`) selects the bucket via `bucket_for_key(<key>)`
