@@ -37,6 +37,19 @@ def read_js_regex_source(path: Path, name: str) -> str:
     return match.group(1)
 
 
+def read_js_string_array(path: Path, name: str) -> list:
+    """Read an `export const NAME = ['a', 'b'];` literal from JS source."""
+    text = path.read_text(encoding="utf-8")
+    match = re.search(rf"export const {name}\s*=\s*\[(.*?)\];", text, re.DOTALL)
+    if not match:
+        raise AssertionError(f"{name} not found in {path}")
+    return re.findall(r"'([^']*)'|\"([^\"]*)\"", match.group(1))
+
+
+def _normalize_pairs(pairs: list):
+    return [a or b for a, b in pairs]
+
+
 class VideoBudgetParityTest(unittest.TestCase):
     def test_web_budget_constants_match_js(self):
         self.assertEqual(lib.MAX_VIDEO_WIDTH, read_const(VIDEO_UTILS, "MAX_VIDEO_WIDTH"))
@@ -92,6 +105,38 @@ class KeyPatternParityTest(unittest.TestCase):
         # `$` would accept these; the explicit end anchor must not.
         self.assertFalse(lib.is_valid_slug("lesson_01\n"))
         self.assertFalse(lib.is_valid_job_id("job-abc12345\n"))
+
+
+class PrivateKeyParityTest(unittest.TestCase):
+    """Story 041: the JS Pages Functions and the Python runner must agree on
+    which keys are private (raw takes/status markers/pipeline assets) so no
+    caller can route a raw key to the public bucket."""
+
+    KEYS = ["raw/x.mp4", "raw/status/j.json", "pipeline-assets/a.csv",
+            "assets/videos/x.mp4", "videos/x.mp4", ""]
+
+    def _js_is_private(self, value: str) -> bool:
+        source = read_js_string_array(PIPELINE_KEYS, "PRIVATE_KEY_PREFIXES")
+        prefixes = _normalize_pairs(source)
+        js = (
+            "(value) => { const prefixes = " + repr(prefixes) + ";"
+            " return typeof value === 'string' && prefixes.some((p) => value.startsWith(p)); }"
+        )
+        import subprocess
+        result = subprocess.run(
+            ["node", "-e", f"const f = {js}; process.stdout.write(String(f({value!r})))"],
+            capture_output=True, text=True, check=True,
+        )
+        return result.stdout.strip() == "true"
+
+    def test_is_private_key_matches_js(self):
+        for key in self.KEYS:
+            self.assertEqual(lib.is_private_key(key), self._js_is_private(key),
+                             f"private-key mismatch for {key!r}")
+
+    def test_private_prefix_lists_are_equal(self):
+        source = read_js_string_array(PIPELINE_KEYS, "PRIVATE_KEY_PREFIXES")
+        self.assertEqual(_normalize_pairs(source), list(lib.PRIVATE_KEY_PREFIXES))
 
 
 if __name__ == "__main__":

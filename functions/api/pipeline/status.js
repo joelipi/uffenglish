@@ -1,7 +1,8 @@
 // functions/api/pipeline/status.js
 // Pages Function: returns the Modal orchestrator's stage-level status marker
-// from R2 for the recorder to poll (story 040, Task 3). The Functions are
-// stateless, so the R2 object is the single source of truth.
+// from the private R2 bucket (binding PIPELINE_R2) for the recorder to poll
+// (story 040, Task 3; story 041 moved raw/status/ out of the public `uff`
+// bucket). The Functions are stateless, so the R2 object is the source of truth.
 
 import { statusKey } from '../../../src/modules/video/pipeline-keys.js';
 import { requireOperatorKey } from './auth.js';
@@ -16,7 +17,7 @@ export async function onRequestGet({ request, env }) {
         return new Response('Bad Request: invalid id', { status: 400 });
     }
 
-    const object = await env.UFF_R2.get(key);
+    const object = await env.PIPELINE_R2.get(key);
     if (!object) {
         return new Response('Not Found', { status: 404 });
     }

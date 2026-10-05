@@ -111,6 +111,33 @@ class StorageGuardTest(unittest.TestCase):
         for fn in ("def upload_json(", "def read_json(", "def download_to(", "def upload_file("):
             self.assertIn(fn, text, fn)
 
+    # Story 041, Task 4: two-bucket routing driven by the shared key rule.
+    def test_defines_public_and_private_bucket_names(self):
+        text = read(STORAGE)
+        self.assertIn("def public_bucket_name(", text)
+        self.assertIn("def private_bucket_name(", text)
+        public = slice_between(text, "def public_bucket_name(", "def private_bucket_name(")
+        self.assertIn("R2_BUCKET", public)
+        self.assertIn("DEFAULT_BUCKET", public)
+        private = slice_between(text, "def private_bucket_name(", "def bucket_name(")
+        self.assertIn("R2_PRIVATE_BUCKET", private)
+        self.assertIn("public_bucket_name(", private)
+
+    def test_imports_and_routes_by_bucket_for_key(self):
+        text = read(STORAGE)
+        self.assertIn("from pipeline_lib import bucket_for_key", text)
+        self.assertIn("def _bucket_for(", text)
+        # Every helper selects the bucket through the shared rule, never a
+        # hardcoded name.
+        for fn in ("def download_to(", "def upload_file(", "def upload_json(",
+                   "def list_keys(", "def read_json("):
+            start = text.index(fn)
+            rest = text[start:]
+            next_def = rest.find("\ndef ", 1)
+            body = rest if next_def == -1 else rest[:next_def]
+            self.assertIn("_bucket_for(", body, fn)
+        self.assertIn("bucket_for_key(r2_key)", text)
+
     def test_no_hardcoded_credentials(self):
         for path in (APP, STORAGE):
             text = read(path)
@@ -118,6 +145,16 @@ class StorageGuardTest(unittest.TestCase):
             self.assertNotIn("R2_SECRET_ACCESS_KEY =", text)
             # No literal AWS-style key assignment.
             self.assertIsNone(re.search(r"['\"]AKIA[0-9A-Z]{16}['\"]", text))
+
+    def test_modal_app_never_names_a_bucket(self):
+        # Bucket selection is storage.py's single responsibility: the
+        # orchestrator passes keys only, so it cannot pick the wrong bucket.
+        text = read(APP)
+        self.assertNotIn("R2_PRIVATE_BUCKET", text)
+        self.assertNotIn("R2_BUCKET", text)
+        for call in ("storage.download_to(", "storage.upload_file(",
+                     "storage.upload_json(", "storage.list_keys("):
+            self.assertIn(call, text, call)
 
     def test_read_json_only_swallows_missing(self):
         text = read(STORAGE)

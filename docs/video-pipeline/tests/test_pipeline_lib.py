@@ -44,6 +44,29 @@ class SlugRulesTest(unittest.TestCase):
         )
 
 
+class PrivateKeyRuleTest(unittest.TestCase):
+    def test_private_keys(self):
+        for key in ("raw/x.mp4", "raw/status/j.json", "pipeline-assets/audio/a.mp3"):
+            self.assertTrue(lib.is_private_key(key), key)
+
+    def test_public_keys(self):
+        for key in ("assets/videos/x.mp4", "videos/x.mp4", "", None):
+            self.assertFalse(lib.is_private_key(key), key)
+
+    def test_bucket_for_key(self):
+        self.assertEqual(lib.bucket_for_key("raw/x.mp4"), "private")
+        self.assertEqual(lib.bucket_for_key("pipeline-assets/a.csv"), "private")
+        self.assertEqual(lib.bucket_for_key("assets/videos/x.mp4"), "public")
+        self.assertEqual(lib.bucket_for_key("videos/x.mp4"), "public")
+
+    def test_prefixes_tuple(self):
+        self.assertEqual(
+            lib.PRIVATE_KEY_PREFIXES,
+            (lib.RAW_PREFIX, lib.PIPELINE_ASSET_PREFIX),
+        )
+        self.assertIn(lib.RAW_PREFIX, lib.PRIVATE_KEY_PREFIXES)
+
+
 class PlanPublishTest(unittest.TestCase):
     def setUp(self):
         self.rows = [{"filename": "lesson_01"}, {"filename": "lesson_02"}]
