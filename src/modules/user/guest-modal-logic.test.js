@@ -48,8 +48,10 @@ describe('resolveGuestModalPlan', () => {
 });
 
 describe('isPublicHomeRoute', () => {
-    it('is true only for the public homepage', () => {
+    it('is true for the public homepage and the legal pages', () => {
         expect(isPublicHomeRoute('/')).toBe(true);
+        expect(isPublicHomeRoute('/privacy')).toBe(true);
+        expect(isPublicHomeRoute('/terms')).toBe(true);
     });
 
     it('is false for the dashboard, auth, lesson, profile and share-code routes', () => {
@@ -65,7 +67,7 @@ describe('isPublicHomeRoute', () => {
     });
 
     it('pins the public route list', () => {
-        expect(PUBLIC_ROUTES).toEqual(['/']);
+        expect(PUBLIC_ROUTES).toEqual(['/', '/privacy', '/terms']);
     });
 });
 

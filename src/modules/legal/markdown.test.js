@@ -117,9 +117,17 @@ describe('the real legal documents parse cleanly', () => {
             expect(flatText).not.toContain('|---');
         });
 
-        it(`${name}: parses without leaving raw table separators`, () => {
-            const blocks = parseMarkdown(doc);
-            expect(blocks.some((b) => b.type === 'table')).toBe(name === 'privacy');
+        it(`${name}: drops the table separator row when present`, () => {
+            const tables = parseMarkdown(doc).filter((b) => b.type === 'table');
+            if (name !== 'privacy') {
+                expect(tables).toHaveLength(0);
+                return;
+            }
+            expect(tables.length).toBeGreaterThan(0);
+            for (const table of tables) {
+                const values = [...table.header.flat(), ...table.rows.flat().flat()].map((c) => c.value ?? '');
+                expect(values.some((v) => /^-{3,}$/.test(v.trim()))).toBe(false);
+            }
         });
     }
 
