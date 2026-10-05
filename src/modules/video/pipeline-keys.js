@@ -11,8 +11,12 @@
 // lifecycle (wrangler.toml). Published media keeps the app's existing
 // `assets/videos/<slug>.mp4` convention (video-url.js).
 
-export const PIPELINE_SLUG_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/;
-export const PIPELINE_JOB_ID_PATTERN = /^[A-Za-z0-9-]{8,64}$/;
+// `$` in JS also matches before a trailing newline, so the end anchor is a
+// literal `$` immediately followed by end-of-input via the `(?![\s\S])`
+// negative lookahead — equivalent to Python's `\Z`. A parity test pins the two
+// sources together so they cannot drift.
+export const PIPELINE_SLUG_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$(?![\s\S])/;
+export const PIPELINE_JOB_ID_PATTERN = /^[A-Za-z0-9-]{8,64}$(?![\s\S])/;
 
 export function isValidPipelineSlug(name) {
     return typeof name === 'string' && PIPELINE_SLUG_PATTERN.test(name);

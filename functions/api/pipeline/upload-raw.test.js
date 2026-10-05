@@ -104,7 +104,7 @@ describe('onRequestPost — upload-raw Function', () => {
         });
         expect(await res.json()).toEqual({
             ok: true,
-            url: 'https://r2.ultrafastfluency.com/raw/lesson_01.mp4',
+            key: 'raw/lesson_01.mp4',
         });
     });
 

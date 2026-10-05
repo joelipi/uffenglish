@@ -34,3 +34,7 @@ public/assets/videos/*.mp4
 plans/review-system.md
 supabase/.temp/
 .env
+
+# Python bytecode
+__pycache__/
+*.pyc

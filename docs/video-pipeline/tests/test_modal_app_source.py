@@ -83,6 +83,22 @@ class TriggerGuardTest(unittest.TestCase):
         text = read(APP)
         self.assertIn('@modal.fastapi_endpoint(method="POST", requires_proxy_auth=True)', text)
         self.assertIn("orchestrator.spawn(", text)
+        # The trigger needs no R2 credentials — the secret is orchestrator-only.
+        header = slice_between(text, '@app.function(image=trigger_image', "def trigger(spec: dict):")
+        self.assertNotIn("secret", header)
+
+    def test_gpu_seconds_flow_into_the_cost_estimate(self):
+        text = read(APP)
+        body = slice_between(text, "def orchestrator(spec: dict):", "def _publish(")
+        # Stage 2 returns the accumulated GPU wall time and it feeds estimate_cost.
+        self.assertIn("gpu_seconds = pipeline.run_background_removal(", body)
+        self.assertIn('"gpu_seconds": gpu_seconds', body)
+
+    def test_asset_fetch_rejects_path_traversal(self):
+        text = read(APP)
+        fetch = slice_between(text, "def _fetch_assets(", "def _write_status(")
+        self.assertIn("os.path.realpath", fetch)
+        self.assertIn("startswith(os.path.realpath(workdir)", fetch)
 
 
 class StorageGuardTest(unittest.TestCase):
@@ -102,6 +118,16 @@ class StorageGuardTest(unittest.TestCase):
             self.assertNotIn("R2_SECRET_ACCESS_KEY =", text)
             # No literal AWS-style key assignment.
             self.assertIsNone(re.search(r"['\"]AKIA[0-9A-Z]{16}['\"]", text))
+
+    def test_read_json_only_swallows_missing(self):
+        text = read(STORAGE)
+        start = text.index("def read_json(")
+        body = text[start:]
+        # Missing objects return None; real failures must propagate.
+        self.assertIn("ClientError", body)
+        self.assertIn("return None", body)
+        self.assertIn("raise", body)
+        self.assertNotIn("except Exception", body)
 
 
 if __name__ == "__main__":

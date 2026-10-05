@@ -18,11 +18,13 @@ import os
 import time
 
 import modal
+from fastapi import HTTPException
 
 from video_pipeline import app, process_video_background_modal  # noqa: F401
 import video_pipeline as pipeline
 import storage
 from pipeline_lib import (
+    PIPELINE_ASSET_PREFIX,
     estimate_cost,
     plan_publish,
     pipeline_asset_key,
@@ -77,10 +79,15 @@ def _fetch_assets(workdir):
     storage.download_to(pipeline_asset_key("video_data.csv"),
                         os.path.join(workdir, "video_data.csv"))
     for tree in FETCH_TREES:
-        listing = storage.list_keys(f"{pipeline_asset_key(tree)}/")
-        for key in listing:
-            rel = key[len(pipeline_asset_key("")):]
-            storage.download_to(key, os.path.join(workdir, rel))
+        prefix = pipeline_asset_key(tree) + "/"
+        for key in storage.list_keys(prefix):
+            rel = key[len(PIPELINE_ASSET_PREFIX):]
+            dest = os.path.realpath(os.path.join(workdir, rel))
+            # A key planted in the bucket must not escape the work dir
+            # (boto3 download_file would happily write outside it).
+            if not dest.startswith(os.path.realpath(workdir) + os.sep):
+                continue
+            storage.download_to(key, dest)
 
 
 def _write_status(job_id, status, stage, extra=None):
@@ -118,7 +125,8 @@ def orchestrator(spec: dict):
                                      mirror_mapping, only=files)
 
         _write_status(job_id, "running", "stage2")
-        pipeline.run_background_removal(background_mapping, mirror_mapping, only=files)
+        gpu_seconds = pipeline.run_background_removal(background_mapping,
+                                                      mirror_mapping, only=files)
 
         _write_status(job_id, "running", "stage3")
         pipeline.process_video_batch(csv_file, max_workers=8, only=files)
@@ -135,16 +143,18 @@ def orchestrator(spec: dict):
 
         wall = time.time() - started
         cost = estimate_cost({
-            "gpu_seconds": spec.get("gpu_seconds", 0),
+            "gpu_seconds": gpu_seconds,
             "cpu_core_seconds": 8 * wall,
             "memory_gib_seconds": 16 * wall,
         })
         _write_status(job_id, "done", "publish", {
             "published": published,
             "wall_seconds": wall,
+            "gpu_seconds": gpu_seconds,
             "estimated_cost_usd": cost,
         })
-        return {"jobId": job_id, "published": published, "wall_seconds": wall}
+        return {"jobId": job_id, "published": published, "wall_seconds": wall,
+                "gpu_seconds": gpu_seconds}
     except Exception as exc:  # noqa: BLE001 - surface any failure as a status marker
         _write_status(job_id, "error", "error", {"error": str(exc)})
         raise
@@ -228,11 +238,11 @@ def _top_level_boxes(buffer):
 trigger_image = modal.Image.debian_slim(python_version="3.12").pip_install("fastapi[standard]")
 
 
-@app.function(image=trigger_image, secrets=[secret])
+@app.function(image=trigger_image)
 @modal.fastapi_endpoint(method="POST", requires_proxy_auth=True)
 def trigger(spec: dict):
     """Validate a render request and spawn the orchestrator (returns immediately)."""
     if not isinstance(spec, dict) or not spec.get("jobId") or not spec.get("files"):
-        return {"error": "spec requires jobId and files"}
+        raise HTTPException(status_code=400, detail="spec requires jobId and files")
     orchestrator.spawn(spec)
     return {"jobId": spec["jobId"]}

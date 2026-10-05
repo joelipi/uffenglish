@@ -40,8 +40,14 @@ export async function onRequestPost({ request, env }) {
         },
     });
 
+    // NOTE: `raw/<slug>.mp4` lives in the public `uff` bucket (served at
+    // r2.ultrafastfluency.com) under a deterministic, guessable key with no
+    // expiry, so an unpublished take is world-readable by anyone who knows the
+    // slug. The operator key gates the *write*, not the read. If raw takes must
+    // stay private, move them to a private bucket/prefix (or add an R2 lifecycle
+    // rule); until then, do not return the public URL here.
     return new Response(
-        JSON.stringify({ ok: true, url: `https://r2.ultrafastfluency.com/${key}` }),
+        JSON.stringify({ ok: true, key }),
         { status: 200, headers: { 'content-type': 'application/json' } }
     );
 }

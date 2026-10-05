@@ -4,6 +4,7 @@
 // lives in the CLI so every decision here is unit-testable with fakes.
 
 import path from 'node:path';
+import { pipelineAssetKey } from '../../src/modules/video/pipeline-keys.js';
 
 // Directories under --assets-dir that are uploaded as pipeline assets, plus the
 // CSV at the root.
@@ -31,11 +32,10 @@ export function contentTypeForAsset(filename) {
     return CONTENT_TYPES[ext] || 'application/octet-stream';
 }
 
-// pipeline-assets/<posix rel path> — normalize Windows separators to `/`.
-export function pipelineAssetKey(relPath) {
-    const normalized = String(relPath ?? '').replace(/\\/g, '/').replace(/^\/+/, '');
-    return `pipeline-assets/${normalized}`;
-}
+// pipeline-assets/<posix rel path> — re-exported from the single source of
+// truth in src/modules/video/pipeline-keys.js so the uploader and the Pages
+// Functions cannot drift.
+export { pipelineAssetKey };
 
 /**
  * Every uploadable asset in `dir`: known top-level directories (recursively)

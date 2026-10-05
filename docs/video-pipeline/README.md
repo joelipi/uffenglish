@@ -158,6 +158,11 @@ trigger only (Workers cannot run moviepy/ffmpeg/Chromium); the runner is Modal.
   media keeps the app's existing `assets/videos/<slug>.mp4` + `assets/videos/<slug>.jpg`.
   `raw/` and `pipeline-assets/` deliberately avoid the 48h `videos/` lifecycle;
   clean them up manually (retention is not automated here).
+- **Raw-take visibility.** `raw/<slug>.mp4` is in the public `uff` bucket under a
+  deterministic key with no expiry, so an unpublished/rejected take is
+  world-readable by anyone who knows the slug — the operator key gates the write,
+  not the read. Keep that in mind before uploading an unreleased lesson; move
+  `raw/` to a private bucket/prefix (or add an R2 lifecycle rule) if it matters.
 - **Secret.** `modal secret create uff-r2` with `R2_ACCOUNT_ID`,
   `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` (`uff`). It is
   attached to the orchestrator only.

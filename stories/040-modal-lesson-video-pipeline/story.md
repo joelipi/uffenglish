@@ -594,12 +594,22 @@ npm run pipeline:upload-assets         # upload with Cloudflare creds
   and cannot deploy or run anything on Modal, so Task 7's manual AC (process one
   representative clip on Modal, capture billed GPU/CPU/memory seconds, record the
   measured dollars) is an operator step performed after `modal deploy`, not a
-  CI-gateable check. The plumbing is in place: the orchestrator computes
-  `estimate_cost` from wall/CPU/billed seconds and logs `wall_seconds` and
-  `estimated_cost_usd` into the `done` status marker. The estimate for a
-  representative take is ≈ $0.06 (inside the $0.05–$0.10 band). Replace this note
-  with the measured numbers once an operator runs a real clip. No measured value
-  was fabricated.
+  CI-gateable check. The plumbing is in place: `run_background_removal` now
+  returns the accumulated Stage-2 wall time, and the orchestrator feeds it as the
+  `gpu_seconds` term of `estimate_cost` (it was previously a dead `spec.get`
+  that always read 0, under-reporting every run). The orchestrator logs
+  `wall_seconds`, `gpu_seconds` and `estimated_cost_usd` into the `done` status
+  marker. The estimate for a representative take is ≈ $0.06 (inside the
+  $0.05–$0.10 band). Replace this note with the measured numbers once an operator
+  runs a real clip. No measured value was fabricated.
+- **Raw-take visibility (accepted, not private).** `raw/<slug>.mp4` is written to
+  the public `uff` bucket under a deterministic, guessable key with no TTL, and
+  the operator key gates only the write. Any take that has not yet been published
+  is therefore world-readable by anyone who knows the slug. This is a deliberate
+  acceptance for now (the operator key + unlisted page is the agreed auth level);
+  `upload-raw.js` no longer returns the public URL, and the README documents the
+  exposure. Moving `raw/` to a private prefix/bucket or adding an R2 lifecycle
+  rule is the follow-up if takes must stay private.
 - **Operator key handling.** The key is typed on the phone and kept in
   `sessionStorage`; it is sent only to the same-origin Pages Functions and is
   never in the static HTML. It is a stopgap: an unlisted/noindex page plus a

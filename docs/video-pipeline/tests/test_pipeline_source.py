@@ -61,11 +61,19 @@ class FontAndWebProfileGuardTest(unittest.TestCase):
         overlay = slice_between(text, "def create_overlay_html", "def add_background_sound")
         self.assertIn('f"file:///{os.path.abspath(os.path.join(FONT_DIRECTORY', overlay)
 
+    def test_missing_fonts_abort_setup(self):
+        text = read()
+        body = slice_between(text, "def setup_environment(", "def ")
+        self.assertIn("if missing_fonts:", body)
+        # A missing font must fail the run, not just warn.
+        self.assertIn("return False", body)
+
     def test_web_profile_and_chrome_flags_wired(self):
         text = read()
         self.assertIn("resolve_web_profile(os.environ)", text)
         self.assertIn("chrome_flags(os.environ)", text)
-        self.assertNotIn("'--default-background-color=00000000']", text)
+        # The inline --default-background-color flag must be gone (moved to chrome_flags).
+        self.assertNotIn("--default-background-color=00000000", text)
 
 
 class OnlyScopeGuardTest(unittest.TestCase):

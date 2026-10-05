@@ -285,22 +285,14 @@ def setup_environment() -> bool:
     marker_path = os.path.join(FONT_DIRECTORY, FONT_FILE_MARKER)
 
     # Required fonts must be present before Stage 3 renders overlays; a missing
-    # font silently degrades the composited text, so fail loudly here.
+    # font silently degrades the composited text. Fail the run rather than
+    # printing a warning nobody sees in a Modal container's logs.
     missing_fonts = missing_required_fonts(FONT_DIRECTORY)
     if missing_fonts:
-        print(f"⚠️ Missing required font file(s): {', '.join(missing_fonts)}")
-    else:
-        print(f"✅ Required font files present in '{FONT_DIRECTORY}'")
-
-    if not os.path.exists(font_path):
-        print(f"⚠️ Font file not found: {font_path}")
-        print(f"💡 Please download Atkinson Hyperlegible Next fonts and place them in the '{FONT_DIRECTORY}' folder")
-    else:
-        print(f"✅ Font files found in {FONT_DIRECTORY}")
-
-    if not os.path.exists(marker_path):
-        print(f"⚠️ Marker font file not found: {marker_path}")
-        print("💡 Subtitles using <mark> will fallback to system fonts unless you add this file.")
+        print(f"❌ Missing required font file(s): {', '.join(missing_fonts)}")
+        print(f"💡 Add them to the '{FONT_DIRECTORY}' folder (or R2 pipeline-assets/fonts/)")
+        return False
+    print(f"✅ Required font files present in '{FONT_DIRECTORY}'")
 
     return True
 
@@ -830,33 +822,42 @@ def run_background_removal(background_mapping, mirror_mapping, only=None):
         return
 
     print(f"\nFound {len(silence_removed_files)} silence-removed video(s) to process")
+    gpu_seconds = 0.0
     for video_file in sorted(silence_removed_files):
-        original_name = get_original_filename(video_file)
-        background_file = background_mapping[original_name]
-        input_video_path = os.path.join(NO_SILENCE_DIRECTORY, video_file)
-        output_filename = video_file.replace('_no_silence.mp4', '_no_silence_bg_removed.mp4')
-        output_path = os.path.join(VIDEO_DIRECTORY, output_filename)
+        _t0 = time.time()
+        try:
+            original_name = get_original_filename(video_file)
+            background_file = background_mapping[original_name]
+            input_video_path = os.path.join(NO_SILENCE_DIRECTORY, video_file)
+            output_filename = video_file.replace('_no_silence.mp4', '_no_silence_bg_removed.mp4')
+            output_path = os.path.join(VIDEO_DIRECTORY, output_filename)
 
-        if os.path.exists(output_path):
-            print(f"Output file already exists, skipping: {output_filename}")
-            continue
+            if os.path.exists(output_path):
+                print(f"Output file already exists, skipping: {output_filename}")
+                continue
 
-        if not background_file or background_file.lower() in ('none', 'skip'):
-            print(f"SKIPPING BACKGROUND REMOVAL for {original_name}. Background entry is empty.")
-            try:
-                shutil.copy2(input_video_path, output_path)
-                print(f"✓ Copied CFR/silence-removed video to: {output_filename}")
-            except Exception as e:
-                print(f"✗ Failed to copy video: {e}")
-            continue
+            if not background_file or background_file.lower() in ('none', 'skip'):
+                print(f"SKIPPING BACKGROUND REMOVAL for {original_name}. Background entry is empty.")
+                try:
+                    shutil.copy2(input_video_path, output_path)
+                    print(f"✓ Copied CFR/silence-removed video to: {output_filename}")
+                except Exception as e:
+                    print(f"✗ Failed to copy video: {e}")
+                continue
 
-        background_path = os.path.join(BACKGROUNDS_DIRECTORY, background_file)
-        if not os.path.exists(background_path):
-            print(f"ERROR: Background file not found: {background_file}")
-            continue
+            background_path = os.path.join(BACKGROUNDS_DIRECTORY, background_file)
+            if not os.path.exists(background_path):
+                print(f"ERROR: Background file not found: {background_file}")
+                continue
 
-        result = process_video_background(input_video_path, background_path, output_path)
-        print(f"✓ Successfully processed: {video_file}" if result else f"✗ Failed to process: {video_file}")
+            result = process_video_background(input_video_path, background_path, output_path)
+            print(f"✓ Successfully processed: {video_file}" if result else f"✗ Failed to process: {video_file}")
+        finally:
+            # Accumulate per-clip wall time so the orchestrator can report a real
+            # (not always-zero) GPU term in estimate_cost. Includes local I/O, so
+            # it is an upper bound on billed GPU seconds.
+            gpu_seconds += time.time() - _t0
+    return gpu_seconds
 
 # =============================================================================
 # Stage 3 — overlays / effects / audio / concatenation -> social + web

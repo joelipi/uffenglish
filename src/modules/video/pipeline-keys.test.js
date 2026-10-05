@@ -7,6 +7,7 @@ import {
     PIPELINE_SLUG_PATTERN,
     PIPELINE_JOB_ID_PATTERN,
     isValidPipelineSlug,
+    isValidPipelineJobId,
     rawTakeKey,
     statusKey,
     publishedVideoKey,
@@ -27,14 +28,21 @@ describe('pipeline-keys — slug validation', () => {
         }
     });
 
+    it('rejects a trailing newline (no `$`-before-newline hole)', () => {
+        expect(isValidPipelineSlug('lesson_01\n')).toBe(false);
+        expect(isValidPipelineJobId('job-abc12345\n')).toBe(false);
+    });
+
     it('rejects non-strings without throwing', () => {
         expect(isValidPipelineSlug(null)).toBe(false);
         expect(isValidPipelineSlug(undefined)).toBe(false);
         expect(isValidPipelineSlug(42)).toBe(false);
     });
 
-    it('exports the exact pattern the Python mirror must match', () => {
-        expect(PIPELINE_SLUG_PATTERN.source).toBe('^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$');
+    it('anchors at true end-of-input so Python and JS agree', () => {
+        // The Python mirror pins this same accept/reject set (test_pipeline_parity).
+        expect(PIPELINE_SLUG_PATTERN.test('lesson_01')).toBe(true);
+        expect(PIPELINE_SLUG_PATTERN.test('lesson_01\n')).toBe(false);
     });
 });
 

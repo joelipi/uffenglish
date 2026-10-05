@@ -22,8 +22,8 @@ from pathlib import Path
 # Naming rules (mirror of src/modules/video/pipeline-keys.js)
 # --------------------------------------------------------------------------- #
 
-PIPELINE_SLUG_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$")
-PIPELINE_JOB_ID_PATTERN = re.compile(r"^[A-Za-z0-9-]{8,64}$")
+PIPELINE_SLUG_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,99}\Z")
+PIPELINE_JOB_ID_PATTERN = re.compile(r"^[A-Za-z0-9-]{8,64}\Z")
 
 PROCESSED_PREFIX = "processed_"
 VIDEO_EXTENSION = "_no_silence_bg_removed.mp4"

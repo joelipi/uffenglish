@@ -92,12 +92,22 @@ def list_keys(prefix: str) -> list:
 
 
 def read_json(r2_key: str):
-    """Fetch and parse a JSON object, or ``None`` when absent."""
+    """Fetch and parse a JSON object, or ``None`` only when it is absent.
+
+    Auth/network failures are re-raised (a missing object is distinguishable
+    from a failure to reach R2), so a misconfigured secret cannot masquerade as
+    "no marker yet".
+    """
     import json
+
+    from botocore.exceptions import ClientError
 
     with r2_client() as client:
         try:
             obj = client.get_object(Bucket=bucket_name(), Key=r2_key)
-        except Exception:
-            return None
+        except ClientError as exc:
+            code = exc.response.get("Error", {}).get("Code")
+            if code in ("NoSuchKey", "404", "NotFound"):
+                return None
+            raise
     return json.loads(obj["Body"].read().decode("utf-8"))
