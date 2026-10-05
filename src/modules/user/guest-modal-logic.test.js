@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
     ENGLISH_LANG,
+    PUBLIC_ROUTES,
+    isPublicHomeRoute,
     resolveGuestModalPlan,
     resolveSilentLanguageReapply,
     applyGuestLanguagePreference,
@@ -42,6 +44,28 @@ describe('resolveGuestModalPlan', () => {
 
     it('pins the English language constant', () => {
         expect(ENGLISH_LANG).toBe('EN');
+    });
+});
+
+describe('isPublicHomeRoute', () => {
+    it('is true only for the public homepage', () => {
+        expect(isPublicHomeRoute('/')).toBe(true);
+    });
+
+    it('is false for the dashboard, auth, lesson, profile and share-code routes', () => {
+        expect(isPublicHomeRoute('/home')).toBe(false);
+        expect(isPublicHomeRoute('/login')).toBe(false);
+        expect(isPublicHomeRoute('/course/model/lesson/g')).toBe(false);
+        expect(isPublicHomeRoute('/abc123')).toBe(false);
+    });
+
+    it('is false for empty and non-string input', () => {
+        expect(isPublicHomeRoute('')).toBe(false);
+        expect(isPublicHomeRoute(undefined)).toBe(false);
+    });
+
+    it('pins the public route list', () => {
+        expect(PUBLIC_ROUTES).toEqual(['/']);
     });
 });
 

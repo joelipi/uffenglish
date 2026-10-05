@@ -143,7 +143,7 @@ export default function HomeScreen() {
                             </div>
                         </div>
                         <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            <Link to="/" onClick={closeMenu} style={{ ...linkStyle, borderLeft: '3px solid transparent' }}
+                            <Link to="/home" onClick={closeMenu} style={{ ...linkStyle, borderLeft: '3px solid transparent' }}
                                   onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#1a3a5a'; e.currentTarget.style.borderLeftColor = '#00c0d8'; }}
                                   onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderLeftColor = 'transparent'; }}>
                                 <i className="bi bi-house-fill"></i> {Strings.get('home_home', lang)}

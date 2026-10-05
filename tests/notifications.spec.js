@@ -1,7 +1,7 @@
 // @ts-check
 import { test, expect } from '@playwright/test';
 
-// Notification bell on the home screen. Boots '/', lets the initial auth +
+// Notification bell on the home screen. Boots '/home', lets the initial auth +
 // profile queries settle, then injects fixtures through the app's own
 // queryClient singleton (same pattern as tests/friend-lesson-link.spec.js).
 // Supabase REST is stubbed statefully: the mark-read PATCH flips read_at, so the
@@ -60,7 +60,7 @@ test.describe('home-screen notification bell', () => {
     });
 
     async function bootAndSettle(page) {
-        await page.goto('/');
+        await page.goto('/home');
         await page.waitForFunction(async () => {
             const { queryClient } = await import('/src/modules/api/api.js');
             return (

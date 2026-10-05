@@ -288,32 +288,36 @@ export function useSyncUserMetaData() {
   });
 }
 
+// Resolve a public profile by share code. Plain async function (not a hook) so
+// non-React callers (the homepage share-code entry) can await it.
+export async function fetchUserByShareCode(shareCode) {
+  // Pilot hardening (003): anon column grant is restricted. Query the safe
+  // view when unauthenticated, full table when logged-in. Fall back to the
+  // legacy table if the view does not yet exist (pre-migration deploy).
+  const SAFE_COLS = 'id,first_name,last_name,native_language,english_level,join_date,share_code,profile_picture_url,completed_dates,lessons_completed,counted_lessons,total_fluency_sum,recent_fluency_avgs,created_at,account_status,friend_links';
+  async function queryPublicProfiles() {
+    const { data, error } = await supabase.from('public_profiles').select('*').eq('share_code', shareCode).limit(1);
+    if (error) throw error;
+    if (!data || data.length === 0) return null;
+    return fromDbRow(data[0]);
+  }
+  async function queryLegacy() {
+    const { data, error } = await supabase.from('user_profiles').select(SAFE_COLS).eq('share_code', shareCode).limit(1);
+    if (error) throw error;
+    if (!data || data.length === 0) return null;
+    return fromDbRow(data[0]);
+  }
+  try {
+    return await queryPublicProfiles();
+  } catch {
+    return await queryLegacy();
+  }
+}
+
 export function useUserByShareCode(shareCode) {
   return useQuery({
     queryKey: ['user', 'profile', 'shareCode', shareCode],
-    queryFn: async () => {
-      // Pilot hardening (003): anon column grant is restricted. Query the safe
-      // view when unauthenticated, full table when logged-in. Fall back to the
-      // legacy table if the view does not yet exist (pre-migration deploy).
-      const SAFE_COLS = 'id,first_name,last_name,native_language,english_level,join_date,share_code,profile_picture_url,completed_dates,lessons_completed,counted_lessons,total_fluency_sum,recent_fluency_avgs,created_at,account_status,friend_links';
-      async function queryPublicProfiles() {
-        const { data, error } = await supabase.from('public_profiles').select('*').eq('share_code', shareCode).limit(1);
-        if (error) throw error;
-        if (!data || data.length === 0) return null;
-        return fromDbRow(data[0]);
-      }
-      async function queryLegacy() {
-        const { data, error } = await supabase.from('user_profiles').select(SAFE_COLS).eq('share_code', shareCode).limit(1);
-        if (error) throw error;
-        if (!data || data.length === 0) return null;
-        return fromDbRow(data[0]);
-      }
-      try {
-        return await queryPublicProfiles();
-      } catch {
-        return await queryLegacy();
-      }
-    },
+    queryFn: () => fetchUserByShareCode(shareCode),
     enabled: !!shareCode,
   });
 }
