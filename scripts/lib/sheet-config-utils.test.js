@@ -9,6 +9,7 @@ import {
     unescapeSrt,
     buildSteps,
     buildCourseConfig,
+    isValidCourseId,
     RESPONSE_TYPES,
     RECAP_SOURCES,
     RECAP_OVERLAYS,
@@ -131,10 +132,17 @@ describe('buildSteps', () => {
         expect('subtitles' in step).toBe(false);
     });
 
-    it('throws on a missing/non-numeric Order', () => {
+    it('throws on a missing/non-numeric Order, naming the row', () => {
         expect(() => buildSteps([
             { video_file: 'v', filename: 'v1', order: 'x', response_type: 'viewAndContinue' },
-        ])).toThrow(/Order/);
+        ])).toThrow(/v1/);
+    });
+
+    it('throws on a group with conflicting cue values', () => {
+        expect(() => buildSteps([
+            { video_file: 'q', filename: 'q1', order: '1', response_type: 'closedResponse', cue: 'A' },
+            { video_file: 'q', filename: 'q2', order: '1', response_type: 'closedResponse', cue: 'B' },
+        ])).toThrow(/conflicting cue/);
     });
 });
 
@@ -180,10 +188,10 @@ describe('buildCourseConfig', () => {
         expect(config.lessons[0].recapOverlay).toBe('shareCta');
     });
 
-    it('throws on an invalid recap_sources value', () => {
+    it('throws on an invalid recap_sources value, naming the lesson', () => {
         expect(() => buildCourseConfig([
             { ...base, recap_sources: 'bogus', video_file: 'v', filename: 'v1', order: '1', response_type: 'viewAndContinue' },
-        ])).toThrow(/recap_sources/);
+        ])).toThrow(/lesson "a"/);
     });
 
     it('splits rows into two lessons', () => {
@@ -227,6 +235,14 @@ describe('buildCourseConfig', () => {
         expect(RECAP_OVERLAYS).toEqual(['fluency', 'shareCta', 'none']);
     });
 
+    it('breaks Order ties by first-seen row order', () => {
+        const config = buildCourseConfig([
+            { ...base, video_file: 'first', filename: 'a', order: '1', response_type: 'viewAndContinue' },
+            { ...base, video_file: 'second', filename: 'b', order: '1', response_type: 'viewAndContinue' },
+        ]);
+        expect(config.lessons[0].steps.map((s) => s.simpleVideoUrl)).toEqual(['first', 'second']);
+    });
+
     it('matches a fully-formed fixture end to end', () => {
         const csv = [
             'course_id,course_name,lesson_id,lesson_title,recap_sources,recap_overlay,response_type,video_file,filename,order,cue,cue_alt,subtitle_text,srt',
@@ -264,6 +280,18 @@ describe('buildCourseConfig', () => {
 
 // The browser modules import runtime deps and cannot be imported here, so the
 // canonical literals are pinned by parsing their source text.
+describe('isValidCourseId', () => {
+    it('accepts safe config-stem ids', () => {
+        expect(isValidCourseId('demo')).toBe(true);
+        expect(isValidCourseId('would-rather_2')).toBe(true);
+    });
+    it('rejects traversal, separators, leading dots, and non-strings', () => {
+        for (const bad of ['../x', 'a/b', '.hidden', '', 'a.json', null, 42]) {
+            expect(isValidCourseId(bad), String(bad)).toBe(false);
+        }
+    });
+});
+
 describe('canonical vocabulary parity with the browser modules', () => {
     const read = (rel) => readFileSync(path.join(__dirname, rel), 'utf8');
 

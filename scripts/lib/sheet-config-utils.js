@@ -14,7 +14,7 @@
 // translateReal path in scripts/generate-captions.mjs).
 
 // Canonical vocabulary (mirrors the app; a guard pins these to the browser
-// module, which imports runtime deps and so is not importable from Node).
+// module).
 export const RESPONSE_TYPES = [
     'friendClosedResponse',
     'viewAndContinue',
@@ -25,6 +25,15 @@ export const RESPONSE_TYPES = [
 ];
 export const RECAP_SOURCES = ['system', 'friend', 'none'];
 export const RECAP_OVERLAYS = ['fluency', 'shareCta', 'none'];
+
+// A courseId becomes a filename, so it must be a safe single path segment: no
+// separators, no traversal, no leading dot/underscore. Matches the app's config
+// filenames.
+export const COURSE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
+
+export function isValidCourseId(value) {
+    return typeof value === 'string' && COURSE_ID_PATTERN.test(value);
+}
 
 // Columns whose presence marks a row as video-related (everything else is a
 // blank spacer row and is skipped).
@@ -162,7 +171,16 @@ function cueFor(groupRows, videoFile) {
             .filter(Boolean);
         return lines.map((en) => ({ en }));
     }
-    if (singles.length) return { en: singles[0] };
+    if (singles.length) {
+        // A group is one step, so all its rows must agree on the single cue.
+        const unique = [...new Set(singles)];
+        if (unique.length > 1) {
+            throw new Error(
+                `video_file "${videoFile}": conflicting cue values ("${unique[0]}" vs "${unique[1]}")`
+            );
+        }
+        return { en: unique[0] };
+    }
     return undefined;
 }
 

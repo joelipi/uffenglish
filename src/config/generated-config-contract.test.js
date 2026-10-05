@@ -36,25 +36,31 @@ function readAllowlist() {
     return raw;
 }
 
-function translationStrings(node) {
-    // Every { en: ... } style object anywhere in a config is a "translation
-    // object" for this contract; return them all for the en-only check.
-    const found = [];
-    const walk = (value) => {
-        if (Array.isArray(value)) { value.forEach(walk); return; }
-        if (value && typeof value === 'object') {
-            if ('en' in value) found.push(value);
-            Object.values(value).forEach(walk);
-        }
-    };
-    walk(node);
+// Every translation slot in a course config, walked structurally (NOT keyed on
+// `en`'s presence — a `{ es: … }`-only object must still be caught).
+//   title/mission: an object of locale->string
+//   cue: an object OR an array of such objects
+//   subtitles: an object of locale->string
+function collectTranslationObjects(node, found = []) {
+    if (Array.isArray(node)) { node.forEach((n) => collectTranslationObjects(n, found)); return found; }
+    if (!node || typeof node !== 'object') return found;
+    for (const key of ['title', 'mission', 'subtitles']) {
+        const value = node[key];
+        if (value && typeof value === 'object' && !Array.isArray(value)) found.push(value);
+    }
+    if ('cue' in node) {
+        const cue = node.cue;
+        if (Array.isArray(cue)) cue.forEach((c) => { if (c && typeof c === 'object') found.push(c); });
+        else if (cue && typeof cue === 'object') found.push(cue);
+    }
+    for (const value of Object.values(node)) collectTranslationObjects(value, found);
     return found;
 }
 
 // The contract applied to one config object. Throws with a specific message on
 // the first violation.
 function assertGeneratedConfigContract(config, label) {
-    for (const obj of translationStrings(config)) {
+    for (const obj of collectTranslationObjects(config)) {
         expect(Object.keys(obj), `${label}: translation object has only en`).toEqual(['en']);
         expect(typeof obj.en, `${label}: en is a string`).toBe('string');
         expect(obj.en.length, `${label}: en is non-empty`).toBeGreaterThan(0);
@@ -91,6 +97,13 @@ describe('generated English-only config contract', () => {
         const { rows } = parseCsv(FIXTURE_CSV);
         const config = buildCourseConfig(rows);
         config.lessons[0].title.es = 'Lección';
+        expect(() => assertGeneratedConfigContract(config, 'mutated')).toThrow();
+    });
+
+    it('fails when a translation slot omits en entirely', () => {
+        const { rows } = parseCsv(FIXTURE_CSV);
+        const config = buildCourseConfig(rows);
+        config.lessons[0].title = { es: 'Lección' };
         expect(() => assertGeneratedConfigContract(config, 'mutated')).toThrow();
     });
 

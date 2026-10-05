@@ -18,10 +18,12 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { flagValue } from './lib/cli-utils.js';
-import { parseCsv, buildCourseConfig } from './lib/sheet-config-utils.js';
+import { parseCsv, buildCourseConfig, isValidCourseId } from './lib/sheet-config-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
+// Default output directory for the generated config (test seam).
+const CONFIG_DIR = process.env.CONFIG_OUT_DIR || path.join(ROOT, 'src', 'config');
 
 // Keep in sync with public/recorder.html (source-guarded).
 export const SHEET_URL =
@@ -61,12 +63,17 @@ async function main() {
     const { rows } = parseCsv(csv);
     const config = buildCourseConfig(rows);
     const courseId = courseOverride || config.courseId;
-    if (courseId) config.courseId = courseId;
     if (!courseId) throw new Error('no course_id column value and no --course given');
+    // A remote-controlled courseId becomes a filename, so reject anything that
+    // could escape src/config (traversal, separators, leading dot).
+    if (!isValidCourseId(courseId)) {
+        throw new Error(`invalid courseId "${courseId}": expected [A-Za-z0-9][A-Za-z0-9_-]*`);
+    }
+    config.courseId = courseId;
 
     const outPath = outOverride
         ? path.resolve(outOverride)
-        : path.join(ROOT, 'src', 'config', `${courseId}.json`);
+        : path.join(CONFIG_DIR, `${courseId}.json`);
 
     const exists = await fs.access(outPath).then(() => true, () => false);
     if (exists && !force) {
@@ -83,6 +90,28 @@ async function main() {
     await fs.mkdir(path.dirname(outPath), { recursive: true });
     await fs.writeFile(outPath, serialized);
     console.log(`WROTE ${outPath}`);
+
+    // Register the course in the allow-list the English-only contract guard
+    // reads, so a generated config is covered automatically. Only for the real
+    // src/config output — a test/`--out` run must not touch the tracked file.
+    if (!outOverride) await registerGeneratedCourse(courseId);
+}
+
+/** Append `courseId` to scripts/lib/generated-configs.json (idempotent). */
+async function registerGeneratedCourse(courseId) {
+    const listPath = process.env.GENERATED_CONFIGS_ALLOWLIST
+        || path.join(ROOT, 'scripts', 'lib', 'generated-configs.json');
+    let list = [];
+    try {
+        list = JSON.parse(await fs.readFile(listPath, 'utf8'));
+        if (!Array.isArray(list)) list = [];
+    } catch { /* missing/corrupt -> start fresh */ }
+    if (!list.includes(courseId)) {
+        list.push(courseId);
+        list.sort();
+        await fs.writeFile(listPath, JSON.stringify(list, null, 2) + '\n');
+        console.log(`REGISTERED ${courseId} in generated-configs.json`);
+    }
 }
 
 main().catch((e) => {
