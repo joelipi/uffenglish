@@ -481,3 +481,12 @@ npm run deploy
 - **Operator key handling is unchanged.** The shared `OPERATOR_KEY` and the
   unlisted/noindex recorder remain a stopgap; Cloudflare Access is still the
   documented next step. This story changes storage, not auth.
+- **Task 8 live check (pending — operator out-of-band step):** _not run in this
+  environment._ The build sandbox has no Cloudflare/R2/Modal credentials and
+  cannot deploy, so Task 8's manual AC (create `uff-private`, apply the `raw/`
+  lifecycle rule, recreate the `uff-r2` secret, redeploy Modal + Pages, then
+  confirm `curl -sI https://r2.ultrafastfluency.com/raw/<slug>.mp4` returns 404
+  while `.../assets/videos/<slug>.mp4` still returns 200) is performed by the
+  operator after deploy, not a CI-gateable check. The CI-gateable proof is the
+  source/config guards (bindings, storage routing by `bucket_for_key`, no client
+  raw URL). No live result was fabricated.
