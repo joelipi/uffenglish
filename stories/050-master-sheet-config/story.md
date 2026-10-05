@@ -73,7 +73,7 @@ Today `video_pipeline.write_srt_column` writes the computed SRT into the CSV it 
 
 1. **Modal persists** the updated `video_data.csv` (now carrying the `srt` column) back to R2 at the same `pipeline-assets/video_data.csv` key after concatenation (`storage.upload_file`). One extra upload; no stage change.
 2. **A GitHub Action** (`.github/workflows/sync-srt.yml`) downloads that CSV from R2 (via the existing Cloudflare/wrangler credentials) and runs a Node script that writes the `srt` column into the master sheet with one `spreadsheets.values.batchUpdate` (`valueInputOption: 'RAW'`), reusing the 049 service-account path.
-3. **Overwrite `srt` unconditionally** — it is derived, so blanks-only does not apply. Rows are matched by `filename`; the script writes each group's SRT to every row of that group's `video_file` (matching `write_srt_column`'s per-group value).
+3. **Overwrite `srt` unconditionally** — it is derived, so blanks-only does not apply. Rows are matched by `filename`; the script writes each group's SRT **verbatim (the JSON-escaped string from the CSV)** to every row of that group's `video_file` (matching `write_srt_column`'s per-group value), so the generator's `unescapeSrt` still applies.
 
 ### 7. Repoint the three consumers (decision)
 
@@ -84,7 +84,16 @@ The existing source guards that pin `SHEET_URL` (against `public/recorder.html`)
 
 ### 8. Pre-filled CSV (decision)
 
-Because the sandbox has no Google credentials, the operator uploads the columns/values by hand. Provide `scripts/seed-master-columns.mjs` that fetches the published master CSV, appends the new config columns, and pre-fills: `success_video = success` and `success_srt` = the standard friend-lesson success SRT (identical in `wouldrather.json` and `friendchain.json`), plus `intro_video` following the friend-chain `{friendCode}` pattern (with the first lesson's intro a plain `intro` slug). It writes a CSV the operator imports; it performs no sheet write. Other config columns are emitted blank for the operator to fill.
+Because the sandbox has no Google credentials, the operator uploads the columns/values by hand. Provide `scripts/seed-master-columns.mjs` that fetches the published master CSV, appends the new config columns, and pre-fills the current course so it runs out of the box (the operator can edit any cell later):
+
+- `course_id = wouldyourather`, `course_name` from `title_text` (`<br>` → space), `lesson_id` = the `video_file` prefix letter (`wouldyourather_a01` → `a`), `lesson_title` = a best-judgment title per lesson (no source exists in the master).
+- `response_type = friendClosedResponse` on every content row.
+- `recap_sources = none` for the ask lessons (a/c/e) and `friend` for the answer lessons (b/d/f); `recap_overlay = shareCta` everywhere.
+- `intro_video` per lesson following the friend-chain pattern: `a → intro`, `b → {friendCode}wouldyourather-a-response-01`, `c → {friendCode}wouldyourather-b-response-04`, `d → {friendCode}wouldyourather-c-response-04`, `e → {friendCode}wouldyourather-d-response-04`, `f → {friendCode}wouldyourather-e-response-04`.
+- `success_video = success`; `success_srt`/`_es`/`_pt`/`_bn` copied from the canonical localized friend-lesson success subtitles (`friendchain.json` — its 8 success steps are identical en/es/pt/bn; `wouldrather.json` carries the same four in one lesson).
+- `srt` left blank (the pipeline writes it back).
+
+It writes a CSV the operator imports; it performs no sheet write.
 
 ## Tasks
 
@@ -120,6 +129,7 @@ Because the sandbox has no Google credentials, the operator uploads the columns/
   - → writes a valid `src/config/<courseId>.json` whose lessons/steps match the fixture
 - a master CSV missing a required config column (`course_id`/`lesson_id`/`lesson_title`/`response_type`)
   - → reports it via `findMissingColumns` (never reports the optional new columns)
+  - → a joined step (`join` set) is validated as one step, mirroring `buildSteps`' `join` grouping
 
 ### Task 3 - Repoint the recorder + translator
 
@@ -134,11 +144,13 @@ Because the sandbox has no Google credentials, the operator uploads the columns/
 
 - run against the published master CSV
   - → output header contains every new config column
-  - → every row has `success_video = success` and a non-blank `success_srt` equal to the `wouldrather.json` success `subtitles.en`
-  - → each lesson's rows carry the `intro_video` value for that lesson
-  - → `course_id`/`course_name`/`lesson_id`/`lesson_title`/`response_type` cells are present (blank where not pre-filled)
+  - → every content row has `response_type = friendClosedResponse` and `recap_overlay = shareCta`
+  - → lessons a/c/e have `recap_sources = none`, lessons b/d/f have `friend`
+  - → every row has `success_video = success` and `success_srt`/`_es`/`_pt`/`_bn` equal to the canonical friend-lesson success subtitles (`friendchain.json`)
+  - → each lesson's rows carry its `intro_video` value (`a → intro`, b–f → `{friendCode}wouldyourather-…`)
+  - → `course_id = wouldyourather`, `course_name` from `title_text`, `lesson_id` from the video_file prefix, and a non-blank `lesson_title` per lesson
 - the emitted CSV parsed by `parseCsv` + `buildCourseConfig`
-  - → still generates a structurally valid course (once the operator fills the required blanks)
+  - → generates a valid course config with no further edits
 
 ### Task 5 - SRT write-back (pipeline persists + Action writes the sheet)
 
@@ -175,14 +187,16 @@ Because the sandbox has no Google credentials, the operator uploads the columns/
 - **Video pipeline SRT:** `docs/video-pipeline/video_pipeline.py` `build_group_srt` (1483), `to_json_subtitle_string` (1576), `write_srt_column` (1582, called at 1765). The pipeline does not consume the `Order` column; group order is by filename natural sort.
 - **Modal:** `docs/video-pipeline/modal_app.py` `orchestrator` (102) downloads `pipeline-assets/video_data.csv` (79) and calls `storage.upload_file`/`upload_json`; `storage.py` routes `pipeline-assets/` to the private bucket via `R2_*` env.
 - **Existing R2/Cloudflare secrets in Actions:** `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (`.github/workflows/deploy.yml`); `configs.yml` accepts `repository_dispatch (render-complete)`.
-- **Reference configs:** `src/config/wouldrather.json`, `src/config/friendchain.json` — friend-chain intros are `{friendCode}<courseId>-<lessonId>-response-NN`; `success` uses `enda` with the same localized SRT in both.
+- **Reference configs:** `src/config/wouldrather.json`, `src/config/friendchain.json` — friend-chain intros are `{friendCode}<courseId>-<lessonId>-response-NN`; `success` uses `enda` in both (this story's new course uses the simpler slug `success`), with the same localized success SRT.
 - **Guard hygiene (`AGENTS.md`):** assert raw source (no comment stripping — URLs contain `//`); scope whole-file assertions to tokens that appear once; prove every guard can fail by mutation. New `src/**` files must not mention `/recorder`/`recorder.html`.
 - **Node 20 / deps:** no new npm dependency is required (global `fetch`; `googleapis@178.0.0` already added by 049).
 
 ## Notes
 
-- **Pre-fill assumptions for review:** `success_video = success` and `success_srt` = the `wouldrather.json` success `subtitles.en`. `intro_video` follows the friend-chain pattern adapted from `wouldrather`, with the first lesson's intro a plain conventional slug: `a → intro`, `b → {friendCode}wouldyourather-a-response-01`, `c → {friendCode}wouldyourather-b-response-04`, `d → {friendCode}wouldyourather-c-response-04`, `e → {friendCode}wouldyourather-d-response-04`, `f → {friendCode}wouldyourather-e-response-04`. These are a starting point the operator edits in the sheet; the story only requires that `intro_video`/`success_video`/`success_srt` are explicit columns and are pre-filled.
-- **The operator fills the required config columns once** (`course_id`, `course_name`, `lesson_id`, `lesson_title`, `response_type`); the generator reads them first-non-blank, so they are not repeated per take. `recap_sources`/`recap_overlay` default as today.
+- **Pre-fill values are best-judgment** (the operator edits any cell later): `course_id = wouldyourather`; `course_name` from `title_text`; `lesson_id` from the `video_file` prefix; `lesson_title` invented per lesson (no source in the master); `response_type = friendClosedResponse`; `recap_sources` `none` (a/c/e) / `friend` (b/d/f); `recap_overlay = shareCta`; `intro_video` per the friend-chain pattern (`a → intro`, b–f → `{friendCode}wouldyourather-…-response-NN`); `success_video = success`; `success_srt`/`_es`/`_pt`/`_bn` from `friendchain.json`'s success subtitles.
+- **The success SRT is a fixed constant**, not produced by the caption pipeline per run: it is copied once at seed time and reused.
+- **The operator maintains the config columns** (`course_id`, `course_name`, `lesson_id`, `lesson_title`, `response_type`); the generator reads them first-non-blank, so they are not repeated per take. `recap_sources`/`recap_overlay` default as today when blank.
 - **`subtitle_text` is overloaded** (overlay markup on the master vs app subtitles on the authoring sheet); the format detection in §1 is what prevents cross-contamination, and master subtitles come only from `srt`.
 - **The published CSV lags an API write** (Google re-publishes after a Sheets API update), so a config run immediately after the SRT write may read a stale `srt`; the write-back is for record-keeping and the next run picks it up.
+- **Set `GOOGLE_SHEET_ID` to the new spreadsheet id** (`1Lfoj7yLyGtgDKIuq8SQvQ8ZK5KpwlJzeAcHEBLzjV6o`) and share the service account on the new sheet; otherwise the 049 translate Action and the new sync-srt Action target the old sheet. The recorder/generator read the published CSV and need no secret.
 - **No sheet write from the sandbox.** The pre-fill is a CSV the operator uploads; the only automated sheet writers are the 049 translate Action and the new sync-srt Action, both with the service account.
