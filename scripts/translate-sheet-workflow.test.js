@@ -22,6 +22,8 @@ const readCli = () => readFileSync(CLI, 'utf8');
 // The full contract for the workflow: required wiring + deliberate absences.
 function assertWorkflowContract(text) {
     expect(text).toContain('workflow_dispatch:');
+    // Story 051: the one-click pipeline calls this as a reusable workflow.
+    expect(text).toContain('workflow_call:');
     expect(text).toContain('secrets.DEEPSEEK_API_KEY');
     expect(text).toContain('secrets.GOOGLE_SERVICE_ACCOUNT_JSON');
     expect(text).toContain('GOOGLE_SHEET_ID');
@@ -52,10 +54,19 @@ describe('translate-sheet.yml source guard', () => {
         expect(text).toContain('inputs.languages');
     });
 
+    it('declares workflow_call with the dry_run/languages defaults', () => {
+        const text = readWorkflow();
+        const call = text.slice(text.indexOf('workflow_call:'));
+        expect(call).toContain('dry_run:');
+        expect(call).toContain('default: false');
+        expect(call).toContain('languages:');
+        expect(call).toContain('default: es,pt,bn');
+    });
+
     it('the guard can fail on each required token', () => {
         const good = readWorkflow();
         const required = [
-            'workflow_dispatch:', 'secrets.DEEPSEEK_API_KEY',
+            'workflow_dispatch:', 'workflow_call:', 'secrets.DEEPSEEK_API_KEY',
             'secrets.GOOGLE_SERVICE_ACCOUNT_JSON', 'GOOGLE_SHEET_ID',
             'group: translate-sheet', 'node-version: 20', 'node scripts/translate-sheet.mjs',
         ];

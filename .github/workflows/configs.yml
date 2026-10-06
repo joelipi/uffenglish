@@ -1,19 +1,18 @@
 name: Generate Course Configs
 
-# Best-effort: generate one src/config/<courseId>.json per course the published
-# sheet defines and commit them. A course with any missing required column is
-# skipped whole and REPORTED (annotation + job summary); the job stays green so
-# nothing downstream is blocked. The video render is a separate path (Modal), so
-# a skip here never affects it.
+# Best-effort: generate one src/config/<courseId>.json per course the sheet
+# defines and commit them. A course with any missing required column is skipped
+# whole and REPORTED (annotation + job summary); the job stays green so nothing
+# downstream is blocked. The video render is a separate path (Modal), so a skip
+# here never affects it.
 #
-# Trigger: the manual "Run workflow" button now. `repository_dispatch`
-# (render-complete) is accepted but nothing sends it yet — wiring the Modal
-# render to fire it is a deliberate later addition (a Modal-held GitHub token is
-# an invisible-failure/rotation risk).
+# Read via the Sheets API (`--from-api`) so a chained run sees the `srt` /
+# `phrase_*` cells the preceding jobs just wrote — the published CSV lags by
+# minutes. Trigger: the manual "Run workflow" button, or the one-click
+# pipeline.yml chain (`workflow_call`); pipeline.yml owns `render-complete`.
 on:
   workflow_dispatch:
-  repository_dispatch:
-    types: [render-complete]
+  workflow_call:
 
 permissions:
   contents: read
@@ -37,9 +36,12 @@ jobs:
         with: { node-version: 20, cache: npm }
       - run: npm ci
       - name: Generate configs
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          GOOGLE_SHEET_ID: ${{ vars.GOOGLE_SHEET_ID || secrets.GOOGLE_SHEET_ID }}
         run: |
           set -o pipefail
-          node scripts/generate-config-from-sheet.mjs --check 2>&1 | tee /tmp/configs.log
+          node scripts/generate-config-from-sheet.mjs --check --from-api 2>&1 | tee /tmp/configs.log
       - name: Report skips
         if: always()
         run: |

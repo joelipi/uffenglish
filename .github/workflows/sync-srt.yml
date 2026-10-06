@@ -1,14 +1,14 @@
 name: Sync SRT to Master Sheet
 
-# Manual only (plus a `repository_dispatch (render-complete)` trigger for a later
-# wiring, mirroring configs.yml). The Modal render persists the pipeline-computed
-# `srt` column to R2; this Action downloads that CSV and writes the column back
-# into the operator's master sheet for record-keeping. The sheet -- not the repo
-# -- is the output, so there is no commit step and no push-capable bot token.
+# Manual, or called by the one-click pipeline.yml chain (`workflow_call`). The
+# Modal render persists the pipeline-computed `srt` column to R2; this Action
+# downloads that CSV and writes the column back into the operator's master sheet
+# for record-keeping. The sheet -- not the repo -- is the output, so there is no
+# commit step and no push-capable bot token. `pipeline.yml` owns the
+# `render-complete` trigger.
 on:
   workflow_dispatch:
-  repository_dispatch:
-    types: [render-complete]
+  workflow_call:
 
 permissions:
   contents: read

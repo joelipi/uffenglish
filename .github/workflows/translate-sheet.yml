@@ -1,11 +1,22 @@
 name: Translate Authoring Sheet
 
-# Manual only. Unlike captions.yml/configs.yml (which run on push and commit to
-# the repo), this Action writes translations back into the operator's Google
-# Sheet. The sheet -- not the repo -- is the output, so there is no commit step
-# and no push-capable bot token here.
+# Manual, or called by the one-click pipeline.yml chain (`workflow_call`).
+# Unlike captions.yml/configs.yml (which run on push and commit to the repo),
+# this Action writes translations back into the operator's Google Sheet. The
+# sheet -- not the repo -- is the output, so there is no commit step and no
+# push-capable bot token here.
 on:
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Print the plan without writing to the sheet
+        type: boolean
+        default: false
+      languages:
+        description: Comma-separated target languages
+        type: string
+        default: es,pt,bn
+  workflow_call:
     inputs:
       dry_run:
         description: Print the plan without writing to the sheet

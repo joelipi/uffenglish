@@ -364,6 +364,58 @@ def estimate_cost(metrics) -> float:
 
 
 # --------------------------------------------------------------------------- #
+# GitHub repository_dispatch (best-effort `render-complete` notification)
+# --------------------------------------------------------------------------- #
+
+GITHUB_DISPATCH_URL = "https://api.github.com/repos/{repo}/dispatches"
+
+
+def _response_status(response):
+    """The HTTP status of a fetch response (attr or dict), or ``None``."""
+    if response is None:
+        return None
+    status = getattr(response, "status", None)
+    if status is None and isinstance(response, dict):
+        status = response.get("status")
+    return status
+
+
+def dispatch_render_complete(repo, token, payload, fetchImpl):
+    """POST a ``render-complete`` repository_dispatch to GitHub. Never raises.
+
+    Returns ``{"sent": True}`` on a 2xx response, else ``{"sent": False,
+    "error": "<message>"}`` (a missing repo/token, a non-2xx status, or a thrown
+    fetch). ``fetchImpl(url, method=..., headers=..., body=...)`` is injected so
+    the helper is unit-testable without network; it returns an object with a
+    ``status`` attribute (or a ``{"status": ...}`` dict).
+    """
+    if not repo:
+        return {"sent": False, "error": "GH_DISPATCH_REPO is not set"}
+    if not token:
+        return {"sent": False, "error": "GH_DISPATCH_TOKEN is not set"}
+    url = GITHUB_DISPATCH_URL.format(repo=repo)
+    try:
+        body = json.dumps({"event_type": "render-complete", "client_payload": payload or {}})
+        response = fetchImpl(
+            url,
+            method="POST",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+                "Content-Type": "application/json",
+            },
+            body=body,
+        )
+    except Exception as exc:  # noqa: BLE001 - best-effort; never fail the render
+        return {"sent": False, "error": str(exc)}
+    status = _response_status(response)
+    if isinstance(status, int) and 200 <= status < 300:
+        return {"sent": True}
+    return {"sent": False, "error": f"HTTP {status}"}
+
+
+# --------------------------------------------------------------------------- #
 # Status marker (stage-level, carried by R2 between the stateless Functions)
 # --------------------------------------------------------------------------- #
 

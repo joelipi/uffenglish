@@ -9,6 +9,9 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { loadRowsFromApi, generateConfigsFromRows } from './generate-config-from-sheet.mjs';
+import { parseCsv } from './lib/sheet-config-utils.js';
+import { PUBLISHED_GID } from './translate-sheet.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -283,6 +286,83 @@ describe('generate-config-from-sheet CLI', () => {
         const url = /https:\/\/docs\.google\.com\/spreadsheets\/[^'"]+/.exec(cli);
         expect(url).not.toBeNull();
         expect(recorder).toContain(url[0]);
+    });
+});
+
+// Story 051, Task 3: `--from-api` reads the sheet via the Sheets API so a
+// chained run sees fresh cells, producing the same rows/config as the CSV path.
+describe('generate-config-from-sheet --from-api', () => {
+    const valuesFromCsv = () => FIXTURE_CSV.split('\n').map((line) => line.split(','));
+
+    it('reads the same header-keyed rows shape as the CSV path (injected seam)', async () => {
+        const calls = [];
+        const rows = await loadRowsFromApi({
+            sheetId: 'S', tab: 'Sheet1',
+            getValues: async (params) => { calls.push(params); return { values: valuesFromCsv() }; },
+            getSpreadsheet: async () => ({ sheets: [{ properties: { sheetId: PUBLISHED_GID, title: 'Sheet1' } }] }),
+        });
+        expect(rows).toEqual(parseCsv(FIXTURE_CSV).rows);
+        expect(calls[0].spreadsheetId).toBe('S');
+        expect(calls[0].range).toContain('A1:ZZ');
+    });
+
+    it('resolves the tab from the published gid when --tab is absent', async () => {
+        const calls = [];
+        await loadRowsFromApi({
+            sheetId: 'S',
+            getValues: async (params) => { calls.push(params); return { values: [['course_id', 'course_name'], ['x', 'X']] }; },
+            getSpreadsheet: async () => ({ sheets: [{ properties: { sheetId: PUBLISHED_GID, title: 'Master' } }] }),
+        });
+        expect(calls[0].range).toContain("'Master'!A1:ZZ");
+    });
+
+    it('writes the same config the CSV path would for identical cell values', async () => {
+        const apiRows = await loadRowsFromApi({
+            sheetId: 'S', tab: 'Sheet1',
+            getValues: async () => ({ values: valuesFromCsv() }),
+            getSpreadsheet: async () => ({}),
+        });
+        const csvRows = parseCsv(FIXTURE_CSV).rows;
+        const apiDir = tmpDir();
+        const csvDir = tmpDir();
+        try {
+            await generateConfigsFromRows({ rows: apiRows, outDir: apiDir, check: true, log: () => {}, errorLog: () => {} });
+            await generateConfigsFromRows({ rows: csvRows, outDir: csvDir, check: true, log: () => {}, errorLog: () => {} });
+            for (const name of ['alpha.json', 'beta.json']) {
+                expect(readFileSync(path.join(apiDir, name), 'utf8'))
+                    .toBe(readFileSync(path.join(csvDir, name), 'utf8'));
+            }
+        } finally {
+            rmSync(apiDir, { recursive: true, force: true });
+            rmSync(csvDir, { recursive: true, force: true });
+        }
+    });
+
+    it('--from-api without GOOGLE_SERVICE_ACCOUNT_JSON exits non-zero naming it', async () => {
+        const dir = tmpDir();
+        try {
+            const { code, stderr } = await runCli(['--from-api', `--out=${dir}`], { GOOGLE_SERVICE_ACCOUNT_JSON: '' });
+            expect(code).not.toBe(0);
+            expect(stderr).toContain('GOOGLE_SERVICE_ACCOUNT_JSON');
+        } finally { rmSync(dir, { recursive: true, force: true }); }
+    });
+
+    it('--from-api without a sheet id exits non-zero naming it', async () => {
+        const dir = tmpDir();
+        try {
+            const { code, stderr } = await runCli(
+                ['--from-api', `--out=${dir}`],
+                { GOOGLE_SERVICE_ACCOUNT_JSON: '{}', GOOGLE_SHEET_ID: '' }
+            );
+            expect(code).not.toBe(0);
+            expect(stderr).toMatch(/GOOGLE_SHEET_ID|--sheet-id/);
+        } finally { rmSync(dir, { recursive: true, force: true }); }
+    });
+
+    it('--help documents the API flags', async () => {
+        const { code, stdout } = await runCli(['--help']);
+        expect(code).toBe(0);
+        for (const flag of ['--from-api', '--sheet-id', '--tab']) expect(stdout).toContain(flag);
     });
 });
 

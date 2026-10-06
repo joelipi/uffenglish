@@ -14,11 +14,19 @@ const WORKFLOW = path.join(ROOT, '.github/workflows/configs.yml');
 const read = () => readFileSync(WORKFLOW, 'utf8');
 
 describe('configs.yml source guard', () => {
-    it('accepts both workflow_dispatch and repository_dispatch', () => {
+    it('accepts workflow_dispatch and workflow_call (the pipeline chain)', () => {
         const text = read();
         expect(text).toContain('workflow_dispatch:');
-        expect(text).toContain('repository_dispatch:');
-        expect(text).toContain('types: [render-complete]');
+        expect(text).toContain('workflow_call:');
+        // pipeline.yml owns `render-complete`; configs no longer accepts it.
+        expect(text).not.toContain('repository_dispatch');
+    });
+
+    it('reads the sheet via the API with the service account', () => {
+        const text = read();
+        expect(text).toContain('--from-api');
+        expect(text).toContain('secrets.GOOGLE_SERVICE_ACCOUNT_JSON');
+        expect(text).toContain('GOOGLE_SHEET_ID');
     });
 
     it('checks out with the push-capable PAT', () => {
@@ -37,8 +45,10 @@ describe('configs.yml source guard', () => {
         expect(text).toContain('[skip configs]');
     });
 
-    it('runs the generator in --check mode', () => {
-        expect(read()).toContain('node scripts/generate-config-from-sheet.mjs --check');
+    it('runs the generator in --check --from-api mode', () => {
+        const text = read();
+        expect(text).toContain('node scripts/generate-config-from-sheet.mjs --check');
+        expect(text).toContain('--from-api');
     });
 
     it('captures skips and surfaces them as annotations + summary', () => {
@@ -68,15 +78,20 @@ describe('configs.yml source guard', () => {
         // detection surface.
         const assertRequired = (text) => {
             expect(text).toContain('workflow_dispatch:');
+            expect(text).toContain('workflow_call:');
             expect(text).toContain('secrets.GH_NEW_TOKEN');
             expect(text).toContain('[skip configs]');
+            expect(text).toContain('--from-api');
+            expect(text).toContain('secrets.GOOGLE_SERVICE_ACCOUNT_JSON');
             expect(text).toContain('node scripts/generate-config-from-sheet.mjs --check');
             expect(text).toContain('git push origin "HEAD:${{ github.ref_name }}"');
         };
         const good = read();
         expect(() => assertRequired(good)).not.toThrow();
 
-        for (const token of ['secrets.GH_NEW_TOKEN', '[skip configs]', 'node scripts/generate-config-from-sheet.mjs --check']) {
+        for (const token of ['workflow_call:', 'secrets.GH_NEW_TOKEN', '[skip configs]',
+            '--from-api', 'secrets.GOOGLE_SERVICE_ACCOUNT_JSON',
+            'node scripts/generate-config-from-sheet.mjs --check']) {
             const mutated = good.split(token).join('SENTINEL_REMOVED');
             expect(mutated, token).not.toContain(token);
             expect(() => assertRequired(mutated), token).toThrow();

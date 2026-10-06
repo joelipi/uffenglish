@@ -25,6 +25,7 @@ import video_pipeline as pipeline
 import storage
 from pipeline_lib import (
     PIPELINE_ASSET_PREFIX,
+    dispatch_render_complete,
     estimate_cost,
     plan_publish,
     pipeline_asset_key,
@@ -61,8 +62,25 @@ cpu_image = (
 )
 
 secret = modal.Secret.from_name("uff-r2")
+# One-click pipeline: `GH_DISPATCH_REPO` / `GH_DISPATCH_TOKEN` for the
+# `render-complete` repository_dispatch (story 051). Attached to the orchestrator;
+# unset -> the dispatch is skipped, the render stays green.
+github_secret = modal.Secret.from_name("uff-github")
 
 FETCH_TREES = ("backgrounds", "audio", "overlays", "fonts")
+
+
+def _github_fetch(url, method="GET", headers=None, body=None):
+    """Minimal urllib fetch for `dispatch_render_complete` (no extra dependency).
+
+    Returns the response object (with `.status`); a non-2xx raises and the helper
+    turns it into an error result. The orchestrator never fails on it.
+    """
+    import urllib.request
+
+    data = body.encode("utf-8") if body is not None else None
+    request = urllib.request.Request(url, data=data, headers=headers or {}, method=method)
+    return urllib.request.urlopen(request, timeout=10)
 
 
 def _fetch_takes(workdir, files):
@@ -99,7 +117,8 @@ def _write_status(job_id, status, stage, extra=None):
         storage.upload_json(key, serialize_status(payload))
 
 
-@app.function(image=cpu_image, cpu=8, memory=16384, timeout=7200, secrets=[secret])
+@app.function(image=cpu_image, cpu=8, memory=16384, timeout=7200,
+              secrets=[secret, github_secret])
 def orchestrator(spec: dict):
     """Run Stages 1-3 for a filename set and publish the web outputs to R2."""
     job_id = spec["jobId"]
@@ -152,6 +171,23 @@ def orchestrator(spec: dict):
                             os.listdir(pipeline.WEB_DIR), only=files)
         published = _publish(plan)
 
+        # One-click chain: tell GitHub to run SRT write-back -> translation ->
+        # config generation. Best-effort — the videos are already published, so a
+        # dispatch failure (or unset env) must never fail the render.
+        repo = os.environ.get("GH_DISPATCH_REPO")
+        token = os.environ.get("GH_DISPATCH_TOKEN")
+        if not repo or not token:
+            dispatch_note = "skipped"
+            print("⚠️ GH_DISPATCH_REPO/GH_DISPATCH_TOKEN unset; skipping render-complete dispatch")
+        else:
+            result = dispatch_render_complete(
+                repo, token, {"jobId": job_id, "published": published}, _github_fetch)
+            if result.get("sent"):
+                dispatch_note = "sent"
+            else:
+                dispatch_note = f"failed: {result.get('error')}"
+                print(f"⚠️ render-complete dispatch failed: {result.get('error')}")
+
         wall = time.time() - started
         cost = estimate_cost({
             "gpu_seconds": gpu_seconds,
@@ -163,6 +199,7 @@ def orchestrator(spec: dict):
             "wall_seconds": wall,
             "gpu_seconds": gpu_seconds,
             "estimated_cost_usd": cost,
+            "dispatch": dispatch_note,
         })
         return {"jobId": job_id, "published": published, "wall_seconds": wall,
                 "gpu_seconds": gpu_seconds}
