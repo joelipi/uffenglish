@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 import {
     CONFIG_COLUMNS,
     INTRO_VIDEOS,
+    LOCALIZATION_COLUMNS,
     buildSeededCsv,
     courseNameFromTitle,
     lessonIdFromVideoFile,
@@ -19,6 +20,7 @@ import {
     successSubtitlesFromFriendchain,
 } from './seed-master-columns.mjs';
 import { parseCsv, buildCourseConfig } from './lib/sheet-config-utils.js';
+import { planSheetTranslations, buildBatchUpdatePayload } from './lib/sheet-translate-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -100,8 +102,26 @@ describe('buildSeededCsv', () => {
     const { headers, rows } = parseCsv(seeded);
     const success = successSubtitlesFromFriendchain(FRIENDCHAIN);
 
-    it('appends every config column', () => {
+    it('appends every config column and every localization target', () => {
         for (const col of CONFIG_COLUMNS) expect(headers).toContain(col);
+        for (const col of LOCALIZATION_COLUMNS) expect(headers).toContain(col);
+    });
+
+    it('seeds enough for the translator to build a payload (no missing columns)', () => {
+        // The seeded master must carry every planned target column, or the
+        // translator's buildBatchUpdatePayload throws "column not found".
+        const plan = planSheetTranslations({
+            rows, headers, sheetRows: rows.map((_, i) => i + 2), languages: ['es', 'pt', 'bn'],
+        });
+        expect(plan.length).toBeGreaterThan(0);
+        expect(plan.some((p) => p.column === 'lesson_title_es')).toBe(true);
+        expect(plan.some((p) => p.column === 'phrase_es')).toBe(true);
+        for (const item of plan) expect(headers).toContain(item.column);
+        const payload = buildBatchUpdatePayload({
+            plan, headers, sheetTitle: 'Sheet1', translations: plan.map(() => 'T'),
+        });
+        expect(payload.valueInputOption).toBe('RAW');
+        expect(payload.data).toHaveLength(plan.length);
     });
 
     it('pre-fills response_type/recap_overlay/success/srt on every content row', () => {

@@ -17,6 +17,11 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { flagValue } from './lib/cli-utils.js';
 import { parseCsv } from './lib/sheet-config-utils.js';
+import {
+    SHEET_LANGUAGES,
+    TRANSLATABLE_FIELDS,
+    localizedColumn,
+} from './lib/sheet-translate-utils.js';
 import { SHEET_URL } from './generate-config-from-sheet.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -34,6 +39,12 @@ export const CONFIG_COLUMNS = [
     'success_video', 'success_srt', 'success_srt_es', 'success_srt_pt',
     'success_srt_bn', 'srt',
 ];
+
+// The localization targets every shared translatable field needs, so the seeded
+// master can be translated: without them the translator's `buildBatchUpdatePayload`
+// throws `column "<field>_<lang>" not found in headers`.
+export const LOCALIZATION_COLUMNS = TRANSLATABLE_FIELDS.flatMap((f) =>
+    SHEET_LANGUAGES.map((lang) => localizedColumn(f.field, lang)));
 
 // Ask lessons a/c/e (single question videos) have no friend recap; answer
 // lessons b/d/f (two option videos joined) do.
@@ -135,7 +146,8 @@ export function buildSeededCsv(csvText, { friendchain } = {}) {
     const { headers, rows } = parseCsv(csvText);
     const success = successSubtitlesFromFriendchain(friendchain);
     const courseName = courseNameFromTitle(firstNonBlank(rows, 'title_text'));
-    const outHeaders = [...headers, ...CONFIG_COLUMNS.filter((c) => !headers.includes(c))];
+    const appended = [...CONFIG_COLUMNS, ...LOCALIZATION_COLUMNS].filter((c) => !headers.includes(c));
+    const outHeaders = [...headers, ...appended];
 
     const outRows = rows.map((row) => {
         const lesson = lessonIdFromVideoFile(row.video_file);

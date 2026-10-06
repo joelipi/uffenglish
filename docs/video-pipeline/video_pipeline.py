@@ -79,6 +79,7 @@ from pipeline_lib import (
     resolve_web_profile,
     resolve_work_dir,
     select_rows,
+    step_key_matches,
 )
 
 # =============================================================================
@@ -897,12 +898,30 @@ def resolve_music_path(bg_music_file):
     return path if os.path.exists(path) else None
 
 
-def get_background_music_from_csv(csv_file, prefix):
+def video_file_map_from_df(df):
+    """`filename -> video_file` from a parsed CSV DataFrame (the step-key map)."""
+    mapping = {}
+    for _, row in df.iterrows():
+        filename = safe_get_value(row, 'filename')
+        if filename:
+            mapping[filename] = safe_get_value(row, 'video_file')
+    return mapping
+
+
+def get_background_music_from_csv(csv_file, step_key, video_file_map=None):
+    """First non-empty `bgMusic` among rows whose **step key** equals `step_key`.
+
+    Equality (not `startswith`): with `video_file` keys one step key can be a
+    prefix of a sibling's filename (`wouldyourather_b01_i` vs
+    `wouldyourather_b01_ii01`), so a substring match would pick the wrong row.
+    """
     try:
-        df = pd.read_csv(csv_file, dtype={'filename': str})
+        df = pd.read_csv(csv_file, dtype=str).fillna('')
+        if video_file_map is None:
+            video_file_map = video_file_map_from_df(df)
         for _, row in df.iterrows():
             filename = safe_get_value(row, 'filename')
-            if filename and str(filename).startswith(prefix):
+            if filename and step_key_matches(filename, step_key, video_file_map):
                 bg_music = safe_get_value(row, 'bgMusic')
                 return bg_music if bg_music else None
     except Exception:
@@ -916,17 +935,12 @@ def load_video_file_map(csv_file):
     Empty when the sheet has no `video_file` column, so a legacy sheet keeps the
     filename-prefix grouping.
     """
-    mapping = {}
     try:
         df = pd.read_csv(csv_file, dtype=str).fillna('')
     except Exception as e:
         print(f"⚠️ Could not read {csv_file} for the video_file map: {e}")
-        return mapping
-    for _, row in df.iterrows():
-        filename = safe_get_value(row, 'filename')
-        if filename:
-            mapping[filename] = safe_get_value(row, 'video_file')
-    return mapping
+        return {}
+    return video_file_map_from_df(df)
 
 
 def load_join_plan(csv_file):
@@ -947,11 +961,7 @@ def load_join_plan(csv_file):
         print(f"⚠️ Could not read {csv_file} for join plan: {e}")
         return join_plan, joined_prefixes
 
-    video_file_map = {}
-    for _, row in df.iterrows():
-        filename = safe_get_value(row, 'filename')
-        if filename:
-            video_file_map[filename] = safe_get_value(row, 'video_file')
+    video_file_map = video_file_map_from_df(df)
 
     for _, row in df.iterrows():
         join_value = safe_get_value(row, 'join')
@@ -1528,7 +1538,8 @@ def build_group_srt(filenames, input_dir, phrase_map, single):
     return "\n\n".join(blocks) if blocks else None
 
 
-def concatenate_video_group(prefix, filenames, input_dir=None, skip_music=False, phrase_map=None):
+def concatenate_video_group(prefix, filenames, input_dir=None, skip_music=False,
+                            phrase_map=None, video_file_map=None):
     if input_dir is None:
         input_dir = str(SOCIAL_DIR)
     if not filenames:
@@ -1579,7 +1590,8 @@ def concatenate_video_group(prefix, filenames, input_dir=None, skip_music=False,
     # Per-part music is skipped for groups that participate in a join; the
     # joined video gets one music mix applied over the whole thing instead.
     if not skip_music:
-        music_path = resolve_music_path(get_background_music_from_csv(CSV_FILE, prefix))
+        music_path = resolve_music_path(
+            get_background_music_from_csv(CSV_FILE, prefix, video_file_map))
         if music_path:
             try:
                 duck_master(master, music_path)
@@ -1616,11 +1628,7 @@ def write_srt_column(csv_file, srt_by_prefix, video_file_map=None):
         print(f"⚠️ Could not read {csv_file} to write srt column: {e}")
         return
     if video_file_map is None:
-        video_file_map = {}
-        for _, row in df.iterrows():
-            filename = safe_get_value(row, 'filename')
-            if filename:
-                video_file_map[filename] = safe_get_value(row, 'video_file')
+        video_file_map = video_file_map_from_df(df)
     df['srt'] = ''
     for i, row in df.iterrows():
         prefix = group_key_for_filename(safe_get_value(row, 'filename'), video_file_map)
@@ -1730,6 +1738,7 @@ def concatenate_all_processed_videos(joined_prefixes=None, phrase_map=None, vide
             prefix, filenames,
             skip_music=(prefix in joined_prefixes),
             phrase_map=phrase_map,
+            video_file_map=video_file_map,
         )
         if output_path:
             results[prefix] = output_path

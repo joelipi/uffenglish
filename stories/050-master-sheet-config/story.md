@@ -159,8 +159,11 @@ It writes a CSV the operator imports; it performs no sheet write.
   - → every row has `success_video = success` and `success_srt`/`_es`/`_pt`/`_bn` equal to the canonical friend-lesson success subtitles (`friendchain.json`)
   - → each lesson's rows carry its `intro_video` value (`a → intro`, b–f → `{friendCode}wouldyourather-…`)
   - → `course_id = wouldyourather`, `course_name` from `title_text`, `lesson_id` from the video_file prefix, and a non-blank `lesson_title` per lesson
+  - → output header contains every localization target column (`TRANSLATABLE_FIELDS` × `SHEET_LANGUAGES`, at minimum `lesson_title_es/_pt/_bn`, `mission_es/_pt/_bn`, `phrase_es/_pt/_bn`), so the seeded master can be translated
 - the emitted CSV parsed by `parseCsv` + `buildCourseConfig`
   - → generates a valid course config with no further edits
+- the emitted CSV parsed, then `planSheetTranslations` + `buildBatchUpdatePayload`
+  - → builds a payload without throwing (every planned target column exists)
 
 ### Task 5 - SRT write-back (pipeline persists + Action writes the sheet)
 
@@ -216,3 +219,4 @@ It writes a CSV the operator imports; it performs no sheet write.
 - **The published CSV lags an API write** (Google re-publishes after a Sheets API update), so a config run immediately after the SRT write may read a stale `srt`; the write-back is for record-keeping and the next run picks it up.
 - **Set `GOOGLE_SHEET_ID` to the new spreadsheet id** (`1Lfoj7yLyGtgDKIuq8SQvQ8ZK5KpwlJzeAcHEBLzjV6o`) and share the service account on the new sheet; otherwise the 049 translate Action and the new sync-srt Action target the old sheet. The recorder/generator read the published CSV and need no secret.
 - **No sheet write from the sandbox.** The pre-fill is a CSV the operator uploads; the only automated sheet writers are the 049 translate Action and the new sync-srt Action, both with the service account.
+- **Joined-step SRT timing limitation (known).** A joined step's subtitles are the concatenation of each sub-group's own SRT (each starting at `0`), because the pipeline emits no SRT for the join output — the app's cue timings for the later option are therefore relative to its own part, not the joined video. The concatenation behavior is deliberate; the operator verifies the real-world timings and adjusts the sheet if needed.

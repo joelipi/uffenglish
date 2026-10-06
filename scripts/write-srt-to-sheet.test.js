@@ -23,6 +23,10 @@ function findPython() {
     return null;
 }
 
+// The parity case shells out to Python; `npm run test:python` is a hard gate, so
+// CI always has it. Locally, skip explicitly (not silently) when it is absent.
+const PYTHON = findPython();
+
 // A CSV carrying the pipeline-computed (JSON-escaped) srt. Group `clip_a`
 // (clip_a01 + clip_a02) has an srt; group `clip_b` is blank.
 const CSV = [
@@ -61,9 +65,8 @@ describe('group key parity with the pipeline', () => {
         expect(groupPrefixForFilename('wouldyourather_b01_i01')).toBe('wouldyourather_b');
     });
 
-    it('matches pipeline_lib.group_key_for_filename for the master filenames', () => {
-        const python = findPython();
-        if (!python) return; // the Python suite (a hard gate) proves the module loads
+    it.skipIf(!PYTHON)('matches pipeline_lib.group_key_for_filename for the master filenames', () => {
+        const python = PYTHON;
         const script = [
             'import json, sys',
             `sys.path.insert(0, ${JSON.stringify(PIPELINE_DIR)})`,

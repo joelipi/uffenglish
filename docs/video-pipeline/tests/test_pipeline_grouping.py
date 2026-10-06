@@ -64,45 +64,122 @@ class GroupKeyBehaviorTest(unittest.TestCase):
         self.assertEqual(lib.group_prefix_for_filename("demo-a0101"), "demo-a")
         self.assertEqual(lib.group_prefix_for_filename("demo-a0101_no_silence_bg_removed.mp4"), "demo-a")
 
+    def test_step_key_matches_is_equality_not_substring(self):
+        # Sibling keys share a prefix (`..._b01_i` vs `..._b01_ii`); a substring
+        # match would pick the first-listed sibling's row.
+        mapping = {
+            "wouldyourather_b01_ii01": "wouldyourather_b01_ii",
+            "wouldyourather_b01_i01": "wouldyourather_b01_i",
+        }
+        self.assertFalse(lib.step_key_matches("wouldyourather_b01_ii01", "wouldyourather_b01_i", mapping))
+        self.assertTrue(lib.step_key_matches("wouldyourather_b01_i01", "wouldyourather_b01_i", mapping))
+
 
 class PipelineWiringSourceGuardTest(unittest.TestCase):
-    """Every stage that groups clips must call the one shared key."""
+    """Every stage that groups clips must call the one shared key. Each guard is
+    proven failable by mutating the real text."""
 
-    def test_group_videos_by_prefix_keys_by_group_key(self):
-        body = slice_between(read(PIPELINE), "def group_videos_by_prefix(", "def resolve_music_path(")
+    # -- group_videos_by_prefix -------------------------------------------- #
+    def _group_guard(self, text):
+        body = slice_between(text, "def group_videos_by_prefix(", "def resolve_music_path(")
         self.assertIn("group_key_for_filename(", body)
         self.assertIn("processed_to_original(", body)
 
-    def test_load_join_plan_keys_by_group_key(self):
-        body = slice_between(read(PIPELINE), "def load_join_plan(", "def get_join_music_from_csv(")
+    def test_group_videos_by_prefix_keys_by_group_key(self):
+        self._group_guard(read(PIPELINE))
+
+    def test_group_videos_by_prefix_guard_can_fail(self):
+        mutated = read(PIPELINE).replace(
+            "key = group_key_for_filename(original, video_file_map)",
+            "key = group_prefix_for_filename(original)")
+        self.assertNotEqual(mutated, read(PIPELINE))
+        with self.assertRaises(AssertionError):
+            self._group_guard(mutated)
+
+    # -- load_join_plan ---------------------------------------------------- #
+    def _join_guard(self, text):
+        body = slice_between(text, "def load_join_plan(", "def get_join_music_from_csv(")
         self.assertIn("group_key_for_filename(", body)
-        self.assertIn("load_video_file_map", read(PIPELINE))
+        self.assertIn("video_file_map_from_df(df)", body)
+
+    def test_load_join_plan_keys_by_group_key(self):
+        self._join_guard(read(PIPELINE))
+
+    def test_load_join_plan_guard_can_fail(self):
+        mutated = read(PIPELINE).replace(
+            "prefix = group_key_for_filename(safe_get_value(row, 'filename'), video_file_map)",
+            "prefix = group_prefix_for_filename(safe_get_value(row, 'filename'))")
+        self.assertNotEqual(mutated, read(PIPELINE))
+        with self.assertRaises(AssertionError):
+            self._join_guard(mutated)
+
+    # -- write_srt_column -------------------------------------------------- #
+    def _srt_guard(self, text):
+        body = slice_between(text, "def write_srt_column(", "def _concat_video_files(")
+        self.assertIn("group_key_for_filename(", body)
+        self.assertIn("video_file_map_from_df(df)", body)
 
     def test_write_srt_column_keys_by_group_key(self):
-        body = slice_between(read(PIPELINE), "def write_srt_column(", "def _concat_video_files(")
-        self.assertIn("group_key_for_filename(", body)
-        self.assertIn("video_file_map", body)
+        self._srt_guard(read(PIPELINE))
 
-    def test_concatenate_all_processed_videos_passes_the_map(self):
-        body = slice_between(read(PIPELINE), "def concatenate_all_processed_videos(", "# ===")
+    def test_write_srt_column_guard_can_fail(self):
+        mutated = read(PIPELINE).replace(
+            "prefix = group_key_for_filename(safe_get_value(row, 'filename'), video_file_map)",
+            "prefix = group_prefix_for_filename(safe_get_value(row, 'filename'))")
+        self.assertNotEqual(mutated, read(PIPELINE))
+        with self.assertRaises(AssertionError):
+            self._srt_guard(mutated)
+
+    # -- get_background_music_from_csv ------------------------------------- #
+    def _music_guard(self, text):
+        body = slice_between(text, "def get_background_music_from_csv(", "def load_video_file_map(")
+        self.assertIn("step_key_matches(", body)
+        self.assertNotIn("startswith(", body)
+
+    def test_background_music_matches_by_step_key_equality(self):
+        self._music_guard(read(PIPELINE))
+
+    def test_background_music_guard_can_fail(self):
+        mutated = read(PIPELINE).replace(
+            "if filename and step_key_matches(filename, step_key, video_file_map):",
+            "if filename and str(filename).startswith(step_key):")
+        self.assertNotEqual(mutated, read(PIPELINE))
+        with self.assertRaises(AssertionError):
+            self._music_guard(mutated)
+
+    # -- concatenate_all_processed_videos ---------------------------------- #
+    def _concat_guard(self, text):
+        body = slice_between(text, "def concatenate_all_processed_videos(", "# ===")
         self.assertIn("group_videos_by_prefix(str(SOCIAL_DIR), video_file_map)", body)
 
-    def test_modal_orchestrator_passes_the_map(self):
-        body = slice_between(read(MODAL_APP), "def orchestrator(spec: dict):", "def _publish(")
+    def test_concatenate_all_processed_videos_passes_the_map(self):
+        self._concat_guard(read(PIPELINE))
+
+    def test_concatenate_all_processed_videos_guard_can_fail(self):
+        mutated = read(PIPELINE).replace(
+            "group_videos_by_prefix(str(SOCIAL_DIR), video_file_map)",
+            "group_videos_by_prefix(str(SOCIAL_DIR))")
+        self.assertNotEqual(mutated, read(PIPELINE))
+        with self.assertRaises(AssertionError):
+            self._concat_guard(mutated)
+
+    # -- Modal orchestrator ------------------------------------------------ #
+    def _modal_guard(self, text):
+        body = slice_between(text, "def orchestrator(spec: dict):", "def _publish(")
         self.assertIn("pipeline.load_video_file_map(csv_file)", body)
         self.assertIn("joined_prefixes, phrase_map, video_file_map", body)
         self.assertIn("pipeline.write_srt_column(csv_file, srt_by_prefix, video_file_map)", body)
 
-    def test_guard_can_fail(self):
-        # Mutating the shared-key call out of a stage body must trip the guard.
-        good = read(PIPELINE)
-        mutated = good.replace(
-            "group_videos_by_prefix(str(SOCIAL_DIR), video_file_map)",
-            "group_videos_by_prefix(str(SOCIAL_DIR))",
-        )
-        self.assertNotEqual(good, mutated)
-        body = slice_between(mutated, "def concatenate_all_processed_videos(", "# ===")
-        self.assertNotIn("group_videos_by_prefix(str(SOCIAL_DIR), video_file_map)", body)
+    def test_modal_orchestrator_passes_the_map(self):
+        self._modal_guard(read(MODAL_APP))
+
+    def test_modal_orchestrator_guard_can_fail(self):
+        mutated = read(MODAL_APP).replace(
+            "pipeline.write_srt_column(csv_file, srt_by_prefix, video_file_map)",
+            "pipeline.write_srt_column(csv_file, srt_by_prefix)")
+        self.assertNotEqual(mutated, read(MODAL_APP))
+        with self.assertRaises(AssertionError):
+            self._modal_guard(mutated)
 
 
 if __name__ == "__main__":

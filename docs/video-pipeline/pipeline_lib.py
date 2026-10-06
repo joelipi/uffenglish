@@ -113,6 +113,16 @@ def group_key_for_filename(filename, video_file_map=None) -> str:
     return group_prefix_for_filename(filename)
 
 
+def step_key_matches(filename, step_key, video_file_map=None) -> bool:
+    """True when ``filename``'s step key equals ``step_key``.
+
+    Equality, never a substring/prefix match: sibling keys like
+    ``wouldyourather_b01_i`` and ``wouldyourather_b01_ii`` share a prefix, so
+    ``startswith`` would pick the wrong row's music.
+    """
+    return group_key_for_filename(filename, video_file_map) == step_key
+
+
 # --------------------------------------------------------------------------- #
 # Local-vs-container seams
 # --------------------------------------------------------------------------- #

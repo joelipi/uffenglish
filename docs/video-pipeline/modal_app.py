@@ -137,10 +137,10 @@ def orchestrator(spec: dict):
         video_file_map = pipeline.load_video_file_map(csv_file)
         _, srt_by_prefix = pipeline.concatenate_all_processed_videos(
             joined_prefixes, phrase_map, video_file_map)
-        # Persist the computed SRT into the CSV, then upload the updated CSV back
-        # to R2 so the sync-srt action can write the `srt` column into the sheet
-        # (story 050, Option B). Done before the join so the upload carries the
-        # per-step srt values, mirroring video_pipeline.main.
+        # Persist the computed SRT into the CSV (before the join, so the CSV
+        # carries the per-step srt values), then after the join upload the updated
+        # CSV back to R2 so the sync-srt action can write the `srt` column into
+        # the sheet (story 050, Option B), mirroring video_pipeline.main.
         pipeline.write_srt_column(csv_file, srt_by_prefix, video_file_map)
         pipeline.concatenate_joined_videos(join_plan)
         storage.upload_file(csv_file, pipeline_asset_key("video_data.csv"),
