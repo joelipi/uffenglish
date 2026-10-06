@@ -1,14 +1,14 @@
 """Modal app for the cloud lesson-video pipeline (story 040, Task 7).
 
-Joins the existing ``video_pipeline`` app rather than starting a second one: the
-T4 BiRefNet function is reused as-is, and this module attaches the CPU
-orchestrator and the proxy-auth trigger to the same app. One deploy ships both:
+Attaches the CPU orchestrator and the proxy-auth trigger to the
+``uff-lesson-video`` app defined in ``video_pipeline``:
 
     modal deploy docs/video-pipeline/modal_app.py
 
-The import of ``app`` and ``process_video_background_modal`` is load-bearing:
-Modal only discovers the Functions reachable from the entrypoint module's import
-graph, so removing it would silently deploy an app without the GPU function.
+This app registers **no** GPU function (Modal refuses a new T4 function without a
+payment method). Background removal calls the separately deployed
+``video-background-removal`` app by name through ``modal.Function.from_name``;
+that app is not imported here, so the deploy graph stays CPU-only.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ import time
 import modal
 from fastapi import HTTPException
 
-from video_pipeline import app, process_video_background_modal  # noqa: F401
+from video_pipeline import app
 import video_pipeline as pipeline
 import storage
 from pipeline_lib import (

@@ -39,9 +39,15 @@ class ModalImageGuardTest(unittest.TestCase):
         self.assertIn("PIPELINE_WORKDIR", image)
         self.assertIn("PIPELINE_CHROME_NO_SANDBOX", image)
 
-    def test_reuses_the_existing_app_and_gpu_function(self):
+    def test_reuses_the_existing_lesson_app_without_a_gpu_function(self):
+        # Story 052: the CPU orchestrator attaches to `uff-lesson-video`; the T4
+        # BiRefNet function is a separately deployed app resolved by name, so the
+        # deploy graph (this module + video_pipeline) registers no GPU function.
         text = read(APP)
-        self.assertIn("from video_pipeline import app, process_video_background_modal", text)
+        self.assertIn("from video_pipeline import app", text)
+        self.assertNotIn("process_video_background_modal", text)
+        self.assertNotIn("background_removal_app", text)
+        self.assertNotIn("gpu=", text)
 
 
 class OrchestratorGuardTest(unittest.TestCase):
