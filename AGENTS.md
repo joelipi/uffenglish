@@ -32,6 +32,10 @@ Before trusting a guard, prove it can fail by temporarily injecting the thing it
 
 `.github/workflows/pipeline.yml` owns the `render-complete` `repository_dispatch` (sent best-effort by the Modal orchestrator via `pipeline_lib.dispatch_render_complete`) and chains `sync-srt.yml` → `translate-sheet.yml` → `configs.yml` as reusable workflows with `needs:` + `secrets: inherit`. The three called workflows keep `workflow_call` (plus their manual `workflow_dispatch`) and **must not** also declare `repository_dispatch` — the chain would run twice. `pipeline.yml` sets `permissions: contents: read`; the `configs` job still pushes because it authenticates with `secrets.GH_NEW_TOKEN` (a PAT), not `GITHUB_TOKEN` — a caller's permission ceiling does not cap a PAT. Modal's `GH_DISPATCH_TOKEN`/`GH_DISPATCH_REPO` live in the Modal `uff-github` secret; the dispatch is best-effort (unset → skipped, failure → recorded in the `done` status `extra.dispatch`, never fails the render).
 
+## The lesson Modal app registers no GPU function; BiRefNet lives in a separate deployed app
+
+`docs/video-pipeline/modal_app.py` deploys `uff-lesson-video` with only the CPU orchestrator and trigger. Modal refuses a *new* persistent T4 function without a payment method, so `process_video_background_modal` and the `modal.Image` it needs live in `docs/video-pipeline/background_removal_app.py` (`modal.App("video-background-removal")`), which `modal_app.py` and `video_pipeline.py` must **not** import. `video_pipeline.background_removal_remote()` resolves the deployed function lazily via `modal.Function.from_name("video-background-removal", "process_video_background_modal")`, and a deployed handle needs no `app.run()` context. Guards assert the deploy graph (`modal_app.py` + `video_pipeline.py`) has no `gpu=` and that neither entry module mentions `background_removal_app`.
+
 ## Importable `scripts/*.mjs` must guard their `main()`
 
 A script module whose exports are imported (not only run as a CLI) must wrap its entrypoint:
