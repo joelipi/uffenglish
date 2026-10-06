@@ -31,7 +31,7 @@ function makeFakeFs(tree) {
 const ROOT = '/assets';
 
 describe('pipeline-assets-utils', () => {
-    it('collects known asset files, skips dotfiles, sorts, keys under pipeline-assets/', () => {
+    it('collects known asset dirs, skips dotfiles, sorts, keys under pipeline-assets/', () => {
         const tree = {
             [ROOT]: ['fonts', 'backgrounds', 'audio', 'overlays', 'video_data.csv', '.DS_Store'],
             [path.join(ROOT, 'fonts')]: ['Kalam-Bold.ttf', '.DS_Store'],
@@ -46,10 +46,21 @@ describe('pipeline-assets-utils', () => {
             'pipeline-assets/backgrounds/bg.mp4',
             'pipeline-assets/fonts/Kalam-Bold.ttf',
             'pipeline-assets/overlays/lower.png',
-            'pipeline-assets/video_data.csv',
         ]);
         expect(keys.some((k) => k.includes('.DS_Store'))).toBe(false);
         expect(keys.every((k) => k.startsWith('pipeline-assets/'))).toBe(true);
+    });
+
+    it('never emits pipeline-assets/video_data.csv even when a local copy exists', () => {
+        // Story 052: that key is the post-render output sync-srt.yml reads; the
+        // uploader must not clobber it with a stale local CSV.
+        const tree = {
+            [ROOT]: ['fonts', 'video_data.csv'],
+            [path.join(ROOT, 'fonts')]: ['Kalam-Bold.ttf'],
+        };
+        const keys = collectAssetTargets(makeFakeFs(tree), ROOT).map((t) => t.r2Key);
+        expect(keys).not.toContain('pipeline-assets/video_data.csv');
+        expect(keys).toEqual(['pipeline-assets/fonts/Kalam-Bold.ttf']);
     });
 
     it('maps content types and falls back to octet-stream', () => {
@@ -65,8 +76,9 @@ describe('pipeline-assets-utils', () => {
         expect(pipelineAssetKey('fonts\\Kalam-Bold.ttf')).toBe('pipeline-assets/fonts/Kalam-Bold.ttf');
     });
 
-    it('exposes the known dirs/files', () => {
+    it('exposes the known dirs and an empty root-file list', () => {
         expect(KNOWN_ASSET_DIRS).toEqual(['fonts', 'backgrounds', 'audio', 'overlays']);
-        expect(KNOWN_ASSET_FILES).toEqual(['video_data.csv']);
+        // Story 052: video_data.csv is a post-render output, not an uploadable input.
+        expect(KNOWN_ASSET_FILES).toEqual([]);
     });
 });

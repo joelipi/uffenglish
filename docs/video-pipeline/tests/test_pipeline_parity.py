@@ -18,6 +18,28 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 VIDEO_UTILS = REPO_ROOT / "scripts" / "lib" / "video-optimize-utils.js"
 POSTER_UTILS = REPO_ROOT / "scripts" / "lib" / "poster-utils.js"
 PIPELINE_KEYS = REPO_ROOT / "src" / "modules" / "video" / "pipeline-keys.js"
+GENERATE_CONFIG = REPO_ROOT / "scripts" / "generate-config-from-sheet.mjs"
+RECORDER_HTML = REPO_ROOT / "public" / "recorder.html"
+
+MASTER_PUBLISHED_ID = (
+    "2PACX-1vQZ7jFMJNnmylDoHxaqb1W8VyXi0OV4pSubCbqMGYkRgGimqWx3cs74n43-cFxqfue4KCiqWlhzvPkK"
+)
+
+
+def read_js_sheet_url(text: str) -> str:
+    """The ``export const SHEET_URL = '<url>';`` literal (it wraps across lines)."""
+    match = re.search(r"export const SHEET_URL\s*=\s*'([^']+)'", text)
+    if not match:
+        raise AssertionError("SHEET_URL not found in generate-config-from-sheet.mjs")
+    return match.group(1)
+
+
+def read_recorder_sheet_url(text: str) -> str:
+    """The ``var spreadsheet_url = '<url>';`` literal in the recorder page."""
+    match = re.search(r"var spreadsheet_url = '([^']+)'", text)
+    if not match:
+        raise AssertionError("spreadsheet_url not found in public/recorder.html")
+    return match.group(1)
 
 
 def read_const(path: Path, name: str):
@@ -105,6 +127,41 @@ class KeyPatternParityTest(unittest.TestCase):
         # `$` would accept these; the explicit end anchor must not.
         self.assertFalse(lib.is_valid_slug("lesson_01\n"))
         self.assertFalse(lib.is_valid_job_id("job-abc12345\n"))
+
+
+class SheetUrlParityTest(unittest.TestCase):
+    """Story 052: the Python render, the JS config generator and the recorder must
+    all point at the same published master CSV. URLs contain ``//``, so the guards
+    read the raw source (never comment-stripped) and are proven failable by
+    mutating the real text on either side."""
+
+    def _assert_parity(self, py_url: str, cli_text: str, recorder_text: str):
+        js_url = read_js_sheet_url(cli_text)
+        recorder_url = read_recorder_sheet_url(recorder_text)
+        self.assertEqual(py_url, js_url)
+        self.assertEqual(py_url, recorder_url)
+        self.assertIn(MASTER_PUBLISHED_ID, py_url)
+        self.assertIn("gid=242913338", py_url)
+
+    def test_sheet_url_matches_the_js_generator_and_recorder(self):
+        self._assert_parity(
+            lib.SHEET_URL,
+            GENERATE_CONFIG.read_text(encoding="utf-8"),
+            RECORDER_HTML.read_text(encoding="utf-8"),
+        )
+
+    def test_guard_can_fail_on_either_side(self):
+        cli = GENERATE_CONFIG.read_text(encoding="utf-8")
+        recorder = RECORDER_HTML.read_text(encoding="utf-8")
+        other = "https://example.com/other.csv"
+        cases = [
+            (lib.SHEET_URL + "x", cli, recorder),                        # Python drift
+            (lib.SHEET_URL, cli.replace(lib.SHEET_URL, other), recorder),  # generator drift
+            (lib.SHEET_URL, cli, recorder.replace(lib.SHEET_URL, other)),  # recorder drift
+        ]
+        for py_url, cli_text, recorder_text in cases:
+            with self.assertRaises(AssertionError):
+                self._assert_parity(py_url, cli_text, recorder_text)
 
 
 class PrivateKeyParityTest(unittest.TestCase):

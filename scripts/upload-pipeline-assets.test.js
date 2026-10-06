@@ -33,6 +33,8 @@ function makeAssetsDir() {
     writeFileSync(path.join(dir, 'backgrounds', 'bg.mp4'), 'video');
     writeFileSync(path.join(dir, 'audio', 'track.mp3'), 'audio');
     writeFileSync(path.join(dir, 'overlays', 'lower.png'), 'image');
+    // Present on purpose: story 052 makes the uploader ignore it (it is the
+    // post-render output, not an input), so tests assert it is never uploaded.
     writeFileSync(path.join(dir, 'video_data.csv'), 'filename\nlesson_01\n');
     return dir;
 }
@@ -75,7 +77,8 @@ describe('upload-pipeline-assets CLI', () => {
         });
         expect(code).toBe(0);
         expect(stdout).toContain('DRY pipeline-assets/fonts/Kalam-Bold.ttf');
-        expect(stdout).toContain('DRY pipeline-assets/video_data.csv');
+        // Story 052: video_data.csv is a post-render output, never uploaded.
+        expect(stdout).not.toContain('video_data.csv');
         // The shim would have created the marker if it ran.
         let ran = true;
         try { readFileSync(marker, 'utf8'); } catch { ran = false; }
@@ -94,8 +97,8 @@ describe('upload-pipeline-assets CLI', () => {
         // Story 041: assets go to the private bucket (default uff-private).
         expect(log).toContain('wrangler r2 object put uff-private/pipeline-assets/fonts/Kalam-Bold.ttf');
         expect(log).toContain('--content-type font/ttf');
-        expect(log).toContain('uff-private/pipeline-assets/video_data.csv');
-        expect(log).toContain('--content-type text/csv');
+        // Story 052: the uploader never clobbers the post-render video_data.csv.
+        expect(log).not.toContain('video_data.csv');
         // The public bucket prefix is never used.
         expect(log).not.toMatch(/\buff\/pipeline-assets/);
     });

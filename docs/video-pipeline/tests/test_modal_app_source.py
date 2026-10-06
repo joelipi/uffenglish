@@ -122,6 +122,47 @@ class TriggerGuardTest(unittest.TestCase):
         self.assertIn("startswith(os.path.realpath(workdir)", fetch)
 
 
+class SheetFetchGuardTest(unittest.TestCase):
+    """Story 052: the render reads the published sheet, not the R2 CSV object.
+
+    ``_fetch_assets`` must fetch the sheet URL (``PIPELINE_SHEET_URL``/``SHEET_URL``)
+    over HTTP into ``video_data.csv`` and must no longer download
+    ``pipeline_asset_key("video_data.csv")``; the post-render upload stays.
+    """
+
+    def _assert_contract(self, text):
+        fetch = slice_between(text, "def _fetch_assets(", "def _write_status(")
+        self.assertIn("resolve_sheet_url(", fetch)
+        self.assertIn("fetch_sheet_csv(", fetch)
+        self.assertIn('os.path.join(workdir, "video_data.csv")', fetch)
+        self.assertNotIn('storage.download_to(pipeline_asset_key("video_data.csv")', fetch)
+        # The post-render output upload (sync-srt.yml reads it) is untouched.
+        body = slice_between(text, "def orchestrator(spec: dict):", "def _publish(")
+        self.assertIn('storage.upload_file(csv_file, pipeline_asset_key("video_data.csv")', body)
+
+    def test_fetch_assets_reads_the_sheet_not_r2(self):
+        self._assert_contract(read(APP))
+
+    def test_guard_can_fail(self):
+        good = read(APP)
+        for token in ("resolve_sheet_url(", "fetch_sheet_csv("):
+            mutated = "SENTINEL_REMOVED".join(good.split(token))
+            self.assertNotEqual(mutated, good, token)
+            with self.assertRaises(AssertionError, msg=token):
+                self._assert_contract(mutated)
+        # Re-introducing the old R2 download must fail the guard too.
+        reverted = good.replace(
+            "    for tree in FETCH_TREES:",
+            '    storage.download_to(pipeline_asset_key("video_data.csv"),\n'
+            '                        os.path.join(workdir, "video_data.csv"))\n'
+            "    for tree in FETCH_TREES:",
+            1,
+        )
+        self.assertNotEqual(reverted, good)
+        with self.assertRaises(AssertionError):
+            self._assert_contract(reverted)
+
+
 class DispatchGuardTest(unittest.TestCase):
     """Story 051: the orchestrator dispatches `render-complete` best-effort."""
 

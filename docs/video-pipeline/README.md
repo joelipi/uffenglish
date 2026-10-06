@@ -154,8 +154,16 @@ trigger only (Workers cannot run moviepy/ffmpeg/Chromium); the runner is Modal.
 
 - **Prefixes.** Raw phone takes live at `raw/<slug>.mp4`, stage-level status
   markers at `raw/status/<jobId>.json`, operator inputs under
-  `pipeline-assets/<subdir>/…` plus `pipeline-assets/video_data.csv`. Published
-  media keeps the app's existing `assets/videos/<slug>.mp4` + `assets/videos/<slug>.jpg`.
+  `pipeline-assets/<subdir>/…`. `pipeline-assets/video_data.csv` is a
+  **post-render output** (the CSV with the computed `srt` column that
+  `sync-srt.yml` reads), not the render's input. Published media keeps the app's
+  existing `assets/videos/<slug>.mp4` + `assets/videos/<slug>.jpg`.
+- **Render input = the published sheet.** The Modal orchestrator fetches the
+  published master CSV over HTTP into its work dir as `video_data.csv`, so a
+  sheet edit is live for the next render and nothing is uploaded to R2 by hand.
+  Override the URL with `PIPELINE_SHEET_URL` (default: `SHEET_URL`, the
+  recorder's published master). The published CSV lags an edit by minutes; the
+  render runs after the operator records takes.
 - **Raw-take visibility.** Raw takes, status markers and pipeline assets live in
   a separate, non-public R2 bucket (default `uff-private`) bound to Pages as
   `PIPELINE_R2`. It has no public custom domain and no `r2.dev` subdomain, so
@@ -182,9 +190,12 @@ trigger only (Workers cannot run moviepy/ffmpeg/Chromium); the runner is Modal.
   orchestrator and the existing T4 BiRefNet function (they share one app). Run it
   from the repo root — the image adds `docs/video-pipeline` as a local dir.
 - **Upload assets.** `npm run pipeline:upload-assets:dry` previews, then
-  `npm run pipeline:upload-assets` pushes each file to the private
-  `uff-private/pipeline-assets/` with `wrangler r2 object put`. Content changes
-  need no `modal deploy`.
+  `npm run pipeline:upload-assets` pushes each asset file (fonts, backgrounds,
+  audio, overlays) to the private `uff-private/pipeline-assets/` with
+  `wrangler r2 object put`. Content changes need no `modal deploy`. The uploader
+  deliberately skips `video_data.csv`: since story 052 that key is the
+  **post-render output** (the CSV with the computed `srt` that `sync-srt.yml`
+  reads), so uploading a stale local copy would clobber it.
 - **Recorder operator key.** `public/recorder.html` (served at `/recorder`) has a
   password input; the key is stored in `sessionStorage` and sent as
   `x-operator-key` to the same-origin Pages Functions (`/api/pipeline/upload-raw`,

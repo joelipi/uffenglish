@@ -172,6 +172,121 @@ class EnvSeamTest(unittest.TestCase):
             self.assertEqual(lib.missing_required_fonts(tmp), [])
 
 
+class SheetUrlTest(unittest.TestCase):
+    """Story 052: the render's sheet URL, with an env override."""
+
+    def test_defaults_to_the_published_master(self):
+        self.assertEqual(lib.resolve_sheet_url({}), lib.SHEET_URL)
+        self.assertIn("2PACX-1vQZ7jFMJNnmylDoHxaqb1W8VyXi0OV4pSubCbqMGYkRgGimqWx3cs74n43-cFxqfue4KCiqWlhzvPkK",
+                      lib.SHEET_URL)
+        self.assertIn("gid=242913338", lib.SHEET_URL)
+        self.assertTrue(lib.SHEET_URL.endswith("output=csv"))
+
+    def test_pipeline_sheet_url_overrides_the_default(self):
+        self.assertEqual(
+            lib.resolve_sheet_url({"PIPELINE_SHEET_URL": "https://example.com/other.csv"}),
+            "https://example.com/other.csv",
+        )
+
+
+class _FakeResponse:
+    def __init__(self, status, body=b"", headers=None, url=None):
+        self.status = status
+        self._body = body
+        self.headers = headers or {}
+        self.url = url
+
+    def read(self):
+        return self._body
+
+
+class FetchSheetCsvTest(unittest.TestCase):
+    """Story 052: fetch the published CSV, following redirects, and fail loudly
+    on a broken publish instead of feeding HTML/empty bodies into pandas."""
+
+    CSV = "filename,phrase\nlesson_01,Hi\n"
+
+    def test_follows_a_307_redirect_to_the_final_csv(self):
+        calls = []
+
+        def fetch_impl(url):
+            calls.append(url)
+            if len(calls) == 1:
+                return _FakeResponse(307, b"", {"Location": "https://doc-0s.googleusercontent.com/abc"})
+            return _FakeResponse(200, self.CSV.encode("utf-8"),
+                                 {"Content-Type": "text/csv; charset=utf-8"})
+
+        text = lib.fetch_sheet_csv("https://docs.google.com/spreadsheets/d/e/X/pub?output=csv", fetch_impl)
+        self.assertEqual(text, self.CSV)
+        self.assertEqual(calls[0], "https://docs.google.com/spreadsheets/d/e/X/pub?output=csv")
+        self.assertEqual(calls[1], "https://doc-0s.googleusercontent.com/abc")
+
+    def test_follows_a_relative_redirect(self):
+        calls = []
+
+        def fetch_impl(url):
+            calls.append(url)
+            if len(calls) == 1:
+                return _FakeResponse(302, b"", {"Location": "/final.csv"})
+            return _FakeResponse(200, self.CSV.encode("utf-8"), {"Content-Type": "text/csv"})
+
+        self.assertEqual(lib.fetch_sheet_csv("https://example.com/a/pub", fetch_impl), self.CSV)
+        self.assertEqual(calls[1], "https://example.com/final.csv")
+
+    def test_raises_on_an_html_body(self):
+        def fetch_impl(url):
+            return _FakeResponse(200, b"<!DOCTYPE html><html>Sign in</html>",
+                                 {"Content-Type": "text/html; charset=utf-8"})
+
+        with self.assertRaises(RuntimeError) as ctx:
+            lib.fetch_sheet_csv("https://docs.google.com/x", fetch_impl)
+        self.assertIn("HTML", str(ctx.exception))
+
+    def test_raises_on_html_without_a_content_type(self):
+        def fetch_impl(url):
+            return _FakeResponse(200, b"  <html>not published</html>", {})
+
+        with self.assertRaises(RuntimeError):
+            lib.fetch_sheet_csv("https://docs.google.com/x", fetch_impl)
+
+    def test_raises_on_an_empty_body(self):
+        def fetch_impl(url):
+            return _FakeResponse(200, b"", {"Content-Type": "text/csv; charset=utf-8"})
+
+        with self.assertRaises(RuntimeError) as ctx:
+            lib.fetch_sheet_csv("https://docs.google.com/x", fetch_impl)
+        self.assertIn("empty", str(ctx.exception).lower())
+
+    def test_raises_on_a_whitespace_only_body(self):
+        def fetch_impl(url):
+            return _FakeResponse(200, b"\n  \n", {"Content-Type": "text/csv"})
+
+        with self.assertRaises(RuntimeError):
+            lib.fetch_sheet_csv("https://docs.google.com/x", fetch_impl)
+
+    def test_raises_on_a_non_2xx_final_response(self):
+        def fetch_impl(url):
+            return _FakeResponse(404, b"not found", {"Content-Type": "text/plain"})
+
+        with self.assertRaises(RuntimeError) as ctx:
+            lib.fetch_sheet_csv("https://docs.google.com/x", fetch_impl)
+        self.assertIn("404", str(ctx.exception))
+
+    def test_raises_on_a_redirect_without_a_location(self):
+        def fetch_impl(url):
+            return _FakeResponse(307, b"", {})
+
+        with self.assertRaises(RuntimeError):
+            lib.fetch_sheet_csv("https://docs.google.com/x", fetch_impl)
+
+    def test_raises_when_redirects_never_resolve(self):
+        def fetch_impl(url):
+            return _FakeResponse(307, b"", {"Location": "https://example.com/loop"})
+
+        with self.assertRaises(RuntimeError):
+            lib.fetch_sheet_csv("https://docs.google.com/x", fetch_impl)
+
+
 class WebBudgetTest(unittest.TestCase):
     def test_within_budget(self):
         self.assertTrue(lib.is_within_web_budget(
@@ -248,7 +363,8 @@ class StdlibOnlyTest(unittest.TestCase):
                 modules.update(alias.name.split(".")[0] for alias in node.names)
             elif isinstance(node, ast.ImportFrom) and node.module:
                 modules.add(node.module.split(".")[0])
-        allowed = {"__future__", "json", "os", "re", "pathlib", "typing", "collections"}
+        allowed = {"__future__", "json", "os", "re", "pathlib", "typing", "collections",
+                   "urllib"}
         self.assertLessEqual(modules, allowed, f"unexpected imports: {modules - allowed}")
 
 

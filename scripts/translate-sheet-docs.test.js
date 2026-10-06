@@ -108,3 +108,32 @@ describe('story 051 one-click docs contract', () => {
         }
     });
 });
+
+// Story 052 docs contract: the render reads the published sheet directly; the R2
+// `video_data.csv` is only a post-render output, not a manual upload.
+function assertSheetBackedRenderDocs({ authoring }) {
+    const section = oneClickSection(authoring);
+    expect(section).toContain('reads the published sheet directly');
+    expect(section).toContain('no manual');
+    expect(section).toContain('video_data.csv');
+    expect(section).toContain('post-render output');
+}
+
+describe('story 052 sheet-backed render docs contract', () => {
+    it('documents that the render reads the published sheet, not an R2 CSV upload', () => {
+        expect(() => assertSheetBackedRenderDocs({ authoring: read(AUTHORING) })).not.toThrow();
+    });
+
+    it('the guard can fail on each pinned token', () => {
+        const authoring = read(AUTHORING);
+        const tokens = [
+            'reads the published sheet directly', 'no manual', 'video_data.csv',
+            'post-render output',
+        ];
+        for (const token of tokens) {
+            const mutated = authoring.split(token).join('SENTINEL_REMOVED');
+            expect(mutated, token).not.toContain(token);
+            expect(() => assertSheetBackedRenderDocs({ authoring: mutated }), token).toThrow();
+        }
+    });
+});

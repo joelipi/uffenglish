@@ -6,10 +6,13 @@
 import path from 'node:path';
 import { pipelineAssetKey } from '../../src/modules/video/pipeline-keys.js';
 
-// Directories under --assets-dir that are uploaded as pipeline assets, plus the
-// CSV at the root.
+// Directories under --assets-dir that are uploaded as pipeline assets. Root
+// files are uploaded too, but the list is intentionally empty: story 052 made
+// `pipeline-assets/video_data.csv` the post-render output (the CSV carrying the
+// `srt` column that sync-srt.yml reads), so the uploader must never overwrite it
+// with a stale local copy.
 export const KNOWN_ASSET_DIRS = ['fonts', 'backgrounds', 'audio', 'overlays'];
-export const KNOWN_ASSET_FILES = ['video_data.csv'];
+export const KNOWN_ASSET_FILES = [];
 
 const CONTENT_TYPES = {
     '.ttf': 'font/ttf',
@@ -39,7 +42,8 @@ export { pipelineAssetKey };
 
 /**
  * Every uploadable asset in `dir`: known top-level directories (recursively)
- * plus the known root files. Dotfiles are skipped. Entries are sorted by key.
+ * plus the known root files (empty today — see `KNOWN_ASSET_FILES`). Dotfiles
+ * are skipped. Entries are sorted by key.
  *
  * @param {object} fsMod minimal `fs`-like module (`readdirSync`, `statSync`)
  * @param {string} dir asset root
