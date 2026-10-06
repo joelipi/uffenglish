@@ -26,8 +26,7 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { flagValue } from './lib/cli-utils.js';
 import { parseCsv, buildCourseConfigs, isValidCourseId } from './lib/sheet-config-utils.js';
-import { quoteSheetTitle, rowsFromValues } from './lib/sheet-translate-utils.js';
-import { createSheetsSeams, resolveTabFromGid, PUBLISHED_GID } from './translate-sheet.mjs';
+import { createSheetsSeams, readSheetRows } from './translate-sheet.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -66,32 +65,19 @@ function missingReport(missing) {
 /**
  * Read the sheet via the Sheets API (`values.get`) and return the same
  * header-keyed `rows` shape `parseCsv` gives (trimmed, lower-cased headers; a
- * short row resolves missing headers to ""). Seams are injected so the read is
- * unit-testable with fakes and no live credential.
+ * short row resolves missing headers to ""). Delegates to the shared
+ * `readSheetRows` so the range and gid rule live in one place; seams are
+ * injected so the read is unit-testable with fakes and no live credential.
  *
  * @param {object} opts
  * @param {string} opts.sheetId
  * @param {string} [opts.tab] resolved from the published gid when absent
  * @param {Function} opts.getValues
- * @param {Function} opts.getSpreadsheet
+ * @param {Function} [opts.getSpreadsheet] needed only when `tab` is absent
  * @returns {Promise<Array<Record<string,string>>>}
  */
 export async function loadRowsFromApi({ sheetId, tab, getValues, getSpreadsheet } = {}) {
-    if (!sheetId) throw new Error('missing sheet id (--sheet-id or GOOGLE_SHEET_ID)');
-    if (!getValues) throw new Error('missing Google Sheets client');
-    // `getSpreadsheet` is only needed to resolve the tab from the published gid.
-    if (!tab && !getSpreadsheet) throw new Error('missing Google Sheets client');
-
-    let sheetTitle = tab;
-    if (!sheetTitle) {
-        const meta = await getSpreadsheet({ spreadsheetId: sheetId });
-        sheetTitle = resolveTabFromGid(meta, PUBLISHED_GID);
-    }
-    const data = await getValues({
-        spreadsheetId: sheetId,
-        range: `${quoteSheetTitle(sheetTitle)}!A1:ZZ`,
-    });
-    const { rows } = rowsFromValues(data?.values || []);
+    const { rows } = await readSheetRows({ getValues, getSpreadsheet }, { sheetId, tab });
     return rows;
 }
 

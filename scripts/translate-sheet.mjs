@@ -105,6 +105,35 @@ export function createSheetsSeams(env = process.env) {
 }
 
 /**
+ * Read one tab through the injected seams and return its parsed values. The tab
+ * is resolved from the published gid when `tab` is absent. Shared by the
+ * translator and the config generator's `--from-api`, so the `A1:ZZ` range and
+ * the gid rule live in one place.
+ *
+ * @param {object} seams `{ getValues, getSpreadsheet }`
+ * @param {object} target `{ sheetId, tab }`
+ * @returns {Promise<{sheetTitle: string, headers: string[], rows: Array<Record<string,string>>, sheetRows: number[]}>}
+ */
+export async function readSheetRows({ getValues, getSpreadsheet } = {}, { sheetId, tab } = {}) {
+    if (!sheetId) throw new Error('missing sheet id (--sheet-id or GOOGLE_SHEET_ID)');
+    if (!getValues) throw new Error('missing Google Sheets client');
+    // `getSpreadsheet` is only needed to resolve the tab from the published gid.
+    if (!tab && !getSpreadsheet) throw new Error('missing Google Sheets client');
+
+    let sheetTitle = tab;
+    if (!sheetTitle) {
+        const meta = await getSpreadsheet({ spreadsheetId: sheetId });
+        sheetTitle = resolveTabFromGid(meta, PUBLISHED_GID);
+    }
+    const data = await getValues({
+        spreadsheetId: sheetId,
+        range: `${quoteSheetTitle(sheetTitle)}!A1:ZZ`,
+    });
+    const { headers, rows, sheetRows } = rowsFromValues(data?.values || []);
+    return { sheetTitle, headers, rows, sheetRows };
+}
+
+/**
  * Core, dependency-injected translation pass. `getValues`/`getSpreadsheet`/
  * `batchUpdate`/`translateText` are seams so tests run with fakes and no live
  * credential.
@@ -123,17 +152,10 @@ export async function runTranslateSheet({
     translateText: translate = realTranslateText,
     log = console.log,
 } = {}) {
-    if (!sheetId) throw new Error('missing sheet id (--sheet-id or GOOGLE_SHEET_ID)');
-    if (!getValues || !batchUpdate) throw new Error('missing Google Sheets client');
+    if (!batchUpdate) throw new Error('missing Google Sheets client');
 
-    let sheetTitle = tab;
-    if (!sheetTitle) {
-        const meta = await getSpreadsheet({ spreadsheetId: sheetId });
-        sheetTitle = resolveTabFromGid(meta, PUBLISHED_GID);
-    }
-
-    const data = await getValues({ spreadsheetId: sheetId, range: `${quoteSheetTitle(sheetTitle)}!A1:ZZ` });
-    const { headers, rows, sheetRows } = rowsFromValues(data?.values || []);
+    const { sheetTitle, headers, rows, sheetRows } = await readSheetRows(
+        { getValues, getSpreadsheet }, { sheetId, tab });
 
     const plan = planSheetTranslations({ rows, headers, sheetRows, languages, force });
     const already = countPresentTranslations({ rows, headers, languages });

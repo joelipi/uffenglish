@@ -19,6 +19,24 @@ const CLI = path.join(ROOT, 'scripts/translate-sheet.mjs');
 const readWorkflow = () => readFileSync(WORKFLOW, 'utf8');
 const readCli = () => readFileSync(CLI, 'utf8');
 
+/** The `workflow_call:` block, up to the next top-level key (column 0), so an
+ * assertion cannot be satisfied by a token elsewhere in the file. */
+function workflowCallBlock(text) {
+    const start = text.indexOf('workflow_call:');
+    if (start === -1) throw new Error('translate-sheet.yml: workflow_call not found');
+    const rest = text.slice(start);
+    const next = /\n(?=\S)/.exec(rest);
+    return next ? rest.slice(0, next.index) : rest;
+}
+
+function assertWorkflowCallBlock(text) {
+    const block = workflowCallBlock(text);
+    expect(block).toContain('dry_run:');
+    expect(block).toContain('default: false');
+    expect(block).toContain('languages:');
+    expect(block).toContain('default: es,pt,bn');
+}
+
 // The full contract for the workflow: required wiring + deliberate absences.
 function assertWorkflowContract(text) {
     expect(text).toContain('workflow_dispatch:');
@@ -55,12 +73,16 @@ describe('translate-sheet.yml source guard', () => {
     });
 
     it('declares workflow_call with the dry_run/languages defaults', () => {
-        const text = readWorkflow();
-        const call = text.slice(text.indexOf('workflow_call:'));
-        expect(call).toContain('dry_run:');
-        expect(call).toContain('default: false');
-        expect(call).toContain('languages:');
-        expect(call).toContain('default: es,pt,bn');
+        expect(() => assertWorkflowCallBlock(readWorkflow())).not.toThrow();
+    });
+
+    it('the workflow_call block guard can fail', () => {
+        const good = readWorkflow();
+        const block = workflowCallBlock(good);
+        const mutatedBlock = block.replace('default: es,pt,bn', 'default: xx');
+        expect(mutatedBlock).not.toBe(block);
+        const mutated = good.replace(block, mutatedBlock);
+        expect(() => assertWorkflowCallBlock(mutated)).toThrow();
     });
 
     it('the guard can fail on each required token', () => {

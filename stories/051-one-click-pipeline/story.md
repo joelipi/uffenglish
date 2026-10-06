@@ -33,7 +33,7 @@ After the orchestrator's publish step succeeds (before/at the `_write_status(...
 - **Remove the `repository_dispatch` trigger from `sync-srt.yml` and `configs.yml`** — the new `pipeline.yml` owns it, so a `render-complete` event fires the chain exactly once.
 - New `.github/workflows/pipeline.yml`:
   - `on: repository_dispatch: types: [render-complete]` and `workflow_dispatch:`.
-  - `concurrency: group: pipeline-${{ github.ref }}, cancel-in-progress: false` (one run per ref; the downstream sheet writes already have their own global groups).
+  - **No workflow-level `concurrency`** (deliberate): GitHub keeps only one *pending* run per group and cancels the older pending one, and every `repository_dispatch` shares `refs/heads/main`, so a burst of renders would silently drop whole chains (a render's SRT write-back and config regeneration never run). Serialization is already guaranteed downstream by the called workflows' own global groups (`sync-srt`, `translate-sheet`), so omitting the group drops no run and still protects the shared-sheet writes.
   - Jobs, chained with `needs`: `srt` (calls `sync-srt.yml`) → `translate` (calls `translate-sheet.yml` with defaults) → `configs` (calls `configs.yml`), each `secrets: inherit`.
   - `permissions: contents: read` at the top level; the called `configs` workflow keeps its own write needs via the inherited `GH_NEW_TOKEN`.
 - Rationale for reusable workflows over `gh workflow run`: the ordering and failure propagation are expressed by `needs:`, no cross-workflow token is needed for the chaining itself, and each step stays independently runnable from the Actions UI.

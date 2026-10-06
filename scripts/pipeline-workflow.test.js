@@ -34,17 +34,27 @@ function assertPipelineContract(text) {
     expect(text).toContain('repository_dispatch:');
     expect(text).toContain('types: [render-complete]');
     expect(text).toContain('workflow_dispatch:');
-    expect((text.match(/secrets: inherit/g) || [])).toHaveLength(3);
 
-    // Each job calls its reusable workflow and depends on the previous job.
+    // No workflow-level concurrency group: GitHub cancels the older *pending*
+    // run per group, and every dispatch shares refs/heads/main, so a burst of
+    // renders would silently drop chains. The called workflows serialize the
+    // shared-sheet writes instead; the documented choice must be present.
+    expect(text).not.toMatch(/^concurrency:/m);
+    expect(text).toMatch(/Deliberately NO workflow-level `concurrency`/);
+
+    // Each job calls its reusable workflow, depends on the previous job, and
+    // inherits secrets in its own block.
     const srt = jobBlock(text, 'srt');
     expect(srt).toContain('uses: ./.github/workflows/sync-srt.yml');
+    expect(srt).toContain('secrets: inherit');
     const translate = jobBlock(text, 'translate');
     expect(translate).toContain('uses: ./.github/workflows/translate-sheet.yml');
     expect(translate).toContain('needs: srt');
+    expect(translate).toContain('secrets: inherit');
     const configs = jobBlock(text, 'configs');
     expect(configs).toContain('uses: ./.github/workflows/configs.yml');
     expect(configs).toContain('needs: translate');
+    expect(configs).toContain('secrets: inherit');
 
     // Delegates the repo write to configs.yml; no commit/push of its own.
     expect(text).not.toContain('git commit');
@@ -67,6 +77,21 @@ describe('pipeline.yml source guard', () => {
         expect(jobBlock(text, 'translate')).toContain('needs: srt');
         expect(jobBlock(text, 'configs')).toContain('needs: translate');
         expect(jobBlock(text, 'srt')).not.toContain('needs:');
+    });
+
+    it('has no workflow-level concurrency, and the guard can fail', () => {
+        const good = read(PIPELINE);
+        expect(() => assertPipelineContract(good)).not.toThrow();
+        // Adding a top-level concurrency group (which would drop queued chains)
+        // trips the guard.
+        const withGroup = good.replace(
+            'jobs:',
+            'concurrency:\n  group: pipeline-${{ github.ref }}\n\njobs:');
+        expect(withGroup).not.toBe(good);
+        expect(() => assertPipelineContract(withGroup)).toThrow();
+        // Removing the documented rationale also trips it.
+        const noNote = good.replace('Deliberately NO workflow-level `concurrency`', 'serialization');
+        expect(() => assertPipelineContract(noNote)).toThrow();
     });
 
     it('the guard can fail on each required token', () => {

@@ -16,9 +16,11 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: pipeline-${{ github.ref }}
-  cancel-in-progress: false
+# Deliberately NO workflow-level `concurrency`. GitHub keeps only one pending run
+# per group and cancels the older pending one, and every `repository_dispatch`
+# shares `refs/heads/main` — so a burst of renders would silently drop whole
+# chains. Serialization is already guaranteed downstream by the called workflows'
+# own global groups (`sync-srt`, `translate-sheet`), so no run is dropped.
 
 jobs:
   srt:

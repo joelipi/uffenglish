@@ -19,6 +19,28 @@ const PRODUCT = path.join(ROOT, 'docs/product.md');
 
 const read = (p) => readFileSync(p, 'utf8');
 
+/** The story-051 "One-click pipeline" section (to the next `## ` heading), so a
+ * token that also appears elsewhere in the guide cannot keep the guard green. */
+function oneClickSection(text) {
+    const start = text.indexOf('## One-click pipeline (automatic)');
+    if (start === -1) throw new Error('authoring-sheet.md: one-click section not found');
+    const rest = text.slice(start);
+    const next = rest.indexOf('\n## ', 1);
+    return next === -1 ? rest : rest.slice(0, next);
+}
+
+// Story 051 docs contract: the guide documents the automatic flow, the Modal
+// `uff-github` secret, and that the published-CSV lag only affects manual reads.
+function assertOneClickDocs({ authoring }) {
+    const section = oneClickSection(authoring);
+    expect(section).toContain('record → render (Modal) → SRT write-back → translate → config generation');
+    expect(section).toContain('uff-github');
+    expect(section).toContain('GH_DISPATCH_TOKEN');
+    expect(section).toContain('GH_DISPATCH_REPO');
+    expect(section).toContain('published CSV still lags');
+    expect(section).toContain('manual');
+}
+
 // The docs contract: the authoring guide documents every one of the 15
 // authoring localization columns (`phrase` is master-only, not in this guide)
 // and the service-account share step, and the product feature list carries the
@@ -61,6 +83,26 @@ describe('story 049 docs contract', () => {
         ];
         for (const mutation of mutated) {
             expect(() => assertDocsContract(mutation)).toThrow();
+        }
+    });
+});
+
+describe('story 051 one-click docs contract', () => {
+    it('documents the automatic flow, the uff-github secret and the CSV-lag caveat', () => {
+        expect(() => assertOneClickDocs({ authoring: read(AUTHORING) })).not.toThrow();
+    });
+
+    it('the guard can fail on each pinned token', () => {
+        const authoring = read(AUTHORING);
+        const tokens = [
+            'record → render (Modal) → SRT write-back → translate → config generation',
+            'uff-github', 'GH_DISPATCH_TOKEN', 'GH_DISPATCH_REPO',
+            'published CSV still lags', 'manual',
+        ];
+        for (const token of tokens) {
+            const mutated = authoring.split(token).join('SENTINEL_REMOVED');
+            expect(mutated, token).not.toContain(token);
+            expect(() => assertOneClickDocs({ authoring: mutated }), token).toThrow();
         }
     });
 });
