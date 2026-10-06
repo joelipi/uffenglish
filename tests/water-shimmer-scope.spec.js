@@ -14,9 +14,6 @@
 import { test, expect } from '@playwright/test';
 
 const MARKER_CSS = `.water-surface::before { background: rgb(255,0,255) !important; animation: none !important; }`;
-const MARKER_R = 255;
-const MARKER_G = 0;
-const MARKER_B = 255;
 
 /** Count pixels exactly equal to the marker colour in a screenshot clip. */
 async function countMarkerPixels(page, clip) {
@@ -48,15 +45,23 @@ test.describe('Story 050 — water shimmer is scoped to visible water', () => {
         await page.goto('/');
         await expect(page.getByTestId('share-code-input')).toBeVisible();
 
-        // The frame fills the mobile viewport, so the clip below is inside #root.
+        // Derive the clip from the app frame so it stays inside #root even if
+        // viewport rounding or a scrollbar nudges the layout.
         const rootBox = await page.locator('#root').boundingBox();
         expect(rootBox).not.toBeNull();
-        expect(Math.round(rootBox.width)).toBe(420);
+        expect(rootBox.width).toBeGreaterThan(12);
+        expect(rootBox.height).toBeGreaterThan(312);
 
         await page.addStyleTag({ content: MARKER_CSS });
         await page.waitForTimeout(200);
 
-        const markerPixels = await countMarkerPixels(page, { x: 4, y: 300, width: 12, height: 12 });
+        const clip = {
+            x: Math.round(rootBox.x) + 4,
+            y: Math.round(rootBox.y) + 300,
+            width: 12,
+            height: 12,
+        };
+        const markerPixels = await countMarkerPixels(page, clip);
         expect(markerPixels).toBe(0);
     });
 
