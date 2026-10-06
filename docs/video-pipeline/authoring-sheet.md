@@ -101,6 +101,15 @@ records takes and presses **render**:
 
 **record → render (Modal) → SRT write-back → translate → config generation**
 
+- **The render reads the published sheet directly.** The Modal orchestrator
+  fetches the sheet's published CSV over HTTP into its work dir, so there is
+  **no manual `video_data.csv` upload** before a render — the sheet is the
+  render's input. `pipeline-assets/video_data.csv` is only a **post-render output**
+  (the render writes the computed `srt` column into it and uploads it back for
+  `sync-srt.yml` to read). The published CSV lags a sheet edit by
+  minutes; the render runs after the operator records takes, so that is fine.
+  Point the render at another published CSV with `PIPELINE_SHEET_URL` (default:
+  the recorder's published master).
 - **Modal dispatches `render-complete`.** After a successful publish the
   orchestrator POSTs a GitHub `repository_dispatch` (`event_type:
   render-complete`). It is **best-effort**: if the secret's `GH_DISPATCH_REPO` /
@@ -123,12 +132,12 @@ records takes and presses **render**:
   workflows — `srt` → `translate` → `configs`, ordered by `needs:` — so a single
   event runs the whole chain. Each action stays independently runnable from the
   Actions UI.
-- **No published-CSV lag in the chain.** `configs.yml` runs the generator with
-  `--from-api`, reading the sheet through the Sheets API so it sees the `srt` and
-  `phrase_*` cells the preceding jobs just wrote. The published CSV still lags a
-  Sheets API write by minutes, but that only affects **manual** reads (the
-  recorder, and the local `npm run configs:generate` default); the pipeline is
-  lag-free.
+- **No published-CSV lag in the post-render chain.** `configs.yml` runs the
+  generator with `--from-api`, reading the sheet through the Sheets API so it
+  sees the `srt` and `phrase_*` cells the preceding jobs just wrote. The
+  published CSV still lags a Sheets API write by minutes; that affects the
+  render's sheet input and **manual** reads (the recorder, and the local
+  `npm run configs:generate` default), but the post-render chain is lag-free.
 
 ## Not using Google Sheets
 

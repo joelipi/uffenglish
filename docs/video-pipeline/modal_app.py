@@ -27,9 +27,11 @@ from pipeline_lib import (
     PIPELINE_ASSET_PREFIX,
     dispatch_render_complete,
     estimate_cost,
+    fetch_sheet_csv,
     plan_publish,
     pipeline_asset_key,
     raw_take_key,
+    resolve_sheet_url,
     serialize_status,
     status_key,
 )
@@ -93,10 +95,22 @@ def _fetch_takes(workdir, files):
         storage.download_to(key, dest)
 
 
+def _sheet_fetch(url):
+    """urllib fetch for the published sheet (urlopen follows the 307 by default)."""
+    import urllib.request
+
+    return urllib.request.urlopen(url, timeout=30)
+
+
 def _fetch_assets(workdir):
     os.makedirs(workdir, exist_ok=True)
-    storage.download_to(pipeline_asset_key("video_data.csv"),
-                        os.path.join(workdir, "video_data.csv"))
+    # Story 052: the published sheet is the render's input, not the R2 object.
+    # Fetch its CSV over HTTP (Google answers with a 307 redirect) into the work
+    # dir as `video_data.csv`; `pipeline-assets/video_data.csv` is now only the
+    # post-render output the orchestrator uploads after computing the `srt` column.
+    csv_text = fetch_sheet_csv(resolve_sheet_url(), _sheet_fetch)
+    with open(os.path.join(workdir, "video_data.csv"), "w", encoding="utf-8") as fh:
+        fh.write(csv_text)
     for tree in FETCH_TREES:
         prefix = pipeline_asset_key(tree) + "/"
         for key in storage.list_keys(prefix):

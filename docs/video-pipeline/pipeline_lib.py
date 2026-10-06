@@ -17,6 +17,7 @@ import json
 import os
 import re
 from pathlib import Path
+from urllib.parse import urljoin
 
 # --------------------------------------------------------------------------- #
 # Naming rules (mirror of src/modules/video/pipeline-keys.js)
@@ -165,8 +166,39 @@ def build_srt_from_segments(segments, start_cursor=0.0, start_index=0):
 
 
 # --------------------------------------------------------------------------- #
+# Published authoring sheet (story 052)
+# --------------------------------------------------------------------------- #
+
+# The published master CSV the recorder reads (``public/recorder.html``
+# ``spreadsheet_url``) and the config generator defaults to
+# (``scripts/generate-config-from-sheet.mjs`` ``SHEET_URL``). Byte-identical to
+# both; ``tests/test_pipeline_parity.py`` asserts it so the render cannot read a
+# different sheet than the rest of the stack.
+SHEET_URL = (
+    "https://docs.google.com/spreadsheets/d/e/"
+    "2PACX-1vQZ7jFMJNnmylDoHxaqb1W8VyXi0OV4pSubCbqMGYkRgGimqWx3cs74n43-cFxqfue4KCiqWlhzvPkK"
+    "/pub?gid=242913338&single=true&output=csv"
+)
+
+# The published-CSV URL answers with one of these (Google sends a 307 to a
+# ``googleusercontent.com`` host), so the fetch must follow them.
+SHEET_REDIRECT_STATUSES = (301, 302, 303, 307, 308)
+MAX_SHEET_REDIRECTS = 5
+
+
+# --------------------------------------------------------------------------- #
 # Local-vs-container seams
 # --------------------------------------------------------------------------- #
+
+def resolve_sheet_url(environ=None) -> str:
+    """The published sheet CSV URL: ``PIPELINE_SHEET_URL`` when set, else ``SHEET_URL``.
+
+    The override keeps story 040's "change content without a ``modal deploy``"
+    property: an operator can point the render at another published CSV.
+    """
+    env = os.environ if environ is None else environ
+    return env.get("PIPELINE_SHEET_URL") or SHEET_URL
+
 
 def resolve_work_dir(environ=None) -> Path:
     """``PIPELINE_WORKDIR`` when set, else the current working directory."""
@@ -408,6 +440,68 @@ def dispatch_render_complete(repo, token, payload, fetchImpl):
     if isinstance(status, int) and 200 <= status < 300:
         return {"sent": True}
     return {"sent": False, "error": f"HTTP {status}"}
+
+
+# --------------------------------------------------------------------------- #
+# Published-sheet fetch (story 052: the render reads the sheet, not R2)
+# --------------------------------------------------------------------------- #
+
+def _response_header(response, name):
+    """A response header value (case-insensitively), or ``None``."""
+    headers = getattr(response, "headers", None)
+    getter = getattr(headers, "get", None)
+    if callable(getter):
+        return getter(name)
+    return None
+
+
+def fetch_sheet_csv(url, fetch_impl) -> str:
+    """Fetch a published-sheet CSV over HTTP, following redirects.
+
+    ``fetch_impl(url)`` returns an HTTP response object with ``.status``,
+    ``.headers`` and ``.read()`` — ``urllib.request.urlopen`` in production,
+    which follows redirects itself; this helper also follows any redirect a
+    caller's ``fetch_impl`` surfaces. Google's published-CSV URL answers with a
+    307 to a ``googleusercontent.com`` host, so a fetch that stops at the first
+    response would read an empty redirect body.
+
+    Raises ``RuntimeError`` on a non-2xx final response, a redirect without a
+    ``Location`` header, too many redirects, or an HTML body (a sign-in /
+    publish-error page) so a broken publish fails loudly instead of feeding HTML
+    into pandas.
+    """
+    current = url
+    response = None
+    for _ in range(MAX_SHEET_REDIRECTS + 1):
+        response = fetch_impl(current)
+        status = _response_status(response)
+        if status in SHEET_REDIRECT_STATUSES:
+            location = _response_header(response, "Location")
+            if not location:
+                raise RuntimeError(
+                    f"sheet fetch: HTTP {status} from {current} without a Location header"
+                )
+            current = urljoin(current, location)
+            continue
+        break
+    else:
+        raise RuntimeError(
+            f"sheet fetch: more than {MAX_SHEET_REDIRECTS} redirects from {url}"
+        )
+
+    status = _response_status(response)
+    if not (isinstance(status, int) and 200 <= status < 300):
+        raise RuntimeError(f"sheet fetch: HTTP {status} from {current}")
+
+    body = response.read()
+    text = body.decode("utf-8", "replace") if isinstance(body, (bytes, bytearray)) else str(body or "")
+    content_type = str(_response_header(response, "Content-Type") or "").lower()
+    if "text/html" in content_type or text.lstrip().startswith("<"):
+        raise RuntimeError(
+            "sheet fetch: got HTML, not CSV — is the sheet published to the web as CSV? "
+            f"(Content-Type: {content_type or 'unknown'})"
+        )
+    return text
 
 
 # --------------------------------------------------------------------------- #
