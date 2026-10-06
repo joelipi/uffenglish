@@ -73,11 +73,14 @@ from pydub import AudioSegment
 from pydub.silence import detect_nonsilent
 
 from pipeline_lib import (
+    build_srt_from_segments,
     chrome_flags,
+    group_key_for_filename,
     missing_required_fonts,
     resolve_web_profile,
     resolve_work_dir,
     select_rows,
+    step_key_matches,
 )
 
 # =============================================================================
@@ -861,7 +864,15 @@ def run_background_removal(background_mapping, mirror_mapping, only=None):
 # Stage 3 — overlays / effects / audio / concatenation -> social + web
 # =============================================================================
 
-def group_videos_by_prefix(directory=None):
+def group_videos_by_prefix(directory=None, video_file_map=None):
+    """Processed clips grouped by their step key.
+
+    The key is the CSV `video_file` value when the sheet carries one (so the
+    rendered video, the join and the SRT share the config's step granularity),
+    else the legacy filename prefix. `video_file_map` is `filename -> video_file`
+    (see `load_video_file_map`); without it a sheet that has no `video_file`
+    column keeps the old per-prefix behavior.
+    """
     if directory is None:
         directory = str(SOCIAL_DIR)
     if not os.path.exists(directory):
@@ -870,12 +881,11 @@ def group_videos_by_prefix(directory=None):
                  if f.lower().endswith(VIDEO_EXTENSION) and f.startswith('processed_')]
     grouped = defaultdict(list)
     for filename in filenames:
-        name_without_ext = os.path.splitext(filename.replace('processed_', ''))[0]
-        match = re.match(r'^([^\d]*)', name_without_ext)
-        prefix = (match.group(1).rstrip('_- ') if match else name_without_ext) or name_without_ext
-        grouped[prefix].append(filename)
-    for prefix in grouped:
-        grouped[prefix].sort(key=natural_sort_key)
+        original = processed_to_original(filename)
+        key = group_key_for_filename(original, video_file_map)
+        grouped[key].append(filename)
+    for key in grouped:
+        grouped[key].sort(key=natural_sort_key)
     return dict(grouped)
 
 
@@ -889,12 +899,30 @@ def resolve_music_path(bg_music_file):
     return path if os.path.exists(path) else None
 
 
-def get_background_music_from_csv(csv_file, prefix):
+def video_file_map_from_df(df):
+    """`filename -> video_file` from a parsed CSV DataFrame (the step-key map)."""
+    mapping = {}
+    for _, row in df.iterrows():
+        filename = safe_get_value(row, 'filename')
+        if filename:
+            mapping[filename] = safe_get_value(row, 'video_file')
+    return mapping
+
+
+def get_background_music_from_csv(csv_file, step_key, video_file_map=None):
+    """First non-empty `bgMusic` among rows whose **step key** equals `step_key`.
+
+    Equality (not `startswith`): with `video_file` keys one step key can be a
+    prefix of a sibling's filename (`wouldyourather_b01_i` vs
+    `wouldyourather_b01_ii01`), so a substring match would pick the wrong row.
+    """
     try:
-        df = pd.read_csv(csv_file, dtype={'filename': str})
+        df = pd.read_csv(csv_file, dtype=str).fillna('')
+        if video_file_map is None:
+            video_file_map = video_file_map_from_df(df)
         for _, row in df.iterrows():
             filename = safe_get_value(row, 'filename')
-            if filename and str(filename).startswith(prefix):
+            if filename and step_key_matches(filename, step_key, video_file_map):
                 bg_music = safe_get_value(row, 'bgMusic')
                 return bg_music if bg_music else None
     except Exception:
@@ -902,26 +930,28 @@ def get_background_music_from_csv(csv_file, prefix):
     return None
 
 
-def group_prefix_for_filename(filename):
-    """The same group prefix `group_videos_by_prefix` derives from a processed
-    file, computed from a CSV `filename` value (so a join plan can be built
-    before/independently of the rendered files)."""
-    base = str(filename)
-    if not base.endswith(VIDEO_EXTENSION):
-        base += VIDEO_EXTENSION
-    name_without_ext = os.path.splitext(base)[0]        # e.g. video_01_no_silence_bg_removed
-    match = re.match(r'^([^\d]*)', name_without_ext)
-    prefix = match.group(1).rstrip('_- ') if match else name_without_ext
-    return prefix or name_without_ext
+def load_video_file_map(csv_file):
+    """CSV `filename` -> `video_file` (the step key).
+
+    Empty when the sheet has no `video_file` column, so a legacy sheet keeps the
+    filename-prefix grouping.
+    """
+    try:
+        df = pd.read_csv(csv_file, dtype=str).fillna('')
+    except Exception as e:
+        print(f"⚠️ Could not read {csv_file} for the video_file map: {e}")
+        return {}
+    return video_file_map_from_df(df)
 
 
 def load_join_plan(csv_file):
     """Read the optional `join` column.
 
     Returns `(join_plan, joined_prefixes)`:
-      - join_plan: {join_value: [prefix, ...]} in CSV row order (first-seen prefix
-        order within each join value, deduped).
-      - joined_prefixes: every prefix that participates in any join (so its part
+      - join_plan: {join_value: [step_key, ...]} in CSV row order (first-seen step
+        key order within each join value, deduped). A step key is the row's
+        `video_file` when present, else the filename prefix.
+      - joined_prefixes: every step key that participates in any join (so its part
         is rendered without per-part music; music is applied once to the join).
     """
     join_plan = {}
@@ -932,11 +962,13 @@ def load_join_plan(csv_file):
         print(f"⚠️ Could not read {csv_file} for join plan: {e}")
         return join_plan, joined_prefixes
 
+    video_file_map = video_file_map_from_df(df)
+
     for _, row in df.iterrows():
         join_value = safe_get_value(row, 'join')
         if not join_value:
             continue
-        prefix = group_prefix_for_filename(safe_get_value(row, 'filename'))
+        prefix = group_key_for_filename(safe_get_value(row, 'filename'), video_file_map)
         if not prefix:
             continue
         joined_prefixes.add(prefix)
@@ -1453,20 +1485,6 @@ def load_phrase_map(csv_file):
     return phrases
 
 
-def format_srt_time(seconds):
-    """Seconds -> HH:MM:SS,mmm (SRT)."""
-    try:
-        seconds = max(0.0, float(seconds))
-    except (TypeError, ValueError):
-        seconds = 0.0
-    total_ms = int(round(seconds * 1000))
-    hours = total_ms // 3600000
-    minutes = (total_ms % 3600000) // 60000
-    secs = (total_ms % 60000) // 1000
-    millis = total_ms % 1000
-    return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
-
-
 def _segment_duration(clip, single):
     """Duration this clip contributes to the concatenated output, mirroring
     concatenate_video_group: a single-clip group is copied untrimmed; each clip
@@ -1480,14 +1498,9 @@ def _segment_duration(clip, single):
     return safe if safe > 0 else clip.duration
 
 
-def build_group_srt(filenames, input_dir, phrase_map, single):
-    """SRT (config format) for a concatenated group, or None if it has no
-    phrases. Cue timing matches the concatenated video."""
-    if not phrase_map:
-        return None
-    blocks = []
-    cursor = 0.0
-    index = 0
+def _group_segments(filenames, input_dir, phrase_map, single):
+    """`(phrase, duration)` per processed clip in a group's concatenated output."""
+    segments = []
     for f in filenames:
         original = processed_to_original(f)
         try:
@@ -1497,17 +1510,47 @@ def build_group_srt(filenames, input_dir, phrase_map, single):
         except Exception as e:
             print(f"⚠️ Could not read duration for {f}: {e}")
             continue
-        phrase = (phrase_map.get(original) or '').strip()
-        if phrase:
-            index += 1
-            blocks.append(
-                f"{index}\n{format_srt_time(cursor)} --> {format_srt_time(cursor + duration)}\n{phrase}"
-            )
-        cursor += duration  # empty phrase -> no cue, but time still advances
-    return "\n\n".join(blocks) if blocks else None
+        segments.append(((phrase_map.get(original) or '').strip(), duration))
+    return segments
 
 
-def concatenate_video_group(prefix, filenames, input_dir=None, skip_music=False, phrase_map=None):
+def build_group_srt(filenames, input_dir, phrase_map, single):
+    """SRT (config format) for a concatenated group, or None if it has no
+    phrases. Cue timing matches the concatenated video."""
+    if not phrase_map:
+        return None
+    srt, _, _ = build_srt_from_segments(_group_segments(filenames, input_dir, phrase_map, single))
+    return srt
+
+
+def build_joined_srt(join_plan, grouped_videos, phrase_map, input_dir=None):
+    """One SRT per join output, or `{}` when no part has a phrase.
+
+    The parts' segments are flattened in join order and fed through the same
+    cursor model, so each part's cues are shifted by the cumulative duration of
+    the preceding parts and cue numbering continues — the joined SRT lines up with
+    the concatenated `<joinValue>.mp4`."""
+    if not phrase_map:
+        return {}
+    if input_dir is None:
+        input_dir = str(SOCIAL_DIR)
+    joined = {}
+    for join_value, prefixes in (join_plan or {}).items():
+        parts = [prefix for prefix in prefixes if grouped_videos.get(prefix)]
+        if len(parts) < 2:
+            continue
+        segments = []
+        for prefix in parts:
+            filenames = grouped_videos.get(prefix) or []
+            segments.extend(_group_segments(filenames, input_dir, phrase_map, len(filenames) == 1))
+        srt, _, _ = build_srt_from_segments(segments)
+        if srt:
+            joined[join_value] = srt
+    return joined
+
+
+def concatenate_video_group(prefix, filenames, input_dir=None, skip_music=False,
+                            phrase_map=None, video_file_map=None):
     if input_dir is None:
         input_dir = str(SOCIAL_DIR)
     if not filenames:
@@ -1558,7 +1601,8 @@ def concatenate_video_group(prefix, filenames, input_dir=None, skip_music=False,
     # Per-part music is skipped for groups that participate in a join; the
     # joined video gets one music mix applied over the whole thing instead.
     if not skip_music:
-        music_path = resolve_music_path(get_background_music_from_csv(CSV_FILE, prefix))
+        music_path = resolve_music_path(
+            get_background_music_from_csv(CSV_FILE, prefix, video_file_map))
         if music_path:
             try:
                 duck_master(master, music_path)
@@ -1579,9 +1623,14 @@ def to_json_subtitle_string(srt_text):
     return srt_text.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
 
 
-def write_srt_column(csv_file, srt_by_prefix):
+def write_srt_column(csv_file, srt_by_prefix, video_file_map=None):
     """Write each group's SRT into the CSV `srt` column (same value on every
-    row of that group), in the config (JSON-escaped) format."""
+    row of that group), in the config (JSON-escaped) format.
+
+    The group key is `video_file` when the sheet carries it, else the filename
+    prefix — the same key `group_videos_by_prefix` rendered under. `video_file_map`
+    is optional; it is rebuilt from the CSV when omitted.
+    """
     if not srt_by_prefix:
         return
     try:
@@ -1589,11 +1638,16 @@ def write_srt_column(csv_file, srt_by_prefix):
     except Exception as e:
         print(f"⚠️ Could not read {csv_file} to write srt column: {e}")
         return
+    if video_file_map is None:
+        video_file_map = video_file_map_from_df(df)
     df['srt'] = ''
     for i, row in df.iterrows():
-        prefix = group_prefix_for_filename(safe_get_value(row, 'filename'))
-        if prefix in srt_by_prefix:
-            df.at[i, 'srt'] = to_json_subtitle_string(srt_by_prefix[prefix])
+        # A row in a join carries the join's cumulative-offset SRT (keyed by the
+        # join value); every other row carries its step key's SRT.
+        join_value = safe_get_value(row, 'join')
+        key = join_value or group_key_for_filename(safe_get_value(row, 'filename'), video_file_map)
+        if key in srt_by_prefix:
+            df.at[i, 'srt'] = to_json_subtitle_string(srt_by_prefix[key])
     df.to_csv(csv_file, index=False)
     print(f"📝 Wrote 'srt' for {len(srt_by_prefix)} concatenated video(s) to '{csv_file}'")
 
@@ -1686,9 +1740,10 @@ def concatenate_joined_videos(join_plan):
     return results
 
 
-def concatenate_all_processed_videos(joined_prefixes=None, phrase_map=None):
+def concatenate_all_processed_videos(joined_prefixes=None, phrase_map=None,
+                                     video_file_map=None, join_plan=None):
     joined_prefixes = joined_prefixes or set()
-    grouped_videos = group_videos_by_prefix(str(SOCIAL_DIR))
+    grouped_videos = group_videos_by_prefix(str(SOCIAL_DIR), video_file_map)
     if not grouped_videos:
         return {}, {}
     results = {}
@@ -1698,11 +1753,16 @@ def concatenate_all_processed_videos(joined_prefixes=None, phrase_map=None):
             prefix, filenames,
             skip_music=(prefix in joined_prefixes),
             phrase_map=phrase_map,
+            video_file_map=video_file_map,
         )
         if output_path:
             results[prefix] = output_path
         if srt:
             srt_by_prefix[prefix] = srt
+    # Joined steps get one SRT with cumulative part offsets, keyed by the join
+    # value (the app step's simpleVideoUrl), replacing the per-base-group SRT for
+    # those rows.
+    srt_by_prefix.update(build_joined_srt(join_plan, grouped_videos, phrase_map))
     return results, srt_by_prefix
 
 # =============================================================================
@@ -1761,8 +1821,10 @@ def main():
         process_video_batch(csv_file, max_workers=args.workers, only=only)
         join_plan, joined_prefixes = load_join_plan(csv_file)
         phrase_map = load_phrase_map(csv_file)
-        _, srt_by_prefix = concatenate_all_processed_videos(joined_prefixes, phrase_map)
-        write_srt_column(csv_file, srt_by_prefix)
+        video_file_map = load_video_file_map(csv_file)
+        _, srt_by_prefix = concatenate_all_processed_videos(
+            joined_prefixes, phrase_map, video_file_map, join_plan)
+        write_srt_column(csv_file, srt_by_prefix, video_file_map)
         if join_plan:
             print(f"\n{'='*60}\nJOIN: concatenating related videos\n{'='*60}")
             concatenate_joined_videos(join_plan)

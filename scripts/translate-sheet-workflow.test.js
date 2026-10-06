@@ -10,6 +10,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runTranslateSheet } from './translate-sheet.mjs';
+import { concurrencyBlock } from './lib/workflow-guard-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -19,13 +20,38 @@ const CLI = path.join(ROOT, 'scripts/translate-sheet.mjs');
 const readWorkflow = () => readFileSync(WORKFLOW, 'utf8');
 const readCli = () => readFileSync(CLI, 'utf8');
 
+/** The `workflow_call:` block, up to the next top-level key (column 0), so an
+ * assertion cannot be satisfied by a token elsewhere in the file. */
+function workflowCallBlock(text) {
+    const start = text.indexOf('workflow_call:');
+    if (start === -1) throw new Error('translate-sheet.yml: workflow_call not found');
+    const rest = text.slice(start);
+    const next = /\n(?=\S)/.exec(rest);
+    return next ? rest.slice(0, next.index) : rest;
+}
+
+function assertWorkflowCallBlock(text) {
+    const block = workflowCallBlock(text);
+    expect(block).toContain('dry_run:');
+    expect(block).toContain('default: false');
+    expect(block).toContain('languages:');
+    expect(block).toContain('default: es,pt,bn');
+}
+
 // The full contract for the workflow: required wiring + deliberate absences.
 function assertWorkflowContract(text) {
     expect(text).toContain('workflow_dispatch:');
+    // Story 051: the one-click pipeline calls this as a reusable workflow.
+    expect(text).toContain('workflow_call:');
     expect(text).toContain('secrets.DEEPSEEK_API_KEY');
     expect(text).toContain('secrets.GOOGLE_SERVICE_ACCOUNT_JSON');
     expect(text).toContain('GOOGLE_SHEET_ID');
-    expect(text).toContain('group: translate-sheet');
+    // One global group; `queue: max` keeps queued runs instead of cancelling the
+    // older pending one.
+    const conc = concurrencyBlock(text);
+    expect(conc).toContain('group: translate-sheet');
+    expect(conc).toContain('cancel-in-progress: false');
+    expect(conc).toContain('queue: max');
     expect(text).toContain('node-version: 20');
     expect(text).toContain('node scripts/translate-sheet.mjs');
     // Absences: no repo write path, no force.
@@ -52,18 +78,40 @@ describe('translate-sheet.yml source guard', () => {
         expect(text).toContain('inputs.languages');
     });
 
+    it('declares workflow_call with the dry_run/languages defaults', () => {
+        expect(() => assertWorkflowCallBlock(readWorkflow())).not.toThrow();
+    });
+
+    it('the workflow_call block guard can fail', () => {
+        const good = readWorkflow();
+        const block = workflowCallBlock(good);
+        const mutatedBlock = block.replace('default: es,pt,bn', 'default: xx');
+        expect(mutatedBlock).not.toBe(block);
+        const mutated = good.replace(block, mutatedBlock);
+        expect(() => assertWorkflowCallBlock(mutated)).toThrow();
+    });
+
     it('the guard can fail on each required token', () => {
         const good = readWorkflow();
         const required = [
-            'workflow_dispatch:', 'secrets.DEEPSEEK_API_KEY',
+            'workflow_dispatch:', 'workflow_call:', 'secrets.DEEPSEEK_API_KEY',
             'secrets.GOOGLE_SERVICE_ACCOUNT_JSON', 'GOOGLE_SHEET_ID',
-            'group: translate-sheet', 'node-version: 20', 'node scripts/translate-sheet.mjs',
+            'group: translate-sheet', 'queue: max', 'node-version: 20',
+            'node scripts/translate-sheet.mjs',
         ];
         for (const token of required) {
             const mutated = good.split(token).join('SENTINEL_REMOVED');
             expect(mutated, token).not.toContain(token);
             expect(() => assertWorkflowContract(mutated), token).toThrow();
         }
+    });
+
+    it('the concurrency guard can fail on queue: max', () => {
+        const good = readWorkflow();
+        const block = concurrencyBlock(good);
+        const mutated = good.replace(block, block.replace('queue: max', 'queue: 1'));
+        expect(mutated).not.toBe(good);
+        expect(() => assertWorkflowContract(mutated)).toThrow();
     });
 
     it('re-adding git commit / git push / GH_NEW_TOKEN / --force trips the absences', () => {

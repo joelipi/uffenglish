@@ -85,6 +85,85 @@ def processed_web_name(filename: str) -> str:
     return f"{PROCESSED_PREFIX}{filename}{VIDEO_EXTENSION}"
 
 
+def group_prefix_for_filename(filename) -> str:
+    """Legacy step key: the leading non-digit run of a CSV ``filename`` (with
+    trailing ``_- `` stripped). Used only when a sheet has no ``video_file``
+    column, so legacy sheets keep their per-prefix grouping."""
+    base = str(filename)
+    if not base.endswith(VIDEO_EXTENSION):
+        base += VIDEO_EXTENSION
+    name_without_ext = os.path.splitext(base)[0]
+    match = re.match(r"^([^\d]*)", name_without_ext)
+    prefix = match.group(1).rstrip("_- ") if match else name_without_ext
+    return prefix or name_without_ext
+
+
+def group_key_for_filename(filename, video_file_map=None) -> str:
+    """The step key for a CSV ``filename`` (story 050).
+
+    Its non-blank ``video_file`` value when the sheet carries the column, else
+    ``group_prefix_for_filename``. One key drives the rendered video, the join
+    and the SRT, so they cannot disagree on step granularity. ``video_file_map``
+    is ``filename -> video_file``.
+    """
+    if video_file_map:
+        video_file = str(video_file_map.get(str(filename), "") or "").strip()
+        if video_file:
+            return video_file
+    return group_prefix_for_filename(filename)
+
+
+def step_key_matches(filename, step_key, video_file_map=None) -> bool:
+    """True when ``filename``'s step key equals ``step_key``.
+
+    Equality, never a substring/prefix match: sibling keys like
+    ``wouldyourather_b01_i`` and ``wouldyourather_b01_ii`` share a prefix, so
+    ``startswith`` would pick the wrong row's music.
+    """
+    return group_key_for_filename(filename, video_file_map) == step_key
+
+
+# --------------------------------------------------------------------------- #
+# SRT timing (one cursor model for groups and their joins)
+# --------------------------------------------------------------------------- #
+
+def format_srt_time(seconds) -> str:
+    """Seconds -> ``HH:MM:SS,mmm`` (SRT)."""
+    try:
+        seconds = max(0.0, float(seconds))
+    except (TypeError, ValueError):
+        seconds = 0.0
+    total_ms = int(round(seconds * 1000))
+    hours = total_ms // 3600000
+    minutes = (total_ms % 3600000) // 60000
+    secs = (total_ms % 60000) // 1000
+    millis = total_ms % 1000
+    return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
+
+
+def build_srt_from_segments(segments, start_cursor=0.0, start_index=0):
+    """SRT text for a sequence of ``(phrase, duration)`` segments.
+
+    The single timing model: cues start at ``start_cursor`` and number from
+    ``start_index``; a blank phrase emits no cue but still advances time. Returns
+    ``(srt_text_or_None, end_cursor, end_index)``. Passing a joined step's parts
+    as one flat segment list shifts every later part by the cumulative duration
+    of the earlier ones (cue numbering continues).
+    """
+    blocks = []
+    cursor = start_cursor
+    index = start_index
+    for phrase, duration in segments:
+        text = (phrase or "").strip()
+        if text:
+            index += 1
+            blocks.append(
+                f"{index}\n{format_srt_time(cursor)} --> {format_srt_time(cursor + duration)}\n{text}"
+            )
+        cursor += duration
+    return ("\n\n".join(blocks) if blocks else None), cursor, index
+
+
 # --------------------------------------------------------------------------- #
 # Local-vs-container seams
 # --------------------------------------------------------------------------- #
@@ -282,6 +361,53 @@ def estimate_cost(metrics) -> float:
         + metrics.get("cpu_core_seconds", 0) * CPU_CORE_SECOND_RATE
         + metrics.get("memory_gib_seconds", 0) * MEMORY_GIB_SECOND_RATE
     )
+
+
+# --------------------------------------------------------------------------- #
+# GitHub repository_dispatch (best-effort `render-complete` notification)
+# --------------------------------------------------------------------------- #
+
+GITHUB_DISPATCH_URL = "https://api.github.com/repos/{repo}/dispatches"
+
+
+def _response_status(response):
+    """The HTTP status of a fetch response (its ``status`` attribute), or ``None``."""
+    return getattr(response, "status", None)
+
+
+def dispatch_render_complete(repo, token, payload, fetchImpl):
+    """POST a ``render-complete`` repository_dispatch to GitHub. Never raises.
+
+    Returns ``{"sent": True}`` on a 2xx response, else ``{"sent": False,
+    "error": "<message>"}`` (a missing repo/token, a non-2xx status, or a thrown
+    fetch). ``fetchImpl(url, method=..., headers=..., body=...)`` is injected so
+    the helper is unit-testable without network; it returns an object with a
+    ``status`` attribute (as ``urllib`` responses do).
+    """
+    if not repo:
+        return {"sent": False, "error": "GH_DISPATCH_REPO is not set"}
+    if not token:
+        return {"sent": False, "error": "GH_DISPATCH_TOKEN is not set"}
+    url = GITHUB_DISPATCH_URL.format(repo=repo)
+    try:
+        body = json.dumps({"event_type": "render-complete", "client_payload": payload or {}})
+        response = fetchImpl(
+            url,
+            method="POST",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+                "Content-Type": "application/json",
+            },
+            body=body,
+        )
+    except Exception as exc:  # noqa: BLE001 - best-effort; never fail the render
+        return {"sent": False, "error": str(exc)}
+    status = _response_status(response)
+    if isinstance(status, int) and 200 <= status < 300:
+        return {"sent": True}
+    return {"sent": False, "error": f"HTTP {status}"}
 
 
 # --------------------------------------------------------------------------- #

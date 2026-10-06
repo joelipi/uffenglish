@@ -1,0 +1,39 @@
+name: One-Click Pipeline
+
+# Fired by the Modal render's `render-complete` repository_dispatch (story 051),
+# or manually. Runs the three sheet actions in order as reusable workflows:
+# SRT write-back -> translation -> config generation. Ordering and failure
+# propagation are expressed by `needs:` (no cross-workflow token, no polling);
+# each called workflow stays independently runnable from the Actions UI.
+#
+# `permissions: contents: read` here is the ceiling; the called `configs`
+# workflow still pushes with its own `GH_NEW_TOKEN` (a PAT, not GITHUB_TOKEN).
+on:
+  repository_dispatch:
+    types: [render-complete]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One global group for the whole chain. `queue: max` (not GitHub's default single
+# pending slot, which cancels the older pending run) lets a burst of renders queue
+# — up to 100 — and wait their turn, so no chain is dropped; `cancel-in-progress:
+# false` lets an in-flight chain finish.
+concurrency:
+  group: pipeline
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  srt:
+    uses: ./.github/workflows/sync-srt.yml
+    secrets: inherit
+  translate:
+    needs: srt
+    uses: ./.github/workflows/translate-sheet.yml
+    secrets: inherit
+  configs:
+    needs: translate
+    uses: ./.github/workflows/configs.yml
+    secrets: inherit

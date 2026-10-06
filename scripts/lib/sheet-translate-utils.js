@@ -21,13 +21,16 @@ export const SHEET_LANGUAGES = ['es', 'pt', 'bn'];
 // columns independently (see sheet-config-utils.js) and the two lists must be
 // kept in sync by hand.
 // `level` drives group-scoped planning: lesson-level fields are planned once per
-// lesson, step-level fields once per `lesson_id` + `video_file` group.
+// lesson, step-level fields once per `lesson_id` + `video_file` group. `perRow`
+// fields (the overlay master's `phrase`, one cue element per sheet row) are
+// planned per row instead of per group.
 export const TRANSLATABLE_FIELDS = [
     { field: 'lesson_title', source: 'lesson_title', level: 'lesson' },
     { field: 'mission', source: 'mission', level: 'lesson' },
     { field: 'cue', source: 'cue', level: 'step' },
     { field: 'cue_alt', source: 'cue_alt', level: 'step' },
     { field: 'subtitle_text', source: 'subtitle_text', level: 'step' },
+    { field: 'phrase', source: 'phrase', level: 'step', perRow: true },
 ];
 
 /** The per-language column name for a field, e.g. `localizedColumn('cue','pt')` -> `cue_pt`. */
@@ -164,7 +167,38 @@ export function planSheetTranslations({
     const rowsList = rows || [];
     const headerSet = headerSetOf(headers);
 
-    for (const { field, source, level } of TRANSLATABLE_FIELDS) {
+    // Master format: the overlay master's `subtitle_text` is burnt-in overlay
+    // markup, never app subtitles (the master emits subtitles from `srt` only).
+    // Translating it would be dead weight, so skip it when the `phrase` header is
+    // present.
+    const isMaster = headerSet.has('phrase');
+
+    for (const { field, source, level, perRow } of TRANSLATABLE_FIELDS) {
+        if (field === 'subtitle_text' && isMaster) continue;
+
+        if (perRow) {
+            // One source value per row (the master's `phrase` -> one cue element
+            // per row), so the blank/fill check is per row, not per group.
+            rowsList.forEach((row, rowIndex) => {
+                const sourceText = cell(row, source).trim();
+                if (!sourceText) return;
+                for (const lang of languages) {
+                    const target = localizedColumn(field, lang);
+                    if (cell(row, target).trim() && !force) continue; // already translated
+                    plan.push({
+                        row: rowIndex,
+                        sheetRow: sheetRows ? sheetRows[rowIndex] : rowIndex + 2,
+                        column: target,
+                        sourceColumn: source,
+                        sourceText,
+                        lang,
+                        field,
+                    });
+                }
+            });
+            continue;
+        }
+
         const groups = groupsForField(rowsList, headerSet, level);
         for (const indices of groups.values()) {
             const sourceIndices = indices.filter((i) => cell(rowsList[i], source).trim());
@@ -210,7 +244,18 @@ export function countPresentTranslations({ rows, headers, languages = SHEET_LANG
     const counts = {};
     for (const lang of languages) counts[lang] = 0;
 
-    for (const { field, source, level } of TRANSLATABLE_FIELDS) {
+    const isMaster = headerSet.has('phrase');
+    for (const { field, source, level, perRow } of TRANSLATABLE_FIELDS) {
+        if (field === 'subtitle_text' && isMaster) continue;
+        if (perRow) {
+            for (const row of rowsList) {
+                if (!cell(row, source).trim()) continue;
+                for (const lang of languages) {
+                    if (cell(row, localizedColumn(field, lang)).trim()) counts[lang] += 1;
+                }
+            }
+            continue;
+        }
         const groups = groupsForField(rowsList, headerSet, level);
         for (const indices of groups.values()) {
             if (!indices.some((i) => cell(rowsList[i], source).trim())) continue;

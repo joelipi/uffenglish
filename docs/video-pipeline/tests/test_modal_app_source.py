@@ -55,7 +55,8 @@ class OrchestratorGuardTest(unittest.TestCase):
         self.assertIn("cpu=8", header)
         self.assertIn("memory=16384", header)
         self.assertIn("timeout=7200", header)
-        self.assertIn("secrets=[secret]", header)
+        # Story 051: the orchestrator also gets the uff-github dispatch secret.
+        self.assertIn("secrets=[secret, github_secret]", header)
 
         body = slice_between(text, "def orchestrator(spec: dict):", "def _publish(")
         for token in ("run_silence_removal", "run_background_removal",
@@ -94,11 +95,60 @@ class TriggerGuardTest(unittest.TestCase):
         self.assertIn("gpu_seconds = pipeline.run_background_removal(", body)
         self.assertIn('"gpu_seconds": gpu_seconds', body)
 
+    def test_persists_the_updated_video_data_csv_to_r2(self):
+        # Story 050, Task 5: the orchestrator writes the computed srt column into
+        # the CSV (mirroring video_pipeline.main) and uploads the updated CSV back
+        # to R2 so the sync-srt Action can read the `srt` column.
+        text = read(APP)
+        body = slice_between(text, "def orchestrator(spec: dict):", "def _publish(")
+        self.assertIn("write_srt_column", body)
+        self.assertIn('pipeline_asset_key("video_data.csv")', body)
+        self.assertIn("storage.upload_file(csv_file", body)
+        # Order: concatenate -> write_srt_column -> upload, after concatenation.
+        self.assertLess(body.index("concatenate_all_processed_videos"),
+                        body.index("write_srt_column"))
+        self.assertLess(body.index("write_srt_column"),
+                        body.index('pipeline_asset_key("video_data.csv")'))
+
     def test_asset_fetch_rejects_path_traversal(self):
         text = read(APP)
         fetch = slice_between(text, "def _fetch_assets(", "def _write_status(")
         self.assertIn("os.path.realpath", fetch)
         self.assertIn("startswith(os.path.realpath(workdir)", fetch)
+
+
+class DispatchGuardTest(unittest.TestCase):
+    """Story 051: the orchestrator dispatches `render-complete` best-effort."""
+
+    def _assert_contract(self, text):
+        body = slice_between(text, "def orchestrator(spec: dict):", "def _publish(")
+        self.assertIn("dispatch_render_complete(", body)
+        self.assertIn("GH_DISPATCH_REPO", body)
+        self.assertIn("GH_DISPATCH_TOKEN", body)
+        self.assertIn('"dispatch": dispatch_note', body)
+        self.assertIn('"skipped"', body)
+        self.assertIn("if not repo or not token:", body)
+        self.assertIn('dispatch_note = "sent"', body)
+        self.assertIn('dispatch_note = f"failed: {result.get(\'error\')}"', body)
+        self.assertIn('modal.Secret.from_name("uff-github")', text)
+        # Called once, after publish, and recorded in the `done` extra.
+        self.assertEqual(body.count("dispatch_render_complete("), 1)
+        self.assertLess(body.index("published = _publish(plan)"),
+                        body.index("dispatch_render_complete("))
+        self.assertLess(body.index("dispatch_render_complete("),
+                        body.index('"dispatch": dispatch_note'))
+
+    def test_orchestrator_dispatches_render_complete_best_effort(self):
+        self._assert_contract(read(APP))
+
+    def test_guard_can_fail(self):
+        good = read(APP)
+        for token in ("dispatch_render_complete(", "GH_DISPATCH_TOKEN",
+                      '"dispatch": dispatch_note', 'modal.Secret.from_name("uff-github")'):
+            mutated = "SENTINEL_REMOVED".join(good.split(token))
+            self.assertNotEqual(mutated, good, token)
+            with self.assertRaises(AssertionError, msg=token):
+                self._assert_contract(mutated)
 
 
 class StorageGuardTest(unittest.TestCase):
