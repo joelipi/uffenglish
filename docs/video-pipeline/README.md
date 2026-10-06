@@ -192,10 +192,10 @@ trigger only (Workers cannot run moviepy/ffmpeg/Chromium); the runner is Modal.
 - **Upload assets.** `npm run pipeline:upload-assets:dry` previews, then
   `npm run pipeline:upload-assets` pushes each asset file (fonts, backgrounds,
   audio, overlays) to the private `uff-private/pipeline-assets/` with
-  `wrangler r2 object put`. Content changes need no `modal deploy`. A local
-  `video_data.csv` is **not** a render input any more — the render reads the
-  published sheet and writes `pipeline-assets/video_data.csv` back as the
-  post-render output — so uploading one is redundant.
+  `wrangler r2 object put`. Content changes need no `modal deploy`. The uploader
+  deliberately skips `video_data.csv`: since story 052 that key is the
+  **post-render output** (the CSV with the computed `srt` that `sync-srt.yml`
+  reads), so uploading a stale local copy would clobber it.
 - **Recorder operator key.** `public/recorder.html` (served at `/recorder`) has a
   password input; the key is stored in `sessionStorage` and sent as
   `x-operator-key` to the same-origin Pages Functions (`/api/pipeline/upload-raw`,

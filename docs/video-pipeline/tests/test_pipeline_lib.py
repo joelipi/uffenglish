@@ -249,6 +249,21 @@ class FetchSheetCsvTest(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             lib.fetch_sheet_csv("https://docs.google.com/x", fetch_impl)
 
+    def test_raises_on_an_empty_body(self):
+        def fetch_impl(url):
+            return _FakeResponse(200, b"", {"Content-Type": "text/csv; charset=utf-8"})
+
+        with self.assertRaises(RuntimeError) as ctx:
+            lib.fetch_sheet_csv("https://docs.google.com/x", fetch_impl)
+        self.assertIn("empty", str(ctx.exception).lower())
+
+    def test_raises_on_a_whitespace_only_body(self):
+        def fetch_impl(url):
+            return _FakeResponse(200, b"\n  \n", {"Content-Type": "text/csv"})
+
+        with self.assertRaises(RuntimeError):
+            lib.fetch_sheet_csv("https://docs.google.com/x", fetch_impl)
+
     def test_raises_on_a_non_2xx_final_response(self):
         def fetch_impl(url):
             return _FakeResponse(404, b"not found", {"Content-Type": "text/plain"})

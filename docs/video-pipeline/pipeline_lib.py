@@ -459,16 +459,17 @@ def fetch_sheet_csv(url, fetch_impl) -> str:
     """Fetch a published-sheet CSV over HTTP, following redirects.
 
     ``fetch_impl(url)`` returns an HTTP response object with ``.status``,
-    ``.headers`` and ``.read()`` — ``urllib.request.urlopen`` in production,
-    which follows redirects itself; this helper also follows any redirect a
-    caller's ``fetch_impl`` surfaces. Google's published-CSV URL answers with a
-    307 to a ``googleusercontent.com`` host, so a fetch that stops at the first
-    response would read an empty redirect body.
+    ``.headers`` and ``.read()``. Production passes ``urllib.request.urlopen``,
+    which already follows redirects itself; the explicit loop below exists for
+    injected/opaque fetchers and to surface a redirect loop deterministically
+    rather than relying on the caller's redirect handler. Google's published-CSV
+    URL answers with a 307 to a ``googleusercontent.com`` host, so a fetch that
+    stops at the first response would read an empty redirect body.
 
     Raises ``RuntimeError`` on a non-2xx final response, a redirect without a
-    ``Location`` header, too many redirects, or an HTML body (a sign-in /
-    publish-error page) so a broken publish fails loudly instead of feeding HTML
-    into pandas.
+    ``Location`` header, too many redirects, an empty body (the published sheet
+    always has a header row), or an HTML body (a sign-in / publish-error page) so
+    a broken publish fails loudly instead of feeding HTML/empty text into pandas.
     """
     current = url
     response = None
@@ -500,6 +501,10 @@ def fetch_sheet_csv(url, fetch_impl) -> str:
         raise RuntimeError(
             "sheet fetch: got HTML, not CSV — is the sheet published to the web as CSV? "
             f"(Content-Type: {content_type or 'unknown'})"
+        )
+    if not text.strip():
+        raise RuntimeError(
+            "sheet fetch: empty sheet response — the published sheet must have a header row"
         )
     return text
 

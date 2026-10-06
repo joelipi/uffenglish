@@ -1,8 +1,11 @@
 #!/usr/bin/env node
-// Uploads the pipeline inputs (fonts/backgrounds/audio/overlays + video_data.csv)
-// to the private R2 bucket under pipeline-assets/ so the operator can change
-// content without a `modal deploy` (story 040, Task 8; story 041 Task 5 moved
-// pipeline-assets/ to the private bucket). Dry-run by default? No — explicit:
+// Uploads the pipeline inputs (fonts/backgrounds/audio/overlays) to the private
+// R2 bucket under pipeline-assets/ so the operator can change content without a
+// `modal deploy` (story 040, Task 8; story 041 Task 5 moved pipeline-assets/ to
+// the private bucket). It deliberately does NOT upload video_data.csv: since
+// story 052 that R2 key is the post-render output the render writes back for
+// sync-srt.yml, so uploading a local copy would clobber it.
+// Dry-run by default? No — explicit:
 //   node scripts/upload-pipeline-assets.mjs --assets-dir=<dir> --dry-run
 //   node scripts/upload-pipeline-assets.mjs --assets-dir=<dir> --upload
 // Requires wrangler creds for --upload (wrangler r2 object put).
@@ -18,13 +21,13 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // PIPELINE_R2 binding must point at the same bucket.
 const DEFAULT_PRIVATE_BUCKET = 'uff-private';
 
-const HELP = `Upload pipeline assets (fonts/backgrounds/audio/overlays + video_data.csv) to the private R2 bucket.
+const HELP = `Upload pipeline assets (fonts/backgrounds/audio/overlays) to the private R2 bucket.
 
 Usage:
   node scripts/upload-pipeline-assets.mjs --assets-dir=<dir> [--dry-run|--upload]
 
 Options:
-  --assets-dir=DIR   Root holding fonts/ backgrounds/ audio/ overlays/ video_data.csv
+  --assets-dir=DIR   Root holding fonts/ backgrounds/ audio/ overlays/ (video_data.csv is NOT uploaded)
   --dry-run          Print the plan; spawn nothing
   --upload           Push each object to the private bucket (uff-private/pipeline-assets/…)
   --help, -h         Show this help

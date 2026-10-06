@@ -74,5 +74,5 @@ Add `SHEET_URL` to `docs/video-pipeline/pipeline_lib.py` with the same published
 ## Notes
 
 - **This closes the last manual prerequisite** between "the sheet is the source of truth" and "record → render is one-click." After it, the operator's only steps are sheet edits and recording; nothing is uploaded to R2 by hand.
-- **`pipeline:upload-assets` still uploads a local `video_data.csv`** if present (it is in `KNOWN_ASSET_FILES`); that becomes redundant for the render input but is harmless (the render no longer reads it as input). Removing it from the asset list is a separate cleanup, deliberately deferred so the local flow is untouched.
+- **`pipeline:upload-assets` no longer handles `video_data.csv`.** It was removed from `KNOWN_ASSET_FILES` (and the uploader's help/comment text) because story 052 makes that R2 key the post-render output: uploading a stale local copy would clobber the CSV carrying the `srt` column that `sync-srt.yml` reads. The uploader now covers only `fonts/`, `backgrounds/`, `audio/` and `overlays/`; the local (`Windows`) `video_pipeline.py` flow still reads a local `video_data.csv`.
 - **Failure mode:** if the sheet is not published (or the publish is broken), the render now fails fast with a clear "sheet fetch/HTML" error instead of silently rendering stale R2 content — the intended signal.
