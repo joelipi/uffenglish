@@ -32,10 +32,12 @@ permissions:
 
 # One global group: this mutates a single shared remote sheet regardless of
 # branch, so two concurrent runs could read the same blanks and double-translate.
-# cancel-in-progress: false so a queued run is not silently dropped.
+# cancel-in-progress: false so an in-flight run finishes; `queue: max` keeps every
+# queued run (up to 100) instead of cancelling the older pending one.
 concurrency:
   group: translate-sheet
   cancel-in-progress: false
+  queue: max
 
 jobs:
   translate:

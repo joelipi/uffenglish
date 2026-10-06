@@ -17,9 +17,12 @@ on:
 permissions:
   contents: read
 
+# `queue: max` keeps queued runs (instead of GitHub cancelling the older pending
+# one), so a burst of renders never drops a config regeneration.
 concurrency:
   group: configs-${{ github.ref }}
   cancel-in-progress: false
+  queue: max
 
 jobs:
   configs:

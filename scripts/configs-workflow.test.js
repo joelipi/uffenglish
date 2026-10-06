@@ -29,6 +29,15 @@ function runBlock(text) {
     return text.slice(start, end);
 }
 
+/** The `concurrency:` block, up to the next column-0 key. */
+function concurrencyBlock(text) {
+    const start = text.indexOf('concurrency:');
+    if (start === -1) throw new Error('configs.yml: concurrency block not found');
+    const rest = text.slice(start);
+    const next = /\n(?=\S)/.exec(rest);
+    return next ? rest.slice(0, next.index) : rest;
+}
+
 /** The full contract, rendered against any (possibly mutated) text. */
 function assertConfigsContract(text) {
     expect(text).toContain('workflow_dispatch:');
@@ -38,6 +47,12 @@ function assertConfigsContract(text) {
     expect(text).toContain('token: ${{ secrets.GH_NEW_TOKEN }}');
     expect(text).toContain('[skip configs]');
     expect(text).toContain('git push origin "HEAD:${{ github.ref_name }}"');
+    // One group per ref; `queue: max` keeps queued runs instead of cancelling the
+    // older pending one.
+    const conc = concurrencyBlock(text);
+    expect(conc).toContain('group: configs-${{ github.ref }}');
+    expect(conc).toContain('cancel-in-progress: false');
+    expect(conc).toContain('queue: max');
     // The run step (not the comment) must read via the API with the service
     // account and the sheet id.
     const block = runBlock(text);
@@ -105,13 +120,21 @@ describe('configs.yml source guard', () => {
         const tokens = [
             'workflow_call:', 'secrets.GH_NEW_TOKEN', '[skip configs]',
             RUN_COMMAND, 'GOOGLE_SERVICE_ACCOUNT_JSON', 'GOOGLE_SHEET_ID',
-            'git push origin "HEAD:${{ github.ref_name }}"',
+            'git push origin "HEAD:${{ github.ref_name }}"', 'queue: max',
         ];
         for (const token of tokens) {
             const mutated = good.split(token).join('SENTINEL_REMOVED');
             expect(mutated, token).not.toContain(token);
             expect(() => assertConfigsContract(mutated), token).toThrow();
         }
+    });
+
+    it('the concurrency guard can fail on queue: max', () => {
+        const good = read();
+        const block = concurrencyBlock(good);
+        const mutated = good.replace(block, block.replace('queue: max', 'queue: 1'));
+        expect(mutated).not.toBe(good);
+        expect(() => assertConfigsContract(mutated)).toThrow();
     });
 
     it('scopes --from-api to the run step: dropping it from the command still fails', () => {

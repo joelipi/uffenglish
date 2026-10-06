@@ -16,11 +16,14 @@ on:
 permissions:
   contents: read
 
-# Deliberately NO workflow-level `concurrency`. GitHub keeps only one pending run
-# per group and cancels the older pending one, and every `repository_dispatch`
-# shares `refs/heads/main` — so a burst of renders would silently drop whole
-# chains. Serialization is already guaranteed downstream by the called workflows'
-# own global groups (`sync-srt`, `translate-sheet`), so no run is dropped.
+# One global group for the whole chain. `queue: max` (not GitHub's default single
+# pending slot, which cancels the older pending run) lets a burst of renders queue
+# — up to 100 — and wait their turn, so no chain is dropped; `cancel-in-progress:
+# false` lets an in-flight chain finish.
+concurrency:
+  group: pipeline
+  cancel-in-progress: false
+  queue: max
 
 jobs:
   srt:

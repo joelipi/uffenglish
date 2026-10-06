@@ -30,17 +30,27 @@ function jobBlock(text, name) {
     return lines.slice(start, end).join('\n');
 }
 
+/** The top-level `concurrency:` block, up to the next column-0 key. */
+function concurrencyBlock(text) {
+    const start = text.indexOf('concurrency:');
+    if (start === -1) throw new Error('pipeline.yml: concurrency block not found');
+    const rest = text.slice(start);
+    const next = /\n(?=\S)/.exec(rest);
+    return next ? rest.slice(0, next.index) : rest;
+}
+
 function assertPipelineContract(text) {
     expect(text).toContain('repository_dispatch:');
     expect(text).toContain('types: [render-complete]');
     expect(text).toContain('workflow_dispatch:');
 
-    // No workflow-level concurrency group: GitHub cancels the older *pending*
-    // run per group, and every dispatch shares refs/heads/main, so a burst of
-    // renders would silently drop chains. The called workflows serialize the
-    // shared-sheet writes instead; the documented choice must be present.
-    expect(text).not.toMatch(/^concurrency:/m);
-    expect(text).toMatch(/Deliberately NO workflow-level `concurrency`/);
+    // One global group with `queue: max`: queued renders wait their turn instead
+    // of GitHub cancelling the older pending run (its default single-slot policy
+    // would drop whole chains, since every dispatch shares refs/heads/main).
+    const conc = concurrencyBlock(text);
+    expect(conc).toContain('group: pipeline');
+    expect(conc).toContain('cancel-in-progress: false');
+    expect(conc).toContain('queue: max');
 
     // Each job calls its reusable workflow, depends on the previous job, and
     // inherits secrets in its own block.
@@ -79,25 +89,24 @@ describe('pipeline.yml source guard', () => {
         expect(jobBlock(text, 'srt')).not.toContain('needs:');
     });
 
-    it('has no workflow-level concurrency, and the guard can fail', () => {
+    it('serializes the whole chain with queue: max, and the guard can fail', () => {
         const good = read(PIPELINE);
         expect(() => assertPipelineContract(good)).not.toThrow();
-        // Adding a top-level concurrency group (which would drop queued chains)
-        // trips the guard.
-        const withGroup = good.replace(
-            'jobs:',
-            'concurrency:\n  group: pipeline-${{ github.ref }}\n\njobs:');
-        expect(withGroup).not.toBe(good);
-        expect(() => assertPipelineContract(withGroup)).toThrow();
-        // Removing the documented rationale also trips it.
-        const noNote = good.replace('Deliberately NO workflow-level `concurrency`', 'serialization');
-        expect(() => assertPipelineContract(noNote)).toThrow();
+        const block = concurrencyBlock(good);
+        // Downgrading queue: max to the single-pending default trips the guard.
+        const noQueue = good.replace(block, block.replace('queue: max', 'queue: 1'));
+        expect(noQueue).not.toBe(good);
+        expect(() => assertPipelineContract(noQueue)).toThrow();
+        // Removing the whole block trips it too.
+        const noBlock = good.replace(block, '');
+        expect(() => assertPipelineContract(noBlock)).toThrow();
     });
 
     it('the guard can fail on each required token', () => {
         const good = read(PIPELINE);
         const required = [
             'repository_dispatch:', 'types: [render-complete]', 'workflow_dispatch:',
+            'group: pipeline', 'queue: max',
             './.github/workflows/sync-srt.yml', './.github/workflows/translate-sheet.yml',
             './.github/workflows/configs.yml', 'needs: srt', 'needs: translate',
             'secrets: inherit',

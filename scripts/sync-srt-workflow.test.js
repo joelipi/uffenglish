@@ -16,10 +16,25 @@ const WORKFLOW = path.join(ROOT, '.github/workflows/sync-srt.yml');
 
 const read = () => readFileSync(WORKFLOW, 'utf8');
 
+/** The `concurrency:` block, up to the next column-0 key. */
+function concurrencyBlock(text) {
+    const start = text.indexOf('concurrency:');
+    if (start === -1) throw new Error('sync-srt.yml: concurrency block not found');
+    const rest = text.slice(start);
+    const next = /\n(?=\S)/.exec(rest);
+    return next ? rest.slice(0, next.index) : rest;
+}
+
 function assertSyncWorkflowContract(text) {
     // Triggers: manual + the one-click pipeline's `workflow_call` (story 051).
     expect(text).toContain('workflow_dispatch:');
     expect(text).toContain('workflow_call:');
+    // One global group; `queue: max` keeps queued runs instead of cancelling the
+    // older pending one.
+    const conc = concurrencyBlock(text);
+    expect(conc).toContain('group: sync-srt');
+    expect(conc).toContain('cancel-in-progress: false');
+    expect(conc).toContain('queue: max');
     // Cloudflare R2 download credentials + the service account + sheet id.
     expect(text).toContain('secrets.CLOUDFLARE_API_TOKEN');
     expect(text).toContain('secrets.CLOUDFLARE_ACCOUNT_ID');
@@ -51,12 +66,21 @@ describe('sync-srt.yml source guard', () => {
             'secrets.CLOUDFLARE_API_TOKEN', 'secrets.CLOUDFLARE_ACCOUNT_ID',
             'secrets.GOOGLE_SERVICE_ACCOUNT_JSON', 'vars.GOOGLE_SHEET_ID',
             'secrets.GOOGLE_SHEET_ID', 'node scripts/write-srt-to-sheet.mjs',
+            'group: sync-srt', 'queue: max',
         ];
         for (const token of required) {
             const mutated = good.split(token).join('SENTINEL_REMOVED');
             expect(mutated, token).not.toContain(token);
             expect(() => assertSyncWorkflowContract(mutated), token).toThrow();
         }
+    });
+
+    it('the concurrency guard can fail on queue: max', () => {
+        const good = read();
+        const block = concurrencyBlock(good);
+        const mutated = good.replace(block, block.replace('queue: max', 'queue: 1'));
+        expect(mutated).not.toBe(good);
+        expect(() => assertSyncWorkflowContract(mutated)).toThrow();
     });
 
     it('re-adding a repo write path or the dispatch trips the absences', () => {

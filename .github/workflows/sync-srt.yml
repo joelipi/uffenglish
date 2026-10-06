@@ -14,10 +14,12 @@ permissions:
   contents: read
 
 # One global group: this mutates the single shared remote sheet, so two
-# concurrent runs could race the same cells.
+# concurrent runs could race the same cells. `queue: max` (not the default single
+# pending slot) keeps queued renders instead of cancelling the older pending run.
 concurrency:
   group: sync-srt
   cancel-in-progress: false
+  queue: max
 
 jobs:
   sync:
