@@ -4,6 +4,7 @@ import { appStore } from '../../modules/store/store.js';
 import { useSignupForm } from './SignupForm.jsx';
 import Strings from '../../data/strings.js';
 import { SIGNUP_LANGUAGES } from '../../data/languages.js';
+import LegalLinks from '../legal/LegalLinks.jsx';
 
 const ENGLISH_LEVELS = [
     { value: '', label: 'Select...', disabled: true },
@@ -146,6 +147,8 @@ export default function SignupForm({ onSignupSuccess, onLoginLink }) {
             <div className="text-center mt-3">
                 <p>{Strings.get('auth_already_account', lang)} <a href="#" onClick={(e) => { e.preventDefault(); onLoginLink?.(); }}>{Strings.get('auth_log_in_link', lang)}</a></p>
             </div>
+
+            <LegalLinks lang={lang} />
         </>
     );
 }

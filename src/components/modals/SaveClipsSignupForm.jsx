@@ -8,6 +8,7 @@ import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { useSignupForm } from '../auth/SignupForm.jsx';
 import Strings from '../../data/strings.js';
+import LegalLinks from '../legal/LegalLinks.jsx';
 
 export default function SaveClipsSignupForm({ onSignupSuccess, onLoginLink }) {
     const userData = useStore(appStore, (state) => state.userData);
@@ -109,6 +110,8 @@ export default function SaveClipsSignupForm({ onSignupSuccess, onLoginLink }) {
                     </a>
                 </p>
             </div>
+
+            <LegalLinks lang={lang} />
         </>
     );
 }
