@@ -3,6 +3,7 @@
 // records argv (mirrors scripts/optimize-videos.test.js).
 
 import { describe, it, expect, afterEach } from 'vitest';
+import { wranglerCommand } from './lib/cli-utils.js';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, chmodSync } from 'node:fs';
@@ -127,6 +128,22 @@ describe('upload-pipeline-assets CLI', () => {
         expect(src).toContain('PIPELINE_PRIVATE_BUCKET');
         // No literal `uff/` bucket prefix (the string `uff-private` is fine).
         expect(src).not.toMatch(/\buff\/pipeline-assets/);
+    });
+});
+
+describe('cli-utils wranglerCommand', () => {
+    it('uses `npx wrangler` on POSIX', () => {
+        expect(wranglerCommand(['r2', 'object', 'put'], 'linux')).toEqual({
+            bin: 'npx',
+            args: ['wrangler', 'r2', 'object', 'put'],
+        });
+    });
+
+    it('runs the local wrangler JS with node on Windows (npx.cmd cannot be execFile-d)', () => {
+        const { bin, args } = wranglerCommand(['r2', 'object', 'put'], 'win32');
+        expect(bin).toBe(process.execPath);
+        expect(args[0]).toMatch(/node_modules[\\/]wrangler[\\/]bin[\\/]wrangler\.js$/);
+        expect(args.slice(1)).toEqual(['r2', 'object', 'put']);
     });
 });
 
