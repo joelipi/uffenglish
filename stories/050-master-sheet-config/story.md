@@ -69,11 +69,13 @@ Master rows do not include intro/success steps. When the corresponding columns a
 
 ### 6. SRT write-back: pipeline persists, Action writes the sheet (Option B)
 
+**Pipeline step key (amendment).** `group_prefix_for_filename`'s leading-non-digit rule collapses a whole lesson on the master's filenames (`wouldyourather_b01_i01` → `wouldyourather_b`), while the config's step granularity is the `video_file` column. The pipeline therefore keys each group by the row's **non-blank `video_file`** when the sheet carries that column, falling back to the filename-prefix rule only for legacy sheets without `video_file`. One key (`pipeline_lib.group_key_for_filename`) drives `group_videos_by_prefix`, `load_join_plan` and `write_srt_column`, so the rendered video, the join value and the SRT share step granularity; the `filename → video_file` map is read from the CSV (`load_video_file_map`) and passed through `concatenate_all_processed_videos` and the Modal orchestrator.
+
 Today `video_pipeline.write_srt_column` writes the computed SRT into the CSV it read, and the Modal run (`docs/video-pipeline/modal_app.py` `orchestrator`) **never uploads that CSV back** — the cloud SRT is lost. Change:
 
 1. **Modal persists** the updated `video_data.csv` (now carrying the `srt` column) back to R2 at the same `pipeline-assets/video_data.csv` key after concatenation (`storage.upload_file`). One extra upload; no stage change.
 2. **A GitHub Action** (`.github/workflows/sync-srt.yml`) downloads that CSV from R2 (via the existing Cloudflare/wrangler credentials) and runs a Node script that writes the `srt` column into the master sheet with one `spreadsheets.values.batchUpdate` (`valueInputOption: 'RAW'`), reusing the 049 service-account path.
-3. **Overwrite `srt` unconditionally** — it is derived, so blanks-only does not apply. Rows are matched by `filename`; the script writes each group's SRT **verbatim (the JSON-escaped string from the CSV)** to every row of that group's `video_file` (matching `write_srt_column`'s per-group value), so the generator's `unescapeSrt` still applies.
+3. **Overwrite `srt` unconditionally** — it is derived, so blanks-only does not apply. Rows are matched by `filename`; the script keys groups by exactly the pipeline's step key (`video_file`, else filename prefix) and writes each group's SRT **verbatim (the JSON-escaped string from the CSV)** to every row of that group, so the generator's `unescapeSrt` still applies.
 
 ### 7. Repoint the three consumers (decision)
 
@@ -110,6 +112,12 @@ It writes a CSV the operator imports; it performs no sheet write.
   - → one step whose `simpleVideoUrl === "wouldyourather_b01"`, cue array spanning both groups in first-seen order
 - master rows with `srt` on the group
   - → `step.subtitles === { en: <unescaped srt> }`
+- master rows where a joined step has `srt` on both `video_file` parts
+  - → the parts' first-non-blank SRTs are concatenated with `\n\n` (first-seen order) before `unescapeSrt`, so subtitles span both option videos like the cue array
+- master rows with a localized `srt_<lang>`
+  - → `srt_<lang>` is taken verbatim (operator/translation text, not pipeline-escaped), unlike the English `srt`
+- master rows with conflicting non-blank `response_type` within one step
+  - → throws (mirrors the authoring path's `singleValue`), not silently first-non-blank
 - master rows with non-blank overlay `subtitle_text` and no `srt`
   - → `step.subtitles` is undefined (overlay markup is never used)
 - master rows with `intro_video` on a lesson
@@ -130,6 +138,8 @@ It writes a CSV the operator imports; it performs no sheet write.
 - a master CSV missing a required config column (`course_id`/`lesson_id`/`lesson_title`/`response_type`)
   - → reports it via `findMissingColumns` (never reports the optional new columns)
   - → a joined step (`join` set) is validated as one step, mirroring `buildSteps`' `join` grouping
+- a sheet whose `course_id` is filled once per course (blank on later rows)
+  - → `buildCourseConfigs` partitions by the carried-forward `course_id`; a leading blank still forms the `""` partition and reports `course_id` missing
 
 ### Task 3 - Repoint the recorder + translator
 
@@ -154,11 +164,17 @@ It writes a CSV the operator imports; it performs no sheet write.
 
 ### Task 5 - SRT write-back (pipeline persists + Action writes the sheet)
 
+- `pipeline_lib.group_key_for_filename(filename, video_file_map)`
+  - → returns the non-blank `video_file` value when the map has one, else the filename prefix (`wouldyourather_b01_i01` → `wouldyourather_b01_i` with the map, `wouldyourather_b` without)
+- `video_pipeline.py` `group_videos_by_prefix` / `load_join_plan` / `write_srt_column`
+  - → all group by that one key; `concatenate_all_processed_videos` takes the `filename → video_file` map (`load_video_file_map`) and passes it to the grouping
 - `docs/video-pipeline/modal_app.py` after concatenation
+  - → passes `load_video_file_map` into `concatenate_all_processed_videos` and `write_srt_column`
   - → uploads the updated `video_data.csv` to `pipeline-assets/video_data.csv`
 - `scripts/write-srt-to-sheet.mjs` with an injected Sheets client and a CSV carrying `srt`
+  - → keys groups by the same rule (`video_file`, else filename prefix); a parity test matches it to `pipeline_lib.group_key_for_filename` for the master filenames
   - → issues exactly one `values.batchUpdate`
-  - → each group's SRT is written to every sheet row of that group's `video_file` (matched by `filename`)
+  - → each group's SRT is written to every sheet row of that group (matched by `filename`)
   - → `valueInputOption === 'RAW'`
   - → a second run with identical input is idempotent (same values written; no error)
 - `scripts/write-srt-to-sheet.mjs` with a group whose `srt` is blank
@@ -184,7 +200,7 @@ It writes a CSV the operator imports; it performs no sheet write.
 - **Live master:** spreadsheet id `1Lfoj7yLyGtgDKIuq8SQvQ8ZK5KpwlJzeAcHEBLzjV6o`, gid `242913338`, published CSV `2PACX-1vQZ7jFMJNnmylDoHxaqb1W8VyXi0OV4pSubCbqMGYkRgGimqWx3cs74n43-cFxqfue4KCiqWlhzvPkK`. Columns: `title_text, Order, app-repeat, app-ai, mirror, background, character, phrase, directions, props, effect, bgSound, endSoundEffect, h3, previousline, filename, join, video_file, footer_text, bgMusic, subtitle_text, foreground, overlay, image`. Only 8 carry data; `join` is set on lessons b/d/f (`wouldyourather_b01`…).
 - **Generator field/enum definitions:** `REQUIRED_COLUMNS`, `RESPONSE_TYPES`, `RECAP_SOURCES`, `RECAP_OVERLAYS`, `isVideoRow`, `buildCourseConfig`, `buildSteps`, `cueFor`, `subtitlesFor`, `parseCsv` all live in `scripts/lib/sheet-config-utils.js`; the CLI is `scripts/generate-config-from-sheet.mjs`.
 - **Translator:** `scripts/lib/sheet-translate-utils.js` (`TRANSLATABLE_FIELDS`, `planSheetTranslations`, `buildBatchUpdatePayload`, `rowsFromValues`) + `scripts/translate-sheet.mjs`; service account scope `https://www.googleapis.com/auth/spreadsheets`; secret `GOOGLE_SERVICE_ACCOUNT_JSON`; repo variable `GOOGLE_SHEET_ID`.
-- **Video pipeline SRT:** `docs/video-pipeline/video_pipeline.py` `build_group_srt` (1483), `to_json_subtitle_string` (1576), `write_srt_column` (1582, called at 1765). The pipeline does not consume the `Order` column; group order is by filename natural sort.
+- **Video pipeline grouping/SRT:** the pure step key lives in `docs/video-pipeline/pipeline_lib.py` (`group_key_for_filename`, `group_prefix_for_filename`); `docs/video-pipeline/video_pipeline.py` reads `filename → video_file` (`load_video_file_map`) and uses that key in `group_videos_by_prefix`, `load_join_plan`, `write_srt_column` and `concatenate_all_processed_videos`, with `build_group_srt`/`to_json_subtitle_string` producing the SRT. The pipeline does not consume the `Order` column; group order is by filename natural sort.
 - **Modal:** `docs/video-pipeline/modal_app.py` `orchestrator` (102) downloads `pipeline-assets/video_data.csv` (79) and calls `storage.upload_file`/`upload_json`; `storage.py` routes `pipeline-assets/` to the private bucket via `R2_*` env.
 - **Existing R2/Cloudflare secrets in Actions:** `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (`.github/workflows/deploy.yml`); `configs.yml` accepts `repository_dispatch (render-complete)`.
 - **Reference configs:** `src/config/wouldrather.json`, `src/config/friendchain.json` — friend-chain intros are `{friendCode}<courseId>-<lessonId>-response-NN`; `success` uses `enda` in both (this story's new course uses the simpler slug `success`), with the same localized success SRT.

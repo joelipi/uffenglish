@@ -85,6 +85,34 @@ def processed_web_name(filename: str) -> str:
     return f"{PROCESSED_PREFIX}{filename}{VIDEO_EXTENSION}"
 
 
+def group_prefix_for_filename(filename) -> str:
+    """Legacy step key: the leading non-digit run of a CSV ``filename`` (with
+    trailing ``_- `` stripped). Used only when a sheet has no ``video_file``
+    column, so legacy sheets keep their per-prefix grouping."""
+    base = str(filename)
+    if not base.endswith(VIDEO_EXTENSION):
+        base += VIDEO_EXTENSION
+    name_without_ext = os.path.splitext(base)[0]
+    match = re.match(r"^([^\d]*)", name_without_ext)
+    prefix = match.group(1).rstrip("_- ") if match else name_without_ext
+    return prefix or name_without_ext
+
+
+def group_key_for_filename(filename, video_file_map=None) -> str:
+    """The step key for a CSV ``filename`` (story 050).
+
+    Its non-blank ``video_file`` value when the sheet carries the column, else
+    ``group_prefix_for_filename``. One key drives the rendered video, the join
+    and the SRT, so they cannot disagree on step granularity. ``video_file_map``
+    is ``filename -> video_file``.
+    """
+    if video_file_map:
+        video_file = str(video_file_map.get(str(filename), "") or "").strip()
+        if video_file:
+            return video_file
+    return group_prefix_for_filename(filename)
+
+
 # --------------------------------------------------------------------------- #
 # Local-vs-container seams
 # --------------------------------------------------------------------------- #

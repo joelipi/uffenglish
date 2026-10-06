@@ -27,8 +27,37 @@ import {
     resolveTabFromGid,
 } from './translate-sheet.mjs';
 
+// The pipeline's VIDEO_EXTENSION (`pipeline_lib.VIDEO_EXTENSION`), used by the
+// legacy prefix key so the two runtimes cannot drift on the suffix.
+const VIDEO_EXTENSION = '_no_silence_bg_removed.mp4';
+
 /**
- * Plan one write per sheet row whose `filename` belongs to a `video_file` group
+ * The legacy step key, mirroring `pipeline_lib.group_prefix_for_filename`:
+ * everything before the first digit, with trailing `_- ` stripped.
+ */
+export function groupPrefixForFilename(filename) {
+    let base = String(filename ?? '');
+    if (!base.endsWith(VIDEO_EXTENSION)) base += VIDEO_EXTENSION;
+    const dot = base.lastIndexOf('.');
+    const nameWithoutExt = dot === -1 ? base : base.slice(0, dot);
+    const match = /^([^\d]*)/.exec(nameWithoutExt);
+    const prefix = match ? match[1].replace(/[-_ ]+$/, '') : nameWithoutExt;
+    return prefix || nameWithoutExt;
+}
+
+/**
+ * The step key for a CSV row, mirroring `pipeline_lib.group_key_for_filename`:
+ * the non-blank `video_file` value when the sheet carries the column, else the
+ * filename prefix. This is exactly the key the pipeline rendered and joined
+ * under, so the write-back targets the same groups.
+ */
+export function groupKeyForRow(row) {
+    const videoFile = String(row?.video_file ?? '').trim();
+    return videoFile || groupPrefixForFilename(row?.filename);
+}
+
+/**
+ * Plan one write per sheet row whose `filename` belongs to a step-key group
  * with a non-blank `srt`. `write_srt_column` writes the group's value to every
  * CSV row of the group, so the first non-blank value is the group value; rows
  * are matched to the sheet by `filename`. Pure.
@@ -42,7 +71,7 @@ import {
 export function planSrtWrites({ csvText, rows, sheetRows } = {}) {
     const { rows: csvRows } = parseCsv(csvText);
 
-    const groupKey = (row) => String(row.video_file ?? '').trim() || String(row.filename ?? '');
+    const groupKey = (row) => groupKeyForRow(row);
     const srtOf = (row) => (row.srt === undefined || row.srt === null ? '' : String(row.srt));
 
     // The group's first non-blank `srt` (the pipeline writes it to every row of

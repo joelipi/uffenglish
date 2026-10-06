@@ -80,14 +80,24 @@ export function introVideoFor(lesson) {
     return INTRO_VIDEOS[lesson] ?? '';
 }
 
-/** The canonical friend-lesson success subtitles (`{en,es,pt,bn}`) from friendchain.json. */
+/**
+ * The canonical friend-lesson success subtitles (`{en,es,pt,bn}`) from
+ * friendchain.json. Asserts every success step carries the same subtitles, so
+ * copying the first one cannot silently pick a divergent lesson.
+ */
 export function successSubtitlesFromFriendchain(config) {
+    let canonical;
     for (const lesson of config?.lessons || []) {
         for (const step of lesson?.steps || []) {
-            if (step?.responseType === 'success' && step.subtitles) return step.subtitles;
+            if (step?.responseType !== 'success' || !step.subtitles) continue;
+            if (canonical === undefined) { canonical = step.subtitles; continue; }
+            if (JSON.stringify(canonical) !== JSON.stringify(step.subtitles)) {
+                throw new Error('friendchain.json success subtitles are not identical across lessons');
+            }
         }
     }
-    throw new Error('friendchain.json has no success step with subtitles');
+    if (canonical === undefined) throw new Error('friendchain.json has no success step with subtitles');
+    return canonical;
 }
 
 function firstNonBlank(rows, name) {

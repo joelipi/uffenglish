@@ -304,19 +304,21 @@ function singleValue(groupRows, name, context) {
 }
 
 /**
- * Master step grouping: a step is one video, keyed by the `join` value when
- * non-blank, else `video_file`. Returns the step groups in first-seen order,
- * each with its `video_file` sub-groups in first-seen order (a joined step
- * concatenates two option videos, so its cue array spans both sub-groups).
+ * The single master grouping: a step is one video, keyed by the `join` value
+ * when non-blank, else `video_file`. Returns the step groups in first-seen
+ * order, each with its `video_file` sub-groups in first-seen order (a joined
+ * step concatenates two option videos, so its cue array spans both sub-groups).
+ * Rows with neither key are skipped; callers that must fail on them (the
+ * builder) check first, so the detector and the builder cannot drift.
  */
-function masterStepGroups(lessonRows) {
+function groupMasterRowsByKey(lessonRows) {
     const order = [];
     const byKey = new Map();
     for (const row of lessonRows) {
         const join = cell(row, 'join').trim();
         const videoFile = cell(row, 'video_file').trim();
         const key = join || videoFile;
-        if (!key) throw new Error(`row "${cell(row, 'filename')}" is missing video_file/join`);
+        if (!key) continue;
         if (!byKey.has(key)) { byKey.set(key, { subOrder: [], subs: new Map() }); order.push(key); }
         const group = byKey.get(key);
         if (!group.subs.has(videoFile)) { group.subs.set(videoFile, []); group.subOrder.push(videoFile); }
@@ -364,26 +366,43 @@ function masterCueFor(subgroups) {
 
 /**
  * Master app subtitles: from `srt` only (the master's `subtitle_text` is
- * burnt-in overlay markup, never app subtitles). `srt_<lang>` localizes it.
- * Blank -> undefined (the key is omitted).
+ * burnt-in overlay markup, never app subtitles). Each sub-group contributes its
+ * first non-blank `srt`, joined by `\n\n` in first-seen order, so a joined
+ * step's subtitles span both option videos like its cue array. The English value
+ * is the pipeline-written JSON-escaped string (`unescapeSrt`); `srt_<lang>` is
+ * operator/translation text and is taken verbatim. Blank -> undefined.
  */
-function masterSubtitlesFor(groupRows) {
-    const en = firstNonBlank(groupRows, 'srt');
-    if (!en) return undefined;
-    const obj = { en: unescapeSrt(en) };
+function masterSubtitlesFor(subgroups) {
+    const enParts = [];
+    const langParts = new Map(SHEET_LANGUAGES.map((lang) => [lang, []]));
+    for (const { rows } of subgroups) {
+        const en = firstNonBlank(rows, 'srt');
+        if (en) enParts.push(en);
+        for (const lang of SHEET_LANGUAGES) {
+            const v = firstNonBlank(rows, localizedColumn('srt', lang));
+            if (v) langParts.get(lang).push(v);
+        }
+    }
+    if (enParts.length === 0) return undefined;
+    const obj = { en: unescapeSrt(enParts.join('\n\n')) };
     for (const lang of SHEET_LANGUAGES) {
-        const v = firstNonBlank(groupRows, localizedColumn('srt', lang));
-        if (v) obj[lang] = unescapeSrt(v);
+        const parts = langParts.get(lang);
+        if (parts.length) obj[lang] = parts.join('\n\n');
     }
     return obj;
 }
 
 /** Build steps from the overlay master (steps in first-seen group order). */
 function buildMasterSteps(lessonRows) {
+    const keyless = lessonRows.find((row) => !cell(row, 'join').trim() && !cell(row, 'video_file').trim());
+    if (keyless) throw new Error(`row "${cell(keyless, 'filename')}" is missing video_file/join`);
+
     const steps = [];
-    for (const { key, subgroups } of masterStepGroups(lessonRows)) {
+    for (const { key, subgroups } of groupMasterRowsByKey(lessonRows)) {
         const stepRows = subgroups.flatMap((group) => group.rows);
-        const responseType = firstNonBlank(stepRows, 'response_type');
+        // A step's `response_type` must be unambiguous (mirrors the authoring
+        // path's `singleValue`); blanks are ignored, disagreements throw.
+        const responseType = singleValue(stepRows, 'response_type', `video_file "${key}"`);
         if (!responseType) throw new Error(`video_file "${key}": missing response_type`);
         if (!RESPONSE_TYPES.includes(responseType)) {
             throw new Error(`video_file "${key}": unknown response_type "${responseType}"`);
@@ -398,7 +417,7 @@ function buildMasterSteps(lessonRows) {
         const step = { responseType, simpleVideoUrl: key };
         const cue = masterCueFor(subgroups);
         if (cue !== undefined) step.cue = cue;
-        const subtitles = masterSubtitlesFor(stepRows);
+        const subtitles = masterSubtitlesFor(subgroups);
         if (subtitles !== undefined) step.subtitles = subtitles;
         steps.push(step);
     }
@@ -659,18 +678,10 @@ function findMissingMasterColumns(videoRows) {
         const rowsForLesson = lessonRows.get(lessonId);
         if (!firstNonBlank(rowsForLesson, 'lesson_title')) add('lesson_title', `lesson "${lessonId}"`);
 
-        // Group by `join` else `video_file`, skipping keyless rows (this detector
-        // must never throw) — mirrors buildMasterSteps.
-        const groupOrder = [];
-        const groups = new Map();
-        for (const row of rowsForLesson) {
-            const key = cell(row, 'join').trim() || cell(row, 'video_file').trim();
-            if (!key) continue;
-            if (!groups.has(key)) { groups.set(key, []); groupOrder.push(key); }
-            groups.get(key).push(row);
-        }
-        for (const key of groupOrder) {
-            const groupRows = groups.get(key);
+        // The same grouping buildMasterSteps uses (keyless rows skipped here;
+        // this detector must never throw).
+        for (const { key, subgroups } of groupMasterRowsByKey(rowsForLesson)) {
+            const groupRows = subgroups.flatMap((group) => group.rows);
             if (!firstNonBlank(groupRows, 'response_type')) {
                 add('response_type', `video_file "${key}"`);
             }
@@ -773,10 +784,16 @@ export function findMissingColumns(rows) {
 export function buildCourseConfigs(rows) {
     const videoRows = (rows || []).filter(isVideoRow);
 
+    // `course_id` is course-scoped and may be filled once (blank on later rows),
+    // so a blank cell belongs to the most recent non-blank value above it. A
+    // leading blank still forms the `""` partition and is reported missing.
     const order = [];
     const partitions = new Map();
+    let currentCourseId = '';
     for (const row of videoRows) {
-        const courseId = cell(row, 'course_id').trim();
+        const cellCourseId = cell(row, 'course_id').trim();
+        if (cellCourseId) currentCourseId = cellCourseId;
+        const courseId = cellCourseId || currentCourseId;
         if (!partitions.has(courseId)) { partitions.set(courseId, []); order.push(courseId); }
         partitions.get(courseId).push(row);
     }

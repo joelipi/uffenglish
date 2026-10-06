@@ -79,6 +79,16 @@ describe('seed-master-columns helpers', () => {
         expect(success.es.length).toBeGreaterThan(0);
     });
 
+    it('successSubtitlesFromFriendchain rejects divergent success subtitles', () => {
+        const divergent = {
+            lessons: [
+                { steps: [{ responseType: 'success', subtitles: { en: 'A' } }] },
+                { steps: [{ responseType: 'success', subtitles: { en: 'B' } }] },
+            ],
+        };
+        expect(() => successSubtitlesFromFriendchain(divergent)).toThrow(/not identical/);
+    });
+
     it('serializeCsv quotes fields containing commas, quotes, and newlines', () => {
         const csv = serializeCsv(['a', 'b'], [{ a: 'x,y', b: 'he said "hi"\nbye' }]);
         expect(parseCsv(csv).rows[0]).toEqual({ a: 'x,y', b: 'he said "hi"\nbye' });

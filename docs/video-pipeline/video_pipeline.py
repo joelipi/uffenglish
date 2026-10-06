@@ -74,6 +74,7 @@ from pydub.silence import detect_nonsilent
 
 from pipeline_lib import (
     chrome_flags,
+    group_key_for_filename,
     missing_required_fonts,
     resolve_web_profile,
     resolve_work_dir,
@@ -861,7 +862,15 @@ def run_background_removal(background_mapping, mirror_mapping, only=None):
 # Stage 3 — overlays / effects / audio / concatenation -> social + web
 # =============================================================================
 
-def group_videos_by_prefix(directory=None):
+def group_videos_by_prefix(directory=None, video_file_map=None):
+    """Processed clips grouped by their step key.
+
+    The key is the CSV `video_file` value when the sheet carries one (so the
+    rendered video, the join and the SRT share the config's step granularity),
+    else the legacy filename prefix. `video_file_map` is `filename -> video_file`
+    (see `load_video_file_map`); without it a sheet that has no `video_file`
+    column keeps the old per-prefix behavior.
+    """
     if directory is None:
         directory = str(SOCIAL_DIR)
     if not os.path.exists(directory):
@@ -870,12 +879,11 @@ def group_videos_by_prefix(directory=None):
                  if f.lower().endswith(VIDEO_EXTENSION) and f.startswith('processed_')]
     grouped = defaultdict(list)
     for filename in filenames:
-        name_without_ext = os.path.splitext(filename.replace('processed_', ''))[0]
-        match = re.match(r'^([^\d]*)', name_without_ext)
-        prefix = (match.group(1).rstrip('_- ') if match else name_without_ext) or name_without_ext
-        grouped[prefix].append(filename)
-    for prefix in grouped:
-        grouped[prefix].sort(key=natural_sort_key)
+        original = processed_to_original(filename)
+        key = group_key_for_filename(original, video_file_map)
+        grouped[key].append(filename)
+    for key in grouped:
+        grouped[key].sort(key=natural_sort_key)
     return dict(grouped)
 
 
@@ -902,26 +910,33 @@ def get_background_music_from_csv(csv_file, prefix):
     return None
 
 
-def group_prefix_for_filename(filename):
-    """The same group prefix `group_videos_by_prefix` derives from a processed
-    file, computed from a CSV `filename` value (so a join plan can be built
-    before/independently of the rendered files)."""
-    base = str(filename)
-    if not base.endswith(VIDEO_EXTENSION):
-        base += VIDEO_EXTENSION
-    name_without_ext = os.path.splitext(base)[0]        # e.g. video_01_no_silence_bg_removed
-    match = re.match(r'^([^\d]*)', name_without_ext)
-    prefix = match.group(1).rstrip('_- ') if match else name_without_ext
-    return prefix or name_without_ext
+def load_video_file_map(csv_file):
+    """CSV `filename` -> `video_file` (the step key).
+
+    Empty when the sheet has no `video_file` column, so a legacy sheet keeps the
+    filename-prefix grouping.
+    """
+    mapping = {}
+    try:
+        df = pd.read_csv(csv_file, dtype=str).fillna('')
+    except Exception as e:
+        print(f"⚠️ Could not read {csv_file} for the video_file map: {e}")
+        return mapping
+    for _, row in df.iterrows():
+        filename = safe_get_value(row, 'filename')
+        if filename:
+            mapping[filename] = safe_get_value(row, 'video_file')
+    return mapping
 
 
 def load_join_plan(csv_file):
     """Read the optional `join` column.
 
     Returns `(join_plan, joined_prefixes)`:
-      - join_plan: {join_value: [prefix, ...]} in CSV row order (first-seen prefix
-        order within each join value, deduped).
-      - joined_prefixes: every prefix that participates in any join (so its part
+      - join_plan: {join_value: [step_key, ...]} in CSV row order (first-seen step
+        key order within each join value, deduped). A step key is the row's
+        `video_file` when present, else the filename prefix.
+      - joined_prefixes: every step key that participates in any join (so its part
         is rendered without per-part music; music is applied once to the join).
     """
     join_plan = {}
@@ -932,11 +947,17 @@ def load_join_plan(csv_file):
         print(f"⚠️ Could not read {csv_file} for join plan: {e}")
         return join_plan, joined_prefixes
 
+    video_file_map = {}
+    for _, row in df.iterrows():
+        filename = safe_get_value(row, 'filename')
+        if filename:
+            video_file_map[filename] = safe_get_value(row, 'video_file')
+
     for _, row in df.iterrows():
         join_value = safe_get_value(row, 'join')
         if not join_value:
             continue
-        prefix = group_prefix_for_filename(safe_get_value(row, 'filename'))
+        prefix = group_key_for_filename(safe_get_value(row, 'filename'), video_file_map)
         if not prefix:
             continue
         joined_prefixes.add(prefix)
@@ -1579,9 +1600,14 @@ def to_json_subtitle_string(srt_text):
     return srt_text.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n')
 
 
-def write_srt_column(csv_file, srt_by_prefix):
+def write_srt_column(csv_file, srt_by_prefix, video_file_map=None):
     """Write each group's SRT into the CSV `srt` column (same value on every
-    row of that group), in the config (JSON-escaped) format."""
+    row of that group), in the config (JSON-escaped) format.
+
+    The group key is `video_file` when the sheet carries it, else the filename
+    prefix — the same key `group_videos_by_prefix` rendered under. `video_file_map`
+    is optional; it is rebuilt from the CSV when omitted.
+    """
     if not srt_by_prefix:
         return
     try:
@@ -1589,9 +1615,15 @@ def write_srt_column(csv_file, srt_by_prefix):
     except Exception as e:
         print(f"⚠️ Could not read {csv_file} to write srt column: {e}")
         return
+    if video_file_map is None:
+        video_file_map = {}
+        for _, row in df.iterrows():
+            filename = safe_get_value(row, 'filename')
+            if filename:
+                video_file_map[filename] = safe_get_value(row, 'video_file')
     df['srt'] = ''
     for i, row in df.iterrows():
-        prefix = group_prefix_for_filename(safe_get_value(row, 'filename'))
+        prefix = group_key_for_filename(safe_get_value(row, 'filename'), video_file_map)
         if prefix in srt_by_prefix:
             df.at[i, 'srt'] = to_json_subtitle_string(srt_by_prefix[prefix])
     df.to_csv(csv_file, index=False)
@@ -1686,9 +1718,9 @@ def concatenate_joined_videos(join_plan):
     return results
 
 
-def concatenate_all_processed_videos(joined_prefixes=None, phrase_map=None):
+def concatenate_all_processed_videos(joined_prefixes=None, phrase_map=None, video_file_map=None):
     joined_prefixes = joined_prefixes or set()
-    grouped_videos = group_videos_by_prefix(str(SOCIAL_DIR))
+    grouped_videos = group_videos_by_prefix(str(SOCIAL_DIR), video_file_map)
     if not grouped_videos:
         return {}, {}
     results = {}
@@ -1761,8 +1793,9 @@ def main():
         process_video_batch(csv_file, max_workers=args.workers, only=only)
         join_plan, joined_prefixes = load_join_plan(csv_file)
         phrase_map = load_phrase_map(csv_file)
-        _, srt_by_prefix = concatenate_all_processed_videos(joined_prefixes, phrase_map)
-        write_srt_column(csv_file, srt_by_prefix)
+        video_file_map = load_video_file_map(csv_file)
+        _, srt_by_prefix = concatenate_all_processed_videos(joined_prefixes, phrase_map, video_file_map)
+        write_srt_column(csv_file, srt_by_prefix, video_file_map)
         if join_plan:
             print(f"\n{'='*60}\nJOIN: concatenating related videos\n{'='*60}")
             concatenate_joined_videos(join_plan)

@@ -617,6 +617,19 @@ describe('buildCourseConfigs', () => {
         expect(only.error.missing).toContainEqual({ column: 'course_id', where: 'course' });
     });
 
+    it('partitions courses by carried-forward course_id (filled once per course)', () => {
+        const csv = [
+            'course_id,course_name,lesson_id,lesson_title,response_type,video_file,filename,order',
+            'alpha,Alpha,a,Lesson A,viewAndContinue,alpha-v1,alpha1,1',
+            ',Alpha,a,Lesson A,viewAndContinue,alpha-v2,alpha2,2',
+            'beta,Beta,b,Lesson B,viewAndContinue,beta-v1,beta1,1',
+        ].join('\n');
+        const results = buildCourseConfigs(parseCsv(csv).rows);
+        expect(results.map((r) => r.courseId)).toEqual(['alpha', 'beta']);
+        expect(results[0].config.lessons[0].steps).toHaveLength(2);
+        expect(results[1].config.lessons[0].lessonId).toBe('b');
+    });
+
     it('matches the single-course primitive on one course', () => {
         const csv = [
             'course_id,course_name,lesson_id,lesson_title,response_type,video_file,filename,order',
@@ -709,6 +722,41 @@ describe('master format (overlay master)', () => {
     it('never uses the overlay subtitle_text when there is no srt', () => {
         const rows = [{ ...base, video_file: 'v', filename: 'f', order: '1', phrase: 'Q', subtitle_text: '<aside>🅰1️⃣</aside>' }];
         expect('subtitles' in steps(rows)[0]).toBe(false);
+    });
+
+    it('concatenates each sub-group srt for a joined step', () => {
+        const rows = [
+            { ...base, video_file: 'b_i', filename: 'f1', order: '1', phrase: 'O1', join: 'J', srt: 'A\\npart one' },
+            { ...base, video_file: 'b_ii', filename: 'f2', order: '1', phrase: 'O2', join: 'J', srt: 'B\\npart two' },
+        ];
+        const [step] = steps(rows);
+        expect(step.subtitles).toEqual({ en: 'A\npart one\n\nB\npart two' });
+    });
+
+    it('a joined step with srt on one part keeps just that part', () => {
+        const rows = [
+            { ...base, video_file: 'b_i', filename: 'f1', order: '1', phrase: 'O1', join: 'J', srt: 'A\\nonly' },
+            { ...base, video_file: 'b_ii', filename: 'f2', order: '1', phrase: 'O2', join: 'J' },
+        ];
+        expect(steps(rows)[0].subtitles).toEqual({ en: 'A\nonly' });
+    });
+
+    it('takes srt_<lang> verbatim (operator text, not pipeline-escaped)', () => {
+        const rows = [{
+            ...base, video_file: 'v', filename: 'f', order: '1', phrase: 'Q',
+            srt: '1\\n00:00 --> 00:01\\nHi', srt_es: 'literal\\nbackslash',
+        }];
+        const [step] = steps(rows);
+        expect(step.subtitles.en).toBe('1\n00:00 --> 00:01\nHi');
+        expect(step.subtitles.es).toBe('literal\\nbackslash');
+    });
+
+    it('throws on conflicting response_type within a step', () => {
+        const rows = [
+            { ...base, response_type: 'friendClosedResponse', video_file: 'v', filename: 'f1', order: '1', phrase: 'Q1' },
+            { ...base, response_type: 'viewAndContinue', video_file: 'v', filename: 'f2', order: '2', phrase: 'Q2' },
+        ];
+        expect(() => steps(rows)).toThrow(/response_type/);
     });
 
     it('prepends a synthesized lessonIntro from intro_video', () => {
