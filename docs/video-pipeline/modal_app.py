@@ -57,6 +57,10 @@ cpu_image = (
         # compatible 11.x (12.3.0 makes the resolver fail the build).
         "pillow==11.3.0",
         "boto3==1.43.108",
+        # The orchestrator's module imports `trigger_app` (so the deploy includes
+        # the trigger), and `trigger_app` imports `fastapi` — so the CPU image
+        # needs fastapi too, or the orchestrator container fails to import.
+        "fastapi[standard]",
     )
     # `.env` is a build step, so it must come before `.add_local_dir`: Modal
     # requires `add_local_*` to be the last build step (otherwise the build

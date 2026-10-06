@@ -42,6 +42,11 @@ class ModalImageGuardTest(unittest.TestCase):
         self.assertIn("PYTHONPATH", image)
         self.assertIn("PIPELINE_WORKDIR", image)
         self.assertIn("PIPELINE_CHROME_NO_SANDBOX", image)
+        # Story 054: the orchestrator's module imports `trigger_app` (so the
+        # deploy includes the trigger), and `trigger_app` imports `fastapi` — so
+        # the CPU image must carry fastapi or the orchestrator container fails to
+        # import and never writes its status marker (the recorder then polls 404).
+        self.assertIn('"fastapi[standard]"', image)
 
     def test_reuses_the_existing_lesson_app_without_the_gpu_function(self):
         # Story 053: this module reuses only the `uff-lesson-video` app handle;
