@@ -6,6 +6,23 @@
 
 import { execFile } from 'node:child_process';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// The local wrangler entry (a devDependency). On Windows we must invoke it with
+// the running node: `execFile('npx', …)` fails with `spawn npx ENOENT` because
+// `npx` is `npx.cmd`, which cannot be launched without a shell. On POSIX we keep
+// `npx` (tests shim it on PATH).
+const WRANGLER_JS = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'node_modules', 'wrangler', 'bin', 'wrangler.js'
+);
+
+/** The `{ bin, args }` that runs wrangler on the given platform. */
+export function wranglerCommand(args, platform = process.platform) {
+    if (platform === 'win32') {
+        return { bin: process.execPath, args: [WRANGLER_JS, ...args] };
+    }
+    return { bin: 'npx', args: ['wrangler', ...args] };
+}
 
 export function run(bin, args, { maxBuffer = 64 * 1024 * 1024 } = {}) {
     return new Promise((resolve, reject) => {
@@ -45,7 +62,8 @@ export function flagValue(args, name) {
 
 export async function wranglerMajor() {
     try {
-        const out = await run('npx', ['wrangler', '--version']);
+        const { bin, args } = wranglerCommand(['--version']);
+        const out = await run(bin, args);
         const m = /(?:wrangler\s+)?(\d+)\./.exec(out);
         return m ? parseInt(m[1], 10) : 0;
     } catch {
@@ -59,10 +77,11 @@ export async function wranglerMajor() {
  * emulator; wrangler 3.x is remote-only and rejects the flag).
  */
 export async function uploadObjectToR2({ r2Key, file, contentType, remoteArg = null }) {
-    const args = ['wrangler', 'r2', 'object', 'put'];
-    if (remoteArg) args.push(remoteArg);
-    args.push(r2Key, '--file', file, '--content-type', contentType);
-    await run('npx', args);
+    const wranglerArgs = ['r2', 'object', 'put'];
+    if (remoteArg) wranglerArgs.push(remoteArg);
+    wranglerArgs.push(r2Key, '--file', file, '--content-type', contentType);
+    const { bin, args } = wranglerCommand(wranglerArgs);
+    await run(bin, args);
 }
 
 export async function ensureFfmpeg() {

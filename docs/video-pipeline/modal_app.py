@@ -1,14 +1,14 @@
 """Modal app for the cloud lesson-video pipeline (story 040, Task 7).
 
-Joins the existing ``video_pipeline`` app rather than starting a second one: the
-T4 BiRefNet function is reused as-is, and this module attaches the CPU
-orchestrator and the proxy-auth trigger to the same app. One deploy ships both:
+Attaches the CPU orchestrator and the proxy-auth trigger to the
+``uff-lesson-video`` app defined in ``video_pipeline``:
 
     modal deploy docs/video-pipeline/modal_app.py
 
-The import of ``app`` and ``process_video_background_modal`` is load-bearing:
-Modal only discovers the Functions reachable from the entrypoint module's import
-graph, so removing it would silently deploy an app without the GPU function.
+This app registers **no** GPU function (Modal refuses a new T4 function without a
+payment method). Background removal calls the separately deployed
+``video-background-removal`` app by name through ``modal.Function.from_name``;
+that app is not imported here, so the deploy graph stays CPU-only.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ import time
 import modal
 from fastapi import HTTPException
 
-from video_pipeline import app, process_video_background_modal  # noqa: F401
+from video_pipeline import app
 import video_pipeline as pipeline
 import storage
 from pipeline_lib import (
@@ -50,10 +50,14 @@ cpu_image = (
         "opencv-python-headless==5.0.0.93",
         "pydub==0.25.1",
         "numpy==2.5.3",
-        "pillow==12.3.0",
+        # moviepy==2.2.1 requires pillow<12.0, so the CPU image pins a
+        # compatible 11.x (12.3.0 makes the resolver fail the build).
+        "pillow==11.3.0",
         "boto3==1.43.108",
     )
-    .add_local_dir("docs/video-pipeline", remote_path="/root/pipeline")
+    # `.env` is a build step, so it must come before `.add_local_dir`: Modal
+    # requires `add_local_*` to be the last build step (otherwise the build
+    # fails with "a build step after add_local_*").
     .env({
         "PYTHONPATH": "/root/pipeline",
         "PIPELINE_WORKDIR": WORKDIR,
@@ -61,6 +65,7 @@ cpu_image = (
         "PIPELINE_WEB_TARGET_LONG_EDGE": "720",
         "PIPELINE_WEB_AUDIO_BITRATE": "96k",
     })
+    .add_local_dir("docs/video-pipeline", remote_path="/root/pipeline")
 )
 
 secret = modal.Secret.from_name("uff-r2")

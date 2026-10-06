@@ -8,12 +8,14 @@ fail: each slices the specific region and asserts a token that exists once.
 
 import ast
 import os
+import re
 import sys
 import unittest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 PIPELINE = REPO_ROOT / "docs" / "video-pipeline" / "video_pipeline.py"
+MODAL_APP = REPO_ROOT / "docs" / "video-pipeline" / "modal_app.py"
 
 
 def read() -> str:
@@ -162,19 +164,77 @@ class OnlyScopeGuardTest(unittest.TestCase):
 
 
 class ModalGuardTest(unittest.TestCase):
-    def test_gpu_function_and_app_name_preserved(self):
+    """Story 053: no GPU function on the lesson app; background removal calls
+    the separately deployed `video-background-removal` function by name. This is
+    the single home for the video_pipeline/deploy-graph source guards; the
+    behavioral tests live in test_background_removal_wiring.py."""
+
+    @staticmethod
+    def _decorators(text):
+        # `@app.function(...)` up to its closing paren (one level of nesting).
+        return re.findall(r"@app\.function\((?:[^()]|\([^()]*\))*\)", text)
+
+    def _assert_resolver(self, text):
+        resolver = slice_between(
+            text, "def background_removal_remote(", "def process_video_background(")
+        self.assertIn(
+            'modal.Function.from_name("video-background-removal", "process_video_background_modal")',
+            resolver,
+        )
+        # A lookup failure must name the app so the operator can act on it.
+        self.assertIn("video-background-removal", resolver.split("except", 1)[1])
+
+    def _assert_call(self, text):
+        body = slice_between(text, "def process_video_background(", "def get_original_filename")
+        self.assertIn("background_removal_remote().remote(", body)
+        self.assertIn("fps=0, fast_mode=True, max_workers=10", body)
+        # A deployed function needs no app run context, locally or otherwise.
+        self.assertNotIn("with app.run():", body)
+        self.assertNotIn("modal.is_local()", body)
+
+    def test_app_name_preserved_and_gpu_function_moved_out(self):
         text = read()
         self.assertIn('app = modal.App("uff-lesson-video")', text)
-        self.assertNotIn("video-background-removal", text)
-        self.assertIn("def process_video_background_modal", text)
-        self.assertIn('gpu="T4"', text)
+        # The T4 BiRefNet function moved to background_removal_app.py.
+        self.assertNotIn("def process_video_background_modal", text)
 
-    def test_local_gpu_call_guarded_by_modal_is_local(self):
-        text = read()
-        body = slice_between(text, "def process_video_background(", "def get_original_filename")
-        self.assertIn("modal.is_local()", body)
-        self.assertIn("with app.run():", body)
-        self.assertIn(".remote(", body)
+    def test_deploy_graph_registers_no_gpu_function(self):
+        # Task 3: the two modules that register `@app.function`s -- modal_app.py
+        # and video_pipeline.py -- must register no GPU function.
+        seen = 0
+        for path in (PIPELINE, MODAL_APP):
+            text = path.read_text(encoding="utf-8")
+            self.assertNotIn("gpu=", text, str(path))
+            for decorator in self._decorators(text):
+                seen += 1
+                self.assertNotIn("gpu", decorator, str(path))
+        # The scan is not vacuous: the graph does register CPU functions.
+        self.assertGreater(seen, 0)
+
+    def test_resolves_the_deployed_function_by_name(self):
+        self._assert_resolver(read())
+
+    def test_background_removal_calls_deployed_function_without_app_run(self):
+        self._assert_call(read())
+
+    def test_guards_can_fail(self):
+        good = read()
+        resolver_literal = (
+            'modal.Function.from_name("video-background-removal", "process_video_background_modal")')
+        with self.assertRaises(AssertionError):
+            self._assert_resolver("SENTINEL".join(good.split(resolver_literal)))
+        with self.assertRaises(AssertionError):
+            self._assert_call(good.replace(
+                "output_bytes = background_removal_remote().remote(",
+                "with app.run():\n            output_bytes = background_removal_remote().remote(",
+            ))
+        mutated_gpu = good.replace(
+            'app = modal.App("uff-lesson-video")',
+            'app = modal.App("uff-lesson-video")\n\n@app.function(gpu="T4")\ndef tmp_gpu(): ...',
+        )
+        self.assertIn("gpu=", mutated_gpu)
+        with self.assertRaises(AssertionError):
+            self.assertNotIn("gpu=", mutated_gpu)
 
 
 class SyntaxGuardTest(unittest.TestCase):

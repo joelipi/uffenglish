@@ -890,24 +890,53 @@ node_video_preview.play(); // Explicitly restart playback
                 var response_handle = await fetch(spreadsheet_url + "&t=" + Date.now());
                 var csv_string = await response_handle.text();
                 
-                var data_lines = csv_string.split("\n").filter(function(row) {
-                    return row.trim() !== "";
+                // RFC-4180 parse: quoted fields may contain commas, newlines and
+                // "" escapes. The master's success_srt* cells are multi-line, so a
+                // line-based split would corrupt every row after the first one.
+                function parseCsvText(text) {
+                    var rows = [];
+                    var row = [];
+                    var field = "";
+                    var inQuotes = false;
+                    for (var i = 0; i < text.length; i++) {
+                        var ch = text[i];
+                        if (inQuotes) {
+                            if (ch === '"') {
+                                if (text[i + 1] === '"') { field += '"'; i++; }
+                                else { inQuotes = false; }
+                            } else { field += ch; }
+                        } else if (ch === '"') {
+                            inQuotes = true;
+                        } else if (ch === ',') {
+                            row.push(field); field = "";
+                        } else if (ch === '\n' || ch === '\r') {
+                            if (ch === '\r' && text[i + 1] === '\n') i++;
+                            row.push(field); field = "";
+                            rows.push(row); row = [];
+                        } else {
+                            field += ch;
+                        }
+                    }
+                    if (field !== "" || row.length > 0) { row.push(field); rows.push(row); }
+                    return rows;
+                }
+
+                var data_rows = parseCsvText(csv_string).filter(function(r) {
+                    return r.some(function(c) { return String(c).trim() !== ""; });
                 });
                 
-                var header_row = data_lines[0].split(",").map(function(h) {
+                var header_row = data_rows[0].map(function(h) {
                     return h.trim().toLowerCase();
                 });
                 
                 global_script_phrases = [];
                 
-                for (var i = 1; i < data_lines.length; i++) {
-                    var cell_data = data_lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(function(c) { 
-                        return c.trim().replace(/^"|"$/g, ''); 
-                    });
+                for (var i = 1; i < data_rows.length; i++) {
+                    var cell_data = data_rows[i];
                     
                     var entry_object = {};
                     for (var j = 0; j < header_row.length; j++) {
-                        entry_object[header_row[j]] = cell_data[j];
+                        entry_object[header_row[j]] = cell_data[j] === undefined ? "" : cell_data[j];
                     }
                     global_script_phrases.push(entry_object);
                 }

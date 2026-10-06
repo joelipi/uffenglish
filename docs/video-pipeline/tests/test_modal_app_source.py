@@ -39,9 +39,14 @@ class ModalImageGuardTest(unittest.TestCase):
         self.assertIn("PIPELINE_WORKDIR", image)
         self.assertIn("PIPELINE_CHROME_NO_SANDBOX", image)
 
-    def test_reuses_the_existing_app_and_gpu_function(self):
+    def test_reuses_the_existing_lesson_app_without_the_gpu_function(self):
+        # Story 053: this module reuses only the `uff-lesson-video` app handle;
+        # the T4 function is resolved from the separately deployed app. (The
+        # deploy-graph no-GPU scan and the `background_removal_app` import guard
+        # live in test_pipeline_source.py / test_background_removal_wiring.py.)
         text = read(APP)
-        self.assertIn("from video_pipeline import app, process_video_background_modal", text)
+        self.assertIn("from video_pipeline import app", text)
+        self.assertNotIn("process_video_background_modal", text)
 
 
 class OrchestratorGuardTest(unittest.TestCase):
