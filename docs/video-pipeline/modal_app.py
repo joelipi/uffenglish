@@ -50,7 +50,9 @@ cpu_image = (
         "opencv-python-headless==5.0.0.93",
         "pydub==0.25.1",
         "numpy==2.5.3",
-        "pillow==12.3.0",
+        # moviepy==2.2.1 requires pillow<12.0, so the CPU image pins a
+        # compatible 11.x (12.3.0 makes the resolver fail the build).
+        "pillow==11.3.0",
         "boto3==1.43.108",
     )
     .add_local_dir("docs/video-pipeline", remote_path="/root/pipeline")
