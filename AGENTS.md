@@ -20,6 +20,18 @@ Before trusting a guard, prove it can fail by temporarily injecting the thing it
 
 `useGuestModalGuard` opens the guest language/login modal for anonymous visitors on every non-auth route unless `isPublicHomeRoute(path)` is true (`src/modules/user/guest-modal-logic.js`). Any page that must be readable without that modal (e.g. `/privacy`, `/terms`) has to be added to `PUBLIC_ROUTES`; the lookup normalizes trailing slashes and case to mirror React Router's matching (`/Privacy`, `/privacy/` resolve to the page). Declare static routes before the single-segment `/:shareCode` catch-all, and cover the non-canonical forms in `guest-modal-logic.test.js`.
 
+## Importable `scripts/*.mjs` must guard their `main()`
+
+A script module whose exports are imported (not only run as a CLI) must wrap its entrypoint:
+
+```js
+const invokedDirectly = process.argv[1]
+    && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (invokedDirectly) main().catch((e) => { console.error('ERROR:', e.message); process.exit(1); });
+```
+
+`scripts/generate-config-from-sheet.mjs` called `main()` at import time, so importing its exported `SHEET_URL` from another script would have run the generator (fetch + write configs). Declare exports above the guard. Test the CLI as a subprocess so the guard still runs it.
+
 ## If local `main` advanced without the worktree following, sync before editing
 
 A ref can move ahead of the worktree when another process fetches/updates `main` without checking it out: `git status` then shows the whole delta as one huge staged changeset (here, ~14k deletions of the video pipeline and stories 040–046), and `git log` HEAD is a commit you never checked out. Confirm with `git rev-parse HEAD origin/main` and check whether the index equals another branch's tree (`git write-tree` vs `git rev-parse <ref>^{tree}`). If no work is unique, back it up (`git diff HEAD > /tmp/backup.patch`) and `git reset --hard HEAD` to sync the worktree to the real `main` before editing — never commit or discard a large diff you did not create without that check.
