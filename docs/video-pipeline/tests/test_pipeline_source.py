@@ -8,12 +8,14 @@ fail: each slices the specific region and asserts a token that exists once.
 
 import ast
 import os
+import re
 import sys
 import unittest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 PIPELINE = REPO_ROOT / "docs" / "video-pipeline" / "video_pipeline.py"
+MODAL_APP = REPO_ROOT / "docs" / "video-pipeline" / "modal_app.py"
 
 
 def read() -> str:
@@ -162,16 +164,15 @@ class OnlyScopeGuardTest(unittest.TestCase):
 
 
 class ModalGuardTest(unittest.TestCase):
-    """Story 052: the lesson app registers no GPU function; background removal
-    calls the separately deployed `video-background-removal` function by name."""
+    """Story 052: no GPU function on the lesson app; background removal calls
+    the separately deployed `video-background-removal` function by name. This is
+    the single home for the video_pipeline/deploy-graph source guards; the
+    behavioral tests live in test_background_removal_wiring.py."""
 
-    def _assert_no_gpu(self, text):
-        self.assertIn('app = modal.App("uff-lesson-video")', text)
-        # The T4 BiRefNet function moved to background_removal_app.py; this app
-        # must register no GPU function (a new T4 function is refused without a
-        # payment method).
-        self.assertNotIn("gpu=", text)
-        self.assertNotIn("def process_video_background_modal", text)
+    @staticmethod
+    def _decorators(text):
+        # `@app.function(...)` up to its closing paren (one level of nesting).
+        return re.findall(r"@app\.function\((?:[^()]|\([^()]*\))*\)", text)
 
     def _assert_resolver(self, text):
         resolver = slice_between(
@@ -191,8 +192,24 @@ class ModalGuardTest(unittest.TestCase):
         self.assertNotIn("with app.run():", body)
         self.assertNotIn("modal.is_local()", body)
 
-    def test_no_gpu_function_is_registered(self):
-        self._assert_no_gpu(read())
+    def test_app_name_preserved_and_gpu_function_moved_out(self):
+        text = read()
+        self.assertIn('app = modal.App("uff-lesson-video")', text)
+        # The T4 BiRefNet function moved to background_removal_app.py.
+        self.assertNotIn("def process_video_background_modal", text)
+
+    def test_deploy_graph_registers_no_gpu_function(self):
+        # Task 3: the two modules that register `@app.function`s -- modal_app.py
+        # and video_pipeline.py -- must register no GPU function.
+        seen = 0
+        for path in (PIPELINE, MODAL_APP):
+            text = path.read_text(encoding="utf-8")
+            self.assertNotIn("gpu=", text, str(path))
+            for decorator in self._decorators(text):
+                seen += 1
+                self.assertNotIn("gpu", decorator, str(path))
+        # The scan is not vacuous: the graph does register CPU functions.
+        self.assertGreater(seen, 0)
 
     def test_resolves_the_deployed_function_by_name(self):
         self._assert_resolver(read())
@@ -215,8 +232,9 @@ class ModalGuardTest(unittest.TestCase):
             'app = modal.App("uff-lesson-video")',
             'app = modal.App("uff-lesson-video")\n\n@app.function(gpu="T4")\ndef tmp_gpu(): ...',
         )
+        self.assertIn("gpu=", mutated_gpu)
         with self.assertRaises(AssertionError):
-            self._assert_no_gpu(mutated_gpu)
+            self.assertNotIn("gpu=", mutated_gpu)
 
 
 class SyntaxGuardTest(unittest.TestCase):

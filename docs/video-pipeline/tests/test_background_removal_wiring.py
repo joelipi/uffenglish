@@ -5,11 +5,12 @@
 Guards:
   - Task 1: ``background_removal_app.py`` defines the deployed app/function, and
     neither ``modal_app.py`` nor ``video_pipeline.py`` imports it.
-  - Task 3: the deploy graph (``modal_app.py`` + ``video_pipeline.py``) registers
-    no GPU function.
   - Task 2 (behavioral): the resolver returns ``modal.Function.from_name(...)``
     and names the app on failure; ``process_video_background`` calls the
     resolved function's ``.remote(...)`` with the exact args and no ``app.run()``.
+
+The video_pipeline/deploy-graph source guards (Tasks 2 source, 3 and 4) live in
+test_pipeline_source.py; this file adds the behavioral coverage they cannot.
 
 The behavioral tests load ``video_pipeline`` with its cinematic/ML imports
 stubbed, so CI (no moviepy/modal/torch) can still exercise the wiring.
@@ -17,7 +18,6 @@ stubbed, so CI (no moviepy/modal/torch) can still exercise the wiring.
 
 import importlib.util
 import os
-import re
 import sys
 import tempfile
 import types
@@ -64,43 +64,6 @@ class BackgroundRemovalAppGuardTest(unittest.TestCase):
     def test_deploy_graph_does_not_import_the_redeploy_module(self):
         for path in (MODAL_APP, VIDEO_PIPELINE):
             self.assertNotIn("background_removal_app", read(path), str(path))
-
-
-class DeployGraphGuardTest(unittest.TestCase):
-    """Task 3: the two modules that register `@app.function`s -- modal_app.py
-    (orchestrator, trigger) and video_pipeline.py (the app) -- must register no
-    GPU function. background_removal_app.py is deliberately excluded here; it is
-    the separately-deployed GPU app."""
-
-    FILES = (MODAL_APP, VIDEO_PIPELINE)
-
-    @staticmethod
-    def _decorators(text: str):
-        # `@app.function(...)` up to its closing paren (one level of nesting).
-        return re.findall(r"@app\.function\((?:[^()]|\([^()]*\))*\)", text)
-
-    def _assert_no_gpu(self, texts):
-        seen = 0
-        for path, text in texts.items():
-            self.assertNotIn("gpu=", text, str(path))
-            for decorator in self._decorators(text):
-                seen += 1
-                self.assertNotIn("gpu", decorator, str(path))
-        # The scan is not vacuous: the graph does register CPU functions.
-        self.assertGreater(seen, 0)
-
-    def test_deploy_graph_registers_no_gpu_function(self):
-        self._assert_no_gpu({p: read(p) for p in self.FILES})
-
-    def test_guard_can_fail(self):
-        real = {p: read(p) for p in self.FILES}
-        mutated = dict(real)
-        mutated[VIDEO_PIPELINE] = real[VIDEO_PIPELINE].replace(
-            'app = modal.App("uff-lesson-video")',
-            'app = modal.App("uff-lesson-video")\n\n@app.function(gpu="T4")\ndef tmp_gpu(): ...',
-        )
-        with self.assertRaises(AssertionError):
-            self._assert_no_gpu(mutated)
 
 
 class _Any:
