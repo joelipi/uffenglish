@@ -640,8 +640,6 @@ def run_silence_removal(args, background_mapping, mirror_mapping, only=None):
 # Stage 2 — background removal (Modal)
 # =============================================================================
 
-app = modal.App("uff-lesson-video")
-
 
 def background_removal_remote():
     """Resolve the deployed ``video-background-removal`` BiRefNet function.

@@ -5,9 +5,12 @@ against the source text. Guards slice specific regions and assert tokens that
 appear once, so deleting the wiring fails the test.
 """
 
+import ast
+import importlib.util
 import os
 import re
 import sys
+import types
 import unittest
 from pathlib import Path
 
@@ -15,6 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 APP = REPO_ROOT / "docs" / "video-pipeline" / "modal_app.py"
+TRIGGER = REPO_ROOT / "docs" / "video-pipeline" / "trigger_app.py"
 STORAGE = REPO_ROOT / "docs" / "video-pipeline" / "storage.py"
 
 
@@ -44,8 +48,10 @@ class ModalImageGuardTest(unittest.TestCase):
         # the T4 function is resolved from the separately deployed app. (The
         # deploy-graph no-GPU scan and the `background_removal_app` import guard
         # live in test_pipeline_source.py / test_background_removal_wiring.py.)
+        # Story 054: the app handle now comes from the lightweight trigger module
+        # (Modal imports that module in the fastapi-only trigger container).
         text = read(APP)
-        self.assertIn("from video_pipeline import app", text)
+        self.assertIn("from trigger_app import app, trigger", text)
         self.assertNotIn("process_video_background_modal", text)
 
 
@@ -85,13 +91,27 @@ class OrchestratorGuardTest(unittest.TestCase):
 
 
 class TriggerGuardTest(unittest.TestCase):
-    def test_trigger_uses_proxy_auth_and_spawn(self):
-        text = read(APP)
+    def _assert_trigger_contract(self, text):
         self.assertIn('@modal.fastapi_endpoint(method="POST", requires_proxy_auth=True)', text)
-        self.assertIn("orchestrator.spawn(", text)
+        self.assertIn('modal.Function.from_name("uff-lesson-video", "orchestrator").spawn(spec)', text)
         # The trigger needs no R2 credentials — the secret is orchestrator-only.
         header = slice_between(text, '@app.function(image=trigger_image', "def trigger(spec: dict):")
         self.assertNotIn("secret", header)
+
+    def test_trigger_uses_proxy_auth_and_spawn(self):
+        # Story 054: the endpoint lives in the lightweight `trigger_app` module
+        # (Modal imports it in the fastapi-only trigger container), so it spawns
+        # the orchestrator by name rather than by direct object reference.
+        self._assert_trigger_contract(read(TRIGGER))
+
+    def test_trigger_guard_can_fail(self):
+        good = read(TRIGGER)
+        for token in ('modal.Function.from_name("uff-lesson-video", "orchestrator").spawn(spec)',
+                      '@modal.fastapi_endpoint(method="POST", requires_proxy_auth=True)'):
+            mutated = "SENTINEL_REMOVED".join(good.split(token))
+            self.assertNotEqual(mutated, good, token)
+            with self.assertRaises(AssertionError, msg=token):
+                self._assert_trigger_contract(mutated)
 
     def test_gpu_seconds_flow_into_the_cost_estimate(self):
         text = read(APP)
@@ -120,6 +140,107 @@ class TriggerGuardTest(unittest.TestCase):
         fetch = slice_between(text, "def _fetch_assets(", "def _write_status(")
         self.assertIn("os.path.realpath", fetch)
         self.assertIn("startswith(os.path.realpath(workdir)", fetch)
+
+
+class DeployGraphImportGuardTest(unittest.TestCase):
+    """Story 054: the trigger container installs only ``fastapi[standard]``.
+
+    Modal imports the *defining* module of the trigger endpoint inside that
+    container, so ``trigger_app.py`` must import nothing from the pipeline and
+    ``modal_app.py`` must not import ``video_pipeline`` at module level (it is
+    imported lazily inside the orchestrator/publish functions, which run in the
+    CPU image that carries the source tree).
+    """
+
+    @staticmethod
+    def _module_level_imports(text):
+        tree = ast.parse(text)
+        names = set()
+        for node in tree.body:  # top level only — lazy imports are inside defs
+            if isinstance(node, ast.Import):
+                names.update(alias.name for alias in node.names)
+            elif isinstance(node, ast.ImportFrom):
+                names.add(node.module)
+        return names
+
+    def _assert_app_imports(self, text):
+        # No module-level pipeline import (the trigger container would need it)...
+        self.assertNotIn("video_pipeline", self._module_level_imports(text))
+        # ...but it must still be imported lazily, or the orchestrator breaks.
+        self.assertIn("import video_pipeline as pipeline", text)
+        body = slice_between(text, "def orchestrator(spec: dict):", "def _publish(")
+        self.assertIn("import video_pipeline as pipeline", body)
+        publish = slice_between(text, "def _publish(plan):", "def _probe(")
+        self.assertIn("import video_pipeline as pipeline", publish)
+
+    def _assert_trigger_imports(self, text):
+        # Only the trigger container's own deps; nothing from the pipeline.
+        imports = self._module_level_imports(text)
+        self.assertIn("modal", imports)
+        self.assertIn("fastapi", imports)
+        self.assertNotIn("video_pipeline", imports)
+        self.assertNotIn("video_pipeline", text)
+
+    def test_modal_app_has_no_module_level_pipeline_import(self):
+        self._assert_app_imports(read(APP))
+
+    def test_trigger_module_imports_no_pipeline(self):
+        self._assert_trigger_imports(read(TRIGGER))
+
+    def test_import_guards_can_fail(self):
+        # A module-level pipeline import must fail the modal_app guard.
+        with self.assertRaises(AssertionError):
+            self._assert_app_imports("import video_pipeline as pipeline\n" + read(APP))
+        # A pipeline import in the trigger module must fail the trigger guard.
+        with self.assertRaises(AssertionError):
+            self._assert_trigger_imports(read(TRIGGER) + "\nimport video_pipeline  # noqa: F401\n")
+
+
+class _StubModule(types.ModuleType):
+    """Returns a chainable sentinel for any attribute (stubbed heavy deps)."""
+
+    def __getattr__(self, name):
+        value = _Any()
+        setattr(self, name, value)
+        return value
+
+
+class _Any:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def __call__(self, *args, **kwargs):
+        return _Any()
+
+    def __getattr__(self, name):
+        return _Any()
+
+
+class TriggerModuleImportTest(unittest.TestCase):
+    """The trigger container installs only ``fastapi[standard]``, so importing
+    the module that defines the endpoint must not need the pipeline (the original
+    failure: ``ModuleNotFoundError: No module named 'video_pipeline'``)."""
+
+    def test_imports_with_only_modal_and_fastapi(self):
+        names = ("modal", "fastapi", "video_pipeline")
+        saved = {name: sys.modules.get(name) for name in names}
+        sys.modules["modal"] = _StubModule("modal")
+        sys.modules["fastapi"] = _StubModule("fastapi")
+        sys.modules.pop("video_pipeline", None)
+        try:
+            spec = importlib.util.spec_from_file_location("trigger_app_under_test", TRIGGER)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            # Assert inside the try, before `finally` restores sys.modules:
+            # loading the module must not have dragged the pipeline in.
+            self.assertNotIn("video_pipeline", sys.modules)
+            self.assertTrue(hasattr(module, "trigger"))
+        finally:
+            for name, old in saved.items():
+                if old is None:
+                    sys.modules.pop(name, None)
+                else:
+                    sys.modules[name] = old
 
 
 class SheetFetchGuardTest(unittest.TestCase):

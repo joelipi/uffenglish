@@ -1,7 +1,8 @@
 """Modal app for the cloud lesson-video pipeline (story 040, Task 7).
 
-Attaches the CPU orchestrator and the proxy-auth trigger to the
-``uff-lesson-video`` app defined in ``video_pipeline``:
+Registers the CPU orchestrator on the ``uff-lesson-video`` app and pulls in the
+proxy-auth trigger from ``trigger_app`` (the lightweight module Modal imports in
+the fastapi-only trigger container):
 
     modal deploy docs/video-pipeline/modal_app.py
 
@@ -9,6 +10,10 @@ This app registers **no** GPU function (Modal refuses a new T4 function without 
 payment method). Background removal calls the separately deployed
 ``video-background-removal`` app by name through ``modal.Function.from_name``;
 that app is not imported here, so the deploy graph stays CPU-only.
+
+``video_pipeline`` is imported **lazily** inside ``orchestrator``/``_publish``:
+a module-level import would be pulled into the trigger container, which has only
+``fastapi[standard]`` and no pipeline source/deps.
 """
 
 from __future__ import annotations
@@ -18,10 +23,8 @@ import os
 import time
 
 import modal
-from fastapi import HTTPException
 
-from video_pipeline import app
-import video_pipeline as pipeline
+from trigger_app import app, trigger  # noqa: F401 - `trigger` keeps the endpoint in the deploy graph
 import storage
 from pipeline_lib import (
     PIPELINE_ASSET_PREFIX,
@@ -141,6 +144,12 @@ def _write_status(job_id, status, stage, extra=None):
               secrets=[secret, github_secret])
 def orchestrator(spec: dict):
     """Run Stages 1-3 for a filename set and publish the web outputs to R2."""
+    # Lazy import: a module-level import is pulled into the fastapi-only trigger
+    # container when Modal imports the deploy module to resolve the endpoint;
+    # there it fails (no pipeline source/deps). The orchestrator's cpu_image
+    # carries the source tree on PYTHONPATH, so the import works here.
+    import video_pipeline as pipeline
+
     job_id = spec["jobId"]
     files = spec["files"]
     os.makedirs(WORKDIR, exist_ok=True)
@@ -234,6 +243,7 @@ def _publish(plan):
     import json
     import subprocess
     import tempfile
+    import video_pipeline as pipeline
 
     published = []
     for entry in plan:
@@ -302,15 +312,3 @@ def _top_level_boxes(buffer):
         offset += size
     return boxes
 
-
-trigger_image = modal.Image.debian_slim(python_version="3.12").pip_install("fastapi[standard]")
-
-
-@app.function(image=trigger_image)
-@modal.fastapi_endpoint(method="POST", requires_proxy_auth=True)
-def trigger(spec: dict):
-    """Validate a render request and spawn the orchestrator (returns immediately)."""
-    if not isinstance(spec, dict) or not spec.get("jobId") or not spec.get("files"):
-        raise HTTPException(status_code=400, detail="spec requires jobId and files")
-    orchestrator.spawn(spec)
-    return {"jobId": spec["jobId"]}
