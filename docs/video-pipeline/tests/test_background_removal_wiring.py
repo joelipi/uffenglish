@@ -1,4 +1,4 @@
-"""Story 052: the lesson pipeline reuses the already-deployed
+"""Story 053: the lesson pipeline reuses the already-deployed
 ``video-background-removal`` app instead of registering a GPU function on
 ``uff-lesson-video``.
 

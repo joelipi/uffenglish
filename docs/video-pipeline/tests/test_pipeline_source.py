@@ -164,7 +164,7 @@ class OnlyScopeGuardTest(unittest.TestCase):
 
 
 class ModalGuardTest(unittest.TestCase):
-    """Story 052: no GPU function on the lesson app; background removal calls
+    """Story 053: no GPU function on the lesson app; background removal calls
     the separately deployed `video-background-removal` function by name. This is
     the single home for the video_pipeline/deploy-graph source guards; the
     behavioral tests live in test_background_removal_wiring.py."""
