@@ -28,6 +28,10 @@ Before trusting a guard, prove it can fail by temporarily injecting the thing it
 
 `scripts/lib/sheet-config-utils.js` / `scripts/generate-config-from-sheet.mjs` read two sheet shapes, chosen by header: the **overlay master** (has a `phrase` column) and the **authoring sheet** (has `cue`/`cue_alt`). On the master a step is the `video_file` (or its `join` value, which is the published slug), the app `cue` is an ordered array built from the per-row `phrase` values, and app subtitles come **only** from the pipeline-written `srt` — the master's `subtitle_text` is burnt-in overlay markup (`<aside>…`), never app subtitles. The `phrase` header is the format switch. Before adding a field or changing a read, decide which shape it applies to and cover both; `docs/video-pipeline/authoring-sheet.md` documents only the authoring shape today.
 
+## The one-click pipeline chains reusable workflows; configs pushes with a PAT
+
+`.github/workflows/pipeline.yml` owns the `render-complete` `repository_dispatch` (sent best-effort by the Modal orchestrator via `pipeline_lib.dispatch_render_complete`) and chains `sync-srt.yml` → `translate-sheet.yml` → `configs.yml` as reusable workflows with `needs:` + `secrets: inherit`. The three called workflows keep `workflow_call` (plus their manual `workflow_dispatch`) and **must not** also declare `repository_dispatch` — the chain would run twice. `pipeline.yml` sets `permissions: contents: read`; the `configs` job still pushes because it authenticates with `secrets.GH_NEW_TOKEN` (a PAT), not `GITHUB_TOKEN` — a caller's permission ceiling does not cap a PAT. Modal's `GH_DISPATCH_TOKEN`/`GH_DISPATCH_REPO` live in the Modal `uff-github` secret; the dispatch is best-effort (unset → skipped, failure → recorded in the `done` status `extra.dispatch`, never fails the render).
+
 ## Importable `scripts/*.mjs` must guard their `main()`
 
 A script module whose exports are imported (not only run as a CLI) must wrap its entrypoint:
