@@ -28,3 +28,7 @@ bucket_name = "uff-private"
 # publishable defaults in functions/api/upload-segment.js.
 [vars]
 SUPABASE_URL = "https://jbrbmbmupjfangqvaevx.supabase.co"
+# Public Modal trigger URL used by functions/api/pipeline/render.js. It must live
+# here, not only in the dashboard: `wrangler pages deploy` applies [vars] and
+# drops dashboard plain-text vars not listed here (dashboard *secrets* survive).
+MODAL_RENDER_URL = "https://joel-56422--uff-lesson-video-trigger.modal.run"
