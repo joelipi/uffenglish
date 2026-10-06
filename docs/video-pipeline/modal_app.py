@@ -55,7 +55,9 @@ cpu_image = (
         "pillow==11.3.0",
         "boto3==1.43.108",
     )
-    .add_local_dir("docs/video-pipeline", remote_path="/root/pipeline")
+    # `.env` is a build step, so it must come before `.add_local_dir`: Modal
+    # requires `add_local_*` to be the last build step (otherwise the build
+    # fails with "a build step after add_local_*").
     .env({
         "PYTHONPATH": "/root/pipeline",
         "PIPELINE_WORKDIR": WORKDIR,
@@ -63,6 +65,7 @@ cpu_image = (
         "PIPELINE_WEB_TARGET_LONG_EDGE": "720",
         "PIPELINE_WEB_AUDIO_BITRATE": "96k",
     })
+    .add_local_dir("docs/video-pipeline", remote_path="/root/pipeline")
 )
 
 secret = modal.Secret.from_name("uff-r2")
