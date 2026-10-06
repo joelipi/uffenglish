@@ -27,6 +27,8 @@ import numpy as np
 from PIL import Image
 
 # Same intermediate encoding profile the pipeline uses for the social master.
+# Intentionally pinned copies: this module must not import video_pipeline (the
+# deploy graph has to stay CPU-only), so the values are duplicated on purpose.
 MASTER_CRF = "16"
 MASTER_PRESET = "fast"
 MASTER_PIX_FMT = "yuv420p"

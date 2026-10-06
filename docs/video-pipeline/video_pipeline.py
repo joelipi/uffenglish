@@ -68,7 +68,6 @@ from moviepy import (
     concatenate_videoclips,
     vfx,
 )
-from PIL import Image
 from pydub import AudioSegment
 from pydub.silence import detect_nonsilent
 

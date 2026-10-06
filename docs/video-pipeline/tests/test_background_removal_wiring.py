@@ -49,6 +49,9 @@ class BackgroundRemovalAppGuardTest(unittest.TestCase):
 
     def test_defines_the_deployed_app_and_gpu_function(self):
         text = read(BG_APP)
+        # Compiling (not importing) catches a syntax error in a module that is
+        # deliberately outside the deploy graph and never imported by tests.
+        compile(text, str(BG_APP), "exec")
         self.assertIn('modal.App("video-background-removal")', text)
         signature = slice_between(text, "def process_video_background_modal(",
                                   "):", )
@@ -64,7 +67,10 @@ class BackgroundRemovalAppGuardTest(unittest.TestCase):
 
 
 class DeployGraphGuardTest(unittest.TestCase):
-    """Task 3: modal_app.py + video_pipeline.py must register no GPU function."""
+    """Task 3: the two modules that register `@app.function`s -- modal_app.py
+    (orchestrator, trigger) and video_pipeline.py (the app) -- must register no
+    GPU function. background_removal_app.py is deliberately excluded here; it is
+    the separately-deployed GPU app."""
 
     FILES = (MODAL_APP, VIDEO_PIPELINE)
 
@@ -130,11 +136,15 @@ STUB_MODULES = (
 )
 
 
-def load_video_pipeline():
-    """Import ``video_pipeline`` with its heavy imports stubbed for CI."""
+def load_video_pipeline(modal_stub=None):
+    """Import ``video_pipeline`` with its heavy imports stubbed for CI.
+
+    ``modal_stub`` lets a test supply a pre-wired ``modal`` module (e.g. to spy
+    on ``Function.from_name`` while the module is being imported).
+    """
     saved = {name: sys.modules.get(name) for name in STUB_MODULES}
     for name in STUB_MODULES:
-        sys.modules[name] = _StubModule(name)
+        sys.modules[name] = modal_stub if (name == "modal" and modal_stub) else _StubModule(name)
     try:
         spec = importlib.util.spec_from_file_location("video_pipeline_under_test", VIDEO_PIPELINE)
         module = importlib.util.module_from_spec(spec)
@@ -169,6 +179,16 @@ class ResolverBehaviorTest(unittest.TestCase):
             with self.assertRaises(RuntimeError) as ctx:
                 self.vp.background_removal_remote()
         self.assertIn("video-background-removal", str(ctx.exception))
+
+    def test_import_does_not_resolve_the_function(self):
+        # The lookup is lazy: importing video_pipeline must not call
+        # Function.from_name, so an absent app cannot break an import.
+        modal_stub = _StubModule("modal")
+        modal_stub.Function = _Any()
+        from_name = mock.Mock()
+        modal_stub.Function.from_name = from_name
+        load_video_pipeline(modal_stub=modal_stub)
+        from_name.assert_not_called()
 
 
 class ProcessVideoBackgroundBehaviorTest(unittest.TestCase):
