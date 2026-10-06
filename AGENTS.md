@@ -24,6 +24,10 @@ Before trusting a guard, prove it can fail by temporarily injecting the thing it
 
 `docs/video-pipeline/video_pipeline.py` groups processed clips by the CSV `filename` prefix (`group_prefix_for_filename`, the leading non-digit run), which collapses a whole lesson on the overlay master (`wouldyourather_b01_i01` → `wouldyourather_b`) while the app config's step is the `video_file` column. The rendered video, the join and the SRT must all key by `pipeline_lib.group_key_for_filename` (non-blank `video_file`, else the legacy filename prefix), and `scripts/write-srt-to-sheet.mjs` mirrors that rule. When adding a stage that groups clips, route it through the shared key and assert it (a stage that re-derives its own prefix silently disagrees with the config). Compare step keys by **equality**, never `startswith`: sibling keys share a prefix (`wouldyourather_b01_i` is a prefix of `wouldyourather_b01_ii01`), so a substring match selects the wrong row (e.g. the wrong `bgMusic`).
 
+## The overlay master and the authoring sheet are two shapes for one generator
+
+`scripts/lib/sheet-config-utils.js` / `scripts/generate-config-from-sheet.mjs` read two sheet shapes, chosen by header: the **overlay master** (has a `phrase` column) and the **authoring sheet** (has `cue`/`cue_alt`). On the master a step is the `video_file` (or its `join` value, which is the published slug), the app `cue` is an ordered array built from the per-row `phrase` values, and app subtitles come **only** from the pipeline-written `srt` — the master's `subtitle_text` is burnt-in overlay markup (`<aside>…`), never app subtitles. The `phrase` header is the format switch. Before adding a field or changing a read, decide which shape it applies to and cover both; `docs/video-pipeline/authoring-sheet.md` documents only the authoring shape today.
+
 ## Importable `scripts/*.mjs` must guard their `main()`
 
 A script module whose exports are imported (not only run as a CLI) must wrap its entrypoint:
