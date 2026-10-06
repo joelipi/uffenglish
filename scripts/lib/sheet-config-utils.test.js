@@ -724,13 +724,17 @@ describe('master format (overlay master)', () => {
         expect('subtitles' in steps(rows)[0]).toBe(false);
     });
 
-    it('concatenates each sub-group srt for a joined step', () => {
+    it('reads the joined step srt value verbatim (no sub-group concatenation)', () => {
+        // The pipeline writes the join's cumulative-offset SRT to every row of
+        // the join; the generator must read that single value, not stitch parts.
+        const joined = '1\\n00:00:00,000 --> 00:00:10,000\\npart one\\n\\n2\\n00:00:10,000 --> 00:00:15,000\\npart two';
         const rows = [
-            { ...base, video_file: 'b_i', filename: 'f1', order: '1', phrase: 'O1', join: 'J', srt: 'A\\npart one' },
-            { ...base, video_file: 'b_ii', filename: 'f2', order: '1', phrase: 'O2', join: 'J', srt: 'B\\npart two' },
+            { ...base, video_file: 'b_i', filename: 'f1', order: '1', phrase: 'O1', join: 'J', srt: joined },
+            { ...base, video_file: 'b_ii', filename: 'f2', order: '1', phrase: 'O2', join: 'J', srt: joined },
         ];
         const [step] = steps(rows);
-        expect(step.subtitles).toEqual({ en: 'A\npart one\n\nB\npart two' });
+        expect(step.subtitles.en).toBe('1\n00:00:00,000 --> 00:00:10,000\npart one\n\n2\n00:00:10,000 --> 00:00:15,000\npart two');
+        expect(step.subtitles.en).not.toContain('part two\n\n1\n'); // no restart at 0
     });
 
     it('a joined step with srt on one part keeps just that part', () => {

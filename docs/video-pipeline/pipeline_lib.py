@@ -124,6 +124,47 @@ def step_key_matches(filename, step_key, video_file_map=None) -> bool:
 
 
 # --------------------------------------------------------------------------- #
+# SRT timing (one cursor model for groups and their joins)
+# --------------------------------------------------------------------------- #
+
+def format_srt_time(seconds) -> str:
+    """Seconds -> ``HH:MM:SS,mmm`` (SRT)."""
+    try:
+        seconds = max(0.0, float(seconds))
+    except (TypeError, ValueError):
+        seconds = 0.0
+    total_ms = int(round(seconds * 1000))
+    hours = total_ms // 3600000
+    minutes = (total_ms % 3600000) // 60000
+    secs = (total_ms % 60000) // 1000
+    millis = total_ms % 1000
+    return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
+
+
+def build_srt_from_segments(segments, start_cursor=0.0, start_index=0):
+    """SRT text for a sequence of ``(phrase, duration)`` segments.
+
+    The single timing model: cues start at ``start_cursor`` and number from
+    ``start_index``; a blank phrase emits no cue but still advances time. Returns
+    ``(srt_text_or_None, end_cursor, end_index)``. Passing a joined step's parts
+    as one flat segment list shifts every later part by the cumulative duration
+    of the earlier ones (cue numbering continues).
+    """
+    blocks = []
+    cursor = start_cursor
+    index = start_index
+    for phrase, duration in segments:
+        text = (phrase or "").strip()
+        if text:
+            index += 1
+            blocks.append(
+                f"{index}\n{format_srt_time(cursor)} --> {format_srt_time(cursor + duration)}\n{text}"
+            )
+        cursor += duration
+    return ("\n\n".join(blocks) if blocks else None), cursor, index
+
+
+# --------------------------------------------------------------------------- #
 # Local-vs-container seams
 # --------------------------------------------------------------------------- #
 

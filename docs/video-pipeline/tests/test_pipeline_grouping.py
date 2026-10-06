@@ -75,6 +75,31 @@ class GroupKeyBehaviorTest(unittest.TestCase):
         self.assertTrue(lib.step_key_matches("wouldyourather_b01_i01", "wouldyourather_b01_i", mapping))
 
 
+class SrtTimingBehaviorTest(unittest.TestCase):
+    """The one cursor model: a joined step's later parts shift by the cumulative
+    duration of the earlier parts (cue times do not restart at 0)."""
+
+    def test_joined_parts_are_offset_by_cumulative_duration(self):
+        srt, end_cursor, end_index = lib.build_srt_from_segments([("first", 10.0), ("second", 5.0)])
+        self.assertIn("1\n00:00:00,000 --> 00:00:10,000\nfirst", srt)
+        self.assertIn("2\n00:00:10,000 --> 00:00:15,000\nsecond", srt)
+        # The second part must not restart at 0.
+        self.assertNotIn("00:00:00,000 --> 00:00:05,000", srt)
+        self.assertEqual(end_cursor, 15.0)
+        self.assertEqual(end_index, 2)
+
+    def test_blank_phrase_advances_time_without_a_cue(self):
+        srt, end_cursor, end_index = lib.build_srt_from_segments([("", 4.0), ("second", 1.0)])
+        self.assertEqual(srt, "1\n00:00:04,000 --> 00:00:05,000\nsecond")
+        self.assertEqual(end_index, 1)
+        self.assertEqual(end_cursor, 5.0)
+
+    def test_empty_segments_yield_no_srt_but_still_advance(self):
+        srt, end_cursor, _ = lib.build_srt_from_segments([("", 3.0)])
+        self.assertIsNone(srt)
+        self.assertEqual(end_cursor, 3.0)
+
+
 class PipelineWiringSourceGuardTest(unittest.TestCase):
     """Every stage that groups clips must call the one shared key. Each guard is
     proven failable by mutating the real text."""
@@ -118,17 +143,27 @@ class PipelineWiringSourceGuardTest(unittest.TestCase):
         body = slice_between(text, "def write_srt_column(", "def _concat_video_files(")
         self.assertIn("group_key_for_filename(", body)
         self.assertIn("video_file_map_from_df(df)", body)
+        # Joined rows carry the join's cumulative-offset SRT, keyed by join value.
+        self.assertIn("safe_get_value(row, 'join')", body)
+        self.assertIn("key = join_value or group_key_for_filename(", body)
 
-    def test_write_srt_column_keys_by_group_key(self):
+    def test_write_srt_column_keys_by_group_key_and_join(self):
         self._srt_guard(read(PIPELINE))
 
     def test_write_srt_column_guard_can_fail(self):
-        mutated = read(PIPELINE).replace(
-            "prefix = group_key_for_filename(safe_get_value(row, 'filename'), video_file_map)",
-            "prefix = group_prefix_for_filename(safe_get_value(row, 'filename'))")
-        self.assertNotEqual(mutated, read(PIPELINE))
+        # Drop the join keying.
+        no_join = read(PIPELINE).replace(
+            "key = join_value or group_key_for_filename(safe_get_value(row, 'filename'), video_file_map)",
+            "key = group_key_for_filename(safe_get_value(row, 'filename'), video_file_map)")
+        self.assertNotEqual(no_join, read(PIPELINE))
         with self.assertRaises(AssertionError):
-            self._srt_guard(mutated)
+            self._srt_guard(no_join)
+        # Drop the shared step key.
+        no_key = read(PIPELINE).replace(
+            "group_key_for_filename(safe_get_value(row, 'filename'), video_file_map)",
+            "group_prefix_for_filename(safe_get_value(row, 'filename'))")
+        with self.assertRaises(AssertionError):
+            self._srt_guard(no_key)
 
     # -- get_background_music_from_csv ------------------------------------- #
     def _music_guard(self, text):
@@ -147,39 +182,84 @@ class PipelineWiringSourceGuardTest(unittest.TestCase):
         with self.assertRaises(AssertionError):
             self._music_guard(mutated)
 
+    # -- build_joined_srt -------------------------------------------------- #
+    def _joined_guard(self, text):
+        body = slice_between(text, "def build_joined_srt(", "def concatenate_video_group(")
+        self.assertIn("build_srt_from_segments(", body)
+        self.assertIn("_group_segments(", body)
+        self.assertIn("join_plan", body)
+
+    def test_build_joined_srt_reuses_the_cursor_model(self):
+        self._joined_guard(read(PIPELINE))
+
+    def test_build_joined_srt_guard_can_fail(self):
+        mutated = read(PIPELINE).replace(
+            "srt, _, _ = build_srt_from_segments(segments)",
+            "srt, _, _ = _group_segments(segments)")
+        self.assertNotEqual(mutated, read(PIPELINE))
+        with self.assertRaises(AssertionError):
+            self._joined_guard(mutated)
+
     # -- concatenate_all_processed_videos ---------------------------------- #
     def _concat_guard(self, text):
         body = slice_between(text, "def concatenate_all_processed_videos(", "# ===")
         self.assertIn("group_videos_by_prefix(str(SOCIAL_DIR), video_file_map)", body)
+        self.assertIn("build_joined_srt(join_plan, grouped_videos, phrase_map)", body)
 
-    def test_concatenate_all_processed_videos_passes_the_map(self):
+    def test_concatenate_all_processed_videos_passes_the_map_and_join_plan(self):
         self._concat_guard(read(PIPELINE))
 
     def test_concatenate_all_processed_videos_guard_can_fail(self):
-        mutated = read(PIPELINE).replace(
+        no_map = read(PIPELINE).replace(
             "group_videos_by_prefix(str(SOCIAL_DIR), video_file_map)",
             "group_videos_by_prefix(str(SOCIAL_DIR))")
+        self.assertNotEqual(no_map, read(PIPELINE))
+        with self.assertRaises(AssertionError):
+            self._concat_guard(no_map)
+        no_join = read(PIPELINE).replace(
+            "srt_by_prefix.update(build_joined_srt(join_plan, grouped_videos, phrase_map))",
+            "srt_by_prefix.update({})")
+        with self.assertRaises(AssertionError):
+            self._concat_guard(no_join)
+
+    # -- main() ------------------------------------------------------------ #
+    def _main_guard(self, text):
+        body = slice_between(text, "def main(", "if __name__")
+        self.assertIn("joined_prefixes, phrase_map, video_file_map, join_plan", body)
+
+    def test_main_passes_the_join_plan(self):
+        self._main_guard(read(PIPELINE))
+
+    def test_main_guard_can_fail(self):
+        mutated = read(PIPELINE).replace(
+            "joined_prefixes, phrase_map, video_file_map, join_plan",
+            "joined_prefixes, phrase_map, video_file_map")
         self.assertNotEqual(mutated, read(PIPELINE))
         with self.assertRaises(AssertionError):
-            self._concat_guard(mutated)
+            self._main_guard(mutated)
 
     # -- Modal orchestrator ------------------------------------------------ #
     def _modal_guard(self, text):
         body = slice_between(text, "def orchestrator(spec: dict):", "def _publish(")
         self.assertIn("pipeline.load_video_file_map(csv_file)", body)
-        self.assertIn("joined_prefixes, phrase_map, video_file_map", body)
+        self.assertIn("joined_prefixes, phrase_map, video_file_map, join_plan", body)
         self.assertIn("pipeline.write_srt_column(csv_file, srt_by_prefix, video_file_map)", body)
 
-    def test_modal_orchestrator_passes_the_map(self):
+    def test_modal_orchestrator_passes_the_map_and_join_plan(self):
         self._modal_guard(read(MODAL_APP))
 
     def test_modal_orchestrator_guard_can_fail(self):
-        mutated = read(MODAL_APP).replace(
+        no_join = read(MODAL_APP).replace(
+            "joined_prefixes, phrase_map, video_file_map, join_plan",
+            "joined_prefixes, phrase_map, video_file_map")
+        self.assertNotEqual(no_join, read(MODAL_APP))
+        with self.assertRaises(AssertionError):
+            self._modal_guard(no_join)
+        no_key = read(MODAL_APP).replace(
             "pipeline.write_srt_column(csv_file, srt_by_prefix, video_file_map)",
             "pipeline.write_srt_column(csv_file, srt_by_prefix)")
-        self.assertNotEqual(mutated, read(MODAL_APP))
         with self.assertRaises(AssertionError):
-            self._modal_guard(mutated)
+            self._modal_guard(no_key)
 
 
 if __name__ == "__main__":

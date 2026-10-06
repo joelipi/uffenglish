@@ -73,6 +73,7 @@ from pydub import AudioSegment
 from pydub.silence import detect_nonsilent
 
 from pipeline_lib import (
+    build_srt_from_segments,
     chrome_flags,
     group_key_for_filename,
     missing_required_fonts,
@@ -1484,20 +1485,6 @@ def load_phrase_map(csv_file):
     return phrases
 
 
-def format_srt_time(seconds):
-    """Seconds -> HH:MM:SS,mmm (SRT)."""
-    try:
-        seconds = max(0.0, float(seconds))
-    except (TypeError, ValueError):
-        seconds = 0.0
-    total_ms = int(round(seconds * 1000))
-    hours = total_ms // 3600000
-    minutes = (total_ms % 3600000) // 60000
-    secs = (total_ms % 60000) // 1000
-    millis = total_ms % 1000
-    return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
-
-
 def _segment_duration(clip, single):
     """Duration this clip contributes to the concatenated output, mirroring
     concatenate_video_group: a single-clip group is copied untrimmed; each clip
@@ -1511,14 +1498,9 @@ def _segment_duration(clip, single):
     return safe if safe > 0 else clip.duration
 
 
-def build_group_srt(filenames, input_dir, phrase_map, single):
-    """SRT (config format) for a concatenated group, or None if it has no
-    phrases. Cue timing matches the concatenated video."""
-    if not phrase_map:
-        return None
-    blocks = []
-    cursor = 0.0
-    index = 0
+def _group_segments(filenames, input_dir, phrase_map, single):
+    """`(phrase, duration)` per processed clip in a group's concatenated output."""
+    segments = []
     for f in filenames:
         original = processed_to_original(f)
         try:
@@ -1528,14 +1510,43 @@ def build_group_srt(filenames, input_dir, phrase_map, single):
         except Exception as e:
             print(f"⚠️ Could not read duration for {f}: {e}")
             continue
-        phrase = (phrase_map.get(original) or '').strip()
-        if phrase:
-            index += 1
-            blocks.append(
-                f"{index}\n{format_srt_time(cursor)} --> {format_srt_time(cursor + duration)}\n{phrase}"
-            )
-        cursor += duration  # empty phrase -> no cue, but time still advances
-    return "\n\n".join(blocks) if blocks else None
+        segments.append(((phrase_map.get(original) or '').strip(), duration))
+    return segments
+
+
+def build_group_srt(filenames, input_dir, phrase_map, single):
+    """SRT (config format) for a concatenated group, or None if it has no
+    phrases. Cue timing matches the concatenated video."""
+    if not phrase_map:
+        return None
+    srt, _, _ = build_srt_from_segments(_group_segments(filenames, input_dir, phrase_map, single))
+    return srt
+
+
+def build_joined_srt(join_plan, grouped_videos, phrase_map, input_dir=None):
+    """One SRT per join output, or `{}` when no part has a phrase.
+
+    The parts' segments are flattened in join order and fed through the same
+    cursor model, so each part's cues are shifted by the cumulative duration of
+    the preceding parts and cue numbering continues — the joined SRT lines up with
+    the concatenated `<joinValue>.mp4`."""
+    if not phrase_map:
+        return {}
+    if input_dir is None:
+        input_dir = str(SOCIAL_DIR)
+    joined = {}
+    for join_value, prefixes in (join_plan or {}).items():
+        parts = [prefix for prefix in prefixes if grouped_videos.get(prefix)]
+        if len(parts) < 2:
+            continue
+        segments = []
+        for prefix in parts:
+            filenames = grouped_videos.get(prefix) or []
+            segments.extend(_group_segments(filenames, input_dir, phrase_map, len(filenames) == 1))
+        srt, _, _ = build_srt_from_segments(segments)
+        if srt:
+            joined[join_value] = srt
+    return joined
 
 
 def concatenate_video_group(prefix, filenames, input_dir=None, skip_music=False,
@@ -1631,9 +1642,12 @@ def write_srt_column(csv_file, srt_by_prefix, video_file_map=None):
         video_file_map = video_file_map_from_df(df)
     df['srt'] = ''
     for i, row in df.iterrows():
-        prefix = group_key_for_filename(safe_get_value(row, 'filename'), video_file_map)
-        if prefix in srt_by_prefix:
-            df.at[i, 'srt'] = to_json_subtitle_string(srt_by_prefix[prefix])
+        # A row in a join carries the join's cumulative-offset SRT (keyed by the
+        # join value); every other row carries its step key's SRT.
+        join_value = safe_get_value(row, 'join')
+        key = join_value or group_key_for_filename(safe_get_value(row, 'filename'), video_file_map)
+        if key in srt_by_prefix:
+            df.at[i, 'srt'] = to_json_subtitle_string(srt_by_prefix[key])
     df.to_csv(csv_file, index=False)
     print(f"📝 Wrote 'srt' for {len(srt_by_prefix)} concatenated video(s) to '{csv_file}'")
 
@@ -1726,7 +1740,8 @@ def concatenate_joined_videos(join_plan):
     return results
 
 
-def concatenate_all_processed_videos(joined_prefixes=None, phrase_map=None, video_file_map=None):
+def concatenate_all_processed_videos(joined_prefixes=None, phrase_map=None,
+                                     video_file_map=None, join_plan=None):
     joined_prefixes = joined_prefixes or set()
     grouped_videos = group_videos_by_prefix(str(SOCIAL_DIR), video_file_map)
     if not grouped_videos:
@@ -1744,6 +1759,10 @@ def concatenate_all_processed_videos(joined_prefixes=None, phrase_map=None, vide
             results[prefix] = output_path
         if srt:
             srt_by_prefix[prefix] = srt
+    # Joined steps get one SRT with cumulative part offsets, keyed by the join
+    # value (the app step's simpleVideoUrl), replacing the per-base-group SRT for
+    # those rows.
+    srt_by_prefix.update(build_joined_srt(join_plan, grouped_videos, phrase_map))
     return results, srt_by_prefix
 
 # =============================================================================
@@ -1803,7 +1822,8 @@ def main():
         join_plan, joined_prefixes = load_join_plan(csv_file)
         phrase_map = load_phrase_map(csv_file)
         video_file_map = load_video_file_map(csv_file)
-        _, srt_by_prefix = concatenate_all_processed_videos(joined_prefixes, phrase_map, video_file_map)
+        _, srt_by_prefix = concatenate_all_processed_videos(
+            joined_prefixes, phrase_map, video_file_map, join_plan)
         write_srt_column(csv_file, srt_by_prefix, video_file_map)
         if join_plan:
             print(f"\n{'='*60}\nJOIN: concatenating related videos\n{'='*60}")

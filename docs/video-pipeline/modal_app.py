@@ -136,7 +136,7 @@ def orchestrator(spec: dict):
         # SRT (falling back to the filename prefix on legacy sheets without it).
         video_file_map = pipeline.load_video_file_map(csv_file)
         _, srt_by_prefix = pipeline.concatenate_all_processed_videos(
-            joined_prefixes, phrase_map, video_file_map)
+            joined_prefixes, phrase_map, video_file_map, join_plan)
         # Persist the computed SRT into the CSV (before the join, so the CSV
         # carries the per-step srt values), then after the join upload the updated
         # CSV back to R2 so the sync-srt action can write the `srt` column into

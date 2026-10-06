@@ -58,7 +58,7 @@ For a master step, `step.cue` is an **array of `{en, es?, pt?, bn?}` objects**, 
 
 ### 4. App subtitles come from `srt` only (decision)
 
-In master format `step.subtitles` is built from the group's `srt` column (English), localized by `srt_<lang>` if present. The master's `subtitle_text` is the **burnt-in English overlay markup** (`<aside>🅰1️⃣…</aside>`) and is **never** used as app subtitles: in master format `subtitlesFor` must not fall back to `subtitle_text`. A group with no `srt` emits no `subtitles` (rather than overlay markup).
+In master format `step.subtitles` is built from the step's `srt` column (English), localized by `srt_<lang>` if present. The master's `subtitle_text` is the **burnt-in English overlay markup** (`<aside>🅰1️⃣…</aside>`) and is **never** used as app subtitles: in master format `subtitlesFor` must not fall back to `subtitle_text`. A step with no `srt` emits no `subtitles` (rather than overlay markup). For a **joined** step the pipeline computes one SRT for the join output — each part's cues shifted by the cumulative duration of the preceding parts (cue numbering continues) — and writes it to every row of the join, so the generator reads that single value and never concatenates sub-group SRTs.
 
 ### 5. Synthesized `lessonIntro` / `success` steps (decision, Option A)
 
@@ -112,8 +112,8 @@ It writes a CSV the operator imports; it performs no sheet write.
   - → one step whose `simpleVideoUrl === "wouldyourather_b01"`, cue array spanning both groups in first-seen order
 - master rows with `srt` on the group
   - → `step.subtitles === { en: <unescaped srt> }`
-- master rows where a joined step has `srt` on both `video_file` parts
-  - → the parts' first-non-blank SRTs are concatenated with `\n\n` (first-seen order) before `unescapeSrt`, so subtitles span both option videos like the cue array
+- master rows where a joined step's rows all carry the pipeline's cumulative-offset joined `srt`
+  - → `step.subtitles === { en: <that single value, unescaped> }`; the generator reads one value per step and never concatenates sub-group SRTs
 - master rows with a localized `srt_<lang>`
   - → `srt_<lang>` is taken verbatim (operator/translation text, not pipeline-escaped), unlike the English `srt`
 - master rows with conflicting non-blank `response_type` within one step
@@ -219,4 +219,4 @@ It writes a CSV the operator imports; it performs no sheet write.
 - **The published CSV lags an API write** (Google re-publishes after a Sheets API update), so a config run immediately after the SRT write may read a stale `srt`; the write-back is for record-keeping and the next run picks it up.
 - **Set `GOOGLE_SHEET_ID` to the new spreadsheet id** (`1Lfoj7yLyGtgDKIuq8SQvQ8ZK5KpwlJzeAcHEBLzjV6o`) and share the service account on the new sheet; otherwise the 049 translate Action and the new sync-srt Action target the old sheet. The recorder/generator read the published CSV and need no secret.
 - **No sheet write from the sandbox.** The pre-fill is a CSV the operator uploads; the only automated sheet writers are the 049 translate Action and the new sync-srt Action, both with the service account.
-- **Joined-step SRT timing limitation (known).** A joined step's subtitles are the concatenation of each sub-group's own SRT (each starting at `0`), because the pipeline emits no SRT for the join output — the app's cue timings for the later option are therefore relative to its own part, not the joined video. The concatenation behavior is deliberate; the operator verifies the real-world timings and adjusts the sheet if needed.
+- **Joined-step SRT is computed by the pipeline with cumulative offsets.** When joining, the pipeline measures each part's `_full` duration and builds one SRT for the joined output, shifting each part's cues by the cumulative duration of the preceding parts and continuing the cue numbering (`build_joined_srt` reuses the `build_srt_from_segments` cursor model). It writes that SRT into the `srt` column of the join's rows (keyed by the `join` value), so the generator reads one value per step and never concatenates sub-group SRTs. A non-joined step's own SRT still starts at `0`.

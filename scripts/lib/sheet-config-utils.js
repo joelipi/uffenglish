@@ -366,28 +366,20 @@ function masterCueFor(subgroups) {
 
 /**
  * Master app subtitles: from `srt` only (the master's `subtitle_text` is
- * burnt-in overlay markup, never app subtitles). Each sub-group contributes its
- * first non-blank `srt`, joined by `\n\n` in first-seen order, so a joined
- * step's subtitles span both option videos like its cue array. The English value
- * is the pipeline-written JSON-escaped string (`unescapeSrt`); `srt_<lang>` is
- * operator/translation text and is taken verbatim. Blank -> undefined.
+ * burnt-in overlay markup, never app subtitles). The pipeline writes one SRT per
+ * step — for a joined step it is the join's cumulative-offset SRT written to
+ * every row of the join — so this reads the step's first non-blank `srt` and
+ * does NOT concatenate sub-groups. The English value is the pipeline-written
+ * JSON-escaped string (`unescapeSrt`); `srt_<lang>` is operator/translation text
+ * and is taken verbatim. Blank -> undefined.
  */
-function masterSubtitlesFor(subgroups) {
-    const enParts = [];
-    const langParts = new Map(SHEET_LANGUAGES.map((lang) => [lang, []]));
-    for (const { rows } of subgroups) {
-        const en = firstNonBlank(rows, 'srt');
-        if (en) enParts.push(en);
-        for (const lang of SHEET_LANGUAGES) {
-            const v = firstNonBlank(rows, localizedColumn('srt', lang));
-            if (v) langParts.get(lang).push(v);
-        }
-    }
-    if (enParts.length === 0) return undefined;
-    const obj = { en: unescapeSrt(enParts.join('\n\n')) };
+function masterSubtitlesFor(stepRows) {
+    const en = firstNonBlank(stepRows, 'srt');
+    if (!en) return undefined;
+    const obj = { en: unescapeSrt(en) };
     for (const lang of SHEET_LANGUAGES) {
-        const parts = langParts.get(lang);
-        if (parts.length) obj[lang] = parts.join('\n\n');
+        const v = firstNonBlank(stepRows, localizedColumn('srt', lang));
+        if (v) obj[lang] = v;
     }
     return obj;
 }
@@ -417,7 +409,7 @@ function buildMasterSteps(lessonRows) {
         const step = { responseType, simpleVideoUrl: key };
         const cue = masterCueFor(subgroups);
         if (cue !== undefined) step.cue = cue;
-        const subtitles = masterSubtitlesFor(subgroups);
+        const subtitles = masterSubtitlesFor(stepRows);
         if (subtitles !== undefined) step.subtitles = subtitles;
         steps.push(step);
     }
