@@ -23,6 +23,7 @@ import {
     resolveInitialGuestSelection,
 } from '../../modules/user/guest-modal-logic.js';
 import { trackEvent } from '../../modules/utils/posthog.js';
+import LegalLinks from '../legal/LegalLinks.jsx';
 
 /** Map language code to the native name (first part of the label). */
 function nativeName(code) {
@@ -257,6 +258,8 @@ export default function GuestLoginModal() {
                             </div>
                         </>
                     )}
+
+                    <LegalLinks lang={guestModalStep === 'select-language' ? step1Lang : step2Lang} />
                 </div>
             </div>
         </dialog>
