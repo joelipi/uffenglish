@@ -103,17 +103,21 @@ records takes and presses **render**:
 
 - **Modal dispatches `render-complete`.** After a successful publish the
   orchestrator POSTs a GitHub `repository_dispatch` (`event_type:
-  render-complete`). It is **best-effort**: if `GH_DISPATCH_REPO` /
-  `GH_DISPATCH_TOKEN` are unset the dispatch is skipped with a warning, and a
-  failed dispatch is recorded in the job's `done` status (`dispatch:
+  render-complete`). It is **best-effort**: if the secret's `GH_DISPATCH_REPO` /
+  `GH_DISPATCH_TOKEN` **values** are unset the dispatch is skipped with a warning,
+  and a failed dispatch is recorded in the job's `done` status (`dispatch:
   "sent" | "failed: …" | "skipped"`) — it never fails the render (the videos are
-  already published).
-- **One Modal secret, `uff-github`.** Add `GH_DISPATCH_REPO`
-  (`joelipi/uffenglish`) and `GH_DISPATCH_TOKEN` (a fine-grained PAT with
-  **Contents: read and write**, which `repository_dispatch` requires) to a Modal
-  secret named `uff-github`, attached to the orchestrator. Redeploy once
-  (`modal deploy docs/video-pipeline/modal_app.py`) to attach it; secrets are read
-  at call time, so rotating the token needs no redeploy.
+  already published). Only the values are optional; the `uff-github` secret itself
+  must exist (see below).
+- **One Modal secret, `uff-github` — a deploy prerequisite.** The orchestrator is
+  declared with `secrets=[uff-r2, uff-github]`, and `modal.Secret.from_name`
+  raises at invocation when the secret does not exist, so create it **before** the
+  orchestrator runs. Add `GH_DISPATCH_REPO` (`joelipi/uffenglish`) and
+  `GH_DISPATCH_TOKEN` (a fine-grained PAT with **Contents: read and write**, which
+  `repository_dispatch` requires) as its keys; the secret must exist even when
+  those keys are unset (the dispatch is then simply skipped). Redeploy once
+  (`modal deploy docs/video-pipeline/modal_app.py`) to attach it; secret values
+  are read at call time, so rotating the token needs no redeploy.
 - **`.github/workflows/pipeline.yml`** owns the `render-complete` trigger (and a
   manual `workflow_dispatch`) and chains the three actions as reusable
   workflows — `srt` → `translate` → `configs`, ordered by `needs:` — so a single

@@ -7,6 +7,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { concurrencyBlock, jobBlock } from './lib/workflow-guard-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -15,29 +16,6 @@ const SYNC_SRT = path.join(ROOT, '.github/workflows/sync-srt.yml');
 const CONFIGS = path.join(ROOT, '.github/workflows/configs.yml');
 
 const read = (p) => readFileSync(p, 'utf8');
-
-/** The lines of one 2-space-indented job block, so a `needs:`/`uses:` assertion
- * cannot be satisfied by a different job's line. */
-function jobBlock(text, name) {
-    const jobs = text.slice(text.indexOf('jobs:'));
-    const lines = jobs.split('\n');
-    const start = lines.findIndex((line) => new RegExp(`^  ${name}:\\s*$`).test(line));
-    if (start === -1) throw new Error(`pipeline.yml: job "${name}" not found`);
-    let end = lines.length;
-    for (let i = start + 1; i < lines.length; i++) {
-        if (/^  [A-Za-z0-9_-]+:\s*$/.test(lines[i])) { end = i; break; }
-    }
-    return lines.slice(start, end).join('\n');
-}
-
-/** The top-level `concurrency:` block, up to the next column-0 key. */
-function concurrencyBlock(text) {
-    const start = text.indexOf('concurrency:');
-    if (start === -1) throw new Error('pipeline.yml: concurrency block not found');
-    const rest = text.slice(start);
-    const next = /\n(?=\S)/.exec(rest);
-    return next ? rest.slice(0, next.index) : rest;
-}
 
 function assertPipelineContract(text) {
     expect(text).toContain('repository_dispatch:');

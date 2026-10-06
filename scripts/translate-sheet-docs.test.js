@@ -39,6 +39,8 @@ function assertOneClickDocs({ authoring }) {
     expect(section).toContain('GH_DISPATCH_REPO');
     expect(section).toContain('published CSV still lags');
     expect(section).toContain('manual');
+    // The secret is a deploy prerequisite (only its values are optional).
+    expect(section).toContain('deploy prerequisite');
 }
 
 // The docs contract: the authoring guide documents every one of the 15
@@ -97,7 +99,7 @@ describe('story 051 one-click docs contract', () => {
         const tokens = [
             'record → render (Modal) → SRT write-back → translate → config generation',
             'uff-github', 'GH_DISPATCH_TOKEN', 'GH_DISPATCH_REPO',
-            'published CSV still lags', 'manual',
+            'published CSV still lags', 'manual', 'deploy prerequisite',
         ];
         for (const token of tokens) {
             const mutated = authoring.split(token).join('SENTINEL_REMOVED');

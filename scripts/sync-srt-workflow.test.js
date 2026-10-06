@@ -9,21 +9,13 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { concurrencyBlock } from './lib/workflow-guard-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const WORKFLOW = path.join(ROOT, '.github/workflows/sync-srt.yml');
 
 const read = () => readFileSync(WORKFLOW, 'utf8');
-
-/** The `concurrency:` block, up to the next column-0 key. */
-function concurrencyBlock(text) {
-    const start = text.indexOf('concurrency:');
-    if (start === -1) throw new Error('sync-srt.yml: concurrency block not found');
-    const rest = text.slice(start);
-    const next = /\n(?=\S)/.exec(rest);
-    return next ? rest.slice(0, next.index) : rest;
-}
 
 function assertSyncWorkflowContract(text) {
     // Triggers: manual + the one-click pipeline's `workflow_call` (story 051).

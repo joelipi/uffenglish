@@ -23,7 +23,7 @@ This story wires the chain: the Modal orchestrator dispatches `render-complete` 
 After the orchestrator's publish step succeeds (before/at the `_write_status(..., "done", ...)` point), `docs/video-pipeline/modal_app.py` sends one GitHub `repository_dispatch`:
 
 - `POST https://api.github.com/repos/<owner>/<repo>/dispatches` with `{"event_type": "render-complete", "client_payload": {"jobId": …, "published": […]}}`, headers `Authorization: Bearer <token>`, `Accept: application/vnd.github+json`, `X-GitHub-Api-Version: 2022-11-28`.
-- **Config from env** (so it is testable and not hardcoded): `GH_DISPATCH_REPO` (e.g. `joelipi/uffenglish`) and `GH_DISPATCH_TOKEN`. Both come from a new Modal secret `uff-github` attached to the orchestrator; when either is unset the dispatch is skipped with a logged warning (a self-hosted/local run stays green).
+- **Config from env** (so it is testable and not hardcoded): `GH_DISPATCH_REPO` (e.g. `joelipi/uffenglish`) and `GH_DISPATCH_TOKEN`. Both are keys of a new Modal secret `uff-github` attached to the orchestrator. The secret is a **deploy prerequisite** — `modal.Secret.from_name("uff-github")` raises at invocation if it does not exist — so it must be created before the orchestrator runs; only its `GH_DISPATCH_REPO`/`GH_DISPATCH_TOKEN` **values** are optional, in which case the dispatch is skipped with a logged warning (a self-hosted/local run stays green).
 - **Best-effort**: a dispatch failure is logged and recorded in the `done` status `extra` (`dispatch: "failed: …"`), and never fails the render (the videos are already published). A successful dispatch records `dispatch: "sent"`.
 - The dispatch helper is a small pure function taking `(repo, token, payload, fetchImpl)` so it is unit-tested with a stub `fetchImpl`; the orchestrator wiring is source-guarded.
 
@@ -106,7 +106,7 @@ After the orchestrator's publish step succeeds (before/at the `_write_status(...
 
 ## Notes
 
-- **The `uff-github` token is a new operator-managed secret** (Modal) with `contents: write`; it is the one new credential this story needs. Rotation: replace the Modal secret value and `modal deploy` is not required (secrets are read at call time), but the Modal app must be redeployed once to attach the secret.
+- **The `uff-github` secret is a deploy prerequisite** (Modal, holding `GH_DISPATCH_REPO`/`GH_DISPATCH_TOKEN`, the latter a PAT with `contents: write`); it is the one new credential this story needs. `modal.Secret.from_name` fails at invocation if the secret is absent, so create it before the orchestrator runs — only its values are optional (unset values just skip the dispatch). Rotation: replace the Modal secret values and `modal deploy` is not required (secrets are read at call time), but the Modal app must be redeployed once to attach the secret.
 - **Failure isolation:** a dispatch failure or a skipped course leaves the render's videos published; the operator can still run any of the three Actions manually. `pipeline.yml` is best-effort in the same spirit as `configs.yml` (a missing required column skips that course, not the chain).
 - **Ordering is guaranteed by `needs:`**, not by polling; because every sheet write and the config read go through the Sheets API, the minutes-long published-CSV lag no longer affects the chain.
 - **`configs.yml` still reads via `--from-api` even when run manually**, so a manual run is also lag-free; the local `npm run configs:generate` keeps the published-CSV default (no credentials required on a dev machine).

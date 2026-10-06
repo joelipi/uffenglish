@@ -63,8 +63,9 @@ cpu_image = (
 
 secret = modal.Secret.from_name("uff-r2")
 # One-click pipeline: `GH_DISPATCH_REPO` / `GH_DISPATCH_TOKEN` for the
-# `render-complete` repository_dispatch (story 051). Attached to the orchestrator;
-# unset -> the dispatch is skipped, the render stays green.
+# `render-complete` repository_dispatch (story 051). The `uff-github` secret is a
+# deploy prerequisite (`from_name` raises at invocation if it is absent); only its
+# values are optional — when unset the dispatch is skipped, the render stays green.
 github_secret = modal.Secret.from_name("uff-github")
 
 FETCH_TREES = ("backgrounds", "audio", "overlays", "fonts")

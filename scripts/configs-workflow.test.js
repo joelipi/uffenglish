@@ -11,6 +11,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { concurrencyBlock, ifLine } from './lib/workflow-guard-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -29,15 +30,6 @@ function runBlock(text) {
     return text.slice(start, end);
 }
 
-/** The `concurrency:` block, up to the next column-0 key. */
-function concurrencyBlock(text) {
-    const start = text.indexOf('concurrency:');
-    if (start === -1) throw new Error('configs.yml: concurrency block not found');
-    const rest = text.slice(start);
-    const next = /\n(?=\S)/.exec(rest);
-    return next ? rest.slice(0, next.index) : rest;
-}
-
 /** The full contract, rendered against any (possibly mutated) text. */
 function assertConfigsContract(text) {
     expect(text).toContain('workflow_dispatch:');
@@ -45,11 +37,17 @@ function assertConfigsContract(text) {
     // pipeline.yml owns `render-complete`; configs no longer accepts it.
     expect(text).not.toContain('repository_dispatch');
     expect(text).toContain('token: ${{ secrets.GH_NEW_TOKEN }}');
-    expect(text).toContain('[skip configs]');
     expect(text).toContain('git push origin "HEAD:${{ github.ref_name }}"');
+    // The loop guard's `if:` line, scoped: `[skip configs]` also appears in the
+    // bot's commit message, so a whole-file assertion could stay green while the
+    // guard is broken.
+    const guard = ifLine(text, 'configs.yml');
+    expect(guard).toContain("github.actor != 'github-actions[bot]'");
+    expect(guard).toContain("github.event.head_commit.message || ''");
+    expect(guard).toContain('[skip configs]');
     // One group per ref; `queue: max` keeps queued runs instead of cancelling the
     // older pending one.
-    const conc = concurrencyBlock(text);
+    const conc = concurrencyBlock(text, 'configs.yml');
     expect(conc).toContain('group: configs-${{ github.ref }}');
     expect(conc).toContain('cancel-in-progress: false');
     expect(conc).toContain('queue: max');
@@ -87,10 +85,20 @@ describe('configs.yml source guard', () => {
     });
 
     it('has the null-safe actor + [skip configs] loop guard', () => {
-        const text = read();
-        expect(text).toContain("github.actor != 'github-actions[bot]'");
-        expect(text).toContain("github.event.head_commit.message || ''");
-        expect(text).toContain('[skip configs]');
+        const guard = ifLine(read(), 'configs.yml');
+        expect(guard).toContain("github.actor != 'github-actions[bot]'");
+        expect(guard).toContain("github.event.head_commit.message || ''");
+        expect(guard).toContain('[skip configs]');
+    });
+
+    it('scopes [skip configs] to the loop-guard if: line (it also appears in the commit message)', () => {
+        const good = read();
+        // Change only the single-quoted `if:` occurrence; the commit-message one
+        // (inside a double-quoted string) survives, as it would in the real file.
+        const mutated = good.replace("'[skip configs]'", "'[skip-configs]'");
+        expect(mutated).not.toBe(good);
+        expect(mutated).toContain('[skip configs]');
+        expect(() => assertConfigsContract(mutated)).toThrow();
     });
 
     it('captures skips and surfaces them as annotations + summary', () => {

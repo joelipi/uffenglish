@@ -10,6 +10,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runTranslateSheet } from './translate-sheet.mjs';
+import { concurrencyBlock } from './lib/workflow-guard-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -35,15 +36,6 @@ function assertWorkflowCallBlock(text) {
     expect(block).toContain('default: false');
     expect(block).toContain('languages:');
     expect(block).toContain('default: es,pt,bn');
-}
-
-/** The `concurrency:` block, up to the next column-0 key. */
-function concurrencyBlock(text) {
-    const start = text.indexOf('concurrency:');
-    if (start === -1) throw new Error('translate-sheet.yml: concurrency block not found');
-    const rest = text.slice(start);
-    const next = /\n(?=\S)/.exec(rest);
-    return next ? rest.slice(0, next.index) : rest;
 }
 
 // The full contract for the workflow: required wiring + deliberate absences.
