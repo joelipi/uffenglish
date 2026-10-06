@@ -371,13 +371,8 @@ GITHUB_DISPATCH_URL = "https://api.github.com/repos/{repo}/dispatches"
 
 
 def _response_status(response):
-    """The HTTP status of a fetch response (attr or dict), or ``None``."""
-    if response is None:
-        return None
-    status = getattr(response, "status", None)
-    if status is None and isinstance(response, dict):
-        status = response.get("status")
-    return status
+    """The HTTP status of a fetch response (its ``status`` attribute), or ``None``."""
+    return getattr(response, "status", None)
 
 
 def dispatch_render_complete(repo, token, payload, fetchImpl):
@@ -387,7 +382,7 @@ def dispatch_render_complete(repo, token, payload, fetchImpl):
     "error": "<message>"}`` (a missing repo/token, a non-2xx status, or a thrown
     fetch). ``fetchImpl(url, method=..., headers=..., body=...)`` is injected so
     the helper is unit-testable without network; it returns an object with a
-    ``status`` attribute (or a ``{"status": ...}`` dict).
+    ``status`` attribute (as ``urllib`` responses do).
     """
     if not repo:
         return {"sent": False, "error": "GH_DISPATCH_REPO is not set"}

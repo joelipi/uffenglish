@@ -78,7 +78,9 @@ function missingReport(missing) {
  */
 export async function loadRowsFromApi({ sheetId, tab, getValues, getSpreadsheet } = {}) {
     if (!sheetId) throw new Error('missing sheet id (--sheet-id or GOOGLE_SHEET_ID)');
-    if (!getValues || !getSpreadsheet) throw new Error('missing Google Sheets client');
+    if (!getValues) throw new Error('missing Google Sheets client');
+    // `getSpreadsheet` is only needed to resolve the tab from the published gid.
+    if (!tab && !getSpreadsheet) throw new Error('missing Google Sheets client');
 
     let sheetTitle = tab;
     if (!sheetTitle) {

@@ -316,11 +316,25 @@ describe('generate-config-from-sheet --from-api', () => {
         expect(calls[0].range).toContain("'Master'!A1:ZZ");
     });
 
+    it('does not require getSpreadsheet when a tab is supplied', async () => {
+        const rows = await loadRowsFromApi({
+            sheetId: 'S', tab: 'Sheet1',
+            getValues: async () => ({ values: valuesFromCsv() }),
+        });
+        expect(rows).toEqual(parseCsv(FIXTURE_CSV).rows);
+    });
+
+    it('requires getSpreadsheet to resolve the tab when --tab is absent', async () => {
+        await expect(loadRowsFromApi({
+            sheetId: 'S',
+            getValues: async () => ({ values: valuesFromCsv() }),
+        })).rejects.toThrow(/Google Sheets client/);
+    });
+
     it('writes the same config the CSV path would for identical cell values', async () => {
         const apiRows = await loadRowsFromApi({
             sheetId: 'S', tab: 'Sheet1',
             getValues: async () => ({ values: valuesFromCsv() }),
-            getSpreadsheet: async () => ({}),
         });
         const csvRows = parseCsv(FIXTURE_CSV).rows;
         const apiDir = tmpDir();

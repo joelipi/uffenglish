@@ -46,10 +46,6 @@ class DispatchRenderCompleteTest(unittest.TestCase):
         self.assertEqual(payload["event_type"], "render-complete")
         self.assertEqual(payload["client_payload"], {"jobId": "j1", "published": ["a"]})
 
-    def test_accepts_a_dict_status_response(self):
-        result = lib.dispatch_render_complete("r", "t", {}, lambda *a, **k: {"status": 200})
-        self.assertEqual(result, {"sent": True})
-
     def test_non_2xx_is_an_error_not_a_raise(self):
         result = lib.dispatch_render_complete("r", "t", {}, make_fetch(403))
         self.assertFalse(result["sent"])
