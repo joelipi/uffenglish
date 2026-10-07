@@ -57,6 +57,13 @@ describe('verify-thumbnails.mjs source', () => {
         expect(SOURCE).not.toMatch(/public\/assets\/posters/);
     });
 
+    it('gates on the R2 poster only, not the retired LQIP module', () => {
+        // The LQIP module was a CI-built artifact; the render owns posters now,
+        // so the verifier must not fail on an LQIP entry nothing regenerates.
+        expect(SOURCE).not.toMatch(/poster-lqips/);
+        expect(SOURCE).not.toMatch(/MISSING LQIP/);
+    });
+
     it('treats a missing R2 poster as fatal (gate, not advisory)', () => {
         expect(SOURCE).not.toMatch(/non-fatal/);
         expect(SOURCE).toMatch(/R2 missing/);
@@ -65,11 +72,11 @@ describe('verify-thumbnails.mjs source', () => {
 });
 
 describe('verify-thumbnails.mjs run', () => {
-    it('exits 0 and reports the six intro slugs when every poster is present', async () => {
+    it('exits 0 and reports every intro slug when every poster is present', async () => {
         const { code, stdout } = await withFakeR2(200, (base) =>
             runCli([], { POSTER_CDN_BASE: base }));
         expect(code).toBe(0);
-        expect(stdout).toContain('6 intro slugs');
+        expect(stdout).toContain('7 intro slugs');
     }, 120000);
 
     it('exits non-zero when an R2 poster is missing', async () => {
@@ -84,15 +91,17 @@ describe('poster documentation', () => {
     it('README documents uniform R2-only <video>.jpg posters', () => {
         const readme = readFileSync(path.join(ROOT, 'README.md'), 'utf8');
         expect(readme).toMatch(/\.mp4`?→`?\.jpg|\.mp4.*\.jpg/);
-        expect(readme).toContain('deploy.yml');
+        expect(readme).toMatch(/Modal render/);
         expect(readme).toMatch(/UGC friend clips upload their sibling/);
         expect(readme).toMatch(/never committed|No poster is committed/);
         expect(readme).toMatch(/served locally/);
     });
 
-    it('agents.md states posters are generated/uploaded on push and never committed locally', () => {
+    it('agents.md names the render as the poster source and keeps posters out of git', () => {
         const agents = readFileSync(path.join(ROOT, 'agents.md'), 'utf8');
-        expect(agents).toMatch(/uploaded to R2.*on every push/is);
+        expect(agents).toMatch(/Modal render/);
+        // The old claim (deploy.yml builds posters on every push) must be gone.
+        expect(agents).not.toMatch(/uploaded to R2[^.]*on every push/i);
         expect(agents).toMatch(/never committed locally/i);
     });
 
