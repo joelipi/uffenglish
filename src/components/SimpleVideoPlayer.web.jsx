@@ -7,7 +7,8 @@ import { appStore, setCurrentVideoPlayer } from '../modules/store/store.js';
 import { useSimpleVideo } from '../hooks/useSimpleVideo.js';
 import { getBilingual } from '../data/strings.js';
 import { useNativeLanguage } from '../hooks/use-native-language.js';
-import { getResponseOverlayTextKey } from '../modules/video/response-decision-logic.js';
+import { isBranchingStep, BRANCH_OVERLAY_PHASE } from '../modules/lesson/branch-choice-logic.js';
+import { getSimpleVideoOverlayTextKey } from '../modules/video/response-decision-logic.js';
 
 const hasNavigator = typeof navigator !== 'undefined';
 const isIOS = hasNavigator && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
@@ -40,9 +41,7 @@ export default function SimpleVideoPlayer() {
     const currentVideo = useStore(appStore, (s) => s.currentVideo);
     const overlayLang = useNativeLanguage();
 
-    const overlayTextKey = appPhase === 'simpleVideo-decisionTime-response'
-        ? getResponseOverlayTextKey(currentVideo?.responseType)
-        : (appPhase === 'lessonSuccess-decisionTime' ? 'video_continue_create' : 'video_continue');
+    const overlayTextKey = getSimpleVideoOverlayTextKey(appPhase, currentVideo);
     const overlayBilingual = useMemo(
         () => getBilingual(overlayTextKey, overlayLang),
         [overlayTextKey, overlayLang]
@@ -180,7 +179,11 @@ export default function SimpleVideoPlayer() {
             } catch (e) { }
         }
         const cv = appStore.getState().currentVideo;
-        if (cv?.responseType === 'viewAndContinue') {
+        if (isBranchingStep(cv)) {
+            // Branching step: the clip has played, so reveal the choice buttons
+            // (Replay / Watch Tutorial corners stay in place).
+            appStore.getState().transitionTo(BRANCH_OVERLAY_PHASE, {}, { fromStepLoad: true });
+        } else if (cv?.responseType === 'viewAndContinue') {
             appStore.getState().transitionTo('simpleVideo-decisionTime-viewAndContinue', {}, { fromStepLoad: true });
         } else if (cv?.responseType === 'success') {
             // Success video finished: reveal the concat button and the
@@ -200,7 +203,12 @@ export default function SimpleVideoPlayer() {
         // A broken/undecodable success clip must not strand the learner: reveal
         // the concat button even though `ended` never fired.
         const cv = appStore.getState().currentVideo;
-        if (cv?.responseType === 'success') {
+        if (isBranchingStep(cv)) {
+            // A failed branch clip must still reveal the choice buttons instead
+            // of stranding the learner (same rationale as the success clip).
+            console.warn('[SimpleVideo] Branching video failed to load → revealing branch choices');
+            appStore.getState().transitionTo(BRANCH_OVERLAY_PHASE, {}, { fromStepLoad: true });
+        } else if (cv?.responseType === 'success') {
             console.warn('[SimpleVideo] Success video failed to load → revealing concat button');
             appStore.getState().transitionTo('lessonSuccess-decisionTime', {}, { fromStepLoad: true });
         } else if (appStore.getState().appPhase === 'simpleVideo') {
@@ -390,7 +398,7 @@ export default function SimpleVideoPlayer() {
                 />
                 <canvas ref={posterCanvasRef} style={{ display: 'none' }} />
                 <div className="ivp-blur-overlay" />
-                {(appPhase === 'simpleVideo-decisionTime-viewAndContinue' || appPhase === 'lessonSuccess-decisionTime' || appPhase === 'simpleVideo-decisionTime-response') && (
+                {(appPhase === 'simpleVideo-decisionTime-viewAndContinue' || appPhase === 'lessonSuccess-decisionTime' || appPhase === 'simpleVideo-decisionTime-response' || appPhase === BRANCH_OVERLAY_PHASE) && (
                     <>
                         <div className="ivp-click-block" onClick={(e) => e.stopPropagation()} />
                         <div className="ivp-overlay water-surface" style={{ display: 'flex' }}>

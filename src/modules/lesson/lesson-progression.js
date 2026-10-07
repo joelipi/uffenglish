@@ -3,12 +3,13 @@
 // Manages step transitions, lesson advancement, progress bar, and tutor chat.
 // Uses deps pattern (_deps) for callLoadStep and loadLessonContent to avoid circular imports.
 
-import { appStore } from '../store/store.js';
+import { appStore, getCurrentVideoPlayer } from '../store/store.js';
 import Strings from '../../data/strings.js';
 import teacherAvatar from '../../assets/img/teacherprofile.webp';
 import userAvatar from '../../assets/img/userprofile.png';
 import aiAvatar from '../../assets/img/ai.webp';
 import { trackEvent } from '../utils/posthog.js';
+import { resolveNextStepIndex } from './branch-choice-logic.js';
 
 export function createProgression(deps) {
     const {
@@ -52,16 +53,19 @@ export function createProgression(deps) {
 
         const loadLessonContent = _deps.loadLessonContent;
 
-        appStore.setState({ currentStepIndex: appStore.getState().currentStepIndex + 1 });
-        const nextStep = currentLesson.steps[appStore.getState().currentStepIndex];
+        // `nextStep` lets alternative branch steps all fall through into one
+        // shared continuation; absent/invalid -> +1 (existing behaviour).
+        const nextIndex = resolveNextStepIndex(currentStep, appStore.getState().currentStepIndex);
+        appStore.setState({ currentStepIndex: nextIndex });
+        const nextStep = currentLesson.steps[nextIndex];
         // Advancing in-app (not a page load) — the success step waits for its
         // clip to play and end before revealing the overlay.
         appStore.getState().setStepLoadedFromRestore(false);
         // callLoadStep must run before setPendingVideoPlayType so the new video element
         // is mounted before the video players' useLayoutEffect consumes the iOS transient
         // user activation. See iOS video playback fix.
-        if (appStore.getState().currentStepIndex < currentLesson.steps.length) {
-            _deps.callLoadStep(currentLesson.steps[appStore.getState().currentStepIndex], currentLesson, fluencyData);
+        if (nextIndex < currentLesson.steps.length) {
+            _deps.callLoadStep(currentLesson.steps[nextIndex], currentLesson, fluencyData);
         } else {
             if (currentLesson.nextLessonId) loadNextLesson({ callLoadStep: _deps.callLoadStep, loadLessonContent });
             else showCompletionMessage();
@@ -74,6 +78,45 @@ export function createProgression(deps) {
                 appStore.getState().setPendingVideoPlayType('simple');
             }
         }
+    }
+
+    // Branching navigation: SET the step index to a chosen target instead of
+    // advancing. No-op for a non-integer or out-of-range index. Mirrors the
+    // loadNextStep advance path (resets + callLoadStep + pending play type).
+    function jumpToStep(targetIndex, _deps = {}) {
+        if (!Number.isInteger(targetIndex)) return;
+
+        const state = appStore.getState();
+        if (!state.configData?.lessons?.length) return;
+        const currentLesson = state.configData.lessons[state.currentLessonIndex];
+        if (!currentLesson?.steps) return;
+        if (targetIndex < 0 || targetIndex >= currentLesson.steps.length) return;
+
+        updateProgressBar();
+        appStore.getState().resetForNextStep();
+        appStore.getState().resetStepState();
+        appStore.setState({ currentStepIndex: targetIndex });
+
+        const targetStep = currentLesson.steps[targetIndex];
+        appStore.getState().setStepLoadedFromRestore(false);
+        if (typeof _deps.callLoadStep === 'function') {
+            _deps.callLoadStep(targetStep, currentLesson, null);
+        }
+
+        if (targetStep.interactiveVideoUrl) {
+            appStore.getState().setPendingVideoPlayType('interactive');
+        } else if (targetStep.simpleVideoUrl) {
+            appStore.getState().setPendingVideoPlayType('simple');
+        }
+    }
+
+    // Replays the current simple clip from the branch overlay. Returns early
+    // when no player is mounted (guards the no-clip branching edge).
+    function replaySimpleVideo() {
+        const player = getCurrentVideoPlayer();
+        if (!player || typeof player.replay !== 'function') return;
+        appStore.getState().transitionTo('simpleVideo', {}, { fromStepLoad: true });
+        player.replay();
     }
 
     async function loadNextLesson(_deps = {}) {
@@ -157,7 +200,7 @@ export function createProgression(deps) {
         }
     }
 
-    return { updateProgressBar, showCompletionMessage, loadNextStep, loadNextLesson, handleTutorChatSubmit };
+    return { updateProgressBar, showCompletionMessage, loadNextStep, jumpToStep, replaySimpleVideo, loadNextLesson, handleTutorChatSubmit };
 }
 
 // --- Backward-compatible free-function exports ---
@@ -187,5 +230,7 @@ function getProgression() {
 export function updateProgressBar() { return getProgression().updateProgressBar(); }
 export function showCompletionMessage() { return getProgression().showCompletionMessage(); }
 export function loadNextStep(currentStep, fluencyData, _deps) { return getProgression().loadNextStep(currentStep, fluencyData, _deps); }
+export function jumpToStep(targetIndex, _deps) { return getProgression().jumpToStep(targetIndex, _deps); }
+export function replaySimpleVideo() { return getProgression().replaySimpleVideo(); }
 export function loadNextLesson(_deps) { return getProgression().loadNextLesson(_deps); }
 export function handleTutorChatSubmit(rawText) { return getProgression().handleTutorChatSubmit(rawText); }

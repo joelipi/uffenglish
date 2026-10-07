@@ -65,11 +65,11 @@ describe('verify-thumbnails.mjs source', () => {
 });
 
 describe('verify-thumbnails.mjs run', () => {
-    it('exits 0 and reports the six intro slugs when every poster is present', async () => {
+    it('exits 0 and reports the seven intro slugs when every poster is present', async () => {
         const { code, stdout } = await withFakeR2(200, (base) =>
             runCli([], { POSTER_CDN_BASE: base }));
         expect(code).toBe(0);
-        expect(stdout).toContain('6 intro slugs');
+        expect(stdout).toContain('7 intro slugs');
     }, 120000);
 
     it('exits non-zero when an R2 poster is missing', async () => {

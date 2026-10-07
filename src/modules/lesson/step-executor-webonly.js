@@ -17,6 +17,7 @@ import { getVideoUrl } from '../video/video-url.js';
 import { isRecordablePhase } from './recordable-phases.js';
 import { isFriendLesson } from '../user/friend-lesson-detection.js';
 import { resolveStepPhase } from './step-phase-logic.js';
+import { resolveNextStepIndex } from './branch-choice-logic.js';
 
 // Module-level ref for viewAndContinue handler (decision overlay Continue button)
 let _viewAndContinueHandler = null;
@@ -127,7 +128,7 @@ export function createLoadStep(deps) {
 
         const state = appStore.getState();
         const steps = state.configData?.lessons?.[state.currentLessonIndex]?.steps;
-        const nextIndex = state.currentStepIndex + 1;
+        const nextIndex = resolveNextStepIndex(step, state.currentStepIndex);
         if (steps?.[nextIndex]) {
             const nextStep = steps[nextIndex];
             const slug = nextStep.interactiveVideoUrl || nextStep.simpleVideoUrl || nextStep.introBackgroundVideoUrl;

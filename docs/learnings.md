@@ -1,5 +1,13 @@
 # Learnings
 
+## A hook used without an import passes lint and tests when no test renders the component
+**Date**: 2026-10-07
+**Area**: testing
+**What happened**: `LessonContainer.jsx` called `useMemo` without adding it to the `react` import; `eslint .` reported 0 errors and the full vitest suite passed because no test renders `LessonContainer` (the wiring guard only asserted source text like `buildBranchChoiceView(`). It was a runtime `ReferenceError` that would crash the whole lesson container; the code reviewer caught it.
+**Takeaway**: For containers with no render/mount test, add a source guard that every `use*` the file calls appears on its `import React, { … } from 'react'` line (see `branch-choice-wiring.test.js`). ESLint's `no-undef` does not flag it here, and a token-presence guard cannot see a missing import.
+
+---
+
 ## The published Google Sheet CSV lags edits by up to ~5 minutes
 **Date**: 2026-10-07
 **Area**: architecture | workflow

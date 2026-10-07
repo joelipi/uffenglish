@@ -1519,6 +1519,15 @@ const strings = {
         hi: "नीचे एक बटन दबाएँ।",
         bn: "নিচে একটি বোতাম চাপুন।"
     },
+    // Branching step: heading over the multiple-choice buttons.
+    'video_choose_how_respond': {
+        en: "Choose how you will respond.",
+        es: "Elige cómo vas a responder.",
+        pt: "Escolha como você vai responder.",
+        fr: "Choisissez comment vous allez répondre.",
+        hi: "चुनें कि आप कैसे उत्तर देंगे।",
+        bn: "আপনি কীভাবে উত্তর দেবেন তা বেছে নিন।"
+    },
     // Shown over the lesson-success video once it ends, so the learner knows
     // the revealed button creates the recap video they can share.
     'video_continue_create': {

@@ -1,6 +1,7 @@
 // --- modules/lessonRouting.js ---
 
 import { appStore } from '../store/store.js';
+import { resolveNextStepIndex } from './branch-choice-logic.js';
 
 /**
  * Platform-Agnostic Lesson & Course Routing Utilities
@@ -116,7 +117,7 @@ export function getNextStep(currentStep, configData, currentLessonIndex) {
 
     // Primary: use store index
     if (storeIndex >= 0 && storeIndex < currentLesson.steps.length) {
-        const nextIndex = storeIndex + 1;
+        const nextIndex = resolveNextStepIndex(currentStep, storeIndex);
         return nextIndex < currentLesson.steps.length ? currentLesson.steps[nextIndex] : null;
     }
 
@@ -131,8 +132,8 @@ export function getNextStep(currentStep, configData, currentLessonIndex) {
         return null;
     }
 
-    if (currentIndex >= currentLesson.steps.length - 1) return null;
-    return currentLesson.steps[currentIndex + 1];
+    const nextIndex = resolveNextStepIndex(currentLesson.steps[currentIndex], currentIndex);
+    return nextIndex < currentLesson.steps.length ? currentLesson.steps[nextIndex] : null;
 }
 
 /**

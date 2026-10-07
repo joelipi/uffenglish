@@ -6,6 +6,7 @@
 import { createStore } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { applyGuestLanguagePreference } from '../user/guest-modal-logic.js';
+import { BRANCH_OVERLAY_PHASE } from '../lesson/branch-choice-logic.js';
 
 // ── Module-level mutable refs (not reactive) ──
 // These hold instances that don't belong in Zustand's reactive state.
@@ -28,6 +29,7 @@ const phaseMapping = {
     firstResponse:                               { topState: 'topBarOnly',      mediaState: 'webcamOrAvatar',      bottomState: 'introChoices',          showMission: true },
     simpleVideo:                                 { topState: 'topBarOnly',      mediaState: 'simpleVideo',         bottomState: 'hidden',               showMission: true },
     'simpleVideo-decisionTime-response':         { topState: 'topBarOnly',      mediaState: 'decisionOverlay',     bottomState: 'responseDecisionButtons', showMission: true },
+    [BRANCH_OVERLAY_PHASE]:                      { topState: 'topBarOnly',      mediaState: 'decisionOverlay',     bottomState: 'branchChoices',         showMission: true },
     'interactiveVideo+closedResponse':           { topState: 'topBarWithStats', mediaState: 'interactiveVideo',    bottomState: 'hidden',                showMission: true },
     'interactiveVideo+openResponse':             { topState: 'topBarWithStats', mediaState: 'interactiveVideo',    bottomState: 'hidden',                showMission: true },
     'interactiveVideo+friendClosedResponse':     { topState: 'topBarWithStats', mediaState: 'interactiveVideo',    bottomState: 'hidden',                showMission: true },
@@ -53,7 +55,7 @@ const phaseMapping = {
 };
 
 const answerFlowTransitions = {
-    'simpleVideo':                               ['recording/answering', 'simpleVideo-decisionTime-response'],
+    'simpleVideo':                               ['recording/answering', 'simpleVideo-decisionTime-response', BRANCH_OVERLAY_PHASE],
     'interactiveVideo+closedResponse':           ['interactiveVideo-decisionTime-closedResponse'],
     'interactiveVideo+openResponse':             ['interactiveVideo-decisionTime-openResponse'],
     'interactiveVideo+friendClosedResponse':     ['interactiveVideo-decisionTime-friendClosedResponse'],

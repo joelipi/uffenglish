@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useStore } from 'zustand';
-import { appStore, getCurrentVideoPlayer } from '../../modules/store/store.js';
+import { appStore } from '../../modules/store/store.js';
 import { getSpeechInputToggleCallback } from '../../modules/lesson/step-loader-callbacks.js';
 import { getResponseAnswerLabelKey } from '../../modules/video/response-decision-logic.js';
+import { replaySimpleVideo } from '../../modules/lesson/lesson-progression.js';
 import { getBilingual } from '../../data/strings.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
 import ChoiceColumn from './ChoiceColumn.jsx';
@@ -16,13 +17,8 @@ export default function ResponseDecisionButtons() {
     const labelLang = useNativeLanguage();
 
     const handleReplay = () => {
-        // Return to the simpleVideo phase first so the clip-ended handler can
-        // raise the overlay again after the replay, then restart the clip.
-        appStore.getState().transitionTo('simpleVideo', {}, { fromStepLoad: true });
-        const player = getCurrentVideoPlayer();
-        if (player && typeof player.replay === 'function') {
-            player.replay();
-        }
+        // Shared helper: return to the simpleVideo phase and restart the clip.
+        replaySimpleVideo();
     };
 
     const handleMicClick = () => {

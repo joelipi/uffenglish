@@ -629,6 +629,43 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     min-width: 0;
     justify-content: flex-end;
 }
+
+/* Branching multiple-choice decision row: Replay (left), a vertical stack of
+   text buttons (center, wider), Watch Tutorial (right). */
+.branch-choice-row {
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-end;
+    width: 100%;
+    gap: 8px;
+}
+.branch-choice-col {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-end;
+    flex: 2 1 0;
+    min-width: 0;
+    gap: 8px;
+}
+.branch-choice-btn {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    color: #ffffff;
+    font-weight: 700;
+    text-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
+}
+.branch-choice-btn .branch-choice-label-en {
+    display: block;
+}
+.branch-choice-btn .branch-choice-label-localized {
+    display: block;
+    font-weight: 500;
+    opacity: 0.85;
+}
 /*
 @container player (min-width: 420px) {
     .mission-section {
