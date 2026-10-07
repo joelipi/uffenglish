@@ -64,6 +64,15 @@ An absent / non-array `chooseStep` → `[]`. Entries are kept in array order.
 
 `BRANCH_LABEL_CHAR_CAP` is the single "translation only when space does not allow" knob.
 
+### View-model (pure)
+
+`buildBranchChoiceView({ step, currentStepIndex, stepCount, lang })` is the only function the container calls to prepare rendering. It returns `{ choices, showContinue }` where:
+
+- `choices` is `resolveBranchChoices(step, currentStepIndex, stepCount)` mapped to `{ key, targetIndex, label }`, `key` being the entry's position in the resolved list and `label` the result of `formatBranchChoiceLabel(text, lang)`;
+- `showContinue` is `choices.length === 0`.
+
+This keeps the component free of every domain decision: it renders `view.choices` / `view.showContinue` verbatim.
+
 ### Phase flow
 
 - A `branching` step with a clip loads in the existing `simpleVideo` phase (mic hidden, clip plays, mission visible). `resolveStepPhase` returns `simpleVideo`.
@@ -74,13 +83,20 @@ An absent / non-array `chooseStep` → `[]`. Entries are kept in array order.
 - Once an alternative step is answered, the normal `loadNextStep` runs and honors that step's `nextStep`, landing on the shared continuation. No branching-specific advance code exists.
 - If `resolveBranchChoices` returns `[]`, the center shows a Continue button that runs the normal `loadNextStep` (advance one step), so a mis-authored branching step cannot strand the learner.
 
-### Wiring
+### Wiring and separation of concerns
 
-`LessonContainer` computes `branchChoices` from the current step, `currentStepIndex`, and the lesson's step count, and passes `{ choices, onChoose, onContinue }` to `BranchChoiceButtons`. `onChoose` calls `jumpToStep` with the same `callLoadStep` / `loadLessonContent` deps that `onLoadNextLesson` already builds; `onContinue` reuses `onLoadNextLesson`.
+**All business/domain rules live in pure, non-component modules.** No `.jsx` file may contain offset math, choice/target validation, `nextStep` resolution, label selection, or view-model shaping. Components may contain render conditions and may dispatch on a pure predicate (e.g. `if (isBranchingStep(cv)) transitionTo(BRANCH_OVERLAY_PHASE)`), but the rule itself — the predicate, the offset arithmetic, the validation, the label choice — must live in the pure module. Concretely:
+
+- `src/modules/lesson/branch-choice-logic.js` (pure; no React, no DOM, no store import) owns the constants, `resolveBranchChoices`, `resolveNextStepIndex`, `formatBranchChoiceLabel`, and the render-ready view-model builder `buildBranchChoiceView({ step, currentStepIndex, stepCount, lang })`.
+- `src/modules/lesson/lesson-progression.js` (non-component) owns `jumpToStep` and `replaySimpleVideo`.
+- `LessonContainer` (container) calls the pure builder to derive `view` and passes `{ view, onChoose, onReplay, onContinue }` to the presentational component. `onChoose(targetIndex)` delegates to `jumpToStep` with the same `callLoadStep`/`loadLessonContent` deps `onLoadNextLesson` builds; `onContinue` reuses `onLoadNextLesson`; `onReplay` delegates to `replaySimpleVideo()`. The container only derives-and-delegates — it holds no domain rules.
+- `BranchChoiceButtons` (presentational) only maps `view.choices` to buttons, renders the Continue button when `view.showContinue`, and invokes the handler props. Its only local state is the tutorial modal's visibility (pure UI state). It imports no store, player, progression, or logic module.
+
+`replaySimpleVideo()` transitions to `simpleVideo` and replays the current player, returning early when no player is mounted (guards the no-clip branching edge).
 
 ### Single-source constants and helpers
 
-`src/modules/lesson/branch-choice-logic.js` exports `BRANCH_RESPONSE_TYPE`, `BRANCH_OVERLAY_PHASE`, `BRANCH_OVERLAY_TEXT_KEY`, `BRANCH_LABEL_CHAR_CAP`, `isBranchingStep`, `resolveBranchChoices`, `resolveNextStepIndex`, `formatBranchChoiceLabel`. `store.js`, `step-phase-logic.js`, `SimpleVideoPlayer.web.jsx`, `BranchChoiceButtons.jsx`, `lesson-progression.js`, `lesson-routing.js`, and `step-executor-webonly.js` import these rather than repeating string literals or offset math.
+`src/modules/lesson/branch-choice-logic.js` exports `BRANCH_RESPONSE_TYPE`, `BRANCH_OVERLAY_PHASE`, `BRANCH_OVERLAY_TEXT_KEY`, `BRANCH_LABEL_CHAR_CAP`, `isBranchingStep`, `resolveBranchChoices`, `resolveNextStepIndex`, `formatBranchChoiceLabel`, `buildBranchChoiceView`. `store.js`, `step-phase-logic.js`, `response-decision-logic.js`, `SimpleVideoPlayer.web.jsx`, `lesson-progression.js`, `lesson-routing.js`, and `step-executor-webonly.js` import these rather than repeating string literals or offset math.
 
 ## Tasks
 
@@ -120,6 +136,13 @@ Files: `src/modules/lesson/branch-choice-logic.js` (new), `src/modules/lesson/br
   - → `localized` null, `showEnglish` true
 - a label whose `english.length + localized.length` is exactly `BRANCH_LABEL_CHAR_CAP` vs one character more
   - → the first has `showEnglish` true; the second has `showEnglish` false and keeps `localized`
+- `buildBranchChoiceView({ step, currentStepIndex: 2, stepCount: 6, lang: 'es' })` for a branching step with offsets `[1, 2]`
+  - → `showContinue` false
+  - → `choices` has length 2 with `key` 0/1, `targetIndex` 3/4, and a formatted `label` on each
+- `buildBranchChoiceView` for a step whose `chooseStep` yields no valid choices (or is absent)
+  - → `choices` `[]` and `showContinue` true
+- `branch-choice-logic.js` source (separation guard)
+  - → contains no `from 'react'`, no `appStore`, no `document.`, and no `window.` (the module stays pure)
 
 ### Task 2 - Phase mapping and transition wiring
 
@@ -139,41 +162,48 @@ Files: `src/modules/store/store.js`, `src/modules/lesson/step-phase-logic.js`, `
 - `resolveStepPhase({ step: { responseType: 'branching', simpleVideoUrl: 'clip' }, isFirstResponseStep: true, isFriendLesson: false })`
   - → `'simpleVideo'` (a branching step never gets the `firstResponse` mode chooser)
 
-### Task 3 - Simple-video overlay raises the branching UI
+### Task 3 - Simple-video overlay: pure text resolver + thin component
 
-File: `src/components/SimpleVideoPlayer.web.jsx`; guard in `src/modules/lesson/branch-choice-wiring.test.js` (new).
+Files: `src/modules/video/response-decision-logic.js`, `src/modules/video/response-decision-logic.test.js`, `src/components/SimpleVideoPlayer.web.jsx`; guard in `src/modules/lesson/branch-choice-wiring.test.js` (new).
 
-- the file imports `isBranchingStep`, `BRANCH_OVERLAY_PHASE`, `BRANCH_OVERLAY_TEXT_KEY` from `../modules/lesson/branch-choice-logic.js`
-  - → source guard asserts the import line
+- `getSimpleVideoOverlayTextKey(appPhase, currentVideo)` (pure, new in `response-decision-logic.js`)
+  - → `appPhase === BRANCH_OVERLAY_PHASE` returns `BRANCH_OVERLAY_TEXT_KEY`
+  - → `appPhase === 'simpleVideo-decisionTime-response'` returns `getResponseOverlayTextKey(currentVideo?.responseType)`
+  - → `appPhase === 'lessonSuccess-decisionTime'` returns `'video_continue_create'`
+  - → anything else returns `'video_continue'`
+- the file imports `isBranchingStep`, `BRANCH_OVERLAY_PHASE` from `../modules/lesson/branch-choice-logic.js` and `getSimpleVideoOverlayTextKey` from `../modules/video/response-decision-logic.js`
+  - → source guard asserts the import lines
 - `handleEnded` body (slice from `const handleEnded` to the next `const handle`)
   - → contains `isBranchingStep(cv)` and a `transitionTo(BRANCH_OVERLAY_PHASE`
   - → the branching check appears before the `viewAndContinue` check
 - `handleError` body (slice from `const handleError` to the next `const handle`)
   - → contains `isBranchingStep(cv)` and `BRANCH_OVERLAY_PHASE`
+- `overlayTextKey`
+  - → is assigned from `getSimpleVideoOverlayTextKey(appPhase, currentVideo)` (the component holds no inline phase ternary)
 - the overlay JSX render condition
   - → includes `appPhase === BRANCH_OVERLAY_PHASE`
-- the `overlayTextKey` assignment
-  - → maps `appPhase === BRANCH_OVERLAY_PHASE` to `BRANCH_OVERLAY_TEXT_KEY`
 
-### Task 4 - BranchChoiceButtons component
+### Task 4 - BranchChoiceButtons presentational component
 
-Files: `src/components/widgets/BranchChoiceButtons.jsx` (new), `src/components/widgets/BranchChoiceButtons.test.jsx` (new).
+Files: `src/components/widgets/BranchChoiceButtons.jsx` (new), `src/components/widgets/BranchChoiceButtons.test.jsx` (new). Props: `{ view, onChoose, onReplay, onContinue }`.
 
-- `choices` of `[{ text: { en: 'Yes', es: 'Sí' }, targetIndex: 3 }, { text: { en: 'No' }, targetIndex: 4 }]`
+- a `view` of `{ choices: [{ key: 0, targetIndex: 3, label: { english: 'Yes', localized: 'Sí', lang: 'es', showEnglish: true } }, { key: 1, targetIndex: 4, label: { english: 'No', localized: null, lang: 'es', showEnglish: true } }], showContinue: false }`
   - → renders `#branchChoiceBtn-0` and `#branchChoiceBtn-1`
   - → `#branchChoiceBtn-0` shows both `Yes` and `Sí`
   - → `#branchChoiceBtn-1` shows only `No`
   - → clicking `#branchChoiceBtn-0` calls `onChoose` with `3`
-- any non-empty `choices`
-  - → renders `#branchReplayBtn` and `#branchTutorialBtn`
-  - → clicking `#branchReplayBtn` with a player present transitions `appPhase` to `'simpleVideo'` and calls `getCurrentVideoPlayer().replay`
-  - → clicking `#branchReplayBtn` with no player present does nothing (no transition)
-  - → clicking `#branchTutorialBtn` mounts the tutorial modal
-- `choices === []`
+- a `view` whose choice has `label.showEnglish === false`
+  - → that button renders no `.branch-choice-label-en` and shows the localized text
+- a `view` of `{ choices: [], showContinue: true }`
   - → renders `#branchContinueBtn` and no `#branchChoiceBtn-*`
   - → clicking `#branchContinueBtn` calls `onContinue`
-- a choice whose combined label length exceeds `BRANCH_LABEL_CHAR_CAP`
-  - → its button renders no `.branch-choice-label-en` and shows the localized text
+- any `view`
+  - → renders `#branchReplayBtn` and `#branchTutorialBtn`
+  - → clicking `#branchReplayBtn` calls `onReplay` (the component performs no transition or player access itself)
+  - → clicking `#branchTutorialBtn` mounts the tutorial modal
+- component source (separation guard)
+  - → imports none of `appStore`, `getCurrentVideoPlayer`, `jumpToStep`, `resolveBranchChoices`, `formatBranchChoiceLabel`, or `branch-choice-logic`
+  - → contains no `transitionTo(`
 
 ### Task 5 - Progression: jump, and the `nextStep` advance override
 
@@ -204,10 +234,14 @@ Files: `src/modules/lesson/lesson-progression.js`, `src/modules/lesson/lesson-ro
   - → leaves `currentStepIndex` unchanged and does not call `deps.callLoadStep`
 - `jumpToStep(7, deps)` (the last step)
   - → sets `currentStepIndex` to 7 and calls `deps.callLoadStep`
-- LessonContainer source
+- `replaySimpleVideo()` with a player present
+  - → transitions `appPhase` to `'simpleVideo'` and calls `player.replay`
+- `replaySimpleVideo()` with no player mounted
+  - → leaves `appPhase` unchanged
+- LessonContainer source (separation guard)
   - → renders `<BranchChoiceButtons` under `bottomState === 'branchChoices'`
-  - → passes `onChoose` and `onContinue`
-  - → computes choices with `resolveBranchChoices(`
+  - → derives the view with `buildBranchChoiceView(` and passes `view`, `onChoose`, `onReplay`, and `onContinue`
+  - → contains no offset math (`+ step.nextStep` / `+ nextStep`) and no `formatBranchChoiceLabel(`
 
 ### Task 6 - StepLoader, heading string, CSS, normalizer preservation
 
@@ -228,7 +262,7 @@ Files: `src/components/StepLoader.jsx`, `src/data/strings.js`, `src/assets/css/a
 
 - Phase machine: `src/modules/store/store.js` `phaseMapping` + `answerFlowTransitions`; `transitionTo(phase, data, { fromStepLoad })` resolves `{ topState, mediaState, bottomState, showMission }`. The `bottomState` value selects the component rendered in the bottom band in `src/components/LessonContainer.jsx:169-242`.
 - Step-type resolution: `src/modules/lesson/step-phase-logic.js` `resolveStepPhase`; `simpleVideo` is the phase where a `simpleVideoUrl` clip plays with the mic hidden. `recordable-phases.js` lists phases that may enter recording — a branching phase is deliberately not added there.
-- Simple-video end handling: `src/components/SimpleVideoPlayer.web.jsx` `handleEnded` / `handleError` (lines ~172-213) decide the post-clip phase; the water overlay JSX condition is at ~line 393 and `overlayTextKey` at ~line 43.
+- Simple-video end handling: `src/components/SimpleVideoPlayer.web.jsx` `handleEnded` / `handleError` (lines ~172-213) decide the post-clip phase; the water overlay JSX condition is at ~line 393 and `overlayTextKey` at ~line 43. This story routes the overlay-text choice through the new pure `getSimpleVideoOverlayTextKey` in `src/modules/video/response-decision-logic.js` and keeps the phase dispatch on the pure `isBranchingStep` predicate.
 - Advance path (single hook): `src/modules/lesson/lesson-progression.js` `loadNextStep` increments `currentStepIndex` (`updateProgressBar` → `resetForNextStep` → `resetStepState` → `setState({ currentStepIndex })` → `callLoadStep` → `setPendingVideoPlayType`). Every caller passes the just-completed step: `answer-pipeline.js:930` (friend auto-advance), `:1015`/`:1058` (continue widget), `:1040` (viewAndContinue), and `LessonContainer.onLoadNextLesson` (lines ~101-112). The `nextStep` override goes here.
 - Prefetch helpers that assume `+1` and should use `resolveNextStepIndex`: `lesson-routing.js` `getNextStep` (`storeIndex + 1`, used by `answer-pipeline.js:1026` to preload the next clip) and `step-executor-webonly.js` `onStepLoaded` (`state.currentStepIndex + 1`, lines ~128-137). Both are performance-only; correctness is owned by `loadNextStep`.
 - Existing decision-row components to mirror: `src/components/widgets/ResponseDecisionButtons.jsx` (Replay / Answer / Tutorial with `ChoiceColumn` + `TutorialModal`) and `src/components/widgets/ViewAndContinueButtons.jsx`. `ChoiceColumn` renders `.ivp-choice-col` + bilingual label; `TutorialModal` takes `{ onClose }`.
@@ -239,6 +273,7 @@ Files: `src/components/StepLoader.jsx`, `src/data/strings.js`, `src/assets/css/a
 
 ## Notes
 
+- **Separation of concerns is a hard requirement.** Offset math, validation, label selection, target/`nextStep` resolution, and view-model shaping live only in `branch-choice-logic.js`, `lesson-progression.js`, and `lesson-routing.js`; `BranchChoiceButtons.jsx` renders a pre-built `view` and delegates, and `LessonContainer.jsx` derives-and-delegates. Components keep only render conditions and pure-predicate dispatch. Enforced by the purity/separation source guards in Tasks 1, 4, and 5.
 - **Why `nextStep` is not optional.** A `steps` array is linear; three alternative response steps cannot each be immediately before one shared continuation. Without the override the learner would finish choice 1 and be dropped into choice 2. The override is the minimal general fix and lives in the one function every advance path already funnels through.
 - **Authoring stays relative on purpose.** Both `chooseStep[].nextStep` and the step-level `nextStep` are offsets, so the future sheet/generator work can emit `1, 2, 3, …` without computing absolute step indices. The cost is that inserting a step shifts offsets — acceptable for generated configs.
 - **`BRANCH_LABEL_CHAR_CAP = 48` is a deliberate, tunable assumption.** It is the only "space does not allow" trigger; if real labels look cramped or the English disappears too eagerly, change this one constant and its test boundary.
