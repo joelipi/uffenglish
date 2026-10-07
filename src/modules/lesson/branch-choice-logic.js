@@ -9,7 +9,7 @@
 // step-level `nextStep` are forward-only 1-based offsets from the step's own
 // index.
 
-import { getEnglish, getLocalizedString } from '../bilingual/bilingual-logic.js';
+import { formatBilingualText } from '../bilingual/bilingual-display.js';
 
 export const BRANCH_RESPONSE_TYPE = 'branching';
 export const BRANCH_OVERLAY_PHASE = 'simpleVideo-decisionTime-branching';
@@ -73,10 +73,9 @@ export function resolveNextStepIndex(step, currentStepIndex) {
  * @returns {{ english: string, localized: string|null, lang: string, showEnglish: boolean }}
  */
 export function formatBranchChoiceLabel(text, lang) {
-    const english = getEnglish(text);
-    const localized = getLocalizedString(text, lang) || null;
+    const { english, localized, shouldShowLocalized } = formatBilingualText(text, lang);
 
-    if (!localized) {
+    if (!shouldShowLocalized) {
         return { english, localized: null, lang, showEnglish: true };
     }
 

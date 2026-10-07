@@ -1,6 +1,6 @@
 // js/components/LessonContainer.jsx
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { appStore, getAnswerPipelineDeps } from '../modules/store/store.js';

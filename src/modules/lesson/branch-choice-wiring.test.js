@@ -88,10 +88,22 @@ describe('BranchChoiceButtons separation', () => {
 
 describe('progression and container wiring', () => {
     it('prefetches the next clip through the shared offset resolver', () => {
-        expect(read('src/modules/lesson/step-executor-webonly.js')).toContain('resolveNextStepIndex(');
+        const source = read('src/modules/lesson/step-executor-webonly.js');
+        expect(source).toContain('resolveNextStepIndex(');
+        expect(source).not.toContain('currentStepIndex + 1');
     });
 
     const container = read('src/components/LessonContainer.jsx');
+
+    it('imports every React hook it calls', () => {
+        const importLine = container.split('\n').find((line) => line.startsWith('import React'));
+        expect(importLine).toBeTruthy();
+        for (const hook of ['useEffect', 'useState', 'useCallback', 'useRef', 'useMemo']) {
+            if (container.includes(`${hook}(`)) {
+                expect(importLine, `LessonContainer calls ${hook} but does not import it`).toContain(hook);
+            }
+        }
+    });
 
     it('derives the branch view with the pure builder', () => {
         expect(container).toContain('buildBranchChoiceView(');
