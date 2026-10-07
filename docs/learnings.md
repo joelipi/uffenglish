@@ -1,18 +1,26 @@
 # Learnings
 
+## The published Google Sheet CSV lags edits by up to ~5 minutes
+**Date**: 2026-10-07
+**Area**: architecture | workflow
+**What happened**: After trimming the overlay master to 4 rows, the render (`_fetch_assets` → `fetch_sheet_csv(resolve_sheet_url())`) and the config generator still read the old 108 rows for several minutes. The published `/pub?…&output=csv` is regenerated lazily by Google; a client cache-buster does not help.
+**Takeaway**: The render + generator read the **published CSV** (the lag-prone path); the Sheets API (translate/sync Actions) sees edits immediately. When a just-edited sheet isn't reflected, wait for the published CSV to flip (up to ~5 min) before re-running — or move the render's read to `spreadsheets.values.get` with the service account if immediacy matters.
+
+---
+
+## Windows: `execFile('npx', …)` fails with `spawn npx ENOENT`
+**Date**: 2026-10-07
+**Area**: build | tooling
+**What happened**: `scripts/upload-pipeline-assets.mjs` (and any `npx wrangler` call through `cli-utils.run`) died on Windows with `spawn npx ENOENT` — `npx` is `npx.cmd`, which `child_process.execFile` cannot launch without a shell. A POSIX `npx` shim works in CI, so it never failed there.
+**Takeaway**: `cli-utils.wranglerCommand(platform)` runs the local `node_modules/wrangler/bin/wrangler.js` with the running node on `win32`, and `npx wrangler` elsewhere (so the Linux shim tests still pass). Any new Windows-facing subprocess of a `.cmd` needs the same treatment.
+
+---
+
 ## Pushing `.github/workflows/` needs a token with `workflows` permission
 **Date**: 2026-10-05
 **Area**: workflow | build
 **What happened**: Story 046 adds `.github/workflows/configs.yml`. Pushing it via the sandbox's GitHub App token (`ghs_…`, the `sandpods-app[bot]` credential) was rejected — `refusing to allow a GitHub App to create or update workflow … without workflows permission` — and `GH_TOKEN` in the environment returned HTTP 401 (expired). A valid fine-grained PAT (`github_pat_…`, user `joelipi`, repo `admin`) was sitting in the repo's own `.env` under the `GH_TOKEN=` key; the sandbox env `GH_TOKEN` was the stale one. That PAT pushed the workflow file successfully.
 **Takeaway**: A `.github/workflows/**` change cannot be pushed from a token lacking the `workflows` permission (GitHub Apps need `Workflows: write`; classic PATs need the `workflow` scope; fine-grained PATs need the Workflows permission). When a push of a workflow file is rejected, don't retry — find a credential with that permission. In this workspace a valid PAT may live in the checked-out repo's `.env` (`GH_TOKEN=`), distinct from the exported `GH_TOKEN`; check both (`curl -H "Authorization: Bearer <tok>" https://api.github.com/user` → 200 vs 401) before concluding there is no usable token. Push with it via `git push https://x-access-token:<PAT>@github.com/<owner>/<repo>.git <branch>:<branch>`.
-
----
-
-## A guard over an empty allow-list can pass while its wiring is broken
-**Date**: 2026-10-05
-**Area**: testing | build
-**What happened**: Story 042's generated-config contract guard read `CONFIG_DIR = path.join(__dirname, '../../config')` from `src/config` — one level too high, resolving to `<root>/config`. It passed because the allow-list (`scripts/lib/generated-configs.json`) started empty, so the loop ran zero times; the moment the generator registered a course it would have thrown `ENOENT` instead of validating. Two review rounds found it only when reasoning about the first real registration, not from the green suite.
-**Takeaway**: (1) A guard that iterates a data set (allow-list, glob, config list) is untested while that set is empty — exercise it against a fixture/registered entry, or assert the set is non-empty, so the file-reading plumbing is proven. (2) `path.join(__dirname, …)` from a deep source dir is easy to get one level wrong; when a test reads a sibling directory another module writes, prove the writer's path and the reader's path agree (the fix was `CONFIG_DIR = __dirname`). Mirror that in the generator (same `CONFIG_DIR` source), and prove the round trip: register → read → inject a violation → guard goes red.
 
 ---
 
@@ -107,8 +115,3 @@
 **Area**: build | workflow
 **What happened**: A vendored static page at `public/recorder.html` was marked `noindex` with a `public/_headers` rule scoped to `/recorder.html`, but Cloudflare Pages permanently redirects `/recorder.html` to the extensionless `/recorder` and serves the file there — so the header attached to the redirect response, not the page. A guard that scanned only the literal `recorder.html` token likewise missed an extensionless `/recorder` link. The code reviewer caught both.
 **Takeaway**: Static HTML in `public/` is served at its extensionless path (`public/landing.html` → `/landing`); a request for `/x.html` 308s to `/x`. Put `_headers` selectors on the served path (`/x`, optionally also `/x.html` for the redirect), and when guarding that a page stays unlinked, scan for both forms with a bounded pattern (`/\/x(?![\w.-])|x\.html/`, so a bare `MediaRecorder` is not a hit). An unlisted file is obscurity, not access control — noindex + unlinked does not stop someone who knows the URL; use Cloudflare Access if the page must be truly private.
-## ESLint was never actually installed, and its legacy config pointed at a deleted `js/` tree
-**Date**: 2026-10-05
-**Area**: tooling
-**What happened**: The repo carried a legacy `.eslintrc.json` (added in `b456401` "React Migration") that targeted `js/**/*.{js,jsx}`, but ESLint was not in `package.json`, the lockfile, or `node_modules`, there was no `lint` script, and no workflow ever ran it. The source tree had since moved to `src/`, so even with ESLint the glob matched nothing. The config's one rule was `no-restricted-syntax` (warn) flagging `window.`/`document.` member access outside `*-webonly.*` files. The repo also has eight inline `eslint-disable(-line|-next-line) react-hooks/exhaustive-deps` directives for a plugin that was never configured — under ESLint 10 flat config those become **errors** ("Definition for rule ... was not found").
-**Takeaway**: `eslint@^10` is flat-config-only and rejects `ESLINT_USE_FLAT_CONFIG=false`, so `eslint.config.js` (ESM — `"type":"module"`) replaces `.eslintrc.json`: migrate the rule verbatim, retarget the glob to `src/**`, and preserve the `*-webonly.*` exclusion. To make the existing `react-hooks/exhaustive-deps` disable directives resolve without inventing a rule set, register `eslint-plugin-react-hooks` and set the rule to `'off'` (plus `linterOptions.reportUnusedDisableDirectives: 'off'` so the never-enabled suppressions stay quiet). Result: `eslint .` exits 0 with 96 intended `no-restricted-syntax` warnings, 0 errors. Prove the rule can fail by injecting `window.location` into a non-`webonly` `src` file.

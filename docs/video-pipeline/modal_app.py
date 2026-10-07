@@ -1,7 +1,8 @@
 """Modal app for the cloud lesson-video pipeline (story 040, Task 7).
 
-Attaches the CPU orchestrator and the proxy-auth trigger to the
-``uff-lesson-video`` app defined in ``video_pipeline``:
+Registers the CPU orchestrator on the ``uff-lesson-video`` app and pulls in the
+proxy-auth trigger from ``trigger_app`` (the lightweight module Modal imports in
+the fastapi-only trigger container):
 
     modal deploy docs/video-pipeline/modal_app.py
 
@@ -9,6 +10,10 @@ This app registers **no** GPU function (Modal refuses a new T4 function without 
 payment method). Background removal calls the separately deployed
 ``video-background-removal`` app by name through ``modal.Function.from_name``;
 that app is not imported here, so the deploy graph stays CPU-only.
+
+``video_pipeline`` is imported **lazily** inside ``orchestrator``/``_publish``:
+a module-level import would be pulled into the trigger container, which has only
+``fastapi[standard]`` and no pipeline source/deps.
 """
 
 from __future__ import annotations
@@ -18,10 +23,8 @@ import os
 import time
 
 import modal
-from fastapi import HTTPException
 
-from video_pipeline import app
-import video_pipeline as pipeline
+from trigger_app import app, trigger  # noqa: F401 - `trigger` keeps the endpoint in the deploy graph
 import storage
 from pipeline_lib import (
     PIPELINE_ASSET_PREFIX,
@@ -54,6 +57,10 @@ cpu_image = (
         # compatible 11.x (12.3.0 makes the resolver fail the build).
         "pillow==11.3.0",
         "boto3==1.43.108",
+        # The orchestrator's module imports `trigger_app` (so the deploy includes
+        # the trigger), and `trigger_app` imports `fastapi` — so the CPU image
+        # needs fastapi too, or the orchestrator container fails to import.
+        "fastapi[standard]",
     )
     # `.env` is a build step, so it must come before `.add_local_dir`: Modal
     # requires `add_local_*` to be the last build step (otherwise the build
@@ -141,6 +148,12 @@ def _write_status(job_id, status, stage, extra=None):
               secrets=[secret, github_secret])
 def orchestrator(spec: dict):
     """Run Stages 1-3 for a filename set and publish the web outputs to R2."""
+    # Lazy import: a module-level import is pulled into the fastapi-only trigger
+    # container when Modal imports the deploy module to resolve the endpoint;
+    # there it fails (no pipeline source/deps). The orchestrator's cpu_image
+    # carries the source tree on PYTHONPATH, so the import works here.
+    import video_pipeline as pipeline
+
     job_id = spec["jobId"]
     files = spec["files"]
     os.makedirs(WORKDIR, exist_ok=True)
@@ -150,6 +163,13 @@ def orchestrator(spec: dict):
         _write_status(job_id, "running", "fetch")
         _fetch_assets(WORKDIR)
         _fetch_takes(WORKDIR, files)
+
+        # Create the pipeline's sub-directories (no_silence/, output/social, …)
+        # and verify deps/fonts before Stage 1. The local main() calls this;
+        # without it Stage 1 fails on the missing `no_silence/`, and a missing
+        # font would silently degrade the Stage 3 overlays.
+        if not pipeline.setup_environment():
+            raise RuntimeError("pipeline environment not ready (missing dependency or font)")
 
         csv_file = os.path.join(WORKDIR, "video_data.csv")
         background_mapping, mirror_mapping = pipeline.load_background_mapping(csv_file)
@@ -187,8 +207,9 @@ def orchestrator(spec: dict):
 
         _write_status(job_id, "running", "publish")
         rows = pipeline.load_csv_rows(csv_file)
-        plan = plan_publish(rows, list(join_plan.keys()),
-                            os.listdir(pipeline.WEB_DIR), only=files)
+        # The plan derives the step/join slugs from the rows themselves (the
+        # join column), so it needs only the rendered `output/web` listing.
+        plan = plan_publish(rows, os.listdir(pipeline.WEB_DIR), only=files)
         published = _publish(plan)
 
         # One-click chain: tell GitHub to run SRT write-back -> translation ->
@@ -234,6 +255,7 @@ def _publish(plan):
     import json
     import subprocess
     import tempfile
+    import video_pipeline as pipeline
 
     published = []
     for entry in plan:
@@ -246,10 +268,12 @@ def _publish(plan):
             probe = _probe(source)
             if not is_within_web_budget(probe):
                 web = os.path.join(tmp, "web.mp4")
-                subprocess.run(reencode_web_args(source, web), check=True)
+                # `*_args` return ffmpeg *arguments* (they start with `-y`), so
+                # the binary must be prepended or Python tries to exec `-y`.
+                subprocess.run(["ffmpeg", *reencode_web_args(source, web)], check=True)
             storage.upload_file(web, entry["video_key"], content_type="video/mp4")
             poster = os.path.join(tmp, "poster.jpg")
-            subprocess.run(poster_args(web, poster), check=True)
+            subprocess.run(["ffmpeg", *poster_args(web, poster)], check=True)
             storage.upload_file(poster, entry["poster_key"], content_type="image/jpeg")
         published.append(slug)
     return published
@@ -302,15 +326,3 @@ def _top_level_boxes(buffer):
         offset += size
     return boxes
 
-
-trigger_image = modal.Image.debian_slim(python_version="3.12").pip_install("fastapi[standard]")
-
-
-@app.function(image=trigger_image)
-@modal.fastapi_endpoint(method="POST", requires_proxy_auth=True)
-def trigger(spec: dict):
-    """Validate a render request and spawn the orchestrator (returns immediately)."""
-    if not isinstance(spec, dict) or not spec.get("jobId") or not spec.get("files"):
-        raise HTTPException(status_code=400, detail="spec requires jobId and files")
-    orchestrator.spawn(spec)
-    return {"jobId": spec["jobId"]}
