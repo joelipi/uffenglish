@@ -19,7 +19,7 @@ columns reported):
 | `course_name` | Display name. Constant per course. |
 | `lesson_id` | Lesson slug. Constant within a lesson's rows. |
 | `lesson_title` | Lesson title. Constant within a lesson. |
-| `response_type` | One of `lessonIntro`, `viewAndContinue`, `friendClosedResponse`, `closedResponse`, `openResponse`, `success`. |
+| `response_type` | One of `lessonIntro`, `viewAndContinue`, `friendClosedResponse`, `closedResponse`, `openResponse`, `branching`, `success`. |
 | `video_file` | The rendered video's slug (the config's `simpleVideoUrl`; `introBackgroundVideoUrl` for `lessonIntro`). **One `video_file` = one step.** |
 | `order` | Integer; step order within the lesson. |
 
@@ -31,6 +31,9 @@ columns reported):
 | `mission` | Lesson mission sentence. |
 | `cue` | The prompt shown for a response step (single). |
 | `cue_alt` | Alternatives, one per line — becomes a `cue` array (mutually exclusive with `cue`). |
+| `next_step` | Integer ≥ 1. A step-level advance override (an offset from the step's own index) emitted as `step.nextStep`. Optional; applies to any `response_type`. |
+| `choose_step_next` | Newline-separated 1-based offsets, one line per choice — emitted as `chooseStep[i].nextStep`. A `branching` step's multiple-choice targets. |
+| `choose_step_text` | Newline-separated choice labels, line-paired with `choose_step_next` — emitted as `chooseStep[i].text`. |
 | `subtitle_text` | Static subtitle text (used only if `srt` is blank). |
 | `srt` | Exact SRT cues. Written by the render pipeline's `srt` column; can be pasted here. |
 | `recap_sources` | `system` / `friend` / `none` (lesson-level; default `none`). |
@@ -42,6 +45,13 @@ columns reported):
 - A `video_file`'s rows must share one `response_type` (a `video_file` is one step).
 - Any step whose slug ends in `-response-NN` must live in a lesson with
   `recap_sources=friend`.
+- **`choose_step_next` and `choose_step_text` must both be set** (or neither) and carry the
+  same number of lines; each `choose_step_next` line must be an integer ≥ 1. Malformed choice
+  data is a structural error: the offending course is **not generated** (the error names the
+  `video_file`) while other courses in the sheet still generate. The `choose_step_*` columns
+  are only valid on a `branching` step.
+- **`next_step` must be an integer ≥ 1** when set. A `branching` step with no `choose_step_*`
+  still generates (the app falls back to a Continue button, which honors `next_step`).
 
 ## Localization columns
 
@@ -58,9 +68,10 @@ Sheet" → Run workflow; it takes optional `dry_run` and `languages` inputs).
 | `mission` | `mission_es`, `mission_pt`, `mission_bn` | `lesson.mission[lang]` |
 | `cue` (single) | `cue_es`, `cue_pt`, `cue_bn` | `step.cue[lang]` |
 | `cue_alt` | `cue_alt_es`, `cue_alt_pt`, `cue_alt_bn` | `step.cue[i][lang]` (one cell per alternative line) |
+| `choose_step_text` | `choose_step_text_es`, `choose_step_text_pt`, `choose_step_text_bn` | `step.chooseStep[i].text[lang]` (one cell per choice line) |
 | `subtitle_text` | `subtitle_text_es`, `subtitle_text_pt`, `subtitle_text_bn` | `step.subtitles[lang]` (only when `srt` is blank) |
 
-That is 15 columns (5 fields × 3 languages). `srt` is **not** translated: SRT timings are
+That is 18 columns (6 fields × 3 languages). `srt` is **not** translated: SRT timings are
 the caption pipeline's job, so a step with `srt` keeps `subtitles = {en: <srt>}`.
 
 **Rules:**
@@ -73,6 +84,10 @@ the caption pipeline's job, so a step with `srt` keeps `subtitles = {en: <srt>}`
   `cue_alt_<lang>` as in `cue_alt`; line *i* translates English line *i*. A shorter or blank
   language list simply omits that language for the extra English lines (which stay
   English-only).
+- **`choose_step_text` pairs lines by index too.** `choose_step_text_<lang>` carries one line
+  per English choice line (the same count as `choose_step_next`); line *i* translates choice
+  *i*. The translator refuses a translation that changes the line count, so a choice is never
+  silently dropped.
 - **`cue` and `cue_alt` are mutually exclusive**, and each language column pairs only with
   its own shape (`cue_es` with `cue`, `cue_alt_es` with `cue_alt`). The generator ignores a
   stray language column on the wrong shape.

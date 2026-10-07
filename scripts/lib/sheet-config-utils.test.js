@@ -154,6 +154,140 @@ describe('buildSteps', () => {
     });
 });
 
+// Story 055: the sheet authors a `branching` step's `chooseStep` (from
+// `choose_step_next`/`choose_step_text`, line-paired) and a step-level
+// `nextStep` (from `next_step`). Malformed choice data is a structural error.
+describe('branching choices and next_step', () => {
+    const authoring = (extra) => ({
+        course_id: 'c', course_name: 'C', lesson_id: 'a', lesson_title: 'L',
+        response_type: 'branching', video_file: 'q', filename: 'q1', order: '1', ...extra,
+    });
+
+    it('emits chooseStep from choose_step_next/choose_step_text on an authoring step', () => {
+        const [step] = buildSteps([authoring({ choose_step_next: '1\n2', choose_step_text: 'Yes\nNo' })]);
+        expect(step.chooseStep).toEqual([
+            { nextStep: 1, text: { en: 'Yes' } },
+            { nextStep: 2, text: { en: 'No' } },
+        ]);
+    });
+
+    it('emits the same chooseStep on a master step (grouped by join)', () => {
+        const [step] = buildSteps([{
+            course_id: 'c', course_name: 'C', lesson_id: 'a', lesson_title: 'L',
+            response_type: 'branching', video_file: 'q', filename: 'q1', order: '1',
+            phrase: 'P', join: 'J', choose_step_next: '1\n2', choose_step_text: 'Yes\nNo',
+        }]);
+        expect(step.chooseStep).toEqual([
+            { nextStep: 1, text: { en: 'Yes' } },
+            { nextStep: 2, text: { en: 'No' } },
+        ]);
+    });
+
+    it('flattens choose_step_* across a master step\'s sub-rows in row order', () => {
+        const base = {
+            course_id: 'c', course_name: 'C', lesson_id: 'a', lesson_title: 'L',
+            response_type: 'branching', join: 'J',
+        };
+        const [step] = buildSteps([
+            { ...base, video_file: 'q1', filename: 'f1', order: '1', phrase: 'P1', choose_step_next: '1', choose_step_text: 'Yes', choose_step_text_es: 'Sí' },
+            { ...base, video_file: 'q2', filename: 'f2', order: '2', phrase: 'P2', choose_step_next: '2', choose_step_text: 'No' },
+        ]);
+        expect(step.chooseStep).toEqual([
+            { nextStep: 1, text: { en: 'Yes', es: 'Sí' } },
+            { nextStep: 2, text: { en: 'No' } },
+        ]);
+    });
+
+    it('pairs each choose_step_text_<lang> line with its choice by index', () => {
+        const [step] = buildSteps([authoring({
+            choose_step_next: '1\n2', choose_step_text: 'Yes\nNo',
+            choose_step_text_es: 'Sí\nNo', choose_step_text_bn: 'হ্যাঁ',
+        })]);
+        expect(step.chooseStep).toEqual([
+            { nextStep: 1, text: { en: 'Yes', es: 'Sí', bn: 'হ্যাঁ' } },
+            { nextStep: 2, text: { en: 'No', es: 'No' } },
+        ]);
+    });
+
+    it('omits a language for a blank/out-of-range choice line (no empty-string locale)', () => {
+        const blank = buildSteps([authoring({
+            choose_step_next: '1\n2', choose_step_text: 'Yes\nNo', choose_step_text_es: '',
+        })])[0];
+        expect(blank.chooseStep).toEqual([
+            { nextStep: 1, text: { en: 'Yes' } },
+            { nextStep: 2, text: { en: 'No' } },
+        ]);
+        const short = buildSteps([authoring({
+            choose_step_next: '1\n2', choose_step_text: 'Yes\nNo', choose_step_text_es: 'Sí',
+        })])[0];
+        expect(short.chooseStep).toEqual([
+            { nextStep: 1, text: { en: 'Yes', es: 'Sí' } },
+            { nextStep: 2, text: { en: 'No' } },
+        ]);
+    });
+
+    it('emits nextStep as a number on an authoring step', () => {
+        const [step] = buildSteps([authoring({ response_type: 'viewAndContinue', next_step: '3' })]);
+        expect(step.nextStep).toBe(3);
+    });
+
+    it('emits nextStep as a number on a master step', () => {
+        const [step] = buildSteps([{
+            course_id: 'c', course_name: 'C', lesson_id: 'a', lesson_title: 'L',
+            response_type: 'viewAndContinue', video_file: 'v', filename: 'f', order: '1',
+            phrase: 'P', next_step: '3',
+        }]);
+        expect(step.nextStep).toBe(3);
+    });
+
+    it('generates a branching step with no choices and no chooseStep/nextStep key', () => {
+        const [step] = buildSteps([authoring({})]);
+        expect('chooseStep' in step).toBe(false);
+        expect('nextStep' in step).toBe(false);
+    });
+
+    it('emits neither key when no next_step/choose_step_* is set', () => {
+        const [step] = buildSteps([{ video_file: 'v', filename: 'v1', order: '1', response_type: 'viewAndContinue' }]);
+        expect('chooseStep' in step).toBe(false);
+        expect('nextStep' in step).toBe(false);
+    });
+
+    it('throws naming the video_file and line for a non-integer/zero choice offset', () => {
+        for (const bad of ['1\nx', '1\n0']) {
+            expect(() => buildSteps([authoring({ choose_step_next: bad, choose_step_text: 'Yes\nNo' })]))
+                .toThrow(/video_file "q": choose_step_next line 2 is not an integer >= 1/);
+        }
+    });
+
+    it('throws naming both line counts when they differ', () => {
+        expect(() => buildSteps([authoring({ choose_step_next: '1\n2', choose_step_text: 'Yes' })]))
+            .toThrow(/choose_step_next has 2 lines but choose_step_text has 1/);
+    });
+
+    it('throws when only choose_step_next or only choose_step_text is set', () => {
+        expect(() => buildSteps([authoring({ choose_step_next: '1' })])).toThrow(/must both be set/);
+        expect(() => buildSteps([authoring({ choose_step_text: 'Yes' })])).toThrow(/must both be set/);
+    });
+
+    it('throws when choose_step_* is set on a non-branching step', () => {
+        expect(() => buildSteps([authoring({
+            response_type: 'closedResponse', choose_step_next: '1', choose_step_text: 'Yes',
+        })])).toThrow(/only valid on a branching step/);
+    });
+
+    it('throws naming the video_file for a bad next_step', () => {
+        for (const bad of ['x', '0']) {
+            expect(() => buildSteps([authoring({ next_step: bad })]))
+                .toThrow(/video_file "q": next_step must be an integer >= 1/);
+        }
+    });
+
+    it('does not report choose_step_*/next_step as missing required columns', () => {
+        const rows = [authoring({ choose_step_next: '', choose_step_text: '', next_step: '' })];
+        expect(findMissingColumns(rows)).toEqual([]);
+    });
+});
+
 describe('buildCourseConfig', () => {
     const base = {
         course_id: 'newcourse', course_name: 'New Course', lesson_id: 'a', lesson_title: 'Lesson A',
@@ -409,7 +543,7 @@ describe('shared translatable-field parity', () => {
         expect(lesson.steps[1].cue[0].es).toBe('A-es');
         // The generator's consumed field set is exactly the shared set.
         expect(TRANSLATABLE_FIELDS.map((f) => f.field).sort()).toEqual([
-            'cue', 'cue_alt', 'lesson_title', 'mission', 'phrase', 'subtitle_text',
+            'choose_step_text', 'cue', 'cue_alt', 'lesson_title', 'mission', 'phrase', 'subtitle_text',
         ]);
         // `phrase` is consumed by the master path (one cue element per row).
         const master = buildCourseConfig([{
@@ -646,7 +780,7 @@ describe('buildCourseConfigs', () => {
     });
 });
 
-// Story 049: the sample sheet gains the 15 localization columns (blank cells)
+// Story 049: the sample sheet gains the localization columns (blank cells)
 // and must still round-trip through parseCsv + buildCourseConfig.
 // Story 050, Task 1: the overlay master (a `phrase` header) is a second sheet
 // shape. Steps group by `join` (else `video_file`), the cue is an ordered array
@@ -831,13 +965,16 @@ describe('docs/video-pipeline/sample-sheet.csv round-trip', () => {
     const samplePath = path.join(__dirname, '../../docs/video-pipeline/sample-sheet.csv');
     const csv = readFileSync(samplePath, 'utf8');
 
-    it('headers include all 15 authoring localization columns (phrase is master-only)', () => {
+    it('headers include all 18 authoring localization columns (phrase is master-only)', () => {
         const { headers } = parseCsv(csv);
         const authoringFields = TRANSLATABLE_FIELDS.filter((f) => f.field !== 'phrase');
         const expected = authoringFields.flatMap((f) =>
             SHEET_LANGUAGES.map((l) => localizedColumn(f.field, l)));
-        expect(expected).toHaveLength(15);
+        expect(expected).toHaveLength(18);
         for (const col of expected) expect(headers).toContain(col);
+        for (const col of ['next_step', 'choose_step_next', 'choose_step_text']) {
+            expect(headers).toContain(col);
+        }
         expect(headers).not.toContain('phrase_es');
     });
 
@@ -849,5 +986,30 @@ describe('docs/video-pipeline/sample-sheet.csv round-trip', () => {
         expect(config.lessons.length).toBeGreaterThan(0);
         // All language cells are blank in the sample -> `{en}` (back-compat).
         expect(config.lessons[0].title).toEqual({ en: 'Lesson Intro' });
+    });
+
+    it('generates the worked branching example: chooseStep + converging nextStep', () => {
+        const { rows } = parseCsv(csv);
+        const lesson = buildCourseConfig(rows).lessons.find((l) => l.lessonId === 'a');
+        const branch = lesson.steps.find((s) => s.responseType === 'branching');
+        expect(branch.chooseStep).toEqual([
+            { nextStep: 1, text: { en: 'Go to the beach' } },
+            { nextStep: 2, text: { en: 'Go to the mountains' } },
+        ]);
+        // The branching step is at index 3; each alternative carries nextStep so
+        // both land on the success step (index 6).
+        const branchIndex = lesson.steps.indexOf(branch);
+        expect(branchIndex).toBe(3);
+        const successIndex = lesson.steps.findIndex((s) => s.responseType === 'success');
+        expect(successIndex).toBe(6);
+        for (const choice of branch.chooseStep) {
+            expect(branchIndex + choice.nextStep).toBeLessThan(successIndex + 1);
+        }
+        const beach = lesson.steps[branchIndex + 1];
+        const mountain = lesson.steps[branchIndex + 2];
+        expect(beach.nextStep).toBe(2);
+        expect(mountain.nextStep).toBe(1);
+        expect(branchIndex + 1 + beach.nextStep).toBe(successIndex);
+        expect(branchIndex + 2 + mountain.nextStep).toBe(successIndex);
     });
 });

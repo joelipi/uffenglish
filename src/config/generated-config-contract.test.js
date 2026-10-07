@@ -69,6 +69,7 @@ function assertListedConfigs({ listPath = ALLOWLIST, readDir = CONFIG_DIR } = {}
 //   title/mission: an object of locale->string
 //   cue: an object OR an array of such objects
 //   subtitles: an object of locale->string
+//   chooseStep[].text: an object of locale->string (one per branch choice)
 function collectTranslationObjects(node, found = []) {
     if (Array.isArray(node)) { node.forEach((n) => collectTranslationObjects(n, found)); return found; }
     if (!node || typeof node !== 'object') return found;
@@ -80,6 +81,12 @@ function collectTranslationObjects(node, found = []) {
         const cue = node.cue;
         if (Array.isArray(cue)) cue.forEach((c) => { if (c && typeof c === 'object') found.push(c); });
         else if (cue && typeof cue === 'object') found.push(cue);
+    }
+    if (Array.isArray(node.chooseStep)) {
+        node.chooseStep.forEach((choice) => {
+            const text = choice?.text;
+            if (text && typeof text === 'object' && !Array.isArray(text)) found.push(text);
+        });
     }
     for (const value of Object.values(node)) collectTranslationObjects(value, found);
     return found;
@@ -133,6 +140,15 @@ const LOCALIZED_CSV = [
     'loc,Localized,a,Lesson A,,,,,,friendClosedResponse,loc-q,locq1,2,Question?,¿Pregunta?,,',
 ].join('\n');
 
+// Story 055: a `branching` step with the choice columns, plus their es/pt/bn
+// translations (multi-line cells are quoted).
+const BRANCHING_CSV = [
+    'course_id,course_name,lesson_id,lesson_title,recap_sources,recap_overlay,response_type,video_file,filename,order,cue,choose_step_next,choose_step_text,choose_step_text_es,choose_step_text_pt,choose_step_text_bn',
+    'br,Branch,a,Lesson A,none,shareCta,branching,br-branch,br1,1,Choose?,"1\n2","Yes\nNo","Sí\nNo","Sim\nNão","হ্যাঁ\nনা"',
+    'br,Branch,a,Lesson A,none,shareCta,viewAndContinue,br-yes,br2,2,',
+    'br,Branch,a,Lesson A,none,shareCta,viewAndContinue,br-no,br3,3,',
+].join('\n');
+
 describe('generated config contract (localized allowed)', () => {
     it('passes for a well-formed fixture (can also fail — see below)', () => {
         const { rows } = parseCsv(FIXTURE_CSV);
@@ -159,6 +175,35 @@ describe('generated config contract (localized allowed)', () => {
         expect(config.lessons[0].title).toEqual({ en: 'Lesson A', es: 'Lección A', pt: 'Llição A', bn: 'পাঠ এ' });
         expect(config.lessons[0].mission).toEqual({ en: 'Talk', es: 'Falar' });
         assertGeneratedConfigContract(config, 'localized');
+    });
+
+    // Story 055: a `branching` step's `chooseStep[].text` is a translation slot,
+    // so it must satisfy the same localized-allowed contract.
+    it('passes for a branching step whose choices carry es/pt/bn translations', () => {
+        const { rows } = parseCsv(BRANCHING_CSV);
+        const config = buildCourseConfig(rows);
+        const branch = config.lessons[0].steps[0];
+        expect(branch.chooseStep).toEqual([
+            { nextStep: 1, text: { en: 'Yes', es: 'Sí', pt: 'Sim', bn: 'হ্যাঁ' } },
+            { nextStep: 2, text: { en: 'No', es: 'No', pt: 'Não', bn: 'না' } },
+        ]);
+        assertGeneratedConfigContract(config, 'branching');
+    });
+
+    it('collects every chooseStep[].text object', () => {
+        const { rows } = parseCsv(BRANCHING_CSV);
+        const config = buildCourseConfig(rows);
+        const collected = collectTranslationObjects(config);
+        for (const choice of config.lessons[0].steps[0].chooseStep) {
+            expect(collected).toContain(choice.text);
+        }
+    });
+
+    it('fails when a chooseStep text carries an unknown locale key', () => {
+        const { rows } = parseCsv(BRANCHING_CSV);
+        const config = buildCourseConfig(rows);
+        config.lessons[0].steps[0].chooseStep[0].text.fr = 'Oui';
+        expect(() => assertGeneratedConfigContract(config, 'mutated')).toThrow(/unknown locale key/);
     });
 
     it('fails when a translation object carries an unknown locale key', () => {
