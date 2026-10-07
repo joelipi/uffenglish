@@ -265,8 +265,10 @@ def _row_value(row, column_name):
 
     ``pipeline_lib`` cannot import ``video_pipeline`` (it pulls in
     pandas/modal), so this reproduces the stdlib-safe part of that module's
-    ``safe_get_value`` convention: a missing column, ``None``, NaN-ish or
+    ``safe_get_value`` convention: a missing column, ``None`` or a
     whitespace-only value yields ``""``; otherwise ``str(value).strip()``.
+    (Callers pass ``load_csv_rows`` output, whose ``dtype=str``/``fillna('')``
+    has already normalized NaN to ``""``.)
     """
     if row is None:
         return ""

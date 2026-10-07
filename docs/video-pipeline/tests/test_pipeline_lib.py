@@ -137,6 +137,22 @@ class PlanPublishTest(unittest.TestCase):
         )
         self.assertEqual(plan, [])
 
+    def test_reads_rows_without_a_get_method(self):
+        # The orchestrator passes pandas Series (they have `.get`), but the
+        # accessor must also handle a plain `__getitem__`-only mapping row.
+        class _Row:
+            def __init__(self, **values):
+                self._values = values
+
+            def __getitem__(self, key):
+                return self._values[key]
+
+        plan = lib.plan_publish(
+            [_Row(filename="lesson_01", video_file="step_a", join="")],
+            [f"step_a_full{lib.VIDEO_EXTENSION}"],
+        )
+        self.assertEqual([e["slug"] for e in plan], ["step_a"])
+
     def test_never_emits_invalid_slug_or_wrong_namespace(self):
         rows = [
             {"filename": "x", "video_file": "../evil", "join": ""},
@@ -164,7 +180,10 @@ class PlanPublishSourceGuardTest(unittest.TestCase):
 
     def _guard(self, text):
         body = text[text.index("def plan_publish("):text.index("# ---", text.index("def plan_publish("))]
-        self.assertIn("_full", body)
+        # The step web_name is built from the `_full` output name; the per-take
+        # intermediate (`PROCESSED_PREFIX` / `processed_web_name`) must not appear.
+        self.assertIn('f"{video_file}_full{VIDEO_EXTENSION}"', body)
+        self.assertNotIn("PROCESSED_PREFIX", body)
         self.assertNotIn("processed_web_name", body)
 
     def test_plan_publish_targets_concatenated_videos(self):
