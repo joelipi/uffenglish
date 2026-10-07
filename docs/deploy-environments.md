@@ -109,16 +109,18 @@ Seed/refresh the branch alias at any time:
 git push origin main:staging     # mirror flow; the workflow redeploys staging
 ```
 
-Only then edit the `s.` DNS record's target to `staging.uffenglish.pages.dev`
-(keep it proxied). Before the first staging deployment exists, pointing `s.` at
-the branch alias would 404.
+Once the first `staging` deployment has succeeded, edit the `s.` DNS record's
+target to `staging.uffenglish.pages.dev` (keep it proxied). Pointing `s.` at the
+branch alias before that first deployment exists would 404.
 
 ## Token scopes
 
 - **Pages Write** — add/remove custom domains on the project.
-- **Zone DNS Write** — create/replace the DNS records. `CF_TOKEN` lacks this; it
-  does have **Account API Tokens Write**, so a temporary token scoped to
-  `DNS Write` + `Zone Read` can be minted for the edit and then revoked:
+- **Zone DNS Write** — create/replace the DNS records. `CF_TOKEN` lacks this (it
+  has zone **DNS Read** only), but it does have **Account API Tokens Write**, so
+  a short-lived token can be minted for the edit and then revoked. An
+  account-owned token scopes zone permissions through the account resource
+  (`com.cloudflare.api.account.<ACC>` = every zone in the account):
 
   ```bash
   ACC=1cbff202eaecae074585be8e7ac45b2e
@@ -126,13 +128,17 @@ the branch alias would 404.
     -H "Content-Type: application/json" \
     -d '{"name":"uff-dns-tmp","policies":[{"effect":"allow",
          "resources":{"com.cloudflare.api.account.'"$ACC"'":"*"},
-         "permission_groups":[{"id":"4755a26eedb94da69e1066d98aa820be"}]}]}' \
+         "permission_groups":[
+           {"id":"4755a26eedb94da69e1066d98aa820be"},
+           {"id":"c8fed203ed3043cba015a93ad1616f1f"}]}]}' \
     "https://api.cloudflare.com/client/v4/accounts/$ACC/tokens"
   ```
 
-  (`4755a26eedb94da69e1066d98aa820be` = **DNS Write**.) The response's `value` is
-  shown once. Delete the token afterwards
-  (`DELETE /accounts/$ACC/tokens/<id>`).
+  (`4755a26eedb94da69e1066d98aa820be` = **DNS Write**,
+  `c8fed203ed3043cba015a93ad1616f1f` = **Zone Read**.) The response's `value` is
+  returned once — the only time it is shown. Delete the token afterwards
+  (`DELETE /accounts/$ACC/tokens/<id>`); the one minted for the apex fix was
+  revoked immediately after use.
 
 ## AI proxy allow-list
 

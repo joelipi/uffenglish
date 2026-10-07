@@ -1,19 +1,22 @@
-const ALLOWED_ORIGINS = [
+export const ALLOWED_ORIGINS = [
   'https://uffenglish.pages.dev',
   'https://go.ultrafastfluency.com',
   'http://localhost:3000',
   'http://localhost:5173',
-  'http://localhost:5174',
-  'http://localhost:5175',
-  'http://localhost:5176',
   'https://ultrafastfluency.com',
   // Staging — s.ultrafastfluency.com serves a non-production branch deployment
   // (see docs/deploy-environments.md), so the AI proxy must accept its origin.
   'https://s.ultrafastfluency.com',
   'https://t.ultrafastfluency.com',
   // Origins previously added to the deployed worker outside the repo (device
-  // testing + the beacon app). Kept so a repo deploy does not silently drop
-  // them; remove here and from the worker together if they are retired.
+  // testing + the beacon app): extra Vite ports, a tailnet funnel host, a CGNAT
+  // IP and a Pages preview app. Kept so a repo deploy does not silently drop
+  // them. This worker attaches the server-side DEEPSEEK_API_KEY, so each of
+  // these origins can spend the key — review and remove them here and in the
+  // deployed worker together once they are no longer needed.
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://localhost:5176',
   'http://100.119.79.124',
   'https://100.119.79.124',
   'https://localhost-0.taild13d5c.ts.net',
