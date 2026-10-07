@@ -48,11 +48,16 @@ def check_intro_posters_wired(text: str) -> None:
     # Best-effort: one bad slug must never fail an otherwise-good render...
     assert "except Exception" in helper
     # ...and neither may the planning reads (`storage.head` re-raises non-404s),
-    # which run after the videos are already published.
+    # which run after the videos are already published. Containment, not mere
+    # presence: the reads must sit *between* the planning `try:` and its
+    # `except`, or a blip escapes and fails an already-published render.
+    # `storage.head(` (with the call paren) not `storage.head`: the comment above
+    # the try also names it, and a bare-token search would measure the comment.
     planning = helper[: helper.index("published = []")]
-    assert "try:" in planning
-    assert "storage.head" in planning
-    assert "except Exception" in planning
+    try_at = planning.index("try:")
+    head_at = planning.index("storage.head(")
+    except_at = planning.index("except Exception")
+    assert try_at < head_at < except_at, (try_at, head_at, except_at)
 
 
 class ModalImageGuardTest(unittest.TestCase):
@@ -127,15 +132,26 @@ class OrchestratorGuardTest(unittest.TestCase):
 
     def test_intro_poster_guard_can_fail(self):
         good = read(APP)
+        head_loop = (
+            "        for slug in slugs:\n"
+            '            posters[slug] = (storage.head(published_poster_key(slug)) or {}).get("last_modified")\n'
+            '            sources[slug] = (storage.head(published_video_key(slug)) or {}).get("last_modified")\n'
+        )
+        # Hoist the metadata reads above the planning try: an R2 blip then
+        # escapes and fails an already-published render (the round-3 regression).
+        hoisted = good.replace(head_loop, "", 1).replace(
+            "    try:\n        slugs = intro_poster_slugs(rows)",
+            "    for slug in intro_poster_slugs(rows):\n"
+            "        storage.head(published_poster_key(slug))\n"
+            "    try:\n        slugs = intro_poster_slugs(rows)",
+            1,
+        )
         mutations = (
             # The call site disappears (not the definition, or the slice below
             # would raise ValueError instead of failing the assertion).
             good.replace("intro_posters = _publish_intro_posters(rows)",
                          "intro_posters = []", 1),
-            # Planning reads moved outside the best-effort try (round-3 fix):
-            # an R2 blip would then fail an already-published render.
-            good.replace("    try:\n        slugs = intro_poster_slugs(rows)",
-                         "    slugs = intro_poster_slugs(rows)", 1),
+            hoisted,
         )
         for mutated in mutations:
             self.assertNotEqual(mutated, good)
