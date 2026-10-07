@@ -207,8 +207,9 @@ def orchestrator(spec: dict):
 
         _write_status(job_id, "running", "publish")
         rows = pipeline.load_csv_rows(csv_file)
-        plan = plan_publish(rows, list(join_plan.keys()),
-                            os.listdir(pipeline.WEB_DIR), only=files)
+        # The plan derives the step/join slugs from the rows themselves (the
+        # join column), so it needs only the rendered `output/web` listing.
+        plan = plan_publish(rows, os.listdir(pipeline.WEB_DIR), only=files)
         published = _publish(plan)
 
         # One-click chain: tell GitHub to run SRT write-back -> translation ->

@@ -68,56 +68,82 @@ class PrivateKeyRuleTest(unittest.TestCase):
 
 
 class PlanPublishTest(unittest.TestCase):
+    """The plan publishes the concatenated step/join videos the app references,
+    not the per-take ``processed_*`` intermediates (which would 404 on R2)."""
+
     def setUp(self):
-        self.rows = [{"filename": "lesson_01"}, {"filename": "lesson_02"}]
-        self.processed_01 = lib.processed_web_name("lesson_01")
-        self.processed_02 = lib.processed_web_name("lesson_02")
+        self.rows = [
+            {"filename": "lesson_01", "video_file": "wouldyourather_a01", "join": ""},
+            {"filename": "lesson_02", "video_file": "wouldyourather_a02", "join": ""},
+        ]
+        self.step_01 = f"wouldyourather_a01_full{lib.VIDEO_EXTENSION}"
+        self.step_02 = f"wouldyourather_a02_full{lib.VIDEO_EXTENSION}"
 
-    def test_emits_in_scope_rows_and_joins_in_order(self):
-        plan = lib.plan_publish(
-            self.rows,
-            ["lessonFinal"],
-            [self.processed_01, self.processed_02, "lessonFinal.mp4"],
+    def test_non_joined_step_publishes_the_concatenated_video(self):
+        plan = lib.plan_publish(self.rows, [self.step_01, self.step_02])
+        self.assertEqual(
+            [e["slug"] for e in plan], ["wouldyourather_a01", "wouldyourather_a02"]
         )
-        self.assertEqual([e["slug"] for e in plan], ["lesson_01", "lesson_02", "lessonFinal"])
-        self.assertEqual(plan[0]["web_name"], self.processed_01)
-        self.assertEqual(plan[0]["video_key"], "assets/videos/lesson_01.mp4")
-        self.assertEqual(plan[0]["poster_key"], "assets/videos/lesson_01.jpg")
-        self.assertEqual(plan[2]["web_name"], "lessonFinal.mp4")
-        self.assertEqual(plan[2]["video_key"], "assets/videos/lessonFinal.mp4")
+        self.assertEqual(plan[0]["web_name"], self.step_01)
+        # The published key drops the internal `_full` suffix.
+        self.assertEqual(plan[0]["video_key"], "assets/videos/wouldyourather_a01.mp4")
+        self.assertEqual(plan[0]["poster_key"], "assets/videos/wouldyourather_a01.jpg")
+        self.assertNotIn("_full", plan[0]["video_key"])
 
-    def test_skips_rows_whose_output_is_not_listed(self):
-        plan = lib.plan_publish(self.rows, [], [self.processed_01])
-        self.assertEqual([e["slug"] for e in plan], ["lesson_01"])
+    def test_joined_step_publishes_the_join_output_once(self):
+        rows = [
+            {"filename": "lesson_01", "video_file": "step_a", "join": "lessonFinal"},
+            {"filename": "lesson_02", "video_file": "step_b", "join": "lessonFinal"},
+        ]
+        # Even with the per-step `_full` files present, the join replaces them.
+        plan = lib.plan_publish(
+            rows, ["lessonFinal.mp4", f"step_a_full{lib.VIDEO_EXTENSION}"]
+        )
+        self.assertEqual([e["slug"] for e in plan], ["lessonFinal"])
+        self.assertEqual(plan[0]["web_name"], "lessonFinal.mp4")
+        self.assertEqual(plan[0]["video_key"], "assets/videos/lessonFinal.mp4")
+
+    def test_skips_a_step_whose_output_is_not_listed(self):
+        plan = lib.plan_publish(self.rows, [self.step_01])
+        self.assertEqual([e["slug"] for e in plan], ["wouldyourather_a01"])
+
+    def test_never_emits_the_per_take_intermediate(self):
+        listing = [lib.processed_web_name("lesson_01"), self.step_01]
+        plan = lib.plan_publish(self.rows, listing)
+        names = [e["web_name"] for e in plan]
+        self.assertNotIn(lib.processed_web_name("lesson_01"), names)
+        self.assertNotIn(lib.processed_web_name("lesson_02"), names)
+        self.assertEqual(names, [self.step_01])
 
     def test_only_restricts_to_scoped_rows(self):
-        # lesson_02 was requested but only lesson_01 rendered -> nothing.
-        plan = lib.plan_publish(self.rows, [], [self.processed_01], only=["lesson_02"])
+        plan = lib.plan_publish(
+            self.rows, [self.step_01, self.step_02], only=["lesson_02"]
+        )
+        self.assertEqual([e["slug"] for e in plan], ["wouldyourather_a02"])
+
+    def test_dedupes_by_slug_first_wins(self):
+        # Two takes of the same step share a `video_file` -> one published entry.
+        rows = [
+            {"filename": "lesson_01", "video_file": "step_a", "join": ""},
+            {"filename": "lesson_01b", "video_file": "step_a", "join": ""},
+        ]
+        plan = lib.plan_publish(rows, [f"step_a_full{lib.VIDEO_EXTENSION}"])
+        self.assertEqual(len(plan), 1)
+        self.assertEqual(plan[0]["slug"], "step_a")
+
+    def test_skips_rows_with_neither_join_nor_video_file(self):
+        plan = lib.plan_publish(
+            [{"filename": "lesson_01"}], [f"lesson_01_full{lib.VIDEO_EXTENSION}"]
+        )
         self.assertEqual(plan, [])
 
-    def test_only_returns_the_matching_row(self):
-        plan = lib.plan_publish(
-            self.rows, [], [self.processed_01, self.processed_02], only=["lesson_02"]
-        )
-        self.assertEqual([e["slug"] for e in plan], ["lesson_02"])
-        self.assertEqual(plan[0]["web_name"], self.processed_02)
-
-    def test_join_equal_to_row_filename_dedups_first_wins(self):
-        plan = lib.plan_publish(
-            [{"filename": "lesson_01"}],
-            ["lesson_01"],
-            [self.processed_01, "lesson_01.mp4"],
-        )
-        self.assertEqual(len(plan), 1)
-        self.assertEqual(plan[0]["slug"], "lesson_01")
-        # The per-row entry is seen first.
-        self.assertEqual(plan[0]["web_name"], self.processed_01)
-
     def test_never_emits_invalid_slug_or_wrong_namespace(self):
+        rows = [
+            {"filename": "x", "video_file": "../evil", "join": ""},
+            {"filename": "y", "video_file": "step_ok", "join": ""},
+        ]
         plan = lib.plan_publish(
-            [{"filename": "../evil"}, {"filename": "lesson_01"}],
-            ["join_ok"],
-            [lib.processed_web_name("../evil"), self.processed_01, "join_ok.mp4"],
+            rows, [f"../evil_full{lib.VIDEO_EXTENSION}", f"step_ok_full{lib.VIDEO_EXTENSION}"]
         )
         slugs = [e["slug"] for e in plan]
         self.assertNotIn("../evil", slugs)
@@ -126,6 +152,33 @@ class PlanPublishTest(unittest.TestCase):
             self.assertFalse(entry["video_key"].startswith("videos/"))
             self.assertEqual(entry["video_key"], f"assets/videos/{entry['slug']}.mp4")
             self.assertEqual(entry["poster_key"], f"assets/videos/{entry['slug']}.jpg")
+
+
+class PlanPublishSourceGuardTest(unittest.TestCase):
+    """Guard: ``plan_publish`` targets the concatenated ``_full`` step/join videos
+    and never the per-take ``processed_*`` intermediate. A regression here
+    silently publishes slugs the app never references (R2 404), so the guard is
+    proven failable by mutating the real source."""
+
+    LIB = Path(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) / "pipeline_lib.py"
+
+    def _guard(self, text):
+        body = text[text.index("def plan_publish("):text.index("# ---", text.index("def plan_publish("))]
+        self.assertIn("_full", body)
+        self.assertNotIn("processed_web_name", body)
+
+    def test_plan_publish_targets_concatenated_videos(self):
+        self._guard(self.LIB.read_text(encoding="utf-8"))
+
+    def test_guard_can_fail(self):
+        source = self.LIB.read_text(encoding="utf-8")
+        mutated = source.replace(
+            'add(video_file, f"{video_file}_full{VIDEO_EXTENSION}")',
+            'add(video_file, processed_web_name(video_file))',
+        )
+        self.assertNotEqual(mutated, source)
+        with self.assertRaises(AssertionError):
+            self._guard(mutated)
 
 
 class SelectRowsTest(unittest.TestCase):

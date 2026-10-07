@@ -260,6 +260,32 @@ def _row_filename(row):
         return None
 
 
+def _row_value(row, column_name):
+    """A CSV cell as a stripped string, or ``""`` when absent/blank.
+
+    ``pipeline_lib`` cannot import ``video_pipeline`` (it pulls in
+    pandas/modal), so this reproduces the stdlib-safe part of that module's
+    ``safe_get_value`` convention: a missing column, ``None``, NaN-ish or
+    whitespace-only value yields ``""``; otherwise ``str(value).strip()``.
+    """
+    if row is None:
+        return ""
+    getter = getattr(row, "get", None)
+    if callable(getter):
+        try:
+            value = getter(column_name)
+        except Exception:
+            return ""
+    else:
+        try:
+            value = row[column_name]
+        except Exception:
+            return ""
+    if value is None:
+        return ""
+    return str(value).strip()
+
+
 def select_rows(rows, only=None):
     """Rows in scope. ``only=None`` = every row; ``only=[]`` = none."""
     rows = list(rows)
@@ -269,21 +295,32 @@ def select_rows(rows, only=None):
     return [row for row in rows if _row_filename(row) in allowed]
 
 
-def plan_publish(rows, join_values, web_listing, only=None):
+def plan_publish(rows, web_listing, only=None):
     """Ordered publish plan for the rendered ``output/web`` contents.
 
-    Per CSV row in scope: slug = ``filename``, web_name =
-    ``processed_<filename>_no_silence_bg_removed.mp4``. Per join value: slug =
-    ``join_value``, web_name = ``<join_value>.mp4``. An entry is kept only when
-    its ``web_name`` is actually present; entries are deduped by slug (first
-    wins) in first-seen order. Slugs that fail validation are never emitted.
+    One entry per CSV row in scope, pointing at that step's **concatenated**
+    video — never the per-take ``processed_*`` intermediates, which the app does
+    not reference:
+
+    - a row with a non-blank ``join`` publishes the join output (slug = ``join``,
+      web_name = ``<join>.mp4``);
+    - otherwise a row with a non-blank ``video_file`` publishes the concatenated
+      step video (slug = ``video_file``, web_name =
+      ``<video_file>_full{VIDEO_EXTENSION}``);
+    - a row with neither is skipped.
+
+    An entry is kept only when its ``web_name`` is actually present in
+    ``web_listing`` (the caller passes ``os.listdir(WEB_DIR)``); entries are
+    deduped by slug (first wins) in first-seen order. Slugs that fail validation
+    are never emitted. The published R2 key stays ``assets/videos/<slug>.mp4`` —
+    the ``_full`` suffix is only the internal output name.
     """
     listing = set(web_listing or [])
     seen = set()
     plan = []
 
     def add(slug, web_name):
-        if slug in seen or not is_valid_slug(slug) or web_name not in listing:
+        if not slug or slug in seen or not is_valid_slug(slug) or web_name not in listing:
             return
         video_key = published_video_key(slug)
         poster_key = published_poster_key(slug)
@@ -298,15 +335,13 @@ def plan_publish(rows, join_values, web_listing, only=None):
         })
 
     for row in select_rows(rows, only):
-        slug = _row_filename(row)
-        if slug is None:
+        join_value = _row_value(row, "join")
+        if join_value:
+            add(join_value, f"{join_value}.mp4")
             continue
-        add(str(slug), processed_web_name(str(slug)))
-
-    for join_value in join_values or []:
-        if join_value is None:
-            continue
-        add(str(join_value), f"{join_value}.mp4")
+        video_file = _row_value(row, "video_file")
+        if video_file:
+            add(video_file, f"{video_file}_full{VIDEO_EXTENSION}")
 
     return plan
 
