@@ -71,10 +71,10 @@ describe('introTargets', () => {
         expect(introTargets(null)).toEqual([]);
     });
 
-    it('finds exactly the six first-step intro slugs across all configs', () => {
+    it('finds exactly the seven first-step intro slugs across all configs', () => {
         const slugs = introTargets(loadAllConfigs()).map((t) => t.slug).sort();
         expect(slugs).toEqual(
-            ['do_you_have_dark_chocolate', 'do_you_have_rolls_too', 'gtests-0-1-1', 'gtests-1-0', 'testvideo01', 'testvideointro'],
+            ['do_you_have_dark_chocolate', 'do_you_have_rolls_too', 'gtests-0-1-1', 'gtests-1-0', 'intro', 'testvideo01', 'testvideointro'],
         );
     });
 

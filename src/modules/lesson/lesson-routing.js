@@ -132,8 +132,8 @@ export function getNextStep(currentStep, configData, currentLessonIndex) {
         return null;
     }
 
-    if (currentIndex >= currentLesson.steps.length - 1) return null;
-    return currentLesson.steps[currentIndex + 1];
+    const nextIndex = resolveNextStepIndex(currentLesson.steps[currentIndex], currentIndex);
+    return nextIndex < currentLesson.steps.length ? currentLesson.steps[nextIndex] : null;
 }
 
 /**

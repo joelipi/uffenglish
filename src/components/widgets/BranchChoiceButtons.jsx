@@ -12,6 +12,7 @@ export default function BranchChoiceButtons({ view, onChoose, onReplay, onContin
     const [showTutorial, setShowTutorial] = useState(false);
     const labelLang = useNativeLanguage();
     const choices = view?.choices || [];
+    const continueLabel = getBilingual('continue', labelLang);
 
     return (
         <>
@@ -25,7 +26,12 @@ export default function BranchChoiceButtons({ view, onChoose, onReplay, onContin
                 <div className="branch-choice-col">
                     {view?.showContinue ? (
                         <button className="btn branch-choice-btn" id="branchContinueBtn" onClick={() => onContinue()}>
-                            {getBilingual('continue', labelLang).english}
+                            <span className="branch-choice-label-en">{continueLabel.english}</span>
+                            {continueLabel.localized && (
+                                <span className="branch-choice-label-localized" lang={continueLabel.lang}>
+                                    {continueLabel.localized}
+                                </span>
+                            )}
                         </button>
                     ) : choices.map((choice) => (
                         <button

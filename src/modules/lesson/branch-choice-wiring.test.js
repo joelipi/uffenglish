@@ -8,6 +8,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { normalizeConfig } from '../bilingual/config-normalizer.js';
+import { getBilingual } from '../../data/strings.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '../../..');
@@ -143,6 +144,11 @@ describe('StepLoader, strings and styles', () => {
         expect(btn).toContain('background:');
         expect(btn).toContain('color:');
         expect(btn).toContain('font-weight: 700');
+    });
+
+    it('ships the branch heading copy in English and Spanish', () => {
+        expect(getBilingual('video_choose_how_respond', 'en').english).toBe('Choose how you will respond.');
+        expect(getBilingual('video_choose_how_respond', 'es').localized).toBeTruthy();
     });
 });
 
