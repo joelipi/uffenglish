@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // Verifies that every course's first-step intro slug has a poster on R2
 // (assets/videos/<slug>.jpg). There are no local posters: the app always
-// fetches posters from R2, and the Modal render writes each slug's poster as it
-// publishes the video (modal_app._publish), so CI never generates one.
+// fetches posters from R2, and the Modal render writes each slug's poster
+// (`modal_app._publish_intro_posters` covers exactly these `intro_video` slugs),
+// so CI never generates one.
 //
 // Usage: node scripts/verify-thumbnails.mjs
 //

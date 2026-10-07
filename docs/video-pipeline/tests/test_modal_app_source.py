@@ -32,6 +32,29 @@ def slice_between(text: str, start: str, end: str) -> str:
     return text[i:j]
 
 
+def check_intro_posters_wired(text: str) -> None:
+    """Story 055: a lesson intro comes from the sheet's `intro_video` column, so
+    it is never a row slug in `plan_publish`; the orchestrator must still publish
+    its poster (the deploy no longer generates any)."""
+    body = slice_between(text, "def orchestrator(spec: dict):", "def _publish(")
+    assert "_publish_intro_posters(rows)" in body
+    assert '"posters"' in body
+    assert '"intro_posters": intro_posters' in body
+
+    helper = slice_between(text, "def _publish_intro_posters(", "def _write_status(")
+    for token in ("intro_poster_slugs", "plan_intro_posters", "poster_args",
+                  "storage.head", "storage.download_to", "storage.upload_file"):
+        assert token in helper, token
+    # Best-effort: one bad slug must never fail an otherwise-good render...
+    assert "except Exception" in helper
+    # ...and neither may the planning reads (`storage.head` re-raises non-404s),
+    # which run after the videos are already published.
+    planning = helper[: helper.index("published = []")]
+    assert "try:" in planning
+    assert "storage.head" in planning
+    assert "except Exception" in planning
+
+
 class ModalImageGuardTest(unittest.TestCase):
     def test_cpu_image_has_ffmpeg_chromium_and_local_source(self):
         text = read(APP)
@@ -100,36 +123,24 @@ class OrchestratorGuardTest(unittest.TestCase):
         self.assertIn("serialize_status", read(APP))
 
     def test_publishes_lesson_intro_posters(self):
-        # Story 055: a lesson intro comes from the sheet's `intro_video` column,
-        # so it is never a row slug in `plan_publish`; the orchestrator must
-        # still publish its poster (the deploy no longer generates any).
-        text = read(APP)
-        body = slice_between(text, "def orchestrator(spec: dict):", "def _publish(")
-        self.assertIn("_publish_intro_posters(csv_file)", body)
-        self.assertIn('"posters"', body)
-        self.assertIn('"intro_posters": intro_posters', body)
-
-        helper = slice_between(text, "def _publish_intro_posters(", "def _write_status(")
-        for token in ("intro_poster_slugs", "plan_intro_posters", "poster_args",
-                      "storage.head", "storage.download_to", "storage.upload_file"):
-            self.assertIn(token, helper, token)
-        # Best-effort: one bad slug must never fail an otherwise-good render.
-        self.assertIn("except Exception", helper)
-        # The planning reads (`storage.head` re-raises non-404s) are inside a
-        # best-effort try too: an R2 blip must not fail an already-published
-        # render or suppress the render-complete dispatch chain.
-        planning = helper[: helper.index("published = []")]
-        self.assertIn("try:", planning)
-        self.assertIn("storage.head", planning)
-        self.assertIn("except Exception", planning)
+        check_intro_posters_wired(read(APP))
 
     def test_intro_poster_guard_can_fail(self):
         good = read(APP)
-        mutated = "SENTINEL_REMOVED".join(good.split("_publish_intro_posters(csv_file)"))
-        self.assertNotEqual(mutated, good)
-        body = slice_between(mutated, "def orchestrator(spec: dict):", "def _publish(")
-        with self.assertRaises(AssertionError):
-            self.assertIn("_publish_intro_posters(csv_file)", body)
+        mutations = (
+            # The call site disappears (not the definition, or the slice below
+            # would raise ValueError instead of failing the assertion).
+            good.replace("intro_posters = _publish_intro_posters(rows)",
+                         "intro_posters = []", 1),
+            # Planning reads moved outside the best-effort try (round-3 fix):
+            # an R2 blip would then fail an already-published render.
+            good.replace("    try:\n        slugs = intro_poster_slugs(rows)",
+                         "    slugs = intro_poster_slugs(rows)", 1),
+        )
+        for mutated in mutations:
+            self.assertNotEqual(mutated, good)
+            with self.assertRaises(AssertionError):
+                check_intro_posters_wired(mutated)
 
 
 class TriggerGuardTest(unittest.TestCase):

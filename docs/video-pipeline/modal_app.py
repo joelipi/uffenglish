@@ -135,7 +135,7 @@ def _fetch_assets(workdir):
             storage.download_to(key, dest)
 
 
-def _publish_intro_posters(csv_file):
+def _publish_intro_posters(rows):
     """Publish the lesson-intro posters the step publish plan cannot cover.
 
     A lesson intro comes from the sheet's ``intro_video`` column, so it is never
@@ -143,8 +143,9 @@ def _publish_intro_posters(csv_file):
     still resolves its poster as ``assets/videos/<slug>.jpg``. This mirrors
     ``scripts/generate-thumbnails.mjs``: for each intro slug whose poster is
     missing or older than its source video, fetch ``assets/videos/<slug>.mp4``
-    and write the 0.2s still. Best-effort per slug — a poster must never fail an
-    otherwise-good render.
+    and write the 0.2s still. Deliberately *not* scoped to the render's ``only``
+    files — posters are per-slug and a fresh one is skipped — and best-effort, so
+    a poster can never fail an otherwise-good render.
     """
     import subprocess
     import tempfile
@@ -156,14 +157,12 @@ def _publish_intro_posters(csv_file):
         published_poster_key,
         published_video_key,
     )
-    import video_pipeline as pipeline
 
     # Planning reads R2 metadata (`storage.head` re-raises anything that is not a
     # 404) and the videos are already published by the time this runs, so a blip
     # here must not turn a good render into an `error` or suppress the
     # render-complete dispatch chain.
     try:
-        rows = pipeline.load_csv_rows(csv_file)
         slugs = intro_poster_slugs(rows)
         # `None` means the object is absent (storage.head maps only a 404 to None).
         posters = {}
@@ -278,7 +277,7 @@ def orchestrator(spec: dict):
         # so they never enter the plan above; the render still owes them their
         # posters (the deploy no longer generates any).
         _write_status(job_id, "running", "posters")
-        intro_posters = _publish_intro_posters(csv_file)
+        intro_posters = _publish_intro_posters(rows)
 
         # One-click chain: tell GitHub to run SRT write-back -> translation ->
         # config generation. Best-effort — the videos are already published, so a
