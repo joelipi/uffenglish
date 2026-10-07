@@ -115,6 +115,13 @@ class OrchestratorGuardTest(unittest.TestCase):
             self.assertIn(token, helper, token)
         # Best-effort: one bad slug must never fail an otherwise-good render.
         self.assertIn("except Exception", helper)
+        # The planning reads (`storage.head` re-raises non-404s) are inside a
+        # best-effort try too: an R2 blip must not fail an already-published
+        # render or suppress the render-complete dispatch chain.
+        planning = helper[: helper.index("published = []")]
+        self.assertIn("try:", planning)
+        self.assertIn("storage.head", planning)
+        self.assertIn("except Exception", planning)
 
     def test_intro_poster_guard_can_fail(self):
         good = read(APP)

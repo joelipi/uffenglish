@@ -158,20 +158,26 @@ def _publish_intro_posters(csv_file):
     )
     import video_pipeline as pipeline
 
-    rows = pipeline.load_csv_rows(csv_file)
-    slugs = intro_poster_slugs(rows)
-    if not slugs:
+    # Planning reads R2 metadata (`storage.head` re-raises anything that is not a
+    # 404) and the videos are already published by the time this runs, so a blip
+    # here must not turn a good render into an `error` or suppress the
+    # render-complete dispatch chain.
+    try:
+        rows = pipeline.load_csv_rows(csv_file)
+        slugs = intro_poster_slugs(rows)
+        # `None` means the object is absent (storage.head maps only a 404 to None).
+        posters = {}
+        sources = {}
+        for slug in slugs:
+            posters[slug] = (storage.head(published_poster_key(slug)) or {}).get("last_modified")
+            sources[slug] = (storage.head(published_video_key(slug)) or {}).get("last_modified")
+        targets = plan_intro_posters(rows, posters, sources)
+    except Exception as exc:  # noqa: BLE001 - planning must never fail the render
+        print(f"⚠️ intro poster planning failed: {exc}")
         return []
 
-    # `None` means the object is absent (storage.head maps only a 404 to None).
-    posters = {}
-    sources = {}
-    for slug in slugs:
-        posters[slug] = (storage.head(published_poster_key(slug)) or {}).get("last_modified")
-        sources[slug] = (storage.head(published_video_key(slug)) or {}).get("last_modified")
-
     published = []
-    for slug in plan_intro_posters(rows, posters, sources):
+    for slug in targets:
         source_key = published_video_key(slug)
         poster_key = published_poster_key(slug)
         if not source_key or not poster_key or sources.get(slug) is None:

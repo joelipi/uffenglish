@@ -4,11 +4,12 @@ name: Deploy to Cloudflare Pages
 # on every branch push (npm ci + ffmpeg + build) was the bulk of the Actions
 # minutes. Run `npm test` locally before pushing.
 #
-# Posters are NOT built here. The Modal render already writes
-# `assets/videos/<slug>.jpg` for every slug it publishes (modal_app._publish),
-# and each lesson's intro video is a published slug, so the old
-# generate/upload/verify steps were redundant. `scripts/generate-thumbnails.mjs`
-# stays for a manual `npm run posters:upload`; it is off the deploy path.
+# Posters are NOT built here. The Modal render writes `assets/videos/<slug>.jpg`
+# for every slug it publishes (`modal_app._publish`) and for the synthesized
+# lesson intros from the sheet's `intro_video` column
+# (`modal_app._publish_intro_posters`), so the old generate/upload/verify steps
+# were redundant. `scripts/generate-thumbnails.mjs` stays for a manual
+# `npm run posters:upload`; it is off the deploy path.
 on:
   push:
     branches: [main]
