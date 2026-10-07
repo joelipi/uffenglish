@@ -1,8 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { resolveStepPhase } from './step-phase-logic.js';
+import { BRANCH_OVERLAY_PHASE } from './branch-choice-logic.js';
+import { appStore } from '../store/store.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '../../..');
@@ -92,6 +94,47 @@ describe('resolveStepPhase', () => {
     it('falls back to interactiveVideo+closedResponse for an unknown/omitted response type', () => {
         expect(resolveStepPhase({ step: { interactiveVideoUrl: 'clip' } })).toBe('interactiveVideo+closedResponse');
         expect(resolveStepPhase({ step: { responseType: 'mystery', interactiveVideoUrl: 'clip' } })).toBe('interactiveVideo+closedResponse');
+    });
+});
+
+describe('resolveStepPhase — branching steps', () => {
+    it('plays a branching step with a simple clip in the simpleVideo phase', () => {
+        expect(resolveStepPhase({ step: { responseType: 'branching', simpleVideoUrl: 'clip' } })).toBe('simpleVideo');
+    });
+
+    it('resolves a branching step without a clip straight to the branch overlay phase', () => {
+        expect(resolveStepPhase({ step: { responseType: 'branching' } })).toBe(BRANCH_OVERLAY_PHASE);
+    });
+
+    it('never gives a branching step the firstResponse mode chooser', () => {
+        expect(resolveStepPhase({
+            step: { responseType: 'branching', simpleVideoUrl: 'clip' },
+            isFirstResponseStep: true,
+            isFriendLesson: false,
+        })).toBe('simpleVideo');
+    });
+});
+
+describe('branching phase wiring', () => {
+    const storeSource = read('src/modules/store/store.js');
+
+    afterEach(() => {
+        appStore.setState({ appPhase: 'loading' });
+    });
+
+    it('registers the branch overlay phase in the phase table', () => {
+        appStore.getState().transitionTo(BRANCH_OVERLAY_PHASE, {}, { fromStepLoad: true });
+        const state = appStore.getState();
+        expect(state.bottomState).toBe('branchChoices');
+        expect(state.mediaState).toBe('decisionOverlay');
+        expect(state.topState).toBe('topBarOnly');
+        expect(state.showMission).toBe(true);
+    });
+
+    it('lists the branch overlay phase in the simpleVideo answer-flow transitions', () => {
+        const start = storeSource.indexOf("'simpleVideo':");
+        const entry = storeSource.slice(start, storeSource.indexOf('\n', start));
+        expect(entry).toContain('BRANCH_OVERLAY_PHASE');
     });
 });
 

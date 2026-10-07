@@ -18,6 +18,7 @@ import LandscapeWarning from './widgets/LandscapeWarning';
 import DecisionButtons from './widgets/DecisionButtons.jsx';
 import ViewAndContinueButtons from './widgets/ViewAndContinueButtons.jsx';
 import ResponseDecisionButtons from './widgets/ResponseDecisionButtons.jsx';
+import BranchChoiceButtons from './widgets/BranchChoiceButtons.jsx';
 import AuthLink from './widgets/AuthLink.jsx';
 import MissionSection from './widgets/MissionSection.jsx';
 import Hints from './widgets/Hints.jsx';
@@ -42,7 +43,8 @@ import SimpleVideoPlayer from './SimpleVideoPlayer';
 import IncomingVideoWidget from './IncomingVideoWidget.jsx';
 import PointLossOverlay from './PointLossOverlay.jsx';
 import PlaybackVideo from './PlaybackVideo.jsx';
-import { loadNextStep as loadNextStepImpl, handleTutorChatSubmit } from '../modules/lesson/lesson-progression.js';
+import { loadNextStep as loadNextStepImpl, jumpToStep as jumpToStepImpl, replaySimpleVideo, handleTutorChatSubmit } from '../modules/lesson/lesson-progression.js';
+import { buildBranchChoiceView } from '../modules/lesson/branch-choice-logic.js';
 import { loadLessonContent } from '../modules/lesson/lesson-loader.js';
 import { loadStep } from './step-loader.js';
 
@@ -98,18 +100,36 @@ export default function LessonContainer() {
         return currentLesson.steps[currentStepIndex] || null;
     }, [configData, currentLessonIndex, currentStepIndex]);
 
-    const onLoadNextLesson = useCallback(() => {
-        const currentStep = getCurrentStep();
-        if (!currentStep) return;
+    const buildStepDeps = useCallback(() => {
         const stepDeps = getAnswerPipelineDeps();
-        if (!stepDeps) return;
-        loadNextStepImpl(currentStep, null, {
+        if (!stepDeps) return null;
+        return {
             callLoadStep: (step, lesson, fluencyData) => {
                 loadStep(step, lesson, fluencyData, stepDeps);
             },
             loadLessonContent
-        });
-    }, [getCurrentStep]);
+        };
+    }, []);
+
+    const onLoadNextLesson = useCallback(() => {
+        const currentStep = getCurrentStep();
+        if (!currentStep) return;
+        const stepDeps = buildStepDeps();
+        if (!stepDeps) return;
+        loadNextStepImpl(currentStep, null, stepDeps);
+    }, [getCurrentStep, buildStepDeps]);
+
+    // Branching: derive the render-ready view in the pure module, then delegate
+    // the three actions. No offset math or label choice happens in this file.
+    const handleBranchChoose = useCallback((targetIndex) => {
+        const stepDeps = buildStepDeps();
+        if (!stepDeps) return;
+        jumpToStepImpl(targetIndex, stepDeps);
+    }, [buildStepDeps]);
+
+    const handleBranchReplay = useCallback(() => {
+        replaySimpleVideo();
+    }, []);
 
     const handleRepeat = useCallback((repeatLessonId) => {
         appStore.getState().hideSuccessScreen();
@@ -121,6 +141,17 @@ export default function LessonContainer() {
     }, []);
 
     const currentStep = getCurrentStep();
+
+    const branchStepCount = configData?.lessons?.[currentLessonIndex]?.steps?.length || 0;
+    const branchView = useMemo(
+        () => buildBranchChoiceView({
+            step: currentStep,
+            currentStepIndex,
+            stepCount: branchStepCount,
+            lang: labelLang,
+        }),
+        [currentStep, currentStepIndex, branchStepCount, labelLang]
+    );
 
     return (
         <>
@@ -226,6 +257,16 @@ export default function LessonContainer() {
                             {bottomState === 'responseDecisionButtons' && (
                                 <div className="d-flex justify-content-center align-items-center w-100">
                                     <ResponseDecisionButtons />
+                                </div>
+                            )}
+                            {bottomState === 'branchChoices' && (
+                                <div className="d-flex justify-content-center align-items-center w-100">
+                                    <BranchChoiceButtons
+                                        view={branchView}
+                                        onChoose={handleBranchChoose}
+                                        onReplay={handleBranchReplay}
+                                        onContinue={onLoadNextLesson}
+                                    />
                                 </div>
                             )}
                             {['controlIcon', 'introChoices', 'micActiveOrAnswerInput', 'lessonSuccess'].includes(bottomState) && (

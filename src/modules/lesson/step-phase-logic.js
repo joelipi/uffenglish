@@ -8,6 +8,11 @@
 // lesson skips the `firstResponse` mode chooser and falls through to its normal
 // per-video phase (simpleVideo / interactiveVideo+<type> / recording), matching
 // every later question.
+//
+// Story 054: a `branching` step plays its simple clip (simpleVideo) and, with
+// no clip, resolves straight to the branch overlay phase.
+
+import { isBranchingStep, BRANCH_OVERLAY_PHASE } from './branch-choice-logic.js';
 
 const RESPONSE_TYPES = ['closedResponse', 'openResponse', 'friendClosedResponse'];
 
@@ -27,5 +32,6 @@ export function resolveStepPhase({ step, isFirstResponseStep = false, isRetry = 
     if (step?.interactiveVideoUrl && !isRetry) return interactivePhase(responseType);
     if (responseType === 'viewAndContinue' && step?.simpleVideoUrl) return 'viewAndContinueVideo';
     if (step?.simpleVideoUrl) return 'simpleVideo';
+    if (isBranchingStep(step)) return BRANCH_OVERLAY_PHASE;
     return 'recording/answering';
 }

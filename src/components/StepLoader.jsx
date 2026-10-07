@@ -73,6 +73,10 @@ export default function StepLoader({ step, lesson }) {
             return <LessonIntroStep step={step} lesson={lesson} />;
         case 'viewAndContinue':
             return <PresentStep step={step} lesson={lesson} />;
+        case 'branching':
+            // Navigation-only: the branching step renders its choices in the
+            // bottom band (BranchChoiceButtons); the step body stays empty.
+            return null;
         case 'closedResponse':
         case 'openResponse':
         case 'friendClosedResponse':
