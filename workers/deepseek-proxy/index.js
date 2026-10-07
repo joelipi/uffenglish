@@ -3,11 +3,21 @@ const ALLOWED_ORIGINS = [
   'https://go.ultrafastfluency.com',
   'http://localhost:3000',
   'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:5175',
+  'http://localhost:5176',
   'https://ultrafastfluency.com',
   // Staging — s.ultrafastfluency.com serves a non-production branch deployment
   // (see docs/deploy-environments.md), so the AI proxy must accept its origin.
   'https://s.ultrafastfluency.com',
   'https://t.ultrafastfluency.com',
+  // Origins previously added to the deployed worker outside the repo (device
+  // testing + the beacon app). Kept so a repo deploy does not silently drop
+  // them; remove here and from the worker together if they are retired.
+  'http://100.119.79.124',
+  'https://100.119.79.124',
+  'https://localhost-0.taild13d5c.ts.net',
+  'https://beacon-au8.pages.dev',
 ];
 
 function corsHeaders(origin) {

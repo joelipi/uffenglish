@@ -1,114 +1,158 @@
-# Deploy environments: staging (`s.`) vs production (`ultrafastfluency.com`)
+# Deploy environments: production (`ultrafastfluency.com`) vs staging (`s.`)
 
-How to serve two different Cloudflare Pages deployments from one Pages project:
-`s.ultrafastfluency.com` for **staging** and `ultrafastfluency.com` (apex) for
-**production**. `go.ultrafastfluency.com` is intentionally left alone.
+How the single Cloudflare Pages project `uffenglish` serves several custom
+domains from two deployments: `ultrafastfluency.com` (and `www.`) for
+**production** and `s.ultrafastfluency.com` for **staging**.
+`go.ultrafastfluency.com` is a production alias and is left in place.
 
 Cloudflare reference: [Add a custom domain to a branch](https://developers.cloudflare.com/pages/how-to/custom-branch-aliases/).
+
+## Current layout
+
+| URL | Serves | Notes |
+|---|---|---|
+| `ultrafastfluency.com` (apex) | production (`main`) | proxied CNAME → `uffenglish.pages.dev` |
+| `www.ultrafastfluency.com` | production (`main`) | proxied CNAME → apex |
+| `go.ultrafastfluency.com` | production (`main`) | production alias, kept |
+| `s.ultrafastfluency.com` | staging (`staging` branch) | proxied CNAME → `staging.uffenglish.pages.dev` |
+| `uffenglish.pages.dev` | production (`main`) | Pages default alias |
+| `staging.uffenglish.pages.dev` | `staging` branch | created by `deploy-staging.yml` |
+
+All four custom domains are registered on the Pages project
+(Workers & Pages → **uffenglish** → **Custom domains**) and show
+`status: active`.
 
 ## The mechanism
 
 A Cloudflare Pages project deploys:
-- the **production branch** (set in the project, here `main`) to the root alias
+
+- the **production branch** (here `main`) to the root alias
   `uffenglish.pages.dev`, which all "normal" custom domains serve; and
 - every **other branch** to a stable preview alias
   `<branch>.uffenglish.pages.dev` (branch name lowercased, non-alphanumerics → `-`).
 
-So one project can host both environments. To make a custom domain point at a
-*branch* instead of production, you add the custom domain normally and then edit
-the DNS record Pages created so its target is the branch alias, e.g.
+To make a custom domain serve a *branch* instead of production, add the custom
+domain normally and then set its DNS record's target to the branch alias, e.g.
 `uffenglish.pages.dev` → `staging.uffenglish.pages.dev`.
 
 **Hard requirement:** it only works with a **proxied** Cloudflare DNS record (the
-domain must be a zone on your Cloudflare account). An unproxied record, or an
-external DNS provider, silently falls back to the production branch.
+domain must be a zone on the same account). An unproxied record, or an external
+DNS provider, silently falls back to the production branch.
 
-`deploy.yml` already deploys every branch
-(`pages deploy dist --project-name=uffenglish --branch=${{ github.ref_name }}`),
-so no CI change is needed — pushing a `staging` branch produces
-`staging.uffenglish.pages.dev`.
+## Why the apex used to 522
 
-## Target layout
+`ultrafastfluency.com` was registered as a Pages custom domain but its DNS was a
+stale **A record pointing at the original IONOS origin** (`34.139.137.66`), not
+Pages. Cloudflare reached the edge but the origin did not answer, so the apex
+returned **HTTP 522** and the only working hostnames were `s.` and `go.`. The
+fix is to delete that A record and create a proxied CNAME to
+`uffenglish.pages.dev` (apex records are CNAME-flattened automatically). The MX
+and SPF (`TXT`) records at the apex are unrelated and must be left alone.
 
-| URL | Serves | Notes |
-|---|---|---|
-| `ultrafastfluency.com` (apex) | production (`main`) | currently returns **HTTP 522** — see below |
-| `s.ultrafastfluency.com` | staging (`staging` branch) | currently still points at production; repoint via DNS |
-| `go.ultrafastfluency.com` | production | leave alone |
-| `uffenglish.pages.dev` | production | Pages default |
-| `staging.uffenglish.pages.dev` | `staging` branch | created automatically once the branch deploys |
+## Procedure
 
-## Step 1 — make the apex production (fix the 522)
+The Pages **custom-domain** API needs the `Pages Write` scope; the DNS edit needs
+the zone `DNS Write` scope. A single token with both is ideal. The `CF_TOKEN`
+used on this machine has `Pages Write` but only **zone DNS Read**, so the DNS
+record had to be written with a purpose-made token (see "Token scopes" below).
 
-The apex currently returns HTTP 522 (Cloudflare reached the edge but the origin
-did not answer), which usually means the DNS record is missing, unproxied, or
-pointing somewhere other than Pages.
+1. **Add the custom domains** to the Pages project (idempotent; an already-present
+   domain returns it unchanged):
 
-1. Workers & Pages → **uffenglish** → **Custom domains**: ensure
-   `ultrafastfluency.com` is present (add it if not; activate the domain).
-2. DNS → `ultrafastfluency.com` zone: the apex record Pages created must be a
-   **proxied** record targeting `uffenglish.pages.dev` (apex uses CNAME
-   flattening).
-3. Re-check `https://ultrafastfluency.com/`.
+   ```bash
+   ACC=1cbff202eaecae074585be8e7ac45b2e
+   for d in ultrafastfluency.com www.ultrafastfluency.com; do
+     curl -s -X POST \
+       -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+       -H "Content-Type: application/json" \
+       -d "{\"name\":\"$d\"}" \
+       "https://api.cloudflare.com/client/v4/accounts/$ACC/pages/projects/uffenglish/domains"
+   done
+   ```
 
-## Step 2 — create the staging branch
+   Adding a domain via the API does **not** create the DNS record for you (the
+   dashboard does), so step 2 is still required.
 
-There must be at least one successful deployment on the branch before DNS can be
-repointed. The repo commits to `main`, so the simplest way to seed it:
+2. **Point DNS at Pages** (zone `ultrafastfluency.com`,
+   `Z=b5d762c9813089eb4d82598693762aaa`). Delete any conflicting A/AAAA/CNAME at
+   the apex and create:
+
+   ```bash
+   curl -s -X POST \
+     -H "Authorization: Bearer $DNS_WRITE_TOKEN" \
+     -H "Content-Type: application/json" \
+     -d '{"type":"CNAME","name":"ultrafastfluency.com","content":"uffenglish.pages.dev","proxied":true,"ttl":1}' \
+     "https://api.cloudflare.com/client/v4/zones/$Z/dns_records"
+   ```
+
+   `www` already CNAMEs to the apex, so it follows automatically.
+
+3. **Verify** `https://ultrafastfluency.com/` and `https://www.ultrafastfluency.com/`
+   return `200`, and the Pages custom domains report `status: active`.
+
+## Staging
+
+`.github/workflows/deploy-staging.yml` deploys every push to the `staging`
+branch as `staging.uffenglish.pages.dev`. Production is unaffected. Two ways to
+run it:
+
+- **Branch flow (a real gate):** feature branch → merge into `staging` → verify
+  on `s.` → merge `staging` into `main` → production. This asks the team to stop
+  committing straight to `main`.
+- **Mirror flow (no workflow change):** keep committing to `main`; when you want
+  a smoke test, `git push origin main:staging` and check `s.`. Staging then equals
+  production, so it is a verification surface, not a holdback.
+
+Seed/refresh the branch alias at any time:
 
 ```bash
-git push origin main:staging
+git push origin main:staging     # mirror flow; the workflow redeploys staging
 ```
 
-Confirm `https://staging.uffenglish.pages.dev/` loads the app.
+Only then edit the `s.` DNS record's target to `staging.uffenglish.pages.dev`
+(keep it proxied). Before the first staging deployment exists, pointing `s.` at
+the branch alias would 404.
 
-## Step 3 — attach `s.` to the staging branch
+## Token scopes
 
-1. Workers & Pages → **uffenglish** → **Custom domains** → **Setup a custom
-   domain** → `s.ultrafastfluency.com` → **Activate domain**.
-2. DNS → `ultrafastfluency.com` zone: find the `s` CNAME Pages just created and
-   change its target from `uffenglish.pages.dev` to
-   `staging.uffenglish.pages.dev`. Keep it **proxied**.
-3. `https://s.ultrafastfluency.com/` now serves the latest `staging` build.
+- **Pages Write** — add/remove custom domains on the project.
+- **Zone DNS Write** — create/replace the DNS records. `CF_TOKEN` lacks this; it
+  does have **Account API Tokens Write**, so a temporary token scoped to
+  `DNS Write` + `Zone Read` can be minted for the edit and then revoked:
 
-## Step 4 — a workflow that actually gates production
+  ```bash
+  ACC=1cbff202eaecae074585be8e7ac45b2e
+  curl -s -X POST -H "Authorization: Bearer $CF_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d '{"name":"uff-dns-tmp","policies":[{"effect":"allow",
+         "resources":{"com.cloudflare.api.account.'"$ACC"'":"*"},
+         "permission_groups":[{"id":"4755a26eedb94da69e1066d98aa820be"}]}]}' \
+    "https://api.cloudflare.com/client/v4/accounts/$ACC/tokens"
+  ```
 
-Branch alias alone just mirrors a branch; to make `s.` a real pre-production
-check, `staging` must be able to differ from `main`. Two options:
-
-- **Branch flow (recommended if you want a gate):** feature branch → merge into
-  `staging` → verify on `s.` → merge `staging` into `main` → production. This
-  asks the team to stop committing straight to `main`.
-- **Mirror flow (no workflow change):** keep committing to `main`; when you want
-  a smoke test, `git push origin main:staging` and check `s.`. Staging then
-  equals production, so it is a verification surface, not a holdback.
-
-## Environment variables
-
-Pages has separate **Production** and **Preview** variables. Preview (staging)
-builds should carry the same `VITE_SUPABASE_*` and `VITE_PUBLIC_POSTHOG_*`
-values as production; if they are unset the app falls back to the publishable
-defaults in code, so staging still works but reports into the same Supabase/
-PostHog project as production.
+  (`4755a26eedb94da69e1066d98aa820be` = **DNS Write**.) The response's `value` is
+  shown once. Delete the token afterwards
+  (`DELETE /accounts/$ACC/tokens/<id>`).
 
 ## AI proxy allow-list
 
 Browser calls to the DeepSeek proxy are CORS-gated by `ALLOWED_ORIGINS` in
-`workers/deepseek-proxy/index.js`. Staging (`s.`) is now in that list. The worker
-is **not** deployed by `deploy.yml` — deploy it after changing the list:
+`workers/deepseek-proxy/index.js`. `s.`, `t.`, the apex and `go.` are all listed.
+The worker is **not** deployed by `deploy.yml`/`deploy-staging.yml` — deploy it
+after changing the list:
 
 ```bash
-cd workers/deepseek-proxy && npx wrangler deploy
+cd workers/deepseek-proxy
+CLOUDFLARE_API_TOKEN=… CLOUDFLARE_ACCOUNT_ID=… npx wrangler deploy
 ```
 
-(`ultrafastfluency.com`, `go.`, `t.`, `uffenglish.pages.dev`, and localhost were
-already allowed.)
+The deployed worker had drifted from the repo (extra localhost/tunnel/beacon
+origins), so the source now carries the union of both lists to keep a repo deploy
+from dropping them.
 
 ## Caveats
 
-- Custom-domain-to-branch is a documented workaround, not a first-class
-  dashboard setting; the DNS target edit can be reset if you re-add the domain.
+- Custom-domain-to-branch is a documented workaround, not a first-class dashboard
+  setting; the DNS target edit can be reset if you re-add the domain.
 - There are community reports of preview/custom-domain caches serving the wrong
   deployment; if the wrong build appears, purge the zone cache.
-- The `s.` → staging switch only takes effect once the `staging` branch has a
-  deployment; before that `s.` would 404.

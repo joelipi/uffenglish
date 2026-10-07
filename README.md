@@ -78,7 +78,11 @@ Deep link with friend code: `http://localhost:3000/?sharecode=abc123` → persis
 
 Debug console: Eruda is gated — append `?eruda=1` or `localStorage.setItem('eruda','1')` to load it. It is not loaded for real users by default.
 
-Staging: `s.ultrafastfluency.com` (Pages custom domain — add in Cloudflare dashboard, TLS auto). Production deploys on push to `main` and is intended to be served on `ultrafastfluency.com`; to serve `s.` from a non-production `staging` branch and keep the apex for production, see `docs/deploy-environments.md`.
+Staging: `s.ultrafastfluency.com` serves the `staging` branch via a proxied
+CNAME to `staging.uffenglish.pages.dev` (`.github/workflows/deploy-staging.yml`).
+Production deploys on push to `main` and is served on `ultrafastfluency.com`
+(apex, plus `www`) and its `go.` alias; see `docs/deploy-environments.md` for the
+full layout, the token scopes each step needs, and how the apex was fixed.
 
 ## Build & Deploy
 
@@ -89,7 +93,10 @@ node scripts/verify-thumbnails.mjs   # poster gate (fails if any R2 poster is mi
 npm run deploy             # build + wrangler pages deploy dist --project-name=uffenglish
 ```
 
-CI (`deploy.yml` on push to `main`): `npm ci` → `build` → `pages deploy`. Posters come from the Modal render, so the deploy installs no ffmpeg and generates nothing. Production branch is `main`; `s.` binds to the Pages project.
+CI (`deploy.yml` on push to `main`): `npm ci` → `build` → `pages deploy` for the
+production branch. `deploy-staging.yml` does the same for `staging` →
+`staging.uffenglish.pages.dev`. Posters come from the Modal render, so neither
+deploy installs ffmpeg or generates anything.
 
 **Auto captions for simple videos:** `scripts/generate-captions.mjs` (run by `.github/workflows/captions.yml` on every push) transcribes newly added `simpleVideoUrl` videos with local Whisper and translates the SRT to es/pt/fr/hi/bn via DeepSeek (`DEEPSEEK_API_KEY` secret), committing the captions back to the pushed branch. See `stories/009-auto-caption-simple-videos/story.md`.
 

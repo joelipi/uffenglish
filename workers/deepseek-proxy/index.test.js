@@ -27,6 +27,15 @@ describe('deepseek-proxy CORS allow-list', () => {
             .toBe('https://uffenglish.pages.dev');
     });
 
+    it('allows the origins added to the deployed worker outside the repo', async () => {
+        expect(await allowOrigin('http://localhost:5174'))
+            .toBe('http://localhost:5174');
+        expect(await allowOrigin('https://100.119.79.124'))
+            .toBe('https://100.119.79.124');
+        expect(await allowOrigin('https://beacon-au8.pages.dev'))
+            .toBe('https://beacon-au8.pages.dev');
+    });
+
     it('rejects an unknown origin', async () => {
         expect(await allowOrigin('https://evil.example')).toBe('null');
     });
