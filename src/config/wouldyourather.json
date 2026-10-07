@@ -1,0 +1,67 @@
+{
+  "courseId": "wouldyourather",
+  "courseName": "Preferences in English A1➡B2",
+  "lessons": [
+    {
+      "lessonId": "a",
+      "recapSources": "none",
+      "recapOverlay": "shareCta",
+      "title": {
+        "en": "Ask: money vs. time, food vs. talk, beach vs. mountains",
+        "es": "Pregunta: money vs. time, food vs. talk, beach vs. mountains",
+        "pt": "Pergunte: money vs. time, food vs. talk, beach vs. mountains",
+        "bn": "জিজ্ঞাসা করুন: money vs. time, food vs. talk, beach vs. mountains"
+      },
+      "steps": [
+        {
+          "cue": "",
+          "responseType": "lessonIntro",
+          "introBackgroundVideoUrl": "intro"
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather_a01",
+          "cue": [
+            {
+              "en": "A million dollars today or five million dollars in five years?",
+              "es": "¿Un millón de dólares hoy o cinco millones de dólares en cinco años?",
+              "pt": "Um milhão de dólares hoje ou cinco milhões de dólares em cinco anos?",
+              "bn": "আজ এক মিলিয়ন ডলার নাকি পাঁচ বছর পরে পাঁচ মিলিয়ন ডলার?"
+            },
+            {
+              "en": "Is it better to a million dollars today or five million dollars in five years?",
+              "es": "¿Es mejor tener un millón de dólares hoy o cinco millones de dólares en cinco años?",
+              "pt": "É melhor ter um milhão de dólares hoje ou cinco milhões de dólares em cinco anos?",
+              "bn": "আজ এক মিলিয়ন ডলার নাকি পাঁচ বছর পর পাঁচ মিলিয়ন ডলার—কোনটি ভালো?"
+            },
+            {
+              "en": "Would you rather receive a million dollars today or wait five years and receive five million dollars instead?",
+              "es": "¿Preferirías recibir un millón de dólares hoy o esperar cinco años y recibir cinco millones de dólares en su lugar?",
+              "pt": "Você preferiria receber um milhão de dólares hoje ou esperar cinco anos e receber cinco milhões de dólares em vez disso?",
+              "bn": "আপনি কি আজ এক মিলিয়ন ডলার পেতে চান নাকি পাঁচ বছর অপেক্ষা করে পরিবর্তে পাঁচ মিলিয়ন ডলার পেতে চান?"
+            },
+            {
+              "en": "Given the choice between accepting a million dollars today and waiting five years for five million dollars, Is it better to do?",
+              "es": "Dada la elección entre aceptar un millón de dólares hoy y esperar cinco años por cinco millones de dólares, ¿qué es mejor hacer?",
+              "pt": "Dada a escolha entre aceitar um milhão de dólares hoje e esperar cinco anos por cinco milhões de dólares, o que é melhor fazer?",
+              "bn": "আজ দশ লাখ ডলার গ্রহণ করা এবং পাঁচ বছর অপেক্ষা করে পঞ্চাশ লাখ ডলার পাওয়ার মধ্যে বেছে নিতে হলে, কোনটি করা ভালো?"
+            }
+          ],
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:03,850\nA million dollars today or five million dollars in five years?\n\n2\n00:00:03,850 --> 00:00:07,900\nIs it better to a million dollars today or five million dollars in five years?\n\n3\n00:00:07,900 --> 00:00:14,650\nWould you rather receive a million dollars today or wait five years and receive five million dollars instead?\n\n4\n00:00:14,650 --> 00:00:21,470\nGiven the choice between accepting a million dollars today and waiting five years for five million dollars, Is it better to do?"
+          }
+        },
+        {
+          "responseType": "success",
+          "simpleVideoUrl": "success",
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:06,180\nGreat, you're almost done. Now your shareable video is going to be magically\n\n2\n00:00:06,180 --> 00:00:11,300\ncreated right in front of your eyes. Just wait for the video to finish then\n\n3\n00:00:11,300 --> 00:00:14,880\nshare it with your friends, family and colleagues so they can reply to you.\n\n4\n00:00:14,880 --> 00:00:20,580\nThey'll also be able to prompt you to speak. Remember to share with a lot of\n\n5\n00:00:20,580 --> 00:00:25,480\npeople to get more chances to practice the next 48 hours before the video is deleted.\n\n6\n00:00:25,480 --> 00:00:31,320\nSo press the button below to create the video, wait for it to finish, then share.",
+            "es": "1\n00:00:00,000 --> 00:00:06,180\nGenial, ya casi terminas. Ahora tu video para compartir se creará mágicamente\n\n2\n00:00:06,180 --> 00:00:11,300\njusto delante de tus ojos. Solo espera a que el video termine y luego\n\n3\n00:00:11,300 --> 00:00:14,880\ncompártelo con tus amigos, familiares y colegas para que puedan responderte.\n\n4\n00:00:14,880 --> 00:00:20,580\nTambién podrán animarte a hablar. Recuerda compartir con muchas\n\n5\n00:00:20,580 --> 00:00:25,480\npersonas para tener más oportunidades de practicar durante las próximas 48 horas antes de que el video se elimine.\n\n6\n00:00:25,480 --> 00:00:31,320\nAsí que oprime el botón de abajo para crear el video, espera a que termine y luego compártelo.",
+            "pt": "1\n00:00:00,000 --> 00:00:06,180\nÓtimo, você está quase terminando. Agora seu vídeo para compartilhar será criado magicamente\n\n2\n00:00:06,180 --> 00:00:11,300\nbem diante dos seus olhos. Apenas espere o vídeo terminar e então\n\n3\n00:00:11,300 --> 00:00:14,880\ncompartilhe-o com seus amigos, familiares e colegas para que eles possam responder a você.\n\n4\n00:00:14,880 --> 00:00:20,580\nEles também poderão incentivar você a falar. Lembre-se de compartilhar com muitas\n\n5\n00:00:20,580 --> 00:00:25,480\npessoas para ter mais chances de praticar nas próximas 48 horas antes que o vídeo seja excluído.\n\n6\n00:00:25,480 --> 00:00:31,320\nEntão pressione o botão abaixo para criar o vídeo, espere ele terminar e depois compartilhe.",
+            "bn": "1\n00:00:00,000 --> 00:00:06,180\nদুর্দান্ত, আপনি প্রায় শেষ। এখন আপনার শেয়ারযোগ্য ভিডিওটি জাদুর মতো তৈরি হবে\n\n2\n00:00:06,180 --> 00:00:11,300\nআপনার চোখের সামনেই। শুধু ভিডিওটি শেষ হওয়ার জন্য অপেক্ষা করুন তারপর\n\n3\n00:00:11,300 --> 00:00:14,880\nএটি আপনার বন্ধু, পরিবার এবং সহকর্মীদের সাথে শেয়ার করুন যাতে তারা আপনাকে উত্তর দিতে পারে।\n\n4\n00:00:14,880 --> 00:00:20,580\nতারা আপনাকে কথা বলতে উৎসাহিতও করতে পারবে। অনেকের সাথে শেয়ার করতে মনে রাখবেন\n\n5\n00:00:20,580 --> 00:00:25,480\nযাতে ভিডিওটি মুছে ফেলার আগে পরবর্তী ৪৮ ঘণ্টায় অনুশীলনের আরও সুযোগ পায়।\n\n6\n00:00:25,480 --> 00:00:31,320\nতাই ভিডিও তৈরি করতে নিচের বোতামটি চাপুন, এটি শেষ হওয়ার জন্য অপেক্ষা করুন, তারপর শেয়ার করুন।"
+          }
+        }
+      ]
+    }
+  ]
+}
