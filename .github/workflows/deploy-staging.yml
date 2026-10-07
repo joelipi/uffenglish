@@ -1,0 +1,37 @@
+name: Deploy staging to Cloudflare Pages
+
+# Staging deploy. A push to `staging` produces/refreshes the Pages branch alias
+# `staging.uffenglish.pages.dev`, which `s.ultrafastfluency.com` points at
+# through a proxied CNAME (see docs/deploy-environments.md). Production stays on
+# `main` via deploy.yml; this workflow never deploys the production branch.
+on:
+  push:
+    branches: [staging]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: Deploy to Cloudflare Pages (staging branch)
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # --branch=staging targets the `staging` preview alias, never the
+          # production branch (`main`).
+          command: pages deploy dist --project-name=uffenglish --branch=staging
