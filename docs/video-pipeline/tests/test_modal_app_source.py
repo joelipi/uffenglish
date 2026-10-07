@@ -145,6 +145,17 @@ class TriggerGuardTest(unittest.TestCase):
         self.assertLess(body.index("write_srt_column"),
                         body.index('pipeline_asset_key("video_data.csv")'))
 
+    def test_publish_prepends_ffmpeg_to_the_arg_builders(self):
+        # `reencode_web_args`/`poster_args` return args starting with `-y` (the
+        # binary is excluded), so `_publish` must prepend "ffmpeg" or the
+        # subprocess fails with `[Errno 2] No such file or directory: '-y'`.
+        text = read(APP)
+        body = slice_between(text, "def _publish(plan):", "def _probe(")
+        self.assertIn('["ffmpeg", *reencode_web_args(source, web)]', body)
+        self.assertIn('["ffmpeg", *poster_args(web, poster)]', body)
+        self.assertNotIn("subprocess.run(reencode_web_args(", body)
+        self.assertNotIn("subprocess.run(poster_args(", body)
+
     def test_asset_fetch_rejects_path_traversal(self):
         text = read(APP)
         fetch = slice_between(text, "def _fetch_assets(", "def _write_status(")

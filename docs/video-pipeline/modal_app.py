@@ -267,10 +267,12 @@ def _publish(plan):
             probe = _probe(source)
             if not is_within_web_budget(probe):
                 web = os.path.join(tmp, "web.mp4")
-                subprocess.run(reencode_web_args(source, web), check=True)
+                # `*_args` return ffmpeg *arguments* (they start with `-y`), so
+                # the binary must be prepended or Python tries to exec `-y`.
+                subprocess.run(["ffmpeg", *reencode_web_args(source, web)], check=True)
             storage.upload_file(web, entry["video_key"], content_type="video/mp4")
             poster = os.path.join(tmp, "poster.jpg")
-            subprocess.run(poster_args(web, poster), check=True)
+            subprocess.run(["ffmpeg", *poster_args(web, poster)], check=True)
             storage.upload_file(poster, entry["poster_key"], content_type="image/jpeg")
         published.append(slug)
     return published
