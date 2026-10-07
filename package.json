@@ -21,7 +21,6 @@
     "pipeline:upload-assets:dry": "node scripts/upload-pipeline-assets.mjs --dry-run",
     "configs:generate": "node scripts/generate-config-from-sheet.mjs",
     "configs:generate:ci": "node scripts/generate-config-from-sheet.mjs --check",
-    "predeploy": "node scripts/generate-thumbnails.mjs && node scripts/generate-thumbnails.mjs --upload && node scripts/verify-thumbnails.mjs",
     "deploy": "npm run build && wrangler pages deploy dist --project-name=uffenglish",
     "deploy:prod": "npm run build && wrangler pages deploy dist --project-name=uffenglish --branch=production"
   },

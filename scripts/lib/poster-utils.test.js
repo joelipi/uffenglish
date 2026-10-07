@@ -71,8 +71,11 @@ describe('introTargets', () => {
         expect(introTargets(null)).toEqual([]);
     });
 
-    it('finds exactly the seven first-step intro slugs across all configs', () => {
+    it('finds every first-step intro slug across all configs', () => {
         const slugs = introTargets(loadAllConfigs()).map((t) => t.slug).sort();
+        // `intro` is the first slug of the wouldyourather course (the sheet's
+        // first-step introBackgroundVideoUrl); the configs are CI-generated, so
+        // this list grows as courses are added.
         expect(slugs).toEqual(
             ['do_you_have_dark_chocolate', 'do_you_have_rolls_too', 'gtests-0-1-1', 'gtests-1-0', 'intro', 'testvideo01', 'testvideointro'],
         );

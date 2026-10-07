@@ -95,6 +95,30 @@ def download_to(r2_key: str, dest_path) -> str:
     return str(dest)
 
 
+def head(r2_key: str):
+    """An object's metadata, or ``None`` when it is absent.
+
+    Returns ``{"last_modified": datetime | None, "size": int | None}``. Only a
+    genuine 404 maps to ``None``; auth/network failures re-raise, so a
+    misconfigured secret cannot masquerade as "no object" (same rule as
+    ``read_json``).
+    """
+    from botocore.exceptions import ClientError
+
+    with r2_client() as client:
+        try:
+            response = client.head_object(Bucket=_bucket_for(r2_key), Key=r2_key)
+        except ClientError as exc:
+            code = exc.response.get("Error", {}).get("Code")
+            if code in ("NoSuchKey", "404", "NotFound"):
+                return None
+            raise
+    return {
+        "last_modified": response.get("LastModified"),
+        "size": response.get("ContentLength"),
+    }
+
+
 def upload_file(local_path, r2_key: str, content_type: str | None = None) -> str:
     """Upload a local file. Returns the public CDN URL only for a public key;
     private keys (no custom domain) return the key, not a misleading 404 URL."""

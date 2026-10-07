@@ -159,8 +159,8 @@ describe('generate-thumbnails.mjs CLI', () => {
     });
 });
 
-// ffmpeg + network required. deploy.yml installs ffmpeg before `npm test` so
-// this suite runs in CI; it skips only when ffmpeg is genuinely unavailable.
+// ffmpeg + network required. CI no longer installs ffmpeg (the Modal render owns
+// posters), so this suite skips when ffmpeg is genuinely unavailable.
 const integration = hasFfmpeg() ? describe : describe.skip;
 integration('generate-thumbnails.mjs integration (ffmpeg + R2)', () => {
     it('writes <scratch>/<slug>.jpg for all five slugs and nothing into the repo', async () => {

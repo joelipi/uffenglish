@@ -135,6 +135,67 @@ def _fetch_assets(workdir):
             storage.download_to(key, dest)
 
 
+def _publish_intro_posters(rows):
+    """Publish the lesson-intro posters the step publish plan cannot cover.
+
+    A lesson intro comes from the sheet's ``intro_video`` column, so it is never
+    a row slug in ``plan_publish`` and ``_publish`` never sees it — yet the app
+    still resolves its poster as ``assets/videos/<slug>.jpg``. This mirrors
+    ``scripts/generate-thumbnails.mjs``: for each intro slug whose poster is
+    missing or older than its source video, fetch ``assets/videos/<slug>.mp4``
+    and write the 0.2s still. Deliberately *not* scoped to the render's ``only``
+    files — posters are per-slug and a fresh one is skipped — and best-effort, so
+    a poster can never fail an otherwise-good render.
+    """
+    import subprocess
+    import tempfile
+
+    from pipeline_lib import (
+        intro_poster_slugs,
+        plan_intro_posters,
+        poster_args,
+        published_poster_key,
+        published_video_key,
+    )
+
+    # Planning reads R2 metadata (`storage.head` re-raises anything that is not a
+    # 404) and the videos are already published by the time this runs, so a blip
+    # here must not turn a good render into an `error` or suppress the
+    # render-complete dispatch chain.
+    try:
+        slugs = intro_poster_slugs(rows)
+        # `None` means the object is absent (storage.head maps only a 404 to None).
+        posters = {}
+        sources = {}
+        for slug in slugs:
+            posters[slug] = (storage.head(published_poster_key(slug)) or {}).get("last_modified")
+            sources[slug] = (storage.head(published_video_key(slug)) or {}).get("last_modified")
+        targets = plan_intro_posters(rows, posters, sources)
+    except Exception as exc:  # noqa: BLE001 - planning must never fail the render
+        print(f"⚠️ intro poster planning failed: {exc}")
+        return []
+
+    published = []
+    for slug in targets:
+        source_key = published_video_key(slug)
+        poster_key = published_poster_key(slug)
+        if not source_key or not poster_key or sources.get(slug) is None:
+            # The intro video is not on R2 yet (uploaded out of band later):
+            # there is no still to take.
+            continue
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                source = os.path.join(tmp, "intro.mp4")
+                poster = os.path.join(tmp, "poster.jpg")
+                storage.download_to(source_key, source)
+                subprocess.run(["ffmpeg", *poster_args(source, poster)], check=True)
+                storage.upload_file(poster, poster_key, content_type="image/jpeg")
+            published.append(slug)
+        except Exception as exc:  # noqa: BLE001 - best-effort, never fail the render
+            print(f"⚠️ intro poster failed for {slug}: {exc}")
+    return published
+
+
 def _write_status(job_id, status, stage, extra=None):
     payload = {"status": status, "stage": stage}
     if extra:
@@ -212,6 +273,12 @@ def orchestrator(spec: dict):
         plan = plan_publish(rows, os.listdir(pipeline.WEB_DIR), only=files)
         published = _publish(plan)
 
+        # Lesson intros are synthesized from the sheet's `intro_video` column,
+        # so they never enter the plan above; the render still owes them their
+        # posters (the deploy no longer generates any).
+        _write_status(job_id, "running", "posters")
+        intro_posters = _publish_intro_posters(rows)
+
         # One-click chain: tell GitHub to run SRT write-back -> translation ->
         # config generation. Best-effort — the videos are already published, so a
         # dispatch failure (or unset env) must never fail the render.
@@ -237,13 +304,14 @@ def orchestrator(spec: dict):
         })
         _write_status(job_id, "done", "publish", {
             "published": published,
+            "intro_posters": intro_posters,
             "wall_seconds": wall,
             "gpu_seconds": gpu_seconds,
             "estimated_cost_usd": cost,
             "dispatch": dispatch_note,
         })
-        return {"jobId": job_id, "published": published, "wall_seconds": wall,
-                "gpu_seconds": gpu_seconds}
+        return {"jobId": job_id, "published": published, "intro_posters": intro_posters,
+                "wall_seconds": wall, "gpu_seconds": gpu_seconds}
     except Exception as exc:  # noqa: BLE001 - surface any failure as a status marker
         _write_status(job_id, "error", "error", {"error": str(exc)})
         raise

@@ -12,9 +12,9 @@
 - **Backend:** Supabase (auth + `user_profiles` + `avatars` bucket, `supabase/migrations/`) — anon key is publishable, service role never in client
 - **Speech:** Whisper via Transformers.js / WASM workers (`src/workers/whisper/`) + VAD + speech-cam MediaRecorder
 - **Storage:** localStorage (lesson progress) + IndexedDB via `idb-keyval` for per-segment recordings (`src/modules/storage/recordingDb.js`) — ArrayBuffer only, never Blob (WebKit object-store bug)
-- **Media:** R2 `https://r2.ultrafastfluency.com` for lesson videos/posters (`/assets/videos/`, `/whisper/` proxied in `vite.config.js`), per-segment UGC to `videos/` via `functions/api/upload-segment.js` (JWT-gated). Posters are the video's `.mp4`→`.jpg` sibling (`getPosterUrl`), R2-only — never committed or served locally.
+- **Media:** R2 `https://r2.ultrafastfluency.com` for lesson videos/posters (`/assets/videos/`, `/whisper/` proxied in `vite.config.js`), per-segment UGC to `videos/` via `functions/api/upload-segment.js` (JWT-gated). Posters are the video's `.mp4`→`.jpg` sibling (`getPosterUrl`), R2-only — the **Modal render** writes each published video's poster, and posters are never committed or served locally.
 - **Analytics:** PostHog — session replay + exception capture (`src/modules/utils/posthog-client.js`), `maskInputOptions: {password,email}` so lesson text answers replay unmasked while credentials stay masked
-- **Deploy:** Cloudflare Pages (`dist/`), `wrangler.toml`, poster pipeline `scripts/generate-thumbnails.mjs` + ffmpeg
+- **Deploy:** Cloudflare Pages (`dist/`) via `wrangler.toml`; posters are written by the Modal render, so the deploy installs no ffmpeg
 
 ## Directory
 
@@ -42,8 +42,8 @@ functions/api/upload-segment.js   # Pages Function → R2 (requires Supabase JWT
 ## Prerequisites
 
 - Node 20+ (`setup-node@v4` in CI)
-- `ffmpeg` for poster generation (`sudo apt-get install -y ffmpeg` — CI does this)
-- Cloudflare creds only for poster upload / Pages deploy: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
+- `ffmpeg` only for a manual poster re-render (`npm run posters:upload`); the deploy no longer installs it
+- Cloudflare creds for a manual poster upload / the Pages deploy: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`
 - Supabase project `jbrbmbmupjfangqvaevx` (vars in `.env` + `wrangler.toml [vars]`)
 
 ## Setup
@@ -89,7 +89,7 @@ node scripts/verify-thumbnails.mjs   # poster gate (fails if any R2 poster is mi
 npm run deploy             # build + wrangler pages deploy dist --project-name=uffenglish
 ```
 
-CI (`deploy.yml` on push to `main`): `npm ci` → unit tests → ffmpeg → `generate-thumbnails` → `--upload` (R2, non-fatal) → `verify` → `build` → `pages deploy`. Production branch is `main`; `s.` binds to the Pages project.
+CI (`deploy.yml` on push to `main`): `npm ci` → `build` → `pages deploy`. Posters come from the Modal render, so the deploy installs no ffmpeg and generates nothing. Production branch is `main`; `s.` binds to the Pages project.
 
 **Auto captions for simple videos:** `scripts/generate-captions.mjs` (run by `.github/workflows/captions.yml` on every push) transcribes newly added `simpleVideoUrl` videos with local Whisper and translates the SRT to es/pt/fr/hi/bn via DeepSeek (`DEEPSEEK_API_KEY` secret), committing the captions back to the pushed branch. See `stories/009-auto-caption-simple-videos/story.md`.
 
@@ -97,13 +97,13 @@ CI (`deploy.yml` on push to `main`): `npm ci` → unit tests → ffmpeg → `gen
 
 **Lesson videos:** real recordings live on Cloudflare R2 at `https://r2.ultrafastfluency.com/assets/videos/<slug>.mp4` (in dev, Vite serves `/assets/videos/<slug>.mp4` through the proxy — `vite.config.js`). Video files are gitignored and never committed (too large). Upload recordings to R2 manually and reference the `<slug>` in `src/config/*.json` (`interactiveVideoUrl`, `simpleVideoUrl`, `introBackgroundVideoUrl`). There is no video generator.
 
-To make an oversized or non-faststart clip web-friendly, run `npm run videos:optimize` (all config-referenced clips, or `-- --slug=<slug>` for one; add `--force` to remux even faststart clips) and then `npm run videos:optimize:upload` with Cloudflare creds. The script remuxes to `+faststart` and re-encodes only clips over a 720px / ~1.5 Mbps budget, overwriting `assets/videos/<slug>.mp4`; replacing the mp4 under the same slug refreshes its poster on the next push ([story](stories/032-optimize-r2-videos/story.md)).
+To make an oversized or non-faststart clip web-friendly, run `npm run videos:optimize` (all config-referenced clips, or `-- --slug=<slug>` for one; add `--force` to remux even faststart clips) and then `npm run videos:optimize:upload` with Cloudflare creds. The script remuxes to `+faststart` and re-encodes only clips over a 720px / ~1.5 Mbps budget, overwriting `assets/videos/<slug>.mp4`; replacing the mp4 under the same slug refreshes its poster on the next render ([story](stories/032-optimize-r2-videos/story.md)).
 
 **Generate a course config from the sheet:** the published Google Sheet is the source of truth for both videos and configs. `npm run configs:generate` (or `node scripts/generate-config-from-sheet.mjs`) fetches that CSV, groups rows by the `video_file` column value (the config's `simpleVideoUrl`; `filename` is the per-sentence render source), and writes an English-only `src/config/<courseId>.json` **per course** the sheet defines (partitioned by `course_id`). It **overwrites** an existing config — the sheet is authoritative, so regeneration replaces `src/config/<courseId>.json` unconditionally (there is no `--force` flag; use `--dry-run` to preview). It does not translate (es/pt/bn is a later pass — [story](stories/042-generate-config-from-sheet/story.md)), so do not point the sheet at a hand-authored/localized course you are not migrating — overwriting it with a generated config drops its localizations ([story](stories/047-overwrite-configs/story.md)).
 
 **Auto-generated & committed:** `.github/workflows/configs.yml` runs the generator automatically — press **Actions → "Generate Course Configs" → Run workflow** (no local commands) and the bot commits any changed `src/config/*.json` (+ the allow-list) back to the branch; its own commits carry `[skip configs]` and are skipped by the workflow guard. It is **best-effort**: a course with any **missing required column** (`course_id`, `course_name`, `lesson_id`, `lesson_title`, `response_type`, `video_file`, `order`, in `REQUIRED_COLUMNS`) is **skipped whole** — no partial config — and reported on the run page (`::error` + job summary) listing exactly which columns were missing; the other courses still generate, and the video render is unaffected. To add a new required field, add the column to the sheet **and** to `REQUIRED_COLUMNS` in `scripts/lib/sheet-config-utils.js`. The workflow also accepts a `repository_dispatch` (`render-complete`) event for a later, hands-off trigger ([story](stories/046-auto-generate-configs/story.md)).
 
-**Lesson posters:** one uniform rule — a poster is a still of its video, so its URL is the video's URL with `.mp4`→`.jpg` (`getPosterUrl(slug)`; `src/modules/video/video-url.js`). Teacher/lesson-intro posters for **every** `src/config/*.json` course are generated by `scripts/generate-thumbnails.mjs` and pushed to R2 as `assets/videos/<slug>.jpg` by `deploy.yml` on every push (generate → `--upload` → verify). A poster is regenerated when it is missing **or when its source `.mp4` is newer than the published `.jpg`** (R2 `Last-Modified`), so replacing a video under the same slug refreshes its poster on the next push ([story](stories/025-regenerate-stale-posters/story.md)). UGC friend clips upload their sibling `.jpg` at publish time via `functions/api/upload-segment.js`. No poster is committed to the repo or served locally — the browser always fetches the poster from R2 (in dev through the existing `/assets/videos/` proxy), and the only poster-derived artifact in git is the tiny LQIP module `src/generated/poster-lqips.js`.
+**Lesson posters:** one uniform rule — a poster is a still of its video, so its URL is the video's URL with `.mp4`→`.jpg` (`getPosterUrl(slug)`; `src/modules/video/video-url.js`). The **Modal render** writes every `src/config/*.json` course's lesson-intro poster to R2 as `assets/videos/<slug>.jpg`: `modal_app._publish` covers the step/join slugs, and `_publish_intro_posters` covers the synthesized `intro_video` slugs, so no CI step generates one. `scripts/generate-thumbnails.mjs` stays for a manual re-render (`npm run posters:upload`) after replacing a video out of band: it (re)generates a poster when it is missing **or when its source `.mp4` is newer than the published `.jpg`** (R2 `Last-Modified`) ([story](stories/025-regenerate-stale-posters/story.md)). UGC friend clips upload their sibling `.jpg` at publish time via `functions/api/upload-segment.js`. No poster is committed to the repo or served locally — the browser always fetches the poster from R2 (in dev through the existing `/assets/videos/` proxy). The committed `src/generated/poster-lqips.js` blur module is legacy: CI no longer rewrites it (only a manual `npm run posters` run does), and the incoming-video overlay falls back to a gradient for slugs it lacks.
 
 R2 lifecycle (48h TTL for `videos/` UGC) is set in the Cloudflare dashboard (`R2 → uff → Lifecycle`), not in `wrangler.toml`.
 

@@ -15,9 +15,10 @@
 // (needs authenticated wrangler or CLOUDFLARE_API_TOKEN + CLOUDFLARE_ACCOUNT_ID env).
 //
 // New-video flow: upload the intro mp4 to R2 assets/videos/<slug>.mp4 and add a
-// lesson referencing it in any src/config/*.json. Then either run this script
-// (generate + --upload) or just push — deploy.yml runs generate/upload/verify
-// automatically before build. No poster is ever committed.
+// lesson referencing it in any src/config/*.json. The Modal render writes the
+// poster as it publishes, so the normal path needs no extra step; run this
+// script (generate + --upload) only to re-render a poster out of band, e.g.
+// after replacing a video under the same slug. No poster is ever committed.
 
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
