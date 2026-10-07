@@ -36,6 +36,18 @@ Before trusting a guard, prove it can fail by temporarily injecting the thing it
 
 `docs/video-pipeline/modal_app.py` deploys `uff-lesson-video` with only the CPU orchestrator and trigger. Modal refuses a *new* persistent T4 function without a payment method, so `process_video_background_modal` and the `modal.Image` it needs live in `docs/video-pipeline/background_removal_app.py` (`modal.App("video-background-removal")`), which `modal_app.py` and `video_pipeline.py` must **not** import. `video_pipeline.background_removal_remote()` resolves the deployed function lazily via `modal.Function.from_name("video-background-removal", "process_video_background_modal")`, and a deployed handle needs no `app.run()` context. Guards assert the deploy graph (`modal_app.py` + `video_pipeline.py`) has no `gpu=` and that neither entry module mentions `background_removal_app`.
 
+## Modal imports the entrypoint module in every container — keep module-level imports container-safe
+
+Modal loads a function's **defining module** inside that function's container to resolve it, so every module-level import in `modal_app.py` must be satisfiable by **every** image that loads it. The lessons (all hit in production):
+
+- The proxy-auth `trigger` lives in `docs/video-pipeline/trigger_app.py` (imports only `modal` + `fastapi`), and `modal_app.py` does `from trigger_app import app, trigger` so the deploy includes it. Because `trigger_app` imports `fastapi`, the **CPU image must carry `fastapi[standard]` too** — otherwise the orchestrator container dies importing `trigger_app` (no status marker → the recorder polls 404).
+- `video_pipeline` must be imported **lazily** inside `orchestrator`/`_publish`. The CPU image has the source tree + deps; the fastapi-only trigger image does not, so a module-level `import video_pipeline` kills the trigger container (`ModuleNotFoundError: No module named 'video_pipeline'`).
+- The orchestrator must mirror the local `main()`: call `pipeline.setup_environment()` before Stage 1 (it creates `no_silence/`, `output/social`, … and checks deps/fonts — otherwise Stage 1 fails on the missing `no_silence/`), and prepend `"ffmpeg"` to `pipeline_lib.reencode_web_args`/`poster_args` (they return *arguments* that start with `-y`; `subprocess.run(args)` then execs `-y`).
+
+## Non-secret Pages variables belong in `wrangler.toml` `[vars]`
+
+`wrangler pages deploy` (`.github/workflows/deploy.yml`) applies `[vars]` from `wrangler.toml` and **drops dashboard plain-text variables not listed there** (dashboard *secrets* survive). So any non-secret Pages variable a Function reads — e.g. `MODAL_RENDER_URL` in `functions/api/pipeline/render.js` — must be in `wrangler.toml`'s `[vars]`, not only in the dashboard, or a deploy silently unsets it and the Function returns `500 "Modal env unset"`. Secrets (`OPERATOR_KEY`, `MODAL_PROXY_TOKEN_ID`/`_SECRET`) stay in the dashboard.
+
 ## Importable `scripts/*.mjs` must guard their `main()`
 
 A script module whose exports are imported (not only run as a CLI) must wrap its entrypoint:
