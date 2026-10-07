@@ -43,7 +43,7 @@ function assertOneClickDocs({ authoring }) {
     expect(section).toContain('deploy prerequisite');
 }
 
-// The docs contract: the authoring guide documents every one of the 15
+// The docs contract: the authoring guide documents every one of the 18
 // authoring localization columns (`phrase` is master-only, not in this guide)
 // and the service-account share step, and the product feature list carries the
 // round-trip entry.
@@ -66,7 +66,7 @@ function assertDocsContract({ authoring, product }) {
 }
 
 describe('story 049 docs contract', () => {
-    it('documents the 15 localization columns + service-account setup', () => {
+    it('documents the 18 localization columns + service-account setup', () => {
         expect(() => assertDocsContract({ authoring: read(AUTHORING), product: read(PRODUCT) })).not.toThrow();
     });
 

@@ -37,7 +37,7 @@ export const CONFIG_COLUMNS = [
     'course_id', 'course_name', 'lesson_id', 'lesson_title', 'response_type',
     'unit', 'mission', 'recap_sources', 'recap_overlay', 'intro_video',
     'success_video', 'success_srt', 'success_srt_es', 'success_srt_pt',
-    'success_srt_bn', 'srt',
+    'success_srt_bn', 'srt', 'next_step', 'choose_step_next', 'choose_step_text',
 ];
 
 // The localization targets every shared translatable field needs, so the seeded

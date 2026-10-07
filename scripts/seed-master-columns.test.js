@@ -107,6 +107,22 @@ describe('buildSeededCsv', () => {
         for (const col of LOCALIZATION_COLUMNS) expect(headers).toContain(col);
     });
 
+    it('CONFIG_COLUMNS includes the branching columns; LOCALIZATION_COLUMNS the choose_step_text targets', () => {
+        for (const col of ['next_step', 'choose_step_next', 'choose_step_text']) {
+            expect(CONFIG_COLUMNS).toContain(col);
+        }
+        for (const col of ['choose_step_text_es', 'choose_step_text_pt', 'choose_step_text_bn']) {
+            expect(LOCALIZATION_COLUMNS).toContain(col);
+        }
+    });
+
+    it('emits each new column exactly once in the seeded header', () => {
+        for (const col of ['next_step', 'choose_step_next', 'choose_step_text',
+            'choose_step_text_es', 'choose_step_text_pt', 'choose_step_text_bn']) {
+            expect(headers.filter((h) => h === col)).toHaveLength(1);
+        }
+    });
+
     it('seeds enough for the translator to build a payload (no missing columns)', () => {
         // The seeded master must carry every planned target column, or the
         // translator's buildBatchUpdatePayload throws "column not found".

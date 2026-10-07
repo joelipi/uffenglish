@@ -23,6 +23,7 @@ import { flagValue } from './lib/cli-utils.js';
 import {
     SHEET_LANGUAGES,
     groupCueAltLines,
+    isLinePairedField,
     planSheetTranslations,
     countPresentTranslations,
     quoteSheetTitle,
@@ -192,15 +193,16 @@ export async function runTranslateSheet({
     const translations = [];
     for (const item of plan) {
         const translated = await translate(item.sourceText, item.lang);
-        // `cue_alt` is one multi-line cell paired with the English lines by index
-        // by the generator; a model that collapses/expands lines would silently
-        // drop translations, so reject the cell before anything is written.
-        if (item.field === 'cue_alt') {
+        // Line-paired cells (`cue_alt`, `choose_step_text`) are paired with the
+        // English lines by index by the generator; a model that collapses/expands
+        // lines would silently drop translations, so reject the cell before
+        // anything is written.
+        if (isLinePairedField(item.field)) {
             const expected = groupCueAltLines(item.sourceText).length;
             const got = groupCueAltLines(translated).length;
             if (got !== expected) {
                 throw new Error(
-                    `translation for ${item.column} (${item.lang}) changed the cue_alt line count: ` +
+                    `translation for ${item.column} (${item.lang}) changed the ${item.field} line count: ` +
                     `expected ${expected}, got ${got}`
                 );
             }

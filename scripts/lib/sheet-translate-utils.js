@@ -23,15 +23,31 @@ export const SHEET_LANGUAGES = ['es', 'pt', 'bn'];
 // `level` drives group-scoped planning: lesson-level fields are planned once per
 // lesson, step-level fields once per `lesson_id` + `video_file` group. `perRow`
 // fields (the overlay master's `phrase`, one cue element per sheet row) are
-// planned per row instead of per group.
+// planned per row instead of per group. `lines` marks a newline-separated,
+// line-paired cell (`cue_alt` -> `cue[i]`, `choose_step_text` ->
+// `chooseStep[i].text`): the planner emits one item per source-bearing row and
+// the CLI guards that a translation never changes the line count.
 export const TRANSLATABLE_FIELDS = [
     { field: 'lesson_title', source: 'lesson_title', level: 'lesson' },
     { field: 'mission', source: 'mission', level: 'lesson' },
     { field: 'cue', source: 'cue', level: 'step' },
-    { field: 'cue_alt', source: 'cue_alt', level: 'step' },
+    { field: 'cue_alt', source: 'cue_alt', level: 'step', lines: true },
+    { field: 'choose_step_text', source: 'choose_step_text', level: 'step', lines: true },
     { field: 'subtitle_text', source: 'subtitle_text', level: 'step' },
     { field: 'phrase', source: 'phrase', level: 'step', perRow: true },
 ];
+
+// The line-paired fields, derived from the `lines` flag so the two can never
+// drift. A line-paired cell is written once per source-bearing row of the group
+// (mirroring the generator's per-row line pairing) and its translation must
+// preserve the line count.
+export const LINE_PAIRED_FIELDS = new Set(
+    TRANSLATABLE_FIELDS.filter((f) => f.lines).map((f) => f.field));
+
+/** Whether a translatable field's cell is newline-separated and line-paired. */
+export function isLinePairedField(field) {
+    return LINE_PAIRED_FIELDS.has(field);
+}
 
 /** The per-language column name for a field, e.g. `localizedColumn('cue','pt')` -> `cue_pt`. */
 export function localizedColumn(field, lang) {
@@ -146,10 +162,11 @@ function groupUsesSrt(rows, indices) {
  * non-blank target anywhere in the group is skipped unless `force`. Never throws
  * on a blank source.
  *
- * `cue_alt` is flattened across the group's rows by the generator, so it emits
- * one item per source-bearing row; every other field is one value written once
- * on the group's first source-bearing row. `subtitle_text` groups shadowed by a
- * non-blank `srt` are skipped (the generator gives `srt` precedence).
+ * `cue_alt`/`choose_step_text` are flattened across the group's rows by the
+ * generator, so each emits one item per source-bearing row; every other field is
+ * one value written once on the group's first source-bearing row.
+ * `subtitle_text` groups shadowed by a non-blank `srt` are skipped (the
+ * generator gives `srt` precedence).
  *
  * @param {object} opts
  * @param {Array<Record<string,string>>} opts.rows parsed rows (header-keyed)
@@ -208,7 +225,7 @@ export function planSheetTranslations({
                 const target = localizedColumn(field, lang);
                 const groupHasTarget = indices.some((i) => cell(rowsList[i], target).trim());
                 if (groupHasTarget && !force) continue; // already translated -> idempotent
-                const targetRows = field === 'cue_alt' ? sourceIndices : [sourceIndices[0]];
+                const targetRows = isLinePairedField(field) ? sourceIndices : [sourceIndices[0]];
                 for (const rowIndex of targetRows) {
                     plan.push({
                         row: rowIndex,

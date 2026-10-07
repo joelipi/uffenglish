@@ -3,6 +3,8 @@ import { describe, it, expect } from 'vitest';
 import {
     SHEET_LANGUAGES,
     TRANSLATABLE_FIELDS,
+    LINE_PAIRED_FIELDS,
+    isLinePairedField,
     localizedColumn,
     groupCueAltLines,
     planSheetTranslations,
@@ -18,16 +20,29 @@ describe('column contract', () => {
         expect(SHEET_LANGUAGES).toEqual(['es', 'pt', 'bn']);
     });
 
-    it('maps exactly the six translatable sources (18 columns)', () => {
+    it('maps exactly the seven translatable sources (21 columns)', () => {
         expect(TRANSLATABLE_FIELDS.map((f) => f.source)).toEqual([
-            'lesson_title', 'mission', 'cue', 'cue_alt', 'subtitle_text', 'phrase',
+            'lesson_title', 'mission', 'cue', 'cue_alt', 'choose_step_text', 'subtitle_text', 'phrase',
         ]);
         const cols = TRANSLATABLE_FIELDS.flatMap((f) =>
             SHEET_LANGUAGES.map((l) => localizedColumn(f.field, l)));
-        expect(cols).toHaveLength(18);
+        expect(cols).toHaveLength(21);
         expect(cols).toContain('cue_pt');
+        expect(cols).toContain('choose_step_text_es');
         expect(cols).toContain('subtitle_text_bn');
         expect(cols).toContain('phrase_es');
+    });
+
+    it('marks cue_alt and choose_step_text as line-paired step fields', () => {
+        const cueAlt = TRANSLATABLE_FIELDS.find((f) => f.field === 'cue_alt');
+        const chooseText = TRANSLATABLE_FIELDS.find((f) => f.field === 'choose_step_text');
+        expect(cueAlt).toMatchObject({ source: 'cue_alt', level: 'step', lines: true });
+        expect(chooseText).toMatchObject({ source: 'choose_step_text', level: 'step', lines: true });
+        expect(isLinePairedField('cue_alt')).toBe(true);
+        expect(isLinePairedField('choose_step_text')).toBe(true);
+        expect(isLinePairedField('cue')).toBe(false);
+        expect(isLinePairedField('subtitle_text')).toBe(false);
+        expect([...LINE_PAIRED_FIELDS].sort()).toEqual(['choose_step_text', 'cue_alt']);
     });
 
     it('marks phrase as a per-row step field', () => {
@@ -177,6 +192,37 @@ describe('planSheetTranslations', () => {
         ]);
     });
 
+    it('plans one choose_step_text_<lang> item for a step row with a multi-line source', () => {
+        const headers = ['course_id', 'lesson_id', 'video_file', 'choose_step_text', 'choose_step_text_es'];
+        const rows = [{ course_id: 'c', lesson_id: 'a', video_file: 'v', choose_step_text: 'Yes\nNo', choose_step_text_es: '' }];
+        const plan = planSheetTranslations({ rows, headers, languages: ['es'] });
+        expect(plan).toHaveLength(1);
+        expect(plan[0]).toMatchObject({
+            column: 'choose_step_text_es', sourceColumn: 'choose_step_text', sourceText: 'Yes\nNo', field: 'choose_step_text',
+        });
+    });
+
+    it('plans nothing for a choose_step_text row whose translation is already present', () => {
+        const headers = ['course_id', 'lesson_id', 'video_file', 'choose_step_text', 'choose_step_text_es'];
+        const rows = [{ course_id: 'c', lesson_id: 'a', video_file: 'v', choose_step_text: 'Yes\nNo', choose_step_text_es: 'Sí\nNo' }];
+        expect(planSheetTranslations({ rows, headers, languages: ['es'] })).toEqual([]);
+        const forced = planSheetTranslations({ rows, headers, languages: ['es'], force: true });
+        expect(forced.map((p) => p.column)).toEqual(['choose_step_text_es']);
+    });
+
+    it('emits one choose_step_text item per source-bearing row of the group (mirrors cue_alt)', () => {
+        const headers = ['course_id', 'lesson_id', 'video_file', 'choose_step_text', 'choose_step_text_es'];
+        const rows = [
+            { course_id: 'c', lesson_id: 'a', video_file: 'v', choose_step_text: 'A\nB', choose_step_text_es: '' },
+            { course_id: 'c', lesson_id: 'a', video_file: 'v', choose_step_text: 'C', choose_step_text_es: '' },
+        ];
+        const plan = planSheetTranslations({ rows, headers, languages: ['es'] });
+        expect(plan.map((p) => `${p.row}:${p.column}:${p.sourceText}`)).toEqual([
+            '0:choose_step_text_es:A\nB',
+            '1:choose_step_text_es:C',
+        ]);
+    });
+
     it('carries the physical sheet row through the plan', () => {
         const plan = planSheetTranslations({
             rows: [{ lesson_title: 'L', lesson_title_es: '' }],
@@ -246,6 +292,15 @@ describe('countPresentTranslations', () => {
             subtitle_text: 'Hi', subtitle_text_es: 'Hola', srt: '1\\n00:00 --> 00:01\\nHi',
         }];
         expect(countPresentTranslations({ rows, headers, languages: ['es'] })).toEqual({ es: 0 });
+    });
+
+    it('counts a non-blank choose_step_text_es once for the step group', () => {
+        const headers = ['course_id', 'lesson_id', 'video_file', 'choose_step_text', 'choose_step_text_es'];
+        const rows = [{
+            course_id: 'c', lesson_id: 'a', video_file: 'v',
+            choose_step_text: 'Yes\nNo', choose_step_text_es: 'Sí\nNo',
+        }];
+        expect(countPresentTranslations({ rows, headers, languages: ['es'] })).toEqual({ es: 1 });
     });
 });
 

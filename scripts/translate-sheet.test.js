@@ -204,6 +204,34 @@ describe('runTranslateSheet', () => {
         expect(client.batchUpdate).not.toHaveBeenCalled();
     });
 
+    it('rejects a choose_step_text translation whose line count changed, naming choose_step_text', async () => {
+        const values = [
+            ['course_id', 'lesson_id', 'video_file', 'choose_step_text', 'choose_step_text_es'],
+            ['c', 'a', 'v', 'Yes\nNo', ''],
+        ];
+        const client = makeClient(values);
+        await expect(runTranslateSheet({
+            sheetId: 'S', tab: 'Sheet1', languages: ['es'], ...client,
+            translateText: vi.fn(async () => 'collapsed to one line'), log: () => {},
+        })).rejects.toThrow(/choose_step_text line count/);
+        expect(client.batchUpdate).not.toHaveBeenCalled();
+    });
+
+    it('plans one choose_step_text_es item per source-bearing row of a step group', async () => {
+        const values = [
+            ['course_id', 'lesson_id', 'video_file', 'choose_step_text', 'choose_step_text_es'],
+            ['c', 'a', 'v', 'A\nB', ''],
+            ['c', 'a', 'v', 'C', ''],
+        ];
+        const client = makeClient(values);
+        const translateText = vi.fn(async (t, l) => `${l}:${t}`);
+        const res = await runTranslateSheet({
+            sheetId: 'S', tab: 'Sheet1', languages: ['es'], ...client, translateText, log: () => {},
+        });
+        expect(res.plan.map((p) => p.sheetRow)).toEqual([2, 3]);
+        expect(translateText).toHaveBeenCalledTimes(2);
+    });
+
     it('fails fast when the sheet lacks the target columns, before any translation', async () => {
         const values = [['lesson_title'], ['Hello']]; // no lesson_title_es
         const client = makeClient(values);

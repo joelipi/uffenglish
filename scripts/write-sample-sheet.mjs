@@ -12,6 +12,7 @@ const OUT = path.join(ROOT, 'docs/video-pipeline/sample-sheet.csv');
 const HEADER = [
     'course_id', 'course_name', 'lesson_id', 'lesson_title', 'unit', 'mission',
     'response_type', 'video_file', 'filename', 'order', 'cue', 'cue_alt',
+    'next_step', 'choose_step_next', 'choose_step_text',
     'subtitle_text', 'srt', 'recap_sources', 'recap_overlay',
     // Story 049 localization targets (one column per language per field). Blank
     // in the sample: a fresh import shows the operator where translations land,
@@ -20,6 +21,7 @@ const HEADER = [
     'mission_es', 'mission_pt', 'mission_bn',
     'cue_es', 'cue_pt', 'cue_bn',
     'cue_alt_es', 'cue_alt_pt', 'cue_alt_bn',
+    'choose_step_text_es', 'choose_step_text_pt', 'choose_step_text_bn',
     'subtitle_text_es', 'subtitle_text_pt', 'subtitle_text_bn',
 ];
 
@@ -34,11 +36,18 @@ const rows = [
     { lesson_id: 'intro', lesson_title: 'Lesson Intro', unit: 'Getting Started', response_type: 'lessonIntro', video_file: 'demo-intro', filename: 'demo-intro01', order: '1' },
     { lesson_id: 'intro', lesson_title: 'Lesson Intro', unit: 'Getting Started', response_type: 'viewAndContinue', video_file: 'demo-intro-instructions', filename: 'demo-intro02', order: '2', srt: SRT_INTRO },
 
-    // Lesson A: three friend questions then a success step.
+    // Lesson A: three friend questions, a branching question with two
+    // alternatives that converge on the success step, then success.
     { lesson_id: 'a', lesson_title: 'Lesson A', unit: 'Asking', recap_sources: 'none', response_type: 'friendClosedResponse', video_file: 'demo-a01', filename: 'demo-a0101', order: '1', cue: 'Would you rather have a million dollars or live five years longer?' },
     { lesson_id: 'a', lesson_title: 'Lesson A', unit: 'Asking', recap_sources: 'none', response_type: 'friendClosedResponse', video_file: 'demo-a02', filename: 'demo-a0201', order: '2', cue: 'Would you rather have great food or great conversation?' },
     { lesson_id: 'a', lesson_title: 'Lesson A', unit: 'Asking', recap_sources: 'none', response_type: 'friendClosedResponse', video_file: 'demo-a03', filename: 'demo-a0301', order: '3', cue_alt: 'Would you rather a beach vacation?\nWould you rather a mountain vacation?' },
-    { lesson_id: 'a', lesson_title: 'Lesson A', unit: 'Asking', recap_sources: 'none', response_type: 'success', video_file: 'demo-enda', filename: 'demo-enda01', order: '4', srt: SRT_END },
+    // Branching: each choice jumps to one of the two alternative steps; both
+    // alternatives carry `next_step` so they converge on `demo-enda` (the choice
+    // offsets 1/2 land on the two alternatives, each then advances by 2/1).
+    { lesson_id: 'a', lesson_title: 'Lesson A', unit: 'Asking', recap_sources: 'none', response_type: 'branching', video_file: 'demo-branch', filename: 'demo-branch01', order: '4', cue: 'Which would you rather?', choose_step_next: '1\n2', choose_step_text: 'Go to the beach\nGo to the mountains' },
+    { lesson_id: 'a', lesson_title: 'Lesson A', unit: 'Asking', recap_sources: 'none', response_type: 'viewAndContinue', video_file: 'demo-branch-beach', filename: 'demo-branch-beach01', order: '5', next_step: '2', subtitle_text: 'The beach it is.' },
+    { lesson_id: 'a', lesson_title: 'Lesson A', unit: 'Asking', recap_sources: 'none', response_type: 'viewAndContinue', video_file: 'demo-branch-mountain', filename: 'demo-branch-mountain01', order: '6', next_step: '1', subtitle_text: 'The mountains it is.' },
+    { lesson_id: 'a', lesson_title: 'Lesson A', unit: 'Asking', recap_sources: 'none', response_type: 'success', video_file: 'demo-enda', filename: 'demo-enda01', order: '7', srt: SRT_END },
 
     // Lesson B: a friend recap lesson (friend-slug steps live here).
     { lesson_id: 'b', lesson_title: 'Lesson B', unit: 'Responding', recap_sources: 'friend', response_type: 'lessonIntro', video_file: 'demo-b-intro', filename: 'demo-b-intro01', order: '1' },

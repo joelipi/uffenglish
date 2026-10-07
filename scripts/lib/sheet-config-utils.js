@@ -12,10 +12,10 @@
 //
 // English is always emitted. When the sheet also carries the per-language
 // columns (`lesson_title_es`, `mission_pt`, `cue_es`, `cue_alt_es`,
-// `subtitle_text_bn`, … — the 15 columns the story-049 translate-sheet Action
-// fills), they are consumed into the existing `{en,es,pt,bn}` objects. The
-// language columns are optional: a sheet with none of them still generates
-// English-only output.
+// `choose_step_text_es`, `subtitle_text_bn`, … — the 18 columns the
+// translate-sheet Action fills), they are consumed into the existing
+// `{en,es,pt,bn}` objects. The language columns are optional: a sheet with none
+// of them still generates English-only output.
 
 import {
     SHEET_LANGUAGES,
@@ -45,6 +45,7 @@ export const RESPONSE_TYPES = [
     'success',
     'lessonIntro',
     'openResponse',
+    'branching',
 ];
 export const RECAP_SOURCES = ['system', 'friend', 'none'];
 export const RECAP_OVERLAYS = ['fluency', 'shareCta', 'none'];
@@ -304,6 +305,81 @@ function singleValue(groupRows, name, context) {
 }
 
 /**
+ * The step's `nextStep` number from the `next_step` column, or undefined when
+ * blank. `next_step` is an optional step-level advance override (an offset from
+ * the step's own index) emitted for any response type — a `branching` step's
+ * empty-choices Continue fallback honors it too. A non-blank value must be an
+ * integer >= 1 (a structural error otherwise; bad data is never dropped).
+ */
+function nextStepFor(groupRows, videoFile) {
+    const value = singleValue(groupRows, 'next_step', `video_file "${videoFile}"`);
+    if (!value) return undefined;
+    if (!/^\d+$/.test(value) || Number(value) < 1) {
+        throw new Error(`video_file "${videoFile}": next_step must be an integer >= 1 ("${value}")`);
+    }
+    return Number(value);
+}
+
+/**
+ * The step's `chooseStep` array from the `choose_step_next` (1-based offsets) and
+ * `choose_step_text` (labels) columns, or undefined when neither is set. Both
+ * source columns are newline-separated cells flattened across the step's rows in
+ * row order, paired by index — the same shape as `cue_alt`. Per-row language
+ * pairing mirrors `cueFor`: row *r*'s English line *i* pairs with that same row's
+ * `choose_step_text_<lang>` line *i* (a blank/out-of-range line omits the
+ * language for that choice, never an empty-string locale).
+ *
+ * Malformed choice data is a structural error: the offending course is not
+ * generated and the message names the `video_file`. `chooseStep` is only valid on
+ * a `branching` step.
+ *
+ * @param {Array<Record<string,string>>} stepRows the step's rows (all sub-groups
+ *   for a master `join`)
+ * @param {string} videoFile the step key, for error messages
+ * @param {string} responseType the step's response type
+ * @returns {Array<{nextStep: number, text: object}>|undefined}
+ */
+function chooseStepFor(stepRows, videoFile, responseType) {
+    const textField = sourceOf('choose_step_text');
+    const nextLines = [];
+    const textEntries = [];
+    for (const row of stepRows) {
+        for (const line of groupCueAltLines(cell(row, 'choose_step_next'))) nextLines.push(line);
+        groupCueAltLines(cell(row, textField)).forEach((text, localIndex) => {
+            textEntries.push({ text, row, localIndex });
+        });
+    }
+    if (nextLines.length === 0 && textEntries.length === 0) return undefined;
+    if (nextLines.length === 0 || textEntries.length === 0) {
+        throw new Error(`video_file "${videoFile}": choose_step_next and choose_step_text must both be set`);
+    }
+    if (nextLines.length !== textEntries.length) {
+        throw new Error(
+            `video_file "${videoFile}": choose_step_next has ${nextLines.length} lines ` +
+            `but choose_step_text has ${textEntries.length}`
+        );
+    }
+    const chooseStep = textEntries.map(({ text, row, localIndex }, i) => {
+        const line = nextLines[i];
+        if (!/^\d+$/.test(line) || Number(line) < 1) {
+            throw new Error(
+                `video_file "${videoFile}": choose_step_next line ${i + 1} is not an integer >= 1 ("${line}")`
+            );
+        }
+        const obj = { en: text };
+        for (const lang of SHEET_LANGUAGES) {
+            const t = groupCueAltLines(cell(row, localizedColumn('choose_step_text', lang)))[localIndex];
+            if (t) obj[lang] = t;
+        }
+        return { nextStep: Number(line), text: obj };
+    });
+    if (responseType !== 'branching') {
+        throw new Error(`video_file "${videoFile}": choose_step_* is only valid on a branching step`);
+    }
+    return chooseStep;
+}
+
+/**
  * The single master grouping: a step is one video, keyed by the `join` value
  * when non-blank, else `video_file`. Returns the step groups in first-seen
  * order, each with its `video_file` sub-groups in first-seen order (a joined
@@ -409,6 +485,10 @@ function buildMasterSteps(lessonRows) {
         const step = { responseType, simpleVideoUrl: key };
         const cue = masterCueFor(subgroups);
         if (cue !== undefined) step.cue = cue;
+        const chooseStep = chooseStepFor(stepRows, key, responseType);
+        if (chooseStep !== undefined) step.chooseStep = chooseStep;
+        const nextStep = nextStepFor(stepRows, key);
+        if (nextStep !== undefined) step.nextStep = nextStep;
         const subtitles = masterSubtitlesFor(stepRows);
         if (subtitles !== undefined) step.subtitles = subtitles;
         steps.push(step);
@@ -472,6 +552,10 @@ function buildAuthoringSteps(lessonRows) {
             step.responseType = responseType;
             step.simpleVideoUrl = videoFile;
         }
+        const chooseStep = chooseStepFor(groupRows, videoFile, responseType);
+        if (chooseStep !== undefined) step.chooseStep = chooseStep;
+        const nextStep = nextStepFor(groupRows, videoFile);
+        if (nextStep !== undefined) step.nextStep = nextStep;
         const subtitles = subtitlesFor(groupRows);
         if (subtitles !== undefined) step.subtitles = subtitles;
 
