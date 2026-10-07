@@ -77,4 +77,20 @@ describe('ConfirmEmailForm', () => {
         // rejects it without reaching the RPC.
         expect(confirmEmailTokenMock).toHaveBeenCalledWith(null);
     });
+
+    it('runs the single-use RPC only once under StrictMode', async () => {
+        // StrictMode double-invokes effects in dev; a second RPC call would
+        // find the token already burned and wrongly show "invalid".
+        confirmEmailTokenMock.mockResolvedValue(true);
+        root = createRoot(container);
+        await act(async () => {
+            root.render(
+                React.createElement(React.StrictMode, null,
+                    React.createElement(ConfirmEmailForm, { token: 'a'.repeat(64), onContinue: () => {} })
+                )
+            );
+        });
+        expect(confirmEmailTokenMock).toHaveBeenCalledTimes(1);
+        expect(text()).toContain(Strings.get('auth_confirm_email_success', 'en'));
+    });
 });

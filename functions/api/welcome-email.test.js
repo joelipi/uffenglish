@@ -110,7 +110,10 @@ describe('onRequestPost — welcome-email Function', () => {
 
     it('stores a token hash and emails the raw token link on the happy path', async () => {
         const { calls } = installFetch();
-        const res = await onRequestPost({ request: makeRequest({ origin: 'https://staging.example' }), env: makeEnv() });
+        const res = await onRequestPost({
+            request: makeRequest({ origin: 'https://evil.example' }),
+            env: makeEnv({ SITE_URL: 'https://app.example' }),
+        });
 
         expect(res.status).toBe(200);
         expect(await res.json()).toEqual({ sent: true });
@@ -137,11 +140,20 @@ describe('onRequestPost — welcome-email Function', () => {
         expect(payload.to).toEqual(['a@b.com']);
 
         // The emailed token is the preimage of the stored hash.
-        const url = payload.text.match(/https:\/\/staging\.example\/confirm-email\?token=[0-9a-f]{64}/)[0];
+        const url = payload.text.match(/https:\/\/app\.example\/confirm-email\?token=[0-9a-f]{64}/)[0];
         const raw = url.split('token=')[1];
         expect(await sha256Hex(raw)).toBe(row.token_hash);
         // The raw token must never be written to the database.
         expect(ins.options.body).not.toContain(raw);
+        // The configured origin wins over the caller-supplied Origin header.
+        expect(payload.text).not.toContain('evil.example');
+    });
+
+    it('falls back to the request Origin when SITE_URL is unset', async () => {
+        const { calls } = installFetch();
+        await onRequestPost({ request: makeRequest({ origin: 'https://staging.example' }), env: makeEnv() });
+        const resend = calls.find((c) => c.url.includes('api.resend.com/emails'));
+        expect(JSON.parse(resend.options.body).text).toContain('https://staging.example/confirm-email?token=');
     });
 
     it('is non-blocking: without SUPABASE_SERVICE_ROLE_KEY it returns 200 sent:false and stores nothing', async () => {

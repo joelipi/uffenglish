@@ -16,6 +16,7 @@ import {
     sendWelcomeEmail,
     confirmEmailToken,
 } from './email-confirmation.js';
+import { sha256Hex, isConfirmToken } from '../../../functions/api/welcome-email.js';
 
 const HEX_64 = 'a'.repeat(64);
 
@@ -41,6 +42,21 @@ describe('hashConfirmToken', () => {
         expect(hash).toMatch(/^[0-9a-f]{64}$/);
         expect(await hashConfirmToken(HEX_64)).toBe(hash);
         expect(hash).not.toBe(await hashConfirmToken('b'.repeat(64)));
+    });
+
+    // The client hashes the token and the Pages Function hashes it when
+    // storing; if those two canonicalizations ever drift, every confirm link
+    // silently fails. Pin them to the same output for fixed inputs.
+    it('matches the Pages Function SHA-256 for fixed inputs', async () => {
+        for (const input of ['', 'abc', HEX_64, 'token-with-ünicode-✓']) {
+            expect(await hashConfirmToken(input)).toBe(await sha256Hex(input));
+        }
+    });
+
+    it('agrees with the Pages Function on which tokens are well-formed', () => {
+        for (const value of [HEX_64, '', 'ABC', 'A'.repeat(64), 'f'.repeat(63), 'f'.repeat(65), null]) {
+            expect(isValidConfirmToken(value)).toBe(isConfirmToken(value));
+        }
     });
 });
 

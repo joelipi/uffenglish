@@ -21,10 +21,49 @@
 -- user_profiles: the verification flag. anon's column-level GRANT (003) does
 -- NOT include these, so they are never exposed to anonymous callers; an
 -- authenticated owner reads them via their full-row grant.
+--
+-- They are server-managed: 002 grants authenticated table-level UPDATE and
+-- 001's owner-update policy allows auth.uid() = id, so without a guard a user
+-- could simply PATCH their own row with {"email_confirmed": true} and forge the
+-- signal. The trigger below rejects any anon/authenticated write to these
+-- columns; only the SECURITY DEFINER confirm_email_hash() (running as the
+-- function owner, not as authenticated) may set them.
 -- ---------------------------------------------------------------------------
 alter table public.user_profiles
   add column if not exists email_confirmed boolean not null default false,
   add column if not exists email_confirmed_at timestamptz;
+
+create or replace function public.protect_email_confirmed()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  -- Data API roles are the only untrusted writers. The SECURITY DEFINER RPC
+  -- runs as the function owner (current_user = postgres), so it passes.
+  if current_user in ('anon', 'authenticated') then
+    if tg_op = 'INSERT' then
+      if new.email_confirmed is distinct from false
+         or new.email_confirmed_at is not null then
+        raise exception 'email_confirmed is server-managed' using errcode = '42501';
+      end if;
+    elsif tg_op = 'UPDATE' then
+      if new.email_confirmed is distinct from old.email_confirmed
+         or new.email_confirmed_at is distinct from old.email_confirmed_at then
+        raise exception 'email_confirmed is server-managed' using errcode = '42501';
+      end if;
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists user_profiles_protect_email_confirmed on public.user_profiles;
+create trigger user_profiles_protect_email_confirmed
+  before insert or update on public.user_profiles
+  for each row execute function public.protect_email_confirmed();
+
+revoke all on function public.protect_email_confirmed() from public;
 
 -- ---------------------------------------------------------------------------
 -- email_confirm_tokens: one row per outstanding confirmation link.
@@ -68,6 +107,7 @@ set search_path = ''
 as $$
 declare
   v_user uuid;
+  v_updated uuid;
 begin
   -- Reject anything that is not a SHA-256 hex digest before touching the table.
   if p_hash is null or p_hash !~ '^[0-9a-f]{64}$' then
@@ -87,7 +127,14 @@ begin
   update public.user_profiles
     set email_confirmed = true,
         email_confirmed_at = now()
-    where id = v_user;
+    where id = v_user
+    returning id into v_updated;
+
+  -- No profile row (e.g. the insert failed at signup): do not burn the token
+  -- or claim success — the link stays usable until it expires.
+  if v_updated is null then
+    return false;
+  end if;
 
   -- Single use: burn every outstanding token for this user once confirmed.
   delete from public.email_confirm_tokens where user_id = v_user;

@@ -159,8 +159,11 @@ export async function onRequestPost({ request, env }) {
         return jsonResponse({ sent: false, reason: 'store-failed' });
     }
 
+    // Prefer the configured origin over the caller-supplied Origin header, so a
+    // signed-in caller cannot make the email carry a link to a domain they
+    // control. Set SITE_URL per environment (staging should override it).
     const siteUrl =
-        request.headers.get('Origin') || env.SITE_URL || new URL(request.url).origin;
+        env.SITE_URL || request.headers.get('Origin') || new URL(request.url).origin;
     const confirmUrl = buildConfirmUrl(siteUrl, token);
     const from = env.EMAIL_FROM || 'Ultrafast Fluency <onboarding@resend.dev>';
 

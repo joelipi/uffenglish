@@ -25,7 +25,11 @@ at the application layer and `enable_confirmations` stays **off**.
    a link to `/confirm-email?token=<raw>` via [Resend](https://resend.com).
 3. The confirm page (`src/routes/ConfirmEmailRoute.jsx`) hashes the token with
    WebCrypto and calls the anon `confirm_email_hash()` RPC (migration 006),
-   which marks `user_profiles.email_confirmed = true` and burns the token.
+   which marks `user_profiles.email_confirmed = true` and burns the token. The
+   flag is **server-managed**: a `before insert or update` trigger rejects any
+   `anon`/`authenticated` write to `email_confirmed`/`email_confirmed_at`, so a
+   user cannot PATCH their own profile to self-confirm — only the RPC (running
+   as the function owner) may set it.
 
 The endpoint is deliberately fail-open: without `RESEND_API_KEY`, or when the
 provider/store fails, it returns `200 { sent: false, reason }` instead of an
@@ -44,6 +48,9 @@ endpoint being used to spam arbitrary addresses).
    key is used only to write/rotate token rows; it must never reach the client.
    `EMAIL_FROM` and `SITE_URL` are plain vars in `wrangler.toml` `[vars]` and
    must stay there, or `wrangler pages deploy` unset them (see `AGENTS.md`).
+   `SITE_URL` roots the confirmation link and is preferred over the request
+   `Origin`, so set it per environment (staging overrides it with
+   `https://s.ultrafastfluency.com`).
 4. Apply `006` to any project whose `user_profiles` predates it **before**
    deploying the Function.
 
