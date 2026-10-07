@@ -113,6 +113,13 @@ describe('resolveStepPhase — branching steps', () => {
             isFriendLesson: false,
         })).toBe('simpleVideo');
     });
+
+    it('never routes a branching step into an interactive response phase', () => {
+        expect(resolveStepPhase({ step: { responseType: 'branching', interactiveVideoUrl: 'clip' } }))
+            .toBe(BRANCH_OVERLAY_PHASE);
+        expect(resolveStepPhase({ step: { responseType: 'branching', simpleVideoUrl: 'clip', interactiveVideoUrl: 'clip' } }))
+            .toBe('simpleVideo');
+    });
 });
 
 describe('branching phase wiring', () => {

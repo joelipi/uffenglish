@@ -17,12 +17,13 @@ function read(rel) {
     return readFileSync(path.join(ROOT, rel), 'utf8');
 }
 
-// A function body from `const <name>` to the next top-level `const handle...`
-// declaration (the `handle*` callbacks are declared consecutively).
+// A function body from `const <name>` to the next top-level (4-space-indented)
+// `const` declaration. Name-agnostic so an inserted helper cannot silently
+// extend the slice (AGENTS: never slice a function body to EOF).
 function functionSlice(src, name) {
     const start = src.indexOf(`const ${name}`);
     expect(start, `missing ${name}`).toBeGreaterThan(-1);
-    const end = src.indexOf('const handle', start + 1);
+    const end = src.indexOf('\n    const ', start + 1);
     return src.slice(start, end === -1 ? undefined : end);
 }
 
