@@ -241,6 +241,10 @@ class PipelineWiringSourceGuardTest(unittest.TestCase):
     # -- Modal orchestrator ------------------------------------------------ #
     def _modal_guard(self, text):
         body = slice_between(text, "def orchestrator(spec: dict):", "def _publish(")
+        # Story 054: `video_pipeline` is imported lazily inside the function
+        # (the deploy module has no module-level pipeline import), so the
+        # `pipeline.` references below must resolve through that import.
+        self.assertIn("import video_pipeline as pipeline", body)
         self.assertIn("pipeline.load_video_file_map(csv_file)", body)
         self.assertIn("joined_prefixes, phrase_map, video_file_map, join_plan", body)
         self.assertIn("pipeline.write_srt_column(csv_file, srt_by_prefix, video_file_map)", body)
@@ -260,6 +264,14 @@ class PipelineWiringSourceGuardTest(unittest.TestCase):
             "pipeline.write_srt_column(csv_file, srt_by_prefix)")
         with self.assertRaises(AssertionError):
             self._modal_guard(no_key)
+        # Dropping the lazy import must fail the guard: the `pipeline.`
+        # references would otherwise be a NameError in the container.
+        no_import = read(MODAL_APP).replace(
+            "    import video_pipeline as pipeline\n\n    job_id = spec[\"jobId\"]",
+            "    job_id = spec[\"jobId\"]")
+        self.assertNotEqual(no_import, read(MODAL_APP))
+        with self.assertRaises(AssertionError):
+            self._modal_guard(no_import)
 
 
 if __name__ == "__main__":

@@ -16,6 +16,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[3]
 PIPELINE = REPO_ROOT / "docs" / "video-pipeline" / "video_pipeline.py"
 MODAL_APP = REPO_ROOT / "docs" / "video-pipeline" / "modal_app.py"
+TRIGGER = REPO_ROOT / "docs" / "video-pipeline" / "trigger_app.py"
 
 
 def read() -> str:
@@ -192,22 +193,31 @@ class ModalGuardTest(unittest.TestCase):
         self.assertNotIn("with app.run():", body)
         self.assertNotIn("modal.is_local()", body)
 
-    def test_app_name_preserved_and_gpu_function_moved_out(self):
+    def test_app_name_lives_in_the_trigger_module_not_the_pipeline(self):
         text = read()
-        self.assertIn('app = modal.App("uff-lesson-video")', text)
+        # Story 054: video_pipeline no longer creates the `uff-lesson-video` app
+        # handle (only modal_app.py imported it); the app is created in the
+        # lightweight trigger module that Modal imports in the fastapi-only
+        # trigger container. Keep the name so MODAL_RENDER_URL is unchanged.
+        self.assertNotIn("app = modal.App(", text)
         # The T4 BiRefNet function moved to background_removal_app.py.
         self.assertNotIn("def process_video_background_modal", text)
+        trigger = TRIGGER.read_text(encoding="utf-8")
+        self.assertIn('app = modal.App("uff-lesson-video")', trigger)
+
+    def _assert_no_gpu(self, text, label):
+        self.assertNotIn("gpu=", text, label)
+        for decorator in self._decorators(text):
+            self.assertNotIn("gpu", decorator, label)
 
     def test_deploy_graph_registers_no_gpu_function(self):
-        # Task 3: the two modules that register `@app.function`s -- modal_app.py
-        # and video_pipeline.py -- must register no GPU function.
+        # Task 3: every module in the deploy graph that registers `@app.function`s
+        # -- modal_app.py and trigger_app.py -- must register no GPU function.
         seen = 0
-        for path in (PIPELINE, MODAL_APP):
+        for path in (PIPELINE, MODAL_APP, TRIGGER):
             text = path.read_text(encoding="utf-8")
-            self.assertNotIn("gpu=", text, str(path))
-            for decorator in self._decorators(text):
-                seen += 1
-                self.assertNotIn("gpu", decorator, str(path))
+            self._assert_no_gpu(text, str(path))
+            seen += len(self._decorators(text))
         # The scan is not vacuous: the graph does register CPU functions.
         self.assertGreater(seen, 0)
 
@@ -228,13 +238,14 @@ class ModalGuardTest(unittest.TestCase):
                 "output_bytes = background_removal_remote().remote(",
                 "with app.run():\n            output_bytes = background_removal_remote().remote(",
             ))
-        mutated_gpu = good.replace(
-            'app = modal.App("uff-lesson-video")',
-            'app = modal.App("uff-lesson-video")\n\n@app.function(gpu="T4")\ndef tmp_gpu(): ...',
+        # A GPU decorator in the deploy graph must fail the no-GPU scan.
+        mutated_app = MODAL_APP.read_text(encoding="utf-8").replace(
+            "@app.function(image=cpu_image",
+            '@app.function(image=cpu_image, gpu="T4"',
         )
-        self.assertIn("gpu=", mutated_gpu)
+        self.assertNotEqual(mutated_app, MODAL_APP.read_text(encoding="utf-8"))
         with self.assertRaises(AssertionError):
-            self.assertNotIn("gpu=", mutated_gpu)
+            self._assert_no_gpu(mutated_app, "mutated modal_app.py")
 
 
 class SyntaxGuardTest(unittest.TestCase):
