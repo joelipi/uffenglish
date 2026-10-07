@@ -164,6 +164,13 @@ def orchestrator(spec: dict):
         _fetch_assets(WORKDIR)
         _fetch_takes(WORKDIR, files)
 
+        # Create the pipeline's sub-directories (no_silence/, output/social, …)
+        # and verify deps/fonts before Stage 1. The local main() calls this;
+        # without it Stage 1 fails on the missing `no_silence/`, and a missing
+        # font would silently degrade the Stage 3 overlays.
+        if not pipeline.setup_environment():
+            raise RuntimeError("pipeline environment not ready (missing dependency or font)")
+
         csv_file = os.path.join(WORKDIR, "video_data.csv")
         background_mapping, mirror_mapping = pipeline.load_background_mapping(csv_file)
 

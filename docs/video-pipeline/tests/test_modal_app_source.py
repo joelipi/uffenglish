@@ -79,6 +79,11 @@ class OrchestratorGuardTest(unittest.TestCase):
                       "process_video_batch", "concatenate_all_processed_videos",
                       "concatenate_joined_videos", "plan_publish"):
             self.assertIn(token, body, token)
+        # The pipeline's sub-directories must exist before Stage 1 writes into
+        # them, and fonts must be present before Stage 3 renders overlays — the
+        # local main() gates both through setup_environment() (ensure_dirs +
+        # font/dep check). Without it Stage 1 fails on the missing `no_silence/`.
+        self.assertIn("pipeline.setup_environment()", body)
         # Status is serialized through the shared writer the orchestrator calls.
         writer = slice_between(text, "def _write_status(", "def orchestrator(")
         self.assertIn("serialize_status", writer)
