@@ -35,7 +35,7 @@ function assertDeployMainOnly(text) {
 // Posters come from the render (`modal_app._publish` uploads the slug's
 // `.jpg`), never from the deploy: the render already holds the video, so CI
 // re-downloading it only added ffmpeg + minutes to every deploy.
-function assertDeployPapersOffDeployPath(text) {
+function assertDeployPostersOffDeployPath(text) {
     // Scope to the job's steps: the file header may *document* that posters are
     // off the deploy path, but no step may run the poster scripts.
     const job = jobBlock(text, 'deploy', 'deploy.yml');
@@ -59,7 +59,7 @@ describe('CI triggers stay off the per-branch push path', () => {
     });
 
     it('deploy.yml leaves posters to the render', () => {
-        assertDeployPapersOffDeployPath(read('deploy.yml'));
+        assertDeployPostersOffDeployPath(read('deploy.yml'));
     });
 
     it('captions.yml runs on main only', () => {
@@ -72,7 +72,7 @@ describe('CI triggers stay off the per-branch push path', () => {
         const dep = read('deploy.yml');
         expect(() => assertDeployMainOnly(dep.replace('branches: [main]', "branches: ['**']"))).toThrow();
         expect(() => assertDeployMainOnly(dep + '\n      - name: Run unit tests\n        run: npm test\n')).toThrow();
-        expect(() => assertDeployPapersOffDeployPath(
+        expect(() => assertDeployPostersOffDeployPath(
             dep + '\n      - name: Generate posters\n        run: node scripts/generate-thumbnails.mjs\n',
         )).toThrow();
         const cap = read('captions.yml');

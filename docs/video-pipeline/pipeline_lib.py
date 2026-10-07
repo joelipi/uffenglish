@@ -348,6 +348,48 @@ def plan_publish(rows, web_listing, only=None):
     return plan
 
 
+def intro_poster_slugs(rows):
+    """Distinct literal lesson-intro slugs from the sheet's ``intro_video`` column.
+
+    The master sheet's ``intro_video`` column drives the config's *synthesized*
+    ``lessonIntro`` step (``scripts/lib/sheet-config-utils.js``), so those videos
+    are never a CSV row's ``video_file``/``join`` and never enter
+    ``plan_publish`` — yet the app still resolves their poster as the slug's
+    ``assets/videos/<slug>.jpg`` sibling. ``{friendCode}`` templates are resolved
+    per user at runtime and are not literal R2 names, so they are skipped (same
+    rule as ``introTargets`` in ``scripts/lib/poster-utils.js``). First-seen
+    order, deduped.
+    """
+    seen = set()
+    slugs = []
+    for row in rows or []:
+        slug = _row_value(row, "intro_video")
+        if not slug or "{" in slug or slug in seen or not is_valid_slug(slug):
+            continue
+        seen.add(slug)
+        slugs.append(slug)
+    return slugs
+
+
+def plan_intro_posters(rows, poster_modified, source_modified):
+    """Intro slugs whose poster must be (re)built, in discovery order.
+
+    ``poster_modified`` / ``source_modified`` map a slug to its R2
+    ``LastModified`` (a ``datetime``), or ``None`` when the object is absent. A
+    slug is a target when its poster is missing, or when its source video is
+    newer than the poster (a re-record under the same slug) — mirroring
+    ``planPosterRun`` / ``isPosterStale`` in ``scripts/lib/poster-utils.js``.
+    Pure, so the render's intro-poster plan is unit-testable without R2.
+    """
+    targets = []
+    for slug in intro_poster_slugs(rows):
+        poster = poster_modified.get(slug)
+        source = source_modified.get(slug)
+        if poster is None or (source is not None and source > poster):
+            targets.append(slug)
+    return targets
+
+
 # --------------------------------------------------------------------------- #
 # Web budget (mirrors scripts/lib/video-optimize-utils.js)
 # --------------------------------------------------------------------------- #

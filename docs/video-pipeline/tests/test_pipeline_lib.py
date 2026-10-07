@@ -9,6 +9,7 @@ import os
 import sys
 import tempfile
 import unittest
+from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -198,6 +199,52 @@ class PlanPublishSourceGuardTest(unittest.TestCase):
         self.assertNotEqual(mutated, source)
         with self.assertRaises(AssertionError):
             self._guard(mutated)
+
+
+class IntroPosterTest(unittest.TestCase):
+    """Lesson intros come from the sheet's `intro_video` column, never a CSV
+    row, so they miss `plan_publish` and the render plans their posters
+    separately (story 055)."""
+
+    rows = [
+        {"filename": "a0101", "video_file": "a01", "intro_video": "friend"},
+        {"filename": "a0102", "video_file": "a01", "intro_video": "friend"},
+        {"filename": "b0101", "video_file": "b01", "intro_video": "{friendCode}resp"},
+        {"filename": "c0101", "video_file": "c01", "intro_video": ""},
+        {"filename": "d0101", "video_file": "d01", "intro_video": "intro"},
+        {"filename": "e0101", "video_file": "e01", "intro_video": "bad/slug"},
+    ]
+
+    def test_literal_intro_slugs_are_deduped_in_first_seen_order(self):
+        self.assertEqual(lib.intro_poster_slugs(self.rows), ["friend", "intro"])
+
+    def test_blank_template_and_invalid_slugs_are_skipped(self):
+        slugs = lib.intro_poster_slugs(self.rows)
+        self.assertNotIn("{friendCode}resp", slugs)
+        self.assertNotIn("bad/slug", slugs)
+        self.assertNotIn("", slugs)
+
+    def test_missing_poster_is_a_target(self):
+        self.assertEqual(
+            lib.plan_intro_posters(self.rows, {"friend": None, "intro": None}, {}),
+            ["friend", "intro"],
+        )
+
+    def test_fresh_poster_is_not_a_target(self):
+        fresh = datetime(2026, 1, 2)
+        self.assertEqual(
+            lib.plan_intro_posters(self.rows, {"friend": fresh, "intro": fresh},
+                                   {"friend": datetime(2026, 1, 1)}),
+            [],
+        )
+
+    def test_newer_source_video_makes_a_stale_poster_a_target(self):
+        poster = datetime(2026, 1, 1)
+        self.assertEqual(
+            lib.plan_intro_posters(self.rows, {"friend": poster, "intro": poster},
+                                   {"friend": datetime(2026, 1, 2), "intro": poster}),
+            ["friend"],
+        )
 
 
 class SelectRowsTest(unittest.TestCase):

@@ -99,6 +99,31 @@ class OrchestratorGuardTest(unittest.TestCase):
         self.assertIn('"error"', error_block)
         self.assertIn("serialize_status", read(APP))
 
+    def test_publishes_lesson_intro_posters(self):
+        # Story 055: a lesson intro comes from the sheet's `intro_video` column,
+        # so it is never a row slug in `plan_publish`; the orchestrator must
+        # still publish its poster (the deploy no longer generates any).
+        text = read(APP)
+        body = slice_between(text, "def orchestrator(spec: dict):", "def _publish(")
+        self.assertIn("_publish_intro_posters(csv_file)", body)
+        self.assertIn('"posters"', body)
+        self.assertIn('"intro_posters": intro_posters', body)
+
+        helper = slice_between(text, "def _publish_intro_posters(", "def _write_status(")
+        for token in ("intro_poster_slugs", "plan_intro_posters", "poster_args",
+                      "storage.head", "storage.download_to", "storage.upload_file"):
+            self.assertIn(token, helper, token)
+        # Best-effort: one bad slug must never fail an otherwise-good render.
+        self.assertIn("except Exception", helper)
+
+    def test_intro_poster_guard_can_fail(self):
+        good = read(APP)
+        mutated = "SENTINEL_REMOVED".join(good.split("_publish_intro_posters(csv_file)"))
+        self.assertNotEqual(mutated, good)
+        body = slice_between(mutated, "def orchestrator(spec: dict):", "def _publish(")
+        with self.assertRaises(AssertionError):
+            self.assertIn("_publish_intro_posters(csv_file)", body)
+
 
 class TriggerGuardTest(unittest.TestCase):
     def _assert_trigger_contract(self, text):
@@ -451,6 +476,16 @@ class StorageGuardTest(unittest.TestCase):
         self.assertIn("return None", body)
         self.assertIn("raise", body)
         self.assertNotIn("except Exception", body)
+
+    def test_head_maps_only_a_404_to_none(self):
+        # Story 055: the render tells "poster absent" from "R2 unreachable", so
+        # only a genuine 404 may return None.
+        text = read(STORAGE)
+        head = slice_between(text, "def head(", "def upload_file(")
+        self.assertIn("head_object", head)
+        self.assertIn('"NoSuchKey"', head)
+        self.assertIn("return None", head)
+        self.assertIn("raise", head)
 
 
 if __name__ == "__main__":
