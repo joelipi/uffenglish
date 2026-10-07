@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { confirmEmailToken } from '../../modules/user/email-confirmation.js';
 
-// Sentinel so the very first effect run always issues the RPC, even when the
-// URL has no token (token === null).
+// Sentinel so the very first effect run always records a result, even when the
+// URL has no token (confirmEmailToken(null) resolves false without an RPC).
 const UNSET = Symbol('unset');
 
 // Drives the /confirm-email page. The link may be opened on any device and the

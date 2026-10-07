@@ -32,6 +32,7 @@ describe('006_add_email_confirmation.sql', () => {
         // already confirmed).
         expect(sql).toContain('new.email_confirmed is distinct from false');
         expect(sql).toContain('new.email_confirmed is distinct from old.email_confirmed');
+        expect(sql).toContain('new.email_confirmed_at is distinct from old.email_confirmed_at');
     });
 
     it('stores only a hashed token and grants the table to nobody but the service role', () => {
@@ -54,6 +55,7 @@ describe('006_add_email_confirmation.sql', () => {
     });
 
     it('only reports success and burns the token after the profile row was updated', () => {
+        expect(sql).toContain('set email_confirmed = true');
         const updateAt = sql.indexOf('returning id into v_updated');
         const nullCheckAt = sql.indexOf('if v_updated is null then');
         const deleteAt = sql.indexOf('delete from public.email_confirm_tokens where user_id = v_user');

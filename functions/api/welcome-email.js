@@ -51,7 +51,7 @@ export function isConfirmToken(token) {
     return typeof token === 'string' && HEX_PATTERN.test(token);
 }
 
-/** Absolute confirmation URL. Prefers the caller's origin (staging vs prod). */
+/** Absolute confirmation URL built from the configured SITE_URL (or fallback). */
 export function buildConfirmUrl(siteUrl, token) {
     const base = String(siteUrl || '').replace(/\/+$/, '');
     return `${base}/confirm-email?token=${token}`;
