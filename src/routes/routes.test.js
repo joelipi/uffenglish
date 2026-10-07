@@ -27,6 +27,14 @@ describe('routes.jsx homepage split', () => {
         expect(homeAt).toBeLessThan(shareCodeAt);
     });
 
+    it('registers /confirm-email before the /:shareCode route', () => {
+        const confirmAt = src.indexOf("{ path: '/confirm-email'");
+        const shareCodeAt = src.indexOf("{ path: '/:shareCode'");
+        expect(confirmAt).toBeGreaterThan(-1);
+        expect(shareCodeAt).toBeGreaterThan(-1);
+        expect(confirmAt).toBeLessThan(shareCodeAt);
+    });
+
     it('keeps the catch-all pointing at the public homepage', () => {
         expect(src).toContain("{ path: '*', element: <Navigate to=\"/\" replace /> }");
     });

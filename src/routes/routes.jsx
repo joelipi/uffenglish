@@ -9,6 +9,7 @@ import LoginRoute from './LoginRoute.jsx';
 import SignupRoute from './SignupRoute.jsx';
 import RecoverPasswordRoute from './RecoverPasswordRoute.jsx';
 import ResetPasswordRoute from './ResetPasswordRoute.jsx';
+import ConfirmEmailRoute from './ConfirmEmailRoute.jsx';
 import LessonContainer from '../components/LessonContainer.jsx';
 import PublicProfileRoute from './PublicProfileRoute.jsx';
 import PrivacyRoute from './PrivacyRoute.jsx';
@@ -38,6 +39,9 @@ export const routes = [
       // Legal pages must precede the single-segment /:shareCode catch-all.
       { path: '/privacy', element: <PrivacyRoute /> },
       { path: '/terms', element: <TermsRoute /> },
+      // Public: the confirmation link is opened without a session. Must precede
+      // the single-segment /:shareCode catch-all like the legal pages.
+      { path: '/confirm-email', element: <AuthLayout />, children: [{ index: true, element: <ConfirmEmailRoute /> }] },
       { path: '/course/:courseId/lesson/:lessonId', element: <AppLayout />, errorElement: <LessonError />, children: [{ index: true, element: <LessonContainer /> }] },
       { path: '/:shareCode', element: <PublicProfileRoute /> },
       { path: '*', element: <Navigate to="/" replace /> },

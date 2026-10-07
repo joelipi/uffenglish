@@ -1446,6 +1446,47 @@ const strings = {
         hi: "पुनर्प्राप्ति ईमेल भेजा गया। अपना इनबॉक्स जाँचें।",
         bn: "পুনরুদ্ধার ইমেইল পাঠানো হয়েছে। আপনার ইনবক্স পরীক্ষা করুন।"
     },
+    // Non-blocking "click to confirm" email landing page (migration 006).
+    'auth_confirm_email_title': {
+        en: "Email Confirmation",
+        es: "Confirmación de correo",
+        pt: "Confirmação de e-mail",
+        fr: "Confirmation de l'e-mail",
+        hi: "ईमेल पुष्टि",
+        bn: "ইমেইল নিশ্চিতকরণ"
+    },
+    'auth_confirm_email_pending': {
+        en: "Confirming your email address…",
+        es: "Confirmando tu correo electrónico…",
+        pt: "Confirmando seu e-mail…",
+        fr: "Confirmation de votre adresse e-mail…",
+        hi: "आपका ईमेल पता पुष्ट किया जा रहा है…",
+        bn: "আপনার ইমেইল ঠিকানা নিশ্চিত করা হচ্ছে…"
+    },
+    'auth_confirm_email_success': {
+        en: "Thank you — your email address is confirmed.",
+        es: "Gracias — tu correo electrónico está confirmado.",
+        pt: "Obrigado — seu e-mail está confirmado.",
+        fr: "Merci — votre adresse e-mail est confirmée.",
+        hi: "धन्यवाद — आपका ईमेल पता पुष्ट हो गया है।",
+        bn: "ধন্যবাদ — আপনার ইমেইল ঠিকানা নিশ্চিত হয়েছে।"
+    },
+    'auth_confirm_email_invalid': {
+        en: "This confirmation link is invalid or has expired.",
+        es: "Este enlace de confirmación no es válido o ha caducado.",
+        pt: "Este link de confirmação é inválido ou expirou.",
+        fr: "Ce lien de confirmation est invalide ou a expiré.",
+        hi: "यह पुष्टि लिंक अमान्य है या समाप्त हो गया है।",
+        bn: "এই নিশ্চিতকরণ লিংকটি অবৈধ বা মেয়াদোত্তীর্ণ।"
+    },
+    'auth_confirm_email_continue': {
+        en: "Continue",
+        es: "Continuar",
+        pt: "Continuar",
+        fr: "Continuer",
+        hi: "जारी रखें",
+        bn: "চালিয়ে যান"
+    },
     'auth_reset_title': {
         en: "Set New Password",
         es: "Establecer Nueva Contraseña",
