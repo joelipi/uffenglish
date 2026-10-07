@@ -4,11 +4,12 @@ Standing rules for working in this repository. Detailed incident write-ups live 
 
 ## Source-guard tests must be able to fail
 
-This repo relies heavily on tests that assert on source text ("guards"). Three separate incidents (see git history and `docs/learnings.md`) produced a guard that could never fail. When writing or editing one:
+This repo relies heavily on tests that assert on source text ("guards"). Several separate incidents (see git history and `docs/learnings.md`) produced a guard that could never fail. When writing or editing one:
 
 - **Do not strip comments before scheme/URL assertions.** A `/\/\/.*$/gm` stripper reads the `//` in `https://` as a comment and erases the URL, so the assertion can never fail. Assert on the raw source for scheme checks; use the stripped source only for bare-identifier checks (`window`/`document`).
 - **Whole-file `toContain` only works for tokens that appear exactly once.** Over an entire stylesheet/source file it stays green even when the specific rule is deleted. Scope the slice to the specific block (`slice(indexOf(selector), …)`) and assert every property in it.
 - **Never slice a function body to EOF.** End the slice at the next top-level marker (`indexOf('export const …')` / the next `export async function …`). A function appended later otherwise silently joins the slice and the guard passes on strings that are not in the target function.
+- **Presence is not containment.** Asserting that `try:`, the guarded call and `except Exception` all appear *somewhere* in a region says nothing about their order, so hoisting the call out of the `try` still passes. Assert index order (`region.index(a) < region.index(b) < region.index(c)`) — and search the paren-qualified call token (`storage.head(`), because an explanatory comment naming the function will otherwise satisfy a bare-token search.
 
 Before trusting a guard, prove it can fail by temporarily injecting the thing it forbids.
 
