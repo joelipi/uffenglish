@@ -10,7 +10,7 @@
 // generation picks it up. The `srt` column is the exception: the render pipeline
 // rewrites it on every re-render, so a stored `srt_<lang>` whose cue count or
 // timings no longer match the current English SRT is stale and is re-planned
-// (see `srtTargetIsCurrent`). A hand-edit that keeps the cue count/timings is
+// (see `srtGroupStates`). A hand-edit that keeps the cue count/timings is
 // still honored; a stale cell is flagged on the plan item and logged by the CLI,
 // so a re-translation is never silent.
 
@@ -25,9 +25,10 @@ export const SHEET_LANGUAGES = ['es', 'pt', 'bn'];
 // are mutually exclusive step shapes; `subtitle_text` is the static-subtitle
 // source; `srt` is the pipeline's exact-timing caption document, translated
 // cue-text-only by `translateSrt` (timings preserved, never retimed).
-// The translator plans from this list; the config generator reads the same
-// columns independently (see sheet-config-utils.js) and the two lists must be
-// kept in sync by hand.
+// This is the column contract: the translator fills these columns, the config
+// generator reads them independently (see sheet-config-utils.js), and the two
+// must be kept in sync by hand. The generic planner loop iterates
+// `GENERIC_FIELDS` (below) because `srt` has its own timing-validated pass.
 // `level` drives group-scoped planning: lesson-level fields are planned once per
 // lesson, step-level fields once per step group. A step group is
 // `lesson_id` + `video_file` — except an SRT field, which keys by the
@@ -49,6 +50,12 @@ export const TRANSLATABLE_FIELDS = [
     { field: 'srt', source: 'srt', level: 'step' },
     { field: 'phrase', source: 'phrase', level: 'step', perRow: true },
 ];
+
+// The fields the generic planner loop handles. `srt` is translatable and stays
+// in TRANSLATABLE_FIELDS for the column contract (seed, docs, parity), but its
+// planning needs a timing-validated staleness rule, so `planSrtItems` owns it
+// and it is excluded here.
+export const GENERIC_FIELDS = TRANSLATABLE_FIELDS.filter((f) => f.field !== 'srt');
 
 // The line-paired fields, derived from the `lines` flag so the two can never
 // drift. A line-paired cell is written once per source-bearing row of the group
@@ -100,22 +107,30 @@ export function unescapeSrt(value) {
 }
 
 /**
- * Validate a stored `srt_<lang>` cell against the raw (JSON-escaped) English
- * `srt` cell: unescapes the English document, then checks the translation
- * preserves its cue count and timings. Shared by the planner (staleness) and the
- * config generator (so a stale translation can never ship).
+ * Validate a literal SRT translation against a literal English SRT document:
+ * the translation must preserve the English cue count and timings. A source with
+ * no parseable cues is a failure, never a vacuous pass. This guard lives here
+ * rather than in the shared `validateTranslatedSrt` so the captions pipeline
+ * keeps its own (empty-transcription) handling; the sheet path has no legitimate
+ * empty-cue `srt`.
  *
- * A source with no parseable cues is a failure, never a vacuous pass. This guard
- * lives here rather than in the shared `validateTranslatedSrt` so the captions
- * pipeline keeps its own (empty-transcription) handling; the sheet path has no
- * legitimate empty-cue `srt`.
+ * The single validity rule for the sheet path: the translator (fresh output),
+ * the planner (staleness) and the config generator (so a stale translation can
+ * never ship) all go through it.
  */
-export function validateSrtCell(escapedEnglish, translatedSrt) {
-    const english = unescapeSrt(escapedEnglish);
-    if (parseSrt(english).length === 0) {
+export function validateSrtDocument(englishSrt, translatedSrt) {
+    if (parseSrt(englishSrt).length === 0) {
         return { ok: false, reason: 'English SRT has no parseable cues' };
     }
-    return validateTranslatedSrt(english, translatedSrt);
+    return validateTranslatedSrt(englishSrt, translatedSrt);
+}
+
+/**
+ * Validate a stored `srt_<lang>` cell against the raw (JSON-escaped) English
+ * `srt` cell (the generator's and planner's input shape).
+ */
+export function validateSrtCell(escapedEnglish, translatedSrt) {
+    return validateSrtDocument(unescapeSrt(escapedEnglish), translatedSrt);
 }
 
 /**
@@ -332,14 +347,12 @@ export function planSheetTranslations({
     // present.
     const isMaster = headerSet.has('phrase');
 
-    for (const { field, source, level, perRow } of TRANSLATABLE_FIELDS) {
+    // `srt` has its own pass (timing-validated staleness, step-key grouping,
+    // in-place rewrite); the generic loop handles the rest.
+    plan.push(...planSrtItems({ rows: rowsList, headers, sheetRows, languages, force, stepKey: isMaster }));
+
+    for (const { field, source, level, perRow } of GENERIC_FIELDS) {
         if (field === 'subtitle_text' && isMaster) continue;
-        // `srt` needs its own pass (timing-validated staleness, step-key
-        // grouping, in-place rewrite); see `planSrtItems`.
-        if (field === 'srt') {
-            plan.push(...planSrtItems({ rows: rowsList, headers, sheetRows, languages, force, stepKey: isMaster }));
-            continue;
-        }
 
         if (perRow) {
             // One source value per row (the master's `phrase` -> one cue element
@@ -410,9 +423,8 @@ export function countPresentTranslations({ rows, headers, languages = SHEET_LANG
     for (const lang of languages) counts[lang] = 0;
 
     const isMaster = headerSet.has('phrase');
-    for (const { field, source, level, perRow } of TRANSLATABLE_FIELDS) {
+    for (const { field, source, level, perRow } of GENERIC_FIELDS) {
         if (field === 'subtitle_text' && isMaster) continue;
-        if (field === 'srt') continue; // counted below, with staleness
         if (perRow) {
             for (const row of rowsList) {
                 if (!cell(row, source).trim()) continue;

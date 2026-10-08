@@ -8,6 +8,7 @@ import {
     localizedColumn,
     groupCueAltLines,
     validateSrtCell,
+    validateSrtDocument,
     planSheetTranslations,
     countPresentTranslations,
     columnLetter,
@@ -303,6 +304,13 @@ describe('validateSrtCell', () => {
         expect(validateSrtCell('', 'anything').ok).toBe(false);
         expect(validateSrtCell('not an srt', 'also not an srt').ok).toBe(false);
         expect(validateSrtCell('', '').reason).toMatch(/no parseable cues/);
+    });
+
+    it('validateSrtDocument applies the same rule to literal documents (the translator path)', () => {
+        const literal = '1\n00:00:00,000 --> 00:00:01,000\nHi';
+        expect(validateSrtDocument(literal, '1\n00:00:00,000 --> 00:00:01,000\nHola')).toEqual({ ok: true });
+        expect(validateSrtDocument('not an srt', 'also not an srt').ok).toBe(false);
+        expect(validateSrtDocument(literal, 'not an srt').ok).toBe(false);
     });
 });
 

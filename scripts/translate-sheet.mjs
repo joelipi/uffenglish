@@ -31,8 +31,8 @@ import {
     quoteSheetTitle,
     buildBatchUpdatePayload,
     rowsFromValues,
+    validateSrtDocument,
 } from './lib/sheet-translate-utils.js';
-import { validateTranslatedSrt } from './lib/caption-utils.js';
 import { translateText as realTranslateText, translateSrt as realTranslateSrt } from './lib/deepseek.js';
 
 // The only scope requested: read + write the sheet the account can access. No
@@ -212,7 +212,7 @@ export async function runTranslateSheet({
             // count or timestamps must fail before anything is written.
             const englishSrt = item.sourceText;
             translated = await translateSrt(englishSrt, item.lang);
-            const validation = validateTranslatedSrt(englishSrt, translated);
+            const validation = validateSrtDocument(englishSrt, translated);
             if (!validation.ok) {
                 throw new Error(
                     `translation for ${item.column} (${item.lang}) is not a valid SRT: ${validation.reason}`
