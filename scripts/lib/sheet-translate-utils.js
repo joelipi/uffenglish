@@ -89,7 +89,7 @@ export function groupCueAltLines(text) {
  * (`\n`->newline, `"`->quote, `\\`->backslash) back to literal SRT text. Only
  * JSON string escapes are decoded, so a literal backslash survives. Shared by
  * the config generator (which emits the English subtitles) and the translator
- * (which translates them); re-exported from sheet-config-utils.js.
+ * (which translates them); the generator imports it from here.
  */
 export function unescapeSrt(value) {
     const s = String(value ?? '');
@@ -313,9 +313,11 @@ export function planSheetTranslations({
                     ? sourceIndices
                     : [srt && groupHasTarget ? targetIndex : sourceIndices[0]];
                 for (const rowIndex of targetRows) {
-                    // The English source is the step's first non-blank `srt`
-                    // (never the write row, which may not carry English text).
-                    const rawSource = cell(rowsList[srt ? sourceIndices[0] : rowIndex], source).trim();
+                    // English is read from the step's first source row for `srt`
+                    // (the write row may not carry English text); other fields
+                    // read their own write row.
+                    const englishIndex = srt ? sourceIndices[0] : rowIndex;
+                    const rawSource = cell(rowsList[englishIndex], source).trim();
                     plan.push({
                         row: rowIndex,
                         sheetRow: sheetRows ? sheetRows[rowIndex] : rowIndex + 2,
