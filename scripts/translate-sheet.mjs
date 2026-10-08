@@ -157,7 +157,7 @@ export async function runTranslateSheet({
     getSpreadsheet,
     batchUpdate,
     translateText: translate = realTranslateText,
-    translateSrt: translateCues = realTranslateSrt,
+    translateSrt = realTranslateSrt,
     log = console.log,
 } = {}) {
     if (!batchUpdate) throw new Error('missing Google Sheets client');
@@ -212,7 +212,7 @@ export async function runTranslateSheet({
             // takes `srt_<lang>` as operator text). A model that mangles cue
             // count or timestamps must fail before anything is written.
             const englishSrt = item.sourceText;
-            translated = await translateCues(englishSrt, item.lang);
+            translated = await translateSrt(englishSrt, item.lang);
             const validation = validateTranslatedSrt(englishSrt, translated);
             if (!validation.ok) {
                 throw new Error(

@@ -25,8 +25,8 @@ import {
     localizedColumn,
     groupCueAltLines,
     unescapeSrt,
+    validateSrtCell,
 } from './sheet-translate-utils.js';
-import { validateTranslatedSrt } from './caption-utils.js';
 
 // English source columns are looked up in the shared field map, so a field
 // removed or renamed in sheet-translate-utils.js fails loudly here instead of
@@ -214,15 +214,14 @@ function localizedObject(rows, field, enValue) {
  * preceding translate run) fails the course loudly instead of shipping. The
  * generator is pure, so it throws; `buildCourseConfigs` reports the skip.
  */
-function srtSubtitlesFor(rows, context = 'subtitles') {
+function srtSubtitlesFor(rows, context) {
     const en = firstNonBlank(rows, 'srt');
     if (!en) return undefined;
-    const english = unescapeSrt(en);
-    const obj = { en: english };
+    const obj = { en: unescapeSrt(en) };
     for (const lang of SHEET_LANGUAGES) {
         const v = firstNonBlank(rows, localizedColumn('srt', lang));
         if (!v) continue;
-        const validation = validateTranslatedSrt(english, v);
+        const validation = validateSrtCell(en, v);
         if (!validation.ok) {
             throw new Error(`${context}: srt_${lang} is not a timing-consistent translation of srt (${validation.reason})`);
         }

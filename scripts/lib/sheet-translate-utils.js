@@ -109,6 +109,19 @@ export function unescapeSrt(value) {
 }
 
 /**
+ * Validate a stored `srt_<lang>` cell against the raw (JSON-escaped) English
+ * `srt` cell: unescapes the English document, then checks the translation
+ * preserves its cue count and timings. Shared by the planner (staleness) and the
+ * config generator (so a stale translation can never ship). An empty/blank
+ * English document is a failure, never a vacuous pass.
+ */
+export function validateSrtCell(escapedEnglish, translatedSrt) {
+    const english = unescapeSrt(escapedEnglish);
+    if (!english.trim()) return { ok: false, reason: 'empty English srt' };
+    return validateTranslatedSrt(english, translatedSrt);
+}
+
+/**
  * Convert Google-Sheets `values.get` rows (an array of arrays) into the same
  * `{ headers, rows }` shape `parseCsv` produces, plus `sheetRows`: the real
  * 1-based physical row of each entry in `rows`. Fully-blank interior rows are
@@ -208,21 +221,75 @@ function groupUsesSrt(rows, indices) {
     return indices.some((i) => cell(rows[i], 'srt').trim());
 }
 
+/** The first row of `indices` whose `column` cell is non-blank, else undefined. */
+function firstFilledRow(rows, indices, column) {
+    return indices.find((i) => cell(rows[i], column).trim());
+}
+
 /**
- * Whether the group's stored `srt_<lang>` cell is up to date with the current
- * English `srt`. The render pipeline rewrites `srt` on every re-render, so a
- * translation whose cue count or timings no longer match the English document is
- * stale and must be re-planned. A stored translation always has literal newlines
- * (the generator takes it verbatim) while the English cell is JSON-escaped, so
- * the English side is unescaped before comparison. Missing/blank -> not current.
+ * The plan items for the `srt` field. SRT is the one field that needs its own
+ * pass: it groups by the generator's step key (`join` else `video_file`) so a
+ * joined step is planned once, it reads its English from the step's first
+ * source-bearing row, and a stored `srt_<lang>` is re-planned when its cue
+ * count/timings no longer match the current (re-rendered) English SRT.
+ *
+ * A stale/forced translation is rewritten in place on the row the generator
+ * reads first (`firstFilledRow`), so the fresh value can never be shadowed by an
+ * older one; a fresh translation lands on the step's first source-bearing row.
+ * The `sourceText` is the unescaped English document (the CLI hands it straight
+ * to `translateSrt`), and a stale item carries `stale: true` so the CLI can log
+ * the overwrite.
  */
-function srtTargetIsCurrent(rows, indices, source, target) {
-    const existing = indices.map((i) => cell(rows[i], target).trim()).find(Boolean);
-    if (!existing) return false;
-    const englishIndex = indices.find((i) => cell(rows[i], source).trim());
-    if (englishIndex === undefined) return false;
-    const english = unescapeSrt(cell(rows[englishIndex], source).trim());
-    return validateTranslatedSrt(english, existing).ok;
+function planSrtItems({ rows, headers, sheetRows, languages, force }) {
+    const items = [];
+    const groups = groupsForField(rows, headerSetOf(headers), 'step', { stepKey: true });
+    for (const indices of groups.values()) {
+        const sourceIndices = indices.filter((i) => cell(rows[i], 'srt').trim());
+        if (sourceIndices.length === 0) continue;
+        const sourceText = unescapeSrt(cell(rows[sourceIndices[0]], 'srt').trim());
+        for (const lang of languages) {
+            const target = localizedColumn('srt', lang);
+            const targetIndex = firstFilledRow(rows, indices, target);
+            const current = targetIndex !== undefined
+                && validateSrtCell(cell(rows[sourceIndices[0]], 'srt'), cell(rows[targetIndex], target)).ok;
+            if (targetIndex !== undefined && !force && current) continue; // up to date
+            const stale = targetIndex !== undefined && !force;
+            const row = targetIndex !== undefined ? targetIndex : sourceIndices[0];
+            items.push({
+                row,
+                sheetRow: sheetRows ? sheetRows[row] : row + 2,
+                column: target,
+                sourceColumn: 'srt',
+                sourceText,
+                lang,
+                field: 'srt',
+                ...(stale ? { stale: true } : {}),
+            });
+        }
+    }
+    return items;
+}
+
+/**
+ * The number of `srt_<lang>` groups already up to date (used by the CLI report;
+ * a stale group is not counted as present). Grouped like `planSrtItems`.
+ */
+function countPresentSrt(rows, headers, languages) {
+    const counts = {};
+    for (const lang of languages) counts[lang] = 0;
+    const groups = groupsForField(rows, headerSetOf(headers), 'step', { stepKey: true });
+    for (const indices of groups.values()) {
+        const englishIndex = indices.find((i) => cell(rows[i], 'srt').trim());
+        if (englishIndex === undefined) continue;
+        for (const lang of languages) {
+            const target = localizedColumn('srt', lang);
+            const targetIndex = firstFilledRow(rows, indices, target);
+            if (targetIndex === undefined) continue;
+            if (!validateSrtCell(cell(rows[englishIndex], 'srt'), cell(rows[targetIndex], target)).ok) continue;
+            counts[lang] += 1;
+        }
+    }
+    return counts;
 }
 
 /**
@@ -264,8 +331,14 @@ export function planSheetTranslations({
     // present.
     const isMaster = headerSet.has('phrase');
 
-    for (const { field, source, level, perRow, srt } of TRANSLATABLE_FIELDS) {
+    for (const { field, source, level, perRow } of TRANSLATABLE_FIELDS) {
         if (field === 'subtitle_text' && isMaster) continue;
+        // `srt` needs its own pass (timing-validated staleness, step-key
+        // grouping, in-place rewrite); see `planSrtItems`.
+        if (field === 'srt') {
+            plan.push(...planSrtItems({ rows: rowsList, headers, sheetRows, languages, force }));
+            continue;
+        }
 
         if (perRow) {
             // One source value per row (the master's `phrase` -> one cue element
@@ -290,45 +363,25 @@ export function planSheetTranslations({
             continue;
         }
 
-        const groups = groupsForField(rowsList, headerSet, level, { stepKey: !!srt });
+        const groups = groupsForField(rowsList, headerSet, level);
         for (const indices of groups.values()) {
             const sourceIndices = indices.filter((i) => cell(rowsList[i], source).trim());
             if (sourceIndices.length === 0) continue;
             if (field === 'subtitle_text' && groupUsesSrt(rowsList, indices)) continue;
             for (const lang of languages) {
                 const target = localizedColumn(field, lang);
-                const targetIndex = indices.find((i) => cell(rowsList[i], target).trim());
-                const groupHasTarget = targetIndex !== undefined;
-                // Idempotent for every field except `srt`, where a stored
-                // translation is re-planned when its cue count/timings no longer
-                // match the current (re-rendered) English SRT. `stale` marks that
-                // case so the CLI can log it (never a silent overwrite).
-                const stale = srt && groupHasTarget && !force
-                    && !srtTargetIsCurrent(rowsList, indices, source, target);
-                if (groupHasTarget && !force && !stale) continue; // already translated
-                // A stale/forced `srt` is rewritten in place on the row the
-                // generator reads first; a fresh one lands on the step's first
-                // source-bearing row. Other fields write on that same first row.
-                const targetRows = isLinePairedField(field)
-                    ? sourceIndices
-                    : [srt && groupHasTarget ? targetIndex : sourceIndices[0]];
+                const groupHasTarget = indices.some((i) => cell(rowsList[i], target).trim());
+                if (groupHasTarget && !force) continue; // already translated -> idempotent
+                const targetRows = isLinePairedField(field) ? sourceIndices : [sourceIndices[0]];
                 for (const rowIndex of targetRows) {
-                    // English is read from the step's first source row for `srt`
-                    // (the write row may not carry English text); other fields
-                    // read their own write row.
-                    const englishIndex = srt ? sourceIndices[0] : rowIndex;
-                    const rawSource = cell(rowsList[englishIndex], source).trim();
                     plan.push({
                         row: rowIndex,
                         sheetRow: sheetRows ? sheetRows[rowIndex] : rowIndex + 2,
                         column: target,
                         sourceColumn: source,
-                        // `srt` is unescaped so the CLI can hand the literal
-                        // document straight to translateSrt.
-                        sourceText: srt ? unescapeSrt(rawSource) : rawSource,
+                        sourceText: cell(rowsList[rowIndex], source).trim(),
                         lang,
                         field,
-                        ...(stale ? { stale: true } : {}),
                     });
                 }
             }
@@ -356,8 +409,9 @@ export function countPresentTranslations({ rows, headers, languages = SHEET_LANG
     for (const lang of languages) counts[lang] = 0;
 
     const isMaster = headerSet.has('phrase');
-    for (const { field, source, level, perRow, srt } of TRANSLATABLE_FIELDS) {
+    for (const { field, source, level, perRow } of TRANSLATABLE_FIELDS) {
         if (field === 'subtitle_text' && isMaster) continue;
+        if (field === 'srt') continue; // counted below, with staleness
         if (perRow) {
             for (const row of rowsList) {
                 if (!cell(row, source).trim()) continue;
@@ -367,20 +421,20 @@ export function countPresentTranslations({ rows, headers, languages = SHEET_LANG
             }
             continue;
         }
-        const groups = groupsForField(rowsList, headerSet, level, { stepKey: !!srt });
+        const groups = groupsForField(rowsList, headerSet, level);
         for (const indices of groups.values()) {
             if (!indices.some((i) => cell(rowsList[i], source).trim())) continue;
             if (field === 'subtitle_text' && groupUsesSrt(rowsList, indices)) continue;
             for (const lang of languages) {
                 const target = localizedColumn(field, lang);
-                if (!indices.some((i) => cell(rowsList[i], target).trim())) continue;
-                // A stale `srt_<lang>` is not "already present" — the planner
-                // will re-translate it, so it is reported as filled, not present.
-                if (srt && !srtTargetIsCurrent(rowsList, indices, source, target)) continue;
-                counts[lang] += 1;
+                if (indices.some((i) => cell(rowsList[i], target).trim())) counts[lang] += 1;
             }
         }
     }
+    // A stale `srt_<lang>` is not "already present" — the planner re-translates
+    // it, so it is reported as filled, not present.
+    const srtCounts = countPresentSrt(rowsList, headers, languages);
+    for (const lang of languages) counts[lang] += srtCounts[lang];
     return counts;
 }
 

@@ -205,6 +205,12 @@ describe('validateTranslatedSrt', () => {
         expect(result.ok).toBe(false);
         expect(result.reason).toMatch(/start mismatch/);
     });
+
+    it('rejects an English SRT with no parseable cues (never a vacuous pass)', () => {
+        expect(validateTranslatedSrt('not an srt', 'also not an srt').ok).toBe(false);
+        expect(validateTranslatedSrt('', '').ok).toBe(false);
+        expect(validateTranslatedSrt('', 'anything').reason).toMatch(/no parseable cues/);
+    });
 });
 
 describe('applyCaptionsToText', () => {
