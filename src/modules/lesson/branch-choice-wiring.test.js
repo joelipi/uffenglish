@@ -159,6 +159,8 @@ describe('StepLoader, strings and styles', () => {
         expect(btn).toMatch(/background:\s*#ffffff/);
         expect(btn).toMatch(/color:\s*#000000/);
         expect(btn).not.toContain('rgba(255, 255, 255, 0.16)');
+        // Same edge treatment as the Replay/Tutorial call buttons.
+        expect(btn).toMatch(/box-shadow:\s*0 10px 25px rgba\(0, 0, 0, 0\.2\)/);
 
         // Every interaction state stays white/black so `.btn:hover` cannot
         // repaint it with the Bootstrap theme variables.
@@ -171,6 +173,18 @@ describe('StepLoader, strings and styles', () => {
         const focus = cssBlock(css, '.branch-choice-btn:focus-visible');
         expect(focus).toMatch(/outline:\s*3px solid #ffffff/);
         expect(focus).toMatch(/outline-offset:/);
+    });
+
+    it('positions the branch headline clear of the choice buttons', () => {
+        const css = read('src/assets/css/app.css');
+        const overlay = cssBlock(css, '.ivp-overlay.ivp-overlay-branch {');
+        expect(overlay).toContain('align-items: flex-start');
+        expect(overlay).toMatch(/padding-top:\s*15vh/);
+        expect(overlay).toMatch(/padding-bottom:/);
+        // The overlay gets the branch class only in the branching phase.
+        const player = read('src/components/SimpleVideoPlayer.web.jsx');
+        expect(player).toContain('ivp-overlay-branch');
+        expect(player).toContain('BRANCH_OVERLAY_PHASE');
     });
 
     it('ships the branch heading copy in English and Spanish', () => {
