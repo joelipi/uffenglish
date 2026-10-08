@@ -6,7 +6,7 @@ import { resolveConfigLanguage } from '../modules/bilingual/config-normalizer.js
  * The active UI/lesson language, resolved guest-first.
  *
  * `guestNativeLanguage` is authoritative and `userData.native_language` is its
- * mirror (agents.md:11). The async profile bootstrap can write the fetched
+ * mirror (AGENTS.md). The async profile bootstrap can write the fetched
  * profile's `native_language` ("EN") after a guest picked Bengali, so a
  * component that reads `userData.native_language` directly can render English
  * while the rest of the app is in the chosen language. Always localize with this

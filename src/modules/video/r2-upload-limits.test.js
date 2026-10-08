@@ -53,8 +53,8 @@ describe('docs state the 50 MB cap', () => {
         expect(source).not.toContain('20 MB');
     });
 
-    it('agents.md says 50 MB and no longer 20 MB', () => {
-        const source = read('agents.md');
+    it('AGENTS.md says 50 MB and no longer 20 MB', () => {
+        const source = read('AGENTS.md');
         expect(source).toContain('50 MB');
         expect(source).not.toContain('20 MB');
     });
