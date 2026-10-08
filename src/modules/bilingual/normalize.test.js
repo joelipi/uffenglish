@@ -67,6 +67,7 @@ describe('normalize', () => {
         expect(await normalize('1,000,000,000')).toBe('one billion');
         expect(await normalize('2,000,000,000')).toBe('two billion');
         expect(await normalize('1,000,000,000,000')).toBe('one trillion');
+        expect(await normalize('1,000,000,000,000,000')).toBe('one quadrillion');
     });
 
     it('should normalize currency symbols the same as their word form', async () => {

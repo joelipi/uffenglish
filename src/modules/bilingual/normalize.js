@@ -56,6 +56,9 @@ const CURRENCY_CANONICAL = {
     baht: 'baht',
 };
 
+// Single-character keys are the currency symbols; longer keys are the spelled
+// words. A future multi-character symbol (e.g. "R$") would need to be listed
+// explicitly here rather than relying on the length test.
 const CURRENCY_SYMBOL_CHARS = Object.keys(CURRENCY_CANONICAL)
     .filter((key) => key.length === 1)
     .join('');
