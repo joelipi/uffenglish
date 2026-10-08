@@ -87,6 +87,7 @@ export default function PublicProfile({ shareCode }) {
                     <img
                         src={profilePic}
                         alt={displayName}
+                        crossOrigin="anonymous"
                         style={{ width: '96px', height: '96px', borderRadius: '50%', objectFit: 'cover', marginBottom: '12px' }}
                     />
                     <h2 style={{ fontSize: '22px', marginBottom: '4px', marginTop: '12px' }}>{displayName}</h2>

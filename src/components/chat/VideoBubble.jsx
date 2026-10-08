@@ -34,7 +34,7 @@ export default function VideoBubble({ avatarUrl, userName, reactionCount }) {
     const src = resolvedAvatar || avatarUrl || DEFAULT_USER_AVATAR_URL;
     return (
         <div className="chat-message-row chat-message-row--user" style={{ animation: 'popIn 0.3s ease-out forwards' }}>
-            <img src={src} alt={userName} className="chat-avatar-inline" onError={e => { e.currentTarget.src = DEFAULT_USER_AVATAR_URL; }} />
+            <img src={src} alt={userName} crossOrigin="anonymous" className="chat-avatar-inline" onError={e => { e.currentTarget.src = DEFAULT_USER_AVATAR_URL; }} />
             <div className="chat-message-bubble chat-message-bubble--user p-1" style={{ backgroundColor: '#000', border: '2px solid #4facfe', overflow: 'hidden', minWidth: '0', width: 'max-content' }}>
                 <div style={{ position: 'relative', width: '100px', height: '178px' }}>
                     <video ref={videoRef} playsInline loop muted={muted} onClick={toggleMute}
