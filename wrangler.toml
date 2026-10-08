@@ -32,3 +32,7 @@ SUPABASE_URL = "https://jbrbmbmupjfangqvaevx.supabase.co"
 # here, not only in the dashboard: `wrangler pages deploy` applies [vars] and
 # drops dashboard plain-text vars not listed here (dashboard *secrets* survive).
 MODAL_RENDER_URL = "https://joel-56422--uff-lesson-video-trigger.modal.run"
+# Welcome-email sender/fallback origin for functions/api/welcome-email.js.
+# RESEND_API_KEY (the actual secret) lives in the Pages dashboard.
+EMAIL_FROM = "Ultrafast Fluency <welcome@ultrafastfluency.com>"
+SITE_URL = "https://ultrafastfluency.com"

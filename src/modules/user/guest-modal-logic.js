@@ -5,9 +5,10 @@
 export const ENGLISH_LANG = 'EN';
 
 // Routes that are public to everyone and must never open the guest modal: the
-// public homepage's only job is the friend-challenge entry, and the legal pages
-// must stay readable for anonymous visitors arriving from the footer.
-export const PUBLIC_ROUTES = ['/', '/privacy', '/terms'];
+// public homepage's only job is the friend-challenge entry, the legal pages
+// must stay readable for anonymous visitors arriving from the footer, and the
+// email-confirmation landing page is opened from an inbox with no session.
+export const PUBLIC_ROUTES = ['/', '/privacy', '/terms', '/confirm-email'];
 
 export function isPublicHomeRoute(pathname) {
     if (typeof pathname !== 'string' || pathname === '') return false;
