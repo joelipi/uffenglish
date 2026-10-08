@@ -280,9 +280,9 @@ function* srtGroupStates(rows, headers, languages, stepKey) {
  * its cue count/timings no longer match the current (re-rendered) English SRT
  * (a text-only English change with unchanged timings is not detected; `--force`
  * retranslates). A stale/forced translation is rewritten in place on the row the
- * generator
- * reads first (`targetIndex`), so the fresh value can never be shadowed by an
- * older one; a fresh translation lands on the step's first source-bearing row.
+ * generator reads first (`targetIndex`), so the fresh value can never be
+ * shadowed by an older one; a fresh translation lands on the step's first
+ * source-bearing row.
  * The `sourceText` is the unescaped English document (the CLI hands it straight
  * to `translateSrt`), and a stale item carries `stale: true` so the CLI can log
  * the overwrite.
