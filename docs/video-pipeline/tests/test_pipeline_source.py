@@ -253,10 +253,6 @@ class SyntaxGuardTest(unittest.TestCase):
         ast.parse(read())
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class OverlayBandGuardTest(unittest.TestCase):
     """create_overlay_html keeps every burned block above the app's captions.
 
@@ -281,3 +277,6 @@ class OverlayBandGuardTest(unittest.TestCase):
         footer = slice_between(overlay, ".footer {{", "}}")
         self.assertIn("(APP_CAPTION_TOP - FOOTER_TOP) * video_height", footer)
 
+
+if __name__ == "__main__":
+    unittest.main()
