@@ -35,6 +35,15 @@ describe('routes.jsx homepage split', () => {
         expect(confirmAt).toBeLessThan(shareCodeAt);
     });
 
+    it('mounts CoursesRoute at /courses before the /:shareCode route', () => {
+        expect(src).toContain("{ path: '/courses', element: <CoursesRoute /> }");
+        const coursesAt = src.indexOf("{ path: '/courses'");
+        const shareCodeAt = src.indexOf("{ path: '/:shareCode'");
+        expect(coursesAt).toBeGreaterThan(-1);
+        expect(shareCodeAt).toBeGreaterThan(-1);
+        expect(coursesAt).toBeLessThan(shareCodeAt);
+    });
+
     it('keeps the catch-all pointing at the public homepage', () => {
         expect(src).toContain("{ path: '*', element: <Navigate to=\"/\" replace /> }");
     });

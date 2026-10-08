@@ -1,6 +1,8 @@
-// Story 041: the profile renders one labelled link per lesson the owner
-// recorded, grouped under its course. Rendered with react-dom/client createRoot
-// + act (the repo convention; no testing-library is installed).
+// Story 056: the profile renders an inviting friend-practice area — a
+// headline + subheading, a large course heading, and a bulleted list of
+// underlined links — or, when nothing is active, an expired-state message with
+// a link to the public course listings. Rendered with react-dom/client
+// createRoot + act (the repo convention; no testing-library is installed).
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -38,7 +40,7 @@ describe('FriendLessonLinksSection', () => {
         container = null;
     });
 
-    it('renders a course heading and one labelled anchor per recorded lesson', () => {
+    it('renders the headline, subheading and one labelled anchor per recorded lesson', () => {
         const links = {
             'friendchain:a': {
                 courseId: 'friendchain', courseName: 'Friend Chain',
@@ -53,8 +55,14 @@ describe('FriendLessonLinksSection', () => {
         };
         root = renderSection(container, { friendLinks: links, lang: 'en' });
 
+        expect(container.querySelector('[data-testid="friend-lesson-links-heading"]').textContent)
+            .toBe('Practice English with Me Free');
+        expect(container.querySelector('[data-testid="friend-lesson-links-subheading"]').textContent)
+            .toBe('click on a lesson link to start.');
+
         const heading = container.querySelector('[data-testid="friend-lesson-link-group-heading"]');
         expect(heading.textContent).toBe('Friend Chain');
+        expect(parseFloat(heading.style.fontSize)).toBeGreaterThanOrEqual(24);
 
         const anchors = Array.from(container.querySelectorAll('[data-testid="friend-lesson-link"]'));
         expect(anchors).toHaveLength(2);
@@ -67,6 +75,25 @@ describe('FriendLessonLinksSection', () => {
 
         // Each link carries its own countdown element.
         expect(container.querySelectorAll('[data-testid="friend-lesson-link-countdown"]')).toHaveLength(2);
+    });
+
+    it('renders the links as an underlined bulleted list inside a <ul>/<li>', () => {
+        const links = {
+            'friendchain:a': {
+                courseId: 'friendchain', courseName: 'Friend Chain',
+                recordedLessonId: 'a', lessonId: 'b', shareCode: 'code1',
+                addedAt: iso(NOW - HOUR), lessonTitle: 'Ask',
+            },
+        };
+        root = renderSection(container, { friendLinks: links, lang: 'en' });
+
+        const list = container.querySelector('[data-testid="friend-lesson-link-list"]');
+        expect(list.tagName).toBe('UL');
+        expect(list.querySelectorAll('li')).toHaveLength(1);
+
+        const anchor = container.querySelector('[data-testid="friend-lesson-link"]');
+        expect(anchor.closest('li')).not.toBeNull();
+        expect(anchor.style.textDecoration).toContain('underline');
     });
 
     it('renders one heading per course, grouped not interleaved', () => {
@@ -140,22 +167,42 @@ describe('FriendLessonLinksSection', () => {
         expect(countdown.textContent).toMatch(/^Available for 4[67]h \d+m$/);
     });
 
-    it('renders nothing when every entry is expired', () => {
+    it('shows the expired message and the course-listings link when every entry is expired', () => {
         const links = {
             'friendchain:a': {
                 courseId: 'friendchain', courseName: 'Friend Chain',
                 recordedLessonId: 'a', lessonId: 'b', shareCode: 'code1',
-                addedAt: iso(NOW - 48 * HOUR), lessonTitle: 'Ask',
+                addedAt: iso(NOW - 49 * HOUR), lessonTitle: 'Ask',
             },
         };
         root = renderSection(container, { friendLinks: links, lang: 'en' });
 
-        expect(container.querySelector('[data-testid="friend-lesson-link"]')).toBeNull();
+        const expired = container.querySelector('[data-testid="friend-lessons-expired"]');
+        expect(expired).not.toBeNull();
+        expect(container.querySelector('[data-testid="friend-lessons-expired-message"]').textContent)
+            .toBe("All this user's lessons have expired after 48 hours, start a new lesson and send them the link to get them back into practicing English.");
+
+        const cta = container.querySelector('[data-testid="friend-lessons-practice-free"]');
+        expect(cta.getAttribute('href')).toBe('/courses');
+        expect(cta.textContent).toBe('Practice English Free');
+        expect(parseFloat(cta.style.fontSize)).toBeGreaterThanOrEqual(24);
+
         expect(container.querySelector('[data-testid="friend-lesson-links"]')).toBeNull();
+        expect(container.querySelectorAll('[data-testid="friend-lesson-link-group"]')).toHaveLength(0);
+        expect(container.querySelectorAll('[data-testid="friend-lesson-link"]')).toHaveLength(0);
     });
 
-    it('returns null with no entries', () => {
+    it('shows the expired state for an empty or missing friendLinks map', () => {
         root = renderSection(container, { friendLinks: {}, lang: 'en' });
+        expect(container.querySelector('[data-testid="friend-lessons-expired"]')).not.toBeNull();
         expect(container.querySelector('[data-testid="friend-lesson-links"]')).toBeNull();
+
+        act(() => root.unmount());
+        container.remove();
+        container = document.createElement('div');
+        document.body.appendChild(container);
+
+        root = renderSection(container, { friendLinks: undefined, lang: 'en' });
+        expect(container.querySelector('[data-testid="friend-lessons-expired"]')).not.toBeNull();
     });
 });

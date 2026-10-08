@@ -14,6 +14,7 @@ import LessonContainer from '../components/LessonContainer.jsx';
 import PublicProfileRoute from './PublicProfileRoute.jsx';
 import PrivacyRoute from './PrivacyRoute.jsx';
 import TermsRoute from './TermsRoute.jsx';
+import CoursesRoute from './CoursesRoute.jsx';
 
 function LessonError() {
   return (
@@ -42,6 +43,9 @@ export const routes = [
       // Public: the confirmation link is opened without a session. Must precede
       // the single-segment /:shareCode catch-all like the legal pages.
       { path: '/confirm-email', element: <AuthLayout />, children: [{ index: true, element: <ConfirmEmailRoute /> }] },
+      // Public course listings must precede the single-segment /:shareCode
+      // catch-all like the legal pages, or `courses` is read as a share code.
+      { path: '/courses', element: <CoursesRoute /> },
       { path: '/course/:courseId/lesson/:lessonId', element: <AppLayout />, errorElement: <LessonError />, children: [{ index: true, element: <LessonContainer /> }] },
       { path: '/:shareCode', element: <PublicProfileRoute /> },
       { path: '*', element: <Navigate to="/" replace /> },
