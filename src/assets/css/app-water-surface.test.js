@@ -78,14 +78,21 @@ describe('water-surface opacity hides the video\u2019s burnt-on captions', () =>
         expect(Math.min(...stops.map((s) => s.alpha))).toBeGreaterThanOrEqual(0.7);
     });
 
-    it('reaches full opacity by about two-thirds down and stays opaque', () => {
-        const firstOpaque = stops.find((s) => s.alpha === 1);
-        expect(firstOpaque).toBeDefined();
-        // Pin the intent (opaque by ~two-thirds), not a magic threshold: if the
-        // first fully-opaque stop drifts lower, the captions in that band show.
-        expect(firstOpaque.pos).toBeLessThanOrEqual(70);
+    it('is fully opaque at the top and bottom edges', () => {
+        // The clips carry burnt-on captions at both edges, so the veil must be
+        // fully opaque there — a lighter top edge let the top captions show.
+        const first = stops[0];
+        expect(first.pos).toBe(0);
+        expect(first.alpha).toBe(1);
         const last = stops[stops.length - 1];
         expect(last.pos).toBe(100);
         expect(last.alpha).toBe(1);
+    });
+
+    it('becomes translucent toward the middle of the frame', () => {
+        // Only the centre may let the video show through.
+        const centre = stops.filter((s) => s.pos > 0 && s.pos < 100);
+        expect(centre.length).toBeGreaterThan(0);
+        expect(centre.some((s) => s.alpha < 1)).toBe(true);
     });
 });

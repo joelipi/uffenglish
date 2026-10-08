@@ -1203,6 +1203,83 @@ const strings = {
         hi: "{time} तक उपलब्ध",
         bn: "{time} পর্যন্ত উপলব্ধ"
     },
+    // Public-profile friend-practice area: the invocation shown above the
+    // recorded-lesson links, and the empty/expired state that replaces it when
+    // nothing is inside the 48h window.
+    'profile_friend_practice_heading': {
+        en: "Practice English with Me Free",
+        es: "Practica inglés conmigo gratis",
+        pt: "Pratique inglês comigo grátis",
+        fr: "Pratiquez l'anglais avec moi gratuitement",
+        hi: "मेरे साथ मुफ़्त अंग्रेज़ी का अभ्यास करें",
+        bn: "আমার সাথে বিনামূল্যে ইংরেজি চর্চা করুন"
+    },
+    'profile_friend_practice_subheading': {
+        en: "click on a lesson link to start.",
+        es: "haz clic en un enlace de lección para empezar.",
+        pt: "clique em um link de lição para começar.",
+        fr: "cliquez sur un lien de leçon pour commencer.",
+        hi: "शुरू करने के लिए किसी पाठ लिंक पर क्लिक करें।",
+        bn: "শুরু করতে একটি পাঠের লিঙ্কে ক্লিক করুন।"
+    },
+    'profile_friend_lessons_expired': {
+        en: "All this user's lessons have expired after 48 hours, start a new lesson and send them the link to get them back into practicing English.",
+        es: "Todas las lecciones de este usuario han caducado después de 48 horas; empieza una nueva lección y envíale el enlace para que vuelva a practicar inglés.",
+        pt: "Todas as lições deste usuário expiraram após 48 horas; comece uma nova lição e envie o link para que ele volte a praticar inglês.",
+        fr: "Toutes les leçons de cet utilisateur ont expiré après 48 heures ; commencez une nouvelle leçon et envoyez-lui le lien pour qu'il se remette à pratiquer l'anglais.",
+        hi: "इस उपयोगकर्ता के सभी पाठ 48 घंटे बाद समाप्त हो गए हैं; एक नया पाठ शुरू करें और उन्हें लिंक भेजें ताकि वे फिर से अंग्रेज़ी का अभ्यास कर सकें।",
+        bn: "এই ব্যবহারকারীর সমস্ত পাঠ ৪৮ ঘণ্টা পরে মেয়াদোত্তীর্ণ হয়ে গেছে; একটি নতুন পাঠ শুরু করুন এবং তাকে লিঙ্ক পাঠান যাতে সে আবার ইংরেজি চর্চা করতে পারে।"
+    },
+    'profile_friend_practice_free': {
+        en: "Practice English Free",
+        es: "Practica inglés gratis",
+        pt: "Pratique inglês grátis",
+        fr: "Pratiquez l'anglais gratuitement",
+        hi: "मुफ़्त अंग्रेज़ी का अभ्यास करें",
+        bn: "বিনামূল্যে ইংরেজি চর্চা করুন"
+    },
+    // Public course-listings page (`/courses`): the heading + onboarding steps
+    // shown above the list of available friend courses.
+    'friend_courses_heading': {
+        en: "Choose a conversation to have with your friends and practice English with them free.",
+        es: "Elige una conversación para tener con tus amigos y practica inglés con ellos gratis.",
+        pt: "Escolha uma conversa para ter com seus amigos e pratique inglês com eles grátis.",
+        fr: "Choisissez une conversation à avoir avec vos amis et pratiquez l'anglais avec eux gratuitement.",
+        hi: "अपने दोस्तों के साथ करने के लिए एक बातचीत चुनें और उनके साथ मुफ़्त अंग्रेज़ी का अभ्यास करें।",
+        bn: "আপনার বন্ধুদের সাথে করার জন্য একটি কথোপকথন বেছে নিন এবং তাদের সাথে বিনামূল্যে ইংরেজি চর্চা করুন।"
+    },
+    'friend_courses_step_1': {
+        en: "Complete the first mini lesson in under five minutes.",
+        es: "Completa la primera mini lección en menos de cinco minutos.",
+        pt: "Complete a primeira mini lição em menos de cinco minutos.",
+        fr: "Terminez la première mini-leçon en moins de cinq minutes.",
+        hi: "पहला मिनी पाठ पाँच मिनट से कम समय में पूरा करें।",
+        bn: "পাঁচ মিনিটের কম সময়ে প্রথম মিনি পাঠ সম্পন্ন করুন।"
+    },
+    'friend_courses_step_2': {
+        en: "Share your special link with friends, family, and colleagues so that they can reply to you and continue the conversation.",
+        es: "Comparte tu enlace especial con amigos, familiares y colegas para que puedan responderte y continuar la conversación.",
+        pt: "Compartilhe seu link especial com amigos, familiares e colegas para que eles possam responder a você e continuar a conversa.",
+        fr: "Partagez votre lien spécial avec vos amis, votre famille et vos collègues pour qu'ils puissent vous répondre et poursuivre la conversation.",
+        hi: "अपना विशेष लिंक दोस्तों, परिवार और सहकर्मियों के साथ साझा करें ताकि वे आपको जवाब दे सकें और बातचीत जारी रख सकें।",
+        bn: "আপনার বিশেষ লিঙ্ক বন্ধু, পরিবার ও সহকর্মীদের সাথে শেয়ার করুন যাতে তারা আপনাকে উত্তর দিতে পারে এবং কথোপকথন চালিয়ে যেতে পারে।"
+    },
+    'friend_courses_empty': {
+        en: "No friend courses are available right now. Please check back soon.",
+        es: "No hay cursos con amigos disponibles en este momento. Vuelve pronto.",
+        pt: "Nenhum curso com amigos está disponível no momento. Volte em breve.",
+        fr: "Aucun cours avec des amis n'est disponible pour le moment. Revenez bientôt.",
+        hi: "अभी कोई मित्र पाठ्यक्रम उपलब्ध नहीं है। कृपया जल्द ही दोबारा देखें।",
+        bn: "এখন কোনো বন্ধু কোর্স উপলব্ধ নেই। শীঘ্রই আবার দেখুন।"
+    },
+    'friend_courses_lesson_count': {
+        en: "{count} lessons",
+        es: "{count} lecciones",
+        pt: "{count} lições",
+        fr: "{count} leçons",
+        hi: "{count} पाठ",
+        bn: "{count}টি পাঠ"
+    },
     // Friend-response in-app notifications (bell menu on the home screen).
     // The deadline line is static: the timestamp lets the user judge elapsed
     // time themselves.

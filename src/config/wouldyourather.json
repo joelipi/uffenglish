@@ -8,15 +8,31 @@
       "recapOverlay": "shareCta",
       "title": {
         "en": "Ask: money vs. time, food vs. talk, beach vs. mountains",
-        "es": "Pregunta: money vs. time, food vs. talk, beach vs. mountains",
+        "es": "Pregunta: dinero vs. tiempo, comida vs. charla, playa vs. montañas",
         "pt": "Pergunte: money vs. time, food vs. talk, beach vs. mountains",
-        "bn": "জিজ্ঞাসা করুন: টাকা বনাম সময়, খাবার বনাম কথা, সৈকত বনাম পাহাড়"
+        "bn": "জিজ্ঞাসা করুন: money vs. time, food vs. talk, beach vs. mountains"
+      },
+      "mission": {
+        "en": "talk about preferences",
+        "es": "hablar sobre preferencias",
+        "pt": "falar sobre preferências",
+        "bn": "পছন্দ নিয়ে কথা বলুন"
       },
       "steps": [
         {
           "cue": "",
           "responseType": "lessonIntro",
           "introBackgroundVideoUrl": "intro"
+        },
+        {
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "intro",
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:03,880\nA million dollars today or five million dollars in five years?\n\n2\n00:00:03,880 --> 00:00:07,950\nIs it better to a million dollars today or five million dollars in five years?\n\n3\n00:00:07,950 --> 00:00:14,030\nWould you rather receive a million dollars today or wait five years and receive five million dollars instead?\n\n4\n00:00:14,030 --> 00:00:20,880\nGiven the choice between accepting a million dollars today and waiting five years for five million dollars, Is it better to do?",
+            "es": "1\n00:00:00,000 --> 00:00:03,880\n¿Un millón de dólares hoy o cinco millones de dólares en cinco años?\n\n2\n00:00:03,880 --> 00:00:07,950\n¿Es mejor un millón de dólares hoy o cinco millones de dólares en cinco años?\n\n3\n00:00:07,950 --> 00:00:14,030\n¿Preferirías recibir un millón de dólares hoy o esperar cinco años y recibir cinco millones de dólares en su lugar?\n\n4\n00:00:14,030 --> 00:00:20,880\nDada la opción entre aceptar un millón de dólares hoy y esperar cinco años por cinco millones de dólares, ¿qué es mejor hacer?",
+            "pt": "1\n00:00:00,000 --> 00:00:03,880\nUm milhão de dólares hoje ou cinco milhões de dólares em cinco anos?\n\n2\n00:00:03,880 --> 00:00:07,950\nÉ melhor um milhão de dólares hoje ou cinco milhões de dólares em cinco anos?\n\n3\n00:00:07,950 --> 00:00:14,030\nVocê preferiria receber um milhão de dólares hoje ou esperar cinco anos e receber cinco milhões de dólares em vez disso?\n\n4\n00:00:14,030 --> 00:00:20,880\nDada a escolha entre aceitar um milhão de dólares hoje e esperar cinco anos por cinco milhões de dólares, o que é melhor fazer?",
+            "bn": "1\n00:00:00,000 --> 00:00:03,880\nআজ এক মিলিয়ন ডলার নাকি পাঁচ বছর পর পাঁচ মিলিয়ন ডলার?\n\n2\n00:00:03,880 --> 00:00:07,950\nআজ এক মিলিয়ন ডলার নেওয়া ভালো, নাকি পাঁচ বছর পর পাঁচ মিলিয়ন ডলার নেওয়া?\n\n3\n00:00:07,950 --> 00:00:14,030\nআপনি কি বরং আজ এক মিলিয়ন ডলার গ্রহণ করতে চান, নাকি পাঁচ বছর অপেক্ষা করে পরিবর্তে পাঁচ মিলিয়ন ডলার গ্রহণ করতে চান?\n\n4\n00:00:14,030 --> 00:00:20,880\nআজ এক মিলিয়ন ডলার গ্রহণ করা আর পাঁচ বছর অপেক্ষা করে পাঁচ মিলিয়ন ডলার পাওয়ার মধ্যে পছন্দ থাকলে, কোনটি করা ভালো?"
+          }
         },
         {
           "responseType": "friendClosedResponse",
@@ -26,29 +42,32 @@
               "en": "A million dollars today or five million dollars in five years?",
               "es": "¿Un millón de dólares hoy o cinco millones de dólares en cinco años?",
               "pt": "Um milhão de dólares hoje ou cinco milhões de dólares em cinco anos?",
-              "bn": "আজ দশ লাখ ডলার নাকি পাঁচ বছর পর পঞ্চাশ লাখ ডলার?"
+              "bn": "আজ এক মিলিয়ন ডলার, নাকি পাঁচ বছর পরে পাঁচ মিলিয়ন ডলার?"
             },
             {
               "en": "Is it better to a million dollars today or five million dollars in five years?",
-              "es": "¿Es mejor un millón de dólares hoy o cinco millones de dólares en cinco años?",
-              "pt": "É melhor ter um milhão de dólares hoje ou cinco milhões de dólares em cinco anos?",
-              "bn": "আজ এক মিলিয়ন ডলার নাকি পাঁচ বছর পর পাঁচ মিলিয়ন ডলার—কোনটি ভালো?"
+              "es": "¿Es mejor tener un millón de dólares hoy o cinco millones de dólares dentro de cinco años?",
+              "pt": "É melhor ter um milhão de dólares hoje ou cinco milhões de dólares daqui a cinco anos?",
+              "bn": "আজ এক মিলিয়ন ডলার পাওয়া ভালো, নাকি পাঁচ বছর পর পাঁচ মিলিয়ন ডলার?"
             },
             {
               "en": "Would you rather receive a million dollars today or wait five years and receive five million dollars instead?",
               "es": "¿Preferirías recibir un millón de dólares hoy o esperar cinco años y recibir cinco millones de dólares en su lugar?",
               "pt": "Você preferiria receber um milhão de dólares hoje ou esperar cinco anos e receber cinco milhões de dólares em vez disso?",
-              "bn": "আপনি কি আজ দশ লাখ ডলার পেতে চান, নাকি পাঁচ বছর অপেক্ষা করে তার বদলে পঞ্চাশ লাখ ডলার পেতে চান?"
+              "bn": "আপনি কি আজ দশ লাখ ডলার পেতে চান, নাকি পাঁচ বছর অপেক্ষা করে পরিবর্তে পঞ্চাশ লাখ ডলার পেতে চান?"
             },
             {
               "en": "Given the choice between accepting a million dollars today and waiting five years for five million dollars, Is it better to do?",
-              "es": "Dada la elección entre aceptar un millón de dólares hoy y esperar cinco años por cinco millones de dólares, ¿es mejor hacerlo?",
+              "es": "Dada la elección entre aceptar un millón de dólares hoy y esperar cinco años por cinco millones de dólares, ¿qué es mejor hacer?",
               "pt": "Dada a escolha entre aceitar um milhão de dólares hoje e esperar cinco anos por cinco milhões de dólares, o que é melhor fazer?",
-              "bn": "আজ দশ লাখ ডলার গ্রহণ করা এবং পাঁচ বছর অপেক্ষা করে পঞ্চাশ লাখ ডলার পাওয়ার মধ্যে বেছে নেওয়ার সুযোগ থাকলে, কোনটি করা ভালো?"
+              "bn": "আজ এক মিলিয়ন ডলার নেওয়া এবং পাঁচ বছর অপেক্ষা করে পাঁচ মিলিয়ন ডলার পাওয়ার মধ্যে একটি পছন্দ দেওয়া হলে, কোনটি করা ভালো?"
             }
           ],
           "subtitles": {
-            "en": "1\n00:00:00,000 --> 00:00:03,880\nA million dollars today or five million dollars in five years?\n\n2\n00:00:03,880 --> 00:00:07,950\nIs it better to a million dollars today or five million dollars in five years?\n\n3\n00:00:07,950 --> 00:00:14,030\nWould you rather receive a million dollars today or wait five years and receive five million dollars instead?\n\n4\n00:00:14,030 --> 00:00:20,880\nGiven the choice between accepting a million dollars today and waiting five years for five million dollars, Is it better to do?"
+            "en": "1\n00:00:00,000 --> 00:00:03,880\nA million dollars today or five million dollars in five years?\n\n2\n00:00:03,880 --> 00:00:07,950\nIs it better to a million dollars today or five million dollars in five years?\n\n3\n00:00:07,950 --> 00:00:14,030\nWould you rather receive a million dollars today or wait five years and receive five million dollars instead?\n\n4\n00:00:14,030 --> 00:00:20,880\nGiven the choice between accepting a million dollars today and waiting five years for five million dollars, Is it better to do?",
+            "es": "1\n00:00:00,000 --> 00:00:03,880\nUn millón de dólares hoy o cinco millones de dólares en cinco años?\n\n2\n00:00:03,880 --> 00:00:07,950\n¿Es mejor un millón de dólares hoy o cinco millones de dólares en cinco años?\n\n3\n00:00:07,950 --> 00:00:14,030\n¿Preferirías recibir un millón de dólares hoy o esperar cinco años y recibir cinco millones de dólares en su lugar?\n\n4\n00:00:14,030 --> 00:00:20,880\nDada la elección entre aceptar un millón de dólares hoy y esperar cinco años por cinco millones de dólares, ¿qué es mejor hacer?",
+            "pt": "1\n00:00:00,000 --> 00:00:03,880\nUm milhão de dólares hoje ou cinco milhões de dólares em cinco anos?\n\n2\n00:00:03,880 --> 00:00:07,950\nÉ melhor um milhão de dólares hoje ou cinco milhões de dólares em cinco anos?\n\n3\n00:00:07,950 --> 00:00:14,030\nVocê preferiria receber um milhão de dólares hoje ou esperar cinco anos e receber cinco milhões de dólares em vez disso?\n\n4\n00:00:14,030 --> 00:00:20,880\nDada a escolha entre aceitar um milhão de dólares hoje e esperar cinco anos por cinco milhões de dólares, o que é melhor fazer?",
+            "bn": "1\n00:00:00,000 --> 00:00:03,880\nআজ এক মিলিয়ন ডলার, নাকি পাঁচ বছর পরে পাঁচ মিলিয়ন ডলার?\n\n2\n00:00:03,880 --> 00:00:07,950\nআজ এক মিলিয়ন ডলার নেওয়া কি ভালো, নাকি পাঁচ বছর পরে পাঁচ মিলিয়ন ডলার?\n\n3\n00:00:07,950 --> 00:00:14,030\nআপনি কি বরং আজ এক মিলিয়ন ডলার পেতে চান, নাকি পাঁচ বছর অপেক্ষা করে তার বদলে পাঁচ মিলিয়ন ডলার পেতে চান?\n\n4\n00:00:14,030 --> 00:00:20,880\nআজ এক মিলিয়ন ডলার গ্রহণ করা আর পাঁচ বছর অপেক্ষা করে পাঁচ মিলিয়ন ডলার পাওয়ার মধ্যে বেছে নিতে হলে, কোনটা করা ভালো?"
           }
         },
         {
@@ -71,7 +90,13 @@
         "en": "Answer: money vs. time, food vs. talk, beach vs. mountains",
         "es": "Respuesta: dinero vs. tiempo, comida vs. charla, playa vs. montañas",
         "pt": "Resposta: dinheiro vs. tempo, comida vs. conversa, praia vs. montanhas",
-        "bn": "উত্তর: টাকা বনাম সময়, খাবার বনাম কথা, সমুদ্র সৈকত বনাম পাহাড়"
+        "bn": "উত্তর: অর্থ বনাম সময়, খাবার বনাম কথা, সমুদ্র সৈকত বনাম পাহাড়"
+      },
+      "mission": {
+        "en": "talk about preferences",
+        "es": "hablar sobre preferencias",
+        "pt": "fale sobre preferências",
+        "bn": "পছন্দ সম্পর্কে কথা বলুন"
       },
       "steps": [
         {
@@ -86,22 +111,28 @@
             {
               "nextStep": 1,
               "text": {
-                "en": "A million dollars today",
-                "es": "Un millón de dólares hoy",
-                "pt": "Um milhão de dólares hoje",
-                "bn": "আজ দশ লাখ ডলার"
+                "en": "$1,000,000 today",
+                "es": "$1,000,000 hoy",
+                "pt": "$1.000.000 hoje",
+                "bn": "$1,000,000 আজ"
               }
             },
             {
               "nextStep": 2,
               "text": {
-                "en": "Five million dollars in five years",
-                "es": "Cinco millones de dólares en cinco años",
-                "pt": "Cinco milhões de dólares em cinco anos",
-                "bn": "পাঁচ বছরে পঞ্চাশ লাখ ডলার"
+                "en": "$5,000,000 in 5 years",
+                "es": "$5,000,000 en 5 años",
+                "pt": "$5.000.000 em 5 anos",
+                "bn": "$5,000,000 ৫ বছরে"
               }
             }
-          ]
+          ],
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:03,880\nA million dollars today or five million dollars in five years?\n\n2\n00:00:03,880 --> 00:00:07,950\nIs it better to a million dollars today or five million dollars in five years?\n\n3\n00:00:07,950 --> 00:00:14,030\nWould you rather receive a million dollars today or wait five years and receive five million dollars instead?\n\n4\n00:00:14,030 --> 00:00:20,880\nGiven the choice between accepting a million dollars today and waiting five years for five million dollars, Is it better to do?",
+            "es": "1\n00:00:00,000 --> 00:00:03,880\n¿Un millón de dólares hoy o cinco millones de dólares en cinco años?\n\n2\n00:00:03,880 --> 00:00:07,950\n¿Es mejor un millón de dólares hoy o cinco millones de dólares en cinco años?\n\n3\n00:00:07,950 --> 00:00:14,030\n¿Preferirías recibir un millón de dólares hoy o esperar cinco años y recibir cinco millones de dólares en su lugar?\n\n4\n00:00:14,030 --> 00:00:20,880\nDada la opción entre aceptar un millón de dólares hoy y esperar cinco años por cinco millones de dólares, ¿qué es mejor hacer?",
+            "pt": "1\n00:00:00,000 --> 00:00:03,880\nUm milhão de dólares hoje ou cinco milhões de dólares em cinco anos?\n\n2\n00:00:03,880 --> 00:00:07,950\nÉ melhor receber um milhão de dólares hoje ou cinco milhões de dólares em cinco anos?\n\n3\n00:00:07,950 --> 00:00:14,030\nVocê preferiria receber um milhão de dólares hoje ou esperar cinco anos e receber cinco milhões de dólares em vez disso?\n\n4\n00:00:14,030 --> 00:00:20,880\nDada a escolha entre aceitar um milhão de dólares hoje e esperar cinco anos por cinco milhões de dólares, o que é melhor fazer?",
+            "bn": "1\n00:00:00,000 --> 00:00:03,880\nআজ এক মিলিয়ন ডলার, নাকি পাঁচ বছর পরে পাঁচ মিলিয়ন ডলার?\n\n2\n00:00:03,880 --> 00:00:07,950\nআজ এক মিলিয়ন ডলার নেওয়া কি ভালো, নাকি পাঁচ বছর পরে পাঁচ মিলিয়ন ডলার?\n\n3\n00:00:07,950 --> 00:00:14,030\nআপনি কি আজ এক মিলিয়ন ডলার পেতে পছন্দ করবেন, নাকি পাঁচ বছর অপেক্ষা করে তার পরিবর্তে পাঁচ মিলিয়ন ডলার পেতে পছন্দ করবেন?\n\n4\n00:00:14,030 --> 00:00:20,880\nযদি আজ এক মিলিয়ন ডলার গ্রহণ করা এবং পাঁচ বছর অপেক্ষা করে পাঁচ মিলিয়ন ডলার পাওয়ার মধ্যে বেছে নিতে হয়, তবে কোনটি করা ভালো?"
+          }
         },
         {
           "responseType": "friendClosedResponse",
@@ -117,24 +148,27 @@
               "en": "I would rather a million dollars today.",
               "es": "Preferiría un millón de dólares hoy.",
               "pt": "Eu preferiria um milhão de dólares hoje.",
-              "bn": "আমি বরং আজ এক মিলিয়ন ডলারই চাই।"
+              "bn": "আমি বরং আজ এক মিলিয়ন ডলার চাই।"
             },
             {
               "en": "I would rather receive a million dollars today than wait five years for five million dollars.",
               "es": "Preferiría recibir un millón de dólares hoy que esperar cinco años por cinco millones de dólares.",
               "pt": "Eu preferiria receber um milhão de dólares hoje a esperar cinco anos por cinco milhões de dólares.",
-              "bn": "আমি পাঁচ বছর ধরে পঞ্চাশ লাখ ডলারের জন্য অপেক্ষা করার চেয়ে আজ দশ লাখ ডলার পেতে বরং বেশি পছন্দ করব।"
+              "bn": "আমি পাঁচ বছর অপেক্ষা করে পঞ্চাশ লাখ ডলার পাওয়ার চেয়ে আজই দশ লাখ ডলার পেতে চাই।"
             },
             {
               "en": "Given the choice between accepting a million dollars today and waiting five years for five million dollars, I would rather take a million dollars today.",
-              "es": "Dada la elección entre aceptar un millón de dólares hoy y esperar cinco años por cinco millones de dólares, preferiría tomar un millón de dólares hoy.",
-              "pt": "Dada a escolha entre aceitar um milhão de dólares hoje e esperar cinco anos por cinco milhões de dólares, eu preferiria receber um milhão de dólares hoje.",
-              "bn": "আজ দশ লাখ ডলার গ্রহণ করা এবং পাঁচ বছর অপেক্ষা করে পঞ্চাশ লাখ ডলার পাওয়ার মধ্যে বেছে নিতে হলে, আমি বরং আজ দশ লাখ ডলারই নেব।"
+              "es": "Si tuviera que elegir entre aceptar un millón de dólares hoy y esperar cinco años por cinco millones de dólares, preferiría tomar un millón de dólares hoy.",
+              "pt": "Diante da escolha entre aceitar um milhão de dólares hoje e esperar cinco anos por cinco milhões de dólares, eu preferiria aceitar um milhão de dólares hoje.",
+              "bn": "যদি আজ দশ লাখ ডলার নেওয়া এবং পাঁচ বছর অপেক্ষা করে পঞ্চাশ লাখ ডলার পাওয়ার মধ্যে বেছে নিতে হয়, তবে আমি বরং আজ দশ লাখ ডলারই নেব।"
             }
           ],
           "nextStep": 2,
           "subtitles": {
-            "en": "1\n00:00:00,000 --> 00:00:02,170\nA million dollars today.\n\n2\n00:00:02,170 --> 00:00:04,860\nI would rather a million dollars today.\n\n3\n00:00:04,860 --> 00:00:10,940\nI would rather receive a million dollars today than wait five years for five million dollars.\n\n4\n00:00:10,940 --> 00:00:16,590\nGiven the choice between accepting a million dollars today and waiting five years for five million dollars, I would rather take a million dollars today."
+            "en": "1\n00:00:00,000 --> 00:00:02,170\nA million dollars today.\n\n2\n00:00:02,170 --> 00:00:04,860\nI would rather a million dollars today.\n\n3\n00:00:04,860 --> 00:00:10,940\nI would rather receive a million dollars today than wait five years for five million dollars.\n\n4\n00:00:10,940 --> 00:00:16,590\nGiven the choice between accepting a million dollars today and waiting five years for five million dollars, I would rather take a million dollars today.",
+            "es": "1\n00:00:00,000 --> 00:00:02,170\nUn millón de dólares hoy.\n\n2\n00:00:02,170 --> 00:00:04,860\nPreferiría un millón de dólares hoy.\n\n3\n00:00:04,860 --> 00:00:10,940\nPreferiría recibir un millón de dólares hoy antes que esperar cinco años por cinco millones de dólares.\n\n4\n00:00:10,940 --> 00:00:16,590\nDada la opción entre aceptar un millón de dólares hoy y esperar cinco años por cinco millones de dólares, preferiría tomar un millón de dólares hoy.",
+            "pt": "1\n00:00:00,000 --> 00:00:02,170\nUm milhão de dólares hoje.\n\n2\n00:00:02,170 --> 00:00:04,860\nEu preferiria um milhão de dólares hoje.\n\n3\n00:00:04,860 --> 00:00:10,940\nEu preferiria receber um milhão de dólares hoje a esperar cinco anos por cinco milhões de dólares.\n\n4\n00:00:10,940 --> 00:00:16,590\nDada a escolha entre aceitar um milhão de dólares hoje e esperar cinco anos por cinco milhões de dólares, eu preferiria ficar com um milhão de dólares hoje.",
+            "bn": "1\n00:00:00,000 --> 00:00:02,170\nআজ এক মিলিয়ন ডলার।\n\n2\n00:00:02,170 --> 00:00:04,860\nআমি বরং আজ এক মিলিয়ন ডলার নিতাম।\n\n3\n00:00:04,860 --> 00:00:10,940\nপাঁচ মিলিয়ন ডলারের জন্য পাঁচ বছর অপেক্ষা করার চেয়ে আমি বরং আজ এক মিলিয়ন ডলার পেতে পছন্দ করব।\n\n4\n00:00:10,940 --> 00:00:16,590\nআজ এক মিলিয়ন ডলার গ্রহণ করা এবং পাঁচ বছর অপেক্ষা করে পাঁচ মিলিয়ন ডলার পাওয়ার মধ্যে বেছে নিতে হলে, আমি বরং আজ এক মিলিয়ন ডলার নিতাম।"
           }
         },
         {
@@ -150,25 +184,75 @@
             {
               "en": "I would rather five millon dollars in five years.",
               "es": "Preferiría cinco millones de dólares en cinco años.",
-              "pt": "Eu preferiria cinco milhões de dólares em cinco anos.",
+              "pt": "Eu preferiria ter cinco milhões de dólares em cinco anos.",
               "bn": "আমি বরং পাঁচ বছরে পাঁচ মিলিয়ন ডলার পেতে চাই।"
             },
             {
               "en": "I would rather wait five years for five million dollars than receive one million dollars today.",
               "es": "Preferiría esperar cinco años por cinco millones de dólares que recibir un millón de dólares hoy.",
               "pt": "Eu preferiria esperar cinco anos por cinco milhões de dólares a receber um milhão de dólares hoje.",
-              "bn": "আমি আজ দশ লাখ ডলার পাওয়ার চেয়ে বরং পাঁচ বছর অপেক্ষা করে পঞ্চাশ লাখ ডলার পেতে চাই।"
+              "bn": "আমি আজ দশ লাখ ডলার পাওয়ার চেয়ে পাঁচ বছর অপেক্ষা করে পঞ্চাশ লাখ ডলার পেতে বেশি পছন্দ করব।"
             },
             {
               "en": "Given the choice between accepting a million dollars today and waiting five years for five million dollars, I would rather wait.",
               "es": "Dada la elección entre aceptar un millón de dólares hoy y esperar cinco años por cinco millones de dólares, preferiría esperar.",
-              "pt": "Dada a escolha entre aceitar um milhão de dólares hoje e esperar cinco anos por cinco milhões de dólares, eu preferiria esperar.",
-              "bn": "আজ দশ লাখ ডলার গ্রহণ করা এবং পাঁচ বছর অপেক্ষা করে পঞ্চাশ লাখ ডলার পাওয়ার মধ্যে যদি বেছে নিতে হয়, তবে আমি বরং অপেক্ষা করব।"
+              "pt": "Diante da escolha entre aceitar um milhão de dólares hoje e esperar cinco anos por cinco milhões de dólares, eu preferiria esperar.",
+              "bn": "আজ দশ লাখ ডলার নেওয়া এবং পাঁচ বছর অপেক্ষা করে পঞ্চাশ লাখ ডলার পাওয়ার মধ্যে বেছে নিতে হলে, আমি বরং অপেক্ষা করব।"
             }
           ],
           "nextStep": 1,
           "subtitles": {
-            "en": "1\n00:00:00,000 --> 00:00:02,450\nFive million dollars in five years.\n\n2\n00:00:02,450 --> 00:00:06,200\nI would rather five millon dollars in five years.\n\n3\n00:00:06,200 --> 00:00:11,400\nI would rather wait five years for five million dollars than receive one million dollars today.\n\n4\n00:00:11,400 --> 00:00:17,650\nGiven the choice between accepting a million dollars today and waiting five years for five million dollars, I would rather wait."
+            "en": "1\n00:00:00,000 --> 00:00:02,450\nFive million dollars in five years.\n\n2\n00:00:02,450 --> 00:00:06,200\nI would rather five millon dollars in five years.\n\n3\n00:00:06,200 --> 00:00:11,400\nI would rather wait five years for five million dollars than receive one million dollars today.\n\n4\n00:00:11,400 --> 00:00:17,650\nGiven the choice between accepting a million dollars today and waiting five years for five million dollars, I would rather wait.",
+            "es": "1\n00:00:00,000 --> 00:00:02,450\nCinco millones de dólares en cinco años.\n\n2\n00:00:02,450 --> 00:00:06,200\nPreferiría cinco millones de dólares en cinco años.\n\n3\n00:00:06,200 --> 00:00:11,400\nPreferiría esperar cinco años por cinco millones de dólares que recibir un millón de dólares hoy.\n\n4\n00:00:11,400 --> 00:00:17,650\nDada la elección entre aceptar un millón de dólares hoy y esperar cinco años por cinco millones de dólares, preferiría esperar.",
+            "pt": "1\n00:00:00,000 --> 00:00:02,450\nCinco milhões de dólares em cinco anos.\n\n2\n00:00:02,450 --> 00:00:06,200\nEu preferiria cinco milhões de dólares em cinco anos.\n\n3\n00:00:06,200 --> 00:00:11,400\nEu preferiria esperar cinco anos por cinco milhões de dólares do que receber um milhão de dólares hoje.\n\n4\n00:00:11,400 --> 00:00:17,650\nDada a escolha entre aceitar um milhão de dólares hoje e esperar cinco anos por cinco milhões de dólares, eu preferiria esperar.",
+            "bn": "1\n00:00:00,000 --> 00:00:02,450\nপাঁচ বছরে পাঁচ মিলিয়ন ডলার।\n\n2\n00:00:02,450 --> 00:00:06,200\nআমি বরং পাঁচ বছরে পাঁচ মিলিয়ন ডলার পেতে চাই।\n\n3\n00:00:06,200 --> 00:00:11,400\nআজ এক মিলিয়ন ডলার নেওয়ার চেয়ে পাঁচ মিলিয়ন ডলারের জন্য পাঁচ বছর অপেক্ষা করাই আমি বরং পছন্দ করব।\n\n4\n00:00:11,400 --> 00:00:17,650\nআজ এক মিলিয়ন ডলার গ্রহণ করা আর পাঁচ বছর অপেক্ষা করে পাঁচ মিলিয়ন ডলার পাওয়ার মধ্যে বেছে নিতে হলে, আমি বরং অপেক্ষা করব।"
+          }
+        },
+        {
+          "responseType": "viewAndContinue",
+          "simpleVideoUrl": "intro",
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:03,880\nA million dollars today or five million dollars in five years?\n\n2\n00:00:03,880 --> 00:00:07,950\nIs it better to a million dollars today or five million dollars in five years?\n\n3\n00:00:07,950 --> 00:00:14,030\nWould you rather receive a million dollars today or wait five years and receive five million dollars instead?\n\n4\n00:00:14,030 --> 00:00:20,880\nGiven the choice between accepting a million dollars today and waiting five years for five million dollars, Is it better to do?",
+            "es": "1\n00:00:00,000 --> 00:00:03,880\n¿Un millón de dólares hoy o cinco millones de dólares en cinco años?\n\n2\n00:00:03,880 --> 00:00:07,950\n¿Es mejor recibir un millón de dólares hoy o cinco millones de dólares en cinco años?\n\n3\n00:00:07,950 --> 00:00:14,030\n¿Preferirías recibir un millón de dólares hoy o esperar cinco años y recibir cinco millones de dólares en su lugar?\n\n4\n00:00:14,030 --> 00:00:20,880\nDada la opción entre aceptar un millón de dólares hoy y esperar cinco años por cinco millones de dólares, ¿qué es mejor hacer?",
+            "pt": "1\n00:00:00,000 --> 00:00:03,880\nUm milhão de dólares hoje ou cinco milhões de dólares em cinco anos?\n\n2\n00:00:03,880 --> 00:00:07,950\nÉ melhor receber um milhão de dólares hoje ou cinco milhões de dólares em cinco anos?\n\n3\n00:00:07,950 --> 00:00:14,030\nVocê preferiria receber um milhão de dólares hoje ou esperar cinco anos e receber cinco milhões de dólares em vez disso?\n\n4\n00:00:14,030 --> 00:00:20,880\nDada a escolha entre aceitar um milhão de dólares hoje e esperar cinco anos por cinco milhões de dólares, o que é melhor fazer?",
+            "bn": "1\n00:00:00,000 --> 00:00:03,880\nআজ এক মিলিয়ন ডলার, নাকি পাঁচ বছর পরে পাঁচ মিলিয়ন ডলার?\n\n2\n00:00:03,880 --> 00:00:07,950\nআজ এক মিলিয়ন ডলার নেওয়া ভালো, নাকি পাঁচ বছর পরে পাঁচ মিলিয়ন ডলার নেওয়া ভালো?\n\n3\n00:00:07,950 --> 00:00:14,030\nআপনি কি আজ এক মিলিয়ন ডলার পেতে চান, নাকি বরং পাঁচ বছর অপেক্ষা করে পাঁচ মিলিয়ন ডলার পেতে চান?\n\n4\n00:00:14,030 --> 00:00:20,880\nআজ এক মিলিয়ন ডলার গ্রহণ করা আর পাঁচ বছর অপেক্ষা করে পাঁচ মিলিয়ন ডলার পাওয়ার মধ্যে বেছে নিতে হলে, কোনটি করা ভালো?"
+          }
+        },
+        {
+          "responseType": "friendClosedResponse",
+          "simpleVideoUrl": "wouldyourather_a01",
+          "cue": [
+            {
+              "en": "A million dollars today or five million dollars in five years?",
+              "es": "¿Un millón de dólares hoy o cinco millones de dólares en cinco años?",
+              "pt": "Um milhão de dólares hoje ou cinco milhões de dólares em cinco anos?",
+              "bn": "আজ এক মিলিয়ন ডলার নাকি পাঁচ বছর পর পাঁচ মিলিয়ন ডলার?"
+            },
+            {
+              "en": "Is it better to a million dollars today or five million dollars in five years?",
+              "es": "¿Es mejor tener un millón de dólares hoy o cinco millones de dólares en cinco años?",
+              "pt": "É melhor ter um milhão de dólares hoje ou cinco milhões de dólares em cinco anos?",
+              "bn": "আজ দশ লাখ ডলার নাকি পাঁচ বছর পর পঞ্চাশ লাখ ডলার—কোনটা ভালো?"
+            },
+            {
+              "en": "Would you rather receive a million dollars today or wait five years and receive five million dollars instead?",
+              "es": "¿Preferirías recibir un millón de dólares hoy o esperar cinco años y recibir cinco millones de dólares en su lugar?",
+              "pt": "Você preferiria receber um milhão de dólares hoje ou esperar cinco anos e receber cinco milhões de dólares em vez disso?",
+              "bn": "আপনি কি আজ দশ লাখ ডলার পেতে চান, নাকি পাঁচ বছর অপেক্ষা করে বরং পঞ্চাশ লাখ ডলার পেতে চান?"
+            },
+            {
+              "en": "Given the choice between accepting a million dollars today and waiting five years for five million dollars, Is it better to do?",
+              "es": "Dada la elección entre aceptar un millón de dólares hoy y esperar cinco años por cinco millones de dólares, ¿qué es mejor hacer?",
+              "pt": "Dada a escolha entre aceitar um milhão de dólares hoje e esperar cinco anos por cinco milhões de dólares, o que é melhor fazer?",
+              "bn": "আজ দশ লাখ ডলার গ্রহণ করা এবং পাঁচ বছর অপেক্ষা করে পঞ্চাশ লাখ ডলার পাওয়ার মধ্যে পছন্দের সুযোগ পেলে, কোনটি করা ভালো?"
+            }
+          ],
+          "publishLessonId": "a",
+          "subtitles": {
+            "en": "1\n00:00:00,000 --> 00:00:03,880\nA million dollars today or five million dollars in five years?\n\n2\n00:00:03,880 --> 00:00:07,950\nIs it better to a million dollars today or five million dollars in five years?\n\n3\n00:00:07,950 --> 00:00:14,030\nWould you rather receive a million dollars today or wait five years and receive five million dollars instead?\n\n4\n00:00:14,030 --> 00:00:20,880\nGiven the choice between accepting a million dollars today and waiting five years for five million dollars, Is it better to do?",
+            "es": "1\n00:00:00,000 --> 00:00:03,880\n¿Un millón de dólares hoy o cinco millones de dólares en cinco años?\n\n2\n00:00:03,880 --> 00:00:07,950\n¿Es mejor recibir un millón de dólares hoy o cinco millones de dólares en cinco años?\n\n3\n00:00:07,950 --> 00:00:14,030\n¿Preferirías recibir un millón de dólares hoy o esperar cinco años y recibir cinco millones de dólares en su lugar?\n\n4\n00:00:14,030 --> 00:00:20,880\nDada la opción entre aceptar un millón de dólares hoy y esperar cinco años por cinco millones de dólares, ¿qué es mejor hacer?",
+            "pt": "1\n00:00:00,000 --> 00:00:03,880\nUm milhão de dólares hoje ou cinco milhões de dólares em cinco anos?\n\n2\n00:00:03,880 --> 00:00:07,950\nÉ melhor um milhão de dólares hoje ou cinco milhões de dólares em cinco anos?\n\n3\n00:00:07,950 --> 00:00:14,030\nVocê preferiria receber um milhão de dólares hoje ou esperar cinco anos e receber cinco milhões de dólares em vez disso?\n\n4\n00:00:14,030 --> 00:00:20,880\nDada a escolha entre aceitar um milhão de dólares hoje e esperar cinco anos por cinco milhões de dólares, o que é melhor fazer?",
+            "bn": "1\n00:00:00,000 --> 00:00:03,880\nআজ এক মিলিয়ন ডলার নাকি পাঁচ বছর পর পাঁচ মিলিয়ন ডলার?\n\n2\n00:00:03,880 --> 00:00:07,950\nআজ এক মিলিয়ন ডলার নেওয়া ভালো, নাকি পাঁচ বছর পর পাঁচ মিলিয়ন ডলার?\n\n3\n00:00:07,950 --> 00:00:14,030\nআপনি কি আজ এক মিলিয়ন ডলার পেতে চান, নাকি পাঁচ বছর অপেক্ষা করে বরং পাঁচ মিলিয়ন ডলার পেতে চান?\n\n4\n00:00:14,030 --> 00:00:20,880\nআজ এক মিলিয়ন ডলার গ্রহণ করা এবং পাঁচ বছর অপেক্ষা করে পাঁচ মিলিয়ন ডলার পাওয়ার মধ্যে একটি বেছে নিতে হলে, কোনটি করা ভালো?"
           }
         },
         {

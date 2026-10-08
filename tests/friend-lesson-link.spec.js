@@ -52,6 +52,9 @@ test.describe('public-profile friend-challenge links', () => {
             'friend:a': entry('friend', 'Friend Challenge', 'a', 'b', 'Make 3 questions', '2026-09-24T11:00:00.000Z'),
         });
 
+        await expect(page.getByTestId('friend-lesson-links-heading')).toHaveText('Practice English with Me Free');
+        await expect(page.getByTestId('friend-lesson-links-subheading')).toHaveText('click on a lesson link to start.');
+
         const link = page.getByTestId('friend-lesson-link');
         await expect(link).toBeVisible();
         await expect(link).toHaveText('Make 3 questions');
@@ -96,7 +99,7 @@ test.describe('public-profile friend-challenge links', () => {
         await expect(links.nth(1)).toHaveText('Follow Up');
     });
 
-    test('removes the link once the 48h window has passed', async ({ page }) => {
+    test('shows the expired state once the 48h window has passed', async ({ page }) => {
         // Exactly 48h before the fixed clock -> inactive (inclusive boundary).
         await seedProfile(page, {
             'friend:a': entry('friend', 'Friend Challenge', 'a', 'b', 'Make 3 questions', '2026-09-22T12:00:00.000Z'),
@@ -104,13 +107,16 @@ test.describe('public-profile friend-challenge links', () => {
 
         await expect(page.getByTestId('friend-lesson-link')).toHaveCount(0);
         await expect(page.getByTestId('friend-lesson-links')).toHaveCount(0);
+        await expect(page.getByTestId('friend-lessons-expired-message')).toContainText('expired after 48 hours');
+        await expect(page.getByTestId('friend-lessons-practice-free')).toHaveAttribute('href', '/courses');
     });
 
-    test('renders no section when there are no links', async ({ page }) => {
+    test('shows the expired state when there are no links', async ({ page }) => {
         await seedProfile(page, {});
 
         await expect(page.getByTestId('friend-lesson-links')).toHaveCount(0);
         await expect(page.getByTestId('friend-lesson-link')).toHaveCount(0);
+        await expect(page.getByTestId('friend-lessons-expired')).toBeVisible();
     });
 
     test('renders no link when the profile cannot be resolved', async ({ page }) => {

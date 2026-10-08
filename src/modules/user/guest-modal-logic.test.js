@@ -48,11 +48,12 @@ describe('resolveGuestModalPlan', () => {
 });
 
 describe('isPublicHomeRoute', () => {
-    it('is true for the public homepage, the legal pages and confirm-email', () => {
+    it('is true for the public homepage, the legal pages, confirm-email and the course listings', () => {
         expect(isPublicHomeRoute('/')).toBe(true);
         expect(isPublicHomeRoute('/privacy')).toBe(true);
         expect(isPublicHomeRoute('/terms')).toBe(true);
         expect(isPublicHomeRoute('/confirm-email')).toBe(true);
+        expect(isPublicHomeRoute('/courses')).toBe(true);
     });
 
     it('matches the same non-canonical URLs the router resolves (case + trailing slash)', () => {
@@ -63,6 +64,8 @@ describe('isPublicHomeRoute', () => {
         expect(isPublicHomeRoute('/Terms')).toBe(true);
         expect(isPublicHomeRoute('/confirm-email/')).toBe(true);
         expect(isPublicHomeRoute('/Confirm-Email')).toBe(true);
+        expect(isPublicHomeRoute('/courses/')).toBe(true);
+        expect(isPublicHomeRoute('/Courses')).toBe(true);
     });
 
     it('is false for the dashboard, auth, lesson, profile and share-code routes', () => {
@@ -78,7 +81,7 @@ describe('isPublicHomeRoute', () => {
     });
 
     it('pins the public route list', () => {
-        expect(PUBLIC_ROUTES).toEqual(['/', '/privacy', '/terms', '/confirm-email']);
+        expect(PUBLIC_ROUTES).toEqual(['/', '/privacy', '/terms', '/confirm-email', '/courses']);
     });
 });
 
