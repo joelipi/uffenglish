@@ -97,8 +97,8 @@ describe('poster documentation', () => {
         expect(readme).toMatch(/served locally/);
     });
 
-    it('agents.md names the render as the poster source and keeps posters out of git', () => {
-        const agents = readFileSync(path.join(ROOT, 'agents.md'), 'utf8');
+    it('AGENTS.md names the render as the poster source and keeps posters out of git', () => {
+        const agents = readFileSync(path.join(ROOT, 'AGENTS.md'), 'utf8');
         expect(agents).toMatch(/Modal render/);
         // The old claim (deploy.yml builds posters on every push) must be gone.
         expect(agents).not.toMatch(/uploaded to R2[^.]*on every push/i);
