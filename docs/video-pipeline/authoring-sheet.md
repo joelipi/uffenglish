@@ -98,6 +98,9 @@ timings stay the caption pipeline's job — the translator never retimes. A step
 - **`srt` translations preserve cue numbers and timestamps.** The translator sends the
   unescaped English SRT to `translateSrt` and validates the result with `validateTranslatedSrt`
   (cue count + start/end within 1 ms); a drift aborts the run before any cell is written.
+  The generator applies the same check when it reads `srt_<lang>`: a non-blank value whose
+  timings do not match the English `srt` is a structural error that skips the course (so a
+  stale translation can never ship even if configs are generated without the translate step).
   On the overlay master the SRT is one document per step (written to every row of a `join`),
   so the translator plans it once per step and the generator reads it once — never
   concatenating sub-group SRTs. Note the escaping asymmetry: the pipeline writes the English

@@ -488,9 +488,9 @@ describe('buildCourseConfig localization columns', () => {
 
     it('localizes an authoring-sheet srt from srt_<lang> (taken verbatim)', () => {
         const [step] = buildSteps([
-            { video_file: 'v', filename: 'v1', order: '1', response_type: 'viewAndContinue', srt: '1\\n00:00 --> 00:01\\nHi', srt_es: '1\n00:00 --> 00:01\nHola' },
+            { video_file: 'v', filename: 'v1', order: '1', response_type: 'viewAndContinue', srt: '1\\n00:00:00,000 --> 00:00:01,000\\nHi', srt_es: '1\n00:00:00,000 --> 00:00:01,000\nHola' },
         ]);
-        expect(step.subtitles).toEqual({ en: '1\n00:00 --> 00:01\nHi', es: '1\n00:00 --> 00:01\nHola' });
+        expect(step.subtitles).toEqual({ en: '1\n00:00:00,000 --> 00:00:01,000\nHi', es: '1\n00:00:00,000 --> 00:00:01,000\nHola' });
     });
 
     it('ignores a stray cue_alt_es on a single-cue step', () => {
@@ -544,7 +544,7 @@ describe('shared translatable-field parity', () => {
             {
                 course_id: 'c', course_name: 'C', lesson_id: 'a', lesson_title: 'L', mission: 'M',
                 video_file: 'v3', filename: 'f3', order: '3', response_type: 'closedResponse',
-                srt: '1\\n00:00 --> 00:01\\nHi', [es('srt')]: '1\n00:00 --> 00:01\nHola',
+                srt: '1\\n00:00:00,000 --> 00:00:01,000\\nHi', [es('srt')]: '1\n00:00:00,000 --> 00:00:01,000\nHola',
             },
         ];
         const lesson = buildCourseConfig(rows).lessons[0];
@@ -554,7 +554,7 @@ describe('shared translatable-field parity', () => {
         expect(lesson.steps[0].subtitles.es).toBe('S-es');
         expect(lesson.steps[1].cue[0].es).toBe('A-es');
         // `srt` localizes captions (taken verbatim from `srt_<lang>`).
-        expect(lesson.steps[2].subtitles).toEqual({ en: '1\n00:00 --> 00:01\nHi', es: '1\n00:00 --> 00:01\nHola' });
+        expect(lesson.steps[2].subtitles).toEqual({ en: '1\n00:00:00,000 --> 00:00:01,000\nHi', es: '1\n00:00:00,000 --> 00:00:01,000\nHola' });
         // The generator's consumed field set is exactly the shared set.
         expect(TRANSLATABLE_FIELDS.map((f) => f.field).sort()).toEqual([
             'choose_step_text', 'cue', 'cue_alt', 'lesson_title', 'mission', 'phrase', 'srt', 'subtitle_text',
@@ -893,14 +893,25 @@ describe('master format (overlay master)', () => {
         expect(steps(rows)[0].subtitles).toEqual({ en: 'A\nonly' });
     });
 
-    it('takes srt_<lang> verbatim (operator text, not pipeline-escaped)', () => {
+    it('takes srt_<lang> verbatim (literal text, not pipeline-escaped)', () => {
         const rows = [{
             ...base, video_file: 'v', filename: 'f', order: '1', phrase: 'Q',
-            srt: '1\\n00:00 --> 00:01\\nHi', srt_es: 'literal\\nbackslash',
+            srt: '1\\n00:00:00,000 --> 00:00:01,000\\nHi',
+            srt_es: '1\n00:00:00,000 --> 00:00:01,000\nliteral\\nbackslash',
         }];
         const [step] = steps(rows);
-        expect(step.subtitles.en).toBe('1\n00:00 --> 00:01\nHi');
-        expect(step.subtitles.es).toBe('literal\\nbackslash');
+        expect(step.subtitles.en).toBe('1\n00:00:00,000 --> 00:00:01,000\nHi');
+        // The literal backslash survives (the language cell is not unescaped).
+        expect(step.subtitles.es).toBe('1\n00:00:00,000 --> 00:00:01,000\nliteral\\nbackslash');
+    });
+
+    it('throws when a stored srt_<lang> does not match the English srt timings', () => {
+        const rows = [{
+            ...base, video_file: 'v', filename: 'f', order: '1', phrase: 'Q',
+            srt: '1\\n00:00:00,000 --> 00:00:09,000\\nHi',
+            srt_es: '1\n00:00:00,000 --> 00:00:01,000\nHola',
+        }];
+        expect(() => steps(rows)).toThrow(/video_file "v": srt_es is not a timing-consistent translation/);
     });
 
     it('throws on conflicting response_type within a step', () => {

@@ -26,6 +26,7 @@ import {
     groupCueAltLines,
     unescapeSrt,
 } from './sheet-translate-utils.js';
+import { validateTranslatedSrt } from './caption-utils.js';
 
 // English source columns are looked up in the shared field map, so a field
 // removed or renamed in sheet-translate-utils.js fails loudly here instead of
@@ -202,17 +203,30 @@ function localizedObject(rows, field, enValue) {
 /**
  * The step's subtitles from `srt`/`srt_<lang>`, or undefined when the English
  * `srt` is blank. The English `srt` is the pipeline-written JSON-escaped string
- * (`unescapeSrt`); `srt_<lang>` is operator/translation text (a literal SRT
- * document, timings preserved) and is taken verbatim. First non-blank value
- * across the group's rows wins (a joined step's SRT is written to every row).
+ * (`unescapeSrt`); `srt_<lang>` is a literal SRT document (translation text,
+ * timings preserved) and is taken verbatim. First non-blank value across the
+ * group's rows wins (a joined step's SRT is written to every row).
+ *
+ * A non-blank `srt_<lang>` whose cue count/timings do not match the English SRT
+ * is a structural error, not silently emitted: the app would render captions
+ * against the wrong timings. This is the same check the translate step applies
+ * when it writes `srt_<lang>`, so a stale cell (e.g. configs generated without a
+ * preceding translate run) fails the course loudly instead of shipping. The
+ * generator is pure, so it throws; `buildCourseConfigs` reports the skip.
  */
-function srtSubtitlesFor(rows) {
+function srtSubtitlesFor(rows, context = 'subtitles') {
     const en = firstNonBlank(rows, 'srt');
     if (!en) return undefined;
-    const obj = { en: unescapeSrt(en) };
+    const english = unescapeSrt(en);
+    const obj = { en: english };
     for (const lang of SHEET_LANGUAGES) {
         const v = firstNonBlank(rows, localizedColumn('srt', lang));
-        if (v) obj[lang] = v;
+        if (!v) continue;
+        const validation = validateTranslatedSrt(english, v);
+        if (!validation.ok) {
+            throw new Error(`${context}: srt_${lang} is not a timing-consistent translation of srt (${validation.reason})`);
+        }
+        obj[lang] = v;
     }
     return obj;
 }
@@ -222,8 +236,8 @@ function srtSubtitlesFor(rows) {
  * by the `srt_<lang>` columns) wins, else `subtitle_text` verbatim (localized by
  * `subtitle_text_<lang>`); both blank -> undefined (the key is omitted).
  */
-function subtitlesFor(groupRows) {
-    const fromSrt = srtSubtitlesFor(groupRows);
+function subtitlesFor(groupRows, context) {
+    const fromSrt = srtSubtitlesFor(groupRows, context);
     if (fromSrt) return fromSrt;
     for (const row of groupRows) {
         const text = cell(row, sourceOf('subtitle_text'));
@@ -467,7 +481,7 @@ function buildMasterSteps(lessonRows) {
         // pipeline writes one SRT per step (the join's cumulative-offset SRT to
         // every row of a join), so `srtSubtitlesFor` reads the first non-blank
         // value and never concatenates sub-groups.
-        const subtitles = srtSubtitlesFor(stepRows);
+        const subtitles = srtSubtitlesFor(stepRows, `video_file "${key}"`);
         if (subtitles !== undefined) step.subtitles = subtitles;
         steps.push(step);
     }
@@ -534,7 +548,7 @@ function buildAuthoringSteps(lessonRows) {
         if (chooseStep !== undefined) step.chooseStep = chooseStep;
         const nextStep = nextStepFor(groupRows, videoFile);
         if (nextStep !== undefined) step.nextStep = nextStep;
-        const subtitles = subtitlesFor(groupRows);
+        const subtitles = subtitlesFor(groupRows, `video_file "${videoFile}"`);
         if (subtitles !== undefined) step.subtitles = subtitles;
 
         steps.push({ __order: order, __seq: steps.length, step });
