@@ -7,7 +7,12 @@
 // The sheet is the operator's editing surface; translations are machine-written
 // addenda in adjacent `*_<lang>` columns. Translation ONLY fills blanks, so a
 // human edit to a translation cell is never clobbered and the next config
-// generation picks it up.
+// generation picks it up. The `srt` column is the exception: the render pipeline
+// rewrites it on every re-render, so a stored `srt_<lang>` whose cue timings no
+// longer match the current English SRT is stale and is re-planned (see
+// `srtTargetIsCurrent`).
+
+import { validateTranslatedSrt } from './caption-utils.js';
 
 // Sheet-localization targets. Distinct from `CAPTION_LANGUAGES` in
 // caption-utils.js (which also carries `en`/`fr`/`hi`); the app's generated
@@ -76,6 +81,30 @@ export function groupCueAltLines(text) {
         .split('\n')
         .map((l) => l.trim())
         .filter(Boolean);
+}
+
+/**
+ * Un-escape the JSON-string form the pipeline writes into the `srt` column
+ * (`\n`->newline, `"`->quote, `\\`->backslash) back to literal SRT text. Only
+ * JSON string escapes are decoded, so a literal backslash survives. Shared by
+ * the config generator (which emits the English subtitles) and the translator
+ * (which translates them); re-exported from sheet-config-utils.js.
+ */
+export function unescapeSrt(value) {
+    const s = String(value ?? '');
+    let out = '';
+    for (let i = 0; i < s.length; i++) {
+        if (s[i] === '\\' && i + 1 < s.length) {
+            const next = s[i + 1];
+            if (next === 'n') { out += '\n'; i++; continue; }
+            if (next === 't') { out += '\t'; i++; continue; }
+            if (next === 'r') { out += '\r'; i++; continue; }
+            if (next === '"') { out += '"'; i++; continue; }
+            if (next === '\\') { out += '\\'; i++; continue; }
+        }
+        out += s[i];
+    }
+    return out;
 }
 
 /**
@@ -171,9 +200,28 @@ function groupsForField(rows, headerSet, level, { stepKey = false } = {}) {
     return groups;
 }
 
-/** The group's `srt` column wins over `subtitle_text`, so its text is not translated. */
+// The group's `srt` column wins over `subtitle_text`, so its text is not
+// translated. `subtitle_text` groups by `video_file` (not `join`), but a master
+// sheet skips `subtitle_text` entirely, so the two keys never need to agree.
 function groupUsesSrt(rows, indices) {
     return indices.some((i) => cell(rows[i], 'srt').trim());
+}
+
+/**
+ * Whether the group's stored `srt_<lang>` cell is up to date with the current
+ * English `srt`. The render pipeline rewrites `srt` on every re-render, so a
+ * translation whose cue count or timings no longer match the English document is
+ * stale and must be re-planned. A stored translation always has literal newlines
+ * (the generator takes it verbatim) while the English cell is JSON-escaped, so
+ * the English side is unescaped before comparison. Missing/blank -> not current.
+ */
+function srtTargetIsCurrent(rows, indices, source, target) {
+    const existing = indices.map((i) => cell(rows[i], target).trim()).find(Boolean);
+    if (!existing) return false;
+    const englishIndex = indices.find((i) => cell(rows[i], source).trim());
+    if (englishIndex === undefined) return false;
+    const english = unescapeSrt(cell(rows[englishIndex], source).trim());
+    return validateTranslatedSrt(english, existing).ok;
 }
 
 /**
@@ -189,7 +237,8 @@ function groupUsesSrt(rows, indices) {
  * `subtitle_text` groups shadowed by a non-blank `srt` are skipped (the
  * generator gives `srt` precedence). `srt` groups by the generator's step key
  * (`join` else `video_file`) so a joined step is planned once; its `sourceText`
- * is the raw (JSON-escaped) cell — the CLI unescapes it before `translateSrt`.
+ * is the unescaped English document (the CLI hands it to `translateSrt`), and a
+ * stored `srt_<lang>` is re-planned when its timings no longer match it.
  *
  * @param {object} opts
  * @param {Array<Record<string,string>>} opts.rows parsed rows (header-keyed)
@@ -247,15 +296,22 @@ export function planSheetTranslations({
             for (const lang of languages) {
                 const target = localizedColumn(field, lang);
                 const groupHasTarget = indices.some((i) => cell(rowsList[i], target).trim());
-                if (groupHasTarget && !force) continue; // already translated -> idempotent
+                // Idempotent for every field except `srt`, where a stored
+                // translation is re-planned when its timings no longer match the
+                // current (re-rendered) English SRT.
+                if (groupHasTarget && !force
+                    && (!srt || srtTargetIsCurrent(rowsList, indices, source, target))) continue;
                 const targetRows = isLinePairedField(field) ? sourceIndices : [sourceIndices[0]];
                 for (const rowIndex of targetRows) {
+                    const rawSource = cell(rowsList[rowIndex], source).trim();
                     plan.push({
                         row: rowIndex,
                         sheetRow: sheetRows ? sheetRows[rowIndex] : rowIndex + 2,
                         column: target,
                         sourceColumn: source,
-                        sourceText: cell(rowsList[rowIndex], source).trim(),
+                        // `srt` is unescaped so the CLI can hand the literal
+                        // document straight to translateSrt.
+                        sourceText: srt ? unescapeSrt(rawSource) : rawSource,
                         lang,
                         field,
                     });
@@ -302,7 +358,11 @@ export function countPresentTranslations({ rows, headers, languages = SHEET_LANG
             if (field === 'subtitle_text' && groupUsesSrt(rowsList, indices)) continue;
             for (const lang of languages) {
                 const target = localizedColumn(field, lang);
-                if (indices.some((i) => cell(rowsList[i], target).trim())) counts[lang] += 1;
+                if (!indices.some((i) => cell(rowsList[i], target).trim())) continue;
+                // A stale `srt_<lang>` is not "already present" — the planner
+                // will re-translate it, so it is reported as filled, not present.
+                if (srt && !srtTargetIsCurrent(rowsList, indices, source, target)) continue;
+                counts[lang] += 1;
             }
         }
     }

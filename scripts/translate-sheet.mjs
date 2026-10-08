@@ -33,7 +33,6 @@ import {
     buildBatchUpdatePayload,
     rowsFromValues,
 } from './lib/sheet-translate-utils.js';
-import { unescapeSrt } from './lib/sheet-config-utils.js';
 import { validateTranslatedSrt } from './lib/caption-utils.js';
 import { translateText as realTranslateText, translateSrt as realTranslateSrt } from './lib/deepseek.js';
 
@@ -202,12 +201,12 @@ export async function runTranslateSheet({
     for (const item of plan) {
         let translated;
         if (isSrtField(item.field)) {
-            // The sheet's `srt` cell is the pipeline's JSON-escaped string; the
-            // English document is unescaped for translation, and the result is a
-            // literal SRT written verbatim (the generator takes `srt_<lang>` as
-            // operator text). A model that mangles cue count or timestamps must
-            // fail before anything is written.
-            const englishSrt = unescapeSrt(item.sourceText);
+            // The planner already unescaped the English SRT (the sheet's `srt`
+            // cell is the pipeline's JSON-escaped string), so `sourceText` is the
+            // literal document. The result is written verbatim (the generator
+            // takes `srt_<lang>` as operator text). A model that mangles cue
+            // count or timestamps must fail before anything is written.
+            const englishSrt = item.sourceText;
             translated = await translateCues(englishSrt, item.lang);
             const validation = validateTranslatedSrt(englishSrt, translated);
             if (!validation.ok) {

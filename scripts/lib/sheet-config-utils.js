@@ -24,7 +24,12 @@ import {
     TRANSLATABLE_FIELDS,
     localizedColumn,
     groupCueAltLines,
+    unescapeSrt,
 } from './sheet-translate-utils.js';
+
+// Re-exported for the config path's callers/tests; defined in
+// sheet-translate-utils.js so the translator and generator share one decoder.
+export { unescapeSrt };
 
 // English source columns are looked up in the shared field map, so a field
 // removed or renamed in sheet-translate-utils.js fails loudly here instead of
@@ -172,28 +177,6 @@ function firstNonBlank(rows, name) {
         if (v) return v;
     }
     return '';
-}
-
-/**
- * Un-escape the JSON-string form the pipeline writes into the `srt` column
- * (`\n`->newline, `"`->quote, `\\`->backslash) back to literal SRT text. Only
- * JSON string escapes are decoded, so a literal backslash survives.
- */
-export function unescapeSrt(value) {
-    const s = String(value ?? '');
-    let out = '';
-    for (let i = 0; i < s.length; i++) {
-        if (s[i] === '\\' && i + 1 < s.length) {
-            const next = s[i + 1];
-            if (next === 'n') { out += '\n'; i++; continue; }
-            if (next === 't') { out += '\t'; i++; continue; }
-            if (next === 'r') { out += '\r'; i++; continue; }
-            if (next === '"') { out += '"'; i++; continue; }
-            if (next === '\\') { out += '\\'; i++; continue; }
-        }
-        out += s[i];
-    }
-    return out;
 }
 
 /**
@@ -454,17 +437,6 @@ function masterCueFor(subgroups) {
     return cue.length ? cue : undefined;
 }
 
-/**
- * Master app subtitles: from `srt`/`srt_<lang>` only (the master's
- * `subtitle_text` is burnt-in overlay markup, never app subtitles). The pipeline
- * writes one SRT per step — for a joined step it is the join's cumulative-offset
- * SRT written to every row of the join — so `srtSubtitlesFor` reads the step's
- * first non-blank `srt` and does NOT concatenate sub-groups. Blank -> undefined.
- */
-function masterSubtitlesFor(stepRows) {
-    return srtSubtitlesFor(stepRows);
-}
-
 /** Build steps from the overlay master (steps in first-seen group order). */
 function buildMasterSteps(lessonRows) {
     const keyless = lessonRows.find((row) => !cell(row, 'join').trim() && !cell(row, 'video_file').trim());
@@ -494,7 +466,12 @@ function buildMasterSteps(lessonRows) {
         if (chooseStep !== undefined) step.chooseStep = chooseStep;
         const nextStep = nextStepFor(stepRows, key);
         if (nextStep !== undefined) step.nextStep = nextStep;
-        const subtitles = masterSubtitlesFor(stepRows);
+        // App subtitles come from `srt`/`srt_<lang>` only — the master's
+        // `subtitle_text` is burnt-in overlay markup, never app subtitles. The
+        // pipeline writes one SRT per step (the join's cumulative-offset SRT to
+        // every row of a join), so `srtSubtitlesFor` reads the first non-blank
+        // value and never concatenates sub-groups.
+        const subtitles = srtSubtitlesFor(stepRows);
         if (subtitles !== undefined) step.subtitles = subtitles;
         steps.push(step);
     }
