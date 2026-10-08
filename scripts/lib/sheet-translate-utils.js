@@ -47,16 +47,12 @@ export const TRANSLATABLE_FIELDS = [
     { field: 'phrase', source: 'phrase', level: 'step', perRow: true },
 ];
 
-// The pipeline's exact-timing caption document, translated cue-text-only by
-// `translateSrt` (cue numbers + timestamps preserved). Kept out of
-// TRANSLATABLE_FIELDS because it is planned by `planSrtItems`, not the generic
-// loop; the field object carries the same `source`/`level` shape.
-export const SRT_FIELD = { field: 'srt', source: 'srt', level: 'step' };
-
 // Every localization field — the column contract the seed, docs guard and parity
 // tests consume (one `*_<lang>` column per field per language). The generic
-// fields plus `srt`, so the two lists can never drift.
-export const LOCALIZATION_FIELDS = [...TRANSLATABLE_FIELDS, SRT_FIELD];
+// fields plus `srt`, so the two lists can never drift. The `srt` entry is a bare
+// column marker: `srt` is planned by `planSrtItems` (timing-validated
+// staleness), not the generic loop, so it carries no `source`/`level`.
+export const LOCALIZATION_FIELDS = [...TRANSLATABLE_FIELDS, { field: 'srt' }];
 
 // The line-paired fields, derived from the `lines` flag so the two can never
 // drift. A line-paired cell is written once per source-bearing row of the group

@@ -243,6 +243,20 @@ describe('runTranslateSheet', () => {
         expect(client.batchUpdate).not.toHaveBeenCalled();
     });
 
+    it('names the missing srt columns and the seed hint when a sheet has srt but no srt_<lang>', async () => {
+        const values = [
+            ['course_id', 'lesson_id', 'video_file', 'srt'],
+            ['c', 'a', 'v', '1\\n00:00:00,000 --> 00:00:01,000\\nHi'],
+        ];
+        const client = makeClient(values);
+        const translateText = vi.fn(async (t) => t);
+        await expect(runTranslateSheet({
+            sheetId: 'S', tab: 'Sheet1', languages: ['es'], ...client, translateText, log: () => {},
+        })).rejects.toThrow(/missing target column\(s\): srt_es.*seed-master-columns/);
+        expect(translateText).not.toHaveBeenCalled();
+        expect(client.batchUpdate).not.toHaveBeenCalled();
+    });
+
     // Story 050, Task 6: a master sheet translates `phrase` (per row) and never
     // touches the overlay `subtitle_text`.
     it('writes phrase_<lang> for a master sheet and leaves subtitle_text untouched', async () => {

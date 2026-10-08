@@ -170,11 +170,16 @@ export async function runTranslateSheet({
     // Fail fast before any DeepSeek call or write if the sheet is missing a
     // target column the plan needs (e.g. the localization columns were never
     // added). `headers` from rowsFromValues are already trimmed + lower-cased.
+    // A master with an `srt` column but no `srt_<lang>` columns lands here too —
+    // the operator adds them via `scripts/seed-master-columns.mjs`.
     const headerSet = new Set(headers.map((h) => String(h).trim().toLowerCase()));
     const missingColumns = [...new Set(plan.map((p) => p.column))]
         .filter((column) => !headerSet.has(column));
     if (missingColumns.length > 0) {
-        throw new Error(`sheet is missing target column(s): ${missingColumns.join(', ')}`);
+        const hint = missingColumns.some((c) => c.startsWith('srt_'))
+            ? ' (re-run scripts/seed-master-columns.mjs to add the srt_<lang> columns)'
+            : '';
+        throw new Error(`sheet is missing target column(s): ${missingColumns.join(', ')}${hint}`);
     }
 
     if (plan.length === 0) {

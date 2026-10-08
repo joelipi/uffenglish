@@ -3,7 +3,6 @@ import { describe, it, expect } from 'vitest';
 import {
     SHEET_LANGUAGES,
     TRANSLATABLE_FIELDS,
-    SRT_FIELD,
     LOCALIZATION_FIELDS,
     LINE_PAIRED_FIELDS,
     isLinePairedField,
@@ -39,15 +38,14 @@ describe('column contract', () => {
 
     it('LOCALIZATION_FIELDS adds srt to the generic fields (24 columns total)', () => {
         expect(LOCALIZATION_FIELDS).toHaveLength(TRANSLATABLE_FIELDS.length + 1);
-        expect(LOCALIZATION_FIELDS).toContainEqual(SRT_FIELD);
+        expect(LOCALIZATION_FIELDS.map((f) => f.field)).toContain('srt');
         const cols = LOCALIZATION_FIELDS.flatMap((f) =>
             SHEET_LANGUAGES.map((l) => localizedColumn(f.field, l)));
         expect(cols).toHaveLength(24);
         expect(cols).toContain('srt_bn');
     });
 
-    it('lists srt as a step-level field that is not line-paired', () => {
-        expect(SRT_FIELD).toMatchObject({ source: 'srt', level: 'step' });
+    it('treats srt as a step field that is not line-paired', () => {
         expect(isLinePairedField('srt')).toBe(false);
     });
 
