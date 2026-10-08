@@ -164,20 +164,29 @@ export function isShareCtaEnabled(variant) {
     return variant === 'shareCta';
 }
 
-// The decorative recap header (teacher portrait + UFF wordmark) is 1600×300 —
-// far wider than the portrait recap canvas. It may extend at most this far down
-// from the top so it never dominates the frame or collides with the recap text.
-export const HEADER_MAX_HEIGHT_PX = 200;
+// The recap header band — the decorative banner plus the share-code prompt that
+// sits directly beneath it — may occupy at most the top 18% of the frame. The
+// banner shrinks to leave room for the prompt so the two always fit, and the
+// band is anchored at y=0 so it lands in exactly the same spot every render.
+export const HEADER_BAND_RATIO = 0.18;
+
+// Share-code prompt metrics. Font size is a fraction of the canvas width (like
+// the other recap overlays); `LINE` is its line box and `GAP` the clear space
+// between the banner and the prompt (also used as padding below it).
+export const HEADER_TEXT_SIZE_RATIO = 0.045;
+export const HEADER_TEXT_LINE_RATIO = 1.35;
+export const HEADER_GAP_RATIO = 0.008;
 
 /**
- * Pure layout for the decorative recap header. Scales the image down
- * proportionally so it fits both the canvas width and a shallow top band
- * (`HEADER_MAX_HEIGHT_PX`), then centres it horizontally at the very top.
+ * Pure layout for the recap header. Scales the banner proportionally so the
+ * banner + prompt fit inside the top `HEADER_BAND_RATIO` of the frame, centres
+ * the banner horizontally at y=0, and places the prompt directly beneath it.
  * Returns null when there is no drawable image or no canvas to draw into.
  *
- * Invariants (asserted in the unit tests): the drawn rect never exceeds the
- * canvas width, never extends past `HEADER_MAX_HEIGHT_PX` (or the canvas
- * height), and is horizontally centred within one pixel.
+ * Invariants (unit-tested): `width <= canvasWidth`; the whole header
+ * (`headerBottom`) is at most `HEADER_BAND_RATIO * canvasHeight`; the banner is
+ * horizontally centred within a pixel; and the result is deterministic for a
+ * given canvas size and banner aspect (same spot every time).
  */
 export function resolveHeaderLayout({
     naturalWidth = 0,
@@ -189,13 +198,20 @@ export function resolveHeaderLayout({
         return null;
     }
 
-    const maxHeight = Math.min(HEADER_MAX_HEIGHT_PX, canvasHeight);
-    const scale = Math.min(canvasWidth / naturalWidth, maxHeight / naturalHeight);
+    const band = Math.round(canvasHeight * HEADER_BAND_RATIO);
+    const textSize = Math.max(14, Math.round(canvasWidth * HEADER_TEXT_SIZE_RATIO));
+    const textHeight = Math.round(textSize * HEADER_TEXT_LINE_RATIO);
+    const gap = Math.max(4, Math.round(canvasHeight * HEADER_GAP_RATIO));
+    const availableImageHeight = Math.max(1, band - textHeight - 2 * gap);
+
+    const scale = Math.min(canvasWidth / naturalWidth, availableImageHeight / naturalHeight);
     const width = Math.round(naturalWidth * scale);
     const height = Math.round(naturalHeight * scale);
     const x = Math.round((canvasWidth - width) / 2);
+    const textY = height + gap;
+    const headerBottom = textY + textHeight + gap;
 
-    return { x, y: 0, width, height };
+    return { x, y: 0, width, height, textY, textSize, headerBottom };
 }
 
 /**

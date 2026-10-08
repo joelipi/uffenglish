@@ -4,9 +4,9 @@
 import { getAllSpeechRecordingsForLesson } from '../storage/storage.js';
 import { shareVideo } from './video-share.js';
 import { appStore } from '../store/store.js';
-import headerImg from '../../assets/img/header.png';
+import videoHeaderImg from '../../assets/img/video-header.png';
 import { getVideoUrl, getUgcThumbKey, getCompleteVideoKey } from './video-url.js';
-import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, buildShareUrl, buildShareDeadline, resolveOverlayElements, resolveHeaderLayout, isShareCtaEnabled, isDroppedStep, markFirstRenderable, resolveSegmentBounds, STALL_GRACE_MS, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges } from './video-processor-logic.js';
+import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, buildShareUrl, buildShareDeadline, resolveOverlayElements, resolveHeaderLayout, isShareCtaEnabled, isDroppedStep, markFirstRenderable, resolveSegmentBounds, STALL_GRACE_MS, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges, SHARE_URL_BASE } from './video-processor-logic.js';
 import { remoteSource } from './video-source.js';
 import { DEFAULT_USER_AVATAR_URL } from '../user/tutor-config.js';
 import { getAvatarBlobUrl } from '../avatar/avatar.service.js';
@@ -20,6 +20,12 @@ import Strings from '../../data/strings.js';
 import { resolveConfigLanguage } from '../bilingual/config-normalizer.js';
 
 export { shareVideo };
+
+// The recap header band paints an opaque water-gradient behind the banner so
+// the video (and any burnt-on captions) can never show through it. Same blue as
+// the app's `.water-surface`, but fully opaque.
+const HEADER_GRADIENT_TOP = '#3a8fd5';
+const HEADER_GRADIENT_BOTTOM = '#00c0d8';
 
 // ---------------------------------------------------------------------------
 // Instance factory — each processVideo call owns its own context.
@@ -150,7 +156,7 @@ function createVideoProcessor() {
                 videoCanvas.style.cssText = 'position:fixed;top:0;left:0;width:2px;height:4px;opacity:0.01;pointer-events:none;';
                 document.body.appendChild(videoCanvas);
                 const overlayImage = new Image();
-                overlayImage.src = headerImg;
+                overlayImage.src = videoHeaderImg;
 
                 // Probe dimensions from the first real recording blob
                 const firstValidRec = recordings.find(r => r.blob);
@@ -173,13 +179,13 @@ function createVideoProcessor() {
                 const plan = planner.generatePlan();
 
                 // The lesson's recapOverlay mode decides the card: shareCta
-                // recaps carry a share CTA instead of a fluency card. With no
-                // shareCode the CTA still renders, using the bare host as the URL.
+                // recaps carry a share-code prompt instead of a fluency card.
+                // With no shareCode the prompt falls back to the bare host.
                 const tailingStep = plan.find(s => s.type === 'tailing');
                 const overlayVariant = tailingStep?.variant || 'fluency';
                 const shareCta = isShareCtaEnabled(overlayVariant)
                     ? {
-                        headline: Strings.get('share_cta_headline', userLang),
+                        prompt: `${Strings.get('share_code_prompt', userLang)} ${shareCode || SHARE_URL_BASE}`,
                         deadlinePrefix: Strings.get('share_cta_deadline', userLang),
                         deadline: buildShareDeadline(Date.now(), userLang),
                         url: buildShareUrl(shareCode),
@@ -705,6 +711,13 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                 })
                 : null;
             if (headerLayout) {
+                // 100% opaque gradient header band, so the video (and any burnt
+                // captions) can never show through the banner or the prompt.
+                const headerGradient = ctx.createLinearGradient(0, 0, 0, headerLayout.headerBottom);
+                headerGradient.addColorStop(0, HEADER_GRADIENT_TOP);
+                headerGradient.addColorStop(1, HEADER_GRADIENT_BOTTOM);
+                ctx.fillStyle = headerGradient;
+                ctx.fillRect(0, 0, canvas.width, headerLayout.headerBottom);
                 ctx.drawImage(
                     overlayImage,
                     headerLayout.x, headerLayout.y,
@@ -716,7 +729,7 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                 ctx, canvas.width, canvas.height,
                 isTailing, tailStart, fluencyData,
                 step.isFirst, step.subtitle, displayCanvas,
-                overlayVariant, shareCta, headerLayout?.height || 0
+                overlayVariant, shareCta, headerLayout
             );
 
             if (displayCanvas) {
@@ -949,7 +962,7 @@ function drawCenteredLine(context, text, centerX, y) {
     context.textAlign = prevAlign;
 }
 
-function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart, fluencyData, isFirst, subtitleText, displayCanvas, overlayVariant = 'fluency', shareCta = null, headerBottom = 0) {
+function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart, fluencyData, isFirst, subtitleText, displayCanvas, overlayVariant = 'fluency', shareCta = null, headerLayout = null) {
     const now = performance.now();
     const blinkOn = Math.floor(now / 500) % 2 === 0;
     context.save();
@@ -1019,55 +1032,48 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
         });
     }
 
-    // Share CTA — headline block in the top 25% for the whole recap, plus the
-    // 3-line CTA card over the tailing freeze-frame. The URL is drawn with
-    // drawFittedLine (never wrapText) so it always stays on one line.
-    if (headlineBlock || tailingCard) {
+    // Share CTA — the "Enter share code: <code>" prompt sits directly beneath the
+    // header banner for the whole recap; the 3-line deadline card shows over the
+    // tailing freeze-frame. The prompt/URL are drawn with drawFittedLine (never
+    // wrapText) so each always stays on one line.
+    const ctaFontFamily = '"Plus Jakarta Sans", "Noto Sans Bengali", "Bangla Sangam MN", "Nirmala UI", sans-serif';
+
+    if (headlineBlock && shareCta && headerLayout) {
+        // Directly under the banner, never overlapping it (the banner has its
+        // own text). The banner shrinks to make room, so this always fits inside
+        // the 18% header band.
+        const centerX = Math.floor(canvasWidth / 2);
+        context.textAlign = 'center';
+        context.textBaseline = 'top';
+        context.shadowColor = 'rgba(0, 0, 0, 0.8)';
+        context.shadowBlur = Math.max(6, Math.round(canvasWidth * 0.01));
+        drawFittedLine(context, shareCta.prompt, centerX, headerLayout.textY, {
+            fontFamily: ctaFontFamily,
+            maxWidth: canvasWidth * 0.9,
+            baseSize: headerLayout.textSize,
+            minSize: 12,
+            color: 'white',
+        });
+    }
+
+    if (tailingCard && shareCta) {
         const centerX = Math.floor(canvasWidth / 2);
         const maxWidth = canvasWidth * 0.9;
-        // Include Bengali-capable families so Bengali copy does not fall through
-        // to an arbitrary system font with different metrics.
-        const fontFamily = '"Plus Jakarta Sans", "Noto Sans Bengali", "Bangla Sangam MN", "Nirmala UI", sans-serif';
-
         context.textAlign = 'center';
         context.textBaseline = 'middle';
         context.shadowColor = 'rgba(0, 0, 0, 0.8)';
         context.shadowBlur = Math.max(8, Math.round(canvasWidth * 0.012));
-
-        if (headlineBlock) {
-            // Centre the headline in the top-quarter band that remains below the
-            // decorative header, so the two never collide. The lower bound keeps
-            // the headline's ink below the header even when the remaining band is
-            // shallow (short/landscape canvases). With no header loaded this is
-            // the original top-25% band (centre at 0.125 × height).
-            const baseHeadlineSize = Math.round(canvasWidth * 0.055);
-            const lineGap = Math.round(canvasHeight * 0.045);
-            const bandTop = Math.max(0, headerBottom);
-            const bandBottom = canvasHeight * 0.25;
-            const centeredY = bandTop + (bandBottom - bandTop) / 2;
-            const clearsHeaderY = bandTop + lineGap / 2 + baseHeadlineSize / 2 + 8;
-            const bandCenterY = Math.max(centeredY, clearsHeaderY);
-            const headlineSize = drawFittedLine(context, shareCta.headline, centerX, bandCenterY - lineGap / 2, {
-                fontFamily, maxWidth, baseSize: baseHeadlineSize, color: 'white'
-            });
-            drawFittedLine(context, shareCta.url, centerX, bandCenterY + lineGap / 2, {
-                fontFamily, maxWidth, baseSize: Math.round(headlineSize * 0.9), color: 'yellow'
-            });
-        }
-
-        if (tailingCard) {
-            const lineGap = Math.round(canvasHeight * 0.06);
-            const centerY = canvasHeight * 0.5;
-            const prefixSize = drawFittedLine(context, shareCta.deadlinePrefix, centerX, centerY - lineGap, {
-                fontFamily, maxWidth, baseSize: Math.round(canvasWidth * 0.06), color: 'white'
-            });
-            drawFittedLine(context, shareCta.deadline, centerX, centerY, {
-                fontFamily, maxWidth, baseSize: Math.round(prefixSize * 0.85), color: 'white'
-            });
-            drawFittedLine(context, shareCta.url, centerX, centerY + lineGap, {
-                fontFamily, maxWidth, baseSize: Math.round(prefixSize * 0.95), color: 'yellow'
-            });
-        }
+        const lineGap = Math.round(canvasHeight * 0.06);
+        const centerY = canvasHeight * 0.5;
+        const prefixSize = drawFittedLine(context, shareCta.deadlinePrefix, centerX, centerY - lineGap, {
+            fontFamily: ctaFontFamily, maxWidth, baseSize: Math.round(canvasWidth * 0.06), color: 'white'
+        });
+        drawFittedLine(context, shareCta.deadline, centerX, centerY, {
+            fontFamily: ctaFontFamily, maxWidth, baseSize: Math.round(prefixSize * 0.85), color: 'white'
+        });
+        drawFittedLine(context, shareCta.url, centerX, centerY + lineGap, {
+            fontFamily: ctaFontFamily, maxWidth, baseSize: Math.round(prefixSize * 0.95), color: 'yellow'
+        });
     }
 
     // Unpack subtitle — support legacy string and new { en, translation } object
@@ -1463,7 +1469,7 @@ export async function exportSegmentsToR2(lessonId, segments = [], stitchedBlob =
         const video = getOrCreateExportVideoElement();
         const profileImage = await loadProfileImage();
         const overlayImage = new Image();
-        overlayImage.src = headerImg;
+        overlayImage.src = videoHeaderImg;
         fallback = { audioContext, video, profileImage, overlayImage };
         return fallback;
     };

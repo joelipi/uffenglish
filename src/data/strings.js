@@ -1702,6 +1702,16 @@ const strings = {
         hi: "मेरे साथ मुफ़्त अंग्रेज़ी प्रैक्टिस करें",
         bn: "আমার সাথে ফ্রি ইংরেজি প্র্যাকটিস করুন"
     },
+    // Prompt burned directly under the video header banner: the share code is
+    // appended after it (e.g. "Enter share code: bfy9h").
+    'share_code_prompt': {
+        en: "Enter share code:",
+        es: "Ingresa el código para compartir:",
+        pt: "Digite o código de compartilhamento:",
+        fr: "Entrez le code de partage :",
+        hi: "शेयर कोड दर्ज करें:",
+        bn: "শেয়ার কোড লিখুন:"
+    },
     'share_cta_deadline': {
         en: "Practice English with me free before",
         es: "Practica inglés conmigo gratis antes del",

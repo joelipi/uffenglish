@@ -204,22 +204,43 @@ describe('video-processor.web.js recap wiring guard', () => {
         );
         // The old natural-size / clipped draw must be gone.
         expect(block).not.toMatch(/drawImage\(overlayImage,\s*x,\s*0\)/);
-        // And the header bottom must be handed to the overlay so text clears it.
-        expect(block).toMatch(/drawTextOverlay\([\s\S]*headerLayout\?\.height \|\| 0/);
+        // The whole header layout is handed to the overlay so the prompt can sit
+        // directly beneath the banner.
+        expect(block).toMatch(/drawTextOverlay\([\s\S]*overlayVariant, shareCta, headerLayout\s*\)/);
     });
 
-    it('places the share headline below the header, never over it', () => {
-        // The header and the share headline share the top of the frame; the
-        // headline band must start below the drawn header.
-        expect(source).toMatch(/shareCta = null, headerBottom = 0\)/);
-        const start = source.indexOf('if (headlineBlock) {');
-        const end = source.indexOf('if (tailingCard) {');
+    it('paints the header band with a 100% opaque gradient before the banner', () => {
+        const start = source.indexOf('const headerLayout = overlayImage?.complete');
+        const end = source.indexOf('if (displayCanvas)', start);
+        const block = source.slice(start, end);
+        expect(block).toMatch(/createLinearGradient\(0, 0, 0, headerLayout\.headerBottom\)/);
+        expect(block).toMatch(/addColorStop\(0, HEADER_GRADIENT_TOP\)/);
+        expect(block).toMatch(/addColorStop\(1, HEADER_GRADIENT_BOTTOM\)/);
+        // Opaque fills, not the translucent water alphas.
+        expect(source).toMatch(/const HEADER_GRADIENT_TOP = '#3a8fd5'/);
+        expect(source).toMatch(/const HEADER_GRADIENT_BOTTOM = '#00c0d8'/);
+        expect(block).toMatch(/ctx\.fillRect\(0, 0, canvas\.width, headerLayout\.headerBottom\)/);
+    });
+
+    it('draws the share-code prompt directly under the banner, never over it', () => {
+        // The prompt is positioned from the shared layout's textY (which is the
+        // banner bottom + gap), not an overlapping fixed band.
+        expect(source).toMatch(/shareCta = null, headerLayout = null\)/);
+        const start = source.indexOf('if (headlineBlock && shareCta && headerLayout) {');
+        const end = source.indexOf('if (tailingCard && shareCta) {');
         expect(start).toBeGreaterThan(-1);
         expect(end).toBeGreaterThan(start);
-        const headlineBlock = source.slice(start, end);
-        expect(headlineBlock).toMatch(/const bandTop = Math\.max\(0, headerBottom\)/);
-        expect(headlineBlock).toMatch(/Math\.max\(centeredY, clearsHeaderY\)/);
-        // The band must be anchored below the header, not at the fixed 0.125.
-        expect(headlineBlock).not.toMatch(/bandCenterY = canvasHeight \* 0\.125/);
+        const promptBlock = source.slice(start, end);
+        expect(promptBlock).toMatch(/headerLayout\.textY/);
+        expect(promptBlock).toMatch(/shareCta\.prompt/);
+        // The old fixed-band headline placement must be gone.
+        expect(source).not.toMatch(/bandCenterY = canvasHeight \* 0\.125/);
+        expect(source).not.toMatch(/shareCta\.headline/);
+    });
+
+    it('uses the video-only header asset, not the website header', () => {
+        expect(source).toMatch(/import videoHeaderImg from '\.\.\/\.\.\/assets\/img\/video-header\.png'/);
+        expect(source).not.toMatch(/assets\/img\/header\.png/);
+        expect((source.match(/overlayImage\.src = videoHeaderImg;/g) || [])).toHaveLength(2);
     });
 });

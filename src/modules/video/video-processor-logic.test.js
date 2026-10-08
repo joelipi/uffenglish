@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { VideoRenderPlanner, resolveRecapOverlay, resolveRecapSources, isDroppedStep, markFirstRenderable, resolveSegmentBounds, UNRESOLVED_SEGMENT_CAP_MS, STALL_GRACE_MS, resolvePublishLessonId, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges, resolveHeaderLayout, HEADER_MAX_HEIGHT_PX, MIN_SEGMENT_SECONDS, MAX_CALIBRATION_OFFSET_SEC } from './video-processor-logic.js';
+import { VideoRenderPlanner, resolveRecapOverlay, resolveRecapSources, isDroppedStep, markFirstRenderable, resolveSegmentBounds, UNRESOLVED_SEGMENT_CAP_MS, STALL_GRACE_MS, resolvePublishLessonId, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges, resolveHeaderLayout, HEADER_BAND_RATIO, HEADER_GAP_RATIO, HEADER_TEXT_LINE_RATIO, MIN_SEGMENT_SECONDS, MAX_CALIBRATION_OFFSET_SEC } from './video-processor-logic.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '../../..');
@@ -1034,47 +1034,66 @@ describe('video-processor-logic.js platform-agnostic guard', () => {
 describe('resolveHeaderLayout', () => {
     const HEADER = { naturalWidth: 1600, naturalHeight: 300 };
 
-    it('fits the wide header to the canvas width and centres it', () => {
-        // Portrait recap canvas: the 1600px-wide art must be scaled down to the
-        // canvas so its sides are never clipped, and centred inside it.
-        const layout = resolveHeaderLayout({ ...HEADER, canvasWidth: 720, canvasHeight: 1280 });
-
-        expect(layout.width).toBe(720);
-        expect(layout.x).toBe(0);
-        expect(layout.width).toBeLessThanOrEqual(720);
-        expect(layout.x + layout.width).toBeLessThanOrEqual(720);
-        expect(layout.height).toBeLessThanOrEqual(HEADER_MAX_HEIGHT_PX);
+    it('pins the header band to 18% of the frame', () => {
+        expect(HEADER_BAND_RATIO).toBe(0.18);
     });
 
-    it('caps the height at HEADER_MAX_HEIGHT_PX and stays centred on a wide canvas', () => {
-        const layout = resolveHeaderLayout({ ...HEADER, canvasWidth: 1080, canvasHeight: 1920 });
-
-        expect(layout.height).toBe(HEADER_MAX_HEIGHT_PX);
-        expect(Math.abs(layout.x - (1080 - layout.width) / 2)).toBeLessThanOrEqual(1);
-        expect(layout.y).toBe(0);
-        // The width that preserves aspect at the capped height must still fit.
-        expect(layout.width).toBeLessThanOrEqual(1080);
+    it('keeps the whole header (banner + prompt) within the top 18% band', () => {
+        const sizes = [
+            [720, 1280], [1080, 1920], [1920, 1080], [608, 1080], [3840, 2160],
+        ];
+        for (const [canvasWidth, canvasHeight] of sizes) {
+            const layout = resolveHeaderLayout({ ...HEADER, canvasWidth, canvasHeight });
+            // Literal 0.18 (not the constant) so changing the ratio fails here.
+            expect(layout.headerBottom).toBeLessThanOrEqual(Math.round(canvasHeight * 0.18));
+            expect(layout.headerBottom).toBeGreaterThan(0);
+        }
     });
 
-    it('never overflows the canvas or the top band for any canvas size', () => {
+    it('never overflows the canvas width and centres the banner', () => {
         const sizes = [
             [720, 1280], [1080, 1920], [1920, 1080], [608, 1080], [3840, 2160],
         ];
         for (const [canvasWidth, canvasHeight] of sizes) {
             const layout = resolveHeaderLayout({ ...HEADER, canvasWidth, canvasHeight });
             expect(layout.width).toBeLessThanOrEqual(canvasWidth);
-            expect(layout.height).toBeLessThanOrEqual(HEADER_MAX_HEIGHT_PX);
-            expect(layout.height).toBeLessThanOrEqual(canvasHeight);
             expect(layout.x).toBeGreaterThanOrEqual(0);
             expect(layout.x + layout.width).toBeLessThanOrEqual(canvasWidth);
+            expect(Math.abs(layout.x - (canvasWidth - layout.width) / 2)).toBeLessThanOrEqual(1);
             expect(layout.y).toBe(0);
         }
     });
 
-    it('preserves the header aspect ratio', () => {
-        const layout = resolveHeaderLayout({ ...HEADER, canvasWidth: 500, canvasHeight: 500 });
+    it('puts the prompt directly below the banner, never overlapping it', () => {
+        for (const [canvasWidth, canvasHeight] of [[720, 1280], [1080, 1920], [1920, 1080]]) {
+            const layout = resolveHeaderLayout({ ...HEADER, canvasWidth, canvasHeight });
+            // textY starts at the banner's bottom edge plus a gap.
+            expect(layout.textY).toBeGreaterThan(layout.height);
+            expect(layout.textY).toBe(layout.height + Math.max(4, Math.round(canvasHeight * HEADER_GAP_RATIO)));
+            // And the prompt's line box still fits inside the band.
+            expect(layout.textY + Math.round(layout.textSize * HEADER_TEXT_LINE_RATIO))
+                .toBeLessThanOrEqual(layout.headerBottom);
+        }
+    });
+
+    it('shrinks the banner to make room for the prompt on a short/landscape canvas', () => {
+        // Width alone would make the banner 1920 wide (360 tall, >18% of 1080),
+        // so it must shrink to fit the band alongside the prompt.
+        const layout = resolveHeaderLayout({ ...HEADER, canvasWidth: 1920, canvasHeight: 1080 });
+        expect(layout.width).toBeLessThan(1920);
+        expect(layout.headerBottom).toBeLessThanOrEqual(Math.round(1080 * 0.18));
+    });
+
+    it('preserves the banner aspect ratio', () => {
+        const layout = resolveHeaderLayout({ ...HEADER, canvasWidth: 1080, canvasHeight: 1920 });
         const scale = layout.width / HEADER.naturalWidth;
         expect(layout.height).toBe(Math.round(HEADER.naturalHeight * scale));
+    });
+
+    it('lands in exactly the same spot for the same canvas size', () => {
+        const a = resolveHeaderLayout({ ...HEADER, canvasWidth: 1080, canvasHeight: 1920 });
+        const b = resolveHeaderLayout({ ...HEADER, canvasWidth: 1080, canvasHeight: 1920 });
+        expect(a).toEqual(b);
     });
 
     it('returns null when there is no drawable image or canvas', () => {
