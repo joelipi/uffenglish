@@ -960,10 +960,10 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
    Heavy blue veil over the video: the on-screen lesson clips now carry
    burnt-on captions, so the overlay must be opaque enough to hide them
    wherever the overlaid headline/buttons and choice labels sit (mostly the
-   lower half of the frame). The top stays the lightest so the video is still
-   faintly visible, but the gradient reaches full opacity by ~two-thirds down
-   and never falls below ~0.75 — a lighter ramp let the burnt captions show
-   through and collide with the overlay text.
+   lower half of the frame). The top is the lightest (roughly a quarter of the
+   video still shows through), but the gradient reaches full opacity by
+   ~two-thirds down and never falls below 0.75 — a lighter ramp let the burnt
+   captions show through and collide with the overlay text.
    `isolation: isolate` makes this element a stacking context so the shimmer
    below (`::before`, z-index -1) paints above this element's own water
    background but *behind* its content. Without it the absolutely-positioned
