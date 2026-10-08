@@ -56,6 +56,8 @@ Primary branch is `main`. Commits land on `main` directly, so once committed `ma
 
 Execute small, incremental changes and routine bug fixes immediately without asking for approval.
 
+**Never trigger CI workflows without a real need.** CI is for what only CI can do — not a test runner and not a "did it pass?" button. Run the checks locally (`npx vitest run`, `node scripts/run-python-tests.mjs`, `npx playwright test`, `npm run build`, `npm run lint`) instead of pushing to a workflow-wired branch or calling `gh workflow run`. Pushing `main` deploys production (`deploy.yml`) and runs caption generation (`captions.yml`, which commits back); pushing `staging` deploys staging. The `workflow_dispatch`-only workflows exist so they stay off routine pushes — dispatch one only when its specific output is the deliverable, never "just in case". Actions minutes cost money and a `main` run ships to users.
+
 ---
 
 ## 4. Testing & Console Monitoring

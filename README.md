@@ -98,6 +98,14 @@ production branch. `deploy-staging.yml` does the same for `staging` →
 `staging.uffenglish.pages.dev`. Posters come from the Modal render, so neither
 deploy installs ffmpeg or generates anything.
 
+**Don't use CI as a test runner.** Run the checks locally (`npm test -- --run`,
+`npx playwright test`, `npm run build`, `npm run lint`) before pushing; only
+trigger a workflow when that run's output is actually needed. Pushing `main`
+deploys production and generates captions; pushing `staging` deploys staging.
+The `workflow_dispatch` workflows (Playwright, pipeline, configs, sync-srt,
+translate-sheet) are deliberately off routine pushes — dispatch one only when
+required, never "just in case". Actions minutes cost money.
+
 **Auto captions for simple videos:** `scripts/generate-captions.mjs` (run by `.github/workflows/captions.yml` on every push) transcribes newly added `simpleVideoUrl` videos with local Whisper and translates the SRT to es/pt/fr/hi/bn via DeepSeek (`DEEPSEEK_API_KEY` secret), committing the captions back to the pushed branch. See `stories/009-auto-caption-simple-videos/story.md`.
 
 **Infra / operations docs:** `docs/cloudflare-video-cors.md` — Cloudflare Transform-Rule config that makes R2 videos/Whisper work on `s.` (COEP `credentialless` + ACAO/CORP on 206 range responses). If videos fail on `s.` but not localhost, read it first.

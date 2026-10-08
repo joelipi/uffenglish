@@ -89,3 +89,11 @@ Supabase's own email confirmation (`auth.email.enable_confirmations`) is all-or-
 
 Because 001/002 give `authenticated` table-level UPDATE on `user_profiles` plus an owner-update policy, the flag would otherwise be client-writable (a user could `PATCH` their own row with `email_confirmed: true` and forge the signal). A `before insert or update` trigger (`protect_email_confirmed`) rejects any `anon`/`authenticated` write to `email_confirmed`/`email_confirmed_at`; the RPC passes because a **SECURITY DEFINER** function runs with `current_user` = the function owner, not the Data API role. Use `current_user` (not `session_user`, which is `authenticator` for both paths) when a trigger must distinguish an RPC write from a PostgREST owner write. The token is single-use and the client must confirm exactly once — under React StrictMode a naive effect double-fires and the second RPC would find the token already burned, so memoize the in-flight promise per token.
 
+## Do not trigger CI workflows unless there is a real need
+
+GitHub Actions is for the work **only** CI can do, not for "seeing if it passes". Verify locally first — `npx vitest run` (unit), `node scripts/run-python-tests.mjs` (pipeline), `npx playwright test` (browser), `npm run build`, `npm run lint` — and only push to a workflow-wired branch (or dispatch a workflow) when that run's actual output is the deliverable.
+
+- Pushing `main` fires `deploy.yml` (production Cloudflare Pages deploy) **and** `captions.yml` (Whisper + DeepSeek transcription/translation, then a commit). Pushing `staging` fires `deploy-staging.yml`. Never push to those branches just to test, and never run `gh workflow run` "just in case".
+- `.github/workflows/playwright.yml`, `pipeline.yml`, `configs.yml`, `sync-srt.yml`, `translate-sheet.yml` and `deploy-staging.yml` are `workflow_dispatch` (or `workflow_call` from the one-click chain) precisely so they stay **off** routine pushes — keep it that way, and dispatch one only when its output is required (e.g. a render needs the sheet chain, or a newly added slug needs captions).
+- Every run burns Actions minutes; a run on `main` also ships to production. A redundant run is a cost, not a safety net. If a workflow genuinely must run, say why in the same message.
+
