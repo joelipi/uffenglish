@@ -155,3 +155,11 @@
 **Area**: workflow
 **What happened**: The story branch was pushed during planning, then `origin/main` advanced 4 commits. Because the branch was already pushed, the fix was `git merge origin/main` (not rebase). That merge pulled in a new "Logic lives in modules, never in components" standing rule, which the code reviewer then applied to inline `Array.isArray` / `length > 0` gates already written in the new components; extracting them into `*-logic.js` view-model builders resolved it.
 **Takeaway**: After `git merge origin/main` on a branch that has been open a while, diff the guidance files (`git diff ORIG_HEAD..HEAD -- AGENTS.md README.md docs/`) and re-read any new standing rules before running reviewers — a newly added convention can make pre-existing work non-compliant even though the feature itself did not change.
+
+---
+
+## The number-to-words util is vendored twice — fixing one copy leaves the other buggy
+**Date**: 2026-10-08
+**Area**: architecture
+**What happened**: Adding currency/magnitude normalization to `src/modules/bilingual/normalize.js` surfaced a bug in its inlined minified `number-to-words` blob: the billion/trillion/quadrillion branches divided by the *next* scale up (`t/y`, `t/c`, `t/g`) instead of their own (`t/b`, `t/y`, `t/c`), so `1000000000` normalized to `"zero billion"`. The identical library is embedded again in `src/modules/utils/idiom-normalizer.js` (used by `idiom-checker.js` / `idiom-worker.js`) with the same bug; only the `normalize.js` copy was fixed.
+**Takeaway**: The two copies are independent — a text/number-normalization fix in one does not reach the other. Before assuming a normalization change is complete, grep for a second vendored copy (`grep -rn 'number-to-words' src`), and remember tests that go through `normalize()` only pin the `normalize.js` copy.
