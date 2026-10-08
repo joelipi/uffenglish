@@ -41,12 +41,13 @@ describe('normalize', () => {
 
     it('should convert numbers to words', async () => {
         const result = await normalize('I have 5 apples and 42 oranges');
-        expect(result).toBe('i have five apples and forty oranges'); // numberToWords bug in this minified lib drops the ones place for two digit numbers 21-99
+        expect(result).toBe('i have five apples and forty two oranges');
     });
 
-    it('should convert numbers to words differently (forty-two vs forty two vs forty)', async () => {
-        const result = await normalize('42');
-        expect(result).toBe('forty');
+    it('should keep the ones place of two-digit numbers', async () => {
+        expect(await normalize('42')).toBe('forty two');
+        expect(await normalize('25')).toBe('twenty five');
+        expect(await normalize('99')).toBe('ninety nine');
     });
 
     it('should reduce successive repetitions of single words', async () => {
@@ -82,7 +83,15 @@ describe('normalize', () => {
     it('should keep the amount of a decimal currency value', async () => {
         expect(await normalize('$5.50')).toBe('five dollars fifty cents');
         expect(await normalize('5.50 dollars')).toBe('five dollars fifty cents');
-        expect(await normalize('$1,234.56')).toBe('one thousand two hundred thirty dollars fifty cents');
+        expect(await normalize('$1,234.56')).toBe('one thousand two hundred thirty four dollars fifty six cents');
+        // All-zero cents collapse to the bare amount ("$5.00" matches "$5").
+        expect(await normalize('$5.00')).toBe('five dollars');
+        expect(await normalize('$0.00')).toBe('zero dollars');
+    });
+
+    it('should keep the ones place of two-digit currency amounts', async () => {
+        expect(await normalize('$25')).toBe('twenty five dollars');
+        expect(await normalize('$255')).toBe('two hundred fifty five dollars');
     });
 
     it('should normalize cents and drop a zero whole part', async () => {
