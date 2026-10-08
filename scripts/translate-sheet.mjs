@@ -177,7 +177,7 @@ export async function runTranslateSheet({
         .filter((column) => !headerSet.has(column));
     if (missingColumns.length > 0) {
         const hint = missingColumns.some((c) => c.startsWith('srt_'))
-            ? ' (re-run scripts/seed-master-columns.mjs to add the srt_<lang> columns)'
+            ? ' (add the srt_<lang> columns to the sheet; scripts/seed-master-columns.mjs adds them to the overlay master)'
             : '';
         throw new Error(`sheet is missing target column(s): ${missingColumns.join(', ')}${hint}`);
     }
