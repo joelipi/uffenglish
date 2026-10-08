@@ -8,18 +8,18 @@ import { generateThumbFromBlob } from '../video/thumbnail.js';
 import { isIOS } from '../../utils/detectIOS.js';
 
 export const isWindows = navigator.platform.indexOf('Win') > -1;
-const isAndroid = /Android/i.test(navigator.userAgent);
 const canvasCaptureSupported = typeof HTMLCanvasElement !== 'undefined'
     && typeof HTMLCanvasElement.prototype.captureStream === 'function';
 
-// iOS and Android cameras already deliver a portrait frame, and their
-// MediaRecorder paths are fragile (they finally work — do not disturb them), so
-// they keep the raw camera stream. Everything else (Windows / macOS / Linux /
-// ChromeOS) has a 16:9 laptop camera, so we composite it into a real 9:16
-// canvas for both the preview and the recording; otherwise the captured clip
-// (and the recap canvas that mirrors it) came out landscape.
+// iOS cameras already deliver a portrait frame and their MediaRecorder path is
+// fragile (it finally works — do not disturb it), so iOS keeps the raw camera
+// stream. Every other platform (Windows / macOS / Linux / ChromeOS / Android)
+// has its camera composited into a real 9:16 canvas for both the preview and the
+// recording; otherwise the captured clip (and the recap canvas that mirrors it)
+// comes out at whatever aspect the camera hands back (often 16:9/4:3) rather
+// than Reels-size.
 export function shouldUsePortraitCapture() {
-    return !isIOS() && !isAndroid;
+    return !isIOS();
 }
 
 
@@ -220,9 +220,9 @@ async function ensureSpeechCamStream() {
         isPlaceholderStream = true;
     } else {
         const rawStream = await navigator.mediaDevices.getUserMedia(getMediaConstraints());
-        // Desktop (non-iOS/Android): wrap the 16:9 camera in a 9:16 canvas so the
-        // preview and recording are always Reels-size. iOS/Android keep the raw
-        // camera stream unchanged.
+        // Every platform except iOS wraps the camera in a 9:16 canvas so the
+        // preview and recording are always Reels-size. iOS keeps the raw camera
+        // stream unchanged (its MediaRecorder path is fragile).
         speechCamStream = shouldUsePortraitCapture() && canvasCaptureSupported
             ? createPortraitCaptureStream(rawStream)
             : rawStream;

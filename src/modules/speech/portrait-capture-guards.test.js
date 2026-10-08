@@ -1,11 +1,12 @@
-// Guards for the desktop 9:16 portrait-capture path (speech.web.js).
+// Guards for the 9:16 portrait-capture path (speech.web.js).
 //
-// iOS/Android cameras already yield a portrait frame and their MediaRecorder
-// paths are fragile and working — they must keep the raw camera stream. Every
-// other platform (Windows/macOS/Linux/ChromeOS) gets a 16:9 laptop camera, so
-// the stream is composited into a real 1080×1920 canvas for the preview and the
-// recording. These are source-shape guards because speech.web.js reads browser
-// globals at module load and cannot be imported in jsdom.
+// iOS cameras already yield a portrait frame and their MediaRecorder path is
+// fragile and working — iOS must keep the raw camera stream. Every other
+// platform (Windows/macOS/Linux/ChromeOS/Android) has a camera that may hand
+// back a non-9:16 frame, so the stream is composited into a real 1080×1920
+// canvas for the preview and the recording. These are source-shape guards
+// because speech.web.js reads browser globals at module load and cannot be
+// imported in jsdom.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -23,12 +24,14 @@ function functionBody(source, signature) {
     return next === -1 ? rest : rest.slice(0, next);
 }
 
-describe('desktop portrait capture (9:16)', () => {
-    it('gates the composite on a device check that excludes iOS and Android', () => {
+describe('portrait capture (9:16)', () => {
+    it('gates the composite on a device check that excludes iOS only', () => {
         expect(WEB).toMatch(/import \{ isIOS \} from '\.\.\/\.\.\/utils\/detectIOS\.js'/);
         const body = functionBody(WEB, 'export function shouldUsePortraitCapture()');
         expect(body).not.toBe('');
-        expect(body).toMatch(/return !isIOS\(\) && !isAndroid/);
+        expect(body).toMatch(/return !isIOS\(\)/);
+        // Android must no longer be excluded — it uses the same composite as desktop.
+        expect(body).not.toMatch(/isAndroid/);
     });
 
     it('builds a 1080×1920 canvas stream, centre-cropping the camera', () => {
@@ -48,7 +51,7 @@ describe('desktop portrait capture (9:16)', () => {
         expect(body).not.toBe('');
         expect(body).toMatch(/shouldUsePortraitCapture\(\)/);
         expect(body).toMatch(/createPortraitCaptureStream\(rawStream\)/);
-        // Mobile (false branch) keeps the raw stream.
+        // iOS (false branch) keeps the raw stream.
         expect(body).toMatch(/:\s*rawStream/);
     });
 
