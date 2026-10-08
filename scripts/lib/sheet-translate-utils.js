@@ -13,6 +13,11 @@
 // (see `srtGroupStates`). A hand-edit that keeps the cue count/timings is
 // still honored; a stale cell is flagged on the plan item and logged by the CLI,
 // so a re-translation is never silent.
+//
+// The staleness check compares cue COUNT and TIMINGS only. A re-render that
+// changes the English cue text but keeps the timings is NOT detected (there is
+// nowhere to store the English source the translation was made from); run the
+// CLI with `--force`, or clear the `srt_<lang>` cell, to retranslate it.
 
 import { parseSrt, validateTranslatedSrt } from './caption-utils.js';
 
@@ -243,13 +248,16 @@ function firstFilledRow(rows, indices, column) {
  * Yield one state per (srt step group, language): the group's row indices, the
  * first source-bearing row, the trimmed English `srt` cell, the language's
  * target cell name, the first row holding a stored translation, and whether that
- * translation is timing-current. The single walk shared by `planSrtItems` and
- * `countPresentSrt`, so the step keying and staleness rule live in one place.
+ * translation is `current` (its cue count and timings match the English). The
+ * single walk shared by `planSrtItems` and `countPresentSrt`, so the step keying
+ * and staleness rule live in one place.
  *
- * The generator reads trimmed values (`firstNonBlank`), so both the English and
- * the stored translation are trimmed here to match. `stepKey` mirrors the
- * generator's grouping: `join` else `video_file` on the overlay master, strictly
- * `video_file` on the authoring sheet.
+ * `current` is a timing check only — a text-only English change with unchanged
+ * timings reads as current (see the module header). The generator reads trimmed
+ * values (`firstNonBlank`), so both the English and the stored translation are
+ * trimmed here to match. `stepKey` mirrors the generator's grouping: `join` else
+ * `video_file` on the overlay master, strictly `video_file` on the authoring
+ * sheet.
  */
 function* srtGroupStates(rows, headers, languages, stepKey) {
     const groups = groupsForField(rows, headerSetOf(headers), 'step', { stepKey });
@@ -269,8 +277,10 @@ function* srtGroupStates(rows, headers, languages, stepKey) {
 
 /**
  * The plan items for the `srt` field. A stored `srt_<lang>` is re-planned when
- * its cue count/timings no longer match the current (re-rendered) English SRT.
- * A stale/forced translation is rewritten in place on the row the generator
+ * its cue count/timings no longer match the current (re-rendered) English SRT
+ * (a text-only English change with unchanged timings is not detected; `--force`
+ * retranslates). A stale/forced translation is rewritten in place on the row the
+ * generator
  * reads first (`targetIndex`), so the fresh value can never be shadowed by an
  * older one; a fresh translation lands on the step's first source-bearing row.
  * The `sourceText` is the unescaped English document (the CLI hands it straight
