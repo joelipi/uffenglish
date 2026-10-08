@@ -1013,3 +1013,26 @@ describe('docs/video-pipeline/sample-sheet.csv round-trip', () => {
         expect(branchIndex + 2 + mountain.nextStep).toBe(successIndex);
     });
 });
+
+describe('publishLessonId (responders become challengers)', () => {
+    it('emits publishLessonId from publish_lesson_id (master and authoring)', () => {
+        const master = buildSteps([{
+            video_file: 'q', filename: 'q1', order: '1', response_type: 'friendClosedResponse',
+            phrase: 'Would you rather A or B?', publish_lesson_id: 'a',
+        }], { master: true });
+        expect(master[0].publishLessonId).toBe('a');
+
+        const authoring = buildSteps([{
+            video_file: 'q', filename: 'q1', order: '1', response_type: 'friendClosedResponse',
+            cue: 'Would you rather A or B?', publish_lesson_id: 'a',
+        }]);
+        expect(authoring[0].publishLessonId).toBe('a');
+    });
+
+    it('omits publishLessonId when publish_lesson_id is blank', () => {
+        const step = buildSteps([{
+            video_file: 'q', filename: 'q1', order: '1', response_type: 'friendClosedResponse', cue: 'Q',
+        }])[0];
+        expect(step).not.toHaveProperty('publishLessonId');
+    });
+});

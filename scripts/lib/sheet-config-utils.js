@@ -489,6 +489,8 @@ function buildMasterSteps(lessonRows) {
         if (chooseStep !== undefined) step.chooseStep = chooseStep;
         const nextStep = nextStepFor(stepRows, key);
         if (nextStep !== undefined) step.nextStep = nextStep;
+        const publishLessonId = singleValue(stepRows, 'publish_lesson_id', `video_file "${key}"`);
+        if (publishLessonId) step.publishLessonId = publishLessonId;
         const subtitles = masterSubtitlesFor(stepRows);
         if (subtitles !== undefined) step.subtitles = subtitles;
         steps.push(step);
@@ -556,6 +558,8 @@ function buildAuthoringSteps(lessonRows) {
         if (chooseStep !== undefined) step.chooseStep = chooseStep;
         const nextStep = nextStepFor(groupRows, videoFile);
         if (nextStep !== undefined) step.nextStep = nextStep;
+        const publishLessonId = singleValue(groupRows, 'publish_lesson_id', `video_file "${videoFile}"`);
+        if (publishLessonId) step.publishLessonId = publishLessonId;
         const subtitles = subtitlesFor(groupRows);
         if (subtitles !== undefined) step.subtitles = subtitles;
 
