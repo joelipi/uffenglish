@@ -4,6 +4,9 @@ import { remoteSource } from './video-source.js';
 
 export const TEXT_MODE_DURATION_MS = 3000;
 
+// How long the final tailing freeze-frame (fluency card / share CTA) is held.
+export const TAILING_DURATION_MS = 2000;
+
 // Anti-freeze bound for a segment whose media length could not be resolved by
 // either the <video> element or the container probe. A corrupt/unreadable blob
 // should not occur for a valid MediaRecorder recording, so this is only a last
@@ -92,7 +95,7 @@ export function buildShareDeadline(nowMs, nativeLanguage) {
  *
  * - fluencyCard: the legacy CALCULATING FLUENCY / FLUENCY SCORE card
  * - headlineBlock: the 2-line share headline shown for the whole recap
- * - tailingCard: the 3-line CTA card shown during the tailing freeze-frame
+ * - tailingCard: the 2-line deadline card shown during the tailing freeze-frame
  *
  * `variant` is the lesson's resolved `recapOverlay` ('fluency' | 'shareCta' |
  * 'none'); unknown values fall through to the fluency branch.
@@ -448,7 +451,7 @@ export class VideoRenderPlanner {
         const tailingLesson = this.recordings.length ? this._getLesson(this.recordings[0]) : null;
         plan.push({
             type: 'tailing',
-            durationMs: 4000,
+            durationMs: TAILING_DURATION_MS,
             fluencyData: this.fluencyData,
             variant: resolveRecapOverlay(tailingLesson),
             shareCode: this.shareCode

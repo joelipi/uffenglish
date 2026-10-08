@@ -6,7 +6,7 @@ import { shareVideo } from './video-share.js';
 import { appStore } from '../store/store.js';
 import videoHeaderImg from '../../assets/img/video-header.png';
 import { getVideoUrl, getUgcThumbKey, getCompleteVideoKey } from './video-url.js';
-import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, buildShareUrl, buildShareDeadline, resolveOverlayElements, resolveHeaderLayout, isShareCtaEnabled, isDroppedStep, markFirstRenderable, resolveSegmentBounds, STALL_GRACE_MS, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges, SHARE_URL_BASE } from './video-processor-logic.js';
+import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, TAILING_DURATION_MS, buildShareDeadline, resolveOverlayElements, resolveHeaderLayout, isShareCtaEnabled, isDroppedStep, markFirstRenderable, resolveSegmentBounds, STALL_GRACE_MS, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges, SHARE_URL_BASE } from './video-processor-logic.js';
 import { remoteSource } from './video-source.js';
 import { DEFAULT_USER_AVATAR_URL } from '../user/tutor-config.js';
 import { getAvatarBlobUrl } from '../avatar/avatar.service.js';
@@ -188,7 +188,6 @@ function createVideoProcessor() {
                         prompt: `${Strings.get('share_code_prompt', userLang)} ${shareCode || SHARE_URL_BASE}`,
                         deadlinePrefix: Strings.get('share_cta_deadline', userLang),
                         deadline: buildShareDeadline(Date.now(), userLang),
-                        url: buildShareUrl(shareCode),
                     }
                     : null;
 
@@ -739,7 +738,7 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
 
             let shouldAdvance = false;
             if (isTailing) {
-                if (performance.now() - tailStart > 4000) finish();
+                if (performance.now() - tailStart > TAILING_DURATION_MS) finish();
             } else if (step.loadFailed) {
                 // The clip never loaded — advance instead of waiting forever.
                 shouldAdvance = true;
@@ -1063,16 +1062,14 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
         context.textBaseline = 'middle';
         context.shadowColor = 'rgba(0, 0, 0, 0.8)';
         context.shadowBlur = Math.max(8, Math.round(canvasWidth * 0.012));
+        // Two lines, centred: "Respond before" / the formatted deadline.
         const lineGap = Math.round(canvasHeight * 0.06);
         const centerY = canvasHeight * 0.5;
-        const prefixSize = drawFittedLine(context, shareCta.deadlinePrefix, centerX, centerY - lineGap, {
+        const prefixSize = drawFittedLine(context, shareCta.deadlinePrefix, centerX, centerY - lineGap / 2, {
             fontFamily: ctaFontFamily, maxWidth, baseSize: Math.round(canvasWidth * 0.06), color: 'white'
         });
-        drawFittedLine(context, shareCta.deadline, centerX, centerY, {
+        drawFittedLine(context, shareCta.deadline, centerX, centerY + lineGap / 2, {
             fontFamily: ctaFontFamily, maxWidth, baseSize: Math.round(prefixSize * 0.85), color: 'white'
-        });
-        drawFittedLine(context, shareCta.url, centerX, centerY + lineGap, {
-            fontFamily: ctaFontFamily, maxWidth, baseSize: Math.round(prefixSize * 0.95), color: 'yellow'
         });
     }
 

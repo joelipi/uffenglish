@@ -21,12 +21,12 @@ const HEADLINES = {
 };
 
 const DEADLINES = {
-    en: 'Practice English with me free before',
-    es: 'Practica inglés conmigo gratis antes del',
-    pt: 'Pratique inglês comigo de graça antes de',
-    fr: "Pratique l'anglais avec moi gratuitement avant le",
-    hi: 'मेरे साथ मुफ़्त अंग्रेज़ी प्रैक्टिस करें — अंतिम तिथि:',
-    bn: 'আমার সাথে ফ্রি ইংরেজি প্র্যাকটিস করুন — শেষ তারিখ:',
+    en: 'Respond before',
+    es: 'Responde antes del',
+    pt: 'Responda antes de',
+    fr: 'Répondez avant le',
+    hi: 'इससे पहले जवाब दें:',
+    bn: 'এর আগে উত্তর দিন:',
 };
 
 const LOCALE_MAP = { en: 'en', es: 'es', pt: 'pt', fr: 'fr', hi: 'hi', bn: 'bn' };

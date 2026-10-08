@@ -1713,12 +1713,12 @@ const strings = {
         bn: "শেয়ার কোড লিখুন:"
     },
     'share_cta_deadline': {
-        en: "Practice English with me free before",
-        es: "Practica inglés conmigo gratis antes del",
-        pt: "Pratique inglês comigo de graça antes de",
-        fr: "Pratique l'anglais avec moi gratuitement avant le",
-        hi: "मेरे साथ मुफ़्त अंग्रेज़ी प्रैक्टिस करें — अंतिम तिथि:",
-        bn: "আমার সাথে ফ্রি ইংরেজি প্র্যাকটিস করুন — শেষ তারিখ:"
+        en: "Respond before",
+        es: "Responde antes del",
+        pt: "Responda antes de",
+        fr: "Répondez avant le",
+        hi: "इससे पहले जवाब दें:",
+        bn: "এর আগে উত্তর দিন:"
     },
     // Call to action shown on the success screen for friend-challenge lessons,
     // where only the Share button is offered.

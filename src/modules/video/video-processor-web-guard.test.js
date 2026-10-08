@@ -243,4 +243,23 @@ describe('video-processor.web.js recap wiring guard', () => {
         expect(source).not.toMatch(/assets\/img\/header\.png/);
         expect((source.match(/overlayImage\.src = videoHeaderImg;/g) || [])).toHaveLength(2);
     });
+
+    it('holds the tailing freeze-frame for 2s, shared with the planner', () => {
+        expect(source).toMatch(/performance\.now\(\) - tailStart > TAILING_DURATION_MS/);
+        expect(source).not.toMatch(/tailStart > 4000/);
+        expect(source).toMatch(/TAILING_DURATION_MS\b/);
+    });
+
+    it('renders the tailing card as two lines (prefix + deadline), never the URL', () => {
+        const start = source.indexOf('if (tailingCard && shareCta) {');
+        const end = source.indexOf('// Unpack subtitle', start);
+        expect(start).toBeGreaterThan(-1);
+        expect(end).toBeGreaterThan(start);
+        const card = source.slice(start, end);
+        expect(card).toMatch(/shareCta\.deadlinePrefix/);
+        expect(card).toMatch(/shareCta\.deadline\b/);
+        // The old third line (the URL) must be gone.
+        expect(card).not.toMatch(/shareCta\.url/);
+        expect((card.match(/drawFittedLine\(/g) || [])).toHaveLength(2);
+    });
 });

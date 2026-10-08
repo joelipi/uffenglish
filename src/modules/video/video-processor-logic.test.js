@@ -498,7 +498,7 @@ describe('VideoRenderPlanner.generatePlan — recapOverlay tailing variant', () 
         const tailing = planner.generatePlan().find(s => s.type === 'tailing');
 
         expect(tailing.variant).toBe('shareCta');
-        expect(tailing.durationMs).toBe(4000);
+        expect(tailing.durationMs).toBe(2000);
         expect(tailing.fluencyData).toBe(fluencyData);
         expect(tailing.shareCode).toBe('ab12');
     });
