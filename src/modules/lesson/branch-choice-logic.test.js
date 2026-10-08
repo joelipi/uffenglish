@@ -111,40 +111,33 @@ describe('resolveNextStepIndex', () => {
 });
 
 describe('formatBranchChoiceLabel', () => {
-    it('shows both lines when a localized value exists', () => {
-        expect(formatBranchChoiceLabel({ en: 'Yes', es: 'Sí' }, 'es')).toEqual({
+    it('shows both lines when a localized value exists and the step keeps English', () => {
+        expect(formatBranchChoiceLabel({ en: 'Yes', es: 'Sí' }, 'es', true)).toEqual({
             english: 'Yes', localized: 'Sí', lang: 'es', showEnglish: true,
         });
     });
 
+    it('honors the step-level showEnglish decision (translation only)', () => {
+        expect(formatBranchChoiceLabel({ en: 'Yes', es: 'Sí' }, 'es', false)).toEqual({
+            english: 'Yes', localized: 'Sí', lang: 'es', showEnglish: false,
+        });
+    });
+
     it('falls back to English only when the translation is absent', () => {
-        expect(formatBranchChoiceLabel({ en: 'Yes' }, 'es')).toEqual({
+        expect(formatBranchChoiceLabel({ en: 'Yes' }, 'es', true)).toEqual({
+            english: 'Yes', localized: null, lang: 'es', showEnglish: true,
+        });
+        // No translation to fall back to, so English stays even when the step
+        // decided to drop it everywhere else.
+        expect(formatBranchChoiceLabel({ en: 'Yes' }, 'es', false)).toEqual({
             english: 'Yes', localized: null, lang: 'es', showEnglish: true,
         });
     });
 
     it('falls back to English only for the English language', () => {
-        expect(formatBranchChoiceLabel({ en: 'Yes', es: 'Sí' }, 'en')).toEqual({
+        expect(formatBranchChoiceLabel({ en: 'Yes', es: 'Sí' }, 'en', true)).toEqual({
             english: 'Yes', localized: null, lang: 'en', showEnglish: true,
         });
-    });
-
-    it('drops English exactly one character over the cap', () => {
-        const atCap = {
-            en: 'a'.repeat(24),
-            es: 'b'.repeat(BRANCH_LABEL_CHAR_CAP - 24),
-        };
-        const overCap = {
-            en: 'a'.repeat(24),
-            es: 'b'.repeat(BRANCH_LABEL_CHAR_CAP - 24 + 1),
-        };
-        const capped = formatBranchChoiceLabel(atCap, 'es');
-        expect(capped.showEnglish).toBe(true);
-        expect(capped.localized).toBe(atCap.es);
-
-        const dropped = formatBranchChoiceLabel(overCap, 'es');
-        expect(dropped.showEnglish).toBe(false);
-        expect(dropped.localized).toBe(overCap.es);
     });
 });
 
@@ -171,6 +164,61 @@ describe('buildBranchChoiceView', () => {
             targetIndex: 4,
             label: { english: 'No', localized: null, lang: 'es', showEnglish: true },
         });
+    });
+
+    // The cap is decided once per step, not per label: the whole column either
+    // shows both languages or translation-only. A per-label decision is the bug
+    // this guards (one button bilingual, its neighbour translation-only).
+    const atCapText = () => ({
+        en: 'a'.repeat(24),
+        es: 'b'.repeat(BRANCH_LABEL_CHAR_CAP - 24),
+    });
+    const overCapText = () => ({
+        en: 'a'.repeat(24),
+        es: 'b'.repeat(BRANCH_LABEL_CHAR_CAP - 24 + 1),
+    });
+
+    it('shows both lines on every button when all labels fit the cap', () => {
+        const capStep = {
+            responseType: 'branching',
+            chooseStep: [
+                { nextStep: 1, text: atCapText() },
+                { nextStep: 2, text: atCapText() },
+            ],
+        };
+        const view = buildBranchChoiceView({ step: capStep, currentStepIndex: 0, stepCount: 4, lang: 'es' });
+        expect(view.choices.map((c) => c.label.showEnglish)).toEqual([true, true]);
+    });
+
+    it('drops English from every button when any label is over the cap', () => {
+        const mixedStep = {
+            responseType: 'branching',
+            chooseStep: [
+                { nextStep: 1, text: { en: 'Yes', es: 'Sí' } },
+                { nextStep: 2, text: overCapText() },
+            ],
+        };
+        const view = buildBranchChoiceView({ step: mixedStep, currentStepIndex: 0, stepCount: 4, lang: 'es' });
+        // The short label fits on its own, but the long sibling forces the whole
+        // step to translation-only so the buttons stay consistent.
+        expect(view.choices.map((c) => c.label.showEnglish)).toEqual([false, false]);
+        expect(view.choices[0].label.localized).toBe('Sí');
+        expect(view.choices[1].label.localized).toBe(overCapText().es);
+    });
+
+    it('keeps English-only on a button that has no translation even when a sibling is over the cap', () => {
+        const noTranslationStep = {
+            responseType: 'branching',
+            chooseStep: [
+                { nextStep: 1, text: { en: 'No' } },
+                { nextStep: 2, text: overCapText() },
+            ],
+        };
+        const view = buildBranchChoiceView({ step: noTranslationStep, currentStepIndex: 0, stepCount: 4, lang: 'es' });
+        expect(view.choices[0].label).toEqual({
+            english: 'No', localized: null, lang: 'es', showEnglish: true,
+        });
+        expect(view.choices[1].label.showEnglish).toBe(false);
     });
 
     it('sets showContinue when no valid choices resolve', () => {

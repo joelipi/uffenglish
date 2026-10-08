@@ -1,2 +1,15 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Images and fonts are binary and must never be line-ending normalized. A PNG
+# that goes through text conversion gets an extra CR before every LF, corrupting
+# its signature and chunk CRCs (see the header.png repair in docs/learnings.md).
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.avif binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary

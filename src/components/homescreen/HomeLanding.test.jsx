@@ -56,6 +56,16 @@ describe('HomeLanding', () => {
         expect(q('share-code-go').textContent).toBe('Ir');
     });
 
+    it('renders the UFF logo image in place of the text headline', () => {
+        render({ lang: 'es' });
+        const logo = q('home-logo');
+        expect(logo).not.toBeNull();
+        expect(logo.tagName).toBe('IMG');
+        expect(logo.getAttribute('alt')).toBe('Fluidez Ultra Rápida');
+        // The brand headline is now the image, so the title text is gone.
+        expect(container.textContent).not.toContain('Fluidez Ultra Rápida');
+    });
+
     it('updates the input value and calls onInputChange when typed into', () => {
         const onInputChange = vi.fn();
         render({ onInputChange });

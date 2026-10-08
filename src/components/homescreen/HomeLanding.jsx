@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import Strings from '../../data/strings.js';
 import LegalFooter from '../legal/LegalFooter.jsx';
+import headerLogo from '../../assets/img/uff-logo.png';
 
 // Public homepage: the friend-challenge entry. The only job is to accept a
 // friend's share code (or send the visitor into the Would You Rather ask
@@ -91,7 +92,12 @@ export default function HomeLanding({
     return (
         <div style={containerStyle}>
             <div style={topBarStyle}>
-                <span style={{ fontSize: '18px', fontWeight: 600 }}>{Strings.get('home_title', lang)}</span>
+                <img
+                    src={headerLogo}
+                    alt={Strings.get('home_title', lang)}
+                    data-testid="home-logo"
+                    style={{ height: '40px', width: 'auto', display: 'block', filter: 'drop-shadow(0 1px 1.5px rgba(0,0,0,0.35))' }}
+                />
                 <Link
                     to={isLoggedIn ? '/home' : '/login'}
                     data-testid="landing-account-link"

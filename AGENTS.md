@@ -57,6 +57,10 @@ Modal loads a function's **defining module** inside that function's container to
 
 `wrangler pages deploy` (`.github/workflows/deploy.yml`) applies `[vars]` from `wrangler.toml` and **drops dashboard plain-text variables not listed there** (dashboard *secrets* survive). So any non-secret Pages variable a Function reads — e.g. `MODAL_RENDER_URL` in `functions/api/pipeline/render.js` — must be in `wrangler.toml`'s `[vars]`, not only in the dashboard, or a deploy silently unsets it and the Function returns `500 "Modal env unset"`. Secrets (`OPERATOR_KEY`, `MODAL_PROXY_TOKEN_ID`/`_SECRET`) stay in the dashboard.
 
+## Pages custom domains and DNS are two independent steps
+
+A Pages custom domain can report `status: active` while its hostname still 522s: the custom-domain entry and the DNS record are separate. Adding a domain via the API (`POST /accounts/<acc>/pages/projects/<project>/domains`) does **not** create the DNS record (the dashboard does), so `ultrafastfluency.com`/`www` need a **proxied CNAME to `uffenglish.pages.dev`** (apex is CNAME-flattened) — never a leftover origin A record. A branch alias (`s.` → `staging.uffenglish.pages.dev`) likewise only works through a **proxied** record. Managing domains needs **Pages Write**; editing DNS needs zone **DNS Write** (`CF_TOKEN` has only DNS Read but `Account API Tokens Write`, so a short-lived DNS-write token is minted for the edit). The DeepSeek proxy is **not** on the Pages deploy path — deploy it after changing its CORS list. Full layout and procedures: `docs/deploy-environments.md`.
+
 ## Importable `scripts/*.mjs` must guard their `main()`
 
 A script module whose exports are imported (not only run as a CLI) must wrap its entrypoint:

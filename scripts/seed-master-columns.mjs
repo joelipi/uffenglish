@@ -19,7 +19,7 @@ import { flagValue } from './lib/cli-utils.js';
 import { parseCsv } from './lib/sheet-config-utils.js';
 import {
     SHEET_LANGUAGES,
-    TRANSLATABLE_FIELDS,
+    LOCALIZATION_FIELDS,
     localizedColumn,
 } from './lib/sheet-translate-utils.js';
 import { SHEET_URL } from './generate-config-from-sheet.mjs';
@@ -38,12 +38,13 @@ export const CONFIG_COLUMNS = [
     'unit', 'mission', 'recap_sources', 'recap_overlay', 'intro_video',
     'success_video', 'success_srt', 'success_srt_es', 'success_srt_pt',
     'success_srt_bn', 'srt', 'next_step', 'choose_step_next', 'choose_step_text',
+    'publish_lesson_id',
 ];
 
 // The localization targets every shared translatable field needs, so the seeded
 // master can be translated: without them the translator's `buildBatchUpdatePayload`
 // throws `column "<field>_<lang>" not found in headers`.
-export const LOCALIZATION_COLUMNS = TRANSLATABLE_FIELDS.flatMap((f) =>
+export const LOCALIZATION_COLUMNS = LOCALIZATION_FIELDS.flatMap((f) =>
     SHEET_LANGUAGES.map((lang) => localizedColumn(f.field, lang)));
 
 // Ask lessons a/c/e (single question videos) have no friend recap; answer

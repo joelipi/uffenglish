@@ -3,10 +3,13 @@ import { describe, it, expect } from 'vitest';
 import {
     SHEET_LANGUAGES,
     TRANSLATABLE_FIELDS,
+    LOCALIZATION_FIELDS,
     LINE_PAIRED_FIELDS,
     isLinePairedField,
     localizedColumn,
     groupCueAltLines,
+    validateSrtCell,
+    validateSrtDocument,
     planSheetTranslations,
     countPresentTranslations,
     columnLetter,
@@ -20,7 +23,7 @@ describe('column contract', () => {
         expect(SHEET_LANGUAGES).toEqual(['es', 'pt', 'bn']);
     });
 
-    it('maps exactly the seven translatable sources (21 columns)', () => {
+    it('maps exactly the seven generic translatable sources (21 columns)', () => {
         expect(TRANSLATABLE_FIELDS.map((f) => f.source)).toEqual([
             'lesson_title', 'mission', 'cue', 'cue_alt', 'choose_step_text', 'subtitle_text', 'phrase',
         ]);
@@ -31,6 +34,19 @@ describe('column contract', () => {
         expect(cols).toContain('choose_step_text_es');
         expect(cols).toContain('subtitle_text_bn');
         expect(cols).toContain('phrase_es');
+    });
+
+    it('LOCALIZATION_FIELDS adds srt to the generic fields (24 columns total)', () => {
+        expect(LOCALIZATION_FIELDS).toHaveLength(TRANSLATABLE_FIELDS.length + 1);
+        expect(LOCALIZATION_FIELDS.map((f) => f.field)).toContain('srt');
+        const cols = LOCALIZATION_FIELDS.flatMap((f) =>
+            SHEET_LANGUAGES.map((l) => localizedColumn(f.field, l)));
+        expect(cols).toHaveLength(24);
+        expect(cols).toContain('srt_bn');
+    });
+
+    it('treats srt as a step field that is not line-paired', () => {
+        expect(isLinePairedField('srt')).toBe(false);
     });
 
     it('marks cue_alt and choose_step_text as line-paired step fields', () => {
@@ -170,13 +186,15 @@ describe('planSheetTranslations', () => {
         expect(plan.map((p) => `${p.row}:${p.column}`)).toEqual(['0:lesson_title_es', '0:cue_es']);
     });
 
-    it('does not plan subtitle_text when the group has srt (srt wins)', () => {
-        const headers = ['course_id', 'lesson_id', 'video_file', 'subtitle_text', 'subtitle_text_es', 'srt'];
+    it('plans srt (not subtitle_text) when the group has srt (srt wins)', () => {
+        const headers = ['course_id', 'lesson_id', 'video_file', 'subtitle_text', 'subtitle_text_es', 'srt', 'srt_es'];
         const rows = [{
             course_id: 'c', lesson_id: 'a', video_file: 'v',
-            subtitle_text: 'Hi', subtitle_text_es: '', srt: '1\\n00:00 --> 00:01\\nHi',
+            subtitle_text: 'Hi', subtitle_text_es: '', srt: '1\\n00:00 --> 00:01\\nHi', srt_es: '',
         }];
-        expect(planSheetTranslations({ rows, headers, languages: ['es'] })).toEqual([]);
+        const plan = planSheetTranslations({ rows, headers, languages: ['es'] });
+        expect(plan.map((p) => p.column)).toEqual(['srt_es']);
+        expect(plan.some((p) => p.field === 'subtitle_text')).toBe(false);
     });
 
     it('emits one cue_alt item per source-bearing row of the group', () => {
@@ -271,6 +289,139 @@ describe('phrase and master-format planning', () => {
         const rows = [{ course_id: 'c', lesson_id: 'a', video_file: 'v', subtitle_text: 'Hi', subtitle_text_es: '' }];
         const plan = planSheetTranslations({ rows, headers, languages: ['es'] });
         expect(plan.map((p) => p.column)).toEqual(['subtitle_text_es']);
+    });
+});
+
+// Story 056: the pipeline's `srt` column is translated cue-text-only into
+// `srt_<lang>` (timings preserved by translateSrt). It is a step-level field
+// keyed by the generator's step key (`join` else `video_file`), so a joined step
+// is planned once.
+describe('validateSrtCell', () => {
+    const english = '1\\n00:00:00,000 --> 00:00:01,000\\nHi';
+
+    it('accepts a translation that preserves cues and timings (after unescaping)', () => {
+        expect(validateSrtCell(english, '1\n00:00:00,000 --> 00:00:01,000\nHola')).toEqual({ ok: true });
+    });
+
+    it('rejects a translation with different cue count/timings', () => {
+        expect(validateSrtCell(english, '1\n00:00:00,000 --> 00:00:09,000\nHola').ok).toBe(false);
+    });
+
+    it('rejects an empty or unparseable English SRT (never a vacuous pass)', () => {
+        expect(validateSrtCell('', 'anything').ok).toBe(false);
+        expect(validateSrtCell('not an srt', 'also not an srt').ok).toBe(false);
+        expect(validateSrtCell('', '').reason).toMatch(/no parseable cues/);
+    });
+
+    it('validateSrtDocument applies the same rule to literal documents (the translator path)', () => {
+        const literal = '1\n00:00:00,000 --> 00:00:01,000\nHi';
+        expect(validateSrtDocument(literal, '1\n00:00:00,000 --> 00:00:01,000\nHola')).toEqual({ ok: true });
+        expect(validateSrtDocument('not an srt', 'also not an srt').ok).toBe(false);
+        expect(validateSrtDocument(literal, 'not an srt').ok).toBe(false);
+    });
+});
+
+describe('srt planning', () => {
+    // A master header (the `phrase` column marks the shape) so `join` grouping
+    // applies; the authoring shape groups by `video_file` only.
+    const headers = ['course_id', 'lesson_id', 'video_file', 'join', 'phrase', 'srt', 'srt_es'];
+    const escaped = '1\\n00:00:00,000 --> 00:00:01,000\\nHi';
+    const literal = '1\n00:00:00,000 --> 00:00:01,000\nHi';
+    const translated = '1\n00:00:00,000 --> 00:00:01,000\nHola';
+
+    it('plans srt_<lang> once per step group, unescaping the English source', () => {
+        const rows = [{ course_id: 'c', lesson_id: 'a', video_file: 'v', join: '', srt: escaped }];
+        const plan = planSheetTranslations({ rows, headers, languages: ['es'] });
+        expect(plan).toHaveLength(1);
+        expect(plan[0]).toMatchObject({
+            row: 0, column: 'srt_es', sourceColumn: 'srt', sourceText: literal, lang: 'es', field: 'srt',
+        });
+    });
+
+    it('skips a stored srt_<lang> whose timings match the English SRT (idempotent)', () => {
+        const rows = [{ course_id: 'c', lesson_id: 'a', video_file: 'v', join: '', srt: escaped, srt_es: translated }];
+        expect(planSheetTranslations({ rows, headers, languages: ['es'] })).toEqual([]);
+        expect(countPresentTranslations({ rows, headers, languages: ['es'] })).toEqual({ es: 1 });
+        expect(planSheetTranslations({ rows, headers, languages: ['es'], force: true }).map((p) => p.column))
+            .toEqual(['srt_es']);
+    });
+
+    it('re-plans a stored srt_<lang> whose timings drifted, marking it stale and rewriting in place', () => {
+        // The pipeline rewrote `srt` with new timings; the old translation is stale.
+        const rows = [{
+            course_id: 'c', lesson_id: 'a', video_file: 'v', join: '',
+            srt: '1\\n00:00:00,000 --> 00:00:09,000\\nHi', srt_es: translated,
+        }];
+        const plan = planSheetTranslations({ rows, headers, languages: ['es'] });
+        expect(plan).toHaveLength(1);
+        expect(plan[0]).toMatchObject({ row: 0, column: 'srt_es', stale: true });
+        // A stale cell is not counted as already present (it will be refilled).
+        expect(countPresentTranslations({ rows, headers, languages: ['es'] })).toEqual({ es: 0 });
+    });
+
+    it('rewrites a stale srt_<lang> on the row the generator reads first, not the source row', () => {
+        // Target on an earlier row than the English source: the generator's
+        // firstNonBlank reads row 0, so the fresh value must land there.
+        const rows = [
+            { course_id: 'c', lesson_id: 'a', video_file: 'v', join: '', srt: '', srt_es: translated },
+            { course_id: 'c', lesson_id: 'a', video_file: 'v', join: '', srt: '1\\n00:00:00,000 --> 00:00:09,000\\nHi', srt_es: '' },
+        ];
+        const plan = planSheetTranslations({ rows, headers, languages: ['es'] });
+        expect(plan).toHaveLength(1);
+        expect(plan[0]).toMatchObject({ row: 0, column: 'srt_es', stale: true, sourceText: '1\n00:00:00,000 --> 00:00:09,000\nHi' });
+    });
+
+    it('re-plans a stored srt_<lang> whose cue count drifted', () => {
+        const rows = [{
+            course_id: 'c', lesson_id: 'a', video_file: 'v', join: '',
+            srt: '1\\n00:00:00,000 --> 00:00:01,000\\nHi\\n\\n2\\n00:00:01,000 --> 00:00:02,000\\nThere', srt_es: translated,
+        }];
+        expect(planSheetTranslations({ rows, headers, languages: ['es'] }).map((p) => p.column)).toEqual(['srt_es']);
+    });
+
+    it('plans srt for a master join-only row (blank video_file), matching the generator', () => {
+        const rows = [{ course_id: 'c', lesson_id: 'a', video_file: '', join: 'J', srt: escaped }];
+        const plan = planSheetTranslations({ rows, headers, languages: ['es'] });
+        expect(plan.map((p) => `${p.row}:${p.column}`)).toEqual(['0:srt_es']);
+    });
+
+    it('groups a joined step by join so its shared SRT is planned once', () => {
+        const rows = [
+            { course_id: 'c', lesson_id: 'a', video_file: 'b_i', join: 'J', srt: escaped },
+            { course_id: 'c', lesson_id: 'a', video_file: 'b_ii', join: 'J', srt: escaped },
+        ];
+        const plan = planSheetTranslations({ rows, headers, languages: ['es'] });
+        expect(plan.map((p) => `${p.row}:${p.column}`)).toEqual(['0:srt_es']);
+    });
+
+    it('groups by video_file on an authoring sheet (no phrase header)', () => {
+        const authoringHeaders = ['course_id', 'lesson_id', 'video_file', 'srt', 'srt_es'];
+        const rows = [
+            { course_id: 'c', lesson_id: 'a', video_file: 'v1', srt: escaped },
+            { course_id: 'c', lesson_id: 'a', video_file: 'v2', srt: escaped },
+        ];
+        const plan = planSheetTranslations({ rows, headers: authoringHeaders, languages: ['es'] });
+        expect(plan.map((p) => `${p.row}:${p.column}`)).toEqual(['0:srt_es', '1:srt_es']);
+    });
+
+    it('ignores a stray join column on an authoring sheet (matches the authoring generator)', () => {
+        // The authoring generator groups strictly by video_file, so the planner
+        // must not merge two video_files that happen to share a `join` value.
+        const authoringWithJoin = ['course_id', 'lesson_id', 'video_file', 'join', 'srt', 'srt_es'];
+        const rows = [
+            { course_id: 'c', lesson_id: 'a', video_file: 'v1', join: 'J', srt: escaped },
+            { course_id: 'c', lesson_id: 'a', video_file: 'v2', join: 'J', srt: escaped },
+        ];
+        const plan = planSheetTranslations({ rows, headers: authoringWithJoin, languages: ['es'] });
+        expect(plan.map((p) => `${p.row}:${p.column}`)).toEqual(['0:srt_es', '1:srt_es']);
+    });
+
+    it('counts a joined step srt_<lang> once', () => {
+        const rows = [
+            { course_id: 'c', lesson_id: 'a', video_file: 'b_i', join: 'J', srt: escaped, srt_es: translated },
+            { course_id: 'c', lesson_id: 'a', video_file: 'b_ii', join: 'J', srt: escaped },
+        ];
+        expect(countPresentTranslations({ rows, headers, languages: ['es'] })).toEqual({ es: 1 });
     });
 });
 

@@ -652,11 +652,32 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     width: 100%;
     padding: 8px 10px;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.16);
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    color: #ffffff;
+    background: #ffffff;
+    border: 1px solid #ffffff;
+    color: #000000;
     font-weight: 700;
-    text-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
+    /* Match the Replay/Tutorial call buttons' edge. */
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+/* Pin the interaction states to solid white/black. These selectors have the
+   same specificity (0,2,0) as `.btn:hover`/`.btn:active` and win by source
+   order, so the Bootstrap theme variables cannot repaint the button. */
+.branch-choice-btn:hover,
+.branch-choice-btn:active {
+    background: #ffffff;
+    border-color: #ffffff;
+    color: #000000;
+}
+/* `.btn:focus-visible` zeroes the outline, so the keyboard focus cue has to be
+   restored here. A white outline offset off the white button (with a thin black
+   shadow) stays visible on the dark lesson video. */
+.branch-choice-btn:focus-visible {
+    background: #ffffff;
+    border-color: #ffffff;
+    color: #000000;
+    outline: 3px solid #ffffff;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 1px #000000;
 }
 .branch-choice-btn .branch-choice-label-en {
     display: block;
@@ -983,6 +1004,17 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     align-items: center;
     animation: riseThroughWater 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
     z-index: 1;
+}
+/* Branching overlay: the "Choose how you will respond." headline sits high so
+   the stacked choice buttons in the bottom band can never overlap it. */
+.ivp-overlay.ivp-overlay-branch {
+    align-items: flex-start;
+    padding-top: 15vh;
+    padding-bottom: 45vh;
+}
+.ivp-overlay.ivp-overlay-branch .ivp-overlay-content {
+    max-height: 100%;
+    overflow: hidden;
 }
 
 .ivp-overlay-text {

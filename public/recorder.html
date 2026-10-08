@@ -938,6 +938,13 @@ node_video_preview.play(); // Explicitly restart playback
                     for (var j = 0; j < header_row.length; j++) {
                         entry_object[header_row[j]] = cell_data[j] === undefined ? "" : cell_data[j];
                     }
+                    // Only rows with a `filename` are recordable takes. Sheet rows
+                    // that carry config/branching metadata only (e.g. a `branching`
+                    // step whose video is a friend's UGC clip) have no take and must
+                    // not appear in the recorder.
+                    if (String(entry_object.filename || "").trim() === "") {
+                        continue;
+                    }
                     global_script_phrases.push(entry_object);
                 }
 
