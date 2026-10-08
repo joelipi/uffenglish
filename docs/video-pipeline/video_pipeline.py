@@ -1009,8 +1009,8 @@ def create_overlay_html(row, video_width, video_height):
     TITLE_TOP = 0.07         # healthy margin for browser/device chrome
     TITLE_BOTTOM = 0.15      # single line; never extends below 15% from the top
     BODY_TOP = 0.17
-    BODY_BOTTOM = 0.74       # the body gets the most room; clears footer/captions
-    FOOTER_TOP = 0.75        # a single line just above the caption floor
+    FOOTER_TOP = APP_CAPTION_TOP - 0.05   # 0.75; one footer line above the captions
+    BODY_BOTTOM = FOOTER_TOP - 0.01       # 0.74; the body clears the footer line
     horizontal_margin = video_width * 0.025
     # Subtitles get a wider side gutter than the title/footer so lines never run
     # edge-to-edge (2.5% was near the screen border; 8% gives readable margins).
@@ -1093,6 +1093,9 @@ html, body{{background:transparent!important; width:{video_width}px; height:{vid
     top: {FOOTER_TOP * video_height}px;
     left: {horizontal_margin}px;
     right: {horizontal_margin}px;
+    max-height: {(APP_CAPTION_TOP - FOOTER_TOP) * video_height}px;
+    white-space: nowrap;
+    overflow: hidden;
     text-align: center;
     font-family: '{FOOTER_FONT}', sans-serif;
     font-size: {footer_size}px;
@@ -1116,7 +1119,7 @@ u {{
 }}
 
 mark {{
-    position: absolute;
+    position: fixed;
     top: {BODY_TOP * video_height}px;
     left: {horizontal_margin + 40}px;
     right: 35%;
@@ -1137,7 +1140,7 @@ mark {{
    <aside>...</aside> inside subtitle_text. Deliberately a different tag from
    <mark> so the existing mark styling above is preserved. */
 aside {{
-    position: absolute;
+    position: fixed;
     top: {BODY_TOP * video_height}px;
     left: {video_width * 0.02}px;
     width: {video_width * 0.70}px;
@@ -1180,19 +1183,15 @@ strong {{
 <div class="subtitle">{row["subtitle_text"]}</div>
 
 <script>
-    // Fit a block's font to its band: start at the maximum, shrink until the
-    // content fits, then grow back while there is still room. This replaces the
-    // old shrink-only loop and never lets a block exceed its band.
+    // Fit a block's font to its band: start at the minimum and grow to the
+    // largest size that still fits, so short content fills its band and long
+    // content is shrunk to it. This replaces the old shrink-only loop.
     function fitToBand(el, minPx, maxPx) {{
         if (!el) return;
         var band = el.clientHeight;
         if (!band) return;
-        var size = maxPx;
+        var size = minPx;
         el.style.fontSize = size + 'px';
-        while (el.scrollHeight > band && size > minPx) {{
-            size -= 1;
-            el.style.fontSize = size + 'px';
-        }}
         while (size < maxPx) {{
             size += 1;
             el.style.fontSize = size + 'px';
