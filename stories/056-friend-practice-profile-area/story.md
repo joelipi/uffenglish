@@ -8,7 +8,7 @@ This story makes the area inviting and gives expired visitors a way back in:
 
 1. The links area gains a headline **"Practice English with Me Free"** and a subheading **"click on a lesson link to start."**, the course name becomes a **large heading**, and the lesson links become a **bulleted list of clearly underlined links** (each keeping its existing "Available for {time}" countdown).
 2. When there are **no active links** (nothing recorded yet, or every entry has aged past 48h), the course area is replaced by a message explaining the 48h expiry and a **large "Practice English Free" link**.
-3. That link opens a new **public `/courses` page** listing every available friend course, each targeting the course's **first lesson** with no share code, so anyone can start a fresh challenge.
+3. That link opens a new **public `/courses` page**. It leads with the heading **"Choose a conversation to have with your friends and practice English with them free."** and a two-step numbered list (complete the first mini lesson in under five minutes; share your special link so friends can reply and continue the conversation), then lists every available friend course, each targeting the course's **first lesson** with no share code, so anyone can start a fresh challenge.
 
 A "friend course" is defined by config data, not by a hardcoded list: any `src/config/*.json` that contains at least one lesson with `recapOverlay: "shareCta"`. The `test.json` fixture is explicitly excluded so it can keep being used to test without ever surfacing to users. Today this yields **`friend`, `friendchain`, `wouldrather`, `wouldyourather`** (verified against the real configs).
 
@@ -102,7 +102,8 @@ export async function loadConfigEntries(modules = configModules) {
 ### 3. Listings page
 
 - `src/components/courses/CourseListings.jsx` — presentational. Props: `{ lang = 'en', courses, isLoading = false, isError = false, onBack }`.
-  - Header: a back button (`data-testid="friend-courses-back"`, `onClick={onBack}`) and an `<h1 data-testid="friend-courses-heading">` with `Strings.get('friend_courses_heading', lang)`.
+  - Header: a back button (`data-testid="friend-courses-back"`, `onClick={onBack}`) and an `<h1 data-testid="friend-courses-heading">` with `Strings.get('friend_courses_heading', lang)` ("Choose a conversation to have with your friends and practice English with them free.").
+  - Directly under the heading, a **normal-text numbered list** — `<ol data-testid="friend-courses-steps">` with two `<li>`: `Strings.get('friend_courses_step_1', lang)` then `Strings.get('friend_courses_step_2', lang)`. Rendered as ordinary body text (16px, light colour), **not** a heading/subheading, in every state (loading/error/empty/ready).
   - `isLoading` → `<div data-testid="friend-courses-loading">` spinner (reuse `.spinner-border`).
   - `isError` → `<div data-testid="friend-courses-error">` with `Strings.get('home_courses_load_error', lang)`.
   - `courses` empty → `<div data-testid="friend-courses-empty">` with `Strings.get('friend_courses_empty', lang)`.
@@ -164,7 +165,7 @@ Do not render `friend-lesson-links` / heading / subheading in the expired state 
 
 ### 5. Strings (`src/data/strings.js`)
 
-Add next to the existing `profile_friend_*` block (~line 1198). Every key gets `en`, `es`, `pt`, `fr`, `hi`, `bn` with exactly these values:
+Add next to the existing `profile_friend_*` block (~line 1198). Every key gets `en`, `es`, `pt`, `fr`, `hi`, `bn` with exactly these values (nine keys):
 
 | key | en | es | pt | fr | hi | bn |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -172,7 +173,9 @@ Add next to the existing `profile_friend_*` block (~line 1198). Every key gets `
 | `profile_friend_practice_subheading` | `click on a lesson link to start.` | `haz clic en un enlace de lección para empezar.` | `clique em um link de lição para começar.` | `cliquez sur un lien de leçon pour commencer.` | `शुरू करने के लिए किसी पाठ लिंक पर क्लिक करें।` | `শুরু করতে একটি পাঠের লিঙ্কে ক্লিক করুন।` |
 | `profile_friend_lessons_expired` | `All this user's lessons have expired after 48 hours, start a new lesson and send them the link to get them back into practicing English.` | `Todas las lecciones de este usuario han caducado después de 48 horas; empieza una nueva lección y envíale el enlace para que vuelva a practicar inglés.` | `Todas as lições deste usuário expiraram após 48 horas; comece uma nova lição e envie o link para que ele volte a praticar inglês.` | `Toutes les leçons de cet utilisateur ont expiré après 48 heures ; commencez une nouvelle leçon et envoyez-lui le lien pour qu'il se remette à pratiquer l'anglais.` | `इस उपयोगकर्ता के सभी पाठ 48 घंटे बाद समाप्त हो गए हैं; एक नया पाठ शुरू करें और उन्हें लिंक भेजें ताकि वे फिर से अंग्रेज़ी का अभ्यास कर सकें।` | `এই ব্যবহারকারীর সমস্ত পাঠ ৪৮ ঘণ্টা পরে মেয়াদোত্তীর্ণ হয়ে গেছে; একটি নতুন পাঠ শুরু করুন এবং তাকে লিঙ্ক পাঠান যাতে সে আবার ইংরেজি চর্চা করতে পারে।` |
 | `profile_friend_practice_free` | `Practice English Free` | `Practica inglés gratis` | `Pratique inglês grátis` | `Pratiquez l'anglais gratuitement` | `मुफ़्त अंग्रेज़ी का अभ्यास करें` | `বিনামূল্যে ইংরেজি চর্চা করুন` |
-| `friend_courses_heading` | `Practice English Free` | `Practica inglés gratis` | `Pratique inglês grátis` | `Pratiquez l'anglais gratuitement` | `मुफ़्त अंग्रेज़ी का अभ्यास करें` | `বিনামূল্যে ইংরেজি চর্চা করুন` |
+| `friend_courses_heading` | `Choose a conversation to have with your friends and practice English with them free.` | `Elige una conversación para tener con tus amigos y practica inglés con ellos gratis.` | `Escolha uma conversa para ter com seus amigos e pratique inglês com eles grátis.` | `Choisissez une conversation à avoir avec vos amis et pratiquez l'anglais avec eux gratuitement.` | `अपने दोस्तों के साथ करने के लिए एक बातचीत चुनें और उनके साथ मुफ़्त अंग्रेज़ी का अभ्यास करें।` | `আপনার বন্ধুদের সাথে করার জন্য একটি কথোপকথন বেছে নিন এবং তাদের সাথে বিনামূল্যে ইংরেজি চর্চা করুন।` |
+| `friend_courses_step_1` | `Complete the first mini lesson in under five minutes.` | `Completa la primera mini lección en menos de cinco minutos.` | `Complete a primeira mini lição em menos de cinco minutos.` | `Terminez la première mini-leçon en moins de cinq minutes.` | `पहला मिनी पाठ पाँच मिनट से कम समय में पूरा करें।` | `পাঁচ মিনিটের কম সময়ে প্রথম মিনি পাঠ সম্পন্ন করুন।` |
+| `friend_courses_step_2` | `Share your special link with friends, family, and colleagues so that they can reply to you and continue the conversation.` | `Comparte tu enlace especial con amigos, familiares y colegas para que puedan responderte y continuar la conversación.` | `Compartilhe seu link especial com amigos, familiares e colegas para que eles possam responder a você e continuar a conversa.` | `Partagez votre lien spécial avec vos amis, votre famille et vos collègues pour qu'ils puissent vous répondre et poursuivre la conversation.` | `अपना विशेष लिंक दोस्तों, परिवार और सहकर्मियों के साथ साझा करें ताकि वे आपको जवाब दे सकें और बातचीत जारी रख सकें।` | `আপনার বিশেষ লিঙ্ক বন্ধু, পরিবার ও সহকর্মীদের সাথে শেয়ার করুন যাতে তারা আপনাকে উত্তর দিতে পারে এবং কথোপকথন চালিয়ে যেতে পারে।` |
 | `friend_courses_empty` | `No friend courses are available right now. Please check back soon.` | `No hay cursos con amigos disponibles en este momento. Vuelve pronto.` | `Nenhum curso com amigos está disponível no momento. Volte em breve.` | `Aucun cours avec des amis n'est disponible pour le moment. Revenez bientôt.` | `अभी कोई मित्र पाठ्यक्रम उपलब्ध नहीं है। कृपया जल्द ही दोबारा देखें।` | `এখন কোনো বন্ধু কোর্স উপলব্ধ নেই। শীঘ্রই আবার দেখুন।` |
 | `friend_courses_lesson_count` | `{count} lessons` | `{count} lecciones` | `{count} lições` | `{count} leçons` | `{count} पाठ` | `{count}টি পাঠ` |
 
@@ -224,16 +227,21 @@ Add next to the existing `profile_friend_*` block (~line 1198). Every key gets `
 ### Task 3 — Listings page + public route
 
 - `CourseListings` rendered with `courses = [{ courseId: 'friendchain', courseName: 'Friend Chain', lessonCount: 8, firstLessonId: 'a' }, { courseId: 'wouldyourather', courseName: 'Prefs', lessonCount: 2, firstLessonId: 'a' }]`
-  - → `friend-courses-heading` shows `Practice English Free`
+  - → `friend-courses-heading` shows `Choose a conversation to have with your friends and practice English with them free.`
+  - → `friend-courses-steps` is an `OL` with exactly two `LI` children, in order: `Complete the first mini lesson in under five minutes.` then `Share your special link with friends, family, and colleagues so that they can reply to you and continue the conversation.`
+  - → the step text is ordinary body text (each `LI` is not a heading element)
   - → renders exactly two `friend-course-card` anchors in the given order
   - → card 0 href is `/course/friendchain/lesson/a`, card 1 href is `/course/wouldyourather/lesson/a`
   - → each card shows its course name and a lesson count
 - `CourseListings` with `isLoading`
   - → `friend-courses-loading` is present and there are zero `friend-course-card`
+  - → `friend-courses-heading` and `friend-courses-steps` are still present
 - `CourseListings` with `isError`
   - → `friend-courses-error` is present (text from `home_courses_load_error`) and zero cards
+  - → `friend-courses-heading` and `friend-courses-steps` are still present
 - `CourseListings` with `courses = []`
   - → `friend-courses-empty` is present (text from `friend_courses_empty`) and zero cards
+  - → `friend-courses-heading` and `friend-courses-steps` are still present
 - `src/routes/routes.jsx` source inspected
   - → contains `{ path: '/courses', element: <CoursesRoute /> }`
   - → the `/courses` route index is less than the `/shareCode` route index (declared before the catch-all)
@@ -266,7 +274,7 @@ Add next to the existing `profile_friend_*` block (~line 1198). Every key gets `
 
 ### Task 5 — Strings (`src/data/strings.js`)
 
-- each of the seven new keys imported from `strings.js`
+- each of the nine new keys imported from `strings.js`
   - → has a non-empty `en` value equal to the table above
   - → has non-empty `es`, `pt`, `fr`, `hi`, `bn` values
 - `Strings.get('friend_courses_lesson_count', 'en', { count: 5 })`
@@ -303,7 +311,8 @@ No new runtime or dev dependencies are introduced. Relevant existing versions (f
 
 ## Notes
 
-- **Translations:** the seven new keys get en/es/pt/fr/hi/bn values matching the app's existing tone, built from the neighbouring `profile_friend_*` translations. English is authoritative; the non-English strings are drafted by the implementer and should be reviewed by a native speaker in a follow-up, exactly as other keys in `strings.js` are.
+- **Translations:** the nine new keys get en/es/pt/fr/hi/bn values matching the app's existing tone, built from the neighbouring `profile_friend_*` translations. English is authoritative; the non-English strings are drafted by the implementer and should be reviewed by a native speaker in a follow-up, exactly as other keys in `strings.js` are.
+- **Courses-page heading wording:** the `/courses` page heading is the product-supplied sentence "Choose a conversation to have with your friends and practice English with them free." — it supersedes the earlier placeholder "Practice English Free" (there is one heading, not two). The numbered step 1 reads "Complete the first mini lesson in under five minutes."; the request said "MIDI lesson" and this is read as "mini lesson" (a sub-five-minute lesson). If "MIDI" was meant literally, change only `friend_courses_step_1`.
 - **Why `friend` is listed but `test` is not:** the gate is "has a `shareCta` lesson", per the product decision. `friend.json` satisfies it and is included; `test.json` also satisfies it but is the designated never-user-visible test fixture and is excluded by `EXCLUDED_FRIEND_COURSE_IDS`. `model.json`/`t.json`/`gt2.json`/`test-api.json` have no `shareCta` lessons and are excluded by the gate.
 - **Duplicate names:** `friend`, `friendchain`, and `wouldrather` all have `courseName: "Friend Challenge"`. Cards are keyed/ordered by `courseId`, so duplicates are rendered but remain distinct; no disambiguation is added.
 - **`/courses` navigation is a full page load** (plain `<a href>`), which is acceptable for a public marketing-style page and keeps the presentational components Router-free for unit tests. The lesson links in the profile section were already external full-page anchors.
