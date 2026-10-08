@@ -255,3 +255,29 @@ class SyntaxGuardTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class OverlayBandGuardTest(unittest.TestCase):
+    """create_overlay_html keeps every burned block above the app's captions.
+
+    The app draws its own *timed* SRT captions near the bottom on a response
+    step, so no burned-in block may cross APP_CAPTION_TOP (80% from the top).
+    """
+
+    def test_bands_derive_from_one_caption_floor(self):
+        overlay = slice_between(read(), "def create_overlay_html", "def add_background_sound")
+        self.assertIn("APP_CAPTION_TOP = 0.80", overlay)
+        # The blocks below the title derive their bounds from the one floor.
+        self.assertIn("FOOTER_TOP = APP_CAPTION_TOP -", overlay)
+        self.assertIn("BODY_BOTTOM = FOOTER_TOP -", overlay)
+
+    def test_every_block_below_the_title_is_bounded(self):
+        overlay = slice_between(read(), "def create_overlay_html", "def add_background_sound")
+        for selector in (".footer {{", "mark {{", "aside {{"):
+            block = slice_between(overlay, selector, "}}")
+            self.assertIn("max-height", block, selector)
+            self.assertIn("overflow: hidden", block, selector)
+        # The footer's cap is exactly the gap up to the caption floor.
+        footer = slice_between(overlay, ".footer {{", "}}")
+        self.assertIn("(APP_CAPTION_TOP - FOOTER_TOP) * video_height", footer)
+
