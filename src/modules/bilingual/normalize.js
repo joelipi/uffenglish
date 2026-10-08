@@ -62,16 +62,36 @@ const CURRENCY_CANONICAL = {
 const CURRENCY_SYMBOL_CHARS = Object.keys(CURRENCY_CANONICAL)
     .filter((key) => key.length === 1)
     .join('');
-const CURRENCY_SYMBOL_NUMBER_RE = new RegExp(`([${CURRENCY_SYMBOL_CHARS}])\\s*(\\d[\\d,]*\\.?\\d*)`, 'g');
+const CURRENCY_WORDS_ALTERNATION = Object.keys(CURRENCY_CANONICAL)
+    .filter((key) => key.length > 1)
+    .join('|');
+// Whole and cents digits are captured separately so the decimal point is not
+// later stripped as punctuation ($5.50 → "5 dollars 50" → "five dollars fifty").
+const CURRENCY_SYMBOL_NUMBER_RE = new RegExp(
+    `([${CURRENCY_SYMBOL_CHARS}])\\s*(\\d[\\d,]*)(?:\\.(\\d+))?`,
+    'g'
+);
 const CURRENCY_SYMBOL_RE = new RegExp(`[${CURRENCY_SYMBOL_CHARS}]`, 'g');
-const CURRENCY_WORD_RE = new RegExp(
-    `\\b(${Object.keys(CURRENCY_CANONICAL).filter((key) => key.length > 1).join('|')})\\b`,
+// Word-form decimals: "5.50 dollars" → "5 dollars 50".
+const CURRENCY_WORD_DECIMAL_RE = new RegExp(
+    `\\b(\\d[\\d,]*)\\.(\\d+)\\s+(${CURRENCY_WORDS_ALTERNATION})\\b`,
     'gi'
 );
+const CURRENCY_WORD_RE = new RegExp(`\\b(${CURRENCY_WORDS_ALTERNATION})\\b`, 'gi');
 
-// "a" before a quantity word is expanded to "one" so "a million" matches a
-// transcribed "1,000,000" (both normalize to "one million").
-const ARTICLE_QUANTITY_RE = /\ba\s+(?=(?:hundred|thousand|million|billion|trillion|quadrillion|dollars?|euros?|pounds?|rupees?|rubles?|hryvnias?|pesos?|shekels?|yen|won|lira|naira|dong|baht)\b)/gi;
+// "a" before a quantity/currency word is expanded to "one" so "a million"
+// matches a transcribed "1,000,000" (both normalize to "one million"). The
+// currency entries are derived from CURRENCY_CANONICAL so the lists can't drift.
+const ARTICLE_QUANTITY_WORDS = [
+    'hundred',
+    'thousand',
+    'million',
+    'billion',
+    'trillion',
+    'quadrillion',
+    ...new Set(Object.values(CURRENCY_CANONICAL)),
+];
+const ARTICLE_QUANTITY_RE = new RegExp(`\\ba\\s+(?=(?:${ARTICLE_QUANTITY_WORDS.join('|')})\\b)`, 'gi');
 
 // Convert text to normalized form
 export async function normalize(text) {
@@ -82,8 +102,13 @@ export async function normalize(text) {
         // digit→words pass below turns "$5" into "five dollars", matching an
         // authored cue of "five dollars". Bare symbols and singular/plural
         // word forms collapse to the same canonical word.
-        .replace(CURRENCY_SYMBOL_NUMBER_RE, (match, symbol, amount) => `${amount} ${CURRENCY_CANONICAL[symbol]}`)
+        .replace(CURRENCY_SYMBOL_NUMBER_RE, (match, symbol, whole, cents) => {
+            const base = `${whole} ${CURRENCY_CANONICAL[symbol]}`;
+            return cents ? `${base} ${cents}` : base;
+        })
         .replace(CURRENCY_SYMBOL_RE, (symbol) => ` ${CURRENCY_CANONICAL[symbol]} `)
+        .replace(CURRENCY_WORD_DECIMAL_RE, (match, whole, cents, word) =>
+            `${whole} ${CURRENCY_CANONICAL[word.toLowerCase()]} ${cents}`)
         .replace(CURRENCY_WORD_RE, (word) => CURRENCY_CANONICAL[word.toLowerCase()])
         // "a million" / "a thousand" / "a dollar" → "one million" / ...
         .replace(ARTICLE_QUANTITY_RE, 'one ')

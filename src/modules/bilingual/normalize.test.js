@@ -79,6 +79,18 @@ describe('normalize', () => {
         expect(await normalize('a million dollars')).toBe('one million dollars');
     });
 
+    it('should keep the amount of a decimal currency value', async () => {
+        expect(await normalize('$5.50')).toBe('five dollars fifty');
+        expect(await normalize('5.50 dollars')).toBe('five dollars fifty');
+    });
+
+    it('should not treat a bare number as money', async () => {
+        expect(await normalize('550')).toBe('five hundred fifty');
+        expect(await normalize('apartment 550')).toBe('apartment five hundred fifty');
+        // A currency word is what makes it money, not the digits alone.
+        expect(await normalize('550 dollars')).toBe('five hundred fifty dollars');
+    });
+
     it('should normalize other currency markers', async () => {
         expect(await normalize('€5')).toBe('five euros');
         expect(await normalize('5 euros')).toBe('five euros');
