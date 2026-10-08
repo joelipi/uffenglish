@@ -124,4 +124,24 @@ describe('normalize', () => {
     it('should normalize a trailing currency symbol too', async () => {
         expect(await normalize('5$')).toBe('five dollars');
     });
+
+    it('should normalize currency attached to a magnitude phrase', async () => {
+        // Every reasonable spelling of "one million dollars" must agree.
+        expect(await normalize('$1 million')).toBe('one million dollars');
+        expect(await normalize('1 million dollars')).toBe('one million dollars');
+        expect(await normalize('a million dollars')).toBe('one million dollars');
+        expect(await normalize('one million dollars')).toBe('one million dollars');
+        expect(await normalize('$2 million')).toBe('two million dollars');
+        expect(await normalize('two million dollars')).toBe('two million dollars');
+        expect(await normalize('$5 thousand')).toBe('five thousand dollars');
+        expect(await normalize('$1 billion')).toBe('one billion dollars');
+        expect(await normalize('€1 million')).toBe('one million euros');
+        expect(await normalize('$1 million dollars')).toBe('one million dollars');
+    });
+
+    it('should normalize decimal magnitude amounts', async () => {
+        expect(await normalize('$1.5 million')).toBe('one point five million dollars');
+        expect(await normalize('1.5 million dollars')).toBe('one point five million dollars');
+        expect(await normalize('$1.5')).toBe('one dollars fifty cents');
+    });
 });

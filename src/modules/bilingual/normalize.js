@@ -99,9 +99,11 @@ const CURRENCY_SUBUNIT = {
 function formatMoney(whole, cents, currencyWord) {
     if (!cents) return `${whole} ${currencyWord}`;
     const subunit = CURRENCY_SUBUNIT[currencyWord] || 'cents';
+    // ".5" of a unit is 50 cents, not 5.
+    const centsDigits = cents.length === 1 ? `${cents}0` : cents;
     const wholeDigits = whole.replace(/,/g, '');
-    if (/^0+$/.test(wholeDigits)) return `${cents} ${subunit}`;
-    return `${whole} ${currencyWord} ${cents} ${subunit}`;
+    if (/^0+$/.test(wholeDigits)) return `${centsDigits} ${subunit}`;
+    return `${whole} ${currencyWord} ${centsDigits} ${subunit}`;
 }
 
 // Single-character keys are the currency symbols; longer keys are the spelled
@@ -113,11 +115,26 @@ const CURRENCY_SYMBOL_CHARS = Object.keys(CURRENCY_CANONICAL)
 const CURRENCY_WORDS_ALTERNATION = Object.keys(CURRENCY_CANONICAL)
     .filter((key) => key.length > 1)
     .join('|');
+// Magnitude words that can follow a number ("1 million", "$2 thousand").
+const MAGNITUDE_WORDS = ['hundred', 'thousand', 'million', 'billion', 'trillion', 'quadrillion'];
+const MAGNITUDE_ALTERNATION = MAGNITUDE_WORDS.join('|');
 // Whole and cents digits are captured separately so the decimal point is not
 // later stripped as punctuation ($5.50 → "5 dollars 50 cents").
 const CURRENCY_SYMBOL_NUMBER_RE = new RegExp(
     `([${CURRENCY_SYMBOL_CHARS}])\\s*(\\d[\\d,]*)(?:\\.(\\d+))?`,
     'g'
+);
+// "$1 million" / "$1.5 million" → "1 million dollars" / "1 point 5 million
+// dollars". Runs before CURRENCY_SYMBOL_NUMBER_RE so the whole magnitude phrase
+// is treated as one amount instead of "$1" + a dangling "million".
+const CURRENCY_SYMBOL_MAGNITUDE_RE = new RegExp(
+    `([${CURRENCY_SYMBOL_CHARS}])\\s*(\\d[\\d,]*)(?:\\.(\\d+))?\\s+(${MAGNITUDE_ALTERNATION})\\b`,
+    'gi'
+);
+// Word-form decimal magnitude without a symbol: "1.5 million" → "1 point 5 million".
+const MAGNITUDE_DECIMAL_RE = new RegExp(
+    `\\b(\\d[\\d,]*)\\.(\\d+)\\s+(${MAGNITUDE_ALTERNATION})\\b`,
+    'gi'
 );
 const CURRENCY_SYMBOL_RE = new RegExp(`[${CURRENCY_SYMBOL_CHARS}]`, 'g');
 // Word-form decimals: "5.50 dollars" → "5 dollars 50".
@@ -131,12 +148,7 @@ const CURRENCY_WORD_RE = new RegExp(`\\b(${CURRENCY_WORDS_ALTERNATION})\\b`, 'gi
 // matches a transcribed "1,000,000" (both normalize to "one million"). The
 // currency entries are derived from CURRENCY_CANONICAL so the lists can't drift.
 const ARTICLE_QUANTITY_WORDS = [
-    'hundred',
-    'thousand',
-    'million',
-    'billion',
-    'trillion',
-    'quadrillion',
+    ...MAGNITUDE_WORDS,
     ...new Set(Object.values(CURRENCY_CANONICAL)),
 ];
 const ARTICLE_QUANTITY_RE = new RegExp(`\\ba\\s+(?=(?:${ARTICLE_QUANTITY_WORDS.join('|')})\\b)`, 'gi');
@@ -150,11 +162,17 @@ export async function normalize(text) {
         // digit→words pass below turns "$5" into "five dollars", matching an
         // authored cue of "five dollars". Bare symbols and singular/plural
         // word forms collapse to the same canonical word.
+        .replace(CURRENCY_SYMBOL_MAGNITUDE_RE, (match, symbol, whole, cents, magnitude) => {
+            const numberPart = cents ? `${whole} point ${cents}` : whole;
+            return `${numberPart} ${magnitude} ${CURRENCY_CANONICAL[symbol]}`;
+        })
         .replace(CURRENCY_SYMBOL_NUMBER_RE, (match, symbol, whole, cents) =>
             formatMoney(whole, cents, CURRENCY_CANONICAL[symbol]))
         .replace(CURRENCY_SYMBOL_RE, (symbol) => ` ${CURRENCY_CANONICAL[symbol]} `)
         .replace(CURRENCY_WORD_DECIMAL_RE, (match, whole, cents, word) =>
             formatMoney(whole, cents, CURRENCY_CANONICAL[word.toLowerCase()]))
+        .replace(MAGNITUDE_DECIMAL_RE, (match, whole, cents, magnitude) =>
+            `${whole} point ${cents} ${magnitude}`)
         .replace(CURRENCY_WORD_RE, (word) => CURRENCY_CANONICAL[word.toLowerCase()])
         // "a million" / "a thousand" / "a dollar" → "one million" / ...
         .replace(ARTICLE_QUANTITY_RE, 'one ')
