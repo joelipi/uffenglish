@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { configCourseId, loadConfigEntries } from './friend-course-configs.js';
 import { listFriendCourses } from './friend-courses-logic.js';
 
+// Pinned guard list: the loader glob must see every config, so a new
+// `src/config/*.json` added by another story intentionally fails this test
+// until it is listed here (the repo's pinned-list convention).
 const REAL_COURSE_IDS = [
     'friend', 'friendchain', 'gt2', 'model', 't', 'test', 'test-api', 'wouldrather', 'wouldyourather',
 ];

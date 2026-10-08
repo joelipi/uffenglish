@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     EXCLUDED_FRIEND_COURSE_IDS,
+    COURSE_LISTINGS_PATH,
     isFriendLesson,
     isFriendCourse,
     firstFriendLessonId,
@@ -78,6 +79,12 @@ describe('firstFriendLessonId', () => {
 describe('buildCourseStartHref', () => {
     it('builds the lesson route from the course id and lesson id', () => {
         expect(buildCourseStartHref('wouldrather', 'a')).toBe('/course/wouldrather/lesson/a');
+    });
+});
+
+describe('COURSE_LISTINGS_PATH', () => {
+    it('is the public course-listings route', () => {
+        expect(COURSE_LISTINGS_PATH).toBe('/courses');
     });
 });
 

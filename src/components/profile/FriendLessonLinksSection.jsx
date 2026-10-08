@@ -7,6 +7,7 @@ import {
     formatFriendLinkRemaining,
     buildFriendPracticeView,
 } from '../../modules/user/friend-lesson-link-logic.js';
+import { COURSE_LISTINGS_PATH } from '../../modules/courses/friend-courses-logic.js';
 
 const cardStyle = {
     backgroundColor: '#1a3a5a',
@@ -80,7 +81,7 @@ export default function FriendLessonLinksSection({ friendLinks, lang = 'en' }) {
                 </p>
                 <a
                     data-testid="friend-lessons-practice-free"
-                    href="/courses"
+                    href={COURSE_LISTINGS_PATH}
                     style={{ fontSize: '28px', fontWeight: 800, color: '#ffffff', textDecoration: 'underline', lineHeight: 1.2 }}
                 >
                     {Strings.get('profile_friend_practice_free', lang)}

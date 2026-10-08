@@ -9,6 +9,10 @@
 // is the designated never-user-visible fixture.
 export const EXCLUDED_FRIEND_COURSE_IDS = ['test'];
 
+// The public course-listings route. Single source for the path so the profile's
+// expired-state link and the route table cannot drift.
+export const COURSE_LISTINGS_PATH = '/courses';
+
 // A lesson is a friend-challenge chain lesson when it is a "share CTA" lesson.
 export function isFriendLesson(lesson) {
     return !!lesson && lesson.recapOverlay === 'shareCta';
