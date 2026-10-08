@@ -201,7 +201,7 @@ export async function runTranslateSheet({
         // A stale `srt_<lang>` (its timings no longer match a re-rendered English
         // SRT) is overwritten deliberately — say so, never silently.
         if (item.stale) {
-            log(`STALE ${item.column} (${item.lang}): English srt changed; re-translating`);
+            log(`STALE ${item.column} (${item.lang}) at sheet row ${item.sheetRow}: English srt changed; re-translating`);
         }
         let translated;
         if (item.field === 'srt') {
@@ -215,7 +215,8 @@ export async function runTranslateSheet({
             const validation = validateSrtDocument(englishSrt, translated);
             if (!validation.ok) {
                 throw new Error(
-                    `translation for ${item.column} (${item.lang}) is not a valid SRT: ${validation.reason}`
+                    `translation for ${item.column} (${item.lang}) at sheet row ${item.sheetRow} ` +
+                    `is not a valid SRT: ${validation.reason}`
                 );
             }
         } else {

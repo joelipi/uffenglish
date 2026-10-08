@@ -3,6 +3,8 @@ import { describe, it, expect } from 'vitest';
 import {
     SHEET_LANGUAGES,
     TRANSLATABLE_FIELDS,
+    SRT_FIELD,
+    LOCALIZATION_FIELDS,
     LINE_PAIRED_FIELDS,
     isLinePairedField,
     localizedColumn,
@@ -22,23 +24,30 @@ describe('column contract', () => {
         expect(SHEET_LANGUAGES).toEqual(['es', 'pt', 'bn']);
     });
 
-    it('maps exactly the eight translatable sources (24 columns)', () => {
+    it('maps exactly the seven generic translatable sources (21 columns)', () => {
         expect(TRANSLATABLE_FIELDS.map((f) => f.source)).toEqual([
-            'lesson_title', 'mission', 'cue', 'cue_alt', 'choose_step_text', 'subtitle_text', 'srt', 'phrase',
+            'lesson_title', 'mission', 'cue', 'cue_alt', 'choose_step_text', 'subtitle_text', 'phrase',
         ]);
         const cols = TRANSLATABLE_FIELDS.flatMap((f) =>
             SHEET_LANGUAGES.map((l) => localizedColumn(f.field, l)));
-        expect(cols).toHaveLength(24);
+        expect(cols).toHaveLength(21);
         expect(cols).toContain('cue_pt');
         expect(cols).toContain('choose_step_text_es');
         expect(cols).toContain('subtitle_text_bn');
-        expect(cols).toContain('srt_bn');
         expect(cols).toContain('phrase_es');
     });
 
+    it('LOCALIZATION_FIELDS adds srt to the generic fields (24 columns total)', () => {
+        expect(LOCALIZATION_FIELDS).toHaveLength(TRANSLATABLE_FIELDS.length + 1);
+        expect(LOCALIZATION_FIELDS).toContainEqual(SRT_FIELD);
+        const cols = LOCALIZATION_FIELDS.flatMap((f) =>
+            SHEET_LANGUAGES.map((l) => localizedColumn(f.field, l)));
+        expect(cols).toHaveLength(24);
+        expect(cols).toContain('srt_bn');
+    });
+
     it('lists srt as a step-level field that is not line-paired', () => {
-        const srt = TRANSLATABLE_FIELDS.find((f) => f.field === 'srt');
-        expect(srt).toMatchObject({ source: 'srt', level: 'step' });
+        expect(SRT_FIELD).toMatchObject({ source: 'srt', level: 'step' });
         expect(isLinePairedField('srt')).toBe(false);
     });
 

@@ -205,7 +205,6 @@ describe('validateTranslatedSrt', () => {
         expect(result.ok).toBe(false);
         expect(result.reason).toMatch(/start mismatch/);
     });
-
 });
 
 describe('applyCaptionsToText', () => {

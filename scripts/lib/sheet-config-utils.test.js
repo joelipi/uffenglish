@@ -19,6 +19,7 @@ import {
 import {
     SHEET_LANGUAGES,
     TRANSLATABLE_FIELDS,
+    LOCALIZATION_FIELDS,
     localizedColumn,
     unescapeSrt,
 } from './sheet-translate-utils.js';
@@ -555,9 +556,10 @@ describe('shared translatable-field parity', () => {
         expect(lesson.steps[1].cue[0].es).toBe('A-es');
         // `srt` localizes captions (taken verbatim from `srt_<lang>`).
         expect(lesson.steps[2].subtitles).toEqual({ en: '1\n00:00:00,000 --> 00:00:01,000\nHi', es: '1\n00:00:00,000 --> 00:00:01,000\nHola' });
-        // The generator's consumed field set is exactly the shared set.
+        // The generator's consumed field set is exactly the shared set (the
+        // generic fields; `srt` is consumed above and listed in LOCALIZATION_FIELDS).
         expect(TRANSLATABLE_FIELDS.map((f) => f.field).sort()).toEqual([
-            'choose_step_text', 'cue', 'cue_alt', 'lesson_title', 'mission', 'phrase', 'srt', 'subtitle_text',
+            'choose_step_text', 'cue', 'cue_alt', 'lesson_title', 'mission', 'phrase', 'subtitle_text',
         ]);
         // `phrase` is consumed by the master path (one cue element per row).
         const master = buildCourseConfig([{
@@ -992,7 +994,7 @@ describe('docs/video-pipeline/sample-sheet.csv round-trip', () => {
 
     it('headers include all 21 authoring localization columns (phrase is master-only)', () => {
         const { headers } = parseCsv(csv);
-        const authoringFields = TRANSLATABLE_FIELDS.filter((f) => f.field !== 'phrase');
+        const authoringFields = LOCALIZATION_FIELDS.filter((f) => f.field !== 'phrase');
         const expected = authoringFields.flatMap((f) =>
             SHEET_LANGUAGES.map((l) => localizedColumn(f.field, l)));
         expect(expected).toHaveLength(21);

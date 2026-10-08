@@ -8,7 +8,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
     SHEET_LANGUAGES,
-    TRANSLATABLE_FIELDS,
+    LOCALIZATION_FIELDS,
     localizedColumn,
 } from './lib/sheet-translate-utils.js';
 
@@ -48,7 +48,7 @@ function assertOneClickDocs({ authoring }) {
 // and the service-account share step, and the product feature list carries the
 // round-trip entry.
 function assertDocsContract({ authoring, product }) {
-    for (const field of TRANSLATABLE_FIELDS.filter((f) => f.field !== 'phrase')) {
+    for (const field of LOCALIZATION_FIELDS.filter((f) => f.field !== 'phrase')) {
         for (const lang of SHEET_LANGUAGES) {
             const column = localizedColumn(field.field, lang);
             expect(authoring, column).toContain(column);
