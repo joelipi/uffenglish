@@ -7,6 +7,7 @@ import {
     isLinePairedField,
     localizedColumn,
     groupCueAltLines,
+    validateSrtCell,
     planSheetTranslations,
     countPresentTranslations,
     columnLetter,
@@ -287,6 +288,24 @@ describe('phrase and master-format planning', () => {
 // `srt_<lang>` (timings preserved by translateSrt). It is a step-level field
 // keyed by the generator's step key (`join` else `video_file`), so a joined step
 // is planned once.
+describe('validateSrtCell', () => {
+    const english = '1\\n00:00:00,000 --> 00:00:01,000\\nHi';
+
+    it('accepts a translation that preserves cues and timings (after unescaping)', () => {
+        expect(validateSrtCell(english, '1\n00:00:00,000 --> 00:00:01,000\nHola')).toEqual({ ok: true });
+    });
+
+    it('rejects a translation with different cue count/timings', () => {
+        expect(validateSrtCell(english, '1\n00:00:00,000 --> 00:00:09,000\nHola').ok).toBe(false);
+    });
+
+    it('rejects an empty or unparseable English SRT (never a vacuous pass)', () => {
+        expect(validateSrtCell('', 'anything').ok).toBe(false);
+        expect(validateSrtCell('not an srt', 'also not an srt').ok).toBe(false);
+        expect(validateSrtCell('', '').reason).toMatch(/no parseable cues/);
+    });
+});
+
 describe('srt planning', () => {
     // A master header (the `phrase` column marks the shape) so `join` grouping
     // applies; the authoring shape groups by `video_file` only.

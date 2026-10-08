@@ -8,7 +8,8 @@
 // blanks-only does not apply — but a group whose `srt` is blank is not cleared.
 // Rows are matched by `filename`, and the group key mirrors `write_srt_column`'s
 // per-prefix value; the value is written verbatim (the JSON-escaped string from
-// the CSV), so the generator's `unescapeSrt` (sheet-translate-utils.js) still applies.
+// the CSV), so the generator's `unescapeSrt` (sheet-translate-utils.js) still
+// applies.
 //
 // Usage:
 //   node scripts/write-srt-to-sheet.mjs --csv=<path> [--sheet-id=<id>] [--tab=<name>]

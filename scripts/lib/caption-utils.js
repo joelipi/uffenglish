@@ -138,12 +138,6 @@ export function parseSrt(srt) {
 export function validateTranslatedSrt(englishSrt, translatedSrt) {
     const en = parseSrt(englishSrt);
     const tr = parseSrt(translatedSrt);
-    // An English SRT with no parseable cues can never be "preserved": without
-    // this guard a malformed English document and a garbage translation both
-    // parse to zero cues and pass vacuously.
-    if (en.length === 0) {
-        return { ok: false, reason: 'English SRT has no parseable cues' };
-    }
     if (en.length !== tr.length) {
         return { ok: false, reason: `cue count mismatch: expected ${en.length}, got ${tr.length}` };
     }

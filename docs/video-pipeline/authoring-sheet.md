@@ -111,9 +111,10 @@ timings stay the caption pipeline's job — the translator never retimes. A step
 - **A re-render re-translates `srt_<lang>` automatically.** The render pipeline rewrites the
   English `srt` column on every render, so the translator treats a stored `srt_<lang>` as
   stale — and re-plans it — whenever its cue count or timings no longer match the current
-  English SRT. A re-timed step therefore never keeps an out-of-date translation. (A
-  text-only English change with *unchanged* timings is not detectable this way; clear the
-  `srt_<lang>` cell or run the CLI with `--force` to retranslate.)
+  English SRT. A re-timed step therefore never keeps an out-of-date translation (each
+  re-timed step costs one DeepSeek call per language). (A text-only English change with
+  *unchanged* timings is not detectable this way; clear the `srt_<lang>` cell or run the CLI
+  with `--force` to retranslate.)
 - **The English source is never overwritten** and a sheet with none of these columns
   generates English-only output exactly as before.
 

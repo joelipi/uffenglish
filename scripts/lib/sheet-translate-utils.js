@@ -14,7 +14,7 @@
 // still honored; a stale cell is flagged on the plan item and logged by the CLI,
 // so a re-translation is never silent.
 
-import { validateTranslatedSrt } from './caption-utils.js';
+import { parseSrt, validateTranslatedSrt } from './caption-utils.js';
 
 // Sheet-localization targets. Distinct from `CAPTION_LANGUAGES` in
 // caption-utils.js (which also carries `en`/`fr`/`hi`); the app's generated
@@ -103,12 +103,18 @@ export function unescapeSrt(value) {
  * Validate a stored `srt_<lang>` cell against the raw (JSON-escaped) English
  * `srt` cell: unescapes the English document, then checks the translation
  * preserves its cue count and timings. Shared by the planner (staleness) and the
- * config generator (so a stale translation can never ship). An empty/blank
- * English document is a failure, never a vacuous pass.
+ * config generator (so a stale translation can never ship).
+ *
+ * A source with no parseable cues is a failure, never a vacuous pass. This guard
+ * lives here rather than in the shared `validateTranslatedSrt` so the captions
+ * pipeline keeps its own (empty-transcription) handling; the sheet path has no
+ * legitimate empty-cue `srt`.
  */
 export function validateSrtCell(escapedEnglish, translatedSrt) {
     const english = unescapeSrt(escapedEnglish);
-    if (!english.trim()) return { ok: false, reason: 'empty English srt' };
+    if (parseSrt(english).length === 0) {
+        return { ok: false, reason: 'English SRT has no parseable cues' };
+    }
     return validateTranslatedSrt(english, translatedSrt);
 }
 
@@ -259,7 +265,8 @@ function planSrtItems({ rows, headers, sheetRows, languages, force, stepKey }) {
     const items = [];
     for (const s of srtGroupStates(rows, headers, languages, stepKey)) {
         if (s.targetIndex !== undefined && !force && s.current) continue; // up to date
-        // Reached only for a blank target, a stale target, or `force`.
+        // Reached only for a blank target, a stale target, or `force`; `stale`
+        // is exactly the non-forced overwrite case.
         const stale = s.targetIndex !== undefined && !force;
         const row = s.targetIndex !== undefined ? s.targetIndex : s.sourceIndex;
         items.push({
@@ -270,7 +277,7 @@ function planSrtItems({ rows, headers, sheetRows, languages, force, stepKey }) {
             sourceText: unescapeSrt(s.englishCell),
             lang: s.lang,
             field: 'srt',
-            ...(stale ? { stale: true } : {}),
+            stale,
         });
     }
     return items;
