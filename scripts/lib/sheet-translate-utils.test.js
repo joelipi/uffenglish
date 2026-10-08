@@ -5,7 +5,6 @@ import {
     TRANSLATABLE_FIELDS,
     LINE_PAIRED_FIELDS,
     isLinePairedField,
-    isSrtField,
     localizedColumn,
     groupCueAltLines,
     planSheetTranslations,
@@ -35,11 +34,9 @@ describe('column contract', () => {
         expect(cols).toContain('phrase_es');
     });
 
-    it('marks srt as an SRT field (timing-validated, not line-paired)', () => {
+    it('lists srt as a step-level field that is not line-paired', () => {
         const srt = TRANSLATABLE_FIELDS.find((f) => f.field === 'srt');
-        expect(srt).toMatchObject({ source: 'srt', level: 'step', srt: true });
-        expect(isSrtField('srt')).toBe(true);
-        expect(isSrtField('subtitle_text')).toBe(false);
+        expect(srt).toMatchObject({ source: 'srt', level: 'step' });
         expect(isLinePairedField('srt')).toBe(false);
     });
 
@@ -291,7 +288,9 @@ describe('phrase and master-format planning', () => {
 // keyed by the generator's step key (`join` else `video_file`), so a joined step
 // is planned once.
 describe('srt planning', () => {
-    const headers = ['course_id', 'lesson_id', 'video_file', 'join', 'srt', 'srt_es'];
+    // A master header (the `phrase` column marks the shape) so `join` grouping
+    // applies; the authoring shape groups by `video_file` only.
+    const headers = ['course_id', 'lesson_id', 'video_file', 'join', 'phrase', 'srt', 'srt_es'];
     const escaped = '1\\n00:00:00,000 --> 00:00:01,000\\nHi';
     const literal = '1\n00:00:00,000 --> 00:00:01,000\nHi';
     const translated = '1\n00:00:00,000 --> 00:00:01,000\nHola';
@@ -355,13 +354,25 @@ describe('srt planning', () => {
         expect(plan.map((p) => `${p.row}:${p.column}`)).toEqual(['0:srt_es']);
     });
 
-    it('falls back to video_file when the sheet has no join column (authoring shape)', () => {
+    it('groups by video_file on an authoring sheet (no phrase header)', () => {
         const authoringHeaders = ['course_id', 'lesson_id', 'video_file', 'srt', 'srt_es'];
         const rows = [
             { course_id: 'c', lesson_id: 'a', video_file: 'v1', srt: escaped },
             { course_id: 'c', lesson_id: 'a', video_file: 'v2', srt: escaped },
         ];
         const plan = planSheetTranslations({ rows, headers: authoringHeaders, languages: ['es'] });
+        expect(plan.map((p) => `${p.row}:${p.column}`)).toEqual(['0:srt_es', '1:srt_es']);
+    });
+
+    it('ignores a stray join column on an authoring sheet (matches the authoring generator)', () => {
+        // The authoring generator groups strictly by video_file, so the planner
+        // must not merge two video_files that happen to share a `join` value.
+        const authoringWithJoin = ['course_id', 'lesson_id', 'video_file', 'join', 'srt', 'srt_es'];
+        const rows = [
+            { course_id: 'c', lesson_id: 'a', video_file: 'v1', join: 'J', srt: escaped },
+            { course_id: 'c', lesson_id: 'a', video_file: 'v2', join: 'J', srt: escaped },
+        ];
+        const plan = planSheetTranslations({ rows, headers: authoringWithJoin, languages: ['es'] });
         expect(plan.map((p) => `${p.row}:${p.column}`)).toEqual(['0:srt_es', '1:srt_es']);
     });
 

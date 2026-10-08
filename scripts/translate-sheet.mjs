@@ -26,7 +26,6 @@ import {
     SHEET_LANGUAGES,
     groupCueAltLines,
     isLinePairedField,
-    isSrtField,
     planSheetTranslations,
     countPresentTranslations,
     quoteSheetTitle,
@@ -205,7 +204,7 @@ export async function runTranslateSheet({
             log(`STALE ${item.column} (${item.lang}): English srt changed; re-translating`);
         }
         let translated;
-        if (isSrtField(item.field)) {
+        if (item.field === 'srt') {
             // The planner already unescaped the English SRT (the sheet's `srt`
             // cell is the pipeline's JSON-escaped string), so `sourceText` is the
             // literal document. The result is written verbatim (the generator

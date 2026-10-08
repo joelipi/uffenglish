@@ -36,9 +36,9 @@ export const SHEET_LANGUAGES = ['es', 'pt', 'bn'];
 // are planned per row instead of per group. `lines` marks a newline-separated,
 // line-paired cell (`cue_alt` -> `cue[i]`, `choose_step_text` ->
 // `chooseStep[i].text`): the planner emits one item per source-bearing row and
-// the CLI guards that a translation never changes the line count. `srt` marks a
-// caption document whose translation is validated by cue count + timings, not
-// line count.
+// the CLI guards that a translation never changes the line count. The `srt`
+// field (a caption document validated by cue count + timings, not line count) is
+// handled by its own pass — see `planSrtItems`.
 export const TRANSLATABLE_FIELDS = [
     { field: 'lesson_title', source: 'lesson_title', level: 'lesson' },
     { field: 'mission', source: 'mission', level: 'lesson' },
@@ -46,7 +46,7 @@ export const TRANSLATABLE_FIELDS = [
     { field: 'cue_alt', source: 'cue_alt', level: 'step', lines: true },
     { field: 'choose_step_text', source: 'choose_step_text', level: 'step', lines: true },
     { field: 'subtitle_text', source: 'subtitle_text', level: 'step' },
-    { field: 'srt', source: 'srt', level: 'step', srt: true },
+    { field: 'srt', source: 'srt', level: 'step' },
     { field: 'phrase', source: 'phrase', level: 'step', perRow: true },
 ];
 
@@ -60,15 +60,6 @@ export const LINE_PAIRED_FIELDS = new Set(
 /** Whether a translatable field's cell is newline-separated and line-paired. */
 export function isLinePairedField(field) {
     return LINE_PAIRED_FIELDS.has(field);
-}
-
-/**
- * Whether a translatable field is an SRT caption document (translation preserves
- * cue count and timestamps, validated by `validateTranslatedSrt`, not line
- * count).
- */
-export function isSrtField(field) {
-    return TRANSLATABLE_FIELDS.some((f) => f.field === field && f.srt);
 }
 
 /** The per-language column name for a field, e.g. `localizedColumn('cue','pt')` -> `cue_pt`. */
@@ -228,10 +219,11 @@ function firstFilledRow(rows, indices, column) {
 
 /**
  * The plan items for the `srt` field. SRT is the one field that needs its own
- * pass: it groups by the generator's step key (`join` else `video_file`) so a
- * joined step is planned once, it reads its English from the step's first
- * source-bearing row, and a stored `srt_<lang>` is re-planned when its cue
- * count/timings no longer match the current (re-rendered) English SRT.
+ * pass: it groups by the generator's step key (on the overlay master, `join`
+ * else `video_file`; the authoring generator groups strictly by `video_file`),
+ * it reads its English from the step's first source-bearing row, and a stored
+ * `srt_<lang>` is re-planned when its cue count/timings no longer match the
+ * current (re-rendered) English SRT.
  *
  * A stale/forced translation is rewritten in place on the row the generator
  * reads first (`firstFilledRow`), so the fresh value can never be shadowed by an
@@ -240,9 +232,9 @@ function firstFilledRow(rows, indices, column) {
  * to `translateSrt`), and a stale item carries `stale: true` so the CLI can log
  * the overwrite.
  */
-function planSrtItems({ rows, headers, sheetRows, languages, force }) {
+function planSrtItems({ rows, headers, sheetRows, languages, force, stepKey }) {
     const items = [];
-    const groups = groupsForField(rows, headerSetOf(headers), 'step', { stepKey: true });
+    const groups = groupsForField(rows, headerSetOf(headers), 'step', { stepKey });
     for (const indices of groups.values()) {
         const sourceIndices = indices.filter((i) => cell(rows[i], 'srt').trim());
         if (sourceIndices.length === 0) continue;
@@ -274,10 +266,10 @@ function planSrtItems({ rows, headers, sheetRows, languages, force }) {
  * The number of `srt_<lang>` groups already up to date (used by the CLI report;
  * a stale group is not counted as present). Grouped like `planSrtItems`.
  */
-function countPresentSrt(rows, headers, languages) {
+function countPresentSrt(rows, headers, languages, stepKey) {
     const counts = {};
     for (const lang of languages) counts[lang] = 0;
-    const groups = groupsForField(rows, headerSetOf(headers), 'step', { stepKey: true });
+    const groups = groupsForField(rows, headerSetOf(headers), 'step', { stepKey });
     for (const indices of groups.values()) {
         const englishIndex = indices.find((i) => cell(rows[i], 'srt').trim());
         if (englishIndex === undefined) continue;
@@ -336,7 +328,7 @@ export function planSheetTranslations({
         // `srt` needs its own pass (timing-validated staleness, step-key
         // grouping, in-place rewrite); see `planSrtItems`.
         if (field === 'srt') {
-            plan.push(...planSrtItems({ rows: rowsList, headers, sheetRows, languages, force }));
+            plan.push(...planSrtItems({ rows: rowsList, headers, sheetRows, languages, force, stepKey: isMaster }));
             continue;
         }
 
@@ -433,7 +425,7 @@ export function countPresentTranslations({ rows, headers, languages = SHEET_LANG
     }
     // A stale `srt_<lang>` is not "already present" — the planner re-translates
     // it, so it is reported as filled, not present.
-    const srtCounts = countPresentSrt(rowsList, headers, languages);
+    const srtCounts = countPresentSrt(rowsList, headers, languages, isMaster);
     for (const lang of languages) counts[lang] += srtCounts[lang];
     return counts;
 }

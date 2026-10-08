@@ -99,8 +99,10 @@ timings stay the caption pipeline's job — the translator never retimes. A step
   unescaped English SRT to `translateSrt` and validates the result with `validateTranslatedSrt`
   (cue count + start/end within 1 ms); a drift aborts the run before any cell is written.
   The generator applies the same check when it reads `srt_<lang>`: a non-blank value whose
-  timings do not match the English `srt` is a structural error that skips the course (so a
-  stale translation can never ship even if configs are generated without the translate step).
+  timings do not match the English `srt` is a structural error that **skips the whole course**
+  (every step and language in it, reported as a skip) rather than shipping a mistimed caption
+  — so a stale translation can never reach the app even if configs are generated without the
+  translate step first. Run the translator (or clear the bad cell) to recover.
   On the overlay master the SRT is one document per step (written to every row of a `join`),
   so the translator plans it once per step and the generator reads it once — never
   concatenating sub-group SRTs. Note the escaping asymmetry: the pipeline writes the English
