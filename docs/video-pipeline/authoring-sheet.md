@@ -38,6 +38,7 @@ columns reported):
 | `srt` | Exact SRT cues. Written by the render pipeline's `srt` column; can be pasted here. The translator fills `srt_<lang>` with cue-text-only translations (timings preserved). |
 | `recap_sources` | `system` / `friend` / `none` (lesson-level; default `none`). |
 | `recap_overlay` | `fluency` / `shareCta` / `none` (lesson-level; default `shareCta`). |
+| `publish_lesson_id` | Step-level. The ask-lesson id a "responders become challengers" step's recording publishes under (emitted as `step.publishLessonId`). |
 
 **Rules that are easy to trip on:**
 - A lesson's `unit`, `mission`, `recap_sources`, `recap_overlay` must be identical on

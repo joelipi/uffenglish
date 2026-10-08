@@ -475,6 +475,8 @@ function buildMasterSteps(lessonRows) {
         if (chooseStep !== undefined) step.chooseStep = chooseStep;
         const nextStep = nextStepFor(stepRows, key);
         if (nextStep !== undefined) step.nextStep = nextStep;
+        const publishLessonId = singleValue(stepRows, 'publish_lesson_id', `video_file "${key}"`);
+        if (publishLessonId) step.publishLessonId = publishLessonId;
         // App subtitles come from `srt`/`srt_<lang>` only — the master's
         // `subtitle_text` is burnt-in overlay markup, never app subtitles. The
         // pipeline writes one SRT per step (the join's cumulative-offset SRT to
@@ -547,6 +549,8 @@ function buildAuthoringSteps(lessonRows) {
         if (chooseStep !== undefined) step.chooseStep = chooseStep;
         const nextStep = nextStepFor(groupRows, videoFile);
         if (nextStep !== undefined) step.nextStep = nextStep;
+        const publishLessonId = singleValue(groupRows, 'publish_lesson_id', `video_file "${videoFile}"`);
+        if (publishLessonId) step.publishLessonId = publishLessonId;
         const subtitles = subtitlesFor(groupRows, `video_file "${videoFile}"`);
         if (subtitles !== undefined) step.subtitles = subtitles;
 

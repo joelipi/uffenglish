@@ -67,33 +67,57 @@ export function resolveNextStepIndex(step, currentStepIndex) {
 /**
  * Chooses how a branch choice's text renders:
  * - no localized value for `lang` -> English only (`showEnglish: true`).
- * - localized value exists and combined length <= cap -> stacked (both lines).
- * - localized value exists and combined length > cap -> translation only.
+ * - localized value exists and `showEnglish` -> stacked (both lines).
+ * - localized value exists and `!showEnglish` -> translation only.
  *
+ * The English/translation decision is made **once for the whole step** by
+ * `stepShowsEnglish` (the only place `BRANCH_LABEL_CHAR_CAP` is applied) and
+ * passed in as `showEnglish`, so every button in the column agrees and this
+ * function never re-decides per label.
+ *
+ * @param {object} text
+ * @param {string} lang
+ * @param {boolean} showEnglish step-level decision from `buildBranchChoiceView`
  * @returns {{ english: string, localized: string|null, lang: string, showEnglish: boolean }}
  */
-export function formatBranchChoiceLabel(text, lang) {
+export function formatBranchChoiceLabel(text, lang, showEnglish) {
     const { english, localized, shouldShowLocalized } = formatBilingualText(text, lang);
 
     if (!shouldShowLocalized) {
         return { english, localized: null, lang, showEnglish: true };
     }
 
-    const showEnglish = english.length + localized.length <= BRANCH_LABEL_CHAR_CAP;
     return { english, localized, lang, showEnglish };
+}
+
+// The char cap is a step-level, all-or-nothing decision. A button drops its
+// English line only when EVERY button on the step can drop it: if any label's
+// combined English + translation length exceeds BRANCH_LABEL_CHAR_CAP, the whole
+// column shows translation-only; otherwise the whole column shows both lines.
+// This is what keeps the buttons visually consistent (a per-label decision made
+// one button show both languages while its neighbour showed translation only).
+function stepShowsEnglish(choices, lang) {
+    return choices.every(({ text }) => {
+        const { english, localized, shouldShowLocalized } = formatBilingualText(text, lang);
+        if (!shouldShowLocalized) return true;
+        return english.length + localized.length <= BRANCH_LABEL_CHAR_CAP;
+    });
 }
 
 /**
  * The only function the container calls to prepare rendering. Returns the
  * resolved choices mapped to `{ key, targetIndex, label }` plus `showContinue`,
  * which is true when there are no valid choices (a mis-authored branching step
- * must not strand the learner).
+ * must not strand the learner). The English/translation cap is decided once for
+ * the step and applied to every label.
  */
 export function buildBranchChoiceView({ step, currentStepIndex, stepCount, lang } = {}) {
-    const choices = resolveBranchChoices(step, currentStepIndex, stepCount).map((choice, index) => ({
+    const resolved = resolveBranchChoices(step, currentStepIndex, stepCount);
+    const showEnglish = stepShowsEnglish(resolved, lang);
+    const choices = resolved.map((choice, index) => ({
         key: index,
         targetIndex: choice.targetIndex,
-        label: formatBranchChoiceLabel(choice.text, lang),
+        label: formatBranchChoiceLabel(choice.text, lang, showEnglish),
     }));
 
     return { choices, showContinue: choices.length === 0 };
