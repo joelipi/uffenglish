@@ -178,13 +178,18 @@ describe('StepLoader, strings and styles', () => {
     it('positions the branch headline clear of the choice buttons', () => {
         const css = read('src/assets/css/app.css');
         const overlay = cssBlock(css, '.ivp-overlay.ivp-overlay-branch {');
-        expect(overlay).toContain('align-items: flex-start');
+        expect(overlay).toMatch(/align-items:\s*flex-start/);
         expect(overlay).toMatch(/padding-top:\s*15vh/);
-        expect(overlay).toMatch(/padding-bottom:/);
-        // The overlay gets the branch class only in the branching phase.
+        expect(overlay).toMatch(/padding-bottom:\s*45vh/);
+        // The content is clamped so a long headline/translation cannot spill
+        // into the reserved bottom band.
+        const content = cssBlock(css, '.ivp-overlay.ivp-overlay-branch .ivp-overlay-content {');
+        expect(content).toMatch(/max-height:\s*100%/);
+        expect(content).toMatch(/overflow:\s*hidden/);
+        // The overlay gets the branch class ONLY in the branching phase — assert
+        // the exact ternary, not just the presence of the class/constant.
         const player = read('src/components/SimpleVideoPlayer.web.jsx');
-        expect(player).toContain('ivp-overlay-branch');
-        expect(player).toContain('BRANCH_OVERLAY_PHASE');
+        expect(player).toContain("appPhase === BRANCH_OVERLAY_PHASE ? ' ivp-overlay-branch'");
     });
 
     it('ships the branch heading copy in English and Spanish', () => {
