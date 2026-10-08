@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { VideoRenderPlanner, resolveRecapOverlay, resolveRecapSources, isDroppedStep, markFirstRenderable, resolveSegmentBounds, UNRESOLVED_SEGMENT_CAP_MS, STALL_GRACE_MS, resolvePublishLessonId, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges, MIN_SEGMENT_SECONDS, MAX_CALIBRATION_OFFSET_SEC } from './video-processor-logic.js';
+import { VideoRenderPlanner, resolveRecapOverlay, resolveRecapSources, isDroppedStep, markFirstRenderable, resolveSegmentBounds, UNRESOLVED_SEGMENT_CAP_MS, STALL_GRACE_MS, resolvePublishLessonId, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges, resolveHeaderLayout, HEADER_MAX_HEIGHT_PX, MIN_SEGMENT_SECONDS, MAX_CALIBRATION_OFFSET_SEC } from './video-processor-logic.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '../../..');
@@ -1028,5 +1028,59 @@ describe('video-processor-logic.js platform-agnostic guard', () => {
         // net speaking time.
         expect(body).not.toMatch(/step\.duration/);
         expect(body).not.toMatch(/netDuration/);
+    });
+});
+
+describe('resolveHeaderLayout', () => {
+    const HEADER = { naturalWidth: 1600, naturalHeight: 300 };
+
+    it('fits the wide header to the canvas width and centres it', () => {
+        // Portrait recap canvas: the 1600px-wide art must be scaled down to the
+        // canvas so its sides are never clipped, and centred inside it.
+        const layout = resolveHeaderLayout({ ...HEADER, canvasWidth: 720, canvasHeight: 1280 });
+
+        expect(layout.width).toBe(720);
+        expect(layout.x).toBe(0);
+        expect(layout.width).toBeLessThanOrEqual(720);
+        expect(layout.x + layout.width).toBeLessThanOrEqual(720);
+        expect(layout.height).toBeLessThanOrEqual(HEADER_MAX_HEIGHT_PX);
+    });
+
+    it('caps the height at HEADER_MAX_HEIGHT_PX and stays centred on a wide canvas', () => {
+        const layout = resolveHeaderLayout({ ...HEADER, canvasWidth: 1080, canvasHeight: 1920 });
+
+        expect(layout.height).toBe(HEADER_MAX_HEIGHT_PX);
+        expect(Math.abs(layout.x - (1080 - layout.width) / 2)).toBeLessThanOrEqual(1);
+        expect(layout.y).toBe(0);
+        // The width that preserves aspect at the capped height must still fit.
+        expect(layout.width).toBeLessThanOrEqual(1080);
+    });
+
+    it('never overflows the canvas or the top band for any canvas size', () => {
+        const sizes = [
+            [720, 1280], [1080, 1920], [1920, 1080], [608, 1080], [3840, 2160],
+        ];
+        for (const [canvasWidth, canvasHeight] of sizes) {
+            const layout = resolveHeaderLayout({ ...HEADER, canvasWidth, canvasHeight });
+            expect(layout.width).toBeLessThanOrEqual(canvasWidth);
+            expect(layout.height).toBeLessThanOrEqual(HEADER_MAX_HEIGHT_PX);
+            expect(layout.height).toBeLessThanOrEqual(canvasHeight);
+            expect(layout.x).toBeGreaterThanOrEqual(0);
+            expect(layout.x + layout.width).toBeLessThanOrEqual(canvasWidth);
+            expect(layout.y).toBe(0);
+        }
+    });
+
+    it('preserves the header aspect ratio', () => {
+        const layout = resolveHeaderLayout({ ...HEADER, canvasWidth: 500, canvasHeight: 500 });
+        const scale = layout.width / HEADER.naturalWidth;
+        expect(layout.height).toBe(Math.round(HEADER.naturalHeight * scale));
+    });
+
+    it('returns null when there is no drawable image or canvas', () => {
+        expect(resolveHeaderLayout({ naturalWidth: 0, naturalHeight: 300, canvasWidth: 720, canvasHeight: 1280 })).toBeNull();
+        expect(resolveHeaderLayout({ naturalWidth: 1600, naturalHeight: 0, canvasWidth: 720, canvasHeight: 1280 })).toBeNull();
+        expect(resolveHeaderLayout({ naturalWidth: 1600, naturalHeight: 300, canvasWidth: 0, canvasHeight: 1280 })).toBeNull();
+        expect(resolveHeaderLayout()).toBeNull();
     });
 });

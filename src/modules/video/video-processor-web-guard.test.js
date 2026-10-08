@@ -186,4 +186,40 @@ describe('video-processor.web.js recap wiring guard', () => {
         // drawFittedLine must not rely on textAlign='center' for its origin.
         expect(source).toMatch(/context\.textAlign = 'left'/);
     });
+
+    it('scales and centres the recap header instead of drawing it at natural size', () => {
+        // The 1600×300 header art overflows a portrait canvas at natural size.
+        // It must go through the shared (unit-tested) layout helper and be
+        // drawn with the resulting rect.
+        expect(source).toMatch(/resolveHeaderLayout/);
+        const start = source.indexOf('const headerLayout = overlayImage?.complete');
+        expect(start).toBeGreaterThan(-1);
+        const end = source.indexOf('if (displayCanvas)', start);
+        const block = source.slice(start, end);
+        expect(block).toMatch(/resolveHeaderLayout\(\{/);
+        expect(block).toMatch(/canvasWidth: canvas\.width/);
+        expect(block).toMatch(/canvasHeight: canvas\.height/);
+        expect(block).toMatch(
+            /ctx\.drawImage\(\s*overlayImage,\s*headerLayout\.x, headerLayout\.y,\s*headerLayout\.width, headerLayout\.height\s*\)/
+        );
+        // The old natural-size / clipped draw must be gone.
+        expect(block).not.toMatch(/drawImage\(overlayImage,\s*x,\s*0\)/);
+        // And the header bottom must be handed to the overlay so text clears it.
+        expect(block).toMatch(/drawTextOverlay\([\s\S]*headerLayout\?\.height \|\| 0/);
+    });
+
+    it('places the share headline below the header, never over it', () => {
+        // The header and the share headline share the top of the frame; the
+        // headline band must start below the drawn header.
+        expect(source).toMatch(/shareCta = null, headerBottom = 0\)/);
+        const start = source.indexOf('if (headlineBlock) {');
+        const end = source.indexOf('if (tailingCard) {');
+        expect(start).toBeGreaterThan(-1);
+        expect(end).toBeGreaterThan(start);
+        const headlineBlock = source.slice(start, end);
+        expect(headlineBlock).toMatch(/const bandTop = Math\.max\(0, headerBottom\)/);
+        expect(headlineBlock).toMatch(/Math\.max\(centeredY, clearsHeaderY\)/);
+        // The band must be anchored below the header, not at the fixed 0.125.
+        expect(headlineBlock).not.toMatch(/bandCenterY = canvasHeight \* 0\.125/);
+    });
 });

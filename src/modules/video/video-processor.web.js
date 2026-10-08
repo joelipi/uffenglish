@@ -6,7 +6,7 @@ import { shareVideo } from './video-share.js';
 import { appStore } from '../store/store.js';
 import headerImg from '../../assets/img/header.png';
 import { getVideoUrl, getUgcThumbKey, getCompleteVideoKey } from './video-url.js';
-import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, buildShareUrl, buildShareDeadline, resolveOverlayElements, isShareCtaEnabled, isDroppedStep, markFirstRenderable, resolveSegmentBounds, STALL_GRACE_MS, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges } from './video-processor-logic.js';
+import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, buildShareUrl, buildShareDeadline, resolveOverlayElements, resolveHeaderLayout, isShareCtaEnabled, isDroppedStep, markFirstRenderable, resolveSegmentBounds, STALL_GRACE_MS, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges } from './video-processor-logic.js';
 import { remoteSource } from './video-source.js';
 import { DEFAULT_USER_AVATAR_URL } from '../user/tutor-config.js';
 import { getAvatarBlobUrl } from '../avatar/avatar.service.js';
@@ -696,16 +696,27 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
 
-            if (overlayImage?.complete && overlayImage.naturalWidth > 0) {
-                const x = (canvas.width - overlayImage.naturalWidth) / 2;
-                ctx.drawImage(overlayImage, x, 0);
+            const headerLayout = overlayImage?.complete && overlayImage.naturalWidth > 0
+                ? resolveHeaderLayout({
+                    naturalWidth: overlayImage.naturalWidth,
+                    naturalHeight: overlayImage.naturalHeight,
+                    canvasWidth: canvas.width,
+                    canvasHeight: canvas.height,
+                })
+                : null;
+            if (headerLayout) {
+                ctx.drawImage(
+                    overlayImage,
+                    headerLayout.x, headerLayout.y,
+                    headerLayout.width, headerLayout.height
+                );
             }
 
             drawTextOverlay(
                 ctx, canvas.width, canvas.height,
                 isTailing, tailStart, fluencyData,
                 step.isFirst, step.subtitle, displayCanvas,
-                overlayVariant, shareCta
+                overlayVariant, shareCta, headerLayout?.height || 0
             );
 
             if (displayCanvas) {
@@ -938,7 +949,7 @@ function drawCenteredLine(context, text, centerX, y) {
     context.textAlign = prevAlign;
 }
 
-function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart, fluencyData, isFirst, subtitleText, displayCanvas, overlayVariant = 'fluency', shareCta = null) {
+function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart, fluencyData, isFirst, subtitleText, displayCanvas, overlayVariant = 'fluency', shareCta = null, headerBottom = 0) {
     const now = performance.now();
     const blinkOn = Math.floor(now / 500) % 2 === 0;
     context.save();
@@ -1024,11 +1035,20 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
         context.shadowBlur = Math.max(8, Math.round(canvasWidth * 0.012));
 
         if (headlineBlock) {
-            // Vertically centered within the top 25% band.
-            const bandCenterY = canvasHeight * 0.125;
+            // Centre the headline in the top-quarter band that remains below the
+            // decorative header, so the two never collide. The lower bound keeps
+            // the headline's ink below the header even when the remaining band is
+            // shallow (short/landscape canvases). With no header loaded this is
+            // the original top-25% band (centre at 0.125 × height).
+            const baseHeadlineSize = Math.round(canvasWidth * 0.055);
             const lineGap = Math.round(canvasHeight * 0.045);
+            const bandTop = Math.max(0, headerBottom);
+            const bandBottom = canvasHeight * 0.25;
+            const centeredY = bandTop + (bandBottom - bandTop) / 2;
+            const clearsHeaderY = bandTop + lineGap / 2 + baseHeadlineSize / 2 + 8;
+            const bandCenterY = Math.max(centeredY, clearsHeaderY);
             const headlineSize = drawFittedLine(context, shareCta.headline, centerX, bandCenterY - lineGap / 2, {
-                fontFamily, maxWidth, baseSize: Math.round(canvasWidth * 0.055), color: 'white'
+                fontFamily, maxWidth, baseSize: baseHeadlineSize, color: 'white'
             });
             drawFittedLine(context, shareCta.url, centerX, bandCenterY + lineGap / 2, {
                 fontFamily, maxWidth, baseSize: Math.round(headlineSize * 0.9), color: 'yellow'

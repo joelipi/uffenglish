@@ -164,6 +164,40 @@ export function isShareCtaEnabled(variant) {
     return variant === 'shareCta';
 }
 
+// The decorative recap header (teacher portrait + UFF wordmark) is 1600×300 —
+// far wider than the portrait recap canvas. It may extend at most this far down
+// from the top so it never dominates the frame or collides with the recap text.
+export const HEADER_MAX_HEIGHT_PX = 200;
+
+/**
+ * Pure layout for the decorative recap header. Scales the image down
+ * proportionally so it fits both the canvas width and a shallow top band
+ * (`HEADER_MAX_HEIGHT_PX`), then centres it horizontally at the very top.
+ * Returns null when there is no drawable image or no canvas to draw into.
+ *
+ * Invariants (asserted in the unit tests): the drawn rect never exceeds the
+ * canvas width, never extends past `HEADER_MAX_HEIGHT_PX` (or the canvas
+ * height), and is horizontally centred within one pixel.
+ */
+export function resolveHeaderLayout({
+    naturalWidth = 0,
+    naturalHeight = 0,
+    canvasWidth = 0,
+    canvasHeight = 0,
+} = {}) {
+    if (naturalWidth <= 0 || naturalHeight <= 0 || canvasWidth <= 0 || canvasHeight <= 0) {
+        return null;
+    }
+
+    const maxHeight = Math.min(HEADER_MAX_HEIGHT_PX, canvasHeight);
+    const scale = Math.min(canvasWidth / naturalWidth, maxHeight / naturalHeight);
+    const width = Math.round(naturalWidth * scale);
+    const height = Math.round(naturalHeight * scale);
+    const x = Math.round((canvasWidth - width) / 2);
+
+    return { x, y: 0, width, height };
+}
+
 /**
  * A remote prompt step that has been dropped because its clip could not be
  * fetched (`remoteFailed`) or decoded/played (`loadFailed`). The render loop
