@@ -267,6 +267,43 @@ describe('runTranslateSheet', () => {
         expect(ranges.some((r) => /[HI]\d/.test(r))).toBe(false);
     });
 
+    // Story 056: the `srt` column is translated cue-text-only via the translateSrt
+    // seam; the unescaped English document goes in and a literal SRT comes out.
+    it('translates srt cue text with translateSrt, preserving timings, and writes srt_<lang> verbatim', async () => {
+        const values = [
+            ['course_id', 'lesson_id', 'video_file', 'srt', 'srt_es'],
+            ['c', 'a', 'v', '1\\n00:00:00,000 --> 00:00:01,000\\nHi', ''],
+        ];
+        const client = makeClient(values);
+        const translateText = vi.fn(async (t, l) => `${l}:${t}`);
+        const translateSrt = vi.fn(async (srt, lang) => srt.replace('Hi', `${lang}:Hi`));
+        const res = await runTranslateSheet({
+            sheetId: 'S', tab: 'Sheet1', languages: ['es'], ...client, translateText, translateSrt, log: () => {},
+        });
+        expect(res.plan.map((p) => p.column)).toEqual(['srt_es']);
+        // The English document is unescaped before it reaches translateSrt.
+        expect(translateSrt).toHaveBeenCalledWith('1\n00:00:00,000 --> 00:00:01,000\nHi', 'es');
+        expect(translateText).not.toHaveBeenCalled();
+        expect(client.batchUpdate.mock.calls[0][0].requestBody.data).toEqual([
+            { range: "'Sheet1'!E2", values: [['1\n00:00:00,000 --> 00:00:01,000\nes:Hi']] },
+        ]);
+    });
+
+    it('rejects an srt translation whose timings drifted, writing nothing', async () => {
+        const values = [
+            ['course_id', 'lesson_id', 'video_file', 'srt', 'srt_es'],
+            ['c', 'a', 'v', '1\\n00:00:00,000 --> 00:00:01,000\\nHi', ''],
+        ];
+        const client = makeClient(values);
+        await expect(runTranslateSheet({
+            sheetId: 'S', tab: 'Sheet1', languages: ['es'], ...client,
+            translateText: vi.fn(async (t) => t),
+            translateSrt: vi.fn(async () => '1\n00:00:00,000 --> 00:00:02,000\nHola'),
+            log: () => {},
+        })).rejects.toThrow(/not a valid SRT/);
+        expect(client.batchUpdate).not.toHaveBeenCalled();
+    });
+
     it('plans no phrase cells for an authoring sheet (no phrase column)', async () => {
         const values = [['lesson_title', 'lesson_title_es'], ['Hi', '']];
         const client = makeClient(values);

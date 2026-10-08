@@ -4,7 +4,9 @@ import {
     SHEET_LANGUAGES,
     TRANSLATABLE_FIELDS,
     LINE_PAIRED_FIELDS,
+    SRT_FIELDS,
     isLinePairedField,
+    isSrtField,
     localizedColumn,
     groupCueAltLines,
     planSheetTranslations,
@@ -20,17 +22,27 @@ describe('column contract', () => {
         expect(SHEET_LANGUAGES).toEqual(['es', 'pt', 'bn']);
     });
 
-    it('maps exactly the seven translatable sources (21 columns)', () => {
+    it('maps exactly the eight translatable sources (24 columns)', () => {
         expect(TRANSLATABLE_FIELDS.map((f) => f.source)).toEqual([
-            'lesson_title', 'mission', 'cue', 'cue_alt', 'choose_step_text', 'subtitle_text', 'phrase',
+            'lesson_title', 'mission', 'cue', 'cue_alt', 'choose_step_text', 'subtitle_text', 'srt', 'phrase',
         ]);
         const cols = TRANSLATABLE_FIELDS.flatMap((f) =>
             SHEET_LANGUAGES.map((l) => localizedColumn(f.field, l)));
-        expect(cols).toHaveLength(21);
+        expect(cols).toHaveLength(24);
         expect(cols).toContain('cue_pt');
         expect(cols).toContain('choose_step_text_es');
         expect(cols).toContain('subtitle_text_bn');
+        expect(cols).toContain('srt_bn');
         expect(cols).toContain('phrase_es');
+    });
+
+    it('marks srt as an SRT field (timing-validated, not line-paired)', () => {
+        const srt = TRANSLATABLE_FIELDS.find((f) => f.field === 'srt');
+        expect(srt).toMatchObject({ source: 'srt', level: 'step', srt: true });
+        expect(isSrtField('srt')).toBe(true);
+        expect(isSrtField('subtitle_text')).toBe(false);
+        expect(isLinePairedField('srt')).toBe(false);
+        expect([...SRT_FIELDS]).toEqual(['srt']);
     });
 
     it('marks cue_alt and choose_step_text as line-paired step fields', () => {
@@ -170,13 +182,15 @@ describe('planSheetTranslations', () => {
         expect(plan.map((p) => `${p.row}:${p.column}`)).toEqual(['0:lesson_title_es', '0:cue_es']);
     });
 
-    it('does not plan subtitle_text when the group has srt (srt wins)', () => {
-        const headers = ['course_id', 'lesson_id', 'video_file', 'subtitle_text', 'subtitle_text_es', 'srt'];
+    it('plans srt (not subtitle_text) when the group has srt (srt wins)', () => {
+        const headers = ['course_id', 'lesson_id', 'video_file', 'subtitle_text', 'subtitle_text_es', 'srt', 'srt_es'];
         const rows = [{
             course_id: 'c', lesson_id: 'a', video_file: 'v',
-            subtitle_text: 'Hi', subtitle_text_es: '', srt: '1\\n00:00 --> 00:01\\nHi',
+            subtitle_text: 'Hi', subtitle_text_es: '', srt: '1\\n00:00 --> 00:01\\nHi', srt_es: '',
         }];
-        expect(planSheetTranslations({ rows, headers, languages: ['es'] })).toEqual([]);
+        const plan = planSheetTranslations({ rows, headers, languages: ['es'] });
+        expect(plan.map((p) => p.column)).toEqual(['srt_es']);
+        expect(plan.some((p) => p.field === 'subtitle_text')).toBe(false);
     });
 
     it('emits one cue_alt item per source-bearing row of the group', () => {
@@ -271,6 +285,58 @@ describe('phrase and master-format planning', () => {
         const rows = [{ course_id: 'c', lesson_id: 'a', video_file: 'v', subtitle_text: 'Hi', subtitle_text_es: '' }];
         const plan = planSheetTranslations({ rows, headers, languages: ['es'] });
         expect(plan.map((p) => p.column)).toEqual(['subtitle_text_es']);
+    });
+});
+
+// Story 056: the pipeline's `srt` column is translated cue-text-only into
+// `srt_<lang>` (timings preserved by translateSrt). It is a step-level field
+// keyed by the generator's step key (`join` else `video_file`), so a joined step
+// is planned once.
+describe('srt planning', () => {
+    const headers = ['course_id', 'lesson_id', 'video_file', 'join', 'srt', 'srt_es'];
+    const escaped = '1\\n00:00 --> 00:01\\nHi';
+
+    it('plans srt_<lang> once per step group from the raw (escaped) srt cell', () => {
+        const rows = [{ course_id: 'c', lesson_id: 'a', video_file: 'v', join: '', srt: escaped }];
+        const plan = planSheetTranslations({ rows, headers, languages: ['es'] });
+        expect(plan).toHaveLength(1);
+        expect(plan[0]).toMatchObject({
+            row: 0, column: 'srt_es', sourceColumn: 'srt', sourceText: escaped, lang: 'es', field: 'srt',
+        });
+    });
+
+    it('skips a filled srt_<lang> (blanks-only), unless force', () => {
+        const rows = [{ course_id: 'c', lesson_id: 'a', video_file: 'v', join: '', srt: escaped, srt_es: 'ya traducido' }];
+        expect(planSheetTranslations({ rows, headers, languages: ['es'] })).toEqual([]);
+        expect(planSheetTranslations({ rows, headers, languages: ['es'], force: true }).map((p) => p.column))
+            .toEqual(['srt_es']);
+    });
+
+    it('groups a joined step by join so its shared SRT is planned once', () => {
+        const rows = [
+            { course_id: 'c', lesson_id: 'a', video_file: 'b_i', join: 'J', srt: escaped },
+            { course_id: 'c', lesson_id: 'a', video_file: 'b_ii', join: 'J', srt: escaped },
+        ];
+        const plan = planSheetTranslations({ rows, headers, languages: ['es'] });
+        expect(plan.map((p) => `${p.row}:${p.column}`)).toEqual(['0:srt_es']);
+    });
+
+    it('falls back to video_file when the sheet has no join column (authoring shape)', () => {
+        const authoringHeaders = ['course_id', 'lesson_id', 'video_file', 'srt', 'srt_es'];
+        const rows = [
+            { course_id: 'c', lesson_id: 'a', video_file: 'v1', srt: escaped },
+            { course_id: 'c', lesson_id: 'a', video_file: 'v2', srt: escaped },
+        ];
+        const plan = planSheetTranslations({ rows, headers: authoringHeaders, languages: ['es'] });
+        expect(plan.map((p) => `${p.row}:${p.column}`)).toEqual(['0:srt_es', '1:srt_es']);
+    });
+
+    it('counts a joined step srt_<lang> once', () => {
+        const rows = [
+            { course_id: 'c', lesson_id: 'a', video_file: 'b_i', join: 'J', srt: escaped, srt_es: 'Hola' },
+            { course_id: 'c', lesson_id: 'a', video_file: 'b_ii', join: 'J', srt: escaped },
+        ];
+        expect(countPresentTranslations({ rows, headers, languages: ['es'] })).toEqual({ es: 1 });
     });
 });
 

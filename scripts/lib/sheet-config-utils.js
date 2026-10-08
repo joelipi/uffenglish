@@ -12,10 +12,12 @@
 //
 // English is always emitted. When the sheet also carries the per-language
 // columns (`lesson_title_es`, `mission_pt`, `cue_es`, `cue_alt_es`,
-// `choose_step_text_es`, `subtitle_text_bn`, … — the 18 columns the
+// `choose_step_text_es`, `subtitle_text_bn`, `srt_es`, … — the columns the
 // translate-sheet Action fills), they are consumed into the existing
 // `{en,es,pt,bn}` objects. The language columns are optional: a sheet with none
-// of them still generates English-only output.
+// of them still generates English-only output. Subtitles come from `srt`
+// (localized by `srt_<lang>`, timings preserved) or, when `srt` is blank,
+// `subtitle_text` (localized by `subtitle_text_<lang>`).
 
 import {
     SHEET_LANGUAGES,
@@ -219,19 +221,31 @@ function localizedObject(rows, field, enValue) {
 }
 
 /**
- * The subtitles for a group: `srt` (JSON-escaped) wins, else `subtitle_text`
- * verbatim; both blank -> undefined (the key is omitted). First non-empty
- * value across the group's rows wins.
- *
- * `srt` is NOT translated (the caption pipeline owns SRT timings), so the
- * `srt` branch stays `{en}`. The `subtitle_text` branch picks up the
- * `subtitle_text_<lang>` columns.
+ * The step's subtitles from `srt`/`srt_<lang>`, or undefined when the English
+ * `srt` is blank. The English `srt` is the pipeline-written JSON-escaped string
+ * (`unescapeSrt`); `srt_<lang>` is operator/translation text (a literal SRT
+ * document, timings preserved) and is taken verbatim. First non-blank value
+ * across the group's rows wins (a joined step's SRT is written to every row).
+ */
+function srtSubtitlesFor(rows) {
+    const en = firstNonBlank(rows, 'srt');
+    if (!en) return undefined;
+    const obj = { en: unescapeSrt(en) };
+    for (const lang of SHEET_LANGUAGES) {
+        const v = firstNonBlank(rows, localizedColumn('srt', lang));
+        if (v) obj[lang] = v;
+    }
+    return obj;
+}
+
+/**
+ * The subtitles for a group: `srt`/`srt_<lang>` (JSON-escaped English, localized
+ * by the `srt_<lang>` columns) wins, else `subtitle_text` verbatim (localized by
+ * `subtitle_text_<lang>`); both blank -> undefined (the key is omitted).
  */
 function subtitlesFor(groupRows) {
-    for (const row of groupRows) {
-        const srt = cell(row, 'srt').trim();
-        if (srt) return { en: unescapeSrt(srt) };
-    }
+    const fromSrt = srtSubtitlesFor(groupRows);
+    if (fromSrt) return fromSrt;
     for (const row of groupRows) {
         const text = cell(row, sourceOf('subtitle_text'));
         if (text.trim()) return localizedObject(groupRows, 'subtitle_text', text);
@@ -441,23 +455,14 @@ function masterCueFor(subgroups) {
 }
 
 /**
- * Master app subtitles: from `srt` only (the master's `subtitle_text` is
- * burnt-in overlay markup, never app subtitles). The pipeline writes one SRT per
- * step — for a joined step it is the join's cumulative-offset SRT written to
- * every row of the join — so this reads the step's first non-blank `srt` and
- * does NOT concatenate sub-groups. The English value is the pipeline-written
- * JSON-escaped string (`unescapeSrt`); `srt_<lang>` is operator/translation text
- * and is taken verbatim. Blank -> undefined.
+ * Master app subtitles: from `srt`/`srt_<lang>` only (the master's
+ * `subtitle_text` is burnt-in overlay markup, never app subtitles). The pipeline
+ * writes one SRT per step — for a joined step it is the join's cumulative-offset
+ * SRT written to every row of the join — so `srtSubtitlesFor` reads the step's
+ * first non-blank `srt` and does NOT concatenate sub-groups. Blank -> undefined.
  */
 function masterSubtitlesFor(stepRows) {
-    const en = firstNonBlank(stepRows, 'srt');
-    if (!en) return undefined;
-    const obj = { en: unescapeSrt(en) };
-    for (const lang of SHEET_LANGUAGES) {
-        const v = firstNonBlank(stepRows, localizedColumn('srt', lang));
-        if (v) obj[lang] = v;
-    }
-    return obj;
+    return srtSubtitlesFor(stepRows);
 }
 
 /** Build steps from the overlay master (steps in first-seen group order). */

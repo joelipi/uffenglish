@@ -16,17 +16,22 @@ export const SHEET_LANGUAGES = ['es', 'pt', 'bn'];
 
 // The translatable fields and their English source column. `cue` and `cue_alt`
 // are mutually exclusive step shapes; `subtitle_text` is the static-subtitle
-// source (the `srt` column is NOT translated — the caption pipeline owns SRT).
+// source; `srt` is the pipeline's exact-timing caption document, translated
+// cue-text-only by `translateSrt` (timings preserved, never retimed).
 // The translator plans from this list; the config generator reads the same
 // columns independently (see sheet-config-utils.js) and the two lists must be
 // kept in sync by hand.
 // `level` drives group-scoped planning: lesson-level fields are planned once per
-// lesson, step-level fields once per `lesson_id` + `video_file` group. `perRow`
-// fields (the overlay master's `phrase`, one cue element per sheet row) are
-// planned per row instead of per group. `lines` marks a newline-separated,
+// lesson, step-level fields once per step group. A step group is
+// `lesson_id` + `video_file` — except an SRT field, which keys by the
+// generator's step key (`join` else `video_file`) so a joined step plans once.
+// `perRow` fields (the overlay master's `phrase`, one cue element per sheet row)
+// are planned per row instead of per group. `lines` marks a newline-separated,
 // line-paired cell (`cue_alt` -> `cue[i]`, `choose_step_text` ->
 // `chooseStep[i].text`): the planner emits one item per source-bearing row and
-// the CLI guards that a translation never changes the line count.
+// the CLI guards that a translation never changes the line count. `srt` marks a
+// caption document whose translation is validated by cue count + timings, not
+// line count.
 export const TRANSLATABLE_FIELDS = [
     { field: 'lesson_title', source: 'lesson_title', level: 'lesson' },
     { field: 'mission', source: 'mission', level: 'lesson' },
@@ -34,6 +39,7 @@ export const TRANSLATABLE_FIELDS = [
     { field: 'cue_alt', source: 'cue_alt', level: 'step', lines: true },
     { field: 'choose_step_text', source: 'choose_step_text', level: 'step', lines: true },
     { field: 'subtitle_text', source: 'subtitle_text', level: 'step' },
+    { field: 'srt', source: 'srt', level: 'step', srt: true },
     { field: 'phrase', source: 'phrase', level: 'step', perRow: true },
 ];
 
@@ -47,6 +53,16 @@ export const LINE_PAIRED_FIELDS = new Set(
 /** Whether a translatable field's cell is newline-separated and line-paired. */
 export function isLinePairedField(field) {
     return LINE_PAIRED_FIELDS.has(field);
+}
+
+// The SRT fields, derived from the `srt` flag. Their translation preserves cue
+// count and timestamps (validated by `validateTranslatedSrt`), not line count.
+export const SRT_FIELDS = new Set(
+    TRANSLATABLE_FIELDS.filter((f) => f.srt).map((f) => f.field));
+
+/** Whether a translatable field is an SRT caption document. */
+export function isSrtField(field) {
+    return SRT_FIELDS.has(field);
 }
 
 /** The per-language column name for a field, e.g. `localizedColumn('cue','pt')` -> `cue_pt`. */
@@ -114,12 +130,16 @@ function headerSetOf(headers) {
  * its own group (per-row fallback, so simple fixtures keep working).
  *
  * Lesson-level fields group by `course_id` + `lesson_id`; step-level fields by
- * `course_id` + `lesson_id` + `video_file`. `course_id` is part of the key
- * because `lesson_id` is only unique within a course — the generator partitions
- * by `course_id` first, so two courses may reuse `intro`/`a`/…. Blank spacer
- * rows (missing any required key) are dropped so they cannot create plans.
+ * `course_id` + `lesson_id` + `video_file`. With `stepKey`, a step-level field
+ * groups by the generator's step key instead (`join` when set, else
+ * `video_file`), so a joined master step — whose rows carry two `video_file`
+ * values but one `join` — is planned once, mirroring `masterSubtitlesFor`.
+ * `course_id` is part of the key because `lesson_id` is only unique within a
+ * course — the generator partitions by `course_id` first, so two courses may
+ * reuse `intro`/`a`/…. Blank spacer rows (missing any required key) are dropped
+ * so they cannot create plans.
  */
-function groupsForField(rows, headerSet, level) {
+function groupsForField(rows, headerSet, level, { stepKey = false } = {}) {
     const hasCourseId = headerSet.has('course_id');
     const hasLessonId = headerSet.has('lesson_id');
     const hasVideoFile = headerSet.has('video_file');
@@ -139,7 +159,8 @@ function groupsForField(rows, headerSet, level) {
                 key = `lesson|${courseId}|${lessonId}`;
             } else {
                 if (!courseId || !lessonId || !videoFile) return; // blank spacer row
-                key = `step|${courseId}|${lessonId}|${videoFile}`;
+                const step = stepKey ? (cell(row, 'join').trim() || videoFile) : videoFile;
+                key = `step|${courseId}|${lessonId}|${step}`;
             }
         } else {
             key = `row|${rowIndex}`; // per-row fallback
@@ -166,7 +187,9 @@ function groupUsesSrt(rows, indices) {
  * generator, so each emits one item per source-bearing row; every other field is
  * one value written once on the group's first source-bearing row.
  * `subtitle_text` groups shadowed by a non-blank `srt` are skipped (the
- * generator gives `srt` precedence).
+ * generator gives `srt` precedence). `srt` groups by the generator's step key
+ * (`join` else `video_file`) so a joined step is planned once; its `sourceText`
+ * is the raw (JSON-escaped) cell — the CLI unescapes it before `translateSrt`.
  *
  * @param {object} opts
  * @param {Array<Record<string,string>>} opts.rows parsed rows (header-keyed)
@@ -190,7 +213,7 @@ export function planSheetTranslations({
     // present.
     const isMaster = headerSet.has('phrase');
 
-    for (const { field, source, level, perRow } of TRANSLATABLE_FIELDS) {
+    for (const { field, source, level, perRow, srt } of TRANSLATABLE_FIELDS) {
         if (field === 'subtitle_text' && isMaster) continue;
 
         if (perRow) {
@@ -216,7 +239,7 @@ export function planSheetTranslations({
             continue;
         }
 
-        const groups = groupsForField(rowsList, headerSet, level);
+        const groups = groupsForField(rowsList, headerSet, level, { stepKey: !!srt });
         for (const indices of groups.values()) {
             const sourceIndices = indices.filter((i) => cell(rowsList[i], source).trim());
             if (sourceIndices.length === 0) continue;
@@ -262,7 +285,7 @@ export function countPresentTranslations({ rows, headers, languages = SHEET_LANG
     for (const lang of languages) counts[lang] = 0;
 
     const isMaster = headerSet.has('phrase');
-    for (const { field, source, level, perRow } of TRANSLATABLE_FIELDS) {
+    for (const { field, source, level, perRow, srt } of TRANSLATABLE_FIELDS) {
         if (field === 'subtitle_text' && isMaster) continue;
         if (perRow) {
             for (const row of rowsList) {
@@ -273,7 +296,7 @@ export function countPresentTranslations({ rows, headers, languages = SHEET_LANG
             }
             continue;
         }
-        const groups = groupsForField(rowsList, headerSet, level);
+        const groups = groupsForField(rowsList, headerSet, level, { stepKey: !!srt });
         for (const indices of groups.values()) {
             if (!indices.some((i) => cell(rowsList[i], source).trim())) continue;
             if (field === 'subtitle_text' && groupUsesSrt(rowsList, indices)) continue;

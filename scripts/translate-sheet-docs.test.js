@@ -43,7 +43,7 @@ function assertOneClickDocs({ authoring }) {
     expect(section).toContain('deploy prerequisite');
 }
 
-// The docs contract: the authoring guide documents every one of the 18
+// The docs contract: the authoring guide documents every one of the 21
 // authoring localization columns (`phrase` is master-only, not in this guide)
 // and the service-account share step, and the product feature list carries the
 // round-trip entry.
@@ -66,7 +66,7 @@ function assertDocsContract({ authoring, product }) {
 }
 
 describe('story 049 docs contract', () => {
-    it('documents the 18 localization columns + service-account setup', () => {
+    it('documents the 21 localization columns + service-account setup', () => {
         expect(() => assertDocsContract({ authoring: read(AUTHORING), product: read(PRODUCT) })).not.toThrow();
     });
 
@@ -77,6 +77,7 @@ describe('story 049 docs contract', () => {
         const mutated = [
             { authoring: authoring.replace('lesson_title_es', 'X'), product },
             { authoring: authoring.replace('subtitle_text_bn', 'X'), product },
+            { authoring: authoring.replace('srt_bn', 'X'), product },
             { authoring: authoring.replace('GOOGLE_SERVICE_ACCOUNT_JSON', 'X'), product },
             { authoring: authoring.replace('https://www.googleapis.com/auth/spreadsheets', 'X'), product },
             { authoring, product: product.split('stories/049-translate-sheet/story.md').join('X') },

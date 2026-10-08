@@ -35,7 +35,7 @@ columns reported):
 | `choose_step_next` | Newline-separated 1-based offsets, one line per choice — emitted as `chooseStep[i].nextStep`. A `branching` step's multiple-choice targets. |
 | `choose_step_text` | Newline-separated choice labels, line-paired with `choose_step_next` — emitted as `chooseStep[i].text`. |
 | `subtitle_text` | Static subtitle text (used only if `srt` is blank). |
-| `srt` | Exact SRT cues. Written by the render pipeline's `srt` column; can be pasted here. |
+| `srt` | Exact SRT cues. Written by the render pipeline's `srt` column; can be pasted here. The translator fills `srt_<lang>` with cue-text-only translations (timings preserved). |
 | `recap_sources` | `system` / `friend` / `none` (lesson-level; default `none`). |
 | `recap_overlay` | `fluency` / `shareCta` / `none` (lesson-level; default `shareCta`). |
 
@@ -70,9 +70,13 @@ Sheet" → Run workflow; it takes optional `dry_run` and `languages` inputs).
 | `cue_alt` | `cue_alt_es`, `cue_alt_pt`, `cue_alt_bn` | `step.cue[i][lang]` (one cell per alternative line) |
 | `choose_step_text` | `choose_step_text_es`, `choose_step_text_pt`, `choose_step_text_bn` | `step.chooseStep[i].text[lang]` (one cell per choice line) |
 | `subtitle_text` | `subtitle_text_es`, `subtitle_text_pt`, `subtitle_text_bn` | `step.subtitles[lang]` (only when `srt` is blank) |
+| `srt` | `srt_es`, `srt_pt`, `srt_bn` | `step.subtitles[lang]` (localized video captions) |
 
-That is 18 columns (6 fields × 3 languages). `srt` is **not** translated: SRT timings are
-the caption pipeline's job, so a step with `srt` keeps `subtitles = {en: <srt>}`.
+That is 21 columns (7 fields × 3 languages). `srt` **is** translated, but only the cue
+text: the translator uses `translateSrt`, which preserves cue numbers and timestamps
+exactly, and refuses to write a translation whose cue count or timings drifted. SRT
+timings stay the caption pipeline's job — the translator never retimes. A step with
+`srt` and blank `srt_<lang>` columns keeps `subtitles = {en: <srt>}` (English-only).
 
 **Rules:**
 
@@ -91,6 +95,12 @@ the caption pipeline's job, so a step with `srt` keeps `subtitles = {en: <srt>}`
 - **`cue` and `cue_alt` are mutually exclusive**, and each language column pairs only with
   its own shape (`cue_es` with `cue`, `cue_alt_es` with `cue_alt`). The generator ignores a
   stray language column on the wrong shape.
+- **`srt` translations preserve cue numbers and timestamps.** The translator sends the
+  unescaped English SRT to `translateSrt` and validates the result with `validateTranslatedSrt`
+  (cue count + start/end within 1 ms); a drift aborts the run before any cell is written.
+  On the overlay master the SRT is one document per step (written to every row of a `join`),
+  so the translator plans it once per step and the generator reads it once — never
+  concatenating sub-group SRTs.
 - **The English source is never overwritten** and a sheet with none of these columns
   generates English-only output exactly as before.
 

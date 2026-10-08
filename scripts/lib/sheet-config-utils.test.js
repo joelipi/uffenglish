@@ -486,6 +486,13 @@ describe('buildCourseConfig localization columns', () => {
         expect(Object.keys(step.subtitles)).toEqual(['en']);
     });
 
+    it('localizes an authoring-sheet srt from srt_<lang> (taken verbatim)', () => {
+        const [step] = buildSteps([
+            { video_file: 'v', filename: 'v1', order: '1', response_type: 'viewAndContinue', srt: '1\\n00:00 --> 00:01\\nHi', srt_es: '1\n00:00 --> 00:01\nHola' },
+        ]);
+        expect(step.subtitles).toEqual({ en: '1\n00:00 --> 00:01\nHi', es: '1\n00:00 --> 00:01\nHola' });
+    });
+
     it('ignores a stray cue_alt_es on a single-cue step', () => {
         const [step] = buildSteps([
             { video_file: 'q', filename: 'q1', order: '1', response_type: 'friendClosedResponse', cue: 'Q', cue_es: 'Q-es', cue_alt_es: 'stray' },
@@ -534,6 +541,11 @@ describe('shared translatable-field parity', () => {
                 video_file: 'v2', filename: 'f2', order: '2', response_type: 'closedResponse',
                 cue_alt: 'A\nB', [es('cue_alt')]: 'A-es\nB-es',
             },
+            {
+                course_id: 'c', course_name: 'C', lesson_id: 'a', lesson_title: 'L', mission: 'M',
+                video_file: 'v3', filename: 'f3', order: '3', response_type: 'closedResponse',
+                srt: '1\\n00:00 --> 00:01\\nHi', [es('srt')]: '1\n00:00 --> 00:01\nHola',
+            },
         ];
         const lesson = buildCourseConfig(rows).lessons[0];
         expect(lesson.title.es).toBe('L-es');
@@ -541,9 +553,11 @@ describe('shared translatable-field parity', () => {
         expect(lesson.steps[0].cue.es).toBe('Q-es');
         expect(lesson.steps[0].subtitles.es).toBe('S-es');
         expect(lesson.steps[1].cue[0].es).toBe('A-es');
+        // `srt` localizes captions (taken verbatim from `srt_<lang>`).
+        expect(lesson.steps[2].subtitles).toEqual({ en: '1\n00:00 --> 00:01\nHi', es: '1\n00:00 --> 00:01\nHola' });
         // The generator's consumed field set is exactly the shared set.
         expect(TRANSLATABLE_FIELDS.map((f) => f.field).sort()).toEqual([
-            'choose_step_text', 'cue', 'cue_alt', 'lesson_title', 'mission', 'phrase', 'subtitle_text',
+            'choose_step_text', 'cue', 'cue_alt', 'lesson_title', 'mission', 'phrase', 'srt', 'subtitle_text',
         ]);
         // `phrase` is consumed by the master path (one cue element per row).
         const master = buildCourseConfig([{
@@ -965,12 +979,12 @@ describe('docs/video-pipeline/sample-sheet.csv round-trip', () => {
     const samplePath = path.join(__dirname, '../../docs/video-pipeline/sample-sheet.csv');
     const csv = readFileSync(samplePath, 'utf8');
 
-    it('headers include all 18 authoring localization columns (phrase is master-only)', () => {
+    it('headers include all 21 authoring localization columns (phrase is master-only)', () => {
         const { headers } = parseCsv(csv);
         const authoringFields = TRANSLATABLE_FIELDS.filter((f) => f.field !== 'phrase');
         const expected = authoringFields.flatMap((f) =>
             SHEET_LANGUAGES.map((l) => localizedColumn(f.field, l)));
-        expect(expected).toHaveLength(18);
+        expect(expected).toHaveLength(21);
         for (const col of expected) expect(headers).toContain(col);
         for (const col of ['next_step', 'choose_step_next', 'choose_step_text']) {
             expect(headers).toContain(col);

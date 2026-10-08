@@ -114,11 +114,17 @@ describe('buildSeededCsv', () => {
         for (const col of ['choose_step_text_es', 'choose_step_text_pt', 'choose_step_text_bn']) {
             expect(LOCALIZATION_COLUMNS).toContain(col);
         }
+        // Story 056: the SRT cue-text translation targets are seeded too, so the
+        // translator can localize captions once the pipeline fills `srt`.
+        for (const col of ['srt_es', 'srt_pt', 'srt_bn']) {
+            expect(LOCALIZATION_COLUMNS).toContain(col);
+        }
     });
 
     it('emits each new column exactly once in the seeded header', () => {
         for (const col of ['next_step', 'choose_step_next', 'choose_step_text',
-            'choose_step_text_es', 'choose_step_text_pt', 'choose_step_text_bn']) {
+            'choose_step_text_es', 'choose_step_text_pt', 'choose_step_text_bn',
+            'srt_es', 'srt_pt', 'srt_bn']) {
             expect(headers.filter((h) => h === col)).toHaveLength(1);
         }
     });
