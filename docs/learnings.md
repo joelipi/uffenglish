@@ -139,3 +139,19 @@
 **Area**: build | workflow
 **What happened**: The 1600×300 UFF logo (`src/assets/img/header.png` + `public/assets/img/header.png`) was committed through a line-ending conversion, so every `0x0A` (and lone `0x0D`) became `0x0D 0x0A`. Every copy — all worktrees, the GitHub blob, and production — carried the invalid signature `89 50 4E 47 0D 0A 1A 0D 0A` and broken chunk CRCs, so `sharp` and browsers rejected it (`Input file contains unsupported image format`). Git history stored only the corrupt blob, so the original was unrecoverable there, and the user's replacement upload was not on the sandbox filesystem. It **was** recoverable from the OpenChamber session database: chat attachments persist as base64 data URLs in `~/.local/share/opencode/opencode.db*`; the newest message lived only in the WAL, so applying it to the DB snapshot (`cp *.corrupt.… db2.sqlite; cp opencode.db-wal db2.sqlite-wal; cp opencode.db-shm db2.sqlite-shm`, then open `db2.sqlite`) exposed it.
 **Takeaway**: (1) `.gitattributes` now marks `*.png`/`*.jpg`/… `binary` so image bytes can never be normalized again — a `binary`/`-text` rule, not `text=auto`, is what protects real binaries. (2) A PNG that "won't load" may just be a valid image whose bytes were CRLF-mangled; check the signature (`89 50 4E 47 0D 0A 1A 0A`), but the transform is ambiguous per CR/LF pair so recovery from the corrupt bytes is not reliable — get the original. (3) When a user says "I uploaded the file" but it is not on disk, look in the session DB (`opencode.db*`) for `data:image/...;base64,`.
+
+---
+
+## Adding a `{token}` UI string also needs the fixed placeholder dictionary in `strings.test.js`
+**Date**: 2026-10-08
+**Area**: testing
+**What happened**: Story 056 added `friend_courses_lesson_count` ("{count} lessons"). The full suite then failed in the pre-existing `src/data/strings.test.js`: its `PLACEHOLDER_KEYS` list is auto-derived from every `en` value containing `{...}`, but the interpolation test feeds a **fixed** placeholder object (`score`/`date`/`time`/…), not one built from the string, and asserts no `{` remains. `count` was absent from that object, so the new key's Hindi/Bengali output kept `{count}` and failed.
+**Takeaway**: When adding a string key with a `{placeholder}`, add that placeholder name to the fixed object in `strings.test.js`'s `placeholder interpolation in hi/bn` test. The same file also requires every key to carry Hindi (Devanagari) and Bengali values for `hi`/`bn`.
+
+---
+
+## Merging `origin/main` can land new AGENTS.md standing rules that invalidate already-written code
+**Date**: 2026-10-08
+**Area**: workflow
+**What happened**: The story branch was pushed during planning, then `origin/main` advanced 4 commits. Because the branch was already pushed, the fix was `git merge origin/main` (not rebase). That merge pulled in a new "Logic lives in modules, never in components" standing rule, which the code reviewer then applied to inline `Array.isArray` / `length > 0` gates already written in the new components; extracting them into `*-logic.js` view-model builders resolved it.
+**Takeaway**: After `git merge origin/main` on a branch that has been open a while, diff the guidance files (`git diff ORIG_HEAD..HEAD -- AGENTS.md README.md docs/`) and re-read any new standing rules before running reviewers — a newly added convention can make pre-existing work non-compliant even though the feature itself did not change.
