@@ -39,6 +39,11 @@ public/
 functions/api/upload-segment.js   # Pages Function → R2 (requires Supabase JWT)
 ```
 
+## Conventions
+
+- **Logic lives in modules, never in components.** Domain rules (gates, mappings, URL/path building, formatting, scoring) live in pure `*-logic.js` modules or `src/modules/**`; `.jsx`/`.web.jsx` components are render-only — no `if`, computation, or data transform inside JSX. This keeps the logic unit-testable and the app React Native–portable (see `AGENTS.md`).
+- Lesson content (cues, subtitles, step config) lives in `src/config/*.json`; UI copy lives in `src/data/strings.js`.
+
 ## Prerequisites
 
 - Node 20+ (`setup-node@v4` in CI)

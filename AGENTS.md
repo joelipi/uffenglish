@@ -2,6 +2,10 @@
 
 Standing rules for working in this repository. Detailed incident write-ups live in `docs/learnings.md`.
 
+## Logic lives in modules, never in components
+
+This is non-negotiable. Component files (`.jsx`, `.web.jsx`) are **render-only**: every gate, branch, mapping, calculation, scoring rule, URL/path build, formatting call, and data transform belongs in a pure `*-logic.js` module or a `src/modules/**` service — never inline in a component. A component may call a module and render its result; if you find yourself writing an `if`, a computation, or a transform inside JSX, extract it to the module. Containers own data + hooks; presentational views only re-implement rendering. This is what keeps the app React Native–portable and the logic unit-testable. (Full detail, plus the platform-extension convention: the "Logic / presentation separation" entry in the Playbook below.)
+
 ## Source-guard tests must be able to fail
 
 This repo relies heavily on tests that assert on source text ("guards"). Several separate incidents (see git history and `docs/learnings.md`) produced a guard that could never fail. When writing or editing one:
