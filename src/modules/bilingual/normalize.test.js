@@ -80,8 +80,23 @@ describe('normalize', () => {
     });
 
     it('should keep the amount of a decimal currency value', async () => {
-        expect(await normalize('$5.50')).toBe('five dollars fifty');
-        expect(await normalize('5.50 dollars')).toBe('five dollars fifty');
+        expect(await normalize('$5.50')).toBe('five dollars fifty cents');
+        expect(await normalize('5.50 dollars')).toBe('five dollars fifty cents');
+        expect(await normalize('$1,234.56')).toBe('one thousand two hundred thirty dollars fifty cents');
+    });
+
+    it('should normalize cents and drop a zero whole part', async () => {
+        expect(await normalize('$0.50')).toBe('fifty cents');
+        expect(await normalize('$0.05')).toBe('five cents');
+        expect(await normalize('50 cents')).toBe('fifty cents');
+        expect(await normalize('fifty cents')).toBe('fifty cents');
+    });
+
+    it('should use the currency-specific subunit word', async () => {
+        expect(await normalize('£5.50')).toBe('five pounds fifty pence');
+        expect(await normalize('£0.50')).toBe('fifty pence');
+        expect(await normalize('fifty pence')).toBe('fifty pence');
+        expect(await normalize('₹5.50')).toBe('five rupees fifty paise');
     });
 
     it('should not treat a bare number as money', async () => {
@@ -97,6 +112,13 @@ describe('normalize', () => {
         expect(await normalize('£5')).toBe('five pounds');
         expect(await normalize('₹5')).toBe('five rupees');
         expect(await normalize('¥500')).toBe('five hundred yen');
+        expect(await normalize('₽100')).toBe('one hundred rubles');
+        expect(await normalize('₩1000')).toBe('one thousand won');
+        expect(await normalize('₱50')).toBe('fifty pesos');
+        expect(await normalize('₪10')).toBe('ten shekels');
+        expect(await normalize('﷼100')).toBe('one hundred rials');
+        expect(await normalize('₦100')).toBe('one hundred naira');
+        expect(await normalize('500 francs')).toBe('five hundred francs');
     });
 
     it('should normalize a trailing currency symbol too', async () => {

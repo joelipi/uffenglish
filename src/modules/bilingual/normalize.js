@@ -15,13 +15,17 @@
 
 // Currency symbols and words are unified to a single canonical token so a
 // speech-to-text transcription of an amount as "$5" matches an authored cue
-// of "five dollars". The canonical form is the plural word.
+// of "five dollars". The canonical form is the plural word. Symbols are the
+// single-character keys; words (singular + irregular plurals) collapse to the
+// same canonical token.
 const CURRENCY_CANONICAL = {
+    // Symbols
     '$': 'dollars',
     '€': 'euros',
     '£': 'pounds',
     '¥': 'yen',
     '₹': 'rupees',
+    '₨': 'rupees',
     '₩': 'won',
     '₽': 'rubles',
     '₺': 'lira',
@@ -31,30 +35,74 @@ const CURRENCY_CANONICAL = {
     '₫': 'dong',
     '฿': 'baht',
     '₪': 'shekels',
+    '₡': 'colones',
+    '₲': 'guaranis',
+    '₵': 'cedis',
+    '₸': 'tenge',
+    '₼': 'manats',
+    '₾': 'lari',
+    '₭': 'kips',
+    '₮': 'tugriks',
+    '﷼': 'rials',
     // Word forms (singular + irregular plurals) collapse to the same token.
-    dollar: 'dollars',
-    dollars: 'dollars',
-    euro: 'euros',
-    euros: 'euros',
-    pound: 'pounds',
-    pounds: 'pounds',
-    rupee: 'rupees',
-    rupees: 'rupees',
-    ruble: 'rubles',
-    rubles: 'rubles',
-    hryvnia: 'hryvnias',
-    hryvnias: 'hryvnias',
-    peso: 'pesos',
-    pesos: 'pesos',
-    shekel: 'shekels',
-    shekels: 'shekels',
-    yen: 'yen',
-    won: 'won',
-    lira: 'lira',
-    naira: 'naira',
-    dong: 'dong',
-    baht: 'baht',
+    dollar: 'dollars', dollars: 'dollars',
+    euro: 'euros', euros: 'euros',
+    pound: 'pounds', pounds: 'pounds',
+    rupee: 'rupees', rupees: 'rupees',
+    ruble: 'rubles', rubles: 'rubles',
+    rouble: 'rubles', roubles: 'rubles',
+    hryvnia: 'hryvnias', hryvnias: 'hryvnias',
+    peso: 'pesos', pesos: 'pesos',
+    shekel: 'shekels', shekels: 'shekels',
+    yen: 'yen', yuan: 'yuan', renminbi: 'renminbi',
+    won: 'won', lira: 'lira', naira: 'naira', dong: 'dong', baht: 'baht',
+    franc: 'francs', francs: 'francs',
+    reais: 'reais',
+    rand: 'rand', ringgit: 'ringgit',
+    colones: 'colones',
+    guarani: 'guaranis', guaranis: 'guaranis',
+    cedi: 'cedis', cedis: 'cedis',
+    tenge: 'tenge',
+    manat: 'manats', manats: 'manats',
+    lari: 'lari',
+    kip: 'kips', kips: 'kips',
+    tugrik: 'tugriks', tugriks: 'tugriks',
+    rial: 'rials', rials: 'rials',
+    riyal: 'riyals', riyals: 'riyals',
+    // Subunits (minor units)
+    cent: 'cents', cents: 'cents',
+    centavo: 'centavos', centavos: 'centavos',
+    paisa: 'paise', paise: 'paise',
+    kopeck: 'kopecks', kopecks: 'kopecks', kopek: 'kopecks', kopeks: 'kopecks',
+    kopiyka: 'kopiykas', kopiykas: 'kopiykas',
+    penny: 'pence', pennies: 'pence', pence: 'pence',
+    kobo: 'kobo',
+    agora: 'agorot', agorot: 'agorot',
+    satang: 'satang',
 };
+
+// Each currency's minor unit, so "$5.50" → "five dollars fifty cents" but
+// "£5.50" → "five pounds fifty pence". Defaults to "cents".
+const CURRENCY_SUBUNIT = {
+    pounds: 'pence',
+    pesos: 'centavos',
+    rupees: 'paise',
+    rubles: 'kopecks',
+    hryvnias: 'kopiykas',
+    naira: 'kobo',
+    shekels: 'agorot',
+    baht: 'satang',
+};
+
+// "5.50" + "dollars" → "5 dollars 50 cents"; a zero whole part is dropped so
+// "$0.50" → "50 cents". Digits survive to the number→words pass.
+function formatMoney(whole, cents, currencyWord) {
+    if (!cents) return `${whole} ${currencyWord}`;
+    const subunit = CURRENCY_SUBUNIT[currencyWord] || 'cents';
+    const wholeDigits = whole.replace(/,/g, '');
+    if (/^0+$/.test(wholeDigits)) return `${cents} ${subunit}`;
+    return `${whole} ${currencyWord} ${cents} ${subunit}`;
+}
 
 // Single-character keys are the currency symbols; longer keys are the spelled
 // words. A future multi-character symbol (e.g. "R$") would need to be listed
@@ -66,7 +114,7 @@ const CURRENCY_WORDS_ALTERNATION = Object.keys(CURRENCY_CANONICAL)
     .filter((key) => key.length > 1)
     .join('|');
 // Whole and cents digits are captured separately so the decimal point is not
-// later stripped as punctuation ($5.50 → "5 dollars 50" → "five dollars fifty").
+// later stripped as punctuation ($5.50 → "5 dollars 50 cents").
 const CURRENCY_SYMBOL_NUMBER_RE = new RegExp(
     `([${CURRENCY_SYMBOL_CHARS}])\\s*(\\d[\\d,]*)(?:\\.(\\d+))?`,
     'g'
@@ -102,13 +150,11 @@ export async function normalize(text) {
         // digit→words pass below turns "$5" into "five dollars", matching an
         // authored cue of "five dollars". Bare symbols and singular/plural
         // word forms collapse to the same canonical word.
-        .replace(CURRENCY_SYMBOL_NUMBER_RE, (match, symbol, whole, cents) => {
-            const base = `${whole} ${CURRENCY_CANONICAL[symbol]}`;
-            return cents ? `${base} ${cents}` : base;
-        })
+        .replace(CURRENCY_SYMBOL_NUMBER_RE, (match, symbol, whole, cents) =>
+            formatMoney(whole, cents, CURRENCY_CANONICAL[symbol]))
         .replace(CURRENCY_SYMBOL_RE, (symbol) => ` ${CURRENCY_CANONICAL[symbol]} `)
         .replace(CURRENCY_WORD_DECIMAL_RE, (match, whole, cents, word) =>
-            `${whole} ${CURRENCY_CANONICAL[word.toLowerCase()]} ${cents}`)
+            formatMoney(whole, cents, CURRENCY_CANONICAL[word.toLowerCase()]))
         .replace(CURRENCY_WORD_RE, (word) => CURRENCY_CANONICAL[word.toLowerCase()])
         // "a million" / "a thousand" / "a dollar" → "one million" / ...
         .replace(ARTICLE_QUANTITY_RE, 'one ')
