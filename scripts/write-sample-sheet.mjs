@@ -23,6 +23,9 @@ const HEADER = [
     'cue_alt_es', 'cue_alt_pt', 'cue_alt_bn',
     'choose_step_text_es', 'choose_step_text_pt', 'choose_step_text_bn',
     'subtitle_text_es', 'subtitle_text_pt', 'subtitle_text_bn',
+    // SRT cue-text translations (timings preserved); blank so the translator
+    // fills them and the app localizes captions.
+    'srt_es', 'srt_pt', 'srt_bn',
 ];
 
 const MISSION = 'Ask and answer with WOULD YOU RATHER.';

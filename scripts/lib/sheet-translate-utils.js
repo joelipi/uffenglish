@@ -7,23 +7,38 @@
 // The sheet is the operator's editing surface; translations are machine-written
 // addenda in adjacent `*_<lang>` columns. Translation ONLY fills blanks, so a
 // human edit to a translation cell is never clobbered and the next config
-// generation picks it up.
+// generation picks it up. The `srt` column is the exception: the render pipeline
+// rewrites it on every re-render, so a stored `srt_<lang>` whose cue count or
+// timings no longer match the current English SRT is stale and is re-planned
+// (see `srtGroupStates`). A hand-edit that keeps the cue count/timings is
+// still honored; a stale cell is flagged on the plan item and logged by the CLI,
+// so a re-translation is never silent.
+//
+// The staleness check compares cue COUNT and TIMINGS only. A re-render that
+// changes the English cue text but keeps the timings is NOT detected (there is
+// nowhere to store the English source the translation was made from); run the
+// CLI with `--force`, or clear the `srt_<lang>` cell, to retranslate it.
+
+import { parseSrt, validateTranslatedSrt } from './caption-utils.js';
 
 // Sheet-localization targets. Distinct from `CAPTION_LANGUAGES` in
 // caption-utils.js (which also carries `en`/`fr`/`hi`); the app's generated
 // configs localize exactly these.
 export const SHEET_LANGUAGES = ['es', 'pt', 'bn'];
 
-// The translatable fields and their English source column. `cue` and `cue_alt`
-// are mutually exclusive step shapes; `subtitle_text` is the static-subtitle
-// source (the `srt` column is NOT translated — the caption pipeline owns SRT).
-// The translator plans from this list; the config generator reads the same
-// columns independently (see sheet-config-utils.js) and the two lists must be
-// kept in sync by hand.
+// The translatable fields the generic planner loop handles, with their English
+// source column. `cue` and `cue_alt` are mutually exclusive step shapes;
+// `subtitle_text` is the static-subtitle source. `srt` is translatable too but
+// is not listed here: it is a caption document with a timing-validated staleness
+// rule, so it is planned by its own pass (`planSrtItems`) — see `SRT_FIELD` /
+// `LOCALIZATION_FIELDS` below for the column contract. The translator fills
+// these columns and the config generator reads them independently (see
+// sheet-config-utils.js); the two must be kept in sync by hand.
+//
 // `level` drives group-scoped planning: lesson-level fields are planned once per
-// lesson, step-level fields once per `lesson_id` + `video_file` group. `perRow`
-// fields (the overlay master's `phrase`, one cue element per sheet row) are
-// planned per row instead of per group. `lines` marks a newline-separated,
+// lesson, step-level fields once per step group (`lesson_id` + `video_file`).
+// `perRow` fields (the overlay master's `phrase`, one cue element per sheet row)
+// are planned per row instead of per group. `lines` marks a newline-separated,
 // line-paired cell (`cue_alt` -> `cue[i]`, `choose_step_text` ->
 // `chooseStep[i].text`): the planner emits one item per source-bearing row and
 // the CLI guards that a translation never changes the line count.
@@ -36,6 +51,13 @@ export const TRANSLATABLE_FIELDS = [
     { field: 'subtitle_text', source: 'subtitle_text', level: 'step' },
     { field: 'phrase', source: 'phrase', level: 'step', perRow: true },
 ];
+
+// Every localization field — the column contract the seed, docs guard and parity
+// tests consume (one `*_<lang>` column per field per language). The generic
+// fields plus `srt`, so the two lists can never drift. The `srt` entry is a bare
+// column marker: `srt` is planned by `planSrtItems` (timing-validated
+// staleness), not the generic loop, so it carries no `source`/`level`.
+export const LOCALIZATION_FIELDS = [...TRANSLATABLE_FIELDS, { field: 'srt' }];
 
 // The line-paired fields, derived from the `lines` flag so the two can never
 // drift. A line-paired cell is written once per source-bearing row of the group
@@ -60,6 +82,57 @@ export function groupCueAltLines(text) {
         .split('\n')
         .map((l) => l.trim())
         .filter(Boolean);
+}
+
+/**
+ * Un-escape the JSON-string form the pipeline writes into the `srt` column
+ * (`\n`->newline, `"`->quote, `\\`->backslash) back to literal SRT text. Only
+ * JSON string escapes are decoded, so a literal backslash survives. Shared by
+ * the config generator (which emits the English subtitles) and the translator
+ * (which translates them); the generator imports it from here.
+ */
+export function unescapeSrt(value) {
+    const s = String(value ?? '');
+    let out = '';
+    for (let i = 0; i < s.length; i++) {
+        if (s[i] === '\\' && i + 1 < s.length) {
+            const next = s[i + 1];
+            if (next === 'n') { out += '\n'; i++; continue; }
+            if (next === 't') { out += '\t'; i++; continue; }
+            if (next === 'r') { out += '\r'; i++; continue; }
+            if (next === '"') { out += '"'; i++; continue; }
+            if (next === '\\') { out += '\\'; i++; continue; }
+        }
+        out += s[i];
+    }
+    return out;
+}
+
+/**
+ * Validate a literal SRT translation against a literal English SRT document:
+ * the translation must preserve the English cue count and timings. A source with
+ * no parseable cues is a failure, never a vacuous pass — this zero-cue check is
+ * added on top of `validateTranslatedSrt` (rather than in that shared helper) so
+ * the captions pipeline keeps its own empty-transcription handling; the sheet
+ * path has no legitimate empty-cue `srt`.
+ *
+ * The single validity rule for the sheet path: the translator (fresh output),
+ * the planner (staleness) and the config generator (so a stale translation can
+ * never ship) all go through it.
+ */
+export function validateSrtDocument(englishSrt, translatedSrt) {
+    if (parseSrt(englishSrt).length === 0) {
+        return { ok: false, reason: 'English SRT has no parseable cues' };
+    }
+    return validateTranslatedSrt(englishSrt, translatedSrt);
+}
+
+/**
+ * Validate a stored `srt_<lang>` cell against the raw (JSON-escaped) English
+ * `srt` cell (the generator's and planner's input shape).
+ */
+export function validateSrtCell(escapedEnglish, translatedSrt) {
+    return validateSrtDocument(unescapeSrt(escapedEnglish), translatedSrt);
 }
 
 /**
@@ -114,12 +187,16 @@ function headerSetOf(headers) {
  * its own group (per-row fallback, so simple fixtures keep working).
  *
  * Lesson-level fields group by `course_id` + `lesson_id`; step-level fields by
- * `course_id` + `lesson_id` + `video_file`. `course_id` is part of the key
- * because `lesson_id` is only unique within a course — the generator partitions
- * by `course_id` first, so two courses may reuse `intro`/`a`/…. Blank spacer
- * rows (missing any required key) are dropped so they cannot create plans.
+ * `course_id` + `lesson_id` + `video_file`. With `stepKey`, a step-level field
+ * groups by the generator's step key instead (`join` when set, else
+ * `video_file`), so a joined master step — whose rows carry two `video_file`
+ * values but one `join` — is planned once, mirroring `masterSubtitlesFor`.
+ * `course_id` is part of the key because `lesson_id` is only unique within a
+ * course — the generator partitions by `course_id` first, so two courses may
+ * reuse `intro`/`a`/…. Blank spacer rows (missing any required key) are dropped
+ * so they cannot create plans.
  */
-function groupsForField(rows, headerSet, level) {
+function groupsForField(rows, headerSet, level, { stepKey = false } = {}) {
     const hasCourseId = headerSet.has('course_id');
     const hasLessonId = headerSet.has('lesson_id');
     const hasVideoFile = headerSet.has('video_file');
@@ -138,8 +215,13 @@ function groupsForField(rows, headerSet, level) {
                 if (!courseId || !lessonId) return; // blank spacer row
                 key = `lesson|${courseId}|${lessonId}`;
             } else {
-                if (!courseId || !lessonId || !videoFile) return; // blank spacer row
-                key = `step|${courseId}|${lessonId}|${videoFile}`;
+                // A master step keys by `join` else `video_file`, and the
+                // generator keeps a join-only row (blank `video_file`), so a row
+                // is valid when either is non-blank. The generic step fields key
+                // strictly by `video_file`.
+                const step = stepKey ? (cell(row, 'join').trim() || videoFile) : videoFile;
+                if (!courseId || !lessonId || !step) return; // blank spacer row
+                key = `step|${courseId}|${lessonId}|${step}`;
             }
         } else {
             key = `row|${rowIndex}`; // per-row fallback
@@ -150,9 +232,91 @@ function groupsForField(rows, headerSet, level) {
     return groups;
 }
 
-/** The group's `srt` column wins over `subtitle_text`, so its text is not translated. */
+// The group's `srt` column wins over `subtitle_text`, so its text is not
+// translated. `subtitle_text` groups by `video_file` (not `join`), but a master
+// sheet skips `subtitle_text` entirely, so the two keys never need to agree.
 function groupUsesSrt(rows, indices) {
     return indices.some((i) => cell(rows[i], 'srt').trim());
+}
+
+/** The first row of `indices` whose `column` cell is non-blank, else undefined. */
+function firstFilledRow(rows, indices, column) {
+    return indices.find((i) => cell(rows[i], column).trim());
+}
+
+/**
+ * Yield one state per (srt step group, language): the group's row indices, the
+ * first source-bearing row, the trimmed English `srt` cell, the language's
+ * target cell name, the first row holding a stored translation, and whether that
+ * translation is `current` (its cue count and timings match the English). The
+ * single walk shared by `planSrtItems` and `countPresentSrt`, so the step keying
+ * and staleness rule live in one place.
+ *
+ * `current` is a timing check only — a text-only English change with unchanged
+ * timings reads as current (see the module header). The generator reads trimmed
+ * values (`firstNonBlank`), so both the English and the stored translation are
+ * trimmed here to match. `stepKey` mirrors the generator's grouping: `join` else
+ * `video_file` on the overlay master, strictly `video_file` on the authoring
+ * sheet.
+ */
+function* srtGroupStates(rows, headers, languages, stepKey) {
+    const groups = groupsForField(rows, headerSetOf(headers), 'step', { stepKey });
+    for (const indices of groups.values()) {
+        const sourceIndex = firstFilledRow(rows, indices, 'srt');
+        if (sourceIndex === undefined) continue;
+        const englishCell = cell(rows[sourceIndex], 'srt').trim();
+        for (const lang of languages) {
+            const target = localizedColumn('srt', lang);
+            const targetIndex = firstFilledRow(rows, indices, target);
+            const current = targetIndex !== undefined
+                && validateSrtCell(englishCell, cell(rows[targetIndex], target).trim()).ok;
+            yield { sourceIndex, englishCell, lang, target, targetIndex, current };
+        }
+    }
+}
+
+/**
+ * The plan items for the `srt` field. A stored `srt_<lang>` is re-planned when
+ * its cue count/timings no longer match the current (re-rendered) English SRT
+ * (a text-only English change with unchanged timings is not detected; `--force`
+ * retranslates). A stale/forced translation is rewritten in place on the row the
+ * generator reads first (`targetIndex`), so the fresh value can never be
+ * shadowed by an older one; a fresh translation lands on the step's first
+ * source-bearing row.
+ * The `sourceText` is the unescaped English document (the CLI hands it straight
+ * to `translateSrt`), and a stale item carries `stale: true` so the CLI can log
+ * the overwrite.
+ */
+function planSrtItems({ rows, headers, sheetRows, languages, force, stepKey }) {
+    const items = [];
+    for (const s of srtGroupStates(rows, headers, languages, stepKey)) {
+        if (s.targetIndex !== undefined && !force && s.current) continue; // up to date
+        // Reached only for a blank target, a stale target, or `force`; `stale`
+        // is exactly the non-forced overwrite case.
+        const stale = s.targetIndex !== undefined && !force;
+        const row = s.targetIndex !== undefined ? s.targetIndex : s.sourceIndex;
+        items.push({
+            row,
+            sheetRow: sheetRows ? sheetRows[row] : row + 2,
+            column: s.target,
+            sourceColumn: 'srt',
+            sourceText: unescapeSrt(s.englishCell),
+            lang: s.lang,
+            field: 'srt',
+            stale,
+        });
+    }
+    return items;
+}
+
+/** Count of `srt_<lang>` groups already up to date (stale groups are not counted). */
+function countPresentSrt(rows, headers, languages, stepKey) {
+    const counts = {};
+    for (const lang of languages) counts[lang] = 0;
+    for (const s of srtGroupStates(rows, headers, languages, stepKey)) {
+        if (s.current) counts[s.lang] += 1;
+    }
+    return counts;
 }
 
 /**
@@ -166,7 +330,11 @@ function groupUsesSrt(rows, indices) {
  * generator, so each emits one item per source-bearing row; every other field is
  * one value written once on the group's first source-bearing row.
  * `subtitle_text` groups shadowed by a non-blank `srt` are skipped (the
- * generator gives `srt` precedence).
+ * generator gives `srt` precedence). `srt` groups by the generator's step key
+ * (`join` else `video_file`) so a joined step is planned once; its `sourceText`
+ * is the unescaped English document (the CLI hands it to `translateSrt`). A
+ * stored `srt_<lang>` whose cue count/timings no longer match it is re-planned
+ * (`stale: true`) and rewritten in place on the row the generator reads first.
  *
  * @param {object} opts
  * @param {Array<Record<string,string>>} opts.rows parsed rows (header-keyed)
@@ -189,6 +357,10 @@ export function planSheetTranslations({
     // Translating it would be dead weight, so skip it when the `phrase` header is
     // present.
     const isMaster = headerSet.has('phrase');
+
+    // `srt` has its own pass (timing-validated staleness, step-key grouping,
+    // in-place rewrite); the generic loop handles the rest.
+    plan.push(...planSrtItems({ rows: rowsList, headers, sheetRows, languages, force, stepKey: isMaster }));
 
     for (const { field, source, level, perRow } of TRANSLATABLE_FIELDS) {
         if (field === 'subtitle_text' && isMaster) continue;
@@ -283,6 +455,10 @@ export function countPresentTranslations({ rows, headers, languages = SHEET_LANG
             }
         }
     }
+    // A stale `srt_<lang>` is not "already present" — the planner re-translates
+    // it, so it is reported as filled, not present.
+    const srtCounts = countPresentSrt(rowsList, headers, languages, isMaster);
+    for (const lang of languages) counts[lang] += srtCounts[lang];
     return counts;
 }
 

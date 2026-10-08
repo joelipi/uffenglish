@@ -243,6 +243,20 @@ describe('runTranslateSheet', () => {
         expect(client.batchUpdate).not.toHaveBeenCalled();
     });
 
+    it('names the missing srt columns and the seed hint when a sheet has srt but no srt_<lang>', async () => {
+        const values = [
+            ['course_id', 'lesson_id', 'video_file', 'srt'],
+            ['c', 'a', 'v', '1\\n00:00:00,000 --> 00:00:01,000\\nHi'],
+        ];
+        const client = makeClient(values);
+        const translateText = vi.fn(async (t) => t);
+        await expect(runTranslateSheet({
+            sheetId: 'S', tab: 'Sheet1', languages: ['es'], ...client, translateText, log: () => {},
+        })).rejects.toThrow(/missing target column\(s\): srt_es.*seed-master-columns/);
+        expect(translateText).not.toHaveBeenCalled();
+        expect(client.batchUpdate).not.toHaveBeenCalled();
+    });
+
     // Story 050, Task 6: a master sheet translates `phrase` (per row) and never
     // touches the overlay `subtitle_text`.
     it('writes phrase_<lang> for a master sheet and leaves subtitle_text untouched', async () => {
@@ -265,6 +279,63 @@ describe('runTranslateSheet', () => {
         expect(ranges).toEqual(["'Sheet1'!E2", "'Sheet1'!F2", "'Sheet1'!G2", "'Sheet1'!E3", "'Sheet1'!F3", "'Sheet1'!G3"]);
         // The overlay source column (H) and its language neighbour (I) are untouched.
         expect(ranges.some((r) => /[HI]\d/.test(r))).toBe(false);
+    });
+
+    // Story 056: the `srt` column is translated cue-text-only via the translateSrt
+    // seam; the unescaped English document goes in and a literal SRT comes out.
+    it('translates srt cue text with translateSrt, preserving timings, and writes srt_<lang> verbatim', async () => {
+        const values = [
+            ['course_id', 'lesson_id', 'video_file', 'srt', 'srt_es'],
+            ['c', 'a', 'v', '1\\n00:00:00,000 --> 00:00:01,000\\nHi', ''],
+        ];
+        const client = makeClient(values);
+        const translateText = vi.fn(async (t, l) => `${l}:${t}`);
+        const translateSrt = vi.fn(async (srt, lang) => srt.replace('Hi', `${lang}:Hi`));
+        const res = await runTranslateSheet({
+            sheetId: 'S', tab: 'Sheet1', languages: ['es'], ...client, translateText, translateSrt, log: () => {},
+        });
+        expect(res.plan.map((p) => p.column)).toEqual(['srt_es']);
+        // The English document is unescaped before it reaches translateSrt.
+        expect(translateSrt).toHaveBeenCalledWith('1\n00:00:00,000 --> 00:00:01,000\nHi', 'es');
+        expect(translateText).not.toHaveBeenCalled();
+        expect(client.batchUpdate.mock.calls[0][0].requestBody.data).toEqual([
+            { range: "'Sheet1'!E2", values: [['1\n00:00:00,000 --> 00:00:01,000\nes:Hi']] },
+        ]);
+    });
+
+    it('re-translates a stale srt_<lang> in place and logs STALE', async () => {
+        const values = [
+            ['course_id', 'lesson_id', 'video_file', 'srt', 'srt_es'],
+            // The English SRT was re-rendered (new timings); the stored translation is stale.
+            ['c', 'a', 'v', '1\\n00:00:00,000 --> 00:00:09,000\\nHi', '1\n00:00:00,000 --> 00:00:01,000\nViejo'],
+        ];
+        const client = makeClient(values);
+        const translateSrt = vi.fn(async (srt, lang) => srt.replace('Hi', `${lang}:Hi`));
+        const { messages, log } = collector();
+        const res = await runTranslateSheet({
+            sheetId: 'S', tab: 'Sheet1', languages: ['es'], ...client,
+            translateText: vi.fn(), translateSrt, log,
+        });
+        expect(res.plan.map((p) => p.column)).toEqual(['srt_es']);
+        expect(messages.join('\n')).toContain('STALE srt_es (es)');
+        expect(client.batchUpdate.mock.calls[0][0].requestBody.data).toEqual([
+            { range: "'Sheet1'!E2", values: [['1\n00:00:00,000 --> 00:00:09,000\nes:Hi']] },
+        ]);
+    });
+
+    it('rejects an srt translation whose timings drifted, writing nothing', async () => {
+        const values = [
+            ['course_id', 'lesson_id', 'video_file', 'srt', 'srt_es'],
+            ['c', 'a', 'v', '1\\n00:00:00,000 --> 00:00:01,000\\nHi', ''],
+        ];
+        const client = makeClient(values);
+        await expect(runTranslateSheet({
+            sheetId: 'S', tab: 'Sheet1', languages: ['es'], ...client,
+            translateText: vi.fn(async (t) => t),
+            translateSrt: vi.fn(async () => '1\n00:00:00,000 --> 00:00:02,000\nHola'),
+            log: () => {},
+        })).rejects.toThrow(/not a valid SRT/);
+        expect(client.batchUpdate).not.toHaveBeenCalled();
     });
 
     it('plans no phrase cells for an authoring sheet (no phrase column)', async () => {

@@ -2,12 +2,14 @@
 // scripts/translate-sheet.mjs
 // Story 049: translate the authoring sheet's English source columns into the
 // blank per-language columns (`lesson_title_es`, `mission_pt`, `cue_es`,
-// `cue_alt_es`, `subtitle_text_bn`, …) and write them back into the sheet.
+// `cue_alt_es`, `subtitle_text_bn`, `srt_es`, …) and write them back into the
+// sheet.
 //
 // The sheet is the operator's editing surface. This script only fills blanks, so
 // a human edit to a translation cell is never clobbered (idempotent re-runs);
-// the English source is never overwritten and `srt` is never translated (the
-// caption pipeline owns SRT timings).
+// the English source is never overwritten. The `srt` column is translated
+// cue-text-only via `translateSrt` (cue numbers + timestamps preserved), so the
+// app can localize captions without the caption pipeline retiming anything.
 //
 // Usage:
 //   node scripts/translate-sheet.mjs [--sheet-id=<id>] [--tab=<name>]
@@ -29,8 +31,9 @@ import {
     quoteSheetTitle,
     buildBatchUpdatePayload,
     rowsFromValues,
+    validateSrtDocument,
 } from './lib/sheet-translate-utils.js';
-import { translateText as realTranslateText } from './lib/deepseek.js';
+import { translateText as realTranslateText, translateSrt as realTranslateSrt } from './lib/deepseek.js';
 
 // The only scope requested: read + write the sheet the account can access. No
 // broader scope (no Drive).
@@ -40,7 +43,8 @@ export const SHEETS_SCOPE = 'https://www.googleapis.com/auth/spreadsheets';
 export const PUBLISHED_GID = 242913338;
 
 const HELP = `Translate the authoring sheet's English columns into the blank
-per-language columns and write them back (fills blanks only).
+per-language columns and write them back (fills blanks only). The \`srt\` column
+is translated cue-text-only, preserving cue numbers and timestamps.
 
 Usage:
   node scripts/translate-sheet.mjs [options]
@@ -136,8 +140,9 @@ export async function readSheetRows({ getValues, getSpreadsheet } = {}, { sheetI
 
 /**
  * Core, dependency-injected translation pass. `getValues`/`getSpreadsheet`/
- * `batchUpdate`/`translateText` are seams so tests run with fakes and no live
- * credential.
+ * `batchUpdate`/`translateText`/`translateSrt` are seams so tests run with fakes
+ * and no live credential. `translateText` handles plain cells; `translateSrt`
+ * handles `srt` cells (cue text only, timings preserved).
  *
  * @returns {Promise<{plan: Array, payload: object|null, written: number}>}
  */
@@ -151,6 +156,7 @@ export async function runTranslateSheet({
     getSpreadsheet,
     batchUpdate,
     translateText: translate = realTranslateText,
+    translateSrt = realTranslateSrt,
     log = console.log,
 } = {}) {
     if (!batchUpdate) throw new Error('missing Google Sheets client');
@@ -164,11 +170,16 @@ export async function runTranslateSheet({
     // Fail fast before any DeepSeek call or write if the sheet is missing a
     // target column the plan needs (e.g. the localization columns were never
     // added). `headers` from rowsFromValues are already trimmed + lower-cased.
+    // A master with an `srt` column but no `srt_<lang>` columns lands here too —
+    // the operator adds them via `scripts/seed-master-columns.mjs`.
     const headerSet = new Set(headers.map((h) => String(h).trim().toLowerCase()));
     const missingColumns = [...new Set(plan.map((p) => p.column))]
         .filter((column) => !headerSet.has(column));
     if (missingColumns.length > 0) {
-        throw new Error(`sheet is missing target column(s): ${missingColumns.join(', ')}`);
+        const hint = missingColumns.some((c) => c.startsWith('srt_'))
+            ? ' (add the srt_<lang> columns to the sheet; scripts/seed-master-columns.mjs adds them to the overlay master)'
+            : '';
+        throw new Error(`sheet is missing target column(s): ${missingColumns.join(', ')}${hint}`);
     }
 
     if (plan.length === 0) {
@@ -192,19 +203,42 @@ export async function runTranslateSheet({
 
     const translations = [];
     for (const item of plan) {
-        const translated = await translate(item.sourceText, item.lang);
-        // Line-paired cells (`cue_alt`, `choose_step_text`) are paired with the
-        // English lines by index by the generator; a model that collapses/expands
-        // lines would silently drop translations, so reject the cell before
-        // anything is written.
-        if (isLinePairedField(item.field)) {
-            const expected = groupCueAltLines(item.sourceText).length;
-            const got = groupCueAltLines(translated).length;
-            if (got !== expected) {
+        // A stale `srt_<lang>` (its timings no longer match a re-rendered English
+        // SRT) is overwritten deliberately — say so, never silently.
+        if (item.stale) {
+            log(`STALE ${item.column} (${item.lang}) at sheet row ${item.sheetRow}: English srt changed; re-translating`);
+        }
+        let translated;
+        if (item.field === 'srt') {
+            // The planner already unescaped the English SRT (the sheet's `srt`
+            // cell is the pipeline's JSON-escaped string), so `sourceText` is the
+            // literal document. The result is written verbatim (the generator
+            // takes `srt_<lang>` as operator text). A model that mangles cue
+            // count or timestamps must fail before anything is written.
+            const englishSrt = item.sourceText;
+            translated = await translateSrt(englishSrt, item.lang);
+            const validation = validateSrtDocument(englishSrt, translated);
+            if (!validation.ok) {
                 throw new Error(
-                    `translation for ${item.column} (${item.lang}) changed the ${item.field} line count: ` +
-                    `expected ${expected}, got ${got}`
+                    `translation for ${item.column} (${item.lang}) at sheet row ${item.sheetRow} ` +
+                    `is not a valid SRT: ${validation.reason}`
                 );
+            }
+        } else {
+            translated = await translate(item.sourceText, item.lang);
+            // Line-paired cells (`cue_alt`, `choose_step_text`) are paired with
+            // the English lines by index by the generator; a model that
+            // collapses/expands lines would silently drop translations, so reject
+            // the cell before anything is written.
+            if (isLinePairedField(item.field)) {
+                const expected = groupCueAltLines(item.sourceText).length;
+                const got = groupCueAltLines(translated).length;
+                if (got !== expected) {
+                    throw new Error(
+                        `translation for ${item.column} (${item.lang}) changed the ${item.field} line count: ` +
+                        `expected ${expected}, got ${got}`
+                    );
+                }
             }
         }
         translations.push(translated);
