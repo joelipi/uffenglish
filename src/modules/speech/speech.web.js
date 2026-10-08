@@ -117,15 +117,8 @@ function createPortraitCaptureStream(rawStream) {
         ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
     }
 
-    if (typeof canvas.captureStream !== 'function') {
-        rawStream.getTracks().forEach((t) => { try { t.stop(); } catch (e) { /* ignore */ } });
-        if (video.parentNode) video.parentNode.removeChild(video);
-        throw new Error(
-            '[Speech] canvas.captureStream is not supported in this browser — ' +
-            'cannot build the 9:16 portrait capture stream.'
-        );
-    }
-
+    // The caller (`ensureSpeechCamStream`) only builds this when
+    // `canvas.captureStream` is supported, so no in-function capability check.
     draw();
     compositeRawStream = rawStream;
     compositeVideoEl = video;
