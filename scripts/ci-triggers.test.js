@@ -14,7 +14,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { jobBlock } from './lib/workflow-guard-utils.js';
+import { jobBlock, pushTriggerBlock } from './lib/workflow-guard-utils.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const read = (name) => readFileSync(path.join(ROOT, '.github', 'workflows', name), 'utf8');
@@ -49,6 +49,18 @@ function assertCaptionsMainOnly(text) {
     expect(text).not.toContain("branches: ['**']");
 }
 
+// A docs-only push (markdown, stories, plans, agent tooling) ships nothing to
+// production and can never add a captioned video, so both main-push workflows
+// must ignore those paths. Scoped to the `on.push` block so the assertion can
+// fail (a whole-file `toContain` would be satisfied by the header comment).
+function assertDocsOnlyPushIgnored(text, label) {
+    const push = pushTriggerBlock(text, label);
+    expect(push).toMatch(/^\s*paths-ignore:/m);
+    for (const glob of ["'**/*.md'", "'docs/**'", "'stories/**'", "'plans/**'"]) {
+        expect(push).toContain(glob);
+    }
+}
+
 describe('CI triggers stay off the per-branch push path', () => {
     it('playwright.yml is manual only', () => {
         assertPlaywrightManual(read('playwright.yml'));
@@ -66,6 +78,14 @@ describe('CI triggers stay off the per-branch push path', () => {
         assertCaptionsMainOnly(read('captions.yml'));
     });
 
+    it('deploy.yml ignores docs-only pushes', () => {
+        assertDocsOnlyPushIgnored(read('deploy.yml'), 'deploy.yml');
+    });
+
+    it('captions.yml ignores docs-only pushes', () => {
+        assertDocsOnlyPushIgnored(read('captions.yml'), 'captions.yml');
+    });
+
     it('each guard can fail on the forbidden trigger/step', () => {
         const pw = read('playwright.yml');
         expect(() => assertPlaywrightManual('on:\n  push:\n    branches: [main]\n' + pw)).toThrow();
@@ -77,5 +97,8 @@ describe('CI triggers stay off the per-branch push path', () => {
         )).toThrow();
         const cap = read('captions.yml');
         expect(() => assertCaptionsMainOnly(cap.replace('branches: [main]', "branches: ['**']"))).toThrow();
+        // The docs-only-ignore guard must fail when the block (or a glob) is gone.
+        expect(() => assertDocsOnlyPushIgnored(dep.replace('paths-ignore:', 'not-paths-ignore:'), 'deploy.yml')).toThrow();
+        expect(() => assertDocsOnlyPushIgnored(cap.replace("      - 'stories/**'\n", ''), 'captions.yml')).toThrow();
     });
 });
