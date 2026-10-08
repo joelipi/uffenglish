@@ -5,7 +5,7 @@ import {
     toFriendLessonHref,
     getFriendLinkRemainingMs,
     formatFriendLinkRemaining,
-    groupActiveFriendLinks,
+    buildFriendPracticeView,
 } from '../../modules/user/friend-lesson-link-logic.js';
 
 const cardStyle = {
@@ -59,8 +59,7 @@ function FriendLessonLink({ entry, lang, now }) {
 // explanation and a link into the public course listings.
 export default function FriendLessonLinksSection({ friendLinks, lang = 'en' }) {
     const [now, setNow] = useState(() => Date.now());
-    const groups = groupActiveFriendLinks(friendLinks, now);
-    const isTicking = groups.length > 0;
+    const { mode, groups, isTicking } = buildFriendPracticeView(friendLinks, now);
 
     // Tick only while at least one link is still live; once the last one
     // expires the effect stops and the expired state renders.
@@ -70,7 +69,7 @@ export default function FriendLessonLinksSection({ friendLinks, lang = 'en' }) {
         return () => clearInterval(timer);
     }, [isTicking]);
 
-    if (groups.length === 0) {
+    if (mode === 'expired') {
         return (
             <div
                 data-testid="friend-lessons-expired"

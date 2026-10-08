@@ -100,6 +100,17 @@ export function listActiveFriendLinks(friendLinks, nowMs) {
         .sort((a, b) => new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime());
 }
 
+// Render-ready view for the public-profile friend-practice area. `mode` is
+// 'active' when at least one link is inside the 48h window, else 'expired'
+// (which the component renders as the "all lessons expired" invitation).
+// `isTicking` tells the component whether to run its per-second countdown
+// clock. Keeps the gate out of the component.
+export function buildFriendPracticeView(friendLinks, nowMs) {
+    const groups = groupActiveFriendLinks(friendLinks, nowMs);
+    const active = groups.length > 0;
+    return { mode: active ? 'active' : 'expired', groups, isTicking: active };
+}
+
 // Ordered groups of active entries by course. Groups are keyed by courseId
 // (two courses may share a display name) and carry the first entry's courseName
 // as the heading; entries within a group keep listActiveFriendLinks order

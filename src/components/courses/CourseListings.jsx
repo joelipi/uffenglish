@@ -1,6 +1,6 @@
 import React from 'react';
 import Strings from '../../data/strings.js';
-import { buildCourseStartHref } from '../../modules/courses/friend-courses-logic.js';
+import { buildCourseStartHref, buildCourseListView } from '../../modules/courses/friend-courses-logic.js';
 
 // Public course-listings page (`/courses`). Purely presentational; the
 // container loads the friend courses. Uses plain `<a href>` (not `<Link>`) for
@@ -30,7 +30,7 @@ export default function CourseListings({ lang = 'en', courses, isLoading = false
         border: '1px solid #2a4a6a',
     };
 
-    const list = Array.isArray(courses) ? courses : [];
+    const view = buildCourseListView({ courses, isLoading, isError });
 
     return (
         <div style={containerStyle}>
@@ -62,7 +62,7 @@ export default function CourseListings({ lang = 'en', courses, isLoading = false
                     <li>{Strings.get('friend_courses_step_2', lang)}</li>
                 </ol>
 
-                {isLoading && (
+                {view.state === 'loading' && (
                     <div data-testid="friend-courses-loading" style={{ textAlign: 'center', padding: '32px 0' }}>
                         <div className="spinner-border" role="status" style={{ width: '3rem', height: '3rem' }}>
                             <span className="visually-hidden">Loading...</span>
@@ -70,21 +70,21 @@ export default function CourseListings({ lang = 'en', courses, isLoading = false
                     </div>
                 )}
 
-                {!isLoading && isError && (
+                {view.state === 'error' && (
                     <div data-testid="friend-courses-error" style={{ color: '#ff6b6b', textAlign: 'center', padding: '24px 0' }}>
                         {Strings.get('home_courses_load_error', lang)}
                     </div>
                 )}
 
-                {!isLoading && !isError && list.length === 0 && (
+                {view.state === 'empty' && (
                     <div data-testid="friend-courses-empty" style={{ color: '#adb5bd', textAlign: 'center', padding: '24px 0' }}>
                         {Strings.get('friend_courses_empty', lang)}
                     </div>
                 )}
 
-                {!isLoading && !isError && (
+                {view.state === 'ready' && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        {list.map((course) => (
+                        {view.courses.map((course) => (
                             <a
                                 key={course.courseId}
                                 data-testid="friend-course-card"

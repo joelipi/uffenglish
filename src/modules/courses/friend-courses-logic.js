@@ -58,3 +58,16 @@ export function listFriendCourses(entries) {
         .filter((c) => !!c.firstLessonId)
         .sort((a, b) => (a.courseId < b.courseId ? -1 : a.courseId > b.courseId ? 1 : 0));
 }
+
+/**
+ * Render-ready state for the listings page, so the component only branches on
+ * a returned state string. `state` is one of 'loading' | 'error' | 'empty' |
+ * 'ready'; `courses` is always an array.
+ */
+export function buildCourseListView({ courses, isLoading = false, isError = false } = {}) {
+    if (isLoading) return { state: 'loading', courses: [] };
+    if (isError) return { state: 'error', courses: [] };
+    const list = Array.isArray(courses) ? courses : [];
+    if (list.length === 0) return { state: 'empty', courses: [] };
+    return { state: 'ready', courses: list };
+}

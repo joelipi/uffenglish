@@ -11,6 +11,7 @@ import {
     upsertFriendLinkMap,
     listActiveFriendLinks,
     groupActiveFriendLinks,
+    buildFriendPracticeView,
     resolveFriendLessonLink,
 } from './friend-lesson-link-logic.js';
 
@@ -300,6 +301,26 @@ describe('groupActiveFriendLinks', () => {
         expect(groupActiveFriendLinks(null, NOW)).toEqual([]);
         expect(groupActiveFriendLinks('x', NOW)).toEqual([]);
         expect(groupActiveFriendLinks([entryFriend], NOW)).toEqual([]);
+    });
+});
+
+describe('buildFriendPracticeView', () => {
+    it('is active and ticking with groups when a link is inside the window', () => {
+        const view = buildFriendPracticeView({
+            'friendchain:a': { courseId: 'friendchain', courseName: 'Friend Chain', recordedLessonId: 'a', lessonId: 'b', shareCode: 'x', addedAt: iso(NOW - HOUR) },
+        }, NOW);
+        expect(view.mode).toBe('active');
+        expect(view.isTicking).toBe(true);
+        expect(view.groups).toHaveLength(1);
+    });
+
+    it('is expired and not ticking when nothing is active', () => {
+        expect(buildFriendPracticeView({}, NOW)).toEqual({ mode: 'expired', groups: [], isTicking: false });
+        expect(buildFriendPracticeView(null, NOW)).toEqual({ mode: 'expired', groups: [], isTicking: false });
+        const expired = buildFriendPracticeView({
+            'friendchain:a': { courseId: 'friendchain', recordedLessonId: 'a', lessonId: 'b', shareCode: 'x', addedAt: iso(NOW - 48 * HOUR) },
+        }, NOW);
+        expect(expired).toEqual({ mode: 'expired', groups: [], isTicking: false });
     });
 });
 

@@ -6,6 +6,7 @@ import {
     firstFriendLessonId,
     buildCourseStartHref,
     listFriendCourses,
+    buildCourseListView,
 } from './friend-courses-logic.js';
 import friend from '../../config/friend.json';
 import friendchain from '../../config/friendchain.json';
@@ -147,5 +148,28 @@ describe('listFriendCourses', () => {
             { courseId: 'noname', config: { lessons: [{ recapOverlay: 'shareCta', lessonId: 'a' }] } },
         ]);
         expect(courses[0].courseName).toBe('noname');
+    });
+});
+
+describe('buildCourseListView', () => {
+    const courses = [{ courseId: 'friendchain', courseName: 'Friend Chain', lessonCount: 8, firstLessonId: 'a' }];
+
+    it('reports loading first (even if courses are already present)', () => {
+        expect(buildCourseListView({ courses, isLoading: true })).toEqual({ state: 'loading', courses: [] });
+    });
+
+    it('reports error before empty/ready', () => {
+        expect(buildCourseListView({ courses, isError: true })).toEqual({ state: 'error', courses: [] });
+        expect(buildCourseListView({ isError: true })).toEqual({ state: 'error', courses: [] });
+    });
+
+    it('reports empty for a missing or empty course list', () => {
+        expect(buildCourseListView({ courses: [] })).toEqual({ state: 'empty', courses: [] });
+        expect(buildCourseListView({ courses: undefined })).toEqual({ state: 'empty', courses: [] });
+        expect(buildCourseListView()).toEqual({ state: 'empty', courses: [] });
+    });
+
+    it('reports ready with the courses when present', () => {
+        expect(buildCourseListView({ courses })).toEqual({ state: 'ready', courses });
     });
 });
