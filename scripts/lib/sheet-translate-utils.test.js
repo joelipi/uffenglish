@@ -379,6 +379,12 @@ describe('srt planning', () => {
         expect(planSheetTranslations({ rows, headers, languages: ['es'] }).map((p) => p.column)).toEqual(['srt_es']);
     });
 
+    it('plans srt for a master join-only row (blank video_file), matching the generator', () => {
+        const rows = [{ course_id: 'c', lesson_id: 'a', video_file: '', join: 'J', srt: escaped }];
+        const plan = planSheetTranslations({ rows, headers, languages: ['es'] });
+        expect(plan.map((p) => `${p.row}:${p.column}`)).toEqual(['0:srt_es']);
+    });
+
     it('groups a joined step by join so its shared SRT is planned once', () => {
         const rows = [
             { course_id: 'c', lesson_id: 'a', video_file: 'b_i', join: 'J', srt: escaped },

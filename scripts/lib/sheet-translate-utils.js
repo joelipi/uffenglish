@@ -210,8 +210,12 @@ function groupsForField(rows, headerSet, level, { stepKey = false } = {}) {
                 if (!courseId || !lessonId) return; // blank spacer row
                 key = `lesson|${courseId}|${lessonId}`;
             } else {
-                if (!courseId || !lessonId || !videoFile) return; // blank spacer row
+                // A master step keys by `join` else `video_file`, and the
+                // generator keeps a join-only row (blank `video_file`), so a row
+                // is valid when either is non-blank. The generic step fields key
+                // strictly by `video_file`.
                 const step = stepKey ? (cell(row, 'join').trim() || videoFile) : videoFile;
+                if (!courseId || !lessonId || !step) return; // blank spacer row
                 key = `step|${courseId}|${lessonId}|${step}`;
             }
         } else {
