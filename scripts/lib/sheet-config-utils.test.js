@@ -6,7 +6,6 @@ import { fileURLToPath } from 'node:url';
 import {
     parseCsv,
     isVideoRow,
-    unescapeSrt,
     buildSteps,
     buildCourseConfig,
     buildCourseConfigs,
@@ -21,6 +20,7 @@ import {
     SHEET_LANGUAGES,
     TRANSLATABLE_FIELDS,
     localizedColumn,
+    unescapeSrt,
 } from './sheet-translate-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

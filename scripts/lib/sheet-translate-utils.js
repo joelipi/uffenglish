@@ -8,9 +8,11 @@
 // addenda in adjacent `*_<lang>` columns. Translation ONLY fills blanks, so a
 // human edit to a translation cell is never clobbered and the next config
 // generation picks it up. The `srt` column is the exception: the render pipeline
-// rewrites it on every re-render, so a stored `srt_<lang>` whose cue timings no
-// longer match the current English SRT is stale and is re-planned (see
-// `srtTargetIsCurrent`).
+// rewrites it on every re-render, so a stored `srt_<lang>` whose cue count or
+// timings no longer match the current English SRT is stale and is re-planned
+// (see `srtTargetIsCurrent`). A hand-edit that keeps the cue count/timings is
+// still honored; a stale cell is flagged on the plan item and logged by the CLI,
+// so a re-translation is never silent.
 
 import { validateTranslatedSrt } from './caption-utils.js';
 
@@ -60,14 +62,13 @@ export function isLinePairedField(field) {
     return LINE_PAIRED_FIELDS.has(field);
 }
 
-// The SRT fields, derived from the `srt` flag. Their translation preserves cue
-// count and timestamps (validated by `validateTranslatedSrt`), not line count.
-export const SRT_FIELDS = new Set(
-    TRANSLATABLE_FIELDS.filter((f) => f.srt).map((f) => f.field));
-
-/** Whether a translatable field is an SRT caption document. */
+/**
+ * Whether a translatable field is an SRT caption document (translation preserves
+ * cue count and timestamps, validated by `validateTranslatedSrt`, not line
+ * count).
+ */
 export function isSrtField(field) {
-    return SRT_FIELDS.has(field);
+    return TRANSLATABLE_FIELDS.some((f) => f.field === field && f.srt);
 }
 
 /** The per-language column name for a field, e.g. `localizedColumn('cue','pt')` -> `cue_pt`. */
@@ -237,8 +238,9 @@ function srtTargetIsCurrent(rows, indices, source, target) {
  * `subtitle_text` groups shadowed by a non-blank `srt` are skipped (the
  * generator gives `srt` precedence). `srt` groups by the generator's step key
  * (`join` else `video_file`) so a joined step is planned once; its `sourceText`
- * is the unescaped English document (the CLI hands it to `translateSrt`), and a
- * stored `srt_<lang>` is re-planned when its timings no longer match it.
+ * is the unescaped English document (the CLI hands it to `translateSrt`). A
+ * stored `srt_<lang>` whose cue count/timings no longer match it is re-planned
+ * (`stale: true`) and rewritten in place on the row the generator reads first.
  *
  * @param {object} opts
  * @param {Array<Record<string,string>>} opts.rows parsed rows (header-keyed)
@@ -295,15 +297,25 @@ export function planSheetTranslations({
             if (field === 'subtitle_text' && groupUsesSrt(rowsList, indices)) continue;
             for (const lang of languages) {
                 const target = localizedColumn(field, lang);
-                const groupHasTarget = indices.some((i) => cell(rowsList[i], target).trim());
+                const targetIndex = indices.find((i) => cell(rowsList[i], target).trim());
+                const groupHasTarget = targetIndex !== undefined;
                 // Idempotent for every field except `srt`, where a stored
-                // translation is re-planned when its timings no longer match the
-                // current (re-rendered) English SRT.
-                if (groupHasTarget && !force
-                    && (!srt || srtTargetIsCurrent(rowsList, indices, source, target))) continue;
-                const targetRows = isLinePairedField(field) ? sourceIndices : [sourceIndices[0]];
+                // translation is re-planned when its cue count/timings no longer
+                // match the current (re-rendered) English SRT. `stale` marks that
+                // case so the CLI can log it (never a silent overwrite).
+                const stale = srt && groupHasTarget && !force
+                    && !srtTargetIsCurrent(rowsList, indices, source, target);
+                if (groupHasTarget && !force && !stale) continue; // already translated
+                // A stale/forced `srt` is rewritten in place on the row the
+                // generator reads first; a fresh one lands on the step's first
+                // source-bearing row. Other fields write on that same first row.
+                const targetRows = isLinePairedField(field)
+                    ? sourceIndices
+                    : [srt && groupHasTarget ? targetIndex : sourceIndices[0]];
                 for (const rowIndex of targetRows) {
-                    const rawSource = cell(rowsList[rowIndex], source).trim();
+                    // The English source is the step's first non-blank `srt`
+                    // (never the write row, which may not carry English text).
+                    const rawSource = cell(rowsList[srt ? sourceIndices[0] : rowIndex], source).trim();
                     plan.push({
                         row: rowIndex,
                         sheetRow: sheetRows ? sheetRows[rowIndex] : rowIndex + 2,
@@ -314,6 +326,7 @@ export function planSheetTranslations({
                         sourceText: srt ? unescapeSrt(rawSource) : rawSource,
                         lang,
                         field,
+                        ...(stale ? { stale: true } : {}),
                     });
                 }
             }

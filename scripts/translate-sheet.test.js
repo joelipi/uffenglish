@@ -289,6 +289,26 @@ describe('runTranslateSheet', () => {
         ]);
     });
 
+    it('re-translates a stale srt_<lang> in place and logs STALE', async () => {
+        const values = [
+            ['course_id', 'lesson_id', 'video_file', 'srt', 'srt_es'],
+            // The English SRT was re-rendered (new timings); the stored translation is stale.
+            ['c', 'a', 'v', '1\\n00:00:00,000 --> 00:00:09,000\\nHi', '1\n00:00:00,000 --> 00:00:01,000\nViejo'],
+        ];
+        const client = makeClient(values);
+        const translateSrt = vi.fn(async (srt, lang) => srt.replace('Hi', `${lang}:Hi`));
+        const { messages, log } = collector();
+        const res = await runTranslateSheet({
+            sheetId: 'S', tab: 'Sheet1', languages: ['es'], ...client,
+            translateText: vi.fn(), translateSrt, log,
+        });
+        expect(res.plan.map((p) => p.column)).toEqual(['srt_es']);
+        expect(messages.join('\n')).toContain('STALE srt_es (es)');
+        expect(client.batchUpdate.mock.calls[0][0].requestBody.data).toEqual([
+            { range: "'Sheet1'!E2", values: [['1\n00:00:00,000 --> 00:00:09,000\nes:Hi']] },
+        ]);
+    });
+
     it('rejects an srt translation whose timings drifted, writing nothing', async () => {
         const values = [
             ['course_id', 'lesson_id', 'video_file', 'srt', 'srt_es'],

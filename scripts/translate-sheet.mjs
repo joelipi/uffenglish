@@ -199,6 +199,11 @@ export async function runTranslateSheet({
 
     const translations = [];
     for (const item of plan) {
+        // A stale `srt_<lang>` (its timings no longer match a re-rendered English
+        // SRT) is overwritten deliberately — say so, never silently.
+        if (item.stale) {
+            log(`STALE ${item.column} (${item.lang}): English srt changed; re-translating`);
+        }
         let translated;
         if (isSrtField(item.field)) {
             // The planner already unescaped the English SRT (the sheet's `srt`

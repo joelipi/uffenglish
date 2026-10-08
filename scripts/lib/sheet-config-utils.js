@@ -27,10 +27,6 @@ import {
     unescapeSrt,
 } from './sheet-translate-utils.js';
 
-// Re-exported for the config path's callers/tests; defined in
-// sheet-translate-utils.js so the translator and generator share one decoder.
-export { unescapeSrt };
-
 // English source columns are looked up in the shared field map, so a field
 // removed or renamed in sheet-translate-utils.js fails loudly here instead of
 // being silently dropped from generated configs.

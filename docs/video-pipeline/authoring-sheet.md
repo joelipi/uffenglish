@@ -100,7 +100,9 @@ timings stay the caption pipeline's job — the translator never retimes. A step
   (cue count + start/end within 1 ms); a drift aborts the run before any cell is written.
   On the overlay master the SRT is one document per step (written to every row of a `join`),
   so the translator plans it once per step and the generator reads it once — never
-  concatenating sub-group SRTs.
+  concatenating sub-group SRTs. Note the escaping asymmetry: the pipeline writes the English
+  `srt` cell JSON-escaped (literal `\n`), while `srt_<lang>` holds literal multi-line SRT
+  (real newlines) — the form the app reads and the generator emits verbatim.
 - **A re-render re-translates `srt_<lang>` automatically.** The render pipeline rewrites the
   English `srt` column on every render, so the translator treats a stored `srt_<lang>` as
   stale — and re-plans it — whenever its cue count or timings no longer match the current

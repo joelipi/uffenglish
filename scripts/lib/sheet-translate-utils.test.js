@@ -4,7 +4,6 @@ import {
     SHEET_LANGUAGES,
     TRANSLATABLE_FIELDS,
     LINE_PAIRED_FIELDS,
-    SRT_FIELDS,
     isLinePairedField,
     isSrtField,
     localizedColumn,
@@ -42,7 +41,6 @@ describe('column contract', () => {
         expect(isSrtField('srt')).toBe(true);
         expect(isSrtField('subtitle_text')).toBe(false);
         expect(isLinePairedField('srt')).toBe(false);
-        expect([...SRT_FIELDS]).toEqual(['srt']);
     });
 
     it('marks cue_alt and choose_step_text as line-paired step fields', () => {
@@ -315,16 +313,29 @@ describe('srt planning', () => {
             .toEqual(['srt_es']);
     });
 
-    it('re-plans a stored srt_<lang> whose timings drifted from a re-rendered English SRT', () => {
+    it('re-plans a stored srt_<lang> whose timings drifted, marking it stale and rewriting in place', () => {
         // The pipeline rewrote `srt` with new timings; the old translation is stale.
         const rows = [{
             course_id: 'c', lesson_id: 'a', video_file: 'v', join: '',
             srt: '1\\n00:00:00,000 --> 00:00:09,000\\nHi', srt_es: translated,
         }];
         const plan = planSheetTranslations({ rows, headers, languages: ['es'] });
-        expect(plan.map((p) => p.column)).toEqual(['srt_es']);
+        expect(plan).toHaveLength(1);
+        expect(plan[0]).toMatchObject({ row: 0, column: 'srt_es', stale: true });
         // A stale cell is not counted as already present (it will be refilled).
         expect(countPresentTranslations({ rows, headers, languages: ['es'] })).toEqual({ es: 0 });
+    });
+
+    it('rewrites a stale srt_<lang> on the row the generator reads first, not the source row', () => {
+        // Target on an earlier row than the English source: the generator's
+        // firstNonBlank reads row 0, so the fresh value must land there.
+        const rows = [
+            { course_id: 'c', lesson_id: 'a', video_file: 'v', join: '', srt: '', srt_es: translated },
+            { course_id: 'c', lesson_id: 'a', video_file: 'v', join: '', srt: '1\\n00:00:00,000 --> 00:00:09,000\\nHi', srt_es: '' },
+        ];
+        const plan = planSheetTranslations({ rows, headers, languages: ['es'] });
+        expect(plan).toHaveLength(1);
+        expect(plan[0]).toMatchObject({ row: 0, column: 'srt_es', stale: true, sourceText: '1\n00:00:00,000 --> 00:00:09,000\nHi' });
     });
 
     it('re-plans a stored srt_<lang> whose cue count drifted', () => {
