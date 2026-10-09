@@ -250,6 +250,23 @@ describe('video-processor.web.js recap wiring guard', () => {
         expect(source).not.toMatch(/HEADER_GRADIENT_/);
     });
 
+    it('fills the top margin with the banner’s own top-row gradient', () => {
+        const start = source.indexOf('const headerLayout = overlayImage?.complete');
+        const end = source.indexOf('if (displayCanvas)', start);
+        const block = source.slice(start, end);
+        // The margin is painted by stretching the banner's top 1-px source row
+        // across (headerLayout.x, 0, headerLayout.width, headerLayout.y).
+        expect(block).toMatch(
+            /ctx\.drawImage\(\s*overlayImage,\s*0, 0, overlayImage\.naturalWidth, 1,\s*headerLayout\.x, 0, headerLayout\.width, headerLayout\.y\s*\)/
+        );
+        // The stretch must run BEFORE the banner draw so the two rects paint as
+        // one seamless banner (index order).
+        const stretch = block.indexOf('overlayImage.naturalWidth, 1,');
+        const banner = block.indexOf('headerLayout.x, headerLayout.y,');
+        expect(stretch).toBeGreaterThan(-1);
+        expect(banner).toBeGreaterThan(stretch);
+    });
+
     it('burns just the share code, in the header banner’s lower-right corner', () => {
         // The header image carries the label, so the overlay draws only the code,
         // in the banner's own lower-right corner (not the frame's).
