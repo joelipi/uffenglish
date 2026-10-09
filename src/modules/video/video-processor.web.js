@@ -4,7 +4,10 @@
 import { getAllSpeechRecordingsForLesson } from '../storage/storage.js';
 import { shareVideo } from './video-share.js';
 import { appStore } from '../store/store.js';
-import videoHeaderImg from '../../assets/img/video-header.png';
+import videoHeaderEn from '../../assets/img/video-header-en.png';
+import videoHeaderEs from '../../assets/img/video-header-es.png';
+import videoHeaderBn from '../../assets/img/video-header-bn.png';
+import videoHeaderFr from '../../assets/img/video-header-fr.png';
 import { getVideoUrl, getUgcThumbKey, getCompleteVideoKey } from './video-url.js';
 import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, TAILING_DURATION_MS, resolveOverlayElements, resolveHeaderLayout, isShareCtaEnabled, isDroppedStep, markFirstRenderable, resolveSegmentBounds, STALL_GRACE_MS, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges, SHARE_URL_BASE } from './video-processor-logic.js';
 import { remoteSource } from './video-source.js';
@@ -26,6 +29,22 @@ export { shareVideo };
 // the app's `.water-surface`, but fully opaque.
 const HEADER_GRADIENT_TOP = '#3a8fd5';
 const HEADER_GRADIENT_BOTTOM = '#00c0d8';
+
+// The header banner is localized by a two-letter language suffix
+// (video-header-<lang>.png). A language with no art — and no language at all —
+// falls back to English. The stored language may be uppercase or a full locale
+// ('ES', 'en-US'), so normalize to the base code.
+const HEADER_IMAGE_BY_LANG = {
+    en: videoHeaderEn,
+    es: videoHeaderEs,
+    bn: videoHeaderBn,
+    fr: videoHeaderFr,
+};
+const HEADER_IMAGE_FALLBACK = videoHeaderEn;
+export function resolveHeaderImage(lang) {
+    const code = String(lang || 'en').split('-')[0].toLowerCase();
+    return HEADER_IMAGE_BY_LANG[code] || HEADER_IMAGE_FALLBACK;
+}
 
 // ---------------------------------------------------------------------------
 // Instance factory — each processVideo call owns its own context.
@@ -156,7 +175,6 @@ function createVideoProcessor() {
                 videoCanvas.style.cssText = 'position:fixed;top:0;left:0;width:2px;height:4px;opacity:0.01;pointer-events:none;';
                 document.body.appendChild(videoCanvas);
                 const overlayImage = new Image();
-                overlayImage.src = videoHeaderImg;
 
                 // Probe dimensions from the first real recording blob
                 const firstValidRec = recordings.find(r => r.blob);
@@ -174,6 +192,8 @@ function createVideoProcessor() {
                 // normalizeConfig (config-normalizer.js) and the rest of the app;
                 // otherwise a guest who chose a language gets an English recap.
                 const userLang = resolveConfigLanguage(snapshot.guestNativeLanguage, snapshot.userData?.native_language);
+                // The banner is localized to the recap language.
+                overlayImage.src = resolveHeaderImage(userLang);
                 const shareCode = snapshot.userData?.shareCode || null;
                 const planner = new VideoRenderPlanner(recordings, configData, fluencyData, userLang, shareCode);
                 const plan = planner.generatePlan();
@@ -1452,7 +1472,9 @@ export async function exportSegmentsToR2(lessonId, segments = [], stitchedBlob =
         const video = getOrCreateExportVideoElement();
         const profileImage = await loadProfileImage();
         const overlayImage = new Image();
-        overlayImage.src = videoHeaderImg;
+        const storeState = appStore.getState();
+        const lang = resolveConfigLanguage(storeState.guestNativeLanguage, storeState.userData?.native_language);
+        overlayImage.src = resolveHeaderImage(lang);
         fallback = { audioContext, video, profileImage, overlayImage };
         return fallback;
     };

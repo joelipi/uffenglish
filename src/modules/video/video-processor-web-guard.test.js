@@ -271,10 +271,20 @@ describe('video-processor.web.js recap wiring guard', () => {
         expect(source).not.toMatch(/headerLayout\.textY/);
     });
 
-    it('uses the video-only header asset, not the website header', () => {
-        expect(source).toMatch(/import videoHeaderImg from '\.\.\/\.\.\/assets\/img\/video-header\.png'/);
+    it('selects the header banner by the learner language', () => {
+        // video-header-<lang>.png chosen by the recap/guest language; a language
+        // with no art (or none set) falls back to English.
+        expect(source).toMatch(/import videoHeaderEn from '\.\.\/\.\.\/assets\/img\/video-header-en\.png'/);
+        expect(source).toMatch(/import videoHeaderEs from '\.\.\/\.\.\/assets\/img\/video-header-es\.png'/);
+        expect(source).toMatch(/import videoHeaderBn from '\.\.\/\.\.\/assets\/img\/video-header-bn\.png'/);
+        // The old single/website header is gone from the module.
         expect(source).not.toMatch(/assets\/img\/header\.png/);
-        expect((source.match(/overlayImage\.src = videoHeaderImg;/g) || [])).toHaveLength(2);
+        expect(source).not.toMatch(/import videoHeaderImg\b/);
+        // Both consumers select by language.
+        expect((source.match(/overlayImage\.src = resolveHeaderImage\(/g) || [])).toHaveLength(2);
+        // Unknown/no language falls back to English.
+        expect(source).toMatch(/HEADER_IMAGE_FALLBACK = videoHeaderEn/);
+        expect(source).toMatch(/HEADER_IMAGE_BY_LANG\[code\] \|\| HEADER_IMAGE_FALLBACK/);
     });
 
     it('holds the tailing freeze-frame for 2s, shared with the planner', () => {
