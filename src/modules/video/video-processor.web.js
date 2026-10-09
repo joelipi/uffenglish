@@ -4,10 +4,6 @@
 import { getAllSpeechRecordingsForLesson } from '../storage/storage.js';
 import { shareVideo } from './video-share.js';
 import { appStore } from '../store/store.js';
-import videoHeaderEn from '../../assets/img/video-header-en.png';
-import videoHeaderEs from '../../assets/img/video-header-es.png';
-import videoHeaderBn from '../../assets/img/video-header-bn.png';
-import videoHeaderFr from '../../assets/img/video-header-fr.png';
 import { getVideoUrl, getUgcThumbKey, getCompleteVideoKey } from './video-url.js';
 import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, TAILING_DURATION_MS, resolveOverlayElements, resolveHeaderLayout, isShareCtaEnabled, isDroppedStep, markFirstRenderable, resolveSegmentBounds, STALL_GRACE_MS, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges, SHARE_URL_BASE } from './video-processor-logic.js';
 import { remoteSource } from './video-source.js';
@@ -22,7 +18,6 @@ import { trackEvent } from '../utils/posthog.js';
 import Strings from '../../data/strings.js';
 import { resolveConfigLanguage } from '../bilingual/config-normalizer.js';
 import { normalizeLanguageCode } from '../utils/utils.js';
-
 export { shareVideo };
 
 // The recap header band paints an opaque water-gradient behind the banner so
@@ -32,19 +27,28 @@ const HEADER_GRADIENT_TOP = '#3a8fd5';
 const HEADER_GRADIENT_BOTTOM = '#00c0d8';
 
 // The header banner is localized by a two-letter language suffix
-// (video-header-<lang>.png). A language with no art — and no language at all —
-// falls back to English. The stored language may be uppercase or a full locale
-// ('ES', 'en-US'), so normalize to the base code.
-const HEADER_IMAGE_BY_LANG = {
-    en: videoHeaderEn,
-    es: videoHeaderEs,
-    bn: videoHeaderBn,
-    fr: videoHeaderFr,
-};
-const HEADER_IMAGE_FALLBACK = videoHeaderEn;
-export function resolveHeaderImage(lang) {
-    const code = normalizeLanguageCode(lang);
-    return HEADER_IMAGE_BY_LANG[code] || HEADER_IMAGE_FALLBACK;
+// (video-header-<lang>.png). The files are auto-discovered with
+// `import.meta.glob`, so adding a language is just dropping in the PNG — no code
+// change — and each is a lazy chunk (only the selected banner is fetched). A
+// language with no art — and no language at all — falls back to English.
+const HEADER_IMAGE_MODULES = import.meta.glob('../../assets/img/video-header-*.png', { import: 'default' });
+const headerImagePath = (code) => `../../assets/img/video-header-${code}.png`;
+
+/**
+ * Resolves the header banner URL for a language (async — the banners are lazy
+ * chunks), falling back to English when the language or its art is missing.
+ * Returns null only if no banner exists at all.
+ */
+export async function resolveHeaderImage(lang) {
+    const key = headerImagePath(normalizeLanguageCode(lang));
+    const load = HEADER_IMAGE_MODULES[key] || HEADER_IMAGE_MODULES[headerImagePath('en')];
+    if (!load) return null;
+    try {
+        return await load();
+    } catch (e) {
+        console.warn('[VideoProcessor] Header banner load failed:', key, e);
+        return null;
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -194,7 +198,8 @@ function createVideoProcessor() {
                 // otherwise a guest who chose a language gets an English recap.
                 const userLang = resolveConfigLanguage(snapshot.guestNativeLanguage, snapshot.userData?.native_language);
                 // The banner is localized to the recap language.
-                overlayImage.src = resolveHeaderImage(userLang);
+                const headerSrc = await resolveHeaderImage(userLang);
+                if (headerSrc) overlayImage.src = headerSrc;
                 const shareCode = snapshot.userData?.shareCode || null;
                 const planner = new VideoRenderPlanner(recordings, configData, fluencyData, userLang, shareCode);
                 const plan = planner.generatePlan();
@@ -1475,7 +1480,8 @@ export async function exportSegmentsToR2(lessonId, segments = [], stitchedBlob =
         const overlayImage = new Image();
         const storeState = appStore.getState();
         const lang = resolveConfigLanguage(storeState.guestNativeLanguage, storeState.userData?.native_language);
-        overlayImage.src = resolveHeaderImage(lang);
+        const headerSrc = await resolveHeaderImage(lang);
+        if (headerSrc) overlayImage.src = headerSrc;
         fallback = { audioContext, video, profileImage, overlayImage };
         return fallback;
     };

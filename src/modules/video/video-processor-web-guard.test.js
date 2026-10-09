@@ -271,22 +271,19 @@ describe('video-processor.web.js recap wiring guard', () => {
         expect(source).not.toMatch(/headerLayout\.textY/);
     });
 
-    it('selects the header banner by the learner language', () => {
-        // video-header-<lang>.png chosen by the recap/guest language; a language
-        // with no art (or none set) falls back to English.
-        expect(source).toMatch(/import videoHeaderEn from '\.\.\/\.\.\/assets\/img\/video-header-en\.png'/);
-        expect(source).toMatch(/import videoHeaderEs from '\.\.\/\.\.\/assets\/img\/video-header-es\.png'/);
-        expect(source).toMatch(/import videoHeaderBn from '\.\.\/\.\.\/assets\/img\/video-header-bn\.png'/);
-        expect(source).toMatch(/import videoHeaderFr from '\.\.\/\.\.\/assets\/img\/video-header-fr\.png'/);
-        // The old single/website header is gone from the module.
+    it('selects the header banner by the learner language (auto-discovered)', () => {
+        // The banners are auto-discovered with import.meta.glob, so adding a
+        // language is just dropping in video-header-<lang>.png — no per-language
+        // import to edit (and each is a lazy chunk).
+        expect(source).toMatch(/import\.meta\.glob\('\.\.\/\.\.\/assets\/img\/video-header-\*\.png'/);
+        expect(source).toMatch(/headerImagePath\(normalizeLanguageCode\(lang\)\)/);
+        // English is the fallback when the language (or its art) is missing.
+        expect(source).toMatch(/HEADER_IMAGE_MODULES\[headerImagePath\('en'\)\]/);
+        // The old static imports / website header must be gone.
+        expect(source).not.toMatch(/import videoHeader[A-Z]/);
         expect(source).not.toMatch(/assets\/img\/header\.png/);
-        expect(source).not.toMatch(/import videoHeaderImg\b/);
-        // Both consumers select by language.
-        expect((source.match(/overlayImage\.src = resolveHeaderImage\(/g) || [])).toHaveLength(2);
-        // Unknown/no language falls back to English; codes normalize ('ES', 'en-US').
-        expect(source).toMatch(/HEADER_IMAGE_FALLBACK = videoHeaderEn/);
-        expect(source).toMatch(/HEADER_IMAGE_BY_LANG\[code\] \|\| HEADER_IMAGE_FALLBACK/);
-        expect(source).toMatch(/normalizeLanguageCode\(lang\)/);
+        // Both consumers await the (lazy) resolver.
+        expect((source.match(/await resolveHeaderImage\(/g) || [])).toHaveLength(2);
     });
 
     it('holds the tailing freeze-frame for 2s, shared with the planner', () => {
