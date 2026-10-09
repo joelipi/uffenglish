@@ -1,46 +1,43 @@
 // modules/user/email-language.js
-// Pure language resolution for the transactional welcome email. Kept free of
-// strings.js / browser imports so it is cheap to import in the Pages Function
-// and unit-testable in isolation.
+// Language resolution for the transactional welcome email. Reuses the app's
+// canonical normalizeLanguageCode (modules/utils/utils.js) so the email and the
+// UI agree on codes, and adds the one case the shared helper can't express:
+// the app uses TW for non-simplified (Traditional) Chinese and ZH for
+// Simplified, but normalizeLanguageCode would collapse zh-TW/zh-Hant to "zh".
 //
-// Language codes are the app's two-letter uppercase codes (languages.js). The
-// resolver accepts ANY such code — the email copy itself is looked up in the
-// shared translation table (strings.js), so adding a language there localizes
-// the email too, and an unknown code falls back to English.
+// Codes are the app's lowercase primary subtags; the email copy itself lives in
+// the shared translation table (strings.js), so any language added there is
+// picked up automatically and an unknown code falls back to English.
 
-// BCP-47 / POSIX separators: "zh-TW", "zh_Hant", "es-419".
-const SEPARATORS = /[-_]/;
+import { normalizeLanguageCode } from '../utils/utils.js';
+
+const TRADITIONAL_ZH_SIGNALS = new Set(['tw', 'hk', 'mo', 'hant']);
 const TWO_LETTER = /^[a-z]{2}$/;
 
-// Chinese is special-cased: the app uses TW for non-simplified (Traditional)
-// Chinese and ZH for Simplified. A full tag carrying a Traditional signal
-// (region TW/HK/MO, or script Hant) maps to TW; every other zh tag maps to ZH.
-const TRADITIONAL_ZH_SIGNALS = new Set(['tw', 'hk', 'mo', 'hant']);
+function subtags(raw) {
+    return raw.split(/[-_]/).filter(Boolean).map((part) => part.toLowerCase());
+}
 
 /**
- * Normalize an arbitrary language tag to the app's two-letter code.
- * Returns null for anything that is not a usable two-letter language code.
+ * Normalize an arbitrary language tag to the app's lowercase two-letter code,
+ * keeping Traditional Chinese (TW) distinct from Simplified (ZH). Returns null
+ * for input that is not a usable two-letter language code.
  */
-export function normalizeLanguageCode(raw) {
-    if (typeof raw !== 'string') return null;
-    const tag = raw.trim();
-    if (!tag) return null;
-
-    const parts = tag.split(SEPARATORS).filter(Boolean);
+export function normalizeEmailLanguage(raw) {
+    if (typeof raw !== 'string' || !raw.trim()) return null;
+    const parts = subtags(raw.trim());
     if (parts.length === 0) return null;
-    const primary = parts[0].toLowerCase();
-    const rest = parts.slice(1).map((part) => part.toLowerCase());
 
+    const primary = normalizeLanguageCode(parts[0]);
     if (primary === 'zh') {
-        return rest.some((part) => TRADITIONAL_ZH_SIGNALS.has(part)) ? 'TW' : 'ZH';
+        return parts.slice(1).some((part) => TRADITIONAL_ZH_SIGNALS.has(part)) ? 'tw' : 'zh';
     }
-    if (!TWO_LETTER.test(primary)) return null;
-    return primary.toUpperCase();
+    return TWO_LETTER.test(primary) ? primary : null;
 }
 
 /**
  * Pick the highest-priority usable language from an Accept-Language header
- * ("es-ES,es;q=0.9,en;q=0.8" -> "ES"). Returns null when there is none.
+ * ("es-ES,es;q=0.9,en;q=0.8" -> "es"). Returns null when there is none.
  */
 export function parseAcceptLanguage(header) {
     if (typeof header !== 'string' || !header.trim()) return null;
@@ -57,7 +54,7 @@ export function parseAcceptLanguage(header) {
         .sort((a, b) => b.q - a.q);
 
     for (const { tag } of ranked) {
-        const code = normalizeLanguageCode(tag);
+        const code = normalizeEmailLanguage(tag);
         if (code) return code;
     }
     return null;
@@ -69,8 +66,8 @@ export function parseAcceptLanguage(header) {
  */
 export function resolveEmailLanguage({ nativeLanguage, acceptLanguage } = {}) {
     return (
-        normalizeLanguageCode(nativeLanguage) ||
+        normalizeEmailLanguage(nativeLanguage) ||
         parseAcceptLanguage(acceptLanguage) ||
-        'EN'
+        'en'
     );
 }

@@ -5,13 +5,13 @@
 // free; unknown codes fall back to English via Strings.get.
 
 import { get, strings } from '../../data/strings.js';
-import { normalizeLanguageCode } from './email-language.js';
+import { normalizeEmailLanguage } from './email-language.js';
 
-const FALLBACK_LANGUAGE = 'EN';
+const FALLBACK_LANGUAGE = 'en';
 
 /** True when the shared table actually carries copy for this language code. */
 function hasEmailCopy(code) {
-    return Boolean(strings.email_welcome_subject?.[code.toLowerCase()]);
+    return Boolean(strings.email_welcome_subject?.[code]);
 }
 
 /**
@@ -20,9 +20,9 @@ function hasEmailCopy(code) {
  * @returns {{ subject: string, html: string, text: string, language: string }}
  */
 export function buildWelcomeEmail(lang, confirmUrl) {
-    const normalized = normalizeLanguageCode(lang);
+    const normalized = normalizeEmailLanguage(lang);
     // Report the language the copy is actually in, so an unknown-but-valid code
-    // (e.g. "XX") resolves to English rather than claiming to be localized.
+    // (e.g. "xx") resolves to English rather than claiming to be localized.
     const language = normalized && hasEmailCopy(normalized) ? normalized : FALLBACK_LANGUAGE;
     const t = (key) => get(key, language);
 
