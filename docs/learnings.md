@@ -158,6 +158,15 @@
 
 ---
 
+## The 9:16 speech-capture composite must stay desktop-only — it OOMs Android
+
+**Date**: 2026-10-09
+**Area**: architecture | performance
+**What happened**: Commit 614d865 routed Android through `createPortraitCaptureStream` so UGC clips came out 9:16. That composite allocates a 1080×1920 canvas, a hidden `<video>` playing the raw camera stream, and a canvas `captureStream(30)` fed by a 30 fps `setInterval` draw loop, then MediaRecorder-encodes the canvas. On a phone that is a second camera surface plus a software encode on top of the raw stream and the ~100 MB Whisper WASM, which OOMs low-memory Android devices during the first recording/transcription.
+**Takeaway**: `shouldUsePortraitCapture()` (`src/modules/speech/speech.web.js`) must stay `!isIOS() && !isAndroid` — Android gets Reels-size from `getUserMedia({ aspectRatio: { ideal: 9/16 } })`, not a canvas. `portrait-capture-guards.test.js` pins this. Confirm on a real device that the camera honours the constraint; if it does not, mitigate with a lower-resolution composite gated on `navigator.deviceMemory` rather than routing phones back through the full-size canvas. Related: the 10 Hz live-hesitation timer is pure overhead on `shareCta`/`friendClosedResponse` steps (their feedback/scoring UI is never built), so `shouldTrackHesitation()` suppresses it there.
+
+---
+
 ## The number-to-words util is vendored twice — fixing one copy leaves the other buggy
 **Date**: 2026-10-08
 **Area**: architecture
