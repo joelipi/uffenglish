@@ -6,10 +6,11 @@
 // The pipeline persists the updated CSV to R2; the sync-srt Action downloads it
 // and runs this script. It overwrites `srt` unconditionally (it is derived), so
 // blanks-only does not apply — but a group whose `srt` is blank is not cleared.
-// Rows are matched by `filename`, and the group key mirrors `write_srt_column`'s
-// per-prefix value; the value is written verbatim (the JSON-escaped string from
-// the CSV), so the generator's `unescapeSrt` (sheet-translate-utils.js) still
-// applies.
+// Each sheet row is matched by its own step key (`video_file`, else the
+// `filename` prefix) — the key `write_srt_column` grouped under — never by
+// `filename` alone (several master rows share a blank `filename`). The value is
+// written verbatim (the JSON-escaped string from the CSV), so the generator's
+// `unescapeSrt` (sheet-translate-utils.js) still applies.
 //
 // Usage:
 //   node scripts/write-srt-to-sheet.mjs --csv=<path> [--sheet-id=<id>] [--tab=<name>]
