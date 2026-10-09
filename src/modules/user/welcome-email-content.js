@@ -9,6 +9,10 @@ import { normalizeEmailLanguage } from './email-language.js';
 
 const FALLBACK_LANGUAGE = 'en';
 
+// Right-to-left languages render the body mirrored. Arabic is in the app's
+// language set today; the others are listed so adding one needs no code change.
+const RTL_LANGUAGES = new Set(['ar', 'he', 'fa', 'ur']);
+
 // A language is only "supported" when it carries the whole email — checking the
 // subject alone would let a partial translation emit a mixed-language email.
 const COPY_KEYS = [
@@ -51,15 +55,17 @@ export function buildWelcomeEmail(lang, confirmUrl) {
     const cta = t('email_welcome_cta');
     const ignore = t('email_welcome_ignore');
 
-    // Direction is not inferred: the app's language set is LTR today. If an RTL
-    // language (e.g. AR) is added, set dir="rtl" on the wrapper here.
+    // Mirror the body for RTL languages (Arabic today).
+    const dir = RTL_LANGUAGES.has(language) ? ' dir="rtl"' : '';
     const html =
+        `<div${dir}>` +
         `<h2>${heading}</h2>` +
         `<p>${intro}</p>` +
         `<p><a href="${escapeHtml(confirmUrl)}" ` +
         'style="display:inline-block;padding:12px 24px;background:#ffd400;color:#111;' +
         `text-decoration:none;border-radius:6px;font-weight:bold">${cta}</a></p>` +
-        `<p>${ignore}</p>`;
+        `<p>${ignore}</p>` +
+        '</div>';
 
     const text = `${heading}\n\n${intro}\n\n${cta}: ${confirmUrl}\n\n${ignore}`;
 

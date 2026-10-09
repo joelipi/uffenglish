@@ -54,10 +54,19 @@ describe('buildWelcomeEmail', () => {
         // Table-completeness guard: dropping one of the five keys from a
         // supported language fails this (the fallback logic is pinned by the
         // hasEmailCopy negative test above).
-        const supported = ['en', 'es', 'pt', 'fr', 'de', 'ko', 'hi', 'bn', 'zh', 'tw'];
+        const supported = [
+            'en', 'es', 'pt', 'fr', 'de', 'it', 'nl', 'sv', 'da', 'nb', 'fi',
+            'pl', 'cs', 'hu', 'ro', 'el', 'ru', 'uk', 'tr', 'ar', 'vi', 'th',
+            'ja', 'ko', 'zh', 'tw', 'hi', 'bn',
+        ];
         for (const code of supported) {
             expect(buildWelcomeEmail(code, URL).language, code).toBe(code);
         }
+    });
+
+    it('mirrors the body for RTL languages (Arabic)', () => {
+        expect(buildWelcomeEmail('ar', URL).html).toContain('dir="rtl"');
+        expect(buildWelcomeEmail('en', URL).html).not.toContain('dir="rtl"');
     });
 
     it('escapes the confirmation URL in the HTML href', () => {

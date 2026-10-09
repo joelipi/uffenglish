@@ -61,8 +61,11 @@ falls back to the English copy, and a language that carries only *some* of the
 five keys is treated as unsupported (English) so an email is never half
 translated.
 
-To add a language, add its code to all five `email_welcome_*` entries — the
-signup languages (en/es/pt/fr/de/ko/hi/bn) plus zh and tw are seeded today.
+To add a language, add its code to all five `email_welcome_*` entries. The full
+profile-language set (`PROFILE_LANGUAGES`) is seeded — en/es/pt/fr/de/it/nl/sv/
+da/nb/fi/pl/cs/hu/ro/el/ru/uk/tr/ar/vi/th/ja/ko/hi/bn — plus `zh` and `tw`
+(Arabic renders right-to-left). A language that carries only *some* of the five
+keys is treated as unsupported, so an email is never half translated.
 
 ## Setup (one-time, out of band)
 
