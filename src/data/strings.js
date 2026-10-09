@@ -1769,8 +1769,6 @@ const strings = {
     },
 
     // Share CTA overlay for shareCta recap lessons (friend-challenge "Ask").
-    // share_cta_deadline is a prefix line — the formatted date follows on the
-    // next line, hence the trailing prepositions in es/fr.
     'share_cta_headline': {
         en: "Practice English with me free",
         es: "Practica inglés conmigo gratis",
@@ -1779,23 +1777,40 @@ const strings = {
         hi: "मेरे साथ मुफ़्त अंग्रेज़ी प्रैक्टिस करें",
         bn: "আমার সাথে ফ্রি ইংরেজি প্র্যাকটিস করুন"
     },
-    // Prompt burned directly under the video header banner: the share code is
-    // appended after it (e.g. "Enter share code: bfy9h").
-    'share_code_prompt': {
-        en: "Enter share code:",
-        es: "Ingresa el código para compartir:",
-        pt: "Digite o código de compartilhamento:",
-        fr: "Entrez le code de partage :",
-        hi: "शेयर कोड दर्ज करें:",
-        bn: "শেয়ার কোড লিখুন:"
+    // Final call-to-action card shown over the recap's tailing freeze-frame.
+    // Four short lines; the share code / host are appended in code so the copy
+    // stays a plain prefix (no placeholders).
+    'share_cta_respond_now': {
+        en: "Respond now before the video expires!",
+        es: "¡Responde ahora antes de que caduque el video!",
+        pt: "Responda agora antes que o vídeo expire!",
+        fr: "Répondez maintenant avant que la vidéo n'expire !",
+        hi: "वीडियो समाप्त होने से पहले अभी जवाब दें!",
+        bn: "ভিডিওটি শেষ হওয়ার আগে এখনই উত্তর দিন!"
     },
-    'share_cta_deadline': {
-        en: "Respond before",
-        es: "Responde antes del",
-        pt: "Responda antes de",
-        fr: "Répondez avant le",
-        hi: "इससे पहले जवाब दें:",
-        bn: "এর আগে উত্তর দিন:"
+    'share_cta_quick': {
+        en: "It takes less than 5 minutes!",
+        es: "¡Toma menos de 5 minutos!",
+        pt: "Leva menos de 5 minutos!",
+        fr: "Ça prend moins de 5 minutes !",
+        hi: "इसमें 5 मिनट से भी कम समय लगता है!",
+        bn: "এটি ৫ মিনিটেরও কম সময় নেয়!"
+    },
+    'share_cta_go_to': {
+        en: "Go to:",
+        es: "Ve a:",
+        pt: "Acesse:",
+        fr: "Rendez-vous sur :",
+        hi: "यहाँ जाएँ:",
+        bn: "এখানে যান:"
+    },
+    'share_cta_enter_code': {
+        en: "Enter code:",
+        es: "Ingresa el código:",
+        pt: "Digite o código:",
+        fr: "Entrez le code :",
+        hi: "कोड दर्ज करें:",
+        bn: "কোড লিখুন:"
     },
     // Call to action shown on the success screen for friend-challenge lessons,
     // where only the Share button is offered.
@@ -1810,12 +1825,12 @@ const strings = {
     // Message text attached when the learner shares their recap video. {url} is
     // replaced with the learner's personal share link (host + share code).
     'share_message': {
-        en: "Practice English with me free here: {url}",
-        es: "Practica inglés conmigo gratis aquí: {url}",
-        pt: "Pratique inglês comigo de graça aqui: {url}",
-        fr: "Pratique l'anglais avec moi gratuitement ici : {url}",
-        hi: "मेरे साथ यहाँ मुफ़्त अंग्रेज़ी प्रैक्टिस करें: {url}",
-        bn: "এখানে আমার সাথে ফ্রি ইংরেজি প্র্যাকটিস করুন: {url}"
+        en: "Practice English with me free at this link. It's a really cool new technology. Any English level is OK (beginner to advanced, it teaches you what to say). We don't need to be online at the same time. Please do it now, the lesson videos expire in 48 hours! {url}",
+        es: "Practica inglés conmigo gratis en este enlace. Es una tecnología nueva genial. Cualquier nivel de inglés sirve (de principiante a avanzado, te enseña qué decir). No necesitamos estar en línea al mismo tiempo. ¡Hazlo ahora, los videos de la lección caducan en 48 horas! {url}",
+        pt: "Pratique inglês comigo de graça neste link. É uma tecnologia nova muito legal. Qualquer nível de inglês serve (de iniciante a avançado, ele ensina o que dizer). Não precisamos estar online ao mesmo tempo. Faça agora, os vídeos da lição expiram em 48 horas! {url}",
+        fr: "Pratique l'anglais avec moi gratuitement via ce lien. C'est une nouvelle technologie vraiment géniale. Tous les niveaux d'anglais sont acceptés (débutant à avancé, ça t'apprend quoi dire). Pas besoin d'être en ligne en même temps. Fais-le maintenant, les vidéos de la leçon expirent dans 48 heures ! {url}",
+        hi: "इस लिंक पर मेरे साथ मुफ़्त में अंग्रेज़ी का अभ्यास करें। यह एक बहुत ही शानदार नई तकनीक है। अंग्रेज़ी का कोई भी स्तर ठीक है (शुरुआती से उन्नत तक, यह आपको बताती है कि क्या कहना है)। हमें एक ही समय पर ऑनलाइन होने की ज़रूरत नहीं है। कृपया इसे अभी करें, पाठ के वीडियो 48 घंटे में समाप्त हो जाते हैं! {url}",
+        bn: "এই লিঙ্কে আমার সাথে বিনামূল্যে ইংরেজি চর্চা করুন। এটি সত্যিই একটি দারুণ নতুন প্রযুক্তি। ইংরেজির যেকোনো স্তর ঠিক আছে (শিক্ষানবিশ থেকে উন্নত, এটি আপনাকে বলে দেয় কী বলতে হবে)। আমাদের একই সময়ে অনলাইনে থাকার দরকার নেই। অনুগ্রহ করে এটি এখনই করুন, পাঠের ভিডিওগুলো 48 ঘন্টায় শেষ হয়ে যাবে! {url}"
     },
     'rotate_device_portrait': {
         en: "Recording in landscape will mess up your video. Rotate your device to portrait before you record.",

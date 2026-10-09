@@ -234,9 +234,9 @@ describe('video-processor.web.js recap wiring guard', () => {
         );
         // The old natural-size / clipped draw must be gone.
         expect(block).not.toMatch(/drawImage\(overlayImage,\s*x,\s*0\)/);
-        // The whole header layout is handed to the overlay so the prompt can sit
-        // directly beneath the banner.
-        expect(block).toMatch(/drawTextOverlay\([\s\S]*overlayVariant, shareCta, headerLayout\s*\)/);
+        // The header layout is used for the banner only; the overlay text no
+        // longer depends on it.
+        expect(block).toMatch(/drawTextOverlay\([\s\S]*overlayVariant, shareCta\s*\)/);
     });
 
     it('paints the header band with a 100% opaque gradient before the banner', () => {
@@ -252,20 +252,23 @@ describe('video-processor.web.js recap wiring guard', () => {
         expect(block).toMatch(/ctx\.fillRect\(0, 0, canvas\.width, headerLayout\.headerBottom\)/);
     });
 
-    it('draws the share-code prompt directly under the banner, never over it', () => {
-        // The prompt is positioned from the shared layout's textY (which is the
-        // banner bottom + gap), not an overlapping fixed band.
-        expect(source).toMatch(/shareCta = null, headerLayout = null\)/);
-        const start = source.indexOf('if (headlineBlock && shareCta && headerLayout) {');
+    it('burns just the share code, in the lower-right corner', () => {
+        // The header image carries the "Enter code" label, so the overlay draws
+        // only the code, anchored lower-right with a healthy margin.
+        expect(source).toMatch(/shareCta = null\)/);
+        const start = source.indexOf('if (headlineBlock && shareCta) {');
         const end = source.indexOf('if (tailingCard && shareCta) {');
         expect(start).toBeGreaterThan(-1);
         expect(end).toBeGreaterThan(start);
-        const promptBlock = source.slice(start, end);
-        expect(promptBlock).toMatch(/headerLayout\.textY/);
-        expect(promptBlock).toMatch(/shareCta\.prompt/);
-        // The old fixed-band headline placement must be gone.
-        expect(source).not.toMatch(/bandCenterY = canvasHeight \* 0\.125/);
+        const codeBlock = source.slice(start, end);
+        expect(codeBlock).toMatch(/shareCta\.code/);
+        expect(codeBlock).toMatch(/align: 'right'/);
+        expect(codeBlock).toMatch(/canvasWidth - marginX/);
+        expect(codeBlock).toMatch(/canvasHeight - marginY/);
+        // The old label/prompt and header-anchored text must be gone.
+        expect(source).not.toMatch(/shareCta\.prompt/);
         expect(source).not.toMatch(/shareCta\.headline/);
+        expect(source).not.toMatch(/headerLayout\.textY/);
     });
 
     it('uses the video-only header asset, not the website header', () => {
@@ -280,16 +283,16 @@ describe('video-processor.web.js recap wiring guard', () => {
         expect(source).toMatch(/TAILING_DURATION_MS\b/);
     });
 
-    it('renders the tailing card as two lines (prefix + deadline), never the URL', () => {
+    it('renders the multi-line call to action over the tailing card', () => {
         const start = source.indexOf('if (tailingCard && shareCta) {');
         const end = source.indexOf('// Unpack subtitle', start);
         expect(start).toBeGreaterThan(-1);
         expect(end).toBeGreaterThan(start);
         const card = source.slice(start, end);
-        expect(card).toMatch(/shareCta\.deadlinePrefix/);
-        expect(card).toMatch(/shareCta\.deadline\b/);
-        // The old third line (the URL) must be gone.
+        expect(card).toMatch(/shareCta\.tailingLines/);
+        expect(card).toMatch(/lines\.length/);
+        // The old prefix/deadline/URL lines must all be gone.
+        expect(card).not.toMatch(/shareCta\.deadline/);
         expect(card).not.toMatch(/shareCta\.url/);
-        expect((card.match(/drawFittedLine\(/g) || [])).toHaveLength(2);
     });
 });

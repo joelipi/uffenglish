@@ -6,7 +6,7 @@ import { shareVideo } from './video-share.js';
 import { appStore } from '../store/store.js';
 import videoHeaderImg from '../../assets/img/video-header.png';
 import { getVideoUrl, getUgcThumbKey, getCompleteVideoKey } from './video-url.js';
-import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, TAILING_DURATION_MS, buildShareDeadline, resolveOverlayElements, resolveHeaderLayout, isShareCtaEnabled, isDroppedStep, markFirstRenderable, resolveSegmentBounds, STALL_GRACE_MS, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges, SHARE_URL_BASE } from './video-processor-logic.js';
+import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, TAILING_DURATION_MS, resolveOverlayElements, resolveHeaderLayout, isShareCtaEnabled, isDroppedStep, markFirstRenderable, resolveSegmentBounds, STALL_GRACE_MS, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges, SHARE_URL_BASE } from './video-processor-logic.js';
 import { remoteSource } from './video-source.js';
 import { DEFAULT_USER_AVATAR_URL } from '../user/tutor-config.js';
 import { getAvatarBlobUrl } from '../avatar/avatar.service.js';
@@ -179,15 +179,21 @@ function createVideoProcessor() {
                 const plan = planner.generatePlan();
 
                 // The lesson's recapOverlay mode decides the card: shareCta
-                // recaps carry a share-code prompt instead of a fluency card.
-                // With no shareCode the prompt falls back to the bare host.
+                // recaps show the share code in the lower-right corner plus a
+                // 4-line call to action over the tailing freeze-frame. The
+                // header image carries the "Enter code" label, so only the code
+                // itself is burned.
                 const tailingStep = plan.find(s => s.type === 'tailing');
                 const overlayVariant = tailingStep?.variant || 'fluency';
                 const shareCta = isShareCtaEnabled(overlayVariant)
                     ? {
-                        prompt: `${Strings.get('share_code_prompt', userLang)} ${shareCode || SHARE_URL_BASE}`,
-                        deadlinePrefix: Strings.get('share_cta_deadline', userLang),
-                        deadline: buildShareDeadline(Date.now(), userLang),
+                        code: shareCode || SHARE_URL_BASE,
+                        tailingLines: [
+                            Strings.get('share_cta_respond_now', userLang),
+                            Strings.get('share_cta_quick', userLang),
+                            `${Strings.get('share_cta_go_to', userLang)} ${SHARE_URL_BASE}`,
+                            `${Strings.get('share_cta_enter_code', userLang)} ${shareCode || SHARE_URL_BASE}`,
+                        ],
                     }
                     : null;
 
@@ -728,7 +734,7 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                 ctx, canvas.width, canvas.height,
                 isTailing, tailStart, fluencyData,
                 step.isFirst, step.subtitle,
-                overlayVariant, shareCta, headerLayout
+                overlayVariant, shareCta
             );
 
             if (displayCanvas) {
@@ -925,25 +931,27 @@ function wrapText(context, text, maxWidth) {
  * maxWidth. Never wraps — used for the share URL and deadline, which must stay
  * on one line.
  */
-function drawFittedLine(context, text, centerX, y, { fontFamily, maxWidth, baseSize, minSize = 18, color = 'white' }) {
+function drawFittedLine(context, text, centerX, y, { fontFamily, maxWidth, baseSize, minSize = 18, color = 'white', align = 'center' }) {
     let size = baseSize;
     context.font = `700 ${size}px ${fontFamily}`;
     while (size > minSize && measureTextWidth(context, text) > maxWidth) {
         size -= 1;
         context.font = `700 ${size}px ${fontFamily}`;
     }
-    // Draw left-aligned from an explicitly centred origin. `textAlign='center'`
-    // aligns on the canvas advance width, which WebKit under-reports for
-    // complex scripts, so the ink is pushed to the right; the DOM-measured
-    // width used here is correct for the same font.
+    // Draw left-aligned from an explicitly anchored origin. `centerX` is the
+    // centre for align='center' or the right edge for align='right'.
+    // `textAlign='center'` aligns on the canvas advance width, which WebKit
+    // under-reports for complex scripts, so the ink is pushed to the right; the
+    // DOM-measured width used here is correct for the same font.
     const width = measureTextWidth(context, text);
+    const x = align === 'right' ? centerX - width : centerX - width / 2;
     context.fillStyle = color;
     context.strokeStyle = 'rgba(0,0,0,0.8)';
     context.lineWidth = Math.max(6, Math.round(size * 0.18));
     const prevAlign = context.textAlign;
     context.textAlign = 'left';
-    context.strokeText(text, centerX - width / 2, y);
-    context.fillText(text, centerX - width / 2, y);
+    context.strokeText(text, x, y);
+    context.fillText(text, x, y);
     context.textAlign = prevAlign;
     return size;
 }
@@ -971,7 +979,7 @@ function drawCenteredLine(context, text, centerX, y, { stroke = null, strokeWidt
     context.textAlign = prevAlign;
 }
 
-function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart, fluencyData, isFirst, subtitleText, overlayVariant = 'fluency', shareCta = null, headerLayout = null) {
+function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart, fluencyData, isFirst, subtitleText, overlayVariant = 'fluency', shareCta = null) {
     const now = performance.now();
     const blinkOn = Math.floor(now / 500) % 2 === 0;
     context.save();
@@ -1041,27 +1049,26 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
         });
     }
 
-    // Share CTA — the "Enter share code: <code>" prompt sits directly beneath the
-    // header banner for the whole recap; the 3-line deadline card shows over the
-    // tailing freeze-frame. The prompt/URL are drawn with drawFittedLine (never
-    // wrapText) so each always stays on one line.
+    // Share CTA. The header image already carries the "Enter code" label, so
+    // only the code is burned — in the lower-right corner with a healthy margin.
+    // The 4-line call to action shows over the tailing freeze-frame. Each line
+    // is drawn with drawFittedLine (never wrapText) so it stays on one line.
     const ctaFontFamily = '"Plus Jakarta Sans", "Noto Sans Bengali", "Bangla Sangam MN", "Nirmala UI", sans-serif';
 
-    if (headlineBlock && shareCta && headerLayout) {
-        // Directly under the banner, never overlapping it (the banner has its
-        // own text). The banner shrinks to make room, so this always fits inside
-        // the 18% header band.
-        const centerX = Math.floor(canvasWidth / 2);
-        context.textAlign = 'center';
-        context.textBaseline = 'top';
+    if (headlineBlock && shareCta) {
+        const marginX = Math.round(canvasWidth * 0.06);
+        const marginY = Math.round(canvasHeight * 0.06);
+        context.textAlign = 'right';
+        context.textBaseline = 'bottom';
         context.shadowColor = 'rgba(0, 0, 0, 0.8)';
         context.shadowBlur = Math.max(6, Math.round(canvasWidth * 0.01));
-        drawFittedLine(context, shareCta.prompt, centerX, headerLayout.textY, {
+        drawFittedLine(context, shareCta.code, canvasWidth - marginX, canvasHeight - marginY, {
             fontFamily: ctaFontFamily,
-            maxWidth: canvasWidth * 0.9,
-            baseSize: headerLayout.textSize,
+            maxWidth: canvasWidth * 0.6,
+            baseSize: Math.max(16, Math.round(canvasWidth * 0.05)),
             minSize: 12,
             color: 'white',
+            align: 'right',
         });
     }
 
@@ -1072,15 +1079,21 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
         context.textBaseline = 'middle';
         context.shadowColor = 'rgba(0, 0, 0, 0.8)';
         context.shadowBlur = Math.max(8, Math.round(canvasWidth * 0.012));
-        // Two lines, centred: "Respond before" / the formatted deadline.
+        // One uniform size for all lines: shrink to the longest so the block
+        // reads evenly instead of each line scaling on its own.
+        const lines = shareCta.tailingLines;
+        let size = Math.round(canvasWidth * 0.055);
+        context.font = `700 ${size}px ${ctaFontFamily}`;
+        while (size > 14 && lines.some(l => measureTextWidth(context, l) > maxWidth)) {
+            size -= 1;
+            context.font = `700 ${size}px ${ctaFontFamily}`;
+        }
         const lineGap = Math.round(canvasHeight * 0.06);
-        const centerY = canvasHeight * 0.5;
-        const prefixSize = drawFittedLine(context, shareCta.deadlinePrefix, centerX, centerY - lineGap / 2, {
-            fontFamily: ctaFontFamily, maxWidth, baseSize: Math.round(canvasWidth * 0.06), color: 'white'
-        });
-        drawFittedLine(context, shareCta.deadline, centerX, centerY + lineGap / 2, {
-            fontFamily: ctaFontFamily, maxWidth, baseSize: Math.round(prefixSize * 0.85), color: 'white'
-        });
+        let y = canvasHeight * 0.5 - (lineGap * (lines.length - 1)) / 2;
+        for (const line of lines) {
+            drawFittedLine(context, line, centerX, y, { fontFamily: ctaFontFamily, maxWidth, baseSize: size, color: 'white' });
+            y += lineGap;
+        }
     }
 
     // Unpack subtitle — support legacy string and new { en, translation } object

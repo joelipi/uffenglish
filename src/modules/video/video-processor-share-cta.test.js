@@ -20,13 +20,39 @@ const HEADLINES = {
     bn: 'আমার সাথে ফ্রি ইংরেজি প্র্যাকটিস করুন',
 };
 
-const DEADLINES = {
-    en: 'Respond before',
-    es: 'Responde antes del',
-    pt: 'Responda antes de',
-    fr: 'Répondez avant le',
-    hi: 'इससे पहले जवाब दें:',
-    bn: 'এর আগে উত্তর দিন:',
+const CTA_LINES = {
+    share_cta_respond_now: {
+        en: 'Respond now before the video expires!',
+        es: '¡Responde ahora antes de que caduque el video!',
+        pt: 'Responda agora antes que o vídeo expire!',
+        fr: "Répondez maintenant avant que la vidéo n'expire !",
+        hi: 'वीडियो समाप्त होने से पहले अभी जवाब दें!',
+        bn: 'ভিডিওটি শেষ হওয়ার আগে এখনই উত্তর দিন!',
+    },
+    share_cta_quick: {
+        en: 'It takes less than 5 minutes!',
+        es: '¡Toma menos de 5 minutos!',
+        pt: 'Leva menos de 5 minutos!',
+        fr: 'Ça prend moins de 5 minutes !',
+        hi: 'इसमें 5 मिनट से भी कम समय लगता है!',
+        bn: 'এটি ৫ মিনিটেরও কম সময় নেয়!',
+    },
+    share_cta_go_to: {
+        en: 'Go to:',
+        es: 'Ve a:',
+        pt: 'Acesse:',
+        fr: 'Rendez-vous sur :',
+        hi: 'यहाँ जाएँ:',
+        bn: 'এখানে যান:',
+    },
+    share_cta_enter_code: {
+        en: 'Enter code:',
+        es: 'Ingresa el código:',
+        pt: 'Digite o código:',
+        fr: 'Entrez le code :',
+        hi: 'कोड दर्ज करें:',
+        bn: 'কোড লিখুন:',
+    },
 };
 
 const LOCALE_MAP = { en: 'en', es: 'es', pt: 'pt', fr: 'fr', hi: 'hi', bn: 'bn' };
@@ -45,8 +71,10 @@ describe('share CTA strings', () => {
         expect(Strings.get('share_cta_headline', lang)).toBe(HEADLINES[lang]);
     });
 
-    it.each(LANGS)('share_cta_deadline returns the exact copy for %s', (lang) => {
-        expect(Strings.get('share_cta_deadline', lang)).toBe(DEADLINES[lang]);
+    it.each(Object.entries(CTA_LINES))('%s returns the exact copy per language', (key, copy) => {
+        for (const [lang, expected] of Object.entries(copy)) {
+            expect(Strings.get(key, lang)).toBe(expected);
+        }
     });
 
     it('normalizes stored uppercase and full locales, falling back to en', () => {
@@ -173,31 +201,25 @@ describe('isShareCtaEnabled', () => {
 
 describe('share_message (recap share text)', () => {
     // The message attached when sharing the recap video must carry the learner's
-    // personal share link, localized to their language.
-    const EXPECTED = {
-        en: 'Practice English with me free here: {url}',
-        es: 'Practica inglés conmigo gratis aquí: {url}',
-        pt: 'Pratique inglês comigo de graça aqui: {url}',
-        fr: "Pratique l'anglais avec moi gratuitement ici : {url}",
-        hi: 'मेरे साथ यहाँ मुफ़्त अंग्रेज़ी प्रैक्टिस करें: {url}',
-        bn: 'এখানে আমার সাথে ফ্রি ইংরেজি প্র্যাকটিস করুন: {url}',
-    };
-
+    // personal share link, localized to their language. The exact per-language
+    // copy is exercised end-to-end in video-share-message.test.js.
     it.each(LANGS)('has a %s translation with the {url} placeholder', (lang) => {
-        expect(Strings.get('share_message', lang)).toBe(EXPECTED[lang]);
+        expect(Strings.get('share_message', lang)).toContain('{url}');
     });
 
-    it('interpolates the share URL into the message', () => {
+    it('interpolates the share URL into the message for every language', () => {
         const url = buildShareUrl('abc123');
-        expect(Strings.get('share_message', 'en', { url }))
-            .toBe('Practice English with me free here: ultrafastfluency.com/abc123');
-        expect(Strings.get('share_message', 'es', { url }))
-            .toBe('Practica inglés conmigo gratis aquí: ultrafastfluency.com/abc123');
+        for (const lang of LANGS) {
+            const out = Strings.get('share_message', lang, { url });
+            expect(out).toContain('ultrafastfluency.com/abc123');
+            expect(out).not.toContain('{url}');
+        }
     });
 
     it('falls back to the bare host when there is no share code', () => {
         const url = buildShareUrl(null);
-        expect(Strings.get('share_message', 'en', { url }))
-            .toBe('Practice English with me free here: ultrafastfluency.com');
+        const out = Strings.get('share_message', 'en', { url });
+        expect(out).toContain('ultrafastfluency.com');
+        expect(out).not.toContain('{url}');
     });
 });
