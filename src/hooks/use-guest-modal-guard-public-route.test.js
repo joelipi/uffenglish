@@ -45,3 +45,25 @@ describe('guest-modal guard public-homepage skip', () => {
         expect(earlyReturn).not.toContain('setGuestModalShownThisSession');
     });
 });
+
+describe('guest-modal guard profile-route skip', () => {
+    it('calls isProfileRoute(path) in the guard block', () => {
+        expect(block).toContain('isProfileRoute(path)');
+    });
+
+    it('returns early for profile routes before setting the session flag', () => {
+        const profileAt = block.indexOf('isProfileRoute(path)');
+        const flagAt = block.indexOf('state.setGuestModalShownThisSession(true)');
+        expect(profileAt).toBeGreaterThan(-1);
+        expect(flagAt).toBeGreaterThan(-1);
+        expect(profileAt).toBeLessThan(flagAt);
+    });
+
+    it('does not call setGuestModalShownThisSession in the profile-route early return', () => {
+        const profileAt = block.indexOf('isProfileRoute(path)');
+        const returnAt = block.indexOf('return;', profileAt);
+        const earlyReturn = block.slice(profileAt, returnAt + 'return;'.length);
+        expect(earlyReturn).toContain('return;');
+        expect(earlyReturn).not.toContain('setGuestModalShownThisSession');
+    });
+});
