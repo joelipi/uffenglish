@@ -234,37 +234,36 @@ describe('video-processor.web.js recap wiring guard', () => {
         );
         // The old natural-size / clipped draw must be gone.
         expect(block).not.toMatch(/drawImage\(overlayImage,\s*x,\s*0\)/);
-        // The header layout is used for the banner only; the overlay text no
-        // longer depends on it.
-        expect(block).toMatch(/drawTextOverlay\([\s\S]*overlayVariant, shareCta\s*\)/);
+        // The header layout is handed to the overlay so the share code can sit in
+        // the banner's own corner.
+        expect(block).toMatch(/drawTextOverlay\([\s\S]*overlayVariant, shareCta, headerLayout\s*\)/);
     });
 
-    it('paints the header band with a 100% opaque gradient before the banner', () => {
+    it('draws the banner without a gradient band', () => {
         const start = source.indexOf('const headerLayout = overlayImage?.complete');
         const end = source.indexOf('if (displayCanvas)', start);
         const block = source.slice(start, end);
-        expect(block).toMatch(/createLinearGradient\(0, 0, 0, headerLayout\.headerBottom\)/);
-        expect(block).toMatch(/addColorStop\(0, HEADER_GRADIENT_TOP\)/);
-        expect(block).toMatch(/addColorStop\(1, HEADER_GRADIENT_BOTTOM\)/);
-        // Opaque fills, not the translucent water alphas.
-        expect(source).toMatch(/const HEADER_GRADIENT_TOP = '#3a8fd5'/);
-        expect(source).toMatch(/const HEADER_GRADIENT_BOTTOM = '#00c0d8'/);
-        expect(block).toMatch(/ctx\.fillRect\(0, 0, canvas\.width, headerLayout\.headerBottom\)/);
+        expect(block).toMatch(/ctx\.drawImage\(\s*overlayImage,/);
+        // The opaque gradient band is gone (nothing painted behind/below it).
+        expect(block).not.toMatch(/createLinearGradient\(/);
+        expect(block).not.toMatch(/fillRect\(0, 0, canvas\.width, headerLayout\.headerBottom\)/);
+        expect(source).not.toMatch(/HEADER_GRADIENT_/);
     });
 
-    it('burns just the share code, in the lower-right corner', () => {
-        // The header image carries the "Enter code" label, so the overlay draws
-        // only the code, anchored lower-right with a healthy margin.
-        expect(source).toMatch(/subtitleText, overlayVariant = 'fluency', shareCta = null\)/);
-        const start = source.indexOf('if (headlineBlock && shareCta) {');
+    it('burns just the share code, in the header banner’s lower-right corner', () => {
+        // The header image carries the label, so the overlay draws only the code,
+        // in the banner's own lower-right corner (not the frame's).
+        expect(source).toMatch(/subtitleText, overlayVariant = 'fluency', shareCta = null, headerLayout = null\)/);
+        const start = source.indexOf('if (headlineBlock && shareCta && headerLayout) {');
         const end = source.indexOf('if (tailingCard && shareCta) {');
         expect(start).toBeGreaterThan(-1);
         expect(end).toBeGreaterThan(start);
         const codeBlock = source.slice(start, end);
         expect(codeBlock).toMatch(/shareCta\.code/);
         expect(codeBlock).toMatch(/align: 'right'/);
-        expect(codeBlock).toMatch(/canvasWidth - marginX/);
-        expect(codeBlock).toMatch(/canvasHeight - marginY/);
+        // Anchored to the banner rect, not the canvas.
+        expect(codeBlock).toMatch(/headerLayout\.x \+ headerLayout\.width - marginX/);
+        expect(codeBlock).toMatch(/headerLayout\.y \+ headerLayout\.height - marginY/);
         // The old label/prompt and header-anchored text must be gone.
         expect(source).not.toMatch(/shareCta\.prompt/);
         expect(source).not.toMatch(/shareCta\.headline/);

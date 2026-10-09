@@ -20,12 +20,6 @@ import { resolveConfigLanguage } from '../bilingual/config-normalizer.js';
 import { normalizeLanguageCode } from '../utils/utils.js';
 export { shareVideo };
 
-// The recap header band paints an opaque water-gradient behind the banner so
-// the video (and any burnt-on captions) can never show through it. Same blue as
-// the app's `.water-surface`, but fully opaque.
-const HEADER_GRADIENT_TOP = '#3a8fd5';
-const HEADER_GRADIENT_BOTTOM = '#00c0d8';
-
 // The header banner is localized by a two-letter language suffix
 // (video-header-<lang>.png). The files are auto-discovered with
 // `import.meta.glob`, so adding a language is just dropping in the PNG — no code
@@ -742,13 +736,8 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                 })
                 : null;
             if (headerLayout) {
-                // 100% opaque gradient header band, so the video (and any burnt
-                // captions) can never show through the banner or the prompt.
-                const headerGradient = ctx.createLinearGradient(0, 0, 0, headerLayout.headerBottom);
-                headerGradient.addColorStop(0, HEADER_GRADIENT_TOP);
-                headerGradient.addColorStop(1, HEADER_GRADIENT_BOTTOM);
-                ctx.fillStyle = headerGradient;
-                ctx.fillRect(0, 0, canvas.width, headerLayout.headerBottom);
+                // Banner only — no gradient band behind/below it; the art carries
+                // its own background.
                 ctx.drawImage(
                     overlayImage,
                     headerLayout.x, headerLayout.y,
@@ -760,7 +749,7 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                 ctx, canvas.width, canvas.height,
                 isTailing, tailStart, fluencyData,
                 step.isFirst, step.subtitle,
-                overlayVariant, shareCta
+                overlayVariant, shareCta, headerLayout
             );
 
             if (displayCanvas) {
@@ -1006,7 +995,7 @@ function drawCenteredLine(context, text, centerX, y, { stroke = null, strokeWidt
     context.textAlign = prevAlign;
 }
 
-function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart, fluencyData, isFirst, subtitleText, overlayVariant = 'fluency', shareCta = null) {
+function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart, fluencyData, isFirst, subtitleText, overlayVariant = 'fluency', shareCta = null, headerLayout = null) {
     const now = performance.now();
     const blinkOn = Math.floor(now / 500) % 2 === 0;
     context.save();
@@ -1082,21 +1071,28 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
     // is drawn with drawFittedLine (never wrapText) so it stays on one line.
     const ctaFontFamily = '"Plus Jakarta Sans", "Noto Sans Bengali", "Bangla Sangam MN", "Nirmala UI", sans-serif';
 
-    if (headlineBlock && shareCta) {
-        const marginX = Math.round(canvasWidth * 0.06);
-        const marginY = Math.round(canvasHeight * 0.06);
+    if (headlineBlock && shareCta && headerLayout) {
+        // Lower-right corner of the header banner itself (not the frame), with a
+        // margin measured against the banner.
+        const marginX = Math.round(headerLayout.width * 0.05);
+        const marginY = Math.round(headerLayout.height * 0.15);
         context.textAlign = 'right';
         context.textBaseline = 'bottom';
         context.shadowColor = 'rgba(0, 0, 0, 0.8)';
         context.shadowBlur = Math.max(6, Math.round(canvasWidth * 0.01));
-        drawFittedLine(context, shareCta.code, canvasWidth - marginX, canvasHeight - marginY, {
-            fontFamily: ctaFontFamily,
-            maxWidth: canvasWidth * 0.6,
-            baseSize: Math.max(16, Math.round(canvasWidth * 0.05)),
-            minSize: 12,
-            color: 'white',
-            align: 'right',
-        });
+        drawFittedLine(
+            context, shareCta.code,
+            headerLayout.x + headerLayout.width - marginX,
+            headerLayout.y + headerLayout.height - marginY,
+            {
+                fontFamily: ctaFontFamily,
+                maxWidth: headerLayout.width * 0.6,
+                baseSize: Math.max(14, Math.round(headerLayout.height * 0.32)),
+                minSize: 12,
+                color: 'white',
+                align: 'right',
+            }
+        );
     }
 
     if (tailingCard && shareCta) {
