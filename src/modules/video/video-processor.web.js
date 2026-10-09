@@ -21,6 +21,7 @@ import { MAX_R2_UPLOAD_BYTES } from './r2-upload-limits.js';
 import { trackEvent } from '../utils/posthog.js';
 import Strings from '../../data/strings.js';
 import { resolveConfigLanguage } from '../bilingual/config-normalizer.js';
+import { normalizeLanguageCode } from '../utils/utils.js';
 
 export { shareVideo };
 
@@ -42,7 +43,7 @@ const HEADER_IMAGE_BY_LANG = {
 };
 const HEADER_IMAGE_FALLBACK = videoHeaderEn;
 export function resolveHeaderImage(lang) {
-    const code = String(lang || 'en').split('-')[0].toLowerCase();
+    const code = normalizeLanguageCode(lang);
     return HEADER_IMAGE_BY_LANG[code] || HEADER_IMAGE_FALLBACK;
 }
 
