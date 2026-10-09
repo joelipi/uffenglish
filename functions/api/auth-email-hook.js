@@ -37,10 +37,14 @@ export async function fetchProfileLanguage({ supabaseUrl, serviceKey, userId, fe
                 },
             }
         );
-        if (!res.ok) return null;
+        if (!res.ok) {
+            console.error(`[auth-email-hook] profile language lookup failed (${res.status})`);
+            return null;
+        }
         const rows = await res.json();
         return rows?.[0]?.native_language || null;
-    } catch {
+    } catch (e) {
+        console.error('[auth-email-hook] profile language lookup threw:', e?.message);
         return null;
     }
 }
@@ -88,27 +92,49 @@ export async function onRequestPost({ request, env }) {
     }
     const language = resolveEmailLanguage({ nativeLanguage });
 
-    const { subject, html, text } = buildAuthEmail({
-        action: emailData.email_action_type,
-        language,
-        tokenHash: emailData.token_hash,
-        token: emailData.token,
-        redirectTo: emailData.redirect_to,
-        supabaseUrl,
-    });
+    // Recipients. Email change goes to the NEW address (with Secure Email
+    // Change off, which this project requires — see docs/auth-emails.md). With
+    // it on, Supabase sends two token/hash pairs and GoTrue's field names are
+    // reversed: token_hash_new -> current address, token_hash -> new address.
+    const action = emailData.email_action_type;
+    const sends = [];
+    if (action === 'email_change' && emailData.token_hash_new) {
+        sends.push({ to: user.email, tokenHash: emailData.token_hash_new, token: emailData.token });
+        sends.push({ to: user.new_email, tokenHash: emailData.token_hash, token: emailData.token_new });
+    } else {
+        sends.push({
+            to: action === 'email_change' ? (user.new_email || user.email) : user.email,
+            tokenHash: emailData.token_hash,
+            token: emailData.token,
+        });
+    }
 
     const from = env.EMAIL_FROM || 'Ultrafast Fluency <onboarding@resend.dev>';
-    const result = await sendViaResend({
-        apiKey: env.RESEND_API_KEY,
-        from,
-        to: [user.email],
-        subject,
-        html,
-        text,
-    });
-    if (!result.ok) {
-        console.error(`[auth-email-hook] Resend responded ${result.status}`);
-        return jsonResponse({ error: `provider-${result.status}` }, 502);
+    for (const send of sends) {
+        if (!send.to) {
+            console.error('[auth-email-hook] no recipient for action', action);
+            return jsonResponse({ error: 'missing recipient' }, 400);
+        }
+        const { subject, html, text } = buildAuthEmail({
+            action,
+            language,
+            tokenHash: send.tokenHash,
+            token: send.token,
+            redirectTo: emailData.redirect_to,
+            supabaseUrl,
+        });
+        const result = await sendViaResend({
+            apiKey: env.RESEND_API_KEY,
+            from,
+            to: [send.to],
+            subject,
+            html,
+            text,
+        });
+        if (!result.ok) {
+            console.error(`[auth-email-hook] Resend responded ${result.status}`);
+            return jsonResponse({ error: `provider-${result.status}` }, 502);
+        }
     }
 
     return jsonResponse({});

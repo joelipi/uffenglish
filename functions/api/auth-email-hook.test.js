@@ -107,6 +107,39 @@ describe('onRequestPost — auth email hook', () => {
         expect(sentEmail(calls).subject).toBe('Bestätige deine neue E-Mail-Adresse');
     });
 
+    it('sends an email-change confirmation to the NEW address', async () => {
+        const { calls } = installFetch();
+        const body = JSON.stringify({
+            user: { id: 'u1', email: 'old@b.com', new_email: 'new@b.com', user_metadata: { native_language: 'EN' } },
+            email_data: { email_action_type: 'email_change', token_hash: 'th', redirect_to: 'https://app.example/' },
+        });
+        const res = await onRequestPost({ request: makeRequest(body), env: makeEnv() });
+        expect(res.status).toBe(200);
+        expect(sentEmail(calls).to).toEqual(['new@b.com']);
+    });
+
+    it('sends two emails for a secure email change (both token pairs)', async () => {
+        const { calls } = installFetch();
+        const body = JSON.stringify({
+            user: { id: 'u1', email: 'old@b.com', new_email: 'new@b.com', user_metadata: { native_language: 'EN' } },
+            email_data: {
+                email_action_type: 'email_change',
+                token_hash: 'hash-new', token: 'code-new',
+                token_hash_new: 'hash-cur', token_new: 'code-cur',
+                redirect_to: 'https://app.example/',
+            },
+        });
+        const res = await onRequestPost({ request: makeRequest(body), env: makeEnv() });
+        expect(res.status).toBe(200);
+
+        const resend = calls.filter((c) => c.url.includes('api.resend.com/emails'));
+        expect(resend).toHaveLength(2);
+        expect(resend.map((c) => JSON.parse(c.options.body).to)).toEqual([['old@b.com'], ['new@b.com']]);
+        // Current address uses token_hash_new; new address uses token_hash.
+        expect(JSON.parse(resend[0].options.body).html).toContain('token=hash-cur');
+        expect(JSON.parse(resend[1].options.body).html).toContain('token=hash-new');
+    });
+
     it('fails loud (500) when the email provider is not configured', async () => {
         const { fetchStub } = installFetch();
         const res = await onRequestPost({

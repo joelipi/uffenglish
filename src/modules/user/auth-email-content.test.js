@@ -58,6 +58,14 @@ describe('buildAuthEmail — fallbacks', () => {
         expect(email.subject).toBe('Reset your password');
     });
 
+    it('mirrors the body for RTL languages (Arabic)', () => {
+        const ar = buildAuthEmail({ action: 'recovery', language: 'ar', tokenHash: 'h', ...base });
+        expect(ar.language).toBe('ar');
+        expect(ar.html).toContain('dir="rtl"');
+        const en = buildAuthEmail({ action: 'recovery', language: 'en', tokenHash: 'h', ...base });
+        expect(en.html).not.toContain('dir="rtl"');
+    });
+
     it('shows the code (no link) for reauthentication', () => {
         const email = buildAuthEmail({ action: 'reauthentication', language: 'es', token: '123456', ...base });
         expect(email.html).toContain('123456');

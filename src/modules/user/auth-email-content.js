@@ -13,6 +13,7 @@
 import { get, strings } from '../../data/strings.js';
 import { normalizeEmailLanguage } from './email-language.js';
 import { escapeHtml } from './html-escape.js';
+import { isRtlLanguage } from './rtl-languages.js';
 
 const FALLBACK_LANGUAGE = 'en';
 
@@ -31,15 +32,9 @@ const ACTION_SUBJECT_KEYS = {
     email_change: 'auth_email_subject_email_change',
 };
 
-// Fully-English fallback for actions that are not localized yet, so an email is
-// never half translated (English subject + localized body). Covers
-// signup/invite/magiclink/email and anything Supabase adds later.
-const GENERIC = {
-    subject: 'Action required for your Ultrafast Fluency account',
-    body: 'Use the button below to continue. For your security, this link expires shortly and can only be used once.',
-    cta: 'Continue',
-    ignore: 'If you did not request this, you can ignore this email.',
-};
+// Subject for actions with no localized subject; the body/cta/ignore fall back
+// to the English entries in strings.js so there is one source of truth.
+const GENERIC_SUBJECT = 'Action required for your Ultrafast Fluency account';
 const REAUTH_SUBJECT = 'Your Ultrafast Fluency verification code';
 const REAUTH_BODY = 'Use this code to verify your identity. It expires shortly.';
 const NOTIFICATION_EMAILS = {
@@ -92,25 +87,28 @@ export function buildAuthEmail({ action, language, tokenHash, token, redirectTo,
 
     // Reauthentication carries a 6-digit code, not a link.
     if (action === 'reauthentication') {
-        const code = token || '';
+        const code = escapeHtml(token || '');
         const html = `<h2>${REAUTH_SUBJECT}</h2><p>${REAUTH_BODY}</p><p style="font-size:24px;font-weight:bold">${code}</p>`;
-        return { subject: REAUTH_SUBJECT, language: 'en', html, text: `${REAUTH_SUBJECT}\n\n${REAUTH_BODY}\n\n${code}` };
+        return { subject: REAUTH_SUBJECT, language: 'en', html, text: `${REAUTH_SUBJECT}\n\n${REAUTH_BODY}\n\n${token || ''}` };
     }
 
     const subjectKey = ACTION_SUBJECT_KEYS[action];
     // Only actions with a localized subject use the localized shared copy; the
-    // rest stay fully English so an email is never half translated.
+    // rest stay fully English (the en entries in strings.js) so an email is
+    // never half translated.
     const useLocalized = Boolean(subjectKey);
-    const subject = useLocalized ? t(subjectKey) : GENERIC.subject;
-    const body = useLocalized ? t('auth_email_body') : GENERIC.body;
-    const cta = useLocalized ? t('auth_email_cta') : GENERIC.cta;
-    const ignore = useLocalized ? t('auth_email_ignore') : GENERIC.ignore;
+    const subject = useLocalized ? t(subjectKey) : GENERIC_SUBJECT;
+    const body = useLocalized ? t('auth_email_body') : get('auth_email_body', 'en');
+    const cta = useLocalized ? t('auth_email_cta') : get('auth_email_cta', 'en');
+    const ignore = useLocalized ? t('auth_email_ignore') : get('auth_email_ignore', 'en');
     const verifyUrl = tokenHash
         ? buildVerifyUrl({ supabaseUrl, action, tokenHash, redirectTo })
         : '';
 
+    // Mirror the body for RTL languages (Arabic today).
+    const dir = useLocalized && isRtlLanguage(lang) ? ' dir="rtl"' : '';
     const html =
-        '<div>' +
+        `<div${dir}>` +
         `<p>${body}</p>` +
         (verifyUrl
             ? `<p><a href="${escapeHtml(verifyUrl)}" ` +

@@ -3,7 +3,7 @@
 // (welcome-email.js, auth-email-hook.js). Like functions/api/pipeline/auth.js,
 // this is a module with no `onRequest` handler — it is imported, not routed.
 
-export const RESEND_ENDPOINT = 'https://api.resend.com/emails';
+const RESEND_ENDPOINT = 'https://api.resend.com/emails';
 
 /**
  * Send one transactional email through Resend.
