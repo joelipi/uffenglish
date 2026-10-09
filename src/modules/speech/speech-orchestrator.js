@@ -248,6 +248,7 @@ export function createSpeechOrchestrator({
 
                     if (listeningState.hesitationTimer) {
                         clearInterval(listeningState.hesitationTimer);
+                        listeningState.hesitationTimer = null;
                     }
 
                     // The live hesitation timer only feeds the flow score / stat
