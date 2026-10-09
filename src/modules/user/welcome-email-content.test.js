@@ -1,7 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { buildWelcomeEmail, hasEmailCopy } from './welcome-email-content.js';
+import { PROFILE_LANGUAGES } from '../../data/languages.js';
 
 const URL = 'https://app.example/confirm-email?token=abc';
+
+// Derive from PROFILE_LANGUAGES so adding a profile language without email copy
+// fails here, plus `tw` (Traditional Chinese, which has no profile-language
+// entry of its own).
+const SUPPORTED_EMAIL_LANGUAGES = [
+    ...PROFILE_LANGUAGES.map(({ value }) => value.toLowerCase()),
+    'tw',
+];
 
 describe('buildWelcomeEmail', () => {
     it('localizes subject/html/text and reports the resolved language', () => {
@@ -50,17 +59,12 @@ describe('buildWelcomeEmail', () => {
         expect(hasEmailCopy('es', { ...partial, email_welcome_ignore: { es: 'Ignorar' } })).toBe(true);
     });
 
-    it('has a complete table entry for every supported language', () => {
-        // Table-completeness guard: dropping one of the five keys from a
-        // supported language fails this (the fallback logic is pinned by the
-        // hasEmailCopy negative test above).
-        const supported = [
-            'en', 'es', 'pt', 'fr', 'de', 'it', 'nl', 'sv', 'da', 'nb', 'fi',
-            'pl', 'cs', 'hu', 'ro', 'el', 'ru', 'uk', 'tr', 'ar', 'vi', 'th',
-            'ja', 'ko', 'zh', 'tw', 'hi', 'bn',
-        ];
-        for (const code of supported) {
-            expect(buildWelcomeEmail(code, URL).language, code).toBe(code);
+    it('has complete copy for every profile language (plus tw)', () => {
+        // Assert hasEmailCopy directly, not the resolved language: for 'en' the
+        // buildWelcomeEmail fallback also equals 'en', so checking the resolved
+        // language would stay green even if the English keys were missing.
+        for (const code of SUPPORTED_EMAIL_LANGUAGES) {
+            expect(hasEmailCopy(code), code).toBe(true);
         }
     });
 
