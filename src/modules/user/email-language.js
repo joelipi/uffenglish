@@ -1,9 +1,10 @@
 // modules/user/email-language.js
 // Language resolution for the transactional welcome email. Reuses the app's
 // canonical normalizeLanguageCode (modules/utils/utils.js) so the email and the
-// UI agree on codes, and adds the one case the shared helper can't express:
-// the app uses TW for non-simplified (Traditional) Chinese and ZH for
-// Simplified, but normalizeLanguageCode would collapse zh-TW/zh-Hant to "zh".
+// UI agree on codes, and adds the one case the shared helper can't express: the
+// app surfaces Simplified Chinese as ZH, but for a `zh-TW`/`zh-Hant`/`zh-HK`
+// caller we keep non-simplified (Traditional) Chinese distinct as TW instead of
+// letting normalizeLanguageCode collapse it to "zh".
 //
 // Codes are the app's lowercase primary subtags; the email copy itself lives in
 // the shared translation table (strings.js), so any language added there is
