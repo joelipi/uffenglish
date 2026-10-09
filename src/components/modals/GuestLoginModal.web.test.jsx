@@ -16,12 +16,12 @@ globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-function renderModal(container, { detectedLang }) {
+function renderModal(container, { detectedLang, step = 'select-language', nativeLanguage = null }) {
     appStore.setState({
         isGuestModalOpen: true,
-        guestModalStep: 'select-language',
+        guestModalStep: step,
         guestModalFriendMode: false,
-        guestNativeLanguage: null,
+        guestNativeLanguage: nativeLanguage,
         guestDetectedLang: detectedLang,
         userData: null,
     });
@@ -87,34 +87,27 @@ describe('GuestLoginModal language step', () => {
         expect(source).not.toContain('Confirm Your Native Language');
     });
 
-    it('relabels the two non-translation exits', () => {
+    it('renders the non-translation exit as a single text link', () => {
         root = renderModal(container, { detectedLang: 'EN' });
 
+        const link = container.querySelector('#guestEnglishOnlyBtn');
+        expect(link).not.toBeNull();
+        expect(link.classList.contains('btn-link')).toBe(true);
         expect(container.querySelector('#guestEnglishOnlyBtnText').textContent)
-            .toBe('No translations (not recommended)');
-        expect(container.querySelector('#guestNotListedBtnText').textContent)
-            .toBe('My language is not on this list (continue without translations)');
+            .toBe('My language is not listed. Continue without translations.');
+        // The old duplicate "not on this list" button is gone.
+        expect(container.querySelector('#guestNotListedBtn')).toBeNull();
     });
 
-    it('confirms English-only and advances to login-choice', () => {
+    it('continues without translations (OTHER) and advances to login-choice', () => {
         root = renderModal(container, { detectedLang: 'EN' });
 
         act(() => {
             container.querySelector('#guestEnglishOnlyBtn').click();
         });
 
-        expect(appStore.getState().guestNativeLanguage).toBe('EN');
-        expect(appStore.getState().guestModalStep).toBe('login-choice');
-    });
-
-    it('records OTHER when the language is not listed', () => {
-        root = renderModal(container, { detectedLang: 'EN' });
-
-        act(() => {
-            container.querySelector('#guestNotListedBtn').click();
-        });
-
         expect(appStore.getState().guestNativeLanguage).toBe('OTHER');
+        expect(appStore.getState().guestModalStep).toBe('login-choice');
     });
 
     it('pre-selects a non-English browser language and enables Continue', () => {
@@ -128,5 +121,51 @@ describe('GuestLoginModal language step', () => {
         const continueBtn = container.querySelector('#guestLanguageContinueBtn');
         expect(continueBtn.disabled).toBe(false);
         expect(container.querySelector('#guestLanguageContinueBtnText').textContent).toBe('Español');
+    });
+
+    it('renders the step in Portuguese when the browser is Portuguese', () => {
+        root = renderModal(container, { detectedLang: 'PT' });
+
+        expect(container.querySelector('#guestLoginModalTitleText').textContent)
+            .toContain('Pratique inglês conosco de graça!');
+        expect(container.querySelector('#guestLanguageSelect option').textContent)
+            .toBe('Selecione seu idioma...');
+    });
+});
+
+describe('GuestLoginModal login step language', () => {
+    let container;
+    let root;
+
+    beforeEach(() => {
+        container = document.createElement('div');
+        document.body.appendChild(container);
+    });
+
+    afterEach(() => {
+        if (root) act(() => root.unmount());
+        container.remove();
+        root = null;
+        container = null;
+    });
+
+    // The login-choice step must render in the SAME language as the step the
+    // guest just used — every guest_modal_* key carries pt/fr, not just es/hi/bn.
+    it('uses the confirmed language on the login-choice step', () => {
+        root = renderModal(container, { detectedLang: 'PT', step: 'login-choice', nativeLanguage: 'PT' });
+
+        expect(container.querySelector('#guestLoginModalTitleText').textContent).toBe('Bem-vindo!');
+        expect(container.querySelector('#guestLoginModalBodyText').textContent)
+            .toBe('Você não está conectado no momento.');
+        expect(container.querySelector('#guestLoginBtnText').textContent).toBe('Entrar');
+        expect(container.querySelector('#guestSignupBtnText').textContent).toBe('Cadastrar-se');
+        expect(container.querySelector('#guestContinueBtnText').textContent).toBe('Continuar como convidado');
+    });
+
+    it('falls back to the detected language when the guest chose OTHER', () => {
+        root = renderModal(container, { detectedLang: 'ES', step: 'login-choice', nativeLanguage: 'OTHER' });
+
+        expect(container.querySelector('#guestLoginModalTitleText').textContent).toBe('¡Bienvenido!');
+        expect(container.querySelector('#guestLoginBtnText').textContent).toBe('Iniciar sesión');
     });
 });
