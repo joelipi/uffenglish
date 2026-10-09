@@ -204,6 +204,8 @@ export function resolveHeaderLayout({
     const width = Math.round(naturalWidth * scale);
     const height = Math.round(naturalHeight * scale);
     const x = Math.round((canvasWidth - width) / 2);
+    // The banner's bottom edge. Kept in the returned shape (story 057) as the
+    // documented on-canvas invariant; the renderer draws from x/y/width/height.
     const headerBottom = y + height;
 
     return { x, y, width, height, headerBottom };
