@@ -15,6 +15,7 @@ This repo relies heavily on tests that assert on source text ("guards"). Several
 - **Never slice a function body to EOF.** End the slice at the next top-level marker (`indexOf('export const …')` / the next `export async function …`). A function appended later otherwise silently joins the slice and the guard passes on strings that are not in the target function.
 - **Presence is not containment.** Asserting that `try:`, the guarded call and `except Exception` all appear *somewhere* in a region says nothing about their order, so hoisting the call out of the `try` still passes. Assert index order (`region.index(a) < region.index(b) < region.index(c)`) — and search the paren-qualified call token (`storage.head(`), because an explanatory comment naming the function will otherwise satisfy a bare-token search.
 - **A locale-coverage guard must assert the raw `strings` table, not `Strings.get()`.** `get()` falls back to the English value when a locale is missing, so `expect(get(key, 'pt')).toBeTruthy()` passes even with `pt` deleted. Assert `strings[key][lang]` (import the raw table) so a dropped translation actually fails.
+- **Anchor a property assertion to the line you mean.** An unanchored `/backdrop-filter:/` also matches the `-webkit-backdrop-filter:` line (same for `mask-image`, `transform`, …), so the guard for the *unprefixed* declaration can never fail — deleting it while keeping the prefixed twin stays green. Match with a line anchor (`/^\s*backdrop-filter:/m`) and assert each prefixed/unprefixed form on its own so either can fail independently.
 
 Before trusting a guard, prove it can fail by temporarily injecting the thing it forbids.
 
@@ -185,8 +186,8 @@ tests/answer-flow.spec.js
 
 **`source inspected → …` ACs need a real static-guard test.** When a story lists an acceptance criterion as `[file] source inspected → contains/does not contain …` (purity constraints, required imports, wiring contract), the implementer must add an automated `readFileSync` guard for it. The `@acceptance-reviewer` treats every AC as requiring a passing test and will Fail the task if such ACs have no guard, even when the runtime behavior is covered. Put guards beside the feature (e.g. `notification-wiring.test.js`) and assert only on raw source, never comment-stripped source (`docs/learnings.md`).
 
-**Test URL:** `http://localhost:3000/course/model/lesson/g`
-Lessons require a full URL where `course` and `model` map to valid JSON files and `lesson` is a valid key within that JSON, unless lesson data is already in memory.
+**Test URL:** `http://localhost:3000/course/model/lesson/m-g`
+Lessons require a full URL where `course` and `model` map to valid JSON files and `lesson` is a valid key within that JSON, unless lesson data is already in memory. In `model.json` the keys are prefixed (`m-g`, `m-t`, …) — `.../lesson/g` renders the shell but loads no lesson (so `MissionSection` and step widgets stay empty), which makes it useless for measuring lesson UI.
 
 **Testing data-driven pages (profile, share-code views):** don't mock Supabase or log in. Load the route, wait for its initial query to settle, then inject fixtures into the app's own query cache from `page.evaluate`:
 ```js
