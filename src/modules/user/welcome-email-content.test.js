@@ -36,4 +36,18 @@ describe('buildWelcomeEmail', () => {
             expect(email.subject).toBe('Confirm your email address');
         }
     });
+
+    it('has complete copy (all five keys) for every supported language', () => {
+        // hasEmailCopy requires every email_welcome_* key, so a partial
+        // translation resolves to English instead of a mixed-language email.
+        const supported = ['en', 'es', 'pt', 'fr', 'de', 'ko', 'hi', 'bn', 'zh', 'tw'];
+        for (const code of supported) {
+            expect(buildWelcomeEmail(code, URL).language, code).toBe(code);
+        }
+    });
+
+    it('escapes the confirmation URL in the HTML href', () => {
+        const email = buildWelcomeEmail('en', 'https://x/confirm?token=a&b="c"');
+        expect(email.html).toContain('href="https://x/confirm?token=a&amp;b=&quot;c&quot;"');
+    });
 });

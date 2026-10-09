@@ -9,9 +9,28 @@ import { normalizeEmailLanguage } from './email-language.js';
 
 const FALLBACK_LANGUAGE = 'en';
 
-/** True when the shared table actually carries copy for this language code. */
+// A language is only "supported" when it carries the whole email — checking the
+// subject alone would let a partial translation emit a mixed-language email.
+const COPY_KEYS = [
+    'email_welcome_subject',
+    'email_welcome_heading',
+    'email_welcome_intro',
+    'email_welcome_cta',
+    'email_welcome_ignore',
+];
+
+/** True when the shared table carries complete copy for this language code. */
 function hasEmailCopy(code) {
-    return Boolean(strings.email_welcome_subject?.[code]);
+    return COPY_KEYS.every((key) => Boolean(strings[key]?.[code]));
+}
+
+/** Escape a value for use inside an HTML attribute. */
+function escapeHtml(value) {
+    return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('"', '&quot;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;');
 }
 
 /**
@@ -37,7 +56,7 @@ export function buildWelcomeEmail(lang, confirmUrl) {
     const html =
         `<h2>${heading}</h2>` +
         `<p>${intro}</p>` +
-        `<p><a href="${confirmUrl}" ` +
+        `<p><a href="${escapeHtml(confirmUrl)}" ` +
         'style="display:inline-block;padding:12px 24px;background:#ffd400;color:#111;' +
         `text-decoration:none;border-radius:6px;font-weight:bold">${cta}</a></p>` +
         `<p>${ignore}</p>`;

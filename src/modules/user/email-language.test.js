@@ -17,9 +17,13 @@ describe('normalizeEmailLanguage', () => {
 
     it('reduces a full tag to its primary two-letter code', () => {
         expect(normalizeEmailLanguage('es-ES')).toBe('es');
-        expect(normalizeEmailLanguage('pt_BR')).toBe('pt');
+        expect(normalizeEmailLanguage('pt-BR')).toBe('pt');
         expect(normalizeEmailLanguage('de-AT')).toBe('de');
         expect(normalizeEmailLanguage('bn-BD')).toBe('bn');
+    });
+
+    it('does not accept a POSIX underscore tag the UI also cannot localize', () => {
+        expect(normalizeEmailLanguage('pt_BR')).toBeNull();
     });
 
     it('maps Chinese: TW/Hant/HK/MO -> tw (non-simplified), otherwise zh', () => {

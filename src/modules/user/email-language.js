@@ -15,7 +15,10 @@ const TRADITIONAL_ZH_SIGNALS = new Set(['tw', 'hk', 'mo', 'hant']);
 const TWO_LETTER = /^[a-z]{2}$/;
 
 function subtags(raw) {
-    return raw.split(/[-_]/).filter(Boolean).map((part) => part.toLowerCase());
+    // Split on '-' only, matching the shared normalizeLanguageCode / Strings.get
+    // convention (a POSIX '_' tag is not localized by the UI either, so the
+    // email must not accept more than the app does).
+    return raw.split('-').filter(Boolean).map((part) => part.toLowerCase());
 }
 
 /**
