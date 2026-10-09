@@ -413,6 +413,32 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     z-index: 35;
 }
 
+/* Strongly blur the video behind the header (progress bar + stats) and the
+   mission rows so any text burnt into the video cannot bleed through them.
+   The backdrop extends 40px past the overlay and its mask keeps the blur at
+   full strength across the whole header/mission stack before fading out below
+   it, so the blur never cuts a hard line across the video. The gradient on
+   .top-overlay keeps the copy legible where the blur has faded out. */
+.top-overlay-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: -40px;
+    z-index: 0;
+    pointer-events: none;
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 40px), transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 40px), transparent 100%);
+}
+
+/* Keep the header/mission content above the blurred backdrop layer. */
+.top-overlay-content {
+    position: relative;
+    z-index: 1;
+}
+
 #closePage {
     color: white;
     font-size: 1.5rem;
