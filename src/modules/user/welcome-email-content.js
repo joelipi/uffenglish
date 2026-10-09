@@ -20,8 +20,8 @@ const COPY_KEYS = [
 ];
 
 /** True when the shared table carries complete copy for this language code. */
-function hasEmailCopy(code) {
-    return COPY_KEYS.every((key) => Boolean(strings[key]?.[code]));
+export function hasEmailCopy(code, table = strings) {
+    return COPY_KEYS.every((key) => Boolean(table[key]?.[code]));
 }
 
 /** Escape a value for use inside an HTML attribute. */

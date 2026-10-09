@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildWelcomeEmail } from './welcome-email-content.js';
+import { buildWelcomeEmail, hasEmailCopy } from './welcome-email-content.js';
 
 const URL = 'https://app.example/confirm-email?token=abc';
 
@@ -37,9 +37,23 @@ describe('buildWelcomeEmail', () => {
         }
     });
 
-    it('has complete copy (all five keys) for every supported language', () => {
-        // hasEmailCopy requires every email_welcome_* key, so a partial
-        // translation resolves to English instead of a mixed-language email.
+    it('treats a partial translation as unsupported (no mixed-language email)', () => {
+        // Negative path: this fails if hasEmailCopy only checks the subject.
+        const partial = {
+            email_welcome_subject: { es: 'Asunto' },
+            email_welcome_heading: { es: 'Encabezado' },
+            email_welcome_intro: { es: 'Intro' },
+            email_welcome_cta: { es: 'CTA' },
+            // email_welcome_ignore deliberately missing
+        };
+        expect(hasEmailCopy('es', partial)).toBe(false);
+        expect(hasEmailCopy('es', { ...partial, email_welcome_ignore: { es: 'Ignorar' } })).toBe(true);
+    });
+
+    it('has a complete table entry for every supported language', () => {
+        // Table-completeness guard: dropping one of the five keys from a
+        // supported language fails this (the fallback logic is pinned by the
+        // hasEmailCopy negative test above).
         const supported = ['en', 'es', 'pt', 'fr', 'de', 'ko', 'hi', 'bn', 'zh', 'tw'];
         for (const code of supported) {
             expect(buildWelcomeEmail(code, URL).language, code).toBe(code);

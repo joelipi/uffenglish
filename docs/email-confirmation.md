@@ -51,13 +51,18 @@ Supabase `user_metadata`; `functions/api/welcome-email.js` resolves it
 3. English
 
 `email-language.js` accepts **any** two-letter code and normalizes full tags
-(`es-ES` → `ES`, `pt_BR` → `PT`). Chinese is special-cased: `TW`, `zh-TW`,
-`zh-Hant`, `zh-HK` and `zh-MO` all resolve to `TW` (**non-simplified /
-Traditional**), while `zh`, `zh-CN` and `zh-Hans` resolve to `ZH` (Simplified).
-An unknown-but-valid code (e.g. `XX`) falls back to the English copy.
+using the same rule as the app's `normalizeLanguageCode` / `Strings.get`
+(`es-ES` → `es`, `pt-BR` → `pt`; codes are lowercase). It deliberately splits on
+`-` only, matching the UI — a POSIX `_` tag (`pt_BR`) is not localized by either.
+Chinese is special-cased: `TW`, `zh-TW`, `zh-Hant`, `zh-HK` and `zh-MO` all
+resolve to `tw` (**non-simplified / Traditional**), while `zh`, `zh-CN` and
+`zh-Hans` resolve to `zh` (Simplified). An unknown-but-valid code (e.g. `xx`)
+falls back to the English copy, and a language that carries only *some* of the
+five keys is treated as unsupported (English) so an email is never half
+translated.
 
-To add a language, add its code to the five `email_welcome_*` entries — the
-signup languages (EN/ES/PT/FR/DE/KO/HI/BN) plus ZH and TW are seeded today.
+To add a language, add its code to all five `email_welcome_*` entries — the
+signup languages (en/es/pt/fr/de/ko/hi/bn) plus zh and tw are seeded today.
 
 ## Setup (one-time, out of band)
 
