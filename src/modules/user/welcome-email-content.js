@@ -6,6 +6,7 @@
 
 import { get, strings } from '../../data/strings.js';
 import { normalizeEmailLanguage } from './email-language.js';
+import { escapeHtml } from './html-escape.js';
 
 const FALLBACK_LANGUAGE = 'en';
 
@@ -26,15 +27,6 @@ const COPY_KEYS = [
 /** True when the shared table carries complete copy for this language code. */
 export function hasEmailCopy(code, table = strings) {
     return COPY_KEYS.every((key) => Boolean(table[key]?.[code]));
-}
-
-/** Escape a value for use inside an HTML attribute. */
-function escapeHtml(value) {
-    return String(value)
-        .replaceAll('&', '&amp;')
-        .replaceAll('"', '&quot;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;');
 }
 
 /**
