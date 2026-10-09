@@ -11,8 +11,8 @@ export const WHISPER_MODEL = 'onnx-community/whisper-base.en';
 // The DeepSeek model/transport now lives in the shared client (story 049);
 // re-exported here so existing importers keep one definition.
 export { DEEPSEEK_MODEL } from './deepseek.js';
-// Matches the six-language CTA_LOCALE_MAP convention in
-// src/modules/video/video-processor-logic.js (EN, ES, PT, FR, HI, BN).
+// Matches the six-language convention used across the recap CTA strings in
+// src/data/strings.js (EN, ES, PT, FR, HI, BN).
 export const CAPTION_LANGUAGES = ['en', 'es', 'pt', 'fr', 'hi', 'bn'];
 
 // A usable base SHA is a full 40-hex commit id that is not all zeros
