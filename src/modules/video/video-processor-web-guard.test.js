@@ -259,8 +259,8 @@ describe('video-processor.web.js recap wiring guard', () => {
         expect(block).toMatch(
             /ctx\.drawImage\(\s*overlayImage,\s*0, 0, overlayImage\.naturalWidth, 1,\s*headerLayout\.x, 0, headerLayout\.width, headerLayout\.y\s*\)/
         );
-        // That stretch must run BEFORE the banner draw at headerLayout.y, or it
-        // would cover the banner (index order).
+        // The stretch must run BEFORE the banner draw so the two rects paint as
+        // one seamless banner (index order).
         const stretch = block.indexOf('overlayImage.naturalWidth, 1,');
         const banner = block.indexOf('headerLayout.x, headerLayout.y,');
         expect(stretch).toBeGreaterThan(-1);

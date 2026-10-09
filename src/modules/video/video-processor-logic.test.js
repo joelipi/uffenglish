@@ -1109,6 +1109,10 @@ describe('resolveHeaderLayout', () => {
         expect(layout.height).toBeLessThanOrEqual(Math.round(1920 * HEADER_BAND_RATIO));
         expect(layout.width).toBeLessThanOrEqual(1080);
         expect(Math.abs(layout.x - (1080 - layout.width) / 2)).toBeLessThanOrEqual(1);
+        // headerBottom stays for the invariants: it marks the banner's bottom
+        // edge (top margin + banner height) and must stay on-canvas.
+        expect(layout.headerBottom).toBe(layout.y + layout.height);
+        expect(layout.headerBottom).toBeLessThanOrEqual(1920);
     });
 
     it('anchors every canvas size at its 8% top margin without overflowing', () => {
