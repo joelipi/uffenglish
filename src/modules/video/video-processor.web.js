@@ -37,7 +37,7 @@ const headerImagePath = (code) => `../../assets/img/video-header-${code}.png`;
 /**
  * Resolves the header banner URL for a language (async — the banners are lazy
  * chunks), falling back to English when the language or its art is missing.
- * Returns null only if no banner exists at all.
+ * Returns null when no banner exists or the chosen one fails to load.
  */
 export async function resolveHeaderImage(lang) {
     const key = headerImagePath(normalizeLanguageCode(lang));

@@ -275,15 +275,16 @@ describe('video-processor.web.js recap wiring guard', () => {
         // The banners are auto-discovered with import.meta.glob, so adding a
         // language is just dropping in video-header-<lang>.png — no per-language
         // import to edit (and each is a lazy chunk).
-        expect(source).toMatch(/import\.meta\.glob\('\.\.\/\.\.\/assets\/img\/video-header-\*\.png'/);
+        expect(source).toMatch(/import\.meta\.glob\('\.\.\/\.\.\/assets\/img\/video-header-\*\.png',\s*\{\s*import:\s*'default'\s*\}\)/);
         expect(source).toMatch(/headerImagePath\(normalizeLanguageCode\(lang\)\)/);
         // English is the fallback when the language (or its art) is missing.
         expect(source).toMatch(/HEADER_IMAGE_MODULES\[headerImagePath\('en'\)\]/);
         // The old static imports / website header must be gone.
         expect(source).not.toMatch(/import videoHeader[A-Z]/);
         expect(source).not.toMatch(/assets\/img\/header\.png/);
-        // Both consumers await the (lazy) resolver.
+        // Both consumers await the (lazy) resolver and guard a null banner.
         expect((source.match(/await resolveHeaderImage\(/g) || [])).toHaveLength(2);
+        expect((source.match(/if \(headerSrc\) overlayImage\.src = headerSrc;/g) || [])).toHaveLength(2);
     });
 
     it('holds the tailing freeze-frame for 2s, shared with the planner', () => {
