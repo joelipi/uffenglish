@@ -160,7 +160,8 @@ export default function LessonContainer() {
 
             {/* Top Overlay */}
             <div className="top-overlay position-absolute top-0 start-0 w-100 px-3 py-2">
-                <div className="w-100 text-shadow">
+                <div className="top-overlay-backdrop" aria-hidden="true"></div>
+                <div className="top-overlay-content w-100 text-shadow">
                     <div id="top-bar-primary" className="d-flex align-items-center w-100 mb-0">
                         <Link to="/home" id="closePage"
                             className="d-flex align-items-center text-decoration-none flex-shrink-0" aria-label="Close">
