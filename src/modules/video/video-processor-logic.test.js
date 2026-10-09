@@ -236,6 +236,59 @@ describe('VideoRenderPlanner.generatePlan — recapSources clip selection', () =
         expect(remote.subtitle).toBeNull();
     });
 
+    it('borrows the branching step’s friend clip for either alternative response step', () => {
+        // A `branching` step plays the friend's question, then jumps to one of
+        // two alternative response steps. Both answer the SAME question, so the
+        // friend clip must lead the recap whichever one the learner picks —
+        // including the second, whose sibling response step sits immediately
+        // before it (the case that used to drop the friend's half).
+        const steps = [
+            { responseType: 'lessonIntro', introBackgroundVideoUrl: 'testvideo01' },
+            {
+                responseType: 'branching',
+                simpleVideoUrl: 'ab12-model-w-response-01',
+                chooseStep: [
+                    { nextStep: 1, text: { en: 'A' } },
+                    { nextStep: 2, text: { en: 'B' } },
+                ],
+            },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'testvideo05', cue: 'Q1a' },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'testvideo06', cue: 'Q1b' },
+        ];
+        for (const chosenStep of [2, 3]) {
+            const recordings = [
+                { originalLessonId: 'w', originalStepIndex: chosenStep, blob: { size: 1 }, userResponse: 'a' },
+            ];
+            const plan = new VideoRenderPlanner(
+                recordings, makeConfig({ recapSources: 'friend', steps }), { total: 80 }, 'en', 'ab12'
+            ).generatePlan();
+
+            expect(plan.map(s => s.type), `branch target ${chosenStep}`).toEqual(['remote', 'webcam', 'tailing']);
+            expect(plan.find(s => s.type === 'remote').targetId).toBe('ab12-model-w-response-01');
+        }
+    });
+
+    it('does not borrow a friend clip for a response that starts a new phase', () => {
+        // No branching step here: the second recording follows the first
+        // question's response sequentially (the "record the original" phase), so
+        // the scan-back must still stop at that response boundary rather than
+        // reusing the previous question's friend clip.
+        const steps = [
+            { responseType: 'lessonIntro', introBackgroundVideoUrl: 'testvideo01' },
+            { responseType: 'viewAndContinue', simpleVideoUrl: 'ab12-model-w-response-01' },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'testvideo05', cue: 'Q1' },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'testvideo06', cue: 'repeat the original' },
+        ];
+        const recordings = [
+            { originalLessonId: 'w', originalStepIndex: 3, blob: { size: 1 }, userResponse: 'a' },
+        ];
+        const plan = new VideoRenderPlanner(
+            recordings, makeConfig({ recapSources: 'friend', steps }), { total: 80 }, 'en', 'ab12'
+        ).generatePlan();
+
+        expect(plan.map(s => s.type)).toEqual(['webcam', 'tailing']);
+    });
+
     it('pairs each click-through friend clip with its own response question', () => {
         const steps = [
             { responseType: 'lessonIntro', introBackgroundVideoUrl: 'testvideo01' },

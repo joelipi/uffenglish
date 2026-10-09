@@ -1,6 +1,9 @@
 // --- modules/video-processor-logic.js ---
 
 import { remoteSource } from './video-source.js';
+// Reuse the branching step's own offset math so the recap agrees with the
+// player about which steps a `branching` step can jump to.
+import { isBranchingStep, resolveBranchChoices } from '../lesson/branch-choice-logic.js';
 
 export const TEXT_MODE_DURATION_MS = 3000;
 
@@ -156,6 +159,22 @@ const RECAP_RESPONSE_BOUNDARY_TYPES = new Set(['closedResponse', 'openResponse',
 // step's own target: interactive > intro background > simple.
 function stepTarget(step) {
     return step?.interactiveVideoUrl || step?.introBackgroundVideoUrl || step?.simpleVideoUrl || null;
+}
+
+/**
+ * The index of the `branching` step that offers `recIndex` as one of its
+ * choices, or -1. A branching step plays the friend's question and jumps to
+ * whichever alternative response step the learner picks, so every one of its
+ * targets is an answer to the SAME question.
+ */
+function branchParentIndexForResponse(steps, recIndex) {
+    for (let i = recIndex - 1; i >= 0; i--) {
+        const step = steps[i];
+        if (!isBranchingStep(step)) continue;
+        const targets = resolveBranchChoices(step, i, steps.length).map(c => c.targetIndex);
+        if (targets.includes(recIndex)) return i;
+    }
+    return -1;
 }
 
 /**
@@ -548,6 +567,19 @@ export class VideoRenderPlanner {
         // the conversation. Scan back only to the previous response boundary so
         // a question never reuses an earlier question's clip.
         if (resolveRecapSources(lesson) === 'friend') {
+            // Branch siblings: a `branching` step presents one friend question
+            // and jumps to whichever alternative response step the learner
+            // chose. All of its targets answer the same question, so the
+            // branching step's friend clip belongs to the recap for any of them
+            // — even though a sibling response step sits immediately before the
+            // recorded one (and would otherwise stop the scan below, dropping
+            // the friend's half of the conversation).
+            const branchIndex = branchParentIndexForResponse(lesson.steps, rec.originalStepIndex);
+            if (branchIndex >= 0) {
+                const branchTarget = stepTarget(lesson.steps[branchIndex]);
+                if (branchTarget && remoteSource(branchTarget) === 'friend') return branchTarget;
+            }
+
             for (let i = rec.originalStepIndex - 1; i >= 0; i--) {
                 const step = lesson.steps[i];
                 if (RECAP_RESPONSE_BOUNDARY_TYPES.has(step?.responseType)) break;
