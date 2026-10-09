@@ -13,10 +13,11 @@ import {
     TOKEN_BYTES,
 } from './welcome-email.js';
 
-function makeRequest({ jwt = 'jwt-123', origin = 'https://app.example', url = 'https://app.example/api/welcome-email' } = {}) {
+function makeRequest({ jwt = 'jwt-123', origin = 'https://app.example', acceptLanguage = null, url = 'https://app.example/api/welcome-email' } = {}) {
     const headers = new Map();
     if (jwt !== null) headers.set('Authorization', `Bearer ${jwt}`);
     if (origin !== null) headers.set('Origin', origin);
+    if (acceptLanguage !== null) headers.set('Accept-Language', acceptLanguage);
     return {
         headers: { get: (name) => headers.get(name) ?? null },
         url,
@@ -33,12 +34,12 @@ function makeEnv(overrides = {}) {
 }
 
 /** Route the stubbed fetch by URL and record calls. */
-function installFetch({ userId = 'user-1', email = 'a@b.com', storeOk = true, resendOk = true } = {}) {
+function installFetch({ userId = 'user-1', email = 'a@b.com', userMetadata = {}, storeOk = true, resendOk = true } = {}) {
     const calls = [];
     const fetchStub = vi.fn(async (url, options = {}) => {
         calls.push({ url, options });
         if (url.endsWith('/auth/v1/user')) {
-            return { ok: true, status: 200, json: async () => ({ id: userId, email }) };
+            return { ok: true, status: 200, json: async () => ({ id: userId, email, user_metadata: userMetadata }) };
         }
         if (url.includes('/rest/v1/email_confirm_tokens')) {
             return { ok: storeOk, status: storeOk ? 201 : 500, json: async () => [] };
@@ -154,6 +155,36 @@ describe('onRequestPost — welcome-email Function', () => {
         await onRequestPost({ request: makeRequest({ origin: 'https://staging.example' }), env: makeEnv() });
         const resend = calls.find((c) => c.url.includes('api.resend.com/emails'));
         expect(JSON.parse(resend.options.body).text).toContain('https://staging.example/confirm-email?token=');
+    });
+
+    const sentEmail = (calls) =>
+        JSON.parse(calls.find((c) => c.url.includes('api.resend.com/emails')).options.body);
+
+    it('localizes the email to the user metadata native_language', async () => {
+        const { calls } = installFetch({ userMetadata: { native_language: 'ES' } });
+        await onRequestPost({ request: makeRequest(), env: makeEnv() });
+        const payload = sentEmail(calls);
+        expect(payload.subject).toBe('Confirma tu correo electrónico');
+        expect(payload.html).toContain('Confirmar mi correo');
+    });
+
+    it('treats TW as non-simplified (Traditional) Chinese', async () => {
+        const { calls } = installFetch({ userMetadata: { native_language: 'TW' } });
+        await onRequestPost({ request: makeRequest(), env: makeEnv() });
+        expect(sentEmail(calls).subject).toBe('確認您的電子郵件地址');
+    });
+
+    it('falls back to Accept-Language when metadata has no language, then English', async () => {
+        const localized = installFetch();
+        await onRequestPost({
+            request: makeRequest({ acceptLanguage: 'de-DE,de;q=0.9,en;q=0.8' }),
+            env: makeEnv(),
+        });
+        expect(sentEmail(localized.calls).subject).toBe('Bestätige deine E-Mail-Adresse');
+
+        const plain = installFetch();
+        await onRequestPost({ request: makeRequest(), env: makeEnv() });
+        expect(sentEmail(plain.calls).subject).toBe('Confirm your email address');
     });
 
     it('is non-blocking: without SUPABASE_SERVICE_ROLE_KEY it returns 200 sent:false and stores nothing', async () => {

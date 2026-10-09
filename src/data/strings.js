@@ -1487,6 +1487,71 @@ const strings = {
         hi: "जारी रखें",
         bn: "চালিয়ে যান"
     },
+    // Transactional welcome/confirm email (functions/api/welcome-email.js). These
+    // are the only keys that also carry de/ko/zh/tw: the email is sent at signup,
+    // when the learner has just picked their native language, so it localizes to
+    // every language the signup form offers plus both Chinese scripts. `tw` is
+    // non-simplified (Traditional) Chinese; `zh` is Simplified.
+    'email_welcome_subject': {
+        en: "Confirm your email address",
+        es: "Confirma tu correo electrónico",
+        pt: "Confirme seu e-mail",
+        fr: "Confirmez votre adresse e-mail",
+        de: "Bestätige deine E-Mail-Adresse",
+        ko: "이메일 주소를 확인해 주세요",
+        hi: "अपना ईमेल पता पुष्ट करें",
+        bn: "আপনার ইমেইল ঠিকানা নিশ্চিত করুন",
+        zh: "确认您的电子邮箱地址",
+        tw: "確認您的電子郵件地址"
+    },
+    'email_welcome_heading': {
+        en: "Welcome to Ultrafast Fluency!",
+        es: "¡Bienvenido a Ultrafast Fluency!",
+        pt: "Bem-vindo à Ultrafast Fluency!",
+        fr: "Bienvenue sur Ultrafast Fluency !",
+        de: "Willkommen bei Ultrafast Fluency!",
+        ko: "Ultrafast Fluency에 오신 것을 환영합니다!",
+        hi: "Ultrafast Fluency में आपका स्वागत है!",
+        bn: "Ultrafast Fluency-তে স্বাগতম!",
+        zh: "欢迎使用 Ultrafast Fluency！",
+        tw: "歡迎使用 Ultrafast Fluency！"
+    },
+    'email_welcome_intro': {
+        en: "Your account is ready to use — no confirmation needed to keep practising. Click the button below to confirm this email address so we know we can reach you (for example, to reset your password or send your progress):",
+        es: "Tu cuenta ya está lista para usar — no necesitas confirmarla para seguir practicando. Haz clic en el botón de abajo para confirmar este correo y así saber que podemos contactarte (por ejemplo, para restablecer tu contraseña o enviarte tu progreso):",
+        pt: "Sua conta já está pronta para usar — não precisa de confirmação para continuar praticando. Clique no botão abaixo para confirmar este e-mail e sabermos que podemos falar com você (por exemplo, para redefinir sua senha ou enviar seu progresso):",
+        fr: "Votre compte est prêt à l'emploi — aucune confirmation n'est nécessaire pour continuer à vous entraîner. Cliquez sur le bouton ci-dessous pour confirmer cette adresse e-mail afin que nous sachions que nous pouvons vous joindre (par exemple, pour réinitialiser votre mot de passe ou vous envoyer vos progrès) :",
+        de: "Dein Konto ist sofort nutzbar – zum Weiterüben ist keine Bestätigung nötig. Klicke unten auf die Schaltfläche, um diese E-Mail-Adresse zu bestätigen, damit wir dich erreichen können (zum Beispiel, um dein Passwort zurückzusetzen oder dir deinen Fortschritt zu senden):",
+        ko: "계정은 바로 사용할 수 있으며, 계속 연습하는 데 확인은 필요하지 않습니다. 아래 버튼을 클릭해 이 이메일 주소를 확인해 주시면 저희가 연락할 수 있습니다(예: 비밀번호 재설정 또는 진행 상황 전송):",
+        hi: "आपका खाता तुरंत उपयोग के लिए तैयार है — अभ्यास जारी रखने के लिए पुष्टि की आवश्यकता नहीं है। नीचे दिए बटन पर क्लिक करके इस ईमेल पते की पुष्टि करें ताकि हम जान सकें कि हम आपसे संपर्क कर सकते हैं (उदाहरण के लिए, पासवर्ड रीसेट करने या आपकी प्रगति भेजने के लिए):",
+        bn: "আপনার অ্যাকাউন্ট এখনই ব্যবহারের জন্য প্রস্তুত — অনুশীলন চালিয়ে যেতে কোনো নিশ্চিতকরণ প্রয়োজন নেই। নিচের বোতামে ক্লিক করে এই ইমেইল ঠিকানাটি নিশ্চিত করুন যাতে আমরা জানতে পারি যে আমরা আপনার সাথে যোগাযোগ করতে পারি (যেমন, পাসওয়ার্ড রিসেট করতে বা আপনার অগ্রগতি পাঠাতে):",
+        zh: "您的账户已可直接使用——继续练习无需确认。请点击下方按钮确认此邮箱地址，以便我们能联系到您（例如重置密码或发送您的学习进度）：",
+        tw: "您的帳戶已可直接使用——繼續練習無需確認。請點擊下方按鈕確認此電子郵件地址，以便我們能聯絡您（例如重設密碼或傳送您的學習進度）："
+    },
+    'email_welcome_cta': {
+        en: "Confirm my email",
+        es: "Confirmar mi correo",
+        pt: "Confirmar meu e-mail",
+        fr: "Confirmer mon e-mail",
+        de: "Meine E-Mail bestätigen",
+        ko: "내 이메일 확인하기",
+        hi: "मेरा ईमेल पुष्ट करें",
+        bn: "আমার ইমেইল নিশ্চিত করুন",
+        zh: "确认我的邮箱",
+        tw: "確認我的電子郵件"
+    },
+    'email_welcome_ignore': {
+        en: "If you did not create an Ultrafast Fluency account, you can ignore this email.",
+        es: "Si no creaste una cuenta de Ultrafast Fluency, puedes ignorar este correo.",
+        pt: "Se você não criou uma conta na Ultrafast Fluency, pode ignorar este e-mail.",
+        fr: "Si vous n'avez pas créé de compte Ultrafast Fluency, vous pouvez ignorer cet e-mail.",
+        de: "Wenn du kein Ultrafast-Fluency-Konto erstellt hast, kannst du diese E-Mail ignorieren.",
+        ko: "Ultrafast Fluency 계정을 만들지 않았다면 이 이메일은 무시하셔도 됩니다.",
+        hi: "यदि आपने Ultrafast Fluency खाता नहीं बनाया है, तो आप इस ईमेल को अनदेखा कर सकते हैं।",
+        bn: "আপনি যদি Ultrafast Fluency অ্যাকাউন্ট না তৈরি করে থাকেন, তাহলে এই ইমেইলটি উপেক্ষা করতে পারেন।",
+        zh: "如果您没有创建 Ultrafast Fluency 账户，请忽略此邮件。",
+        tw: "如果您沒有建立 Ultrafast Fluency 帳戶，請忽略此郵件。"
+    },
     'auth_reset_title': {
         en: "Set New Password",
         es: "Establecer Nueva Contraseña",

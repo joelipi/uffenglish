@@ -37,6 +37,28 @@ error, so a broken email provider cannot surface as a signup failure. It only
 returns `401` when the caller is not an authenticated user (that stops the
 endpoint being used to spam arbitrary addresses).
 
+## Localization
+
+The email copy lives in the shared translation table (`src/data/strings.js`,
+keys `email_welcome_subject|heading|intro|cta|ignore`), so the email localizes
+to **every language the app translates** and picks up new ones automatically —
+no per-language code. `SignupForm` stashes the chosen `native_language` in
+Supabase `user_metadata`; `functions/api/welcome-email.js` resolves it
+(`src/modules/user/email-language.js`) in this order:
+
+1. `user_metadata.native_language`
+2. the request's `Accept-Language`
+3. English
+
+`email-language.js` accepts **any** two-letter code and normalizes full tags
+(`es-ES` → `ES`, `pt_BR` → `PT`). Chinese is special-cased: `TW`, `zh-TW`,
+`zh-Hant`, `zh-HK` and `zh-MO` all resolve to `TW` (**non-simplified /
+Traditional**), while `zh`, `zh-CN` and `zh-Hans` resolve to `ZH` (Simplified).
+An unknown-but-valid code (e.g. `XX`) falls back to the English copy.
+
+To add a language, add its code to the five `email_welcome_*` entries — the
+signup languages (EN/ES/PT/FR/DE/KO/HI/BN) plus ZH and TW are seeded today.
+
 ## Setup (one-time, out of band)
 
 1. Create a [Resend](https://resend.com) account and verify the sending domain

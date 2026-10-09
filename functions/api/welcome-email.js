@@ -19,10 +19,11 @@
 //      token and calls the anon confirm_email_hash() RPC (migration 006).
 
 import { DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_ANON_KEY } from '../../src/modules/api/supabase-constants.js';
+import { buildWelcomeEmail } from '../../src/modules/user/welcome-email-content.js';
+import { resolveEmailLanguage } from '../../src/modules/user/email-language.js';
 
 export const TOKEN_BYTES = 32;
 export const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-export const EMAIL_SUBJECT = 'Confirm your email address';
 export const RESEND_ENDPOINT = 'https://api.resend.com/emails';
 
 const HEX_PATTERN = /^[0-9a-f]{64}$/;
@@ -55,29 +56,6 @@ export function isConfirmToken(token) {
 export function buildConfirmUrl(siteUrl, token) {
     const base = String(siteUrl || '').replace(/\/+$/, '');
     return `${base}/confirm-email?token=${token}`;
-}
-
-export function buildEmailHtml(confirmUrl) {
-    return (
-        '<h2>Welcome to Ultrafast Fluency!</h2>' +
-        '<p>Your account is ready to use — no confirmation needed to keep practising.</p>' +
-        '<p>Click the button below to confirm this email address so we know we can reach you ' +
-        '(for example, to reset your password or send your progress):</p>' +
-        `<p><a href="${confirmUrl}" ` +
-        'style="display:inline-block;padding:12px 24px;background:#ffd400;color:#111;' +
-        'text-decoration:none;border-radius:6px;font-weight:bold">Confirm my email</a></p>' +
-        '<p>If you did not create an Ultrafast Fluency account, you can ignore this email.</p>'
-    );
-}
-
-export function buildEmailText(confirmUrl) {
-    return (
-        'Welcome to Ultrafast Fluency!\n\n' +
-        'Your account is ready to use — no confirmation needed to keep practising.\n\n' +
-        'Confirm your email address so we can reach you (for example, to reset your ' +
-        `password):\n${confirmUrl}\n\n` +
-        'If you did not create an Ultrafast Fluency account, you can ignore this email.'
-    );
 }
 
 /** Verify the Bearer JWT against Supabase GoTrue and return the user, or null. */
@@ -167,6 +145,15 @@ export async function onRequestPost({ request, env }) {
     const confirmUrl = buildConfirmUrl(siteUrl, token);
     const from = env.EMAIL_FROM || 'Ultrafast Fluency <onboarding@resend.dev>';
 
+    // Localize to the learner's native language (stashed in user_metadata at
+    // signup), falling back to Accept-Language then English. Copy lives in the
+    // shared strings table, so any language the app translates is covered.
+    const language = resolveEmailLanguage({
+        nativeLanguage: user.user_metadata?.native_language,
+        acceptLanguage: request.headers.get('Accept-Language'),
+    });
+    const { subject, html, text } = buildWelcomeEmail(language, confirmUrl);
+
     try {
         const res = await fetch(RESEND_ENDPOINT, {
             method: 'POST',
@@ -177,9 +164,9 @@ export async function onRequestPost({ request, env }) {
             body: JSON.stringify({
                 from,
                 to: [user.email],
-                subject: EMAIL_SUBJECT,
-                html: buildEmailHtml(confirmUrl),
-                text: buildEmailText(confirmUrl),
+                subject,
+                html,
+                text,
             }),
         });
         if (!res.ok) {

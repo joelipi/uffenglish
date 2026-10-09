@@ -28,7 +28,9 @@ export function useSignupForm({ onSignupSuccess, nativeLanguage: initialNativeLa
             const { data, error: signUpError } = await supabase.auth.signUp({
                 email,
                 password,
-                options: { data: { full_name: fullName } }
+                // native_language rides on user_metadata so the welcome email can
+                // be localized without an extra profile query at send time.
+                options: { data: { full_name: fullName, native_language: nativeLanguage } }
             });
             if (signUpError) throw signUpError;
             const user = data.user;
