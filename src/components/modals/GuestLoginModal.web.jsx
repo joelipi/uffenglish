@@ -186,7 +186,7 @@ export default function GuestLoginModal() {
                                 <div className="text-center mt-3">
                                     <button
                                         type="button"
-                                        className="btn btn-link text-light"
+                                        className="btn btn-link"
                                         id="guestEnglishOnlyBtn"
                                         onClick={handleNotListed}
                                     >

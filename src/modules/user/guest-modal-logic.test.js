@@ -1,4 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import {
     ENGLISH_LANG,
     PUBLIC_ROUTES,
@@ -117,6 +120,24 @@ describe('isProfileRoute', () => {
         expect(isProfileRoute('')).toBe(false);
         expect(isProfileRoute(undefined)).toBe(false);
         expect(isProfileRoute(null)).toBe(false);
+    });
+
+    // Keep the static list in lockstep with routes.jsx: a new static
+    // single-segment route added there but not here would be silently read as a
+    // share code and lose its guest modal.
+    it('covers every static single-segment route declared in routes.jsx', () => {
+        const routesSrc = readFileSync(
+            path.join(path.dirname(fileURLToPath(import.meta.url)), '../../routes/routes.jsx'),
+            'utf8',
+        );
+        const declared = [...routesSrc.matchAll(/path:\s*'([^']+)'/g)].map((m) => m[1]);
+        const singleSegmentStatic = declared.filter(
+            (p) => p.startsWith('/') && !p.slice(1).includes('/') && !p.includes(':'),
+        );
+        expect(singleSegmentStatic.length).toBeGreaterThan(0);
+        for (const route of singleSegmentStatic) {
+            expect(STATIC_SINGLE_SEGMENT_ROUTES, route).toContain(route);
+        }
     });
 });
 

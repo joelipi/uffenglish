@@ -58,13 +58,13 @@ describe('Hindi and Bengali spot checks', () => {
 
     // The language-selection step and the login-choice step render the same
     // languages, so every guest-modal key must carry the full UI language set
-    // (en/es/pt/fr/hi/bn). A missing value silently falls back to English and
-    // leaves the modal half-translated.
+    // (en/es/pt/fr/hi/bn). Assert on the RAW table: `get()` falls back to
+    // English when a locale is missing, so a get()-based check could never fail.
     it.each(['guest_modal_title', 'guest_modal_body', 'guest_modal_login', 'guest_modal_signup',
         'guest_modal_continue', 'guest_language_title', 'guest_language_select',
         'guest_language_not_listed'])('%s carries en/es/pt/fr/hi/bn', (key) => {
         for (const lang of ['en', 'es', 'pt', 'fr', 'hi', 'bn']) {
-            expect(get(key, lang), `${key}/${lang}`).toBeTruthy();
+            expect(strings[key][lang], `${key}/${lang}`).toBeTruthy();
         }
     });
 

@@ -23,9 +23,12 @@ export function isPublicHomeRoute(pathname) {
 // Static single-segment routes declared in routes.jsx before the /:shareCode
 // catch-all. Any other single-segment path is a share code and resolves to the
 // public profile route, so it must be excluded from the guest modal too.
+// Derived from PUBLIC_ROUTES (single source) plus the non-public static
+// single-segment routes; `guest-modal-logic.test.js` cross-checks this list
+// against routes.jsx so a new static route cannot be silently misclassified.
 export const STATIC_SINGLE_SEGMENT_ROUTES = [
-    '/', '/home', '/login', '/signup', '/recover-password', '/reset-password',
-    '/profile', '/privacy', '/terms', '/confirm-email', '/courses',
+    ...PUBLIC_ROUTES,
+    '/home', '/profile', '/login', '/signup', '/recover-password', '/reset-password',
 ];
 
 // User profile pages: the logged-in profile (/profile) and the public
