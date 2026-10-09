@@ -165,29 +165,27 @@ export function isShareCtaEnabled(variant) {
     return variant === 'shareCta';
 }
 
-// The recap header band — the decorative banner plus the share-code prompt that
-// sits directly beneath it — may occupy at most the top 18% of the frame. The
-// banner shrinks to leave room for the prompt so the two always fit, and the
-// band is anchored at y=0 so it lands in exactly the same spot every render.
+// The recap header banner may occupy at most the top 18% of the frame. It sits
+// below a top margin (below) so browser/messenger chrome cannot cover it.
 export const HEADER_BAND_RATIO = 0.18;
 
-// Share-code prompt metrics. Font size is a fraction of the canvas width (like
-// the other recap overlays); `LINE` is its line box and `GAP` the clear space
-// between the banner and the prompt (also used as padding below it).
-export const HEADER_TEXT_SIZE_RATIO = 0.045;
-export const HEADER_TEXT_LINE_RATIO = 1.35;
-export const HEADER_GAP_RATIO = 0.008;
+// The clear margin above the banner, as a fraction of the canvas height. The
+// banner's top edge is anchored here instead of y=0 so it lands below the
+// viewer's browser chrome during playback. The margin is filled by the
+// renderer with the banner's own top-row gradient.
+export const HEADER_TOP_MARGIN_RATIO = 0.08;
 
 /**
- * Pure layout for the recap header. Scales the banner proportionally so the
- * banner + prompt fit inside the top `HEADER_BAND_RATIO` of the frame, centres
- * the banner horizontally at y=0, and places the prompt directly beneath it.
- * Returns null when there is no drawable image or no canvas to draw into.
+ * Pure layout for the recap header. Scales the banner proportionally so its
+ * height fits inside the top `HEADER_BAND_RATIO` of the frame, centres it
+ * horizontally, and anchors its top edge at the `HEADER_TOP_MARGIN_RATIO`
+ * margin. Returns null when there is no drawable image or no canvas to draw
+ * into.
  *
- * Invariants (unit-tested): `width <= canvasWidth`; the whole header
- * (`headerBottom`) is at most `HEADER_BAND_RATIO * canvasHeight`; the banner is
- * horizontally centred within a pixel; and the result is deterministic for a
- * given canvas size and banner aspect (same spot every time).
+ * Invariants (unit-tested): `width <= canvasWidth`; the banner's height is at
+ * most `HEADER_BAND_RATIO * canvasHeight`; it is horizontally centred within a
+ * pixel; and the result is deterministic for a given canvas size and banner
+ * aspect (same spot every time).
  */
 export function resolveHeaderLayout({
     naturalWidth = 0,
@@ -200,19 +198,15 @@ export function resolveHeaderLayout({
     }
 
     const band = Math.round(canvasHeight * HEADER_BAND_RATIO);
-    const textSize = Math.max(14, Math.round(canvasWidth * HEADER_TEXT_SIZE_RATIO));
-    const textHeight = Math.round(textSize * HEADER_TEXT_LINE_RATIO);
-    const gap = Math.max(4, Math.round(canvasHeight * HEADER_GAP_RATIO));
-    const availableImageHeight = Math.max(1, band - textHeight - 2 * gap);
+    const y = Math.round(canvasHeight * HEADER_TOP_MARGIN_RATIO);
 
-    const scale = Math.min(canvasWidth / naturalWidth, availableImageHeight / naturalHeight);
+    const scale = Math.min(canvasWidth / naturalWidth, band / naturalHeight);
     const width = Math.round(naturalWidth * scale);
     const height = Math.round(naturalHeight * scale);
     const x = Math.round((canvasWidth - width) / 2);
-    const textY = height + gap;
-    const headerBottom = textY + textHeight + gap;
+    const headerBottom = y + height;
 
-    return { x, y: 0, width, height, textY, textSize, headerBottom };
+    return { x, y, width, height, headerBottom };
 }
 
 /**

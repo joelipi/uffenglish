@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { VideoRenderPlanner, resolveRecapOverlay, resolveRecapSources, isDroppedStep, markFirstRenderable, resolveSegmentBounds, UNRESOLVED_SEGMENT_CAP_MS, STALL_GRACE_MS, resolvePublishLessonId, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges, resolveHeaderLayout, HEADER_BAND_RATIO, HEADER_GAP_RATIO, HEADER_TEXT_LINE_RATIO, MIN_SEGMENT_SECONDS, MAX_CALIBRATION_OFFSET_SEC } from './video-processor-logic.js';
+import { VideoRenderPlanner, resolveRecapOverlay, resolveRecapSources, isDroppedStep, markFirstRenderable, resolveSegmentBounds, UNRESOLVED_SEGMENT_CAP_MS, STALL_GRACE_MS, resolvePublishLessonId, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges, resolveHeaderLayout, HEADER_BAND_RATIO, HEADER_TOP_MARGIN_RATIO, MIN_SEGMENT_SECONDS, MAX_CALIBRATION_OFFSET_SEC } from './video-processor-logic.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '../../..');
@@ -1087,60 +1087,42 @@ describe('video-processor-logic.js platform-agnostic guard', () => {
 describe('resolveHeaderLayout', () => {
     const HEADER = { naturalWidth: 1600, naturalHeight: 300 };
 
-    it('pins the header band to 18% of the frame', () => {
+    it('exports the banner band cap and the top-margin ratio', () => {
+        // Literal values (not the constants) so changing either ratio fails here.
         expect(HEADER_BAND_RATIO).toBe(0.18);
+        expect(HEADER_TOP_MARGIN_RATIO).toBe(0.08);
     });
 
-    it('keeps the whole header (banner + prompt) within the top 18% band', () => {
-        const sizes = [
-            [720, 1280], [1080, 1920], [1920, 1080], [608, 1080], [3840, 2160],
-        ];
-        for (const [canvasWidth, canvasHeight] of sizes) {
-            const layout = resolveHeaderLayout({ ...HEADER, canvasWidth, canvasHeight });
-            // Literal 0.18 (not the constant) so changing the ratio fails here.
-            expect(layout.headerBottom).toBeLessThanOrEqual(Math.round(canvasHeight * 0.18));
-            expect(layout.headerBottom).toBeGreaterThan(0);
-        }
+    it('no longer exports the dead prompt sizing constants', () => {
+        const source = readFileSync(LOGIC_PATH, 'utf8');
+        expect(source).not.toMatch(/HEADER_TEXT_SIZE_RATIO/);
+        expect(source).not.toMatch(/HEADER_TEXT_LINE_RATIO/);
+        expect(source).not.toMatch(/HEADER_GAP_RATIO/);
     });
 
-    it('never overflows the canvas width and centres the banner', () => {
-        const sizes = [
-            [720, 1280], [1080, 1920], [1920, 1080], [608, 1080], [3840, 2160],
-        ];
-        for (const [canvasWidth, canvasHeight] of sizes) {
-            const layout = resolveHeaderLayout({ ...HEADER, canvasWidth, canvasHeight });
-            expect(layout.width).toBeLessThanOrEqual(canvasWidth);
-            expect(layout.x).toBeGreaterThanOrEqual(0);
-            expect(layout.x + layout.width).toBeLessThanOrEqual(canvasWidth);
-            expect(Math.abs(layout.x - (canvasWidth - layout.width) / 2)).toBeLessThanOrEqual(1);
-            expect(layout.y).toBe(0);
-        }
-    });
-
-    it('puts the prompt directly below the banner, never overlapping it', () => {
-        for (const [canvasWidth, canvasHeight] of [[720, 1280], [1080, 1920], [1920, 1080]]) {
-            const layout = resolveHeaderLayout({ ...HEADER, canvasWidth, canvasHeight });
-            // textY starts at the banner's bottom edge plus a gap.
-            expect(layout.textY).toBeGreaterThan(layout.height);
-            expect(layout.textY).toBe(layout.height + Math.max(4, Math.round(canvasHeight * HEADER_GAP_RATIO)));
-            // And the prompt's line box still fits inside the band.
-            expect(layout.textY + Math.round(layout.textSize * HEADER_TEXT_LINE_RATIO))
-                .toBeLessThanOrEqual(layout.headerBottom);
-        }
-    });
-
-    it('shrinks the banner to make room for the prompt on a short/landscape canvas', () => {
-        // Width alone would make the banner 1920 wide (360 tall, >18% of 1080),
-        // so it must shrink to fit the band alongside the prompt.
-        const layout = resolveHeaderLayout({ ...HEADER, canvasWidth: 1920, canvasHeight: 1080 });
-        expect(layout.width).toBeLessThan(1920);
-        expect(layout.headerBottom).toBeLessThanOrEqual(Math.round(1080 * 0.18));
-    });
-
-    it('preserves the banner aspect ratio', () => {
+    it('places the banner below an 8% top margin, within the band and canvas', () => {
         const layout = resolveHeaderLayout({ ...HEADER, canvasWidth: 1080, canvasHeight: 1920 });
-        const scale = layout.width / HEADER.naturalWidth;
-        expect(layout.height).toBe(Math.round(HEADER.naturalHeight * scale));
+        // Math.round(1920 * 0.08) = 154.
+        expect(layout.y).toBe(154);
+        expect(layout.y).toBe(Math.round(1920 * HEADER_TOP_MARGIN_RATIO));
+        expect(layout.y + layout.height).toBeLessThanOrEqual(1920);
+        expect(layout.height).toBeLessThanOrEqual(Math.round(1920 * HEADER_BAND_RATIO));
+        expect(layout.width).toBeLessThanOrEqual(1080);
+        expect(Math.abs(layout.x - (1080 - layout.width) / 2)).toBeLessThanOrEqual(1);
+    });
+
+    it('anchors every canvas size at its 8% top margin without overflowing', () => {
+        const sizes = [
+            [720, 1280], [1080, 1920], [1920, 1080], [608, 1080], [3840, 2160],
+        ];
+        for (const [canvasWidth, canvasHeight] of sizes) {
+            const layout = resolveHeaderLayout({ ...HEADER, canvasWidth, canvasHeight });
+            expect(layout.y).toBe(Math.round(canvasHeight * HEADER_TOP_MARGIN_RATIO));
+            expect(layout.y).toBeGreaterThan(0);
+            expect(layout.y + layout.height).toBeLessThanOrEqual(canvasHeight);
+            // Literal 0.18 (not the constant) so changing the cap fails here.
+            expect(layout.height).toBeLessThanOrEqual(Math.round(canvasHeight * 0.18));
+        }
     });
 
     it('lands in exactly the same spot for the same canvas size', () => {
@@ -1153,6 +1135,13 @@ describe('resolveHeaderLayout', () => {
         expect(resolveHeaderLayout({ naturalWidth: 0, naturalHeight: 300, canvasWidth: 720, canvasHeight: 1280 })).toBeNull();
         expect(resolveHeaderLayout({ naturalWidth: 1600, naturalHeight: 0, canvasWidth: 720, canvasHeight: 1280 })).toBeNull();
         expect(resolveHeaderLayout({ naturalWidth: 1600, naturalHeight: 300, canvasWidth: 0, canvasHeight: 1280 })).toBeNull();
+        expect(resolveHeaderLayout({ naturalWidth: 1600, naturalHeight: 300, canvasWidth: 720, canvasHeight: 0 })).toBeNull();
         expect(resolveHeaderLayout()).toBeNull();
+    });
+
+    it('no longer returns the dead prompt fields', () => {
+        const layout = resolveHeaderLayout({ ...HEADER, canvasWidth: 1080, canvasHeight: 1920 });
+        expect(layout).not.toHaveProperty('textY');
+        expect(layout).not.toHaveProperty('textSize');
     });
 });
