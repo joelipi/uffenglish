@@ -184,7 +184,7 @@ export function createSpeechOrchestrator({
                 listeningState.hesitationTimer = null;
             }
 
-            const { button, step, micStatusText, userData, configData, currentLessonIndex, currentStepIndex, player, uiHooks } = params;
+            const { button, step, micStatusText, userData, configData, currentLessonIndex, currentStepIndex, player, uiHooks, trackHesitation = true } = params;
 
             if (uiHooks?.onPauseVideo) uiHooks.onPauseVideo(player);
 
@@ -248,60 +248,69 @@ export function createSpeechOrchestrator({
 
                     if (listeningState.hesitationTimer) {
                         clearInterval(listeningState.hesitationTimer);
+                        listeningState.hesitationTimer = null;
                     }
 
-                    console.log('[Hesitation] Starting new 100ms hesitation timer (1s grace period)');
-                    let hesitationTick = 0;
-                    let totalHesitationPoints = 0;
-                    const GRACE_TICKS = 10;
-                    let liveHesitationMs = 0;
-                    listeningState.hesitationTimer = setInterval(() => {
-                        hesitationTick++;
-                        const currentActive = listeningState.active;
-                        const isFirstResponse = appStore.getState().appPhase === 'firstResponse';
-                        console.log(`[Hesitation] Tick #${hesitationTick} | active=${currentActive} | speechDetected=${speechDetected} | time=${Date.now()}`);
-                        if (!speechDetected && currentActive && hesitationTick === GRACE_TICKS + 1) {
-                            console.log('[Hesitation] Grace period ended - starting deductions');
-                        }
-                        if (!speechDetected && currentActive && hesitationTick > GRACE_TICKS) {
-                            liveHesitationMs = (hesitationTick - GRACE_TICKS) * 100;
-                            appStore.getState().setHesitationMs(liveHesitationMs);
-                            if (isFirstResponse) {
-                                console.log(`[Hesitation] firstResponse phase - suppressing 1pt deduction, liveHesitationMs=${liveHesitationMs}`);
-                            } else {
-                                console.log(`[Hesitation] SILENCE DETECTED (after grace) \u2192 deducting 1pt, liveHesitationMs=${liveHesitationMs}`);
-                                if (typeof appStore.getState().deductFlowScore === 'function') {
-                                    const before = appStore.getState().flowScore;
-                                    appStore.getState().deductFlowScore(1);
-                                    const after = appStore.getState().flowScore;
-                                    console.log(`[Hesitation] flowScore: ${before} \u2192 ${after}`);
-                                }
-                                if (uiHooks?.onHesitation) uiHooks.onHesitation(++totalHesitationPoints);
+                    // The live hesitation timer only feeds the flow score / stat
+                    // bubble. Friend/shareCta lessons never show it, so the
+                    // caller passes trackHesitation=false to skip the 10 Hz
+                    // interval (and its per-tick store writes and logging).
+                    if (trackHesitation) {
+                        console.log('[Hesitation] Starting new 100ms hesitation timer (1s grace period)');
+                        let hesitationTick = 0;
+                        let totalHesitationPoints = 0;
+                        const GRACE_TICKS = 10;
+                        let liveHesitationMs = 0;
+                        listeningState.hesitationTimer = setInterval(() => {
+                            hesitationTick++;
+                            const currentActive = listeningState.active;
+                            const isFirstResponse = appStore.getState().appPhase === 'firstResponse';
+                            console.log(`[Hesitation] Tick #${hesitationTick} | active=${currentActive} | speechDetected=${speechDetected} | time=${Date.now()}`);
+                            if (!speechDetected && currentActive && hesitationTick === GRACE_TICKS + 1) {
+                                console.log('[Hesitation] Grace period ended - starting deductions');
                             }
-                        }
-
-                        if (speechStarted && Date.now() - lastSpeechTime > 1000) {
-                            speechDetected = false;
-                        }
-
-                        if (speechStarted && !speechDetected && currentActive) {
-                            pauseTick++;
-                            if (pauseTick === PAUSE_GRACE_TICKS + 1) {
-                                console.log('[Hesitation] Mid-speech pause >1s detected - resuming deductions');
-                            }
-                            if (pauseTick > PAUSE_GRACE_TICKS) {
+                            if (!speechDetected && currentActive && hesitationTick > GRACE_TICKS) {
+                                liveHesitationMs = (hesitationTick - GRACE_TICKS) * 100;
+                                appStore.getState().setHesitationMs(liveHesitationMs);
                                 if (isFirstResponse) {
-                                    console.log(`[Hesitation] MID-SPEECH PAUSE (firstResponse) - suppressing 1pt deduction`);
+                                    console.log(`[Hesitation] firstResponse phase - suppressing 1pt deduction, liveHesitationMs=${liveHesitationMs}`);
                                 } else {
-                                    console.log(`[Hesitation] MID-SPEECH PAUSE - deducting 1pt`);
+                                    console.log(`[Hesitation] SILENCE DETECTED (after grace) \u2192 deducting 1pt, liveHesitationMs=${liveHesitationMs}`);
                                     if (typeof appStore.getState().deductFlowScore === 'function') {
+                                        const before = appStore.getState().flowScore;
                                         appStore.getState().deductFlowScore(1);
+                                        const after = appStore.getState().flowScore;
+                                        console.log(`[Hesitation] flowScore: ${before} \u2192 ${after}`);
                                     }
                                     if (uiHooks?.onHesitation) uiHooks.onHesitation(++totalHesitationPoints);
                                 }
                             }
-                        }
-                    }, 100);
+
+                            if (speechStarted && Date.now() - lastSpeechTime > 1000) {
+                                speechDetected = false;
+                            }
+
+                            if (speechStarted && !speechDetected && currentActive) {
+                                pauseTick++;
+                                if (pauseTick === PAUSE_GRACE_TICKS + 1) {
+                                    console.log('[Hesitation] Mid-speech pause >1s detected - resuming deductions');
+                                }
+                                if (pauseTick > PAUSE_GRACE_TICKS) {
+                                    if (isFirstResponse) {
+                                        console.log(`[Hesitation] MID-SPEECH PAUSE (firstResponse) - suppressing 1pt deduction`);
+                                    } else {
+                                        console.log(`[Hesitation] MID-SPEECH PAUSE - deducting 1pt`);
+                                        if (typeof appStore.getState().deductFlowScore === 'function') {
+                                            appStore.getState().deductFlowScore(1);
+                                        }
+                                        if (uiHooks?.onHesitation) uiHooks.onHesitation(++totalHesitationPoints);
+                                    }
+                                }
+                            }
+                        }, 100);
+                    } else {
+                        console.log('[Hesitation] Skipped (friend/shareCta lesson — hesitation is not displayed)');
+                    }
 
                     // Stream is ready — go full-screen immediately so the preview
                     // paints without waiting for the VAD audio tap to arm.
