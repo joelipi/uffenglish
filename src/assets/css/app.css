@@ -959,11 +959,10 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 /* Reusable water-surface background visual.
    Heavy blue veil over the video: the on-screen lesson clips now carry
    burnt-on captions at BOTH the top and the bottom, so the overlay is fully
-   opaque at both edges and only becomes translucent toward the middle of the
-   frame — a band of the video shows through the centre while the burnt-on
-   captions at the edges are hidden. The centre still never falls below 0.75 —
-   a lighter ramp let the burnt captions show through and collide with the
-   overlay text.
+   opaque across the top and bottom and only dips slightly in a narrow middle
+   band (never below 0.95) — the burnt-on captions are hidden while a hint of
+   the video still shows through the very centre. An earlier, lighter ramp
+   (0.75) let the burnt captions show through and collide with the overlay text.
    `isolation: isolate` makes this element a stacking context so the shimmer
    below (`::before`, z-index -1) paints above this element's own water
    background but *behind* its content. Without it the absolutely-positioned
@@ -975,8 +974,9 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     background: linear-gradient(
         to bottom,
         rgba(58, 143, 213, 1) 0%,
-        rgba(58, 143, 213, 0.75) 40%,
-        rgba(0, 192, 216, 0.75) 60%,
+        rgba(58, 143, 213, 1) 30%,
+        rgba(58, 143, 213, 0.95) 50%,
+        rgba(0, 192, 216, 1) 70%,
         rgba(0, 192, 216, 1) 100%
     );
 }
