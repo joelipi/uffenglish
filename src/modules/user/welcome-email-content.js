@@ -6,12 +6,10 @@
 
 import { get, strings } from '../../data/strings.js';
 import { normalizeEmailLanguage } from './email-language.js';
+import { escapeHtml } from './html-escape.js';
+import { isRtlLanguage } from './rtl-languages.js';
 
 const FALLBACK_LANGUAGE = 'en';
-
-// Right-to-left languages render the body mirrored. Arabic is in the app's
-// language set today; the others are listed so adding one needs no code change.
-const RTL_LANGUAGES = new Set(['ar', 'he', 'fa', 'ur']);
 
 // A language is only "supported" when it carries the whole email — checking the
 // subject alone would let a partial translation emit a mixed-language email.
@@ -26,15 +24,6 @@ const COPY_KEYS = [
 /** True when the shared table carries complete copy for this language code. */
 export function hasEmailCopy(code, table = strings) {
     return COPY_KEYS.every((key) => Boolean(table[key]?.[code]));
-}
-
-/** Escape a value for use inside an HTML attribute. */
-function escapeHtml(value) {
-    return String(value)
-        .replaceAll('&', '&amp;')
-        .replaceAll('"', '&quot;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;');
 }
 
 /**
@@ -56,7 +45,7 @@ export function buildWelcomeEmail(lang, confirmUrl) {
     const ignore = t('email_welcome_ignore');
 
     // Mirror the body for RTL languages (Arabic today).
-    const dir = RTL_LANGUAGES.has(language) ? ' dir="rtl"' : '';
+    const dir = isRtlLanguage(language) ? ' dir="rtl"' : '';
     const html =
         `<div${dir}>` +
         `<h2>${heading}</h2>` +

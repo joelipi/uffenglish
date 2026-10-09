@@ -21,10 +21,10 @@
 import { DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_ANON_KEY } from '../../src/modules/api/supabase-constants.js';
 import { buildWelcomeEmail } from '../../src/modules/user/welcome-email-content.js';
 import { resolveEmailLanguage } from '../../src/modules/user/email-language.js';
+import { sendViaResend } from './resend-send.js';
 
 export const TOKEN_BYTES = 32;
 export const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-export const RESEND_ENDPOINT = 'https://api.resend.com/emails';
 
 const HEX_PATTERN = /^[0-9a-f]{64}$/;
 
@@ -154,28 +154,20 @@ export async function onRequestPost({ request, env }) {
     });
     const { subject, html, text } = buildWelcomeEmail(language, confirmUrl);
 
-    try {
-        const res = await fetch(RESEND_ENDPOINT, {
-            method: 'POST',
-            headers: {
-                Authorization: `Bearer ${env.RESEND_API_KEY}`,
-                'content-type': 'application/json',
-            },
-            body: JSON.stringify({
-                from,
-                to: [user.email],
-                subject,
-                html,
-                text,
-            }),
+    const result = await sendViaResend({
+        apiKey: env.RESEND_API_KEY,
+        from,
+        to: [user.email],
+        subject,
+        html,
+        text,
+    });
+    if (!result.ok) {
+        console.error(`[welcome-email] Resend send failed (${result.status})`);
+        return jsonResponse({
+            sent: false,
+            reason: result.status ? `provider-${result.status}` : 'provider-error',
         });
-        if (!res.ok) {
-            console.error(`[welcome-email] Resend responded ${res.status}`);
-            return jsonResponse({ sent: false, reason: `provider-${res.status}` });
-        }
-    } catch (e) {
-        console.error('[welcome-email] Resend request failed:', e?.message);
-        return jsonResponse({ sent: false, reason: 'provider-error' });
     }
 
     return jsonResponse({ sent: true });

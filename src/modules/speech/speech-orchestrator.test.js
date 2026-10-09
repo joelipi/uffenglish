@@ -173,3 +173,31 @@ describe('speech orchestrator — repeated-use resource guard', () => {
         expect(vi.getTimerCount()).toBe(0);
     });
 });
+
+describe('speech orchestrator — hesitation timer gating', () => {
+    beforeEach(() => {
+        vi.useFakeTimers();
+        appStore.setState({
+            isWhisperReady: true,
+            isWhisperEngineFailed: false,
+            userData: { native_language: 'en' },
+        });
+    });
+
+    afterEach(() => {
+        vi.clearAllTimers();
+        vi.useRealTimers();
+    });
+
+    it('starts the 100 ms hesitation timer by default', async () => {
+        const orchestrator = makeOrchestrator();
+        await orchestrator.toggleSpeechRecognition(baseParams({}));
+        expect(orchestrator.listeningState.hesitationTimer).not.toBeNull();
+    });
+
+    it('does not start the timer when trackHesitation is false', async () => {
+        const orchestrator = makeOrchestrator();
+        await orchestrator.toggleSpeechRecognition({ ...baseParams({}), trackHesitation: false });
+        expect(orchestrator.listeningState.hesitationTimer).toBeNull();
+    });
+});
