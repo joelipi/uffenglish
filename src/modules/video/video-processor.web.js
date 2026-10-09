@@ -953,10 +953,20 @@ function drawFittedLine(context, text, centerX, y, { fontFamily, maxWidth, baseS
  * `centerX`, using the DOM-measured width so complex scripts centre correctly
  * (see measureTextWidth). Assumes context.fillStyle/font are already set.
  */
-function drawCenteredLine(context, text, centerX, y) {
+function drawCenteredLine(context, text, centerX, y, { stroke = null, strokeWidth = 0 } = {}) {
     const width = measureTextWidth(context, text);
     const prevAlign = context.textAlign;
     context.textAlign = 'left';
+    if (stroke && strokeWidth > 0) {
+        // A thick outline (like the burned lesson subtitles' -webkit-text-stroke)
+        // keeps the glyphs readable over any footage without a background box.
+        const prevJoin = context.lineJoin;
+        context.lineJoin = 'round';
+        context.lineWidth = strokeWidth;
+        context.strokeStyle = stroke;
+        context.strokeText(text, centerX - width / 2, y);
+        context.lineJoin = prevJoin;
+    }
     context.fillText(text, centerX - width / 2, y);
     context.textAlign = prevAlign;
 }
@@ -1106,60 +1116,22 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
         const enLineHeight = enFontSize * 1.2;
         const trLineHeight = trFontSize * 1.3;
         const gapBetween = Math.round(enFontSize * 0.15);
-        const totalEnHeight = enLines.length * enLineHeight;
-        const totalTrHeight = trLines.length > 0
-            ? gapBetween + trLines.length * trLineHeight
-            : 0;
-        const totalTextHeight = totalEnHeight + totalTrHeight;
 
-        // Measure longest line across both English and translation
-        let longestLineWidth = 0;
-        context.font = `bold ${enFontSize}px "Plus Jakarta Sans", sans-serif`;
-        enLines.forEach(l => {
-            longestLineWidth = Math.max(longestLineWidth, measureTextWidth(context, l));
-        });
-        if (trLines.length > 0) {
-            context.font = `${trFontSize}px "Plus Jakarta Sans", sans-serif`;
-            trLines.forEach(l => {
-                longestLineWidth = Math.max(longestLineWidth, measureTextWidth(context, l));
-            });
-        }
+        // Anchor the block 20% of the height up from the bottom and grow upward.
+        // A fixed fraction (not an on-screen pixel clearance) keeps it in exactly
+        // the same place on every export and clear of the speaker's face.
+        const SUBTITLE_BOTTOM_RATIO = 0.20;
+        const blockBottomY = canvasHeight * (1 - SUBTITLE_BOTTOM_RATIO);
 
-        const boxPadding = 10;
-
-        // Match SimpleVideoPlayer's `bottom: 150px` clearance in real on-screen
-        // pixels. The export canvas is scaled to the display canvas via CSS
-        // (objectFit: contain), so `150` screen px must be converted into canvas
-        // px using the actual draw scale. Without this, the margin shrinks with
-        // the on-screen scale and the subtitles collide with the bottom buttons.
-        const BOTTOM_OFFSET_PX = 150;
-        let bottomMargin;
-        if (displayCanvas && displayCanvas.getBoundingClientRect) {
-            const rect = displayCanvas.getBoundingClientRect();
-            if (rect.width > 0 && rect.height > 0) {
-                const scale = Math.min(rect.width / canvasWidth, rect.height / canvasHeight);
-                const drawnHeight = canvasHeight * scale; // on-screen bitmap height
-                bottomMargin = BOTTOM_OFFSET_PX * (canvasHeight / drawnHeight);
-            }
-        }
-        if (bottomMargin == null) {
-            // Fallback (no display canvas measured yet): assume a 1920-tall frame.
-            bottomMargin = canvasHeight * (BOTTOM_OFFSET_PX / 1920);
-        }
-        const blockBottomY = canvasHeight - bottomMargin;
-
-        // Background box covering both English and translation lines
-        context.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        context.fillRect(
-            centerX - longestLineWidth / 2 - boxPadding,
-            blockBottomY - totalTextHeight - boxPadding,
-            longestLineWidth + boxPadding * 2,
-            totalTextHeight + boxPadding * 2
-        );
-
+        // No background box: a thick black outline (like the burned lesson
+        // subtitles' -webkit-text-stroke) plus a soft shadow keeps the letters
+        // readable over any footage.
+        const enStroke = Math.max(4, Math.round(enFontSize * 0.16));
+        const trStroke = Math.max(3, Math.round(trFontSize * 0.16));
         context.fillStyle = 'white';
-        context.shadowColor = 'black';
-        context.shadowBlur = 4;
+        context.shadowColor = 'rgba(0, 0, 0, 0.6)';
+        context.shadowBlur = Math.max(4, Math.round(enFontSize * 0.12));
+        context.shadowOffsetY = Math.max(1, Math.round(enFontSize * 0.04));
 
         // Draw from the bottom up so the block extends toward the top (matching
         // the SimpleVideoPlayer overlay, which grows upward from its anchor).
@@ -1167,14 +1139,14 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
         if (trLines.length > 0) {
             context.font = `${trFontSize}px "Plus Jakarta Sans", sans-serif`;
             for (let i = trLines.length - 1; i >= 0; i--) {
-                drawCenteredLine(context, trLines[i], centerX, lineY);
+                drawCenteredLine(context, trLines[i], centerX, lineY, { stroke: 'black', strokeWidth: trStroke });
                 lineY -= trLineHeight;
             }
             lineY -= gapBetween;
         }
         context.font = `bold ${enFontSize}px "Plus Jakarta Sans", sans-serif`;
         for (let i = enLines.length - 1; i >= 0; i--) {
-            drawCenteredLine(context, enLines[i], centerX, lineY);
+            drawCenteredLine(context, enLines[i], centerX, lineY, { stroke: 'black', strokeWidth: enStroke });
             lineY -= enLineHeight;
         }
     }

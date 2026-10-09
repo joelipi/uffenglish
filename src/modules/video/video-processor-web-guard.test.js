@@ -170,8 +170,35 @@ describe('video-processor.web.js recap wiring guard', () => {
         // face, which shifts complex-script ink off the centre. The
         // translation stays distinct via its smaller size.
         expect(source).not.toMatch(/italic/i);
-        expect(source.match(/\$\{trFontSize\}px "Plus Jakarta Sans", sans-serif/g)).toHaveLength(3);
+        // wrap + draw (the old third site measured the box we no longer draw).
+        expect(source.match(/\$\{trFontSize\}px "Plus Jakarta Sans", sans-serif/g)).toHaveLength(2);
         expect(source).toMatch(/bold \$\{enFontSize\}px "Plus Jakarta Sans", sans-serif/);
+    });
+
+    it('anchors the subtitle 20% up from the bottom, with no background box', () => {
+        const start = source.indexOf("if (enText.trim() !== '') {");
+        const end = source.indexOf('context.restore();', start);
+        expect(start).toBeGreaterThan(-1);
+        expect(end).toBeGreaterThan(start);
+        const block = source.slice(start, end);
+        // Fixed fraction, so it lands in the same spot on every export.
+        expect(block).toMatch(/SUBTITLE_BOTTOM_RATIO = 0\.20/);
+        expect(block).toMatch(/blockBottomY = canvasHeight \* \(1 - SUBTITLE_BOTTOM_RATIO\)/);
+        // The opaque black background box is gone (the shadow uses the same
+        // colour, so match the background fill assignment, not just the colour).
+        expect(block).not.toMatch(/fillStyle = 'rgba\(0, 0, 0, 0\.6\)'/);
+        expect(block).not.toMatch(/fillRect\(/);
+        // Legibility now comes from a black outline.
+        expect(block).toMatch(/stroke: 'black'/);
+    });
+
+    it('outlines the subtitle glyphs instead of backing them with a box', () => {
+        const fn = source.slice(
+            source.indexOf('function drawCenteredLine('),
+            source.indexOf('function drawTextOverlay(')
+        );
+        expect(fn).toMatch(/strokeText\(/);
+        expect(fn).toMatch(/lineWidth/);
     });
 
     it('measures overlay text through the DOM, not only canvas measureText', () => {
