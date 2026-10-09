@@ -2,9 +2,7 @@ import { describe, it, expect } from 'vitest';
 import Strings from '../../data/strings.js';
 import {
     SHARE_URL_BASE,
-    SHARE_WINDOW_HOURS,
     buildShareUrl,
-    buildShareDeadline,
     resolveOverlayElements,
     isShareCtaEnabled,
 } from './video-processor-logic.js';
@@ -55,17 +53,6 @@ const CTA_LINES = {
     },
 };
 
-const LOCALE_MAP = { en: 'en', es: 'es', pt: 'pt', fr: 'fr', hi: 'hi', bn: 'bn' };
-
-const DEADLINE_OPTIONS = {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-};
-
 describe('share CTA strings', () => {
     it.each(LANGS)('share_cta_headline returns the exact copy for %s', (lang) => {
         expect(Strings.get('share_cta_headline', lang)).toBe(HEADLINES[lang]);
@@ -102,40 +89,6 @@ describe('buildShareUrl', () => {
         expect(buildShareUrl(undefined)).toBe(SHARE_URL_BASE);
         expect(buildShareUrl('')).toBe(SHARE_URL_BASE);
         expect(buildShareUrl('ab12')).toBe(`${SHARE_URL_BASE}/ab12`);
-    });
-});
-
-describe('buildShareDeadline', () => {
-    const nowMs = Date.UTC(2026, 2, 13, 12, 0, 0);
-
-    it('is 48 hours', () => {
-        expect(SHARE_WINDOW_HOURS).toBe(48);
-    });
-
-    it.each(LANGS)('formats now+48h in the %s locale with weekday', (lang) => {
-        const expected = new Date(nowMs + SHARE_WINDOW_HOURS * 60 * 60 * 1000)
-            .toLocaleString(LOCALE_MAP[lang], DEADLINE_OPTIONS);
-
-        expect(buildShareDeadline(nowMs, lang)).toBe(expected);
-    });
-
-    it('differs from the unshifted timestamp (proves the +48h offset)', () => {
-        const unshifted = new Date(nowMs).toLocaleString('en', DEADLINE_OPTIONS);
-
-        expect(buildShareDeadline(nowMs, 'en')).not.toBe(unshifted);
-    });
-
-    it('localizes (non-en differs from en)', () => {
-        expect(buildShareDeadline(nowMs, 'es')).not.toBe(buildShareDeadline(nowMs, 'en'));
-    });
-
-    it('normalizes es / ES / es-ES identically and falls back to en', () => {
-        const es = buildShareDeadline(nowMs, 'es');
-
-        expect(buildShareDeadline(nowMs, 'ES')).toBe(es);
-        expect(buildShareDeadline(nowMs, 'es-ES')).toBe(es);
-        expect(buildShareDeadline(nowMs, '')).toBe(buildShareDeadline(nowMs, 'en'));
-        expect(buildShareDeadline(nowMs, 'DE')).toBe(buildShareDeadline(nowMs, 'en'));
     });
 });
 

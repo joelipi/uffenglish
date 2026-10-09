@@ -255,7 +255,7 @@ describe('video-processor.web.js recap wiring guard', () => {
     it('burns just the share code, in the lower-right corner', () => {
         // The header image carries the "Enter code" label, so the overlay draws
         // only the code, anchored lower-right with a healthy margin.
-        expect(source).toMatch(/shareCta = null\)/);
+        expect(source).toMatch(/subtitleText, overlayVariant = 'fluency', shareCta = null\)/);
         const start = source.indexOf('if (headlineBlock && shareCta) {');
         const end = source.indexOf('if (tailingCard && shareCta) {');
         expect(start).toBeGreaterThan(-1);

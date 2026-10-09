@@ -65,31 +65,10 @@ export const SHARE_URL_BASE = 'ultrafastfluency.com';
 // must answer before the clips vanish.
 export const SHARE_WINDOW_HOURS = 48;
 
-// Locale map for the CTA deadline. Mirrors the LOCALE_MAP pattern in
-// UserProfile.jsx:113 but covers this feature's six languages (adds BN).
-const CTA_LOCALE_MAP = { EN: 'en', ES: 'es', PT: 'pt', FR: 'fr', HI: 'hi', BN: 'bn' };
-
-function ctaLocale(nativeLanguage) {
-    const code = String(nativeLanguage || 'en').split('-')[0].toUpperCase();
-    return CTA_LOCALE_MAP[code] || 'en';
-}
-
 // Fallback when the session has no shareCode: point viewers at the bare host
 // (the app) rather than a personalised invite link.
 export function buildShareUrl(shareCode) {
     return shareCode ? `${SHARE_URL_BASE}/${shareCode}` : SHARE_URL_BASE;
-}
-
-export function buildShareDeadline(nowMs, nativeLanguage) {
-    const deadline = new Date(nowMs + SHARE_WINDOW_HOURS * 60 * 60 * 1000);
-    return deadline.toLocaleString(ctaLocale(nativeLanguage), {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit'
-    });
 }
 
 /**

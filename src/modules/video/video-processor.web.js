@@ -928,8 +928,9 @@ function wrapText(context, text, maxWidth) {
 
 /**
  * Draws a single line of text, shrinking the font until it fits within
- * maxWidth. Never wraps — used for the share URL and deadline, which must stay
- * on one line.
+ * maxWidth. Never wraps — used for the share code and the call-to-action lines,
+ * which must each stay on one line. `align` anchors the text on `centerX`
+ * ('center') or sets `centerX` as its right edge ('right').
  */
 function drawFittedLine(context, text, centerX, y, { fontFamily, maxWidth, baseSize, minSize = 18, color = 'white', align = 'center' }) {
     let size = baseSize;
