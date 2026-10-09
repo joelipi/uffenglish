@@ -20,7 +20,10 @@ const blockFor = (source, selector) => {
 };
 
 describe('top overlay blur backdrop', () => {
-    it('LessonContainer renders the backdrop layer inside the top overlay, above the blur and below the content', () => {
+    // These are source guards only: they prove the CSS/JSX is wired, not that
+    // the compositor blurs the video. The real blur (backdrop-filter sampling
+    // the video behind .top-overlay) is verified in a browser.
+    it('LessonContainer renders the backdrop layer before the header/mission content it sits behind', () => {
         const overlayStart = LESSON_CONTAINER.indexOf('className="top-overlay ');
         const overlayEnd = LESSON_CONTAINER.indexOf('{/* Controls */}', overlayStart);
         expect(overlayStart).toBeGreaterThan(-1);
@@ -46,8 +49,10 @@ describe('top overlay blur backdrop', () => {
 
     it('the backdrop fades the blur out with a mask so it cannot cut a hard edge over the video', () => {
         const block = blockFor(APP_CSS, '.top-overlay-backdrop');
-        expect(block).toMatch(/^\s*mask-image:\s*linear-gradient\(/m);
-        expect(block).toMatch(/^\s*-webkit-mask-image:\s*linear-gradient\(/m);
+        // Require a real fade: a non-fading gradient (e.g. #000, #000) would
+        // otherwise satisfy a bare "is a linear-gradient" check.
+        expect(block).toMatch(/^\s*mask-image:\s*linear-gradient\(.*transparent/m);
+        expect(block).toMatch(/^\s*-webkit-mask-image:\s*linear-gradient\(.*transparent/m);
     });
 
     it('the backdrop is non-interactive and the content stays above it', () => {
