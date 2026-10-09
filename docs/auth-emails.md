@@ -50,5 +50,8 @@ keys plus an `ACTION_SUBJECT_KEYS` entry to localize one.
 4. **Set the secrets before enabling the hook** — once the hook is on, every
    auth email goes through this Function, and a misconfiguration breaks them.
 
-Keep `double_confirm_changes` **false**: secure email change sends two emails
-with two token/hash pairs, which this handler does not yet split.
+With **Secure Email Change off** (recommended, and what this project sets —
+`double_confirm_changes = false`) the confirmation goes to the **new** address.
+If it is on, the handler splits the two token/hash pairs and sends both emails;
+note GoTrue's field names are reversed (`token_hash_new` → current address,
+`token_hash` → new address).
