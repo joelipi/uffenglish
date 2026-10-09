@@ -35,3 +35,14 @@ export function ifLine(text, label = 'workflow') {
     if (!line) throw new Error(`${label}: job if: line not found`);
     return line;
 }
+
+/** The `on.push` trigger block, from `  push:` to the next 2-space trigger key
+ * (e.g. `  workflow_dispatch:`), so a `paths-ignore:` assertion cannot be
+ * satisfied by an unrelated line elsewhere in the file. */
+export function pushTriggerBlock(text, label = 'workflow') {
+    const start = text.indexOf('\n  push:');
+    if (start === -1) throw new Error(`${label}: push trigger not found`);
+    const rest = text.slice(start + 1);
+    const next = /\n  \S/.exec(rest);
+    return next ? rest.slice(0, next.index) : rest;
+}

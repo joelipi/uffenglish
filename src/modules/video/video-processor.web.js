@@ -4,9 +4,8 @@
 import { getAllSpeechRecordingsForLesson } from '../storage/storage.js';
 import { shareVideo } from './video-share.js';
 import { appStore } from '../store/store.js';
-import headerImg from '../../assets/img/header.png';
 import { getVideoUrl, getUgcThumbKey, getCompleteVideoKey } from './video-url.js';
-import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, buildShareUrl, buildShareDeadline, resolveOverlayElements, isShareCtaEnabled, isDroppedStep, markFirstRenderable, resolveSegmentBounds, STALL_GRACE_MS, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges } from './video-processor-logic.js';
+import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, TAILING_DURATION_MS, resolveOverlayElements, resolveHeaderLayout, isShareCtaEnabled, isDroppedStep, markFirstRenderable, resolveSegmentBounds, STALL_GRACE_MS, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges, SHARE_URL_BASE } from './video-processor-logic.js';
 import { remoteSource } from './video-source.js';
 import { DEFAULT_USER_AVATAR_URL } from '../user/tutor-config.js';
 import { getAvatarBlobUrl } from '../avatar/avatar.service.js';
@@ -18,8 +17,39 @@ import { MAX_R2_UPLOAD_BYTES } from './r2-upload-limits.js';
 import { trackEvent } from '../utils/posthog.js';
 import Strings from '../../data/strings.js';
 import { resolveConfigLanguage } from '../bilingual/config-normalizer.js';
-
+import { normalizeLanguageCode } from '../utils/utils.js';
 export { shareVideo };
+
+// The recap header band paints an opaque water-gradient behind the banner so
+// the video (and any burnt-on captions) can never show through it. Same blue as
+// the app's `.water-surface`, but fully opaque.
+const HEADER_GRADIENT_TOP = '#3a8fd5';
+const HEADER_GRADIENT_BOTTOM = '#00c0d8';
+
+// The header banner is localized by a two-letter language suffix
+// (video-header-<lang>.png). The files are auto-discovered with
+// `import.meta.glob`, so adding a language is just dropping in the PNG — no code
+// change — and each is a lazy chunk (only the selected banner is fetched). A
+// language with no art — and no language at all — falls back to English.
+const HEADER_IMAGE_MODULES = import.meta.glob('../../assets/img/video-header-*.png', { import: 'default' });
+const headerImagePath = (code) => `../../assets/img/video-header-${code}.png`;
+
+/**
+ * Resolves the header banner URL for a language (async — the banners are lazy
+ * chunks), falling back to English when the language or its art is missing.
+ * Returns null when no banner exists or the chosen one fails to load.
+ */
+export async function resolveHeaderImage(lang) {
+    const key = headerImagePath(normalizeLanguageCode(lang));
+    const load = HEADER_IMAGE_MODULES[key] || HEADER_IMAGE_MODULES[headerImagePath('en')];
+    if (!load) return null;
+    try {
+        return await load();
+    } catch (e) {
+        console.warn('[VideoProcessor] Header banner load failed:', key, e);
+        return null;
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Instance factory — each processVideo call owns its own context.
@@ -150,7 +180,6 @@ function createVideoProcessor() {
                 videoCanvas.style.cssText = 'position:fixed;top:0;left:0;width:2px;height:4px;opacity:0.01;pointer-events:none;';
                 document.body.appendChild(videoCanvas);
                 const overlayImage = new Image();
-                overlayImage.src = headerImg;
 
                 // Probe dimensions from the first real recording blob
                 const firstValidRec = recordings.find(r => r.blob);
@@ -168,21 +197,29 @@ function createVideoProcessor() {
                 // normalizeConfig (config-normalizer.js) and the rest of the app;
                 // otherwise a guest who chose a language gets an English recap.
                 const userLang = resolveConfigLanguage(snapshot.guestNativeLanguage, snapshot.userData?.native_language);
+                // The banner is localized to the recap language.
+                const headerSrc = await resolveHeaderImage(userLang);
+                if (headerSrc) overlayImage.src = headerSrc;
                 const shareCode = snapshot.userData?.shareCode || null;
                 const planner = new VideoRenderPlanner(recordings, configData, fluencyData, userLang, shareCode);
                 const plan = planner.generatePlan();
 
                 // The lesson's recapOverlay mode decides the card: shareCta
-                // recaps carry a share CTA instead of a fluency card. With no
-                // shareCode the CTA still renders, using the bare host as the URL.
+                // recaps show the share code in the lower-right corner plus a
+                // 4-line call to action over the tailing freeze-frame. The
+                // header image carries the "Enter code" label, so only the code
+                // itself is burned.
                 const tailingStep = plan.find(s => s.type === 'tailing');
                 const overlayVariant = tailingStep?.variant || 'fluency';
                 const shareCta = isShareCtaEnabled(overlayVariant)
                     ? {
-                        headline: Strings.get('share_cta_headline', userLang),
-                        deadlinePrefix: Strings.get('share_cta_deadline', userLang),
-                        deadline: buildShareDeadline(Date.now(), userLang),
-                        url: buildShareUrl(shareCode),
+                        code: shareCode || SHARE_URL_BASE,
+                        tailingLines: [
+                            Strings.get('share_cta_respond_now', userLang),
+                            Strings.get('share_cta_quick', userLang),
+                            `${Strings.get('share_cta_go_to', userLang)} ${SHARE_URL_BASE}`,
+                            `${Strings.get('share_cta_enter_code', userLang)} ${shareCode || SHARE_URL_BASE}`,
+                        ],
                     }
                     : null;
 
@@ -696,15 +733,33 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
             }
 
-            if (overlayImage?.complete && overlayImage.naturalWidth > 0) {
-                const x = (canvas.width - overlayImage.naturalWidth) / 2;
-                ctx.drawImage(overlayImage, x, 0);
+            const headerLayout = overlayImage?.complete && overlayImage.naturalWidth > 0
+                ? resolveHeaderLayout({
+                    naturalWidth: overlayImage.naturalWidth,
+                    naturalHeight: overlayImage.naturalHeight,
+                    canvasWidth: canvas.width,
+                    canvasHeight: canvas.height,
+                })
+                : null;
+            if (headerLayout) {
+                // 100% opaque gradient header band, so the video (and any burnt
+                // captions) can never show through the banner or the prompt.
+                const headerGradient = ctx.createLinearGradient(0, 0, 0, headerLayout.headerBottom);
+                headerGradient.addColorStop(0, HEADER_GRADIENT_TOP);
+                headerGradient.addColorStop(1, HEADER_GRADIENT_BOTTOM);
+                ctx.fillStyle = headerGradient;
+                ctx.fillRect(0, 0, canvas.width, headerLayout.headerBottom);
+                ctx.drawImage(
+                    overlayImage,
+                    headerLayout.x, headerLayout.y,
+                    headerLayout.width, headerLayout.height
+                );
             }
 
             drawTextOverlay(
                 ctx, canvas.width, canvas.height,
                 isTailing, tailStart, fluencyData,
-                step.isFirst, step.subtitle, displayCanvas,
+                step.isFirst, step.subtitle,
                 overlayVariant, shareCta
             );
 
@@ -715,7 +770,7 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
 
             let shouldAdvance = false;
             if (isTailing) {
-                if (performance.now() - tailStart > 4000) finish();
+                if (performance.now() - tailStart > TAILING_DURATION_MS) finish();
             } else if (step.loadFailed) {
                 // The clip never loaded — advance instead of waiting forever.
                 shouldAdvance = true;
@@ -899,28 +954,31 @@ function wrapText(context, text, maxWidth) {
 
 /**
  * Draws a single line of text, shrinking the font until it fits within
- * maxWidth. Never wraps — used for the share URL and deadline, which must stay
- * on one line.
+ * maxWidth. Never wraps — used for the share code and the call-to-action lines,
+ * which must each stay on one line. `align` anchors the text on `centerX`
+ * ('center') or sets `centerX` as its right edge ('right').
  */
-function drawFittedLine(context, text, centerX, y, { fontFamily, maxWidth, baseSize, minSize = 18, color = 'white' }) {
+function drawFittedLine(context, text, centerX, y, { fontFamily, maxWidth, baseSize, minSize = 18, color = 'white', align = 'center' }) {
     let size = baseSize;
     context.font = `700 ${size}px ${fontFamily}`;
     while (size > minSize && measureTextWidth(context, text) > maxWidth) {
         size -= 1;
         context.font = `700 ${size}px ${fontFamily}`;
     }
-    // Draw left-aligned from an explicitly centred origin. `textAlign='center'`
-    // aligns on the canvas advance width, which WebKit under-reports for
-    // complex scripts, so the ink is pushed to the right; the DOM-measured
-    // width used here is correct for the same font.
+    // Draw left-aligned from an explicitly anchored origin. `centerX` is the
+    // centre for align='center' or the right edge for align='right'.
+    // `textAlign='center'` aligns on the canvas advance width, which WebKit
+    // under-reports for complex scripts, so the ink is pushed to the right; the
+    // DOM-measured width used here is correct for the same font.
     const width = measureTextWidth(context, text);
+    const x = align === 'right' ? centerX - width : centerX - width / 2;
     context.fillStyle = color;
     context.strokeStyle = 'rgba(0,0,0,0.8)';
     context.lineWidth = Math.max(6, Math.round(size * 0.18));
     const prevAlign = context.textAlign;
     context.textAlign = 'left';
-    context.strokeText(text, centerX - width / 2, y);
-    context.fillText(text, centerX - width / 2, y);
+    context.strokeText(text, x, y);
+    context.fillText(text, x, y);
     context.textAlign = prevAlign;
     return size;
 }
@@ -930,15 +988,25 @@ function drawFittedLine(context, text, centerX, y, { fontFamily, maxWidth, baseS
  * `centerX`, using the DOM-measured width so complex scripts centre correctly
  * (see measureTextWidth). Assumes context.fillStyle/font are already set.
  */
-function drawCenteredLine(context, text, centerX, y) {
+function drawCenteredLine(context, text, centerX, y, { stroke = null, strokeWidth = 0 } = {}) {
     const width = measureTextWidth(context, text);
     const prevAlign = context.textAlign;
     context.textAlign = 'left';
+    if (stroke && strokeWidth > 0) {
+        // A thick outline (like the burned lesson subtitles' -webkit-text-stroke)
+        // keeps the glyphs readable over any footage without a background box.
+        const prevJoin = context.lineJoin;
+        context.lineJoin = 'round';
+        context.lineWidth = strokeWidth;
+        context.strokeStyle = stroke;
+        context.strokeText(text, centerX - width / 2, y);
+        context.lineJoin = prevJoin;
+    }
     context.fillText(text, centerX - width / 2, y);
     context.textAlign = prevAlign;
 }
 
-function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart, fluencyData, isFirst, subtitleText, displayCanvas, overlayVariant = 'fluency', shareCta = null) {
+function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart, fluencyData, isFirst, subtitleText, overlayVariant = 'fluency', shareCta = null) {
     const now = performance.now();
     const blinkOn = Math.floor(now / 500) % 2 === 0;
     context.save();
@@ -1008,45 +1076,50 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
         });
     }
 
-    // Share CTA — headline block in the top 25% for the whole recap, plus the
-    // 3-line CTA card over the tailing freeze-frame. The URL is drawn with
-    // drawFittedLine (never wrapText) so it always stays on one line.
-    if (headlineBlock || tailingCard) {
+    // Share CTA. The header image already carries the "Enter code" label, so
+    // only the code is burned — in the lower-right corner with a healthy margin.
+    // The 4-line call to action shows over the tailing freeze-frame. Each line
+    // is drawn with drawFittedLine (never wrapText) so it stays on one line.
+    const ctaFontFamily = '"Plus Jakarta Sans", "Noto Sans Bengali", "Bangla Sangam MN", "Nirmala UI", sans-serif';
+
+    if (headlineBlock && shareCta) {
+        const marginX = Math.round(canvasWidth * 0.06);
+        const marginY = Math.round(canvasHeight * 0.06);
+        context.textAlign = 'right';
+        context.textBaseline = 'bottom';
+        context.shadowColor = 'rgba(0, 0, 0, 0.8)';
+        context.shadowBlur = Math.max(6, Math.round(canvasWidth * 0.01));
+        drawFittedLine(context, shareCta.code, canvasWidth - marginX, canvasHeight - marginY, {
+            fontFamily: ctaFontFamily,
+            maxWidth: canvasWidth * 0.6,
+            baseSize: Math.max(16, Math.round(canvasWidth * 0.05)),
+            minSize: 12,
+            color: 'white',
+            align: 'right',
+        });
+    }
+
+    if (tailingCard && shareCta) {
         const centerX = Math.floor(canvasWidth / 2);
         const maxWidth = canvasWidth * 0.9;
-        // Include Bengali-capable families so Bengali copy does not fall through
-        // to an arbitrary system font with different metrics.
-        const fontFamily = '"Plus Jakarta Sans", "Noto Sans Bengali", "Bangla Sangam MN", "Nirmala UI", sans-serif';
-
         context.textAlign = 'center';
         context.textBaseline = 'middle';
         context.shadowColor = 'rgba(0, 0, 0, 0.8)';
         context.shadowBlur = Math.max(8, Math.round(canvasWidth * 0.012));
-
-        if (headlineBlock) {
-            // Vertically centered within the top 25% band.
-            const bandCenterY = canvasHeight * 0.125;
-            const lineGap = Math.round(canvasHeight * 0.045);
-            const headlineSize = drawFittedLine(context, shareCta.headline, centerX, bandCenterY - lineGap / 2, {
-                fontFamily, maxWidth, baseSize: Math.round(canvasWidth * 0.055), color: 'white'
-            });
-            drawFittedLine(context, shareCta.url, centerX, bandCenterY + lineGap / 2, {
-                fontFamily, maxWidth, baseSize: Math.round(headlineSize * 0.9), color: 'yellow'
-            });
+        // One uniform size for all lines: shrink to the longest so the block
+        // reads evenly instead of each line scaling on its own.
+        const lines = shareCta.tailingLines;
+        let size = Math.round(canvasWidth * 0.055);
+        context.font = `700 ${size}px ${ctaFontFamily}`;
+        while (size > 14 && lines.some(l => measureTextWidth(context, l) > maxWidth)) {
+            size -= 1;
+            context.font = `700 ${size}px ${ctaFontFamily}`;
         }
-
-        if (tailingCard) {
-            const lineGap = Math.round(canvasHeight * 0.06);
-            const centerY = canvasHeight * 0.5;
-            const prefixSize = drawFittedLine(context, shareCta.deadlinePrefix, centerX, centerY - lineGap, {
-                fontFamily, maxWidth, baseSize: Math.round(canvasWidth * 0.06), color: 'white'
-            });
-            drawFittedLine(context, shareCta.deadline, centerX, centerY, {
-                fontFamily, maxWidth, baseSize: Math.round(prefixSize * 0.85), color: 'white'
-            });
-            drawFittedLine(context, shareCta.url, centerX, centerY + lineGap, {
-                fontFamily, maxWidth, baseSize: Math.round(prefixSize * 0.95), color: 'yellow'
-            });
+        const lineGap = Math.round(canvasHeight * 0.06);
+        let y = canvasHeight * 0.5 - (lineGap * (lines.length - 1)) / 2;
+        for (const line of lines) {
+            drawFittedLine(context, line, centerX, y, { fontFamily: ctaFontFamily, maxWidth, baseSize: size, color: 'white' });
+            y += lineGap;
         }
     }
 
@@ -1083,60 +1156,22 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
         const enLineHeight = enFontSize * 1.2;
         const trLineHeight = trFontSize * 1.3;
         const gapBetween = Math.round(enFontSize * 0.15);
-        const totalEnHeight = enLines.length * enLineHeight;
-        const totalTrHeight = trLines.length > 0
-            ? gapBetween + trLines.length * trLineHeight
-            : 0;
-        const totalTextHeight = totalEnHeight + totalTrHeight;
 
-        // Measure longest line across both English and translation
-        let longestLineWidth = 0;
-        context.font = `bold ${enFontSize}px "Plus Jakarta Sans", sans-serif`;
-        enLines.forEach(l => {
-            longestLineWidth = Math.max(longestLineWidth, measureTextWidth(context, l));
-        });
-        if (trLines.length > 0) {
-            context.font = `${trFontSize}px "Plus Jakarta Sans", sans-serif`;
-            trLines.forEach(l => {
-                longestLineWidth = Math.max(longestLineWidth, measureTextWidth(context, l));
-            });
-        }
+        // Anchor the block 20% of the height up from the bottom and grow upward.
+        // A fixed fraction (not an on-screen pixel clearance) keeps it in exactly
+        // the same place on every export and clear of the speaker's face.
+        const SUBTITLE_BOTTOM_RATIO = 0.20;
+        const blockBottomY = canvasHeight * (1 - SUBTITLE_BOTTOM_RATIO);
 
-        const boxPadding = 10;
-
-        // Match SimpleVideoPlayer's `bottom: 150px` clearance in real on-screen
-        // pixels. The export canvas is scaled to the display canvas via CSS
-        // (objectFit: contain), so `150` screen px must be converted into canvas
-        // px using the actual draw scale. Without this, the margin shrinks with
-        // the on-screen scale and the subtitles collide with the bottom buttons.
-        const BOTTOM_OFFSET_PX = 150;
-        let bottomMargin;
-        if (displayCanvas && displayCanvas.getBoundingClientRect) {
-            const rect = displayCanvas.getBoundingClientRect();
-            if (rect.width > 0 && rect.height > 0) {
-                const scale = Math.min(rect.width / canvasWidth, rect.height / canvasHeight);
-                const drawnHeight = canvasHeight * scale; // on-screen bitmap height
-                bottomMargin = BOTTOM_OFFSET_PX * (canvasHeight / drawnHeight);
-            }
-        }
-        if (bottomMargin == null) {
-            // Fallback (no display canvas measured yet): assume a 1920-tall frame.
-            bottomMargin = canvasHeight * (BOTTOM_OFFSET_PX / 1920);
-        }
-        const blockBottomY = canvasHeight - bottomMargin;
-
-        // Background box covering both English and translation lines
-        context.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        context.fillRect(
-            centerX - longestLineWidth / 2 - boxPadding,
-            blockBottomY - totalTextHeight - boxPadding,
-            longestLineWidth + boxPadding * 2,
-            totalTextHeight + boxPadding * 2
-        );
-
+        // No background box: a thick black outline (like the burned lesson
+        // subtitles' -webkit-text-stroke) plus a soft shadow keeps the letters
+        // readable over any footage.
+        const enStroke = Math.max(4, Math.round(enFontSize * 0.16));
+        const trStroke = Math.max(3, Math.round(trFontSize * 0.16));
         context.fillStyle = 'white';
-        context.shadowColor = 'black';
-        context.shadowBlur = 4;
+        context.shadowColor = 'rgba(0, 0, 0, 0.6)';
+        context.shadowBlur = Math.max(4, Math.round(enFontSize * 0.12));
+        context.shadowOffsetY = Math.max(1, Math.round(enFontSize * 0.04));
 
         // Draw from the bottom up so the block extends toward the top (matching
         // the SimpleVideoPlayer overlay, which grows upward from its anchor).
@@ -1144,14 +1179,14 @@ function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart,
         if (trLines.length > 0) {
             context.font = `${trFontSize}px "Plus Jakarta Sans", sans-serif`;
             for (let i = trLines.length - 1; i >= 0; i--) {
-                drawCenteredLine(context, trLines[i], centerX, lineY);
+                drawCenteredLine(context, trLines[i], centerX, lineY, { stroke: 'black', strokeWidth: trStroke });
                 lineY -= trLineHeight;
             }
             lineY -= gapBetween;
         }
         context.font = `bold ${enFontSize}px "Plus Jakarta Sans", sans-serif`;
         for (let i = enLines.length - 1; i >= 0; i--) {
-            drawCenteredLine(context, enLines[i], centerX, lineY);
+            drawCenteredLine(context, enLines[i], centerX, lineY, { stroke: 'black', strokeWidth: enStroke });
             lineY -= enLineHeight;
         }
     }
@@ -1443,7 +1478,10 @@ export async function exportSegmentsToR2(lessonId, segments = [], stitchedBlob =
         const video = getOrCreateExportVideoElement();
         const profileImage = await loadProfileImage();
         const overlayImage = new Image();
-        overlayImage.src = headerImg;
+        const storeState = appStore.getState();
+        const lang = resolveConfigLanguage(storeState.guestNativeLanguage, storeState.userData?.native_language);
+        const headerSrc = await resolveHeaderImage(lang);
+        if (headerSrc) overlayImage.src = headerSrc;
         fallback = { audioContext, video, profileImage, overlayImage };
         return fallback;
     };

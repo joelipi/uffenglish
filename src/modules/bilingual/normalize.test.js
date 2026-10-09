@@ -41,16 +41,116 @@ describe('normalize', () => {
 
     it('should convert numbers to words', async () => {
         const result = await normalize('I have 5 apples and 42 oranges');
-        expect(result).toBe('i have five apples and forty oranges'); // numberToWords bug in this minified lib drops the ones place for two digit numbers 21-99
+        expect(result).toBe('i have five apples and forty two oranges');
     });
 
-    it('should convert numbers to words differently (forty-two vs forty two vs forty)', async () => {
-        const result = await normalize('42');
-        expect(result).toBe('forty');
+    it('should keep the ones place of two-digit numbers', async () => {
+        expect(await normalize('42')).toBe('forty two');
+        expect(await normalize('25')).toBe('twenty five');
+        expect(await normalize('99')).toBe('ninety nine');
     });
 
     it('should reduce successive repetitions of single words', async () => {
         const result = await normalize('i i can can do this');
         expect(result).toBe('i can do this');
+    });
+
+    it('should expand "a" before magnitude words to "one"', async () => {
+        expect(await normalize('a million')).toBe('one million');
+        expect(await normalize('a thousand')).toBe('one thousand');
+        expect(await normalize('a hundred')).toBe('one hundred');
+        expect(await normalize('a billion')).toBe('one billion');
+        expect(await normalize('a hundred dollars')).toBe('one hundred dollars');
+    });
+
+    it('should render large magnitudes correctly', async () => {
+        expect(await normalize('1,000,000')).toBe('one million');
+        expect(await normalize('1,000,000,000')).toBe('one billion');
+        expect(await normalize('2,000,000,000')).toBe('two billion');
+        expect(await normalize('1,000,000,000,000')).toBe('one trillion');
+        expect(await normalize('1,000,000,000,000,000')).toBe('one quadrillion');
+    });
+
+    it('should normalize currency symbols the same as their word form', async () => {
+        expect(await normalize('$5')).toBe('five dollars');
+        expect(await normalize('5 dollars')).toBe('five dollars');
+        expect(await normalize('$1')).toBe('one dollars');
+        expect(await normalize('one dollar')).toBe('one dollars');
+        expect(await normalize('$1,000,000')).toBe('one million dollars');
+        expect(await normalize('a million dollars')).toBe('one million dollars');
+    });
+
+    it('should keep the amount of a decimal currency value', async () => {
+        expect(await normalize('$5.50')).toBe('five dollars fifty cents');
+        expect(await normalize('5.50 dollars')).toBe('five dollars fifty cents');
+        expect(await normalize('$1,234.56')).toBe('one thousand two hundred thirty four dollars fifty six cents');
+        // All-zero cents collapse to the bare amount ("$5.00" matches "$5").
+        expect(await normalize('$5.00')).toBe('five dollars');
+        expect(await normalize('$0.00')).toBe('zero dollars');
+    });
+
+    it('should keep the ones place of two-digit currency amounts', async () => {
+        expect(await normalize('$25')).toBe('twenty five dollars');
+        expect(await normalize('$255')).toBe('two hundred fifty five dollars');
+    });
+
+    it('should normalize cents and drop a zero whole part', async () => {
+        expect(await normalize('$0.50')).toBe('fifty cents');
+        expect(await normalize('$0.05')).toBe('five cents');
+        expect(await normalize('50 cents')).toBe('fifty cents');
+        expect(await normalize('fifty cents')).toBe('fifty cents');
+    });
+
+    it('should use the currency-specific subunit word', async () => {
+        expect(await normalize('£5.50')).toBe('five pounds fifty pence');
+        expect(await normalize('£0.50')).toBe('fifty pence');
+        expect(await normalize('fifty pence')).toBe('fifty pence');
+        expect(await normalize('₹5.50')).toBe('five rupees fifty paise');
+    });
+
+    it('should not treat a bare number as money', async () => {
+        expect(await normalize('550')).toBe('five hundred fifty');
+        expect(await normalize('apartment 550')).toBe('apartment five hundred fifty');
+        // A currency word is what makes it money, not the digits alone.
+        expect(await normalize('550 dollars')).toBe('five hundred fifty dollars');
+    });
+
+    it('should normalize other currency markers', async () => {
+        expect(await normalize('€5')).toBe('five euros');
+        expect(await normalize('5 euros')).toBe('five euros');
+        expect(await normalize('£5')).toBe('five pounds');
+        expect(await normalize('₹5')).toBe('five rupees');
+        expect(await normalize('¥500')).toBe('five hundred yen');
+        expect(await normalize('₽100')).toBe('one hundred rubles');
+        expect(await normalize('₩1000')).toBe('one thousand won');
+        expect(await normalize('₱50')).toBe('fifty pesos');
+        expect(await normalize('₪10')).toBe('ten shekels');
+        expect(await normalize('﷼100')).toBe('one hundred rials');
+        expect(await normalize('₦100')).toBe('one hundred naira');
+        expect(await normalize('500 francs')).toBe('five hundred francs');
+    });
+
+    it('should normalize a trailing currency symbol too', async () => {
+        expect(await normalize('5$')).toBe('five dollars');
+    });
+
+    it('should normalize currency attached to a magnitude phrase', async () => {
+        // Every reasonable spelling of "one million dollars" must agree.
+        expect(await normalize('$1 million')).toBe('one million dollars');
+        expect(await normalize('1 million dollars')).toBe('one million dollars');
+        expect(await normalize('a million dollars')).toBe('one million dollars');
+        expect(await normalize('one million dollars')).toBe('one million dollars');
+        expect(await normalize('$2 million')).toBe('two million dollars');
+        expect(await normalize('two million dollars')).toBe('two million dollars');
+        expect(await normalize('$5 thousand')).toBe('five thousand dollars');
+        expect(await normalize('$1 billion')).toBe('one billion dollars');
+        expect(await normalize('€1 million')).toBe('one million euros');
+        expect(await normalize('$1 million dollars')).toBe('one million dollars');
+    });
+
+    it('should normalize decimal magnitude amounts', async () => {
+        expect(await normalize('$1.5 million')).toBe('one point five million dollars');
+        expect(await normalize('1.5 million dollars')).toBe('one point five million dollars');
+        expect(await normalize('$1.5')).toBe('one dollars fifty cents');
     });
 });

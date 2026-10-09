@@ -1203,6 +1203,83 @@ const strings = {
         hi: "{time} तक उपलब्ध",
         bn: "{time} পর্যন্ত উপলব্ধ"
     },
+    // Public-profile friend-practice area: the invocation shown above the
+    // recorded-lesson links, and the empty/expired state that replaces it when
+    // nothing is inside the 48h window.
+    'profile_friend_practice_heading': {
+        en: "Practice English with Me Free",
+        es: "Practica inglés conmigo gratis",
+        pt: "Pratique inglês comigo grátis",
+        fr: "Pratiquez l'anglais avec moi gratuitement",
+        hi: "मेरे साथ मुफ़्त अंग्रेज़ी का अभ्यास करें",
+        bn: "আমার সাথে বিনামূল্যে ইংরেজি চর্চা করুন"
+    },
+    'profile_friend_practice_subheading': {
+        en: "click on a lesson link to start.",
+        es: "haz clic en un enlace de lección para empezar.",
+        pt: "clique em um link de lição para começar.",
+        fr: "cliquez sur un lien de leçon pour commencer.",
+        hi: "शुरू करने के लिए किसी पाठ लिंक पर क्लिक करें।",
+        bn: "শুরু করতে একটি পাঠের লিঙ্কে ক্লিক করুন।"
+    },
+    'profile_friend_lessons_expired': {
+        en: "All this user's lessons have expired after 48 hours, start a new lesson and send them the link to get them back into practicing English.",
+        es: "Todas las lecciones de este usuario han caducado después de 48 horas; empieza una nueva lección y envíale el enlace para que vuelva a practicar inglés.",
+        pt: "Todas as lições deste usuário expiraram após 48 horas; comece uma nova lição e envie o link para que ele volte a praticar inglês.",
+        fr: "Toutes les leçons de cet utilisateur ont expiré après 48 heures ; commencez une nouvelle leçon et envoyez-lui le lien pour qu'il se remette à pratiquer l'anglais.",
+        hi: "इस उपयोगकर्ता के सभी पाठ 48 घंटे बाद समाप्त हो गए हैं; एक नया पाठ शुरू करें और उन्हें लिंक भेजें ताकि वे फिर से अंग्रेज़ी का अभ्यास कर सकें।",
+        bn: "এই ব্যবহারকারীর সমস্ত পাঠ ৪৮ ঘণ্টা পরে মেয়াদোত্তীর্ণ হয়ে গেছে; একটি নতুন পাঠ শুরু করুন এবং তাকে লিঙ্ক পাঠান যাতে সে আবার ইংরেজি চর্চা করতে পারে।"
+    },
+    'profile_friend_practice_free': {
+        en: "Practice English Free",
+        es: "Practica inglés gratis",
+        pt: "Pratique inglês grátis",
+        fr: "Pratiquez l'anglais gratuitement",
+        hi: "मुफ़्त अंग्रेज़ी का अभ्यास करें",
+        bn: "বিনামূল্যে ইংরেজি চর্চা করুন"
+    },
+    // Public course-listings page (`/courses`): the heading + onboarding steps
+    // shown above the list of available friend courses.
+    'friend_courses_heading': {
+        en: "Choose a conversation to have with your friends and practice English with them free.",
+        es: "Elige una conversación para tener con tus amigos y practica inglés con ellos gratis.",
+        pt: "Escolha uma conversa para ter com seus amigos e pratique inglês com eles grátis.",
+        fr: "Choisissez une conversation à avoir avec vos amis et pratiquez l'anglais avec eux gratuitement.",
+        hi: "अपने दोस्तों के साथ करने के लिए एक बातचीत चुनें और उनके साथ मुफ़्त अंग्रेज़ी का अभ्यास करें।",
+        bn: "আপনার বন্ধুদের সাথে করার জন্য একটি কথোপকথন বেছে নিন এবং তাদের সাথে বিনামূল্যে ইংরেজি চর্চা করুন।"
+    },
+    'friend_courses_step_1': {
+        en: "Complete the first mini lesson in under five minutes.",
+        es: "Completa la primera mini lección en menos de cinco minutos.",
+        pt: "Complete a primeira mini lição em menos de cinco minutos.",
+        fr: "Terminez la première mini-leçon en moins de cinq minutes.",
+        hi: "पहला मिनी पाठ पाँच मिनट से कम समय में पूरा करें।",
+        bn: "পাঁচ মিনিটের কম সময়ে প্রথম মিনি পাঠ সম্পন্ন করুন।"
+    },
+    'friend_courses_step_2': {
+        en: "Share your special link with friends, family, and colleagues so that they can reply to you and continue the conversation.",
+        es: "Comparte tu enlace especial con amigos, familiares y colegas para que puedan responderte y continuar la conversación.",
+        pt: "Compartilhe seu link especial com amigos, familiares e colegas para que eles possam responder a você e continuar a conversa.",
+        fr: "Partagez votre lien spécial avec vos amis, votre famille et vos collègues pour qu'ils puissent vous répondre et poursuivre la conversation.",
+        hi: "अपना विशेष लिंक दोस्तों, परिवार और सहकर्मियों के साथ साझा करें ताकि वे आपको जवाब दे सकें और बातचीत जारी रख सकें।",
+        bn: "আপনার বিশেষ লিঙ্ক বন্ধু, পরিবার ও সহকর্মীদের সাথে শেয়ার করুন যাতে তারা আপনাকে উত্তর দিতে পারে এবং কথোপকথন চালিয়ে যেতে পারে।"
+    },
+    'friend_courses_empty': {
+        en: "No friend courses are available right now. Please check back soon.",
+        es: "No hay cursos con amigos disponibles en este momento. Vuelve pronto.",
+        pt: "Nenhum curso com amigos está disponível no momento. Volte em breve.",
+        fr: "Aucun cours avec des amis n'est disponible pour le moment. Revenez bientôt.",
+        hi: "अभी कोई मित्र पाठ्यक्रम उपलब्ध नहीं है। कृपया जल्द ही दोबारा देखें।",
+        bn: "এখন কোনো বন্ধু কোর্স উপলব্ধ নেই। শীঘ্রই আবার দেখুন।"
+    },
+    'friend_courses_lesson_count': {
+        en: "{count} lessons",
+        es: "{count} lecciones",
+        pt: "{count} lições",
+        fr: "{count} leçons",
+        hi: "{count} पाठ",
+        bn: "{count}টি পাঠ"
+    },
     // Friend-response in-app notifications (bell menu on the home screen).
     // The deadline line is static: the timestamp lets the user judge elapsed
     // time themselves.
@@ -1757,8 +1834,6 @@ const strings = {
     },
 
     // Share CTA overlay for shareCta recap lessons (friend-challenge "Ask").
-    // share_cta_deadline is a prefix line — the formatted date follows on the
-    // next line, hence the trailing prepositions in es/fr.
     'share_cta_headline': {
         en: "Practice English with me free",
         es: "Practica inglés conmigo gratis",
@@ -1767,13 +1842,40 @@ const strings = {
         hi: "मेरे साथ मुफ़्त अंग्रेज़ी प्रैक्टिस करें",
         bn: "আমার সাথে ফ্রি ইংরেজি প্র্যাকটিস করুন"
     },
-    'share_cta_deadline': {
-        en: "Practice English with me free before",
-        es: "Practica inglés conmigo gratis antes del",
-        pt: "Pratique inglês comigo de graça antes de",
-        fr: "Pratique l'anglais avec moi gratuitement avant le",
-        hi: "मेरे साथ मुफ़्त अंग्रेज़ी प्रैक्टिस करें — अंतिम तिथि:",
-        bn: "আমার সাথে ফ্রি ইংরেজি প্র্যাকটিস করুন — শেষ তারিখ:"
+    // Final call-to-action card shown over the recap's tailing freeze-frame.
+    // Four short lines; the share code / host are appended in code so the copy
+    // stays a plain prefix (no placeholders).
+    'share_cta_respond_now': {
+        en: "Respond now before the video expires!",
+        es: "¡Responde ahora antes de que caduque el video!",
+        pt: "Responda agora antes que o vídeo expire!",
+        fr: "Répondez maintenant avant que la vidéo n'expire !",
+        hi: "वीडियो समाप्त होने से पहले अभी जवाब दें!",
+        bn: "ভিডিওটি শেষ হওয়ার আগে এখনই উত্তর দিন!"
+    },
+    'share_cta_quick': {
+        en: "It takes less than 5 minutes!",
+        es: "¡Toma menos de 5 minutos!",
+        pt: "Leva menos de 5 minutos!",
+        fr: "Ça prend moins de 5 minutes !",
+        hi: "इसमें 5 मिनट से भी कम समय लगता है!",
+        bn: "এটি ৫ মিনিটেরও কম সময় নেয়!"
+    },
+    'share_cta_go_to': {
+        en: "Go to:",
+        es: "Ve a:",
+        pt: "Acesse:",
+        fr: "Rendez-vous sur :",
+        hi: "यहाँ जाएँ:",
+        bn: "এখানে যান:"
+    },
+    'share_cta_enter_code': {
+        en: "Enter code:",
+        es: "Ingresa el código:",
+        pt: "Digite o código:",
+        fr: "Entrez le code :",
+        hi: "कोड दर्ज करें:",
+        bn: "কোড লিখুন:"
     },
     // Call to action shown on the success screen for friend-challenge lessons,
     // where only the Share button is offered.
@@ -1788,12 +1890,12 @@ const strings = {
     // Message text attached when the learner shares their recap video. {url} is
     // replaced with the learner's personal share link (host + share code).
     'share_message': {
-        en: "Practice English with me free here: {url}",
-        es: "Practica inglés conmigo gratis aquí: {url}",
-        pt: "Pratique inglês comigo de graça aqui: {url}",
-        fr: "Pratique l'anglais avec moi gratuitement ici : {url}",
-        hi: "मेरे साथ यहाँ मुफ़्त अंग्रेज़ी प्रैक्टिस करें: {url}",
-        bn: "এখানে আমার সাথে ফ্রি ইংরেজি প্র্যাকটিস করুন: {url}"
+        en: "Practice English with me free at this link. It's a really cool new technology. Any English level is OK (beginner to advanced, it teaches you what to say). We don't need to be online at the same time. Please do it now, the lesson videos expire in 48 hours! {url}",
+        es: "Practica inglés conmigo gratis en este enlace. Es una tecnología nueva genial. Cualquier nivel de inglés sirve (de principiante a avanzado, te enseña qué decir). No necesitamos estar en línea al mismo tiempo. ¡Hazlo ahora, los videos de la lección caducan en 48 horas! {url}",
+        pt: "Pratique inglês comigo de graça neste link. É uma tecnologia nova muito legal. Qualquer nível de inglês serve (de iniciante a avançado, ele ensina o que dizer). Não precisamos estar online ao mesmo tempo. Faça agora, os vídeos da lição expiram em 48 horas! {url}",
+        fr: "Pratique l'anglais avec moi gratuitement via ce lien. C'est une nouvelle technologie vraiment géniale. Tous les niveaux d'anglais sont acceptés (débutant à avancé, ça t'apprend quoi dire). Pas besoin d'être en ligne en même temps. Fais-le maintenant, les vidéos de la leçon expirent dans 48 heures ! {url}",
+        hi: "इस लिंक पर मेरे साथ मुफ़्त में अंग्रेज़ी का अभ्यास करें। यह एक बहुत ही शानदार नई तकनीक है। अंग्रेज़ी का कोई भी स्तर ठीक है (शुरुआती से उन्नत तक, यह आपको बताती है कि क्या कहना है)। हमें एक ही समय पर ऑनलाइन होने की ज़रूरत नहीं है। कृपया इसे अभी करें, पाठ के वीडियो 48 घंटे में समाप्त हो जाते हैं! {url}",
+        bn: "এই লিঙ্কে আমার সাথে বিনামূল্যে ইংরেজি চর্চা করুন। এটি সত্যিই একটি দারুণ নতুন প্রযুক্তি। ইংরেজির যেকোনো স্তর ঠিক আছে (শিক্ষানবিশ থেকে উন্নত, এটি আপনাকে বলে দেয় কী বলতে হবে)। আমাদের একই সময়ে অনলাইনে থাকার দরকার নেই। অনুগ্রহ করে এটি এখনই করুন, পাঠের ভিডিওগুলো 48 ঘন্টায় শেষ হয়ে যাবে! {url}"
     },
     'rotate_device_portrait': {
         en: "Recording in landscape will mess up your video. Rotate your device to portrait before you record.",

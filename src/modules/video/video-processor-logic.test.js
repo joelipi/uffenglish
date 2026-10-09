@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { VideoRenderPlanner, resolveRecapOverlay, resolveRecapSources, isDroppedStep, markFirstRenderable, resolveSegmentBounds, UNRESOLVED_SEGMENT_CAP_MS, STALL_GRACE_MS, resolvePublishLessonId, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges, MIN_SEGMENT_SECONDS, MAX_CALIBRATION_OFFSET_SEC } from './video-processor-logic.js';
+import { VideoRenderPlanner, resolveRecapOverlay, resolveRecapSources, isDroppedStep, markFirstRenderable, resolveSegmentBounds, UNRESOLVED_SEGMENT_CAP_MS, STALL_GRACE_MS, resolvePublishLessonId, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges, resolveHeaderLayout, HEADER_BAND_RATIO, HEADER_GAP_RATIO, HEADER_TEXT_LINE_RATIO, MIN_SEGMENT_SECONDS, MAX_CALIBRATION_OFFSET_SEC } from './video-processor-logic.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '../../..');
@@ -234,6 +234,59 @@ describe('VideoRenderPlanner.generatePlan — recapSources clip selection', () =
         // The friend clip already carries its own burned-in caption, so the
         // recap draws no subtitle over it (not the response step's cue).
         expect(remote.subtitle).toBeNull();
+    });
+
+    it('borrows the branching step’s friend clip for either alternative response step', () => {
+        // A `branching` step plays the friend's question, then jumps to one of
+        // two alternative response steps. Both answer the SAME question, so the
+        // friend clip must lead the recap whichever one the learner picks —
+        // including the second, whose sibling response step sits immediately
+        // before it (the case that used to drop the friend's half).
+        const steps = [
+            { responseType: 'lessonIntro', introBackgroundVideoUrl: 'testvideo01' },
+            {
+                responseType: 'branching',
+                simpleVideoUrl: 'ab12-model-w-response-01',
+                chooseStep: [
+                    { nextStep: 1, text: { en: 'A' } },
+                    { nextStep: 2, text: { en: 'B' } },
+                ],
+            },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'testvideo05', cue: 'Q1a' },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'testvideo06', cue: 'Q1b' },
+        ];
+        for (const chosenStep of [2, 3]) {
+            const recordings = [
+                { originalLessonId: 'w', originalStepIndex: chosenStep, blob: { size: 1 }, userResponse: 'a' },
+            ];
+            const plan = new VideoRenderPlanner(
+                recordings, makeConfig({ recapSources: 'friend', steps }), { total: 80 }, 'en', 'ab12'
+            ).generatePlan();
+
+            expect(plan.map(s => s.type), `branch target ${chosenStep}`).toEqual(['remote', 'webcam', 'tailing']);
+            expect(plan.find(s => s.type === 'remote').targetId).toBe('ab12-model-w-response-01');
+        }
+    });
+
+    it('does not borrow a friend clip for a response that starts a new phase', () => {
+        // No branching step here: the second recording follows the first
+        // question's response sequentially (the "record the original" phase), so
+        // the scan-back must still stop at that response boundary rather than
+        // reusing the previous question's friend clip.
+        const steps = [
+            { responseType: 'lessonIntro', introBackgroundVideoUrl: 'testvideo01' },
+            { responseType: 'viewAndContinue', simpleVideoUrl: 'ab12-model-w-response-01' },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'testvideo05', cue: 'Q1' },
+            { responseType: 'friendClosedResponse', simpleVideoUrl: 'testvideo06', cue: 'repeat the original' },
+        ];
+        const recordings = [
+            { originalLessonId: 'w', originalStepIndex: 3, blob: { size: 1 }, userResponse: 'a' },
+        ];
+        const plan = new VideoRenderPlanner(
+            recordings, makeConfig({ recapSources: 'friend', steps }), { total: 80 }, 'en', 'ab12'
+        ).generatePlan();
+
+        expect(plan.map(s => s.type)).toEqual(['webcam', 'tailing']);
     });
 
     it('pairs each click-through friend clip with its own response question', () => {
@@ -498,7 +551,7 @@ describe('VideoRenderPlanner.generatePlan — recapOverlay tailing variant', () 
         const tailing = planner.generatePlan().find(s => s.type === 'tailing');
 
         expect(tailing.variant).toBe('shareCta');
-        expect(tailing.durationMs).toBe(4000);
+        expect(tailing.durationMs).toBe(2000);
         expect(tailing.fluencyData).toBe(fluencyData);
         expect(tailing.shareCode).toBe('ab12');
     });
@@ -1028,5 +1081,78 @@ describe('video-processor-logic.js platform-agnostic guard', () => {
         // net speaking time.
         expect(body).not.toMatch(/step\.duration/);
         expect(body).not.toMatch(/netDuration/);
+    });
+});
+
+describe('resolveHeaderLayout', () => {
+    const HEADER = { naturalWidth: 1600, naturalHeight: 300 };
+
+    it('pins the header band to 18% of the frame', () => {
+        expect(HEADER_BAND_RATIO).toBe(0.18);
+    });
+
+    it('keeps the whole header (banner + prompt) within the top 18% band', () => {
+        const sizes = [
+            [720, 1280], [1080, 1920], [1920, 1080], [608, 1080], [3840, 2160],
+        ];
+        for (const [canvasWidth, canvasHeight] of sizes) {
+            const layout = resolveHeaderLayout({ ...HEADER, canvasWidth, canvasHeight });
+            // Literal 0.18 (not the constant) so changing the ratio fails here.
+            expect(layout.headerBottom).toBeLessThanOrEqual(Math.round(canvasHeight * 0.18));
+            expect(layout.headerBottom).toBeGreaterThan(0);
+        }
+    });
+
+    it('never overflows the canvas width and centres the banner', () => {
+        const sizes = [
+            [720, 1280], [1080, 1920], [1920, 1080], [608, 1080], [3840, 2160],
+        ];
+        for (const [canvasWidth, canvasHeight] of sizes) {
+            const layout = resolveHeaderLayout({ ...HEADER, canvasWidth, canvasHeight });
+            expect(layout.width).toBeLessThanOrEqual(canvasWidth);
+            expect(layout.x).toBeGreaterThanOrEqual(0);
+            expect(layout.x + layout.width).toBeLessThanOrEqual(canvasWidth);
+            expect(Math.abs(layout.x - (canvasWidth - layout.width) / 2)).toBeLessThanOrEqual(1);
+            expect(layout.y).toBe(0);
+        }
+    });
+
+    it('puts the prompt directly below the banner, never overlapping it', () => {
+        for (const [canvasWidth, canvasHeight] of [[720, 1280], [1080, 1920], [1920, 1080]]) {
+            const layout = resolveHeaderLayout({ ...HEADER, canvasWidth, canvasHeight });
+            // textY starts at the banner's bottom edge plus a gap.
+            expect(layout.textY).toBeGreaterThan(layout.height);
+            expect(layout.textY).toBe(layout.height + Math.max(4, Math.round(canvasHeight * HEADER_GAP_RATIO)));
+            // And the prompt's line box still fits inside the band.
+            expect(layout.textY + Math.round(layout.textSize * HEADER_TEXT_LINE_RATIO))
+                .toBeLessThanOrEqual(layout.headerBottom);
+        }
+    });
+
+    it('shrinks the banner to make room for the prompt on a short/landscape canvas', () => {
+        // Width alone would make the banner 1920 wide (360 tall, >18% of 1080),
+        // so it must shrink to fit the band alongside the prompt.
+        const layout = resolveHeaderLayout({ ...HEADER, canvasWidth: 1920, canvasHeight: 1080 });
+        expect(layout.width).toBeLessThan(1920);
+        expect(layout.headerBottom).toBeLessThanOrEqual(Math.round(1080 * 0.18));
+    });
+
+    it('preserves the banner aspect ratio', () => {
+        const layout = resolveHeaderLayout({ ...HEADER, canvasWidth: 1080, canvasHeight: 1920 });
+        const scale = layout.width / HEADER.naturalWidth;
+        expect(layout.height).toBe(Math.round(HEADER.naturalHeight * scale));
+    });
+
+    it('lands in exactly the same spot for the same canvas size', () => {
+        const a = resolveHeaderLayout({ ...HEADER, canvasWidth: 1080, canvasHeight: 1920 });
+        const b = resolveHeaderLayout({ ...HEADER, canvasWidth: 1080, canvasHeight: 1920 });
+        expect(a).toEqual(b);
+    });
+
+    it('returns null when there is no drawable image or canvas', () => {
+        expect(resolveHeaderLayout({ naturalWidth: 0, naturalHeight: 300, canvasWidth: 720, canvasHeight: 1280 })).toBeNull();
+        expect(resolveHeaderLayout({ naturalWidth: 1600, naturalHeight: 0, canvasWidth: 720, canvasHeight: 1280 })).toBeNull();
+        expect(resolveHeaderLayout({ naturalWidth: 1600, naturalHeight: 300, canvasWidth: 0, canvasHeight: 1280 })).toBeNull();
+        expect(resolveHeaderLayout()).toBeNull();
     });
 });

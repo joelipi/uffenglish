@@ -1,8 +1,14 @@
 // --- modules/video-processor-logic.js ---
 
 import { remoteSource } from './video-source.js';
+// Reuse the branching step's own offset math so the recap agrees with the
+// player about which steps a `branching` step can jump to.
+import { isBranchingStep, resolveBranchChoices } from '../lesson/branch-choice-logic.js';
 
 export const TEXT_MODE_DURATION_MS = 3000;
+
+// How long the final tailing freeze-frame (fluency card / share CTA) is held.
+export const TAILING_DURATION_MS = 2000;
 
 // Anti-freeze bound for a segment whose media length could not be resolved by
 // either the <video> element or the container probe. A corrupt/unreadable blob
@@ -59,31 +65,10 @@ export const SHARE_URL_BASE = 'ultrafastfluency.com';
 // must answer before the clips vanish.
 export const SHARE_WINDOW_HOURS = 48;
 
-// Locale map for the CTA deadline. Mirrors the LOCALE_MAP pattern in
-// UserProfile.jsx:113 but covers this feature's six languages (adds BN).
-const CTA_LOCALE_MAP = { EN: 'en', ES: 'es', PT: 'pt', FR: 'fr', HI: 'hi', BN: 'bn' };
-
-function ctaLocale(nativeLanguage) {
-    const code = String(nativeLanguage || 'en').split('-')[0].toUpperCase();
-    return CTA_LOCALE_MAP[code] || 'en';
-}
-
 // Fallback when the session has no shareCode: point viewers at the bare host
 // (the app) rather than a personalised invite link.
 export function buildShareUrl(shareCode) {
     return shareCode ? `${SHARE_URL_BASE}/${shareCode}` : SHARE_URL_BASE;
-}
-
-export function buildShareDeadline(nowMs, nativeLanguage) {
-    const deadline = new Date(nowMs + SHARE_WINDOW_HOURS * 60 * 60 * 1000);
-    return deadline.toLocaleString(ctaLocale(nativeLanguage), {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit'
-    });
 }
 
 /**
@@ -92,7 +77,7 @@ export function buildShareDeadline(nowMs, nativeLanguage) {
  *
  * - fluencyCard: the legacy CALCULATING FLUENCY / FLUENCY SCORE card
  * - headlineBlock: the 2-line share headline shown for the whole recap
- * - tailingCard: the 3-line CTA card shown during the tailing freeze-frame
+ * - tailingCard: the 2-line deadline card shown during the tailing freeze-frame
  *
  * `variant` is the lesson's resolved `recapOverlay` ('fluency' | 'shareCta' |
  * 'none'); unknown values fall through to the fluency branch.
@@ -156,12 +141,78 @@ function stepTarget(step) {
 }
 
 /**
+ * The index of the `branching` step that offers `recIndex` as one of its
+ * choices, or -1. A branching step plays the friend's question and jumps to
+ * whichever alternative response step the learner picks, so every one of its
+ * targets is an answer to the SAME question.
+ */
+function branchParentIndexForResponse(steps, recIndex) {
+    for (let i = recIndex - 1; i >= 0; i--) {
+        const step = steps[i];
+        if (!isBranchingStep(step)) continue;
+        const targets = resolveBranchChoices(step, i, steps.length).map(c => c.targetIndex);
+        if (targets.includes(recIndex)) return i;
+    }
+    return -1;
+}
+
+/**
  * A share CTA renders for any 'shareCta' recap. When the session has no
  * shareCode, `buildShareUrl` falls back to the bare host so the CTA still
  * renders (headline + tailing card) instead of nothing.
  */
 export function isShareCtaEnabled(variant) {
     return variant === 'shareCta';
+}
+
+// The recap header band — the decorative banner plus the share-code prompt that
+// sits directly beneath it — may occupy at most the top 18% of the frame. The
+// banner shrinks to leave room for the prompt so the two always fit, and the
+// band is anchored at y=0 so it lands in exactly the same spot every render.
+export const HEADER_BAND_RATIO = 0.18;
+
+// Share-code prompt metrics. Font size is a fraction of the canvas width (like
+// the other recap overlays); `LINE` is its line box and `GAP` the clear space
+// between the banner and the prompt (also used as padding below it).
+export const HEADER_TEXT_SIZE_RATIO = 0.045;
+export const HEADER_TEXT_LINE_RATIO = 1.35;
+export const HEADER_GAP_RATIO = 0.008;
+
+/**
+ * Pure layout for the recap header. Scales the banner proportionally so the
+ * banner + prompt fit inside the top `HEADER_BAND_RATIO` of the frame, centres
+ * the banner horizontally at y=0, and places the prompt directly beneath it.
+ * Returns null when there is no drawable image or no canvas to draw into.
+ *
+ * Invariants (unit-tested): `width <= canvasWidth`; the whole header
+ * (`headerBottom`) is at most `HEADER_BAND_RATIO * canvasHeight`; the banner is
+ * horizontally centred within a pixel; and the result is deterministic for a
+ * given canvas size and banner aspect (same spot every time).
+ */
+export function resolveHeaderLayout({
+    naturalWidth = 0,
+    naturalHeight = 0,
+    canvasWidth = 0,
+    canvasHeight = 0,
+} = {}) {
+    if (naturalWidth <= 0 || naturalHeight <= 0 || canvasWidth <= 0 || canvasHeight <= 0) {
+        return null;
+    }
+
+    const band = Math.round(canvasHeight * HEADER_BAND_RATIO);
+    const textSize = Math.max(14, Math.round(canvasWidth * HEADER_TEXT_SIZE_RATIO));
+    const textHeight = Math.round(textSize * HEADER_TEXT_LINE_RATIO);
+    const gap = Math.max(4, Math.round(canvasHeight * HEADER_GAP_RATIO));
+    const availableImageHeight = Math.max(1, band - textHeight - 2 * gap);
+
+    const scale = Math.min(canvasWidth / naturalWidth, availableImageHeight / naturalHeight);
+    const width = Math.round(naturalWidth * scale);
+    const height = Math.round(naturalHeight * scale);
+    const x = Math.round((canvasWidth - width) / 2);
+    const textY = height + gap;
+    const headerBottom = textY + textHeight + gap;
+
+    return { x, y: 0, width, height, textY, textSize, headerBottom };
 }
 
 /**
@@ -398,7 +449,7 @@ export class VideoRenderPlanner {
         const tailingLesson = this.recordings.length ? this._getLesson(this.recordings[0]) : null;
         plan.push({
             type: 'tailing',
-            durationMs: 4000,
+            durationMs: TAILING_DURATION_MS,
             fluencyData: this.fluencyData,
             variant: resolveRecapOverlay(tailingLesson),
             shareCode: this.shareCode
@@ -495,6 +546,19 @@ export class VideoRenderPlanner {
         // the conversation. Scan back only to the previous response boundary so
         // a question never reuses an earlier question's clip.
         if (resolveRecapSources(lesson) === 'friend') {
+            // Branch siblings: a `branching` step presents one friend question
+            // and jumps to whichever alternative response step the learner
+            // chose. All of its targets answer the same question, so the
+            // branching step's friend clip belongs to the recap for any of them
+            // — even though a sibling response step sits immediately before the
+            // recorded one (and would otherwise stop the scan below, dropping
+            // the friend's half of the conversation).
+            const branchIndex = branchParentIndexForResponse(lesson.steps, rec.originalStepIndex);
+            if (branchIndex >= 0) {
+                const branchTarget = stepTarget(lesson.steps[branchIndex]);
+                if (branchTarget && remoteSource(branchTarget) === 'friend') return branchTarget;
+            }
+
             for (let i = rec.originalStepIndex - 1; i >= 0; i--) {
                 const step = lesson.steps[i];
                 if (RECAP_RESPONSE_BOUNDARY_TYPES.has(step?.responseType)) break;

@@ -389,6 +389,7 @@ export default function UserProfile() {
                     <img 
                         src={profilePic} 
                         alt={Strings.get('profile_title', lang)} 
+                        crossOrigin="anonymous"
                         style={{ width: '96px', height: '96px', borderRadius: '50%', objectFit: 'cover', marginBottom: '12px' }}
                         onLoad={() => console.log('[UserProfile] Image loaded successfully:', profilePic)}
                         onError={(e) => {

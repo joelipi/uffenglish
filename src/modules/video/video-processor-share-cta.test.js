@@ -2,9 +2,7 @@ import { describe, it, expect } from 'vitest';
 import Strings from '../../data/strings.js';
 import {
     SHARE_URL_BASE,
-    SHARE_WINDOW_HOURS,
     buildShareUrl,
-    buildShareDeadline,
     resolveOverlayElements,
     isShareCtaEnabled,
 } from './video-processor-logic.js';
@@ -20,24 +18,39 @@ const HEADLINES = {
     bn: 'আমার সাথে ফ্রি ইংরেজি প্র্যাকটিস করুন',
 };
 
-const DEADLINES = {
-    en: 'Practice English with me free before',
-    es: 'Practica inglés conmigo gratis antes del',
-    pt: 'Pratique inglês comigo de graça antes de',
-    fr: "Pratique l'anglais avec moi gratuitement avant le",
-    hi: 'मेरे साथ मुफ़्त अंग्रेज़ी प्रैक्टिस करें — अंतिम तिथि:',
-    bn: 'আমার সাথে ফ্রি ইংরেজি প্র্যাকটিস করুন — শেষ তারিখ:',
-};
-
-const LOCALE_MAP = { en: 'en', es: 'es', pt: 'pt', fr: 'fr', hi: 'hi', bn: 'bn' };
-
-const DEADLINE_OPTIONS = {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
+const CTA_LINES = {
+    share_cta_respond_now: {
+        en: 'Respond now before the video expires!',
+        es: '¡Responde ahora antes de que caduque el video!',
+        pt: 'Responda agora antes que o vídeo expire!',
+        fr: "Répondez maintenant avant que la vidéo n'expire !",
+        hi: 'वीडियो समाप्त होने से पहले अभी जवाब दें!',
+        bn: 'ভিডিওটি শেষ হওয়ার আগে এখনই উত্তর দিন!',
+    },
+    share_cta_quick: {
+        en: 'It takes less than 5 minutes!',
+        es: '¡Toma menos de 5 minutos!',
+        pt: 'Leva menos de 5 minutos!',
+        fr: 'Ça prend moins de 5 minutes !',
+        hi: 'इसमें 5 मिनट से भी कम समय लगता है!',
+        bn: 'এটি ৫ মিনিটেরও কম সময় নেয়!',
+    },
+    share_cta_go_to: {
+        en: 'Go to:',
+        es: 'Ve a:',
+        pt: 'Acesse:',
+        fr: 'Rendez-vous sur :',
+        hi: 'यहाँ जाएँ:',
+        bn: 'এখানে যান:',
+    },
+    share_cta_enter_code: {
+        en: 'Enter code:',
+        es: 'Ingresa el código:',
+        pt: 'Digite o código:',
+        fr: 'Entrez le code :',
+        hi: 'कोड दर्ज करें:',
+        bn: 'কোড লিখুন:',
+    },
 };
 
 describe('share CTA strings', () => {
@@ -45,8 +58,10 @@ describe('share CTA strings', () => {
         expect(Strings.get('share_cta_headline', lang)).toBe(HEADLINES[lang]);
     });
 
-    it.each(LANGS)('share_cta_deadline returns the exact copy for %s', (lang) => {
-        expect(Strings.get('share_cta_deadline', lang)).toBe(DEADLINES[lang]);
+    it.each(Object.entries(CTA_LINES))('%s returns the exact copy per language', (key, copy) => {
+        for (const [lang, expected] of Object.entries(copy)) {
+            expect(Strings.get(key, lang)).toBe(expected);
+        }
     });
 
     it('normalizes stored uppercase and full locales, falling back to en', () => {
@@ -74,40 +89,6 @@ describe('buildShareUrl', () => {
         expect(buildShareUrl(undefined)).toBe(SHARE_URL_BASE);
         expect(buildShareUrl('')).toBe(SHARE_URL_BASE);
         expect(buildShareUrl('ab12')).toBe(`${SHARE_URL_BASE}/ab12`);
-    });
-});
-
-describe('buildShareDeadline', () => {
-    const nowMs = Date.UTC(2026, 2, 13, 12, 0, 0);
-
-    it('is 48 hours', () => {
-        expect(SHARE_WINDOW_HOURS).toBe(48);
-    });
-
-    it.each(LANGS)('formats now+48h in the %s locale with weekday', (lang) => {
-        const expected = new Date(nowMs + SHARE_WINDOW_HOURS * 60 * 60 * 1000)
-            .toLocaleString(LOCALE_MAP[lang], DEADLINE_OPTIONS);
-
-        expect(buildShareDeadline(nowMs, lang)).toBe(expected);
-    });
-
-    it('differs from the unshifted timestamp (proves the +48h offset)', () => {
-        const unshifted = new Date(nowMs).toLocaleString('en', DEADLINE_OPTIONS);
-
-        expect(buildShareDeadline(nowMs, 'en')).not.toBe(unshifted);
-    });
-
-    it('localizes (non-en differs from en)', () => {
-        expect(buildShareDeadline(nowMs, 'es')).not.toBe(buildShareDeadline(nowMs, 'en'));
-    });
-
-    it('normalizes es / ES / es-ES identically and falls back to en', () => {
-        const es = buildShareDeadline(nowMs, 'es');
-
-        expect(buildShareDeadline(nowMs, 'ES')).toBe(es);
-        expect(buildShareDeadline(nowMs, 'es-ES')).toBe(es);
-        expect(buildShareDeadline(nowMs, '')).toBe(buildShareDeadline(nowMs, 'en'));
-        expect(buildShareDeadline(nowMs, 'DE')).toBe(buildShareDeadline(nowMs, 'en'));
     });
 });
 
@@ -173,31 +154,25 @@ describe('isShareCtaEnabled', () => {
 
 describe('share_message (recap share text)', () => {
     // The message attached when sharing the recap video must carry the learner's
-    // personal share link, localized to their language.
-    const EXPECTED = {
-        en: 'Practice English with me free here: {url}',
-        es: 'Practica inglés conmigo gratis aquí: {url}',
-        pt: 'Pratique inglês comigo de graça aqui: {url}',
-        fr: "Pratique l'anglais avec moi gratuitement ici : {url}",
-        hi: 'मेरे साथ यहाँ मुफ़्त अंग्रेज़ी प्रैक्टिस करें: {url}',
-        bn: 'এখানে আমার সাথে ফ্রি ইংরেজি প্র্যাকটিস করুন: {url}',
-    };
-
+    // personal share link, localized to their language. The exact per-language
+    // copy is exercised end-to-end in video-share-message.test.js.
     it.each(LANGS)('has a %s translation with the {url} placeholder', (lang) => {
-        expect(Strings.get('share_message', lang)).toBe(EXPECTED[lang]);
+        expect(Strings.get('share_message', lang)).toContain('{url}');
     });
 
-    it('interpolates the share URL into the message', () => {
+    it('interpolates the share URL into the message for every language', () => {
         const url = buildShareUrl('abc123');
-        expect(Strings.get('share_message', 'en', { url }))
-            .toBe('Practice English with me free here: ultrafastfluency.com/abc123');
-        expect(Strings.get('share_message', 'es', { url }))
-            .toBe('Practica inglés conmigo gratis aquí: ultrafastfluency.com/abc123');
+        for (const lang of LANGS) {
+            const out = Strings.get('share_message', lang, { url });
+            expect(out).toContain('ultrafastfluency.com/abc123');
+            expect(out).not.toContain('{url}');
+        }
     });
 
     it('falls back to the bare host when there is no share code', () => {
         const url = buildShareUrl(null);
-        expect(Strings.get('share_message', 'en', { url }))
-            .toBe('Practice English with me free here: ultrafastfluency.com');
+        const out = Strings.get('share_message', 'en', { url });
+        expect(out).toContain('ultrafastfluency.com');
+        expect(out).not.toContain('{url}');
     });
 });

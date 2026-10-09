@@ -995,9 +995,10 @@ def create_overlay_html(row, video_width, video_height):
     """Burned-in overlay for a rendered step.
 
     Each block sits in a vertical band measured as a fraction of the video
-    height, and its font is *fit* to that band (grown to fill it, shrunk to
-    fit) rather than scaled from one base size. This keeps the burned-in text
-    legible at any length instead of overflowing.
+    height and its font is *fit* to that band rather than scaled from one base
+    size: the title is a wrapping white pill shrunk until it fits above the
+    body, and the body is grown/shrunk to fill its band. This keeps the
+    burned-in text legible at any length instead of overflowing.
 
     The app draws its own SRT captions over the video during a response step.
     Those captions are *timed* (one cue at a time) and sit near the bottom, so
@@ -1007,8 +1008,7 @@ def create_overlay_html(row, video_width, video_height):
     # --- Vertical bands (fractions of the video height) ---
     APP_CAPTION_TOP = 0.80   # the app's timed SRT captions own the bottom 20%
     TITLE_TOP = 0.07         # healthy margin for browser/device chrome
-    TITLE_BOTTOM = 0.15      # single line; never extends below 15% from the top
-    BODY_TOP = 0.17
+    BODY_TOP = 0.17          # the title owns every line above this one
     FOOTER_TOP = APP_CAPTION_TOP - 0.05   # 0.75; one footer line above the captions
     BODY_BOTTOM = FOOTER_TOP - 0.01       # 0.74; the body clears the footer line
     horizontal_margin = video_width * 0.025
@@ -1016,12 +1016,15 @@ def create_overlay_html(row, video_width, video_height):
     # edge-to-edge (2.5% was near the screen border; 8% gives readable margins).
     subtitle_horizontal_margin = video_width * 0.08
 
-    title_band = (TITLE_BOTTOM - TITLE_TOP) * video_height
     body_band = (BODY_BOTTOM - BODY_TOP) * video_height
 
-    # --- Adaptive font bounds (px): the JS fits each block inside its band ---
-    title_min = max(10, int(video_height * 0.016))
-    title_max = max(title_min, int(video_height * 0.045))
+    # --- Font sizes (px) ---
+    # Title: a wrapping white pill (see .title span). Base size, plus a
+    # shrink-to-fit cap. The inline span's vertical padding does not contribute
+    # to the line box, so subtract it to keep the whole pill above BODY_TOP.
+    TITLE_PADDING_Y = 18
+    title_base = max(10, int(video_height * 0.05))
+    title_max_height = max(10, int((BODY_TOP - TITLE_TOP) * video_height) - 2 * TITLE_PADDING_Y)
     body_min = max(10, int(video_height * 0.018))
     body_max = max(body_min, int(video_height * 0.055))
     footer_size = max(9, int(video_height * 0.018))
@@ -1038,29 +1041,24 @@ def create_overlay_html(row, video_width, video_height):
 *{{margin:0;padding:0;box-sizing:border-box}}
 html, body{{background:transparent!important; width:{video_width}px; height:{video_height}px; overflow:hidden;}}
 
-/* Title band: one line, top {TITLE_TOP * 100:.0f}%-{TITLE_BOTTOM * 100:.0f}%. */
+/* Title pill: top {TITLE_TOP * 100:.0f}%, wraps, never past BODY_TOP. */
 .title {{
     position: absolute;
     top: {TITLE_TOP * video_height}px;
-    height: {title_band}px;
+    max-height: {title_max_height}px;
     left: {horizontal_margin}px;
     right: {horizontal_margin}px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
     text-align: center;
     font-family: '{TITLE_FONT}', sans-serif;
-    font-size: {title_max}px;
+    font-size: {title_base}px;
     font-weight: 900;
-    line-height: 1.1;
-    white-space: nowrap;
-    overflow: hidden;
+    line-height: 1.6;
 }}
 
 .title span {{
     background: white;
     color: black;
-    padding: 10px 28px;
+    padding: {TITLE_PADDING_Y}px 40px;
     border-radius: 36px;
     -webkit-box-decoration-break: clone;
     box-decoration-break: clone;
@@ -1143,7 +1141,7 @@ aside {{
     position: fixed;
     top: {BODY_TOP * video_height}px;
     left: {video_width * 0.02}px;
-    width: {video_width * 0.70}px;
+    max-width: {video_width * 0.50}px;
     max-height: {body_band}px;
     background: rgba(255, 255, 255, 0.85);
     color: #111111;
@@ -1202,20 +1200,16 @@ strong {{
             }}
         }}
     }}
-    // The title is forced to a single line, so fit it by width, not height.
-    function fitTitleToOneLine(el, minPx, maxPx) {{
-        if (!el) return;
-        var span = el.querySelector('span') || el;
-        var avail = el.clientWidth;
-        if (!avail) return;
-        var size = maxPx;
-        span.style.fontSize = size + 'px';
-        while (span.scrollWidth > avail && size > minPx) {{
-            size -= 1;
-            span.style.fontSize = size + 'px';
+    // The title pill wraps; shrink it until it fits above the body band.
+    var titleEl = document.querySelector('.title');
+    if (titleEl) {{
+        var maxTitleHeight = {title_max_height};
+        var titleSize = {title_base};
+        while (titleEl.scrollHeight > maxTitleHeight && titleSize > 10) {{
+            titleSize -= 1;
+            titleEl.style.fontSize = titleSize + 'px';
         }}
     }}
-    fitTitleToOneLine(document.querySelector('.title'), {title_min}, {title_max});
     fitToBand(document.querySelector('.subtitle'), {body_min}, {body_max});
 </script>
 

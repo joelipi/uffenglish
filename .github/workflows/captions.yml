@@ -1,8 +1,17 @@
 name: Generate Captions
 # Main only: a captions run on every branch push was pure Actions burn.
+# Docs-only pushes are ignored: no new `simpleVideoUrl` slug can arrive in a
+# markdown/story/plan change, so there is nothing to caption.
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '*.md'
+      - '**/*.md'
+      - 'docs/**'
+      - 'stories/**'
+      - 'plans/**'
+      - '.opencode/**'
   workflow_dispatch:
 permissions:
   contents: read
