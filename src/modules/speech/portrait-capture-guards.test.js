@@ -1,12 +1,15 @@
 // Guards for the 9:16 portrait-capture path (speech.web.js).
 //
 // iOS cameras already yield a portrait frame and their MediaRecorder path is
-// fragile and working — iOS must keep the raw camera stream. Every other
-// platform (Windows/macOS/Linux/ChromeOS/Android) has a camera that may hand
-// back a non-9:16 frame, so the stream is composited into a real 1080×1920
-// canvas for the preview and the recording. These are source-shape guards
-// because speech.web.js reads browser globals at module load and cannot be
-// imported in jsdom.
+// fragile and working — iOS must keep the raw camera stream. Android also keeps
+// the raw stream: the 1080×1920 canvas composite adds a second camera surface
+// and a software encode that OOMs low-memory phones while Whisper is loaded, so
+// Android asks the camera for a portrait frame instead (getMediaConstraints).
+// Every other platform (Windows/macOS/Linux/ChromeOS) has a laptop camera that
+// ignores the request, so the stream is composited into a real 1080×1920 canvas
+// for the preview and the recording. These are source-shape guards because
+// speech.web.js reads browser globals at module load and cannot be imported in
+// jsdom.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -25,13 +28,19 @@ function functionBody(source, signature) {
 }
 
 describe('portrait capture (9:16)', () => {
-    it('gates the composite on a device check that excludes iOS only', () => {
+    it('gates the composite on a device check that excludes iOS and Android', () => {
         expect(WEB).toMatch(/import \{ isIOS \} from '\.\.\/\.\.\/utils\/detectIOS\.js'/);
+        expect(WEB).toMatch(/const isAndroid = \/Android\/i\.test\(navigator\.userAgent\)/);
         const body = functionBody(WEB, 'export function shouldUsePortraitCapture()');
         expect(body).not.toBe('');
-        expect(body).toMatch(/return !isIOS\(\)/);
-        // Android must no longer be excluded — it uses the same composite as desktop.
-        expect(body).not.toMatch(/isAndroid/);
+        expect(body).toMatch(/return !isIOS\(\) && !isAndroid/);
+    });
+
+    it('asks Android for a portrait camera frame (no composite on phones)', () => {
+        const body = functionBody(WEB, 'function getMediaConstraints()');
+        expect(body).not.toBe('');
+        expect(body).toMatch(/isWindows \|\| isAndroid/);
+        expect(body).toMatch(/9 \/ 16/);
     });
 
     it('builds a 1080×1920 canvas stream, centre-cropping the camera', () => {
