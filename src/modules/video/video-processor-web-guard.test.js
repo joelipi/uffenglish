@@ -199,6 +199,9 @@ describe('video-processor.web.js recap wiring guard', () => {
         );
         expect(fn).toMatch(/strokeText\(/);
         expect(fn).toMatch(/lineWidth/);
+        // Order matters: the outline is painted BEFORE the white fill, or it
+        // would cover the glyph body.
+        expect(fn.indexOf('strokeText(')).toBeLessThan(fn.indexOf('fillText('));
     });
 
     it('measures overlay text through the DOM, not only canvas measureText', () => {

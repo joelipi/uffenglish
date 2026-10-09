@@ -727,7 +727,7 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
             drawTextOverlay(
                 ctx, canvas.width, canvas.height,
                 isTailing, tailStart, fluencyData,
-                step.isFirst, step.subtitle, displayCanvas,
+                step.isFirst, step.subtitle,
                 overlayVariant, shareCta, headerLayout
             );
 
@@ -971,7 +971,7 @@ function drawCenteredLine(context, text, centerX, y, { stroke = null, strokeWidt
     context.textAlign = prevAlign;
 }
 
-function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart, fluencyData, isFirst, subtitleText, displayCanvas, overlayVariant = 'fluency', shareCta = null, headerLayout = null) {
+function drawTextOverlay(context, canvasWidth, canvasHeight, tailing, tailStart, fluencyData, isFirst, subtitleText, overlayVariant = 'fluency', shareCta = null, headerLayout = null) {
     const now = performance.now();
     const blinkOn = Math.floor(now / 500) % 2 === 0;
     context.save();
