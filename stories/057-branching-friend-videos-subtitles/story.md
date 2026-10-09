@@ -4,14 +4,17 @@
 
 `wouldyourather` lesson `b` opens with a `branching` step whose `simpleVideoUrl` is `{friendCode}wouldyourather-a-response-01` — the friend's recorded question, a UGC clip published per-segment with its speaker's caption **burned into the video** (stories 035/036). The committed `src/config/wouldyourather.json` also gives that step a `subtitles` object, so `SimpleVideoPlayer` draws the same SRT a second time over the clip.
 
-Where the field comes from: on the overlay master (gid `242913338`) the lesson-`b` row with `video_file = {friendCode}wouldyourather-a-response-01` (`response_type` `branching`, `order` `1`, no `join`) has a non-blank `srt` column (and `srt_es`/`srt_pt`/`srt_bn`). The generator groups that one row into one step and `buildMasterSteps` → `srtSubtitlesFor` emits `step.subtitles` from `srt`, which is why the app shows the caption. Clearing that cell would hide the bug once, but the generator would reproduce it on the next config run, and any stray `srt` on a friend step would do the same.
+Where the field comes from: on the overlay master (gid `242913338`) the lesson-`b` row with `video_file = {friendCode}wouldyourather-a-response-01` (`response_type` `branching`, `order` `1`, no `join`, **no `filename`**) has a non-blank `srt` column (and `srt_es`/`srt_pt`/`srt_bn`). The generator groups that one row into one step and `buildMasterSteps` → `srtSubtitlesFor` emits `step.subtitles` from `srt`, which is why the app shows the caption.
 
-Every other friend-clip step in every `src/config/*.json` (`wouldrather`, `friendchain`, `test`, `friend`) already has **no** `subtitles`; this one is the sole exception. The fix is to make the generator stop emitting `subtitles` for a step whose clip is a friend UGC video — that clip is already captioned, so an app caption would double it.
+**The `srt` cell is machine-written, so deleting it does not stick.** `scripts/write-srt-to-sheet.mjs` `planSrtWrites` matches sheet rows to rendered groups **by `filename`**, and the master has several `filename`-less rows. The rendered `wouldyourather_a01` group's config-only rows (lesson `b`, rows 17-20) are `filename`-less too, so they set the map's `''` key to `wouldyourather_a01`'s SRT; every `filename`-less sheet row — the branching row and the `intro` rows — then matches `''` and is overwritten with a01's SRT. Running the repo's own `planSrtWrites` against the live master plans a write to the branching row (sheet row 7) with a01's SRT, and `sync-srt` runs on every render. The stray value would come straight back.
+
+Every other friend-clip step in every `src/config/*.json` (`wouldrather`, `friendchain`, `test`, `friend`) already has **no** `subtitles`; this one is the sole exception. The durable fix is to make the generator stop emitting `subtitles` for a step whose clip is a friend UGC video — that clip is already captioned, so an app caption would double it — regardless of what the sheet's `srt` cell says.
 
 ## Out of Scope
 
 - No player/runtime change: `loadVideoForStep` keeps mapping `step.subtitles` straight to the player. The generator is authoritative (it overwrites configs) and a config test guard enforces the invariant over every course, so a runtime guard would duplicate the rule in two places.
-- No sheet edit and no pipeline/recorder change — the stray master `srt` cell is left in place and becomes inert; no `srt` write-back touches this row (`write-srt-to-sheet.mjs` matches sheet rows by `filename`, which this row does not have).
+- No sheet edit — the stray master `srt` cell is left in place and becomes inert for the friend step; the story does not require the operator to touch the sheet.
+- **No change to the `sync-srt` write-back** (`scripts/write-srt-to-sheet.mjs`). Its blank-`filename` key collision is the reason the cell reappears, but a correct fix changes which rows track a rendered group's SRT — the `intro` rows' cell is currently supplied only by that collision, so that fix needs its own decision and is tracked separately. The generator guard makes the app correct regardless of the collision.
 - No change to `srt` behavior for system/teacher steps (they keep app subtitles) and no change to the recap (story 036 already nulls a friend clip's recap subtitle).
 - No new dependency.
 
@@ -95,6 +98,7 @@ Files: `docs/video-pipeline/authoring-sheet.md`, `docs/product.md`, `scripts/gen
 
 ## Notes
 
-- The root cause is a single stray `srt` on a friend row, but the durable fix is the generator rule: the sheet is the source of truth and regenerates (and overwrites) `wouldyourather.json`, so a data-only fix would regress on the next config run.
-- The master row's `srt` cell need not be cleared; it is now inert for a friend step. Leaving it avoids a manual sheet edit.
+- A sheet-data-only fix (delete the `srt` cell) is not viable: the cell is machine-rewritten by `planSrtWrites`' blank-`filename` collision on the next `sync-srt` run (verified by running the repo's own `planSrtWrites` against the live master). The durable fix is the generator rule.
+- The generator guard also covers the `srt_es`/`srt_pt`/`srt_bn` cells the collision cascades into (the translate step fills them from the stamped English `srt`).
+- A "what this row produces" informational sheet column was considered as an operator aid; instead the master → config mapping is documented in `docs/video-pipeline/authoring-sheet.md` (Task 3), so no unread column has to be added to the operator's live sheet.
 - Not automatable: an operator confirming on a real device that the branch clip shows only its own burned-in caption and no second subtitle line. The contract is the absent `subtitles` key, which is exactly what the player consumes.
