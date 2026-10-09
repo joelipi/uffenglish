@@ -165,7 +165,7 @@ export function isShareCtaEnabled(variant) {
     return variant === 'shareCta';
 }
 
-// The recap header banner may occupy at most the top 18% of the frame. It sits
+// The recap header banner's drawn height is capped at 18% of the frame. It sits
 // below a top margin (below) so browser/messenger chrome cannot cover it.
 export const HEADER_BAND_RATIO = 0.18;
 

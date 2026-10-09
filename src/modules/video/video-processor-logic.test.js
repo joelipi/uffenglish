@@ -1129,6 +1129,12 @@ describe('resolveHeaderLayout', () => {
         }
     });
 
+    it('preserves the banner aspect ratio', () => {
+        const layout = resolveHeaderLayout({ ...HEADER, canvasWidth: 1080, canvasHeight: 1920 });
+        const scale = layout.width / HEADER.naturalWidth;
+        expect(layout.height).toBe(Math.round(HEADER.naturalHeight * scale));
+    });
+
     it('lands in exactly the same spot for the same canvas size', () => {
         const a = resolveHeaderLayout({ ...HEADER, canvasWidth: 1080, canvasHeight: 1920 });
         const b = resolveHeaderLayout({ ...HEADER, canvasWidth: 1080, canvasHeight: 1920 });
