@@ -5,9 +5,9 @@
  *
  * Two-step flow:
  *   1. 'select-language' — dropdown (browser language pre-selected unless it
- *      is English) + primary "Continue in [Language]" button + "No
- *      translations (not recommended)" + "my language is not on this list".
- *      UI re-translates as the dropdown changes.
+ *      is English) + primary "Continue in [Language]" button + a text link
+ *      "My language is not listed. Continue without translations." for the
+ *      single non-translation exit. UI re-translates as the dropdown changes.
  *   2. 'login-choice'     — Log In / Sign Up / Continue as Guest,
  *      localized using the language chosen in step 1.
  */
@@ -108,12 +108,6 @@ export default function GuestLoginModal() {
         console.log('[GuestLoginModal] Guest confirmed native language:', lang);
     }, [selectedLang, guestDetectedLang]);
 
-    const handleEnglishOnly = useCallback(() => {
-        appStore.getState().confirmGuestLanguage('EN');
-        trackEvent('guest_modal_action', { action: 'language_selected', language: 'EN' });
-        console.log('[GuestLoginModal] Guest chose English only');
-    }, []);
-
     const handleNotListed = useCallback(() => {
         appStore.getState().confirmGuestLanguage('OTHER');
         trackEvent('guest_modal_action', { action: 'language_not_listed' });
@@ -184,24 +178,20 @@ export default function GuestLoginModal() {
                                             {chosenName}
                                         </span>
                                     </button>
+                                </div>
+                                {/* Text link (not a button) — the single exit for a
+                                    language that is not in the dropdown. The id is
+                                    kept as `guestEnglishOnlyBtn` for the e2e gate
+                                    helpers that click it to dismiss the modal. */}
+                                <div className="text-center mt-3">
                                     <button
                                         type="button"
-                                        className="btn btn-outline-light"
+                                        className="btn btn-link text-light"
                                         id="guestEnglishOnlyBtn"
-                                        onClick={handleEnglishOnly}
-                                    >
-                                        <span id="guestEnglishOnlyBtnText">
-                                            {Strings.get('guest_language_english_only', step1Lang) || "No translations (not recommended)"}
-                                        </span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="btn btn-outline-secondary btn-sm"
-                                        id="guestNotListedBtn"
                                         onClick={handleNotListed}
                                     >
-                                        <span id="guestNotListedBtnText">
-                                            {Strings.get('guest_language_not_listed', step1Lang) || "My language is not on this list (continue without translations)"}
+                                        <span id="guestEnglishOnlyBtnText">
+                                            {Strings.get('guest_language_not_listed', step1Lang) || "My language is not listed. Continue without translations."}
                                         </span>
                                     </button>
                                 </div>

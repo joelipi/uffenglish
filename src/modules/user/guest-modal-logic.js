@@ -20,6 +20,27 @@ export function isPublicHomeRoute(pathname) {
     return PUBLIC_ROUTES.includes(normalized);
 }
 
+// Static single-segment routes declared in routes.jsx before the /:shareCode
+// catch-all. Any other single-segment path is a share code and resolves to the
+// public profile route, so it must be excluded from the guest modal too.
+export const STATIC_SINGLE_SEGMENT_ROUTES = [
+    '/', '/home', '/login', '/signup', '/recover-password', '/reset-password',
+    '/profile', '/privacy', '/terms', '/confirm-email', '/courses',
+];
+
+// User profile pages: the logged-in profile (/profile) and the public
+// share-code profile (/:shareCode). The guest login/language modal must not
+// open on either, so an anonymous visitor is never gated by a language or
+// login prompt while reading a profile.
+export function isProfileRoute(pathname) {
+    if (typeof pathname !== 'string' || pathname === '') return false;
+    const normalized = (pathname.replace(/\/+$/, '') || '/').toLowerCase();
+    if (normalized === '/profile') return true;
+    const segments = normalized.split('/').filter(Boolean);
+    if (segments.length !== 1) return false;
+    return !STATIC_SINGLE_SEGMENT_ROUTES.includes('/' + segments[0]);
+}
+
 // - friend lesson + non-English browser -> adopt the browser language silently
 //   (no modal at all)
 // - friend lesson + English browser     -> language step only

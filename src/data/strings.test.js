@@ -40,8 +40,8 @@ describe('Hindi and Bengali spot checks', () => {
     });
 
     it('translates guest modal strings', () => {
-        expect(get('guest_language_title', 'hi')).toBe('अपनी मातृभाषा की पुष्टि करें');
-        expect(get('guest_language_title', 'bn')).toBe('আপনার মাতৃভাষা নিশ্চিত করুন');
+        expect(get('guest_language_title', 'hi')).toBe('हमारे साथ मुफ़्त अंग्रेज़ी का अभ्यास करें!\nअनुवाद के लिए अपनी भाषा चुनें');
+        expect(get('guest_language_title', 'bn')).toBe('আমাদের সাথে বিনামূল্যে ইংরেজি চর্চা করুন!\nঅনুবাদের জন্য আপনার ভাষা নির্বাচন করুন');
         expect(get('guest_modal_continue', 'hi')).toBe('अतिथि के रूप में जारी रखें');
         expect(get('guest_modal_continue', 'bn')).toBe('অতিথি হিসেবে চালিয়ে যান');
     });
@@ -51,10 +51,21 @@ describe('Hindi and Bengali spot checks', () => {
             .toBe('Practice English with Us Free!\nSelect your language for translations');
     });
 
-    it('relabels the two non-translation exits in English', () => {
-        expect(get('guest_language_english_only', 'en')).toBe('No translations (not recommended)');
+    it('relabels the non-translation exit as a text link in English', () => {
         expect(get('guest_language_not_listed', 'en'))
-            .toBe('My language is not on this list (continue without translations)');
+            .toBe('My language is not listed. Continue without translations.');
+    });
+
+    // The language-selection step and the login-choice step render the same
+    // languages, so every guest-modal key must carry the full UI language set
+    // (en/es/pt/fr/hi/bn). A missing value silently falls back to English and
+    // leaves the modal half-translated.
+    it.each(['guest_modal_title', 'guest_modal_body', 'guest_modal_login', 'guest_modal_signup',
+        'guest_modal_continue', 'guest_language_title', 'guest_language_select',
+        'guest_language_not_listed'])('%s carries en/es/pt/fr/hi/bn', (key) => {
+        for (const lang of ['en', 'es', 'pt', 'fr', 'hi', 'bn']) {
+            expect(get(key, lang), `${key}/${lang}`).toBeTruthy();
+        }
     });
 
     it('translates profile and auth strings', () => {

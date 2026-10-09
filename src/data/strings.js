@@ -896,6 +896,7 @@ const strings = {
     'legal_privacy': {
         en: "Privacy Policy",
         es: "Política de Privacidad",
+        pt: "Política de Privacidade",
         fr: "Politique de confidentialité",
         hi: "गोपनीयता नीति",
         bn: "গোপনীয়তা নীতি"
@@ -903,6 +904,7 @@ const strings = {
     'legal_terms': {
         en: "Terms of Service",
         es: "Términos del Servicio",
+        pt: "Termos de Serviço",
         fr: "Conditions d'utilisation",
         hi: "सेवा की शर्तें",
         bn: "সেবার শর্তাবলী"
@@ -910,6 +912,7 @@ const strings = {
     'legal_back': {
         en: "Back",
         es: "Volver",
+        pt: "Voltar",
         fr: "Retour",
         hi: "वापस",
         bn: "ফিরে যান"
@@ -950,55 +953,66 @@ const strings = {
     'guest_modal_title': {
         en: "Welcome!",
         es: "¡Bienvenido!",
+        pt: "Bem-vindo!",
+        fr: "Bienvenue !",
         hi: "स्वागत है!",
         bn: "স্বাগতম!"
     },
     'guest_modal_body': {
         en: "You are currently not logged in.",
         es: "Actualmente no has iniciado sesión.",
+        pt: "Você não está conectado no momento.",
+        fr: "Vous n'êtes actuellement pas connecté.",
         hi: "आप वर्तमान में लॉग इन नहीं हैं।",
         bn: "আপনি বর্তমানে লগ ইন করেননি।"
     },
     'guest_modal_login': {
         en: "Log In",
         es: "Iniciar sesión",
+        pt: "Entrar",
+        fr: "Se connecter",
         hi: "लॉग इन",
         bn: "লগ ইন"
     },
     'guest_modal_signup': {
         en: "Sign Up",
         es: "Registrarse",
+        pt: "Cadastrar-se",
+        fr: "S'inscrire",
         hi: "साइन अप",
         bn: "সাইন আপ"
     },
     'guest_modal_continue': {
         en: "Continue as Guest",
         es: "Continuar como invitado",
+        pt: "Continuar como convidado",
+        fr: "Continuer en tant qu'invité",
         hi: "अतिथि के रूप में जारी रखें",
         bn: "অতিথি হিসেবে চালিয়ে যান"
     },
     'guest_language_title': {
         en: "Practice English with Us Free!\nSelect your language for translations",
-        es: "Confirmar Tu Idioma Nativo",
-        hi: "अपनी मातृभाषा की पुष्टि करें",
-        bn: "আপনার মাতৃভাষা নিশ্চিত করুন"
+        es: "¡Practica inglés con nosotros gratis!\nSelecciona tu idioma para las traducciones",
+        pt: "Pratique inglês conosco de graça!\nSelecione seu idioma para as traduções",
+        fr: "Pratiquez l'anglais avec nous gratuitement !\nSélectionnez votre langue pour les traductions",
+        hi: "हमारे साथ मुफ़्त अंग्रेज़ी का अभ्यास करें!\nअनुवाद के लिए अपनी भाषा चुनें",
+        bn: "আমাদের সাথে বিনামূল্যে ইংরেজি চর্চা করুন!\nঅনুবাদের জন্য আপনার ভাষা নির্বাচন করুন"
     },
     'guest_language_select': {
         en: "Select your language...",
+        es: "Selecciona tu idioma...",
+        pt: "Selecione seu idioma...",
+        fr: "Sélectionnez votre langue...",
         hi: "अपनी भाषा चुनें...",
         bn: "আপনার ভাষা নির্বাচন করুন..."
     },
-    'guest_language_english_only': {
-        en: "No translations (not recommended)",
-        es: "Continuar solo en inglés",
-        hi: "केवल अंग्रेज़ी में जारी रखें",
-        bn: "শুধুমাত্র ইংরেজিতে চালিয়ে যান"
-    },
     'guest_language_not_listed': {
-        en: "My language is not on this list (continue without translations)",
-        es: "Mi idioma no está en esta lista",
-        hi: "मेरी भाषा इस सूची में नहीं है",
-        bn: "আমার ভাষা এই তালিকায় নেই"
+        en: "My language is not listed. Continue without translations.",
+        es: "Mi idioma no está en la lista. Continuar sin traducciones.",
+        pt: "Meu idioma não está na lista. Continuar sem traduções.",
+        fr: "Ma langue n'est pas dans la liste. Continuer sans traductions.",
+        hi: "मेरी भाषा सूची में नहीं है। बिना अनुवाद के जारी रखें।",
+        bn: "আমার ভাষা তালিকায় নেই। অনুবাদ ছাড়াই চালিয়ে যান।"
     },
 
     // --- Home Screen ---
@@ -1079,24 +1093,32 @@ const strings = {
     'profile_first_name': {
         en: "First Name",
         es: "Nombre",
+        pt: "Nome",
+        fr: "Prénom",
         hi: "पहला नाम",
         bn: "প্রথম নাম"
     },
     'profile_last_name': {
         en: "Last Name",
         es: "Apellido",
+        pt: "Sobrenome",
+        fr: "Nom",
         hi: "अंतिम नाम",
         bn: "শেষ নাম"
     },
     'profile_native_language': {
         en: "Native Language",
         es: "Idioma Nativo",
+        pt: "Idioma Nativo",
+        fr: "Langue maternelle",
         hi: "मातृभाषा",
         bn: "মাতৃভাষা"
     },
     'profile_user_level': {
         en: "English Level",
         es: "Nivel de Inglés",
+        pt: "Nível de Inglês",
+        fr: "Niveau d'anglais",
         hi: "अंग्रेज़ी स्तर",
         bn: "ইংরেজি স্তর"
     },
@@ -1338,6 +1360,8 @@ const strings = {
     'profile_password_updated': {
         en: "Password updated successfully.",
         es: "Contraseña actualizada correctamente.",
+        pt: "Senha atualizada com sucesso.",
+        fr: "Mot de passe mis à jour avec succès.",
         hi: "पासवर्ड सफलतापूर्वक अपडेट हुआ।",
         bn: "পাসওয়ার্ড সফলভাবে আপডেট হয়েছে।"
     },
@@ -1376,78 +1400,104 @@ const strings = {
     'auth_login_title': {
         en: "Login",
         es: "Iniciar sesión",
+        pt: "Entrar",
+        fr: "Connexion",
         hi: "लॉगिन",
         bn: "লগইন"
     },
     'auth_email_label': {
         en: "Email address",
         es: "Correo electrónico",
+        pt: "Endereço de e-mail",
+        fr: "Adresse e-mail",
         hi: "ईमेल पता",
         bn: "ইমেইল ঠিকানা"
     },
     'auth_password_label': {
         en: "Password",
         es: "Contraseña",
+        pt: "Senha",
+        fr: "Mot de passe",
         hi: "पासवर्ड",
         bn: "পাসওয়ার্ড"
     },
     'auth_logging_in': {
         en: "Logging in...",
         es: "Iniciando sesión...",
+        pt: "Entrando...",
+        fr: "Connexion...",
         hi: "लॉग इन हो रहा है...",
         bn: "লগ ইন হচ্ছে..."
     },
     'auth_log_in': {
         en: "Log In",
         es: "Iniciar sesión",
+        pt: "Entrar",
+        fr: "Se connecter",
         hi: "लॉग इन",
         bn: "লগ ইন"
     },
     'auth_no_account': {
         en: "Don't have an account?",
         es: "¿No tienes una cuenta?",
+        pt: "Não tem uma conta?",
+        fr: "Vous n'avez pas de compte ?",
         hi: "खाता नहीं है?",
         bn: "অ্যাকাউন্ট নেই?"
     },
     'auth_sign_up_link': {
         en: "Sign up",
         es: "Registrarse",
+        pt: "Cadastre-se",
+        fr: "S'inscrire",
         hi: "साइन अप करें",
         bn: "সাইন আপ করুন"
     },
     'auth_forgot_password': {
         en: "Forgot password?",
         es: "¿Olvidaste tu contraseña?",
+        pt: "Esqueceu a senha?",
+        fr: "Mot de passe oublié ?",
         hi: "पासवर्ड भूल गए?",
         bn: "পাসওয়ার্ড ভুলে গেছেন?"
     },
     'auth_signup_title': {
         en: "Sign Up",
         es: "Registrarse",
+        pt: "Cadastrar-se",
+        fr: "S'inscrire",
         hi: "साइन अप",
         bn: "সাইন আপ"
     },
     'auth_creating_account': {
         en: "Creating account...",
         es: "Creando cuenta...",
+        pt: "Criando conta...",
+        fr: "Création du compte...",
         hi: "खाता बनाया जा रहा है...",
         bn: "অ্যাকাউন্ট তৈরি হচ্ছে..."
     },
     'auth_password_min_chars': {
         en: "Password (min 8 chars)",
         es: "Contraseña (mín 8 caracteres)",
+        pt: "Senha (mín. 8 caracteres)",
+        fr: "Mot de passe (min. 8 caractères)",
         hi: "पासवर्ड (न्यूनतम 8 अक्षर)",
         bn: "পাসওয়ার্ড (সর্বনিম্ন 8 অক্ষর)"
     },
     'auth_already_account': {
         en: "Already have an account?",
         es: "¿Ya tienes una cuenta?",
+        pt: "Já tem uma conta?",
+        fr: "Vous avez déjà un compte ?",
         hi: "पहले से खाता है?",
         bn: "ইতিমধ্যে অ্যাকাউন্ট আছে?"
     },
     'auth_log_in_link': {
         en: "Log in",
         es: "Iniciar sesión",
+        pt: "Entrar",
+        fr: "Se connecter",
         hi: "लॉग इन करें",
         bn: "লগ ইন করুন"
     },
@@ -1490,36 +1540,48 @@ const strings = {
     'auth_recover_title': {
         en: "Recover Password",
         es: "Recuperar Contraseña",
+        pt: "Recuperar Senha",
+        fr: "Récupérer le mot de passe",
         hi: "पासवर्ड पुनर्प्राप्त करें",
         bn: "পাসওয়ার্ড পুনরুদ্ধার করুন"
     },
     'auth_recover_instruction': {
         en: "Enter your email address to receive a password reset link.",
         es: "Ingresa tu correo electrónico para recibir un enlace de restablecimiento.",
+        pt: "Digite seu endereço de e-mail para receber um link de redefinição de senha.",
+        fr: "Entrez votre adresse e-mail pour recevoir un lien de réinitialisation du mot de passe.",
         hi: "पासवर्ड रीसेट लिंक प्राप्त करने के लिए अपना ईमेल पता दर्ज करें।",
         bn: "পাসওয়ার্ড রিসেট লিংক পেতে আপনার ইমেইল ঠিকানা লিখুন।"
     },
     'auth_sending': {
         en: "Sending...",
         es: "Enviando...",
+        pt: "Enviando...",
+        fr: "Envoi...",
         hi: "भेजा जा रहा है...",
         bn: "পাঠানো হচ্ছে..."
     },
     'auth_send_recovery': {
         en: "Send Recovery Email",
         es: "Enviar Correo de Recuperación",
+        pt: "Enviar E-mail de Recuperação",
+        fr: "Envoyer l'e-mail de récupération",
         hi: "पुनर्प्राप्ति ईमेल भेजें",
         bn: "পুনরুদ্ধার ইমেইল পাঠান"
     },
     'auth_back_to_login': {
         en: "Back to login",
         es: "Volver a iniciar sesión",
+        pt: "Voltar para o login",
+        fr: "Retour à la connexion",
         hi: "लॉगिन पर वापस जाएँ",
         bn: "লগইনে ফিরে যান"
     },
     'auth_recovery_sent': {
         en: "Recovery email sent. Check your inbox.",
         es: "Correo de recuperación enviado. Revisa tu bandeja de entrada.",
+        pt: "E-mail de recuperação enviado. Verifique sua caixa de entrada.",
+        fr: "E-mail de récupération envoyé. Vérifiez votre boîte de réception.",
         hi: "पुनर्प्राप्ति ईमेल भेजा गया। अपना इनबॉक्स जाँचें।",
         bn: "পুনরুদ্ধার ইমেইল পাঠানো হয়েছে। আপনার ইনবক্স পরীক্ষা করুন।"
     },
@@ -1879,42 +1941,56 @@ const strings = {
     'auth_reset_title': {
         en: "Set New Password",
         es: "Establecer Nueva Contraseña",
+        pt: "Definir Nova Senha",
+        fr: "Définir un nouveau mot de passe",
         hi: "नया पासवर्ड सेट करें",
         bn: "নতুন পাসওয়ার্ড সেট করুন"
     },
     'auth_invalid_reset_link': {
         en: "Invalid password reset link. Please request a new one.",
         es: "Enlace de restablecimiento inválido. Solicita uno nuevo.",
+        pt: "Link de redefinição de senha inválido. Solicite um novo.",
+        fr: "Lien de réinitialisation du mot de passe invalide. Veuillez en demander un nouveau.",
         hi: "अमान्य पासवर्ड रीसेट लिंक। कृपया नया लिंक अनुरोध करें।",
         bn: "অবৈধ পাসওয়ার্ড রিসেট লিংক। অনুগ্রহ করে একটি নতুন লিংক অনুরোধ করুন।"
     },
     'auth_reset_password_label': {
         en: "New Password (min 8 chars)",
         es: "Nueva Contraseña (mín 8 caracteres)",
+        pt: "Nova Senha (mín. 8 caracteres)",
+        fr: "Nouveau mot de passe (min. 8 caractères)",
         hi: "नया पासवर्ड (न्यूनतम 8 अक्षर)",
         bn: "নতুন পাসওয়ার্ড (সর্বনিম্ন 8 অক্ষর)"
     },
     'auth_confirm_password_label': {
         en: "Confirm Password",
         es: "Confirmar Contraseña",
+        pt: "Confirmar Senha",
+        fr: "Confirmer le mot de passe",
         hi: "पासवर्ड की पुष्टि करें",
         bn: "পাসওয়ার্ড নিশ্চিত করুন"
     },
     'auth_updating': {
         en: "Updating...",
         es: "Actualizando...",
+        pt: "Atualizando...",
+        fr: "Mise à jour...",
         hi: "अपडेट हो रहा है...",
         bn: "আপডেট হচ্ছে..."
     },
     'auth_log_in_now': {
         en: "Log in now",
         es: "Iniciar sesión ahora",
+        pt: "Entrar agora",
+        fr: "Se connecter maintenant",
         hi: "अभी लॉग इन करें",
         bn: "এখনই লগ ইন করুন"
     },
     'auth_passwords_mismatch': {
         en: "Passwords do not match.",
         es: "Las contraseñas no coinciden.",
+        pt: "As senhas não coincidem.",
+        fr: "Les mots de passe ne correspondent pas.",
         hi: "पासवर्ड मेल नहीं खाते।",
         bn: "পাসওয়ার্ড মেলে না।"
     },
