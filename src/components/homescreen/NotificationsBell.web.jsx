@@ -57,11 +57,16 @@ const headingStyle = {
     color: '#ffffff',
 };
 
-export default function NotificationsBell({ userId, lang = 'en' }) {
+export default function NotificationsBell({ userId, lang = 'en', compact = false }) {
     const [open, setOpen] = useState(false);
     const { data: notifications } = useNotifications(userId);
     const markRead = useMarkNotificationsRead();
     const unread = getUnreadCount(notifications);
+    // Compact mode sits inline in the lesson top bar next to the trophy and
+    // streak icons (.stats-container i is 1.1rem): same size, one line.
+    const buttonStyle = compact
+        ? { ...bellButtonStyle, fontSize: '1.1rem', padding: '0 2px' }
+        : bellButtonStyle;
 
     const handleToggle = () => {
         const next = !open;
@@ -84,7 +89,7 @@ export default function NotificationsBell({ userId, lang = 'en' }) {
                 data-testid="notification-bell"
                 onClick={handleToggle}
                 aria-label={Strings.get('notifications_title', lang)}
-                style={bellButtonStyle}
+                style={buttonStyle}
             >
                 <i className="bi bi-bell-fill" />
                 {unread > 0 && (
