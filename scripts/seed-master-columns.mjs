@@ -22,6 +22,7 @@ import {
     LOCALIZATION_FIELDS,
     localizedColumn,
 } from './lib/sheet-translate-utils.js';
+import { isFriendVideoSlug } from '../src/modules/video/video-source.js';
 import { SHEET_URL } from './generate-config-from-sheet.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -46,6 +47,45 @@ export const CONFIG_COLUMNS = [
 // throws `column "<field>_<lang>" not found in headers`.
 export const LOCALIZATION_COLUMNS = LOCALIZATION_FIELDS.flatMap((f) =>
     SHEET_LANGUAGES.map((lang) => localizedColumn(f.field, lang)));
+
+// An informational, derived column (refreshed on every re-seed) that tells the
+// operator what config output each row produces. It is deliberately NOT in
+// `CONFIG_COLUMNS`/`LOCALIZATION_COLUMNS`: no generator or translator path reads
+// it, and hand notes in it are not preserved across a re-seed.
+export const ROW_PURPOSE_COLUMN = 'row_purpose';
+
+/**
+ * The config output a master row produces, as an informational string (non-blank
+ * columns only, joined with `; `). Pure; mirrors the generator's grouping
+ * (`join` else `video_file`) and the friend-clip caption rule.
+ *
+ * @param {Record<string,string>} row a parsed master row
+ * @returns {string}
+ */
+export function rowPurposeFor(row) {
+    const videoFile = String(row?.video_file ?? '').trim();
+    const join = String(row?.join ?? '').trim();
+    const key = join || videoFile;
+    if (!key) return 'no step key (missing video_file/join) — ignored';
+
+    const parts = [`step "${key}"`];
+    if (videoFile && !join) parts.push('→ simpleVideoUrl');
+    if (join) parts.push(`→ joined step "${join}" (part "${videoFile}")`);
+    if (String(row?.phrase ?? '').trim()) parts.push('→ cue');
+    if (String(row?.choose_step_next ?? '').trim() || String(row?.choose_step_text ?? '').trim()) {
+        parts.push('→ chooseStep');
+    }
+    if (String(row?.next_step ?? '').trim()) parts.push('→ nextStep');
+    if (String(row?.publish_lesson_id ?? '').trim()) parts.push('→ publishLessonId');
+    if (String(row?.intro_video ?? '').trim()) parts.push(`→ lessonIntro "${String(row.intro_video).trim()}"`);
+    if (String(row?.success_video ?? '').trim()) parts.push(`→ success "${String(row.success_video).trim()}"`);
+    if (isFriendVideoSlug(key)) {
+        parts.push('friend UGC clip — no app subtitles (caption burned in)');
+    } else if (String(row?.srt ?? '').trim()) {
+        parts.push('→ subtitles');
+    }
+    return parts.join('; ');
+}
 
 // Ask lessons a/c/e (single question videos) have no friend recap; answer
 // lessons b/d/f (two option videos joined) do.
@@ -149,6 +189,7 @@ export function buildSeededCsv(csvText, { friendchain } = {}) {
     const courseName = courseNameFromTitle(firstNonBlank(rows, 'title_text'));
     const appended = [...CONFIG_COLUMNS, ...LOCALIZATION_COLUMNS].filter((c) => !headers.includes(c));
     const outHeaders = [...headers, ...appended];
+    if (!outHeaders.includes(ROW_PURPOSE_COLUMN)) outHeaders.push(ROW_PURPOSE_COLUMN);
 
     const outRows = rows.map((row) => {
         const lesson = lessonIdFromVideoFile(row.video_file);
@@ -169,8 +210,13 @@ export function buildSeededCsv(csvText, { friendchain } = {}) {
         };
         const out = {};
         for (const header of outHeaders) {
-            // `srt` is machine-derived (the pipeline writes it back); never
-            // clobber an existing value with the seed.
+            // `row_purpose` is always derived from the source row (refreshed on
+            // every re-seed); `srt` is machine-derived (the pipeline writes it
+            // back) and never clobbered by the seed.
+            if (header === ROW_PURPOSE_COLUMN) {
+                out[header] = rowPurposeFor(row);
+                continue;
+            }
             out[header] = header in seedValues ? seedValues[header] : (row[header] ?? '');
         }
         return out;

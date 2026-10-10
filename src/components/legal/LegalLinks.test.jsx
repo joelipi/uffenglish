@@ -65,8 +65,14 @@ describe('LegalLinks', () => {
             .toEqual(['Política de Privacidad', 'Términos del Servicio']);
     });
 
-    it('falls back to English for an unsupported locale (pt)', () => {
+    it('localizes the labels (pt)', () => {
         render({ lang: 'pt' });
+        expect(anchors().map((a) => a.textContent))
+            .toEqual(['Política de Privacidade', 'Termos de Serviço']);
+    });
+
+    it('falls back to English for an unsupported locale (de)', () => {
+        render({ lang: 'de' });
         expect(anchors().map((a) => a.textContent))
             .toEqual(['Privacy Policy', 'Terms of Service']);
     });

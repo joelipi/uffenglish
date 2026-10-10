@@ -736,6 +736,17 @@ async function executeRenderLoop(plan, video, canvas, displayCanvas, overlayImag
                 })
                 : null;
             if (headerLayout) {
+                if (headerLayout.y > 0) {
+                    // The banner sits below a top margin so browser chrome
+                    // cannot cover it. Fill that margin by extending the
+                    // banner's own top edge: the art's top row is pure
+                    // gradient, so stretching it is seamless.
+                    ctx.drawImage(
+                        overlayImage,
+                        0, 0, overlayImage.naturalWidth, 1,
+                        headerLayout.x, 0, headerLayout.width, headerLayout.y
+                    );
+                }
                 // Banner only — no gradient band behind/below it; the art carries
                 // its own background.
                 ctx.drawImage(

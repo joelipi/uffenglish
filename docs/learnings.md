@@ -172,3 +172,13 @@
 **Area**: architecture
 **What happened**: Adding currency/magnitude normalization to `src/modules/bilingual/normalize.js` surfaced two bugs in its inlined minified `number-to-words` blob: the billion/trillion/quadrillion branches divided by the *next* scale up (`t/y`, `t/c`, `t/g`) instead of their own (`t/b`, `t/y`, `t/c`), so `1000000000` normalized to `"zero billion"`; and the two-digit branch used `n&&(r+" "+m[n],n=0)` (comma operator, value discarded) so the ones place was dropped (`42` → `"forty"`). The identical library is embedded again in `src/modules/utils/idiom-normalizer.js` (used by `idiom-checker.js` / `idiom-worker.js`); both copies were patched, but they remain independent hand-maintained copies.
 **Takeaway**: The two copies are independent — a text/number-normalization fix in one does not reach the other. Before assuming a normalization change is complete, grep for a second vendored copy (`grep -rn 'number-to-words' src`), and remember tests that go through `normalize()` only pin the `normalize.js` copy (there are no tests for `idiom-normalizer.js` at all).
+
+---
+
+## `git push` auth can fail while `sandpod gh refresh` 500s — the managed `.env` `GH_TOKEN` may be the valid one
+**Date**: 2026-10-09
+**Area**: workflow | infrastructure
+**What happened**: `git push origin HEAD:main` failed with `remote: Invalid username or token` and `gh auth status` reported the exported `GH_TOKEN` (and `~/.sandpod-env`'s copy) invalid. `sandpod gh refresh` could not self-heal — every retry returned `platform mint failed (500): HTTPError`. The valid credential turned out to be the sandpod-managed `GH_TOKEN` in the repo's `.env` (a different, shorter token): it returned `200` from `api.github.com/user` while the shell/sandpod token returned `401`. Because the repo is public, `git fetch`/read still worked unauthenticated, so only `push` exposed the stale token.
+**Takeaway**: Don't assume the exported `GH_TOKEN` is authoritative — test each candidate token against `api.github.com/user` (`curl -s -o /dev/null -w '%{http_code}' -H "Authorization: token <tok>" https://api.github.com/user`) before giving up. Push the working token without putting it on argv: a `GIT_ASKPASS` script that echoes `$GH_PUSH_TOKEN`, run as `GH_PUSH_TOKEN=<tok> GIT_ASKPASS=<script> git -c credential.helper= push https://x-access-token@github.com/<owner>/<repo>.git HEAD:main`.
+
+---
