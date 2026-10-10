@@ -303,23 +303,25 @@ describe('burned-subtitle translation uses the guest-first session language', ()
         pipeline = createTestPipeline();
     });
 
-    function setup({ guestLang, profileLang }) {
+    // Each case uses its own lessonId so the module-level recordingsMap cannot
+    // leak a record from a previous case when two saves share a millisecond.
+    function setup({ guestLang, profileLang, lessonId }) {
         appStore.setState({
-            configData: { courseLevel: 'A1', lessons: [{ lessonId: 'test-lesson', steps: [step] }] },
+            configData: { courseLevel: 'A1', lessons: [{ lessonId, steps: [step] }] },
             currentLessonIndex: 0,
             currentStepIndex: 0,
             userData: { display_name: 'Test User', native_language: profileLang },
             guestNativeLanguage: guestLang,
             courseId: 'test-course',
-            activeLessonId: 'test-lesson',
+            activeLessonId: lessonId,
             chatHistory: [],
             appPhase: 'loading',
             stepCount: 0,
         });
     }
 
-    async function answerAndReadRecording() {
-        await saveSpeechRecording(null, { lessonId: 'test-lesson', stepIndex: 0, userResponse: 'A million dollars today' });
+    async function answerAndReadRecording(lessonId) {
+        await saveSpeechRecording(null, { lessonId, stepIndex: 0, userResponse: 'A million dollars today' });
         await pipeline.handleAnswer(
             'A million dollars today',
             cue,
@@ -332,26 +334,26 @@ describe('burned-subtitle translation uses the guest-first session language', ()
             appStore.getState().configData,
             'test-course'
         );
-        const recordings = await getAllSpeechRecordingsForLesson('test-lesson');
+        const recordings = await getAllSpeechRecordingsForLesson(lessonId);
         return recordings.find((r) => r.originalStepIndex === 0);
     }
 
     it('stores the localized cue translation when only the guest language is set', async () => {
-        setup({ guestLang: 'es', profileLang: 'en' });
-        const rec = await answerAndReadRecording();
+        setup({ guestLang: 'es', profileLang: 'en', lessonId: 'test-lesson-guest' });
+        const rec = await answerAndReadRecording('test-lesson-guest');
         expect(rec.matchedCue).toBe('A million dollars today.');
         expect(rec.translation).toBe('Un millón de dólares hoy.');
     });
 
     it('falls back to the profile language when no guest language is set', async () => {
-        setup({ guestLang: null, profileLang: 'es' });
-        const rec = await answerAndReadRecording();
+        setup({ guestLang: null, profileLang: 'es', lessonId: 'test-lesson-profile' });
+        const rec = await answerAndReadRecording('test-lesson-profile');
         expect(rec.translation).toBe('Un millón de dólares hoy.');
     });
 
     it('stores no translation for an English session', async () => {
-        setup({ guestLang: null, profileLang: 'en' });
-        const rec = await answerAndReadRecording();
+        setup({ guestLang: null, profileLang: 'en', lessonId: 'test-lesson-english' });
+        const rec = await answerAndReadRecording('test-lesson-english');
         expect(rec.translation).toBeUndefined();
     });
 });
