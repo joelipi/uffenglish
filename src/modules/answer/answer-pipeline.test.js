@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createAnswerPipeline } from './answer-pipeline.js';
+import { createAnswerPipeline, resolveAnswerLanguage } from './answer-pipeline.js';
 import { appStore } from '../store/store.js';
+import { saveSpeechRecording, getAllSpeechRecordingsForLesson } from '../storage/storage.js';
 
 // Suppress whisper worker load in test environment (no Worker API in JSDOM)
 vi.mock('../workers/whisper/app-vad-asr-web.js', () => ({ preloadWhisperEngine: vi.fn(), transcribeAudioBuffer: vi.fn() }));
@@ -261,4 +262,96 @@ describe('friendClosedResponse auto-advance', () => {
         expect(appStore.getState().stepCount).toBe(1);
     });
 
+});
+
+// Story 058: the burned recap/UGC subtitle's translation must be computed with
+// the same guest-first session language the recap uses. Reading
+// `userData.native_language` alone made it 'en' for a guest whose chosen
+// language lives in `guestNativeLanguage`, so the clip showed English only.
+describe('resolveAnswerLanguage', () => {
+    it('prefers the guest/adopted session language over the profile', () => {
+        appStore.setState({ guestNativeLanguage: 'es', userData: { native_language: 'en' } });
+        expect(resolveAnswerLanguage(appStore.getState().userData)).toBe('es');
+    });
+
+    it('falls back to the profile language when no guest language is set', () => {
+        appStore.setState({ guestNativeLanguage: null, userData: { native_language: 'es' } });
+        expect(resolveAnswerLanguage(appStore.getState().userData)).toBe('es');
+    });
+
+    it('falls back to the explicit userData argument when the store has none', () => {
+        appStore.setState({ guestNativeLanguage: null, userData: null });
+        expect(resolveAnswerLanguage({ native_language: 'bn' })).toBe('bn');
+    });
+
+    it('defaults to English when nothing is set', () => {
+        appStore.setState({ guestNativeLanguage: null, userData: null });
+        expect(resolveAnswerLanguage(null)).toBe('en');
+    });
+});
+
+describe('burned-subtitle translation uses the guest-first session language', () => {
+    let pipeline;
+
+    const cue = [
+        { en: 'A million dollars today.', es: 'Un millón de dólares hoy.', pt: 'Um milhão de dólares hoje.', bn: 'আজ এক মিলিয়ন ডলার।' },
+        { en: 'I would rather a million dollars today.', es: 'Preferiría un millón de dólares hoy.', pt: 'Eu preferiria um milhão de dólares hoje.', bn: 'আমি বরং আজ এক মিলিয়ন ডলার চাই।' },
+    ];
+    const step = { step: 'b-1', responseType: 'friendClosedResponse', cue, interactiveVideoUrl: null, explanation: '' };
+
+    beforeEach(() => {
+        pipeline = createTestPipeline();
+    });
+
+    function setup({ guestLang, profileLang }) {
+        appStore.setState({
+            configData: { courseLevel: 'A1', lessons: [{ lessonId: 'test-lesson', steps: [step] }] },
+            currentLessonIndex: 0,
+            currentStepIndex: 0,
+            userData: { display_name: 'Test User', native_language: profileLang },
+            guestNativeLanguage: guestLang,
+            courseId: 'test-course',
+            activeLessonId: 'test-lesson',
+            chatHistory: [],
+            appPhase: 'loading',
+            stepCount: 0,
+        });
+    }
+
+    async function answerAndReadRecording() {
+        await saveSpeechRecording(null, { lessonId: 'test-lesson', stepIndex: 0, userResponse: 'A million dollars today' });
+        await pipeline.handleAnswer(
+            'A million dollars today',
+            cue,
+            step,
+            null,
+            '',
+            { pauseCount: 0, netDuration: 0 },
+            { loadNextStep: vi.fn(), callLoadStep: vi.fn() },
+            appStore.getState().userData,
+            appStore.getState().configData,
+            'test-course'
+        );
+        const recordings = await getAllSpeechRecordingsForLesson('test-lesson');
+        return recordings.find((r) => r.originalStepIndex === 0);
+    }
+
+    it('stores the localized cue translation when only the guest language is set', async () => {
+        setup({ guestLang: 'es', profileLang: 'en' });
+        const rec = await answerAndReadRecording();
+        expect(rec.matchedCue).toBe('A million dollars today.');
+        expect(rec.translation).toBe('Un millón de dólares hoy.');
+    });
+
+    it('falls back to the profile language when no guest language is set', async () => {
+        setup({ guestLang: null, profileLang: 'es' });
+        const rec = await answerAndReadRecording();
+        expect(rec.translation).toBe('Un millón de dólares hoy.');
+    });
+
+    it('stores no translation for an English session', async () => {
+        setup({ guestLang: null, profileLang: 'en' });
+        const rec = await answerAndReadRecording();
+        expect(rec.translation).toBeUndefined();
+    });
 });

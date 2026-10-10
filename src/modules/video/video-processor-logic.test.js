@@ -1045,6 +1045,11 @@ describe('recap subtitle docs', () => {
         expect(limitations).toContain('shows no subtitle');
         expect(limitations).toContain('never used as a fallback');
     });
+
+    it('states the guest-first burned-translation rule in Known Limitations', () => {
+        expect(product).toContain('stories/058-fix-ugc-clip-translation-subtitles/story.md');
+        expect(limitations).toContain('guest-first session language');
+    });
 });
 
 describe('video-processor-logic.js platform-agnostic guard', () => {
