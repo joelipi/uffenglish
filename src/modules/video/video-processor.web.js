@@ -6,6 +6,8 @@ import { shareVideo } from './video-share.js';
 import { appStore } from '../store/store.js';
 import { getVideoUrl, getUgcThumbKey, getCompleteVideoKey } from './video-url.js';
 import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, TAILING_DURATION_MS, resolveOverlayElements, resolveHeaderLayout, isShareCtaEnabled, isDroppedStep, markFirstRenderable, resolveSegmentBounds, STALL_GRACE_MS, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges, SHARE_URL_BASE } from './video-processor-logic.js';
+import { AFTER_SUCCESS_BASE } from './after-video-logic.js';
+import { startAfterVideoLoop } from './after-video-player.web.js';
 import { remoteSource } from './video-source.js';
 import { DEFAULT_USER_AVATAR_URL } from '../user/tutor-config.js';
 import { getAvatarBlobUrl } from '../avatar/avatar.service.js';
@@ -73,8 +75,16 @@ function createVideoProcessor() {
     // Hidden render canvas — attached to the DOM (see process()) so iOS
     // captureStream can read its frames. Declared here so cleanup() can remove it.
     let videoCanvas = null;
+    // True when the AudioContext was handed in by the caller (the "make my
+    // video" tap in SuccessButtons.jsx): the caller owns its lifecycle and
+    // this instance must never close it — the display-only after-video loop
+    // keeps playing on it after the recorder stops.
+    let ownsAudioContext = true;
 
-    function cleanup() {
+    // keepAudioContext defers the close for the display-only after-video
+    // tail, which keeps playing audibly on the running context after the
+    // recorder stops (stories/060-autoplay-share-video).
+    function cleanup({ keepAudioContext = false } = {}) {
         if (animationId) {
             cancelAnimationFrame(animationId);
             animationId = null;
@@ -85,14 +95,17 @@ function createVideoProcessor() {
             currentAudioSource = null;
         }
 
-        if (audioContext) {
+        // A caller-owned context is never closed here (see ownsAudioContext):
+        // null the reference without closing so a later step cannot reuse it.
+        // The VideoButton that created it closes it on unmount / retry.
+        if (audioContext && ownsAudioContext && !keepAudioContext) {
             if (audioContext.state !== 'closed') {
                 audioContext.close().catch(e =>
                     console.warn('[VideoProcessor] Error closing AudioContext:', e)
                 );
             }
-            audioContext = null;
         }
+        audioContext = null;
         audioSource = null;
         audioDestination = null;
 
@@ -112,6 +125,12 @@ function createVideoProcessor() {
     function initAudio() {
         if (!audioContext) {
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            ownsAudioContext = true;
+            audioDestination = audioContext.createMediaStreamDestination();
+        } else if (!audioDestination) {
+            // Caller-owned context handed in via process() opts: attach a
+            // fresh destination for this render's recorder without taking
+            // lifecycle ownership (ownsAudioContext stays false).
             audioDestination = audioContext.createMediaStreamDestination();
         }
 
@@ -136,10 +155,19 @@ function createVideoProcessor() {
         }
     }
 
-    async function process(fluencyData = {}, lessonId = null, displayCanvas = null) {
+    async function process(fluencyData = {}, lessonId = null, displayCanvas = null, opts = {}) {
         return new Promise(async (resolve, reject) => {
             try {
                 console.log('[VideoProcessor] Starting live processing on screen...');
+
+                // A caller-owned AudioContext handed in by the "make my video"
+                // tap (see handleProcess in SuccessButtons.jsx) is adopted for
+                // this render and, on success, kept alive for the display-only
+                // after-video tail. Absent → today's self-created context.
+                if (opts && opts.audioContext) {
+                    audioContext = opts.audioContext;
+                    ownsAudioContext = false;
+                }
 
                 // Resume the AudioContext as early as possible — ideally within
                 // the user-gesture task that triggered generation. On iOS/Safari
@@ -318,7 +346,31 @@ function createVideoProcessor() {
                     // match the recap's overlay when the trim path is unavailable.
                     segments.overlayVariant = overlayVariant;
                     segments.shareCta = shareCta;
-                    try { cleanup(); } catch (e) { console.warn('[VideoProcessor] cleanup failed:', e); }
+                    // Display-only after-video tail
+                    // (stories/060-autoplay-share-video): starts strictly
+                    // after the recorder stopped and the ranges were
+                    // calibrated above, so it can never enter the blob or
+                    // `segments`. Reuses the running (possibly caller-owned)
+                    // AudioContext for audible playback without a new user
+                    // gesture. Any failure falls through to the blob preview
+                    // below — never a silent or muted-only loop.
+                    let afterVideoStarted = false;
+                    if (displayCanvas) {
+                        try {
+                            const snap = appStore.getState();
+                            await startAfterVideoLoop({
+                                displayCanvas,
+                                base: AFTER_SUCCESS_BASE,
+                                guestLang: snap.guestNativeLanguage,
+                                profileLang: snap.userData?.native_language,
+                                audioContext,
+                            });
+                            afterVideoStarted = true;
+                        } catch (e) {
+                            console.warn('[VideoProcessor] After-video loop failed; falling back to blob preview:', e?.message);
+                        }
+                    }
+                    try { cleanup({ keepAudioContext: afterVideoStarted }); } catch (e) { console.warn('[VideoProcessor] cleanup failed:', e); }
                     resolve({ blob, ext, segments });
                 };
 
@@ -347,13 +399,14 @@ function createVideoProcessor() {
 }
 
 // ---------------------------------------------------------------------------
-// Public API — matches the existing call site in SuccessButtons.jsx exactly:
+// Public API — matches the existing call site in SuccessButtons.jsx:
 //   const { processVideo, shareVideo } = await import('../../modules/video/video-processor.js');
-//   const result = await processVideo(fluencyData, lessonId, canvas);
-// ---------------------------------------------------------------------------
-export async function processVideo(fluencyData = {}, lessonId = null, displayCanvas = null) {
+//   const result = await processVideo(fluencyData, lessonId, canvas, { audioContext });
+// The optional 4th arg carries a caller-owned AudioContext (created in the
+// tap gesture); absent → today's self-created context.
+export async function processVideo(fluencyData = {}, lessonId = null, displayCanvas = null, opts = {}) {
     const processor = createVideoProcessor();
-    return processor.process(fluencyData, lessonId, displayCanvas);
+    return processor.process(fluencyData, lessonId, displayCanvas, opts);
 }
 
 // ---------------------------------------------------------------------------

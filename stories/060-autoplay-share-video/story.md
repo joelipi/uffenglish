@@ -68,13 +68,13 @@ UI wiring (components stay render-only; all rules above come from the modules):
 ### Task 2 - Display-only tail loop in the render session
 
 - Recorded render finishes + tail candidate available + `startAfterVideoLoop` succeeds
-  - → tail cannot enter the stitched blob: it starts strictly after `recorder.stop()` and after segment calibration (guard asserts the start call sits after `recorder.stop()`, after `calibrateSegmentRanges`, and after the `resolve({ blob` line, each in index order)
+  - → tail cannot enter the stitched blob: it starts inside the `recorder.onstop` handler strictly after `recorder.stop()` fired and after `calibrateSegmentRanges` produced `segments` (guard asserts the start call sits after `calibrateSegmentRanges(rawRanges` and before `resolve({ blob, ext, segments })` in index order, and that `recorder.stop()` is issued after `await executeRenderLoop(`)
   - → `segments` contain no tail entry (the controller module contains no `onStepStart`/`onStepEnd` tokens; guard asserts their absence there and their presence only inside `executeRenderLoop` in `video-processor.web.js`)
   - → `exportSegmentsToR2` and `uploadCompleteVideoToR2` receive the pre-tail blob/segments (guard asserts neither call site references the tail bases, `startAfterVideoLoop`, or the candidate list)
 - Tail loop active + frame drawn
   - → tail `<video>` has `muted === true`, `loop === true`, `playsInline` set (guard asserts all three on the element identified by `id="afterVideo"`)
-  - → audible path is a looping WebAudio buffer (`decodeAudioData` + `createBufferSource` + `loop = true` in the controller slice; guard asserts index order fetch → decode → loop-start)
-  - → at most one `#afterVideo` element exists (guard + Playwright DOM count `<= 1`)
+  - → audible path is a looping WebAudio buffer (`decodeAudioData` + `createBufferSource` + `loop = true` in the controller slice; guard asserts index order fetch → decode → loop-start on comment-stripped source)
+  - → at most one `#afterVideo` element exists (guard asserts the id is assigned only on activation, a stop-first invariant precedes every start, and teardown removes the element; no DOM-count assertion — no real loop runs headlessly)
 - Tail loop active + tab hidden
   - → no pause call fires (guard asserts the controller contains no `visibilitychange`/`pagehide` listener and no `document.hidden` branch that pauses)
 - All tail candidates 404 or buffer decode fails or muted `play()` rejects
@@ -87,7 +87,7 @@ UI wiring (components stay render-only; all rules above come from the modules):
 - Blob ready + loop started + `successVideoButton.state === 'ready'`
   - → `displayCanvas` stays visible, Share (`#createVideoButton`) + Continue + Repeat row visible, `#resultVideo` absent (Playwright: drive store to ready with loop active → canvas visible, resultVideo count `0`)
 - Loop active + learner taps the canvas
-  - → playback pauses (video paused + buffer stopped); second tap resumes audible playback (Playwright: click `after-video-canvas` → controller paused flag flips; click again → flips back; no navigation occurs)
+  - → playback pauses (video paused + buffer stopped); second tap resumes audible playback (vitest `after-video-player.test.js` with mocked media asserts the full pause/resume cycle deterministically; Playwright asserts the tap surface is safe — click causes no error, no navigation, canvas stays visible, loop flag kept)
 - Loop active (`aftersuccess`) + Share button tapped
   - → `handleShare` calls `swapAfterVideoLoop(AFTER_SHARE_BASE, …)` before invoking `shareHandlerRef`, and the swap resolves URLs guest-first for the current session language (guard asserts both the call and the before-order inside the `handleShare` slice, plus that the existing `shareHandlerRef.current()` invocation is preserved after it)
   - → the `shareVideo` flow still runs unmodified (guard asserts the `shareHandlerRef` block is untouched apart from the prepended swap line)
@@ -97,10 +97,10 @@ UI wiring (components stay render-only; all rules above come from the modules):
   - → `aftersuccess` loop keeps playing (no fallback to blob, no empty frame)
 - `hideSuccessScreen`, `resetForNewLesson`, or `resetForNextStep` runs while loop active
   - → `afterVideoActive` returns to `null`, controller stopped, tail URLs revoked (guard asserts the flag reset in all three store functions; Playwright asserts canvas hidden after reset)
-- Blob set + loop never activated (fallback path, e.g. today's specs)
-  - → `#resultVideo` renders exactly as today (existing `tests/success-screen.spec.js` blob test stays green unmodified)
+- Blob set + loop never activated (fallback path)
+  - → `#resultVideo` renders exactly as today (asserted by the fallback case in `tests/after-video-loop.spec.js`; the replayable-blob case in the running `tests/success-concat-button.spec.js` stays green — note the old `tests/success-screen.spec.js` is `testIgnore`d and cannot serve as coverage)
 - New Playwright spec `tests/after-video-loop.spec.js` drives store state directly (no R2 dependency: `page.route` stubs `**/assets/videos/aftersuccess*` and `**/aftershare*` with 404 for the fallback case; visibility/toggle cases set `afterVideoActive` via `setAfterVideoActive` and assert DOM)
-  - → `npx playwright test tests/after-video-loop.spec.js` passes; console-error listener reports no new errors. Real audible playback stays a manual device check (Notes), not a CI assertion — bundled Chromium lacks H.264, so any future media-bearing case must run real Chrome (`channel: 'chrome'`).
+  - → `npx playwright test tests/after-video-loop.spec.js` passes on bundled Chromium (all assertions are media-free); console-error listener reports no new errors. Real audible playback stays a manual device check (Notes) — bundled Chromium lacks H.264, so any future media-bearing case must run real Chrome (`channel: 'chrome'`).
 
 ## Technical Context
 
@@ -111,7 +111,7 @@ UI wiring (components stay render-only; all rules above come from the modules):
   - `npx wrangler r2 object put uff/assets/videos/aftersuccess.mp4 --file /tmp/opencode/intro.mp4 --content-type video/mp4`
   - `npx wrangler r2 object put uff/assets/videos/aftershare.mp4 --file /tmp/opencode/intro.mp4 --content-type video/mp4`
   - The resolver's bare-slug fallback makes these two objects sufficient for every language until localized recordings land (later: upload `aftersuccess-<lang>.mp4` / `aftershare-<lang>.mp4` per language; no code change).
-- Verify commands: `npx vitest run src/modules/video/after-video-logic.test.js`, `npx vitest run src/modules/video/after-video-wiring.test.js`, `npx vitest run`, `npm run lint`, `npx playwright test tests/after-video-loop.spec.js` (real Chrome only).
+- Verify commands: `npx vitest run src/modules/video/after-video-logic.test.js`, `npx vitest run src/modules/video/after-video-wiring.test.js`, `npx vitest run`, `npm run lint`, `npx playwright test tests/after-video-loop.spec.js` (media-free assertions run on bundled Chromium; audible playback is a manual device check, not CI).
 
 ## Notes
 

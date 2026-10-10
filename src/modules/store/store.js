@@ -179,6 +179,10 @@ export const appStore = createStore(
             successVideoButton: { visible: false, loading: false, state: 'idle' },
             successRepeatButton: { visible: false },
             successCanvasVisible: false,
+            // Display-only after-video loop tail (aftersuccess / aftershare):
+            // null when no loop is running. Flag only — playback side effects
+            // live in after-video-player.web.js (stories/060-autoplay-share-video).
+            afterVideoActive: null,
             // True while the per-segment clips are being published after the
             // recap is ready. The success screen warns the user not to close
             // the tab until it flips back to false.
@@ -558,6 +562,7 @@ export const appStore = createStore(
                 successVideoButton: { visible: false, loading: false, state: 'idle' },
                 successRepeatButton: { visible: false },
                 successCanvasVisible: false,
+                afterVideoActive: null,
                 clipsPublishing: false,
                 playbackBlob: null,
                 playbackAutoplay: false,
@@ -590,6 +595,7 @@ export const appStore = createStore(
                 successVideoBlob: null,
                 successVideoButton: { visible: false, loading: false, state: 'idle' },
                 successCanvasVisible: false,
+                afterVideoActive: null,
                 clipsPublishing: false,
             }),
 
@@ -618,6 +624,7 @@ export const appStore = createStore(
                 successVideoButton: { visible: true, loading: false, state: 'idle' },
                 successRepeatButton: { visible: false },
                 successCanvasVisible: false,
+                afterVideoActive: null,
                 clipsPublishing: false,
             }),
             hideSuccessScreen: () => set({
@@ -628,6 +635,7 @@ export const appStore = createStore(
                 successVideoButton: { visible: false, loading: false, state: 'idle' },
                 successRepeatButton: { visible: false },
                 successCanvasVisible: false,
+                afterVideoActive: null,
                 clipsPublishing: false,
                 successVideoBlob: null,
                 saveClipsModalOpen: false,
@@ -641,6 +649,7 @@ export const appStore = createStore(
                 successVideoButton: { visible: true, loading: state === 'processing', state }
             }),
             setSuccessCanvasVisible: (visible) => set({ successCanvasVisible: visible }),
+            setAfterVideoActive: (base) => set({ afterVideoActive: base }),
             setSuccessRepeatButtonVisible: (visible) => set(state => ({
                 successRepeatButton: { visible }
             })),
