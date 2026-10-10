@@ -217,6 +217,22 @@ describe('onRequestPost — upload-segment Function', () => {
         );
     });
 
+    it('accepts the two-user recap key (videos/<exporter>-<asker>-<course>-<lesson>-complete.mp4)', async () => {
+        // Exporter-first stays inside the caller's shareCode namespace; the
+        // pair segment needs no Function change (stories/060-autoplay-share-video).
+        const env = makeEnv();
+        const res = await onRequestPost({
+            request: makeRequest({ key: 'videos/ab12-gs5i8-wouldyourather-b-complete.mp4' }),
+            env,
+        });
+
+        expect(res.status).toBe(200);
+        expect(await res.json()).toEqual({
+            ok: true,
+            url: 'https://r2.ultrafastfluency.com/videos/ab12-gs5i8-wouldyourather-b-complete.mp4',
+        });
+    });
+
     it('rejects a complete key outside the shareCode namespace', async () => {
         const env = makeEnv();
         const res = await onRequestPost({

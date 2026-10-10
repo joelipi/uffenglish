@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { VideoRenderPlanner, resolveRecapOverlay, resolveRecapSources, isDroppedStep, markFirstRenderable, resolveSegmentBounds, UNRESOLVED_SEGMENT_CAP_MS, STALL_GRACE_MS, resolvePublishLessonId, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges, resolveHeaderLayout, HEADER_BAND_RATIO, HEADER_TOP_MARGIN_RATIO, MIN_SEGMENT_SECONDS, MAX_CALIBRATION_OFFSET_SEC } from './video-processor-logic.js';
+import { VideoRenderPlanner, resolveRecapOverlay, resolveRecapSources, resolveCompletePairCode, isDroppedStep, markFirstRenderable, resolveSegmentBounds, UNRESOLVED_SEGMENT_CAP_MS, STALL_GRACE_MS, resolvePublishLessonId, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges, resolveHeaderLayout, HEADER_BAND_RATIO, HEADER_TOP_MARGIN_RATIO, MIN_SEGMENT_SECONDS, MAX_CALIBRATION_OFFSET_SEC } from './video-processor-logic.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '../../..');
@@ -91,6 +91,31 @@ describe('resolveRecapSources', () => {
         expect(resolveRecapSources({ recapSources: 'bogus' })).toBe('system');
         expect(resolveRecapSources({ recapSources: '' })).toBe('system');
         expect(resolveRecapSources({ recapSources: true })).toBe('system');
+    });
+});
+
+describe('resolveCompletePairCode', () => {
+    const friendLesson = { lessonId: 'b', recapSources: 'friend' };
+
+    it('returns the asker code for friend-sourced lessons opened via a link', () => {
+        expect(resolveCompletePairCode({ lesson: friendLesson, friendCode: 'gs5i8', shareCode: 'q9uki' }))
+            .toBe('gs5i8');
+    });
+
+    it.each([
+        ['solo lesson keeps single-user name even with a stale friendCode', { recapSources: 'system' }],
+        ['ask lesson keeps single-user name', { recapSources: 'none' }],
+        ['missing lesson keeps single-user name', undefined],
+        ['missing lesson keeps single-user name (null)', null],
+    ])('%s', (_name, lesson) => {
+        expect(resolveCompletePairCode({ lesson, friendCode: 'gs5i8', shareCode: 'q9uki' })).toBeNull();
+    });
+
+    it('returns null without a friendCode or for a self-link', () => {
+        expect(resolveCompletePairCode({ lesson: friendLesson, friendCode: null, shareCode: 'q9uki' })).toBeNull();
+        expect(resolveCompletePairCode({ lesson: friendLesson, friendCode: '  ', shareCode: 'q9uki' })).toBeNull();
+        expect(resolveCompletePairCode({ lesson: friendLesson, friendCode: 'q9uki', shareCode: 'q9uki' })).toBeNull();
+        expect(resolveCompletePairCode({ lesson: friendLesson, friendCode: 'Q9UKI', shareCode: 'q9uki' })).toBeNull();
     });
 });
 

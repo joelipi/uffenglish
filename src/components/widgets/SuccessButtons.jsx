@@ -1,10 +1,12 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { trackEvent } from '../../modules/utils/posthog.js';
 import { useAddFriendLinkMutation, useRecordFriendResponseMutation } from '../../modules/api/api.js';
 import { resolveFriendLessonLink } from '../../modules/user/friend-lesson-link-logic.js';
 import { resolveFriendResponseNotification } from '../../modules/notifications/notification-logic.js';
+import { AFTER_SUCCESS_BASE, AFTER_SHARE_BASE } from '../../modules/video/after-video-logic.js';
+import { getDeviceShareTarget, SHARE_TARGET_DOWNLOAD } from '../../modules/video/share-target-logic.js';
 import { getBilingual } from '../../data/strings.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
 import { isStaleChunkReloadPending } from '../../modules/utils/stale-chunk-reload.js';
@@ -69,6 +71,42 @@ export function VideoButton({ canvasRef }) {
   const friendResponseMutation = useRecordFriendResponseMutation();
   const pendingVideoCreation = useStore(appStore, state => state.pendingVideoCreation);
   const saveClipsModalOpen = useStore(appStore, state => state.saveClipsModalOpen);
+  // True while a share sheet flow is in flight (transcode + navigator.share).
+  // Disables the Share button with a spinner so rapid taps can neither stack
+  // silent transcodes nor fire a concurrent share() (platform rejects those
+  // with "Share failed"). sharingRef mirrors it for the synchronous guard.
+  const [sharing, setSharing] = useState(false);
+  const sharingRef = useRef(false);
+  // Caller-owned AudioContext for the render + display-only after-video tail.
+  // Created synchronously inside the "make my video" tap (a real user
+  // gesture) so the context runs without autoplay restrictions; handed to
+  // processVideo via opts and closed here on unmount / retry
+  // (stories/060-autoplay-share-video). A ref (not state): the render loop
+  // reads it across long async gaps without re-rendering.
+  const audioContextRef = useRef(null);
+
+  // Runs in the tap handler (dynamic import resolves in a microtask, still
+  // inside transient activation) — no awaits before the resume() inside.
+  const ensureSharedAudioContext = async () => {
+    try {
+      const m = await import('../../modules/video/after-video-player.js');
+      audioContextRef.current = m.createSharedAudioContext(audioContextRef.current);
+    } catch (e) {
+      audioContextRef.current = null;
+    }
+    return audioContextRef.current;
+  };
+
+  // Release the caller-owned context when the success flow unmounts (route
+  // change, Continue/Repeat teardown). The canvas unmount stops the tail
+  // loop itself; this only frees the shared context both used.
+  useEffect(() => () => {
+    const ctx = audioContextRef.current;
+    audioContextRef.current = null;
+    if (ctx && typeof ctx.close === 'function' && ctx.state !== 'closed') {
+      ctx.close().catch(() => {});
+    }
+  }, []);
 
   // Shared processing logic — runs immediately on processBtn click.
   // For logged-in users, also publishes segments to R2.
@@ -77,22 +115,52 @@ export function VideoButton({ canvasRef }) {
       appStore.getState().triggerPauseAllVideos();
       appStore.getState().setCurrentVideo(null);
 
-      const { processVideo, shareVideo, exportSegmentsToR2, uploadCompleteVideoToR2 } = await import('../../modules/video/video-processor.js');
+      const { processVideo, exportSegmentsToR2, uploadCompleteVideoToR2 } = await import('../../modules/video/video-processor.js');
       const canvas = canvasRef?.current;
-      const result = await processVideo(fluencyData, lessonId, canvas);
+      const result = await processVideo(fluencyData, lessonId, canvas, { audioContext: audioContextRef.current });
 
       if (result?.blob) {
         trackEvent('video_generation_success');
-        setCanvasVisible(false);
+        // The display-only after-video tail (if it started) keeps the canvas
+        // visible and looping audibly; otherwise fall back to hiding the
+        // canvas and previewing the blob via #resultVideo, exactly as before.
+        const { getActiveAfterVideoBase } = await import('../../modules/video/after-video-player.js');
+        const tailRunning = getActiveAfterVideoBase() === AFTER_SUCCESS_BASE;
+        setCanvasVisible(tailRunning);
         setSuccessVideoBlob(result.blob);
         setVideoState('ready');
         setRepeatVisible(true);
         setContinueVisible(true);
 
         shareHandlerRef.current = async () => {
-          const { generateVideoFilename } = await import('../../modules/lesson/success-lesson-logic.js');
-          const filename = `${generateVideoFilename(lessonId)}.${result.ext || 'webm'}`;
-          await shareVideo(result.blob, filename, result.ext || 'webm');
+          const { buildShareFilename } = await import('../../modules/lesson/success-lesson-logic.js');
+          const { resolveCompletePairCode } = await import('../../modules/video/video-processor-logic.js');
+          const { userData: shareUserData, courseId: shareCourseId, configData: shareConfig, friendCode: shareFriendCode } = appStore.getState();
+          // Same identity as the R2 concatenated object
+          // (<shareCode>[-<askerCode>]-<courseId>-<lessonId>-complete.mp4)
+          // so the file on the learner's device matches what was published,
+          // including both contributors on friend-sourced lessons.
+          const shareLesson = shareConfig?.lessons?.find(l => l.lessonId === lessonId);
+          const filename = buildShareFilename({
+            shareCode: shareUserData?.shareCode,
+            pairShareCode: resolveCompletePairCode({
+              lesson: shareLesson,
+              friendCode: shareFriendCode,
+              shareCode: shareUserData?.shareCode,
+            }),
+            courseId: shareCourseId,
+            lessonId,
+            fileExtension: result.ext || 'webm',
+          });
+          const { deliverVideo } = await import('../../modules/video/video-share.js');
+          // Desktop OSes get a file download (native sheets are unreliable
+          // there); mobile keeps the native sheet. Resolved live at tap time.
+          await deliverVideo({
+            blob: result.blob,
+            filename,
+            fileExtension: result.ext || 'webm',
+            target: getDeviceShareTarget(),
+          });
         };
 
         if (publishSegments) {
@@ -171,6 +239,11 @@ export function VideoButton({ canvasRef }) {
   const handleProcess = async () => {
     trackEvent('video_generation_started');
 
+    // Unlock the shared AudioContext inside the tap gesture, before any
+    // async work: the render and the display-only tail both play audibly on
+    // it without a second tap (stories/060-autoplay-share-video).
+    await ensureSharedAudioContext();
+
     // Guests must log in (or dismiss) before the video is created: they need a
     // share code for the shared link. Show the modal and defer generation until
     // the modal closes (login success or "Not now").
@@ -200,9 +273,35 @@ export function VideoButton({ canvasRef }) {
     runProcessing({ publishSegments: isUserLoggedIn() });
   }, [pendingVideoCreation, saveClipsModalOpen, runProcessing, setVideoState, setCanvasVisible]);
 
-  const handleShare = () => {
+  const handleShare = async () => {
+    // A second navigator.share() while one is pending is rejected by the
+    // platform ("Share failed"), and rapid taps would stack silent
+    // transcodes behind an unresponsive button. Ignore taps while a share
+    // is in flight. The ref (not state) guards the synchronous double-tap
+    // before React re-renders; state drives the disabled spinner below.
+    if (sharingRef.current) return;
+    sharingRef.current = true;
+    setSharing(true);
+    try {
+    // Swap the display-only loop to the post-share video first: this tap is
+    // a fresh user gesture, so the swap's play() is allowed. The swap is a
+    // safe no-op when no loop is running (blob fallback path). The share
+    // proceeds in parallel — neither waits for the other. `lang` is the
+    // guest-first session language (useNativeLanguage), so no direct
+    // userData language read is needed here (guest-first rule).
+    import('../../modules/video/after-video-player.js').then((m) => {
+      try {
+        m.swapAfterVideoLoop(AFTER_SHARE_BASE, { guestLang: lang })?.catch((e) => console.warn('[Success] after-video swap failed (non-fatal):', e?.message));
+      } catch (e) {
+        console.warn('[Success] after-video swap failed (non-fatal):', e?.message);
+      }
+    }).catch(() => {});
     if (shareHandlerRef.current) {
-      shareHandlerRef.current();
+      await shareHandlerRef.current();
+    }
+    } finally {
+      sharingRef.current = false;
+      setSharing(false);
     }
   };
 
@@ -247,6 +346,10 @@ export function VideoButton({ canvasRef }) {
   }
 
   if (button.state === 'ready') {
+    // Desktop OSes download the recap instead of opening the unreliable
+    // native sheet, so the button carries a download icon there (mobile
+    // keeps the share icon). Label stays the localized Share string.
+    const useDownloadIcon = getDeviceShareTarget() === SHARE_TARGET_DOWNLOAD;
     return (
       <div className="ivp-choice-col call-btn-primary" style={{ flex: '1 1 0', minWidth: 0 }}>
         <ChoiceLabel text={getBilingual('share', lang)} />
@@ -255,9 +358,10 @@ export function VideoButton({ canvasRef }) {
           id="createVideoButton"
           className="btn call-btn"
           onClick={handleShare}
+          disabled={sharing}
           aria-label="Share"
         >
-          <i className="bi bi-share-fill" />
+          {sharing ? <span className="spinner-border spinner-border-sm" /> : useDownloadIcon ? <i className="bi bi-download" /> : <i className="bi bi-share-fill" />}
         </button>
       </div>
     );
