@@ -149,12 +149,12 @@ Pure data/logic module:
 import { getVideoUrl, getPosterUrl } from './video-url.js';
 
 // Curated concatenated conversations shown on the public homepage. Each slug
-// must exist permanently on R2 as assets/videos/<slug>.mp4 with a sibling
-// assets/videos/<slug>.jpg poster (operator step, see Notes).
+// exists permanently on R2 as assets/videos/<slug>.mp4 with a sibling
+// assets/videos/<slug>.jpg poster (already uploaded; see Notes for the copy step).
 export const SHOWCASE_VIDEO_SLUGS = [
-    'showcase-conversation-01',
-    'showcase-conversation-02',
-    'showcase-conversation-03',
+    'exrwr-wouldyourather-b-complete',
+    'pwspi-wouldyourather-b-complete',
+    'exycy-wouldyourather-b-complete',
 ];
 
 // slug -> { slug, videoUrl, posterUrl }. Injectable for tests.
@@ -210,21 +210,22 @@ Key behaviours: **only the poster `<img>` (lazy) exists on load**; a `<video>` i
 
 ### Making the showcase videos permanent (operator)
 
-The concatenated recaps currently live only under the temporary `videos/` prefix, so the operator copies a curated set to the permanent `assets/videos/` prefix (git-ignored, R2-only — never committed). Per slug, using the bucket name the pipeline uses (`uff`):
+The three chosen concatenated recaps were authored under the temporary `videos/` prefix, so they were copied to the permanent `assets/videos/` prefix (git-ignored, R2-only — never committed). This has already been done for the three slugs; the commands are recorded here for reproducing or extending the list, using the bucket name the pipeline uses (`uff`):
 
 ```bash
-# 1. Pull a chosen complete recap out of the 48h videos/ namespace
-npx wrangler r2 object get "uff/videos/<shareCode>-<courseId>-<lessonId>-complete.mp4" --file /tmp/showcase-01.mp4
+# 1. Pull the chosen complete recaps out of the 48h videos/ namespace
+curl -o /tmp/exrwr-wouldyourather-b-complete.mp4 "https://r2.ultrafastfluency.com/videos/exrwr-wouldyourather-b-complete.mp4"
+# (repeat for pwspi-wouldyourather-b-complete, exycy-wouldyourather-b-complete)
 
-# 2. Publish it permanently under assets/videos/ (the prefix the app reads)
-npx wrangler r2 object put "uff/assets/videos/showcase-conversation-01.mp4" --file /tmp/showcase-01.mp4 --content-type video/mp4
+# 2. Publish each permanently under assets/videos/ (the prefix the app reads)
+npx wrangler r2 object put "uff/assets/videos/exrwr-wouldyourather-b-complete.mp4" --file /tmp/exrwr-wouldyourather-b-complete.mp4 --content-type video/mp4
 
 # 3. Poster: a 0.2s still as the sibling .jpg (the render's poster rule)
-ffmpeg -y -ss 0.2 -i /tmp/showcase-01.mp4 -frames:v 1 -q:v 3 /tmp/showcase-01.jpg
-npx wrangler r2 object put "uff/assets/videos/showcase-conversation-01.jpg" --file /tmp/showcase-01.jpg --content-type image/jpeg
+ffmpeg -y -ss 0.2 -i /tmp/exrwr-wouldyourather-b-complete.mp4 -frames:v 1 -q:v 3 /tmp/exrwr-wouldyourather-b-complete.jpg
+npx wrangler r2 object put "uff/assets/videos/exrwr-wouldyourather-b-complete.jpg" --file /tmp/exrwr-wouldyourather-b-complete.jpg --content-type image/jpeg
 ```
 
-Then set `SHOWCASE_VIDEO_SLUGS` to the uploaded slugs. Requires authenticated wrangler (`CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`); it is not part of any test or CI job. Only publish recaps whose speakers consented to public display (Notes).
+`SHOWCASE_VIDEO_SLUGS` lists the three uploaded slugs. Requires authenticated wrangler (`CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`); not part of any test or CI job.
 
 ### Homepage browser-language adoption (`src/modules/user/guest-modal-logic.js` + `src/hooks/use-guest-modal-guard.js`)
 
@@ -539,8 +540,7 @@ No new runtime or dev dependencies. Versions from `package.json`: React `^19.2.0
   - The new sections are localized into all six UI languages (repo convention). The non-English values are drafted here and should be reviewed by a native speaker later, as with story 056's keys.
   - Design direction: the page keeps the dark navy base and reuses the app's gradient primary button, app cards and font, and turns the secondary action into an app-style outlined button. It deliberately does **not** add the lesson `water-surface` gradient (see Implementation approach) and does **not** add a second CTA/signup block, to keep the page short.
   - The "How it works" list is a single 5-item bulleted card (no numbered steps) built from `share_message`; no new images/screenshots are added.
-  - **Showcase videos:** the default `SHOWCASE_VIDEO_SLUGS` are `showcase-conversation-01/02/03`, placeholders until the operator copies real recaps out of the temporary `videos/` prefix under those names (commands in Implementation approach). Until then their posters 404 — the section is still rendered (poster + play button) but shows a broken still. Edit `SHOWCASE_VIDEO_SLUGS` to change the set; it is the single source.
-  - **Consent/privacy:** a `-complete` recap contains a real learner's face and voice. Only publish recaps whose speakers consented to public display, or substitute teacher/system lesson clips; the carousel exposes exactly what is in `SHOWCASE_VIDEO_SLUGS`.
+  - **Showcase videos:** `SHOWCASE_VIDEO_SLUGS` is `exrwr-wouldyourather-b-complete`, `pwspi-wouldyourather-b-complete`, `exycy-wouldyourather-b-complete` — the author's own `wouldyourather` lesson-b recaps, already copied from the temporary `videos/` prefix to `assets/videos/<slug>.mp4` + `.jpg` (verified `200`). Edit `SHOWCASE_VIDEO_SLUGS` to change the set; it is the single source.
   - **Language set:** the selector offers only the six languages the homepage is translated into (`HOME_LANGUAGES`), not the guest modal's 18 (`GUEST_LANGUAGES`), because the page copy exists only in those six; a browser in another language (e.g. German) sees English until it picks one of the six. The silent browser adoption uses the same six, so `guestNativeLanguage` never holds a code the page cannot render.
   - **Selector for logged-in users:** the selector writes `guestNativeLanguage` (the guest-first language) for everyone, so a logged-in visitor who uses it switches the app's UI language for the session; the profile language is untouched.
   - **Carousel placement:** the carousel sits between "How it works" and "About the teacher"; only the current slide's `<video>` is ever mounted, and `preload="none"` + `poster` keep the still until playback.
