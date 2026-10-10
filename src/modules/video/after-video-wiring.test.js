@@ -78,6 +78,12 @@ describe('processor tail handoff (video-processor.web.js)', () => {
         expect(onstop).toContain('afterVideoStarted = true');
     });
 
+    it('keys the complete upload exporter-first with the resolved pair code', () => {
+        expect(processorRaw).toContain('resolveCompletePairCode');
+        expect(processorRaw).toContain('pairShareCode');
+        expect(processorRaw).toContain('getCompleteVideoKey({ shareCode, courseId, lessonId, pairShareCode })');
+    });
+
     it('adopts a caller-owned AudioContext and never closes it', () => {
         expect(processorRaw).toContain('return processor.process(fluencyData, lessonId, displayCanvas, opts);');
         expect(processorRaw).toContain('opts.audioContext');
@@ -266,6 +272,7 @@ describe('SuccessButtons tail wiring (SuccessButtons.jsx)', () => {
         expect(handler).toContain('buildShareFilename({');
         expect(handler).toContain('shareCode: shareUserData?.shareCode');
         expect(handler).toContain('courseId: shareCourseId');
+        expect(handler).toContain('resolveCompletePairCode({');
         expect(handler).not.toContain('generateVideoFilename(lessonId)');
     });
 

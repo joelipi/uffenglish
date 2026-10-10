@@ -89,6 +89,20 @@ describe('getCompleteVideoKey — concatenated recap key', () => {
         expect(getCompleteVideoKey()).toBeNull();
     });
 
+    it('embeds a pair code exporter-first for two-user recaps', () => {
+        expect(getCompleteVideoKey({ shareCode: 'q9uki', pairShareCode: 'gs5i8', courseId: 'wouldyourather', lessonId: 'b' }))
+            .toBe('videos/q9uki-gs5i8-wouldyourather-b-complete.mp4');
+    });
+
+    it('keeps the exporter namespace and drops a self-pair', () => {
+        const key = getCompleteVideoKey({ shareCode: 'q9uki', pairShareCode: 'gs5i8', courseId: 'c', lessonId: 'b' });
+        expect(key.startsWith('videos/q9uki-')).toBe(true);
+        expect(getCompleteVideoKey({ shareCode: 'ab12', pairShareCode: 'AB12', courseId: 'model', lessonId: 'w' }))
+            .toBe('videos/ab12-model-w-complete.mp4');
+        expect(getCompleteVideoKey({ shareCode: 'ab12', pairShareCode: '  ', courseId: 'model', lessonId: 'w' }))
+            .toBe('videos/ab12-model-w-complete.mp4');
+    });
+
     it('cannot collide with a segment key or its poster key', () => {
         const complete = getCompleteVideoKey({ shareCode: 'ab12', courseId: 'model', lessonId: 'w' });
         const segment = 'videos/ab12-model-w-response-01.mp4';

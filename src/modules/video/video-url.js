@@ -46,7 +46,16 @@ export function getUgcThumbKey(r2Key) {
 // per-segment clips, so it inherits the 48h lifecycle. Never contains
 // "concatenated"; the suffix is `complete`. Returns null when any part is
 // missing so callers can skip cleanly.
-export function getCompleteVideoKey({ shareCode, courseId, lessonId } = {}) {
+//
+// pairShareCode names a second contributor (the asker whose friend clips are
+// stitched into a friend-sourced recap) and is embedded exporter-first:
+// `videos/<exporter>-<asker>-<course>-<lesson>-complete.mp4`. Exporter-first
+// is mandatory, not cosmetic — the upload Function only accepts keys starting
+// with `videos/<caller-shareCode>-`. A pair equal to the exporter (any case)
+// is dropped to avoid stutter.
+export function getCompleteVideoKey({ shareCode, courseId, lessonId, pairShareCode } = {}) {
     if (!shareCode || !courseId || !lessonId) return null;
-    return `videos/${shareCode}-${courseId}-${lessonId}-complete.mp4`;
+    const pair = String(pairShareCode || '').trim();
+    const pairSegment = pair && pair.toLowerCase() !== String(shareCode).trim().toLowerCase() ? `-${pair}` : '';
+    return `videos/${shareCode}${pairSegment}-${courseId}-${lessonId}-complete.mp4`;
 }

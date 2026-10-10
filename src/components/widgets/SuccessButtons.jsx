@@ -134,12 +134,20 @@ export function VideoButton({ canvasRef }) {
 
         shareHandlerRef.current = async () => {
           const { buildShareFilename } = await import('../../modules/lesson/success-lesson-logic.js');
-          const { userData: shareUserData, courseId: shareCourseId } = appStore.getState();
+          const { resolveCompletePairCode } = await import('../../modules/video/video-processor-logic.js');
+          const { userData: shareUserData, courseId: shareCourseId, configData: shareConfig, friendCode: shareFriendCode } = appStore.getState();
           // Same identity as the R2 concatenated object
-          // (<shareCode>-<courseId>-<lessonId>-complete.mp4) so the file on
-          // the learner's device matches what was published.
+          // (<shareCode>[-<askerCode>]-<courseId>-<lessonId>-complete.mp4)
+          // so the file on the learner's device matches what was published,
+          // including both contributors on friend-sourced lessons.
+          const shareLesson = shareConfig?.lessons?.find(l => l.lessonId === lessonId);
           const filename = buildShareFilename({
             shareCode: shareUserData?.shareCode,
+            pairShareCode: resolveCompletePairCode({
+              lesson: shareLesson,
+              friendCode: shareFriendCode,
+              shareCode: shareUserData?.shareCode,
+            }),
             courseId: shareCourseId,
             lessonId,
             fileExtension: result.ext || 'webm',
