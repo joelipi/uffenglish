@@ -1,13 +1,14 @@
 // Guards for the 9:16 portrait-capture path (speech.web.js).
 //
 // iOS cameras already yield a portrait frame and their MediaRecorder path is
-// fragile and working — iOS must keep the raw camera stream. Android also keeps
-// the raw stream: the 1080×1920 canvas composite adds a second camera surface
-// and a software encode that OOMs low-memory phones while Whisper is loaded, so
-// Android asks the camera for a portrait frame instead (getMediaConstraints).
-// Every other platform (Windows/macOS/Linux/ChromeOS) has a laptop camera that
-// ignores the request, so the stream is composited into a real 1080×1920 canvas
-// for the preview and the recording. These are source-shape guards because
+// fragile and working — iOS must keep the raw camera stream. Every other
+// platform (Windows/macOS/Linux/ChromeOS/Android) has a camera that routinely
+// ignores `aspectRatio` and hands back a non-9:16 frame, so the stream is
+// composited into a real 9:16 canvas for the preview and the recording (the
+// recorded clip is reused verbatim, so the framing must be right at capture
+// time). Phones build a lighter composite (720×1280 @ 24 fps) because a
+// 1080×1920 canvas + software encode OOMs low-memory Android devices while the
+// Whisper model is resident. These are source-shape guards because
 // speech.web.js reads browser globals at module load and cannot be imported in
 // jsdom.
 import { describe, it, expect } from 'vitest';
@@ -28,27 +29,33 @@ function functionBody(source, signature) {
 }
 
 describe('portrait capture (9:16)', () => {
-    it('gates the composite on a device check that excludes iOS and Android', () => {
+    it('gates the composite on a device check that excludes iOS only', () => {
         expect(WEB).toMatch(/import \{ isIOS \} from '\.\.\/\.\.\/utils\/detectIOS\.js'/);
         expect(WEB).toMatch(/const isAndroid = \/Android\/i\.test\(navigator\.userAgent\)/);
         const body = functionBody(WEB, 'export function shouldUsePortraitCapture()');
         expect(body).not.toBe('');
-        expect(body).toMatch(/return !isIOS\(\) && !isAndroid/);
+        expect(body).toMatch(/return !isIOS\(\)/);
+        // Android must NOT be excluded — its recording must be 9:16 too.
+        expect(body).not.toMatch(/isAndroid/);
     });
 
-    it('asks Android for a portrait camera frame (no composite on phones)', () => {
+    it('asks the camera for a plain 16:9 source (the composite does the cropping)', () => {
         const body = functionBody(WEB, 'function getMediaConstraints()');
         expect(body).not.toBe('');
-        expect(body).toMatch(/isWindows \|\| isAndroid/);
-        expect(body).toMatch(/9 \/ 16/);
+        expect(body).toMatch(/aspectRatio: \{ ideal: 16 \/ 9 \}/);
+        expect(body).toMatch(/isWindows && \{ aspectRatio: \{ ideal: 9 \/ 16 \} \}/);
+        // No Android-specific portrait request — the composite guarantees it.
+        expect(body).not.toMatch(/isAndroid/);
     });
 
-    it('builds a 1080×1920 canvas stream, centre-cropping the camera', () => {
+    it('builds a 9:16 canvas stream, centre-cropping the camera', () => {
         const body = functionBody(WEB, 'function createPortraitCaptureStream(rawStream)');
         expect(body).not.toBe('');
-        expect(body).toMatch(/canvas\.width = 1080/);
-        expect(body).toMatch(/canvas\.height = 1920/);
-        expect(body).toMatch(/canvas\.captureStream\(30\)/);
+        // Desktop: 1080×1920; phones: 720×1280 (lighter composite).
+        expect(body).toMatch(/const canvasW = isAndroid \? 720 : 1080/);
+        expect(body).toMatch(/const canvasH = isAndroid \? 1280 : 1920/);
+        expect(body).toMatch(/const captureFps = isAndroid \? 24 : 30/);
+        expect(body).toMatch(/canvas\.captureStream\(captureFps\)/);
         // Centre-crop: draw the <video> with an explicit source rect (cover).
         expect(body).toMatch(/ctx\.drawImage\(video,/);
         // Carry the camera audio through.
@@ -67,5 +74,11 @@ describe('portrait capture (9:16)', () => {
     it('tears the composite down alongside the camera stream', () => {
         const body = functionBody(WEB, 'export function safelyStopStream()');
         expect(body).toMatch(/teardownPortraitCapture\(\)/);
+    });
+
+    it('releases the composite on phones when recording stops (free it before transcription)', () => {
+        const body = functionBody(WEB, 'export function stopSpeechCamRecording(');
+        expect(body).not.toBe('');
+        expect(body).toMatch(/if \(!keepStreamAlive \|\| isAndroid\) safelyStopStream\(\)/);
     });
 });
