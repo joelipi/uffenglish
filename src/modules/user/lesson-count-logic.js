@@ -16,39 +16,37 @@ export function lessonCompletionKey(courseId, lessonId) {
 /**
  * Computes the next lessons-completed state for a completed lesson.
  *
- * Idempotent: a lesson whose key is already in `countedLessons` is not counted
- * again, so re-reaching the same success screen (a reload, a retry, or the two
- * persistence hooks) never double-counts.
+ * Every genuine completion counts — including repeats. Re-doing a lesson with
+ * friends IS doing the lesson again, so it earns credit again.
+ * `countedLessons` stays the UNIQUE set of completed lessons (the unique
+ * count is its length); the total count is `lessonsCompleted`.
  *
- * `countedLessons` (the `counted_lessons` column) predates this rule, so
- * accounts that completed lessons before it was written are missing entries;
- * re-completing one of those lessons counts it once more. Known and accepted.
- *
- * Note the reverse direction too: legacy rows keyed `counted_lessons` on the
- * NEXT-lesson target (the old code keyed on the `lessonId` param, which callers
- * always set to the next lesson), so a legacy residue key can suppress the
- * first post-fix completion of that target lesson (`changed: false` until a
- * different lesson completes). Each residue key was written alongside a legacy
- * +1, so this roughly nets out the old inflation rather than compounding it.
+ * The ONLY thing this does not guard against is a phantom completion, and that
+ * guard lives at the call site, not here: `handleSuccessStep` only passes
+ * `incrementCount` when the success step was reached by traversing the lesson
+ * in-app (`stepLoadedFromRestore === false`). Landing on the success step
+ * directly (page load, reload, signup redirect) persists resume state but
+ * never asks for a count — so a reload can never double-count.
  *
  * @param {object} args
  * @param {string} args.courseId
  * @param {string} args.lessonId        - the lesson that was just completed
- * @param {number} [args.lessonsCompleted] - current count (defaults to 0)
- * @param {string[]} [args.countedLessons] - keys already counted (defaults to [])
- * @returns {{ lessonsCompleted: number, countedLessons: string[], key: string|null, changed: boolean }}
+ * @param {number} [args.lessonsCompleted] - current total (defaults to 0)
+ * @param {string[]} [args.countedLessons] - unique keys already seen (defaults to [])
+ * @returns {{ lessonsCompleted: number, countedLessons: string[], key: string|null, isFirstCompletion: boolean }}
  */
 export function nextLessonCompletion({ courseId, lessonId, lessonsCompleted = 0, countedLessons = [] } = {}) {
     const current = Number(lessonsCompleted) || 0;
     const counted = Array.isArray(countedLessons) ? [...new Set(countedLessons)] : [];
     const key = lessonCompletionKey(courseId, lessonId);
 
-    if (!key || counted.includes(key)) {
-        return { lessonsCompleted: current, countedLessons: counted, key, changed: false };
+    if (!key) {
+        return { lessonsCompleted: current, countedLessons: counted, key, isFirstCompletion: false };
     }
 
-    counted.push(key);
-    return { lessonsCompleted: current + 1, countedLessons: counted, key, changed: true };
+    const isFirstCompletion = !counted.includes(key);
+    if (isFirstCompletion) counted.push(key);
+    return { lessonsCompleted: current + 1, countedLessons: counted, key, isFirstCompletion };
 }
 
 /**

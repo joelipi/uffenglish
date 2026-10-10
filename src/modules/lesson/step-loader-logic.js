@@ -159,13 +159,18 @@ export function handleSuccessStep(step, fluencyData) {
         interactionLog: state.interactionLog
     });
 
-    // Always persist the completion — with or without a next lesson — so the
-    // count advances on every completed lesson. The resume target stays the next
-    // lesson when there is one, else the lesson just completed. Idempotency (no
-    // double count on reload/retry) is enforced in saveLessonProgress.
+    // Persist the completion — with or without a next lesson — so every
+    // completed lesson advances the resume state. The COUNT advances only for
+    // genuine completions: the success step is also landed on directly (page
+    // load, reload, signup redirect — `stepLoadedFromRestore`), which is not a
+    // completion and must never count. Re-traversing the lesson in-app (Repeat,
+    // re-doing it with friends) always arrives with the flag false and counts —
+    // repeats earn credit. The resume target stays the next lesson when there
+    // is one, else the lesson just completed.
+    const completedInApp = !state.stepLoadedFromRestore;
     saveLessonProgress(state.courseId, nextLessonId || completedLessonId, state.userData, {
         updateUserMeta: true,
-        incrementCount: true,
+        incrementCount: completedInApp,
         completedLessonId,
         lessonStats: finalStats,
         currentLessonId: completedLessonId

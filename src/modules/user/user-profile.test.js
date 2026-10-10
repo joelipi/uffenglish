@@ -56,18 +56,22 @@ describe('saveLessonProgress lesson count', () => {
         expect(appStore.getState().countedLessons).toEqual(['wouldyourather_a', 'wouldyourather_b']);
     });
 
-    it('does not double-count the same lesson (reload / retry / both persistence hooks)', async () => {
+    it('counts a repeated completion again — re-doing a lesson with friends earns credit', async () => {
         const userData = { $id: 'user-1', lessons_completed: 0 };
 
-        await saveLessonProgress('model', 'm-a', userData, {
-            updateUserMeta: true, incrementCount: true, completedLessonId: 'm-g',
+        await saveLessonProgress('wouldyourather', 'a', userData, {
+            updateUserMeta: true, incrementCount: true, completedLessonId: 'a',
         });
-        const replay = await saveLessonProgress('model', 'm-a', userData, {
-            updateUserMeta: true, incrementCount: true, completedLessonId: 'm-g',
+        const repeat = await saveLessonProgress('wouldyourather', 'a', userData, {
+            updateUserMeta: true, incrementCount: true, completedLessonId: 'a',
         });
 
-        expect(replay.lessonsCompleted).toBe(1);
-        expect(appStore.getState().lessonsCompleted).toBe(1);
+        expect(repeat.lessonsCompleted).toBe(2);
+        expect(appStore.getState().lessonsCompleted).toBe(2);
+        expect(lastMeta().lessons_completed).toBe(2);
+        // The unique set still holds the lesson only once.
+        expect(lastMeta().counted_lessons).toEqual(['wouldyourather_a']);
+        expect(appStore.getState().countedLessons).toEqual(['wouldyourather_a']);
     });
 
     it('does not increment when incrementCount is not requested (loadNextLesson path)', async () => {

@@ -134,12 +134,14 @@ export async function saveLessonProgress(courseId, lessonId, userData, options =
 
             if (userData.lesson_scores) metaToUpdate.lesson_scores = userData.lesson_scores;
 
-            // Increment lessons completed (idempotent per lesson) and update the
-            // fluency running average, but only for a real completion
-            // (`incrementCount`). The counted lesson is the COMPLETED lesson —
-            // NOT the next-lesson target — so a lesson with no `nextLessonId`
-            // (every friend-practice lesson, e.g. wouldyourather a/b) still
-            // counts, and re-reaching the same success screen never double-counts.
+            // Count every genuine completion — including repeats. Re-doing a
+            // lesson with friends IS doing the lesson again, so it earns
+            // credit again. `counted_lessons` stays the UNIQUE set of completed
+            // lessons (the unique count is its length); the fluency running
+            // average still admits only each lesson's first completion.
+            // The counted lesson is the COMPLETED lesson — NOT the next-lesson
+            // target — so a lesson with no `nextLessonId` (every friend-practice
+            // lesson, e.g. wouldyourather a/b) still counts.
             const completedLessonId = safeOptions.completedLessonId || safeOptions.currentLessonId || null;
             if (safeOptions.incrementCount === true && completedLessonId) {
                 const baselineCounted = [
@@ -158,18 +160,17 @@ export async function saveLessonProgress(courseId, lessonId, userData, options =
                     countedLessons: baselineCounted,
                 });
                 resultState.lessonsCompleted = completion.lessonsCompleted;
+                metaToUpdate.lessons_completed = completion.lessonsCompleted;
+                metaToUpdate.counted_lessons = completion.countedLessons;
+                // Keep the in-session baseline in sync so the next completion
+                // increments instead of re-writing the same number.
+                userData.lessons_completed = completion.lessonsCompleted;
+                userData.counted_lessons = completion.countedLessons;
+                appStore.getState().setLessonsCompleted(completion.lessonsCompleted);
+                appStore.getState().setCountedLessons(completion.countedLessons);
+                console.log(`[Gamification] Lesson completed. Total lessons: ${completion.lessonsCompleted}`);
 
-                if (completion.changed) {
-                    metaToUpdate.lessons_completed = completion.lessonsCompleted;
-                    metaToUpdate.counted_lessons = completion.countedLessons;
-                    // Keep the in-session baseline in sync so the next completion
-                    // increments instead of re-writing the same number.
-                    userData.lessons_completed = completion.lessonsCompleted;
-                    userData.counted_lessons = completion.countedLessons;
-                    appStore.getState().setLessonsCompleted(completion.lessonsCompleted);
-                    appStore.getState().setCountedLessons(completion.countedLessons);
-                    console.log(`[Gamification] Lesson completed. Total lessons: ${completion.lessonsCompleted}`);
-
+                if (completion.isFirstCompletion) {
                     // Fluency running averages (first completion of each lesson).
                     const currentSum = Number(userData.total_fluency_sum || 0);
                     const lessonAvg = safeOptions.lessonAverage || 0;
@@ -181,7 +182,7 @@ export async function saveLessonProgress(courseId, lessonId, userData, options =
                     metaToUpdate.recent_fluency_avgs = recent;
                     console.log(`[Gamification] Fluency avg updated. Sum: ${newSum}, Recent count: ${recent.length}`);
                 } else {
-                    console.log(`[Gamification] Repeat completion of ${completion.key} ignored for lesson count`);
+                    console.log(`[Gamification] Repeat completion of ${completion.key} counted for lesson total (fluency avg keeps first completion only)`);
                 }
             }
 

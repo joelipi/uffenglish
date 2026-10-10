@@ -12,14 +12,14 @@ import { handleSuccessStep } from './step-loader-logic.js';
 
 const showFeedbackAndProceed = vi.fn();
 
-function seed(lessons, currentLessonIndex) {
+function seed(lessons, currentLessonIndex, { fromRestore = false } = {}) {
     appStore.setState({
         configData: { lessons },
         currentLessonIndex,
         currentStepIndex: lessons[currentLessonIndex].steps.length - 1,
         courseId: 'wouldyourather',
         userData: { $id: 'user-1' },
-        stepLoadedFromRestore: false,
+        stepLoadedFromRestore: fromRestore,
         recentFluencyAvgs: [],
         interactionLog: [],
         isTextMode: false,
@@ -102,5 +102,38 @@ describe('handleSuccessStep persists the completed lesson', () => {
         expect(saveLessonProgress).toHaveBeenCalledTimes(2);
         expect(saveLessonProgress.mock.calls.map((c) => c[3].completedLessonId)).toEqual(['a', 'b']);
         expect(saveLessonProgress.mock.calls.every((c) => c[3].incrementCount === true)).toBe(true);
+    });
+
+    // The only phantom-count guard: landing on the success step directly (page
+    // load, reload, signup redirect) is not a completion. It still persists
+    // the resume state, but must never ask for a count — while a genuine
+    // re-traversal (Repeat, re-doing it with friends) always counts, repeats
+    // included.
+    it('does not request a count when the success step is landed on via restore', () => {
+        seed([makeLesson('a', null)], 0, { fromRestore: true });
+
+        completeLesson();
+
+        expect(saveLessonProgress).toHaveBeenCalledTimes(1);
+        const [courseId, resumeLessonId, , options] = saveLessonProgress.mock.calls[0];
+        expect(courseId).toBe('wouldyourather');
+        expect(resumeLessonId).toBe('a');
+        expect(options.completedLessonId).toBe('a');
+        expect(options.updateUserMeta).toBe(true);
+        expect(options.incrementCount).toBe(false);
+    });
+
+    it('requests a count for a repeat traversal of the same lesson', () => {
+        const lessons = [makeLesson('a', null)];
+        seed(lessons, 0);
+        completeLesson();
+        // Repeat restores through loadLessonContent then re-traverses in-app,
+        // so the success step arrives with the restore flag cleared.
+        seed(lessons, 0);
+        completeLesson();
+
+        expect(saveLessonProgress).toHaveBeenCalledTimes(2);
+        expect(saveLessonProgress.mock.calls.every((c) => c[3].incrementCount === true)).toBe(true);
+        expect(saveLessonProgress.mock.calls.map((c) => c[3].completedLessonId)).toEqual(['a', 'a']);
     });
 });

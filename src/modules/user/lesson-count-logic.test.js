@@ -28,7 +28,7 @@ describe('nextLessonCompletion', () => {
             lessonsCompleted: 1,
             countedLessons: ['wouldyourather_a'],
             key: 'wouldyourather_a',
-            changed: true,
+            isFirstCompletion: true,
         });
     });
 
@@ -46,24 +46,40 @@ describe('nextLessonCompletion', () => {
         expect(answer.countedLessons).toEqual(['wouldyourather_a', 'wouldyourather_b']);
     });
 
-    it('does not count the same lesson twice (idempotent on reload/retry)', () => {
+    it('counts a repeated completion again — re-doing a lesson with friends earns credit', () => {
         const first = nextLessonCompletion({
             courseId: 'model',
             lessonId: 'm-g',
             lessonsCompleted: 4,
             countedLessons: ['model_m-t'],
         });
-        const replay = nextLessonCompletion({
+        const repeat = nextLessonCompletion({
             courseId: 'model',
             lessonId: 'm-g',
             lessonsCompleted: first.lessonsCompleted,
             countedLessons: first.countedLessons,
         });
+        const third = nextLessonCompletion({
+            courseId: 'model',
+            lessonId: 'm-g',
+            lessonsCompleted: repeat.lessonsCompleted,
+            countedLessons: repeat.countedLessons,
+        });
 
-        expect(first.changed).toBe(true);
-        expect(replay.changed).toBe(false);
-        expect(replay.lessonsCompleted).toBe(5);
-        expect(replay.countedLessons).toEqual(['model_m-t', 'model_m-g']);
+        expect(first).toMatchObject({ lessonsCompleted: 5, isFirstCompletion: true });
+        expect(repeat).toMatchObject({ lessonsCompleted: 6, isFirstCompletion: false });
+        expect(third).toMatchObject({ lessonsCompleted: 7, isFirstCompletion: false });
+        // The unique set never duplicates the key.
+        expect(third.countedLessons).toEqual(['model_m-t', 'model_m-g']);
+    });
+
+    it('a, b, c completed earns 3 — one credit per genuine completion', () => {
+        let state = { lessonsCompleted: 0, countedLessons: [] };
+        for (const lessonId of ['a', 'b', 'c']) {
+            state = nextLessonCompletion({ courseId: 'wouldrather', lessonId, ...state });
+        }
+        expect(state.lessonsCompleted).toBe(3);
+        expect(state.countedLessons).toEqual(['wouldrather_a', 'wouldrather_b', 'wouldrather_c']);
     });
 
     it('does not mutate the input countedLessons array', () => {
@@ -74,7 +90,7 @@ describe('nextLessonCompletion', () => {
 
     it('treats a missing lessonId as no-op', () => {
         const out = nextLessonCompletion({ courseId: 'model', lessonId: null, lessonsCompleted: 7, countedLessons: [] });
-        expect(out.changed).toBe(false);
+        expect(out.isFirstCompletion).toBe(false);
         expect(out.lessonsCompleted).toBe(7);
     });
 
