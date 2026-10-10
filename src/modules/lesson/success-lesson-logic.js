@@ -51,20 +51,22 @@ export function generateVideoFilename(lessonId) {
 /**
  * Filename for the learner-facing recap delivery (native share sheet file
  * and desktop download). Uses the R2 concatenated-video key basename —
- * `<shareCode>-<courseId>-<lessonId>-complete.mp4` — so the file on the
- * learner's device carries the same share code / course / lesson identity
- * as the object published to R2. Falls back to the timestamped local name
- * when any key part is missing (e.g. a guest with no share code yet).
+ * `<shareCode>[-<askerCode>]-<courseId>-<lessonId>-complete.mp4` — so the
+ * file on the learner's device carries the same identity as the object
+ * published to R2, including both contributors on friend-sourced lessons.
+ * Falls back to the timestamped local name when any key part is missing
+ * (e.g. a guest with no share code yet).
  *
  * @param {object} args
  * @param {string|null|undefined} args.shareCode
+ * @param {string|null|undefined} [args.pairShareCode] - asker code, already resolved
  * @param {string|null|undefined} args.courseId
  * @param {string|null|undefined} args.lessonId
  * @param {string} [args.fileExtension='webm'] - recorder ext; only shapes the fallback name
  * @returns {string} filename with extension
  */
-export function buildShareFilename({ shareCode, courseId, lessonId, fileExtension = 'webm' } = {}) {
-  const key = getCompleteVideoKey({ shareCode, courseId, lessonId });
+export function buildShareFilename({ shareCode, pairShareCode, courseId, lessonId, fileExtension = 'webm' } = {}) {
+  const key = getCompleteVideoKey({ shareCode, pairShareCode, courseId, lessonId });
   if (key) return key.split('/').pop();
   const ext = String(fileExtension || 'webm').replace(/^\./, '');
   return `${generateVideoFilename(lessonId)}.${ext}`;

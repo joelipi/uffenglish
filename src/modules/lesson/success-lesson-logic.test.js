@@ -24,6 +24,25 @@ describe('buildShareFilename', () => {
         })).toBe('gs5i8-wouldyourather-a-complete.mp4');
     });
 
+    it('embeds both contributors when a pair code is resolved', () => {
+        expect(buildShareFilename({
+            shareCode: 'q9uki',
+            pairShareCode: 'gs5i8',
+            courseId: 'wouldyourather',
+            lessonId: 'b',
+            fileExtension: 'mp4',
+        })).toBe('q9uki-gs5i8-wouldyourather-b-complete.mp4');
+    });
+
+    it('drops a pair code equal to the exporter', () => {
+        expect(buildShareFilename({
+            shareCode: 'gs5i8',
+            pairShareCode: 'GS5I8',
+            courseId: 'wouldyourather',
+            lessonId: 'b',
+        })).toBe('gs5i8-wouldyourather-b-complete.mp4');
+    });
+
     it('falls back to the timestamped local name when the share code is missing', () => {
         const name = buildShareFilename({
             shareCode: null,

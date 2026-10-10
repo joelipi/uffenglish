@@ -129,6 +129,29 @@ export function resolveRecapSources(lesson) {
     return RECAP_SOURCES.includes(value) ? value : 'system';
 }
 
+/**
+ * Second share code for a concatenated recap's identity, or null for a
+ * single-user name. A recap genuinely holds two users' clips only when the
+ * lesson pulls friend prompts (`recapSources: 'friend'`) opened via an
+ * asker's link: the stored friendCode then names the asker whose clips are
+ * stitched in. Gating on the lesson config (not merely "a friendCode is
+ * set") keeps a stale persisted code out of solo lessons, and a user
+ * answering their own link gets no doubled code.
+ *
+ * @param {object} args
+ * @param {object|null|undefined} args.lesson - config lesson being exported
+ * @param {string|null|undefined} args.friendCode - stored asker code from ?shareCode=
+ * @param {string|null|undefined} args.shareCode - exporter's own code
+ * @returns {string|null} the asker code to embed, or null
+ */
+export function resolveCompletePairCode({ lesson, friendCode, shareCode } = {}) {
+    if (resolveRecapSources(lesson) !== 'friend') return null;
+    const asker = String(friendCode || '').trim();
+    if (!asker) return null;
+    if (shareCode && asker.toLowerCase() === String(shareCode).trim().toLowerCase()) return null;
+    return asker;
+}
+
 // Response steps that begin a new question. A friend-prompt fallback lookup
 // must never scan past one of these: every friend clip belongs to exactly the
 // question that immediately follows it.

@@ -5,7 +5,7 @@ import { getAllSpeechRecordingsForLesson } from '../storage/storage.js';
 import { shareVideo } from './video-share.js';
 import { appStore } from '../store/store.js';
 import { getVideoUrl, getUgcThumbKey, getCompleteVideoKey } from './video-url.js';
-import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, TAILING_DURATION_MS, resolveOverlayElements, resolveHeaderLayout, isShareCtaEnabled, isDroppedStep, markFirstRenderable, resolveSegmentBounds, STALL_GRACE_MS, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges, SHARE_URL_BASE } from './video-processor-logic.js';
+import { VideoRenderPlanner, TEXT_MODE_DURATION_MS, TAILING_DURATION_MS, resolveOverlayElements, resolveHeaderLayout, isShareCtaEnabled, isDroppedStep, markFirstRenderable, resolveSegmentBounds, STALL_GRACE_MS, assignSegmentTargets, buildUgcSegmentKey, isPublishableClip, calibrateSegmentRanges, resolveCompletePairCode, SHARE_URL_BASE } from './video-processor-logic.js';
 import { AFTER_SUCCESS_BASE } from './after-video-logic.js';
 import { startAfterVideoLoop } from './after-video-player.web.js';
 import { remoteSource } from './video-source.js';
@@ -1667,9 +1667,14 @@ export async function uploadCompleteVideoToR2(blob, lessonId) {
         return { uploaded: false, reason: 'not-logged-in' };
     }
 
-    const { userData, courseId } = appStore.getState();
+    const { userData, courseId, configData, friendCode } = appStore.getState();
     const shareCode = userData?.shareCode;
-    const key = getCompleteVideoKey({ shareCode, courseId, lessonId });
+    // Two-user identity for friend-sourced recaps: the stored asker code is
+    // embedded exporter-first (the upload Function only accepts keys under
+    // the caller's own namespace). Null for solo/ask lessons and self-links.
+    const exportLesson = configData?.lessons?.find(l => l.lessonId === lessonId);
+    const pairShareCode = resolveCompletePairCode({ lesson: exportLesson, friendCode, shareCode });
+    const key = getCompleteVideoKey({ shareCode, courseId, lessonId, pairShareCode });
     if (!key) {
         console.warn('[CompleteVideo] Missing shareCode/courseId/lessonId, skipping upload');
         return { uploaded: false, reason: 'missing-key-parts' };
