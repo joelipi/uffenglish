@@ -21,11 +21,16 @@ const VIDEO_ASPECT = 9 / 16;             // width / height
 const headerBannerFraction = Math.min(HEADER_BAND_RATIO, HEADER_BANNER_ASPECT * VIDEO_ASPECT);
 export const VIDEO_HEADER_RATIO = HEADER_TOP_MARGIN_RATIO + headerBannerFraction;
 
-// The blur is hidden during the chat phase, where the overlay would otherwise
-// blur the chat window and there is no video behind it. Other phases keep it;
+// The blur is hidden whenever the overlay would cover something other than a
+// video's burned-in header: during the chat phase (it would blur the chat
+// window) and on the final step, where the recap video is generated
+// (`mediaState: 'videoProcessor'`) and played back (`bottomState:
+// 'lessonSuccess'`) full-screen and must stay sharp. Other phases keep it;
 // where no video is visible it is a harmless no-op.
-export function isVideoHeaderBlurVisible(mediaState) {
-    return mediaState !== 'chat';
+export function isVideoHeaderBlurVisible(mediaState, bottomState) {
+    if (mediaState === 'chat' || mediaState === 'videoProcessor') return false;
+    if (bottomState === 'lessonSuccess') return false;
+    return true;
 }
 
 // Style object for the blur layer: the CSS custom property the stylesheet turns

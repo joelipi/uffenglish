@@ -160,7 +160,7 @@ export default function LessonContainer() {
             <LandscapeWarning />
 
             {/* Blurred band sized to the video's burned-in header area */}
-            {isVideoHeaderBlurVisible(mediaState) && (
+            {isVideoHeaderBlurVisible(mediaState, bottomState) && (
                 <div className="video-header-blur" aria-hidden="true" style={videoHeaderBlurStyle()}></div>
             )}
 

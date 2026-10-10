@@ -46,7 +46,7 @@ describe('video header blur layer', () => {
         expect(LESSON_CONTAINER).toContain(
             "import { isVideoHeaderBlurVisible, videoHeaderBlurStyle } from '../modules/video/video-header-logic.js';"
         );
-        expect(LESSON_CONTAINER).toContain('{isVideoHeaderBlurVisible(mediaState) && (');
+        expect(LESSON_CONTAINER).toContain('{isVideoHeaderBlurVisible(mediaState, bottomState) && (');
         expect(LESSON_CONTAINER).toContain(
             'className="video-header-blur" aria-hidden="true" style={videoHeaderBlurStyle()}'
         );
