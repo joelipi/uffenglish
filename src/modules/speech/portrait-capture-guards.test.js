@@ -79,10 +79,11 @@ describe('portrait capture (9:16)', () => {
     it('releases the composite on phones when recording stops (free it before transcription)', () => {
         const body = functionBody(WEB, 'export function stopSpeechCamRecording(');
         expect(body).not.toBe('');
-        expect(body).toMatch(/if \(!keepStreamAlive \|\| isAndroid\) safelyStopStream\(\)/);
-        // Presence is not containment: releaseStream must actually be CALLED on
-        // both stop paths, not merely defined.
-        expect((body.match(/releaseStream\(\);/g) || []).length).toBeGreaterThanOrEqual(2);
-        expect(body).toMatch(/releaseStream\(\);\s*\n\s*resolve\(blobToReturn\)/);
+        // Both stop paths (recorder-active finally + inactive branch) must release
+        // the stream on Android even when keepStreamAlive is set. Presence is not
+        // containment: assert the full teardown statement, twice.
+        const release = body.match(/if \(!keepStreamAlive \|\| isAndroid\) \{ setWebcamStream\(null\); safelyStopStream\(\); \}/g) || [];
+        expect(release.length).toBe(2);
+        expect(body).toMatch(/if \(!keepStreamAlive \|\| isAndroid\) \{ setWebcamStream\(null\); safelyStopStream\(\); \}\s*\n\s*resolve\(blobToReturn\)/);
     });
 });

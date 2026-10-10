@@ -313,15 +313,11 @@ export function startDeferredSpeechCamRecording() {
     }
 }
 
+// On phones, always release the camera composite when recording ends — it must
+// not stay alive into transcription/Whisper (canvas + software encoder +
+// recorded blob + Whisper WASM is what OOM'd Android). `keepStreamAlive` is only
+// a warmup optimisation; the next step rebuilds the stream via warmUp.
 export function stopSpeechCamRecording({ download = true, persist = false, meta = {}, keepStreamAlive = false, playback = true, autoplay = false } = {}) {
-    // On phones, always release the camera composite when recording ends — it must
-    // not stay alive into transcription/Whisper (canvas + software encoder +
-    // recorded blob + Whisper WASM is what OOM'd Android). `keepStreamAlive` is
-    // only a warmup optimisation; the next step rebuilds the stream via warmUp.
-    const releaseStream = () => {
-        setWebcamStream(null);
-        if (!keepStreamAlive || isAndroid) safelyStopStream();
-    };
     try {
         if (speechCamRecorder && speechCamRecorder.state !== 'inactive') {
             const recorder = speechCamRecorder;
@@ -364,7 +360,7 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
                         // Clear the array safely after processing
                         speechCamChunks = [];
 
-                        releaseStream();
+                        if (!keepStreamAlive || isAndroid) { setWebcamStream(null); safelyStopStream(); }
                         resolve(blobToReturn);
                     }
                 };
@@ -373,7 +369,8 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
         } else {
             speechCamRecorder = null;
             speechCamChunks = [];
-            releaseStream();
+            if (!keepStreamAlive || isAndroid) { setWebcamStream(null); safelyStopStream(); }
+            else setWebcamStream(null);
             return Promise.resolve(null);
         }
     } catch (err) {
