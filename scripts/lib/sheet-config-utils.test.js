@@ -413,7 +413,9 @@ describe('buildCourseConfig', () => {
                     lessonId: 'b', recapSources: 'friend', recapOverlay: 'shareCta',
                     title: { en: 'Lesson B' },
                     steps: [
-                        { responseType: 'viewAndContinue', simpleVideoUrl: 'ab-model-w-response-01', subtitles: { en: 'Hello.' } },
+                        // Story 057: a friend/UGC slug (`-response-NN`) gets no app
+                        // `subtitles` even when `subtitle_text` is non-blank.
+                        { responseType: 'viewAndContinue', simpleVideoUrl: 'ab-model-w-response-01' },
                     ],
                 },
             ],
@@ -985,6 +987,97 @@ describe('master format (overlay master)', () => {
             response_type: 'friendClosedResponse', video_file: 'v', filename: 'f', order: '1', cue: 'Q?',
         }];
         expect(buildCourseConfig(authoring).lessons[0].steps[0].cue).toEqual({ en: 'Q?' });
+    });
+});
+
+// Story 057: a friend/UGC step (`-response-NN`) already carries its speaker's
+// caption burned into the video, so the generator emits no `subtitles` for it —
+// regardless of `srt`/`srt_<lang>`/`subtitle_text`. Skipping the subtitle call
+// also skips `srt_<lang>` timing validation, so a stray translation on a friend
+// row can never skip the whole course.
+describe('friend UGC steps never emit app subtitles', () => {
+    const masterBase = {
+        course_id: 'wvr', course_name: 'WVR', lesson_id: 'b', lesson_title: 'Answer',
+    };
+    const authoringBase = {
+        course_id: 'c', course_name: 'C', lesson_id: 'a', lesson_title: 'L',
+        response_type: 'friendClosedResponse',
+    };
+    const SRT = '1\\n00:00:00,000 --> 00:00:09,000\\nHi';
+    const BAD_ES = '1\n00:00:00,000 --> 00:00:01,000\nHola';
+
+    it('omits subtitles on a master friend step even with a mistimed srt_es (no throw)', () => {
+        const rows = [{
+            ...masterBase, response_type: 'branching',
+            video_file: '{friendCode}wouldyourather-a-response-01',
+            filename: 'f', order: '1', phrase: 'Q', srt: SRT, srt_es: BAD_ES,
+        }];
+        let config;
+        expect(() => { config = buildCourseConfig(rows); }).not.toThrow();
+        expect('subtitles' in config.lessons[0].steps[0]).toBe(false);
+    });
+
+    it('still emits subtitles for a system master step in the same lesson', () => {
+        const rows = [
+            {
+                ...masterBase, response_type: 'branching',
+                video_file: '{friendCode}wouldyourather-a-response-01',
+                filename: 'f1', order: '1', phrase: 'Q1', srt: SRT, srt_es: BAD_ES,
+            },
+            {
+                ...masterBase, response_type: 'friendClosedResponse',
+                video_file: 'wouldyourather_b01_i',
+                filename: 'f2', order: '2', phrase: 'Q2', srt: SRT,
+            },
+        ];
+        const config = buildCourseConfig(rows);
+        expect('subtitles' in config.lessons[0].steps[0]).toBe(false);
+        expect(config.lessons[0].steps[1].subtitles.en).toBe(unescapeSrt(SRT));
+    });
+
+    it('omits subtitles on an authoring friend step with an srt', () => {
+        const [step] = buildSteps([{
+            ...authoringBase, video_file: 'ab12-x-a-response-01',
+            filename: 'f', order: '1', srt: SRT,
+        }]);
+        expect('subtitles' in step).toBe(false);
+    });
+
+    it('omits subtitles on an authoring friend step with only subtitle_text', () => {
+        const [step] = buildSteps([{
+            ...authoringBase, video_file: 'ab12-x-a-response-01',
+            filename: 'f', order: '1', subtitle_text: 'plain',
+        }]);
+        expect('subtitles' in step).toBe(false);
+    });
+
+    it('does not treat a system slug containing "response" as a friend clip', () => {
+        const [step] = buildSteps([{
+            ...authoringBase, video_file: 'my-response-video',
+            filename: 'f', order: '1', srt: SRT,
+        }]);
+        expect(step.subtitles.en).toBe(unescapeSrt(SRT));
+    });
+
+    it('buildCourseConfigs leaves the friend course without subtitles and the other untouched', () => {
+        const csv = [
+            'course_id,course_name,lesson_id,lesson_title,recap_sources,response_type,video_file,filename,order,srt',
+            'alpha,Alpha,a,Lesson A,none,viewAndContinue,alpha-v1,alpha1,1,Hi',
+            'friend,Friend,b,Lesson B,friend,friendClosedResponse,ab-x-b-response-01,ab1,1,Hello',
+        ].join('\n');
+        const results = buildCourseConfigs(parseCsv(csv).rows);
+        const alpha = results.find((r) => r.courseId === 'alpha');
+        const friend = results.find((r) => r.courseId === 'friend');
+        expect(alpha.config.lessons[0].steps[0].subtitles).toEqual({ en: 'Hi' });
+        expect('subtitles' in friend.config.lessons[0].steps[0]).toBe(false);
+    });
+
+    it('never reports srt as missing for a friend step (unchanged)', () => {
+        const rows = [{
+            ...COURSE, response_type: 'friendClosedResponse',
+            video_file: 'ab-x-b-response-01', filename: 'f', order: '1',
+        }];
+        expect(findMissingColumns(rows).filter((m) => m.column === 'srt')).toEqual([]);
     });
 });
 

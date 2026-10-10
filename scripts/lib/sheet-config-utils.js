@@ -27,6 +27,11 @@ import {
     unescapeSrt,
     validateSrtCell,
 } from './sheet-translate-utils.js';
+// A friend/UGC clip (`-response-NN`) has its speaker's caption burned into the
+// video, so it must get no app `subtitles` — the player would draw a second
+// caption over it. The shared pure predicate keeps this rule identical to the
+// runtime classifier (video-source.js).
+import { isFriendVideoSlug } from '../../src/modules/video/video-source.js';
 
 // English source columns are looked up in the shared field map, so a field
 // removed or renamed in sheet-translate-utils.js fails loudly here instead of
@@ -481,9 +486,15 @@ function buildMasterSteps(lessonRows) {
         // `subtitle_text` is burnt-in overlay markup, never app subtitles. The
         // pipeline writes one SRT per step (the join's cumulative-offset SRT to
         // every row of a join), so `srtSubtitlesFor` reads the first non-blank
-        // value and never concatenates sub-groups.
-        const subtitles = srtSubtitlesFor(stepRows, `video_file "${key}"`);
-        if (subtitles !== undefined) step.subtitles = subtitles;
+        // value and never concatenates sub-groups. A friend/UGC step is skipped
+        // whole: its clip already carries the speaker's caption burned in, and
+        // skipping the call (not just the result) also skips `srt_<lang>` timing
+        // validation, so a stray translation on a friend row can never skip the
+        // course.
+        if (!isFriendVideoSlug(key)) {
+            const subtitles = srtSubtitlesFor(stepRows, `video_file "${key}"`);
+            if (subtitles !== undefined) step.subtitles = subtitles;
+        }
         steps.push(step);
     }
     return steps;
@@ -551,8 +562,14 @@ function buildAuthoringSteps(lessonRows) {
         if (nextStep !== undefined) step.nextStep = nextStep;
         const publishLessonId = singleValue(groupRows, 'publish_lesson_id', `video_file "${videoFile}"`);
         if (publishLessonId) step.publishLessonId = publishLessonId;
-        const subtitles = subtitlesFor(groupRows, `video_file "${videoFile}"`);
-        if (subtitles !== undefined) step.subtitles = subtitles;
+        // A friend/UGC step (`-response-NN`) gets no app `subtitles`: its clip
+        // already carries the speaker's caption burned in. Skipping the call
+        // also skips the `srt_<lang>` timing check and the `subtitle_text`
+        // fallback.
+        if (!isFriendVideoSlug(videoFile)) {
+            const subtitles = subtitlesFor(groupRows, `video_file "${videoFile}"`);
+            if (subtitles !== undefined) step.subtitles = subtitles;
+        }
 
         steps.push({ __order: order, __seq: steps.length, step });
     }

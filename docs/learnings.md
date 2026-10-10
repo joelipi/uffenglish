@@ -158,12 +158,12 @@
 
 ---
 
-## The 9:16 speech-capture composite must stay desktop-only — it OOMs Android
+## The 9:16 speech-capture composite is required — camera `aspectRatio` is ignored, so make the composite light on phones
 
-**Date**: 2026-10-09
+**Date**: 2026-10-10
 **Area**: architecture | performance
-**What happened**: Commit 614d865 routed Android through `createPortraitCaptureStream` so UGC clips came out 9:16. That composite allocates a 1080×1920 canvas, a hidden `<video>` playing the raw camera stream, and a canvas `captureStream(30)` fed by a 30 fps `setInterval` draw loop, then MediaRecorder-encodes the canvas. On a phone that is a second camera surface plus a software encode on top of the raw stream and the ~100 MB Whisper WASM, which OOMs low-memory Android devices during the first recording/transcription.
-**Takeaway**: `shouldUsePortraitCapture()` (`src/modules/speech/speech.web.js`) must stay `!isIOS() && !isAndroid` — Android gets Reels-size from `getUserMedia({ aspectRatio: { ideal: 9/16 } })`, not a canvas. `portrait-capture-guards.test.js` pins this. Confirm on a real device that the camera honours the constraint; if it does not, mitigate with a lower-resolution composite gated on `navigator.deviceMemory` rather than routing phones back through the full-size canvas. Related: the 10 Hz live-hesitation timer is pure overhead on `shareCta`/`friendClosedResponse` steps (their feedback/scoring UI is never built), so `shouldTrackHesitation()` suppresses it there.
+**What happened**: Camera `aspectRatio` is advisory: Android (and desktop webcams) routinely ignore it and hand back 16:9/4:3, so `getUserMedia` alone cannot produce a 9:16 recording. The recorded clip is reused verbatim (the recap and the published friend clips are trimmed from it), so the framing must be correct at capture time. Commit 614d865 therefore composited Android through `createPortraitCaptureStream` — a 1080×1920 canvas + hidden `<video>` + canvas `captureStream(30)` software-encoded by MediaRecorder — which OOM'd low-memory Android phones while the Whisper model was resident. Routing Android back to the raw stream fixed the OOM but reintroduced the 16:9 clip.
+**Takeaway**: Keep `shouldUsePortraitCapture()` (`src/modules/speech/speech.web.js`) as `!isIOS()` — the composite is the only reliable 9:16 guarantee, on phones too; do not try to get 9:16 from `getUserMedia({ aspectRatio })`. Make it memory-safe instead: phones build the composite at 720×1280 @ 24 fps (≈3× less encoder load), and `stopSpeechCamRecording` releases it on Android even when `keepStreamAlive` is set, so it is not alive during transcription/Whisper (the OOM window). `portrait-capture-guards.test.js` pins all of this. Related: the 10 Hz live-hesitation timer is pure overhead on `shareCta`/`friendClosedResponse` steps (their feedback/scoring UI is never built), so `shouldTrackHesitation()` suppresses it there.
 
 ---
 

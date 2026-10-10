@@ -6,10 +6,11 @@
 // The pipeline persists the updated CSV to R2; the sync-srt Action downloads it
 // and runs this script. It overwrites `srt` unconditionally (it is derived), so
 // blanks-only does not apply — but a group whose `srt` is blank is not cleared.
-// Rows are matched by `filename`, and the group key mirrors `write_srt_column`'s
-// per-prefix value; the value is written verbatim (the JSON-escaped string from
-// the CSV), so the generator's `unescapeSrt` (sheet-translate-utils.js) still
-// applies.
+// Each sheet row is matched by its own step key (`video_file`, else the
+// `filename` prefix) — the key `write_srt_column` grouped under — never by
+// `filename` alone (several master rows share a blank `filename`). The value is
+// written verbatim (the JSON-escaped string from the CSV), so the generator's
+// `unescapeSrt` (sheet-translate-utils.js) still applies.
 //
 // Usage:
 //   node scripts/write-srt-to-sheet.mjs --csv=<path> [--sheet-id=<id>] [--tab=<name>]
@@ -58,10 +59,14 @@ export function groupKeyForRow(row) {
 }
 
 /**
- * Plan one write per sheet row whose `filename` belongs to a step-key group
- * with a non-blank `srt`. `write_srt_column` writes the group's value to every
- * CSV row of the group, so the first non-blank value is the group value; rows
- * are matched to the sheet by `filename`. Pure.
+ * Plan one write per sheet row whose own step key (`video_file`, else the
+ * `filename` prefix) belongs to a rendered group with a non-blank `srt`.
+ * `write_srt_column` writes the group's value to every CSV row of the group, so
+ * the first non-blank value is the group value; the sheet row is looked up by
+ * its own `groupKeyForRow`, NOT by `filename` — several master rows share a
+ * blank `filename`, so a `filename` map would collapse them onto one key and
+ * stamp an unrelated group's SRT onto the branching/intro rows. A `filename`-less
+ * row is written only when its own `video_file` is a rendered group. Pure.
  *
  * @param {object} opts
  * @param {string} opts.csvText the `video_data.csv` text (carrying `srt`)
@@ -72,7 +77,6 @@ export function groupKeyForRow(row) {
 export function planSrtWrites({ csvText, rows, sheetRows } = {}) {
     const { rows: csvRows } = parseCsv(csvText);
 
-    const groupKey = (row) => groupKeyForRow(row);
     const srtOf = (row) => (row.srt === undefined || row.srt === null ? '' : String(row.srt));
 
     // The group's first non-blank `srt` (the pipeline writes it to every row of
@@ -80,22 +84,16 @@ export function planSrtWrites({ csvText, rows, sheetRows } = {}) {
     const groupSrt = new Map();
     for (const row of csvRows) {
         const value = srtOf(row);
-        const key = groupKey(row);
+        const key = groupKeyForRow(row);
         if (value.trim() && !groupSrt.has(key)) groupSrt.set(key, value);
     }
 
-    // Every CSV filename in a written group maps to that group's value, so every
-    // sheet row of the group is written (matched by `filename`).
-    const byFilename = new Map();
-    for (const row of csvRows) {
-        const value = groupSrt.get(groupKey(row));
-        if (value !== undefined && value.trim()) byFilename.set(String(row.filename ?? ''), value);
-    }
-
+    // Match each sheet row by its own step key, so a blank-`filename` row is
+    // written only when its `video_file` is a rendered group.
     const plan = [];
     (rows || []).forEach((row, i) => {
-        const value = byFilename.get(String(row.filename ?? ''));
-        if (value === undefined) return;
+        const value = groupSrt.get(groupKeyForRow(row));
+        if (value === undefined || !value.trim()) return;
         plan.push({ row: i, sheetRow: sheetRows ? sheetRows[i] : i + 2, column: 'srt', value });
     });
     return plan;
