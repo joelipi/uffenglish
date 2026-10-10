@@ -9,6 +9,7 @@ import { trackEvent } from '../../modules/utils/posthog.js';
 import { useAvatarUpload } from '../../modules/avatar/use-avatar-upload.js';
 import AvatarCropper from '../widgets/AvatarCropper.jsx';
 import { PROFILE_LANGUAGES, LOCALE_MAP } from '../../data/languages.js';
+import { calculateCurrentStreak } from '../../modules/user/user-profile.js';
 
 const ENGLISH_LEVELS = ['A0', 'A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'Native'];
 
@@ -87,6 +88,9 @@ export default function UserProfile() {
     const profilePic = rawPic || defaultProfilePic;
     const completedDates = Array.isArray(profile?.completed_dates) ? profile.completed_dates : [];
     const lessonsCompleted = Number(profile?.lessons_completed || 0);
+    const currentStreak = calculateCurrentStreak(completedDates);
+    const friendCount = Array.isArray(profile?.friends) ? profile.friends.length : 0;
+    const referrals = Number(profile?.referrals || 0);
 
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
@@ -491,8 +495,20 @@ export default function UserProfile() {
                 <Section title={Strings.get('profile_statistics', lang)}>
                     <div style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ color: '#adb5bd' }}>{Strings.get('profile_streak', lang)}</span>
+                            <span style={{ fontSize: '20px', fontWeight: 700 }}>{currentStreak}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ color: '#adb5bd' }}>{Strings.get('profile_lessons_completed', lang)}</span>
                             <span style={{ fontSize: '20px', fontWeight: 700 }}>{lessonsCompleted}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ color: '#adb5bd' }}>{Strings.get('profile_friend_count', lang)}</span>
+                            <span style={{ fontSize: '20px', fontWeight: 700 }}>{friendCount}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ color: '#adb5bd' }}>{Strings.get('profile_referrals', lang)}</span>
+                            <span style={{ fontSize: '20px', fontWeight: 700 }}>{referrals}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ color: '#adb5bd' }}>{Strings.get('profile_days_active', lang)}</span>

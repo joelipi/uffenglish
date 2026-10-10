@@ -1194,6 +1194,30 @@ const strings = {
         hi: "सक्रिय दिन",
         bn: "সক্রিয় দিন"
     },
+    'profile_streak': {
+        en: "Streak",
+        es: "Racha",
+        pt: "Sequência",
+        fr: "Série",
+        hi: "स्ट्रीक",
+        bn: "স্ট্রিক"
+    },
+    'profile_friend_count': {
+        en: "Friends",
+        es: "Amigos",
+        pt: "Amigos",
+        fr: "Amis",
+        hi: "मित्र",
+        bn: "বন্ধু"
+    },
+    'profile_referrals': {
+        en: "Referrals",
+        es: "Referidos",
+        pt: "Indicações",
+        fr: "Parrainages",
+        hi: "रेफ़रल",
+        bn: "রেফারেল"
+    },
     'profile_guest_title': {
         en: "Guest",
         es: "Invitado",

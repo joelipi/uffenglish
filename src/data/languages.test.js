@@ -59,6 +59,20 @@ describe('HOME_LANGUAGES', () => {
             expect(l.label, `empty label for ${l.value}`).toBeTruthy();
         }
     });
+
+    it('uses native-only labels so the homepage dropdown stays narrow', () => {
+        expect(HOME_LANGUAGES.map((l) => l.label)).toEqual([
+            'English',
+            'Español',
+            'Português',
+            'Français',
+            'हिन्दी',
+            'বাংলা',
+        ]);
+        for (const l of HOME_LANGUAGES) {
+            expect(l.label, `English gloss for ${l.value}`).not.toContain('(');
+        }
+    });
 });
 
 describe('LOCALE_MAP', () => {

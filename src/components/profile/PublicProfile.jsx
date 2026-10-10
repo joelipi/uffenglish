@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useUserByShareCode } from '../../modules/api/api.js';
 import { appStore } from '../../modules/store/store.js';
+import { calculateCurrentStreak } from '../../modules/user/user-profile.js';
 import Strings from '../../data/strings.js';
 import { LOCALE_MAP } from '../../data/languages.js';
 import defaultProfilePic from '../../assets/img/userprofile.png';
@@ -71,6 +72,9 @@ export default function PublicProfile({ shareCode }) {
     const profilePic = rawPic || defaultProfilePic;
     const completedDates = Array.isArray(profile.completed_dates) ? profile.completed_dates : [];
     const lessonsCompleted = Number(profile.lessons_completed || 0);
+    const currentStreak = calculateCurrentStreak(completedDates);
+    const friendCount = Array.isArray(profile.friends) ? profile.friends.length : 0;
+    const referrals = Number(profile.referrals || 0);
     const friendLinks = profile.friendLinks;
 
     return (
@@ -100,8 +104,20 @@ export default function PublicProfile({ shareCode }) {
                 <div style={cardStyle}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ color: '#adb5bd' }}>{Strings.get('profile_streak', lang)}</span>
+                            <span style={{ fontSize: '20px', fontWeight: 700 }}>{currentStreak}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ color: '#adb5bd' }}>{Strings.get('profile_lessons_completed', lang)}</span>
                             <span style={{ fontSize: '20px', fontWeight: 700 }}>{lessonsCompleted}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ color: '#adb5bd' }}>{Strings.get('profile_friend_count', lang)}</span>
+                            <span style={{ fontSize: '20px', fontWeight: 700 }}>{friendCount}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ color: '#adb5bd' }}>{Strings.get('profile_referrals', lang)}</span>
+                            <span style={{ fontSize: '20px', fontWeight: 700 }}>{referrals}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ color: '#adb5bd' }}>{Strings.get('profile_days_active', lang)}</span>

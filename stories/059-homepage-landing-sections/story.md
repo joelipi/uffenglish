@@ -28,204 +28,96 @@ The showcase videos are **learner conversation recaps**: the concatenated end-of
 - Per-slide titles/captions on the carousel videos (only a section heading and an accessible play label are added).
 - New dependencies (everything needed is in `package.json`).
 - Native (`*.native.jsx`) variants.
+- Loading unscoped Bootstrap anywhere else in the SPA, or restyling any route other than `/` with it (the scoped sheet's selectors only match under `.uff-home-bs`).
 
 ## Implementation approach
 
 ### Decisions
 
 - **All rendered sections live in the presentational `HomeLanding.jsx`** (plus the new `ConversationCarousel.jsx`). `HomeLandingContainer.jsx` keeps owning data + wiring; it gains only the language-change handler and the `buildShowcaseVideos()` call. The new sections are static copy + a static image, so there is no new data access. (The browser-language change is separate and touches `guest-modal-logic.js` + `use-guest-modal-guard.js`.)
-- **Design tokens are copied from the app** (not invented): page `#0b1a2a`, card `#1a3a5a`, card border `#2a4a6a`, brand gradient `linear-gradient(135deg, #3a8fd5 0%, #00c0d8 100%)`, secondary text `#adb5bd`, accent `#00c0d8`, font stack `'Inter', 'Plus Jakarta Sans', sans-serif` — all as used by `HomeScreen.jsx:55-122` and `CourseListings.jsx:10-31`. The primary button reuses the exact `HomeScreen` Continue button tokens (`width:100%; padding:14px; background:<gradient>; color:#fff; border:none; borderRadius:8px; fontSize:16px; fontWeight:600`). The primary CTA (Go) keeps that gradient; the secondary CTA ("I don't have a share code") becomes a real app-style outlined **button** (transparent background, `1px solid #00c0d8`, `#00c0d8` text, same padding/radius/font-weight) instead of an underlined text link.
-- **The page must scroll internally.** `#root` is `.video-frame`, which is `overflow: hidden` (`app.css:347-355`), and `html, body { overflow: hidden }` (`index.html:56-58`). The current container is `minHeight: 100dvh` and only fits because the content is short; with sections added, it must become `height: 100dvh; overflowY: 'auto'` exactly like `HomeScreen.jsx:68-76`, so the sections and footer are reachable. The content is top-aligned (the hero is no longer vertically centred) in a `maxWidth: 480px` column (`margin: 0 auto`) so it still reads as the app's phone frame on desktop.
+- **Palette, not Bootstrap defaults.** `home-landing.css` overrides Bootstrap's theme variables with the main app's colours (`#0b1a2a` page, `#1a3a5a` cards, `#2a4a6a` borders, `#adb5bd` secondary text, `#00c0d8` links/accent, `#ff6b6b` danger, Inter first in the font stack) and defines the primary CTA as the app's gradient pill (`.btn-uff-primary`, `border-radius:8px; font-weight:600`) and the secondary CTA as an outlined button in the accent colour (`.btn-uff-outline`) — the Go/no-code treatments that were inline styles are now classes on the same Bootstrap `.btn` base.
+- **The homepage is the only route that uses Bootstrap, and it uses Bootstrap 5.3.8 (bootstrap pinned to the exact `5.3.8`).** `node_modules/bootstrap/dist/css/bootstrap.min.css` (the package is pinned to the exact `5.3.8`) is not imported directly anywhere: `scripts/lib/bootstrap-homepage-css.js` rewrites **every** selector of that file under one root class (`.uff-home-bs`) — the `:root`/`html`/`body` reboots and variable blocks collapse onto the scope element, conditional group at-rules (`@media`/`@supports`) are recursed into, `@charset` and comments are dropped, and `@keyframes` are renamed to `bs-*` together with the `animation`/`animation-name` values and the `--bs-*-animation-name` custom properties that reference them. The pure module is unit-tested (including the invariant that no selector escapes the scope over the *real* Bootstrap CSS); a Vite plugin (`scripts/lib/bootstrap-homepage-plugin.js`, registered in `vite.config.js`) regenerates the committed output `src/generated/homepage-bootstrap.css` on every `buildStart` and writes only when the content changes. A repo-wide source guard asserts that no file under `src/` imports `bootstrap/` directly and that `HomeLanding.jsx` is the only module importing the scoped sheet — this is what makes "Bootstrap ONLY for the homepage" true rather than a convention.
+- **The markup is idiomatic Bootstrap** — `navbar`/`container` top bar, `hero` band over `container > row > col-lg-*`, `card` for the share-code box, `list-group` + `bi-check-circle-fill` for the "How it works" points, `card`/`ratio` for the carousel, `container > row > col-lg-*` for the about section, `form-control`/`form-select`/`btn` for the controls — with typical Bootstrap entrance animations via `animate.css` (already a dependency, used by the legacy `public/landing.html`).
+- **Design tokens come from the Bootstrap theme variables rather than inline styles.** `src/components/homescreen/home-landing.css` (imported only from the homepage) sets `--bs-body-bg: #0b1a2a`, `--bs-card-bg: #1a3a5a`, `--bs-border-color: #2a4a6a`, `--bs-secondary-color: #adb5bd`, `--bs-link-color: #00c0d8` and a `--uff-gradient` custom property, and defines the primary CTA as the app's gradient pill (`.btn-uff-primary`) plus an outlined secondary (`.btn-uff-outline`). Every rule in that file is scoped to `.uff-home-bs` or uniquely `uff-`-prefixed, so it cannot leak either.
+- **The desktop viewport renders as a normal Bootstrap page.** The rest of the app lays out inside the 9:16 phone frame `#root.video-frame` (`app.css:347-368`); for the homepage only, `home-landing.css` adds `#root:has(> .uff-home-bs) { aspect-ratio: auto; width: 100%; max-width: none; height: 100dvh; border-radius: 0; margin: 0; box-shadow: none }`. The selector is CSS-only (no `document`/`classList` DOM manipulation, which the repo forbids) and matches only while the homepage is mounted, so no other route changes. Bootstrap's `container` breakpoints then produce the usual desktop layout (two-column hero, two-column how-it-works/about, expanding navbar).
+- **The page must scroll internally.** `#root` is `.video-frame`, which is `overflow: hidden` (`app.css:347-355`), and `html, body { overflow: hidden }` (`index.html:56-58`). With sections added, the shell becomes `height: 100dvh; overflow-y: auto; display: flex; flex-direction: column` on `.uff-home-bs` in `home-landing.css`, so the sections and footer are reachable. On desktop the 9:16 frame is lifted (see above) and Bootstrap's `container` centers a normal page column.
 - **No `.water-surface` class is added.** Story 050 deliberately keeps the water shimmer off non-lesson page shells; the homepage's opaque `#0b1a2a` container covers `#root`'s blue. Adding a `.water-surface` element (or removing the opaque background) would resurface the sheen and break `tests/water-shimmer-scope.spec.js`, which clips `#root` at `y + 300` on `/` and asserts zero marker pixels.
 - **New copy is localized into the six existing UI languages** (en/es/pt/fr/hi/bn), consistent with the rest of the homepage and the `strings.js` contract enforced by `src/data/strings.test.js` (every key needs non-empty `hi`/`bn`). Native-speaker review of the non-English drafts is a follow-up, exactly as noted for story 056.
 - **The teacher's name is a proper noun and is a JS module constant**, not a `strings.js` key: the `hi`/`bn` script guard (`/[\u0900-\u097F]/`, `/[\u0980-\u09FF]/`) would fail on a Latin-only name entry. Precedent: `PraiseBubble.jsx:4` hardcodes `botName = "Joe Walsh"`.
 - **The photo is `src/assets/img/teacherprofile.webp`** — the teacher avatar already used by `PraiseBubble.jsx:2` (the only picture of the teacher in the assets; `cropped-teacher.png` is a corrupted PNG whose signature is invalid and cannot be decoded, and `teacherprofile.jpeg` is a lower-resolution raster of the same portrait).
 - **The homepage detects the browser language.** On `/` only, an anonymous visitor who has not chosen a language has their browser language adopted silently when it is **one of the homepage's six supported languages** (EN is a no-op because English already renders; any other code, e.g. `DE`/`JA`, is a no-op), reusing the existing friend-lesson mechanism: `detectBrowserLanguage()` → `resolveHomepageLanguageAdoption(...)` → `setGuestLanguageSilent(lang)` (which also mirrors into `userData.native_language`, `store.js:239-244`) and `setGuestDetectedLang(lang)`. A logged-in user or an already-chosen guest language wins, and the early return still does **not** set `guestModalShownThisSession`, so the modal still opens on the next non-auth route (story 045). `silentLangRef` is deliberately **not** set here: the guest modal can still open later, and an explicit pick must beat the homepage's silent adoption.
-- **A top-bar language selector** lists the six languages the homepage is translated into (`HOME_LANGUAGES`: EN/ES/PT/FR/HI/BN, native-name labels). Changing it calls `setGuestLanguageSilent(code)` (no modal, same action as the adoption), so the whole page — and any lesson the visitor starts — uses that language. It sits in the existing gradient top bar next to the account link and is styled with the app's own selector classes (`.form-select.bg-dark`, as in the guest modal) so it reads as the standard language dropdown.
+- **A top-bar language selector** lists the six languages the homepage is translated into (`HOME_LANGUAGES`: EN/ES/PT/FR/HI/BN, native-name labels). Changing it calls `setGuestLanguageSilent(code)` (no modal, same action as the adoption), so the whole page — and any lesson the visitor starts — uses that language. It sits in the Bootstrap top bar (`.navbar` over the brand gradient) next to the account link and uses the app's own dropdown (Bootstrap `.form-select` with `--bs-form-select-bg-img` pointing at the white-arrow SVG, because the whole homepage shell is dark).
 - **The conversation carousel shows posters first and loads a video only on play.** `ConversationCarousel` renders a fixed, curated list (`SHOWCASE_VIDEO_SLUGS`) as a one-slide-at-a-time track: each slide is an `<img loading="lazy">` poster (URL from `getPosterUrl`) plus a play button; pressing play mounts a single `<video src={getVideoUrl(slug)} poster={posterUrl} controls autoPlay playsInline>` for that slide, and pressing it on another slide / navigating slides unmounts it. No `<video>` element exists until a play is pressed, so no video bytes are fetched on page load. Bones: prev/next buttons are index-based (a `translateX(-n*100%)` track), so behaviour is deterministic and testable in jsdom (which does not implement `scrollBy`).
 - **Showcase videos live permanently under the existing `assets/videos/` prefix** (no new URL builders): each is `assets/videos/<slug>.mp4` with a sibling `assets/videos/<slug>.jpg` poster, exactly like teacher media, so `getVideoUrl`/`getPosterUrl` and the dev `/assets/videos/` R2 proxy work unchanged. `SHOWCASE_VIDEO_SLUGS` (a tiny pure module) is the single place to edit the list.
 
-### Layout (`HomeLanding.jsx`)
+### Layout (`HomeLanding.jsx` + `home-landing.css`)
 
 ```
-<div style={containerStyle}>                 // height:100dvh; overflowY:auto; bg #0b1a2a; font stack
-  <div style={topBarStyle}>                   // brand gradient, logo, account link
-    <img ... data-testid="home-logo" />
-    <div style={topBarRightStyle}>            // flex, align center, gap 8px
-      <select data-testid="landing-language-select" className="form-select bg-dark" ... >
-      <Link data-testid="landing-account-link" ... />
+<div className="uff-home-bs">                                // Bootstrap-loaded, scoped shell (see decisions)
+  <nav className="navbar uff-navbar sticky-top" data-testid="landing-topbar">
+    <div className="container">
+      <Link className="navbar-brand"><img data-testid="home-logo" src={headerLogo} …></Link>
+      <div className="d-flex align-items-center gap-2">
+        <select data-testid="landing-language-select" className="form-select form-select-sm w-auto" …>
+        <Link data-testid="landing-account-link" className="btn btn-sm btn-uff-outline" …>
+      </div>
     </div>
-  </div>
-  <div style={contentStyle}>                  // width:100%; maxWidth:480px; margin:0 auto; padding:24px 16px;
-                                              //   display:flex; flexDirection:column; gap:20px
-    <div style={cardStyle}>                   // hero share-code box — existing testids/behaviour unchanged
-      <h1 data-testid="share-code-headline">
-      <p  data-testid="share-code-subheadline">
-      <form> input / error / Go(Type submit) </form>
-      <button type="button" data-testid="no-code">            // NEW: outlined app-style button
+  </nav>
+
+  <header className="uff-hero uff-section animate__animated animate__fadeIn">
+    <div className="container">
+      <div className="row justify-content-center text-center">
+        <div className="col-12 col-lg-8 col-xl-7">
+          <h1 className="uff-hero-title text-white" data-testid="share-code-headline">…</h1>
+          <div className="card border-secondary" data-testid="share-code-card">   // conversion box
+            <div className="card-body">
+              <h2 data-testid="share-code-subheadline" className="h5 fw-bold">…</h2>
+              <form>
+                <input data-testid="share-code-input" className="form-control form-control-lg" …>
+                {error && <div data-testid="share-code-error" role="alert" className="alert …">…</div>}
+                <button data-testid="share-code-go" type="submit" className="btn btn-uff-primary btn-lg w-100">…</button>
+              </form>
+              <button data-testid="no-code" type="button" className="btn btn-uff-outline w-100">…</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
+  </header>
 
-    <section data-testid="how-it-works" style={cardStyle}>
-      <h2 data-testid="how-it-works-heading">{Strings.get('home_landing_how_heading', lang)}</h2>
-      <ul data-testid="how-it-works-list" style={{ listStyle:'none', padding:0, margin:0, display:'flex', flexDirection:'column', gap:'12px' }}>
-        <li data-testid="how-it-works-item-1"> <i className="bi bi-check-circle-fill" aria-hidden="true" style={{ color:'#00c0d8', fontSize:'20px', flexShrink:0 }} /> <span>{Strings.get('home_landing_how_1', lang)}</span> </li>
-        ... items 2–5 ...
-      </ul>
-    </section>
+  <section className="uff-section" data-testid="how-it-works">
+    <div className="container"><div className="row g-4 align-items-start">
+      <div className="col-12 col-lg-5"><h2 data-testid="how-it-works-heading" className="uff-section-title">…</h2></div>
+      <div className="col-12 col-lg-7">
+        <ul className="list-group" data-testid="how-it-works-list">
+          {HOW_IT_WORKS_KEYS.map((k,i)=><li data-testid={`how-it-works-item-${i+1}`} key={k}
+              className="list-group-item d-flex align-items-start gap-3 animate__animated animate__fadeInUp"
+              style={{animationDelay:`${i*90}ms`}}><i className="bi bi-check-circle-fill uff-check"/><span>…</span></li>)}
+        </ul>
+      </div>
+    </div></div>
+  </section>
 
-    <ConversationCarousel lang={lang} videos={showcaseVideos} />   // posts+play-first carousel (own section card)
+  <ConversationCarousel lang={lang} videos={showcaseVideos} />   // its own uff-section--alt <section data-testid="showcase-carousel">
 
-    <section data-testid="about-teacher" style={cardStyle}>
-      <h2 data-testid="about-teacher-heading">{Strings.get('home_landing_about_heading', lang)}</h2>
-      <img data-testid="about-teacher-photo" src={teacherPhoto} alt={TEACHER_NAME}
-           style={{ width:'96px', height:'96px', borderRadius:'50%', objectFit:'cover', border:'3px solid #00c0d8', display:'block', marginBottom:'12px' }} />
-      <p data-testid="about-teacher-name" style={{ fontSize:'20px', fontWeight:700, margin:'0 0 8px' }}>{TEACHER_NAME}</p>
-      <p data-testid="about-teacher-credentials" style={{ color:'#e9ecef', fontSize:'15px', lineHeight:1.5, margin:0 }}>{Strings.get('home_landing_about_credentials', lang)}</p>
-    </section>
-  </div>
+  <section className="uff-section uff-section--alt" data-testid="about-teacher">
+    <div className="container"><div className="row g-4 align-items-center">
+      <div className="col-12 col-lg-3 text-center text-lg-start">
+        <img data-testid="about-teacher-photo" src={teacherPhoto} className="uff-teacher-photo uff-teacher-photo--lg …">
+      </div>
+      <div className="col-12 col-lg-9">
+        <h2 data-testid="about-teacher-heading" className="uff-section-title">…</h2>
+        <p data-testid="about-teacher-name" className="h5 fw-semibold">Joe Walsh</p>
+        <p data-testid="about-teacher-credentials" className="lead text-secondary">…</p>
+      </div>
+    </div></div>
+  </section>
 
-  <LegalFooter lang={lang} />                 // unchanged component; now sits at the end of the scroll column
+  <div className="uff-footer py-4 mt-auto"><LegalFooter lang={lang} /></div>
 </div>
 ```
 
-- `cardStyle` is the existing hero card style (`#1a3a5a`, `border:1px solid #2a4a6a`, `borderRadius:12px`, `padding:24px`) reused by both new sections, so sections read as app cards.
-- `teacherPhoto` is `import teacherPhoto from '../../assets/img/teacherprofile.webp';`; `const TEACHER_NAME = 'Joe Walsh';` is a module-level constant.
-- `no-code` becomes `<button type="button" ...>` with `width:'100%'`, `padding:'14px'`, `background:'transparent'`, `borderWidth:'1px'`, `borderStyle:'solid'`, `borderColor:'#00c0d8'`, `color:'#00c0d8'`, `borderRadius:'8px'`, `fontSize:'16px'`, `fontWeight:600`, `cursor:'pointer'`, and is wrapped in a `<div style={{ marginTop:'12px' }}>` (replacing the current centred wrapper). Longhand `border*` properties are used so a test can read `style.borderColor` (jsdom drops the colour from the `.border` shorthand).
-- The new sections (including the carousel's own section) and the hero card are spaced by the column `gap:20px`; `LegalFooter` keeps its own top border.
-- The top bar gains a right-hand group (`topBarRightStyle` = `{ display:'flex', alignItems:'center', gap:'8px' }`) holding the language selector and the existing account link.
-- `HomeLanding` gains two optional props with defaults — `onLanguageChange` (undefined) and `showcaseVideos = []` — so every existing render/test that omits them is unchanged.
-
-### Language selector (`src/data/languages.js` + `HomeLanding.jsx` + `HomeLandingContainer.jsx`)
-
-Add a homepage-scoped list (do **not** reuse `GUEST_LANGUAGES`, which deliberately excludes English) next to the other lists in `languages.js`, using the same native-name label style:
-
-```js
-// Languages the public homepage is translated into. English first (the default),
-// then the five UI translations. Used by the homepage language selector and by
-// the homepage silent browser-language adoption.
-export const HOME_LANGUAGES = [
-    { value: 'EN', label: 'English' },
-    { value: 'ES', label: 'Español (Spanish)' },
-    { value: 'PT', label: 'Português (Portuguese)' },
-    { value: 'FR', label: 'Français (French)' },
-    { value: 'HI', label: 'हिन्दी (Hindi)' },
-    { value: 'BN', label: 'বাংলা (Bengali)' },
-];
-```
-
-`HomeLanding` renders, in the top bar:
-
-```jsx
-<select
-    data-testid="landing-language-select"
-    className="form-select bg-dark border-secondary"
-    aria-label={Strings.get('home_landing_language_label', lang)}
-    value={selectedLanguage}
-    onChange={(e) => onLanguageChange?.(e.target.value)}
-    style={{ width: 'auto', maxWidth: '150px', padding: '6px 28px 6px 10px', fontSize: '13px' }}
->
-    {HOME_LANGUAGES.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}
-</select>
-```
-
-`selectedLanguage` is `HOME_LANGUAGES.some((l) => l.value === String(lang).toUpperCase()) ? String(lang).toUpperCase() : 'EN'` (so an unsupported/adopted code displays as English). `.form-select`/`.bg-dark`/`.border-secondary` all exist in `app.css` (the guest modal uses `.form-select.bg-dark`), so the control matches the app's usual dropdown; `width:auto` overrides the class's `width:100%` (there is no `.form-select-sm` in this stylesheet, so the compact size is inline).
-
-`HomeLandingContainer` passes the handler (no new store action):
-
-```js
-function handleLanguageChange(code) {
-    appStore.getState().setGuestLanguageSilent(code);
-}
-// ... <HomeLanding ... onLanguageChange={handleLanguageChange} />
-```
-
-`setGuestLanguageSilent` writes `guestNativeLanguage` (+ `userData.native_language`) and never opens the modal, so the page re-renders in the chosen language immediately and any lesson started afterwards uses it. Because the selector sets the guest language, the silent browser adoption below becomes a no-op once a visitor has picked — an explicit choice always wins.
-
-### Conversation carousel (`src/modules/video/showcase-videos.js` + `src/components/homescreen/ConversationCarousel.jsx`)
-
-Pure data/logic module:
-
-```js
-import { getVideoUrl, getPosterUrl } from './video-url.js';
-
-// Curated concatenated conversations shown on the public homepage. Each slug
-// exists permanently on R2 as assets/videos/<slug>.mp4 with a sibling
-// assets/videos/<slug>.jpg poster (already uploaded; see Notes for the copy step).
-export const SHOWCASE_VIDEO_SLUGS = [
-    'exrwr-wouldyourather-b-complete',
-    'pwspi-wouldyourather-b-complete',
-    'exycy-wouldyourather-b-complete',
-];
-
-// slug -> { slug, videoUrl, posterUrl }. Injectable for tests.
-export function buildShowcaseVideos(slugs = SHOWCASE_VIDEO_SLUGS) {
-    if (!Array.isArray(slugs)) return [];
-    return slugs
-        .filter((s) => typeof s === 'string' && s.trim() !== '')
-        .map((slug) => ({ slug, videoUrl: getVideoUrl(slug), posterUrl: getPosterUrl(slug) }));
-}
-```
-
-Presentational carousel (no store, no data access; props `{ lang = 'en', videos = [] }`):
-
-```
-if (videos.length === 0) return null;
-const [index, setIndex] = useState(0);
-const [playingSlug, setPlayingSlug] = useState(null);
-
-<section data-testid="showcase-carousel" style={cardStyle}>
-  <h2 data-testid="showcase-heading">{Strings.get('home_landing_showcase_heading', lang)}</h2>
-  <div style={{ position:'relative', overflow:'hidden', borderRadius:'12px' }}>
-    <div data-testid="showcase-track" style={{ display:'flex', transition:'transform .3s', transform:`translateX(-${index * 100}%)` }}>
-      {videos.map((v) => (
-        <div key={v.slug} data-testid={`showcase-slide-${v.slug}`} style={{ flex:'0 0 100%', position:'relative' }}>
-          {playingSlug === v.slug ? (
-            <video data-testid={`showcase-video-${v.slug}`} src={v.videoUrl} poster={v.posterUrl}
-                   controls autoPlay playsInline preload="none" style={{ width:'100%', display:'block' }} />
-          ) : (
-            <>
-              <img data-testid={`showcase-poster-${v.slug}`} src={v.posterUrl} loading="lazy"
-                   alt={Strings.get('home_landing_showcase_heading', lang)} style={{ width:'100%', display:'block' }} />
-              <button type="button" data-testid={`showcase-play-${v.slug}`}
-                      aria-label={Strings.get('home_landing_showcase_play', lang)}
-                      onClick={() => setPlayingSlug(v.slug)} style={playBtnStyle}>▶</button>
-            </>
-          )}
-        </div>
-      ))}
-    </div>
-    <button type="button" data-testid="showcase-prev" disabled={index === 0}
-            onClick={() => { setPlayingSlug(null); setIndex((i) => Math.max(0, i - 1)); }} aria-label="Previous">‹</button>
-    <button type="button" data-testid="showcase-next" disabled={index === videos.length - 1}
-            onClick={() => { setPlayingSlug(null); setIndex((i) => Math.min(videos.length - 1, i + 1)); }} aria-label="Next">›</button>
-  </div>
-</section>
-```
-
-Key behaviours: **only the poster `<img>` (lazy) exists on load**; a `<video>` is created only for the slide whose play button was pressed; pressing play on another slide, or navigating, unmounts it (via `playingSlug`/`index`), so at most one `<video>` (and no preloaded video bytes) is ever mounted. `poster={posterUrl}` keeps the still visible while the clip buffers.
-
-`ConversationCarousel` defines its own `cardStyle` (`#1a3a5a`, `border:1px solid #2a4a6a`, `borderRadius:12px`, `padding:24px`) and `playBtnStyle` (circular, white background/`#1a1a1a` glyph — the app's `.call-btn` treatment, as in `app.css:757-790`) locally, matching `HomeLanding`'s tokens. The slide media (`<img>` and `<video>`) is `width:100%; aspectRatio:'9/16'; objectFit:'cover'` so the poster area has a stable 9:16 height before the image loads (matching the app frame). The prev/next `aria-label`s are hardcoded `"Previous"`/`"Next"` (the app already hardcodes `aria-label="Scrub video"` in `SimpleVideoPlayer.web.jsx:440`); a localized label is a follow-up.
-
-`HomeLandingContainer` builds the list once and passes it: `const showcaseVideos = useMemo(() => buildShowcaseVideos(), []);`
-
-### Making the showcase videos permanent (operator)
-
-The three chosen concatenated recaps were authored under the temporary `videos/` prefix, so they were copied to the permanent `assets/videos/` prefix (git-ignored, R2-only — never committed). This has already been done for the three slugs; the commands are recorded here for reproducing or extending the list, using the bucket name the pipeline uses (`uff`):
-
-```bash
-# 1. Pull the chosen complete recaps out of the 48h videos/ namespace
-curl -o /tmp/exrwr-wouldyourather-b-complete.mp4 "https://r2.ultrafastfluency.com/videos/exrwr-wouldyourather-b-complete.mp4"
-# (repeat for pwspi-wouldyourather-b-complete, exycy-wouldyourather-b-complete)
-
-# 2. Publish each permanently under assets/videos/ (the prefix the app reads)
-npx wrangler r2 object put "uff/assets/videos/exrwr-wouldyourather-b-complete.mp4" --file /tmp/exrwr-wouldyourather-b-complete.mp4 --content-type video/mp4
-
-# 3. Poster: a 0.2s still as the sibling .jpg (the render's poster rule)
-ffmpeg -y -ss 0.2 -i /tmp/exrwr-wouldyourather-b-complete.mp4 -frames:v 1 -q:v 3 /tmp/exrwr-wouldyourather-b-complete.jpg
-npx wrangler r2 object put "uff/assets/videos/exrwr-wouldyourather-b-complete.jpg" --file /tmp/exrwr-wouldyourather-b-complete.jpg --content-type image/jpeg
-```
-
-`SHOWCASE_VIDEO_SLUGS` lists the three uploaded slugs. Requires authenticated wrangler (`CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`); not part of any test or CI job.
+`home-landing.css` (imported only from `HomeLanding.jsx`, alongside the scoped Bootstrap) supplies: the palette variables on `.uff-home-bs`, the `.uff-navbar` (brand gradient), `.uff-hero` band, `.uff-section`/`.uff-section--alt` rhythm, `.uff-hero-title`/`.uff-section-title` display type, `.btn-uff-primary`/`.btn-uff-outline`, the dark `--bs-form-select-bg-img` arrow, `list-group` borders, `.uff-check`, `.uff-carousel-*` (media 16:10, play button, arrows), `.uff-teacher-photo`, `.uff-footer`, and the `#root:has(> .uff-home-bs)` desktop-frame escape.
 
 ### Homepage browser-language adoption (`src/modules/user/guest-modal-logic.js` + `src/hooks/use-guest-modal-guard.js`)
 
@@ -309,7 +201,8 @@ No value contains a `{`/`}` placeholder. The "How it works" bullets are derived 
 - **Pure logic** in `src/modules/video/showcase-videos.test.js` (`buildShowcaseVideos`), `src/modules/user/guest-modal-logic.test.js` (`isHomepageRoute`, `resolveHomepageLanguageAdoption`), and `src/data/languages.test.js` (`HOME_LANGUAGES`).
 - **Static source guard** in `src/hooks/use-guest-modal-guard-public-route.test.js` (extended): the homepage branch adopts the browser language before its early `return;` and still does not set `guestModalShownThisSession`.
 - **Strings exact-copy** in a new `src/data/strings-landing-sections.test.js` (mirrors `src/data/strings-friend-practice.test.js`) using `get`/`getBilingual`.
-- **Static source guard** in a new `src/components/homescreen/homepage-landing-wiring.test.js` (mirrors `src/routes/home-navigation-wiring.test.js`): the photo import, the gradient token, the scroll contract, the selector, the carousel wiring, the absence of `water-surface`, and the preserved testids. Every slice is scoped to a specific block, asserts on raw source, and is proven able to fail (AGENTS.md).
+- **Bootstrap scoping** in a new `scripts/lib/bootstrap-homepage-css.test.js`: selector scoping, group-at-rule recursion, `@charset` dropping, string/brace parsing safety, keyframe renaming, the real-vendored-CSS invariant that no selector escapes the scope, and the pinned `5.3.8` version.
+- **Static source guard** in a new `src/components/homescreen/homepage-landing-wiring.test.js` (mirrors `src/routes/home-navigation-wiring.test.js`): the scoped-Bootstrap import, the palette variables, the desktop frame escape, the selector, the carousel wiring, the absence of `water-surface`, the preserved testids, and the repo-wide checks that Bootstrap is loaded only here. Every slice is scoped to a specific block, asserts on raw source, and is proven able to fail (AGENTS.md).
 
 ## Tasks
 
@@ -317,26 +210,34 @@ No value contains a `{`/`}` placeholder. The "How it works" bullets are derived 
 
 Modify `src/components/homescreen/HomeLanding.jsx` and `src/components/homescreen/HomeLanding.test.jsx`; create `src/components/homescreen/homepage-landing-wiring.test.js`.
 
-- `HomeLanding` rendered with default props + inspect the rendered landing root (`container.firstChild`, the component's outer `<div>`)
-  - → `style.height` is `100dvh`
-  - → `style.overflowY` is `auto`
-  - → `style.backgroundColor` is `rgb(11, 26, 42)`
-  - → `style.fontFamily` contains `Inter`
+- `HomeLanding` rendered with default props + inspect the rendered landing root (`container.firstChild`)
+  - → its `className` is exactly `uff-home-bs` (the only element carrying the scoped Bootstrap root class)
+  - → the top bar is Bootstrap `navbar` + `container` (`landing-topbar` `className` contains `navbar`, its child is a `.container`)
+  - → the hero card is a Bootstrap `card` (`share-code-card` `className` contains `card`)
+  - → the hero and each section use the Bootstrap grid: the hero `container` contains one `.row`, while `how-it-works` and `about-teacher` each contain exactly two `[class*="col-lg-"]` columns
+  - → `share-code-input` carries Bootstrap's `form-control`
 - `HomeLanding` rendered + inspect `share-code-go`
   - → its `tagName` is `BUTTON`, `type` is `submit`
-  - → `style.fontWeight` is `600`, `style.borderRadius` is `8px`, `style.width` is `100%`
-  - → `style.background` contains `linear-gradient`
+  - → its `className` contains `btn-uff-primary` and `btn-lg` (the app's gradient primary on Bootstrap's `.btn`)
 - `HomeLanding` rendered + inspect `no-code`
   - → its `tagName` is `BUTTON`
   - → its `type` attribute is `button`
-  - → `style.borderColor` is `rgb(0, 192, 216)`, `style.borderWidth` is `1px`, `style.borderStyle` is `solid`, `style.fontWeight` is `600`, `style.width` is `100%`
-  - → its `style.textDecoration` does not contain `underline`
+  - → its `className` contains `btn-uff-outline` and `w-100` (the app's outlined secondary)
 - `no-code` clicked + `onSubmitCode` provided
   - → `onNoCode` is called exactly once and `onSubmitCode` is not called (existing behaviour preserved)
 - `homepage-landing-wiring.test.js` reads `HomeLanding.jsx` raw
-  - → the source contains the exact token `linear-gradient(135deg, #3a8fd5 0%, #00c0d8 100%)`
+  - → the source contains `import '../../generated/homepage-bootstrap.css'` and `import './home-landing.css'`
   - → the source contains `data-testid="share-code-input"`, `data-testid="share-code-go"`, `data-testid="share-code-error"`, `data-testid="no-code"`, and `data-testid="landing-account-link"`
   - → the source does not contain `water-surface`
+- `homepage-landing-wiring.test.js` reads `home-landing.css` raw
+  - → contains the exact token `linear-gradient(135deg, #3a8fd5 0%, #00c0d8 100%)`
+  - → contains `--bs-body-bg: #0b1a2a`, `--bs-card-bg: #1a3a5a`, `--bs-border-color: #2a4a6a`, `--bs-secondary-color: #adb5bd`
+  - → the `#root:has(> .uff-home-bs)` block (scoped to the next `}`) contains `aspect-ratio`, `width`, `height`, `border-radius` and `max-width`
+- `homepage-landing-wiring.test.js` walks every `.js/.jsx/.css` module under `src/`
+  - → no module matches an `import 'bootstrap/...'` statement (unscoped Bootstrap is never loaded)
+  - → exactly one module imports the scoped sheet: `components/homescreen/HomeLanding.jsx`
+- `homepage-landing-wiring.test.js` reads `src/generated/homepage-bootstrap.css`
+  - → it starts with `uff-home-bs,`, contains `uff-home-bs .container` and `uff-home-bs .btn`, and does **not** contain `@charset`, `The Bootstrap Authors`, or a top-level `:root`/`html`/`body` selector
 
 ### Task 2 — "How it works" section
 
@@ -514,6 +415,32 @@ Create `src/modules/video/showcase-videos.js`, `src/modules/video/showcase-video
   - → the source contains `data-testid="showcase-carousel"`
   - → with `playAt = indexOf('playingSlug === v.slug')` and `videoAt = indexOf('<video')`, both are greater than `-1`, `videoAt` is greater than `playAt`, and `(source.match(/<video/g) || []).length` is `1` (the video element exists only in the play branch — the poster-first contract)
   - → the source does not contain `water-surface`
+
+### Task 9 - Bootstrap 5.3.8, scoped to the homepage
+
+Create `scripts/lib/bootstrap-homepage-css.js`, `scripts/lib/bootstrap-homepage-css.test.js`, `scripts/lib/bootstrap-homepage-plugin.js`, and `src/generated/homepage-bootstrap.css`; modify `package.json` (pin `bootstrap` to the exact `5.3.8`), `vite.config.js` (register the plugin), `src/components/homescreen/HomeLanding.jsx` (import the scoped sheet + the palette), `src/components/homescreen/ConversationCarousel.jsx`, and `src/components/homescreen/homepage-landing-wiring.test.js`.
+
+- `scopeBootstrapCss` + the real Bootstrap 5.3.8 CSS (`readSourceBootstrapCss()`)
+  - → every qualified-rule selector carries the scope class (`isFullyScoped` is `true`, asserted as a test)
+  - → no top-level `:root`/`html`/`body` selector, `@charset` or banner comment remains
+  - → the `.container`, `.row`, `.col-lg-*`, `.card`, `.btn`, `.list-group`, `.form-select`, `.navbar` and `.d-none` rules survive, scoped
+  - → every `@keyframes` is renamed to `bs-*`, and both the `animation`/`animation-name` values and the `--bs-spinner-animation-name`-style custom properties referencing them are rewritten
+- `scopeSelector(':root' | 'html' | 'body')`
+  - → returns the scope class
+- `scopeSelector('.btn')`, `scopeSelector('.row > *')`, `scopeSelector('[data-bs-theme=dark]')`, `scopeSelector('::selection')`
+  - → each returns the descendant-scoped form
+- `@media (prefers-reduced-motion:no-preference){:root{scroll-behavior:smooth}}` + `scopeBootstrapCss`
+  - → the prelude is preserved verbatim and the inner rule is scoped
+- `renameAnimationNames('.spinner-border{animation:.75s linear infinite spinner-border}', { spinner-border: 'bs-spinner-border' })`
+  - → the value is rewritten while the `.spinner-border` selector is untouched
+- `parseStatements('a[href^="#"]{content:"{"}[data-x="}"]{color:red}')`
+  - → two statements with the correct preludes and brace-safe bodies
+- `writeHomepageBootstrapCss()`
+  - → writes `src/generated/homepage-bootstrap.css`, reporting `changed: true` on a change and `false` when the content already matches (idempotent, no watcher loop)
+- `vite.config.js` source inspected
+  - → imports `homepageBootstrapPlugin` from `scripts/lib/bootstrap-homepage-plugin.js` and lists it as the first plugin
+- `package.json` source inspected
+  - → the `bootstrap` dependency is exactly `5.3.8`
 
 ## Technical Context
 

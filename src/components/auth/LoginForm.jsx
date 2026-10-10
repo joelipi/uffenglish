@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { supabase, getCurrentUser } from '../../modules/api/supabase.js';
 import { queryClient, getUserProfile } from '../../modules/api/api.js';
 import { identifyUser, trackEvent } from '../../modules/utils/posthog.js';
+import { flushPendingFriendCredits } from '../../modules/user/friend-credit-sync.js';
 
 export function useLoginForm({ onLoginSuccess } = {}) {
     const [email, setEmail] = useState('');
@@ -30,6 +31,8 @@ export function useLoginForm({ onLoginSuccess } = {}) {
                 const user = await getCurrentUser();
                 if (user) {
                     trackEvent('login', { method: 'existing_session' });
+                    // A restored session can carry pre-auth guest credits.
+                    void flushPendingFriendCredits();
                     onLoginSuccess?.();
                     return;
                 }
@@ -41,6 +44,8 @@ export function useLoginForm({ onLoginSuccess } = {}) {
             if (error) throw error;
 
             queryClient.setQueryData(['auth', 'status'], true);
+            // Deferred friend credit for guest completions before this login.
+            void flushPendingFriendCredits();
             getUserProfile().catch(err => console.warn('[Login] Profile pre-fetch failed:', err));
             identifyAfterLogin();
             onLoginSuccess?.();

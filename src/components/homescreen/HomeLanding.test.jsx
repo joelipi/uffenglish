@@ -132,24 +132,30 @@ describe('HomeLanding', () => {
     });
 
     // --- Task 1: app-styled cover, buttons and a scrollable page ---
-    it('renders an app-matched, internally scrollable container', () => {
+    it('renders a Bootstrap page in the scoped app palette shell', () => {
         render();
         const rootEl = container.firstChild;
-        expect(rootEl.style.height).toBe('100dvh');
-        expect(rootEl.style.overflowY).toBe('auto');
-        expect(rootEl.style.backgroundColor).toBe('rgb(11, 26, 42)');
-        expect(rootEl.style.fontFamily).toContain('Inter');
+        // The scope class is what the real Bootstrap 5.3.8 stylesheet lives
+        // under (see home-landing.css / the wiring guard).
+        expect(rootEl.className).toBe('uff-home-bs');
+        expect(q('landing-topbar').className).toContain('navbar');
+        expect(q('share-code-card').className).toContain('card');
+        // Bootstrap grid: the hero and each section are container > row > col.
+        const hero = q('share-code-headline').closest('.container');
+        expect(hero.querySelectorAll('.row')).toHaveLength(1);
+        expect(hero.querySelectorAll('[class*="col-lg-"]')).toHaveLength(1);
+        expect(q('how-it-works').querySelectorAll('[class*="col-lg-"]')).toHaveLength(2);
+        expect(q('about-teacher').querySelectorAll('[class*="col-lg-"]')).toHaveLength(2);
+        expect(q('share-code-input').className).toContain('form-control');
     });
 
-    it('styles the Go button as the app gradient primary', () => {
+    it('styles the Go button as the app white primary', () => {
         render();
         const go = q('share-code-go');
         expect(go.tagName).toBe('BUTTON');
         expect(go.getAttribute('type')).toBe('submit');
-        expect(go.style.fontWeight).toBe('600');
-        expect(go.style.borderRadius).toBe('8px');
-        expect(go.style.width).toBe('100%');
-        expect(go.style.background).toContain('linear-gradient');
+        expect(go.className).toContain('btn-uff-primary');
+        expect(go.className).toContain('btn-lg');
     });
 
     it('styles the no-code action as an app-style outlined button', () => {
@@ -157,12 +163,18 @@ describe('HomeLanding', () => {
         const noCode = q('no-code');
         expect(noCode.tagName).toBe('BUTTON');
         expect(noCode.getAttribute('type')).toBe('button');
-        expect(noCode.style.borderColor).toBe('rgb(0, 192, 216)');
-        expect(noCode.style.borderWidth).toBe('1px');
-        expect(noCode.style.borderStyle).toBe('solid');
-        expect(noCode.style.fontWeight).toBe('600');
-        expect(noCode.style.width).toBe('100%');
-        expect(noCode.style.textDecoration).not.toContain('underline');
+        expect(noCode.className).toContain('btn-uff-outline');
+        expect(noCode.className).toContain('w-100');
+    });
+
+    it('keeps the top-bar sign-in visible on the gradient navbar', () => {
+        render();
+        const link = q('landing-account-link');
+        expect(link).not.toBeNull();
+        expect(link.tagName).toBe('A');
+        expect(link.getAttribute('href')).toBe('/login');
+        expect(link.textContent).toBe('Sign In');
+        expect(link.className).toContain('btn-uff-topbar');
     });
 
     // --- Task 2: "How it works" section ---
@@ -215,8 +227,7 @@ describe('HomeLanding', () => {
         expect(photo.tagName).toBe('IMG');
         expect(photo.getAttribute('alt')).toBe('Joe Walsh');
         expect(photo.getAttribute('src')).toContain('teacherprofile');
-        expect(photo.style.borderRadius).toBe('50%');
-        expect(photo.style.width).toBe('96px');
+        expect(photo.className).toContain('uff-teacher-photo');
     });
 
     it('localizes the About the teacher section', () => {
@@ -233,6 +244,14 @@ describe('HomeLanding', () => {
         expect(select.tagName).toBe('SELECT');
         const options = Array.from(select.querySelectorAll('option'));
         expect(options.map((o) => o.value)).toEqual(['EN', 'ES', 'PT', 'FR', 'HI', 'BN']);
+        expect(options.map((o) => o.textContent)).toEqual([
+            'English',
+            'Español',
+            'Português',
+            'Français',
+            'हिन्दी',
+            'বাংলা',
+        ]);
         expect(select.value).toBe('EN');
         expect(select.getAttribute('aria-label')).toBe('Language');
         expect(select.className).toContain('form-select');

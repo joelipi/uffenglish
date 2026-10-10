@@ -12,6 +12,9 @@ import { loadVideoForStep } from '../video/video-loader.js';
 import { resolveConfigLanguage } from '../bilingual/config-normalizer.js';
 import { Media } from '../media/media.js';
 import { saveLessonProgress } from '../user/user-profile.js';
+import { resolveFriendCredit } from '../user/friend-credit-logic.js';
+import { stashPendingFriendCredit } from '../user/friend-credit-sync.js';
+import { recordFriendCompletion } from '../api/api.js';
 import { getCompressedLessonStats } from '../answer/scoring.js';
 import { calculateLessonAverage, detectFluencyTrend } from './success-lesson-logic.js';
 import { setTextInputSubmitCallback } from './step-loader-callbacks.js';
@@ -98,6 +101,15 @@ export function handleUnitComplete(step) {
 
 // --- Success Step Rendering ---
 
+// Mirrors the login gate in SuccessButtons (VideoButton.isUserLoggedIn): a
+// real Supabase session, not the synthetic guest object.
+function isAuthenticatedUser(userData, isLoggedIn) {
+    return !!isLoggedIn
+        && userData?.auth_method === 'supabase'
+        && !!userData?.$id
+        && userData.$id !== 'guest';
+}
+
 export function handleSuccessStep(step, fluencyData) {
     const state = appStore.getState();
     const lessonAverage = calculateLessonAverage(state);
@@ -142,30 +154,65 @@ export function handleSuccessStep(step, fluencyData) {
 
     const currentLesson = state.configData.lessons[state.currentLessonIndex];
     const nextLessonId = currentLesson.nextLessonId;
+    // The lesson that just finished is the one we count. It is NOT necessarily
+    // `nextLessonId`: a terminal lesson (no next) — e.g. every friend-practice
+    // lesson a/b — must still increment the profile's completed count.
+    const completedLessonId = currentLesson.lessonId || step.lessonId;
 
-    if (nextLessonId) {
-        const finalStats = getCompressedLessonStats({
-            isTextMode: state.isTextMode,
-            isCameraOff: state.isCameraOff,
-            lessonStartTime: state.lessonStartTime,
-            averageWpm: state.averageWpm,
-            totalPauses: state.totalPauses,
-            totalHesitations: state.totalHesitations,
-            recognizedIdioms: state.recognizedIdioms,
-            pragmaticFlags: state.pragmaticFlags,
-            interactionLog: state.interactionLog
-        });
+    const finalStats = getCompressedLessonStats({
+        isTextMode: state.isTextMode,
+        isCameraOff: state.isCameraOff,
+        lessonStartTime: state.lessonStartTime,
+        averageWpm: state.averageWpm,
+        totalPauses: state.totalPauses,
+        totalHesitations: state.totalHesitations,
+        recognizedIdioms: state.recognizedIdioms,
+        pragmaticFlags: state.pragmaticFlags,
+        interactionLog: state.interactionLog
+    });
 
-        saveLessonProgress(state.courseId, nextLessonId, state.userData, {
-            updateUserMeta: true,
-            incrementCount: true,
-            lessonStats: finalStats,
-            currentLessonId: step.lessonId
-        }).then(progressResult => {
-            state.setActivityMetrics(progressResult.newDayCount, progressResult.newStreak);
-            if (progressResult.lessonsCompleted) {
-                state.setLessonsCompleted(progressResult.lessonsCompleted);
-            }
-        });
-    };
+    // Persist the completion — with or without a next lesson — so every
+    // completed lesson advances the resume state. The COUNT advances only for
+    // genuine completions: the success step is also landed on directly (page
+    // load, reload, signup redirect — `stepLoadedFromRestore`), which is not a
+    // completion and must never count. Re-traversing the lesson in-app (Repeat,
+    // re-doing it with friends) always arrives with the flag false and counts —
+    // repeats earn credit. The resume target stays the next lesson when there
+    // is one, else the lesson just completed.
+    const completedInApp = !state.stepLoadedFromRestore;
+    saveLessonProgress(state.courseId, nextLessonId || completedLessonId, state.userData, {
+        updateUserMeta: true,
+        incrementCount: completedInApp,
+        completedLessonId,
+        lessonStats: finalStats,
+        currentLessonId: completedLessonId
+    }).then(progressResult => {
+        state.setActivityMetrics(progressResult.newDayCount, progressResult.newStreak);
+        // Re-sync the store even when the count did not change (a repeated
+        // completion), so the in-session value matches the profile row.
+        if (progressResult.lessonsCompleted) {
+            state.setLessonsCompleted(progressResult.lessonsCompleted);
+        }
+    });
+
+    // Friend-completion credit for the share-link owner. Only genuine
+    // in-app completions qualify (the same phantom guard as the count).
+    // Authenticated completers record immediately, fail-open; guests have no
+    // user id yet, so their credit is stashed and the signup/login flush
+    // sends it once the account exists.
+    const friendCredit = resolveFriendCredit({
+        configData: state.configData,
+        lessonId: completedLessonId,
+        courseId: state.courseId,
+        ownerShareCode: state.friendCode,
+        actorShareCode: state.userData?.shareCode || state.userData?.share_code,
+        completedInApp,
+    });
+    if (friendCredit) {
+        if (isAuthenticatedUser(state.userData, state.isLoggedIn)) {
+            void recordFriendCompletion(friendCredit);
+        } else {
+            stashPendingFriendCredit(friendCredit);
+        }
+    }
 }
