@@ -175,10 +175,8 @@
 
 ---
 
-## `git push` auth can fail while `sandpod gh refresh` 500s — the managed `.env` `GH_TOKEN` may be the valid one
-**Date**: 2026-10-09
-**Area**: workflow | infrastructure
-**What happened**: `git push origin HEAD:main` failed with `remote: Invalid username or token` and `gh auth status` reported the exported `GH_TOKEN` (and `~/.sandpod-env`'s copy) invalid. `sandpod gh refresh` could not self-heal — every retry returned `platform mint failed (500): HTTPError`. The valid credential turned out to be the sandpod-managed `GH_TOKEN` in the repo's `.env` (a different, shorter token): it returned `200` from `api.github.com/user` while the shell/sandpod token returned `401`. Because the repo is public, `git fetch`/read still worked unauthenticated, so only `push` exposed the stale token.
-**Takeaway**: Don't assume the exported `GH_TOKEN` is authoritative — test each candidate token against `api.github.com/user` (`curl -s -o /dev/null -w '%{http_code}' -H "Authorization: token <tok>" https://api.github.com/user`) before giving up. Push the working token without putting it on argv: a `GIT_ASKPASS` script that echoes `$GH_PUSH_TOKEN`, run as `GH_PUSH_TOKEN=<tok> GIT_ASKPASS=<script> git -c credential.helper= push https://x-access-token@github.com/<owner>/<repo>.git HEAD:main`.
-
----
+## Diagnose a burned-caption/media regression from the published artifact, not from static reasoning
+**Date**: 2026-10-10
+**Area**: testing | workflow | architecture
+**What happened**: The report "lesson a's UGC clip burns English only, no translation" was diagnosed statically as a config step-index drift (the 2026-10-08 regeneration inserted a `viewAndContinue` step into lesson a), and a whole story was written and merged around it. Pulling the actual R2 clips disproved it in minutes: `a`/`b` clips vary **per user**, not per lesson, and the giveaway was comparing each clip to its own recap tailing CTA — `mctpp`'s recap was fully Spanish while its burned caption was English-only, i.e. the burned-caption language (answer-time `userData.native_language`) disagreed with the recap's guest-first language. The step-index theory was provably wrong (the translation rides along even when the step mis-resolves).
+**Takeaway**: For any "the video/subtitle/caption is wrong" report, fetch the real artifact before theorising. List the public bucket with the `.env` `R2_TOKEN`: `curl -s "https://api.cloudflare.com/client/v4/accounts/<acct>/r2/buckets/uff/objects?prefix=videos/&per_page=1000" -H "Authorization: Bearer $R2_TOKEN"` (the account id comes from `CLOUDFLARE_API_TOKEN=$R2_TOKEN npx wrangler whoami`; the pinned wrangler has no `r2 object list`). Pull `https://r2.ultrafastfluency.com/videos/<shareCode>-<courseId>-{a,b}-response-01.mp4` and the `-complete.mp4` recap, then read the burned pixels: `ffmpeg -ss 1.5 -i clip.mp4 -frames:v 1 -vf "crop=iw:ih*0.22:0:ih*0.68,scale=480:-1" out.png` and view the PNG. The recap's tailing CTA language is the user's session language — compare it to the clip to find the mismatch. A per-user (not per-lesson) pattern means the session language state, not the lesson/config.

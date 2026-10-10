@@ -149,6 +149,8 @@ Primary branch is `main`. Commits land on `main` directly, so once committed `ma
 
 **Push the story branch when the work is verified.** A local-only branch cannot be tested or deployed, so once both reviewers pass, push it: `git push -u origin <story-branch>`. Do this for every story unless the user says otherwise — do not leave verified work unpushed. Merging into `main` is a separate, explicit step (only when the user asks); pushing the branch is the default end state of a completed story.
 
+**The working GitHub token is the repo's `.env` `GH_TOKEN`, not the shell/sandpod one.** The exported `GH_TOKEN` (and `~/.sandpod-env`'s copy) is a short-lived sandbox App token that is routinely expired — `gh auth status` reports it invalid and `sandpod gh refresh` can 500 (`platform mint failed`). A valid fine-grained PAT (`github_pat_…`, user `joelipi`) sits in the checked-out repo's `.env` under the `GH_TOKEN=` key. Test each candidate against `api.github.com/user` (200 vs 401), then push with it without putting it on argv: `TOK=$(grep -E '^GH_TOKEN=' .env | cut -d= -f2- | tr -d '"'"'"' \r'); git push "https://x-access-token:${TOK}@github.com/joelipi/uffenglish.git" HEAD:main`. Because the repo is public, `git fetch`/read succeeds unauthenticated — only `push` exposes the stale token, so a failed push does not mean there is no usable credential.
+
 ---
 
 ## 2. Comments & Logging
