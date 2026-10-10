@@ -72,3 +72,44 @@ test.describe('Lesson top bar bell', () => {
         expect(observed.errors).toEqual([]);
     });
 });
+
+test.describe('narrow frame panel fit', () => {
+    // Short viewport -> narrow 9:16 frame (~281px): the 320px panel used to
+    // overflow the frame's left edge and get clipped by overflow: hidden.
+    test.use({ viewport: { width: 800, height: 500 } });
+
+    let narrowObserved = { errors: [], transitionWarnings: [] };
+
+    test.beforeEach(async ({ page }) => {
+        narrowObserved = collectConsole(page);
+        await blockSentinelAutoplay(page);
+    });
+
+    test('open panel stays fully inside the frame', async ({ page }) => {
+        await page.goto(LESSON_URL);
+        await confirmGuestLanguage(page);
+        await waitForLessonReady(page, 'm-g');
+        await page.evaluate(() => {
+            const s = window.appStore.getState();
+            s.setGuestModalOpen(false);
+            s.setGuestModalShownThisSession(true);
+            window.appStore.setState({
+                isLoggedIn: true,
+                userData: { native_language: 'en', auth_method: 'supabase', $id: 'test-user' },
+            });
+        });
+
+        await page.locator('[data-testid="notification-bell"]').click({ force: true });
+        const panel = page.locator('[data-testid="notification-panel"]');
+        await expect(panel).toBeVisible();
+
+        const frame = await page.locator('.video-frame').boundingBox();
+        const box = await panel.boundingBox();
+        expect(frame).not.toBeNull();
+        expect(box).not.toBeNull();
+        expect(box.x).toBeGreaterThanOrEqual(frame.x - 1);
+        expect(box.x + box.width).toBeLessThanOrEqual(frame.x + frame.width + 1);
+
+        expect(narrowObserved.errors).toEqual([]);
+    });
+});
