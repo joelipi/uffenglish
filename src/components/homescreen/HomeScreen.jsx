@@ -8,6 +8,7 @@ import Strings from '../../data/strings.js';
 import { trackEvent } from '../../modules/utils/posthog.js';
 import NotificationsBell from './NotificationsBell.web.jsx';
 import LegalFooter from '../legal/LegalFooter.jsx';
+import headerLogo from '../../assets/img/uff-logo.png';
 
 export default function HomeScreen() {
     const navigate = useNavigate();
@@ -126,7 +127,12 @@ export default function HomeScreen() {
                 <button onClick={() => setMenuOpen(true)} style={iconBtnStyle}>
                     <i className="bi bi-list"></i>
                 </button>
-                <span style={{ fontSize: '18px', fontWeight: 600 }}>{Strings.get('home_title', lang)}</span>
+                <img
+                    src={headerLogo}
+                    alt={Strings.get('home_title', lang)}
+                    data-testid="home-logo"
+                    style={{ height: '40px', width: 'auto', display: 'block', filter: 'drop-shadow(0 1px 1.5px rgba(0,0,0,0.35))' }}
+                />
                 {isLoggedIn && viewerId && viewerId !== 'guest'
                     ? <NotificationsBell userId={viewerId} lang={lang} />
                     : <div style={{ width: '44px' }} />}

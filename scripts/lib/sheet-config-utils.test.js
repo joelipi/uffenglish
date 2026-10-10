@@ -6,7 +6,6 @@ import { fileURLToPath } from 'node:url';
 import {
     parseCsv,
     isVideoRow,
-    unescapeSrt,
     buildSteps,
     buildCourseConfig,
     buildCourseConfigs,
@@ -20,7 +19,9 @@ import {
 import {
     SHEET_LANGUAGES,
     TRANSLATABLE_FIELDS,
+    LOCALIZATION_FIELDS,
     localizedColumn,
+    unescapeSrt,
 } from './sheet-translate-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -412,7 +413,9 @@ describe('buildCourseConfig', () => {
                     lessonId: 'b', recapSources: 'friend', recapOverlay: 'shareCta',
                     title: { en: 'Lesson B' },
                     steps: [
-                        { responseType: 'viewAndContinue', simpleVideoUrl: 'ab-model-w-response-01', subtitles: { en: 'Hello.' } },
+                        // Story 057: a friend/UGC slug (`-response-NN`) gets no app
+                        // `subtitles` even when `subtitle_text` is non-blank.
+                        { responseType: 'viewAndContinue', simpleVideoUrl: 'ab-model-w-response-01' },
                     ],
                 },
             ],
@@ -486,6 +489,13 @@ describe('buildCourseConfig localization columns', () => {
         expect(Object.keys(step.subtitles)).toEqual(['en']);
     });
 
+    it('localizes an authoring-sheet srt from srt_<lang> (taken verbatim)', () => {
+        const [step] = buildSteps([
+            { video_file: 'v', filename: 'v1', order: '1', response_type: 'viewAndContinue', srt: '1\\n00:00:00,000 --> 00:00:01,000\\nHi', srt_es: '1\n00:00:00,000 --> 00:00:01,000\nHola' },
+        ]);
+        expect(step.subtitles).toEqual({ en: '1\n00:00:00,000 --> 00:00:01,000\nHi', es: '1\n00:00:00,000 --> 00:00:01,000\nHola' });
+    });
+
     it('ignores a stray cue_alt_es on a single-cue step', () => {
         const [step] = buildSteps([
             { video_file: 'q', filename: 'q1', order: '1', response_type: 'friendClosedResponse', cue: 'Q', cue_es: 'Q-es', cue_alt_es: 'stray' },
@@ -534,6 +544,11 @@ describe('shared translatable-field parity', () => {
                 video_file: 'v2', filename: 'f2', order: '2', response_type: 'closedResponse',
                 cue_alt: 'A\nB', [es('cue_alt')]: 'A-es\nB-es',
             },
+            {
+                course_id: 'c', course_name: 'C', lesson_id: 'a', lesson_title: 'L', mission: 'M',
+                video_file: 'v3', filename: 'f3', order: '3', response_type: 'closedResponse',
+                srt: '1\\n00:00:00,000 --> 00:00:01,000\\nHi', [es('srt')]: '1\n00:00:00,000 --> 00:00:01,000\nHola',
+            },
         ];
         const lesson = buildCourseConfig(rows).lessons[0];
         expect(lesson.title.es).toBe('L-es');
@@ -541,7 +556,10 @@ describe('shared translatable-field parity', () => {
         expect(lesson.steps[0].cue.es).toBe('Q-es');
         expect(lesson.steps[0].subtitles.es).toBe('S-es');
         expect(lesson.steps[1].cue[0].es).toBe('A-es');
-        // The generator's consumed field set is exactly the shared set.
+        // `srt` localizes captions (taken verbatim from `srt_<lang>`).
+        expect(lesson.steps[2].subtitles).toEqual({ en: '1\n00:00:00,000 --> 00:00:01,000\nHi', es: '1\n00:00:00,000 --> 00:00:01,000\nHola' });
+        // The generator's consumed field set is exactly the shared set (the
+        // generic fields; `srt` is consumed above and listed in LOCALIZATION_FIELDS).
         expect(TRANSLATABLE_FIELDS.map((f) => f.field).sort()).toEqual([
             'choose_step_text', 'cue', 'cue_alt', 'lesson_title', 'mission', 'phrase', 'subtitle_text',
         ]);
@@ -879,14 +897,25 @@ describe('master format (overlay master)', () => {
         expect(steps(rows)[0].subtitles).toEqual({ en: 'A\nonly' });
     });
 
-    it('takes srt_<lang> verbatim (operator text, not pipeline-escaped)', () => {
+    it('takes srt_<lang> verbatim (literal text, not pipeline-escaped)', () => {
         const rows = [{
             ...base, video_file: 'v', filename: 'f', order: '1', phrase: 'Q',
-            srt: '1\\n00:00 --> 00:01\\nHi', srt_es: 'literal\\nbackslash',
+            srt: '1\\n00:00:00,000 --> 00:00:01,000\\nHi',
+            srt_es: '1\n00:00:00,000 --> 00:00:01,000\nliteral\\nbackslash',
         }];
         const [step] = steps(rows);
-        expect(step.subtitles.en).toBe('1\n00:00 --> 00:01\nHi');
-        expect(step.subtitles.es).toBe('literal\\nbackslash');
+        expect(step.subtitles.en).toBe('1\n00:00:00,000 --> 00:00:01,000\nHi');
+        // The literal backslash survives (the language cell is not unescaped).
+        expect(step.subtitles.es).toBe('1\n00:00:00,000 --> 00:00:01,000\nliteral\\nbackslash');
+    });
+
+    it('throws when a stored srt_<lang> does not match the English srt timings', () => {
+        const rows = [{
+            ...base, video_file: 'v', filename: 'f', order: '1', phrase: 'Q',
+            srt: '1\\n00:00:00,000 --> 00:00:09,000\\nHi',
+            srt_es: '1\n00:00:00,000 --> 00:00:01,000\nHola',
+        }];
+        expect(() => steps(rows)).toThrow(/video_file "v": srt_es is not a timing-consistent translation/);
     });
 
     it('throws on conflicting response_type within a step', () => {
@@ -961,16 +990,107 @@ describe('master format (overlay master)', () => {
     });
 });
 
+// Story 057: a friend/UGC step (`-response-NN`) already carries its speaker's
+// caption burned into the video, so the generator emits no `subtitles` for it —
+// regardless of `srt`/`srt_<lang>`/`subtitle_text`. Skipping the subtitle call
+// also skips `srt_<lang>` timing validation, so a stray translation on a friend
+// row can never skip the whole course.
+describe('friend UGC steps never emit app subtitles', () => {
+    const masterBase = {
+        course_id: 'wvr', course_name: 'WVR', lesson_id: 'b', lesson_title: 'Answer',
+    };
+    const authoringBase = {
+        course_id: 'c', course_name: 'C', lesson_id: 'a', lesson_title: 'L',
+        response_type: 'friendClosedResponse',
+    };
+    const SRT = '1\\n00:00:00,000 --> 00:00:09,000\\nHi';
+    const BAD_ES = '1\n00:00:00,000 --> 00:00:01,000\nHola';
+
+    it('omits subtitles on a master friend step even with a mistimed srt_es (no throw)', () => {
+        const rows = [{
+            ...masterBase, response_type: 'branching',
+            video_file: '{friendCode}wouldyourather-a-response-01',
+            filename: 'f', order: '1', phrase: 'Q', srt: SRT, srt_es: BAD_ES,
+        }];
+        let config;
+        expect(() => { config = buildCourseConfig(rows); }).not.toThrow();
+        expect('subtitles' in config.lessons[0].steps[0]).toBe(false);
+    });
+
+    it('still emits subtitles for a system master step in the same lesson', () => {
+        const rows = [
+            {
+                ...masterBase, response_type: 'branching',
+                video_file: '{friendCode}wouldyourather-a-response-01',
+                filename: 'f1', order: '1', phrase: 'Q1', srt: SRT, srt_es: BAD_ES,
+            },
+            {
+                ...masterBase, response_type: 'friendClosedResponse',
+                video_file: 'wouldyourather_b01_i',
+                filename: 'f2', order: '2', phrase: 'Q2', srt: SRT,
+            },
+        ];
+        const config = buildCourseConfig(rows);
+        expect('subtitles' in config.lessons[0].steps[0]).toBe(false);
+        expect(config.lessons[0].steps[1].subtitles.en).toBe(unescapeSrt(SRT));
+    });
+
+    it('omits subtitles on an authoring friend step with an srt', () => {
+        const [step] = buildSteps([{
+            ...authoringBase, video_file: 'ab12-x-a-response-01',
+            filename: 'f', order: '1', srt: SRT,
+        }]);
+        expect('subtitles' in step).toBe(false);
+    });
+
+    it('omits subtitles on an authoring friend step with only subtitle_text', () => {
+        const [step] = buildSteps([{
+            ...authoringBase, video_file: 'ab12-x-a-response-01',
+            filename: 'f', order: '1', subtitle_text: 'plain',
+        }]);
+        expect('subtitles' in step).toBe(false);
+    });
+
+    it('does not treat a system slug containing "response" as a friend clip', () => {
+        const [step] = buildSteps([{
+            ...authoringBase, video_file: 'my-response-video',
+            filename: 'f', order: '1', srt: SRT,
+        }]);
+        expect(step.subtitles.en).toBe(unescapeSrt(SRT));
+    });
+
+    it('buildCourseConfigs leaves the friend course without subtitles and the other untouched', () => {
+        const csv = [
+            'course_id,course_name,lesson_id,lesson_title,recap_sources,response_type,video_file,filename,order,srt',
+            'alpha,Alpha,a,Lesson A,none,viewAndContinue,alpha-v1,alpha1,1,Hi',
+            'friend,Friend,b,Lesson B,friend,friendClosedResponse,ab-x-b-response-01,ab1,1,Hello',
+        ].join('\n');
+        const results = buildCourseConfigs(parseCsv(csv).rows);
+        const alpha = results.find((r) => r.courseId === 'alpha');
+        const friend = results.find((r) => r.courseId === 'friend');
+        expect(alpha.config.lessons[0].steps[0].subtitles).toEqual({ en: 'Hi' });
+        expect('subtitles' in friend.config.lessons[0].steps[0]).toBe(false);
+    });
+
+    it('never reports srt as missing for a friend step (unchanged)', () => {
+        const rows = [{
+            ...COURSE, response_type: 'friendClosedResponse',
+            video_file: 'ab-x-b-response-01', filename: 'f', order: '1',
+        }];
+        expect(findMissingColumns(rows).filter((m) => m.column === 'srt')).toEqual([]);
+    });
+});
+
 describe('docs/video-pipeline/sample-sheet.csv round-trip', () => {
     const samplePath = path.join(__dirname, '../../docs/video-pipeline/sample-sheet.csv');
     const csv = readFileSync(samplePath, 'utf8');
 
-    it('headers include all 18 authoring localization columns (phrase is master-only)', () => {
+    it('headers include all 21 authoring localization columns (phrase is master-only)', () => {
         const { headers } = parseCsv(csv);
-        const authoringFields = TRANSLATABLE_FIELDS.filter((f) => f.field !== 'phrase');
+        const authoringFields = LOCALIZATION_FIELDS.filter((f) => f.field !== 'phrase');
         const expected = authoringFields.flatMap((f) =>
             SHEET_LANGUAGES.map((l) => localizedColumn(f.field, l)));
-        expect(expected).toHaveLength(18);
+        expect(expected).toHaveLength(21);
         for (const col of expected) expect(headers).toContain(col);
         for (const col of ['next_step', 'choose_step_next', 'choose_step_text']) {
             expect(headers).toContain(col);
@@ -1011,5 +1131,28 @@ describe('docs/video-pipeline/sample-sheet.csv round-trip', () => {
         expect(mountain.nextStep).toBe(1);
         expect(branchIndex + 1 + beach.nextStep).toBe(successIndex);
         expect(branchIndex + 2 + mountain.nextStep).toBe(successIndex);
+    });
+});
+
+describe('publishLessonId (responders become challengers)', () => {
+    it('emits publishLessonId from publish_lesson_id (master and authoring)', () => {
+        const master = buildSteps([{
+            video_file: 'q', filename: 'q1', order: '1', response_type: 'friendClosedResponse',
+            phrase: 'Would you rather A or B?', publish_lesson_id: 'a',
+        }], { master: true });
+        expect(master[0].publishLessonId).toBe('a');
+
+        const authoring = buildSteps([{
+            video_file: 'q', filename: 'q1', order: '1', response_type: 'friendClosedResponse',
+            cue: 'Would you rather A or B?', publish_lesson_id: 'a',
+        }]);
+        expect(authoring[0].publishLessonId).toBe('a');
+    });
+
+    it('omits publishLessonId when publish_lesson_id is blank', () => {
+        const step = buildSteps([{
+            video_file: 'q', filename: 'q1', order: '1', response_type: 'friendClosedResponse', cue: 'Q',
+        }])[0];
+        expect(step).not.toHaveProperty('publishLessonId');
     });
 });

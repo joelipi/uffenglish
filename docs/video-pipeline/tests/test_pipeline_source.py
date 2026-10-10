@@ -253,5 +253,56 @@ class SyntaxGuardTest(unittest.TestCase):
         ast.parse(read())
 
 
+class OverlayBandGuardTest(unittest.TestCase):
+    """create_overlay_html keeps every burned block above the app's captions.
+
+    The app draws its own *timed* SRT captions near the bottom on a response
+    step, so no burned-in block may cross APP_CAPTION_TOP (80% from the top).
+    """
+
+    def test_bands_derive_from_one_caption_floor(self):
+        overlay = slice_between(read(), "def create_overlay_html", "def add_background_sound")
+        self.assertIn("APP_CAPTION_TOP = 0.80", overlay)
+        # The blocks below the title derive their bounds from the one floor.
+        self.assertIn("FOOTER_TOP = APP_CAPTION_TOP -", overlay)
+        self.assertIn("BODY_BOTTOM = FOOTER_TOP -", overlay)
+
+    def test_every_block_below_the_title_is_bounded(self):
+        overlay = slice_between(read(), "def create_overlay_html", "def add_background_sound")
+        for selector in (".footer {{", "mark {{", "aside {{"):
+            block = slice_between(overlay, selector, "}}")
+            self.assertIn("max-height", block, selector)
+            self.assertIn("overflow: hidden", block, selector)
+        # The footer's cap is exactly the gap up to the caption floor.
+        footer = slice_between(overlay, ".footer {{", "}}")
+        self.assertIn("(APP_CAPTION_TOP - FOOTER_TOP) * video_height", footer)
+
+
+class OverlayTitleAndAsideGuardTest(unittest.TestCase):
+    """The title is a wrapping white pill and the aside is capped at half width.
+
+    A regression here shipped the title as a full-bleed white slab (no vertical
+    padding, corners clipped) and a 70%-wide aside. These guards pin the
+    restored styling.
+    """
+
+    def test_title_is_a_wrapping_white_pill(self):
+        overlay = slice_between(read(), "def create_overlay_html", "def add_background_sound")
+        title = slice_between(overlay, ".title {{", "}}")
+        # Wrapping pill, not a single nowrap line stretched across the width.
+        self.assertIn("line-height: 1.6", title)
+        self.assertNotIn("white-space: nowrap", title)
+        span = slice_between(overlay, ".title span {{", "}}")
+        self.assertIn("background: white", span)
+        self.assertIn("padding: {TITLE_PADDING_Y}px 40px", span)
+        self.assertIn("border-radius: 36px", span)
+
+    def test_aside_is_capped_at_half_the_width(self):
+        overlay = slice_between(read(), "def create_overlay_html", "def add_background_sound")
+        aside = slice_between(overlay, "aside {{", "}}")
+        self.assertIn("max-width: {video_width * 0.50}px", aside)
+        self.assertNotIn("width: {video_width * 0.70}px", aside)
+
+
 if __name__ == "__main__":
     unittest.main()

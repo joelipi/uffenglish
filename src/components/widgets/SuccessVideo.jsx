@@ -5,6 +5,10 @@ import { appStore } from '../../modules/store/store.js';
 export default function SuccessVideo() {
     const videoRef = useRef(null);
     const blob = useStore(appStore, (state) => state.successVideoBlob);
+    // While the display-only after-video loop runs, the canvas owns the frame
+    // and the blob is shared via the share sheet — mounting #resultVideo too
+    // would stack two surfaces (stories/060-autoplay-share-video).
+    const afterVideoActive = useStore(appStore, (state) => state.afterVideoActive);
     const [playing, setPlaying] = useState(false);
 
     useEffect(() => {
@@ -30,7 +34,7 @@ export default function SuccessVideo() {
         }
     };
 
-    if (!blob) return null;
+    if (!blob || afterVideoActive) return null;
 
     return (
         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 20 }}>

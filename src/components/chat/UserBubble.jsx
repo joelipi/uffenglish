@@ -11,7 +11,7 @@ export default function UserBubble({ text, translation, translationLang, userNam
 
     return (
         <div className="chat-message-row chat-message-row--user">
-            <img src={src} alt={userName || DEFAULT_USER_NAME} className="chat-avatar-inline" onError={e => { e.currentTarget.src = DEFAULT_USER_AVATAR_URL; }} />
+            <img src={src} alt={userName || DEFAULT_USER_NAME} crossOrigin="anonymous" className="chat-avatar-inline" onError={e => { e.currentTarget.src = DEFAULT_USER_AVATAR_URL; }} />
             <div className="chat-message-bubble chat-message-bubble--user">
                 <div className="chat-bubble-header">{userName || DEFAULT_USER_NAME}</div>
                 <div className="chat-message-content">

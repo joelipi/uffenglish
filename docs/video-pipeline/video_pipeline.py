@@ -992,11 +992,44 @@ def apply_zoom_effect(clip, zoom_type):
 
 
 def create_overlay_html(row, video_width, video_height):
-    base_font_size = video_height * 0.025
+    """Burned-in overlay for a rendered step.
+
+    Each block sits in a vertical band measured as a fraction of the video
+    height and its font is *fit* to that band rather than scaled from one base
+    size: the title is a wrapping white pill shrunk until it fits above the
+    body, and the body is grown/shrunk to fill its band. This keeps the
+    burned-in text legible at any length instead of overflowing.
+
+    The app draws its own SRT captions over the video during a response step.
+    Those captions are *timed* (one cue at a time) and sit near the bottom, so
+    the burned overlay keeps the bottom ``1 - APP_CAPTION_TOP`` clear; nothing
+    burned-in -- including any background/padding -- may cross that line.
+    """
+    # --- Vertical bands (fractions of the video height) ---
+    APP_CAPTION_TOP = 0.80   # the app's timed SRT captions own the bottom 20%
+    TITLE_TOP = 0.07         # healthy margin for browser/device chrome
+    BODY_TOP = 0.17          # the title owns every line above this one
+    FOOTER_TOP = APP_CAPTION_TOP - 0.05   # 0.75; one footer line above the captions
+    BODY_BOTTOM = FOOTER_TOP - 0.01       # 0.74; the body clears the footer line
     horizontal_margin = video_width * 0.025
     # Subtitles get a wider side gutter than the title/footer so lines never run
     # edge-to-edge (2.5% was near the screen border; 8% gives readable margins).
     subtitle_horizontal_margin = video_width * 0.08
+
+    body_band = (BODY_BOTTOM - BODY_TOP) * video_height
+
+    # --- Font sizes (px) ---
+    # Title: a wrapping white pill (see .title span). Base size, plus a
+    # shrink-to-fit cap. The inline span's vertical padding does not contribute
+    # to the line box, so subtract it to keep the whole pill above BODY_TOP.
+    TITLE_PADDING_Y = 18
+    title_base = max(10, int(video_height * 0.05))
+    title_max_height = max(10, int((BODY_TOP - TITLE_TOP) * video_height) - 2 * TITLE_PADDING_Y)
+    body_min = max(10, int(video_height * 0.018))
+    body_max = max(body_min, int(video_height * 0.055))
+    footer_size = max(9, int(video_height * 0.018))
+    aside_size = max(9, int(video_height * 0.02))
+    mark_size = max(10, int(video_height * 0.03))
 
     font_variable_path = f"file:///{os.path.abspath(os.path.join(FONT_DIRECTORY, FONT_FILE_VARIABLE)).replace(chr(92), '/')}"
     font_marker_path = f"file:///{os.path.abspath(os.path.join(FONT_DIRECTORY, FONT_FILE_MARKER)).replace(chr(92), '/')}"
@@ -1008,10 +1041,34 @@ def create_overlay_html(row, video_width, video_height):
 *{{margin:0;padding:0;box-sizing:border-box}}
 html, body{{background:transparent!important; width:{video_width}px; height:{video_height}px; overflow:hidden;}}
 
-.subtitle{{
+/* Title pill: top {TITLE_TOP * 100:.0f}%, wraps, never past BODY_TOP. */
+.title {{
+    position: absolute;
+    top: {TITLE_TOP * video_height}px;
+    max-height: {title_max_height}px;
+    left: {horizontal_margin}px;
+    right: {horizontal_margin}px;
+    text-align: center;
+    font-family: '{TITLE_FONT}', sans-serif;
+    font-size: {title_base}px;
+    font-weight: 900;
+    line-height: 1.6;
+}}
+
+.title span {{
+    background: white;
+    color: black;
+    padding: {TITLE_PADDING_Y}px 40px;
+    border-radius: 36px;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+}}
+
+/* Body band: {BODY_TOP * 100:.0f}%-{BODY_BOTTOM * 100:.0f}%, above the app captions. */
+.subtitle {{
     position:absolute;
-    top:{video_height * 0.50}px;
-    bottom:{video_height * 0.30}px;
+    top:{BODY_TOP * video_height}px;
+    height:{body_band}px;
     left:{subtitle_horizontal_margin}px;
     right:{subtitle_horizontal_margin}px;
     display: flex;
@@ -1020,22 +1077,26 @@ html, body{{background:transparent!important; width:{video_width}px; height:{vid
     align-items: center;
     text-align:center;
     font-family:'{SUBTITLE_FONT}',sans-serif;
-    font-size:{base_font_size*2.2}px;
+    font-size:{body_max}px;
     font-weight:900;
     color:white;
     -webkit-text-stroke:4px black;
     text-shadow:2px 2px 6px rgba(0,0,0,0.5);
     line-height:1.2;
+    overflow: hidden;
 }}
 
 .footer {{
     position: absolute;
-    bottom: {video_height * 0.08}px;
+    top: {FOOTER_TOP * video_height}px;
     left: {horizontal_margin}px;
     right: {horizontal_margin}px;
+    max-height: {(APP_CAPTION_TOP - FOOTER_TOP) * video_height}px;
+    white-space: nowrap;
+    overflow: hidden;
     text-align: center;
     font-family: '{FOOTER_FONT}', sans-serif;
-    font-size: {base_font_size * 1.5}px;
+    font-size: {footer_size}px;
     color: #FFD700;
     font-weight: 700;
     text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
@@ -1057,14 +1118,16 @@ u {{
 
 mark {{
     position: fixed;
-    top: 35%;
+    top: {BODY_TOP * video_height}px;
     left: {horizontal_margin + 40}px;
     right: 35%;
-    transform: translateY(-50%) rotate(-1.5deg);
+    max-height: {body_band}px;
+    overflow: hidden;
+    transform: rotate(-1.5deg);
     background: none;
     color: #1a1a1a;
     font-family: '{MARKER_FONT_NAME}', cursive;
-    font-size: {base_font_size*2.0}px;
+    font-size: {mark_size}px;
     -webkit-text-stroke: 0;
     text-shadow: none;
     text-align: left;
@@ -1076,21 +1139,23 @@ mark {{
    <mark> so the existing mark styling above is preserved. */
 aside {{
     position: fixed;
-    top: {video_height * 0.28}px;
+    top: {BODY_TOP * video_height}px;
     left: {video_width * 0.02}px;
-    width: {video_width * 0.70}px;
+    max-width: {video_width * 0.50}px;
+    max-height: {body_band}px;
     background: rgba(255, 255, 255, 0.85);
     color: #111111;
     font-family: '{SUBTITLE_FONT}', sans-serif;
-    font-size: {base_font_size * 1.5}px;
+    font-size: {aside_size}px;
     font-weight: 400;
     line-height: 1.5;
     text-align: left;
     -webkit-text-stroke: 0;
     text-shadow: none;
-    padding: {base_font_size * 0.5}px {base_font_size * 0.6}px;
-    border-radius: {base_font_size * 0.8}px;
+    padding: {aside_size * 0.5}px {aside_size * 0.6}px;
+    border-radius: {aside_size * 0.8}px;
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
 }}
 
 /* <strong> is used for highlighting (in the callout box and subtitles).
@@ -1107,28 +1172,6 @@ strong {{
     -webkit-box-decoration-break: clone;
     box-decoration-break: clone;
 }}
-
-.title {{
-    position: absolute;
-    top: {video_height * 0.07}px;
-    max-height: {video_height * 0.38}px;
-    left: {horizontal_margin}px;
-    right: {horizontal_margin}px;
-    text-align: center;
-    font-family: '{TITLE_FONT}', sans-serif;
-    font-size: {base_font_size * 2}px;
-    font-weight: 900;
-    line-height: 1.6;
-}}
-
-.title span {{
-    background: white;
-    color: black;
-    padding: 18px 40px;
-    border-radius: 36px;
-    -webkit-box-decoration-break: clone;
-    box-decoration-break: clone;
-}}
 </style></head><body>
 
 {f'<div class="title"><span>{row["title_text"]}</span></div>' if row.get('title_text') else ''}
@@ -1138,24 +1181,36 @@ strong {{
 <div class="subtitle">{row["subtitle_text"]}</div>
 
 <script>
+    // Fit a block's font to its band: start at the minimum and grow to the
+    // largest size that still fits, so short content fills its band and long
+    // content is shrunk to it. This replaces the old shrink-only loop.
+    function fitToBand(el, minPx, maxPx) {{
+        if (!el) return;
+        var band = el.clientHeight;
+        if (!band) return;
+        var size = minPx;
+        el.style.fontSize = size + 'px';
+        while (size < maxPx) {{
+            size += 1;
+            el.style.fontSize = size + 'px';
+            if (el.scrollHeight > band) {{
+                size -= 1;
+                el.style.fontSize = size + 'px';
+                break;
+            }}
+        }}
+    }}
+    // The title pill wraps; shrink it until it fits above the body band.
     var titleEl = document.querySelector('.title');
     if (titleEl) {{
-        var maxTitleHeight = {video_height * 0.38};
-        var titleSize = {base_font_size * 2};
+        var maxTitleHeight = {title_max_height};
+        var titleSize = {title_base};
         while (titleEl.scrollHeight > maxTitleHeight && titleSize > 10) {{
             titleSize -= 1;
             titleEl.style.fontSize = titleSize + 'px';
         }}
     }}
-    var subEl = document.querySelector('.subtitle');
-    if (subEl) {{
-        var maxSubHeight = {video_height * 0.20};
-        var subSize = {base_font_size * 2.2};
-        while (subEl.scrollHeight > maxSubHeight && subSize > 10) {{
-            subSize -= 1;
-            subEl.style.fontSize = subSize + 'px';
-        }}
-    }}
+    fitToBand(document.querySelector('.subtitle'), {body_min}, {body_max});
 </script>
 
 </body></html>"""

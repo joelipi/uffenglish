@@ -57,3 +57,42 @@ describe('water shimmer is scoped to visible water (.water-surface)', () => {
         expect(WATER_BEFORE).toMatch(/pointer-events:\s*none/);
     });
 });
+
+describe('water-surface opacity hides the video\u2019s burnt-on captions', () => {
+    // The lesson video overlays (`.ivp-overlay.water-surface`) share this
+    // gradient. On-screen clips now carry burnt-on captions, so the veil must be
+    // heavy enough that those glyphs cannot show through and collide with the
+    // overlaid headline/labels/buttons. Parse the actual gradient stops so this
+    // guard fails if the alphas are lightened again (a whole-file `toContain`
+    // would not).
+    const stops = [...WATER.matchAll(
+        /rgba\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*([\d.]+)\s*\)\s*([\d.]+)%/g
+    )].map((m) => ({ alpha: Number(m[4]), pos: Number(m[5]) }));
+
+    it('parses the stops of the water gradient', () => {
+        expect(stops.length).toBeGreaterThanOrEqual(4);
+    });
+
+    it('never drops below a heavy veil (alpha >= 0.7 anywhere)', () => {
+        expect(stops.length).toBeGreaterThan(0);
+        expect(Math.min(...stops.map((s) => s.alpha))).toBeGreaterThanOrEqual(0.7);
+    });
+
+    it('is fully opaque at the top and bottom edges', () => {
+        // The clips carry burnt-on captions at both edges, so the veil must be
+        // fully opaque there — a lighter top edge let the top captions show.
+        const first = stops[0];
+        expect(first.pos).toBe(0);
+        expect(first.alpha).toBe(1);
+        const last = stops[stops.length - 1];
+        expect(last.pos).toBe(100);
+        expect(last.alpha).toBe(1);
+    });
+
+    it('becomes translucent toward the middle of the frame', () => {
+        // Only the centre may let the video show through.
+        const centre = stops.filter((s) => s.pos > 0 && s.pos < 100);
+        expect(centre.length).toBeGreaterThan(0);
+        expect(centre.some((s) => s.alpha < 1)).toBe(true);
+    });
+});

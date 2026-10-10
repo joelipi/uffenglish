@@ -81,8 +81,8 @@ describe('documentation', () => {
         expect(readme).toContain('DEEPSEEK_API_KEY');
     });
 
-    it('agents.md instructs auto captions on push and no hand-backfill', () => {
-        const agents = readFileSync(path.join(ROOT, 'agents.md'), 'utf8');
+    it('AGENTS.md instructs auto captions on push and no hand-backfill', () => {
+        const agents = readFileSync(path.join(ROOT, 'AGENTS.md'), 'utf8');
         expect(agents).toMatch(/simpleVideoUrl/);
         expect(agents).toMatch(/captions automatically on push/i);
         expect(agents).toMatch(/not.*hand-backfill/i);

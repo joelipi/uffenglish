@@ -101,7 +101,8 @@ other_02,lessonFinal,,<aside>…part 2…</aside>
 **Overlay markup in `subtitle_text`:**
 - `<mark>…</mark>` — existing marker style (handwriting font, floats at 35%).
 - `<aside>…</aside>` — the translucent callout box (sans font, left-anchored,
-  rounded, padded). A separate tag so `mark` keeps its own styling.
+  rounded, padded, at most half the video width). A separate tag so `mark` keeps
+  its own styling.
 - `<strong>…</strong>` — yellow highlighter (dark text on `#ffe600`), usable
   inside the box or the subtitle.
 

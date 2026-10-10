@@ -154,9 +154,45 @@ describe('StepLoader, strings and styles', () => {
         const btn = cssBlock(css, '.branch-choice-btn {');
         expect(btn).toContain('width: 100%');
         expect(btn).toContain('border-radius: 8px');
-        expect(btn).toContain('background:');
-        expect(btn).toContain('color:');
         expect(btn).toContain('font-weight: 700');
+        // Clean solid white on black — not the old translucent white/white pill.
+        expect(btn).toMatch(/background:\s*#ffffff/);
+        expect(btn).toMatch(/color:\s*#000000/);
+        expect(btn).not.toContain('rgba(255, 255, 255, 0.16)');
+        // Same edge treatment as the Replay/Tutorial call buttons.
+        expect(btn).toMatch(/box-shadow:\s*0 10px 25px rgba\(0, 0, 0, 0\.2\)/);
+
+        // Every interaction state stays white/black so `.btn:hover` cannot
+        // repaint it with the Bootstrap theme variables.
+        const hover = cssBlock(css, '.branch-choice-btn:hover');
+        expect(hover).toMatch(/background:\s*#ffffff/);
+        expect(hover).toMatch(/color:\s*#000000/);
+
+        // `.btn:focus-visible` zeroes the outline, so the button must restore a
+        // visible keyboard focus ring.
+        const focus = cssBlock(css, '.branch-choice-btn:focus-visible');
+        expect(focus).toMatch(/outline:\s*3px solid #ffffff/);
+        expect(focus).toMatch(/outline-offset:/);
+    });
+
+    it('positions the branch headline clear of the choice buttons', () => {
+        const css = read('src/assets/css/app.css');
+        const overlay = cssBlock(css, '.ivp-overlay.ivp-overlay-branch {');
+        expect(overlay).toMatch(/align-items:\s*flex-start/);
+        // 24vh clears the blurred video-header band (the top ~18.5% of the
+        // frame — see .video-header-blur); the choice buttons never rise higher
+        // than 60% from the bottom, so the headline has room between the two.
+        expect(overlay).toMatch(/padding-top:\s*24vh/);
+        expect(overlay).toMatch(/padding-bottom:\s*45vh/);
+        // The content is clamped so a long headline/translation cannot spill
+        // into the reserved bottom band.
+        const content = cssBlock(css, '.ivp-overlay.ivp-overlay-branch .ivp-overlay-content {');
+        expect(content).toMatch(/max-height:\s*100%/);
+        expect(content).toMatch(/overflow:\s*hidden/);
+        // The overlay gets the branch class ONLY in the branching phase — assert
+        // the exact ternary, not just the presence of the class/constant.
+        const player = read('src/components/SimpleVideoPlayer.web.jsx');
+        expect(player).toContain("appPhase === BRANCH_OVERLAY_PHASE ? ' ivp-overlay-branch'");
     });
 
     it('ships the branch heading copy in English and Spanish', () => {

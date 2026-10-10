@@ -123,3 +123,60 @@
 **Area**: build | workflow
 **What happened**: A vendored static page at `public/recorder.html` was marked `noindex` with a `public/_headers` rule scoped to `/recorder.html`, but Cloudflare Pages permanently redirects `/recorder.html` to the extensionless `/recorder` and serves the file there — so the header attached to the redirect response, not the page. A guard that scanned only the literal `recorder.html` token likewise missed an extensionless `/recorder` link. The code reviewer caught both.
 **Takeaway**: Static HTML in `public/` is served at its extensionless path (`public/landing.html` → `/landing`); a request for `/x.html` 308s to `/x`. Put `_headers` selectors on the served path (`/x`, optionally also `/x.html` for the redirect), and when guarding that a page stays unlinked, scan for both forms with a bounded pattern (`/\/x(?![\w.-])|x\.html/`, so a bare `MediaRecorder` is not a hit). An unlisted file is obscurity, not access control — noindex + unlinked does not stop someone who knows the URL; use Cloudflare Access if the page must be truly private.
+
+---
+
+## The apex was never really on Pages: an `active` custom domain over a stale origin A record
+**Date**: 2026-10-07
+**Area**: infra | workflow
+**What happened**: `ultrafastfluency.com` was already an `active` custom domain on the `uffenglish` Pages project, yet it returned **522** and the only reachable hostnames were `s.` and `go.`. The cause was DNS: the apex was a leftover proxied **A record to the original IONOS origin** (`34.139.137.66`), so Cloudflare's edge had no live origin. Deleting it and creating a proxied (flattened) CNAME to `uffenglish.pages.dev` fixed production immediately; `www` (already a CNAME to the apex) followed. Two traps surfaced: (1) the Pages **custom-domain API does not create the DNS record** (the dashboard does), so `POST .../pages/projects/uffenglish/domains` alone leaves the domain `initializing`; (2) the machine's `CF_TOKEN` has **Pages Write** but only zone **DNS Read**, so the DNS write needed a short-lived token minted via its **Account API Tokens Write** scope. Separately the deployed `deepseek-proxy` worker had drifted from the repo (extra localhost/tunnel/beacon origins); the source was synced to the union before deploying so nothing was dropped.
+**Takeaway**: "Custom domain exists / is active" is not the same as "DNS points at Pages" — when a Pages domain 522s, inspect the record **type and target**, not just the domains list; an apex needs a proxied CNAME (flattened) to `<project>.pages.dev`, never a bare origin A record. A branch alias (`s.` → `staging.uffenglish.pages.dev`) works only through a **proxied** record, and "which deployment answered" cannot be judged by status code — the SPA `_redirects` (`/* /index.html 200`) turns every path into a 200, so compare response **bodies** with a temporary probe file, and use a cache-busting query because the edge can keep serving a file a newer deployment deleted. Deploying a worker from the repo overwrites dashboard-only edits, so diff deployed content against source first and commit the union.
+
+---
+
+## A binary image committed as text corrupts silently — and chat attachments live in the session DB
+**Date**: 2026-10-07
+**Area**: build | workflow
+**What happened**: The 1600×300 UFF logo (`src/assets/img/header.png` + `public/assets/img/header.png`) was committed through a line-ending conversion, so every `0x0A` (and lone `0x0D`) became `0x0D 0x0A`. Every copy — all worktrees, the GitHub blob, and production — carried the invalid signature `89 50 4E 47 0D 0A 1A 0D 0A` and broken chunk CRCs, so `sharp` and browsers rejected it (`Input file contains unsupported image format`). Git history stored only the corrupt blob, so the original was unrecoverable there, and the user's replacement upload was not on the sandbox filesystem. It **was** recoverable from the OpenChamber session database: chat attachments persist as base64 data URLs in `~/.local/share/opencode/opencode.db*`; the newest message lived only in the WAL, so applying it to the DB snapshot (`cp *.corrupt.… db2.sqlite; cp opencode.db-wal db2.sqlite-wal; cp opencode.db-shm db2.sqlite-shm`, then open `db2.sqlite`) exposed it.
+**Takeaway**: (1) `.gitattributes` now marks `*.png`/`*.jpg`/… `binary` so image bytes can never be normalized again — a `binary`/`-text` rule, not `text=auto`, is what protects real binaries. (2) A PNG that "won't load" may just be a valid image whose bytes were CRLF-mangled; check the signature (`89 50 4E 47 0D 0A 1A 0A`), but the transform is ambiguous per CR/LF pair so recovery from the corrupt bytes is not reliable — get the original. (3) When a user says "I uploaded the file" but it is not on disk, look in the session DB (`opencode.db*`) for `data:image/...;base64,`.
+
+---
+
+## Adding a `{token}` UI string also needs the fixed placeholder dictionary in `strings.test.js`
+**Date**: 2026-10-08
+**Area**: testing
+**What happened**: Story 056 added `friend_courses_lesson_count` ("{count} lessons"). The full suite then failed in the pre-existing `src/data/strings.test.js`: its `PLACEHOLDER_KEYS` list is auto-derived from every `en` value containing `{...}`, but the interpolation test feeds a **fixed** placeholder object (`score`/`date`/`time`/…), not one built from the string, and asserts no `{` remains. `count` was absent from that object, so the new key's Hindi/Bengali output kept `{count}` and failed.
+**Takeaway**: When adding a string key with a `{placeholder}`, add that placeholder name to the fixed object in `strings.test.js`'s `placeholder interpolation in hi/bn` test. The same file also requires every key to carry Hindi (Devanagari) and Bengali values for `hi`/`bn`.
+
+---
+
+## Merging `origin/main` can land new AGENTS.md standing rules that invalidate already-written code
+**Date**: 2026-10-08
+**Area**: workflow
+**What happened**: The story branch was pushed during planning, then `origin/main` advanced 4 commits. Because the branch was already pushed, the fix was `git merge origin/main` (not rebase). That merge pulled in a new "Logic lives in modules, never in components" standing rule, which the code reviewer then applied to inline `Array.isArray` / `length > 0` gates already written in the new components; extracting them into `*-logic.js` view-model builders resolved it.
+**Takeaway**: After `git merge origin/main` on a branch that has been open a while, diff the guidance files (`git diff ORIG_HEAD..HEAD -- AGENTS.md README.md docs/`) and re-read any new standing rules before running reviewers — a newly added convention can make pre-existing work non-compliant even though the feature itself did not change.
+
+---
+
+## The 9:16 speech-capture composite is required — camera `aspectRatio` is ignored, so make the composite light on phones
+
+**Date**: 2026-10-10
+**Area**: architecture | performance
+**What happened**: Camera `aspectRatio` is advisory: Android (and desktop webcams) routinely ignore it and hand back 16:9/4:3, so `getUserMedia` alone cannot produce a 9:16 recording. The recorded clip is reused verbatim (the recap and the published friend clips are trimmed from it), so the framing must be correct at capture time. Commit 614d865 therefore composited Android through `createPortraitCaptureStream` — a 1080×1920 canvas + hidden `<video>` + canvas `captureStream(30)` software-encoded by MediaRecorder — which OOM'd low-memory Android phones while the Whisper model was resident. Routing Android back to the raw stream fixed the OOM but reintroduced the 16:9 clip.
+**Takeaway**: Keep `shouldUsePortraitCapture()` (`src/modules/speech/speech.web.js`) as `!isIOS()` — the composite is the only reliable 9:16 guarantee, on phones too; do not try to get 9:16 from `getUserMedia({ aspectRatio })`. Make it memory-safe instead: phones build the composite at 720×1280 @ 24 fps (≈3× less encoder load), and `stopSpeechCamRecording` releases it on Android even when `keepStreamAlive` is set, so it is not alive during transcription/Whisper (the OOM window). `portrait-capture-guards.test.js` pins all of this. Related: the 10 Hz live-hesitation timer is pure overhead on `shareCta`/`friendClosedResponse` steps (their feedback/scoring UI is never built), so `shouldTrackHesitation()` suppresses it there.
+
+---
+
+## The number-to-words util is vendored twice — fixing one copy leaves the other buggy
+**Date**: 2026-10-08
+**Area**: architecture
+**What happened**: Adding currency/magnitude normalization to `src/modules/bilingual/normalize.js` surfaced two bugs in its inlined minified `number-to-words` blob: the billion/trillion/quadrillion branches divided by the *next* scale up (`t/y`, `t/c`, `t/g`) instead of their own (`t/b`, `t/y`, `t/c`), so `1000000000` normalized to `"zero billion"`; and the two-digit branch used `n&&(r+" "+m[n],n=0)` (comma operator, value discarded) so the ones place was dropped (`42` → `"forty"`). The identical library is embedded again in `src/modules/utils/idiom-normalizer.js` (used by `idiom-checker.js` / `idiom-worker.js`); both copies were patched, but they remain independent hand-maintained copies.
+**Takeaway**: The two copies are independent — a text/number-normalization fix in one does not reach the other. Before assuming a normalization change is complete, grep for a second vendored copy (`grep -rn 'number-to-words' src`), and remember tests that go through `normalize()` only pin the `normalize.js` copy (there are no tests for `idiom-normalizer.js` at all).
+
+---
+
+## Diagnose a burned-caption/media regression from the published artifact, not from static reasoning
+**Date**: 2026-10-10
+**Area**: testing | workflow | architecture
+**What happened**: The report "lesson a's UGC clip burns English only, no translation" was diagnosed statically as a config step-index drift (the 2026-10-08 regeneration inserted a `viewAndContinue` step into lesson a), and a whole story was written and merged around it. Pulling the actual R2 clips disproved it in minutes: `a`/`b` clips vary **per user**, not per lesson, and the giveaway was comparing each clip to its own recap tailing CTA — `mctpp`'s recap was fully Spanish while its burned caption was English-only, i.e. the burned-caption language (answer-time `userData.native_language`) disagreed with the recap's guest-first language. The step-index theory was provably wrong (the translation rides along even when the step mis-resolves).
+**Takeaway**: For any "the video/subtitle/caption is wrong" report, fetch the real artifact before theorising. List the public bucket with the `.env` `R2_TOKEN`: `curl -s "https://api.cloudflare.com/client/v4/accounts/<acct>/r2/buckets/uff/objects?prefix=videos/&per_page=1000" -H "Authorization: Bearer $R2_TOKEN"` (the account id comes from `CLOUDFLARE_API_TOKEN=$R2_TOKEN npx wrangler whoami`; the pinned wrangler has no `r2 object list`). Pull `https://r2.ultrafastfluency.com/videos/<shareCode>-<courseId>-{a,b}-response-01.mp4` and the `-complete.mp4` recap, then read the burned pixels: `ffmpeg -ss 1.5 -i clip.mp4 -frames:v 1 -vf "crop=iw:ih*0.22:0:ih*0.68,scale=480:-1" out.png` and view the PNG. The recap's tailing CTA language is the user's session language — compare it to the clip to find the mismatch. A per-user (not per-lesson) pattern means the session language state, not the lesson/config.

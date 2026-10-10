@@ -18,6 +18,7 @@ import { isRecordablePhase } from './recordable-phases.js';
 import { isFriendLesson } from '../user/friend-lesson-detection.js';
 import { resolveStepPhase } from './step-phase-logic.js';
 import { resolveNextStepIndex } from './branch-choice-logic.js';
+import { shouldTrackHesitation } from '../speech/hesitation-logic.js';
 
 // Module-level ref for viewAndContinue handler (decision overlay Continue button)
 let _viewAndContinueHandler = null;
@@ -196,6 +197,15 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
 
     const stepIndex = getCurrentStepIndex(step, appStore.getState().configData, appStore.getState().currentLessonIndex);
 
+    // Friend/shareCta lessons never display hesitation (their friendClosedResponse
+    // steps skip the feedback/scoring UI), so the orchestrator's 10 Hz
+    // live-hesitation timer is pure overhead there. Resolve the policy here so the
+    // orchestrator stays platform-agnostic.
+    const trackHesitation = shouldTrackHesitation({
+        responseType: step.responseType,
+        recapOverlay: lesson?.recapOverlay,
+    });
+
     if (appStore.getState().isTextMode) {
         const placeholder = Strings.get('placeholder_type_answer', appStore.getState().userData?.native_language) || 'Type your answer here...';
         appStore.getState().setTextInputPlaceholder(placeholder);
@@ -207,6 +217,7 @@ function _renderResponseStep(step, lesson, deps, toggleSpeechRecognition) {
             try {
                 await toggleSpeechRecognition({
                     step,
+                    trackHesitation,
                     userData: appStore.getState().userData,
                     configData: appStore.getState().configData,
                     currentLessonIndex: appStore.getState().currentLessonIndex,

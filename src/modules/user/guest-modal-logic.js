@@ -2,12 +2,17 @@
 // Pure decision logic for the guest login/language modal. Keeps the modal
 // behaviour deterministic and testable without React, the store, or the DOM.
 
+import { HOME_LANGUAGES } from '../../data/languages.js';
+
 export const ENGLISH_LANG = 'EN';
 
 // Routes that are public to everyone and must never open the guest modal: the
-// public homepage's only job is the friend-challenge entry, and the legal pages
-// must stay readable for anonymous visitors arriving from the footer.
-export const PUBLIC_ROUTES = ['/', '/privacy', '/terms'];
+// public homepage's only job is the friend-challenge entry, the legal pages
+// must stay readable for anonymous visitors arriving from the footer, the
+// email-confirmation landing page is opened from an inbox with no session, and
+// the course listings page is linked from the expired state of a public
+// profile, so it must be readable without the modal.
+export const PUBLIC_ROUTES = ['/', '/privacy', '/terms', '/confirm-email', '/courses'];
 
 export function isPublicHomeRoute(pathname) {
     if (typeof pathname !== 'string' || pathname === '') return false;
@@ -15,6 +20,53 @@ export function isPublicHomeRoute(pathname) {
     // slashes, so normalize to the canonical form before the exact-match lookup.
     const normalized = (pathname.replace(/\/+$/, '') || '/').toLowerCase();
     return PUBLIC_ROUTES.includes(normalized);
+}
+
+export const HOMEPAGE_ROUTE = '/';
+
+// True only for the homepage itself (case/trailing-slash normalized), not the
+// other public routes (legal pages, confirm-email, courses).
+export function isHomepageRoute(pathname) {
+    if (typeof pathname !== 'string' || pathname === '') return false;
+    return (pathname.replace(/\/+$/, '') || '/').toLowerCase() === HOMEPAGE_ROUTE;
+}
+
+// Whether the homepage should silently adopt the browser language. English is a
+// no-op (English already renders); a logged-in user or an already chosen guest
+// language wins; an unsupported code (e.g. DE/JA) is a no-op so
+// guestNativeLanguage stays within the homepage's six languages.
+// Returns { action: 'adopt', language } | { action: 'noop' }.
+export function resolveHomepageLanguageAdoption({ isLoggedIn, guestLang, detectedLang, supportedLangs } = {}) {
+    if (isLoggedIn) return { action: 'noop' };
+    if (guestLang) return { action: 'noop' };
+    if (!detectedLang || detectedLang === ENGLISH_LANG) return { action: 'noop' };
+    const supported = Array.isArray(supportedLangs) ? supportedLangs : HOME_LANGUAGES.map((l) => l.value);
+    if (!supported.includes(detectedLang)) return { action: 'noop' };
+    return { action: 'adopt', language: detectedLang };
+}
+
+// Static single-segment routes declared in routes.jsx before the /:shareCode
+// catch-all. Any other single-segment path is a share code and resolves to the
+// public profile route, so it must be excluded from the guest modal too.
+// Derived from PUBLIC_ROUTES (single source) plus the non-public static
+// single-segment routes; `guest-modal-logic.test.js` cross-checks this list
+// against routes.jsx so a new static route cannot be silently misclassified.
+export const STATIC_SINGLE_SEGMENT_ROUTES = [
+    ...PUBLIC_ROUTES,
+    '/home', '/profile', '/login', '/signup', '/recover-password', '/reset-password',
+];
+
+// User profile pages: the logged-in profile (/profile) and the public
+// share-code profile (/:shareCode). The guest login/language modal must not
+// open on either, so an anonymous visitor is never gated by a language or
+// login prompt while reading a profile.
+export function isProfileRoute(pathname) {
+    if (typeof pathname !== 'string' || pathname === '') return false;
+    const normalized = (pathname.replace(/\/+$/, '') || '/').toLowerCase();
+    if (normalized === '/profile') return true;
+    const segments = normalized.split('/').filter(Boolean);
+    if (segments.length !== 1) return false;
+    return !STATIC_SINGLE_SEGMENT_ROUTES.includes('/' + segments[0]);
 }
 
 // - friend lesson + non-English browser -> adopt the browser language silently

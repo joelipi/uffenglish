@@ -1,8 +1,27 @@
 import { describe, it, expect } from 'vitest';
-import worker from './index.js';
+import worker, { ALLOWED_ORIGINS } from './index.js';
 
 // The proxy only echoes Access-Control-Allow-Origin for allow-listed origins;
-// anything else gets 'null'. Exercising the real fetch handler pins the list.
+// anything else gets 'null'. This is deliberately the *expected* value rather
+// than derived from ALLOWED_ORIGINS, so deleting an entry from the source fails
+// the pin below (a guard that derives its own expectations could never fail).
+const EXPECTED_ORIGINS = [
+    'https://uffenglish.pages.dev',
+    'https://go.ultrafastfluency.com',
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://ultrafastfluency.com',
+    'https://s.ultrafastfluency.com',
+    'https://t.ultrafastfluency.com',
+    'http://localhost:5174',
+    'http://localhost:5175',
+    'http://localhost:5176',
+    'http://100.119.79.124',
+    'https://100.119.79.124',
+    'https://localhost-0.taild13d5c.ts.net',
+    'https://beacon-au8.pages.dev',
+];
+
 async function allowOrigin(origin) {
     const request = new Request('https://deepseek-proxy.example/', {
         method: 'OPTIONS',
@@ -13,18 +32,14 @@ async function allowOrigin(origin) {
 }
 
 describe('deepseek-proxy CORS allow-list', () => {
-    it('allows the staging origin (s.)', async () => {
-        expect(await allowOrigin('https://s.ultrafastfluency.com'))
-            .toBe('https://s.ultrafastfluency.com');
+    it('pins the exact allow-list (a removed origin must fail this test)', () => {
+        expect(ALLOWED_ORIGINS).toEqual(EXPECTED_ORIGINS);
     });
 
-    it('allows the production origins', async () => {
-        expect(await allowOrigin('https://ultrafastfluency.com'))
-            .toBe('https://ultrafastfluency.com');
-        expect(await allowOrigin('https://go.ultrafastfluency.com'))
-            .toBe('https://go.ultrafastfluency.com');
-        expect(await allowOrigin('https://uffenglish.pages.dev'))
-            .toBe('https://uffenglish.pages.dev');
+    it('echoes every allow-listed origin', async () => {
+        for (const origin of EXPECTED_ORIGINS) {
+            expect(await allowOrigin(origin)).toBe(origin);
+        }
     });
 
     it('rejects an unknown origin', async () => {

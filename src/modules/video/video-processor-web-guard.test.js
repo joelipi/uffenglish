@@ -170,8 +170,38 @@ describe('video-processor.web.js recap wiring guard', () => {
         // face, which shifts complex-script ink off the centre. The
         // translation stays distinct via its smaller size.
         expect(source).not.toMatch(/italic/i);
-        expect(source.match(/\$\{trFontSize\}px "Plus Jakarta Sans", sans-serif/g)).toHaveLength(3);
+        // wrap + draw (the old third site measured the box we no longer draw).
+        expect(source.match(/\$\{trFontSize\}px "Plus Jakarta Sans", sans-serif/g)).toHaveLength(2);
         expect(source).toMatch(/bold \$\{enFontSize\}px "Plus Jakarta Sans", sans-serif/);
+    });
+
+    it('anchors the subtitle 20% up from the bottom, with no background box', () => {
+        const start = source.indexOf("if (enText.trim() !== '') {");
+        const end = source.indexOf('context.restore();', start);
+        expect(start).toBeGreaterThan(-1);
+        expect(end).toBeGreaterThan(start);
+        const block = source.slice(start, end);
+        // Fixed fraction, so it lands in the same spot on every export.
+        expect(block).toMatch(/SUBTITLE_BOTTOM_RATIO = 0\.20/);
+        expect(block).toMatch(/blockBottomY = canvasHeight \* \(1 - SUBTITLE_BOTTOM_RATIO\)/);
+        // The opaque black background box is gone (the shadow uses the same
+        // colour, so match the background fill assignment, not just the colour).
+        expect(block).not.toMatch(/fillStyle = 'rgba\(0, 0, 0, 0\.6\)'/);
+        expect(block).not.toMatch(/fillRect\(/);
+        // Legibility now comes from a black outline.
+        expect(block).toMatch(/stroke: 'black'/);
+    });
+
+    it('outlines the subtitle glyphs instead of backing them with a box', () => {
+        const fn = source.slice(
+            source.indexOf('function drawCenteredLine('),
+            source.indexOf('function drawTextOverlay(')
+        );
+        expect(fn).toMatch(/strokeText\(/);
+        expect(fn).toMatch(/lineWidth/);
+        // Order matters: the outline is painted BEFORE the white fill, or it
+        // would cover the glyph body.
+        expect(fn.indexOf('strokeText(')).toBeLessThan(fn.indexOf('fillText('));
     });
 
     it('measures overlay text through the DOM, not only canvas measureText', () => {
@@ -185,5 +215,110 @@ describe('video-processor.web.js recap wiring guard', () => {
         expect(source).toMatch(/function drawCenteredLine\(/);
         // drawFittedLine must not rely on textAlign='center' for its origin.
         expect(source).toMatch(/context\.textAlign = 'left'/);
+    });
+
+    it('scales and centres the recap header instead of drawing it at natural size', () => {
+        // The 1600×300 header art overflows a portrait canvas at natural size.
+        // It must go through the shared (unit-tested) layout helper and be
+        // drawn with the resulting rect.
+        expect(source).toMatch(/resolveHeaderLayout/);
+        const start = source.indexOf('const headerLayout = overlayImage?.complete');
+        expect(start).toBeGreaterThan(-1);
+        const end = source.indexOf('if (displayCanvas)', start);
+        const block = source.slice(start, end);
+        expect(block).toMatch(/resolveHeaderLayout\(\{/);
+        expect(block).toMatch(/canvasWidth: canvas\.width/);
+        expect(block).toMatch(/canvasHeight: canvas\.height/);
+        expect(block).toMatch(
+            /ctx\.drawImage\(\s*overlayImage,\s*headerLayout\.x, headerLayout\.y,\s*headerLayout\.width, headerLayout\.height\s*\)/
+        );
+        // The old natural-size / clipped draw must be gone.
+        expect(block).not.toMatch(/drawImage\(overlayImage,\s*x,\s*0\)/);
+        // The header layout is handed to the overlay so the share code can sit in
+        // the banner's own corner.
+        expect(block).toMatch(/drawTextOverlay\([\s\S]*overlayVariant, shareCta, headerLayout\s*\)/);
+    });
+
+    it('draws the banner without a gradient band', () => {
+        const start = source.indexOf('const headerLayout = overlayImage?.complete');
+        const end = source.indexOf('if (displayCanvas)', start);
+        const block = source.slice(start, end);
+        expect(block).toMatch(/ctx\.drawImage\(\s*overlayImage,/);
+        // The opaque gradient band is gone (nothing painted behind/below it).
+        expect(block).not.toMatch(/createLinearGradient\(/);
+        expect(block).not.toMatch(/fillRect\(0, 0, canvas\.width, headerLayout\.headerBottom\)/);
+        expect(source).not.toMatch(/HEADER_GRADIENT_/);
+    });
+
+    it('fills the top margin with the banner’s own top-row gradient', () => {
+        const start = source.indexOf('const headerLayout = overlayImage?.complete');
+        const end = source.indexOf('if (displayCanvas)', start);
+        const block = source.slice(start, end);
+        // The margin is painted by stretching the banner's top 1-px source row
+        // across (headerLayout.x, 0, headerLayout.width, headerLayout.y).
+        expect(block).toMatch(
+            /ctx\.drawImage\(\s*overlayImage,\s*0, 0, overlayImage\.naturalWidth, 1,\s*headerLayout\.x, 0, headerLayout\.width, headerLayout\.y\s*\)/
+        );
+        // The stretch must run BEFORE the banner draw so the two rects paint as
+        // one seamless banner (index order).
+        const stretch = block.indexOf('overlayImage.naturalWidth, 1,');
+        const banner = block.indexOf('headerLayout.x, headerLayout.y,');
+        expect(stretch).toBeGreaterThan(-1);
+        expect(banner).toBeGreaterThan(stretch);
+    });
+
+    it('burns just the share code, in the header banner’s lower-right corner', () => {
+        // The header image carries the label, so the overlay draws only the code,
+        // in the banner's own lower-right corner (not the frame's).
+        expect(source).toMatch(/subtitleText, overlayVariant = 'fluency', shareCta = null, headerLayout = null\)/);
+        const start = source.indexOf('if (headlineBlock && shareCta && headerLayout) {');
+        const end = source.indexOf('if (tailingCard && shareCta) {');
+        expect(start).toBeGreaterThan(-1);
+        expect(end).toBeGreaterThan(start);
+        const codeBlock = source.slice(start, end);
+        expect(codeBlock).toMatch(/shareCta\.code/);
+        expect(codeBlock).toMatch(/align: 'right'/);
+        // Anchored to the banner rect, not the canvas.
+        expect(codeBlock).toMatch(/headerLayout\.x \+ headerLayout\.width - marginX/);
+        expect(codeBlock).toMatch(/headerLayout\.y \+ headerLayout\.height - marginY/);
+        // The old label/prompt and header-anchored text must be gone.
+        expect(source).not.toMatch(/shareCta\.prompt/);
+        expect(source).not.toMatch(/shareCta\.headline/);
+        expect(source).not.toMatch(/headerLayout\.textY/);
+    });
+
+    it('selects the header banner by the learner language (auto-discovered)', () => {
+        // The banners are auto-discovered with import.meta.glob, so adding a
+        // language is just dropping in video-header-<lang>.png — no per-language
+        // import to edit (and each is a lazy chunk).
+        expect(source).toMatch(/import\.meta\.glob\('\.\.\/\.\.\/assets\/img\/video-header-\*\.png',\s*\{\s*import:\s*'default'\s*\}\)/);
+        expect(source).toMatch(/headerImagePath\(normalizeLanguageCode\(lang\)\)/);
+        // English is the fallback when the language (or its art) is missing.
+        expect(source).toMatch(/HEADER_IMAGE_MODULES\[headerImagePath\('en'\)\]/);
+        // The old static imports / website header must be gone.
+        expect(source).not.toMatch(/import videoHeader[A-Z]/);
+        expect(source).not.toMatch(/assets\/img\/header\.png/);
+        // Both consumers await the (lazy) resolver and guard a null banner.
+        expect((source.match(/await resolveHeaderImage\(/g) || [])).toHaveLength(2);
+        expect((source.match(/if \(headerSrc\) overlayImage\.src = headerSrc;/g) || [])).toHaveLength(2);
+    });
+
+    it('holds the tailing freeze-frame for 2s, shared with the planner', () => {
+        expect(source).toMatch(/performance\.now\(\) - tailStart > TAILING_DURATION_MS/);
+        expect(source).not.toMatch(/tailStart > 4000/);
+        expect(source).toMatch(/TAILING_DURATION_MS\b/);
+    });
+
+    it('renders the multi-line call to action over the tailing card', () => {
+        const start = source.indexOf('if (tailingCard && shareCta) {');
+        const end = source.indexOf('// Unpack subtitle', start);
+        expect(start).toBeGreaterThan(-1);
+        expect(end).toBeGreaterThan(start);
+        const card = source.slice(start, end);
+        expect(card).toMatch(/shareCta\.tailingLines/);
+        expect(card).toMatch(/lines\.length/);
+        // The old prefix/deadline/URL lines must all be gone.
+        expect(card).not.toMatch(/shareCta\.deadline/);
+        expect(card).not.toMatch(/shareCta\.url/);
     });
 });

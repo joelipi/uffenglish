@@ -10,9 +10,19 @@ name: Deploy to Cloudflare Pages
 # (`modal_app._publish_intro_posters`), so the old generate/upload/verify steps
 # were redundant. `scripts/generate-thumbnails.mjs` stays for a manual
 # `npm run posters:upload`; it is off the deploy path.
+#
+# Docs-only pushes are ignored: a markdown/story/plan change ships nothing to
+# production, so it must not burn an Actions deploy.
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '*.md'
+      - '**/*.md'
+      - 'docs/**'
+      - 'stories/**'
+      - 'plans/**'
+      - '.opencode/**'
   workflow_dispatch:
 
 jobs:

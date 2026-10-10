@@ -4,6 +4,7 @@ import { queryClient } from '../../modules/api/api.js';
 import { appStore } from '../../modules/store/store.js';
 import { identifyUser, trackEvent } from '../../modules/utils/posthog.js';
 import { toShortId } from '../../modules/utils/short-id.js';
+import { sendWelcomeEmail } from '../../modules/user/email-confirmation.js';
 import defaultProfilePic from '../../assets/img/userprofile.png';
 
 export function useSignupForm({ onSignupSuccess, nativeLanguage: initialNativeLanguage = '' } = {}) {
@@ -27,7 +28,9 @@ export function useSignupForm({ onSignupSuccess, nativeLanguage: initialNativeLa
             const { data, error: signUpError } = await supabase.auth.signUp({
                 email,
                 password,
-                options: { data: { full_name: fullName } }
+                // native_language rides on user_metadata so the welcome email can
+                // be localized without an extra profile query at send time.
+                options: { data: { full_name: fullName, native_language: nativeLanguage } }
             });
             if (signUpError) throw signUpError;
             const user = data.user;
@@ -95,6 +98,13 @@ export function useSignupForm({ onSignupSuccess, nativeLanguage: initialNativeLa
             // still a guest (no share code, no R2 publish).
             appStore.getState().setIsLoggedIn(true);
             appStore.getState().setCourseData({ userData: profile });
+
+            // Fire-and-forget: the welcome/confirm email is optional and must
+            // never delay or fail the signup the user just completed. The
+            // helper swallows all errors and returns { sent }, so this is safe
+            // to leave un-awaited.
+            void sendWelcomeEmail();
+
             onSignupSuccess?.();
         } catch (err) {
             trackEvent('signup_failed', { error: err.message });

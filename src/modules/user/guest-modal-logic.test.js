@@ -1,8 +1,15 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import {
     ENGLISH_LANG,
     PUBLIC_ROUTES,
+    STATIC_SINGLE_SEGMENT_ROUTES,
     isPublicHomeRoute,
+    isHomepageRoute,
+    resolveHomepageLanguageAdoption,
+    isProfileRoute,
     resolveGuestModalPlan,
     resolveSilentLanguageReapply,
     applyGuestLanguagePreference,
@@ -48,10 +55,12 @@ describe('resolveGuestModalPlan', () => {
 });
 
 describe('isPublicHomeRoute', () => {
-    it('is true for the public homepage and the legal pages', () => {
+    it('is true for the public homepage, the legal pages, confirm-email and the course listings', () => {
         expect(isPublicHomeRoute('/')).toBe(true);
         expect(isPublicHomeRoute('/privacy')).toBe(true);
         expect(isPublicHomeRoute('/terms')).toBe(true);
+        expect(isPublicHomeRoute('/confirm-email')).toBe(true);
+        expect(isPublicHomeRoute('/courses')).toBe(true);
     });
 
     it('matches the same non-canonical URLs the router resolves (case + trailing slash)', () => {
@@ -60,6 +69,10 @@ describe('isPublicHomeRoute', () => {
         expect(isPublicHomeRoute('/Privacy/')).toBe(true);
         expect(isPublicHomeRoute('/terms/')).toBe(true);
         expect(isPublicHomeRoute('/Terms')).toBe(true);
+        expect(isPublicHomeRoute('/confirm-email/')).toBe(true);
+        expect(isPublicHomeRoute('/Confirm-Email')).toBe(true);
+        expect(isPublicHomeRoute('/courses/')).toBe(true);
+        expect(isPublicHomeRoute('/Courses')).toBe(true);
     });
 
     it('is false for the dashboard, auth, lesson, profile and share-code routes', () => {
@@ -75,7 +88,124 @@ describe('isPublicHomeRoute', () => {
     });
 
     it('pins the public route list', () => {
-        expect(PUBLIC_ROUTES).toEqual(['/', '/privacy', '/terms']);
+        expect(PUBLIC_ROUTES).toEqual(['/', '/privacy', '/terms', '/confirm-email', '/courses']);
+    });
+});
+
+describe('isHomepageRoute', () => {
+    it('is true only for the homepage itself', () => {
+        expect(isHomepageRoute('/')).toBe(true);
+        expect(isHomepageRoute('//')).toBe(true);
+    });
+
+    it('is false for the other public routes and app routes', () => {
+        expect(isHomepageRoute('/privacy')).toBe(false);
+        expect(isHomepageRoute('/terms')).toBe(false);
+        expect(isHomepageRoute('/confirm-email')).toBe(false);
+        expect(isHomepageRoute('/courses')).toBe(false);
+        expect(isHomepageRoute('/home')).toBe(false);
+        expect(isHomepageRoute('/course/model/lesson/g')).toBe(false);
+        expect(isHomepageRoute('/abc123')).toBe(false);
+    });
+
+    it('is false for empty and non-string input', () => {
+        expect(isHomepageRoute('')).toBe(false);
+        expect(isHomepageRoute(undefined)).toBe(false);
+        expect(isHomepageRoute(null)).toBe(false);
+    });
+});
+
+describe('resolveHomepageLanguageAdoption', () => {
+    it('adopts a supported non-English browser language for an anonymous visitor', () => {
+        expect(resolveHomepageLanguageAdoption({ isLoggedIn: false, guestLang: null, detectedLang: 'ES' }))
+            .toEqual({ action: 'adopt', language: 'ES' });
+    });
+
+    it('no-ops for English (English already renders)', () => {
+        expect(resolveHomepageLanguageAdoption({ isLoggedIn: false, guestLang: null, detectedLang: 'EN' }))
+            .toEqual({ action: 'noop' });
+    });
+
+    it('no-ops for an unsupported browser language', () => {
+        expect(resolveHomepageLanguageAdoption({ isLoggedIn: false, guestLang: null, detectedLang: 'DE' }))
+            .toEqual({ action: 'noop' });
+        expect(resolveHomepageLanguageAdoption({ isLoggedIn: false, guestLang: null, detectedLang: 'JA' }))
+            .toEqual({ action: 'noop' });
+    });
+
+    it('honors an explicit supportedLangs list', () => {
+        expect(resolveHomepageLanguageAdoption({ isLoggedIn: false, guestLang: null, detectedLang: 'DE', supportedLangs: ['DE'] }))
+            .toEqual({ action: 'adopt', language: 'DE' });
+    });
+
+    it('no-ops when no language was detected', () => {
+        expect(resolveHomepageLanguageAdoption({ isLoggedIn: false, guestLang: null, detectedLang: undefined }))
+            .toEqual({ action: 'noop' });
+        expect(resolveHomepageLanguageAdoption({ isLoggedIn: false, guestLang: null, detectedLang: '' }))
+            .toEqual({ action: 'noop' });
+        expect(resolveHomepageLanguageAdoption({ isLoggedIn: false, guestLang: null, detectedLang: null }))
+            .toEqual({ action: 'noop' });
+    });
+
+    it('never adopts for a logged-in user', () => {
+        expect(resolveHomepageLanguageAdoption({ isLoggedIn: true, guestLang: null, detectedLang: 'ES' }))
+            .toEqual({ action: 'noop' });
+    });
+
+    it('never overrides an already-chosen guest language', () => {
+        expect(resolveHomepageLanguageAdoption({ isLoggedIn: false, guestLang: 'BN', detectedLang: 'ES' }))
+            .toEqual({ action: 'noop' });
+    });
+});
+
+describe('isProfileRoute', () => {
+    it('is true for the private profile route', () => {
+        expect(isProfileRoute('/profile')).toBe(true);
+        expect(isProfileRoute('/profile/')).toBe(true);
+        expect(isProfileRoute('/Profile')).toBe(true);
+    });
+
+    it('is true for a public share-code profile (the single-segment catch-all)', () => {
+        expect(isProfileRoute('/abc123')).toBe(true);
+        expect(isProfileRoute('/FriendTest1/')).toBe(true);
+    });
+
+    it('is false for every static single-segment route declared before the catch-all', () => {
+        // '/profile' is itself a profile route; the rest are not.
+        for (const route of STATIC_SINGLE_SEGMENT_ROUTES.filter((r) => r !== '/profile')) {
+            expect(isProfileRoute(route), route).toBe(false);
+        }
+        expect(isProfileRoute('/home')).toBe(false);
+        expect(isProfileRoute('/courses')).toBe(false);
+    });
+
+    it('is false for multi-segment lesson routes', () => {
+        expect(isProfileRoute('/course/model/lesson/g')).toBe(false);
+        expect(isProfileRoute('/course/friend/lesson/b')).toBe(false);
+    });
+
+    it('is false for empty and non-string input', () => {
+        expect(isProfileRoute('')).toBe(false);
+        expect(isProfileRoute(undefined)).toBe(false);
+        expect(isProfileRoute(null)).toBe(false);
+    });
+
+    // Keep the static list in lockstep with routes.jsx: a new static
+    // single-segment route added there but not here would be silently read as a
+    // share code and lose its guest modal.
+    it('covers every static single-segment route declared in routes.jsx', () => {
+        const routesSrc = readFileSync(
+            path.join(path.dirname(fileURLToPath(import.meta.url)), '../../routes/routes.jsx'),
+            'utf8',
+        );
+        const declared = [...routesSrc.matchAll(/path:\s*'([^']+)'/g)].map((m) => m[1]);
+        const singleSegmentStatic = declared.filter(
+            (p) => p.startsWith('/') && !p.slice(1).includes('/') && !p.includes(':'),
+        );
+        expect(singleSegmentStatic.length).toBeGreaterThan(0);
+        for (const route of singleSegmentStatic) {
+            expect(STATIC_SINGLE_SEGMENT_ROUTES, route).toContain(route);
+        }
     });
 });
 

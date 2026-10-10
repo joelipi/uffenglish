@@ -126,6 +126,20 @@ describe('recorder page — cloud pipeline controls', () => {
         expect(html).toMatch(/global_last_final_blob\s*=\s*final_video_blob/);
     });
 
+    it('only records rows that have a filename (skips non-take rows)', () => {
+        // Sheet rows that carry config/branching metadata only (e.g. a
+        // `branching` step whose video is a friend's UGC clip) have no take and
+        // must not enter the recorder's take list.
+        const html = page();
+        const start = html.indexOf('global_script_phrases = [];');
+        const end = html.indexOf('global_script_phrases.sort');
+        expect(start).toBeGreaterThan(-1);
+        expect(end).toBeGreaterThan(start);
+        const loop = html.slice(start, end);
+        expect(loop).toContain('entry_object.filename');
+        expect(loop).toContain('continue;');
+    });
+
     it('uploads on Accept and only advances on success', () => {
         const html = page();
         // The upload fetch is inside the Accept handler and advanceAfterAccept is

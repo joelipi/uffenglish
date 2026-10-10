@@ -22,7 +22,8 @@
     "configs:generate": "node scripts/generate-config-from-sheet.mjs",
     "configs:generate:ci": "node scripts/generate-config-from-sheet.mjs --check",
     "deploy": "npm run build && wrangler pages deploy dist --project-name=uffenglish",
-    "deploy:prod": "npm run build && wrangler pages deploy dist --project-name=uffenglish --branch=production"
+    "deploy:staging": "npm run build && wrangler pages deploy dist --project-name=uffenglish --branch=staging",
+    "deploy:prod": "npm run build && wrangler pages deploy dist --project-name=uffenglish --branch=main"
   },
   "keywords": [],
   "author": "",

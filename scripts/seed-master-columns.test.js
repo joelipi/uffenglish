@@ -13,9 +13,11 @@ import {
     CONFIG_COLUMNS,
     INTRO_VIDEOS,
     LOCALIZATION_COLUMNS,
+    ROW_PURPOSE_COLUMN,
     buildSeededCsv,
     courseNameFromTitle,
     lessonIdFromVideoFile,
+    rowPurposeFor,
     serializeCsv,
     successSubtitlesFromFriendchain,
 } from './seed-master-columns.mjs';
@@ -97,6 +99,38 @@ describe('seed-master-columns helpers', () => {
     });
 });
 
+describe('rowPurposeFor', () => {
+    it('describes a step-defining row', () => {
+        const purpose = rowPurposeFor({ video_file: 'wouldyourather_a01', phrase: 'Q', srt: 'x' });
+        expect(purpose).toContain('step "wouldyourather_a01"');
+        expect(purpose).toContain('→ simpleVideoUrl');
+        expect(purpose).toContain('→ cue');
+        expect(purpose).toContain('→ subtitles');
+    });
+
+    it('describes the branching friend row without claiming subtitles', () => {
+        const purpose = rowPurposeFor({
+            video_file: '{friendCode}wouldyourather-a-response-01', srt: 'x',
+            choose_step_next: '1', choose_step_text: 'Yes',
+        });
+        expect(purpose).toContain('→ chooseStep');
+        expect(purpose).toContain('friend UGC clip — no app subtitles');
+        expect(purpose).not.toContain('→ subtitles');
+    });
+
+    it('describes join / intro / success / next_step / publish_lesson_id rows', () => {
+        expect(rowPurposeFor({ join: 'grp', video_file: 'grp_i' })).toContain('joined step "grp"');
+        expect(rowPurposeFor({ video_file: 'v', intro_video: 'intro' })).toContain('lessonIntro "intro"');
+        expect(rowPurposeFor({ video_file: 'v', success_video: 'success' })).toContain('success "success"');
+        expect(rowPurposeFor({ video_file: 'v', next_step: '2' })).toContain('→ nextStep');
+        expect(rowPurposeFor({ video_file: 'v', publish_lesson_id: 'a' })).toContain('→ publishLessonId');
+    });
+
+    it('describes a row with no step key', () => {
+        expect(rowPurposeFor({ filename: 'f' })).toContain('no step key');
+    });
+});
+
 describe('buildSeededCsv', () => {
     const seeded = buildSeededCsv(masterFixture(), { friendchain: FRIENDCHAIN });
     const { headers, rows } = parseCsv(seeded);
@@ -114,11 +148,17 @@ describe('buildSeededCsv', () => {
         for (const col of ['choose_step_text_es', 'choose_step_text_pt', 'choose_step_text_bn']) {
             expect(LOCALIZATION_COLUMNS).toContain(col);
         }
+        // Story 056: the SRT cue-text translation targets are seeded too, so the
+        // translator can localize captions once the pipeline fills `srt`.
+        for (const col of ['srt_es', 'srt_pt', 'srt_bn']) {
+            expect(LOCALIZATION_COLUMNS).toContain(col);
+        }
     });
 
     it('emits each new column exactly once in the seeded header', () => {
         for (const col of ['next_step', 'choose_step_next', 'choose_step_text',
-            'choose_step_text_es', 'choose_step_text_pt', 'choose_step_text_bn']) {
+            'choose_step_text_es', 'choose_step_text_pt', 'choose_step_text_bn',
+            'srt_es', 'srt_pt', 'srt_bn']) {
             expect(headers.filter((h) => h === col)).toHaveLength(1);
         }
     });
@@ -195,6 +235,24 @@ describe('buildSeededCsv', () => {
         expect(content).toHaveLength(1);
         expect(content[0].simpleVideoUrl).toBe('wouldyourather_b01');
         expect(content[0].cue).toHaveLength(2);
+    });
+
+    it('appends the informational row_purpose column exactly once, filled on every row', () => {
+        expect(headers.filter((h) => h === ROW_PURPOSE_COLUMN)).toHaveLength(1);
+        for (const row of rows) expect(row[ROW_PURPOSE_COLUMN].trim().length).toBeGreaterThan(0);
+    });
+
+    it('keeps row_purpose out of CONFIG_COLUMNS and LOCALIZATION_COLUMNS', () => {
+        expect(CONFIG_COLUMNS).not.toContain(ROW_PURPOSE_COLUMN);
+        expect(LOCALIZATION_COLUMNS).not.toContain(ROW_PURPOSE_COLUMN);
+    });
+
+    it('the generator ignores row_purpose (deep-equal without it)', () => {
+        const withColumn = buildCourseConfig(rows);
+        const stripped = rows.map(({ [ROW_PURPOSE_COLUMN]: _drop, ...rest }) => rest);
+        const withoutColumn = buildCourseConfig(stripped);
+        expect(withColumn).toEqual(withoutColumn);
+        expect(JSON.stringify(withColumn)).not.toContain(ROW_PURPOSE_COLUMN);
     });
 });
 

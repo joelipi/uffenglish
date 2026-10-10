@@ -45,3 +45,44 @@ describe('guest-modal guard public-homepage skip', () => {
         expect(earlyReturn).not.toContain('setGuestModalShownThisSession');
     });
 });
+
+describe('guest-modal guard homepage browser-language adoption', () => {
+    it('adopts the browser language inside the public-homepage branch', () => {
+        expect(block).toContain('isHomepageRoute(path)');
+        expect(block).toContain('detectBrowserLanguage()');
+        expect(block).toContain('state.setGuestLanguageSilent(');
+    });
+
+    it('orders detection and adoption before the homepage early return', () => {
+        const publicAt = block.indexOf('isPublicHomeRoute(path)');
+        const detectAt = block.indexOf('detectBrowserLanguage()');
+        const adoptAt = block.indexOf('state.setGuestLanguageSilent(');
+        const returnAt = block.indexOf('return;', publicAt);
+        expect(publicAt).toBeGreaterThan(-1);
+        expect(detectAt).toBeGreaterThan(publicAt);
+        expect(adoptAt).toBeGreaterThan(detectAt);
+        expect(adoptAt).toBeLessThan(returnAt);
+    });
+});
+
+describe('guest-modal guard profile-route skip', () => {
+    it('calls isProfileRoute(path) in the guard block', () => {
+        expect(block).toContain('isProfileRoute(path)');
+    });
+
+    it('returns early for profile routes before setting the session flag', () => {
+        const profileAt = block.indexOf('isProfileRoute(path)');
+        const flagAt = block.indexOf('state.setGuestModalShownThisSession(true)');
+        expect(profileAt).toBeGreaterThan(-1);
+        expect(flagAt).toBeGreaterThan(-1);
+        expect(profileAt).toBeLessThan(flagAt);
+    });
+
+    it('does not call setGuestModalShownThisSession in the profile-route early return', () => {
+        const profileAt = block.indexOf('isProfileRoute(path)');
+        const returnAt = block.indexOf('return;', profileAt);
+        const earlyReturn = block.slice(profileAt, returnAt + 'return;'.length);
+        expect(earlyReturn).toContain('return;');
+        expect(earlyReturn).not.toContain('setGuestModalShownThisSession');
+    });
+});

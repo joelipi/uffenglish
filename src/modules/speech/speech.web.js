@@ -5,10 +5,29 @@ import { saveSpeechRecording } from '../storage/storage.js';
 import { appStore, setWebcamStream } from '../store/store.js';
 import { DEFAULT_USER_AVATAR_URL } from '../user/tutor-config.js';
 import { generateThumbFromBlob } from '../video/thumbnail.js';
+import { isIOS } from '../../utils/detectIOS.js';
 
-// iOS detection disabled — iOS now uses same path as other devices
-// export const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 export const isWindows = navigator.platform.indexOf('Win') > -1;
+// Android is detected so the 9:16 canvas composite can be built LIGHTER on
+// phones (see createPortraitCaptureStream). The composite is the only reliable
+// way to guarantee a 9:16 recording: camera `aspectRatio` is advisory and is
+// routinely ignored, and the recorded clip is reused verbatim (the recap and the
+// published friend clips are cut from it), so the framing must be correct at
+// capture time, not fixed later.
+const isAndroid = /Android/i.test(navigator.userAgent);
+const canvasCaptureSupported = typeof HTMLCanvasElement !== 'undefined'
+    && typeof HTMLCanvasElement.prototype.captureStream === 'function';
+
+// iOS cameras already deliver a portrait frame and their MediaRecorder path is
+// fragile (it finally works — do not disturb it), so iOS keeps the raw camera
+// stream. Every other platform (Windows / macOS / Linux / ChromeOS / Android)
+// has its camera composited into a real 9:16 canvas for both the preview and the
+// recording; otherwise the captured clip (and everything derived from it) comes
+// out at whatever aspect the camera hands back (often 16:9/4:3) rather than
+// Reels-size.
+export function shouldUsePortraitCapture() {
+    return !isIOS();
+}
 
 
 let localRawAudioChunks = [];
@@ -20,12 +39,23 @@ let speechCamRecorder = null;
 let speechCamChunks = [];
 let isPlaceholderStream = false;
 
+// Desktop portrait-capture state (see createPortraitCaptureStream). The raw
+// 16:9 camera stream is kept alive behind a hidden <video> that feeds the 9:16
+// canvas, so it must be torn down alongside speechCamStream.
+let compositeRawStream = null;
+let compositeVideoEl = null;
+let compositeDrawTimer = null;
+
 let recognition = null;
 let recognitionTimeout = null;
 
 function getMediaConstraints() {
     return {
         video: {
+            // The composite (createPortraitCaptureStream) guarantees the 9:16
+            // framing, so the camera is asked for a plain 16:9 source to crop.
+            // Windows webcams report landscape regardless, so Windows still asks
+            // for 9:16 directly (the composite crops either way).
             aspectRatio: { ideal: 16 / 9 },
             facingMode: "user",
             ...(isWindows && { aspectRatio: { ideal: 9 / 16 } })
@@ -45,7 +75,95 @@ export function safelyStopStream() {
         speechCamStream.getTracks().forEach(t => t.stop());
         speechCamStream = null;
     }
+    teardownPortraitCapture();
     isPlaceholderStream = false;
+}
+
+/**
+ * Wraps a raw (usually 16:9) camera stream in a real 9:16 canvas so the preview
+ * and the recorded clip are always Reels-size. Each frame is centre-cropped into
+ * the canvas (the same cover-fill the placeholder uses), and the camera's own
+ * audio track is carried through. Returns a new stream whose video track comes
+ * from the canvas.
+ *
+ * Phones get a lighter composite (720×1280 @ 24 fps): a 1080×1920 canvas plus a
+ * software MediaRecorder encode of it OOMs low-memory Android devices while the
+ * Whisper model is resident, and the 720p canvas keeps the same 9:16 framing at
+ * ~3× less encoder load. Desktops keep the full 1080×1920 @ 30 fps.
+ */
+function createPortraitCaptureStream(rawStream) {
+    const canvasW = isAndroid ? 720 : 1080;
+    const canvasH = isAndroid ? 1280 : 1920;
+    const captureFps = isAndroid ? 24 : 30;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvasW;
+    canvas.height = canvasH;
+    const ctx = canvas.getContext('2d');
+
+    // Hidden element playing the raw camera stream; we sample it into the canvas.
+    // Appended to the DOM (like the video processor) because Safari only renders
+    // an in-DOM <video> into a canvas reliably.
+    const video = document.createElement('video');
+    video.muted = true;
+    video.playsInline = true;
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', '');
+    video.style.cssText = 'position:fixed;top:0;left:0;width:2px;height:2px;opacity:0.01;pointer-events:none;';
+    document.body.appendChild(video);
+    video.srcObject = rawStream;
+    video.play().catch((e) => console.warn('[Speech] portrait-capture playback failed:', e));
+
+    function draw() {
+        const vw = video.videoWidth;
+        const vh = video.videoHeight;
+        if (!vw || !vh) return; // metadata not ready yet
+        const canvasAspect = canvas.width / canvas.height;
+        const videoAspect = vw / vh;
+        let sx, sy, sw, sh;
+        if (videoAspect > canvasAspect) {
+            // Wider than 9:16 → keep full height, crop the sides.
+            sh = vh;
+            sw = vh * canvasAspect;
+            sx = (vw - sw) / 2;
+            sy = 0;
+        } else {
+            // Taller than 9:16 → keep full width, crop top/bottom.
+            sw = vw;
+            sh = vw / canvasAspect;
+            sx = 0;
+            sy = (vh - sh) / 2;
+        }
+        ctx.drawImage(video, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+    }
+
+    // The caller (`ensureSpeechCamStream`) only builds this when
+    // `canvas.captureStream` is supported, so no in-function capability check.
+    draw();
+    compositeRawStream = rawStream;
+    compositeVideoEl = video;
+    compositeDrawTimer = setInterval(draw, 1000 / captureFps);
+
+    return new MediaStream([
+        ...canvas.captureStream(captureFps).getVideoTracks(),
+        ...rawStream.getAudioTracks(),
+    ]);
+}
+
+function teardownPortraitCapture() {
+    if (compositeDrawTimer) {
+        clearInterval(compositeDrawTimer);
+        compositeDrawTimer = null;
+    }
+    if (compositeVideoEl) {
+        try { compositeVideoEl.pause(); } catch (e) { /* ignore */ }
+        compositeVideoEl.srcObject = null;
+        if (compositeVideoEl.parentNode) compositeVideoEl.parentNode.removeChild(compositeVideoEl);
+        compositeVideoEl = null;
+    }
+    if (compositeRawStream) {
+        compositeRawStream.getTracks().forEach((t) => { try { t.stop(); } catch (e) { /* ignore */ } });
+        compositeRawStream = null;
+    }
 }
 
 async function createPlaceholderStream() {
@@ -120,7 +238,13 @@ async function ensureSpeechCamStream() {
         speechCamStream = await createPlaceholderStream();
         isPlaceholderStream = true;
     } else {
-        speechCamStream = await navigator.mediaDevices.getUserMedia(getMediaConstraints());
+        const rawStream = await navigator.mediaDevices.getUserMedia(getMediaConstraints());
+        // Every platform except iOS wraps the camera in a 9:16 canvas so the
+        // preview and recording are always Reels-size. iOS keeps the raw camera
+        // stream unchanged (its MediaRecorder path is fragile).
+        speechCamStream = shouldUsePortraitCapture() && canvasCaptureSupported
+            ? createPortraitCaptureStream(rawStream)
+            : rawStream;
         isPlaceholderStream = false;
     }
     return speechCamStream;
@@ -189,6 +313,10 @@ export function startDeferredSpeechCamRecording() {
     }
 }
 
+// On phones, always release the camera composite when recording ends — it must
+// not stay alive into transcription/Whisper (canvas + software encoder +
+// recorded blob + Whisper WASM is what OOM'd Android). `keepStreamAlive` is only
+// a warmup optimisation; the next step rebuilds the stream via warmUp.
 export function stopSpeechCamRecording({ download = true, persist = false, meta = {}, keepStreamAlive = false, playback = true, autoplay = false } = {}) {
     try {
         if (speechCamRecorder && speechCamRecorder.state !== 'inactive') {
@@ -231,8 +359,8 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
                     } finally {
                         // Clear the array safely after processing
                         speechCamChunks = [];
-                        
-                        if (!keepStreamAlive) { setWebcamStream(null); safelyStopStream(); }
+
+                        if (!keepStreamAlive || isAndroid) { setWebcamStream(null); safelyStopStream(); }
                         resolve(blobToReturn);
                     }
                 };
@@ -241,7 +369,7 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
         } else {
             speechCamRecorder = null;
             speechCamChunks = [];
-            if (!keepStreamAlive) { setWebcamStream(null); safelyStopStream(); }
+            if (!keepStreamAlive || isAndroid) { setWebcamStream(null); safelyStopStream(); }
             else setWebcamStream(null);
             return Promise.resolve(null);
         }
