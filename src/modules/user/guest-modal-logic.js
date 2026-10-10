@@ -2,6 +2,8 @@
 // Pure decision logic for the guest login/language modal. Keeps the modal
 // behaviour deterministic and testable without React, the store, or the DOM.
 
+import { HOME_LANGUAGES } from '../../data/languages.js';
+
 export const ENGLISH_LANG = 'EN';
 
 // Routes that are public to everyone and must never open the guest modal: the
@@ -18,6 +20,29 @@ export function isPublicHomeRoute(pathname) {
     // slashes, so normalize to the canonical form before the exact-match lookup.
     const normalized = (pathname.replace(/\/+$/, '') || '/').toLowerCase();
     return PUBLIC_ROUTES.includes(normalized);
+}
+
+export const HOMEPAGE_ROUTE = '/';
+
+// True only for the homepage itself (case/trailing-slash normalized), not the
+// other public routes (legal pages, confirm-email, courses).
+export function isHomepageRoute(pathname) {
+    if (typeof pathname !== 'string' || pathname === '') return false;
+    return (pathname.replace(/\/+$/, '') || '/').toLowerCase() === HOMEPAGE_ROUTE;
+}
+
+// Whether the homepage should silently adopt the browser language. English is a
+// no-op (English already renders); a logged-in user or an already chosen guest
+// language wins; an unsupported code (e.g. DE/JA) is a no-op so
+// guestNativeLanguage stays within the homepage's six languages.
+// Returns { action: 'adopt', language } | { action: 'noop' }.
+export function resolveHomepageLanguageAdoption({ isLoggedIn, guestLang, detectedLang, supportedLangs } = {}) {
+    if (isLoggedIn) return { action: 'noop' };
+    if (guestLang) return { action: 'noop' };
+    if (!detectedLang || detectedLang === ENGLISH_LANG) return { action: 'noop' };
+    const supported = Array.isArray(supportedLangs) ? supportedLangs : HOME_LANGUAGES.map((l) => l.value);
+    if (!supported.includes(detectedLang)) return { action: 'noop' };
+    return { action: 'adopt', language: detectedLang };
 }
 
 // Static single-segment routes declared in routes.jsx before the /:shareCode

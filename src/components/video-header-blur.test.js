@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { VIDEO_HEADER_RATIO } from '../modules/video/video-header-logic.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const read = (...segments) => readFileSync(path.join(__dirname, ...segments), 'utf8');
@@ -50,5 +51,18 @@ describe('video header blur layer', () => {
         expect(LESSON_CONTAINER).toContain(
             'className="video-header-blur" aria-hidden="true" style={videoHeaderBlurStyle()}'
         );
+    });
+
+    it('keeps the branch overlay headline below the blur band and above the choice buttons', () => {
+        const block = blockFor(APP_CSS, '.ivp-overlay.ivp-overlay-branch');
+        expect(block).not.toBe('');
+        const padTop = Number(block.match(/^\s*padding-top:\s*([\d.]+)vh/m)?.[1]);
+        expect(Number.isFinite(padTop)).toBe(true);
+        // The frame is 100vh and the blur band is VIDEO_HEADER_RATIO of it, so the
+        // headline must start below the blur…
+        expect(padTop).toBeGreaterThan(VIDEO_HEADER_RATIO * 100);
+        // …and above the choice buttons, which the bottom band keeps within the
+        // bottom 60% of the frame (never higher than 40% from the top).
+        expect(padTop).toBeLessThan(40);
     });
 });

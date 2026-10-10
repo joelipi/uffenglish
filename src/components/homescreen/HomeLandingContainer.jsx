@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
@@ -10,6 +10,7 @@ import {
     planShareCodeSubmit,
     shareCodeErrorStringKey,
 } from '../../modules/user/share-code-entry-logic.js';
+import { buildShowcaseVideos } from '../../modules/video/showcase-videos.js';
 import HomeLanding from './HomeLanding.jsx';
 
 // Public homepage container: owns the share-code lookup + error state and
@@ -23,6 +24,7 @@ export default function HomeLandingContainer() {
     const lang = guestLang || userLang || 'en';
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
+    const showcaseVideos = useMemo(() => buildShowcaseVideos(), []);
 
     async function handleSubmit(rawCode) {
         if (loading) return;
@@ -56,6 +58,10 @@ export default function HomeLandingContainer() {
         setError(null);
     }
 
+    function handleLanguageChange(code) {
+        appStore.getState().setGuestLanguageSilent(code);
+    }
+
     return (
         <HomeLanding
             lang={lang}
@@ -65,6 +71,8 @@ export default function HomeLandingContainer() {
             onSubmitCode={handleSubmit}
             onNoCode={handleNoCode}
             onInputChange={handleInputChange}
+            onLanguageChange={handleLanguageChange}
+            showcaseVideos={showcaseVideos}
         />
     );
 }

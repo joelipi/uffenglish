@@ -26,6 +26,18 @@ export const GUEST_LANGUAGES = [
     { value: 'TH', label: 'ไทย (Thai)' },
 ];
 
+// Languages the public homepage is translated into. English first (the default),
+// then the five UI translations. Used by the homepage language selector and by
+// the homepage silent browser-language adoption.
+export const HOME_LANGUAGES = [
+    { value: 'EN', label: 'English' },
+    { value: 'ES', label: 'Español (Spanish)' },
+    { value: 'PT', label: 'Português (Portuguese)' },
+    { value: 'FR', label: 'Français (French)' },
+    { value: 'HI', label: 'हिन्दी (Hindi)' },
+    { value: 'BN', label: 'বাংলা (Bengali)' },
+];
+
 // Full list for the profile editor (English labels).
 export const PROFILE_LANGUAGES = [
     { value: 'EN', label: 'English' },

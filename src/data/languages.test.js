@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { GUEST_LANGUAGES, PROFILE_LANGUAGES, SIGNUP_LANGUAGES, LOCALE_MAP } from './languages.js';
+import { GUEST_LANGUAGES, PROFILE_LANGUAGES, SIGNUP_LANGUAGES, HOME_LANGUAGES, LOCALE_MAP } from './languages.js';
 
 const LISTS = { GUEST_LANGUAGES, PROFILE_LANGUAGES, SIGNUP_LANGUAGES };
 
@@ -39,6 +39,24 @@ describe('language selection lists', () => {
     it('keeps the other guest options', () => {
         for (const code of ['ES', 'HI', 'BN']) {
             expect(GUEST_LANGUAGES.some((l) => l.value === code), `missing ${code}`).toBe(true);
+        }
+    });
+});
+
+describe('HOME_LANGUAGES', () => {
+    it('lists the six homepage languages in order, English first', () => {
+        expect(HOME_LANGUAGES.map((l) => l.value)).toEqual(['EN', 'ES', 'PT', 'FR', 'HI', 'BN']);
+    });
+
+    it('includes English (unlike GUEST_LANGUAGES)', () => {
+        expect(HOME_LANGUAGES.some((l) => l.value === 'EN')).toBe(true);
+    });
+
+    it('has unique values and non-empty labels', () => {
+        const values = HOME_LANGUAGES.map((l) => l.value);
+        expect(new Set(values).size).toBe(values.length);
+        for (const l of HOME_LANGUAGES) {
+            expect(l.label, `empty label for ${l.value}`).toBeTruthy();
         }
     });
 });

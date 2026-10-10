@@ -174,4 +174,28 @@ describe('HomeLandingContainer', () => {
         expect(navigate).toHaveBeenCalledTimes(1);
         expect(navigate).toHaveBeenCalledWith('/abc');
     });
+
+    it('renders in the adopted (uppercase) guest language', async () => {
+        appStore.setState({ guestNativeLanguage: 'ES', userData: null });
+        await render();
+        expect(q('share-code-headline').textContent).toBe(get('home_landing_headline', 'es'));
+    });
+
+    it('falls back to English when no language was adopted', async () => {
+        appStore.setState({ guestNativeLanguage: null, userData: null });
+        await render();
+        expect(q('share-code-headline').textContent).toBe(get('home_landing_headline', 'en'));
+    });
+
+    it('adopts the language chosen in the homepage selector', async () => {
+        await render();
+        const select = q('landing-language-select');
+        await act(async () => {
+            const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, 'value').set;
+            setter.call(select, 'ES');
+            select.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        expect(appStore.getState().guestNativeLanguage).toBe('ES');
+        expect(q('share-code-headline').textContent).toBe(get('home_landing_headline', 'es'));
+    });
 });

@@ -46,6 +46,25 @@ describe('guest-modal guard public-homepage skip', () => {
     });
 });
 
+describe('guest-modal guard homepage browser-language adoption', () => {
+    it('adopts the browser language inside the public-homepage branch', () => {
+        expect(block).toContain('isHomepageRoute(path)');
+        expect(block).toContain('detectBrowserLanguage()');
+        expect(block).toContain('state.setGuestLanguageSilent(');
+    });
+
+    it('orders detection and adoption before the homepage early return', () => {
+        const publicAt = block.indexOf('isPublicHomeRoute(path)');
+        const detectAt = block.indexOf('detectBrowserLanguage()');
+        const adoptAt = block.indexOf('state.setGuestLanguageSilent(');
+        const returnAt = block.indexOf('return;', publicAt);
+        expect(publicAt).toBeGreaterThan(-1);
+        expect(detectAt).toBeGreaterThan(publicAt);
+        expect(adoptAt).toBeGreaterThan(detectAt);
+        expect(adoptAt).toBeLessThan(returnAt);
+    });
+});
+
 describe('guest-modal guard profile-route skip', () => {
     it('calls isProfileRoute(path) in the guard block', () => {
         expect(block).toContain('isProfileRoute(path)');

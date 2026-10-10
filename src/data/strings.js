@@ -2301,6 +2301,96 @@ const strings = {
         fr: "Une erreur s'est produite. Veuillez réessayer.",
         hi: "कुछ गलत हो गया। कृपया फिर से प्रयास करें।",
         bn: "কিছু ভুল হয়েছে। আবার চেষ্টা করুন।"
+    },
+
+    // --- Public homepage (homepage landing sections) ---
+    'home_landing_how_heading': {
+        en: "How it works",
+        es: "Cómo funciona",
+        pt: "Como funciona",
+        fr: "Comment ça marche",
+        hi: "यह कैसे काम करता है",
+        bn: "এটি কীভাবে কাজ করে"
+    },
+    'home_landing_how_1': {
+        en: "It's 100% free — no card and no subscription, ever.",
+        es: "Es 100% gratis: sin tarjeta y sin suscripción, para siempre.",
+        pt: "É 100% grátis: sem cartão e sem assinatura, para sempre.",
+        fr: "C'est 100 % gratuit : sans carte bancaire et sans abonnement, pour toujours.",
+        hi: "यह 100% मुफ़्त है — कभी भी कोई कार्ड या सब्सक्रिप्शन नहीं।",
+        bn: "এটি ১০০% বিনামূল্যে — কখনোই কার্ড বা সাবস্ক্রিপশন লাগবে না।"
+    },
+    'home_landing_how_2': {
+        en: "Any English level works, from beginner to advanced. It teaches you what to say.",
+        es: "Sirve cualquier nivel de inglés, de principiante a avanzado. Te enseña qué decir.",
+        pt: "Serve qualquer nível de inglês, de iniciante a avançado. Ele ensina o que dizer.",
+        fr: "Tous les niveaux d'anglais conviennent, du débutant à l'avancé. Ça t'apprend quoi dire.",
+        hi: "अंग्रेज़ी का कोई भी स्तर ठीक है, शुरुआती से उन्नत तक। यह आपको बताता है कि क्या कहना है।",
+        bn: "ইংরেজির যেকোনো স্তর ঠিক আছে, শিক্ষানবিশ থেকে উন্নত পর্যন্ত। এটি আপনাকে বলে দেয় কী বলতে হবে।"
+    },
+    'home_landing_how_3': {
+        en: "You don't need to be online at the same time as your friend.",
+        es: "No necesitas estar en línea al mismo tiempo que tu amigo.",
+        pt: "Você não precisa estar online ao mesmo tempo que seu amigo.",
+        fr: "Vous n'avez pas besoin d'être en ligne en même temps que votre ami.",
+        hi: "आपको अपने दोस्त के साथ एक ही समय पर ऑनलाइन होने की ज़रूरत नहीं है।",
+        bn: "আপনাকে আপনার বন্ধুর সাথে একই সময়ে অনলাইনে থাকতে হবে না।"
+    },
+    'home_landing_how_4': {
+        en: "Answer out loud and get instant feedback on your speaking.",
+        es: "Responde en voz alta y recibe comentarios al instante sobre tu forma de hablar.",
+        pt: "Responda em voz alta e receba feedback instantâneo sobre a sua fala.",
+        fr: "Répondez à voix haute et recevez un retour immédiat sur votre expression orale.",
+        hi: "ज़ोर से जवाब दें और अपनी बोली पर तुरंत प्रतिक्रिया पाएँ।",
+        bn: "জোরে উত্তর দিন এবং আপনার বলার উপর সঙ্গে সঙ্গে মতামত পান।"
+    },
+    'home_landing_how_5': {
+        en: "Your friend's videos expire after 48 hours, so start now.",
+        es: "Los videos de tu amigo caducan después de 48 horas, así que empieza ahora.",
+        pt: "Os vídeos do seu amigo expiram após 48 horas, então comece agora.",
+        fr: "Les vidéos de votre ami expirent après 48 heures, alors commencez maintenant.",
+        hi: "आपके दोस्त के वीडियो 48 घंटे बाद समाप्त हो जाते हैं, इसलिए अभी शुरू करें।",
+        bn: "আপনার বন্ধুর ভিডিওগুলো ৪৮ ঘণ্টা পরে মেয়াদোত্তীর্ণ হয়ে যায়, তাই এখনই শুরু করুন।"
+    },
+    'home_landing_about_heading': {
+        en: "About the teacher",
+        es: "Sobre el profesor",
+        pt: "Sobre o professor",
+        fr: "À propos du professeur",
+        hi: "शिक्षक के बारे में",
+        bn: "শিক্ষক সম্পর্কে"
+    },
+    'home_landing_about_credentials': {
+        en: "I have a master's degree in teaching English to speakers of other languages (TESOL) and 20 years of experience teaching English.",
+        es: "Tengo una maestría en enseñanza de inglés a hablantes de otros idiomas (TESOL) y 20 años de experiencia enseñando inglés.",
+        pt: "Tenho um mestrado em ensino de inglês para falantes de outras línguas (TESOL) e 20 anos de experiência ensinando inglês.",
+        fr: "J'ai un master en enseignement de l'anglais aux locuteurs d'autres langues (TESOL) et 20 ans d'expérience dans l'enseignement de l'anglais.",
+        hi: "मेरे पास अन्य भाषाओं के बोलने वालों को अंग्रेज़ी पढ़ाने में मास्टर डिग्री (TESOL) और अंग्रेज़ी पढ़ाने का 20 साल का अनुभव है।",
+        bn: "আমার অন্য ভাষার বক্তাদের ইংরেজি শেখানোর ক্ষেত্রে মাস্টার্স ডিগ্রি (TESOL) এবং ইংরেজি শেখানোর ২০ বছরের অভিজ্ঞতা রয়েছে।"
+    },
+    'home_landing_language_label': {
+        en: "Language",
+        es: "Idioma",
+        pt: "Idioma",
+        fr: "Langue",
+        hi: "भाषा",
+        bn: "ভাষা"
+    },
+    'home_landing_showcase_heading': {
+        en: "See what a conversation looks like",
+        es: "Mira cómo es una conversación",
+        pt: "Veja como é uma conversa",
+        fr: "Voyez à quoi ressemble une conversation",
+        hi: "देखें कि बातचीत कैसी दिखती है",
+        bn: "দেখুন একটি কথোপকথন কেমন দেখতে হয়"
+    },
+    'home_landing_showcase_play': {
+        en: "Play video",
+        es: "Reproducir video",
+        pt: "Reproduzir vídeo",
+        fr: "Lire la vidéo",
+        hi: "वीडियो चलाएँ",
+        bn: "ভিডিও চালান"
     }
 };
 
