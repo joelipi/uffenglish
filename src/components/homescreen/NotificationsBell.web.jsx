@@ -40,7 +40,15 @@ const panelStyle = {
     top: '44px',
     right: 0,
     width: '320px',
-    maxWidth: '90vw',
+    // The panel anchors to the bell at the frame's right edge and grows
+    // leftward, but #root.video-frame clips overflow (overflow: hidden). On a
+    // narrow frame (desktop with OS/browser zoom: frame width is 9/16 of the
+    // viewport height and can drop below 320px) an unclamped panel gets its
+    // left third cut off. Container units track the FRAME, not the viewport:
+    // .video-frame declares container-type: inline-size, so 100cqw is the
+    // frame width and the panel always fits with room to spare. (No-cqw
+    // browsers drop the declaration and keep today's behavior.)
+    maxWidth: 'calc(min(90vw, 100cqw) - 24px)',
     backgroundColor: '#1a3a5a',
     border: '1px solid #2a4a6a',
     borderRadius: '12px',
