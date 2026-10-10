@@ -427,7 +427,7 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     top: 0;
     left: 0;
     right: 0;
-    height: calc(var(--video-header-ratio, 0.18) * 100%);
+    height: calc(var(--video-header-ratio) * 100%);
     z-index: 34; /* above the video (auto) and recap (z 20); below .top-overlay (z 35) */
     pointer-events: none;
     -webkit-backdrop-filter: blur(16px);
