@@ -86,7 +86,7 @@ export default function HomeLanding({
                         <Link
                             to={isLoggedIn ? '/home' : '/login'}
                             data-testid="landing-account-link"
-                            className="btn btn-sm btn-uff-outline"
+                            className="btn btn-sm btn-uff-topbar"
                         >
                             {isLoggedIn ? Strings.get('home_home', lang) : Strings.get('sign_in', lang)}
                         </Link>

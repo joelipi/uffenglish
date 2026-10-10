@@ -64,6 +64,37 @@ describe('HomeLanding app-matched styling + scroll contract', () => {
         expect(from).toBeGreaterThan(-1);
         expect(homeLanding.slice(from, at)).toContain('type="submit"');
     });
+
+    it('styles the Go button white like the app call buttons, never gradient', () => {
+        const at = homeLandingCss.indexOf('.uff-home-bs .btn-uff-primary {');
+        expect(at).toBeGreaterThan(-1);
+        const block = homeLandingCss.slice(at, homeLandingCss.indexOf('}', at));
+        expect(block).toContain('#ffffff');
+        expect(block).not.toContain('linear-gradient');
+    });
+
+    it('keeps the top-bar sign-in on a white solid button', () => {
+        const at = homeLanding.indexOf('data-testid="landing-account-link"');
+        expect(at).toBeGreaterThan(-1);
+        const tagEnd = homeLanding.indexOf('>', at);
+        expect(tagEnd).toBeGreaterThan(at);
+        expect(homeLanding.slice(at, tagEnd)).toContain('btn-uff-topbar');
+        const cssAt = homeLandingCss.indexOf('.uff-home-bs .btn-uff-topbar {');
+        expect(cssAt).toBeGreaterThan(-1);
+        const block = homeLandingCss.slice(cssAt, homeLandingCss.indexOf('}', cssAt));
+        expect(block).toContain('#ffffff');
+        expect(block).toContain('#0b1a2a');
+    });
+
+    it('sizes showcase media portrait 9:16 and caps it for desktop', () => {
+        const at = homeLandingCss.indexOf('.uff-carousel-media {');
+        expect(at).toBeGreaterThan(-1);
+        const block = homeLandingCss.slice(at, homeLandingCss.indexOf('}', at));
+        expect(block).toContain('9 / 16');
+        expect(block).toContain('max-width');
+        expect(block).toContain('max-height');
+        expect(block).not.toContain('16 / 10');
+    });
 });
 
 describe('Bootstrap 5.3.8 is scoped to the homepage', () => {

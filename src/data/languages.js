@@ -31,11 +31,11 @@ export const GUEST_LANGUAGES = [
 // the homepage silent browser-language adoption.
 export const HOME_LANGUAGES = [
     { value: 'EN', label: 'English' },
-    { value: 'ES', label: 'Español (Spanish)' },
-    { value: 'PT', label: 'Português (Portuguese)' },
-    { value: 'FR', label: 'Français (French)' },
-    { value: 'HI', label: 'हिन्दी (Hindi)' },
-    { value: 'BN', label: 'বাংলা (Bengali)' },
+    { value: 'ES', label: 'Español' },
+    { value: 'PT', label: 'Português' },
+    { value: 'FR', label: 'Français' },
+    { value: 'HI', label: 'हिन्दी' },
+    { value: 'BN', label: 'বাংলা' },
 ];
 
 // Full list for the profile editor (English labels).

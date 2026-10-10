@@ -153,32 +153,61 @@
 }
 
 /* --- Buttons (app CTA conventions) ----------------------------------- */
+/* App design language: the gradient is background (navbar, hero, water) and is
+   never the clickable surface. Clickable actions are solid white like the
+   lesson .call-btn (white circle, dark glyph), so the homepage CTAs are white
+   with dark text, never gradient. */
 .uff-home-bs .btn-uff-primary {
-    background-image: var(--uff-gradient);
+    background-color: #ffffff;
+    background-image: none;
     border: none;
-    color: #ffffff;
-    font-weight: 600;
+    color: #1a1a1a;
+    font-weight: 700;
     border-radius: 8px;
     padding: 0.875rem 1.25rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
     transition: filter 0.15s ease, transform 0.15s ease;
 }
 
 .uff-home-bs .btn-uff-primary:hover,
 .uff-home-bs .btn-uff-primary:focus {
-    color: #ffffff;
-    background-image: var(--uff-gradient);
-    filter: brightness(1.07);
+    color: #1a1a1a;
+    background-color: #ffffff;
+    background-image: none;
+    filter: brightness(0.96);
 }
 
 .uff-home-bs .btn-uff-primary:active {
     transform: scale(0.99);
-    color: #ffffff;
+    color: #1a1a1a;
+    background-color: #ffffff;
 }
 
 .uff-home-bs .btn-uff-primary:disabled {
-    background-image: var(--uff-gradient);
-    color: #ffffff;
+    background-color: #ffffff;
+    background-image: none;
+    color: #1a1a1a;
     opacity: 0.6;
+}
+
+/* Top-bar sign-in: white solid so it reads on the gradient navbar. */
+.uff-home-bs .btn-uff-topbar {
+    background-color: #ffffff;
+    background-image: none;
+    border: none;
+    color: #0b1a2a;
+    font-weight: 700;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    white-space: nowrap;
+}
+
+.uff-home-bs .btn-uff-topbar:hover,
+.uff-home-bs .btn-uff-topbar:focus,
+.uff-home-bs .btn-uff-topbar:active {
+    background-color: #ffffff;
+    background-image: none;
+    color: #0b1a2a;
 }
 
 .uff-home-bs .btn-uff-outline {
@@ -310,10 +339,15 @@
 
 .uff-carousel-media {
     width: 100%;
-    aspect-ratio: 16 / 10;
+    max-width: 340px;
+    margin-left: auto;
+    margin-right: auto;
+    aspect-ratio: 9 / 16;
+    max-height: min(70vh, 620px);
     object-fit: cover;
     display: block;
     border-radius: 8px;
+    background-color: #000;
 }
 
 .uff-carousel-play {

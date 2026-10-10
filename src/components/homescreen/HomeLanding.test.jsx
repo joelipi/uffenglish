@@ -149,7 +149,7 @@ describe('HomeLanding', () => {
         expect(q('share-code-input').className).toContain('form-control');
     });
 
-    it('styles the Go button as the app gradient primary', () => {
+    it('styles the Go button as the app white primary', () => {
         render();
         const go = q('share-code-go');
         expect(go.tagName).toBe('BUTTON');
@@ -165,6 +165,16 @@ describe('HomeLanding', () => {
         expect(noCode.getAttribute('type')).toBe('button');
         expect(noCode.className).toContain('btn-uff-outline');
         expect(noCode.className).toContain('w-100');
+    });
+
+    it('keeps the top-bar sign-in visible on the gradient navbar', () => {
+        render();
+        const link = q('landing-account-link');
+        expect(link).not.toBeNull();
+        expect(link.tagName).toBe('A');
+        expect(link.getAttribute('href')).toBe('/login');
+        expect(link.textContent).toBe('Sign In');
+        expect(link.className).toContain('btn-uff-topbar');
     });
 
     // --- Task 2: "How it works" section ---
@@ -234,6 +244,14 @@ describe('HomeLanding', () => {
         expect(select.tagName).toBe('SELECT');
         const options = Array.from(select.querySelectorAll('option'));
         expect(options.map((o) => o.value)).toEqual(['EN', 'ES', 'PT', 'FR', 'HI', 'BN']);
+        expect(options.map((o) => o.textContent)).toEqual([
+            'English',
+            'Español',
+            'Português',
+            'Français',
+            'हिन्दी',
+            'বাংলা',
+        ]);
         expect(select.value).toBe('EN');
         expect(select.getAttribute('aria-label')).toBe('Language');
         expect(select.className).toContain('form-select');
