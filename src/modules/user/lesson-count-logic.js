@@ -20,6 +20,10 @@ export function lessonCompletionKey(courseId, lessonId) {
  * again, so re-reaching the same success screen (a reload, a retry, or the two
  * persistence hooks) never double-counts.
  *
+ * `countedLessons` (the `counted_lessons` column) predates this rule, so
+ * accounts that completed lessons before it was written are missing entries;
+ * re-completing one of those lessons counts it once more. Known and accepted.
+ *
  * @param {object} args
  * @param {string} args.courseId
  * @param {string} args.lessonId        - the lesson that was just completed

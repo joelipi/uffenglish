@@ -171,6 +171,8 @@ export function handleSuccessStep(step, fluencyData) {
         currentLessonId: completedLessonId
     }).then(progressResult => {
         state.setActivityMetrics(progressResult.newDayCount, progressResult.newStreak);
+        // Re-sync the store even when the count did not change (a repeated
+        // completion), so the in-session value matches the profile row.
         if (progressResult.lessonsCompleted) {
             state.setLessonsCompleted(progressResult.lessonsCompleted);
         }

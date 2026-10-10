@@ -103,4 +103,21 @@ describe('saveLessonProgress lesson count', () => {
         expect(result.lessonsCompleted).toBe(1);
         expect(lastMeta().counted_lessons).toEqual(['wouldyourather_a']);
     });
+
+    it('advances past a re-fetched userData object (the store keeps the in-session count)', async () => {
+        const beforeRefetch = { $id: 'user-1', lessons_completed: 0 };
+        await saveLessonProgress('wouldyourather', 'a', beforeRefetch, {
+            updateUserMeta: true, incrementCount: true, completedLessonId: 'a',
+        });
+
+        // The invalidation in syncUserMetaDataMutation replaces state.userData
+        // with a fresh object; the store still carries the in-session count.
+        const afterRefetch = { $id: 'user-1', lessons_completed: 0 };
+        const second = await saveLessonProgress('wouldyourather', 'b', afterRefetch, {
+            updateUserMeta: true, incrementCount: true, completedLessonId: 'b',
+        });
+
+        expect(second.lessonsCompleted).toBe(2);
+        expect(lastMeta().lessons_completed).toBe(2);
+    });
 });
