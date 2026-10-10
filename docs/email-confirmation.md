@@ -1,5 +1,7 @@
 # Non-blocking email confirmation
 
+> **Setup/runbook:** [`email-setup.md`](email-setup.md).
+
 A "click to confirm" welcome email is sent when a user signs up. It is
 **optional**: signup completes and the user is signed in immediately, and the
 confirmation click only records that the address is real so the account is

@@ -1,5 +1,7 @@
 # Supabase auth emails (password reset, email change)
 
+> **Setup/runbook:** [`email-setup.md`](email-setup.md).
+
 Supabase's built-in auth emails (password reset, email change, magic link, …)
 are sent by GoTrue using the project's SMTP sender. Out of the box that is the
 default service — **rate-limited to ~2 emails/hour, best-effort** — and its
