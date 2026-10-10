@@ -6,6 +6,9 @@ import { appStore } from '../../modules/store/store.js';
 import { useAuthStatus, useUserProfile, signOut } from '../../modules/api/api.js';
 import Strings from '../../data/strings.js';
 import { trackEvent } from '../../modules/utils/posthog.js';
+import { loadConfigEntries } from '../../modules/courses/friend-course-configs.js';
+import { listFriendCourses } from '../../modules/courses/friend-courses-logic.js';
+import FriendCoursesView from '../courses/FriendCoursesView.jsx';
 import NotificationsBell from './NotificationsBell.web.jsx';
 import LegalFooter from '../legal/LegalFooter.jsx';
 import headerLogo from '../../assets/img/uff-logo.png';
@@ -24,13 +27,9 @@ export default function HomeScreen() {
     const { data: profile } = useUserProfile();
     const viewerId = profile?.$id;
 
-    const { data: config, isLoading, isError } = useQuery({
-        queryKey: ['config', 'model'],
-        queryFn: async () => {
-            const res = await fetch('/src/config/model.json');
-            if (!res.ok) throw new Error(`Failed to load config: ${res.status}`);
-            return res.json();
-        },
+    const { data: courses, isLoading: coursesLoading, isError: coursesError } = useQuery({
+        queryKey: ['friend-courses'],
+        queryFn: async () => listFriendCourses(await loadConfigEntries()),
         staleTime: Infinity,
     });
 
@@ -90,16 +89,6 @@ export default function HomeScreen() {
         fontSize: '28px',
         cursor: 'pointer',
         padding: '8px',
-    };
-
-    const courseCardStyle = {
-        backgroundColor: '#1a3a5a',
-        borderRadius: '12px',
-        padding: '20px',
-        cursor: 'pointer',
-        marginBottom: '16px',
-        border: '1px solid #2a4a6a',
-        transition: 'transform 0.15s, box-shadow 0.15s',
     };
 
     const bottomBarStyle = {
@@ -185,39 +174,13 @@ export default function HomeScreen() {
                 </div>
             )}
 
-            <div style={{ flex: 1, padding: '24px 16px', overflowY: 'auto' }}>
-                <h2 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '20px' }}>{Strings.get('home_courses', lang)}</h2>
-
-                {isLoading && (
-                    <div style={{ textAlign: 'center', padding: '40px', color: '#6c757d' }}>
-                        <div className="spinner-border" role="status" style={{ width: '3rem', height: '3rem' }}>
-                            <span className="visually-hidden">Loading...</span>
-                        </div>
-                    </div>
-                )}
-
-                {isError && (
-                    <div style={{ padding: '20px', backgroundColor: '#1a3a5a', borderRadius: '12px', color: '#ff6b6b', textAlign: 'center' }}>
-                        <i className="bi bi-exclamation-triangle-fill" style={{ fontSize: '24px', marginBottom: '8px', display: 'block' }}></i>
-                        {Strings.get('home_courses_load_error', lang)}
-                    </div>
-                )}
-
-                {config && (
-                    <div onClick={() => navigate('/course/model/lesson/m-g')}
-                         style={courseCardStyle}
-                         onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 4px 20px rgba(58, 143, 213, 0.3)'; }}
-                         onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = 'none'; }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                            <h3 style={{ fontSize: '20px', fontWeight: 600, margin: 0 }}>{config.courseName || 'Grocery Shopping'}</h3>
-                            <span style={{ background: brandGradient, padding: '4px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: 600 }}>{config.courseLevel || 'A0'}</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#adb5bd', fontSize: '14px' }}>
-                            <i className="bi bi-journal-text"></i>
-                            <span>{config.lessons ? `${config.lessons.length} lessons` : '4 lessons'}</span>
-                        </div>
-                    </div>
-                )}
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+                <FriendCoursesView
+                    lang={lang}
+                    courses={courses}
+                    isLoading={coursesLoading}
+                    isError={coursesError}
+                />
             </div>
 
             {canContinue && (

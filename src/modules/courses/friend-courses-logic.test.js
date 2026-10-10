@@ -94,6 +94,17 @@ describe('listFriendCourses', () => {
         expect(courses.map((c) => c.courseId)).toEqual(['friend', 'friendchain', 'wouldrather', 'wouldyourather']);
     });
 
+    it('lists the Would You Rather course under its own name (not "Friend Challenge")', () => {
+        const courses = listFriendCourses(REAL_ENTRIES);
+        const wouldratherCourse = courses.find((c) => c.courseId === 'wouldrather');
+        expect(wouldratherCourse).toEqual({
+            courseId: 'wouldrather',
+            courseName: 'Would You Rather',
+            lessonCount: 6,
+            firstLessonId: 'a',
+        });
+    });
+
     it('drops the test fixture even though it has shareCta lessons', () => {
         const courses = listFriendCourses(REAL_ENTRIES);
         expect(EXCLUDED_FRIEND_COURSE_IDS).toContain('test');
