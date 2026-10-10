@@ -142,30 +142,37 @@ export function handleSuccessStep(step, fluencyData) {
 
     const currentLesson = state.configData.lessons[state.currentLessonIndex];
     const nextLessonId = currentLesson.nextLessonId;
+    // The lesson that just finished is the one we count. It is NOT necessarily
+    // `nextLessonId`: a terminal lesson (no next) — e.g. every friend-practice
+    // lesson a/b — must still increment the profile's completed count.
+    const completedLessonId = currentLesson.lessonId || step.lessonId;
 
-    if (nextLessonId) {
-        const finalStats = getCompressedLessonStats({
-            isTextMode: state.isTextMode,
-            isCameraOff: state.isCameraOff,
-            lessonStartTime: state.lessonStartTime,
-            averageWpm: state.averageWpm,
-            totalPauses: state.totalPauses,
-            totalHesitations: state.totalHesitations,
-            recognizedIdioms: state.recognizedIdioms,
-            pragmaticFlags: state.pragmaticFlags,
-            interactionLog: state.interactionLog
-        });
+    const finalStats = getCompressedLessonStats({
+        isTextMode: state.isTextMode,
+        isCameraOff: state.isCameraOff,
+        lessonStartTime: state.lessonStartTime,
+        averageWpm: state.averageWpm,
+        totalPauses: state.totalPauses,
+        totalHesitations: state.totalHesitations,
+        recognizedIdioms: state.recognizedIdioms,
+        pragmaticFlags: state.pragmaticFlags,
+        interactionLog: state.interactionLog
+    });
 
-        saveLessonProgress(state.courseId, nextLessonId, state.userData, {
-            updateUserMeta: true,
-            incrementCount: true,
-            lessonStats: finalStats,
-            currentLessonId: step.lessonId
-        }).then(progressResult => {
-            state.setActivityMetrics(progressResult.newDayCount, progressResult.newStreak);
-            if (progressResult.lessonsCompleted) {
-                state.setLessonsCompleted(progressResult.lessonsCompleted);
-            }
-        });
-    };
+    // Always persist the completion — with or without a next lesson — so the
+    // count advances on every completed lesson. The resume target stays the next
+    // lesson when there is one, else the lesson just completed. Idempotency (no
+    // double count on reload/retry) is enforced in saveLessonProgress.
+    saveLessonProgress(state.courseId, nextLessonId || completedLessonId, state.userData, {
+        updateUserMeta: true,
+        incrementCount: true,
+        completedLessonId,
+        lessonStats: finalStats,
+        currentLessonId: completedLessonId
+    }).then(progressResult => {
+        state.setActivityMetrics(progressResult.newDayCount, progressResult.newStreak);
+        if (progressResult.lessonsCompleted) {
+            state.setLessonsCompleted(progressResult.lessonsCompleted);
+        }
+    });
 }

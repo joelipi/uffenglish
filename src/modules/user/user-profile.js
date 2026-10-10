@@ -2,6 +2,7 @@
 // IMPORTANT! THIS SCRIPT USES VERSION 24 OF THE APPWRITE SDK, WHICH HAS MANY BREAKING CHANGES FROM EARLIER VERSIONS. DO NOT USE THE SYNTAX OR METHODS OF EARLIER VERSIONS WITHOUT CHECKING THEY ARE STILL VALID IN VERSION 24.
 import { syncUserMetaDataMutation, getCurrentUser } from '../api/api.js';
 import { appStore } from '../store/store.js';
+import { nextLessonCompletion } from './lesson-count-logic.js';
 
 /**
  * Syncs metadata to Appwrite. 
@@ -133,30 +134,55 @@ export async function saveLessonProgress(courseId, lessonId, userData, options =
 
             if (userData.lesson_scores) metaToUpdate.lesson_scores = userData.lesson_scores;
 
-            // Increment lessons completed count
-            const currentLessons = Number(userData.lessons_completed || 0);
-            const newLessons = currentLessons + 1;
-            metaToUpdate.lessons_completed = newLessons;
-            resultState.lessonsCompleted = newLessons;
-            console.log(`[Gamification] Lesson completed. Total lessons: ${newLessons}`);
+            // Increment lessons completed (idempotent per lesson) and update the
+            // fluency running average, but only for a real completion
+            // (`incrementCount`). The counted lesson is the COMPLETED lesson —
+            // NOT the next-lesson target — so a lesson with no `nextLessonId`
+            // (every friend-practice lesson, e.g. wouldyourather a/b) still
+            // counts, and re-reaching the same success screen never double-counts.
+            const completedLessonId = safeOptions.completedLessonId || safeOptions.currentLessonId || null;
+            if (safeOptions.incrementCount === true && completedLessonId) {
+                const baselineCounted = [
+                    ...(Array.isArray(userData.counted_lessons) ? userData.counted_lessons : []),
+                    ...(Array.isArray(appStore.getState().countedLessons) ? appStore.getState().countedLessons : []),
+                ];
+                const completion = nextLessonCompletion({
+                    courseId,
+                    lessonId: completedLessonId,
+                    // The store seeds from the profile and is updated in-session,
+                    // so it catches a stale `userData` between two completions.
+                    lessonsCompleted: Math.max(
+                        Number(userData.lessons_completed || 0),
+                        Number(appStore.getState().lessonsCompleted || 0)
+                    ),
+                    countedLessons: baselineCounted,
+                });
+                resultState.lessonsCompleted = completion.lessonsCompleted;
 
-            // Fluency running averages (exclude repeats)
-            let counted = Array.isArray(userData.counted_lessons) ? [...userData.counted_lessons] : [];
-            const lessonKey = `${courseId}_${lessonId}`;
-            if (!counted.includes(lessonKey)) {
-                counted.push(lessonKey);
-                metaToUpdate.counted_lessons = counted;
-                const currentSum = Number(userData.total_fluency_sum || 0);
-                const lessonAvg = safeOptions.lessonAverage || 0;
-                const newSum = currentSum + lessonAvg;
-                metaToUpdate.total_fluency_sum = newSum;
-                let recent = Array.isArray(userData.recent_fluency_avgs) ? [...userData.recent_fluency_avgs] : [];
-                recent.push(lessonAvg);
-                if (recent.length > 10) recent.shift();
-                metaToUpdate.recent_fluency_avgs = recent;
-                console.log(`[Gamification] Fluency avg updated. Sum: ${newSum}, Recent count: ${recent.length}`);
-            } else {
-                console.log(`[Gamification] Repeat lesson ${lessonKey} ignored for fluency avg`);
+                if (completion.changed) {
+                    metaToUpdate.lessons_completed = completion.lessonsCompleted;
+                    metaToUpdate.counted_lessons = completion.countedLessons;
+                    // Keep the in-session baseline in sync so the next completion
+                    // increments instead of re-writing the same number.
+                    userData.lessons_completed = completion.lessonsCompleted;
+                    userData.counted_lessons = completion.countedLessons;
+                    appStore.getState().setLessonsCompleted(completion.lessonsCompleted);
+                    appStore.getState().setCountedLessons(completion.countedLessons);
+                    console.log(`[Gamification] Lesson completed. Total lessons: ${completion.lessonsCompleted}`);
+
+                    // Fluency running averages (first completion of each lesson).
+                    const currentSum = Number(userData.total_fluency_sum || 0);
+                    const lessonAvg = safeOptions.lessonAverage || 0;
+                    const newSum = currentSum + lessonAvg;
+                    metaToUpdate.total_fluency_sum = newSum;
+                    const recent = Array.isArray(userData.recent_fluency_avgs) ? [...userData.recent_fluency_avgs] : [];
+                    recent.push(lessonAvg);
+                    if (recent.length > 10) recent.shift();
+                    metaToUpdate.recent_fluency_avgs = recent;
+                    console.log(`[Gamification] Fluency avg updated. Sum: ${newSum}, Recent count: ${recent.length}`);
+                } else {
+                    console.log(`[Gamification] Repeat completion of ${completion.key} ignored for lesson count`);
+                }
             }
 
             await syncUserMetaData(metaToUpdate, userData);
