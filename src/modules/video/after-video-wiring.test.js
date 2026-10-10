@@ -257,6 +257,18 @@ describe('SuccessButtons tail wiring (SuccessButtons.jsx)', () => {
         expect(buttonsRaw).toContain('bi bi-share-fill');
     });
 
+    it('names the delivered file like the R2 concatenated object', () => {
+        const handler = sliceBetween(
+            buttonsRaw,
+            'shareHandlerRef.current = async () => {',
+            'if (publishSegments) {'
+        );
+        expect(handler).toContain('buildShareFilename({');
+        expect(handler).toContain('shareCode: shareUserData?.shareCode');
+        expect(handler).toContain('courseId: shareCourseId');
+        expect(handler).not.toContain('generateVideoFilename(lessonId)');
+    });
+
     it('routes desktop delivery through the anchor download with deferred revoke', () => {
         const raw = readFileSync(path.join(ROOT, 'src/modules/video/video-share.web.js'), 'utf8');
         expect(raw).toContain('export async function ensureMp4Blob(');

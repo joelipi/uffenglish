@@ -113,6 +113,8 @@ UI wiring (components stay render-only; all rules above come from the modules):
   - → `#createVideoButton` carries `bi-download` (mobile keeps `bi-share-fill`); the localized Share label is unchanged (Playwright asserts the desktop icon class; guard asserts both icon tokens and the `getDeviceShareTarget() === SHARE_TARGET_DOWNLOAD` gate)
 - Share tapped twice in rapid succession (either target)
   - → second tap ignored while the first is in flight (`sharingRef` synchronous guard + `disabled={sharing}` spinner; guard asserts guard-set precedes the swap call and `setSharing(false)` resets in `finally`)
+- Delivered filename (sheet file and download alike)
+  - → `<shareCode>-<courseId>-<lessonId>-complete.mp4`, the R2 concatenated-object basename (`buildShareFilename` in `success-lesson-logic.js`; timestamped `uff-<lessonId>-<ts>.<ext>` fallback when any key part is missing; unit asserts both plus the always-mp4 R2 name; guard asserts the handler uses `buildShareFilename` and no longer builds the share name from `generateVideoFilename`)
 - Sheet dismissed by the user (native target)
   - → benign info log, button resets, no error (guard asserts the `AbortError` branch; pre-existing error log for real failures unchanged)
 - New/changed files: `share-target-logic.js` (+`share-target-logic.test.js`, injected-UA fixtures per OS), `video-share.web.js` (`ensureMp4Blob` extracted verbatim from `shareVideo`, `downloadVideoBlob`, `deliverVideo`), `SuccessButtons.jsx` (target-resolved `deliverVideo`, download icon), `video-share-download.test.js`, wiring-guard additions, Playwright icon assertion

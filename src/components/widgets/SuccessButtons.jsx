@@ -133,9 +133,18 @@ export function VideoButton({ canvasRef }) {
         setContinueVisible(true);
 
         shareHandlerRef.current = async () => {
-          const { generateVideoFilename } = await import('../../modules/lesson/success-lesson-logic.js');
+          const { buildShareFilename } = await import('../../modules/lesson/success-lesson-logic.js');
+          const { userData: shareUserData, courseId: shareCourseId } = appStore.getState();
+          // Same identity as the R2 concatenated object
+          // (<shareCode>-<courseId>-<lessonId>-complete.mp4) so the file on
+          // the learner's device matches what was published.
+          const filename = buildShareFilename({
+            shareCode: shareUserData?.shareCode,
+            courseId: shareCourseId,
+            lessonId,
+            fileExtension: result.ext || 'webm',
+          });
           const { deliverVideo } = await import('../../modules/video/video-share.js');
-          const filename = `${generateVideoFilename(lessonId)}.${result.ext || 'webm'}`;
           // Desktop OSes get a file download (native sheets are unreliable
           // there); mobile keeps the native sheet. Resolved live at tap time.
           await deliverVideo({
