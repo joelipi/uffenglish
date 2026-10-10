@@ -6,19 +6,33 @@ vi.mock('../user/user-profile.js', () => ({
     saveLessonProgress: vi.fn(async () => ({ newDayCount: 0, newStreak: 0, lessonsCompleted: 0 })),
 }));
 
+// The friend-credit side effects (RPC + pending queue) are asserted through
+// spies; their own behavior is covered in friend-credit-sync.test.js.
+vi.mock('../user/friend-credit-sync.js', () => ({
+    stashPendingFriendCredit: vi.fn(),
+}));
+
+vi.mock('../api/api.js', () => ({
+    recordFriendCompletion: vi.fn(async () => ({ recorded: true })),
+}));
+
 import { saveLessonProgress } from '../user/user-profile.js';
+import { stashPendingFriendCredit } from '../user/friend-credit-sync.js';
+import { recordFriendCompletion } from '../api/api.js';
 import { appStore } from '../store/store.js';
 import { handleSuccessStep } from './step-loader-logic.js';
 
 const showFeedbackAndProceed = vi.fn();
 
-function seed(lessons, currentLessonIndex, { fromRestore = false } = {}) {
+function seed(lessons, currentLessonIndex, { fromRestore = false, friendCode = null, userData = null, isLoggedIn = false } = {}) {
     appStore.setState({
         configData: { lessons },
         currentLessonIndex,
         currentStepIndex: lessons[currentLessonIndex].steps.length - 1,
         courseId: 'wouldyourather',
-        userData: { $id: 'user-1' },
+        userData: userData || { $id: 'user-1' },
+        isLoggedIn,
+        friendCode,
         stepLoadedFromRestore: fromRestore,
         recentFluencyAvgs: [],
         interactionLog: [],
@@ -43,6 +57,9 @@ function makeLesson(lessonId, nextLessonId) {
     return {
         lessonId,
         nextLessonId: nextLessonId || null,
+        // shareCta chain shape so the friend-credit tests can use these
+        // lessons as answer-side completions.
+        recapOverlay: 'shareCta',
         steps: [
             { responseType: 'lessonIntro', step: 'intro' },
             { responseType: 'friendClosedResponse', step: 'q1' },
@@ -60,6 +77,8 @@ function completeLesson() {
 describe('handleSuccessStep persists the completed lesson', () => {
     beforeEach(() => {
         saveLessonProgress.mockClear();
+        stashPendingFriendCredit.mockClear();
+        recordFriendCompletion.mockClear();
         showFeedbackAndProceed.mockClear();
     });
 
@@ -135,5 +154,90 @@ describe('handleSuccessStep persists the completed lesson', () => {
         expect(saveLessonProgress).toHaveBeenCalledTimes(2);
         expect(saveLessonProgress.mock.calls.every((c) => c[3].incrementCount === true)).toBe(true);
         expect(saveLessonProgress.mock.calls.map((c) => c[3].completedLessonId)).toEqual(['a', 'a']);
+    });
+});
+
+describe('handleSuccessStep credits the share-link owner', () => {
+    beforeEach(() => {
+        saveLessonProgress.mockClear();
+        stashPendingFriendCredit.mockClear();
+        recordFriendCompletion.mockClear();
+    });
+
+    // Answer side = lesson b of a shareCta chain, opened via ?shareCode=ab12.
+    const answerSide = () => {
+        seed([makeLesson('a', null), makeLesson('b', null)], 1, { friendCode: 'ab12' });
+    };
+
+    it('records immediately for an authenticated friend completion', () => {
+        answerSide();
+        appStore.setState({
+            isLoggedIn: true,
+            userData: { $id: 'user-1', auth_method: 'supabase', shareCode: 'xy34' },
+        });
+
+        completeLesson();
+
+        expect(recordFriendCompletion).toHaveBeenCalledTimes(1);
+        expect(recordFriendCompletion).toHaveBeenCalledWith({
+            ownerShareCode: 'ab12',
+            courseId: 'wouldyourather',
+            lessonId: 'b',
+        });
+        expect(stashPendingFriendCredit).not.toHaveBeenCalled();
+    });
+
+    it('stashes a pending credit for a guest (no user id yet)', () => {
+        answerSide();
+
+        completeLesson();
+
+        expect(recordFriendCompletion).not.toHaveBeenCalled();
+        expect(stashPendingFriendCredit).toHaveBeenCalledTimes(1);
+        expect(stashPendingFriendCredit).toHaveBeenCalledWith({
+            ownerShareCode: 'ab12',
+            courseId: 'wouldyourather',
+            lessonId: 'b',
+        });
+    });
+
+    it('credits nothing on a restore landing (reload / redirect)', () => {
+        seed([makeLesson('a', null), makeLesson('b', null)], 1, { friendCode: 'ab12', fromRestore: true });
+
+        completeLesson();
+
+        expect(recordFriendCompletion).not.toHaveBeenCalled();
+        expect(stashPendingFriendCredit).not.toHaveBeenCalled();
+    });
+
+    it('credits nothing without an owner share code', () => {
+        seed([makeLesson('a', null), makeLesson('b', null)], 1);
+
+        completeLesson();
+
+        expect(recordFriendCompletion).not.toHaveBeenCalled();
+        expect(stashPendingFriendCredit).not.toHaveBeenCalled();
+    });
+
+    it('credits nothing for the prompt lesson (no owner clips played)', () => {
+        seed([makeLesson('a', null), makeLesson('b', null)], 0, { friendCode: 'ab12' });
+
+        completeLesson();
+
+        expect(recordFriendCompletion).not.toHaveBeenCalled();
+        expect(stashPendingFriendCredit).not.toHaveBeenCalled();
+    });
+
+    it('credits nothing for self-completion', () => {
+        answerSide();
+        appStore.setState({
+            isLoggedIn: true,
+            userData: { $id: 'user-1', auth_method: 'supabase', shareCode: 'ab12' },
+        });
+
+        completeLesson();
+
+        expect(recordFriendCompletion).not.toHaveBeenCalled();
+        expect(stashPendingFriendCredit).not.toHaveBeenCalled();
     });
 });

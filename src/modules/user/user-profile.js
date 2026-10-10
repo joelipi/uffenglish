@@ -122,12 +122,18 @@ export async function saveLessonProgress(courseId, lessonId, userData, options =
             if (!dateLedger.includes(localToday)) {
                 const newDateLedger = [...dateLedger, localToday];
                 metaToUpdate.completed_dates = newDateLedger;
+                // Keep the in-session object in sync (like lessons_completed
+                // below): without this every same-session save rebuilds from
+                // the stale base, which drops earlier days on a midnight
+                // crossing and miscomputes the day count.
+                userData.completed_dates = newDateLedger;
                 resultState.streakUpdated = true;
                 resultState.dayCountIncremented = true;
                 resultState.newDayCount = newDateLedger.length;
                 resultState.newStreak = calculateCurrentStreak(newDateLedger);
             } else {
                 // Day already counted — return current values without incrementing
+                userData.completed_dates = dateLedger;
                 resultState.newDayCount = dateLedger.length;
                 resultState.newStreak = calculateCurrentStreak(dateLedger);
             }

@@ -6,9 +6,10 @@ import { createRoot } from 'react-dom/client';
 import { act } from 'react';
 
 // Tracks every insert, tagged with the table it targeted.
-const { insertCalls, setQueryDataSpy } = vi.hoisted(() => ({
+const { insertCalls, setQueryDataSpy, recordFriendCompletionSpy } = vi.hoisted(() => ({
     insertCalls: [],
     setQueryDataSpy: vi.fn(),
+    recordFriendCompletionSpy: vi.fn(async () => ({ recorded: true })),
 }));
 
 vi.mock('../../modules/api/supabase.js', () => ({
@@ -32,6 +33,7 @@ vi.mock('../../modules/api/supabase.js', () => ({
 vi.mock('../../modules/api/api.js', () => ({
     queryClient: { setQueryData: setQueryDataSpy, invalidateQueries: vi.fn() },
     fetchGeoInfo: vi.fn(async () => ({ ip: '1.2.3.4' })),
+    recordFriendCompletion: (...args) => recordFriendCompletionSpy(...args),
 }));
 
 vi.mock('../../modules/user/email-confirmation.js', () => ({
@@ -88,6 +90,8 @@ let container;
 beforeEach(() => {
     insertCalls.length = 0;
     setQueryDataSpy.mockClear();
+    recordFriendCompletionSpy.mockClear();
+    appStore.setState({ pendingFriendCredits: [] });
     container = document.createElement('div');
     document.body.appendChild(container);
     host = createRoot(container);
@@ -109,10 +113,17 @@ describe('signup credits the lesson a guest just completed', () => {
         expect(row.id).toBe('new-user-1');
         expect(row.lessons_completed).toBe(1);
         expect(row.counted_lessons).toEqual(['wouldyourather_a']);
+        // The completion day counts too: streak starts at 1, not 0.
+        const today = new Date().toLocaleDateString('en-CA');
+        expect(row.completed_dates).toEqual([today]);
         // The client-side profile mirrors the row.
         const profile = setQueryDataSpy.mock.calls.at(-1)[1];
         expect(profile.lessons_completed).toBe(1);
         expect(profile.counted_lessons).toEqual(['wouldyourather_a']);
+        expect(profile.completed_dates).toEqual([today]);
+        // ...and the store activity metrics start the streak.
+        expect(appStore.getState().dayCount).toBe(1);
+        expect(appStore.getState().currentStreak).toBe(1);
     });
 
     it('credits the exact lesson on the success screen, keyed by courseId', async () => {
@@ -135,6 +146,7 @@ describe('signup credits the lesson a guest just completed', () => {
         const row = insertedRow();
         expect('lessons_completed' in row).toBe(false);
         expect('counted_lessons' in row).toBe(false);
+        expect(row.completed_dates).toEqual([]);
         const profile = setQueryDataSpy.mock.calls.at(-1)[1];
         expect('lessons_completed' in profile).toBe(false);
     });
@@ -179,5 +191,37 @@ describe('signup credits the lesson a guest just completed', () => {
         });
         expect(next.lessonsCompleted).toBe(2);
         expect(next.countedLessons).toEqual(['wouldyourather_b', 'wouldyourather_c']);
+    });
+
+    it('flushes stashed friend credits to the owner on signup (deferred guest credit)', async () => {
+        appStore.setState({
+            courseId: 'wouldyourather',
+            successLessonId: 'b',
+            pendingFriendCredits: [
+                { ownerShareCode: 'ab12', courseId: 'friendchain', lessonId: 'b' },
+                { ownerShareCode: 'ab12', courseId: 'friendchain', lessonId: 'c' },
+            ],
+        });
+        insertCalls.length = 0;
+
+        await submitSignup();
+
+        expect(recordFriendCompletionSpy).toHaveBeenCalledTimes(2);
+        expect(recordFriendCompletionSpy).toHaveBeenCalledWith({
+            ownerShareCode: 'ab12', courseId: 'friendchain', lessonId: 'b',
+        });
+        expect(recordFriendCompletionSpy).toHaveBeenCalledWith({
+            ownerShareCode: 'ab12', courseId: 'friendchain', lessonId: 'c',
+        });
+        expect(appStore.getState().pendingFriendCredits).toEqual([]);
+    });
+
+    it('does not call the credit RPC when nothing is stashed', async () => {
+        appStore.setState({ courseId: 'wouldyourather', successLessonId: 'a' });
+        insertCalls.length = 0;
+
+        await submitSignup();
+
+        expect(recordFriendCompletionSpy).not.toHaveBeenCalled();
     });
 });

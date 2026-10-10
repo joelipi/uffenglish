@@ -6,8 +6,15 @@ vi.mock('../api/api.js', () => ({
 }));
 
 import { syncUserMetaDataMutation } from '../api/api.js';
-import { saveLessonProgress } from './user-profile.js';
+import { saveLessonProgress, calculateCurrentStreak } from './user-profile.js';
 import { appStore } from '../store/store.js';
+
+const todayStr = () => new Date().toLocaleDateString('en-CA');
+const daysAgoStr = (n) => {
+    const d = new Date();
+    d.setDate(d.getDate() - n);
+    return d.toLocaleDateString('en-CA');
+};
 
 function lastMeta() {
     const calls = syncUserMetaDataMutation.mock.calls;
@@ -123,5 +130,71 @@ describe('saveLessonProgress lesson count', () => {
 
         expect(second.lessonsCompleted).toBe(2);
         expect(lastMeta().lessons_completed).toBe(2);
+    });
+
+    it('appends today to the date ledger once per day, never duplicating', async () => {
+        const userData = { $id: 'user-1', lessons_completed: 0, completed_dates: [] };
+
+        const first = await saveLessonProgress('wouldyourather', 'a', userData, {
+            updateUserMeta: true, incrementCount: true, completedLessonId: 'a',
+        });
+        const second = await saveLessonProgress('wouldyourather', 'b', userData, {
+            updateUserMeta: true, incrementCount: true, completedLessonId: 'b',
+        });
+
+        expect(first.newDayCount).toBe(1);
+        expect(first.dayCountIncremented).toBe(true);
+        expect(second.dayCountIncremented).toBe(false);
+        expect(second.newDayCount).toBe(1);
+        // First save writes the day; the second same-day save sends no date
+        // payload at all (no rewrite, no duplicate).
+        expect(syncUserMetaDataMutation.mock.calls[0][0].completed_dates).toEqual([todayStr()]);
+        expect('completed_dates' in lastMeta()).toBe(false);
+        // The in-session object stays in sync so a later save in the same
+        // session baselines off the written ledger, not a stale empty one.
+        expect(userData.completed_dates).toEqual([todayStr()]);
+    });
+
+    it('extends an existing ledger without rewriting history', async () => {
+        const userData = { $id: 'user-1', lessons_completed: 4, completed_dates: [daysAgoStr(1)] };
+
+        const result = await saveLessonProgress('wouldyourather', 'a', userData, {
+            updateUserMeta: true, incrementCount: true, completedLessonId: 'a',
+        });
+
+        expect(result.newDayCount).toBe(2);
+        expect(result.newStreak).toBe(2);
+        expect(lastMeta().completed_dates).toEqual([daysAgoStr(1), todayStr()]);
+    });
+});
+
+describe('calculateCurrentStreak', () => {
+    it('returns 0 for empty, missing, or non-array ledgers', () => {
+        expect(calculateCurrentStreak([])).toBe(0);
+        expect(calculateCurrentStreak(null)).toBe(0);
+        expect(calculateCurrentStreak(undefined)).toBe(0);
+        expect(calculateCurrentStreak('2026-01-01')).toBe(0);
+    });
+
+    it('returns 1 for today alone (first day, streak starts, never stuck at 0)', () => {
+        expect(calculateCurrentStreak([todayStr()])).toBe(1);
+    });
+
+    it('counts consecutive days ending today', () => {
+        expect(calculateCurrentStreak([daysAgoStr(2), daysAgoStr(1), todayStr()])).toBe(3);
+    });
+
+    it('counts a streak ending yesterday (today not done yet)', () => {
+        expect(calculateCurrentStreak([daysAgoStr(1)]).valueOf()).toBe(1);
+        expect(calculateCurrentStreak([daysAgoStr(2), daysAgoStr(1)])).toBe(2);
+    });
+
+    it('returns 0 when neither today nor yesterday is present (streak broken)', () => {
+        expect(calculateCurrentStreak([daysAgoStr(2)])).toBe(0);
+        expect(calculateCurrentStreak([daysAgoStr(5), daysAgoStr(4)])).toBe(0);
+    });
+
+    it('stops at the gap (today plus a non-consecutive older day)', () => {
+        expect(calculateCurrentStreak([daysAgoStr(3), todayStr()])).toBe(1);
     });
 });
