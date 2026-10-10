@@ -179,7 +179,10 @@ describe('StepLoader, strings and styles', () => {
         const css = read('src/assets/css/app.css');
         const overlay = cssBlock(css, '.ivp-overlay.ivp-overlay-branch {');
         expect(overlay).toMatch(/align-items:\s*flex-start/);
-        expect(overlay).toMatch(/padding-top:\s*15vh/);
+        // 24vh clears the blurred video-header band (the top ~18.5% of the
+        // frame — see .video-header-blur); the choice buttons never rise higher
+        // than 60% from the bottom, so the headline has room between the two.
+        expect(overlay).toMatch(/padding-top:\s*24vh/);
         expect(overlay).toMatch(/padding-bottom:\s*45vh/);
         // The content is clamped so a long headline/translation cannot spill
         // into the reserved bottom band.

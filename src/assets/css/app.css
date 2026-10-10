@@ -1030,11 +1030,14 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     animation: riseThroughWater 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
     z-index: 1;
 }
-/* Branching overlay: the "Choose how you will respond." headline sits high so
-   the stacked choice buttons in the bottom band can never overlap it. */
+/* Branching overlay: the "Choose how you will respond." headline sits below
+   the blurred header band (the top ~18.5% of the frame — see .video-header-blur)
+   and above the stacked choice buttons in the bottom band, which the layout
+   keeps within the bottom 40% (60% from the bottom) and so never reach the
+   headline's new home. */
 .ivp-overlay.ivp-overlay-branch {
     align-items: flex-start;
-    padding-top: 15vh;
+    padding-top: 24vh;
     padding-bottom: 45vh;
 }
 .ivp-overlay.ivp-overlay-branch .ivp-overlay-content {
