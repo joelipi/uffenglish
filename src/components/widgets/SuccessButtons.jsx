@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { trackEvent } from '../../modules/utils/posthog.js';
@@ -70,6 +70,12 @@ export function VideoButton({ canvasRef }) {
   const friendResponseMutation = useRecordFriendResponseMutation();
   const pendingVideoCreation = useStore(appStore, state => state.pendingVideoCreation);
   const saveClipsModalOpen = useStore(appStore, state => state.saveClipsModalOpen);
+  // True while a share sheet flow is in flight (transcode + navigator.share).
+  // Disables the Share button with a spinner so rapid taps can neither stack
+  // silent transcodes nor fire a concurrent share() (platform rejects those
+  // with "Share failed"). sharingRef mirrors it for the synchronous guard.
+  const [sharing, setSharing] = useState(false);
+  const sharingRef = useRef(false);
   // Caller-owned AudioContext for the render + display-only after-video tail.
   // Created synchronously inside the "make my video" tap (a real user
   // gesture) so the context runs without autoplay restrictions; handed to
@@ -241,7 +247,16 @@ export function VideoButton({ canvasRef }) {
     runProcessing({ publishSegments: isUserLoggedIn() });
   }, [pendingVideoCreation, saveClipsModalOpen, runProcessing, setVideoState, setCanvasVisible]);
 
-  const handleShare = () => {
+  const handleShare = async () => {
+    // A second navigator.share() while one is pending is rejected by the
+    // platform ("Share failed"), and rapid taps would stack silent
+    // transcodes behind an unresponsive button. Ignore taps while a share
+    // is in flight. The ref (not state) guards the synchronous double-tap
+    // before React re-renders; state drives the disabled spinner below.
+    if (sharingRef.current) return;
+    sharingRef.current = true;
+    setSharing(true);
+    try {
     // Swap the display-only loop to the post-share video first: this tap is
     // a fresh user gesture, so the swap's play() is allowed. The swap is a
     // safe no-op when no loop is running (blob fallback path). The share
@@ -256,7 +271,11 @@ export function VideoButton({ canvasRef }) {
       }
     }).catch(() => {});
     if (shareHandlerRef.current) {
-      shareHandlerRef.current();
+      await shareHandlerRef.current();
+    }
+    } finally {
+      sharingRef.current = false;
+      setSharing(false);
     }
   };
 
@@ -309,9 +328,10 @@ export function VideoButton({ canvasRef }) {
           id="createVideoButton"
           className="btn call-btn"
           onClick={handleShare}
+          disabled={sharing}
           aria-label="Share"
         >
-          <i className="bi bi-share-fill" />
+          {sharing ? <span className="spinner-border spinner-border-sm" /> : <i className="bi bi-share-fill" />}
         </button>
       </div>
     );

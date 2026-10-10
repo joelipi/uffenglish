@@ -31,6 +31,7 @@ export async function shareVideo(blob, filename, fileExtension) {
             console.warn('[VideoShare] No blob provided');
             return;
         }
+        console.log('[VideoShare] starting share:', { ext: fileExtension, bytes: blob.size, name: filename });
 
         let mp4Blob = blob;
         let mp4Name = filename;
@@ -66,11 +67,22 @@ export async function shareVideo(blob, filename, fileExtension) {
 
         const mp4File = new File([mp4Blob], mp4Name, { type: 'video/mp4' });
         if (navigator.canShare && navigator.canShare({ files: [mp4File] })) {
-            await navigator.share({
-                title: Strings.get('share_title'),
-                text: buildShareMessage(),
-                files: [mp4File]
-            });
+            try {
+                await navigator.share({
+                    title: Strings.get('share_title'),
+                    text: buildShareMessage(),
+                    files: [mp4File]
+                });
+                console.log('[VideoShare] share completed');
+            } catch (e) {
+                // Dismissing the sheet is normal user behavior — not an
+                // error and never fatal. Anything else still throws below.
+                if (e?.name === 'AbortError') {
+                    console.log('[VideoShare] share dismissed by user');
+                    return;
+                }
+                throw e;
+            }
         } else {
             console.warn('[VideoShare] navigator.share not available.');
         }

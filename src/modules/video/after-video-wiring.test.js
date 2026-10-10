@@ -182,7 +182,7 @@ describe('SuccessButtons tail wiring (SuccessButtons.jsx)', () => {
     );
     const handleShare = sliceBetween(
         buttonsRaw,
-        'const handleShare = () => {',
+        'const handleShare = async () => {',
         "if (button.state === 'idle') {"
     );
 
@@ -210,6 +210,29 @@ describe('SuccessButtons tail wiring (SuccessButtons.jsx)', () => {
         expect(handleShare).toContain('shareHandlerRef.current()');
         expect(handleShare.indexOf('swapAfterVideoLoop(AFTER_SHARE_BASE'))
             .toBeLessThan(handleShare.indexOf('shareHandlerRef.current()'));
+    });
+
+    it('ignores re-taps while a share is in flight and always resets', () => {
+        // A concurrent navigator.share() is rejected by the platform, and
+        // stacked taps pile silent transcodes behind a dead-looking button.
+        expect(handleShare).toContain('if (sharingRef.current) return;');
+        expect(handleShare.indexOf('sharingRef.current = true;'))
+            .toBeLessThan(handleShare.indexOf('swapAfterVideoLoop(AFTER_SHARE_BASE'));
+        expect(handleShare).toContain('await shareHandlerRef.current();');
+        expect(handleShare).toContain('setSharing(false);');
+    });
+
+    it('disables the Share button with a spinner while sharing', () => {
+        expect(buttonsRaw).toContain('const [sharing, setSharing] = useState(false);');
+        expect(buttonsRaw).toContain('disabled={sharing}');
+    });
+
+    it('treats sheet dismissal as benign, keeping real share errors fatal', () => {
+        const raw = readFileSync(path.join(ROOT, 'src/modules/video/video-share.web.js'), 'utf8');
+        expect(raw).toContain("console.log('[VideoShare] starting share:'");
+        expect(raw).toContain("if (e?.name === 'AbortError') {");
+        expect(raw).toContain("console.log('[VideoShare] share dismissed by user');");
+        expect(raw).toContain("console.log('[VideoShare] share completed');");
     });
 
     it('releases the caller-owned context on unmount', () => {
