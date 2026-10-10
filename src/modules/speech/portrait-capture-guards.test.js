@@ -80,5 +80,9 @@ describe('portrait capture (9:16)', () => {
         const body = functionBody(WEB, 'export function stopSpeechCamRecording(');
         expect(body).not.toBe('');
         expect(body).toMatch(/if \(!keepStreamAlive \|\| isAndroid\) safelyStopStream\(\)/);
+        // Presence is not containment: releaseStream must actually be CALLED on
+        // both stop paths, not merely defined.
+        expect((body.match(/releaseStream\(\);/g) || []).length).toBeGreaterThanOrEqual(2);
+        expect(body).toMatch(/releaseStream\(\);\s*\n\s*resolve\(blobToReturn\)/);
     });
 });

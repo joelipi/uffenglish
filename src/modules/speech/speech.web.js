@@ -54,6 +54,8 @@ function getMediaConstraints() {
         video: {
             // The composite (createPortraitCaptureStream) guarantees the 9:16
             // framing, so the camera is asked for a plain 16:9 source to crop.
+            // Windows webcams report landscape regardless, so Windows still asks
+            // for 9:16 directly (the composite crops either way).
             aspectRatio: { ideal: 16 / 9 },
             facingMode: "user",
             ...(isWindows && { aspectRatio: { ideal: 9 / 16 } })
