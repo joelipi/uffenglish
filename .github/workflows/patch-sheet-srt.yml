@@ -1,0 +1,38 @@
+name: Patch Master Sheet SRT
+
+# One-off tool: write the `srt` column of a committed, step-keyed CSV into the
+# operator's master sheet, reusing scripts/write-srt-to-sheet.mjs (the same
+# writer sync-srt.yml uses). Unlike sync-srt.yml it does not download
+# video_data.csv from R2, so it can correct a hand-authored `srt` cell (e.g. the
+# wouldyourather `intro` rows) that the pipeline never renders. The sheet -- not
+# the repo -- is the output, so there is no commit step.
+on:
+  workflow_dispatch:
+    inputs:
+      csv_path:
+        description: Repo-relative CSV whose step-keyed `srt` cells are written to the master sheet
+        type: string
+        default: docs/video-pipeline/intro-srt-fix.csv
+
+permissions:
+  contents: read
+
+# Shares sync-srt's group: this mutates the same shared remote sheet.
+concurrency:
+  group: sync-srt
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - run: npm ci
+      - name: Write srt into the master sheet
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+          GOOGLE_SHEET_ID: ${{ vars.GOOGLE_SHEET_ID || secrets.GOOGLE_SHEET_ID }}
+        run: node scripts/write-srt-to-sheet.mjs --csv="${{ inputs.csv_path }}"
