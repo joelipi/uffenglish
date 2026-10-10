@@ -102,6 +102,22 @@ UI wiring (components stay render-only; all rules above come from the modules):
 - New Playwright spec `tests/after-video-loop.spec.js` drives store state directly (no R2 dependency: `page.route` stubs `**/assets/videos/aftersuccess*` and `**/aftershare*` with 404 for the fallback case; visibility/toggle cases set `afterVideoActive` via `setAfterVideoActive` and assert DOM)
   - → `npx playwright test tests/after-video-loop.spec.js` passes on bundled Chromium (all assertions are media-free); console-error listener reports no new errors. Real audible playback stays a manual device check (Notes) — bundled Chromium lacks H.264, so any future media-bearing case must run real Chrome (`channel: 'chrome'`).
 
+### Task 4 - Desktop download delivery (Windows/Mac/Chromebook/Linux)
+
+- Context: the Web Share spec rejects with an identical `AbortError` both when the user cancels and when no share targets are available, so a silent rejection can mean the sheet never appeared — exactly the Windows report (spinner, no sheet, "dismissed" log with no dismissal). Desktop OS implementations are unreliable (Windows flaky/absent targets; Edge and Firefox desktop lack file sharing); mobile sheets are reliable.
+- Any iOS (incl. iPadOS MacIntel+touch) or Android UA + share tapped
+  - → native sheet path unchanged (`deliverVideo` → `shareVideo`; unit asserts `navigator.share` untouched on the download branch and the sheet used on native)
+- Any Windows/Mac/Chromebook/Linux UA (incl. touchscreen laptops) + share tapped
+  - → mp4-ensured blob saved via transient anchor download (`downloadVideoBlob`: object URL → `link.download = name` → click → sync remove → deferred revoke; unit asserts attr/click/removal/revoke order with fake timers)
+- Any desktop UA + ready screen rendered
+  - → `#createVideoButton` carries `bi-download` (mobile keeps `bi-share-fill`); the localized Share label is unchanged (Playwright asserts the desktop icon class; guard asserts both icon tokens and the `getDeviceShareTarget() === SHARE_TARGET_DOWNLOAD` gate)
+- Share tapped twice in rapid succession (either target)
+  - → second tap ignored while the first is in flight (`sharingRef` synchronous guard + `disabled={sharing}` spinner; guard asserts guard-set precedes the swap call and `setSharing(false)` resets in `finally`)
+- Sheet dismissed by the user (native target)
+  - → benign info log, button resets, no error (guard asserts the `AbortError` branch; pre-existing error log for real failures unchanged)
+- New/changed files: `share-target-logic.js` (+`share-target-logic.test.js`, injected-UA fixtures per OS), `video-share.web.js` (`ensureMp4Blob` extracted verbatim from `shareVideo`, `downloadVideoBlob`, `deliverVideo`), `SuccessButtons.jsx` (target-resolved `deliverVideo`, download icon), `video-share-download.test.js`, wiring-guard additions, Playwright icon assertion
+  - → `npx vitest run src/modules/video/` passes; `npm run lint` has 0 errors; `npx playwright test tests/after-video-loop.spec.js` passes
+
 ## Technical Context
 
 - No new dependencies. All imports already in the codebase: `normalizeLanguageCode` (`src/modules/utils/utils.js`), `resolveConfigLanguage` (`src/modules/bilingual/config-normalizer.js`), `getVideoUrl` (`src/modules/video/video-url.js`), `VideoRenderPlanner.calculateLayout` (`src/modules/video/video-processor-logic.js`), zustand store, existing `AudioContext`/`MediaRecorder`/canvas patterns in `video-processor.web.js`.
