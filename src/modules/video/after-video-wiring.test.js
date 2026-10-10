@@ -244,6 +244,34 @@ describe('SuccessButtons tail wiring (SuccessButtons.jsx)', () => {
         expect(teardown).toContain('ctx.close()');
         expect(teardown).toContain('audioContextRef.current = null;');
     });
+
+    it('delivers by per-platform target with a download icon on desktop', () => {
+        expect(buttonsRaw).toContain("import { getDeviceShareTarget, SHARE_TARGET_DOWNLOAD } from '../../modules/video/share-target-logic.js';");
+        expect(buttonsRaw).toContain('target: getDeviceShareTarget()');
+        expect(buttonsRaw).toContain("await import('../../modules/video/video-share.js');");
+        expect(buttonsRaw).toContain('deliverVideo({');
+        // Desktop (download target) carries the download icon; mobile keeps
+        // the share icon. The localized Share label is unchanged.
+        expect(buttonsRaw).toContain('getDeviceShareTarget() === SHARE_TARGET_DOWNLOAD');
+        expect(buttonsRaw).toContain('bi bi-download');
+        expect(buttonsRaw).toContain('bi bi-share-fill');
+    });
+
+    it('routes desktop delivery through the anchor download with deferred revoke', () => {
+        const raw = readFileSync(path.join(ROOT, 'src/modules/video/video-share.web.js'), 'utf8');
+        expect(raw).toContain('export async function ensureMp4Blob(');
+        expect(raw).toContain('export function downloadVideoBlob(');
+        expect(raw).toContain('export async function deliverVideo(');
+        const download = sliceBetween(raw, 'export function downloadVideoBlob(', 'export async function deliverVideo(');
+        expect(download).toContain('URL.createObjectURL(blob)');
+        expect(download).toContain('link.download =');
+        const clickAt = download.indexOf('link.click()');
+        const removeAt = download.indexOf('link.remove()');
+        const revokeAt = download.indexOf('URL.revokeObjectURL(url)');
+        expect(clickAt).toBeGreaterThan(-1);
+        expect(removeAt).toBeGreaterThan(clickAt);
+        expect(revokeAt).toBeGreaterThan(removeAt);
+    });
 });
 
 describe('store tail flag (store.js)', () => {

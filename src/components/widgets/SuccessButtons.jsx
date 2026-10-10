@@ -6,6 +6,7 @@ import { useAddFriendLinkMutation, useRecordFriendResponseMutation } from '../..
 import { resolveFriendLessonLink } from '../../modules/user/friend-lesson-link-logic.js';
 import { resolveFriendResponseNotification } from '../../modules/notifications/notification-logic.js';
 import { AFTER_SUCCESS_BASE, AFTER_SHARE_BASE } from '../../modules/video/after-video-logic.js';
+import { getDeviceShareTarget, SHARE_TARGET_DOWNLOAD } from '../../modules/video/share-target-logic.js';
 import { getBilingual } from '../../data/strings.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
 import { isStaleChunkReloadPending } from '../../modules/utils/stale-chunk-reload.js';
@@ -114,7 +115,7 @@ export function VideoButton({ canvasRef }) {
       appStore.getState().triggerPauseAllVideos();
       appStore.getState().setCurrentVideo(null);
 
-      const { processVideo, shareVideo, exportSegmentsToR2, uploadCompleteVideoToR2 } = await import('../../modules/video/video-processor.js');
+      const { processVideo, exportSegmentsToR2, uploadCompleteVideoToR2 } = await import('../../modules/video/video-processor.js');
       const canvas = canvasRef?.current;
       const result = await processVideo(fluencyData, lessonId, canvas, { audioContext: audioContextRef.current });
 
@@ -133,8 +134,16 @@ export function VideoButton({ canvasRef }) {
 
         shareHandlerRef.current = async () => {
           const { generateVideoFilename } = await import('../../modules/lesson/success-lesson-logic.js');
+          const { deliverVideo } = await import('../../modules/video/video-share.js');
           const filename = `${generateVideoFilename(lessonId)}.${result.ext || 'webm'}`;
-          await shareVideo(result.blob, filename, result.ext || 'webm');
+          // Desktop OSes get a file download (native sheets are unreliable
+          // there); mobile keeps the native sheet. Resolved live at tap time.
+          await deliverVideo({
+            blob: result.blob,
+            filename,
+            fileExtension: result.ext || 'webm',
+            target: getDeviceShareTarget(),
+          });
         };
 
         if (publishSegments) {
@@ -320,6 +329,10 @@ export function VideoButton({ canvasRef }) {
   }
 
   if (button.state === 'ready') {
+    // Desktop OSes download the recap instead of opening the unreliable
+    // native sheet, so the button carries a download icon there (mobile
+    // keeps the share icon). Label stays the localized Share string.
+    const useDownloadIcon = getDeviceShareTarget() === SHARE_TARGET_DOWNLOAD;
     return (
       <div className="ivp-choice-col call-btn-primary" style={{ flex: '1 1 0', minWidth: 0 }}>
         <ChoiceLabel text={getBilingual('share', lang)} />
@@ -331,7 +344,7 @@ export function VideoButton({ canvasRef }) {
           disabled={sharing}
           aria-label="Share"
         >
-          {sharing ? <span className="spinner-border spinner-border-sm" /> : <i className="bi bi-share-fill" />}
+          {sharing ? <span className="spinner-border spinner-border-sm" /> : useDownloadIcon ? <i className="bi bi-download" /> : <i className="bi bi-share-fill" />}
         </button>
       </div>
     );

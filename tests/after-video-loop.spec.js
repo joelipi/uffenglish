@@ -58,6 +58,9 @@ test.describe('After-video loop wiring', () => {
         await expect(page.locator('#createVideoButton')).toBeVisible();
         await expect(page.locator('#continueButtonSuccess')).toBeVisible();
         await expect(page.locator('#repeatButtonSuccess')).toBeVisible();
+        // Desktop Chromium resolves the download target: download icon, and
+        // the localized Share label is unchanged.
+        await expect(page.locator('#createVideoButton i')).toHaveClass(/bi-download/);
 
         expect(observed.errors).toEqual([]);
     });
