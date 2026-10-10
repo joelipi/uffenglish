@@ -1,0 +1,403 @@
+/* src/components/homescreen/home-landing.css
+   Stylesheet for the public homepage ONLY. Every rule is scoped to the homepage
+   root (.uff-home-bs) or uniquely prefixed (uff-), so importing real Bootstrap
+   5.3.8 here (../../generated/homepage-bootstrap.css) can never restyle another
+   route — the rest of the app ships its own hand-written Bootstrap subset in
+   src/assets/css/app.css.
+
+   Palette: the main app's brand look, taken from the lesson shell / HomeScreen
+   (not the profile pages) — dark navy surfaces, #1a3a5a cards, and the blue→cyan
+   brand gradient used for the primary call-to-action. */
+
+.uff-home-bs {
+    /* Bootstrap 5.3 theme variables, set to the app's palette. */
+    --bs-body-bg: #0b1a2a;
+    --bs-body-color: #e9ecef;
+    --bs-body-font-family: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    --bs-emphasis-color: #ffffff;
+    --bs-emphasis-color-rgb: 255, 255, 255;
+    --bs-secondary-color: #adb5bd;
+    --bs-secondary-color-rgb: 173, 181, 189;
+    --bs-secondary-bg: #1a3a5a;
+    --bs-tertiary-bg: #1a3a5a;
+    --bs-tertiary-bg-rgb: 26, 58, 90;
+    --bs-border-color: #2a4a6a;
+    --bs-border-color-translucent: rgba(42, 74, 106, 0.55);
+    --bs-link-color: #00c0d8;
+    --bs-link-hover-color: #3a8fd5;
+    --bs-link-color-rgb: 0, 192, 216;
+    --bs-link-hover-color-rgb: 58, 143, 213;
+    --bs-focus-ring-color: rgba(0, 192, 216, 0.55);
+    --bs-form-valid-color: #00c0d8;
+    --bs-form-invalid-color: #ff6b6b;
+
+    /* Surfaces. */
+    --bs-card-bg: #1a3a5a;
+    --bs-card-border-color: #2a4a6a;
+    --bs-card-border-radius: 12px;
+    --bs-card-cap-bg: transparent;
+    --bs-card-spacer-y: 24px;
+    --bs-card-spacer-x: 24px;
+    --bs-navbar-color: #ffffff;
+    --bs-navbar-hover-color: #ffffff;
+    --bs-navbar-brand-color: #ffffff;
+    --bs-navbar-brand-margin-end: 0;
+    --bs-navbar-toggler-border-color: rgba(255, 255, 255, 0.55);
+    --bs-navbar-toggler-icon-bg: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255,255,255,0.9%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+
+    /* The dark-theme select arrow (Bootstrap ships it only under
+       [data-bs-theme=dark]); the whole homepage shell is dark. */
+    --bs-form-select-bg-img: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='2.2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    --bs-form-select-indicator-padding: 2.25rem;
+    --bs-form-select-bg-position: right 0.85rem center;
+    --bs-form-select-bg-size: 16px 12px;
+    --bs-alert-color: #e9ecef;
+    --bs-alert-bg: rgba(26, 58, 90, 0.6);
+    --bs-alert-border-color: #ff6b6b;
+
+    /* Not a Bootstrap variable: the brand gradient used by the primary CTA and
+       the hero band. */
+    --uff-gradient: linear-gradient(135deg, #3a8fd5 0%, #00c0d8 100%);
+    --uff-surface-raised: #16283b;
+}
+
+/* Bootstrap's reboot maps body{…} onto the scope element, so this is the
+   homepage shell: one internally-scrolling column, footer at the bottom. */
+.uff-home-bs {
+    min-height: 100dvh;
+    height: 100dvh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    font-family: var(--bs-body-font-family);
+}
+
+/* Desktop: the homepage renders as a normal Bootstrap page. The rest of the app
+   is laid out inside the 9:16 phone frame (#root.video-frame); that frame is
+   lifted only while the homepage is mounted, so no other route is affected. */
+#root:has(> .uff-home-bs) {
+    aspect-ratio: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: 100dvh !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+}
+
+.uff-home-bs a:not(.btn) {
+    color: var(--bs-link-color);
+    text-decoration: none;
+}
+
+.uff-home-bs a:not(.btn):hover,
+.uff-home-bs a:not(.btn):focus {
+    color: var(--bs-link-hover-color);
+    text-decoration: underline;
+}
+
+.uff-home-bs .text-secondary {
+    color: var(--bs-secondary-color) !important;
+}
+
+.uff-home-bs .text-accent {
+    color: #00c0d8 !important;
+}
+
+.uff-home-bs .border-secondary {
+    border-color: var(--bs-border-color) !important;
+}
+
+/* --- Top bar (Bootstrap navbar over the brand gradient) --------------- */
+.uff-navbar {
+    background: var(--uff-gradient);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+    z-index: 10;
+}
+
+.uff-navbar .navbar-brand img,
+.uff-home-bs img.uff-logo {
+    height: 40px;
+    width: auto;
+    display: block;
+    filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
+}
+
+/* --- Hero ------------------------------------------------------------- */
+.uff-hero {
+    background: radial-gradient(120% 120% at 15% 0%, rgba(58, 143, 213, 0.55) 0%, rgba(11, 26, 42, 0.92) 55%, #0b1a2a 100%);
+}
+
+.uff-hero-title {
+    font-size: clamp(2.25rem, 4.5vw, 3.5rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+}
+
+.uff-hero-lead {
+    color: #e9ecef;
+    font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+}
+
+.uff-hero-art {
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    border-radius: var(--bs-card-border-radius);
+    border: 1px solid var(--bs-border-color);
+    box-shadow: 0 1.5rem 3rem rgba(0, 0, 0, 0.35);
+}
+
+/* --- Buttons (app CTA conventions) ----------------------------------- */
+.uff-home-bs .btn-uff-primary {
+    background-image: var(--uff-gradient);
+    border: none;
+    color: #ffffff;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 0.875rem 1.25rem;
+    transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.uff-home-bs .btn-uff-primary:hover,
+.uff-home-bs .btn-uff-primary:focus {
+    color: #ffffff;
+    background-image: var(--uff-gradient);
+    filter: brightness(1.07);
+}
+
+.uff-home-bs .btn-uff-primary:active {
+    transform: scale(0.99);
+    color: #ffffff;
+}
+
+.uff-home-bs .btn-uff-primary:disabled {
+    background-image: var(--uff-gradient);
+    color: #ffffff;
+    opacity: 0.6;
+}
+
+.uff-home-bs .btn-uff-outline {
+    background: transparent;
+    border: 1px solid #00c0d8;
+    color: #00c0d8;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 0.875rem 1.25rem;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.uff-home-bs .btn-uff-outline:hover,
+.uff-home-bs .btn-uff-outline:focus {
+    background: rgba(0, 192, 216, 0.14);
+    border-color: #00c0d8;
+    color: #00c0d8;
+}
+
+.uff-home-bs .btn-uff-primary.btn-lg,
+.uff-home-bs .btn-uff-outline.btn-lg {
+    padding: 1rem 1.5rem;
+    font-size: 1.125rem;
+}
+
+/* --- Surfaces --------------------------------------------------------- */
+.uff-section {
+    padding-top: clamp(2.5rem, 5vw, 4.5rem);
+    padding-bottom: clamp(2.5rem, 5vw, 4.5rem);
+}
+
+.uff-section--alt {
+    background-color: var(--uff-surface-raised);
+    border-top: 1px solid var(--bs-border-color);
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.uff-section-title {
+    font-size: clamp(1.75rem, 3vw, 2.5rem);
+    font-weight: 800;
+    line-height: 1.15;
+}
+
+/* The share-code card is the primary conversion box: keep it visually first. */
+.uff-home-bs .card {
+    --bs-card-bg: var(--bs-card-bg);
+    box-shadow: 0 1.25rem 2.5rem rgba(0, 0, 0, 0.35);
+}
+
+/* app.css ships its own `.card` (a flattened copy of Bootstrap's variable block),
+   so those declarations land on the element and shadow anything inherited from
+   the scope. Re-declare the card variables at homepage scope so the Bootstrap
+   `.card` rule wins the cascade. */
+.uff-home-bs .card {
+    --bs-card-bg: #1a3a5a;
+    --bs-card-border-color: #2a4a6a;
+    --bs-card-border-radius: 12px;
+    --bs-card-spacer-y: 24px;
+    --bs-card-spacer-x: 24px;
+    --bs-card-cap-bg: transparent;
+    --bs-card-color: #e9ecef;
+    box-shadow: 0 1.25rem 2.5rem rgba(0, 0, 0, 0.35);
+}
+
+.uff-home-bs .card-body {
+    color: var(--bs-card-color);
+}
+
+/* Bootstrap's `.btn` carries the same variable block, so re-declare the base it
+   reads from; `.btn-uff-*` then set the app's two CTA treatments. */
+.uff-home-bs .btn {
+    --bs-btn-bg: transparent;
+    --bs-btn-color: #ffffff;
+    --bs-btn-border-color: transparent;
+    --bs-btn-hover-color: #ffffff;
+    --bs-btn-hover-bg: transparent;
+    --bs-btn-hover-border-color: transparent;
+    --bs-btn-active-color: #ffffff;
+    --bs-btn-active-bg: transparent;
+    --bs-btn-padding-x: 1.25rem;
+    --bs-btn-padding-y: 0.875rem;
+    --bs-btn-border-radius: 8px;
+}
+
+.uff-home-bs .form-control,
+.uff-home-bs .form-select {
+    background-color: #0b1a2a;
+    border-color: var(--bs-border-color);
+    color: #ffffff;
+    border-radius: 8px;
+}
+
+.uff-home-bs .form-control::placeholder {
+    color: var(--bs-secondary-color);
+    opacity: 0.8;
+}
+
+.uff-home-bs .form-control:focus,
+.uff-home-bs .form-select:focus {
+    background-color: #0b1a2a;
+    border-color: #00c0d8;
+    color: #ffffff;
+    box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
+}
+
+/* "How it works" list — a Bootstrap list-group in the app's palette. */
+.uff-home-bs .list-group-item {
+    background-color: transparent;
+    border-color: var(--bs-border-color);
+    color: var(--bs-body-color);
+}
+
+.uff-check {
+    color: #00c0d8;
+    font-size: 1.25rem;
+    line-height: 1.2;
+}
+
+/* --- Showcase carousel ------------------------------------------------ */
+.uff-carousel-track {
+    display: flex;
+    transition: transform 0.3s ease;
+}
+
+.uff-carousel-slide {
+    flex: 0 0 100%;
+    position: relative;
+}
+
+.uff-carousel-media {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+    display: block;
+    border-radius: 8px;
+}
+
+.uff-carousel-play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+    border: none;
+    background: #ffffff;
+    color: #1a1a1a;
+    font-size: 1.5rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+    transition: transform 0.15s ease;
+}
+
+.uff-carousel-play:hover,
+.uff-carousel-play:focus {
+    transform: translate(-50%, -50%) scale(1.06);
+}
+
+.uff-carousel-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    border: 1px solid var(--bs-border-color);
+    background: rgba(11, 26, 42, 0.85);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+    z-index: 2;
+}
+
+.uff-carousel-nav:hover:not(:disabled) {
+    background: rgba(58, 143, 213, 0.85);
+    color: #ffffff;
+}
+
+.uff-carousel-nav:disabled {
+    opacity: 0.35;
+}
+
+/* --- About the teacher ------------------------------------------------ */
+.uff-teacher-photo {
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid #00c0d8;
+    display: block;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+}
+
+.uff-teacher-photo--lg {
+    width: 160px;
+    height: 160px;
+}
+
+/* --- Footer ----------------------------------------------------------- */
+.uff-home-bs .uff-footer {
+    border-top: 1px solid var(--bs-border-color);
+    color: var(--bs-secondary-color);
+    font-size: 0.85rem;
+}
+
+.uff-home-bs .uff-footer a {
+    color: var(--bs-secondary-color);
+    text-decoration: none;
+}
+
+.uff-home-bs .uff-footer a:hover {
+    color: #00c0d8;
+    text-decoration: underline;
+}

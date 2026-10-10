@@ -3,11 +3,13 @@ import { existsSync, mkdirSync, cpSync, copyFileSync } from 'fs'
 import { execSync } from 'child_process'
 import { defineConfig } from 'vite'
 import purgecss from 'vite-plugin-purgecss'
+import { homepageBootstrapPlugin } from './scripts/lib/bootstrap-homepage-plugin.js'
 
 const commitHash = execSync('git rev-parse --short HEAD').toString().trim()
 
 export default defineConfig({
     plugins: [
+        homepageBootstrapPlugin(),
         {
             name: 'inject-version',
             transformIndexHtml(html) {
