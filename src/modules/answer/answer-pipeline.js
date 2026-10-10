@@ -19,6 +19,7 @@ import {
 import { logInteraction, calculateFluencyScore } from './scoring.js';
 import Strings from '../../data/strings.js';
 import { getCueText, getLocalizedTranslation, getLocalizedCueTranslation, generateHangmanOps } from '../utils/utils.js';
+import { resolveConfigLanguage } from '../bilingual/config-normalizer.js';
 import { analyzeSpeech } from '../utils/analytics.js';
 import { saveSpeechRecording, updateSpeechRecording } from '../storage/storage.js';
 import { buildFeedbackData, buildExplanationData } from './feedback-builder.js';
@@ -195,6 +196,26 @@ function applySpeechResultToPlayer(val, player, cue) {
     player.applySpeechResult(correctIndices, [], extraWrongWords);
 }
 
+/**
+ * The active lesson language for answer processing, resolved guest-first exactly
+ * like the recap and the rest of the app (AGENTS.md:
+ * `guestNativeLanguage || userData.native_language || 'en'`). The guest/adopted
+ * session language wins over the profile's `native_language`, which the async
+ * bootstrap can write as 'EN' after a guest picked another language.
+ *
+ * Reading `userData.native_language` alone computed `rec.translation` with 'en'
+ * while the recap (which uses this same guest-first rule) stayed localized, so
+ * the burned recap/UGC subtitle lost its translation line and showed English
+ * only.
+ */
+export function resolveAnswerLanguage(userData) {
+    const state = appStore.getState();
+    return resolveConfigLanguage(
+        state.guestNativeLanguage,
+        userData?.native_language || state.userData?.native_language
+    );
+}
+
 export function createAnswerPipeline(deps) {
     const {
         showChat,
@@ -208,7 +229,7 @@ export function createAnswerPipeline(deps) {
 
     function handleCorrectFeedbackUI(stepIndex, stepData, button, cue, explanation, userResponse, courseLevel, englishLevelDeduction, userData, configData, fluencyBubble = null) {
         const cueText = getCueText(cue);
-        const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
+        const lang = resolveAnswerLanguage(userData);
 
         const currentFluencyScore = appStore.getState().fluencyScore;
         if (stepData.responseType === "closedResponse" && stepData.interactiveVideoUrl) {
@@ -377,7 +398,7 @@ export function createAnswerPipeline(deps) {
             return;
         }
 
-        const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
+        const lang = resolveAnswerLanguage(userData);
 
         if (stepData.responseType === "openResponse" && userResponse) {
             if (appStore.getState().incorrectAttempts > 2) {
@@ -566,7 +587,7 @@ export function createAnswerPipeline(deps) {
                 matchedCue = await findMatchingCueText(val, cue, stepData);
             }
 
-            const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
+            const lang = resolveAnswerLanguage(userData);
             const translation = getLocalizedCueTranslation(cue, matchedCue, lang);
 
             if (appStore.getState().isTextMode) {
@@ -663,7 +684,7 @@ export function createAnswerPipeline(deps) {
                     matchedCue = await findMatchingCueText(userResponse, cue, stepData);
                 }
 
-                const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
+                const lang = resolveAnswerLanguage(userData);
                 const translation = getLocalizedCueTranslation(cue, matchedCue, lang);
 
                 if (appStore.getState().isTextMode) {
@@ -706,7 +727,7 @@ export function createAnswerPipeline(deps) {
         // Show user message + cue bubble immediately before API call returns.
         // Stats bubbles (addAIFeedbackMessages) arrive later in the openResponse block.
         if (stepData.responseType === "openResponse" && userResponse) {
-            const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
+            const lang = resolveAnswerLanguage(userData);
             console.log('[handleAnswer] openResponse lang:', lang, 'cue:', typeof cue, 'native_language:', userData?.native_language);
 
             appStore.getState().addChatMessage({
@@ -867,7 +888,7 @@ export function createAnswerPipeline(deps) {
 
                 const feedbackData = buildFeedbackData({
                     scoreData, speechAnalytics, result, stepData,
-                    lang: userData?.native_language, courseLevel,
+                    lang: resolveAnswerLanguage(userData), courseLevel,
                     attemptNumber: incorrectAttempts + 1,
                     repetitionCount: appStore.getState().videoPlays,
                     whisperRejections: whisperRejections
@@ -938,7 +959,7 @@ export function createAnswerPipeline(deps) {
                 // Now that scoring is complete, append the stats bubbles.
                 if (immediateStatsMessages.length > 0) addAIFeedbackMessages(immediateStatsMessages);
             } else if ((stepData.responseType === "closedResponse" || stepData.responseType === "friendClosedResponse") && userResponse) {
-                const lang = userData?.native_language || appStore.getState().userData?.native_language || 'en';
+                const lang = resolveAnswerLanguage(userData);
 
                 showChat();
                 appStore.getState().transitionTo('feedback');

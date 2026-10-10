@@ -14,6 +14,8 @@ This repo relies heavily on tests that assert on source text ("guards"). Several
 - **Whole-file `toContain` only works for tokens that appear exactly once.** Over an entire stylesheet/source file it stays green even when the specific rule is deleted. Scope the slice to the specific block (`slice(indexOf(selector), …)`) and assert every property in it.
 - **Never slice a function body to EOF.** End the slice at the next top-level marker (`indexOf('export const …')` / the next `export async function …`). A function appended later otherwise silently joins the slice and the guard passes on strings that are not in the target function.
 - **Presence is not containment.** Asserting that `try:`, the guarded call and `except Exception` all appear *somewhere* in a region says nothing about their order, so hoisting the call out of the `try` still passes. Assert index order (`region.index(a) < region.index(b) < region.index(c)`) — and search the paren-qualified call token (`storage.head(`), because an explanatory comment naming the function will otherwise satisfy a bare-token search.
+- **A locale-coverage guard must assert the raw `strings` table, not `Strings.get()`.** `get()` falls back to the English value when a locale is missing, so `expect(get(key, 'pt')).toBeTruthy()` passes even with `pt` deleted. Assert `strings[key][lang]` (import the raw table) so a dropped translation actually fails.
+- **Anchor a property assertion to the line you mean.** An unanchored `/backdrop-filter:/` also matches the `-webkit-backdrop-filter:` line (same for `mask-image`, `transform`, …), so the guard for the *unprefixed* declaration can never fail — deleting it while keeping the prefixed twin stays green. Match with a line anchor (`/^\s*backdrop-filter:/m`) and assert each prefixed/unprefixed form on its own so either can fail independently.
 
 Before trusting a guard, prove it can fail by temporarily injecting the thing it forbids.
 
@@ -147,6 +149,8 @@ Primary branch is `main`. Commits land on `main` directly, so once committed `ma
 
 **Push the story branch when the work is verified.** A local-only branch cannot be tested or deployed, so once both reviewers pass, push it: `git push -u origin <story-branch>`. Do this for every story unless the user says otherwise — do not leave verified work unpushed. Merging into `main` is a separate, explicit step (only when the user asks); pushing the branch is the default end state of a completed story.
 
+**The working GitHub token is the repo's `.env` `GH_TOKEN`, not the shell/sandpod one.** The exported `GH_TOKEN` (and `~/.sandpod-env`'s copy) is a short-lived sandbox App token that is routinely expired — `gh auth status` reports it invalid and `sandpod gh refresh` can 500 (`platform mint failed`). A valid fine-grained PAT (`github_pat_…`, user `joelipi`) sits in the checked-out repo's `.env` under the `GH_TOKEN=` key. Test each candidate against `api.github.com/user` (200 vs 401), then push with it without putting it on argv: `TOK=$(grep -E '^GH_TOKEN=' .env | cut -d= -f2- | tr -d '"'"'"' \r'); git push "https://x-access-token:${TOK}@github.com/joelipi/uffenglish.git" HEAD:main`. Because the repo is public, `git fetch`/read succeeds unauthenticated — only `push` exposes the stale token, so a failed push does not mean there is no usable credential.
+
 ---
 
 ## 2. Comments & Logging
@@ -184,8 +188,8 @@ tests/answer-flow.spec.js
 
 **`source inspected → …` ACs need a real static-guard test.** When a story lists an acceptance criterion as `[file] source inspected → contains/does not contain …` (purity constraints, required imports, wiring contract), the implementer must add an automated `readFileSync` guard for it. The `@acceptance-reviewer` treats every AC as requiring a passing test and will Fail the task if such ACs have no guard, even when the runtime behavior is covered. Put guards beside the feature (e.g. `notification-wiring.test.js`) and assert only on raw source, never comment-stripped source (`docs/learnings.md`).
 
-**Test URL:** `http://localhost:3000/course/model/lesson/g`
-Lessons require a full URL where `course` and `model` map to valid JSON files and `lesson` is a valid key within that JSON, unless lesson data is already in memory.
+**Test URL:** `http://localhost:3000/course/model/lesson/m-g`
+Lessons require a full URL where `course` and `model` map to valid JSON files and `lesson` is a valid key within that JSON, unless lesson data is already in memory. In `model.json` the keys are prefixed (`m-g`, `m-t`, …) — `.../lesson/g` renders the shell but loads no lesson (so `MissionSection` and step widgets stay empty), which makes it useless for measuring lesson UI.
 
 **Testing data-driven pages (profile, share-code views):** don't mock Supabase or log in. Load the route, wait for its initial query to settle, then inject fixtures into the app's own query cache from `page.evaluate`:
 ```js

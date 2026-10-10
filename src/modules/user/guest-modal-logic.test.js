@@ -1,8 +1,13 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import {
     ENGLISH_LANG,
     PUBLIC_ROUTES,
+    STATIC_SINGLE_SEGMENT_ROUTES,
     isPublicHomeRoute,
+    isProfileRoute,
     resolveGuestModalPlan,
     resolveSilentLanguageReapply,
     applyGuestLanguagePreference,
@@ -82,6 +87,57 @@ describe('isPublicHomeRoute', () => {
 
     it('pins the public route list', () => {
         expect(PUBLIC_ROUTES).toEqual(['/', '/privacy', '/terms', '/confirm-email', '/courses']);
+    });
+});
+
+describe('isProfileRoute', () => {
+    it('is true for the private profile route', () => {
+        expect(isProfileRoute('/profile')).toBe(true);
+        expect(isProfileRoute('/profile/')).toBe(true);
+        expect(isProfileRoute('/Profile')).toBe(true);
+    });
+
+    it('is true for a public share-code profile (the single-segment catch-all)', () => {
+        expect(isProfileRoute('/abc123')).toBe(true);
+        expect(isProfileRoute('/FriendTest1/')).toBe(true);
+    });
+
+    it('is false for every static single-segment route declared before the catch-all', () => {
+        // '/profile' is itself a profile route; the rest are not.
+        for (const route of STATIC_SINGLE_SEGMENT_ROUTES.filter((r) => r !== '/profile')) {
+            expect(isProfileRoute(route), route).toBe(false);
+        }
+        expect(isProfileRoute('/home')).toBe(false);
+        expect(isProfileRoute('/courses')).toBe(false);
+    });
+
+    it('is false for multi-segment lesson routes', () => {
+        expect(isProfileRoute('/course/model/lesson/g')).toBe(false);
+        expect(isProfileRoute('/course/friend/lesson/b')).toBe(false);
+    });
+
+    it('is false for empty and non-string input', () => {
+        expect(isProfileRoute('')).toBe(false);
+        expect(isProfileRoute(undefined)).toBe(false);
+        expect(isProfileRoute(null)).toBe(false);
+    });
+
+    // Keep the static list in lockstep with routes.jsx: a new static
+    // single-segment route added there but not here would be silently read as a
+    // share code and lose its guest modal.
+    it('covers every static single-segment route declared in routes.jsx', () => {
+        const routesSrc = readFileSync(
+            path.join(path.dirname(fileURLToPath(import.meta.url)), '../../routes/routes.jsx'),
+            'utf8',
+        );
+        const declared = [...routesSrc.matchAll(/path:\s*'([^']+)'/g)].map((m) => m[1]);
+        const singleSegmentStatic = declared.filter(
+            (p) => p.startsWith('/') && !p.slice(1).includes('/') && !p.includes(':'),
+        );
+        expect(singleSegmentStatic.length).toBeGreaterThan(0);
+        for (const route of singleSegmentStatic) {
+            expect(STATIC_SINGLE_SEGMENT_ROUTES, route).toContain(route);
+        }
     });
 });
 

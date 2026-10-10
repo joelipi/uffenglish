@@ -107,6 +107,28 @@ describe('test.json click-through friend prompts', () => {
     });
 });
 
+// Story 057: the wouldyourather lesson b `branching` step is a friend UGC clip
+// (`{friendCode}wouldyourather-a-response-01`) whose caption is burned in, so it
+// must carry no app `subtitles`; its slug and choices are unchanged.
+describe('wouldyourather lesson b branching step', () => {
+    const config = loadConfig('wouldyourather.json');
+    const lesson = config.lessons.find(l => l.lessonId === 'b');
+    const step = lesson.steps[1];
+
+    it('is the branching friend step with no app subtitles', () => {
+        expect(step.responseType).toBe('branching');
+        expect(step.simpleVideoUrl).toBe('{friendCode}wouldyourather-a-response-01');
+        expect('subtitles' in step).toBe(false);
+    });
+
+    it('keeps its chooseStep choices', () => {
+        expect(step.chooseStep).toEqual([
+            { nextStep: 1, text: { en: '$1,000,000 today', es: '$1,000,000 hoy', pt: '$1.000.000 hoje', bn: '$1,000,000 আজ' } },
+            { nextStep: 2, text: { en: '$5,000,000 in 5 years', es: '$5,000,000 en 5 años', pt: '$5.000.000 em 5 anos', bn: '$5,000,000 ৫ বছরে' } },
+        ]);
+    });
+});
+
 describe('friend-slug invariant', () => {
     // Any step whose prompt video is a friend/UGC slug (-response-NN) must
     // belong to a lesson flagged recapSources: 'friend'. Otherwise the planner
@@ -115,6 +137,22 @@ describe('friend-slug invariant', () => {
     // (video-processor-logic.js): interactiveVideoUrl > introBackgroundVideoUrl
     // > simpleVideoUrl.
     const VIDEO_FIELDS = ['interactiveVideoUrl', 'introBackgroundVideoUrl', 'simpleVideoUrl'];
+
+    // Story 057: a friend/UGC clip already carries its speaker's caption burned
+    // into the video, so the config must not give it app `subtitles` (the player
+    // would draw a second caption over the clip).
+    const assertNoFriendSubtitles = (configs) => {
+        for (const { name, config } of configs) {
+            for (const lesson of config.lessons) {
+                for (const step of lesson.steps || []) {
+                    const isFriend = VIDEO_FIELDS.some(field => FRIEND_VIDEO_REGEX.test(step[field] || ''));
+                    if (isFriend) {
+                        expect(step.subtitles, `${name} lesson ${lesson.lessonId}`).toBeUndefined();
+                    }
+                }
+            }
+        }
+    };
 
     it('every friend-slug step lives in a recapSources: friend lesson', () => {
         for (const name of CONFIG_FILES) {
@@ -128,5 +166,19 @@ describe('friend-slug invariant', () => {
                 }
             }
         }
+    });
+
+    it('no friend-slug step carries app subtitles', () => {
+        assertNoFriendSubtitles(CONFIG_FILES.map(name => ({ name, config: loadConfig(name) })));
+    });
+
+    it('the no-subtitles guard can fail on a mutated friend step', () => {
+        const configs = [{
+            name: 'synthetic',
+            config: { lessons: [{ lessonId: 'b', steps: [{ simpleVideoUrl: 'ab-x-b-response-01' }] }] },
+        }];
+        expect(() => assertNoFriendSubtitles(configs)).not.toThrow();
+        configs[0].config.lessons[0].steps[0].subtitles = { en: 'dup' };
+        expect(() => assertNoFriendSubtitles(configs)).toThrow();
     });
 });

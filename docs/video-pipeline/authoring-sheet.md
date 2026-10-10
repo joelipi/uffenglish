@@ -54,6 +54,43 @@ columns reported):
 - **`next_step` must be an integer ≥ 1** when set. A `branching` step with no `choose_step_*`
   still generates (the app falls back to a Continue button, which honors `next_step`).
 
+## Overlay master → config fields
+
+The **overlay master** (`title_text, Order, phrase, subtitle_text, join, video_file, …`, the
+sheet the recorder and `video_pipeline.py` read) is the single source of truth for the app
+config too. The generator detects that shape by the `phrase` header and maps its columns to
+config fields:
+
+| Master column(s) | Config field |
+|---|---|
+| `join` else `video_file` | the step key → `simpleVideoUrl` (or `introBackgroundVideoUrl` for a synthesized `lessonIntro`) |
+| `response_type` | `responseType` |
+| `phrase` (ordered by `Order` within the step) | `cue` (an ordered array) |
+| `srt` / `srt_<lang>` | `subtitles` (localized) — **system steps only** |
+| `subtitle_text` | burnt-in overlay markup — never app `subtitles` |
+| `next_step` | `nextStep` |
+| `choose_step_next` + `choose_step_text` | `chooseStep` |
+
+**Grouping: a step is the `join` value when non-blank, else the `video_file`.** Every row
+sharing that key within a lesson is one step; a non-blank `join` is the joined video and the
+published slug, and its rows' `phrase` values become the ordered `cue` array. A row with
+neither `join` nor `video_file` defines no step and is ignored.
+
+**A friend UGC clip gets no app `subtitles`.** A step whose key ends in `-response-NN` is a
+friend's published clip, which already carries its speaker's caption burned into the video,
+so the generator emits **no** `subtitles` for it — regardless of `srt`/`srt_<lang>`/
+`subtitle_text`. (The runtime classifier is `FRIEND_VIDEO_REGEX`/`isFriendVideoSlug` in
+`src/modules/video/video-source.js`; the generator reuses it, so a system step whose slug
+merely contains `response` — e.g. `my-response-video` — is unaffected.)
+
+**`row_purpose` (informational).** The seeded master appends a `row_purpose` column that
+describes the config output each row produces — `step "<key>"`, then any of
+`→ simpleVideoUrl`, `→ joined step "<join>"`, `→ cue`, `→ chooseStep`, `→ nextStep`,
+`→ publishLessonId`, `→ lessonIntro "<slug>"`, `→ success "<slug>"`, and finally either
+`→ subtitles` or `friend UGC clip — no app subtitles (caption burned in)`. It is derived
+(refreshed on every re-seed) and **ignored by the generator and translator** — it is not in
+`CONFIG_COLUMNS`, so no generator/translator path reads it.
+
 ## Localization columns
 
 The sheet can carry translations alongside the English source. `scripts/translate-sheet.mjs`

@@ -8,28 +8,25 @@ import { generateThumbFromBlob } from '../video/thumbnail.js';
 import { isIOS } from '../../utils/detectIOS.js';
 
 export const isWindows = navigator.platform.indexOf('Win') > -1;
-// Android is detected so the 9:16 canvas composite can be kept OFF phones.
-// The composite allocates a 1080×1920 canvas, a hidden <video> that plays the
-// raw camera stream and a canvas captureStream fed by a 30 fps draw loop, then
-// MediaRecorder-encodes that canvas. On a phone that is a second camera surface
-// plus a software encode on top of the raw stream and the ~100 MB Whisper WASM,
-// which OOMs low-memory Android devices during the first recording/transcription.
-// Android instead asks the camera for a portrait frame directly (getMediaConstraints).
+// Android is detected so the 9:16 canvas composite can be built LIGHTER on
+// phones (see createPortraitCaptureStream). The composite is the only reliable
+// way to guarantee a 9:16 recording: camera `aspectRatio` is advisory and is
+// routinely ignored, and the recorded clip is reused verbatim (the recap and the
+// published friend clips are cut from it), so the framing must be correct at
+// capture time, not fixed later.
 const isAndroid = /Android/i.test(navigator.userAgent);
 const canvasCaptureSupported = typeof HTMLCanvasElement !== 'undefined'
     && typeof HTMLCanvasElement.prototype.captureStream === 'function';
 
 // iOS cameras already deliver a portrait frame and their MediaRecorder path is
 // fragile (it finally works — do not disturb it), so iOS keeps the raw camera
-// stream. Android phones also keep the raw stream (see the isAndroid note above)
-// and rely on the camera honouring the portrait aspectRatio request. Every other
-// platform (Windows / macOS / Linux / ChromeOS) has a laptop camera that ignores
-// the request, so the stream is composited into a real 9:16 canvas for both the
-// preview and the recording; otherwise the captured clip (and the recap canvas
-// that mirrors it) comes out at whatever aspect the camera hands back (often
-// 16:9/4:3) rather than Reels-size.
+// stream. Every other platform (Windows / macOS / Linux / ChromeOS / Android)
+// has its camera composited into a real 9:16 canvas for both the preview and the
+// recording; otherwise the captured clip (and everything derived from it) comes
+// out at whatever aspect the camera hands back (often 16:9/4:3) rather than
+// Reels-size.
 export function shouldUsePortraitCapture() {
-    return !isIOS() && !isAndroid;
+    return !isIOS();
 }
 
 
@@ -53,14 +50,15 @@ let recognition = null;
 let recognitionTimeout = null;
 
 function getMediaConstraints() {
-    // Android has no canvas composite (see shouldUsePortraitCapture), so it must
-    // ask the camera for a portrait frame to get Reels-size clips. Windows also
-    // asks for 9:16 — its webcam usually ignores it and the composite handles it.
-    const requestPortrait = isWindows || isAndroid;
     return {
         video: {
-            aspectRatio: { ideal: requestPortrait ? 9 / 16 : 16 / 9 },
+            // The composite (createPortraitCaptureStream) guarantees the 9:16
+            // framing, so the camera is asked for a plain 16:9 source to crop.
+            // Windows webcams report landscape regardless, so Windows still asks
+            // for 9:16 directly (the composite crops either way).
+            aspectRatio: { ideal: 16 / 9 },
             facingMode: "user",
+            ...(isWindows && { aspectRatio: { ideal: 9 / 16 } })
         },
         audio: {
             channelCount: 1,
@@ -82,16 +80,24 @@ export function safelyStopStream() {
 }
 
 /**
- * Wraps a raw (usually 16:9) camera stream in a real 1080×1920 canvas so the
- * preview and the recorded clip are always Reels-size. Each frame is
- * centre-cropped into the canvas (the same cover-fill the placeholder uses),
- * and the camera's own audio track is carried through. Returns a new stream
- * whose video track comes from the canvas.
+ * Wraps a raw (usually 16:9) camera stream in a real 9:16 canvas so the preview
+ * and the recorded clip are always Reels-size. Each frame is centre-cropped into
+ * the canvas (the same cover-fill the placeholder uses), and the camera's own
+ * audio track is carried through. Returns a new stream whose video track comes
+ * from the canvas.
+ *
+ * Phones get a lighter composite (720×1280 @ 24 fps): a 1080×1920 canvas plus a
+ * software MediaRecorder encode of it OOMs low-memory Android devices while the
+ * Whisper model is resident, and the 720p canvas keeps the same 9:16 framing at
+ * ~3× less encoder load. Desktops keep the full 1080×1920 @ 30 fps.
  */
 function createPortraitCaptureStream(rawStream) {
+    const canvasW = isAndroid ? 720 : 1080;
+    const canvasH = isAndroid ? 1280 : 1920;
+    const captureFps = isAndroid ? 24 : 30;
     const canvas = document.createElement('canvas');
-    canvas.width = 1080;
-    canvas.height = 1920;
+    canvas.width = canvasW;
+    canvas.height = canvasH;
     const ctx = canvas.getContext('2d');
 
     // Hidden element playing the raw camera stream; we sample it into the canvas.
@@ -135,10 +141,10 @@ function createPortraitCaptureStream(rawStream) {
     draw();
     compositeRawStream = rawStream;
     compositeVideoEl = video;
-    compositeDrawTimer = setInterval(draw, 1000 / 30);
+    compositeDrawTimer = setInterval(draw, 1000 / captureFps);
 
     return new MediaStream([
-        ...canvas.captureStream(30).getVideoTracks(),
+        ...canvas.captureStream(captureFps).getVideoTracks(),
         ...rawStream.getAudioTracks(),
     ]);
 }
@@ -233,9 +239,9 @@ async function ensureSpeechCamStream() {
         isPlaceholderStream = true;
     } else {
         const rawStream = await navigator.mediaDevices.getUserMedia(getMediaConstraints());
-        // Desktop (non-iOS/Android): wrap the camera in a 9:16 canvas so the
-        // preview and recording are always Reels-size. iOS/Android keep the raw
-        // camera stream unchanged.
+        // Every platform except iOS wraps the camera in a 9:16 canvas so the
+        // preview and recording are always Reels-size. iOS keeps the raw camera
+        // stream unchanged (its MediaRecorder path is fragile).
         speechCamStream = shouldUsePortraitCapture() && canvasCaptureSupported
             ? createPortraitCaptureStream(rawStream)
             : rawStream;
@@ -307,6 +313,10 @@ export function startDeferredSpeechCamRecording() {
     }
 }
 
+// On phones, always release the camera composite when recording ends — it must
+// not stay alive into transcription/Whisper (canvas + software encoder +
+// recorded blob + Whisper WASM is what OOM'd Android). `keepStreamAlive` is only
+// a warmup optimisation; the next step rebuilds the stream via warmUp.
 export function stopSpeechCamRecording({ download = true, persist = false, meta = {}, keepStreamAlive = false, playback = true, autoplay = false } = {}) {
     try {
         if (speechCamRecorder && speechCamRecorder.state !== 'inactive') {
@@ -349,8 +359,8 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
                     } finally {
                         // Clear the array safely after processing
                         speechCamChunks = [];
-                        
-                        if (!keepStreamAlive) { setWebcamStream(null); safelyStopStream(); }
+
+                        if (!keepStreamAlive || isAndroid) { setWebcamStream(null); safelyStopStream(); }
                         resolve(blobToReturn);
                     }
                 };
@@ -359,7 +369,7 @@ export function stopSpeechCamRecording({ download = true, persist = false, meta 
         } else {
             speechCamRecorder = null;
             speechCamChunks = [];
-            if (!keepStreamAlive) { setWebcamStream(null); safelyStopStream(); }
+            if (!keepStreamAlive || isAndroid) { setWebcamStream(null); safelyStopStream(); }
             else setWebcamStream(null);
             return Promise.resolve(null);
         }

@@ -45,6 +45,7 @@ import PointLossOverlay from './PointLossOverlay.jsx';
 import PlaybackVideo from './PlaybackVideo.jsx';
 import { loadNextStep as loadNextStepImpl, jumpToStep as jumpToStepImpl, replaySimpleVideo, handleTutorChatSubmit } from '../modules/lesson/lesson-progression.js';
 import { buildBranchChoiceView } from '../modules/lesson/branch-choice-logic.js';
+import { isVideoHeaderBlurVisible, videoHeaderBlurStyle } from '../modules/video/video-header-logic.js';
 import { loadLessonContent } from '../modules/lesson/lesson-loader.js';
 import { loadStep } from './step-loader.js';
 
@@ -157,6 +158,11 @@ export default function LessonContainer() {
         <>
             <SystemMessageOverlay />
             <LandscapeWarning />
+
+            {/* Blurred band sized to the video's burned-in header area */}
+            {isVideoHeaderBlurVisible(mediaState) && (
+                <div className="video-header-blur" aria-hidden="true" style={videoHeaderBlurStyle()}></div>
+            )}
 
             {/* Top Overlay */}
             <div className="top-overlay position-absolute top-0 start-0 w-100 px-3 py-2">

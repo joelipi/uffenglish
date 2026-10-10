@@ -13,7 +13,11 @@ import LegalLinks from '../legal/LegalLinks.jsx';
 export default function SaveClipsSignupForm({ onSignupSuccess, onLoginLink }) {
     const userData = useStore(appStore, (state) => state.userData);
     const guestNativeLang = useStore(appStore, (state) => state.guestNativeLanguage);
-    const storedNativeLang = userData?.native_language || guestNativeLang || 'en';
+    // Guest language is authoritative (AGENTS.md): the async profile bootstrap
+    // can write the fetched guest profile's "EN" after the guest picked Bengali,
+    // so resolving profile-first here left the form labels in English while the
+    // modal title/body (guest-first in SaveClipsModal) were Bengali.
+    const storedNativeLang = guestNativeLang || userData?.native_language || 'en';
     const lang = (storedNativeLang || 'en').split('-')[0].toLowerCase();
 
     const {

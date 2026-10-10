@@ -493,3 +493,65 @@ describe('generate-config-from-sheet — overwrite source guard', () => {
         }
     });
 });
+
+// Story 057, Task 5: the docs pin the overlay-master mapping, the informational
+// `row_purpose` column, and the friend-clip no-subtitles rule. Guards read the
+// raw source (no comment stripping) and are proven failable per token.
+describe('story 057 docs — overlay-master mapping + friend-clip rule', () => {
+    const AUTHORING_DOC = path.join(ROOT, 'docs/video-pipeline/authoring-sheet.md');
+    const PRODUCT_DOC = path.join(ROOT, 'docs/product.md');
+    const STORY_LINK = 'stories/057-branching-friend-videos-subtitles/story.md';
+
+    const assertDocs = ({ authoring, product }) => {
+        // authoring-sheet.md: the mapping section, the join/video_file grouping
+        // rule, and the informational row_purpose column.
+        expect(authoring).toContain('## Overlay master → config fields');
+        expect(authoring).toContain('a step is the `join` value when non-blank, else the `video_file`');
+        expect(authoring).toContain('| `join` else `video_file` |');
+        expect(authoring).toContain('`row_purpose`');
+        expect(authoring).toContain('ignored by the generator and translator');
+        // the friend-clip rule: a `-response-NN` step gets no app subtitles.
+        expect(authoring).toContain('A friend UGC clip gets no app `subtitles`');
+        expect(authoring).toContain('whose key ends in `-response-NN`');
+        // product.md: the app-behavior entry and the authoring entry, both linked.
+        expect(product).toContain('Friend-recorded clips never show app subtitles');
+        expect(product).toContain('Self-documenting overlay master');
+        expect(product).toContain('`row_purpose`');
+        expect(product).toContain(STORY_LINK);
+    };
+
+    const strip = (text, token) => text.split(token).join('');
+
+    it('the docs pin the mapping, the row_purpose column, and the friend-clip rule', () => {
+        expect(() => assertDocs({
+            authoring: readFileSync(AUTHORING_DOC, 'utf8'),
+            product: readFileSync(PRODUCT_DOC, 'utf8'),
+        })).not.toThrow();
+    });
+
+    it('the guard can fail on each pinned token', () => {
+        const authoring = readFileSync(AUTHORING_DOC, 'utf8');
+        const product = readFileSync(PRODUCT_DOC, 'utf8');
+        const authoringTokens = [
+            '## Overlay master → config fields',
+            'a step is the `join` value when non-blank, else the `video_file`',
+            '| `join` else `video_file` |',
+            '`row_purpose`',
+            'ignored by the generator and translator',
+            'A friend UGC clip gets no app `subtitles`',
+            'whose key ends in `-response-NN`',
+        ];
+        for (const token of authoringTokens) {
+            expect(() => assertDocs({ authoring: strip(authoring, token), product })).toThrow();
+        }
+        const productTokens = [
+            'Friend-recorded clips never show app subtitles',
+            'Self-documenting overlay master',
+            '`row_purpose`',
+            STORY_LINK,
+        ];
+        for (const token of productTokens) {
+            expect(() => assertDocs({ authoring, product: strip(product, token) })).toThrow();
+        }
+    });
+});
