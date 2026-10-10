@@ -92,8 +92,17 @@ describe('HomeLanding app-matched styling + scroll contract', () => {
         const block = homeLandingCss.slice(at, homeLandingCss.indexOf('}', at));
         expect(block).toContain('9 / 16');
         expect(block).toContain('max-width');
-        expect(block).toContain('max-height');
+        expect(block).toContain('39.375vh');
+        expect(block).not.toContain('max-height:');
         expect(block).not.toContain('16 / 10');
+    });
+
+    it('caps the showcase card so the desktop block stays compact', () => {
+        const at = homeLandingCss.indexOf('.uff-showcase-card {');
+        expect(at).toBeGreaterThan(-1);
+        const block = homeLandingCss.slice(at, homeLandingCss.indexOf('}', at));
+        expect(block).toContain('max-width');
+        expect(carousel).toContain('uff-showcase-card');
     });
 });
 

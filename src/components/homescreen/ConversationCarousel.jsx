@@ -34,7 +34,7 @@ export default function ConversationCarousel({ lang = 'en', videos = [] }) {
                     </h2>
                 </div>
 
-                <div className="card border-secondary position-relative overflow-hidden">
+                <div className="card border-secondary position-relative overflow-hidden uff-showcase-card">
                     <div className="card-body p-2 p-sm-3">
                         <div
                             data-testid="showcase-track"
