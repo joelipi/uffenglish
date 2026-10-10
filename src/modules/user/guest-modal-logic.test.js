@@ -7,6 +7,8 @@ import {
     PUBLIC_ROUTES,
     STATIC_SINGLE_SEGMENT_ROUTES,
     isPublicHomeRoute,
+    isHomepageRoute,
+    resolveHomepageLanguageAdoption,
     isProfileRoute,
     resolveGuestModalPlan,
     resolveSilentLanguageReapply,
@@ -87,6 +89,72 @@ describe('isPublicHomeRoute', () => {
 
     it('pins the public route list', () => {
         expect(PUBLIC_ROUTES).toEqual(['/', '/privacy', '/terms', '/confirm-email', '/courses']);
+    });
+});
+
+describe('isHomepageRoute', () => {
+    it('is true only for the homepage itself', () => {
+        expect(isHomepageRoute('/')).toBe(true);
+        expect(isHomepageRoute('//')).toBe(true);
+    });
+
+    it('is false for the other public routes and app routes', () => {
+        expect(isHomepageRoute('/privacy')).toBe(false);
+        expect(isHomepageRoute('/terms')).toBe(false);
+        expect(isHomepageRoute('/confirm-email')).toBe(false);
+        expect(isHomepageRoute('/courses')).toBe(false);
+        expect(isHomepageRoute('/home')).toBe(false);
+        expect(isHomepageRoute('/course/model/lesson/g')).toBe(false);
+        expect(isHomepageRoute('/abc123')).toBe(false);
+    });
+
+    it('is false for empty and non-string input', () => {
+        expect(isHomepageRoute('')).toBe(false);
+        expect(isHomepageRoute(undefined)).toBe(false);
+        expect(isHomepageRoute(null)).toBe(false);
+    });
+});
+
+describe('resolveHomepageLanguageAdoption', () => {
+    it('adopts a supported non-English browser language for an anonymous visitor', () => {
+        expect(resolveHomepageLanguageAdoption({ isLoggedIn: false, guestLang: null, detectedLang: 'ES' }))
+            .toEqual({ action: 'adopt', language: 'ES' });
+    });
+
+    it('no-ops for English (English already renders)', () => {
+        expect(resolveHomepageLanguageAdoption({ isLoggedIn: false, guestLang: null, detectedLang: 'EN' }))
+            .toEqual({ action: 'noop' });
+    });
+
+    it('no-ops for an unsupported browser language', () => {
+        expect(resolveHomepageLanguageAdoption({ isLoggedIn: false, guestLang: null, detectedLang: 'DE' }))
+            .toEqual({ action: 'noop' });
+        expect(resolveHomepageLanguageAdoption({ isLoggedIn: false, guestLang: null, detectedLang: 'JA' }))
+            .toEqual({ action: 'noop' });
+    });
+
+    it('honors an explicit supportedLangs list', () => {
+        expect(resolveHomepageLanguageAdoption({ isLoggedIn: false, guestLang: null, detectedLang: 'DE', supportedLangs: ['DE'] }))
+            .toEqual({ action: 'adopt', language: 'DE' });
+    });
+
+    it('no-ops when no language was detected', () => {
+        expect(resolveHomepageLanguageAdoption({ isLoggedIn: false, guestLang: null, detectedLang: undefined }))
+            .toEqual({ action: 'noop' });
+        expect(resolveHomepageLanguageAdoption({ isLoggedIn: false, guestLang: null, detectedLang: '' }))
+            .toEqual({ action: 'noop' });
+        expect(resolveHomepageLanguageAdoption({ isLoggedIn: false, guestLang: null, detectedLang: null }))
+            .toEqual({ action: 'noop' });
+    });
+
+    it('never adopts for a logged-in user', () => {
+        expect(resolveHomepageLanguageAdoption({ isLoggedIn: true, guestLang: null, detectedLang: 'ES' }))
+            .toEqual({ action: 'noop' });
+    });
+
+    it('never overrides an already-chosen guest language', () => {
+        expect(resolveHomepageLanguageAdoption({ isLoggedIn: false, guestLang: 'BN', detectedLang: 'ES' }))
+            .toEqual({ action: 'noop' });
     });
 });
 
