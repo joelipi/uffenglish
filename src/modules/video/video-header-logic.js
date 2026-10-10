@@ -14,12 +14,16 @@ const VIDEO_ASPECT = 9 / 16;             // width / height
 // band so it hides that burned-in header without spilling into the video body.
 // This is the single variable that ties the two together: the renderer lays the
 // header out with the same constants, and the blur layer's height is
-// `VIDEO_HEADER_RATIO * 100%` of the frame.
+// `VIDEO_HEADER_RATIO * 100%` of the frame. The banner is never drawn taller
+// than the HEADER_BAND_RATIO cap, so the width-limited height is clamped to it
+// (defensive only — on the 9:16 frames the app records the width-limited height
+// is the smaller of the two).
 const headerBannerFraction = Math.min(HEADER_BAND_RATIO, HEADER_BANNER_ASPECT * VIDEO_ASPECT);
 export const VIDEO_HEADER_RATIO = HEADER_TOP_MARGIN_RATIO + headerBannerFraction;
 
-// The blur only has something to hide while a video is behind the header; the
-// chat phase has no video and its own header must stay sharp.
+// The blur is hidden during the chat phase, where the overlay would otherwise
+// blur the chat window and there is no video behind it. Other phases keep it;
+// where no video is visible it is a harmless no-op.
 export function isVideoHeaderBlurVisible(mediaState) {
     return mediaState !== 'chat';
 }

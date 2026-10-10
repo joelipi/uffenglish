@@ -420,8 +420,9 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 /* Strongly blur the burned-in header band of the video behind the top overlay
    (progress bar + stats + mission rows) so burnt-in text cannot bleed through
    them. Its height is exactly the video's total header area — one variable
-   (--video-header-ratio, sourced from HEADER_BAND_RATIO) times the frame height
-   — so the blur covers precisely that band and nothing else. */
+   (--video-header-ratio, derived from the video-header banner + top-margin
+   constants in video-header-logic.js) times the frame height — so the blur
+   covers precisely that band and nothing else. */
 .video-header-blur {
     position: absolute;
     top: 0;
