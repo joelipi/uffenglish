@@ -20,6 +20,9 @@ function toDbColumns(meta) {
     lesson_scores: 'lesson_scores',
     lessons_completed: 'lessons_completed',
     counted_lessons: 'counted_lessons',
+    friends: 'friends',
+    referrals: 'referrals',
+    friend_owners: 'friend_owners',
     total_fluency_sum: 'total_fluency_sum',
     recent_fluency_avgs: 'recent_fluency_avgs',
     last_lesson_timestamp: 'last_lesson_timestamp',
@@ -66,6 +69,9 @@ function fromDbRow(row) {
     completed_dates: row.completed_dates || [],
     recent_fluency_avgs: row.recent_fluency_avgs || [],
     counted_lessons: row.counted_lessons || [],
+    friends: row.friends || [],
+    referrals: Number(row.referrals) || 0,
+    friend_owners: row.friend_owners || [],
   };
 }
 
@@ -294,7 +300,8 @@ export async function fetchUserByShareCode(shareCode) {
   // Pilot hardening (003): anon column grant is restricted. Query the safe
   // view when unauthenticated, full table when logged-in. Fall back to the
   // legacy table if the view does not yet exist (pre-migration deploy).
-  const SAFE_COLS = 'id,first_name,last_name,native_language,english_level,join_date,share_code,profile_picture_url,completed_dates,lessons_completed,counted_lessons,total_fluency_sum,recent_fluency_avgs,created_at,account_status,friend_links';
+  // friend_owners stays private: only the display counts are public.
+  const SAFE_COLS = 'id,first_name,last_name,native_language,english_level,join_date,share_code,profile_picture_url,completed_dates,lessons_completed,counted_lessons,total_fluency_sum,recent_fluency_avgs,created_at,account_status,friend_links,friends,referrals';
   async function queryPublicProfiles() {
     const { data, error } = await supabase.from('public_profiles').select('*').eq('share_code', shareCode).limit(1);
     if (error) throw error;
@@ -411,6 +418,30 @@ export function useRecordFriendResponseMutation() {
       console.error('🚨 useRecordFriendResponseMutation error:', error);
     },
   });
+}
+
+// Credits a friend completion to the share-link owner: appends the completer
+// to the owner's `friends`, appends the owner to the completer's
+// `friend_owners`, and bumps `referrals` when it is the completer's first
+// friend lesson ever. Server-side RPC (migration 007): RLS forbids writing
+// another user's row, the actor is derived from auth.uid(), and the write is
+// idempotent, so retries and double-fires are safe. Fail-open by contract —
+// callers must never let a credit failure break the success flow.
+export async function recordFriendCompletion({ ownerShareCode, courseId, lessonId } = {}) {
+  if (!ownerShareCode) return { recorded: false, reason: 'no-owner' };
+  try {
+    const { error } = await supabase.rpc('record_friend_completion', {
+      p_owner_share_code: ownerShareCode,
+      p_course_id: courseId,
+      p_lesson_id: lessonId,
+    });
+    if (error) throw error;
+    console.log('[friendCredit] recorded completion for owner', ownerShareCode, courseId, lessonId);
+    return { recorded: true };
+  } catch (error) {
+    console.error('🚨 recordFriendCompletion error:', error);
+    return { recorded: false, reason: 'rpc-failed' };
+  }
 }
 
 // AI functions moved to ai.js but keep re-export for compat

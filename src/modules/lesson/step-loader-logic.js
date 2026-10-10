@@ -12,6 +12,9 @@ import { loadVideoForStep } from '../video/video-loader.js';
 import { resolveConfigLanguage } from '../bilingual/config-normalizer.js';
 import { Media } from '../media/media.js';
 import { saveLessonProgress } from '../user/user-profile.js';
+import { resolveFriendCredit } from '../user/friend-credit-logic.js';
+import { stashPendingFriendCredit } from '../user/friend-credit-sync.js';
+import { recordFriendCompletion } from '../api/api.js';
 import { getCompressedLessonStats } from '../answer/scoring.js';
 import { calculateLessonAverage, detectFluencyTrend } from './success-lesson-logic.js';
 import { setTextInputSubmitCallback } from './step-loader-callbacks.js';
@@ -98,6 +101,15 @@ export function handleUnitComplete(step) {
 
 // --- Success Step Rendering ---
 
+// Mirrors the login gate in SuccessButtons (VideoButton.isUserLoggedIn): a
+// real Supabase session, not the synthetic guest object.
+function isAuthenticatedUser(userData, isLoggedIn) {
+    return !!isLoggedIn
+        && userData?.auth_method === 'supabase'
+        && !!userData?.$id
+        && userData.$id !== 'guest';
+}
+
 export function handleSuccessStep(step, fluencyData) {
     const state = appStore.getState();
     const lessonAverage = calculateLessonAverage(state);
@@ -182,4 +194,25 @@ export function handleSuccessStep(step, fluencyData) {
             state.setLessonsCompleted(progressResult.lessonsCompleted);
         }
     });
+
+    // Friend-completion credit for the share-link owner. Only genuine
+    // in-app completions qualify (the same phantom guard as the count).
+    // Authenticated completers record immediately, fail-open; guests have no
+    // user id yet, so their credit is stashed and the signup/login flush
+    // sends it once the account exists.
+    const friendCredit = resolveFriendCredit({
+        configData: state.configData,
+        lessonId: completedLessonId,
+        courseId: state.courseId,
+        ownerShareCode: state.friendCode,
+        actorShareCode: state.userData?.shareCode || state.userData?.share_code,
+        completedInApp,
+    });
+    if (friendCredit) {
+        if (isAuthenticatedUser(state.userData, state.isLoggedIn)) {
+            void recordFriendCompletion(friendCredit);
+        } else {
+            stashPendingFriendCredit(friendCredit);
+        }
+    }
 }

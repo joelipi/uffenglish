@@ -193,6 +193,12 @@ export const appStore = createStore(
             // is gating video generation. Cleared on login or "Not now"; the
             // success screen resumes generation when it flips false.
             pendingVideoCreation: false,
+            // Friend-completion credits waiting on authentication: a guest has
+            // no user id, so owner credits cannot be recorded until signup
+            // or login. Array of { ownerShareCode, courseId, lessonId },
+            // deduped by key (unique-users semantics). Persisted so credits
+            // survive a reload before the account exists.
+            pendingFriendCredits: [],
             pointLossAmount: null,
             pointLossTrigger: 0,
 
@@ -650,6 +656,7 @@ export const appStore = createStore(
             setSaveClipsModalOpen: (open) => set({ saveClipsModalOpen: open }),
             setPendingPublishLessonId: (lessonId) => set({ pendingPublishLessonId: lessonId }),
             setPendingVideoCreation: (pending) => set({ pendingVideoCreation: pending }),
+            setPendingFriendCredits: (credits) => set({ pendingFriendCredits: Array.isArray(credits) ? credits : [] }),
 
             // --- Media Viewport Actions ---
             setPraiseImageUrl: (url) => set({ praiseImageUrl: url }),
@@ -719,6 +726,7 @@ export const appStore = createStore(
                 aIMessagesToUserWordCount: state.aIMessagesToUserWordCount,
                 courseId: state.courseId,
                 friendCode: state.friendCode,
+                pendingFriendCredits: state.pendingFriendCredits,
                 guestNativeLanguage: state.guestNativeLanguage,
                 currentLessonTimestamp: state.currentLessonTimestamp,
                 lessonScores: state.lessonScores

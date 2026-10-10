@@ -6,6 +6,8 @@ import { identifyUser, trackEvent } from '../../modules/utils/posthog.js';
 import { toShortId } from '../../modules/utils/short-id.js';
 import { sendWelcomeEmail } from '../../modules/user/email-confirmation.js';
 import { guestSignupLessonCredit } from '../../modules/user/lesson-count-logic.js';
+import { calculateCurrentStreak } from '../../modules/user/user-profile.js';
+import { flushPendingFriendCredits } from '../../modules/user/friend-credit-sync.js';
 import defaultProfilePic from '../../assets/img/userprofile.png';
 
 export function useSignupForm({ onSignupSuccess, nativeLanguage: initialNativeLanguage = '' } = {}) {
@@ -59,6 +61,11 @@ export function useSignupForm({ onSignupSuccess, nativeLanguage: initialNativeLa
             if (lessonCredit.creditLesson) {
                 console.log(`[Signup] Crediting guest lesson ${lessonCredit.key} to the new account`);
             }
+            // The completion day counts too: without it the new account starts
+            // with streak 0 / 0 active days despite just finishing a lesson.
+            const signupDates = lessonCredit.creditLesson
+                ? [new Date().toLocaleDateString('en-CA')]
+                : [];
             const { error: insertError } = await supabase.from('user_profiles').insert({
                 id: user.id,
                 email: email,
@@ -68,7 +75,7 @@ export function useSignupForm({ onSignupSuccess, nativeLanguage: initialNativeLa
                 account_status: 'active',
                 native_language: nativeLanguage,
                 english_level: userLevel,
-                completed_dates: [],
+                completed_dates: signupDates,
                 share_code: shareCode,
                 ...(lessonCredit.creditLesson
                     ? { lessons_completed: lessonCredit.lessonsCompleted, counted_lessons: lessonCredit.countedLessons }
@@ -104,7 +111,7 @@ export function useSignupForm({ onSignupSuccess, nativeLanguage: initialNativeLa
                 lastName: lastName.trim(),
                 native_language: nativeLanguage,
                 english_level: userLevel,
-                completed_dates: [],
+                completed_dates: signupDates,
                 profilePictureUrl: defaultProfilePic,
                 // Keep the client-side profile in sync with the row just
                 // inserted, so a further completion in this session baselines
@@ -128,7 +135,16 @@ export function useSignupForm({ onSignupSuccess, nativeLanguage: initialNativeLa
             if (lessonCredit.creditLesson) {
                 appStore.getState().setLessonsCompleted(lessonCredit.lessonsCompleted);
                 appStore.getState().setCountedLessons(lessonCredit.countedLessons);
+                // The credited day starts the streak: the guest bootstrap never
+                // seeded activity metrics, so without this the new account shows
+                // streak 0 despite just finishing a lesson.
+                appStore.getState().setActivityMetrics(signupDates.length, calculateCurrentStreak(signupDates));
             }
+
+            // Deferred friend credit (answer 4): a guest completion stashed an
+            // owner credit that needs an account to record. Fail-open inside —
+            // never blocks the signup the user just completed.
+            void flushPendingFriendCredits();
 
             // Fire-and-forget: the welcome/confirm email is optional and must
             // never delay or fail the signup the user just completed. The
