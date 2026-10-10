@@ -1,5 +1,5 @@
 // Pure "lessons completed" counter rules. No React, no DOM, no store, no data
-// access — so the increment/idempotency rule is unit-testable in isolation and
+// access — so the counting rule is unit-testable in isolation and
 // the same rule can be reused by a native client.
 
 /**
