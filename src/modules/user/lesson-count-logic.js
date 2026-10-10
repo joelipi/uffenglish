@@ -24,6 +24,13 @@ export function lessonCompletionKey(courseId, lessonId) {
  * accounts that completed lessons before it was written are missing entries;
  * re-completing one of those lessons counts it once more. Known and accepted.
  *
+ * Note the reverse direction too: legacy rows keyed `counted_lessons` on the
+ * NEXT-lesson target (the old code keyed on the `lessonId` param, which callers
+ * always set to the next lesson), so a legacy residue key can suppress the
+ * first post-fix completion of that target lesson (`changed: false` until a
+ * different lesson completes). Each residue key was written alongside a legacy
+ * +1, so this roughly nets out the old inflation rather than compounding it.
+ *
  * @param {object} args
  * @param {string} args.courseId
  * @param {string} args.lessonId        - the lesson that was just completed

@@ -40,6 +40,7 @@ vi.mock('../../modules/user/email-confirmation.js', () => ({
 
 import { useSignupForm } from './SignupForm.jsx';
 import { appStore } from '../../modules/store/store.js';
+import { nextLessonCompletion } from '../../modules/user/lesson-count-logic.js';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -146,5 +147,37 @@ describe('signup credits the lesson a guest just completed', () => {
 
         const row = insertedRow();
         expect('lessons_completed' in row).toBe(false);
+    });
+
+    it('syncs the store counters to the credit so a multi-lesson guest does not over-count next', async () => {
+        // Guest completed A then B in-session (store holds the full guest
+        // history) and signs up on B's success screen: row becomes (1, [B]).
+        appStore.setState({
+            courseId: 'wouldyourather',
+            successLessonId: 'b',
+            lessonsCompleted: 2,
+            countedLessons: ['wouldyourather_a', 'wouldyourather_b'],
+        });
+        insertCalls.length = 0;
+
+        await submitSignup();
+
+        // The store must match the row, or the next completion would baseline
+        // off max(1, 2) + union and land on 3 with ghost key A.
+        expect(appStore.getState().lessonsCompleted).toBe(1);
+        expect(appStore.getState().countedLessons).toEqual(['wouldyourather_b']);
+
+        // Completing C next then yields exactly 2, keyed [B, C].
+        const next = nextLessonCompletion({
+            courseId: 'wouldyourather',
+            lessonId: 'c',
+            lessonsCompleted: Math.max(1, appStore.getState().lessonsCompleted),
+            countedLessons: [
+                ...['wouldyourather_b'],
+                ...appStore.getState().countedLessons,
+            ],
+        });
+        expect(next.lessonsCompleted).toBe(2);
+        expect(next.countedLessons).toEqual(['wouldyourather_b', 'wouldyourather_c']);
     });
 });

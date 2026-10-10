@@ -120,6 +120,15 @@ export function useSignupForm({ onSignupSuccess, nativeLanguage: initialNativeLa
             // still a guest (no share code, no R2 publish).
             appStore.getState().setIsLoggedIn(true);
             appStore.getState().setCourseData({ userData: profile });
+            // Sync the store counters too when a lesson was credited: the next
+            // completion baselines off max(row, store) and the union of both
+            // counted sets, so leaving the guest's full in-session values here
+            // would over-count (store 2 + row 1 -> 3) and permanently admit the
+            // pre-signup keys into the new row.
+            if (lessonCredit.creditLesson) {
+                appStore.getState().setLessonsCompleted(lessonCredit.lessonsCompleted);
+                appStore.getState().setCountedLessons(lessonCredit.countedLessons);
+            }
 
             // Fire-and-forget: the welcome/confirm email is optional and must
             // never delay or fail the signup the user just completed. The
