@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { lessonCompletionKey, nextLessonCompletion } from './lesson-count-logic.js';
+import { lessonCompletionKey, nextLessonCompletion, guestSignupLessonCredit } from './lesson-count-logic.js';
 
 describe('lessonCompletionKey', () => {
     it('joins the courseId and lessonId', () => {
@@ -81,5 +81,37 @@ describe('nextLessonCompletion', () => {
     it('coerces a non-numeric count to 0', () => {
         const out = nextLessonCompletion({ courseId: 'model', lessonId: 'm-g', lessonsCompleted: 'oops' });
         expect(out.lessonsCompleted).toBe(1);
+    });
+});
+
+describe('guestSignupLessonCredit', () => {
+    it('credits one lesson for the success screen being viewed', () => {
+        expect(guestSignupLessonCredit({ courseId: 'wouldyourather', lessonId: 'a' })).toEqual({
+            creditLesson: true,
+            lessonsCompleted: 1,
+            countedLessons: ['wouldyourather_a'],
+            key: 'wouldyourather_a',
+        });
+    });
+
+    it('credits a terminal lesson and a chained lesson alike', () => {
+        for (const lessonId of ['a', 'b', 'm-g', 'm-a']) {
+            const out = guestSignupLessonCredit({ courseId: 'c', lessonId });
+            expect(out.creditLesson).toBe(true);
+            expect(out.lessonsCompleted).toBe(1);
+            expect(out.countedLessons).toEqual([`c_${lessonId}`]);
+        }
+    });
+
+    it('credits nothing when signing up away from a success screen', () => {
+        expect(guestSignupLessonCredit({ courseId: 'wouldyourather' })).toEqual({
+            creditLesson: false, lessonsCompleted: 0, countedLessons: [], key: null,
+        });
+        expect(guestSignupLessonCredit({ lessonId: 'a' })).toEqual({
+            creditLesson: false, lessonsCompleted: 0, countedLessons: [], key: null,
+        });
+        expect(guestSignupLessonCredit()).toEqual({
+            creditLesson: false, lessonsCompleted: 0, countedLessons: [], key: null,
+        });
     });
 });

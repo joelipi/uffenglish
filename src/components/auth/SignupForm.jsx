@@ -5,6 +5,7 @@ import { appStore } from '../../modules/store/store.js';
 import { identifyUser, trackEvent } from '../../modules/utils/posthog.js';
 import { toShortId } from '../../modules/utils/short-id.js';
 import { sendWelcomeEmail } from '../../modules/user/email-confirmation.js';
+import { guestSignupLessonCredit } from '../../modules/user/lesson-count-logic.js';
 import defaultProfilePic from '../../assets/img/userprofile.png';
 
 export function useSignupForm({ onSignupSuccess, nativeLanguage: initialNativeLanguage = '' } = {}) {
@@ -46,6 +47,18 @@ export function useSignupForm({ onSignupSuccess, nativeLanguage: initialNativeLa
             }
 
             const shareCode = toShortId(Math.floor(Math.random() * 0xFFFFFF));
+            // A guest's completed lesson lives only in the store — there is no
+            // row to write it to, and the bootstrap right after signup seeds the
+            // store from that row. Credit the lesson on the success screen so the
+            // new account shows it. When signing up from anywhere else, no extra
+            // columns are written and the DB defaults apply.
+            const lessonCredit = guestSignupLessonCredit({
+                courseId: appStore.getState().courseId,
+                lessonId: appStore.getState().successLessonId,
+            });
+            if (lessonCredit.creditLesson) {
+                console.log(`[Signup] Crediting guest lesson ${lessonCredit.key} to the new account`);
+            }
             const { error: insertError } = await supabase.from('user_profiles').insert({
                 id: user.id,
                 email: email,
@@ -57,6 +70,9 @@ export function useSignupForm({ onSignupSuccess, nativeLanguage: initialNativeLa
                 english_level: userLevel,
                 completed_dates: [],
                 share_code: shareCode,
+                ...(lessonCredit.creditLesson
+                    ? { lessons_completed: lessonCredit.lessonsCompleted, counted_lessons: lessonCredit.countedLessons }
+                    : {}),
             });
             if (insertError) {
                 console.error('[Signup] Failed to create profile row:', insertError);
@@ -90,6 +106,12 @@ export function useSignupForm({ onSignupSuccess, nativeLanguage: initialNativeLa
                 english_level: userLevel,
                 completed_dates: [],
                 profilePictureUrl: defaultProfilePic,
+                // Keep the client-side profile in sync with the row just
+                // inserted, so a further completion in this session baselines
+                // off 1 instead of the store's guest value.
+                ...(lessonCredit.creditLesson
+                    ? { lessons_completed: lessonCredit.lessonsCompleted, counted_lessons: lessonCredit.countedLessons }
+                    : {}),
             };
             queryClient.setQueryData(['user', 'profile'], profile);
             // Sync the Zustand store too: useAppBootstrap only writes isLoggedIn /

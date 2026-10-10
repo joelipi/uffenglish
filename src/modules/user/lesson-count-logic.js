@@ -43,3 +43,32 @@ export function nextLessonCompletion({ courseId, lessonId, lessonsCompleted = 0,
     counted.push(key);
     return { lessonsCompleted: current + 1, countedLessons: counted, key, changed: true };
 }
+
+/**
+ * Lesson-count columns to seed into a brand-new profile row.
+ *
+ * A guest's completion only ever reaches the Zustand store: `syncUserMetaData`
+ * skips guests, and the bootstrap that runs after signup seeds the store from
+ * the new row — so the lesson the guest just finished would be silently lost.
+ * This credits exactly the lesson whose success screen is showing, so their new
+ * account starts at one completed lesson.
+ *
+ * Deliberately credits only `lessonId` (not the guest's whole local set): the
+ * persisted `countedLessons` can hold entries from a previous account on the
+ * same browser, and a guest who finished more than one lesson is caught up by
+ * the absolute write of their next completion. Callers from outside the success
+ * screen pass no `lessonId` and get no extra columns, so the column defaults
+ * (migration 001: `lessons_completed 0`) still apply.
+ *
+ * @param {object} args
+ * @param {string} args.courseId - store courseId (the config basename)
+ * @param {string} args.lessonId - store successLessonId
+ * @returns {{ creditLesson: boolean, lessonsCompleted: number, countedLessons: string[], key: string|null }}
+ */
+export function guestSignupLessonCredit({ courseId, lessonId } = {}) {
+    const key = lessonCompletionKey(courseId, lessonId);
+    if (!key) {
+        return { creditLesson: false, lessonsCompleted: 0, countedLessons: [], key: null };
+    }
+    return { creditLesson: true, lessonsCompleted: 1, countedLessons: [key], key };
+}
