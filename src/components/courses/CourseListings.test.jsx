@@ -101,4 +101,45 @@ describe('CourseListings', () => {
         expect(container.querySelector('[data-testid="friend-courses-heading"]')).not.toBeNull();
         expect(container.querySelector('[data-testid="friend-courses-steps"]')).not.toBeNull();
     });
+
+    it('renders no hero banner or mission dropdown without that metadata', () => {
+        root = render(container, { courses: COURSES });
+
+        expect(container.querySelectorAll('[data-testid="course-hero"]')).toHaveLength(0);
+        expect(container.querySelectorAll('[data-testid="course-mission"]')).toHaveLength(0);
+    });
+
+    it('renders the hero banner when a course carries a hero image', () => {
+        root = render(container, {
+            courses: [
+                { courseId: 'friend', courseName: 'Friend', lessonCount: 2, firstLessonId: 'a', mission: null, heroImage: 'https://img/hero.jpg' },
+            ],
+        });
+
+        const hero = container.querySelector('[data-testid="course-hero"]');
+        expect(hero).not.toBeNull();
+        expect(hero.tagName).toBe('IMG');
+        expect(hero.getAttribute('src')).toBe('https://img/hero.jpg');
+        expect(hero.getAttribute('alt')).toBe('Friend');
+    });
+
+    it('renders the mission dropdown when a course carries mission metadata', () => {
+        root = render(container, {
+            courses: [
+                {
+                    courseId: 'friend',
+                    courseName: 'Friend',
+                    lessonCount: 2,
+                    firstLessonId: 'a',
+                    mission: { mission: { en: 'Ask questions' }, setting: { en: 'Park' } },
+                    heroImage: null,
+                },
+            ],
+        });
+
+        const dropdown = container.querySelector('[data-testid="course-mission"]');
+        expect(dropdown).not.toBeNull();
+        expect(dropdown.textContent).toContain('Ask questions');
+        expect(dropdown.textContent).toContain('Park');
+    });
 });

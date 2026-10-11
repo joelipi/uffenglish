@@ -1,6 +1,7 @@
 import React from 'react';
 import Strings from '../../data/strings.js';
 import { buildCourseStartHref, buildCourseListView } from '../../modules/courses/friend-courses-logic.js';
+import CourseMissionDropdown from './CourseMissionDropdown.jsx';
 
 const cardStyle = {
     backgroundColor: '#1a3a5a',
@@ -61,10 +62,19 @@ export default function FriendCoursesView({ lang = 'en', courses, isLoading = fa
                             <h2 style={{ fontSize: '20px', fontWeight: 700, margin: 0, marginBottom: '8px' }}>
                                 {course.courseName}
                             </h2>
+                            {course.heroImage && (
+                                <img
+                                    data-testid="course-hero"
+                                    src={course.heroImage}
+                                    alt={course.courseName}
+                                    style={{ width: '100%', aspectRatio: '16 / 9', objectFit: 'cover', borderRadius: '8px', marginBottom: '12px', display: 'block' }}
+                                />
+                            )}
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#adb5bd', fontSize: '14px' }}>
                                 <i className="bi bi-journal-text"></i>
                                 <span>{Strings.get('friend_courses_lesson_count', lang, { count: course.lessonCount })}</span>
                             </div>
+                            <CourseMissionDropdown lang={lang} mission={course.mission} />
                         </a>
                     ))}
                 </div>

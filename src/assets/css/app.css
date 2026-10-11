@@ -570,7 +570,8 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 .mission-text,
 .setting-text,
 .roleUser-text,
-.roleOther-text {
+.roleOther-text,
+.course-meta-text {
     color: #fff;
     font-size: 1rem;
     font-weight: 500;

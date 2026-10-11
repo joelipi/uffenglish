@@ -4,6 +4,14 @@
 // ping-pong chain lessons). The `test.json` fixture also contains shareCta
 // lessons but is reserved for testing, so it is excluded by id. No DOM, no
 // store, no data access — fully unit-testable.
+//
+// Optional course metadata (all rendered on the course cards of `/courses`
+// and `/home`, nothing renders when absent):
+// - `courseMission`: a top-level `{ key: translation }` map (mission,
+//   setting, roles, and any future course-metadata keys) for the course
+//   mission dropdown. When absent, the dropdown falls back to the first
+//   shareCta lesson's `mission`/`setting`/`roleUser`/`roleOther`.
+// - `courseHeroImage`: a top-level image URL string for the card banner.
 
 // Config ids whose shareCta lessons must never surface to users. `test.json`
 // is the designated never-user-visible fixture.
@@ -32,6 +40,36 @@ export function firstFriendLessonId(config) {
     return lesson && typeof lesson.lessonId === 'string' && lesson.lessonId ? lesson.lessonId : null;
 }
 
+// Lesson keys used for the mission fallback, in dropdown row order. Kept in
+// sync with the live lesson MissionSection rows.
+export const COURSE_MISSION_FALLBACK_KEYS = ['mission', 'setting', 'roleUser', 'roleOther'];
+
+// The course mission dropdown content: a `{ key: translation }` map, or null
+// when the course has nothing to show. Prefers the top-level `courseMission`
+// metadata block; otherwise falls back to the first shareCta lesson's
+// mission/setting/roles. Future course-metadata keys pass through untouched.
+export function courseMissionFor(config) {
+    const top = config && typeof config === 'object' ? config.courseMission : undefined;
+    if (top && typeof top === 'object' && !Array.isArray(top)) {
+        const entries = Object.entries(top).filter(([, value]) => !!value);
+        return entries.length > 0 ? Object.fromEntries(entries) : null;
+    }
+    if (!config || !Array.isArray(config.lessons)) return null;
+    const lesson = config.lessons.find(isFriendLesson);
+    if (!lesson) return null;
+    const entries = COURSE_MISSION_FALLBACK_KEYS
+        .filter((key) => !!lesson[key])
+        .map((key) => [key, lesson[key]]);
+    return entries.length > 0 ? Object.fromEntries(entries) : null;
+}
+
+// The course hero image URL, or null when the config carries none. Blank and
+// non-string values render no banner.
+export function courseHeroImageFor(config) {
+    const url = config && typeof config === 'object' ? config.courseHeroImage : undefined;
+    return typeof url === 'string' && url.trim() !== '' ? url : null;
+}
+
 // The in-app URL that starts a course at its first friend lesson. `courseId` is
 // the config FILE basename (AppLayout fetches `/src/config/<courseId>.json`),
 // never `config.courseId` (friend.json/test.json carry a non-file id).
@@ -42,7 +80,7 @@ export function buildCourseStartHref(courseId, lessonId) {
 /**
  * Filter and shape friend courses for the listings page.
  * @param {Array<{ courseId: string, config: object }>} entries - config basename + parsed config
- * @returns {Array<{ courseId: string, courseName: string, lessonCount: number, firstLessonId: string }>}
+ * @returns {Array<{ courseId: string, courseName: string, lessonCount: number, firstLessonId: string, mission: object|null, heroImage: string|null }>}
  *          sorted by courseId ascending.
  */
 export function listFriendCourses(entries) {
@@ -58,6 +96,8 @@ export function listFriendCourses(entries) {
                 : e.courseId,
             lessonCount: e.config.lessons.length,
             firstLessonId: firstFriendLessonId(e.config),
+            mission: courseMissionFor(e.config),
+            heroImage: courseHeroImageFor(e.config),
         }))
         .filter((c) => !!c.firstLessonId)
         .sort((a, b) => (a.courseId < b.courseId ? -1 : a.courseId > b.courseId ? 1 : 0));
