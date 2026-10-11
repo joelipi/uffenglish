@@ -617,6 +617,14 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     transition: transform 0.3s ease;
 }
 
+/* Course-card mission dropdown: labels align with the top of their text rows.
+   The shared expanded grid centers labels against multi-line text, which reads
+   chaotic on course rows. Scoped to course cards — the live lesson
+   MissionSection keeps its own alignment. */
+.mission-section.course-mission.expanded .mission-row div.d-flex {
+    align-items: start;
+}
+
 /*
  * !!! WARNING — DO NOT REMOVE align-items: flex-end !!!
  * Buttons inside this container and its children (AnswerInput,

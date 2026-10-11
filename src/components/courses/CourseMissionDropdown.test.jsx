@@ -77,15 +77,15 @@ describe('CourseMissionDropdown', () => {
         expect(icons).toEqual(['bi bi-bullseye', 'bi bi-people']);
     });
 
-    it('renders future metadata keys with a fallback icon, key label and styled text', () => {
+    it('renders future metadata keys with the key code instead of an icon', () => {
         root = render(container, { mission: { mission: { en: 'Ask' }, voice: { en: 'Audio' } } });
         const dropdown = container.querySelector('[data-testid="course-mission"]');
         expect(dropdown.textContent).toContain('Audio');
-        const labels = Array.from(dropdown.querySelectorAll('.mission-label i'));
-        expect(labels[labels.length - 1].className).toBe('bi bi-info-circle');
+        expect(dropdown.querySelectorAll('.mission-label i')).toHaveLength(1);
         const keyLabel = dropdown.querySelector('.course-meta-key');
         expect(keyLabel).not.toBeNull();
         expect(keyLabel.textContent).toBe('voice');
+        expect(keyLabel.querySelector('i')).toBeNull();
         expect(dropdown.querySelector('.course-meta-text')).not.toBeNull();
         expect(dropdown.querySelector('.course-meta-text').textContent).toContain('Audio');
     });
@@ -150,5 +150,17 @@ describe('course mission dropdown styling', () => {
         for (const declaration of ['color: #fff', 'font-size: 1rem', 'font-weight: 500', 'line-height: 1']) {
             expect(block, `missing ${declaration}`).toContain(declaration);
         }
+    });
+
+    it('top-aligns course-card labels with their text rows without touching the lesson rule', () => {
+        const css = readFileSync(path.join(__dirname, '../../assets/css/app.css'), 'utf8');
+        const start = css.indexOf('.mission-section.course-mission');
+        expect(start).toBeGreaterThan(-1);
+        const block = css.slice(start, css.indexOf('}', start));
+        expect(block).toContain('align-items: start');
+        const lessonStart = css.indexOf('.mission-section.expanded .mission-row div.d-flex');
+        expect(lessonStart).toBeGreaterThan(-1);
+        const lessonBlock = css.slice(lessonStart, css.indexOf('}', lessonStart));
+        expect(lessonBlock).toContain('align-items: center');
     });
 });
