@@ -7,9 +7,11 @@
 //
 // Course hero images also resolve here: a config's `courseHeroImage` is either
 // a deployable URL (absolute http(s) or root path, e.g. future R2 media —
-// passed through) or a source-tree asset reference resolved by basename
-// against the Vite-bundled `src/assets/img/` files (committed imagery, so the
-// no-media-under-public/ guard stays green and the URL works in dev and prod).
+// passed through) or a source-tree asset reference (`src/...` form) resolved
+// by basename against the Vite-bundled `src/assets/img/` files (committed
+// imagery, so the no-media-under-public/ guard stays green and the URL works
+// in dev and prod). A leading-slash source path (`/src/...`) is NOT resolved
+// (it passes through as a root URL and 404s).
 
 const configModules = import.meta.glob('../../config/*.json');
 

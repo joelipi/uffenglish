@@ -621,9 +621,7 @@ describe('lesson level patterns (a1..c1) and courseMission', () => {
         });
     });
 
-    it('emits the checked-in wouldyourather courseMission from its sheet state', () => {
-        const real = JSON.parse(readFileSync(
-            path.join(__dirname, '../../src/config/wouldyourather.json'), 'utf8'));
+    it('maps sheet level columns to lesson keys and courseMission keys', () => {
         const config = buildCourseConfig([{
             course_id: 'wouldyourather', course_name: 'Preferences in English A1➡B2',
             lesson_id: 'a', lesson_title: 'Ask',
@@ -635,9 +633,42 @@ describe('lesson level patterns (a1..c1) and courseMission', () => {
             c1: 'if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]',
             video_file: 'v', filename: 'f1', order: '1', response_type: 'viewAndContinue',
         }]);
-        expect(config.courseMission).toEqual(real.courseMission);
-        expect(config.lessons[0].a1).toEqual(real.lessons[0].a1);
-        expect(config.lessons[0].c1).toEqual(real.lessons[0].c1);
+        expect(config.courseMission).toEqual({
+            mission: { en: 'talk about preferences between 2-3 options' },
+            A1: { en: 'X or Y' },
+            A2: { en: 'which is better, noun X or noun Y' },
+            B1: { en: 'would rather + [verb stem X] or [verb stem Y]' },
+            B2: { en: 'given the choice between [gerund verb X] and [gerund verb Y]' },
+            C1: { en: 'if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]' },
+        });
+        expect(config.lessons[0].a1).toEqual({ en: 'X or Y' });
+        expect(config.lessons[0].c1).toEqual({
+            en: 'if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]',
+        });
+    });
+
+    // The checked-in wouldyourather courseMission carries the specified
+    // course-level copy ("...between 2-3 options"), which intentionally
+    // differs from lesson a's own mission ("talk about preferences"). The
+    // generator mapping above is identity, so this file is reproducible once
+    // the sheet's lesson-a mission/a1..c1 cells carry this text (pre-translate,
+    // English-only); until that sheet update lands, regenerating from the
+    // current sheet would revert courseMission.mission to the lesson text.
+    it('checked-in wouldyourather courseMission carries the specified course copy', () => {
+        const real = JSON.parse(readFileSync(
+            path.join(__dirname, '../../src/config/wouldyourather.json'), 'utf8'));
+        expect(real.courseMission).toEqual({
+            mission: { en: 'talk about preferences between 2-3 options' },
+            A1: { en: 'X or Y' },
+            A2: { en: 'which is better, noun X or noun Y' },
+            B1: { en: 'would rather + [verb stem X] or [verb stem Y]' },
+            B2: { en: 'given the choice between [gerund verb X] and [gerund verb Y]' },
+            C1: { en: 'if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]' },
+        });
+        expect(real.lessons[0].a1).toEqual({ en: 'X or Y' });
+        expect(real.lessons[0].c1).toEqual({
+            en: 'if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]',
+        });
     });
 });
 
