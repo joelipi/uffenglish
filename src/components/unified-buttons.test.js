@@ -1,13 +1,13 @@
 // src/components/unified-buttons.test.js
 // Source guards for the unified button style. Every solid button shares one
-// basic style (white background, black icon/text, overlay shadow) and differs
-// only by shape; the overlay border (1px solid #ffffff, as on
-// .branch-choice-btn) appears ONLY on the primary button in a row of 2 or
-// more, or on the only button in its row (e.g. the homepage CTAs). Round
-// buttons opt into the border with the explicit `btn-row-primary` class;
-// rectangular solid CTAs are single-or-primary by construction, so their own
-// rules carry the border directly. Each guard slices the specific block it
-// protects (never the whole file, never to EOF) and asserts every property.
+// basic style (white background, black icon/text, overlay shadow, all
+// single-sourced from the --uff-btn-* tokens) and differs only by shape; the
+// overlay border appears ONLY on the primary button in a row of 2 or more, or
+// on the only button in its row (e.g. the homepage CTAs). Round buttons opt
+// into the border with the explicit `btn-row-primary` class; rectangular solid
+// CTAs are single-or-primary by construction, so their own rules carry the
+// border directly. Each guard slices the specific block it protects (never the
+// whole file, never to EOF) and asserts every property.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -20,30 +20,50 @@ function read(rel) {
     return readFileSync(path.join(ROOT, rel), 'utf8');
 }
 
-// A CSS rule block from its selector to the matching closing brace.
+// A CSS rule block from its line-start selector to the closing brace.
+// Anchored with '\n' so `.call-btn {` cannot match `.call-btn:hover {`.
 function cssBlock(src, selector) {
-    const start = src.indexOf(selector);
+    const start = src.indexOf(`\n${selector}`);
     expect(start, `missing ${selector}`).toBeGreaterThan(-1);
     const end = src.indexOf('}', start);
     return src.slice(start, end + 1);
 }
 
 // The full `<button …>` tag containing a marker (id or icon token),
-// regardless of attribute order.
-function buttonTagBefore(src, marker) {
+// regardless of attribute order. The end is scanned quote- and brace-aware
+// so a `>` inside `onClick={() => ...}` cannot truncate the slice.
+function buttonTag(src, marker) {
     const pos = src.indexOf(marker);
     expect(pos, `missing ${marker}`).toBeGreaterThan(-1);
     const tagStart = src.lastIndexOf('<button', pos);
     expect(tagStart, `no <button before ${marker}`).toBeGreaterThan(-1);
-    const tagEnd = src.indexOf('>', tagStart);
-    expect(tagEnd, `unterminated <button before ${marker}`).toBeGreaterThan(-1);
-    return src.slice(tagStart, tagEnd + 1);
+    let i = tagStart;
+    let quote = null;
+    let depth = 0;
+    for (; i < src.length; i += 1) {
+        const ch = src[i];
+        if (quote) {
+            if (ch === quote) quote = null;
+        } else if (ch === '"' || ch === "'") {
+            quote = ch;
+        } else if (ch === '{') {
+            depth += 1;
+        } else if (ch === '}') {
+            depth -= 1;
+        } else if (ch === '>' && depth === 0) {
+            break;
+        }
+    }
+    expect(i, `unterminated <button before ${marker}`).toBeLessThan(src.length);
+    const tag = src.slice(tagStart, i + 1);
+    expect(tag, `tag slice for ${marker} misses the marker`).toContain(marker);
+    return tag;
 }
 
 describe('unified button tokens and round base', () => {
     const css = read('src/assets/css/app.css');
 
-    it('single-sources the shared button values', () => {
+    it('single-sources the shared button values and consumes them', () => {
         const start = css.indexOf('UNIFIED BUTTONS');
         expect(start, 'missing UNIFIED BUTTONS section').toBeGreaterThan(-1);
         const block = css.slice(start, css.indexOf('}', start) + 1);
@@ -51,153 +71,167 @@ describe('unified button tokens and round base', () => {
         expect(block).toContain('--uff-btn-fg: #1a1a1a');
         expect(block).toContain('--uff-btn-border: 1px solid #ffffff');
         expect(block).toMatch(/--uff-btn-shadow:\s*0 10px 25px rgba\(0, 0, 0, 0\.2\)/);
+        // The tokens must be consumed, not just defined.
+        for (const token of ['var(--uff-btn-bg)', 'var(--uff-btn-fg)', 'var(--uff-btn-border)', 'var(--uff-btn-shadow)']) {
+            const first = css.indexOf(token);
+            expect(first, `unused ${token}`).toBeGreaterThan(-1);
+            expect(css.indexOf(token, first + 1), `used only once: ${token}`).toBeGreaterThan(-1);
+        }
     });
 
-    it('keeps round buttons borderless by default with the shared white/black style', () => {
+    it('keeps round buttons borderless by default in the shared token style', () => {
         const shared = cssBlock(css, '.call-btn,\n.call-icon {');
         expect(shared).toContain('border-radius: 50% !important');
         expect(shared).toContain('border: none !important');
         const btn = cssBlock(css, '.call-btn {');
-        expect(btn).toContain('background-color: #ffffff !important');
-        expect(btn).toContain('color: #1a1a1a !important');
-        expect(btn).toMatch(/box-shadow:\s*0 10px 25px rgba\(0, 0, 0, 0\.2\)/);
+        expect(btn).toContain('background-color: var(--uff-btn-bg) !important');
+        expect(btn).toContain('color: var(--uff-btn-fg) !important');
+        expect(btn).toContain('box-shadow: var(--uff-btn-shadow)');
     });
 
-    it('gives mode icons the same white/black basic style without a border', () => {
+    it('gives mode icons the same token style without a border', () => {
         // The standalone rule (not the shared `.call-btn, .call-icon` block):
         // anchor on its unique first declaration.
-        const icon = cssBlock(css, '.call-icon {\n    background-color: #ffffff !important;');
-        expect(icon).toContain('color: #1a1a1a !important');
-        expect(icon).toMatch(/box-shadow:\s*0 10px 25px rgba\(0, 0, 0, 0\.2\) !important/);
+        const icon = cssBlock(css, '.call-icon {\n    background-color: var(--uff-btn-bg) !important;');
+        expect(icon).toContain('color: var(--uff-btn-fg) !important');
+        expect(icon).toContain('box-shadow: var(--uff-btn-shadow) !important');
         expect(icon).not.toContain('transparent');
     });
 
     it('reserves the overlay border for the row-primary marker', () => {
         const marker = cssBlock(css, '.btn-row-primary {');
-        expect(marker).toContain('border: 1px solid #ffffff');
+        expect(marker).toContain('border: var(--uff-btn-border)');
     });
 });
 
 describe('rectangular CTAs carry the overlay border', () => {
     const css = read('src/assets/css/app.css');
 
-    it('paints solid theme buttons white with the overlay border', () => {
+    it('paints solid theme buttons from the tokens', () => {
         for (const selector of ['.btn-primary {', '.btn-secondary {', '.btn-success {']) {
             const block = cssBlock(css, selector);
-            expect(block).toContain('--bs-btn-bg: #ffffff');
-            expect(block).toContain('--bs-btn-color: #1a1a1a');
-            expect(block).toContain('--bs-btn-border-color: #ffffff');
-            expect(block).toMatch(/box-shadow:\s*0 10px 25px rgba\(0, 0, 0, 0\.2\)/);
+            expect(block).toContain('--bs-btn-bg: var(--uff-btn-bg)');
+            expect(block).toContain('--bs-btn-color: var(--uff-btn-fg)');
+            expect(block).toContain('--bs-btn-border-color: var(--uff-btn-bg)');
+            expect(block).toContain('box-shadow: var(--uff-btn-shadow)');
         }
     });
 
-    it('keeps the overlay reference button white with a rounded-corner border', () => {
+    it('keeps the overlay reference button token-styled with rounded corners', () => {
         const btn = cssBlock(css, '.branch-choice-btn {');
-        expect(btn).toMatch(/background:\s*#ffffff/);
-        expect(btn).toContain('border: 1px solid #ffffff');
+        expect(btn).toContain('background: var(--uff-btn-bg)');
+        expect(btn).toContain('border: var(--uff-btn-border)');
+        expect(btn).toContain('color: var(--uff-btn-fg)');
         expect(btn).toContain('border-radius: 8px');
-        expect(btn).toMatch(/box-shadow:\s*0 10px 25px rgba\(0, 0, 0, 0\.2\)/);
+        expect(btn).toContain('box-shadow: var(--uff-btn-shadow)');
+        const hover = cssBlock(css, '.branch-choice-btn:hover');
+        expect(hover).toContain('background: var(--uff-btn-bg)');
+        expect(hover).toContain('color: var(--uff-btn-fg)');
     });
 
-    it('borders the single-button round actions', () => {
+    it('borders the single-button round actions from the tokens', () => {
         const submit = cssBlock(css, '#answer-submit-button {');
-        expect(submit).toContain('background-color: #ffffff !important');
-        expect(submit).toContain('border: 1px solid #ffffff !important');
+        expect(submit).toContain('background-color: var(--uff-btn-bg) !important');
+        expect(submit).toContain('border: var(--uff-btn-border) !important');
         expect(submit).toContain('border-radius: 50% !important');
         const incoming = cssBlock(css, '.incoming-video-btn {');
-        expect(incoming).toContain('background-color: #ffffff');
-        expect(incoming).toContain('border: 1px solid #ffffff');
+        expect(incoming).toContain('background-color: var(--uff-btn-bg)');
+        expect(incoming).toContain('border: var(--uff-btn-border)');
+        expect(incoming).toContain('color: var(--uff-btn-fg)');
         expect(incoming).toContain('border-radius: 50%');
+        expect(incoming).toContain('box-shadow: var(--uff-btn-shadow)');
     });
 });
 
 describe('homepage buttons follow the single-or-primary border rule', () => {
     const css = read('src/components/homescreen/home-landing.css');
 
-    it('borders the single-call actions with rounded corners or round shape', () => {
+    it('borders the single-call actions from the tokens', () => {
         const primary = cssBlock(css, '.uff-home-bs .btn-uff-primary {');
-        expect(primary).toContain('background-color: #ffffff');
-        expect(primary).toContain('border: 1px solid #ffffff');
+        expect(primary).toContain('background-color: var(--uff-btn-bg)');
+        expect(primary).toContain('border: var(--uff-btn-border)');
+        expect(primary).toContain('color: var(--uff-btn-fg)');
         expect(primary).toContain('border-radius: 8px');
         const topbar = cssBlock(css, '.uff-home-bs .btn-uff-topbar {');
-        expect(topbar).toContain('background-color: #ffffff');
-        expect(topbar).toContain('border: 1px solid #ffffff');
+        expect(topbar).toContain('background-color: var(--uff-btn-bg)');
+        expect(topbar).toContain('border: var(--uff-btn-border)');
         const play = cssBlock(css, '.uff-carousel-play {');
-        expect(play).toContain('background: #ffffff');
-        expect(play).toContain('border: 1px solid #ffffff');
+        expect(play).toContain('background: var(--uff-btn-bg)');
+        expect(play).toContain('border: var(--uff-btn-border)');
         expect(play).toContain('border-radius: 50%');
     });
 
-    it('keeps the equal-pair carousel nav borderless in the shared white/black style', () => {
+    it('keeps the equal-pair carousel nav borderless in the shared token style', () => {
         const nav = cssBlock(css, '.uff-carousel-nav {');
-        expect(nav).toContain('background: #ffffff');
-        expect(nav).toContain('color: #1a1a1a');
+        expect(nav).toContain('background: var(--uff-btn-bg)');
+        expect(nav).toContain('color: var(--uff-btn-fg)');
         expect(nav).toContain('border-radius: 50%');
         expect(nav).toContain('border: none');
-        expect(nav).not.toContain('1px solid #ffffff');
+        expect(nav).not.toContain('var(--uff-btn-border)');
         expect(nav).not.toContain('rgba(11, 26, 42');
     });
 });
 
+const MARKED = [
+    ['src/components/widgets/ViewAndContinueButtons.jsx', 'id="continueBtn"'],
+    ['src/components/widgets/IntroChoices.jsx', 'id="continueButton"'],
+    ['src/components/widgets/SuccessButtons.jsx', 'id="processBtn"'],
+    ['src/components/widgets/SuccessButtons.jsx', 'id="createVideoButton"'],
+    ['src/components/widgets/ResponseDecisionButtons.jsx', 'id="responseAnswerBtn"'],
+    ['src/components/widgets/ResponseDecisionButtons.jsx', 'id="responseTxtBtn"'],
+    ['src/components/widgets/MicrophoneToggle.web.jsx', 'id="micBtn"'],
+    ['src/components/widgets/MicrophoneToggle.web.jsx', 'id="txtBtn"'],
+    ['src/components/widgets/DecisionButtons.jsx', 'id="micBtn"'],
+    ['src/components/widgets/DecisionButtons.jsx', 'id="txtBtn"'],
+    ['src/components/LessonContainer.jsx', 'phaseData?.onAccept'],
+    ['src/components/widgets/TutorialModal.jsx', 'marginTop: 8'],
+];
+
+const UNMARKED = [
+    ['src/components/widgets/ViewAndContinueButtons.jsx', 'id="replayBtn"'],
+    ['src/components/widgets/ViewAndContinueButtons.jsx', 'id="tutorialBtn"'],
+    ['src/components/widgets/BranchChoiceButtons.jsx', 'id="branchReplayBtn"'],
+    ['src/components/widgets/BranchChoiceButtons.jsx', 'id="branchTutorialBtn"'],
+    ['src/components/widgets/ResponseDecisionButtons.jsx', 'id="responseReplayBtn"'],
+    ['src/components/widgets/ResponseDecisionButtons.jsx', 'id="responseTutorialBtn"'],
+    ['src/components/widgets/IntroChoices.jsx', 'id="audioOnlyButton"'],
+    ['src/components/widgets/IntroChoices.jsx', 'id="textOnlyButton"'],
+    ['src/components/widgets/DecisionButtons.jsx', 'id="earBtn"'],
+    ['src/components/widgets/SuccessButtons.jsx', 'id="repeatButtonSuccess"'],
+    ['src/components/widgets/SuccessButtons.jsx', 'id="continueButtonSuccess"'],
+    ['src/components/LessonContainer.jsx', 'phaseData?.onReject'],
+];
+
 describe('round primaries are marked, secondaries are not', () => {
-    it('marks the primary round button in each multi-button row', () => {
-        expect(buttonTagBefore(read('src/components/widgets/ViewAndContinueButtons.jsx'), 'id="continueBtn"')).toContain('btn-row-primary');
-        expect(buttonTagBefore(read('src/components/widgets/IntroChoices.jsx'), 'id="continueButton"')).toContain('btn-row-primary');
-        const success = read('src/components/widgets/SuccessButtons.jsx');
-        expect(buttonTagBefore(success, 'id="processBtn"')).toContain('btn-row-primary');
-        expect(buttonTagBefore(success, 'id="createVideoButton"')).toContain('btn-row-primary');
-        const response = read('src/components/widgets/ResponseDecisionButtons.jsx');
-        expect(buttonTagBefore(response, 'id="responseAnswerBtn"')).toContain('btn-row-primary');
-        expect(buttonTagBefore(response, 'id="responseTxtBtn"')).toContain('btn-row-primary');
-        const mic = read('src/components/widgets/MicrophoneToggle.web.jsx');
-        expect(buttonTagBefore(mic, 'id="micBtn"')).toContain('btn-row-primary');
-        expect(buttonTagBefore(mic, 'id="txtBtn"')).toContain('btn-row-primary');
-        const decision = read('src/components/widgets/DecisionButtons.jsx');
-        expect(buttonTagBefore(decision, 'id="micBtn"')).toContain('btn-row-primary');
-        expect(buttonTagBefore(decision, 'id="txtBtn"')).toContain('btn-row-primary');
-        expect(buttonTagBefore(read('src/components/LessonContainer.jsx'), 'phaseData?.onAccept')).toContain('btn-row-primary');
-        expect(buttonTagBefore(read('src/components/widgets/TutorialModal.jsx'), 'bi bi-x-lg me-2')).toContain('btn-row-primary');
+    it.each(MARKED)('marks %s :: %s', (file, marker) => {
+        expect(buttonTag(read(file), marker)).toContain('btn-row-primary');
     });
 
-    it('leaves secondary round buttons borderless', () => {
-        expect(buttonTagBefore(read('src/components/widgets/ViewAndContinueButtons.jsx'), 'id="replayBtn"')).not.toContain('btn-row-primary');
-        expect(buttonTagBefore(read('src/components/widgets/ViewAndContinueButtons.jsx'), 'id="tutorialBtn"')).not.toContain('btn-row-primary');
-        const branch = read('src/components/widgets/BranchChoiceButtons.jsx');
-        expect(buttonTagBefore(branch, 'id="branchReplayBtn"')).not.toContain('btn-row-primary');
-        expect(buttonTagBefore(branch, 'id="branchTutorialBtn"')).not.toContain('btn-row-primary');
-        const response = read('src/components/widgets/ResponseDecisionButtons.jsx');
-        expect(buttonTagBefore(response, 'id="responseReplayBtn"')).not.toContain('btn-row-primary');
-        expect(buttonTagBefore(response, 'id="responseTutorialBtn"')).not.toContain('btn-row-primary');
-        const intro = read('src/components/widgets/IntroChoices.jsx');
-        expect(buttonTagBefore(intro, 'id="audioOnlyButton"')).not.toContain('btn-row-primary');
-        expect(buttonTagBefore(intro, 'id="textOnlyButton"')).not.toContain('btn-row-primary');
-        expect(buttonTagBefore(read('src/components/widgets/DecisionButtons.jsx'), 'id="earBtn"')).not.toContain('btn-row-primary');
-        const success = read('src/components/widgets/SuccessButtons.jsx');
-        expect(buttonTagBefore(success, 'id="repeatButtonSuccess"')).not.toContain('btn-row-primary');
-        expect(buttonTagBefore(success, 'id="continueButtonSuccess"')).not.toContain('btn-row-primary');
-        expect(buttonTagBefore(read('src/components/LessonContainer.jsx'), 'phaseData?.onReject')).not.toContain('btn-row-primary');
+    it.each(UNMARKED)('leaves %s :: %s borderless', (file, marker) => {
+        expect(buttonTag(read(file), marker)).not.toContain('btn-row-primary');
     });
 });
 
 describe('inline CTA styles match the unified bordered treatment', () => {
-    it('styles the home continue button white with the overlay border', () => {
+    it('styles the home continue button from the tokens', () => {
         const src = read('src/components/homescreen/HomeScreen.jsx');
         const start = src.indexOf('const continueBtnStyle');
         expect(start, 'missing continueBtnStyle').toBeGreaterThan(-1);
         const block = src.slice(start, src.indexOf('};', start) + 2);
-        expect(block).toContain("background: '#ffffff'");
-        expect(block).toContain("border: '1px solid #ffffff'");
+        expect(block).toContain("background: 'var(--uff-btn-bg)'");
+        expect(block).toContain("color: 'var(--uff-btn-fg)'");
+        expect(block).toContain("border: 'var(--uff-btn-border)'");
         expect(block).toContain("borderRadius: '8px'");
         expect(block).not.toContain('brandGradient');
     });
 
-    it('styles profile primary buttons white with the overlay border', () => {
+    it('styles profile primary buttons from the tokens', () => {
         const src = read('src/components/profile/UserProfile.jsx');
         const start = src.indexOf('const btnPrimaryStyle');
         expect(start, 'missing btnPrimaryStyle').toBeGreaterThan(-1);
         const block = src.slice(start, src.indexOf('};', start) + 2);
-        expect(block).toContain("backgroundColor: '#ffffff'");
-        expect(block).toContain("border: '1px solid #ffffff'");
+        expect(block).toContain("backgroundColor: 'var(--uff-btn-bg)'");
+        expect(block).toContain("border: 'var(--uff-btn-border)'");
         expect(block).not.toContain('#007bff');
     });
 });

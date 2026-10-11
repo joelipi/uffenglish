@@ -69,7 +69,7 @@ describe('HomeLanding app-matched styling + scroll contract', () => {
         const at = homeLandingCss.indexOf('.uff-home-bs .btn-uff-primary {');
         expect(at).toBeGreaterThan(-1);
         const block = homeLandingCss.slice(at, homeLandingCss.indexOf('}', at));
-        expect(block).toContain('#ffffff');
+        expect(block).toContain('var(--uff-btn-bg)');
         expect(block).not.toContain('linear-gradient');
     });
 
@@ -82,7 +82,7 @@ describe('HomeLanding app-matched styling + scroll contract', () => {
         const cssAt = homeLandingCss.indexOf('.uff-home-bs .btn-uff-topbar {');
         expect(cssAt).toBeGreaterThan(-1);
         const block = homeLandingCss.slice(cssAt, homeLandingCss.indexOf('}', cssAt));
-        expect(block).toContain('#ffffff');
+        expect(block).toContain('var(--uff-btn-bg)');
         expect(block).toContain('#0b1a2a');
     });
 

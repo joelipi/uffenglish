@@ -158,43 +158,43 @@
    lesson .call-btn (white circle, dark glyph), so the homepage CTAs are white
    with dark text, never gradient. */
 .uff-home-bs .btn-uff-primary {
-    background-color: #ffffff;
+    background-color: var(--uff-btn-bg);
     background-image: none;
-    border: 1px solid #ffffff;
-    color: #1a1a1a;
+    border: var(--uff-btn-border);
+    color: var(--uff-btn-fg);
     font-weight: 700;
     border-radius: 8px;
     padding: 0.875rem 1.25rem;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--uff-btn-shadow);
     transition: filter 0.15s ease, transform 0.15s ease;
 }
 
 .uff-home-bs .btn-uff-primary:hover,
 .uff-home-bs .btn-uff-primary:focus {
-    color: #1a1a1a;
-    background-color: #ffffff;
+    color: var(--uff-btn-fg);
+    background-color: var(--uff-btn-bg);
     background-image: none;
     filter: brightness(0.96);
 }
 
 .uff-home-bs .btn-uff-primary:active {
     transform: scale(0.99);
-    color: #1a1a1a;
-    background-color: #ffffff;
+    color: var(--uff-btn-fg);
+    background-color: var(--uff-btn-bg);
 }
 
 .uff-home-bs .btn-uff-primary:disabled {
-    background-color: #ffffff;
+    background-color: var(--uff-btn-bg);
     background-image: none;
-    color: #1a1a1a;
+    color: var(--uff-btn-fg);
     opacity: 0.6;
 }
 
 /* Top-bar sign-in: white solid so it reads on the gradient navbar. */
 .uff-home-bs .btn-uff-topbar {
-    background-color: #ffffff;
+    background-color: var(--uff-btn-bg);
     background-image: none;
-    border: 1px solid #ffffff;
+    border: var(--uff-btn-border);
     color: #0b1a2a;
     font-weight: 700;
     border-radius: 8px;
@@ -205,7 +205,7 @@
 .uff-home-bs .btn-uff-topbar:hover,
 .uff-home-bs .btn-uff-topbar:focus,
 .uff-home-bs .btn-uff-topbar:active {
-    background-color: #ffffff;
+    background-color: var(--uff-btn-bg);
     background-image: none;
     color: #0b1a2a;
 }
@@ -370,15 +370,15 @@
     width: 4rem;
     height: 4rem;
     border-radius: 50%;
-    border: 1px solid #ffffff;
-    background: #ffffff;
-    color: #1a1a1a;
+    border: var(--uff-btn-border);
+    background: var(--uff-btn-bg);
+    color: var(--uff-btn-fg);
     font-size: 1.5rem;
     line-height: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+    box-shadow: var(--uff-btn-shadow);
     cursor: pointer;
     transition: transform 0.15s ease;
 }
@@ -396,8 +396,8 @@
     height: 2.25rem;
     border-radius: 50%;
     border: none;
-    background: #ffffff;
-    color: #1a1a1a;
+    background: var(--uff-btn-bg);
+    color: var(--uff-btn-fg);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -409,8 +409,8 @@
 
 .uff-carousel-nav:hover:not(:disabled),
 .uff-carousel-nav:focus-visible:not(:disabled) {
-    background: #ffffff;
-    color: #1a1a1a;
+    background: var(--uff-btn-bg);
+    color: var(--uff-btn-fg);
 }
 
 .uff-carousel-nav:disabled {

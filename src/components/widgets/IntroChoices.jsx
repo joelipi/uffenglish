@@ -80,7 +80,7 @@ export default function IntroChoices() {
         <>
             {!friendLesson && (
                 <button className="btn call-icon" id="audioOnlyButton" aria-label="Audio Only" onClick={handleAudioClick} disabled={disabled}>
-                    <i className="bi bi-telephone-fill text-white"></i>
+                    <i className="bi bi-telephone-fill"></i>
                 </button>
             )}
             <button className="btn call-btn btn-row-primary" id="continueButton" aria-label="Video Call" onClick={handleVideoClick} disabled={disabled}>
@@ -96,7 +96,7 @@ export default function IntroChoices() {
     // they exist to produce a shared video, so text-only is withheld there.
     const textOnlyBtn = friendLesson ? null : (
         <button className="btn call-icon" id="textOnlyButton" aria-label="Text Only" onClick={handleTextClick}>
-            <i className="bi bi-keyboard-fill text-white"></i>
+            <i className="bi bi-keyboard-fill"></i>
         </button>
     );
 

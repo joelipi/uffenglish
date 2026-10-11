@@ -174,9 +174,9 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 
 .btn:where(.btn-primary, .btn-secondary, .btn-success, .btn-outline-primary, .btn-outline-danger, .btn-outline-light) { --bs-btn-active-shadow: inset 0 3px 5px rgba(0,0,0,0.125); }
 
-.btn-primary { --bs-btn-color: #1a1a1a; --bs-btn-bg: #ffffff; --bs-btn-border-color: #ffffff; --bs-btn-hover-color: #1a1a1a; --bs-btn-hover-bg: #ffffff; --bs-btn-hover-border-color: #ffffff; --bs-btn-active-color: #1a1a1a; --bs-btn-active-bg: #ffffff; --bs-btn-active-border-color: #ffffff; --bs-btn-disabled-color: #1a1a1a; --bs-btn-disabled-bg: #ffffff; --bs-btn-disabled-border-color: #ffffff; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); }
-.btn-secondary { --bs-btn-color: #1a1a1a; --bs-btn-bg: #ffffff; --bs-btn-border-color: #ffffff; --bs-btn-hover-color: #1a1a1a; --bs-btn-hover-bg: #ffffff; --bs-btn-hover-border-color: #ffffff; --bs-btn-active-color: #1a1a1a; --bs-btn-active-bg: #ffffff; --bs-btn-active-border-color: #ffffff; --bs-btn-disabled-color: #1a1a1a; --bs-btn-disabled-bg: #ffffff; --bs-btn-disabled-border-color: #ffffff; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); }
-.btn-success { --bs-btn-color: #1a1a1a; --bs-btn-bg: #ffffff; --bs-btn-border-color: #ffffff; --bs-btn-hover-color: #1a1a1a; --bs-btn-hover-bg: #ffffff; --bs-btn-hover-border-color: #ffffff; --bs-btn-active-color: #1a1a1a; --bs-btn-active-bg: #ffffff; --bs-btn-active-border-color: #ffffff; --bs-btn-disabled-color: #1a1a1a; --bs-btn-disabled-bg: #ffffff; --bs-btn-disabled-border-color: #ffffff; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); }
+.btn-primary { --bs-btn-color: var(--uff-btn-fg); --bs-btn-bg: var(--uff-btn-bg); --bs-btn-border-color: var(--uff-btn-bg); --bs-btn-hover-color: var(--uff-btn-fg); --bs-btn-hover-bg: var(--uff-btn-bg); --bs-btn-hover-border-color: var(--uff-btn-bg); --bs-btn-active-color: var(--uff-btn-fg); --bs-btn-active-bg: var(--uff-btn-bg); --bs-btn-active-border-color: var(--uff-btn-bg); --bs-btn-disabled-color: var(--uff-btn-fg); --bs-btn-disabled-bg: var(--uff-btn-bg); --bs-btn-disabled-border-color: var(--uff-btn-bg); box-shadow: var(--uff-btn-shadow); }
+.btn-secondary { --bs-btn-color: var(--uff-btn-fg); --bs-btn-bg: var(--uff-btn-bg); --bs-btn-border-color: var(--uff-btn-bg); --bs-btn-hover-color: var(--uff-btn-fg); --bs-btn-hover-bg: var(--uff-btn-bg); --bs-btn-hover-border-color: var(--uff-btn-bg); --bs-btn-active-color: var(--uff-btn-fg); --bs-btn-active-bg: var(--uff-btn-bg); --bs-btn-active-border-color: var(--uff-btn-bg); --bs-btn-disabled-color: var(--uff-btn-fg); --bs-btn-disabled-bg: var(--uff-btn-bg); --bs-btn-disabled-border-color: var(--uff-btn-bg); box-shadow: var(--uff-btn-shadow); }
+.btn-success { --bs-btn-color: var(--uff-btn-fg); --bs-btn-bg: var(--uff-btn-bg); --bs-btn-border-color: var(--uff-btn-bg); --bs-btn-hover-color: var(--uff-btn-fg); --bs-btn-hover-bg: var(--uff-btn-bg); --bs-btn-hover-border-color: var(--uff-btn-bg); --bs-btn-active-color: var(--uff-btn-fg); --bs-btn-active-bg: var(--uff-btn-bg); --bs-btn-active-border-color: var(--uff-btn-bg); --bs-btn-disabled-color: var(--uff-btn-fg); --bs-btn-disabled-bg: var(--uff-btn-bg); --bs-btn-disabled-border-color: var(--uff-btn-bg); box-shadow: var(--uff-btn-shadow); }
 .btn-outline-primary { --bs-btn-color: #0d6efd; --bs-btn-border-color: #0d6efd; --bs-btn-hover-color: #fff; --bs-btn-hover-bg: #0d6efd; --bs-btn-hover-border-color: #0d6efd; --bs-btn-active-color: #fff; --bs-btn-active-bg: #0d6efd; --bs-btn-active-border-color: #0d6efd; --bs-btn-disabled-color: #0d6efd; --bs-btn-disabled-bg: transparent; --bs-btn-disabled-border-color: #0d6efd; }
 .btn-outline-danger { --bs-btn-color: #dc3545; --bs-btn-border-color: #dc3545; --bs-btn-hover-color: #fff; --bs-btn-hover-bg: #dc3545; --bs-btn-hover-border-color: #dc3545; --bs-btn-active-color: #fff; --bs-btn-active-bg: #dc3545; --bs-btn-active-border-color: #dc3545; --bs-btn-disabled-color: #dc3545; --bs-btn-disabled-bg: transparent; --bs-btn-disabled-border-color: #dc3545; }
 .btn-outline-light { --bs-btn-color: #f8f9fa; --bs-btn-border-color: #f8f9fa; --bs-btn-hover-color: #000; --bs-btn-hover-bg: #f8f9fa; --bs-btn-hover-border-color: #f8f9fa; --bs-btn-active-color: #000; --bs-btn-active-bg: #f8f9fa; --bs-btn-active-border-color: #f8f9fa; --bs-btn-disabled-color: #f8f9fa; --bs-btn-disabled-bg: transparent; --bs-btn-disabled-border-color: #f8f9fa; }
@@ -674,30 +674,30 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     width: 100%;
     padding: 8px 10px;
     border-radius: 8px;
-    background: #ffffff;
-    border: 1px solid #ffffff;
-    color: #000000;
+    background: var(--uff-btn-bg);
+    border: var(--uff-btn-border);
+    color: var(--uff-btn-fg);
     font-weight: 700;
     /* Match the Replay/Tutorial call buttons' edge. */
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--uff-btn-shadow);
 }
 /* Pin the interaction states to solid white/black. These selectors have the
    same specificity (0,2,0) as `.btn:hover`/`.btn:active` and win by source
    order, so the Bootstrap theme variables cannot repaint the button. */
 .branch-choice-btn:hover,
 .branch-choice-btn:active {
-    background: #ffffff;
-    border-color: #ffffff;
-    color: #000000;
+    background: var(--uff-btn-bg);
+    border-color: var(--uff-btn-bg);
+    color: var(--uff-btn-fg);
 }
 /* `.btn:focus-visible` zeroes the outline, so the keyboard focus cue has to be
    restored here. A white outline offset off the white button (with a thin black
    shadow) stays visible on the dark lesson video. */
 .branch-choice-btn:focus-visible {
-    background: #ffffff;
-    border-color: #ffffff;
-    color: #000000;
-    outline: 3px solid #ffffff;
+    background: var(--uff-btn-bg);
+    border-color: var(--uff-btn-bg);
+    color: var(--uff-btn-fg);
+    outline: 3px solid var(--uff-btn-bg);
     outline-offset: 2px;
     box-shadow: 0 0 0 1px #000000;
 }
@@ -770,19 +770,19 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 }
 
 .call-btn {
-    background-color: #ffffff !important;
-    color: #1a1a1a !important;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    background-color: var(--uff-btn-bg) !important;
+    color: var(--uff-btn-fg) !important;
+    box-shadow: var(--uff-btn-shadow);
 }
 
 .call-icon {
-    background-color: #ffffff !important;
-    color: #1a1a1a !important;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2) !important;
+    background-color: var(--uff-btn-bg) !important;
+    color: var(--uff-btn-fg) !important;
+    box-shadow: var(--uff-btn-shadow) !important;
 }
 
 .call-icon i {
-    color: #1a1a1a !important;
+    color: var(--uff-btn-fg) !important;
 }
 
 .call-btn i,
@@ -799,8 +799,8 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 .call-icon:hover,
 .call-icon:focus,
 .call-icon:focus-visible {
-    background-color: #ffffff !important;
-    color: #1a1a1a !important;
+    background-color: var(--uff-btn-bg) !important;
+    color: var(--uff-btn-fg) !important;
     border-color: #ffffff !important;
     outline: none !important;
 }
@@ -808,8 +808,8 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 .call-btn:active {
     transform: scale(0.9) translateY(2px);
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
-    background-color: #ffffff !important;
-    color: #1a1a1a !important;
+    background-color: var(--uff-btn-bg) !important;
+    color: var(--uff-btn-fg) !important;
 }
 
 .call-icon,
@@ -820,8 +820,8 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 .call-icon:active {
     transform: scale(0.9) translateY(2px);
     font-size: 1.75rem !important;
-    background-color: #ffffff !important;
-    color: #1a1a1a !important;
+    background-color: var(--uff-btn-bg) !important;
+    color: var(--uff-btn-fg) !important;
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
 }
 
@@ -834,7 +834,7 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
    .incoming-video-btn) are single-or-primary by construction, so their own
    rules carry the border directly; round buttons opt in with this class. */
 .btn-row-primary {
-    border: 1px solid #ffffff !important;
+    border: var(--uff-btn-border) !important;
 }
 
 /* Immediate hide for bottom overlay (bypass opacity transition) */
@@ -1901,8 +1901,8 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 }
 
 #answer-submit-button {
-    background-color: #ffffff !important;
-    border: 1px solid #ffffff !important;
+    background-color: var(--uff-btn-bg) !important;
+    border: var(--uff-btn-border) !important;
     border-radius: 50% !important;
     width: 50px;
     height: 50px;
@@ -2039,14 +2039,14 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background-color: #ffffff;
-    border: 1px solid #ffffff;
-    color: #000000;
+    background-color: var(--uff-btn-bg);
+    border: var(--uff-btn-border);
+    color: var(--uff-btn-fg);
     font-size: 1.1rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+    box-shadow: var(--uff-btn-shadow);
     z-index: 2;
     cursor: pointer;
     pointer-events: none;

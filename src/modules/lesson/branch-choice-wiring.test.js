@@ -156,22 +156,22 @@ describe('StepLoader, strings and styles', () => {
         expect(btn).toContain('border-radius: 8px');
         expect(btn).toContain('font-weight: 700');
         // Clean solid white on black — not the old translucent white/white pill.
-        expect(btn).toMatch(/background:\s*#ffffff/);
-        expect(btn).toMatch(/color:\s*#000000/);
+        expect(btn).toContain('background: var(--uff-btn-bg)');
+        expect(btn).toContain('color: var(--uff-btn-fg)');
         expect(btn).not.toContain('rgba(255, 255, 255, 0.16)');
         // Same edge treatment as the Replay/Tutorial call buttons.
-        expect(btn).toMatch(/box-shadow:\s*0 10px 25px rgba\(0, 0, 0, 0\.2\)/);
+        expect(btn).toContain('box-shadow: var(--uff-btn-shadow)');
 
         // Every interaction state stays white/black so `.btn:hover` cannot
         // repaint it with the Bootstrap theme variables.
         const hover = cssBlock(css, '.branch-choice-btn:hover');
-        expect(hover).toMatch(/background:\s*#ffffff/);
-        expect(hover).toMatch(/color:\s*#000000/);
+        expect(hover).toContain('background: var(--uff-btn-bg)');
+        expect(hover).toContain('color: var(--uff-btn-fg)');
 
         // `.btn:focus-visible` zeroes the outline, so the button must restore a
         // visible keyboard focus ring.
         const focus = cssBlock(css, '.branch-choice-btn:focus-visible');
-        expect(focus).toMatch(/outline:\s*3px solid #ffffff/);
+        expect(focus).toContain('outline: 3px solid var(--uff-btn-bg)');
         expect(focus).toMatch(/outline-offset:/);
     });
 

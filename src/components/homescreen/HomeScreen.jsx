@@ -111,15 +111,15 @@ export default function HomeScreen() {
     const continueBtnStyle = {
         width: '100%',
         padding: '14px',
-        background: '#ffffff',
-        color: '#1a1a1a',
-        border: '1px solid #ffffff',
+        background: 'var(--uff-btn-bg)',
+        color: 'var(--uff-btn-fg)',
+        border: 'var(--uff-btn-border)',
         borderRadius: '8px',
         fontSize: '16px',
         fontWeight: 600,
         cursor: 'pointer',
         transition: 'opacity 0.15s, transform 0.15s',
-        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
+        boxShadow: 'var(--uff-btn-shadow)',
     };
 
     return (
@@ -178,7 +178,7 @@ export default function HomeScreen() {
                                 <i className="bi bi-box-arrow-right" style={{ marginRight: '8px' }}></i> {Strings.get('sign_out', lang)}
                             </button>
                         ) : (
-                            <Link to="/login" onClick={closeMenu} style={{ background: '#ffffff', color: '#1a1a1a', border: '1px solid #ffffff', textDecoration: 'none', padding: '12px', borderRadius: '8px', textAlign: 'center', fontSize: '16px', fontWeight: 600, display: 'block', boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)' }}>
+                            <Link to="/login" onClick={closeMenu} style={{ background: 'var(--uff-btn-bg)', color: 'var(--uff-btn-fg)', border: 'var(--uff-btn-border)', textDecoration: 'none', padding: '12px', borderRadius: '8px', textAlign: 'center', fontSize: '16px', fontWeight: 600, display: 'block', boxShadow: 'var(--uff-btn-shadow)' }}>
                                 {Strings.get('sign_in', lang)}
                             </Link>
                         )}
