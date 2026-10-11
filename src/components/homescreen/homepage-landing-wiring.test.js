@@ -79,7 +79,7 @@ describe('HomeLanding app-matched styling + scroll contract', () => {
         const tagEnd = homeLanding.indexOf('>', at);
         expect(tagEnd).toBeGreaterThan(at);
         expect(homeLanding.slice(at, tagEnd)).toContain('btn-uff-topbar');
-        const cssAt = homeLandingCss.indexOf('.uff-home-bs .btn-uff-topbar {');
+        const cssAt = homeLandingCss.indexOf('.uff-home-bs .btn-uff-topbar {\n    background-color: var(--uff-btn-bg);');
         expect(cssAt).toBeGreaterThan(-1);
         const block = homeLandingCss.slice(cssAt, homeLandingCss.indexOf('}', cssAt));
         expect(block).toContain('var(--uff-btn-bg)');

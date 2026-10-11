@@ -152,8 +152,7 @@ describe('homepage buttons follow the single-or-primary border rule', () => {
         expect(primary).toContain('border: var(--uff-btn-border)');
         expect(primary).toContain('color: var(--uff-btn-fg)');
         expect(primary).toContain('border-radius: 8px');
-        const topbar = cssBlock(css, '.uff-home-bs .btn-uff-topbar {');
-        expect(topbar).toContain('background-color: var(--uff-btn-bg)');
+        const topbar = cssBlock(css, '.uff-home-bs .btn-uff-topbar {\n    background-color: var(--uff-btn-bg);');
         expect(topbar).toContain('border: var(--uff-btn-border)');
         const play = cssBlock(css, '.uff-carousel-play {');
         expect(play).toContain('background: var(--uff-btn-bg)');
@@ -209,6 +208,38 @@ describe('round primaries are marked, secondaries are not', () => {
 
     it.each(UNMARKED)('leaves %s :: %s borderless', (file, marker) => {
         expect(buttonTag(read(file), marker)).not.toContain('btn-row-primary');
+    });
+});
+
+describe('primary rectangular buttons share the overlay halo edge', () => {
+    it('gives solid theme buttons the pulsing halo', () => {
+        const css = read('src/assets/css/app.css');
+        const halo = cssBlock(css, '.btn-primary::before,');
+        expect(halo).toContain("content: ''");
+        expect(halo).toMatch(/box-shadow:\s*0 0 25px 8px rgba\(255, 255, 255, 0\.85\)/);
+        expect(halo).toContain('animation: btnGlowPulse 2s ease-in-out infinite');
+        expect(halo).toContain('border-radius: inherit');
+        expect(halo).toContain('pointer-events: none');
+    });
+
+    it('kills the halo on disabled solid buttons', () => {
+        const css = read('src/assets/css/app.css');
+        const halo = cssBlock(css, '.btn-primary:disabled::before,');
+        expect(halo).toContain('animation: none');
+        expect(halo).toContain('box-shadow: none');
+    });
+
+    it('gives homepage single-call buttons the pulsing halo', () => {
+        const css = read('src/components/homescreen/home-landing.css');
+        const halo = cssBlock(css, '.uff-home-bs .btn-uff-primary::before,');
+        expect(halo).toContain("content: ''");
+        expect(halo).toMatch(/box-shadow:\s*0 0 25px 8px rgba\(255, 255, 255, 0\.85\)/);
+        expect(halo).toContain('animation: btnGlowPulse 2s ease-in-out infinite');
+        expect(halo).toContain('border-radius: inherit');
+        expect(halo).toContain('pointer-events: none');
+        const off = cssBlock(css, '.uff-home-bs .btn-uff-primary:disabled::before {');
+        expect(off).toContain('animation: none');
+        expect(off).toContain('box-shadow: none');
     });
 });
 
