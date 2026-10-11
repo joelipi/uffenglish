@@ -1,0 +1,40 @@
+wouldyourather-branching (gid 227034348) -> promotion-ready fix report
+Source: published CSV of branch tab (157 rows) + main tab (gid 242913338, 19 rows/69 cols)
+Output: wouldyourather-branching-FIXED.csv (header + 157 rows, 69 cols, header order identical to main)
+
+STRUCTURE
+- Added main's 4 trailing columns (srt_es, srt_pt, srt_fr, srt_bn), blank for new rows.
+- The 19 rows that already exist in main are byte-identical to main (proven srt,
+  srt_es/pt/bn, phrase_es/pt/bn, lesson_title/mission translations, <b>-style
+  overlay markup preserved), EXCEPT 4 lesson-b tail rows whose lesson_title /
+  recap_sources / intro_video were normalized to the lesson head (see below).
+
+CONTENT FIXES (branch-only rows)
+- Overlay markup: all 138 emoji-style subtitle_text cells converted to main's
+  <b>A1</b>..<b>B2</b> style (<br><br> -> <br>, space after </b>); zero emoji left.
+- Grammar (phrase + matching subtitle lines):
+  * "Is it better to a meal ..." -> "Which is better: a meal ..." (b-tail a02/2)
+  * 4x "I would rather a ..." -> "I would rather have a ..." (b02_i/ii, b03_i/ii, order 2)
+  * "Which is better:: a job ..." -> single colon (e01/2 + f-tail copy)
+  * f02_ii/4 "famous/unknown" -> "rich/poor" to match its step
+- Overlapping simplified phrasing adopted from main (a01/4 "which would you choose?",
+  b01_ii/4 "I would rather wait.").
+- Choice labels shortened to button style for all 9 branching steps (money pair
+  copied from main: "$1,000,000 today" / "$5,000,000 in 5 years"):
+  food "Great food/Great conversation"; beach "Short/Long vacation, ... weather";
+  language "Speak every language/Play every instrument"; home "Tiny apartment in
+  the city/Huge house in the countryside"; friends "Friends who tell the truth/
+  make you feel good"; job "Job you love/hate, low/high salary"; privacy
+  "Rich with no privacy/Poor with complete privacy"; phone "A week without your
+  phone/music".
+- Tail normalization: all 36 publish_lesson_id rows now carry their lesson head's
+  lesson_title/recap_sources/intro_video (lesson-level fields identical per lesson).
+
+GENERATOR CHECK: buildCourseConfigs -> 1 course, no error,
+lessons a:6 b:15 c:5 d:15 e:5 f:15.
+
+LEFT FOR THE PIPELINE (post-promote, in order)
+- render (new lessons/steps have blank srt; overlapping rows keep main's srt),
+  then sync-srt, then translate (fills blank phrase_*/srt_* for new rows), then configs.
+- NOT done here: broad A2/B2 simplification of branch-only lessons (pedagogy call),
+  and "Which is better: speak every language ..." (missing 'to' - suggestion only).
