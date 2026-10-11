@@ -212,34 +212,46 @@ describe('round primaries are marked, secondaries are not', () => {
 });
 
 describe('primary rectangular buttons share the overlay halo edge', () => {
-    it('gives solid theme buttons the pulsing halo', () => {
+    it('contains the halo hosts so the negative-z ring cannot sink', () => {
+        const css = read('src/assets/css/app.css');
+        const start = css.indexOf('\n.btn-primary,\n.btn-secondary,');
+        expect(start, 'missing shared halo host rule').toBeGreaterThan(-1);
+        const host = css.slice(start, css.indexOf('}', start) + 1);
+        for (const sel of ['.btn-primary', '.btn-secondary', '.btn-success', '.uff-home-bs .btn-uff-primary', '.uff-home-bs .btn-uff-topbar']) {
+            expect(host, `host rule misses ${sel}`).toContain(sel);
+        }
+        expect(host).toContain('position: relative');
+        expect(host).toContain('z-index: 0');
+    });
+
+    it('gives solid theme and homepage buttons the one pulsing halo', () => {
         const css = read('src/assets/css/app.css');
         const halo = cssBlock(css, '.btn-primary::before,');
+        for (const sel of ['.btn-secondary::before', '.btn-success::before', '.uff-home-bs .btn-uff-primary::before', '.uff-home-bs .btn-uff-topbar::before']) {
+            expect(halo, `halo rule misses ${sel}`).toContain(sel);
+        }
         expect(halo).toContain("content: ''");
+        expect(halo).toContain('position: absolute');
+        expect(halo).toContain('inset: -4px');
+        expect(halo).toContain('z-index: -1');
         expect(halo).toMatch(/box-shadow:\s*0 0 25px 8px rgba\(255, 255, 255, 0\.85\)/);
         expect(halo).toContain('animation: btnGlowPulse 2s ease-in-out infinite');
         expect(halo).toContain('border-radius: inherit');
         expect(halo).toContain('pointer-events: none');
     });
 
-    it('kills the halo on disabled solid buttons', () => {
+    it('kills the halo on every disabled primary, topbar included', () => {
         const css = read('src/assets/css/app.css');
-        const halo = cssBlock(css, '.btn-primary:disabled::before,');
-        expect(halo).toContain('animation: none');
-        expect(halo).toContain('box-shadow: none');
+        const off = cssBlock(css, '.btn-primary:disabled::before,');
+        for (const sel of ['.btn-secondary:disabled::before', '.btn-success:disabled::before', '.uff-home-bs .btn-uff-primary:disabled::before', '.uff-home-bs .btn-uff-topbar:disabled::before']) {
+            expect(off, `kill-switch misses ${sel}`).toContain(sel);
+        }
+        expect(off).toContain('animation: none !important');
+        expect(off).toContain('box-shadow: none !important');
     });
 
-    it('gives homepage single-call buttons the pulsing halo', () => {
-        const css = read('src/components/homescreen/home-landing.css');
-        const halo = cssBlock(css, '.uff-home-bs .btn-uff-primary::before,');
-        expect(halo).toContain("content: ''");
-        expect(halo).toMatch(/box-shadow:\s*0 0 25px 8px rgba\(255, 255, 255, 0\.85\)/);
-        expect(halo).toContain('animation: btnGlowPulse 2s ease-in-out infinite');
-        expect(halo).toContain('border-radius: inherit');
-        expect(halo).toContain('pointer-events: none');
-        const off = cssBlock(css, '.uff-home-bs .btn-uff-primary:disabled::before {');
-        expect(off).toContain('animation: none');
-        expect(off).toContain('box-shadow: none');
+    it('keeps the halo single-sourced out of the homepage stylesheet', () => {
+        expect(read('src/components/homescreen/home-landing.css')).not.toContain('btnGlowPulse');
     });
 });
 

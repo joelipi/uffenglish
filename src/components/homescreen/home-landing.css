@@ -190,31 +190,10 @@
     opacity: 0.6;
 }
 
-/* Homepage single-call buttons share the overlay buttons' luminous edge
-   (see the row-primary halo in app.css): the same white halo ring just
-   outside the button box, gently pulsing. Shape-agnostic via
-   `border-radius: inherit`. The outline (non-primary) alternative stays
-   flat. */
-.uff-home-bs .btn-uff-primary,
-.uff-home-bs .btn-uff-topbar {
-    position: relative;
-    z-index: 0;
-}
-.uff-home-bs .btn-uff-primary::before, .uff-home-bs .btn-uff-topbar::before {
-    content: '';
-    position: absolute;
-    inset: -4px;
-    border-radius: inherit;
-    pointer-events: none;
-    z-index: -1;
-    background: transparent;
-    box-shadow: 0 0 25px 8px rgba(255, 255, 255, 0.85);
-    animation: btnGlowPulse 2s ease-in-out infinite;
-}
-.uff-home-bs .btn-uff-primary:disabled::before {
-    animation: none !important;
-    box-shadow: none !important;
-}
+/* Homepage single-call buttons share the overlay halo edge via the shared
+   halo rule in app.css (host positioning + ::before + disabled
+   kill-switch, all in one selector group so the treatment cannot drift).
+   The outline (non-primary) alternative stays flat. */
 
 /* Top-bar sign-in: white solid so it reads on the gradient navbar. */
 .uff-home-bs .btn-uff-topbar {
