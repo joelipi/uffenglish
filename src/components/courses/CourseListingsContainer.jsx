@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
-import { loadConfigEntries } from '../../modules/courses/friend-course-configs.js';
+import { loadConfigEntries, resolveCourseHeroImage } from '../../modules/courses/friend-course-configs.js';
 import { listFriendCourses } from '../../modules/courses/friend-courses-logic.js';
 import CourseListings from './CourseListings.jsx';
 
@@ -15,7 +15,10 @@ export default function CourseListingsContainer() {
 
     const { data: courses, isLoading, isError } = useQuery({
         queryKey: ['friend-courses'],
-        queryFn: async () => listFriendCourses(await loadConfigEntries()),
+        queryFn: async () => {
+            const courses = listFriendCourses(await loadConfigEntries());
+            return courses.map((c) => ({ ...c, heroImage: resolveCourseHeroImage(c.heroImage) }));
+        },
         staleTime: Infinity,
     });
 

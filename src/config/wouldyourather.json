@@ -1,6 +1,27 @@
 {
   "courseId": "wouldyourather",
   "courseName": "Preferences in English A1➡B2",
+  "courseHeroImage": "src/assets/img/wouldyouratherhero.jpg",
+  "courseMission": {
+    "mission": {
+      "en": "talk about preferences between 2-3 options"
+    },
+    "A1": {
+      "en": "X or Y"
+    },
+    "A2": {
+      "en": "which is better, noun X or noun Y"
+    },
+    "B1": {
+      "en": "would rather + [verb stem X] or [verb stem Y]"
+    },
+    "B2": {
+      "en": "given the choice between [gerund verb X] and [gerund verb Y]"
+    },
+    "C1": {
+      "en": "if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]"
+    }
+  },
   "lessons": [
     {
       "lessonId": "a",
@@ -17,6 +38,21 @@
         "es": "hablar sobre preferencias",
         "pt": "falar sobre preferências",
         "bn": "পছন্দ নিয়ে কথা বলুন"
+      },
+      "a1": {
+        "en": "X or Y"
+      },
+      "a2": {
+        "en": "which is better, noun X or noun Y"
+      },
+      "b1": {
+        "en": "would rather + [verb stem X] or [verb stem Y]"
+      },
+      "b2": {
+        "en": "given the choice between [gerund verb X] and [gerund verb Y]"
+      },
+      "c1": {
+        "en": "if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]"
       },
       "steps": [
         {

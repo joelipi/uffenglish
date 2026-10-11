@@ -570,7 +570,8 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 .mission-text,
 .setting-text,
 .roleUser-text,
-.roleOther-text {
+.roleOther-text,
+.course-meta-text {
     color: #fff;
     font-size: 1rem;
     font-weight: 500;
@@ -603,7 +604,7 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     display: grid !important;
     grid-template-columns: max-content 1fr;
     gap: 4px 8px;
-    align-items: center;
+    align-items: start !important;
 }
 
 

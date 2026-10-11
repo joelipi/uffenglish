@@ -9,6 +9,7 @@ import {
     buildSteps,
     buildCourseConfig,
     buildCourseConfigs,
+    courseMissionFromLessons,
     findMissingColumns,
     isValidCourseId,
     isMasterFormat,
@@ -528,6 +529,170 @@ describe('buildCourseConfig localization columns', () => {
 // Story 049: the generator's English source reads are derived from
 // TRANSLATABLE_FIELDS (sourceOf), so this pins that every shared field is
 // consumed and none is silently dropped.
+describe('lesson level patterns (a1..c1) and courseMission', () => {
+    const base = {
+        course_id: 'lvl', course_name: 'Levels', lesson_id: 'a', lesson_title: 'Ask',
+        mission: 'Talk', video_file: 'v', filename: 'f1', order: '1', response_type: 'viewAndContinue',
+    };
+
+    it('omits level keys when the columns are absent, keeping only the mission fallback', () => {
+        const config = buildCourseConfig([{ ...base }]);
+        expect('a1' in config.lessons[0]).toBe(false);
+        expect(config.courseMission).toEqual({ mission: { en: 'Talk' } });
+    });
+
+    it('omits courseMission entirely with no mission data at all', () => {
+        const { mission, ...bare } = base;
+        const config = buildCourseConfig([{ ...bare }]);
+        expect('mission' in config.lessons[0]).toBe(false);
+        expect('courseMission' in config).toBe(false);
+    });
+
+    it('emits present patterns as {en} lesson keys plus courseMission from the first lesson', () => {
+        const config = buildCourseConfig([
+            { ...base, a1: 'X or Y', b1: 'would rather X or Y' },
+            { ...base, lesson_id: 'b', lesson_title: 'Answer', video_file: 'w', filename: 'f2', order: '1', a1: 'Other' },
+        ]);
+        expect(config.lessons[0].a1).toEqual({ en: 'X or Y' });
+        expect(config.lessons[0].b1).toEqual({ en: 'would rather X or Y' });
+        expect('a2' in config.lessons[0]).toBe(false);
+        expect(config.lessons[1].a1).toEqual({ en: 'Other' });
+        expect(config.courseMission).toEqual({
+            mission: { en: 'Talk' },
+            A1: { en: 'X or Y' },
+            B1: { en: 'would rather X or Y' },
+        });
+    });
+
+    it('reads hand-filled language columns into the pattern objects', () => {
+        const config = buildCourseConfig([{ ...base, a1: 'X or Y', a1_es: 'X o Y' }]);
+        expect(config.lessons[0].a1).toEqual({ en: 'X or Y', es: 'X o Y' });
+        expect(config.courseMission.A1).toEqual({ en: 'X or Y', es: 'X o Y' });
+    });
+
+    it('throws on conflicting pattern values within a lesson (authoring)', () => {
+        expect(() => buildCourseConfig([
+            { ...base, a1: 'One' },
+            { ...base, video_file: 'w', filename: 'f2', order: '2', a1: 'Two' },
+        ])).toThrow(/lesson "a"/);
+    });
+
+    it('emits patterns and courseMission on the master path', () => {
+        const config = buildCourseConfig([{
+            course_id: 'lvl', course_name: 'Levels', lesson_id: 'a', lesson_title: 'Ask',
+            response_type: 'friendClosedResponse', video_file: 'v', filename: 'f',
+            order: '1', phrase: 'Q', mission: 'Talk', a1: 'X or Y', c1: 'If I had to choose',
+        }]);
+        expect(config.lessons[0].a1).toEqual({ en: 'X or Y' });
+        expect(config.lessons[0].c1).toEqual({ en: 'If I had to choose' });
+        expect(config.courseMission).toEqual({
+            mission: { en: 'Talk' },
+            A1: { en: 'X or Y' },
+            C1: { en: 'If I had to choose' },
+        });
+    });
+
+    it('reads hand-filled language columns on the master path', () => {
+        const config = buildCourseConfig([{
+            course_id: 'lvl', course_name: 'Levels', lesson_id: 'a', lesson_title: 'Ask',
+            response_type: 'friendClosedResponse', video_file: 'v', filename: 'f',
+            order: '1', phrase: 'Q', a1: 'X or Y', a1_es: 'X o Y',
+        }]);
+        expect(config.lessons[0].a1).toEqual({ en: 'X or Y', es: 'X o Y' });
+    });
+
+    it('takes courseMission from the first shareCta lesson when it is not lessons[0]', () => {
+        const config = buildCourseConfig([
+            {
+                course_id: 'lvl', course_name: 'Levels', lesson_id: 'intro', lesson_title: 'Intro',
+                mission: 'Welcome', video_file: 'v', filename: 'f1', order: '1',
+                response_type: 'viewAndContinue', recap_overlay: 'none',
+            },
+            {
+                course_id: 'lvl', course_name: 'Levels', lesson_id: 'a', lesson_title: 'Ask',
+                mission: 'Talk', a1: 'X or Y', video_file: 'w', filename: 'f2', order: '1',
+                response_type: 'viewAndContinue',
+            },
+        ]);
+        expect(config.lessons.map((l) => l.lessonId)).toEqual(['intro', 'a']);
+        expect(config.courseMission).toEqual({
+            mission: { en: 'Talk' },
+            A1: { en: 'X or Y' },
+        });
+    });
+
+    it('maps sheet level columns to lesson keys and courseMission keys', () => {
+        const config = buildCourseConfig([{
+            course_id: 'wouldyourather', course_name: 'Preferences in English A1➡B2',
+            lesson_id: 'a', lesson_title: 'Ask',
+            mission: 'talk about preferences between 2-3 options',
+            a1: 'X or Y',
+            a2: 'which is better, noun X or noun Y',
+            b1: 'would rather + [verb stem X] or [verb stem Y]',
+            b2: 'given the choice between [gerund verb X] and [gerund verb Y]',
+            c1: 'if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]',
+            video_file: 'v', filename: 'f1', order: '1', response_type: 'viewAndContinue',
+        }]);
+        expect(config.courseMission).toEqual({
+            mission: { en: 'talk about preferences between 2-3 options' },
+            A1: { en: 'X or Y' },
+            A2: { en: 'which is better, noun X or noun Y' },
+            B1: { en: 'would rather + [verb stem X] or [verb stem Y]' },
+            B2: { en: 'given the choice between [gerund verb X] and [gerund verb Y]' },
+            C1: { en: 'if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]' },
+        });
+        expect(config.lessons[0].a1).toEqual({ en: 'X or Y' });
+        expect(config.lessons[0].c1).toEqual({
+            en: 'if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]',
+        });
+    });
+
+    // The checked-in wouldyourather courseMission carries the specified
+    // course-level copy ("...between 2-3 options"), which intentionally
+    // differs from lesson a's own mission ("talk about preferences"). The
+    // generator mapping above is identity, so this file is reproducible once
+    // the sheet's lesson-a mission/a1..c1 cells carry this text (pre-translate,
+    // English-only); until that sheet update lands, regenerating from the
+    // current sheet would revert courseMission.mission to the lesson text.
+    it('checked-in wouldyourather courseMission carries the specified course copy', () => {
+        const real = JSON.parse(readFileSync(
+            path.join(__dirname, '../../src/config/wouldyourather.json'), 'utf8'));
+        expect(real.courseMission).toEqual({
+            mission: { en: 'talk about preferences between 2-3 options' },
+            A1: { en: 'X or Y' },
+            A2: { en: 'which is better, noun X or noun Y' },
+            B1: { en: 'would rather + [verb stem X] or [verb stem Y]' },
+            B2: { en: 'given the choice between [gerund verb X] and [gerund verb Y]' },
+            C1: { en: 'if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]' },
+        });
+        expect(real.lessons[0].a1).toEqual({ en: 'X or Y' });
+        expect(real.lessons[0].c1).toEqual({
+            en: 'if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]',
+        });
+    });
+});
+
+describe('courseMissionFromLessons', () => {
+    it('returns undefined for missing or empty lessons', () => {
+        expect(courseMissionFromLessons(undefined)).toBeUndefined();
+        expect(courseMissionFromLessons([])).toBeUndefined();
+        expect(courseMissionFromLessons([{ lessonId: 'x' }])).toBeUndefined();
+    });
+
+    it('falls back to lessons[0] with no shareCta lesson', () => {
+        expect(courseMissionFromLessons([
+            { lessonId: 'i', recapOverlay: 'none', mission: { en: 'Welcome' } },
+        ])).toEqual({ mission: { en: 'Welcome' } });
+    });
+
+    it('copies values instead of aliasing the lessons', () => {
+        const lessons = [{ lessonId: 'a', recapOverlay: 'shareCta', mission: { en: 'Talk' } }];
+        const mission = courseMissionFromLessons(lessons);
+        expect(mission).toEqual({ mission: { en: 'Talk' } });
+        expect(mission.mission).not.toBe(lessons[0].mission);
+    });
+});
+
 describe('shared translatable-field parity', () => {
     it('consumes every field in TRANSLATABLE_FIELDS', () => {
         const es = (field) => localizedColumn(field, 'es');
