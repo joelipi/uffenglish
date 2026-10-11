@@ -20,6 +20,7 @@ vi.mock('./NotificationsBell.web.jsx', () => ({ default: () => null }));
 vi.mock('../legal/LegalFooter.jsx', () => ({ default: () => null }));
 vi.mock('../../modules/courses/friend-course-configs.js', () => ({
     configCourseId: (p) => String(p).replace(/^.*\//, '').replace(/\.json$/, ''),
+    resolveCourseHeroImage: (ref) => ref,
     loadConfigEntries: vi.fn(async () => [
         {
             courseId: 'friend',
@@ -106,6 +107,7 @@ describe('HomeScreen course-listings wiring', () => {
         expect(src).toContain("queryKey: ['friend-courses']");
         expect(src).toContain('loadConfigEntries');
         expect(src).toContain('listFriendCourses');
+        expect(src).toContain('resolveCourseHeroImage');
     });
 
     it('renders the shared FriendCoursesView instead of a hardcoded config card', () => {

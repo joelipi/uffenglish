@@ -9,6 +9,7 @@ import {
     buildSteps,
     buildCourseConfig,
     buildCourseConfigs,
+    courseMissionFromLessons,
     findMissingColumns,
     isValidCourseId,
     isMasterFormat,
@@ -589,6 +590,75 @@ describe('lesson level patterns (a1..c1) and courseMission', () => {
             A1: { en: 'X or Y' },
             C1: { en: 'If I had to choose' },
         });
+    });
+
+    it('reads hand-filled language columns on the master path', () => {
+        const config = buildCourseConfig([{
+            course_id: 'lvl', course_name: 'Levels', lesson_id: 'a', lesson_title: 'Ask',
+            response_type: 'friendClosedResponse', video_file: 'v', filename: 'f',
+            order: '1', phrase: 'Q', a1: 'X or Y', a1_es: 'X o Y',
+        }]);
+        expect(config.lessons[0].a1).toEqual({ en: 'X or Y', es: 'X o Y' });
+    });
+
+    it('takes courseMission from the first shareCta lesson when it is not lessons[0]', () => {
+        const config = buildCourseConfig([
+            {
+                course_id: 'lvl', course_name: 'Levels', lesson_id: 'intro', lesson_title: 'Intro',
+                mission: 'Welcome', video_file: 'v', filename: 'f1', order: '1',
+                response_type: 'viewAndContinue', recap_overlay: 'none',
+            },
+            {
+                course_id: 'lvl', course_name: 'Levels', lesson_id: 'a', lesson_title: 'Ask',
+                mission: 'Talk', a1: 'X or Y', video_file: 'w', filename: 'f2', order: '1',
+                response_type: 'viewAndContinue',
+            },
+        ]);
+        expect(config.lessons.map((l) => l.lessonId)).toEqual(['intro', 'a']);
+        expect(config.courseMission).toEqual({
+            mission: { en: 'Talk' },
+            A1: { en: 'X or Y' },
+        });
+    });
+
+    it('emits the checked-in wouldyourather courseMission from its sheet state', () => {
+        const real = JSON.parse(readFileSync(
+            path.join(__dirname, '../../src/config/wouldyourather.json'), 'utf8'));
+        const config = buildCourseConfig([{
+            course_id: 'wouldyourather', course_name: 'Preferences in English A1➡B2',
+            lesson_id: 'a', lesson_title: 'Ask',
+            mission: 'talk about preferences between 2-3 options',
+            a1: 'X or Y',
+            a2: 'which is better, noun X or noun Y',
+            b1: 'would rather + [verb stem X] or [verb stem Y]',
+            b2: 'given the choice between [gerund verb X] and [gerund verb Y]',
+            c1: 'if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]',
+            video_file: 'v', filename: 'f1', order: '1', response_type: 'viewAndContinue',
+        }]);
+        expect(config.courseMission).toEqual(real.courseMission);
+        expect(config.lessons[0].a1).toEqual(real.lessons[0].a1);
+        expect(config.lessons[0].c1).toEqual(real.lessons[0].c1);
+    });
+});
+
+describe('courseMissionFromLessons', () => {
+    it('returns undefined for missing or empty lessons', () => {
+        expect(courseMissionFromLessons(undefined)).toBeUndefined();
+        expect(courseMissionFromLessons([])).toBeUndefined();
+        expect(courseMissionFromLessons([{ lessonId: 'x' }])).toBeUndefined();
+    });
+
+    it('falls back to lessons[0] with no shareCta lesson', () => {
+        expect(courseMissionFromLessons([
+            { lessonId: 'i', recapOverlay: 'none', mission: { en: 'Welcome' } },
+        ])).toEqual({ mission: { en: 'Welcome' } });
+    });
+
+    it('copies values instead of aliasing the lessons', () => {
+        const lessons = [{ lessonId: 'a', recapOverlay: 'shareCta', mission: { en: 'Talk' } }];
+        const mission = courseMissionFromLessons(lessons);
+        expect(mission).toEqual({ mission: { en: 'Talk' } });
+        expect(mission.mission).not.toBe(lessons[0].mission);
     });
 });
 

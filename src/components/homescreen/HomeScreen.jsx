@@ -6,7 +6,7 @@ import { appStore } from '../../modules/store/store.js';
 import { useAuthStatus, useUserProfile, signOut } from '../../modules/api/api.js';
 import Strings from '../../data/strings.js';
 import { trackEvent } from '../../modules/utils/posthog.js';
-import { loadConfigEntries } from '../../modules/courses/friend-course-configs.js';
+import { loadConfigEntries, resolveCourseHeroImage } from '../../modules/courses/friend-course-configs.js';
 import { listFriendCourses } from '../../modules/courses/friend-courses-logic.js';
 import FriendCoursesView from '../courses/FriendCoursesView.jsx';
 import NotificationsBell from './NotificationsBell.web.jsx';
@@ -29,7 +29,10 @@ export default function HomeScreen() {
 
     const { data: courses, isLoading: coursesLoading, isError: coursesError } = useQuery({
         queryKey: ['friend-courses'],
-        queryFn: async () => listFriendCourses(await loadConfigEntries()),
+        queryFn: async () => {
+            const courses = listFriendCourses(await loadConfigEntries());
+            return courses.map((c) => ({ ...c, heroImage: resolveCourseHeroImage(c.heroImage) }));
+        },
         staleTime: Infinity,
     });
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { configCourseId, loadConfigEntries } from './friend-course-configs.js';
+import { configCourseId, loadConfigEntries, resolveCourseHeroImage } from './friend-course-configs.js';
 import { listFriendCourses } from './friend-courses-logic.js';
 
 // Pinned guard list: the loader glob must see every config, so a new
@@ -48,8 +48,33 @@ describe('loadConfigEntries', () => {
     it('carries the wouldyourather hero and leveled mission end to end', async () => {
         const courses = listFriendCourses(await loadConfigEntries());
         const course = courses.find((c) => c.courseId === 'wouldyourather');
-        expect(course.heroImage).toBe('/img/wouldyouratherhero.jpg');
-        expect(Object.keys(course.mission)).toEqual(['mission', 'A1', 'A2', 'B1', 'B2', 'C1']);
+        expect(course.heroImage).toBe('src/assets/img/wouldyouratherhero.jpg');
+        expect(Object.keys(course.mission).sort()).toEqual(['A1', 'A2', 'B1', 'B2', 'C1', 'mission']);
         expect(course.mission.A1).toEqual({ en: 'X or Y' });
+    });
+});
+
+describe('resolveCourseHeroImage', () => {
+    it('passes absolute and root-path URLs through', () => {
+        expect(resolveCourseHeroImage('https://cdn/x.jpg')).toBe('https://cdn/x.jpg');
+        expect(resolveCourseHeroImage('/img/x.jpg')).toBe('/img/x.jpg');
+    });
+
+    it('resolves a source-tree reference by basename to a bundled URL', () => {
+        const url = resolveCourseHeroImage('src/assets/img/wouldyouratherhero.jpg');
+        expect(typeof url).toBe('string');
+        expect(url).toContain('wouldyouratherhero.jpg');
+    });
+
+    it('resolves regardless of the directory prefix in the reference', () => {
+        expect(resolveCourseHeroImage('src/img/wouldyouratherhero.jpg'))
+            .toBe(resolveCourseHeroImage('src/assets/img/wouldyouratherhero.jpg'));
+    });
+
+    it('returns null for unknown basenames and blank values', () => {
+        expect(resolveCourseHeroImage('nope/missing.jpg')).toBeNull();
+        expect(resolveCourseHeroImage('')).toBeNull();
+        expect(resolveCourseHeroImage(null)).toBeNull();
+        expect(resolveCourseHeroImage(42)).toBeNull();
     });
 });

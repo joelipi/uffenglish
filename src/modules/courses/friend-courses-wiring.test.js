@@ -17,6 +17,7 @@ describe('CourseListingsContainer wiring', () => {
         expect(container).toContain("queryKey: ['friend-courses']");
         expect(container).toContain('listFriendCourses(');
         expect(container).toContain('loadConfigEntries(');
+        expect(container).toContain('resolveCourseHeroImage(');
     });
 
     it('renders the presentational CourseListings', () => {

@@ -1,11 +1,12 @@
 {
   "courseId": "wouldyourather",
   "courseName": "Preferences in English A1➡B2",
-  "courseHeroImage": "/img/wouldyouratherhero.jpg",
+  "courseHeroImage": "src/assets/img/wouldyouratherhero.jpg",
   "courseMission": {
     "mission": {
       "en": "talk about preferences between 2-3 options"
-    },    "A1": {
+    },
+    "A1": {
       "en": "X or Y"
     },
     "A2": {

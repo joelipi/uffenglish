@@ -31,7 +31,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { RECAP_SOURCES, RECAP_OVERLAYS } from '../modules/video/video-processor-logic.js';
 import { FRIEND_VIDEO_REGEX } from '../modules/video/video-source.js';
-import { parseCsv, buildCourseConfig, buildCourseConfigs, LEVEL_PATTERN_COLUMNS } from '../../scripts/lib/sheet-config-utils.js';
+import { parseCsv, buildCourseConfig, buildCourseConfigs, LEVEL_PATTERN_COLUMNS, LEVEL_PATTERN_KEYS } from '../../scripts/lib/sheet-config-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // This test lives in src/config, so the config directory IS __dirname.
@@ -74,7 +74,10 @@ function assertListedConfigs({ listPath = ALLOWLIST, readDir = CONFIG_DIR } = {}
 function collectTranslationObjects(node, found = []) {
     if (Array.isArray(node)) { node.forEach((n) => collectTranslationObjects(n, found)); return found; }
     if (!node || typeof node !== 'object') return found;
-    for (const key of ['title', 'mission', 'subtitles', ...LEVEL_PATTERN_COLUMNS]) {
+    // Lesson keys are lowercase (`a1`); the generated `courseMission` block
+    // carries the same maps under the uppercase CEFR codes (`A1`) — both
+    // spellings are locale maps and both must satisfy the contract.
+    for (const key of ['title', 'mission', 'subtitles', ...LEVEL_PATTERN_COLUMNS, ...Object.values(LEVEL_PATTERN_KEYS)]) {
         const value = node[key];
         if (value && typeof value === 'object' && !Array.isArray(value)) found.push(value);
     }
@@ -233,6 +236,13 @@ describe('generated config contract (localized allowed)', () => {
         const { rows } = parseCsv(FIXTURE_CSV);
         const config = buildCourseConfig(rows);
         config.lessons[0].a1 = { en: 'X or Y', fr: 'X ou Y' };
+        expect(() => assertGeneratedConfigContract(config, 'mutated')).toThrow(/unknown locale key/);
+    });
+
+    it('fails when a courseMission level carries an unknown locale key', () => {
+        const { rows } = parseCsv(FIXTURE_CSV);
+        const config = buildCourseConfig(rows);
+        config.courseMission = { mission: { en: 'Talk' }, A1: { en: 'X or Y', fr: 'X ou Y' } };
         expect(() => assertGeneratedConfigContract(config, 'mutated')).toThrow(/unknown locale key/);
     });
 
