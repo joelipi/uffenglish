@@ -20,12 +20,17 @@ test.describe('Success screen — concat button reveal', () => {
         await blockSentinelAutoplay(page);
     });
 
-    /** Load lesson g, close the guest modal, and mount a pending success video. */
-    async function setupSuccessScreen(page, { withVideo = true } = {}) {
-        await page.goto(LESSON_URL);
+    /**
+     * Load a lesson, close the guest modal, and mount a pending success video.
+     * `url` / `lessonId` default to the `model` lesson; the friend-challenge
+     * cases pass a shareCta course (the `model` course has no shareCta lesson,
+     * so a friend screen mounted there renders the normal three-button row).
+     */
+    async function setupSuccessScreen(page, { withVideo = true, url = LESSON_URL, lessonId = 'm-g' } = {}) {
+        await page.goto(url);
         await confirmGuestLanguage(page);
-        await waitForLessonReady(page, 'm-g');
-        await page.evaluate(({ sentinel, withVideo }) => {
+        await waitForLessonReady(page, lessonId);
+        await page.evaluate(({ sentinel, withVideo, lessonId }) => {
             const s = window.appStore.getState();
             // Keep the guest dialog from making the page inert; treat as logged
             // in so SaveClipsModal does not open either.
@@ -35,7 +40,7 @@ test.describe('Success screen — concat button reveal', () => {
                 isLoggedIn: true,
                 userData: { native_language: 'en', auth_method: 'supabase', $id: 'test-user' },
             });
-            s.setSuccessScreen('g', { total: 85 });
+            s.setSuccessScreen(lessonId, { total: 85 });
             if (withVideo) {
                 s.setCurrentVideo({
                     type: 'simple',
@@ -46,8 +51,8 @@ test.describe('Success screen — concat button reveal', () => {
             } else {
                 s.setCurrentVideo(null);
             }
-            s.transitionTo('lessonSuccess', { lessonId: 'm-g', fluencyData: { total: 85 } }, { fromStepLoad: true });
-        }, { sentinel: SENTINEL_SRC, withVideo });
+            s.transitionTo('lessonSuccess', { lessonId, fluencyData: { total: 85 } }, { fromStepLoad: true });
+        }, { sentinel: SENTINEL_SRC, withVideo, lessonId });
     }
 
     /** Wait out the 3s FOUC fallback that makes the video wrapper visible. */
@@ -321,7 +326,10 @@ test.describe('Success screen — concat button reveal', () => {
     });
 
     test('friend-challenge lesson shows only Share with the 48h call to action', async ({ page }) => {
-        await setupSuccessScreen(page);
+        // `model` has no shareCta lesson, so the friend screen is mounted on the
+        // canonical friend-challenge course instead (lesson `a` is a shareCta
+        // lesson whose first step is a lessonIntro, so the loader still settles).
+        await setupSuccessScreen(page, { url: '/course/wouldrather/lesson/a', lessonId: 'a' });
         await page.evaluate(() => {
             const s = window.appStore.getState();
             // A friend-challenge lesson is one whose recapOverlay is 'shareCta'.
@@ -344,6 +352,31 @@ test.describe('Success screen — concat button reveal', () => {
         await expect(cta).toBeVisible();
         await expect(cta).toContainText('Share this video with friends, family, and colleagues');
         await expect(cta).toContainText('They have 48 hours to respond');
+    });
+
+    test('friend-challenge call to action shows only the learner language, not English too', async ({ page }) => {
+        await setupSuccessScreen(page, { url: '/course/wouldrather/lesson/a', lessonId: 'a' });
+        await page.evaluate(() => {
+            const s = window.appStore.getState();
+            // The learner chose Bengali; guest-first resolution wins over the
+            // profile language the helper wrote.
+            window.appStore.setState({ guestNativeLanguage: 'bn' });
+            const idx = s.configData.lessons.findIndex(l => l.recapOverlay === 'shareCta');
+            window.appStore.setState({ currentLessonIndex: idx });
+            s.setSuccessVideoBlob(new Blob(['fake'], { type: 'video/webm' }));
+            s.setSuccessVideoState('ready');
+            s.setSuccessRepeatButtonVisible(true);
+            s.setSuccessContinueVisible(true);
+        });
+
+        const cta = page.locator('#state-lesson-success .success-share-cta');
+        await expect(cta).toBeVisible();
+        // The translation alone — the English sentence it used to print above it
+        // is gone, and so is the <br> that stacked the two lines.
+        await expect(cta).toContainText('এই ভিডিওটি বন্ধু, পরিবার ও সহকর্মীদের সাথে শেয়ার করুন');
+        await expect(cta).not.toContainText('Share this video');
+        await expect(cta.locator('br')).toHaveCount(0);
+        await expect(cta.locator('span[lang="bn"]')).toHaveCount(1);
     });
 
     test('warns not to close the tab while clips are publishing', async ({ page }) => {
