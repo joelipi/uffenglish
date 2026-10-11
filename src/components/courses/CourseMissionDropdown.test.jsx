@@ -97,6 +97,14 @@ describe('CourseMissionDropdown', () => {
         expect(container.querySelector('[data-testid="course-mission"]').querySelector('.course-meta-key')).toBeNull();
     });
 
+    it('labels an uppercase level code with the code itself', () => {
+        root = render(container, { mission: { A1: { en: 'X or Y' } } });
+        const dropdown = container.querySelector('[data-testid="course-mission"]');
+        expect(dropdown.querySelectorAll('.mission-label i')).toHaveLength(0);
+        expect(dropdown.querySelector('.course-meta-key').textContent).toBe('A1');
+        expect(dropdown.querySelector('.course-meta-text').textContent).toContain('X or Y');
+    });
+
     it('localizes rows through the same bilingual text as the lesson', () => {
         root = render(container, { lang: 'es', mission: { mission: { en: 'Ask', es: 'Pregunta' } } });
         const dropdown = container.querySelector('[data-testid="course-mission"]');
@@ -152,15 +160,14 @@ describe('course mission dropdown styling', () => {
         }
     });
 
-    it('top-aligns course-card labels with their text rows without touching the lesson rule', () => {
+    it('top-aligns expanded labels with their text rows (lesson and course cards)', () => {
         const css = readFileSync(path.join(__dirname, '../../assets/css/app.css'), 'utf8');
-        const start = css.indexOf('.mission-section.course-mission');
+        const start = css.indexOf('.mission-section.expanded .mission-row div.d-flex');
         expect(start).toBeGreaterThan(-1);
         const block = css.slice(start, css.indexOf('}', start));
-        expect(block).toContain('align-items: start');
-        const lessonStart = css.indexOf('.mission-section.expanded .mission-row div.d-flex');
-        expect(lessonStart).toBeGreaterThan(-1);
-        const lessonBlock = css.slice(lessonStart, css.indexOf('}', lessonStart));
-        expect(lessonBlock).toContain('align-items: center');
+        // `!important` is load-bearing: the inner div carries the
+        // `align-items-center` utility, which beats a plain declaration.
+        expect(block).toContain('align-items: start !important');
+        expect(css).not.toContain('.mission-section.course-mission');
     });
 });

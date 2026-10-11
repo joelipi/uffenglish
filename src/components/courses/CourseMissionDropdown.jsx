@@ -36,7 +36,7 @@ export default function CourseMissionDropdown({ lang = 'en', mission }) {
 
     return (
         <div
-            className={'mission-section course-mission' + (expanded ? ' expanded' : '')}
+            className={'mission-section' + (expanded ? ' expanded' : '')}
             data-testid="course-mission"
             onClick={toggle}
             style={{ marginTop: '12px' }}
