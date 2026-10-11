@@ -72,7 +72,7 @@ describe('unified button tokens and round base', () => {
         expect(block).toContain('--uff-btn-border: 1px solid #ffffff');
         expect(block).toMatch(/--uff-btn-shadow:\s*0 10px 25px rgba\(0, 0, 0, 0\.2\)/);
         // The tokens must be consumed, not just defined.
-        for (const token of ['var(--uff-btn-bg)', 'var(--uff-btn-fg)', 'var(--uff-btn-border)', 'var(--uff-btn-shadow)']) {
+        for (const token of ['var(--uff-btn-bg)', 'var(--uff-btn-fg)', 'var(--uff-btn-border)', 'var(--uff-btn-shadow)', 'var(--uff-btn-shadow-pressed)']) {
             const first = css.indexOf(token);
             expect(first, `unused ${token}`).toBeGreaterThan(-1);
             expect(css.indexOf(token, first + 1), `used only once: ${token}`).toBeGreaterThan(-1);
@@ -184,7 +184,7 @@ const MARKED = [
     ['src/components/widgets/DecisionButtons.jsx', 'id="micBtn"'],
     ['src/components/widgets/DecisionButtons.jsx', 'id="txtBtn"'],
     ['src/components/LessonContainer.jsx', 'phaseData?.onAccept'],
-    ['src/components/widgets/TutorialModal.jsx', 'marginTop: 8'],
+    ['src/components/widgets/TutorialModal.jsx', 'type="button"'],
 ];
 
 const UNMARKED = [

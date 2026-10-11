@@ -746,6 +746,7 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     --uff-btn-fg: #1a1a1a;
     --uff-btn-border: 1px solid #ffffff;
     --uff-btn-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    --uff-btn-shadow-pressed: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
 /* =========================================
@@ -801,13 +802,13 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 .call-icon:focus-visible {
     background-color: var(--uff-btn-bg) !important;
     color: var(--uff-btn-fg) !important;
-    border-color: #ffffff !important;
+    border-color: var(--uff-btn-bg) !important;
     outline: none !important;
 }
 
 .call-btn:active {
     transform: scale(0.9) translateY(2px);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
+    box-shadow: var(--uff-btn-shadow-pressed) !important;
     background-color: var(--uff-btn-bg) !important;
     color: var(--uff-btn-fg) !important;
 }
@@ -822,7 +823,7 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     font-size: 1.75rem !important;
     background-color: var(--uff-btn-bg) !important;
     color: var(--uff-btn-fg) !important;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
+    box-shadow: var(--uff-btn-shadow-pressed) !important;
 }
 
 /* Row-primary marker: the overlay border (1px solid #ffffff, as on
