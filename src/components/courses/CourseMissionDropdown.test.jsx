@@ -77,14 +77,24 @@ describe('CourseMissionDropdown', () => {
         expect(icons).toEqual(['bi bi-bullseye', 'bi bi-people']);
     });
 
-    it('renders future metadata keys with a fallback icon and styled text', () => {
+    it('renders future metadata keys with a fallback icon, key label and styled text', () => {
         root = render(container, { mission: { mission: { en: 'Ask' }, voice: { en: 'Audio' } } });
         const dropdown = container.querySelector('[data-testid="course-mission"]');
         expect(dropdown.textContent).toContain('Audio');
         const labels = Array.from(dropdown.querySelectorAll('.mission-label i'));
         expect(labels[labels.length - 1].className).toBe('bi bi-info-circle');
+        const keyLabel = dropdown.querySelector('.course-meta-key');
+        expect(keyLabel).not.toBeNull();
+        expect(keyLabel.textContent).toBe('voice');
         expect(dropdown.querySelector('.course-meta-text')).not.toBeNull();
         expect(dropdown.querySelector('.course-meta-text').textContent).toContain('Audio');
+    });
+
+    it('shows no key label on the live lesson rows', () => {
+        root = render(container, {
+            mission: { mission: { en: 'Ask' }, setting: { en: 'Park' } },
+        });
+        expect(container.querySelector('[data-testid="course-mission"]').querySelector('.course-meta-key')).toBeNull();
     });
 
     it('localizes rows through the same bilingual text as the lesson', () => {

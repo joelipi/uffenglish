@@ -31,7 +31,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { RECAP_SOURCES, RECAP_OVERLAYS } from '../modules/video/video-processor-logic.js';
 import { FRIEND_VIDEO_REGEX } from '../modules/video/video-source.js';
-import { parseCsv, buildCourseConfig, buildCourseConfigs } from '../../scripts/lib/sheet-config-utils.js';
+import { parseCsv, buildCourseConfig, buildCourseConfigs, LEVEL_PATTERN_COLUMNS } from '../../scripts/lib/sheet-config-utils.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // This test lives in src/config, so the config directory IS __dirname.
@@ -66,14 +66,15 @@ function assertListedConfigs({ listPath = ALLOWLIST, readDir = CONFIG_DIR } = {}
 
 // Every translation slot in a course config, walked structurally (NOT keyed on
 // `en`'s presence — a `{ es: … }`-only object must still be caught).
-//   title/mission: an object of locale->string
+//   title/mission/subtitles: an object of locale->string
+//   a1..c1: the lesson-level CEFR pattern objects (same locale-map shape)
 //   cue: an object OR an array of such objects
 //   subtitles: an object of locale->string
 //   chooseStep[].text: an object of locale->string (one per branch choice)
 function collectTranslationObjects(node, found = []) {
     if (Array.isArray(node)) { node.forEach((n) => collectTranslationObjects(n, found)); return found; }
     if (!node || typeof node !== 'object') return found;
-    for (const key of ['title', 'mission', 'subtitles']) {
+    for (const key of ['title', 'mission', 'subtitles', ...LEVEL_PATTERN_COLUMNS]) {
         const value = node[key];
         if (value && typeof value === 'object' && !Array.isArray(value)) found.push(value);
     }
@@ -210,6 +211,28 @@ describe('generated config contract (localized allowed)', () => {
         const { rows } = parseCsv(FIXTURE_CSV);
         const config = buildCourseConfig(rows);
         config.lessons[0].title.fr = 'Leçon';
+        expect(() => assertGeneratedConfigContract(config, 'mutated')).toThrow(/unknown locale key/);
+    });
+
+    it('passes for lesson-level a1..c1 level patterns with courseMission', () => {
+        const csv = [
+            'course_id,course_name,lesson_id,lesson_title,recap_sources,recap_overlay,response_type,video_file,filename,order,mission,a1,a1_es,b1',
+            'lvl,Levels,a,Lesson A,none,shareCta,viewAndContinue,lvl-v1,lvl1,1,Talk,X or Y,X o Y,would rather X',
+        ].join('\n');
+        const config = buildCourseConfig(parseCsv(csv).rows);
+        expect(config.lessons[0].a1).toEqual({ en: 'X or Y', es: 'X o Y' });
+        expect(config.courseMission).toEqual({
+            mission: { en: 'Talk' },
+            A1: { en: 'X or Y', es: 'X o Y' },
+            B1: { en: 'would rather X' },
+        });
+        assertGeneratedConfigContract(config, 'levels');
+    });
+
+    it('fails when a level pattern carries an unknown locale key', () => {
+        const { rows } = parseCsv(FIXTURE_CSV);
+        const config = buildCourseConfig(rows);
+        config.lessons[0].a1 = { en: 'X or Y', fr: 'X ou Y' };
         expect(() => assertGeneratedConfigContract(config, 'mutated')).toThrow(/unknown locale key/);
     });
 

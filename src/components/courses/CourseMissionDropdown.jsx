@@ -45,7 +45,12 @@ export default function CourseMissionDropdown({ lang = 'en', mission }) {
                 <div className="d-flex align-items-center flex-grow-1 overflow-hidden">
                     {orderedKeys(mission).map((key) => (
                         <React.Fragment key={key}>
-                            <span className="mission-label"><i className={'bi ' + (ROW_ICONS[key] || 'bi-info-circle')}></i></span>
+                            <span className="mission-label">
+                                <i className={'bi ' + (ROW_ICONS[key] || 'bi-info-circle')}></i>
+                                {ROW_ICONS[key] ? null : (
+                                    <span className="course-meta-key" style={{ marginLeft: '6px', fontWeight: 700, fontSize: '14px' }}>{key}</span>
+                                )}
+                            </span>
                             <span className={ROW_TEXT_CLASSES[key] || 'course-meta-text'}><BilingualText translationData={mission[key]} userLang={lang} spanPrefix=" " /></span>
                         </React.Fragment>
                     ))}

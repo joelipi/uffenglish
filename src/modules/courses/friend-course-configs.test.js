@@ -44,4 +44,12 @@ describe('loadConfigEntries', () => {
             expect(course.firstLessonId).toBe('a');
         }
     });
+
+    it('carries the wouldyourather hero and leveled mission end to end', async () => {
+        const courses = listFriendCourses(await loadConfigEntries());
+        const course = courses.find((c) => c.courseId === 'wouldyourather');
+        expect(course.heroImage).toBe('/img/wouldyouratherhero.jpg');
+        expect(Object.keys(course.mission)).toEqual(['mission', 'A1', 'A2', 'B1', 'B2', 'C1']);
+        expect(course.mission.A1).toEqual({ en: 'X or Y' });
+    });
 });

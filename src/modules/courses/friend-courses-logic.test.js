@@ -242,6 +242,17 @@ describe('courseMissionFor', () => {
         expect(courseMissionFor(friendchain).mission.en)
             .toBe('Talk about preferences with WOULD RATHER.');
     });
+
+    it('reads the wouldyourather top-level mission with its CEFR levels', () => {
+        expect(courseMissionFor(wouldyourather)).toEqual({
+            mission: { en: 'talk about preferences between 2-3 options' },
+            A1: { en: 'X or Y' },
+            A2: { en: 'which is better, noun X or noun Y' },
+            B1: { en: 'would rather + [verb stem X] or [verb stem Y]' },
+            B2: { en: 'given the choice between [gerund verb X] and [gerund verb Y]' },
+            C1: { en: 'if I had to choose between [gerund verb X] and [gerund verb Y], my preference would be to [infinitive verb]' },
+        });
+    });
 });
 
 describe('courseHeroImageFor', () => {

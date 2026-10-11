@@ -205,6 +205,46 @@ function localizedObject(rows, field, enValue) {
     return obj;
 }
 
+// Lesson-level CEFR pattern columns for the course mission dropdown
+// (`a1`..`c1`, with optional `a1_es`-style language columns). Deliberately NOT
+// registered in TRANSLATABLE_FIELDS: the values are pattern templates whose
+// `[verb stem X]` placeholders machine translation would mangle, so they stay
+// English-source; hand-filled `<col>_<lang>` cells are still read when present.
+export const LEVEL_PATTERN_COLUMNS = ['a1', 'a2', 'b1', 'b2', 'c1'];
+
+// Sheet column -> courseMission key. Uppercase CEFR codes match the course
+// metadata the app renders (the mission dropdown labels unknown keys as-is).
+export const LEVEL_PATTERN_KEYS = { a1: 'A1', a2: 'A2', b1: 'B1', b2: 'B2', c1: 'C1' };
+
+/** English value plus each present language for a level-pattern column. */
+function levelPatternObject(rows, field, enValue) {
+    const obj = { en: enValue };
+    for (const lang of SHEET_LANGUAGES) {
+        const v = firstLocalized(rows, field, lang);
+        if (v) obj[lang] = v;
+    }
+    return obj;
+}
+
+/**
+ * The course mission dropdown content from the first shareCta lesson (the
+ * course entry lesson): its mission/setting/roles plus the A1..C1 level
+ * patterns. Undefined when that lesson carries none of these, so the key
+ * stays out of the config entirely.
+ */
+function courseMissionFromLessons(lessons) {
+    const first = (lessons || []).find((l) => l && l.recapOverlay === 'shareCta') || (lessons || [])[0];
+    if (!first) return undefined;
+    const mission = {};
+    for (const key of ['mission', 'setting', 'roleUser', 'roleOther']) {
+        if (first[key]) mission[key] = first[key];
+    }
+    for (const col of LEVEL_PATTERN_COLUMNS) {
+        if (first[col]) mission[LEVEL_PATTERN_KEYS[col]] = first[col];
+    }
+    return Object.keys(mission).length > 0 ? mission : undefined;
+}
+
 /**
  * The step's subtitles from `srt`/`srt_<lang>`, or undefined when the English
  * `srt` is blank. The English `srt` is the pipeline-written JSON-escaped string
@@ -629,12 +669,19 @@ export function buildCourseConfig(rows) {
         if (unit) lesson.unit = unit;
         const mission = singleValue(rowsForLesson, sourceOf('mission'), `lesson "${lessonId}"`);
         if (mission) lesson.mission = localizedObject(rowsForLesson, 'mission', mission);
+        for (const col of LEVEL_PATTERN_COLUMNS) {
+            const pattern = singleValue(rowsForLesson, col, `lesson "${lessonId}"`);
+            if (pattern) lesson[col] = levelPatternObject(rowsForLesson, col, pattern);
+        }
 
         lesson.steps = buildSteps(rowsForLesson);
         return lesson;
     });
 
-    return { courseId, courseName, lessons };
+    const courseMission = courseMissionFromLessons(lessons);
+    return courseMission
+        ? { courseId, courseName, courseMission, lessons }
+        : { courseId, courseName, lessons };
 }
 
 /**
@@ -699,6 +746,10 @@ function buildMasterCourseConfig(videoRows) {
         if (unit) lesson.unit = unit;
         const mission = firstNonBlank(rowsForLesson, sourceOf('mission'));
         if (mission) lesson.mission = localizedObject(rowsForLesson, 'mission', mission);
+        for (const col of LEVEL_PATTERN_COLUMNS) {
+            const pattern = firstNonBlank(rowsForLesson, col);
+            if (pattern) lesson[col] = levelPatternObject(rowsForLesson, col, pattern);
+        }
 
         lesson.steps = buildMasterSteps(rowsForLesson);
 
@@ -716,7 +767,10 @@ function buildMasterCourseConfig(videoRows) {
         return lesson;
     });
 
-    return { courseId, courseName, lessons };
+    const courseMission = courseMissionFromLessons(lessons);
+    return courseMission
+        ? { courseId, courseName, courseMission, lessons }
+        : { courseId, courseName, lessons };
 }
 
 /** Deterministically order + dedupe a missing-columns list, as `findMissingColumns` reports it. */

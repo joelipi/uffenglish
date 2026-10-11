@@ -528,6 +528,70 @@ describe('buildCourseConfig localization columns', () => {
 // Story 049: the generator's English source reads are derived from
 // TRANSLATABLE_FIELDS (sourceOf), so this pins that every shared field is
 // consumed and none is silently dropped.
+describe('lesson level patterns (a1..c1) and courseMission', () => {
+    const base = {
+        course_id: 'lvl', course_name: 'Levels', lesson_id: 'a', lesson_title: 'Ask',
+        mission: 'Talk', video_file: 'v', filename: 'f1', order: '1', response_type: 'viewAndContinue',
+    };
+
+    it('omits level keys when the columns are absent, keeping only the mission fallback', () => {
+        const config = buildCourseConfig([{ ...base }]);
+        expect('a1' in config.lessons[0]).toBe(false);
+        expect(config.courseMission).toEqual({ mission: { en: 'Talk' } });
+    });
+
+    it('omits courseMission entirely with no mission data at all', () => {
+        const { mission, ...bare } = base;
+        const config = buildCourseConfig([{ ...bare }]);
+        expect('mission' in config.lessons[0]).toBe(false);
+        expect('courseMission' in config).toBe(false);
+    });
+
+    it('emits present patterns as {en} lesson keys plus courseMission from the first lesson', () => {
+        const config = buildCourseConfig([
+            { ...base, a1: 'X or Y', b1: 'would rather X or Y' },
+            { ...base, lesson_id: 'b', lesson_title: 'Answer', video_file: 'w', filename: 'f2', order: '1', a1: 'Other' },
+        ]);
+        expect(config.lessons[0].a1).toEqual({ en: 'X or Y' });
+        expect(config.lessons[0].b1).toEqual({ en: 'would rather X or Y' });
+        expect('a2' in config.lessons[0]).toBe(false);
+        expect(config.lessons[1].a1).toEqual({ en: 'Other' });
+        expect(config.courseMission).toEqual({
+            mission: { en: 'Talk' },
+            A1: { en: 'X or Y' },
+            B1: { en: 'would rather X or Y' },
+        });
+    });
+
+    it('reads hand-filled language columns into the pattern objects', () => {
+        const config = buildCourseConfig([{ ...base, a1: 'X or Y', a1_es: 'X o Y' }]);
+        expect(config.lessons[0].a1).toEqual({ en: 'X or Y', es: 'X o Y' });
+        expect(config.courseMission.A1).toEqual({ en: 'X or Y', es: 'X o Y' });
+    });
+
+    it('throws on conflicting pattern values within a lesson (authoring)', () => {
+        expect(() => buildCourseConfig([
+            { ...base, a1: 'One' },
+            { ...base, video_file: 'w', filename: 'f2', order: '2', a1: 'Two' },
+        ])).toThrow(/lesson "a"/);
+    });
+
+    it('emits patterns and courseMission on the master path', () => {
+        const config = buildCourseConfig([{
+            course_id: 'lvl', course_name: 'Levels', lesson_id: 'a', lesson_title: 'Ask',
+            response_type: 'friendClosedResponse', video_file: 'v', filename: 'f',
+            order: '1', phrase: 'Q', mission: 'Talk', a1: 'X or Y', c1: 'If I had to choose',
+        }]);
+        expect(config.lessons[0].a1).toEqual({ en: 'X or Y' });
+        expect(config.lessons[0].c1).toEqual({ en: 'If I had to choose' });
+        expect(config.courseMission).toEqual({
+            mission: { en: 'Talk' },
+            A1: { en: 'X or Y' },
+            C1: { en: 'If I had to choose' },
+        });
+    });
+});
+
 describe('shared translatable-field parity', () => {
     it('consumes every field in TRANSLATABLE_FIELDS', () => {
         const es = (field) => localizedColumn(field, 'es');
