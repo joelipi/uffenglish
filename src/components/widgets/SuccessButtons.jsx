@@ -326,7 +326,7 @@ export function VideoButton({ canvasRef }) {
         <button
           type="button"
           id="processBtn"
-          className="btn call-btn"
+          className="btn call-btn btn-row-primary"
           onClick={handleProcess}
           aria-label="Continue"
         >
@@ -356,7 +356,7 @@ export function VideoButton({ canvasRef }) {
         <button
           type="button"
           id="createVideoButton"
-          className="btn call-btn"
+          className="btn call-btn btn-row-primary"
           onClick={handleShare}
           disabled={sharing}
           aria-label="Share"

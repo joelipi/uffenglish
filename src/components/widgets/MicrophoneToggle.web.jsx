@@ -100,7 +100,7 @@ export default function MicrophoneToggle() {
             <div ref={el => ringRefs.current[2] = el} className="mic-ring" style={ringStyle}></div>
             <button
                 ref={micBtnRef}
-                className={`btn call-btn ${isMicActive ? '' : 'toggled-off'} ${isTextMode ? 'd-none' : ''}${bouncing ? ' btn-bounce' : ''}`}
+                className={`btn call-btn btn-row-primary ${isMicActive ? '' : 'toggled-off'} ${isTextMode ? 'd-none' : ''}${bouncing ? ' btn-bounce' : ''}`}
                 id="micBtn"
                 aria-label="Toggle Microphone"
                 onClick={handleClick}
@@ -108,7 +108,7 @@ export default function MicrophoneToggle() {
                 <i className={isMicActive ? "bi bi-mic-fill" : "bi bi-mic-mute-fill"}></i>
             </button>
             <button
-                className={`btn call-btn ${isTextMode ? '' : 'd-none'}`}
+                className={`btn call-btn btn-row-primary ${isTextMode ? '' : 'd-none'}`}
                 id="txtBtn"
                 aria-label="Toggle Text Input"
                 onClick={handleTextClick}

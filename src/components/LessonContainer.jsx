@@ -240,7 +240,7 @@ export default function LessonContainer() {
                                                 ) : acceptLabel.english}
                                             </div>
                                         </div>
-                                        <button className="btn call-btn" onClick={() => {
+                                        <button className="btn call-btn btn-row-primary" onClick={() => {
                                             const accept = appStore.getState().phaseData?.onAccept;
                                             appStore.getState().setWhisperReviewData(null);
                                             appStore.getState().setWhisperReviewTimeLeft(null);

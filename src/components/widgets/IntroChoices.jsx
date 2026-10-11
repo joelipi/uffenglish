@@ -83,7 +83,7 @@ export default function IntroChoices() {
                     <i className="bi bi-telephone-fill text-white"></i>
                 </button>
             )}
-            <button className="btn call-btn" id="continueButton" aria-label="Video Call" onClick={handleVideoClick} disabled={disabled}>
+            <button className="btn call-btn btn-row-primary" id="continueButton" aria-label="Video Call" onClick={handleVideoClick} disabled={disabled}>
                 <i className="bi bi-camera-video-fill"></i>
             </button>
         </>

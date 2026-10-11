@@ -33,7 +33,8 @@ export default function TutorialModal({ onClose }) {
                     Tutorial video coming soon.
                 </p>
                 <button
-                    className="btn call-btn"
+                    type="button"
+                    className="btn call-btn btn-row-primary"
                     onClick={onClose}
                     style={{ marginTop: 8 }}
                 >

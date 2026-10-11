@@ -304,13 +304,14 @@ export default function UserProfile() {
 
     const btnPrimaryStyle = {
         padding: '12px 24px',
-        backgroundColor: '#007bff',
-        color: 'white',
-        border: 'none',
+        backgroundColor: '#ffffff',
+        color: '#1a1a1a',
+        border: '1px solid #ffffff',
         borderRadius: '8px',
         fontSize: '15px',
         fontWeight: 600,
         cursor: 'pointer',
+        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)',
     };
 
     const btnPrimaryDisabled = {

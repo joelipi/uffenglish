@@ -82,7 +82,7 @@ export default function DecisionButtons() {
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
                     <button
-                        className={`btn call-btn ${isMicActive ? '' : 'toggled-off'} ${isTextMode ? 'd-none' : ''}`}
+                        className={`btn call-btn btn-row-primary ${isMicActive ? '' : 'toggled-off'} ${isTextMode ? 'd-none' : ''}`}
                         id="micBtn"
                         aria-label="Toggle Microphone"
                         onClick={handleMicClick}
@@ -90,7 +90,7 @@ export default function DecisionButtons() {
                         <i className={isMicActive ? "bi bi-mic-fill" : "bi bi-mic-mute-fill"}></i>
                     </button>
                     <button
-                        className={`btn call-btn ${isTextMode ? '' : 'd-none'}`}
+                        className={`btn call-btn btn-row-primary ${isTextMode ? '' : 'd-none'}`}
                         id="txtBtn"
                         aria-label="Toggle Text Input"
                         onClick={handleTxtClickOverlay}

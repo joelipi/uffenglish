@@ -174,9 +174,9 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 
 .btn:where(.btn-primary, .btn-secondary, .btn-success, .btn-outline-primary, .btn-outline-danger, .btn-outline-light) { --bs-btn-active-shadow: inset 0 3px 5px rgba(0,0,0,0.125); }
 
-.btn-primary { --bs-btn-color: #fff; --bs-btn-bg: #0d6efd; --bs-btn-border-color: #0d6efd; --bs-btn-hover-color: #fff; --bs-btn-hover-bg: #0b5ed7; --bs-btn-hover-border-color: #0a58ca; --bs-btn-active-color: #fff; --bs-btn-active-bg: #0a58ca; --bs-btn-active-border-color: #0a53be; --bs-btn-disabled-color: #fff; --bs-btn-disabled-bg: #0d6efd; --bs-btn-disabled-border-color: #0d6efd; }
-.btn-secondary { --bs-btn-color: #fff; --bs-btn-bg: #6c757d; --bs-btn-border-color: #6c757d; --bs-btn-hover-color: #fff; --bs-btn-hover-bg: #5c636a; --bs-btn-hover-border-color: #565e64; --bs-btn-active-color: #fff; --bs-btn-active-bg: #565e64; --bs-btn-active-border-color: #51585e; --bs-btn-disabled-color: #fff; --bs-btn-disabled-bg: #6c757d; --bs-btn-disabled-border-color: #6c757d; }
-.btn-success { --bs-btn-color: #fff; --bs-btn-bg: #198754; --bs-btn-border-color: #198754; --bs-btn-hover-color: #fff; --bs-btn-hover-bg: #157347; --bs-btn-hover-border-color: #146c43; --bs-btn-active-color: #fff; --bs-btn-active-bg: #146c43; --bs-btn-active-border-color: #13653f; --bs-btn-disabled-color: #fff; --bs-btn-disabled-bg: #198754; --bs-btn-disabled-border-color: #198754; }
+.btn-primary { --bs-btn-color: #1a1a1a; --bs-btn-bg: #ffffff; --bs-btn-border-color: #ffffff; --bs-btn-hover-color: #1a1a1a; --bs-btn-hover-bg: #ffffff; --bs-btn-hover-border-color: #ffffff; --bs-btn-active-color: #1a1a1a; --bs-btn-active-bg: #ffffff; --bs-btn-active-border-color: #ffffff; --bs-btn-disabled-color: #1a1a1a; --bs-btn-disabled-bg: #ffffff; --bs-btn-disabled-border-color: #ffffff; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); }
+.btn-secondary { --bs-btn-color: #1a1a1a; --bs-btn-bg: #ffffff; --bs-btn-border-color: #ffffff; --bs-btn-hover-color: #1a1a1a; --bs-btn-hover-bg: #ffffff; --bs-btn-hover-border-color: #ffffff; --bs-btn-active-color: #1a1a1a; --bs-btn-active-bg: #ffffff; --bs-btn-active-border-color: #ffffff; --bs-btn-disabled-color: #1a1a1a; --bs-btn-disabled-bg: #ffffff; --bs-btn-disabled-border-color: #ffffff; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); }
+.btn-success { --bs-btn-color: #1a1a1a; --bs-btn-bg: #ffffff; --bs-btn-border-color: #ffffff; --bs-btn-hover-color: #1a1a1a; --bs-btn-hover-bg: #ffffff; --bs-btn-hover-border-color: #ffffff; --bs-btn-active-color: #1a1a1a; --bs-btn-active-bg: #ffffff; --bs-btn-active-border-color: #ffffff; --bs-btn-disabled-color: #1a1a1a; --bs-btn-disabled-bg: #ffffff; --bs-btn-disabled-border-color: #ffffff; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2); }
 .btn-outline-primary { --bs-btn-color: #0d6efd; --bs-btn-border-color: #0d6efd; --bs-btn-hover-color: #fff; --bs-btn-hover-bg: #0d6efd; --bs-btn-hover-border-color: #0d6efd; --bs-btn-active-color: #fff; --bs-btn-active-bg: #0d6efd; --bs-btn-active-border-color: #0d6efd; --bs-btn-disabled-color: #0d6efd; --bs-btn-disabled-bg: transparent; --bs-btn-disabled-border-color: #0d6efd; }
 .btn-outline-danger { --bs-btn-color: #dc3545; --bs-btn-border-color: #dc3545; --bs-btn-hover-color: #fff; --bs-btn-hover-bg: #dc3545; --bs-btn-hover-border-color: #dc3545; --bs-btn-active-color: #fff; --bs-btn-active-bg: #dc3545; --bs-btn-active-border-color: #dc3545; --bs-btn-disabled-color: #dc3545; --bs-btn-disabled-bg: transparent; --bs-btn-disabled-border-color: #dc3545; }
 .btn-outline-light { --bs-btn-color: #f8f9fa; --bs-btn-border-color: #f8f9fa; --bs-btn-hover-color: #000; --bs-btn-hover-bg: #f8f9fa; --bs-btn-hover-border-color: #f8f9fa; --bs-btn-active-color: #000; --bs-btn-active-bg: #f8f9fa; --bs-btn-active-border-color: #f8f9fa; --bs-btn-disabled-color: #f8f9fa; --bs-btn-disabled-bg: transparent; --bs-btn-disabled-border-color: #f8f9fa; }
@@ -734,6 +734,21 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 }
 */
 /* =========================================
+   UNIFIED BUTTONS
+   Every solid button shares one basic style and differs only by shape:
+   white background, black icon/text, and the overlay border
+   (1px solid #ffffff, as on .branch-choice-btn). Round buttons keep
+   border-radius 50%; rectangular buttons keep their rounded corners.
+   Tokens single-source the shared values.
+   ========================================= */
+:root {
+    --uff-btn-bg: #ffffff;
+    --uff-btn-fg: #1a1a1a;
+    --uff-btn-border: 1px solid #ffffff;
+    --uff-btn-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+/* =========================================
    CALL BUTTONS
    ========================================= */
 .call-btn,
@@ -761,9 +776,13 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 }
 
 .call-icon {
-    background-color: transparent !important;
-    color: #ffffff !important;
-    box-shadow: none !important;
+    background-color: #ffffff !important;
+    color: #1a1a1a !important;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2) !important;
+}
+
+.call-icon i {
+    color: #1a1a1a !important;
 }
 
 .call-btn i,
@@ -776,9 +795,13 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 
 .call-btn:hover,
 .call-btn:focus,
-.call-btn:focus-visible {
+.call-btn:focus-visible,
+.call-icon:hover,
+.call-icon:focus,
+.call-icon:focus-visible {
     background-color: #ffffff !important;
     color: #1a1a1a !important;
+    border-color: #ffffff !important;
     outline: none !important;
 }
 
@@ -797,9 +820,21 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 .call-icon:active {
     transform: scale(0.9) translateY(2px);
     font-size: 1.75rem !important;
-    background: transparent !important;
-    color: #ffffff !important;
-    box-shadow: none !important;
+    background-color: #ffffff !important;
+    color: #1a1a1a !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Row-primary marker: the overlay border (1px solid #ffffff, as on
+   .branch-choice-btn) appears ONLY on the primary button in a row of 2 or
+   more, or on the only button in its row (e.g. the homepage CTAs). All
+   other buttons share the same white/black basic style but stay
+   borderless. Rectangular solid CTAs (.btn-primary/.btn-secondary/
+   .btn-success, .btn-uff-*, .branch-choice-btn, #answer-submit-button,
+   .incoming-video-btn) are single-or-primary by construction, so their own
+   rules carry the border directly; round buttons opt in with this class. */
+.btn-row-primary {
+    border: 1px solid #ffffff !important;
 }
 
 /* Immediate hide for bottom overlay (bypass opacity transition) */
@@ -1867,7 +1902,7 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 
 #answer-submit-button {
     background-color: #ffffff !important;
-    border: none !important;
+    border: 1px solid #ffffff !important;
     border-radius: 50% !important;
     width: 50px;
     height: 50px;
@@ -2005,7 +2040,7 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     height: 40px;
     border-radius: 50%;
     background-color: #ffffff;
-    border: none;
+    border: 1px solid #ffffff;
     color: #000000;
     font-size: 1.1rem;
     display: flex;

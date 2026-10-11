@@ -52,7 +52,7 @@ export default function ResponseDecisionButtons() {
                 <ChoiceColumn label={getBilingual(getResponseAnswerLabelKey(currentVideo?.responseType), labelLang)}>
                     <div style={{ display: 'flex', gap: '8px' }}>
                         <button
-                            className={`btn call-btn ${isTextMode ? 'd-none' : ''}`}
+                            className={`btn call-btn btn-row-primary ${isTextMode ? 'd-none' : ''}`}
                             id="responseAnswerBtn"
                             aria-label="Answer"
                             onClick={handleMicClick}
@@ -60,7 +60,7 @@ export default function ResponseDecisionButtons() {
                             <i className="bi bi-mic-fill"></i>
                         </button>
                         <button
-                            className={`btn call-btn ${isTextMode ? '' : 'd-none'}`}
+                            className={`btn call-btn btn-row-primary ${isTextMode ? '' : 'd-none'}`}
                             id="responseTxtBtn"
                             aria-label="Answer with text"
                             onClick={handleTxtClick}
