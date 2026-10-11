@@ -38,3 +38,25 @@ LEFT FOR THE PIPELINE (post-promote, in order)
   then sync-srt, then translate (fills blank phrase_*/srt_* for new rows), then configs.
 - NOT done here: broad A2/B2 simplification of branch-only lessons (pedagogy call),
   and "Which is better: speak every language ..." (missing 'to' - suggestion only).
+
+A2 FORMULA PASS (all order-2 rows)
+- Ask A2 -> "Which is better: X or Y?": a01, c01 (gerunds: speaking/playing),
+  c03 ("honest friends or fun friends" per operator example), e02 ("rich with no
+  privacy or poor with complete privacy" per example), e03. a02/a03/c02/e01
+  already conformed - untouched.
+- Answer A2 -> "X is/are better than Y.": b01_i/ii, b02_i/ii, b03_i/ii, d01_i/ii
+  (gerund subjects), d03_i/ii ("Honest/Fun friends are better than ..."),
+  f01_i/ii, f02_i/ii, f03_i/ii (gerunds). d02_i/ii already conformed.
+- B2 untouched throughout, except one garbled repair: e02/4 (2 rows) read
+  "..., Is it better to be?" -> repaired to "..., which would you choose?"
+  to match its siblings.
+- Subtitle boards re-synced line-by-line to phrases (19/19 overlap skeletons
+  identical to main apart from the A2 line; progressive-reveal blanks kept).
+  This also fixed stale A2 lines (a03, e01, c03, d02_ii, d03) and a faulty
+  substring replace that had bled new A2 text into B1/B2 lines (rebuilt clean).
+- Overlap steps with rewritten A2 (a01 x2 lessons, b01_i, b01_ii): srt +
+  srt_es/pt/bn blanked on all step rows, phrase_es/pt/bn blanked on the A2
+  rows - takes a0102/b01_i02/b01_ii02 need re-recording, steps re-render, then
+  sync-srt -> translate refills. All other overlap pipeline data preserved.
+- Known accepted quirks (unchanged): f01 A2 uses "I"-nouns vs A1 "you"-nouns;
+  d03 A1/B1 mix "me"/"you" (subtitle follows phrase); plural "are better than".
