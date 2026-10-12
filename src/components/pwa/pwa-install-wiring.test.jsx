@@ -2,7 +2,8 @@
 // The install dialog is mounted once in the layout and the entry point lives in
 // the home menu — different subtrees, bridged by the registry in
 // install-prompt-webonly.js. `@khmyznikov/pwa-install` is mocked so these tests
-// never pull the ~1.8 MB web-component bundle into jsdom.
+// never pull the ~142 KB web-component bundle (plus its Lit/inapp-spy deps)
+// into jsdom.
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -42,7 +43,9 @@ afterEach(() => {
 describe('PWAInstallDialog', () => {
     it('mounts the dialog in manual mode, remembering dismissals', () => {
         const { container, unmount } = render(<PWAInstallDialog />);
-        const element = container.querySelector('pwa-install');
+        const mounted = container.querySelectorAll('pwa-install');
+        expect(mounted).toHaveLength(1);
+        const element = mounted[0];
         expect(element).toBeTruthy();
         // Manual mode: the dialog never opens itself (the app already shows the
         // guest modal), so the menu entry controls it.

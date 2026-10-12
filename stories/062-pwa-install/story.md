@@ -100,15 +100,21 @@ that is out of scope here.)
   fixed path — unlike the R2-only posters).
 - **The service worker precaches the shell, nothing else.** `generateSW` with
   `globPatterns` limited to `js/css/html/png/svg/ico/webmanifest/woff(2)`,
-  `globIgnores` for `**/wasm/**` (109 MB of onnxruntime), `**/whisper/**`,
-  `recorder.html` and `landing.html` (standalone pages that must be served
-  as-is, never from the SPA shell), and `pwa-icon-source.png`.
+  `globIgnores` for `**/wasm/**` (109 MB of onnxruntime), `**/whisper/**`
+  (the model/runtime assets under `public/whisper/**` — the tiny
+  `assets/whisper-worker-*.js` bootstrap chunks are app-shell JS and *are*
+  precached), `recorder.html` and `landing.html` (standalone pages that must be
+  served as-is, never from the SPA shell), and `pwa-icon-source.png`.
   `navigateFallback: 'index.html'` serves client routes offline, with a
-  `navigateFallbackDenylist` for `/api/`, `/assets/`, `/whisper/`,
-  `/recorder(.html)?` and `/landing.html` — without that, Workbox's
-  NavigationRoute would answer *every* same-origin navigation from the cached
-  shell and shadow the hidden operator studio (a real regression, not a
-  theoretical one). `maximumFileSizeToCacheInBytes` is 3 MB **with
+  `navigateFallbackDenylist` for `/recorder(\.html)?(\?|$)`, `/landing\.html(\?|$)`,
+  `/api/`, `/assets/` and `/whisper/`. The standalone-page entries are
+  load-bearing: without them Workbox's NavigationRoute answers *every*
+  `mode === 'navigate'` request from the cached shell and shadows the hidden
+  operator studio (a real regression, not a theoretical one). They are
+  deliberately not `$`-anchored on the path, because Workbox matches the
+  denylist against `pathname + search` (`workbox-routing/NavigationRoute.js`),
+  so `/recorder.html?x=1` must still be denied.
+  `maximumFileSizeToCacheInBytes` is 3 MB **with
   `showMaximumFileSizeToCacheInBytesWarning: true`**, so the oversized
   `idioms`/`idiom-worker` AI chunks (4.3 MB each) and the 6 MB
   `listeningbot` art are skipped with a warning instead of failing the build
@@ -201,7 +207,7 @@ src/data/strings.js                          + pwa_install_cta
 
 - `vite.config.js` `VitePWA` options
   - → `strategies: 'generateSW'`, `registerType: 'prompt'`, `injectRegister: 'script'`, and no `autoUpdate` (no forced mid-session reload)
-  - → `navigateFallback: 'index.html'` and a `navigateFallbackDenylist` containing `/api/`, `/assets/` and `/whisper/`
+  - → `navigateFallback: 'index.html'` and a `navigateFallbackDenylist` denying `/recorder(\.html)?(\?|$)` and `/landing\.html(\?|$)` (not `$`-anchored on the path, since Workbox matches `pathname + search`) plus `/api/`, `/assets/` and `/whisper/`
   - → `globIgnores` includes `**/wasm/**`, `**/whisper/**`, `recorder.html`, `landing.html`
   - → `cleanupOutdatedCaches: true` and a `maximumFileSizeToCacheInBytes` cap
   - → `showMaximumFileSizeToCacheInBytesWarning: true` (oversized chunks are skipped, not a build error)
@@ -308,3 +314,15 @@ npm run build        # emits dist/manifest.webmanifest, dist/sw.js, dist/registe
   denylist, which `recorder-page.test.js` does not scan); the new logic modules
   hold no React/DOM; `HomeScreen.jsx` stays render-only (the button owns its own
   visibility rule).
+- **Interaction with the existing stale-chunk reload.** Once the service worker
+  controls a tab, dynamic imports of precached chunks succeed from the cache, so
+  `vite:preloadError` fires less often and `installStaleChunkReload` (story 030)
+  becomes largely inert for precached chunks. That is coherent with
+  `registerType: 'prompt'` — an old tab keeps running the old shell until it is
+  closed and reopened — and the mechanism is untouched, but it is a behavioural
+  change worth knowing when debugging a "stale deploy" report.
+- **The dialog package is loaded eagerly** by `PWAInstallDialog` in
+  `RootLayout` (~142 KB raw / ~45 KB Brotli for `pwa-install.es.js`, plus its
+  Lit/inapp-spy deps) for every visitor, because the element must exist before
+  the menu can ask it to open. It is not on the lesson critical path (the dialog
+  is inert in manual mode) but it is a real addition to first-load bytes.

@@ -149,6 +149,15 @@ describe('vite.config.js PWA build wiring', () => {
     it('precaches the app shell with an SPA navigation fallback', () => {
         expect(config).toContain("navigateFallback: 'index.html'");
         expect(config).toContain('navigateFallbackDenylist');
+        // The denylist entries that actually matter: without them Workbox
+        // answers every navigation from the cached shell and shadows these
+        // real standalone pages.
+        expect(config).toContain('/^\\/recorder(\\.html)?(\\?|$)/');
+        expect(config).toContain('/^\\/landing\\.html(\\?|$)/');
+        // Not `$`-anchored on the path: Workbox matches `pathname + search`,
+        // so `/recorder.html?x=1` must still be denied.
+        expect(config).not.toContain('/^\\/recorder(\\.html)?$/');
+        expect(config).not.toContain('/^\\/landing\\.html$/');
         expect(config).toContain('/^\\/api\\//');
         expect(config).toContain('/^\\/assets\\//');
         expect(config).toContain('/^\\/whisper\\//');

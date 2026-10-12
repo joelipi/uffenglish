@@ -13,14 +13,18 @@ import { buildPwaManifest } from './scripts/lib/pwa-manifest.js'
 // without a build.
 //
 // The generated service worker precaches the app SHELL (JS/CSS/HTML + icons)
-// with an SPA navigation fallback. Lesson media (R2 `assets/videos`), the
-// Whisper/onnxruntime assets and the pipeline Functions stay network-only, so
-// offline is a shell, not a lesson player. `registerType: 'prompt'` plus
+// with an SPA navigation fallback. Lesson media (R2 `assets/videos`, a different
+// origin), the `public/wasm/**` and `public/whisper/**` model/assets, the
+// oversized AI chunks and the pipeline Functions stay network-only, so offline
+// is a shell, not a lesson player. `registerType: 'prompt'` plus
 // `injectRegister: 'script'` means a plain `navigator.serviceWorker.register`
 // is injected — no `virtual:pwa-register`, so a new build never force-reloads a
 // tab mid-lesson (the app already has its own bounded stale-chunk reload).
 const WORKBOX_IGNORES = [
     '**/wasm/**',
+    // Only the model/runtime assets under public/whisper/**; the tiny
+    // whisper-worker bootstrap chunks emitted into assets/ are app-shell JS
+    // and are intentionally precached.
     '**/whisper/**',
     // Operator-only studio and the legacy static landing: served as-is, never
     // from the precached SPA shell.
@@ -85,17 +89,24 @@ export default defineConfig({
             workbox: {
                 globPatterns: ['**/*.{js,css,html,png,svg,ico,webmanifest,woff,woff2}'],
                 globIgnores: WORKBOX_IGNORES,
-                // SPA client routes are served from the precached shell; the
-                // denylist keeps real standalone pages and non-shell prefixes
-                // (the operator studio, the legacy landing, the pipeline
-                // Functions, R2 media and the Whisper assets) on the network.
+                // SPA client routes are served from the precached shell. The
+                // denylist is the load-bearing part: Workbox's NavigationRoute
+                // would otherwise answer EVERY same-origin navigation (any
+                // `mode === 'navigate'` request) from the cached shell, which
+                // would shadow the operator studio and the legacy landing page.
+                // Workbox tests these against `pathname + search`, so they are
+                // deliberately not `$`-anchored on the path alone — a query
+                // string must still match.
                 navigateFallback: 'index.html',
                 navigateFallbackDenylist: [
+                    /^\/recorder(\.html)?(\?|$)/,
+                    /^\/landing\.html(\?|$)/,
+                    // Defence in depth: these are never navigations, so
+                    // Workbox would not match them anyway, but an accidental
+                    // navigation to them must not be answered with the shell.
                     /^\/api\//,
                     /^\/assets\//,
                     /^\/whisper\//,
-                    /^\/recorder(\.html)?$/,
-                    /^\/landing\.html$/,
                 ],
                 cleanupOutdatedCaches: true,
                 // Chunk-size cap for precaching, with skipping allowed instead of
