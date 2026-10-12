@@ -190,7 +190,7 @@ const MARKED = [
     ['src/components/widgets/DecisionButtons.jsx', 'id="micBtn"'],
     ['src/components/widgets/DecisionButtons.jsx', 'id="txtBtn"'],
     ['src/components/LessonContainer.jsx', 'phaseData?.onAccept'],
-    ['src/components/widgets/TutorialModal.jsx', 'type="button"'],
+    ['src/components/widgets/TutorialModal.jsx', 'id="tutorialContinueBtn"'],
 ];
 
 const UNMARKED = [
@@ -200,6 +200,7 @@ const UNMARKED = [
     ['src/components/widgets/BranchChoiceButtons.jsx', 'id="branchTutorialBtn"'],
     ['src/components/widgets/ResponseDecisionButtons.jsx', 'id="responseReplayBtn"'],
     ['src/components/widgets/ResponseDecisionButtons.jsx', 'id="responseTutorialBtn"'],
+    ['src/components/widgets/TutorialModal.jsx', 'id="tutorialCloseBtn"'],
     ['src/components/widgets/IntroChoices.jsx', 'id="audioOnlyButton"'],
     ['src/components/widgets/IntroChoices.jsx', 'id="textOnlyButton"'],
     ['src/components/widgets/DecisionButtons.jsx', 'id="earBtn"'],

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { appStore, getCurrentVideoPlayer } from '../../modules/store/store.js';
 import { getViewAndContinueHandler } from '../../modules/lesson/step-executor-webonly.js';
+import { pauseLessonVideoForTutorial } from '../../modules/lesson/lesson-progression.js';
+import { createTutorialOpener } from '../../modules/video/tutorial-logic.js';
 import { getBilingual } from '../../data/strings.js';
 import ChoiceColumn from './ChoiceColumn.jsx';
 import TutorialModal from './TutorialModal.jsx';
@@ -27,9 +29,15 @@ export default function ViewAndContinueButtons() {
         }
     };
 
-    const handleTutorial = () => {
-        setShowTutorial(true);
-    };
+    // This row only renders in the view-and-continue decision phase, so the
+    // tutorial's step type is fixed.
+    const handleTutorial = createTutorialOpener({
+        stepType: 'viewAndContinue',
+        onOpen: () => {
+            pauseLessonVideoForTutorial();
+            setShowTutorial(true);
+        },
+    });
 
     return (
         <>
@@ -54,7 +62,7 @@ export default function ViewAndContinueButtons() {
             </div>
 
             {showTutorial && (
-                <TutorialModal onClose={() => setShowTutorial(false)} />
+                <TutorialModal stepType="viewAndContinue" onClose={() => setShowTutorial(false)} />
             )}
         </>
     );

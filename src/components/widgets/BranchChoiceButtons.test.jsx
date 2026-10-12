@@ -105,11 +105,15 @@ describe('BranchChoiceButtons', () => {
         expect(onReplay).toHaveBeenCalledTimes(1);
     });
 
-    it('mounts the tutorial modal when the tutorial button is pressed', () => {
+    it('mounts the branching tutorial modal when the tutorial button is pressed', () => {
         render({ view: twoChoicesView, onChoose: vi.fn(), onReplay: vi.fn(), onContinue: vi.fn() });
 
         expect(container.querySelector('.tutorial-modal-overlay')).toBeNull();
         click(container.querySelector('#branchTutorialBtn'));
         expect(container.querySelector('.tutorial-modal-overlay')).not.toBeNull();
+
+        // The row's own step type reaches the modal's video.
+        expect(container.querySelector('#tutorialVideo').getAttribute('src'))
+            .toContain('/assets/videos/tutorial-branching.mp4');
     });
 });
