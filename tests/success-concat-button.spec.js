@@ -320,17 +320,30 @@ test.describe('Success screen — concat button reveal', () => {
         expect(share.width).toBeGreaterThan(cont.width + 5);
     });
 
-    test('friend-challenge lesson shows only Share with the 48h call to action', async ({ page }) => {
-        await setupSuccessScreen(page);
+    test('friend-challenge lesson shows only Share, then Continue joins it after the Share tap', async ({ page }) => {
+        // A genuine shareCta lesson (wouldrather-a): the model config used
+        // elsewhere in this file has no shareCta lesson, so its index lookup
+        // cannot construct a friend row.
+        await page.goto('/course/wouldrather/lesson/a');
+        await confirmGuestLanguage(page);
         await page.evaluate(() => {
             const s = window.appStore.getState();
-            // A friend-challenge lesson is one whose recapOverlay is 'shareCta'.
+            s.setGuestModalOpen(false);
+            s.setGuestModalShownThisSession(true);
+            window.appStore.setState({
+                isLoggedIn: true,
+                userData: { native_language: 'en', auth_method: 'supabase', $id: 'test-user' },
+            });
             const idx = s.configData.lessons.findIndex(l => l.recapOverlay === 'shareCta');
             window.appStore.setState({ currentLessonIndex: idx });
+            s.setSuccessScreen('a', { total: 85 });
+            s.setCurrentVideo(null);
+            s.transitionTo('lessonSuccess', { lessonId: 'a', fluencyData: { total: 85 } }, { fromStepLoad: true });
             s.setSuccessVideoBlob(new Blob(['fake'], { type: 'video/webm' }));
             s.setSuccessVideoState('ready');
             s.setSuccessRepeatButtonVisible(true);
-            s.setSuccessContinueVisible(true);
+            // Deliberately no setSuccessContinueVisible: the ready path must
+            // withhold Continue on friend rows until after the Share tap.
         });
 
         // Only the Share button; Replay and Continue are not rendered.
@@ -344,6 +357,19 @@ test.describe('Success screen — concat button reveal', () => {
         await expect(cta).toBeVisible();
         await expect(cta).toContainText('Share this video with friends, family, and colleagues');
         await expect(cta).toContainText('They have 48 hours to respond');
+
+        // No tap, no Continue — even past the reveal delay.
+        await page.waitForTimeout(4500);
+        await expect(page.locator('#continueButtonSuccess')).toHaveCount(0);
+
+        // Tapping Share reveals Continue next to it after the fixed delay
+        // (not instantly: the reveal waits out the 3s timer). Forced: the
+        // Share glow pulse never stabilizes for actionability checks
+        // (same precedent as after-video-loop.spec.js).
+        await page.locator('#createVideoButton').click({ force: true });
+        await expect(page.locator('#continueButtonSuccess')).toHaveCount(0);
+        await expect(page.locator('#continueButtonSuccess')).toBeVisible({ timeout: 10000 });
+        await expect(page.locator('#state-lesson-success .ivp-choice-label-text')).toHaveCount(2);
     });
 
     test('warns not to close the tab while clips are publishing', async ({ page }) => {
