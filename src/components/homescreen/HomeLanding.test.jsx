@@ -36,10 +36,10 @@ describe('HomeLanding', () => {
 
     it('renders the English copy, account link and controls by default', () => {
         render();
-        expect(q('share-code-headline').textContent).toBe('Practice English with your friends for free.');
-        expect(q('share-code-subheadline').textContent).toBe('Choose how to start — both are free');
-        expect(q('share-code-go').textContent).toBe('Go');
-        expect(q('no-code').textContent).toBe('Start without a share code');
+        expect(q('share-code-headline').textContent).toBe("Practice English speaking with your friends free forever, even if they're offline now, no matter your different English levels.");
+        expect(q('share-code-subheadline').textContent).toBe("Enter your friend's code or start fresh if you don't have one.");
+        expect(q('share-code-go').textContent).toBe("Start with friend's code");
+        expect(q('no-code').textContent).toBe("Start without friend's code");
         expect(q('landing-account-link').getAttribute('href')).toBe('/login');
         expect(q('landing-account-link').textContent).toBe('Sign In');
     });
@@ -52,8 +52,8 @@ describe('HomeLanding', () => {
 
     it('localizes the headline and Go button', () => {
         render({ lang: 'es' });
-        expect(q('share-code-headline').textContent).toBe('Practica inglés con tus amigos gratis.');
-        expect(q('share-code-go').textContent).toBe('Ir');
+        expect(q('share-code-headline').textContent).toBe('Practica inglés hablando con tus amigos gratis para siempre, aunque estén desconectados ahora, sin importar sus diferentes niveles de inglés.');
+        expect(q('share-code-go').textContent).toBe('Empezar con el código de un amigo');
     });
 
     it('renders the UFF logo image in place of the text headline', () => {
@@ -158,7 +158,7 @@ describe('HomeLanding', () => {
         expect(go.className).toContain('btn-lg');
     });
 
-    it('styles both start options as equal-weight primary buttons with an or divider', () => {
+    it('styles both start options as equal-weight primary buttons with no sub-headings', () => {
         render();
         const noCode = q('no-code');
         expect(noCode.tagName).toBe('BUTTON');
@@ -166,17 +166,13 @@ describe('HomeLanding', () => {
         expect(noCode.className).toContain('btn-uff-primary');
         expect(noCode.className).toContain('btn-lg');
         expect(noCode.className).toContain('w-100');
-        expect(noCode.className).not.toContain('btn-uff-outline');
         const go = q('share-code-go');
         expect(go.className).toContain('btn-uff-primary');
         expect(go.className).toContain('btn-lg');
-        const divider = q('start-option-divider');
-        expect(divider).not.toBeNull();
-        expect(divider.textContent).toBe('or');
-        expect(q('have-code-title').textContent).toBe('I have a share code');
-        expect(q('fresh-start-title').textContent).toBe("I'm starting fresh");
-        expect(q('have-code-option')).not.toBeNull();
-        expect(q('fresh-start-option')).not.toBeNull();
+        expect(go.className).toContain('w-100');
+        expect(q('start-option-divider')).toBeNull();
+        expect(q('have-code-title')).toBeNull();
+        expect(q('fresh-start-title')).toBeNull();
     });
 
     it('keeps the top-bar sign-in visible on the gradient navbar', () => {
@@ -248,13 +244,29 @@ describe('HomeLanding', () => {
         expect(css.slice(start, start + 800)).toContain('rgba(0, 192, 216, 1)');
     });
 
-    it('never pulses homepage buttons', async () => {
+    it('gives homepage buttons a static halo that never pulses', async () => {
         const { readFileSync } = await import('node:fs');
         const css = readFileSync('src/components/homescreen/home-landing.css', 'utf8');
         expect(css).not.toContain('btnGlowPulse');
         const app = readFileSync('src/assets/css/app.css', 'utf8');
         const haloStart = app.indexOf('.btn-primary::before,');
         expect(app.slice(haloStart, app.indexOf('}', haloStart) + 1)).not.toContain('.uff-home-bs');
+        const staticAt = app.indexOf('Homepage buttons keep the halo but never pulse');
+        expect(staticAt).toBeGreaterThan(-1);
+        const guard = app.slice(staticAt, staticAt + 1200);
+        expect(guard).toContain('.uff-home-bs .btn-uff-primary::before');
+        expect(guard).toMatch(/box-shadow:\s*0 0 25px 8px rgba\(255, 255, 255, 0\.85\)/);
+        expect(guard).toContain('animation: none');
+        expect(guard).not.toContain('btnGlowPulse');
+    });
+
+    it('uses the in-app simple-video play triangle on carousel slides', () => {
+        const showcaseVideos = ['a'].map((slug) => ({ slug, videoUrl: `${slug}.mp4`, posterUrl: `${slug}.jpg` }));
+        render({ showcaseVideos });
+        const icon = q('showcase-play-a').querySelector('svg.uff-carousel-play-icon');
+        expect(icon).not.toBeNull();
+        expect(icon.getAttribute('viewBox')).toBe('0 0 24 24');
+        expect(icon.querySelector('path').getAttribute('d')).toBe('M8 5v14l11-7z');
     });
 
     // --- Task 3: "About the teacher" section ---

@@ -70,7 +70,9 @@ export default function ConversationCarousel({ lang = 'en', videos = [] }) {
                                                 onClick={() => setPlayingSlug(v.slug)}
                                                 className="uff-carousel-play"
                                             >
-                                                <i className="bi bi-play-fill" aria-hidden="true"></i>
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="uff-carousel-play-icon">
+                                                    <path d="M8 5v14l11-7z" />
+                                                </svg>
                                             </button>
                                         </>
                                     )}

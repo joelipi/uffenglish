@@ -872,19 +872,32 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     animation: none !important;
     box-shadow: none !important;
 }
-/* Homepage buttons never pulse: app.css is global and both stylesheets load
-   on the homepage, so explicitly kill any halo/animation under the homepage
-   scope. Only the main overlay call buttons pulse. */
+/* Homepage buttons keep the halo but never pulse: the same luminous edge as
+   the theme primaries above, with the glow animation switched off. Only the
+   main overlay call buttons pulse. */
+.uff-home-bs .btn-uff-primary,
+.uff-home-bs .btn-uff-topbar {
+    position: relative;
+    z-index: 0;
+}
 .uff-home-bs .btn-uff-primary::before,
-.uff-home-bs .btn-uff-topbar::before,
-.uff-home-bs .uff-carousel-play::before,
-.uff-home-bs .uff-carousel-nav::before {
+.uff-home-bs .btn-uff-topbar::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: -1;
+    background: transparent;
+    box-shadow: 0 0 25px 8px rgba(255, 255, 255, 0.85);
+    animation: none;
+}
+/* A disabled homepage primary loses the halo too, like the theme primaries. */
+.uff-home-bs .btn-uff-primary:disabled::before,
+.uff-home-bs .btn-uff-topbar:disabled::before {
     animation: none !important;
     box-shadow: none !important;
-    background: transparent !important;
 }
-.uff-home-bs .btn-uff-primary,
-.uff-home-bs .btn-uff-topbar,
 .uff-home-bs .uff-carousel-play,
 .uff-home-bs .uff-carousel-nav {
     animation: none !important;

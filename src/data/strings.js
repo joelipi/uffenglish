@@ -2263,20 +2263,20 @@ const strings = {
 
     // --- Public homepage (share-code entry) ---
     'home_landing_headline': {
-        en: "Practice English with your friends for free.",
-        es: "Practica inglés con tus amigos gratis.",
-        pt: "Pratique inglês com seus amigos de graça.",
-        fr: "Pratiquez l'anglais avec vos amis gratuitement.",
-        hi: "अपने दोस्तों के साथ मुफ़्त में अंग्रेज़ी का अभ्यास करें।",
-        bn: "বন্ধুদের সাথে বিনামূল্যে ইংরেজি চর্চা করুন।"
+        en: "Practice English speaking with your friends free forever, even if they're offline now, no matter your different English levels.",
+        es: "Practica inglés hablando con tus amigos gratis para siempre, aunque estén desconectados ahora, sin importar sus diferentes niveles de inglés.",
+        pt: "Pratique inglês falando com seus amigos grátis para sempre, mesmo que estejam offline agora, não importa os diferentes níveis de inglês.",
+        fr: "Pratiquez l'anglais en parlant avec vos amis gratuitement pour toujours, même s'ils sont hors ligne, quels que soient vos niveaux d'anglais.",
+        hi: "अपने दोस्तों के साथ अंग्रेज़ी बोलने का अभ्यास हमेशा मुफ़्त में करें, भले ही वे अभी ऑफ़लाइन हों, आपके अंग्रेज़ी स्तर कुछ भी हों।",
+        bn: "আপনার বন্ধুদের সাথে ইংরেজি বলার চর্চা চিরকাল বিনামূল্যে করুন, তারা এখন অফলাইনে থাকলেও, আপনাদের ইংরেজির স্তর যাই হোক না কেন।"
     },
     'home_landing_subheadline': {
-        en: "Choose how to start — both are free",
-        es: "Elige cómo empezar — ambas opciones son gratis",
-        pt: "Escolha como começar — ambas são grátis",
-        fr: "Choisissez comment commencer — les deux sont gratuites",
-        hi: "चुनें कि कैसे शुरू करें — दोनों मुफ़्त हैं",
-        bn: "কীভাবে শুরু করবেন বেছে নিন — দুটোই বিনামূল্যে"
+        en: "Enter your friend's code or start fresh if you don't have one.",
+        es: "Ingresa el código de tu amigo o empieza desde cero si no tienes uno.",
+        pt: "Digite o código do seu amigo ou comece agora se não tiver um.",
+        fr: "Entrez le code de votre ami ou commencez si vous n'en avez pas.",
+        hi: "अपने दोस्त का कोड दर्ज करें या यदि आपके पास नहीं है तो नए सिरे से शुरू करें।",
+        bn: "আপনার বন্ধুর কোড লিখুন অথবা না থাকলে নতুন করে শুরু করুন।"
     },
     'home_landing_code_placeholder': {
         en: "Share code",
@@ -2287,44 +2287,20 @@ const strings = {
         bn: "শেয়ার কোড"
     },
     'home_landing_go': {
-        en: "Go",
-        es: "Ir",
-        pt: "Ir",
-        fr: "Aller",
-        hi: "जाएँ",
-        bn: "যান"
+        en: "Start with friend's code",
+        es: "Empezar con el código de un amigo",
+        pt: "Começar com o código de um amigo",
+        fr: "Commencer avec le code d'un ami",
+        hi: "दोस्त के कोड के साथ शुरू करें",
+        bn: "বন্ধুর কোড দিয়ে শুরু করুন"
     },
     'home_landing_no_code': {
-        en: "Start without a share code",
-        es: "Empezar sin un código",
-        pt: "Começar sem um código",
-        fr: "Commencer sans code",
-        hi: "बिना शेयर कोड के शुरू करें",
-        bn: "শেয়ার কোড ছাড়াই শুরু করুন"
-    },
-    'home_landing_have_code_title': {
-        en: "I have a share code",
-        es: "Tengo un código",
-        pt: "Tenho um código",
-        fr: "J'ai un code",
-        hi: "मेरे पास शेयर कोड है",
-        bn: "আমার কাছে শেয়ার কোড আছে"
-    },
-    'home_landing_fresh_title': {
-        en: "I'm starting fresh",
-        es: "Empiezo desde cero",
-        pt: "Estou começando agora",
-        fr: "Je commence",
-        hi: "मैं नए सिरे से शुरू कर रहा हूँ",
-        bn: "আমি নতুন করে শুরু করছি"
-    },
-    'home_landing_or': {
-        en: "or",
-        es: "o",
-        pt: "ou",
-        fr: "ou",
-        hi: "या",
-        bn: "অথবা"
+        en: "Start without friend's code",
+        es: "Empezar sin el código de un amigo",
+        pt: "Começar sem o código de um amigo",
+        fr: "Commencer sans le code d'un ami",
+        hi: "दोस्त के कोड के बिना शुरू करें",
+        bn: "বন্ধুর কোড ছাড়াই শুরু করুন"
     },
     'home_landing_code_required': {
         en: "Enter a share code to continue.",

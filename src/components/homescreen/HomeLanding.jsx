@@ -111,48 +111,37 @@ export default function HomeLanding({
                                         {Strings.get('home_landing_subheadline', lang)}
                                     </h2>
 
-                                    <div data-testid="have-code-option">
-                                        <p className="fw-bold text-white mb-2" data-testid="have-code-title">
-                                            {Strings.get('home_landing_have_code_title', lang)}
-                                        </p>
-                                        <form onSubmit={handleSubmit}>
-                                            <label className="visually-hidden" htmlFor="shareCodeInput">
-                                                {Strings.get('home_landing_code_placeholder', lang)}
-                                            </label>
-                                            <input
-                                                id="shareCodeInput"
-                                                data-testid="share-code-input"
-                                                type="text"
-                                                value={code}
-                                                onChange={handleChange}
-                                                placeholder={Strings.get('home_landing_code_placeholder', lang)}
-                                                autoCapitalize="none"
-                                                autoCorrect="off"
-                                                spellCheck={false}
-                                                className="form-control form-control-lg"
-                                            />
-                                            {error !== null && (
-                                                <div
-                                                    data-testid="share-code-error"
-                                                    role="alert"
-                                                    className="alert mt-2 mb-0 py-2"
-                                                >
-                                                    {error}
-                                                </div>
-                                            )}
-                                            <button type="submit" data-testid="share-code-go" disabled={loading}
-                                                    className="btn btn-uff-primary btn-lg w-100 mt-3">
-                                                {Strings.get('home_landing_go', lang)}
-                                            </button>
-                                        </form>
-                                    </div>
-                                    <div className="uff-or-divider" data-testid="start-option-divider" aria-hidden="true">
-                                        <span>{Strings.get('home_landing_or', lang)}</span>
-                                    </div>
-                                    <div data-testid="fresh-start-option">
-                                        <p className="fw-bold text-white mb-2" data-testid="fresh-start-title">
-                                            {Strings.get('home_landing_fresh_title', lang)}
-                                        </p>
+                                    <form onSubmit={handleSubmit}>
+                                        <label className="visually-hidden" htmlFor="shareCodeInput">
+                                            {Strings.get('home_landing_code_placeholder', lang)}
+                                        </label>
+                                        <input
+                                            id="shareCodeInput"
+                                            data-testid="share-code-input"
+                                            type="text"
+                                            value={code}
+                                            onChange={handleChange}
+                                            placeholder={Strings.get('home_landing_code_placeholder', lang)}
+                                            autoCapitalize="none"
+                                            autoCorrect="off"
+                                            spellCheck={false}
+                                            className="form-control form-control-lg"
+                                        />
+                                        {error !== null && (
+                                            <div
+                                                data-testid="share-code-error"
+                                                role="alert"
+                                                className="alert mt-2 mb-0 py-2"
+                                            >
+                                                {error}
+                                            </div>
+                                        )}
+                                        <button type="submit" data-testid="share-code-go" disabled={loading}
+                                                className="btn btn-uff-primary btn-lg w-100 mt-3">
+                                            {Strings.get('home_landing_go', lang)}
+                                        </button>
+                                    </form>
+                                    <div className="mt-2">
                                         <button type="button" data-testid="no-code" onClick={onNoCode}
                                                 className="btn btn-uff-primary btn-lg w-100">
                                             {Strings.get('home_landing_no_code', lang)}

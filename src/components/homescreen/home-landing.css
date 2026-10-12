@@ -190,10 +190,10 @@
     opacity: 0.6;
 }
 
-/* Homepage single-call buttons share the overlay halo edge via the shared
-   halo rule in app.css (host positioning + ::before + disabled
-   kill-switch, all in one selector group so the treatment cannot drift).
-   The outline (non-primary) alternative stays flat. */
+/* Homepage primary buttons share the overlay halo edge via the static halo
+   rule in app.css (host positioning + ::before + disabled kill-switch, all
+   in one selector group so the treatment cannot drift). The halo is static:
+   homepage buttons never pulse; only the main overlay call buttons do. */
 
 /* Top-bar sign-in: white solid so it reads on the gradient navbar. */
 .uff-home-bs .btn-uff-topbar {
@@ -215,25 +215,7 @@
     color: #0b1a2a;
 }
 
-.uff-home-bs .btn-uff-outline {
-    background: transparent;
-    border: 1px solid #00c0d8;
-    color: #00c0d8;
-    font-weight: 600;
-    border-radius: 8px;
-    padding: 0.875rem 1.25rem;
-    transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.uff-home-bs .btn-uff-outline:hover,
-.uff-home-bs .btn-uff-outline:focus {
-    background: rgba(0, 192, 216, 0.14);
-    border-color: #00c0d8;
-    color: #00c0d8;
-}
-
-.uff-home-bs .btn-uff-primary.btn-lg,
-.uff-home-bs .btn-uff-outline.btn-lg {
+.uff-home-bs .btn-uff-primary.btn-lg {
     padding: 1rem 1.5rem;
     font-size: 1.125rem;
 }
@@ -338,37 +320,11 @@
     padding-bottom: clamp(1.5rem, 3vw, 2.5rem);
 }
 
-.uff-how-row + .uff-how-row {
-    border-top: 1px solid var(--bs-border-color);
-}
-
 .uff-how-icon {
     font-size: clamp(4rem, 10vw, 7rem);
     line-height: 1;
-    color: #00c0d8;
+    color: #ffffff;
     text-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
-}
-
-/* Equal-weight start options: an "or" divider between two primary CTAs. */
-.uff-or-divider {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin: 1.25rem 0;
-    color: var(--bs-secondary-color);
-    font-weight: 600;
-    text-transform: lowercase;
-}
-
-.uff-or-divider::before,
-.uff-or-divider::after {
-    content: '';
-    flex: 1 1 0;
-    border-top: 1px solid var(--bs-border-color);
-}
-
-.uff-or-divider span {
-    padding: 0 0.25rem;
 }
 
 /* --- Showcase carousel ------------------------------------------------ */
@@ -446,6 +402,15 @@
 .uff-carousel-play:hover,
 .uff-carousel-play:focus {
     transform: translate(-50%, -50%) scale(1.06);
+}
+
+/* Same play-triangle icon the in-app simple videos use
+   (SimpleVideoPlayer.web.jsx): the Material play-arrow path. currentColor
+   keeps the app's dark-glyph-on-white-button convention. */
+.uff-carousel-play-icon {
+    width: 2rem;
+    height: 2rem;
+    display: block;
 }
 
 .uff-carousel-nav {
