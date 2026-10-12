@@ -175,11 +175,11 @@ describe('recorder page — cloud pipeline controls', () => {
 
 // Story 061: takes auto-stop after 10 seconds instead of 7. The budget lives
 // in one interval inside triggerStartRecording(), so the assertions slice
-// exactly that block: from `global_record_duration_timer = setInterval` to the
-// next `executeStopRecording`, which is the auto-stop call the interval itself
-// makes. Slicing to EOF would let a block appended later silently join this
-// guard, and a whole-file `toContain('10000')` would stay green even with the
-// real budget deleted, so both are avoided deliberately.
+// exactly that block: from the `THE RECORDING DURATION TIMER` comment above it
+// to the next `executeStopRecording`, which is the auto-stop call the interval
+// itself makes. Slicing to EOF would let a block appended later silently join
+// this guard, and a whole-file `toContain('10000')` would stay green even with
+// the real budget deleted, so both are avoided deliberately.
 describe('recorder page — recording duration cap', () => {
     const page = () => fs.readFileSync(PAGE_PATH, 'utf8');
 
