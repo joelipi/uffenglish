@@ -2263,12 +2263,20 @@ const strings = {
 
     // --- Public homepage (share-code entry) ---
     'home_landing_headline': {
-        en: "Practice English speaking with your friends free forever, even if they're offline now, no matter your different English levels.",
-        es: "Practica inglés hablando con tus amigos gratis para siempre, aunque estén desconectados ahora, sin importar sus diferentes niveles de inglés.",
-        pt: "Pratique inglês falando com seus amigos grátis para sempre, mesmo que estejam offline agora, não importa os diferentes níveis de inglês.",
-        fr: "Pratiquez l'anglais en parlant avec vos amis gratuitement pour toujours, même s'ils sont hors ligne, quels que soient vos niveaux d'anglais.",
-        hi: "अपने दोस्तों के साथ अंग्रेज़ी बोलने का अभ्यास हमेशा मुफ़्त में करें, भले ही वे अभी ऑफ़लाइन हों, आपके अंग्रेज़ी स्तर कुछ भी हों।",
-        bn: "আপনার বন্ধুদের সাথে ইংরেজি বলার চর্চা চিরকাল বিনামূল্যে করুন, তারা এখন অফলাইনে থাকলেও, আপনাদের ইংরেজির স্তর যাই হোক না কেন।"
+        en: "Practice speaking English with your friends free forever.",
+        es: "Practica hablar inglés con tus amigos gratis para siempre.",
+        pt: "Pratique falar inglês com seus amigos grátis para sempre.",
+        fr: "Pratiquez l'anglais parlé avec vos amis gratuitement pour toujours.",
+        hi: "अपने दोस्तों के साथ हमेशा मुफ़्त में अंग्रेज़ी बोलने का अभ्यास करें।",
+        bn: "আপনার বন্ধুদের সাথে চিরকাল বিনামূল্যে ইংরেজি বলার চর্চা করুন।"
+    },
+    'home_landing_headline_sub': {
+        en: "even if your friends are offline now, no matter your different English levels",
+        es: "aunque tus amigos estén desconectados ahora, sin importar sus diferentes niveles de inglés",
+        pt: "mesmo que seus amigos estejam offline agora, não importa os diferentes níveis de inglês",
+        fr: "même si vos amis sont hors ligne, quels que soient vos niveaux d'anglais",
+        hi: "भले ही आपके दोस्त अभी ऑफ़लाइन हों, आपके अंग्रेज़ी स्तर कुछ भी हों",
+        bn: "আপনার বন্ধুরা এখন অফলাইনে থাকলেও, আপনাদের ইংরেজির স্তর যাই হোক না কেন"
     },
     'home_landing_subheadline': {
         en: "Enter your friend's code or start fresh if you don't have one.",
@@ -2344,13 +2352,21 @@ const strings = {
         hi: "यह 100% मुफ़्त है — कभी भी कोई कार्ड या सब्सक्रिप्शन नहीं।",
         bn: "এটি ১০০% বিনামূল্যে — কখনোই কার্ড বা সাবস্ক্রিপশন লাগবে না।"
     },
+    'home_landing_how_2_title': {
+        en: "Any English level",
+        es: "Cualquier nivel de inglés",
+        pt: "Qualquer nível de inglês",
+        fr: "Tous niveaux d'anglais",
+        hi: "अंग्रेज़ी का कोई भी स्तर",
+        bn: "ইংরেজির যেকোনো স্তর"
+    },
     'home_landing_how_2': {
-        en: "Any English level works, from beginner to advanced. It teaches you what to say.",
-        es: "Sirve cualquier nivel de inglés, de principiante a avanzado. Te enseña qué decir.",
-        pt: "Serve qualquer nível de inglês, de iniciante a avançado. Ele ensina o que dizer.",
-        fr: "Tous les niveaux d'anglais conviennent, du débutant à l'avancé. Ça t'apprend quoi dire.",
-        hi: "अंग्रेज़ी का कोई भी स्तर ठीक है, शुरुआती से उन्नत तक। यह आपको बताता है कि क्या कहना है।",
-        bn: "ইংরেজির যেকোনো স্তর ঠিক আছে, শিক্ষানবিশ থেকে উন্নত পর্যন্ত। এটি আপনাকে বলে দেয় কী বলতে হবে।"
+        en: 'Each lesson teaches multiple forms of the same basic questions and answers, from a very beginner way to an advanced way. For instance, very beginner: "Coffee or tea?" Intermediate: "Would you like coffee or tea?" Advanced: "Would you prefer a steaming mug of fresh-brewed Arabica coffee or a nice cup of tea?"',
+        es: 'Cada lección enseña múltiples formas de las mismas preguntas y respuestas básicas, desde una forma muy principiante hasta una avanzada. Por ejemplo, muy principiante: "¿Café o té?" Intermedio: "¿Te gustaría café o té?" Avanzado: "¿Preferirías una taza humeante de café arábica recién hecho o una buena taza de té?"',
+        pt: 'Cada lição ensina várias formas das mesmas perguntas e respostas básicas, de um jeito bem iniciante até um avançado. Por exemplo, bem iniciante: "Café ou chá?" Intermediário: "Você gostaria de café ou chá?" Avançado: "Você prefere uma caneca fumegante de café arábica fresco ou uma boa xícara de chá?"',
+        fr: 'Chaque leçon enseigne plusieurs formes des mêmes questions et réponses de base, d\'une manière très débutante à une manière avancée. Par exemple, très débutant : « Café ou thé ? » Intermédiaire : « Voudriez-vous du café ou du thé ? » Avancé : « Préféreriez-vous un mug fumant de café arabica fraîchement moulu ou une bonne tasse de thé ? »',
+        hi: 'प्रत्येक पाठ समान बुनियादी प्रश्नों और उत्तरों के कई रूप सिखाता है, बिल्कुल शुरुआती तरीके से लेकर उन्नत तरीके तक। उदाहरण के लिए, बिल्कुल शुरुआती: "कॉफ़ी या चाय?" मध्यम: "क्या आप कॉफ़ी या चाय लेंगे?" उन्नत: "क्या आप ताज़ा बने अरेबिका कॉफ़ी का भाप उठता मग पसंद करेंगे या चाय का एक अच्छा कप?"',
+        bn: 'প্রতিটি পাঠ একই মৌলিক প্রশ্ন ও উত্তরের একাধিক রূপ শেখায়, একদম শিক্ষানবিশ পদ্ধতি থেকে উন্নত পদ্ধতি পর্যন্ত। উদাহরণস্বরূপ, একদম শিক্ষানবিশ: "কফি না চা?" মধ্যম: "আপনি কি কফি না চা নেবেন?" উন্নত: "আপনি কি সদ্য তৈরি আরবিকা কফির ধোঁয়া ওঠা মগ পছন্দ করবেন নাকি এক কাপ ভালো চা?"'
     },
     'home_landing_how_3': {
         en: "You don't need to be online at the same time as your friend.",
@@ -2369,12 +2385,108 @@ const strings = {
         bn: "জোরে উত্তর দিন এবং আপনার বলার উপর সঙ্গে সঙ্গে মতামত পান।"
     },
     'home_landing_how_5': {
-        en: "Your friend's videos expire after 48 hours, so start now.",
-        es: "Los videos de tu amigo caducan después de 48 horas, así que empieza ahora.",
-        pt: "Os vídeos do seu amigo expiram após 48 horas, então comece agora.",
-        fr: "Les vidéos de votre ami expirent après 48 heures, alors commencez maintenant.",
-        hi: "आपके दोस्त के वीडियो 48 घंटे बाद समाप्त हो जाते हैं, इसलिए अभी शुरू करें।",
-        bn: "আপনার বন্ধুর ভিডিওগুলো ৪৮ ঘণ্টা পরে মেয়াদোত্তীর্ণ হয়ে যায়, তাই এখনই শুরু করুন।"
+        en: "Each lesson can be completed in less than 5 minutes.",
+        es: "Cada lección se puede completar en menos de 5 minutos.",
+        pt: "Cada lição pode ser concluída em menos de 5 minutos.",
+        fr: "Chaque leçon peut être terminée en moins de 5 minutes.",
+        hi: "प्रत्येक पाठ 5 मिनट से भी कम समय में पूरा किया जा सकता है।",
+        bn: "প্রতিটি পাঠ ৫ মিনিটেরও কম সময়ে শেষ করা যায়।"
+    },
+    'home_landing_how_6_title': {
+        en: "Unlike anything you've ever tried before.",
+        es: "Algo que nunca has probado.",
+        pt: "Diferente de tudo que você já tentou.",
+        fr: "Comme rien de ce que vous avez essayé.",
+        hi: "ऐसा कुछ जो आपने पहले कभी आज़माया नहीं।",
+        bn: "যা আপনি আগে কখনো চেষ্টা করেননি।"
+    },
+    'home_landing_how_6': {
+        en: 'This is never-before-seen technology and a totally different paradigm from the thousands of multiple-choice "gamified" apps that don\'t really teach you how to speak.',
+        es: 'Esta es una tecnología nunca antes vista y un paradigma totalmente diferente de las miles de aplicaciones "gamificadas" de opción múltiple que realmente no te enseñan a hablar.',
+        pt: 'Esta é uma tecnologia inédita e um paradigma totalmente diferente dos milhares de aplicativos "gamificados" de múltipla escolha que não ensinam de verdade a falar.',
+        fr: 'C\'est une technologie inédite et un paradigme totalement différent des milliers d\'applications « gamifiées » à choix multiples qui ne vous apprennent pas vraiment à parler.',
+        hi: '"गेमीफाइड" हज़ारों बहुविकल्पीय ऐप्स से बिल्कुल अलग यह अनदेखी तकनीक और एकदम नया नज़रिया है, जो आपको सच में बोलना नहीं सिखाते।',
+        bn: 'এটি অভূতপূর্ব প্রযুক্তি এবং হাজার হাজার বহুনির্বাচনী "গেমিফাইড" অ্যাপ থেকে সম্পূর্ণ ভিন্ন ধারা, যেগুলো আসলে আপনাকে বলতে শেখায় না।'
+    },
+    'home_landing_how_7_title': {
+        en: "It works!",
+        es: "¡Funciona!",
+        pt: "Funciona!",
+        fr: "Ça marche !",
+        hi: "यह काम करता है!",
+        bn: "এটা কাজ করে!"
+    },
+    'home_landing_how_7': {
+        en: "These are time-tested speaking exercises updated with revolutionary technology.",
+        es: "Son ejercicios de conversación probados por el tiempo, actualizados con tecnología revolucionaria.",
+        pt: "São exercícios de conversação testados pelo tempo, atualizados com tecnologia revolucionária.",
+        fr: "Ce sont des exercices d'expression orale éprouvés, actualisés avec une technologie révolutionnaire.",
+        hi: "ये समय-परीक्षित बोलने के अभ्यास हैं, जिन्हें क्रांतिकारी तकनीक से अद्यतन किया गया है।",
+        bn: "এগুলো সময়-পরীক্ষিত বলার অনুশীলন, বৈপ্লবিক প্রযুক্তি দিয়ে হালনাগাদ করা।"
+    },
+    'home_landing_how_8_title': {
+        en: "Gain confidence in speaking.",
+        es: "Gana confianza al hablar.",
+        pt: "Ganhe confiança ao falar.",
+        fr: "Gagnez confiance en parlant.",
+        hi: "बोलने में आत्मविश्वास पाएँ।",
+        bn: "বলায় আত্মবিশ্বাস অর্জন করুন।"
+    },
+    'home_landing_how_8': {
+        en: "Re-record yourself as many times as you like. There's no classroom full of people to feel embarrassed in front of.",
+        es: "Grábate tantas veces como quieras. No hay un aula llena de gente frente a la que sentir vergüenza.",
+        pt: "Regrave-se quantas vezes quiser. Não há uma sala cheia de gente na frente de quem sentir vergonha.",
+        fr: "Réenregistrez-vous autant de fois que vous voulez. Pas de salle pleine de monde devant qui avoir honte.",
+        hi: "अपने आप को जितनी बार चाहें फिर से रिकॉर्ड करें। सामने शर्मिंदा होने के लिए लोगों से भरी कोई कक्षा नहीं है।",
+        bn: "যতবার খুশি নিজেকে আবার রেকর্ড করুন। সামনে লজ্জা পাওয়ার মতো লোকে ভরা কোনো শ্রেণিকক্ষ নেই।"
+    },
+    'home_landing_how_9_title': {
+        en: "It's fun!",
+        es: "¡Es divertido!",
+        pt: "É divertido!",
+        fr: "C'est amusant !",
+        hi: "यह मज़ेदार है!",
+        bn: "এটা মজার!"
+    },
+    'home_landing_how_9': {
+        en: "Ask your friends crazy questions, role play, play trivia games, or even tell jokes!",
+        es: "¡Hazles preguntas locas a tus amigos, juega roles, juega trivias o incluso cuenta chistes!",
+        pt: "Faça perguntas malucas aos seus amigos, interprete papéis, jogue trivias ou até conte piadas!",
+        fr: "Posez des questions folles à vos amis, jouez des rôles, jouez à des quiz ou même racontez des blagues !",
+        hi: "अपने दोस्तों से मज़ेदार सवाल पूछें, अभिनय करें, प्रश्नोत्तरी खेलें, या चुटकुले भी सुनाएँ!",
+        bn: "আপনার বন্ধুদের মজার প্রশ্ন করুন, ভূমিকা-অভিনয় করুন, কুইজ খেলুন, এমনকি কৌতুক বলুন!"
+    },
+    'home_landing_how_10_title': {
+        en: "Get rewarded.",
+        es: "Obtén recompensas.",
+        pt: "Ganhe recompensas.",
+        fr: "Soyez récompensé.",
+        hi: "इनाम पाएँ।",
+        bn: "পুরস্কার পান।"
+    },
+    'home_landing_how_10': {
+        en: "At the end of each lesson you get a special video of you and your friend you can share publicly or keep forever.",
+        es: "Al final de cada lección recibes un video especial tuyo y de tu amigo que puedes compartir públicamente o guardar para siempre.",
+        pt: "No final de cada lição você recebe um vídeo especial seu e do seu amigo que pode compartilhar publicamente ou guardar para sempre.",
+        fr: "À la fin de chaque leçon, vous recevez une vidéo spéciale de vous et de votre ami à partager publiquement ou à garder pour toujours.",
+        hi: "प्रत्येक पाठ के अंत में आपको अपना और अपने दोस्त का एक खास वीडियो मिलता है जिसे आप सार्वजनिक रूप से साझा कर सकते हैं या हमेशा के लिए रख सकते हैं।",
+        bn: "প্রতিটি পাঠের শেষে আপনি আপনার ও আপনার বন্ধুর একটি বিশেষ ভিডিও পাবেন যা প্রকাশ্যে শেয়ার করতে পারেন বা চিরকাল রেখে দিতে পারেন।"
+    },
+    'home_landing_how_11_title': {
+        en: "Stay motivated.",
+        es: "Mantén la motivación.",
+        pt: "Mantenha a motivação.",
+        fr: "Restez motivé.",
+        hi: "प्रेरित रहें।",
+        bn: "অনুপ্রাণিত থাকুন।"
+    },
+    'home_landing_how_11': {
+        en: "You're not just practicing English, you're renewing acquaintances and deepening relationships. And you're seeing real progress in speaking English.",
+        es: "No solo practicas inglés, renuevas amistades y profundizas relaciones. Y ves un progreso real al hablar inglés.",
+        pt: "Você não está apenas praticando inglês, está renovando amizades e aprofundando relacionamentos. E está vendo um progresso real ao falar inglês.",
+        fr: "Vous ne pratiquez pas seulement l'anglais, vous renouez des amitiés et approfondissez des relations. Et vous voyez de réels progrès en anglais parlé.",
+        hi: "आप सिर्फ़ अंग्रेज़ी का अभ्यास नहीं कर रहे हैं, आप परिचय ताज़ा कर रहे हैं और रिश्ते गहरे कर रहे हैं। और आप अंग्रेज़ी बोलने में वास्तविक प्रगति देख रहे हैं।",
+        bn: "আপনি শুধু ইংরেজি চর্চাই করছেন না, পুরোনো সম্পর্ক ঝালিয়ে নিচ্ছেন এবং সম্পর্ক গভীর করছেন। আর ইংরেজি বলায় আসল অগ্রগতি দেখছেন।"
     },
     'home_landing_about_heading': {
         en: "About the teacher",

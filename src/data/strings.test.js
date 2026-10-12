@@ -113,12 +113,20 @@ describe('language code normalization for hi/bn', () => {
 describe('public homepage share-code strings', () => {
     const KEYS = {
         home_landing_headline: {
-            en: "Practice English speaking with your friends free forever, even if they're offline now, no matter your different English levels.",
-            es: "Practica inglés hablando con tus amigos gratis para siempre, aunque estén desconectados ahora, sin importar sus diferentes niveles de inglés.",
-            pt: "Pratique inglês falando com seus amigos grátis para sempre, mesmo que estejam offline agora, não importa os diferentes níveis de inglês.",
-            fr: "Pratiquez l'anglais en parlant avec vos amis gratuitement pour toujours, même s'ils sont hors ligne, quels que soient vos niveaux d'anglais.",
-            hi: 'अपने दोस्तों के साथ अंग्रेज़ी बोलने का अभ्यास हमेशा मुफ़्त में करें, भले ही वे अभी ऑफ़लाइन हों, आपके अंग्रेज़ी स्तर कुछ भी हों।',
-            bn: 'আপনার বন্ধুদের সাথে ইংরেজি বলার চর্চা চিরকাল বিনামূল্যে করুন, তারা এখন অফলাইনে থাকলেও, আপনাদের ইংরেজির স্তর যাই হোক না কেন।',
+            en: 'Practice speaking English with your friends free forever.',
+            es: 'Practica hablar inglés con tus amigos gratis para siempre.',
+            pt: 'Pratique falar inglês com seus amigos grátis para sempre.',
+            fr: "Pratiquez l'anglais parlé avec vos amis gratuitement pour toujours.",
+            hi: 'अपने दोस्तों के साथ हमेशा मुफ़्त में अंग्रेज़ी बोलने का अभ्यास करें।',
+            bn: 'আপনার বন্ধুদের সাথে চিরকাল বিনামূল্যে ইংরেজি বলার চর্চা করুন।',
+        },
+        home_landing_headline_sub: {
+            en: 'even if your friends are offline now, no matter your different English levels',
+            es: 'aunque tus amigos estén desconectados ahora, sin importar sus diferentes niveles de inglés',
+            pt: 'mesmo que seus amigos estejam offline agora, não importa os diferentes níveis de inglês',
+            fr: "même si vos amis sont hors ligne, quels que soient vos niveaux d'anglais",
+            hi: 'भले ही आपके दोस्त अभी ऑफ़लाइन हों, आपके अंग्रेज़ी स्तर कुछ भी हों',
+            bn: 'আপনার বন্ধুরা এখন অফলাইনে থাকলেও, আপনাদের ইংরেজির স্তর যাই হোক না কেন',
         },
         home_landing_subheadline: {
             en: "Enter your friend's code or start fresh if you don't have one.",

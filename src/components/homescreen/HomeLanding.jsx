@@ -17,15 +17,21 @@ import teacherPhoto from '../../assets/img/teacherprofile.webp';
 // strings.js key (the hi/bn script guard would fail on a Latin-only entry).
 const TEACHER_NAME = 'Joe Walsh';
 
-// One entry per How-it-works row (Duolingo-style alternating rows): copy key
-// plus its own giant Bootstrap icon, kept in one object so icon and text
-// cannot drift apart.
+// One entry per How-it-works row (Duolingo-style alternating rows): body copy
+// key plus its own giant Bootstrap icon, kept in one object so icon and text
+// cannot drift apart. Rows with a `title` render an H3 heading above the body.
 const HOW_IT_WORKS_ROWS = [
-    { key: 'home_landing_how_1', icon: 'bi-piggy-bank-fill' },
-    { key: 'home_landing_how_2', icon: 'bi-mortarboard-fill' },
-    { key: 'home_landing_how_3', icon: 'bi-people-fill' },
-    { key: 'home_landing_how_4', icon: 'bi-mic-fill' },
-    { key: 'home_landing_how_5', icon: 'bi-hourglass-split' },
+    { body: 'home_landing_how_1', icon: 'bi-piggy-bank-fill' },
+    { title: 'home_landing_how_2_title', body: 'home_landing_how_2', icon: 'bi-mortarboard-fill' },
+    { body: 'home_landing_how_3', icon: 'bi-people-fill' },
+    { body: 'home_landing_how_4', icon: 'bi-mic-fill' },
+    { body: 'home_landing_how_5', icon: 'bi-hourglass-split' },
+    { title: 'home_landing_how_6_title', body: 'home_landing_how_6', icon: 'bi-rocket-takeoff-fill' },
+    { title: 'home_landing_how_7_title', body: 'home_landing_how_7', icon: 'bi-patch-check-fill' },
+    { title: 'home_landing_how_8_title', body: 'home_landing_how_8', icon: 'bi-arrow-repeat' },
+    { title: 'home_landing_how_9_title', body: 'home_landing_how_9', icon: 'bi-emoji-laughing-fill' },
+    { title: 'home_landing_how_10_title', body: 'home_landing_how_10', icon: 'bi-trophy-fill' },
+    { title: 'home_landing_how_11_title', body: 'home_landing_how_11', icon: 'bi-graph-up-arrow' },
 ];
 
 // Public homepage: the friend-challenge entry plus short marketing sections.
@@ -104,6 +110,9 @@ export default function HomeLanding({
                             <h1 className="uff-hero-title text-white mb-3" data-testid="share-code-headline">
                                 {Strings.get('home_landing_headline', lang)}
                             </h1>
+                            <p className="uff-hero-lead mb-0" data-testid="hero-subheading">
+                                {Strings.get('home_landing_headline_sub', lang)}
+                            </p>
 
                             <div className="card border-secondary text-start mt-4" data-testid="share-code-card">
                                 <div className="card-body">
@@ -164,17 +173,22 @@ export default function HomeLanding({
                         </div>
                     </div>
                     <div data-testid="how-it-works-list" role="list">
-                        {HOW_IT_WORKS_ROWS.map(({ key, icon }, i) => {
+                        {HOW_IT_WORKS_ROWS.map(({ title, body, icon }, i) => {
                             const iconOnLeft = i % 2 === 0;
                             return (
-                                <div key={key} data-testid={`how-it-works-item-${i + 1}`} role="listitem"
+                                <div key={body} data-testid={`how-it-works-item-${i + 1}`} role="listitem"
                                     className="row align-items-center g-4 uff-how-row animate__animated animate__fadeInUp"
                                     style={{ animationDelay: `${i * 90}ms` }}>
                                     <div className={`col-12 col-md-4 text-center ${iconOnLeft ? '' : 'order-md-2'}`}>
                                         <i className={`bi ${icon} uff-how-icon`} aria-hidden="true"></i>
                                     </div>
                                     <div className={`col-12 col-md-8 ${iconOnLeft ? '' : 'order-md-1'}`}>
-                                        <p className="lead text-white mb-0"><span>{Strings.get(key, lang)}</span></p>
+                                        {title ? (
+                                            <h3 className="fw-bold text-white mb-2" data-testid={`how-it-works-title-${i + 1}`}>
+                                                {Strings.get(title, lang)}
+                                            </h3>
+                                        ) : null}
+                                        <p className="lead text-white mb-0"><span>{Strings.get(body, lang)}</span></p>
                                     </div>
                                 </div>
                             );

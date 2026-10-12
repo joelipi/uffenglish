@@ -36,7 +36,8 @@ describe('HomeLanding', () => {
 
     it('renders the English copy, account link and controls by default', () => {
         render();
-        expect(q('share-code-headline').textContent).toBe("Practice English speaking with your friends free forever, even if they're offline now, no matter your different English levels.");
+        expect(q('share-code-headline').textContent).toBe('Practice speaking English with your friends free forever.');
+        expect(q('hero-subheading').textContent).toBe("even if your friends are offline now, no matter your different English levels");
         expect(q('share-code-subheadline').textContent).toBe("Enter your friend's code or start fresh if you don't have one.");
         expect(q('share-code-go').textContent).toBe("Start with friend's code");
         expect(q('no-code').textContent).toBe("Start without friend's code");
@@ -52,7 +53,8 @@ describe('HomeLanding', () => {
 
     it('localizes the headline and Go button', () => {
         render({ lang: 'es' });
-        expect(q('share-code-headline').textContent).toBe('Practica inglés hablando con tus amigos gratis para siempre, aunque estén desconectados ahora, sin importar sus diferentes niveles de inglés.');
+        expect(q('share-code-headline').textContent).toBe('Practica hablar inglés con tus amigos gratis para siempre.');
+        expect(q('hero-subheading').textContent).toBe('aunque tus amigos estén desconectados ahora, sin importar sus diferentes niveles de inglés');
         expect(q('share-code-go').textContent).toBe('Empezar con el código de un amigo');
     });
 
@@ -144,7 +146,7 @@ describe('HomeLanding', () => {
         const hero = q('share-code-headline').closest('.container');
         expect(hero.querySelectorAll('.row')).toHaveLength(1);
         expect(hero.querySelectorAll('[class*="col-lg-"]')).toHaveLength(1);
-        expect(q('how-it-works').querySelectorAll('[data-testid^="how-it-works-item-"]')).toHaveLength(5);
+        expect(q('how-it-works').querySelectorAll('[data-testid^="how-it-works-item-"]')).toHaveLength(11);
         expect(q('about-teacher').querySelectorAll('[class*="col-lg-"]')).toHaveLength(2);
         expect(q('share-code-input').className).toContain('form-control');
     });
@@ -186,7 +188,7 @@ describe('HomeLanding', () => {
     });
 
     // --- Task 2: "How it works" section ---
-    it('renders the How it works section with the five English bullets', () => {
+    it('renders the How it works section with eleven headed rows', () => {
         render();
         expect(q('how-it-works')).not.toBeNull();
         const heading = q('how-it-works-heading');
@@ -194,23 +196,48 @@ describe('HomeLanding', () => {
         expect(heading.tagName).toBe('H2');
 
         const list = q('how-it-works-list');
-        const items = [1, 2, 3, 4, 5].map((n) => q(`how-it-works-item-${n}`));
+        expect(list.getAttribute('role')).toBe('list');
+        const items = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((n) => q(`how-it-works-item-${n}`));
         expect(items.every(Boolean)).toBe(true);
-        expect(list.querySelectorAll('[data-testid^="how-it-works-item-"]')).toHaveLength(5);
+        expect(list.querySelectorAll('[data-testid^="how-it-works-item-"]')).toHaveLength(11);
         const expected = [
             "It's 100% free — no card and no subscription, ever.",
-            'Any English level works, from beginner to advanced. It teaches you what to say.',
+            'Each lesson teaches multiple forms of the same basic questions and answers, from a very beginner way to an advanced way. For instance, very beginner: "Coffee or tea?" Intermediate: "Would you like coffee or tea?" Advanced: "Would you prefer a steaming mug of fresh-brewed Arabica coffee or a nice cup of tea?"',
             "You don't need to be online at the same time as your friend.",
             'Answer out loud and get instant feedback on your speaking.',
-            "Your friend's videos expire after 48 hours, so start now.",
+            'Each lesson can be completed in less than 5 minutes.',
+            'This is never-before-seen technology and a totally different paradigm from the thousands of multiple-choice "gamified" apps that don\'t really teach you how to speak.',
+            'These are time-tested speaking exercises updated with revolutionary technology.',
+            "Re-record yourself as many times as you like. There's no classroom full of people to feel embarrassed in front of.",
+            'Ask your friends crazy questions, role play, play trivia games, or even tell jokes!',
+            'At the end of each lesson you get a special video of you and your friend you can share publicly or keep forever.',
+            "You're not just practicing English, you're renewing acquaintances and deepening relationships. And you're seeing real progress in speaking English.",
         ];
+        const titles = {
+            2: 'Any English level',
+            6: "Unlike anything you've ever tried before.",
+            7: 'It works!',
+            8: 'Gain confidence in speaking.',
+            9: "It's fun!",
+            10: 'Get rewarded.',
+            11: 'Stay motivated.',
+        };
         items.forEach((row, i) => {
+            const n = i + 1;
             expect(row.className).toContain('row');
             expect(row.className).toContain('uff-how-row');
             expect(row.getAttribute('role')).toBe('listitem');
             const icon = row.querySelector('.uff-how-icon');
             expect(icon).not.toBeNull();
             expect(icon.className).toMatch(/bi-/);
+            const title = row.querySelector(`[data-testid="how-it-works-title-${n}"]`);
+            if (titles[n] === undefined) {
+                expect(title).toBeNull();
+            } else {
+                expect(title).not.toBeNull();
+                expect(title.tagName).toBe('H3');
+                expect(title.textContent).toBe(titles[n]);
+            }
             const span = row.querySelector('span');
             expect(span).not.toBeNull();
             expect(span.textContent).toBe(expected[i]);
@@ -222,18 +249,20 @@ describe('HomeLanding', () => {
         expect(q('how-it-works-heading').textContent).toBe('Cómo funciona');
         expect(q('how-it-works-item-1').querySelector('span').textContent)
             .toBe('Es 100% gratis: sin tarjeta y sin suscripción, para siempre.');
+        expect(q('how-it-works-title-2').textContent).toBe('Cualquier nivel de inglés');
+        expect(q('how-it-works-title-6').textContent).toBe('Algo que nunca has probado.');
     });
 
     it('alternates the giant icon left/right across How-it-works rows', () => {
         render();
-        const icons = [1, 2, 3, 4, 5].map((n) => q(`how-it-works-item-${n}`).querySelector('.uff-how-icon'));
+        const ns = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+        const icons = ns.map((n) => q(`how-it-works-item-${n}`).querySelector('.uff-how-icon'));
         expect(icons.every(Boolean)).toBe(true);
-        const iconCols = [1, 2, 3, 4, 5].map((n) => q(`how-it-works-item-${n}`).querySelector('.uff-how-icon').closest('[class*="col-"]'));
-        expect(iconCols[0].className).not.toContain('order-md-2');
-        expect(iconCols[1].className).toContain('order-md-2');
-        expect(iconCols[2].className).not.toContain('order-md-2');
-        expect(iconCols[3].className).toContain('order-md-2');
-        expect(iconCols[4].className).not.toContain('order-md-2');
+        const iconCols = ns.map((n) => q(`how-it-works-item-${n}`).querySelector('.uff-how-icon').closest('[class*="col-"]'));
+        iconCols.forEach((col, i) => {
+            if (i % 2 === 0) expect(col.className).not.toContain('order-md-2');
+            else expect(col.className).toContain('order-md-2');
+        });
     });
 
     it('gives the showcase carousel the brand blue gradient background', async () => {
