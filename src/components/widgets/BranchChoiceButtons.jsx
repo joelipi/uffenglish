@@ -2,16 +2,13 @@ import React, { useState } from 'react';
 import { getBilingual } from '../../data/strings.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
 import { createTutorialOpener } from '../../modules/video/tutorial-logic.js';
-import { pauseLessonVideoForTutorial } from '../../modules/lesson/lesson-progression.js';
 import ChoiceColumn from './ChoiceColumn.jsx';
 import TutorialModal from './TutorialModal.jsx';
 
 // Presentational branching decision row. Renders a pre-built `view` verbatim
 // and delegates every action through props; it holds no domain rules and no
 // store/player/progression access. Its only local state is the tutorial
-// modal's visibility (pure UI state). The one progression touchpoint is the
-// tutorial open path: opening the modal stops the lesson underneath, using the
-// same shared helper every other row uses.
+// modal's visibility (pure UI state).
 export default function BranchChoiceButtons({ view, onChoose, onReplay, onContinue }) {
     const [showTutorial, setShowTutorial] = useState(false);
     const labelLang = useNativeLanguage();
@@ -20,13 +17,11 @@ export default function BranchChoiceButtons({ view, onChoose, onReplay, onContin
 
     // This row only renders for a `branching` step, so the tutorial's step type
     // is fixed; the opener still runs the supported-type check so an unknown
-    // type can never reach the modal.
+    // type can never reach the modal. Opening the modal pauses the lesson
+    // underneath (TutorialModal's mount effect) — the single pause site.
     const handleTutorial = createTutorialOpener({
         stepType: 'branching',
-        onOpen: () => {
-            pauseLessonVideoForTutorial();
-            setShowTutorial(true);
-        },
+        onOpen: () => setShowTutorial(true),
     });
 
     return (

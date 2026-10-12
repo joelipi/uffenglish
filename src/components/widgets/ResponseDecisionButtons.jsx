@@ -3,7 +3,7 @@ import { useStore } from 'zustand';
 import { appStore } from '../../modules/store/store.js';
 import { getSpeechInputToggleCallback } from '../../modules/lesson/step-loader-callbacks.js';
 import { getResponseAnswerLabelKey } from '../../modules/video/response-decision-logic.js';
-import { replaySimpleVideo, pauseLessonVideoForTutorial } from '../../modules/lesson/lesson-progression.js';
+import { replaySimpleVideo } from '../../modules/lesson/lesson-progression.js';
 import { createTutorialOpener } from '../../modules/video/tutorial-logic.js';
 import { getBilingual } from '../../data/strings.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
@@ -38,13 +38,11 @@ export default function ResponseDecisionButtons() {
     };
 
     // The step type comes from the step's own responseType, so a step type with
-    // no tutorial video never opens the modal.
+    // no tutorial video never opens the modal. Opening the modal pauses the
+    // lesson underneath (TutorialModal's mount effect) — the single pause site.
     const handleTutorial = createTutorialOpener({
         stepType: currentVideo?.responseType,
-        onOpen: () => {
-            pauseLessonVideoForTutorial();
-            setShowTutorial(true);
-        },
+        onOpen: () => setShowTutorial(true),
     });
 
     return (

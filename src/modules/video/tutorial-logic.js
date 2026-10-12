@@ -30,22 +30,16 @@ const TUTORIAL_SLUG_PREFIX = 'tutorial-';
 export const TUTORIAL_VIDEO_WIDTH = 720;
 export const TUTORIAL_VIDEO_HEIGHT = 1280;
 
-// Element ids shared by the modal, the tests and the static guards. Keeping
-// them here means the component and the guard cannot drift.
+// Element ids the modal renders. They are written as literals in
+// TutorialModal.jsx (so a static guard can slice the exact button tag), and
+// tutorial-wiring.test.js asserts the literals match this map — changing an id
+// here without changing the component fails the guard.
 export const TUTORIAL_MODAL_IDS = {
     overlay: 'tutorial-modal-overlay',
     video: 'tutorialVideo',
     close: 'tutorialCloseBtn',
     continue: 'tutorialContinueBtn',
 };
-
-export function shouldCloseOnBackdropClick() {
-    return true;
-}
-
-export function shouldCloseOnEscape() {
-    return true;
-}
 
 export function isTutorialStepType(stepType) {
     return typeof stepType === 'string' && TUTORIAL_STEP_TYPES.includes(stepType);
@@ -148,23 +142,19 @@ export function createTutorialOpener({ stepType, onOpen } = {}) {
 }
 
 /**
- * Close/backdrop/Escape policy as a handler factory, so the component attaches
- * handlers without deciding any policy itself. `handleOverlayClick` closes only
- * when the backdrop policy says a backdrop tap closes; the content element stops
- * propagation so its own taps never reach the overlay. Escape-driven close is
- * requested through `closesOnEscape`.
+ * Close/backdrop policy as a handler factory, so the component attaches
+ * handlers without deciding any policy itself. A backdrop tap always closes;
+ * the content element stops propagation so its own taps never reach the
+ * overlay. Escape closes too, and is handled by the component's keydown effect.
  */
-export function createTutorialModalHandlers({ onClose, closesOnBackdropClick, closesOnEscape } = {}) {
+export function createTutorialModalHandlers({ onClose } = {}) {
     const close = () => {
         if (typeof onClose === 'function') onClose();
     };
 
     return {
         close,
-        closesOnEscape: !!closesOnEscape,
-        handleOverlayClick: () => {
-            if (closesOnBackdropClick) close();
-        },
+        handleOverlayClick: close,
     };
 }
 
@@ -172,28 +162,18 @@ export function buildTutorialModalView({ stepType, lang } = {}) {
     if (!isTutorialStepType(stepType)) {
         return {
             isSupported: false,
-            ids: TUTORIAL_MODAL_IDS,
-            videoUrl: '',
             stepType: null,
-            script: null,
+            videoUrl: '',
             subtitleText: null,
             subtitleLang: getTutorialSubtitleLang(lang),
-            closesOnBackdropClick: shouldCloseOnBackdropClick(),
-            closesOnEscape: shouldCloseOnEscape(),
         };
     }
 
-    const script = getTutorialScript(stepType);
-
     return {
         isSupported: true,
-        ids: TUTORIAL_MODAL_IDS,
-        videoUrl: getTutorialVideoUrl(stepType),
         stepType,
-        script,
+        videoUrl: getTutorialVideoUrl(stepType),
         subtitleText: getTutorialSubtitleText(stepType, lang),
         subtitleLang: getTutorialSubtitleLang(lang),
-        closesOnBackdropClick: shouldCloseOnBackdropClick(),
-        closesOnEscape: shouldCloseOnEscape(),
     };
 }

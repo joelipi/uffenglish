@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -9,14 +9,13 @@ import {
     TUTORIAL_VIDEO_WIDTH,
     TUTORIAL_VIDEO_HEIGHT,
     isTutorialStepType,
-    shouldCloseOnBackdropClick,
-    shouldCloseOnEscape,
     getTutorialSlug,
     getTutorialVideoUrl,
     getTutorialScript,
     getTutorialSubtitleLang,
     getTutorialSubtitleText,
     buildTutorialModalView,
+    createTutorialModalHandlers,
 } from './tutorial-logic.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -103,7 +102,7 @@ describe('getTutorialScript - new-user, 10-30 s, dismiss reminder', () => {
     });
 });
 
-describe('modal policy', () => {
+describe('modal constants', () => {
     it('exposes the shared element ids', () => {
         expect(TUTORIAL_MODAL_IDS).toEqual({
             overlay: 'tutorial-modal-overlay',
@@ -111,11 +110,6 @@ describe('modal policy', () => {
             close: 'tutorialCloseBtn',
             continue: 'tutorialContinueBtn',
         });
-    });
-
-    it('closes on backdrop click and on Escape', () => {
-        expect(shouldCloseOnBackdropClick()).toBe(true);
-        expect(shouldCloseOnEscape()).toBe(true);
     });
 
     it('is portrait 9:16', () => {
@@ -194,17 +188,23 @@ describe('buildTutorialModalView', () => {
         expect(view.videoUrl).toContain('assets/videos/tutorial-branching.mp4');
         expect(view.subtitleText).toBe(TUTORIAL_SCRIPTS.branching.es);
         expect(view.subtitleLang).toBe('es');
-        expect(view.closesOnBackdropClick).toBe(true);
-        expect(view.closesOnEscape).toBe(true);
-        expect(view.ids).toBe(TUTORIAL_MODAL_IDS);
     });
 
     it('marks unsupported types so the caller opens nothing', () => {
         const view = buildTutorialModalView({ stepType: 'success', lang: 'es' });
         expect(view.isSupported).toBe(false);
         expect(view.videoUrl).toBe('');
-        expect(view.script).toBeNull();
         expect(view.subtitleText).toBeNull();
+    });
+});
+
+describe('createTutorialModalHandlers', () => {
+    it('closes from the overlay and ignores a missing onClose', () => {
+        const onClose = vi.fn();
+        const handlers = createTutorialModalHandlers({ onClose });
+        handlers.handleOverlayClick();
+        expect(onClose).toHaveBeenCalledTimes(1);
+        expect(() => createTutorialModalHandlers({}).handleOverlayClick()).not.toThrow();
     });
 });
 

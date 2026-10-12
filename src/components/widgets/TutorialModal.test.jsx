@@ -61,9 +61,15 @@ describe('TutorialModal', () => {
         cleanup();
     });
 
-    it('pauses the lesson underneath on mount', () => {
+    it('pauses the lesson underneath exactly once on mount', () => {
         const { cleanup } = render({ stepType: 'branching', onClose: vi.fn() });
-        expect(pauseCalls.length).toBe(1);
+        expect(pauseCalls).toHaveLength(1);
+        cleanup();
+    });
+
+    it('does not pause the lesson for an unsupported step type', () => {
+        const { cleanup } = render({ stepType: 'success', onClose: vi.fn() });
+        expect(pauseCalls).toHaveLength(0);
         cleanup();
     });
 

@@ -15,7 +15,6 @@
 import { test, expect } from '@playwright/test';
 import {
     SENTINEL_SRC,
-    collectConsole,
     blockSentinelAutoplay,
     confirmGuestLanguage,
     waitForLessonReady,
@@ -26,10 +25,7 @@ test.use({ channel: 'chrome' });
 const LESSON_URL = '/course/model/lesson/m-g';
 
 test.describe('tutorial modal', () => {
-    let observed = { errors: [], transitionWarnings: [] };
-
     test.beforeEach(async ({ page }) => {
-        observed = collectConsole(page);
         await blockSentinelAutoplay(page);
         // The tutorial clips are operator-uploaded R2 assets; until they are
         // uploaded, keep the requests from turning into 404 noise. Nothing in

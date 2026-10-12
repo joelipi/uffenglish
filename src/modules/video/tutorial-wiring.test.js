@@ -11,6 +11,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { TUTORIAL_MODAL_IDS } from './tutorial-logic.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '../../..');
@@ -67,6 +68,12 @@ describe('TutorialModal stays render-only', () => {
         expect(modal).not.toContain('autoplay');
     });
 
+    it('renders exactly the ids the logic module publishes (no silent drift)', () => {
+        for (const id of Object.values(TUTORIAL_MODAL_IDS)) {
+            expect(modal).toContain(`id="${id}"`);
+        }
+    });
+
     it('renders the subtitle band over the video with the session language', () => {
         expect(modal).toContain('ivp-subtitle-scroll-container tutorial-modal-subtitles');
         expect(modal).toContain('ivp-subtitles tutorial-modal-subtitle-text');
@@ -81,7 +88,7 @@ describe('each decision row passes its own step type', () => {
             viewAndContinue.indexOf('</TutorialModal>')
         );
         expect(invocation).toContain("stepType=\"viewAndContinue\"");
-        expect(viewAndContinue).toContain('pauseLessonVideoForTutorial()');
+        expect(viewAndContinue).toContain('createTutorialOpener(');
     });
 
     it('branching row opens the branching tutorial', () => {
@@ -90,7 +97,7 @@ describe('each decision row passes its own step type', () => {
             branchRow.indexOf('</TutorialModal>')
         );
         expect(invocation).toContain("stepType=\"branching\"");
-        expect(branchRow).toContain('pauseLessonVideoForTutorial()');
+        expect(branchRow).toContain('createTutorialOpener(');
     });
 
     it('response row opens the tutorial of the step it decided', () => {
@@ -99,7 +106,18 @@ describe('each decision row passes its own step type', () => {
             responseRow.indexOf('</TutorialModal>')
         );
         expect(invocation).toContain('stepType={currentVideo?.responseType}');
-        expect(responseRow).toContain('pauseLessonVideoForTutorial()');
+        expect(responseRow).toContain('createTutorialOpener(');
+    });
+});
+
+// The pause must have exactly one call site. Previously every row called it
+// *and* the modal's mount effect did too, so removing either stayed green.
+describe('the lesson pause has a single call site (the modal mount effect)', () => {
+    it('is called from TutorialModal, never from a decision row', () => {
+        expect(modal).toContain('pauseLessonVideoForTutorial();');
+        expect(viewAndContinue).not.toContain('pauseLessonVideoForTutorial');
+        expect(responseRow).not.toContain('pauseLessonVideoForTutorial');
+        expect(branchRow).not.toContain('pauseLessonVideoForTutorial');
     });
 });
 

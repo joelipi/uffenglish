@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { appStore, getCurrentVideoPlayer } from '../../modules/store/store.js';
 import { getViewAndContinueHandler } from '../../modules/lesson/step-executor-webonly.js';
-import { pauseLessonVideoForTutorial } from '../../modules/lesson/lesson-progression.js';
 import { createTutorialOpener } from '../../modules/video/tutorial-logic.js';
 import { getBilingual } from '../../data/strings.js';
 import ChoiceColumn from './ChoiceColumn.jsx';
@@ -30,13 +29,11 @@ export default function ViewAndContinueButtons() {
     };
 
     // This row only renders in the view-and-continue decision phase, so the
-    // tutorial's step type is fixed.
+    // tutorial's step type is fixed. Opening the modal pauses the lesson
+    // underneath (TutorialModal's mount effect) — the single pause site.
     const handleTutorial = createTutorialOpener({
         stepType: 'viewAndContinue',
-        onOpen: () => {
-            pauseLessonVideoForTutorial();
-            setShowTutorial(true);
-        },
+        onOpen: () => setShowTutorial(true),
     });
 
     return (

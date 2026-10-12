@@ -130,21 +130,15 @@ describe('probeMp4 rejection paths', () => {
     });
 });
 
+// The generator's own output, when a real-Chrome run has happened locally
+// (`node scripts/generate-tutorial-placeholders.mjs`). Absent in CI, where it
+// skips; set TUTORIAL_PLACEHOLDER_DIR to point at a staging directory.
 describe('probeMp4 on a real generated clip', () => {
     const hasFixture = existsSync(FIXTURE);
 
     it.skipIf(!hasFixture)('reads 720x1280 and a 10-30s duration', async () => {
         const probe = await probeMp4(FIXTURE);
         expect(assertClipContract({ slug: 'branching', ...probe })).toBe(true);
-    });
-
-    it('documents how to produce the fixture when it is absent', () => {
-        // Keeps the skip above honest: the fixture is the generator's own
-        // output, produced by a real-Chrome run.
-        expect(FIXTURE_DIR.length).toBeGreaterThan(0);
-        if (!hasFixture) {
-            console.log(`[tutorial-test] no generated clip at ${FIXTURE}; run: node scripts/generate-tutorial-placeholders.mjs`);
-        }
     });
 });
 

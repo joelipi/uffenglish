@@ -122,8 +122,9 @@ export function createProgression(deps) {
     // Stops the lesson underneath so an opened tutorial modal is the only thing
     // playing. Pausing the registered player stops the clip the learner is on;
     // the store trigger reaches every other mounted video component (blob
-    // playback, interactive player). Both are idempotent, so re-opening the
-    // modal or closing it cannot double-fire an audible restart.
+    // playback, interactive player). Pausing is idempotent, so the modal may
+    // call this on every mount; closing the modal does NOT resume the clip, so
+    // the learner returns to the decision row and picks Replay (or an answer).
     function pauseLessonVideoForTutorial() {
         const player = getCurrentVideoPlayer();
         if (player && typeof player.pause === 'function') player.pause();

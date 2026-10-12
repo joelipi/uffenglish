@@ -56,11 +56,11 @@ describe('tutorial wiring in the decision rows', () => {
 
     const videoSrc = () => container.querySelector('#tutorialVideo')?.getAttribute('src');
 
-    // Opening pauses once from the button press (immediate feedback: the lesson
-    // audio stops as the finger lifts) and once from the modal's mount effect
-    // (safety net for any other mount path). Both are idempotent pauses.
-    const expectPausedForTutorial = () => {
-        expect(pauseCalls.length).toBeGreaterThanOrEqual(1);
+    // Opening pauses exactly once, from the modal's mount effect — the single
+    // pause site (rows only open the modal). Pinning the exact count is what
+    // stops a second call site being added back unnoticed.
+    const expectPausedExactlyOnce = () => {
+        expect(pauseCalls).toHaveLength(1);
     };
 
     it('view-and-continue row opens the viewAndContinue tutorial and pauses the lesson', () => {
@@ -70,7 +70,7 @@ describe('tutorial wiring in the decision rows', () => {
         click('tutorialBtn');
 
         expect(videoSrc()).toContain('/assets/videos/tutorial-viewAndContinue.mp4');
-        expectPausedForTutorial();
+        expectPausedExactlyOnce();
     });
 
     it.each(['closedResponse', 'openResponse', 'friendClosedResponse'])(
@@ -83,7 +83,7 @@ describe('tutorial wiring in the decision rows', () => {
             click('responseTutorialBtn');
 
             expect(videoSrc()).toContain(`/assets/videos/tutorial-${responseType}.mp4`);
-            expectPausedForTutorial();
+            expectPausedExactlyOnce();
         }
     );
 

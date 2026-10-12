@@ -1,9 +1,9 @@
 // TutorialModal — full-screen, scrollable tutorial takeover.
 //
-// Render-only: every rule (slug, URL, subtitle text, dismiss policy) comes from
+// Render-only: every rule (slug, URL, subtitle text, close policy) comes from
 // src/modules/video/tutorial-logic.js and the localized Continue label from
 // src/data/strings.js. This file holds no gates, mappings, or URL building.
-import React, { useCallback, useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { getBilingual } from '../../data/strings.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
 import { buildTutorialModalView, createTutorialModalHandlers } from '../../modules/video/tutorial-logic.js';
@@ -14,18 +14,20 @@ export default function TutorialModal({ stepType, onClose }) {
     const view = useMemo(() => buildTutorialModalView({ stepType, lang }), [stepType, lang]);
     const continueLabel = getBilingual('continue', lang);
 
+    // Callers pass an inline arrow, so hold it in a ref and expose a stable
+    // close() — the keydown effect below then attaches its listener once
+    // instead of tearing it down on every parent render.
+    const onCloseRef = useRef(onClose);
+    onCloseRef.current = onClose;
     const handlers = useMemo(
-        () => createTutorialModalHandlers({
-            onClose,
-            closesOnBackdropClick: view.closesOnBackdropClick,
-            closesOnEscape: view.closesOnEscape,
-        }),
-        [onClose, view.closesOnBackdropClick, view.closesOnEscape]
+        () => createTutorialModalHandlers({ onClose: () => onCloseRef.current?.() }),
+        []
     );
 
     // Opening the tutorial stops the lesson underneath so only the tutorial is
-    // audible/visible. Pausing is idempotent, so a second pause on close of the
-    // underlying player (or a re-open) is harmless.
+    // audible/visible. This is the single pause site: every row renders this
+    // modal, so pausing here covers them all. Pausing is idempotent, so
+    // re-opening the modal cannot restart the lesson clip.
     useEffect(() => {
         if (!view.isSupported) return undefined;
         console.log('[TutorialModal] opened for stepType:', view.stepType, 'lang:', view.subtitleLang);
@@ -34,15 +36,16 @@ export default function TutorialModal({ stepType, onClose }) {
     }, [view.isSupported, view.stepType, view.subtitleLang]);
 
     // Escape-to-close, mirroring the HomeScreen menu pattern (window keydown
-    // listener with cleanup). The policy flag comes from the logic module.
+    // listener with cleanup).
     useEffect(() => {
-        if (!handlers.closesOnEscape) return undefined;
         function onKeyDown(e) {
             if (e.key === 'Escape') handlers.close();
         }
         window.addEventListener('keydown', onKeyDown);
         return () => window.removeEventListener('keydown', onKeyDown);
     }, [handlers]);
+
+    const stopPropagation = useCallback((e) => e.stopPropagation(), []);
 
     if (!view.isSupported) return null;
 
@@ -54,7 +57,7 @@ export default function TutorialModal({ stepType, onClose }) {
             aria-modal="true"
             onClick={handlers.handleOverlayClick}
         >
-            <div className="tutorial-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="tutorial-modal-content" onClick={stopPropagation}>
                 <button
                     type="button"
                     className="btn tutorial-modal-close"
