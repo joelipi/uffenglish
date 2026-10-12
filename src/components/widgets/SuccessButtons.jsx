@@ -7,6 +7,7 @@ import { resolveFriendLessonLink } from '../../modules/user/friend-lesson-link-l
 import { resolveFriendResponseNotification } from '../../modules/notifications/notification-logic.js';
 import { AFTER_SUCCESS_BASE, AFTER_SHARE_BASE } from '../../modules/video/after-video-logic.js';
 import { getDeviceShareTarget, SHARE_TARGET_DOWNLOAD } from '../../modules/video/share-target-logic.js';
+import { isSuccessContinueDelayed, scheduleSuccessContinueReveal } from '../../modules/lesson/success-continue-logic.js';
 import { getBilingual } from '../../data/strings.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
 import { isStaleChunkReloadPending } from '../../modules/utils/stale-chunk-reload.js';
@@ -77,6 +78,10 @@ export function VideoButton({ canvasRef }) {
   // with "Share failed"). sharingRef mirrors it for the synchronous guard.
   const [sharing, setSharing] = useState(false);
   const sharingRef = useRef(false);
+  // Pending delayed-Continue reveal (friend success rows only): the cancel
+  // handle from scheduleSuccessContinueReveal. A ref (not state): the
+  // timeout outlives renders and is cancelled on unmount / supersede.
+  const revealTimerRef = useRef(null);
   // Caller-owned AudioContext for the render + display-only after-video tail.
   // Created synchronously inside the "make my video" tap (a real user
   // gesture) so the context runs without autoplay restrictions; handed to
@@ -101,6 +106,10 @@ export function VideoButton({ canvasRef }) {
   // change, Continue/Repeat teardown). The canvas unmount stops the tail
   // loop itself; this only frees the shared context both used.
   useEffect(() => () => {
+    if (revealTimerRef.current) {
+        revealTimerRef.current();
+        revealTimerRef.current = null;
+    }
     const ctx = audioContextRef.current;
     audioContextRef.current = null;
     if (ctx && typeof ctx.close === 'function' && ctx.state !== 'closed') {
@@ -130,7 +139,12 @@ export function VideoButton({ canvasRef }) {
         setSuccessVideoBlob(result.blob);
         setVideoState('ready');
         setRepeatVisible(true);
-        setContinueVisible(true);
+        // Friend rows withhold Continue until after the Share tap + delay
+        // (the scheduler reveals it); every other lesson reveals
+        // immediately, exactly as before. The delay decision lives in the
+        // logic module — this only applies it.
+        const readyLesson = appStore.getState().configData?.lessons?.find(l => l.lessonId === lessonId);
+        if (!isSuccessContinueDelayed(readyLesson)) setContinueVisible(true);
 
         shareHandlerRef.current = async () => {
           const { buildShareFilename } = await import('../../modules/lesson/success-lesson-logic.js');
@@ -296,13 +310,37 @@ export function VideoButton({ canvasRef }) {
         console.warn('[Success] after-video swap failed (non-fatal):', e?.message);
       }
     }).catch(() => {});
-    if (shareHandlerRef.current) {
-      await shareHandlerRef.current();
+    try {
+      if (shareHandlerRef.current) {
+        await shareHandlerRef.current();
+      }
+    } finally {
+      // Friend rows only: the tap settled (sheet displayed / download
+      // started — success or abort, fail-open), so start the fixed delay
+      // after which Continue appears next to Share. Non-friend rows
+      // already show it; a visible Continue is never rescheduled.
+      scheduleDelayedContinue();
     }
     } finally {
       sharingRef.current = false;
       setSharing(false);
     }
+  };
+
+  // Schedules the friend-row delayed Continue reveal. Pure decision in the
+  // logic module; this only passes the store readers and holds the cancel
+  // handle. Safe to call on any lesson (no-op unless delayed + hidden).
+  const scheduleDelayedContinue = () => {
+    const state = appStore.getState();
+    const lesson = state.configData?.lessons?.find(l => l.lessonId === lessonId);
+    if (!isSuccessContinueDelayed(lesson)) return;
+    if (state.successContinueButton?.visible) return;
+    if (revealTimerRef.current) revealTimerRef.current();
+    revealTimerRef.current = scheduleSuccessContinueReveal({
+      lessonId,
+      reveal: () => appStore.getState().setSuccessContinueVisible(true),
+      getActiveLessonId: () => appStore.getState().successLessonId,
+    });
   };
 
   if (button.state === 'idle') {

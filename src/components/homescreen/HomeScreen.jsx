@@ -1,13 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useStore } from 'zustand';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueries } from '@tanstack/react-query';
 import { appStore } from '../../modules/store/store.js';
-import { useAuthStatus, useUserProfile, signOut } from '../../modules/api/api.js';
+import { useAuthStatus, useUserProfile, useNotifications, fetchUserByShareCode, signOut } from '../../modules/api/api.js';
 import Strings from '../../data/strings.js';
 import { trackEvent } from '../../modules/utils/posthog.js';
 import { loadConfigEntries, resolveCourseHeroImage } from '../../modules/courses/friend-course-configs.js';
 import { listFriendCourses } from '../../modules/courses/friend-courses-logic.js';
+import {
+    resolveContinueTarget,
+    collectFriendActorCodes,
+    buildFriendLinksMaps,
+} from '../../modules/home/continue-logic.js';
 import FriendCoursesView from '../courses/FriendCoursesView.jsx';
 import NotificationsBell from './NotificationsBell.web.jsx';
 import LegalFooter from '../legal/LegalFooter.jsx';
@@ -18,7 +23,6 @@ export default function HomeScreen() {
     const [menuOpen, setMenuOpen] = useState(false);
     const courseId = useStore(appStore, state => state.courseId);
     const activeLessonId = useStore(appStore, state => state.activeLessonId);
-    const canContinue = !!courseId && !!activeLessonId;
     const guestLang = useStore(appStore, state => state.guestNativeLanguage);
     const userDataLang = useStore(appStore, state => state.userData?.native_language);
     const lang = guestLang || userDataLang || 'en';
@@ -35,6 +39,48 @@ export default function HomeScreen() {
         },
         staleTime: Infinity,
     });
+
+    // Friend-aware Continue target (story 061). Raw config entries classify
+    // the resume; the inbox plus the actors' public link maps feed the
+    // friend branch. This container only passes data into the pure
+    // resolver — every gate, branch, and URL build lives there.
+    // `['config-entries']` is deliberately separate from the shared
+    // `['friend-courses']` cache (same payload shape as /courses must keep).
+    const { data: configEntries } = useQuery({
+        queryKey: ['config-entries'],
+        queryFn: () => loadConfigEntries(),
+        staleTime: Infinity,
+    });
+    const { data: notifications } = useNotifications(viewerId);
+    const selfShareCode = profile?.shareCode || profile?.share_code;
+    const actorCodes = useMemo(
+        () => collectFriendActorCodes(notifications, selfShareCode),
+        [notifications, selfShareCode]);
+    // One cached read per friend actor, reusing the exact public-profile
+    // cache keys (`['user', 'profile', 'shareCode', code]`).
+    const friendMapsQueries = useQueries({
+        queries: actorCodes.map((code) => ({
+            queryKey: ['user', 'profile', 'shareCode', code],
+            queryFn: () => fetchUserByShareCode(code),
+        })),
+    });
+    const friendLinksMaps = useMemo(
+        () => buildFriendLinksMaps(actorCodes, friendMapsQueries.map((q) => q.data)),
+        [actorCodes, friendMapsQueries]);
+    // Memoized so the button never changes targets across re-renders with
+    // identical inputs; re-resolves only when an input changes (the 30s
+    // notification refetch refreshes expiry).
+    const continueTarget = useMemo(
+        () => resolveContinueTarget({
+            courseId,
+            activeLessonId,
+            configEntries,
+            courseProgressText: profile?.course_progress,
+            countedLessons: profile?.counted_lessons,
+            friendLinksMaps,
+            nowMs: Date.now(),
+        }),
+        [courseId, activeLessonId, configEntries, profile, friendLinksMaps]);
 
     function closeMenu() { setMenuOpen(false); }
 
@@ -187,9 +233,9 @@ export default function HomeScreen() {
                 />
             </div>
 
-            {canContinue && (
+            {continueTarget && (
                 <div style={bottomBarStyle}>
-                    <button onClick={() => navigate(`/course/${courseId}/lesson/${activeLessonId}`)} style={continueBtnStyle}
+                    <button data-testid="home-continue" onClick={() => navigate(continueTarget)} style={continueBtnStyle}
                             onMouseEnter={e => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'scale(1.02)'; }}
                             onMouseLeave={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'scale(1)'; }}>
                         {Strings.get('home_continue', lang)} <i className="bi bi-arrow-right"></i>

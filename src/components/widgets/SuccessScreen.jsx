@@ -82,7 +82,7 @@ export default function SuccessScreen({ onLoadNextLesson, onRepeat, canvasRef })
         <div className="success-actions-row">
           {!isFriendLesson && <RepeatButton lessonId={lessonId} onRepeat={onRepeat} />}
           <VideoButton canvasRef={canvasRef} />
-          {!isFriendLesson && <ContinueButton onLoadNextLesson={onLoadNextLesson} />}
+          <ContinueButton onLoadNextLesson={onLoadNextLesson} />
         </div>
       </div>
     </>
