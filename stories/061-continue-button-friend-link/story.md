@@ -14,10 +14,10 @@ The `/home` Continue button today resumes the persisted zustand tuple verbatim: 
 
 ## Implementation approach
 
-Add a pure, RN-safe module `src/modules/home/continue-logic.js` (no React, no DOM, no `window`/`document`, no supabase import, no recorder-page token anywhere in the new `src/**` files) plus `src/modules/home/continue-logic.test.js`. HomeScreen keeps its outer `canContinue = !!courseId && !!activeLessonId` gate verbatim and branches only to compute the href:
+Add a pure, RN-safe module `src/modules/home/continue-logic.js` (no React, no DOM, no `window`/`document`, no supabase import, no recorder-page token anywhere in the new `src/**` files) plus `src/modules/home/continue-logic.test.js`. The component stays render-only: HomeScreen performs no branching, mapping, filtering, sorting, random-picking, or URL building — it calls `resolveContinueTarget({...})` inside the memoized resolution and renders the returned target or nothing. Every gate, including the legacy resume gate, lives in the resolver:
 
 - Classify the resume `courseId` against the already-loaded config entries (`loadConfigEntries` result already in HomeScreen for the cards; `courseId` is the config file basename — `friend.json`'s inner `courseId` is `20260921`, so never use `config.courseId`): friend-type when `isFriendCourse(entry.config)` from `src/modules/courses/friend-courses-logic.js`, excluding `EXCLUDED_FRIEND_COURSE_IDS` (`test`) and the `test-api` fixture.
-- Non-friend resume: href is exactly ``/course/${courseId}/lesson/${activeLessonId}`` (legacy string preserved; no query string appended).
+- Non-friend resume: the legacy `canContinue = !!courseId && !!activeLessonId` gate moves into the resolver with identical semantics — when both ids are present the target href is exactly ``/course/${courseId}/lesson/${activeLessonId}`` (legacy string preserved; no query string appended), otherwise null. The component never evaluates the gate itself.
 - Friend resume resolution order:
   1. Oldest active friend response: collect candidate actors from the viewer's `user_notifications` inbox (`useNotifications`, key `['notifications', userId]`, newest first, dedupe by normalized `payload.actorShareCode`, skip self/blank, in inbox order up to the query's existing `limit(50)` rows), `fetchUserByShareCode` each actor (existing `['user','profile','shareCode', code]` cache keys), `listActiveFriendLinks(map, nowMs)` per friend (48h via `FRIEND_LINK_WINDOW_MS`, malformed entries dropped), pick the entry with the smallest `addedAt` across all friends, href via `buildFriendLessonLink({ courseId, lessonId, shareCode })`. The notification's own `lesson_id` is never used for the href.
   2. Else first lesson (`firstFriendLessonId`, always `a`) of a randomly chosen unstarted friend course: unstarted means `course_progress` (parsed fail-open; corrupt JSON counts as empty) has no key for the basename and no `counted_lessons` key starts with `<basename>_` and the basename is not the resume course. Sort candidate basenames ascending and pick with an injectable `rand` (default `Math.random`) so tests are deterministic.
@@ -33,6 +33,8 @@ Add a pure, RN-safe module `src/modules/home/continue-logic.js` (no React, no DO
 
 - Non-friend resume (`courseId=model`, `activeLessonId=m-g`) + any friend data present
   - → returns exactly `/course/model/lesson/m-g` with no query string
+- Non-friend resume with missing `courseId` or missing `activeLessonId`
+  - → returns null (legacy gate semantics: no Continue without both)
 - Friend resume (`courseId=wouldrather`, `activeLessonId=b`) + one active friend entry (`addedAt` 5h ago, `lessonId=c`, `shareCode=ab12`)
   - → returns `/course/wouldrather/lesson/c?shareCode=ab12`
   - → returned `lessonId`/`shareCode` equal the friend_links entry, not the notification row's `lesson_id`
@@ -70,8 +72,8 @@ Add a pure, RN-safe module `src/modules/home/continue-logic.js` (no React, no DO
 - Same query-cache data rendered twice without cache changes
   - → Continue target identical on both renders
 - Raw `HomeScreen.jsx` source inspected
-  - → still contains the verbatim gate `canContinue = !!courseId && !!activeLessonId`
-  - → imports the resolver from `continue-logic` and renders `FriendCoursesView` unchanged
+  - → calls the resolver from `continue-logic` (inside `useMemo`) and renders `FriendCoursesView` unchanged
+  - → contains no `/course/${` URL template, no `isFriendCourse`, no `.filter`, no `.sort`, and no `Math.random` token (every branch, mapping, and URL build lives in the resolver; the pre-existing card query's `.map` is untouched and out of scope)
 
 ### Task 3 - Expiry boundary and regression
 
