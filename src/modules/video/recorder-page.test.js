@@ -172,3 +172,60 @@ describe('recorder page — cloud pipeline controls', () => {
         expect(page()).not.toMatch(/(operator[_-]?key)\s*[:=]\s*['"][^'"]+['"]/i);
     });
 });
+
+// Story 061: takes auto-stop after 10 seconds instead of 7. The budget lives
+// in one interval inside triggerStartRecording(), so the assertions slice
+// exactly that block: from `global_record_duration_timer = setInterval` to the
+// next `executeStopRecording`, which is the auto-stop call the interval itself
+// makes. Slicing to EOF would let a block appended later silently join this
+// guard, and a whole-file `toContain('10000')` would stay green even with the
+// real budget deleted, so both are avoided deliberately.
+describe('recorder page — recording duration cap', () => {
+    const page = () => fs.readFileSync(PAGE_PATH, 'utf8');
+
+    const timerBlock = () => {
+        const html = page();
+        // The comment is the first line of the block, so anchor there: a
+        // deleted or renamed marker yields -1 and fails loudly instead of
+        // silently producing an empty slice.
+        const start = html.indexOf('THE RECORDING DURATION TIMER');
+        const assignment = html.indexOf('global_record_duration_timer = setInterval', start);
+        const end = html.indexOf('executeStopRecording', assignment);
+        expect(start, 'duration timer comment').toBeGreaterThan(-1);
+        expect(assignment, 'duration timer assignment').toBeGreaterThan(start);
+        expect(end, 'auto-stop call').toBeGreaterThan(assignment);
+        return html.slice(start, end);
+    };
+
+    it('auto-stops a take after 10 seconds', () => {
+        const block = timerBlock();
+        // The budget drives the countdown overlay (`remaining_ms / 1000`) and
+        // the auto-stop trigger (`remaining_ms <= 0`), both left untouched.
+        expect(block).toContain('THE RECORDING DURATION TIMER (10 SECONDS)');
+        expect(block).toContain('var remaining_ms = 10000 - diff;');
+        expect(block).toMatch(/remaining_ms <= 0/);
+        expect(block).toContain('(remaining_ms / 1000).toFixed(1)');
+        expect(block).toContain('Max duration (10s) reached.');
+    });
+
+    it('carries no 7-second budget inside the timer block', () => {
+        const block = timerBlock();
+        expect(block).not.toContain('7000');
+        expect(block).not.toContain('7 SECONDS');
+        expect(block).not.toContain('(7s)');
+    });
+
+    it('keeps manual stop working: STOP clears the timer and stops the recorder', () => {
+        // The longer cap must not strand the operator: pressing STOP before
+        // 10s still stops the take and must clear the interval so no
+        // auto-stop fires afterwards.
+        const html = page();
+        const start = html.indexOf('function executeStopRecording()');
+        const end = html.indexOf('function generateFinalVideoBuffer()');
+        expect(start, 'executeStopRecording function').toBeGreaterThan(-1);
+        expect(end, 'next top-level function').toBeGreaterThan(start);
+        const fn = html.slice(start, end);
+        expect(fn).toContain('clearInterval(global_record_duration_timer)');
+        expect(fn).toContain('global_recorder_obj.stop()');
+    });
+});

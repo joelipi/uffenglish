@@ -743,10 +743,10 @@
 
                 var timestamp_start = Date.now();
                 
-                // THE RECORDING DURATION TIMER (7 SECONDS)
+                // THE RECORDING DURATION TIMER (10 SECONDS)
                 global_record_duration_timer = setInterval(function() {
                     var diff = Date.now() - timestamp_start;
-                    var remaining_ms = 7000 - diff;
+                    var remaining_ms = 10000 - diff;
                     
                     if (remaining_ms < 0) {
                         remaining_ms = 0;
@@ -756,7 +756,7 @@
                     node_overlay_count.textContent = (remaining_ms / 1000).toFixed(1);
                     
                     if (remaining_ms <= 0) {
-                        appCoreLog("Max duration (7s) reached.");
+                        appCoreLog("Max duration (10s) reached.");
                         executeStopRecording();
                     }
                 }, 50);
