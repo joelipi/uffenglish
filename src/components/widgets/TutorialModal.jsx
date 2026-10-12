@@ -18,7 +18,11 @@ export default function TutorialModal({ stepType, onClose }) {
     // close() — the keydown effect below then attaches its listener once
     // instead of tearing it down on every parent render.
     const onCloseRef = useRef(onClose);
-    onCloseRef.current = onClose;
+    // Ref updates belong in an effect: a render under concurrent scheduling
+    // can be discarded, and writing this during render risks a stale value.
+    useEffect(() => {
+        onCloseRef.current = onClose;
+    }, [onClose]);
     const handlers = useMemo(
         () => createTutorialModalHandlers({ onClose: () => onCloseRef.current?.() }),
         []

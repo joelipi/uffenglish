@@ -163,8 +163,8 @@ async function probeMp4(file) {
         const audioTrack = await input.getPrimaryAudioTrack();
         if (!videoTrack) throw new Error('no video track');
         if (audioTrack) throw new Error('unexpected audio track');
-        const width = await videoTrack.codedWidth;
-        const height = await videoTrack.codedHeight;
+        const width = await videoTrack.getCodedWidth();
+        const height = await videoTrack.getCodedHeight();
         const duration = await videoTrack.computeDuration();
         return { width, height, duration };
     } finally {
@@ -198,7 +198,7 @@ async function renderOne({ browser, stepType, durationSec }) {
             async ([mime, secs]) => window.recordScript(mime, secs),
             [MEDIA_RECORDER_MIME, durationSec]
         );
-        return { slug, duration: durationSec, bytes: Buffer.from(frames) };
+        return { slug, bytes: Buffer.from(frames) };
     } finally {
         await page.close();
     }

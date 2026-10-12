@@ -128,10 +128,21 @@ test.describe('tutorial modal', () => {
 
     test('opening the tutorial pauses the lesson video underneath', async ({ page }) => {
         await openDecisionRow(page, { responseType: 'closedResponse', phase: 'simpleVideo-decisionTime-response' });
+
+        // Asserted through the store trigger, NOT `el.paused`: the sentinel clip
+        // is never allowed to autoplay (blockSentinelAutoplay), so the element is
+        // paused either way and a DOM `paused` check would pass even with the
+        // pause removed. `triggerPauseAllVideos()` is what the pause fires, so
+        // the counter must advance exactly once when the modal opens.
+        const triggerBefore = await page.evaluate(() => window.appStore.getState().pauseAllVideosTrigger);
+
         await page.locator('#responseTutorialBtn').click({ force: true });
         await expect(overlay(page)).toBeVisible();
 
-        expect(await page.locator('.ivp-video').evaluate((el) => el.paused)).toBe(true);
+        const triggerAfter = await page.evaluate(() => window.appStore.getState().pauseAllVideosTrigger);
+        // Strictly greater: the pause fired. (Exactly +1 is not asserted because
+        // StrictMode double-invokes the mount effect in dev.)
+        expect(triggerAfter).toBeGreaterThan(triggerBefore);
     });
 
     test('the corner X dismisses the takeover', async ({ page }) => {

@@ -116,10 +116,10 @@ export function getTutorialSubtitleLang(lang) {
 // anything unknown). Returns null for unsupported step types so the caller
 // renders no band at all.
 export function getTutorialSubtitleText(stepType, lang) {
-    const script = TUTORIAL_SCRIPTS?.[stepType];
-    if (!script) return null;
+    if (!isTutorialStepType(stepType)) return null;
     const normalized = typeof lang === 'string' && lang ? getTutorialSubtitleLang(lang) : 'en';
-    return script[normalized] || script.en;
+    // English is also the fallback for every untranslated language.
+    return TUTORIAL_SCRIPTS[stepType][normalized] || getTutorialScript(stepType);
 }
 
 /**
