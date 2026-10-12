@@ -25,7 +25,7 @@ describe('splitItalicSegments', () => {
         ]);
     });
 
-    it('never returns raw angle brackets in segment text', () => {
+    it('contains no raw brackets for well-formed input', () => {
         for (const seg of splitItalicSegments('a <i>b</i> c')) {
             expect(seg.text).not.toContain('<');
             expect(seg.text).not.toContain('>');

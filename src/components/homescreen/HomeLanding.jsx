@@ -36,9 +36,10 @@ const HOW_IT_WORKS_ROWS = [
 ];
 
 // Device logos for the "any device" section, above the section text. Glyphs
-// are the closest Bootstrap Icons brand marks; captions carry the exact
-// meaning (the set has no generic Linux or Chromebook marks, so the Ubuntu
-// and Google marks stand in).
+// are the closest Bootstrap Icons brand marks; the accessible name carries
+// the exact meaning — no visible captions are rendered (the set has no
+// generic Linux or Chromebook marks, so the Ubuntu and Google marks stand
+// in).
 const DEVICE_ICONS = [
     { icon: 'bi-android2', label: 'Android' },
     { icon: 'bi-apple', label: 'iOS' },

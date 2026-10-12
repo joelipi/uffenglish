@@ -2352,17 +2352,6 @@ const strings = {
     },
 
     // --- Public homepage (homepage landing sections) ---
-    // (The visible "How it works" H2 was removed; the section is marked by a
-    // code comment in HomeLanding.jsx. The heading key below stays only as
-    // the section's name for tests/docs.)
-    'home_landing_how_heading': {
-        en: "How it works",
-        es: "Cómo funciona",
-        pt: "Como funciona",
-        fr: "Comment ça marche",
-        hi: "यह कैसे काम करता है",
-        bn: "এটি কীভাবে কাজ করে"
-    },
     'home_landing_how_1_title': {
         en: "100% free",
         es: "100% gratis",
