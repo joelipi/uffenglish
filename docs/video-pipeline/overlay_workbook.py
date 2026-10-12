@@ -79,11 +79,16 @@ def read_csv_rows(path):
 
 
 def step_key_for_row(row):
-    """A step is the ``join`` value when non-blank, else ``video_file``."""
-    join = (row.get(JOIN_COL) or "").strip()
-    if join:
+    """A step is the ``join`` value when non-blank, else ``video_file``.
+
+    Blank means exactly ``""`` (matching the ``=IF(join="",video,join)`` MAIN
+    formula). No whitespace normalization: a value of ``"  "`` is content, so
+    Python and the sheet always derive the same key.
+    """
+    join = row.get(JOIN_COL) or ""
+    if join != "":
         return join
-    return (row.get(VIDEO_FILE_COL) or "").strip()
+    return row.get(VIDEO_FILE_COL) or ""
 
 
 def sibling_groups(rows):
@@ -105,7 +110,7 @@ def subtitle_groups(rows):
     """
     groups = defaultdict(list)
     for index, row in enumerate(rows):
-        key = (row.get(VIDEO_FILE_COL) or "").strip()
+        key = row.get(VIDEO_FILE_COL) or ""
         groups[(VIDEO_FILE_COL, key) if key else ("row", index)].append(index)
     return dict(groups)
 
@@ -205,28 +210,16 @@ def split_phrases_out(subtitle, phrases_in_order):
     return True, fragments
 
 
-def subtitle_is_reconstructable(row_index, rows, groups_by_step):
-    """Check the overlay embeds exactly its take-group's phrases up to its order.
-
-    The overlay shows takes 1..k as text and later takes as ``___________``
-    placeholders, so the row's own phrase and every earlier take's phrase must
-    appear while no later take's phrase may. Single-row groups (intros,
-    branching questions) and rows with a blank phrase fall back to a stored
-    value instead of a concatenation formula.
-    """
-    rows_in_step = None
-    for _key, members in groups_by_step.items():
-        if row_index in members:
-            rows_in_step = members
-            break
-    if not rows_in_step or len(rows_in_step) < 2:
+def _is_reconstructable(index, rows, members):
+    """Core overlay check given the row's take-group member list."""
+    if len(members) < 2:
         return False, []
-    ordered = sorted(rows_in_step, key=lambda i: (order_of(rows[i]), i))
-    position = ordered.index(row_index)
-    if not (rows[row_index].get(PHRASE_COL) or "").strip():
+    ordered = sorted(members, key=lambda i: (order_of(rows[i]), i))
+    position = ordered.index(index)
+    if not (rows[index].get(PHRASE_COL) or "").strip():
         return False, []
-    subtitle = rows[row_index].get(SUBTITLE_COL, "")
-    if not (rows[row_index].get(PHRASE_COL, "") in subtitle):
+    subtitle = rows[index].get(SUBTITLE_COL, "")
+    if not (rows[index].get(PHRASE_COL, "") in subtitle):
         return False, []
     earlier = [rows[i].get(PHRASE_COL, "") for i in ordered[: position + 1]]
     later = [rows[i].get(PHRASE_COL, "") for i in ordered[position + 1:]]
@@ -236,6 +229,30 @@ def subtitle_is_reconstructable(row_index, rows, groups_by_step):
     if not ok:
         return False, []
     return True, ordered[: position + 1]
+
+
+def subtitle_is_reconstructable(row_index, rows, groups_by_step):
+    """Check the overlay embeds exactly its take-group's phrases up to its order.
+
+    The overlay shows takes 1..k as text and later takes as ``___________``
+    placeholders, so the row's own phrase and every earlier take's phrase must
+    appear while no later take's phrase may. Single-row groups (intros,
+    branching questions) and rows with a blank phrase fall back to a stored
+    value instead of a concatenation formula.
+
+    ``groups_by_step`` maps any group key to member row indices; hot callers
+    should precompute one ``index -> members`` map and call
+    ``_is_reconstructable`` directly instead of rescanning per row.
+    """
+    for _key, members in groups_by_step.items():
+        if row_index in members:
+            return _is_reconstructable(row_index, rows, members)
+    return False, []
+
+
+def group_member_map(groups):
+    """Map every row index to its group's member list (built once, O(rows))."""
+    return {index: members for members in groups.values() for index in members}
 
 
 def subtitle_concat_formula(subtitle, phrase_cells_in_order):
@@ -258,6 +275,8 @@ def subtitle_concat_formula(subtitle, phrase_cells_in_order):
 
 def build_input_tables(headers, rows, kinds):
     """Collect the deduplicated INPUT tables. Stdlib-only; no openpyxl."""
+    if not rows:
+        raise ValueError("build_input_tables: no rows")
     present = set(headers)
     globals_rows = [(col, rows[0].get(col, "")) for col in headers if kinds[col] == "global"]
     lesson_cols = [col for col in headers if kinds[col] == "lesson"]
@@ -267,13 +286,13 @@ def build_input_tables(headers, rows, kinds):
     phrase_cols += [col for col in [PHRASE_COL, *PHRASE_LANG_COLS] if col in present]
 
     lessons_header = [LESSON_COL] + lesson_cols
-    seen_lessons = []
+    # Lesson-constant columns are identical on every row of the lesson, so the
+    # first-seen row is representative (single pass, first-seen lesson order).
+    first_of_lesson = {}
     for row in rows:
-        lesson = row.get(LESSON_COL, "")
-        if lesson not in seen_lessons:
-            seen_lessons.append(lesson)
-    lessons_rows = [[lesson] + [next(r.get(col, "") for r in rows if r.get(LESSON_COL, "") == lesson)
-                                for col in lesson_cols] for lesson in seen_lessons]
+        first_of_lesson.setdefault(row.get(LESSON_COL, ""), row)
+    lessons_rows = [[lesson] + [first.get(col, "") for col in lesson_cols]
+                     for lesson, first in first_of_lesson.items()]
 
     groups = sibling_groups(rows)
     step_keys = list(groups)
@@ -284,6 +303,7 @@ def build_input_tables(headers, rows, kinds):
         steps_rows.append([key] + [member.get(col, "") for col in step_cols])
 
     take_groups = subtitle_groups(rows)
+    member_of = group_member_map(take_groups)
 
     phrases_header = phrase_cols
     phrases_rows = [[row.get(col, "") for col in phrase_cols] for row in rows]
@@ -294,7 +314,7 @@ def build_input_tables(headers, rows, kinds):
 
     subtitles_rows = []
     for index, row in enumerate(rows):
-        ok, _ordered = subtitle_is_reconstructable(index, rows, take_groups)
+        ok, _ordered = _is_reconstructable(index, rows, member_of[index])
         if kinds.get(SUBTITLE_COL) == "subtitle" and not ok:
             subtitles_rows.append([row.get("filename", ""), row.get(SUBTITLE_COL, "")])
     subtitles_header = ["filename", SUBTITLE_COL]
@@ -326,12 +346,24 @@ def build_workbook_plan(headers, rows):
     formulas reproduce the CSV exactly without an Excel engine.
     """
     kinds = classify_columns(headers, rows)
+    if not rows:
+        raise ValueError("build_workbook_plan: no rows")
+    seen_keys = set()
+    dupes = set()
+    for row in rows:
+        key = row.get(KEY_COL, "")
+        if not key:
+            continue  # blank keys carry no VLOOKUP identity; each stands alone
+        if key in seen_keys:
+            dupes.add(key)
+        seen_keys.add(key)
+    if dupes:
+        raise ValueError("duplicate %s keys: %s" % (KEY_COL, ", ".join(sorted(dupes))))
     tables = build_input_tables(headers, rows, kinds)
     main_header = list(headers) + [HELPER_STEP_COL]
 
-    # INPUT table addresses are assigned top-down in write_workbook's order;
-    # mirror that layout here so the planned formulas match the file.
-    layout = _plan_input_layout(tables)
+    # INPUT table addresses come from the single layout helper the writer uses.
+    layout = layout_input_tables(tables)
     main_letters = {col: excel_col_letter(idx + 1) for idx, col in enumerate(main_header)}
     filename_cell = lambda excel_row: "$%s$%d" % (main_letters[KEY_COL], excel_row)
     lesson_cell = lambda excel_row: "$%s$%d" % (main_letters[LESSON_COL], excel_row)
@@ -344,17 +376,21 @@ def build_workbook_plan(headers, rows):
     main = []
     expected = []
     take_groups = subtitle_groups(rows)
+    member_of = group_member_map(take_groups)
     for index, row in enumerate(rows):
         excel_row = index + 2
         plan_row = []
         expect_row = []
-        ok, ordered = subtitle_is_reconstructable(index, rows, take_groups)
+        ok, ordered = _is_reconstructable(index, rows, member_of[index])
         for col in main_header:
             if col == HELPER_STEP_COL:
                 join_ref = phrase_cell(JOIN_COL, excel_row) if JOIN_COL in main_letters else '""'
                 video_ref = phrase_cell(VIDEO_FILE_COL, excel_row) if VIDEO_FILE_COL in main_letters else '""'
                 # Step key: the join value when non-blank, else video_file.
-                formula = "=IF(TRIM(%s)<>\"\",TRIM(%s),TRIM(%s))" % (join_ref, join_ref, video_ref)
+                # An exact blank test (not TRIM) matches step_key_for_row's
+                # `!= ""` rule: TRIM would also collapse internal double
+                # spaces, making the sheet's key differ from the CSV's.
+                formula = "=IF(%s=\"\",%s,%s)" % (join_ref, video_ref, join_ref)
                 plan_row.append(("formula", formula))
                 expect_row.append(step_key_for_row(row))
             elif col in VALUE_COLS:
@@ -424,36 +460,67 @@ def build_workbook_plan(headers, rows):
     }
 
 
-def _plan_input_layout(tables):
-    """Assign INPUT absolute ranges for every table (1-based rows/cols).
+def input_sections(tables):
+    """The INPUT sheet's ordered sections — the single source of truth.
 
-    Mirrors write_workbook's write_table exactly: section label row, header
-    row, data rows, one blank gap row. Label at ``row``, header at ``row+1``,
-    data ``row+2 .. row+1+len``, next section at ``last_data+2``.
+    Both ``layout_input_tables`` (which computes the addresses MAIN's formulas
+    cite) and ``write_workbook`` (which writes the cells) consume this list, so
+    the planned ranges and the written rows can never drift apart.
     """
-    row = 3  # globals section label (write_workbook writes it at row 3)
-    layout = {"global_cells": {}}
-    header_row = row + 1
-    first_data = row + 2
-    for pos, (col, _value) in enumerate(tables["globals"]):
-        layout["global_cells"][col] = "$B$%d" % (first_data + pos)
-    last_data = first_data + len(tables["globals"]) - 1
-    layout["globals_range"] = "INPUT!$A$%d:$B$%d" % (header_row, last_data) if tables["globals"] else ""
-    row = last_data + 2
-    for name in ("lessons", "steps", "phrases", "contents", "subtitles"):
-        header = tables["%s_header" % name]
-        data = tables["%s_rows" % name]
-        if name in ("contents", "subtitles") and not data:
-            layout["%s_range" % name] = ""
-            continue
+    sections = [
+        {"name": "globals",
+         "label": "globals — one value used file-wide (MAIN references the cell)",
+         "header": ["key", "value"], "rows": list(tables["globals"])},
+        {"name": "lessons",
+         "label": "lessons — one row per lesson_id (MAIN VLOOKUPs by lesson_id)",
+         "header": tables["lessons_header"], "rows": tables["lessons_rows"]},
+        {"name": "steps",
+         "label": "steps — one row per step (join else video_file; MAIN VLOOKUPs by _step)",
+         "header": tables["steps_header"], "rows": tables["steps_rows"]},
+        {"name": "phrases",
+         "label": "takes — one row per filename; the phrase source of truth "
+                  "(MAIN VLOOKUPs phrase* by filename; subtitle formulas point at MAIN phrase cells)",
+         "header": tables["phrases_header"], "rows": tables["phrases_rows"]},
+    ]
+    if tables["contents_rows"]:
+        sections.append({"name": "contents",
+                         "label": "contents — per-take values that vary inside a step "
+                                  "(MAIN VLOOKUPs by filename)",
+                         "header": tables["contents_header"], "rows": tables["contents_rows"]})
+    if tables["subtitles_rows"]:
+        sections.append({"name": "subtitles",
+                         "label": "overlays — full subtitle_text for single-take rows "
+                                  "(intros/branching), which no concatenation can rebuild",
+                         "header": tables["subtitles_header"], "rows": tables["subtitles_rows"]})
+    return sections
+
+
+def layout_input_tables(tables, note_row=1):
+    """Assign every INPUT section its label/header/data rows, once.
+
+    Row math is applied only here; ``write_workbook`` writes at the rows this
+    returns. Layout: note in ``note_row``, a blank row, then each section as
+    label, header, data, one blank gap.
+    """
+    layout = {"global_cells": {}, "sections": {}}
+    row = note_row + 2  # first section label (note row + one gap row)
+    for section in input_sections(tables):
         header_row = row + 1
         first_data = row + 2
-        last_data = first_data + len(data) - 1
-        last_col = excel_col_letter(len(header))
-        layout["%s_range" % name] = "INPUT!$A$%d:$%s$%d" % (header_row, last_col, last_data)
-        layout["%s_header_row" % name] = header_row
-        layout["%s_first_data" % name] = first_data
+        last_data = first_data + len(section["rows"]) - 1
+        last_col = excel_col_letter(len(section["header"]))
+        placed = dict(section, label_row=row, header_row=header_row,
+                      first_data=first_data, last_data=last_data,
+                      range="INPUT!$A$%d:$%s$%d" % (header_row, last_col, last_data))
+        layout["sections"][section["name"]] = placed
+        layout["%s_range" % section["name"]] = placed["range"]
+        layout["%s_header_row" % section["name"]] = header_row
+        layout["%s_first_data" % section["name"]] = first_data
         row = last_data + 2
+    # Globals live key|value in columns A|B; MAIN cites the value cells.
+    globals_section = layout["sections"]["globals"]
+    for pos, (col, _value) in enumerate(tables["globals"]):
+        layout["global_cells"][col] = "$B$%d" % (globals_section["first_data"] + pos)
     return layout
 
 
@@ -468,7 +535,6 @@ def write_workbook(plan, out_path):  # pragma: no cover - needs openpyxl
     except ImportError:
         raise SystemExit("ERROR: openpyxl is not installed. Run "
                          "'pip install openpyxl' and retry.")
-    tables = plan["tables"]
     kinds = plan["kinds"]
     wb = openpyxl.Workbook()
 
@@ -491,51 +557,27 @@ def write_workbook(plan, out_path):  # pragma: no cover - needs openpyxl
     label_font = Font(bold=True, color="1F4E5F")
     helper_fill = PatternFill("solid", fgColor="F2F2F2")
 
-    def write_table(start_row, label, header, data_rows):
-        ws_in["A%d" % start_row] = label
+    def write_section(section):
+        start_row = section["label_row"]
+        ws_in["A%d" % start_row] = section["label"]
         ws_in["A%d" % start_row].fill = label_fill
         ws_in["A%d" % start_row].font = label_font
-        header_row = start_row + 1
-        for cix, col in enumerate(header, start=1):
+        header_row = section["header_row"]
+        for cix, col in enumerate(section["header"], start=1):
             cell = ws_in.cell(row=header_row, column=cix, value=col)
             cell.fill = header_fill
             cell.font = header_font
-        for rix, values in enumerate(data_rows, start=header_row + 1):
+        for rix, values in enumerate(section["rows"], start=section["first_data"]):
             for cix, value in enumerate(values, start=1):
                 ws_in.cell(row=rix, column=cix, value=value)
-        end_row = header_row + len(data_rows)
-        if data_rows:
-            ws_in.auto_filter.ref = "A%d:%s%d" % (header_row, get_column_letter(len(header)), end_row)
-        return end_row + 2
+        if section["rows"]:
+            ws_in.auto_filter.ref = "A%d:%s%d" % (
+                header_row, get_column_letter(len(section["header"])), section["last_data"])
 
-    row = 3
-    ws_in["A%d" % row] = "globals — one value used file-wide (MAIN references the cell)"
-    ws_in["A%d" % row].fill = label_fill
-    ws_in["A%d" % row].font = label_font
-    ws_in.cell(row=row + 1, column=1, value="key").fill = header_fill
-    ws_in.cell(row=row + 1, column=1).font = header_font
-    ws_in.cell(row=row + 1, column=2, value="value").fill = header_fill
-    ws_in.cell(row=row + 1, column=2).font = header_font
-    for pos, (col, value) in enumerate(tables["globals"]):
-        ws_in.cell(row=row + 2 + pos, column=1, value=col)
-        ws_in.cell(row=row + 2 + pos, column=2, value=value)
-    row = row + 2 + len(tables["globals"]) + 1
-
-    row = write_table(row, "lessons — one row per lesson_id (MAIN VLOOKUPs by lesson_id)",
-                      tables["lessons_header"], tables["lessons_rows"])
-    row = write_table(row, "steps — one row per step (join else video_file; MAIN VLOOKUPs by _step)",
-                      tables["steps_header"], tables["steps_rows"])
-    row = write_table(row, "takes — one row per filename; the phrase source of truth "
-                           "(MAIN VLOOKUPs phrase* by filename; subtitle formulas point at MAIN phrase cells)",
-                      tables["phrases_header"], tables["phrases_rows"])
-    if tables["contents_rows"]:
-        row = write_table(row, "contents — per-take values that vary inside a step "
-                               "(MAIN VLOOKUPs by filename)", tables["contents_header"],
-                          tables["contents_rows"])
-    if tables["subtitles_rows"]:
-        row = write_table(row, "overlays — full subtitle_text for single-take rows "
-                               "(intros/branching), which no concatenation can rebuild",
-                          tables["subtitles_header"], tables["subtitles_rows"])
+    # Write every section at exactly the rows layout_input_tables computed, so
+    # the addresses MAIN's formulas cite always match the written cells.
+    for section in plan["layout"]["sections"].values():
+        write_section(section)
 
     for cix, width in enumerate((28, 80, 22, 22, 16, 60, 30, 30, 30), start=1):
         ws_in.column_dimensions[get_column_letter(cix)].width = width
@@ -587,8 +629,8 @@ def write_workbook(plan, out_path):  # pragma: no cover - needs openpyxl
                           ("Takes", plan["layout"].get("phrases_range", ""))):
             if rng:
                 wb.defined_names[name] = DefinedName(name, attr_text=rng)
-    except Exception:  # names are a convenience; addresses carry the formulas
-        pass
+    except Exception as error:  # names are a convenience; addresses carry the formulas
+        print("WARN: could not add defined names (%s)" % error, file=sys.stderr)
     wb.save(out_path)
     return out_path
 

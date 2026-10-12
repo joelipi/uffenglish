@@ -8,8 +8,15 @@ master, the wider production header shape, and an end-to-end .xlsx write
 
 import csv
 import os
+import sys
 import tempfile
 import unittest
+
+# Make the sibling module importable when this file runs standalone or under
+# discovery from the repo root (mirrors test_pipeline_lib.py / run_all.py).
+HERE = os.path.dirname(os.path.abspath(__file__))
+PIPELINE_DIR = os.path.dirname(HERE)
+sys.path.insert(0, PIPELINE_DIR)
 
 try:
     import openpyxl  # noqa: F401
@@ -22,6 +29,9 @@ from overlay_workbook import (
     build_workbook_plan,
     classify_columns,
     excel_col_letter,
+    group_member_map,
+    input_sections,
+    layout_input_tables,
     read_csv_rows,
     sibling_groups,
     split_phrases_out,
@@ -32,8 +42,7 @@ from overlay_workbook import (
     vlookup_formula,
 )
 
-PIPELINE_DIR = os.path.dirname(os.path.abspath(__file__))
-SEED_CSV = os.path.join(PIPELINE_DIR, "..", "master-seeded.csv")
+SEED_CSV = os.path.join(PIPELINE_DIR, "master-seeded.csv")
 
 
 def tiny_rows():
@@ -69,10 +78,45 @@ class StepKeyTest(unittest.TestCase):
 
     def test_falls_back_to_video_file(self):
         self.assertEqual(step_key_for_row({"join": "", "video_file": "v"}), "v")
-        self.assertEqual(step_key_for_row({"join": "  ", "video_file": "v"}), "v")
 
     def test_blank_both_is_blank(self):
         self.assertEqual(step_key_for_row({"join": "", "video_file": ""}), "")
+
+    def test_whitespace_is_content_matching_the_sheet_formula(self):
+        # The MAIN `_step` formula uses an exact `=""` blank test, so 2 spaces
+        # are content (step key "  "), not blank — Python must agree.
+        self.assertEqual(step_key_for_row({"join": "  ", "video_file": "v"}), "  ")
+
+
+class EmptyAndDuplicateInputTest(unittest.TestCase):
+    def test_empty_rows_raise_cleanly(self):
+        headers = ["filename", "phrase", "video_file", "join", "lesson_id"]
+        with self.assertRaises(ValueError):
+            build_workbook_plan(headers, [])
+
+    def test_duplicate_filenames_raise(self):
+        headers, rows = tiny_rows()
+        dupes = list(rows) + [dict(rows[0], phrase="P dup")]
+        with self.assertRaises(ValueError) as ctx:
+            build_workbook_plan(headers, dupes)
+        self.assertIn("duplicate", str(ctx.exception))
+        self.assertIn("filename", str(ctx.exception))
+
+    def test_blank_filenames_are_not_duplicates(self):
+        headers, rows = tiny_rows()
+        blank = [dict(r, filename="") for r in rows]
+        # Blank keys carry no VLOOKUP identity; they must not trip the guard.
+        plan = build_workbook_plan(headers, blank)
+        self.assertEqual(len(plan["main"]), len(blank))
+
+    def test_key_materializes_as_formula(self):
+        headers, rows = tiny_rows()
+        plan = build_workbook_plan(headers, rows)
+        header = plan["main_header"]
+        for col in ("lesson_id", "video_file", "join"):
+            kind, payload = plan["main"][0][header.index(col)]
+            self.assertEqual(kind, "formula", col)
+            self.assertTrue(payload.startswith("=IFERROR(VLOOKUP("), col)
 
 
 class ColumnLettersTest(unittest.TestCase):
@@ -135,6 +179,16 @@ class FormulaShapeTest(unittest.TestCase):
         self.assertTrue(formula.startswith("="))
         self.assertIn("VLOOKUP($P2,INPUT!$A$10:$I$118,3,FALSE)", formula)
         self.assertIn("IFERROR", formula)
+
+    def test_step_helper_uses_exact_blank_test_not_trim(self):
+        # TRIM would collapse internal double spaces and diverge from the CSV
+        # rule, so the `_step` formula must test `=""` exactly.
+        headers, rows = tiny_rows()
+        plan = build_workbook_plan(headers, rows)
+        kind, payload = plan["main"][0][plan["main_header"].index("_step")]
+        self.assertEqual(kind, "formula")
+        self.assertNotIn("TRIM", payload)
+        self.assertRegex(payload, r'^=IF\(\$[A-Z]+\$2="",\$[A-Z]+\$2,\$[A-Z]+\$2\)$')
 
 
 class SubtitleSplitTest(unittest.TestCase):
@@ -220,6 +274,66 @@ class SubtitleSplitTest(unittest.TestCase):
         self.assertNotIn("&", payload)
         self.assertEqual(plan["expected"][0][header.index("subtitle_text")],
                          "<aside><strong>Intro one.</strong></aside>")
+
+
+class StoreOnceInvariantTest(unittest.TestCase):
+    def test_no_input_literal_is_embedded_in_a_main_formula(self):
+        # The whole point: a value that lives on INPUT appears on MAIN only as
+        # a reference, never as a re-typed literal.
+        headers, rows = read_csv_rows(SEED_CSV)
+        plan = build_workbook_plan(headers, rows)
+        header = plan["main_header"]
+        global_cols = [c for c, k in plan["kinds"].items() if k == "global"]
+        self.assertTrue(global_cols)
+        for rix, _row in enumerate(rows):
+            for col in global_cols:
+                kind, payload = plan["main"][rix][header.index(col)]
+                self.assertEqual(kind, "formula")
+                value = rows[rix][col]
+                if value:
+                    # The literal text never appears inside the formula.
+                    self.assertNotIn(value, payload, (rix, col))
+
+    def test_shared_text_is_written_to_input_once(self):
+        headers, rows = read_csv_rows(SEED_CSV)
+        plan = build_workbook_plan(headers, rows)
+        globals_values = [value for _col, value in plan["tables"]["globals"]]
+        self.assertEqual(len(globals_values), len(set(globals_values)))
+        # Each lesson appears once in the lessons table, not per row.
+        lesson_ids = [r[0] for r in plan["tables"]["lessons_rows"]]
+        self.assertEqual(len(lesson_ids), len(set(lesson_ids)))
+        step_keys = plan["tables"]["step_keys"]
+        self.assertEqual(len(step_keys), len(set(step_keys)))
+
+
+class LayoutSingleSourceTest(unittest.TestCase):
+    def test_sections_carry_the_planned_rows(self):
+        headers, rows = read_csv_rows(SEED_CSV)
+        plan = build_workbook_plan(headers, rows)
+        layout = plan["layout"]
+        for name, section in layout["sections"].items():
+            self.assertEqual(section["header_row"], section["label_row"] + 1, name)
+            self.assertEqual(section["first_data"], section["header_row"] + 1, name)
+            self.assertEqual(section["last_data"],
+                             section["first_data"] + len(section["rows"]) - 1, name)
+            self.assertEqual(layout["%s_range" % name], section["range"], name)
+
+    def test_layout_is_recomputable_from_tables_alone(self):
+        headers, rows = read_csv_rows(SEED_CSV)
+        plan = build_workbook_plan(headers, rows)
+        self.assertEqual(layout_input_tables(plan["tables"]), plan["layout"])
+        names = [s["name"] for s in input_sections(plan["tables"])]
+        self.assertEqual(names[:4], ["globals", "lessons", "steps", "phrases"])
+
+
+class MemberMapTest(unittest.TestCase):
+    def test_member_map_round_trips_every_row(self):
+        _headers, rows = tiny_rows()
+        groups = subtitle_groups(rows)
+        member_of = group_member_map(groups)
+        self.assertEqual(sorted(member_of), list(range(len(rows))))
+        for index, members in member_of.items():
+            self.assertIn(index, members)
 
 
 class PlanFidelityTest(unittest.TestCase):
