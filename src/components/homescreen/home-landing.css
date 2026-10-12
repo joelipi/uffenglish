@@ -236,16 +236,28 @@
    in one selector group so the treatment cannot drift). The halo is static:
    homepage buttons never pulse; only the main overlay call buttons do. */
 
-/* Top-bar sign-in: white solid so it reads on the gradient navbar. */
+/* Top-bar sign-in: white solid so it reads on the gradient navbar. Kept
+   compact next to the language select. */
 .uff-home-bs .btn-uff-topbar {
     background-color: var(--uff-btn-bg);
     background-image: none;
     border: var(--uff-btn-border);
     color: #0b1a2a;
     font-weight: 700;
+    font-size: 0.8rem;
+    padding: 0.3rem 0.65rem;
+    line-height: 1.4;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
     white-space: nowrap;
+}
+
+/* Top-bar language select: compact to match the sign-in button. */
+.uff-navbar .form-select-sm {
+    font-size: 0.8rem;
+    padding-top: 0.3rem;
+    padding-bottom: 0.3rem;
+    line-height: 1.4;
 }
 
 .uff-home-bs .btn-uff-topbar:hover,
@@ -432,39 +444,33 @@
     margin-right: auto;
 }
 
+/* The carousel play affordance matches the in-app video players
+   (SimpleVideoPlayer/InteractiveVideoPlayer via VideoPlayIcon): a bare white
+   triangle with a soft shadow over the poster — not a button. */
 .uff-carousel-play {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 4rem;
-    height: 4rem;
-    border-radius: 50%;
-    border: var(--uff-btn-border);
-    background: var(--uff-btn-bg);
-    color: var(--uff-btn-fg);
-    font-size: 1.5rem;
+    background: transparent;
+    border: none;
+    padding: 0.5rem;
+    color: #ffffff;
     line-height: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: var(--uff-btn-shadow);
     cursor: pointer;
     transition: transform 0.15s ease;
 }
 
 .uff-carousel-play:hover,
 .uff-carousel-play:focus {
-    transform: translate(-50%, -50%) scale(1.06);
+    transform: translate(-50%, -50%) scale(1.08);
 }
 
-/* Same play-triangle icon the in-app simple videos use
-   (SimpleVideoPlayer.web.jsx): the Material play-arrow path. currentColor
-   keeps the app's dark-glyph-on-white-button convention. */
 .uff-carousel-play-icon {
-    width: 2rem;
-    height: 2rem;
+    width: 5rem;
+    height: 5rem;
     display: block;
+    filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.7));
 }
 
 .uff-carousel-nav {

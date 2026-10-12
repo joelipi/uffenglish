@@ -154,10 +154,17 @@ describe('homepage buttons follow the single-or-primary border rule', () => {
         expect(primary).toContain('border-radius: 8px');
         const topbar = cssBlock(css, '.uff-home-bs .btn-uff-topbar {\n    background-color: var(--uff-btn-bg);');
         expect(topbar).toContain('border: var(--uff-btn-border)');
+    });
+
+    it('styles the carousel play as the in-app overlay affordance, not a button', () => {
         const play = cssBlock(css, '.uff-carousel-play {');
-        expect(play).toContain('background: var(--uff-btn-bg)');
-        expect(play).toContain('border: var(--uff-btn-border)');
-        expect(play).toContain('border-radius: 50%');
+        expect(play).toContain('background: transparent');
+        expect(play).toContain('border: none');
+        expect(play).toContain('color: #ffffff');
+        expect(play).not.toContain('var(--uff-btn-bg)');
+        expect(play).not.toContain('border-radius');
+        const icon = cssBlock(css, '.uff-carousel-play-icon {');
+        expect(icon).toContain('drop-shadow');
     });
 
     it('keeps the equal-pair carousel nav borderless in the shared token style', () => {

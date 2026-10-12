@@ -71,7 +71,7 @@ export default function ConversationCarousel({ lang = 'en', videos = [] }) {
                                                 onClick={() => setPlayingSlug(v.slug)}
                                                 className="uff-carousel-play"
                                             >
-                                                <VideoPlayIcon fill="currentColor" className="uff-carousel-play-icon" />
+                                                <VideoPlayIcon className="uff-carousel-play-icon" />
                                             </button>
                                         </>
                                     )}

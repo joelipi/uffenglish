@@ -297,7 +297,17 @@ describe('HomeLanding', () => {
         const icon = q('showcase-play-a').querySelector('svg.uff-carousel-play-icon');
         expect(icon).not.toBeNull();
         expect(icon.getAttribute('viewBox')).toBe('0 0 24 24');
+        expect(icon.getAttribute('fill')).toBe('white');
         expect(icon.querySelector('path').getAttribute('d')).toBe('M8 5v14l11-7z');
+    });
+
+    it('keeps the top-bar controls compact', async () => {
+        const { readFileSync } = await import('node:fs');
+        const css = readFileSync('src/components/homescreen/home-landing.css', 'utf8');
+        const topbar = css.slice(css.indexOf('.uff-home-bs .btn-uff-topbar {'), css.indexOf('}', css.indexOf('.uff-home-bs .btn-uff-topbar {')) + 1);
+        expect(topbar).toContain('font-size: 0.8rem');
+        const select = css.slice(css.indexOf('.uff-navbar .form-select-sm {'), css.indexOf('}', css.indexOf('.uff-navbar .form-select-sm {')) + 1);
+        expect(select).toContain('font-size: 0.8rem');
     });
 
     // --- Task 3: "About the teacher" section ---
