@@ -127,6 +127,43 @@
     filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
 }
 
+/* The top bar (logo, language select, sign-in) always stays on a single
+   line, even on narrow phones: the container never wraps, the brand never
+   shrinks away, and the language select gives way first with an ellipsis. */
+.uff-navbar .container {
+    flex-wrap: nowrap;
+}
+
+.uff-navbar .navbar-brand {
+    flex-shrink: 0;
+    margin-right: 0.5rem;
+    min-width: 0;
+}
+
+.uff-navbar .container > .d-flex {
+    flex-wrap: nowrap;
+    min-width: 0;
+    margin-left: auto;
+}
+
+.uff-navbar .form-select {
+    min-width: 0;
+    max-width: 38vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.uff-navbar .btn-uff-topbar {
+    flex-shrink: 0;
+}
+
+@media (max-width: 400px) {
+    .uff-navbar .navbar-brand img,
+    .uff-home-bs img.uff-logo {
+        height: 32px;
+    }
+}
+
 /* --- Hero ------------------------------------------------------------- */
 .uff-hero {
     background: radial-gradient(120% 120% at 15% 0%, rgba(58, 143, 213, 0.55) 0%, rgba(11, 26, 42, 0.92) 55%, #0b1a2a 100%);
@@ -319,32 +356,29 @@
 }
 
 /* --- Any-device section ------------------------------------------------- */
-/* Icons sit above the text (not off to the side): a centered icon row, then
-   the heading and body copy. */
+/* Icons sit above the text (not off to the side): a centered icon row that
+   always stays on one line (shrinking to fit), then the heading and body
+   copy. The row sits on the brand blue gradient. */
 .uff-device-icons {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: center;
-    gap: clamp(1rem, 4vw, 2.5rem);
+    align-items: center;
+    gap: clamp(0.5rem, 3vw, 2.5rem);
 }
 
 .uff-device-icon {
+    flex: 1 1 0;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.5rem;
     color: #ffffff;
 }
 
 .uff-device-icon i {
-    font-size: clamp(2.5rem, 6vw, 4rem);
+    font-size: clamp(1.75rem, 9vw, 3.5rem);
     line-height: 1;
-}
-
-.uff-device-icon span {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--bs-secondary-color);
 }
 
 /* --- Showcase carousel ------------------------------------------------ */

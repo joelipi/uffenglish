@@ -37,7 +37,7 @@ describe('HomeLanding', () => {
     it('renders the English copy, account link and controls by default', () => {
         render();
         expect(q('share-code-headline').textContent).toBe('Practice speaking English with your friends free forever.');
-        expect(q('hero-subheading').textContent).toBe("even if your friends are offline now, no matter your different English levels");
+        expect(q('hero-subheading').textContent).toBe("Even if your friends are offline now, no matter your different English levels.");
         expect(q('hero-subheading').className).toContain('uff-hero-sub');
         expect(q('share-code-subheadline').textContent).toBe("Enter your friend's code or start fresh if you don't have one.");
         expect(q('share-code-go').textContent).toBe("Start with friend's code");
@@ -55,7 +55,7 @@ describe('HomeLanding', () => {
     it('localizes the headline and Go button', () => {
         render({ lang: 'es' });
         expect(q('share-code-headline').textContent).toBe('Practica hablar inglés con tus amigos gratis para siempre.');
-        expect(q('hero-subheading').textContent).toBe('aunque tus amigos estén desconectados ahora, sin importar sus diferentes niveles de inglés');
+        expect(q('hero-subheading').textContent).toBe('Aunque tus amigos estén desconectados ahora, sin importar sus diferentes niveles de inglés.');
         expect(q('share-code-go').textContent).toBe('Empezar con el código de un amigo');
     });
 
@@ -385,19 +385,31 @@ describe('HomeLanding', () => {
 
     it('renders the any-device section with icons above the text', () => {
         render();
-        expect(q('any-device')).not.toBeNull();
+        const section = q('any-device');
+        expect(section).not.toBeNull();
+        expect(section.className).toContain('uff-showcase-gradient');
         const icons = q('any-device-icons');
         expect(icons).not.toBeNull();
         for (const name of ['android', 'ios', 'windows', 'mac', 'linux', 'chromebook']) {
             const icon = q(`any-device-icon-${name}`);
             expect(icon).not.toBeNull();
             expect(icon.querySelector('i.bi')).not.toBeNull();
+            // No visible brand-name captions; the accessible name carries it.
+            expect(icon.querySelector('span')).toBeNull();
+            expect(icon.getAttribute('aria-label')).toBeTruthy();
         }
         // Icons come before the heading and body in DOM order.
-        const section = q('any-device');
         expect(section.innerHTML.indexOf('any-device-icons')).toBeLessThan(section.innerHTML.indexOf('any-device-heading'));
         expect(q('any-device-heading').textContent).toBe('Anyone, anywhere, any device.');
         expect(q('any-device-text').textContent).toBe("It works on any recent device (since about 2020): phone, tablet, or computer. You don't even have to install an app!");
+    });
+
+    it('keeps the top bar on a single line at any width', async () => {
+        const { readFileSync } = await import('node:fs');
+        const css = readFileSync('src/components/homescreen/home-landing.css', 'utf8');
+        const at = css.indexOf('.uff-navbar .container {');
+        expect(at, 'missing navbar nowrap rule').toBeGreaterThan(-1);
+        expect(css.slice(at, css.indexOf('}', at) + 1)).toContain('flex-wrap: nowrap');
     });
 
     it('repeats the share-code entry at the bottom with working controls', () => {

@@ -2287,10 +2287,10 @@ const strings = {
         bn: "যেকোনো সাম্প্রতিক ডিভাইসে (প্রায় ২০২০ সাল থেকে) কাজ করে: ফোন, ট্যাবলেট বা কম্পিউটার। আপনাকে অ্যাপ ইনস্টলও করতে হবে না!"
     },
     'home_landing_headline_sub': {
-        en: "even if your friends are offline now, no matter your different English levels",
-        es: "aunque tus amigos estén desconectados ahora, sin importar sus diferentes niveles de inglés",
-        pt: "mesmo que seus amigos estejam offline agora, não importa os diferentes níveis de inglês",
-        fr: "même si vos amis sont hors ligne, quels que soient vos niveaux d'anglais",
+        en: "Even if your friends are offline now, no matter your different English levels.",
+        es: "Aunque tus amigos estén desconectados ahora, sin importar sus diferentes niveles de inglés.",
+        pt: "Mesmo que seus amigos estejam offline agora, não importa os diferentes níveis de inglês.",
+        fr: "Même si vos amis sont hors ligne, quels que soient vos niveaux d'anglais.",
         hi: "भले ही आपके दोस्त अभी ऑफ़लाइन हों, आपके अंग्रेज़ी स्तर कुछ भी हों",
         bn: "আপনার বন্ধুরা এখন অফলাইনে থাকলেও, আপনাদের ইংরেজির স্তর যাই হোক না কেন"
     },

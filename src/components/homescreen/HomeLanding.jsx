@@ -264,20 +264,19 @@ export default function HomeLanding({
                 </div>
             </section>
 
-            <section className="uff-section" id="devices" data-testid="any-device">
+            <section className="uff-section uff-showcase-gradient" id="devices" data-testid="any-device">
                 <div className="container text-center">
                     <div className="uff-device-icons mb-4" data-testid="any-device-icons">
                         {DEVICE_ICONS.map((d) => (
-                            <div key={d.label} className="uff-device-icon" data-testid={`any-device-icon-${d.label.toLowerCase()}`}>
+                            <div key={d.label} className="uff-device-icon" role="img" aria-label={d.label} data-testid={`any-device-icon-${d.label.toLowerCase()}`}>
                                 <i className={`bi ${d.icon}`} aria-hidden="true"></i>
-                                <span>{d.label}</span>
                             </div>
                         ))}
                     </div>
                     <h2 className="uff-section-title text-white" data-testid="any-device-heading">
                         {Strings.get('home_landing_devices_heading', lang)}
                     </h2>
-                    <p className="lead text-secondary mb-0" data-testid="any-device-text">
+                    <p className="lead text-white mb-0" data-testid="any-device-text">
                         {Strings.get('home_landing_devices_body', lang)}
                     </p>
                 </div>
