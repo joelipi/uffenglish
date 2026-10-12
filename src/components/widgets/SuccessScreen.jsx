@@ -6,6 +6,7 @@ import SuccessEffects from './SuccessEffects.jsx';
 import { getBilingual } from '../../data/strings.js';
 import Strings from '../../data/strings.js';
 import { resolveRecapOverlay } from '../../modules/video/video-processor-logic.js';
+import { findLessonById } from '../../modules/lesson/success-continue-logic.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
 
 export default function SuccessScreen({ onLoadNextLesson, onRepeat, canvasRef }) {
@@ -36,9 +37,9 @@ export default function SuccessScreen({ onLoadNextLesson, onRepeat, canvasRef })
 
   // Friend-challenge lessons (recapOverlay: 'shareCta') offer only Share, with a
   // call to action; other lessons keep the Replay / Share / Continue row.
-  // Looked up by the success lesson id — the same identity the buttons use
-  // — so the row gate can never disagree with the reveal decision.
-  const currentLesson = configData?.lessons?.find(l => l.lessonId === lessonId);
+  // Resolved through the shared selector — the same identity the buttons
+  // use — so the row gate can never disagree with the reveal decision.
+  const currentLesson = findLessonById(configData, lessonId);
   const isFriendLesson = resolveRecapOverlay(currentLesson) === 'shareCta';
   const cta = getBilingual('share_cta_success', lang);
   const uploadingWarning = Strings.get('clips_uploading_warning', lang);

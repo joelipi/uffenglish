@@ -17,6 +17,15 @@ import { resolveRecapOverlay } from '../video/video-processor-logic.js';
 // never its own numeric literal.
 export const SUCCESS_CONTINUE_REVEAL_DELAY_MS = 3000;
 
+// Single-source success-lesson lookup by id. The ready-path gate, the
+// tap-time scheduler, and the row gate all resolve the lesson through
+// here so the three can never disagree on identity.
+export function findLessonById(configData, lessonId) {
+    const lessons = configData?.lessons;
+    if (!Array.isArray(lessons) || !lessonId) return null;
+    return lessons.find((l) => l?.lessonId === lessonId) || null;
+}
+
 // True when the lesson's success row must withhold Continue until after
 // the Share tap + delay. Unflagged, missing, or malformed lessons keep
 // today's immediate reveal (`resolveRecapOverlay` defaults those to

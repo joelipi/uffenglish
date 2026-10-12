@@ -8,6 +8,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
     SUCCESS_CONTINUE_REVEAL_DELAY_MS,
+    findLessonById,
     isSuccessContinueDelayed,
     scheduleSuccessContinueReveal,
 } from './success-continue-logic.js';
@@ -15,6 +16,18 @@ import {
 describe('SUCCESS_CONTINUE_REVEAL_DELAY_MS', () => {
     it('is the specified 3 seconds', () => {
         expect(SUCCESS_CONTINUE_REVEAL_DELAY_MS).toBe(3000);
+    });
+});
+
+describe('findLessonById', () => {
+    const config = { lessons: [{ lessonId: 'a' }, { lessonId: 'b', recapOverlay: 'shareCta' }] };
+
+    it('resolves by id and returns null when absent', () => {
+        expect(findLessonById(config, 'b')).toEqual({ lessonId: 'b', recapOverlay: 'shareCta' });
+        expect(findLessonById(config, 'zzz')).toBeNull();
+        expect(findLessonById(null, 'b')).toBeNull();
+        expect(findLessonById({}, 'b')).toBeNull();
+        expect(findLessonById(config, null)).toBeNull();
     });
 });
 

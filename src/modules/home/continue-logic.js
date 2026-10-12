@@ -26,6 +26,7 @@
 
 import {
     isFriendCourse,
+    isFriendLesson,
     firstFriendLessonId,
     EXCLUDED_FRIEND_COURSE_IDS,
     buildCourseStartHref,
@@ -228,7 +229,7 @@ export function resolveContinueTarget({
     const activeLesson = activeCourseEntry?.config?.lessons?.find((l) => l?.lessonId === active?.lessonId);
     if (active
         && isFriendCourseId(active.courseId, configEntries) === true
-        && activeLesson?.recapOverlay === 'shareCta') {
+        && isFriendLesson(activeLesson)) {
         const path = buildFriendContinuePath({
             courseId: active.courseId,
             lessonId: active.lessonId,

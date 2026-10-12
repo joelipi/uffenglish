@@ -7,7 +7,7 @@ import { resolveFriendLessonLink } from '../../modules/user/friend-lesson-link-l
 import { resolveFriendResponseNotification } from '../../modules/notifications/notification-logic.js';
 import { AFTER_SUCCESS_BASE, AFTER_SHARE_BASE } from '../../modules/video/after-video-logic.js';
 import { getDeviceShareTarget, SHARE_TARGET_DOWNLOAD } from '../../modules/video/share-target-logic.js';
-import { isSuccessContinueDelayed, scheduleSuccessContinueReveal } from '../../modules/lesson/success-continue-logic.js';
+import { isSuccessContinueDelayed, scheduleSuccessContinueReveal, findLessonById } from '../../modules/lesson/success-continue-logic.js';
 import { getBilingual } from '../../data/strings.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
 import { isStaleChunkReloadPending } from '../../modules/utils/stale-chunk-reload.js';
@@ -153,7 +153,7 @@ export function VideoButton({ canvasRef }) {
         // (the scheduler reveals it); every other lesson reveals
         // immediately, exactly as before. The delay decision lives in the
         // logic module — this only applies it.
-        const readyLesson = appStore.getState().configData?.lessons?.find(l => l.lessonId === lessonId);
+        const readyLesson = findLessonById(appStore.getState().configData, lessonId);
         if (!isSuccessContinueDelayed(readyLesson)) setContinueVisible(true);
 
         shareHandlerRef.current = async () => {
@@ -303,7 +303,7 @@ export function VideoButton({ canvasRef }) {
   // any lesson (no-op unless delayed + hidden).
   const scheduleDelayedContinue = () => {
     const state = appStore.getState();
-    const lesson = state.configData?.lessons?.find(l => l.lessonId === lessonId);
+    const lesson = findLessonById(state.configData, lessonId);
     if (!isSuccessContinueDelayed(lesson)) return;
     if (state.successContinueButton?.visible) return;
     // First tap wins: a pending timer is never pushed out by a re-tap, so
