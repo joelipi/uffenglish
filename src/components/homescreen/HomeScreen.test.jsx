@@ -16,6 +16,21 @@ const apiMocks = vi.hoisted(() => ({
     fetchUserByShareCodeImpl: vi.fn(async () => null),
 }));
 
+// Resolver call log: the component must not recompute the target on
+// re-renders with identical inputs (story 061 stability rule). The wrapper
+// delegates to the real implementation, so behavior is identical.
+const resolverCalls = vi.hoisted(() => ({ count: 0 }));
+vi.mock('../../modules/home/continue-logic.js', async (importOriginal) => {
+    const mod = await importOriginal();
+    return {
+        ...mod,
+        resolveContinueTarget: (...args) => {
+            resolverCalls.count += 1;
+            return mod.resolveContinueTarget(...args);
+        },
+    };
+});
+
 // HomeScreen pulls in the Supabase graph, PostHog, the notifications bell and
 // the legal footer. Mock the side-effecting ones so the top bar (brand logo) is
 // under test without a network or store bootstrap.
@@ -189,6 +204,7 @@ describe('HomeScreen Continue button', () => {
         await act(async () => {
             await new Promise((r) => setTimeout(r, 100));
         });
+        resolverCalls.count = 0;
     }
 
     async function clickContinue() {
@@ -274,8 +290,7 @@ describe('HomeScreen Continue button', () => {
         expect(await clickContinue()).toBe('/course/friend/lesson/a');
     });
 
-    it('resolves an identical target across renders with unchanged cache data', async () => {
-        const hour = 60 * 60 * 1000;
+    it('resolves an identical target across renders with unchanged cache data', async () => {        const hour = 60 * 60 * 1000;
         const now = Date.now();
         apiMocks.useUserProfileImpl.mockReturnValue({ data: {
             $id: 'u1', shareCode: 'zz99', course_progress: '{}', counted_lessons: ['wouldrather_a'],
@@ -301,6 +316,32 @@ describe('HomeScreen Continue button', () => {
         const second = await clickContinue();
         expect(first).toBe('/course/wouldrather/lesson/c?shareCode=ab12');
         expect(second).toBe(first);
+    });
+
+    it('does not recompute the target on re-renders with identical inputs', async () => {
+        // Multi-candidate pool: any recompute re-rolls the random pick, so
+        // repeated recomputes would observably retarget (the reported
+        // flicker). Stable memoization performs zero recomputes here.
+        appStore.setState({ courseId: 'wouldrather', activeLessonId: 'b' });
+        await renderHome();
+        expect(resolverCalls.count).toBe(0);
+        for (let i = 0; i < 5; i++) {
+            await act(async () => {
+                root.render(
+                    React.createElement(QueryClientProvider, { client },
+                        React.createElement(MemoryRouter, { initialEntries: ['/home'] },
+                            React.createElement(LocationProbe),
+                            React.createElement(HomeScreen)
+                        )
+                    )
+                );
+            });
+            await act(async () => {
+                await new Promise((r) => setTimeout(r, 0));
+            });
+        }
+        expect(resolverCalls.count).toBe(0);
+        expect(container.querySelector('[data-testid="home-continue"]')).not.toBeNull();
     });
 });
 

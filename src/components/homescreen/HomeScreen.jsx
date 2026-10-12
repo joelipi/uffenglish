@@ -57,30 +57,46 @@ export default function HomeScreen() {
         () => collectFriendActorCodes(notifications, selfShareCode),
         [notifications, selfShareCode]);
     // One cached read per friend actor, reusing the exact public-profile
-    // cache keys (`['user', 'profile', 'shareCode', code]`).
+    // cache keys (`['user', 'profile', 'shareCode', code]`). `staleTime:
+    // Infinity` matches the shared profile cache (no refetch per mount).
     const friendMapsQueries = useQueries({
         queries: actorCodes.map((code) => ({
             queryKey: ['user', 'profile', 'shareCode', code],
             queryFn: () => fetchUserByShareCode(code),
+            staleTime: Infinity,
         })),
     });
+    // Content signatures, not identities: `useQueries` returns a fresh array
+    // every render, which must not retrigger resolution — the button never
+    // changes targets across re-renders with identical inputs. Each
+    // signature moves only when its underlying data actually resolves.
+    const actorCodesKey = actorCodes.join(',');
+    const friendDataSignature = friendMapsQueries
+        .map((q) => `${q.dataUpdatedAt}:${q.status}`)
+        .join('|');
     const friendLinksMaps = useMemo(
         () => buildFriendLinksMaps(actorCodes, friendMapsQueries.map((q) => q.data)),
-        [actorCodes, friendMapsQueries]);
-    // Memoized so the button never changes targets across re-renders with
-    // identical inputs; re-resolves only when an input changes (the 30s
-    // notification refetch refreshes expiry).
+        // Deps are the content signatures above, not the fresh-per-render
+        // query array (`react-hooks/exhaustive-deps` is off repo-wide).
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [actorCodesKey, friendDataSignature]);
+    const courseProgressText = profile?.course_progress;
+    const countedLessons = profile?.counted_lessons;
+    // Memoized on primitives so re-renders with identical inputs reuse the
+    // cached target (no random re-roll); re-resolves only when an input
+    // actually changes (the 30s notification refetch refreshes expiry).
     const continueTarget = useMemo(
         () => resolveContinueTarget({
             courseId,
             activeLessonId,
             configEntries,
-            courseProgressText: profile?.course_progress,
-            countedLessons: profile?.counted_lessons,
+            courseProgressText,
+            countedLessons,
             friendLinksMaps,
             nowMs: Date.now(),
         }),
-        [courseId, activeLessonId, configEntries, profile, friendLinksMaps]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [courseId, activeLessonId, configEntries, courseProgressText, countedLessons, friendLinksMaps]);
 
     function closeMenu() { setMenuOpen(false); }
 

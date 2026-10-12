@@ -287,6 +287,26 @@ export function VideoButton({ canvasRef }) {
     runProcessing({ publishSegments: isUserLoggedIn() });
   }, [pendingVideoCreation, saveClipsModalOpen, runProcessing, setVideoState, setCanvasVisible]);
 
+  // Schedules the friend-row delayed Continue reveal (defined before its
+  // only caller below). Pure decision in the logic module; this only
+  // passes the store readers and holds the cancel handle. Safe to call on
+  // any lesson (no-op unless delayed + hidden).
+  const scheduleDelayedContinue = () => {
+    const state = appStore.getState();
+    const lesson = state.configData?.lessons?.find(l => l.lessonId === lessonId);
+    if (!isSuccessContinueDelayed(lesson)) return;
+    if (state.successContinueButton?.visible) return;
+    if (revealTimerRef.current) revealTimerRef.current();
+    revealTimerRef.current = scheduleSuccessContinueReveal({
+      lessonId,
+      reveal: () => {
+        revealTimerRef.current = null;
+        appStore.getState().setSuccessContinueVisible(true);
+      },
+      getActiveLessonId: () => appStore.getState().successLessonId,
+    });
+  };
+
   const handleShare = async () => {
     // A second navigator.share() while one is pending is rejected by the
     // platform ("Share failed"), and rapid taps would stack silent
@@ -297,50 +317,36 @@ export function VideoButton({ canvasRef }) {
     sharingRef.current = true;
     setSharing(true);
     try {
-    // Swap the display-only loop to the post-share video first: this tap is
-    // a fresh user gesture, so the swap's play() is allowed. The swap is a
-    // safe no-op when no loop is running (blob fallback path). The share
-    // proceeds in parallel — neither waits for the other. `lang` is the
-    // guest-first session language (useNativeLanguage), so no direct
-    // userData language read is needed here (guest-first rule).
-    import('../../modules/video/after-video-player.js').then((m) => {
+      // Swap the display-only loop to the post-share video first: this tap
+      // is a fresh user gesture, so the swap's play() is allowed. The swap
+      // is a safe no-op when no loop is running (blob fallback path). The
+      // share proceeds in parallel — neither waits for the other. `lang` is
+      // the guest-first session language (useNativeLanguage), so no direct
+      // userData language read is needed here (guest-first rule).
+      import('../../modules/video/after-video-player.js').then((m) => {
+        try {
+          m.swapAfterVideoLoop(AFTER_SHARE_BASE, { guestLang: lang })?.catch((e) => console.warn('[Success] after-video swap failed (non-fatal):', e?.message));
+        } catch (e) {
+          console.warn('[Success] after-video swap failed (non-fatal):', e?.message);
+        }
+      }).catch(() => {});
       try {
-        m.swapAfterVideoLoop(AFTER_SHARE_BASE, { guestLang: lang })?.catch((e) => console.warn('[Success] after-video swap failed (non-fatal):', e?.message));
-      } catch (e) {
-        console.warn('[Success] after-video swap failed (non-fatal):', e?.message);
+        if (shareHandlerRef.current) {
+          await shareHandlerRef.current();
+        }
+      } finally {
+        // Friend rows only: the tap settled (sheet displayed / download
+        // started — success or abort, fail-open), so start the fixed delay
+        // after which Continue appears next to Share. A rejected delivery
+        // still propagates after scheduling (pre-existing behavior); the
+        // reveal never depends on the outcome. Non-friend rows already
+        // show Continue; a visible one is never rescheduled.
+        scheduleDelayedContinue();
       }
-    }).catch(() => {});
-    try {
-      if (shareHandlerRef.current) {
-        await shareHandlerRef.current();
-      }
-    } finally {
-      // Friend rows only: the tap settled (sheet displayed / download
-      // started — success or abort, fail-open), so start the fixed delay
-      // after which Continue appears next to Share. Non-friend rows
-      // already show it; a visible Continue is never rescheduled.
-      scheduleDelayedContinue();
-    }
     } finally {
       sharingRef.current = false;
       setSharing(false);
     }
-  };
-
-  // Schedules the friend-row delayed Continue reveal. Pure decision in the
-  // logic module; this only passes the store readers and holds the cancel
-  // handle. Safe to call on any lesson (no-op unless delayed + hidden).
-  const scheduleDelayedContinue = () => {
-    const state = appStore.getState();
-    const lesson = state.configData?.lessons?.find(l => l.lessonId === lessonId);
-    if (!isSuccessContinueDelayed(lesson)) return;
-    if (state.successContinueButton?.visible) return;
-    if (revealTimerRef.current) revealTimerRef.current();
-    revealTimerRef.current = scheduleSuccessContinueReveal({
-      lessonId,
-      reveal: () => appStore.getState().setSuccessContinueVisible(true),
-      getActiveLessonId: () => appStore.getState().successLessonId,
-    });
   };
 
   if (button.state === 'idle') {
