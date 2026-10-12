@@ -25,8 +25,8 @@ columns) and writes an `.xlsx` workbook with two sheets:
   (the `_step` helper holds `join`-else-`video_file`), and each take-group
   overlay as a `&` concatenation that splices its four `phrase` cells into the
   observed template (progressive `<strong>` highlight, `___________`
-  placeholders for later takes). Only `filename`, `order`, and `_step` are
-  plain values.
+  placeholders for later takes). Only `filename` and `order` are plain values;
+  the `_step` helper is itself a formula (`join`-else-`video_file`).
 
 ## Regenerate
 

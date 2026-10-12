@@ -22,8 +22,8 @@ an ``.xlsx`` workbook with two sheets:
   / lesson / step for shared values, and ``&`` concatenation that rebuilds
   each ``subtitle_text`` overlay from its step's four ``phrase`` cells.
 
-Only the row keys (``filename``, ``order``) and the ``_step`` helper stay
-plain values on ``MAIN``. Google Sheets and Excel evaluate the formulas on
+Only the row keys (``filename``, ``order``) stay plain values on
+``MAIN``. Google Sheets and Excel evaluate the formulas on
 import, so File -> Download / Publish still yields the flat CSV the render
 pipeline and the config generator read. Never edit that exported CSV: it
 carries values only, which is how the formulas were lost in the first place.
@@ -76,6 +76,12 @@ def read_csv_rows(path):
             if row.get(key) is None:
                 row[key] = ""
     return headers, rows
+
+
+def drop_blank_rows(rows):
+    """Drop rows whose every cell is blank (CSV trailing-newline artifacts)."""
+    return [row for row in rows
+            if any((value or "") != "" for value in row.values())]
 
 
 def step_key_for_row(row):
@@ -334,6 +340,7 @@ def build_input_tables(headers, rows, kinds):
         "subtitles_rows": subtitles_rows,
         "groups": groups,
         "take_groups": take_groups,
+        "member_map": member_of,
     }
 
 
@@ -345,20 +352,26 @@ def build_workbook_plan(headers, rows):
     with the evaluated value each cell must show, so tests can prove the
     formulas reproduce the CSV exactly without an Excel engine.
     """
-    kinds = classify_columns(headers, rows)
+    rows = drop_blank_rows(rows)
     if not rows:
-        raise ValueError("build_workbook_plan: no rows")
+        raise ValueError("build_workbook_plan: no data rows")
+    # `filename` is the row identity every MAIN VLOOKUP keys on, so it must be
+    # set and unique — a blank or duplicate key would silently resolve to the
+    # wrong row (VLOOKUP returns the first match).
+    missing = sum(1 for row in rows if not row.get(KEY_COL, ""))
+    if missing:
+        raise ValueError("%d row(s) have a blank %s; it is the lookup key and "
+                         "must be set on every row" % (missing, KEY_COL))
     seen_keys = set()
     dupes = set()
     for row in rows:
         key = row.get(KEY_COL, "")
-        if not key:
-            continue  # blank keys carry no VLOOKUP identity; each stands alone
         if key in seen_keys:
             dupes.add(key)
         seen_keys.add(key)
     if dupes:
         raise ValueError("duplicate %s keys: %s" % (KEY_COL, ", ".join(sorted(dupes))))
+    kinds = classify_columns(headers, rows)
     tables = build_input_tables(headers, rows, kinds)
     main_header = list(headers) + [HELPER_STEP_COL]
 
@@ -375,8 +388,7 @@ def build_workbook_plan(headers, rows):
 
     main = []
     expected = []
-    take_groups = subtitle_groups(rows)
-    member_of = group_member_map(take_groups)
+    member_of = tables["member_map"]
     for index, row in enumerate(rows):
         excel_row = index + 2
         plan_row = []

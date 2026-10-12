@@ -7,7 +7,7 @@ description: >
   Output: completion report with reviewer SHA verdicts.
 mode: all
 temperature: 0.2
-model: opencode/muse-spark-1.3-contributor-free
+model: deepseek/deepseek-flash
 tools:
   question: false
   task: true

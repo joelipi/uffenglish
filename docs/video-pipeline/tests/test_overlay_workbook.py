@@ -28,6 +28,7 @@ from overlay_workbook import (
     build_input_tables,
     build_workbook_plan,
     classify_columns,
+    drop_blank_rows,
     excel_col_letter,
     group_member_map,
     input_sections,
@@ -102,12 +103,21 @@ class EmptyAndDuplicateInputTest(unittest.TestCase):
         self.assertIn("duplicate", str(ctx.exception))
         self.assertIn("filename", str(ctx.exception))
 
-    def test_blank_filenames_are_not_duplicates(self):
+    def test_blank_filenames_raise(self):
+        # filename is the VLOOKUP key: a blank one would collide (every blank
+        # row resolves to the first), so it must be rejected, not tolerated.
         headers, rows = tiny_rows()
-        blank = [dict(r, filename="") for r in rows]
-        # Blank keys carry no VLOOKUP identity; they must not trip the guard.
-        plan = build_workbook_plan(headers, blank)
-        self.assertEqual(len(plan["main"]), len(blank))
+        blank = [dict(rows[0], filename="")]
+        with self.assertRaises(ValueError) as ctx:
+            build_workbook_plan(headers, blank)
+        self.assertIn("blank", str(ctx.exception))
+        self.assertIn("filename", str(ctx.exception))
+
+    def test_fully_blank_rows_are_dropped(self):
+        headers, rows = tiny_rows()
+        artifact = {col: "" for col in headers}
+        plan = build_workbook_plan(headers, list(rows) + [artifact])
+        self.assertEqual(len(plan["main"]), len(rows))
 
     def test_key_materializes_as_formula(self):
         headers, rows = tiny_rows()

@@ -7,7 +7,7 @@ description: >
   Output: committed story file with acceptance criteria and implementation approach.
 mode: all
 temperature: 0.2
-model: opencode/muse-spark-1.3-contributor-free
+model: deepseek/deepseek-flash
 tools:
   task: true
   grep: false
