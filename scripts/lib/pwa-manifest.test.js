@@ -96,6 +96,16 @@ describe('PWA manifest install contract', () => {
             expect(readFileSync(file).length).toBeGreaterThan(0);
         }
     });
+
+    it('keeps the icon source a PNG (committed jpg/jpeg/mp4 under public/ is forbidden)', () => {
+        // scripts/generate-thumbnails.test.js keeps lesson media R2-only and
+        // fails on any committed jpg/jpeg/mp4 under public/ — so the icon
+        // source must stay a lossless PNG.
+        const source = path.join(REPO_ROOT, 'public/pwa-icon-source.png');
+        expect(existsSync(source)).toBe(true);
+        expect(pngSize(source)).toEqual({ width: 192, height: 192 });
+        expect(existsSync(path.join(REPO_ROOT, 'public/pwa-icon-source.jpeg'))).toBe(false);
+    });
 });
 
 describe('index.html PWA head links', () => {
@@ -164,6 +174,6 @@ describe('vite.config.js PWA build wiring', () => {
         expect(pkg.devDependencies['vite-plugin-pwa']).toBeTruthy();
         expect(pkg.devDependencies['@vite-pwa/assets-generator']).toBeTruthy();
         expect(pkg.dependencies['@khmyznikov/pwa-install']).toBeTruthy();
-        expect(read('pwa-assets.config.js')).toContain("images: ['public/pwa-icon-source.jpeg']");
+        expect(read('pwa-assets.config.js')).toContain("images: ['public/pwa-icon-source.png']");
     });
 });

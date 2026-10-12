@@ -79,13 +79,17 @@ that is out of scope here.)
   must not re-declare the launch URL (guarded).
 - **Icons come from the app's existing square brand mark.**
   `@vite-pwa/assets-generator` writes its output next to its source image, so
-  the source is `public/pwa-icon-source.jpeg` — a copy of
+  the source is `public/pwa-icon-source.png` — the lossless conversion of
   `src/assets/img/favicons/favicon-192x192.jpeg` (the mascot avatar on the brand
   gradient, already the app's intended favicon art; it is unreferenced today).
   A copy lives under `public/` because the manifest needs a stable public URL
   and Vite would content-hash the same file under `src/assets`. Deliberately
   **not** under `public/assets/**`: `public/_headers` serves that prefix
-  `immutable` for a year and these filenames are not content-hashed.
+  `immutable` for a year and these filenames are not content-hashed. PNG, not
+  the JPEG, because `scripts/generate-thumbnails.test.js` fails on any committed
+  `jpg/jpeg/mp4` under `public/` (it keeps lesson media R2-only) and a lossless
+  source does not amplify JPEG artifacts when the 192px art is upscaled to
+  512px.
   `padding: 0` for every type (the source is already a full-bleed opaque
   square; a flat padding colour would seam against its own gradient, and
   Android's circular mask keeps the centred face, the usual treatment for an
@@ -98,7 +102,7 @@ that is out of scope here.)
   `globPatterns` limited to `js/css/html/png/svg/ico/webmanifest/woff(2)`,
   `globIgnores` for `**/wasm/**` (109 MB of onnxruntime), `**/whisper/**`,
   `recorder.html` and `landing.html` (standalone pages that must be served
-  as-is, never from the SPA shell), and `pwa-icon-source.jpeg`.
+  as-is, never from the SPA shell), and `pwa-icon-source.png`.
   `navigateFallback: 'index.html'` serves client routes offline, with a
   `navigateFallbackDenylist` for `/api/`, `/assets/`, `/whisper/`,
   `/recorder(.html)?` and `/landing.html` — without that, Workbox's
@@ -155,7 +159,7 @@ scripts/lib/pwa-manifest.test.js   install contract + on-disk icons + build wiri
 pwa-assets.config.js               icon generation (npm run pwa:assets)
 vite.config.js                     VitePWA(...) — manifest, Workbox, register
 index.html                         favicon/apple-touch-icon/theme-color head tags
-public/pwa-icon-source.jpeg        icon source (copy of the brand favicon)
+public/pwa-icon-source.png        icon source (copy of the brand favicon)
 public/pwa-*.png public/maskable-*.png public/apple-touch-*.png public/favicon.ico
 src/modules/pwa/install-prompt-logic.js      pure rules
 src/modules/pwa/install-prompt-webonly.js    display-mode read + element registry
@@ -183,13 +187,15 @@ src/data/strings.js                          + pwa_install_cta
   - → every icon file exists in `public/` and its PNG IHDR width/height equal the declared `sizes`
 - head-link icons
   - → `public/favicon.ico` and `public/apple-touch-icon-180x180.png` exist and are non-empty
+- the icon source
+  - → `public/pwa-icon-source.png` exists as a 192x192 PNG and `public/pwa-icon-source.jpeg` does not (committed `jpg/jpeg/mp4` under `public/` is forbidden by `scripts/generate-thumbnails.test.js`, which keeps lesson media R2-only)
 - `index.html`
   - → contains `<link rel="icon" href="/favicon.ico" sizes="any">` and `<link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png">`
   - → contains `<meta name="theme-color" content="<THEME_COLOR>">` (tied to the manifest constant), `mobile-web-app-capable` and `apple-mobile-web-app-capable` = yes
 - `vite.config.js` / `package.json`
   - → imports `VitePWA` and `buildPwaManifest`, passes `manifest: buildPwaManifest()`, `manifestFilename: 'manifest.webmanifest'`, and never inlines the launch URL (`start_url` absent)
   - → `package.json` has the `pwa:assets` script, `vite-plugin-pwa` + `@vite-pwa/assets-generator` as devDependencies and `@khmyznikov/pwa-install` as a dependency
-  - → `pwa-assets.config.js` generates from `public/pwa-icon-source.jpeg`
+  - → `pwa-assets.config.js` generates from `public/pwa-icon-source.png`
 
 ### Task 2 - App-shell service worker
 
@@ -278,11 +284,13 @@ npm run build        # emits dist/manifest.webmanifest, dist/sw.js, dist/registe
   `manifest-url`, the `/home` menu entry renders, clicking it opens the dialog
   (`isDialogHidden === false`), the service worker registers at scope `/`, the
   manifest link resolves, and the console is clean.
-- **`public/pwa-icon-source.jpeg` is a duplicate of
+- **`public/pwa-icon-source.png` is a lossless conversion of
   `src/assets/img/favicons/favicon-192x192.jpeg`** (192x192, the largest
   available copy of that art). If the brand mark changes, replace the source and
   run `npm run pwa:assets`; the 512px icons are an upscale of the 192px
-  original, which is the quality ceiling of the existing asset.
+  original, which is the quality ceiling of the existing asset. Keep it a PNG:
+  the `no committed poster images` guard in `scripts/generate-thumbnails.test.js`
+  fails on any committed `jpg/jpeg/mp4` under `public/`.
 - **Chrome no longer requires a service worker for installability**, so the SW
   can be dropped later without losing the install prompt; the manifest is the
   contract.

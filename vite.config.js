@@ -27,7 +27,7 @@ const WORKBOX_IGNORES = [
     'recorder.html',
     'landing.html',
     // Icon-generation source (see pwa-assets.config.js).
-    'pwa-icon-source.jpeg',
+    'pwa-icon-source.png',
 ]
 
 const commitHash = execSync('git rev-parse --short HEAD').toString().trim()
