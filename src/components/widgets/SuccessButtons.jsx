@@ -90,6 +90,15 @@ export function VideoButton({ canvasRef }) {
   // reads it across long async gaps without re-rendering.
   const audioContextRef = useRef(null);
 
+  // Cancels a pending delayed-Continue reveal, if any. Shared by the
+  // unmount cleanup and the lesson-change supersede below.
+  const cancelPendingReveal = () => {
+    if (revealTimerRef.current) {
+        revealTimerRef.current();
+        revealTimerRef.current = null;
+    }
+  };
+
   // Runs in the tap handler (dynamic import resolves in a microtask, still
   // inside transient activation) — no awaits before the resume() inside.
   const ensureSharedAudioContext = async () => {
@@ -106,10 +115,7 @@ export function VideoButton({ canvasRef }) {
   // change, Continue/Repeat teardown). The canvas unmount stops the tail
   // loop itself; this only frees the shared context both used.
   useEffect(() => () => {
-    if (revealTimerRef.current) {
-        revealTimerRef.current();
-        revealTimerRef.current = null;
-    }
+    cancelPendingReveal();
     const ctx = audioContextRef.current;
     audioContextRef.current = null;
     if (ctx && typeof ctx.close === 'function' && ctx.state !== 'closed') {
@@ -121,10 +127,7 @@ export function VideoButton({ canvasRef }) {
   // a stale-suppressed fire would otherwise leave the ref set and — under
   // the first-tap-wins rule — block scheduling for the new lesson forever.
   useEffect(() => {
-    if (revealTimerRef.current) {
-        revealTimerRef.current();
-        revealTimerRef.current = null;
-    }
+    cancelPendingReveal();
   }, [lessonId]);
 
   // Shared processing logic — runs immediately on processBtn click.

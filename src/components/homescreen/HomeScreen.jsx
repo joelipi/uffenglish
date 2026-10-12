@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useStore } from 'zustand';
 import { useQuery, useQueries } from '@tanstack/react-query';
@@ -31,10 +31,18 @@ export default function HomeScreen() {
     const { data: profile } = useUserProfile();
     const viewerId = profile?.$id;
 
+    // Single-flight config loader shared by both queries below: concurrent
+    // mounts await one `loadConfigEntries()` promise per HomeScreen mount
+    // (Vite caches the chunks across mounts anyway).
+    const entriesRequestRef = useRef(null);
+    const getConfigEntries = () => {
+        if (!entriesRequestRef.current) entriesRequestRef.current = loadConfigEntries();
+        return entriesRequestRef.current;
+    };
     const { data: courses, isLoading: coursesLoading, isError: coursesError } = useQuery({
         queryKey: ['friend-courses'],
         queryFn: async () => {
-            const courses = listFriendCourses(await loadConfigEntries());
+            const courses = listFriendCourses(await getConfigEntries());
             return courses.map((c) => ({ ...c, heroImage: resolveCourseHeroImage(c.heroImage) }));
         },
         staleTime: Infinity,
@@ -48,7 +56,7 @@ export default function HomeScreen() {
     // `['friend-courses']` cache (same payload shape as /courses must keep).
     const { data: configEntries } = useQuery({
         queryKey: ['config-entries'],
-        queryFn: () => loadConfigEntries(),
+        queryFn: () => getConfigEntries(),
         staleTime: Infinity,
     });
     const { data: notifications } = useNotifications(viewerId);
