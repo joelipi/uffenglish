@@ -16,6 +16,7 @@ import {
 import FriendCoursesView from '../courses/FriendCoursesView.jsx';
 import NotificationsBell from './NotificationsBell.web.jsx';
 import LegalFooter from '../legal/LegalFooter.jsx';
+import PWAInstallButton from '../pwa/PWAInstallButton.web.jsx';
 import headerLogo from '../../assets/img/uff-logo.png';
 
 export default function HomeScreen() {
@@ -176,6 +177,18 @@ export default function HomeScreen() {
         flexDirection: 'column',
     };
 
+    // The menu's Install entry is a <button>, not a <Link>, so it needs the
+    // link styling plus button resets (no default chrome, full-width hit area).
+    const installBtnStyle = {
+        ...linkStyle,
+        width: '100%',
+        background: 'none',
+        border: 'none',
+        textAlign: 'left',
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+    };
+
     const topBarStyle = {
         display: 'flex',
         alignItems: 'center',
@@ -262,6 +275,11 @@ export default function HomeScreen() {
                                   onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderLeftColor = 'transparent'; }}>
                                 <i className="bi bi-file-earmark-text"></i> {Strings.get('legal_terms', lang)}
                             </Link>
+                            <PWAInstallButton
+                                label={Strings.get('pwa_install_cta', lang)}
+                                style={installBtnStyle}
+                                onBeforeOpen={closeMenu}
+                            />
                         </nav>
                         <div style={{ flex: 1 }} />
                         {isLoggedIn ? (

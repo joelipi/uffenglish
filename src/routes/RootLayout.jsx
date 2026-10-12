@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import GuestLoginModal from '../components/modals/GuestLoginModal.web.jsx';
 import SaveClipsModal from '../components/modals/SaveClipsModal.web.jsx';
 import Preloader from '../components/Preloader.jsx';
+import PWAInstallDialog from '../components/pwa/PWAInstallDialog.web.jsx';
 import { useGuestModalGuard } from '../hooks/use-guest-modal-guard.js';
 import { trackEvent } from '../modules/utils/posthog.js';
 
@@ -20,6 +21,7 @@ export default function RootLayout() {
             <Outlet />
             <GuestLoginModal />
             <SaveClipsModal />
+            <PWAInstallDialog />
         </>
     );
 }

@@ -6,6 +6,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>UFF English</title>
 
+    <!-- Installable app (PWA). The `<link rel="manifest">` and the service
+         worker registration script are injected into the built index.html by
+         vite-plugin-pwa from scripts/lib/pwa-manifest.js (dev intentionally
+         serves no manifest; check PWA behaviour with `npm run preview`). The
+         icon and theme tags below are the static head links emitted by
+         `npm run pwa:assets` (pwa-assets.config.js). -->
+    <meta name="theme-color" content="#0b1a2a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="UFF">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png">
+
     <!-- Google Fonts (loaded non-blocking so the HTML preloader paints immediately) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
