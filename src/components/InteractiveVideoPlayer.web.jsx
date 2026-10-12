@@ -7,6 +7,7 @@ import { appStore, setCurrentVideoPlayer } from '../modules/store/store.js';
 import { useInteractiveVideo } from '../hooks/useInteractiveVideo.js';
 import { getBilingual } from '../data/strings.js';
 import { useNativeLanguage } from '../hooks/use-native-language.js';
+import VideoPlayIcon from './VideoPlayIcon.jsx';
 
 // ---------------------------------------------------------------------------
 // Module-level constants
@@ -438,9 +439,7 @@ export default function InteractiveVideoPlayer() {
                 {!playing && !showOverlay && !isMicActive && !textInputVisible && !videoRef.current?.ended && (
                     <div className="ivp-play-overlay">
                         <div className="ivp-play-icon-container">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white">
-                                <path d="M8 5v14l11-7z" />
-                            </svg>
+                            <VideoPlayIcon />
                         </div>
                     </div>
                 )}

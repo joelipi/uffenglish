@@ -16,6 +16,9 @@ const carousel = read('./ConversationCarousel.jsx');
 const showcaseVideos = read('../../modules/video/showcase-videos.js');
 const homeLandingCss = read('./home-landing.css');
 const scopedBootstrap = read('../../generated/homepage-bootstrap.css');
+const videoPlayIcon = read('../VideoPlayIcon.jsx');
+const simplePlayer = read('../SimpleVideoPlayer.web.jsx');
+const interactivePlayer = read('../InteractiveVideoPlayer.web.jsx');
 
 describe('HomeLanding app-matched styling + scroll contract', () => {
     it('reuses the app brand gradient token', () => {
@@ -39,7 +42,13 @@ describe('HomeLanding app-matched styling + scroll contract', () => {
     });
 
     it('preserves every existing share-code testid', () => {
-        for (const testid of ['share-code-input', 'share-code-go', 'share-code-error', 'no-code', 'landing-account-link']) {
+        // The card renders twice (hero + bottom repeat) via a `suffix`, so the
+        // testids are template literals; both copies must exist.
+        for (const base of ['share-code-card', 'share-code-subheadline', 'share-code-input', 'share-code-go', 'share-code-error', 'no-code']) {
+            expect(homeLanding, base).toContain(`data-testid={\`${base}\${suffix}\`}`);
+        }
+        expect(homeLanding).toContain('<ShareCodeCta {...ctaProps} suffix="-bottom"');
+        for (const testid of ['landing-account-link']) {
             expect(homeLanding, testid).toContain(`data-testid="${testid}"`);
         }
     });
@@ -50,7 +59,7 @@ describe('HomeLanding app-matched styling + scroll contract', () => {
     });
 
     it('renders the no-code action as a real type="button" button', () => {
-        const at = homeLanding.indexOf('data-testid="no-code"');
+        const at = homeLanding.indexOf('`no-code${suffix}`');
         const from = homeLanding.lastIndexOf('<button', at);
         expect(at).toBeGreaterThan(-1);
         expect(from).toBeGreaterThan(-1);
@@ -58,7 +67,7 @@ describe('HomeLanding app-matched styling + scroll contract', () => {
     });
 
     it('keeps the Go action a type="submit" button', () => {
-        const at = homeLanding.indexOf('data-testid="share-code-go"');
+        const at = homeLanding.indexOf('`share-code-go${suffix}`');
         const from = homeLanding.lastIndexOf('<button', at);
         expect(at).toBeGreaterThan(-1);
         expect(from).toBeGreaterThan(-1);
@@ -212,5 +221,27 @@ describe('ConversationCarousel poster-first contract', () => {
 
     it('stays opaque (never adds the lesson water surface)', () => {
         expect(carousel).not.toContain('water-surface');
+    });
+
+    it('renders the shared play triangle, not a copied path', () => {
+        expect(carousel).toContain("import VideoPlayIcon from '../VideoPlayIcon.jsx'");
+        expect(carousel).toContain('<VideoPlayIcon');
+        expect(carousel).not.toContain('M8 5v14l11-7z');
+    });
+});
+
+describe('VideoPlayIcon is the single play-triangle source', () => {
+    it('holds the only copy of the triangle path', () => {
+        expect(videoPlayIcon).toContain('M8 5v14l11-7z');
+        for (const src of [carousel, simplePlayer, interactivePlayer]) {
+            expect(src).not.toContain('M8 5v14l11-7z');
+        }
+    });
+
+    it('is rendered by both video players', () => {
+        for (const [name, src] of [['simple', simplePlayer], ['interactive', interactivePlayer]]) {
+            expect(src, name).toContain("import VideoPlayIcon from './VideoPlayIcon.jsx'");
+            expect(src, name).toContain('<VideoPlayIcon');
+        }
     });
 });

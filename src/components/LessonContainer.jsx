@@ -44,7 +44,7 @@ import IncomingVideoWidget from './IncomingVideoWidget.jsx';
 import PointLossOverlay from './PointLossOverlay.jsx';
 import PlaybackVideo from './PlaybackVideo.jsx';
 import { loadNextStep as loadNextStepImpl, jumpToStep as jumpToStepImpl, replaySimpleVideo, handleTutorChatSubmit } from '../modules/lesson/lesson-progression.js';
-import { buildBranchChoiceView } from '../modules/lesson/branch-choice-logic.js';
+import { buildBranchChoiceView, isBranchingStep } from '../modules/lesson/branch-choice-logic.js';
 import { isVideoHeaderBlurVisible, videoHeaderBlurStyle } from '../modules/video/video-header-logic.js';
 import { loadLessonContent } from '../modules/lesson/lesson-loader.js';
 import { loadStep } from './step-loader.js';
@@ -159,9 +159,10 @@ export default function LessonContainer() {
             <SystemMessageOverlay />
             <LandscapeWarning />
 
-            {/* Blurred band sized to the video's burned-in header area */}
+            {/* Blurred band: full burned-header height on branching steps,
+                compact (progress row + mission only) everywhere else */}
             {isVideoHeaderBlurVisible(mediaState, bottomState) && (
-                <div className="video-header-blur" aria-hidden="true" style={videoHeaderBlurStyle()}></div>
+                <div className="video-header-blur" aria-hidden="true" style={videoHeaderBlurStyle({ full: isBranchingStep(currentStep) })}></div>
             )}
 
             {/* Top Overlay */}

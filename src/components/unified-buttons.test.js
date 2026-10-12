@@ -154,10 +154,17 @@ describe('homepage buttons follow the single-or-primary border rule', () => {
         expect(primary).toContain('border-radius: 8px');
         const topbar = cssBlock(css, '.uff-home-bs .btn-uff-topbar {\n    background-color: var(--uff-btn-bg);');
         expect(topbar).toContain('border: var(--uff-btn-border)');
+    });
+
+    it('styles the carousel play as the in-app overlay affordance, not a button', () => {
         const play = cssBlock(css, '.uff-carousel-play {');
-        expect(play).toContain('background: var(--uff-btn-bg)');
-        expect(play).toContain('border: var(--uff-btn-border)');
-        expect(play).toContain('border-radius: 50%');
+        expect(play).toContain('background: transparent');
+        expect(play).toContain('border: none');
+        expect(play).toContain('color: #ffffff');
+        expect(play).not.toContain('var(--uff-btn-bg)');
+        expect(play).not.toContain('border-radius');
+        const icon = cssBlock(css, '.uff-carousel-play-icon {');
+        expect(icon).toContain('drop-shadow');
     });
 
     it('keeps the equal-pair carousel nav borderless in the shared token style', () => {
@@ -224,7 +231,7 @@ describe('primary rectangular buttons share the overlay halo edge', () => {
         expect(host).toContain('z-index: 0');
     });
 
-    it('gives solid theme and homepage buttons the one pulsing halo', () => {
+    it('gives solid theme and homepage buttons one shared halo base', () => {
         const css = read('src/assets/css/app.css');
         const halo = cssBlock(css, '.btn-primary::before,');
         for (const sel of ['.btn-secondary::before', '.btn-success::before', '.uff-home-bs .btn-uff-primary::before', '.uff-home-bs .btn-uff-topbar::before']) {
@@ -238,6 +245,14 @@ describe('primary rectangular buttons share the overlay halo edge', () => {
         expect(halo).toContain('animation: btnGlowPulse 2s ease-in-out infinite');
         expect(halo).toContain('border-radius: inherit');
         expect(halo).toContain('pointer-events: none');
+    });
+
+    it('switches the homepage halo animation off so only overlay primaries pulse', () => {
+        const css = read('src/assets/css/app.css');
+        const override = cssBlock(css, '.uff-home-bs.uff-home-bs .btn-uff-primary::before,');
+        expect(override).toContain('.uff-home-bs.uff-home-bs .btn-uff-topbar::before');
+        expect(override).toContain('animation: none');
+        expect(override).not.toContain('btnGlowPulse');
     });
 
     it('kills the halo on every disabled primary, topbar included', () => {

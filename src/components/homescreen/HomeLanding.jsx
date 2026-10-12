@@ -9,6 +9,7 @@ import './home-landing.css';
 import Strings from '../../data/strings.js';
 import LegalFooter from '../legal/LegalFooter.jsx';
 import ConversationCarousel from './ConversationCarousel.jsx';
+import { splitItalicSegments } from './home-landing-logic.js';
 import { HOME_LANGUAGES } from '../../data/languages.js';
 import headerLogo from '../../assets/img/uff-logo.png';
 import teacherPhoto from '../../assets/img/teacherprofile.webp';
@@ -17,19 +18,128 @@ import teacherPhoto from '../../assets/img/teacherprofile.webp';
 // strings.js key (the hi/bn script guard would fail on a Latin-only entry).
 const TEACHER_NAME = 'Joe Walsh';
 
-const HOW_IT_WORKS_KEYS = [
-    'home_landing_how_1',
-    'home_landing_how_2',
-    'home_landing_how_3',
-    'home_landing_how_4',
-    'home_landing_how_5',
+// One entry per How-it-works row (Duolingo-style alternating rows): body copy
+// key plus its own giant Bootstrap icon, kept in one object so icon and text
+// cannot drift apart. Every row renders an H3 heading above the body.
+const HOW_IT_WORKS_ROWS = [
+    { title: 'home_landing_how_1_title', body: 'home_landing_how_1', icon: 'bi-piggy-bank-fill' },
+    { title: 'home_landing_how_2_title', body: 'home_landing_how_2', icon: 'bi-mortarboard-fill' },
+    { title: 'home_landing_how_3_title', body: 'home_landing_how_3', icon: 'bi-people-fill' },
+    { title: 'home_landing_how_4_title', body: 'home_landing_how_4', icon: 'bi-mic-fill' },
+    { title: 'home_landing_how_5_title', body: 'home_landing_how_5', icon: 'bi-hourglass-split' },
+    { title: 'home_landing_how_6_title', body: 'home_landing_how_6', icon: 'bi-rocket-takeoff-fill' },
+    { title: 'home_landing_how_7_title', body: 'home_landing_how_7', icon: 'bi-patch-check-fill' },
+    { title: 'home_landing_how_8_title', body: 'home_landing_how_8', icon: 'bi-chat-dots-fill' },
+    { title: 'home_landing_how_9_title', body: 'home_landing_how_9', icon: 'bi-emoji-laughing-fill' },
+    { title: 'home_landing_how_10_title', body: 'home_landing_how_10', icon: 'bi-camera-video-fill' },
+    { title: 'home_landing_how_11_title', body: 'home_landing_how_11', icon: 'bi-graph-up-arrow' },
 ];
 
+// Device logos for the "any device" section, above the section text. Glyphs
+// are the closest Bootstrap Icons brand marks; the accessible name carries
+// the exact meaning — no visible captions are rendered (the set has no
+// generic Linux or Chromebook marks, so the Ubuntu and Google marks stand
+// in).
+const DEVICE_ICONS = [
+    { icon: 'bi-android2', label: 'Android' },
+    { icon: 'bi-apple', label: 'iOS' },
+    { icon: 'bi-windows', label: 'Windows' },
+    { icon: 'bi-command', label: 'Mac' },
+    { icon: 'bi-ubuntu', label: 'Linux' },
+    { icon: 'bi-google', label: 'Chromebook' },
+];
+
+// The share-code entry card, rendered twice: in the hero and repeated at the
+// bottom of the page. `suffix` keeps element ids and testids unique per copy.
+function ShareCodeCta({
+    suffix = '',
+    lang,
+    code,
+    error,
+    loading,
+    onCodeChange,
+    onSubmitCode,
+    onNoCode,
+    onInputChange,
+}) {
+    function handleSubmit(e) {
+        e.preventDefault();
+        onSubmitCode?.(code);
+    }
+
+    function handleChange(e) {
+        onCodeChange?.(e.target.value);
+        onInputChange?.();
+    }
+
+    return (
+        <div className="card border-secondary text-start" data-testid={`share-code-card${suffix}`}>
+            <div className="card-body">
+                <h2 className="h5 fw-bold text-white mb-3" data-testid={`share-code-subheadline${suffix}`}>
+                    {Strings.get('home_landing_subheadline', lang)}
+                </h2>
+
+                <form onSubmit={handleSubmit}>
+                    <label className="visually-hidden" htmlFor={`shareCodeInput${suffix}`}>
+                        {Strings.get('home_landing_code_placeholder', lang)}
+                    </label>
+                    <input
+                        id={`shareCodeInput${suffix}`}
+                        data-testid={`share-code-input${suffix}`}
+                        type="text"
+                        value={code}
+                        onChange={handleChange}
+                        placeholder={Strings.get('home_landing_code_placeholder', lang)}
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        className="form-control form-control-lg"
+                    />
+                    {error !== null && (
+                        <div
+                            data-testid={`share-code-error${suffix}`}
+                            role="alert"
+                            className="alert mt-2 mb-0 py-2"
+                        >
+                            {error}
+                        </div>
+                    )}
+                    <button type="submit" data-testid={`share-code-go${suffix}`} disabled={loading}
+                            className="btn btn-uff-primary btn-lg w-100 mt-3">
+                        {Strings.get('home_landing_go', lang)}
+                    </button>
+                </form>
+                <div className="mt-2">
+                    <button type="button" data-testid={`no-code${suffix}`} onClick={onNoCode}
+                            className="btn btn-uff-primary btn-lg w-100">
+                        {Strings.get('home_landing_no_code', lang)}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// A row heading that may carry one inline `<i>…</i>` emphasis span in the
+// trusted copy (the UFF expansion title). Rendered as real elements, never
+// injected HTML.
+function RowHeading({ testid, text }) {
+    return (
+        <h3 className="fw-bold text-white mb-2" data-testid={testid}>
+            {splitItalicSegments(text).map((seg, k) => (
+                seg.italic
+                    ? <i key={k}>{seg.text}</i>
+                    : <React.Fragment key={k}>{seg.text}</React.Fragment>
+            ))}
+        </h3>
+    );
+}
+
 // Public homepage: the friend-challenge entry plus short marketing sections.
-// Built with Bootstrap 5.3.8 (navbar, grid, cards, list-group, buttons) in the
-// main app's palette. The hero's only job is to accept a friend's share code (or
-// send the visitor into the Would You Rather ask lesson); the container owns
-// lookup + error + the language-change handler.
+// Built with Bootstrap 5.3.8 (navbar, grid, cards, buttons) in the
+// main app's palette. The share-code entries (hero + bottom repeat) accept a
+// friend's code or send the visitor into the Would You Rather ask lesson;
+// the container owns lookup + error + the language-change handler.
 export default function HomeLanding({
     lang = 'en',
     isLoggedIn = false,
@@ -46,15 +156,7 @@ export default function HomeLanding({
     const languageCode = String(lang).toUpperCase();
     const selectedLanguage = HOME_LANGUAGES.some((l) => l.value === languageCode) ? languageCode : 'EN';
 
-    function handleSubmit(e) {
-        e.preventDefault();
-        onSubmitCode?.(code);
-    }
-
-    function handleChange(e) {
-        setCode(e.target.value);
-        onInputChange?.();
-    }
+    const ctaProps = { lang, code, error, loading, onCodeChange: setCode, onSubmitCode, onNoCode, onInputChange };
 
     return (
         <div className="uff-home-bs">
@@ -101,76 +203,38 @@ export default function HomeLanding({
                             <h1 className="uff-hero-title text-white mb-3" data-testid="share-code-headline">
                                 {Strings.get('home_landing_headline', lang)}
                             </h1>
+                            <p className="uff-hero-sub mb-0" data-testid="hero-subheading">
+                                {Strings.get('home_landing_headline_sub', lang)}
+                            </p>
 
-                            <div className="card border-secondary text-start mt-4" data-testid="share-code-card">
-                                <div className="card-body">
-                                    <h2 className="h5 fw-bold text-white mb-3" data-testid="share-code-subheadline">
-                                        {Strings.get('home_landing_subheadline', lang)}
-                                    </h2>
-
-                                    <form onSubmit={handleSubmit}>
-                                        <label className="visually-hidden" htmlFor="shareCodeInput">
-                                            {Strings.get('home_landing_code_placeholder', lang)}
-                                        </label>
-                                        <input
-                                            id="shareCodeInput"
-                                            data-testid="share-code-input"
-                                            type="text"
-                                            value={code}
-                                            onChange={handleChange}
-                                            placeholder={Strings.get('home_landing_code_placeholder', lang)}
-                                            autoCapitalize="none"
-                                            autoCorrect="off"
-                                            spellCheck={false}
-                                            className="form-control form-control-lg"
-                                        />
-                                        {error !== null && (
-                                            <div
-                                                data-testid="share-code-error"
-                                                role="alert"
-                                                className="alert mt-2 mb-0 py-2"
-                                            >
-                                                {error}
-                                            </div>
-                                        )}
-                                        <button type="submit" data-testid="share-code-go" disabled={loading}
-                                                className="btn btn-uff-primary btn-lg w-100 mt-3">
-                                            {Strings.get('home_landing_go', lang)}
-                                        </button>
-                                    </form>
-                                    <div className="mt-2">
-                                        <button type="button" data-testid="no-code" onClick={onNoCode}
-                                                className="btn btn-uff-outline w-100">
-                                            {Strings.get('home_landing_no_code', lang)}
-                                        </button>
-                                    </div>
-                                </div>
+                            <div className="mt-4">
+                                <ShareCodeCta {...ctaProps} />
                             </div>
                         </div>
                     </div>
                 </div>
             </header>
 
+            {/* "How it works" section: one alternating icon row per item. */}
             <section className="uff-section" id="how-it-works" data-testid="how-it-works">
                 <div className="container">
-                    <div className="row g-4 align-items-start">
-                        <div className="col-12 col-lg-5">
-                            <h2 className="uff-section-title text-white" data-testid="how-it-works-heading">
-                                {Strings.get('home_landing_how_heading', lang)}
-                            </h2>
-                        </div>
-                        <div className="col-12 col-lg-7">
-                            <ul className="list-group" data-testid="how-it-works-list">
-                                {HOW_IT_WORKS_KEYS.map((key, i) => (
-                                    <li key={key} data-testid={`how-it-works-item-${i + 1}`}
-                                        className="list-group-item d-flex align-items-start gap-3 animate__animated animate__fadeInUp"
-                                        style={{ animationDelay: `${i * 90}ms` }}>
-                                        <i className="bi bi-check-circle-fill uff-check" aria-hidden="true"></i>
-                                        <span>{Strings.get(key, lang)}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
+                    <div data-testid="how-it-works-list" role="list">
+                        {HOW_IT_WORKS_ROWS.map(({ title, body, icon }, i) => {
+                            const iconOnLeft = i % 2 === 0;
+                            return (
+                                <div key={body} data-testid={`how-it-works-item-${i + 1}`} role="listitem"
+                                    className="row align-items-center g-4 uff-how-row animate__animated animate__fadeInUp"
+                                    style={{ animationDelay: `${i * 90}ms` }}>
+                                    <div className={`col-12 col-md-4 text-center ${iconOnLeft ? '' : 'order-md-2'}`}>
+                                        <i className={`bi ${icon} uff-how-icon`} aria-hidden="true"></i>
+                                    </div>
+                                    <div className={`col-12 col-md-8 ${iconOnLeft ? '' : 'order-md-1'}`}>
+                                        <RowHeading testid={`how-it-works-title-${i + 1}`} text={Strings.get(title, lang)} />
+                                        <p className="lead text-white mb-0"><span>{Strings.get(body, lang)}</span></p>
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             </section>
@@ -196,6 +260,34 @@ export default function HomeLanding({
                             <p className="lead text-secondary mb-0" data-testid="about-teacher-credentials">
                                 {Strings.get('home_landing_about_credentials', lang)}
                             </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section className="uff-section uff-showcase-gradient" id="devices" data-testid="any-device">
+                <div className="container text-center">
+                    <div className="uff-device-icons mb-4" data-testid="any-device-icons">
+                        {DEVICE_ICONS.map((d) => (
+                            <div key={d.label} className="uff-device-icon" role="img" aria-label={d.label} data-testid={`any-device-icon-${d.label.toLowerCase()}`}>
+                                <i className={`bi ${d.icon}`} aria-hidden="true"></i>
+                            </div>
+                        ))}
+                    </div>
+                    <h2 className="uff-section-title text-white" data-testid="any-device-heading">
+                        {Strings.get('home_landing_devices_heading', lang)}
+                    </h2>
+                    <p className="lead text-white mb-0" data-testid="any-device-text">
+                        {Strings.get('home_landing_devices_body', lang)}
+                    </p>
+                </div>
+            </section>
+
+            <section className="uff-section uff-section--alt" id="start" data-testid="bottom-cta">
+                <div className="container">
+                    <div className="row justify-content-center">
+                        <div className="col-12 col-lg-8 col-xl-7">
+                            <ShareCodeCta {...ctaProps} suffix="-bottom" />
                         </div>
                     </div>
                 </div>

@@ -127,6 +127,43 @@
     filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
 }
 
+/* The top bar (logo, language select, sign-in) always stays on a single
+   line, even on narrow phones: the container never wraps, the brand never
+   shrinks away, and the language select gives way first with an ellipsis. */
+.uff-navbar .container {
+    flex-wrap: nowrap;
+}
+
+.uff-navbar .navbar-brand {
+    flex-shrink: 0;
+    margin-right: 0.5rem;
+    min-width: 0;
+}
+
+.uff-navbar .container > .d-flex {
+    flex-wrap: nowrap;
+    min-width: 0;
+    margin-left: auto;
+}
+
+.uff-navbar .form-select {
+    min-width: 0;
+    max-width: 38vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.uff-navbar .btn-uff-topbar {
+    flex-shrink: 0;
+}
+
+@media (max-width: 400px) {
+    .uff-navbar .navbar-brand img,
+    .uff-home-bs img.uff-logo {
+        height: 32px;
+    }
+}
+
 /* --- Hero ------------------------------------------------------------- */
 .uff-hero {
     background: radial-gradient(120% 120% at 15% 0%, rgba(58, 143, 213, 0.55) 0%, rgba(11, 26, 42, 0.92) 55%, #0b1a2a 100%);
@@ -139,9 +176,13 @@
     letter-spacing: -0.02em;
 }
 
-.uff-hero-lead {
-    color: #e9ecef;
-    font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+/* Subheading under the hero headline: smaller and muted so it reads as a
+   subheading, not a second headline. */
+.uff-hero-sub {
+    font-size: clamp(1.05rem, 2.2vw, 1.4rem);
+    font-weight: 500;
+    color: var(--bs-secondary-color);
+    letter-spacing: 0.01em;
 }
 
 .uff-hero-art {
@@ -190,21 +231,33 @@
     opacity: 0.6;
 }
 
-/* Homepage single-call buttons share the overlay halo edge via the shared
-   halo rule in app.css (host positioning + ::before + disabled
-   kill-switch, all in one selector group so the treatment cannot drift).
-   The outline (non-primary) alternative stays flat. */
+/* Homepage primary buttons share the overlay halo edge via the static halo
+   rule in app.css (host positioning + ::before + disabled kill-switch, all
+   in one selector group so the treatment cannot drift). The halo is static:
+   homepage buttons never pulse; only the main overlay call buttons do. */
 
-/* Top-bar sign-in: white solid so it reads on the gradient navbar. */
+/* Top-bar sign-in: white solid so it reads on the gradient navbar. Kept
+   compact next to the language select. */
 .uff-home-bs .btn-uff-topbar {
     background-color: var(--uff-btn-bg);
     background-image: none;
     border: var(--uff-btn-border);
     color: #0b1a2a;
     font-weight: 700;
+    font-size: 0.8rem;
+    padding: 0.3rem 0.65rem;
+    line-height: 1.4;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
     white-space: nowrap;
+}
+
+/* Top-bar language select: compact to match the sign-in button. */
+.uff-navbar .form-select-sm {
+    font-size: 0.8rem;
+    padding-top: 0.3rem;
+    padding-bottom: 0.3rem;
+    line-height: 1.4;
 }
 
 .uff-home-bs .btn-uff-topbar:hover,
@@ -215,25 +268,7 @@
     color: #0b1a2a;
 }
 
-.uff-home-bs .btn-uff-outline {
-    background: transparent;
-    border: 1px solid #00c0d8;
-    color: #00c0d8;
-    font-weight: 600;
-    border-radius: 8px;
-    padding: 0.875rem 1.25rem;
-    transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.uff-home-bs .btn-uff-outline:hover,
-.uff-home-bs .btn-uff-outline:focus {
-    background: rgba(0, 192, 216, 0.14);
-    border-color: #00c0d8;
-    color: #00c0d8;
-}
-
-.uff-home-bs .btn-uff-primary.btn-lg,
-.uff-home-bs .btn-uff-outline.btn-lg {
+.uff-home-bs .btn-uff-primary.btn-lg {
     padding: 1rem 1.5rem;
     font-size: 1.125rem;
 }
@@ -318,20 +353,62 @@
     box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
 }
 
-/* "How it works" list — a Bootstrap list-group in the app's palette. */
-.uff-home-bs .list-group-item {
-    background-color: transparent;
-    border-color: var(--bs-border-color);
-    color: var(--bs-body-color);
+/* "How it works" alternating rows — Duolingo-style: each item is its own
+   Bootstrap row with a giant icon alternating left/right. */
+.uff-how-row {
+    padding-top: clamp(1.5rem, 3vw, 2.5rem);
+    padding-bottom: clamp(1.5rem, 3vw, 2.5rem);
 }
 
-.uff-check {
-    color: #00c0d8;
-    font-size: 1.25rem;
-    line-height: 1.2;
+.uff-how-icon {
+    font-size: clamp(4rem, 10vw, 7rem);
+    line-height: 1;
+    color: #ffffff;
+    text-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+}
+
+/* --- Any-device section ------------------------------------------------- */
+/* Icons sit above the text (not off to the side): a centered icon row that
+   always stays on one line (shrinking to fit), then the heading and body
+   copy. The row sits on the brand blue gradient. */
+.uff-device-icons {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: center;
+    gap: clamp(0.5rem, 3vw, 2.5rem);
+}
+
+.uff-device-icon {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #ffffff;
+}
+
+.uff-device-icon i {
+    font-size: clamp(1.75rem, 9vw, 3.5rem);
+    line-height: 1;
 }
 
 /* --- Showcase carousel ------------------------------------------------ */
+/* Brand blue gradient, same water overlay the lesson app uses (see the
+   water overlay rule in src/assets/css/app.css): opaque brand blue up top
+   easing into cyan. White text stays readable on it. */
+.uff-showcase-gradient {
+    background: linear-gradient(
+        to bottom,
+        rgba(58, 143, 213, 1) 0%,
+        rgba(58, 143, 213, 1) 30%,
+        rgba(58, 143, 213, 0.95) 50%,
+        rgba(0, 192, 216, 1) 70%,
+        rgba(0, 192, 216, 1) 100%
+    );
+    border-top: 1px solid var(--bs-border-color);
+    border-bottom: 1px solid var(--bs-border-color);
+}
 .uff-carousel-track {
     display: flex;
     transition: transform 0.3s ease;
@@ -367,30 +444,33 @@
     margin-right: auto;
 }
 
+/* The carousel play affordance matches the in-app video players
+   (SimpleVideoPlayer/InteractiveVideoPlayer via VideoPlayIcon): a bare white
+   triangle with a soft shadow over the poster — not a button. */
 .uff-carousel-play {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 4rem;
-    height: 4rem;
-    border-radius: 50%;
-    border: var(--uff-btn-border);
-    background: var(--uff-btn-bg);
-    color: var(--uff-btn-fg);
-    font-size: 1.5rem;
+    background: transparent;
+    border: none;
+    padding: 0.5rem;
+    color: #ffffff;
     line-height: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: var(--uff-btn-shadow);
     cursor: pointer;
     transition: transform 0.15s ease;
 }
 
 .uff-carousel-play:hover,
 .uff-carousel-play:focus {
-    transform: translate(-50%, -50%) scale(1.06);
+    transform: translate(-50%, -50%) scale(1.08);
+}
+
+.uff-carousel-play-icon {
+    width: 5rem;
+    height: 5rem;
+    display: block;
+    filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.7));
 }
 
 .uff-carousel-nav {

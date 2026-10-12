@@ -21,6 +21,12 @@ const VIDEO_ASPECT = 9 / 16;             // width / height
 const headerBannerFraction = Math.min(HEADER_BAND_RATIO, HEADER_BANNER_ASPECT * VIDEO_ASPECT);
 export const VIDEO_HEADER_RATIO = HEADER_TOP_MARGIN_RATIO + headerBannerFraction;
 
+// The compact height backs only the top-overlay UI: the progress row (py-2
+// plus the 1.5rem close glyph ≈ 52px) and the collapsed 40px mission — about
+// 92px, ~0.115 of an 800px frame. It is the default; branching steps take
+// the full burned-header height instead.
+export const VIDEO_HEADER_COMPACT_RATIO = 0.12;
+
 // The blur is hidden whenever the overlay would cover something other than a
 // video's burned-in header: during the chat phase (it would blur the chat
 // window) and on the final step, where the recap video is generated
@@ -34,7 +40,9 @@ export function isVideoHeaderBlurVisible(mediaState, bottomState) {
 }
 
 // Style object for the blur layer: the CSS custom property the stylesheet turns
-// into the blur height (`calc(var(--video-header-ratio) * 100%)`).
-export function videoHeaderBlurStyle() {
-    return { '--video-header-ratio': VIDEO_HEADER_RATIO };
+// into the blur height (`calc(var(--video-header-ratio) * 100%)`). Branching
+// steps take the full height; everything else takes the compact height, which
+// backs only the progress row + mission.
+export function videoHeaderBlurStyle({ full } = {}) {
+    return { '--video-header-ratio': full ? VIDEO_HEADER_RATIO : VIDEO_HEADER_COMPACT_RATIO };
 }

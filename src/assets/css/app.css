@@ -841,14 +841,13 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 
 /* Primary rectangular CTAs share the overlay buttons' luminous edge: the
    same white halo ring (btnGlowPulse) the glowing overlay call buttons
-   carry in their ::before. One shared rule covers the solid theme buttons
-   and the homepage single-call buttons (both stylesheets are loaded on the
+   carry in their ::before. One shared base rule covers the solid theme
+   buttons and the homepage primaries (both stylesheets are loaded on the
    homepage; app.css is global so it also covers auth/modals). The host
    positioning contains the negative-z halo (same precedent as .call-btn);
    `border-radius: inherit` keeps it shape-agnostic across
    rounded-rectangle and pill buttons. No floatBob here — the edge is the
-   halo; bobbing static form buttons reads as broken layout. Outline and
-   other non-primary buttons stay flat. */
+   halo; bobbing static form buttons reads as broken layout. */
 .btn-primary,
 .btn-secondary,
 .btn-success,
@@ -868,6 +867,13 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     background: transparent;
     box-shadow: 0 0 25px 8px rgba(255, 255, 255, 0.85);
     animation: btnGlowPulse 2s ease-in-out infinite;
+}
+/* Homepage buttons keep the halo but never pulse: only the main overlay
+   call buttons pulse. The doubled scope class outranks the shared base, so
+   this wins regardless of source order. */
+.uff-home-bs.uff-home-bs .btn-uff-primary::before,
+.uff-home-bs.uff-home-bs .btn-uff-topbar::before {
+    animation: none;
 }
 /* A disabled primary must not glow: same precedent as the pending success
    button (.process-btn-pending .call-btn::before). */
