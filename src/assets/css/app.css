@@ -841,9 +841,9 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 
 /* Primary rectangular CTAs share the overlay buttons' luminous edge: the
    same white halo ring (btnGlowPulse) the glowing overlay call buttons
-   carry in their ::before. One shared rule covers the solid theme buttons
-   and the homepage single-call buttons (both stylesheets are loaded on the
-   homepage; app.css is global so it also covers auth/modals). The host
+   carry in their ::before. Only the solid theme buttons pulse — the
+   homepage never pulses (its buttons stay flat), and only the main
+   overlay call buttons carry the glow/float treatment. The host
    positioning contains the negative-z halo (same precedent as .call-btn);
    `border-radius: inherit` keeps it shape-agnostic across
    rounded-rectangle and pill buttons. No floatBob here — the edge is the
@@ -851,14 +851,11 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
    other non-primary buttons stay flat. */
 .btn-primary,
 .btn-secondary,
-.btn-success,
-.uff-home-bs .btn-uff-primary,
-.uff-home-bs .btn-uff-topbar {
+.btn-success {
     position: relative;
     z-index: 0;
 }
-.btn-primary::before, .btn-secondary::before, .btn-success::before,
-.uff-home-bs .btn-uff-primary::before, .uff-home-bs .btn-uff-topbar::before {
+.btn-primary::before, .btn-secondary::before, .btn-success::before {
     content: '';
     position: absolute;
     inset: -4px;
@@ -871,10 +868,26 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 }
 /* A disabled primary must not glow: same precedent as the pending success
    button (.process-btn-pending .call-btn::before). */
-.btn-primary:disabled::before, .btn-secondary:disabled::before, .btn-success:disabled::before,
-.uff-home-bs .btn-uff-primary:disabled::before, .uff-home-bs .btn-uff-topbar:disabled::before {
+.btn-primary:disabled::before, .btn-secondary:disabled::before, .btn-success:disabled::before {
     animation: none !important;
     box-shadow: none !important;
+}
+/* Homepage buttons never pulse: app.css is global and both stylesheets load
+   on the homepage, so explicitly kill any halo/animation under the homepage
+   scope. Only the main overlay call buttons pulse. */
+.uff-home-bs .btn-uff-primary::before,
+.uff-home-bs .btn-uff-topbar::before,
+.uff-home-bs .uff-carousel-play::before,
+.uff-home-bs .uff-carousel-nav::before {
+    animation: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+.uff-home-bs .btn-uff-primary,
+.uff-home-bs .btn-uff-topbar,
+.uff-home-bs .uff-carousel-play,
+.uff-home-bs .uff-carousel-nav {
+    animation: none !important;
 }
 
 /* Immediate hide for bottom overlay (bypass opacity transition) */

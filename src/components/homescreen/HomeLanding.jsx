@@ -25,6 +25,16 @@ const HOW_IT_WORKS_KEYS = [
     'home_landing_how_5',
 ];
 
+// One giant Bootstrap icon per How-it-works row (Duolingo-style alternating
+// rows). Kept beside the copy keys so icon and text cannot drift apart.
+const HOW_IT_WORKS_ICONS = [
+    'bi-piggy-bank-fill',
+    'bi-mortarboard-fill',
+    'bi-people-fill',
+    'bi-mic-fill',
+    'bi-hourglass-split',
+];
+
 // Public homepage: the friend-challenge entry plus short marketing sections.
 // Built with Bootstrap 5.3.8 (navbar, grid, cards, list-group, buttons) in the
 // main app's palette. The hero's only job is to accept a friend's share code (or
@@ -108,39 +118,50 @@ export default function HomeLanding({
                                         {Strings.get('home_landing_subheadline', lang)}
                                     </h2>
 
-                                    <form onSubmit={handleSubmit}>
-                                        <label className="visually-hidden" htmlFor="shareCodeInput">
-                                            {Strings.get('home_landing_code_placeholder', lang)}
-                                        </label>
-                                        <input
-                                            id="shareCodeInput"
-                                            data-testid="share-code-input"
-                                            type="text"
-                                            value={code}
-                                            onChange={handleChange}
-                                            placeholder={Strings.get('home_landing_code_placeholder', lang)}
-                                            autoCapitalize="none"
-                                            autoCorrect="off"
-                                            spellCheck={false}
-                                            className="form-control form-control-lg"
-                                        />
-                                        {error !== null && (
-                                            <div
-                                                data-testid="share-code-error"
-                                                role="alert"
-                                                className="alert mt-2 mb-0 py-2"
-                                            >
-                                                {error}
-                                            </div>
-                                        )}
-                                        <button type="submit" data-testid="share-code-go" disabled={loading}
-                                                className="btn btn-uff-primary btn-lg w-100 mt-3">
-                                            {Strings.get('home_landing_go', lang)}
-                                        </button>
-                                    </form>
-                                    <div className="mt-2">
+                                    <div data-testid="have-code-option">
+                                        <p className="fw-bold text-white mb-2" data-testid="have-code-title">
+                                            {Strings.get('home_landing_have_code_title', lang)}
+                                        </p>
+                                        <form onSubmit={handleSubmit}>
+                                            <label className="visually-hidden" htmlFor="shareCodeInput">
+                                                {Strings.get('home_landing_code_placeholder', lang)}
+                                            </label>
+                                            <input
+                                                id="shareCodeInput"
+                                                data-testid="share-code-input"
+                                                type="text"
+                                                value={code}
+                                                onChange={handleChange}
+                                                placeholder={Strings.get('home_landing_code_placeholder', lang)}
+                                                autoCapitalize="none"
+                                                autoCorrect="off"
+                                                spellCheck={false}
+                                                className="form-control form-control-lg"
+                                            />
+                                            {error !== null && (
+                                                <div
+                                                    data-testid="share-code-error"
+                                                    role="alert"
+                                                    className="alert mt-2 mb-0 py-2"
+                                                >
+                                                    {error}
+                                                </div>
+                                            )}
+                                            <button type="submit" data-testid="share-code-go" disabled={loading}
+                                                    className="btn btn-uff-primary btn-lg w-100 mt-3">
+                                                {Strings.get('home_landing_go', lang)}
+                                            </button>
+                                        </form>
+                                    </div>
+                                    <div className="uff-or-divider" data-testid="start-option-divider" aria-hidden="true">
+                                        <span>{Strings.get('home_landing_or', lang)}</span>
+                                    </div>
+                                    <div data-testid="fresh-start-option">
+                                        <p className="fw-bold text-white mb-2" data-testid="fresh-start-title">
+                                            {Strings.get('home_landing_fresh_title', lang)}
+                                        </p>
                                         <button type="button" data-testid="no-code" onClick={onNoCode}
-                                                className="btn btn-uff-outline w-100">
+                                                className="btn btn-uff-primary btn-lg w-100">
                                             {Strings.get('home_landing_no_code', lang)}
                                         </button>
                                     </div>
@@ -153,24 +174,29 @@ export default function HomeLanding({
 
             <section className="uff-section" id="how-it-works" data-testid="how-it-works">
                 <div className="container">
-                    <div className="row g-4 align-items-start">
-                        <div className="col-12 col-lg-5">
+                    <div className="row justify-content-center text-center mb-4">
+                        <div className="col-12 col-lg-8">
                             <h2 className="uff-section-title text-white" data-testid="how-it-works-heading">
                                 {Strings.get('home_landing_how_heading', lang)}
                             </h2>
                         </div>
-                        <div className="col-12 col-lg-7">
-                            <ul className="list-group" data-testid="how-it-works-list">
-                                {HOW_IT_WORKS_KEYS.map((key, i) => (
-                                    <li key={key} data-testid={`how-it-works-item-${i + 1}`}
-                                        className="list-group-item d-flex align-items-start gap-3 animate__animated animate__fadeInUp"
-                                        style={{ animationDelay: `${i * 90}ms` }}>
-                                        <i className="bi bi-check-circle-fill uff-check" aria-hidden="true"></i>
-                                        <span>{Strings.get(key, lang)}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        </div>
+                    </div>
+                    <div data-testid="how-it-works-list">
+                        {HOW_IT_WORKS_KEYS.map((key, i) => {
+                            const iconOnLeft = i % 2 === 0;
+                            return (
+                                <div key={key} data-testid={`how-it-works-item-${i + 1}`}
+                                    className="row align-items-center g-4 uff-how-row animate__animated animate__fadeInUp"
+                                    style={{ animationDelay: `${i * 90}ms` }}>
+                                    <div className={`col-12 col-md-4 text-center ${iconOnLeft ? '' : 'order-md-2'}`}>
+                                        <i className={`bi ${HOW_IT_WORKS_ICONS[i]} uff-how-icon`} aria-hidden="true"></i>
+                                    </div>
+                                    <div className={`col-12 col-md-8 ${iconOnLeft ? '' : 'order-md-1'}`}>
+                                        <p className="lead text-white mb-0"><span>{Strings.get(key, lang)}</span></p>
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             </section>

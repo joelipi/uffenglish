@@ -37,9 +37,9 @@ describe('HomeLanding', () => {
     it('renders the English copy, account link and controls by default', () => {
         render();
         expect(q('share-code-headline').textContent).toBe('Practice English with your friends for free.');
-        expect(q('share-code-subheadline').textContent).toBe("Enter your friend's share code");
+        expect(q('share-code-subheadline').textContent).toBe('Choose how to start — both are free');
         expect(q('share-code-go').textContent).toBe('Go');
-        expect(q('no-code').textContent).toBe("I don't have a share code");
+        expect(q('no-code').textContent).toBe('Start without a share code');
         expect(q('landing-account-link').getAttribute('href')).toBe('/login');
         expect(q('landing-account-link').textContent).toBe('Sign In');
     });
@@ -144,7 +144,7 @@ describe('HomeLanding', () => {
         const hero = q('share-code-headline').closest('.container');
         expect(hero.querySelectorAll('.row')).toHaveLength(1);
         expect(hero.querySelectorAll('[class*="col-lg-"]')).toHaveLength(1);
-        expect(q('how-it-works').querySelectorAll('[class*="col-lg-"]')).toHaveLength(2);
+        expect(q('how-it-works').querySelectorAll('[data-testid^="how-it-works-item-"]')).toHaveLength(5);
         expect(q('about-teacher').querySelectorAll('[class*="col-lg-"]')).toHaveLength(2);
         expect(q('share-code-input').className).toContain('form-control');
     });
@@ -158,13 +158,25 @@ describe('HomeLanding', () => {
         expect(go.className).toContain('btn-lg');
     });
 
-    it('styles the no-code action as an app-style outlined button', () => {
+    it('styles both start options as equal-weight primary buttons with an or divider', () => {
         render();
         const noCode = q('no-code');
         expect(noCode.tagName).toBe('BUTTON');
         expect(noCode.getAttribute('type')).toBe('button');
-        expect(noCode.className).toContain('btn-uff-outline');
+        expect(noCode.className).toContain('btn-uff-primary');
+        expect(noCode.className).toContain('btn-lg');
         expect(noCode.className).toContain('w-100');
+        expect(noCode.className).not.toContain('btn-uff-outline');
+        const go = q('share-code-go');
+        expect(go.className).toContain('btn-uff-primary');
+        expect(go.className).toContain('btn-lg');
+        const divider = q('start-option-divider');
+        expect(divider).not.toBeNull();
+        expect(divider.textContent).toBe('or');
+        expect(q('have-code-title').textContent).toBe('I have a share code');
+        expect(q('fresh-start-title').textContent).toBe("I'm starting fresh");
+        expect(q('have-code-option')).not.toBeNull();
+        expect(q('fresh-start-option')).not.toBeNull();
     });
 
     it('keeps the top-bar sign-in visible on the gradient navbar', () => {
@@ -186,9 +198,9 @@ describe('HomeLanding', () => {
         expect(heading.tagName).toBe('H2');
 
         const list = q('how-it-works-list');
-        expect(list.tagName).toBe('UL');
-        const items = Array.from(list.children);
-        expect(items).toHaveLength(5);
+        const items = [1, 2, 3, 4, 5].map((n) => q(`how-it-works-item-${n}`));
+        expect(items.every(Boolean)).toBe(true);
+        expect(list.querySelectorAll('[data-testid^="how-it-works-item-"]')).toHaveLength(5);
         const expected = [
             "It's 100% free — no card and no subscription, ever.",
             'Any English level works, from beginner to advanced. It teaches you what to say.',
@@ -196,10 +208,13 @@ describe('HomeLanding', () => {
             'Answer out loud and get instant feedback on your speaking.',
             "Your friend's videos expire after 48 hours, so start now.",
         ];
-        items.forEach((li, i) => {
-            expect(li.tagName).toBe('LI');
-            expect(li.tagName).not.toBe('H2');
-            const span = li.querySelector('span');
+        items.forEach((row, i) => {
+            expect(row.className).toContain('row');
+            expect(row.className).toContain('uff-how-row');
+            const icon = row.querySelector('.uff-how-icon');
+            expect(icon).not.toBeNull();
+            expect(icon.className).toMatch(/bi-/);
+            const span = row.querySelector('span');
             expect(span).not.toBeNull();
             expect(span.textContent).toBe(expected[i]);
         });
@@ -210,6 +225,35 @@ describe('HomeLanding', () => {
         expect(q('how-it-works-heading').textContent).toBe('Cómo funciona');
         expect(q('how-it-works-item-1').querySelector('span').textContent)
             .toBe('Es 100% gratis: sin tarjeta y sin suscripción, para siempre.');
+    });
+
+    it('alternates the giant icon left/right across How-it-works rows', () => {
+        render();
+        const icons = [1, 2, 3, 4, 5].map((n) => q(`how-it-works-item-${n}`).querySelector('.uff-how-icon'));
+        expect(icons.every(Boolean)).toBe(true);
+        const iconCols = [1, 2, 3, 4, 5].map((n) => q(`how-it-works-item-${n}`).querySelector('.uff-how-icon').closest('[class*="col-"]'));
+        expect(iconCols[0].className).not.toContain('order-md-2');
+        expect(iconCols[1].className).toContain('order-md-2');
+        expect(iconCols[2].className).not.toContain('order-md-2');
+        expect(iconCols[3].className).toContain('order-md-2');
+    });
+
+    it('gives the showcase carousel the brand blue gradient background', async () => {
+        const { readFileSync } = await import('node:fs');
+        const css = readFileSync('src/components/homescreen/home-landing.css', 'utf8');
+        const start = css.indexOf('.uff-showcase-gradient');
+        expect(start).toBeGreaterThan(-1);
+        expect(css.slice(start, start + 800)).toContain('rgba(58, 143, 213, 1)');
+        expect(css.slice(start, start + 800)).toContain('rgba(0, 192, 216, 1)');
+    });
+
+    it('never pulses homepage buttons', async () => {
+        const { readFileSync } = await import('node:fs');
+        const css = readFileSync('src/components/homescreen/home-landing.css', 'utf8');
+        expect(css).not.toContain('btnGlowPulse');
+        const app = readFileSync('src/assets/css/app.css', 'utf8');
+        const haloStart = app.indexOf('.btn-primary::before,');
+        expect(app.slice(haloStart, app.indexOf('}', haloStart) + 1)).not.toContain('.uff-home-bs');
     });
 
     // --- Task 3: "About the teacher" section ---

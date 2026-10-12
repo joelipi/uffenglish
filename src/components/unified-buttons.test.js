@@ -217,17 +217,17 @@ describe('primary rectangular buttons share the overlay halo edge', () => {
         const start = css.indexOf('\n.btn-primary,\n.btn-secondary,');
         expect(start, 'missing shared halo host rule').toBeGreaterThan(-1);
         const host = css.slice(start, css.indexOf('}', start) + 1);
-        for (const sel of ['.btn-primary', '.btn-secondary', '.btn-success', '.uff-home-bs .btn-uff-primary', '.uff-home-bs .btn-uff-topbar']) {
+        for (const sel of ['.btn-primary', '.btn-secondary', '.btn-success']) {
             expect(host, `host rule misses ${sel}`).toContain(sel);
         }
         expect(host).toContain('position: relative');
         expect(host).toContain('z-index: 0');
     });
 
-    it('gives solid theme and homepage buttons the one pulsing halo', () => {
+    it('gives solid theme buttons the one pulsing halo', () => {
         const css = read('src/assets/css/app.css');
         const halo = cssBlock(css, '.btn-primary::before,');
-        for (const sel of ['.btn-secondary::before', '.btn-success::before', '.uff-home-bs .btn-uff-primary::before', '.uff-home-bs .btn-uff-topbar::before']) {
+        for (const sel of ['.btn-secondary::before', '.btn-success::before']) {
             expect(halo, `halo rule misses ${sel}`).toContain(sel);
         }
         expect(halo).toContain("content: ''");
@@ -240,10 +240,28 @@ describe('primary rectangular buttons share the overlay halo edge', () => {
         expect(halo).toContain('pointer-events: none');
     });
 
-    it('kills the halo on every disabled primary, topbar included', () => {
+    it('keeps homepage buttons out of the pulsing halo - only overlay primaries pulse', () => {
+        const css = read('src/assets/css/app.css');
+        const halo = cssBlock(css, '.btn-primary::before,');
+        expect(halo).not.toContain('.uff-home-bs');
+        expect(halo).not.toContain('.btn-uff-primary::before');
+        expect(halo).not.toContain('.btn-uff-topbar::before');
+    });
+
+    it('adds a homepage kill-switch so homepage buttons never pulse', () => {
+        const css = read('src/assets/css/app.css');
+        const start = css.indexOf('Homepage buttons never pulse');
+        expect(start, 'missing homepage no-pulse guard').toBeGreaterThan(-1);
+        const guard = css.slice(start, css.indexOf('}', css.indexOf('.uff-home-bs .btn-uff-primary,', start)) + 1);
+        expect(guard).toContain('.uff-home-bs .btn-uff-primary::before');
+        expect(guard).toContain('animation: none !important');
+        expect(guard).toContain('box-shadow: none !important');
+    });
+
+    it('kills the halo on every disabled primary', () => {
         const css = read('src/assets/css/app.css');
         const off = cssBlock(css, '.btn-primary:disabled::before,');
-        for (const sel of ['.btn-secondary:disabled::before', '.btn-success:disabled::before', '.uff-home-bs .btn-uff-primary:disabled::before', '.uff-home-bs .btn-uff-topbar:disabled::before']) {
+        for (const sel of ['.btn-secondary:disabled::before', '.btn-success:disabled::before']) {
             expect(off, `kill-switch misses ${sel}`).toContain(sel);
         }
         expect(off).toContain('animation: none !important');

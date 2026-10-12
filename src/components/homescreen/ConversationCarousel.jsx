@@ -26,7 +26,7 @@ export default function ConversationCarousel({ lang = 'en', videos = [] }) {
     const heading = Strings.get('home_landing_showcase_heading', lang);
 
     return (
-        <section className="uff-section uff-section--alt" id="showcase" data-testid="showcase-carousel">
+        <section className="uff-section uff-showcase-gradient" id="showcase" data-testid="showcase-carousel">
             <div className="container">
                 <div className="text-center mb-4">
                     <h2 className="uff-section-title text-white" data-testid="showcase-heading">

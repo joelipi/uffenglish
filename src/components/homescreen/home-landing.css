@@ -331,7 +331,62 @@
     line-height: 1.2;
 }
 
+/* "How it works" alternating rows — Duolingo-style: each item is its own
+   Bootstrap row with a giant icon alternating left/right. */
+.uff-how-row {
+    padding-top: clamp(1.5rem, 3vw, 2.5rem);
+    padding-bottom: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+.uff-how-row + .uff-how-row {
+    border-top: 1px solid var(--bs-border-color);
+}
+
+.uff-how-icon {
+    font-size: clamp(4rem, 10vw, 7rem);
+    line-height: 1;
+    color: #00c0d8;
+    text-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+}
+
+/* Equal-weight start options: an "or" divider between two primary CTAs. */
+.uff-or-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 1.25rem 0;
+    color: var(--bs-secondary-color);
+    font-weight: 600;
+    text-transform: lowercase;
+}
+
+.uff-or-divider::before,
+.uff-or-divider::after {
+    content: '';
+    flex: 1 1 0;
+    border-top: 1px solid var(--bs-border-color);
+}
+
+.uff-or-divider span {
+    padding: 0 0.25rem;
+}
+
 /* --- Showcase carousel ------------------------------------------------ */
+/* Brand blue gradient, same water overlay the lesson app uses (see the
+   water overlay rule in src/assets/css/app.css): opaque brand blue up top
+   easing into cyan. White text stays readable on it. */
+.uff-showcase-gradient {
+    background: linear-gradient(
+        to bottom,
+        rgba(58, 143, 213, 1) 0%,
+        rgba(58, 143, 213, 1) 30%,
+        rgba(58, 143, 213, 0.95) 50%,
+        rgba(0, 192, 216, 1) 70%,
+        rgba(0, 192, 216, 1) 100%
+    );
+    border-top: 1px solid var(--bs-border-color);
+    border-bottom: 1px solid var(--bs-border-color);
+}
 .uff-carousel-track {
     display: flex;
     transition: transform 0.3s ease;

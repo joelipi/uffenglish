@@ -2271,12 +2271,12 @@ const strings = {
         bn: "বন্ধুদের সাথে বিনামূল্যে ইংরেজি চর্চা করুন।"
     },
     'home_landing_subheadline': {
-        en: "Enter your friend's share code",
-        es: "Ingresa el código de tu amigo",
-        pt: "Digite o código do seu amigo",
-        fr: "Entrez le code de partage de votre ami",
-        hi: "अपने दोस्त का शेयर कोड दर्ज करें",
-        bn: "আপনার বন্ধুর শেয়ার কোড লিখুন"
+        en: "Choose how to start — both are free",
+        es: "Elige cómo empezar — ambas opciones son gratis",
+        pt: "Escolha como começar — ambas são grátis",
+        fr: "Choisissez comment commencer — les deux sont gratuites",
+        hi: "चुनें कि कैसे शुरू करें — दोनों मुफ़्त हैं",
+        bn: "কীভাবে শুরু করবেন বেছে নিন — দুটোই বিনামূল্যে"
     },
     'home_landing_code_placeholder': {
         en: "Share code",
@@ -2295,12 +2295,36 @@ const strings = {
         bn: "যান"
     },
     'home_landing_no_code': {
-        en: "I don't have a share code",
-        es: "No tengo un código",
-        pt: "Não tenho um código",
-        fr: "Je n'ai pas de code",
-        hi: "मेरे पास शेयर कोड नहीं है",
-        bn: "আমার কাছে শেয়ার কোড নেই"
+        en: "Start without a share code",
+        es: "Empezar sin un código",
+        pt: "Começar sem um código",
+        fr: "Commencer sans code",
+        hi: "बिना शेयर कोड के शुरू करें",
+        bn: "শেয়ার কোড ছাড়াই শুরু করুন"
+    },
+    'home_landing_have_code_title': {
+        en: "I have a share code",
+        es: "Tengo un código",
+        pt: "Tenho um código",
+        fr: "J'ai un code",
+        hi: "मेरे पास शेयर कोड है",
+        bn: "আমার কাছে শেয়ার কোড আছে"
+    },
+    'home_landing_fresh_title': {
+        en: "I'm starting fresh",
+        es: "Empiezo desde cero",
+        pt: "Estou começando agora",
+        fr: "Je commence",
+        hi: "मैं नए सिरे से शुरू कर रहा हूँ",
+        bn: "আমি নতুন করে শুরু করছি"
+    },
+    'home_landing_or': {
+        en: "or",
+        es: "o",
+        pt: "ou",
+        fr: "ou",
+        hi: "या",
+        bn: "অথবা"
     },
     'home_landing_code_required': {
         en: "Enter a share code to continue.",
