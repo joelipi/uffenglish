@@ -4,6 +4,9 @@ import Strings, { get, getBilingual, strings } from './strings.js';
 // Story 059: the public homepage's marketing sections. `getBilingual` reports
 // `.localized === null` when a language entry is missing, so it is the reliable
 // way to assert every language variant exists (get() falls back to English).
+// NOTE: `home_landing_how_heading` is intentionally retained as the section's
+// stable name even though the visible H2 was removed (the section is marked
+// by a code comment in HomeLanding.jsx) — do not delete it as dead copy.
 const KEYS = {
     home_landing_how_heading: 'How it works',
     home_landing_how_1_title: '100% free',

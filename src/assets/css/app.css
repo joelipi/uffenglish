@@ -869,10 +869,10 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
     animation: btnGlowPulse 2s ease-in-out infinite;
 }
 /* Homepage buttons keep the halo but never pulse: only the main overlay
-   call buttons pulse. These selectors match the shared base exactly, so this
-   rule must stay after it in source order to win. */
-.uff-home-bs .btn-uff-primary::before,
-.uff-home-bs .btn-uff-topbar::before {
+   call buttons pulse. The doubled scope class outranks the shared base, so
+   this wins regardless of source order. */
+.uff-home-bs.uff-home-bs .btn-uff-primary::before,
+.uff-home-bs.uff-home-bs .btn-uff-topbar::before {
     animation: none;
 }
 /* A disabled primary must not glow: same precedent as the pending success

@@ -242,7 +242,7 @@ describe('primary rectangular buttons share the overlay halo edge', () => {
 
     it('switches the homepage halo animation off so only overlay primaries pulse', () => {
         const css = read('src/assets/css/app.css');
-        const override = '.uff-home-bs .btn-uff-primary::before,\n.uff-home-bs .btn-uff-topbar::before {\n    animation: none;\n}';
+        const override = '.uff-home-bs.uff-home-bs .btn-uff-primary::before,\n.uff-home-bs.uff-home-bs .btn-uff-topbar::before {\n    animation: none;\n}';
         expect(css, 'missing homepage no-pulse override').toContain(override);
     });
 
