@@ -17,9 +17,9 @@ columns) and writes an `.xlsx` workbook with two sheets:
   once: `globals` (one value file-wide: `title_text`, `success_srt*`, …),
   `lessons` (one row per `lesson_id`), `steps` (one row per step — the `join`
   value when set, else `video_file`), and `takes` (one row per `filename`:
-  the `phrase` / `phrase_<lang>` source of truth). Single-take rows whose
-  overlay no concatenation can rebuild (intros, branching questions) keep
-  their full `subtitle_text` in a small `overlays` table.
+  the `phrase` / `phrase_<lang>` source of truth). Rows whose overlay no
+  concatenation can rebuild (intros, branching questions, or a take-group with
+  a blank phrase) keep their full `subtitle_text` in a small `overlays` table.
 - **MAIN — formulas only.** The CSV's header and row order plus a trailing
   `_step` helper column: globals as `=INPUT!$B$..`, shared values as `VLOOKUP`
   by `filename` / lesson / step (the `_step` helper holds `join`-else-`video_file`),
