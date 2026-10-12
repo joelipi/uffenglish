@@ -164,6 +164,15 @@ describe('oldestActiveFriendEntry', () => {
         ], NOW)).toBeNull();
         expect(oldestActiveFriendEntry(null, NOW)).toBeNull();
     });
+
+    it('honors the 48h boundary to the minute', () => {
+        const justInside = linkEntry({ addedAt: new Date(NOW - (48 * 60 * 60 * 1000 - 60 * 1000)).toISOString() });
+        const justOutside = linkEntry({ addedAt: new Date(NOW - (48 * 60 * 60 * 1000 + 60 * 1000)).toISOString() });
+        expect(oldestActiveFriendEntry([{ shareCode: 'ab12', friendLinks: { a: justInside } }], NOW))
+            ?.toBe(justInside);
+        expect(oldestActiveFriendEntry([{ shareCode: 'ab12', friendLinks: { a: justOutside } }], NOW))
+            .toBeNull();
+    });
 });
 
 describe('pickRandomId', () => {

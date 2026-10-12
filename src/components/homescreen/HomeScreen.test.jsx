@@ -250,6 +250,30 @@ describe('HomeScreen Continue button', () => {
         expect(container.querySelector('[data-testid="home-continue"]')).toBeNull();
     });
 
+    it('falls back to a random unstarted friend ask lesson for guests', async () => {
+        // Guest profile: no inbox, no progress — every friend course counts
+        // as unstarted, so the fallback is a solo-startable `a` lesson.
+        appStore.setState({ courseId: 'wouldrather', activeLessonId: 'b' });
+        await renderHome();
+        const target = await clickContinue();
+        expect(target).toMatch(/^\/course\/(friend|wouldrather)\/lesson\/a$/);
+    });
+
+    it('skips a friend whose profile fetch rejects and still resolves', async () => {
+        apiMocks.useUserProfileImpl.mockReturnValue({ data: {
+            $id: 'u1', shareCode: 'zz99', course_progress: '{}', counted_lessons: [],
+        } });
+        apiMocks.useNotificationsImpl.mockReturnValue({ data: [
+            { id: 'n1', type: 'friend_response', payload: { actorShareCode: 'ab12', actorName: 'A' } },
+        ] });
+        apiMocks.fetchUserByShareCodeImpl.mockRejectedValue(new Error('offline'));
+        appStore.setState({ courseId: 'wouldrather', activeLessonId: 'b' });
+        await renderHome();
+        // The failed friend is skipped; the unstarted-friend fallback
+        // (wouldrather itself is the resume, so `friend`) still renders.
+        expect(await clickContinue()).toBe('/course/friend/lesson/a');
+    });
+
     it('resolves an identical target across renders with unchanged cache data', async () => {
         const hour = 60 * 60 * 1000;
         const now = Date.now();
