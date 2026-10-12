@@ -20,6 +20,7 @@ import {
     THEME_COLOR,
     BACKGROUND_COLOR,
 } from './pwa-manifest.js';
+import { matchesPwaNavigationDenyList } from './pwa-navigation-deny-list.js';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const read = (rel) => readFileSync(path.join(REPO_ROOT, rel), 'utf8');
@@ -148,21 +149,30 @@ describe('vite.config.js PWA build wiring', () => {
 
     it('precaches the app shell with an SPA navigation fallback', () => {
         expect(config).toContain("navigateFallback: 'index.html'");
-        expect(config).toContain('navigateFallbackDenylist');
-        // The denylist entries that actually matter: without them Workbox
-        // answers every navigation from the cached shell and shadows these
-        // real standalone pages.
-        expect(config).toContain('/^\\/recorder(\\.html)?(\\?|$)/');
-        expect(config).toContain('/^\\/landing\\.html(\\?|$)/');
-        // Not `$`-anchored on the path: Workbox matches `pathname + search`,
-        // so `/recorder.html?x=1` must still be denied.
-        expect(config).not.toContain('/^\\/recorder(\\.html)?$/');
-        expect(config).not.toContain('/^\\/landing\\.html$/');
-        expect(config).toContain('/^\\/api\\//');
-        expect(config).toContain('/^\\/assets\\//');
-        expect(config).toContain('/^\\/whisper\\//');
+        expect(config).toContain('navigateFallbackDenylist: PWA_NAVIGATION_DENY_LIST');
+        // The deny list itself is a pure module with behavioural tests
+        // (pwa-navigation-deny-list.test.js) — asserting the regex text here
+        // would let an unreachable-but-present pattern pass, so only the
+        // wiring is asserted at this level.
+        expect(config).toContain(
+            "import { PWA_NAVIGATION_DENY_LIST } from './scripts/lib/pwa-navigation-deny-list.js'"
+        );
         expect(config).toContain('cleanupOutdatedCaches: true');
         expect(config).toContain('maximumFileSizeToCacheInBytes');
+    });
+
+    it('denies both URL forms of every real standalone page (behaviour, not config text)', () => {
+        // Cloudflare serves public/<name>.html at its extensionless path, so the
+        // deny list has to cover `/x` AND `/x.html` (and their query strings) or
+        // the cached shell shadows the real page.
+        for (const stem of ['/recorder', '/landing']) {
+            for (const path of [stem, `${stem}.html`, `${stem}?x=1`, `${stem}.html?x=1`]) {
+                expect(matchesPwaNavigationDenyList(path), path).toBe(true);
+            }
+        }
+        for (const path of ['/home', '/privacy', '/courses', '/abc12', '/course/model/lesson/m-g']) {
+            expect(matchesPwaNavigationDenyList(path), path).toBe(false);
+        }
     });
 
     it('keeps oversized, non-shell and operator-only assets out of the precache', () => {

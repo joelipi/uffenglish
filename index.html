@@ -10,8 +10,9 @@
          worker registration script are injected into the built index.html by
          vite-plugin-pwa from scripts/lib/pwa-manifest.js (dev intentionally
          serves no manifest; check PWA behaviour with `npm run preview`). The
-         icon and theme tags below are the static head links emitted by
-         `npm run pwa:assets` (pwa-assets.config.js). -->
+         icon and theme tags below are the static head links the generator
+         prints from `npm run pwa:assets` (pwa-assets.config.js) — it writes the
+         files, it does not edit this document. -->
     <meta name="theme-color" content="#0b1a2a">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">

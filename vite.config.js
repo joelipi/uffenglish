@@ -6,6 +6,7 @@ import purgecss from 'vite-plugin-purgecss'
 import { VitePWA } from 'vite-plugin-pwa'
 import { homepageBootstrapPlugin } from './scripts/lib/bootstrap-homepage-plugin.js'
 import { buildPwaManifest } from './scripts/lib/pwa-manifest.js'
+import { PWA_NAVIGATION_DENY_LIST } from './scripts/lib/pwa-navigation-deny-list.js'
 
 // Installable-app (PWA) build config. The manifest object lives in
 // scripts/lib/pwa-manifest.js so its contract (the installed app launches on
@@ -16,11 +17,20 @@ import { buildPwaManifest } from './scripts/lib/pwa-manifest.js'
 // with an SPA navigation fallback. Lesson media (R2 `assets/videos`, a different
 // origin), the `public/wasm/**` and `public/whisper/**` model/assets, the
 // oversized AI chunks and the pipeline Functions stay network-only, so offline
-// is a shell, not a lesson player. `registerType: 'prompt'` plus
-// `injectRegister: 'script'` means a plain `navigator.serviceWorker.register`
-// is injected — no `virtual:pwa-register`, so a new build never force-reloads a
-// tab mid-lesson (the app already has its own bounded stale-chunk reload).
+// is a shell, not a lesson player.
+// `registerType: 'prompt'` + `injectRegister: 'script'` injects a bare
+// `navigator.serviceWorker.register` (no `virtual:pwa-register` client). The
+// "no forced reload" property comes from `injectRegister`: the auto-updating
+// registration *and* a `virtual:pwa-register` import would reload every tab when
+// a new build activates, which here would interrupt an in-progress recording. The
+// app already has its own bounded stale-chunk reload (see
+// src/modules/utils/stale-chunk-reload.js), which is now mostly masked because
+// precached chunks resolve from the service worker cache — the trade-off is
+// documented in stories/062-pwa-install.
 const WORKBOX_IGNORES = [
+    // Redundant with globPatterns (which has no `wasm` extension), but kept so
+    // a future globPatterns edit cannot silently start precaching the 109 MB
+    // of onnxruntime binaries under public/wasm.
     '**/wasm/**',
     // Only the model/runtime assets under public/whisper/**; the tiny
     // whisper-worker bootstrap chunks emitted into assets/ are app-shell JS
@@ -89,25 +99,15 @@ export default defineConfig({
             workbox: {
                 globPatterns: ['**/*.{js,css,html,png,svg,ico,webmanifest,woff,woff2}'],
                 globIgnores: WORKBOX_IGNORES,
-                // SPA client routes are served from the precached shell. The
-                // denylist is the load-bearing part: Workbox's NavigationRoute
+                // SPA client routes are served from the precached shell; the
+                // deny list is the load-bearing part. Workbox's NavigationRoute
                 // would otherwise answer EVERY same-origin navigation (any
                 // `mode === 'navigate'` request) from the cached shell, which
                 // would shadow the operator studio and the legacy landing page.
-                // Workbox tests these against `pathname + search`, so they are
-                // deliberately not `$`-anchored on the path alone — a query
-                // string must still match.
+                // The rule (and its unit tests) live in
+                // scripts/lib/pwa-navigation-deny-list.js.
                 navigateFallback: 'index.html',
-                navigateFallbackDenylist: [
-                    /^\/recorder(\.html)?(\?|$)/,
-                    /^\/landing\.html(\?|$)/,
-                    // Defence in depth: these are never navigations, so
-                    // Workbox would not match them anyway, but an accidental
-                    // navigation to them must not be answered with the shell.
-                    /^\/api\//,
-                    /^\/assets\//,
-                    /^\/whisper\//,
-                ],
+                navigateFallbackDenylist: PWA_NAVIGATION_DENY_LIST,
                 cleanupOutdatedCaches: true,
                 // Chunk-size cap for precaching, with skipping allowed instead of
                 // the plugin's default build failure: anything above it (the

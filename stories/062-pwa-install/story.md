@@ -105,15 +105,20 @@ that is out of scope here.)
   `assets/whisper-worker-*.js` bootstrap chunks are app-shell JS and *are*
   precached), `recorder.html` and `landing.html` (standalone pages that must be
   served as-is, never from the SPA shell), and `pwa-icon-source.png`.
-  `navigateFallback: 'index.html'` serves client routes offline, with a
-  `navigateFallbackDenylist` for `/recorder(\.html)?(\?|$)`, `/landing\.html(\?|$)`,
-  `/api/`, `/assets/` and `/whisper/`. The standalone-page entries are
-  load-bearing: without them Workbox's NavigationRoute answers *every*
-  `mode === 'navigate'` request from the cached shell and shadows the hidden
-  operator studio (a real regression, not a theoretical one). They are
-  deliberately not `$`-anchored on the path, because Workbox matches the
-  denylist against `pathname + search` (`workbox-routing/NavigationRoute.js`),
-  so `/recorder.html?x=1` must still be denied.
+  **The navigation deny list is a pure module with behavioural tests.**
+  Workbox's `NavigationRoute` answers *every* same-origin `mode === 'navigate'`
+  request from the precached shell unless it matches a deny-list pattern, so an
+  incomplete list silently shadows real pages. Cloudflare serves
+  `public/<name>.html` at its **extensionless** path (`public/recorder.html` →
+  `/recorder`, `public/landing.html` → `/landing`) and 308-redirects the `.html`
+  form, so the deny list must cover **both forms plus query strings** for each
+  standalone page — denying only `.html` leaves `/landing` answered by the shell
+  (React Router would then match `/:shareCode`). `scripts/lib/pwa-navigation-deny-list.js`
+  exports `PWA_NAVIGATION_DENY_LIST` + `matchesPwaNavigationDenyList(pathnameAndSearch)`
+  and its test asserts **behaviour** (`/landing`, `/landing.html`, `/landing?x=1`
+  denied; `/home`, `/privacy`, `/courses`, `/abc12`, `/course/…` not), so a
+  pattern that names an unreachable URL can no longer pass. `vite.config.js` only
+  asserts that it wires the module in, not the config text.
   `maximumFileSizeToCacheInBytes` is 3 MB **with
   `showMaximumFileSizeToCacheInBytesWarning: true`**, so the oversized
   `idioms`/`idiom-worker` AI chunks (4.3 MB each) and the 6 MB
@@ -161,7 +166,9 @@ that is out of scope here.)
 
 ```
 scripts/lib/pwa-manifest.js        manifest constants + buildPwaManifest()
+scripts/lib/pwa-navigation-deny-list.js  pure rule: the navigations the shell must never answer
 scripts/lib/pwa-manifest.test.js   install contract + on-disk icons + build wiring
+scripts/lib/pwa-navigation-deny-list.test.js  behaviour of the deny rule for real URLs
 pwa-assets.config.js               icon generation (npm run pwa:assets)
 vite.config.js                     VitePWA(...) — manifest, Workbox, register
 index.html                         favicon/apple-touch-icon/theme-color head tags
@@ -207,7 +214,11 @@ src/data/strings.js                          + pwa_install_cta
 
 - `vite.config.js` `VitePWA` options
   - → `strategies: 'generateSW'`, `registerType: 'prompt'`, `injectRegister: 'script'`, and no `autoUpdate` (no forced mid-session reload)
-  - → `navigateFallback: 'index.html'` and a `navigateFallbackDenylist` denying `/recorder(\.html)?(\?|$)` and `/landing\.html(\?|$)` (not `$`-anchored on the path, since Workbox matches `pathname + search`) plus `/api/`, `/assets/` and `/whisper/`
+  - → `navigateFallback: 'index.html'` and `navigateFallbackDenylist: PWA_NAVIGATION_DENY_LIST` (the pure rule from `scripts/lib/pwa-navigation-deny-list.js`)
+  - → for every standalone page (`/recorder`, `/landing`): `/x`, `/x.html`, `/x?y=1` and `/x.html?y=1` are denied by `matchesPwaNavigationDenyList`
+  - → client routes (`/`, `/home`, `/privacy`, `/terms`, `/confirm-email?token=…`, `/courses`, `/login`, `/profile`, `/course/<c>/lesson/<l>`, `/<shareCode>`) are NOT denied, so the offline shell still serves them
+  - → `/api/`, `/assets/` and `/whisper/` prefixes are denied
+  - → an empty/non-string input is denied as `false`, and every pattern is `^`-anchored (an unanchored one could match mid-path)
   - → `globIgnores` includes `**/wasm/**`, `**/whisper/**`, `recorder.html`, `landing.html`
   - → `cleanupOutdatedCaches: true` and a `maximumFileSizeToCacheInBytes` cap
   - → `showMaximumFileSizeToCacheInBytesWarning: true` (oversized chunks are skipped, not a build error)
@@ -290,6 +301,19 @@ npm run build        # emits dist/manifest.webmanifest, dist/sw.js, dist/registe
   `manifest-url`, the `/home` menu entry renders, clicking it opens the dialog
   (`isDialogHidden === false`), the service worker registers at scope `/`, the
   manifest link resolves, and the console is clean.
+- **The deny list is what stops the shell shadowing real pages.** Verified in
+  headless Chromium against `vite preview` with the worker controlling: `/home`
+  is served from the precache (`transferSize: 0`), while `/landing` and
+  `/recorder` are answered by the **network** (`transferSize: 13231` / `10684`)
+  and render no React root — the shell did not shadow them. `vite preview` has
+  no Cloudflare extensionless routing, so those URLs 404 there; what is being
+  asserted is that the service worker did not answer them from the cached shell.
+- **COEP/COOP survive the service worker.** The app needs `credentialless`
+  isolation for `SharedArrayBuffer` (whisper/onnxruntime threads). Checked in
+  the same run with the worker controlling the tab: `window.crossOriginIsolated`
+  is `true` and `SharedArrayBuffer` is defined, because Workbox precaches the
+  response *with* its headers. Without this, a regression would surface as a
+  WASM thread failure, not a load error.
 - **`public/pwa-icon-source.png` is a lossless conversion of
   `src/assets/img/favicons/favicon-192x192.jpeg`** (192x192, the largest
   available copy of that art). If the brand mark changes, replace the source and
