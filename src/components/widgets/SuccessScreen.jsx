@@ -13,7 +13,7 @@ export default function SuccessScreen({ onLoadNextLesson, onRepeat, canvasRef })
   const lessonId = useStore(appStore, state => state.successLessonId);
   const videoButton = useStore(appStore, state => state.successVideoButton);
   const configData = useStore(appStore, state => state.configData);
-  const currentLessonIndex = useStore(appStore, state => state.currentLessonIndex);
+  const clipsPublishing = useStore(appStore, state => state.clipsPublishing);
   const clipsPublishing = useStore(appStore, state => state.clipsPublishing);
   const lang = useNativeLanguage();
 
@@ -37,7 +37,9 @@ export default function SuccessScreen({ onLoadNextLesson, onRepeat, canvasRef })
 
   // Friend-challenge lessons (recapOverlay: 'shareCta') offer only Share, with a
   // call to action; other lessons keep the Replay / Share / Continue row.
-  const currentLesson = configData?.lessons?.[currentLessonIndex];
+  // Looked up by the success lesson id — the same identity the buttons use
+  // — so the row gate can never disagree with the reveal decision.
+  const currentLesson = configData?.lessons?.find(l => l.lessonId === lessonId);
   const isFriendLesson = resolveRecapOverlay(currentLesson) === 'shareCta';
   const cta = getBilingual('share_cta_success', lang);
   const uploadingWarning = Strings.get('clips_uploading_warning', lang);

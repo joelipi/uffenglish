@@ -106,6 +106,22 @@ export default function HomeScreen() {
         }),
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [courseId, activeLessonId, configEntries, courseProgressText, countedLessons, friendLinksMaps, nowBucket]);
+    // Navigation-time refresh: the rendered target stays stable (it never
+    // retargets while displayed), but the tap resolves just-in-time so a
+    // link that aged past 48h since render still falls through correctly.
+    // Falls back to the rendered target when nothing resolves.
+    const handleContinueNavigate = () => {
+        const fresh = resolveContinueTarget({
+            courseId,
+            activeLessonId,
+            configEntries,
+            courseProgressText,
+            countedLessons,
+            friendLinksMaps,
+            nowMs: Date.now(),
+        });
+        navigate(fresh ?? continueTarget);
+    };
 
     function closeMenu() { setMenuOpen(false); }
 
@@ -260,7 +276,7 @@ export default function HomeScreen() {
 
             {continueTarget && (
                 <div style={bottomBarStyle}>
-                    <button data-testid="home-continue" onClick={() => navigate(continueTarget)} style={continueBtnStyle}
+                    <button data-testid="home-continue" onClick={handleContinueNavigate} style={continueBtnStyle}
                             onMouseEnter={e => { e.currentTarget.style.opacity = '0.9'; e.currentTarget.style.transform = 'scale(1.02)'; }}
                             onMouseLeave={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'scale(1)'; }}>
                         {Strings.get('home_continue', lang)} <i className="bi bi-arrow-right"></i>

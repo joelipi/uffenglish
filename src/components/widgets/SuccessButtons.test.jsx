@@ -137,4 +137,30 @@ describe('VideoButton delayed Continue', () => {
         await advance(10000);
         expect(continueVisible()).toBe(false);
     });
+
+    it('a lesson change clears the pending reveal so the new lesson can schedule', async () => {
+        const threeLessons = {
+            lessons: [
+                { lessonId: 'a', recapOverlay: 'shareCta' },
+                { lessonId: 'b', recapOverlay: 'shareCta' },
+                { lessonId: 'c', recapOverlay: 'shareCta' },
+            ],
+        };
+        seedSuccess({ configData: threeLessons, lessonId: 'b' });
+        const button = await renderShare();
+        await tapShare(button);
+        // Move to the next friend lesson before the timer fires.
+        await act(async () => {
+            appStore.setState({
+                successLessonId: 'c',
+                successContinueButton: { visible: false, loading: false },
+            });
+        });
+        await advance(10000);
+        expect(continueVisible()).toBe(false);
+        // The cleared ref allows scheduling for the new lesson.
+        await tapShare(button);
+        await advance(SUCCESS_CONTINUE_REVEAL_DELAY_MS);
+        expect(continueVisible()).toBe(true);
+    });
 });

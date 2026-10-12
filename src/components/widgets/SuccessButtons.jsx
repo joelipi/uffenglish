@@ -117,6 +117,16 @@ export function VideoButton({ canvasRef }) {
     }
   }, []);
 
+  // A lesson change supersedes any pending reveal from the previous lesson:
+  // a stale-suppressed fire would otherwise leave the ref set and — under
+  // the first-tap-wins rule — block scheduling for the new lesson forever.
+  useEffect(() => {
+    if (revealTimerRef.current) {
+        revealTimerRef.current();
+        revealTimerRef.current = null;
+    }
+  }, [lessonId]);
+
   // Shared processing logic — runs immediately on processBtn click.
   // For logged-in users, also publishes segments to R2.
   const runProcessing = useCallback(async ({ publishSegments }) => {
