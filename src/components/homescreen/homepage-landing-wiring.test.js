@@ -42,7 +42,13 @@ describe('HomeLanding app-matched styling + scroll contract', () => {
     });
 
     it('preserves every existing share-code testid', () => {
-        for (const testid of ['share-code-input', 'share-code-go', 'share-code-error', 'no-code', 'landing-account-link']) {
+        // The card renders twice (hero + bottom repeat) via a `suffix`, so the
+        // testids are template literals; both copies must exist.
+        for (const base of ['share-code-card', 'share-code-subheadline', 'share-code-input', 'share-code-go', 'share-code-error', 'no-code']) {
+            expect(homeLanding, base).toContain(`data-testid={\`${base}\${suffix}\`}`);
+        }
+        expect(homeLanding).toContain('<ShareCodeCta {...ctaProps} suffix="-bottom"');
+        for (const testid of ['landing-account-link']) {
             expect(homeLanding, testid).toContain(`data-testid="${testid}"`);
         }
     });
@@ -53,7 +59,7 @@ describe('HomeLanding app-matched styling + scroll contract', () => {
     });
 
     it('renders the no-code action as a real type="button" button', () => {
-        const at = homeLanding.indexOf('data-testid="no-code"');
+        const at = homeLanding.indexOf('`no-code${suffix}`');
         const from = homeLanding.lastIndexOf('<button', at);
         expect(at).toBeGreaterThan(-1);
         expect(from).toBeGreaterThan(-1);
@@ -61,7 +67,7 @@ describe('HomeLanding app-matched styling + scroll contract', () => {
     });
 
     it('keeps the Go action a type="submit" button', () => {
-        const at = homeLanding.indexOf('data-testid="share-code-go"');
+        const at = homeLanding.indexOf('`share-code-go${suffix}`');
         const from = homeLanding.lastIndexOf('<button', at);
         expect(at).toBeGreaterThan(-1);
         expect(from).toBeGreaterThan(-1);

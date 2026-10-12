@@ -136,6 +136,22 @@ describe('public homepage share-code strings', () => {
             hi: 'अपने दोस्त का कोड दर्ज करें या यदि आपके पास नहीं है तो नए सिरे से शुरू करें।',
             bn: 'আপনার বন্ধুর কোড লিখুন অথবা না থাকলে নতুন করে শুরু করুন।',
         },
+        home_landing_devices_heading: {
+            en: 'Anyone, anywhere, any device.',
+            es: 'Cualquiera, en cualquier lugar, en cualquier dispositivo.',
+            pt: 'Qualquer pessoa, em qualquer lugar, em qualquer dispositivo.',
+            fr: "Qui que vous soyez, où que vous soyez, sur n'importe quel appareil.",
+            hi: 'कोई भी, कहीं भी, कोई भी डिवाइस।',
+            bn: 'যে কেউ, যেকোনো জায়গায়, যেকোনো ডিভাইসে।',
+        },
+        home_landing_devices_body: {
+            en: "It works on any recent device (since about 2020): phone, tablet, or computer. You don't even have to install an app!",
+            es: 'Funciona en cualquier dispositivo reciente (desde aproximadamente 2020): teléfono, tableta o computadora. ¡Ni siquiera tienes que instalar una aplicación!',
+            pt: 'Funciona em qualquer dispositivo recente (desde cerca de 2020): telefone, tablet ou computador. Você nem precisa instalar um aplicativo!',
+            fr: "Ça marche sur tout appareil récent (depuis environ 2020) : téléphone, tablette ou ordinateur. Vous n'avez même pas besoin d'installer une application !",
+            hi: 'यह किसी भी हालिया डिवाइस (लगभग 2020 से) पर काम करता है: फ़ोन, टैबलेट या कंप्यूटर। आपको ऐप इंस्टॉल करने की भी ज़रूरत नहीं है!',
+            bn: 'যেকোনো সাম্প্রতিক ডিভাইসে (প্রায় ২০২০ সাল থেকে) কাজ করে: ফোন, ট্যাবলেট বা কম্পিউটার। আপনাকে অ্যাপ ইনস্টলও করতে হবে না!',
+        },
         home_landing_code_placeholder: {
             en: 'Share code', es: 'Código', pt: 'Código', fr: 'Code',
             hi: 'शेयर कोड', bn: 'শেয়ার কোড',

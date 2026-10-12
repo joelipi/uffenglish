@@ -2270,6 +2270,22 @@ const strings = {
         hi: "अपने दोस्तों के साथ हमेशा मुफ़्त में अंग्रेज़ी बोलने का अभ्यास करें।",
         bn: "আপনার বন্ধুদের সাথে চিরকাল বিনামূল্যে ইংরেজি বলার চর্চা করুন।"
     },
+    'home_landing_devices_heading': {
+        en: "Anyone, anywhere, any device.",
+        es: "Cualquiera, en cualquier lugar, en cualquier dispositivo.",
+        pt: "Qualquer pessoa, em qualquer lugar, em qualquer dispositivo.",
+        fr: "Qui que vous soyez, où que vous soyez, sur n'importe quel appareil.",
+        hi: "कोई भी, कहीं भी, कोई भी डिवाइस।",
+        bn: "যে কেউ, যেকোনো জায়গায়, যেকোনো ডিভাইসে।"
+    },
+    'home_landing_devices_body': {
+        en: "It works on any recent device (since about 2020): phone, tablet, or computer. You don't even have to install an app!",
+        es: "Funciona en cualquier dispositivo reciente (desde aproximadamente 2020): teléfono, tableta o computadora. ¡Ni siquiera tienes que instalar una aplicación!",
+        pt: "Funciona em qualquer dispositivo recente (desde cerca de 2020): telefone, tablet ou computador. Você nem precisa instalar um aplicativo!",
+        fr: "Ça marche sur tout appareil récent (depuis environ 2020) : téléphone, tablette ou ordinateur. Vous n'avez même pas besoin d'installer une application !",
+        hi: "यह किसी भी हालिया डिवाइस (लगभग 2020 से) पर काम करता है: फ़ोन, टैबलेट या कंप्यूटर। आपको ऐप इंस्टॉल करने की भी ज़रूरत नहीं है!",
+        bn: "যেকোনো সাম্প্রতিক ডিভাইসে (প্রায় ২০২০ সাল থেকে) কাজ করে: ফোন, ট্যাবলেট বা কম্পিউটার। আপনাকে অ্যাপ ইনস্টলও করতে হবে না!"
+    },
     'home_landing_headline_sub': {
         en: "even if your friends are offline now, no matter your different English levels",
         es: "aunque tus amigos estén desconectados ahora, sin importar sus diferentes niveles de inglés",
@@ -2336,6 +2352,9 @@ const strings = {
     },
 
     // --- Public homepage (homepage landing sections) ---
+    // (The visible "How it works" H2 was removed; the section is marked by a
+    // code comment in HomeLanding.jsx. The heading key below stays only as
+    // the section's name for tests/docs.)
     'home_landing_how_heading': {
         en: "How it works",
         es: "Cómo funciona",
@@ -2344,13 +2363,21 @@ const strings = {
         hi: "यह कैसे काम करता है",
         bn: "এটি কীভাবে কাজ করে"
     },
+    'home_landing_how_1_title': {
+        en: "100% free",
+        es: "100% gratis",
+        pt: "100% grátis",
+        fr: "100 % gratuit",
+        hi: "100% मुफ़्त",
+        bn: "১০০% বিনামূল্যে"
+    },
     'home_landing_how_1': {
-        en: "It's 100% free — no card and no subscription, ever.",
-        es: "Es 100% gratis: sin tarjeta y sin suscripción, para siempre.",
-        pt: "É 100% grátis: sem cartão e sem assinatura, para sempre.",
-        fr: "C'est 100 % gratuit : sans carte bancaire et sans abonnement, pour toujours.",
-        hi: "यह 100% मुफ़्त है — कभी भी कोई कार्ड या सब्सक्रिप्शन नहीं।",
-        bn: "এটি ১০০% বিনামূল্যে — কখনোই কার্ড বা সাবস্ক্রিপশন লাগবে না।"
+        en: "no subscription, no card needed, ever.",
+        es: "sin suscripción, no se necesita tarjeta, nunca.",
+        pt: "sem assinatura, sem necessidade de cartão, nunca.",
+        fr: "sans abonnement, sans carte bancaire, jamais.",
+        hi: "कोई सब्सक्रिप्शन नहीं, कोई कार्ड ज़रूरी नहीं, कभी भी।",
+        bn: "কোনো সাবস্ক্রিপশন নয়, কোনো কার্ড দরকার নেই, কখনোই।"
     },
     'home_landing_how_2_title': {
         en: "Any English level",
@@ -2368,21 +2395,45 @@ const strings = {
         hi: 'प्रत्येक पाठ समान बुनियादी प्रश्नों और उत्तरों के कई रूप सिखाता है, बिल्कुल शुरुआती तरीके से लेकर उन्नत तरीके तक। उदाहरण के लिए, बिल्कुल शुरुआती: "कॉफ़ी या चाय?" मध्यम: "क्या आप कॉफ़ी या चाय लेंगे?" उन्नत: "क्या आप ताज़ा बने अरेबिका कॉफ़ी का भाप उठता मग पसंद करेंगे या चाय का एक अच्छा कप?"',
         bn: 'প্রতিটি পাঠ একই মৌলিক প্রশ্ন ও উত্তরের একাধিক রূপ শেখায়, একদম শিক্ষানবিশ পদ্ধতি থেকে উন্নত পদ্ধতি পর্যন্ত। উদাহরণস্বরূপ, একদম শিক্ষানবিশ: "কফি না চা?" মধ্যম: "আপনি কি কফি না চা নেবেন?" উন্নত: "আপনি কি সদ্য তৈরি আরবিকা কফির ধোঁয়া ওঠা মগ পছন্দ করবেন নাকি এক কাপ ভালো চা?"'
     },
+    'home_landing_how_3_title': {
+        en: "Practice anytime, anywhere",
+        es: "Practica cuando quieras, donde quieras",
+        pt: "Pratique quando quiser, onde quiser",
+        fr: "Pratiquez n'importe quand, n'importe où",
+        hi: "कभी भी, कहीं भी अभ्यास करें",
+        bn: "যেকোনো সময়, যেকোনো জায়গায় চর্চা করুন"
+    },
     'home_landing_how_3': {
-        en: "You don't need to be online at the same time as your friend.",
-        es: "No necesitas estar en línea al mismo tiempo que tu amigo.",
-        pt: "Você não precisa estar online ao mesmo tempo que seu amigo.",
-        fr: "Vous n'avez pas besoin d'être en ligne en même temps que votre ami.",
-        hi: "आपको अपने दोस्त के साथ एक ही समय पर ऑनलाइन होने की ज़रूरत नहीं है।",
-        bn: "আপনাকে আপনার বন্ধুর সাথে একই সময়ে অনলাইনে থাকতে হবে না।"
+        en: "You don't need to be online at the same time as your friends.",
+        es: "No necesitas estar en línea al mismo tiempo que tus amigos.",
+        pt: "Você não precisa estar online ao mesmo tempo que seus amigos.",
+        fr: "Vous n'avez pas besoin d'être en ligne en même temps que vos amis.",
+        hi: "आपको अपने दोस्तों के साथ एक ही समय पर ऑनलाइन होने की ज़रूरत नहीं है।",
+        bn: "আপনাকে আপনার বন্ধুদের সাথে একই সময়ে অনলাইনে থাকতে হবে না।"
+    },
+    'home_landing_how_4_title': {
+        en: "Instant feedback on your speaking",
+        es: "Comentarios instantáneos sobre tu habla",
+        pt: "Feedback instantâneo sobre a sua fala",
+        fr: "Retour immédiat sur votre expression orale",
+        hi: "आपकी बोली पर तुरंत प्रतिक्रिया",
+        bn: "আপনার বলার উপর সঙ্গে সঙ্গে মতামত"
     },
     'home_landing_how_4': {
-        en: "Answer out loud and get instant feedback on your speaking.",
-        es: "Responde en voz alta y recibe comentarios al instante sobre tu forma de hablar.",
-        pt: "Responda em voz alta e receba feedback instantâneo sobre a sua fala.",
-        fr: "Répondez à voix haute et recevez un retour immédiat sur votre expression orale.",
-        hi: "ज़ोर से जवाब दें और अपनी बोली पर तुरंत प्रतिक्रिया पाएँ।",
-        bn: "জোরে উত্তর দিন এবং আপনার বলার উপর সঙ্গে সঙ্গে মতামত পান।"
+        en: "Find out what you said right or wrong. You have an infinite number of attempts to get it right, no pressure.",
+        es: "Descubre lo que dijiste bien o mal. Tienes un número infinito de intentos para acertar, sin presión.",
+        pt: "Descubra o que disse certo ou errado. Você tem um número infinito de tentativas para acertar, sem pressão.",
+        fr: "Découvrez ce que vous avez dit de bien ou de mal. Vous avez un nombre infini d'essais pour réussir, sans pression.",
+        hi: "जानें कि आपने क्या सही या गलत कहा। सही करने के लिए आपके पास असंख्य प्रयास हैं, कोई दबाव नहीं।",
+        bn: "আপনি কী ঠিক বা ভুল বলেছেন তা জানুন। ঠিক করার জন্য আপনার কাছে অসীম সংখ্যক চেষ্টা আছে, কোনো চাপ নেই।"
+    },
+    'home_landing_how_5_title': {
+        en: "UFF stands for Ultra <i>Fast</i> Fluency in English",
+        es: "UFF significa Ultra <i>Fast</i> Fluency en inglés",
+        pt: "UFF significa Ultra <i>Fast</i> Fluency em inglês",
+        fr: "UFF signifie Ultra <i>Fast</i> Fluency en anglais",
+        hi: "UFF का मतलब है Ultra <i>Fast</i> Fluency in English",
+        bn: "UFF মানে Ultra <i>Fast</i> Fluency in English"
     },
     'home_landing_how_5': {
         en: "Each lesson can be completed in less than 5 minutes.",
@@ -2401,12 +2452,12 @@ const strings = {
         bn: "যা আপনি আগে কখনো চেষ্টা করেননি।"
     },
     'home_landing_how_6': {
-        en: 'This is never-before-seen technology and a totally different paradigm from the thousands of multiple-choice "gamified" apps that don\'t really teach you how to speak.',
-        es: 'Esta es una tecnología nunca antes vista y un paradigma totalmente diferente de las miles de aplicaciones "gamificadas" de opción múltiple que realmente no te enseñan a hablar.',
-        pt: 'Esta é uma tecnologia inédita e um paradigma totalmente diferente dos milhares de aplicativos "gamificados" de múltipla escolha que não ensinam de verdade a falar.',
-        fr: 'C\'est une technologie inédite et un paradigme totalement différent des milliers d\'applications « gamifiées » à choix multiples qui ne vous apprennent pas vraiment à parler.',
-        hi: '"गेमीफाइड" हज़ारों बहुविकल्पीय ऐप्स से बिल्कुल अलग यह अनदेखी तकनीक और एकदम नया नज़रिया है, जो आपको सच में बोलना नहीं सिखाते।',
-        bn: 'এটি অভূতপূর্ব প্রযুক্তি এবং হাজার হাজার বহুনির্বাচনী "গেমিফাইড" অ্যাপ থেকে সম্পূর্ণ ভিন্ন ধারা, যেগুলো আসলে আপনাকে বলতে শেখায় না।'
+        en: 'This is never-before-seen technology and a radically different paradigm from the thousands of multiple-choice "gamified" apps that don\'t really teach you how to speak.',
+        es: 'Esta es una tecnología nunca antes vista y un paradigma radicalmente diferente de las miles de aplicaciones "gamificadas" de opción múltiple que realmente no te enseñan a hablar.',
+        pt: 'Esta é uma tecnologia inédita e um paradigma radicalmente diferente dos milhares de aplicativos "gamificados" de múltipla escolha que não ensinam de verdade a falar.',
+        fr: 'C\'est une technologie inédite et un paradigme radicalement différent des milliers d\'applications « gamifiées » à choix multiples qui ne vous apprennent pas vraiment à parler.',
+        hi: '"गेमीफाइड" हज़ारों बहुविकल्पीय ऐप्स से बिल्कुल अलग यह अनदेखी तकनीक और मौलिक रूप से अलग नज़रिया है, जो आपको सच में बोलना नहीं सिखाते।',
+        bn: 'এটি অভূতপূর্ব প্রযুক্তি এবং হাজার হাজার বহুনির্বাচনী "গেমিফাইড" অ্যাপ থেকে মৌলিকভাবে ভিন্ন ধারা, যেগুলো আসলে আপনাকে বলতে শেখায় না।'
     },
     'home_landing_how_7_title': {
         en: "It works!",

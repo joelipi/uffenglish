@@ -38,6 +38,7 @@ describe('HomeLanding', () => {
         render();
         expect(q('share-code-headline').textContent).toBe('Practice speaking English with your friends free forever.');
         expect(q('hero-subheading').textContent).toBe("even if your friends are offline now, no matter your different English levels");
+        expect(q('hero-subheading').className).toContain('uff-hero-sub');
         expect(q('share-code-subheadline').textContent).toBe("Enter your friend's code or start fresh if you don't have one.");
         expect(q('share-code-go').textContent).toBe("Start with friend's code");
         expect(q('no-code').textContent).toBe("Start without friend's code");
@@ -191,22 +192,20 @@ describe('HomeLanding', () => {
     it('renders the How it works section with eleven headed rows', () => {
         render();
         expect(q('how-it-works')).not.toBeNull();
-        const heading = q('how-it-works-heading');
-        expect(heading.textContent).toBe('How it works');
-        expect(heading.tagName).toBe('H2');
-
         const list = q('how-it-works-list');
         expect(list.getAttribute('role')).toBe('list');
+        // The section heading was removed; a code comment marks the section.
+        expect(q('how-it-works-heading')).toBeNull();
         const items = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((n) => q(`how-it-works-item-${n}`));
         expect(items.every(Boolean)).toBe(true);
         expect(list.querySelectorAll('[data-testid^="how-it-works-item-"]')).toHaveLength(11);
         const expected = [
-            "It's 100% free — no card and no subscription, ever.",
+            'no subscription, no card needed, ever.',
             'Each lesson teaches multiple forms of the same basic questions and answers, from a very beginner way to an advanced way. For instance, very beginner: "Coffee or tea?" Intermediate: "Would you like coffee or tea?" Advanced: "Would you prefer a steaming mug of fresh-brewed Arabica coffee or a nice cup of tea?"',
-            "You don't need to be online at the same time as your friend.",
-            'Answer out loud and get instant feedback on your speaking.',
+            "You don't need to be online at the same time as your friends.",
+            "Find out what you said right or wrong. You have an infinite number of attempts to get it right, no pressure.",
             'Each lesson can be completed in less than 5 minutes.',
-            'This is never-before-seen technology and a totally different paradigm from the thousands of multiple-choice "gamified" apps that don\'t really teach you how to speak.',
+            'This is never-before-seen technology and a radically different paradigm from the thousands of multiple-choice "gamified" apps that don\'t really teach you how to speak.',
             'These are time-tested speaking exercises updated with revolutionary technology.',
             "Re-record yourself as many times as you like. There's no classroom full of people to feel embarrassed in front of.",
             'Ask your friends crazy questions, role play, play trivia games, or even tell jokes!',
@@ -214,7 +213,11 @@ describe('HomeLanding', () => {
             "You're not just practicing English, you're renewing acquaintances and deepening relationships. And you're seeing real progress in speaking English.",
         ];
         const titles = {
+            1: '100% free',
             2: 'Any English level',
+            3: 'Practice anytime, anywhere',
+            4: 'Instant feedback on your speaking',
+            5: 'UFF stands for Ultra Fast Fluency in English',
             6: "Unlike anything you've ever tried before.",
             7: 'It works!',
             8: 'Gain confidence in speaking.',
@@ -231,25 +234,33 @@ describe('HomeLanding', () => {
             expect(icon).not.toBeNull();
             expect(icon.className).toMatch(/bi-/);
             const title = row.querySelector(`[data-testid="how-it-works-title-${n}"]`);
-            if (titles[n] === undefined) {
-                expect(title).toBeNull();
-            } else {
-                expect(title).not.toBeNull();
-                expect(title.tagName).toBe('H3');
-                expect(title.textContent).toBe(titles[n]);
-            }
+            expect(title).not.toBeNull();
+            expect(title.tagName).toBe('H3');
+            expect(title.textContent).toBe(titles[n]);
             const span = row.querySelector('span');
             expect(span).not.toBeNull();
             expect(span.textContent).toBe(expected[i]);
         });
     });
 
+    it('italicizes Fast in the UFF expansion title without injecting HTML', () => {
+        render();
+        const title = q('how-it-works-title-5');
+        const em = title.querySelector('i');
+        expect(em).not.toBeNull();
+        expect(em.textContent).toBe('Fast');
+        expect(title.textContent).toBe('UFF stands for Ultra Fast Fluency in English');
+        expect(title.innerHTML).not.toContain('&lt;');
+    });
+
     it('localizes the How it works section', () => {
         render({ lang: 'es' });
-        expect(q('how-it-works-heading').textContent).toBe('Cómo funciona');
         expect(q('how-it-works-item-1').querySelector('span').textContent)
-            .toBe('Es 100% gratis: sin tarjeta y sin suscripción, para siempre.');
+            .toBe('sin suscripción, no se necesita tarjeta, nunca.');
+        expect(q('how-it-works-title-1').textContent).toBe('100% gratis');
         expect(q('how-it-works-title-2').textContent).toBe('Cualquier nivel de inglés');
+        expect(q('how-it-works-title-3').textContent).toBe('Practica cuando quieras, donde quieras');
+        expect(q('how-it-works-title-4').textContent).toBe('Comentarios instantáneos sobre tu habla');
         expect(q('how-it-works-title-6').textContent).toBe('Algo que nunca has probado.');
     });
 
@@ -370,5 +381,48 @@ describe('HomeLanding', () => {
     it('omits the showcase carousel when there are no showcase videos', () => {
         render({ showcaseVideos: [] });
         expect(q('showcase-carousel')).toBeNull();
+    });
+
+    it('renders the any-device section with icons above the text', () => {
+        render();
+        expect(q('any-device')).not.toBeNull();
+        const icons = q('any-device-icons');
+        expect(icons).not.toBeNull();
+        for (const name of ['android', 'ios', 'windows', 'mac', 'linux', 'chromebook']) {
+            const icon = q(`any-device-icon-${name}`);
+            expect(icon).not.toBeNull();
+            expect(icon.querySelector('i.bi')).not.toBeNull();
+        }
+        // Icons come before the heading and body in DOM order.
+        const section = q('any-device');
+        expect(section.innerHTML.indexOf('any-device-icons')).toBeLessThan(section.innerHTML.indexOf('any-device-heading'));
+        expect(q('any-device-heading').textContent).toBe('Anyone, anywhere, any device.');
+        expect(q('any-device-text').textContent).toBe("It works on any recent device (since about 2020): phone, tablet, or computer. You don't even have to install an app!");
+    });
+
+    it('repeats the share-code entry at the bottom with working controls', () => {
+        const onSubmitCode = vi.fn();
+        const onNoCode = vi.fn();
+        render({ onSubmitCode, onNoCode });
+        expect(q('bottom-cta')).not.toBeNull();
+        expect(q('share-code-card-bottom')).not.toBeNull();
+        expect(q('share-code-subheadline-bottom').textContent)
+            .toBe(q('share-code-subheadline').textContent);
+        expect(q('share-code-go-bottom').textContent).toBe("Start with friend's code");
+        expect(q('no-code-bottom').textContent).toBe("Start without friend's code");
+        act(() => { q('no-code-bottom').click(); });
+        expect(onNoCode).toHaveBeenCalledTimes(1);
+        expect(onSubmitCode).not.toHaveBeenCalled();
+        const input = q('share-code-input-bottom');
+        act(() => {
+            const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+            setter.call(input, 'xyz');
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        act(() => {
+            q('share-code-go-bottom').closest('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+        });
+        expect(onSubmitCode).toHaveBeenCalledTimes(1);
+        expect(onSubmitCode).toHaveBeenCalledWith('xyz');
     });
 });

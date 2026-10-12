@@ -139,9 +139,13 @@
     letter-spacing: -0.02em;
 }
 
-.uff-hero-lead {
-    color: #e9ecef;
-    font-size: clamp(1.05rem, 1.6vw, 1.25rem);
+/* Subheading under the hero headline: smaller and muted so it reads as a
+   subheading, not a second headline. */
+.uff-hero-sub {
+    font-size: clamp(1.05rem, 2.2vw, 1.4rem);
+    font-weight: 500;
+    color: var(--bs-secondary-color);
+    letter-spacing: 0.01em;
 }
 
 .uff-hero-art {
@@ -312,6 +316,35 @@
     line-height: 1;
     color: #ffffff;
     text-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+}
+
+/* --- Any-device section ------------------------------------------------- */
+/* Icons sit above the text (not off to the side): a centered icon row, then
+   the heading and body copy. */
+.uff-device-icons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: clamp(1rem, 4vw, 2.5rem);
+}
+
+.uff-device-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    color: #ffffff;
+}
+
+.uff-device-icon i {
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    line-height: 1;
+}
+
+.uff-device-icon span {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--bs-secondary-color);
 }
 
 /* --- Showcase carousel ------------------------------------------------ */
