@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { VIDEO_HEADER_RATIO, isVideoHeaderBlurVisible, videoHeaderBlurStyle } from './video-header-logic.js';
+import { VIDEO_HEADER_RATIO, VIDEO_HEADER_COMPACT_RATIO, isVideoHeaderBlurVisible, videoHeaderBlurStyle } from './video-header-logic.js';
 import { HEADER_BAND_RATIO, HEADER_TOP_MARGIN_RATIO, resolveHeaderLayout } from './video-processor-logic.js';
 
 const HEADER = { naturalWidth: 1600, naturalHeight: 300 };
@@ -46,5 +46,12 @@ describe('video header blur logic', () => {
 
     it('exposes the ratio as the --video-header-ratio custom property', () => {
         expect(videoHeaderBlurStyle()).toEqual({ '--video-header-ratio': VIDEO_HEADER_RATIO });
+    });
+
+    it('uses the smaller compact ratio for branching steps (progress row + mission only)', () => {
+        expect(VIDEO_HEADER_COMPACT_RATIO).toBeGreaterThan(0);
+        expect(VIDEO_HEADER_COMPACT_RATIO).toBeLessThan(VIDEO_HEADER_RATIO);
+        expect(videoHeaderBlurStyle({ compact: true })).toEqual({ '--video-header-ratio': VIDEO_HEADER_COMPACT_RATIO });
+        expect(videoHeaderBlurStyle({ compact: false })).toEqual({ '--video-header-ratio': VIDEO_HEADER_RATIO });
     });
 });
