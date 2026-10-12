@@ -27,6 +27,7 @@
 import {
     isFriendCourse,
     firstFriendLessonId,
+    listFriendCourses,
     EXCLUDED_FRIEND_COURSE_IDS,
     buildCourseStartHref,
 } from '../courses/friend-courses-logic.js';
@@ -84,13 +85,18 @@ export function isFriendCourseId(courseId, configEntries) {
     return isFriendCourse(entry.config);
 }
 
-// Friend courses eligible for recommendation: real shareCta courses only.
+// Friend courses eligible for recommendation, reusing the shared
+// listings concept (`listFriendCourses`: non-empty id, not the `test`
+// fixture, `isFriendCourse`, usable first lesson) re-joined to raw entries
+// — the resolver needs full configs, not card summaries. `test-api` stays
+// excluded via EXCLUDED_CONTINUE_COURSE_IDS below (it is a non-friend
+// fixture, so the shared listing never contains it either).
 export function friendCourseEntries(configEntries) {
     if (!Array.isArray(configEntries)) return [];
+    const listed = new Set(listFriendCourses(configEntries).map((c) => c.courseId));
     return configEntries.filter((e) =>
-        e && typeof e.courseId === 'string' && e.courseId !== '' &&
-        !EXCLUDED_CONTINUE_COURSE_IDS.includes(e.courseId) &&
-        e.config && isFriendCourse(e.config));
+        e && typeof e.courseId === 'string' && listed.has(e.courseId) &&
+        !EXCLUDED_CONTINUE_COURSE_IDS.includes(e.courseId));
 }
 
 // Deduped friend actor share codes from the viewer's notification inbox,

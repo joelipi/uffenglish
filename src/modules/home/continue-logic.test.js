@@ -115,6 +115,14 @@ describe('friendCourseEntries', () => {
             .toEqual(['friend', 'wouldrather']);
         expect(EXCLUDED_CONTINUE_COURSE_IDS).toEqual(expect.arrayContaining(['test', 'test-api']));
     });
+
+    it('excludes malformed entries with no usable first lesson', () => {
+        const entries = [
+            ...ENTRIES,
+            { courseId: 'weird', config: { lessons: [{ recapOverlay: 'shareCta' }] } },
+        ];
+        expect(friendCourseEntries(entries).map((e) => e.courseId)).not.toContain('weird');
+    });
 });
 
 describe('collectFriendActorCodes', () => {

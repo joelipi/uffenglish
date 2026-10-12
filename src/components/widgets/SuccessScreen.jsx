@@ -14,7 +14,6 @@ export default function SuccessScreen({ onLoadNextLesson, onRepeat, canvasRef })
   const videoButton = useStore(appStore, state => state.successVideoButton);
   const configData = useStore(appStore, state => state.configData);
   const clipsPublishing = useStore(appStore, state => state.clipsPublishing);
-  const clipsPublishing = useStore(appStore, state => state.clipsPublishing);
   const lang = useNativeLanguage();
 
   // Closing or navigating away while the per-segment clips are still uploading
