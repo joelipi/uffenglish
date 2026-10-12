@@ -58,12 +58,15 @@ export default function HomeScreen() {
         [notifications, selfShareCode]);
     // One cached read per friend actor, reusing the exact public-profile
     // cache keys (`['user', 'profile', 'shareCode', code]`). `staleTime:
-    // Infinity` matches the shared profile cache (no refetch per mount).
+    // Infinity` matches the shared profile cache (no refetch per mount);
+    // `retry: false` is fail-open (an offline friend resolves to an error
+    // state, then skipped, without retries delaying the fallback).
     const friendMapsQueries = useQueries({
         queries: actorCodes.map((code) => ({
             queryKey: ['user', 'profile', 'shareCode', code],
             queryFn: () => fetchUserByShareCode(code),
             staleTime: Infinity,
+            retry: false,
         })),
     });
     // Content signatures, not identities: `useQueries` returns a fresh array
@@ -82,6 +85,12 @@ export default function HomeScreen() {
         [actorCodesKey, friendDataSignature]);
     const courseProgressText = profile?.course_progress;
     const countedLessons = profile?.counted_lessons;
+    // Hourly bucket: `nowMs` would otherwise freeze inside this memo at
+    // first resolution, keeping an expired entry past its boundary in a
+    // long-lived session. Re-resolution runs at most hourly (plus on real
+    // input changes); the random pick re-rolls only then, and only when
+    // the pool holds more than one candidate.
+    const nowBucket = Math.floor(Date.now() / 3600000);
     // Memoized on primitives so re-renders with identical inputs reuse the
     // cached target (no random re-roll); re-resolves only when an input
     // actually changes (the 30s notification refetch refreshes expiry).
@@ -93,10 +102,10 @@ export default function HomeScreen() {
             courseProgressText,
             countedLessons,
             friendLinksMaps,
-            nowMs: Date.now(),
+            nowMs: nowBucket * 3600000,
         }),
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [courseId, activeLessonId, configEntries, courseProgressText, countedLessons, friendLinksMaps]);
+        [courseId, activeLessonId, configEntries, courseProgressText, countedLessons, friendLinksMaps, nowBucket]);
 
     function closeMenu() { setMenuOpen(false); }
 

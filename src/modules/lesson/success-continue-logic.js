@@ -46,7 +46,12 @@ export function scheduleSuccessContinueReveal({
         } catch {
             return;
         }
-        reveal();
+        try {
+            reveal();
+        } catch {
+            // A throwing reveal (e.g. torn-down store) must never surface
+            // as an uncaught timer exception; the schedule simply lapses.
+        }
     }, ms);
     let cancelled = false;
     return () => {

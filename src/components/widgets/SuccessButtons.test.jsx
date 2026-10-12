@@ -115,6 +115,19 @@ describe('VideoButton delayed Continue', () => {
         expect(continueVisible()).toBe(false);
     });
 
+    it('first tap wins: a re-tap never pushes the reveal out', async () => {
+        seedSuccess({ configData: FRIEND_CONFIG, lessonId: 'b' });
+        const button = await renderShare();
+        await tapShare(button);
+        await advance(1000);
+        await tapShare(button);
+        // 3s after the FIRST tap (2s after the second): already revealed.
+        await advance(1999);
+        expect(continueVisible()).toBe(false);
+        await advance(1);
+        expect(continueVisible()).toBe(true);
+    });
+
     it('cancels the pending reveal on unmount', async () => {
         seedSuccess({ configData: FRIEND_CONFIG, lessonId: 'b' });
         const button = await renderShare();

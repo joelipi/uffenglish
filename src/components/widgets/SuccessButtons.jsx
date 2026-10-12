@@ -296,7 +296,9 @@ export function VideoButton({ canvasRef }) {
     const lesson = state.configData?.lessons?.find(l => l.lessonId === lessonId);
     if (!isSuccessContinueDelayed(lesson)) return;
     if (state.successContinueButton?.visible) return;
-    if (revealTimerRef.current) revealTimerRef.current();
+    // First tap wins: a pending timer is never pushed out by a re-tap, so
+    // the reveal always lands one fixed delay after the first engagement.
+    if (revealTimerRef.current) return;
     revealTimerRef.current = scheduleSuccessContinueReveal({
       lessonId,
       reveal: () => {

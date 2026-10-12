@@ -78,6 +78,13 @@ describe('scheduleSuccessContinueReveal', () => {
         expect(reveal).not.toHaveBeenCalled();
     });
 
+    it('a throwing reveal never surfaces as an uncaught timer exception', () => {
+        const reveal = vi.fn(() => { throw new Error('torn down'); });
+        scheduleSuccessContinueReveal({ lessonId: 'b', reveal, getActiveLessonId: () => 'b' });
+        expect(() => vi.advanceTimersByTime(10000)).not.toThrow();
+        expect(reveal).toHaveBeenCalledTimes(1);
+    });
+
     it('falls back to the default delay for a bad delayMs and never throws without a reveal', () => {
         const reveal = vi.fn();
         scheduleSuccessContinueReveal({ lessonId: 'b', delayMs: -5, reveal, getActiveLessonId: () => 'b' });

@@ -31,7 +31,7 @@ import {
     buildCourseStartHref,
 } from '../courses/friend-courses-logic.js';
 import { listActiveFriendLinks } from '../user/friend-lesson-link-logic.js';
-import { normalizeShareCode } from '../notifications/notification-logic.js';
+import { normalizeShareCode, NOTIFICATION_TYPE_FRIEND_RESPONSE } from '../notifications/notification-logic.js';
 
 // Config basenames that must never be recommended: the `test` fixture
 // (same precedent as EXCLUDED_FRIEND_COURSE_IDS) plus the `test-api`
@@ -91,14 +91,17 @@ export function friendCourseEntries(configEntries) {
 }
 
 // Deduped friend actor share codes from the viewer's notification inbox,
-// newest first (the inbox query already orders newest-first). Blank codes
-// and the viewer's own code are skipped.
+// newest first (the inbox query already orders newest-first). Only
+// `friend_response` rows qualify — any other notification type carrying an
+// actor code must never steer Continue. Blank codes and the viewer's own
+// code are skipped.
 export function collectFriendActorCodes(notifications, selfShareCode) {
     if (!Array.isArray(notifications)) return [];
     const self = normalizeShareCode(selfShareCode);
     const seen = new Set();
     const codes = [];
     for (const n of notifications) {
+        if (!n || typeof n !== 'object' || n.type !== NOTIFICATION_TYPE_FRIEND_RESPONSE) continue;
         const code = normalizeShareCode(n?.payload?.actorShareCode);
         if (!code || code === self || seen.has(code)) continue;
         seen.add(code);
@@ -151,6 +154,8 @@ export function pickRandomId(sortedIds, rand = Math.random) {
     if (!Array.isArray(sortedIds) || sortedIds.length === 0) return null;
     const raw = typeof rand === 'function' ? rand() : 0;
     const num = Number(raw);
+    // Clamp into [0, 1): an out-of-range rand (1, negative, NaN) must pick
+    // an edge element, never index out of bounds (undefined).
     const frac = Number.isFinite(num) ? Math.min(Math.max(num, 0), 0.999999999) : 0;
     return sortedIds[Math.floor(frac * sortedIds.length)];
 }
@@ -204,7 +209,11 @@ export function resolveContinueTarget({
         return buildCourseStartHref(courseId, activeLessonId);
     }
     const active = oldestActiveFriendEntry(friendLinksMaps, nowMs);
-    if (active) {
+    // Read-time gate (defense in depth alongside the write-time link
+    // validation): the entry must name a real, non-fixture friend course.
+    // A stale entry pointing at a fixture, an unknown basename, or a
+    // non-friend course falls through instead of showing a broken button.
+    if (active && isFriendCourseId(active.courseId, configEntries) === true) {
         const path = buildFriendContinuePath({
             courseId: active.courseId,
             lessonId: active.lessonId,

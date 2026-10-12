@@ -130,6 +130,12 @@ describe('collectFriendActorCodes', () => {
         expect(collectFriendActorCodes([note('ZZ99')], 'zz99')).toEqual([]);
         expect(collectFriendActorCodes(null, 'zz99')).toEqual([]);
     });
+
+    it('ignores non-friend_response notification types', () => {
+        const other = { id: 'n-x', type: 'other_type', payload: { actorShareCode: 'ab12', actorName: 'A' } };
+        const typeless = { id: 'n-y', payload: { actorShareCode: 'cd34', actorName: 'C' } };
+        expect(collectFriendActorCodes([other, typeless, note('ef56')], 'zz99')).toEqual(['ef56']);
+    });
 });
 
 describe('buildFriendLinksMaps', () => {
@@ -288,6 +294,21 @@ describe('resolveContinueTarget', () => {
             activeLessonId: 'b',
             countedLessons: ['friend_a', 'wouldrather_a'],
         })).toBeNull();
+    });
+
+    it('falls back when the active entry names a fixture, unknown, or non-friend course', () => {
+        for (const courseId of ['test', 'nope', 'model']) {
+            expect(resolveContinueTarget({
+                ...baseArgs,
+                courseId: 'wouldrather',
+                activeLessonId: 'b',
+                countedLessons: ['wouldrather_a'],
+                friendLinksMaps: [{
+                    shareCode: 'ab12',
+                    friendLinks: { a: linkEntry({ courseId, lessonId: 'b', shareCode: 'ab12' }) },
+                }],
+            })).toBe('/course/friend/lesson/a');
+        }
     });
 
     it('never recommends fixtures', () => {
