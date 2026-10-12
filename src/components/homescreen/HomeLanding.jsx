@@ -17,22 +17,15 @@ import teacherPhoto from '../../assets/img/teacherprofile.webp';
 // strings.js key (the hi/bn script guard would fail on a Latin-only entry).
 const TEACHER_NAME = 'Joe Walsh';
 
-const HOW_IT_WORKS_KEYS = [
-    'home_landing_how_1',
-    'home_landing_how_2',
-    'home_landing_how_3',
-    'home_landing_how_4',
-    'home_landing_how_5',
-];
-
-// One giant Bootstrap icon per How-it-works row (Duolingo-style alternating
-// rows). Kept beside the copy keys so icon and text cannot drift apart.
-const HOW_IT_WORKS_ICONS = [
-    'bi-piggy-bank-fill',
-    'bi-mortarboard-fill',
-    'bi-people-fill',
-    'bi-mic-fill',
-    'bi-hourglass-split',
+// One entry per How-it-works row (Duolingo-style alternating rows): copy key
+// plus its own giant Bootstrap icon, kept in one object so icon and text
+// cannot drift apart.
+const HOW_IT_WORKS_ROWS = [
+    { key: 'home_landing_how_1', icon: 'bi-piggy-bank-fill' },
+    { key: 'home_landing_how_2', icon: 'bi-mortarboard-fill' },
+    { key: 'home_landing_how_3', icon: 'bi-people-fill' },
+    { key: 'home_landing_how_4', icon: 'bi-mic-fill' },
+    { key: 'home_landing_how_5', icon: 'bi-hourglass-split' },
 ];
 
 // Public homepage: the friend-challenge entry plus short marketing sections.
@@ -182,14 +175,14 @@ export default function HomeLanding({
                         </div>
                     </div>
                     <div data-testid="how-it-works-list">
-                        {HOW_IT_WORKS_KEYS.map((key, i) => {
+                        {HOW_IT_WORKS_ROWS.map(({ key, icon }, i) => {
                             const iconOnLeft = i % 2 === 0;
                             return (
                                 <div key={key} data-testid={`how-it-works-item-${i + 1}`}
                                     className="row align-items-center g-4 uff-how-row animate__animated animate__fadeInUp"
                                     style={{ animationDelay: `${i * 90}ms` }}>
                                     <div className={`col-12 col-md-4 text-center ${iconOnLeft ? '' : 'order-md-2'}`}>
-                                        <i className={`bi ${HOW_IT_WORKS_ICONS[i]} uff-how-icon`} aria-hidden="true"></i>
+                                        <i className={`bi ${icon} uff-how-icon`} aria-hidden="true"></i>
                                     </div>
                                     <div className={`col-12 col-md-8 ${iconOnLeft ? '' : 'order-md-1'}`}>
                                         <p className="lead text-white mb-0"><span>{Strings.get(key, lang)}</span></p>

@@ -236,6 +236,7 @@ describe('HomeLanding', () => {
         expect(iconCols[1].className).toContain('order-md-2');
         expect(iconCols[2].className).not.toContain('order-md-2');
         expect(iconCols[3].className).toContain('order-md-2');
+        expect(iconCols[4].className).not.toContain('order-md-2');
     });
 
     it('gives the showcase carousel the brand blue gradient background', async () => {
