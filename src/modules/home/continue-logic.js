@@ -52,7 +52,10 @@ export function parseCourseProgress(text) {
 }
 
 // Basenames the learner has started: keys of the progress map plus the
-// `courseId` prefixes of `counted_lessons` (`<courseId>_<lessonId>` keys).
+// `courseId` prefixes of `counted_lessons` (`<courseId>_<lessonId>` keys,
+// split on the FIRST underscore). Convention: course basenames never
+// contain `_` (all current ids are dash/letter based); lesson ids may, and
+// first-split keeps attributing those keys to the right course.
 export function startedCourseBasenames({ courseProgressText = null, countedLessons = [] } = {}) {
     const started = new Set();
     for (const key of Object.keys(parseCourseProgress(courseProgressText))) {

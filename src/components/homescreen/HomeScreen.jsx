@@ -85,15 +85,15 @@ export default function HomeScreen() {
         [actorCodesKey, friendDataSignature]);
     const courseProgressText = profile?.course_progress;
     const countedLessons = profile?.counted_lessons;
-    // Hourly bucket: `nowMs` would otherwise freeze inside this memo at
-    // first resolution, keeping an expired entry past its boundary in a
-    // long-lived session. Re-resolution runs at most hourly (plus on real
-    // input changes); the random pick re-rolls only then, and only when
-    // the pool holds more than one candidate.
+    // Hourly invalidation bucket: the memo below must re-resolve
+    // periodically so a link that ages past 48h eventually drops out, but
+    // re-renders within the hour reuse the cached target (no random
+    // re-roll). The expiry DECISION always uses the true current time —
+    // the bucket only controls when re-resolution may happen (on top of
+    // genuine input changes and query refetches on mount/focus).
     const nowBucket = Math.floor(Date.now() / 3600000);
     // Memoized on primitives so re-renders with identical inputs reuse the
-    // cached target (no random re-roll); re-resolves only when an input
-    // actually changes (the 30s notification refetch refreshes expiry).
+    // cached target; re-resolves on real input changes or hour rollover.
     const continueTarget = useMemo(
         () => resolveContinueTarget({
             courseId,
@@ -102,7 +102,7 @@ export default function HomeScreen() {
             courseProgressText,
             countedLessons,
             friendLinksMaps,
-            nowMs: nowBucket * 3600000,
+            nowMs: Date.now(),
         }),
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [courseId, activeLessonId, configEntries, courseProgressText, countedLessons, friendLinksMaps, nowBucket]);
