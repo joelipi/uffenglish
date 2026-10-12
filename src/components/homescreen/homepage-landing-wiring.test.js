@@ -16,6 +16,9 @@ const carousel = read('./ConversationCarousel.jsx');
 const showcaseVideos = read('../../modules/video/showcase-videos.js');
 const homeLandingCss = read('./home-landing.css');
 const scopedBootstrap = read('../../generated/homepage-bootstrap.css');
+const videoPlayIcon = read('../VideoPlayIcon.jsx');
+const simplePlayer = read('../SimpleVideoPlayer.web.jsx');
+const interactivePlayer = read('../InteractiveVideoPlayer.web.jsx');
 
 describe('HomeLanding app-matched styling + scroll contract', () => {
     it('reuses the app brand gradient token', () => {
@@ -212,5 +215,27 @@ describe('ConversationCarousel poster-first contract', () => {
 
     it('stays opaque (never adds the lesson water surface)', () => {
         expect(carousel).not.toContain('water-surface');
+    });
+
+    it('renders the shared play triangle, not a copied path', () => {
+        expect(carousel).toContain("import VideoPlayIcon from '../VideoPlayIcon.jsx'");
+        expect(carousel).toContain('<VideoPlayIcon');
+        expect(carousel).not.toContain('M8 5v14l11-7z');
+    });
+});
+
+describe('VideoPlayIcon is the single play-triangle source', () => {
+    it('holds the only copy of the triangle path', () => {
+        expect(videoPlayIcon).toContain('M8 5v14l11-7z');
+        for (const src of [carousel, simplePlayer, interactivePlayer]) {
+            expect(src).not.toContain('M8 5v14l11-7z');
+        }
+    });
+
+    it('is rendered by both video players', () => {
+        for (const [name, src] of [['simple', simplePlayer], ['interactive', interactivePlayer]]) {
+            expect(src, name).toContain("import VideoPlayIcon from './VideoPlayIcon.jsx'");
+            expect(src, name).toContain('<VideoPlayIcon');
+        }
     });
 });

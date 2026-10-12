@@ -9,6 +9,7 @@ import { getBilingual } from '../data/strings.js';
 import { useNativeLanguage } from '../hooks/use-native-language.js';
 import { isBranchingStep, BRANCH_OVERLAY_PHASE } from '../modules/lesson/branch-choice-logic.js';
 import { getSimpleVideoOverlayTextKey } from '../modules/video/response-decision-logic.js';
+import VideoPlayIcon from './VideoPlayIcon.jsx';
 
 const hasNavigator = typeof navigator !== 'undefined';
 const isIOS = hasNavigator && (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
@@ -445,9 +446,7 @@ export default function SimpleVideoPlayer() {
                 {!playing && !autoplayPending && mediaState === 'simpleVideo' && (
                     <div className="ivp-play-overlay">
                         <div className="ivp-play-icon-container">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white">
-                                <path d="M8 5v14l11-7z" />
-                            </svg>
+                            <VideoPlayIcon />
                         </div>
                     </div>
                 )}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Strings from '../../data/strings.js';
+import VideoPlayIcon from '../VideoPlayIcon.jsx';
 import './home-landing.css';
 
 // Public homepage carousel of concatenated learner conversations. Poster-first:
@@ -70,9 +71,7 @@ export default function ConversationCarousel({ lang = 'en', videos = [] }) {
                                                 onClick={() => setPlayingSlug(v.slug)}
                                                 className="uff-carousel-play"
                                             >
-                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="uff-carousel-play-icon">
-                                                    <path d="M8 5v14l11-7z" />
-                                                </svg>
+                                                <VideoPlayIcon fill="currentColor" className="uff-carousel-play-icon" />
                                             </button>
                                         </>
                                     )}

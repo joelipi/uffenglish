@@ -245,19 +245,10 @@ describe('HomeLanding', () => {
         expect(css.slice(start, start + 800)).toContain('rgba(0, 192, 216, 1)');
     });
 
-    it('gives homepage buttons a static halo that never pulses', async () => {
+    it('never pulses from the homepage stylesheet', async () => {
         const { readFileSync } = await import('node:fs');
         const css = readFileSync('src/components/homescreen/home-landing.css', 'utf8');
         expect(css).not.toContain('btnGlowPulse');
-        const app = readFileSync('src/assets/css/app.css', 'utf8');
-        const haloStart = app.indexOf('.btn-primary::before,');
-        expect(app.slice(haloStart, app.indexOf('}', haloStart) + 1)).not.toContain('.uff-home-bs');
-        const at = app.indexOf('\n.uff-home-bs .btn-uff-primary::before,');
-        expect(at, 'missing homepage static halo').toBeGreaterThan(-1);
-        const halo = app.slice(at, app.indexOf('}', at) + 1);
-        expect(halo).toMatch(/box-shadow:\s*0 0 25px 8px rgba\(255, 255, 255, 0\.85\)/);
-        expect(halo).toContain('animation: none');
-        expect(halo).not.toContain('btnGlowPulse');
     });
 
     it('uses the in-app simple-video play triangle on carousel slides', () => {

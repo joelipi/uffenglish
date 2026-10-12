@@ -29,7 +29,7 @@ const HOW_IT_WORKS_ROWS = [
 ];
 
 // Public homepage: the friend-challenge entry plus short marketing sections.
-// Built with Bootstrap 5.3.8 (navbar, grid, cards, list-group, buttons) in the
+// Built with Bootstrap 5.3.8 (navbar, grid, cards, buttons) in the
 // main app's palette. The hero's only job is to accept a friend's share code (or
 // send the visitor into the Would You Rather ask lesson); the container owns
 // lookup + error + the language-change handler.
