@@ -50,11 +50,18 @@ vi.mock('../../modules/courses/friend-course-configs.js', () => ({
     loadConfigEntries: vi.fn(async () => [
         {
             courseId: 'friend',
-            config: { courseName: 'Friend Challenge', lessons: [{ lessonId: 'a', recapOverlay: 'shareCta' }] },
+            config: { courseName: 'Friend Challenge', lessons: [
+                { lessonId: 'a', recapOverlay: 'shareCta' },
+                { lessonId: 'b', recapOverlay: 'shareCta' },
+            ] },
         },
         {
             courseId: 'wouldrather',
-            config: { courseName: 'Would You Rather', lessons: [{ lessonId: 'a', recapOverlay: 'shareCta' }] },
+            config: { courseName: 'Would You Rather', lessons: [
+                { lessonId: 'a', recapOverlay: 'shareCta' },
+                { lessonId: 'b', recapOverlay: 'shareCta' },
+                { lessonId: 'c', recapOverlay: 'shareCta' },
+            ] },
         },
         {
             courseId: 'model',
@@ -288,6 +295,41 @@ describe('HomeScreen Continue button', () => {
         // The failed friend is skipped; the unstarted-friend fallback
         // (wouldrather itself is the resume, so `friend`) still renders.
         expect(await clickContinue()).toBe('/course/friend/lesson/a');
+    });
+
+    it('navigates nowhere when nothing resolves at tap time', async () => {
+        const hour = 60 * 60 * 1000;
+        const now = Date.now();
+        apiMocks.useUserProfileImpl.mockReturnValue({ data: {
+            $id: 'u1', shareCode: 'zz99', course_progress: '{}',
+            counted_lessons: ['friend_a', 'wouldrather_a'],
+        } });
+        apiMocks.useNotificationsImpl.mockReturnValue({ data: [
+            { id: 'n1', type: 'friend_response', payload: { actorShareCode: 'ab12', actorName: 'A' } },
+        ] });
+        apiMocks.fetchUserByShareCodeImpl.mockImplementation(async () => ({
+            share_code: 'ab12',
+            friendLinks: {
+                'wouldrather:b': {
+                    courseId: 'wouldrather', recordedLessonId: 'b', lessonId: 'c',
+                    shareCode: 'ab12', addedAt: new Date(now - hour).toISOString(),
+                },
+            },
+        }));
+        appStore.setState({ courseId: 'wouldrather', activeLessonId: 'b' });
+        await renderHome();
+        // Rendered while the link is live...
+        expect(container.querySelector('[data-testid="home-continue"]')).not.toBeNull();
+        // ...but 49h later nothing resolves (expired, friends exhausted, no
+        // non-friend started): the tap must not navigate to the stale link.
+        const realNow = Date.now;
+        Date.now = () => now + 49 * hour;
+        try {
+            await clickContinue();
+            expect(locations).toEqual(['/home']);
+        } finally {
+            Date.now = realNow;
+        }
     });
 
     it('navigates to the fresh target when a link expires between render and tap', async () => {

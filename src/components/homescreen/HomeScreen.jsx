@@ -109,7 +109,11 @@ export default function HomeScreen() {
     // Navigation-time refresh: the rendered target stays stable (it never
     // retargets while displayed), but the tap resolves just-in-time so a
     // link that aged past 48h since render still falls through correctly.
-    // Falls back to the rendered target when nothing resolves.
+    // A null fresh resolution navigates nowhere: null means "no valid
+    // target right now", and the stale rendered target is exactly the
+    // expired link the resolver just rejected — navigating to it would
+    // violate the never-resume-expired invariant (the button hides on the
+    // next resolve).
     const handleContinueNavigate = () => {
         const fresh = resolveContinueTarget({
             courseId,
@@ -120,7 +124,7 @@ export default function HomeScreen() {
             friendLinksMaps,
             nowMs: Date.now(),
         });
-        navigate(fresh ?? continueTarget);
+        if (fresh) navigate(fresh);
     };
 
     function closeMenu() { setMenuOpen(false); }

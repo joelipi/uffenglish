@@ -250,9 +250,9 @@ describe('resolveContinueTarget', () => {
             friendLinksMaps: [
                 { shareCode: 'zz99', friendLinks: {} },
                 { shareCode: 'ab12', friendLinks: { a: linkEntry({ addedAt: hoursAgo(2), lessonId: 'c', shareCode: 'ab12' }) } },
-                { shareCode: 'cd34', friendLinks: { b: linkEntry({ addedAt: hoursAgo(20), lessonId: 'd', shareCode: 'cd34', courseId: 'friend' }) } },
+                { shareCode: 'cd34', friendLinks: { b: linkEntry({ addedAt: hoursAgo(20), lessonId: 'd', shareCode: 'cd34' }) } },
             ],
-        })).toBe('/course/friend/lesson/d?shareCode=cd34');
+        })).toBe('/course/wouldrather/lesson/d?shareCode=cd34');
     });
 
     it('falls through expired entries to a random unstarted friend course', () => {
@@ -314,6 +314,30 @@ describe('resolveContinueTarget', () => {
                 friendLinksMaps: [{
                     shareCode: 'ab12',
                     friendLinks: { a: linkEntry({ courseId, lessonId: 'b', shareCode: 'ab12' }) },
+                }],
+            })).toBe('/course/friend/lesson/a');
+        }
+    });
+
+    it('falls back when the active entry names a missing or non-chain lesson', () => {
+        const mixedEntries = [
+            { courseId: 'wouldrather', config: { lessons: [
+                { lessonId: 'a', recapOverlay: 'shareCta' },
+                { lessonId: 'x' },
+            ] } },
+            { courseId: 'friend', config: friendConfig(['a', 'b']) },
+        ];
+        // Deleted lesson id, and an existing but non-chain lesson id.
+        for (const lessonId of ['zzz', 'x']) {
+            expect(resolveContinueTarget({
+                ...baseArgs,
+                configEntries: mixedEntries,
+                courseId: 'wouldrather',
+                activeLessonId: 'a',
+                countedLessons: ['wouldrather_a'],
+                friendLinksMaps: [{
+                    shareCode: 'ab12',
+                    friendLinks: { a: linkEntry({ courseId: 'wouldrather', lessonId, shareCode: 'ab12' }) },
                 }],
             })).toBe('/course/friend/lesson/a');
         }

@@ -27,7 +27,6 @@
 import {
     isFriendCourse,
     firstFriendLessonId,
-    listFriendCourses,
     EXCLUDED_FRIEND_COURSE_IDS,
     buildCourseStartHref,
 } from '../courses/friend-courses-logic.js';
@@ -85,18 +84,19 @@ export function isFriendCourseId(courseId, configEntries) {
     return isFriendCourse(entry.config);
 }
 
-// Friend courses eligible for recommendation, reusing the shared
-// listings concept (`listFriendCourses`: non-empty id, not the `test`
-// fixture, `isFriendCourse`, usable first lesson) re-joined to raw entries
-// — the resolver needs full configs, not card summaries. `test-api` stays
-// excluded via EXCLUDED_CONTINUE_COURSE_IDS below (it is a non-friend
-// fixture, so the shared listing never contains it either).
+// Friend courses eligible for recommendation. Direct filter over the
+// shared contracts (`isFriendCourse`, `firstFriendLessonId`, the
+// `EXCLUDED_*` ids) — the resolver needs raw entries with full configs,
+// not the listings-page card summaries, and additionally excludes the
+// `test-api` non-friend fixture. A shareCta course whose lessons carry no
+// usable first id (malformed config) is excluded as well.
 export function friendCourseEntries(configEntries) {
     if (!Array.isArray(configEntries)) return [];
-    const listed = new Set(listFriendCourses(configEntries).map((c) => c.courseId));
     return configEntries.filter((e) =>
-        e && typeof e.courseId === 'string' && listed.has(e.courseId) &&
-        !EXCLUDED_CONTINUE_COURSE_IDS.includes(e.courseId));
+        e && typeof e.courseId === 'string' && e.courseId !== '' &&
+        !EXCLUDED_CONTINUE_COURSE_IDS.includes(e.courseId) &&
+        e.config && isFriendCourse(e.config) &&
+        !!firstFriendLessonId(e.config));
 }
 
 // Deduped friend actor share codes from the viewer's notification inbox,
@@ -218,11 +218,17 @@ export function resolveContinueTarget({
         return buildCourseStartHref(courseId, activeLessonId);
     }
     const active = oldestActiveFriendEntry(friendLinksMaps, nowMs);
-    // Read-time gate (defense in depth alongside the write-time link
-    // validation): the entry must name a real, non-fixture friend course.
-    // A stale entry pointing at a fixture, an unknown basename, or a
-    // non-friend course falls through instead of showing a broken button.
-    if (active && isFriendCourseId(active.courseId, configEntries) === true) {
+    // Read-time gates (defense in depth alongside the write-time link
+    // validation): the entry must name a real, non-fixture friend course
+    // AND an existing `shareCta` lesson in that course. A stale entry
+    // pointing at a fixture, an unknown basename, a non-friend course, a
+    // deleted lesson, or a non-chain lesson falls through instead of
+    // showing a broken button.
+    const activeCourseEntry = active ? findConfigEntry(configEntries, active.courseId) : null;
+    const activeLesson = activeCourseEntry?.config?.lessons?.find((l) => l?.lessonId === active?.lessonId);
+    if (active
+        && isFriendCourseId(active.courseId, configEntries) === true
+        && activeLesson?.recapOverlay === 'shareCta') {
         const path = buildFriendContinuePath({
             courseId: active.courseId,
             lessonId: active.lessonId,
