@@ -207,6 +207,7 @@ describe('HomeLanding', () => {
         items.forEach((row, i) => {
             expect(row.className).toContain('row');
             expect(row.className).toContain('uff-how-row');
+            expect(row.getAttribute('role')).toBe('listitem');
             const icon = row.querySelector('.uff-how-icon');
             expect(icon).not.toBeNull();
             expect(icon.className).toMatch(/bi-/);
@@ -251,13 +252,12 @@ describe('HomeLanding', () => {
         const app = readFileSync('src/assets/css/app.css', 'utf8');
         const haloStart = app.indexOf('.btn-primary::before,');
         expect(app.slice(haloStart, app.indexOf('}', haloStart) + 1)).not.toContain('.uff-home-bs');
-        const staticAt = app.indexOf('Homepage buttons keep the halo but never pulse');
-        expect(staticAt).toBeGreaterThan(-1);
-        const guard = app.slice(staticAt, staticAt + 1200);
-        expect(guard).toContain('.uff-home-bs .btn-uff-primary::before');
-        expect(guard).toMatch(/box-shadow:\s*0 0 25px 8px rgba\(255, 255, 255, 0\.85\)/);
-        expect(guard).toContain('animation: none');
-        expect(guard).not.toContain('btnGlowPulse');
+        const at = app.indexOf('\n.uff-home-bs .btn-uff-primary::before,');
+        expect(at, 'missing homepage static halo').toBeGreaterThan(-1);
+        const halo = app.slice(at, app.indexOf('}', at) + 1);
+        expect(halo).toMatch(/box-shadow:\s*0 0 25px 8px rgba\(255, 255, 255, 0\.85\)/);
+        expect(halo).toContain('animation: none');
+        expect(halo).not.toContain('btnGlowPulse');
     });
 
     it('uses the in-app simple-video play triangle on carousel slides', () => {

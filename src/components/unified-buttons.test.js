@@ -250,14 +250,11 @@ describe('primary rectangular buttons share the overlay halo edge', () => {
 
     it('gives homepage buttons a static halo that never pulses', () => {
         const css = read('src/assets/css/app.css');
-        const start = css.indexOf('Homepage buttons keep the halo but never pulse');
-        expect(start, 'missing homepage static-halo guard').toBeGreaterThan(-1);
-        const guard = css.slice(start, start + 1400);
-        expect(guard).toContain('.uff-home-bs .btn-uff-primary::before');
-        expect(guard).toContain('.uff-home-bs .btn-uff-topbar::before');
-        expect(guard).toMatch(/box-shadow:\s*0 0 25px 8px rgba\(255, 255, 255, 0\.85\)/);
-        expect(guard).toContain('animation: none');
-        expect(guard).not.toContain('btnGlowPulse');
+        const halo = cssBlock(css, '.uff-home-bs .btn-uff-primary::before,');
+        expect(halo).toContain('.uff-home-bs .btn-uff-topbar::before');
+        expect(halo).toMatch(/box-shadow:\s*0 0 25px 8px rgba\(255, 255, 255, 0\.85\)/);
+        expect(halo).toContain('animation: none');
+        expect(halo).not.toContain('btnGlowPulse');
     });
 
     it('drops the halo on disabled homepage primaries', () => {

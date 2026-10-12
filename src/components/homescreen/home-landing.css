@@ -300,19 +300,6 @@
     box-shadow: 0 0 0 0.25rem var(--bs-focus-ring-color);
 }
 
-/* "How it works" list — a Bootstrap list-group in the app's palette. */
-.uff-home-bs .list-group-item {
-    background-color: transparent;
-    border-color: var(--bs-border-color);
-    color: var(--bs-body-color);
-}
-
-.uff-check {
-    color: #00c0d8;
-    font-size: 1.25rem;
-    line-height: 1.2;
-}
-
 /* "How it works" alternating rows — Duolingo-style: each item is its own
    Bootstrap row with a giant icon alternating left/right. */
 .uff-how-row {

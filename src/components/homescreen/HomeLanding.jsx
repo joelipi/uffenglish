@@ -163,11 +163,11 @@ export default function HomeLanding({
                             </h2>
                         </div>
                     </div>
-                    <div data-testid="how-it-works-list">
+                    <div data-testid="how-it-works-list" role="list">
                         {HOW_IT_WORKS_ROWS.map(({ key, icon }, i) => {
                             const iconOnLeft = i % 2 === 0;
                             return (
-                                <div key={key} data-testid={`how-it-works-item-${i + 1}`}
+                                <div key={key} data-testid={`how-it-works-item-${i + 1}`} role="listitem"
                                     className="row align-items-center g-4 uff-how-row animate__animated animate__fadeInUp"
                                     style={{ animationDelay: `${i * 90}ms` }}>
                                     <div className={`col-12 col-md-4 text-center ${iconOnLeft ? '' : 'order-md-2'}`}>
