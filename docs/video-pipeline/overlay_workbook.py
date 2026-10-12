@@ -17,10 +17,12 @@ an ``.xlsx`` workbook with two sheets:
   ``recap_sources``, ``intro_video``, ...), one row per step (``response_type``,
   ``srt``, ``choose_step_*``, ...), and one row per take (``phrase``,
   ``phrase_<lang>``). This is the only sheet the operator edits.
-* ``MAIN`` — the same header and row order as the CSV, but every repeatable
-  cell is a formula: ``=INPUT!$B$..`` for globals, ``VLOOKUP`` by ``filename``
-  / lesson / step for shared values, and ``&`` concatenation that rebuilds
-  each ``subtitle_text`` overlay from its step's four ``phrase`` cells.
+* ``MAIN`` — the CSV's header and row order plus a trailing ``_step`` helper
+  column, with every repeatable cell a formula: ``=INPUT!$B$..`` for globals,
+  ``VLOOKUP`` by ``filename`` / lesson / step for shared values, and ``&``
+  concatenation that rebuilds each ``subtitle_text`` overlay from its step's
+  four ``phrase`` cells. (``_step`` is an added column, not a CSV one; the
+  render pipeline and config generator are name-keyed and ignore it.)
 
 Only the row keys (``filename``, ``order``) stay plain values on
 ``MAIN``. Google Sheets and Excel evaluate the formulas on
@@ -222,16 +224,19 @@ def _is_reconstructable(index, rows, members):
         return False, []
     ordered = sorted(members, key=lambda i: (order_of(rows[i]), i))
     position = ordered.index(index)
-    if not (rows[index].get(PHRASE_COL) or "").strip():
-        return False, []
     subtitle = rows[index].get(SUBTITLE_COL, "")
-    if not (rows[index].get(PHRASE_COL, "") in subtitle):
-        return False, []
     earlier = [rows[i].get(PHRASE_COL, "") for i in ordered[: position + 1]]
     later = [rows[i].get(PHRASE_COL, "") for i in ordered[position + 1:]]
+    # A blank take cannot be spliced by reference (subtitle_concat_formula
+    # splits on every phrase), so require the row's own and all earlier takes'
+    # phrases non-blank and fall back to a stored overlay otherwise.
+    if any(phrase == "" for phrase in earlier):
+        return False, []
+    if not (rows[index].get(PHRASE_COL, "") in subtitle):
+        return False, []
     if any((phrase or "") in subtitle for phrase in later if phrase):
         return False, []
-    ok, _fragments = split_phrases_out(subtitle, [p for p in earlier if p])
+    ok, _fragments = split_phrases_out(subtitle, earlier)
     if not ok:
         return False, []
     return True, ordered[: position + 1]

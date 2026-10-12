@@ -6,7 +6,6 @@ master, the wider production header shape, and an end-to-end .xlsx write
 (skipped when openpyxl is unavailable).
 """
 
-import csv
 import os
 import sys
 import tempfile
@@ -25,7 +24,6 @@ except ImportError:
     HAS_OPENPYXL = False
 
 from overlay_workbook import (
-    build_input_tables,
     build_workbook_plan,
     classify_columns,
     drop_blank_rows,
@@ -34,7 +32,6 @@ from overlay_workbook import (
     input_sections,
     layout_input_tables,
     read_csv_rows,
-    sibling_groups,
     split_phrases_out,
     step_key_for_row,
     subtitle_concat_formula,
@@ -118,6 +115,28 @@ class EmptyAndDuplicateInputTest(unittest.TestCase):
         artifact = {col: "" for col in headers}
         plan = build_workbook_plan(headers, list(rows) + [artifact])
         self.assertEqual(len(plan["main"]), len(rows))
+
+    def test_drop_blank_rows_helper(self):
+        rows = [{"a": "x", "b": ""}, {"a": "", "b": ""}, {"a": "", "b": "y"}]
+        self.assertEqual(drop_blank_rows(rows), [{"a": "x", "b": ""}, {"a": "", "b": "y"}])
+
+    def test_multitake_group_with_blank_earlier_phrase_falls_back(self):
+        # A blank earlier phrase cannot be spliced by reference, so the row
+        # must use a stored overlay rather than a concat formula that would
+        # raise inside subtitle_concat_formula.
+        headers, rows = tiny_rows()
+        group = [dict(rows[0], filename="g01", video_file="g", phrase="",
+                      subtitle_text="<aside><strong>Heads</strong>___________</aside>"),
+                 dict(rows[0], filename="g02", video_file="g", order="2", phrase="Tails",
+                      subtitle_text="<aside>Heads<strong>Tails</strong></aside>")]
+        plan = build_workbook_plan(headers, group)
+        header = plan["main_header"]
+        for index in (0, 1):
+            kind, payload = plan["main"][index][header.index("subtitle_text")]
+            self.assertEqual(kind, "formula")
+            self.assertIn("VLOOKUP", payload)
+            self.assertNotIn("&", payload)
+        self.assertEqual(len(plan["tables"]["subtitles_rows"]), 2)
 
     def test_key_materializes_as_formula(self):
         headers, rows = tiny_rows()

@@ -20,13 +20,15 @@ columns) and writes an `.xlsx` workbook with two sheets:
   the `phrase` / `phrase_<lang>` source of truth). Single-take rows whose
   overlay no concatenation can rebuild (intros, branching questions) keep
   their full `subtitle_text` in a small `overlays` table.
-- **MAIN — formulas only.** Same header and row order as the CSV: globals as
-  `=INPUT!$B$..`, shared values as `VLOOKUP` by `filename` / lesson / step
-  (the `_step` helper holds `join`-else-`video_file`), and each take-group
-  overlay as a `&` concatenation that splices its four `phrase` cells into the
-  observed template (progressive `<strong>` highlight, `___________`
-  placeholders for later takes). Only `filename` and `order` are plain values;
-  the `_step` helper is itself a formula (`join`-else-`video_file`).
+- **MAIN — formulas only.** The CSV's header and row order plus a trailing
+  `_step` helper column: globals as `=INPUT!$B$..`, shared values as `VLOOKUP`
+  by `filename` / lesson / step (the `_step` helper holds `join`-else-`video_file`),
+  and each take-group overlay as a `&` concatenation that splices its four
+  `phrase` cells into the observed template (progressive `<strong>` highlight,
+  `___________` placeholders for later takes). Only `filename` and `order` are
+  plain values; the `_step` helper is itself a formula. `_step` is an added
+  column, not a CSV one — the render pipeline and config generator are
+  name-keyed and ignore it.
 
 ## Regenerate
 
