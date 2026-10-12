@@ -44,14 +44,14 @@ describe('video header blur logic', () => {
         }
     });
 
-    it('exposes the ratio as the --video-header-ratio custom property', () => {
-        expect(videoHeaderBlurStyle()).toEqual({ '--video-header-ratio': VIDEO_HEADER_RATIO });
+    it('exposes the compact ratio by default and the full ratio for branching steps', () => {
+        expect(videoHeaderBlurStyle()).toEqual({ '--video-header-ratio': VIDEO_HEADER_COMPACT_RATIO });
+        expect(videoHeaderBlurStyle({ full: true })).toEqual({ '--video-header-ratio': VIDEO_HEADER_RATIO });
+        expect(videoHeaderBlurStyle({ full: false })).toEqual({ '--video-header-ratio': VIDEO_HEADER_COMPACT_RATIO });
     });
 
-    it('uses the smaller compact ratio for branching steps (progress row + mission only)', () => {
+    it('keeps the compact ratio smaller than the full burned-header ratio', () => {
         expect(VIDEO_HEADER_COMPACT_RATIO).toBeGreaterThan(0);
         expect(VIDEO_HEADER_COMPACT_RATIO).toBeLessThan(VIDEO_HEADER_RATIO);
-        expect(videoHeaderBlurStyle({ compact: true })).toEqual({ '--video-header-ratio': VIDEO_HEADER_COMPACT_RATIO });
-        expect(videoHeaderBlurStyle({ compact: false })).toEqual({ '--video-header-ratio': VIDEO_HEADER_RATIO });
     });
 });

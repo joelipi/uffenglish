@@ -159,10 +159,10 @@ export default function LessonContainer() {
             <SystemMessageOverlay />
             <LandscapeWarning />
 
-            {/* Blurred band sized to the video's burned-in header area —
-                compact on branching steps (progress row + mission only) */}
+            {/* Blurred band: full burned-header height on branching steps,
+                compact (progress row + mission only) everywhere else */}
             {isVideoHeaderBlurVisible(mediaState, bottomState) && (
-                <div className="video-header-blur" aria-hidden="true" style={videoHeaderBlurStyle({ compact: isBranchingStep(currentStep) })}></div>
+                <div className="video-header-blur" aria-hidden="true" style={videoHeaderBlurStyle({ full: isBranchingStep(currentStep) })}></div>
             )}
 
             {/* Top Overlay */}
