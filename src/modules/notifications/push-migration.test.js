@@ -9,8 +9,9 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const repoRoot = path.join(__dirname, '../../..');
 const sql = readFileSync(
-    path.join(__dirname, '../../../supabase/migrations/008_add_push_subscriptions.sql'),
+    path.join(repoRoot, 'supabase/migrations/008_add_push_subscriptions.sql'),
     'utf8'
 );
 
@@ -19,7 +20,8 @@ describe('008_add_push_subscriptions.sql — table', () => {
         expect(sql).toContain('create table if not exists public.push_subscriptions');
         for (const column of ['user_id uuid not null references auth.users(id) on delete cascade',
             'endpoint text not null', 'p256dh text not null', 'auth text not null',
-            'user_agent text not null default \'\'']) {
+            'user_agent text not null default \'\'',
+            'created_at timestamptz not null default now()']) {
             expect(sql, column).toContain(column);
         }
     });
@@ -84,5 +86,44 @@ describe('008_add_push_subscriptions.sql — webhook trigger', () => {
         expect(sql).toContain('return new;');
         expect(sql).toContain('security definer');
         expect(sql).toContain('revoke all on function public.notify_push_on_notification() from public, anon, authenticated');
+    });
+});
+
+describe('push provisioning wiring', () => {
+    const wrangler = readFileSync(path.join(repoRoot, 'wrangler.toml'), 'utf8');
+    const config = readFileSync(path.join(repoRoot, 'src/modules/notifications/push-config.js'), 'utf8');
+    const runbook = readFileSync(path.join(repoRoot, 'docs/push-notifications.md'), 'utf8');
+
+    it('lists the non-secret VAPID values in [vars] (secrets stay in the dashboard)', () => {
+        // AGENTS.md: a non-secret Pages variable a Function reads must be in
+        // wrangler.toml [vars], not only in the dashboard.
+        expect(wrangler).toContain('[vars]');
+        expect(wrangler).toContain('VAPID_PUBLIC_KEY =');
+        expect(wrangler).toContain('VAPID_SUBJECT =');
+        // The private key must never appear in the committed config.
+        expect(wrangler).not.toMatch(/VAPID_PRIVATE_KEY\s*=/);
+        expect(wrangler).not.toMatch(/PUSH_WEBHOOK_SECRET\s*=/);
+    });
+
+    it('keeps the [vars] public key and the committed default in sync', () => {
+        const fromWrangler = (wrangler.match(/VAPID_PUBLIC_KEY\s*=\s*"([^"]+)"/) || [])[1];
+        const fromConfig = (config.match(/DEFAULT_VAPID_PUBLIC_KEY\s*=\s*\n?\s*'([^']+)'/) || [])[1];
+        expect(fromWrangler).toBeTruthy();
+        expect(fromConfig).toBe(fromWrangler);
+    });
+
+    it('documents the runbook steps in docs/push-notifications.md', () => {
+        for (const step of [
+            'generate-vapid-keys',
+            'VAPID_PRIVATE_KEY',
+            'PUSH_WEBHOOK_SECRET',
+            'SUPABASE_SERVICE_ROLE_KEY',
+            'create extension if not exists pg_net',
+            'push_webhook_url',
+            'push_webhook_secret',
+            'net._http_response',
+        ]) {
+            expect(runbook, step).toContain(step);
+        }
     });
 });

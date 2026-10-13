@@ -28,6 +28,22 @@ describe('public/push-sw.js — listeners', () => {
         expect(sw).toContain('FALLBACK_TITLE');
     });
 
+    it('parses the payload and passes title/body/icon/badge/url to showNotification', () => {
+        expect(sw).toContain('event.data.json()');
+        expect(sw).toContain("icon: '/pwa-192x192.png'");
+        expect(sw).toContain("badge: '/pwa-64x64.png'");
+        expect(sw).toContain('data: { url }');
+        expect(sw).toContain('const title =');
+        expect(sw).toContain('const body =');
+    });
+
+    it('never re-subscribes in the worker (it has no session)', () => {
+        // The worker only tells the app; the app re-registers the endpoint.
+        expect(sw).not.toContain('pushManager');
+        expect(sw).not.toContain('subscribe(');
+        expect(sw).toContain("type: 'push-subscription-changed'");
+    });
+
     it('only ever opened a same-origin relative path from an untrusted payload', () => {
         // notificationUrl() rejects anything that is not a single-slash path.
         expect(sw).toContain("if (!url.startsWith('/') || url.startsWith('//')) return FALLBACK_URL;");

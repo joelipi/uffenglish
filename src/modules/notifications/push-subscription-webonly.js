@@ -127,7 +127,9 @@ export async function readExistingSubscription() {
  * encryption keys for the same endpoint.
  */
 export async function persistSubscription({ supabaseClient, userId, subscription }) {
+    if (!subscription) return false;
     const json = typeof subscription.toJSON === 'function' ? subscription.toJSON() : subscription;
+    if (!json) return false;
     const keys = json && json.keys ? json.keys : {};
     if (!json || !json.endpoint || !keys.p256dh || !keys.auth) return false;
 

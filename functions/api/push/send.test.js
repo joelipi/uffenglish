@@ -10,6 +10,7 @@
 // error surface for the database webhook.
 import { describe, it, expect, vi, beforeEach, afterEach, beforeAll } from 'vitest';
 import { createECDH, randomBytes } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import {
     onRequestPost,
     requireWebhookSecret,
@@ -265,5 +266,20 @@ describe('parseNotificationRecord', () => {
         expect(parseNotificationRecord({})).toBeNull();
         expect(parseNotificationRecord(null)).toBeNull();
         expect(parseNotificationRecord('nope')).toBeNull();
+    });
+});
+
+describe('sender source guard', () => {
+    it('authenticates with the service-role key only and never logs secrets or keys', async () => {
+        const source = readFileSync(new URL('./send.js', import.meta.url), 'utf8');
+        // Service role for the cross-user read; the anon key must not appear.
+        expect(source).toContain('SUPABASE_SERVICE_ROLE_KEY');
+        expect(source).not.toContain('SUPABASE_ANON_KEY');
+        // The webhook secret is compared, never printed, and the subscription
+        // keys never reach a log line.
+        expect(source).toMatch(/timingSafeEqual\(provided, expected\)/);
+        expect(source).not.toMatch(/console\.(log|warn|error)\([^)]*(secret|p256dh|auth)/i);
+        // Pruning is scoped to the row id the lookup returned.
+        expect(source).toContain("push_subscriptions?id=eq.");
     });
 });

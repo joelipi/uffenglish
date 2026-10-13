@@ -164,8 +164,10 @@ friend exports answer
 
 - a request without the correct `x-push-webhook-secret`
   - → `401` and no outbound push request
-- a request with the secret but no `record.recipient_id`
-  - → `200 { sent: 0 }` (nothing to do, never a 500)
+- a request with the secret but no `record.recipient_id` / a malformed body
+  - → `200 { sent: 0, reason: 'no-recipient' }` / `{ sent: 0, reason: 'bad-json' }` (nothing to do, never a 500)
+- a recipient with no device subscriptions, or an unpushable notification type
+  - → `200 { sent: 0, pruned: 0, failed: 0, reason: 'no-subscriptions' }` / `'unsupported-type'`, and no outbound push request
 - a valid notification for a recipient with two subscriptions, both healthy
   - → one push per subscription, `200 { sent: 2, pruned: 0 }`
 - a subscription whose send returns 404/410
@@ -174,16 +176,21 @@ friend exports answer
   - → recorded as failed, the other subscriptions still send, response stays `200`
 - the VAPID private key env is missing
   - → `200 { sent: 0, reason }` — fail-open, never a 500
+- a missing `PUSH_WEBHOOK_SECRET` (our misconfiguration, not the caller's)
+  - → `500` so it is visible in logs (the only non-200 besides a `401`)
 - (guard) the Function source
-  - → uses the service-role key, never the anon key, and never logs the secret or the subscription keys
+  - → uses the `SUPABASE_SERVICE_ROLE_KEY` and never the anon key
+  - → compares the webhook secret with `timingSafeEqual` and never logs the secret, `p256dh` or `auth`
+  - → prunes by the subscription id the lookup returned (`push_subscriptions?id=eq.…`)
 
 ### Task 3 - Database webhook trigger
 
 - the trigger migration SQL (static guard)
   - → creates an `AFTER INSERT OR UPDATE` trigger on `public.user_notifications`
-  - → calls `supabase_functions.http_request`
-  - → reads the URL and secret from `current_setting(...)` with `missing_ok`
-  - → returns/does nothing when the settings are unset
+  - → carries `when (tg_op = 'INSERT' or new.created_at is distinct from old.created_at)` so the recipient marking a row **read** never pushes an old notification
+  - → calls `net.http_post` with **named** arguments (`url :=`/`body :=`/`headers :=`/`timeout_milliseconds :=`) — the positional signature is `(url, body, params, headers, timeout)`, so a positional call would put headers into `params`
+  - → reads the URL and secret from `vault.decrypted_secrets` (not `current_setting`/`supabase_functions`, neither of which is available/appropriate here — see Decisions)
+  - → does nothing when the Vault entries are unset or `pg_net` is absent (`to_regprocedure` guard)
   - → never raises on the notification path (an exception here would break the friend-response flow)
 
 ### Task 4 - Service worker push handlers
@@ -196,7 +203,7 @@ friend exports answer
   - → a malformed/absent payload still shows a notification (never a silent drop)
   - → registers a `notificationclick` listener that focuses an existing client whose URL matches `data.url`, else `openWindow(data.url)`
   - → `notificationclick` closes the notification
-  - → registers `pushsubscriptionchange` and re-subscribes + re-registers the new endpoint
+  - → registers `pushsubscriptionchange` and posts `push-subscription-changed` to open windows; the worker never calls `subscribe` and carries no VAPID key (it has no session), so the app re-registers the endpoint on launch (`syncExistingSubscription`)
 
 ### Task 5 - Client: subscribe + post-install permission prompt
 
@@ -221,9 +228,10 @@ friend exports answer
 ### Task 6 - Provisioning runbook + fail-open wiring
 
 - `wrangler.toml`
-  - → `[vars]` carries the non-secret `VAPID_PUBLIC_KEY` (per the repo rule that non-secret Pages vars must be in `[vars]`); the private key and webhook secret stay dashboard secrets
-- the runbook (story Notes / `docs/`)
-  - → documents generating the VAPID pair, setting `VAPID_PRIVATE_KEY` + `PUSH_WEBHOOK_SECRET`, enabling `pg_net`, and setting the two Postgres settings
+  - → `[vars]` carries the non-secret `VAPID_PUBLIC_KEY` and `VAPID_SUBJECT` (per the repo rule that non-secret Pages vars must be in `[vars]`); neither the private key nor the webhook secret appears in the repo
+  - → the `[vars]` public key equals the committed `DEFAULT_VAPID_PUBLIC_KEY` (a drift guard, since a mismatch means every send fails)
+- the runbook at `docs/push-notifications.md`
+  - → documents generating the VAPID pair, the three Pages secrets (`VAPID_PRIVATE_KEY`, `PUSH_WEBHOOK_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`), enabling `pg_net`, the two Vault entries, the `net._http_response` verification and how to rotate
 - fail-open
   - → with no VAPID public key the notification UI is absent and no subscription is attempted
   - → the app builds and every existing test passes with push entirely unconfigured
@@ -234,6 +242,9 @@ friend exports answer
 npm install @block65/webcrypto-web-push@2.0.0
 npx web-push generate-vapid-keys   # prints the VAPID public/private pair
 ```
+
+Provisioning is done and documented in `docs/push-notifications.md` (pg_net, two
+Vault secrets, three Pages secrets, `wrangler.toml` `[vars]`).
 
 ## Technical Context
 

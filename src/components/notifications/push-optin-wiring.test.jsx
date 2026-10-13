@@ -78,6 +78,19 @@ describe('PushNotificationsOptIn — menu entry', () => {
         await act(async () => { button.click(); });
         expect(webOnly.subscribe).toHaveBeenCalledTimes(1);
         expect(webOnly.subscribe.mock.calls[0][0].userId).toBe('user-1');
+        // A successful subscribe hides the entry point for this device.
+        expect(container.querySelector('[data-testid="push-enable"]')).toBeNull();
+        unmount();
+    });
+
+    it('keeps the entry point when the subscribe attempt fails', async () => {
+        webOnly.subscribeResult = { ok: false, reason: 'failed' };
+        const { container, unmount } = render(
+            <PushNotificationsOptIn lang="en" variant="menu-item" userId="user-1" />
+        );
+        await flush();
+        await act(async () => { container.querySelector('[data-testid="push-enable"]').click(); });
+        expect(container.querySelector('[data-testid="push-enable"]')).toBeTruthy();
         unmount();
     });
 
@@ -179,6 +192,9 @@ describe('push opt-in wiring source guards', () => {
             for (const lang of ['en', 'es', 'pt', 'fr', 'hi', 'bn']) {
                 expect(entry, `${key}/${lang}`).toContain(`${lang}:`);
             }
+            // Real Hindi and Bengali script, not English placeholders.
+            expect(entry, `${key} hi`).toMatch(/[\u0900-\u097F]/);
+            expect(entry, `${key} bn`).toMatch(/[\u0980-\u09FF]/);
         }
     });
 });
