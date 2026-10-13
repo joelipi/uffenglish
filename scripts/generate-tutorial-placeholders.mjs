@@ -165,7 +165,13 @@ async function probeMp4(file) {
         if (audioTrack) throw new Error('unexpected audio track');
         const width = await videoTrack.getCodedWidth();
         const height = await videoTrack.getCodedHeight();
-        const duration = await videoTrack.computeDuration();
+        // Deliberately NOT the metadata-first path probeClipDurationSec uses:
+        // Chrome MediaRecorder mp4s carry bogus container-header durations
+        // (AGENTS.md documents 0.12 s on a 4 s clip), so the header value would
+        // false-reject a good clip. The packet scan is the only honest read.
+        // skipLiveWait keeps a live-flagged blob from blocking forever on an
+        // already-ended stream (the documented transcode.web.js lesson).
+        const duration = await videoTrack.computeDuration({ skipLiveWait: true });
         return { width, height, duration };
     } finally {
         input.dispose();
