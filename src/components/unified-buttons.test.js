@@ -190,7 +190,6 @@ const MARKED = [
     ['src/components/widgets/DecisionButtons.jsx', 'id="micBtn"'],
     ['src/components/widgets/DecisionButtons.jsx', 'id="txtBtn"'],
     ['src/components/LessonContainer.jsx', 'phaseData?.onAccept'],
-    ['src/components/widgets/TutorialModal.jsx', 'id="tutorialContinueBtn"'],
 ];
 
 const UNMARKED = [

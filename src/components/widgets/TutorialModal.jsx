@@ -91,7 +91,7 @@ export default function TutorialModal({ stepType, onClose }) {
 
                 <button
                     type="button"
-                    className="btn call-btn btn-row-primary tutorial-modal-continue"
+                    className="btn tutorial-modal-continue"
                     id="tutorialContinueBtn"
                     onClick={handlers.close}
                 >
