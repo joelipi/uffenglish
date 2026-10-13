@@ -73,7 +73,12 @@ export default function PushNotificationsOptIn({
                 hasVapidKey: isUsableVapidKey(resolveClientVapidPublicKey()),
                 permission,
                 isSubscribed: !!existing,
-                dismissed: readPromptDismissed(),
+                // The dismissal belongs to the post-install PROMPT only. The
+                // menu entry must stay available — it is the documented way for
+                // a prompted user to opt in later (and for desktop users who
+                // never install), so passing the flag for both variants would
+                // make "Not now" permanent.
+                dismissed: variant === 'prompt' ? readPromptDismissed() : false,
             });
 
             if (cancelled) return;
@@ -132,7 +137,7 @@ export default function PushNotificationsOptIn({
             </p>
             {outcome === 'denied' && (
                 <p data-testid="push-outcome" style={{ margin: '0 0 10px', fontSize: '13px', color: '#ffb4b4' }}>
-                    {Strings.get('push_optin_dismiss', lang)}
+                    {Strings.get('push_optin_denied_hint', lang)}
                 </p>
             )}
             <div style={{ display: 'flex', gap: '8px' }}>

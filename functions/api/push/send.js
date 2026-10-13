@@ -139,7 +139,7 @@ export async function deleteSubscription({ supabaseUrl, serviceKey, id }) {
  */
 export async function sendToSubscription({ subscription, message, vapid }) {
     if (!isAllowedPushEndpoint(subscription && subscription.endpoint)) {
-        console.error('[push-send] refusing a non-https endpoint');
+        console.error(`[push-send] refusing a non-https endpoint (row ${subscription && subscription.id})`);
         return 'failed';
     }
     try {

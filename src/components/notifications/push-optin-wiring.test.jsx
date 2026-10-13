@@ -31,6 +31,7 @@ vi.mock('../../modules/notifications/push-subscription-webonly.js', () => ({
 }));
 
 import PushNotificationsOptIn from './PushNotificationsOptIn.web.jsx';
+import Strings from '../../data/strings.js';
 import { DEFAULT_VAPID_PUBLIC_KEY } from '../../modules/notifications/push-config.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const read = (rel) => readFileSync(path.join(__dirname, rel), 'utf8');
@@ -94,6 +95,40 @@ describe('PushNotificationsOptIn — menu entry', () => {
         unmount();
     });
 
+    it('stays available after the post-install prompt was dismissed', async () => {
+        // The menu entry is the documented recovery path: "Not now" must not
+        // remove the only way to ever opt in.
+        webOnly.dismissed = true;
+
+        const menu = render(<PushNotificationsOptIn lang="en" variant="menu-item" userId="user-1" />);
+        await flush();
+        expect(menu.container.querySelector('[data-testid="push-enable"]')).toBeTruthy();
+        menu.unmount();
+
+        // …while the prompt itself does respect the dismissal.
+        webOnly.justInstalled = true;
+        const prompt = render(<PushNotificationsOptIn lang="en" variant="prompt" userId="user-1" />);
+        await flush();
+        expect(prompt.container.querySelector('[data-testid="push-prompt"]')).toBeNull();
+        prompt.unmount();
+    });
+
+    it('explains a denied permission instead of reusing the dismiss label', async () => {
+        webOnly.subscribeResult = { ok: false, reason: 'denied' };
+        webOnly.justInstalled = true;
+        const { container, unmount } = render(
+            <PushNotificationsOptIn lang="en" variant="prompt" userId="user-1" />
+        );
+        await flush();
+        await act(async () => { container.querySelector('[data-testid="push-enable"]').click(); });
+
+        const outcome = container.querySelector('[data-testid="push-outcome"]');
+        expect(outcome).toBeTruthy();
+        expect(outcome.textContent).toBe(Strings.get('push_optin_denied_hint', 'en'));
+        expect(outcome.textContent).not.toBe(Strings.get('push_optin_dismiss', 'en'));
+        unmount();
+    });
+
     it('renders nothing for a guest (not signed in)', async () => {
         const { container, unmount } = render(
             <PushNotificationsOptIn lang="en" variant="menu-item" userId={null} />
@@ -104,11 +139,13 @@ describe('PushNotificationsOptIn — menu entry', () => {
     });
 
     it('renders nothing when the browser cannot push, or permission is denied, or already subscribed', async () => {
+        // Dismissal is deliberately NOT one of these cases for the menu variant:
+        // it only suppresses the post-install prompt (covered separately), so the
+        // entry point stays recoverable.
         const cases = [
             { support: { supported: false, permission: 'unsupported' } },
             { support: { supported: true, permission: 'denied' } },
             { existing: { endpoint: 'https://push.example/x' } },
-            { dismissed: true },
         ];
         for (const patch of cases) {
             // Reset to the offering baseline, then apply one blocking input.
@@ -185,7 +222,7 @@ describe('push opt-in wiring source guards', () => {
 
     it('ships localized copy for the push keys in every UI language', () => {
         const strings = read('../../data/strings.js');
-        for (const key of ['push_friend_response_title', 'push_optin_title', 'push_optin_body', 'push_optin_enable', 'push_optin_dismiss']) {
+        for (const key of ['push_friend_response_title', 'push_optin_title', 'push_optin_body', 'push_optin_enable', 'push_optin_dismiss', 'push_optin_denied_hint']) {
             const from = strings.indexOf(`'${key}'`);
             expect(from, key).toBeGreaterThan(-1);
             const entry = strings.slice(from, strings.indexOf('},', from));

@@ -18,9 +18,17 @@ import {
     resolveVapidValue,
 } from './push-config.js';
 
-/** The VAPID public key: build-time override first, committed default after. */
+/**
+ * The VAPID public key: a build-time `VITE_VAPID_PUBLIC_KEY` wins, the committed
+ * default is the fallback. This module is SPA-only, so `import.meta.env` is
+ * available here (push-config.js cannot read it — the Pages Function imports
+ * that module too).
+ */
 export function resolveClientVapidPublicKey(envValue) {
-    return resolveVapidValue(envValue, DEFAULT_VAPID_PUBLIC_KEY);
+    const fromEnv = typeof import.meta !== 'undefined' && import.meta.env
+        ? import.meta.env.VITE_VAPID_PUBLIC_KEY
+        : undefined;
+    return resolveVapidValue(envValue, resolveVapidValue(fromEnv, DEFAULT_VAPID_PUBLIC_KEY));
 }
 
 /** Capability + permission snapshot. `supported` mirrors the real requirements. */

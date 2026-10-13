@@ -1424,6 +1424,14 @@ const strings = {
         hi: "अभी नहीं",
         bn: "এখন নয়"
     },
+    'push_optin_denied_hint': {
+        en: "Notifications are blocked. Allow them for this site in your browser settings.",
+        es: "Las notificaciones están bloqueadas. Permítelas para este sitio en los ajustes del navegador.",
+        pt: "As notificações estão bloqueadas. Permita-as para este site nas configurações do navegador.",
+        fr: "Les notifications sont bloquées. Autorisez-les pour ce site dans les réglages du navigateur.",
+        hi: "सूचनाएँ अवरुद्ध हैं। ब्राउज़र सेटिंग में इस साइट के लिए उन्हें अनुमति दें।",
+        bn: "বিজ্ঞপ্তি ব্লক করা আছে। ব্রাউজার সেটিংসে এই সাইটের জন্য অনুমতি দিন।"
+    },
     'profile_updated': {
         en: "Profile updated successfully.",
         es: "Perfil actualizado correctamente.",

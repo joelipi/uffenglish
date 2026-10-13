@@ -105,6 +105,14 @@ select vault.create_secret('<the same value as PUSH_WEBHOOK_SECRET>',
 - The VAPID **private** key is write-only in Cloudflare. Keep a copy in a
   password manager if it needs to be retrievable; otherwise rotate.
 
+## Opting out
+
+There is no in-app unsubscribe control yet. A learner turns notifications off the
+same way they would for any site (browser → site settings → Notifications →
+Block), which also makes the browser drop the subscription; the sender then prunes
+the dead row on the next `404`/`410`. The `push_subscriptions` delete policy
+already allows an in-app control when one is added.
+
 ## Limits and behaviour worth knowing
 
 - Push is **per device**: a user with a phone and a laptop gets both. The sender

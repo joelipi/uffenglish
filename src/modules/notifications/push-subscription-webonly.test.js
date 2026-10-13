@@ -268,10 +268,18 @@ describe('install-transition and dismissal memory', () => {
 });
 
 describe('resolveClientVapidPublicKey', () => {
-    it('prefers an override and falls back to the committed key', () => {
+    it('prefers an explicit override and falls back to the committed key', () => {
         expect(resolveClientVapidPublicKey('override-key')).toBe('override-key');
         expect(resolveClientVapidPublicKey('   ')).toBe(DEFAULT_VAPID_PUBLIC_KEY);
-        expect(resolveClientVapidPublicKey(undefined)).toBe(DEFAULT_VAPID_PUBLIC_KEY);
+    });
+
+    it('honours the documented build-time VITE_VAPID_PUBLIC_KEY override', () => {
+        vi.stubEnv('VITE_VAPID_PUBLIC_KEY', 'from-env');
+        expect(resolveClientVapidPublicKey()).toBe('from-env');
+
+        vi.stubEnv('VITE_VAPID_PUBLIC_KEY', '');
+        expect(resolveClientVapidPublicKey()).toBe(DEFAULT_VAPID_PUBLIC_KEY);
+        vi.unstubAllEnvs();
     });
 });
 
