@@ -187,6 +187,7 @@ that is out of scope here.)
 scripts/lib/pwa-manifest.js        manifest constants + buildPwaManifest()
 scripts/lib/pwa-navigation-deny-list.js  pure rule: the navigations the shell must never answer
 scripts/lib/pwa-manifest.test.js   install contract + on-disk icons + build wiring
+scripts/lib/pwa-build-output.test.js  runs the production build, asserts the emitted artefacts + precache
 scripts/lib/pwa-navigation-deny-list.test.js  behaviour of the deny rule for real URLs (stems derived from public/*.html)
 pwa-assets.config.js               icon generation (npm run pwa:assets)
 vite.config.js                     VitePWA(...) — manifest, Workbox, register
@@ -239,16 +240,18 @@ src/data/strings.js                          + pwa_install_cta
   - → client routes (`/`, `/home`, `/privacy`, `/terms`, `/confirm-email?token=…`, `/courses`, `/login`, `/profile`, `/course/<c>/lesson/<l>`, `/<shareCode>`) are NOT denied, so the offline shell still serves them
   - → `/api/`, `/assets/` and `/whisper/` prefixes are denied
   - → an empty/non-string input is denied as `false`, and every pattern is `^`-anchored (an unanchored one could match mid-path)
-  - → `globIgnores` includes `**/wasm/**`, `**/whisper/**`, `recorder.html`, `landing.html`
+  - → `globIgnores` includes `**/wasm/**`, `**/whisper/**`, `**/*.test.js`, `recorder.html`, `landing.html`
   - → `cleanupOutdatedCaches: true` and a `maximumFileSizeToCacheInBytes` cap
   - → `showMaximumFileSizeToCacheInBytesWarning: true` (oversized chunks are skipped, not a build error)
   - → `devOptions: { enabled: false }`
-- a production build
+- a production build (`scripts/lib/pwa-build-output.test.js` runs `npm run build` and asserts on `dist/`)
   - → emits `dist/sw.js`, `dist/workbox-*.js`, `dist/manifest.webmanifest`, `dist/registerSW.js`
-  - → `dist/index.html` carries `<link rel="manifest" href="/manifest.webmanifest">` and the `registerSW.js` script (verified by hand; see Notes)
-- the generated precache manifest
+  - → `dist/index.html` carries `<link rel="manifest" href="/manifest.webmanifest">` and the `registerSW.js` script
+  - → the emitted `manifest.webmanifest` parses with `start_url: '/home'`, standalone display, scope `/` and 192/512 icons
+- the generated precache manifest (same test, reading `dist/sw.js`)
   - → contains `index.html`, `manifest.webmanifest`, the icons and the hashed app chunks
-  - → contains no `wasm/`, `whisper/`, `recorder.html`, `landing.html`, `idioms-*` or `listeningbot-*` entry (verified by hand; see Notes)
+  - → contains no `wasm/`, `whisper/`, `recorder.html`, `landing.html`, `idioms-*`, `listeningbot-*`, `pwa-icon-source` or `.test.js` entry
+  - → the emitted navigation route wires the deny list verbatim (both extensionless standalone forms present)
 
 ### Task 3 - `pwa-install` dialog and the install entry point
 
@@ -315,11 +318,10 @@ npm run build        # emits dist/manifest.webmanifest, dist/sw.js, dist/registe
 - **Verifying PWA behaviour.** `npm run dev` intentionally serves no manifest
   and no service worker (`devOptions.enabled: false` — enabling it would run a
   service worker against the dev server, caching modules across HMR and
-  interfering with the existing Playwright suite). Verify against the built app:
-  `npm run build && npm run preview`, then check
-  `/manifest.webmanifest` (JSON, `start_url: "/home"`), `/sw.js` (200,
-  `text/javascript`), the icons (200, `image/png`) and that `navigator.serviceWorker.getRegistration()`
-  resolves to scope `/`. Done during this story in headless Chromium against
+  interfering with the existing Playwright suite). The build artefacts and the
+  precache list are pinned by `scripts/lib/pwa-build-output.test.js`, which runs
+  `npm run build` and asserts on `dist/` — so only the live-browser behaviours
+  below stay manual. Done during this story in headless Chromium against
   `vite preview`: the element upgrades, `showDialog` exists, the dialog starts
   hidden, `<pwa-install>` carries all three manual attributes and
   `manifest-url`, the `/home` menu entry renders, clicking it opens the dialog

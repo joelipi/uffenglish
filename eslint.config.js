@@ -29,6 +29,11 @@ const browserOnlyRestrictedSyntax = [
 ];
 
 export default [
+  // Build output is gitignored generated code (Vite chunks, the Workbox
+  // runtime with its own inline disable comments) — never lint it. This
+  // matters now that a test runs the production build: without this, a
+  // freshly built tree fails lint on files no human wrote.
+  { ignores: ['dist/**'] },
   {
     files: ['src/**/*.js', 'src/**/*.jsx'],
     languageOptions: {

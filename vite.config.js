@@ -33,6 +33,9 @@ const WORKBOX_IGNORES = [
     // a future globPatterns edit cannot silently start precaching the 109 MB
     // of onnxruntime binaries under public/wasm.
     '**/wasm/**',
+    // Test files ride along when copy-config mirrors src/config/** into dist/
+    // — they are never requested by the app, so they must not be precached.
+    '**/*.test.js',
     // Only the model/runtime assets under public/whisper/**; the tiny
     // whisper-worker bootstrap chunks emitted into assets/ are app-shell JS
     // and are intentionally precached.

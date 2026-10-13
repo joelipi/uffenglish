@@ -72,6 +72,9 @@ describe('PWA manifest install contract', () => {
     });
 
     it('ships a 192px and a 512px "any" icon plus a 512px maskable icon', () => {
+        // Every icon is a PNG: assert the type per icon, not via the filter
+        // below (a non-PNG entry would otherwise be silently excluded, not failed).
+        for (const icon of PWA_ICONS) expect(icon.type, icon.src).toBe('image/png');
         const png = PWA_ICONS.filter((i) => i.type === 'image/png');
         const anyIcons = png.filter((i) => i.purpose === 'any');
         expect(anyIcons.map((i) => i.sizes)).toContain('192x192');
@@ -177,7 +180,7 @@ describe('vite.config.js PWA build wiring', () => {
 
     it('keeps oversized, non-shell and operator-only assets out of the precache', () => {
         expect(config).toContain('globIgnores: WORKBOX_IGNORES');
-        for (const pattern of ["'**/wasm/**'", "'**/whisper/**'", "'recorder.html'", "'landing.html'"]) {
+        for (const pattern of ["'**/wasm/**'", "'**/whisper/**'", "'**/*.test.js'", "'recorder.html'", "'landing.html'"]) {
             expect(config, pattern).toContain(pattern);
         }
         expect(config).toContain('showMaximumFileSizeToCacheInBytesWarning: true');
