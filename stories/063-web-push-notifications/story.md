@@ -73,28 +73,37 @@ suppress a non-gesture prompt, and iOS rejects it outright).
 - **The trigger is a Database Webhook, not a client call.** The row is created
   inside `record_friend_response()`, so the push must be triggered by the row
   write (a trigger is the only place that sees it), and it fires even when no
-  client is connected. The trigger is created in SQL (`supabase_functions.http_request`)
-  but **reads its URL and secret from a Postgres setting**
-  (`current_setting('app.push_webhook_url', true)` / `'app.push_webhook_secret'`)
-  and **returns early when unset** — so merging this migration puts nothing on the
-  wire until the runbook steps in Notes are done, and can never hammer a
-  half-configured endpoint.
-- **The webhook fires on INSERT *and* UPDATE.** The dedupe index makes a
-  re-answer an `ON CONFLICT DO UPDATE` that refreshes `created_at` and clears
-  `read_at`, so an `AFTER INSERT OR UPDATE` trigger is what actually mirrors
-  "you have a new response" — an insert-only trigger would silently drop every
-  re-answer.
+  client is connected. It calls `net.http_post` directly rather than
+  `supabase_functions.http_request` — that schema does not exist on this project
+  (only Dashboard-created webhooks make it), so the migration stays
+  self-contained. It **reads its URL and secret from Supabase Vault**
+  (`vault.decrypted_secrets`, names `push_webhook_url` / `push_webhook_secret`)
+  and **returns early when unset** (and when `pg_net` is absent) — so merging the
+  migration puts nothing on the wire on its own and can never hammer a
+  half-configured endpoint. Vault, not a Postgres GUC: a custom `app.*` setting is
+  readable by any role that can execute `current_setting()`, while
+  `vault.decrypted_secrets` is restricted to the owning role (the trigger
+  function is SECURITY DEFINER and nobody else is granted EXECUTE).
+- **The webhook fires on INSERT *and* on the re-answer UPDATE — but not on
+  mark-as-read.** The dedupe index makes a re-answer an `ON CONFLICT DO UPDATE`
+  that refreshes `created_at` and clears `read_at`, so an insert-only trigger
+  would silently drop every re-answer; but a plain `AFTER INSERT OR UPDATE` also
+  fires when the recipient marks a row read, which would push an *old*
+  notification. The trigger therefore carries
+  `when (tg_op = 'INSERT' or new.created_at is distinct from old.created_at)`.
 - **The Function authenticates with a shared secret, not a user JWT.** The caller
   is Postgres via `pg_net`, which has no user session. `functions/api/push/send.js`
   requires `x-push-webhook-secret` to equal the `PUSH_WEBHOOK_SECRET` secret and
   returns `401` otherwise (constant-time compare), mirroring the
   `x-operator-key` pattern in `functions/api/pipeline/*`.
 - **Subscriptions live in their own table with owner-only RLS.**
-  `push_subscriptions` (migration 008) holds one row per device endpoint. The app
-  may `select`/`insert`/`delete` only its own rows (so a client can register and
-  unregister its own device), and the sender reads across users with the
-  service-role key — the same split as `welcome-email.js`, which mints email
-  tokens with the service-role key.
+  `push_subscriptions` (migration 008) holds one row per device endpoint, unique
+  per `(user_id, endpoint)` so a shared device can host two signed-in users. The
+  app may `select`/`insert`/`delete` only its own rows and is granted **no UPDATE
+  at all**: a re-subscribe deletes and re-inserts the owner's row (which also
+  covers the browser rotating the keys for the same endpoint), keeping the
+  privileged surface to exactly "own your devices". The sender reads across users
+  with the service-role key — the same split as `welcome-email.js`.
 - **The service worker keeps `generateSW` + `workbox.importScripts`.** Story 062
   shipped a reviewed `generateSW` config (precache patterns, SPA `navigateFallback`
   and its deny list) that must not be re-implemented by hand. `workbox.importScripts:
@@ -241,24 +250,43 @@ npx web-push generate-vapid-keys   # prints the VAPID public/private pair
 
 ## Notes
 
-- **This feature is inert until the runbook is run.** Merging the migrations must
-  not change production behaviour on its own: the trigger skips when its Postgres
-  settings are unset, and the client hides the notification UI when no VAPID
-  public key is configured.
-- **Runbook (manual, one-time):**
-  1. `npx web-push generate-vapid-keys` → keep the pair.
-  2. Cloudflare Pages dashboard → add secrets `VAPID_PRIVATE_KEY` and
-     `PUSH_WEBHOOK_SECRET`; add `VAPID_PUBLIC_KEY` to `wrangler.toml` `[vars]`.
-  3. Supabase → `create extension if not exists pg_net;` (and confirm the
-     `supabase_functions` schema exists).
-  4. `alter database postgres set app.push_webhook_url = 'https://ultrafastfluency.com/api/push/send';`
-     and `... set app.push_webhook_secret = '<the secret>';`
-  5. Verify end-to-end by inserting a `user_notifications` row for a subscribed
-     device and checking `select * from net._http_response order by created desc limit 5;`.
-- **Per-device, not per-user:** a user may have many subscriptions (phone, laptop).
-  All are pushed; deleting a device happens via `410` pruning or the owner's own
-  delete.
-- **Language:** the sender composes copy in the recipient's `native_language`
-  (guest-first `guestNativeLanguage || userData?.native_language || 'en'`), which
-  means the Function reads that column; an unknown/`OTHER` sentinel must normalize
-  to English (per the AGENTS.md guest-language rule).
+- **This feature is inert until configured.** Merging the migrations alone
+  changes no behaviour: the trigger skips when Vault holds no webhook URL (or
+  `pg_net` is absent), and the client hides the opt-in when no VAPID key is set.
+- **Provisioned for this story (done, out-of-band — no secret is in the repo):**
+  - `pg_net` 0.20.4 installed (`create extension if not exists pg_net`).
+  - Vault holds `push_webhook_url` = `https://ultrafastfluency.com/api/push/send`
+    and `push_webhook_secret` (32 random bytes, base64url).
+  - Cloudflare Pages (production) secrets: `VAPID_PRIVATE_KEY`,
+    `PUSH_WEBHOOK_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`.
+  - `SUPABASE_SERVICE_ROLE_KEY` was previously unset in production, which also
+    meant the existing `/api/welcome-email` always returned
+    `{sent:false, reason:'store-not-configured'}`; setting it fixes that too.
+  - The VAPID keypair's **public** half is committed as the default in
+    `src/modules/notifications/push-config.js`; the private half exists only as
+    the Pages secret.
+- **Secret hygiene:** the first `push_webhook_secret` value was echoed by a tool
+  error message while being written to Vault, so it was **rotated** — a fresh
+  value was written to both Cloudflare and Vault, and the exposed one was never
+  stored anywhere. Rotating again is a two-step: new value into Vault
+  (`vault.update_secret`/`create_secret`) and the same value into the
+  `PUSH_WEBHOOK_SECRET` Pages secret.
+- **Rotating VAPID:** replacing the pair means updating both the committed public
+  key and the `VAPID_PRIVATE_KEY` secret *together*; every existing subscription
+  then fails (the push service rejects the mismatched signature) and is pruned on
+  the next `404`/`410`, so clients re-subscribe via the opt-in.
+- **Staging is not configured.** Pages secrets were written to the *production*
+  environment only; a `staging` deploy would fail-open (no
+  `PUSH_WEBHOOK_SECRET`/`VAPID_PRIVATE_KEY`) and simply not send.
+- **Per-device, not per-user:** a user may have many subscriptions (phone,
+  laptop); all are pushed up to `MAX_SUBSCRIPTIONS_PER_SEND`, and pruning happens
+  on `404`/`410` or when the owner deletes the row.
+- **Language:** the sender composes copy in the recipient's stored
+  `native_language`, normalizing the guest modal's `OTHER` sentinel (and anything
+  unknown) to English, per the AGENTS.md guest-language rule.
+- **The Function test runs in the `node` environment, not jsdom.** The Web Push
+  library does a cross-realm `instanceof ArrayBuffer` check on what
+  `crypto.subtle` returns; under jsdom that value belongs to jsdom's realm, so the
+  check fails and every send reports `Unsupported value, got \`object\``. That is
+  a test-environment artifact — workerd and browsers have a single realm — and
+  the file carries a `// @vitest-environment node` docblock explaining it.

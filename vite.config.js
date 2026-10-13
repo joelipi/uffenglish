@@ -113,6 +113,13 @@ export default defineConfig({
                 navigateFallback: 'index.html',
                 navigateFallbackDenylist: PWA_NAVIGATION_DENY_LIST,
                 cleanupOutdatedCaches: true,
+                // Add the Web Push listeners (push / notificationclick /
+                // pushsubscriptionchange) from public/push-sw.js on top of the
+                // generated worker. importScripts keeps every reviewed piece of
+                // the generated SW (precache patterns, navigation fallback and
+                // its deny list) as config instead of re-implementing it (as
+                // injectManifest would).
+                importScripts: ['push-sw.js'],
                 // Chunk-size cap for precaching, with skipping allowed instead of
                 // the plugin's default build failure: anything above it (the
                 // onnxruntime/transformers chunks) stays network-only.

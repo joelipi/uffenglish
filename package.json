@@ -47,6 +47,7 @@
     "wrangler": "^3.114.17"
   },
   "dependencies": {
+    "@block65/webcrypto-web-push": "^2.0.0",
     "@huggingface/transformers": "^3.8.1",
     "@khmyznikov/pwa-install": "^0.7.0",
     "@popperjs/core": "^2.11.8",
