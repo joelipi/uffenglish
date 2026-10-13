@@ -143,3 +143,76 @@ describe('CourseListings', () => {
         expect(dropdown.textContent).toContain('Park');
     });
 });
+
+describe('CourseListings scrolling', () => {
+    let container;
+    let root;
+
+    beforeEach(() => {
+        container = document.createElement('div');
+        document.body.appendChild(container);
+    });
+
+    afterEach(() => {
+        if (root) act(() => root.unmount());
+        container.remove();
+        root = null;
+        container = null;
+    });
+
+    it('owns its scrolling: 100dvh clipping shell with a scrollable body region', () => {
+        root = render(container, { courses: COURSES });
+
+        const scroll = container.querySelector('[data-testid="friend-courses-scroll"]');
+        expect(scroll).not.toBeNull();
+        expect(scroll.style.overflowY).toBe('auto');
+        expect(scroll.style.flex || scroll.style.flexGrow).toBeTruthy();
+
+        const shell = scroll.parentElement;
+        expect(shell.style.height).toBe('100dvh');
+        expect(shell.style.display).toBe('flex');
+        expect(shell.style.flexDirection).toBe('column');
+        expect(shell.style.overflow).toBe('hidden');
+    });
+
+    it('keeps the header outside the scroll region and the content inside it', () => {
+        root = render(container, { courses: COURSES });
+
+        const scroll = container.querySelector('[data-testid="friend-courses-scroll"]');
+        const shell = scroll.parentElement;
+        const header = container.querySelector('[data-testid="friend-courses-back"]').parentElement;
+
+        expect(shell.contains(header)).toBe(true);
+        expect(scroll.contains(header)).toBe(false);
+        expect(header.parentElement).toBe(shell);
+
+        expect(container.querySelector('[data-testid="friend-courses-heading"]').closest('[data-testid="friend-courses-scroll"]')).not.toBeNull();
+        expect(container.querySelector('[data-testid="friend-courses-steps"]').closest('[data-testid="friend-courses-scroll"]')).not.toBeNull();
+        const cards = Array.from(container.querySelectorAll('[data-testid="friend-course-card"]'));
+        expect(cards.length).toBeGreaterThan(0);
+        for (const card of cards) {
+            expect(scroll.contains(card)).toBe(true);
+        }
+    });
+
+    it('keeps the scroll region in loading, error and empty states', () => {
+        const states = [
+            { courses: undefined, isLoading: true },
+            { courses: undefined, isError: true },
+            { courses: [] },
+        ];
+        for (const props of states) {
+            const stateContainer = document.createElement('div');
+            document.body.appendChild(stateContainer);
+            const stateRoot = render(stateContainer, props);
+            try {
+                const scroll = stateContainer.querySelector('[data-testid="friend-courses-scroll"]');
+                expect(scroll).not.toBeNull();
+                expect(scroll.style.overflowY).toBe('auto');
+            } finally {
+                act(() => stateRoot.unmount());
+                stateContainer.remove();
+            }
+        }
+    });
+});
