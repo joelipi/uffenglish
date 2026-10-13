@@ -41,10 +41,11 @@ export function isUsableVapidKey(base64UrlString) {
  * guests), a VAPID key is configured, and this device is not already subscribed.
  *
  * There is deliberately no "dismissed" input: the requirement is to keep offering
- * until notifications are actually enabled. The only state that removes the
- * offer is being subscribed (i.e. done). `permission === 'denied'` is expressed as
- * `canPrompt: false` rather than hiding the offer, because the user can still
- * unblock it in browser settings — see `resolvePushPromptState`.
+ * until notifications are actually enabled. The only state that removes the offer
+ * is being subscribed (i.e. done). Permission is not an input: `denied` is
+ * expressed as the `blocked` prompt state rather than hiding the offer, because
+ * the user can still unblock it in browser settings — see
+ * `resolvePushPromptState`.
  */
 export function shouldOfferPushNotifications({
     supported = false,

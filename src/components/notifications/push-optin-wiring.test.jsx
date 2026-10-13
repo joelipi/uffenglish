@@ -58,7 +58,14 @@ beforeEach(() => {
     webOnly.existing = null;
     webOnly.installed = true;
     webOnly.subscribeResult = { ok: true };
-    webOnly.subscribe = vi.fn(async () => webOnly.subscribeResult);
+    // Realistic: after a successful subscribe the browser holds a subscription,
+    // which is what readExistingSubscription() reports on the recompute.
+    webOnly.subscribe = vi.fn(async () => {
+        if (webOnly.subscribeResult && webOnly.subscribeResult.ok) {
+            webOnly.existing = { endpoint: 'https://push.example/device-1' };
+        }
+        return webOnly.subscribeResult;
+    });
     webOnly.appInstalledHandlers = [];
 });
 
@@ -141,8 +148,6 @@ describe('PushNotificationsOptIn — menu entry', () => {
             // Reset to the offering baseline, then apply one blocking input.
             webOnly.support = { supported: true, permission: 'default' };
             webOnly.existing = null;
-            webOnly.dismissed = false;
-            webOnly.justInstalled = false;
             Object.assign(webOnly, patch);
 
             const { container, unmount } = render(
@@ -211,6 +216,42 @@ describe('PushNotificationsOptIn — installed-app prompt', () => {
         );
         await flush();
         expect(container.querySelector('[data-testid="push-prompt"]')).toBeNull();
+        unmount();
+    });
+
+    it('switches to blocked when the attempt itself ends in a denial', async () => {
+        // The user declines the OS dialog: the OS has now recorded `denied`, so
+        // the offer must stop pretending the button can do anything.
+        webOnly.subscribeResult = { ok: false, reason: 'denied' };
+        webOnly.subscribe = vi.fn(async () => {
+            // The browser's permission flips as a result of the request.
+            webOnly.support = { supported: true, permission: 'denied' };
+            return { ok: false, reason: 'denied' };
+        });
+
+        const { container, unmount } = render(
+            <PushNotificationsOptIn lang="en" variant="prompt" userId="user-1" />
+        );
+        await flush();
+        expect(container.querySelector('[data-testid="push-enable"]').disabled).toBe(false);
+
+        await act(async () => { container.querySelector('[data-testid="push-enable"]').click(); });
+
+        expect(container.querySelector('[data-testid="push-enable"]').disabled).toBe(true);
+        expect(container.querySelector('[data-testid="push-outcome"]').textContent)
+            .toBe(Strings.get('push_optin_denied_hint', 'en'));
+        unmount();
+    });
+
+    it('shows the unblock hint on the menu entry too when permission is denied', async () => {
+        webOnly.support = { supported: true, permission: 'denied' };
+        const { container, unmount } = render(
+            <PushNotificationsOptIn lang="en" variant="menu-item" userId="user-1" />
+        );
+        await flush();
+        expect(container.querySelector('[data-testid="push-enable"]').disabled).toBe(true);
+        expect(container.querySelector('[data-testid="push-outcome"]').textContent)
+            .toBe(Strings.get('push_optin_denied_hint', 'en'));
         unmount();
     });
 

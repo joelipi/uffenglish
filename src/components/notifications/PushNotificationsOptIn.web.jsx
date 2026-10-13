@@ -66,37 +66,43 @@ export default function PushNotificationsOptIn({
         });
     }, [variant]);
 
+    /**
+     * Read the live browser state and reduce it to one prompt state. Used on
+     * mount and again after every subscribe attempt, so a permission that just
+     * flipped to `denied` cannot leave an enabled button behind.
+     */
+    const refreshOffer = useCallback(async () => {
+        const { supported, permission } = readPushSupport();
+
+        // Reconcile this device first (the browser may have rotated the
+        // subscription while the app was closed).
+        if (userId) await syncExistingSubscription({ supabaseClient: supabase, userId });
+        const existing = await readExistingSubscription();
+
+        return resolvePushPromptState({
+            supported,
+            isLoggedIn: !!userId,
+            hasVapidKey: isUsableVapidKey(resolveClientVapidPublicKey()),
+            permission,
+            isSubscribed: !!existing,
+        });
+    }, [userId]);
+
     useEffect(() => {
         let cancelled = false;
-
         (async () => {
-            const { supported, permission } = readPushSupport();
-
-            // Reconcile this device first (the browser may have rotated the
-            // subscription while the app was closed).
-            if (userId) await syncExistingSubscription({ supabaseClient: supabase, userId });
-            const existing = await readExistingSubscription();
-
-            const next = resolvePushPromptState({
-                supported,
-                isLoggedIn: !!userId,
-                hasVapidKey: isUsableVapidKey(resolveClientVapidPublicKey()),
-                permission,
-                isSubscribed: !!existing,
-            });
-
-            if (cancelled) return;
-            setState(next);
+            const next = await refreshOffer();
+            if (!cancelled) setState(next);
         })();
-
         return () => { cancelled = true; };
-    }, [userId, variant]);
+    }, [refreshOffer]);
 
     // A subscription the browser rotated in the background: re-register it.
     useEffect(() => {
         if (!userId) return undefined;
         return listenForPushSubscriptionChange(() => {
-            syncExistingSubscription({ supabaseClient: supabase, userId });
+            syncExistingSubscription({ supabaseClient: supabase, userId })
+                .catch((err) => console.error('[push] re-sync failed:', err));
         });
     }, [userId]);
 
@@ -108,13 +114,14 @@ export default function PushNotificationsOptIn({
         setOutcome(describeSubscribeResult(result));
         if (result && result.ok) {
             console.log('[push] notifications enabled for this device');
-            // Done: this device is subscribed, so the offer is over everywhere
-            // (the effect would also recompute it to 'hidden' on the next mount).
-            setState('hidden');
         } else {
             console.warn('[push] notifications not enabled:', result && result.reason);
         }
-    }, [userId, onBeforeOpen]);
+        // Always re-derive from the live state: a denial just recorded by the OS
+        // must switch the offer to `blocked` (hint + disabled button) instead of
+        // leaving a button that cannot do anything.
+        setState(await refreshOffer());
+    }, [refreshOffer, onBeforeOpen]);
 
     const handleDismiss = useCallback(() => {
         // Next launch offers it again — only enabling removes the card.
@@ -124,16 +131,27 @@ export default function PushNotificationsOptIn({
     if (state === 'hidden') return null;
 
     if (variant === 'menu-item') {
+        const blocked = state === 'blocked' || outcome === 'denied';
         return (
-            <button
-                type="button"
-                data-testid="push-enable"
-                onClick={handleEnable}
-                disabled={busy || state === 'blocked'}
-                style={style}
-            >
-                <i className="bi bi-bell"></i> {Strings.get('push_optin_enable', lang)}
-            </button>
+            <>
+                <button
+                    type="button"
+                    data-testid="push-enable"
+                    onClick={handleEnable}
+                    disabled={busy || blocked}
+                    style={style}
+                >
+                    <i className="bi bi-bell"></i> {Strings.get('push_optin_enable', lang)}
+                </button>
+                {blocked && (
+                    <p
+                        data-testid="push-outcome"
+                        style={{ margin: '4px 12px 0', fontSize: '13px', opacity: 0.8 }}
+                    >
+                        {Strings.get('push_optin_denied_hint', lang)}
+                    </p>
+                )}
+            </>
         );
     }
 
