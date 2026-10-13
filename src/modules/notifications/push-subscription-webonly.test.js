@@ -9,9 +9,7 @@ import {
     persistSubscription,
     syncExistingSubscription,
     readPushSupport,
-    consumeJustInstalled,
-    readPromptDismissed,
-    markPromptDismissed,
+    listenForAppInstalled,
     resolveClientVapidPublicKey,
     listenForPushSubscriptionChange,
 } from './push-subscription-webonly.js';
@@ -245,25 +243,26 @@ describe('syncExistingSubscription', () => {
     });
 });
 
-describe('install-transition and dismissal memory', () => {
-    it('reports "just installed" exactly once for a standalone transition', () => {
-        // First launch as an installed app: suppressed -> standalone.
-        vi.stubGlobal('matchMedia', (query) => ({ matches: query === '(display-mode: standalone)' }));
-        expect(consumeJustInstalled()).toBe(true);
-        // Same install, next launch: no longer "just installed".
-        expect(consumeJustInstalled()).toBe(false);
+describe('listenForAppInstalled', () => {
+    it('reports an appinstalled event and unsubscribes cleanly', () => {
+        const listeners = [];
+        vi.stubGlobal('addEventListener', (type, fn) => listeners.push({ type, fn }));
+        const removeEventListener = vi.fn();
+        vi.stubGlobal('removeEventListener', removeEventListener);
+
+        const handler = vi.fn();
+        const stop = listenForAppInstalled(handler);
+        expect(listeners.map((l) => l.type)).toEqual(['appinstalled']);
+
+        listeners[0].fn();
+        expect(handler).toHaveBeenCalledTimes(1);
+
+        stop();
+        expect(removeEventListener).toHaveBeenCalledWith('appinstalled', listeners[0].fn);
     });
 
-    it('is false for a browser-tab launch', () => {
-        vi.stubGlobal('matchMedia', () => ({ matches: false }));
-        expect(consumeJustInstalled()).toBe(false);
-        expect(consumeJustInstalled()).toBe(false);
-    });
-
-    it('remembers a dismissal', () => {
-        expect(readPromptDismissed()).toBe(false);
-        markPromptDismissed();
-        expect(readPromptDismissed()).toBe(true);
+    it('is a no-op without a handler', () => {
+        expect(typeof listenForAppInstalled()).toBe('function');
     });
 });
 

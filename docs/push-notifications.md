@@ -105,13 +105,36 @@ select vault.create_secret('<the same value as PUSH_WEBHOOK_SECRET>',
 - The VAPID **private** key is write-only in Cloudflare. Keep a copy in a
   password manager if it needs to be retrievable; otherwise rotate.
 
+## When a learner is asked
+
+- **Non-installed visitors:** never prompted; the `/home` menu has an
+  "Enable" entry they can use.
+- **Installed apps:** the card appears on **every launch** until notifications
+  are actually enabled — "Not now" only hides it for that session. A browser-level
+  denial shows the same card with the "unblock in browser settings" hint and a
+  disabled button rather than hiding the offer.
+- Both paths are gated on being signed in (in-app notifications are a signed-in
+  feature), a configured VAPID key, a supporting browser, and not already
+  subscribed.
+- The OS permission dialog itself only appears **after** a tap on Enable — iOS
+  rejects a non-gesture request.
+
+The card text is ours (`push_optin_*` in `src/data/strings.js`). The OS dialog
+text is **not** app-controlled: Chrome/Edge say "‹origin› wants to show
+notifications", Firefox "Allow notifications from ‹origin›", and iOS/Safari uses
+the installed web app's name ("‹name› Would Like to Send You Notifications"),
+which comes from the manifest `name`/`short_name` — currently "UFF English" /
+"UFF".
+
 ## Opting out
 
-There is no in-app unsubscribe control yet. A learner turns notifications off the
-same way they would for any site (browser → site settings → Notifications →
-Block), which also makes the browser drop the subscription; the sender then prunes
-the dead row on the next `404`/`410`. The `push_subscriptions` delete policy
-already allows an in-app control when one is added.
+There is no in-app off switch: the card is designed to keep asking until
+notifications are enabled. A learner turns them off the same way as any site
+(browser → site settings → Notifications → Block), which also makes the browser
+drop the subscription; the sender then prunes the dead row on the next
+`404`/`410`. After that they see the "blocked" card (with the unblock hint), not
+a hidden one — add an explicit in-app opt-out if the nagging becomes a problem;
+the `push_subscriptions` delete policy already allows it.
 
 ## Delivery limits and what actually throttles us
 

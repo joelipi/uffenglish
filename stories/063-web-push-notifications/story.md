@@ -113,16 +113,24 @@ suppress a non-gesture prompt, and iOS rejects it outright).
   listeners. `injectManifest` would give a "cleaner" single file but would move
   the precache manifest, the navigation fallback and its deny list into code —
   re-opening everything story 062's reviewers closed.
-- **Permission UX: one prompt after install, plus a permanent menu entry.** The
-  `appinstalled` event (Chromium/Android/desktop) and the first launch in
-  `display-mode: standalone` (iOS, which has no `appinstalled` event) both mark
-  "just installed"; the app then shows an in-app prompt whose button is the
-  gesture that requests permission and subscribes. The `/home` menu gains a
-  "Turn on notifications" entry (reusing story 062's menu pattern) so a
-  dismissed prompt is recoverable, and desktop users can opt in without
-  installing. Hidden entirely when: `Notification`/`PushManager` are missing,
-  the build has no VAPID public key, permission is `denied`, or the device is
-  already subscribed.
+- **Permission UX: a persistent card for installed apps, plus a menu entry.**
+  Two triggers: the `appinstalled` event (Chromium, which fires in the
+  *installing tab* — still a browser tab, so `display-mode` has not flipped yet)
+  and `display-mode: standalone` (which is all iOS has, since it never fires
+  `appinstalled`). Either one means "this user has the app installed", and an
+  installed user who has not enabled notifications sees the card on **every**
+  launch — the requirement is to keep asking until it is enabled. "Not now" is
+  **session-scoped**: it hides the card until the next launch, never longer, so
+  there is no persisted dismissal to disable the offer. The card is hidden only
+  when there is nothing to offer: unsupported browser, signed out, no VAPID key,
+  or already subscribed.
+- **A denied permission is surfaced, not hidden.** `resolvePushPromptState`
+  returns `ready` / `blocked` / `hidden`; `blocked` (permission `denied`) still
+  shows the card, with the "unblock it in browser settings" hint and a disabled
+  button, because a denied user is exactly who "keep asking until it is enabled"
+  is for — the button simply cannot re-prompt (browsers refuse). The `/home`
+  menu keeps a "Turn on notifications" entry for people who never install, or who
+  want it after dismissing the card.
 - **Push copy comes from the page's own language.** The `push` handler reads
   `data.title`/`data.body` from the payload, which the sender composes from the
   **recipient's stored language** so the notification matches the app language

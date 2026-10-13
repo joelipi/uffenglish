@@ -8,10 +8,8 @@
 // throwing, so a browser that cannot do push (or a denied permission) never
 // breaks the screen it was called from.
 import {
-    PUSH_PROMPT_DISMISSED_KEY,
     urlBase64ToUint8Array,
     isUsableVapidKey,
-    hasJustInstalled,
 } from './push-logic.js';
 import {
     DEFAULT_VAPID_PUBLIC_KEY,
@@ -62,47 +60,25 @@ export function readIsStandalone() {
     }
 }
 
-export function readPromptDismissed() {
-    if (typeof window === 'undefined') return false;
-    try {
-        return window.localStorage?.getItem(PUSH_PROMPT_DISMISSED_KEY) === '1';
-    } catch {
-        return false;
-    }
-}
-
-export function markPromptDismissed() {
-    if (typeof window === 'undefined') return;
-    try {
-        window.localStorage?.setItem(PUSH_PROMPT_DISMISSED_KEY, '1');
-    } catch (err) {
-        console.error('[push] could not persist the dismissal:', err);
-    }
-}
-
-const WAS_STANDALONE_KEY = 'uff-push-was-standalone';
-
 /**
- * Did the app just become an installed PWA? Detected once per call by comparing
- * the launch display mode with the previous launch's, then recording the current
- * value — iOS never fires `appinstalled`, so this transition is the portable
- * signal. The decision itself stays in the pure `hasJustInstalled`.
+ * Fires when the browser reports this site was installed (`appinstalled`, which
+ * Chromium raises in the *installing* tab). That tab is still a browser tab —
+ * `display-mode` does not flip to standalone until the app is launched from the
+ * icon — so this is the only way to offer the notification opt-in right after an
+ * install, while the user is looking at it.
+ *
+ * iOS never fires it, which is why the standalone display mode is checked too.
+ * Returns an unsubscribe function.
  */
-export function consumeJustInstalled() {
-    if (typeof window === 'undefined') return false;
-    let wasStandalone = false;
+export function listenForAppInstalled(handler) {
+    if (typeof window === 'undefined' || typeof handler !== 'function') return () => {};
+    const listener = () => handler();
     try {
-        wasStandalone = window.localStorage?.getItem(WAS_STANDALONE_KEY) === '1';
+        window.addEventListener('appinstalled', listener);
+        return () => window.removeEventListener('appinstalled', listener);
     } catch {
-        wasStandalone = false;
+        return () => {};
     }
-    const isStandalone = readIsStandalone();
-    try {
-        window.localStorage?.setItem(WAS_STANDALONE_KEY, isStandalone ? '1' : '0');
-    } catch (err) {
-        console.error('[push] could not persist the standalone flag:', err);
-    }
-    return hasJustInstalled({ wasStandalone, isStandalone });
 }
 
 /** The registration this device's subscription lives on, or null. */

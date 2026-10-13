@@ -4,9 +4,8 @@ import {
     urlBase64ToUint8Array,
     isUsableVapidKey,
     shouldOfferPushNotifications,
-    hasJustInstalled,
+    resolvePushPromptState,
     describeSubscribeResult,
-    PUSH_PROMPT_DISMISSED_KEY,
 } from './push-logic.js';
 import { DEFAULT_VAPID_PUBLIC_KEY } from './push-config.js';
 
@@ -56,14 +55,19 @@ describe('shouldOfferPushNotifications', () => {
         expect(shouldOfferPushNotifications({ ...base, supported: false })).toBe(false);
         expect(shouldOfferPushNotifications({ ...base, isLoggedIn: false })).toBe(false);
         expect(shouldOfferPushNotifications({ ...base, hasVapidKey: false })).toBe(false);
-        expect(shouldOfferPushNotifications({ ...base, permission: 'denied' })).toBe(false);
         expect(shouldOfferPushNotifications({ ...base, isSubscribed: true })).toBe(false);
-        expect(shouldOfferPushNotifications({ ...base, dismissed: true })).toBe(false);
+    });
+
+    it('has no dismissal input: only being subscribed removes the offer', () => {
+        // "Keep offering until notifications are enabled" — a dismissal must not
+        // be able to switch the offer off.
+        expect(shouldOfferPushNotifications({ ...base, dismissed: true })).toBe(true);
     });
 
     it('still offers when permission is already granted but this device is not subscribed', () => {
         // e.g. site data cleared: asking again is not needed, subscribing is.
         expect(shouldOfferPushNotifications({ ...base, permission: 'granted' })).toBe(true);
+        expect(resolvePushPromptState({ ...base, permission: 'granted' })).toBe('ready');
     });
 
     it('is false with no arguments (guests / unsupported browsers)', () => {
@@ -71,13 +75,26 @@ describe('shouldOfferPushNotifications', () => {
     });
 });
 
-describe('hasJustInstalled', () => {
-    it('is true only on the false -> true transition', () => {
-        expect(hasJustInstalled({ wasStandalone: false, isStandalone: true })).toBe(true);
-        expect(hasJustInstalled({ wasStandalone: true, isStandalone: true })).toBe(false);
-        expect(hasJustInstalled({ wasStandalone: false, isStandalone: false })).toBe(false);
-        expect(hasJustInstalled({ wasStandalone: true, isStandalone: false })).toBe(false);
-        expect(hasJustInstalled()).toBe(false);
+describe('resolvePushPromptState', () => {
+    const base = { supported: true, isLoggedIn: true, hasVapidKey: true };
+
+    it('is hidden when there is nothing to offer', () => {
+        expect(resolvePushPromptState()).toBe('hidden');
+        expect(resolvePushPromptState({ ...base, supported: false })).toBe('hidden');
+        expect(resolvePushPromptState({ ...base, isLoggedIn: false })).toBe('hidden');
+        expect(resolvePushPromptState({ ...base, hasVapidKey: false })).toBe('hidden');
+        expect(resolvePushPromptState({ ...base, isSubscribed: true })).toBe('hidden');
+    });
+
+    it('is ready when the button can actually subscribe', () => {
+        expect(resolvePushPromptState({ ...base, permission: 'default' })).toBe('ready');
+        expect(resolvePushPromptState({ ...base, permission: 'granted' })).toBe('ready');
+    });
+
+    it('is blocked (not hidden) when the OS already denied permission', () => {
+        // The user can still unblock it in browser settings, so the offer must
+        // stay visible rather than silently vanishing.
+        expect(resolvePushPromptState({ ...base, permission: 'denied' })).toBe('blocked');
     });
 });
 
@@ -90,11 +107,5 @@ describe('describeSubscribeResult', () => {
         expect(describeSubscribeResult({ ok: false, reason: 'not-signed-in' })).toBe('not-signed-in');
         expect(describeSubscribeResult({ ok: false, reason: 'anything-else' })).toBe('failed');
         expect(describeSubscribeResult(null)).toBe('failed');
-    });
-});
-
-describe('PUSH_PROMPT_DISMISSED_KEY', () => {
-    it('is a stable storage key', () => {
-        expect(PUSH_PROMPT_DISMISSED_KEY).toBe('uff-push-prompt-dismissed');
     });
 });

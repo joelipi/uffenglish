@@ -10,20 +10,21 @@ import path from 'node:path';
 const webOnly = vi.hoisted(() => ({
     support: { supported: true, permission: 'default' },
     existing: null,
-    dismissed: false,
-    justInstalled: false,
+    installed: true,
     subscribeResult: { ok: true },
     subscribe: vi.fn(),
-    markDismissed: vi.fn(),
+    appInstalledHandlers: [],
 }));
 
 vi.mock('../../modules/api/supabase.js', () => ({ supabase: { from: vi.fn() } }));
 vi.mock('../../modules/notifications/push-subscription-webonly.js', () => ({
     readPushSupport: () => webOnly.support,
     readExistingSubscription: async () => webOnly.existing,
-    readPromptDismissed: () => webOnly.dismissed,
-    markPromptDismissed: (...args) => webOnly.markDismissed(...args),
-    consumeJustInstalled: () => webOnly.justInstalled,
+    readIsStandalone: () => webOnly.installed,
+    listenForAppInstalled: (handler) => {
+        webOnly.appInstalledHandlers.push(handler);
+        return () => {};
+    },
     subscribeToPush: (...args) => webOnly.subscribe(...args),
     syncExistingSubscription: async () => ({ ok: false, reason: 'none' }),
     listenForPushSubscriptionChange: () => () => {},
@@ -55,11 +56,10 @@ async function flush() {
 beforeEach(() => {
     webOnly.support = { supported: true, permission: 'default' };
     webOnly.existing = null;
-    webOnly.dismissed = false;
-    webOnly.justInstalled = false;
+    webOnly.installed = true;
     webOnly.subscribeResult = { ok: true };
     webOnly.subscribe = vi.fn(async () => webOnly.subscribeResult);
-    webOnly.markDismissed = vi.fn();
+    webOnly.appInstalledHandlers = [];
 });
 
 afterEach(() => {
@@ -95,22 +95,14 @@ describe('PushNotificationsOptIn — menu entry', () => {
         unmount();
     });
 
-    it('stays available after the post-install prompt was dismissed', async () => {
-        // The menu entry is the documented recovery path: "Not now" must not
-        // remove the only way to ever opt in.
-        webOnly.dismissed = true;
-
-        const menu = render(<PushNotificationsOptIn lang="en" variant="menu-item" userId="user-1" />);
+    it('offers to a signed-in user who never installed the app', async () => {
+        webOnly.installed = false;
+        const { container, unmount } = render(
+            <PushNotificationsOptIn lang="en" variant="menu-item" userId="user-1" />
+        );
         await flush();
-        expect(menu.container.querySelector('[data-testid="push-enable"]')).toBeTruthy();
-        menu.unmount();
-
-        // …while the prompt itself does respect the dismissal.
-        webOnly.justInstalled = true;
-        const prompt = render(<PushNotificationsOptIn lang="en" variant="prompt" userId="user-1" />);
-        await flush();
-        expect(prompt.container.querySelector('[data-testid="push-prompt"]')).toBeNull();
-        prompt.unmount();
+        expect(container.querySelector('[data-testid="push-enable"]')).toBeTruthy();
+        unmount();
     });
 
     it('explains a denied permission instead of reusing the dismiss label', async () => {
@@ -138,13 +130,11 @@ describe('PushNotificationsOptIn — menu entry', () => {
         unmount();
     });
 
-    it('renders nothing when the browser cannot push, or permission is denied, or already subscribed', async () => {
-        // Dismissal is deliberately NOT one of these cases for the menu variant:
-        // it only suppresses the post-install prompt (covered separately), so the
-        // entry point stays recoverable.
+    it('renders nothing when the browser cannot push or this device is already subscribed', async () => {
+        // Denial is deliberately NOT in this list: a denied user is still shown
+        // the offer (disabled, with the unblock hint) rather than being hidden.
         const cases = [
             { support: { supported: false, permission: 'unsupported' } },
-            { support: { supported: true, permission: 'denied' } },
             { existing: { endpoint: 'https://push.example/x' } },
         ];
         for (const patch of cases) {
@@ -165,30 +155,77 @@ describe('PushNotificationsOptIn — menu entry', () => {
     });
 });
 
-describe('PushNotificationsOptIn — post-install prompt', () => {
-    it('shows once right after an install and dismisses without subscribing', async () => {
-        webOnly.justInstalled = true;
+describe('PushNotificationsOptIn — installed-app prompt', () => {
+    it('offers the card to an installed user who has not enabled notifications', async () => {
         const { container, unmount } = render(
             <PushNotificationsOptIn lang="en" variant="prompt" userId="user-1" />
         );
         await flush();
         expect(container.querySelector('[data-testid="push-prompt"]')).toBeTruthy();
         expect(container.textContent).toContain('Turn on notifications');
-
-        await act(async () => { container.querySelector('[data-testid="push-dismiss"]').click(); });
-        expect(webOnly.markDismissed).toHaveBeenCalled();
-        expect(webOnly.subscribe).not.toHaveBeenCalled();
-        expect(container.querySelector('[data-testid="push-prompt"]')).toBeNull();
         unmount();
     });
 
-    it('does not show on a later launch (not a fresh install)', async () => {
-        webOnly.justInstalled = false;
+    it('keeps offering on every later launch — a dismissal only hides it now', async () => {
+        const first = render(<PushNotificationsOptIn lang="en" variant="prompt" userId="user-1" />);
+        await flush();
+        await act(async () => { first.container.querySelector('[data-testid="push-dismiss"]').click(); });
+        expect(first.container.querySelector('[data-testid="push-prompt"]')).toBeNull();
+        first.unmount();
+
+        // A fresh mount (i.e. the next launch) offers it again: "repeatedly,
+        // always, until they enable them".
+        const second = render(<PushNotificationsOptIn lang="en" variant="prompt" userId="user-1" />);
+        await flush();
+        expect(second.container.querySelector('[data-testid="push-prompt"]')).toBeTruthy();
+        second.unmount();
+    });
+
+    it('does not show the card in a plain browser tab (not installed)', async () => {
+        webOnly.installed = false;
         const { container, unmount } = render(
             <PushNotificationsOptIn lang="en" variant="prompt" userId="user-1" />
         );
         await flush();
         expect(container.querySelector('[data-testid="push-prompt"]')).toBeNull();
+        unmount();
+    });
+
+    it('starts offering in the installing tab as soon as appinstalled fires', async () => {
+        webOnly.installed = false;
+        const { container, unmount } = render(
+            <PushNotificationsOptIn lang="en" variant="prompt" userId="user-1" />
+        );
+        await flush();
+        expect(container.querySelector('[data-testid="push-prompt"]')).toBeNull();
+
+        await act(async () => { webOnly.appInstalledHandlers.forEach((fn) => fn()); });
+        expect(container.querySelector('[data-testid="push-prompt"]')).toBeTruthy();
+        unmount();
+    });
+
+    it('stops offering once this device is subscribed', async () => {
+        webOnly.existing = { endpoint: 'https://push.example/x' };
+        const { container, unmount } = render(
+            <PushNotificationsOptIn lang="en" variant="prompt" userId="user-1" />
+        );
+        await flush();
+        expect(container.querySelector('[data-testid="push-prompt"]')).toBeNull();
+        unmount();
+    });
+
+    it('still offers (with an actionable hint) when the OS has denied permission', async () => {
+        webOnly.support = { supported: true, permission: 'denied' };
+        const { container, unmount } = render(
+            <PushNotificationsOptIn lang="en" variant="prompt" userId="user-1" />
+        );
+        await flush();
+        const card = container.querySelector('[data-testid="push-prompt"]');
+        expect(card).toBeTruthy();
+        expect(container.querySelector('[data-testid="push-outcome"]').textContent)
+            .toBe(Strings.get('push_optin_denied_hint', 'en'));
+        // The button cannot re-prompt a denied permission, so it is disabled.
+        expect(container.querySelector('[data-testid="push-enable"]').disabled).toBe(true);
         unmount();
     });
 });

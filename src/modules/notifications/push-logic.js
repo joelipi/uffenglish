@@ -4,9 +4,6 @@
 // unit-testable without a browser and portable to React Native (which has no
 // Web Push; `shouldOfferPushNotifications` is simply never true there).
 
-/** Storage key remembering that the user dismissed the post-install prompt. */
-export const PUSH_PROMPT_DISMISSED_KEY = 'uff-push-prompt-dismissed';
-
 /** A VAPID application-server key is an uncompressed P-256 point (65 bytes). */
 const VAPID_KEY_BYTES = 65;
 
@@ -41,22 +38,36 @@ export function isUsableVapidKey(base64UrlString) {
  *
  * Every gate must hold: the browser supports push, the user is signed in (in-app
  * notifications are a signed-in feature — the inbox query is disabled for
- * guests), a VAPID key is configured, permission is not `denied` (asking again
- * is pointless and some browsers refuse), this device is not already subscribed,
- * and the user has not dismissed the prompt.
+ * guests), a VAPID key is configured, and this device is not already subscribed.
+ *
+ * There is deliberately no "dismissed" input: the requirement is to keep offering
+ * until notifications are actually enabled. The only state that removes the
+ * offer is being subscribed (i.e. done). `permission === 'denied'` is expressed as
+ * `canPrompt: false` rather than hiding the offer, because the user can still
+ * unblock it in browser settings — see `resolvePushPromptState`.
  */
 export function shouldOfferPushNotifications({
     supported = false,
     isLoggedIn = false,
     hasVapidKey = false,
-    permission = 'default',
     isSubscribed = false,
-    dismissed = false,
 } = {}) {
-    if (!supported || !isLoggedIn || !hasVapidKey) return false;
-    if (permission === 'denied') return false;
-    if (isSubscribed || dismissed) return false;
-    return true;
+    return !!(supported && isLoggedIn && hasVapidKey && !isSubscribed);
+}
+
+/**
+ * What the opt-in should render.
+ *
+ * - `hidden`   — nothing to offer (unsupported, signed out, unconfigured, or done).
+ * - `ready`    — offer it; the button can request permission and subscribe.
+ * - `blocked`  — offer it, but the OS has already denied permission: the button
+ *                cannot re-prompt, so show the "unblock in browser settings"
+ *                hint instead of a dead button. Still surfaced, because a denied
+ *                user is exactly who "keep asking until it's enabled" is for.
+ */
+export function resolvePushPromptState(input = {}) {
+    if (!shouldOfferPushNotifications(input)) return 'hidden';
+    return input.permission === 'denied' ? 'blocked' : 'ready';
 }
 
 /**

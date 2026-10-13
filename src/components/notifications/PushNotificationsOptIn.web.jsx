@@ -15,16 +15,15 @@ import React, { useCallback, useEffect, useState } from 'react';
 import Strings from '../../data/strings.js';
 import { supabase } from '../../modules/api/supabase.js';
 import {
-    shouldOfferPushNotifications,
+    resolvePushPromptState,
     describeSubscribeResult,
     isUsableVapidKey,
 } from '../../modules/notifications/push-logic.js';
 import {
     readPushSupport,
     readExistingSubscription,
-    readPromptDismissed,
-    markPromptDismissed,
-    consumeJustInstalled,
+    readIsStandalone,
+    listenForAppInstalled,
     subscribeToPush,
     syncExistingSubscription,
     listenForPushSubscriptionChange,
@@ -48,18 +47,29 @@ export default function PushNotificationsOptIn({
     style,
     onBeforeOpen,
 }) {
-    const [offer, setOffer] = useState(false);
+    const [state, setState] = useState('hidden');
+    const [installed, setInstalled] = useState(false);
     const [busy, setBusy] = useState(false);
     const [outcome, setOutcome] = useState(null);
+    // Session-only: "Not now" hides the card until the next launch, never longer.
+    const [hiddenNow, setHiddenNow] = useState(false);
+
+    // An installed app: either we are running as one, or the browser just told us
+    // this tab's site was installed (Chromium's `appinstalled`). iOS never fires
+    // that event, so the display-mode check is what covers it.
+    useEffect(() => {
+        if (variant !== 'prompt') return undefined;
+        setInstalled(readIsStandalone());
+        return listenForAppInstalled(() => {
+            console.log('[push] appinstalled — offering notifications');
+            setInstalled(true);
+        });
+    }, [variant]);
 
     useEffect(() => {
         let cancelled = false;
 
         (async () => {
-            // The post-install prompt is a one-shot: consume the install
-            // transition even when the opt-in turns out not to be offered, so it
-            // cannot fire again later.
-            const justInstalled = variant === 'prompt' ? consumeJustInstalled() : false;
             const { supported, permission } = readPushSupport();
 
             // Reconcile this device first (the browser may have rotated the
@@ -67,24 +77,16 @@ export default function PushNotificationsOptIn({
             if (userId) await syncExistingSubscription({ supabaseClient: supabase, userId });
             const existing = await readExistingSubscription();
 
-            const next = shouldOfferPushNotifications({
+            const next = resolvePushPromptState({
                 supported,
                 isLoggedIn: !!userId,
                 hasVapidKey: isUsableVapidKey(resolveClientVapidPublicKey()),
                 permission,
                 isSubscribed: !!existing,
-                // The dismissal belongs to the post-install PROMPT only. The
-                // menu entry must stay available — it is the documented way for
-                // a prompted user to opt in later (and for desktop users who
-                // never install), so passing the flag for both variants would
-                // make "Not now" permanent.
-                dismissed: variant === 'prompt' ? readPromptDismissed() : false,
             });
 
             if (cancelled) return;
-            // The prompt only takes the initiative right after an install; the
-            // menu entry is always available.
-            setOffer(variant === 'prompt' ? next && justInstalled : next);
+            setState(next);
         })();
 
         return () => { cancelled = true; };
@@ -106,26 +108,38 @@ export default function PushNotificationsOptIn({
         setOutcome(describeSubscribeResult(result));
         if (result && result.ok) {
             console.log('[push] notifications enabled for this device');
-            setOffer(false);
+            // Done: this device is subscribed, so the offer is over everywhere
+            // (the effect would also recompute it to 'hidden' on the next mount).
+            setState('hidden');
         } else {
             console.warn('[push] notifications not enabled:', result && result.reason);
         }
     }, [userId, onBeforeOpen]);
 
     const handleDismiss = useCallback(() => {
-        markPromptDismissed();
-        setOffer(false);
+        // Next launch offers it again — only enabling removes the card.
+        setHiddenNow(true);
     }, []);
 
-    if (!offer) return null;
+    if (state === 'hidden') return null;
 
     if (variant === 'menu-item') {
         return (
-            <button type="button" data-testid="push-enable" onClick={handleEnable} disabled={busy} style={style}>
+            <button
+                type="button"
+                data-testid="push-enable"
+                onClick={handleEnable}
+                disabled={busy || state === 'blocked'}
+                style={style}
+            >
                 <i className="bi bi-bell"></i> {Strings.get('push_optin_enable', lang)}
             </button>
         );
     }
+
+    // The card owns the initiative: only an installed app shows it, and it
+    // returns every launch until notifications are enabled.
+    if (!installed || hiddenNow) return null;
 
     return (
         <div data-testid="push-prompt" style={{ ...PROMPT_STYLE, ...(style || {}) }}>
@@ -135,7 +149,7 @@ export default function PushNotificationsOptIn({
             <p style={{ margin: '8px 0 12px', opacity: 0.85, fontSize: '14px' }}>
                 {Strings.get('push_optin_body', lang)}
             </p>
-            {outcome === 'denied' && (
+            {(state === 'blocked' || outcome === 'denied') && (
                 <p data-testid="push-outcome" style={{ margin: '0 0 10px', fontSize: '13px', color: '#ffb4b4' }}>
                     {Strings.get('push_optin_denied_hint', lang)}
                 </p>
@@ -145,7 +159,7 @@ export default function PushNotificationsOptIn({
                     type="button"
                     data-testid="push-enable"
                     onClick={handleEnable}
-                    disabled={busy}
+                    disabled={busy || state === 'blocked'}
                     style={{
                         flex: 1,
                         padding: '10px',
