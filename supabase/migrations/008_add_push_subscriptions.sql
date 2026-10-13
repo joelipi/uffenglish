@@ -129,12 +129,28 @@ revoke all on function public.notify_push_on_notification() from public, anon, a
 
 drop trigger if exists trg_user_notifications_push on public.user_notifications;
 
--- `WHEN` is load-bearing. record_friend_response()'s dedupe refresh sets
--- created_at = now(), but the recipient marking a row read only changes read_at —
--- without this guard every "mark as read" would fire a push for an old
--- notification.
+-- `WHEN` is load-bearing, for two independent reasons:
+--
+-- 1. record_friend_response()'s dedupe refresh sets created_at = now(), but the
+--    recipient marking a row read only changes read_at. Comparing created_at is
+--    what keeps "mark as read" from pushing an old notification.
+-- 2. It is also the only rate limit on this path. record_friend_response() is
+--    granted to `authenticated` with no throttle, and the upsert refreshes
+--    created_at on every call, so without a cooldown a caller who knows a share
+--    code could loop the RPC and emit one OS-level push per call to the victim's
+--    devices. Requiring the *previous* notification to be at least 5 minutes old
+--    bounds that to at most one push per (recipient, actor, type) per window.
+--
+-- The cooldown is deliberately per row: a *different* friend answering is a
+-- different (recipient_id, actor_id, type), so it is an INSERT and still pushes
+-- immediately. Only the same actor re-answering within the window is collapsed —
+-- and even then the in-app row is still refreshed (read_at cleared, created_at
+-- bumped); only the push is suppressed. Tune the interval here.
 create trigger trg_user_notifications_push
   after insert or update on public.user_notifications
   for each row
-  when (tg_op = 'INSERT' or new.created_at is distinct from old.created_at)
+  when (
+    tg_op = 'INSERT'
+    or new.created_at > old.created_at + interval '5 minutes'
+  )
   execute function public.notify_push_on_notification();

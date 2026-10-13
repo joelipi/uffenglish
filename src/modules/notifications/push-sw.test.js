@@ -44,6 +44,14 @@ describe('public/push-sw.js — listeners', () => {
         expect(sw).toContain("type: 'push-subscription-changed'");
     });
 
+    it('validates the collapse tag and passes it to showNotification', () => {
+        expect(sw).toContain('const TAG_PATTERN = /^[A-Za-z0-9_-]{1,32}$/;');
+        expect(sw).toContain('if (tag) options.tag = tag;');
+        expect(sw).toContain('const tag = notificationTag(data);');
+        // A junk tag must not reach showNotification.
+        expect(sw).toContain('return TAG_PATTERN.test(tag) ? tag : undefined;');
+    });
+
     it('only ever opened a same-origin relative path from an untrusted payload', () => {
         // notificationUrl() rejects anything that is not a single-slash path.
         expect(sw).toContain("if (!url.startsWith('/') || url.startsWith('//')) return FALLBACK_URL;");

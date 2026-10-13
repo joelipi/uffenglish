@@ -16,6 +16,7 @@ import {
     requireWebhookSecret,
     parseNotificationRecord,
     isAllowedPushEndpoint,
+    buildMessageFor,
     MAX_SUBSCRIPTIONS_PER_SEND,
     PUSH_TTL_SECONDS,
 } from './send.js';
@@ -267,6 +268,32 @@ describe('parseNotificationRecord', () => {
         expect(parseNotificationRecord({})).toBeNull();
         expect(parseNotificationRecord(null)).toBeNull();
         expect(parseNotificationRecord('nope')).toBeNull();
+    });
+});
+
+describe('buildMessageFor — collapsible when the row has a collapse key', () => {
+    it('sets the RFC 8030 Topic (which buys FCM collapsible throttling)', () => {
+        const key = '0f8fad5bd9cb469fa16570867728950e';
+        const message = buildMessageFor({ title: 't', body: 'b', url: '/ab12', tag: key });
+        expect(message.options.topic).toBe(key);
+        expect(message.options.topic).toMatch(/^[A-Za-z0-9_-]{1,32}$/);
+        expect(message.options.ttl).toBe(PUSH_TTL_SECONDS);
+        expect(message.options.urgency).toBe('high');
+        expect(message.data.tag).toBe(message.options.topic);
+    });
+
+    it('leaves the message non-collapsible when there is no key', () => {
+        for (const copy of [{ title: 't' }, { title: 't', tag: undefined }, { title: 't', tag: '' }, null]) {
+            const message = buildMessageFor(copy);
+            expect(Object.prototype.hasOwnProperty.call(message.options, 'topic')).toBe(false);
+        }
+    });
+
+    it('collapses re-answers of one notification but not a different friend\'s', () => {
+        const rowA = { title: 't', tag: 'rowA' };
+        const rowB = { title: 't', tag: 'rowB' };
+        expect(buildMessageFor(rowA).options.topic).toBe(buildMessageFor(rowA).options.topic);
+        expect(buildMessageFor(rowA).options.topic).not.toBe(buildMessageFor(rowB).options.topic);
     });
 });
 

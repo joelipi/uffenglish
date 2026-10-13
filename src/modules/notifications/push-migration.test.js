@@ -53,10 +53,66 @@ describe('008_add_push_subscriptions.sql — webhook trigger', () => {
         expect(sql).toContain('execute function public.notify_push_on_notification()');
     });
 
-    it('skips updates that only mark a notification read', () => {
-        // Without the WHEN guard, marking a row read would push an old
-        // notification: created_at is refreshed only by a re-answer.
-        expect(sql).toContain("when (tg_op = 'INSERT' or new.created_at is distinct from old.created_at)");
+    it('gates on created_at alone, which subsumes the mark-as-read case', () => {
+        // Marking a row read leaves created_at untouched, so the comparison
+        // below is false and no push fires for an old notification.
+        expect(sql).toContain("if v_url is null or btrim(v_url) = ''");
+        expect(sql).toContain("tg_op = 'INSERT'");
+        expect(sql).toContain("new.created_at > old.created_at + interval '5 minutes'");
+        // The old, weaker predicate must be gone.
+        expect(sql).not.toContain('is distinct from old.created_at');
+    });
+
+    describe('the cooldown predicate (executable spec of the WHEN clause)', () => {
+        // The trigger cannot run in vitest (no Postgres), so this mirrors the SQL
+        // predicate over a truth table. The interval is READ FROM THE MIGRATION,
+        // so the expectations are pinned to the file rather than to a number
+        // copied here, and the clause assertion above proves the predicate is
+        // actually present.
+        const match = sql.match(/interval '(\d+) minutes'/);
+        const cooldownMinutes = match ? Number(match[1]) : NaN;
+
+        /** `when (tg_op = 'INSERT' or new.created_at > old.created_at + interval …)` */
+        function pushFires({ op, createdAt, previousCreatedAt }) {
+            if (op === 'INSERT') return true;
+            const window = cooldownMinutes * 60 * 1000;
+            // Strictly greater, exactly as the SQL compares.
+            return new Date(createdAt).getTime() - new Date(previousCreatedAt).getTime() > window;
+        }
+
+        const base = new Date('2026-10-13T12:00:00Z').getTime();
+        const at = (minutes) => new Date(base + minutes * 60 * 1000).toISOString();
+
+        it('reads a sane cooldown out of the migration', () => {
+            expect(Number.isFinite(cooldownMinutes)).toBe(true);
+            expect(cooldownMinutes).toBeGreaterThan(0);
+        });
+
+        it('fires for the first notification of a row', () => {
+            expect(pushFires({ op: 'INSERT', createdAt: at(0) })).toBe(true);
+        });
+
+        it('SUPPRESSES a rapid re-answer (the abuse loop)', () => {
+            expect(pushFires({ op: 'UPDATE', createdAt: at(1), previousCreatedAt: at(0) })).toBe(false);
+            expect(pushFires({ op: 'UPDATE', createdAt: at(4), previousCreatedAt: at(0) })).toBe(false);
+        });
+
+        it('still fires for a re-answer after the window', () => {
+            expect(pushFires({ op: 'UPDATE', createdAt: at(6), previousCreatedAt: at(0) })).toBe(true);
+            expect(pushFires({ op: 'UPDATE', createdAt: at(600), previousCreatedAt: at(0) })).toBe(true);
+        });
+
+        it('never fires for mark-as-read (created_at unchanged)', () => {
+            expect(pushFires({ op: 'UPDATE', createdAt: at(30), previousCreatedAt: at(30) })).toBe(false);
+            expect(pushFires({ op: 'UPDATE', createdAt: at(999), previousCreatedAt: at(999) })).toBe(false);
+        });
+    });
+
+    it('documents why the cooldown is per row, not per recipient', () => {
+        // A different friend is a different (recipient, actor, type) => INSERT,
+        // so the cooldown never delays a *new* person's answer.
+        expect(sql).toContain('a *different* friend answering is a');
+        expect(sql).toContain('Tune the interval here.');
     });
 
     it('reads its endpoint and secret from Vault, not a client-readable GUC', () => {

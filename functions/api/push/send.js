@@ -83,6 +83,19 @@ export function requireWebhookSecret(request, env) {
     return null;
 }
 
+/**
+ * The push message for a copy. The `topic` (RFC 8030 `Topic` header) is what
+ * makes the message **collapsible** on FCM, which is how the platform's
+ * "burst of 20, then 1 per 3 minutes" throttle applies instead of the
+ * per-device 5,000/hour ceiling — see docs/push-notifications.md. It is omitted
+ * when the row has no collapse key, leaving the message non-collapsible.
+ */
+export function buildMessageFor(copy) {
+    const options = { ttl: PUSH_TTL_SECONDS, urgency: 'high' };
+    if (copy && copy.tag) options.topic = copy.tag;
+    return { data: copy, options };
+}
+
 /** The notification row a webhook payload carries, or null. */
 export function parseNotificationRecord(payload) {
     if (!payload || typeof payload !== 'object') return null;
@@ -206,7 +219,7 @@ export async function onRequestPost({ request, env }) {
         return jsonResponse({ sent: 0, pruned: 0, failed: 0, reason: 'unsupported-type' });
     }
 
-    const message = { data: copy, options: { ttl: PUSH_TTL_SECONDS, urgency: 'high' } };
+    const message = buildMessageFor(copy);
     const vapid = { subject: resolveVapidValue(env.VAPID_SUBJECT, DEFAULT_VAPID_SUBJECT), publicKey, privateKey };
 
     let sent = 0;

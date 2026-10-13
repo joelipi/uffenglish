@@ -4,7 +4,9 @@ import {
     buildPushNotification,
     normalizePushLanguage,
     notificationUrlForShareCode,
+    notificationCollapseKey,
     pushCopyInputFromRecord,
+    MAX_COLLAPSE_KEY_LENGTH,
 } from './push-copy.js';
 
 describe('normalizePushLanguage', () => {
@@ -47,16 +49,51 @@ describe('notificationUrlForShareCode', () => {
     });
 });
 
+describe('notificationCollapseKey', () => {
+    it('uses the row id so a re-answer of the same notification collapses', () => {
+        const id = '0f8fad5b-d9cb-469f-a165-70867728950e';
+        const key = notificationCollapseKey({ id });
+        // 32 hex chars: within RFC 8030's 32-character Topic limit, url-safe.
+        expect(key).toBe('0f8fad5bd9cb469fa16570867728950e');
+        expect(key).toHaveLength(MAX_COLLAPSE_KEY_LENGTH);
+        expect(key).toMatch(/^[A-Za-z0-9_-]{1,32}$/);
+        // Stable across calls — the same row always collapses onto itself.
+        expect(notificationCollapseKey({ id })).toBe(key);
+    });
+
+    it('differs per row, so a different friend is a different notification', () => {
+        expect(notificationCollapseKey({ id: 'aaaa-bbbb' }))
+            .not.toBe(notificationCollapseKey({ id: 'cccc-dddd' }));
+    });
+
+    it('is undefined (non-collapsible) when the row has no usable id', () => {
+        for (const record of [{}, { id: '' }, { id: '---' }, { id: 42 }, null, undefined]) {
+            expect(notificationCollapseKey(record), JSON.stringify(record)).toBeUndefined();
+        }
+    });
+
+    it('strips anything outside the url-safe alphabet and caps the length', () => {
+        const key = notificationCollapseKey({ id: '!!aa??bb##' + 'x'.repeat(60) });
+        expect(key).toMatch(/^[A-Za-z0-9_-]{1,32}$/);
+        expect(key.length).toBeLessThanOrEqual(MAX_COLLAPSE_KEY_LENGTH);
+    });
+});
+
 describe('buildPushNotification', () => {
     const row = { type: 'friend_response', actorName: 'Ada', actorShareCode: 'ab12' };
 
-    it('builds localized title, body and url', () => {
-        const en = buildPushNotification({ ...row, lang: 'en' });
+    it('builds localized title, body, url and collapse tag', () => {
+        const en = buildPushNotification({ ...row, id: 'row-1', lang: 'en' });
         expect(en).toEqual({
             title: 'New video with your questions',
             body: 'Ada created a video with your questions',
             url: '/ab12',
+            tag: 'row1',
         });
+    });
+
+    it('omits the tag when the row id is missing', () => {
+        expect(buildPushNotification({ ...row, lang: 'en' }).tag).toBeUndefined();
     });
 
     it('translates the body for every supported language and never leaves a placeholder', () => {
@@ -97,6 +134,7 @@ describe('pushCopyInputFromRecord', () => {
             type: 'friend_response',
             actorName: 'Ada',
             actorShareCode: 'ab12',
+            id: undefined,
             lang: 'fr',
         });
     });
@@ -106,6 +144,7 @@ describe('pushCopyInputFromRecord', () => {
             type: null,
             actorName: null,
             actorShareCode: null,
+            id: null,
             lang: 'en',
         });
     });

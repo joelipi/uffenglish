@@ -113,6 +113,35 @@ Block), which also makes the browser drop the subscription; the sender then prun
 the dead row on the next `404`/`410`. The `push_subscriptions` delete policy
 already allows an in-app control when one is added.
 
+## Delivery limits and what actually throttles us
+
+Platform caps do **not** protect a user from our own bug — they protect the
+platform. For reference:
+
+| Platform | Per-device limit | Notes |
+|---|---|---|
+| Android / Chrome (FCM) | 240/min and 5,000/hour; **collapsible** messages: burst of 20, refill 1 per 3 min | 4,096-byte payload; Google warns routine use near the ceiling "may be marked as abusive" |
+| iOS / iPadOS (APNs) | no published cap for visible notifications | `userVisibleOnly` abuse **revokes the subscription** |
+| Windows (WNS) | monthly quota by tier (`429`), plus `406` throttle | 5,000-byte payload; ≤1 routine update per 30 min guideline |
+
+Two mechanisms in this feature do the real work, so keep them:
+
+1. **Trigger cooldown.** `trg_user_notifications_push` only fires when the
+   *previous* notification for that `(recipient, actor, type)` is at least
+   **5 minutes** old (`new.created_at > old.created_at + interval '5 minutes'`).
+   Without it, looping `record_friend_response()` emits one push per call. It is
+   per row, so a different friend's answer pushes immediately. Tune the interval
+   in `supabase/migrations/008_add_push_subscriptions.sql`.
+2. **Collapse key.** The notification row's `id` is normalized to a ≤32-character
+   key (`notificationCollapseKey`) and sent as the Web Push `Topic` header *and*
+   the Notification `tag`. The topic makes the message collapsible on FCM (which
+   is what opts into the 20-burst / 1-per-3-minutes throttle instead of the
+   5,000/hour ceiling); the tag makes Android/Windows/macOS replace the previous
+   notification rather than stack it.
+
+If you raise the cooldown or drop the collapse key, the failure mode is a
+notification storm on a victim's devices — there is no platform backstop.
+
 ## Limits and behaviour worth knowing
 
 - Push is **per device**: a user with a phone and a laptop gets both. The sender

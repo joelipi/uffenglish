@@ -295,6 +295,15 @@ Vault secrets, three Pages secrets, `wrangler.toml` `[vars]`).
 - **Language:** the sender composes copy in the recipient's stored
   `native_language`, normalizing the guest modal's `OTHER` sentinel (and anything
   unknown) to English, per the AGENTS.md guest-language rule.
+- **Verified platform limits (for the next person tuning this).** Android/Chrome
+  (FCM): 240 messages/min and 5,000/hour per device, collapsible messages
+  throttled to a burst of 20 with a refill of 1 per 3 minutes, 4,096-byte payload;
+  routine use near the ceiling "may be marked as abusive". iOS/iPadOS (APNs via
+  WebKit): no published visible-notification cap, but a `userVisibleOnly`
+  violation *revokes the subscription*. Windows (WNS): a **monthly** quota by tier
+  (`429`) plus a `406` throttle and a "at most one routine update per 30 minutes"
+  guideline, 5,000-byte payload. None of these protect a user from our own bug —
+  hence the trigger cooldown above.
 - **Hardening from review:** the sender refuses to fetch any endpoint that is not
   `https:` (`isAllowedPushEndpoint`). An endpoint is attacker-controlled input —
   any authenticated user may register an arbitrary URL on their own row — so
@@ -304,15 +313,29 @@ Vault secrets, three Pages secrets, `wrangler.toml` `[vars]`).
   service-role key). The trigger also skips when the shared secret is missing, not
   just when the URL is, so a half-configured deploy never spends a round trip to
   earn a `401`.
-- **Known follow-up (not fixed here): push amplifies a pre-existing spam vector.**
-  `record_friend_response()` (005) has no rate limit, and the dedupe upsert
-  refreshes `created_at`, so the trigger re-fires on every re-answer: a caller who
-  loops the RPC can emit one OS-level push per call to the victim's devices.
-  `MAX_SUBSCRIPTIONS_PER_SEND` and `PUSH_TTL_SECONDS` bound the fan-out, not the
-  frequency. A trigger-side debounce (e.g. skip when
-  `old.created_at > now() - interval '5 minutes'`) or a per-recipient throttle in
-  the sender is the fix; it is deliberately left as its own change because it
-  alters product behaviour (a legitimate rapid re-answer would go quiet).
+- **The unthrottled re-answer loop is bounded in the trigger, not by the
+  platform.** `record_friend_response()` (005) is granted to `authenticated` with
+  no rate limit and the dedupe upsert refreshes `created_at`, so without a guard a
+  caller who knows a share code could loop the RPC and emit one OS-level push per
+  call. The platform would *not* save the user: FCM's collapsible throttle only
+  bites after a 20-message burst (and not at all for non-collapsible messages),
+  iOS publishes no visible-notification cap and instead can **revoke the whole
+  subscription** for `userVisibleOnly` abuse, and Windows burns a monthly tier
+  quota shared by every user. So the trigger requires the previous notification to
+  be at least 5 minutes old
+  (`new.created_at > old.created_at + interval '5 minutes'`), which also
+  subsumes the mark-as-read exclusion. It is per row, so a *different* friend
+  answering still pushes immediately; only the same actor re-answering inside the
+  window is collapsed, and the in-app row is still refreshed either way.
+- **Repeats collapse into one notification instead of stacking.** The row's `id`
+  becomes a ≤32-character collapse key (`notificationCollapseKey`, RFC 8030 §5.4
+  alphabet) that is sent as the Web Push `Topic` header
+  (`buildMessageFor` → `options.topic`) and as the Notification `tag` in
+  `public/push-sw.js`. The topic is what makes the message **collapsible** on FCM,
+  which is how the platform's "burst of 20, then 1 per 3 minutes" throttle applies
+  rather than the per-device 5,000/hour ceiling; the tag makes the OS replace the
+  previous entry. Both are dropped rather than guessed at when the row has no
+  usable id.
 - **The Function test runs in the `node` environment, not jsdom.** The Web Push
   library does a cross-realm `instanceof ArrayBuffer` check on what
   `crypto.subtle` returns; under jsdom that value belongs to jsdom's realm, so the

@@ -28,6 +28,15 @@ function readPushPayload(event) {
     }
 }
 
+// Same shape rule as the sender's collapse key (RFC 8030 §5.4): untrusted input
+// gets dropped rather than passed to showNotification.
+const TAG_PATTERN = /^[A-Za-z0-9_-]{1,32}$/;
+
+function notificationTag(data) {
+    const tag = data && typeof data.tag === 'string' ? data.tag.trim() : '';
+    return TAG_PATTERN.test(tag) ? tag : undefined;
+}
+
 function notificationUrl(data) {
     const url = data && typeof data.url === 'string' ? data.url.trim() : '';
     if (!url) return FALLBACK_URL;
@@ -39,17 +48,21 @@ function notificationUrl(data) {
 self.addEventListener('push', (event) => {
     const data = readPushPayload(event);
     const url = notificationUrl(data);
+    const tag = notificationTag(data);
     const title = data && typeof data.title === 'string' && data.title ? data.title : FALLBACK_TITLE;
     const body = data && typeof data.body === 'string' ? data.body : FALLBACK_BODY;
 
-    event.waitUntil(
-        self.registration.showNotification(title, {
-            body,
-            icon: '/pwa-192x192.png',
-            badge: '/pwa-64x64.png',
-            data: { url },
-        })
-    );
+    const options = {
+        body,
+        icon: '/pwa-192x192.png',
+        badge: '/pwa-64x64.png',
+        data: { url },
+    };
+    // A tag replaces the previous notification for the same key, so a repeated
+    // answer updates one entry instead of stacking a column of them.
+    if (tag) options.tag = tag;
+
+    event.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener('notificationclick', (event) => {
