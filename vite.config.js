@@ -18,15 +18,16 @@ import { PWA_NAVIGATION_DENY_LIST } from './scripts/lib/pwa-navigation-deny-list
 // origin), the `public/wasm/**` and `public/whisper/**` model/assets, the
 // oversized AI chunks and the pipeline Functions stay network-only, so offline
 // is a shell, not a lesson player.
-// `registerType: 'prompt'` + `injectRegister: 'script'` injects a bare
-// `navigator.serviceWorker.register` (no `virtual:pwa-register` client). The
-// "no forced reload" property comes from `injectRegister`: the auto-updating
-// registration *and* a `virtual:pwa-register` import would reload every tab when
-// a new build activates, which here would interrupt an in-progress recording. The
-// app already has its own bounded stale-chunk reload (see
-// src/modules/utils/stale-chunk-reload.js), which is now mostly masked because
-// precached chunks resolve from the service worker cache — the trade-off is
-// documented in stories/062-pwa-install.
+// `injectRegister: 'script'` is what produces the bare
+// `navigator.serviceWorker.register` (no `virtual:pwa-register` client, hence no
+// reload path that could interrupt an in-progress recording). `registerType` is
+// only consumed by that client, which we do not emit — so it is inert today and
+// is kept (pinned by pwa-manifest.test.js) purely as intent: when an "update
+// available" banner is wanted later, the client path must start from a user
+// prompt, never from a forced reload. The app already has its own bounded
+// stale-chunk reload (see src/modules/utils/stale-chunk-reload.js), which is now
+// mostly masked because precached chunks resolve from the service worker cache —
+// the trade-off is documented in stories/062-pwa-install.
 const WORKBOX_IGNORES = [
     // Redundant with globPatterns (which has no `wasm` extension), but kept so
     // a future globPatterns edit cannot silently start precaching the 109 MB

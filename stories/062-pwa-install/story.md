@@ -119,6 +119,25 @@ that is out of scope here.)
   denied; `/home`, `/privacy`, `/courses`, `/abc12`, `/course/…` not), so a
   pattern that names an unreachable URL can no longer pass. `vite.config.js` only
   asserts that it wires the module in, not the config text.
+- **The deny-list stems are derived from the repo, not from memory.**
+  `pwa-navigation-deny-list.test.js` enumerates `public/*.html` and asserts the
+  deny behaviour for every stem it finds — so adding `public/donate.html` (or
+  renaming `landing.html`) fails the suite until the rule is extended, instead of
+  silently serving the new page from the precached shell. Both failure modes were
+  proven by temporarily breaking the rule (dropping `/landing` fails 9 tests;
+  adding a throwaway `public/donate.html` fails 4).
+- **The component contract is pinned against the real package, not just the mock.**
+  `pwa-install-wiring.test.jsx` mocks `@khmyznikov/pwa-install` (so the home-screen
+  subtree stays light), which means nothing there touches the real Lit bindings.
+  `pwa-install-contract.test.jsx` imports the real bundle unmocked, upgrades a
+  real (never-connected, so side-effect-free) `<pwa-install>` element, and asserts
+  the attribute→property reflection (`manualApple`, `manualChrome`,
+  `useLocalStorage`, `manifestUrl`) and the `showDialog`/`hideDialog`/`install`
+  methods — so a prop rename in a future package bump fails here.
+- **`registerType: 'prompt'` is inert as configured** (it is only consumed by the
+  `virtual:pwa-register` client, which `injectRegister: 'script'` never emits) and
+  is kept purely as pinned intent: a future update banner must start from a user
+  prompt, never a forced reload.
   `maximumFileSizeToCacheInBytes` is 3 MB **with
   `showMaximumFileSizeToCacheInBytesWarning: true`**, so the oversized
   `idioms`/`idiom-worker` AI chunks (4.3 MB each) and the 6 MB
@@ -168,7 +187,7 @@ that is out of scope here.)
 scripts/lib/pwa-manifest.js        manifest constants + buildPwaManifest()
 scripts/lib/pwa-navigation-deny-list.js  pure rule: the navigations the shell must never answer
 scripts/lib/pwa-manifest.test.js   install contract + on-disk icons + build wiring
-scripts/lib/pwa-navigation-deny-list.test.js  behaviour of the deny rule for real URLs
+scripts/lib/pwa-navigation-deny-list.test.js  behaviour of the deny rule for real URLs (stems derived from public/*.html)
 pwa-assets.config.js               icon generation (npm run pwa:assets)
 vite.config.js                     VitePWA(...) — manifest, Workbox, register
 index.html                         favicon/apple-touch-icon/theme-color head tags
@@ -178,6 +197,7 @@ src/modules/pwa/install-prompt-logic.js      pure rules
 src/modules/pwa/install-prompt-webonly.js    display-mode read + element registry
 src/components/pwa/PWAInstallDialog.web.jsx  mounts <pwa-install> (RootLayout)
 src/components/pwa/PWAInstallButton.web.jsx  the menu entry point
+src/components/pwa/pwa-install-contract.test.jsx  real-package contract (unmocked)
 src/routes/RootLayout.jsx                    + <PWAInstallDialog />
 src/components/homescreen/HomeScreen.jsx     + <PWAInstallButton /> in the menu
 src/data/strings.js                          + pwa_install_cta
@@ -256,6 +276,10 @@ src/data/strings.js                          + pwa_install_cta
   - → `RootLayout.jsx` imports and renders `<PWAInstallDialog />`
   - → `HomeScreen.jsx` imports and renders `<PWAInstallButton>` with `Strings.get('pwa_install_cta', lang)`
   - → `PWAInstallButton.web.jsx` does **not** contain `@khmyznikov/pwa-install`; `PWAInstallDialog.web.jsx` does
+- the real package contract (unmocked, `pwa-install-contract.test.jsx`)
+  - → importing `@khmyznikov/pwa-install` registers the `pwa-install` custom element
+  - → a real element reflects `manual-apple`/`manual-chrome`/`use-local-storage`/`manifest-url` into `manualApple`/`manualChrome`/`useLocalStorage`/`manifestUrl`
+  - → a real element exposes `showDialog`, `hideDialog` and `install` as functions
 - `src/data/strings.js`
   - → `pwa_install_cta` carries en/es/pt/fr/hi/bn, with real Devanagari and Bengali copy (so `strings.test.js` hi/bn coverage passes)
 

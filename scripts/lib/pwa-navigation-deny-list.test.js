@@ -5,7 +5,12 @@
 // at its extensionless path, so both forms must be denied for each standalone
 // page.
 import { describe, it, expect } from 'vitest';
+import { readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import { PWA_NAVIGATION_DENY_LIST, matchesPwaNavigationDenyList } from './pwa-navigation-deny-list.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const SHELL_ROUTES = [
     '/',
@@ -75,4 +80,37 @@ describe('PWA_NAVIGATION_DENY_LIST shape', () => {
             expect(pattern.source.startsWith('^')).toBe(true);
         }
     });
+});
+
+describe('deny list covers every standalone HTML page the repo ships', () => {
+    // The stems in the deny rule are hand-maintained, but the standalone pages
+    // are whatever `public/*.html` contains — so enumerate the directory and
+    // assert each page is denied in every URL form Cloudflare can serve it in.
+    // A new `public/donate.html` (or a renamed `landing.html`) fails here until
+    // the rule in pwa-navigation-deny-list.js is extended; without this, the
+    // new page would be answered from the precached SPA shell with the suite
+    // still green.
+    const stems = readdirSync(path.join(__dirname, '..', '..', 'public'))
+        .filter((f) => f.endsWith('.html'))
+        .map((f) => `/${f.slice(0, -'.html'.length)}`);
+
+    it('finds the standalone pages it is guarding (the guard itself can fail)', () => {
+        expect(stems.length).toBeGreaterThan(0);
+        expect(stems).toContain('/recorder');
+        expect(stems).toContain('/landing');
+    });
+
+    for (const stem of stems) {
+        for (const served of [stem, `${stem}.html`, `${stem}?x=1`, `${stem}.html?x=1`]) {
+            it(`denies the served page ${served}`, () => {
+                expect(matchesPwaNavigationDenyList(served)).toBe(true);
+            });
+        }
+
+        it(`denies no URL that merely starts with ${stem}`, () => {
+            expect(matchesPwaNavigationDenyList(`${stem}s`)).toBe(false);
+            expect(matchesPwaNavigationDenyList(`${stem}-page`)).toBe(false);
+            expect(matchesPwaNavigationDenyList(`${stem}/x`)).toBe(false);
+        });
+    }
 });
