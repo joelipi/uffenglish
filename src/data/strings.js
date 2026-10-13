@@ -1052,6 +1052,17 @@ const strings = {
         hi: "जारी रखें",
         bn: "চালিয়ে যান"
     },
+    // Home menu entry that opens the PWA install dialog
+    // (src/components/pwa/PWAInstallButton.web.jsx). Native-speaker review of
+    // the non-English drafts is a follow-up, exactly as for story 056/059.
+    'pwa_install_cta': {
+        en: "Install app",
+        es: "Instalar aplicación",
+        pt: "Instalar aplicativo",
+        fr: "Installer l'application",
+        hi: "ऐप इंस्टॉल करें",
+        bn: "অ্যাপ ইনস্টল করুন"
+    },
     'home_courses_load_error': {
         en: "Failed to load courses. Please try again later.",
         es: "Error al cargar los cursos. Inténtalo de nuevo más tarde.",

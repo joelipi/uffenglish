@@ -15,6 +15,7 @@
     "posters": "node scripts/generate-thumbnails.mjs",
     "posters:upload": "node scripts/generate-thumbnails.mjs --upload",
     "posters:check": "node scripts/verify-thumbnails.mjs",
+    "pwa:assets": "pwa-assets-generator",
     "videos:optimize": "node scripts/optimize-videos.mjs",
     "videos:optimize:upload": "node scripts/optimize-videos.mjs --upload",
     "pipeline:upload-assets": "node scripts/upload-pipeline-assets.mjs --upload",
@@ -31,6 +32,7 @@
   "devDependencies": {
     "@playwright/test": "^1.60.0",
     "@types/node": "^25.6.0",
+    "@vite-pwa/assets-generator": "^1.0.4",
     "@vitest/coverage-v8": "^4.1.6",
     "eslint": "^10.12.0",
     "eslint-plugin-react-hooks": "^7.1.1",
@@ -40,11 +42,13 @@
     "onnxruntime-web": "^1.17.3",
     "vite": "^8.0.10",
     "vite-plugin-purgecss": "^0.2.13",
+    "vite-plugin-pwa": "^2.0.0",
     "vitest": "^4.1.6",
     "wrangler": "^3.114.17"
   },
   "dependencies": {
     "@huggingface/transformers": "^3.8.1",
+    "@khmyznikov/pwa-install": "^0.7.0",
     "@popperjs/core": "^2.11.8",
     "@rive-app/react-canvas": "^4.29.0",
     "@supabase/supabase-js": "^2.112.4",
