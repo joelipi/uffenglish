@@ -71,11 +71,17 @@ export function resolvePushPromptState(input = {}) {
     return input.permission === 'denied' ? 'blocked' : 'ready';
 }
 
-/** The user-visible outcome of a subscribe attempt, for rendering. */
+/**
+ * The user-visible outcome of a subscribe attempt, for rendering.
+ *
+ * `dismissed` is deliberately distinct from `denied`: the user closed the prompt
+ * without blocking, so the offer stays actionable and no unblock hint is shown.
+ */
 export function describeSubscribeResult(result) {
     if (result && result.ok) return 'subscribed';
     const reason = result && result.reason;
     if (reason === 'denied') return 'denied';
+    if (reason === 'dismissed') return 'dismissed';
     if (reason === 'unsupported') return 'unsupported';
     if (reason === 'not-configured') return 'not-configured';
     if (reason === 'not-signed-in') return 'not-signed-in';

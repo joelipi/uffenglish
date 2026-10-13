@@ -135,6 +135,14 @@ describe('subscribeToPush — fail-open paths', () => {
             .resolves.toEqual({ ok: false, reason: 'denied' });
     });
 
+    it('reports a dismissed prompt as dismissed, not denied', async () => {
+        // Closing the OS dialog without choosing leaves permission at 'default':
+        // still re-promptable, so it must not latch the blocked UI.
+        installBrowser({ permission: 'default', requestResult: 'default' });
+        await expect(subscribeToPush({ supabaseClient: makeSupabase().client, userId: 'u1' }))
+            .resolves.toEqual({ ok: false, reason: 'dismissed' });
+    });
+
     it('reports failed (never throws) when pushManager.subscribe rejects', async () => {
         installBrowser({ subscribeImpl: async () => { throw new Error('gcm rejected'); } });
         await expect(subscribeToPush({ supabaseClient: makeSupabase().client, userId: 'u1' }))

@@ -169,7 +169,13 @@ export async function subscribeToPush({ supabaseClient, userId, vapidPublicKey }
             return { ok: false, reason: 'failed' };
         }
     }
-    if (granted !== 'granted') return { ok: false, reason: 'denied' };
+    if (granted !== 'granted') {
+        // Dismissing the prompt leaves the permission at `default` — still
+        // re-promptable — which is NOT the same as choosing Block ('denied').
+        // Reporting a dismissal as `denied` would latch the UI into the
+        // "unblock in browser settings" state with no way to try again.
+        return { ok: false, reason: granted === 'denied' ? 'denied' : 'dismissed' };
+    }
 
     try {
         let subscription = await registration.pushManager.getSubscription();

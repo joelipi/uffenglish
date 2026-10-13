@@ -242,22 +242,41 @@ describe('PushNotificationsOptIn — installed-app prompt', () => {
         unmount();
     });
 
-    it('disables the prompt button in the same window the hint appears (no lag)', async () => {
-        // `outcome === 'denied'` with permission not yet reflected: hint AND
-        // disabled must agree across both variants.
-        webOnly.subscribeResult = { ok: false, reason: 'denied' };
-        webOnly.subscribe = vi.fn(async () => ({ ok: false, reason: 'denied' }));
+    for (const variant of ['prompt', 'menu-item']) {
+        it(`${variant}: a denial disables the button in the same window the hint appears`, async () => {
+            // `outcome === 'denied'` with permission not yet reflected: hint AND
+            // disabled must agree, in both variants.
+            webOnly.subscribeResult = { ok: false, reason: 'denied' };
+            webOnly.subscribe = vi.fn(async () => ({ ok: false, reason: 'denied' }));
 
-        const { container, unmount } = render(
-            <PushNotificationsOptIn lang="en" variant="prompt" userId="user-1" />
-        );
-        await flush();
-        await act(async () => { container.querySelector('[data-testid="push-enable"]').click(); });
+            const { container, unmount } = render(
+                <PushNotificationsOptIn lang="en" variant={variant} userId="user-1" />
+            );
+            await flush();
+            await act(async () => { container.querySelector('[data-testid="push-enable"]').click(); });
 
-        expect(container.querySelector('[data-testid="push-outcome"]')).toBeTruthy();
-        expect(container.querySelector('[data-testid="push-enable"]').disabled).toBe(true);
-        unmount();
-    });
+            expect(container.querySelector('[data-testid="push-outcome"]')).toBeTruthy();
+            expect(container.querySelector('[data-testid="push-enable"]').disabled).toBe(true);
+            unmount();
+        });
+
+        it(`${variant}: a dismissed prompt leaves the button usable`, async () => {
+            // The user closed the OS dialog: nothing was blocked, so they must be
+            // able to try again without reloading.
+            webOnly.subscribeResult = { ok: false, reason: 'dismissed' };
+            webOnly.subscribe = vi.fn(async () => ({ ok: false, reason: 'dismissed' }));
+
+            const { container, unmount } = render(
+                <PushNotificationsOptIn lang="en" variant={variant} userId="user-1" />
+            );
+            await flush();
+            await act(async () => { container.querySelector('[data-testid="push-enable"]').click(); });
+
+            expect(container.querySelector('[data-testid="push-outcome"]')).toBeNull();
+            expect(container.querySelector('[data-testid="push-enable"]').disabled).toBe(false);
+            unmount();
+        });
+    }
 
     it('shows the unblock hint on the menu entry too when permission is denied', async () => {
         webOnly.support = { supported: true, permission: 'denied' };

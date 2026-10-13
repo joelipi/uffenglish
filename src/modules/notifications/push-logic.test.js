@@ -102,6 +102,8 @@ describe('describeSubscribeResult', () => {
     it('maps each outcome to a renderable state', () => {
         expect(describeSubscribeResult({ ok: true })).toBe('subscribed');
         expect(describeSubscribeResult({ ok: false, reason: 'denied' })).toBe('denied');
+        // A dismissal is its own state: it must not render as a denial.
+        expect(describeSubscribeResult({ ok: false, reason: 'dismissed' })).toBe('dismissed');
         expect(describeSubscribeResult({ ok: false, reason: 'unsupported' })).toBe('unsupported');
         expect(describeSubscribeResult({ ok: false, reason: 'not-configured' })).toBe('not-configured');
         expect(describeSubscribeResult({ ok: false, reason: 'not-signed-in' })).toBe('not-signed-in');
