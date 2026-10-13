@@ -842,21 +842,25 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 /* Primary rectangular CTAs share the overlay buttons' luminous edge: the
    same white halo ring (btnGlowPulse) the glowing overlay call buttons
    carry in their ::before. One shared base rule covers the solid theme
-   buttons and the homepage primaries (both stylesheets are loaded on the
-   homepage; app.css is global so it also covers auth/modals). The host
-   positioning contains the negative-z halo (same precedent as .call-btn);
-   `border-radius: inherit` keeps it shape-agnostic across
-   rounded-rectangle and pill buttons. No floatBob here — the edge is the
-   halo; bobbing static form buttons reads as broken layout. */
+   buttons, the homepage primaries (both stylesheets are loaded on the
+   homepage; app.css is global so it also covers auth/modals) and the
+   tutorial modal Continue (which mirrors the homepage primary outside the
+   .uff-home-bs scope). The host positioning contains the negative-z halo
+   (same precedent as .call-btn); `border-radius: inherit` keeps it
+   shape-agnostic across rounded-rectangle and pill buttons. No floatBob
+   here — the edge is the halo; bobbing static form buttons reads as broken
+   layout. */
 .btn-primary,
 .btn-secondary,
 .btn-success,
+.tutorial-modal-continue,
 .uff-home-bs .btn-uff-primary,
 .uff-home-bs .btn-uff-topbar {
     position: relative;
     z-index: 0;
 }
 .btn-primary::before, .btn-secondary::before, .btn-success::before,
+.tutorial-modal-continue::before,
 .uff-home-bs .btn-uff-primary::before, .uff-home-bs .btn-uff-topbar::before {
     content: '';
     position: absolute;
@@ -870,9 +874,11 @@ body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, "He
 }
 /* Homepage buttons keep the halo but never pulse: only the main overlay
    call buttons pulse. The doubled scope class outranks the shared base, so
-   this wins regardless of source order. */
+   this wins regardless of source order. The tutorial Continue is a static
+   form button too, so it joins the no-pulse rule. */
 .uff-home-bs.uff-home-bs .btn-uff-primary::before,
-.uff-home-bs.uff-home-bs .btn-uff-topbar::before {
+.uff-home-bs.uff-home-bs .btn-uff-topbar::before,
+.tutorial-modal-continue::before {
     animation: none;
 }
 /* A disabled primary must not glow: same precedent as the pending success
@@ -2685,11 +2691,41 @@ ul.incorrectWords li::before {
     word-break: break-word;
 }
 
-/* Localized Continue sits directly under the video. */
+/* Localized Continue sits directly under the video. It mirrors the homepage
+   primary CTA (.uff-home-bs .btn-uff-primary in home-landing.css) exactly —
+   white solid, dark bold text, 8px rectangle, generous padding — and must
+   never regain the round .call-btn geometry, which crushes the label into a
+   60px circle. The white halo edge comes from the shared static-halo group
+   below (joined, not copied, so the treatment cannot drift). */
 .tutorial-modal-continue {
+    display: block;
+    width: 100%;
     margin-top: 16px;
-    min-width: 60%;
-    color: #fff;
-    font-weight: 600;
-    font-size: 1.05rem;
+    padding: 0.875rem 1.25rem;
+    background-color: var(--uff-btn-bg);
+    background-image: none;
+    border: var(--uff-btn-border);
+    border-radius: 8px;
+    color: var(--uff-btn-fg);
+    font-weight: 700;
+    font-size: 1.25rem;
+    line-height: 1.5;
+    text-align: center;
+    box-shadow: var(--uff-btn-shadow);
+    cursor: pointer;
+    transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.tutorial-modal-continue:hover,
+.tutorial-modal-continue:focus {
+    color: var(--uff-btn-fg);
+    background-color: var(--uff-btn-bg);
+    background-image: none;
+    filter: brightness(0.96);
+}
+
+.tutorial-modal-continue:active {
+    transform: scale(0.99);
+    color: var(--uff-btn-fg);
+    background-color: var(--uff-btn-bg);
 }

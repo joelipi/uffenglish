@@ -186,8 +186,22 @@ describe('app.css carries the tutorial takeover stylesheet', () => {
         expect(block).toContain('bottom: 0');
     });
 
-    it('puts the Continue button under the video', () => {
+    it('styles Continue as the homepage primary CTA, never a round call button', () => {
         const block = cssBlock('.tutorial-modal-continue {');
-        expect(block).toContain('margin-top: 16px');
+        // Mirrors .uff-home-bs .btn-uff-primary (home-landing.css): white
+        // solid, dark bold text, 8px rectangle, generous padding.
+        expect(block).toContain('background-color: var(--uff-btn-bg)');
+        expect(block).toContain('border: var(--uff-btn-border)');
+        expect(block).toContain('color: var(--uff-btn-fg)');
+        expect(block).toContain('border-radius: 8px');
+        expect(block).toContain('font-weight: 700');
+        expect(block).toContain('padding: 0.875rem 1.25rem');
+        // The round .call-btn geometry would crush the label into a circle.
+        expect(block).not.toContain('border-radius: 50%');
+        expect(block).not.toContain('aspect-ratio');
+        // The white halo edge comes from the shared static-halo group, and it
+        // never pulses (static form button, like the homepage primaries).
+        expect(css).toContain('.tutorial-modal-continue::before');
+        expect(cssBlock('.tutorial-modal-continue::before {')).toContain('animation: none');
     });
 });
