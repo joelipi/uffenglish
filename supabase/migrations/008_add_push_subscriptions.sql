@@ -86,7 +86,10 @@ begin
     return new;
   end;
 
-  if v_url is null or btrim(v_url) = '' then
+  -- Both entries are required: a URL without the shared secret could only ever
+  -- earn a 401 from the sender, so don't spend the round trip.
+  if v_url is null or btrim(v_url) = ''
+     or v_secret is null or btrim(v_secret) = '' then
     return new;
   end if;
 

@@ -11,8 +11,9 @@
 // caller is Postgres — it has no user session, so a JWT check is not applicable.
 //
 // Fail-open: every unexpected condition returns 200 with `sent: 0` and a reason,
-// so a push problem can never fail the friend's export or retry-loop. 401 is the
-// only error status.
+// so a push problem can never fail the friend's export or retry-loop. The only
+// error statuses are 401 (wrong webhook secret) and 500 (PUSH_WEBHOOK_SECRET
+// unset — our misconfiguration, deliberately loud).
 
 import { buildPushPayload } from '@block65/webcrypto-web-push';
 import { DEFAULT_SUPABASE_URL } from '../../../src/modules/api/supabase-constants.js';
@@ -34,6 +35,23 @@ export const MAX_SUBSCRIPTIONS_PER_SEND = 20;
 export const PUSH_TTL_SECONDS = 600;
 // Push services report a permanently gone subscription with these.
 export const GONE_STATUSES = [404, 410];
+
+/**
+ * A subscription endpoint is stored by the subscribing client, so it is
+ * attacker-controlled input: any authenticated user may register an arbitrary
+ * URL on their own row. Only https endpoints are ever fetched, so a row cannot
+ * turn this Function into an outbound request to a `file:`/`http:`/internal URL.
+ * (Impact today is already self-directed — the lookup is scoped by recipient and
+ * the request carries only VAPID headers — but the guard keeps it that way.)
+ */
+export function isAllowedPushEndpoint(endpoint) {
+    if (typeof endpoint !== 'string' || !endpoint) return false;
+    try {
+        return new URL(endpoint).protocol === 'https:';
+    } catch {
+        return false;
+    }
+}
 
 function jsonResponse(body, status = 200) {
     return new Response(JSON.stringify(body), {
@@ -120,6 +138,10 @@ export async function deleteSubscription({ supabaseUrl, serviceKey, id }) {
  * Never throws: a single bad endpoint must not stop the other devices.
  */
 export async function sendToSubscription({ subscription, message, vapid }) {
+    if (!isAllowedPushEndpoint(subscription && subscription.endpoint)) {
+        console.error('[push-send] refusing a non-https endpoint');
+        return 'failed';
+    }
     try {
         const payload = await buildPushPayload(message, subscription, vapid);
         const res = await fetch(subscription.endpoint, {

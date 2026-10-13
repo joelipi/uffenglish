@@ -295,6 +295,24 @@ Vault secrets, three Pages secrets, `wrangler.toml` `[vars]`).
 - **Language:** the sender composes copy in the recipient's stored
   `native_language`, normalizing the guest modal's `OTHER` sentinel (and anything
   unknown) to English, per the AGENTS.md guest-language rule.
+- **Hardening from review:** the sender refuses to fetch any endpoint that is not
+  `https:` (`isAllowedPushEndpoint`). An endpoint is attacker-controlled input —
+  any authenticated user may register an arbitrary URL on their own row — so
+  without it a row could turn the Function into an outbound request to an
+  internal/`http:` URL (the impact was already self-directed: the lookup is
+  scoped by recipient and the request carries only VAPID headers, never the
+  service-role key). The trigger also skips when the shared secret is missing, not
+  just when the URL is, so a half-configured deploy never spends a round trip to
+  earn a `401`.
+- **Known follow-up (not fixed here): push amplifies a pre-existing spam vector.**
+  `record_friend_response()` (005) has no rate limit, and the dedupe upsert
+  refreshes `created_at`, so the trigger re-fires on every re-answer: a caller who
+  loops the RPC can emit one OS-level push per call to the victim's devices.
+  `MAX_SUBSCRIPTIONS_PER_SEND` and `PUSH_TTL_SECONDS` bound the fan-out, not the
+  frequency. A trigger-side debounce (e.g. skip when
+  `old.created_at > now() - interval '5 minutes'`) or a per-recipient throttle in
+  the sender is the fix; it is deliberately left as its own change because it
+  alters product behaviour (a legitimate rapid re-answer would go quiet).
 - **The Function test runs in the `node` environment, not jsdom.** The Web Push
   library does a cross-realm `instanceof ArrayBuffer` check on what
   `crypto.subtle` returns; under jsdom that value belongs to jsdom's realm, so the

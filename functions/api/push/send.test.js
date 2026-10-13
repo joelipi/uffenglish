@@ -15,6 +15,7 @@ import {
     onRequestPost,
     requireWebhookSecret,
     parseNotificationRecord,
+    isAllowedPushEndpoint,
     MAX_SUBSCRIPTIONS_PER_SEND,
     PUSH_TTL_SECONDS,
 } from './send.js';
@@ -266,6 +267,45 @@ describe('parseNotificationRecord', () => {
         expect(parseNotificationRecord({})).toBeNull();
         expect(parseNotificationRecord(null)).toBeNull();
         expect(parseNotificationRecord('nope')).toBeNull();
+    });
+});
+
+describe('isAllowedPushEndpoint — never fetch a stored URL that is not https', () => {
+    it('accepts only https push endpoints', () => {
+        expect(isAllowedPushEndpoint('https://fcm.googleapis.com/fcm/send/abc')).toBe(true);
+        expect(isAllowedPushEndpoint('https://updates.push.services.mozilla.com/wpush/v2/x')).toBe(true);
+    });
+
+    it('rejects other schemes, relative paths, credentials tricks and junk', () => {
+        for (const value of [
+            'http://fcm.googleapis.com/send/abc',
+            'file:///etc/passwd',
+            'ftp://example.com/x',
+            '//example.com/x',
+            '/api/push/send',
+            'javascript:alert(1)',
+            'data:text/plain,x',
+            '',
+            null,
+            undefined,
+            42,
+            'not a url',
+        ]) {
+            expect(isAllowedPushEndpoint(value), String(value)).toBe(false);
+        }
+    });
+
+    it('counts a rejected endpoint as failed and never fetches it', async () => {
+        const { calls } = installFetch({
+            subscriptions: [
+                { id: 'bad', endpoint: 'http://evil.example/x', p256dh: receiverP256dh, auth: receiverAuth },
+                { id: 'good', endpoint: 'https://push.example/one', p256dh: receiverP256dh, auth: receiverAuth },
+            ],
+        });
+        const res = await onRequestPost({ request: makeRequest({ body: webhookBody() }), env: makeEnv() });
+        expect(await res.json()).toEqual({ sent: 1, pruned: 0, failed: 1 });
+        expect(pushCalls(calls).map((c) => c.url)).toEqual(['https://push.example/one']);
+        expect(calls.some((c) => String(c.url).includes('evil.example'))).toBe(false);
     });
 });
 

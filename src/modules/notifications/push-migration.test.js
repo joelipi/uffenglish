@@ -67,7 +67,10 @@ describe('008_add_push_subscriptions.sql — webhook trigger', () => {
     });
 
     it('is inert until configured and when pg_net is absent', () => {
-        expect(sql).toContain("if v_url is null or btrim(v_url) = '' then");
+        expect(sql).toContain("if v_url is null or btrim(v_url) = ''");
+        // A URL without the shared secret could only earn a 401 — skip instead
+        // of spending the round trip.
+        expect(sql).toContain("or v_secret is null or btrim(v_secret) = '' then");
         expect(sql).toContain("to_regprocedure('net.http_post(text,jsonb,jsonb,jsonb,integer)') is null");
     });
 

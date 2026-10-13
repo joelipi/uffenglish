@@ -28,10 +28,5 @@ export function resolveVapidValue(envValue, fallback) {
     return typeof envValue === 'string' && envValue.trim() ? envValue.trim() : fallback;
 }
 
-/** True when a key is present and plausibly a base64url uncompressed P-256 point. */
-export function isUsableVapidPublicKey(value) {
-    // Shape check only (no Buffer/atob): the length/charset of a 65-byte
-    // base64url point. Actually decoding happens in the caller's environment
-    // (urlBase64ToUint8Array in the browser, base64url in the Function).
-    return typeof value === 'string' && /^[A-Za-z0-9_-]{80,120}$/.test(value.trim());
-}
+// Validating a key is `isUsableVapidKey` in push-logic.js (a real decode + the
+// 0x04 uncompressed-point check); this module only supplies the value.
