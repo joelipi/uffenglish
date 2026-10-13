@@ -273,6 +273,16 @@ Vault secrets, three Pages secrets, `wrangler.toml` `[vars]`).
 - **This feature is inert until configured.** Merging the migrations alone
   changes no behaviour: the trigger skips when Vault holds no webhook URL (or
   `pg_net` is absent), and the client hides the opt-in when no VAPID key is set.
+- **A real bug the tests could not catch:** the first version of the trigger put
+  `tg_op = 'INSERT' or …` in a trigger `WHEN` clause, which is invalid — `TG_OP`
+  exists only inside the trigger function, so `CREATE TRIGGER` failed with
+  `column "tg_op" does not exist`. Every static guard and the SQL truth-table
+  mirror passed; applying the migration to the real database is what caught it.
+  The INSERT-vs-UPDATE branching now lives in the function body and the `WHEN`
+  clause is gone. Migration 008 was therefore applied through the Supabase
+  Management API and recorded in `supabase_migrations.schema_migrations`, and its
+  behaviour was verified live on a scratch table (insert +1, mark-as-read 0,
+  rapid re-answer 0, late re-answer +1).
 - **Provisioned for this story (done, out-of-band — no secret is in the repo):**
   - `pg_net` 0.20.4 installed (`create extension if not exists pg_net`).
   - Vault holds `push_webhook_url` = `https://ultrafastfluency.com/api/push/send`

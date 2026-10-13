@@ -65,6 +65,11 @@ grant select, insert, delete on table public.push_subscriptions to authenticated
 
 -- Mirror one notification row to the push sender. Never raises: the
 -- notification insert is the primary write and must not depend on push.
+--
+-- The decisions live INSIDE the function rather than in a trigger WHEN clause,
+-- because `TG_OP` is only available in the function body — a WHEN expression may
+-- reference NEW/OLD but not TG_OP ("column tg_op does not exist"). Keeping it here
+-- also means one place to read the rule.
 create or replace function public.notify_push_on_notification()
 returns trigger
 language plpgsql
@@ -75,6 +80,21 @@ declare
   v_url text;
   v_secret text;
 begin
+  -- Only a first notification or a genuinely new answer is worth a push:
+  --   * marking a row read leaves created_at untouched      -> skip
+  --   * a re-answer inside the cooldown window is the same  -> skip (rate limit)
+  --     "I have a new answer" event, and is also what bounds a caller who loops
+  --     the (unthrottled, authenticated) record_friend_response() RPC.
+  -- A different friend is a different row, so it is an INSERT and always fires.
+  if tg_op = 'UPDATE' then
+    if new.created_at is not distinct from old.created_at then
+      return new;
+    end if;
+    if new.created_at <= old.created_at + interval '5 minutes' then
+      return new;
+    end if;
+  end if;
+
   -- Unconfigured (or Vault unavailable): silent no-op. This is what makes the
   -- migration safe to apply before the runbook steps are done.
   begin
@@ -129,28 +149,11 @@ revoke all on function public.notify_push_on_notification() from public, anon, a
 
 drop trigger if exists trg_user_notifications_push on public.user_notifications;
 
--- `WHEN` is load-bearing, for two independent reasons:
---
--- 1. record_friend_response()'s dedupe refresh sets created_at = now(), but the
---    recipient marking a row read only changes read_at. Comparing created_at is
---    what keeps "mark as read" from pushing an old notification.
--- 2. It is also the only rate limit on this path. record_friend_response() is
---    granted to `authenticated` with no throttle, and the upsert refreshes
---    created_at on every call, so without a cooldown a caller who knows a share
---    code could loop the RPC and emit one OS-level push per call to the victim's
---    devices. Requiring the *previous* notification to be at least 5 minutes old
---    bounds that to at most one push per (recipient, actor, type) per window.
---
--- The cooldown is deliberately per row: a *different* friend answering is a
--- different (recipient_id, actor_id, type), so it is an INSERT and still pushes
--- immediately. Only the same actor re-answering within the window is collapsed —
--- and even then the in-app row is still refreshed (read_at cleared, created_at
--- bumped); only the push is suppressed. Tune the interval here.
+-- No WHEN clause: the get-out conditions need TG_OP, which a WHEN expression
+-- cannot see (see the function above). The cost is one cheap function call on
+-- every notification write, including a mark-as-read.
+drop trigger if exists trg_user_notifications_push on public.user_notifications;
 create trigger trg_user_notifications_push
   after insert or update on public.user_notifications
   for each row
-  when (
-    tg_op = 'INSERT'
-    or new.created_at > old.created_at + interval '5 minutes'
-  )
   execute function public.notify_push_on_notification();

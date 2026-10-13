@@ -53,14 +53,23 @@ describe('008_add_push_subscriptions.sql — webhook trigger', () => {
         expect(sql).toContain('execute function public.notify_push_on_notification()');
     });
 
-    it('gates on created_at alone, which subsumes the mark-as-read case', () => {
-        // Marking a row read leaves created_at untouched, so the comparison
-        // below is false and no push fires for an old notification.
-        expect(sql).toContain("if v_url is null or btrim(v_url) = ''");
-        expect(sql).toContain("tg_op = 'INSERT'");
-        expect(sql).toContain("new.created_at > old.created_at + interval '5 minutes'");
-        // The old, weaker predicate must be gone.
-        expect(sql).not.toContain('is distinct from old.created_at');
+    it('decides inside the function body, never in a trigger WHEN clause', () => {
+        // `TG_OP` is only available in the function body — a trigger WHEN
+        // expression may reference NEW/OLD but not TG_OP, and a WHEN clause using
+        // it fails at CREATE TRIGGER time ("column tg_op does not exist"). This
+        // was caught by applying the migration to the real database.
+        expect(sql).toContain("if tg_op = 'UPDATE' then");
+        const trigger = sql.slice(sql.indexOf('create trigger trg_user_notifications_push'));
+        expect(trigger).not.toMatch(/\bwhen\b/i);
+        expect(sql).not.toMatch(/when \([^)]*tg_op/i);
+    });
+
+    it('skips mark-as-read, which leaves created_at untouched', () => {
+        expect(sql).toContain('new.created_at is not distinct from old.created_at');
+    });
+
+    it('skips a re-answer inside the cooldown window and allows a later one', () => {
+        expect(sql).toContain("new.created_at <= old.created_at + interval '5 minutes'");
     });
 
     describe('the cooldown predicate (executable spec of the WHEN clause)', () => {
@@ -72,7 +81,7 @@ describe('008_add_push_subscriptions.sql — webhook trigger', () => {
         const match = sql.match(/interval '(\d+) minutes'/);
         const cooldownMinutes = match ? Number(match[1]) : NaN;
 
-        /** `when (tg_op = 'INSERT' or new.created_at > old.created_at + interval …)` */
+        /** The function body's rule: UPDATE skips unless it is a later re-answer. */
         function pushFires({ op, createdAt, previousCreatedAt }) {
             if (op === 'INSERT') return true;
             const window = cooldownMinutes * 60 * 1000;
@@ -111,8 +120,8 @@ describe('008_add_push_subscriptions.sql — webhook trigger', () => {
     it('documents why the cooldown is per row, not per recipient', () => {
         // A different friend is a different (recipient, actor, type) => INSERT,
         // so the cooldown never delays a *new* person's answer.
-        expect(sql).toContain('a *different* friend answering is a');
-        expect(sql).toContain('Tune the interval here.');
+        expect(sql).toContain('A different friend is a different row');
+        expect(sql).toContain('cooldown window');
     });
 
     it('reads its endpoint and secret from Vault, not a client-readable GUC', () => {

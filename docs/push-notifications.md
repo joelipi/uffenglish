@@ -36,6 +36,7 @@ break the notification write.
 
 | Piece | Where | Value |
 |---|---|---|
+| Migration 008 | Supabase, **applied via the Management API** (not by the push) and recorded in `supabase_migrations.schema_migrations` | table + trigger |
 | `pg_net` | Supabase extension | `0.20.4` |
 | `push_webhook_url` | Supabase Vault | `https://ultrafastfluency.com/api/push/send` |
 | `push_webhook_secret` | Supabase Vault **and** the `PUSH_WEBHOOK_SECRET` Pages secret | 32 random bytes, base64url |
@@ -76,6 +77,28 @@ select vault.create_secret('https://ultrafastfluency.com/api/push/send',
 select vault.create_secret('<the same value as PUSH_WEBHOOK_SECRET>',
                            'push_webhook_secret', 'Shared secret for the webhook');
 ```
+
+## Verifying the trigger itself
+
+`push_subscriptions` and the trigger are verified against the live database, not
+just in the repo:
+
+```sql
+-- objects exist
+select (select count(*) from pg_tables where tablename='push_subscriptions') as tbl,
+       (select relrowsecurity from pg_class where relname='push_subscriptions') as rls,
+       (select count(*) from pg_trigger where tgname='trg_user_notifications_push' and not tgisinternal) as trg;
+```
+
+The trigger's *behaviour* was proved by attaching the same function to a scratch
+table (`create table _probe_notifications (like public.user_notifications
+including defaults)` + the trigger), running one insert, a mark-as-read update, a
+rapid re-answer and a backdated re-answer, and counting the sender's responses in
+`net._http_response` — observed: insert **+1**, mark-as-read **0**, rapid re-answer
+**0**, late re-answer **+1**, each answered `200` by the deployed Function. That
+also exercises the whole path (pg_net → HTTPS → Pages Function) in production.
+Note the queue table (`net.http_request_queue`) is drained asynchronously, so
+count *responses* (`net._http_response`, 6 h TTL), never queue rows.
 
 ## Verifying end to end
 
