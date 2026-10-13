@@ -99,6 +99,13 @@ describe('production build emits the PWA artefacts', () => {
         }
     });
 
+    it('imports the push handlers into the generated worker', () => {
+        // importScripts must survive the build: without it the worker has no
+        // push/notificationclick listener and nothing is ever delivered.
+        expect(read('sw.js')).toContain('importScripts("push-sw.js")');
+        expect(existsSync(path.join(DIST, 'push-sw.js')), 'dist/push-sw.js').toBe(true);
+    });
+
     it('wires the deny list into the emitted navigation route', () => {
         const sw = read('sw.js');
         // Both extensionless standalone forms must reach the emitted route —

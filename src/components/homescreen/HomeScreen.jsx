@@ -17,6 +17,7 @@ import FriendCoursesView from '../courses/FriendCoursesView.jsx';
 import NotificationsBell from './NotificationsBell.web.jsx';
 import LegalFooter from '../legal/LegalFooter.jsx';
 import PWAInstallButton from '../pwa/PWAInstallButton.web.jsx';
+import PushNotificationsOptIn from '../notifications/PushNotificationsOptIn.web.jsx';
 import headerLogo from '../../assets/img/uff-logo.png';
 
 export default function HomeScreen() {
@@ -280,6 +281,15 @@ export default function HomeScreen() {
                                 style={installBtnStyle}
                                 onBeforeOpen={closeMenu}
                             />
+                            {viewerId && viewerId !== 'guest' && (
+                                <PushNotificationsOptIn
+                                    lang={lang}
+                                    variant="menu-item"
+                                    userId={viewerId}
+                                    style={installBtnStyle}
+                                    onBeforeOpen={closeMenu}
+                                />
+                            )}
                         </nav>
                         <div style={{ flex: 1 }} />
                         {isLoggedIn ? (
@@ -296,6 +306,9 @@ export default function HomeScreen() {
             )}
 
             <div style={{ flex: 1, overflowY: 'auto' }}>
+                {viewerId && viewerId !== 'guest' && (
+                    <PushNotificationsOptIn lang={lang} variant="prompt" userId={viewerId} />
+                )}
                 <FriendCoursesView
                     lang={lang}
                     courses={courses}

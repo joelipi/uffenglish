@@ -1380,6 +1380,58 @@ const strings = {
         hi: "एक मित्र",
         bn: "একজন বন্ধু"
     },
+    // Web push (story 063). The push BODY reuses notifications_friend_response
+    // above (already translated); only the push-specific title and the opt-in
+    // prompt are new. Native-speaker review of the non-English drafts is a
+    // follow-up, as for stories 056/059/062.
+    'push_friend_response_title': {
+        en: "New video with your questions",
+        es: "Nuevo video con tus preguntas",
+        pt: "Novo vídeo com as suas perguntas",
+        fr: "Nouvelle vidéo avec vos questions",
+        hi: "आपके सवालों के साथ नया वीडियो",
+        bn: "আপনার প্রশ্নগুলো নিয়ে নতুন ভিডিও"
+    },
+    'push_optin_title': {
+        en: "Turn on notifications",
+        es: "Activar notificaciones",
+        pt: "Ativar notificações",
+        fr: "Activer les notifications",
+        hi: "सूचनाएँ चालू करें",
+        bn: "বিজ্ঞপ্তি চালু করুন"
+    },
+    'push_optin_body': {
+        en: "Get notified when a friend answers your questions.",
+        es: "Recibe un aviso cuando un amigo responda tus preguntas.",
+        pt: "Receba um aviso quando um amigo responder às suas perguntas.",
+        fr: "Recevez une notification quand un ami répond à vos questions.",
+        hi: "जब कोई मित्र आपके सवालों का जवाब दे, तो सूचना पाएँ।",
+        bn: "কোনো বন্ধু আপনার প্রশ্নের উত্তর দিলে আপনি বিজ্ঞপ্তি পাবেন।"
+    },
+    'push_optin_enable': {
+        en: "Enable",
+        es: "Activar",
+        pt: "Ativar",
+        fr: "Activer",
+        hi: "चालू करें",
+        bn: "চালু করুন"
+    },
+    'push_optin_dismiss': {
+        en: "Not now",
+        es: "Ahora no",
+        pt: "Agora não",
+        fr: "Plus tard",
+        hi: "अभी नहीं",
+        bn: "এখন নয়"
+    },
+    'push_optin_denied_hint': {
+        en: "Notifications are blocked. Allow them for this site in your browser settings.",
+        es: "Las notificaciones están bloqueadas. Permítelas para este sitio en los ajustes del navegador.",
+        pt: "As notificações estão bloqueadas. Permita-as para este site nas configurações do navegador.",
+        fr: "Les notifications sont bloquées. Autorisez-les pour ce site dans les réglages du navigateur.",
+        hi: "सूचनाएँ अवरुद्ध हैं। ब्राउज़र सेटिंग में इस साइट के लिए उन्हें अनुमति दें।",
+        bn: "বিজ্ঞপ্তি ব্লক করা আছে। ব্রাউজার সেটিংসে এই সাইটের জন্য অনুমতি দিন।"
+    },
     'profile_updated': {
         en: "Profile updated successfully.",
         es: "Perfil actualizado correctamente.",

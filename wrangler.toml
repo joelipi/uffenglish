@@ -36,3 +36,11 @@ MODAL_RENDER_URL = "https://joel-56422--uff-lesson-video-trigger.modal.run"
 # RESEND_API_KEY (the actual secret) lives in the Pages dashboard.
 EMAIL_FROM = "Ultrafast Fluency <welcome@ultrafastfluency.com>"
 SITE_URL = "https://ultrafastfluency.com"
+# Web Push (story 063). The VAPID PUBLIC key is public by design — it ships in
+# the client bundle as DEFAULT_VAPID_PUBLIC_KEY in
+# src/modules/notifications/push-config.js and is sent to the browser push
+# service — repeated here so the sender Function has an explicit runtime value.
+# Rotating a pair means updating this, push-config.js and the VAPID_PRIVATE_KEY
+# secret together (a mismatch makes every send fail).
+VAPID_PUBLIC_KEY = "BPACBWNJq2D9dZPrwyBVwEO0A3D3KfVCCSHaOjx_k1jy1SYedCBxMiebBvwieyjH4VYZx2-fr8sxRDvLPIC7aVM"
+VAPID_SUBJECT = "mailto:welcome@ultrafastfluency.com"
