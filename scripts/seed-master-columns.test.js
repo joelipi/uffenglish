@@ -226,8 +226,9 @@ describe('buildSeededCsv', () => {
         expect(config.lessons.map((l) => l.lessonId)).toEqual(['a', 'b', 'c', 'd', 'e', 'f']);
         for (const lesson of config.lessons) {
             expect(lesson.steps[0].responseType).toBe('lessonIntro');
-            expect(lesson.steps[lesson.steps.length - 1].responseType).toBe('success');
-            expect(lesson.steps[lesson.steps.length - 1].subtitles.en).toBe(success.en);
+            // The success step is code-owned (injected by the app per lesson
+            // type), so the generator never emits it from the seeded master.
+            expect(lesson.steps.some((s) => s.responseType === 'success')).toBe(false);
         }
         // The joined lesson b is one step spanning both option videos.
         const b = config.lessons.find((l) => l.lessonId === 'b');

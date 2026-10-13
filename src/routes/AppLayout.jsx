@@ -4,6 +4,7 @@ import { useStore } from 'zustand';
 import { useQuery } from '@tanstack/react-query';
 import { appStore } from '../modules/store/store.js';
 import { normalizeConfig, resolveConfigLanguage, isConfigLanguageSettled } from '../modules/bilingual/config-normalizer.js';
+import { applySuccessSteps } from '../modules/lesson/success-step.web.js';
 import { useAppBootstrap } from '../hooks/use-app-bootstrap-webonly.js';
 
 export default function AppLayout() {
@@ -36,7 +37,13 @@ export default function AppLayout() {
         if (!fetchedConfig || !userData || configData) return;
         if (!isConfigLanguageSettled({ isLoggedIn, guestLang })) return;
         const courseLevel = fetchedConfig.courseLevel || 'A0';
-        normalizeConfig(fetchedConfig, resolveConfigLanguage(guestLang, userData?.native_language));
+        const lang = resolveConfigLanguage(guestLang, userData?.native_language);
+        // normalizeConfig must run first: it migrates legacy `questions` to
+        // `steps`, which the success injection below needs to exist.
+        normalizeConfig(fetchedConfig, lang);
+        // The success step is code-owned (not authored per course): give every
+        // lesson the canonical video + captions for its type.
+        applySuccessSteps(fetchedConfig, lang);
         appStore.getState().setCourseData({ courseId, configData: fetchedConfig, courseLevel });
     }, [fetchedConfig, userData, guestLang, isLoggedIn]); // eslint-disable-line react-hooks/exhaustive-deps
 

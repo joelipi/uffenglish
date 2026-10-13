@@ -398,7 +398,7 @@ describe('generate-config-from-sheet master format', () => {
                         steps: [
                             { cue: '', responseType: 'lessonIntro', introBackgroundVideoUrl: 'intro' },
                             { responseType: 'friendClosedResponse', simpleVideoUrl: 'master-a01', cue: [{ en: 'Q1' }, { en: 'Q2' }] },
-                            { responseType: 'success', simpleVideoUrl: 'success', subtitles: { en: 'The end.' } },
+                            // No success step: it is code-owned (app-injected per lesson type).
                         ],
                     },
                     {

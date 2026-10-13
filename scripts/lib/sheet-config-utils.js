@@ -555,7 +555,11 @@ function buildMasterSteps(lessonRows) {
  */
 export function buildSteps(lessonRows, options = {}) {
     const master = options.master ?? headerKeys(lessonRows).includes('phrase');
-    return master ? buildMasterSteps(lessonRows) : buildAuthoringSteps(lessonRows);
+    const steps = master ? buildMasterSteps(lessonRows) : buildAuthoringSteps(lessonRows);
+    // The end-of-lesson success step is code-owned: the app injects it per lesson
+    // type (src/modules/lesson/success-step-logic.js), so a sheet success row or
+    // success_* column never produces a config step.
+    return steps.filter((step) => step.responseType !== 'success');
 }
 
 function buildAuthoringSteps(lessonRows) {
@@ -691,28 +695,15 @@ export function buildCourseConfig(rows) {
 }
 
 /**
- * The synthesized `success` step's subtitles from the course-scoped
- * `success_srt`/`success_srt_<lang>` columns (first non-blank). The value is
- * taken verbatim (unlike the pipeline's JSON-escaped `srt` column), matching the
- * canonical config the seed writes. Blank English -> undefined.
- */
-function successSubtitlesFor(rows) {
-    const en = firstNonBlank(rows, 'success_srt');
-    if (!en) return undefined;
-    const obj = { en };
-    for (const lang of SHEET_LANGUAGES) {
-        const v = firstNonBlank(rows, localizedColumn('success_srt', lang));
-        if (v) obj[lang] = v;
-    }
-    return obj;
-}
-
-/**
  * Assemble a course config from overlay-master rows: course/lesson scalars are
  * first-non-blank across the course/lesson, steps come from `buildMasterSteps`
- * (`join`/`video_file` grouping, `phrase` cue array), and the `lessonIntro` /
- * `success` steps are synthesized from `intro_video` / `success_video` when
- * present.
+ * (`join`/`video_file` grouping, `phrase` cue array), and the `lessonIntro` step
+ * is synthesized from `intro_video` when present.
+ *
+ * The end-of-lesson `success` step is NOT emitted: it is code-owned now (see
+ * src/modules/lesson/success-step-logic.js), injected by the app per lesson type
+ * with its own bundled captions. The sheet's `success_video`/`success_srt`
+ * columns are therefore unused by the generator.
  */
 function buildMasterCourseConfig(videoRows) {
     const courseId = firstNonBlank(videoRows, 'course_id');
@@ -763,13 +754,9 @@ function buildMasterCourseConfig(videoRows) {
         if (introVideo) {
             lesson.steps.unshift({ cue: '', responseType: 'lessonIntro', introBackgroundVideoUrl: introVideo });
         }
-        const successVideo = firstNonBlank(rowsForLesson, 'success_video');
-        if (successVideo) {
-            const successStep = { responseType: 'success', simpleVideoUrl: successVideo };
-            const subtitles = successSubtitlesFor(rowsForLesson);
-            if (subtitles !== undefined) successStep.subtitles = subtitles;
-            lesson.steps.push(successStep);
-        }
+        // No success step is emitted: it is code-owned (see
+        // src/modules/lesson/success-step-logic.js) and injected by the app per
+        // lesson type, so the sheet's success_video/success_srt are unused here.
         return lesson;
     });
 

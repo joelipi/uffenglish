@@ -1099,15 +1099,14 @@ describe('master format (overlay master)', () => {
         expect(steps(rows)[0]).toEqual({ cue: '', responseType: 'lessonIntro', introBackgroundVideoUrl: 'intro' });
     });
 
-    it('appends a synthesized success step from success_video + success_srt', () => {
+    it('does NOT synthesize a success step — it is code-owned now', () => {
         const rows = [{
             ...base, video_file: 'v', filename: 'f', order: '1', phrase: 'Q',
             success_video: 'success', success_srt: 'the end', success_srt_es: 'el fin',
         }];
-        const all = steps(rows);
-        expect(all[all.length - 1]).toEqual({
-            responseType: 'success', simpleVideoUrl: 'success', subtitles: { en: 'the end', es: 'el fin' },
-        });
+        // The success step is injected by the app (success-step-logic.js) per
+        // lesson type, so the sheet's success_* columns never reach the config.
+        expect(steps(rows).some((s) => s.responseType === 'success')).toBe(false);
     });
 
     it('omits a synthesized step when its video column is blank', () => {
@@ -1282,10 +1281,11 @@ describe('docs/video-pipeline/sample-sheet.csv round-trip', () => {
             { nextStep: 2, text: { en: 'Go to the mountains' } },
         ]);
         // The branching step is at index 3; each alternative carries nextStep so
-        // both land on the success step (index 6).
+        // both land on the end of the lesson — where the app appends the
+        // code-owned success step (index = lesson.steps.length).
         const branchIndex = lesson.steps.indexOf(branch);
         expect(branchIndex).toBe(3);
-        const successIndex = lesson.steps.findIndex((s) => s.responseType === 'success');
+        const successIndex = lesson.steps.length; // the app appends success here
         expect(successIndex).toBe(6);
         for (const choice of branch.chooseStep) {
             expect(branchIndex + choice.nextStep).toBeLessThan(successIndex + 1);
