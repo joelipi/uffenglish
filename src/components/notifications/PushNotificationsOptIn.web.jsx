@@ -128,10 +128,14 @@ export default function PushNotificationsOptIn({
         setHiddenNow(true);
     }, []);
 
+    // One definition for both variants: a denial is either the live permission
+    // (state) or the result the attempt just returned — the second covers the
+    // moment before the browser has reflected the new permission.
+    const blocked = state === 'blocked' || outcome === 'denied';
+
     if (state === 'hidden') return null;
 
     if (variant === 'menu-item') {
-        const blocked = state === 'blocked' || outcome === 'denied';
         return (
             <>
                 <button
@@ -167,7 +171,7 @@ export default function PushNotificationsOptIn({
             <p style={{ margin: '8px 0 12px', opacity: 0.85, fontSize: '14px' }}>
                 {Strings.get('push_optin_body', lang)}
             </p>
-            {(state === 'blocked' || outcome === 'denied') && (
+            {blocked && (
                 <p data-testid="push-outcome" style={{ margin: '0 0 10px', fontSize: '13px', color: '#ffb4b4' }}>
                     {Strings.get('push_optin_denied_hint', lang)}
                 </p>
@@ -177,7 +181,7 @@ export default function PushNotificationsOptIn({
                     type="button"
                     data-testid="push-enable"
                     onClick={handleEnable}
-                    disabled={busy || state === 'blocked'}
+                    disabled={busy || blocked}
                     style={{
                         flex: 1,
                         padding: '10px',

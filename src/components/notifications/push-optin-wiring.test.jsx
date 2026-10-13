@@ -114,7 +114,6 @@ describe('PushNotificationsOptIn — menu entry', () => {
 
     it('explains a denied permission instead of reusing the dismiss label', async () => {
         webOnly.subscribeResult = { ok: false, reason: 'denied' };
-        webOnly.justInstalled = true;
         const { container, unmount } = render(
             <PushNotificationsOptIn lang="en" variant="prompt" userId="user-1" />
         );
@@ -240,6 +239,23 @@ describe('PushNotificationsOptIn — installed-app prompt', () => {
         expect(container.querySelector('[data-testid="push-enable"]').disabled).toBe(true);
         expect(container.querySelector('[data-testid="push-outcome"]').textContent)
             .toBe(Strings.get('push_optin_denied_hint', 'en'));
+        unmount();
+    });
+
+    it('disables the prompt button in the same window the hint appears (no lag)', async () => {
+        // `outcome === 'denied'` with permission not yet reflected: hint AND
+        // disabled must agree across both variants.
+        webOnly.subscribeResult = { ok: false, reason: 'denied' };
+        webOnly.subscribe = vi.fn(async () => ({ ok: false, reason: 'denied' }));
+
+        const { container, unmount } = render(
+            <PushNotificationsOptIn lang="en" variant="prompt" userId="user-1" />
+        );
+        await flush();
+        await act(async () => { container.querySelector('[data-testid="push-enable"]').click(); });
+
+        expect(container.querySelector('[data-testid="push-outcome"]')).toBeTruthy();
+        expect(container.querySelector('[data-testid="push-enable"]').disabled).toBe(true);
         unmount();
     });
 
