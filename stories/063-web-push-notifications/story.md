@@ -90,7 +90,7 @@ suppress a non-gesture prompt, and iOS rejects it outright).
   would silently drop every re-answer; but a plain `AFTER INSERT OR UPDATE` also
   fires when the recipient marks a row read, which would push an *old*
   notification. The trigger therefore carries
-  `when (tg_op = 'INSERT' or new.created_at is distinct from old.created_at)`.
+  `when (tg_op = 'INSERT' or new.created_at > old.created_at + interval '5 minutes')`.
 - **The Function authenticates with a shared secret, not a user JWT.** The caller
   is Postgres via `pg_net`, which has no user session. `functions/api/push/send.js`
   requires `x-push-webhook-secret` to equal the `PUSH_WEBHOOK_SECRET` secret and
@@ -162,7 +162,7 @@ friend exports answer
 
 - the migration SQL (static guard, per `notifications-migration.test.js`)
   - → creates `public.push_subscriptions` with `user_id`, `endpoint`, `p256dh`, `auth`, `user_agent`, `created_at`
-  - → has a unique constraint on `endpoint` (one row per device, re-subscribe is an upsert)
+  - → is unique per `(user_id, endpoint)` — one row per device per user, so a shared device hosting two signed-in users keeps two rows and a re-subscribe replaces the owner's own row
   - → enables RLS and grants `select`/`insert`/`delete` to `authenticated` only
   - → every policy is owner-scoped (`auth.uid() = user_id`) for select, insert and delete
   - → indexes `user_id` for the sender's lookup
@@ -195,7 +195,7 @@ friend exports answer
 
 - the trigger migration SQL (static guard)
   - → creates an `AFTER INSERT OR UPDATE` trigger on `public.user_notifications`
-  - → carries `when (tg_op = 'INSERT' or new.created_at is distinct from old.created_at)` so the recipient marking a row **read** never pushes an old notification
+  - → carries `when (tg_op = 'INSERT' or new.created_at > old.created_at + interval '5 minutes')`: an INSERT (a different friend, or the first answer) always fires, a re-answer only fires once the previous one is ≥5 minutes old, and marking a row **read** never fires (it leaves `created_at` untouched)
   - → calls `net.http_post` with **named** arguments (`url :=`/`body :=`/`headers :=`/`timeout_milliseconds :=`) — the positional signature is `(url, body, params, headers, timeout)`, so a positional call would put headers into `params`
   - → reads the URL and secret from `vault.decrypted_secrets` (not `current_setting`/`supabase_functions`, neither of which is available/appropriate here — see Decisions)
   - → does nothing when the Vault entries are unset or `pg_net` is absent (`to_regprocedure` guard)
@@ -216,8 +216,8 @@ friend exports answer
 ### Task 5 - Client: subscribe + post-install permission prompt
 
 - pure logic (`src/modules/notifications/push-logic.js`, no React/DOM/window)
-  - → `shouldOfferPushNotifications({ supported, hasPublicKey, permission, isSubscribed })` is false for any unsupported/denied/already-subscribed input, true only when all are satisfied
-  - → `hasJustInstalled({ previousStandalone, isStandalone })` is true only on the false→true transition
+  - → `shouldOfferPushNotifications({ supported, isLoggedIn, hasVapidKey, isSubscribed })` is true only when all hold, and has **no** dismissal input (only being subscribed removes the offer)
+  - → `resolvePushPromptState(...)` is `hidden` when there is nothing to offer, `ready` when the button can subscribe, and `blocked` (still shown, button disabled, with the unblock hint) when the OS has already denied permission
   - → `buildPushNotificationPayload(...)` (or the sender-side equivalent) maps a `user_notifications` row to `{title, body, url}` and falls back to English for an unknown language
   - → `urlForNotification(row)` → the actor's public profile `/<actorShareCode>` (the inbox link), never an untrusted absolute URL
 - web-only subscribe module (`src/modules/notifications/push-subscription-webonly.js`)
@@ -225,10 +225,11 @@ friend exports answer
   - → on success it POSTs the subscription to `/api/push/subscribe` (or inserts into Supabase) once
   - → `urlBase64ToUint8Array` round-trips a VAPID key correctly (unit-tested against a fixed vector)
 - the UI
-  - → the `/home` menu shows a "Turn on notifications" entry only when `shouldOfferPushNotifications` is true
-  - → clicking it requests permission and subscribes, then the entry disappears
-  - → after `appinstalled` (or the first standalone launch) the app shows the prompt **once**, and never again in the same install
-  - → the prompt is dismissible and its dismissal is remembered
+  - → the `/home` menu shows a "Turn on notifications" entry only when there is something to offer (a signed-in user who never installed can still use it)
+  - → clicking it requests permission and subscribes, then the entry disappears (and stays gone once this device is subscribed)
+  - → an **installed** app shows the card on every launch while this device is not subscribed — "Not now" hides it for that session only, and a fresh mount offers it again
+  - → the card also appears in the *installing* tab as soon as `appinstalled` fires (Chromium; iOS relies on the standalone display mode)
+  - → a browser-level denial is surfaced as `blocked` (card + unblock hint + disabled button) rather than hidden
   - → no permission request happens without a user tap (asserted by a source guard that `requestPermission` is only called from a click handler)
 - copy
   - → new `strings.js` keys carry en/es/pt/fr/hi/bn with real Devanagari/Bengali

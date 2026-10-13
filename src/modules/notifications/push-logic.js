@@ -70,16 +70,6 @@ export function resolvePushPromptState(input = {}) {
     return input.permission === 'denied' ? 'blocked' : 'ready';
 }
 
-/**
- * Did the app *just* become an installed PWA? True only on the false→true
- * transition, which is what the post-install prompt hangs off (iOS has no
- * `appinstalled` event, so the same transition is detected from the display
- * mode on the next launch).
- */
-export function hasJustInstalled({ wasStandalone = false, isStandalone = false } = {}) {
-    return !wasStandalone && isStandalone;
-}
-
 /** The user-visible outcome of a subscribe attempt, for rendering. */
 export function describeSubscribeResult(result) {
     if (result && result.ok) return 'subscribed';

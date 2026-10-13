@@ -181,6 +181,7 @@ describe('push provisioning wiring', () => {
             'push_webhook_url',
             'push_webhook_secret',
             'net._http_response',
+            'Rotating',
         ]) {
             expect(runbook, step).toContain(step);
         }
