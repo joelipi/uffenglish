@@ -118,13 +118,6 @@
 
 ---
 
-## Cloudflare Pages serves `public/x.html` at `/x` and 308-redirects `/x.html`
-**Date**: 2026-10-04
-**Area**: build | workflow
-**What happened**: A vendored static page at `public/recorder.html` was marked `noindex` with a `public/_headers` rule scoped to `/recorder.html`, but Cloudflare Pages permanently redirects `/recorder.html` to the extensionless `/recorder` and serves the file there — so the header attached to the redirect response, not the page. A guard that scanned only the literal `recorder.html` token likewise missed an extensionless `/recorder` link. The code reviewer caught both.
-**Takeaway**: Static HTML in `public/` is served at its extensionless path (`public/landing.html` → `/landing`); a request for `/x.html` 308s to `/x`. Put `_headers` selectors on the served path (`/x`, optionally also `/x.html` for the redirect), and when guarding that a page stays unlinked, scan for both forms with a bounded pattern (`/\/x(?![\w.-])|x\.html/`, so a bare `MediaRecorder` is not a hit). An unlisted file is obscurity, not access control — noindex + unlinked does not stop someone who knows the URL; use Cloudflare Access if the page must be truly private.
-
----
 
 ## The apex was never really on Pages: an `active` custom domain over a stale origin A record
 **Date**: 2026-10-07
@@ -196,3 +189,14 @@
 **Area**: testing | build
 **What happened**: The tutorial placeholders (`scripts/generate-tutorial-placeholders.mjs`) wrote five 0-byte mp4s. The recorder code was correct in isolation (a 320×480 canvas recorded fine), so the failure looked like a codec or headless problem; bisecting the page showed it was the *painting*, not the recording: Chrome emits a canvas frame only when the canvas **changes**, so a page that draws once at load and then records produces a dataavailable event with an empty blob. A/B in one browser process — no draw after `captureStream()` = 0 bytes, draw after = 3.8 KB, `requestAnimationFrame` repaint loop = 17 KB for the same 2.5 s. Two side findings from the same session: Playwright's bundled ffmpeg is a stripped build (`--enable-muxer=webm`, vp8 only, no H.264/drawtext), so it cannot author or transcode an mp4 fixture, and `key={...}`-free JSX renders `controls` as `controls=""` which `toHaveAttribute('controls', '')` matches.
 **Takeaway**: When recording a canvas with `MediaRecorder`, repaint for the entire take (a `requestAnimationFrame` loop, cancelled before `stop()`), and treat a suspiciously tiny output as "no frames were emitted" rather than "bad codec". Diagnose page-level recording bugs by bisecting the *page* (draw vs no draw, RAF vs static) inside one browser process — it is far faster than iterating on the encoder settings. Verify the artifact with a container probe (`mediabunny` `Input` reads `codedWidth`/`computeDuration` with no WebCodecs), not with file size.
+
+## The `user_notifications` dedupe makes a re-answer an UPDATE, and mark-as-read is also an UPDATE
+
+**Date**: 2026-10-13
+**Area**: architecture | supabase
+**What happened**: `record_friend_response()` (005) upserts on `(recipient_id, actor_id, type)`, so a second answer refreshes `created_at` and clears `read_at` via `ON CONFLICT DO UPDATE` — but the recipient clearing `read_at` is *also* an UPDATE on the same row. An `AFTER INSERT OR UPDATE` trigger on that table (e.g. story 063's push webhook) therefore fired on "mark as read" and would have pushed an old notification; an insert-only trigger would silently drop every re-answer.
+**Takeaway**: distinguish the two writes in the trigger itself:
+`after insert or update on public.user_notifications for each row when (tg_op = 'INSERT' or new.created_at is distinct from old.created_at)`.
+`read_at` is the only other writable column (005 grants `update (read_at)` only), so `created_at` is the reliable "this is a new/refreshed notification" signal. Any future consumer of this table needs the same guard.
+
+---
