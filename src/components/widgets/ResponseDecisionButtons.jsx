@@ -4,6 +4,7 @@ import { appStore } from '../../modules/store/store.js';
 import { getSpeechInputToggleCallback } from '../../modules/lesson/step-loader-callbacks.js';
 import { getResponseAnswerLabelKey } from '../../modules/video/response-decision-logic.js';
 import { replaySimpleVideo } from '../../modules/lesson/lesson-progression.js';
+import { createTutorialOpener } from '../../modules/video/tutorial-logic.js';
 import { getBilingual } from '../../data/strings.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
 import ChoiceColumn from './ChoiceColumn.jsx';
@@ -36,9 +37,13 @@ export default function ResponseDecisionButtons() {
         appStore.getState().triggerPauseAllVideos();
     };
 
-    const handleTutorial = () => {
-        setShowTutorial(true);
-    };
+    // The step type comes from the step's own responseType, so a step type with
+    // no tutorial video never opens the modal. Opening the modal pauses the
+    // lesson underneath (TutorialModal's mount effect) — the single pause site.
+    const handleTutorial = createTutorialOpener({
+        stepType: currentVideo?.responseType,
+        onOpen: () => setShowTutorial(true),
+    });
 
     return (
         <>
@@ -78,7 +83,7 @@ export default function ResponseDecisionButtons() {
             </div>
 
             {showTutorial && (
-                <TutorialModal onClose={() => setShowTutorial(false)} />
+                <TutorialModal stepType={currentVideo?.responseType} onClose={() => setShowTutorial(false)} />
             )}
         </>
     );

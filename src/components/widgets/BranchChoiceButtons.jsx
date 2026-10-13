@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { getBilingual } from '../../data/strings.js';
 import { useNativeLanguage } from '../../hooks/use-native-language.js';
+import { createTutorialOpener } from '../../modules/video/tutorial-logic.js';
 import ChoiceColumn from './ChoiceColumn.jsx';
 import TutorialModal from './TutorialModal.jsx';
 
@@ -13,6 +14,15 @@ export default function BranchChoiceButtons({ view, onChoose, onReplay, onContin
     const labelLang = useNativeLanguage();
     const choices = view?.choices || [];
     const continueLabel = getBilingual('continue', labelLang);
+
+    // This row only renders for a `branching` step, so the tutorial's step type
+    // is fixed; the opener still runs the supported-type check so an unknown
+    // type can never reach the modal. Opening the modal pauses the lesson
+    // underneath (TutorialModal's mount effect) — the single pause site.
+    const handleTutorial = createTutorialOpener({
+        stepType: 'branching',
+        onOpen: () => setShowTutorial(true),
+    });
 
     return (
         <>
@@ -53,14 +63,14 @@ export default function BranchChoiceButtons({ view, onChoose, onReplay, onContin
                 </div>
 
                 <ChoiceColumn label={getBilingual('watch_tutorial', labelLang)}>
-                    <button className="btn call-btn" id="branchTutorialBtn" aria-label="Watch Tutorial" onClick={() => setShowTutorial(true)}>
+                    <button className="btn call-btn" id="branchTutorialBtn" aria-label="Watch Tutorial" onClick={handleTutorial}>
                         <i className="bi bi-book-fill"></i>
                     </button>
                 </ChoiceColumn>
             </div>
 
             {showTutorial && (
-                <TutorialModal onClose={() => setShowTutorial(false)} />
+                <TutorialModal stepType="branching" onClose={() => setShowTutorial(false)} />
             )}
         </>
     );
