@@ -7,6 +7,8 @@ import {
     parseCsv,
     serializeCsv,
     csvField,
+    serializeWithHeaderLine,
+    rawHeaderLine,
     isVideoRow,
     buildSteps,
     buildCourseConfig,
@@ -1369,5 +1371,25 @@ describe('serializeCsv (the file-commit writers)', () => {
     it('resolves a row missing a header to "" (never "undefined")', () => {
         const { rows } = parseCsv(serializeCsv(['a', 'b'], [{ a: 'x' }]));
         expect(rows).toEqual([{ a: 'x', b: '' }]);
+    });
+});
+
+describe('serializeWithHeaderLine (header-casing-preserving rewrites)', () => {
+    it('keeps the exact header bytes while quoting body cells', () => {
+        const out = serializeWithHeaderLine('a,BgSound,c', ['a', 'bgsound', 'c'], [
+            { a: 'x,y', bgsound: 'S', c: '' },
+        ]);
+        expect(out).toBe('a,BgSound,c\n"x,y",S,\n');
+    });
+
+    it('reads the first physical line even with quoted commas and CRLF', () => {
+        expect(rawHeaderLine('"a,b",c\r\n1,2\r\n')).toBe('"a,b",c');
+        expect(rawHeaderLine('a,b\n1,2\n')).toBe('a,b');
+    });
+
+    it('round-trips a rewrite with zero diff when no cell changes', () => {
+        const text = 'a,BgSound\n"x,y",S\nplain,T\n';
+        const { headers, rows } = parseCsv(text);
+        expect(serializeWithHeaderLine(rawHeaderLine(text), headers, rows)).toBe(text);
     });
 });

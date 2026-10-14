@@ -36,7 +36,7 @@ function assertPipelineContract(text) {
     expect(srt).toContain('uses: ./.github/workflows/sync-srt.yml');
     expect(srt).toContain('secrets: inherit');
     const translate = jobBlock(text, 'translate');
-    expect(translate).toContain('uses: ./.github/workflows/translate-sheet.yml');
+    expect(translate).toContain('uses: ./.github/workflows/translate-master.yml');
     expect(translate).toContain('needs: srt');
     expect(translate).toContain('secrets: inherit');
     const configs = jobBlock(text, 'configs');
@@ -85,7 +85,7 @@ describe('pipeline.yml source guard', () => {
         const required = [
             'repository_dispatch:', 'types: [render-complete]', 'workflow_dispatch:',
             'group: pipeline', 'queue: max',
-            './.github/workflows/sync-srt.yml', './.github/workflows/translate-sheet.yml',
+            './.github/workflows/sync-srt.yml', './.github/workflows/translate-master.yml',
             './.github/workflows/configs.yml', 'needs: srt', 'needs: translate',
             'secrets: inherit',
         ];
