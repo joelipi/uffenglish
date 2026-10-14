@@ -158,4 +158,13 @@ describe('Friends directory page', () => {
         expect(link.getAttribute('href')).toBe('/login?redirect=%2Ffriends');
         expect(container.querySelector('[data-testid="friends-list"]')).toBeNull();
     });
+
+    it('shows the spinner — never the login prompt — while the profile is still loading', () => {
+        apiMocks.useUserProfileImpl.mockReturnValue({ data: undefined, isLoading: true });
+        root = renderFriends();
+
+        expect(container.querySelector('[data-testid="friends-loading"]')).not.toBeNull();
+        expect(container.querySelector('[data-testid="friends-login-required"]')).toBeNull();
+        expect(container.querySelector('[data-testid="friends-list"]')).toBeNull();
+    });
 });

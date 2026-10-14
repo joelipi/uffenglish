@@ -1,6 +1,7 @@
 import { useNavigate, Link } from 'react-router-dom';
 import { useUserProfile, useFriendProfiles } from '../../modules/api/api.js';
 import { appStore } from '../../modules/store/store.js';
+import { useStore } from 'zustand';
 import Strings from '../../data/strings.js';
 import defaultProfilePic from '../../assets/img/userprofile.png';
 import { getFriendUserIds, buildFriendsList } from '../../modules/user/friends-logic.js';
@@ -72,12 +73,17 @@ function FriendRow({ friend, lang }) {
 export default function Friends() {
     const navigate = useNavigate();
     const { data: profile, isLoading: profileLoading } = useUserProfile();
-    const isGuest = !profile || profile.$id === 'guest';
+    // Settled-guest only: while the profile query is still loading `profile`
+    // is undefined, which must render the spinner — never the login prompt.
+    const isGuest = !profileLoading && (!profile || profile.$id === 'guest');
     const friendIds = isGuest ? [] : getFriendUserIds(profile);
     const { data: friendProfiles, isLoading: friendsLoading } = useFriendProfiles(friendIds);
 
-    const state = appStore.getState();
-    const lang = (state.guestNativeLanguage || profile?.native_language || state.userData?.native_language || 'en').toLowerCase();
+    // Subscribed (not one-shot `getState()`): the page re-renders when the
+    // guest language changes elsewhere. Same guest-first expression as HomeScreen.
+    const guestLang = useStore(appStore, (state) => state.guestNativeLanguage);
+    const userDataLang = useStore(appStore, (state) => state.userData?.native_language);
+    const lang = (guestLang || profile?.native_language || userDataLang || 'en').toLowerCase();
 
     const friends = isGuest ? [] : buildFriendsList({ profile, friendProfiles: friendProfiles ?? [], nowMs: Date.now() });
     const isLoading = profileLoading || (!isGuest && friendIds.length > 0 && friendsLoading);

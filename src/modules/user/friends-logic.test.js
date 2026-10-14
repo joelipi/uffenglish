@@ -3,6 +3,7 @@
 // directory, the badge, and the ordering are pinned here.
 import { describe, it, expect } from 'vitest';
 import {
+    normalizeFriendIds,
     getFriendUserIds,
     getFriendDisplayName,
     getFriendShareCode,
@@ -33,6 +34,18 @@ function expiredLinks(code = 'aaa111') {
         },
     };
 }
+
+describe('normalizeFriendIds', () => {
+    it('dedupes and drops non-string and blank ids', () => {
+        expect(normalizeFriendIds(['a', 'b', 'a', '', null, 42])).toEqual(['a', 'b']);
+    });
+
+    it('returns [] for non-array input', () => {
+        expect(normalizeFriendIds(null)).toEqual([]);
+        expect(normalizeFriendIds(undefined)).toEqual([]);
+        expect(normalizeFriendIds('a')).toEqual([]);
+    });
+});
 
 describe('getFriendUserIds', () => {
     it('unions friends and friend_owners with friends first', () => {

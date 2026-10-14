@@ -18,6 +18,11 @@ import { listActiveFriendLinks } from './friend-lesson-link-logic.js';
 // completed through the viewer's link), then `friend_owners` (people whose
 // link the viewer completed through). Blank entries and the viewer's own id
 // are dropped; malformed arrays count as empty, never throw.
+export function normalizeFriendIds(ids) {
+    if (!Array.isArray(ids)) return [];
+    return [...new Set(ids.filter((id) => typeof id === 'string' && id !== ''))];
+}
+
 export function getFriendUserIds(profile) {
     if (!profile || typeof profile !== 'object') return [];
     const selfId = profile.$id ?? profile.id;

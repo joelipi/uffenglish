@@ -1,6 +1,7 @@
 import { getCurrentUser, logout, supabase } from './supabase.js';
 import { getGeoInfo } from '../media/geo-service.js';
 import { upsertFriendLinkMap } from '../user/friend-lesson-link-logic.js';
+import { normalizeFriendIds } from '../user/friends-logic.js';
 
 export { getCurrentUser };
 import defaultProfilePic from '../../assets/img/userprofile.png';
@@ -335,8 +336,7 @@ export function useUserByShareCode(shareCode) {
 // Fail-open: an empty input resolves to [] without a query, and a query
 // failure resolves to [] so one outage hides the list instead of crashing it.
 export async function fetchUsersByIds(ids) {
-  if (!Array.isArray(ids) || ids.length === 0) return [];
-  const wanted = [...new Set(ids.filter((id) => typeof id === 'string' && id !== ''))];
+  const wanted = normalizeFriendIds(ids);
   if (wanted.length === 0) return [];
   try {
     const { data, error } = await supabase.from('public_profiles').select('*').in('id', wanted);
@@ -350,7 +350,7 @@ export async function fetchUsersByIds(ids) {
 }
 
 export function useFriendProfiles(ids) {
-  const wanted = Array.isArray(ids) ? [...new Set(ids.filter((id) => typeof id === 'string' && id !== ''))].sort() : [];
+  const wanted = normalizeFriendIds(ids).sort();
   return useQuery({
     queryKey: ['user', 'profiles', 'byIds', wanted.join('|')],
     queryFn: () => fetchUsersByIds(wanted),
