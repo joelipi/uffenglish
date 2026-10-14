@@ -229,3 +229,107 @@ describe('recorder page — recording duration cap', () => {
         expect(fn).toContain('global_recorder_obj.stop()');
     });
 });
+
+// Story 065, Task 2: the recorder loads the committed master CSV same-origin —
+// no Google Sheets fetch, no publish lag. The loader slice runs from
+// `loadScriptDataFromSheets` to the next top-level handler
+// (`node_btn_record.onclick`); slicing to EOF would let a block appended later
+// silently join this guard.
+describe('recorder page — same-origin master CSV', () => {
+    const page = () => fs.readFileSync(PAGE_PATH, 'utf8');
+
+    const loaderSlice = () => {
+        const html = page();
+        const start = html.indexOf('async function loadScriptDataFromSheets()');
+        const end = html.indexOf('node_btn_record.onclick');
+        expect(start, 'loadScriptDataFromSheets function').toBeGreaterThan(-1);
+        expect(end, 'next top-level handler').toBeGreaterThan(start);
+        return html.slice(start, end);
+    };
+
+    const assertLoaderContract = (slice) => {
+        expect(slice).toContain("var spreadsheet_url = 'wouldyourather.master.csv'");
+        expect(slice).not.toContain('docs.google.com');
+        expect(slice).not.toContain('2PACX');
+        expect(slice).not.toContain('gid=');
+        expect(slice).not.toMatch(/spreadsheet_url = 'https?:/);
+        // The offline path survives the URL swap: a failed fetch logs and
+        // returns instead of throwing.
+        expect(slice).toContain('CSV FETCH FAILED');
+    };
+
+    it('fetches a relative committed path with no Google reference', () => {
+        expect(() => assertLoaderContract(loaderSlice())).not.toThrow();
+    });
+
+    it('the guard can fail on each pinned token', () => {
+        const good = loaderSlice();
+        // Presence tokens: removing the relative URL trips the guard.
+        const noUrl = good.replace(
+            "var spreadsheet_url = 'wouldyourather.master.csv'",
+            "var spreadsheet_url = 'other.csv'"
+        );
+        expect(noUrl).not.toBe(good);
+        expect(() => assertLoaderContract(noUrl)).toThrow();
+        // Absence tokens: re-adding a Google reference trips the guard.
+        for (const injected of [
+            "var spreadsheet_url = 'https://docs.google.com/spreadsheets/d/e/2PACX/pub?gid=1&output=csv';",
+            '// fallback: docs.google.com',
+        ]) {
+            expect(() => assertLoaderContract(good + injected), injected).toThrow();
+        }
+    });
+
+    it('the relative URL resolves to the committed CSV from both served paths', async () => {
+        const html = page();
+        const match = /var spreadsheet_url = '([^']+)'/.exec(
+            html.slice(html.indexOf('async function loadScriptDataFromSheets()'))
+        );
+        expect(match, 'spreadsheet_url literal').not.toBeNull();
+        const literal = match[1];
+        expect(literal.startsWith('http')).toBe(false);
+        // Pages serves the page at both /recorder.html and /recorder; the
+        // relative fetch must land on /wouldyourather.master.csv either way.
+        for (const base of ['http://x/recorder.html', 'http://x/recorder']) {
+            expect(new URL(literal, base).pathname).toBe('/wouldyourather.master.csv');
+        }
+    });
+
+    it('the served CSV parses to the bridge take count through the blank-filename filter', async () => {
+        // Serves public/ over HTTP and runs the page's own loading contract:
+        // same-origin fetch + cache-buster, RFC-4180 parse, skip rows with a
+        // blank filename. Proves the wiring end to end without a browser.
+        const { createServer } = await import('node:http');
+        const server = createServer((req, res) => {
+            const urlPath = new URL(req.url, 'http://x').pathname;
+            const file = path.join(REPO_ROOT, 'public', decodeURIComponent(urlPath));
+            fs.readFile(file, (err, data) => {
+                if (err) { res.statusCode = 404; res.end('nope'); return; }
+                res.statusCode = 200;
+                res.end(data);
+            });
+        });
+        await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+        try {
+            const port = server.address().port;
+            const csv = await fetch(`http://127.0.0.1:${port}/wouldyourather.master.csv?t=${Date.now()}`)
+                .then((r) => {
+                    expect(r.status).toBe(200);
+                    return r.text();
+                });
+            const { parseCsv } = await import('../../../scripts/lib/sheet-config-utils.js');
+            const { rows } = parseCsv(csv);
+            const takes = rows.filter((r) => String(r.filename || '').trim() !== '');
+            // The committed store matches the bridge expansion exactly (pinned
+            // by generate-master-csv.test.js); the recorder sees every take.
+            const { parseSourceConfig, sourceToRows } = await import('../../../scripts/lib/source-bridge-utils.js');
+            const sourceText = fs.readFileSync(path.join(REPO_ROOT, 'wouldyourather.source.txt'), 'utf8');
+            const expected = sourceToRows(parseSourceConfig(sourceText))
+                .filter((r) => String(r.filename || '').trim() !== '').length;
+            expect(expected).toBeGreaterThan(0);
+            expect(takes.length).toBe(expected);
+        } finally {
+            server.close();
+        }
+    });
+});
