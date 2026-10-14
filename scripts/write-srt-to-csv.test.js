@@ -1,16 +1,20 @@
-// scripts/write-srt-to-sheet.test.js
-// Story 050, Task 5: the SRT write-back script with an injected Sheets client.
-// No live credential is used — the core pass takes fakes.
-import { describe, it, expect, vi } from 'vitest';
-import { execFileSync, spawnSync } from 'node:child_process';
+// scripts/write-srt-to-csv.test.js
+// Story 065, Task 5: the SRT write-back script merges `video_data.csv` into
+// the committed master CSV. The step-key planner is unchanged (ported with the
+// failable pre-fix guard); the write passes through the file merge.
+// No live credential is used — the core pass is pure.
+import { describe, it, expect } from 'vitest';
+import { execFile, execFileSync, spawnSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
     groupKeyForRow,
     groupPrefixForFilename,
     planSrtWrites,
-    runWriteSrtToSheet,
-} from './write-srt-to-sheet.mjs';
+    runWriteSrtToCsv,
+} from './write-srt-to-csv.mjs';
 import { parseCsv } from './lib/sheet-config-utils.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -73,22 +77,12 @@ function planByFilename({ csvText, rows, sheetRows } = {}) {
     return plan;
 }
 
-const SHEET_VALUES = [
+const MASTER_ROWS = [
     ['filename', 'video_file', 'srt'],
     ['clip_a01', 'group-a', 'old1'],
     ['clip_a02', 'group-a', ''],
     ['clip_b01', 'group-b', 'keepme'],
 ];
-
-function makeClient() {
-    return {
-        getValues: vi.fn(async () => ({ values: SHEET_VALUES })),
-        getSpreadsheet: vi.fn(async () => ({
-            sheets: [{ properties: { sheetId: 242913338, title: 'Sheet1' } }],
-        })),
-        batchUpdate: vi.fn(async () => ({ data: {} })),
-    };
-}
 
 // Story 050: the write-back must key by exactly the pipeline's step key
 // (`video_file`, fallback filename prefix) so the SRT targets the groups the
@@ -123,7 +117,7 @@ describe('group key parity with the pipeline', () => {
 });
 
 describe('planSrtWrites', () => {
-    const sheetRows = () => SHEET_VALUES.slice(1).map((r) => ({ filename: r[0], video_file: r[1] }));
+    const sheetRows = () => MASTER_ROWS.slice(1).map((r) => ({ filename: r[0], video_file: r[1] }));
 
     it('writes every sheet row of a group matched by its own step key', () => {
         const plan = planSrtWrites({ csvText: CSV, rows: sheetRows(), sheetRows: [2, 3, 4] });
@@ -175,37 +169,106 @@ describe('planSrtWrites', () => {
     });
 });
 
-describe('runWriteSrtToSheet', () => {
-    it('issues exactly one RAW batchUpdate with one range per written cell', async () => {
-        const client = makeClient();
-        const res = await runWriteSrtToSheet({
-            sheetId: 'S', tab: 'Sheet1', csvText: CSV, ...client, log: () => {},
+describe('runWriteSrtToCsv', () => {
+    const masterOf = (srtA = '', srtB = '') => [
+        'filename,video_file,srt',
+        `clip_a01,group-a,${srtA}`,
+        'clip_a02,group-a,',
+        `clip_b01,group-b,${srtB}`,
+    ].join('\n');
+
+    it('merges the rendered group srt into every matching master row', async () => {
+        const messages = [];
+        const res = await runWriteSrtToCsv({
+            videoDataText: CSV, masterText: masterOf(), log: (m) => messages.push(String(m)),
         });
-        expect(client.batchUpdate).toHaveBeenCalledTimes(1);
-        const request = client.batchUpdate.mock.calls[0][0];
-        expect(request.spreadsheetId).toBe('S');
-        expect(request.requestBody.valueInputOption).toBe('RAW');
-        expect(request.requestBody.data).toEqual([
-            { range: "'Sheet1'!C2", values: [[SRT]] },
-            { range: "'Sheet1'!C3", values: [[SRT]] },
-        ]);
-        expect(res.written).toBe(2);
+        expect(res.applied).toBe(2);
+        const { rows } = parseCsv(res.csv);
+        expect(rows[0].srt).toBe(SRT);
+        expect(rows[1].srt).toBe(SRT);
+        expect(rows[2].srt).toBe('');
+        expect(messages.join('\n')).toContain('wrote 2 srt cell(s)');
     });
 
-    it('is idempotent: a second run writes the same values without error', async () => {
-        const client = makeClient();
-        await runWriteSrtToSheet({ sheetId: 'S', tab: 'Sheet1', csvText: CSV, ...client, log: () => {} });
-        await runWriteSrtToSheet({ sheetId: 'S', tab: 'Sheet1', csvText: CSV, ...client, log: () => {} });
-        expect(client.batchUpdate).toHaveBeenCalledTimes(2);
-        const first = client.batchUpdate.mock.calls[0][0].requestBody;
-        const second = client.batchUpdate.mock.calls[1][0].requestBody;
-        expect(second).toEqual(first);
+    it('is a no-op returning null when no rendered group matches', async () => {
+        const res = await runWriteSrtToCsv({
+            videoDataText: 'filename,video_file,srt\nzzz01,zzz,\n',
+            masterText: masterOf(),
+            log: () => {},
+        });
+        expect(res.plan).toEqual([]);
+        expect(res.applied).toBe(0);
+        expect(res.csv).toBeNull();
     });
 
-    it('resolves the default tab from the published gid when --tab is absent', async () => {
-        const client = makeClient();
-        await runWriteSrtToSheet({ sheetId: 'S', csvText: CSV, ...client, log: () => {} });
-        expect(client.getSpreadsheet).toHaveBeenCalledWith({ spreadsheetId: 'S' });
-        expect(client.batchUpdate.mock.calls[0][0].requestBody.data[0].range).toBe("'Sheet1'!C2");
+    it('never clears a cell: blank rendered groups leave stored values alone', async () => {
+        const res = await runWriteSrtToCsv({
+            videoDataText: CSV, masterText: masterOf('', 'keepme'), log: () => {},
+        });
+        expect(parseCsv(res.csv).rows[2].srt).toBe('keepme');
+    });
+
+    it('overwrites a stale stored srt unconditionally (srt is derived)', async () => {
+        const res = await runWriteSrtToCsv({
+            videoDataText: CSV, masterText: masterOf('old1'), log: () => {},
+        });
+        expect(parseCsv(res.csv).rows[0].srt).toBe(SRT);
+    });
+
+    it('preserves the committed header casing', async () => {
+        const master = 'filename,video_file,bgSound,srt\nclip_a01,group-a,S,\n';
+        const res = await runWriteSrtToCsv({ videoDataText: CSV, masterText: master, log: () => {} });
+        expect(res.csv.split('\n')[0]).toBe('filename,video_file,bgSound,srt');
+    });
+});
+
+describe('write-srt-to-csv CLI', () => {
+    const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+    const SCRIPT = path.join(ROOT, 'scripts/write-srt-to-csv.mjs');
+    const tmpDir = () => mkdtempSync(path.join(os.tmpdir(), 'uff-srtcsv-'));
+    const run = (args) => new Promise((resolve) => {
+        execFile('node', [SCRIPT, ...args], (err, stdout, stderr) => {
+            resolve({ code: err ? err.code : 0, stdout, stderr });
+        });
+    });
+
+    it('--help exits 0 and documents --csv/--master', async () => {
+        const { code, stdout } = await run(['--help']);
+        expect(code).toBe(0);
+        expect(stdout).toContain('--csv=');
+        expect(stdout).toContain('--master=');
+    });
+
+    it('requires --csv', async () => {
+        const { code, stderr } = await run([]);
+        expect(code).not.toBe(0);
+        expect(stderr).toContain('--csv=<path> is required');
+    });
+
+    it('writes the merged master file and leaves no temp behind', async () => {
+        const dir = tmpDir();
+        try {
+            const csv = path.join(dir, 'video_data.csv');
+            const master = path.join(dir, 'master.csv');
+            writeFileSync(csv, CSV);
+            writeFileSync(master, ['filename,video_file,srt', 'clip_a01,group-a,', 'clip_b01,group-b,'].join('\n'));
+            const { code, stdout } = await run([`--csv=${csv}`, `--master=${master}`]);
+            expect(code).toBe(0);
+            expect(stdout).toContain(`WROTE ${master}`);
+            const { rows } = parseCsv(readFileSync(master, 'utf8'));
+            expect(rows[0].srt).toBe(SRT);
+            expect(rows[1].srt).toBe('');
+        } finally { rmSync(dir, { recursive: true, force: true }); }
+    });
+
+    it('a missing master file exits non-zero with ERROR', async () => {
+        const dir = tmpDir();
+        try {
+            const csv = path.join(dir, 'video_data.csv');
+            writeFileSync(csv, CSV);
+            const { code, stderr } = await run([`--csv=${csv}`, `--master=${path.join(dir, 'nope.csv')}`]);
+            expect(code).not.toBe(0);
+            expect(stderr).toContain('ERROR:');
+        } finally { rmSync(dir, { recursive: true, force: true }); }
     });
 });
