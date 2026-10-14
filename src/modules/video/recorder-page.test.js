@@ -351,24 +351,24 @@ describe('recorder page — same-origin master CSV', () => {
         const dom = new JSDOM(html, {
             url: 'http://127.0.0.1:9/recorder.html',
             runScripts: 'dangerously',
-            beforeParse(window) {
-                window.fetch = async (url) => {
+            beforeParse(pageWindow) {
+                pageWindow.fetch = async (url) => {
                     fetchedUrls.push(String(url));
                     return fetchImpl(String(url));
                 };
             },
         });
-        const { window } = dom;
-        expect(typeof window.onload, 'boot handler').toBe('function');
-        expect(window.global_script_phrases, 'take list starts empty').toEqual([]);
+        const { window: win } = dom;
+        expect(typeof win.onload, 'boot handler').toBe('function');
+        expect(win.global_script_phrases, 'take list starts empty').toEqual([]);
         // The window `load` event (fired by the DOM itself after parse) boots
-        // the page exactly once — do NOT call window.onload() manually here,
+        // the page exactly once — do NOT call win.onload() manually here,
         // or the CSV is fetched twice.
         await new Promise((resolve) => {
-            if (window.document.readyState === 'complete') resolve();
-            else window.addEventListener('load', () => resolve(), { once: true });
+            if (win.document.readyState === 'complete') resolve();
+            else win.addEventListener('load', () => resolve(), { once: true });
         });
-        return { window, dom, fetchedUrls };
+        return { win, dom, fetchedUrls };
     };
 
     const waitFor = async (cond, what) => {
@@ -381,35 +381,35 @@ describe('recorder page — same-origin master CSV', () => {
 
     it('loads 108 takes through the real page script with no Google fetch', async () => {
         const csv = fs.readFileSync(path.join(REPO_ROOT, 'public/wouldyourather.master.csv'), 'utf8');
-        const { window, dom, fetchedUrls } = await bootPage(async () => ({ ok: true, text: async () => csv }));
+        const { win, dom, fetchedUrls } = await bootPage(async () => ({ ok: true, text: async () => csv }));
         try {
-            await waitFor(() => window.global_script_phrases.length > 0, 'take list');
+            await waitFor(() => win.global_script_phrases.length > 0, 'take list');
             // The acceptance count: every filename-bearing row becomes a take.
-            expect(window.global_script_phrases.length).toBe(108);
-            expect(window.global_script_phrases.every((e) => String(e.filename || '').trim() !== '')).toBe(true);
+            expect(win.global_script_phrases.length).toBe(108);
+            expect(win.global_script_phrases.every((e) => String(e.filename || '').trim() !== '')).toBe(true);
             // One same-origin fetch for the committed CSV — never Google.
             expect(fetchedUrls).toHaveLength(1);
             expect(fetchedUrls[0]).toContain('wouldyourather.master.csv');
             expect(fetchedUrls[0]).toContain('?t=');
             expect(fetchedUrls[0]).not.toContain('docs.google');
             // The display synced to the first take (loader ran to completion).
-            expect(window.document.getElementById('dom-progress-count').textContent).toContain('/ 108');
+            expect(win.document.getElementById('dom-progress-count').textContent).toContain('/ 108');
         } finally {
-            dom.window.close();
+            win.close();
         }
     });
 
     it('logs CSV FETCH FAILED without throwing when the fetch fails', async () => {
-        const { window, dom } = await bootPage(async () => { throw new Error('offline'); });
+        const { win, dom } = await bootPage(async () => { throw new Error('offline'); });
         try {
             await waitFor(
-                () => window.document.getElementById('dom-debug-log').textContent.includes('CSV FETCH FAILED'),
+                () => win.document.getElementById('dom-debug-log').textContent.includes('CSV FETCH FAILED'),
                 'fetch-failure log'
             );
             // No partial state: the take list stays empty.
-            expect(window.global_script_phrases.length).toBe(0);
+            expect(win.global_script_phrases.length).toBe(0);
         } finally {
-            dom.window.close();
+            win.close();
         }
     });
 });
