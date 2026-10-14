@@ -157,12 +157,19 @@ export function readNativeInstallAvailability() {
  * in which case the caller falls back to opening the dialog.
  */
 export async function installDirectly(element) {
-    if (!element || typeof element.install !== 'function') return false;
     try {
+        if (!element || typeof element.install !== 'function') return false;
         await element.install();
         return true;
     } catch (err) {
         // Dismissing the native sheet aborts the request: respect it silently.
+        // Contract, verified per backend: `navigator.install()` rejects with
+        // `AbortError` when the user exits the flow (other rejections —
+        // `DataError`, `NotAllowedError`, `InvalidStateError` — are technical
+        // failures); the legacy `beforeinstallprompt.prompt()` never rejects on
+        // dismiss, it resolves with `userChoice: { outcome: 'dismissed' }`. So
+        // `AbortError` is the only dismissal-shaped rejection, and everything
+        // else falls back to the dialog.
         if (err && err.name === 'AbortError') return true;
         console.error('[PWA] Direct install failed:', err);
         return false;

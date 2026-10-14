@@ -35,10 +35,19 @@ function render(element) {
     };
 }
 
+const userAgentDescriptor = Object.getOwnPropertyDescriptor(window.navigator, 'userAgent')
+    ?? Object.getOwnPropertyDescriptor(Object.getPrototypeOf(window.navigator), 'userAgent');
+
+function setUserAgent(value) {
+    Object.defineProperty(window.navigator, 'userAgent', { value, configurable: true });
+}
+
 afterEach(() => {
     registerInstallElement(null);
     delete window.matchMedia;
     appStore.getState().setGuestNativeLanguage(null);
+    if (userAgentDescriptor) Object.defineProperty(window.navigator, 'userAgent', userAgentDescriptor);
+    else delete window.navigator.userAgent;
     vi.restoreAllMocks();
 });
 
@@ -125,12 +134,7 @@ describe('PWAInstallButton', () => {
     });
 
     it('goes straight to the system install UI on Android with a live native path', async () => {
-        const userAgent = Object.getOwnPropertyDescriptor(window.navigator, 'userAgent')
-            ?? Object.getOwnPropertyDescriptor(Object.getPrototypeOf(window.navigator), 'userAgent');
-        Object.defineProperty(window.navigator, 'userAgent', {
-            value: 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/131.0 Mobile Safari/537.36',
-            configurable: true,
-        });
+        setUserAgent('Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/131.0 Mobile Safari/537.36');
         window.defferedPromptEvent = { prompt: () => {} };
         const install = vi.fn(async () => {});
         const showDialog = vi.fn();
@@ -151,32 +155,49 @@ describe('PWAInstallButton', () => {
             unmount();
         } finally {
             delete window.defferedPromptEvent;
-            if (userAgent) Object.defineProperty(window.navigator, 'userAgent', userAgent);
-            else delete window.navigator.userAgent;
+        }
+    });
+
+    it('ignores a second tap while the native install is still in flight', async () => {
+        setUserAgent('Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/131.0 Mobile Safari/537.36');
+        window.defferedPromptEvent = { prompt: () => {} };
+        let release;
+        const gate = new Promise((resolve) => { release = resolve; });
+        const install = vi.fn(() => gate);
+        registerInstallElement({ showDialog: vi.fn(), install });
+        const { container, unmount } = render(<PWAInstallButton label="Install app" />);
+        try {
+            const button = container.querySelector('[data-testid="install-app"]');
+            act(() => { button.click(); });
+            // The in-flight tap guards re-entry synchronously, so the second
+            // tap is a no-op even before any re-render lands.
+            act(() => { button.click(); });
+            await act(async () => { release(); });
+            expect(install).toHaveBeenCalledTimes(1);
+        } finally {
+            delete window.defferedPromptEvent;
+            unmount();
         }
     });
 
     it('falls back to the dialog on Android when no native path is live yet', async () => {
-        Object.defineProperty(window.navigator, 'userAgent', {
-            value: 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/131.0 Mobile Safari/537.36',
-            configurable: true,
-        });
+        setUserAgent('Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/131.0 Mobile Safari/537.36');
         const showDialog = vi.fn();
-        registerInstallElement({ showDialog, install: vi.fn(async () => {}) });
+        const install = vi.fn(async () => {});
+        registerInstallElement({ showDialog, install });
         const { container, unmount } = render(<PWAInstallButton label="Install app" />);
         try {
             await act(async () => { container.querySelector('[data-testid="install-app"]').click(); });
             expect(showDialog).toHaveBeenCalledWith(false);
+            expect(install).not.toHaveBeenCalled();
         } finally {
             unmount();
         }
     });
 
-    it('is fail-open when no dialog element is mounted', () => {
+    it('is fail-open when no dialog element is mounted', async () => {
         const { container, unmount } = render(<PWAInstallButton label="Install app" />);
-        expect(() => {
-            act(() => { container.querySelector('[data-testid="install-app"]').click(); });
-        }).not.toThrow();
+        await act(async () => { container.querySelector('[data-testid="install-app"]').click(); });
         unmount();
     });
 
