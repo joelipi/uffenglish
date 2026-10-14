@@ -34,7 +34,7 @@
 // ===========================================================================
 {
   "course": "wouldyourather",
-  "title": "Preferences in English A1➡B2",
+  "title": "Get $1 million or $5 million?",
   "hero": "src/assets/img/wouldyouratherhero.jpg",
   "video_title": "Preferences in English",
   "mission": "talk about preferences",
@@ -65,7 +65,7 @@
     {
       "ask": {
         "id": "a",
-        "title": "Ask: money vs. time, food vs. talk, beach vs. mountains"
+        "title": "Money, food, vacations"
       },
       "answer": {
         "id": "b",
@@ -75,8 +75,8 @@
         {
           "question": [
             "A million dollars today or five million dollars in five years?",
-            "Which is better: a million dollars today or five million dollars in five years?",
-            "Would you rather receive a million dollars today or wait five years and receive five million dollars ?",
+            "Which is better: getting a million dollars today or getting five million dollars in five years?",
+            "Would you rather receive a million dollars today or wait five years and receive five million dollars?",
             "Given the choice between accepting a million dollars today and waiting five years for five million dollars, which would you choose?"
           ],
           "choices": [
@@ -86,13 +86,13 @@
           "answers": [
             [
               "A million dollars today.",
-              "A million dollars today is better than five million dollars in five years.",
+              "Getting a million dollars today is better than getting five million dollars in five years.",
               "I would rather receive a million dollars today than wait five years for five million dollars.",
               "Given the choice between accepting a million dollars today and waiting five years for five million dollars, I would choose to accept a million dollars today."
             ],
             [
               "Five million dollars in five years.",
-              "Five million dollars in five years is better than a million dollars today.",
+              "Getting five million dollars in five years is better than getting a million dollars today.",
               "I would rather wait five years for five million dollars than receive one million dollars today.",
               "Given the choice between accepting a million dollars today and waiting five years for five million dollars, I would choose to wait."
             ]
