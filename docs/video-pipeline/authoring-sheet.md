@@ -1,12 +1,15 @@
-# Authoring sheet — sample and alternatives
+# Authoring — source file to master CSV
 
-The config generator (`scripts/generate-config-from-sheet.mjs`) reads a **published
-CSV** with one row per spoken sentence. `docs/video-pipeline/sample-sheet.csv` is a
-working example; import it into Google Sheets (File → Import → Upload) and edit it,
-or use any of the alternatives below.
+The lesson script lives in `wouldyourather.source.txt` (repo root, edited on the
+GitHub web UI). Saving it regenerates the committed `public/wouldyourather.master.csv`
+— one row per spoken sentence — and every consumer reads that file: the recorder
+fetches it same-origin, the config generator (`scripts/generate-config-from-sheet.mjs`)
+reads it from disk, and the Modal render fetches it over HTTP. There is no remote
+sheet anywhere in the loop.
 
-Regenerate the sample with `node scripts/write-sample-sheet.mjs` (it writes correct
-RFC-4180 quoting for the multi-line `srt`/`cue_alt` cells).
+`docs/video-pipeline/sample-sheet.csv` is a small authoring-shape example (kept as a
+test fixture). Regenerate it with `node scripts/write-sample-sheet.mjs` (it writes
+correct RFC-4180 quoting for the multi-line `srt`/`cue_alt` cells).
 
 ## Columns
 
@@ -15,7 +18,7 @@ columns reported):
 
 | Column | Meaning |
 |---|---|
-| `course_id` | Course slug (becomes `src/config/<course_id>.json`). One sheet may hold several. |
+| `course_id` | Course slug (becomes `src/config/<course_id>.json`). One CSV may hold several. |
 | `course_name` | Display name. Constant per course. |
 | `lesson_id` | Lesson slug. Constant within a lesson's rows. |
 | `lesson_title` | Lesson title. Constant within a lesson. |
@@ -49,7 +52,7 @@ columns reported):
 - **`choose_step_next` and `choose_step_text` must both be set** (or neither) and carry the
   same number of lines; each `choose_step_next` line must be an integer ≥ 1. Malformed choice
   data is a structural error: the offending course is **not generated** (the error names the
-  `video_file`) while other courses in the sheet still generate. The `choose_step_*` columns
+  `video_file`) while other courses in the CSV still generate. The `choose_step_*` columns
   are only valid on a `branching` step.
 - **`next_step` must be an integer ≥ 1** when set. A `branching` step with no `choose_step_*`
   still generates (the app falls back to a Continue button, which honors `next_step`).
@@ -57,8 +60,8 @@ columns reported):
 ## Overlay master → config fields
 
 The **overlay master** (`title_text, Order, phrase, subtitle_text, join, video_file, …`, the
-sheet the recorder and `video_pipeline.py` read) is the single source of truth for the app
-config too. The generator detects that shape by the `phrase` header and maps its columns to
+committed CSV the recorder and `video_pipeline.py` read) is the single source of truth for
+the app config too. The generator detects that shape by the `phrase` header and maps its columns to
 config fields:
 
 | Master column(s) | Config field |
@@ -94,12 +97,12 @@ describes the config output each row produces — `step "<key>"`, then any of
 
 ## Localization columns
 
-The sheet can carry translations alongside the English source. `scripts/translate-sheet.mjs`
+The master CSV carries translations alongside the English source. `scripts/translate-master-csv.mjs`
 reads the English columns, translates with DeepSeek (`deepseek-v4-flash`, via the shared
-client in `scripts/lib/deepseek.js`), and writes the results back into the per-language
-columns below. The config generator then reads those columns into the `{en,es,pt,bn}`
-objects the app localizes from. Run the Action from the Actions UI ("Translate Authoring
-Sheet" → Run workflow; it takes optional `dry_run` and `languages` inputs).
+client in `scripts/lib/deepseek.js`), and commits the results back into the file's
+per-language columns below. The config generator then reads those columns into the
+`{en,es,pt,bn}` objects the app localizes from. Run the Action from the Actions UI
+("Translate Master CSV" → Run workflow; it takes optional `dry_run` and `languages` inputs).
 
 | English source | New columns (`lang` ∈ `es`, `pt`, `bn`) | Config output |
 |---|---|---|
@@ -154,40 +157,32 @@ timings stay the caption pipeline's job — the translator never retimes. A step
   re-timed step costs one DeepSeek call per language). (A text-only English change with
   *unchanged* timings is not detectable this way; clear the `srt_<lang>` cell or run the CLI
   with `--force` to retranslate.)
-- **The English source is never overwritten** and a sheet with none of these columns
+- **The English source is never overwritten** and a CSV with none of these columns
   generates English-only output exactly as before.
 
-**One-time setup (operator):** the Action writes with a Google **service account**.
+**One-time setup (operator):** the Action commits with the repo's push-capable bot
+token and translates with DeepSeek — no Google account involved.
 
-1. Create a Cloud service account and download its JSON key.
-2. Store the raw JSON as the Actions secret **`GOOGLE_SERVICE_ACCOUNT_JSON`** (raw JSON, not
-   base64 — it is parsed in memory and never written to disk).
-3. Open the sheet → **Share** → paste the service-account email
-   (`<name>@<project>.iam.gserviceaccount.com`) → grant **Editor**; do not enable "Notify
-   people".
-4. Store the spreadsheet id (`docs.google.com/spreadsheets/d/<ID>/edit`) as the repo
-   **variable** **`GOOGLE_SHEET_ID`** (a secret of the same name also works). The existing
-   **`DEEPSEEK_API_KEY`** secret is reused for the translations.
-
-The scope requested is exactly `https://www.googleapis.com/auth/spreadsheets`. The published
-CSV read path is separate and unaffected.
+1. Store a fine-grained PAT with **Contents: read and write** as the Actions
+   secret **`GH_NEW_TOKEN`** (the same bot token `configs.yml` uses).
+2. Store the DeepSeek key as **`DEEPSEEK_API_KEY`**.
 
 ## One-click pipeline (automatic)
 
-Once the render finishes, the sheet steps run automatically — the operator only
+Once the render finishes, the file steps run automatically — the operator only
 records takes and presses **render**:
 
 **record → render (Modal) → SRT write-back → translate → config generation**
 
-- **The render reads the published sheet directly.** The Modal orchestrator
-  fetches the sheet's published CSV over HTTP into its work dir, so there is
-  **no manual `video_data.csv` upload** before a render — the sheet is the
+- **The render reads the committed master CSV directly.** The Modal orchestrator
+  fetches the file over HTTP into its work dir, so there is
+  **no manual `video_data.csv` upload** before a render — the committed CSV is the
   render's input. `pipeline-assets/video_data.csv` is only a **post-render output**
   (the render writes the computed `srt` column into it and uploads it back for
-  `sync-srt.yml` to read). The published CSV lags a sheet edit by
-  minutes; the render runs after the operator records takes, so that is fine.
-  Point the render at another published CSV with `PIPELINE_SHEET_URL` (default:
-  the recorder's published master).
+  `sync-srt.yml` to read). The render reads the committed revision straight from
+  `raw.githubusercontent.com`, so a bot commit is live for the next render with
+  no publish delay. Point the render at another CSV with `PIPELINE_SHEET_URL`
+  (default: the committed master).
 - **Modal dispatches `render-complete`.** After a successful publish the
   orchestrator POSTs a GitHub `repository_dispatch` (`event_type:
   render-complete`). It is **best-effort**: if the secret's `GH_DISPATCH_REPO` /
@@ -210,49 +205,31 @@ records takes and presses **render**:
   workflows — `srt` → `translate` → `configs`, ordered by `needs:` — so a single
   event runs the whole chain. Each action stays independently runnable from the
   Actions UI.
-- **No published-CSV lag in the post-render chain.** `configs.yml` runs the
-  generator with `--from-api`, reading the sheet through the Sheets API so it
-  sees the `srt` and `phrase_*` cells the preceding jobs just wrote. The
-  published CSV still lags a Sheets API write by minutes; that affects the
-  render's sheet input and **manual** reads (the recorder, and the local
-  `npm run configs:generate` default), but the post-render chain is lag-free.
+- **No publish lag in the post-render chain.** Every job checks out the repo
+  fresh after the preceding job's push, so it sees the `srt` and translation
+  cells the earlier jobs just committed. The one freshness caveat left is the
+  recorder's copy: Pages serves the last deployed `dist/`, so a bot commit is
+  visible in `/recorder` only after `deploy.yml` finishes (**manual** reads of
+  the raw file or the render never wait).
 
 ## Editing the script on the GitHub web UI (push-the-button authoring)
 
 The friend-course script lives at `wouldyourather.source.txt` (repo root, on
 `main`). Edit it directly on the GitHub website — no local checkout, no
 commands. Saving the edit pushes to `main`, and
-`.github/workflows/source-to-sheet.yml` validates the source (JSON + structure)
-and syncs the derived rows into the operator sheet tab. A bad edit fails the
-run red with the reason; nothing is written. Then record takes and press
+`.github/workflows/source-to-csv.yml` validates the source (JSON + structure)
+and regenerates the committed `public/wouldyourather.master.csv` (translations
+carried over where their English source is byte-identical). A bad edit fails
+the run red with the reason; nothing is written. Then record takes and press
 render as usual — the one-click chain (SRT → translate → configs) is unchanged.
-The push trigger is `main`-only (an unreviewed branch never writes the shared
-tab); `--dry-run` still reads the tab list, so it needs the secret too.
+The push trigger is `main`-only (an unreviewed branch never rewrites the shared
+file).
 
-Setup (once): share the sheet with the writer service account as Editor, store
-its JSON key as the Actions secret `GOOGLE_SOURCE_SHEET_JSON` (or reuse the
-translator's existing service-account secret), and optionally pin
-`SOURCE_SHEET_ID` / `SOURCE_SHEET_TAB` repo variables (defaults: the
-`wouldyourather` tab).
+## Retired: remote sheets (history)
 
-## Not using Google Sheets
-
-The generator only needs a **URL that returns CSV**. Anything that serves a
-published CSV works; Google Sheets is just the default. Options:
-
-| Option | How | Notes |
-|---|---|---|
-| **Google Sheets** | File → Share → Publish to web → CSV | The default; the URL is pinned in `public/recorder.html` and the CLI. |
-| **GitHub repo file** | Commit the CSV (e.g. `docs/video-pipeline/sheet.csv`) and point at its `raw.githubusercontent.com` URL | Versioned with the code — a natural fit here. Works for the Action. |
-| **Cloudflare R2** | Put the CSV in the pipeline-assets bucket; point at its public URL | Already part of this stack. |
-| **Any static host** | Netlify/Vercel/GitHub Pages/etc. serving a `.csv` | Anything with a stable public URL. |
-| **A CMS / Airtable / Notion** | Use an export/CSV URL | Works if it emits real CSV. |
-
-To switch, pass `--sheet-url=<url>` to the CLI, and change the `SHEET_URL`
-constant (`scripts/generate-config-from-sheet.mjs`) and the recorder's
-`spreadsheet_url` (`public/recorder.html`) for the default. Both are source-guarded
-to match, so update them together.
-
-**Why not "just a file on the server":** this sandbox is ephemeral, so nothing
-lives here. Store the source of truth where it persists — a git-tracked CSV in this
-repo, R2, or a hosted sheet — and the generator reads it over HTTP.
+Up to story 064 the master lived in a published remote sheet: the recorder,
+generator, and render all fetched its CSV over HTTP (with a minutes-long
+publish lag), and the translator + SRT write-back wrote cells back through an
+API. Story 065 replaced it with the committed `public/wouldyourather.master.csv`
+— same columns, same consumers, no remote store, no extra secrets. Nothing in
+this guide refers to the old sheet anymore; `stories/` keeps the record.
