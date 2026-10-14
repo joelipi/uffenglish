@@ -46,6 +46,15 @@ describe('HomeLanding', () => {
         expect(q('landing-account-link').textContent).toBe('Sign In');
     });
 
+    it('renders no Privacy/Terms footer on the public homepage', () => {
+        // The legal links live in the sign-up surfaces and the /privacy,
+        // /terms routes; the homepage renders no legal footer.
+        render();
+        expect(container.querySelector('[data-testid="legal-footer"]')).toBeNull();
+        expect(container.querySelector('a[href="/privacy"]')).toBeNull();
+        expect(container.querySelector('a[href="/terms"]')).toBeNull();
+    });
+
     it('links a logged-in visitor to /home with the Home label', () => {
         render({ isLoggedIn: true });
         expect(q('landing-account-link').getAttribute('href')).toBe('/home');

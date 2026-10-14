@@ -62,7 +62,7 @@
 }
 
 /* Bootstrap's reboot maps body{…} onto the scope element, so this is the
-   homepage shell: one internally-scrolling column, footer at the bottom. */
+   homepage shell: one internally-scrolling column. */
 .uff-home-bs {
     min-height: 100dvh;
     height: 100dvh;
@@ -516,21 +516,4 @@
 .uff-teacher-photo--lg {
     width: 160px;
     height: 160px;
-}
-
-/* --- Footer ----------------------------------------------------------- */
-.uff-home-bs .uff-footer {
-    border-top: 1px solid var(--bs-border-color);
-    color: var(--bs-secondary-color);
-    font-size: 0.85rem;
-}
-
-.uff-home-bs .uff-footer a {
-    color: var(--bs-secondary-color);
-    text-decoration: none;
-}
-
-.uff-home-bs .uff-footer a:hover {
-    color: #00c0d8;
-    text-decoration: underline;
 }

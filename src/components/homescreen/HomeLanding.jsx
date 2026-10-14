@@ -7,7 +7,6 @@ import '../../generated/homepage-bootstrap.css';
 import 'animate.css/animate.min.css';
 import './home-landing.css';
 import Strings from '../../data/strings.js';
-import LegalFooter from '../legal/LegalFooter.jsx';
 import ConversationCarousel from './ConversationCarousel.jsx';
 import { splitItalicSegments } from './home-landing-logic.js';
 import { HOME_LANGUAGES } from '../../data/languages.js';
@@ -292,10 +291,6 @@ export default function HomeLanding({
                     </div>
                 </div>
             </section>
-
-            <div className="uff-footer py-4 mt-auto">
-                <LegalFooter lang={lang} />
-            </div>
         </div>
     );
 }

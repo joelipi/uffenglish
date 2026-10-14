@@ -31,9 +31,9 @@ vi.mock('../../modules/home/continue-logic.js', async (importOriginal) => {
     };
 });
 
-// HomeScreen pulls in the Supabase graph, PostHog, the notifications bell and
-// the legal footer. Mock the side-effecting ones so the top bar (brand logo) is
-// under test without a network or store bootstrap.
+// HomeScreen pulls in the Supabase graph, PostHog and the notifications bell.
+// Mock the side-effecting ones so the top bar (brand logo) is under test
+// without a network or store bootstrap.
 vi.mock('../../modules/api/api.js', () => ({
     useAuthStatus: () => ({ data: false }),
     useUserProfile: (...args) => apiMocks.useUserProfileImpl(...args),
@@ -43,7 +43,6 @@ vi.mock('../../modules/api/api.js', () => ({
 }));
 vi.mock('../../modules/utils/posthog.js', () => ({ trackEvent: vi.fn() }));
 vi.mock('./NotificationsBell.web.jsx', () => ({ default: () => null }));
-vi.mock('../legal/LegalFooter.jsx', () => ({ default: () => null }));
 vi.mock('../../modules/courses/friend-course-configs.js', () => ({
     configCourseId: (p) => String(p).replace(/^.*\//, '').replace(/\.json$/, ''),
     resolveCourseHeroImage: (ref) => ref,

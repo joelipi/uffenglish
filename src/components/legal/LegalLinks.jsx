@@ -1,7 +1,7 @@
 // src/components/legal/LegalLinks.jsx
 // Privacy Policy / Terms of Service links for sign-up surfaces (modal footers
-// and the standalone /signup form). Mirrors LegalFooter's markup but opens in a
-// new tab: the modals are store-driven native <dialog>s mounted once in
+// and the standalone /signup form). Renders the same two-label row but opens
+// in a new tab: the modals are store-driven native <dialog>s mounted once in
 // RootLayout, so a same-tab navigation would leave the dialog covering the
 // legal page and discard the half-filled form.
 import React from 'react';

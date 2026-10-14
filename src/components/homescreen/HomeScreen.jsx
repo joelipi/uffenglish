@@ -15,7 +15,6 @@ import {
 } from '../../modules/home/continue-logic.js';
 import FriendCoursesView from '../courses/FriendCoursesView.jsx';
 import NotificationsBell from './NotificationsBell.web.jsx';
-import LegalFooter from '../legal/LegalFooter.jsx';
 import PWAInstallButton from '../pwa/PWAInstallButton.web.jsx';
 import PushNotificationsOptIn from '../notifications/PushNotificationsOptIn.web.jsx';
 import headerLogo from '../../assets/img/uff-logo.png';
@@ -331,8 +330,6 @@ export default function HomeScreen() {
                     </button>
                 </div>
             )}
-
-            <LegalFooter lang={lang} />
         </div>
     );
 }
