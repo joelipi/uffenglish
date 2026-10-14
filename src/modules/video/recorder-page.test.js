@@ -413,3 +413,79 @@ describe('recorder page — same-origin master CSV', () => {
         }
     });
 });
+
+// The countdown overlay must actually paint: `contain: strict` (shipped in the
+// original vendored copy) collapses the auto-sized box to 0x0 and clips the
+// digits, so the timer runs invisibly. Guard the rule block (from the selector
+// to its closing brace) and drive one real pre-roll second.
+describe('recorder page — countdown overlay paints', () => {
+    const page = () => fs.readFileSync(PAGE_PATH, 'utf8');
+
+    const overlayRule = () => {
+        const html = page();
+        const start = html.indexOf('.huge-countdown-overlay {');
+        expect(start, 'overlay rule').toBeGreaterThan(-1);
+        const end = html.indexOf('}', start);
+        expect(end, 'rule closing brace').toBeGreaterThan(start);
+        return html.slice(start, end);
+    };
+
+    const assertOverlayContract = (rule) => {
+        expect(rule).toContain('translate(-50%, -50%)');
+        expect(rule).toContain('display: none');
+        expect(rule).not.toContain('contain: strict');
+        expect(rule).not.toContain('contain: paint');
+        expect(rule).not.toContain('contain: size');
+    };
+
+    it('centers without clipping containment', () => {
+        expect(() => assertOverlayContract(overlayRule())).not.toThrow();
+    });
+
+    it('the guard can fail on each pinned token', () => {
+        const good = overlayRule();
+        expect(() => assertOverlayContract(
+            good.replace('translate(-50%, -50%)', 'translateZ(0)')
+        )).toThrow();
+        for (const injected of [
+            'contain: strict;',
+            'contain: paint;',
+            'contain: size;',
+        ]) {
+            expect(() => assertOverlayContract(`${good}\n${injected}`), injected).toThrow();
+        }
+    });
+
+    it('pre-roll shows the countdown digit on the overlay', async () => {
+        const { JSDOM } = await import('jsdom');
+        const html = page();
+        const csv = fs.readFileSync(path.join(REPO_ROOT, 'public/wouldyourather.master.csv'), 'utf8');
+        const dom = new JSDOM(html, {
+            url: 'http://127.0.0.1:9/recorder.html',
+            runScripts: 'dangerously',
+            beforeParse(pageWindow) {
+                pageWindow.fetch = async () => ({ ok: true, text: async () => csv });
+            },
+        });
+        try {
+            const { window: win } = dom;
+            await new Promise((resolve) => {
+                if (win.document.readyState === 'complete') resolve();
+                else win.addEventListener('load', () => resolve(), { once: true });
+            });
+            expect(typeof win.startPreRollSequence, 'pre-roll entry').toBe('function');
+            win.startPreRollSequence();
+            // One real timer tick (1s countdown): the overlay must be up with
+            // a digit, not display:none with a stale "4".
+            await new Promise((r) => setTimeout(r, 1200));
+            const overlay = win.document.getElementById('dom-huge-countdown');
+            expect(overlay.style.display).toBe('block');
+            expect(overlay.textContent).toMatch(/^[1-3]$/);
+            expect(win.document.getElementById('dom-btn-record').textContent).toContain('WAIT');
+        } finally {
+            const { window: win } = dom;
+            if (win.global_countdown_timer) win.clearInterval(win.global_countdown_timer);
+            win.close();
+        }
+    });
+});
